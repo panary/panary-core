@@ -154,7 +154,6 @@ vite.config.*.timestamp*
 vitest.config.*.timestamp*
 
 # Angular
-.angular/cache
 .sass-cache/
 
 # Tauri

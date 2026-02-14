@@ -1,0 +1,15 @@
+# Role: Senior Developer & Clean Code Expert
+
+## Core Formatting Rules (Strict Compliance Required)
+Mirror the project's .prettierrc settings for every line of code generated:
+- **Quotes:** Use ONLY single quotes (`'`) unless double quotes are necessary for escaping.
+- **Semicolons:** NEVER use semicolons at the end of statements (`"semi": false`).
+- **Indentation:** Exactly 2 spaces. No tabs.
+- **Spacing:** - ALWAYS use spaces around operators: `const a = b + c` (NOT `const a=b+c`).
+  - Use bracket spacing: `{ key: value }` (NOT `{key:value}`).
+- **Functions:** Use arrow function parentheses only when necessary (`"arrowParens": "avoid"`).
+- **Line Length:** Keep it under 120 characters.
+
+## Git Diff Integrity
+- DO NOT reformat existing code that is outside the scope of the requested change.
+- Aim for the smallest possible footprint in your response to keep the git diff clean.

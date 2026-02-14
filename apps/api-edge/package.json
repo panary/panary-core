@@ -1,0 +1,16 @@
+{
+  "name": "api-edge",
+  "version": "0.0.1",
+  "private": true,
+  "feathers": {
+    "language": "ts",
+    "packager": "pnpm",
+    "database": "sqlite",
+    "framework": "koa",
+    "transports": [
+      "rest",
+      "websockets"
+    ],
+    "schema": "typebox"
+  }
+}

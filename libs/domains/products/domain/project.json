@@ -1,0 +1,19 @@
+{
+  "name": "products-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/products/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:products"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/domains/products/domain",
+        "main": "libs/domains/products/domain/src/index.ts",
+        "tsConfig": "libs/domains/products/domain/tsconfig.lib.json",
+        "assets": ["libs/domains/products/domain/*.md"]
+      }
+    }
+  }
+}

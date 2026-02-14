@@ -1,0 +1,7 @@
+<?xml version="1.0" standalone="no"?>
+<svg id="svg-icon" width="60" height="60" viewBox="0 0 60 60" fill="none"
+     xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 10C12 8.89543 12.8954 8 14 8H26C27.1046 8 28 8.89543 28 10V50C28 51.1046 27.1046 52 26 52H14C12.8954 52 12 51.1046 12 50V10Z"
+          fill="#0F172A"/>
+    <rect x="32" y="8" width="20" height="24" rx="2" fill="#00B8D4"/>
+</svg>

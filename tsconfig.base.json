@@ -1,13 +1,13 @@
 {
   "compilerOptions": {
-    "composite": true,
+    "baseUrl": ".",
+    "declaration": false,
     "declarationMap": true,
-    "emitDeclarationOnly": true,
     "importHelpers": true,
     "isolatedModules": true,
-    "lib": ["es2022"],
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
+    "lib": ["es2022", "dom"],
+    "module": "es2022",
+    "moduleResolution": "bundler",
     "noEmitOnError": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
@@ -15,7 +15,20 @@
     "noUnusedLocals": true,
     "skipLibCheck": true,
     "strict": true,
+    "rootDir": ".",
     "target": "es2022",
-    "customConditions": ["@org/source"]
+    "paths": {
+      "@panary-core/apps/pos/shell": ["libs/apps/pos/shell/src/index.ts"],
+      "@panary-core/products/domain": ["libs/domains/products/domain/src/index.ts"],
+      "@panary-core/products/api": ["libs/domains/products/api/src/index.ts"],
+      "@panary-core/products/data-access": ["libs/domains/products/data-access/src/index.ts"],
+      "@panary-core/products/feature-pos": ["libs/domains/products/feature-pos/src/index.ts"],
+      "@panary-core/users/domain": ["libs/domains/users/domain/src/index.ts"],
+      "@panary-core/users/api": ["libs/domains/users/api/src/index.ts"],
+      "@panary-core/users/data-access": ["libs/domains/users/data-access/src/index.ts"],
+      "@panary-core/shared/common": ["libs/shared/common/src/index.ts"],
+      "@panary-core/shared/data-access": ["libs/shared/data-access/src/index.ts"],
+      "@panary-core/apikeys/domain": ["libs/domains/apikeys/domain/src/index.ts"]
+    }
   }
 }

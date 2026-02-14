@@ -1,0 +1,19 @@
+{
+  "name": "apikeys-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/apikeys/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:apikeys"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/domains/apikeys/domain",
+        "main": "libs/domains/apikeys/domain/src/index.ts",
+        "tsConfig": "libs/domains/apikeys/domain/tsconfig.lib.json",
+        "assets": ["libs/domains/apikeys/domain/*.md"]
+      }
+    }
+  }
+}

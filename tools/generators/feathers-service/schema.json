@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "$id": "FeathersService",
+  "title": "Create a FeathersJS Service",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Service name (e.g., 'products', 'orders')",
+      "$default": {
+        "$source": "argv",
+        "index": 0
+      },
+      "x-prompt": "What is the name of the service?"
+    },
+    "project": {
+      "type": "string",
+      "description": "Target project (default: api-edge)",
+      "default": "api-edge"
+    },
+    "displayName": {
+      "type": "string",
+      "description": "Display name for the service (optional, defaults to capitalized name)"
+    },
+    "skipDomain": {
+      "type": "boolean",
+      "description": "Skip creating domain library",
+      "default": false
+    },
+    "useBaseSchema": {
+      "type": "boolean",
+      "description": "Use baseSchema (includes _id, timestamps, locationId, tenantId)",
+      "default": true
+    }
+  },
+  "required": ["name"]
+}

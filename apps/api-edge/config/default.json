@@ -1,0 +1,22 @@
+{
+  "host": "localhost",
+  "port": 3030,
+  "public": "./apps/api-edge/public/",
+  "origins": [
+    "http://localhost:3030"
+  ],
+  "system": {
+    "mode": "standalone",
+    "dbType": "sqlite"
+  },
+  "paginate": {
+    "default": 50,
+    "max": 250
+  },
+  "sqlite": {
+    "client": "sqlite3",
+    "connection": "api-edge.sqlite",
+    "useNullAsDefault": true
+  },
+  "logLevel": "debug"
+}

@@ -1,0 +1,13 @@
+{
+  "name": "shell",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/apps/pos/shell/src",
+  "prefix": "lib",
+  "projectType": "library",
+  "tags": ["type:shell", "platform:pos"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "system": {
+    "mode": "enterprise",
+    "dbType": "mongodb"
+  },
+  "logLevel": "info"
+}

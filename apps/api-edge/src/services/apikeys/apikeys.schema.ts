@@ -1,0 +1,63 @@
+// // For more information about this file see https://dove.feathersjs.com/guides/cli/service.schemas.html
+import { resolve } from '@feathersjs/schema'
+import { getValidator } from '@feathersjs/typebox'
+import type { HookContext } from '../../declarations'
+import { dataValidator, queryValidator } from '../../validators'
+import { randomUUID } from 'node:crypto'
+import { uuidv7 } from 'uuidv7'
+
+// Import domain schema
+import {
+  Apikey,
+  apikeyDataSchema,
+  apikeyPatchSchema,
+  ApikeyQuery,
+  apikeyQuerySchema,
+  apikeySchema
+} from '@panary-core/apikeys/domain'
+
+//#region 1. Main Resolver (Output)
+export const apikeyValidator = getValidator(apikeySchema, dataValidator)
+export const apikeyResolver = resolve<Apikey, HookContext>({})
+export const apikeyExternalResolver = resolve<Apikey, HookContext>({
+  // Apikey NIEMALS an den Client zurücksenden!
+  apiKey: async (value: any, apiKey: any, context: HookContext): Promise<string | undefined> => {
+    return context.method === 'create' ? value : undefined
+  }
+})
+//#endregion
+
+//#region 2. Create Resolver (POST)
+export const apikeyDataValidator = getValidator(apikeyDataSchema, dataValidator)
+export const apikeyDataResolver = resolve<Apikey, HookContext>({
+  _id: async value => {
+    // IMPORTANT FOR OFFLINE-FIRST:
+    // If the tablet/cash register was offline, it has already generated the ID (UUIDv7) locally and sends it in the body.
+    // In this case, we accept the value ('value'), otherwise we generate a new ID.
+    return value || uuidv7()
+  },
+  apiKey: async (): Promise<string> => randomUUID(),
+  active: async (): Promise<boolean> => true,
+  scopes: async (value: any): Promise<string[]> => value || [],
+  createdAt: async (): Promise<string> => new Date().toISOString(),
+  updatedAt: async (): Promise<string> => new Date().toISOString(),
+  createdBy: async (value: any, user: any, context: HookContext) =>
+    context.params?.user?.loginname || 'system'
+})
+//#endregion
+
+//#region 3. Patch Resolver (PATCH)
+export const apikeyPatchValidator = getValidator(apikeyPatchSchema, dataValidator)
+export const apikeyPatchResolver = resolve<Apikey, HookContext>({
+  _id: async () => undefined,
+  tenantId: async () => undefined,
+  locationId: async () => undefined,
+  createdAt: async () => undefined,
+  updatedAt: async (): Promise<string> => new Date().toISOString()
+})
+//#endregion
+
+//#region 4. Query Resolver (GET)
+export const apikeyQueryValidator = getValidator(apikeyQuerySchema, queryValidator)
+export const apikeyQueryResolver = resolve<ApikeyQuery, HookContext>({})
+//#endregion

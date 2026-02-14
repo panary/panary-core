@@ -1,0 +1,6 @@
+packages:
+  - apps/*
+  - libs/**/*
+
+onlyBuiltDependencies:
+  - sqlite3

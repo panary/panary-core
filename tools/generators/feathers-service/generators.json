@@ -1,0 +1,9 @@
+{
+  "generators": {
+    "feathers-service": {
+      "factory": "./generator",
+      "schema": "./schema.json",
+      "description": "Generate a FeathersJS service with domain schema"
+    }
+  }
+}

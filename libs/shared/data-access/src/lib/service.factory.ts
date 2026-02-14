@@ -1,0 +1,49 @@
+import { Application, Params } from '@feathersjs/feathers'
+import type { KnexAdapterOptions } from '@feathersjs/knex'
+import { KnexService } from '@feathersjs/knex'
+import type { MongoDBAdapterOptions } from '@feathersjs/mongodb'
+import { MongoDBService } from '@feathersjs/mongodb'
+import { DatabaseType } from '@panary-core/shared/common'
+
+export interface ServiceOptions {
+  name: string
+  paginate?: any
+  Model: any // Knex Client oder Mongoose Model
+  multi?: boolean | string[] // Erlaubt Massen-Updates (true oder Array von Methoden)
+  id?: string // Optional: Eigene ID-Spalte (Standard: '_id' oder 'id')
+}
+
+export function createServiceAdapter<T = unknown, D = Partial<T>, P extends Params = Params, Q = Partial<T>>(
+  app: Application,
+  options: ServiceOptions,
+): KnexService<T, D, P, Q> | MongoDBService<T, D, P, Q> {
+  // Fallback auf SQLite, falls nichts konfiguriert ist
+  const systemConfig = app.get('system') || {}
+  const dbType = systemConfig.dbType || DatabaseType.SQLITE
+  const idField = options.id || '_id'
+
+  if (dbType === DatabaseType.SQLITE) {
+    // --- EDGE / CORE (SQLite via Knex) ---
+    const knexOptions: KnexAdapterOptions = {
+      Model: options.Model, // Der Knex Client
+      name: options.name, // Der Tabellenname
+      paginate: options.paginate,
+      multi: options.multi,
+      id: idField,
+    }
+    return new KnexService<T, D, P, Q>(knexOptions)
+  }
+
+  if (dbType === DatabaseType.MONGODB) {
+    // --- CLOUD / ENTERPRISE (MongoDB via Mongoose) ---
+    const mongoOptions: MongoDBAdapterOptions = {
+      Model: options.Model,
+      paginate: options.paginate,
+      multi: options.multi,
+      id: idField,
+    }
+    return new MongoDBService<T, D, P, Q>(mongoOptions)
+  }
+
+  throw new Error(`Unsupported Database Type: ${dbType}`)
+}

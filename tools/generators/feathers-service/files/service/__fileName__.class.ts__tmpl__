@@ -1,0 +1,14 @@
+import type { Params, ServiceInterface } from '@feathersjs/feathers'
+import type { KnexAdapterParams } from '@feathersjs/knex'
+import type { MongoDBAdapterParams } from '@feathersjs/mongodb'
+
+// Domain Imports
+import type { <%= className %>, <%= className %>Data, <%= className %>Patch, <%= className %>Query } from '@panary-core/<%= fileName %>/domain'
+
+export type { <%= className %>, <%= className %>Data, <%= className %>Patch, <%= className %>Query }
+
+// Combined parameter type for SQL & NoSQL
+export type <%= className %>Params = KnexAdapterParams<<%= className %>Query> & MongoDBAdapterParams & Params
+
+// Service Interface - can be either KnexService or MongoDBService
+export interface <%= className %>Service extends ServiceInterface<<%= className %>, <%= className %>Data, <%= className %>Params, <%= className %>Patch> {}

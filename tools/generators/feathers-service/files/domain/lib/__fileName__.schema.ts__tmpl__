@@ -1,0 +1,66 @@
+import type { Static } from '@feathersjs/typebox'
+import { querySyntax, Type } from '@feathersjs/typebox'
+<% if (useBaseSchema) { %>import { baseSchema } from '@panary-core/shared/common'<% } %>
+
+//#region Enums & Constants (Reusable)
+// TODO: Add your enums and constants here
+// Example:
+// export const <%= className %>Status = {
+//   ACTIVE: 'ACTIVE',
+//   INACTIVE: 'INACTIVE',
+// } as const
+//#endregion
+
+//#region The main data model (schema)
+export const <%= propertyName %>Schema = Type.Object(
+  {
+<% if (useBaseSchema) { %>    ...baseSchema,
+<% } else { %>    _id: Type.String({format: 'uuid'}),
+    createdAt: Type.Number(),
+    updatedAt: Type.Number(),
+    locationId: Type.String(),
+    tenantId: Type.String(),
+<% } %>
+    // TODO: Add your fields here
+    // Example:
+    // name: Type.String(),
+    // description: Type.Optional(Type.String()),
+    // price: Type.Number(),
+    // status: StringEnum(Object.values(<%= className %>Status)),
+  },
+  { $id: '<%= className %>', additionalProperties: false },
+)
+export type <%= className %> = Static<typeof <%= propertyName %>Schema>
+//#endregion
+
+//#region Schema for creation (POST)
+export const <%= propertyName %>DataSchema = Type.Omit(
+  <%= propertyName %>Schema,
+  ['_id', 'createdAt', 'updatedAt'],
+  {
+    $id: '<%= className %>Data',
+    additionalProperties: false,
+  },
+)
+export type <%= className %>Data = Static<typeof <%= propertyName %>DataSchema>
+//#endregion
+
+//#region Scheme for updates (PATCH)
+export const <%= propertyName %>PatchSchema = Type.Partial(<%= propertyName %>Schema, {
+  $id: '<%= className %>Patch',
+})
+export type <%= className %>Patch = Static<typeof <%= propertyName %>PatchSchema>
+//#endregion
+
+//#region Schema for search queries (query)
+export const <%= propertyName %>QueryProperties = Type.Pick(<%= propertyName %>Schema, ['_id', 'locationId', 'tenantId', 'externalId', 'status'])
+export const <%= propertyName %>QuerySchema = Type.Intersect(
+  [
+    querySyntax(<%= propertyName %>QueryProperties),
+    // TODO: Add additional query properties
+    Type.Object({}, { additionalProperties: false }),
+  ],
+  { additionalProperties: false },
+)
+export type <%= className %>Query = Static<typeof <%= propertyName %>QuerySchema>
+//#endregion

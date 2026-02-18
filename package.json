@@ -91,6 +91,8 @@
     "@feathersjs/socketio": "^5.0.40",
     "@feathersjs/transport-commons": "^5.0.40",
     "@feathersjs/typebox": "^5.0.40",
+    "@ngx-translate/core": "^17.0.0",
+    "@ngx-translate/http-loader": "^17.0.0",
     "@paralleldrive/cuid2": "^3.3.0",
     "@tailwindcss/postcss": "^4.1.18",
     "angularx-qrcode": "^21.0.4",

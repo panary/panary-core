@@ -93,6 +93,8 @@
     "@feathersjs/typebox": "^5.0.40",
     "@paralleldrive/cuid2": "^3.3.0",
     "@tailwindcss/postcss": "^4.1.18",
+    "angularx-qrcode": "^21.0.4",
+    "async-mutex": "^0.5.0",
     "bson": "^7.2.0",
     "feathers-hooks-common": "^8.2.1",
     "feathers-swagger": "^3.0.0",

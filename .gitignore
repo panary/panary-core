@@ -183,3 +183,5 @@ out-tsc/
 *.swp
 *.swo
 *~
+
+__screenshots__/

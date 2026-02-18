@@ -18,7 +18,12 @@ import { authorize } from '../../hooks/authorize.hook'
 import { multiTenancy } from '../../hooks/multi-tenancy.hook'
 import { createServiceAdapter } from '@panary-core/shared/data-access'
 import { DatabaseType } from '@panary-core/shared/common'
-import { productDataSchema, productPatchSchema, productQuerySchema, productSchema } from '@panary-core/products/domain'
+import {
+  productDataSchema,
+  productPatchSchema,
+  productQuerySchema,
+  productSchema
+} from '@panary-core/products/domain'
 
 export const productsPath = 'products'
 export const productsMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
@@ -29,13 +34,13 @@ export type { ProductService } from './products.class'
 export const products = (app: Application) => {
   const paginate = app.get('paginate')
 
-  // 1. Determine DB type
+  // Determine DB type
   const systemConfig = app.get('system') || {}
   const dbType = systemConfig.dbType || DatabaseType.SQLITE
 
   let Model: any
 
-  // 2. Load model (SQLite or MongoDB)
+  // Load model (SQLite or MongoDB)
   if (dbType === DatabaseType.SQLITE) {
     Model = app.get('sqliteClient')
   } else {
@@ -43,7 +48,7 @@ export const products = (app: Application) => {
     // Model = require('./products.model').default(app)
   }
 
-  // 3. Create service instance (factory decides between SQLite and MongoDB)
+  // Create service instance (factory decides between SQLite and MongoDB)
   const service = createServiceAdapter<Product>(app, {
     name: 'products',
     Model,
@@ -52,7 +57,7 @@ export const products = (app: Application) => {
     multi: ['create', 'patch', 'remove']
   }) as unknown as ProductService
 
-  (service as any).setup = async (app: Application, path: string) => {
+  ;(service as any).setup = async (app: Application, path: string) => {
     const systemConfig = app.get('system') || {}
     const dbType = systemConfig.dbType || DatabaseType.SQLITE
 

@@ -73,9 +73,10 @@ export const productSchema = Type.Object(
     // Die Basis-Art des Produkts für die Logik
     productType: Type.Optional(
       StringEnum([
-        'SINGLE', // Standard product (cola, burger)
+        'PRODUCT', // Completely normal retail product (cola, pizza)
         'BUNDLE', // Menu (consists primarily of option groups)
         'MODIFIER', // Ingredient (e.g., "without tomato," usually not sold separately)
+        'SERVICE', // Service (no inventory, e.g., tips)
       ]),
     ),
 

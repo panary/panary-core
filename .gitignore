@@ -185,3 +185,7 @@ out-tsc/
 *~
 
 __screenshots__/
+
+# Local Config
+data/
+panary.config.json

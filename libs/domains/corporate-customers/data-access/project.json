@@ -1,0 +1,13 @@
+{
+  "name": "corporate-customers-data-access",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/corporate-customers/data-access/src",
+  "prefix": "lib",
+  "projectType": "library",
+  "tags": ["type:data-access", "domain:corporate-customers"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

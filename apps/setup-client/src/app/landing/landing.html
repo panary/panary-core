@@ -1,0 +1,76 @@
+<div class="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
+
+  <!-- Language Switcher (Absolute Top Right) -->
+  <div class="absolute top-6 right-6 flex space-x-6 z-10">
+    <button (click)="useLanguage('en')"
+      class="text-sm font-bold tracking-widest hover:text-gray-400 transition uppercase">EN</button>
+    <button (click)="useLanguage('de')"
+      class="text-sm font-bold tracking-widest hover:text-gray-400 transition uppercase">DE</button>
+  </div>
+
+  <!-- Main Content Container -->
+  <div class="w-full max-w-4xl grid md:grid-cols-2 gap-12 items-center animate-fade-in">
+
+    <!-- Left Column: Text & Context -->
+    <div class="text-center md:text-left space-y-8">
+      <div class="space-y-2">
+        <h2 class="text-sm font-mono text-gray-500 tracking-widest uppercase">{{ 'LANDING.SUBTITLE' | translate }}</h2>
+        <h1 class="text-5xl md:text-7xl font-bold tracking-tighter leading-tight">{{ 'LANDING.TITLE' | translate }}</h1>
+      </div>
+
+      <p class="text-xl text-gray-400 leading-relaxed max-w-md mx-auto md:mx-0">
+        {{ 'LANDING.WELCOME' | translate }}
+      </p>
+
+      <!-- Desktop Action: Start Here -->
+      <div class="hidden md:block pt-4">
+        <a routerLink="/wizard"
+          class="inline-flex items-center space-x-3 text-lg font-bold border-b-2 border-white pb-1 hover:text-gray-300 hover:border-gray-300 transition group">
+          <span>{{ 'LANDING.START_HERE' | translate }}</span>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
+            class="w-5 h-5 group-hover:translate-x-1 transition">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Right Column: QR Code & Mobile Connection -->
+    <div class="flex flex-col items-center justify-center space-y-6">
+
+      <!-- QR Code Container -->
+      <div class="relative group">
+        <div
+          class="absolute -inset-1 bg-gradient-to-r from-gray-700 to-gray-900 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000">
+        </div>
+        <div class="relative bg-white p-4 rounded-xl">
+          <qrcode [qrdata]="setupUrl()" [width]="280" [errorCorrectionLevel]="'M'" [margin]="0"></qrcode>
+        </div>
+      </div>
+
+      <!-- Connection Info -->
+      <div class="text-center space-y-2">
+        <p class="text-sm text-gray-500 uppercase tracking-widest">{{ 'LANDING.SCAN_INSTRUCTION' | translate }}</p>
+        <div class="font-mono text-lg bg-gray-900 px-4 py-2 rounded-lg border border-gray-800 text-gray-300 select-all">
+          {{ setupUrl() }}
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Mobile Only: Bottom Fixed Action -->
+  <div class="md:hidden fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black via-black to-transparent">
+    <div class="flex flex-col items-center space-y-4">
+      <div class="flex items-center space-x-4 w-full">
+        <div class="h-px bg-gray-800 flex-1"></div>
+        <span class="text-gray-500 text-xs uppercase">{{ 'LANDING.OR' | translate }}</span>
+        <div class="h-px bg-gray-800 flex-1"></div>
+      </div>
+      <a routerLink="/wizard"
+        class="w-full bg-white text-black font-bold py-4 rounded-xl text-center text-lg hover:bg-gray-200 transition shadow-lg shadow-white/10">
+        {{ 'LANDING.START_BUTTON' | translate }}
+      </a>
+    </div>
+  </div>
+</div>

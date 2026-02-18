@@ -1,0 +1,19 @@
+{
+  "name": "devices-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/devices/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:devices"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/domains/devices/domain",
+        "main": "libs/domains/devices/domain/src/index.ts",
+        "tsConfig": "libs/domains/devices/domain/tsconfig.lib.json",
+        "assets": ["libs/domains/devices/domain/*.md"]
+      }
+    }
+  }
+}

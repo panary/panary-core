@@ -1,0 +1,19 @@
+{
+  "name": "order-interactions-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/order-interactions/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:order-interactions"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/domains/order-interactions/domain",
+        "main": "libs/domains/order-interactions/domain/src/index.ts",
+        "tsConfig": "libs/domains/order-interactions/domain/tsconfig.lib.json",
+        "assets": ["libs/domains/order-interactions/domain/*.md"]
+      }
+    }
+  }
+}

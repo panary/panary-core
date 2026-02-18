@@ -1,0 +1,19 @@
+{
+  "name": "customers-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/customers/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:customers"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/domains/customers/domain",
+        "main": "libs/domains/customers/domain/src/index.ts",
+        "tsConfig": "libs/domains/customers/domain/tsconfig.lib.json",
+        "assets": ["libs/domains/customers/domain/*.md"]
+      }
+    }
+  }
+}

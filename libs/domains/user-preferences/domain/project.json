@@ -1,0 +1,19 @@
+{
+  "name": "user-preferences-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/user-preferences/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:user-preferences"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/domains/user-preferences/domain",
+        "main": "libs/domains/user-preferences/domain/src/index.ts",
+        "tsConfig": "libs/domains/user-preferences/domain/tsconfig.lib.json",
+        "assets": ["libs/domains/user-preferences/domain/*.md"]
+      }
+    }
+  }
+}

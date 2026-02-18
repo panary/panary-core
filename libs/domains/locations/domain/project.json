@@ -1,0 +1,19 @@
+{
+  "name": "locations-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/locations/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:locations"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/domains/locations/domain",
+        "main": "libs/domains/locations/domain/src/index.ts",
+        "tsConfig": "libs/domains/locations/domain/tsconfig.lib.json",
+        "assets": ["libs/domains/locations/domain/*.md"]
+      }
+    }
+  }
+}

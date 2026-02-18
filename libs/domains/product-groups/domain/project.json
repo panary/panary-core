@@ -1,0 +1,19 @@
+{
+  "name": "product-groups-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/product-groups/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:product-groups"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/domains/product-groups/domain",
+        "main": "libs/domains/product-groups/domain/src/index.ts",
+        "tsConfig": "libs/domains/product-groups/domain/tsconfig.lib.json",
+        "assets": ["libs/domains/product-groups/domain/*.md"]
+      }
+    }
+  }
+}

@@ -13,21 +13,19 @@ import {
 } from './<%= fileName %>.schema'
 
 import type { Application } from '../../declarations'
-import type { <%= className %> } from './<%= fileName %>.class'
 import { authorize } from '../../hooks/authorize.hook'
 import { multiTenancy } from '../../hooks/multi-tenancy.hook'
-import { generateId } from '../../hooks/generate-id.hook'
 import { createServiceAdapter } from '@panary-core/shared/data-access'
 import { DatabaseType } from '@panary-core/shared/common'
 import { <%= propertyName %>DataSchema, <%= propertyName %>PatchSchema, <%= propertyName %>QuerySchema, <%= propertyName %>Schema } from '@panary-core/<%= fileName %>/domain'
+import type { <%= className %>, <%= className %>Service } from './<%= fileName %>.class'
 
-export const <%= fileName %>Path = '<%= fileName %>'
-export const <%= fileName %>Methods = ['find', 'get', 'create', 'patch', 'remove'] as const
+export const <%= servicePropertyName %>Path = '<%= fileName %>'
+export const <%= servicePropertyName %>Methods = ['find', 'get', 'create', 'patch', 'remove'] as const
 
 export * from './<%= fileName %>.schema'
-export type { <%= className %>Service } from './<%= fileName %>.class'
 
-export const <%= propertyName %> = (app: Application) => {
+export const <%= servicePropertyName %> = (app: Application) => {
   const paginate = app.get('paginate')
 
   // 1. Determine DB type
@@ -128,8 +126,8 @@ export const <%= propertyName %> = (app: Application) => {
   }
 
   // 4. Register the service - as any, since the Factory returns KnexService OR MongoDBService
-  app.use(<%= propertyName %>Path, service as any, {
-    methods: <%= propertyName %>Methods,
+  app.use(<%= servicePropertyName %>Path, service as any, {
+    methods: <%= servicePropertyName %>Methods,
     events: [],
     docs: {
       description: 'Verwaltung der Produkte',
@@ -143,7 +141,7 @@ export const <%= propertyName %> = (app: Application) => {
   })
 
   // 5. Register hooks
-  app.service(<%= fileName %>Path).hooks({
+  app.service(<%= servicePropertyName %>Path).hooks({
     around: {
       all: [
         authenticate('jwt'),

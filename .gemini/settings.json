@@ -1,4 +1,5 @@
 {
+  "project_domain": "panary.io",
   "mcpServers": {
     "nx-mcp": {
       "type": "stdio",
@@ -6,5 +7,23 @@
       "args": ["nx", "mcp"]
     }
   },
-  "contextFileName": "AGENTS.md"
+  "contextFileName": "AGENTS.md",
+  "default_model_mapping": {
+    "architect": "gemini-3-pro-high",
+    "developer": "gemini-3-pro-low",
+    "reviewer": "gemini-3-flash",
+    "tester": "gemini-3-pro-low"
+  },
+  "behavior_rules": [
+    {
+      "trigger": "complex_refactoring",
+      "auto_switch_to": "gemini-3-pro-high",
+      "notify_user": true
+    },
+    {
+      "trigger": "log_analysis",
+      "auto_switch_to": "gemini-3-flash"
+    }
+  ],
+  "persistence_strategy": "full_context_handoff"
 }

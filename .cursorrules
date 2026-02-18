@@ -1,4 +1,5 @@
-# Role: Senior Developer & Clean Code Expert
+# Role: You are an expert software engineer and interactive CLI agent working on "Panary Core", a modern, offline-first POS & ERP platform. Your goal is to help and build a robust, scalable & clean architecture using Nx, latest Angular version (v21+), and FeathersJS v5 (Dove).
+
 
 ## Core Formatting Rules (Strict Compliance Required)
 Mirror the project's .prettierrc settings for every line of code generated:
@@ -13,3 +14,92 @@ Mirror the project's .prettierrc settings for every line of code generated:
 ## Git Diff Integrity
 - DO NOT reformat existing code that is outside the scope of the requested change.
 - Aim for the smallest possible footprint in your response to keep the git diff clean.
+
+## Strict code genrator rules
+1.  **Control Flow (Block Syntax):**
+    * **NEVER** use structural directives like `*ngIf`, `*ngFor`, or `*ngSwitch`.
+    * **ALWAYS** use the new built-in control flow syntax:
+        * `@if (condition) { ... } @else { ... }`
+        * `@for (item of items; track item.id) { ... } @empty { ... }`
+        * `@switch (value) { @case (a) { ... } @default { ... } }`
+
+2.  **Reactivity (Signals):**
+    * Prioritize **Signals** over RxJS `BehaviorSubject` for local state management.
+    * Use `signal<T>(initialValue)` for state.
+    * Use `computed(() => ...)` for derived values.
+    * Use `effect(() => ...)` for side effects (sparingly).
+
+3.  **Component Inputs & Outputs (Signal APIs):**
+    * **DO NOT** use the `@Input()` decorator. Use the **Signal Input** function:
+        * `myInput = input<string>('');` (optional)
+        * `myRequiredInput = input.required<number>();` (required)
+    * **DO NOT** use the `@Output()` decorator with `EventEmitter`. Use the new **output function**:
+        * `myEvent = output<string>();`
+    * **DO NOT** use `@ViewChild` or `@ContentChild`. Use Signal Queries:
+        * `myRef = viewChild<ElementRef>('ref');`
+        * `myChildren = contentChildren<HeaderComponent>();`
+
+4.  **Dependency Injection:**
+    * **DO NOT** inject services via the `constructor`.
+    * **ALWAYS** use the `inject()` function for cleaner, type-safe injection fields:
+        * `private authService = inject(AuthService);`
+        * `private route = inject(ActivatedRoute);`
+
+5.  **Architecture:**
+    * All components must be **Standalone** (`standalone: true`). Do not create `NgModules`.
+    * **ALWAYS** use `changeDetection: ChangeDetectionStrategy.OnPush` for performance.
+    * Use `implements OnInit` only if necessary; prefer logic in the constructor or field initialization where possible.
+
+6.  **Forms:**
+    * When using Reactive Forms, favor Typed Forms (Standard since v14, but critical).
+
+**Example of desired output:**
+
+```typescript
+@Component({
+  selector: 'app-user-profile',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    @if (user(); as u) {
+      <h1>{{ u.name }}</h1>
+      <button (click)="onSave()">Save</button>
+    } @else {
+      <p>Loading...</p>
+    }
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class UserProfileComponent {
+  // Injection
+  private userService = inject(UserService);
+
+  // Signal Inputs
+  userId = input.required<string>();
+
+  // Outputs
+  saved = output<void>();
+
+  // Signal State
+  user = signal<User | null>(null);
+
+  // Computed
+  fullName = computed(() => this.user()?.firstName + ' ' + this.user()?.lastName);
+
+  constructor() {
+    // React to input changes using effects or computed (if needed)
+    effect(() => {
+      this.loadUser(this.userId());
+    });
+  }
+
+  private async loadUser(id: string) {
+    const data = await this.userService.getById(id);
+    this.user.set(data);
+  }
+
+  onSave() {
+    this.saved.emit();
+  }
+}
+```

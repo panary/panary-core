@@ -17,9 +17,19 @@ export const AppError = {
   TENANT_INACTIVE: 'TENANT_3002',
   TENANT_MISMATCH: 'TENANT_3003', // Unser Security Hook Fehler!
 
+  // --- LOCATION (5000-5999) ---
+  LOCATION_NOT_ASSIGNED: 'LOC_5001',
+
+  // --- BUSINESS DAY (6000-6999) ---
+  BUSINESS_DAY_NOT_SET: 'BD_6001',
+  BUSINESS_DAY_TOO_OLD: 'BD_6002',
+
   // --- VALIDATION (4000-4999) ---
   VALIDATION_FAILED: 'VAL_4000',
   INVALID_INPUT: 'VAL_4001',
+
+  // --- AUTHENTICATION (continued) ---
+  AUTH_UNAUTHENTICATED: 'AUTH_401',
 
   // --- SYSTEM (9000+) ---
   INTERNAL_ERROR: 'SYS_9000',
@@ -43,8 +53,15 @@ export const AppErrorMessages: Record<AppError, string> = {
   [AppError.TENANT_INACTIVE]: 'This tenant account is suspended.',
   [AppError.TENANT_MISMATCH]: 'Security Alert: Cross-Tenant access detected.',
 
+  [AppError.LOCATION_NOT_ASSIGNED]: 'No active location assigned to this user or API key.',
+
+  [AppError.BUSINESS_DAY_NOT_SET]: 'No current business day is set for this location.',
+  [AppError.BUSINESS_DAY_TOO_OLD]: 'The current business day date exceeds the maximum allowed difference.',
+
   [AppError.VALIDATION_FAILED]: 'Validation failed.',
   [AppError.INVALID_INPUT]: 'Invalid input provided.',
+
+  [AppError.AUTH_UNAUTHENTICATED]: 'Authentication required.',
 
   [AppError.INTERNAL_ERROR]: 'An unexpected error occurred.',
   [AppError.DB_CONNECTION_ERROR]: 'Database connection failed.',

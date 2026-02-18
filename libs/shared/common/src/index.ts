@@ -7,6 +7,7 @@ export * from './lib/constants/system-mode'
 
 // 3. Schemas
 export * from './lib/schemas/base.schema'
+export * from './lib/schemas/base-customer.schema'
 export * from './lib/schemas/address.schema'
 export * from './lib/schemas/references.schema'
 

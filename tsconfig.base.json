@@ -28,7 +28,24 @@
       "@panary-core/users/data-access": ["libs/domains/users/data-access/src/index.ts"],
       "@panary-core/shared/common": ["libs/shared/common/src/index.ts"],
       "@panary-core/shared/data-access": ["libs/shared/data-access/src/index.ts"],
-      "@panary-core/apikeys/domain": ["libs/domains/apikeys/domain/src/index.ts"]
+      "@panary-core/apikeys/domain": ["libs/domains/apikeys/domain/src/index.ts"],
+      "@panary-core/customers/domain": ["libs/domains/customers/domain/src/index.ts"],
+      "@panary-core/corporate-customers/domain": ["libs/domains/corporate-customers/domain/src/index.ts"],
+      "@panary-core/devices/domain": ["libs/domains/devices/domain/src/index.ts"],
+      "@panary-core/locations/domain": ["libs/domains/locations/domain/src/index.ts"],
+      "@panary-core/orders/domain": ["libs/domains/orders/domain/src/index.ts"],
+      "@panary-core/order-interactions/domain": ["libs/domains/order-interactions/domain/src/index.ts"],
+      "@panary-core/product-groups/domain": ["libs/domains/product-groups/domain/src/index.ts"],
+      "@panary-core/user-preferences/domain": ["libs/domains/user-preferences/domain/src/index.ts"],
+      "@panary-core/apikeys/data-access": ["libs/domains/apikeys/data-access/src/index.ts"],
+      "@panary-core/corporate-customers/data-access": ["libs/domains/corporate-customers/data-access/src/index.ts"],
+      "@panary-core/customers/data-access": ["libs/domains/customers/data-access/src/index.ts"],
+      "@panary-core/devices/data-access": ["libs/domains/devices/data-access/src/index.ts"],
+      "@panary-core/locations/data-access": ["libs/domains/locations/data-access/src/index.ts"],
+      "@panary-core/order-interactions/data-access": ["libs/domains/order-interactions/data-access/src/index.ts"],
+      "@panary-core/orders/data-access": ["libs/domains/orders/data-access/src/index.ts"],
+      "@panary-core/product-groups/data-access": ["libs/domains/product-groups/data-access/src/index.ts"],
+      "@panary-core/user-preferences/data-access": ["libs/domains/user-preferences/data-access/src/index.ts"]
     }
   }
 }

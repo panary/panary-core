@@ -15,13 +15,14 @@ import {
   apikeyQuerySchema,
   apikeySchema
 } from '@panary-core/apikeys/domain'
+import { UserSystemRole } from '@panary-core/users/domain'
 
 //#region 1. Main Resolver (Output)
 export const apikeyValidator = getValidator(apikeySchema, dataValidator)
 export const apikeyResolver = resolve<Apikey, HookContext>({})
 export const apikeyExternalResolver = resolve<Apikey, HookContext>({
   // Apikey NIEMALS an den Client zurücksenden!
-  apiKey: async (value: any, apiKey: any, context: HookContext): Promise<string | undefined> => {
+  apikey: async (value: any, apiKey: any, context: HookContext): Promise<string | undefined> => {
     return context.method === 'create' ? value : undefined
   }
 })
@@ -36,13 +37,35 @@ export const apikeyDataResolver = resolve<Apikey, HookContext>({
     // In this case, we accept the value ('value'), otherwise we generate a new ID.
     return value || uuidv7()
   },
-  apiKey: async (): Promise<string> => randomUUID(),
+  apikey: async (): Promise<string> => randomUUID(),
   active: async (): Promise<boolean> => true,
-  scopes: async (value: any): Promise<string[]> => value || [],
   createdAt: async (): Promise<string> => new Date().toISOString(),
   updatedAt: async (): Promise<string> => new Date().toISOString(),
   createdBy: async (value: any, user: any, context: HookContext) =>
-    context.params?.user?.loginname || 'system'
+    context.params?.user?.loginname || 'system',
+  role: async (value, data, context) => {
+    if (value) return value
+
+    if (data.deviceId) {
+      try {
+        const device = await context.app.service('devices').get(data.deviceId)
+        const type = device.type || 'other'
+        switch (type) {
+          case 'kds':
+            return UserSystemRole.DEVICE_KDS
+          case 'tablet':
+            return UserSystemRole.DEVICE_TABLET
+          case 'pos-counter':
+            return UserSystemRole.DEVICE_POS
+          default:
+            return UserSystemRole.DEVICE_POS
+        }
+      } catch (error) {
+        // Device not found or error
+      }
+    }
+    return UserSystemRole.DEVICE_POS
+  }
 })
 //#endregion
 
@@ -52,6 +75,9 @@ export const apikeyPatchResolver = resolve<Apikey, HookContext>({
   _id: async () => undefined,
   tenantId: async () => undefined,
   locationId: async () => undefined,
+  apikey: async () => undefined,
+  active: async () => undefined,
+  // scopes removed
   createdAt: async () => undefined,
   updatedAt: async (): Promise<string> => new Date().toISOString()
 })

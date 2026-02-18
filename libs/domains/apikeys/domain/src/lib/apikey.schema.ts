@@ -1,6 +1,7 @@
 import type { Static } from '@feathersjs/typebox'
-import { querySyntax, Type } from '@feathersjs/typebox'
+import { querySyntax, StringEnum, Type } from '@feathersjs/typebox'
 import { baseSchema } from '@panary-core/shared/common'
+import { UserSystemRole } from '@panary-core/users/domain'
 
 //#region Enums & Konstanten (Wiederverwendbar)
 //#endregion
@@ -10,33 +11,20 @@ export const apikeySchema = Type.Object(
   {
     ...baseSchema,
 
-    apiKey: Type.String(),
+    apikey: Type.String(),
     name: Type.String(),
     deviceId: Type.Optional(Type.String({ format: 'uuid' })), // Associated device ID (optional)
     validUntil: Type.Optional(Type.String({ format: 'date-time' })),
     createdBy: Type.String(),
 
     /**
-     * Scopes (permissions) granted to this API key.
-     * Uses resource:action format, e.g., 'orders:read', 'users:read:pos'
-     * See src/shared/constants/api-key-scopes.ts for available scopes.
+     * Role assigned to this API key.
+     * Determines permissions for the device.
      */
-    scopes: Type.Optional(Type.Array(Type.String())),
-
-    /**
-     * Optional description of the API key's purpose
-     */
-    description: Type.Optional(Type.String()),
-
-    /**
-     * Whether this API key is active. Inactive keys cannot authenticate.
-     */
-    active: Type.Boolean({ default: true }),
-
-    /**
-     * Last time this API key was used
-     */
-    lastUsedAt: Type.Optional(Type.String({ format: 'date-time' })),
+    role: StringEnum(Object.values(UserSystemRole)),
+    description: Type.Optional(Type.String()), // Optional description of the API key's purpose
+    active: Type.Boolean({ default: true }), // Whether this API key is active. Inactive keys cannot authenticate.
+    lastUsedAt: Type.Optional(Type.String({ format: 'date-time' })), // Last time this API key was used
   },
   { $id: 'Apikey', additionalProperties: false },
 )
@@ -51,7 +39,7 @@ export const apikeyDataSchema = Type.Intersect(
   [
     Type.Pick(apikeySchema, ['description', 'deviceId', 'locationId', 'name', 'tenantId', 'validUntil']),
     Type.Object({
-      scopes: Type.Optional(Type.Array(Type.String())),
+      role: Type.Optional(StringEnum(Object.values(UserSystemRole))),
     }),
   ],
   {
@@ -72,7 +60,7 @@ export type ApikeyPatch = Static<typeof apikeyPatchSchema>
 //#endregion
 
 //#region Schema für Suchanfragen (Query)
-export const apikeyQueryProperties = Type.Pick(apikeySchema, ['_id', 'apiKey', 'deviceId', 'locationId', 'tenantId'])
+export const apikeyQueryProperties = Type.Pick(apikeySchema, ['_id', 'apikey', 'deviceId', 'locationId', 'tenantId'])
 export const apikeyQuerySchema = Type.Intersect(
   [
     querySyntax(apikeyQueryProperties),

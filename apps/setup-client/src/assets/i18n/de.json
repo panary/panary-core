@@ -1,0 +1,51 @@
+{
+  "LANDING": {
+    "TITLE": "Panary Edge",
+    "SUBTITLE": "Server Setup",
+    "WELCOME": "Willkommen bei Ihrem neuen Edge Server. Scannen Sie den QR-Code mit Ihrem Handy oder starten Sie direkt hier.",
+    "SCAN_INSTRUCTION": "Scannen für mobiles Setup",
+    "OR": "oder",
+    "START_HERE": "Setup auf diesem Gerät starten",
+    "WELCOME_MOBILE": "Willkommen! Sie können Ihren Server jetzt einrichten.",
+    "START_BUTTON": "Setup Starten"
+  },
+  "WIZARD": {
+    "HEADER": "Panary Edge Setup",
+    "WELCOME": {
+      "TITLE": "Willkommen.",
+      "SUBTITLE": "Richten Sie Ihren Panary Edge Server in wenigen Schritten ein.",
+      "BUTTON": "Setup Starten"
+    },
+    "MODE": {
+      "TITLE": "Modus wählen",
+      "STANDALONE": "Einzelbetrieb",
+      "STANDALONE_DESC": "Lokaler Betrieb. Bestellsystem ohne Kasse. Kein Internet erforderlich.",
+      "CLOUD": "Enterprise Cloud",
+      "CLOUD_DESC": "Synchronisation mit Organisation. Ideal für Filialen.",
+      "BACK": "Zurück"
+    },
+    "CONFIG": {
+      "TITLE": "Konfiguration",
+      "SHOP_NAME": "Geschäftsname",
+      "ADMIN_EMAIL": "Admin E-Mail",
+      "ADMIN_PASSWORD": "Admin Passwort",
+      "FINISH": "Installation abschließen",
+      "SETTING_UP": "Einrichten...",
+      "BACK": "Zurück"
+    },
+    "LOADING": "System startet neu..."
+  },
+  "STATUS": {
+    "ONLINE": "System bereit",
+    "READY": "Panary Edge läuft und ist bereit.",
+    "IP": "IP-Adresse",
+    "STATUS": "Status",
+    "ACTIVE": "Aktiv",
+    "VERSION": "Version"
+  },
+  "LANG": {
+    "SELECT": "Sprache wählen",
+    "EN": "English",
+    "DE": "Deutsch"
+  }
+}

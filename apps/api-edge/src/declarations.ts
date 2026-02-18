@@ -5,6 +5,14 @@ import { ApplicationConfiguration } from './configuration'
 import { UserService } from './services/users/users.class'
 import { ApiKeyService } from './services/apikeys/apikeys.class'
 import { ProductService } from './services/products/products.class'
+import { CorporateCustomerService } from './services/corporate-customers/corporate-customers.class'
+import { CustomerService } from './services/customers/customers.class'
+import { DeviceService } from './services/devices/devices.class'
+import { ProductGroupService } from './services/product-groups/product-groups.class'
+import { LocationService } from './services/locations/locations.class'
+import { OrderService } from './services/orders/orders.class'
+import { OrderInteractionService } from './services/order-interactions/order-interactions.class'
+import { UserPreferenceService } from './services/user-preferences/user-preferences.class'
 
 export type { NextFunction }
 
@@ -22,6 +30,14 @@ export interface ServiceTypes {
   users: UserService
   apikeys: ApiKeyService
   products: ProductService
+  'corporate-customers': CorporateCustomerService
+  customers: CustomerService
+  devices: DeviceService
+  'product-groups': ProductGroupService
+  locations: LocationService
+  orders: OrderService
+  'order-interactions': OrderInteractionService
+  'user-preferences': UserPreferenceService
 }
 
 // The application instance type that will be used everywhere else

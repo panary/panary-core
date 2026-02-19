@@ -1,0 +1,13 @@
+{
+  "name": "orders-feature-pos-dashboard",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/orders/feature-pos-dashboard/src",
+  "prefix": "lib",
+  "projectType": "library",
+  "tags": ["type:feature", "domain:orders", "platform:pos"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

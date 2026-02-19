@@ -1,0 +1,13 @@
+{
+  "name": "pre-orders-feature-pos-list",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/pre-orders/feature-pos-list/src",
+  "prefix": "lib",
+  "projectType": "library",
+  "tags": ["type:feature", "domain:pre-orders", "platform:pos"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

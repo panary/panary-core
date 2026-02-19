@@ -1,0 +1,13 @@
+{
+  "name": "system-feature-pos-setup",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/system/feature-pos-setup/src",
+  "prefix": "lib",
+  "projectType": "library",
+  "tags": ["type:feature", "domain:system", "platform:pos"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "users-feature-pos-login",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/users/feature-pos-login/src",
+  "prefix": "lib",
+  "projectType": "library",
+  "tags": ["type:feature", "domain:users", "platform:pos"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

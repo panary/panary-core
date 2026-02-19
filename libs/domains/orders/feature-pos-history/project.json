@@ -1,0 +1,13 @@
+{
+  "name": "orders-feature-pos-history",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/orders/feature-pos-history/src",
+  "prefix": "lib",
+  "projectType": "library",
+  "tags": ["type:feature", "domain:orders", "platform:pos"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

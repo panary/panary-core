@@ -1,0 +1,13 @@
+{
+  "name": "working-times-feature-pos-history",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/working-times/feature-pos-history/src",
+  "prefix": "lib",
+  "projectType": "library",
+  "tags": ["type:feature", "domain:working-times", "platform:pos"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

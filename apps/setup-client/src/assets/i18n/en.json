@@ -29,19 +29,14 @@
       "SHOP_NAME": "Shop Name",
       "ADMIN_EMAIL": "Admin Email",
       "ADMIN_PASSWORD": "Admin Password",
+      "ADMIN_PASSWORD_CONFIRM": "Confirm Admin Password",
       "FINISH": "Finish Installation",
       "SETTING_UP": "Setting up...",
       "BACK": "Back"
     },
-    "LOADING": "System restarting..."
-  },
-  "STATUS": {
-    "ONLINE": "System Online",
-    "READY": "Panary Edge is running and ready.",
-    "IP": "IP Address",
-    "STATUS": "Status",
-    "ACTIVE": "Active",
-    "VERSION": "Version"
+    "LOADING": "Saving configuration...",
+    "RESTARTING": "Server restarting...",
+    "RESTARTING_HINT": "Waiting for the server to come back online."
   },
   "LANG": {
     "SELECT": "Select Language",

@@ -22,6 +22,11 @@
             "input": "apps/api-edge/config",
             "glob": "**/*",
             "output": "config"
+          },
+          {
+            "input": "apps/api-edge/migrations",
+            "glob": "**/*",
+            "output": "migrations"
           }
         ],
         "generatePackageJson": true,

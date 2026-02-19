@@ -4,6 +4,7 @@ import fs from 'fs/promises'
 import path from 'path'
 import { startSetupApp } from './setup-app'
 import { constants } from 'fs'
+import { UserSystemRole } from '@panary-core/users/domain'
 
 const CONFIG_PATH =
   process.env['PANARY_CONFIG_PATH'] || path.join(process.cwd(), 'data', 'panary.config.json')
@@ -16,9 +17,10 @@ async function main() {
     logger.info(`Configuration found at ${CONFIG_PATH}. Starting in PRODUCTION MODE.`)
 
     // Load configuration
+    let config: any = {}
     try {
       const configRaw = await fs.readFile(CONFIG_PATH, 'utf-8')
-      const config = JSON.parse(configRaw)
+      config = JSON.parse(configRaw)
 
       // Set environment variables from config
       for (const [key, value] of Object.entries(config)) {
@@ -37,33 +39,8 @@ async function main() {
     }
 
     // Dynamic import of app to prevent early initialization
-    const { app } = await import('./app')
-
-    // Add Status Route for configured state
-    app.use(async (ctx, next) => {
-      if (ctx.path === '/api/system-info' && ctx.method === 'GET') {
-        // Re-implement or import getLocalIpAddress? For now just basic status.
-        // User asked for "Zustand (Standalone vs. Cloud, Tenant-ID)"
-        ctx.body = {
-          status: 'configured',
-          mode: process.env['MODE'] || 'unknown',
-          tenantId: process.env['TENANT_ID'] || 'unknown'
-          // Add IP if needed, but 'system-info' in setup-app returns IP.
-          // User asked for "/status" to provide info.
-        }
-        return
-      }
-      // Also alias /status as requested
-      if (ctx.path === '/status' && ctx.method === 'GET') {
-        ctx.body = {
-          status: 'configured',
-          mode: process.env['MODE'] || 'unknown',
-          tenantId: process.env['TENANT_ID'] || 'unknown'
-        }
-        return
-      }
-      await next()
-    })
+    // Node dynamic import requires extension in CJS environment if treating as ESM-like
+    const { app } = await import('./app.js')
 
     const port = app.get('port') || 3030
     const host = app.get('host') || 'localhost'
@@ -72,12 +49,70 @@ async function main() {
       logger.error('Unhandled Rejection at: Promise ', p, reason)
     )
 
-    app.listen(port, () => {
-      logger.info(`Feathers app listening on http://${host}:${port}`)
-    })
+    // app.listen() calls app.setup() internally, which runs setup hooks (migrations)
+    await app.listen(port)
+    logger.info(`Feathers app listening on http://${host}:${port}`)
+
+    // --- Bootstrapping: Create Admin User if credentials exist in config ---
+    // Must run AFTER app.listen() so that setup hooks (migrations) have completed
+    const adminEmail = process.env['ADMIN_EMAIL'] || config.adminEmail
+    const adminPassword = process.env['ADMIN_PASSWORD'] || config.adminPassword
+
+    if (adminEmail && adminPassword) {
+      logger.info('Bootstrapping: Found admin credentials in config. Verifying admin user...')
+      try {
+        const knex = app.get('sqliteClient')
+        const adminLogin = config.shopName || 'Admin'
+
+        // Query DB directly to bypass service hooks (no JWT/auth needed for bootstrap)
+        const existingUser = await knex('users').where({ loginname: adminLogin }).first()
+
+        if (!existingUser) {
+          logger.info(`Bootstrapping: Creating admin user ${adminLogin}...`)
+
+          // Use the service for create so password hashing hooks run
+          const usersService = app.service('users')
+          const createdUser = await usersService.create({
+            email: adminEmail,
+            password: adminPassword,
+            role: UserSystemRole.PLATFORM_ADMIN,
+            loginname: adminLogin,
+            firstName: 'Admin',
+            lastName: 'User',
+            tenantId: null,
+            activeLocationId: null,
+            allowedLocationIds: [],
+            permissions: []
+          }, { provider: undefined })
+
+          if (createdUser && createdUser._id) {
+            logger.info(`Bootstrapping: Admin user created successfully (ID: ${createdUser._id}).`)
+          } else {
+            logger.error('Bootstrapping: Admin user create call returned no result — check service hooks!')
+          }
+        } else {
+          logger.info('Bootstrapping: Admin user already exists.')
+        }
+
+        // --- Security: Remove password from config file ---
+        if (config.adminPassword) {
+          logger.info('Security: Removing plain-text password from configuration file...')
+          delete config.adminPassword
+
+          await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8')
+          logger.info('Security: Configuration file sanitized.')
+        }
+      } catch (err) {
+        logger.error('Bootstrapping: Failed to create admin user.', err)
+      }
+    }
+    // -----------------------------------------------------------------------
   } catch (error) {
     // Config file not found or error loading it -> Setup Mode
-    logger.warn(`Configuration check failed or file missing at ${CONFIG_PATH}. Starting in SETUP MODE.`)
+    logger.error(
+      `Configuration check failed or file missing at ${CONFIG_PATH}. Starting in SETUP MODE.`,
+      error
+    )
     // Port 3030 for setup as well? Yes.
     await startSetupApp(3030)
   }

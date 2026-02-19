@@ -8,7 +8,6 @@ export const configurationSchema = Type.Intersect([
   Type.Object({
     host: Type.String(),
     port: Type.Number(),
-    public: Type.String(),
     system: Type.Object({
       mode: Type.String(),
       dbType: Type.String()

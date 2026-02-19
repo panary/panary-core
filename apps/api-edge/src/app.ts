@@ -1,9 +1,8 @@
 // For more information about this file see https://dove.feathersjs.com/guides/cli/application.html
-import path from 'path'
 import swagger from 'feathers-swagger'
 import { feathers } from '@feathersjs/feathers'
 import configuration from '@feathersjs/configuration'
-import { bodyParser, cors, errorHandler, koa, parseAuthentication, rest, serveStatic } from '@feathersjs/koa'
+import { bodyParser, cors, errorHandler, koa, parseAuthentication, rest } from '@feathersjs/koa'
 import socketio from '@feathersjs/socketio'
 
 import { configurationValidator } from './configuration'
@@ -14,6 +13,8 @@ import { services } from './services/index'
 import { channels } from './channels'
 import { configureLoggerLevel, logger } from './logger'
 import { ensureTenantIsolation } from './hooks/ensure-tenant-isolation.hook'
+import { authentication } from './authentication'
+import { renderStatusPage } from './status-page'
 
 logger.debug('Creating application...')
 const app: Application = koa(feathers())
@@ -52,7 +53,7 @@ app.configure(
     ui: swagger.swaggerUI({ docsPath: '/docs' }),
 
     // IMPORTANT: To ensure that TypeBox schemas are recognized correctly!
-    idType: 'string',
+    idType: 'string'
   })
 )
 
@@ -60,23 +61,23 @@ app.configure(
 logger.debug('Setting up Koa middleware...')
 app.use(cors())
 
-// ---------------------------------------------------------------------------
-// Wir prüfen: Gibt es einen Config-Wert? Wenn nein, nehmen wir '../public'
-// path.resolve macht daraus einen absoluten Pfad, damit serve() nicht meckert.
-// ---------------------------------------------------------------------------
-let publicPath = app.get('public')
-
-if (!publicPath) {
-  // Fallback: Gehe vom 'src' Ordner (__dirname) eins hoch und dann in 'public'
-  publicPath = path.join(__dirname, '../public')
-}
-logger.debug('Serving static files from %s...', publicPath)
-app.use(serveStatic(publicPath))
+// Status page at root URL
+app.use(async (ctx, next) => {
+  if (ctx.path === '/' && ctx.method === 'GET') {
+    const host = app.get('host') || 'localhost'
+    const port = app.get('port') || 3030
+    ctx.type = 'html'
+    ctx.body = renderStatusPage({ host, port })
+    return
+  }
+  await next()
+})
 
 logger.debug('Setting up error handler...')
 app.use(errorHandler())
 
 logger.debug('Setting up authentication...')
+app.configure(authentication)
 app.use(parseAuthentication())
 
 logger.debug('Setting up body parser...')
@@ -153,7 +154,6 @@ app.hooks({
 })
 // Register application setup and teardown hooks here
 app.hooks({
-  setup: [],
   teardown: []
 })
 

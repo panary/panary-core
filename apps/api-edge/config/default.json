@@ -1,7 +1,6 @@
 {
   "host": "localhost",
   "port": 3030,
-  "public": "./apps/api-edge/public/",
   "origins": [
     "http://localhost:3030"
   ],
@@ -17,6 +16,28 @@
     "client": "sqlite3",
     "connection": "api-edge.sqlite",
     "useNullAsDefault": true
+  },
+  "authentication": {
+    "entity": "user",
+    "service": "users",
+    "secret": "8a5416c1170940dc1200021245a111a4",
+    "authStrategies": [
+      "jwt",
+      "local"
+    ],
+    "jwtOptions": {
+      "header": {
+        "typ": "access"
+      },
+      "audience": "https://panary.io",
+      "issuer": "feathers",
+      "algorithm": "HS256",
+      "expiresIn": "1d"
+    },
+    "local": {
+      "usernameField": "loginname",
+      "passwordField": "password"
+    }
   },
   "logLevel": "debug"
 }

@@ -31,7 +31,7 @@ export const settingsSchema = Type.Object({
     systemOfUnits: StringEnum(Object.values(UnitSystem)),
     defaultWeightUnit: StringEnum(['kg', 'g', 'mg', 'lb', 'oz', 'st', 'ton']),
     defaultVolumeUnit: StringEnum(['L', 'ml', 'gal', 'qt', 'pt', 'fl oz', 'tbsp', 'tsp']),
-    timezone: Type.String({ format: 'timezone' }), // Feathers Typebox might not validate this format by default, but keeping it
+    timezone: Type.String(), // Removed format: 'timezone' to fix AJV error
   }),
   printSettings: Type.Object({
     maxNameCharacters: Type.Number(),

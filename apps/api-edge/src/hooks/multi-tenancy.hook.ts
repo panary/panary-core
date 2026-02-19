@@ -1,4 +1,4 @@
-import { HookContext } from '../declarations'
+import { HookContext, NextFunction } from '../declarations'
 import { UserSystemRole } from '@panary-core/users/domain'
 
 export interface MultiTenancyOptions {
@@ -13,16 +13,16 @@ export interface MultiTenancyOptions {
 // - allowGlobalData: false -> User gehören immer fest zu etwas.
 export const multiTenancy =
   (options: MultiTenancyOptions = {}) =>
-  async (context: HookContext) => {
+  async (context: HookContext, next: NextFunction) => {
     const { isolateLocation = false, allowGlobalData = false } = options
     const { user } = context.params
 
-    // 1. Safety: Ohne User kein Schutz (sollte durch authenticate vorher abgefangen sein)
-    if (!user) return context
+    // 1. Interne Aufrufe (kein User/Provider) durchlassen
+    if (!user) return next()
 
     // 2. Platform Bypass: Admins sehen alles
     if (user.role && user.role.startsWith('platform:')) {
-      return context
+      return next()
     }
 
     // ---------------------------------------------------------
@@ -78,5 +78,5 @@ export const multiTenancy =
       context.params.query = query
     }
 
-    return context
+    return next()
   }

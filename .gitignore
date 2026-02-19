@@ -189,3 +189,6 @@ __screenshots__/
 # Local Config
 data/
 panary.config.json
+*.sqlite
+*.sqlite-journal
+*.db

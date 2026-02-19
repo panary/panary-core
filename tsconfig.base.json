@@ -45,7 +45,16 @@
       "@panary-core/order-interactions/data-access": ["libs/domains/order-interactions/data-access/src/index.ts"],
       "@panary-core/orders/data-access": ["libs/domains/orders/data-access/src/index.ts"],
       "@panary-core/product-groups/data-access": ["libs/domains/product-groups/data-access/src/index.ts"],
-      "@panary-core/user-preferences/data-access": ["libs/domains/user-preferences/data-access/src/index.ts"]
+      "@panary-core/user-preferences/data-access": ["libs/domains/user-preferences/data-access/src/index.ts"],
+      "@panary-core/orders/feature-pos-dashboard": ["libs/domains/orders/feature-pos-dashboard/src/index.ts"],
+      "@panary-core/orders/feature-pos-active": ["libs/domains/orders/feature-pos-active/src/index.ts"],
+      "@panary-core/orders/feature-pos-history": ["libs/domains/orders/feature-pos-history/src/index.ts"],
+      "@panary-core/users/feature-pos-login": ["libs/domains/users/feature-pos-login/src/index.ts"],
+      "@panary-core/write-offs/feature-pos-dialog": ["libs/domains/write-offs/feature-pos-dialog/src/index.ts"],
+      "@panary-core/pre-orders/feature-pos-list": ["libs/domains/pre-orders/feature-pos-list/src/index.ts"],
+      "@panary-core/working-times/feature-pos-history": ["libs/domains/working-times/feature-pos-history/src/index.ts"],
+      "@panary-core/devices/feature-pos-settings": ["libs/domains/devices/feature-pos-settings/src/index.ts"],
+      "@panary-core/system/feature-pos-setup": ["libs/domains/system/feature-pos-setup/src/index.ts"]
     }
   }
 }

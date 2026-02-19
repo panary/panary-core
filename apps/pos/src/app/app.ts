@@ -1,6 +1,6 @@
-import { Component } from '@angular/core';
-import { RouterModule } from '@angular/router';
-import { NxWelcome } from './nx-welcome';
+import { Component } from '@angular/core'
+import { RouterModule } from '@angular/router'
+import { NxWelcome } from './nx-welcome'
 
 @Component({
   imports: [NxWelcome, RouterModule],
@@ -9,5 +9,5 @@ import { NxWelcome } from './nx-welcome';
   styleUrl: './app.scss',
 })
 export class App {
-  protected title = 'pos';
+  protected title = 'pos'
 }

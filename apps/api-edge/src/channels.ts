@@ -1,4 +1,4 @@
-// For more information about this file see https://dove.feathersjs.com/guides/cli/channels.html
+// For more information about this file see https://dove.feathersjs.com/api/channels.html
 import type { Params, RealTimeConnection } from '@feathersjs/feathers'
 import type { AuthenticationResult } from '@feathersjs/authentication'
 import '@feathersjs/transport-commons'
@@ -10,9 +10,53 @@ export const channels = (app: Application) => {
     'Publishing all events to all authenticated users. See `channels.ts` and https://dove.feathersjs.com/api/channels.html for more information.'
   )
 
-  app.on('connection', (connection: RealTimeConnection) => {
-    // On a new real-time connection, add it to the anonymous channel
-    app.channel('anonymous').join(connection)
+  app.on('connection', async (connection: RealTimeConnection) => {
+    // Prüfen ob es sich um eine Device-Verbindung handelt (POS/KDS/Tablet)
+    const socket = (connection as any)._socket
+    const handshakeAuth = socket?.handshake?.auth
+
+    if (handshakeAuth?.apiKey && handshakeAuth?.deviceId) {
+      // --- DEVICE AUTH FLOW ---
+      try {
+        const result = await app.service('apikeys').find(
+          {
+            query: {
+              apikey: handshakeAuth.apiKey,
+              deviceId: handshakeAuth.deviceId,
+              $limit: 1,
+            },
+            provider: undefined,
+          }
+        ) as { data: any[] } | any[]
+
+        const entries = Array.isArray(result) ? result : (result as any).data ?? []
+
+        if (entries.length > 0 && entries[0].active) {
+          const apiKeyRecord = entries[0]
+          logger.info(`[Device Auth] Device "${handshakeAuth.deviceId}" authenticated via API key.`)
+
+          // Device-Auth-Daten auf der Connection speichern,
+          // damit der allowApiKey-Hook sie in params kopieren kann
+          ;(connection as any).apiKey = true
+          ;(connection as any).tenantId = apiKeyRecord.tenantId
+          ;(connection as any).locationId = apiKeyRecord.locationId
+          ;(connection as any).deviceId = apiKeyRecord.deviceId
+          ;(connection as any).deviceRole = apiKeyRecord.role
+
+          app.channel('authenticated').join(connection)
+          socket.emit('device:authenticated', { success: true, deviceId: handshakeAuth.deviceId })
+        } else {
+          logger.warn(`[Device Auth] Invalid/inactive API key for device "${handshakeAuth.deviceId}".`)
+          socket.emit('device:authenticated', { success: false, error: 'Invalid or inactive API key' })
+        }
+      } catch (err: any) {
+        logger.error('[Device Auth] Error validating API key:', err)
+        socket.emit('device:authenticated', { success: false, error: 'Authentication error' })
+      }
+    } else {
+      // Anonyme Verbindung (wartet auf JWT-Login)
+      app.channel('anonymous').join(connection)
+    }
   })
 
   app.on('login', (authResult: AuthenticationResult, { connection }: Params) => {

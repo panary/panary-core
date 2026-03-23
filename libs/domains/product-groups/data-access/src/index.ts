@@ -1,1 +1,2 @@
-export * from './lib/product-groups-data-access/product-groups-data-access'
+export * from './lib/models/product-group.model'
+export * from './lib/services/product-group.service'

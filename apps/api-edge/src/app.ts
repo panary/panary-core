@@ -11,22 +11,17 @@ import { logError } from './hooks/log-error'
 import { sqlite } from './sqlite'
 import { services } from './services/index'
 import { channels } from './channels'
-import { configureLoggerLevel, logger } from './logger'
+import { configureLoggerLevel } from './logger'
 import { ensureTenantIsolation } from './hooks/ensure-tenant-isolation.hook'
+import { allowApiKey } from './hooks/allow-apikey.hook'
 import { authentication } from './authentication'
 import { renderStatusPage } from './status-page'
 
-logger.debug('Creating application...')
 const app: Application = koa(feathers())
 
-// Load our app configuration (see config/ folder)
-logger.debug('Loading configuration...')
 app.configure(configuration(configurationValidator))
-
-// Configure logger level from config
 configureLoggerLevel(app)
 
-logger.debug('Setting up swagger...')
 app.configure(
   swagger({
     specs: {
@@ -40,28 +35,23 @@ app.configure(
       components: {
         securitySchemes: {
           BearerAuth: {
-            // Name der Strategie
             type: 'http',
             scheme: 'bearer',
-            bearerFormat: 'JWT' // Optional, für Doku
+            bearerFormat: 'JWT'
           }
         }
       },
-      // Enable globally (optional):
       security: [{ BearerAuth: [] }]
     },
     ui: swagger.swaggerUI({ docsPath: '/docs' }),
-
-    // IMPORTANT: To ensure that TypeBox schemas are recognized correctly!
     idType: 'string'
   })
 )
 
-// Set up Koa middleware
-logger.debug('Setting up Koa middleware...')
+// Koa middleware
 app.use(cors())
 
-// Status page at root URL
+// Status page
 app.use(async (ctx, next) => {
   if (ctx.path === '/' && ctx.method === 'GET') {
     const host = app.get('host') || 'localhost'
@@ -73,18 +63,11 @@ app.use(async (ctx, next) => {
   await next()
 })
 
-logger.debug('Setting up error handler...')
 app.use(errorHandler())
-
-logger.debug('Setting up authentication...')
-app.configure(authentication)
 app.use(parseAuthentication())
-
-logger.debug('Setting up body parser...')
 app.use(bodyParser())
 
-// Health check endpoint BEFORE authentication middleware (public endpoint)
-logger.debug('Setting up health check endpoint...')
+// Health check (public)
 app.use(async (ctx, next) => {
   if (ctx.path === '/health' && (ctx.method === 'GET' || ctx.method === 'HEAD')) {
     ctx.body = {
@@ -99,8 +82,7 @@ app.use(async (ctx, next) => {
   await next()
 })
 
-// Configure services and transports
-logger.debug('Configuring services and transports...')
+// Transports
 app.configure(rest())
 app.configure(
   socketio(
@@ -113,38 +95,27 @@ app.configure(
       cookie: false
     },
     io => {
-      // Use Socket.io middleware to store socket reference and auth data BEFORE connection event
-      // This middleware runs BEFORE the Feathers 'connection' event handler in channels.ts
       io.use((socket: any, next: any) => {
-        // The socket.feathers object becomes the "connection" in Feathers channels
-        // Store the actual socket object so we can call emit() later
         ;(socket as any).feathers._socket = socket
-
-        // Copy handshake to feathers so it's accessible via connection.handshake
         if (socket.handshake) {
           ;(socket as any).feathers.handshake = socket.handshake
         }
-
         next()
       })
     }
   )
 )
 
-logger.debug('Configuring sqlite...')
+// Services & data
+app.configure(authentication)
 app.configure(sqlite)
-
-logger.debug('Configuring services...')
 app.configure(services)
-
-logger.debug('Configuring channels...')
 app.configure(channels)
 
-// Register hooks that run on all service methods
-logger.debug('Registering hooks..')
+// App-level hooks
 app.hooks({
   around: {
-    all: [logError]
+    all: [logError, allowApiKey()]
   },
   before: {},
   after: {
@@ -152,10 +123,6 @@ app.hooks({
   },
   error: {}
 })
-// Register application setup and teardown hooks here
-app.hooks({
-  teardown: []
-})
+app.hooks({ teardown: [] })
 
-logger.debug('Exporting application')
 export { app }

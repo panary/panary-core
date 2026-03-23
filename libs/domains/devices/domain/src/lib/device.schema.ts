@@ -37,13 +37,23 @@ export type Device = Static<typeof deviceSchema>
 //#endregion
 
 //#region Schema for creation (POST)
-export const deviceDataSchema = Type.Pick(
-  deviceSchema,
-  ['name', 'type', 'locationId', 'tenantId', 'metadata', 'apiKeyId', 'active'],
+export const deviceDataSchema = Type.Object(
   {
-    $id: 'DeviceData',
-    additionalProperties: false,
+    name: Type.String(),
+    type: StringEnum(Object.values(DeviceType)),
+    locationId: Type.String(),
+    tenantId: Type.String(),
+    metadata: Type.Optional(
+      Type.Object({
+        userAgent: Type.Optional(Type.String()),
+        ipAddress: Type.Optional(Type.String()),
+        version: Type.Optional(Type.String()),
+      }),
+    ),
+    apiKeyId: Type.Optional(Type.String()),
+    active: Type.Optional(Type.Boolean({ default: true })),
   },
+  { $id: 'DeviceData', additionalProperties: false },
 )
 // Old schema picked ONLY name, type, locationId, tenantId.
 // But resolved deviceId, active, createdBy.

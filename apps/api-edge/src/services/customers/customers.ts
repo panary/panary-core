@@ -15,7 +15,7 @@ import {
 import type { Application } from '../../declarations'
 import { authorize } from '../../hooks/authorize.hook'
 import { multiTenancy } from '../../hooks/multi-tenancy.hook'
-import { createServiceAdapter } from '@panary-core/shared/data-access'
+import { createServiceAdapter } from '@panary-core/shared/data-access/server'
 import { DatabaseType } from '@panary-core/shared/common'
 import {
   customerDataSchema,
@@ -101,11 +101,10 @@ export const customers = (app: Application) => {
           })
 
           // Sicherer Weg für SQLite Indizes (Idempotent):
-          await knex.raw(`CREATE INDEX IF NOT EXISTS idx_customers_tenant ON ${tableName} (tenantId)`)
+          await knex.raw(`CREATE INDEX IF NOT EXISTS idx_customers_tenant ON "${tableName}" (tenantId)`)
           await knex.raw(
-            `CREATE INDEX IF NOT EXISTS idx_customers_tenant_location ON ${tableName} (tenantId, locationId)`
+            `CREATE INDEX IF NOT EXISTS idx_customers_tenant_location ON "${tableName}" (tenantId, locationId)`
           )
-          await knex.raw(`CREATE INDEX IF NOT EXISTS idx_customers_status ON ${tableName} (status)`)
           console.log('SQLite Indexes ensured for Customers.')
         }
       } catch (error) {

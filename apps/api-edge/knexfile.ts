@@ -1,7 +1,14 @@
-// For more information about this file see https://dove.feathersjs.com/guides/cli/databases.html
+// Knexfile für CLI-Befehle (pnpm db:migrate, pnpm db:create)
+import path from 'path'
 import { app } from './src/app'
 
-// Load our database connection info from the app configuration
-const config = app.get('sqlite')
+const config = { ...app.get('sqlite') }
+
+// Connection immer relativ zum Workspace-Root auflösen
+// (CWD variiert: Root bei `nx serve`, apps/api-edge/ bei `knex` CLI)
+const workspaceRoot = path.resolve(__dirname, '../..')
+if (typeof config.connection === 'string') {
+  config.connection = path.resolve(workspaceRoot, config.connection)
+}
 
 module.exports = config

@@ -17,7 +17,7 @@ import {
 import type { Application } from '../../declarations'
 import { Apikey, ApiKeyService } from './apikeys.class'
 import { DatabaseType } from '@panary-core/shared/common'
-import { createServiceAdapter } from '@panary-core/shared/data-access'
+import { createServiceAdapter } from '@panary-core/shared/data-access/server'
 import { authorize } from '../../hooks/authorize.hook'
 import { multiTenancy } from '../../hooks/multi-tenancy.hook'
 import {
@@ -58,7 +58,7 @@ export const apikeys = (app: Application) => {
 
   // Create service instance (factory decides between SQLite and MongoDB)
   const service = createServiceAdapter<Apikey>(app, {
-    name: 'users',
+    name: 'apikeys',
     Model,
     paginate,
     id: '_id',
@@ -104,15 +104,7 @@ export const apikeys = (app: Application) => {
             // We execute Raw SQL, as Knex Schema Builder is sometimes limited here.
           })
 
-          // Safe way for SQLite indexes (idempotent):
-          await knex.raw(`CREATE INDEX IF NOT EXISTS idx_apikeys_tenant ON ${tableName} (tenantId)`)
-          await knex.raw(
-            `CREATE INDEX IF NOT EXISTS idx_apikeys_tenant_location ON ${tableName} (tenantId, locationId)`
-          )
-          await knex.raw(
-            `CREATE UNIQUE INDEX IF NOT EXISTS idx_apikeys_tenant_external_unique ON ${tableName} (tenantId, externalId) WHERE externalId IS NOT NULL`
-          )
-          await knex.raw(`CREATE INDEX IF NOT EXISTS idx_apikeys_status ON ${tableName} (status)`)
+          // Keine nützlichen Spalten zum Indizieren vorhanden (nur _id und text in Migration)
           console.log('SQLite Indexes ensured for ApiKeys.')
         }
       } catch (error) {

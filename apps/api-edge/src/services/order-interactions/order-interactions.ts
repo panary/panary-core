@@ -15,7 +15,7 @@ import {
 import type { Application } from '../../declarations'
 import { authorize } from '../../hooks/authorize.hook'
 import { multiTenancy } from '../../hooks/multi-tenancy.hook'
-import { createServiceAdapter } from '@panary-core/shared/data-access'
+import { createServiceAdapter } from '@panary-core/shared/data-access/server'
 import { DatabaseType } from '@panary-core/shared/common'
 import {
   orderInteractionDataSchema,
@@ -100,21 +100,11 @@ export const orderInteractions = (app: Application) => {
 
           // Sicherer Weg für SQLite Indizes (Idempotent):
           await knex.raw(
-            `CREATE INDEX IF NOT EXISTS idx_order-interactions_tenant ON ${tableName} (tenantId)`
+            `CREATE INDEX IF NOT EXISTS idx_order_interactions_tenant ON "${tableName}" (tenantId)`
           )
           await knex.raw(
-            `CREATE INDEX IF NOT EXISTS idx_order-interactions_tenant_location ON ${tableName} (tenantId, locationId)`
+            `CREATE INDEX IF NOT EXISTS idx_order_interactions_tenant_location ON "${tableName}" (tenantId, locationId)`
           )
-          await knex.raw(
-            `CREATE UNIQUE INDEX IF NOT EXISTS idx_order-interactions_tenant_external_unique ON ${tableName} (tenantId, externalId) WHERE externalId IS NOT NULL`
-          )
-          await knex.raw(`CREATE INDEX IF NOT EXISTS idx_order-interactions_status ON ${tableName} (status)`)
-
-          // ACHTUNG: SQLite hat keine "Text Indexes" wie MongoDB.
-          // Für Volltextsuche bräuchte man FTS5 Tabellen.
-          // Ein normaler Index auf 'name' hilft aber bei 'LIKE "X%"' Abfragen.
-          await knex.raw(`CREATE INDEX IF NOT EXISTS idx_order-interactions_name ON ${tableName} (name)`)
-
           console.log('SQLite Indexes ensured for OrderInteractions.')
         }
       } catch (error) {

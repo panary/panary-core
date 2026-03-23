@@ -15,7 +15,7 @@ import {
 import type { Application } from '../../declarations'
 import { authorize } from '../../hooks/authorize.hook'
 import { multiTenancy } from '../../hooks/multi-tenancy.hook'
-import { createServiceAdapter } from '@panary-core/shared/data-access'
+import { createServiceAdapter } from '@panary-core/shared/data-access/server'
 import { DatabaseType } from '@panary-core/shared/common'
 import {
   productGroupDataSchema,
@@ -101,14 +101,11 @@ export const productGroups = (app: Application) => {
           })
 
           // Sicherer Weg für SQLite Indizes (Idempotent):
-          await knex.raw(`CREATE INDEX IF NOT EXISTS idx_product-groups_tenant ON ${tableName} (tenantId)`)
+          await knex.raw(`CREATE INDEX IF NOT EXISTS idx_product_groups_tenant ON "${tableName}" (tenantId)`)
           await knex.raw(
-            `CREATE INDEX IF NOT EXISTS idx_product-groups_tenant_location ON ${tableName} (tenantId, locationId)`
+            `CREATE INDEX IF NOT EXISTS idx_product_groups_tenant_location ON "${tableName}" (tenantId, locationId)`
           )
-          await knex.raw(
-            `CREATE UNIQUE INDEX IF NOT EXISTS idx_product-groups_tenant_external_unique ON ${tableName} (tenantId, externalId) WHERE externalId IS NOT NULL`
-          )
-          await knex.raw(`CREATE INDEX IF NOT EXISTS idx_product-groups_status ON ${tableName} (status)`)
+          await knex.raw(`CREATE INDEX IF NOT EXISTS idx_product_groups_status ON "${tableName}" (status)`)
           console.log('SQLite Indexes ensured for ProductGroups.')
         }
       } catch (error) {

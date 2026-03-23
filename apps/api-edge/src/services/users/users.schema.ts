@@ -13,8 +13,9 @@ import { UserService } from './users.class'
 //#region 1. Main User Resolver (Output)
 export const userValidator = getValidator(userSchema, dataValidator)
 export const userResolver = resolve<User, HookContext<UserService>>({
-  // NEVER send the password back to the client!
-  password: async () => undefined
+  // Passwort-Feld NICHT hier entfernen — das macht der externalResolver.
+  // Der userResolver läuft auch bei internen Aufrufen (z.B. LocalStrategy),
+  // die das Passwort für den bcrypt-Vergleich brauchen.
 })
 export const userExternalResolver = resolve<User, HookContext<UserService>>({
   // NEVER send the password back to the client!

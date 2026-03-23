@@ -15,7 +15,7 @@ import {
 import type { Application } from '../../declarations'
 import { authorize } from '../../hooks/authorize.hook'
 import { multiTenancy } from '../../hooks/multi-tenancy.hook'
-import { createServiceAdapter } from '@panary-core/shared/data-access'
+import { createServiceAdapter } from '@panary-core/shared/data-access/server'
 import { DatabaseType } from '@panary-core/shared/common'
 import {
   deviceDataSchema,
@@ -100,11 +100,10 @@ export const devices = (app: Application) => {
           })
 
           // Sicherer Weg für SQLite Indizes (Idempotent):
-          await knex.raw(`CREATE INDEX IF NOT EXISTS idx_devices_tenant ON ${tableName} (tenantId)`)
+          await knex.raw(`CREATE INDEX IF NOT EXISTS idx_devices_tenant ON "${tableName}" (tenantId)`)
           await knex.raw(
-            `CREATE UNIQUE INDEX IF NOT EXISTS idx_device_tenant_unique ON ${tableName} (tenantId, deviceId) WHERE deviceId IS NOT NULL`
+            `CREATE INDEX IF NOT EXISTS idx_devices_tenant_location ON "${tableName}" (tenantId, locationId)`
           )
-          await knex.raw(`CREATE INDEX IF NOT EXISTS idx_devices_status ON ${tableName} (status)`)
           console.log('SQLite Indexes ensured for Devices.')
         }
       } catch (error) {
@@ -150,7 +149,36 @@ export const devices = (app: Application) => {
       remove: []
     },
     after: {
-      all: []
+      all: [],
+      // Bei Device-Registrierung automatisch einen API-Key erstellen und im Response zurückgeben
+      create: [
+        async context => {
+          const device = context.result as any
+          if (!device?._id) return context
+
+          try {
+            const apiKeyRecord = await context.app.service('apikeys').create(
+              {
+                name: `${device.name} API Key`,
+                deviceId: device.deviceId,
+                tenantId: device.tenantId,
+                locationId: device.locationId,
+              },
+              { provider: undefined },
+            )
+
+            // deviceId → apiKeyId verknüpfen
+            await context.app.service('devices').patch(device._id, { apiKeyId: apiKeyRecord._id }, { provider: undefined })
+
+            // API-Key nur bei Erstellung zurückgeben (nicht bei späteren Abfragen)
+            device.apiKey = apiKeyRecord.apikey
+          } catch (err) {
+            console.error('Fehler beim Erstellen des API-Keys für Device:', err)
+          }
+
+          return context
+        },
+      ]
     },
     error: {
       all: []

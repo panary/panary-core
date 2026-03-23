@@ -2,7 +2,9 @@
   "host": "localhost",
   "port": 3030,
   "origins": [
-    "http://localhost:3030"
+    "http://localhost:3030",
+    "http://localhost:4200",
+    "http://localhost:4201"
   ],
   "system": {
     "mode": "standalone",
@@ -14,7 +16,7 @@
   },
   "sqlite": {
     "client": "sqlite3",
-    "connection": "api-edge.sqlite",
+    "connection": "data/api-edge.sqlite",
     "useNullAsDefault": true
   },
   "authentication": {

@@ -17,7 +17,12 @@ export const sqlite = (app: Application) => {
   if (!config) {
     console.warn('WARNING: No SQLite configuration found in app config!')
     console.warn('   Skipping Database initialization.')
-    return // Einfach abbrechen, statt abzustürzen
+    return
+  }
+
+  // Connection-Pfad absolut auflösen (relativ zu process.cwd() = Workspace-Root bei nx serve)
+  if (typeof config.connection === 'string') {
+    config.connection = path.resolve(process.cwd(), config.connection)
   }
 
   // --- Start: Migration Source Path Fix ---
@@ -68,7 +73,7 @@ export const sqlite = (app: Application) => {
   // Feathers awaits setup hooks when app.listen() or app.setup() is called
   app.hooks({
     setup: [
-      async (_context: any) => {
+      async (_context: any, next: any) => {
         if (migrationDir) {
           try {
             await db.migrate.latest()
@@ -77,6 +82,7 @@ export const sqlite = (app: Application) => {
             console.error(`Failed to run migrations from ${migrationDir}!`, err)
           }
         }
+        await next()
       }
     ]
   })

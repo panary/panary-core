@@ -15,7 +15,7 @@ import {
 import type { Application } from '../../declarations'
 import { authorize } from '../../hooks/authorize.hook'
 import { multiTenancy } from '../../hooks/multi-tenancy.hook'
-import { createServiceAdapter } from '@panary-core/shared/data-access'
+import { createServiceAdapter } from '@panary-core/shared/data-access/server'
 import { DatabaseType } from '@panary-core/shared/common'
 import { orderDataSchema, orderPatchSchema, orderQuerySchema, orderSchema } from '@panary-core/orders/domain'
 import type { Order, OrderService } from './orders.class'

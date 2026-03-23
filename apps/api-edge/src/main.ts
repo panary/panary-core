@@ -62,7 +62,7 @@ async function main() {
       logger.info('Bootstrapping: Found admin credentials in config. Verifying admin user...')
       try {
         const knex = app.get('sqliteClient')
-        const adminLogin = config.shopName || 'Admin'
+        const adminLogin = 'Admin'
 
         // Query DB directly to bypass service hooks (no JWT/auth needed for bootstrap)
         const existingUser = await knex('users').where({ loginname: adminLogin }).first()
@@ -75,7 +75,7 @@ async function main() {
           const createdUser = await usersService.create({
             email: adminEmail,
             password: adminPassword,
-            role: UserSystemRole.PLATFORM_ADMIN,
+            role: UserSystemRole.PLATFORM_OWNER,
             loginname: adminLogin,
             firstName: 'Admin',
             lastName: 'User',

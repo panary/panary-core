@@ -74,14 +74,15 @@ export function renderStatusPage(options: { host: string; port: number }): strin
       width: 6rem;
       height: 6rem;
       border-radius: 50%;
-      background-color: #22c55e; /* green-500 */
+      background-color: transparent;
+      border: 2px solid #fff;
       display: flex;
       align-items: center;
       justify-content: center;
       margin-bottom: 2rem;
       animation: pulse 2s ease-in-out infinite;
     }
-    .icon-circle svg { width: 3rem; height: 3rem; color: #000; }
+    .icon-circle svg { width: 3rem; height: 3rem; color: #fff; }
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.6; }
@@ -94,8 +95,9 @@ export function renderStatusPage(options: { host: string; port: number }): strin
 
     /* ---- Card ---- */
     .card {
-      background-color: #111827; /* gray-900 */
-      border-radius: 0.5rem;
+      background-color: rgba(17, 24, 39, 0.5); /* gray-900/50 */
+      border: 1px solid #1f2937; /* gray-800 */
+      border-radius: 0.75rem;
       padding: 1.5rem;
       width: 100%;
       max-width: 28rem;
@@ -133,16 +135,17 @@ export function renderStatusPage(options: { host: string; port: number }): strin
     .links a {
       flex: 1;
       text-align: center;
-      padding: 0.65rem 1rem;
-      border-radius: 0.5rem;
-      font-size: 0.85rem;
-      font-weight: 600;
+      padding: 1rem 1.5rem;
+      border-radius: 0.75rem;
+      font-size: 1rem;
+      font-weight: 700;
       text-decoration: none;
-      transition: opacity 0.15s;
+      transition: background-color 0.15s;
     }
-    .links a:hover { opacity: 0.8; }
-    .links .primary   { background: #22c55e; color: #000; }
-    .links .secondary { background: #1f2937; color: #fff; }
+    .links .primary   { background: #fff; color: #000; }
+    .links .primary:hover { background: #e5e7eb; }
+    .links .secondary { background: #1f2937; color: #fff; border: 1px solid #374151; }
+    .links .secondary:hover { background: #374151; }
   </style>
 </head>
 <body>

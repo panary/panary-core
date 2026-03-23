@@ -138,6 +138,7 @@ export const userQueryProperties = Type.Pick(
   'staffRole',
   'isPosUser',
   'stampingId',
+  'status',
 ])
 export const userQuerySchema = Type.Intersect(
   [

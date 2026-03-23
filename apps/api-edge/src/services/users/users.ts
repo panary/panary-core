@@ -18,7 +18,7 @@ import type { Application } from '../../declarations'
 import type { User } from './users.class'
 import { authorize } from '../../hooks/authorize.hook'
 import { multiTenancy } from '../../hooks/multi-tenancy.hook'
-import { createServiceAdapter } from '@panary-core/shared/data-access'
+import { createServiceAdapter } from '@panary-core/shared/data-access/server'
 import { DatabaseType } from '@panary-core/shared/common'
 
 export const usersPath = 'users'
@@ -70,7 +70,7 @@ export const users = (app: Application) => {
       all: [
         authenticate('jwt'),
         authorize(),
-        multiTenancy({ isolateLocation: true, allowGlobalData: false }),
+        multiTenancy({ isolateLocation: false }),
 
         schemaHooks.resolveExternal(userExternalResolver),
         schemaHooks.resolveResult(userResolver)

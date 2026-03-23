@@ -1,0 +1,194 @@
+<div class="h-full w-full bg-slate-50 p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border">
+  <!-- Header & Filters -->
+  <header class="flex-none flex flex-col gap-4 bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+    <div class="flex flex-row items-center justify-between">
+      <div class="flex items-center gap-4">
+        <button mat-icon-button (click)="goBack()" class="!bg-slate-50 !text-slate-600">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+          <mat-icon class="text-purple-600">history</mat-icon>
+          Historie
+        </h1>
+      </div>
+
+      <div class="flex gap-2">
+        <button mat-button [class.bg-purple-50]="selectedTimeRange() === 'today'"
+          [class.text-purple-700]="selectedTimeRange() === 'today'" (click)="selectTimeRange('today')">
+          Heute
+        </button>
+        <button mat-button [class.bg-purple-50]="selectedTimeRange() === 'yesterday'"
+          [class.text-purple-700]="selectedTimeRange() === 'yesterday'" (click)="selectTimeRange('yesterday')">
+          Gestern
+        </button>
+        <button mat-button [class.bg-purple-50]="selectedTimeRange() === 'week'"
+          [class.text-purple-700]="selectedTimeRange() === 'week'" (click)="selectTimeRange('week')">
+          Diese Woche
+        </button>
+      </div>
+    </div>
+
+    <div class="relative">
+      <mat-icon class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</mat-icon>
+      <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="fetchOrders()"
+        placeholder="Suche nach Bon-Nr, Kunde, Mitarbeiter..."
+        class="w-full h-12 pl-10 pr-4 rounded-xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-purple-200 transition-all text-slate-700 placeholder:text-slate-400" />
+      <button
+        class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-purple-600 text-white rounded-lg shadow-sm hover:bg-purple-700 active:scale-95 transition-all"
+        (click)="fetchOrders()">
+        <mat-icon class="!w-5 !h-5 !text-[20px]">arrow_forward</mat-icon>
+      </button>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <div class="flex-1 flex gap-6 min-h-0">
+    <!-- Order List -->
+    <div class="flex-1 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col"
+      [class.hidden]="selectedOrder() !== null" [class.lg:flex]="true">
+      <!-- Hide on mobile if detaill selected, always show on desktop -->
+
+      @if (loading()) {
+      <div class="flex-1 flex justify-center items-center flex-col gap-4">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+        <span class="text-slate-400 text-sm">Lade Bestellungen...</span>
+      </div>
+      } @else if (orders().length === 0) {
+      <div class="flex-1 flex justify-center items-center flex-col gap-4 text-slate-300">
+        <mat-icon class="!w-16 !h-16 !text-[64px]">search_off</mat-icon>
+        <span class="font-medium">Keine Bestellungen gefunden</span>
+      </div>
+      } @else {
+      <div class="overflow-y-auto p-2 space-y-2">
+        @for (order of orders(); track order._id) {
+        <div
+          class="p-4 rounded-xl border border-slate-100 bg-white hover:bg-slate-50 hover:shadow-md cursor-pointer transition-all group"
+          [class.ring-2]="selectedOrder()?._id === order._id"
+          [class.ring-purple-200]="selectedOrder()?._id === order._id" (click)="toggleOrderSelection(order)">
+          <div class="flex justify-between items-start mb-2">
+            <div class="flex items-center gap-2">
+              <span class="font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded text-xs">#{{
+                order.dailySequenceNumber }}</span>
+              <span class="text-xs text-slate-400">{{ order.recordingDate | date: 'HH:mm' }}</span>
+            </div>
+            <span class="font-bold text-slate-800">{{ calculateTotal(order) | currency: 'EUR' }}</span>
+          </div>
+
+          <div class="font-medium text-slate-700 truncate group-hover:text-purple-700 transition-colors">
+            {{ getOrderTitle(order) }}
+          </div>
+
+          <div class="flex justify-between items-center mt-2">
+            <span class="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{{
+              order.orderChannel
+              }}</span>
+
+            @if (order.status === OrderStatus.COMPLETED) {
+            <span
+              class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <mat-icon class="!w-3 !h-3 !text-[12px]">check</mat-icon> Erledigt
+            </span>
+            } @else {
+            <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+              {{ order.status }}
+            </span>
+            }
+          </div>
+        </div>
+        }
+      </div>
+      }
+    </div>
+
+    <!-- Order Detail -->
+    <div
+      class="flex-1 lg:max-w-[450px] bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col"
+      *ngIf="selectedOrder()">
+      <!-- Detail Header -->
+      <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div>
+          <h2 class="font-bold text-lg text-slate-800">Details</h2>
+          <p class="text-xs text-slate-500">Bon #{{ selectedOrder()?.dailySequenceNumber }}</p>
+        </div>
+        <button mat-icon-button (click)="selectedOrder.set(null)" class="lg:hidden">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <!-- Detail Content -->
+      <div class="flex-1 overflow-y-auto p-4">
+        <!-- Simplified Receipt View -->
+        <div class="bg-white border border-slate-100 rounded-xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+          <div class="text-center mb-6 border-b border-dashed border-slate-200 pb-4">
+            <h3 class="font-bold text-xl text-slate-900">{{ getOrderTitle(selectedOrder()!) }}</h3>
+            <p class="text-sm text-slate-500">{{ selectedOrder()?.recordingDate | date: 'dd.MM.yyyy HH:mm' }}</p>
+          </div>
+
+          <div class="space-y-3 font-mono text-sm">
+            @for (item of getUnbundledLineItems(selectedOrder()!); track item) {
+            <div class="flex justify-between items-start">
+              <div class="flex gap-2">
+                <span class="font-bold">{{ item.amount }}x</span>
+                <span>{{ item.name }}</span>
+              </div>
+              <span>{{ item.price * item.amount | currency: 'EUR' }}</span>
+            </div>
+            @for (extra of item.modifiers; track extra) {
+            <div class="flex justify-between items-start pl-6 text-slate-500 text-xs">
+              <span>{{ extra.amount }}x {{ extra.name }}</span>
+              <span>{{ extra.price * extra.amount | currency: 'EUR' }}</span>
+            </div>
+            }
+            }
+
+            @for (combo of getCombinations(selectedOrder()!); track combo; let i = $index) {
+            <div class="pt-2 mt-2 border-t border-dashed border-slate-100">
+              <div class="font-bold text-xs text-slate-400 uppercase mb-1">Kombination {{ i + 1 }}</div>
+              @for (item of combo; track item) {
+              <div class="flex justify-between items-start pl-2 border-l-2 border-slate-200">
+                <div class="flex gap-2">
+                  <span class="font-bold">{{ item.amount }}x</span>
+                  <span>{{ item.name }}</span>
+                </div>
+                <span>{{ item.price * item.amount | currency: 'EUR' }}</span>
+              </div>
+              }
+            </div>
+            }
+          </div>
+
+          <div class="mt-6 pt-4 border-t-2 border-slate-800 flex justify-between items-center text-lg font-bold">
+            <span>Summe</span>
+            <span>{{ calculateTotal(selectedOrder()!) | currency: 'EUR' }}</span>
+          </div>
+        </div>
+
+        <!-- Metadata Actions -->
+        <div class="mt-6 grid grid-cols-2 gap-3">
+          <div class="col-span-2 p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm">
+            <span class="block text-xs font-bold text-slate-400 uppercase">ID</span>
+            <span class="font-mono truncate select-all">{{ selectedOrder()?._id }}</span>
+          </div>
+
+          <!-- Only show if we actully implemented reprint / refund logic -->
+          <button
+            class="h-10 rounded-lg bg-white border border-slate-200 text-slate-600 font-medium hover:bg-slate-50 active:scale-95 transition-all">
+            Drucken
+          </button>
+          <button
+            class="h-10 rounded-lg bg-white border border-slate-200 text-slate-600 font-medium hover:bg-slate-50 active:scale-95 transition-all">
+            Storno
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Placeholder when no order selected -->
+    <div
+      class="hidden lg:flex flex-1 max-w-[450px] bg-slate-50/50 border border-dashed border-slate-200 rounded-2xl justify-center items-center text-slate-400 flex-col gap-2"
+      *ngIf="!selectedOrder()">
+      <mat-icon class="!w-12 !h-12 !text-[48px] opacity-20">receipt</mat-icon>
+      <span class="text-sm font-medium opacity-50">Wähle eine Bestellung</span>
+    </div>
+  </div>
+</div>

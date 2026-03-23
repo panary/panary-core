@@ -1,4 +1,4 @@
-import { Injectable, Signal, signal, WritableSignal } from '@angular/core'
+import { Injectable, Signal, signal } from '@angular/core'
 import { Notification } from '../models/notification.model'
 
 @Injectable({
@@ -26,9 +26,9 @@ export class NotificationService {
       type,
       message,
       title: title || this.getDefaultTitle(type),
-      duration
+      duration,
     }
-    
+
     this.#notifications.update(notifications => [...notifications, newNotification])
   }
 
@@ -42,10 +42,14 @@ export class NotificationService {
 
   private getDefaultTitle(type: Notification['type']): string {
     switch (type) {
-      case 'success': return 'Erfolg'
-      case 'error': return 'Fehler'
-      case 'warning': return 'Warnung'
-      case 'info': return 'Info'
+      case 'success':
+        return 'Erfolg'
+      case 'error':
+        return 'Fehler'
+      case 'warning':
+        return 'Warnung'
+      case 'info':
+        return 'Info'
     }
   }
 }

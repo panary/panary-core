@@ -1,0 +1,82 @@
+@reference "tailwindcss";
+
+/* Styles for Active Orders Component */
+
+.receipt-tear-line {
+  height: 16px;
+  width: 100%;
+
+  /* 
+     * Realistic ZigZag / Perforation effect 
+     * Using a data-uri SVG for a sharp, clean saw-tooth pattern
+     * Color matches the slate-200/300 border/text colors 
+     */
+  background-image: url("data:image/svg+xml,%3Csvg width='24' height='12' viewBox='0 0 24 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0 L12 12 L24 0' fill='none' stroke='%23cbd5e1' stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-position: center;
+
+  opacity: 0.8;
+  margin: 4px 0;
+}
+
+/* Scale in center animation for overlay */
+.scale-in-center {
+  animation: scaleInCenter 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@keyframes scaleInCenter {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Rubber Stamp Effect */
+.stamp-canceled {
+  @apply border-8 border-red-700 text-red-700 font-black uppercase tracking-widest px-8 py-4 rounded-xl opacity-90;
+  font-size: 3rem;
+  /* Much larger */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-15deg);
+  z-index: 50;
+  /* Ensure it is on top */
+  /* Simulate ink texture/grunge */
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg width='200' height='100' viewBox='0 0 200 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.5'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg width='200' height='100' viewBox='0 0 200 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.5'/%3E%3C/svg%3E");
+  -webkit-mask-mode: alpha;
+  mask-mode: alpha;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  text-shadow: 0 0 2px rgba(185, 28, 28, 0.2);
+}
+
+/* Button Hover Morph Effect */
+.hover-morph-btn {
+  transition:
+    border-radius 0.3s ease,
+    background-color 0.2s ease;
+  border-radius: 0.75rem !important;
+  /* rounded-xl start */
+
+  &:hover {
+    border-radius: 50% !important;
+    /* rounded-full end */
+  }
+
+  /* Remove default gray hover overlay from Material */
+  &::after {
+    display: none !important;
+  }
+
+  .mat-mdc-button-persistent-ripple,
+  .mat-mdc-button-ripple {
+    display: none !important;
+  }
+}

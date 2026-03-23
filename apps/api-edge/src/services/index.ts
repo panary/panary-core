@@ -1,5 +1,6 @@
 import { apikeys } from './apikeys/apikeys'
 import { users } from './users/users'
+import { organizations } from './organizations/organizations'
 // For more information about this file see https://dove.feathersjs.com/guides/cli/application.html#configure-functions
 import type { Application } from '../declarations'
 import { products } from './products/products'
@@ -13,6 +14,7 @@ import { orderInteractions } from './order-interactions/order-interactions'
 import { userPreferences } from './user-preferences/user-preferences'
 
 export const services = (app: Application) => {
+  app.configure(organizations)
   app.configure(apikeys)
   app.configure(users)
   app.configure(products)

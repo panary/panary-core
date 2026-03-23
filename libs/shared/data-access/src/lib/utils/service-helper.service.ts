@@ -1,8 +1,8 @@
 import { inject, Injectable } from '@angular/core'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { FeathersError } from '@feathersjs/errors'
-import { httpErrorCodesDE } from '@panary/shared/util-error-handling'
-import { NotificationService } from '@panary/shared/data-access-notifications'
+import { httpErrorCodesDE } from '@panary-core/util-error-handling'
+import { NotificationService } from '@panary-core/shared/ui-notifications'
 import { Router } from '@angular/router'
 
 @Injectable({
@@ -26,8 +26,6 @@ export class ServiceHelper {
    */
   handleError(serviceName: string, error: FeathersError | any): void {
     const ERROR_DUPLICATE_KEY_MSG = 'Ein Eintrag mit diesem Schlüssel existiert bereits.'
-    const ERROR_ICON = 'error' // Fehler-Icon von FontAwesome
-    const ERROR_BG_COLOR = 'error'
 
     const getErrorPhrase = (code: string | number): string => {
       try {

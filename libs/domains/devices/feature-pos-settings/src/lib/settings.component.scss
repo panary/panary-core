@@ -1,0 +1,9 @@
+@reference "tailwindcss";
+
+.active-nav {
+  @apply bg-indigo-50 text-indigo-700 font-bold;
+
+  mat-icon {
+    @apply text-indigo-500;
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "orders-feature-pos-order-dialog",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/orders/feature-pos-order-dialog/src",
+  "prefix": "lib",
+  "projectType": "library",
+  "tags": ["type:feature", "domain:orders", "platform:pos"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

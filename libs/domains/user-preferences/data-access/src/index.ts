@@ -1,1 +1,1 @@
-export * from './lib/user-preferences-data-access/user-preferences-data-access'
+export * from './lib/services/user-preferences.service'

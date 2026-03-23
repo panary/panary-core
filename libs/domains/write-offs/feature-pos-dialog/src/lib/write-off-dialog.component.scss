@@ -1,0 +1,38 @@
+:host {
+  display: block;
+ /* Ensure it takes full size in dialog */
+  height: 100%;
+}
+
+::ng-deep .search-field-large {
+    .mat-mdc-form-field-flex {
+        background-color: white !important;
+        border-radius: 12px !important;
+        padding: 0 16px !important;
+        height: 64px !important;
+        align-items: center !important;
+    }
+    
+    .mat-mdc-text-field-wrapper {
+        padding: 0 !important;
+    }
+    
+    .mat-mdc-form-field-infix {
+        padding: 0 !important;
+        min-height: unset !important;
+    }
+    
+    input {
+        font-size: 1.125rem !important; /* text-lg */
+        font-weight: 500 !important;
+    }
+}
+
+.close-button {
+    ::ng-deep .mat-focus-indicator {
+        display: none !important;
+    }
+    ::ng-deep .mat-ripple {
+        border-radius: 12px !important; // Match !rounded-xl
+    }
+}

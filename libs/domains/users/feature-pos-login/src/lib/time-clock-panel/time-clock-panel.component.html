@@ -1,0 +1,451 @@
+<!-- Embedded Mode: Used inside the dark panel on desktop -->
+@if (mode() === 'embedded') {
+  <div class="flex flex-col h-full">
+    <!-- Header - centered -->
+    <div class="p-4 border-b border-white/10 text-center">
+      <h3 class="text-base font-semibold text-white flex items-center justify-center gap-2">
+        <svg class="w-4 h-4 text-[#00B8D4]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+          ></path>
+        </svg>
+        Arbeitszeiterfassung
+      </h3>
+      <p class="text-xs text-white/60 mt-0.5">Schnell ein- oder ausstempeln</p>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 p-4 overflow-y-auto">
+      @if (!showPinDialog() && !successMessage()) {
+        <!-- Actions Grid -->
+        <div class="grid grid-cols-2 gap-3">
+          @for (action of actions; track action.action) {
+            <button
+              class="flex flex-col items-center justify-center p-4 rounded-xl transition-all duration-200 {{
+                action.bgColor
+              }} group"
+              (click)="selectAction(action.action)"
+            >
+              <div
+                class="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm"
+              >
+                @switch (action.icon) {
+                  @case ('login') {
+                    <svg class="w-5 h-5 {{ action.color }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
+                      ></path>
+                    </svg>
+                  }
+                  @case ('logout') {
+                    <svg class="w-5 h-5 {{ action.color }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                      ></path>
+                    </svg>
+                  }
+                  @case ('coffee') {
+                    <svg class="w-5 h-5 {{ action.color }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v-8zm-2 8H5a2 2 0 01-2-2V8a2 2 0 012-2h10a2 2 0 012 2v6a2 2 0 01-2 2zm0-8H5m5-4v2m2-2v2"
+                      ></path>
+                    </svg>
+                  }
+                  @case ('play_arrow') {
+                    <svg class="w-5 h-5 {{ action.color }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                      ></path>
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      ></path>
+                    </svg>
+                  }
+                }
+              </div>
+              <span class="text-sm font-medium {{ action.color }}">{{ action.label }}</span>
+            </button>
+          }
+        </div>
+      }
+
+      <!-- PIN Input Dialog (Embedded) -->
+      @if (showPinDialog() && !successMessage()) {
+        <div class="animate-[fadeIn_0.2s_ease-out]">
+          <!-- Action Header -->
+          <div class="flex items-center gap-3 mb-4">
+            <button
+              class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+              (click)="cancelAction()"
+              aria-label="Zurück zur Aktionsauswahl"
+            >
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+            </button>
+            <div>
+              <h4 class="text-white font-medium text-sm">{{ getActionConfig(selectedAction()!)?.label }}</h4>
+              <p class="text-xs text-white/60">Personalnummer eingeben</p>
+            </div>
+          </div>
+
+          <!-- PIN Display -->
+          <div class="bg-white/10 rounded-xl p-3 mb-3">
+            <div class="flex justify-center gap-2">
+              @for (i of [0, 1, 2, 3, 4, 5]; track i) {
+                <div
+                  class="w-7 h-7 rounded-lg flex items-center justify-center text-base font-mono transition-all"
+                  [ngClass]="pinInput().length > i ? 'bg-[#00B8D4] text-white' : 'bg-white/20 text-transparent'"
+                >
+                  {{ pinInput()[i] || '•' }}
+                </div>
+              }
+            </div>
+          </div>
+
+          @if (pinError()) {
+            <p class="text-red-400 text-xs text-center mb-3">{{ errorMessage() || 'Ungültige Personalnummer' }}</p>
+          }
+
+          <!-- Numpad (Compact) -->
+          <div class="grid grid-cols-3 gap-1.5">
+            @for (digit of ['1', '2', '3', '4', '5', '6', '7', '8', '9']; track digit) {
+              <button
+                class="h-10 rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-lg font-medium transition-all"
+                (click)="addDigit(digit)"
+                [disabled]="isLoading()"
+              >
+                {{ digit }}
+              </button>
+            }
+            <button
+              class="h-10 rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 text-white/60 text-xs transition-all"
+              (click)="clearPin()"
+              [disabled]="isLoading()"
+            >
+              Löschen
+            </button>
+            <button
+              class="h-10 rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-lg font-medium transition-all"
+              (click)="addDigit('0')"
+              [disabled]="isLoading()"
+            >
+              0
+            </button>
+            <button
+              class="h-10 rounded-lg bg-[#00B8D4] hover:bg-[#00a0bb] active:bg-[#0090a8] text-white font-medium transition-all flex items-center justify-center disabled:opacity-50"
+              (click)="confirmAction()"
+              [disabled]="isLoading() || pinInput().length < 4"
+              aria-label="Bestätigen"
+            >
+              @if (isLoading()) {
+                <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              } @else {
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Success Message -->
+      @if (successMessage()) {
+        <div class="flex flex-col items-center justify-center py-8 animate-[scaleIn_0.3s_ease-out]">
+          <div class="w-14 h-14 rounded-full bg-emerald-500/20 flex items-center justify-center mb-3">
+            <svg class="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </div>
+          <p class="text-white font-medium text-sm text-center">{{ successMessage() }}</p>
+        </div>
+      }
+    </div>
+  </div>
+}
+
+<!-- Mobile Mode: Slide-In Panel from Bottom -->
+@if (mode() === 'mobile') {
+  <!-- Bouncing Arrow Indicator (behind the panel) -->
+  <div
+    class="lg:hidden fixed bottom-20 left-1/2 -translate-x-1/2 z-40 transition-opacity duration-300"
+    [class.opacity-100]="!isExpanded()"
+    [class.opacity-0]="isExpanded()"
+  >
+    <div class="animate-bounce">
+      <svg class="w-6 h-6 text-[#00B8D4]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Backdrop for closing on outside click -->
+  @if (isExpanded()) {
+    <div class="lg:hidden fixed inset-0 z-40" (click)="closePanel()" aria-hidden="true"></div>
+  }
+
+  <div
+    class="lg:hidden fixed inset-x-0 bottom-0 z-50 px-4 transition-transform duration-300 ease-out"
+    [class.translate-y-[calc(100%-72px)]]="!isExpanded()"
+    [class.translate-y-0]="isExpanded()"
+    (touchstart)="onTouchStart($event)"
+    (touchmove)="onTouchMove($event)"
+    (touchend)="onTouchEnd()"
+  >
+    <!-- Panel Card -->
+    <div class="bg-gradient-to-br from-[#162032] to-[#283548] rounded-t-[2rem] shadow-2xl min-h-[400px] flex flex-col">
+      <!-- Handle Bar (always visible, clickable) -->
+      <div
+        class="flex justify-center py-3 cursor-pointer"
+        (click)="togglePanel()"
+        (keydown.enter)="togglePanel()"
+        (keydown.space)="togglePanel()"
+        tabindex="0"
+        role="button"
+        [attr.aria-label]="isExpanded() ? 'Panel schließen' : 'Arbeitszeitverwaltung öffnen'"
+      >
+        <div class="w-12 h-1 rounded-full bg-white/30"></div>
+      </div>
+
+      <!-- Header with animated layout -->
+      <div class="px-6 pb-4 flex items-center justify-between">
+        <div class="flex items-center gap-3 flex-1 min-w-0">
+          <div class="w-10 h-10 bg-[#00B8D4]/20 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-[#00B8D4]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
+            </svg>
+          </div>
+          <!-- Title container with smooth layout transition -->
+          <div
+            class="flex transition-all duration-300 ease-out min-w-0"
+            [class.flex-row]="!isExpanded()"
+            [class.items-center]="!isExpanded()"
+            [class.gap-2]="!isExpanded()"
+            [class.flex-col]="isExpanded()"
+            [class.items-start]="isExpanded()"
+            [class.gap-0]="isExpanded()"
+          >
+            <h3 class="text-base font-semibold text-white whitespace-nowrap">Arbeitszeitverwaltung</h3>
+            <p
+              class="text-white/60 transition-all duration-300 whitespace-nowrap"
+              [class.text-xs]="isExpanded()"
+              [class.text-sm]="!isExpanded()"
+            >
+              @if (!isExpanded()) {
+                <span class="text-white/40">•</span>
+              }
+              Schnell ein- oder ausstempeln
+            </p>
+          </div>
+        </div>
+        <!-- Only show close button when expanded -->
+        @if (isExpanded()) {
+          <button
+            class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all flex-shrink-0 ml-3"
+            (click)="closePanel()"
+            aria-label="Panel schließen"
+          >
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        }
+      </div>
+
+      <!-- Content -->
+      <div class="flex-1 p-6 overflow-y-auto">
+        @if (!showPinDialog() && !successMessage()) {
+          <!-- Actions Grid -->
+          <div class="grid grid-cols-2 gap-3">
+            @for (action of actions; track action.action) {
+              <button
+                class="flex flex-col items-center justify-center p-5 rounded-xl transition-all {{
+                  action.bgColor
+                }} active:scale-95"
+                (click)="selectAction(action.action)"
+              >
+                <div class="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center mb-2 shadow-sm">
+                  @switch (action.icon) {
+                    @case ('login') {
+                      <svg class="w-6 h-6 {{ action.color }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
+                        ></path>
+                      </svg>
+                    }
+                    @case ('logout') {
+                      <svg class="w-6 h-6 {{ action.color }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                        ></path>
+                      </svg>
+                    }
+                    @case ('coffee') {
+                      <svg class="w-6 h-6 {{ action.color }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v-8zm-2 8H5a2 2 0 01-2-2V8a2 2 0 012-2h10a2 2 0 012 2v6a2 2 0 01-2 2zm0-8H5m5-4v2m2-2v2"
+                        ></path>
+                      </svg>
+                    }
+                    @case ('play_arrow') {
+                      <svg class="w-6 h-6 {{ action.color }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                        ></path>
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        ></path>
+                      </svg>
+                    }
+                  }
+                </div>
+                <span class="font-medium {{ action.color }}">{{ action.label }}</span>
+              </button>
+            }
+          </div>
+        }
+
+        <!-- PIN Input (Mobile) -->
+        @if (showPinDialog() && !successMessage()) {
+          <div class="animate-[fadeIn_0.2s_ease-out]">
+            <!-- Action Header -->
+            <div class="flex items-center gap-3 mb-6">
+              <button
+                class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"
+                (click)="cancelAction()"
+                aria-label="Zurück zur Aktionsauswahl"
+              >
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+              </button>
+              <div>
+                <h4 class="text-white font-semibold text-lg">{{ getActionConfig(selectedAction()!)?.label }}</h4>
+                <p class="text-sm text-white/60">Personalnummer eingeben</p>
+              </div>
+            </div>
+
+            <!-- PIN Display -->
+            <div class="bg-white/10 rounded-xl p-4 mb-6">
+              <div class="flex justify-center gap-3">
+                @for (i of [0, 1, 2, 3, 4, 5]; track i) {
+                  <div
+                    class="w-10 h-10 rounded-lg flex items-center justify-center text-xl font-mono transition-all"
+                    [ngClass]="{
+                      'bg-[#00B8D4] text-white': pinInput().length > i,
+                      'bg-white/20': pinInput().length <= i,
+                      'scale-110': pinInput().length === i + 1,
+                    }"
+                  >
+                    {{ pinInput()[i] || '' }}
+                  </div>
+                }
+              </div>
+            </div>
+
+            @if (pinError()) {
+              <p class="text-red-400 text-sm text-center mb-4 animate-[shake_0.3s_ease-out]">
+                {{ errorMessage() || 'Ungültige Personalnummer' }}
+              </p>
+            }
+
+            <!-- Numpad (Mobile optimized) -->
+            <div class="grid grid-cols-3 gap-3">
+              @for (digit of ['1', '2', '3', '4', '5', '6', '7', '8', '9']; track digit) {
+                <button
+                  class="h-14 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-2xl font-medium transition-all active:scale-95"
+                  (click)="addDigit(digit)"
+                  [disabled]="isLoading()"
+                >
+                  {{ digit }}
+                </button>
+              }
+              <button
+                class="h-14 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 flex items-center justify-center transition-all active:scale-95"
+                (click)="clearPin()"
+                [disabled]="isLoading()"
+                aria-label="PIN löschen"
+              >
+                <svg class="w-6 h-6 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+              <button
+                class="h-14 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-2xl font-medium transition-all active:scale-95"
+                (click)="addDigit('0')"
+                [disabled]="isLoading()"
+              >
+                0
+              </button>
+              <button
+                class="h-14 rounded-xl bg-[#00B8D4] hover:bg-[#00a0bb] active:bg-[#0090a8] text-white font-semibold transition-all active:scale-95 flex items-center justify-center disabled:opacity-50"
+                (click)="confirmAction()"
+                [disabled]="isLoading() || pinInput().length < 4"
+                aria-label="Bestätigen"
+              >
+                @if (isLoading()) {
+                  <div class="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                } @else {
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                }
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Success Message (Mobile) -->
+        @if (successMessage()) {
+          <div class="flex flex-col items-center justify-center py-8 animate-[scaleIn_0.3s_ease-out]">
+            <div class="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
+              <svg class="w-10 h-10 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <p class="text-white font-medium text-lg text-center">{{ successMessage() }}</p>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}

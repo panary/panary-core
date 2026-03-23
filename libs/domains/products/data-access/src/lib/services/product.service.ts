@@ -1,13 +1,20 @@
 import { computed, effect, inject, Injectable, Signal, signal, WritableSignal } from '@angular/core'
-import { ItemType, ProductSchema } from '../models/product.model'
+import { ItemType, Pricelist, ProductSchema } from '../models/product.model'
 import { Id } from '@feathersjs/feathers'
-import { catchError, concatMap, finalize, from, Observer, of, toArray } from 'rxjs'
-import { BaseService, ConnectionService } from '@panary/shared/data-access-infrastructure'
-import { Status } from '@panary/shared/models'
-import { AuthService } from '@panary/domains/auth/data-access'
-import { Pricelist } from '@panary/domains/pricelists/data-access'
-import Papa from 'papaparse'
-import { UUID } from 'node:crypto'
+import { Observer } from 'rxjs'
+import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
+import { AuthService } from '@panary-core/auth/data-access'
+
+// TODO: Migration – Status-Enum aus @panary-core/products/domain oder shared/common übernehmen
+const Status = {
+  active: 'ACTIVE',
+  draft: 'DRAFT',
+  archived: 'ARCHIVED',
+} as const
+type Status = (typeof Status)[keyof typeof Status]
+
+// UUID wird nur als Typ verwendet
+type UUID = string
 
 @Injectable({
   providedIn: 'root',
@@ -25,7 +32,8 @@ export class ProductService extends BaseService<ProductSchema> {
 
   extras = computed(() =>
     this.#documents()
-      .filter((products: ProductSchema): boolean => products.itemType === ItemType.extra)
+      // TODO: Migration – ehem. itemType === 'extra', jetzt productType === 'MODIFIER'
+      .filter((products: ProductSchema): boolean => products.productType === ItemType.extra)
       .sort((a: ProductSchema, b: ProductSchema): number => a.name.localeCompare(b.name)),
   )
 
@@ -85,219 +93,9 @@ export class ProductService extends BaseService<ProductSchema> {
     }
   }
 
-  protected override fileReaderOnLoad(fileReader: FileReader, observer: Observer<any>, context: any) {
-    try {
-      const text = fileReader.result as string
-
-      Papa.parse(text, {
-        delimiter: this.detectDelimiter(text.slice(0, 1000)), // oder eine andere geeignete Probegröße
-        header: true,
-        skipEmptyLines: true,
-        complete: results => {
-          const lines = results.data as any[]
-          const errors = results.errors
-
-          if (lines.length < 1) {
-            const error = 'Die SSV-Datei enthält keine Daten.'
-            console.error(error)
-            context.errorMessages.push(error)
-            observer.next(context)
-            observer.complete()
-            return
-          }
-
-          // Validierung der Header
-          const header = results.meta.fields
-          const expectedHeader = [
-            '_id',
-            'acronym',
-            'index',
-            'name',
-            'price',
-            'showExtrasAfterSelect',
-            'productGroupExternalId',
-            'taxInside',
-            'taxOutside',
-            'isInvalid',
-            'isMenu',
-            'isMenuDrink',
-            'isMenuSideDish',
-            'isMenuSideDishSauce',
-            'isExtra',
-            'menuFilterType',
-            'nextProductGroupExternalId',
-            'showSaucesAfterSelect',
-            'freeSaucesQuantity',
-          ]
-
-          const isHeaderValid = expectedHeader.every((col, idx) => col === (header ? header[idx] : ''))
-          if (!isHeaderValid) {
-            const error = 'Die Header der SSV-Datei stimmen nicht mit den erwarteten Spalten überein.'
-            console.error(error)
-            context.errorMessages.push(error)
-            observer.next(context)
-            observer.complete()
-            return
-          }
-
-          const data: Omit<ProductSchema, '_id' | 'locationId' | 'tenantId'>[] = []
-
-          lines.forEach((line, i) => {
-            const {
-              _id = '',
-              externalId = null,
-              name,
-              acronym,
-              productGroupExternalId: productGroupExternalId,
-              menuFilterType,
-              nextProductGroupExternalId: nextProductGroupExternalId,
-            } = line
-
-            // Konvertierungen und Validierungen
-            const statusStr = line.status?.trim().toUpperCase() || 'DRAFT'
-            const excluded = Boolean(line.excluded || false)
-            const index = Number(line.index)
-            const price = Number(line.price)
-            const taxInside = Number(line.taxInside)
-            const taxOutside = Number(line.taxOutside)
-            const isMenu = Boolean(line.isMenu || false)
-            const isMenuDrink = Boolean(line.isMenu || false)
-            const isMenuSideDish = Boolean(line.isMenuSideDish || false)
-            const isMenuSideDishSauce = Boolean(line.isMenuSideDish || false)
-            const isExtra = Boolean(line.isExtra || false)
-            const freeSaucesQuantity = Number(line.freeSaucesQuantity)
-            const showExtrasAfterSelect = Boolean(line.showExtrasAfterSelect || false)
-            const showSaucesAfterSelect = Boolean(line.showSaucesAfterSelect || false)
-
-            let statusEnum: Status | undefined
-
-            if (statusStr) {
-              switch (statusStr) {
-                case Status.active:
-                  statusEnum = Status.active
-                  break
-                case Status.draft:
-                  statusEnum = Status.draft
-                  break
-                case Status.archived:
-                  statusEnum = Status.archived
-                  break
-                default: {
-                  const warnMsg = `Default Wert für Zeile ${ i + 1 } wird angewendet: Ungültiger Status-Wert '${ statusStr }' in Speise ${ _id }.`
-                  console.warn(warnMsg)
-                  context.warnMessages.push(warnMsg)
-                  statusEnum = Status.draft
-                }
-              }
-            }
-
-            if (!name || !acronym || isNaN(index) || isNaN(price) || isNaN(taxInside) || isNaN(taxOutside)) {
-              let warnMsg = `Zeile ${ i + 1 } wird übersprungen: Ungültige Daten in Speise ${ _id }.`
-              warnMsg += `\nname = ${ name }`
-              warnMsg += `\nacronym = ${ acronym }`
-              warnMsg += `\nindex = ${ index }`
-              warnMsg += `\nprice = ${ price }`
-              warnMsg += `\ntaxInside = ${ taxInside }`
-              warnMsg += `\ntaxOutside = ${ taxOutside }`
-              console.warn(warnMsg)
-              context.warnMessages.push(warnMsg)
-            }
-
-            const products: Omit<ProductSchema, '_id' | 'locationId' | 'tenantId'> = {
-              externalId,
-              name,
-              acronym,
-              productGroupExternalId: productGroupExternalId,
-              index,
-              price,
-              taxInside,
-              taxOutside,
-              showExtrasAfterSelect,
-              showSaucesAfterSelect,
-              isMenu,
-              isMenuDrink,
-              isMenuSideDish,
-              isMenuSideDishSauce,
-              isExtra,
-            }
-
-            if (acronym) {
-              products.acronym = acronym
-            }
-            if (statusEnum) {
-              products.status = statusEnum
-            }
-            if (nextProductGroupExternalId) {
-              products.nextProductGroupExternalId = nextProductGroupExternalId
-            }
-            if (freeSaucesQuantity) {
-              products.freeSaucesQuantity = freeSaucesQuantity
-            }
-
-            data.push(products)
-          })
-
-          console.log(`Verarbeitete Speisen: ${ data.length }`)
-          console.log(`Gesammelte Fehler: ${ context.errorMessages.length }`)
-
-          if (data.length === 0) {
-            const error = 'Keine gültigen Speisen zum Importieren gefunden.'
-            console.error(error)
-            observer.next(context)
-            observer.complete()
-            return
-          }
-
-          if (!context.multi) {
-            // Erstellung der ProductGroups einzeln über die API
-            from(data)
-              .pipe(
-                concatMap(ag =>
-                  from(this.create(ag)).pipe(
-                    catchError(err => {
-                      const msg = `Fehler beim Erstellen von Speisen '${ ag.name }': ${ err.message || err }`
-                      console.error(msg)
-                      context.errorMessages.push(msg)
-                      return of(null) // Weiter mit dem nächsten Eintrag
-                    }),
-                  ),
-                ),
-                toArray(),
-                finalize(() => {
-                  context.successCount = data.length - context.errorMessages.length
-                  observer.next(context)
-                  observer.complete()
-                }),
-              )
-              .subscribe()
-          } else {
-            // Erstellung der ProductGroups als Bulk über die API
-            this.create(data).then((result: ProductSchema[] | ProductSchema) => {
-              if (Array.isArray(result)) {
-                context.successCount = data.length - context.errorMessages.length
-              } else {
-                context.successCount = 1
-              }
-              this.loadDocuments().then()
-              observer.next(context)
-              observer.complete()
-            })
-          }
-        },
-        error: (err: any) => {
-          const error = 'Ein unerwarteter Fehler ist beim Parsen der Datei aufgetreten.'
-          console.error(error, err)
-          context.errorMessages.push(error)
-          observer.next(context)
-          observer.complete()
-        },
-      })
-    } catch (err) {
-      const error = 'Ein unerwarteter Fehler ist aufgetreten.'
-      console.error(error, err)
-      observer.next(context)
-      observer.complete()
-    }
+  protected override fileReaderOnLoad(_fileReader: FileReader, _observer: Observer<unknown>, _context: unknown) {
+    // TODO: CSV-Import wurde in der Migration entfernt (Legacy-Felder nicht im neuen Schema)
+    // Diese Funktion muss mit dem neuen Produktschema neu implementiert werden.
   }
 
   /** PUBLIC METHODS */
@@ -408,7 +206,8 @@ export class ProductService extends BaseService<ProductSchema> {
    * @return {ProductSchema | undefined} The product associated with the given index, or undefined if no match is found or an error occurs.
    */
   findProductByIndex(index: number): ProductSchema | undefined {
-    return this.#documents().find((record: ProductSchema): boolean => record.index === index)
+    // TODO: Im neuen Schema ist 'index' unter product.ui.index verschoben
+    return this.#documents().find((record: ProductSchema): boolean => record.ui?.index === index)
   }
 
   /**
@@ -419,35 +218,28 @@ export class ProductService extends BaseService<ProductSchema> {
    *                          sorted by their index in ascending order. Returns an empty array
    *                          if no articles match the provided group ID or if data is unavailable.
    */
-  getProductsByProductGroupExternalId(productGroupExternalId: UUID | null): Array<ProductSchema> {
-    if (!productGroupExternalId || !this.#documents) return []
+  // TODO: Im neuen Schema gibt es kein 'productGroupExternalId' – Produkte werden über categoryIds kategorisiert.
+  // Dieser Aufruf filtert jetzt nach categoryIds.includes(categoryId).
+  getProductsByProductGroupExternalId(categoryId: UUID | null): Array<ProductSchema> {
+    if (!categoryId || !this.#documents) return []
 
-    const productList: Array<ProductSchema> = []
-
-    this.#documents().forEach((products: ProductSchema): void => {
-      if (products.productGroupExternalId === productGroupExternalId) {
-        productList.push(products)
-      }
-    })
-
-    return productList.sort((a, b) => {
-      return a.index - b.index
-    })
+    return this.#documents()
+      .filter((p: ProductSchema) => p.categoryIds?.includes(categoryId))
+      .sort((a, b) => (a.ui?.index ?? 0) - (b.ui?.index ?? 0))
   }
 
   async getUniqueProductGroupExternalIds() {
     const total = await this.count()
 
     const fetchAllPages = async (skip = 0, limit = 200, accumulatedResults: UUID[] = []): Promise<UUID[]> => {
-      const params = { query: { $skip: skip, $limit: limit, $select: ['productGroupExternalId'] } }
+      // TODO: Im neuen Schema wird über categoryIds gefiltert, nicht productGroupExternalId
+      const params = { query: { $skip: skip, $limit: limit, $select: ['categoryIds'] } }
 
       try {
         const response = await this.find(params)
 
         if (Array.isArray(response)) {
-          const results: UUID[] = response.flatMap((value: ProductSchema): UUID[] =>
-            value.productGroupExternalId ? [value.productGroupExternalId] : [],
-          )
+          const results: UUID[] = response.flatMap((value: ProductSchema): UUID[] => value.categoryIds ?? [])
 
           accumulatedResults.push(...results)
 
@@ -460,9 +252,7 @@ export class ProductService extends BaseService<ProductSchema> {
           }
         } else {
           const results: UUID[] = response.data
-            ? response.data.flatMap((value: ProductSchema): UUID[] =>
-              value.productGroupExternalId ? [value.productGroupExternalId] : [],
-            )
+            ? response.data.flatMap((value: ProductSchema): UUID[] => value.categoryIds ?? [])
             : []
 
           accumulatedResults.push(...results)

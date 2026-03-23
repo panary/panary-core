@@ -1,11 +1,9 @@
 import { Order } from '../models/order.model'
 import { GenericOrderLineItemSchema, OrderLineItemSchema } from '../models/order-line-item.model'
-import { ProductSchema } from '../../../../../products/data-access/src/lib/models/product.model'
-import { ProductService } from '../../../../../products/data-access/src/lib/services/product.service'
-import {
-  IngredientReferenceSchema,
-} from '../../../../../ingredients/data-access/src/lib/models/ingredient-reference.model'
-import { RecipeReferenceSchema } from '../../../../../recipes/data-access/src/lib/models/recipe-reference.model'
+import { ProductSchema } from '@panary-core/products/data-access'
+import { ProductService } from '@panary-core/products/data-access'
+import { IngredientReference as IngredientReferenceSchema } from '@panary-core/shared/common'
+import { RecipeReference as RecipeReferenceSchema } from '@panary-core/shared/common'
 import { Id } from '@feathersjs/feathers'
 
 export function getOrderArticles(orderItem: Order): OrderLineItemSchema[] {
@@ -58,7 +56,8 @@ export function getRecipeItemReferences(
 function getRecipeItemReferencesFromArticle(
   orderArticleItem: OrderLineItemSchema | ProductSchema,
 ): IngredientReferenceSchema[] {
-  return [...(orderArticleItem.ingredientReferences || [])]
+  // TODO: Im neuen Schema: recipeReferences statt ingredientReferences
+  return [...((orderArticleItem as any).recipeReferences || [])]
 }
 
 function getRecipeItemReferencesFromExtras(
@@ -102,7 +101,8 @@ function getArticleByIdAndExtractRecipeItemReferences(
   id: Id,
 ): IngredientReferenceSchema[] {
   const article: undefined | ProductSchema = articleService.findProductById(id)
-  return article ? [...(article.ingredientReferences || [])] : []
+  // TODO: Im neuen Schema: recipeReferences statt ingredientReferences
+  return article ? [...((article as any).recipeReferences || [])] : []
 }
 
 export function getRecipeReferences(

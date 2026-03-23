@@ -1,12 +1,16 @@
-import { effect, inject, Injectable, signal, Signal, WritableSignal } from '@angular/core'
-import { LocationService } from '../../../../../domains/organization/data-access/src/lib/services/location.service'
-import {
-  LocationModel,
-  PrintSettings,
-} from '../../../../../domains/organization/data-access/src/lib/models/location.model'
-import { Order } from '../../../../../domains/orders/data-access/src/lib/models/order.model'
+import { Injectable, signal, Signal, WritableSignal } from '@angular/core'
+import { Order } from '@panary-core/orders/domain'
 import { MatSnackBar } from '@angular/material/snack-bar'
+import { inject } from '@angular/core'
 import mqtt, { ErrorWithReasonCode, IClientOptions, MqttClient, MqttProtocol } from 'mqtt'
+
+// TODO: MqttService benötigt PrintSettings aus LocationService – wird nach locations/data-access-Migration verschoben
+export interface MqttPrintSettings {
+  mqttServerProtocol?: string
+  mqttServerUrl?: string
+  mqttServerPort?: number
+  mqttAutoConnect?: boolean
+}
 
 @Injectable({
   providedIn: 'root',
@@ -17,7 +21,6 @@ export class MqttService {
   static readonly SNACKBAR_DURATION: number = 2000
 
   /** INJECTION */
-  #locationService: LocationService = inject(LocationService)
   #matSnackBar: MatSnackBar = inject(MatSnackBar)
 
   /** PRIVATE PROPERTIES */
@@ -29,18 +32,14 @@ export class MqttService {
   /** PUBLIC PROPERTIES */
   isConnected: Signal<boolean> = this.#isConnected.asReadonly()
 
-  /** GETTER */
-
-  /** CONSTRUCTOR */
-  constructor() {
-    effect((): void => {
-      if (this.#locationService.activeLocation()) {
-        this.initializeMqttClient(this.#locationService.printSettings)
-      }
-    })
+  /** Initialisiere MQTT-Client mit PrintSettings (von außen übergeben, um Zirkulärdependenz zu vermeiden) */
+  initFromPrintSettings(printSettings: MqttPrintSettings | undefined): void {
+    if (printSettings) {
+      this.initializeMqttClient(printSettings)
+    }
   }
 
-  private initializeMqttClient(printSettings: PrintSettings | undefined): void {
+  private initializeMqttClient(printSettings: MqttPrintSettings): void {
     if (printSettings) {
       const protocol: string | undefined = printSettings.mqttServerProtocol
       const host: string | undefined = printSettings.mqttServerUrl

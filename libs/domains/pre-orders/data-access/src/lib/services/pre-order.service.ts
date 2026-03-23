@@ -1,8 +1,8 @@
 import { inject, Injectable, signal } from '@angular/core'
-import { BaseService, ConnectionService } from '@panary/shared/data-access-infrastructure'
+import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
 import { PreOrder } from '../models/pre-order.model'
 import { Service } from '@feathersjs/feathers'
-import { Order } from '@panary/domains/orders/data-access'
+import { Order } from '@panary-core/orders/data-access'
 import { Observer } from 'rxjs'
 
 interface PreOrdersCustomService extends Service<PreOrder> {
@@ -17,12 +17,16 @@ export class PreOrderService extends BaseService<PreOrder> {
     throw new Error('Method not implemented.')
   }
 
-  protected override fileReaderOnLoad(fileReader: FileReader, observer: Observer<any>, context: {
-    errorMessages: string[];
-    warnMessages: string[];
-    successCount: number;
-    multi: boolean
-  }): void {
+  protected override fileReaderOnLoad(
+    _fileReader: FileReader,
+    _observer: Observer<unknown>,
+    _context: {
+      errorMessages: string[]
+      warnMessages: string[]
+      successCount: number
+      multi: boolean
+    },
+  ): void {
     throw new Error('Method not implemented.')
   }
 

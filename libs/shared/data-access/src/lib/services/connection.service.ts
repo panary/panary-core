@@ -5,10 +5,10 @@ import { FeathersError } from '@feathersjs/errors'
 
 import socketio, { SocketService } from '@feathersjs/socketio-client'
 import io, { Socket } from 'socket.io-client'
-import { Utils } from '@panary/shared/util-helpers'
+import { Utils } from '@panary-core/shared/util-helpers'
 
-import { AppConfigService, DeviceConfigService } from '@panary/shared/data-access-config'
-import { BusinessDaySchema } from '@panary/domains/businessdays/data-access'
+import { AppConfigService, DeviceConfigService } from '@panary-core/shared/data-access-config'
+import { BusinessDaySchema } from '@panary-core/businessdays/domain'
 
 type ServiceTypes = {
   users: SocketService & {

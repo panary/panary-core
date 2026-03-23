@@ -1,0 +1,215 @@
+<div class="h-full flex flex-col bg-slate-50 overflow-hidden rounded-2xl">
+    <!-- Header -->
+    <div
+        class="flex-none p-6 bg-white border-b border-slate-200 flex items-center justify-between shadow-sm z-20 relative">
+        <div>
+            <h2 class="text-2xl font-bold text-slate-800 m-0 leading-tight">Abfall erfassen</h2>
+            <p class="text-sm text-slate-500 font-medium">Buche verdorbene oder fehlerhafte Artikel aus</p>
+        </div>
+        <button mat-icon-button type="button" (click)="close()"
+            class="close-button !bg-slate-100 !text-slate-500 hover:!bg-slate-200 transition-colors !w-12 !h-12 !rounded-xl">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-hidden relative"> <!-- Main Content Area -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 h-full">
+
+            <!-- LEFT COLUMN: Controls -->
+            <div class="lg:col-span-7 flex flex-col h-full bg-slate-50 overflow-y-auto">
+                <div class="p-6 lg:p-8 flex flex-col gap-8">
+
+                    <!-- 1. Type & Search -->
+                    <section>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">1. Artikel suchen
+                        </h3>
+                        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col gap-4">
+                            <!-- Type Toggles -->
+                            <div class="grid grid-cols-3 gap-2">
+                                <button (click)="setType(WriteOffItemType.PRODUCT)"
+                                    class="flex items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200"
+                                    [ngClass]="selectedType() === WriteOffItemType.PRODUCT ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'">
+                                    <mat-icon class="!w-5 !h-5 !text-[20px]">restaurant_menu</mat-icon>
+                                    <span class="font-bold text-sm">Produkt</span>
+                                </button>
+                                <button (click)="setType(WriteOffItemType.INGREDIENT)"
+                                    class="flex items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200"
+                                    [ngClass]="selectedType() === WriteOffItemType.INGREDIENT ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'">
+                                    <mat-icon class="!w-5 !h-5 !text-[20px]">egg</mat-icon>
+                                    <span class="font-bold text-sm">Zutat</span>
+                                </button>
+                                <button (click)="setType(WriteOffItemType.RECIPE)"
+                                    class="flex items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200"
+                                    [ngClass]="selectedType() === WriteOffItemType.RECIPE ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'">
+                                    <mat-icon class="!w-5 !h-5 !text-[20px]">receipt_long</mat-icon>
+                                    <span class="font-bold text-sm">Rezept</span>
+                                </button>
+                            </div>
+
+                            <!-- Search Input -->
+                            <div class="relative">
+                                <mat-icon
+                                    class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</mat-icon>
+                                <input type="text" [formControl]="searchControl" placeholder="Name eingeben..."
+                                    class="w-full h-14 pl-12 pr-12 bg-slate-50 border border-slate-200 rounded-xl text-lg font-medium focus:outline-none focus:border-indigo-500 focus:bg-white transition-all">
+                                @if (searchControl.value) {
+                                <button (click)="searchControl.setValue('')"
+                                    class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-slate-600">
+                                    <mat-icon>close</mat-icon>
+                                </button>
+                                }
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Selected Item Info -->
+                    @if (selectedItem()) {
+                    <section>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ausgewählter Artikel
+                        </h3>
+                        <div
+                            class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div
+                                    class="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                                    <mat-icon>check</mat-icon>
+                                </div>
+                                <div>
+                                    <span class="font-bold text-emerald-900 text-lg block leading-none">{{
+                                        selectedItem()?.name }}</span>
+                                    <span class="text-xs text-emerald-600 font-mono mt-1 block">{{
+                                        selectedItem()?.externalId || '-' }}</span>
+                                </div>
+                            </div>
+                            <button (click)="selectedItem.set(null)"
+                                class="text-emerald-600 hover:text-emerald-800 text-sm font-bold">Ändern</button>
+                        </div>
+                    </section>
+                    }
+
+                    <!-- 2. Details (Quantity & Reason) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Quantity -->
+                        <section [class.opacity-50]="!selectedItem()" [class.pointer-events-none]="!selectedItem()">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">2. Menge</h3>
+                            <div
+                                class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex items-center gap-3">
+                                <button mat-icon-button
+                                    class="!bg-slate-100 !w-12 !h-12 !rounded-xl !text-slate-600 hover:!bg-slate-200"
+                                    (click)="changeQuantity(-1)">
+                                    <mat-icon>remove</mat-icon>
+                                </button>
+                                <div class="flex-1 text-center relative flex justify-center items-center gap-2"
+                                    (click)="openNumpad()">
+                                    <input type="number" [ngModel]="quantity()" readonly
+                                        class="w-24 text-center text-3xl font-bold text-slate-800 bg-transparent focus:outline-none cursor-pointer p-0">
+                                    <span
+                                        class="text-sm font-bold text-slate-400 uppercase tracking-wide translate-y-1">{{
+                                        getUnit(selectedItem()) }}</span>
+                                </div>
+                                <button mat-icon-button
+                                    class="!bg-slate-100 !w-12 !h-12 !rounded-xl !text-slate-600 hover:!bg-slate-200"
+                                    (click)="changeQuantity(1)">
+                                    <mat-icon>add</mat-icon>
+                                </button>
+                            </div>
+                        </section>
+
+                        <!-- Reason -->
+                        <section [class.opacity-50]="!selectedItem()" [class.pointer-events-none]="!selectedItem()">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">3. Grund</h3>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button (click)="setReason(WriteOffReason.WASTE)"
+                                    class="px-2 py-3 rounded-xl border transition-all flex flex-col items-center gap-1"
+                                    [ngClass]="selectedReason() === WriteOffReason.WASTE ? 'bg-red-50 border-red-500 text-red-700' : 'bg-white border-slate-200 text-slate-500'">
+                                    <mat-icon class="!w-5 !h-5 !text-[20px]">delete_outline</mat-icon>
+                                    <span class="text-[10px] font-bold uppercase">Verdorben</span>
+                                </button>
+                                <button (click)="setReason(WriteOffReason.MISTAKE)"
+                                    class="px-2 py-3 rounded-xl border transition-all flex flex-col items-center gap-1"
+                                    [ngClass]="selectedReason() === WriteOffReason.MISTAKE ? 'bg-orange-50 border-orange-500 text-orange-700' : 'bg-white border-slate-200 text-slate-500'">
+                                    <mat-icon class="!w-5 !h-5 !text-[20px]">warning</mat-icon>
+                                    <span class="text-[10px] font-bold uppercase">Fehler</span>
+                                </button>
+                                <button (click)="setReason(WriteOffReason.THEFT)"
+                                    class="px-2 py-3 rounded-xl border transition-all flex flex-col items-center gap-1"
+                                    [ngClass]="selectedReason() === WriteOffReason.THEFT ? 'bg-slate-800 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-500'">
+                                    <mat-icon class="!w-5 !h-5 !text-[20px]">visibility_off</mat-icon>
+                                    <span class="text-[10px] font-bold uppercase">Schwund</span>
+                                </button>
+                                <button (click)="setReason(WriteOffReason.SAMPLE)"
+                                    class="px-2 py-3 rounded-xl border transition-all flex flex-col items-center gap-1"
+                                    [ngClass]="selectedReason() === WriteOffReason.SAMPLE ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-slate-200 text-slate-500'">
+                                    <mat-icon class="!w-5 !h-5 !text-[20px]">science</mat-icon>
+                                    <span class="text-[10px] font-bold uppercase">Probe</span>
+                                </button>
+                            </div>
+                        </section>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Item List (Scrollable) -->
+            <div class="lg:col-span-5 h-full bg-white border-l border-slate-200 overflow-y-auto w-full">
+                @if ($any(filteredOptions()); as items) {
+                <div class="p-4">
+                    <div
+                        class="mb-2 px-2 flex justify-between items-center text-slate-400 text-xs font-bold uppercase tracking-wider">
+                        <span>Ergebnisse ({{ items.length }})</span>
+                        @if (selectedType() === WriteOffItemType.PRODUCT) {
+                        <span class="text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-500">Menüs
+                            ausgeblendet</span>
+                        }
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        @for (item of items; track item._id) {
+                        <button (click)="selectItem(item)"
+                            class="w-full text-left p-4 rounded-xl border transition-all group hover:shadow-md"
+                            [ngClass]="selectedItem()?._id === item._id ? 'bg-emerald-50 border-emerald-500 shadow-sm ring-1 ring-emerald-500' : 'bg-white border-slate-100 hover:border-indigo-300'">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <span
+                                        class="font-bold text-slate-800 block text-sm group-hover:text-indigo-700 transition-colors">{{
+                                        item.name }}</span>
+                                    <span class="text-[10px] text-slate-400 font-mono mt-0.5 block">{{ item.externalId
+                                        || '-' }}</span>
+                                </div>
+                                @if (selectedItem()?._id === item._id) {
+                                <div class="text-emerald-600">
+                                    <mat-icon class="!w-5 !h-5 !text-[20px]">check_circle</mat-icon>
+                                </div>
+                                }
+                            </div>
+                        </button>
+                        }
+
+                        @if (items.length === 0) {
+                        <div class="py-12 flex flex-col items-center text-slate-400">
+                            <mat-icon class="text-4xl opacity-30 mb-2">search_off</mat-icon>
+                            <p class="text-sm font-medium">Keine Artikel gefunden</p>
+                        </div>
+                        }
+                    </div>
+                </div>
+                }
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer (Sticky) -->
+    <div class="flex-none p-4 bg-white border-t border-slate-200 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <button (click)="save()" [disabled]="!selectedItem() || quantity() <= 0"
+            class="w-full h-14 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 relative overflow-hidden">
+            <mat-icon>save</mat-icon>
+            Abschreibung speichern
+            @if (selectedItem()) {
+            <span class="ml-1 opacity-80 font-medium text-sm">({{ quantity() }}x {{
+                selectedItem()?.name }})</span>
+            }
+        </button>
+    </div>
+</div>

@@ -1,1 +1,2 @@
-export * from './lib/locations-data-access/locations-data-access'
+export * from './lib/services/location.service'
+export type { Location } from '@panary-core/locations/domain'

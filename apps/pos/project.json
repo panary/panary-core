@@ -20,7 +20,14 @@
             "input": "apps/pos/public"
           }
         ],
-        "styles": ["apps/pos/src/styles.scss"]
+        "styles": ["apps/pos/src/styles.scss"],
+        "externalDependencies": [
+          "mongodb",
+          "@feathersjs/mongodb",
+          "socks",
+          "@feathersjs/knex",
+          "knex"
+        ]
       },
       "configurations": {
         "production": {

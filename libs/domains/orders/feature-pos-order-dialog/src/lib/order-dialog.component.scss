@@ -1,0 +1,212 @@
+@reference "tailwindcss";
+
+.order-dialog-container {
+  padding: 16px 10px 10px 10px;
+  width: 100%;
+  height: calc(100% - 60px);
+}
+
+.main-field-container {
+  display: flex;
+  width: 100%;
+  height: 95%;
+  overflow-x: hidden;
+  overflow-y: scroll;
+}
+
+.button-container {
+  display: flex;
+  flex-direction: column;
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+.custom-height-1 {
+  max-height: 50vh;
+}
+
+.topic-container {
+  display: flex;
+  justify-content: center;
+}
+
+.order-container {
+  position: relative;
+  width: 100%;
+  min-width: 380px;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+  height: 100%;
+}
+
+.button-size {
+  width: clamp(4rem, 6vw, 7rem);
+  height: clamp(3rem, 4vh, 5rem);
+  font-size: clamp(0.6rem, 1vw, 0.8rem);
+  @apply bg-slate-100 hover:bg-slate-200 transition-colors shadow-sm rounded-xl border border-slate-200;
+}
+
+.order-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 8px 4px 2px 4px;
+  margin: 0 12px;
+  cursor: default;
+}
+
+.order-item-combined {
+  padding-left: 5px;
+  border-left: 2px solid red;
+}
+
+.order-item--border {
+  border-left: 2px solid lightseagreen;
+  padding-left: 5px;
+}
+
+.labl {
+  display: block;
+  width: auto;
+}
+
+.labl > div > input {
+  visibility: hidden;
+  position: absolute;
+}
+
+.labl > div > input {
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.labl > div > input:checked {
+  border: solid 0.5px;
+  border-radius: 3px;
+  border-color: lightgray;
+}
+
+.b-yellow {
+  @apply bg-yellow-400 hover:bg-yellow-500 text-slate-900 border-yellow-500;
+}
+
+.i-30 {
+  height: 30px;
+  width: 30px;
+  font-size: 30px;
+}
+
+.subbutton-item {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 120px;
+  max-width: 120px;
+  height: 60px;
+  max-height: 60px;
+  @apply bg-white shadow-sm border border-slate-200 text-slate-700 hover:shadow-md hover:bg-slate-50 transition-all rounded-xl font-medium;
+
+  border: none;
+  padding: 10px;
+  font-size: small;
+  text-align: center;
+  margin: 4px;
+}
+
+.subbutton-item:active {
+  @apply scale-95 shadow-inner bg-slate-100;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.customer-button:hover {
+  transform: scale(1.05);
+}
+
+.selected-article {
+  border-radius: 5px;
+}
+
+.order-item-extras {
+  display: flex;
+  flex-direction: row;
+  font-size: smaller;
+  margin-left: 40px;
+}
+
+.info-box {
+  width: 100%;
+  position: relative;
+  z-index: 1;
+  font-size: small;
+  text-align: center;
+  letter-spacing: 1px;
+  padding: 8px 0;
+  font-weight: 500;
+  @apply rounded-xl mb-2;
+}
+
+.subbutton-item .mat-badge-content {
+  min-width: 22px;
+  width: auto;
+  background-color: #ffd740;
+  color: black;
+  font-weight: 400;
+}
+
+.price-badge {
+  position: absolute;
+  z-index: 1;
+  top: -8px;
+  right: 8px;
+  background-color: darksalmon;
+  color: white;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.order-item-article-topic {
+  position: relative;
+  z-index: 1;
+  font-size: x-small;
+  letter-spacing: 0.5em;
+  border-radius: 10px;
+  background-color: #e0e0e0;
+  color: black;
+  padding: 0 8px;
+  margin-bottom: 2px;
+}
+
+.without-extra {
+  margin-left: 0.5em;
+  margin-right: 0.5em;
+}
+
+.order-item-menu {
+  display: flex;
+  flex-direction: column;
+  font-size: smaller;
+  margin-left: 26px;
+}
+
+.unfinished-menu {
+  color: red;
+}
+
+.pressed {
+  @apply bg-slate-300 shadow-inner;
+}
+
+.function-buttons-devider {
+  margin: 16px 0 8px 0;
+}
+
+.combination-sum-preis {
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+}

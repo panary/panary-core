@@ -1,13 +1,12 @@
 import { inject, NgZone } from '@angular/core'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import { Observable, Observer } from 'rxjs'
 
 // Feathers/Connection Service & Typs
 import type { Id, Paginated, Params } from '@feathersjs/feathers'
 import { cloneDeep } from 'lodash'
-import { BaseDocument } from '../models/base-document.model'
-import { ExtendedParams } from '../models/extended-params.model'
-import { ServiceHelper } from './service-helper.service'
+import { BaseDocument, ExtendedParams } from '@panary-core/shared/common'
+import { ServiceHelper } from '../utils/service-helper.service'
+import { MatSnackBar } from '@angular/material/snack-bar'
 
 // Optional: Reusable type
 export type PaginatedOrArray<T> = Promise<Paginated<T> | T[]>

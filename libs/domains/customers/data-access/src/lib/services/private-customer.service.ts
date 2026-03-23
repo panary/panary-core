@@ -1,7 +1,5 @@
-import { Injectable } from '@angular/core'
-import { BaseService } from '@panary/shared/data-access-infrastructure'
-import { ConnectionService } from '@panary/shared/data-access-infrastructure'
-import { inject } from '@angular/core'
+import { Injectable, inject } from '@angular/core'
+import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
 import { PrivateCustomer } from '../models/private-customer.model'
 import { Observer } from 'rxjs'
 
@@ -16,9 +14,9 @@ export class PrivateCustomerService extends BaseService<PrivateCustomer> {
   protected override loadDocuments() {}
 
   protected override fileReaderOnLoad(
-    fileReader: FileReader,
-    observer: Observer<any>,
-    context: {
+    _fileReader: FileReader,
+    _observer: Observer<unknown>,
+    _context: {
       errorMessages: string[]
       warnMessages: string[]
       successCount: number

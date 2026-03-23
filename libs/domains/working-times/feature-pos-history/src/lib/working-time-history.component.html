@@ -1,0 +1,147 @@
+<div class="h-full w-full bg-slate-50 p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border">
+    <!-- Header & Filters -->
+    <header class="flex-none flex flex-col gap-4 bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+        <div class="flex flex-row items-center justify-between">
+            <div class="flex items-center gap-4">
+                <button mat-icon-button (click)="goBack()" class="!bg-slate-50 !text-slate-600">
+                    <mat-icon>arrow_back</mat-icon>
+                </button>
+                <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <mat-icon class="text-amber-600">schedule</mat-icon>
+                    Meine Arbeitszeiten
+                </h1>
+            </div>
+
+            <div class="flex gap-4">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-40">
+                    <mat-label>Monat</mat-label>
+                    <mat-select [ngModel]="selectedMonth()"
+                        (ngModelChange)="selectedMonth.set($event); onFilterChange()">
+                        <mat-option *ngFor="let m of months" [value]="m.value">{{ m.label }}</mat-option>
+                    </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-28">
+                    <mat-label>Jahr</mat-label>
+                    <mat-select [ngModel]="selectedYear()" (ngModelChange)="selectedYear.set($event); onFilterChange()">
+                        <mat-option *ngFor="let y of years" [value]="y">{{ y }}</mat-option>
+                    </mat-select>
+                </mat-form-field>
+            </div>
+        </div>
+    </header>
+
+    <!-- Content -->
+    <div class="flex-1 min-h-0 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
+        <div class="flex-1 overflow-auto">
+            <div class="max-w-5xl mx-auto p-4 md:p-8">
+                <table mat-table [dataSource]="monthlyData()" class="w-full">
+
+                    <!-- Day Column -->
+                    <ng-container matColumnDef="day">
+                        <th mat-header-cell *matHeaderCellDef class="w-16"> Tag </th>
+                        <td mat-cell *matCellDef="let element" class="font-medium text-slate-500"> {{ element.dayName }}
+                        </td>
+                    </ng-container>
+
+                    <!-- Date Column -->
+                    <ng-container matColumnDef="date">
+                        <th mat-header-cell *matHeaderCellDef> Datum </th>
+                        <td mat-cell *matCellDef="let element"> {{ element.date | date:'dd.MM.yyyy' }} </td>
+                    </ng-container>
+
+                    <!-- Checkin Column -->
+                    <ng-container matColumnDef="checkin">
+                        <th mat-header-cell *matHeaderCellDef> Kommen </th>
+                        <td mat-cell *matCellDef="let element"> {{ element.checkIn }} </td>
+                    </ng-container>
+
+                    <!-- Checkout Column -->
+                    <ng-container matColumnDef="checkout">
+                        <th mat-header-cell *matHeaderCellDef> Gehen </th>
+                        <td mat-cell *matCellDef="let element"> {{ element.checkOut }} </td>
+                    </ng-container>
+
+                    <!-- Breaks Column -->
+                    <ng-container matColumnDef="breaks">
+                        <th mat-header-cell *matHeaderCellDef> Pause </th>
+                        <td mat-cell *matCellDef="let element">
+                            <button mat-button [matMenuTriggerFor]="breakMenu"
+                                class="text-amber-600 bg-amber-50 rounded-full px-3 min-w-0 h-8 text-sm font-medium"
+                                *ngIf="element.breakDuration > 0; else noBreak">
+                                {{ formatDuration(element.breakDuration) }}
+                            </button>
+                            <ng-template #noBreak>
+                                <span class="text-slate-400">-</span>
+                            </ng-template>
+
+                            <!-- Break Details Menu -->
+                            <mat-menu #breakMenu="matMenu" class="break-menu">
+                                <div class="px-4 py-2 text-sm text-slate-600 whitespace-pre-line leading-relaxed">
+                                    <div class="font-semibold mb-1 text-slate-800">Pausenzeiten:</div>
+                                    {{ getBreakDetails(element.workingTime) }}
+                                </div>
+                            </mat-menu>
+                        </td>
+                    </ng-container>
+
+                    <!-- Net Time Column -->
+                    <ng-container matColumnDef="netTime">
+                        <th mat-header-cell *matHeaderCellDef> Arbeitszeit </th>
+                        <td mat-cell *matCellDef="let element" class="font-bold text-slate-700">
+                            {{ formatDuration(element.netDuration) }}
+                        </td>
+                    </ng-container>
+
+                    <!-- Status Column -->
+                    <ng-container matColumnDef="status">
+                        <th mat-header-cell *matHeaderCellDef> Status </th>
+                        <td mat-cell *matCellDef="let element">
+                            <span *ngIf="element.status === 'active'"
+                                class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-emerald-100 text-emerald-800">
+                                Aktiv
+                            </span>
+                            <span *ngIf="element.status === 'off'"
+                                class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-500">
+                                Frei
+                            </span>
+                            <span *ngIf="element.status === 'worked'"
+                                class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700">
+                                Erledigt
+                            </span>
+                        </td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                    <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+                        class="hover:bg-slate-50 transition-colors border-b last:border-0 border-slate-100"
+                        [class.bg-slate-50]="row.status === 'off'"></tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Monthly Summary -->
+        <div class="flex-none border-t border-slate-200 bg-gradient-to-r from-slate-50 to-white p-4 md:p-6">
+            <div class="max-w-5xl mx-auto flex flex-wrap gap-6 md:gap-12 items-center justify-end">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+                        <mat-icon class="text-amber-600 scale-90">coffee</mat-icon>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 uppercase tracking-wide">Pausen gesamt</p>
+                        <p class="text-lg font-bold text-slate-700">{{ formatDuration(totalBreakDuration()) }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                        <mat-icon class="text-emerald-600 scale-90">schedule</mat-icon>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 uppercase tracking-wide">Arbeitszeit gesamt</p>
+                        <p class="text-xl font-bold text-emerald-700">{{ formatDuration(totalNetDuration()) }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

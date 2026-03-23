@@ -1,4 +1,4 @@
-import { BaseService, ConnectionService } from '@panary/shared/data-access-infrastructure'
+import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
 
 import { inject, Injectable } from '@angular/core'
 

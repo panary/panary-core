@@ -1,0 +1,360 @@
+<div class="h-full w-full bg-slate-50 p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border">
+  <!-- Header -->
+  <header class="flex-none bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-4">
+    <button mat-icon-button (click)="goBack()" class="bg-slate-50 border border-slate-200 !text-slate-600">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+      <mat-icon class="text-slate-500">settings</mat-icon>
+      Einstellungen
+    </h1>
+  </header>
+
+  <main class="flex-1 flex gap-6 min-h-0">
+    <!-- Sidebar -->
+    <nav
+      class="w-64 flex-none bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col gap-2 overflow-y-auto">
+      <button mat-button class="justify-start !h-12 !px-4 !text-base !font-medium text-slate-500 !rounded-xl"
+        [class.bg-purple-50]="activeSection === 'general'" [class.text-purple-700]="activeSection === 'general'"
+        (click)="activeSection = 'general'">
+        <mat-icon class="mr-3" [class.text-purple-600]="activeSection === 'general'"
+          [class.text-slate-400]="activeSection !== 'general'">tune</mat-icon>
+        Allgemein
+      </button>
+      <button mat-button class="justify-start !h-12 !px-4 !text-base !font-medium text-slate-500 !rounded-xl"
+        [class.bg-purple-50]="activeSection === 'users'" [class.text-purple-700]="activeSection === 'users'"
+        (click)="activeSection = 'users'">
+        <mat-icon class="mr-3" [class.text-purple-600]="activeSection === 'users'"
+          [class.text-slate-400]="activeSection !== 'users'">people</mat-icon>
+        Benutzer
+      </button>
+      <button mat-button class="justify-start !h-12 !px-4 !text-base !font-medium text-slate-500 !rounded-xl"
+        [class.bg-purple-50]="activeSection === 'printer'" [class.text-purple-700]="activeSection === 'printer'"
+        (click)="activeSection = 'printer'">
+        <mat-icon class="mr-3" [class.text-purple-600]="activeSection === 'printer'"
+          [class.text-slate-400]="activeSection !== 'printer'">print</mat-icon>
+        Drucker
+      </button>
+      <button mat-button class="justify-start !h-12 !px-4 !text-base !font-medium text-slate-500 !rounded-xl"
+        [class.bg-purple-50]="activeSection === 'design'" [class.text-purple-700]="activeSection === 'design'"
+        (click)="activeSection = 'design'">
+        <mat-icon class="mr-3" [class.text-purple-600]="activeSection === 'design'"
+          [class.text-slate-400]="activeSection !== 'design'">palette</mat-icon>
+        Design
+      </button>
+      <div class="flex-1"></div>
+      <button mat-button class="justify-start !h-12 !px-4 !text-base !font-medium text-slate-500 !rounded-xl"
+        [class.bg-purple-50]="activeSection === 'info'" [class.text-purple-700]="activeSection === 'info'"
+        (click)="activeSection = 'info'">
+        <mat-icon class="mr-3" [class.text-purple-600]="activeSection === 'info'"
+          [class.text-slate-400]="activeSection !== 'info'">info</mat-icon>
+        Info
+      </button>
+    </nav>
+
+    <!-- Content Area -->
+    <div class="flex-1 bg-white rounded-2xl shadow-sm border border-slate-100 p-8 overflow-y-auto">
+      @if (activeSection === 'design') {
+      <div class="max-w-2xl mx-auto">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+          <mat-icon class="text-purple-600">palette</mat-icon>
+          Erscheinungsbild
+        </h2>
+
+        <div class="bg-slate-50 rounded-2xl border border-slate-200 p-6">
+          <h3 class="font-bold text-slate-700 mb-4">Farbschema</h3>
+          <p class="text-slate-500 mb-6 text-sm">
+            Wähle aus, wie die App aussehen soll. Bei "System" passt sich die App automatisch deinem Gerät an.
+          </p>
+
+          <mat-button-toggle-group [ngModel]="themeService.theme" (ngModelChange)="setTheme($event)"
+            class="w-full !rounded-xl !border-slate-200 !flex shadow-sm bg-white">
+            @for (opt of themeOptions; track opt.value) {
+            <mat-button-toggle [value]="opt.value" class="!flex-1 !h-24 !border-r border-slate-200">
+              <div class="flex flex-col items-center justify-center gap-2 py-4">
+                <mat-icon class="scale-125 mb-1" [class.text-purple-600]="themeService.theme === opt.value">{{
+                  opt.icon
+                  }}</mat-icon>
+                <span class="font-bold" [class.text-purple-700]="themeService.theme === opt.value">{{
+                  opt.label
+                  }}</span>
+              </div>
+            </mat-button-toggle>
+            }
+          </mat-button-toggle-group>
+        </div>
+      </div>
+      } @else if (activeSection === 'general') {
+      <div class="max-w-2xl mx-auto">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+          <mat-icon class="text-purple-600">tune</mat-icon>
+          Allgemein
+        </h2>
+
+        <div class="flex flex-col gap-6">
+          <!-- Location Query -->
+          <div class="bg-slate-50 rounded-2xl border border-slate-200 p-6">
+            <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+              <mat-icon class="text-slate-400">store</mat-icon> Standort
+            </h3>
+            <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center justify-between">
+              <div>
+                <p class="text-sm text-slate-500 font-medium mb-1">Aktueller Standort</p>
+                <p class="text-lg font-bold text-slate-800">
+                  {{ locationService.activeLocation()?.name || 'Kein Standort ausgewählt' }}
+                </p>
+              </div>
+              <div class="h-10 w-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+                <mat-icon>place</mat-icon>
+              </div>
+            </div>
+          </div>
+
+          <!-- Connection Info -->
+          <div class="bg-slate-50 rounded-2xl border border-slate-200 p-6">
+            <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+              <mat-icon class="text-slate-400">wifi</mat-icon> Verbindung
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Status -->
+              <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center justify-between">
+                <div>
+                  <p class="text-sm text-slate-500 font-medium mb-1">Status</p>
+                  <div class="flex items-center gap-2">
+                    <div class="w-2.5 h-2.5 rounded-full" [class.bg-green-500]="
+                          connectionService.connectionState().status === 'connected' ||
+                          connectionService.connectionState().status === 'authenticated'
+                        " [class.bg-red-500]="
+                          connectionService.connectionState().status !== 'connected' &&
+                          connectionService.connectionState().status !== 'authenticated'
+                        "></div>
+                    <p class="font-bold text-slate-800">
+                      {{
+                      connectionService.connectionState().status === 'connected' ||
+                      connectionService.connectionState().status === 'authenticated'
+                      ? 'Verbunden'
+                      : 'Getrennt'
+                      }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Device ID -->
+              <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center justify-between">
+                <div>
+                  <p class="text-sm text-slate-500 font-medium mb-1">Geräte-ID</p>
+                  <p class="font-bold text-slate-800 font-mono text-sm">
+                    {{ connectionService.connectionState().deviceId || '-' }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Connected Since -->
+              <div
+                class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center justify-between md:col-span-2">
+                <div>
+                  <p class="text-sm text-slate-500 font-medium mb-1">Verbunden seit</p>
+                  <p class="font-bold text-slate-800">
+                    {{ connectionService.connectionState().connectedAt }}
+                  </p>
+                </div>
+                <mat-icon class="text-slate-300">schedule</mat-icon>
+              </div>
+            </div>
+          </div>
+
+          <!-- User Info (Auth) -->
+          <div class="bg-slate-50 rounded-2xl border border-slate-200 p-6">
+            <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+              <mat-icon class="text-slate-400">shield</mat-icon> Authentifizierung
+            </h3>
+            <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center justify-between">
+              <div>
+                <p class="text-sm text-slate-500 font-medium mb-1">Sitzungsstatus</p>
+                <p class="font-bold text-slate-800">
+                  {{
+                  connectionService.connectionState().status === 'authenticated'
+                  ? 'Authentifiziert'
+                  : 'Gast / Nicht angemeldet'
+                  }}
+                </p>
+              </div>
+              <mat-icon [class.text-green-500]="connectionService.connectionState().status === 'authenticated'"
+                [class.text-slate-300]="connectionService.connectionState().status !== 'authenticated'">
+                {{ connectionService.connectionState().status === 'authenticated' ? 'verified_user' : 'no_accounts' }}
+              </mat-icon>
+            </div>
+          </div>
+        </div>
+      </div>
+      } @else if (activeSection === 'printer') {
+      <div class="max-w-2xl mx-auto flex flex-col gap-6">
+        <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <mat-icon class="text-purple-600">print</mat-icon>
+          Drucker & Geräte
+        </h2>
+
+        <!-- Server Configuration Info -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            <p class="text-xs text-slate-500 font-medium mb-1 uppercase tracking-wider">Print Server</p>
+            <div class="flex items-center gap-2">
+              <mat-icon class="text-slate-400 !w-5 !h-5 !text-[20px]">dns</mat-icon>
+              <p class="font-bold text-slate-800 text-sm truncate"
+                [matTooltip]="locationService.activeLocation()?.settings?.printSettings?.printServerUrl || ''">
+                {{ locationService.activeLocation()?.settings?.printSettings?.printServerUrl || '-' }}
+              </p>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            <p class="text-xs text-slate-500 font-medium mb-1 uppercase tracking-wider">MQTT Broker</p>
+            <div class="flex items-center gap-2">
+              <mat-icon class="text-slate-400 !w-5 !h-5 !text-[20px]">hub</mat-icon>
+              <p class="font-bold text-slate-800 text-sm truncate">
+                @if(locationService.activeLocation()?.settings?.printSettings; as ps) {
+                {{ ps.mqttServerProtocol }}://{{ ps.mqttServerUrl }}:{{ ps.mqttServerPort }}
+                } @else {
+                -
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Printer List -->
+        <div class="flex flex-col gap-3">
+          @for (printer of locationService.activeLocation()?.settings?.printSettings?.printers || []; track printer.pid)
+          {
+          <div
+            class="bg-slate-50 rounded-xl border border-slate-200 p-3 flex items-center justify-between hover:bg-slate-100 transition-colors">
+            <div class="flex items-center gap-3">
+              <div class="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600">
+                <mat-icon class="!w-5 !h-5 !text-[20px]">{{ printer.type === 'mqtt' ? 'dns' : 'print' }}</mat-icon>
+              </div>
+              <div>
+                <h3 class="font-bold text-slate-800 text-sm leading-tight">{{ printer.name }}</h3>
+                <div class="flex items-center gap-2 text-xs text-slate-500 font-mono mt-0.5">
+                  <mat-icon class="!w-3 !h-3 !text-[12px]">lan</mat-icon>
+                  {{ printer.ip || 'Keine IP' }}
+                </div>
+              </div>
+            </div>
+            <div class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border"
+              [class.bg-blue-50]="printer.type !== 'mqtt'" [class.text-blue-700]="printer.type !== 'mqtt'"
+              [class.border-blue-100]="printer.type !== 'mqtt'" [class.bg-amber-50]="printer.type === 'mqtt'"
+              [class.text-amber-700]="printer.type === 'mqtt'" [class.border-amber-100]="printer.type === 'mqtt'">
+              {{ printer.type }}
+            </div>
+          </div>
+          } @empty {
+          <div
+            class="flex flex-col items-center justify-center py-8 text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+            <mat-icon class="text-4xl opacity-40 mb-2">print_disabled</mat-icon>
+            <p class="text-sm">Keine Drucker konfiguriert.</p>
+          </div>
+          }
+        </div>
+      </div>
+      } @else {
+      <div class="max-w-2xl mx-auto">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+          <mat-icon class="text-purple-600">people</mat-icon>
+          Benutzerprofil
+        </h2>
+
+        <div class="flex flex-col gap-6">
+          @if (currentUser(); as user) {
+          <!-- User Info Card -->
+          <div class="bg-slate-50 rounded-2xl border border-slate-200 p-6">
+            <div class="flex items-center gap-4 mb-6">
+              <div
+                class="h-16 w-16 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-2xl border-4 border-white shadow-sm">
+                {{ user.initials || '??' }}
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-slate-800">{{ user.firstName }} {{ user.lastName }}</h3>
+                <p class="text-slate-500 font-medium">{{ user.staffRole || 'Mitarbeiter' }}</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <p class="text-sm text-slate-500 font-medium mb-1">Personalnummer</p>
+                <p class="font-bold text-slate-800 font-mono text-lg">{{ user.employeeNumber || '-' }}</p>
+              </div>
+              <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <p class="text-sm text-slate-500 font-medium mb-1">Rolle im System</p>
+                <div class="flex items-center gap-2">
+                  <mat-icon class="text-purple-500 !w-5 !h-5 !text-[20px]">badge</mat-icon>
+                  <p class="font-bold text-slate-800">{{ user.staffRole || 'Benutzer' }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Change PIN Section -->
+          <div class="bg-slate-50 rounded-2xl border border-slate-200 p-6">
+            <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+              <mat-icon class="text-slate-400">lock</mat-icon> Anmeldung (POS)
+            </h3>
+
+            <p class="text-slate-500 mb-6 text-sm">
+              Hier kannst du deinen PIN für die Anmeldung am Kassenterminal ändern.
+            </p>
+
+            <div class="max-w-xs space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Neuer PIN</label>
+                <input type="password" [ngModel]="newPin()" (ngModelChange)="newPin.set($event)"
+                  class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-center tracking-widest text-lg"
+                  placeholder="••••" maxlength="6" inputmode="numeric">
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">PIN bestätigen</label>
+                <input type="password" [ngModel]="confirmPin()" (ngModelChange)="confirmPin.set($event)"
+                  class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-center tracking-widest text-lg"
+                  placeholder="••••" maxlength="6" inputmode="numeric">
+              </div>
+
+              @if (pinError()) {
+              <div
+                class="p-3 bg-red-50 text-red-700 rounded-xl text-sm font-medium flex items-center gap-2 animate-pulse">
+                <mat-icon class="!w-5 !h-5 !text-[20px]">error</mat-icon>
+                {{ pinError() }}
+              </div>
+              }
+
+              @if (saveMessage()) {
+              <div class="p-3 bg-green-50 text-green-700 rounded-xl text-sm font-medium flex items-center gap-2">
+                <mat-icon class="!w-5 !h-5 !text-[20px]">check_circle</mat-icon>
+                {{ saveMessage() }}
+              </div>
+              }
+
+              <button mat-flat-button color="primary" class="!w-full !h-12 !rounded-xl !text-lg !font-bold mt-2"
+                [disabled]="isSaving() || !newPin() || !confirmPin()" (click)="updatePin()">
+                @if (isSaving()) {
+                <span class="flex items-center justify-center">
+                  <mat-icon class="animate-spin mr-2">sync</mat-icon>
+                  Speichere...
+                </span>
+                } @else {
+                PIN speichern
+                }
+              </button>
+            </div>
+          </div>
+          } @else {
+          <div class="flex flex-col items-center justify-center py-12 text-slate-400">
+            <mat-icon class="text-5xl opacity-40 mb-4">no_accounts</mat-icon>
+            <p>Kein Benutzer angemeldet.</p>
+          </div>
+          }
+        </div>
+      </div>
+      }
+    </div>
+  </main>
+</div>

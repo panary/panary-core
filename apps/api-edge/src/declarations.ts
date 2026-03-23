@@ -38,6 +38,7 @@ export interface ServiceTypes {
   orders: OrderService
   'order-interactions': OrderInteractionService
   'user-preferences': UserPreferenceService
+  organizations: { find(params?: any): Promise<{ _id: string; name: string }[]> }
 }
 
 // The application instance type that will be used everywhere else

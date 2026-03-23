@@ -1,11 +1,11 @@
-import { environment } from '../../../../../../../apps/admin/src/environments/environment'
+// import { environment } from '../../../../../../../apps/admin/src/environments/environment' // TODO: remove environment dependency
 import { GenericOrderLineItemSchema, OrderLineItemSchema } from '../models/order-line-item.model'
-import { DineLocationSchema, Order } from '../models/order.model'
+import { DineLocation, Order } from '../models/order.model'
 import { getDefaultTaxSummary, TaxSummary } from '../models/tax-summary.model'
-import { DiscountType } from '@panary/shared/models'
+import { DiscountType } from '@panary-core/orders/domain'
 
 function printOut(value: string): void {
-  if (environment.printOut) {
+  if (false) { // TODO: printOut feature
     console.log(value)
   }
 }
@@ -121,9 +121,9 @@ export function calculateSumPriceWithDiscountDetails(
 ): number {
   let sumPrice: number=calculateSumPrice(orderItem, generalMenuSideDishPrice, generalMenuDrinkPrice)
 
-  if (orderItem.discount&&orderItem.discount.discountType==='percent') {
+  if (orderItem.discount&&orderItem.discount.discountType===DiscountType.PERCENT) {
     sumPrice=sumPrice-sumPrice*(orderItem.discount.discount/100)
-  } else if (orderItem.discount&&orderItem.discount.discountType==='amount') {
+  } else if (orderItem.discount&&orderItem.discount.discountType===DiscountType.AMOUNT) {
     sumPrice=sumPrice-orderItem.discount.discount
     if (sumPrice<0) {
       sumPrice=0
@@ -153,7 +153,7 @@ export function calculateArticleTaxInfomation(article: OrderLineItemSchema, taxR
   let taxInfomation: TaxSummary=getDefaultTaxSummary()
 
   switch (taxRate) {
-    case 'INSIDE':
+    case DineLocation.DINE_IN:
       if (article.price) {
         // Calculate price and taxes of the article
         const price: number=article.price*article.amount
@@ -245,7 +245,7 @@ export function calculateArticleTaxInfomation(article: OrderLineItemSchema, taxR
       }
       break
 
-    case 'OUTSIDE':
+    case DineLocation.TAKE_OUT:
       if (article.price) {
         // Calculate price and taxes of the article
         const price: number=article.price*article.amount
@@ -346,8 +346,7 @@ export function calculateArticleTaxInfomation(article: OrderLineItemSchema, taxR
 export function calculateTaxSummary(order: Order): TaxSummary {
   let taxInformation: TaxSummary=getDefaultTaxSummary()
 
-  const dineLocation: DineLocationSchema=
-    DineLocationSchema[order.dineLocation as unknown as keyof typeof DineLocationSchema]
+  const dineLocation: string = order.dineLocation
 
   order.lineItems.forEach((article: OrderLineItemSchema): void => {
     let articleTaxInformation=calculateArticleTaxInfomation(article, dineLocation)
@@ -368,7 +367,7 @@ export function calculateTaxSummary(order: Order): TaxSummary {
 
   // Set discount if available
   if (order.discount) {
-    if (order.discount.discountType===DiscountType.Percentage) {
+    if (order.discount.discountType===DiscountType.PERCENT) {
       taxInformation.brutto=taxInformation.brutto-(taxInformation.brutto*order.discount.discount)/100
       taxInformation.netto=taxInformation.netto-(taxInformation.netto*order.discount.discount)/100
       taxInformation.taxes.forEach((tax): void => {
@@ -377,7 +376,7 @@ export function calculateTaxSummary(order: Order): TaxSummary {
           tax.tax=tax.tax-(tax.tax*order.discount.discount)/100
         }
       })
-    } else if (order.discount.discountType===DiscountType.Fixed) {
+    } else if (order.discount.discountType===DiscountType.AMOUNT) {
       if (order.discount.discount>taxInformation.brutto) {
         taxInformation.brutto=0
         taxInformation.netto=0
@@ -387,7 +386,6 @@ export function calculateTaxSummary(order: Order): TaxSummary {
         })
       } else {
         const oldBrutto: number=taxInformation.brutto
-        const oldNetto: number=taxInformation.netto
 
         taxInformation.brutto=taxInformation.brutto-order.discount.discount
         taxInformation.netto=0
@@ -404,6 +402,7 @@ export function calculateTaxSummary(order: Order): TaxSummary {
       }
     }
   }
+
   taxInformation.taxes.forEach((tax): void => {
     tax.amount=parseFloat(tax.amount.toFixed(2))
     tax.tax=parseFloat(tax.tax.toFixed(2))

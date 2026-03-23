@@ -1,1 +1,1 @@
-export * from './lib/apikeys-data-access/apikeys-data-access'
+export * from './lib/services/apikey.service'

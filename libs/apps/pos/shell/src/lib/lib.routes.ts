@@ -1,4 +1,4 @@
-import { Route } from '@angular/router';
-import { Shell } from './shell/shell';
+import { appRoutes } from './app.routes'
 
-export const shellRoutes: Route[] = [{ path: '', component: Shell }];
+// Export appRoutes as shellRoutes so the lazy loading in apps/pos/src/app/app.routes.ts picks up the full route config
+export const shellRoutes = appRoutes

@@ -1,0 +1,309 @@
+<div class="w-full h-dvh flex overflow-hidden">
+  <!-- Left Side: Login Content -->
+  <div class="w-full lg:flex-1 relative bg-white flex flex-col">
+    <!-- Logo Top Left -->
+    <div class="absolute top-6 left-6 z-10 lg:hidden">
+      <img src="/assets/logos/panary_logo_color.svg" alt="Panary Logo" class="h-7 w-auto block" />
+    </div>
+
+    <!-- Device Info Top Right (mobile) / Hidden on desktop -->
+    <div class="absolute top-6 right-6 z-10 lg:hidden">
+      <span class="text-xs text-gray-400 font-medium">{{ deviceName() }}</span>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex items-center justify-center p-6 pt-20 pb-32 lg:pb-16">
+      <div class="w-full max-w-md">
+        <!-- ==================== LOADING ==================== -->
+        @if (currentStep() === 'loading') {
+        <div class="flex flex-col items-center justify-center animate-pulse">
+          <div class="w-12 h-12 border-4 border-[#00B8D4] border-t-transparent rounded-full animate-spin mb-6"></div>
+          <h2 class="text-xl font-semibold text-[#0F172A] mb-2">Verbindung wird hergestellt</h2>
+          <p class="text-sm text-gray-500">Benutzer werden geladen...</p>
+        </div>
+        }
+
+        <!-- ==================== USER SELECTION ==================== -->
+        @if (currentStep() === 'select-user') {
+        <div class="animate-[fadeIn_0.3s_ease-out]">
+          <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-[#0F172A] mb-1">Willkommen</h1>
+            <p class="text-sm text-gray-500">Wählen Sie Ihren Account</p>
+          </div>
+
+          <!-- User Grid -->
+          <div class="grid grid-cols-3 sm:grid-cols-4 gap-3">
+            @for (user of posUsers(); track user._id; let i = $index) {
+            <button
+              class="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-all group"
+              (click)="selectUser(user)" [style.animation-delay]="i * 0.03 + 's'"
+              style="animation: fadeIn 0.3s ease-out backwards">
+              <!-- Avatar -->
+              <div
+                class="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md group-hover:scale-105 transition-transform"
+                [style.background-color]="user.color">
+                {{ user.initials }}
+              </div>
+              <!-- Name -->
+              <span class="text-xs font-medium text-gray-700 text-center truncate w-full">
+                {{ user.firstName }}
+              </span>
+            </button>
+            }
+          </div>
+
+          @if (posUsers().length === 0) {
+          <div class="text-center py-12">
+            <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+              </path>
+            </svg>
+            <p class="text-gray-500 text-sm">Keine POS-Benutzer gefunden</p>
+            <p class="text-gray-400 text-xs mt-1">Bitte im Admin-Panel POS-Benutzer anlegen</p>
+          </div>
+          }
+        </div>
+        }
+
+        <!-- ==================== PIN ENTRY ==================== -->
+        @if (currentStep() === 'enter-pin') {
+        <div class="animate-[fadeIn_0.3s_ease-out] relative">
+          <!-- Back Button + User Info -->
+          <div class="flex items-center gap-4 mb-8">
+            <button
+              class="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+              (click)="backToUsers()" aria-label="Zurück zur Benutzerauswahl">
+              <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+            </button>
+
+            <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md"
+              [style.background-color]="selectedUser()!.color">
+              {{ selectedUser()!.initials }}
+            </div>
+
+            <div>
+              <h2 class="text-lg font-semibold text-[#0F172A]">
+                {{ selectedUser()!.firstName }} {{ selectedUser()!.lastName }}
+              </h2>
+              <p class="text-xs text-gray-500">PIN eingeben</p>
+            </div>
+          </div>
+
+          <!-- PIN Dots -->
+          <div class="flex justify-center gap-4 mb-8">
+            @for (i of [0, 1, 2, 3]; track i) {
+            <div class="w-4 h-4 rounded-full transition-all duration-150"
+              [class.bg-gray-200]="pinInput().length <= i && !pinError()"
+              [class.bg-[#00B8D4]]="pinInput().length > i && !pinError()" [class.bg-red-500]="pinError()"
+              [class.scale-110]="pinInput().length === i + 1"></div>
+            }
+          </div>
+
+          @if (pinError()) {
+          <p class="text-center text-red-500 text-sm mb-4 animate-[shake_0.3s_ease-out]">
+            Falsche PIN. Bitte erneut versuchen.
+          </p>
+          }
+
+          <!-- Numpad -->
+          <div class="grid grid-cols-3 gap-3 max-w-[280px] mx-auto">
+            @for (digit of ['1', '2', '3', '4', '5', '6', '7', '8', '9']; track digit) {
+            <button
+              class="h-16 rounded-xl bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-2xl font-semibold text-[#0F172A] transition-all active:scale-95 disabled:opacity-50"
+              (click)="addDigit(digit)" [disabled]="isLoading()">
+              {{ digit }}
+            </button>
+            }
+
+            <!-- Empty -->
+            <div class="h-16"></div>
+
+            <!-- Zero -->
+            <button
+              class="h-16 rounded-xl bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-2xl font-semibold text-[#0F172A] transition-all active:scale-95 disabled:opacity-50"
+              (click)="addDigit('0')" [disabled]="isLoading()">
+              0
+            </button>
+
+            <!-- Delete -->
+            <button
+              class="h-16 rounded-xl bg-gray-100 hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center transition-all active:scale-95 disabled:opacity-50"
+              (click)="deleteDigit()" [disabled]="isLoading()" aria-label="Letzte Ziffer löschen">
+              <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z">
+                </path>
+              </svg>
+            </button>
+          </div>
+
+          @if (isLoading()) {
+          <div class="absolute inset-0 bg-white/80 flex items-center justify-center">
+            <div class="w-8 h-8 border-4 border-[#00B8D4] border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          }
+        </div>
+        }
+
+        <!-- ==================== ERROR ==================== -->
+        @if (currentStep() === 'error') {
+        <div class="flex flex-col items-center animate-[fadeIn_0.3s_ease-out]">
+          <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-6">
+            <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+              </path>
+            </svg>
+          </div>
+          <h2 class="text-xl font-semibold text-[#0F172A] mb-2">Verbindungsfehler</h2>
+          <p class="text-sm text-gray-500 text-center mb-6">{{ errorMessage() }}</p>
+
+          <div class="flex gap-3">
+            <button
+              class="px-6 py-2.5 bg-[#00B8D4] text-white font-medium rounded-lg hover:bg-[#00a7c0] transition-colors"
+              (click)="retry()">
+              Erneut versuchen
+            </button>
+            <button
+              class="px-6 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+              (click)="goToSetup()">
+              Neu einrichten
+            </button>
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+
+    <!-- Footer with Connection Indicator -->
+    <div class="absolute bottom-24 lg:bottom-4 left-0 right-0 px-6 flex items-center justify-between">
+      <p class="text-xs text-gray-400">Panary Terminal • Version 2025.12.3</p>
+
+      <!-- Connection Status Indicator -->
+      <div class="flex items-center gap-2">
+        @switch (connectionState().status) {
+        @case ('authenticated') {
+        <span class="flex items-center gap-1.5 text-xs text-emerald-600">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          Verbunden
+        </span>
+        }
+        @case ('connected') {
+        <span class="flex items-center gap-1.5 text-xs text-emerald-600">
+          <span class="relative flex h-2 w-2">
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          Verbunden
+        </span>
+        }
+        @case ('connecting') {
+        <span class="flex items-center gap-1.5 text-xs text-amber-600">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-pulse inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+          </span>
+          Verbinde...
+        </span>
+        }
+        @case ('error') {
+        <span class="flex items-center gap-1.5 text-xs text-red-600">
+          <span class="relative flex h-2 w-2">
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+          </span>
+          Fehler
+        </span>
+        }
+        @default {
+        <span class="flex items-center gap-1.5 text-xs text-gray-400">
+          <span class="relative flex h-2 w-2">
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-gray-400"></span>
+          </span>
+          Offline
+        </span>
+        }
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Side: Visual Background with Time Clock (hidden on mobile) -->
+  <div
+    class="hidden lg:flex lg:w-[540px] lg:flex-none relative bg-gradient-to-br from-[#162032] to-[#283548] m-4 rounded-xl overflow-hidden">
+    <!-- Decorative Elements -->
+    <div class="absolute inset-0 opacity-20 pointer-events-none">
+      <div class="absolute top-1/4 left-1/4 w-64 h-64 bg-[#00B8D4] rounded-full blur-3xl"></div>
+      <div class="absolute bottom-1/4 right-1/4 w-48 h-48 bg-[#8B5CF6] rounded-full blur-3xl"></div>
+    </div>
+
+    <!-- Content Container -->
+    <div class="relative z-10 w-full flex flex-col">
+      <!-- Top: Branding -->
+      <div class="flex-shrink-0 text-center text-white p-8 pt-12 relative">
+        <!-- Theme Toggle -->
+        <button (click)="toggleTheme()"
+          class="absolute top-8 right-8 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors text-white"
+          title="Design ändern">
+          @if (themeService.theme === 'light') {
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z">
+            </path>
+          </svg>
+          } @else if (themeService.theme === 'dark') {
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+          </svg>
+          } @else {
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+            </path>
+          </svg>
+          }
+        </button>
+        <img src="/assets/logos/panary_logo_mono.svg" alt="Panary Logo" class="h-8 w-auto mx-auto mb-2 invert" />
+        <p class="text-base text-white/70">Bauen Sie Ihr Business. Nicht nur Ihre Speisekarte.</p>
+      </div>
+
+      <!-- Middle: Device Info Card -->
+      <div class="flex-shrink-0 px-8">
+        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-5 max-w-sm mx-auto">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-[#00B8D4]/20 rounded-lg flex items-center justify-center">
+              <svg class="w-6 h-6 text-[#00B8D4]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                </path>
+              </svg>
+            </div>
+            <div class="text-left">
+              <p class="text-sm text-white/60">Terminal</p>
+              <p class="font-semibold text-white">{{ deviceName() || 'POS Terminal' }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom: Time Clock Panel -->
+      <div class="flex-1 mt-6">
+        <lib-time-clock-panel mode="embedded" [users]="posUsers()"
+          (actionConfirmed)="onTimeClockAction($event)"></lib-time-clock-panel>
+      </div>
+    </div>
+
+    <!-- Bottom gradient -->
+    <div
+      class="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/20 to-transparent pointer-events-none">
+    </div>
+  </div>
+
+  <!-- Mobile: Time Clock Panel (Slide-In) -->
+  <lib-time-clock-panel class="lg:hidden" mode="mobile" [users]="posUsers()"
+    (actionConfirmed)="onTimeClockAction($event)"></lib-time-clock-panel>
+</div>

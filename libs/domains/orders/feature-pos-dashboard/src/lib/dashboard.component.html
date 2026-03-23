@@ -1,0 +1,236 @@
+<div class="h-full w-full bg-slate-50 p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border">
+  <!-- Header -->
+  <header class="flex-none flex items-center bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+    <div class="flex items-center gap-4 flex-1">
+      <div
+        class="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center font-bold text-xl shadow-lg shadow-indigo-200">
+        {{ userName.charAt(0) }}
+      </div>
+      <div>
+        <h1 class="text-xl font-bold text-slate-800">Hallo, {{ userName }}!</h1>
+        <p class="text-xs text-slate-400 font-medium">Panary | Terminal</p>
+      </div>
+    </div>
+
+    <!-- Status Area with Custom Dropdown -->
+    <div class="relative mx-4">
+      <button
+        class="flex items-center gap-4 px-5 py-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors select-none"
+        (click)="statusMenuOpen = !statusMenuOpen">
+        <div class="relative flex h-3 w-3">
+          @if (isOnBreak) {
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+          } @else if (isStampedIn) {
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+          } @else {
+          <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+          }
+        </div>
+        <div class="flex flex-col items-start">
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</span>
+          <span class="text-sm font-semibold text-slate-700 leading-none">
+            @if (isOnBreak) {
+            Pause
+            } @else if (isStampedIn) {
+            Eingestempelt
+            <span class="text-slate-400 font-normal ml-1">({{ formattedWorkingTime }})</span>
+            } @else {
+            Ausgestempelt
+            }
+          </span>
+        </div>
+        <mat-icon class="text-slate-400 ml-1 transition-transform duration-200"
+          [class.rotate-180]="statusMenuOpen">expand_more
+        </mat-icon>
+      </button>
+
+      <!-- Custom Dropdown Panel -->
+      @if (statusMenuOpen) {
+      <div
+        class="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-50"
+        (mouseleave)="statusMenuOpen = false">
+        <div class="p-2 flex flex-col gap-1">
+          @if (!isStampedIn) {
+          <button (click)="clockIn(); statusMenuOpen = false"
+            class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-emerald-50 transition-colors group">
+            <div class="p-2 rounded-lg bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200 transition-colors">
+              <mat-icon class="scale-90">login</mat-icon>
+            </div>
+            <div class="flex flex-col">
+              <span class="font-semibold text-slate-700 text-sm">Einstempeln</span>
+              <span class="text-xs text-slate-400">Arbeitstag beginnen</span>
+            </div>
+          </button>
+          }
+          @if (isStampedIn && !isOnBreak) {
+          <button (click)="startBreak(); statusMenuOpen = false"
+            class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-amber-50 transition-colors group">
+            <div class="p-2 rounded-lg bg-amber-100 text-amber-600 group-hover:bg-amber-200 transition-colors">
+              <mat-icon class="scale-90">coffee</mat-icon>
+            </div>
+            <div class="flex flex-col">
+              <span class="font-semibold text-slate-700 text-sm">Pause beginnen</span>
+              <span class="text-xs text-slate-400">Du wirst abgemeldet</span>
+            </div>
+          </button>
+          <div class="h-px bg-slate-100 mx-2 my-1"></div>
+          <button (click)="clockOut(); statusMenuOpen = false"
+            class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-red-50 transition-colors group">
+            <div class="p-2 rounded-lg bg-red-100 text-red-600 group-hover:bg-red-200 transition-colors">
+              <mat-icon class="scale-90">logout</mat-icon>
+            </div>
+            <div class="flex flex-col">
+              <span class="font-semibold text-slate-700 text-sm">Ausstempeln</span>
+              <span class="text-xs text-slate-400">Arbeitstag beenden</span>
+            </div>
+          </button>
+          }
+          @if (isOnBreak) {
+          <button (click)="endBreak(); statusMenuOpen = false"
+            class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-emerald-50 transition-colors group">
+            <div class="p-2 rounded-lg bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200 transition-colors">
+              <mat-icon class="scale-90">play_arrow</mat-icon>
+            </div>
+            <div class="flex flex-col">
+              <span class="font-semibold text-slate-700 text-sm">Pause beenden</span>
+              <span class="text-xs text-slate-400">Weiter arbeiten</span>
+            </div>
+          </button>
+          <div class="h-px bg-slate-100 mx-2 my-1"></div>
+          <button (click)="clockOut(); statusMenuOpen = false"
+            class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-red-50 transition-colors group">
+            <div class="p-2 rounded-lg bg-red-100 text-red-600 group-hover:bg-red-200 transition-colors">
+              <mat-icon class="scale-90">logout</mat-icon>
+            </div>
+            <div class="flex flex-col">
+              <span class="font-semibold text-slate-700 text-sm">Ausstempeln</span>
+              <span class="text-xs text-slate-400">Arbeitstag beenden</span>
+            </div>
+          </button>
+          }
+        </div>
+      </div>
+      }
+    </div>
+
+    <button mat-icon-button (click)="logout()" class="!text-slate-400 hover:!text-red-500 transition-colors">
+      <mat-icon>logout</mat-icon>
+    </button>
+  </header>
+
+  <!-- Main Content -->
+  <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
+    <!-- Left Column: KPIs & Charts -->
+    <div class="lg:col-span-8 flex flex-col gap-6 h-full min-h-0">
+      <!-- 4 KPIs Grid -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 flex-none">
+        <!-- KPI 1 -->
+        <div
+          class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow">
+          <div class="flex justify-between items-start mb-2">
+            <div class="p-2 rounded-xl bg-blue-50 text-blue-600">
+              <mat-icon class="text-base scale-110">shopping_cart</mat-icon>
+            </div>
+          </div>
+          <div>
+            <h3 class="text-3xl font-bold text-slate-800 tracking-tight">{{ activeOrdersCount }}</h3>
+            <p class="text-xs text-slate-500 font-medium mt-1">Offene Bestellungen</p>
+          </div>
+        </div>
+
+        <!-- KPI 2 -->
+        <div
+          class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow">
+          <div class="flex justify-between items-start mb-2">
+            <div class="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+              <mat-icon class="text-base scale-110">receipt_long</mat-icon>
+            </div>
+          </div>
+          <div>
+            <h3 class="text-3xl font-bold text-slate-800 tracking-tight">{{ todayOrdersCount }}</h3>
+            <p class="text-xs text-slate-500 font-medium mt-1">Gesamt Heute</p>
+          </div>
+        </div>
+
+        <!-- KPI 3 -->
+        <div
+          class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow">
+          <div class="flex justify-between items-start mb-2">
+            <div class="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+              <mat-icon class="text-base scale-110">flash_on</mat-icon>
+            </div>
+          </div>
+          <div>
+            <h3 class="text-3xl font-bold text-slate-800 tracking-tight">{{ productivity }}</h3>
+            <p class="text-xs text-slate-500 font-medium mt-1">Ø Orders/Std</p>
+          </div>
+        </div>
+
+        <!-- KPI 4 -->
+        <div
+          class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow">
+          <div class="flex justify-between items-start mb-2">
+            <div class="p-2 rounded-xl bg-amber-50 text-amber-600">
+              <mat-icon class="text-base scale-110">timer</mat-icon>
+            </div>
+          </div>
+          <div>
+            <h3 class="text-3xl font-bold text-slate-800 tracking-tight">{{ avgWaitingTime }}</h3>
+            <p class="text-xs text-slate-500 font-medium mt-1">Ø Wartezeit</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart Section -->
+      <div
+        class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex-1 min-h-0 flex flex-col relative overflow-hidden">
+        <div class="flex-none flex justify-between items-center mb-6">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800">Stündliche Auslastung</h2>
+            <p class="text-xs text-slate-400">Verlauf der Bestellungen über den Tag</p>
+          </div>
+          <div class="bg-slate-50 px-3 py-1 rounded-lg border border-slate-200 text-xs text-slate-500 font-medium">
+            Heute
+          </div>
+        </div>
+        <div class="flex-1 w-full min-h-0 relative">
+          <!-- TODO: echarts Chart temporär deaktiviert (ngx-echarts nicht installiert) -->
+          <div class="absolute inset-0 w-full h-full flex items-center justify-center text-slate-400 text-sm">Chart wird geladen …</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Quick Access -->
+    <div
+      class="lg:col-span-4 bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col h-full overflow-hidden">
+      <div class="flex-none mb-6">
+        <h2 class="text-lg font-bold text-slate-800">Schnellzugriff</h2>
+        <p class="text-xs text-slate-400">Häufig verwendete Aktionen</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 flex-1 overflow-auto content-start py-2">
+        @for (action of visibleQuickActions(); track action.label) {
+        <button (click)="action.action()"
+          class="group relative flex flex-col items-center justify-center gap-4 p-6 rounded-2xl border border-slate-100 bg-slate-50 transition-all duration-200 hover:bg-white hover:border-slate-300 hover:shadow-lg hover:-translate-y-1 active:scale-95 aspect-square">
+          <div class="p-4 rounded-xl transition-colors duration-200 group-hover:scale-110" [ngClass]="action.bgClass">
+            <mat-icon [ngClass]="action.textClass" class="scale-125">{{ action.icon }}</mat-icon>
+          </div>
+
+          <span class="font-semibold text-sm text-slate-600 group-hover:text-slate-800 text-center leading-tight">
+            {{ action.label }}
+          </span>
+        </button>
+        }
+
+        <!-- Placeholder Add Button (Visual consistency) -->
+        <button
+          class="flex flex-col items-center justify-center gap-2 p-6 rounded-2xl border border-dashed border-slate-200 bg-transparent text-slate-400 hover:border-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all aspect-square">
+          <mat-icon class="opacity-50">add</mat-icon>
+          <span class="text-xs font-medium">Anpassen</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

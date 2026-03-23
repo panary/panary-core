@@ -1,11 +1,10 @@
 import { computed, effect, inject, Injectable, Signal, signal, WritableSignal } from '@angular/core'
 import { User } from '../models/user.model'
 import { Id, Paginated, Params } from '@feathersjs/feathers'
-import { LocalstorageService } from '@panary/shared/data-access-localstorage'
 import { Observer } from 'rxjs'
-import { BaseService, ConnectionService } from '@panary/shared/data-access-infrastructure'
-import { AuthService } from '@panary/domains/auth/data-access'
-import { LocationModel } from '@panary/domains/organization/data-access'
+import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
+import { AuthService } from '@panary-core/auth/data-access'
+import { Location } from '@panary-core/locations/data-access'
 
 @Injectable({
   providedIn: 'root',
@@ -13,7 +12,6 @@ import { LocationModel } from '@panary/domains/organization/data-access'
 export class UserService extends BaseService<User> {
   /** INJECTION */
   #authService: AuthService=inject(AuthService)
-  #localstorageService: LocalstorageService=inject(LocalstorageService)
   protected connectionService: ConnectionService=inject(ConnectionService)
 
   /** PRIVATE PROPERTIES */
@@ -138,9 +136,7 @@ export class UserService extends BaseService<User> {
       } else {
         users=response.data
       }
-      this.#localstorageService.usernameList=users.map((record: User) => {
-        return record.loginname
-      })
+      localStorage.setItem('usernameList', JSON.stringify(users.map((record: User) => record.loginname)))
     })
   }
 
@@ -160,7 +156,7 @@ export class UserService extends BaseService<User> {
     })
   }
 
-  toggleLocation(location: LocationModel) {
+  toggleLocation(location: Location) {
     const id: Id|undefined=this.currentUser()?._id
 
     if (!id) return

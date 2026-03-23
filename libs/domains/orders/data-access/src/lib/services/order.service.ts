@@ -1,18 +1,19 @@
 import { computed, effect, inject, Injectable, Signal, signal, WritableSignal } from '@angular/core'
-import { MatDialog } from '@angular/material/dialog'
+// import { MatDialog } from '@angular/material/dialog' // TODO: Re-enable when PrintDialog migrated
 import { MatSnackBar } from '@angular/material/snack-bar'
-import { PrintDialog } from '@panary/shared/ui-dialogs'
+// import { PrintDialog } from '@panary/shared/ui-dialogs' // TODO: migrate PrintDialog
 import { OrderLineItemSchema } from '../models/order-line-item.model'
 import { OrderChannel } from '../enums/order-chanel.enum'
-import { CreationContext, DineLocationSchema, Order, OrderStatus } from '../models/order.model'
+import { CreationContext, DineLocation, Order, OrderStatus } from '../models/order.model'
 import { Id, Paginated } from '@feathersjs/feathers'
-import { Discount } from '@panary/shared/models'
+import { Discount } from '@panary-core/orders/domain'
 import { StaffPaymentInfo } from '../models/staff-payment-info.model'
-import { CustomerPaymentInfo } from '@panary/domains/orders/data-access'
+import { CustomerPaymentInfo } from '../models/customer-payment-info.model'
 import { OrderInteractionSchema } from '../models/order-interaction.model'
-import { BaseService, ConnectionService, ExtendedParams } from '@panary/shared/data-access-infrastructure'
+import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
+import { ExtendedParams } from '@panary-core/shared/common'
 import { Observer } from 'rxjs'
-import { LocationService } from '@panary/domains/organization/data-access'
+import { LocationService } from '@panary-core/locations/data-access'
 
 @Injectable({
   providedIn: 'root',
@@ -27,7 +28,7 @@ export class OrderService extends BaseService<Order> {
   #locationService: LocationService = inject(LocationService)
   protected connectionService: ConnectionService = inject(ConnectionService)
   #matSnackBar: MatSnackBar = inject(MatSnackBar)
-  #matDialog: MatDialog = inject(MatDialog)
+  // #matDialog: MatDialog = inject(MatDialog) // TODO: Re-enable when PrintDialog migrated
   #orderIndex = 1
   #productionTimes: Array<number> = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]
 
@@ -46,11 +47,11 @@ export class OrderService extends BaseService<Order> {
   }
 
   get ordersActive() {
-    return computed(() => this.#orders().filter((order: Order): boolean => order.status !== OrderStatus.Completed))
+    return computed(() => this.#orders().filter((order: Order): boolean => order.status !== OrderStatus.COMPLETED))
   }
 
   get ordersCompleted() {
-    return computed(() => this.#orders().filter((order: Order): boolean => order.status !== OrderStatus.Active))
+    return computed(() => this.#orders().filter((order: Order): boolean => order.status !== OrderStatus.ACTIVE))
   }
 
   get orderIndex() {
@@ -86,17 +87,17 @@ export class OrderService extends BaseService<Order> {
   }
 
   /** PRIVATE METHODS */
-  protected override handleItemCreated(document: Order) {
+  protected override handleItemCreated(_document: Order) {
     this.#ordersLastUpdated.set(new Date())
     this.loadDocuments()
   }
 
-  protected override handleItemUpdated(document: Order) {
+  protected override handleItemUpdated(_document: Order) {
     this.#ordersLastUpdated.set(new Date())
     this.loadDocuments()
   }
 
-  protected override handleItemRemoved(document: Order) {
+  protected override handleItemRemoved(_document: Order) {
     this.#ordersLastUpdated.set(new Date())
     this.loadDocuments()
   }
@@ -116,7 +117,7 @@ export class OrderService extends BaseService<Order> {
       this.#totalOrders.set(Array.isArray(response) ? response.length : response.total)
     })
 
-    params = { query: { ...query, ...limit, status: OrderStatus.Completed } }
+    params = { query: { ...query, ...limit, status: OrderStatus.COMPLETED } }
     this.find(params).then((response: Paginated<Order> | Order[]): void => {
       this.#totalFinishedOrders.set(Array.isArray(response) ? response.length : response.total)
     })
@@ -133,9 +134,9 @@ export class OrderService extends BaseService<Order> {
   }
 
   protected override fileReaderOnLoad(
-    fileReader: FileReader,
-    observer: Observer<any>,
-    context: {
+    _fileReader: FileReader,
+    _observer: Observer<unknown>,
+    _context: {
       errorMessages: string[]
       warnMessages: string[]
       successCount: number
@@ -154,7 +155,7 @@ export class OrderService extends BaseService<Order> {
 
   private calculateRemainingTime(): void {
     this.#orders().forEach((orderItem: Order): void => {
-      if (orderItem.status === OrderStatus.Completed) return
+      if (orderItem.status === OrderStatus.COMPLETED) return
 
       const recordingDate: Date = new Date(orderItem.recordingDate)
       const completionDate: Date = new Date(recordingDate)
@@ -176,7 +177,8 @@ export class OrderService extends BaseService<Order> {
     return this.create(newOrder).then((createdOrder: Order | Order[]): number | number[] | undefined | null => {
       if (!createdOrder) return null
 
-      this.#matDialog.open(PrintDialog, { data: createdOrder })
+      // TODO: migrate PrintDialog — open print dialog after order creation
+      // this.#matDialog.open(PrintDialog, { data: createdOrder })
 
       if (createdOrder instanceof Array) {
         return createdOrder.map((order: Order): number => order.dailySequenceNumber)
@@ -188,7 +190,7 @@ export class OrderService extends BaseService<Order> {
 
   private markOrdersAsCompleted(): void {
     this.service
-      .multiPatchStatus(OrderStatus.Completed, { query: { status: OrderStatus.Active } })
+      .multiPatchStatus(OrderStatus.COMPLETED, { query: { status: OrderStatus.ACTIVE } })
       .then((orders: Order[]): void => {
         this.#matSnackBar
           .open(`${orders.length} Bestellungen wurden als erledigt markiert`, OrderService.SNACKBAR_ACTION, {
@@ -199,21 +201,21 @@ export class OrderService extends BaseService<Order> {
             this.loadDocuments()
           })
       })
-      .catch((error: any) => this.helper.handleError(this.serviceName, error))
+      .catch((error: unknown) => this.helper.handleError(this.serviceName, error))
   }
 
   /** PUBLIC PROPERTIES */
   // Refactored: Removed combinations parameter
   async createOrder(
     lineItems: Array<OrderLineItemSchema>, // combinations: Array<OrderLineItemSchema[]> (Removed)
-    orderChanel: OrderChannel,
+    orderChanel: typeof OrderChannel[keyof typeof OrderChannel],
     customerDetails: CustomerPaymentInfo | undefined = undefined,
     discountDetails: Discount | undefined = undefined,
     pager: number | undefined = undefined,
     produktionTime: number,
     staffMealDetails: StaffPaymentInfo | undefined = undefined,
     table: string | undefined = undefined,
-    dineLocation: DineLocationSchema,
+    dineLocation: typeof DineLocation[keyof typeof DineLocation],
     recordingDate: Date,
     orderInteractions: Array<OrderInteractionSchema> = [],
     creationContext?: CreationContext,
@@ -226,7 +228,8 @@ export class OrderService extends BaseService<Order> {
     }
 
     const order: Omit<Order, '_id' | 'locationId' | 'tenantId'> = {
-      status: OrderStatus.Active,
+      externalId: null,
+      status: OrderStatus.ACTIVE,
       businessDayId: businessDayId,
       orderChannel: orderChanel,
       dailySequenceNumber: -1,
@@ -237,7 +240,10 @@ export class OrderService extends BaseService<Order> {
 
       estimatedDuration: produktionTime,
       remainingTime: produktionTime,
-      recordingDate: recordingDate,
+      recordingDate: recordingDate instanceof Date ? recordingDate.toISOString() : recordingDate,
+      isFinished: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
 
     if (pager) order.pager = pager
@@ -245,7 +251,7 @@ export class OrderService extends BaseService<Order> {
     if (customerDetails) order.customerPaymentInfo = customerDetails
     if (staffMealDetails) order.staffPaymentInfo = staffMealDetails
     if (discountDetails) order.discount = discountDetails
-    if (orderInteractions.length > 0) order.orderInteractions = orderInteractions
+    if (orderInteractions.length > 0) (order as Order & { orderInteractions?: OrderInteractionSchema[] }).orderInteractions = orderInteractions
     if (creationContext) order.creationContext = creationContext
 
     this.sortLineItemsByName(order.lineItems)
@@ -268,7 +274,7 @@ export class OrderService extends BaseService<Order> {
       return
     }
 
-    return this.patch(id, { status: OrderStatus.Completed })
+    return this.patch(id, { status: OrderStatus.COMPLETED })
   }
 
   async toggleStatus(id: Id | undefined) {
@@ -285,7 +291,9 @@ export class OrderService extends BaseService<Order> {
       return
     }
 
-    return this.patch(id, { status: order.status === OrderStatus.Active ? OrderStatus.Completed : OrderStatus.Active })
+    return this.patch(id, {
+      status: order.status === OrderStatus.ACTIVE ? OrderStatus.COMPLETED : OrderStatus.ACTIVE,
+    })
   }
 
   markAllOrdersAsDone(): void {

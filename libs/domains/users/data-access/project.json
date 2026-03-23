@@ -5,15 +5,8 @@
   "projectType": "library",
   "tags": ["type:api", "domain:users"],
   "targets": {
-    "build": {
-      "executor": "@nx/js:tsc",
-      "outputs": ["{options.outputPath}"],
-      "options": {
-        "outputPath": "dist/libs/domains/users/data-access",
-        "main": "libs/domains/users/data-access/src/index.ts",
-        "tsConfig": "libs/domains/users/data-access/tsconfig.lib.json",
-        "assets": ["libs/domains/users/data-access/*.md"]
-      }
+    "lint": {
+      "executor": "@nx/eslint:lint"
     }
   }
 }

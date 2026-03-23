@@ -10,6 +10,8 @@ export * from './lib/schemas/base.schema'
 export * from './lib/schemas/base-customer.schema'
 export * from './lib/schemas/address.schema'
 export * from './lib/schemas/references.schema'
+export * from './lib/schemas/base-document.model'
+export * from './lib/schemas/extended-params.model'
 
 // 4. Utils
-export * from './lib/utils/get-base64-logo'
+// get-base64-logo ist Node.js-only (path/fs) – nur serverseitig verwenden

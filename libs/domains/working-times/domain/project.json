@@ -1,0 +1,19 @@
+{
+  "name": "working-times-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/working-times/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:working-times"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/domains/working-times/domain",
+        "main": "libs/domains/working-times/domain/src/index.ts",
+        "tsConfig": "libs/domains/working-times/domain/tsconfig.lib.json",
+        "assets": ["libs/domains/working-times/domain/*.md"]
+      }
+    }
+  }
+}

@@ -1,0 +1,271 @@
+<div class="h-full w-full bg-slate-50 flex flex-col overflow-hidden">
+  <!-- Header -->
+  <header
+    class="flex-none bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm z-10">
+    <div class="flex items-center gap-4">
+      <button mat-icon-button (click)="goBack()" class="bg-slate-50 border border-slate-200 !text-slate-600">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+        <mat-icon class="text-blue-600">receipt</mat-icon>
+        Offene Bestellungen
+      </h1>
+      <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold"> {{ orders().length }}</span>
+      <button mat-flat-button color="primary" (click)="openQuickOrder()" class="!rounded-xl !h-10 ml-4">
+        <mat-icon>add_circle</mat-icon>
+        Neue Bestellung
+      </button>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button mat-icon-button (click)="decreaseZoom()" class="text-slate-500">
+        <mat-icon>remove_circle_outline</mat-icon>
+      </button>
+      <span class="text-sm font-bold text-slate-600 min-w-[3ch] text-center">{{ zoomLevel() * 100 | number: '1.0-0'
+        }}%</span>
+      <button mat-icon-button (click)="increaseZoom()" class="text-slate-500">
+        <mat-icon>add_circle_outline</mat-icon>
+      </button>
+    </div>
+  </header>
+
+  <!-- Horizontal Scrolling Container -->
+  <main class="flex-1 overflow-x-auto overflow-y-hidden p-6 relative">
+    @if (sortedOrders().length === 0) {
+      <div class="absolute inset-0 flex flex-col items-center justify-center text-slate-300 select-none pointer-events-none">
+        <mat-icon class="!w-32 !h-32 !text-[128px] opacity-20 mb-4">check_circle_outline</mat-icon>
+        <h2 class="text-3xl font-bold text-slate-400 opacity-60">Alles erledigt</h2>
+        <p class="text-lg text-slate-400 opacity-50 mt-2">Im Moment gibt es keine offenen Bestellungen.</p>
+      </div>
+    } @else {
+      <div class="flex flex-row gap-6 h-full w-max">
+        @for (order of sortedOrders(); track order._id) {
+          <!-- Receipt Card -->
+          <div [style.zoom]="zoomLevel()" (click)="toggleSelection(order._id)"
+            class="flex flex-col h-fit w-80 bg-white shadow-xl rounded-2xl overflow-hidden relative transform transition-transform hover:-translate-y-1 mb-4 shrink-0 cursor-pointer">
+            <!-- Selection Overlay -->
+            @if (selectedOrderId() === order._id) {
+            <div
+              class="absolute inset-0 bg-slate-900/40 z-20 flex flex-col items-center justify-center gap-4 backdrop-blur-[2px] scale-in-center p-6">
+              <div class="grid grid-cols-2 gap-4 w-full px-2">
+                <button mat-flat-button
+                  class="!h-24 !w-full !rounded-2xl !bg-white !text-slate-800 !flex !flex-col !items-center !justify-center !gap-1 shadow-lg border border-slate-100"
+                  (click)="convertToStaffMeal(order); $event.stopPropagation()">
+                  <mat-icon class="!w-8 !h-8 !text-3xl !mb-1 scale-125">badge</mat-icon>
+                  <span class="text-xs font-bold uppercase tracking-wide">Mitarbeiter</span>
+                </button>
+                <button mat-flat-button
+                  class="!h-24 !w-full !rounded-2xl !bg-white !text-slate-800 !flex !flex-col !items-center !justify-center !gap-1 shadow-lg border border-slate-100"
+                  (click)="cancelOrder(order); $event.stopPropagation()">
+                  <mat-icon class="!w-8 !h-8 !text-3xl !mb-1 scale-125">cancel</mat-icon>
+                  <span class="text-xs font-bold uppercase tracking-wide">Storno</span>
+                </button>
+                <button mat-flat-button
+                  class="!h-24 !w-full !rounded-2xl !bg-white !text-slate-800 !flex !flex-col !items-center !justify-center !gap-1 shadow-lg border border-slate-100"
+                  (click)="enterDiscount(order); $event.stopPropagation()">
+                  <mat-icon class="!w-8 !h-8 !text-3xl !mb-1 scale-125">percent</mat-icon>
+                  <span class="text-xs font-bold uppercase tracking-wide">Rabatt</span>
+                </button>
+                <button mat-flat-button
+                  class="!h-24 !w-full !rounded-2xl !bg-white !text-slate-800 !flex !flex-col !items-center !justify-center !gap-1 shadow-lg border border-slate-100"
+                  (click)="recordCorporateOrder(order); $event.stopPropagation()">
+                  <mat-icon class="!w-8 !h-8 !text-3xl !mb-1 scale-125">business</mat-icon>
+                  <span class="text-xs font-bold uppercase tracking-wide">Firma</span>
+                </button>
+              </div>
+            </div>
+            }
+
+            <!-- CANCELED Badge (Rubber Stamp) -->
+            @if (order.status === OrderStatus.PRODUCTION) {
+            <div class="stamp-canceled">STORNIERT</div>
+            }
+
+            <!-- Staff/Corporate Badge header -->
+            @if (order.staffPaymentInfo) {
+            <div class="bg-violet-100 text-violet-700 px-4 py-1.5 text-xs font-bold text-center border-b border-violet-200">
+              <mat-icon class="scale-75 align-bottom h-4 w-4 mr-1">badge</mat-icon>
+              Mitarbeiter: {{ order.staffPaymentInfo.userName }}
+            </div>
+            }
+            @if (order.customerPaymentInfo) {
+            <div class="bg-orange-100 text-orange-700 px-4 py-1.5 text-xs font-bold text-center border-b border-orange-200">
+              <mat-icon class="scale-75 align-bottom h-4 w-4 mr-1">business</mat-icon>
+              Firma: {{ order.customerPaymentInfo.customerName }}
+            </div>
+            }
+
+            <!-- Receipt Header -->
+            <div class="px-6 pt-6 pb-4 text-center">
+              <div class="flex justify-between items-start mb-2">
+                <span class="text-xs font-bold text-slate-400">#{{ order._id.slice(-4) }}</span>
+                <div class="flex flex-col items-end">
+                  <span class="text-xs font-bold text-slate-500">{{ order.recordingDate | date: 'HH:mm' }}</span>
+                  <span class="text-[10px] text-slate-400">Uhr</span>
+                </div>
+              </div>
+
+              <h2 class="text-4xl font-black text-slate-800 my-2">
+                {{ order.dailySequenceNumber }}
+              </h2>
+
+              <div class="flex justify-center gap-2 mt-2">
+                @if (order.dineLocation === 'dine-in') {
+                <span
+                  class="flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-xs font-bold uppercase">
+                  <mat-icon class="scale-75 text-base h-4 w-4">restaurant</mat-icon> Im Haus
+                </span>
+                } @else {
+                <span
+                  class="flex items-center gap-1 bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-bold uppercase">
+                  <mat-icon class="scale-75 text-base h-4 w-4">shopping_bag</mat-icon> To Go
+                </span>
+                }
+
+                @if (order.table) {
+                <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-xs font-bold">
+                  T{{ order.table }}
+                </span>
+                }
+
+                @if (order.pager) {
+                <span class="flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-0.5 rounded text-xs font-bold">
+                  <mat-icon class="scale-75 text-base h-4 w-4 inline-block align-middle">notifications_active</mat-icon>
+                  Pager {{ order.pager }}
+                </span>
+                }
+              </div>
+            </div>
+
+            <!-- Receipt Body (Scrollable if too long, but generally adaptive) -->
+            <div class="flex-1 p-4 font-mono text-sm max-h-[60vh] overflow-y-auto">
+              <div class="flex flex-col gap-3">
+                @for (item of getUnbundledLineItems(order); track item._id) {
+                <div class="flex justify-between items-start">
+                  <div class="flex gap-2">
+                    <span class="font-bold w-4">{{ item.amount }}x</span>
+                    <div class="flex flex-col">
+                      <span class="text-slate-700">{{ item.name }}</span>
+
+                      <!-- Extras -->
+                      @if (item.modifiers && item.modifiers.length > 0) {
+                      @for (extra of item.modifiers; track extra._id) {
+                      <div class="text-xs text-slate-500 pl-2 flex items-center justify-between gap-2 mt-0.5">
+                        <span class="flex items-center gap-1">+ {{ extra.name }}</span>
+                        @if (extra.price > 0) {
+                        <span>{{ formatPrice(extra.price) }}</span>
+                        }
+                      </div>
+                      }
+                      }
+
+                      <!-- Menu Items -->
+                      @if (item.isMenu) {
+                      @if (item.menuSideDish) {
+                      <div class="text-xs text-slate-500 pl-2 flex items-center justify-between gap-2 mt-0.5">
+                        <div class="flex items-center gap-1">
+                          <mat-icon class="scale-50 h-3 w-3 -ml-1">restaurant_menu</mat-icon>
+                          <span>{{ item.menuSideDish.name }}</span>
+                        </div>
+                        @if (item.menuSideDish.price > 0) {
+                        <span>{{ formatPrice(item.menuSideDish.price) }}</span>
+                        }
+                      </div>
+                      }
+                      @if (item.menuDrink) {
+                      <div class="text-xs text-slate-500 pl-2 flex items-center justify-between gap-2 mt-0.5">
+                        <div class="flex items-center gap-1">
+                          <mat-icon class="scale-50 h-3 w-3 -ml-1">local_cafe</mat-icon>
+                          <span>{{ item.menuDrink.name }}</span>
+                        </div>
+                        @if (item.menuDrink.price > 0) {
+                        <span>{{ formatPrice(item.menuDrink.price) }}</span>
+                        }
+                      </div>
+                      }
+                      }
+                    </div>
+                  </div>
+                  <span class="font-semibold whitespace-nowrap">{{ formatPrice(item.price * item.amount) }}</span>
+                </div>
+                }
+
+                <!-- Combinations (Grouped Items) -->
+                @if (getCombinations(order).length > 0) {
+                <div class="border-t border-dashed border-slate-200 my-1 pt-2">
+                  <span
+                    class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Kombinationen</span>
+                  @for (combo of getCombinations(order); track $index) {
+                  <div class="bg-indigo-50/50 rounded-lg p-2 mb-2 border border-indigo-100 relative">
+                    <div class="absolute -left-1 top-3 bottom-3 w-1 bg-indigo-200 rounded-full"></div>
+                    <div class="flex flex-col gap-2 pl-2">
+                      @for (item of combo; track item._id) {
+                      <div class="flex justify-between items-start">
+                        <div class="flex gap-2">
+                          <span class="font-bold w-4 text-xs">{{ item.amount }}x</span>
+                          <div class="flex flex-col">
+                            <span class="text-slate-700 text-sm">{{ item.name }}</span>
+
+                            <!-- Extras in Combo -->
+                            @if (item.modifiers && item.modifiers.length > 0) {
+                            @for (extra of item.modifiers; track extra._id) {
+                            <div class="text-[10px] text-slate-500 pl-2 flex items-center justify-between gap-2">
+                              <span>+ {{ extra.name }}</span>
+                              @if (extra.price > 0) {
+                              <span>{{ formatPrice(extra.price) }}</span>
+                              }
+                            </div>
+                            }
+                            }
+                          </div>
+                        </div>
+                        <span class="font-semibold text-sm">{{ formatPrice(item.price * item.amount) }}</span>
+                      </div>
+                      }
+                    </div>
+                  </div>
+                  }
+                </div>
+                }
+              </div>
+            </div>
+
+            <!-- Torn Paper Separator -->
+            <div class="receipt-tear-line"></div>
+
+            <!-- Receipt Footer -->
+            <div class="p-4 pt-2 bg-white rounded-b-2xl">
+              <div class="flex justify-between items-center mb-4 px-2">
+                <span class="font-bold text-slate-500 uppercase text-xs">Gesamt</span>
+                <span class="text-xl font-black text-slate-800">{{ formatPrice(calculateTotal(order)) }}</span>
+              </div>
+
+              <div class="flex justify-between gap-2">
+                <!-- Print Button -->
+                <button mat-icon-button class="hover-morph-btn !bg-slate-100 !text-slate-600 !w-12 !h-12"
+                  (click)="printOrder($event, order)">
+                  <mat-icon>print</mat-icon>
+                </button>
+
+                <div class="flex gap-2 flex-1 justify-end">
+                  <!-- Complete Order (Finish) -->
+                  <button mat-icon-button class="hover-morph-btn !bg-emerald-100 !text-emerald-700 !w-12 !h-12"
+                    (click)="completeOrder($event, order)" matTooltip="Bestellung abschließen">
+                    <mat-icon>done_all</mat-icon>
+                  </button>
+                  <!-- Checkout (Kassieren) -->
+                  <button mat-flat-button color="primary"
+                    class="!bg-slate-800 !text-white !h-12 !px-6 !rounded-xl flex-1 max-w-[140px] flex items-center justify-center gap-2"
+                    (click)="checkoutOrder($event, order)">
+                    <!--                  <mat-icon>payments</mat-icon>-->
+                    <span class="uppercase font-bold tracking-wide text-sm hidden sm:inline">Kassieren</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </main>
+</div>

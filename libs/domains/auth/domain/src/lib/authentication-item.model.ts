@@ -1,4 +1,4 @@
-import { User } from '@panary/domains/users/domain'
+import { User } from '@panary-core/users/domain'
 
 export type AuthenticationItem = {
   accessToken: string

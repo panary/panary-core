@@ -1,0 +1,22 @@
+{
+  "name": "businessdays-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/businessdays/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:businessdays"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/domains/businessdays/domain",
+        "main": "libs/domains/businessdays/domain/src/index.ts",
+        "tsConfig": "libs/domains/businessdays/domain/tsconfig.lib.json",
+        "assets": ["libs/domains/businessdays/domain/*.md"]
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "businessdays-feature-pos-closing-dialog",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/businessdays/feature-pos-closing-dialog/src",
+  "prefix": "lib",
+  "projectType": "library",
+  "tags": ["type:feature", "domain:businessdays", "platform:pos"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

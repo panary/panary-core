@@ -1,0 +1,51 @@
+:host {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.mat-column-day {
+  width: 80px;
+}
+
+.mat-column-status {
+  width: 100px;
+}
+
+/* Enhancing table readability */
+/* Enhancing table readability */
+td.mat-cell,
+th.mat-header-cell {
+  padding: 16px;
+  border-bottom-color: #f1f5f9;
+  background-color: white;
+  /* Ensure white background */
+}
+
+th.mat-header-cell {
+  font-weight: 600;
+  color: #64748b;
+  font-size: 0.875rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 1px 0 #f1f5f9;
+  /* Subtle border for sticky header */
+}
+
+/* Remove default material background if any */
+.mat-mdc-table {
+  background: transparent !important;
+}
+
+/* Soften row hover */
+tr.mat-mdc-row:hover {
+  background-color: #f8fafc !important;
+}
+
+/* Break menu styling tweak */
+::ng-deep .break-menu {
+  min-width: 150px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+}

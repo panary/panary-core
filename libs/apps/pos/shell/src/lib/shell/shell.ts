@@ -1,9 +1,39 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core'
+import { RouterOutlet } from '@angular/router'
+
+interface PosCurrentUser {
+  _id: string
+  firstName: string
+  lastName: string
+  initials: string
+}
 
 @Component({
-  selector: 'lib-shell',
-  imports: [],
-  templateUrl: './shell.html',
-  styleUrl: './shell.scss',
+  selector: 'panary-core-shell',
+  template: `
+    <div id="app-frame" class="h-full w-full bg-slate-50">
+      <main class="h-full w-full">
+        <router-outlet></router-outlet>
+      </main>
+    </div>
+  `,
+  imports: [RouterOutlet],
 })
-export class Shell {}
+export class AppPosShellComponent implements OnInit {
+  readonly #currentUser = signal<PosCurrentUser | null>(null)
+
+  ngOnInit(): void {
+    this.loadCurrentUser()
+  }
+
+  private loadCurrentUser(): void {
+    const storedUser = localStorage.getItem('pos_current_user')
+    if (storedUser) {
+      try {
+        this.#currentUser.set(JSON.parse(storedUser))
+      } catch {
+        console.error('Failed to parse stored user')
+      }
+    }
+  }
+}

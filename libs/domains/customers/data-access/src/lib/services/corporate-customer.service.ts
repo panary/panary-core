@@ -1,15 +1,14 @@
 import { effect, inject, Injectable, signal, Signal, WritableSignal } from '@angular/core'
-import { BaseService } from '@panary/shared/data-access-infrastructure'
-import { ConnectionService } from '@panary/shared/data-access-infrastructure'
+import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
 import { CorporateCustomer } from '../models/corporate-customer.model'
 import { Observer } from 'rxjs'
-import { AuthService } from '@panary/domains/auth/data-access'
+// import { AuthService } from '@panary-core/auth/data-access'
 
 @Injectable({
   providedIn: 'root',
 })
 export class CorporateCustomerService extends BaseService<CorporateCustomer> {
-  #authService: AuthService = inject(AuthService)
+  // #authService: AuthService = inject(AuthService)
   #documents: WritableSignal<CorporateCustomer[]> = signal([])
   #isLoading: WritableSignal<boolean> = signal(false)
   #isLoaded: WritableSignal<boolean> = signal(false)
@@ -60,9 +59,9 @@ export class CorporateCustomerService extends BaseService<CorporateCustomer> {
   }
 
   protected override fileReaderOnLoad(
-    fileReader: FileReader,
-    observer: Observer<any>,
-    context: {
+    _fileReader: FileReader,
+    _observer: Observer<unknown>,
+    _context: {
       errorMessages: string[]
       warnMessages: string[]
       successCount: number

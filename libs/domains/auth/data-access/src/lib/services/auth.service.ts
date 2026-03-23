@@ -3,13 +3,13 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { Router } from '@angular/router'
 import { HttpClient, HttpErrorResponse } from '@angular/common/http'
 import { catchError, Observable, throwError } from 'rxjs'
-import { AuthenticationItem } from '../models/authentication-item.model'
-import { User, UserRole } from '@panary/domains/users/data-access'
-import { httpErrorCodesDE } from '@panary/shared/util-error-handling'
-import { NotificationService } from '@panary/shared/data-access-notifications'
+import { AuthenticationItem } from '@panary-core/auth/domain'
+import { User, UserSystemRole } from '@panary-core/users/domain'
+import { httpErrorCodesDE } from '@panary-core/util-error-handling'
+import { NotificationService } from '@panary-core/shared/ui-notifications'
 import { Id } from '@feathersjs/feathers'
-import { APP_CONFIG, AppConfigService } from '@panary/shared/data-access-config'
-import { ConnectionService } from '@panary/shared/data-access-infrastructure'
+import { APP_CONFIG, AppConfigService } from '@panary-core/shared/data-access-config'
+import { ConnectionService } from '@panary-core/shared/data-access'
 
 type LoginBody = {
   loginname?: string
@@ -51,10 +51,16 @@ export class AuthService {
   /** PUBLIC PROPERTIES */
   user: Signal<User | undefined> = computed(() => this.#authenticationItem()?.user || undefined)
   isAdmin: Signal<boolean> = computed((): boolean => {
-    const role: UserRole | undefined = this.user()?.role
-    return role === UserRole.superAdmin || role === UserRole.admin || false
+    const role: string | undefined = this.user()?.role
+    return (
+      role === UserSystemRole.PLATFORM_OWNER ||
+      role === UserSystemRole.PLATFORM_ADMIN ||
+      role === UserSystemRole.TENANT_OWNER ||
+      role === UserSystemRole.TENANT_MANAGER ||
+      false
+    )
   })
-  isSuperAdmin: Signal<boolean> = computed((): boolean => this.user()?.role === UserRole.superAdmin)
+  isSuperAdmin: Signal<boolean> = computed((): boolean => this.user()?.role === UserSystemRole.PLATFORM_OWNER)
   isLoggedIn: Signal<boolean> = computed(() => !!this.#authenticationItem())
   fullName: Signal<string> = computed((): string =>
     this.user() ? `${this.user()?.firstName} ${this.user()?.lastName}` : AuthService.DEFAULT_FULL_NAME,
@@ -143,9 +149,6 @@ export class AuthService {
    * @return {Observable<never>} An observable that throws an error with the provided error details.
    */
   private handleError(httpError: HttpErrorResponse | any): Observable<never> {
-    const ERROR_BACKGROUND = 'error'
-    const ERROR_ICON = 'error' // FontAwesome error icon
-
     this.#notificationService.show('error', this.parseError(httpError), 5000, httpError.name)
 
     this.logErrorDetails(httpError)

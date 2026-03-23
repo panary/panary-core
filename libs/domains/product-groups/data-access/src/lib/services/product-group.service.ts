@@ -1,12 +1,14 @@
-import { effect, Injectable, Signal, signal, WritableSignal } from '@angular/core'
+import { effect, Injectable, Signal, signal, WritableSignal, inject } from '@angular/core'
 import { ProductGroupSchema } from '../models/product-group.model'
 import { Id, Paginated } from '@feathersjs/feathers'
-import { Status } from '@panary/shared/models'
-import { catchError, concatMap, finalize, from, Observer, of, toArray } from 'rxjs'
-import { BaseService, ConnectionService } from '@panary/shared/data-access-infrastructure'
-import { inject } from '@angular/core'
-import Papa from 'papaparse'
-import { UUID } from 'node:crypto'
+import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
+
+const Status = {
+  active: 'ACTIVE',
+  draft: 'DRAFT',
+  archived: 'ARCHIVED',
+} as const
+type Status = (typeof Status)[keyof typeof Status]
 
 @Injectable({
   providedIn: 'root',
@@ -105,11 +107,11 @@ export class ProductGroupService extends BaseService<ProductGroupSchema> {
     }
   }
 
-  protected override fileReaderOnLoad(fileReader: FileReader, observer: Observer<any>, context: any) {
-    try {
-      const text = fileReader.result as string
-
-      Papa.parse(text, {
+  protected override fileReaderOnLoad(_fileReader: unknown, _observer: unknown, _context: unknown) {
+    // TODO: CSV-Import wurde in der Migration entfernt (papaparse nicht installiert)
+    // Diese Funktion muss mit dem neuen Produktgruppen-Schema neu implementiert werden.
+    /*
+    Papa.parse((_fileReader as FileReader).result as string, {
         delimiter: this.detectDelimiter(text.slice(0, 1000)), // oder eine andere geeignete Probegröße
         header: true,
         skipEmptyLines: true,
@@ -274,9 +276,10 @@ export class ProductGroupService extends BaseService<ProductGroupSchema> {
     } catch (err) {
       const error = 'Ein unerwarteter Fehler ist aufgetreten.'
       console.error(error, err)
-      observer.next(context)
-      observer.complete()
+      // observer.next(context)
+      // observer.complete()
     }
+    */
   }
 
   /** PUBLIC METHODS */
@@ -308,7 +311,7 @@ export class ProductGroupService extends BaseService<ProductGroupSchema> {
     return index === -1 ? undefined : this.#documents()[index]
   }
 
-  getProductGroupByExternId(externId: UUID | undefined): ProductGroupSchema | undefined {
+  getProductGroupByExternId(externId: string | undefined): ProductGroupSchema | undefined {
     if (!externId) return undefined
 
     const index = this.#documents().findIndex((record: ProductGroupSchema): boolean => {

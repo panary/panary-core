@@ -10,7 +10,6 @@
     "beforeBuildCommand": "pnpm nx build pos --configuration=production"
   },
   "app": {
-    "title": "Panary POS",
     "windows": [
       {
         "title": "Panary POS",

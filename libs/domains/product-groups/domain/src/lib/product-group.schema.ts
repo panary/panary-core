@@ -31,22 +31,21 @@ export type ProductGroup = Static<typeof productGroupSchema>
 //#endregion
 
 //#region Schema for creation (POST)
-export const productGroupDataSchema = Type.Pick(
-  productGroupSchema,
+// Pflichtfelder beim Create: name, color, index, tenantId, locationId
+// Alles andere hat Defaults oder wird serverseitig gesetzt
+export const productGroupDataSchema = Type.Intersect(
   [
-    'externalId',
-    'acronym',
-    'color',
-    'createdAt',
-    'excluded',
-    'index',
-    'name',
-    'status',
-    'taxInside',
-    'taxOutside',
-    'updatedAt',
-    'tenantId',
-    'locationId',
+    Type.Pick(productGroupSchema, ['name', 'color', 'index', 'tenantId', 'locationId']),
+    Type.Partial(
+      Type.Pick(productGroupSchema, [
+        'externalId',
+        'acronym',
+        'excluded',
+        'status',
+        'taxInside',
+        'taxOutside',
+      ]),
+    ),
   ],
   {
     $id: 'ProductGroupData',

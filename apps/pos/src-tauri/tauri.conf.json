@@ -1,0 +1,46 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicegui/tauri/dev/crates/tauri-utils/schema.json",
+  "productName": "Panary POS",
+  "version": "2026.3.1",
+  "identifier": "de.panary.pos",
+  "build": {
+    "frontendDist": "../../../dist/apps/pos/browser",
+    "devUrl": "http://localhost:4200",
+    "beforeDevCommand": "pnpm nx serve pos",
+    "beforeBuildCommand": "pnpm nx build pos --configuration=production"
+  },
+  "app": {
+    "title": "Panary POS",
+    "windows": [
+      {
+        "title": "Panary POS",
+        "width": 1280,
+        "height": 800,
+        "fullscreen": false,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src 'self' http://*:3030 ws://*:3030 wss://*:3030 https://tauri.localhost tauri://localhost; img-src 'self' data: blob: https://tauri.localhost; font-src 'self' data: https://tauri.localhost; style-src 'self' 'unsafe-inline'"
+    },
+    "withGlobalTauri": true
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "perMachine",
+        "languages": ["German"],
+        "displayLanguageSelector": false
+      }
+    }
+  }
+}

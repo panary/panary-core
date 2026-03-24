@@ -220,12 +220,8 @@ export class OrderService extends BaseService<Order> {
     orderInteractions: Array<OrderInteractionSchema> = [],
     creationContext?: CreationContext,
   ): Promise<number | number[] | null | undefined> {
+    // businessDayId wird vom Backend automatisch verwaltet (standalone: Auto-Rotate)
     const businessDayId = this.#locationService.activeLocation()?.currentBusinessDay?.businessDayId
-
-    if (!businessDayId) {
-      this.#matSnackBar.open('Bitte eröffnen Sie zuerst den Geschäftstag', 'OK', { duration: 2000 })
-      return null
-    }
 
     const order: Omit<Order, '_id' | 'locationId' | 'tenantId'> = {
       externalId: null,

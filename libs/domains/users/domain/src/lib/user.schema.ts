@@ -89,27 +89,34 @@ export type User = Static<typeof userSchema>
 
 //#region Schema für das Erstellen (POST)
 // Wir picken nur die Felder, die der Client senden darf
-export const userDataSchema = Type.Pick(
-  userSchema,
+// Beim Create erforderlich: loginname, password, tenantId
+// Alles andere hat Defaults oder wird serverseitig gesetzt
+export const userDataSchema = Type.Intersect(
   [
-    'activeLocationId',
-    'allowStaffMealOrders',
-    'allowedLocationIds',
-    'autoLogOff',
-    'discountDetails',
-    'email',
-    'employeeNumber', // Kann optional mitgesendet werden, sonst generiert API es
-    'firstName',
-    'isPosUser',
-    'lastName',
-    'loginname',
-    'mustChangePassword',
-    'password',
-    'permissions',
-    'posPin',
-    'role',
-    'staffRole',
-    'tenantId',
+    // Pflichtfelder beim Create
+    Type.Pick(userSchema, ['loginname', 'password', 'tenantId']),
+    // Optionale Felder (haben Defaults oder sind im Schema bereits Optional)
+    Type.Partial(
+      Type.Pick(userSchema, [
+        'activeLocationId',
+        'allowStaffMealOrders',
+        'allowedLocationIds',
+        'autoLogOff',
+        'discountDetails',
+        'email',
+        'employeeNumber',
+        'firstName',
+        'isPosUser',
+        'lastName',
+        'mustChangePassword',
+        'permissions',
+        'posPin',
+        'role',
+        'staffRole',
+        'stampingId',
+        'startBreakAt',
+      ]),
+    ),
   ],
   { $id: 'UserData', additionalProperties: false },
 )

@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build-Artefakte
+dist/
+tmp/
+.nx/
+.angular/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Umgebung
+.env
+.env.*
+*.sqlite
+
+# Tests & Docs
+coverage/
+documentation/
+**/*.spec.ts
+
+# Legacy (nicht benötigt im Build)
+panary/
+smartfoodorders-server/
+
+# Docker
+tools/docker/
+Dockerfile*
+
+# Sonstiges
+*.log
+*.tgz
+.DS_Store

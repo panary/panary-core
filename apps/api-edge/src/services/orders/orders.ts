@@ -1,5 +1,9 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { parseJsonFields } from '../../hooks/parse-json-fields.hook'
+import { stringifyJsonFields } from '../../hooks/stringify-json-fields.hook'
+
+const ORDER_JSON_FIELDS = ['lineItems', 'cancellation', 'customerPaymentInfo', 'discount', 'staffPaymentInfo', 'taxSnapshot', 'creationContext', 'payment']
 
 import {
   orderDataResolver,
@@ -153,17 +157,21 @@ export const orders = (app: Application) => {
         assignDailySequenceNumber(),
         calculateTaxDetails,
         schemaHooks.validateData(orderDataValidator),
-        schemaHooks.resolveData(orderDataResolver)
+        schemaHooks.resolveData(orderDataResolver),
+        stringifyJsonFields(...ORDER_JSON_FIELDS),
       ],
       patch: [
         checkMultiOperation,
         schemaHooks.validateData(orderPatchValidator),
-        schemaHooks.resolveData(orderPatchResolver)
+        schemaHooks.resolveData(orderPatchResolver),
+        stringifyJsonFields(...ORDER_JSON_FIELDS),
       ],
       remove: []
     },
     after: {
-      all: [],
+      all: [
+        parseJsonFields(...ORDER_JSON_FIELDS),
+      ],
       create: [createOrderInteractions()]
     },
     error: {

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicegui/tauri/dev/crates/tauri-utils/schema.json",
+  "identifier": "default",
+  "description": "Standard-Capabilities für Panary POS",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "shell:allow-open"
+  ]
+}

@@ -16,6 +16,10 @@ import type { Application } from '../../declarations'
 import type { Product, ProductService } from './products.class'
 import { authorize } from '../../hooks/authorize.hook'
 import { multiTenancy } from '../../hooks/multi-tenancy.hook'
+import { parseJsonFields } from '../../hooks/parse-json-fields.hook'
+import { stringifyJsonFields } from '../../hooks/stringify-json-fields.hook'
+
+const PRODUCT_JSON_FIELDS = ['categoryIds', 'optionGroups', 'availability', 'ui', 'recipeReferences']
 import { createServiceAdapter } from '@panary-core/shared/data-access/server'
 import { DatabaseType } from '@panary-core/shared/common'
 import {
@@ -161,16 +165,20 @@ export const products = (app: Application) => {
       get: [],
       create: [
         schemaHooks.validateData(productsDataValidator),
-        schemaHooks.resolveData(productsDataResolver)
+        schemaHooks.resolveData(productsDataResolver),
+        stringifyJsonFields(...PRODUCT_JSON_FIELDS),
       ],
       patch: [
         schemaHooks.validateData(productsPatchValidator),
-        schemaHooks.resolveData(productsPatchResolver)
+        schemaHooks.resolveData(productsPatchResolver),
+        stringifyJsonFields(...PRODUCT_JSON_FIELDS),
       ],
       remove: []
     },
     after: {
-      all: []
+      all: [
+        parseJsonFields(...PRODUCT_JSON_FIELDS),
+      ]
     },
     error: {
       all: []

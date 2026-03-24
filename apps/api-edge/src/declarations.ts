@@ -13,6 +13,7 @@ import { LocationService } from './services/locations/locations.class'
 import { OrderService } from './services/orders/orders.class'
 import { OrderInteractionService } from './services/order-interactions/order-interactions.class'
 import { UserPreferenceService } from './services/user-preferences/user-preferences.class'
+import { WorkingTimeService } from './services/working-times/working-times.class'
 
 export type { NextFunction }
 
@@ -38,6 +39,7 @@ export interface ServiceTypes {
   orders: OrderService
   'order-interactions': OrderInteractionService
   'user-preferences': UserPreferenceService
+  'working-times': WorkingTimeService
   organizations: { find(params?: any): Promise<{ _id: string; name: string }[]> }
 }
 

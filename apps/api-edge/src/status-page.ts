@@ -200,8 +200,8 @@ export function renderStatusPage(options: { host: string; port: number }): strin
   </div>
 
   <div class="links">
-    <a class="primary" href="/docs">API-Dokumentation</a>
-    <a class="secondary" href="/health">Health Check</a>
+    <a class="primary" href="/admin">Admin Panel</a>
+    <a class="secondary" href="/docs">API-Dokumentation</a>
   </div>
 
 </body>

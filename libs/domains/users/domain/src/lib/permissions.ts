@@ -4,10 +4,14 @@
 export const AppResource = {
   USERS: 'users',
   PRODUCTS: 'products',
+  PRODUCT_GROUPS: 'product-groups',
   ORDERS: 'orders',
   INVENTORY: 'inventory',
+  LOCATIONS: 'locations',
   SYSTEM: 'system',
   CUSTOMERS: 'customers',
+  ORDER_INTERACTIONS: 'order-interactions',
+  WORKING_TIMES: 'working-times',
 } as const
 
 export type AppResource = (typeof AppResource)[keyof typeof AppResource]

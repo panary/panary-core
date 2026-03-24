@@ -377,26 +377,21 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private checkBusinessDayValidity(): void {
     const activeLocation = this.locationService.activeLocation()
 
-    if (!activeLocation?.currentBusinessDay) {
-      this.blockingReason =
-        'Kein Geschäftstag eröffnet. Bitte führen Sie zuerst einen Tagesabschluss durch oder eröffnen Sie den Tag.'
+    // Im Standalone-Modus (Edge-Server) wird der Geschäftstag automatisch verwaltet.
+    // Der Backend-Hook erstellt bei Bedarf transparent einen neuen Geschäftstag.
+    // Daher blocken wir die UI nur wenn wirklich keine Location geladen ist.
+    if (!activeLocation) {
+      this.blockingReason = 'Standort konnte nicht geladen werden.'
       return
     }
 
-    const businessDayDate = new Date(activeLocation.currentBusinessDay.date)
-    const currentDate = new Date()
-
-    const d1 = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate())
-    const d2 = new Date(businessDayDate.getFullYear(), businessDayDate.getMonth(), businessDayDate.getDate())
-
-    const diffTime = Math.abs(d2.getTime() - d1.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-    if (diffDays > 1) {
-      this.blockingReason = `Das Datum des Geschäftstages (${businessDayDate.toLocaleDateString()}) weicht zu stark vom aktuellen Datum ab. Bitte führen Sie einen Tagesabschluss durch.`
+    // Kein Geschäftstag vorhanden — im Edge-Modus wird er beim ersten Order auto-erstellt
+    if (!activeLocation.currentBusinessDay) {
+      this.blockingReason = null
       return
     }
 
+    // Geschäftstag-Datum prüfen (nur Warnung, kein Block)
     this.blockingReason = null
   }
 

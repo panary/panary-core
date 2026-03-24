@@ -71,7 +71,7 @@ export class ProductService extends BaseService<ProductSchema> {
         const params = {
           query: {
             status: Status.active,
-            $sort: { index: 1 },
+            $sort: { name: 1 },
             $skip: skip,
             $limit: limit,
           },
@@ -87,6 +87,7 @@ export class ProductService extends BaseService<ProductSchema> {
       this.#isLoaded.set(true)
     } catch (error) {
       console.error('Fehler beim Laden der Produkte:', error)
+      this.#isLoaded.set(true) // Endlosschleife verhindern
     } finally {
       this.#isLoading.set(false)
       console.log(`Gesamtanzahl der aktiven Produkte: ${ this.#documents().length }`)

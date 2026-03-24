@@ -3,6 +3,8 @@ import { BadRequest, NotAuthenticated } from '@feathersjs/errors'
 import { User } from '@panary-core/users/domain'
 import { Location } from '@panary-core/locations/domain'
 import { AppError, AppErrorMessages } from '@panary-core/shared/common'
+import { uuidv7 } from 'uuidv7'
+import { logger } from '../logger'
 
 /**
  * Calculates the absolute difference in days between two dates.
@@ -58,44 +60,76 @@ export function restrictOrderToBusinessDay() {
     // Load the location service
     const locationService = app.service('locations')
 
-    // Get the location
+    // Get the location (tenantId wird für Auto-Rotate benötigt)
     const activeLocation: Location = await locationService.get(locationId!, {
-      query: { $select: ['currentBusinessDay'] }
+      query: { $select: ['_id', 'tenantId', 'currentBusinessDay'] },
+      provider: undefined,
     })
 
     const systemMode = app.get('system')?.mode || 'standalone'
+    const today = new Date().toISOString().slice(0, 10)
+    const needsAutoRotate =
+      !activeLocation.currentBusinessDay || activeLocation.currentBusinessDay.date !== today
+
+    if (needsAutoRotate && systemMode === 'standalone') {
+      // Auto-Rotate: Geschäftstag transparent erstellen/aktualisieren
+      const newId = uuidv7()
+      const now = new Date().toISOString()
+      const knex = app.get('sqliteClient')
+
+      // Vorherigen Geschäftstag schließen
+      if (activeLocation.currentBusinessDay?.businessDayId) {
+        await knex('businessdays')
+          .where({ _id: activeLocation.currentBusinessDay.businessDayId })
+          .update({ isOpen: false, closedAt: now, updatedAt: now })
+      }
+
+      // Neuen Geschäftstag erstellen
+      await knex('businessdays').insert({
+        _id: newId,
+        tenantId: activeLocation.tenantId,
+        locationId: locationId,
+        date: today,
+        openedAt: now,
+        isOpen: true,
+        createdAt: now,
+        updatedAt: now,
+      })
+
+      // Location aktualisieren (intern, ohne Auth)
+      await locationService.patch(
+        locationId!,
+        { currentBusinessDay: { businessDayId: newId, date: today } },
+        { provider: undefined },
+      )
+
+      logger.info(`[AutoBusinessDay] Mitternachts-Rotation: Neuer Geschäftstag ${newId} für Location ${locationId}.`)
+      context.data.businessDayId = newId
+      return context
+    }
 
     if (!activeLocation.currentBusinessDay) {
-      if (systemMode === 'standalone') {
-        // In standalone mode, we allow orders without a business day (Soft Fail)
-        context.data.businessDayId = null
-        return context
-      }
-      // In enterprise mode (default), we require a business day (Hard Fail)
+      // Enterprise-Modus: kein Geschäftstag = Fehler
       throw new BadRequest(AppErrorMessages[AppError.BUSINESS_DAY_NOT_SET], {
-        code: AppError.BUSINESS_DAY_NOT_SET
+        code: AppError.BUSINESS_DAY_NOT_SET,
       })
     }
 
-    // Parse the BusinessDay date
+    // Datumsvalidierung (Enterprise-Modus)
     const businessDayDate = new Date(activeLocation.currentBusinessDay.date)
     const currentDate = new Date()
-
-    // Calculate the difference in days
     const diffDays = getDifferenceInDays(currentDate, businessDayDate)
-
-    // Get max allowed difference from config
     const maxAllowedDifference = app.get('maxOrderDifferenceDays') || 1
 
     if (diffDays > maxAllowedDifference) {
       throw new BadRequest(AppErrorMessages[AppError.BUSINESS_DAY_TOO_OLD], {
         code: AppError.BUSINESS_DAY_TOO_OLD,
         diffDays,
-        maxAllowedDifference
+        maxAllowedDifference,
       })
     }
 
-    // If everything is ok, write business day in order and continue
+    // Geschäftstag OK → businessDayId in Order schreiben
     context.data.businessDayId = activeLocation.currentBusinessDay.businessDayId
 
     return context

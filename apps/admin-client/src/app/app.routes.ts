@@ -1,0 +1,24 @@
+import { Routes } from '@angular/router'
+import { authGuard } from './core/auth.guard'
+import { AdminLayoutComponent } from './layout/admin-layout'
+import { LoginComponent } from './features/login'
+
+export const appRoutes: Routes = [
+  { path: 'login', component: LoginComponent },
+  {
+    path: '',
+    component: AdminLayoutComponent,
+    canActivate: [authGuard],
+    children: [
+      { path: 'dashboard', loadComponent: () => import('./features/dashboard/dashboard').then(m => m.DashboardComponent) },
+      { path: 'users', loadComponent: () => import('./features/users/user-list').then(m => m.UserListComponent) },
+      { path: 'users/:id', loadComponent: () => import('./features/users/user-form').then(m => m.UserFormComponent) },
+      { path: 'location', loadComponent: () => import('./features/locations/location-detail').then(m => m.LocationDetailComponent) },
+      { path: 'product-groups', loadComponent: () => import('./features/product-groups/group-list').then(m => m.GroupListComponent) },
+      { path: 'product-groups/:id', loadComponent: () => import('./features/product-groups/group-form').then(m => m.GroupFormComponent) },
+      { path: 'products', loadComponent: () => import('./features/products/product-list').then(m => m.ProductListComponent) },
+      { path: 'products/:id', loadComponent: () => import('./features/products/product-form').then(m => m.ProductFormComponent) },
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+    ],
+  },
+]

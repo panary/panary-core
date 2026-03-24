@@ -11,4 +11,9 @@ export type { User, UserData, UserPatch, UserQuery }
 export type UserParams = KnexAdapterParams<UserQuery> & MongoDBAdapterParams & Params
 
 // Service Interface - can be either KnexService or MongoDBService
-export interface UserService extends ServiceInterface<User, UserData, UserParams, UserPatch> {}
+export interface UserService extends ServiceInterface<User, UserData, UserParams, UserPatch> {
+  checkin(data: { userId: string }, params?: UserParams): Promise<User>
+  checkout(data: { userId: string }, params?: UserParams): Promise<User>
+  startBreak(data: { userId: string }, params?: UserParams): Promise<User>
+  endBreak(data: { userId: string }, params?: UserParams): Promise<User>
+}

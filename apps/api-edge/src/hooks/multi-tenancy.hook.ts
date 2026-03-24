@@ -20,8 +20,13 @@ export const multiTenancy =
     // 1. Interne Aufrufe (kein User/Provider) durchlassen
     if (!user) return next()
 
-    // 2. Platform Bypass: Admins sehen alles
+    // 2. Platform Bypass: Admins sehen alles (READ), aber Stamping bei WRITE
     if (user.role && user.role.startsWith('platform:')) {
+      if (['create', 'update', 'patch'].includes(context.method)) {
+        const data = context.data || {}
+        await stampEdgeDefaults(context, data, user, isolateLocation)
+        context.data = data
+      }
       return next()
     }
 
@@ -80,3 +85,40 @@ export const multiTenancy =
 
     return next()
   }
+
+/**
+ * Edge-Modus: Fehlende tenantId automatisch aus der einzigen Location ermitteln.
+ * Wird für platform:*-User verwendet, die keinen eigenen Tenant haben.
+ * locationId wird NUR gestempelt, wenn es bereits im Data vorhanden ist (also vom Schema erlaubt),
+ * AUSSER wenn isolateLocation=true — dann wird sie auch ohne Vorhandensein im Data gesetzt.
+ */
+async function stampEdgeDefaults(
+  context: HookContext,
+  data: Record<string, any>,
+  user: Record<string, any>,
+  isolateLocation: boolean,
+): Promise<void> {
+  if (data.tenantId && !isolateLocation && !('locationId' in data)) return
+
+  let tenantId = user.tenantId
+  let locationId = user.locationId
+
+  // Wenn der User keinen Tenant hat, den einzigen vorhandenen ermitteln
+  if (!tenantId || !locationId) {
+    const locations = (await context.app.service('locations').find({
+      query: { $limit: 1, $select: ['_id', 'tenantId'] },
+    })) as any
+    if (locations.data?.length > 0) {
+      tenantId = tenantId || locations.data[0].tenantId
+      locationId = locationId || locations.data[0]._id
+    }
+  }
+
+  if (!data.tenantId && tenantId) data.tenantId = tenantId
+  // locationId setzen: bei isolateLocation auch ohne Vorhandensein im Data (Platform-Owner + location-isolierter Service)
+  if (isolateLocation && !data.locationId && locationId) {
+    data.locationId = locationId
+  } else if ('locationId' in data && !data.locationId && locationId) {
+    data.locationId = locationId
+  }
+}

@@ -1,0 +1,65 @@
+name: Build POS (Windows)
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/pos/src-tauri -> target
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Angular POS
+        run: pnpm nx build pos --configuration=production
+
+      - name: Verify Angular Build
+        shell: bash
+        run: |
+          if [ ! -d "dist/apps/pos/browser" ]; then
+            echo "ERROR: Angular build output not found at dist/apps/pos/browser"
+            exit 1
+          fi
+          echo "Angular build OK: $(ls dist/apps/pos/browser/ | wc -l) files"
+
+      - name: Build Tauri (NSIS Installer)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/pos
+          tauriScript: pnpm tauri
+
+      - name: Upload Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: panary-pos-windows
+          path: |
+            apps/pos/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error

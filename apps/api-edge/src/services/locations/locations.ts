@@ -1,5 +1,9 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { parseJsonFields } from '../../hooks/parse-json-fields.hook'
+import { stringifyJsonFields } from '../../hooks/stringify-json-fields.hook'
+
+const LOCATION_JSON_FIELDS = ['address', 'currentBusinessDay', 'settings']
 
 import {
   locationDataResolver,
@@ -129,7 +133,7 @@ export const locations = (app: Application) => {
       all: [
         authenticate('jwt'),
         authorize(),
-        multiTenancy({ isolateLocation: true, allowGlobalData: false }),
+        multiTenancy({ isolateLocation: false }),
 
         schemaHooks.resolveExternal(locationExternalResolver),
         schemaHooks.resolveResult(locationResolver)
@@ -144,16 +148,20 @@ export const locations = (app: Application) => {
       get: [],
       create: [
         schemaHooks.validateData(locationDataValidator),
-        schemaHooks.resolveData(locationDataResolver)
+        schemaHooks.resolveData(locationDataResolver),
+        stringifyJsonFields(...LOCATION_JSON_FIELDS),
       ],
       patch: [
         schemaHooks.validateData(locationPatchValidator),
-        schemaHooks.resolveData(locationPatchResolver)
+        schemaHooks.resolveData(locationPatchResolver),
+        stringifyJsonFields(...LOCATION_JSON_FIELDS),
       ],
       remove: []
     },
     after: {
-      all: []
+      all: [
+        parseJsonFields(...LOCATION_JSON_FIELDS),
+      ]
     },
     error: {
       all: []

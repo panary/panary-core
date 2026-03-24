@@ -1,4 +1,4 @@
-<div class="h-full w-full bg-slate-50 p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border">
+<div class="h-full w-full bg-slate-50 p-4 md:p-6 flex flex-col gap-4 overflow-auto box-border">
   <!-- Header -->
   <header class="flex-none flex items-center bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
     <div class="flex items-center gap-4 flex-1">
@@ -121,9 +121,9 @@
   </header>
 
   <!-- Main Content -->
-  <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
+  <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">
     <!-- Left Column: KPIs & Charts -->
-    <div class="lg:col-span-8 flex flex-col gap-6 h-full min-h-0">
+    <div class="lg:col-span-8 flex flex-col gap-4 h-full min-h-0">
       <!-- 4 KPIs Grid -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 flex-none">
         <!-- KPI 1 -->
@@ -204,32 +204,24 @@
 
     <!-- Right Column: Quick Access -->
     <div
-      class="lg:col-span-4 bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col h-full overflow-hidden">
-      <div class="flex-none mb-6">
-        <h2 class="text-lg font-bold text-slate-800">Schnellzugriff</h2>
+      class="lg:col-span-4 bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex flex-col h-full overflow-hidden">
+      <div class="flex-none mb-3">
+        <h2 class="text-base font-bold text-slate-800">Schnellzugriff</h2>
         <p class="text-xs text-slate-400">Häufig verwendete Aktionen</p>
       </div>
 
-      <div class="grid grid-cols-2 gap-4 flex-1 overflow-auto content-start py-2">
+      <div class="grid grid-cols-4 lg:grid-cols-3 gap-2 flex-1 overflow-auto content-start">
         @for (action of visibleQuickActions(); track action.label) {
         <button (click)="action.action()"
-          class="group relative flex flex-col items-center justify-center gap-4 p-6 rounded-2xl border border-slate-100 bg-slate-50 transition-all duration-200 hover:bg-white hover:border-slate-300 hover:shadow-lg hover:-translate-y-1 active:scale-95 aspect-square">
-          <div class="p-4 rounded-xl transition-colors duration-200 group-hover:scale-110" [ngClass]="action.bgClass">
-            <mat-icon [ngClass]="action.textClass" class="scale-125">{{ action.icon }}</mat-icon>
+          class="group relative flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl border border-slate-100 bg-slate-50 transition-all duration-200 hover:bg-white hover:border-slate-300 hover:shadow-lg active:scale-95 h-20 lg:h-auto lg:aspect-square">
+          <div class="p-2 rounded-lg transition-colors duration-200 group-hover:scale-110" [ngClass]="action.bgClass">
+            <mat-icon [ngClass]="action.textClass" class="!text-xl !w-5 !h-5">{{ action.icon }}</mat-icon>
           </div>
-
-          <span class="font-semibold text-sm text-slate-600 group-hover:text-slate-800 text-center leading-tight">
+          <span class="font-semibold text-[10px] text-slate-600 group-hover:text-slate-800 text-center leading-tight">
             {{ action.label }}
           </span>
         </button>
         }
-
-        <!-- Placeholder Add Button (Visual consistency) -->
-        <button
-          class="flex flex-col items-center justify-center gap-2 p-6 rounded-2xl border border-dashed border-slate-200 bg-transparent text-slate-400 hover:border-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all aspect-square">
-          <mat-icon class="opacity-50">add</mat-icon>
-          <span class="text-xs font-medium">Anpassen</span>
-        </button>
       </div>
     </div>
   </div>

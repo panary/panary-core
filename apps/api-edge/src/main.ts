@@ -107,6 +107,15 @@ async function main() {
       }
     }
     // -----------------------------------------------------------------------
+
+    // --- Bootstrapping: Auto-Geschäftstag für Edge-Server ---
+    try {
+      const { autoEnsureBusinessDay } = await import('./bootstrap-business-day.js')
+      await autoEnsureBusinessDay(app)
+    } catch (err) {
+      logger.error('AutoBusinessDay: Geschäftstag konnte nicht erstellt werden.', err)
+    }
+    // -----------------------------------------------------------------------
   } catch (error) {
     // Config file not found or error loading it -> Setup Mode
     logger.error(

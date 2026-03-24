@@ -1,0 +1,85 @@
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
+import { FormsModule } from '@angular/forms'
+import { Router } from '@angular/router'
+import { AuthService } from '../core/auth.service'
+
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  imports: [FormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div class="min-h-screen bg-black flex items-center justify-center p-6">
+      <div class="w-full max-w-sm space-y-8">
+        <div class="text-center">
+          <img src="assets/panary_logo_mono.svg" alt="Panary" class="h-8 mx-auto mb-6 opacity-60" />
+          <h1 class="text-2xl font-bold tracking-tight">Admin Panel</h1>
+          <p class="text-gray-500 mt-1 text-sm">Anmelden, um fortzufahren</p>
+        </div>
+
+        <form (ngSubmit)="onLogin()" class="space-y-4">
+          <div class="space-y-1">
+            <label class="text-xs font-medium text-gray-400 uppercase tracking-wider">Login-Name</label>
+            <input
+              [(ngModel)]="loginname" name="loginname" type="text" autofocus
+              class="w-full bg-gray-900 border border-gray-800 rounded-lg p-3 text-white
+                     focus:border-white focus:ring-1 focus:ring-white outline-none placeholder-gray-600"
+              placeholder="Admin" />
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-xs font-medium text-gray-400 uppercase tracking-wider">Passwort</label>
+            <input
+              [(ngModel)]="password" name="password" type="password"
+              class="w-full bg-gray-900 border border-gray-800 rounded-lg p-3 text-white
+                     focus:border-white focus:ring-1 focus:ring-white outline-none placeholder-gray-600"
+              placeholder="••••••••" />
+          </div>
+
+          @if (error()) {
+            <p class="text-red-400 text-sm">{{ error() }}</p>
+          }
+
+          <button
+            type="submit"
+            [disabled]="loading()"
+            class="w-full bg-white text-black font-bold py-3 rounded-xl text-base
+                   hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed">
+            @if (loading()) {
+              <span class="flex items-center justify-center gap-2">
+                <span class="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
+                Anmelden...
+              </span>
+            } @else {
+              Anmelden
+            }
+          </button>
+        </form>
+      </div>
+    </div>
+  `,
+})
+export class LoginComponent {
+  private auth = inject(AuthService)
+  private router = inject(Router)
+
+  loginname = ''
+  password = ''
+  loading = signal(false)
+  error = signal<string | null>(null)
+
+  async onLogin() {
+    if (!this.loginname || !this.password) return
+    this.loading.set(true)
+    this.error.set(null)
+
+    const success = await this.auth.login(this.loginname, this.password)
+
+    if (success) {
+      this.router.navigate(['/'])
+    } else {
+      this.error.set('Login-Name oder Passwort falsch.')
+    }
+    this.loading.set(false)
+  }
+}

@@ -5,6 +5,8 @@ import configuration from '@feathersjs/configuration'
 import { bodyParser, cors, errorHandler, koa, parseAuthentication, rest } from '@feathersjs/koa'
 import socketio from '@feathersjs/socketio'
 
+import path from 'path'
+import fs from 'fs'
 import { configurationValidator } from './configuration'
 import type { Application } from './declarations'
 import { logError } from './hooks/log-error'
@@ -59,6 +61,30 @@ app.use(async (ctx, next) => {
     ctx.type = 'html'
     ctx.body = renderStatusPage({ host, port })
     return
+  }
+  await next()
+})
+
+// Admin SPA — statische Dateien unter /admin ausliefern
+const adminDistPath = path.resolve(process.cwd(), 'dist/apps/admin-client/browser')
+app.use(async (ctx, next) => {
+  if (ctx.method === 'GET' && ctx.path.startsWith('/admin')) {
+    const subPath = ctx.path.replace(/^\/admin\/?/, '') || 'index.html'
+    const filePath = path.join(adminDistPath, subPath)
+
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      ctx.type = path.extname(filePath)
+      ctx.body = fs.createReadStream(filePath)
+      return
+    }
+
+    // SPA Fallback — alle nicht-gefundenen Routen auf index.html
+    const indexPath = path.join(adminDistPath, 'index.html')
+    if (fs.existsSync(indexPath)) {
+      ctx.type = 'html'
+      ctx.body = fs.createReadStream(indexPath)
+      return
+    }
   }
   await next()
 })

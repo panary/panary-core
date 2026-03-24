@@ -32,19 +32,25 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
   [UserSystemRole.TENANT_OWNER]: [
     { resource: AppResource.USERS, action: AppAction.MANAGE },
     { resource: AppResource.PRODUCTS, action: AppAction.MANAGE },
+    { resource: AppResource.PRODUCT_GROUPS, action: AppAction.MANAGE },
     { resource: AppResource.ORDERS, action: AppAction.READ },
+    { resource: AppResource.WORKING_TIMES, action: AppAction.MANAGE },
     AppAbility.CAN_SEE_REPORTS,
     AppAbility.CAN_REFUND,
   ],
 
   [UserSystemRole.TENANT_MANAGER]: [
     { resource: AppResource.PRODUCTS, action: AppAction.MANAGE },
+    { resource: AppResource.PRODUCT_GROUPS, action: AppAction.READ },
     { resource: AppResource.ORDERS, action: [AppAction.CREATE, AppAction.READ] },
+    { resource: AppResource.WORKING_TIMES, action: [AppAction.READ, AppAction.UPDATE] },
   ],
 
   [UserSystemRole.TENANT_STAFF]: [
     { resource: AppResource.PRODUCTS, action: AppAction.READ },
+    { resource: AppResource.PRODUCT_GROUPS, action: AppAction.READ },
     { resource: AppResource.ORDERS, action: [AppAction.CREATE, AppAction.READ] },
+    { resource: AppResource.WORKING_TIMES, action: AppAction.READ },
   ],
 
   // =======================================================
@@ -62,11 +68,17 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
 
     // Produkte & Menüs lesen (PRODUCTS_READ)
     { resource: AppResource.PRODUCTS, action: AppAction.READ },
+    { resource: AppResource.PRODUCT_GROUPS, action: AppAction.READ },
+    { resource: AppResource.LOCATIONS, action: AppAction.READ },
+
+    // Order-Interactions (Bestellverlauf)
+    { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
 
     // Kunden lesen/anlegen (für Loyalty)
     { resource: AppResource.CUSTOMERS, action: [AppAction.READ, AppAction.CREATE, AppAction.UPDATE] },
 
     // Zeiterfassung erlauben (USERS_TIME_CLOCK)
+    { resource: AppResource.WORKING_TIMES, action: [AppAction.CREATE, AppAction.READ, AppAction.UPDATE] },
     AppAbility.CAN_CLOCK_IN,
 
     // Kasse darf natürlich kassieren
@@ -91,10 +103,14 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
   [UserSystemRole.DEVICE_TABLET]: [
     // Darf Orders aufnehmen (Create) und sehen (Read), aber evtl. nicht löschen (Delete)
     { resource: AppResource.ORDERS, action: [AppAction.READ, AppAction.CREATE, AppAction.UPDATE] },
+    { resource: AppResource.ORDER_INTERACTIONS, action: [AppAction.READ, AppAction.CREATE] },
 
     { resource: AppResource.PRODUCTS, action: AppAction.READ },
+    { resource: AppResource.PRODUCT_GROUPS, action: AppAction.READ },
+    { resource: AppResource.LOCATIONS, action: AppAction.READ },
     { resource: AppResource.USERS, action: AppAction.READ }, // Für Login
 
+    { resource: AppResource.WORKING_TIMES, action: [AppAction.CREATE, AppAction.READ, AppAction.UPDATE] },
     AppAbility.CAN_CLOCK_IN,
   ],
 
@@ -103,6 +119,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
   [UserSystemRole.DEVICE_KIOSK]: [
     // Darf Produkte und Menüs lesen (um sie anzuzeigen)
     { resource: AppResource.PRODUCTS, action: AppAction.READ },
+    { resource: AppResource.PRODUCT_GROUPS, action: AppAction.READ },
 
     // Darf neue Bestellungen aufgeben (Create)
     { resource: AppResource.ORDERS, action: AppAction.CREATE },

@@ -4,6 +4,7 @@ export const businessDaySchema = Type.Object({
   _id: Type.String(),
   tenantId: Type.String(),
   locationId: Type.Union([Type.String(), Type.Null()]),
+  date: Type.String({ format: 'date' }),
   openedAt: Type.String(),
   closedAt: Type.Union([Type.String(), Type.Null()]),
   isOpen: Type.Boolean(),

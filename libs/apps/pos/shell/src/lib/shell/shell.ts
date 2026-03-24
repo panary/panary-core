@@ -17,6 +17,9 @@ interface PosCurrentUser {
       </main>
     </div>
   `,
+  styles: [`
+    :host { display: block; height: 100%; }
+  `],
   imports: [RouterOutlet],
 })
 export class AppPosShellComponent implements OnInit {

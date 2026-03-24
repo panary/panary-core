@@ -13,8 +13,16 @@ export const logError = async (context: HookContext, next: NextFunction) => {
         logger.debug(`  Validation details: ${JSON.stringify(error.data)}`)
       }
       if (context.data && error.code === 400) {
-        logger.debug(`  Request data: ${JSON.stringify(context.data)}`)
+        const SENSITIVE_FIELDS = ['password', 'posPin', 'apikey', 'secret', 'token']
+        const sanitized = { ...context.data }
+        for (const field of SENSITIVE_FIELDS) {
+          if (field in sanitized) sanitized[field] = '***'
+        }
+        logger.debug(`  Request data: ${JSON.stringify(sanitized)}`)
       }
+    } else if (error.code === 409 || error.message?.includes('UNIQUE constraint')) {
+      // DB-Constraint-Fehler als Warnung (nicht als Error mit Stack-Trace)
+      logger.info(`${error.code || 409} Conflict: ${error.message} [${context.path}/${context.method}]`)
     } else {
       logger.error(error.stack)
 

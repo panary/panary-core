@@ -119,10 +119,30 @@ export type Product = Static<typeof productSchema>
 //#endregion
 
 //#region Schema for creation (POST)
-export const productDataSchema = Type.Omit(productSchema, ['_id', 'createdAt', 'updatedAt'], {
-  $id: 'ProductData',
-  additionalProperties: false,
-})
+// Pflichtfelder beim Create: name, acronym, price, taxInside, taxOutside, tenantId, locationId
+// externalId, categoryIds und andere Felder haben Defaults oder werden serverseitig gesetzt
+export const productDataSchema = Type.Intersect(
+  [
+    Type.Pick(productSchema, ['name', 'acronym', 'price', 'taxInside', 'taxOutside', 'tenantId', 'locationId']),
+    Type.Partial(
+      Type.Pick(productSchema, [
+        'externalId',
+        'description',
+        'status',
+        'categoryIds',
+        'productType',
+        'bundlePricingMode',
+        'optionGroups',
+        'availability',
+        'ui',
+        'isInvalid',
+        'productionTime',
+        'recipeReferences',
+      ]),
+    ),
+  ],
+  { $id: 'ProductData', additionalProperties: false },
+)
 export type ProductData = Static<typeof productDataSchema>
 //#endregion
 
@@ -134,7 +154,7 @@ export type ProductPatch = Static<typeof productPatchSchema>
 //#endregion
 
 //#region Schema für Suchanfragen (Query)
-export const productQueryProperties = Type.Pick(productSchema, ['_id', 'locationId', 'tenantId', 'externalId', 'status'])
+export const productQueryProperties = Type.Pick(productSchema, ['_id', 'locationId', 'tenantId', 'externalId', 'status', 'name', 'productType'])
 export const productQuerySchema = Type.Intersect(
   [
     querySyntax(productQueryProperties),

@@ -1,0 +1,66 @@
+# ============================================================
+# Panary Edge Server — Multi-Stage Docker Build
+# Enthält: api-edge (FeathersJS) + admin-client (Angular SPA)
+# ============================================================
+
+# ---- Stage 1: Build ----
+FROM node:22-slim AS build
+
+# pnpm installieren
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+WORKDIR /build
+
+# Dependency-Cache: Erst package-Dateien und Konfiguration kopieren
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml nx.json tsconfig.base.json tsconfig.json ./
+COPY apps/api-edge/package.json apps/api-edge/project.json apps/api-edge/tsconfig.app.json ./apps/api-edge/
+COPY apps/admin-client/project.json apps/admin-client/tsconfig.json apps/admin-client/tsconfig.app.json ./apps/admin-client/
+
+# Alle libs kopieren (für Workspace-Auflösung + Schemas)
+COPY libs/ ./libs/
+
+# Packages kopieren (falls vorhanden)
+COPY packages/ ./packages/
+
+# Dependencies installieren
+RUN pnpm install --frozen-lockfile
+
+# Quellcode kopieren
+COPY apps/api-edge/ ./apps/api-edge/
+COPY apps/admin-client/ ./apps/admin-client/
+
+# Bauen
+RUN npx nx build api-edge --configuration=production
+RUN npx nx build admin-client --configuration=production
+
+# ---- Stage 2: Runtime ----
+FROM node:22-alpine AS runtime
+
+# curl für Healthcheck
+RUN apk add --no-cache curl
+
+WORKDIR /app
+
+# Server-Artefakte + node_modules
+COPY --from=build /build/dist/apps/api-edge/ ./dist/apps/api-edge/
+COPY --from=build /build/node_modules/ ./node_modules/
+
+# Admin-Client SPA
+COPY --from=build /build/dist/apps/admin-client/browser/ ./dist/apps/admin-client/browser/
+
+# Datenverzeichnis (wird als Volume gemountet)
+RUN mkdir -p /app/data
+
+# Umgebungsvariablen
+ENV NODE_ENV=production
+ENV PORT=3030
+ENV HOSTNAME=0.0.0.0
+
+EXPOSE 3030
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:3030/health || exit 1
+
+# Startbefehl
+CMD ["node", "dist/apps/api-edge/main.js"]

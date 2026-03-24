@@ -17,7 +17,12 @@
     "dev": "nx run-many --target=serve --projects=pos,api-edge --parallel",
     "start": "nx serve pos",
     "db:migrate": "cd apps/api-edge && knex migrate:latest",
-    "db:create": "cd apps/api-edge && knex migrate:make"
+    "db:create": "cd apps/api-edge && knex migrate:make",
+    "tauri:dev": "cd apps/pos && tauri dev",
+    "tauri:build": "cd apps/pos && tauri build",
+    "admin:dev": "nx serve admin-client",
+    "admin:build": "nx build admin-client --configuration=production",
+    "docker:build": "bash tools/docker/build-edge.sh"
   },
   "private": true,
   "devDependencies": {
@@ -44,6 +49,7 @@
     "@swc-node/register": "~1.9.1",
     "@swc/core": "~1.5.7",
     "@swc/helpers": "~0.5.11",
+    "@tauri-apps/cli": "^2.10.1",
     "@types/lodash": "^4.17.23",
     "@types/mocha": "^10.0.10",
     "@types/node": "^25.2.1",

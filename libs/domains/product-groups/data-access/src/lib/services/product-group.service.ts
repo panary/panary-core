@@ -101,6 +101,7 @@ export class ProductGroupService extends BaseService<ProductGroupSchema> {
       this.#isLoaded.set(true)
     } catch (error) {
       console.error('Fehler beim Laden der Produktgruppen:', error)
+      this.#isLoaded.set(true) // Endlosschleife verhindern
     } finally {
       this.#isLoading.set(false)
       console.log(`Gesamtanzahl der aktiven Produktgruppen: ${this.#documents().length}`)

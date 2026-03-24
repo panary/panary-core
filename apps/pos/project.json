@@ -18,6 +18,11 @@
           {
             "glob": "**/*",
             "input": "apps/pos/public"
+          },
+          {
+            "glob": "**/*",
+            "input": "apps/pos/src/assets",
+            "output": "assets"
           }
         ],
         "styles": ["apps/pos/src/styles.scss"],

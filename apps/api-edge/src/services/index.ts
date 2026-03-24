@@ -12,6 +12,7 @@ import { locations } from './locations/locations'
 import { orders } from './orders/orders'
 import { orderInteractions } from './order-interactions/order-interactions'
 import { userPreferences } from './user-preferences/user-preferences'
+import { workingTimes } from './working-times/working-times'
 
 export const services = (app: Application) => {
   app.configure(organizations)
@@ -26,4 +27,5 @@ export const services = (app: Application) => {
   app.configure(orders)
   app.configure(orderInteractions)
   app.configure(userPreferences)
+  app.configure(workingTimes)
 }

@@ -1,10 +1,13 @@
 {
-  "host": "localhost",
+  "host": "0.0.0.0",
   "port": 3030,
   "origins": [
     "http://localhost:3030",
     "http://localhost:4200",
-    "http://localhost:4201"
+    "http://localhost:4201",
+    "http://localhost:4202",
+    "https://tauri.localhost",
+    "tauri://localhost"
   ],
   "system": {
     "mode": "standalone",

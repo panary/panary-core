@@ -9,7 +9,7 @@ interface PosCurrentUser {
 }
 
 @Component({
-  selector: 'panary-core-shell',
+  selector: 'lib-shell',
   template: `
     <div id="app-frame" class="h-full w-full bg-slate-50">
       <main class="h-full w-full">

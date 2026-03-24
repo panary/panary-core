@@ -1,4 +1,4 @@
-import { Component } from '@angular/core'
+import { Component, inject } from '@angular/core'
 import { RouterModule } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
 
@@ -11,7 +11,9 @@ import { TranslateService } from '@ngx-translate/core'
 export class App {
   title = 'setup-client'
 
-  constructor(private translate: TranslateService) {
+  private translate = inject(TranslateService)
+
+  constructor() {
     this.translate.setDefaultLang('en')
     this.translate.use('en')
   }

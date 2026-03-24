@@ -24,7 +24,7 @@ interface PosUser {
 type LoginStep = 'loading' | 'select-user' | 'enter-pin' | 'error'
 
 @Component({
-  selector: 'app-login',
+  selector: 'lib-login',
   imports: [CommonModule, TimeClockPanelComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',

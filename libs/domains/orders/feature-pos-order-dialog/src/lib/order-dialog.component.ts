@@ -135,7 +135,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private _currentUser: User | undefined = undefined
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _functionButtons: any[] = []
-  private _infoBoxBackgroundColor = '#dae2f9'
+  private _infoBoxBackgroundColor = '#EFEEEE'
   private _infoBoxText = 'Bitte wählen Sie eine Produktkategorie!'
   private _infoBoxTextColor = 'black'
   private _lastParentId: string | null | undefined = undefined
@@ -151,6 +151,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private _table: string | undefined = undefined
   private _dineLocation: typeof DineLocationSchema[keyof typeof DineLocationSchema] | undefined = undefined
   private _withoutExtra = false
+
+  // Bundle/Menü-Flow State
+  #completedGroups = new Set<string>()
 
   private _combineAllId = 'combineAllArticles'
   private _combineAllName = 'Alle Artikel kombinieren'
@@ -272,6 +275,12 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   get disableCustomerButton(): boolean {
     return this._staffMealOrder
   }
+
+  /** Standalone-Modus: Kein Cloud-Sync, keine Firmenkunden */
+  isStandaloneMode = true // TODO: Aus Config/Environment beziehen
+
+  /** Numpad-Popup für kleine Screens */
+  showNumpadPopup = false
 
   get isAdmin(): boolean {
     return this.authService.isAdmin()
@@ -405,7 +414,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     const containerWidth = this.productGroupContainer.nativeElement.clientWidth
-    const buttonWidth = 110
+    const buttonWidth = 95
     const gap = 8
     const expandButtonWidth = 52
 
@@ -430,7 +439,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!this._numpadNumber) return
     const article = this.productService.findProductByIndex(this._numpadNumber)
     const name = article?.name
-    this._numpadValue = name ? name : '-'
+    this._numpadValue = name || ''
   }
 
   /** PUBLIC METHODS */
@@ -455,7 +464,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (backgroundColor) {
       this._infoBoxBackgroundColor = backgroundColor
     } else {
-      this._infoBoxBackgroundColor = 'pink'
+      this._infoBoxBackgroundColor = '#EFEEEE'
     }
     this._infoBoxText = value
   }
@@ -598,7 +607,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.clearButtons()
     this.setInfoBoxText(productGroup.name, productGroup.color)
     this._selectedProductIndex = null
-    this._productButtons = this.productService.getProductsByProductGroupExternalId(productGroup.externalId)
+    this._productButtons = this.productService.getProductsByGroupId(productGroup._id)
     this._productButtons.forEach(ProductButton => {
       ;(ProductButton as any).callback = () => {
         this.increaseLineItem(ProductButton)
@@ -606,21 +615,21 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     })
   }
 
-  setProductButtonsByProductGroupExternalId(productGroupExternalId: UUID | undefined) {
-    if (!productGroupExternalId) return this.unselectProduct()
+  setProductButtonsByGroupId(groupId: string | undefined) {
+    if (!groupId) return this.unselectProduct()
 
-    const byExternId: ProductGroupSchema | undefined =
-      this.productGroupService.getProductGroupByExternId(productGroupExternalId)
+    const group: ProductGroupSchema | undefined =
+      this.productGroupService.getProductGroupById(groupId)
 
-    if (!byExternId) return this.unselectProduct()
+    if (!group) return this.unselectProduct()
 
-    this.createProductButtons(byExternId)
-    this.setInfoBoxText(byExternId.name, byExternId.color)
+    this.createProductButtons(group)
+    this.setInfoBoxText(group.name, group.color)
     this.clearButtons()
     this._selectedProductIndex = null
     this._selectedCombinationIndex = [null, null]
     this._lastParentId = undefined
-    this._productButtons = this.productService.getProductsByProductGroupExternalId(byExternId.externalId)
+    this._productButtons = this.productService.getProductsByGroupId(group._id)
     this._productButtons.forEach(subButton => {
       ;(subButton as any).callback = () => {
         this.increaseLineItem(subButton)
@@ -912,7 +921,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
             this.combinations[this._selectedCombinationIndex[0]][this._selectedCombinationIndex[1]].menuDrink = null
           }
           this._isBlocked = false
-          this.setProductButtonsByProductGroupExternalId((parentButton as any)?.productGroupExternalId)
+          this.setProductButtonsByGroupId((parentButton as any)?.categoryIds?.[0])
         }
       },
     })
@@ -963,7 +972,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
             }
             this.setMenuDrink(copyOfDrink)
             this._isBlocked = false
-            this.setProductButtonsByProductGroupExternalId((parentButton as any)?.productGroupExternalId)
+            this.setProductButtonsByGroupId((parentButton as any)?.categoryIds?.[0])
           }
           this._productButtons.push(copyOfDrink)
         }
@@ -973,7 +982,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   setExtraSubButtons(
     ids: Array<UUID> | undefined = undefined,
-    productGroupExternalId: UUID | undefined = undefined,
+    groupId: string | undefined = undefined,
     unblock = false,
   ) {
     if (this._isBlocked && !unblock) return
@@ -1028,7 +1037,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
           }
           return
         }
-        this.setProductButtonsByProductGroupExternalId(productGroupExternalId)
+        this.setProductButtonsByGroupId(groupId)
       },
     })
     this.functionButtons.push({
@@ -1077,11 +1086,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       let parentId: UUID | null | undefined
       let externalId: UUID | null | undefined
 
-      if (this._selectedProductIndex) {
+      if (this._selectedProductIndex !== null) {
         parentId = this.#lineItems[this._selectedProductIndex].parentId
         externalId = this.#lineItems[this._selectedProductIndex].externalId
       } else {
-        if (!this._selectedCombinationIndex[0] || !this._selectedCombinationIndex[1]) return
+        if (this._selectedCombinationIndex[0] === null || this._selectedCombinationIndex[1] === null) return
 
         const combinationIndex: number = this._selectedCombinationIndex[0]
         const articleIndex: number = this._selectedCombinationIndex[1]
@@ -1219,7 +1228,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
             (parentButton as any).itemType === ItemType.mainDish &&
             (parentButton as any).showExtrasAfterSelect
           ) {
-            this.setExtraSubButtons((parentButton as any).extras, (parentButton as any).productGroupExternalId, true)
+            this.setExtraSubButtons((parentButton as any).extras, (parentButton as any)?.categoryIds?.[0], true)
           } else if (parentButton && (parentButton as any).isMenu !== undefined && (parentButton as any).isMenu) {
             this._isBlocked = true
             this.setMenuSideDishButtons((parentButton as any).sideDishes)
@@ -1228,7 +1237,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
           }
           return
         }
-        this.setProductButtonsByProductGroupExternalId((parentButton as any)?.productGroupExternalId)
+        this.setProductButtonsByGroupId((parentButton as any)?.categoryIds?.[0])
       },
     })
 
@@ -1280,11 +1289,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       callback: () => {
         if (this._isBlocked) return
         this._articlesToCombine = []
-        this.setProductButtonsByProductGroupExternalId((product as any).productGroupExternalId)
+        this.setProductButtonsByGroupId((product as any)?.categoryIds?.[0])
       },
     })
     this.setInfoBoxText(byExternId.name)
-    this._productButtons = this.productService.getProductsByProductGroupExternalId(byExternId.externalId)
+    this._productButtons = this.productService.getProductsByGroupId(byExternId._id)
     this._productButtons.forEach(subButton => {
       ;(subButton as any).callback = () => {
         this.increaseLineItem(subButton)
@@ -1493,31 +1502,35 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     const bundleItems = this.combinations[index]
     if (!bundleItems || bundleItems.length === 0) return
 
+    // Jede Position einzeln verringern, bei 0 entfernen
+    const toRemove: any[] = []
     for (const lineItem of bundleItems) {
       if (lineItem.amount > 1) {
         lineItem.amount--
       } else {
-        const bundleId = lineItem.bundleNumber
-        this.#lineItems = this.#lineItems.filter(i => i.bundleNumber !== bundleId)
-        break
+        toRemove.push(lineItem)
       }
+    }
+
+    // Positionen mit amount 0 aus lineItems entfernen
+    if (toRemove.length > 0) {
+      const removeIds = new Set(toRemove.map(i => i._id))
+      this.#lineItems = this.#lineItems.filter(i => !removeIds.has(i._id))
     }
   }
 
   increaseExtra(article: ProductSchema, topic: string | undefined = undefined) {
-    let skip = true
-    if (
-      ((article as any).isExtra && (article as any).isExtra) ||
-      ((article as any).isMenuSideDishSauce && (article as any).isMenuSideDishSauce) ||
+    // Prüfen ob das Produkt ein Modifier/Extra ist (neues + altes Schema)
+    const isModifier =
+      article.productType === 'MODIFIER' ||
+      (article as any).isExtra ||
+      (article as any).isMenuSideDishSauce ||
       ((article as any).itemType &&
         ((article as any).itemType === ItemType.sauce || (article as any).itemType === ItemType.extra))
-    ) {
-      skip = false
-    }
+    if (!isModifier) return
+
     let selectedArticle: OrderLineItemSchema
-    if (skip) {
-      return
-    } else if (this._selectedProductIndex !== null) {
+    if (this._selectedProductIndex !== null) {
       selectedArticle = this.#lineItems[this._selectedProductIndex]
     } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
       selectedArticle = this.combinations[this._selectedCombinationIndex[0]][this._selectedCombinationIndex[1]]
@@ -1552,7 +1565,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   decreaseExtra(article: ProductSchema) {
-    if ((article as any).itemType !== ItemType.extra && (article as any).itemType !== ItemType.sauce) return
+    const isModifier =
+      article.productType === 'MODIFIER' ||
+      (article as any).itemType === ItemType.extra ||
+      (article as any).itemType === ItemType.sauce
+    if (!isModifier) return
 
     let selectedArticle: OrderLineItemSchema
     if (this._selectedProductIndex !== null) {
@@ -1589,33 +1606,185 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.setInfoBoxText('Extras auswählen ...', 'lightgray')
   }
 
+  // ──────────────────────────────────────────────────────────────────────
+  // Bundle/Menü-Flow Helper-Methoden
+  // ──────────────────────────────────────────────────────────────────────
+
+  /** Prüft ob ein Produkt ein BUNDLE mit Pflicht-Optionen ist */
+  private isBundleProduct(product: ProductSchema): boolean {
+    // Neues Schema: productType + optionGroups
+    if (product.productType === 'BUNDLE' && (product.optionGroups?.length ?? 0) > 0) return true
+    // Legacy-Fallback: isMenu-Flag
+    return (product as any).isMenu === true
+  }
+
+  /** Gibt die nächste unvollständige OptionGroup zurück (Pflicht zuerst, dann optional) */
+  private getNextMandatoryGroup(product: ProductSchema): any | null {
+    if (!product.optionGroups?.length) return null
+    // Zuerst Pflicht-Gruppen (minSelections > 0)
+    const mandatory = product.optionGroups.find(g =>
+      g.minSelections > 0 && !this.#completedGroups.has(g.id),
+    )
+    if (mandatory) return mandatory
+    // Dann optionale Gruppen (minSelections === 0) — mit Skip-Möglichkeit
+    return product.optionGroups.find(g =>
+      g.minSelections === 0 && !this.#completedGroups.has(g.id),
+    ) ?? null
+  }
+
+  /** Zeigt die Auswahl-Buttons für eine OptionGroup an */
+  private showOptionGroupButtons(group: any, parentProduct: ProductSchema): void {
+    this.clearButtons()
+    this.setInfoBoxText(group.name)
+    this._isBlocked = true
+
+    // Produkte für die Optionen laden
+    const products: ProductSchema[] = (group.options || [])
+      .map((o: any) => this.productService.findProductById(o.productId))
+      .filter(Boolean) as ProductSchema[]
+
+    // Skip-Button nur bei optionalen Gruppen (minSelections === 0)
+    if (group.minSelections === 0) {
+      this._functionButtons.push({
+        _id: 'skip-option-group',
+        externalId: this.#functionButtonExternalId,
+        locationId: this.userService.currentUser()?.activeLocationId || '',
+        tenantId: this.authService.tenantId()?.toString() || '',
+        name: 'ÜBERSPRINGEN',
+        index: -2,
+        isFunctionButton: true,
+        backgroundColor: 'darkcyan',
+        fontColor: 'white',
+        callback: () => {
+          this.#completedGroups.add(group.id)
+          const nextGroup = this.getNextMandatoryGroup(parentProduct)
+          if (nextGroup) {
+            this.showOptionGroupButtons(nextGroup, parentProduct)
+          } else {
+            this._isBlocked = false
+            // Bundle-Flow abgeschlossen
+            this.setProductButtonsByGroupId(parentProduct.categoryIds?.[0])
+          }
+        },
+      })
+    }
+
+    this._productButtons = products as any[]
+    this._productButtons.forEach(btn => {
+      ;(btn as any).callback = () => this.selectOptionGroupItem(btn as ProductSchema, group, parentProduct)
+    })
+
+    this.#cdr.markForCheck()
+  }
+
+  /** Verarbeitet die Auswahl eines Items aus einer OptionGroup */
+  private selectOptionGroupItem(selected: ProductSchema, group: any, parentProduct: ProductSchema): void {
+    const lineItem = this.getCurrentSelectedLineItem()
+    if (!lineItem) return
+
+    const genericItem = this.toGenericLineItem(selected)
+
+    // Speichern basierend auf Gruppen-Name
+    const groupName = (group.name || '').toLowerCase()
+    if (groupName.includes('beilage') || groupName.includes('side')) {
+      lineItem.menuSideDish = genericItem
+    } else if (groupName.includes('getränk') || groupName.includes('drink')) {
+      lineItem.menuDrink = genericItem
+    } else {
+      // Soßen, Extras etc. als Modifier (freeQuantity berücksichtigen)
+      const freeQty = group.freeQuantity || 0
+      const currentModCount = lineItem.modifiers.filter(m => m.topic === group.name).length
+      if (freeQty > 0 && currentModCount < freeQty) {
+        genericItem.price = 0 // Kostenlos innerhalb freeQuantity
+      }
+      genericItem.topic = group.name
+      lineItem.modifiers.push(genericItem)
+    }
+
+    this.#completedGroups.add(group.id)
+
+    // Prüfen ob das gewählte Produkt selbst OptionGroups hat (z.B. Pommes → Soßen)
+    if (selected.optionGroups?.length) {
+      const subGroups = selected.optionGroups.filter(g => !this.#completedGroups.has(g.id))
+      if (subGroups.length > 0) {
+        // Zwischen-Schritt: OptionGroups des gewählten Produkts anzeigen
+        this.showOptionGroupButtons(subGroups[0], parentProduct)
+        // Sub-OptionGroup-IDs zum Set hinzufügen damit sie nicht nochmal kommen
+        // aber den parentProduct beibehalten für den Rückweg
+        return
+      }
+    }
+
+    // Nächste Gruppe des Bundle-Produkts oder Unblock
+    const nextGroup = this.getNextMandatoryGroup(parentProduct)
+
+    if (nextGroup) {
+      this.showOptionGroupButtons(nextGroup, parentProduct)
+    } else {
+      this._isBlocked = false
+      this.setProductButtonsByGroupId(parentProduct.categoryIds?.[0])
+    }
+
+    this.#cdr.markForCheck()
+  }
+
+  /** Gibt das aktuell ausgewählte LineItem zurück (normal oder Kombination) */
+  private getCurrentSelectedLineItem(): OrderLineItemSchema | null {
+    if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
+      return this.combinations[this._selectedCombinationIndex[0]][this._selectedCombinationIndex[1]] ?? null
+    }
+    if (this._selectedProductIndex !== null) {
+      return this.#lineItems[this._selectedProductIndex] ?? null
+    }
+    return null
+  }
+
+  /** Erstellt ein GenericLineItem aus einem Produkt (für menuSideDish, menuDrink, modifiers) */
+  private toGenericLineItem(product: ProductSchema): any {
+    const parentGroup = this.productGroupService.getProductGroupById(product.categoryIds?.[0] ?? '')
+    return {
+      _id: product._id,
+      externalId: product.externalId ?? '',
+      amount: 1,
+      name: product.name,
+      price: product.price || 0,
+      taxInside: product.taxInside || 19,
+      taxOutside: product.taxOutside || 7,
+      ingredientReferences: (product as any).ingredientReferences || [],
+      recipeReferences: product.recipeReferences || [],
+      topic: parentGroup?.name ?? '',
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────
+
   increaseLineItem(product: ProductSchema, amount: number | undefined = undefined) {
     const amountToIncrease: number = amount !== undefined ? amount : this.multiplier
+    const isBundle = this.isBundleProduct(product)
 
     let topic: string
-    if (!(product as any).productGroupExternalId) {
+    const firstCategoryId = product.categoryIds?.[0]
+    if (!firstCategoryId) {
       topic = ''
     } else {
-      const parentButton = this.productGroupService.getProductGroupByExternId(
-        (product as any).productGroupExternalId,
-      )
-      topic = parentButton !== undefined ? parentButton.name : ''
+      const parentGroup = this.productGroupService.getProductGroupById(firstCategoryId)
+      topic = parentGroup?.name ?? ''
     }
 
     const orderLineItem: OrderLineItemSchema = {
       _id: product._id,
       externalId: product.externalId ?? '',
       acronym: product.acronym,
-      productGroupExternalId: (product as any).productGroupExternalId,
+      productGroupExternalId: product.categoryIds?.[0] ?? '',
       amount: amountToIncrease,
       bundleNumber: null,
       modifiers: [],
-      index: (product as any).index,
-      isMenu: (product as any).isMenu === undefined ? false : (product as any).isMenu,
+      index: product.ui?.index,
+      isMenu: isBundle,
       menuDrink: null,
       menuSideDish: null,
       name: product.name,
-      parentId: (product as any).productGroupExternalId,
+      parentId: product.categoryIds?.[0],
       price: product.price || 0,
       ingredientReferences: (product as any).ingredientReferences || [],
       recipeReferences: product.recipeReferences || [],
@@ -1628,58 +1797,40 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.resetProductSearch()
 
     if (this._selectedCombinationIndex[0] !== null) {
+      // Kombinations-Modus
       const index = this.combinations[this._selectedCombinationIndex[0]].push(orderLineItem) - 1
-      if ((product as any).isMenu) {
+
+      if (isBundle && product.optionGroups?.length) {
         this._isBlocked = true
-      }
-      if ((product as any).itemType === ItemType.mainDish && (product as any).showSaucesAfterSelect) {
         this._selectedCombinationIndex[1] = index
-        const freeSaucesQuantity: number = (product as any).freeSaucesQuantity
-          ? (product as any).freeSaucesQuantity
-          : 0
-        const isInclusive: boolean = freeSaucesQuantity > 0
-        this.setSauceSubButtons((product as any).sauces, isInclusive, freeSaucesQuantity)
-      } else if ((product as any).isMenu) {
-        this._selectedCombinationIndex[1] = index
-        this.setMenuSideDishButtons((product as any).sideDishes)
-      } else if ((product as any).itemType === ItemType.mainDish && (product as any).showExtrasAfterSelect) {
-        this._selectedCombinationIndex[1] = index
-        this.setExtraSubButtons((product as any).extras, (product as any).productGroupExternalId)
+        this.#completedGroups = new Set()
+        // Bundle-Flow gestartet für: product.name
+        const firstGroup = this.getNextMandatoryGroup(product)
+        if (firstGroup) {
+          this.showOptionGroupButtons(firstGroup, product)
+        }
       } else if ((product as any).nextProductGroupExternalId !== undefined) {
         this.setSuccessorSubButtons(product)
       }
     } else {
-      if (
-        this.#lineItems.find(item => item._id === orderLineItem._id) &&
-        (!(product as any).isMenu || !(product as any).isCombination)
-      ) {
+      // Normaler Modus
+      // Duplikat-Check (nur bei nicht-Bundle-Produkten)
+      if (!isBundle && this.#lineItems.find(item => item._id === orderLineItem._id)) {
         return this.increaseQuantity(this.#lineItems.find(item => item._id === orderLineItem._id)!)
       }
 
       const index = this.#lineItems.push(orderLineItem) - 1
 
-      if ((product as any).isMenu) {
+      if (isBundle && product.optionGroups?.length) {
+        // Neuer Bundle-Flow: OptionGroups sequentiell abarbeiten
         this._isBlocked = true
-      }
-
-      if ((product as any).itemType === ItemType.mainDish && (product as any).showSaucesAfterSelect) {
         this._selectedProductIndex = index
-        const freeSaucesQuantity = (product as any).freeSaucesQuantity ? (product as any).freeSaucesQuantity : 0
-        const isInclusive = freeSaucesQuantity > 0
-        this.setSauceSubButtons((product as any).sauces, isInclusive, freeSaucesQuantity)
-      } else if ((product as any).itemType === ItemType.mainDish && (product as any).isMenu) {
-        this._selectedProductIndex = index
-        this.setMenuSideDishButtons((product as any).sideDishes)
-      } else if ((product as any).itemType === ItemType.mainDish && (product as any).showExtrasAfterSelect) {
-        this._selectedProductIndex = index
-        this.setExtraSubButtons((product as any).extras, (product as any).productGroupExternalId)
-      } else if ((product as any).itemType === ItemType.mainDish && (product as any).isCombination) {
-        const combinedLineItems: Array<OrderLineItemSchema> = []
-        combinedLineItems.push(this.#lineItems[index])
-        this.#lineItems.splice(index, 1)
-        const combinationIndex = this.combinations.push(combinedLineItems) - 1
-        this._selectedCombinationIndex = [combinationIndex, null]
-        this.setSuccessorSubButtons(product)
+        this.#completedGroups = new Set()
+        // Bundle-Flow gestartet für: product.name
+        const firstGroup = this.getNextMandatoryGroup(product)
+        if (firstGroup) {
+          this.showOptionGroupButtons(firstGroup, product)
+        }
       }
     }
   }

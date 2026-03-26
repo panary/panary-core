@@ -18,7 +18,11 @@ import type { Application } from '../../declarations'
 import type { User } from './users.class'
 import { authorize } from '../../hooks/authorize.hook'
 import { multiTenancy } from '../../hooks/multi-tenancy.hook'
+import { parseJsonFields } from '../../hooks/parse-json-fields.hook'
+import { stringifyJsonFields } from '../../hooks/stringify-json-fields.hook'
 import { createServiceAdapter } from '@panary-core/shared/data-access/server'
+
+const USER_JSON_FIELDS = ['discountDetails', 'allowedLocationIds', 'permissions']
 import { DatabaseType } from '@panary-core/shared/common'
 import { Conflict } from '@feathersjs/errors'
 
@@ -152,12 +156,12 @@ export const users = (app: Application) => {
       all: [schemaHooks.validateQuery(userQueryValidator), schemaHooks.resolveQuery(userQueryResolver)],
       find: [],
       get: [],
-      create: [schemaHooks.validateData(userDataValidator), schemaHooks.resolveData(userDataResolver)],
-      patch: [schemaHooks.validateData(userPatchValidator), schemaHooks.resolveData(userPatchResolver)],
+      create: [schemaHooks.validateData(userDataValidator), schemaHooks.resolveData(userDataResolver), stringifyJsonFields(...USER_JSON_FIELDS)],
+      patch: [schemaHooks.validateData(userPatchValidator), schemaHooks.resolveData(userPatchResolver), stringifyJsonFields(...USER_JSON_FIELDS)],
       remove: []
     },
     after: {
-      all: []
+      all: [parseJsonFields(...USER_JSON_FIELDS)]
     },
     error: {
       all: []

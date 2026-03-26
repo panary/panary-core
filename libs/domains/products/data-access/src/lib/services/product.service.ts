@@ -219,14 +219,18 @@ export class ProductService extends BaseService<ProductSchema> {
    *                          sorted by their index in ascending order. Returns an empty array
    *                          if no articles match the provided group ID or if data is unavailable.
    */
-  // TODO: Im neuen Schema gibt es kein 'productGroupExternalId' – Produkte werden über categoryIds kategorisiert.
-  // Dieser Aufruf filtert jetzt nach categoryIds.includes(categoryId).
-  getProductsByProductGroupExternalId(categoryId: UUID | null): Array<ProductSchema> {
-    if (!categoryId || !this.#documents) return []
+  // categoryIds enthält _id-Werte der Produktgruppen, nicht externalId
+  getProductsByGroupId(groupId: string | null): Array<ProductSchema> {
+    if (!groupId || !this.#documents) return []
 
     return this.#documents()
-      .filter((p: ProductSchema) => p.categoryIds?.includes(categoryId))
+      .filter((p: ProductSchema) => p.categoryIds?.includes(groupId))
       .sort((a, b) => (a.ui?.index ?? 0) - (b.ui?.index ?? 0))
+  }
+
+  /** @deprecated Verwende getProductsByGroupId() — categoryIds enthält _id, nicht externalId */
+  getProductsByProductGroupExternalId(categoryId: UUID | null): Array<ProductSchema> {
+    return this.getProductsByGroupId(categoryId as string)
   }
 
   async getUniqueProductGroupExternalIds() {

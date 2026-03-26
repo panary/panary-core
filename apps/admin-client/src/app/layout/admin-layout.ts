@@ -8,13 +8,13 @@ import { AuthService } from '../core/auth.service'
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-black flex">
+    <div class="h-screen bg-black flex overflow-hidden">
       <!-- Sidebar -->
-      <aside class="w-60 bg-gray-950 border-r border-gray-800 flex flex-col">
+      <aside class="w-60 bg-gray-950 border-r border-gray-800 flex flex-col shrink-0">
         <!-- Logo -->
         <div class="p-5 border-b border-gray-800">
-          <img src="assets/panary_logo_mono.svg" alt="Panary" class="h-6 opacity-60" />
-          <p class="text-[10px] text-gray-600 mt-1 uppercase tracking-widest">Admin Panel</p>
+          <img src="assets/panary_logo_dark.svg" alt="Panary" class="h-7" />
+          <p class="text-[10px] text-gray-600 mt-1.5 uppercase tracking-widest">Admin Panel</p>
         </div>
 
         <!-- Navigation -->
@@ -39,7 +39,7 @@ import { AuthService } from '../core/auth.service'
       </aside>
 
       <!-- Main Content -->
-      <main class="flex-1 overflow-y-auto">
+      <main class="flex-1 overflow-hidden">
         <router-outlet />
       </main>
     </div>

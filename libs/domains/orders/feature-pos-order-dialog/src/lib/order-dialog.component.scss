@@ -102,13 +102,9 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 120px;
-  max-width: 120px;
-  height: 60px;
-  max-height: 60px;
-  @apply bg-white shadow-sm border border-slate-200 text-slate-700 hover:shadow-md hover:bg-slate-50 transition-all rounded-xl font-medium;
-
-  border: none;
+  min-width: 140px;
+  height: 48px;
+  @apply bg-white border border-slate-200 text-slate-700 hover:bg-[#f5f4f2] transition-all rounded-xl font-medium;
   padding: 10px;
   font-size: small;
   text-align: center;
@@ -116,7 +112,7 @@
 }
 
 .subbutton-item:active {
-  @apply scale-95 shadow-inner bg-slate-100;
+  @apply scale-95 bg-[#ebe9e5];
 }
 
 .spacer {
@@ -209,4 +205,13 @@
 
 .combination-sum-preis {
   border-top: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+/* Overflow-Menü für Produktgruppen */
+::ng-deep .custom-menu.mat-mdc-menu-panel {
+  background: #fff !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12) !important;
+  padding: 4px !important;
+  margin-top: 8px !important;
 }

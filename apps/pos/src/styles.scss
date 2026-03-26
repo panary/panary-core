@@ -1,4 +1,49 @@
 @use "tailwindcss";
+@use "@angular/material" as mat;
+
+/* Angular Material Theme */
+html {
+  @include mat.theme((
+    color: (
+      theme-type: light,
+      primary: mat.$azure-palette,
+      tertiary: mat.$blue-palette,
+    ),
+    typography: Switzer,
+    density: 0,
+  ));
+}
+
+/* Material-Komponenten: Switzer als Schriftart erzwingen */
+.mat-mdc-snack-bar-container,
+.mat-mdc-select,
+.mat-mdc-option,
+.mat-mdc-menu-panel,
+.mat-mdc-dialog-container,
+.mat-mdc-form-field,
+.mat-mdc-button,
+.mat-mdc-tooltip {
+  font-family: 'Switzer', sans-serif !important;
+}
+
+/* SnackBar: Dunkler Hintergrund passend zum Design */
+.mat-mdc-snack-bar-container {
+  --mdc-snackbar-container-color: #1e293b;
+  --mdc-snackbar-supporting-text-color: #f8fafc;
+  --mat-snack-bar-button-color: #60a5fa;
+}
+
+/* MatSelect: Dropdown-Panel Styling */
+.mat-mdc-select-panel {
+  background: white !important;
+  border-radius: 12px !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1) !important;
+}
+
+.mat-mdc-option {
+  font-size: 14px !important;
+}
 
 /* ==========================================================================
    Globales Layout: Volle Viewport-Höhe für die gesamte App

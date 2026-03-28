@@ -36,13 +36,17 @@ export class ApiService {
     return lastValueFrom(this.http.delete<T>(`${API_URL}/${service}/${id}`))
   }
 
-  /** Feathers-kompatible Query-Serialisierung (verschachtelte Objekte wie $sort) */
+  /** Feathers-kompatible Query-Serialisierung (verschachtelte Objekte und Arrays wie $sort, $select) */
   private buildQueryString(query: Record<string, any>, prefix = ''): string {
     const parts: string[] = []
     for (const [key, value] of Object.entries(query)) {
       if (value === undefined || value === null) continue
       const fullKey = prefix ? `${prefix}[${key}]` : key
-      if (typeof value === 'object' && !Array.isArray(value)) {
+      if (Array.isArray(value)) {
+        for (let i = 0; i < value.length; i++) {
+          parts.push(`${encodeURIComponent(fullKey)}[${i}]=${encodeURIComponent(String(value[i]))}`)
+        }
+      } else if (typeof value === 'object') {
         parts.push(this.buildQueryString(value, fullKey))
       } else {
         parts.push(`${encodeURIComponent(fullKey)}=${encodeURIComponent(String(value))}`)

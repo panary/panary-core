@@ -1,20 +1,22 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog'
-import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
 
 @Component({
   selector: 'panary-numpad-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule],
+  imports: [CommonModule, MatDialogModule],
   template: `
     <div class="p-6 bg-white rounded-2xl w-[320px] flex flex-col gap-4">
       <div class="flex justify-between items-center pb-2 border-b border-slate-100">
         <h2 class="text-xl font-bold text-slate-800 m-0">Menge eingeben</h2>
-        <button mat-icon-button type="button" (click)="close()" class="!bg-slate-50 !text-slate-400">
-          <mat-icon>close</mat-icon>
+        <button
+          type="button"
+          (click)="close()"
+          class="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 hover:bg-slate-100 active:bg-slate-200 transition-all flex items-center justify-center"
+        >
+          <span class="material-symbols-outlined text-[20px]">close</span>
         </button>
       </div>
 
@@ -47,15 +49,15 @@ import { MatIconModule } from '@angular/material/icon'
           (click)="backspace()"
           class="h-14 rounded-xl bg-red-50 border border-red-100 text-red-500 hover:bg-red-100 active:bg-red-200 shadow-sm transition-all active:scale-95 flex items-center justify-center"
         >
-          <mat-icon>backspace</mat-icon>
+          <span class="material-symbols-outlined text-[20px]">backspace</span>
         </button>
       </div>
 
       <button
         (click)="confirm()"
-        class="h-14 rounded-xl bg-indigo-600 text-white text-lg font-bold hover:bg-indigo-700 active:scale-98 transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2"
+        class="h-14 rounded-xl bg-yellow-500 text-slate-800 font-bold text-lg hover:bg-yellow-400 active:scale-98 transition-all shadow-lg shadow-yellow-200 flex items-center justify-center gap-2"
       >
-        <mat-icon>check</mat-icon>
+        <span class="material-symbols-outlined text-[20px]">check</span>
         Bestätigen
       </button>
     </div>

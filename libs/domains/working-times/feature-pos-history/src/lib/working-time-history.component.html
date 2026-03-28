@@ -3,11 +3,11 @@
     <header class="flex-none flex flex-col gap-4 bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
         <div class="flex flex-row items-center justify-between">
             <div class="flex items-center gap-4">
-                <button mat-icon-button (click)="goBack()" class="!bg-slate-50 !text-slate-600">
-                    <mat-icon>arrow_back</mat-icon>
+                <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-slate-50 text-slate-600 rounded-xl hover:bg-[#f5f4f2] transition-colors">
+                    <span class="material-symbols-outlined text-[20px]">arrow_back</span>
                 </button>
                 <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-                    <mat-icon class="text-amber-600">schedule</mat-icon>
+                    <span class="material-symbols-outlined text-[20px] text-amber-600">schedule</span>
                     Meine Arbeitszeiten
                 </h1>
             </div>
@@ -66,8 +66,8 @@
                     <ng-container matColumnDef="breaks">
                         <th mat-header-cell *matHeaderCellDef> Pause </th>
                         <td mat-cell *matCellDef="let element">
-                            <button mat-button [matMenuTriggerFor]="breakMenu"
-                                class="text-amber-600 bg-amber-50 rounded-full px-3 min-w-0 h-8 text-sm font-medium"
+                            <button [matMenuTriggerFor]="breakMenu"
+                                class="text-amber-600 bg-amber-50 rounded-full px-3 min-w-0 h-8 text-sm font-medium hover:bg-amber-100 transition-colors"
                                 *ngIf="element.breakDuration > 0; else noBreak">
                                 {{ formatDuration(element.breakDuration) }}
                             </button>
@@ -125,7 +125,7 @@
             <div class="max-w-5xl mx-auto flex flex-wrap gap-6 md:gap-12 items-center justify-end">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
-                        <mat-icon class="text-amber-600 scale-90">coffee</mat-icon>
+                        <span class="material-symbols-outlined text-[20px] text-amber-600">coffee</span>
                     </div>
                     <div>
                         <p class="text-xs text-slate-500 uppercase tracking-wide">Pausen gesamt</p>
@@ -134,7 +134,7 @@
                 </div>
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
-                        <mat-icon class="text-emerald-600 scale-90">schedule</mat-icon>
+                        <span class="material-symbols-outlined text-[20px] text-emerald-600">schedule</span>
                     </div>
                     <div>
                         <p class="text-xs text-slate-500 uppercase tracking-wide">Arbeitszeit gesamt</p>

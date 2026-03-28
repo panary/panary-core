@@ -2,12 +2,6 @@ import { ChangeDetectionStrategy, Component, effect, inject, OnInit, signal, Wri
 import { Router } from '@angular/router'
 import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
-import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
-import { MatChipsModule } from '@angular/material/chips'
-import { MatCardModule } from '@angular/material/card'
 import { MatDatepickerModule } from '@angular/material/datepicker'
 import { MatNativeDateModule } from '@angular/material/core'
 import {
@@ -28,12 +22,6 @@ type TimeRange='today'|'yesterday'|'week'|'custom'
   imports: [
     CommonModule,
     FormsModule,
-    MatIconModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatChipsModule,
-    MatCardModule,
     MatDatepickerModule,
     MatNativeDateModule,
   ],

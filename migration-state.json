@@ -1,0 +1,34 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2026-03-26T02:30:00Z",
+  "summary": {
+    "totalComponents": 19,
+    "migrated": 0,
+    "kept": 9,
+    "pending": 10
+  },
+  "themeTokens": {
+    "status": "pending",
+    "mappingFile": "tailwind-material-tokens.css"
+  },
+  "components": [
+    {"name": "MatDialog", "module": "@angular/material/dialog", "category": "logic", "status": "kept", "reason": "Focus-Trap, Overlay, Escape-Handling", "usageCount": 7},
+    {"name": "MatSnackBar", "module": "@angular/material/snack-bar", "category": "logic", "status": "kept", "reason": "Overlay, Auto-Dismiss, ARIA live region", "usageCount": 7},
+    {"name": "MatAutocomplete", "module": "@angular/material/autocomplete", "category": "logic", "status": "kept", "reason": "ARIA combobox, Keyboard-Nav, Overlay", "usageCount": 2},
+    {"name": "MatDatepicker", "module": "@angular/material/datepicker", "category": "logic", "status": "kept", "reason": "Kalenderlogik, Lokalisierung, A11y", "usageCount": 2},
+    {"name": "MatSelect", "module": "@angular/material/select", "category": "logic", "status": "kept", "reason": "ARIA listbox, Keyboard-Nav, Overlay", "usageCount": 1},
+    {"name": "MatMenu", "module": "@angular/material/menu", "category": "logic", "status": "kept", "reason": "Nested Menus, Keyboard-Nav, Overlay", "usageCount": 2},
+    {"name": "MatTooltip", "module": "@angular/material/tooltip", "category": "logic", "status": "kept", "reason": "Overlay-Positionierung, Delay-Logik", "usageCount": 2},
+    {"name": "MatTable", "module": "@angular/material/table", "category": "logic", "status": "kept", "reason": "Daten-Pipeline, Virtual Scroll", "usageCount": 1},
+    {"name": "MatPaginator", "module": "@angular/material/paginator", "category": "logic", "status": "kept", "reason": "Pagination-Logik, A11y", "usageCount": 1},
+    {"name": "MatButton", "module": "@angular/material/button", "category": "visual", "status": "pending", "reason": "Nur visuelles Styling", "usageCount": 12, "migrationStrategy": "replace-tailwind"},
+    {"name": "MatIcon", "module": "@angular/material/icon", "category": "visual", "status": "pending", "reason": "Kann durch material-symbols-outlined ersetzt werden", "usageCount": 10, "migrationStrategy": "replace-span"},
+    {"name": "MatCard", "module": "@angular/material/card", "category": "visual", "status": "pending", "reason": "Reines Layout", "usageCount": 4, "migrationStrategy": "replace-tailwind-div"},
+    {"name": "MatDivider", "module": "@angular/material/divider", "category": "visual", "status": "pending", "reason": "border-b genügt", "usageCount": 1, "migrationStrategy": "replace-border"},
+    {"name": "MatBadge", "module": "@angular/material/badge", "category": "visual", "status": "pending", "reason": "Tailwind Badge", "usageCount": 1, "migrationStrategy": "replace-tailwind"},
+    {"name": "MatChips", "module": "@angular/material/chips", "category": "visual", "status": "pending", "reason": "Einfache Chips", "usageCount": 3, "migrationStrategy": "replace-component"},
+    {"name": "MatButtonToggle", "module": "@angular/material/button-toggle", "category": "visual", "status": "pending", "reason": "Pill-Toggle mit Tailwind", "usageCount": 3, "migrationStrategy": "replace-component"},
+    {"name": "MatFormField", "module": "@angular/material/form-field", "category": "visual", "status": "pending", "reason": "Tailwind input wrapper", "usageCount": 4, "migrationStrategy": "replace-tailwind"},
+    {"name": "MatInput", "module": "@angular/material/input", "category": "visual", "status": "pending", "reason": "Native input + Tailwind", "usageCount": 4, "migrationStrategy": "replace-native"}
+  ]
+}

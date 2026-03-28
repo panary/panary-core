@@ -2,12 +2,6 @@ import { Component, computed, inject, signal } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms'
 import { MatDialogRef, MatDialogModule, MatDialog } from '@angular/material/dialog'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
-import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
-import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { MatChipsModule } from '@angular/material/chips'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import {
@@ -34,14 +28,7 @@ import { NumpadDialogComponent } from '@panary-core/shared/ui-common'
     FormsModule,
     ReactiveFormsModule,
     MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatButtonToggleModule,
-    MatChipsModule,
     MatAutocompleteModule,
-    // NumpadDialogComponent - Removed as it's used dynamically, not in template
   ],
   templateUrl: './write-off-dialog.component.html',
   styleUrls: ['./write-off-dialog.component.scss'],

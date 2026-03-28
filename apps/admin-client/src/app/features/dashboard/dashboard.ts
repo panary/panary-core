@@ -11,8 +11,8 @@ import { ApiService } from '../../core/api.service'
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         @for (stat of stats(); track stat.label) {
-          <div class="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
-            <p class="text-gray-500 text-sm">{{ stat.label }}</p>
+          <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl p-6">
+            <p class="text-slate-400 dark:text-gray-500 text-sm">{{ stat.label }}</p>
             <p class="text-3xl font-bold mt-1">{{ stat.value }}</p>
           </div>
         }

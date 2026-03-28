@@ -4,19 +4,47 @@ import { Router } from '@angular/router'
 import { ApiService } from '../../core/api.service'
 import { formatApiError } from '../../core/error-helper'
 import { objectHash } from '../../core/dirty-check'
+import { ConfirmDialogComponent } from '../../core/confirm-dialog'
 
 @Component({
   selector: 'app-group-form',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, ConfirmDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div [class]="panelMode() ? 'p-5 space-y-5' : 'p-8 max-w-2xl space-y-6'">
-      <h1 class="text-2xl font-bold tracking-tight">{{ isNew() ? 'Neue Produktgruppe' : 'Produktgruppe bearbeiten' }}</h1>
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold tracking-tight">{{ isNew() ? 'Neue Produktgruppe' : 'Produktgruppe bearbeiten' }}</h1>
+        @if (!isNew()) {
+          <button type="button" (click)="showDeleteConfirm.set(true)"
+            class="text-slate-400 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition p-2
+                   rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              <line x1="10" y1="11" x2="10" y2="17" />
+              <line x1="14" y1="11" x2="14" y2="17" />
+            </svg>
+          </button>
+        }
+      </div>
+
+      @if (showDeleteConfirm()) {
+        <app-confirm-dialog
+          title="Produktgruppe löschen"
+          [message]="'Soll die Produktgruppe unwiderruflich gelöscht werden?'"
+          confirmLabel="Löschen"
+          dismissLabel="Abbrechen"
+          (confirmed)="onDelete()"
+          (dismissed)="showDeleteConfirm.set(false)"
+          (cancelled)="showDeleteConfirm.set(false)">
+        </app-confirm-dialog>
+      }
 
       <form #f="ngForm" (ngSubmit)="onSave(f)" class="space-y-5">
         <!-- Status-Pille -->
-        <div class="relative flex bg-gray-950 rounded-2xl p-1.5 border border-gray-800">
+        <div class="relative flex bg-slate-100 dark:bg-gray-950 rounded-2xl p-1.5 border border-slate-200 dark:border-gray-800">
           <div class="absolute top-1.5 bottom-1.5 rounded-xl shadow-lg transition-all duration-300 ease-out"
                [class]="statusPillBg()"
                [style.left]="'calc(' + statusIndex * (100 / 3) + '% + 6px)'"
@@ -24,7 +52,9 @@ import { objectHash } from '../../core/dirty-check'
           </div>
           @for (s of statuses; track s.value) {
             <button type="button" (click)="form.status = s.value"
-              [class]="form.status === s.value ? 'text-white font-semibold' : 'text-gray-500 hover:text-gray-300'"
+              [class]="form.status === s.value
+                ? 'text-slate-900 dark:text-white font-semibold'
+                : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'"
               class="relative z-10 flex-1 py-2 text-center text-sm rounded-xl transition-colors duration-200">
               {{ s.label }}
             </button>
@@ -33,14 +63,15 @@ import { objectHash } from '../../core/dirty-check'
         </div>
 
         @if (!isNew()) {
-          <div class="bg-gray-900/50 border border-gray-800 rounded-lg p-4 grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+          <div class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
+                      grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
             <div>
-              <span class="text-gray-500">ID</span>
-              <p class="text-gray-300 font-mono mt-0.5 select-all">{{ entityId() }}</p>
+              <span class="text-slate-400 dark:text-gray-500">ID</span>
+              <p class="text-slate-600 dark:text-gray-300 font-mono mt-0.5 select-all">{{ entityId() }}</p>
             </div>
             <div>
-              <span class="text-gray-500">External ID</span>
-              <p class="text-gray-300 font-mono mt-0.5 select-all">{{ externalId() || '—' }}</p>
+              <span class="text-slate-400 dark:text-gray-500">External ID</span>
+              <p class="text-slate-600 dark:text-gray-300 font-mono mt-0.5 select-all">{{ externalId() || '—' }}</p>
             </div>
           </div>
         }
@@ -48,46 +79,49 @@ import { objectHash } from '../../core/dirty-check'
         <div class="grid grid-cols-3 gap-4">
           <!-- Name -->
           <div class="col-span-2 space-y-1">
-            <label class="text-xs font-medium text-gray-400 uppercase tracking-wider">Name *</label>
+            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Name *</label>
             <input [(ngModel)]="form.name" name="name" #name="ngModel"
               type="text" required minlength="1" maxlength="120"
               (ngModelChange)="autoAssignColor($event)"
               [class]="inputClass(name)" />
             @if (name.invalid && name.touched) {
-              <p class="text-red-400 text-xs mt-1">Name ist erforderlich.</p>
+              <p class="text-red-500 dark:text-red-400 text-xs mt-1">Name ist erforderlich.</p>
             }
           </div>
           <!-- Kürzel -->
           <div class="space-y-1">
-            <label class="text-xs font-medium text-gray-400 uppercase tracking-wider">Kürzel</label>
+            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Kürzel</label>
             <input [(ngModel)]="form.acronym" name="acronym" type="text" maxlength="10"
-              class="w-full bg-gray-900 border border-gray-800 rounded-lg p-3 text-white
-                     focus:border-white focus:ring-1 focus:ring-white outline-none font-mono" />
+              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
+                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
+                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono" />
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <!-- Farbe -->
           <div class="space-y-1">
-            <label class="text-xs font-medium text-gray-400 uppercase tracking-wider">Farbe</label>
+            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Farbe</label>
             <div class="relative">
-              <div class="flex items-center gap-3 p-3 bg-gray-900 border border-gray-800 rounded-lg">
-                <span class="w-8 h-8 rounded-full shrink-0 border border-gray-700"
+              <div class="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-slate-200
+                          dark:border-gray-800 rounded-lg">
+                <span class="w-8 h-8 rounded-full shrink-0 border border-slate-300 dark:border-gray-700"
                       [style.background-color]="form.color"></span>
-                <span class="text-sm text-gray-300 font-mono">{{ form.color }}</span>
+                <span class="text-sm text-slate-600 dark:text-gray-300 font-mono">{{ form.color }}</span>
                 <button type="button" (click)="showColorPicker = !showColorPicker"
-                  class="ml-auto text-gray-500 hover:text-white transition text-xs">
+                  class="ml-auto text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white
+                         transition text-xs">
                   {{ showColorPicker ? '▲' : '▼' }}
                 </button>
               </div>
               @if (showColorPicker) {
-                <div class="absolute z-10 mt-1 p-3 bg-gray-900 border border-gray-700 rounded-lg shadow-xl
-                            flex flex-wrap gap-2 w-full">
+                <div class="absolute z-10 mt-1 p-3 bg-white dark:bg-gray-900 border border-slate-300
+                            dark:border-gray-700 rounded-lg shadow-xl flex flex-wrap gap-2 w-full">
                   @for (c of colorPalette; track c) {
                     <button type="button" (click)="form.color = c; showColorPicker = false"
                       [class]="form.color === c
-                        ? 'w-7 h-7 rounded-full ring-2 ring-white ring-offset-1 ring-offset-gray-900 scale-110'
-                        : 'w-7 h-7 rounded-full hover:scale-110 hover:ring-1 hover:ring-gray-500'"
+                        ? 'w-7 h-7 rounded-full ring-2 ring-slate-900 dark:ring-white ring-offset-1 ring-offset-white dark:ring-offset-gray-900 scale-110'
+                        : 'w-7 h-7 rounded-full hover:scale-110 hover:ring-1 hover:ring-slate-400 dark:hover:ring-gray-500'"
                       [style.background-color]="c"
                       class="transition-all">
                     </button>
@@ -99,12 +133,12 @@ import { objectHash } from '../../core/dirty-check'
           </div>
           <!-- Reihenfolge -->
           <div class="space-y-1">
-            <label class="text-xs font-medium text-gray-400 uppercase tracking-wider">Reihenfolge *</label>
+            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Reihenfolge *</label>
             <input [(ngModel)]="form.index" name="index" #indexCtrl="ngModel"
               type="number" required min="0" step="1"
               [class]="inputClass(indexCtrl)" />
             @if (indexCtrl.invalid && indexCtrl.touched) {
-              <p class="text-red-400 text-xs mt-1">Reihenfolge ist erforderlich (0 = erste Position).</p>
+              <p class="text-red-500 dark:text-red-400 text-xs mt-1">Reihenfolge ist erforderlich (0 = erste Position).</p>
             }
           </div>
         </div>
@@ -112,16 +146,18 @@ import { objectHash } from '../../core/dirty-check'
         <!-- MwSt. -->
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-1">
-            <label class="text-xs font-medium text-gray-400 uppercase tracking-wider">MwSt. Inhaus (%)</label>
+            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">MwSt. Inhaus (%)</label>
             <input [(ngModel)]="form.taxInside" name="taxInside" type="number" step="0.1" min="0" max="100"
-              class="w-full bg-gray-900 border border-gray-800 rounded-lg p-3 text-white
-                     focus:border-white focus:ring-1 focus:ring-white outline-none font-mono" />
+              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
+                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
+                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono" />
           </div>
           <div class="space-y-1">
-            <label class="text-xs font-medium text-gray-400 uppercase tracking-wider">MwSt. Außer Haus (%)</label>
+            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">MwSt. Außer Haus (%)</label>
             <input [(ngModel)]="form.taxOutside" name="taxOutside" type="number" step="0.1" min="0" max="100"
-              class="w-full bg-gray-900 border border-gray-800 rounded-lg p-3 text-white
-                     focus:border-white focus:ring-1 focus:ring-white outline-none font-mono" />
+              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
+                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
+                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono" />
           </div>
         </div>
 
@@ -129,16 +165,16 @@ import { objectHash } from '../../core/dirty-check'
         <div class="flex items-center gap-6 pt-2">
           <label class="flex items-center gap-2 cursor-pointer">
             <input [(ngModel)]="form.excluded" name="excluded" type="checkbox"
-              class="w-4 h-4 accent-white" />
-            <span class="text-sm text-gray-300">Im Bestelldialog ausblenden</span>
+              class="w-4 h-4 accent-slate-900 dark:accent-white" />
+            <span class="text-sm text-slate-600 dark:text-gray-300">Im Bestelldialog ausblenden</span>
           </label>
         </div>
 
         <!-- Fehleranzeige -->
         @if (errors().length > 0) {
-          <div class="bg-red-950/50 border border-red-900/50 rounded-lg p-4 space-y-1">
+          <div class="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 rounded-lg p-4 space-y-1">
             @for (err of errors(); track err) {
-              <p class="text-red-400 text-sm flex items-start gap-2">
+              <p class="text-red-500 dark:text-red-400 text-sm flex items-start gap-2">
                 <span class="shrink-0 mt-0.5">&#x2715;</span>
                 <span>{{ err }}</span>
               </p>
@@ -165,7 +201,8 @@ import { objectHash } from '../../core/dirty-check'
             </span>
           </button>
           <button type="button" (click)="onCancel()"
-            class="bg-gray-900 border border-gray-800 text-gray-300 px-6 py-3 rounded-xl text-sm hover:bg-gray-800 transition">
+            class="bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-600
+                   dark:text-gray-300 px-6 py-3 rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-gray-800 transition">
             Abbrechen
           </button>
         </div>
@@ -200,6 +237,7 @@ export class GroupFormComponent implements OnInit {
   usedColors = signal<Set<string>>(new Set())
   showColorPicker = false
   savedSuccess = signal(false)
+  showDeleteConfirm = signal(false)
 
   statuses = [
     { value: 'DRAFT', label: 'Entwurf' },
@@ -213,10 +251,10 @@ export class GroupFormComponent implements OnInit {
 
   statusPillBg(): string {
     switch (this.form.status) {
-      case 'ACTIVE': return 'bg-green-800/60'
-      case 'DRAFT': return 'bg-yellow-800/40'
-      case 'ARCHIVED': return 'bg-gray-800'
-      default: return 'bg-gray-800'
+      case 'ACTIVE': return 'bg-green-600/60 dark:bg-green-800/60'
+      case 'DRAFT': return 'bg-yellow-500/40 dark:bg-yellow-800/40'
+      case 'ARCHIVED': return 'bg-slate-300 dark:bg-gray-800'
+      default: return 'bg-slate-300 dark:bg-gray-800'
     }
   }
   errors = signal<string[]>([])
@@ -252,10 +290,11 @@ export class GroupFormComponent implements OnInit {
   }
 
   private readonly baseInputClass =
-    'w-full bg-gray-900 border rounded-lg p-3 text-white focus:ring-1 outline-none'
+    'w-full bg-white dark:bg-gray-900 border rounded-lg p-3 text-slate-900 dark:text-white focus:ring-1 outline-none'
 
   inputClass(ctrl: any): string {
-    if (!ctrl || ctrl.pristine) return `${this.baseInputClass} border-gray-800 focus:border-white focus:ring-white`
+    if (!ctrl || ctrl.pristine)
+      return `${this.baseInputClass} border-slate-200 dark:border-gray-800 focus:border-slate-900 dark:focus:border-white focus:ring-slate-900 dark:focus:ring-white`
     if (ctrl.invalid) return `${this.baseInputClass} border-red-500/50 focus:border-red-400 focus:ring-red-400`
     return `${this.baseInputClass} border-green-500/30 focus:border-green-400 focus:ring-green-400`
   }
@@ -390,5 +429,18 @@ export class GroupFormComponent implements OnInit {
 
   onCancel() {
     this.panelMode() ? this.closed.emit() : this.router.navigate(['/product-groups'])
+  }
+
+  async onDelete() {
+    this.showDeleteConfirm.set(false)
+    try {
+      await this.api.remove('product-groups', this.id()!)
+      this.saved.emit()
+      this.closed.emit()
+      if (!this.panelMode()) this.router.navigate(['/product-groups'])
+    } catch (e: any) {
+      const msg = formatApiError(e)
+      this.errors.set(msg.split('\n'))
+    }
   }
 }

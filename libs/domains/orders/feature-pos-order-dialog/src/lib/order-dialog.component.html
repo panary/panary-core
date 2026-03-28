@@ -8,10 +8,10 @@
         {{ infoBoxText }}
       </div>
     </div>
-    <button mat-icon-button (click)="dialogClose()"
-            class="!w-8 !h-8 !leading-8"
-            [ngClass]="infoBoxBackgroundColor !== '#EFEEEE' ? '!text-white/80 hover:!text-white' : '!text-slate-400 hover:!text-slate-800'">
-      <mat-icon class="!text-[20px]">close</mat-icon>
+    <button (click)="dialogClose()"
+            class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/20 transition"
+            [ngClass]="infoBoxBackgroundColor !== '#EFEEEE' ? 'text-white/80 hover:text-white' : 'text-slate-400 hover:text-slate-800'">
+      <span class="material-symbols-outlined" style="font-size: inherit">close</span>
     </button>
   </div>
 
@@ -201,7 +201,7 @@
           }
 
           @if (combinations.length > 0) {
-            <mat-divider class="!my-4"></mat-divider>
+            <hr class="border-t border-dashed border-slate-300/50 my-4" />
           }
 
           @for (lineItem of lineItems; track lineItem._id; let i = $index) {
@@ -316,22 +316,22 @@
       <div class="flex flex-col gap-1.5 shrink-0 pt-0">
         <button (click)="unselectProduct()"
                 class="h-14 w-14 rounded-xl border border-slate-200 text-slate-500 active:scale-95 flex items-center justify-center hover:bg-[#f5f4f2] transition-colors">
-          <mat-icon class="!text-[22px]">remove_done</mat-icon>
+          <span class="material-symbols-outlined text-[22px]" style="font-size: inherit">remove_done</span>
         </button>
         <button (click)="togglePriceVisibility()"
                 class="h-14 w-14 rounded-xl border border-slate-200 text-slate-500 active:scale-95 flex items-center justify-center hover:bg-[#f5f4f2] transition-colors"
                 [class.text-blue-500]="priceVisibility">
-          <mat-icon class="!text-[22px]">euro_symbol</mat-icon>
+          <span class="material-symbols-outlined text-[22px]" style="font-size: inherit">euro_symbol</span>
         </button>
         <button
           class="h-14 w-14 rounded-xl bg-red-50 border border-red-100 text-red-500 active:scale-95 flex items-center justify-center hover:bg-red-100"
           (click)="setDeleteSubbuttons()">
-          <mat-icon class="!text-[22px]">delete_forever</mat-icon>
+          <span class="material-symbols-outlined text-[22px]" style="font-size: inherit">delete_forever</span>
         </button>
         <button
           class="h-14 w-14 rounded-xl bg-purple-50 border border-purple-100 text-purple-600 active:scale-95 flex items-center justify-center hover:bg-purple-100"
           (click)="setCombiSubButtons()">
-          <mat-icon class="rotate-90 !text-[22px]">merge_type</mat-icon>
+          <span class="material-symbols-outlined rotate-90 text-[22px]" style="font-size: inherit">merge_type</span>
         </button>
       </div>
 
@@ -373,7 +373,7 @@
                   </span>
                 }
                 @if (productButton.icon) {
-                  <mat-icon class="!w-4 !h-4 !text-[16px] opacity-70">{{ productButton.icon }}</mat-icon>
+                  <span class="material-symbols-outlined text-[16px] opacity-70" style="font-size: inherit">{{ productButton.icon }}</span>
                 }
                 <span class="text-center leading-tight line-clamp-2 break-words w-full px-1">{{ productButton.name }}</span>
                 @if (priceVisibility && !productButton.isFunctionButton) {
@@ -401,7 +401,7 @@
         [class.cursor-not-allowed]="isStandaloneMode"
         [class.hover:bg-[#f5f4f2]]="!isStandaloneMode"
         (click)="isStandaloneMode ? null : setCustomerSubButtons()" [disabled]="disableCustomerButton || isStandaloneMode">
-        <mat-icon class="!text-[22px]">apartment</mat-icon>
+        <span class="material-symbols-outlined text-[22px]" style="font-size: inherit">apartment</span>
         @if (isStandaloneMode) {
           <div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2.5 py-1.5
                       rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 group-active:opacity-100
@@ -525,7 +525,11 @@
             </button>
           }
         </div>
-        <mat-paginator [length]="totalCorporateCustomers" [pageSize]="20" class="mt-2"></mat-paginator>
+        <div class="flex items-center justify-center gap-2 mt-2">
+          <button class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold transition-colors">←</button>
+          <span class="text-xs text-slate-500">Seite 1 / 1</span>
+          <button class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-bold transition-colors">→</button>
+        </div>
       </div>
     }
   </div>
@@ -538,27 +542,21 @@
         <!-- Inside Button -->
         <button (click)="selectDineLocation('INSIDE')"
                 class="flex flex-col items-center justify-center w-48 h-48 rounded-2xl bg-slate-50 border-2 border-slate-200 hover:border-slate-800 hover:bg-slate-100 hover:text-slate-900 hover:shadow-lg active:scale-95 transition-all group">
-          <mat-icon
-            class="!w-16 !h-16 !text-[64px] mb-4 text-slate-400 group-hover:text-slate-900 transition-colors">restaurant
-          </mat-icon>
+          <span class="material-symbols-outlined mb-4 text-slate-400 group-hover:text-slate-900 transition-colors" style="font-size: 64px">restaurant</span>
           <span class="text-xl font-bold text-slate-600 group-hover:text-slate-900">Im Haus</span>
         </button>
 
         <!-- Outside Button -->
         <button (click)="selectDineLocation('OUTSIDE')"
                 class="flex flex-col items-center justify-center w-48 h-48 rounded-2xl bg-slate-50 border-2 border-slate-200 hover:border-slate-800 hover:bg-slate-100 hover:text-slate-900 hover:shadow-lg active:scale-95 transition-all group">
-          <mat-icon
-            class="!w-16 !h-16 !text-[64px] mb-4 text-slate-400 group-hover:text-slate-900 transition-colors">local_mall
-          </mat-icon>
+          <span class="material-symbols-outlined mb-4 text-slate-400 group-hover:text-slate-900 transition-colors" style="font-size: 64px">local_mall</span>
           <span class="text-xl font-bold text-slate-600 group-hover:text-slate-900">Außer Haus</span>
         </button>
 
         <!-- Pre-order Button -->
         <button (click)="openPreOrderDialog()"
                 class="flex flex-col items-center justify-center w-48 h-48 rounded-2xl bg-slate-50 border-2 border-slate-200 hover:border-slate-800 hover:bg-slate-100 hover:text-slate-900 hover:shadow-lg active:scale-95 transition-all group">
-          <mat-icon
-            class="!w-16 !h-16 !text-[64px] mb-4 text-slate-400 group-hover:text-slate-900 transition-colors">event
-          </mat-icon>
+          <span class="material-symbols-outlined mb-4 text-slate-400 group-hover:text-slate-900 transition-colors" style="font-size: 64px">event</span>
           <span class="text-xl font-bold text-slate-600 group-hover:text-slate-900">Vorbestellung</span>
         </button>
       </div>
@@ -571,7 +569,7 @@
       <div class="absolute inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-8">
         <div class="bg-white rounded-lg shadow-xl border border-slate-200 p-8 max-w-lg w-full text-center">
           <div class="h-16 w-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <mat-icon class="!w-8 !h-8 !text-[32px] text-slate-500">block</mat-icon>
+            <span class="material-symbols-outlined text-slate-500" style="font-size: 32px">block</span>
           </div>
           <h2 class="text-xl font-bold text-slate-800 mb-2">Bestellung nicht möglich</h2>
           <p class="text-slate-600 mb-8 leading-relaxed text-sm">
@@ -591,13 +589,13 @@
       <div class="absolute inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-8">
         <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center">
           <div class="h-20 w-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <mat-icon class="!w-10 !h-10 !text-[40px] text-red-500">block</mat-icon>
+            <span class="material-symbols-outlined text-red-500" style="font-size: 40px">block</span>
           </div>
           <h2 class="text-2xl font-bold text-slate-800 mb-2">Bestellung nicht möglich</h2>
           <p class="text-slate-600 mb-8 leading-relaxed">
             {{ blockingReason }}
           </p>
-          <button mat-flat-button color="warn" (click)="dialogClose()" class="!h-12 !rounded-xl !text-lg !px-8">
+          <button class="h-12 rounded-xl text-lg px-8 bg-red-500 text-white font-bold hover:bg-red-600 transition" (click)="dialogClose()">
             Schließen
           </button>
         </div>

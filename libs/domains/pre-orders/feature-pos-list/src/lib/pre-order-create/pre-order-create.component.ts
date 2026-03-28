@@ -2,12 +2,8 @@ import { Component, inject, OnInit, signal } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog'
-import { MatButtonModule } from '@angular/material/button'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
 import { MatDatepickerModule } from '@angular/material/datepicker'
 import { MatNativeDateModule } from '@angular/material/core'
-import { MatIconModule } from '@angular/material/icon'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import { PreOrdersStore } from '../pre-orders.store'
 import { PreOrderService, PreOrder } from '@panary-core/pre-orders/data-access'
@@ -22,12 +18,8 @@ import { debounceTime, tap } from 'rxjs/operators'
     CommonModule,
     ReactiveFormsModule,
     MatDialogModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatInputModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    MatIconModule,
     MatAutocompleteModule,
   ],
   template: `
@@ -35,31 +27,38 @@ import { debounceTime, tap } from 'rxjs/operators'
     <mat-dialog-content [formGroup]="form" class="flex flex-col gap-4 min-w-[500px]">
       <!-- Contact Info -->
       <div class="grid grid-cols-2 gap-4">
-        <mat-form-field appearance="outline">
-          <mat-label>Kundenname</mat-label>
-          <input matInput formControlName="name" placeholder="Max Mustermann" cdkFocusInitial />
-        </mat-form-field>
+        <div class="space-y-1">
+          <label class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1 block">Kundenname</label>
+          <input formControlName="name" placeholder="Max Mustermann" cdkFocusInitial
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none placeholder-slate-400" />
+        </div>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Telefon</mat-label>
-          <input matInput formControlName="phone" placeholder="0123 456789" />
-        </mat-form-field>
+        <div class="space-y-1">
+          <label class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1 block">Telefon</label>
+          <input formControlName="phone" placeholder="0123 456789"
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none placeholder-slate-400" />
+        </div>
       </div>
 
       <!-- Date/Time -->
-      <mat-form-field appearance="outline">
-        <mat-label>Datum & Uhrzeit</mat-label>
-        <input matInput type="datetime-local" formControlName="scheduledFor" />
-        <mat-hint>Wann soll die Bestellung abgeholt werden?</mat-hint>
-      </mat-form-field>
+      <div class="space-y-1">
+        <label class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1 block">Datum &amp; Uhrzeit</label>
+        <input type="datetime-local" formControlName="scheduledFor"
+          class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none placeholder-slate-400" />
+        <p class="text-xs text-slate-400 mt-1">Wann soll die Bestellung abgeholt werden?</p>
+      </div>
 
       <!-- Item Selection -->
       <div class="flex flex-col gap-2 border-t pt-4">
         <h3 class="font-bold text-gray-700">Artikel hinzufügen</h3>
 
-        <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Artikel suchen...</mat-label>
-          <input matInput [formControl]="searchControl" [matAutocomplete]="auto" />
+        <div class="space-y-1 relative">
+          <label class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1 block">Artikel suchen...</label>
+          <div class="relative">
+            <input [formControl]="searchControl" [matAutocomplete]="auto" placeholder="Name eingeben..."
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 pr-10 text-slate-800 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none placeholder-slate-400" />
+            <span class="material-symbols-outlined text-[20px] absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+          </div>
           <mat-autocomplete
             #auto="matAutocomplete"
             [displayWith]="displayFn"
@@ -74,8 +73,7 @@ import { debounceTime, tap } from 'rxjs/operators'
               </mat-option>
             }
           </mat-autocomplete>
-          <mat-icon matSuffix class="text-gray-400">search</mat-icon>
-        </mat-form-field>
+        </div>
 
         <!-- Selected Items List -->
         <div class="bg-gray-50 rounded-lg p-2 max-h-40 overflow-y-auto mb-2 border border-gray-200">
@@ -90,8 +88,9 @@ import { debounceTime, tap } from 'rxjs/operators'
               </div>
               <div class="flex items-center gap-2">
                 <span class="text-sm font-bold w-6 text-center">1x</span>
-                <button mat-icon-button color="warn" class="!w-8 !h-8" (click)="removeItem($index)">
-                  <mat-icon class="text-base text-red-400">delete</mat-icon>
+                <button type="button" (click)="removeItem($index)"
+                  class="flex items-center justify-center w-8 h-8 rounded-lg text-red-400 hover:bg-red-50 transition-colors">
+                  <span class="material-symbols-outlined text-[20px]">delete</span>
                 </button>
               </div>
             </div>
@@ -101,8 +100,12 @@ import { debounceTime, tap } from 'rxjs/operators'
     </mat-dialog-content>
 
     <mat-dialog-actions align="end" class="!px-6 !pb-6">
-      <button mat-button mat-dialog-close>Abbrechen</button>
-      <button mat-raised-button color="primary" [disabled]="form.invalid" (click)="save()">
+      <button type="button" mat-dialog-close
+        class="px-4 py-2 text-slate-600 hover:bg-slate-50 rounded-xl transition-colors">
+        Abbrechen
+      </button>
+      <button type="button" [disabled]="form.invalid" (click)="save()"
+        class="px-4 py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
         Reservierung Speichern
       </button>
     </mat-dialog-actions>

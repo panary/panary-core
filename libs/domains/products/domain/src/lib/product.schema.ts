@@ -154,7 +154,7 @@ export type ProductPatch = Static<typeof productPatchSchema>
 //#endregion
 
 //#region Schema für Suchanfragen (Query)
-export const productQueryProperties = Type.Pick(productSchema, ['_id', 'locationId', 'tenantId', 'externalId', 'status', 'name', 'productType'])
+export const productQueryProperties = Type.Pick(productSchema, ['_id', 'locationId', 'tenantId', 'externalId', 'status', 'name', 'productType', 'categoryIds', 'acronym', 'price'])
 export const productQuerySchema = Type.Intersect(
   [
     querySyntax(productQueryProperties),

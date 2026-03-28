@@ -17,7 +17,7 @@ export const appConfig: ApplicationConfig = {
         apiUrl: 'http://localhost:3030',
         websocketPath: '/ws',
         production: false,
-        appVersion: '2026.2.1',
+        appVersion: '2026.3.1',
         basicServerUrl: 'http://localhost:3030',
         printOut: false,
         localStorageServerSettingsKey: 'panary_server_settings',

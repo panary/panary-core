@@ -1,0 +1,19 @@
+{
+  "name": "data-access-updater",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/shared/data-access-updater/src",
+  "projectType": "library",
+  "tags": ["type:shared"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/shared/data-access-updater",
+        "main": "libs/shared/data-access-updater/src/index.ts",
+        "tsConfig": "libs/shared/data-access-updater/tsconfig.lib.json",
+        "assets": ["libs/shared/data-access-updater/*.md"]
+      }
+    }
+  }
+}

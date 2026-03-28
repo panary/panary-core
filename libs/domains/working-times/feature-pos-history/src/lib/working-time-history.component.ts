@@ -1,9 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
-import { MatCardModule } from '@angular/material/card'
-import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
 import { MatSelectModule } from '@angular/material/select'
 import { MatTableModule } from '@angular/material/table'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -29,9 +26,6 @@ export interface DailySummary {
     imports: [
         CommonModule,
         FormsModule,
-        MatCardModule,
-        MatButtonModule,
-        MatIconModule,
         MatSelectModule,
         MatTableModule,
         MatTooltipModule,

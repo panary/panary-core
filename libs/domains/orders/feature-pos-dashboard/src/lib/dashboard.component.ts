@@ -12,9 +12,6 @@ import { UserSystemRole } from '@panary-core/users/domain'
 import { AuthService } from '@panary-core/auth/data-access'
 import { WorkingTime, WorkingTimeService } from '@panary-core/working-times/data-access'
 import { LocationService } from '@panary-core/locations/data-access'
-import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
-import { MatCardModule } from '@angular/material/card'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dialog'
 import { ClosingDialogComponent } from '@panary-core/businessdays/feature-pos-closing-dialog'
@@ -32,7 +29,7 @@ interface QuickAction {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule, MatCardModule, MatDialogModule],
+  imports: [CommonModule, MatDialogModule],
   providers: [],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',

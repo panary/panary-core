@@ -6,6 +6,7 @@ import { DeviceConfigService } from '@panary-core/shared/data-access-config'
 import { ConnectionService } from '@panary-core/shared/data-access'
 import { TimeClockEvent, TimeClockPanelComponent } from './time-clock-panel/time-clock-panel.component'
 import { ThemeServiceService } from '@panary-core/shared/data-access-theme'
+import { UpdateService } from '@panary-core/shared/data-access-updater'
 
 interface PosUser {
   _id: string
@@ -35,6 +36,7 @@ export class LoginComponent implements OnInit {
   private readonly configService = inject(DeviceConfigService)
   private readonly connectionService = inject(ConnectionService)
   readonly themeService = inject(ThemeServiceService)
+  readonly updateService = inject(UpdateService)
   //#endregion
 
   //#region State
@@ -70,6 +72,7 @@ export class LoginComponent implements OnInit {
   //#region Lifecycle
   ngOnInit(): void {
     this.loadDeviceInfo()
+    this.updateService.startPeriodicCheck()
     this.connectAndLoadUsers().then(r => {
       /* empty */
     })

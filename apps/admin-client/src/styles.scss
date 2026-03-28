@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @font-face {
   font-family: 'Switzer';
   src: url('./assets/fonts/Switzer-Variable.woff2') format('woff2');
@@ -21,9 +23,15 @@ html, body {
   margin: 0;
   overflow: hidden;
   font-family: 'Switzer', sans-serif;
+  background-color: #f8fafc;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+}
+
+.dark body,
+body.dark {
   background-color: #000;
   color: #fff;
-  -webkit-font-smoothing: antialiased;
 }
 
 /* ===== Save-Button Micro-Interaction ===== */
@@ -46,20 +54,33 @@ html, body {
   transform: scale(0.95);
 }
 
-/* Default State */
+/* Default State — Light: dunkler Button */
 .save-btn--default {
+  background: #1e293b;
+  color: #fff;
+}
+.save-btn--default:hover:not(:disabled) {
+  background: #334155;
+}
+
+.dark .save-btn--default {
   background: #fff;
   color: #000;
 }
-.save-btn--default:hover:not(:disabled) {
+.dark .save-btn--default:hover:not(:disabled) {
   background: #e5e5e5;
 }
 
 /* Saving State: morpht zu Pill mit Spinner */
 .save-btn--saving {
+  background: #1e293b;
+  color: #fff;
+  pointer-events: none;
+}
+
+.dark .save-btn--saving {
   background: #fff;
   color: #000;
-  pointer-events: none;
 }
 
 /* Success State: grüner Hintergrund mit Häkchen */
@@ -92,10 +113,15 @@ html, body {
 .save-spinner {
   width: 18px;
   height: 18px;
-  border: 2.5px solid rgba(0,0,0,0.15);
-  border-top-color: #000;
+  border: 2.5px solid rgba(255,255,255,0.15);
+  border-top-color: #fff;
   border-radius: 50%;
   animation: save-spin 0.6s linear infinite;
+}
+
+.dark .save-spinner {
+  border: 2.5px solid rgba(0,0,0,0.15);
+  border-top-color: #000;
 }
 
 @keyframes save-spin {
@@ -126,6 +152,15 @@ html, body {
 }
 
 @keyframes save-reset {
+  0% { background: #22c55e; color: #fff; }
+  100% { background: #1e293b; color: #fff; }
+}
+
+.dark .save-btn--resetting {
+  animation: save-reset-dark 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes save-reset-dark {
   0% { background: #22c55e; color: #fff; }
   100% { background: #fff; color: #000; }
 }

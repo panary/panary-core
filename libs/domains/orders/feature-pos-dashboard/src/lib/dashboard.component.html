@@ -41,9 +41,8 @@
             }
           </span>
         </div>
-        <mat-icon class="text-slate-400 ml-1 transition-transform duration-200"
-          [class.rotate-180]="statusMenuOpen">expand_more
-        </mat-icon>
+        <span class="material-symbols-outlined text-[20px] text-slate-400 ml-1 transition-transform duration-200"
+          [class.rotate-180]="statusMenuOpen">expand_more</span>
       </button>
 
       <!-- Custom Dropdown Panel -->
@@ -56,7 +55,7 @@
           <button (click)="clockIn(); statusMenuOpen = false"
             class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-emerald-50 transition-colors group">
             <div class="p-2 rounded-lg bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200 transition-colors">
-              <mat-icon class="scale-90">login</mat-icon>
+              <span class="material-symbols-outlined text-[20px]">login</span>
             </div>
             <div class="flex flex-col">
               <span class="font-semibold text-slate-700 text-sm">Einstempeln</span>
@@ -68,7 +67,7 @@
           <button (click)="startBreak(); statusMenuOpen = false"
             class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-amber-50 transition-colors group">
             <div class="p-2 rounded-lg bg-amber-100 text-amber-600 group-hover:bg-amber-200 transition-colors">
-              <mat-icon class="scale-90">coffee</mat-icon>
+              <span class="material-symbols-outlined text-[20px]">coffee</span>
             </div>
             <div class="flex flex-col">
               <span class="font-semibold text-slate-700 text-sm">Pause beginnen</span>
@@ -79,7 +78,7 @@
           <button (click)="clockOut(); statusMenuOpen = false"
             class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-red-50 transition-colors group">
             <div class="p-2 rounded-lg bg-red-100 text-red-600 group-hover:bg-red-200 transition-colors">
-              <mat-icon class="scale-90">logout</mat-icon>
+              <span class="material-symbols-outlined text-[20px]">logout</span>
             </div>
             <div class="flex flex-col">
               <span class="font-semibold text-slate-700 text-sm">Ausstempeln</span>
@@ -91,7 +90,7 @@
           <button (click)="endBreak(); statusMenuOpen = false"
             class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-emerald-50 transition-colors group">
             <div class="p-2 rounded-lg bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200 transition-colors">
-              <mat-icon class="scale-90">play_arrow</mat-icon>
+              <span class="material-symbols-outlined text-[20px]">play_arrow</span>
             </div>
             <div class="flex flex-col">
               <span class="font-semibold text-slate-700 text-sm">Pause beenden</span>
@@ -102,7 +101,7 @@
           <button (click)="clockOut(); statusMenuOpen = false"
             class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-red-50 transition-colors group">
             <div class="p-2 rounded-lg bg-red-100 text-red-600 group-hover:bg-red-200 transition-colors">
-              <mat-icon class="scale-90">logout</mat-icon>
+              <span class="material-symbols-outlined text-[20px]">logout</span>
             </div>
             <div class="flex flex-col">
               <span class="font-semibold text-slate-700 text-sm">Ausstempeln</span>
@@ -115,8 +114,8 @@
       }
     </div>
 
-    <button mat-icon-button (click)="logout()" class="!text-slate-400 hover:!text-red-500 transition-colors">
-      <mat-icon>logout</mat-icon>
+    <button (click)="logout()" class="flex items-center justify-center w-10 h-10 text-slate-400 rounded-xl hover:text-red-500 hover:bg-[#f5f4f2] transition-colors">
+      <span class="material-symbols-outlined text-[20px]">logout</span>
     </button>
   </header>
 
@@ -131,7 +130,7 @@
           class="bg-white rounded-2xl p-5 border border-slate-200 flex flex-col justify-between hover:border-slate-300 transition-colors">
           <div class="flex justify-between items-start mb-2">
             <div class="p-2 rounded-xl bg-blue-50 text-blue-600">
-              <mat-icon class="text-base scale-110">shopping_cart</mat-icon>
+              <span class="material-symbols-outlined text-[20px]">shopping_cart</span>
             </div>
           </div>
           <div>
@@ -145,7 +144,7 @@
           class="bg-white rounded-2xl p-5 border border-slate-200 flex flex-col justify-between hover:border-slate-300 transition-colors">
           <div class="flex justify-between items-start mb-2">
             <div class="p-2 rounded-xl bg-indigo-50 text-indigo-600">
-              <mat-icon class="text-base scale-110">receipt_long</mat-icon>
+              <span class="material-symbols-outlined text-[20px]">receipt_long</span>
             </div>
           </div>
           <div>
@@ -159,7 +158,7 @@
           class="bg-white rounded-2xl p-5 border border-slate-200 flex flex-col justify-between hover:border-slate-300 transition-colors">
           <div class="flex justify-between items-start mb-2">
             <div class="p-2 rounded-xl bg-emerald-50 text-emerald-600">
-              <mat-icon class="text-base scale-110">flash_on</mat-icon>
+              <span class="material-symbols-outlined text-[20px]">flash_on</span>
             </div>
           </div>
           <div>
@@ -173,7 +172,7 @@
           class="bg-white rounded-2xl p-5 border border-slate-200 flex flex-col justify-between hover:border-slate-300 transition-colors">
           <div class="flex justify-between items-start mb-2">
             <div class="p-2 rounded-xl bg-amber-50 text-amber-600">
-              <mat-icon class="text-base scale-110">timer</mat-icon>
+              <span class="material-symbols-outlined text-[20px]">timer</span>
             </div>
           </div>
           <div>
@@ -215,7 +214,7 @@
         <button (click)="action.action()"
           class="group relative flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl border border-slate-200 bg-white transition-all duration-200 hover:bg-white hover:border-slate-300 active:scale-95 h-20 lg:h-auto lg:aspect-square">
           <div class="p-2 rounded-lg transition-colors duration-200 group-hover:scale-110" [ngClass]="action.bgClass">
-            <mat-icon [ngClass]="action.textClass" class="!text-xl !w-5 !h-5">{{ action.icon }}</mat-icon>
+            <span class="material-symbols-outlined text-[20px]" [ngClass]="action.textClass">{{ action.icon }}</span>
           </div>
           <span class="font-semibold text-[10px] text-slate-600 group-hover:text-slate-800 text-center leading-tight">
             {{ action.label }}

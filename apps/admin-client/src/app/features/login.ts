@@ -9,45 +9,54 @@ import { AuthService } from '../core/auth.service'
   imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-black flex items-center justify-center p-6">
+    <div class="min-h-screen bg-slate-50 dark:bg-black flex items-center justify-center p-6">
       <div class="w-full max-w-sm space-y-8">
         <div class="text-center">
-          <img src="assets/panary_logo_mono.svg" alt="Panary" class="h-8 mx-auto mb-6 opacity-60" />
+          <img src="assets/panary_logo_mono.svg" alt="Panary"
+               class="h-8 mx-auto mb-6 opacity-60" />
           <h1 class="text-2xl font-bold tracking-tight">Admin Panel</h1>
-          <p class="text-gray-500 mt-1 text-sm">Anmelden, um fortzufahren</p>
+          <p class="text-slate-400 dark:text-gray-500 mt-1 text-sm">Anmelden, um fortzufahren</p>
         </div>
 
         <form (ngSubmit)="onLogin()" class="space-y-4">
           <div class="space-y-1">
-            <label class="text-xs font-medium text-gray-400 uppercase tracking-wider">Login-Name</label>
+            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+              Login-Name
+            </label>
             <input
               [(ngModel)]="loginname" name="loginname" type="text" autofocus
-              class="w-full bg-gray-900 border border-gray-800 rounded-lg p-3 text-white
-                     focus:border-white focus:ring-1 focus:ring-white outline-none placeholder-gray-600"
+              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
+                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
+                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none
+                     placeholder-slate-400 dark:placeholder-gray-600"
               placeholder="Admin" />
           </div>
 
           <div class="space-y-1">
-            <label class="text-xs font-medium text-gray-400 uppercase tracking-wider">Passwort</label>
+            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+              Passwort
+            </label>
             <input
               [(ngModel)]="password" name="password" type="password"
-              class="w-full bg-gray-900 border border-gray-800 rounded-lg p-3 text-white
-                     focus:border-white focus:ring-1 focus:ring-white outline-none placeholder-gray-600"
+              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
+                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
+                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none
+                     placeholder-slate-400 dark:placeholder-gray-600"
               placeholder="••••••••" />
           </div>
 
           @if (error()) {
-            <p class="text-red-400 text-sm">{{ error() }}</p>
+            <p class="text-red-500 dark:text-red-400 text-sm">{{ error() }}</p>
           }
 
           <button
             type="submit"
             [disabled]="loading()"
-            class="w-full bg-white text-black font-bold py-3 rounded-xl text-base
-                   hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed">
+            class="w-full bg-slate-900 dark:bg-white text-white dark:text-black font-bold py-3 rounded-xl text-base
+                   hover:bg-slate-800 dark:hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed">
             @if (loading()) {
               <span class="flex items-center justify-center gap-2">
-                <span class="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
+                <span class="w-4 h-4 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin"></span>
                 Anmelden...
               </span>
             } @else {

@@ -1,8 +1,5 @@
 import { Component, inject, signal } from '@angular/core'
 import { CommonModule } from '@angular/common'
-import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
-import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { ThemeServiceService } from '@panary-core/shared/data-access-theme'
 import { LocationService } from '@panary-core/locations/data-access'
 import { ConnectionService } from '@panary-core/shared/data-access'
@@ -14,7 +11,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 @Component({
   selector: 'panary-settings',
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule, MatButtonToggleModule, FormsModule, MatTooltipModule],
+  imports: [CommonModule, FormsModule, MatTooltipModule],
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.scss'],
 })

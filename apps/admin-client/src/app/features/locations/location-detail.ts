@@ -13,61 +13,65 @@ import { formatApiError } from '../../core/error-helper'
       <h1 class="text-2xl font-bold tracking-tight">Standort</h1>
 
       @if (loading()) {
-        <p class="text-gray-500">Laden...</p>
+        <p class="text-slate-400 dark:text-gray-500">Laden...</p>
       } @else if (!locationId()) {
         <div class="text-center py-16">
-          <p class="text-gray-500 text-lg">Kein Standort vorhanden</p>
-          <p class="text-gray-600 text-sm mt-1">Der Standort wird beim ersten Setup automatisch erstellt.</p>
+          <p class="text-slate-400 dark:text-gray-500 text-lg">Kein Standort vorhanden</p>
+          <p class="text-slate-400 dark:text-gray-600 text-sm mt-1">Der Standort wird beim ersten Setup automatisch erstellt.</p>
         </div>
       } @else {
         <form (ngSubmit)="onSave()" class="space-y-5">
           <!-- Name -->
           <div class="space-y-1">
-            <label class="text-xs font-medium text-gray-400 uppercase tracking-wider">Name *</label>
+            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Name *</label>
             <input [(ngModel)]="form.name" name="name" type="text" required
-              class="w-full bg-gray-900 border border-gray-800 rounded-lg p-3 text-white
-                     focus:border-white focus:ring-1 focus:ring-white outline-none" />
+              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
+                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
+                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none" />
           </div>
 
           <div class="grid grid-cols-2 gap-4">
             <!-- E-Mail -->
             <div class="space-y-1">
-              <label class="text-xs font-medium text-gray-400 uppercase tracking-wider">E-Mail</label>
+              <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">E-Mail</label>
               <input [(ngModel)]="form.email" name="email" type="email"
-                class="w-full bg-gray-900 border border-gray-800 rounded-lg p-3 text-white
-                       focus:border-white focus:ring-1 focus:ring-white outline-none" />
+                class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
+                       text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
+                       focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none" />
             </div>
             <!-- Telefon -->
             <div class="space-y-1">
-              <label class="text-xs font-medium text-gray-400 uppercase tracking-wider">Telefon</label>
+              <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Telefon</label>
               <input [(ngModel)]="form.phone" name="phone" type="text"
-                class="w-full bg-gray-900 border border-gray-800 rounded-lg p-3 text-white
-                       focus:border-white focus:ring-1 focus:ring-white outline-none" />
+                class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
+                       text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
+                       focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none" />
             </div>
           </div>
 
           <!-- Status -->
           <div class="space-y-1">
-            <label class="text-xs font-medium text-gray-400 uppercase tracking-wider">Status</label>
+            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Status</label>
             <select [(ngModel)]="form.status" name="status"
-              class="w-full bg-gray-900 border border-gray-800 rounded-lg p-3 text-white outline-none">
+              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
+                     text-slate-900 dark:text-white outline-none">
               <option value="DRAFT">Entwurf</option>
               <option value="ACTIVE">Aktiv</option>
             </select>
           </div>
 
           @if (error()) {
-            <p class="text-red-400 text-sm">{{ error() }}</p>
+            <p class="text-red-500 dark:text-red-400 text-sm">{{ error() }}</p>
           }
 
           @if (saved()) {
-            <p class="text-green-400 text-sm">Gespeichert.</p>
+            <p class="text-green-500 dark:text-green-400 text-sm">Gespeichert.</p>
           }
 
           <div class="flex gap-3 pt-4">
             <button type="submit" [disabled]="saving()"
-              class="bg-white text-black font-bold px-8 py-3 rounded-xl text-sm hover:bg-gray-200 transition
-                     disabled:opacity-50">
+              class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-8 py-3 rounded-xl text-sm
+                     hover:bg-slate-800 dark:hover:bg-gray-200 transition disabled:opacity-50">
               {{ saving() ? 'Speichern...' : 'Speichern' }}
             </button>
           </div>

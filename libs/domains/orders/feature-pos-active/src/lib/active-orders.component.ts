@@ -1,8 +1,6 @@
 import { Component, computed, inject, signal, WritableSignal } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { Router } from '@angular/router'
-import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
 import { MatDialog } from '@angular/material/dialog'
 import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dialog'
 import {
@@ -20,7 +18,7 @@ import { AuthService } from '@panary-core/auth/data-access'
 @Component({
   selector: 'app-active-orders',
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule],
+  imports: [CommonModule],
   templateUrl: './active-orders.component.html',
   styleUrl: './active-orders.component.scss',
 })

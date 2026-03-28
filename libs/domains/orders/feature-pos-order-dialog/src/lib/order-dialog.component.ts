@@ -16,13 +16,6 @@ import {
 } from '@angular/core'
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
 import { MatMenuModule } from '@angular/material/menu'
-import { MatIconModule } from '@angular/material/icon'
-import { MatDividerModule } from '@angular/material/divider'
-import { MatBadgeModule } from '@angular/material/badge'
-import { MatChipsModule } from '@angular/material/chips'
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator'
-import { MatButtonModule } from '@angular/material/button'
-import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { FormsModule } from '@angular/forms'
 import { CommonModule } from '@angular/common'
 import { animate, style, transition, trigger } from '@angular/animations'
@@ -75,13 +68,6 @@ export class AbsPipe implements PipeTransform {
   imports: [
     AbsPipe,
     CommonModule,
-    MatIconModule,
-    MatDividerModule,
-    MatBadgeModule,
-    MatChipsModule,
-    MatPaginatorModule,
-    MatButtonModule,
-    MatButtonToggleModule,
     FormsModule,
     MatMenuModule,
   ],
@@ -2114,7 +2100,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // TODO: Zeichenfilter für Firmenkunden implementieren
   }
 
-  handleCustomerPageEvent(_event: PageEvent): void {
+  handleCustomerPageEvent(_event: { pageIndex: number; pageSize: number }): void {
     // TODO: Paginierung für Firmenkunden implementieren
   }
 

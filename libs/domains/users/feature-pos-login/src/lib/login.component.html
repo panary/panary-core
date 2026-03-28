@@ -180,7 +180,26 @@
 
     <!-- Footer with Connection Indicator -->
     <div class="absolute bottom-24 lg:bottom-4 left-0 right-0 px-6 flex items-center justify-between">
-      <p class="text-xs text-gray-400">Panary Terminal • Version 2025.12.3</p>
+      <p class="text-xs text-gray-400">Panary Terminal &bull; Version 2026.3.1</p>
+
+      <!-- Update-Indikator -->
+      @if (updateService.hasUpdate()) {
+      <div class="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full">
+        <span class="text-xs font-medium text-amber-700">
+          v{{ updateService.updateAvailable()!.version }} verf&uuml;gbar
+        </span>
+        <button
+          class="px-3 py-1 text-xs font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-full transition-colors min-h-[32px] disabled:opacity-60"
+          (click)="updateService.downloadAndInstall()"
+          [disabled]="updateService.isDownloading()">
+          @if (updateService.isDownloading()) {
+            Aktualisiere… {{ updateService.downloadProgress() }}%
+          } @else {
+            Aktualisieren &amp; Neustarten
+          }
+        </button>
+      </div>
+      }
 
       <!-- Connection Status Indicator -->
       <div class="flex items-center gap-2">

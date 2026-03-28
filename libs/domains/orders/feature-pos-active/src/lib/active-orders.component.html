@@ -3,28 +3,28 @@
   <header
     class="flex-none bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm z-10">
     <div class="flex items-center gap-4">
-      <button mat-icon-button (click)="goBack()" class="bg-slate-50 border border-slate-200 !text-slate-600">
-        <mat-icon>arrow_back</mat-icon>
+      <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl hover:bg-[#f5f4f2] transition-colors">
+        <span class="material-symbols-outlined text-[20px]">arrow_back</span>
       </button>
       <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-        <mat-icon class="text-blue-600">receipt</mat-icon>
+        <span class="material-symbols-outlined text-[20px] text-blue-600">receipt</span>
         Offene Bestellungen
       </h1>
       <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold"> {{ orders().length }}</span>
-      <button mat-flat-button color="primary" (click)="openQuickOrder()" class="!rounded-xl !h-10 ml-4">
-        <mat-icon>add_circle</mat-icon>
+      <button (click)="openQuickOrder()" class="flex items-center gap-2 rounded-xl h-10 px-4 ml-4 bg-yellow-500 text-slate-800 font-bold hover:bg-yellow-400 transition-colors">
+        <span class="material-symbols-outlined text-[20px]">add_circle</span>
         Neue Bestellung
       </button>
     </div>
 
     <div class="flex items-center gap-2">
-      <button mat-icon-button (click)="decreaseZoom()" class="text-slate-500">
-        <mat-icon>remove_circle_outline</mat-icon>
+      <button (click)="decreaseZoom()" class="flex items-center justify-center w-10 h-10 text-slate-500 rounded-xl hover:bg-[#f5f4f2] transition-colors">
+        <span class="material-symbols-outlined text-[20px]">remove_circle_outline</span>
       </button>
       <span class="text-sm font-bold text-slate-600 min-w-[3ch] text-center">{{ zoomLevel() * 100 | number: '1.0-0'
         }}%</span>
-      <button mat-icon-button (click)="increaseZoom()" class="text-slate-500">
-        <mat-icon>add_circle_outline</mat-icon>
+      <button (click)="increaseZoom()" class="flex items-center justify-center w-10 h-10 text-slate-500 rounded-xl hover:bg-[#f5f4f2] transition-colors">
+        <span class="material-symbols-outlined text-[20px]">add_circle_outline</span>
       </button>
     </div>
   </header>
@@ -33,7 +33,7 @@
   <main class="flex-1 overflow-x-auto overflow-y-hidden p-6 relative">
     @if (sortedOrders().length === 0) {
       <div class="absolute inset-0 flex flex-col items-center justify-center text-slate-300 select-none pointer-events-none">
-        <mat-icon class="!w-32 !h-32 !text-[128px] opacity-20 mb-4">check_circle_outline</mat-icon>
+        <span class="material-symbols-outlined text-[128px] opacity-20 mb-4">check_circle_outline</span>
         <h2 class="text-3xl font-bold text-slate-400 opacity-60">Alles erledigt</h2>
         <p class="text-lg text-slate-400 opacity-50 mt-2">Im Moment gibt es keine offenen Bestellungen.</p>
       </div>
@@ -48,28 +48,28 @@
             <div
               class="absolute inset-0 bg-slate-900/40 z-20 flex flex-col items-center justify-center gap-4 backdrop-blur-[2px] scale-in-center p-6">
               <div class="grid grid-cols-2 gap-4 w-full px-2">
-                <button mat-flat-button
-                  class="!h-24 !w-full !rounded-2xl !bg-white !text-slate-800 !flex !flex-col !items-center !justify-center !gap-1 shadow-lg border border-slate-100"
+                <button
+                  class="h-24 w-full rounded-2xl bg-white text-slate-800 flex flex-col items-center justify-center gap-1 shadow-lg border border-slate-100 hover:bg-[#f5f4f2] transition-colors"
                   (click)="convertToStaffMeal(order); $event.stopPropagation()">
-                  <mat-icon class="!w-8 !h-8 !text-3xl !mb-1 scale-125">badge</mat-icon>
+                  <span class="material-symbols-outlined text-[32px] mb-1">badge</span>
                   <span class="text-xs font-bold uppercase tracking-wide">Mitarbeiter</span>
                 </button>
-                <button mat-flat-button
-                  class="!h-24 !w-full !rounded-2xl !bg-white !text-slate-800 !flex !flex-col !items-center !justify-center !gap-1 shadow-lg border border-slate-100"
+                <button
+                  class="h-24 w-full rounded-2xl bg-white text-slate-800 flex flex-col items-center justify-center gap-1 shadow-lg border border-slate-100 hover:bg-[#f5f4f2] transition-colors"
                   (click)="cancelOrder(order); $event.stopPropagation()">
-                  <mat-icon class="!w-8 !h-8 !text-3xl !mb-1 scale-125">cancel</mat-icon>
+                  <span class="material-symbols-outlined text-[32px] mb-1">cancel</span>
                   <span class="text-xs font-bold uppercase tracking-wide">Storno</span>
                 </button>
-                <button mat-flat-button
-                  class="!h-24 !w-full !rounded-2xl !bg-white !text-slate-800 !flex !flex-col !items-center !justify-center !gap-1 shadow-lg border border-slate-100"
+                <button
+                  class="h-24 w-full rounded-2xl bg-white text-slate-800 flex flex-col items-center justify-center gap-1 shadow-lg border border-slate-100 hover:bg-[#f5f4f2] transition-colors"
                   (click)="enterDiscount(order); $event.stopPropagation()">
-                  <mat-icon class="!w-8 !h-8 !text-3xl !mb-1 scale-125">percent</mat-icon>
+                  <span class="material-symbols-outlined text-[32px] mb-1">percent</span>
                   <span class="text-xs font-bold uppercase tracking-wide">Rabatt</span>
                 </button>
-                <button mat-flat-button
-                  class="!h-24 !w-full !rounded-2xl !bg-white !text-slate-800 !flex !flex-col !items-center !justify-center !gap-1 shadow-lg border border-slate-100"
+                <button
+                  class="h-24 w-full rounded-2xl bg-white text-slate-800 flex flex-col items-center justify-center gap-1 shadow-lg border border-slate-100 hover:bg-[#f5f4f2] transition-colors"
                   (click)="recordCorporateOrder(order); $event.stopPropagation()">
-                  <mat-icon class="!w-8 !h-8 !text-3xl !mb-1 scale-125">business</mat-icon>
+                  <span class="material-symbols-outlined text-[32px] mb-1">business</span>
                   <span class="text-xs font-bold uppercase tracking-wide">Firma</span>
                 </button>
               </div>
@@ -84,13 +84,13 @@
             <!-- Staff/Corporate Badge header -->
             @if (order.staffPaymentInfo) {
             <div class="bg-violet-100 text-violet-700 px-4 py-1.5 text-xs font-bold text-center border-b border-violet-200">
-              <mat-icon class="scale-75 align-bottom h-4 w-4 mr-1">badge</mat-icon>
+              <span class="material-symbols-outlined text-[16px] align-bottom mr-1">badge</span>
               Mitarbeiter: {{ order.staffPaymentInfo.userName }}
             </div>
             }
             @if (order.customerPaymentInfo) {
             <div class="bg-orange-100 text-orange-700 px-4 py-1.5 text-xs font-bold text-center border-b border-orange-200">
-              <mat-icon class="scale-75 align-bottom h-4 w-4 mr-1">business</mat-icon>
+              <span class="material-symbols-outlined text-[16px] align-bottom mr-1">business</span>
               Firma: {{ order.customerPaymentInfo.customerName }}
             </div>
             }
@@ -113,12 +113,12 @@
                 @if (order.dineLocation === 'dine-in') {
                 <span
                   class="flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-xs font-bold uppercase">
-                  <mat-icon class="scale-75 text-base h-4 w-4">restaurant</mat-icon> Im Haus
+                  <span class="material-symbols-outlined text-[16px]">restaurant</span> Im Haus
                 </span>
                 } @else {
                 <span
                   class="flex items-center gap-1 bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-bold uppercase">
-                  <mat-icon class="scale-75 text-base h-4 w-4">shopping_bag</mat-icon> To Go
+                  <span class="material-symbols-outlined text-[16px]">shopping_bag</span> To Go
                 </span>
                 }
 
@@ -130,7 +130,7 @@
 
                 @if (order.pager) {
                 <span class="flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-0.5 rounded text-xs font-bold">
-                  <mat-icon class="scale-75 text-base h-4 w-4 inline-block align-middle">notifications_active</mat-icon>
+                  <span class="material-symbols-outlined text-[16px] inline-block align-middle">notifications_active</span>
                   Pager {{ order.pager }}
                 </span>
                 }
@@ -164,7 +164,7 @@
                       @if (item.menuSideDish) {
                       <div class="text-xs text-slate-500 pl-2 flex items-center justify-between gap-2 mt-0.5">
                         <div class="flex items-center gap-1">
-                          <mat-icon class="scale-50 h-3 w-3 -ml-1">restaurant_menu</mat-icon>
+                          <span class="material-symbols-outlined text-[12px] -ml-1">restaurant_menu</span>
                           <span>{{ item.menuSideDish.name }}</span>
                         </div>
                         @if (item.menuSideDish.price > 0) {
@@ -175,7 +175,7 @@
                       @if (item.menuDrink) {
                       <div class="text-xs text-slate-500 pl-2 flex items-center justify-between gap-2 mt-0.5">
                         <div class="flex items-center gap-1">
-                          <mat-icon class="scale-50 h-3 w-3 -ml-1">local_cafe</mat-icon>
+                          <span class="material-symbols-outlined text-[12px] -ml-1">local_cafe</span>
                           <span>{{ item.menuDrink.name }}</span>
                         </div>
                         @if (item.menuDrink.price > 0) {
@@ -242,22 +242,21 @@
 
               <div class="flex justify-between gap-2">
                 <!-- Print Button -->
-                <button mat-icon-button class="hover-morph-btn !bg-slate-100 !text-slate-600 !w-12 !h-12"
+                <button class="hover-morph-btn flex items-center justify-center bg-slate-100 text-slate-600 w-12 h-12 rounded-xl hover:bg-[#f5f4f2] transition-colors"
                   (click)="printOrder($event, order)">
-                  <mat-icon>print</mat-icon>
+                  <span class="material-symbols-outlined text-[20px]">print</span>
                 </button>
 
                 <div class="flex gap-2 flex-1 justify-end">
                   <!-- Complete Order (Finish) -->
-                  <button mat-icon-button class="hover-morph-btn !bg-emerald-100 !text-emerald-700 !w-12 !h-12"
-                    (click)="completeOrder($event, order)" matTooltip="Bestellung abschließen">
-                    <mat-icon>done_all</mat-icon>
+                  <button class="hover-morph-btn flex items-center justify-center bg-emerald-100 text-emerald-700 w-12 h-12 rounded-xl hover:bg-emerald-200 transition-colors"
+                    (click)="completeOrder($event, order)" title="Bestellung abschließen">
+                    <span class="material-symbols-outlined text-[20px]">done_all</span>
                   </button>
                   <!-- Checkout (Kassieren) -->
-                  <button mat-flat-button color="primary"
-                    class="!bg-slate-800 !text-white !h-12 !px-6 !rounded-xl flex-1 max-w-[140px] flex items-center justify-center gap-2"
+                  <button
+                    class="bg-slate-800 text-white h-12 px-6 rounded-xl flex-1 max-w-[140px] flex items-center justify-center gap-2 hover:bg-slate-700 transition-colors"
                     (click)="checkoutOrder($event, order)">
-                    <!--                  <mat-icon>payments</mat-icon>-->
                     <span class="uppercase font-bold tracking-wide text-sm hidden sm:inline">Kassieren</span>
                   </button>
                 </div>

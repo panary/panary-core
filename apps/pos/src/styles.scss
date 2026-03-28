@@ -14,15 +14,32 @@ html {
   ));
 }
 
-/* Material-Komponenten: Switzer als Schriftart erzwingen */
+/* Material-Komponenten: Switzer als Schriftart global erzwingen */
+:root {
+  --mdc-typography-font-family: 'Switzer', sans-serif;
+  --mat-sys-body-medium-font: 'Switzer', sans-serif;
+  --mat-sys-body-large-font: 'Switzer', sans-serif;
+  --mat-sys-label-large-font: 'Switzer', sans-serif;
+  --mat-sys-title-medium-font: 'Switzer', sans-serif;
+  --mat-table-header-headline-font: 'Switzer', sans-serif;
+  --mat-table-row-item-label-text-font: 'Switzer', sans-serif;
+  --mat-select-trigger-text-font: 'Switzer', sans-serif;
+  --mat-option-label-text-font: 'Switzer', sans-serif;
+  --mat-menu-item-label-text-font: 'Switzer', sans-serif;
+}
+
+.mat-mdc-table,
+.mat-mdc-header-cell,
+.mat-mdc-cell,
 .mat-mdc-snack-bar-container,
 .mat-mdc-select,
 .mat-mdc-option,
 .mat-mdc-menu-panel,
 .mat-mdc-dialog-container,
 .mat-mdc-form-field,
-.mat-mdc-button,
-.mat-mdc-tooltip {
+.mat-mdc-tooltip,
+.mdc-data-table__cell,
+.mdc-data-table__header-cell {
   font-family: 'Switzer', sans-serif !important;
 }
 

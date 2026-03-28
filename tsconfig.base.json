@@ -71,10 +71,13 @@
       "@panary-core/shared/ui-common": ["libs/shared/ui-common/src/index.ts"],
       "@panary-core/businessdays/domain": ["libs/domains/businessdays/domain/src/index.ts"],
       "@panary-core/businessdays/data-access": ["libs/domains/businessdays/data-access/src/index.ts"],
-      "@panary-core/businessdays/feature-pos-closing-dialog": ["libs/domains/businessdays/feature-pos-closing-dialog/src/index.ts"],
+      "@panary-core/businessdays/feature-pos-closing-dialog": [
+        "libs/domains/businessdays/feature-pos-closing-dialog/src/index.ts"
+      ],
       "@panary-core/ingredients/data-access": ["libs/domains/ingredients/data-access/src/index.ts"],
       "@panary-core/recipes/data-access": ["libs/domains/recipes/data-access/src/index.ts"],
-      "@panary-core/orders/feature-pos-order-dialog": ["libs/domains/orders/feature-pos-order-dialog/src/index.ts"]
+      "@panary-core/orders/feature-pos-order-dialog": ["libs/domains/orders/feature-pos-order-dialog/src/index.ts"],
+      "@panary-core/shared/data-access-updater": ["libs/shared/data-access-updater/src/index.ts"]
     }
   }
 }

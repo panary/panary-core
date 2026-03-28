@@ -2,14 +2,6 @@ import { ChangeDetectionStrategy, Component, inject, OnInit, signal, WritableSig
 import { Router } from '@angular/router'
 import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
-import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
-import { MatChipsModule } from '@angular/material/chips'
-import { MatCardModule } from '@angular/material/card'
-import { MatDatepickerModule } from '@angular/material/datepicker'
-import { MatNativeDateModule } from '@angular/material/core'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { PreOrder, PreOrderService } from '@panary-core/pre-orders/data-access'
 import { MatDialog } from '@angular/material/dialog'
@@ -22,14 +14,6 @@ import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dial
   imports: [
     CommonModule,
     FormsModule,
-    MatIconModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatChipsModule,
-    MatCardModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
   ],
   template: `
     <div class="h-full w-full bg-slate-50 p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border">
@@ -37,15 +21,15 @@ import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dial
       <header class="flex-none flex flex-col gap-4 bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
         <div class="flex flex-row items-center justify-between">
           <div class="flex items-center gap-4">
-            <button mat-icon-button (click)="goBack()" class="!bg-slate-50 !text-slate-600">
-              <mat-icon>arrow_back</mat-icon>
+            <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 transition-colors">
+              <span class="material-symbols-outlined text-[20px]">arrow_back</span>
             </button>
             <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-              <mat-icon class="text-indigo-600">event_note</mat-icon>
+              <span class="material-symbols-outlined text-[20px] text-indigo-600">event_note</span>
               Vorbestellungen
             </h1>
-            <button mat-flat-button color="primary" (click)="openCreateDialog()" class="!rounded-xl !h-10 ml-4">
-              <mat-icon>add_circle</mat-icon>
+            <button (click)="openCreateDialog()" class="ml-4 flex items-center gap-2 h-10 px-4 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 active:scale-95 transition-all">
+              <span class="material-symbols-outlined text-[20px]">add_circle</span>
               Neue Vorbestellung
             </button>
           </div>
@@ -56,14 +40,14 @@ import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dial
         </div>
 
         <div class="relative">
-          <mat-icon class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</mat-icon>
+          <span class="material-symbols-outlined text-[20px] absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
           <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="fetchOrders()"
                  placeholder="Suche nach Name, Telefon..."
                  class="w-full h-12 pl-10 pr-4 rounded-xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-indigo-200 transition-all text-slate-700 placeholder:text-slate-400" />
           <button
             class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-600 text-white rounded-lg shadow-sm hover:bg-indigo-700 active:scale-95 transition-all"
             (click)="fetchOrders()">
-            <mat-icon class="!w-5 !h-5 !text-[20px]">arrow_forward</mat-icon>
+            <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
           </button>
         </div>
       </header>
@@ -81,7 +65,7 @@ import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dial
             </div>
           } @else if (orders().length === 0) {
             <div class="flex-1 flex justify-center items-center flex-col gap-4 text-slate-300">
-              <mat-icon class="!w-16 !h-16 !text-[64px]">event_busy</mat-icon>
+              <span class="material-symbols-outlined text-[64px]">event_busy</span>
               <span class="font-medium">Keine Vorbestellungen gefunden</span>
             </div>
           } @else {
@@ -109,7 +93,7 @@ import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dial
                     {{ order.customerContact.name }}
                   </div>
                   <div class="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                    <mat-icon class="!w-3 !h-3 !text-[12px]">phone</mat-icon>
+                    <span class="material-symbols-outlined text-[12px]">phone</span>
                     {{ order.customerContact.phone }}
                   </div>
 
@@ -121,7 +105,7 @@ import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dial
                     @if (order.status === 'converted') {
                       <span
                         class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <mat-icon class="!w-3 !h-3 !text-[12px]">check</mat-icon> Erledigt
+                        <span class="material-symbols-outlined text-[12px]">check</span> Erledigt
                       </span>
                     } @else if (order.status === 'cancelled') {
                       <span class="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
@@ -140,17 +124,17 @@ import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dial
         </div>
 
         <!-- Order Detail -->
+        @if (selectedOrder()) {
         <div
-          class="flex-1 lg:max-w-[450px] bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col"
-          *ngIf="selectedOrder()">
+          class="flex-1 lg:max-w-[450px] bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
           <!-- Detail Header -->
           <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
             <div>
               <h2 class="font-bold text-lg text-slate-800">Details</h2>
               <p class="text-xs text-slate-500">{{ selectedOrder()?.scheduledFor | date: 'dd.MM.yyyy HH:mm' }}</p>
             </div>
-            <button mat-icon-button (click)="selectedOrder.set(null)" class="lg:hidden">
-              <mat-icon>close</mat-icon>
+            <button (click)="selectedOrder.set(null)" class="lg:hidden flex items-center justify-center w-10 h-10 text-slate-500 rounded-xl hover:bg-slate-100 transition-colors">
+              <span class="material-symbols-outlined text-[20px]">close</span>
             </button>
           </div>
 
@@ -160,7 +144,7 @@ import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dial
             <div class="mb-4 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
               <div class="font-bold text-indigo-900 text-lg">{{ selectedOrder()?.customerContact?.name }}</div>
               <div class="text-indigo-700 flex items-center gap-2 mt-1">
-                <mat-icon class="!w-4 !h-4 !text-[16px]">phone</mat-icon>
+                <span class="material-symbols-outlined text-[16px]">phone</span>
                 {{ selectedOrder()?.customerContact?.phone }}
               </div>
               @if (selectedOrder()?.note) {
@@ -191,35 +175,41 @@ import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dial
             </div>
 
             <!-- Metadata Actions -->
-            <div class="mt-6 grid grid-cols-2 gap-3" *ngIf="selectedOrder()?.status === 'pending'">
+            @if (selectedOrder()?.status === 'pending') {
+            <div class="mt-6 grid grid-cols-2 gap-3">
               <button
                 class="col-span-2 h-12 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2"
                 (click)="convertToLiveOrder(selectedOrder()!)">
-                <mat-icon>point_of_sale</mat-icon>
+                <span class="material-symbols-outlined text-[20px]">point_of_sale</span>
                 In Kasse übernehmen
               </button>
 
               <button
                 class="col-span-2 h-12 rounded-lg bg-white border border-slate-200 text-red-600 font-medium hover:bg-red-50 active:scale-95 transition-all flex items-center justify-center gap-2"
                 (click)="cancelOrder(selectedOrder()!)">
-                <mat-icon>delete</mat-icon>
+                <span class="material-symbols-outlined text-[20px]">delete</span>
                 Bestellung stornieren
               </button>
             </div>
-            <div class="mt-6 text-center text-slate-400 text-sm" *ngIf="selectedOrder()?.status !== 'pending'">
+            }
+            @if (selectedOrder()?.status !== 'pending') {
+            <div class="mt-6 text-center text-slate-400 text-sm">
               Diese Bestellung ist bereits {{ selectedOrder()?.status === 'converted' ? 'abgeschlossen' : 'storniert' }}
               .
             </div>
+            }
           </div>
         </div>
+        }
 
         <!-- Placeholder -->
+        @if (!selectedOrder()) {
         <div
-          class="hidden lg:flex flex-1 max-w-[450px] bg-slate-50/50 border border-dashed border-slate-200 rounded-2xl justify-center items-center text-slate-400 flex-col gap-2"
-          *ngIf="!selectedOrder()">
-          <mat-icon class="!w-12 !h-12 !text-[48px] opacity-20">event_note</mat-icon>
+          class="hidden lg:flex flex-1 max-w-[450px] bg-slate-50/50 border border-dashed border-slate-200 rounded-2xl justify-center items-center text-slate-400 flex-col gap-2">
+          <span class="material-symbols-outlined text-[48px] opacity-20">event_note</span>
           <span class="text-sm font-medium opacity-50">Wähle eine Vorbestellung</span>
         </div>
+        }
       </div>
     </div>
   `,

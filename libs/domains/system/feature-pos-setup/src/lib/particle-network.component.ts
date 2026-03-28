@@ -9,7 +9,7 @@ interface Particle {
 }
 
 @Component({
-  selector: 'app-particle-network',
+  selector: 'lib-particle-network',
   standalone: true,
   imports: [CommonModule],
   template: `

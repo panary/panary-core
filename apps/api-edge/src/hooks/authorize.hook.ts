@@ -72,6 +72,8 @@ function getActionFromMethod(method: string): AppAction {
       return AppAction.UPDATE
     case 'remove':
       return AppAction.DELETE
+    case 'convert':
+      return AppAction.UPDATE
     default:
       return AppAction.READ
   }

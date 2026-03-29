@@ -24,6 +24,7 @@ import {
   customerSchema
 } from '@panary-core/customers/domain'
 import type { Customer, CustomerService } from './customers.class'
+import { logger } from '../../logger'
 
 export const customersPath = 'customers'
 export const customersMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
@@ -79,7 +80,7 @@ export const customers = (app: Application) => {
           { key: { tenantId: 1, locationId: 1 }, name: 'tenant_location_index' },
           { key: { status: 1 }, name: 'status_index' },
         ])
-        console.log('MongoDB Indexes ensured for Customers.')
+        logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'mongodb', service: 'customers' })
       }
     }
 
@@ -105,10 +106,10 @@ export const customers = (app: Application) => {
           await knex.raw(
             `CREATE INDEX IF NOT EXISTS idx_customers_tenant_location ON "${tableName}" (tenantId, locationId)`
           )
-          console.log('SQLite Indexes ensured for Customers.')
+          logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'sqlite', service: 'customers' })
         }
       } catch (error) {
-        console.error('Error ensuring SQLite indexes:', error)
+        logger.error({ message: 'Failed to ensure indexes', event: 'db.indexes_error', dbType: 'sqlite', service: 'customers', error: String(error) })
         // App should still start, maybe the database is locked
       }
     }

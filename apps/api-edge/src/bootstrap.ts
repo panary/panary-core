@@ -1,5 +1,6 @@
 import path from 'path'
 import fs from 'fs'
+import { logger } from './logger'
 
 // Wir definieren mögliche Orte, wo die Config liegen könnte.
 // Die Reihenfolge ist wichtig!
@@ -31,9 +32,11 @@ for (const p of potentialPaths) {
 
 if (configDir) {
   process.env['NODE_CONFIG_DIR'] = configDir
-  console.log('BOOTSTRAP: Config found at:', configDir)
+  logger.info({ message: 'Config directory found', event: 'bootstrap.config', configDir })
 } else {
-  console.error('BOOTSTRAP ERROR: No config directory found!')
-  console.error('   Checked locations:', potentialPaths)
-  // Wir setzen keinen Pfad, damit node-config sein Standardverhalten nutzt (oder crasht)
+  logger.error({
+    message: 'No config directory found',
+    event: 'bootstrap.config_missing',
+    checkedLocations: potentialPaths,
+  })
 }

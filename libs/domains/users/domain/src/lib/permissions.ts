@@ -12,6 +12,8 @@ export const AppResource = {
   CUSTOMERS: 'customers',
   ORDER_INTERACTIONS: 'order-interactions',
   WORKING_TIMES: 'working-times',
+  PRE_ORDERS: 'pre-orders',
+  PRINT_SERVER: 'print-server',
 } as const
 
 export type AppResource = (typeof AppResource)[keyof typeof AppResource]

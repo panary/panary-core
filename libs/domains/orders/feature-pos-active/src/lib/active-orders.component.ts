@@ -1,7 +1,8 @@
-import { Component, computed, inject, signal, WritableSignal } from '@angular/core'
+import { Component, computed, effect, inject, signal, WritableSignal } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { Router } from '@angular/router'
 import { MatDialog } from '@angular/material/dialog'
+import { MatSnackBar } from '@angular/material/snack-bar'
 import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dialog'
 import {
   Order,
@@ -13,7 +14,23 @@ import {
   Transaction,
   TransactionMethod,
 } from '@panary-core/orders/data-access'
+import { PrintDialogComponent } from '@panary-core/orders/data-access'
 import { AuthService } from '@panary-core/auth/data-access'
+import { UserService } from '@panary-core/users/data-access'
+import { User, UserSystemRole } from '@panary-core/users/domain'
+import { CorporateCustomerService } from '@panary-core/corporate-customers/data-access'
+import { CorporateCustomer } from '@panary-core/corporate-customers/domain'
+
+type OverlayView = 'actions' | 'staff-meal' | 'cancel-reason' | 'cancel-pin' | 'discount' | 'corporate'
+
+const CANCEL_REASONS = [
+  'Kundenreklamation',
+  'Fehlerhafte Eingabe',
+  'Doppelte Bestellung',
+  'Sonstiger Grund',
+] as const
+
+const DISCOUNT_PRESETS = [5, 10, 15, 20, 25, 30] as const
 
 @Component({
   selector: 'app-active-orders',
@@ -23,39 +40,109 @@ import { AuthService } from '@panary-core/auth/data-access'
   styleUrl: './active-orders.component.scss',
 })
 export class ActiveOrdersComponent {
-  #orderService=inject(OrderService)
-  #router=inject(Router)
-  #authService=inject(AuthService)
+  #orderService = inject(OrderService)
+  #router = inject(Router)
+  #authService = inject(AuthService)
+  #matDialog = inject(MatDialog)
+  #snackBar = inject(MatSnackBar)
+  #userService = inject(UserService)
+  #corporateCustomerService = inject(CorporateCustomerService)
 
   // Sort orders by recordingDate descending (Newest first)
-  sortedOrders=computed(() => {
+  sortedOrders = computed(() => {
     return this.#orderService.ordersActive().sort((a, b) => {
-      return new Date(b.recordingDate).getTime()-new Date(a.recordingDate).getTime()
+      return new Date(b.recordingDate).getTime() - new Date(a.recordingDate).getTime()
     })
   })
 
-  // Provide the orders signal for the template (using sorted ones)
-  orders=this.sortedOrders
+  orders = this.sortedOrders
   protected readonly OrderStatus = OrderStatus
 
-  #matDialog=inject(MatDialog)
+  zoomLevel: WritableSignal<number> = signal(0.85)
+  selectedOrderId: WritableSignal<string | null> = signal(null)
 
-  zoomLevel: WritableSignal<number>=signal(0.85) // Default smaller
-  selectedOrderId: WritableSignal<string|null>=signal(null)
+  // max-height der Karte in CSS-Koordinaten, korrigiert um den Zoom-Faktor:
+  // Verfügbare visuelle Höhe = 100dvh − App-Header(4rem) − Main-Padding(3rem)
+  // Im Zoom-Koordinatensystem: ÷ zoom − Buttons(3rem) − Gap(0.5rem)
+  cardMaxHeight = computed(() => `calc((100dvh - 7rem) / ${this.zoomLevel()} - 3.5rem)`)
+
+  // Steuert aktive Sub-Ansicht im Overlay
+  overlayView: WritableSignal<OverlayView> = signal('actions')
+
+  // Mitarbeiter mit Personalessen-Berechtigung
+  staffEligibleUsers: WritableSignal<User[]> = signal([])
+  staffUsersLoading: WritableSignal<boolean> = signal(false)
+
+  // Storno
+  cancelReasons = CANCEL_REASONS
+  cancelReason = signal<string>('')
+  cancelPin = signal<string>('')
+  managerUsers = signal<User[]>([])
+  managersLoading = signal(false)
+
+  // Rabatt
+  discountPresets = DISCOUNT_PRESETS
+
+  // Firma
+  corporateCustomers = signal<CorporateCustomer[]>([])
+  corporateCustomersLoading = signal(false)
+
+  // Scroll-State pro Bestellung: trackt ob oben/unten noch Inhalt existiert
+  #itemsScrollState = signal<Record<string, { atTop: boolean; atBottom: boolean }>>({})
+
+  constructor() {
+    // Nach jedem Render-Zyklus (orders-Änderung) Scroll-States neu prüfen
+    effect(() => {
+      this.sortedOrders()
+      Promise.resolve().then(() => this.#checkAllScrollStates())
+    })
+  }
+
+  #checkAllScrollStates() {
+    document.querySelectorAll<HTMLElement>('[data-order-items]').forEach(el => {
+      const orderId = el.dataset['orderId']
+      if (orderId) this.#updateScrollState(el, orderId)
+    })
+  }
+
+  #updateScrollState(el: HTMLElement, orderId: string) {
+    const atTop = el.scrollTop <= 2
+    const atBottom = el.scrollHeight <= el.clientHeight + 2 || el.scrollTop + el.clientHeight >= el.scrollHeight - 2
+    this.#itemsScrollState.update(s => ({ ...s, [orderId]: { atTop, atBottom } }))
+  }
+
+  onItemsScroll(event: Event, orderId: string) {
+    this.#updateScrollState(event.target as HTMLElement, orderId)
+  }
+
+  hasMoreAbove(orderId: string): boolean {
+    return !(this.#itemsScrollState()[orderId]?.atTop ?? true)
+  }
+
+  hasMoreBelow(orderId: string): boolean {
+    return !(this.#itemsScrollState()[orderId]?.atBottom ?? true)
+  }
 
   increaseZoom() {
-    this.zoomLevel.update(z => Math.min(z+0.1, 1.2))
+    this.zoomLevel.update(z => Math.min(z + 0.1, 1.2))
   }
 
   decreaseZoom() {
-    this.zoomLevel.update(z => Math.max(z-0.1, 0.5))
+    this.zoomLevel.update(z => Math.max(z - 0.1, 0.5))
   }
 
   toggleSelection(orderId: string) {
-    if (this.selectedOrderId()===orderId) {
+    if (this.selectedOrderId() === orderId) {
       this.selectedOrderId.set(null)
+      this.overlayView.set('actions')
+      this.staffEligibleUsers.set([])
+      this.cancelReason.set('')
+      this.cancelPin.set('')
+      this.managerUsers.set([])
+      this.corporateCustomers.set([])
     } else {
       this.selectedOrderId.set(orderId)
+      this.overlayView.set('actions')
     }
   }
 
@@ -75,8 +162,7 @@ export class ActiveOrdersComponent {
   // Actions
   printOrder(event: Event, order: Order) {
     event.stopPropagation()
-    console.log('Print order', order._id)
-    // this.#orderService.printOrder(order); // Assuming implementation exists or will define later
+    this.#matDialog.open(PrintDialogComponent, { data: order })
   }
 
   completeOrder(event: Event, order: Order) {
@@ -90,15 +176,15 @@ export class ActiveOrdersComponent {
     event.stopPropagation()
     if (!order._id) return
 
-    const currentUser=this.#authService.user()
+    const currentUser = this.#authService.user()
     if (!currentUser) {
       console.error('No user logged in')
       return
     }
 
-    const total=this.calculateTotal(order)
+    const total = this.calculateTotal(order)
 
-    const transaction: Transaction={
+    const transaction: Transaction = {
       _id: crypto.randomUUID(),
       method: TransactionMethod.CASH,
       amount: total,
@@ -107,88 +193,289 @@ export class ActiveOrdersComponent {
       performedBy: currentUser._id.toString(),
     }
 
-    const paymentInfo: PaymentStateInfo={
+    const paymentInfo: PaymentStateInfo = {
       state: PaymentState.PAID,
       totalAmount: total,
       tipAmount: 0,
-      transactions: [transaction]
+      transactions: [transaction],
     }
 
-    this.#orderService.patch(order._id, {
-      payment: paymentInfo,
-      status: OrderStatus.COMPLETED
-      // The prompt says "You will likely patch the order with the new payment state."
-      // Usually checkout implies completion in simple POS. Let's keep it consistent with previous logic or just set payment.
-    }).then(() => {
-      // Maybe complete it as well?
-      this.#orderService.complete(order._id)
-    })
+    this.#orderService
+      .patch(order._id, {
+        payment: paymentInfo,
+        status: OrderStatus.COMPLETED,
+      })
+      .then(() => {
+        this.#orderService.complete(order._id)
+      })
   }
 
-  convertToStaffMeal(order: Order) {
-    console.log('Convert to staff meal', order._id)
+  // --- Personalessen-Flow ---
+
+  openStaffMealView() {
+    this.overlayView.set('staff-meal')
+    this.loadStaffEligibleUsers()
   }
 
-  cancelOrder(order: Order) {
-    console.log('Cancel order', order._id)
+  async loadStaffEligibleUsers() {
+    this.staffUsersLoading.set(true)
+    try {
+      const result = await this.#userService.find({ query: { $limit: 200 } })
+      const users: User[] = Array.isArray(result) ? result : (result as any).data
+      // SQLite speichert Booleans als 0/1 — truthy-Prüfung statt striktem Vergleich
+      this.staffEligibleUsers.set(users.filter(u => !!u.allowStaffMealOrders))
+    } catch (e) {
+      console.error(e)
+      this.staffEligibleUsers.set([])
+    } finally {
+      this.staffUsersLoading.set(false)
+    }
   }
 
-  enterDiscount(order: Order) {
-    console.log('Enter discount', order._id)
+  async applyStaffMeal(order: Order, user: User) {
+    const userName = `${user.firstName} ${user.lastName}`.trim() || user.loginname
+    const patch: any = {
+      staffPaymentInfo: {
+        userId: user._id,
+        userName,
+        isPaid: false,
+      },
+    }
+    if (user.discountDetails) {
+      patch.discount = user.discountDetails
+    }
+    try {
+      await this.#orderService.patch(order._id, patch)
+      this.selectedOrderId.set(null)
+      this.overlayView.set('actions')
+      this.staffEligibleUsers.set([])
+      this.#snackBar.open(`Personalessen für ${userName} gebucht`, undefined, { duration: 2500 })
+    } catch (e) {
+      console.error(e)
+      this.#snackBar.open('Fehler beim Buchen des Personalessens', 'OK', { duration: 3000 })
+    }
   }
 
-  recordCorporateOrder(order: Order) {
-    console.log('Record corporate order', order._id)
+  backToActions() {
+    this.overlayView.set('actions')
+    this.staffEligibleUsers.set([])
+    this.cancelReason.set('')
+    this.cancelPin.set('')
+    this.managerUsers.set([])
+    this.corporateCustomers.set([])
+  }
+
+  getUserInitials(user: User): string {
+    const first = user.firstName?.[0] ?? ''
+    const last = user.lastName?.[0] ?? ''
+    return (first + last).toUpperCase() || user.loginname.slice(0, 2).toUpperCase()
+  }
+
+  formatDiscount(user: User): string {
+    if (!user.discountDetails) return 'Kein Rabatt hinterlegt'
+    if (user.discountDetails.discountType === 'percent') {
+      return `${user.discountDetails.discount} % Rabatt`
+    }
+    return `${user.discountDetails.discount.toFixed(2)} € Rabatt`
+  }
+
+  // --- Storno-Flow ---
+
+  cancelOrder() {
+    this.overlayView.set('cancel-reason')
+    this.cancelReason.set('')
+    this.cancelPin.set('')
+    this.loadManagerUsers()
+  }
+
+  selectCancelReason(reason: string) {
+    this.cancelReason.set(reason)
+    this.cancelPin.set('')
+    this.overlayView.set('cancel-pin')
+  }
+
+  appendPinDigit(digit: string) {
+    const current = this.cancelPin()
+    if (current.length < 6) {
+      this.cancelPin.set(current + digit)
+    }
+  }
+
+  deletePinDigit() {
+    this.cancelPin.update(p => p.slice(0, -1))
+  }
+
+  async confirmCancel(order: Order) {
+    const pin = this.cancelPin()
+    if (pin.length < 4) return
+
+    const matchedManager = this.managerUsers().find(u => u.posPin === pin)
+    if (!matchedManager) {
+      this.#snackBar.open('Ungültiger PIN', 'OK', { duration: 3000 })
+      this.cancelPin.set('')
+      return
+    }
+
+    const canceledByName = `${matchedManager.firstName} ${matchedManager.lastName}`.trim() || matchedManager.loginname
+    try {
+      await this.#orderService.patch(order._id, {
+        cancellation: {
+          canceledBy: canceledByName,
+          reason: this.cancelReason(),
+          canceledAt: new Date().toISOString(),
+        },
+        status: OrderStatus.ABORTED,
+      })
+      this.resetOverlay()
+      this.#snackBar.open('Bestellung storniert', undefined, { duration: 2500 })
+    } catch (e) {
+      console.error(e)
+      this.#snackBar.open('Fehler beim Stornieren', 'OK', { duration: 3000 })
+    }
+  }
+
+  private async loadManagerUsers() {
+    this.managersLoading.set(true)
+    try {
+      const result = await this.#userService.find({ query: { $limit: 200 } })
+      const users: User[] = Array.isArray(result) ? result : (result as any).data
+      this.managerUsers.set(
+        users.filter(
+          u =>
+            (u.role === UserSystemRole.TENANT_MANAGER || u.role === UserSystemRole.TENANT_OWNER) && !!u.posPin,
+        ),
+      )
+    } catch (e) {
+      console.error(e)
+      this.managerUsers.set([])
+    } finally {
+      this.managersLoading.set(false)
+    }
+  }
+
+  // --- Rabatt-Flow ---
+
+  enterDiscount() {
+    this.overlayView.set('discount')
+  }
+
+  async applyDiscount(order: Order, percent: number) {
+    try {
+      await this.#orderService.patch(order._id, {
+        discount: { discountType: 'percent', discount: percent },
+      })
+      this.resetOverlay()
+      this.#snackBar.open(`${percent} % Rabatt angewendet`, undefined, { duration: 2500 })
+    } catch (e) {
+      console.error(e)
+      this.#snackBar.open('Fehler beim Anwenden des Rabatts', 'OK', { duration: 3000 })
+    }
+  }
+
+  // --- Firma-Flow ---
+
+  recordCorporateOrder() {
+    this.overlayView.set('corporate')
+    this.loadCorporateCustomers()
+  }
+
+  private async loadCorporateCustomers() {
+    this.corporateCustomersLoading.set(true)
+    try {
+      const result = await this.#corporateCustomerService.find({ query: { $limit: 200 } })
+      const customers: CorporateCustomer[] = Array.isArray(result) ? result : (result as any).data
+      this.corporateCustomers.set(customers)
+    } catch (e) {
+      console.error(e)
+      this.corporateCustomers.set([])
+    } finally {
+      this.corporateCustomersLoading.set(false)
+    }
+  }
+
+  async applyCorporateCustomer(order: Order, customer: CorporateCustomer) {
+    const patch: any = {
+      customerPaymentInfo: {
+        customerId: customer._id,
+        customerName: customer.name1,
+        isPaid: false,
+      },
+    }
+    if (customer.discountDetails) {
+      patch.discount = customer.discountDetails
+    }
+    try {
+      await this.#orderService.patch(order._id, patch)
+      this.resetOverlay()
+      this.#snackBar.open(`Firma "${customer.name1}" zugeordnet`, undefined, { duration: 2500 })
+    } catch (e) {
+      console.error(e)
+      this.#snackBar.open('Fehler beim Zuordnen der Firma', 'OK', { duration: 3000 })
+    }
+  }
+
+  formatCorporateDiscount(customer: CorporateCustomer): string {
+    if (!customer.discountDetails) return ''
+    if (customer.discountDetails.discountType === 'percent') {
+      return `${customer.discountDetails.discount} % Rabatt`
+    }
+    return `${customer.discountDetails.discount.toFixed(2)} € Rabatt`
+  }
+
+  // --- Gemeinsame Hilfsmethoden ---
+
+  private resetOverlay() {
+    this.selectedOrderId.set(null)
+    this.overlayView.set('actions')
+    this.staffEligibleUsers.set([])
+    this.cancelReason.set('')
+    this.cancelPin.set('')
+    this.managerUsers.set([])
+    this.corporateCustomers.set([])
   }
 
   goBack() {
     this.#router.navigate(['/dashboard'])
   }
 
-  // Helper to format price
   formatPrice(price: number): string {
     return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(price)
   }
 
-  // Helper to calculate order total
   calculateTotal(order: Order): number {
-    // Simplified calculation for display
     if (!order.lineItems) return 0
-    return order.lineItems.reduce((acc: number, item: OrderLineItemSchema) => acc+item.price*item.amount, 0)
+    return order.lineItems.reduce((acc: number, item: OrderLineItemSchema) => acc + item.price * item.amount, 0)
   }
 
-  // Helper to check if order is overdue (production time exceeded)
   isOverdue(order: Order): boolean {
-    const productionTimeMs=(order.estimatedDuration||0)*60*1000
-    const now=new Date().getTime()
-    const orderTime=new Date(order.recordingDate).getTime()
-    return now-orderTime>productionTimeMs
+    const productionTimeMs = (order.estimatedDuration || 0) * 60 * 1000
+    const now = new Date().getTime()
+    const orderTime = new Date(order.recordingDate).getTime()
+    return now - orderTime > productionTimeMs
   }
 
-  // Helper to generate a random animation delay to desynchronize pulsing
   getRandomDelay(orderId: string): string {
-    // Use order ID to generate a consistent but random-looking delay
     if (!orderId) return '0s'
-    const seed=orderId.split('').reduce((acc, char) => acc+char.charCodeAt(0), 0)
-    return `-${(seed%2000)/1000}s`
+    const seed = orderId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    return `-${(seed % 2000) / 1000}s`
   }
 
   getCombinations(order: Order): OrderLineItemSchema[][] {
-    if (!order.lineItems) return [];
-    const bundles=new Map<number, OrderLineItemSchema[]>();
+    if (!order.lineItems) return []
+    const bundles = new Map<number, OrderLineItemSchema[]>()
     order.lineItems.forEach((item: OrderLineItemSchema) => {
-      if (item.bundleNumber!==undefined&&item.bundleNumber!==null) {
+      if (item.bundleNumber !== undefined && item.bundleNumber !== null) {
         if (!bundles.has(item.bundleNumber)) {
-          bundles.set(item.bundleNumber, []);
+          bundles.set(item.bundleNumber, [])
         }
-        bundles.get(item.bundleNumber)?.push(item);
+        bundles.get(item.bundleNumber)?.push(item)
       }
-    });
-    return Array.from(bundles.values());
+    })
+    return Array.from(bundles.values())
   }
 
   getUnbundledLineItems(order: Order): OrderLineItemSchema[] {
-    if (!order.lineItems) return [];
-    return order.lineItems.filter((item: any) => item.bundleNumber===undefined||item.bundleNumber===null);
+    if (!order.lineItems) return []
+    return order.lineItems.filter((item: any) => item.bundleNumber === undefined || item.bundleNumber === null)
   }
 }

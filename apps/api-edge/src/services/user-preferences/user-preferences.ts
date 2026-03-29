@@ -24,6 +24,7 @@ import {
   userPreferenceSchema
 } from '@panary-core/user-preferences/domain'
 import type { UserPreference, UserPreferenceService } from './user-preferences.class'
+import { logger } from '../../logger'
 
 export const userPreferencesPath = 'user-preferences'
 export const userPreferencesMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
@@ -85,7 +86,7 @@ export const userPreferences = (app: Application) => {
           //   name: 'text_search_index'
           // }
         ])
-        console.log('MongoDB Indexes ensured for UserPreferences.')
+        logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'mongodb', service: 'user-preferences' })
       }
     }
 
@@ -111,10 +112,10 @@ export const userPreferences = (app: Application) => {
           await knex.raw(
             `CREATE INDEX IF NOT EXISTS idx_user_preferences_tenant_location ON "${tableName}" (tenantId, locationId)`
           )
-          console.log('SQLite Indexes ensured for UserPreferences.')
+          logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'sqlite', service: 'user-preferences' })
         }
       } catch (error) {
-        console.error('Error ensuring SQLite indexes:', error)
+        logger.error({ message: 'Failed to ensure indexes', event: 'db.indexes_error', dbType: 'sqlite', service: 'user-preferences', error: String(error) })
         // App should still start, maybe the database is locked
       }
     }

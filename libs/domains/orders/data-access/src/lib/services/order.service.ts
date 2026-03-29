@@ -1,7 +1,7 @@
 import { computed, effect, inject, Injectable, Signal, signal, WritableSignal } from '@angular/core'
-// import { MatDialog } from '@angular/material/dialog' // TODO: Re-enable when PrintDialog migrated
+import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
-// import { PrintDialog } from '@panary/shared/ui-dialogs' // TODO: migrate PrintDialog
+import { PrintDialogComponent } from '../components/print-dialog.component'
 import { OrderLineItemSchema } from '../models/order-line-item.model'
 import { OrderChannel } from '../enums/order-chanel.enum'
 import { CreationContext, DineLocation, Order, OrderStatus } from '../models/order.model'
@@ -28,7 +28,7 @@ export class OrderService extends BaseService<Order> {
   #locationService: LocationService = inject(LocationService)
   protected connectionService: ConnectionService = inject(ConnectionService)
   #matSnackBar: MatSnackBar = inject(MatSnackBar)
-  // #matDialog: MatDialog = inject(MatDialog) // TODO: Re-enable when PrintDialog migrated
+  #matDialog: MatDialog = inject(MatDialog)
   #orderIndex = 1
   #productionTimes: Array<number> = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]
 
@@ -177,8 +177,14 @@ export class OrderService extends BaseService<Order> {
     return this.create(newOrder).then((createdOrder: Order | Order[]): number | number[] | undefined | null => {
       if (!createdOrder) return null
 
-      // TODO: migrate PrintDialog — open print dialog after order creation
-      // this.#matDialog.open(PrintDialog, { data: createdOrder })
+      // Druckdialog öffnen, wenn in den Settings aktiviert
+      const showDialog = this.#locationService.activeLocation()?.settings?.printSettings?.showDialogAfterOrder ?? true
+      if (showDialog) {
+        const orderToPrint = createdOrder instanceof Array ? createdOrder[0] : createdOrder
+        if (orderToPrint) {
+          this.#matDialog.open(PrintDialogComponent, { data: orderToPrint })
+        }
+      }
 
       if (createdOrder instanceof Array) {
         return createdOrder.map((order: Order): number => order.dailySequenceNumber)

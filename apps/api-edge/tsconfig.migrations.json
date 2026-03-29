@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.app.json",
+  "ts-node": {
+    "files": true,
+    "transpileOnly": true,
+    "require": ["tsconfig-paths/register"]
+  },
+  "compilerOptions": {
+    "rootDir": "."
+  },
+  "files": [
+    "knexfile.ts"
+  ],
+  "include": [
+    "src/**/*.ts",
+    "migrations/**/*.ts"
+  ]
+}

@@ -116,6 +116,15 @@ async function main() {
       logger.error('AutoBusinessDay: Geschäftstag konnte nicht erstellt werden.', err)
     }
     // -----------------------------------------------------------------------
+
+    // --- Auto-Start Print-Server ---
+    try {
+      const { autoStartPrintServer } = await import('./print-server/index.js')
+      await autoStartPrintServer(app)
+    } catch (err) {
+      logger.error('Print-Server: Auto-Start fehlgeschlagen.', err)
+    }
+    // -----------------------------------------------------------------------
   } catch (error) {
     // Config file not found or error loading it -> Setup Mode
     logger.error(

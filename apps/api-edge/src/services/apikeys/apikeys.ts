@@ -26,6 +26,7 @@ import {
   apikeyQuerySchema,
   apikeySchema
 } from '@panary-core/apikeys/domain'
+import { logger } from '../../logger'
 
 export const apikeysPath = 'apikeys'
 export const apikeysMethods: Array<keyof ApiKeyService> = ['find', 'get', 'create', 'patch', 'remove']
@@ -83,7 +84,7 @@ export const apikeys = (app: Application) => {
           { key: { tenantId: 1, apikey: 1 }, unique: true, name: 'tenant_apikey_unique' },
           { key: { status: 1 }, name: 'status_index' },
         ])
-        console.log('MongoDB Indexes ensured for ApiKeys.')
+        logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'mongodb', service: 'apikeys' })
       }
     }
 
@@ -105,10 +106,10 @@ export const apikeys = (app: Application) => {
           })
 
           // Keine nützlichen Spalten zum Indizieren vorhanden (nur _id und text in Migration)
-          console.log('SQLite Indexes ensured for ApiKeys.')
+          logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'sqlite', service: 'apikeys' })
         }
       } catch (error) {
-        console.error('Error ensuring SQLite indexes:', error)
+        logger.error({ message: 'Failed to ensure indexes', event: 'db.indexes_error', dbType: 'sqlite', service: 'apikeys', error: String(error) })
         // App should still start, maybe the database is locked
       }
     }

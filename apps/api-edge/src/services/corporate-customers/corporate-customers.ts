@@ -24,6 +24,7 @@ import {
   corporateCustomerQuerySchema,
   corporateCustomerSchema
 } from '@panary-core/corporate-customers/domain'
+import { logger } from '../../logger'
 
 export const corporateCustomersPath = 'corporate-customers'
 export const corporateCustomersMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
@@ -79,7 +80,7 @@ export const corporateCustomers = (app: Application) => {
           { key: { tenantId: 1, locationId: 1 }, name: 'tenant_location_index' },
           { key: { status: 1 }, name: 'status_index' },
         ])
-        console.log('MongoDB Indexes ensured for CorporateCustomers.')
+        logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'mongodb', service: 'corporate-customers' })
       }
     }
 
@@ -108,10 +109,10 @@ export const corporateCustomers = (app: Application) => {
             `CREATE INDEX IF NOT EXISTS idx_corporate_customers_tenant_location ON "${tableName}" (tenantId, locationId)`
           )
           await knex.raw(`CREATE INDEX IF NOT EXISTS idx_corporate_customers_status ON "${tableName}" (status)`)
-          console.log('SQLite Indexes ensured for CorporateCustomers.')
+          logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'sqlite', service: 'corporate-customers' })
         }
       } catch (error) {
-        console.error('Error ensuring SQLite indexes:', error)
+        logger.error({ message: 'Failed to ensure indexes', event: 'db.indexes_error', dbType: 'sqlite', service: 'corporate-customers', error: String(error) })
         // App should still start, maybe the database is locked
       }
     }

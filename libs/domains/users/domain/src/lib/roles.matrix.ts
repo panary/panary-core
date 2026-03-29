@@ -35,6 +35,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.MANAGE },
     { resource: AppResource.ORDERS, action: AppAction.READ },
     { resource: AppResource.WORKING_TIMES, action: AppAction.MANAGE },
+    { resource: AppResource.PRE_ORDERS, action: AppAction.MANAGE },
+    { resource: AppResource.PRINT_SERVER, action: AppAction.MANAGE },
     AppAbility.CAN_SEE_REPORTS,
     AppAbility.CAN_REFUND,
   ],
@@ -44,6 +46,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.READ },
     { resource: AppResource.ORDERS, action: [AppAction.CREATE, AppAction.READ] },
     { resource: AppResource.WORKING_TIMES, action: [AppAction.READ, AppAction.UPDATE] },
+    { resource: AppResource.PRE_ORDERS, action: AppAction.MANAGE },
+    { resource: AppResource.PRINT_SERVER, action: [AppAction.READ, AppAction.UPDATE] },
   ],
 
   [UserSystemRole.TENANT_STAFF]: [
@@ -51,6 +55,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.READ },
     { resource: AppResource.ORDERS, action: [AppAction.CREATE, AppAction.READ] },
     { resource: AppResource.WORKING_TIMES, action: AppAction.READ },
+    { resource: AppResource.PRE_ORDERS, action: [AppAction.CREATE, AppAction.READ, AppAction.UPDATE] },
   ],
 
   // =======================================================
@@ -77,9 +82,15 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Kunden lesen/anlegen (für Loyalty)
     { resource: AppResource.CUSTOMERS, action: [AppAction.READ, AppAction.CREATE, AppAction.UPDATE] },
 
+    // Vorbestellungen verwalten
+    { resource: AppResource.PRE_ORDERS, action: [AppAction.CREATE, AppAction.READ, AppAction.UPDATE] },
+
     // Zeiterfassung erlauben (USERS_TIME_CLOCK)
     { resource: AppResource.WORKING_TIMES, action: [AppAction.CREATE, AppAction.READ, AppAction.UPDATE] },
     AppAbility.CAN_CLOCK_IN,
+
+    // Drucken erlauben
+    { resource: AppResource.PRINT_SERVER, action: AppAction.CREATE },
 
     // Kasse darf natürlich kassieren
     AppAbility.CAN_DISCOUNT,
@@ -94,6 +105,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
 
     // Muss Produkte lesen können (Namen, Zutaten)
     { resource: AppResource.PRODUCTS, action: AppAction.READ },
+
+    // Drucken erlauben (z.B. Bon nachdrucken)
+    { resource: AppResource.PRINT_SERVER, action: AppAction.CREATE },
 
     // KDS darf KEINE neuen Orders anlegen und KEINE User sehen!
   ],

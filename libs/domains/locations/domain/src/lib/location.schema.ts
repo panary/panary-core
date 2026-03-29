@@ -34,12 +34,12 @@ export const settingsSchema = Type.Object({
     timezone: Type.String(), // Removed format: 'timezone' to fix AJV error
   }),
   printSettings: Type.Object({
+    printServerEnabled: Type.Optional(Type.Boolean({ default: true })),
     maxNameCharacters: Type.Number(),
     mqttServerProtocol: mqttProtocol,
     mqttServerUrl: Type.String(),
     mqttServerPort: Type.Number({ minimum: 1, maximum: 65535 }),
     mqttAutoConnect: Type.Optional(Type.Boolean({ default: false })),
-    printServerUrl: Type.String(),
     printerSequence: Type.Array(Type.String()),
     printers: Type.Array(
       Type.Object({
@@ -48,9 +48,11 @@ export const settingsSchema = Type.Object({
         type: StringEnum(['ip', 'mqtt']),
         name: Type.String(),
         ip: Type.Optional(Type.String()),
-        port: Type.Optional(Type.Number({ minimum: 1, maximum: 65535 })),
+        port: Type.Optional(Type.Number({ minimum: 1, maximum: 65535, default: 9100 })),
         primaryTopics: Type.Optional(Type.Array(Type.String())),
         mqttTopic: Type.Optional(Type.String()),
+        paperWidth: Type.Optional(StringEnum(['58mm', '80mm'])),
+        encoding: Type.Optional(Type.String({ default: 'CP437' })),
       }),
     ),
     separationCharacter: Type.String(),

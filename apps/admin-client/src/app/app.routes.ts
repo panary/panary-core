@@ -18,6 +18,7 @@ export const appRoutes: Routes = [
       { path: 'product-groups/:id', loadComponent: () => import('./features/product-groups/group-form').then(m => m.GroupFormComponent) },
       { path: 'products', loadComponent: () => import('./features/products/product-list').then(m => m.ProductListComponent) },
       { path: 'products/:id', loadComponent: () => import('./features/products/product-form').then(m => m.ProductFormComponent) },
+      { path: 'printers', loadComponent: () => import('./features/printers/printer-management').then(m => m.PrinterManagementComponent) },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },

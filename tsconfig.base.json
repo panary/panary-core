@@ -77,7 +77,8 @@
       "@panary-core/ingredients/data-access": ["libs/domains/ingredients/data-access/src/index.ts"],
       "@panary-core/recipes/data-access": ["libs/domains/recipes/data-access/src/index.ts"],
       "@panary-core/orders/feature-pos-order-dialog": ["libs/domains/orders/feature-pos-order-dialog/src/index.ts"],
-      "@panary-core/shared/data-access-updater": ["libs/shared/data-access-updater/src/index.ts"]
+      "@panary-core/shared/data-access-updater": ["libs/shared/data-access-updater/src/index.ts"],
+      "@panary-core/pre-orders/domain": ["libs/domains/pre-orders/domain/src/index.ts"]
     }
   }
 }

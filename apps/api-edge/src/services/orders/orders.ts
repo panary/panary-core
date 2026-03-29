@@ -29,6 +29,7 @@ import { assignDailySequenceNumber } from '../../hooks/assign-daily-sequence-num
 import { calculateTaxDetails } from '../../hooks/calculate-tax-details'
 import { checkMultiOperation } from '../../hooks/check-multi-operation'
 import { createOrderInteractions } from '../../hooks/create-order-interactions'
+import { logger } from '../../logger'
 
 export const ordersPath = 'orders'
 export const ordersMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
@@ -84,7 +85,7 @@ export const orders = (app: Application) => {
           { key: { tenantId: 1, locationId: 1 }, name: 'tenant_location_index' },
           { key: { status: 1 }, name: 'status_index' }
         ])
-        console.log('MongoDB Indexes ensured for Orders.')
+        logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'mongodb', service: 'orders' })
       }
     }
 
@@ -111,10 +112,10 @@ export const orders = (app: Application) => {
             `CREATE INDEX IF NOT EXISTS idx_orders_tenant_location ON ${tableName} (tenantId, locationId)`
           )
           await knex.raw(`CREATE INDEX IF NOT EXISTS idx_orders_status ON ${tableName} (status)`)
-          console.log('SQLite Indexes ensured for Orders.')
+          logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'sqlite', service: 'orders' })
         }
       } catch (error) {
-        console.error('Error ensuring SQLite indexes:', error)
+        logger.error({ message: 'Failed to ensure indexes', event: 'db.indexes_error', dbType: 'sqlite', service: 'orders', error: String(error) })
         // App should still start, maybe the database is locked
       }
     }

@@ -79,7 +79,7 @@ export class WorkingTimeHistoryComponent {
 
     years=Array.from({ length: 5 }, (_, i) => new Date().getFullYear()-i)
 
-    displayedColumns=['day', 'date', 'checkin', 'checkout', 'breaks', 'netTime', 'status']
+    displayedColumns=['date', 'day', 'checkin', 'checkout', 'breaks', 'netTime', 'status']
 
     // This will be simpler: Fetch all for user, filter purely in frontend for now (assuming reasonable dataset size)
     // or use query params. Let's use computed for filtering after loading.

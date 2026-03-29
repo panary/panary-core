@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  computed,
   effect,
   ElementRef,
   inject,
@@ -45,8 +46,10 @@ import { PreOrderService } from '@panary-core/pre-orders/data-access'
 import { LocationService } from '@panary-core/locations/data-access'
 import { AuthService } from '@panary-core/auth/data-access'
 import { User, UserService } from '@panary-core/users/data-access'
+import { ConnectionService } from '@panary-core/shared/data-access'
 import { DeviceConfigService } from '@panary-core/shared/data-access-config'
 import { CorporateCustomer } from '@panary-core/corporate-customers/domain'
+import { PreOrderQuickDialogComponent } from './pre-order-quick-dialog.component'
 // TODO: CorporateCustomerService fehlt noch in @panary-core/corporate-customers/data-access — nach Migration einbinden
 // TODO: AppButtonDirective fehlt noch in panary-core — nach Migration einbinden
 // TODO: ConfirmActionDialog fehlt noch in panary-core — nach Migration in @panary-core/shared/ui-dialogs einbinden
@@ -121,7 +124,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private _currentUser: User | undefined = undefined
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _functionButtons: any[] = []
-  private _infoBoxBackgroundColor = '#EFEEEE'
+  private _infoBoxBackgroundColor = '#f1f5f9'
   private _infoBoxText = 'Bitte wählen Sie eine Produktkategorie!'
   private _infoBoxTextColor = 'black'
   private _lastParentId: string | null | undefined = undefined
@@ -263,7 +266,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /** Standalone-Modus: Kein Cloud-Sync, keine Firmenkunden */
-  isStandaloneMode = true // TODO: Aus Config/Environment beziehen
+  #connectionService = inject(ConnectionService)
+  isStandaloneMode = computed(() => this.#connectionService.systemMode() === 'standalone')
 
   /** Numpad-Popup für kleine Screens */
   showNumpadPopup = false
@@ -450,7 +454,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (backgroundColor) {
       this._infoBoxBackgroundColor = backgroundColor
     } else {
-      this._infoBoxBackgroundColor = '#EFEEEE'
+      this._infoBoxBackgroundColor = '#f1f5f9'
     }
     this._infoBoxText = value
   }
@@ -676,10 +680,40 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   openPreOrderDialog() {
     this.showDineLocationSelection = false
-    // TODO: PreOrderDialogComponent nach Migration als eigene Feature-Lib einbinden
-    // Derzeit wird der Dialog inline über MatDialog geöffnet (Legacy-Referenz:
-    // panary/libs/domains/orders/ui-dialogs/src/lib/pre-order-dialog/)
-    console.warn('PreOrderDialog: noch nicht migriert – TODO nach Welle 4')
+
+    const dialogRef = this.matDialog.open(PreOrderQuickDialogComponent, {
+      width: '98vw',
+      height: '95vh',
+      maxWidth: '100vw',
+      maxHeight: '100vh',
+      panelClass: 'order-dialog-panel',
+    })
+
+    dialogRef.afterClosed().subscribe(async (result: { date: Date; time: string; name: string; phone: string } | undefined) => {
+      if (!result) return
+
+      // Datum + Uhrzeit zu ISO-String kombinieren
+      const date = new Date(result.date)
+      const [hours, minutes] = result.time.split(':').map(Number)
+      date.setHours(hours, minutes, 0, 0)
+
+      const payload = {
+        customerContact: {
+          name: result.name,
+          phone: result.phone || '',
+        },
+        scheduledFor: date.toISOString(),
+        lineItems: [...this.lineItems],
+        status: 'pending' as const,
+      }
+
+      try {
+        await this.preOrderService.create(payload)
+        this.matDialogRef.close('preorder-created')
+      } catch (e) {
+        console.error('Vorbestellung konnte nicht erstellt werden:', e)
+      }
+    })
   }
 
   setTableSubbuttons() {

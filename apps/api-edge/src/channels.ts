@@ -6,9 +6,10 @@ import type { Application, HookContext } from './declarations'
 import { logger } from './logger'
 
 export const channels = (app: Application) => {
-  logger.warn(
-    'Publishing all events to all authenticated users. See `channels.ts` and https://dove.feathersjs.com/api/channels.html for more information.'
-  )
+  logger.info({
+    message: 'Publishing all events to all authenticated users',
+    event: 'channels.configured',
+  })
 
   app.on('connection', async (connection: RealTimeConnection) => {
     // Prüfen ob es sich um eine Device-Verbindung handelt (POS/KDS/Tablet)
@@ -33,7 +34,16 @@ export const channels = (app: Application) => {
 
         if (entries.length > 0 && entries[0].active) {
           const apiKeyRecord = entries[0]
-          logger.info(`[Device Auth] Device "${handshakeAuth.deviceId}" authenticated via API key.`)
+          logger.info({
+            message: 'Device authenticated via API key',
+            event: 'device.auth',
+            status: 'success',
+            deviceId: handshakeAuth.deviceId,
+            tenantId: apiKeyRecord.tenantId,
+            locationId: apiKeyRecord.locationId,
+            deviceRole: apiKeyRecord.role,
+            transport: 'websocket',
+          })
 
           // Device-Auth-Daten auf der Connection speichern,
           // damit der allowApiKey-Hook sie in params kopieren kann
@@ -46,11 +56,24 @@ export const channels = (app: Application) => {
           app.channel('authenticated').join(connection)
           socket.emit('device:authenticated', { success: true, deviceId: handshakeAuth.deviceId })
         } else {
-          logger.warn(`[Device Auth] Invalid/inactive API key for device "${handshakeAuth.deviceId}".`)
+          logger.warn({
+            message: 'Invalid or inactive API key',
+            event: 'device.auth',
+            status: 'rejected',
+            deviceId: handshakeAuth.deviceId,
+            transport: 'websocket',
+          })
           socket.emit('device:authenticated', { success: false, error: 'Invalid or inactive API key' })
         }
       } catch (err: any) {
-        logger.error('[Device Auth] Error validating API key:', err)
+        logger.error({
+          message: 'Error validating API key',
+          event: 'device.auth',
+          status: 'error',
+          deviceId: handshakeAuth.deviceId,
+          transport: 'websocket',
+          error: String(err),
+        })
         socket.emit('device:authenticated', { success: false, error: 'Authentication error' })
       }
     } else {

@@ -28,6 +28,7 @@ import {
   productQuerySchema,
   productSchema
 } from '@panary-core/products/domain'
+import { logger } from '../../logger'
 
 export const productsPath = 'products'
 export const productsMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
@@ -84,7 +85,7 @@ export const products = (app: Application) => {
             name: 'text_search_index'
           }
         ])
-        console.log('MongoDB Indexes ensured for Products.')
+        logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'mongodb', service: 'products' })
       }
     }
 
@@ -120,10 +121,10 @@ export const products = (app: Application) => {
           // However, a normal index on 'name' helps with 'LIKE "X%"' queries.
           await knex.raw(`CREATE INDEX IF NOT EXISTS idx_products_name ON ${tableName} (name)`)
 
-          console.log('SQLite Indexes ensured for Products.')
+          logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'sqlite', service: 'products' })
         }
       } catch (error) {
-        console.error('Error ensuring SQLite indexes:', error)
+        logger.error({ message: 'Failed to ensure indexes', event: 'db.indexes_error', dbType: 'sqlite', service: 'products', error: String(error) })
         // App should still start, maybe the database is locked
       }
     }

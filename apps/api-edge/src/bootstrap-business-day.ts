@@ -38,6 +38,21 @@ export async function autoEnsureBusinessDay(app: Application): Promise<void> {
       continue
     }
 
+    // Rotation blockieren wenn noch aktive Bestellungen im alten Geschäftstag vorhanden
+    if (currentBD?.businessDayId) {
+      const activeOrderCount = await knex('orders')
+        .where({ businessDayId: currentBD.businessDayId, status: 'active' })
+        .count('_id as count')
+        .first()
+
+      if (Number(activeOrderCount?.count ?? 0) > 0) {
+        logger.warn(
+          `[AutoBusinessDay] Rotation für Location ${location._id} übersprungen — ${activeOrderCount?.count} aktive Bestellung(en) im Geschäftstag ${currentBD.businessDayId}.`,
+        )
+        continue
+      }
+    }
+
     // Vorherigen Geschäftstag als geschlossen markieren (falls vorhanden)
     if (currentBD?.businessDayId) {
       await knex('businessdays')

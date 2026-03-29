@@ -1,0 +1,19 @@
+{
+  "name": "pre-orders-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/pre-orders/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:pre-orders"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/domains/pre-orders/domain",
+        "main": "libs/domains/pre-orders/domain/src/index.ts",
+        "tsConfig": "libs/domains/pre-orders/domain/tsconfig.lib.json",
+        "assets": ["libs/domains/pre-orders/domain/*.md"]
+      }
+    }
+  }
+}

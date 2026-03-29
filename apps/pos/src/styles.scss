@@ -161,6 +161,15 @@ router-outlet + * {
   box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25) !important;
 }
 
+/* Bestätigungsdialoge: abgerundete Ecken, kein Padding-Overhead */
+.rounded-dialog .mat-mdc-dialog-container,
+.rounded-dialog .mat-mdc-dialog-surface {
+  border-radius: 1.25rem !important;
+  padding: 0 !important;
+  overflow: hidden;
+  box-shadow: 0 20px 60px -10px rgb(0 0 0 / 0.2) !important;
+}
+
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined';
   font-weight: normal;

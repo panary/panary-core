@@ -7,6 +7,7 @@ import { PreOrder, PreOrderService } from '@panary-core/pre-orders/data-access'
 import { MatDialog } from '@angular/material/dialog'
 import { ExtendedParams } from '@panary-core/shared/common'
 import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dialog'
+import { ConfirmDialogComponent } from '../confirm-dialog.component'
 
 @Component({
   selector: 'app-pre-order-list',
@@ -14,6 +15,7 @@ import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dial
   imports: [
     CommonModule,
     FormsModule,
+    ConfirmDialogComponent,
   ],
   template: `
     <div class="h-full w-full bg-slate-50 p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border">
@@ -28,7 +30,12 @@ import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dial
               <span class="material-symbols-outlined text-[20px] text-indigo-600">event_note</span>
               Vorbestellungen
             </h1>
-            <button (click)="openCreateDialog()" class="ml-4 flex items-center gap-2 h-10 px-4 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 active:scale-95 transition-all">
+            <!-- Mobil: runder Icon-Button -->
+            <button (click)="openCreateDialog()" class="ml-4 md:hidden flex items-center justify-center w-10 h-10 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition-all">
+              <span class="material-symbols-outlined text-[22px]">add</span>
+            </button>
+            <!-- Desktop: Button mit Text -->
+            <button (click)="openCreateDialog()" class="ml-4 hidden md:flex items-center gap-2 h-10 px-4 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 active:scale-95 transition-all">
               <span class="material-symbols-outlined text-[20px]">add_circle</span>
               Neue Vorbestellung
             </button>
@@ -43,7 +50,7 @@ import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dial
           <span class="material-symbols-outlined text-[20px] absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
           <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="fetchOrders()"
                  placeholder="Suche nach Name, Telefon..."
-                 class="w-full h-12 pl-10 pr-4 rounded-xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-indigo-200 transition-all text-slate-700 placeholder:text-slate-400" />
+                 class="w-full h-12 pl-10 pr-4 rounded-xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-indigo-200 transition-all text-slate-700 placeholder:text-[11px] placeholder:md:text-sm placeholder:text-slate-400" />
           <button
             class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-600 text-white rounded-lg shadow-sm hover:bg-indigo-700 active:scale-95 transition-all"
             (click)="fetchOrders()">
@@ -181,7 +188,7 @@ import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dial
                 class="col-span-2 h-12 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2"
                 (click)="convertToLiveOrder(selectedOrder()!)">
                 <span class="material-symbols-outlined text-[20px]">point_of_sale</span>
-                In Kasse übernehmen
+                Bestellung erstellen
               </button>
 
               <button
@@ -325,13 +332,30 @@ export class PreOrderListComponent implements OnInit {
   }
 
   async convertToLiveOrder(order: PreOrder) {
-    if (!confirm(`Vorbestellung von ${ order.customerContact.name } jetzt in die Kasse übernehmen?`)) return
+    const total = this.calculateTotal(order)
+    const totalFormatted = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(total)
+
+    const ref = this.#dialog.open(ConfirmDialogComponent, {
+      width: '380px',
+      maxWidth: '95vw',
+      panelClass: 'rounded-dialog',
+      data: {
+        title: 'Bestellung erstellen',
+        message: `Vorbestellung für ${order.customerContact.name} wird als aktive Bestellung angelegt.`,
+        detail: `${order.lineItems.length} Artikel · ${totalFormatted}`,
+        confirmText: 'Jetzt übernehmen',
+        confirmVariant: 'primary',
+        icon: 'point_of_sale',
+      },
+    })
+
+    const confirmed = await ref.afterClosed().toPromise()
+    if (!confirmed) return
 
     try {
       await this.#preOrderService.convert(order._id)
-      this.#snackBar.open('Erfolgreich übernommen', 'OK', { duration: 2000 })
-      this.fetchOrders() // Refresh list
-      // Optionally navigate to active orders if needed, logic from store:
+      this.#snackBar.open('Erfolgreich in die Kasse übernommen', undefined, { duration: 2500 })
+      this.fetchOrders()
       this.#router.navigate(['/orders/active'])
     } catch (e) {
       console.error(e)
@@ -340,12 +364,27 @@ export class PreOrderListComponent implements OnInit {
   }
 
   async cancelOrder(order: PreOrder) {
-    if (!confirm(`Vorbestellung wirklich stornieren?`)) return
+    const ref = this.#dialog.open(ConfirmDialogComponent, {
+      width: '380px',
+      maxWidth: '95vw',
+      panelClass: 'rounded-dialog',
+      data: {
+        title: 'Vorbestellung stornieren',
+        message: 'Diese Aktion kann nicht rückgängig gemacht werden. Die Vorbestellung wird dauerhaft storniert.',
+        confirmText: 'Endgültig stornieren',
+        confirmVariant: 'danger',
+        icon: 'delete_forever',
+      },
+    })
+
+    const confirmed = await ref.afterClosed().toPromise()
+    if (!confirmed) return
 
     try {
       await this.#preOrderService.patch(order._id, { status: 'cancelled' })
-      this.#snackBar.open('Vorbestellung storniert', 'OK', { duration: 2000 })
+      this.#snackBar.open('Vorbestellung storniert', undefined, { duration: 2500 })
       this.fetchOrders()
+      this.selectedOrder.set(null)
     } catch (e) {
       console.error(e)
       this.#snackBar.open('Fehler beim Stornieren', 'OK', { duration: 3000 })

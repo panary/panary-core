@@ -44,6 +44,7 @@ export class ConnectionService {
     connectedAt: '-',
   })
   #isAuthenticated: WritableSignal<boolean> = signal(false)
+  #systemMode: WritableSignal<string> = signal('standalone')
 
   // Compatibility for POS
   readonly #connectionError: WritableSignal<string | null> = signal(null)
@@ -166,6 +167,11 @@ export class ConnectionService {
     return this.#serverLink.asReadonly()
   }
 
+  /** Systemmodus des verbundenen Backend-Servers (standalone | connected | cloud) */
+  get systemMode(): Signal<string> {
+    return this.#systemMode.asReadonly()
+  }
+
   get smartcardService(): Service {
     return this.#app.service('smartcards')
   }
@@ -257,6 +263,9 @@ export class ConnectionService {
     })
     this.#app.use('leave-requests', socketClient.service('leave-requests'), {
       methods: ['find', 'get', 'create', 'update', 'patch', 'remove'],
+    })
+    this.#app.use('pre-orders', socketClient.service('pre-orders'), {
+      methods: ['find', 'get', 'create', 'update', 'patch', 'remove', 'convert'],
     })
 
     // Explicitly connect if not auto-connected (Device Auth case)
@@ -440,6 +449,9 @@ export class ConnectionService {
         this.#connectionError.set(null)
         console.log(`Socket "${socket.id}" established connection.`)
 
+        // Systemmodus vom Backend abfragen
+        this.fetchSystemMode(url)
+
         // POS: Wait for device authentication
         if (deviceConfig?.deviceId) {
           console.log(`[POS-WS] Waiting for device:authenticated event...`)
@@ -505,6 +517,20 @@ export class ConnectionService {
       return null
     }
     return null
+  }
+
+  private async fetchSystemMode(baseUrl: string): Promise<void> {
+    try {
+      const res = await fetch(`${baseUrl}/health`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.systemMode) {
+          this.#systemMode.set(data.systemMode)
+        }
+      }
+    } catch {
+      // Health-Endpoint nicht erreichbar — Fallback bleibt 'standalone'
+    }
   }
 
   private getBaseUrl(url: string): string {

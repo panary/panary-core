@@ -1,9 +1,9 @@
 <div class="h-full w-full bg-slate-50 p-4 md:p-6 flex flex-col gap-4 overflow-auto box-border">
     <!-- Header & Filters -->
-    <header class="flex-none flex flex-col gap-4 bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+    <header class="flex-none flex flex-col gap-4 bg-white rounded-2xl p-4 border border-slate-200">
         <div class="flex flex-row items-center justify-between">
             <div class="flex items-center gap-4">
-                <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-slate-50 text-slate-600 rounded-xl hover:bg-[#f5f4f2] transition-colors">
+                <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 transition-colors">
                     <span class="material-symbols-outlined text-[20px]">arrow_back</span>
                 </button>
                 <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -12,7 +12,20 @@
                 </h1>
             </div>
 
-            <div class="flex gap-4">
+            <!-- Mobil: zwei gestapelte native Selects -->
+            <div class="flex flex-col gap-2 md:hidden">
+                <select class="h-9 px-3 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-amber-200"
+                    (change)="selectedMonth.set(+$any($event.target).value); onFilterChange()">
+                    <option *ngFor="let m of months" [value]="m.value" [selected]="selectedMonth() === m.value">{{ m.label }}</option>
+                </select>
+                <select class="h-9 px-3 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-amber-200"
+                    (change)="selectedYear.set(+$any($event.target).value); onFilterChange()">
+                    <option *ngFor="let y of years" [value]="y" [selected]="selectedYear() === y">{{ y }}</option>
+                </select>
+            </div>
+
+            <!-- Desktop: Material Selects -->
+            <div class="hidden md:flex gap-4">
                 <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-40">
                     <mat-label>Monat</mat-label>
                     <mat-select [ngModel]="selectedMonth()"
@@ -32,10 +45,10 @@
     </header>
 
     <!-- Content -->
-    <div class="flex-1 min-h-0 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
+    <div class="flex-1 min-h-0 bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
         <div class="flex-1 overflow-auto">
             <div class="max-w-5xl mx-auto p-4 md:p-8">
-                <table mat-table [dataSource]="monthlyData()" class="w-full">
+                <table mat-table [dataSource]="monthlyData()" class="w-full min-w-max">
 
                     <!-- Day Column -->
                     <ng-container matColumnDef="day">
@@ -44,8 +57,8 @@
                         </td>
                     </ng-container>
 
-                    <!-- Date Column -->
-                    <ng-container matColumnDef="date">
+                    <!-- Date Column (sticky) -->
+                    <ng-container matColumnDef="date" sticky>
                         <th mat-header-cell *matHeaderCellDef> Datum </th>
                         <td mat-cell *matCellDef="let element"> {{ element.date | date:'dd.MM.yyyy' }} </td>
                     </ng-container>
@@ -112,9 +125,9 @@
                         </td>
                     </ng-container>
 
-                    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
                     <tr mat-row *matRowDef="let row; columns: displayedColumns;"
-                        class="hover:bg-slate-50 transition-colors border-b last:border-0 border-slate-100"
+                        class="hover:bg-slate-50 transition-colors border-b last:border-0 border-slate-200"
                         [class.bg-slate-50]="row.status === 'off'"></tr>
                 </table>
             </div>

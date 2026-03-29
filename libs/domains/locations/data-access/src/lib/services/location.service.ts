@@ -70,8 +70,8 @@ export class LocationService extends BaseService<Location> {
     return this.activeLocation()?.settings?.tableSettings?.enabled || false
   }
 
-  get printServerUrl(): string {
-    return this.activeLocation()?.settings?.printSettings?.printServerUrl || ''
+  get printServerEnabled(): boolean {
+    return this.activeLocation()?.settings?.printSettings?.printServerEnabled ?? true
   }
 
   get backofficePrinterId(): string | undefined {

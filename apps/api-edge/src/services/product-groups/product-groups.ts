@@ -24,6 +24,7 @@ import {
   productGroupSchema
 } from '@panary-core/product-groups/domain'
 import type { ProductGroup, ProductGroupService } from './product-groups.class'
+import { logger } from '../../logger'
 
 export const productGroupsPath = 'product-groups'
 export const productGroupsMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
@@ -79,7 +80,7 @@ export const productGroups = (app: Application) => {
           { key: { tenantId: 1, externalId: 1 }, unique: true, name: 'tenant_externalId_unique' },
           { key: { status: 1 }, name: 'status_index' },
         ])
-        console.log('MongoDB Indexes ensured for ProductGroups.')
+        logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'mongodb', service: 'product-groups' })
       }
     }
 
@@ -106,10 +107,10 @@ export const productGroups = (app: Application) => {
             `CREATE INDEX IF NOT EXISTS idx_product_groups_tenant_location ON "${tableName}" (tenantId, locationId)`
           )
           await knex.raw(`CREATE INDEX IF NOT EXISTS idx_product_groups_status ON "${tableName}" (status)`)
-          console.log('SQLite Indexes ensured for ProductGroups.')
+          logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'sqlite', service: 'product-groups' })
         }
       } catch (error) {
-        console.error('Error ensuring SQLite indexes:', error)
+        logger.error({ message: 'Failed to ensure indexes', event: 'db.indexes_error', dbType: 'sqlite', service: 'product-groups', error: String(error) })
         // App should still start, maybe the database is locked
       }
     }

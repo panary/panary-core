@@ -19,21 +19,14 @@
   margin: 4px 0;
 }
 
-/* Scale in center animation for overlay */
-.scale-in-center {
-  animation: scaleInCenter 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+/* Fade-in animation for overlay */
+.fade-in {
+  animation: fadeIn 0.15s ease-out both;
 }
 
-@keyframes scaleInCenter {
-  0% {
-    transform: scale(0);
-    opacity: 0;
-  }
-
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 /* Rubber Stamp Effect */
@@ -57,6 +50,24 @@
   text-shadow: 0 0 2px rgba(185, 28, 28, 0.2);
 }
 
+/* Scroll-Indikator-Pille */
+.scroll-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  background: rgba(15, 23, 42, 0.65);
+  color: white;
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(4px);
+  animation: scroll-pill-bounce 1.6s ease-in-out infinite;
+}
+
+@keyframes scroll-pill-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
 /* Button Hover Morph Effect */
 .hover-morph-btn {
   transition:
@@ -67,7 +78,19 @@
 
   &:hover {
     border-radius: 50% !important;
-    /* rounded-full end */
+    /* rounded-full end — nur für quadratische Buttons */
+  }
+}
+
+/* Rechteckige Variante: gleicher Radius wie Kreis-Effekt (1.5rem = 24px = 50% von 48px) */
+.hover-morph-btn-rect {
+  transition:
+    border-radius 0.3s ease,
+    background-color 0.2s ease;
+  border-radius: 0.75rem !important;
+
+  &:hover {
+    border-radius: 1.5rem !important;
   }
 
   /* Remove default gray hover overlay from Material */

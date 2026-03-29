@@ -8,12 +8,12 @@ export const generateDefaultLocationSettings: Settings = {
     timezone: 'Europe/Berlin',
   },
   printSettings: {
+    printServerEnabled: true,
     maxNameCharacters: 42,
     mqttServerProtocol: MqttProtocolType.MQTT,
     mqttServerUrl: 'localhost',
     mqttServerPort: 1883,
     mqttAutoConnect: false,
-    printServerUrl: 'http://localhost:9200',
     printerSequence: [],
     printers: [],
     separationCharacter: '_',

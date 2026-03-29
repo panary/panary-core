@@ -12,7 +12,7 @@ import { MatDialogModule, MatDialogRef } from '@angular/material/dialog'
       <p>Der Tagesabschluss wird in einer zukünftigen Version verfügbar sein.</p>
     </mat-dialog-content>
     <mat-dialog-actions>
-      <button class="bg-white border border-slate-200 text-slate-700 rounded-xl px-4 h-10 hover:bg-[#f5f4f2] transition-colors" (click)="close()">Schließen</button>
+      <button class="bg-white border border-slate-200 text-slate-700 rounded-xl px-4 h-10 hover:bg-slate-100 transition-colors" (click)="close()">Schließen</button>
     </mat-dialog-actions>
   `,
 })

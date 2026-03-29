@@ -25,9 +25,11 @@ import {
   locationDataSchema,
   locationPatchSchema,
   locationQuerySchema,
-  locationSchema
+  locationSchema,
+  generateDefaultLocationSettings,
 } from '@panary-core/locations/domain'
 import type { Location, LocationService } from './locations.class'
+import { logger } from '../../logger'
 
 export const locationsPath = 'locations'
 export const locationsMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
@@ -80,7 +82,7 @@ export const locations = (app: Application) => {
         await model.createIndexes([
           { key: { tenantId: 1 }, name: 'tenant_index' },
         ])
-        console.log('MongoDB Indexes ensured for Locations.')
+        logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'mongodb', service: 'locations' })
       }
     }
 
@@ -103,10 +105,10 @@ export const locations = (app: Application) => {
 
           // Sicherer Weg für SQLite Indizes (Idempotent):
           await knex.raw(`CREATE INDEX IF NOT EXISTS idx_locations_tenant ON ${tableName} (tenantId)`)
-          console.log('SQLite Indexes ensured for Locations.')
+          logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'sqlite', service: 'locations' })
         }
       } catch (error) {
-        console.error('Error ensuring SQLite indexes:', error)
+        logger.error({ message: 'Failed to ensure indexes', event: 'db.indexes_error', dbType: 'sqlite', service: 'locations', error: String(error) })
         // App should still start, maybe the database is locked
       }
     }
@@ -161,6 +163,32 @@ export const locations = (app: Application) => {
     after: {
       all: [
         parseJsonFields(...LOCATION_JSON_FIELDS),
+        // Settings mit Defaults auffüllen, falls leer oder unvollständig (Migration von Alt-Daten)
+        async (context: any) => {
+          const ensureDefaults = (record: any) => {
+            if (!record?.settings || typeof record.settings !== 'object') return
+            const s = record.settings
+            if (!s.generalSettings) {
+              // Settings sind leer/unvollständig — mit Defaults auffüllen
+              const merged = { ...generateDefaultLocationSettings, ...s }
+              // printSettings aus DB bevorzugen, Rest aus Defaults
+              for (const key of Object.keys(generateDefaultLocationSettings)) {
+                if (!s[key]) merged[key] = (generateDefaultLocationSettings as any)[key]
+              }
+              record.settings = merged
+            }
+          }
+
+          const { result } = context
+          if (result?.data && Array.isArray(result.data)) {
+            for (const item of result.data) ensureDefaults(item)
+          } else if (Array.isArray(result)) {
+            for (const item of result) ensureDefaults(item)
+          } else if (typeof result === 'object') {
+            ensureDefaults(result)
+          }
+          return context
+        },
       ]
     },
     error: {

@@ -1,7 +1,7 @@
 <div class="h-full flex flex-col bg-slate-50 overflow-hidden rounded-2xl">
     <!-- Header -->
     <div
-        class="flex-none p-6 bg-white border-b border-slate-200 flex items-center justify-between shadow-sm z-20 relative">
+        class="flex-none p-6 bg-white border-b border-slate-200 flex items-center justify-between z-20 relative">
         <div>
             <h2 class="text-2xl font-bold text-slate-800 m-0 leading-tight">Abfall erfassen</h2>
             <p class="text-sm text-slate-500 font-medium">Buche verdorbene oder fehlerhafte Artikel aus</p>
@@ -24,7 +24,7 @@
                     <section>
                         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">1. Artikel suchen
                         </h3>
-                        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col gap-4">
+                        <div class="bg-white rounded-2xl p-4 border border-slate-200 flex flex-col gap-4">
                             <!-- Type Toggles -->
                             <div class="grid grid-cols-3 gap-2">
                                 <button (click)="setType(WriteOffItemType.PRODUCT)"
@@ -93,7 +93,7 @@
                         <section [class.opacity-50]="!selectedItem()" [class.pointer-events-none]="!selectedItem()">
                             <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">2. Menge</h3>
                             <div
-                                class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex items-center gap-3">
+                                class="bg-white rounded-2xl p-4 border border-slate-200 flex items-center gap-3">
                                 <button type="button"
                                     class="flex items-center justify-center bg-slate-100 w-12 h-12 rounded-xl text-slate-600 hover:bg-slate-200 transition-colors"
                                     (click)="changeQuantity(-1)">
@@ -167,7 +167,7 @@
                         @for (item of items; track item._id) {
                         <button (click)="selectItem(item)"
                             class="w-full text-left p-4 rounded-xl border transition-all group hover:shadow-md"
-                            [ngClass]="selectedItem()?._id === item._id ? 'bg-emerald-50 border-emerald-500 shadow-sm ring-1 ring-emerald-500' : 'bg-white border-slate-100 hover:border-indigo-300'">
+                            [ngClass]="selectedItem()?._id === item._id ? 'bg-emerald-50 border-emerald-500 shadow-sm ring-1 ring-emerald-500' : 'bg-white border-slate-200 hover:border-indigo-300'">
                             <div class="flex justify-between items-start">
                                 <div>
                                     <span
@@ -200,7 +200,7 @@
     </div>
 
     <!-- Footer (Sticky) -->
-    <div class="flex-none p-4 bg-white border-t border-slate-200 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+    <div class="flex-none p-4 bg-white border-t border-slate-200 z-20">
         <button (click)="save()" [disabled]="!selectedItem() || quantity() <= 0"
             class="w-full h-14 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 relative overflow-hidden">
             <span class="material-symbols-outlined text-[20px]">save</span>

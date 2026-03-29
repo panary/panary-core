@@ -1,35 +1,36 @@
 <div class="h-full w-full bg-slate-50 flex flex-col overflow-hidden">
   <!-- Header -->
   <header
-    class="flex-none bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm z-10">
+    class="flex-none bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center z-10">
     <div class="flex items-center gap-4">
-      <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl hover:bg-[#f5f4f2] transition-colors">
+      <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition-colors">
         <span class="material-symbols-outlined text-[20px]">arrow_back</span>
       </button>
-      <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-        <span class="material-symbols-outlined text-[20px] text-blue-600">receipt</span>
-        Offene Bestellungen
-      </h1>
-      <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold"> {{ orders().length }}</span>
-      <button (click)="openQuickOrder()" class="flex items-center gap-2 rounded-xl h-10 px-4 ml-4 bg-yellow-500 text-slate-800 font-bold hover:bg-yellow-400 transition-colors">
-        <span class="material-symbols-outlined text-[20px]">add_circle</span>
-        Neue Bestellung
-      </button>
+      <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">{{ orders().length }}</span>
+      <h1 class="text-xl font-bold text-slate-800">Offene Bestellungen</h1>
+      <div class="hidden md:flex items-center gap-2">
+        <button (click)="decreaseZoom()" class="flex items-center justify-center w-10 h-10 text-slate-500 rounded-xl hover:bg-slate-100 transition-colors">
+          <span class="material-symbols-outlined text-[20px]">remove_circle_outline</span>
+        </button>
+        <span class="text-sm font-bold text-slate-600 min-w-[3ch] text-center">{{ zoomLevel() * 100 | number: '1.0-0' }}%</span>
+        <button (click)="increaseZoom()" class="flex items-center justify-center w-10 h-10 text-slate-500 rounded-xl hover:bg-slate-100 transition-colors">
+          <span class="material-symbols-outlined text-[20px]">add_circle_outline</span>
+        </button>
+      </div>
     </div>
 
-    <div class="flex items-center gap-2">
-      <button (click)="decreaseZoom()" class="flex items-center justify-center w-10 h-10 text-slate-500 rounded-xl hover:bg-[#f5f4f2] transition-colors">
-        <span class="material-symbols-outlined text-[20px]">remove_circle_outline</span>
-      </button>
-      <span class="text-sm font-bold text-slate-600 min-w-[3ch] text-center">{{ zoomLevel() * 100 | number: '1.0-0'
-        }}%</span>
-      <button (click)="increaseZoom()" class="flex items-center justify-center w-10 h-10 text-slate-500 rounded-xl hover:bg-[#f5f4f2] transition-colors">
-        <span class="material-symbols-outlined text-[20px]">add_circle_outline</span>
-      </button>
-    </div>
+    <!-- Mobil: runder Icon-Button -->
+    <button (click)="openQuickOrder()" class="md:hidden flex items-center justify-center w-10 h-10 rounded-full bg-yellow-500 text-slate-800 hover:bg-yellow-400 transition-colors">
+      <span class="material-symbols-outlined text-[22px]">add</span>
+    </button>
+    <!-- Desktop: Button mit Text -->
+    <button (click)="openQuickOrder()" class="hidden md:flex items-center gap-2 rounded-xl h-10 px-4 bg-yellow-500 text-slate-800 font-bold hover:bg-yellow-400 transition-colors">
+      <span class="material-symbols-outlined text-[20px]">add_circle</span>
+      Neue Bestellung
+    </button>
   </header>
 
-  <!-- Horizontal Scrolling Container -->
+  <!-- Horizontaler Scroll-Container (nur X) -->
   <main class="flex-1 overflow-x-auto overflow-y-hidden p-6 relative">
     @if (sortedOrders().length === 0) {
       <div class="absolute inset-0 flex flex-col items-center justify-center text-slate-300 select-none pointer-events-none">
@@ -38,41 +39,275 @@
         <p class="text-lg text-slate-400 opacity-50 mt-2">Im Moment gibt es keine offenen Bestellungen.</p>
       </div>
     } @else {
-      <div class="flex flex-row gap-6 h-full w-max">
+      <div class="flex flex-row gap-6 items-start w-max">
         @for (order of sortedOrders(); track order._id) {
-          <!-- Receipt Card -->
-          <div [style.zoom]="zoomLevel()" (click)="toggleSelection(order._id)"
-            class="flex flex-col h-fit w-80 bg-white shadow-xl rounded-2xl overflow-hidden relative transform transition-transform hover:-translate-y-1 mb-4 shrink-0 cursor-pointer">
+          <!-- Karten-Wrapper: Buttons oben, Karte darunter — passt sich Inhalt an -->
+          <div [style.zoom]="zoomLevel()" class="flex flex-col gap-2 w-80 shrink-0">
+
+            <!-- ── Aktions-Schaltflächen (über der Karte, schwebend) ── -->
+            <div class="flex-none flex items-center gap-2 px-4">
+              <button class="hover-morph-btn flex items-center justify-center bg-white text-slate-600 w-12 h-12 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors shadow-sm"
+                (click)="printOrder($event, order)">
+                <span class="material-symbols-outlined text-[20px]">print</span>
+              </button>
+              <!-- Spacer -->
+              <div class="flex-1"></div>
+              <button class="hover-morph-btn flex items-center justify-center bg-emerald-100 text-emerald-700 w-12 h-12 rounded-xl border border-emerald-200 hover:bg-emerald-200 transition-colors shadow-sm"
+                (click)="completeOrder($event, order)" title="Bestellung abschließen">
+                <span class="material-symbols-outlined text-[20px]">done_all</span>
+              </button>
+              <button
+                class="hover-morph-btn-rect bg-slate-100 text-slate-600 h-12 px-5 rounded-xl flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-200 shadow-sm"
+                (click)="checkoutOrder($event, order)">
+                <span class="font-bold text-sm">Kassieren</span>
+              </button>
+            </div>
+
+          <!-- Receipt Card — h-fit, gedeckelt durch zoom-korrigierte Viewport-Höhe -->
+          <div (click)="toggleSelection(order._id)"
+            class="flex flex-col w-full bg-white border border-slate-200 rounded-2xl overflow-hidden relative transition-colors hover:border-slate-300 cursor-pointer"
+            [style.max-height]="cardMaxHeight()">
             <!-- Selection Overlay -->
             @if (selectedOrderId() === order._id) {
             <div
-              class="absolute inset-0 bg-slate-900/40 z-20 flex flex-col items-center justify-center gap-4 backdrop-blur-[2px] scale-in-center p-6">
-              <div class="grid grid-cols-2 gap-4 w-full px-2">
+              class="absolute inset-0 bg-gradient-to-b from-white to-slate-200 z-20 flex flex-col items-center justify-center fade-in px-5 py-4 gap-3 overflow-y-auto">
+
+              @if (overlayView() === 'actions') {
+                <!-- ── Aktions-Ansicht ─────────────────────── -->
+
+                <!-- Close button — rund, Icon only -->
                 <button
-                  class="h-24 w-full rounded-2xl bg-white text-slate-800 flex flex-col items-center justify-center gap-1 shadow-lg border border-slate-100 hover:bg-[#f5f4f2] transition-colors"
-                  (click)="convertToStaffMeal(order); $event.stopPropagation()">
-                  <span class="material-symbols-outlined text-[32px] mb-1">badge</span>
-                  <span class="text-xs font-bold uppercase tracking-wide">Mitarbeiter</span>
+                  class="w-13 h-13 rounded-full bg-slate-100 text-slate-500 border border-slate-200 flex items-center justify-center hover:bg-slate-200 hover:text-slate-700 transition-colors"
+                  (click)="toggleSelection(order._id); $event.stopPropagation()">
+                  <span class="material-symbols-outlined text-[22px]">close</span>
+                </button>
+
+                <!-- Separator -->
+                <div class="w-3/5 h-px bg-slate-200 my-1"></div>
+
+                <!-- Action buttons -->
+                <button
+                  class="w-4/5 min-h-14 px-4 rounded-xl bg-white text-slate-800 flex items-center gap-3 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                  (click)="openStaffMealView(); $event.stopPropagation()">
+                  <span class="material-symbols-outlined text-[22px] text-slate-800">lunch_dining</span>
+                  <span class="text-sm font-bold">Personalessen</span>
                 </button>
                 <button
-                  class="h-24 w-full rounded-2xl bg-white text-slate-800 flex flex-col items-center justify-center gap-1 shadow-lg border border-slate-100 hover:bg-[#f5f4f2] transition-colors"
-                  (click)="cancelOrder(order); $event.stopPropagation()">
-                  <span class="material-symbols-outlined text-[32px] mb-1">cancel</span>
-                  <span class="text-xs font-bold uppercase tracking-wide">Storno</span>
+                  class="w-4/5 min-h-14 px-4 rounded-xl bg-white text-slate-800 flex items-center gap-3 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                  (click)="cancelOrder(); $event.stopPropagation()">
+                  <span class="material-symbols-outlined text-[22px] text-red-400">cancel</span>
+                  <span class="text-sm font-bold">Storno</span>
                 </button>
                 <button
-                  class="h-24 w-full rounded-2xl bg-white text-slate-800 flex flex-col items-center justify-center gap-1 shadow-lg border border-slate-100 hover:bg-[#f5f4f2] transition-colors"
-                  (click)="enterDiscount(order); $event.stopPropagation()">
-                  <span class="material-symbols-outlined text-[32px] mb-1">percent</span>
-                  <span class="text-xs font-bold uppercase tracking-wide">Rabatt</span>
+                  class="w-4/5 min-h-14 px-4 rounded-xl bg-white text-slate-800 flex items-center gap-3 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                  (click)="enterDiscount(); $event.stopPropagation()">
+                  <span class="material-symbols-outlined text-[22px] text-slate-800">percent</span>
+                  <span class="text-sm font-bold">Rabatt</span>
                 </button>
                 <button
-                  class="h-24 w-full rounded-2xl bg-white text-slate-800 flex flex-col items-center justify-center gap-1 shadow-lg border border-slate-100 hover:bg-[#f5f4f2] transition-colors"
-                  (click)="recordCorporateOrder(order); $event.stopPropagation()">
-                  <span class="material-symbols-outlined text-[32px] mb-1">business</span>
-                  <span class="text-xs font-bold uppercase tracking-wide">Firma</span>
+                  class="w-4/5 min-h-14 px-4 rounded-xl bg-white text-slate-800 flex items-center gap-3 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                  (click)="recordCorporateOrder(); $event.stopPropagation()">
+                  <span class="material-symbols-outlined text-[22px] text-slate-800">business</span>
+                  <span class="text-sm font-bold">Firma</span>
                 </button>
-              </div>
+
+              } @else if (overlayView() === 'staff-meal') {
+                <!-- ── Personalessen-Ansicht ───────────────── -->
+
+                <!-- Kopfzeile: Zurück + Titel -->
+                <div class="w-4/5 flex items-center gap-3" (click)="$event.stopPropagation()">
+                  <button
+                    class="w-13 h-13 rounded-full bg-slate-100 text-slate-500 border border-slate-200 flex items-center justify-center hover:bg-slate-200 hover:text-slate-700 transition-colors shrink-0"
+                    (click)="backToActions(); $event.stopPropagation()">
+                    <span class="material-symbols-outlined text-[22px]">arrow_back</span>
+                  </button>
+                  <span class="text-sm font-bold text-slate-700">Personalessen</span>
+                </div>
+
+                <!-- Separator -->
+                <div class="w-3/5 h-px bg-slate-200 my-1"></div>
+
+                <!-- Ladezustand -->
+                @if (staffUsersLoading()) {
+                  <div class="flex items-center justify-center py-4" (click)="$event.stopPropagation()">
+                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
+                  </div>
+                } @else if (staffEligibleUsers().length === 0) {
+                  <!-- Leerzustand -->
+                  <div class="flex flex-col items-center gap-1 py-3 text-slate-400" (click)="$event.stopPropagation()">
+                    <span class="material-symbols-outlined text-[32px] opacity-40">group_off</span>
+                    <span class="text-xs text-center">Kein Mitarbeiter<br>mit Personalessen-Berechtigung</span>
+                  </div>
+                } @else {
+                  <!-- Mitarbeiterliste -->
+                  @for (user of staffEligibleUsers(); track user._id) {
+                    <button
+                      class="w-4/5 min-h-14 px-3 rounded-xl bg-white text-slate-800 flex items-center gap-3 border border-slate-200 hover:bg-indigo-50 hover:border-indigo-200 transition-colors"
+                      (click)="applyStaffMeal(order, user); $event.stopPropagation()">
+                      <!-- Initialen-Avatar -->
+                      <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold shrink-0">
+                        {{ getUserInitials(user) }}
+                      </div>
+                      <!-- Name -->
+                      <span class="text-sm font-bold truncate">{{ user.firstName }} {{ user.lastName }}</span>
+                    </button>
+                  }
+                }
+
+              } @else if (overlayView() === 'cancel-reason') {
+                <!-- ── Storno: Grund-Auswahl ──────────────── -->
+
+                <div class="w-4/5 flex items-center gap-3" (click)="$event.stopPropagation()">
+                  <button
+                    class="w-13 h-13 rounded-full bg-slate-100 text-slate-500 border border-slate-200 flex items-center justify-center hover:bg-slate-200 hover:text-slate-700 transition-colors shrink-0"
+                    (click)="backToActions(); $event.stopPropagation()">
+                    <span class="material-symbols-outlined text-[22px]">arrow_back</span>
+                  </button>
+                  <span class="text-sm font-bold text-slate-700">Storno-Grund</span>
+                </div>
+
+                <div class="w-3/5 h-px bg-slate-200 my-1"></div>
+
+                @for (reason of cancelReasons; track reason) {
+                  <button
+                    class="w-4/5 min-h-14 px-4 rounded-xl bg-white text-slate-800 flex items-center gap-3 border border-slate-200 hover:bg-orange-50 hover:border-orange-200 transition-colors"
+                    (click)="selectCancelReason(reason); $event.stopPropagation()">
+                    <span class="material-symbols-outlined text-[20px] text-orange-400">do_not_disturb_on</span>
+                    <span class="text-sm font-bold">{{ reason }}</span>
+                  </button>
+                }
+
+              } @else if (overlayView() === 'cancel-pin') {
+                <!-- ── Storno: PIN-Eingabe ────────────────── -->
+
+                <div class="w-4/5 flex items-center gap-3" (click)="$event.stopPropagation()">
+                  <button
+                    class="w-13 h-13 rounded-full bg-slate-100 text-slate-500 border border-slate-200 flex items-center justify-center hover:bg-slate-200 hover:text-slate-700 transition-colors shrink-0"
+                    (click)="overlayView.set('cancel-reason'); cancelPin.set(''); $event.stopPropagation()">
+                    <span class="material-symbols-outlined text-[22px]">arrow_back</span>
+                  </button>
+                  <div class="flex flex-col">
+                    <span class="text-sm font-bold text-slate-700">Manager-PIN</span>
+                    <span class="text-[10px] text-slate-400">{{ cancelReason() }}</span>
+                  </div>
+                </div>
+
+                <div class="w-3/5 h-px bg-slate-200 my-1"></div>
+
+                @if (managersLoading()) {
+                  <div class="flex items-center justify-center py-4" (click)="$event.stopPropagation()">
+                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-red-400"></div>
+                  </div>
+                } @else if (managerUsers().length === 0) {
+                  <div class="flex flex-col items-center gap-1 py-3 text-slate-400" (click)="$event.stopPropagation()">
+                    <span class="material-symbols-outlined text-[32px] opacity-40">lock</span>
+                    <span class="text-xs text-center">Kein Manager mit<br>PIN hinterlegt</span>
+                  </div>
+                } @else {
+                  <!-- PIN-Dots -->
+                  <div class="flex gap-2 justify-center my-2" (click)="$event.stopPropagation()">
+                    @for (i of [0, 1, 2, 3, 4, 5]; track i) {
+                      <div class="w-4 h-4 rounded-full border-2 transition-colors"
+                        [class]="cancelPin().length > i ? 'bg-red-400 border-red-400' : 'bg-white border-slate-300'">
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Numpad -->
+                  <div class="grid grid-cols-3 gap-2 w-4/5" (click)="$event.stopPropagation()">
+                    @for (digit of ['1','2','3','4','5','6','7','8','9']; track digit) {
+                      <button
+                        class="h-12 rounded-xl bg-white border border-slate-200 text-slate-800 text-lg font-bold hover:bg-slate-50 transition-colors"
+                        (click)="appendPinDigit(digit)">
+                        {{ digit }}
+                      </button>
+                    }
+                    <button
+                      class="h-12 rounded-xl bg-white border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-50 transition-colors"
+                      (click)="deletePinDigit()">
+                      <span class="material-symbols-outlined text-[20px]">backspace</span>
+                    </button>
+                    <button
+                      class="h-12 rounded-xl bg-white border border-slate-200 text-slate-800 text-lg font-bold hover:bg-slate-50 transition-colors"
+                      (click)="appendPinDigit('0')">
+                      0
+                    </button>
+                    <button
+                      class="h-12 rounded-xl text-white text-sm font-bold transition-colors"
+                      [class]="cancelPin().length >= 4 ? 'bg-red-500 hover:bg-red-600' : 'bg-slate-200 text-slate-400 cursor-not-allowed'"
+                      [disabled]="cancelPin().length < 4"
+                      (click)="confirmCancel(order)">
+                      <span class="material-symbols-outlined text-[20px]">check</span>
+                    </button>
+                  </div>
+                }
+
+              } @else if (overlayView() === 'discount') {
+                <!-- ── Rabatt-Ansicht ─────────────────────── -->
+
+                <div class="w-4/5 flex items-center gap-3" (click)="$event.stopPropagation()">
+                  <button
+                    class="w-13 h-13 rounded-full bg-slate-100 text-slate-500 border border-slate-200 flex items-center justify-center hover:bg-slate-200 hover:text-slate-700 transition-colors shrink-0"
+                    (click)="backToActions(); $event.stopPropagation()">
+                    <span class="material-symbols-outlined text-[22px]">arrow_back</span>
+                  </button>
+                  <span class="text-sm font-bold text-slate-700">Rabatt</span>
+                </div>
+
+                <div class="w-3/5 h-px bg-slate-200 my-1"></div>
+
+                <div class="grid grid-cols-2 gap-2 w-4/5" (click)="$event.stopPropagation()">
+                  @for (percent of discountPresets; track percent) {
+                    <button
+                      class="min-h-14 rounded-xl bg-white text-slate-800 flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-100 hover:border-slate-300 transition-colors"
+                      (click)="applyDiscount(order, percent)">
+                      <span class="text-lg font-black">{{ percent }}%</span>
+                    </button>
+                  }
+                </div>
+
+              } @else if (overlayView() === 'corporate') {
+                <!-- ── Firma-Ansicht ──────────────────────── -->
+
+                <div class="w-4/5 flex items-center gap-3" (click)="$event.stopPropagation()">
+                  <button
+                    class="w-13 h-13 rounded-full bg-slate-100 text-slate-500 border border-slate-200 flex items-center justify-center hover:bg-slate-200 hover:text-slate-700 transition-colors shrink-0"
+                    (click)="backToActions(); $event.stopPropagation()">
+                    <span class="material-symbols-outlined text-[22px]">arrow_back</span>
+                  </button>
+                  <span class="text-sm font-bold text-slate-700">Firma</span>
+                </div>
+
+                <div class="w-3/5 h-px bg-slate-200 my-1"></div>
+
+                @if (corporateCustomersLoading()) {
+                  <div class="flex items-center justify-center py-4" (click)="$event.stopPropagation()">
+                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
+                  </div>
+                } @else if (corporateCustomers().length === 0) {
+                  <div class="flex flex-col items-center gap-1 py-3 text-slate-400" (click)="$event.stopPropagation()">
+                    <span class="material-symbols-outlined text-[32px] opacity-40">domain_disabled</span>
+                    <span class="text-xs text-center">Keine Firmenkunden<br>hinterlegt</span>
+                  </div>
+                } @else {
+                  @for (customer of corporateCustomers(); track customer._id) {
+                    <button
+                      class="w-4/5 min-h-14 px-3 rounded-xl bg-white text-slate-800 flex items-center gap-3 border border-slate-200 hover:bg-orange-50 hover:border-orange-200 transition-colors"
+                      (click)="applyCorporateCustomer(order, customer); $event.stopPropagation()">
+                      <div class="w-8 h-8 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center text-xs font-bold shrink-0">
+                        <span class="material-symbols-outlined text-[18px]">business</span>
+                      </div>
+                      <div class="flex flex-col items-start truncate">
+                        <span class="text-sm font-bold truncate">{{ customer.name1 }}</span>
+                        @if (customer.discountDetails) {
+                          <span class="text-[10px] text-slate-400">{{ formatCorporateDiscount(customer) }}</span>
+                        }
+                      </div>
+                    </button>
+                  }
+                }
+              }
+
             </div>
             }
 
@@ -81,7 +316,10 @@
             <div class="stamp-canceled">STORNIERT</div>
             }
 
-            <!-- Staff/Corporate Badge header -->
+            <!-- ── Fester Bereich: Badges + Header + obere Tearline (scrollt nie) ── -->
+            <div class="flex-none flex flex-col">
+
+            <!-- Staff/Corporate Badge -->
             @if (order.staffPaymentInfo) {
             <div class="bg-violet-100 text-violet-700 px-4 py-1.5 text-xs font-bold text-center border-b border-violet-200">
               <span class="material-symbols-outlined text-[16px] align-bottom mr-1">badge</span>
@@ -95,9 +333,9 @@
             </div>
             }
 
-            <!-- Receipt Header -->
-            <div class="px-6 pt-6 pb-4 text-center">
-              <div class="flex justify-between items-start mb-2">
+            <!-- ── Receipt Header ───────── -->
+            <div class="px-6 pt-4 pb-3 text-center bg-white">
+              <div class="flex justify-between items-start mb-1">
                 <span class="text-xs font-bold text-slate-400">#{{ order._id.slice(-4) }}</span>
                 <div class="flex flex-col items-end">
                   <span class="text-xs font-bold text-slate-500">{{ order.recordingDate | date: 'HH:mm' }}</span>
@@ -105,29 +343,25 @@
                 </div>
               </div>
 
-              <h2 class="text-4xl font-black text-slate-800 my-2">
+              <h2 class="text-4xl font-black text-slate-800 my-1">
                 {{ order.dailySequenceNumber }}
               </h2>
 
               <div class="flex justify-center gap-2 mt-2">
                 @if (order.dineLocation === 'dine-in') {
-                <span
-                  class="flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-xs font-bold uppercase">
+                <span class="flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-xs font-bold uppercase">
                   <span class="material-symbols-outlined text-[16px]">restaurant</span> Im Haus
                 </span>
                 } @else {
-                <span
-                  class="flex items-center gap-1 bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-bold uppercase">
+                <span class="flex items-center gap-1 bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-bold uppercase">
                   <span class="material-symbols-outlined text-[16px]">shopping_bag</span> To Go
                 </span>
                 }
-
                 @if (order.table) {
                 <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-xs font-bold">
                   T{{ order.table }}
                 </span>
                 }
-
                 @if (order.pager) {
                 <span class="flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-0.5 rounded text-xs font-bold">
                   <span class="material-symbols-outlined text-[16px] inline-block align-middle">notifications_active</span>
@@ -137,8 +371,26 @@
               </div>
             </div>
 
-            <!-- Receipt Body (Scrollable if too long, but generally adaptive) -->
-            <div class="flex-1 p-4 font-mono text-sm max-h-[60vh] overflow-y-auto">
+            <!-- Torn Paper Separator (oben der Positionen) -->
+            <div class="receipt-tear-line"></div>
+
+            </div><!-- Ende fester Header-Bereich -->
+
+            <!-- ── Bestellpositionen: scrollt innerhalb der Karte ── -->
+            <div class="flex-1 overflow-y-auto min-h-0"
+              [attr.data-order-items]="true"
+              [attr.data-order-id]="order._id"
+              (scroll)="onItemsScroll($event, order._id)">
+
+              <!-- Scroll-Indikator: mehr Inhalt oben (h-0 + absolute = kein Layout-Einfluss) -->
+              <div class="sticky top-0 h-0 z-10 pointer-events-none transition-opacity duration-300"
+                [class.opacity-0]="!hasMoreAbove(order._id)">
+                <div class="absolute top-2 left-0 right-0 flex justify-center">
+                  <div class="scroll-pill"><span class="material-symbols-outlined text-[16px]">keyboard_arrow_up</span></div>
+                </div>
+              </div>
+
+            <div class="p-4 font-mono text-sm">
               <div class="flex flex-col gap-3">
                 @for (item of getUnbundledLineItems(order); track item._id) {
                 <div class="flex justify-between items-start">
@@ -193,8 +445,7 @@
                 <!-- Combinations (Grouped Items) -->
                 @if (getCombinations(order).length > 0) {
                 <div class="border-t border-dashed border-slate-200 my-1 pt-2">
-                  <span
-                    class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Kombinationen</span>
+                  <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Kombinationen</span>
                   @for (combo of getCombinations(order); track $index) {
                   <div class="bg-indigo-50/50 rounded-lg p-2 mb-2 border border-indigo-100 relative">
                     <div class="absolute -left-1 top-3 bottom-3 w-1 bg-indigo-200 rounded-full"></div>
@@ -205,8 +456,6 @@
                           <span class="font-bold w-4 text-xs">{{ item.amount }}x</span>
                           <div class="flex flex-col">
                             <span class="text-slate-700 text-sm">{{ item.name }}</span>
-
-                            <!-- Extras in Combo -->
                             @if (item.modifiers && item.modifiers.length > 0) {
                             @for (extra of item.modifiers; track extra._id) {
                             <div class="text-[10px] text-slate-500 pl-2 flex items-center justify-between gap-2">
@@ -230,38 +479,32 @@
               </div>
             </div>
 
-            <!-- Torn Paper Separator -->
+              <!-- Scroll-Indikator: mehr Inhalt unten (h-0 + absolute = kein Layout-Einfluss) -->
+              <div class="sticky bottom-0 h-0 z-10 pointer-events-none transition-opacity duration-300"
+                [class.opacity-0]="!hasMoreBelow(order._id)">
+                <div class="absolute bottom-2 left-0 right-0 flex justify-center">
+                  <div class="scroll-pill"><span class="material-symbols-outlined text-[16px]">keyboard_arrow_down</span></div>
+                </div>
+              </div>
+
+            </div><!-- Ende scrollbarer Positions-Bereich -->
+
+            <!-- ── Fester Bereich: untere Tearline + Gesamtbetrag ── -->
+            <div class="flex-none">
+
+            <!-- Torn Paper Separator (unten der Positionen) -->
             <div class="receipt-tear-line"></div>
 
-            <!-- Receipt Footer -->
-            <div class="p-4 pt-2 bg-white rounded-b-2xl">
-              <div class="flex justify-between items-center mb-4 px-2">
+            <!-- ── BOTTOM: Nur Gesamtbetrag ───────────────────── -->
+            <div class="bg-white px-6 py-4 rounded-b-2xl">
+              <div class="flex justify-between items-center">
                 <span class="font-bold text-slate-500 uppercase text-xs">Gesamt</span>
                 <span class="text-xl font-black text-slate-800">{{ formatPrice(calculateTotal(order)) }}</span>
               </div>
-
-              <div class="flex justify-between gap-2">
-                <!-- Print Button -->
-                <button class="hover-morph-btn flex items-center justify-center bg-slate-100 text-slate-600 w-12 h-12 rounded-xl hover:bg-[#f5f4f2] transition-colors"
-                  (click)="printOrder($event, order)">
-                  <span class="material-symbols-outlined text-[20px]">print</span>
-                </button>
-
-                <div class="flex gap-2 flex-1 justify-end">
-                  <!-- Complete Order (Finish) -->
-                  <button class="hover-morph-btn flex items-center justify-center bg-emerald-100 text-emerald-700 w-12 h-12 rounded-xl hover:bg-emerald-200 transition-colors"
-                    (click)="completeOrder($event, order)" title="Bestellung abschließen">
-                    <span class="material-symbols-outlined text-[20px]">done_all</span>
-                  </button>
-                  <!-- Checkout (Kassieren) -->
-                  <button
-                    class="bg-slate-800 text-white h-12 px-6 rounded-xl flex-1 max-w-[140px] flex items-center justify-center gap-2 hover:bg-slate-700 transition-colors"
-                    (click)="checkoutOrder($event, order)">
-                    <span class="uppercase font-bold tracking-wide text-sm hidden sm:inline">Kassieren</span>
-                  </button>
-                </div>
-              </div>
             </div>
+            </div><!-- Ende fester Footer-Bereich -->
+          </div><!-- Ende Karte -->
+          <!-- Ende Karten-Wrapper -->
           </div>
         }
       </div>

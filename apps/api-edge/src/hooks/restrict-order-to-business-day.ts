@@ -77,6 +77,23 @@ export function restrictOrderToBusinessDay() {
       const now = new Date().toISOString()
       const knex = app.get('sqliteClient')
 
+      // Rotation blockieren wenn noch aktive Bestellungen im alten Geschäftstag vorhanden
+      if (activeLocation.currentBusinessDay?.businessDayId) {
+        const activeOrderCount = await knex('orders')
+          .where({ businessDayId: activeLocation.currentBusinessDay.businessDayId, status: 'active' })
+          .count('_id as count')
+          .first()
+
+        if (Number(activeOrderCount?.count ?? 0) > 0) {
+          logger.warn(
+            `[AutoBusinessDay] Rotation für Location ${locationId} blockiert — ${activeOrderCount?.count} aktive Bestellung(en) im Geschäftstag ${activeLocation.currentBusinessDay.businessDayId}. Neue Bestellung wird dem aktuellen Geschäftstag zugeordnet.`,
+          )
+          // Neue Bestellung dem laufenden (alten) Geschäftstag zuordnen statt zu rotieren
+          context.data.businessDayId = activeLocation.currentBusinessDay.businessDayId
+          return context
+        }
+      }
+
       // Vorherigen Geschäftstag schließen
       if (activeLocation.currentBusinessDay?.businessDayId) {
         await knex('businessdays')

@@ -1,11 +1,9 @@
 import { ChangeDetectorRef, Component, computed, effect, inject, OnInit, Signal } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { Router } from '@angular/router'
-// TODO: ngx-echarts + echarts nicht installiert – Chart temporär deaktiviert
-// import { NGX_ECHARTS_CONFIG, NgxEchartsModule } from 'ngx-echarts'
-// import * as echarts from 'echarts'
-// import type { EChartsOption } from 'echarts'
-type EChartsOption = Record<string, unknown>
+import { NGX_ECHARTS_CONFIG, NgxEchartsModule } from 'ngx-echarts'
+import type { EChartsOption } from 'echarts'
+import { ConnectionService } from '@panary-core/shared/data-access'
 import { Order, OrderService, OrderStatus } from '@panary-core/orders/data-access'
 import { UserService } from '@panary-core/users/data-access'
 import { UserSystemRole } from '@panary-core/users/domain'
@@ -24,13 +22,16 @@ interface QuickAction {
   bgClass: string
   textClass: string
   allowedRoles?: UserSystemRole[]
+  hideInStandalone?: boolean
 }
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, MatDialogModule],
-  providers: [],
+  imports: [CommonModule, MatDialogModule, NgxEchartsModule],
+  providers: [
+    { provide: NGX_ECHARTS_CONFIG, useValue: { echarts: () => import('echarts') } },
+  ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
@@ -42,8 +43,11 @@ export class DashboardComponent implements OnInit {
   #authService = inject(AuthService)
   #workingTimeService = inject(WorkingTimeService)
   #locationService = inject(LocationService)
+  #connectionService = inject(ConnectionService)
   #cdr = inject(ChangeDetectorRef)
   #dialog = inject(MatDialog)
+
+  isStandaloneMode = computed(() => this.#connectionService.systemMode() === 'standalone')
 
   // Signals
   currentUser = computed(() => {
@@ -133,6 +137,7 @@ export class DashboardComponent implements OnInit {
       },
       bgClass: 'bg-red-50',
       textClass: 'text-red-500',
+      hideInStandalone: true,
     },
     // Tagesabschluss button removed - moved to Detailed View
     // {
@@ -157,6 +162,7 @@ export class DashboardComponent implements OnInit {
     const userRole = user?.role || UserSystemRole.TENANT_STAFF
 
     return this.quickActions.filter(action => {
+      if (action.hideInStandalone && this.isStandaloneMode()) return false
       if (!action.allowedRoles) return true
       return action.allowedRoles.includes(userRole)
     })

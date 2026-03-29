@@ -12,6 +12,7 @@ Vor dem Arbeiten die relevanten Rules lesen:
 | `.claude/rules/code-style.md` | Prettier, TypeScript-Konventionen, Benennung, Tailwind v4, Design-System |
 | `.claude/rules/angular.md` | Control Flow, Signals, Signal-Inputs/Outputs, DI via `inject()`, Standalone-Architektur |
 | `.claude/rules/data-models.md` | IDs (uuidv7), Datumsformat, TypeBox-Schemas, „Product First"-Prinzip, Domain-Struktur |
+| `.claude/rules/logging.md` | Wide Events, Canonical Log Lines, Business-Kontext, Dev-Format, Sensitive-Daten-Regeln |
 
 ---
 

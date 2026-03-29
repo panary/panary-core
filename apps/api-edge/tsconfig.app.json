@@ -1,8 +1,5 @@
 {
   "extends": "../../tsconfig.base.json",
-  "ts-node": {
-    "files": true
-  },
   "compilerOptions": {
     "target": "es2020",
     "module": "commonjs",

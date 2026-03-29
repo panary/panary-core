@@ -9,6 +9,7 @@ import path from 'path'
 import fs from 'fs'
 import { configurationValidator } from './configuration'
 import type { Application } from './declarations'
+import { canonicalLog } from './hooks/canonical-log.hook'
 import { logError } from './hooks/log-error'
 import { sqlite } from './sqlite'
 import { services } from './services/index'
@@ -18,6 +19,7 @@ import { ensureTenantIsolation } from './hooks/ensure-tenant-isolation.hook'
 import { allowApiKey } from './hooks/allow-apikey.hook'
 import { authentication } from './authentication'
 import { renderStatusPage } from './status-page'
+import { configurePrintServer } from './print-server/index'
 
 const app: Application = koa(feathers())
 
@@ -100,7 +102,8 @@ app.use(async (ctx, next) => {
       status: 'ok',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      version: process.env.npm_package_version
+      version: process.env.npm_package_version,
+      systemMode: app.get('system')?.mode || 'standalone',
     }
     ctx.status = 200
     return
@@ -136,12 +139,13 @@ app.configure(
 app.configure(authentication)
 app.configure(sqlite)
 app.configure(services)
+app.configure(configurePrintServer)
 app.configure(channels)
 
 // App-level hooks
 app.hooks({
   around: {
-    all: [logError, allowApiKey()]
+    all: [canonicalLog, logError, allowApiKey()]
   },
   before: {},
   after: {

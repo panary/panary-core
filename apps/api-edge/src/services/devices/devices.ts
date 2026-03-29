@@ -24,6 +24,7 @@ import {
   deviceSchema
 } from '@panary-core/devices/domain'
 import type { Device, DeviceService } from './devices.class'
+import { logger } from '../../logger'
 
 export const devicesPath = 'devices'
 export const devicesMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
@@ -78,7 +79,7 @@ export const devices = (app: Application) => {
           { key: { tenantId: 1, deviceId: 1 }, unique: true, name: 'tenant_deviceId_unique' },
           { key: { status: 1 }, name: 'status_index' }
         ])
-        console.log('MongoDB Indexes ensured for Devices.')
+        logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'mongodb', service: 'devices' })
       }
     }
 
@@ -104,10 +105,10 @@ export const devices = (app: Application) => {
           await knex.raw(
             `CREATE INDEX IF NOT EXISTS idx_devices_tenant_location ON "${tableName}" (tenantId, locationId)`
           )
-          console.log('SQLite Indexes ensured for Devices.')
+          logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'sqlite', service: 'devices' })
         }
       } catch (error) {
-        console.error('Error ensuring SQLite indexes:', error)
+        logger.error({ message: 'Failed to ensure indexes', event: 'db.indexes_error', dbType: 'sqlite', service: 'devices', error: String(error) })
         // App should still start, maybe the database is locked
       }
     }
@@ -173,7 +174,7 @@ export const devices = (app: Application) => {
             // API-Key nur bei Erstellung zurückgeben (nicht bei späteren Abfragen)
             device.apiKey = apiKeyRecord.apikey
           } catch (err) {
-            console.error('Fehler beim Erstellen des API-Keys für Device:', err)
+            logger.error({ message: 'Failed to create API key for device', event: 'devices.apikey_error', error: String(err) })
           }
 
           return context

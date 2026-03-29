@@ -29,13 +29,30 @@ th.mat-header-cell {
   position: sticky;
   top: 0;
   z-index: 10;
-  box-shadow: 0 1px 0 #f1f5f9;
-  /* Subtle border for sticky header */
+  /* Border line for sticky header */
 }
 
 /* Remove default material background if any */
 .mat-mdc-table {
   background: transparent !important;
+}
+
+/* Sticky column: solid white background + z-index to prevent bleed-through */
+td.mat-mdc-cell.mat-table-sticky,
+th.mat-mdc-header-cell.mat-table-sticky {
+  background-color: white !important;
+  z-index: 2;
+}
+
+/* Corner: sticky header + sticky column → on top of everything */
+th.mat-mdc-header-cell.mat-table-sticky {
+  z-index: 12;
+}
+
+/* Vertical separator on sticky date column */
+td.mat-mdc-cell.mat-column-date.mat-table-sticky,
+th.mat-mdc-header-cell.mat-column-date.mat-table-sticky {
+  border-right: 2px solid #e2e8f0;
 }
 
 /* Soften row hover */

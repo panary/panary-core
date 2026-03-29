@@ -1,7 +1,7 @@
 <div class="h-full w-full bg-slate-50 p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border">
   <!-- Header -->
-  <header class="flex-none bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-4">
-    <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl hover:bg-[#f5f4f2] transition-colors">
+  <header class="flex-none bg-white rounded-2xl border border-slate-200 p-4 flex items-center gap-4">
+    <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition-colors">
       <span class="material-symbols-outlined text-[20px]">arrow_back</span>
     </button>
     <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -13,29 +13,29 @@
   <main class="flex-1 flex gap-6 min-h-0">
     <!-- Sidebar -->
     <nav
-      class="w-64 flex-none bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col gap-2 overflow-y-auto">
-      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 rounded-xl w-full hover:bg-[#f5f4f2] transition-colors"
+      class="w-64 flex-none bg-white rounded-2xl border border-slate-200 p-4 flex flex-col gap-2 overflow-y-auto">
+      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 rounded-xl w-full hover:bg-slate-100 transition-colors"
         [class.bg-purple-50]="activeSection === 'general'" [class.text-purple-700]="activeSection === 'general'"
         (click)="activeSection = 'general'">
         <span class="material-symbols-outlined text-[20px] mr-3" [class.text-purple-600]="activeSection === 'general'"
           [class.text-slate-400]="activeSection !== 'general'">tune</span>
         Allgemein
       </button>
-      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 rounded-xl w-full hover:bg-[#f5f4f2] transition-colors"
+      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 rounded-xl w-full hover:bg-slate-100 transition-colors"
         [class.bg-purple-50]="activeSection === 'users'" [class.text-purple-700]="activeSection === 'users'"
         (click)="activeSection = 'users'">
         <span class="material-symbols-outlined text-[20px] mr-3" [class.text-purple-600]="activeSection === 'users'"
           [class.text-slate-400]="activeSection !== 'users'">people</span>
         Benutzer
       </button>
-      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 rounded-xl w-full hover:bg-[#f5f4f2] transition-colors"
+      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 rounded-xl w-full hover:bg-slate-100 transition-colors"
         [class.bg-purple-50]="activeSection === 'printer'" [class.text-purple-700]="activeSection === 'printer'"
         (click)="activeSection = 'printer'">
         <span class="material-symbols-outlined text-[20px] mr-3" [class.text-purple-600]="activeSection === 'printer'"
           [class.text-slate-400]="activeSection !== 'printer'">print</span>
         Drucker
       </button>
-      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 rounded-xl w-full hover:bg-[#f5f4f2] transition-colors"
+      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 rounded-xl w-full hover:bg-slate-100 transition-colors"
         [class.bg-purple-50]="activeSection === 'design'" [class.text-purple-700]="activeSection === 'design'"
         (click)="activeSection = 'design'">
         <span class="material-symbols-outlined text-[20px] mr-3" [class.text-purple-600]="activeSection === 'design'"
@@ -43,7 +43,7 @@
         Design
       </button>
       <div class="flex-1"></div>
-      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 rounded-xl w-full hover:bg-[#f5f4f2] transition-colors"
+      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 rounded-xl w-full hover:bg-slate-100 transition-colors"
         [class.bg-purple-50]="activeSection === 'info'" [class.text-purple-700]="activeSection === 'info'"
         (click)="activeSection = 'info'">
         <span class="material-symbols-outlined text-[20px] mr-3" [class.text-purple-600]="activeSection === 'info'"
@@ -53,7 +53,7 @@
     </nav>
 
     <!-- Content Area -->
-    <div class="flex-1 bg-white rounded-2xl shadow-sm border border-slate-100 p-8 overflow-y-auto">
+    <div class="flex-1 bg-white rounded-2xl border border-slate-200 p-8 overflow-y-auto">
       @if (activeSection === 'design') {
       <div class="max-w-2xl mx-auto">
         <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
@@ -67,7 +67,7 @@
             Wähle aus, wie die App aussehen soll. Bei "System" passt sich die App automatisch deinem Gerät an.
           </p>
 
-          <div class="w-full flex rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div class="w-full flex rounded-xl border border-slate-200 bg-white overflow-hidden">
             @for (opt of themeOptions; track opt.value) {
               <button type="button" (click)="setTheme(opt.value)"
                 [class]="themeService.theme === opt.value
@@ -96,7 +96,7 @@
             <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
               <span class="material-symbols-outlined text-[20px] text-slate-400">store</span> Standort
             </h3>
-            <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center justify-between">
+            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between">
               <div>
                 <p class="text-sm text-slate-500 font-medium mb-1">Aktueller Standort</p>
                 <p class="text-lg font-bold text-slate-800">
@@ -116,7 +116,7 @@
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <!-- Status -->
-              <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center justify-between">
+              <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between">
                 <div>
                   <p class="text-sm text-slate-500 font-medium mb-1">Status</p>
                   <div class="flex items-center gap-2">
@@ -140,7 +140,7 @@
               </div>
 
               <!-- Device ID -->
-              <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center justify-between">
+              <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between">
                 <div>
                   <p class="text-sm text-slate-500 font-medium mb-1">Geräte-ID</p>
                   <p class="font-bold text-slate-800 font-mono text-sm">
@@ -151,7 +151,7 @@
 
               <!-- Connected Since -->
               <div
-                class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center justify-between md:col-span-2">
+                class="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between md:col-span-2">
                 <div>
                   <p class="text-sm text-slate-500 font-medium mb-1">Verbunden seit</p>
                   <p class="font-bold text-slate-800">
@@ -168,7 +168,7 @@
             <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
               <span class="material-symbols-outlined text-[20px] text-slate-400">shield</span> Authentifizierung
             </h3>
-            <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center justify-between">
+            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between">
               <div>
                 <p class="text-sm text-slate-500 font-medium mb-1">Sitzungsstatus</p>
                 <p class="font-bold text-slate-800">
@@ -197,17 +197,17 @@
 
         <!-- Server Configuration Info -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <div class="bg-white rounded-xl border border-slate-200 p-4">
             <p class="text-xs text-slate-500 font-medium mb-1 uppercase tracking-wider">Print Server</p>
             <div class="flex items-center gap-2">
               <span class="material-symbols-outlined text-[20px] text-slate-400">dns</span>
               <p class="font-bold text-slate-800 text-sm truncate"
-                [matTooltip]="locationService.activeLocation()?.settings?.printSettings?.printServerUrl || ''">
-                {{ locationService.activeLocation()?.settings?.printSettings?.printServerUrl || '-' }}
+                [matTooltip]="locationService.activeLocation()?.settings?.printSettings?.printServerEnabled ? 'Integriert (aktiv)' : 'Deaktiviert'">
+                {{ locationService.activeLocation()?.settings?.printSettings?.printServerEnabled ? 'Integriert' : 'Deaktiviert' }}
               </p>
             </div>
           </div>
-          <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <div class="bg-white rounded-xl border border-slate-200 p-4">
             <p class="text-xs text-slate-500 font-medium mb-1 uppercase tracking-wider">MQTT Broker</p>
             <div class="flex items-center gap-2">
               <span class="material-symbols-outlined text-[20px] text-slate-400">hub</span>
@@ -279,11 +279,11 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+              <div class="bg-white rounded-xl border border-slate-200 p-4">
                 <p class="text-sm text-slate-500 font-medium mb-1">Personalnummer</p>
                 <p class="font-bold text-slate-800 font-mono text-lg">{{ user.employeeNumber || '-' }}</p>
               </div>
-              <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+              <div class="bg-white rounded-xl border border-slate-200 p-4">
                 <p class="text-sm text-slate-500 font-medium mb-1">Rolle im System</p>
                 <div class="flex items-center gap-2">
                   <span class="material-symbols-outlined text-[20px] text-purple-500">badge</span>

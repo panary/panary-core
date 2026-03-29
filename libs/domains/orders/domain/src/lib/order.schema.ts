@@ -172,6 +172,8 @@ export const orderSchema = Type.Object(
     payment: Type.Optional(paymentSchema),
 
     isFinished: Type.Boolean(),
+    // Wenn gesetzt, wurde diese Order aus einer Vorbestellung konvertiert
+    preOrderId: Type.Optional(Type.String({ format: 'uuid' })),
     pager: Type.Optional(Type.Number()),
     estimatedDuration: Type.Number(),
     remainingTime: Type.Number(),
@@ -197,8 +199,11 @@ export type Transaction = Static<typeof transactionSchema>
 export const orderDataSchema = Type.Pick(
   orderSchema,
   [
+    'externalId',
     'locationId',
     'tenantId',
+    'createdAt',
+    'updatedAt',
     'status',
     'businessDayId',
     'orderChannel',
@@ -212,6 +217,8 @@ export const orderDataSchema = Type.Pick(
     'taxSnapshot',
     'creationContext',
     'payment',
+    'isFinished',
+    'preOrderId',
     'pager',
     'estimatedDuration',
     'remainingTime',

@@ -24,6 +24,7 @@ import {
   orderInteractionSchema
 } from '@panary-core/order-interactions/domain'
 import type { OrderInteraction, OrderInteractionService } from './order-interactions.class'
+import { logger } from '../../logger'
 
 export const orderInteractionsPath = 'order-interactions'
 export const orderInteractionsMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
@@ -77,7 +78,7 @@ export const orderInteractions = (app: Application) => {
           { key: { tenantId: 1 }, name: 'tenant_index' },
           { key: { tenantId: 1, locationId: 1 }, name: 'tenant_location_index' }
         ])
-        console.log('MongoDB Indexes ensured for OrderInteractions.')
+        logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'mongodb', service: 'order-interactions' })
       }
     }
 
@@ -105,10 +106,10 @@ export const orderInteractions = (app: Application) => {
           await knex.raw(
             `CREATE INDEX IF NOT EXISTS idx_order_interactions_tenant_location ON "${tableName}" (tenantId, locationId)`
           )
-          console.log('SQLite Indexes ensured for OrderInteractions.')
+          logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'sqlite', service: 'order-interactions' })
         }
       } catch (error) {
-        console.error('Error ensuring SQLite indexes:', error)
+        logger.error({ message: 'Failed to ensure indexes', event: 'db.indexes_error', dbType: 'sqlite', service: 'order-interactions', error: String(error) })
         // App should still start, maybe the database is locked
       }
     }

@@ -87,6 +87,7 @@ export class AdminLayoutComponent {
     { path: '/location', label: 'Standort', icon: '⊡' },
     { path: '/product-groups', label: 'Produktgruppen', icon: '▣' },
     { path: '/products', label: 'Produkte', icon: '▤' },
+    { path: '/printers', label: 'Drucker', icon: '⎙' },
   ]
 
   setTheme(theme: string) {

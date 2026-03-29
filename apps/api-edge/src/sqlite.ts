@@ -4,6 +4,7 @@ import knex from 'knex'
 import type { Application } from './declarations'
 import path from 'path'
 import fs from 'fs'
+import { logger } from './logger'
 
 declare module './declarations' {
   interface Configuration {
@@ -15,8 +16,7 @@ export const sqlite = (app: Application) => {
   const config = app.get('sqlite')
 
   if (!config) {
-    console.warn('WARNING: No SQLite configuration found in app config!')
-    console.warn('   Skipping Database initialization.')
+    logger.warn({ message: 'No SQLite configuration found — skipping DB init', event: 'sqlite.no_config' })
     return
   }
 
@@ -45,8 +45,11 @@ export const sqlite = (app: Application) => {
   }
 
   if (!migrationDir) {
-    console.warn('WARNING: No migrations directory found. Checked:', candidates)
-    console.warn('   Skipping migrations.')
+    logger.warn({
+      message: 'No migrations directory found — skipping migrations',
+      event: 'sqlite.no_migrations',
+      checkedLocations: candidates,
+    })
   }
 
   // Cast config to any to handle migration property
@@ -77,9 +80,9 @@ export const sqlite = (app: Application) => {
         if (migrationDir) {
           try {
             await db.migrate.latest()
-            console.log(`Migrations from ${migrationDir} applied successfully.`)
+            logger.info({ message: 'Migrations applied successfully', event: 'sqlite.migrations', migrationDir })
           } catch (err) {
-            console.error(`Failed to run migrations from ${migrationDir}!`, err)
+            logger.error({ message: 'Failed to run migrations', event: 'sqlite.migrations_error', migrationDir, error: String(err) })
           }
         }
         await next()

@@ -221,7 +221,6 @@ export class DashboardComponent implements OnInit {
   }
 
   get todayOrdersCount(): number {
-    // Assuming orderService.orders() returns relevant orders for the day/session
     return this.orders().length
   }
 

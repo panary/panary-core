@@ -1,0 +1,19 @@
+{
+  "name": "cloud-connection-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/cloud-connection/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:cloud-connection"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/domains/cloud-connection/domain",
+        "main": "libs/domains/cloud-connection/domain/src/index.ts",
+        "tsConfig": "libs/domains/cloud-connection/domain/tsconfig.lib.json",
+        "assets": ["libs/domains/cloud-connection/domain/*.md"]
+      }
+    }
+  }
+}

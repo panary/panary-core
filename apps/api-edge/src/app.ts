@@ -69,6 +69,20 @@ app.use(async (ctx, next) => {
 
 // Admin SPA — statische Dateien unter /admin ausliefern
 const adminDistPath = path.resolve(process.cwd(), 'dist/apps/admin-client/browser')
+
+// Favicon & Root-Assets: Browser fragt immer /favicon.svg vom Root an, unabhängig vom SPA-Pfad
+app.use(async (ctx, next) => {
+  if (ctx.method === 'GET' && (ctx.path === '/favicon.svg' || ctx.path === '/favicon.ico')) {
+    const filePath = path.join(adminDistPath, ctx.path.slice(1))
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      ctx.type = path.extname(filePath)
+      ctx.body = fs.createReadStream(filePath)
+      return
+    }
+  }
+  await next()
+})
+
 app.use(async (ctx, next) => {
   if (ctx.method === 'GET' && ctx.path.startsWith('/admin')) {
     const subPath = ctx.path.replace(/^\/admin\/?/, '') || 'index.html'

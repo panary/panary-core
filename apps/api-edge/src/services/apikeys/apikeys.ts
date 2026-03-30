@@ -74,8 +74,7 @@ export const apikeys = (app: Application) => {
     if (dbType === DatabaseType.MONGODB) {
       // In der Factory ist 'Model' bei Mongo der Mongoose/Mongo Client
       // We retrieve the specific model (collection)
-      const adapter = this as any
-      const model = await adapter.getModel(app)
+      const model = await (service as any).getModel(app)
 
       if (model?.createIndexes) {
         await model.createIndexes([

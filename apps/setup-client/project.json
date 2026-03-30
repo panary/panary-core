@@ -25,7 +25,7 @@
             "input": "apps/setup-client/public"
           }
         ],
-        "styles": ["apps/setup-client/src/styles.scss"]
+        "styles": ["apps/setup-client/src/styles.css"]
       },
       "configurations": {
         "production": {

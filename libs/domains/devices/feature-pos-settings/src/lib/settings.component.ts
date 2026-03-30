@@ -23,6 +23,7 @@ export class SettingsComponent {
 
   // For the sidebar selection
   activeSection = 'general'
+  menuOpen = signal(false)
 
   // User State
   currentUser = signal<any>(null)

@@ -15,6 +15,7 @@ import { OrderInteractionService } from './services/order-interactions/order-int
 import { UserPreferenceService } from './services/user-preferences/user-preferences.class'
 import { WorkingTimeService } from './services/working-times/working-times.class'
 import { PreOrderService } from './services/pre-orders/pre-orders.class'
+import { CloudConnectionService } from './services/cloud-connection/cloud-connection.class'
 
 export type { NextFunction }
 
@@ -42,7 +43,10 @@ export interface ServiceTypes {
   'user-preferences': UserPreferenceService
   'working-times': WorkingTimeService
   'pre-orders': PreOrderService
-  organizations: { find(params?: any): Promise<{ _id: string; name: string }[]> }
+  organizations: {
+    find(params?: any): Promise<{ _id: string; name: string }[]>
+  }
+  'cloud-connection': CloudConnectionService
 }
 
 // The application instance type that will be used everywhere else

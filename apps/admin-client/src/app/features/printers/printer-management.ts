@@ -19,8 +19,10 @@ import { formatApiError } from '../../core/error-helper'
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="p-8 max-w-4xl flex flex-col gap-6 overflow-y-auto h-full">
-      <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Druckerverwaltung</h1>
+    <div class="p-6 max-w-4xl space-y-4 overflow-y-auto h-full">
+      <div class="flex items-center justify-between min-h-9">
+        <h1 class="text-xl font-bold tracking-tight">Druckerverwaltung</h1>
+      </div>
 
       @if (loading()) {
         <p class="text-slate-400 dark:text-gray-500">Laden...</p>

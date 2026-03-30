@@ -1,0 +1,36 @@
+# ============================================================
+# Panary Edge Server — Prod-Test (Named Volume)
+#
+# Isolierter Container mit eigenem Docker-Volume.
+# Verhält sich wie im Echtbetrieb — keine Verbindung zum Projektordner.
+# Daten: docker volume inspect panary-edge-data
+#
+# Nutzung:
+#   docker compose -f tools/docker/docker-compose.edge.yml up -d
+#   docker compose -f tools/docker/docker-compose.edge.yml down
+#   docker compose -f tools/docker/docker-compose.edge.yml down -v   # auch Volume löschen
+# ============================================================
+services:
+  panary-edge:
+    image: ghcr.io/panary/panary-edge:latest
+    build:
+      context: ../..
+      dockerfile: tools/docker/Dockerfile.edge
+    pull_policy: build
+    container_name: panary-edge
+    ports:
+      - '3030:3030'
+    volumes:
+      - panary-edge-data:/app/data
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3030/health']
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+volumes:
+  panary-edge-data:

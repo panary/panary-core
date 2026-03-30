@@ -8,9 +8,8 @@ tmp/
 .nx/
 .angular/
 
-# Git
+# Git (.gitignore MUSS im Build-Kontext bleiben — Tailwind v4 nutzt es, um node_modules/ beim JIT-Scan auszuschließen)
 .git/
-.gitignore
 
 # IDE
 .idea/
@@ -22,6 +21,11 @@ tmp/
 .env
 .env.*
 *.sqlite
+
+# Laufzeit-Daten (niemals ins Image — werden via Bind Mount eingehängt)
+data/
+**/data/*.sqlite
+**/data/*.json
 
 # Tests & Docs
 coverage/

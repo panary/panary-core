@@ -1,6 +1,7 @@
 # ============================================================
 # Panary Edge Server — Multi-Stage Docker Build
 # Enthält: api-edge (FeathersJS) + admin-client (Angular SPA)
+#          + setup-client (Angular Setup-Assistent)
 # ============================================================
 
 # ---- Stage 1: Build ----
@@ -12,9 +13,13 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /build
 
 # Dependency-Cache: Erst package-Dateien und Konfiguration kopieren
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml nx.json tsconfig.base.json tsconfig.json ./
+# .gitignore ist kritisch: Tailwind v4 nutzt es, um node_modules/ beim JIT-Scan auszuschließen.
+# Ohne .gitignore scannt Tailwind das gesamte node_modules/, findet kaputte HTML-Test-Fixtures
+# und generiert leere @layer utilities {} → kein Styling im Container.
+COPY .gitignore package.json pnpm-lock.yaml pnpm-workspace.yaml nx.json tsconfig.base.json tsconfig.json postcss.config.json ./
 COPY apps/api-edge/package.json apps/api-edge/project.json apps/api-edge/tsconfig.app.json ./apps/api-edge/
 COPY apps/admin-client/project.json apps/admin-client/tsconfig.json apps/admin-client/tsconfig.app.json ./apps/admin-client/
+COPY apps/setup-client/project.json apps/setup-client/tsconfig.json apps/setup-client/tsconfig.app.json ./apps/setup-client/
 
 # Alle libs kopieren (für Workspace-Auflösung + Schemas)
 COPY libs/ ./libs/
@@ -28,10 +33,26 @@ RUN pnpm install --frozen-lockfile
 # Quellcode kopieren
 COPY apps/api-edge/ ./apps/api-edge/
 COPY apps/admin-client/ ./apps/admin-client/
+COPY apps/setup-client/ ./apps/setup-client/
 
 # Bauen
 RUN npx nx build api-edge --configuration=production
 RUN npx nx build admin-client --configuration=production
+RUN npx nx build setup-client --configuration=production
+
+# Migrationen kompilieren: nx kopiert .ts-Dateien als Assets (unkompiliert).
+# esbuild wandelt sie zu CJS-JS um, danach werden die .ts-Originale gelöscht.
+RUN set -e; \
+    TS_FILES=$(find dist/apps/api-edge/migrations -name '*.ts' 2>/dev/null | tr '\n' ' '); \
+    if [ -n "$TS_FILES" ]; then \
+      npx esbuild $TS_FILES --bundle=false --platform=node --format=cjs \
+        --outdir=dist/apps/api-edge/migrations; \
+      find dist/apps/api-edge/migrations -name '*.ts' -delete; \
+    fi
+
+# DevDependencies entfernen: @nx/*, typescript, vitest, eslint, @angular/build, @angular/cli usw.
+# werden zur Runtime nicht benötigt. Spart ~500 MB im Runtime-Image.
+RUN CI=true pnpm prune --prod
 
 # ---- Stage 2: Runtime ----
 FROM node:22-alpine AS runtime
@@ -47,6 +68,9 @@ COPY --from=build /build/node_modules/ ./node_modules/
 
 # Admin-Client SPA
 COPY --from=build /build/dist/apps/admin-client/browser/ ./dist/apps/admin-client/browser/
+
+# Setup-Client SPA
+COPY --from=build /build/dist/apps/setup-client/browser/ ./dist/apps/setup-client/browser/
 
 # Datenverzeichnis (wird als Volume gemountet)
 RUN mkdir -p /app/data

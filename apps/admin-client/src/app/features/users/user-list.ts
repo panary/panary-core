@@ -20,12 +20,12 @@ interface User {
   imports: [UserFormComponent, ConfirmDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="flex h-full">
+    <div class="flex h-full overflow-hidden">
       <!-- Linke Seite: Tabelle -->
       <div [class]="selectedId() ? 'w-72 shrink-0 border-r border-slate-200 dark:border-gray-800' : 'flex-1'"
-           class="overflow-y-auto transition-all">
+           class="overflow-y-auto">
         <div class="p-6 space-y-4">
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between min-h-9">
             <h1 class="text-xl font-bold tracking-tight">Benutzer</h1>
             <button (click)="selectItem('new')"
               class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-4 py-2 rounded-xl text-xs

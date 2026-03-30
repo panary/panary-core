@@ -15,7 +15,6 @@ import { ConfirmDialogComponent } from '../confirm-dialog.component'
   imports: [
     CommonModule,
     FormsModule,
-    ConfirmDialogComponent,
   ],
   template: `
     <div class="h-full w-full bg-slate-50 p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border">

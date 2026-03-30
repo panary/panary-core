@@ -9,6 +9,61 @@ import { UserSystemRole } from '@panary-core/users/domain'
 const CONFIG_PATH =
   process.env['PANARY_CONFIG_PATH'] || path.join(process.cwd(), 'data', 'panary.config.json')
 
+// Sentinel-Datei: existiert → Recovery wurde bereits einmal durchgeführt → kein weiterer Versuch
+const RECOVERY_FLAG_PATH = path.join(path.dirname(CONFIG_PATH), '.recovery-attempted')
+
+/**
+ * Löscht Konfiguration + SQLite-Datenbanken und beendet den Prozess (exit 0).
+ * Docker-Restart-Policy startet den Container neu → Setup-Modus.
+ *
+ * Schutz vor Endlos-Loop: Die Sentinel-Datei .recovery-attempted wird VOR dem Löschen
+ * angelegt. Existiert sie beim nächsten Start, wird kein weiterer Auto-Recovery versucht.
+ */
+async function attemptRecovery(reason: string): Promise<void> {
+  try {
+    await fs.access(RECOVERY_FLAG_PATH)
+    // Sentinel existiert → bereits versucht, kein zweiter Versuch
+    logger.error({
+      message: 'Bootstrap fehlgeschlagen — Recovery bereits versucht. Manueller Eingriff erforderlich.',
+      event: 'bootstrap.recovery_skipped',
+      reason,
+    })
+    return
+  } catch {
+    // Sentinel existiert nicht → erster Fehler, Recovery durchführen
+  }
+
+  logger.warn({
+    message: 'Bootstrap fehlgeschlagen. Starte Auto-Recovery: Konfiguration + Datenbank werden gelöscht.',
+    event: 'bootstrap.recovery_start',
+    reason,
+  })
+
+  // Sentinel ZUERST setzen, damit ein Fehler beim Löschen keinen zweiten Versuch auslöst
+  await fs.writeFile(RECOVERY_FLAG_PATH, new Date().toISOString(), 'utf-8')
+
+  // Konfigurationsdatei löschen
+  await fs.rm(CONFIG_PATH, { force: true })
+
+  // Alle SQLite-Datenbanken im data/-Verzeichnis löschen
+  const dataDir = path.dirname(CONFIG_PATH)
+  try {
+    const files = await fs.readdir(dataDir)
+    for (const file of files) {
+      if (file.endsWith('.sqlite')) {
+        await fs.rm(path.join(dataDir, file), { force: true })
+        logger.warn({ message: `Recovery: ${file} gelöscht.`, event: 'bootstrap.recovery_delete_db' })
+      }
+    }
+  } catch {
+    // Verzeichnis nicht lesbar — ignorieren, Config wurde bereits gelöscht
+  }
+
+  logger.warn({ message: 'Auto-Recovery abgeschlossen. Server wird neu gestartet...', event: 'bootstrap.recovery_complete' })
+  // Docker-Restart-Policy übernimmt den Neustart; exit(0) gilt als "sauberer Stop"
+  process.exit(0)
+}
+
 async function main() {
   try {
     // Check if config file exists
@@ -22,24 +77,16 @@ async function main() {
       const configRaw = await fs.readFile(CONFIG_PATH, 'utf-8')
       config = JSON.parse(configRaw)
 
-      // Set environment variables from config
       for (const [key, value] of Object.entries(config)) {
-        // We only set primitive values as env vars. Objects/Arrays are likely specific config sections handled by Feathers config
         if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
           process.env[key] = String(value)
         }
       }
-
-      // Inject the config object into NODE_CONFIG for Feathers/Node-Config to pick up deeply nested values override
-      // process.env['NODE_CONFIG'] = JSON.stringify(config)
-      // User requested "set environment variables", assuming simpler flat env vars for now or standard feathers behavior.
     } catch (e) {
       logger.error('Error reading configuration file', e)
       throw e
     }
 
-    // Dynamic import of app to prevent early initialization
-    // Node dynamic import requires extension in CJS environment if treating as ESM-like
     const { app } = await import('./app.js')
 
     const port = app.get('port') || 3030
@@ -49,28 +96,40 @@ async function main() {
       logger.error('Unhandled Rejection at: Promise ', p, reason)
     )
 
-    // app.listen() calls app.setup() internally, which runs setup hooks (migrations)
+    // app.listen() ruft intern app.setup() auf → Migrationen laufen hier
     await app.listen(port)
     logger.info(`Feathers app listening on http://${host}:${port}`)
 
+    // --- DB-Integritätscheck: users-Tabelle muss nach Migration existieren ---
+    const knex = app.get('sqliteClient')
+    let dbHealthy = false
+    try {
+      dbHealthy = await knex.schema.hasTable('users')
+    } catch {
+      dbHealthy = false
+    }
+
+    if (!dbHealthy) {
+      await attemptRecovery('users-Tabelle fehlt nach Migration — Datenbank nicht initialisiert')
+      // Falls Recovery bereits versucht wurde (Sentinel gesetzt), weiter mit Bootstrap (wird scheitern,
+      // aber der Server läuft zumindest hoch für manuelle Inspektion)
+    }
+    // -----------------------------------------------------------------------
+
     // --- Bootstrapping: Create Admin User if credentials exist in config ---
-    // Must run AFTER app.listen() so that setup hooks (migrations) have completed
     const adminEmail = process.env['ADMIN_EMAIL'] || config.adminEmail
     const adminPassword = process.env['ADMIN_PASSWORD'] || config.adminPassword
 
     if (adminEmail && adminPassword) {
       logger.info('Bootstrapping: Found admin credentials in config. Verifying admin user...')
       try {
-        const knex = app.get('sqliteClient')
         const adminLogin = 'Admin'
 
-        // Query DB directly to bypass service hooks (no JWT/auth needed for bootstrap)
         const existingUser = await knex('users').where({ loginname: adminLogin }).first()
 
         if (!existingUser) {
           logger.info(`Bootstrapping: Creating admin user ${adminLogin}...`)
 
-          // Use the service for create so password hashing hooks run
           const usersService = app.service('users')
           const createdUser = await usersService.create({
             email: adminEmail,
@@ -98,12 +157,15 @@ async function main() {
         if (config.adminPassword) {
           logger.info('Security: Removing plain-text password from configuration file...')
           delete config.adminPassword
-
           await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8')
           logger.info('Security: Configuration file sanitized.')
         }
-      } catch (err) {
+      } catch (err: any) {
         logger.error('Bootstrapping: Failed to create admin user.', err)
+        // Bei SQLITE_ERROR (Tabelle fehlt trotz Integritätscheck) Recovery auslösen
+        if (err?.code === 'SQLITE_ERROR') {
+          await attemptRecovery(`Admin-Bootstrap SQLITE_ERROR: ${err.message}`)
+        }
       }
     }
     // -----------------------------------------------------------------------
@@ -126,12 +188,10 @@ async function main() {
     }
     // -----------------------------------------------------------------------
   } catch (error) {
-    // Config file not found or error loading it -> Setup Mode
     logger.error(
       `Configuration check failed or file missing at ${CONFIG_PATH}. Starting in SETUP MODE.`,
       error
     )
-    // Port 3030 for setup as well? Yes.
     await startSetupApp(3030)
   }
 }

@@ -12,24 +12,21 @@
   width: 100px;
 }
 
-/* Enhancing table readability */
-/* Enhancing table readability */
-td.mat-cell,
-th.mat-header-cell {
+td.mat-mdc-cell,
+th.mat-mdc-header-cell {
   padding: 16px;
   border-bottom-color: #f1f5f9;
   background-color: white;
-  /* Ensure white background */
 }
 
-th.mat-header-cell {
+th.mat-mdc-header-cell {
   font-weight: 600;
   color: #64748b;
   font-size: 0.875rem;
+  background-color: white;
   position: sticky;
   top: 0;
   z-index: 10;
-  /* Border line for sticky header */
 }
 
 /* Remove default material background if any */

@@ -14,6 +14,8 @@ export const AppResource = {
   WORKING_TIMES: 'working-times',
   PRE_ORDERS: 'pre-orders',
   PRINT_SERVER: 'print-server',
+  APIKEYS: 'apikeys',
+  CLOUD_CONNECTION: 'cloud-connection',
 } as const
 
 export type AppResource = (typeof AppResource)[keyof typeof AppResource]

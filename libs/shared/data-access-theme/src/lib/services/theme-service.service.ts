@@ -5,36 +5,16 @@ import { UserPreferencesService } from '@panary-core/user-preferences/data-acces
   providedIn: 'root',
 })
 export class ThemeServiceService {
-  /** INJECTION */
   #userPreferenceService: UserPreferencesService = inject(UserPreferencesService)
 
-  /** PRIVATE PROPERTIES */
-  private currentTheme = signal<string>('light')
-  private mediaQueryListener: (e: MediaQueryListEvent) => void
+  private currentTheme = signal<string>('system')
 
-  /** CONSTRUCTOR */
   constructor() {
-    this.mediaQueryListener = (_e: MediaQueryListEvent) => {
-      if (this.currentTheme() === 'system') {
-        this.applyTheme('system')
-      }
-    }
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener('change', this.mediaQueryListener)
-    } else {
-      // Fallback for older browsers if needed, though mostly not required for this stack
-      mediaQuery.addListener(this.mediaQueryListener)
-    }
-
     this.loadThemePreference().then()
   }
 
   async loadThemePreference(): Promise<void> {
-    const theme = await this.#userPreferenceService.getPreference<string>(
-      'theme',
-      'system', // Changed default to system
-    )
+    const theme = await this.#userPreferenceService.getPreference<string>('theme', 'system')
     this.currentTheme.set(theme)
     this.applyTheme(theme)
   }
@@ -50,18 +30,18 @@ export class ThemeServiceService {
   }
 
   private applyTheme(theme: string): void {
-    let effectiveTheme = theme
+    const root = document.documentElement
 
-    if (theme === 'system') {
-      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      effectiveTheme = systemDark ? 'dark' : 'light'
-    }
-
-    document.body.classList.remove('theme-light', 'theme-dark', 'dark')
-    document.body.classList.add(`theme-${effectiveTheme}`)
-
-    if (effectiveTheme === 'dark') {
+    if (theme === 'dark') {
+      root.setAttribute('data-theme', 'dark')
       document.body.classList.add('dark')
+    } else if (theme === 'light') {
+      root.setAttribute('data-theme', 'light')
+      document.body.classList.remove('dark')
+    } else {
+      // System-Modus: data-theme entfernen → CSS-Mediaquery übernimmt automatisch
+      root.removeAttribute('data-theme')
+      document.body.classList.remove('dark')
     }
   }
 }

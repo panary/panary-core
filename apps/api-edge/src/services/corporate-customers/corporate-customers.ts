@@ -70,7 +70,7 @@ export const corporateCustomers = (app: Application) => {
     if (dbType === DatabaseType.MONGODB) {
       // In der Factory ist 'Model' bei Mongo der Mongoose/Mongo Client
       // We retrieve the specific model (collection)
-      const adapter = this as any
+      const adapter = service as any
       const model = await adapter.getModel(app)
 
       if (model?.createIndexes) {

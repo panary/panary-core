@@ -8,12 +8,62 @@
       <span class="material-symbols-outlined text-[20px] text-slate-500">settings</span>
       Einstellungen
     </h1>
+
+    <!-- Mobile: Hamburger-Button mit Dropdown -->
+    <div class="relative ml-auto md:hidden">
+      <button (click)="menuOpen.set(!menuOpen())"
+        class="flex items-center justify-center w-10 h-10 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition-colors">
+        <span class="material-symbols-outlined text-[20px]">menu</span>
+      </button>
+
+      @if (menuOpen()) {
+        <div class="fixed inset-0 z-40" (click)="menuOpen.set(false)"></div>
+        <div class="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 overflow-hidden p-2 flex flex-col gap-1">
+          <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 rounded-xl w-full hover:bg-slate-100 transition-colors"
+            [class.bg-purple-50]="activeSection === 'general'" [class.text-purple-700]="activeSection === 'general'"
+            (click)="activeSection = 'general'; menuOpen.set(false)">
+            <span class="material-symbols-outlined text-[20px]"
+              [class.text-purple-600]="activeSection === 'general'" [class.text-slate-400]="activeSection !== 'general'">tune</span>
+            Allgemein
+          </button>
+          <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 rounded-xl w-full hover:bg-slate-100 transition-colors"
+            [class.bg-purple-50]="activeSection === 'users'" [class.text-purple-700]="activeSection === 'users'"
+            (click)="activeSection = 'users'; menuOpen.set(false)">
+            <span class="material-symbols-outlined text-[20px]"
+              [class.text-purple-600]="activeSection === 'users'" [class.text-slate-400]="activeSection !== 'users'">people</span>
+            Benutzer
+          </button>
+          <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 rounded-xl w-full hover:bg-slate-100 transition-colors"
+            [class.bg-purple-50]="activeSection === 'printer'" [class.text-purple-700]="activeSection === 'printer'"
+            (click)="activeSection = 'printer'; menuOpen.set(false)">
+            <span class="material-symbols-outlined text-[20px]"
+              [class.text-purple-600]="activeSection === 'printer'" [class.text-slate-400]="activeSection !== 'printer'">print</span>
+            Drucker
+          </button>
+          <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 rounded-xl w-full hover:bg-slate-100 transition-colors"
+            [class.bg-purple-50]="activeSection === 'design'" [class.text-purple-700]="activeSection === 'design'"
+            (click)="activeSection = 'design'; menuOpen.set(false)">
+            <span class="material-symbols-outlined text-[20px]"
+              [class.text-purple-600]="activeSection === 'design'" [class.text-slate-400]="activeSection !== 'design'">palette</span>
+            Design
+          </button>
+          <div class="h-px bg-slate-100 my-1"></div>
+          <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 rounded-xl w-full hover:bg-slate-100 transition-colors"
+            [class.bg-purple-50]="activeSection === 'info'" [class.text-purple-700]="activeSection === 'info'"
+            (click)="activeSection = 'info'; menuOpen.set(false)">
+            <span class="material-symbols-outlined text-[20px]"
+              [class.text-purple-600]="activeSection === 'info'" [class.text-slate-400]="activeSection !== 'info'">info</span>
+            Info
+          </button>
+        </div>
+      }
+    </div>
   </header>
 
   <main class="flex-1 flex gap-6 min-h-0">
     <!-- Sidebar -->
     <nav
-      class="w-64 flex-none bg-white rounded-2xl border border-slate-200 p-4 flex flex-col gap-2 overflow-y-auto">
+      class="hidden md:flex w-64 flex-none bg-white rounded-2xl border border-slate-200 p-4 flex-col gap-2 overflow-y-auto">
       <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 rounded-xl w-full hover:bg-slate-100 transition-colors"
         [class.bg-purple-50]="activeSection === 'general'" [class.text-purple-700]="activeSection === 'general'"
         (click)="activeSection = 'general'">
@@ -53,7 +103,7 @@
     </nav>
 
     <!-- Content Area -->
-    <div class="flex-1 bg-white rounded-2xl border border-slate-200 p-8 overflow-y-auto">
+    <div class="flex-1 bg-white rounded-2xl border border-slate-200 p-4 md:p-8 overflow-y-auto">
       @if (activeSection === 'design') {
       <div class="max-w-2xl mx-auto">
         <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">

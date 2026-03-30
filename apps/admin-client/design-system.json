@@ -1,0 +1,667 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "meta": {
+    "name": "Panary Admin Client Design System",
+    "version": "1.0.0",
+    "description": "Design-Token- und Komponentenspezifikation des Panary Admin Panels. Abgeleitet aus der produktiven Angular-21-Implementierung. Kann als Referenz für beliebige Frontend-Frameworks verwendet werden.",
+    "cssFramework": "Tailwind CSS v4 (zero-config, kein tailwind.config.js)",
+    "iconLibrary": "Material Symbols Outlined via Google Fonts CDN",
+    "darkMode": "class-based via .dark",
+    "fontPrimary": "Switzer Variable (self-hosted, woff2)",
+    "fontMono": "JetBrains Mono"
+  },
+
+  "setup": {
+    "html": {
+      "headLinks": [
+        {
+          "purpose": "Material Symbols Icons",
+          "tag": "<link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200\" />"
+        }
+      ]
+    },
+    "css": {
+      "globalImport": "@use 'tailwindcss';",
+      "darkModeVariant": "@custom-variant dark (&:where(.dark, .dark *));",
+      "fontFace": {
+        "family": "Switzer",
+        "src": "url('./assets/fonts/Switzer-Variable.woff2') format('woff2')",
+        "weight": "100 900",
+        "display": "swap"
+      },
+      "themeBlock": {
+        "comment": "Im @theme-Block definieren – kein tailwind.config.js",
+        "tokens": {
+          "--font-sans": "'Switzer', sans-serif",
+          "--font-mono": "'JetBrains Mono', monospace",
+          "--color-gray-850": "oklch(23% 0.034 264.665)",
+          "--color-gray-950": "oklch(13% 0.028 261)"
+        }
+      },
+      "baseReset": {
+        "htmlBody": {
+          "height": "100%",
+          "margin": "0",
+          "overflow": "hidden",
+          "fontFamily": "'Switzer', sans-serif",
+          "backgroundColor": "#f8fafc",
+          "color": "#0f172a",
+          "webkitFontSmoothing": "antialiased"
+        },
+        "darkBody": {
+          "selector": ".dark body, body.dark",
+          "backgroundColor": "#000",
+          "color": "#fff"
+        }
+      },
+      "heightChain": {
+        "comment": "Stellt sicher, dass Router-Outlet-Kinder 100% Höhe einnehmen können",
+        "rules": {
+          "app-root, app-admin-layout": { "display": "block", "height": "100%" },
+          "main > *:not(router-outlet)": { "display": "block", "height": "100%" }
+        }
+      }
+    }
+  },
+
+  "tokens": {
+    "colors": {
+      "comment": "Alle Farben als Tailwind-Klassen-Paare [light, dark]. Inline-Styles nur für dynamische Icon-Farben.",
+      "surface": {
+        "appBackground":    { "light": "bg-slate-50",      "dark": "dark:bg-black" },
+        "sidebar":          { "light": "bg-white",         "dark": "dark:bg-gray-950" },
+        "card":             { "light": "bg-white",         "dark": "dark:bg-gray-900/50" },
+        "cardAlt":          { "light": "bg-slate-50",      "dark": "dark:bg-gray-900/50" },
+        "input":            { "light": "bg-white",         "dark": "dark:bg-gray-900" },
+        "panelHeader":      { "light": "bg-slate-50",      "dark": "dark:bg-gray-950" },
+        "tableRow":         { "light": "bg-white",         "dark": "dark:bg-gray-900/50" },
+        "tableRowSelected": { "light": "bg-slate-100",     "dark": "dark:bg-white/5" },
+        "tableRowHover":    { "light": "hover:bg-slate-50","dark": "dark:hover:bg-gray-800/30" },
+        "themeToggle":      { "light": "bg-slate-100",     "dark": "dark:bg-gray-900" },
+        "themeToggleItem":  { "light": "bg-white",         "dark": "dark:bg-gray-800" }
+      },
+      "border": {
+        "default":      { "light": "border-slate-200",    "dark": "dark:border-gray-800" },
+        "strong":       { "light": "border-slate-300",    "dark": "dark:border-gray-700" },
+        "subtle":       { "light": "border-slate-200/50", "dark": "dark:border-gray-800/50" },
+        "selected":     { "light": "border-l-slate-900",  "dark": "dark:border-l-white" },
+        "sectionBreak": { "light": "border-t border-slate-200", "dark": "dark:border-gray-800" }
+      },
+      "text": {
+        "primary":     { "light": "text-slate-900",  "dark": "dark:text-white" },
+        "secondary":   { "light": "text-slate-600",  "dark": "dark:text-gray-300" },
+        "tertiary":    { "light": "text-slate-500",  "dark": "dark:text-gray-400" },
+        "muted":       { "light": "text-slate-400",  "dark": "dark:text-gray-500" },
+        "veryMuted":   { "light": "text-slate-400",  "dark": "dark:text-gray-600" },
+        "placeholder": { "light": "text-slate-400",  "dark": "dark:text-gray-600" },
+        "label":       { "light": "text-slate-500",  "dark": "dark:text-gray-400" },
+        "tableHeader": { "light": "text-slate-400",  "dark": "dark:text-gray-500" }
+      },
+      "interactive": {
+        "primaryButton": {
+          "bg":      { "light": "bg-slate-900",          "dark": "dark:bg-white" },
+          "text":    { "light": "text-white",            "dark": "dark:text-black" },
+          "hover":   { "light": "hover:bg-slate-800",    "dark": "dark:hover:bg-gray-200" }
+        },
+        "secondaryButton": {
+          "bg":      { "light": "bg-slate-100",          "dark": "dark:bg-gray-900" },
+          "border":  { "light": "border-slate-200",      "dark": "dark:border-gray-800" },
+          "text":    { "light": "text-slate-600",        "dark": "dark:text-gray-300" },
+          "hover":   { "light": "hover:bg-slate-200",    "dark": "dark:hover:bg-gray-800" }
+        },
+        "ghostButton": {
+          "text":    { "light": "text-slate-500",        "dark": "dark:text-gray-400" },
+          "hover":   { "light": "hover:text-slate-900 hover:bg-slate-100", "dark": "dark:hover:text-white dark:hover:bg-gray-800" }
+        },
+        "navItem": {
+          "default": { "light": "text-slate-500",        "dark": "dark:text-gray-400" },
+          "hover":   { "light": "hover:text-slate-900 hover:bg-slate-50", "dark": "dark:hover:text-white dark:hover:bg-gray-900" },
+          "active":  { "light": "bg-slate-100 text-slate-900", "dark": "dark:bg-gray-800 dark:text-white" }
+        }
+      },
+      "status": {
+        "success": {
+          "text":   { "light": "text-green-600",    "dark": "dark:text-green-400" },
+          "bg":     { "light": "bg-green-50",       "dark": "dark:bg-green-950/20" },
+          "border": { "light": "border-green-200",  "dark": "dark:border-green-900/50" },
+          "dot":    "bg-green-400",
+          "badgeBg": "bg-green-500/10",
+          "badgeText": "text-green-400",
+          "badgeBorder": "border-green-500/20"
+        },
+        "error": {
+          "text":   { "light": "text-red-500",      "dark": "dark:text-red-400" },
+          "bg":     { "light": "bg-red-50",         "dark": "dark:bg-red-950/50" },
+          "border": { "light": "border-red-200",    "dark": "dark:border-red-900/50" },
+          "dot":    "bg-red-500"
+        },
+        "warning": {
+          "text":   { "light": "text-amber-700",    "dark": "dark:text-amber-400" },
+          "bg":     { "light": "bg-amber-50",       "dark": "dark:bg-amber-950" },
+          "border": { "light": "border-amber-200",  "dark": "dark:border-amber-900" },
+          "dot":    "bg-amber-500 animate-pulse"
+        },
+        "info": {
+          "text":   { "light": "text-emerald-700",  "dark": "dark:text-emerald-400" },
+          "bg":     { "light": "bg-emerald-50",     "dark": "dark:bg-emerald-950" },
+          "border": { "light": "border-emerald-200","dark": "dark:border-emerald-900" },
+          "dot":    "bg-emerald-500 animate-pulse"
+        },
+        "neutral": {
+          "text":   { "light": "text-slate-600",    "dark": "dark:text-slate-400" },
+          "bg":     { "light": "bg-slate-100",      "dark": "dark:bg-slate-800" },
+          "border": { "light": "border-slate-200",  "dark": "dark:border-slate-700" },
+          "dot":    "bg-slate-400"
+        },
+        "badgeDraft": {
+          "bg": "bg-yellow-500/10", "text": "text-yellow-400", "border": "border-yellow-500/20"
+        },
+        "badgeArchived": {
+          "bg": "bg-gray-500/10", "text": "text-gray-400", "border": "border-gray-500/20"
+        }
+      },
+      "kpiIconColors": {
+        "comment": "Direkte Inline-Style-Werte für Icon-Vordergrund und Hintergrund in KPI-Karten",
+        "blue":   { "iconColor": "#2563eb", "iconBg": "#eff6ff" },
+        "purple": { "iconColor": "#7c3aed", "iconBg": "#f5f3ff" },
+        "teal":   { "iconColor": "#059669", "iconBg": "#ecfdf5" },
+        "amber":  { "iconColor": "#d97706", "iconBg": "#fffbeb" },
+        "rose":   { "iconColor": "#e11d48", "iconBg": "#fff1f2" },
+        "indigo": { "iconColor": "#4f46e5", "iconBg": "#eef2ff" }
+      },
+      "focus": {
+        "defaultRing": "focus:border-slate-900 dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white",
+        "errorRing":   "border-red-500/50 focus:border-red-400 focus:ring-red-400",
+        "successRing": "border-green-500/30 focus:border-green-400 focus:ring-green-400"
+      }
+    },
+
+    "typography": {
+      "fontFamilies": {
+        "sans": "'Switzer', sans-serif",
+        "mono": "'JetBrains Mono', monospace"
+      },
+      "scale": {
+        "micro":     { "class": "text-[10px]", "usage": "Kleinste Beschriftungen, Sidebar-Subtitel" },
+        "tiny":      { "class": "text-[11px]", "usage": "Sonderfälle, kompakte Pflichtfelder" },
+        "xs":        { "class": "text-xs",     "usage": "Labels (uppercase), Tabellen-Header, Fehlermeldungen" },
+        "sm":        { "class": "text-sm",     "usage": "Fließtext, Tabellenzeilen, Beschreibungen" },
+        "base":      { "class": "text-base",   "usage": "Standard-Körpertext" },
+        "lg":        { "class": "text-lg",     "usage": "Abschnittsüberschriften" },
+        "xl":        { "class": "text-xl",     "usage": "Seiten-Haupttitel (h1 auf jeder Seite)" },
+        "2xl":       { "class": "text-2xl",    "usage": "Formular-Überschriften in eigenem Panel" },
+        "3xl":       { "class": "text-3xl",    "usage": "KPI-Zahlenwerte (tabular-nums)" }
+      },
+      "weights": {
+        "normal":    "font-normal",
+        "medium":    "font-medium",
+        "semibold":  "font-semibold",
+        "bold":      "font-bold"
+      },
+      "tracking": {
+        "tight":     "tracking-tight",
+        "normal":    "tracking-normal",
+        "wider":     "tracking-wider",
+        "widest":    "tracking-widest",
+        "code":      "tracking-[0.5em]"
+      },
+      "leading": {
+        "snug":      "leading-snug",
+        "relaxed":   "leading-relaxed"
+      },
+      "special": {
+        "tabularNums": "tabular-nums",
+        "fontMono":    "font-mono",
+        "uppercase":   "uppercase",
+        "truncate":    "truncate",
+        "breakAll":    "break-all"
+      },
+      "patterns": {
+        "pageTitle":     "text-xl font-bold tracking-tight",
+        "formTitle":     "text-2xl font-bold tracking-tight",
+        "sectionLabel":  "text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider",
+        "tableHeader":   "text-xs uppercase tracking-wider text-slate-400 dark:text-gray-500",
+        "label":         "text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider",
+        "bodyText":      "text-sm text-slate-600 dark:text-gray-300",
+        "mutedText":     "text-sm text-slate-400 dark:text-gray-500",
+        "kpiValue":      "text-3xl font-bold tabular-nums text-slate-900 dark:text-white",
+        "kpiLabel":      "text-xs font-semibold text-slate-400 dark:text-gray-500 uppercase tracking-widest"
+      }
+    },
+
+    "spacing": {
+      "comment": "Tailwind-Spacing-Skala (1 Einheit = 4px). Verwendete Werte in diesem Projekt:",
+      "used": ["0", "0.5", "1", "1.5", "2", "2.5", "3", "4", "5", "6", "8"],
+      "pagePadding":    "p-6",
+      "pagePaddingXY":  "px-6 py-6",
+      "cardPadding":    "p-5",
+      "inputPadding":   "p-3",
+      "buttonPaddingMd": "px-4 py-2",
+      "buttonPaddingLg": "px-6 py-3",
+      "sidebarPadding": "p-3",
+      "tableCell":      "px-3 py-2.5",
+      "gap": {
+        "tight":  "gap-1.5",
+        "default": "gap-3",
+        "loose":  "gap-4",
+        "section": "gap-6"
+      },
+      "spaceY": {
+        "formFields": "space-y-4",
+        "formSection": "space-y-5",
+        "pageContent": "space-y-4"
+      }
+    },
+
+    "borderRadius": {
+      "input":    "rounded-lg",
+      "button":   "rounded-xl",
+      "card":     "rounded-xl",
+      "dialog":   "rounded-2xl",
+      "pill":     "rounded-full",
+      "navItem":  "rounded-lg",
+      "saveButton": "14px (inline border-radius)"
+    },
+
+    "shadows": {
+      "themeToggleActive": "shadow-sm",
+      "focusedElement":    "shadow-lg",
+      "dropdown":          "shadow-xl",
+      "dialog":            "shadow-2xl"
+    }
+  },
+
+  "icons": {
+    "library": "Material Symbols Outlined",
+    "cdnUrl": "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200",
+    "usage": {
+      "htmlTag": "span",
+      "cssClass": "material-symbols-outlined",
+      "sizeControl": "text-[16px] | text-[22px] | text-base | text-lg",
+      "colorControl": "via [style.color] binding (for dynamic colors) or Tailwind color class",
+      "example": "<span class=\"material-symbols-outlined text-[22px]\" style=\"color: #2563eb\">people</span>"
+    },
+    "navigationIcons": {
+      "comment": "Unicode-Sonderzeichen als Nav-Icons (kein Material Symbols für Nav)",
+      "dashboard":      "◫",
+      "users":          "◉",
+      "location":       "⊡",
+      "productGroups":  "▣",
+      "products":       "▤",
+      "printers":       "⎙",
+      "apiKeys":        "⚿",
+      "cloud":          "☁",
+      "themeLight":     "☀",
+      "themeDark":      "☽",
+      "themeSystem":    "◐",
+      "prevArrow":      "◀",
+      "nextArrow":      "▶",
+      "close":          "✕",
+      "check":          "✓"
+    },
+    "materialIconsUsed": [
+      "people", "store", "inventory_2", "category", "key", "receipt_long",
+      "lan", "cloud_done", "cloud_sync", "cloud_off", "settings", "lock"
+    ]
+  },
+
+  "darkMode": {
+    "strategy": "CSS-Klasse .dark auf dem html- oder body-Element",
+    "tailwindVariant": "@custom-variant dark (&:where(.dark, .dark *))",
+    "classPrefix": "dark:",
+    "toggle": {
+      "values": ["light", "dark", "system"],
+      "storageKey": "theme",
+      "systemDetection": "window.matchMedia('(prefers-color-scheme: dark)')"
+    },
+    "pattern": {
+      "comment": "Immer beide Varianten angeben: light zuerst, dark: als Modifier",
+      "example": "bg-white dark:bg-gray-900 text-slate-900 dark:text-white border-slate-200 dark:border-gray-800"
+    }
+  },
+
+  "animations": {
+    "transitions": {
+      "default":    "transition (150ms ease)",
+      "colors":     "transition-colors",
+      "all":        "transition-all",
+      "fast":       "transition duration-100",
+      "medium":     "transition duration-300"
+    },
+    "standard": {
+      "spin":       "animate-spin",
+      "pulse":      "animate-pulse"
+    },
+    "custom": {
+      "dialogEntrance": {
+        "class": "animate-[scale-in_0.15s_ease-out]",
+        "keyframe": "@keyframes scale-in { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }"
+      },
+      "saveButtonSuccess": {
+        "class": "animate-[save-success-pop_0.4s_cubic-bezier(0.34,1.56,0.64,1)]",
+        "keyframe": "@keyframes save-success-pop { 0% { transform: scale(0.9); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }"
+      },
+      "saveSpinner": {
+        "keyframe": "@keyframes save-spin { to { transform: rotate(360deg); } }",
+        "duration": "0.6s linear infinite"
+      },
+      "saveCheckmark": {
+        "keyframe": "@keyframes save-check-draw { to { stroke-dashoffset: 0; } }",
+        "initialStyles": "stroke-dasharray: 24; stroke-dashoffset: 24;",
+        "duration": "0.4s 0.1s cubic-bezier(0.65, 0, 0.35, 1) forwards"
+      },
+      "saveReset": {
+        "light": "@keyframes save-reset { 0% { background: #22c55e; } 100% { background: #1e293b; } }",
+        "dark":  "@keyframes save-reset-dark { 0% { background: #22c55e; } 100% { background: #fff; color: #000; } }",
+        "duration": "0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards"
+      }
+    }
+  },
+
+  "layout": {
+    "appShell": {
+      "description": "Zweispaltiges Full-Screen-Layout: fixe Sidebar links, scrollbarer Main-Bereich rechts",
+      "classes": "h-screen flex overflow-hidden",
+      "bgClass": "bg-slate-50 dark:bg-black",
+      "sidebar": {
+        "width": "w-60",
+        "classes": "w-60 bg-white dark:bg-gray-950 border-r border-slate-200 dark:border-gray-800 flex flex-col shrink-0"
+      },
+      "main": {
+        "classes": "flex-1 overflow-hidden"
+      }
+    },
+    "sidebar": {
+      "logo": {
+        "container": "p-5 border-b border-slate-200 dark:border-gray-800",
+        "image": "h-7 invert dark:invert-0",
+        "subtitle": "text-[10px] text-slate-400 dark:text-gray-600 mt-1.5 uppercase tracking-widest"
+      },
+      "nav": {
+        "container": "flex-1 p-3 space-y-1",
+        "item": "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-gray-900 transition",
+        "activeClass": "bg-slate-100 dark:bg-gray-800 text-slate-900 dark:text-white",
+        "icon": "text-base"
+      },
+      "footer": {
+        "container": "p-4 border-t border-slate-200 dark:border-gray-800",
+        "username": "text-xs text-slate-500 dark:text-gray-500 truncate",
+        "logoutBtn": "text-xs text-slate-400 dark:text-gray-600 hover:text-slate-900 dark:hover:text-white mt-1 transition"
+      }
+    },
+    "page": {
+      "container": "p-6 space-y-4",
+      "header": "flex items-center justify-between",
+      "title": "text-xl font-bold tracking-tight",
+      "scrollableContent": "h-full overflow-y-auto"
+    },
+    "masterDetail": {
+      "description": "Tabellenzeile anklicken → Detail-Panel öffnet sich rechts, Tabellenspalte wird schmaler",
+      "wrapper": "flex h-full",
+      "listColumnCollapsed": "w-72 shrink-0 border-r border-slate-200 dark:border-gray-800 overflow-y-auto transition-all",
+      "listColumnFull": "flex-1 overflow-y-auto transition-all",
+      "detailColumn": "flex-1 flex flex-col overflow-hidden",
+      "panelHeader": "shrink-0 bg-slate-50 dark:bg-gray-950 border-b border-slate-200 dark:border-gray-800 px-4 py-2.5 flex items-center gap-2",
+      "panelContent": "flex-1 overflow-y-auto",
+      "navButton": "text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white disabled:text-slate-300 dark:disabled:text-gray-700 disabled:cursor-not-allowed w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm",
+      "navCounter": "text-xs text-slate-400 dark:text-gray-500 min-w-12 text-center",
+      "closeButton": "text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm"
+    },
+    "breakpoints": {
+      "sm": "640px",
+      "lg": "1024px",
+      "usageNote": "sm: für 2-Spalten-Grids, lg: für 3-Spalten-Grids. Kein md: oder xl: verwendet."
+    }
+  },
+
+  "components": {
+
+    "table": {
+      "description": "Tabellenansicht mit optionalem Master-Detail-Split",
+      "container": "bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden",
+      "element": "w-full text-sm",
+      "thead": {
+        "row": "border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500 text-xs uppercase tracking-wider",
+        "cell": "px-3 py-2.5"
+      },
+      "tbody": {
+        "rowDefault": "cursor-pointer border-b border-slate-200/50 dark:border-gray-800/50 transition hover:bg-slate-50 dark:hover:bg-gray-800/30 border-l-2 border-l-transparent",
+        "rowSelected": "bg-slate-100 dark:bg-white/5 border-l-2 border-l-slate-900 dark:border-l-white",
+        "cell": "px-3 py-2.5",
+        "cellPrimary": "px-3 py-2.5 font-medium truncate max-w-40",
+        "cellMuted": "px-3 py-2.5 text-slate-500 dark:text-gray-400 text-xs"
+      }
+    },
+
+    "form": {
+      "container": "space-y-5",
+      "gridTwoCol": "grid grid-cols-2 gap-4",
+      "fieldWrapper": "space-y-1",
+      "label": "text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider",
+      "labelMuted": "text-xs text-slate-400 dark:text-gray-500 uppercase tracking-wider",
+      "input": {
+        "base": "w-full bg-white dark:bg-gray-900 border rounded-lg p-3 text-slate-900 dark:text-white focus:ring-1 outline-none",
+        "default": "border-slate-200 dark:border-gray-800 focus:border-slate-900 dark:focus:border-white focus:ring-slate-900 dark:focus:ring-white",
+        "error": "border-red-500/50 focus:border-red-400 focus:ring-red-400",
+        "success": "border-green-500/30 focus:border-green-400 focus:ring-green-400",
+        "placeholder": "placeholder-slate-400 dark:placeholder-gray-600",
+        "combined": "w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3 text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none"
+      },
+      "select": "w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3 text-slate-900 dark:text-white outline-none",
+      "checkbox": {
+        "input": "w-4 h-4 accent-slate-900 dark:accent-white",
+        "wrapper": "flex items-center gap-2 cursor-pointer",
+        "label": "text-sm text-slate-600 dark:text-gray-300"
+      },
+      "errorMessage": "text-red-500 dark:text-red-400 text-xs mt-1",
+      "errorBanner": "bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 rounded-lg p-4 space-y-1",
+      "errorBannerItem": "text-red-500 dark:text-red-400 text-sm flex items-start gap-2",
+      "sectionDivider": "border-t border-slate-200 dark:border-gray-800 pt-4 space-y-4",
+      "sectionTitle": "text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider",
+      "actions": "flex gap-3 pt-4"
+    },
+
+    "button": {
+      "primary": {
+        "class": "bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-4 py-2 rounded-xl text-xs hover:bg-slate-800 dark:hover:bg-gray-200 transition",
+        "usage": "Hauptaktion, z.B. '+ Neu'"
+      },
+      "secondary": {
+        "class": "bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-600 dark:text-gray-300 px-6 py-3 rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-gray-800 transition",
+        "usage": "Abbrechen, sekundäre Aktionen"
+      },
+      "ghost": {
+        "class": "text-slate-400 dark:text-gray-600 hover:text-slate-900 dark:hover:text-white transition",
+        "usage": "Abmelden, Nebenaktionen ohne visuelles Gewicht"
+      },
+      "iconButton": {
+        "class": "w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm",
+        "usage": "Navigations-Pfeile im Detail-Panel, Schließen-Button"
+      },
+      "disabled": "disabled:opacity-50 disabled:cursor-not-allowed",
+      "saveButton": {
+        "description": "Dreistufige Mikro-Interaktion: Default → Saving (Spinner) → Success (Häkchen) → Reset",
+        "containerClass": "save-btn",
+        "states": {
+          "default": "save-btn--default",
+          "saving":  "save-btn--saving",
+          "success": "save-btn--success",
+          "resetting": "save-btn--resetting"
+        },
+        "contentClass": "save-btn__content",
+        "spinnerClass": "save-spinner",
+        "checkmarkClass": "save-checkmark",
+        "dimensions": { "width": "160px", "height": "48px", "borderRadius": "14px" },
+        "cssDefinition": {
+          "comment": "Vollständige CSS-Definition liegt in styles.scss. Muss global eingebunden werden.",
+          "light": { "default": "#1e293b / #fff", "hover": "#334155", "success": "#22c55e" },
+          "dark":  { "default": "#fff / #000",    "hover": "#e5e5e5", "success": "#22c55e" }
+        },
+        "svgCheckmark": "<svg class=\"save-checkmark\" viewBox=\"0 0 24 24\"><path d=\"M4 12l6 6L20 6\" /></svg>"
+      }
+    },
+
+    "badge": {
+      "base": "text-xs px-2.5 py-0.5 rounded-full border",
+      "role": "text-xs px-2 py-0.5 rounded-full border border-slate-300 dark:border-gray-700 text-slate-600 dark:text-gray-300",
+      "statusActive":   "text-xs px-2.5 py-0.5 rounded-full border bg-green-500/10 text-green-400 border-green-500/20",
+      "statusDraft":    "text-xs px-2.5 py-0.5 rounded-full border bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+      "statusArchived": "text-xs px-2.5 py-0.5 rounded-full border bg-gray-500/10 text-gray-400 border-gray-500/20"
+    },
+
+    "statusPill": {
+      "description": "Größeres Status-Badge mit Farbpunkt und Icon, z.B. für Cloud-Verbindungsstatus",
+      "base": "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold border transition-colors",
+      "dot": "w-2 h-2 rounded-full",
+      "icon": "material-symbols-outlined text-[16px]",
+      "variants": {
+        "connected":    "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-900",
+        "pairing":      "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-900",
+        "disconnected": "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700",
+        "error":        "bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-900",
+        "standalone":   "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+      },
+      "dotVariants": {
+        "connected":    "bg-emerald-500 animate-pulse",
+        "pairing":      "bg-amber-500 animate-pulse",
+        "disconnected": "bg-slate-400",
+        "error":        "bg-red-500",
+        "standalone":   "bg-slate-400"
+      }
+    },
+
+    "kpiCard": {
+      "container": "bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl p-5 flex items-center gap-4 hover:border-slate-300 dark:hover:border-gray-700 transition-colors",
+      "iconWrapper": "p-3 rounded-xl shrink-0",
+      "iconComment": "Hinter- und Vordergrundfarbe via [style.background-color] und [style.color] – nicht via Tailwind-Klassen (wegen JIT-Sicherheit)",
+      "iconClass": "material-symbols-outlined text-[22px]",
+      "textWrapper": "",
+      "label": "text-xs font-semibold text-slate-400 dark:text-gray-500 uppercase tracking-widest",
+      "value": "text-3xl font-bold mt-0.5 text-slate-900 dark:text-white tabular-nums",
+      "gridLayout": "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+    },
+
+    "infoCard": {
+      "container": "bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4 text-sm",
+      "label": "text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider",
+      "value": "text-sm text-slate-900 dark:text-white"
+    },
+
+    "dialog": {
+      "backdrop": "fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm",
+      "container": "bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl",
+      "entranceAnimation": "animate-[scale-in_0.15s_ease-out]",
+      "title": "text-base font-bold text-slate-900 dark:text-white",
+      "body": "text-sm text-slate-500 dark:text-gray-400 mt-2",
+      "actions": "flex gap-3 mt-6"
+    },
+
+    "spinner": {
+      "class": "w-5 h-5 border-2 border-slate-300 dark:border-gray-600 border-t-slate-900 dark:border-t-white rounded-full animate-spin",
+      "withText": {
+        "wrapper": "flex items-center gap-3",
+        "text": "text-slate-400 dark:text-gray-500 text-sm"
+      },
+      "saveSpinnerClass": "save-spinner",
+      "saveSpinnerCSS": {
+        "size": "18px × 18px",
+        "borderLight": "2.5px solid rgba(255,255,255,0.15), border-top: #fff",
+        "borderDark":  "2.5px solid rgba(0,0,0,0.15), border-top: #000",
+        "animation":   "save-spin 0.6s linear infinite"
+      }
+    },
+
+    "emptyState": {
+      "class": "text-slate-400 dark:text-gray-500 text-center py-12 text-sm",
+      "centeredVariant": "text-center py-16",
+      "textClass": "text-slate-400 dark:text-gray-500 text-lg"
+    },
+
+    "loadingState": {
+      "simple": "text-slate-400 dark:text-gray-500 text-sm",
+      "centered": "flex items-center gap-3 py-12 justify-center"
+    },
+
+    "themeToggle": {
+      "container": "flex items-center gap-1 bg-slate-100 dark:bg-gray-900 rounded-lg p-1",
+      "itemDefault": "flex-1 text-xs py-1.5 rounded-md text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-300 transition",
+      "itemActive": "flex-1 text-xs py-1.5 rounded-md bg-white dark:bg-gray-800 text-slate-900 dark:text-white shadow-sm font-medium transition",
+      "icons": { "light": "☀", "dark": "☽", "system": "◐" }
+    },
+
+    "pairedCodeInput": {
+      "comment": "Spezialfall für Kopplung-Codes (z.B. Cloud-Pairing-PIN)",
+      "class": "w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-4 text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono text-2xl text-center tracking-[0.5em]"
+    },
+
+    "confirmDialog": {
+      "description": "Unsaved-Changes-Dialog mit drei Aktionen: Speichern, Verwerfen, Abbrechen",
+      "structure": {
+        "backdrop": "fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm",
+        "panel": "bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl",
+        "title": "text-base font-bold",
+        "body": "text-sm text-slate-500 dark:text-gray-400 mt-2",
+        "actions": "flex gap-2 mt-6",
+        "btnSave": "primary button",
+        "btnDiscard": "secondary button (Verwerfen)",
+        "btnCancel": "ghost link (Abbrechen)"
+      }
+    }
+  },
+
+  "patterns": {
+    "listPage": {
+      "description": "Standardmuster für alle CRUD-Listenseiten",
+      "structure": [
+        "Wrapper: flex h-full",
+        "Linke Seite: Tabelle (entweder flex-1 oder w-72 falls Detail offen)",
+        "→ Header: p-6, flex items-center justify-between, h1 text-xl, + Neu Button",
+        "→ Loading / Empty State",
+        "→ Tabelle mit rounded-xl border",
+        "Rechte Seite (optional): Detail-Panel mit Navigations-Bar oben"
+      ],
+      "wrapperClass": "flex h-full"
+    },
+    "formPage": {
+      "description": "Formular als eigenständige Seite oder als Panel",
+      "standalone": {
+        "padding": "p-8 max-w-2xl space-y-6",
+        "title": "text-2xl font-bold tracking-tight"
+      },
+      "panelMode": {
+        "padding": "p-5 space-y-5",
+        "title": "text-2xl font-bold tracking-tight"
+      }
+    },
+    "settingsPage": {
+      "description": "Einstellungsseite ohne Tabelle, z.B. Drucker, Cloud-Kopplung",
+      "padding": "p-6",
+      "maxWidth": "max-w-2xl | max-w-4xl",
+      "layout": "flex flex-col gap-4 overflow-y-auto h-full",
+      "title": "text-xl font-bold tracking-tight"
+    },
+    "splitLayoutWithFixedDetail": {
+      "description": "Produktgruppen / Produkte: Tabelle links, erweitertes Detail-Panel rechts, beide mit eigenem Scroll",
+      "outerWrapper": "flex h-full",
+      "leftPanel": "border-r border-slate-200 dark:border-gray-800 overflow-y-auto",
+      "rightPanel": "flex-1 flex flex-col overflow-hidden"
+    }
+  },
+
+  "copyableCSS": {
+    "comment": "Komplette styles.scss als Referenz für das Save-Button-Muster und globale Resets",
+    "globalReset": "html, body { height: 100%; margin: 0; overflow: hidden; font-family: 'Switzer', sans-serif; background-color: #f8fafc; color: #0f172a; -webkit-font-smoothing: antialiased; }",
+    "darkReset": ".dark body, body.dark { background-color: #000; color: #fff; }",
+    "heightChain": "app-root, app-admin-layout { display: block; height: 100%; } main > *:not(router-outlet) { display: block; height: 100%; }",
+    "saveButton": {
+      "container": ".save-btn { position: relative; width: 160px; height: 48px; border: none; border-radius: 14px; cursor: pointer; overflow: hidden; transition: transform 0.15s cubic-bezier(0.4,0,0.2,1), background-color 0.3s ease, box-shadow 0.3s ease; }",
+      "activeScale": ".save-btn:active:not(:disabled) { transform: scale(0.95); }",
+      "defaultState": ".save-btn--default { background: #1e293b; color: #fff; } .save-btn--default:hover:not(:disabled) { background: #334155; } .dark .save-btn--default { background: #fff; color: #000; } .dark .save-btn--default:hover:not(:disabled) { background: #e5e5e5; }",
+      "savingState": ".save-btn--saving { background: #1e293b; color: #fff; pointer-events: none; } .dark .save-btn--saving { background: #fff; color: #000; }",
+      "successState": ".save-btn--success { background: #22c55e; color: #fff; pointer-events: none; animation: save-success-pop 0.4s cubic-bezier(0.34,1.56,0.64,1); }",
+      "content": ".save-btn__content { display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; font-size: 14px; height: 100%; transition: opacity 0.2s ease; }",
+      "spinner": ".save-spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.15); border-top-color: #fff; border-radius: 50%; animation: save-spin 0.6s linear infinite; } .dark .save-spinner { border: 2.5px solid rgba(0,0,0,0.15); border-top-color: #000; }",
+      "checkmark": ".save-checkmark { width: 22px; height: 22px; stroke: #fff; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 24; animation: save-check-draw 0.4s 0.1s cubic-bezier(0.65,0,0.35,1) forwards; }"
+    }
+  }
+}

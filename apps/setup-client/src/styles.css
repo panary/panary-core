@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+/* Explizite Quellpfade für Tailwind v4 JIT — nötig in Docker (kein .git-Verzeichnis) */
+@source "./app";
+@source "../../../libs";
+
+@font-face {
+  font-family: 'Switzer';
+  src: url('./assets/fonts/Switzer-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+  font-style: normal;
+}
+
+@theme {
+  --font-sans: 'Switzer', sans-serif;
+  --font-display: 'Switzer', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow-x: hidden;
+  font-family: 'Switzer', sans-serif;
+  background-color: black;
+  color: white;
+  -webkit-font-smoothing: antialiased;
+}

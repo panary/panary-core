@@ -1,5 +1,9 @@
 @use 'tailwindcss';
 
+/* Explizite Quellpfade für Tailwind v4 JIT — nötig in Docker (kein .git-Verzeichnis) */
+@source "./app";
+@source "../../../libs";
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @font-face {

@@ -78,7 +78,8 @@
       "@panary-core/recipes/data-access": ["libs/domains/recipes/data-access/src/index.ts"],
       "@panary-core/orders/feature-pos-order-dialog": ["libs/domains/orders/feature-pos-order-dialog/src/index.ts"],
       "@panary-core/shared/data-access-updater": ["libs/shared/data-access-updater/src/index.ts"],
-      "@panary-core/pre-orders/domain": ["libs/domains/pre-orders/domain/src/index.ts"]
+      "@panary-core/pre-orders/domain": ["libs/domains/pre-orders/domain/src/index.ts"],
+      "@panary-core/cloud-connection/domain": ["libs/domains/cloud-connection/domain/src/index.ts"]
     }
   }
 }

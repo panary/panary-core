@@ -37,6 +37,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.WORKING_TIMES, action: AppAction.MANAGE },
     { resource: AppResource.PRE_ORDERS, action: AppAction.MANAGE },
     { resource: AppResource.PRINT_SERVER, action: AppAction.MANAGE },
+    { resource: AppResource.APIKEYS, action: AppAction.MANAGE },
+    { resource: AppResource.CLOUD_CONNECTION, action: AppAction.MANAGE },
     AppAbility.CAN_SEE_REPORTS,
     AppAbility.CAN_REFUND,
   ],
@@ -44,10 +46,11 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
   [UserSystemRole.TENANT_MANAGER]: [
     { resource: AppResource.PRODUCTS, action: AppAction.MANAGE },
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.READ },
-    { resource: AppResource.ORDERS, action: [AppAction.CREATE, AppAction.READ] },
+    { resource: AppResource.ORDERS, action: [AppAction.CREATE, AppAction.READ, AppAction.DELETE] },
     { resource: AppResource.WORKING_TIMES, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.PRE_ORDERS, action: AppAction.MANAGE },
     { resource: AppResource.PRINT_SERVER, action: [AppAction.READ, AppAction.UPDATE] },
+    { resource: AppResource.APIKEYS, action: AppAction.READ },
   ],
 
   [UserSystemRole.TENANT_STAFF]: [

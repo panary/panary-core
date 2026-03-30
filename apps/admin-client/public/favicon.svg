@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Adaptiver Hintergrund: hell (light mode) ↔ dunkel (dark mode) -->
+  <style>
+    .bg { fill: #0f172a; }
+    .icon { fill: #ffffff; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #f1f5f9; }
+      .icon { fill: #0f172a; }
+    }
+  </style>
+  <rect class="bg" x="0" y="0" width="64" height="64" rx="13"/>
+  <!-- Panary-Icon mit ~16px Padding; skaliert auf 32×35 und zentriert -->
+  <rect class="icon" x="16" y="14" width="13" height="35" rx="2"/>
+  <rect class="icon" x="32" y="14" width="16" height="19" rx="2"/>
+</svg>

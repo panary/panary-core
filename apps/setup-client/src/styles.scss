@@ -1,5 +1,9 @@
 @use 'tailwindcss';
 
+/* Explizite Quellpfade für Tailwind v4 JIT — nötig in Docker (kein .git-Verzeichnis) */
+@source "./app";
+@source "../../../libs";
+
 @font-face {
   font-family: 'Switzer';
   src: url('./assets/fonts/Switzer-Variable.woff2') format('woff2');

@@ -14,6 +14,7 @@ import { orderInteractions } from './order-interactions/order-interactions'
 import { userPreferences } from './user-preferences/user-preferences'
 import { workingTimes } from './working-times/working-times'
 import { preOrders } from './pre-orders/pre-orders'
+import { cloudConnection } from './cloud-connection/cloud-connection'
 
 export const services = (app: Application) => {
   app.configure(organizations)
@@ -30,4 +31,5 @@ export const services = (app: Application) => {
   app.configure(userPreferences)
   app.configure(workingTimes)
   app.configure(preOrders)
+  app.configure(cloudConnection)
 }

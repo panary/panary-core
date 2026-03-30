@@ -36,41 +36,85 @@ interface ProductGroup {
   imports: [GroupFormComponent, ConfirmDialogComponent, FormsModule, GroupWizardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="flex h-full">
+    <div class="flex h-full overflow-hidden">
       <!-- Linke Seite: Tabelle -->
       <div [class]="selectedId() ? 'w-72 shrink-0 border-r border-slate-200 dark:border-gray-800' : 'flex-1'"
-           class="overflow-y-auto transition-all">
+           class="overflow-y-auto">
         <div class="p-6 space-y-4">
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between min-h-9">
             <h1 class="text-xl font-bold tracking-tight">Produktgruppen</h1>
             <div class="flex items-center gap-2">
-              <button (click)="onExport()"
-                class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
-                       px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
-                       hover:bg-slate-50 dark:hover:bg-gray-800 transition"
-                [disabled]="exporting()">
-                {{ exporting() ? 'Exportiere...' : 'Export' }}
-              </button>
-              <button (click)="fileInput()?.nativeElement?.click()"
-                class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
-                       px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
-                       hover:bg-slate-50 dark:hover:bg-gray-800 transition"
-                [disabled]="importing()">
-                {{ importing() ? 'Importiere...' : 'Import' }}
-              </button>
+              @if (!selectedId()) {
+                <!-- Alle Buttons sichtbar wenn kein Panel -->
+                <button (click)="onExport()" [disabled]="exporting()"
+                  class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
+                         px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
+                         hover:bg-slate-50 dark:hover:bg-gray-800 transition">
+                  {{ exporting() ? 'Exportiere...' : 'Export' }}
+                </button>
+                <button (click)="fileInput()?.nativeElement?.click()" [disabled]="importing()"
+                  class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
+                         px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
+                         hover:bg-slate-50 dark:hover:bg-gray-800 transition">
+                  {{ importing() ? 'Importiere...' : 'Import' }}
+                </button>
+                <button (click)="showWizard.set(true)"
+                  class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
+                         px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
+                         hover:bg-slate-50 dark:hover:bg-gray-800 transition flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                       stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                    <path d="M2 17l10 5 10-5"></path>
+                    <path d="M2 12l10 5 10-5"></path>
+                  </svg>
+                  Assistent
+                </button>
+              } @else {
+                <!-- Kebab-Menü wenn Panel geöffnet -->
+                <div class="relative">
+                  <button (click)="actionsMenuOpen.set(!actionsMenuOpen())"
+                          class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
+                                 w-8 h-8 flex items-center justify-center rounded-lg
+                                 border border-slate-200 dark:border-gray-800
+                                 hover:bg-slate-50 dark:hover:bg-gray-800 transition text-base leading-none"
+                          title="Weitere Aktionen">
+                    ···
+                  </button>
+                  @if (actionsMenuOpen()) {
+                    <div class="fixed inset-0 z-40" (click)="actionsMenuOpen.set(false)"></div>
+                    <div class="absolute right-0 top-full mt-1 z-50 w-44
+                                bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800
+                                rounded-xl shadow-xl p-1 flex flex-col gap-0.5">
+                      <button (click)="onExport(); actionsMenuOpen.set(false)" [disabled]="exporting()"
+                        class="w-full text-left text-xs px-3 py-2 rounded-lg
+                               text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition
+                               disabled:opacity-50">
+                        {{ exporting() ? 'Exportiere...' : 'Export' }}
+                      </button>
+                      <button (click)="fileInput()?.nativeElement?.click(); actionsMenuOpen.set(false)" [disabled]="importing()"
+                        class="w-full text-left text-xs px-3 py-2 rounded-lg
+                               text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition
+                               disabled:opacity-50">
+                        {{ importing() ? 'Importiere...' : 'Import' }}
+                      </button>
+                      <div class="h-px bg-slate-100 dark:bg-gray-800 my-0.5"></div>
+                      <button (click)="showWizard.set(true); actionsMenuOpen.set(false)"
+                        class="w-full text-left text-xs px-3 py-2 rounded-lg flex items-center gap-2
+                               text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition">
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                          <path d="M2 17l10 5 10-5"></path>
+                          <path d="M2 12l10 5 10-5"></path>
+                        </svg>
+                        Assistent
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
               <input #fileInputRef type="file" accept=".json" class="hidden" (change)="onFileSelected($event)" />
-              <button (click)="showWizard.set(true)"
-                class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
-                       px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
-                       hover:bg-slate-50 dark:hover:bg-gray-800 transition flex items-center gap-1.5">
-                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                  <path d="M2 17l10 5 10-5"></path>
-                  <path d="M2 12l10 5 10-5"></path>
-                </svg>
-                Assistent
-              </button>
               <button (click)="selectItem('new')"
                 class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-4 py-2 rounded-xl text-xs
                        hover:bg-slate-800 dark:hover:bg-gray-200 transition">
@@ -324,6 +368,7 @@ export class GroupListComponent implements OnInit {
   fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInputRef')
   searchInputEl = viewChild<ElementRef<HTMLInputElement>>('searchInputRef')
   showWizard = signal(false)
+  actionsMenuOpen = signal(false)
   pendingNavAction: (() => void) | null = null
 
   // --- Suchleiste ---

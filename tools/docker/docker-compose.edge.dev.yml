@@ -1,0 +1,27 @@
+# ============================================================
+# Panary Edge Server — Dev/Debug (Bind Mount)
+#
+# Daten liegen in panary-core/data/ — direkt auf dem Host
+# einsehbar und änderbar. Ideal zum Debugging.
+#
+# Nutzung:
+#   docker compose -f tools/docker/docker-compose.edge.dev.yml up -d
+#   docker compose -f tools/docker/docker-compose.edge.dev.yml down
+#   docker compose -f tools/docker/docker-compose.edge.dev.yml logs -f
+# ============================================================
+services:
+  panary-edge-dev:
+    image: ghcr.io/panary/panary-edge:latest
+    build:
+      context: ../..
+      dockerfile: tools/docker/Dockerfile.edge
+    pull_policy: build
+    container_name: panary-edge-dev
+    ports:
+      - '3031:3030'
+    volumes:
+      # ../../data = panary-core/data/ (relativ zur Compose-Datei in tools/docker/)
+      - ../../data:/app/data
+    environment:
+      - NODE_ENV=production
+    restart: 'no'

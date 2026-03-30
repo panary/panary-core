@@ -29,12 +29,16 @@ export const sqlite = (app: Application) => {
   let migrationDir = ''
 
   // Priority list of potential migration directories
+  // Hinweis: esbuild (bundle:false) erhält die volle Quellstruktur, daher ist __dirname
+  // in Docker /app/dist/apps/api-edge/apps/api-edge/src/ — drei Ebenen über die dist-Root.
   const candidates = [
-    path.join(__dirname, '../migrations'),           // dev: src/ -> ../migrations/
-    path.join(__dirname, 'migrations'),              // bundled production: sibling
-    path.join(__dirname, '../../../../migrations'),   // dist structure
-    path.join(process.cwd(), 'apps/api-edge/migrations'), // workspace root (nx serve)
-    path.join(process.cwd(), 'migrations'),          // standalone fallback
+    path.join(process.cwd(), 'dist/apps/api-edge/migrations'), // Docker: /app/dist/apps/api-edge/migrations/
+    path.join(__dirname, '../../../migrations'),                // esbuild-Struktur: src/ -> dist-Root/migrations/
+    path.join(__dirname, '../migrations'),                      // dev: src/ -> ../migrations/
+    path.join(__dirname, 'migrations'),                         // gebündelte Produktion: Geschwister
+    path.join(__dirname, '../../../../migrations'),              // ältere dist-Struktur
+    path.join(process.cwd(), 'apps/api-edge/migrations'),      // Workspace-Root (nx serve)
+    path.join(process.cwd(), 'migrations'),                     // Standalone-Fallback
   ]
 
   for (const candidate of candidates) {
@@ -58,7 +62,8 @@ export const sqlite = (app: Application) => {
     dbConfig.migrations = {}
   }
   dbConfig.migrations.directory = migrationDir
-  dbConfig.migrations.loadExtensions = ['.ts', '.js']
+  // In Docker sind Migrationen zu .js kompiliert; lokal (nx serve) werden .ts via @swc-node/register geladen
+  dbConfig.migrations.loadExtensions = process.env['NODE_ENV'] === 'production' ? ['.js'] : ['.ts', '.js']
 
   // Ensure TypeScript migrations can be loaded at runtime
   try {

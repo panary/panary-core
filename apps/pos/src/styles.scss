@@ -43,11 +43,23 @@ html {
   font-family: 'Switzer', sans-serif !important;
 }
 
-/* SnackBar: Dunkler Hintergrund passend zum Design */
+/* SnackBar: Helles Card-Design passend zum Layout der POS-App */
 .mat-mdc-snack-bar-container {
-  --mdc-snackbar-container-color: #1e293b;
-  --mdc-snackbar-supporting-text-color: #f8fafc;
-  --mat-snack-bar-button-color: #60a5fa;
+  /* Korrekte Angular-Material-21-Token-Namen (mat-snack-bar-*, nicht mdc-snackbar-*) */
+  --mat-snack-bar-container-color: #f1f5f9;
+  --mat-snack-bar-supporting-text-color: #1e293b;
+  --mat-snack-bar-supporting-text-size: 14px;
+  --mat-snack-bar-supporting-text-weight: 500;
+  --mat-snack-bar-container-shape: 1rem;
+  --mat-snack-bar-button-color: #2563eb;
+
+  /* Border + Schatten direkt auf der MDC-Surface */
+  .mdc-snackbar__surface {
+    border: 1px solid #e2e8f0 !important;
+    box-shadow:
+      0 10px 25px -5px rgb(0 0 0 / 0.08),
+      0 4px 6px -2px rgb(0 0 0 / 0.04) !important;
+  }
 }
 
 /* MatSelect: Dropdown-Panel Styling */

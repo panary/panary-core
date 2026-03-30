@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@ang
 import { FormsModule } from '@angular/forms'
 import { ApiService } from '../../core/api.service'
 import { formatApiError } from '../../core/error-helper'
+import { LocationStateService } from '../../core/location-state.service'
 
 @Component({
   selector: 'app-location-detail',
@@ -9,52 +10,50 @@ import { formatApiError } from '../../core/error-helper'
   imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="p-8 max-w-2xl space-y-6">
-      <h1 class="text-2xl font-bold tracking-tight">Standort</h1>
+    <div class="p-6 max-w-2xl space-y-4 h-full overflow-y-auto">
+      <div>
+        <div class="flex items-center justify-between min-h-9">
+          <h1 class="text-xl font-bold tracking-tight">Standort</h1>
+        </div>
+        <p class="text-slate-500 dark:text-gray-400 text-sm mt-1 leading-relaxed">Standortdaten und Kontaktinformationen dieses Edge-Servers.</p>
+      </div>
 
       @if (loading()) {
         <p class="text-slate-400 dark:text-gray-500">Laden...</p>
       } @else if (!locationId()) {
         <div class="text-center py-16">
           <p class="text-slate-400 dark:text-gray-500 text-lg">Kein Standort vorhanden</p>
-          <p class="text-slate-400 dark:text-gray-600 text-sm mt-1">Der Standort wird beim ersten Setup automatisch erstellt.</p>
+          <p class="text-slate-400 dark:text-gray-500 text-sm mt-1">Der Standort wird beim ersten Setup automatisch erstellt.</p>
         </div>
       } @else {
-        <form (ngSubmit)="onSave()" class="space-y-5">
+        <form (ngSubmit)="onSave()" class="space-y-4">
           <!-- Name -->
-          <div class="space-y-1">
+          <div class="space-y-1.5">
             <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Name *</label>
             <input [(ngModel)]="form.name" name="name" type="text" required
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none" />
+              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-3 text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none text-sm" />
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-2 gap-3">
             <!-- E-Mail -->
-            <div class="space-y-1">
+            <div class="space-y-1.5">
               <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">E-Mail</label>
               <input [(ngModel)]="form.email" name="email" type="email"
-                class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                       text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                       focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none" />
+                class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-3 text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none text-sm" />
             </div>
             <!-- Telefon -->
-            <div class="space-y-1">
+            <div class="space-y-1.5">
               <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Telefon</label>
               <input [(ngModel)]="form.phone" name="phone" type="text"
-                class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                       text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                       focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none" />
+                class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-3 text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none text-sm" />
             </div>
           </div>
 
           <!-- Status -->
-          <div class="space-y-1">
+          <div class="space-y-1.5">
             <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Status</label>
             <select [(ngModel)]="form.status" name="status"
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white outline-none">
+              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-3 text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none text-sm">
               <option value="DRAFT">Entwurf</option>
               <option value="ACTIVE">Aktiv</option>
             </select>
@@ -65,16 +64,13 @@ import { formatApiError } from '../../core/error-helper'
           }
 
           @if (saved()) {
-            <p class="text-green-500 dark:text-green-400 text-sm">Gespeichert.</p>
+            <p class="text-green-600 dark:text-green-400 text-sm">Gespeichert.</p>
           }
 
-          <div class="flex gap-3 pt-4">
-            <button type="submit" [disabled]="saving()"
-              class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-8 py-3 rounded-xl text-sm
-                     hover:bg-slate-800 dark:hover:bg-gray-200 transition disabled:opacity-50">
-              {{ saving() ? 'Speichern...' : 'Speichern' }}
-            </button>
-          </div>
+          <button type="submit" [disabled]="saving()"
+            class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-6 py-3 rounded-xl text-sm hover:bg-slate-800 dark:hover:bg-gray-200 transition disabled:opacity-50">
+            {{ saving() ? 'Speichern...' : 'Speichern' }}
+          </button>
         </form>
       }
     </div>
@@ -82,6 +78,7 @@ import { formatApiError } from '../../core/error-helper'
 })
 export class LocationDetailComponent implements OnInit {
   private api = inject(ApiService)
+  private locationState = inject(LocationStateService)
 
   loading = signal(true)
   saving = signal(false)
@@ -121,6 +118,7 @@ export class LocationDetailComponent implements OnInit {
     this.saved.set(false)
     try {
       await this.api.patch('locations', this.locationId()!, this.form)
+      this.locationState.locationName.set(this.form.name)
       this.saved.set(true)
     } catch (e: any) {
       this.error.set(formatApiError(e))

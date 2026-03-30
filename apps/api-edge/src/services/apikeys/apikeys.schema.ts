@@ -72,14 +72,22 @@ export const apikeyDataResolver = resolve<Apikey, HookContext>({
 //#region 3. Patch Resolver (PATCH)
 export const apikeyPatchValidator = getValidator(apikeyPatchSchema, dataValidator)
 export const apikeyPatchResolver = resolve<Apikey, HookContext>({
+  // API-Keys sind nach Erstellung unveränderlich — nur active-Status darf getoggelt werden.
+  // Alle anderen Felder werden beim PATCH verworfen (Privilege Escalation verhindern).
   _id: async () => undefined,
   tenantId: async () => undefined,
   locationId: async () => undefined,
   apikey: async () => undefined,
-  active: async () => undefined,
-  // scopes removed
+  name: async () => undefined,
+  description: async () => undefined,
+  role: async () => undefined,
+  validUntil: async () => undefined,
+  deviceId: async () => undefined,
+  createdBy: async () => undefined,
+  lastUsedAt: async () => undefined,
+  active: async value => value,
   createdAt: async () => undefined,
-  updatedAt: async (): Promise<string> => new Date().toISOString()
+  updatedAt: async (): Promise<string> => new Date().toISOString(),
 })
 //#endregion
 

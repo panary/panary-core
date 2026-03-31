@@ -102,10 +102,10 @@ import { objectHash } from '../../core/dirty-check'
         @if (form.isPosUser) {
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-1">
-              <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+              <label for="employeeNumber" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                 Personalnummer (6 Ziffern)
               </label>
-              <input [(ngModel)]="form.employeeNumber" name="employeeNumber" #employeeNumber="ngModel"
+              <input id="employeeNumber" [(ngModel)]="form.employeeNumber" name="employeeNumber" #employeeNumber="ngModel"
                 type="text" minlength="6" maxlength="6" pattern="[0-9]*"
                 inputmode="numeric" placeholder="z.B. 100001"
                 [class]="inputClass(employeeNumber)" />
@@ -114,10 +114,10 @@ import { objectHash } from '../../core/dirty-check'
               }
             </div>
             <div class="space-y-1">
-              <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+              <label for="posPin" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                 POS-PIN (4–6 Ziffern)
               </label>
-              <input [(ngModel)]="form.posPin" name="posPin" #posPin="ngModel"
+              <input id="posPin" [(ngModel)]="form.posPin" name="posPin" #posPin="ngModel"
                 type="text" minlength="4" maxlength="6" pattern="[0-9]*"
                 inputmode="numeric" placeholder="z.B. 1234"
                 [class]="inputClass(posPin)" />

@@ -14,14 +14,15 @@ interface ExistingProduct { _id: string; acronym: string; categoryIds: string[] 
   imports: [FormsModule, AssistantShellComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <app-assistant-shell title="Produkt" (cancel)="cancelled.emit()">
+    <app-assistant-shell title="Produkt" (closed)="cancelled.emit()">
       <div class="space-y-3">
 
         <!-- 0: Begruessung -->
         @if (isAnswered('greeting')) {
           <div class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
                       hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
-               (click)="editStep(0)">
+               role="button" tabindex="0"
+               (click)="editStep(0)" (keydown.enter)="editStep(0)">
             <svg class="w-4 h-4 text-green-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
@@ -49,7 +50,8 @@ interface ExistingProduct { _id: string; acronym: string; categoryIds: string[] 
         @if (isAnswered('type')) {
           <div class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
                       hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
-               (click)="editStep(1)">
+               role="button" tabindex="0"
+               (click)="editStep(1)" (keydown.enter)="editStep(1)">
             <svg class="w-4 h-4 text-green-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
@@ -97,7 +99,8 @@ interface ExistingProduct { _id: string; acronym: string; categoryIds: string[] 
         @if (isAnswered('name')) {
           <div class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
                       hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
-               (click)="editStep(2)">
+               role="button" tabindex="0"
+               (click)="editStep(2)" (keydown.enter)="editStep(2)">
             <svg class="w-4 h-4 text-green-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
@@ -135,7 +138,8 @@ interface ExistingProduct { _id: string; acronym: string; categoryIds: string[] 
         @if (isAnswered('price')) {
           <div class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
                       hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
-               (click)="editStep(3)">
+               role="button" tabindex="0"
+               (click)="editStep(3)" (keydown.enter)="editStep(3)">
             <svg class="w-4 h-4 text-green-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
@@ -173,7 +177,8 @@ interface ExistingProduct { _id: string; acronym: string; categoryIds: string[] 
         @if (isAnswered('tax')) {
           <div class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
                       hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
-               (click)="editStep(4)">
+               role="button" tabindex="0"
+               (click)="editStep(4)" (keydown.enter)="editStep(4)">
             <svg class="w-4 h-4 text-green-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
@@ -207,12 +212,12 @@ interface ExistingProduct { _id: string; acronym: string; categoryIds: string[] 
               @if (showCustomTax()) {
                 <div class="grid grid-cols-2 gap-3">
                   <div>
-                    <label class="text-xs text-slate-400 dark:text-gray-500 mb-1 block">Inhaus (%)</label>
-                    <input type="number" [(ngModel)]="customTaxIn" step="0.1" min="0" [class]="cls.inputSm" />
+                    <label for="productWizardVatIn" class="text-xs text-slate-400 dark:text-gray-500 mb-1 block">Inhaus (%)</label>
+                    <input id="productWizardVatIn" type="number" [(ngModel)]="customTaxIn" step="0.1" min="0" [class]="cls.inputSm" />
                   </div>
                   <div>
-                    <label class="text-xs text-slate-400 dark:text-gray-500 mb-1 block">Außer Haus (%)</label>
-                    <input type="number" [(ngModel)]="customTaxOut" step="0.1" min="0" [class]="cls.inputSm" />
+                    <label for="productWizardVatOut" class="text-xs text-slate-400 dark:text-gray-500 mb-1 block">Außer Haus (%)</label>
+                    <input id="productWizardVatOut" type="number" [(ngModel)]="customTaxOut" step="0.1" min="0" [class]="cls.inputSm" />
                   </div>
                 </div>
                 <button type="button" (click)="submitCustomTax()" [class]="cls.btnPrimary">Übernehmen</button>
@@ -225,7 +230,8 @@ interface ExistingProduct { _id: string; acronym: string; categoryIds: string[] 
         @if (isAnswered('category')) {
           <div class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
                       hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
-               (click)="editStep(5)">
+               role="button" tabindex="0"
+               (click)="editStep(5)" (keydown.enter)="editStep(5)">
             <svg class="w-4 h-4 text-green-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
@@ -274,7 +280,8 @@ interface ExistingProduct { _id: string; acronym: string; categoryIds: string[] 
         @if (isAnswered('acronym')) {
           <div class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
                       hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
-               (click)="editStep(6)">
+               role="button" tabindex="0"
+               (click)="editStep(6)" (keydown.enter)="editStep(6)">
             <svg class="w-4 h-4 text-green-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>

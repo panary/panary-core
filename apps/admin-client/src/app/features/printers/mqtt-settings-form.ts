@@ -21,8 +21,8 @@ export interface MqttSettingsData {
         <div class="grid grid-cols-3 gap-4">
           <!-- Protokoll -->
           <div class="space-y-1">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Protokoll</label>
-            <select [ngModel]="settings().mqttServerProtocol" (ngModelChange)="onFieldChange('mqttServerProtocol', $event)"
+            <label for="mqttProtocol" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Protokoll</label>
+            <select id="mqttProtocol" [ngModel]="settings().mqttServerProtocol" (ngModelChange)="onFieldChange('mqttServerProtocol', $event)"
               name="mqttServerProtocol"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white outline-none">
@@ -34,8 +34,8 @@ export interface MqttSettingsData {
 
           <!-- URL -->
           <div class="space-y-1">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Server-URL</label>
-            <input [ngModel]="settings().mqttServerUrl" (ngModelChange)="onFieldChange('mqttServerUrl', $event)"
+            <label for="mqttServerUrl" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Server-URL</label>
+            <input id="mqttServerUrl" [ngModel]="settings().mqttServerUrl" (ngModelChange)="onFieldChange('mqttServerUrl', $event)"
               name="mqttServerUrl" type="text" placeholder="localhost"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
@@ -44,8 +44,8 @@ export interface MqttSettingsData {
 
           <!-- Port -->
           <div class="space-y-1">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Port</label>
-            <input [ngModel]="settings().mqttServerPort" (ngModelChange)="onFieldChange('mqttServerPort', $event)"
+            <label for="mqttPort" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Port</label>
+            <input id="mqttPort" [ngModel]="settings().mqttServerPort" (ngModelChange)="onFieldChange('mqttServerPort', $event)"
               name="mqttServerPort" type="number" min="1" max="65535" placeholder="1883"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white

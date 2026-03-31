@@ -116,10 +116,10 @@ const DEFAULT_CLOUD_URL = 'https://cloud.panary.io'
               <div class="space-y-4">
                 <!-- Pairing-Code -->
                 <div class="space-y-1.5">
-                  <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                  <label for="pairingCode" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                     Kopplungscode
                   </label>
-                  <input [(ngModel)]="pairingCode" name="pairingCode" type="text"
+                  <input id="pairingCode" [(ngModel)]="pairingCode" name="pairingCode" type="text"
                     maxlength="6" pattern="[0-9]*" inputmode="numeric"
                     placeholder="000000"
                     class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-4
@@ -132,10 +132,10 @@ const DEFAULT_CLOUD_URL = 'https://cloud.panary.io'
                 <!-- Cloud-URL + Edge-Name in Grid -->
                 <div class="grid grid-cols-2 gap-3">
                   <div class="space-y-1">
-                    <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                    <label for="cloudUrl" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                       Cloud-URL
                     </label>
-                    <input [(ngModel)]="cloudUrl" name="cloudUrl" type="url"
+                    <input id="cloudUrl" [(ngModel)]="cloudUrl" name="cloudUrl" type="url"
                       class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                              text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
                              focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono text-xs" />
@@ -144,10 +144,10 @@ const DEFAULT_CLOUD_URL = 'https://cloud.panary.io'
                     </p>
                   </div>
                   <div class="space-y-1">
-                    <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                    <label for="edgeName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                       Standort-Name
                     </label>
-                    <input [(ngModel)]="edgeName" name="edgeName" type="text"
+                    <input id="edgeName" [(ngModel)]="edgeName" name="edgeName" type="text"
                       placeholder="Wird in der Cloud angezeigt"
                       class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                              text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
@@ -468,7 +468,7 @@ export class CloudConnectionComponent implements OnInit {
   async onRetry() {
     const conn = this.connectionInfo()
     if (conn) {
-      await this.api.remove('cloud-connection', conn._id).catch(() => {})
+      await this.api.remove('cloud-connection', conn._id).catch(() => { /* noop */ })
     }
     this.connectionInfo.set(null)
     this.connectionState.set('disconnected')
@@ -479,7 +479,7 @@ export class CloudConnectionComponent implements OnInit {
   async onReset() {
     const conn = this.connectionInfo()
     if (conn) {
-      await this.api.remove('cloud-connection', conn._id).catch(() => {})
+      await this.api.remove('cloud-connection', conn._id).catch(() => { /* noop */ })
     }
     this.connectionInfo.set(null)
     this.connectionState.set('disconnected')

@@ -15,14 +15,15 @@ interface StepAnswer {
   imports: [FormsModule, AssistantShellComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <app-assistant-shell title="Produktgruppe" (cancel)="cancelled.emit()">
+    <app-assistant-shell title="Produktgruppe" (closed)="cancelled.emit()">
       <div class="space-y-3">
 
         <!-- Schritt 0: Begruessung -->
         @if (answers().has('greeting')) {
           <div class="answered-step group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
                       hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
-               (click)="editStep(0)">
+               role="button" tabindex="0"
+               (click)="editStep(0)" (keydown.enter)="editStep(0)">
             <svg class="w-4 h-4 text-green-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
@@ -55,7 +56,8 @@ interface StepAnswer {
         @if (answers().has('name')) {
           <div class="answered-step group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
                       hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
-               (click)="editStep(1)">
+               role="button" tabindex="0"
+               (click)="editStep(1)" (keydown.enter)="editStep(1)">
             <svg class="w-4 h-4 text-green-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
@@ -101,7 +103,8 @@ interface StepAnswer {
         @if (answers().has('color')) {
           <div class="answered-step group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
                       hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
-               (click)="editStep(2)">
+               role="button" tabindex="0"
+               (click)="editStep(2)" (keydown.enter)="editStep(2)">
             <svg class="w-4 h-4 text-green-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
@@ -163,7 +166,8 @@ interface StepAnswer {
         @if (answers().has('tax')) {
           <div class="answered-step group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
                       hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
-               (click)="editStep(3)">
+               role="button" tabindex="0"
+               (click)="editStep(3)" (keydown.enter)="editStep(3)">
             <svg class="w-4 h-4 text-green-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
@@ -201,15 +205,15 @@ interface StepAnswer {
               @if (showCustomTax()) {
                 <div class="grid grid-cols-2 gap-3">
                   <div>
-                    <label class="text-xs text-slate-400 dark:text-gray-500 mb-1 block">Inhaus (%)</label>
-                    <input type="number" [(ngModel)]="customTaxInside" step="0.1" min="0"
+                    <label for="wizardVatIn" class="text-xs text-slate-400 dark:text-gray-500 mb-1 block">Inhaus (%)</label>
+                    <input id="wizardVatIn" type="number" [(ngModel)]="customTaxInside" step="0.1" min="0"
                       class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800
                              rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none
                              focus:border-slate-900 dark:focus:border-white" />
                   </div>
                   <div>
-                    <label class="text-xs text-slate-400 dark:text-gray-500 mb-1 block">Außer Haus (%)</label>
-                    <input type="number" [(ngModel)]="customTaxOutside" step="0.1" min="0"
+                    <label for="wizardVatOut" class="text-xs text-slate-400 dark:text-gray-500 mb-1 block">Außer Haus (%)</label>
+                    <input id="wizardVatOut" type="number" [(ngModel)]="customTaxOutside" step="0.1" min="0"
                       class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800
                              rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none
                              focus:border-slate-900 dark:focus:border-white" />

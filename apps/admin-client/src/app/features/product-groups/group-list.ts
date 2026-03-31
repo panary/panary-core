@@ -82,7 +82,8 @@ interface ProductGroup {
                     ···
                   </button>
                   @if (actionsMenuOpen()) {
-                    <div class="fixed inset-0 z-40" (click)="actionsMenuOpen.set(false)"></div>
+                    <div class="fixed inset-0 z-40" role="button" tabindex="0"
+                         (click)="actionsMenuOpen.set(false)" (keydown.enter)="actionsMenuOpen.set(false)"></div>
                     <div class="absolute right-0 top-full mt-1 z-50 w-44
                                 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800
                                 rounded-xl shadow-xl p-1 flex flex-col gap-0.5">
@@ -160,10 +161,12 @@ interface ProductGroup {
           <!-- Fehler-Log Popup -->
           @if (showErrorLog() && importResult()?.errorLogs?.length) {
             <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm"
-                 (click)="showErrorLog.set(false)">
+                 role="button" tabindex="0"
+                 (click)="showErrorLog.set(false)" (keydown.enter)="showErrorLog.set(false)">
               <div class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl
                           max-w-2xl w-full mx-4 shadow-2xl max-h-[80vh] flex flex-col"
-                   (click)="$event.stopPropagation()">
+                   role="presentation"
+                   (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
                 <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-gray-800">
                   <p class="text-slate-900 dark:text-white font-medium">
                     Import-Fehler ({{ importResult()!.errorLogs.length }})
@@ -191,7 +194,8 @@ interface ProductGroup {
                         dark:border-gray-800 rounded-lg px-3 py-2 focus-within:border-slate-900
                         dark:focus-within:border-white focus-within:ring-1 focus-within:ring-slate-900
                         dark:focus-within:ring-white transition min-h-[42px]"
-                 (click)="searchInputEl()?.nativeElement?.focus()">
+                 role="presentation"
+                 (click)="searchInputEl()?.nativeElement?.focus()" (keydown.enter)="searchInputEl()?.nativeElement?.focus()">
               @for (filter of activeFilters(); track filter.key) {
                 <span class="inline-flex items-center gap-1 bg-slate-100 dark:bg-gray-800 text-slate-700
                              dark:text-gray-300 text-xs font-medium px-2.5 py-1 rounded-lg">

@@ -116,12 +116,12 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
         <!-- Name + Kürzel -->
         <div class="grid grid-cols-3 gap-4">
           <div class="col-span-2 space-y-1">
-            <label class="${LABEL}">Name *</label>
-            <input [(ngModel)]="form.name" name="name" type="text" required class="${INPUT}" />
+            <label for="productName" class="${LABEL}">Name *</label>
+            <input id="productName" [(ngModel)]="form.name" name="name" type="text" required class="${INPUT}" />
           </div>
           <div class="space-y-1">
-            <label class="${LABEL}">Kürzel *</label>
-            <input [(ngModel)]="form.acronym" name="acronym" type="text" required maxlength="10"
+            <label for="productAcronym" class="${LABEL}">Kürzel *</label>
+            <input id="productAcronym" [(ngModel)]="form.acronym" name="acronym" type="text" required maxlength="10"
               class="${INPUT} font-mono" />
           </div>
         </div>
@@ -148,18 +148,18 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
         <!-- Preis + Steuern -->
         <div class="grid grid-cols-3 gap-4">
           <div class="space-y-1">
-            <label class="${LABEL}">Preis (&euro;) *</label>
-            <input [(ngModel)]="form.price" name="price" type="number" step="0.01" min="0"
+            <label for="productPrice" class="${LABEL}">Preis (&euro;) *</label>
+            <input id="productPrice" [(ngModel)]="form.price" name="price" type="number" step="0.01" min="0"
               class="${INPUT} font-mono" />
           </div>
           <div class="space-y-1">
-            <label class="${LABEL}">MwSt. Inhaus (%)</label>
-            <input [(ngModel)]="form.taxInside" name="taxInside" type="number" step="0.1"
+            <label for="productTaxInside" class="${LABEL}">MwSt. Inhaus (%)</label>
+            <input id="productTaxInside" [(ngModel)]="form.taxInside" name="taxInside" type="number" step="0.1"
               class="${INPUT} font-mono" />
           </div>
           <div class="space-y-1">
-            <label class="${LABEL}">MwSt. Außer Haus (%)</label>
-            <input [(ngModel)]="form.taxOutside" name="taxOutside" type="number" step="0.1"
+            <label for="productTaxOutside" class="${LABEL}">MwSt. Außer Haus (%)</label>
+            <input id="productTaxOutside" [(ngModel)]="form.taxOutside" name="taxOutside" type="number" step="0.1"
               class="${INPUT} font-mono" />
           </div>
         </div>
@@ -167,8 +167,8 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
         <!-- Bundle-Preisgestaltung (nur bei BUNDLE) -->
         @if (form.productType === 'BUNDLE') {
           <div class="space-y-1">
-            <label class="${LABEL}">Bundle-Preisgestaltung</label>
-            <select [(ngModel)]="form.bundlePricingMode" name="bundlePricingMode" class="${INPUT}">
+            <label for="productBundlePricingMode" class="${LABEL}">Bundle-Preisgestaltung</label>
+            <select id="productBundlePricingMode" [(ngModel)]="form.bundlePricingMode" name="bundlePricingMode" class="${INPUT}">
               <option value="ROLLUP">Rollup (Summe der Einzelpreise)</option>
               <option value="FIXED_PROPORTIONAL">Fixer Preis (proportional aufgeteilt)</option>
             </select>
@@ -178,7 +178,7 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
         <!-- Produktgruppen -->
         @if (productGroups().length > 0) {
           <div class="space-y-2">
-            <label class="${LABEL}">Produktgruppen</label>
+            <span class="${LABEL}">Produktgruppen</span>
             <div class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
                         grid grid-cols-2 gap-2">
               @for (group of productGroups(); track group._id) {
@@ -199,7 +199,7 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
         <!-- OptionGroups Editor -->
         <div class="space-y-3">
           <div class="flex items-center justify-between">
-            <label class="${LABEL}">Optionsgruppen ({{ optionGroups().length }})</label>
+            <span class="${LABEL}">Optionsgruppen ({{ optionGroups().length }})</span>
             <button type="button" (click)="addGroup()"
               class="text-xs text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
                      border border-slate-200 dark:border-gray-800 hover:border-slate-400 dark:hover:border-gray-600
@@ -212,7 +212,8 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
             <div class="border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden">
               <!-- Group Header -->
               <div class="flex items-center gap-3 px-4 py-3 bg-slate-100 dark:bg-gray-900/60 cursor-pointer"
-                   (click)="toggleCollapse(group.id)">
+                   role="button" tabindex="0"
+                   (click)="toggleCollapse(group.id)" (keydown.enter)="toggleCollapse(group.id)">
                 <span class="text-slate-400 dark:text-gray-500 text-xs w-4">{{ isCollapsed(group.id) ? '▶' : '▼' }}</span>
                 <span class="flex-1 text-sm font-medium text-slate-900 dark:text-white truncate">
                   {{ group.name || 'Unbenannte Gruppe' }}
@@ -226,26 +227,26 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                 <div class="p-4 space-y-4 bg-slate-50 dark:bg-gray-900/20">
                   <!-- Gruppenname -->
                   <div class="space-y-1">
-                    <label class="${LABEL_SM}">Gruppenname *</label>
-                    <input [(ngModel)]="group.name" [name]="'og_' + gi + '_name'" type="text"
+                    <label [attr.for]="'optGroupName-' + gi" class="${LABEL_SM}">Gruppenname *</label>
+                    <input [id]="'optGroupName-' + gi" [(ngModel)]="group.name" [name]="'og_' + gi + '_name'" type="text"
                       required placeholder="z.B. Saucen & Dips" class="${INPUT_SM}" />
                   </div>
 
                   <!-- Min / Max / Gratis -->
                   <div class="grid grid-cols-3 gap-3">
                     <div class="space-y-1">
-                      <label class="${LABEL_SM}">Min. Auswahl</label>
-                      <input [(ngModel)]="group.minSelections" [name]="'og_' + gi + '_min'"
+                      <label [attr.for]="'optGroupMin-' + gi" class="${LABEL_SM}">Min. Auswahl</label>
+                      <input [id]="'optGroupMin-' + gi" [(ngModel)]="group.minSelections" [name]="'og_' + gi + '_min'"
                         type="number" min="0" class="${INPUT_SM} font-mono" />
                     </div>
                     <div class="space-y-1">
-                      <label class="${LABEL_SM}">Max. Auswahl</label>
-                      <input [(ngModel)]="group.maxSelections" [name]="'og_' + gi + '_max'"
+                      <label [attr.for]="'optGroupMax-' + gi" class="${LABEL_SM}">Max. Auswahl</label>
+                      <input [id]="'optGroupMax-' + gi" [(ngModel)]="group.maxSelections" [name]="'og_' + gi + '_max'"
                         type="number" min="1" class="${INPUT_SM} font-mono" />
                     </div>
                     <div class="space-y-1">
-                      <label class="${LABEL_SM}">Gratis-Anzahl</label>
-                      <input [(ngModel)]="group.freeQuantity" [name]="'og_' + gi + '_free'"
+                      <label [attr.for]="'optGroupFree-' + gi" class="${LABEL_SM}">Gratis-Anzahl</label>
+                      <input [id]="'optGroupFree-' + gi" [(ngModel)]="group.freeQuantity" [name]="'og_' + gi + '_free'"
                         type="number" min="0" class="${INPUT_SM} font-mono" />
                     </div>
                   </div>
@@ -541,7 +542,11 @@ export class ProductFormComponent implements OnInit {
   toggleCollapse(groupId: string) {
     this.collapsedGroups.update(s => {
       const next = new Set(s)
-      next.has(groupId) ? next.delete(groupId) : next.add(groupId)
+      if (next.has(groupId)) {
+        next.delete(groupId)
+      } else {
+        next.add(groupId)
+      }
       return next
     })
   }

@@ -20,11 +20,12 @@ import { AuthService } from '../core/auth.service'
 
         <form (ngSubmit)="onLogin()" class="space-y-4">
           <div class="space-y-1">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+            <label for="login-name" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
               Login-Name
             </label>
             <input
-              [(ngModel)]="loginname" name="loginname" type="text" autofocus
+              id="login-name"
+              [(ngModel)]="loginname" name="loginname" type="text"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
                      focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none
@@ -33,10 +34,11 @@ import { AuthService } from '../core/auth.service'
           </div>
 
           <div class="space-y-1">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+            <label for="login-password" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
               Passwort
             </label>
             <input
+              id="login-password"
               [(ngModel)]="password" name="password" type="password"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white

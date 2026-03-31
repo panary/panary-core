@@ -33,8 +33,8 @@ interface ApikeyDetail {
 
         <form #f="ngForm" (ngSubmit)="onCreate(f)" class="space-y-5">
           <div class="space-y-1">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Name *</label>
-            <input [(ngModel)]="form.name" name="name" #name="ngModel"
+            <label for="apikeyName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Name *</label>
+            <input id="apikeyName" [(ngModel)]="form.name" name="name" #name="ngModel"
               type="text" required minlength="2" maxlength="80"
               placeholder="z.B. POS Kasse 1"
               [class]="inputClass(name)" />
@@ -47,8 +47,8 @@ interface ApikeyDetail {
           </div>
 
           <div class="space-y-1">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Beschreibung</label>
-            <textarea [(ngModel)]="form.description" name="description"
+            <label for="apikeyDescription" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Beschreibung</label>
+            <textarea id="apikeyDescription" [(ngModel)]="form.description" name="description"
               rows="2" placeholder="Optionale Beschreibung des Verwendungszwecks"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
@@ -58,8 +58,8 @@ interface ApikeyDetail {
 
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-1">
-              <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Rolle *</label>
-              <select [(ngModel)]="form.role" name="role"
+              <label for="apikeyRole" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Rolle *</label>
+              <select id="apikeyRole" [(ngModel)]="form.role" name="role"
                 class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                        text-slate-900 dark:text-white outline-none">
                 <option value="device:pos">POS-Kasse</option>
@@ -69,8 +69,8 @@ interface ApikeyDetail {
               </select>
             </div>
             <div class="space-y-1">
-              <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Gültig bis</label>
-              <input [(ngModel)]="form.validUntil" name="validUntil" type="date"
+              <label for="apikeyValidUntil" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Gültig bis</label>
+              <input id="apikeyValidUntil" [(ngModel)]="form.validUntil" name="validUntil" type="date"
                 class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                        text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
                        focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none" />

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal, OnInit, input, output, effect, viewChild } from '@angular/core'
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal, input, output, effect, viewChild } from '@angular/core'
 import { FormsModule, NgForm } from '@angular/forms'
 import { Router } from '@angular/router'
 import { ApiService } from '../../core/api.service'
@@ -17,15 +17,15 @@ import { objectHash } from '../../core/dirty-check'
       <form #f="ngForm" (ngSubmit)="onSave(f)" class="space-y-5">
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-1">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Vorname</label>
-            <input [(ngModel)]="form.firstName" name="firstName" type="text"
+            <label for="userFirstName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Vorname</label>
+            <input id="userFirstName" [(ngModel)]="form.firstName" name="firstName" type="text"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
                      focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none" />
           </div>
           <div class="space-y-1">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Nachname</label>
-            <input [(ngModel)]="form.lastName" name="lastName" type="text"
+            <label for="userLastName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Nachname</label>
+            <input id="userLastName" [(ngModel)]="form.lastName" name="lastName" type="text"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
                      focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none" />
@@ -33,8 +33,8 @@ import { objectHash } from '../../core/dirty-check'
         </div>
 
         <div class="space-y-1">
-          <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Login-Name *</label>
-          <input [(ngModel)]="form.loginname" name="loginname" #loginname="ngModel"
+          <label for="userLoginname" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Login-Name *</label>
+          <input id="userLoginname" [(ngModel)]="form.loginname" name="loginname" #loginname="ngModel"
             type="text" required minlength="2" maxlength="30"
             [class]="inputClass(loginname)" />
           @if (loginname.invalid && loginname.touched) {
@@ -46,8 +46,8 @@ import { objectHash } from '../../core/dirty-check'
         </div>
 
         <div class="space-y-1">
-          <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">E-Mail</label>
-          <input [(ngModel)]="form.email" name="email" #email="ngModel" type="email" email
+          <label for="userEmail" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">E-Mail</label>
+          <input id="userEmail" [(ngModel)]="form.email" name="email" #email="ngModel" type="email" email
             [class]="inputClass(email)" />
           @if (email.invalid && email.touched) {
             <p class="text-red-500 dark:text-red-400 text-xs mt-1">Bitte eine gültige E-Mail-Adresse eingeben.</p>
@@ -55,10 +55,10 @@ import { objectHash } from '../../core/dirty-check'
         </div>
 
         <div class="space-y-1">
-          <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+          <label for="userPassword" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
             Passwort {{ isNew() ? '*' : '(leer lassen = unverändert)' }}
           </label>
-          <input [(ngModel)]="form.password" name="password" #password="ngModel"
+          <input id="userPassword" [(ngModel)]="form.password" name="password" #password="ngModel"
             type="password" [required]="isNew()" minlength="3"
             [class]="inputClass(password)" />
           @if (password.invalid && password.touched) {
@@ -71,8 +71,8 @@ import { objectHash } from '../../core/dirty-check'
 
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-1">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Rolle *</label>
-            <select [(ngModel)]="form.role" name="role"
+            <label for="userRole" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Rolle *</label>
+            <select id="userRole" [(ngModel)]="form.role" name="role"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white outline-none">
               <option value="tenant:staff">Mitarbeiter</option>
@@ -81,8 +81,8 @@ import { objectHash } from '../../core/dirty-check'
             </select>
           </div>
           <div class="space-y-1">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Funktion</label>
-            <input [(ngModel)]="form.staffRole" name="staffRole" type="text" placeholder="z.B. Kellner, Koch"
+            <label for="userFunction" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Funktion</label>
+            <input id="userFunction" [(ngModel)]="form.staffRole" name="staffRole" type="text" placeholder="z.B. Kellner, Koch"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
                      focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none
@@ -204,7 +204,7 @@ import { objectHash } from '../../core/dirty-check'
     </div>
   `,
 })
-export class UserFormComponent implements OnInit {
+export class UserFormComponent {
   private api = inject(ApiService)
   private router = inject(Router)
   private cdr = inject(ChangeDetectorRef)
@@ -269,7 +269,7 @@ export class UserFormComponent implements OnInit {
     })
   }
 
-  async ngOnInit() {}
+  // ngOnInit entfernt — Initialisierungslogik läuft über effect() im Konstruktor
 
   private async loadUser(userId: string | undefined) {
     this.formRef()?.resetForm()

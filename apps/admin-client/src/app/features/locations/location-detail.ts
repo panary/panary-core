@@ -29,30 +29,30 @@ import { LocationStateService } from '../../core/location-state.service'
         <form (ngSubmit)="onSave()" class="space-y-4">
           <!-- Name -->
           <div class="space-y-1.5">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Name *</label>
-            <input [(ngModel)]="form.name" name="name" type="text" required
+            <label for="locationName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Name *</label>
+            <input id="locationName" [(ngModel)]="form.name" name="name" type="text" required
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-3 text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none text-sm" />
           </div>
 
           <div class="grid grid-cols-2 gap-3">
             <!-- E-Mail -->
             <div class="space-y-1.5">
-              <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">E-Mail</label>
-              <input [(ngModel)]="form.email" name="email" type="email"
+              <label for="locationEmail" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">E-Mail</label>
+              <input id="locationEmail" [(ngModel)]="form.email" name="email" type="email"
                 class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-3 text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none text-sm" />
             </div>
             <!-- Telefon -->
             <div class="space-y-1.5">
-              <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Telefon</label>
-              <input [(ngModel)]="form.phone" name="phone" type="text"
+              <label for="locationPhone" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Telefon</label>
+              <input id="locationPhone" [(ngModel)]="form.phone" name="phone" type="text"
                 class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-3 text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none text-sm" />
             </div>
           </div>
 
           <!-- Status -->
           <div class="space-y-1.5">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Status</label>
-            <select [(ngModel)]="form.status" name="status"
+            <label for="locationStatus" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Status</label>
+            <select id="locationStatus" [(ngModel)]="form.status" name="status"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-3 text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none text-sm">
               <option value="DRAFT">Entwurf</option>
               <option value="ACTIVE">Aktiv</option>

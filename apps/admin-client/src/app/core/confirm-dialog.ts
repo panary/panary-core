@@ -6,10 +6,10 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm"
-         (click)="onCancel()">
+         tabindex="0" role="button" (click)="onCancel()" (keydown.enter)="onCancel()">
       <div class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl p-6
                   max-w-sm w-full mx-4 shadow-2xl animate-[scale-in_0.15s_ease-out]"
-           (click)="$event.stopPropagation()">
+           tabindex="0" role="button" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
         <p class="text-slate-900 dark:text-white text-sm font-medium mb-1">{{ title() }}</p>
         <p class="text-slate-500 dark:text-gray-400 text-sm mb-6">{{ message() }}</p>
 

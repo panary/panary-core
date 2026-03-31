@@ -32,10 +32,10 @@ export interface PrintSettingsData {
         <div class="grid grid-cols-3 gap-4">
           <!-- Max Zeichen Artikelname -->
           <div class="space-y-1">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+            <label for="maxNameCharacters" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
               Max. Zeichen Artikelname
             </label>
-            <input [ngModel]="settings().maxNameCharacters" (ngModelChange)="onFieldChange('maxNameCharacters', $event)"
+            <input id="maxNameCharacters" [ngModel]="settings().maxNameCharacters" (ngModelChange)="onFieldChange('maxNameCharacters', $event)"
               name="maxNameCharacters" type="number" min="10" max="80"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
@@ -44,10 +44,10 @@ export interface PrintSettingsData {
 
           <!-- Trennzeichen -->
           <div class="space-y-1">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+            <label for="separationCharacter" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
               Trennzeichen
             </label>
-            <select [ngModel]="settings().separationCharacter" (ngModelChange)="onFieldChange('separationCharacter', $event)"
+            <select id="separationCharacter" [ngModel]="settings().separationCharacter" (ngModelChange)="onFieldChange('separationCharacter', $event)"
               name="separationCharacter"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white outline-none">
@@ -61,10 +61,10 @@ export interface PrintSettingsData {
 
           <!-- Trennzeichen-Anzahl -->
           <div class="space-y-1">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+            <label for="separationCharacterCount" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
               Trennlinien-Länge
             </label>
-            <input [ngModel]="settings().separationCharacterCount" (ngModelChange)="onFieldChange('separationCharacterCount', $event)"
+            <input id="separationCharacterCount" [ngModel]="settings().separationCharacterCount" (ngModelChange)="onFieldChange('separationCharacterCount', $event)"
               name="separationCharacterCount" type="number" min="10" max="80"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white

@@ -79,8 +79,8 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
         <div class="grid grid-cols-3 gap-4">
           <!-- Name -->
           <div class="col-span-2 space-y-1">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Name *</label>
-            <input [(ngModel)]="form.name" name="name" #name="ngModel"
+            <label for="groupName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Name *</label>
+            <input id="groupName" [(ngModel)]="form.name" name="name" #name="ngModel"
               type="text" required minlength="1" maxlength="120"
               (ngModelChange)="autoAssignColor($event)"
               [class]="inputClass(name)" />
@@ -90,8 +90,8 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
           </div>
           <!-- Kürzel -->
           <div class="space-y-1">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Kürzel</label>
-            <input [(ngModel)]="form.acronym" name="acronym" type="text" maxlength="10"
+            <label for="groupAcronym" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Kürzel</label>
+            <input id="groupAcronym" [(ngModel)]="form.acronym" name="acronym" type="text" maxlength="10"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
                      focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono" />
@@ -101,7 +101,7 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
         <div class="grid grid-cols-2 gap-4">
           <!-- Farbe -->
           <div class="space-y-1">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Farbe</label>
+            <label for="groupColor" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Farbe</label>
             <div class="relative">
               <div class="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-slate-200
                           dark:border-gray-800 rounded-lg">
@@ -129,12 +129,12 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
                 </div>
               }
             </div>
-            <input [(ngModel)]="form.color" name="color" type="hidden" />
+            <input id="groupColor" [(ngModel)]="form.color" name="color" type="hidden" />
           </div>
           <!-- Reihenfolge -->
           <div class="space-y-1">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Reihenfolge *</label>
-            <input [(ngModel)]="form.index" name="index" #indexCtrl="ngModel"
+            <label for="groupSortOrder" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Reihenfolge *</label>
+            <input id="groupSortOrder" [(ngModel)]="form.index" name="index" #indexCtrl="ngModel"
               type="number" required min="0" step="1"
               [class]="inputClass(indexCtrl)" />
             @if (indexCtrl.invalid && indexCtrl.touched) {
@@ -146,15 +146,15 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
         <!-- MwSt. -->
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-1">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">MwSt. Inhaus (%)</label>
-            <input [(ngModel)]="form.taxInside" name="taxInside" type="number" step="0.1" min="0" max="100"
+            <label for="groupVatIn" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">MwSt. Inhaus (%)</label>
+            <input id="groupVatIn" [(ngModel)]="form.taxInside" name="taxInside" type="number" step="0.1" min="0" max="100"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
                      focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono" />
           </div>
           <div class="space-y-1">
-            <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">MwSt. Außer Haus (%)</label>
-            <input [(ngModel)]="form.taxOutside" name="taxOutside" type="number" step="0.1" min="0" max="100"
+            <label for="groupVatOut" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">MwSt. Außer Haus (%)</label>
+            <input id="groupVatOut" [(ngModel)]="form.taxOutside" name="taxOutside" type="number" step="0.1" min="0" max="100"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
                      focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono" />
@@ -428,7 +428,11 @@ export class GroupFormComponent implements OnInit {
   }
 
   onCancel() {
-    this.panelMode() ? this.closed.emit() : this.router.navigate(['/product-groups'])
+    if (this.panelMode()) {
+      this.closed.emit()
+    } else {
+      this.router.navigate(['/product-groups'])
+    }
   }
 
   async onDelete() {

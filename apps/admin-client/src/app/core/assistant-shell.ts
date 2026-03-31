@@ -6,11 +6,13 @@ import { ChangeDetectionStrategy, Component, input, output, HostListener } from 
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm"
-         (click)="cancel.emit()">
+         role="button" tabindex="0"
+         (click)="closed.emit()" (keydown.enter)="closed.emit()">
       <div class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl
                   max-w-xl w-full mx-4 shadow-2xl animate-[scale-in_0.15s_ease-out]
                   h-[80vh] flex flex-col"
-           (click)="$event.stopPropagation()">
+           tabindex="-1" role="presentation"
+           (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
 
         <!-- Header -->
         <div class="flex items-center gap-3 px-8 py-4 border-b border-slate-200 dark:border-gray-800">
@@ -26,7 +28,7 @@ import { ChangeDetectionStrategy, Component, input, output, HostListener } from 
             <h2 class="text-sm font-bold tracking-tight text-slate-900 dark:text-white">{{ title() }}</h2>
             <p class="text-xs text-slate-400 dark:text-gray-500">Erstellungs-Assistent</p>
           </div>
-          <button type="button" (click)="cancel.emit()"
+          <button type="button" (click)="closed.emit()"
             class="text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white
                    w-8 h-8 flex items-center justify-center rounded-lg
                    hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm">
@@ -51,10 +53,10 @@ import { ChangeDetectionStrategy, Component, input, output, HostListener } from 
 export class AssistantShellComponent {
   title = input.required<string>()
   saving = input(false)
-  cancel = output<void>()
+  closed = output<void>()
 
   @HostListener('document:keydown.escape')
   onEscape() {
-    this.cancel.emit()
+    this.closed.emit()
   }
 }

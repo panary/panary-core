@@ -141,8 +141,8 @@ import { objectHash } from '../../core/dirty-check'
           @if (form.allowStaffMealOrders) {
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1">
-                <label class="text-xs text-slate-400 dark:text-gray-500 uppercase tracking-wider">Rabatt-Typ</label>
-                <select [(ngModel)]="form.discountType" name="discountType"
+                <label for="discountType" class="text-xs text-slate-400 dark:text-gray-500 uppercase tracking-wider">Rabatt-Typ</label>
+                <select id="discountType" [(ngModel)]="form.discountType" name="discountType"
                   class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                          text-slate-900 dark:text-white outline-none">
                   <option value="percent">Prozent (%)</option>
@@ -150,10 +150,10 @@ import { objectHash } from '../../core/dirty-check'
                 </select>
               </div>
               <div class="space-y-1">
-                <label class="text-xs text-slate-400 dark:text-gray-500 uppercase tracking-wider">
+                <label for="discountValue" class="text-xs text-slate-400 dark:text-gray-500 uppercase tracking-wider">
                   {{ form.discountType === 'percent' ? 'Rabatt (%)' : 'Rabatt (\u20AC)' }}
                 </label>
-                <input [(ngModel)]="form.discount" name="discount" type="number" step="0.5" min="0"
+                <input id="discountValue" [(ngModel)]="form.discount" name="discount" type="number" step="0.5" min="0"
                   [max]="form.discountType === 'percent' ? 100 : 9999"
                   placeholder="z.B. 50"
                   class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3

@@ -1,10 +1,22 @@
+type ApiValidationDetail = {
+  instancePath?: string
+  message?: string
+  params?: { missingProperty?: string }
+}
+
+type ApiErrorShape = {
+  error?: unknown
+  message?: string
+  data?: ApiValidationDetail[]
+}
+
 /** Feathers-Validierungsfehler benutzerfreundlich aufbereiten */
-export function formatApiError(error: any): string {
-  const body = error?.error || error
+export function formatApiError(error: unknown): string {
+  const body = ((error as ApiErrorShape)?.error ?? error) as ApiErrorShape
 
   // Feathers-Validierungsfehler mit Details
   if (body?.data && Array.isArray(body.data)) {
-    const messages = body.data.map((d: any) => {
+    const messages = body.data.map(d => {
       const field = d.instancePath?.replace(/^\//, '') || d.params?.missingProperty || 'Unbekanntes Feld'
       const msg = d.message || 'Ungültig'
       return `${formatFieldName(field)}: ${msg}`

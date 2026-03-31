@@ -4,7 +4,8 @@
  * Original-Hash beim Laden speichern, bei Änderungen vergleichen.
  */
 export function objectHash(obj: unknown): string {
-  const str = JSON.stringify(obj, Object.keys(obj as any).sort())
+  const keys = obj !== null && typeof obj === 'object' ? Object.keys(obj as Record<string, unknown>).sort() : []
+  const str = JSON.stringify(obj, keys)
   let hash = 0
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0

@@ -2,8 +2,9 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'      # Edge-Server Release (pnpm release:edge)
+      - 'pos-v*'  # POS-Windows Release (pnpm release:pos)
   pull_request:
 
 permissions:
@@ -33,5 +34,10 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint & Test
-        run: pnpm nx affected -t lint,test,build --base=origin/main~1 --head=HEAD
+      - name: Lint & Test (PR)
+        if: github.event_name == 'pull_request'
+        run: pnpm nx affected -t lint,test,build --base=origin/${{ github.base_ref }} --head=HEAD
+
+      - name: Lint & Test (Release-Tag)
+        if: github.event_name == 'push'
+        run: pnpm nx run-many -t lint,test,build

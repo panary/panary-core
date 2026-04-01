@@ -6,21 +6,6 @@
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
   "dependencies": {
-    "tslib": "^2.3.0",
-    "@angular/core": "~21.1.0",
-    "rxjs": "~7.8.0",
-    "@feathersjs/feathers": "^5.0.40",
-    "lodash": "^4.17.23",
-    "@panary-core/shared/common": "0.0.1",
-    "@angular/material": "^21.1.5",
-    "@ngx-translate/core": "^17.0.0",
-    "@feathersjs/errors": "^5.0.40",
-    "@feathersjs/socketio-client": "^5.0.40",
-    "socket.io-client": "^4.8.3",
-    "@feathersjs/knex": "^5.0.40",
-    "@feathersjs/mongodb": "^5.0.40",
-    "@angular/router": "~21.1.0",
-    "vitest": "^4.0.8",
-    "@nx/vite": "22.4.5"
+    "tslib": "^2.3.0"
   }
 }

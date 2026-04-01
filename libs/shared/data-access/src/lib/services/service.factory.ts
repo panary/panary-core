@@ -25,8 +25,8 @@ export function createServiceAdapter<T = unknown, D = Partial<T>, P extends Para
   if (dbType === DatabaseType.SQLITE) {
     // --- EDGE / CORE (SQLite via Knex) ---
     const knexOptions: KnexAdapterOptions = {
-      Model: options.Model, // Der Knex Client
-      name: options.name, // Der Tabellenname
+      Model: options.Model as KnexAdapterOptions['Model'],
+      name: options.name,
       paginate: options.paginate,
       multi: options.multi,
       id: idField,
@@ -37,7 +37,7 @@ export function createServiceAdapter<T = unknown, D = Partial<T>, P extends Para
   if (dbType === DatabaseType.MONGODB) {
     // --- CLOUD / ENTERPRISE (MongoDB via Mongoose) ---
     const mongoOptions: MongoDBAdapterOptions = {
-      Model: options.Model,
+      Model: options.Model as MongoDBAdapterOptions['Model'],
       paginate: options.paginate,
       multi: options.multi,
       id: idField,

@@ -389,15 +389,6 @@ importers:
 
   libs/domains/users/data-access:
     dependencies:
-      '@angular/core':
-        specifier: ~21.1.0
-        version: 21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)
-      '@feathersjs/feathers':
-        specifier: ^5.0.40
-        version: 5.0.43
-      rxjs:
-        specifier: ~7.8.0
-        version: 7.8.2
       tslib:
         specifier: ^2.3.0
         version: 2.8.1
@@ -428,42 +419,6 @@ importers:
 
   libs/shared/data-access:
     dependencies:
-      '@angular/core':
-        specifier: ~21.1.0
-        version: 21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)
-      '@angular/material':
-        specifier: ^21.1.5
-        version: 21.1.5(910082271782a38c5b0eeccef69bc6aa)
-      '@angular/router':
-        specifier: ~21.1.0
-        version: 21.1.3(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.2.5(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(rxjs@7.8.2)
-      '@feathersjs/errors':
-        specifier: ^5.0.40
-        version: 5.0.43
-      '@feathersjs/feathers':
-        specifier: ^5.0.40
-        version: 5.0.43
-      '@feathersjs/knex':
-        specifier: ^5.0.40
-        version: 5.0.40(knex@3.1.0(sqlite3@5.1.7))
-      '@feathersjs/mongodb':
-        specifier: ^5.0.40
-        version: 5.0.40(mongodb@7.1.0(socks@2.8.7))
-      '@feathersjs/socketio-client':
-        specifier: ^5.0.40
-        version: 5.0.40
-      '@ngx-translate/core':
-        specifier: ^17.0.0
-        version: 17.0.0(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))
-      lodash:
-        specifier: ^4.17.23
-        version: 4.17.23
-      rxjs:
-        specifier: ~7.8.0
-        version: 7.8.2
-      socket.io-client:
-        specifier: ^4.8.3
-        version: 4.8.3
       tslib:
         specifier: ^2.3.0
         version: 2.8.1

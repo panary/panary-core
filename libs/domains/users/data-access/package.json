@@ -6,9 +6,6 @@
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
   "dependencies": {
-    "tslib": "^2.3.0",
-    "@angular/core": "~21.1.0",
-    "@feathersjs/feathers": "^5.0.40",
-    "rxjs": "~7.8.0"
+    "tslib": "^2.3.0"
   }
 }

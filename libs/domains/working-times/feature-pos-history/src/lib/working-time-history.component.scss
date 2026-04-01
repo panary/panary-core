@@ -63,3 +63,31 @@ tr.mat-mdc-row:hover {
   border-radius: 12px !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
 }
+/* Dark mode support */
+:host-context(.dark) {
+  td.mat-mdc-cell,
+  th.mat-mdc-header-cell {
+    border-bottom-color: #374151;
+    background-color: #111827;
+    color: #e5e7eb;
+  }
+
+  th.mat-mdc-header-cell {
+    color: #9ca3af;
+    background-color: #111827;
+  }
+
+  td.mat-mdc-cell.mat-table-sticky,
+  th.mat-mdc-header-cell.mat-table-sticky {
+    background-color: #111827 !important;
+  }
+
+  td.mat-mdc-cell.mat-column-date.mat-table-sticky,
+  th.mat-mdc-header-cell.mat-column-date.mat-table-sticky {
+    border-right-color: #374151;
+  }
+
+  tr.mat-mdc-row:hover {
+    background-color: #1f2937 !important;
+  }
+}

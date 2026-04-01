@@ -1,12 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
+import { TranslateModule } from '@ngx-translate/core'
 import { AuthService } from '../core/auth.service'
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="min-h-screen bg-slate-50 dark:bg-black flex items-center justify-center p-6">
@@ -14,14 +15,14 @@ import { AuthService } from '../core/auth.service'
         <div class="text-center">
           <img src="assets/panary_logo_mono.svg" alt="Panary"
                class="h-8 mx-auto mb-6 opacity-60" />
-          <h1 class="text-2xl font-bold tracking-tight">Admin Panel</h1>
-          <p class="text-slate-400 dark:text-gray-500 mt-1 text-sm">Anmelden, um fortzufahren</p>
+          <h1 class="text-2xl font-bold tracking-tight">{{ 'NAV.ADMIN_PANEL' | translate }}</h1>
+          <p class="text-slate-400 dark:text-gray-500 mt-1 text-sm">{{ 'LOGIN.SUBTITLE' | translate }}</p>
         </div>
 
         <form (ngSubmit)="onLogin()" class="space-y-4">
           <div class="space-y-1">
             <label for="login-name" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-              Login-Name
+              {{ 'USERS.LOGIN_NAME' | translate }}
             </label>
             <input
               id="login-name"
@@ -35,7 +36,7 @@ import { AuthService } from '../core/auth.service'
 
           <div class="space-y-1">
             <label for="login-password" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-              Passwort
+              {{ 'USERS.PASSWORD' | translate }}
             </label>
             <input
               id="login-password"
@@ -48,7 +49,7 @@ import { AuthService } from '../core/auth.service'
           </div>
 
           @if (error()) {
-            <p class="text-red-500 dark:text-red-400 text-sm">{{ error() }}</p>
+            <p class="text-red-500 dark:text-red-400 text-sm">{{ error()! | translate }}</p>
           }
 
           <button
@@ -59,10 +60,10 @@ import { AuthService } from '../core/auth.service'
             @if (loading()) {
               <span class="flex items-center justify-center gap-2">
                 <span class="w-4 h-4 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin"></span>
-                Anmelden...
+                {{ 'LOGIN.LOGGING_IN' | translate }}
               </span>
             } @else {
-              Anmelden
+              {{ 'LOGIN.LOGIN' | translate }}
             }
           </button>
         </form>
@@ -89,7 +90,7 @@ export class LoginComponent {
     if (success) {
       this.router.navigate(['/'])
     } else {
-      this.error.set('Login-Name oder Passwort falsch.')
+      this.error.set('LOGIN.ERROR')
     }
     this.loading.set(false)
   }

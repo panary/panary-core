@@ -14,14 +14,14 @@ import { DecimalPipe } from '@angular/common'
       <!-- Stunden:Minuten Anzeige -->
       <div class="flex items-end gap-2 text-4xl font-bold mb-6 mt-4">
         <button (click)="switchToHours()"
-          class="p-2 rounded hover:bg-slate-100"
+          class="p-2 rounded hover:bg-slate-100 dark:hover:bg-gray-800"
           [class.text-slate-800]="mode() === 'HOURS'"
           [class.text-slate-400]="mode() !== 'HOURS'">
           {{ hour() !== null ? (hour()! | number:'2.0') : '--' }}
         </button>
         <span class="mb-2 text-slate-400">:</span>
         <button (click)="switchToMinutes()"
-          class="p-2 rounded hover:bg-slate-100"
+          class="p-2 rounded hover:bg-slate-100 dark:hover:bg-gray-800"
           [class.text-slate-800]="mode() === 'MINUTES'"
           [class.text-slate-400]="mode() !== 'MINUTES'">
           {{ minute() !== null ? (minute()! | number:'2.0') : '--' }}
@@ -29,7 +29,7 @@ import { DecimalPipe } from '@angular/common'
       </div>
 
       <!-- Uhren-Zifferblatt -->
-      <div class="relative w-96 h-96 bg-slate-50 rounded-full border border-slate-200 shadow-inner flex items-center justify-center">
+      <div class="relative w-96 h-96 bg-slate-50 dark:bg-gray-800 rounded-full border border-slate-200 dark:border-gray-700 shadow-inner flex items-center justify-center">
         @if (mode() === 'HOURS') {
           <!-- Äußerer Ring (1-12) -->
           @for (h of outerHours; track h) {

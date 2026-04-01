@@ -17,8 +17,10 @@ import { channels } from './channels'
 import { configureLoggerLevel } from './logger'
 import { ensureTenantIsolation } from './hooks/ensure-tenant-isolation.hook'
 import { allowApiKey } from './hooks/allow-apikey.hook'
+import { secureByDefault } from './hooks/secure-by-default.hook'
 import { authentication } from './authentication'
-import { renderStatusPage } from './status-page'
+import os from 'os'
+import { getLocalIpAddress, renderStatusPage } from './status-page'
 import { configurePrintServer } from './print-server/index'
 
 const app: Application = koa(feathers())
@@ -109,15 +111,29 @@ app.use(errorHandler())
 app.use(parseAuthentication())
 app.use(bodyParser())
 
-// Health check (public)
+// Health check (public) — liefert Systeminfos für Dashboard, Monitoring und Servicetechniker
 app.use(async (ctx, next) => {
   if (ctx.path === '/health' && (ctx.method === 'GET' || ctx.method === 'HEAD')) {
+    const mem = process.memoryUsage()
     ctx.body = {
       status: 'ok',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      version: process.env.npm_package_version,
+      version: process.env.npm_package_version || '0.0.0',
       systemMode: app.get('system')?.mode || 'standalone',
+      nodeVersion: process.version,
+      platform: `${os.platform()} ${os.arch()}`,
+      hostname: os.hostname(),
+      memory: {
+        rss: mem.rss,
+        heapUsed: mem.heapUsed,
+        heapTotal: mem.heapTotal,
+      },
+      localIp: getLocalIpAddress(),
+      port: app.get('port'),
+      database: {
+        type: app.get('system')?.dbType || 'sqlite',
+      },
     }
     ctx.status = 200
     return
@@ -158,15 +174,11 @@ app.configure(channels)
 
 // App-level hooks
 app.hooks({
-  around: {
-    all: [canonicalLog, logError, allowApiKey()]
-  },
-  before: {},
-  after: {
-    all: [ensureTenantIsolation()]
-  },
-  error: {}
+  around: [canonicalLog, logError, allowApiKey()],
+  before: [secureByDefault({ publicServices: ['authentication'] })],
+  after: [ensureTenantIsolation()],
+  error: [],
+  teardown: [],
 })
-app.hooks({ teardown: [] })
 
 export { app }

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal, computed, OnInit, viewChild, ElementRef } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { ProductFormComponent } from './product-form'
 import { ConfirmDialogComponent } from '../../core/confirm-dialog'
@@ -21,7 +22,7 @@ interface SearchCommand {
 @Component({
   selector: 'app-product-list',
   standalone: true,
-  imports: [ProductFormComponent, ConfirmDialogComponent, FormsModule, ProductWizardComponent],
+  imports: [ProductFormComponent, ConfirmDialogComponent, FormsModule, ProductWizardComponent, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex h-full overflow-hidden">
@@ -30,7 +31,7 @@ interface SearchCommand {
            class="overflow-y-auto">
         <div class="p-6 space-y-4">
           <div class="flex items-center justify-between min-h-9">
-            <h1 class="text-xl font-bold tracking-tight">Produkte</h1>
+            <h1 class="text-xl font-bold tracking-tight">{{ 'PRODUCTS.TITLE' | translate }}</h1>
             <div class="flex items-center gap-2">
               @if (!selectedId()) {
                 <!-- Alle Buttons sichtbar wenn kein Panel -->
@@ -38,13 +39,13 @@ interface SearchCommand {
                   class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
                          px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
                          hover:bg-slate-50 dark:hover:bg-gray-800 transition">
-                  {{ exporting() ? 'Exportiere...' : 'Export' }}
+                  {{ exporting() ? ('COMMON.EXPORTING' | translate) : ('COMMON.EXPORT' | translate) }}
                 </button>
                 <button (click)="fileInput()?.nativeElement?.click()" [disabled]="importing()"
                   class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
                          px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
                          hover:bg-slate-50 dark:hover:bg-gray-800 transition">
-                  {{ importing() ? 'Importiere...' : 'Import' }}
+                  {{ importing() ? ('COMMON.IMPORTING' | translate) : ('COMMON.IMPORT' | translate) }}
                 </button>
                 <button (click)="showWizard.set(true)"
                   class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
@@ -56,7 +57,7 @@ interface SearchCommand {
                     <path d="M2 17l10 5 10-5"></path>
                     <path d="M2 12l10 5 10-5"></path>
                   </svg>
-                  Assistent
+                  {{ 'COMMON.WIZARD' | translate }}
                 </button>
               } @else {
                 <!-- Kebab-Menü wenn Panel geöffnet -->
@@ -79,13 +80,13 @@ interface SearchCommand {
                         class="w-full text-left text-xs px-3 py-2 rounded-lg
                                text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition
                                disabled:opacity-50">
-                        {{ exporting() ? 'Exportiere...' : 'Export' }}
+                        {{ exporting() ? ('COMMON.EXPORTING' | translate) : ('COMMON.EXPORT' | translate) }}
                       </button>
                       <button (click)="fileInput()?.nativeElement?.click(); actionsMenuOpen.set(false)" [disabled]="importing()"
                         class="w-full text-left text-xs px-3 py-2 rounded-lg
                                text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition
                                disabled:opacity-50">
-                        {{ importing() ? 'Importiere...' : 'Import' }}
+                        {{ importing() ? ('COMMON.IMPORTING' | translate) : ('COMMON.IMPORT' | translate) }}
                       </button>
                       <div class="h-px bg-slate-100 dark:bg-gray-800 my-0.5"></div>
                       <button (click)="showWizard.set(true); actionsMenuOpen.set(false)"
@@ -97,7 +98,7 @@ interface SearchCommand {
                           <path d="M2 17l10 5 10-5"></path>
                           <path d="M2 12l10 5 10-5"></path>
                         </svg>
-                        Assistent
+                        {{ 'COMMON.WIZARD' | translate }}
                       </button>
                     </div>
                   }
@@ -107,7 +108,7 @@ interface SearchCommand {
               <button (click)="selectItem('new')"
                 class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-4 py-2 rounded-xl text-xs
                        hover:bg-slate-800 dark:hover:bg-gray-200 transition">
-                + Neu
+                + {{ 'COMMON.NEW' | translate }}
               </button>
             </div>
           </div>
@@ -117,7 +118,7 @@ interface SearchCommand {
             <div class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
                         text-sm space-y-1">
               <div class="flex items-center justify-between">
-                <p class="font-medium text-slate-900 dark:text-white">Import abgeschlossen</p>
+                <p class="font-medium text-slate-900 dark:text-white">{{ 'COMMON.IMPORT_COMPLETE' | translate }}</p>
                 <div class="flex items-center gap-2">
                   @if (importResult()!.errors > 0) {
                     <button (click)="showErrorLog.set(true)"
@@ -138,13 +139,13 @@ interface SearchCommand {
                 </div>
               </div>
               <p class="text-slate-500 dark:text-gray-400">
-                Produktgruppen: {{ importResult()!.groupsCreated }} erstellt, {{ importResult()!.groupsUpdated }} aktualisiert
+                {{ 'PRODUCT_GROUPS.TITLE' | translate }}: {{ importResult()!.groupsCreated }} {{ 'COMMON.CREATED' | translate }}, {{ importResult()!.groupsUpdated }} {{ 'COMMON.UPDATED' | translate }}
               </p>
               <p class="text-slate-500 dark:text-gray-400">
-                Produkte: {{ importResult()!.productsCreated }} erstellt, {{ importResult()!.productsUpdated }} aktualisiert
+                {{ 'PRODUCTS.TITLE' | translate }}: {{ importResult()!.productsCreated }} {{ 'COMMON.CREATED' | translate }}, {{ importResult()!.productsUpdated }} {{ 'COMMON.UPDATED' | translate }}
               </p>
               @if (importResult()!.errors > 0) {
-                <p class="text-red-500 dark:text-red-400">Fehler: {{ importResult()!.errors }}</p>
+                <p class="text-red-500 dark:text-red-400">{{ 'COMMON.ERRORS' | translate }}: {{ importResult()!.errors }}</p>
               }
             </div>
           }
@@ -160,7 +161,7 @@ interface SearchCommand {
                    (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
                 <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-gray-800">
                   <p class="text-slate-900 dark:text-white font-medium">
-                    Import-Fehler ({{ importResult()!.errorLogs.length }})
+                    {{ 'COMMON.IMPORT_ERRORS' | translate }} ({{ importResult()!.errorLogs.length }})
                   </p>
                   <button (click)="showErrorLog.set(false)"
                     class="text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-white transition">
@@ -192,7 +193,7 @@ interface SearchCommand {
                 <span class="inline-flex items-center gap-1 bg-slate-100 dark:bg-gray-800 text-slate-700
                              dark:text-gray-300 text-xs font-medium px-2.5 py-1 rounded-lg">
                   <span class="text-slate-400 dark:text-gray-500">{{ filter.key }}:</span>
-                  {{ filter.label }}
+                  {{ filter.label | translate }}
                   <button type="button" (click)="removeFilter(filter.key); $event.stopPropagation()"
                     class="text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-white ml-0.5
                            transition text-[10px]">
@@ -226,7 +227,7 @@ interface SearchCommand {
                       class="w-full px-3 py-2.5 flex items-center gap-3 text-left transition">
                       <span class="text-xs font-mono text-slate-500 dark:text-gray-400 bg-slate-100
                                    dark:bg-gray-800 px-1.5 py-0.5 rounded">{{ cmd.label }}</span>
-                      <span class="text-sm text-slate-600 dark:text-gray-300">{{ cmd.description }}</span>
+                      <span class="text-sm text-slate-600 dark:text-gray-300">{{ cmd.description | translate }}</span>
                     </button>
                   }
                 } @else {
@@ -237,7 +238,7 @@ interface SearchCommand {
                         ? 'bg-slate-100 dark:bg-gray-800'
                         : 'hover:bg-slate-50 dark:hover:bg-gray-800/50'"
                       class="w-full px-3 py-2.5 text-left text-sm text-slate-700 dark:text-gray-300 transition">
-                      {{ val.label }}
+                      {{ val.label | translate }}
                     </button>
                   }
                 }
@@ -247,7 +248,7 @@ interface SearchCommand {
 
           @if (filteredProducts().length === 0 && !loading()) {
             <p class="text-slate-400 dark:text-gray-500 text-center py-12 text-sm">
-              {{ products().length === 0 ? 'Keine Produkte' : 'Keine Treffer' }}
+              {{ (products().length === 0 ? 'PRODUCTS.NO_PRODUCTS' : 'COMMON.NO_RESULTS') | translate }}
             </p>
           } @else {
             <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden">
@@ -255,12 +256,12 @@ interface SearchCommand {
                 <thead>
                   <tr class="border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500
                              text-xs uppercase tracking-wider">
-                    <th class="px-3 py-2.5">Name</th>
+                    <th class="px-3 py-2.5">{{ 'COMMON.NAME' | translate }}</th>
                     @if (!selectedId()) {
-                      <th class="px-3 py-2.5">Kürzel</th>
-                      <th class="px-3 py-2.5">Preis</th>
-                      <th class="px-3 py-2.5">Typ</th>
-                      <th class="px-3 py-2.5">Status</th>
+                      <th class="px-3 py-2.5">{{ 'PRODUCTS.ACRONYM' | translate }}</th>
+                      <th class="px-3 py-2.5">{{ 'PRODUCTS.PRICE' | translate }}</th>
+                      <th class="px-3 py-2.5">{{ 'PRODUCTS.TYPE' | translate }}</th>
+                      <th class="px-3 py-2.5">{{ 'COMMON.STATUS' | translate }}</th>
                     }
                   </tr>
                 </thead>
@@ -311,7 +312,7 @@ interface SearchCommand {
               @if (selectedId() !== 'new') {
                 {{ currentIndex() + 1 }} / {{ filteredProducts().length }}
               } @else {
-                Neu
+                {{ 'COMMON.NEW' | translate }}
               }
             </span>
             <button (click)="nextItem()" [disabled]="currentIndex() >= filteredProducts().length - 1"
@@ -364,6 +365,7 @@ interface SearchCommand {
 })
 export class ProductListComponent implements OnInit {
   private api = inject(ApiService)
+  private t = inject(TranslateService)
   products = signal<any[]>([])
   loading = signal(true)
   selectedId = signal<string | null>(null)
@@ -398,21 +400,21 @@ export class ProductListComponent implements OnInit {
     {
       key: 'typ',
       label: '/typ:',
-      description: 'Nach Produkttyp filtern',
+      description: 'COMMON.FILTER_BY_TYPE',
       values: [
-        { value: 'PRODUCT', label: 'Produkt' },
-        { value: 'MODIFIER', label: 'Modifier' },
-        { value: 'BUNDLE', label: 'Menü' },
+        { value: 'PRODUCT', label: 'PRODUCTS.TYPE_PRODUCT' },
+        { value: 'MODIFIER', label: 'PRODUCTS.TYPE_MODIFIER' },
+        { value: 'BUNDLE', label: 'PRODUCTS.TYPE_BUNDLE' },
       ],
     },
     {
       key: 'status',
       label: '/status:',
-      description: 'Nach Status filtern',
+      description: 'COMMON.FILTER_BY_STATUS',
       values: [
-        { value: 'ACTIVE', label: 'Aktiv' },
-        { value: 'DRAFT', label: 'Entwurf' },
-        { value: 'ARCHIVED', label: 'Archiviert' },
+        { value: 'ACTIVE', label: 'COMMON.STATUS_ACTIVE' },
+        { value: 'DRAFT', label: 'COMMON.STATUS_DRAFT' },
+        { value: 'ARCHIVED', label: 'COMMON.STATUS_ARCHIVED' },
       ],
     },
   ]
@@ -582,11 +584,11 @@ export class ProductListComponent implements OnInit {
 
   statusLabel(status: string): string {
     const map: Record<string, string> = {
-      ACTIVE: 'Aktiv',
-      DRAFT: 'Entwurf',
-      ARCHIVED: 'Archiviert',
+      ACTIVE: 'COMMON.STATUS_ACTIVE',
+      DRAFT: 'COMMON.STATUS_DRAFT',
+      ARCHIVED: 'COMMON.STATUS_ARCHIVED',
     }
-    return map[status] || status
+    return map[status] ? this.t.instant(map[status]) : status
   }
 
   // --- Navigation mit Dirty-Check ---

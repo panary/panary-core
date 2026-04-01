@@ -13,6 +13,7 @@ import {
   OrderStatus,
 } from '@panary-core/orders/data-access'
 import { ExtendedParams } from '@panary-core/shared/common'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 type TimeRange='today'|'yesterday'|'week'|'custom'
 
@@ -24,6 +25,7 @@ type TimeRange='today'|'yesterday'|'week'|'custom'
     FormsModule,
     MatDatepickerModule,
     MatNativeDateModule,
+    TranslateModule,
   ],
   templateUrl: './order-history.component.html',
   styleUrls: ['./order-history.component.scss'],
@@ -33,6 +35,7 @@ export class OrderHistoryComponent implements OnInit {
   protected readonly OrderStatus=OrderStatus
   #orderService=inject(OrderService)
   #router=inject(Router)
+  #translate=inject(TranslateService)
 
   // Signals
   searchQuery: WritableSignal<string>=signal('')
@@ -188,7 +191,7 @@ export class OrderHistoryComponent implements OnInit {
   getOrderTitle(order: Order): string {
     if (order.customerPaymentInfo) return order.customerPaymentInfo.customerName
     if (order.staffPaymentInfo) return order.staffPaymentInfo.userName
-    return `Bestellung #${order.dailySequenceNumber}`
+    return `${this.#translate.instant('ENTITY.ORDER')} #${order.dailySequenceNumber}`
   }
 
   getOrderSubtitle(order: Order): string {

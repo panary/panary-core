@@ -11,6 +11,7 @@ import {
 } from '@panary-core/shared/data-access-config'
 import { ParticleNetworkComponent } from './particle-network.component'
 import { ThemeServiceService } from '@panary-core/shared/data-access-theme'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 /**
  * Setup-Schritte:
@@ -25,7 +26,7 @@ type SetupStep = 'server-login' | 'select-org' | 'device-info' | 'registering' |
 
 @Component({
   selector: 'app-setup',
-  imports: [CommonModule, FormsModule, ParticleNetworkComponent],
+  imports: [CommonModule, FormsModule, ParticleNetworkComponent, TranslateModule],
   templateUrl: './setup.component.html',
   styleUrl: './setup.component.scss',
   standalone: true,
@@ -35,6 +36,7 @@ export class SetupComponent {
   private readonly configService = inject(DeviceConfigService)
   private readonly router = inject(Router)
   readonly themeService = inject(ThemeServiceService)
+  readonly translateService = inject(TranslateService)
   //#endregion
 
   //#region Form Data - Step 1: Server & Login
@@ -95,19 +97,19 @@ export class SetupComponent {
     const step = this.currentStep()
     switch (step) {
       case 'server-login':
-        return 'Mit Panary verbinden'
+        return this.translateService.instant('SETUP.CONNECT_TITLE')
       case 'select-org':
-        return 'Organisation wählen'
+        return this.translateService.instant('SETUP.ORG_TITLE')
       case 'device-info':
-        return 'Gerät konfigurieren'
+        return this.translateService.instant('SETUP.DEVICE_TITLE')
       case 'registering':
-        return 'Gerät wird registriert...'
+        return this.translateService.instant('SETUP.REGISTERING_TITLE')
       case 'success':
-        return 'Erfolgreich registriert'
+        return this.translateService.instant('SETUP.SUCCESS_TITLE')
       case 'error':
-        return 'Fehler aufgetreten'
+        return this.translateService.instant('SETUP.ERROR_TITLE')
       default:
-        return 'Setup'
+        return this.translateService.instant('SETUP.TITLE')
     }
   })
 
@@ -116,20 +118,20 @@ export class SetupComponent {
     const status = this.registrationStatus()
     switch (step) {
       case 'server-login':
-        return 'Melden Sie sich mit Ihren Admin-Zugangsdaten an, um dieses Gerät zu registrieren.'
+        return this.translateService.instant('SETUP.CONNECT_DESC')
       case 'select-org':
-        return 'Wählen Sie die Organisation und den Standort für dieses Gerät.'
+        return this.translateService.instant('SETUP.ORG_DESC')
       case 'device-info':
-        return 'Geben Sie einen Namen für das Gerät ein und wählen Sie den Gerätetyp.'
+        return this.translateService.instant('SETUP.DEVICE_DESC')
       case 'registering':
-        if (status === 'connecting') return 'Verbindung wird hergestellt...'
-        if (status === 'authenticating') return 'Anmeldung läuft...'
-        if (status === 'loading-orgs') return 'Lade Organisationen...'
-        return 'Das Gerät wird beim Server registriert...'
+        if (status === 'connecting') return this.translateService.instant('SETUP.STATUS_CONNECTING')
+        if (status === 'authenticating') return this.translateService.instant('SETUP.STATUS_AUTH')
+        if (status === 'loading-orgs') return this.translateService.instant('SETUP.STATUS_LOADING')
+        return this.translateService.instant('SETUP.STATUS_REGISTERING')
       case 'success':
-        return 'Das Gerät wurde erfolgreich registriert und ist einsatzbereit.'
+        return this.translateService.instant('SETUP.SUCCESS_DESC')
       case 'error':
-        return this.registrationError() || 'Ein Fehler ist aufgetreten.'
+        return this.registrationError() || this.translateService.instant('SETUP.GENERIC_ERROR')
       default:
         return ''
     }

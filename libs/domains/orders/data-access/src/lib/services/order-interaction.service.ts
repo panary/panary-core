@@ -8,6 +8,8 @@ import { OrderInteractionSchema } from '../models/order-interaction.model'
   providedIn: 'root',
 })
 export class OrderInteractionService extends BaseService<OrderInteractionSchema> {
+  protected override entityLabelKey = 'ENTITY.ORDER_INTERACTION'
+
   //region Constructor
   constructor() {
     super(inject(ConnectionService).orderInteractionService, 'orderInteractionService')

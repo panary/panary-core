@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal, computed, OnInit, viewChild } from '@angular/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { ApikeyFormComponent } from './apikey-form'
 import { ApikeyCreatedDialogComponent } from './apikey-created-dialog'
@@ -18,7 +19,7 @@ interface Apikey {
 @Component({
   selector: 'app-apikey-list',
   standalone: true,
-  imports: [ApikeyFormComponent, ApikeyCreatedDialogComponent, ConfirmDialogComponent],
+  imports: [ApikeyFormComponent, ApikeyCreatedDialogComponent, ConfirmDialogComponent, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex h-full overflow-hidden">
@@ -27,30 +28,30 @@ interface Apikey {
            class="overflow-y-auto">
         <div class="p-6 space-y-4">
           <div class="flex items-center justify-between min-h-9">
-            <h1 class="text-xl font-bold tracking-tight">API-Schlüssel</h1>
+            <h1 class="text-xl font-bold tracking-tight">{{ 'APIKEYS.TITLE' | translate }}</h1>
             <button (click)="selectItem('new')"
               class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-4 py-2 rounded-xl text-xs
                      hover:bg-slate-800 dark:hover:bg-gray-200 transition">
-              + Neu
+              + {{ 'COMMON.NEW' | translate }}
             </button>
           </div>
 
           @if (loading()) {
-            <p class="text-slate-400 dark:text-gray-500 text-sm">Laden...</p>
+            <p class="text-slate-400 dark:text-gray-500 text-sm">{{ 'COMMON.LOADING' | translate }}</p>
           } @else if (apikeys().length === 0) {
-            <p class="text-slate-400 dark:text-gray-500 text-center py-12 text-sm">Keine API-Schlüssel</p>
+            <p class="text-slate-400 dark:text-gray-500 text-center py-12 text-sm">{{ 'APIKEYS.NO_KEYS' | translate }}</p>
           } @else {
             <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden">
               <table class="w-full text-sm">
                 <thead>
                   <tr class="border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500
                              text-xs uppercase tracking-wider">
-                    <th class="px-3 py-2.5">Name</th>
+                    <th class="px-3 py-2.5">{{ 'COMMON.NAME' | translate }}</th>
                     @if (!selectedId()) {
-                      <th class="px-3 py-2.5">Rolle</th>
-                      <th class="px-3 py-2.5">Aktiv</th>
-                      <th class="px-3 py-2.5">Letzte Nutzung</th>
-                      <th class="px-3 py-2.5">Gültig bis</th>
+                      <th class="px-3 py-2.5">{{ 'USERS.ROLE' | translate }}</th>
+                      <th class="px-3 py-2.5">{{ 'COMMON.STATUS_ACTIVE' | translate }}</th>
+                      <th class="px-3 py-2.5">{{ 'APIKEYS.LAST_USED' | translate }}</th>
+                      <th class="px-3 py-2.5">{{ 'APIKEYS.VALID_UNTIL' | translate }}</th>
                     }
                   </tr>
                 </thead>
@@ -80,7 +81,7 @@ interface Apikey {
                           {{ key.lastUsedAt ? formatDate(key.lastUsedAt) : '—' }}
                         </td>
                         <td class="px-3 py-2.5 text-slate-500 dark:text-gray-400 text-xs">
-                          {{ key.validUntil ? formatDate(key.validUntil) : 'Unbegrenzt' }}
+                          {{ key.validUntil ? formatDate(key.validUntil) : ('APIKEYS.UNLIMITED' | translate) }}
                         </td>
                       }
                     </tr>
@@ -108,7 +109,7 @@ interface Apikey {
               @if (selectedId() !== 'new') {
                 {{ currentIndex() + 1 }} / {{ apikeys().length }}
               } @else {
-                Neu
+                {{ 'COMMON.NEW' | translate }}
               }
             </span>
             <button (click)="nextItem()" [disabled]="currentIndex() >= apikeys().length - 1"
@@ -155,6 +156,7 @@ interface Apikey {
 })
 export class ApikeyListComponent implements OnInit {
   private api = inject(ApiService)
+  private t = inject(TranslateService)
   apikeys = signal<Apikey[]>([])
   loading = signal(true)
   selectedId = signal<string | null>(null)
@@ -171,12 +173,12 @@ export class ApikeyListComponent implements OnInit {
 
   formatRole(role: string): string {
     const map: Record<string, string> = {
-      'device:pos': 'POS-Kasse',
-      'device:kds': 'Küchen-Display',
-      'device:tablet': 'Tablet',
-      'device:kiosk': 'Kiosk',
+      'device:pos': 'ROLES.DEVICE_POS',
+      'device:kds': 'ROLES.DEVICE_KDS',
+      'device:tablet': 'ROLES.DEVICE_TABLET',
+      'device:kiosk': 'ROLES.DEVICE_KIOSK',
     }
-    return map[role] || role
+    return map[role] ? this.t.instant(map[role]) : role
   }
 
   formatDate(iso: string): string {

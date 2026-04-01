@@ -20,14 +20,15 @@ import { UserService } from '@panary-core/users/data-access'
 import { User, UserSystemRole } from '@panary-core/users/domain'
 import { CorporateCustomerService } from '@panary-core/corporate-customers/data-access'
 import { CorporateCustomer } from '@panary-core/corporate-customers/domain'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 type OverlayView = 'actions' | 'staff-meal' | 'cancel-reason' | 'cancel-pin' | 'discount' | 'corporate'
 
 const CANCEL_REASONS = [
-  'Kundenreklamation',
-  'Fehlerhafte Eingabe',
-  'Doppelte Bestellung',
-  'Sonstiger Grund',
+  'ACTIVE_ORDERS.REASON_COMPLAINT',
+  'ACTIVE_ORDERS.REASON_WRONG_INPUT',
+  'ACTIVE_ORDERS.REASON_DUPLICATE',
+  'ACTIVE_ORDERS.REASON_OTHER',
 ] as const
 
 const DISCOUNT_PRESETS = [5, 10, 15, 20, 25, 30] as const
@@ -35,7 +36,7 @@ const DISCOUNT_PRESETS = [5, 10, 15, 20, 25, 30] as const
 @Component({
   selector: 'app-active-orders',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslateModule],
   templateUrl: './active-orders.component.html',
   styleUrl: './active-orders.component.scss',
 })
@@ -47,6 +48,7 @@ export class ActiveOrdersComponent {
   #snackBar = inject(MatSnackBar)
   #userService = inject(UserService)
   #corporateCustomerService = inject(CorporateCustomerService)
+  #translate = inject(TranslateService)
 
   // Sort orders by recordingDate descending (Newest first)
   sortedOrders = computed(() => {
@@ -249,10 +251,10 @@ export class ActiveOrdersComponent {
       this.selectedOrderId.set(null)
       this.overlayView.set('actions')
       this.staffEligibleUsers.set([])
-      this.#snackBar.open(`Personalessen für ${userName} gebucht`, undefined, { duration: 2500 })
+      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.STAFF_MEAL_BOOKED', { name: userName }), undefined, { duration: 2500 })
     } catch (e) {
       console.error(e)
-      this.#snackBar.open('Fehler beim Buchen des Personalessens', 'OK', { duration: 3000 })
+      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.STAFF_MEAL_ERROR'), 'OK', { duration: 3000 })
     }
   }
 
@@ -272,11 +274,11 @@ export class ActiveOrdersComponent {
   }
 
   formatDiscount(user: User): string {
-    if (!user.discountDetails) return 'Kein Rabatt hinterlegt'
+    if (!user.discountDetails) return this.#translate.instant('ACTIVE_ORDERS.NO_DISCOUNT')
     if (user.discountDetails.discountType === 'percent') {
-      return `${user.discountDetails.discount} % Rabatt`
+      return `${user.discountDetails.discount} % ${this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_LABEL')}`
     }
-    return `${user.discountDetails.discount.toFixed(2)} € Rabatt`
+    return `${user.discountDetails.discount.toFixed(2)} € ${this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_LABEL')}`
   }
 
   // --- Storno-Flow ---
@@ -311,7 +313,7 @@ export class ActiveOrdersComponent {
 
     const matchedManager = this.managerUsers().find(u => u.posPin === pin)
     if (!matchedManager) {
-      this.#snackBar.open('Ungültiger PIN', 'OK', { duration: 3000 })
+      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.INVALID_PIN'), 'OK', { duration: 3000 })
       this.cancelPin.set('')
       return
     }
@@ -327,10 +329,10 @@ export class ActiveOrdersComponent {
         status: OrderStatus.ABORTED,
       })
       this.resetOverlay()
-      this.#snackBar.open('Bestellung storniert', undefined, { duration: 2500 })
+      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.ORDER_CANCELED'), undefined, { duration: 2500 })
     } catch (e) {
       console.error(e)
-      this.#snackBar.open('Fehler beim Stornieren', 'OK', { duration: 3000 })
+      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.CANCEL_ERROR'), 'OK', { duration: 3000 })
     }
   }
 
@@ -365,10 +367,10 @@ export class ActiveOrdersComponent {
         discount: { discountType: 'percent', discount: percent },
       })
       this.resetOverlay()
-      this.#snackBar.open(`${percent} % Rabatt angewendet`, undefined, { duration: 2500 })
+      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_APPLIED', { percent }), undefined, { duration: 2500 })
     } catch (e) {
       console.error(e)
-      this.#snackBar.open('Fehler beim Anwenden des Rabatts', 'OK', { duration: 3000 })
+      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_ERROR'), 'OK', { duration: 3000 })
     }
   }
 
@@ -407,19 +409,19 @@ export class ActiveOrdersComponent {
     try {
       await this.#orderService.patch(order._id, patch)
       this.resetOverlay()
-      this.#snackBar.open(`Firma "${customer.name1}" zugeordnet`, undefined, { duration: 2500 })
+      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.COMPANY_ASSIGNED', { name: customer.name1 }), undefined, { duration: 2500 })
     } catch (e) {
       console.error(e)
-      this.#snackBar.open('Fehler beim Zuordnen der Firma', 'OK', { duration: 3000 })
+      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.COMPANY_ERROR'), 'OK', { duration: 3000 })
     }
   }
 
   formatCorporateDiscount(customer: CorporateCustomer): string {
     if (!customer.discountDetails) return ''
     if (customer.discountDetails.discountType === 'percent') {
-      return `${customer.discountDetails.discount} % Rabatt`
+      return `${customer.discountDetails.discount} % ${this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_LABEL')}`
     }
-    return `${customer.discountDetails.discount.toFixed(2)} € Rabatt`
+    return `${customer.discountDetails.discount.toFixed(2)} € ${this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_LABEL')}`
   }
 
   // --- Gemeinsame Hilfsmethoden ---

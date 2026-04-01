@@ -7,6 +7,9 @@ import { ConnectionService } from '@panary-core/shared/data-access'
 import { TimeClockEvent, TimeClockPanelComponent } from './time-clock-panel/time-clock-panel.component'
 import { ThemeServiceService } from '@panary-core/shared/data-access-theme'
 import { UpdateService } from '@panary-core/shared/data-access-updater'
+import { LanguageService, LANGUAGES } from '@panary-core/shared/data-access'
+import { TranslateModule } from '@ngx-translate/core'
+import { TranslateService } from '@ngx-translate/core'
 
 interface PosUser {
   _id: string
@@ -26,7 +29,7 @@ type LoginStep = 'loading' | 'select-user' | 'enter-pin' | 'error'
 
 @Component({
   selector: 'lib-login',
-  imports: [CommonModule, TimeClockPanelComponent],
+  imports: [CommonModule, TimeClockPanelComponent, TranslateModule],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
@@ -36,7 +39,10 @@ export class LoginComponent implements OnInit {
   private readonly configService = inject(DeviceConfigService)
   private readonly connectionService = inject(ConnectionService)
   readonly themeService = inject(ThemeServiceService)
+  readonly languageService = inject(LanguageService)
   readonly updateService = inject(UpdateService)
+  readonly #translateService = inject(TranslateService)
+  readonly languages = LANGUAGES
   //#endregion
 
   //#region State
@@ -137,7 +143,7 @@ export class LoginComponent implements OnInit {
       this.currentStep.set('select-user')
     } catch (error) {
       console.error('Failed to connect or load users:', error)
-      this.errorMessage.set(error instanceof Error ? error.message : 'Verbindung fehlgeschlagen')
+      this.errorMessage.set(error instanceof Error ? error.message : this.#translateService.instant('LOGIN.CONNECTION_FAILED'))
       this.currentStep.set('error')
     }
   }
@@ -149,14 +155,14 @@ export class LoginComponent implements OnInit {
         if (state.status === 'authenticated') {
           resolve()
         } else if (state.status === 'error') {
-          reject(new Error(state.error || 'Verbindung fehlgeschlagen'))
+          reject(new Error(state.error || 'Connection failed'))
         } else {
           setTimeout(checkConnection, 100)
         }
       }
 
       // Timeout after 15 seconds
-      setTimeout(() => reject(new Error('Verbindungszeit überschritten')), 15000)
+      setTimeout(() => reject(new Error('Connection timeout')), 15000)
       checkConnection()
     })
   }
@@ -165,7 +171,7 @@ export class LoginComponent implements OnInit {
     try {
       const usersService = this.connectionService.usersService
       if (!usersService) {
-        throw new Error('Users service nicht verfügbar')
+        throw new Error('Users service not available')
       }
 
       const result = await usersService.find({
@@ -200,7 +206,7 @@ export class LoginComponent implements OnInit {
       )
     } catch (error) {
       console.error('Failed to load POS users:', error)
-      throw new Error('Benutzer konnten nicht geladen werden')
+      throw new Error('Could not load users')
     }
   }
 
@@ -328,11 +334,22 @@ export class LoginComponent implements OnInit {
   }
   //#endregion
 
-  //#region Theme
+  //#region Theme & Language
   toggleTheme(): void {
     const current = this.themeService.theme
     const next = current === 'light' ? 'dark' : current === 'dark' ? 'system' : 'light'
     this.themeService.setTheme(next)
+  }
+
+  cycleLanguage(): void {
+    const codes = this.languages.map(l => l.code)
+    const idx = codes.indexOf(this.languageService.currentLanguage())
+    const next = codes[(idx + 1) % codes.length]
+    this.languageService.setLanguage(next)
+  }
+
+  currentLanguageLabel(): string {
+    return this.languages.find(l => l.code === this.languageService.currentLanguage())?.label ?? 'DE'
   }
   //#endregion
 

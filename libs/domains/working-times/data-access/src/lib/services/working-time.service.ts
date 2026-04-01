@@ -9,6 +9,8 @@ import { Observer } from 'rxjs'
   providedIn: 'root',
 })
 export class WorkingTimeService extends BaseService<WorkingTime> {
+  protected override entityLabelKey = 'ENTITY.WORKING_TIME'
+
   /** INJECTION */
   #matSnackBar: MatSnackBar = inject(MatSnackBar)
   #userService: UserService = inject(UserService)

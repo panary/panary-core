@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal, OnInit, input, output, effect, viewChild } from '@angular/core'
 import { FormsModule, NgForm } from '@angular/forms'
 import { Router } from '@angular/router'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { formatApiError } from '../../core/error-helper'
 import { objectHash } from '../../core/dirty-check'
@@ -46,12 +47,12 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
 @Component({
   selector: 'app-product-form',
   standalone: true,
-  imports: [FormsModule, ConfirmDialogComponent],
+  imports: [FormsModule, ConfirmDialogComponent, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div [class]="panelMode() ? 'p-5 space-y-5' : 'p-8 max-w-4xl space-y-6'">
       <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold tracking-tight">{{ isNew() ? 'Neues Produkt' : 'Produkt bearbeiten' }}</h1>
+        <h1 class="text-2xl font-bold tracking-tight">{{ (isNew() ? 'PRODUCTS.NEW_PRODUCT' : 'PRODUCTS.EDIT_PRODUCT') | translate }}</h1>
         @if (!isNew()) {
           <button type="button" (click)="showDeleteConfirm.set(true)"
             class="text-slate-400 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition p-2
@@ -69,10 +70,10 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
 
       @if (showDeleteConfirm()) {
         <app-confirm-dialog
-          title="Produkt löschen"
-          [message]="'Soll das Produkt unwiderruflich gelöscht werden?'"
-          confirmLabel="Löschen"
-          dismissLabel="Abbrechen"
+          [title]="'PRODUCTS.DELETE_PRODUCT' | translate"
+          [message]="'PRODUCTS.DELETE_CONFIRM' | translate"
+          [confirmLabel]="'COMMON.DELETE' | translate"
+          [dismissLabel]="'COMMON.CANCEL' | translate"
           (confirmed)="onDelete()"
           (dismissed)="showDeleteConfirm.set(false)"
           (cancelled)="showDeleteConfirm.set(false)">
@@ -93,7 +94,7 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                 ? 'text-slate-900 dark:text-white font-semibold'
                 : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'"
               class="relative z-10 flex-1 py-2 text-center text-sm rounded-xl transition-colors duration-200">
-              {{ s.label }}
+              {{ s.label | translate }}
             </button>
           }
           <input type="hidden" [(ngModel)]="form.status" name="status" />
@@ -116,11 +117,11 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
         <!-- Name + Kürzel -->
         <div class="grid grid-cols-3 gap-4">
           <div class="col-span-2 space-y-1">
-            <label for="productName" class="${LABEL}">Name *</label>
+            <label for="productName" class="${LABEL}">{{ 'COMMON.NAME' | translate }} *</label>
             <input id="productName" [(ngModel)]="form.name" name="name" type="text" required class="${INPUT}" />
           </div>
           <div class="space-y-1">
-            <label for="productAcronym" class="${LABEL}">Kürzel *</label>
+            <label for="productAcronym" class="${LABEL}">{{ 'PRODUCTS.ACRONYM' | translate }} *</label>
             <input id="productAcronym" [(ngModel)]="form.acronym" name="acronym" type="text" required maxlength="10"
               class="${INPUT} font-mono" />
           </div>
@@ -139,7 +140,7 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                 ? 'text-slate-900 dark:text-white font-semibold'
                 : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'"
               class="relative z-10 flex-1 py-2.5 text-center text-sm rounded-xl transition-colors duration-200">
-              {{ t.label }}
+              {{ t.label | translate }}
             </button>
           }
           <input type="hidden" [(ngModel)]="form.productType" name="productType" />
@@ -148,17 +149,17 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
         <!-- Preis + Steuern -->
         <div class="grid grid-cols-3 gap-4">
           <div class="space-y-1">
-            <label for="productPrice" class="${LABEL}">Preis (&euro;) *</label>
+            <label for="productPrice" class="${LABEL}">{{ 'PRODUCTS.PRICE' | translate }} (&euro;) *</label>
             <input id="productPrice" [(ngModel)]="form.price" name="price" type="number" step="0.01" min="0"
               class="${INPUT} font-mono" />
           </div>
           <div class="space-y-1">
-            <label for="productTaxInside" class="${LABEL}">MwSt. Inhaus (%)</label>
+            <label for="productTaxInside" class="${LABEL}">{{ 'PRODUCTS.TAX_INSIDE' | translate }}</label>
             <input id="productTaxInside" [(ngModel)]="form.taxInside" name="taxInside" type="number" step="0.1"
               class="${INPUT} font-mono" />
           </div>
           <div class="space-y-1">
-            <label for="productTaxOutside" class="${LABEL}">MwSt. Außer Haus (%)</label>
+            <label for="productTaxOutside" class="${LABEL}">{{ 'PRODUCTS.TAX_OUTSIDE' | translate }}</label>
             <input id="productTaxOutside" [(ngModel)]="form.taxOutside" name="taxOutside" type="number" step="0.1"
               class="${INPUT} font-mono" />
           </div>
@@ -167,10 +168,10 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
         <!-- Bundle-Preisgestaltung (nur bei BUNDLE) -->
         @if (form.productType === 'BUNDLE') {
           <div class="space-y-1">
-            <label for="productBundlePricingMode" class="${LABEL}">Bundle-Preisgestaltung</label>
+            <label for="productBundlePricingMode" class="${LABEL}">{{ 'PRODUCTS.BUNDLE_PRICING' | translate }}</label>
             <select id="productBundlePricingMode" [(ngModel)]="form.bundlePricingMode" name="bundlePricingMode" class="${INPUT}">
-              <option value="ROLLUP">Rollup (Summe der Einzelpreise)</option>
-              <option value="FIXED_PROPORTIONAL">Fixer Preis (proportional aufgeteilt)</option>
+              <option value="ROLLUP">{{ 'PRODUCTS.BUNDLE_ROLLUP' | translate }}</option>
+              <option value="FIXED_PROPORTIONAL">{{ 'PRODUCTS.BUNDLE_FIXED' | translate }}</option>
             </select>
           </div>
         }
@@ -178,7 +179,7 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
         <!-- Produktgruppen -->
         @if (productGroups().length > 0) {
           <div class="space-y-2">
-            <span class="${LABEL}">Produktgruppen</span>
+            <span class="${LABEL}">{{ 'PRODUCT_GROUPS.TITLE' | translate }}</span>
             <div class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
                         grid grid-cols-2 gap-2">
               @for (group of productGroups(); track group._id) {
@@ -199,12 +200,12 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
         <!-- OptionGroups Editor -->
         <div class="space-y-3">
           <div class="flex items-center justify-between">
-            <span class="${LABEL}">Optionsgruppen ({{ optionGroups().length }})</span>
+            <span class="${LABEL}">{{ 'PRODUCTS.OPTION_GROUPS' | translate }} ({{ optionGroups().length }})</span>
             <button type="button" (click)="addGroup()"
               class="text-xs text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
                      border border-slate-200 dark:border-gray-800 hover:border-slate-400 dark:hover:border-gray-600
                      px-3 py-1.5 rounded-lg transition">
-              + Gruppe
+              + {{ 'PRODUCTS.GROUP' | translate }}
             </button>
           </div>
 
@@ -216,7 +217,7 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                    (click)="toggleCollapse(group.id)" (keydown.enter)="toggleCollapse(group.id)">
                 <span class="text-slate-400 dark:text-gray-500 text-xs w-4">{{ isCollapsed(group.id) ? '▶' : '▼' }}</span>
                 <span class="flex-1 text-sm font-medium text-slate-900 dark:text-white truncate">
-                  {{ group.name || 'Unbenannte Gruppe' }}
+                  {{ group.name || ('PRODUCTS.UNNAMED_GROUP' | translate) }}
                 </span>
                 <span class="text-xs text-slate-400 dark:text-gray-600">{{ group.options.length }} Option(en)</span>
                 <button type="button" (click)="removeGroup(group.id); $event.stopPropagation()"
@@ -227,7 +228,7 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                 <div class="p-4 space-y-4 bg-slate-50 dark:bg-gray-900/20">
                   <!-- Gruppenname -->
                   <div class="space-y-1">
-                    <label [attr.for]="'optGroupName-' + gi" class="${LABEL_SM}">Gruppenname *</label>
+                    <label [attr.for]="'optGroupName-' + gi" class="${LABEL_SM}">{{ 'PRODUCTS.GROUP_NAME' | translate }} *</label>
                     <input [id]="'optGroupName-' + gi" [(ngModel)]="group.name" [name]="'og_' + gi + '_name'" type="text"
                       required placeholder="z.B. Saucen & Dips" class="${INPUT_SM}" />
                   </div>
@@ -235,17 +236,17 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                   <!-- Min / Max / Gratis -->
                   <div class="grid grid-cols-3 gap-3">
                     <div class="space-y-1">
-                      <label [attr.for]="'optGroupMin-' + gi" class="${LABEL_SM}">Min. Auswahl</label>
+                      <label [attr.for]="'optGroupMin-' + gi" class="${LABEL_SM}">{{ 'PRODUCTS.MIN_SELECTION' | translate }}</label>
                       <input [id]="'optGroupMin-' + gi" [(ngModel)]="group.minSelections" [name]="'og_' + gi + '_min'"
                         type="number" min="0" class="${INPUT_SM} font-mono" />
                     </div>
                     <div class="space-y-1">
-                      <label [attr.for]="'optGroupMax-' + gi" class="${LABEL_SM}">Max. Auswahl</label>
+                      <label [attr.for]="'optGroupMax-' + gi" class="${LABEL_SM}">{{ 'PRODUCTS.MAX_SELECTION' | translate }}</label>
                       <input [id]="'optGroupMax-' + gi" [(ngModel)]="group.maxSelections" [name]="'og_' + gi + '_max'"
                         type="number" min="1" class="${INPUT_SM} font-mono" />
                     </div>
                     <div class="space-y-1">
-                      <label [attr.for]="'optGroupFree-' + gi" class="${LABEL_SM}">Gratis-Anzahl</label>
+                      <label [attr.for]="'optGroupFree-' + gi" class="${LABEL_SM}">{{ 'PRODUCTS.FREE_QUANTITY' | translate }}</label>
                       <input [id]="'optGroupFree-' + gi" [(ngModel)]="group.freeQuantity" [name]="'og_' + gi + '_free'"
                         type="number" min="0" class="${INPUT_SM} font-mono" />
                     </div>
@@ -254,7 +255,7 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                   <!-- Optionen -->
                   <div class="space-y-2">
                     <div class="flex items-center justify-between">
-                      <span class="${LABEL_SM}">Optionen</span>
+                      <span class="${LABEL_SM}">{{ 'PRODUCTS.OPTIONS' | translate }}</span>
                       <button type="button" (click)="addOption(group)"
                         class="text-xs text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white
                                transition px-2 py-1 border border-slate-200 dark:border-gray-800
@@ -265,7 +266,7 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
 
                     @if (group.options.length === 0) {
                       <p class="text-slate-300 dark:text-gray-700 text-xs text-center py-3">
-                        Keine Optionen — klicke "+ Option"
+                        {{ 'PRODUCTS.NO_OPTIONS' | translate }}
                       </p>
                     }
 
@@ -325,18 +326,18 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                 <svg class="save-checkmark" viewBox="0 0 24 24">
                   <path d="M4 12l6 6L20 6" />
                 </svg>
-                Gespeichert
+                {{ 'COMMON.SAVED' | translate }}
               } @else if (saving()) {
                 <span class="save-spinner"></span>
               } @else {
-                Speichern
+                {{ 'COMMON.SAVE' | translate }}
               }
             </span>
           </button>
           <button type="button" (click)="panelMode() ? closed.emit() : router.navigate(['/products'])"
             class="bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-600
                    dark:text-gray-300 px-6 py-3 rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-gray-800 transition">
-            Abbrechen
+            {{ 'COMMON.CANCEL' | translate }}
           </button>
         </div>
       </form>
@@ -347,6 +348,7 @@ export class ProductFormComponent implements OnInit {
   private api = inject(ApiService)
   router = inject(Router)
   private cdr = inject(ChangeDetectorRef)
+  private t = inject(TranslateService)
 
   id = input<string>()
   panelMode = input(false)
@@ -368,9 +370,9 @@ export class ProductFormComponent implements OnInit {
   collapsedGroups = signal<Set<string>>(new Set())
 
   productTypes = [
-    { value: 'PRODUCT', label: 'Produkt' },
-    { value: 'MODIFIER', label: 'Modifier' },
-    { value: 'BUNDLE', label: 'Menü' },
+    { value: 'PRODUCT', label: 'PRODUCTS.TYPE_PRODUCT' },
+    { value: 'MODIFIER', label: 'PRODUCTS.TYPE_MODIFIER' },
+    { value: 'BUNDLE', label: 'PRODUCTS.TYPE_BUNDLE' },
   ]
 
   get typeIndex(): number {
@@ -378,9 +380,9 @@ export class ProductFormComponent implements OnInit {
   }
 
   statuses = [
-    { value: 'DRAFT', label: 'Entwurf' },
-    { value: 'ACTIVE', label: 'Aktiv' },
-    { value: 'ARCHIVED', label: 'Archiviert' },
+    { value: 'DRAFT', label: 'COMMON.STATUS_DRAFT' },
+    { value: 'ACTIVE', label: 'COMMON.STATUS_ACTIVE' },
+    { value: 'ARCHIVED', label: 'COMMON.STATUS_ARCHIVED' },
   ]
 
   get statusIndex(): number {
@@ -493,7 +495,7 @@ export class ProductFormComponent implements OnInit {
       }
       this.originalHash = objectHash({ ...this.form, og: this.optionGroups() })
     } catch {
-      this.error.set('Produkt nicht gefunden')
+      this.error.set(this.t.instant('PRODUCTS.NOT_FOUND'))
     }
     this.cdr.markForCheck()
   }
@@ -570,7 +572,7 @@ export class ProductFormComponent implements OnInit {
 
   async onSave() {
     if (!this.form.name || !this.form.acronym) {
-      this.error.set('Name und Kürzel sind erforderlich')
+      this.error.set(this.t.instant('PRODUCTS.NAME_ACRONYM_REQUIRED'))
       return
     }
     this.saving.set(true)

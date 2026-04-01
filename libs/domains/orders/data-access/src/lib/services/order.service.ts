@@ -19,6 +19,8 @@ import { LocationService } from '@panary-core/locations/data-access'
   providedIn: 'root',
 })
 export class OrderService extends BaseService<Order> {
+  protected override entityLabelKey = 'ENTITY.ORDER'
+
   /** STATIC PROPERTIES */
   protected readonly QUERY_LIMIT: number = 200
   protected readonly SNACKBAR_ACTION: string = 'OK'

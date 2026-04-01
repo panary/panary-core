@@ -7,6 +7,8 @@ import { inject } from '@angular/core'
   providedIn: 'root',
 })
 export class ApikeyService extends BaseService<Apikey> {
+  protected override entityLabelKey = 'ENTITY.APIKEY'
+
   //region Constructor
   constructor() {
     super(inject(ConnectionService).apikeyService, 'apikeysService')

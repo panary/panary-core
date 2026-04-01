@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal, input, output, effect, viewChild } from '@angular/core'
 import { FormsModule, NgForm } from '@angular/forms'
 import { Router } from '@angular/router'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { formatApiError } from '../../core/error-helper'
 import { objectHash } from '../../core/dirty-check'
@@ -8,23 +9,23 @@ import { objectHash } from '../../core/dirty-check'
 @Component({
   selector: 'app-user-form',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div [class]="panelMode() ? 'p-5 space-y-5' : 'p-8 max-w-2xl space-y-6'">
-      <h1 class="text-2xl font-bold tracking-tight">{{ isNew() ? 'Neuer Benutzer' : 'Benutzer bearbeiten' }}</h1>
+      <h1 class="text-2xl font-bold tracking-tight">{{ (isNew() ? 'USERS.NEW_USER' : 'USERS.EDIT_USER') | translate }}</h1>
 
       <form #f="ngForm" (ngSubmit)="onSave(f)" class="space-y-5">
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-1">
-            <label for="userFirstName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Vorname</label>
+            <label for="userFirstName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'USERS.FIRST_NAME' | translate }}</label>
             <input id="userFirstName" [(ngModel)]="form.firstName" name="firstName" type="text"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
                      focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none" />
           </div>
           <div class="space-y-1">
-            <label for="userLastName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Nachname</label>
+            <label for="userLastName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'USERS.LAST_NAME' | translate }}</label>
             <input id="userLastName" [(ngModel)]="form.lastName" name="lastName" type="text"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
@@ -33,55 +34,55 @@ import { objectHash } from '../../core/dirty-check'
         </div>
 
         <div class="space-y-1">
-          <label for="userLoginname" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Login-Name *</label>
+          <label for="userLoginname" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'USERS.LOGIN_NAME' | translate }} *</label>
           <input id="userLoginname" [(ngModel)]="form.loginname" name="loginname" #loginname="ngModel"
             type="text" required minlength="2" maxlength="30"
             [class]="inputClass(loginname)" />
           @if (loginname.invalid && loginname.touched) {
             <p class="text-red-500 dark:text-red-400 text-xs mt-1">
-              @if (loginname.errors?.['required']) { Login-Name ist erforderlich. }
-              @else if (loginname.errors?.['minlength']) { Mindestens 2 Zeichen. }
+              @if (loginname.errors?.['required']) { {{ 'USERS.LOGIN_NAME_REQUIRED' | translate }} }
+              @else if (loginname.errors?.['minlength']) { {{ 'COMMON.MIN_CHARS' | translate:{ count: 2 } }} }
             </p>
           }
         </div>
 
         <div class="space-y-1">
-          <label for="userEmail" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">E-Mail</label>
+          <label for="userEmail" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'USERS.EMAIL' | translate }}</label>
           <input id="userEmail" [(ngModel)]="form.email" name="email" #email="ngModel" type="email" email
             [class]="inputClass(email)" />
           @if (email.invalid && email.touched) {
-            <p class="text-red-500 dark:text-red-400 text-xs mt-1">Bitte eine gültige E-Mail-Adresse eingeben.</p>
+            <p class="text-red-500 dark:text-red-400 text-xs mt-1">{{ 'USERS.EMAIL_INVALID' | translate }}</p>
           }
         </div>
 
         <div class="space-y-1">
           <label for="userPassword" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-            Passwort {{ isNew() ? '*' : '(leer lassen = unverändert)' }}
+            {{ 'USERS.PASSWORD' | translate }} {{ isNew() ? '*' : ('USERS.PASSWORD_UNCHANGED' | translate) }}
           </label>
           <input id="userPassword" [(ngModel)]="form.password" name="password" #password="ngModel"
             type="password" [required]="isNew()" minlength="3"
             [class]="inputClass(password)" />
           @if (password.invalid && password.touched) {
             <p class="text-red-500 dark:text-red-400 text-xs mt-1">
-              @if (password.errors?.['required']) { Passwort ist bei neuen Benutzern erforderlich. }
-              @else if (password.errors?.['minlength']) { Mindestens 3 Zeichen. }
+              @if (password.errors?.['required']) { {{ 'USERS.PASSWORD_REQUIRED' | translate }} }
+              @else if (password.errors?.['minlength']) { {{ 'COMMON.MIN_CHARS' | translate:{ count: 3 } }} }
             </p>
           }
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-1">
-            <label for="userRole" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Rolle *</label>
+            <label for="userRole" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'USERS.ROLE' | translate }} *</label>
             <select id="userRole" [(ngModel)]="form.role" name="role"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white outline-none">
-              <option value="tenant:staff">Mitarbeiter</option>
-              <option value="tenant:manager">Manager</option>
-              <option value="tenant:owner">Inhaber</option>
+              <option value="tenant:staff">{{ 'ROLES.TENANT_STAFF' | translate }}</option>
+              <option value="tenant:manager">{{ 'ROLES.TENANT_MANAGER' | translate }}</option>
+              <option value="tenant:owner">{{ 'ROLES.TENANT_OWNER' | translate }}</option>
             </select>
           </div>
           <div class="space-y-1">
-            <label for="userFunction" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Funktion</label>
+            <label for="userFunction" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'USERS.FUNCTION' | translate }}</label>
             <input id="userFunction" [(ngModel)]="form.staffRole" name="staffRole" type="text" placeholder="z.B. Kellner, Koch"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
@@ -95,7 +96,7 @@ import { objectHash } from '../../core/dirty-check'
           <label class="flex items-center gap-2 cursor-pointer">
             <input [(ngModel)]="form.isPosUser" name="isPosUser" type="checkbox"
               class="w-4 h-4 accent-slate-900 dark:accent-white" />
-            <span class="text-sm text-slate-600 dark:text-gray-300">POS-Benutzer (erscheint im POS-Login)</span>
+            <span class="text-sm text-slate-600 dark:text-gray-300">{{ 'USERS.POS_USER' | translate }}</span>
           </label>
         </div>
 
@@ -103,26 +104,26 @@ import { objectHash } from '../../core/dirty-check'
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-1">
               <label for="employeeNumber" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                Personalnummer (6 Ziffern)
+                {{ 'USERS.EMPLOYEE_NUMBER' | translate }}
               </label>
               <input id="employeeNumber" [(ngModel)]="form.employeeNumber" name="employeeNumber" #employeeNumber="ngModel"
                 type="text" minlength="6" maxlength="6" pattern="[0-9]*"
                 inputmode="numeric" placeholder="z.B. 100001"
                 [class]="inputClass(employeeNumber)" />
               @if (employeeNumber.invalid && employeeNumber.touched) {
-                <p class="text-red-500 dark:text-red-400 text-xs mt-1">Genau 6 Ziffern.</p>
+                <p class="text-red-500 dark:text-red-400 text-xs mt-1">{{ 'USERS.EMPLOYEE_NUMBER_INVALID' | translate }}</p>
               }
             </div>
             <div class="space-y-1">
               <label for="posPin" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                POS-PIN (4–6 Ziffern)
+                {{ 'USERS.POS_PIN' | translate }}
               </label>
               <input id="posPin" [(ngModel)]="form.posPin" name="posPin" #posPin="ngModel"
                 type="text" minlength="4" maxlength="6" pattern="[0-9]*"
                 inputmode="numeric" placeholder="z.B. 1234"
                 [class]="inputClass(posPin)" />
               @if (posPin.invalid && posPin.touched) {
-                <p class="text-red-500 dark:text-red-400 text-xs mt-1">4–6 Ziffern.</p>
+                <p class="text-red-500 dark:text-red-400 text-xs mt-1">{{ 'USERS.POS_PIN_INVALID' | translate }}</p>
               }
             </div>
           </div>
@@ -130,28 +131,28 @@ import { objectHash } from '../../core/dirty-check'
 
         <!-- Personalessen & Rabatt -->
         <div class="border-t border-slate-200 dark:border-gray-800 pt-4 space-y-4">
-          <p class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Personalessen & Rabatt</p>
+          <p class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'USERS.STAFF_MEAL_DISCOUNT' | translate }}</p>
 
           <label class="flex items-center gap-2 cursor-pointer">
             <input [(ngModel)]="form.allowStaffMealOrders" name="allowStaffMealOrders" type="checkbox"
               class="w-4 h-4 accent-slate-900 dark:accent-white" />
-            <span class="text-sm text-slate-600 dark:text-gray-300">Personalessen berechtigt</span>
+            <span class="text-sm text-slate-600 dark:text-gray-300">{{ 'USERS.STAFF_MEAL_ELIGIBLE' | translate }}</span>
           </label>
 
           @if (form.allowStaffMealOrders) {
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1">
-                <label for="discountType" class="text-xs text-slate-400 dark:text-gray-500 uppercase tracking-wider">Rabatt-Typ</label>
+                <label for="discountType" class="text-xs text-slate-400 dark:text-gray-500 uppercase tracking-wider">{{ 'USERS.DISCOUNT_TYPE' | translate }}</label>
                 <select id="discountType" [(ngModel)]="form.discountType" name="discountType"
                   class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                          text-slate-900 dark:text-white outline-none">
-                  <option value="percent">Prozent (%)</option>
-                  <option value="amount">Fester Betrag (&euro;)</option>
+                  <option value="percent">{{ 'USERS.DISCOUNT_PERCENT' | translate }}</option>
+                  <option value="amount">{{ 'USERS.DISCOUNT_AMOUNT' | translate }}</option>
                 </select>
               </div>
               <div class="space-y-1">
                 <label for="discountValue" class="text-xs text-slate-400 dark:text-gray-500 uppercase tracking-wider">
-                  {{ form.discountType === 'percent' ? 'Rabatt (%)' : 'Rabatt (\u20AC)' }}
+                  {{ (form.discountType === 'percent' ? 'USERS.DISCOUNT_LABEL_PERCENT' : 'USERS.DISCOUNT_LABEL_AMOUNT') | translate }}
                 </label>
                 <input id="discountValue" [(ngModel)]="form.discount" name="discount" type="number" step="0.5" min="0"
                   [max]="form.discountType === 'percent' ? 100 : 9999"
@@ -186,18 +187,18 @@ import { objectHash } from '../../core/dirty-check'
                 <svg class="save-checkmark" viewBox="0 0 24 24">
                   <path d="M4 12l6 6L20 6" />
                 </svg>
-                Gespeichert
+                {{ 'COMMON.SAVED' | translate }}
               } @else if (saving()) {
                 <span class="save-spinner"></span>
               } @else {
-                Speichern
+                {{ 'COMMON.SAVE' | translate }}
               }
             </span>
           </button>
           <button type="button" (click)="onCancel()"
             class="bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-600
                    dark:text-gray-300 px-6 py-3 rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-gray-800 transition">
-            Abbrechen
+            {{ 'COMMON.CANCEL' | translate }}
           </button>
         </div>
       </form>
@@ -208,6 +209,7 @@ export class UserFormComponent {
   private api = inject(ApiService)
   private router = inject(Router)
   private cdr = inject(ChangeDetectorRef)
+  private t = inject(TranslateService)
 
   id = input<string>()
   panelMode = input(false)
@@ -305,7 +307,7 @@ export class UserFormComponent {
       }
       this.originalHash = objectHash(this.form)
     } catch {
-      this.errors.set(['Benutzer nicht gefunden.'])
+      this.errors.set([this.t.instant('USERS.NOT_FOUND')])
     }
     this.cdr.markForCheck()
   }

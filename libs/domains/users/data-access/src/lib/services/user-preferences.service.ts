@@ -7,6 +7,8 @@ import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
   providedIn: 'root',
 })
 export class UserPreferencesService extends BaseService<UserPreferenceSchema> {
+  protected override entityLabelKey = 'ENTITY.PREFERENCE'
+
   /** CONSTANTS */
   private readonly STORAGE_KEY_PREFIX = 'app_preference.'
   protected connectionService: ConnectionService = inject(ConnectionService)

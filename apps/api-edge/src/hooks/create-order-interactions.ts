@@ -26,13 +26,12 @@ export function createOrderInteractions() {
         // Get the order-interactions service
         const orderInteractionsService = app.service('order-interactions')
 
-        // Create each order-interaction entry with the order's _id
-        for (const interaction of orderInteractions) {
-            await orderInteractionsService.create({
-                ...interaction,
-                orderId
-            }, params)
-        }
+        // Batch-Create aller Interactions in einem einzelnen DB-Insert
+        const interactions = orderInteractions.map(interaction => ({
+            ...interaction,
+            orderId
+        }))
+        await orderInteractionsService.create(interactions, params)
 
         return context
     }

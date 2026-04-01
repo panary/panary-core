@@ -12,9 +12,9 @@
             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
           ></path>
         </svg>
-        Arbeitszeiterfassung
+        {{ 'TIME_CLOCK.TITLE' | translate }}
       </h3>
-      <p class="text-xs text-white/60 mt-0.5">Schnell ein- oder ausstempeln</p>
+      <p class="text-xs text-white/60 mt-0.5">{{ 'TIME_CLOCK.SUBTITLE' | translate }}</p>
     </div>
 
     <!-- Content -->
@@ -81,7 +81,7 @@
                   }
                 }
               </div>
-              <span class="text-sm font-medium {{ action.color }}">{{ action.label }}</span>
+              <span class="text-sm font-medium {{ action.color }}">{{ action.label | translate }}</span>
             </button>
           }
         </div>
@@ -95,15 +95,15 @@
             <button
               class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
               (click)="cancelAction()"
-              aria-label="Zurück zur Aktionsauswahl"
+              [attr.aria-label]="'COMMON.BACK' | translate"
             >
               <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
               </svg>
             </button>
             <div>
-              <h4 class="text-white font-medium text-sm">{{ getActionConfig(selectedAction()!)?.label }}</h4>
-              <p class="text-xs text-white/60">Personalnummer eingeben</p>
+              <h4 class="text-white font-medium text-sm">{{ getActionConfig(selectedAction()!)?.label! | translate }}</h4>
+              <p class="text-xs text-white/60">{{ 'TIME_CLOCK.ENTER_EMPLOYEE_NUMBER' | translate }}</p>
             </div>
           </div>
 
@@ -122,7 +122,7 @@
           </div>
 
           @if (pinError()) {
-            <p class="text-red-400 text-xs text-center mb-3">{{ errorMessage() || 'Ungültige Personalnummer' }}</p>
+            <p class="text-red-400 text-xs text-center mb-3">{{ errorMessage() || ('TIME_CLOCK.INVALID_EMPLOYEE_NUMBER' | translate) }}</p>
           }
 
           <!-- Numpad (Compact) -->
@@ -154,7 +154,7 @@
               class="h-10 rounded-lg bg-[#00B8D4] hover:bg-[#00a0bb] active:bg-[#0090a8] text-white font-medium transition-all flex items-center justify-center disabled:opacity-50"
               (click)="confirmAction()"
               [disabled]="isLoading() || pinInput().length < 4"
-              aria-label="Bestätigen"
+              [attr.aria-label]="'COMMON.CONFIRM' | translate"
             >
               @if (isLoading()) {
                 <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -221,7 +221,7 @@
         (keydown.space)="togglePanel()"
         tabindex="0"
         role="button"
-        [attr.aria-label]="isExpanded() ? 'Panel schließen' : 'Arbeitszeitverwaltung öffnen'"
+        [attr.aria-label]="isExpanded() ? ('COMMON.CLOSE' | translate) : ('TIME_CLOCK.OPEN_PANEL' | translate)"
       >
         <div class="w-12 h-1 rounded-full bg-white/30"></div>
       </div>
@@ -249,7 +249,7 @@
             [class.items-start]="isExpanded()"
             [class.gap-0]="isExpanded()"
           >
-            <h3 class="text-base font-semibold text-white whitespace-nowrap">Arbeitszeitverwaltung</h3>
+            <h3 class="text-base font-semibold text-white whitespace-nowrap">{{ 'TIME_CLOCK.TITLE' | translate }}</h3>
             <p
               class="text-white/60 transition-all duration-300 whitespace-nowrap"
               [class.text-xs]="isExpanded()"
@@ -258,7 +258,7 @@
               @if (!isExpanded()) {
                 <span class="text-white/40">•</span>
               }
-              Schnell ein- oder ausstempeln
+              {{ 'TIME_CLOCK.SUBTITLE' | translate }}
             </p>
           </div>
         </div>
@@ -267,7 +267,7 @@
           <button
             class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all flex-shrink-0 ml-3"
             (click)="closePanel()"
-            aria-label="Panel schließen"
+            [attr.aria-label]="'COMMON.CLOSE' | translate"
           >
             <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -338,7 +338,7 @@
                     }
                   }
                 </div>
-                <span class="font-medium {{ action.color }}">{{ action.label }}</span>
+                <span class="font-medium {{ action.color }}">{{ action.label | translate }}</span>
               </button>
             }
           </div>
@@ -352,15 +352,15 @@
               <button
                 class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"
                 (click)="cancelAction()"
-                aria-label="Zurück zur Aktionsauswahl"
+                [attr.aria-label]="'COMMON.BACK' | translate"
               >
                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                 </svg>
               </button>
               <div>
-                <h4 class="text-white font-semibold text-lg">{{ getActionConfig(selectedAction()!)?.label }}</h4>
-                <p class="text-sm text-white/60">Personalnummer eingeben</p>
+                <h4 class="text-white font-semibold text-lg">{{ getActionConfig(selectedAction()!)?.label! | translate }}</h4>
+                <p class="text-sm text-white/60">{{ 'TIME_CLOCK.ENTER_EMPLOYEE_NUMBER' | translate }}</p>
               </div>
             </div>
 
@@ -384,7 +384,7 @@
 
             @if (pinError()) {
               <p class="text-red-400 text-sm text-center mb-4 animate-[shake_0.3s_ease-out]">
-                {{ errorMessage() || 'Ungültige Personalnummer' }}
+                {{ errorMessage() || ('TIME_CLOCK.INVALID_EMPLOYEE_NUMBER' | translate) }}
               </p>
             }
 
@@ -403,7 +403,7 @@
                 class="h-14 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 flex items-center justify-center transition-all active:scale-95"
                 (click)="clearPin()"
                 [disabled]="isLoading()"
-                aria-label="PIN löschen"
+                [attr.aria-label]="'TIME_CLOCK.CLEAR_PIN' | translate"
               >
                 <svg class="w-6 h-6 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -420,7 +420,7 @@
                 class="h-14 rounded-xl bg-[#00B8D4] hover:bg-[#00a0bb] active:bg-[#0090a8] text-white font-semibold transition-all active:scale-95 flex items-center justify-center disabled:opacity-50"
                 (click)="confirmAction()"
                 [disabled]="isLoading() || pinInput().length < 4"
-                aria-label="Bestätigen"
+                [attr.aria-label]="'COMMON.CONFIRM' | translate"
               >
                 @if (isLoading()) {
                   <div class="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

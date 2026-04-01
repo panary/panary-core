@@ -5,6 +5,7 @@ import { BusinessDay } from '@panary-core/businessdays/domain'
 
 @Injectable({ providedIn: 'root' })
 export class BusinessDayService extends BaseService<BusinessDay> {
+  protected override entityLabelKey = 'ENTITY.BUSINESS_DAY'
   protected connectionService = inject(ConnectionService)
 
   #currentBusinessDay = signal<BusinessDay | null>(null)

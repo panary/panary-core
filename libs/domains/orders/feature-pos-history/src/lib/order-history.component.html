@@ -1,47 +1,50 @@
-<div class="h-full w-full bg-slate-50 p-4 md:p-6 flex flex-col gap-4 overflow-auto box-border">
+<div class="h-full w-full bg-slate-50 dark:bg-black p-4 md:p-6 flex flex-col gap-4 overflow-auto box-border">
   <!-- Header & Filters -->
-  <header class="flex-none flex flex-col gap-4 bg-white rounded-2xl p-4 border border-slate-200">
+  <header class="flex-none flex flex-col gap-4 bg-white dark:bg-gray-900 rounded-2xl p-4 border border-slate-200 dark:border-gray-800">
     <div class="flex flex-row items-center justify-between">
       <div class="flex items-center gap-4">
-        <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 transition-colors">
+        <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-300 rounded-xl hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors">
           <span class="material-symbols-outlined text-[20px]">arrow_back</span>
         </button>
-        <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+        <h1 class="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
           <span class="material-symbols-outlined text-[20px] text-purple-600">history</span>
-          Historie
+          {{ 'HISTORY.TITLE' | translate }}
         </h1>
       </div>
 
       <!-- Mobil: Dropdown -->
-      <select class="md:hidden h-9 px-3 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 text-purple-700 font-medium focus:outline-none focus:ring-2 focus:ring-purple-200"
+      <select class="md:hidden h-9 px-3 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-slate-700 dark:text-gray-200 text-purple-700 font-medium focus:outline-none focus:ring-2 focus:ring-purple-200"
         (change)="selectTimeRange($any($event.target).value)">
-        <option value="today" [selected]="selectedTimeRange() === 'today'">Heute</option>
-        <option value="yesterday" [selected]="selectedTimeRange() === 'yesterday'">Gestern</option>
-        <option value="week" [selected]="selectedTimeRange() === 'week'">Diese Woche</option>
+        <option value="today" [selected]="selectedTimeRange() === 'today'">{{ 'HISTORY.TODAY' | translate }}</option>
+        <option value="yesterday" [selected]="selectedTimeRange() === 'yesterday'">{{ 'HISTORY.YESTERDAY' | translate }}</option>
+        <option value="week" [selected]="selectedTimeRange() === 'week'">{{ 'HISTORY.THIS_WEEK' | translate }}</option>
       </select>
 
       <!-- Desktop: Buttons -->
       <div class="hidden md:flex gap-2">
-        <button class="px-4 h-9 rounded-xl text-slate-700 border border-slate-200 bg-white hover:bg-slate-100 transition-colors"
+        <button class="px-4 h-9 rounded-xl text-slate-700 dark:text-gray-200 border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors"
           [class.bg-purple-50]="selectedTimeRange() === 'today'"
+          [class.dark:bg-purple-950]="selectedTimeRange() === 'today'"
           [class.text-purple-700]="selectedTimeRange() === 'today'"
           [class.border-purple-200]="selectedTimeRange() === 'today'"
           (click)="selectTimeRange('today')">
-          Heute
+          {{ 'HISTORY.TODAY' | translate }}
         </button>
-        <button class="px-4 h-9 rounded-xl text-slate-700 border border-slate-200 bg-white hover:bg-slate-100 transition-colors"
+        <button class="px-4 h-9 rounded-xl text-slate-700 dark:text-gray-200 border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors"
           [class.bg-purple-50]="selectedTimeRange() === 'yesterday'"
+          [class.dark:bg-purple-950]="selectedTimeRange() === 'yesterday'"
           [class.text-purple-700]="selectedTimeRange() === 'yesterday'"
           [class.border-purple-200]="selectedTimeRange() === 'yesterday'"
           (click)="selectTimeRange('yesterday')">
-          Gestern
+          {{ 'HISTORY.YESTERDAY' | translate }}
         </button>
-        <button class="px-4 h-9 rounded-xl text-slate-700 border border-slate-200 bg-white hover:bg-slate-100 transition-colors"
+        <button class="px-4 h-9 rounded-xl text-slate-700 dark:text-gray-200 border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors"
           [class.bg-purple-50]="selectedTimeRange() === 'week'"
+          [class.dark:bg-purple-950]="selectedTimeRange() === 'week'"
           [class.text-purple-700]="selectedTimeRange() === 'week'"
           [class.border-purple-200]="selectedTimeRange() === 'week'"
           (click)="selectTimeRange('week')">
-          Diese Woche
+          {{ 'HISTORY.THIS_WEEK' | translate }}
         </button>
       </div>
     </div>
@@ -49,8 +52,8 @@
     <div class="relative">
       <span class="material-symbols-outlined text-[20px] absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
       <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="fetchOrders()"
-        placeholder="Suche nach Bon-Nr, Kunde, Mitarbeiter..."
-        class="w-full h-12 pl-10 pr-4 rounded-xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-purple-200 transition-all text-slate-700 placeholder:text-[11px] placeholder:md:text-sm placeholder:text-slate-400" />
+        [placeholder]="'HISTORY.SEARCH_PLACEHOLDER' | translate"
+        class="w-full h-12 pl-10 pr-4 rounded-xl bg-slate-50 dark:bg-gray-800 border-none outline-none focus:ring-2 focus:ring-purple-200 transition-all text-slate-700 dark:text-gray-200 placeholder:text-[11px] placeholder:md:text-sm placeholder:text-slate-400" />
       <button
         class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-purple-600 text-white rounded-lg shadow-sm hover:bg-purple-700 active:scale-95 transition-all"
         (click)="fetchOrders()">
@@ -62,52 +65,52 @@
   <!-- Content -->
   <div class="flex-1 flex gap-6 min-h-0">
     <!-- Order List -->
-    <div class="flex-1 bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col"
+    <div class="flex-1 bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-800 overflow-hidden flex flex-col"
       [class.hidden]="selectedOrder() !== null" [class.lg:flex]="true">
       <!-- Hide on mobile if detaill selected, always show on desktop -->
 
       @if (loading()) {
       <div class="flex-1 flex justify-center items-center flex-col gap-4">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-        <span class="text-slate-400 text-sm">Lade Bestellungen...</span>
+        <span class="text-slate-400 text-sm">{{ 'HISTORY.LOADING' | translate }}</span>
       </div>
       } @else if (orders().length === 0) {
       <div class="flex-1 flex justify-center items-center flex-col gap-4 text-slate-300">
         <span class="material-symbols-outlined text-[64px]">search_off</span>
-        <span class="font-medium">Keine Bestellungen gefunden</span>
+        <span class="font-medium">{{ 'HISTORY.NONE_FOUND' | translate }}</span>
       </div>
       } @else {
       <div class="overflow-y-auto p-2 space-y-2">
         @for (order of orders(); track order._id) {
         <div
-          class="p-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 cursor-pointer transition-all group"
+          class="p-4 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-slate-50 dark:hover:bg-gray-800 hover:border-slate-300 dark:hover:border-gray-600 cursor-pointer transition-all group"
           [class.ring-2]="selectedOrder()?._id === order._id"
           [class.ring-purple-200]="selectedOrder()?._id === order._id" (click)="toggleOrderSelection(order)">
           <div class="flex justify-between items-start mb-2">
             <div class="flex items-center gap-2">
-              <span class="font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded text-xs">#{{
+              <span class="font-mono font-bold text-slate-500 dark:text-gray-400 bg-slate-100 dark:bg-gray-800 px-2 py-0.5 rounded text-xs">#{{
                 order.dailySequenceNumber }}</span>
-              <span class="text-xs text-slate-400">{{ order.recordingDate | date: 'HH:mm' }}</span>
+              <span class="text-xs text-slate-400 dark:text-gray-500">{{ order.recordingDate | date: 'HH:mm' }}</span>
             </div>
-            <span class="font-bold text-slate-800">{{ calculateTotal(order) | currency: 'EUR' }}</span>
+            <span class="font-bold text-slate-800 dark:text-white">{{ calculateTotal(order) | currency: 'EUR' }}</span>
           </div>
 
-          <div class="font-medium text-slate-700 truncate group-hover:text-purple-700 transition-colors">
+          <div class="font-medium text-slate-700 dark:text-gray-200 truncate group-hover:text-purple-700 transition-colors">
             {{ getOrderTitle(order) }}
           </div>
 
           <div class="flex justify-between items-center mt-2">
-            <span class="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{{
+            <span class="text-xs text-slate-500 dark:text-gray-400 bg-slate-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">{{
               order.orderChannel
               }}</span>
 
             @if (order.status === OrderStatus.COMPLETED) {
             <span
-              class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
-              <span class="material-symbols-outlined text-[12px]">check</span> Erledigt
+              class="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <span class="material-symbols-outlined text-[12px]">check</span> {{ 'COMMON.DONE' | translate }}
             </span>
             } @else {
-            <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+            <span class="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950 px-2 py-0.5 rounded-full">
               {{ order.status }}
             </span>
             }
@@ -121,14 +124,14 @@
     <!-- Order Detail -->
     @if (selectedOrder()) {
     <div
-      class="flex-1 lg:max-w-[450px] bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+      class="flex-1 lg:max-w-[450px] bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-800 overflow-hidden flex flex-col">
       <!-- Detail Header -->
-      <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+      <div class="p-4 border-b border-slate-200 dark:border-gray-700 flex justify-between items-center bg-slate-50 dark:bg-gray-800">
         <div>
-          <h2 class="font-bold text-lg text-slate-800">Details</h2>
-          <p class="text-xs text-slate-500">Bon #{{ selectedOrder()?.dailySequenceNumber }}</p>
+          <h2 class="font-bold text-lg text-slate-800 dark:text-white">{{ 'HISTORY.DETAILS' | translate }}</h2>
+          <p class="text-xs text-slate-500 dark:text-gray-400">{{ 'HISTORY.RECEIPT' | translate }} #{{ selectedOrder()?.dailySequenceNumber }}</p>
         </div>
-        <button (click)="selectedOrder.set(null)" class="lg:hidden flex items-center justify-center w-10 h-10 text-slate-500 rounded-xl hover:bg-slate-100 transition-colors">
+        <button (click)="selectedOrder.set(null)" class="lg:hidden flex items-center justify-center w-10 h-10 text-slate-500 dark:text-gray-400 rounded-xl hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors">
           <span class="material-symbols-outlined text-[20px]">close</span>
         </button>
       </div>
@@ -136,10 +139,10 @@
       <!-- Detail Content -->
       <div class="flex-1 overflow-y-auto p-4">
         <!-- Simplified Receipt View -->
-        <div class="bg-white border border-slate-200 rounded-xl p-4">
-          <div class="text-center mb-6 border-b border-dashed border-slate-200 pb-4">
-            <h3 class="font-bold text-xl text-slate-900">{{ getOrderTitle(selectedOrder()!) }}</h3>
-            <p class="text-sm text-slate-500">{{ selectedOrder()?.recordingDate | date: 'dd.MM.yyyy HH:mm' }}</p>
+        <div class="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-4">
+          <div class="text-center mb-6 border-b border-dashed border-slate-200 dark:border-gray-700 pb-4">
+            <h3 class="font-bold text-xl text-slate-900 dark:text-white">{{ getOrderTitle(selectedOrder()!) }}</h3>
+            <p class="text-sm text-slate-500 dark:text-gray-400">{{ selectedOrder()?.recordingDate | date: 'dd.MM.yyyy HH:mm' }}</p>
           </div>
 
           <div class="space-y-3 font-mono text-sm">
@@ -152,7 +155,7 @@
               <span>{{ item.price * item.amount | currency: 'EUR' }}</span>
             </div>
             @for (extra of item.modifiers; track extra) {
-            <div class="flex justify-between items-start pl-6 text-slate-500 text-xs">
+            <div class="flex justify-between items-start pl-6 text-slate-500 dark:text-gray-400 text-xs">
               <span>{{ extra.amount }}x {{ extra.name }}</span>
               <span>{{ extra.price * extra.amount | currency: 'EUR' }}</span>
             </div>
@@ -160,10 +163,10 @@
             }
 
             @for (combo of getCombinations(selectedOrder()!); track combo; let i = $index) {
-            <div class="pt-2 mt-2 border-t border-dashed border-slate-200">
-              <div class="font-bold text-xs text-slate-400 uppercase mb-1">Kombination {{ i + 1 }}</div>
+            <div class="pt-2 mt-2 border-t border-dashed border-slate-200 dark:border-gray-700">
+              <div class="font-bold text-xs text-slate-400 uppercase mb-1">{{ 'ACTIVE_ORDERS.COMBINATIONS' | translate }} {{ i + 1 }}</div>
               @for (item of combo; track item) {
-              <div class="flex justify-between items-start pl-2 border-l-2 border-slate-200">
+              <div class="flex justify-between items-start pl-2 border-l-2 border-slate-200 dark:border-gray-700">
                 <div class="flex gap-2">
                   <span class="font-bold">{{ item.amount }}x</span>
                   <span>{{ item.name }}</span>
@@ -175,27 +178,27 @@
             }
           </div>
 
-          <div class="mt-6 pt-4 border-t-2 border-slate-800 flex justify-between items-center text-lg font-bold">
-            <span>Summe</span>
+          <div class="mt-6 pt-4 border-t-2 border-slate-800 dark:border-gray-200 flex justify-between items-center text-lg font-bold">
+            <span>{{ 'COMMON.TOTAL' | translate }}</span>
             <span>{{ calculateTotal(selectedOrder()!) | currency: 'EUR' }}</span>
           </div>
         </div>
 
         <!-- Metadata Actions -->
         <div class="mt-6 grid grid-cols-2 gap-3">
-          <div class="col-span-2 p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
+          <div class="col-span-2 p-3 bg-slate-50 dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 text-sm">
             <span class="block text-xs font-bold text-slate-400 uppercase">ID</span>
             <span class="font-mono truncate select-all">{{ selectedOrder()?._id }}</span>
           </div>
 
           <!-- Only show if we actully implemented reprint / refund logic -->
           <button
-            class="h-10 rounded-lg bg-white border border-slate-200 text-slate-600 font-medium hover:bg-slate-50 active:scale-95 transition-all">
-            Drucken
+            class="h-10 rounded-lg bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 font-medium hover:bg-slate-50 dark:hover:bg-gray-700 active:scale-95 transition-all">
+            {{ 'HISTORY.PRINT' | translate }}
           </button>
           <button
-            class="h-10 rounded-lg bg-white border border-slate-200 text-slate-600 font-medium hover:bg-slate-50 active:scale-95 transition-all">
-            Storno
+            class="h-10 rounded-lg bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 font-medium hover:bg-slate-50 dark:hover:bg-gray-700 active:scale-95 transition-all">
+            {{ 'HISTORY.CANCEL' | translate }}
           </button>
         </div>
       </div>
@@ -205,9 +208,9 @@
     <!-- Placeholder when no order selected -->
     @if (!selectedOrder()) {
     <div
-      class="hidden lg:flex flex-1 max-w-[450px] bg-slate-50/50 border border-dashed border-slate-200 rounded-2xl justify-center items-center text-slate-400 flex-col gap-2">
+      class="hidden lg:flex flex-1 max-w-[450px] bg-slate-50/50 dark:bg-gray-950/50 border border-dashed border-slate-200 dark:border-gray-700 rounded-2xl justify-center items-center text-slate-400 dark:text-gray-500 flex-col gap-2">
       <span class="material-symbols-outlined text-[48px] opacity-20">receipt</span>
-      <span class="text-sm font-medium opacity-50">Wähle eine Bestellung</span>
+      <span class="text-sm font-medium opacity-50">{{ 'HISTORY.SELECT_ORDER' | translate }}</span>
     </div>
     }
   </div>

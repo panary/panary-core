@@ -14,6 +14,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dialog'
 import { ClosingDialogComponent } from '@panary-core/businessdays/feature-pos-closing-dialog'
 import { PosWriteOffDialogComponent } from '@panary-core/write-offs/feature-pos-dialog'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 interface QuickAction {
   label: string
@@ -28,7 +29,7 @@ interface QuickAction {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, NgxEchartsModule],
+  imports: [CommonModule, MatDialogModule, NgxEchartsModule, TranslateModule],
   providers: [
     { provide: NGX_ECHARTS_CONFIG, useValue: { echarts: () => import('echarts') } },
   ],
@@ -46,6 +47,7 @@ export class DashboardComponent implements OnInit {
   #connectionService = inject(ConnectionService)
   #cdr = inject(ChangeDetectorRef)
   #dialog = inject(MatDialog)
+  #translate = inject(TranslateService)
 
   isStandaloneMode = computed(() => this.#connectionService.systemMode() === 'standalone')
 
@@ -80,7 +82,7 @@ export class DashboardComponent implements OnInit {
   // Configuration
   quickActions: QuickAction[] = [
     {
-      label: 'Neue Bestellung',
+      label: 'DASHBOARD.NEW_ORDER',
       icon: 'add_shopping_cart',
       action: () => {
         this.#dialog.open(OrderDialogComponent, {
@@ -92,39 +94,39 @@ export class DashboardComponent implements OnInit {
           disableClose: true,
         })
       },
-      bgClass: 'bg-emerald-100',
-      textClass: 'text-emerald-700',
+      bgClass: 'bg-emerald-100 dark:bg-emerald-900/30',
+      textClass: 'text-emerald-700 dark:text-emerald-400',
     },
     {
-      label: 'Offene Bestellungen',
+      label: 'DASHBOARD.OPEN_ORDERS',
       icon: 'receipt',
       action: () => this.navigateTo('/orders/active'),
-      bgClass: 'bg-blue-100',
-      textClass: 'text-blue-700',
+      bgClass: 'bg-blue-100 dark:bg-blue-900/30',
+      textClass: 'text-blue-700 dark:text-blue-400',
     },
     {
-      label: 'Vorbestellungen',
+      label: 'DASHBOARD.PRE_ORDERS',
       icon: 'event_note',
       action: () => this.navigateTo('/pre-orders'),
-      bgClass: 'bg-amber-100',
-      textClass: 'text-amber-700',
+      bgClass: 'bg-amber-100 dark:bg-amber-900/30',
+      textClass: 'text-amber-700 dark:text-amber-400',
     },
     {
-      label: 'Historie',
+      label: 'DASHBOARD.HISTORY',
       icon: 'history',
       action: () => this.navigateTo('/orders/history'),
-      bgClass: 'bg-purple-100',
-      textClass: 'text-purple-700',
+      bgClass: 'bg-purple-100 dark:bg-purple-900/30',
+      textClass: 'text-purple-700 dark:text-purple-400',
     },
     {
-      label: 'Arbeitszeiten',
+      label: 'DASHBOARD.WORKING_TIMES',
       icon: 'schedule',
       action: () => this.navigateTo('/working-times'),
-      bgClass: 'bg-orange-100',
-      textClass: 'text-orange-700',
+      bgClass: 'bg-orange-100 dark:bg-orange-900/30',
+      textClass: 'text-orange-700 dark:text-orange-400',
     },
     {
-      label: 'Abschreibung',
+      label: 'DASHBOARD.WRITE_OFF',
       icon: 'delete_outline',
       action: () => {
         this.#dialog.open(PosWriteOffDialogComponent, {
@@ -135,8 +137,8 @@ export class DashboardComponent implements OnInit {
           panelClass: 'fullscreen-dialog',
         })
       },
-      bgClass: 'bg-red-50',
-      textClass: 'text-red-500',
+      bgClass: 'bg-red-50 dark:bg-red-900/30',
+      textClass: 'text-red-500 dark:text-red-400',
       hideInStandalone: true,
     },
     // Tagesabschluss button removed - moved to Detailed View
@@ -149,11 +151,11 @@ export class DashboardComponent implements OnInit {
     //   allowedRoles: [UserRole.admin, UserRole.superAdmin],
     // },
     {
-      label: 'Einstellungen',
+      label: 'DASHBOARD.SETTINGS',
       icon: 'settings',
       action: () => this.navigateTo('/settings'),
-      bgClass: 'bg-slate-100',
-      textClass: 'text-slate-700',
+      bgClass: 'bg-slate-100 dark:bg-gray-800',
+      textClass: 'text-slate-700 dark:text-gray-300',
     },
   ]
 
@@ -203,11 +205,11 @@ export class DashboardComponent implements OnInit {
         const user = JSON.parse(storedUser)
         return `${user.firstName} ${user.lastName}`
       } catch {
-        return 'Mitarbeiter'
+        return this.#translate.instant('DASHBOARD.EMPLOYEE')
       }
     }
 
-    return 'Mitarbeiter'
+    return this.#translate.instant('DASHBOARD.EMPLOYEE')
   }
 
   get isStampedIn(): boolean {

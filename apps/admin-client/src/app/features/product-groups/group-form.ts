@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal, OnInit, input, output, effect, viewChild } from '@angular/core'
 import { FormsModule, NgForm } from '@angular/forms'
 import { Router } from '@angular/router'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { formatApiError } from '../../core/error-helper'
 import { objectHash } from '../../core/dirty-check'
@@ -9,12 +10,12 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
 @Component({
   selector: 'app-group-form',
   standalone: true,
-  imports: [FormsModule, ConfirmDialogComponent],
+  imports: [FormsModule, ConfirmDialogComponent, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div [class]="panelMode() ? 'p-5 space-y-5' : 'p-8 max-w-2xl space-y-6'">
       <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold tracking-tight">{{ isNew() ? 'Neue Produktgruppe' : 'Produktgruppe bearbeiten' }}</h1>
+        <h1 class="text-2xl font-bold tracking-tight">{{ (isNew() ? 'PRODUCT_GROUPS.NEW_GROUP' : 'PRODUCT_GROUPS.EDIT_GROUP') | translate }}</h1>
         @if (!isNew()) {
           <button type="button" (click)="showDeleteConfirm.set(true)"
             class="text-slate-400 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition p-2
@@ -32,10 +33,10 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
 
       @if (showDeleteConfirm()) {
         <app-confirm-dialog
-          title="Produktgruppe löschen"
-          [message]="'Soll die Produktgruppe unwiderruflich gelöscht werden?'"
-          confirmLabel="Löschen"
-          dismissLabel="Abbrechen"
+          [title]="'PRODUCT_GROUPS.DELETE_GROUP' | translate"
+          [message]="'PRODUCT_GROUPS.DELETE_CONFIRM' | translate"
+          [confirmLabel]="'COMMON.DELETE' | translate"
+          [dismissLabel]="'COMMON.CANCEL' | translate"
           (confirmed)="onDelete()"
           (dismissed)="showDeleteConfirm.set(false)"
           (cancelled)="showDeleteConfirm.set(false)">
@@ -56,7 +57,7 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
                 ? 'text-slate-900 dark:text-white font-semibold'
                 : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'"
               class="relative z-10 flex-1 py-2 text-center text-sm rounded-xl transition-colors duration-200">
-              {{ s.label }}
+              {{ s.label | translate }}
             </button>
           }
           <input type="hidden" [(ngModel)]="form.status" name="status" />
@@ -79,18 +80,18 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
         <div class="grid grid-cols-3 gap-4">
           <!-- Name -->
           <div class="col-span-2 space-y-1">
-            <label for="groupName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Name *</label>
+            <label for="groupName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'COMMON.NAME' | translate }} *</label>
             <input id="groupName" [(ngModel)]="form.name" name="name" #name="ngModel"
               type="text" required minlength="1" maxlength="120"
               (ngModelChange)="autoAssignColor($event)"
               [class]="inputClass(name)" />
             @if (name.invalid && name.touched) {
-              <p class="text-red-500 dark:text-red-400 text-xs mt-1">Name ist erforderlich.</p>
+              <p class="text-red-500 dark:text-red-400 text-xs mt-1">{{ 'PRODUCT_GROUPS.NAME_REQUIRED' | translate }}</p>
             }
           </div>
           <!-- Kürzel -->
           <div class="space-y-1">
-            <label for="groupAcronym" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Kürzel</label>
+            <label for="groupAcronym" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'PRODUCTS.ACRONYM' | translate }}</label>
             <input id="groupAcronym" [(ngModel)]="form.acronym" name="acronym" type="text" maxlength="10"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
@@ -101,7 +102,7 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
         <div class="grid grid-cols-2 gap-4">
           <!-- Farbe -->
           <div class="space-y-1">
-            <label for="groupColor" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Farbe</label>
+            <label for="groupColor" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'PRODUCT_GROUPS.COLOR' | translate }}</label>
             <div class="relative">
               <div class="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-slate-200
                           dark:border-gray-800 rounded-lg">
@@ -133,12 +134,12 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
           </div>
           <!-- Reihenfolge -->
           <div class="space-y-1">
-            <label for="groupSortOrder" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Reihenfolge *</label>
+            <label for="groupSortOrder" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'PRODUCT_GROUPS.SORT_ORDER' | translate }} *</label>
             <input id="groupSortOrder" [(ngModel)]="form.index" name="index" #indexCtrl="ngModel"
               type="number" required min="0" step="1"
               [class]="inputClass(indexCtrl)" />
             @if (indexCtrl.invalid && indexCtrl.touched) {
-              <p class="text-red-500 dark:text-red-400 text-xs mt-1">Reihenfolge ist erforderlich (0 = erste Position).</p>
+              <p class="text-red-500 dark:text-red-400 text-xs mt-1">{{ 'PRODUCT_GROUPS.SORT_ORDER_REQUIRED' | translate }}</p>
             }
           </div>
         </div>
@@ -146,14 +147,14 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
         <!-- MwSt. -->
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-1">
-            <label for="groupVatIn" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">MwSt. Inhaus (%)</label>
+            <label for="groupVatIn" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'PRODUCTS.TAX_INSIDE' | translate }}</label>
             <input id="groupVatIn" [(ngModel)]="form.taxInside" name="taxInside" type="number" step="0.1" min="0" max="100"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
                      focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono" />
           </div>
           <div class="space-y-1">
-            <label for="groupVatOut" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">MwSt. Außer Haus (%)</label>
+            <label for="groupVatOut" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'PRODUCTS.TAX_OUTSIDE' | translate }}</label>
             <input id="groupVatOut" [(ngModel)]="form.taxOutside" name="taxOutside" type="number" step="0.1" min="0" max="100"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
@@ -166,7 +167,7 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
           <label class="flex items-center gap-2 cursor-pointer">
             <input [(ngModel)]="form.excluded" name="excluded" type="checkbox"
               class="w-4 h-4 accent-slate-900 dark:accent-white" />
-            <span class="text-sm text-slate-600 dark:text-gray-300">Im Bestelldialog ausblenden</span>
+            <span class="text-sm text-slate-600 dark:text-gray-300">{{ 'PRODUCT_GROUPS.HIDE_IN_ORDER' | translate }}</span>
           </label>
         </div>
 
@@ -192,18 +193,18 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
                 <svg class="save-checkmark" viewBox="0 0 24 24">
                   <path d="M4 12l6 6L20 6" />
                 </svg>
-                Gespeichert
+                {{ 'COMMON.SAVED' | translate }}
               } @else if (saving()) {
                 <span class="save-spinner"></span>
               } @else {
-                Speichern
+                {{ 'COMMON.SAVE' | translate }}
               }
             </span>
           </button>
           <button type="button" (click)="onCancel()"
             class="bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-600
                    dark:text-gray-300 px-6 py-3 rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-gray-800 transition">
-            Abbrechen
+            {{ 'COMMON.CANCEL' | translate }}
           </button>
         </div>
       </form>
@@ -214,6 +215,7 @@ export class GroupFormComponent implements OnInit {
   private api = inject(ApiService)
   private router = inject(Router)
   private cdr = inject(ChangeDetectorRef)
+  private t = inject(TranslateService)
 
   id = input<string>()
   panelMode = input(false)
@@ -240,9 +242,9 @@ export class GroupFormComponent implements OnInit {
   showDeleteConfirm = signal(false)
 
   statuses = [
-    { value: 'DRAFT', label: 'Entwurf' },
-    { value: 'ACTIVE', label: 'Aktiv' },
-    { value: 'ARCHIVED', label: 'Archiviert' },
+    { value: 'DRAFT', label: 'COMMON.STATUS_DRAFT' },
+    { value: 'ACTIVE', label: 'COMMON.STATUS_ACTIVE' },
+    { value: 'ARCHIVED', label: 'COMMON.STATUS_ARCHIVED' },
   ]
 
   get statusIndex(): number {
@@ -385,7 +387,7 @@ export class GroupFormComponent implements OnInit {
       }
       this.originalHash = objectHash(this.form)
     } catch {
-      this.errors.set(['Produktgruppe nicht gefunden.'])
+      this.errors.set([this.t.instant('PRODUCT_GROUPS.NOT_FOUND')])
     }
     this.cdr.markForCheck()
   }

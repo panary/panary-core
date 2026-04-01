@@ -215,3 +215,44 @@
   padding: 4px !important;
   margin-top: 8px !important;
 }
+
+/* Dark mode support */
+:host-context(.dark) {
+  .button-size {
+    @apply bg-gray-800 hover:bg-gray-700 border-gray-700;
+  }
+
+  .subbutton-item {
+    @apply bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700;
+  }
+
+  .subbutton-item:active {
+    @apply bg-gray-600;
+  }
+
+  .pressed {
+    @apply bg-gray-600 shadow-inner;
+  }
+
+  .order-item-article-topic {
+    background-color: #374151;
+    color: #e5e7eb;
+  }
+
+  .price-badge {
+    background-color: #9f5e4e;
+  }
+
+  .info-box {
+    background-color: #1f2937;
+  }
+
+  .combination-sum-preis {
+    border-top-color: #374151;
+  }
+
+  ::ng-deep .custom-menu.mat-mdc-menu-panel {
+    background: #1f2937 !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+  }
+}

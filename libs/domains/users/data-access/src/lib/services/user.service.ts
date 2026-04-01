@@ -10,6 +10,8 @@ import { Location } from '@panary-core/locations/data-access'
   providedIn: 'root',
 })
 export class UserService extends BaseService<User> {
+  protected override entityLabelKey = 'ENTITY.USER'
+
   /** INJECTION */
   #authService: AuthService=inject(AuthService)
   protected connectionService: ConnectionService=inject(ConnectionService)

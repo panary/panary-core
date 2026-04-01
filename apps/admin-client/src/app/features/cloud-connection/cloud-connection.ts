@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal, OnInit } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { TranslateModule } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { formatApiError } from '../../core/error-helper'
 import { ConfirmDialogComponent } from '../../core/confirm-dialog'
@@ -23,7 +24,7 @@ const DEFAULT_CLOUD_URL = 'https://cloud.panary.io'
 @Component({
   selector: 'app-cloud-connection',
   standalone: true,
-  imports: [FormsModule, ConfirmDialogComponent],
+  imports: [FormsModule, ConfirmDialogComponent, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6 max-w-2xl space-y-4 h-full overflow-y-auto">
@@ -31,11 +32,10 @@ const DEFAULT_CLOUD_URL = 'https://cloud.panary.io'
       <!-- Header -->
       <div>
         <div class="flex items-center justify-between min-h-9">
-          <h1 class="text-xl font-bold tracking-tight">Cloud-Kopplung</h1>
+          <h1 class="text-xl font-bold tracking-tight">{{ 'CLOUD.TITLE' | translate }}</h1>
         </div>
         <p class="text-slate-500 dark:text-gray-400 text-sm mt-1.5 leading-relaxed">
-          Verbinden Sie diesen Edge-Server mit der Panary Cloud, um erweiterte Enterprise-Funktionen
-          freizuschalten — Echtzeit-Synchronisation, Filial-Reporting, zentrale Verwaltung und mehr.
+          {{ 'CLOUD.DESCRIPTION' | translate }}
         </p>
       </div>
 
@@ -43,7 +43,7 @@ const DEFAULT_CLOUD_URL = 'https://cloud.panary.io'
         <div class="flex items-center gap-3 py-12 justify-center">
           <span class="w-5 h-5 border-2 border-slate-300 dark:border-gray-600 border-t-slate-900
                        dark:border-t-white rounded-full animate-spin"></span>
-          <span class="text-slate-400 dark:text-gray-500 text-sm">Verbindungsstatus wird geladen...</span>
+          <span class="text-slate-400 dark:text-gray-500 text-sm">{{ 'CLOUD.LOADING_STATUS' | translate }}</span>
         </div>
       } @else {
         @switch (connectionState()) {
@@ -56,7 +56,7 @@ const DEFAULT_CLOUD_URL = 'https://cloud.panary.io'
               <!-- Visueller Kopplungs-Ablauf -->
               <div class="py-4">
                 <p class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-5">
-                  Kopplung in 3 Schritten
+                  {{ 'CLOUD.STEPS_TITLE' | translate }}
                 </p>
 
                 <div class="flex items-start gap-0">
@@ -117,7 +117,7 @@ const DEFAULT_CLOUD_URL = 'https://cloud.panary.io'
                 <!-- Pairing-Code -->
                 <div class="space-y-1.5">
                   <label for="pairingCode" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                    Kopplungscode
+                    {{ 'CLOUD.PAIRING_CODE' | translate }}
                   </label>
                   <input id="pairingCode" [(ngModel)]="pairingCode" name="pairingCode" type="text"
                     maxlength="6" pattern="[0-9]*" inputmode="numeric"
@@ -133,7 +133,7 @@ const DEFAULT_CLOUD_URL = 'https://cloud.panary.io'
                 <div class="grid grid-cols-2 gap-3">
                   <div class="space-y-1">
                     <label for="cloudUrl" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                      Cloud-URL
+                      {{ 'CLOUD.CLOUD_URL' | translate }}
                     </label>
                     <input id="cloudUrl" [(ngModel)]="cloudUrl" name="cloudUrl" type="url"
                       class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
@@ -145,7 +145,7 @@ const DEFAULT_CLOUD_URL = 'https://cloud.panary.io'
                   </div>
                   <div class="space-y-1">
                     <label for="edgeName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                      Standort-Name
+                      {{ 'CLOUD.EDGE_NAME' | translate }}
                     </label>
                     <input id="edgeName" [(ngModel)]="edgeName" name="edgeName" type="text"
                       placeholder="Wird in der Cloud angezeigt"
@@ -182,19 +182,19 @@ const DEFAULT_CLOUD_URL = 'https://cloud.panary.io'
                   @if (pairing()) {
                     <span class="inline-flex items-center gap-2">
                       <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                      Verbinde...
+                      {{ 'CLOUD.CONNECTING' | translate }}
                     </span>
                   } @else {
-                    Koppeln
+                    {{ 'CLOUD.PAIR' | translate }}
                   }
                 </button>
                 <button (click)="onTestConnection()" [disabled]="testing()"
                   class="text-slate-500 dark:text-gray-400 text-sm hover:text-slate-900 dark:hover:text-white transition
                          disabled:opacity-50">
                   @if (testing()) {
-                    Teste...
+                    {{ 'CLOUD.TESTING' | translate }}
                   } @else {
-                    Erreichbarkeit testen
+                    {{ 'CLOUD.TEST_CONNECTION' | translate }}
                   }
                 </button>
 
@@ -203,7 +203,7 @@ const DEFAULT_CLOUD_URL = 'https://cloud.panary.io'
                     ? 'text-green-600 dark:text-green-400 text-xs'
                     : 'text-red-500 dark:text-red-400 text-xs'">
                     @if (testResult() === 'ok') {
-                      ✓ Erreichbar
+                      ✓ {{ 'CLOUD.REACHABLE' | translate }}
                     } @else {
                       ✕ {{ testResult() }}
                     }
@@ -214,7 +214,7 @@ const DEFAULT_CLOUD_URL = 'https://cloud.panary.io'
               <!-- Enterprise-Features Vorschau -->
               <div class="border-t border-slate-200 dark:border-gray-800 pt-6">
                 <p class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-                  Enterprise-Funktionen nach Kopplung
+                  {{ 'CLOUD.ENTERPRISE_FEATURES' | translate }}
                 </p>
                 <div class="grid grid-cols-2 gap-2.5">
                   @for (feature of enterpriseFeatures; track feature.label) {
@@ -241,8 +241,8 @@ const DEFAULT_CLOUD_URL = 'https://cloud.panary.io'
                           dark:border-green-900/50 rounded-xl p-4">
                 <div class="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
                 <div>
-                  <span class="text-sm text-green-700 dark:text-green-400 font-medium">Verbunden mit der Cloud</span>
-                  <span class="text-xs text-green-600/70 dark:text-green-400/50 ml-2">Enterprise aktiv</span>
+                  <span class="text-sm text-green-700 dark:text-green-400 font-medium">{{ 'CLOUD.CONNECTED' | translate }}</span>
+                  <span class="text-xs text-green-600/70 dark:text-green-400/50 ml-2">{{ 'CLOUD.ENTERPRISE_ACTIVE' | translate }}</span>
                 </div>
               </div>
 
@@ -250,21 +250,21 @@ const DEFAULT_CLOUD_URL = 'https://cloud.panary.io'
               <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800
                           rounded-xl divide-y divide-slate-200 dark:divide-gray-800">
                 <div class="flex items-center justify-between px-4 py-3">
-                  <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">Cloud-URL</span>
+                  <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'CLOUD.CLOUD_URL' | translate }}</span>
                   <span class="text-sm text-slate-900 dark:text-white font-mono">{{ connectionInfo()?.cloudUrl }}</span>
                 </div>
                 <div class="flex items-center justify-between px-4 py-3">
-                  <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">Standort</span>
+                  <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'LOCATION.TITLE' | translate }}</span>
                   <span class="text-sm text-slate-900 dark:text-white">{{ connectionInfo()?.edgeName || '—' }}</span>
                 </div>
                 <div class="flex items-center justify-between px-4 py-3">
-                  <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">Verbunden seit</span>
+                  <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'CLOUD.CONNECTED_SINCE' | translate }}</span>
                   <span class="text-sm text-slate-900 dark:text-white">{{ formatDate(connectionInfo()?.connectedAt) }}</span>
                 </div>
                 <div class="flex items-center justify-between px-4 py-3">
-                  <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">Letzte Synchronisation</span>
+                  <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'CLOUD.LAST_SYNC' | translate }}</span>
                   <span class="text-sm text-slate-900 dark:text-white">
-                    {{ connectionInfo()?.lastSyncAt ? formatDate(connectionInfo()?.lastSyncAt) : 'Noch nicht synchronisiert' }}
+                    {{ connectionInfo()?.lastSyncAt ? formatDate(connectionInfo()?.lastSyncAt) : ('CLOUD.NOT_SYNCED' | translate) }}
                   </span>
                 </div>
                 <div class="flex items-center justify-between px-4 py-3">
@@ -277,16 +277,16 @@ const DEFAULT_CLOUD_URL = 'https://cloud.panary.io'
 
               <button (click)="confirmingDisconnect.set(true)"
                 class="text-red-500 dark:text-red-400 text-sm hover:text-red-700 dark:hover:text-red-300 transition">
-                Entkoppeln
+                {{ 'CLOUD.DISCONNECT' | translate }}
               </button>
             </div>
 
             @if (confirmingDisconnect()) {
               <app-confirm-dialog
-                title="Cloud-Verbindung trennen"
-                message="Enterprise-Funktionen und die Synchronisation werden deaktiviert. Lokale Daten bleiben erhalten."
-                confirmLabel="Entkoppeln"
-                dismissLabel="Abbrechen"
+                [title]="'CLOUD.DISCONNECT_TITLE' | translate"
+                [message]="'CLOUD.DISCONNECT_CONFIRM' | translate"
+                [confirmLabel]="'CLOUD.DISCONNECT' | translate"
+                [dismissLabel]="'COMMON.CANCEL' | translate"
                 (confirmed)="onDisconnect()"
                 (dismissed)="confirmingDisconnect.set(false)"
                 (cancelled)="confirmingDisconnect.set(false)" />
@@ -302,7 +302,7 @@ const DEFAULT_CLOUD_URL = 'https://cloud.panary.io'
                           dark:border-red-900/50 rounded-xl p-4">
                 <div class="w-3 h-3 rounded-full bg-red-400"></div>
                 <div>
-                  <span class="text-sm text-red-700 dark:text-red-400 font-medium block">Verbindungsfehler</span>
+                  <span class="text-sm text-red-700 dark:text-red-400 font-medium block">{{ 'CLOUD.CONNECTION_ERROR' | translate }}</span>
                   @if (connectionInfo()?.errorMessage) {
                     <span class="text-xs text-red-500 dark:text-red-400/70">{{ connectionInfo()?.errorMessage }}</span>
                   }
@@ -313,13 +313,13 @@ const DEFAULT_CLOUD_URL = 'https://cloud.panary.io'
                 <button (click)="onRetry()"
                   class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-6 py-3 rounded-xl text-sm
                          hover:bg-slate-800 dark:hover:bg-gray-200 transition">
-                  Erneut versuchen
+                  {{ 'CLOUD.RETRY' | translate }}
                 </button>
                 <button (click)="onReset()"
                   class="bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800
                          text-slate-600 dark:text-gray-300 px-6 py-3 rounded-xl text-sm
                          hover:bg-slate-200 dark:hover:bg-gray-800 transition">
-                  Zurücksetzen
+                  {{ 'CLOUD.RESET' | translate }}
                 </button>
               </div>
             </div>

@@ -14,6 +14,8 @@ type Status = (typeof Status)[keyof typeof Status]
   providedIn: 'root',
 })
 export class ProductGroupService extends BaseService<ProductGroupSchema> {
+  protected override entityLabelKey = 'ENTITY.PRODUCT_GROUP'
+
   /** PRIVATE PROPERTIES */
   #documents: WritableSignal<ProductGroupSchema[]> = signal([])
   #isLoading: WritableSignal<boolean> = signal(false)

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal, computed, OnInit, viewChild } from '@angular/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { UserFormComponent } from './user-form'
 import { ConfirmDialogComponent } from '../../core/confirm-dialog'
@@ -17,7 +18,7 @@ interface User {
 @Component({
   selector: 'app-user-list',
   standalone: true,
-  imports: [UserFormComponent, ConfirmDialogComponent],
+  imports: [UserFormComponent, ConfirmDialogComponent, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex h-full overflow-hidden">
@@ -26,30 +27,30 @@ interface User {
            class="overflow-y-auto">
         <div class="p-6 space-y-4">
           <div class="flex items-center justify-between min-h-9">
-            <h1 class="text-xl font-bold tracking-tight">Benutzer</h1>
+            <h1 class="text-xl font-bold tracking-tight">{{ 'USERS.TITLE' | translate }}</h1>
             <button (click)="selectItem('new')"
               class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-4 py-2 rounded-xl text-xs
                      hover:bg-slate-800 dark:hover:bg-gray-200 transition">
-              + Neu
+              + {{ 'COMMON.NEW' | translate }}
             </button>
           </div>
 
           @if (loading()) {
-            <p class="text-slate-400 dark:text-gray-500 text-sm">Laden...</p>
+            <p class="text-slate-400 dark:text-gray-500 text-sm">{{ 'COMMON.LOADING' | translate }}</p>
           } @else if (users().length === 0) {
-            <p class="text-slate-400 dark:text-gray-500 text-center py-12 text-sm">Keine Benutzer</p>
+            <p class="text-slate-400 dark:text-gray-500 text-center py-12 text-sm">{{ 'USERS.NO_USERS' | translate }}</p>
           } @else {
             <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden">
               <table class="w-full text-sm">
                 <thead>
                   <tr class="border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500
                              text-xs uppercase tracking-wider">
-                    <th class="px-3 py-2.5">Name</th>
+                    <th class="px-3 py-2.5">{{ 'COMMON.NAME' | translate }}</th>
                     @if (!selectedId()) {
-                      <th class="px-3 py-2.5">Login</th>
-                      <th class="px-3 py-2.5">Rolle</th>
-                      <th class="px-3 py-2.5">POS</th>
-                      <th class="px-3 py-2.5">Status</th>
+                      <th class="px-3 py-2.5">{{ 'USERS.LOGIN' | translate }}</th>
+                      <th class="px-3 py-2.5">{{ 'USERS.ROLE' | translate }}</th>
+                      <th class="px-3 py-2.5">{{ 'USERS.POS' | translate }}</th>
+                      <th class="px-3 py-2.5">{{ 'COMMON.STATUS' | translate }}</th>
                     }
                   </tr>
                 </thead>
@@ -73,7 +74,7 @@ interface User {
                         </td>
                         <td class="px-3 py-2.5">
                           @if (user.isPosUser) {
-                            <span class="text-green-400 text-xs">Ja</span>
+                            <span class="text-green-400 text-xs">{{ 'COMMON.YES' | translate }}</span>
                           } @else {
                             <span class="text-slate-400 dark:text-gray-600 text-xs">—</span>
                           }
@@ -111,7 +112,7 @@ interface User {
               @if (selectedId() !== 'new') {
                 {{ currentIndex() + 1 }} / {{ users().length }}
               } @else {
-                Neu
+                {{ 'COMMON.NEW' | translate }}
               }
             </span>
             <button (click)="nextItem()" [disabled]="currentIndex() >= users().length - 1"
@@ -151,6 +152,7 @@ interface User {
 })
 export class UserListComponent implements OnInit {
   private api = inject(ApiService)
+  private t = inject(TranslateService)
   users = signal<User[]>([])
   loading = signal(true)
   selectedId = signal<string | null>(null)
@@ -166,13 +168,13 @@ export class UserListComponent implements OnInit {
 
   formatRole(role: string): string {
     const map: Record<string, string> = {
-      'platform:owner': 'Plattform-Admin',
-      'platform:admin': 'Admin',
-      'tenant:owner': 'Inhaber',
-      'tenant:manager': 'Manager',
-      'tenant:staff': 'Mitarbeiter',
+      'platform:owner': 'ROLES.PLATFORM_OWNER',
+      'platform:admin': 'ROLES.PLATFORM_ADMIN',
+      'tenant:owner': 'ROLES.TENANT_OWNER',
+      'tenant:manager': 'ROLES.TENANT_MANAGER',
+      'tenant:staff': 'ROLES.TENANT_STAFF',
     }
-    return map[role] || role
+    return map[role] ? this.t.instant(map[role]) : role
   }
 
   private navigateWithDirtyCheck(action: () => void) {

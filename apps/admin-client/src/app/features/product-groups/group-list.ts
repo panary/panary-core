@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal, computed, OnInit, viewChild, ElementRef } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { GroupFormComponent } from './group-form'
 import { ConfirmDialogComponent } from '../../core/confirm-dialog'
@@ -33,7 +34,7 @@ interface ProductGroup {
 @Component({
   selector: 'app-group-list',
   standalone: true,
-  imports: [GroupFormComponent, ConfirmDialogComponent, FormsModule, GroupWizardComponent],
+  imports: [GroupFormComponent, ConfirmDialogComponent, FormsModule, GroupWizardComponent, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex h-full overflow-hidden">
@@ -42,7 +43,7 @@ interface ProductGroup {
            class="overflow-y-auto">
         <div class="p-6 space-y-4">
           <div class="flex items-center justify-between min-h-9">
-            <h1 class="text-xl font-bold tracking-tight">Produktgruppen</h1>
+            <h1 class="text-xl font-bold tracking-tight">{{ 'PRODUCT_GROUPS.TITLE' | translate }}</h1>
             <div class="flex items-center gap-2">
               @if (!selectedId()) {
                 <!-- Alle Buttons sichtbar wenn kein Panel -->
@@ -50,13 +51,13 @@ interface ProductGroup {
                   class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
                          px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
                          hover:bg-slate-50 dark:hover:bg-gray-800 transition">
-                  {{ exporting() ? 'Exportiere...' : 'Export' }}
+                  {{ exporting() ? ('COMMON.EXPORTING' | translate) : ('COMMON.EXPORT' | translate) }}
                 </button>
                 <button (click)="fileInput()?.nativeElement?.click()" [disabled]="importing()"
                   class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
                          px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
                          hover:bg-slate-50 dark:hover:bg-gray-800 transition">
-                  {{ importing() ? 'Importiere...' : 'Import' }}
+                  {{ importing() ? ('COMMON.IMPORTING' | translate) : ('COMMON.IMPORT' | translate) }}
                 </button>
                 <button (click)="showWizard.set(true)"
                   class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
@@ -68,7 +69,7 @@ interface ProductGroup {
                     <path d="M2 17l10 5 10-5"></path>
                     <path d="M2 12l10 5 10-5"></path>
                   </svg>
-                  Assistent
+                  {{ 'COMMON.WIZARD' | translate }}
                 </button>
               } @else {
                 <!-- Kebab-Menü wenn Panel geöffnet -->
@@ -91,13 +92,13 @@ interface ProductGroup {
                         class="w-full text-left text-xs px-3 py-2 rounded-lg
                                text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition
                                disabled:opacity-50">
-                        {{ exporting() ? 'Exportiere...' : 'Export' }}
+                        {{ exporting() ? ('COMMON.EXPORTING' | translate) : ('COMMON.EXPORT' | translate) }}
                       </button>
                       <button (click)="fileInput()?.nativeElement?.click(); actionsMenuOpen.set(false)" [disabled]="importing()"
                         class="w-full text-left text-xs px-3 py-2 rounded-lg
                                text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition
                                disabled:opacity-50">
-                        {{ importing() ? 'Importiere...' : 'Import' }}
+                        {{ importing() ? ('COMMON.IMPORTING' | translate) : ('COMMON.IMPORT' | translate) }}
                       </button>
                       <div class="h-px bg-slate-100 dark:bg-gray-800 my-0.5"></div>
                       <button (click)="showWizard.set(true); actionsMenuOpen.set(false)"
@@ -109,7 +110,7 @@ interface ProductGroup {
                           <path d="M2 17l10 5 10-5"></path>
                           <path d="M2 12l10 5 10-5"></path>
                         </svg>
-                        Assistent
+                        {{ 'COMMON.WIZARD' | translate }}
                       </button>
                     </div>
                   }
@@ -119,7 +120,7 @@ interface ProductGroup {
               <button (click)="selectItem('new')"
                 class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-4 py-2 rounded-xl text-xs
                        hover:bg-slate-800 dark:hover:bg-gray-200 transition">
-                + Neu
+                + {{ 'COMMON.NEW' | translate }}
               </button>
             </div>
           </div>
@@ -129,7 +130,7 @@ interface ProductGroup {
             <div class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
                         text-sm space-y-1">
               <div class="flex items-center justify-between">
-                <p class="font-medium text-slate-900 dark:text-white">Import abgeschlossen</p>
+                <p class="font-medium text-slate-900 dark:text-white">{{ 'COMMON.IMPORT_COMPLETE' | translate }}</p>
                 <div class="flex items-center gap-2">
                   @if (importResult()!.errors > 0) {
                     <button (click)="showErrorLog.set(true)"
@@ -150,10 +151,10 @@ interface ProductGroup {
                 </div>
               </div>
               <p class="text-slate-500 dark:text-gray-400">
-                Erstellt: {{ importResult()!.created }}, Aktualisiert: {{ importResult()!.updated }}
+                {{ 'COMMON.CREATED' | translate }}: {{ importResult()!.created }}, {{ 'COMMON.UPDATED' | translate }}: {{ importResult()!.updated }}
               </p>
               @if (importResult()!.errors > 0) {
-                <p class="text-red-500 dark:text-red-400">Fehler: {{ importResult()!.errors }}</p>
+                <p class="text-red-500 dark:text-red-400">{{ 'COMMON.ERRORS' | translate }}: {{ importResult()!.errors }}</p>
               }
             </div>
           }
@@ -169,7 +170,7 @@ interface ProductGroup {
                    (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
                 <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-gray-800">
                   <p class="text-slate-900 dark:text-white font-medium">
-                    Import-Fehler ({{ importResult()!.errorLogs.length }})
+                    {{ 'COMMON.IMPORT_ERRORS' | translate }} ({{ importResult()!.errorLogs.length }})
                   </p>
                   <button (click)="showErrorLog.set(false)"
                     class="text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-white transition">
@@ -200,7 +201,7 @@ interface ProductGroup {
                 <span class="inline-flex items-center gap-1 bg-slate-100 dark:bg-gray-800 text-slate-700
                              dark:text-gray-300 text-xs font-medium px-2.5 py-1 rounded-lg">
                   <span class="text-slate-400 dark:text-gray-500">{{ filter.key }}:</span>
-                  {{ filter.label }}
+                  {{ filter.label | translate }}
                   <button type="button" (click)="removeFilter(filter.key); $event.stopPropagation()"
                     class="text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-white ml-0.5
                            transition text-[10px]">
@@ -232,7 +233,7 @@ interface ProductGroup {
                       class="w-full px-3 py-2.5 flex items-center gap-3 text-left transition">
                       <span class="text-xs font-mono text-slate-500 dark:text-gray-400 bg-slate-100
                                    dark:bg-gray-800 px-1.5 py-0.5 rounded">{{ cmd.label }}</span>
-                      <span class="text-sm text-slate-600 dark:text-gray-300">{{ cmd.description }}</span>
+                      <span class="text-sm text-slate-600 dark:text-gray-300">{{ cmd.description | translate }}</span>
                     </button>
                   }
                 } @else {
@@ -243,7 +244,7 @@ interface ProductGroup {
                         ? 'bg-slate-100 dark:bg-gray-800'
                         : 'hover:bg-slate-50 dark:hover:bg-gray-800/50'"
                       class="w-full px-3 py-2.5 text-left text-sm text-slate-700 dark:text-gray-300 transition">
-                      {{ val.label }}
+                      {{ val.label | translate }}
                     </button>
                   }
                 }
@@ -252,10 +253,10 @@ interface ProductGroup {
           </div>
 
           @if (loading()) {
-            <p class="text-slate-400 dark:text-gray-500 text-sm">Laden...</p>
+            <p class="text-slate-400 dark:text-gray-500 text-sm">{{ 'COMMON.LOADING' | translate }}</p>
           } @else if (filteredGroups().length === 0) {
             <p class="text-slate-400 dark:text-gray-500 text-center py-12 text-sm">
-              {{ groups().length === 0 ? 'Keine Produktgruppen' : 'Keine Treffer' }}
+              {{ (groups().length === 0 ? 'PRODUCT_GROUPS.NO_GROUPS' : 'COMMON.NO_RESULTS') | translate }}
             </p>
           } @else {
             <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden">
@@ -264,11 +265,11 @@ interface ProductGroup {
                   <tr class="border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500
                              text-xs uppercase tracking-wider">
                     <th class="px-3 py-2.5 w-8"></th>
-                    <th class="px-3 py-2.5">Name</th>
+                    <th class="px-3 py-2.5">{{ 'COMMON.NAME' | translate }}</th>
                     @if (!selectedId()) {
-                      <th class="px-3 py-2.5">Kürzel</th>
-                      <th class="px-3 py-2.5">MwSt.</th>
-                      <th class="px-3 py-2.5">Status</th>
+                      <th class="px-3 py-2.5">{{ 'PRODUCTS.ACRONYM' | translate }}</th>
+                      <th class="px-3 py-2.5">{{ 'PRODUCT_GROUPS.VAT' | translate }}</th>
+                      <th class="px-3 py-2.5">{{ 'COMMON.STATUS' | translate }}</th>
                     }
                   </tr>
                 </thead>
@@ -317,7 +318,7 @@ interface ProductGroup {
               @if (selectedId() !== 'new') {
                 {{ currentIndex() + 1 }} / {{ filteredGroups().length }}
               } @else {
-                Neu
+                {{ 'COMMON.NEW' | translate }}
               }
             </span>
             <button (click)="nextItem()" [disabled]="currentIndex() >= filteredGroups().length - 1"
@@ -364,6 +365,7 @@ interface ProductGroup {
 })
 export class GroupListComponent implements OnInit {
   private api = inject(ApiService)
+  private t = inject(TranslateService)
   groups = signal<ProductGroup[]>([])
   loading = signal(true)
   selectedId = signal<string | null>(null)
@@ -387,11 +389,11 @@ export class GroupListComponent implements OnInit {
     {
       key: 'status',
       label: '/status:',
-      description: 'Nach Status filtern',
+      description: 'COMMON.FILTER_BY_STATUS',
       values: [
-        { value: 'ACTIVE', label: 'Aktiv' },
-        { value: 'DRAFT', label: 'Entwurf' },
-        { value: 'ARCHIVED', label: 'Archiviert' },
+        { value: 'ACTIVE', label: 'COMMON.STATUS_ACTIVE' },
+        { value: 'DRAFT', label: 'COMMON.STATUS_DRAFT' },
+        { value: 'ARCHIVED', label: 'COMMON.STATUS_ARCHIVED' },
       ],
     },
   ]
@@ -444,8 +446,8 @@ export class GroupListComponent implements OnInit {
   }
 
   statusLabel(status: string): string {
-    const map: Record<string, string> = { ACTIVE: 'Aktiv', DRAFT: 'Entwurf', ARCHIVED: 'Archiviert' }
-    return map[status] || status
+    const map: Record<string, string> = { ACTIVE: 'COMMON.STATUS_ACTIVE', DRAFT: 'COMMON.STATUS_DRAFT', ARCHIVED: 'COMMON.STATUS_ARCHIVED' }
+    return map[status] ? this.t.instant(map[status]) : status
   }
 
   private navigateWithDirtyCheck(action: () => void) {

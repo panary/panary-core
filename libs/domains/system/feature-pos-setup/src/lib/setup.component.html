@@ -1,6 +1,6 @@
-<div class="w-full h-screen flex overflow-hidden">
+<div class="w-full h-screen flex overflow-hidden dark:bg-black">
   <!-- Left Side: Functional (White) -->
-  <div class="w-full lg:w-1/2 relative bg-white flex items-center justify-center p-8 lg:p-12">
+  <div class="w-full lg:w-1/2 relative bg-white dark:bg-black flex items-center justify-center p-8 lg:p-12">
     <!-- Logo Top Left -->
     <div class="absolute top-8 left-8">
       <img src="/assets/logos/panary_logo_color.svg" alt="Panary Logo" class="h-8 w-auto block" />
@@ -18,33 +18,33 @@
             >
               1
             </div>
-            <div class="w-8 h-1 bg-gray-200 rounded"></div>
+            <div class="w-8 h-1 bg-gray-200 dark:bg-gray-700 rounded"></div>
             <div
-              class="w-8 h-8 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center text-sm font-semibold"
+              class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 flex items-center justify-center text-sm font-semibold"
             >
               2
             </div>
-            <div class="w-8 h-1 bg-gray-200 rounded"></div>
+            <div class="w-8 h-1 bg-gray-200 dark:bg-gray-700 rounded"></div>
             <div
-              class="w-8 h-8 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center text-sm font-semibold"
+              class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 flex items-center justify-center text-sm font-semibold"
             >
               3
             </div>
           </div>
 
-          <h2 class="text-3xl font-bold text-[#0F172A] mb-2 text-center">{{ stepTitle() }}</h2>
-          <p class="text-sm text-gray-500 text-center mb-6">{{ stepDescription() }}</p>
+          <h2 class="text-3xl font-bold text-[#0F172A] dark:text-white mb-2 text-center">{{ stepTitle() }}</h2>
+          <p class="text-sm text-gray-500 dark:text-gray-400 text-center mb-6">{{ stepDescription() }}</p>
 
           <form class="w-full flex flex-col gap-5" (ngSubmit)="submitStep1()">
             <!-- Server URL -->
             <div class="flex flex-col gap-1.5">
-              <label for="serverUrl" class="text-sm font-semibold text-[#0F172A]">Server-URL</label>
+              <label for="serverUrl" class="text-sm font-semibold text-[#0F172A] dark:text-white">{{ 'SETUP.SERVER_URL' | translate }}</label>
               <input
                 type="url"
                 id="serverUrl"
                 name="serverUrl"
                 [(ngModel)]="serverUrl"
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#00B8D4] focus:border-transparent transition-all"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#00B8D4] focus:border-transparent transition-all dark:bg-gray-800 dark:text-white"
                 placeholder="https://api.panary.de"
                 required
               />
@@ -52,13 +52,13 @@
 
             <!-- Admin Loginname -->
             <div class="flex flex-col gap-1.5">
-              <label for="loginname" class="text-sm font-semibold text-[#0F172A]">Admin-Benutzername</label>
+              <label for="loginname" class="text-sm font-semibold text-[#0F172A] dark:text-white">{{ 'SETUP.ADMIN_USERNAME' | translate }}</label>
               <input
                 type="text"
                 id="loginname"
                 name="loginname"
                 [(ngModel)]="loginname"
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#00B8D4] focus:border-transparent transition-all"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#00B8D4] focus:border-transparent transition-all dark:bg-gray-800 dark:text-white"
                 placeholder="admin"
                 autocomplete="username"
                 required
@@ -67,13 +67,13 @@
 
             <!-- Admin Password -->
             <div class="flex flex-col gap-1.5">
-              <label for="password" class="text-sm font-semibold text-[#0F172A]">Admin-Passwort</label>
+              <label for="password" class="text-sm font-semibold text-[#0F172A] dark:text-white">{{ 'SETUP.ADMIN_PASSWORD' | translate }}</label>
               <input
                 type="password"
                 id="password"
                 name="password"
                 [(ngModel)]="password"
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#00B8D4] focus:border-transparent transition-all"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#00B8D4] focus:border-transparent transition-all dark:bg-gray-800 dark:text-white"
                 placeholder="••••••••"
                 autocomplete="current-password"
                 required
@@ -90,7 +90,7 @@
                 <span
                   class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
                 ></span>
-                <span>Verbindung wird hergestellt...</span>
+                <span>{{ 'SETUP.STATUS_CONNECTING' | translate }}</span>
               } @else {
                 Weiter
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,7 +102,7 @@
 
           <!-- Footer -->
           <div class="mt-6 text-center">
-            <p class="text-xs text-gray-400">Version 2025.12.3</p>
+            <p class="text-xs text-gray-400 dark:text-gray-500">Version 2025.12.3</p>
           </div>
         </div>
       }
@@ -127,30 +127,30 @@
             >
               2
             </div>
-            <div class="w-8 h-1 bg-gray-200 rounded"></div>
+            <div class="w-8 h-1 bg-gray-200 dark:bg-gray-700 rounded"></div>
             <div
-              class="w-8 h-8 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center text-sm font-semibold"
+              class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 flex items-center justify-center text-sm font-semibold"
             >
               3
             </div>
           </div>
 
-          <h2 class="text-3xl font-bold text-[#0F172A] mb-2 text-center">{{ stepTitle() }}</h2>
-          <p class="text-sm text-gray-500 text-center mb-6">{{ stepDescription() }}</p>
+          <h2 class="text-3xl font-bold text-[#0F172A] dark:text-white mb-2 text-center">{{ stepTitle() }}</h2>
+          <p class="text-sm text-gray-500 dark:text-gray-400 text-center mb-6">{{ stepDescription() }}</p>
 
           <form class="w-full flex flex-col gap-5" (ngSubmit)="submitStep2()">
             <!-- Organization Select -->
             <div class="flex flex-col gap-1.5">
-              <label for="organization" class="text-sm font-semibold text-[#0F172A]">Organisation</label>
+              <label for="organization" class="text-sm font-semibold text-[#0F172A] dark:text-white">{{ 'SETUP.ORGANIZATION' | translate }}</label>
               <select
                 id="organization"
                 name="organization"
                 [(ngModel)]="selectedTenantId"
                 (ngModelChange)="onOrganizationChange()"
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#00B8D4] focus:border-transparent transition-all bg-white"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#00B8D4] focus:border-transparent transition-all dark:bg-gray-800 dark:text-white bg-white"
                 required
               >
-                <option value="">Organisation auswählen...</option>
+                <option value="">{{ 'SETUP.SELECT_ORG' | translate }}</option>
                 @for (org of organizations(); track org._id) {
                   <option [value]="org._id">{{ org.name }}</option>
                 }
@@ -159,22 +159,22 @@
 
             <!-- Location Select -->
             <div class="flex flex-col gap-1.5">
-              <label for="location" class="text-sm font-semibold text-[#0F172A]">Standort</label>
+              <label for="location" class="text-sm font-semibold text-[#0F172A] dark:text-white">{{ 'SETUP.LOCATION' | translate }}</label>
               <select
                 id="location"
                 name="location"
                 [(ngModel)]="selectedLocationId"
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#00B8D4] focus:border-transparent transition-all bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#00B8D4] focus:border-transparent transition-all dark:bg-gray-800 dark:text-white bg-white disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:cursor-not-allowed"
                 [disabled]="!selectedTenantId"
                 required
               >
-                <option value="">Standort auswählen...</option>
+                <option value="">{{ 'SETUP.SELECT_LOCATION' | translate }}</option>
                 @for (loc of filteredLocations(); track loc._id) {
                   <option [value]="loc._id">{{ loc.name }}</option>
                 }
               </select>
               @if (!selectedTenantId) {
-                <p class="text-xs text-gray-400">Bitte wählen Sie zuerst eine Organisation</p>
+                <p class="text-xs text-gray-400 dark:text-gray-500">{{ 'SETUP.SELECT_ORG_FIRST' | translate }}</p>
               }
             </div>
 
@@ -182,7 +182,7 @@
             <div class="flex gap-3 mt-2">
               <button
                 type="button"
-                class="flex-1 bg-gray-100 text-gray-700 font-semibold py-3 px-6 rounded-lg hover:bg-gray-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                class="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold py-3 px-6 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 (click)="goBack()"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -237,14 +237,14 @@
             </div>
           </div>
 
-          <h2 class="text-3xl font-bold text-[#0F172A] mb-2 text-center">{{ stepTitle() }}</h2>
-          <p class="text-sm text-gray-500 text-center mb-6">{{ stepDescription() }}</p>
+          <h2 class="text-3xl font-bold text-[#0F172A] dark:text-white mb-2 text-center">{{ stepTitle() }}</h2>
+          <p class="text-sm text-gray-500 dark:text-gray-400 text-center mb-6">{{ stepDescription() }}</p>
 
           <form class="w-full flex flex-col gap-5" (ngSubmit)="submitStep3()">
             <!-- Device Name -->
             <div class="flex flex-col gap-1.5">
               <div class="flex justify-between items-center">
-                <label for="deviceName" class="text-sm font-semibold text-[#0F172A]">Gerätename</label>
+                <label for="deviceName" class="text-sm font-semibold text-[#0F172A] dark:text-white">{{ 'SETUP.DEVICE_NAME' | translate }}</label>
                 <span class="text-xs text-gray-400">{{ deviceName.length }}/{{ DEVICE_NAME_MAX_LENGTH }}</span>
               </div>
               <input
@@ -262,18 +262,18 @@
               @if (getDeviceNameError()) {
                 <p class="text-xs text-red-500">{{ getDeviceNameError() }}</p>
               } @else {
-                <p class="text-xs text-gray-400">Nur Buchstaben, Zahlen, Leerzeichen und Bindestriche</p>
+                <p class="text-xs text-gray-400 dark:text-gray-500">{{ 'SETUP.DEVICE_NAME_HINT' | translate }}</p>
               }
             </div>
 
             <!-- Device Type -->
             <div class="flex flex-col gap-1.5">
-              <label for="deviceType" class="text-sm font-semibold text-[#0F172A]">Gerätetyp</label>
+              <label for="deviceType" class="text-sm font-semibold text-[#0F172A] dark:text-white">{{ 'SETUP.DEVICE_TYPE' | translate }}</label>
               <select
                 id="deviceType"
                 name="deviceType"
                 [(ngModel)]="deviceType"
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#00B8D4] focus:border-transparent transition-all bg-white"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#00B8D4] focus:border-transparent transition-all dark:bg-gray-800 dark:text-white bg-white"
                 required
               >
                 @for (type of deviceTypes; track type.value) {
@@ -286,7 +286,7 @@
             <div class="flex gap-3 mt-2">
               <button
                 type="button"
-                class="flex-1 bg-gray-100 text-gray-700 font-semibold py-3 px-6 rounded-lg hover:bg-gray-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                class="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold py-3 px-6 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 (click)="goBack()"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -303,7 +303,7 @@
                   <span
                     class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
                   ></span>
-                  <span>Registrieren...</span>
+                  <span>{{ 'SETUP.REGISTERING' | translate }}</span>
                 } @else {
                   Gerät registrieren
                 }
@@ -319,8 +319,8 @@
           <div class="mb-8">
             <div class="w-16 h-16 border-4 border-[#00B8D4] border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <h3 class="text-2xl font-bold text-[#0F172A] mb-3">{{ stepTitle() }}</h3>
-          <p class="text-[#64748b] text-center">{{ stepDescription() }}</p>
+          <h3 class="text-2xl font-bold text-[#0F172A] dark:text-white mb-3">{{ stepTitle() }}</h3>
+          <p class="text-[#64748b] dark:text-gray-400 text-center">{{ stepDescription() }}</p>
         </div>
       }
 
@@ -339,16 +339,16 @@
               />
             </svg>
           </div>
-          <h3 class="text-2xl font-bold text-[#0F172A] mb-3">{{ stepTitle() }}</h3>
-          <p class="text-[#64748b] text-center mb-6">{{ stepDescription() }}</p>
+          <h3 class="text-2xl font-bold text-[#0F172A] dark:text-white mb-3">{{ stepTitle() }}</h3>
+          <p class="text-[#64748b] dark:text-gray-400 text-center mb-6">{{ stepDescription() }}</p>
 
           <!-- Show registered Device ID -->
           @if (registeredDeviceId()) {
             <div
               class="px-4 py-3 bg-gradient-to-r from-emerald-500/10 to-[#0F172A]/5 rounded-lg border border-emerald-500/20 w-full"
             >
-              <p class="text-xs text-[#0F172A]/70 text-center">
-                <span class="font-normal block">Geräte-ID:</span>
+              <p class="text-xs text-[#0F172A] dark:text-white/70 text-center">
+                <span class="font-normal block">{{ 'SETUP.DEVICE_ID' | translate }}:</span>
                 <span class="font-mono font-semibold text-emerald-600 block mt-1 text-sm break-all">{{
                   registeredDeviceId()
                 }}</span>
@@ -356,7 +356,7 @@
             </div>
           }
 
-          <p class="mt-4 text-sm text-gray-400">Weiterleitung zum Login...</p>
+          <p class="mt-4 text-sm text-gray-400 dark:text-gray-500">{{ 'SETUP.REDIRECT_LOGIN' | translate }}</p>
         </div>
       }
 
@@ -375,13 +375,13 @@
               />
             </svg>
           </div>
-          <h3 class="text-2xl font-bold text-[#0F172A] mb-3">{{ stepTitle() }}</h3>
-          <p class="text-[#64748b] text-center mb-6">{{ stepDescription() }}</p>
+          <h3 class="text-2xl font-bold text-[#0F172A] dark:text-white mb-3">{{ stepTitle() }}</h3>
+          <p class="text-[#64748b] dark:text-gray-400 text-center mb-6">{{ stepDescription() }}</p>
 
           <!-- Retry Button -->
           <button
             type="button"
-            class="w-full max-w-xs bg-[#0F172A] text-white font-semibold py-3 px-6 rounded-lg hover:bg-[#1e293b] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            class="w-full max-w-xs bg-[#0F172A] dark:bg-white text-white dark:text-black font-semibold py-3 px-6 rounded-lg hover:bg-[#1e293b] dark:hover:bg-gray-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
             (click)="retryRegistration()"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -401,7 +401,7 @@
 
   <!-- Right Side: Abstract 3D Background (hidden on mobile) -->
   <div
-    class="hidden lg:flex w-1/2 relative bg-[#F9FAFB] m-4 p-8 rounded-xl items-center justify-center overflow-hidden"
+    class="hidden lg:flex w-1/2 relative bg-[#F9FAFB] dark:bg-gray-900 m-4 p-8 rounded-xl items-center justify-center overflow-hidden"
   >
     <!-- Particle Network Animation -->
     <lib-particle-network></lib-particle-network>
@@ -410,8 +410,8 @@
     <div class="absolute top-8 right-32 z-10">
       <button
         (click)="toggleTheme()"
-        class="w-10 h-10 rounded-full bg-white hover:bg-gray-50 border border-gray-200 shadow-sm flex items-center justify-center transition-all text-slate-600"
-        title="Design ändern"
+        class="w-10 h-10 rounded-full bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 shadow-sm flex items-center justify-center transition-all text-slate-600 dark:text-gray-300"
+        [title]="'LOGIN.CHANGE_THEME' | translate"
       >
         @if (themeService.theme === 'light') {
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

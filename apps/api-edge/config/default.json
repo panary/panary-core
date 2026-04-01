@@ -25,7 +25,7 @@
   "authentication": {
     "entity": "user",
     "service": "users",
-    "secret": "8a5416c1170940dc1200021245a111a4",
+    "secret": "CHANGE_ME_IN_PRODUCTION",
     "authStrategies": [
       "jwt",
       "local"

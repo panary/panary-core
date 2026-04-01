@@ -7,6 +7,8 @@ import { Observer } from 'rxjs'
   providedIn: 'root',
 })
 export class WriteOffService extends BaseService<WriteOff> {
+  protected override entityLabelKey = 'ENTITY.WRITE_OFF'
+
   /** CONSTRUCTOR */
   constructor() {
     super(inject(ConnectionService).writeOffService, 'writeOffService')

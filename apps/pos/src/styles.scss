@@ -1,7 +1,11 @@
 @use "tailwindcss";
 @use "@angular/material" as mat;
 
-/* Angular Material Theme */
+/* Dark-Mode-Variante: Tailwind dark: Klassen über .dark-Klasse aktivieren */
+/* Hinweis: Block-Syntax (@slot) funktioniert nicht in SCSS — Einzeiler-Syntax verwenden */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Angular Material Theme — Light (Standard) */
 html {
   @include mat.theme((
     color: (
@@ -12,6 +16,34 @@ html {
     typography: Switzer,
     density: 0,
   ));
+}
+
+/* Angular Material Theme — Dark (manuell über data-theme-Attribut) */
+html[data-theme='dark'] {
+  @include mat.theme((
+    color: (
+      theme-type: dark,
+      primary: mat.$azure-palette,
+      tertiary: mat.$blue-palette,
+    ),
+    typography: Switzer,
+    density: 0,
+  ));
+}
+
+/* Angular Material Theme — Dark (System-Modus: OS-Präferenz) */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) {
+    @include mat.theme((
+      color: (
+        theme-type: dark,
+        primary: mat.$azure-palette,
+        tertiary: mat.$blue-palette,
+      ),
+      typography: Switzer,
+      density: 0,
+    ));
+  }
 }
 
 /* Material-Komponenten: Switzer als Schriftart global erzwingen */
@@ -74,6 +106,40 @@ html {
   font-size: 14px !important;
 }
 
+/* Dark-Mode-Overrides für Material-Komponenten mit hartcodierten Farben */
+body.dark .mat-mdc-snack-bar-container {
+  --mat-snack-bar-container-color: #1e293b;
+  --mat-snack-bar-supporting-text-color: #f1f5f9;
+  --mat-snack-bar-button-color: #60a5fa;
+
+  .mdc-snackbar__surface {
+    border-color: #334155 !important;
+  }
+}
+
+body.dark .mat-mdc-select-panel {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+/* System-Modus: Material-Overrides bei OS-Dark */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) .mat-mdc-snack-bar-container {
+    --mat-snack-bar-container-color: #1e293b;
+    --mat-snack-bar-supporting-text-color: #f1f5f9;
+    --mat-snack-bar-button-color: #60a5fa;
+
+    .mdc-snackbar__surface {
+      border-color: #334155 !important;
+    }
+  }
+
+  html:not([data-theme]) .mat-mdc-select-panel {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+  }
+}
+
 /* ==========================================================================
    Globales Layout: Volle Viewport-Höhe für die gesamte App
    ========================================================================== */
@@ -81,6 +147,21 @@ html, body {
   height: 100dvh;
   margin: 0;
   background-color: #f8fafc; /* slate-50 */
+}
+
+/* Manuell auf Dunkel gesetzt */
+.dark body,
+body.dark {
+  background-color: #000;
+  color: #fff;
+}
+
+/* System-Modus: body-Hintergrund bei OS-Dark */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) body {
+    background-color: #000;
+    color: #fff;
+  }
 }
 
 app-root {

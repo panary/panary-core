@@ -3,7 +3,7 @@ import os from 'os'
 /**
  * Get the local (non-internal) IPv4 address.
  */
-function getLocalIpAddress(): string {
+export function getLocalIpAddress(): string {
   const interfaces = os.networkInterfaces()
   for (const name of Object.keys(interfaces)) {
     for (const iface of interfaces[name] || []) {

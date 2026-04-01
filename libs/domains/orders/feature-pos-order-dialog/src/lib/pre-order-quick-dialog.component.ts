@@ -5,6 +5,7 @@ import { MatStepperModule } from '@angular/material/stepper'
 import { TouchCalendarComponent } from './touch-calendar.component'
 import { TouchTimePickerComponent } from './touch-time-picker.component'
 import { VirtualKeyboardComponent } from './virtual-keyboard.component'
+import { TranslateModule } from '@ngx-translate/core'
 
 /**
  * Vorbestelldialog mit 2-Schritt-Stepper.
@@ -24,19 +25,20 @@ import { VirtualKeyboardComponent } from './virtual-keyboard.component'
     TouchCalendarComponent,
     TouchTimePickerComponent,
     VirtualKeyboardComponent,
+    TranslateModule,
   ],
   styles: `
     ::ng-deep .mat-horizontal-content-container { overflow: visible !important; }
     ::ng-deep .mat-horizontal-stepper-header-container { z-index: 1; }
   `,
   template: `
-    <div class="flex flex-col h-full w-full bg-white rounded-xl overflow-hidden">
+    <div class="flex flex-col h-full w-full bg-white dark:bg-gray-900 rounded-xl overflow-hidden">
       <!-- Header -->
-      <div class="flex justify-between items-center p-4 border-b border-slate-200">
+      <div class="flex justify-between items-center p-4 border-b border-slate-200 dark:border-gray-700">
         <div class="flex flex-row gap-2 items-center">
-          <h2 class="text-xl font-bold text-slate-800">Vorbestellung aufnehmen</h2>
+          <h2 class="text-xl font-bold text-slate-800 dark:text-white">{{ 'PRE_ORDER_DIALOG.TITLE' | translate }}</h2>
           @if (formattedDate()) {
-            <span class="text-xl font-bold text-slate-600">für</span>
+            <span class="text-xl font-bold text-slate-600 dark:text-gray-300">für</span>
             <span class="text-xl font-bold px-2 py-0.5 rounded bg-slate-800 text-white">{{ formattedDate() }}</span>
           }
           @if (formattedTime()) {
@@ -44,25 +46,25 @@ import { VirtualKeyboardComponent } from './virtual-keyboard.component'
           }
         </div>
         <button (click)="close()"
-          class="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-slate-100 transition-colors text-slate-400">
+          class="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors text-slate-400 dark:text-gray-500">
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
 
       <!-- Stepper -->
-      <div class="flex-1 overflow-auto bg-slate-50 relative">
+      <div class="flex-1 overflow-auto bg-slate-50 dark:bg-gray-950 relative">
         <mat-stepper [linear]="true" #stepper class="h-full bg-slate-50" [animationDuration]="'0'">
 
           <!-- Schritt 1: Zeitpunkt -->
           <mat-step [stepControl]="dateFormGroup">
-            <ng-template matStepLabel>Zeitpunkt</ng-template>
+            <ng-template matStepLabel>{{ 'PRE_ORDER_DIALOG.TIME_STEP' | translate }}</ng-template>
             <div class="flex flex-row h-full gap-4 p-4 items-stretch">
-              <div class="flex-1 bg-white rounded-xl border border-slate-200 overflow-hidden">
+              <div class="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 overflow-hidden">
                 <app-touch-calendar
                   [selectedDate]="selectedDate()"
                   (dateChange)="onDateChange($event)" />
               </div>
-              <div class="flex-1 bg-white rounded-xl border border-slate-200 overflow-hidden p-4">
+              <div class="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 overflow-hidden p-4">
                 <app-touch-time-picker
                   [selectedTime]="selectedTime()"
                   (timeChange)="onTimeChange($event)" />
@@ -79,21 +81,21 @@ import { VirtualKeyboardComponent } from './virtual-keyboard.component'
 
           <!-- Schritt 2: Kontaktdaten -->
           <mat-step [stepControl]="contactFormGroup">
-            <ng-template matStepLabel>Kontaktdaten</ng-template>
-            <div class="flex flex-col h-full bg-slate-50 relative p-8">
+            <ng-template matStepLabel>{{ 'PRE_ORDER_DIALOG.CONTACT_STEP' | translate }}</ng-template>
+            <div class="flex flex-col h-full bg-slate-50 dark:bg-gray-950 relative p-8">
               <div class="grid grid-cols-2 gap-8 items-start relative h-full">
 
                 <!-- Name -->
                 <div class="flex flex-col gap-2 relative">
-                  <label class="font-bold text-slate-700 ml-1">Kundenname</label>
+                  <label class="font-bold text-slate-700 dark:text-gray-300 ml-1">{{ 'PRE_ORDERS.CUSTOMER_NAME' | translate }}</label>
                   <div
-                    class="h-16 px-4 bg-white border-2 rounded-xl flex items-center text-xl font-medium cursor-pointer transition-colors relative z-20"
+                    class="h-16 px-4 bg-white dark:bg-gray-800 border-2 rounded-xl flex items-center text-xl font-medium cursor-pointer dark:text-white transition-colors relative z-20"
                     [class.border-slate-800]="activeField() === 'name'"
                     [class.border-slate-200]="activeField() !== 'name'"
                     (click)="setActiveField('name')">
                     <span class="material-symbols-outlined text-slate-400 mr-2">person</span>
                     <span [class.text-slate-400]="!contactFormGroup.get('name')?.value">
-                      {{ contactFormGroup.get('name')?.value || 'Name eingeben' }}
+                      {{ contactFormGroup.get('name')?.value || ('PRE_ORDER_DIALOG.ENTER_NAME' | translate) }}
                     </span>
                     @if (activeField() === 'name') {
                       <div class="w-0.5 h-6 bg-slate-800 animate-pulse ml-1"></div>
@@ -102,7 +104,7 @@ import { VirtualKeyboardComponent } from './virtual-keyboard.component'
 
                   @if (activeField() === 'name') {
                     <div class="absolute top-[110%] left-0 z-50 filter drop-shadow-xl">
-                      <div class="w-4 h-4 bg-slate-50 border-t border-l border-slate-200 transform rotate-45 absolute -top-2 left-8 z-20"></div>
+                      <div class="w-4 h-4 bg-slate-50 dark:bg-gray-900 border-t border-l border-slate-200 dark:border-gray-700 transform rotate-45 absolute -top-2 left-8 z-20"></div>
                       <app-virtual-keyboard
                         [layout]="'default'"
                         (keyPress)="onKeyPress($event)"
@@ -114,15 +116,15 @@ import { VirtualKeyboardComponent } from './virtual-keyboard.component'
 
                 <!-- Telefon -->
                 <div class="flex flex-col gap-2 relative">
-                  <label class="font-bold text-slate-700 ml-1">Telefonnummer</label>
+                  <label class="font-bold text-slate-700 dark:text-gray-300 ml-1">{{ 'PRE_ORDER_DIALOG.PHONE_NUMBER' | translate }}</label>
                   <div
-                    class="h-16 px-4 bg-white border-2 rounded-xl flex items-center text-xl font-medium cursor-pointer transition-colors relative z-20"
+                    class="h-16 px-4 bg-white dark:bg-gray-800 border-2 rounded-xl flex items-center text-xl font-medium cursor-pointer dark:text-white transition-colors relative z-20"
                     [class.border-slate-800]="activeField() === 'phone'"
                     [class.border-slate-200]="activeField() !== 'phone'"
                     (click)="setActiveField('phone')">
                     <span class="material-symbols-outlined text-slate-400 mr-2">phone</span>
                     <span [class.text-slate-400]="!contactFormGroup.get('phone')?.value">
-                      {{ contactFormGroup.get('phone')?.value || 'Nummer eingeben' }}
+                      {{ contactFormGroup.get('phone')?.value || ('PRE_ORDER_DIALOG.ENTER_PHONE' | translate) }}
                     </span>
                     @if (activeField() === 'phone') {
                       <div class="w-0.5 h-6 bg-slate-800 animate-pulse ml-1"></div>
@@ -131,7 +133,7 @@ import { VirtualKeyboardComponent } from './virtual-keyboard.component'
 
                   @if (activeField() === 'phone') {
                     <div class="absolute top-[110%] right-0 z-50 filter drop-shadow-xl">
-                      <div class="w-4 h-4 bg-slate-50 border-t border-l border-slate-200 transform rotate-45 absolute -top-2 right-8 z-20"></div>
+                      <div class="w-4 h-4 bg-slate-50 dark:bg-gray-900 border-t border-l border-slate-200 dark:border-gray-700 transform rotate-45 absolute -top-2 right-8 z-20"></div>
                       <app-virtual-keyboard
                         [layout]="'numeric'"
                         (keyPress)="onKeyPress($event)"
@@ -146,7 +148,7 @@ import { VirtualKeyboardComponent } from './virtual-keyboard.component'
               @if (!activeField()) {
                 <div class="flex justify-end gap-4 mt-auto pt-4">
                   <button matStepperPrevious
-                    class="h-12 px-6 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors">
+                    class="h-12 px-6 rounded-xl text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors">
                     Zurück
                   </button>
                   <button (click)="submit()" [disabled]="contactFormGroup.invalid"

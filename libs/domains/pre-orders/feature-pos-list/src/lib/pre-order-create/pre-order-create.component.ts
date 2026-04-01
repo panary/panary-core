@@ -10,6 +10,7 @@ import { PreOrderService, PreOrder } from '@panary-core/pre-orders/data-access'
 import { ProductService, ProductSchema } from '@panary-core/products/data-access'
 import { OrderLineItemSchema } from '@panary-core/orders/data-access'
 import { debounceTime, tap } from 'rxjs/operators'
+import { TranslateModule } from '@ngx-translate/core'
 
 @Component({
   selector: 'app-pre-order-create',
@@ -21,41 +22,42 @@ import { debounceTime, tap } from 'rxjs/operators'
     MatDatepickerModule,
     MatNativeDateModule,
     MatAutocompleteModule,
+    TranslateModule,
   ],
   template: `
-    <h2 mat-dialog-title>Neue Vorbestellung</h2>
+    <h2 mat-dialog-title>{{ 'PRE_ORDERS.NEW_PRE_ORDER' | translate }}</h2>
     <mat-dialog-content [formGroup]="form" class="flex flex-col gap-4 min-w-[500px]">
       <!-- Contact Info -->
       <div class="grid grid-cols-2 gap-4">
         <div class="space-y-1">
-          <label class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1 block">Kundenname</label>
+          <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.CUSTOMER_NAME' | translate }}</label>
           <input formControlName="name" placeholder="Max Mustermann" cdkFocusInitial
-            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none placeholder-slate-400" />
+            class="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl px-4 py-3 text-slate-800 dark:text-gray-200 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none placeholder-slate-400" />
         </div>
 
         <div class="space-y-1">
-          <label class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1 block">Telefon</label>
+          <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.PHONE' | translate }}</label>
           <input formControlName="phone" placeholder="0123 456789"
-            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none placeholder-slate-400" />
+            class="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl px-4 py-3 text-slate-800 dark:text-gray-200 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none placeholder-slate-400" />
         </div>
       </div>
 
       <!-- Date/Time -->
       <div class="space-y-1">
-        <label class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1 block">Datum &amp; Uhrzeit</label>
+        <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.DATE_TIME' | translate }}</label>
         <input type="datetime-local" formControlName="scheduledFor"
-          class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none placeholder-slate-400" />
-        <p class="text-xs text-slate-400 mt-1">Wann soll die Bestellung abgeholt werden?</p>
+          class="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl px-4 py-3 text-slate-800 dark:text-gray-200 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none placeholder-slate-400" />
+        <p class="text-xs text-slate-400 mt-1">{{ 'PRE_ORDERS.PICKUP_TIME_HINT' | translate }}</p>
       </div>
 
       <!-- Item Selection -->
       <div class="flex flex-col gap-2 border-t pt-4">
-        <h3 class="font-bold text-gray-700">Artikel hinzufügen</h3>
+        <h3 class="font-bold text-gray-700">{{ 'PRE_ORDERS.ADD_ITEMS' | translate }}</h3>
 
         <div class="space-y-1 relative">
-          <label class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1 block">Artikel suchen...</label>
+          <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.SEARCH_ITEMS' | translate }}</label>
           <div class="relative">
-            <input [formControl]="searchControl" [matAutocomplete]="auto" placeholder="Name eingeben..."
+            <input [formControl]="searchControl" [matAutocomplete]="auto" [placeholder]="'PRE_ORDERS.ENTER_NAME' | translate"
               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 pr-10 text-slate-800 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none placeholder-slate-400" />
             <span class="material-symbols-outlined text-[20px] absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
           </div>
@@ -76,12 +78,12 @@ import { debounceTime, tap } from 'rxjs/operators'
         </div>
 
         <!-- Selected Items List -->
-        <div class="bg-gray-50 rounded-lg p-2 max-h-40 overflow-y-auto mb-2 border border-gray-200">
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-2 max-h-40 overflow-y-auto mb-2 border border-gray-200 dark:border-gray-700">
           @if (selectedItems().length === 0) {
-            <p class="text-center text-gray-400 text-sm py-2">Noch keine Artikel ausgewählt</p>
+            <p class="text-center text-gray-400 text-sm py-2">{{ 'PRE_ORDERS.NO_ITEMS_SELECTED' | translate }}</p>
           }
           @for (item of selectedItems(); track item._id + '-' + $index) {
-            <div class="flex justify-between items-center p-2 bg-white rounded shadow-sm mb-1 border border-gray-100">
+            <div class="flex justify-between items-center p-2 bg-white dark:bg-gray-900 rounded shadow-sm mb-1 border border-gray-100 dark:border-gray-700">
               <div class="flex flex-col">
                 <span class="font-medium text-sm">{{ item.name }}</span>
                 <span class="text-xs text-gray-500">{{ item.price | currency: 'EUR' }}</span>
@@ -101,7 +103,7 @@ import { debounceTime, tap } from 'rxjs/operators'
 
     <mat-dialog-actions align="end" class="!px-6 !pb-6">
       <button type="button" mat-dialog-close
-        class="px-4 py-2 text-slate-600 hover:bg-slate-50 rounded-xl transition-colors">
+        class="px-4 py-2 text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 rounded-xl transition-colors">
         Abbrechen
       </button>
       <button type="button" [disabled]="form.invalid" (click)="save()"

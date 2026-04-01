@@ -1,14 +1,20 @@
-<div class="w-full h-dvh flex overflow-hidden bg-slate-50">
+<div class="w-full h-dvh flex overflow-hidden bg-slate-50 dark:bg-black">
   <!-- Left Side: Login Content -->
-  <div class="w-full lg:flex-1 relative bg-slate-50 flex flex-col">
+  <div class="w-full lg:flex-1 relative bg-slate-50 dark:bg-black flex flex-col">
     <!-- Logo Top Left -->
     <div class="absolute top-6 left-6 z-10 lg:hidden">
       <img src="/assets/logos/panary_logo_color.svg" alt="Panary Logo" class="h-7 w-auto block" />
     </div>
 
-    <!-- Device Info Top Right (mobile) / Hidden on desktop -->
-    <div class="absolute top-6 right-6 z-10 lg:hidden">
-      <span class="text-xs text-gray-400 font-medium">{{ deviceName() }}</span>
+    <!-- Device Info + Language Toggle Top Right (mobile) / Hidden on desktop -->
+    <div class="absolute top-6 right-6 z-10 lg:hidden flex items-center gap-3">
+      <button (click)="cycleLanguage()"
+        class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 font-semibold hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+        [title]="'LOGIN.CHANGE_LANGUAGE' | translate">
+        <span class="material-symbols-outlined text-[14px]">translate</span>
+        {{ languageService.currentLanguage().toUpperCase() }}
+      </button>
+      <span class="text-xs text-gray-400 dark:text-gray-500 font-medium">{{ deviceName() }}</span>
     </div>
 
     <!-- Main Content Area -->
@@ -18,8 +24,8 @@
         @if (currentStep() === 'loading') {
         <div class="flex flex-col items-center justify-center animate-pulse">
           <div class="w-12 h-12 border-4 border-[#00B8D4] border-t-transparent rounded-full animate-spin mb-6"></div>
-          <h2 class="text-xl font-semibold text-[#0F172A] mb-2">Verbindung wird hergestellt</h2>
-          <p class="text-sm text-gray-500">Benutzer werden geladen...</p>
+          <h2 class="text-xl font-semibold text-[#0F172A] dark:text-white mb-2">{{ 'LOGIN.CONNECTING' | translate }}</h2>
+          <p class="text-sm text-gray-500">{{ 'LOGIN.LOADING_USERS' | translate }}</p>
         </div>
         }
 
@@ -27,15 +33,15 @@
         @if (currentStep() === 'select-user') {
         <div class="animate-[fadeIn_0.3s_ease-out]">
           <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-[#0F172A] mb-1">Willkommen</h1>
-            <p class="text-sm text-gray-500">Wählen Sie Ihren Account</p>
+            <h1 class="text-3xl font-bold text-[#0F172A] dark:text-white mb-1">{{ 'LOGIN.WELCOME' | translate }}</h1>
+            <p class="text-sm text-gray-500">{{ 'LOGIN.SELECT_ACCOUNT' | translate }}</p>
           </div>
 
           <!-- User Grid -->
           <div class="grid grid-cols-3 sm:grid-cols-4 gap-3">
             @for (user of posUsers(); track user._id; let i = $index) {
             <button
-              class="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-all group"
+              class="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 transition-all group"
               (click)="selectUser(user)" [style.animation-delay]="i * 0.03 + 's'"
               style="animation: fadeIn 0.3s ease-out backwards">
               <!-- Avatar -->
@@ -45,7 +51,7 @@
                 {{ user.initials }}
               </div>
               <!-- Name -->
-              <span class="text-xs font-medium text-gray-700 text-center truncate w-full">
+              <span class="text-xs font-medium text-gray-700 dark:text-gray-200 text-center truncate w-full">
                 {{ user.firstName }}
               </span>
             </button>
@@ -59,8 +65,8 @@
                 d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
               </path>
             </svg>
-            <p class="text-gray-500 text-sm">Keine POS-Benutzer gefunden</p>
-            <p class="text-gray-400 text-xs mt-1">Bitte im Admin-Panel POS-Benutzer anlegen</p>
+            <p class="text-gray-500 dark:text-gray-400 text-sm">{{ 'LOGIN.NO_POS_USERS' | translate }}</p>
+            <p class="text-gray-400 text-xs mt-1">{{ 'LOGIN.CREATE_POS_USERS' | translate }}</p>
           </div>
           }
         </div>
@@ -72,9 +78,9 @@
           <!-- Back Button + User Info -->
           <div class="flex items-center gap-4 mb-8">
             <button
-              class="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-              (click)="backToUsers()" aria-label="Zurück zur Benutzerauswahl">
-              <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
+              (click)="backToUsers()" [attr.aria-label]="'LOGIN.BACK_TO_USERS' | translate">
+              <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
               </svg>
             </button>
@@ -85,10 +91,10 @@
             </div>
 
             <div>
-              <h2 class="text-lg font-semibold text-[#0F172A]">
+              <h2 class="text-lg font-semibold text-[#0F172A] dark:text-white">
                 {{ selectedUser()!.firstName }} {{ selectedUser()!.lastName }}
               </h2>
-              <p class="text-xs text-gray-500">PIN eingeben</p>
+              <p class="text-xs text-gray-500">{{ 'LOGIN.ENTER_PIN' | translate }}</p>
             </div>
           </div>
 
@@ -104,7 +110,7 @@
 
           @if (pinError()) {
           <p class="text-center text-red-500 text-sm mb-4 animate-[shake_0.3s_ease-out]">
-            Falsche PIN. Bitte erneut versuchen.
+            {{ 'LOGIN.WRONG_PIN' | translate }}
           </p>
           }
 
@@ -112,7 +118,7 @@
           <div class="grid grid-cols-3 gap-3 max-w-[280px] mx-auto">
             @for (digit of ['1', '2', '3', '4', '5', '6', '7', '8', '9']; track digit) {
             <button
-              class="h-16 rounded-xl bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-2xl font-semibold text-[#0F172A] transition-all active:scale-95 disabled:opacity-50"
+              class="h-16 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 text-2xl font-semibold text-[#0F172A] dark:text-white transition-all active:scale-95 disabled:opacity-50"
               (click)="addDigit(digit)" [disabled]="isLoading()">
               {{ digit }}
             </button>
@@ -123,16 +129,16 @@
 
             <!-- Zero -->
             <button
-              class="h-16 rounded-xl bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-2xl font-semibold text-[#0F172A] transition-all active:scale-95 disabled:opacity-50"
+              class="h-16 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 text-2xl font-semibold text-[#0F172A] dark:text-white transition-all active:scale-95 disabled:opacity-50"
               (click)="addDigit('0')" [disabled]="isLoading()">
               0
             </button>
 
             <!-- Delete -->
             <button
-              class="h-16 rounded-xl bg-gray-100 hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center transition-all active:scale-95 disabled:opacity-50"
-              (click)="deleteDigit()" [disabled]="isLoading()" aria-label="Letzte Ziffer löschen">
-              <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              class="h-16 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 flex items-center justify-center transition-all active:scale-95 disabled:opacity-50"
+              (click)="deleteDigit()" [disabled]="isLoading()" [attr.aria-label]="'LOGIN.DELETE_DIGIT' | translate">
+              <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z">
                 </path>
@@ -141,7 +147,7 @@
           </div>
 
           @if (isLoading()) {
-          <div class="absolute inset-0 bg-white/80 flex items-center justify-center">
+          <div class="absolute inset-0 bg-white/80 dark:bg-black/80 flex items-center justify-center">
             <div class="w-8 h-8 border-4 border-[#00B8D4] border-t-transparent rounded-full animate-spin"></div>
           </div>
           }
@@ -151,26 +157,26 @@
         <!-- ==================== ERROR ==================== -->
         @if (currentStep() === 'error') {
         <div class="flex flex-col items-center animate-[fadeIn_0.3s_ease-out]">
-          <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-6">
+          <div class="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-6">
             <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
               </path>
             </svg>
           </div>
-          <h2 class="text-xl font-semibold text-[#0F172A] mb-2">Verbindungsfehler</h2>
+          <h2 class="text-xl font-semibold text-[#0F172A] dark:text-white mb-2">{{ 'LOGIN.CONNECTION_ERROR' | translate }}</h2>
           <p class="text-sm text-gray-500 text-center mb-6">{{ errorMessage() }}</p>
 
           <div class="flex gap-3">
             <button
               class="px-6 py-2.5 bg-[#00B8D4] text-white font-medium rounded-lg hover:bg-[#00a7c0] transition-colors"
               (click)="retry()">
-              Erneut versuchen
+              {{ 'COMMON.RETRY' | translate }}
             </button>
             <button
-              class="px-6 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+              class="px-6 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               (click)="goToSetup()">
-              Neu einrichten
+              {{ 'LOGIN.SETUP_NEW' | translate }}
             </button>
           </div>
         </div>
@@ -180,22 +186,22 @@
 
     <!-- Footer with Connection Indicator -->
     <div class="absolute bottom-24 lg:bottom-4 left-0 right-0 px-6 flex items-center justify-between">
-      <p class="text-xs text-gray-400">Panary Terminal &bull; Version 2026.3.1</p>
+      <p class="text-xs text-gray-400 dark:text-gray-500">Panary Terminal &bull; Version 2026.3.1</p>
 
       <!-- Update-Indikator -->
       @if (updateService.hasUpdate()) {
-      <div class="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full">
+      <div class="flex items-center gap-2 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-full">
         <span class="text-xs font-medium text-amber-700">
-          v{{ updateService.updateAvailable()!.version }} verf&uuml;gbar
+          v{{ updateService.updateAvailable()!.version }} {{ 'LOGIN.UPDATE_AVAILABLE' | translate }}
         </span>
         <button
           class="px-3 py-1 text-xs font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-full transition-colors min-h-[32px] disabled:opacity-60"
           (click)="updateService.downloadAndInstall()"
           [disabled]="updateService.isDownloading()">
           @if (updateService.isDownloading()) {
-            Aktualisiere… {{ updateService.downloadProgress() }}%
+            {{ 'LOGIN.UPDATING' | translate }} {{ updateService.downloadProgress() }}%
           } @else {
-            Aktualisieren &amp; Neustarten
+            {{ 'LOGIN.UPDATE_AND_RESTART' | translate }}
           }
         </button>
       </div>
@@ -210,7 +216,7 @@
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
-          Verbunden
+          {{ 'COMMON.CONNECTED' | translate }}
         </span>
         }
         @case ('connected') {
@@ -218,7 +224,7 @@
           <span class="relative flex h-2 w-2">
             <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
-          Verbunden
+          {{ 'COMMON.CONNECTED' | translate }}
         </span>
         }
         @case ('connecting') {
@@ -226,7 +232,7 @@
           <span class="relative flex h-2 w-2">
             <span class="animate-pulse inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
           </span>
-          Verbinde...
+          {{ 'COMMON.CONNECTING' | translate }}
         </span>
         }
         @case ('error') {
@@ -234,7 +240,7 @@
           <span class="relative flex h-2 w-2">
             <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
           </span>
-          Fehler
+          {{ 'COMMON.ERROR' | translate }}
         </span>
         }
         @default {
@@ -242,7 +248,7 @@
           <span class="relative flex h-2 w-2">
             <span class="relative inline-flex rounded-full h-2 w-2 bg-gray-400"></span>
           </span>
-          Offline
+          {{ 'COMMON.OFFLINE' | translate }}
         </span>
         }
         }
@@ -263,10 +269,17 @@
     <div class="relative z-10 w-full flex flex-col">
       <!-- Top: Branding -->
       <div class="flex-shrink-0 text-center text-white p-8 pt-12 relative">
-        <!-- Theme Toggle -->
-        <button (click)="toggleTheme()"
-          class="absolute top-8 right-8 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors text-white"
-          title="Design ändern">
+        <!-- Theme Toggle + Language Toggle -->
+        <div class="absolute top-8 right-8 flex items-center gap-2">
+          <button (click)="cycleLanguage()"
+            class="h-10 px-3 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center gap-1.5 transition-colors text-white text-xs font-semibold"
+            [title]="'LOGIN.CHANGE_LANGUAGE' | translate">
+            <span class="material-symbols-outlined text-[16px]">translate</span>
+            {{ languageService.currentLanguage().toUpperCase() }}
+          </button>
+          <button (click)="toggleTheme()"
+            class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors text-white"
+            [title]="'LOGIN.CHANGE_THEME' | translate">
           @if (themeService.theme === 'light') {
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -286,8 +299,9 @@
           </svg>
           }
         </button>
+        </div>
         <img src="/assets/logos/panary_logo_mono.svg" alt="Panary Logo" class="h-8 w-auto mx-auto mb-2 invert" />
-        <p class="text-base text-white/70">Bauen Sie Ihr Business. Nicht nur Ihre Speisekarte.</p>
+        <p class="text-base text-white/70">{{ 'LOGIN.TAGLINE' | translate }}</p>
       </div>
 
       <!-- Middle: Device Info Card -->

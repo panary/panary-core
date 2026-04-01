@@ -125,3 +125,40 @@
     display: none;
   }
 }
+
+/* Dark mode support */
+:host-context(.dark) {
+  .language-switcher {
+    background: rgba(31, 41, 55, 0.95);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #e5e7eb;
+
+    &:hover {
+      background: #374151;
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+  }
+
+  .language-dropdown-menu {
+    background: #1f2937;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  }
+
+  .language-dropdown-item {
+    background: #1f2937;
+    color: #e5e7eb;
+
+    &:hover {
+      background: #374151;
+    }
+
+    &.active {
+      background: rgba(0, 184, 212, 0.1);
+    }
+
+    &:not(:last-child) {
+      border-bottom-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+}

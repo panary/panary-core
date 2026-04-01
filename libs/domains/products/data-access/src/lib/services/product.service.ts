@@ -20,6 +20,8 @@ type UUID = string
   providedIn: 'root',
 })
 export class ProductService extends BaseService<ProductSchema> {
+  protected override entityLabelKey = 'ENTITY.PRODUCT'
+
   #authService: AuthService = inject(AuthService)
   #documents: WritableSignal<ProductSchema[]> = signal([])
   #isLoading: WritableSignal<boolean> = signal(false)

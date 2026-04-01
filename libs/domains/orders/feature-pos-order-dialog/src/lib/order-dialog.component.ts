@@ -50,6 +50,7 @@ import { ConnectionService } from '@panary-core/shared/data-access'
 import { DeviceConfigService } from '@panary-core/shared/data-access-config'
 import { CorporateCustomer } from '@panary-core/corporate-customers/domain'
 import { PreOrderQuickDialogComponent } from './pre-order-quick-dialog.component'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 // TODO: CorporateCustomerService fehlt noch in @panary-core/corporate-customers/data-access — nach Migration einbinden
 // TODO: AppButtonDirective fehlt noch in panary-core — nach Migration einbinden
 // TODO: ConfirmActionDialog fehlt noch in panary-core — nach Migration in @panary-core/shared/ui-dialogs einbinden
@@ -73,6 +74,7 @@ export class AbsPipe implements PipeTransform {
     CommonModule,
     FormsModule,
     MatMenuModule,
+    TranslateModule,
   ],
   templateUrl: './order-dialog.component.html',
   styleUrls: ['./order-dialog.component.scss'],
@@ -98,6 +100,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   // protected readonly corporateCustomerService: CorporateCustomerService = inject(CorporateCustomerService)
   protected readonly locationService: LocationService = inject(LocationService)
   protected readonly authService: AuthService = inject(AuthService)
+  protected readonly translateService: TranslateService = inject(TranslateService)
   protected readonly userService: UserService = inject(UserService)
   protected readonly matDialogRef: MatDialogRef<OrderDialogComponent> = inject(MatDialogRef<OrderDialogComponent>)
   protected readonly matDialog: MatDialog = inject(MatDialog)

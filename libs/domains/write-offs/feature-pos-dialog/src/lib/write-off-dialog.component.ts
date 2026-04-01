@@ -19,6 +19,7 @@ import { BusinessDayService } from '@panary-core/businessdays/data-access'
 import { DeviceConfigService } from '@panary-core/shared/data-access-config'
 import { LocationService } from '@panary-core/locations/data-access'
 import { NumpadDialogComponent } from '@panary-core/shared/ui-common'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 @Component({
   selector: 'panary-pos-write-off-dialog',
@@ -29,6 +30,7 @@ import { NumpadDialogComponent } from '@panary-core/shared/ui-common'
     ReactiveFormsModule,
     MatDialogModule,
     MatAutocompleteModule,
+    TranslateModule,
   ],
   templateUrl: './write-off-dialog.component.html',
   styleUrls: ['./write-off-dialog.component.scss'],
@@ -46,6 +48,7 @@ export class PosWriteOffDialogComponent {
   protected readonly locationService = inject(LocationService)
   protected readonly deviceConfigService = inject(DeviceConfigService)
   protected readonly matSnackBar = inject(MatSnackBar)
+  protected readonly translate = inject(TranslateService)
 
   // Enums for Template
   WriteOffItemType = WriteOffItemType
@@ -172,7 +175,7 @@ export class PosWriteOffDialogComponent {
 
   async save() {
     if (!this.selectedItem()) {
-      this.matSnackBar.open('Bitte wähle einen Artikel aus.', 'OK', { duration: 3000 })
+      this.matSnackBar.open(this.translate.instant('WRITE_OFF.SELECT_ITEM_FIRST'), 'OK', { duration: 3000 })
       return
     }
 
@@ -182,7 +185,7 @@ export class PosWriteOffDialogComponent {
 
     // Error only if NO Location ID is present at all
     if (!locationId) {
-      this.matSnackBar.open('Kein Standort gefunden! Bitte Setup prüfen.', 'OK', { duration: 3000 })
+      this.matSnackBar.open(this.translate.instant('WRITE_OFF.NO_LOCATION'), 'OK', { duration: 3000 })
       return
     }
 
@@ -211,7 +214,7 @@ export class PosWriteOffDialogComponent {
     }
 
     if (!userId) {
-      this.matSnackBar.open('Benutzer nicht identifiziert!', 'OK', { duration: 3000 })
+      this.matSnackBar.open(this.translate.instant('WRITE_OFF.USER_NOT_IDENTIFIED'), 'OK', { duration: 3000 })
       return
     }
 
@@ -241,11 +244,11 @@ export class PosWriteOffDialogComponent {
 
     try {
       await this.writeOffService.create(writeOff as WriteOff)
-      this.matSnackBar.open('Abschreibung gespeichert', 'OK', { duration: 2000 })
+      this.matSnackBar.open(this.translate.instant('WRITE_OFF.SAVED'), 'OK', { duration: 2000 })
       this.matDialogRef.close(true)
     } catch (error) {
       console.error('Error saving write-off', error)
-      this.matSnackBar.open('Fehler beim Speichern', 'OK', { duration: 3000 })
+      this.matSnackBar.open(this.translate.instant('COMMON.SAVE_ERROR'), 'OK', { duration: 3000 })
     }
   }
 

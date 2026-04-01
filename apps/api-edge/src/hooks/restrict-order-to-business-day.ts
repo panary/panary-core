@@ -3,152 +3,123 @@ import { BadRequest, NotAuthenticated } from '@feathersjs/errors'
 import { User } from '@panary-core/users/domain'
 import { Location } from '@panary-core/locations/domain'
 import { AppError, AppErrorMessages } from '@panary-core/shared/common'
-import { uuidv7 } from 'uuidv7'
 import { logger } from '../logger'
+import {
+  getDifferenceInDays,
+  hasActiveOrders,
+  rotateBusinessDay,
+  shouldAutoRotate,
+} from '../utils/business-day.utils'
 
 /**
- * Calculates the absolute difference in days between two dates.
- * @param date1 - First Date
- * @param date2 - Second Date
- * @returns Difference in days
+ * Ermittelt die locationId anhand des Authentifizierungstyps (API-Key oder User).
  */
-const getDifferenceInDays = (date1: Date, date2: Date): number => {
-  const oneDayInMs = 1000 * 60 * 60 * 24
-  const utc1 = Date.UTC(date1.getFullYear(), date1.getMonth(), date1.getDate())
-  const utc2 = Date.UTC(date2.getFullYear(), date2.getMonth(), date2.getDate())
+async function resolveLocationId(context: HookContext): Promise<string> {
+  const { app, params } = context
+  const { user } = params
 
-  return Math.floor(Math.abs(utc2 - utc1) / oneDayInMs)
+  const isApiKey = params.apiKey || params.authentication?.strategy === 'apiKey'
+
+  if (isApiKey) {
+    const apiKeyLocationId =
+      (params.locationId as string | undefined) || (params.connection?.locationId as string | undefined)
+
+    if (!apiKeyLocationId) {
+      throw new BadRequest(AppErrorMessages[AppError.LOCATION_NOT_ASSIGNED], {
+        code: AppError.LOCATION_NOT_ASSIGNED,
+      })
+    }
+    return apiKeyLocationId
+  }
+
+  if (!user) {
+    throw new NotAuthenticated(AppErrorMessages[AppError.AUTH_UNAUTHENTICATED], {
+      code: AppError.AUTH_UNAUTHENTICATED,
+    })
+  }
+
+  const existingUser: User = await app.service('users').get(user.id, {
+    query: { $select: ['activeLocationId'] },
+    provider: undefined,
+  })
+
+  if (!existingUser.activeLocationId) {
+    throw new BadRequest(AppErrorMessages[AppError.LOCATION_NOT_ASSIGNED], {
+      code: AppError.LOCATION_NOT_ASSIGNED,
+    })
+  }
+
+  return existingUser.activeLocationId as string
 }
 
+/**
+ * Validiert, dass der aktuelle Geschaeftstag nicht zu alt ist (Enterprise-Modus).
+ */
+function validateBusinessDayAge(app: HookContext['app'], businessDayDate: string): void {
+  const currentDate = new Date()
+  const diffDays = getDifferenceInDays(currentDate, new Date(businessDayDate))
+  const maxAllowedDifference = app.get('maxOrderDifferenceDays') || 1
+
+  if (diffDays > maxAllowedDifference) {
+    throw new BadRequest(AppErrorMessages[AppError.BUSINESS_DAY_TOO_OLD], {
+      code: AppError.BUSINESS_DAY_TOO_OLD,
+      diffDays,
+      maxAllowedDifference,
+    })
+  }
+}
+
+/**
+ * Hook: Ordnet jeder neuen Bestellung einen gueltigen Geschaeftstag zu.
+ *
+ * Standalone-Modus: Erstellt bei Bedarf automatisch einen neuen Geschaeftstag (Auto-Rotate).
+ * Enterprise-Modus: Erwartet einen bestehenden Geschaeftstag und validiert dessen Alter.
+ */
 export function restrictOrderToBusinessDay() {
   return async (context: HookContext) => {
-    const { app, params } = context
-    const { user } = params
+    const { app } = context
 
-    // Determine locationId based on authentication type
-    let locationId: string | undefined
+    const locationId = await resolveLocationId(context)
 
-    // Check for API Key authentication
-    const isApiKey = params.apiKey || params.authentication?.strategy === 'apiKey'
-
-    if (isApiKey) {
-      // For API Key auth, use locationId from params (set by allowApiKey hook)
-      const apiKeyLocationId =
-        (params.locationId as string | undefined) || (params.connection?.locationId as string | undefined)
-      if (!apiKeyLocationId)
-        throw new BadRequest(AppErrorMessages[AppError.LOCATION_NOT_ASSIGNED], {
-          code: AppError.LOCATION_NOT_ASSIGNED
-        })
-      locationId = apiKeyLocationId
-    } else {
-      // For user auth, get locationId from user
-      if (!user)
-        throw new NotAuthenticated(AppErrorMessages[AppError.AUTH_UNAUTHENTICATED], {
-          code: AppError.AUTH_UNAUTHENTICATED
-        })
-
-      const query = { query: { $select: ['activeLocationId'] }, provider: undefined }
-      const existingUser: User = await app.service('users').get(user.id, query)
-
-      if (!existingUser.activeLocationId)
-        throw new BadRequest(AppErrorMessages[AppError.LOCATION_NOT_ASSIGNED], {
-          code: AppError.LOCATION_NOT_ASSIGNED
-        })
-      locationId = existingUser.activeLocationId as string
-    }
-
-    // Load the location service
-    const locationService = app.service('locations')
-
-    // Get the location (tenantId wird für Auto-Rotate benötigt)
-    const activeLocation: Location = await locationService.get(locationId!, {
+    const activeLocation: Location = await app.service('locations').get(locationId, {
       query: { $select: ['_id', 'tenantId', 'currentBusinessDay'] },
       provider: undefined,
     })
 
     const systemMode = app.get('system')?.mode || 'standalone'
     const today = new Date().toISOString().slice(0, 10)
-    const needsAutoRotate =
-      !activeLocation.currentBusinessDay || activeLocation.currentBusinessDay.date !== today
+    const needsRotation = shouldAutoRotate(activeLocation.currentBusinessDay, today)
 
-    if (needsAutoRotate && systemMode === 'standalone') {
-      // Auto-Rotate: Geschäftstag transparent erstellen/aktualisieren
-      const newId = uuidv7()
-      const now = new Date().toISOString()
-      const knex = app.get('sqliteClient')
-
-      // Rotation blockieren wenn noch aktive Bestellungen im alten Geschäftstag vorhanden
+    // Standalone: Auto-Rotate durchfuehren
+    if (needsRotation && systemMode === 'standalone') {
+      // Rotation blockieren wenn noch aktive Bestellungen vorhanden
       if (activeLocation.currentBusinessDay?.businessDayId) {
-        const activeOrderCount = await knex('orders')
-          .where({ businessDayId: activeLocation.currentBusinessDay.businessDayId, status: 'active' })
-          .count('_id as count')
-          .first()
+        const blocked = await hasActiveOrders(app, activeLocation.currentBusinessDay.businessDayId)
 
-        if (Number(activeOrderCount?.count ?? 0) > 0) {
+        if (blocked) {
           logger.warn(
-            `[AutoBusinessDay] Rotation für Location ${locationId} blockiert — ${activeOrderCount?.count} aktive Bestellung(en) im Geschäftstag ${activeLocation.currentBusinessDay.businessDayId}. Neue Bestellung wird dem aktuellen Geschäftstag zugeordnet.`,
+            `[AutoBusinessDay] Rotation fuer Location ${locationId} blockiert — aktive Bestellung(en) im Geschaeftstag ${activeLocation.currentBusinessDay.businessDayId}. Neue Bestellung wird dem aktuellen Geschaeftstag zugeordnet.`,
           )
-          // Neue Bestellung dem laufenden (alten) Geschäftstag zuordnen statt zu rotieren
           context.data.businessDayId = activeLocation.currentBusinessDay.businessDayId
           return context
         }
       }
 
-      // Vorherigen Geschäftstag schließen
-      if (activeLocation.currentBusinessDay?.businessDayId) {
-        await knex('businessdays')
-          .where({ _id: activeLocation.currentBusinessDay.businessDayId })
-          .update({ isOpen: false, closedAt: now, updatedAt: now })
-      }
-
-      // Neuen Geschäftstag erstellen
-      await knex('businessdays').insert({
-        _id: newId,
-        tenantId: activeLocation.tenantId,
-        locationId: locationId,
-        date: today,
-        openedAt: now,
-        isOpen: true,
-        createdAt: now,
-        updatedAt: now,
-      })
-
-      // Location aktualisieren (intern, ohne Auth)
-      await locationService.patch(
-        locationId!,
-        { currentBusinessDay: { businessDayId: newId, date: today } },
-        { provider: undefined },
-      )
-
-      logger.info(`[AutoBusinessDay] Mitternachts-Rotation: Neuer Geschäftstag ${newId} für Location ${locationId}.`)
+      const newId = await rotateBusinessDay(app, activeLocation, today)
       context.data.businessDayId = newId
       return context
     }
 
+    // Enterprise: Geschaeftstag muss existieren
     if (!activeLocation.currentBusinessDay) {
-      // Enterprise-Modus: kein Geschäftstag = Fehler
       throw new BadRequest(AppErrorMessages[AppError.BUSINESS_DAY_NOT_SET], {
         code: AppError.BUSINESS_DAY_NOT_SET,
       })
     }
 
-    // Datumsvalidierung (Enterprise-Modus)
-    const businessDayDate = new Date(activeLocation.currentBusinessDay.date)
-    const currentDate = new Date()
-    const diffDays = getDifferenceInDays(currentDate, businessDayDate)
-    const maxAllowedDifference = app.get('maxOrderDifferenceDays') || 1
+    validateBusinessDayAge(app, activeLocation.currentBusinessDay.date)
 
-    if (diffDays > maxAllowedDifference) {
-      throw new BadRequest(AppErrorMessages[AppError.BUSINESS_DAY_TOO_OLD], {
-        code: AppError.BUSINESS_DAY_TOO_OLD,
-        diffDays,
-        maxAllowedDifference,
-      })
-    }
-
-    // Geschäftstag OK → businessDayId in Order schreiben
     context.data.businessDayId = activeLocation.currentBusinessDay.businessDayId
-
     return context
   }
 }

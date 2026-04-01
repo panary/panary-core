@@ -1,14 +1,16 @@
 import { ChangeDetectionStrategy, Component, inject, computed, effect, signal } from '@angular/core'
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
 import { Title } from '@angular/platform-browser'
+import { TranslateModule } from '@ngx-translate/core'
 import { AuthService } from '../core/auth.service'
 import { ThemeServiceService } from '@panary-core/shared/data-access-theme'
+import { LanguageService } from '@panary-core/shared/data-access'
 import { LocationStateService } from '../core/location-state.service'
 
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="h-screen bg-slate-50 dark:bg-black flex">
@@ -60,7 +62,7 @@ import { LocationStateService } from '../core/location-state.service'
                [class.max-w-xs]="sidebarOpen()"
                [class.opacity-0]="!sidebarOpen()">
             <p class="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-none">Panary</p>
-            <p class="text-[10px] text-slate-400 dark:text-gray-600 mt-1 uppercase tracking-widest">Admin Panel</p>
+            <p class="text-[10px] text-slate-400 dark:text-gray-600 mt-1 uppercase tracking-widest">{{ 'NAV.ADMIN_PANEL' | translate }}</p>
           </div>
         </div>
 
@@ -78,7 +80,7 @@ import { LocationStateService } from '../core/location-state.service'
                class="flex items-center py-2 rounded-lg text-slate-500 dark:text-gray-400
                       hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-gray-900
                       transition-colors overflow-hidden"
-               [title]="sidebarOpen() ? '' : item.label">
+               [title]="sidebarOpen() ? '' : (item.label | translate)">
               <span class="shrink-0 flex items-center justify-center w-10">
                 <span class="material-symbols-outlined" style="font-size: 20px; line-height: 1">{{ item.icon }}</span>
               </span>
@@ -87,7 +89,7 @@ import { LocationStateService } from '../core/location-state.service'
                     [class.max-w-0]="!sidebarOpen()"
                     [class.max-w-xs]="sidebarOpen()"
                     [class.opacity-0]="!sidebarOpen()">
-                {{ item.label }}
+                {{ item.label | translate }}
               </span>
             </a>
           }
@@ -120,10 +122,20 @@ import { LocationStateService } from '../core/location-state.service'
                 ◐
               </button>
             </div>
+            <div class="flex items-center gap-1 mb-3 bg-slate-100 dark:bg-gray-900 rounded-lg p-1">
+              @for (lang of langService.languages; track lang.code) {
+                <button (click)="langService.setLanguage(lang.code)"
+                        [class]="langService.currentLanguage() === lang.code
+                          ? 'flex-1 text-xs py-1.5 rounded-md bg-white dark:bg-gray-800 text-slate-900 dark:text-white shadow-sm font-medium transition'
+                          : 'flex-1 text-xs py-1.5 rounded-md text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-300 transition'">
+                  {{ lang.code.toUpperCase() }}
+                </button>
+              }
+            </div>
             <div class="text-xs text-slate-500 dark:text-gray-500 truncate">{{ userName() }}</div>
             <button (click)="auth.logout()"
                     class="text-xs text-slate-400 dark:text-gray-600 hover:text-slate-900 dark:hover:text-white mt-1 transition">
-              Abmelden
+              {{ 'COMMON.LOGOUT' | translate }}
             </button>
 
           } @else {
@@ -135,7 +147,13 @@ import { LocationStateService } from '../core/location-state.service'
                              hover:text-slate-900 dark:hover:text-white transition">
                 {{ themeService.theme === 'light' ? '☀' : themeService.theme === 'dark' ? '☽' : '◐' }}
               </button>
-              <button (click)="auth.logout()" title="Abmelden"
+              <button (click)="cycleLanguage()"
+                      [title]="('COMMON.LANGUAGE' | translate) + ': ' + langService.currentLanguage().toUpperCase()"
+                      class="text-xs font-medium leading-none text-slate-500 dark:text-gray-400
+                             hover:text-slate-900 dark:hover:text-white transition">
+                {{ langService.currentLanguage().toUpperCase() }}
+              </button>
+              <button (click)="auth.logout()" [title]="'COMMON.LOGOUT' | translate"
                       class="flex items-center justify-center
                              text-slate-400 dark:text-gray-600
                              hover:text-slate-900 dark:hover:text-white transition">
@@ -156,6 +174,7 @@ import { LocationStateService } from '../core/location-state.service'
 export class AdminLayoutComponent {
   auth = inject(AuthService)
   themeService = inject(ThemeServiceService)
+  protected langService = inject(LanguageService)
   locationState = inject(LocationStateService)
   private title = inject(Title)
 
@@ -170,19 +189,19 @@ export class AdminLayoutComponent {
     this.locationState.load()
     effect(() => {
       const name = this.locationState.locationName()
-      this.title.setTitle(name ? `Panary | Hub (${name})` : 'Panary | Hub')
+      this.title.setTitle(name ? `Panary — Hub (${name})` : 'Panary — Hub')
     })
   }
 
   navItems = [
-    { path: '/dashboard',      label: 'Dashboard',      icon: 'dashboard'   },
-    { path: '/users',          label: 'Benutzer',       icon: 'people'      },
-    { path: '/location',       label: 'Standort',       icon: 'store'       },
-    { path: '/product-groups', label: 'Produktgruppen', icon: 'category'    },
-    { path: '/products',       label: 'Produkte',       icon: 'inventory_2' },
-    { path: '/printers',       label: 'Drucker',        icon: 'print'       },
-    { path: '/apikeys',        label: 'API-Schlüssel',  icon: 'key'         },
-    { path: '/cloud',          label: 'Cloud-Kopplung', icon: 'cloud'       },
+    { path: '/dashboard',      label: 'NAV.DASHBOARD',       icon: 'dashboard'   },
+    { path: '/users',          label: 'NAV.USERS',           icon: 'people'      },
+    { path: '/location',       label: 'NAV.LOCATION',        icon: 'store'       },
+    { path: '/product-groups', label: 'NAV.PRODUCT_GROUPS',  icon: 'category'    },
+    { path: '/products',       label: 'NAV.PRODUCTS',        icon: 'inventory_2' },
+    { path: '/printers',       label: 'NAV.PRINTERS',        icon: 'print'       },
+    { path: '/apikeys',        label: 'NAV.API_KEYS',        icon: 'key'         },
+    { path: '/cloud',          label: 'NAV.CLOUD_CONNECTION', icon: 'cloud'       },
   ]
 
   setTheme(theme: string) {
@@ -193,5 +212,11 @@ export class AdminLayoutComponent {
     const themes = ['light', 'dark', 'system']
     const next = themes[(themes.indexOf(this.themeService.theme) + 1) % themes.length]
     this.themeService.setTheme(next)
+  }
+
+  cycleLanguage() {
+    const codes = this.langService.languages.map(l => l.code)
+    const next = codes[(codes.indexOf(this.langService.currentLanguage()) + 1) % codes.length]
+    this.langService.setLanguage(next)
   }
 }

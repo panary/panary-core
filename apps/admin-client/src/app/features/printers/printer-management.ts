@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { PrinterService, type PrintServerStatus } from './printer.service'
 import { PrintServerControlsComponent } from './print-server-controls'
@@ -16,19 +17,20 @@ import { formatApiError } from '../../core/error-helper'
     PrinterListComponent,
     PrintSettingsFormComponent,
     MqttSettingsFormComponent,
+    TranslateModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6 max-w-4xl space-y-4 overflow-y-auto h-full">
       <div class="flex items-center justify-between min-h-9">
-        <h1 class="text-xl font-bold tracking-tight">Druckerverwaltung</h1>
+        <h1 class="text-xl font-bold tracking-tight">{{ 'PRINTERS.TITLE' | translate }}</h1>
       </div>
 
       @if (loading()) {
-        <p class="text-slate-400 dark:text-gray-500">Laden...</p>
+        <p class="text-slate-400 dark:text-gray-500">{{ 'COMMON.LOADING' | translate }}</p>
       } @else if (!locationId()) {
         <div class="text-center py-16">
-          <p class="text-slate-400 dark:text-gray-500 text-lg">Kein Standort vorhanden</p>
+          <p class="text-slate-400 dark:text-gray-500 text-lg">{{ 'LOCATION.NO_LOCATION' | translate }}</p>
         </div>
       } @else {
         <!-- Print-Server Steuerung -->
@@ -57,7 +59,7 @@ import { formatApiError } from '../../core/error-helper'
         }
 
         @if (saved()) {
-          <p class="text-emerald-500 dark:text-emerald-400 text-sm">Einstellungen gespeichert.</p>
+          <p class="text-emerald-500 dark:text-emerald-400 text-sm">{{ 'PRINTERS.SETTINGS_SAVED' | translate }}</p>
         }
 
         <!-- Speichern Button -->
@@ -65,7 +67,7 @@ import { formatApiError } from '../../core/error-helper'
           <button (click)="onSave()" [disabled]="saving()"
             class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-8 py-3 rounded-xl text-sm
                    hover:bg-slate-800 dark:hover:bg-gray-200 transition disabled:opacity-50">
-            {{ saving() ? 'Speichern...' : 'Einstellungen speichern' }}
+            {{ saving() ? ('COMMON.SAVING' | translate) : ('PRINTERS.SAVE_SETTINGS' | translate) }}
           </button>
         </div>
       }

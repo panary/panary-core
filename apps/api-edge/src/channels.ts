@@ -7,7 +7,7 @@ import { logger } from './logger'
 
 export const channels = (app: Application) => {
   logger.info({
-    message: 'Publishing all events to all authenticated users',
+    message: 'Publishing events with tenant isolation',
     event: 'channels.configured',
   })
 
@@ -89,6 +89,10 @@ export const channels = (app: Application) => {
       // The connection is no longer anonymous, remove it
       app.channel('anonymous').leave(connection)
 
+      // tenantId und locationId auf Connection speichern für Channel-Filterung
+      ;(connection as any).tenantId = authResult.user?.tenantId
+      ;(connection as any).locationId = authResult.user?.locationId
+
       // Add it to the authenticated user channel
       app.channel('authenticated').join(connection)
     }
@@ -96,10 +100,19 @@ export const channels = (app: Application) => {
 
   // eslint-disable-next-line no-unused-vars
   app.publish((data: any, context: HookContext) => {
-    // Here you can add event publishers to channels set up in `channels.js`
-    // To publish only for a specific event use `app.publish(eventname, () => {})`
+    // Interne Aufrufe (kein User-Kontext) → an alle authentifizierten Clients
+    if (!context.params.user) {
+      return app.channel('authenticated')
+    }
 
-    // e.g. to publish all service events to all authenticated users use
-    return app.channel('authenticated')
+    const tenantId = data?.tenantId || context.params.user?.tenantId
+    if (!tenantId) {
+      return app.channel('authenticated')
+    }
+
+    // Events nur an Connections desselben Tenants senden
+    return app.channel('authenticated').filter(connection =>
+      (connection as any).tenantId === tenantId
+    )
   })
 }

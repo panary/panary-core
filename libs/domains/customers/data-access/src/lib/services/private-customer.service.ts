@@ -7,6 +7,8 @@ import { Observer } from 'rxjs'
   providedIn: 'root',
 })
 export class PrivateCustomerService extends BaseService<PrivateCustomer> {
+  protected override entityLabelKey = 'ENTITY.CUSTOMER'
+
   constructor() {
     super(inject(ConnectionService).privateCustomerService, 'privateCustomerService')
   }

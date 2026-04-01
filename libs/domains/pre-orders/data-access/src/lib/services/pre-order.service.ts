@@ -13,6 +13,8 @@ interface PreOrdersCustomService extends Service<PreOrder> {
   providedIn: 'root',
 })
 export class PreOrderService extends BaseService<PreOrder> {
+  protected override entityLabelKey = 'ENTITY.PRE_ORDER'
+
   protected override loadDocuments(): void {
     throw new Error('Method not implemented.')
   }

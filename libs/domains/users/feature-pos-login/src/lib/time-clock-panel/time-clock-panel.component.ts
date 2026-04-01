@@ -10,6 +10,8 @@ import {
   WritableSignal,
 } from '@angular/core'
 import { CommonModule } from '@angular/common'
+import { TranslateService } from '@ngx-translate/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { User, UserService } from '@panary-core/users/data-access'
 
 export type TimeClockAction = 'clock-in' | 'clock-out' | 'break-start' | 'break-end'
@@ -23,13 +25,14 @@ export interface TimeClockEvent {
 
 @Component({
   selector: 'lib-time-clock-panel',
-  imports: [CommonModule],
+  imports: [CommonModule, TranslateModule],
   templateUrl: './time-clock-panel.component.html',
   styleUrl: './time-clock-panel.component.scss',
 })
 export class TimeClockPanelComponent {
   //#region Injection
   readonly #userService = inject(UserService)
+  readonly #translateService = inject(TranslateService)
   //#endregion
 
   //#region ViewChild
@@ -87,28 +90,28 @@ export class TimeClockPanelComponent {
   readonly actions: { action: TimeClockAction; label: string; icon: string; color: string; bgColor: string }[] = [
     {
       action: 'clock-in',
-      label: 'Kommen',
+      label: 'TIME_CLOCK.CLOCK_IN',
       icon: 'login',
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-50 hover:bg-emerald-100',
     },
     {
       action: 'clock-out',
-      label: 'Gehen',
+      label: 'TIME_CLOCK.CLOCK_OUT',
       icon: 'logout',
       color: 'text-red-600',
       bgColor: 'bg-red-50 hover:bg-red-100',
     },
     {
       action: 'break-start',
-      label: 'Pause',
+      label: 'TIME_CLOCK.BREAK_START',
       icon: 'coffee',
       color: 'text-amber-600',
       bgColor: 'bg-amber-50 hover:bg-amber-100',
     },
     {
       action: 'break-end',
-      label: 'Pause Ende',
+      label: 'TIME_CLOCK.BREAK_END',
       icon: 'play_arrow',
       color: 'text-blue-600',
       bgColor: 'bg-blue-50 hover:bg-blue-100',
@@ -252,7 +255,7 @@ export class TimeClockPanelComponent {
 
     if (!action || employeePin.length !== 6) {
       this.pinError.set(true)
-      this.errorMessage.set('Bitte geben Sie eine gültige 6-stellige Personalnummer ein.')
+      this.errorMessage.set(this.#translateService.instant('TIME_CLOCK.INVALID_6_DIGIT'))
       return
     }
 
@@ -266,7 +269,7 @@ export class TimeClockPanelComponent {
 
       if (!user) {
         this.pinError.set(true)
-        this.errorMessage.set('Kein Mitarbeiter mit dieser Personalnummer gefunden.')
+        this.errorMessage.set(this.#translateService.instant('TIME_CLOCK.NO_EMPLOYEE_FOUND'))
         return
       }
 
@@ -284,7 +287,12 @@ export class TimeClockPanelComponent {
       // Show success message
       const actionLabel = this.actions.find(a => a.action === action)?.label || action
       const userName = `${user.firstName} ${user.lastName}`
-      this.successMessage.set(`${actionLabel} erfolgreich für ${userName}`)
+      this.successMessage.set(
+        this.#translateService.instant('TIME_CLOCK.ACTION_SUCCESS', {
+          action: this.#translateService.instant(actionLabel),
+          user: userName,
+        }),
+      )
 
       // Reset after delay
       setTimeout(() => {
@@ -298,7 +306,7 @@ export class TimeClockPanelComponent {
       if (error && typeof error === 'object' && 'message' in error) {
         this.errorMessage.set((error as { message: string }).message)
       } else {
-        this.errorMessage.set('Aktion fehlgeschlagen. Bitte versuchen Sie es erneut.')
+        this.errorMessage.set(this.#translateService.instant('TIME_CLOCK.ACTION_FAILED'))
       }
     } finally {
       this.isLoading.set(false)

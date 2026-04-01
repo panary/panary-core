@@ -7,6 +7,7 @@ import { cloneDeep } from 'lodash'
 import { BaseDocument, ExtendedParams } from '@panary-core/shared/common'
 import { ServiceHelper } from '../utils/service-helper.service'
 import { MatSnackBar } from '@angular/material/snack-bar'
+import { TranslateService } from '@ngx-translate/core'
 
 // Optional: Reusable type
 export type PaginatedOrArray<T> = Promise<Paginated<T> | T[]>
@@ -25,7 +26,11 @@ export abstract class BaseService<T> {
   /** INJECTION */
   protected helper: ServiceHelper = inject(ServiceHelper)
   protected matSnackBar: MatSnackBar = inject(MatSnackBar)
+  protected translate: TranslateService = inject(TranslateService)
   protected ngZone: NgZone = inject(NgZone)
+
+  /** i18n-Key für den Entitätsnamen — Subklassen überschreiben diesen Wert */
+  protected entityLabelKey = 'ENTITY.DOCUMENT'
 
   /** PRIVATE PROPERTIES */
   protected service: any
@@ -58,43 +63,37 @@ export abstract class BaseService<T> {
       .on('created', (item: T): void => {
         this.ngZone.run(() => {
           this.handleItemCreated(item)
-
-          const message = Array.isArray(item) ? 'Dokument wurde erstellt' : 'Dokumente wurden erstellt'
-          this.matSnackBar.open(message, (this.constructor as typeof BaseService).SNACKBAR_ACTION, {
-            duration: (this.constructor as typeof BaseService).SNACKBAR_DURATION,
-          })
+          this.showSnackbar(Array.isArray(item) ? 'SNACKBAR.CREATED_PLURAL' : 'SNACKBAR.CREATED')
         })
       })
       .on('updated', (item: T): void => {
         this.ngZone.run(() => {
           this.handleItemUpdated(item)
-
-          const message = Array.isArray(item) ? 'Dokument wurde aktualisiert' : 'Dokumente wurden aktualisiert'
-          this.matSnackBar.open(message, (this.constructor as typeof BaseService).SNACKBAR_ACTION, {
-            duration: (this.constructor as typeof BaseService).SNACKBAR_DURATION,
-          })
+          this.showSnackbar(Array.isArray(item) ? 'SNACKBAR.UPDATED_PLURAL' : 'SNACKBAR.UPDATED')
         })
       })
       .on('patched', (item: T): void => {
         this.ngZone.run(() => {
           this.handleItemUpdated(item)
-
-          const message = Array.isArray(item) ? 'Dokument wurde geändert' : 'Dokumente wurden geändert'
-          this.matSnackBar.open(message, (this.constructor as typeof BaseService).SNACKBAR_ACTION, {
-            duration: (this.constructor as typeof BaseService).SNACKBAR_DURATION,
-          })
+          this.showSnackbar(Array.isArray(item) ? 'SNACKBAR.CHANGED_PLURAL' : 'SNACKBAR.CHANGED')
         })
       })
       .on('removed', (item: T): void => {
         this.ngZone.run(() => {
           this.handleItemRemoved(item)
-
-          const message = Array.isArray(item) ? 'Dokument wurde gelöscht' : 'Dokumente wurden gelöscht'
-          this.matSnackBar.open(message, (this.constructor as typeof BaseService).SNACKBAR_ACTION, {
-            duration: (this.constructor as typeof BaseService).SNACKBAR_DURATION,
-          })
+          this.showSnackbar(Array.isArray(item) ? 'SNACKBAR.DELETED_PLURAL' : 'SNACKBAR.DELETED')
         })
       })
+  }
+
+  /** Zeigt eine übersetzte Snackbar-Nachricht mit dem Entitätsnamen */
+  protected showSnackbar(messageKey: string): void {
+    const entity = this.translate.instant(this.entityLabelKey)
+    const message = this.translate.instant(messageKey, { entity })
+    const action = this.translate.instant('SNACKBAR.OK')
+    this.matSnackBar.open(message, action, {
+      duration: (this.constructor as typeof BaseService).SNACKBAR_DURATION,
+    })
   }
 
   protected generateUniqueId(): string {

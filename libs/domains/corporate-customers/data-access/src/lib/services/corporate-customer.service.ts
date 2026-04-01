@@ -8,6 +8,8 @@ import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
   providedIn: 'root',
 })
 export class CorporateCustomerService extends BaseService<CorporateCustomer> {
+  protected override entityLabelKey = 'ENTITY.CORPORATE_CUSTOMER'
+
   protected connectionService: ConnectionService = inject(ConnectionService)
 
   #customers: WritableSignal<CorporateCustomer[]> = signal([])

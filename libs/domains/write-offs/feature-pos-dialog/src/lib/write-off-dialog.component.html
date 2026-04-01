@@ -1,13 +1,13 @@
-<div class="h-full flex flex-col bg-slate-50 overflow-hidden rounded-2xl">
+<div class="h-full flex flex-col bg-slate-50 dark:bg-gray-950 overflow-hidden rounded-2xl">
     <!-- Header -->
     <div
-        class="flex-none p-6 bg-white border-b border-slate-200 flex items-center justify-between z-20 relative">
+        class="flex-none p-6 bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 flex items-center justify-between z-20 relative">
         <div>
-            <h2 class="text-2xl font-bold text-slate-800 m-0 leading-tight">Abfall erfassen</h2>
-            <p class="text-sm text-slate-500 font-medium">Buche verdorbene oder fehlerhafte Artikel aus</p>
+            <h2 class="text-2xl font-bold text-slate-800 dark:text-white m-0 leading-tight">{{ 'WRITE_OFF.TITLE' | translate }}</h2>
+            <p class="text-sm text-slate-500 dark:text-gray-400 font-medium">{{ 'WRITE_OFF.SUBTITLE' | translate }}</p>
         </div>
         <button type="button" (click)="close()"
-            class="flex items-center justify-center bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors w-12 h-12 rounded-xl">
+            class="flex items-center justify-center bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors w-12 h-12 rounded-xl">
             <span class="material-symbols-outlined text-[20px]">close</span>
         </button>
     </div>
@@ -17,41 +17,41 @@
         <div class="grid grid-cols-1 lg:grid-cols-12 h-full">
 
             <!-- LEFT COLUMN: Controls -->
-            <div class="lg:col-span-7 flex flex-col h-full bg-slate-50 overflow-y-auto">
+            <div class="lg:col-span-7 flex flex-col h-full bg-slate-50 dark:bg-gray-950 overflow-y-auto">
                 <div class="p-6 lg:p-8 flex flex-col gap-8">
 
                     <!-- 1. Type & Search -->
                     <section>
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">1. Artikel suchen
+                        <h3 class="text-xs font-bold text-slate-400 dark:text-gray-500 uppercase tracking-wider mb-2">{{ 'WRITE_OFF.SEARCH_ITEM' | translate }}
                         </h3>
-                        <div class="bg-white rounded-2xl p-4 border border-slate-200 flex flex-col gap-4">
+                        <div class="bg-white dark:bg-gray-900 rounded-2xl p-4 border border-slate-200 dark:border-gray-700 flex flex-col gap-4">
                             <!-- Type Toggles -->
                             <div class="grid grid-cols-3 gap-2">
                                 <button (click)="setType(WriteOffItemType.PRODUCT)"
                                     class="flex items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200"
-                                    [ngClass]="selectedType() === WriteOffItemType.PRODUCT ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'">
+                                    [ngClass]="selectedType() === WriteOffItemType.PRODUCT ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-slate-50 dark:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700'">
                                     <span class="material-symbols-outlined text-[20px]">restaurant_menu</span>
-                                    <span class="font-bold text-sm">Produkt</span>
+                                    <span class="font-bold text-sm">{{ 'WRITE_OFF.PRODUCT' | translate }}</span>
                                 </button>
                                 <button (click)="setType(WriteOffItemType.INGREDIENT)"
                                     class="flex items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200"
-                                    [ngClass]="selectedType() === WriteOffItemType.INGREDIENT ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'">
+                                    [ngClass]="selectedType() === WriteOffItemType.INGREDIENT ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-slate-50 dark:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700'">
                                     <span class="material-symbols-outlined text-[20px]">egg</span>
-                                    <span class="font-bold text-sm">Zutat</span>
+                                    <span class="font-bold text-sm">{{ 'WRITE_OFF.INGREDIENT' | translate }}</span>
                                 </button>
                                 <button (click)="setType(WriteOffItemType.RECIPE)"
                                     class="flex items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200"
-                                    [ngClass]="selectedType() === WriteOffItemType.RECIPE ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'">
+                                    [ngClass]="selectedType() === WriteOffItemType.RECIPE ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-slate-50 dark:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700'">
                                     <span class="material-symbols-outlined text-[20px]">receipt_long</span>
-                                    <span class="font-bold text-sm">Rezept</span>
+                                    <span class="font-bold text-sm">{{ 'WRITE_OFF.RECIPE' | translate }}</span>
                                 </button>
                             </div>
 
                             <!-- Search Input -->
                             <div class="relative">
                                 <span class="material-symbols-outlined text-[20px] absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-                                <input type="text" [formControl]="searchControl" placeholder="Name eingeben..."
-                                    class="w-full h-14 pl-12 pr-12 bg-slate-50 border border-slate-200 rounded-xl text-lg font-medium focus:outline-none focus:border-indigo-500 focus:bg-white transition-all">
+                                <input type="text" [formControl]="searchControl" [placeholder]="'WRITE_OFF.ENTER_NAME' | translate"
+                                    class="w-full h-14 pl-12 pr-12 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-lg font-medium focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-gray-700 dark:text-white transition-all">
                                 @if (searchControl.value) {
                                 <button (click)="searchControl.setValue('')"
                                     class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-slate-600">
@@ -65,7 +65,7 @@
                     <!-- Selected Item Info -->
                     @if (selectedItem()) {
                     <section>
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ausgewählter Artikel
+                        <h3 class="text-xs font-bold text-slate-400 dark:text-gray-500 uppercase tracking-wider mb-2">{{ 'WRITE_OFF.SELECTED_ITEM' | translate }}
                         </h3>
                         <div
                             class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between">
@@ -82,7 +82,7 @@
                                 </div>
                             </div>
                             <button (click)="selectedItem.set(null)"
-                                class="text-emerald-600 hover:text-emerald-800 text-sm font-bold">Ändern</button>
+                                class="text-emerald-600 hover:text-emerald-800 text-sm font-bold">{{ 'COMMON.CHANGE' | translate }}</button>
                         </div>
                     </section>
                     }
@@ -91,11 +91,11 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- Quantity -->
                         <section [class.opacity-50]="!selectedItem()" [class.pointer-events-none]="!selectedItem()">
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">2. Menge</h3>
+                            <h3 class="text-xs font-bold text-slate-400 dark:text-gray-500 uppercase tracking-wider mb-2">{{ 'WRITE_OFF.QUANTITY' | translate }}</h3>
                             <div
-                                class="bg-white rounded-2xl p-4 border border-slate-200 flex items-center gap-3">
+                                class="bg-white dark:bg-gray-900 rounded-2xl p-4 border border-slate-200 dark:border-gray-700 flex items-center gap-3">
                                 <button type="button"
-                                    class="flex items-center justify-center bg-slate-100 w-12 h-12 rounded-xl text-slate-600 hover:bg-slate-200 transition-colors"
+                                    class="flex items-center justify-center bg-slate-100 dark:bg-gray-800 w-12 h-12 rounded-xl text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors"
                                     (click)="changeQuantity(-1)">
                                     <span class="material-symbols-outlined text-[20px]">remove</span>
                                 </button>
@@ -108,7 +108,7 @@
                                         getUnit(selectedItem()) }}</span>
                                 </div>
                                 <button type="button"
-                                    class="flex items-center justify-center bg-slate-100 w-12 h-12 rounded-xl text-slate-600 hover:bg-slate-200 transition-colors"
+                                    class="flex items-center justify-center bg-slate-100 dark:bg-gray-800 w-12 h-12 rounded-xl text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors"
                                     (click)="changeQuantity(1)">
                                     <span class="material-symbols-outlined text-[20px]">add</span>
                                 </button>
@@ -117,31 +117,31 @@
 
                         <!-- Reason -->
                         <section [class.opacity-50]="!selectedItem()" [class.pointer-events-none]="!selectedItem()">
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">3. Grund</h3>
+                            <h3 class="text-xs font-bold text-slate-400 dark:text-gray-500 uppercase tracking-wider mb-2">{{ 'WRITE_OFF.REASON' | translate }}</h3>
                             <div class="grid grid-cols-2 gap-2">
                                 <button (click)="setReason(WriteOffReason.WASTE)"
                                     class="px-2 py-3 rounded-xl border transition-all flex flex-col items-center gap-1"
-                                    [ngClass]="selectedReason() === WriteOffReason.WASTE ? 'bg-red-50 border-red-500 text-red-700' : 'bg-white border-slate-200 text-slate-500'">
+                                    [ngClass]="selectedReason() === WriteOffReason.WASTE ? 'bg-red-50 border-red-500 text-red-700' : 'bg-white dark:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-500 dark:text-gray-400'">
                                     <span class="material-symbols-outlined text-[20px]">delete_outline</span>
-                                    <span class="text-[10px] font-bold uppercase">Verdorben</span>
+                                    <span class="text-[10px] font-bold uppercase">{{ 'WRITE_OFF.SPOILED' | translate }}</span>
                                 </button>
                                 <button (click)="setReason(WriteOffReason.MISTAKE)"
                                     class="px-2 py-3 rounded-xl border transition-all flex flex-col items-center gap-1"
-                                    [ngClass]="selectedReason() === WriteOffReason.MISTAKE ? 'bg-orange-50 border-orange-500 text-orange-700' : 'bg-white border-slate-200 text-slate-500'">
+                                    [ngClass]="selectedReason() === WriteOffReason.MISTAKE ? 'bg-orange-50 border-orange-500 text-orange-700' : 'bg-white dark:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-500 dark:text-gray-400'">
                                     <span class="material-symbols-outlined text-[20px]">warning</span>
-                                    <span class="text-[10px] font-bold uppercase">Fehler</span>
+                                    <span class="text-[10px] font-bold uppercase">{{ 'WRITE_OFF.MISTAKE' | translate }}</span>
                                 </button>
                                 <button (click)="setReason(WriteOffReason.THEFT)"
                                     class="px-2 py-3 rounded-xl border transition-all flex flex-col items-center gap-1"
-                                    [ngClass]="selectedReason() === WriteOffReason.THEFT ? 'bg-slate-800 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-500'">
+                                    [ngClass]="selectedReason() === WriteOffReason.THEFT ? 'bg-slate-800 border-slate-800 text-white' : 'bg-white dark:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-500 dark:text-gray-400'">
                                     <span class="material-symbols-outlined text-[20px]">visibility_off</span>
-                                    <span class="text-[10px] font-bold uppercase">Schwund</span>
+                                    <span class="text-[10px] font-bold uppercase">{{ 'WRITE_OFF.SHRINKAGE' | translate }}</span>
                                 </button>
                                 <button (click)="setReason(WriteOffReason.SAMPLE)"
                                     class="px-2 py-3 rounded-xl border transition-all flex flex-col items-center gap-1"
-                                    [ngClass]="selectedReason() === WriteOffReason.SAMPLE ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-slate-200 text-slate-500'">
+                                    [ngClass]="selectedReason() === WriteOffReason.SAMPLE ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white dark:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-500 dark:text-gray-400'">
                                     <span class="material-symbols-outlined text-[20px]">science</span>
-                                    <span class="text-[10px] font-bold uppercase">Probe</span>
+                                    <span class="text-[10px] font-bold uppercase">{{ 'WRITE_OFF.SAMPLE' | translate }}</span>
                                 </button>
                             </div>
                         </section>
@@ -151,12 +151,12 @@
             </div>
 
             <!-- RIGHT COLUMN: Item List (Scrollable) -->
-            <div class="lg:col-span-5 h-full bg-white border-l border-slate-200 overflow-y-auto w-full">
+            <div class="lg:col-span-5 h-full bg-white dark:bg-gray-900 border-l border-slate-200 dark:border-gray-800 overflow-y-auto w-full">
                 @if ($any(filteredOptions()); as items) {
                 <div class="p-4">
                     <div
-                        class="mb-2 px-2 flex justify-between items-center text-slate-400 text-xs font-bold uppercase tracking-wider">
-                        <span>Ergebnisse ({{ items.length }})</span>
+                        class="mb-2 px-2 flex justify-between items-center text-slate-400 dark:text-gray-500 text-xs font-bold uppercase tracking-wider">
+                        <span>{{ 'WRITE_OFF.RESULTS' | translate }} ({{ items.length }})</span>
                         @if (selectedType() === WriteOffItemType.PRODUCT) {
                         <span class="text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-500">Menüs
                             ausgeblendet</span>
@@ -167,11 +167,11 @@
                         @for (item of items; track item._id) {
                         <button (click)="selectItem(item)"
                             class="w-full text-left p-4 rounded-xl border transition-all group hover:shadow-md"
-                            [ngClass]="selectedItem()?._id === item._id ? 'bg-emerald-50 border-emerald-500 shadow-sm ring-1 ring-emerald-500' : 'bg-white border-slate-200 hover:border-indigo-300'">
+                            [ngClass]="selectedItem()?._id === item._id ? 'bg-emerald-50 border-emerald-500 shadow-sm ring-1 ring-emerald-500' : 'bg-white dark:bg-gray-800 border-slate-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500'">
                             <div class="flex justify-between items-start">
                                 <div>
                                     <span
-                                        class="font-bold text-slate-800 block text-sm group-hover:text-indigo-700 transition-colors">{{
+                                        class="font-bold text-slate-800 dark:text-gray-200 block text-sm group-hover:text-indigo-700 transition-colors">{{
                                         item.name }}</span>
                                     <span class="text-[10px] text-slate-400 font-mono mt-0.5 block">{{ item.externalId
                                         || '-' }}</span>
@@ -188,7 +188,7 @@
                         @if (items.length === 0) {
                         <div class="py-12 flex flex-col items-center text-slate-400">
                             <span class="material-symbols-outlined text-[40px] opacity-30 mb-2">search_off</span>
-                            <p class="text-sm font-medium">Keine Artikel gefunden</p>
+                            <p class="text-sm font-medium">{{ 'WRITE_OFF.NO_ITEMS_FOUND' | translate }}</p>
                         </div>
                         }
                     </div>
@@ -200,7 +200,7 @@
     </div>
 
     <!-- Footer (Sticky) -->
-    <div class="flex-none p-4 bg-white border-t border-slate-200 z-20">
+    <div class="flex-none p-4 bg-white dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 z-20">
         <button (click)="save()" [disabled]="!selectedItem() || quantity() <= 0"
             class="w-full h-14 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 relative overflow-hidden">
             <span class="material-symbols-outlined text-[20px]">save</span>

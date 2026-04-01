@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { formatApiError } from '../../core/error-helper'
 import { LocationStateService } from '../../core/location-state.service'
@@ -7,29 +8,29 @@ import { LocationStateService } from '../../core/location-state.service'
 @Component({
   selector: 'app-location-detail',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6 max-w-2xl space-y-4 h-full overflow-y-auto">
       <div>
         <div class="flex items-center justify-between min-h-9">
-          <h1 class="text-xl font-bold tracking-tight">Standort</h1>
+          <h1 class="text-xl font-bold tracking-tight">{{ 'LOCATION.TITLE' | translate }}</h1>
         </div>
-        <p class="text-slate-500 dark:text-gray-400 text-sm mt-1 leading-relaxed">Standortdaten und Kontaktinformationen dieses Edge-Servers.</p>
+        <p class="text-slate-500 dark:text-gray-400 text-sm mt-1 leading-relaxed">{{ 'LOCATION.DESCRIPTION' | translate }}</p>
       </div>
 
       @if (loading()) {
-        <p class="text-slate-400 dark:text-gray-500">Laden...</p>
+        <p class="text-slate-400 dark:text-gray-500">{{ 'COMMON.LOADING' | translate }}</p>
       } @else if (!locationId()) {
         <div class="text-center py-16">
-          <p class="text-slate-400 dark:text-gray-500 text-lg">Kein Standort vorhanden</p>
-          <p class="text-slate-400 dark:text-gray-500 text-sm mt-1">Der Standort wird beim ersten Setup automatisch erstellt.</p>
+          <p class="text-slate-400 dark:text-gray-500 text-lg">{{ 'LOCATION.NO_LOCATION' | translate }}</p>
+          <p class="text-slate-400 dark:text-gray-500 text-sm mt-1">{{ 'LOCATION.AUTO_CREATED' | translate }}</p>
         </div>
       } @else {
         <form (ngSubmit)="onSave()" class="space-y-4">
           <!-- Name -->
           <div class="space-y-1.5">
-            <label for="locationName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Name *</label>
+            <label for="locationName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'COMMON.NAME' | translate }} *</label>
             <input id="locationName" [(ngModel)]="form.name" name="name" type="text" required
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-3 text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none text-sm" />
           </div>
@@ -37,13 +38,13 @@ import { LocationStateService } from '../../core/location-state.service'
           <div class="grid grid-cols-2 gap-3">
             <!-- E-Mail -->
             <div class="space-y-1.5">
-              <label for="locationEmail" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">E-Mail</label>
+              <label for="locationEmail" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'USERS.EMAIL' | translate }}</label>
               <input id="locationEmail" [(ngModel)]="form.email" name="email" type="email"
                 class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-3 text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none text-sm" />
             </div>
             <!-- Telefon -->
             <div class="space-y-1.5">
-              <label for="locationPhone" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Telefon</label>
+              <label for="locationPhone" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'LOCATION.PHONE' | translate }}</label>
               <input id="locationPhone" [(ngModel)]="form.phone" name="phone" type="text"
                 class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-3 text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none text-sm" />
             </div>
@@ -51,11 +52,11 @@ import { LocationStateService } from '../../core/location-state.service'
 
           <!-- Status -->
           <div class="space-y-1.5">
-            <label for="locationStatus" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Status</label>
+            <label for="locationStatus" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'COMMON.STATUS' | translate }}</label>
             <select id="locationStatus" [(ngModel)]="form.status" name="status"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-3 text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none text-sm">
-              <option value="DRAFT">Entwurf</option>
-              <option value="ACTIVE">Aktiv</option>
+              <option value="DRAFT">{{ 'COMMON.STATUS_DRAFT' | translate }}</option>
+              <option value="ACTIVE">{{ 'COMMON.STATUS_ACTIVE' | translate }}</option>
             </select>
           </div>
 
@@ -64,12 +65,12 @@ import { LocationStateService } from '../../core/location-state.service'
           }
 
           @if (saved()) {
-            <p class="text-green-600 dark:text-green-400 text-sm">Gespeichert.</p>
+            <p class="text-green-600 dark:text-green-400 text-sm">{{ 'COMMON.SAVED' | translate }}</p>
           }
 
           <button type="submit" [disabled]="saving()"
             class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-6 py-3 rounded-xl text-sm hover:bg-slate-800 dark:hover:bg-gray-200 transition disabled:opacity-50">
-            {{ saving() ? 'Speichern...' : 'Speichern' }}
+            {{ saving() ? ('COMMON.SAVING' | translate) : ('COMMON.SAVE' | translate) }}
           </button>
         </form>
       }
@@ -79,6 +80,7 @@ import { LocationStateService } from '../../core/location-state.service'
 export class LocationDetailComponent implements OnInit {
   private api = inject(ApiService)
   private locationState = inject(LocationStateService)
+  private t = inject(TranslateService)
 
   loading = signal(true)
   saving = signal(false)
@@ -103,14 +105,14 @@ export class LocationDetailComponent implements OnInit {
       }
     } catch (e) {
       console.error('Fehler beim Laden des Standorts:', e)
-      this.error.set('Standort konnte nicht geladen werden.')
+      this.error.set(this.t.instant('LOCATION.LOAD_ERROR'))
     }
     this.loading.set(false)
   }
 
   async onSave() {
     if (!this.form.name) {
-      this.error.set('Name ist erforderlich')
+      this.error.set(this.t.instant('LOCATION.NAME_REQUIRED'))
       return
     }
     this.saving.set(true)

@@ -7,7 +7,7 @@ import type { HookContext } from '../../declarations'
 import { dataValidator, queryValidator } from '../../validators'
 
 // Import domain schema
-import { userDataSchema, userPatchSchema, userQuerySchema, userSchema, User, UserQuery } from '@panary-core/users/domain'
+import { userDataSchema, userPatchSchema, userQuerySchema, userSchema, User, UserQuery, UserSystemRole } from '@panary-core/users/domain'
 import { UserService } from './users.class'
 
 //#region 1. Main User Resolver (Output)
@@ -67,7 +67,7 @@ export const userDataResolver = resolve<User, HookContext<UserService>>({
 })
 //#endregion
 
-//#region 3. Patch User Resolver (Update / PATCH)
+//#region 3. Patch-User-Resolver (Update / PATCH)
 export const userPatchValidator = getValidator(userPatchSchema, dataValidator)
 export const userPatchResolver = resolve<User, HookContext<UserService>>({
   _id: async () => undefined,
@@ -79,19 +79,26 @@ export const userPatchResolver = resolve<User, HookContext<UserService>>({
 })
 //#endregion
 
-//#region 4. Query Resolver (Suche / GET)
+//#region 4. Query-User-Resolver (Suche / GET)
 export const userQueryValidator = getValidator(userQuerySchema, queryValidator)
+
+// Privilegierte Rollen, die alle User sehen dürfen
+const privilegedRoles: string[] = [
+  UserSystemRole.PLATFORM_OWNER,
+  UserSystemRole.PLATFORM_ADMIN,
+  UserSystemRole.PLATFORM_SUPPORT,
+  UserSystemRole.TENANT_OWNER,
+  UserSystemRole.TENANT_MANAGER,
+]
+
 export const userQueryResolver = resolve<UserQuery, HookContext>({
-  // Sicherheit: Normale User sehen nur sich selbst
+  // Sicherheit: Nicht-privilegierte User sehen nur sich selbst
   _id: async (value, user, context) => {
-    // Wenn User eingeloggt ist UND kein Admin ist...
     if (
       context.params.user &&
-      context.params.user.role !== 'admin' &&
-      context.params.user.role !== 'superadmin'
+      !privilegedRoles.includes(context.params.user.role)
     ) {
-      // ...zwingen wir die ID auf die eigene ID
-      return context.params.user.id
+      return context.params.user._id
     }
     return value
   }

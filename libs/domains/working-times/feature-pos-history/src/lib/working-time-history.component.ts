@@ -8,6 +8,7 @@ import { WorkingTime, WorkingTimeService } from '@panary-core/working-times/data
 import { UserService } from '@panary-core/users/data-access'
 import { Router } from '@angular/router'
 import { MatMenuModule } from '@angular/material/menu'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 export interface DailySummary {
     date: Date
@@ -30,6 +31,7 @@ export interface DailySummary {
         MatTableModule,
         MatTooltipModule,
         MatMenuModule,
+        TranslateModule,
     ],
     templateUrl: './working-time-history.component.html',
     styleUrl: './working-time-history.component.scss',
@@ -39,6 +41,7 @@ export class WorkingTimeHistoryComponent {
     #router=inject(Router)
     #workingTimeService=inject(WorkingTimeService)
     #userService=inject(UserService)
+    #translate=inject(TranslateService)
 
     // Signals
     selectedMonth=signal(new Date().getMonth())
@@ -62,20 +65,20 @@ export class WorkingTimeHistoryComponent {
     })
 
     // Date constants
-    months=[
-        { value: 0, label: 'Januar' },
-        { value: 1, label: 'Februar' },
-        { value: 2, label: 'März' },
-        { value: 3, label: 'April' },
-        { value: 4, label: 'Mai' },
-        { value: 5, label: 'Juni' },
-        { value: 6, label: 'Juli' },
-        { value: 7, label: 'August' },
-        { value: 8, label: 'September' },
-        { value: 9, label: 'Oktober' },
-        { value: 10, label: 'November' },
-        { value: 11, label: 'Dezember' },
-    ]
+    months=computed(() => [
+        { value: 0, label: this.#translate.instant('MONTHS.JANUARY') },
+        { value: 1, label: this.#translate.instant('MONTHS.FEBRUARY') },
+        { value: 2, label: this.#translate.instant('MONTHS.MARCH') },
+        { value: 3, label: this.#translate.instant('MONTHS.APRIL') },
+        { value: 4, label: this.#translate.instant('MONTHS.MAY') },
+        { value: 5, label: this.#translate.instant('MONTHS.JUNE') },
+        { value: 6, label: this.#translate.instant('MONTHS.JULY') },
+        { value: 7, label: this.#translate.instant('MONTHS.AUGUST') },
+        { value: 8, label: this.#translate.instant('MONTHS.SEPTEMBER') },
+        { value: 9, label: this.#translate.instant('MONTHS.OCTOBER') },
+        { value: 10, label: this.#translate.instant('MONTHS.NOVEMBER') },
+        { value: 11, label: this.#translate.instant('MONTHS.DECEMBER') },
+    ])
 
     years=Array.from({ length: 5 }, (_, i) => new Date().getFullYear()-i)
 
@@ -250,7 +253,7 @@ export class WorkingTimeHistoryComponent {
 
     // Formatting breaks for tooltip/dropdown
     getBreakDetails(wt: WorkingTime|undefined): string {
-        if (!wt||!wt.breaks||wt.breaks.length===0) return 'Keine Pausen'
+        if (!wt||!wt.breaks||wt.breaks.length===0) return this.#translate.instant('WORKING_TIMES.NO_BREAKS')
 
         return wt.breaks.map((b: { from: Date; to?: Date }) => {
             const from=new Date(b.from).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal, input, output, effect, viewChild } from '@angular/core'
 import { FormsModule, NgForm } from '@angular/forms'
 import { Router } from '@angular/router'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { formatApiError } from '../../core/error-helper'
 import { ConfirmDialogComponent } from '../../core/confirm-dialog'
@@ -21,7 +22,7 @@ interface ApikeyDetail {
 @Component({
   selector: 'app-apikey-form',
   standalone: true,
-  imports: [FormsModule, ConfirmDialogComponent],
+  imports: [FormsModule, ConfirmDialogComponent, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div [class]="panelMode() ? 'p-5 space-y-5' : 'p-8 max-w-2xl space-y-6'">
@@ -29,25 +30,25 @@ interface ApikeyDetail {
       <!-- CREATE: Formular für neuen API-Schlüssel   -->
       <!-- ========================================== -->
       @if (isNew()) {
-        <h1 class="text-2xl font-bold tracking-tight">Neuer API-Schlüssel</h1>
+        <h1 class="text-2xl font-bold tracking-tight">{{ 'APIKEYS.NEW_KEY' | translate }}</h1>
 
         <form #f="ngForm" (ngSubmit)="onCreate(f)" class="space-y-5">
           <div class="space-y-1">
-            <label for="apikeyName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Name *</label>
+            <label for="apikeyName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'COMMON.NAME' | translate }} *</label>
             <input id="apikeyName" [(ngModel)]="form.name" name="name" #name="ngModel"
               type="text" required minlength="2" maxlength="80"
               placeholder="z.B. POS Kasse 1"
               [class]="inputClass(name)" />
             @if (name.invalid && name.touched) {
               <p class="text-red-500 dark:text-red-400 text-xs mt-1">
-                @if (name.errors?.['required']) { Name ist erforderlich. }
-                @else if (name.errors?.['minlength']) { Mindestens 2 Zeichen. }
+                @if (name.errors?.['required']) { {{ 'APIKEYS.NAME_REQUIRED' | translate }} }
+                @else if (name.errors?.['minlength']) { {{ 'COMMON.MIN_CHARS' | translate:{ count: 2 } }} }
               </p>
             }
           </div>
 
           <div class="space-y-1">
-            <label for="apikeyDescription" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Beschreibung</label>
+            <label for="apikeyDescription" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'APIKEYS.DESCRIPTION' | translate }}</label>
             <textarea id="apikeyDescription" [(ngModel)]="form.description" name="description"
               rows="2" placeholder="Optionale Beschreibung des Verwendungszwecks"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
@@ -58,18 +59,18 @@ interface ApikeyDetail {
 
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-1">
-              <label for="apikeyRole" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Rolle *</label>
+              <label for="apikeyRole" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'USERS.ROLE' | translate }} *</label>
               <select id="apikeyRole" [(ngModel)]="form.role" name="role"
                 class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                        text-slate-900 dark:text-white outline-none">
-                <option value="device:pos">POS-Kasse</option>
-                <option value="device:kds">Küchen-Display</option>
-                <option value="device:tablet">Tablet</option>
-                <option value="device:kiosk">Kiosk</option>
+                <option value="device:pos">{{ 'ROLES.DEVICE_POS' | translate }}</option>
+                <option value="device:kds">{{ 'ROLES.DEVICE_KDS' | translate }}</option>
+                <option value="device:tablet">{{ 'ROLES.DEVICE_TABLET' | translate }}</option>
+                <option value="device:kiosk">{{ 'ROLES.DEVICE_KIOSK' | translate }}</option>
               </select>
             </div>
             <div class="space-y-1">
-              <label for="apikeyValidUntil" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Gültig bis</label>
+              <label for="apikeyValidUntil" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'APIKEYS.VALID_UNTIL' | translate }}</label>
               <input id="apikeyValidUntil" [(ngModel)]="form.validUntil" name="validUntil" type="date"
                 class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                        text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
@@ -96,13 +97,13 @@ interface ApikeyDetail {
               @if (saving()) {
                 <span class="save-spinner"></span>
               } @else {
-                Erstellen
+                {{ 'COMMON.CREATE' | translate }}
               }
             </button>
             <button type="button" (click)="onCancel()"
               class="bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-600
                      dark:text-gray-300 px-6 py-3 rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-gray-800 transition">
-              Abbrechen
+              {{ 'COMMON.CANCEL' | translate }}
             </button>
           </div>
         </form>
@@ -110,7 +111,7 @@ interface ApikeyDetail {
         <!-- ========================================== -->
         <!-- DETAIL: Nur-Lese-Ansicht + Aktionen        -->
         <!-- ========================================== -->
-        <h1 class="text-2xl font-bold tracking-tight">API-Schlüssel</h1>
+        <h1 class="text-2xl font-bold tracking-tight">{{ 'APIKEYS.TITLE' | translate }}</h1>
 
         @if (detail()) {
           <!-- Status-Banner -->
@@ -124,7 +125,7 @@ interface ApikeyDetail {
                   [class]="detail()!.active
                     ? 'text-green-700 dark:text-green-400'
                     : 'text-slate-500 dark:text-gray-400'">
-              {{ detail()!.active ? 'Aktiv' : 'Deaktiviert' }}
+              {{ (detail()!.active ? 'COMMON.STATUS_ACTIVE' : 'APIKEYS.DEACTIVATED') | translate }}
             </span>
           </div>
 
@@ -132,45 +133,45 @@ interface ApikeyDetail {
           <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800
                       rounded-xl divide-y divide-slate-200 dark:divide-gray-800">
             <div class="flex items-center justify-between px-4 py-3">
-              <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">Name</span>
+              <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'COMMON.NAME' | translate }}</span>
               <span class="text-sm text-slate-900 dark:text-white font-medium">{{ detail()!.name }}</span>
             </div>
             @if (detail()!.description) {
               <div class="flex items-center justify-between px-4 py-3">
-                <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">Beschreibung</span>
+                <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'APIKEYS.DESCRIPTION' | translate }}</span>
                 <span class="text-sm text-slate-900 dark:text-white">{{ detail()!.description }}</span>
               </div>
             }
             <div class="flex items-center justify-between px-4 py-3">
-              <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">Rolle</span>
+              <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'USERS.ROLE' | translate }}</span>
               <span class="text-xs px-2 py-0.5 rounded-full border border-slate-300 dark:border-gray-700
                            text-slate-600 dark:text-gray-300">
                 {{ formatRole(detail()!.role) }}
               </span>
             </div>
             <div class="flex items-center justify-between px-4 py-3">
-              <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">Gültig bis</span>
+              <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'APIKEYS.VALID_UNTIL' | translate }}</span>
               <span class="text-sm text-slate-900 dark:text-white">
                 {{ detail()!.validUntil ? formatDate(detail()!.validUntil!) : 'Unbegrenzt' }}
               </span>
             </div>
             <div class="flex items-center justify-between px-4 py-3">
-              <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">Erstellt am</span>
+              <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'APIKEYS.CREATED_AT' | translate }}</span>
               <span class="text-sm text-slate-900 dark:text-white">{{ formatDate(detail()!.createdAt!) }}</span>
             </div>
             <div class="flex items-center justify-between px-4 py-3">
-              <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">Erstellt von</span>
+              <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'APIKEYS.CREATED_BY' | translate }}</span>
               <span class="text-sm text-slate-900 dark:text-white">{{ detail()!.createdBy || '—' }}</span>
             </div>
             <div class="flex items-center justify-between px-4 py-3">
-              <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">Letzte Nutzung</span>
+              <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'APIKEYS.LAST_USED' | translate }}</span>
               <span class="text-sm text-slate-900 dark:text-white">
-                {{ detail()!.lastUsedAt ? formatDate(detail()!.lastUsedAt!) : 'Nie verwendet' }}
+                {{ detail()!.lastUsedAt ? formatDate(detail()!.lastUsedAt!) : ('APIKEYS.NEVER_USED' | translate) }}
               </span>
             </div>
             @if (detail()!.deviceId) {
               <div class="flex items-center justify-between px-4 py-3">
-                <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">Geräte-ID</span>
+                <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'APIKEYS.DEVICE_ID' | translate }}</span>
                 <span class="text-sm text-slate-500 dark:text-gray-400 font-mono text-xs">{{ detail()!.deviceId }}</span>
               </div>
             }
@@ -193,16 +194,16 @@ interface ApikeyDetail {
               [class]="detail()!.active
                 ? 'bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-600 dark:text-gray-300 px-6 py-3 rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-gray-800 transition disabled:opacity-50'
                 : 'bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-6 py-3 rounded-xl text-sm hover:bg-slate-800 dark:hover:bg-gray-200 transition disabled:opacity-50'">
-              {{ detail()!.active ? 'Deaktivieren' : 'Aktivieren' }}
+              {{ (detail()!.active ? 'APIKEYS.DEACTIVATE' : 'APIKEYS.ACTIVATE') | translate }}
             </button>
             <button (click)="confirmingDelete.set(true)"
               class="text-red-500 dark:text-red-400 text-sm hover:text-red-700 dark:hover:text-red-300 transition px-4 py-3">
-              Löschen
+              {{ 'COMMON.DELETE' | translate }}
             </button>
             <div class="flex-1"></div>
             <button (click)="onCancel()"
               class="text-slate-400 dark:text-gray-500 text-sm hover:text-slate-900 dark:hover:text-white transition px-4 py-3">
-              Schließen
+              {{ 'COMMON.CLOSE' | translate }}
             </button>
           </div>
         }
@@ -211,10 +212,10 @@ interface ApikeyDetail {
 
     @if (confirmingDelete()) {
       <app-confirm-dialog
-        title="API-Schlüssel löschen"
-        message="Sind Sie sicher? Geräte, die diesen Schlüssel verwenden, verlieren den Zugriff. Diese Aktion kann nicht rückgängig gemacht werden."
-        confirmLabel="Endgültig löschen"
-        dismissLabel="Abbrechen"
+        [title]="'APIKEYS.DELETE_KEY' | translate"
+        [message]="'APIKEYS.DELETE_CONFIRM' | translate"
+        [confirmLabel]="'APIKEYS.DELETE_PERMANENTLY' | translate"
+        [dismissLabel]="'COMMON.CANCEL' | translate"
         (confirmed)="onDelete()"
         (dismissed)="confirmingDelete.set(false)"
         (cancelled)="confirmingDelete.set(false)" />
@@ -225,6 +226,7 @@ export class ApikeyFormComponent {
   private api = inject(ApiService)
   private router = inject(Router)
   private cdr = inject(ChangeDetectorRef)
+  private t = inject(TranslateService)
 
   id = input<string>()
   panelMode = input(false)
@@ -264,12 +266,12 @@ export class ApikeyFormComponent {
 
   formatRole(role: string): string {
     const map: Record<string, string> = {
-      'device:pos': 'POS-Kasse',
-      'device:kds': 'Küchen-Display',
-      'device:tablet': 'Tablet',
-      'device:kiosk': 'Kiosk',
+      'device:pos': 'ROLES.DEVICE_POS',
+      'device:kds': 'ROLES.DEVICE_KDS',
+      'device:tablet': 'ROLES.DEVICE_TABLET',
+      'device:kiosk': 'ROLES.DEVICE_KIOSK',
     }
-    return map[role] || role
+    return map[role] ? this.t.instant(map[role]) : role
   }
 
   formatDate(iso: string): string {
@@ -314,7 +316,7 @@ export class ApikeyFormComponent {
       const key = await this.api.get<ApikeyDetail>('apikeys', keyId)
       this.detail.set(key)
     } catch {
-      this.errors.set(['API-Schlüssel nicht gefunden.'])
+      this.errors.set([this.t.instant('APIKEYS.NOT_FOUND')])
     }
     this.cdr.markForCheck()
   }

@@ -10,7 +10,9 @@ tmp/
 
 # Git
 .git/
-.gitignore
+# .gitignore MUSS im Build-Kontext bleiben — Tailwind v4 nutzt es, um node_modules/
+# beim JIT-Scan auszuschließen. Ohne es generiert Tailwind leere @layer utilities {}.
+# Siehe Dockerfile.edge Stage 1: COPY .gitignore ...
 
 # IDE
 .idea/

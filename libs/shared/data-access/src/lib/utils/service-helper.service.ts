@@ -16,55 +16,39 @@ export class ServiceHelper {
   protected readonly router: Router = inject(Router)
   protected readonly matSnackBar: MatSnackBar = inject(MatSnackBar)
 
-  /**
-   * Handles errors by displaying appropriate notifications and performing specific actions
-   * depending on the error code, such as logging out for unauthorized access.
-   *
-   * @param {string} serviceName - The name of the service where the error occurred.
-   * @param {FeathersError | any} error - The error object containing details about the error.
-   * @return {void} This method does not return anything.
-   */
-  handleError(serviceName: string, error: FeathersError | any): void {
+  handleError(serviceName: string, error: FeathersError | unknown): void {
     const ERROR_DUPLICATE_KEY_MSG = 'Ein Eintrag mit diesem Schlüssel existiert bereits.'
 
     const getErrorPhrase = (code: string | number): string => {
       try {
         return httpErrorCodesDE.getErrorPhrase(code)
-      } catch (err: any) {
-        console.warn(`Fehler beim Abrufen des Error Phrases: ${err}`)
+      } catch (err: unknown) {
+        console.warn(`Fehler beim Abrufen des Error Phrases: ${String(err)}`)
         return ''
       }
     }
 
-    const formatNotificationMessage = (errorPhrase: string, errorMsg: string): string => {
-      return `${errorPhrase}\n${errorMsg}`
-    }
+    const e = error as Record<string, unknown> | null | undefined
 
-    const handleUnauthorizedError = (): void => {
-      if (error.code === 401) {
-        sessionStorage.clear()
-        this.router.navigate(['/login']).then()
-      }
-    }
-
-    const logError = (): void => {
-      console.error(`Service "${serviceName}" hat einen Fehler:`, error)
-    }
+    const errorMessage = typeof e?.['message'] === 'string' ? e['message'] : undefined
+    const errorCode = typeof e?.['code'] === 'number' ? e['code'] : undefined
 
     // Logik für Fehlerbehandlung
-    if (error && error.message && error.message.startsWith('E11000 duplicate key')) {
-      error.message = ERROR_DUPLICATE_KEY_MSG
-    }
+    const displayMessage =
+      errorMessage?.startsWith('E11000 duplicate key') ? ERROR_DUPLICATE_KEY_MSG : (errorMessage ?? 'Unbekannter Fehler')
 
-    const code = error?.code || 500
+    const code = errorCode ?? 500
     const errorPhrase = getErrorPhrase(code)
-    const message = error?.message || 'Unbekannter Fehler'
-    const notificationMessage = formatNotificationMessage(errorPhrase, message)
+    const notificationMessage = `${errorPhrase}\n${displayMessage}`
 
     this.notificationService.show('error', notificationMessage, 5000, `Fehler HTTP-Code ${code}`)
 
-    handleUnauthorizedError()
-    logError()
+    if (code === 401) {
+      sessionStorage.clear()
+      this.router.navigate(['/login']).then()
+    }
+
+    console.error(`Service "${serviceName}" hat einen Fehler:`, error)
   }
 
   showSnackbar(message: string): void {

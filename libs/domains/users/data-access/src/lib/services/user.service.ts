@@ -92,9 +92,9 @@ export class UserService extends BaseService<User> {
   }
 
   protected override fileReaderOnLoad(
-    fileReader: FileReader,
-    observer: Observer<any>,
-    context: {
+    _fileReader: FileReader,
+    _observer: Observer<unknown>,
+    _context: {
       errorMessages: string[]
       warnMessages: string[]
       successCount: number
@@ -106,28 +106,28 @@ export class UserService extends BaseService<User> {
 
   /** PUBLIC METHODS */
   async checkin(userId: Id, params: Params={}): Promise<User> {
-    return this.service.checkin(userId, params).catch((error: any) => this.helper.handleError(this.serviceName, error))
+    return this.service.checkin(userId, params).catch((error: unknown) => this.helper.handleError(this.serviceName, error))
   }
 
   async checkout(userId: Id, params: Params={}): Promise<User> {
-    return this.service.checkout(userId, params).catch((error: any) => this.helper.handleError(this.serviceName, error))
+    return this.service.checkout(userId, params).catch((error: unknown) => this.helper.handleError(this.serviceName, error))
   }
 
   async startBreak(userId: Id, params: Params={}): Promise<User> {
     return this.service
       .startBreak(userId, params)
-      .catch((error: any) => this.helper.handleError(this.serviceName, error))
+      .catch((error: unknown) => this.helper.handleError(this.serviceName, error))
   }
 
   async endBreak(userId: Id, params: Params={}): Promise<User> {
-    return this.service.endBreak(userId, params).catch((error: any) => this.helper.handleError(this.serviceName, error))
+    return this.service.endBreak(userId, params).catch((error: unknown) => this.helper.handleError(this.serviceName, error))
   }
 
   async mustChangePassword(data: { newPassword: string }, params: Params={}): Promise<User> {
     console.log(data)
     return this.service
       .mustChangePassword(data, params)
-      .catch((error: any) => this.helper.handleError(this.serviceName, error))
+      .catch((error: unknown) => this.helper.handleError(this.serviceName, error))
   }
 
   updateLocalStorageUsers(): void {

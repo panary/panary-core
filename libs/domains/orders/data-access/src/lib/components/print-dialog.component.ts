@@ -13,7 +13,7 @@ interface Printer {
 }
 
 @Component({
-  selector: 'app-print-dialog',
+  selector: 'lib-print-dialog',
   standalone: true,
   imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -27,7 +27,7 @@ interface QuickAction {
 }
 
 @Component({
-  selector: 'app-dashboard',
+  selector: 'lib-dashboard',
   standalone: true,
   imports: [CommonModule, MatDialogModule, NgxEchartsModule, TranslateModule],
   providers: [

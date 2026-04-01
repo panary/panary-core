@@ -12,7 +12,7 @@ export interface ConfirmDialogData {
 }
 
 @Component({
-  selector: 'app-confirm-dialog',
+  selector: 'lib-confirm-dialog',
   standalone: true,
   imports: [TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,

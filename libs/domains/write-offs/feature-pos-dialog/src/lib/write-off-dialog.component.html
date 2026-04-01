@@ -100,7 +100,7 @@
                                     <span class="material-symbols-outlined text-[20px]">remove</span>
                                 </button>
                                 <div class="flex-1 text-center relative flex justify-center items-center gap-2"
-                                    (click)="openNumpad()">
+                                    tabindex="0" (click)="openNumpad()" (keydown.enter)="openNumpad()">
                                     <input type="number" [ngModel]="quantity()" readonly
                                         class="w-24 text-center text-3xl font-bold text-slate-800 bg-transparent focus:outline-none cursor-pointer p-0">
                                     <span

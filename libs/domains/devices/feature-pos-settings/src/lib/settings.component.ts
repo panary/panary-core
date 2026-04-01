@@ -27,7 +27,7 @@ interface EdgeServerInfo {
 }
 
 @Component({
-  selector: 'panary-settings',
+  selector: 'lib-settings',
   standalone: true,
   imports: [CommonModule, FormsModule, MatTooltipModule, TranslateModule],
   templateUrl: './settings.component.html',

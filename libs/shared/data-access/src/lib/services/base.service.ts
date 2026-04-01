@@ -331,7 +331,7 @@ export abstract class BaseService<T> {
       const fileReader = new FileReader()
       const errorMessages: string[] = []
       const warnMessages: string[] = []
-      let successCount = 0
+      const successCount = 0
 
       fileReader.onload = () => {
         this.fileReaderOnLoad(fileReader, observer, {

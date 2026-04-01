@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
-import { CommonModule } from '@angular/common'
+import { DatePipe } from '@angular/common'
 import { FormsModule } from '@angular/forms'
 import { MatSelectModule } from '@angular/material/select'
 import { MatTableModule } from '@angular/material/table'
@@ -22,10 +22,10 @@ export interface DailySummary {
 }
 
 @Component({
-    selector: 'app-working-time-history',
+    selector: 'lib-working-time-history',
     standalone: true,
     imports: [
-        CommonModule,
+        DatePipe,
         FormsModule,
         MatSelectModule,
         MatTableModule,

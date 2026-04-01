@@ -34,7 +34,7 @@ const CANCEL_REASONS = [
 const DISCOUNT_PRESETS = [5, 10, 15, 20, 25, 30] as const
 
 @Component({
-  selector: 'app-active-orders',
+  selector: 'lib-active-orders',
   standalone: true,
   imports: [CommonModule, TranslateModule],
   templateUrl: './active-orders.component.html',

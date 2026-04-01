@@ -18,7 +18,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 type TimeRange='today'|'yesterday'|'week'|'custom'
 
 @Component({
-  selector: 'app-order-history',
+  selector: 'lib-order-history',
   standalone: true,
   imports: [
     CommonModule,
@@ -158,12 +158,13 @@ export class OrderHistoryComponent implements OnInit {
         end.setDate(end.getDate()-1)
         end.setHours(23, 59, 59, 999)
         break
-      case 'week':
+      case 'week': {
         const day=start.getDay()||7 // Get current day number, converting Sun. to 7
         if (day!==1) start.setHours(-24*(day-1)) // Set to Monday
         start.setHours(0, 0, 0, 0)
         end.setHours(23, 59, 59, 999)
         break
+      }
       case 'custom':
         if (this.customStartDate&&this.customEndDate) {
           return {

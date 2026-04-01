@@ -22,7 +22,7 @@ import { NumpadDialogComponent } from '@panary-core/shared/ui-common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 @Component({
-  selector: 'panary-pos-write-off-dialog',
+  selector: 'lib-write-off-dialog',
   standalone: true,
   imports: [
     CommonModule,
@@ -209,7 +209,7 @@ export class PosWriteOffDialogComponent {
       if (stored) {
         try {
           userId = JSON.parse(stored)._id
-        } catch (e) {}
+        } catch (e) { /* noop */ }
       }
     }
 

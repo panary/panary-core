@@ -44,9 +44,9 @@ export class UserPreferencesService extends BaseService<UserPreferenceSchema> {
   }
 
   /** PRIVATE METHODS */
-  protected loadDocuments(): void {}
+  protected loadDocuments(): void { /* noop */ }
 
-  protected override fileReaderOnLoad() {}
+  protected override fileReaderOnLoad() { /* noop */ }
 
   /** PUBLIC METHODS */
   override async create(
@@ -58,7 +58,7 @@ export class UserPreferencesService extends BaseService<UserPreferenceSchema> {
     return this.service.create(data, params).catch((error: any) => this.helper.handleError(this.serviceName, error))
   }
 
-  async getPreference<T>(key: string, defaultValue: T, syncOnLoad: boolean = false): Promise<T> {
+  async getPreference<T>(key: string, defaultValue: T, syncOnLoad = false): Promise<T> {
     try {
       // Try to load from the server first if online and synchronization is desired
       if (syncOnLoad && navigator.onLine && this.connectionService.serverLink().isConnected) {

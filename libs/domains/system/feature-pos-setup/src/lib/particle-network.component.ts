@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, OnDestroy, ViewChild, afterNextRender } from '@angular/core'
+import { Component, ElementRef, OnDestroy, ViewChild, afterNextRender } from '@angular/core'
 import { CommonModule } from '@angular/common'
 
 interface Particle {
@@ -34,7 +34,7 @@ interface Particle {
     `,
   ],
 })
-export class ParticleNetworkComponent implements OnInit, OnDestroy {
+export class ParticleNetworkComponent implements OnDestroy {
   @ViewChild('canvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>
 
   private ctx!: CanvasRenderingContext2D
@@ -59,8 +59,6 @@ export class ParticleNetworkComponent implements OnInit, OnDestroy {
       this.init()
     })
   }
-
-  ngOnInit(): void {}
 
   private init(): void {
     const canvas = this.canvasRef.nativeElement

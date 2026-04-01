@@ -245,6 +245,10 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     return this._customer
   }
 
+  set customer(customer: CorporateCustomer | undefined) {
+    this._customer = customer
+  }
+
   get currentUser(): User | undefined {
     return this._currentUser
   }
@@ -285,11 +289,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   get numpadValue(): string {
     return this._numpadValue
-  }
-
-  /** SETTER */
-  set customer(customer: CorporateCustomer | undefined) {
-    this._customer = customer
   }
 
   /** CONSTRUCTOR */
@@ -1024,7 +1023,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     if (
       this._selectedProductIndex === null &&
-      (this._selectedCombinationIndex[0] === this._selectedCombinationIndex[1]) === null
+      this._selectedCombinationIndex[0] === null && this._selectedCombinationIndex[1] === null
     ) {
       this.setInfoBoxText('Bitte wählen Sie zunächst einen Artikel aus.', 'red')
       return
@@ -1407,7 +1406,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (
       ((article as any).isMenuSideDish !== undefined && !(article as any).isMenuSideDish) ||
       (this._selectedProductIndex === null &&
-        (this._selectedCombinationIndex[0] === this._selectedCombinationIndex[1]) === null)
+        this._selectedCombinationIndex[0] === null && this._selectedCombinationIndex[1] === null)
     ) {
       return
     }
@@ -1441,7 +1440,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (
       !(subButtonItem as any).isMenuSideDishSauce ||
       (this._selectedProductIndex === null &&
-        (this._selectedCombinationIndex[0] === this._selectedCombinationIndex[1]) === null)
+        this._selectedCombinationIndex[0] === null && this._selectedCombinationIndex[1] === null)
     ) {
       return
     }
@@ -1452,7 +1451,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (
       !(article as any).isMenuDrink ||
       (this._selectedProductIndex === null &&
-        (this._selectedCombinationIndex[0] === this._selectedCombinationIndex[1]) === null)
+        this._selectedCombinationIndex[0] === null && this._selectedCombinationIndex[1] === null)
     ) {
       return
     }

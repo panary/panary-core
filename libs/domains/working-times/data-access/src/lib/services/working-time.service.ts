@@ -52,7 +52,7 @@ export class WorkingTimeService extends BaseService<WorkingTime> {
     )
   }
 
-  protected override loadDocuments() {}
+  protected override loadDocuments() { /* noop */ }
 
   protected override fileReaderOnLoad(
     fileReader: FileReader,
@@ -63,5 +63,5 @@ export class WorkingTimeService extends BaseService<WorkingTime> {
       successCount: number
       multi: boolean
     },
-  ) {}
+  ) { /* noop */ }
 }

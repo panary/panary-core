@@ -11,7 +11,7 @@ import { ConfirmDialogComponent } from '../confirm-dialog.component'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 @Component({
-  selector: 'app-pre-order-list',
+  selector: 'lib-pre-order-list',
   standalone: true,
   imports: [
     CommonModule,
@@ -83,7 +83,10 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                   class="p-4 rounded-xl border border-slate-100 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-slate-50 dark:hover:bg-gray-800 hover:shadow-md cursor-pointer transition-all group"
                   [class.ring-2]="selectedOrder()?._id === order._id"
                   [class.ring-indigo-200]="selectedOrder()?._id === order._id"
-                  (click)="toggleOrderSelection(order)">
+                  (click)="toggleOrderSelection(order)"
+                  (keydown.enter)="toggleOrderSelection(order)"
+                  tabindex="0"
+                  role="button">
 
                   <div class="flex justify-between items-start mb-2">
                     <div class="flex items-center gap-2">

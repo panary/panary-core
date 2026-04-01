@@ -13,7 +13,7 @@ export class PrivateCustomerService extends BaseService<PrivateCustomer> {
     super(inject(ConnectionService).privateCustomerService, 'privateCustomerService')
   }
 
-  protected override loadDocuments() {}
+  protected override loadDocuments() { /* noop */ }
 
   protected override fileReaderOnLoad(
     _fileReader: FileReader,
@@ -24,5 +24,5 @@ export class PrivateCustomerService extends BaseService<PrivateCustomer> {
       successCount: number
       multi: boolean
     },
-  ) {}
+  ) { /* noop */ }
 }

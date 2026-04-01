@@ -13,7 +13,7 @@ import { debounceTime, tap } from 'rxjs/operators'
 import { TranslateModule } from '@ngx-translate/core'
 
 @Component({
-  selector: 'app-pre-order-create',
+  selector: 'lib-pre-order-create',
   standalone: true,
   imports: [
     CommonModule,
@@ -30,22 +30,22 @@ import { TranslateModule } from '@ngx-translate/core'
       <!-- Contact Info -->
       <div class="grid grid-cols-2 gap-4">
         <div class="space-y-1">
-          <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.CUSTOMER_NAME' | translate }}</label>
-          <input formControlName="name" placeholder="Max Mustermann" cdkFocusInitial
+          <label for="pre-order-name" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.CUSTOMER_NAME' | translate }}</label>
+          <input id="pre-order-name" formControlName="name" placeholder="Max Mustermann" cdkFocusInitial
             class="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl px-4 py-3 text-slate-800 dark:text-gray-200 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none placeholder-slate-400" />
         </div>
 
         <div class="space-y-1">
-          <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.PHONE' | translate }}</label>
-          <input formControlName="phone" placeholder="0123 456789"
+          <label for="pre-order-phone" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.PHONE' | translate }}</label>
+          <input id="pre-order-phone" formControlName="phone" placeholder="0123 456789"
             class="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl px-4 py-3 text-slate-800 dark:text-gray-200 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none placeholder-slate-400" />
         </div>
       </div>
 
       <!-- Date/Time -->
       <div class="space-y-1">
-        <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.DATE_TIME' | translate }}</label>
-        <input type="datetime-local" formControlName="scheduledFor"
+        <label for="pre-order-scheduled" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.DATE_TIME' | translate }}</label>
+        <input id="pre-order-scheduled" type="datetime-local" formControlName="scheduledFor"
           class="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl px-4 py-3 text-slate-800 dark:text-gray-200 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none placeholder-slate-400" />
         <p class="text-xs text-slate-400 mt-1">{{ 'PRE_ORDERS.PICKUP_TIME_HINT' | translate }}</p>
       </div>
@@ -55,9 +55,9 @@ import { TranslateModule } from '@ngx-translate/core'
         <h3 class="font-bold text-gray-700">{{ 'PRE_ORDERS.ADD_ITEMS' | translate }}</h3>
 
         <div class="space-y-1 relative">
-          <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.SEARCH_ITEMS' | translate }}</label>
+          <label for="pre-order-search" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.SEARCH_ITEMS' | translate }}</label>
           <div class="relative">
-            <input [formControl]="searchControl" [matAutocomplete]="auto" [placeholder]="'PRE_ORDERS.ENTER_NAME' | translate"
+            <input id="pre-order-search" [formControl]="searchControl" [matAutocomplete]="auto" [placeholder]="'PRE_ORDERS.ENTER_NAME' | translate"
               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 pr-10 text-slate-800 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none placeholder-slate-400" />
             <span class="material-symbols-outlined text-[20px] absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
           </div>

@@ -5,7 +5,8 @@ import { getDefaultTaxSummary, TaxSummary } from '../models/tax-summary.model'
 import { DiscountType } from '@panary-core/orders/domain'
 
 function printOut(value: string): void {
-  if (false) { // TODO: printOut feature
+  const enablePrintOut = false // TODO: printOut feature
+  if (enablePrintOut) {
     console.log(value)
   }
 }
@@ -83,7 +84,7 @@ export function calculateSumPriceSeperated(
   generalMenuSideDishPrice: number,
   generalMenuDrinkPrice: number,
 ): number {
-  let sumPriceSeperated: number=0
+  let sumPriceSeperated=0
 
   articleItems.forEach((article: OrderLineItemSchema): void => {
     if (article.price!==undefined) {
@@ -103,7 +104,7 @@ export function calculateSumPrice(
   generalMenuSideDishPrice: number,
   generalMenuDrinkPrice: number,
 ): number {
-  let sumPrice: number=0
+  let sumPrice=0
 
   orderItem.lineItems.forEach((article: OrderLineItemSchema): void => {
     if (article.price) {
@@ -138,7 +139,7 @@ export function calculateCombinationPrice(
   generalMenuSideDishPrice: number,
   generalMenuDrinkPrice: number,
 ): number {
-  let combinationPrice: number=0
+  let combinationPrice=0
 
   combination.forEach((articleItem: OrderLineItemSchema): void => {
     if (articleItem.price!==undefined) {
@@ -150,7 +151,7 @@ export function calculateCombinationPrice(
 }
 
 export function calculateArticleTaxInfomation(article: OrderLineItemSchema, taxRate: string): TaxSummary {
-  let taxInfomation: TaxSummary=getDefaultTaxSummary()
+  const taxInfomation: TaxSummary=getDefaultTaxSummary()
 
   switch (taxRate) {
     case DineLocation.DINE_IN:
@@ -159,7 +160,7 @@ export function calculateArticleTaxInfomation(article: OrderLineItemSchema, taxR
         const price: number=article.price*article.amount
         const tax: number=(price*article.taxInside)/100
 
-        let taxIndex: number=taxInfomation.taxes.findIndex((tax): boolean => tax.taxRate===article.taxInside)
+        const taxIndex=taxInfomation.taxes.findIndex((tax): boolean => tax.taxRate===article.taxInside)
 
         if (taxIndex===-1) {
           taxInfomation.taxes.push({
@@ -181,7 +182,7 @@ export function calculateArticleTaxInfomation(article: OrderLineItemSchema, taxR
           const extraPrice: number=extra.price*extra.amount
           const extraTax: number=(extraPrice*article.taxInside)/100
 
-          let extraTaxIndex: number=taxInfomation.taxes.findIndex((tax): boolean => tax.taxRate===article.taxInside)
+          const extraTaxIndex=taxInfomation.taxes.findIndex((tax): boolean => tax.taxRate===article.taxInside)
 
           if (extraTaxIndex===-1) {
             taxInfomation.taxes.push({
@@ -203,7 +204,7 @@ export function calculateArticleTaxInfomation(article: OrderLineItemSchema, taxR
         const sideDishPrice: number=article.menuSideDish.price
         const sideDishTax: number=(sideDishPrice*article.taxInside)/100
 
-        let sideDishTaxIndex: number=taxInfomation.taxes.findIndex(
+        const sideDishTaxIndex=taxInfomation.taxes.findIndex(
           (tax): boolean => tax.taxRate===article.taxInside,
         )
 
@@ -226,7 +227,7 @@ export function calculateArticleTaxInfomation(article: OrderLineItemSchema, taxR
         const menuDrinkPrice: number=article.menuDrink.price
         const menuDrinkTax: number=(menuDrinkPrice*article.taxInside)/100
 
-        let menuDrinkTaxIndex: number=taxInfomation.taxes.findIndex(
+        const menuDrinkTaxIndex=taxInfomation.taxes.findIndex(
           (tax): boolean => tax.taxRate===article.taxInside,
         )
 
@@ -251,7 +252,7 @@ export function calculateArticleTaxInfomation(article: OrderLineItemSchema, taxR
         const price: number=article.price*article.amount
         const tax: number=(price*article.taxOutside)/100
 
-        let taxIndex: number=taxInfomation.taxes.findIndex((tax): boolean => tax.taxRate===article.taxOutside)
+        const taxIndex=taxInfomation.taxes.findIndex((tax): boolean => tax.taxRate===article.taxOutside)
 
         if (taxIndex===-1) {
           taxInfomation.taxes.push({
@@ -273,7 +274,7 @@ export function calculateArticleTaxInfomation(article: OrderLineItemSchema, taxR
           const extraPrice: number=extra.price*extra.amount
           const extraTax: number=(extraPrice*article.taxOutside)/100
 
-          let extraTaxIndex: number=taxInfomation.taxes.findIndex(
+          const extraTaxIndex=taxInfomation.taxes.findIndex(
             (tax): boolean => tax.taxRate===article.taxOutside,
           )
 
@@ -297,7 +298,7 @@ export function calculateArticleTaxInfomation(article: OrderLineItemSchema, taxR
         const sideDishPrice: number=article.menuSideDish.price
         const sideDishTax: number=(sideDishPrice*article.taxOutside)/100
 
-        let sideDishTaxIndex: number=taxInfomation.taxes.findIndex(
+        const sideDishTaxIndex=taxInfomation.taxes.findIndex(
           (tax): boolean => tax.taxRate===article.taxOutside,
         )
 
@@ -320,7 +321,7 @@ export function calculateArticleTaxInfomation(article: OrderLineItemSchema, taxR
         const menuDrinkPrice: number=article.menuDrink.price
         const menuDrinkTax: number=(menuDrinkPrice*article.taxOutside)/100
 
-        let menuDrinkTaxIndex: number=taxInfomation.taxes.findIndex(tax => tax.taxRate===article.taxOutside)
+        const menuDrinkTaxIndex=taxInfomation.taxes.findIndex(tax => tax.taxRate===article.taxOutside)
 
         if (menuDrinkTaxIndex===-1) {
           taxInfomation.taxes.push({
@@ -344,15 +345,15 @@ export function calculateArticleTaxInfomation(article: OrderLineItemSchema, taxR
 }
 
 export function calculateTaxSummary(order: Order): TaxSummary {
-  let taxInformation: TaxSummary=getDefaultTaxSummary()
+  const taxInformation: TaxSummary=getDefaultTaxSummary()
 
   const dineLocation: string = order.dineLocation
 
   order.lineItems.forEach((article: OrderLineItemSchema): void => {
-    let articleTaxInformation=calculateArticleTaxInfomation(article, dineLocation)
+    const articleTaxInformation=calculateArticleTaxInfomation(article, dineLocation)
 
     articleTaxInformation.taxes.forEach((articleTax): void => {
-      let taxIndex: number=taxInformation.taxes.findIndex((tax): boolean => tax.taxRate===articleTax.taxRate)
+      const taxIndex=taxInformation.taxes.findIndex((tax): boolean => tax.taxRate===articleTax.taxRate)
 
       if (taxIndex===-1) {
         taxInformation.taxes.push(articleTax)

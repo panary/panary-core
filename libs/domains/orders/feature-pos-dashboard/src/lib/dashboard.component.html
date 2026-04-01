@@ -52,7 +52,7 @@
 
       <!-- Custom Dropdown Panel -->
       @if (statusMenuOpen) {
-      <div class="fixed inset-0 z-40" (click)="statusMenuOpen = false"></div>
+      <div class="fixed inset-0 z-40" (click)="statusMenuOpen = false" (keydown.escape)="statusMenuOpen = false" tabindex="-1" role="presentation"></div>
       <div
         class="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl dark:shadow-black/40 border border-slate-100 dark:border-gray-700 overflow-hidden z-50">
         <div class="p-2 flex flex-col gap-1">

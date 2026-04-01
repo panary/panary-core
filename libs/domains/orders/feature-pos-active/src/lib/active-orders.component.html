@@ -64,7 +64,7 @@
             </div>
 
           <!-- Receipt Card — h-fit, gedeckelt durch zoom-korrigierte Viewport-Höhe -->
-          <div (click)="toggleSelection(order._id)"
+          <div (click)="toggleSelection(order._id)" (keydown.enter)="toggleSelection(order._id)" tabindex="0" role="button"
             class="flex flex-col w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl overflow-hidden relative transition-colors hover:border-slate-300 dark:hover:border-gray-700 cursor-pointer"
             [style.max-height]="cardMaxHeight()">
             <!-- Selection Overlay -->
@@ -115,7 +115,7 @@
                 <!-- ── Personalessen-Ansicht ───────────────── -->
 
                 <!-- Kopfzeile: Zurück + Titel -->
-                <div class="w-4/5 flex items-center gap-3" (click)="$event.stopPropagation()">
+                <div class="w-4/5 flex items-center gap-3" tabindex="0" role="button" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
                   <button
                     class="w-13 h-13 rounded-full bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400 border border-slate-200 dark:border-gray-700 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-200 transition-colors shrink-0"
                     (click)="backToActions(); $event.stopPropagation()">
@@ -129,12 +129,12 @@
 
                 <!-- Ladezustand -->
                 @if (staffUsersLoading()) {
-                  <div class="flex items-center justify-center py-4" (click)="$event.stopPropagation()">
+                  <div class="flex items-center justify-center py-4" tabindex="0" role="button" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
                     <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
                   </div>
                 } @else if (staffEligibleUsers().length === 0) {
                   <!-- Leerzustand -->
-                  <div class="flex flex-col items-center gap-1 py-3 text-slate-400" (click)="$event.stopPropagation()">
+                  <div class="flex flex-col items-center gap-1 py-3 text-slate-400" tabindex="0" role="button" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
                     <span class="material-symbols-outlined text-[32px] opacity-40">group_off</span>
                     <span class="text-xs text-center">{{ 'ACTIVE_ORDERS.NO_STAFF_MEAL_USERS' | translate }}</span>
                   </div>
@@ -157,7 +157,7 @@
               } @else if (overlayView() === 'cancel-reason') {
                 <!-- ── Storno: Grund-Auswahl ──────────────── -->
 
-                <div class="w-4/5 flex items-center gap-3" (click)="$event.stopPropagation()">
+                <div class="w-4/5 flex items-center gap-3" tabindex="0" role="button" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
                   <button
                     class="w-13 h-13 rounded-full bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400 border border-slate-200 dark:border-gray-700 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-200 transition-colors shrink-0"
                     (click)="backToActions(); $event.stopPropagation()">
@@ -180,7 +180,7 @@
               } @else if (overlayView() === 'cancel-pin') {
                 <!-- ── Storno: PIN-Eingabe ────────────────── -->
 
-                <div class="w-4/5 flex items-center gap-3" (click)="$event.stopPropagation()">
+                <div class="w-4/5 flex items-center gap-3" tabindex="0" role="button" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
                   <button
                     class="w-13 h-13 rounded-full bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400 border border-slate-200 dark:border-gray-700 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-200 transition-colors shrink-0"
                     (click)="overlayView.set('cancel-reason'); cancelPin.set(''); $event.stopPropagation()">
@@ -195,17 +195,17 @@
                 <div class="w-3/5 h-px bg-slate-200 dark:bg-gray-700 my-1"></div>
 
                 @if (managersLoading()) {
-                  <div class="flex items-center justify-center py-4" (click)="$event.stopPropagation()">
+                  <div class="flex items-center justify-center py-4" tabindex="0" role="button" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
                     <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-red-400"></div>
                   </div>
                 } @else if (managerUsers().length === 0) {
-                  <div class="flex flex-col items-center gap-1 py-3 text-slate-400" (click)="$event.stopPropagation()">
+                  <div class="flex flex-col items-center gap-1 py-3 text-slate-400" tabindex="0" role="button" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
                     <span class="material-symbols-outlined text-[32px] opacity-40">lock</span>
                     <span class="text-xs text-center">{{ 'ACTIVE_ORDERS.NO_MANAGERS' | translate }}</span>
                   </div>
                 } @else {
                   <!-- PIN-Dots -->
-                  <div class="flex gap-2 justify-center my-2" (click)="$event.stopPropagation()">
+                  <div class="flex gap-2 justify-center my-2" tabindex="0" role="button" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
                     @for (i of [0, 1, 2, 3, 4, 5]; track i) {
                       <div class="w-4 h-4 rounded-full border-2 transition-colors"
                         [class]="cancelPin().length > i ? 'bg-red-400 border-red-400' : 'bg-white dark:bg-gray-800 border-slate-300 dark:border-gray-600'">
@@ -214,7 +214,7 @@
                   </div>
 
                   <!-- Numpad -->
-                  <div class="grid grid-cols-3 gap-2 w-4/5" (click)="$event.stopPropagation()">
+                  <div class="grid grid-cols-3 gap-2 w-4/5" tabindex="0" role="button" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
                     @for (digit of ['1','2','3','4','5','6','7','8','9']; track digit) {
                       <button
                         class="h-12 rounded-xl bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-800 dark:text-gray-200 text-lg font-bold hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors"
@@ -245,7 +245,7 @@
               } @else if (overlayView() === 'discount') {
                 <!-- ── Rabatt-Ansicht ─────────────────────── -->
 
-                <div class="w-4/5 flex items-center gap-3" (click)="$event.stopPropagation()">
+                <div class="w-4/5 flex items-center gap-3" tabindex="0" role="button" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
                   <button
                     class="w-13 h-13 rounded-full bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400 border border-slate-200 dark:border-gray-700 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-200 transition-colors shrink-0"
                     (click)="backToActions(); $event.stopPropagation()">
@@ -256,7 +256,7 @@
 
                 <div class="w-3/5 h-px bg-slate-200 dark:bg-gray-700 my-1"></div>
 
-                <div class="grid grid-cols-2 gap-2 w-4/5" (click)="$event.stopPropagation()">
+                <div class="grid grid-cols-2 gap-2 w-4/5" tabindex="0" role="button" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
                   @for (percent of discountPresets; track percent) {
                     <button
                       class="min-h-14 rounded-xl bg-white dark:bg-gray-800 text-slate-800 dark:text-gray-200 flex items-center justify-center gap-2 border border-slate-200 dark:border-gray-700 hover:bg-slate-100 dark:hover:bg-gray-700 hover:border-slate-300 dark:hover:border-gray-600 transition-colors"
@@ -269,7 +269,7 @@
               } @else if (overlayView() === 'corporate') {
                 <!-- ── Firma-Ansicht ──────────────────────── -->
 
-                <div class="w-4/5 flex items-center gap-3" (click)="$event.stopPropagation()">
+                <div class="w-4/5 flex items-center gap-3" tabindex="0" role="button" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
                   <button
                     class="w-13 h-13 rounded-full bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400 border border-slate-200 dark:border-gray-700 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-200 transition-colors shrink-0"
                     (click)="backToActions(); $event.stopPropagation()">
@@ -281,11 +281,11 @@
                 <div class="w-3/5 h-px bg-slate-200 dark:bg-gray-700 my-1"></div>
 
                 @if (corporateCustomersLoading()) {
-                  <div class="flex items-center justify-center py-4" (click)="$event.stopPropagation()">
+                  <div class="flex items-center justify-center py-4" tabindex="0" role="button" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
                     <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
                   </div>
                 } @else if (corporateCustomers().length === 0) {
-                  <div class="flex flex-col items-center gap-1 py-3 text-slate-400" (click)="$event.stopPropagation()">
+                  <div class="flex flex-col items-center gap-1 py-3 text-slate-400" tabindex="0" role="button" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
                     <span class="material-symbols-outlined text-[32px] opacity-40">domain_disabled</span>
                     <span class="text-xs text-center">{{ 'ACTIVE_ORDERS.NO_CORPORATE_CUSTOMERS' | translate }}</span>
                   </div>

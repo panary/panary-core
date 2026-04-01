@@ -16,11 +16,15 @@
             <div class="flex flex-col gap-2 md:hidden">
                 <select class="h-9 px-3 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-slate-700 dark:text-gray-200 font-medium focus:outline-none focus:ring-2 focus:ring-amber-200"
                     (change)="selectedMonth.set(+$any($event.target).value); onFilterChange()">
-                    <option *ngFor="let m of months()" [value]="m.value" [selected]="selectedMonth() === m.value">{{ m.label }}</option>
+                    @for (m of months(); track m.value) {
+                        <option [value]="m.value" [selected]="selectedMonth() === m.value">{{ m.label }}</option>
+                    }
                 </select>
                 <select class="h-9 px-3 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-slate-700 dark:text-gray-200 font-medium focus:outline-none focus:ring-2 focus:ring-amber-200"
                     (change)="selectedYear.set(+$any($event.target).value); onFilterChange()">
-                    <option *ngFor="let y of years" [value]="y" [selected]="selectedYear() === y">{{ y }}</option>
+                    @for (y of years; track y) {
+                        <option [value]="y" [selected]="selectedYear() === y">{{ y }}</option>
+                    }
                 </select>
             </div>
 
@@ -30,14 +34,18 @@
                     <mat-label>{{ 'WORKING_TIMES.MONTH' | translate }}</mat-label>
                     <mat-select [ngModel]="selectedMonth()"
                         (ngModelChange)="selectedMonth.set($event); onFilterChange()">
-                        <mat-option *ngFor="let m of months()" [value]="m.value">{{ m.label }}</mat-option>
+                        @for (m of months(); track m.value) {
+                            <mat-option [value]="m.value">{{ m.label }}</mat-option>
+                        }
                     </mat-select>
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-28">
                     <mat-label>{{ 'WORKING_TIMES.YEAR' | translate }}</mat-label>
                     <mat-select [ngModel]="selectedYear()" (ngModelChange)="selectedYear.set($event); onFilterChange()">
-                        <mat-option *ngFor="let y of years" [value]="y">{{ y }}</mat-option>
+                        @for (y of years; track y) {
+                            <mat-option [value]="y">{{ y }}</mat-option>
+                        }
                     </mat-select>
                 </mat-form-field>
             </div>
@@ -79,14 +87,14 @@
                     <ng-container matColumnDef="breaks">
                         <th mat-header-cell *matHeaderCellDef> {{ 'WORKING_TIMES.BREAK' | translate }} </th>
                         <td mat-cell *matCellDef="let element">
-                            <button [matMenuTriggerFor]="breakMenu"
-                                class="text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950 rounded-full px-3 min-w-0 h-8 text-sm font-medium hover:bg-amber-100 dark:hover:bg-amber-900 transition-colors"
-                                *ngIf="element.breakDuration > 0; else noBreak">
-                                {{ formatDuration(element.breakDuration) }}
-                            </button>
-                            <ng-template #noBreak>
+                            @if (element.breakDuration > 0) {
+                                <button [matMenuTriggerFor]="breakMenu"
+                                    class="text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950 rounded-full px-3 min-w-0 h-8 text-sm font-medium hover:bg-amber-100 dark:hover:bg-amber-900 transition-colors">
+                                    {{ formatDuration(element.breakDuration) }}
+                                </button>
+                            } @else {
                                 <span class="text-slate-400 dark:text-gray-500">-</span>
-                            </ng-template>
+                            }
 
                             <!-- Break Details Menu -->
                             <mat-menu #breakMenu="matMenu" class="break-menu">
@@ -110,18 +118,21 @@
                     <ng-container matColumnDef="status">
                         <th mat-header-cell *matHeaderCellDef> {{ 'SETTINGS.STATUS' | translate }} </th>
                         <td mat-cell *matCellDef="let element">
-                            <span *ngIf="element.status === 'active'"
-                                class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
-                                {{ 'WORKING_TIMES.STATUS_ACTIVE' | translate }}
-                            </span>
-                            <span *ngIf="element.status === 'off'"
-                                class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400">
-                                {{ 'WORKING_TIMES.STATUS_OFF' | translate }}
-                            </span>
-                            <span *ngIf="element.status === 'worked'"
-                                class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
-                                {{ 'WORKING_TIMES.STATUS_WORKED' | translate }}
-                            </span>
+                            @if (element.status === 'active') {
+                                <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                                    {{ 'WORKING_TIMES.STATUS_ACTIVE' | translate }}
+                                </span>
+                            }
+                            @if (element.status === 'off') {
+                                <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400">
+                                    {{ 'WORKING_TIMES.STATUS_OFF' | translate }}
+                                </span>
+                            }
+                            @if (element.status === 'worked') {
+                                <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
+                                    {{ 'WORKING_TIMES.STATUS_WORKED' | translate }}
+                                </span>
+                            }
                         </td>
                     </ng-container>
 

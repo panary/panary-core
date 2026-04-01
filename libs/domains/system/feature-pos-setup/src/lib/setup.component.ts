@@ -25,7 +25,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 type SetupStep = 'server-login' | 'select-org' | 'device-info' | 'registering' | 'success' | 'error'
 
 @Component({
-  selector: 'app-setup',
+  selector: 'lib-setup',
   imports: [CommonModule, FormsModule, ParticleNetworkComponent, TranslateModule],
   templateUrl: './setup.component.html',
   styleUrl: './setup.component.scss',

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Hintergrund: Panary Dark (#0f172a) mit abgerundeten Ecken -->
+  <rect x="0" y="0" width="1024" height="1024" rx="210" fill="#0f172a"/>
+
+  <!-- Linker Balken — Panary P-Mark (weiß) -->
+  <rect x="240" y="210" width="210" height="604" rx="32" fill="#ffffff"/>
+
+  <!-- Rechter Block — Panary Akzentfarbe (#00B8D4 cyan) -->
+  <rect x="490" y="210" width="294" height="330" rx="32" fill="#00B8D4"/>
+</svg>

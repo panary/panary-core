@@ -1,0 +1,47 @@
+{
+  "LANDING": {
+    "TITLE": "Panary Edge",
+    "SUBTITLE": "Sunucu Kurulumu",
+    "WELCOME": "Yeni Edge Sunucunuza hoş geldiniz. Başlamak için mobil cihazınızla QR kodu tarayın veya buradan devam edin.",
+    "SCAN_INSTRUCTION": "Mobil kurulum için tarayın",
+    "OR": "veya",
+    "START_HERE": "Bu Cihazda Kurulumu Başlat",
+    "WELCOME_MOBILE": "Hoş geldiniz! Sunucunuzu şimdi kurabilirsiniz.",
+    "START_BUTTON": "Kurulumu Başlat"
+  },
+  "WIZARD": {
+    "HEADER": "Panary Edge Kurulumu",
+    "WELCOME": {
+      "TITLE": "Hoş geldiniz.",
+      "SUBTITLE": "Panary Edge Sunucunuzu birkaç adımda kurun.",
+      "BUTTON": "Kurulumu Başlat"
+    },
+    "MODE": {
+      "TITLE": "Mod Seçin",
+      "STANDALONE": "Bağımsız",
+      "STANDALONE_DESC": "Yerel çalışma. Kasa olmadan sipariş sistemi. İnternet bağlantısı gerekmez.",
+      "CLOUD": "Kurumsal Bulut",
+      "CLOUD_DESC": "Organizasyonla senkronizasyon. Şubeler için idealdir.",
+      "BACK": "Geri"
+    },
+    "CONFIG": {
+      "TITLE": "Yapılandırma",
+      "SHOP_NAME": "İşletme Adı",
+      "ADMIN_EMAIL": "Yönetici E-posta",
+      "ADMIN_PASSWORD": "Yönetici Şifresi",
+      "ADMIN_PASSWORD_CONFIRM": "Yönetici Şifresini Onayla",
+      "FINISH": "Kurulumu Tamamla",
+      "SETTING_UP": "Kuruluyor...",
+      "BACK": "Geri"
+    },
+    "LOADING": "Yapılandırma kaydediliyor...",
+    "RESTARTING": "Sunucu yeniden başlatılıyor...",
+    "RESTARTING_HINT": "Sunucunun yeniden çevrimiçi olması bekleniyor."
+  },
+  "LANG": {
+    "SELECT": "Dil Seçin",
+    "EN": "English",
+    "DE": "Deutsch",
+    "TR": "Türkçe"
+  }
+}

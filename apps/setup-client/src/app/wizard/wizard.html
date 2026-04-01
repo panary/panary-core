@@ -1,145 +1,213 @@
-<div class="min-h-screen bg-black text-white flex flex-col p-6 overflow-y-auto">
-    <!-- Header with Language Selector -->
-    <header
-        class="py-6 border-b border-gray-800 mb-8 flex justify-between items-center sticky top-0 bg-black/90 backdrop-blur z-10">
-        <h1 class="text-2xl font-bold tracking-tight">{{ 'WIZARD.HEADER' | translate }}</h1>
-        <select #langSelect (change)="useLanguage(langSelect.value)"
-            aria-label="{{ 'LANG.SELECT' | translate }}"
-            class="bg-gray-900 border border-gray-700 text-white text-sm rounded-lg focus:ring-white focus:border-white block p-2.5 outline-none cursor-pointer">
-            <option value="en" [selected]="currentLang() === 'en'">English</option>
-            <option value="de" [selected]="currentLang() === 'de'">Deutsch</option>
-        </select>
-    </header>
+<div class="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white flex flex-col p-6 overflow-y-auto">
 
-    <!-- Content Container: Centered & Constrained on Desktop -->
-    <main class="flex-1 flex flex-col w-full max-w-2xl mx-auto">
+  <!-- Header with Language Selector -->
+  <header
+    class="py-6 border-b border-gray-200 dark:border-gray-800 mb-8 flex justify-between items-center sticky top-0 bg-white/90 dark:bg-black/90 backdrop-blur z-10">
+    <h1 class="text-2xl font-bold tracking-tight">{{ 'WIZARD.HEADER' | translate }}</h1>
+    <select #langSelect (change)="useLanguage(langSelect.value)"
+      aria-label="{{ 'LANG.SELECT' | translate }}"
+      class="bg-gray-100 dark:bg-gray-900
+             border border-gray-300 dark:border-gray-700
+             text-gray-900 dark:text-white
+             text-sm rounded-lg
+             focus:ring-gray-900 dark:focus:ring-white
+             focus:border-gray-900 dark:focus:border-white
+             block p-2.5 outline-none cursor-pointer">
+      <option value="en" [selected]="currentLang() === 'en'">English</option>
+      <option value="de" [selected]="currentLang() === 'de'">Deutsch</option>
+      <option value="tr" [selected]="currentLang() === 'tr'">Türkçe</option>
+    </select>
+  </header>
 
-        <!-- Step 1: Welcome -->
-        @if (step() === 1) {
-        <div class="flex-1 flex flex-col justify-center space-y-8 animate-fade-in py-8">
-            <h2 class="text-4xl md:text-5xl font-bold tracking-tight">{{ 'WIZARD.WELCOME.TITLE' | translate }}</h2>
-            <p class="text-gray-400 text-lg leading-relaxed">{{ 'WIZARD.WELCOME.SUBTITLE' | translate }}</p>
-            <button (click)="nextStep()"
-                class="w-full md:w-auto md:px-12 md:self-start bg-white text-black font-bold py-4 rounded-xl text-lg hover:bg-gray-200 transition shadow-lg shadow-white/5">
-                {{ 'WIZARD.WELCOME.BUTTON' | translate }}
-            </button>
-        </div>
-        }
+  <!-- Content Container: Centered & Constrained on Desktop -->
+  <main class="flex-1 flex flex-col w-full max-w-2xl mx-auto">
 
-        <!-- Step 2: Mode Selection -->
-        @if (step() === 2) {
-        <div class="flex-1 flex flex-col space-y-6 animate-fade-in py-4 relative">
-            <h2 class="text-3xl font-bold tracking-tight mb-4">{{ 'WIZARD.MODE.TITLE' | translate }}</h2>
-
-            <button (click)="selectMode('standalone')"
-                class="flex flex-col items-start p-6 border border-gray-800 bg-gray-900/50 rounded-xl hover:border-white hover:bg-gray-900 transition group text-left">
-                <span class="text-xl font-bold mb-2 group-hover:text-white text-gray-200">{{ 'WIZARD.MODE.STANDALONE' |
-                    translate }}</span>
-                <span class="text-gray-400 text-sm leading-relaxed">{{ 'WIZARD.MODE.STANDALONE_DESC' | translate
-                    }}</span>
-            </button>
-
-            <button (click)="selectMode('cloud')"
-                class="flex flex-col items-start p-6 border border-gray-800 bg-gray-900/50 rounded-xl hover:border-white hover:bg-gray-900 transition group text-left">
-                <span class="text-xl font-bold mb-2 group-hover:text-white text-gray-200">{{ 'WIZARD.MODE.CLOUD' |
-                    translate }}</span>
-                <span class="text-gray-400 text-sm leading-relaxed">{{ 'WIZARD.MODE.CLOUD_DESC' | translate }}</span>
-            </button>
-
-            <!-- Back Button (Static position below options) -->
-            <div class="pt-4 md:pt-2">
-                <button (click)="prevStep()" class="text-gray-500 hover:text-white transition py-2 px-4 -ml-4">{{
-                    'WIZARD.MODE.BACK' | translate }}</button>
-            </div>
-        </div>
-        }
-
-        <!-- Step 3: Form -->
-        @if (step() === 3) {
-        <div class="flex-1 flex flex-col animate-fade-in py-4">
-            <h2 class="text-3xl font-bold mb-8 tracking-tight">{{ 'WIZARD.CONFIG.TITLE' | translate }}</h2>
-            <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-6">
-
-                <div class="space-y-2">
-                    <label for="shopName" class="text-sm font-medium text-gray-400 uppercase tracking-wider">{{
-                        'WIZARD.CONFIG.SHOP_NAME' | translate }}</label>
-                    <input id="shopName" formControlName="shopName" type="text"
-                        class="w-full bg-gray-900 border border-gray-800 rounded-lg p-4 text-white focus:border-white focus:ring-1 focus:ring-white transition outline-none placeholder-gray-600">
-                </div>
-
-                <div class="space-y-2">
-                    <label for="adminEmail" class="text-sm font-medium text-gray-400 uppercase tracking-wider">{{
-                        'WIZARD.CONFIG.ADMIN_EMAIL' | translate }}</label>
-                    <input id="adminEmail" formControlName="adminEmail" type="email"
-                        class="w-full bg-gray-900 border border-gray-800 rounded-lg p-4 text-white focus:border-white focus:ring-1 focus:ring-white transition outline-none placeholder-gray-600">
-                </div>
-
-                <div class="space-y-2">
-                    <label for="adminPassword" class="text-sm font-medium text-gray-400 uppercase tracking-wider">{{
-                        'WIZARD.CONFIG.ADMIN_PASSWORD' | translate }}</label>
-                    <input id="adminPassword" formControlName="adminPassword" type="password"
-                        class="w-full bg-gray-900 border border-gray-800 rounded-lg p-4 text-white focus:border-white focus:ring-1 focus:ring-white transition outline-none placeholder-gray-600">
-                </div>
-
-                <div class="space-y-2">
-                    <label for="adminPasswordConfirm" class="text-sm font-medium text-gray-400 uppercase tracking-wider">{{
-                        'WIZARD.CONFIG.ADMIN_PASSWORD_CONFIRM' | translate }}</label>
-                    <input id="adminPasswordConfirm" formControlName="adminPasswordConfirm" type="password"
-                        class="w-full bg-gray-900 border border-gray-800 rounded-lg p-4 text-white focus:border-white focus:ring-1 focus:ring-white transition outline-none placeholder-gray-600">
-                </div>
-
-                <div class="pt-8 space-y-4">
-                    <button type="submit" [disabled]="form.invalid || loading()"
-                        class="w-full md:w-auto md:px-12 bg-white text-black font-bold py-4 rounded-xl text-lg hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-white/5">
-                        @if (!loading()) {
-                        <span>{{ 'WIZARD.CONFIG.FINISH' | translate }}</span>
-                        }
-                        @if (loading()) {
-                        <span class="flex items-center justify-center space-x-2">
-                            <span
-                                class="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
-                            <span>{{ 'WIZARD.CONFIG.SETTING_UP' | translate }}</span>
-                        </span>
-                        }
-                    </button>
-
-                    <!-- Mobile Sticky Footer for Back Button -->
-                    <div
-                        class="md:hidden sticky bottom-0 bg-gradient-to-t from-black via-black to-transparent pb-6 pt-4">
-                        <button type="button" (click)="step.set(2)" class="w-full text-gray-500 py-4">{{
-                            'WIZARD.CONFIG.BACK' | translate }}</button>
-                    </div>
-                    <div class="hidden md:block">
-                        <button type="button" (click)="step.set(2)"
-                            class="text-gray-500 hover:text-white transition py-2">{{ 'WIZARD.CONFIG.BACK' | translate
-                            }}</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-        }
-    </main>
-
-    <!-- Loading Overlay (saving config) -->
-    @if (loading()) {
-    <div class="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50">
-        <div class="w-16 h-16 border-4 border-gray-800 border-t-white rounded-full animate-spin mb-4"></div>
-        <p class="text-xl font-mono">{{ 'WIZARD.LOADING' | translate }}</p>
+    <!-- Step 1: Welcome -->
+    @if (step() === 1) {
+    <div class="flex-1 flex flex-col justify-center space-y-8 animate-fade-in py-8">
+      <h2 class="text-4xl md:text-5xl font-bold tracking-tight">{{ 'WIZARD.WELCOME.TITLE' | translate }}</h2>
+      <p class="text-gray-500 dark:text-gray-400 text-lg leading-relaxed">{{ 'WIZARD.WELCOME.SUBTITLE' | translate }}</p>
+      <button (click)="nextStep()"
+        class="w-full md:w-auto md:px-12 md:self-start
+               bg-gray-900 dark:bg-white
+               text-white dark:text-black
+               font-bold py-4 rounded-xl text-lg
+               hover:bg-gray-700 dark:hover:bg-gray-200
+               transition shadow-lg">
+        {{ 'WIZARD.WELCOME.BUTTON' | translate }}
+      </button>
     </div>
     }
 
-    <!-- Restarting Overlay (polling until server is back) -->
-    @if (restarting()) {
-    <div class="fixed inset-0 bg-black flex flex-col items-center justify-center z-50 space-y-6">
-        <div class="flex space-x-2">
-            <div class="w-3 h-3 bg-white rounded-full animate-bounce" style="animation-delay: 0ms"></div>
-            <div class="w-3 h-3 bg-white rounded-full animate-bounce" style="animation-delay: 150ms"></div>
-            <div class="w-3 h-3 bg-white rounded-full animate-bounce" style="animation-delay: 300ms"></div>
-        </div>
-        <div class="text-center space-y-2">
-            <p class="text-xl font-bold">{{ 'WIZARD.RESTARTING' | translate }}</p>
-            <p class="text-gray-400 text-sm">{{ 'WIZARD.RESTARTING_HINT' | translate }}</p>
-        </div>
+    <!-- Step 2: Mode Selection -->
+    @if (step() === 2) {
+    <div class="flex-1 flex flex-col space-y-6 animate-fade-in py-4 relative">
+      <h2 class="text-3xl font-bold tracking-tight mb-4">{{ 'WIZARD.MODE.TITLE' | translate }}</h2>
+
+      <button (click)="selectMode('standalone')"
+        class="flex flex-col items-start p-6
+               border border-gray-200 dark:border-gray-800
+               bg-gray-50 dark:bg-gray-900/50
+               rounded-xl
+               hover:border-gray-900 dark:hover:border-white
+               hover:bg-gray-100 dark:hover:bg-gray-900
+               transition group text-left">
+        <span class="text-xl font-bold mb-2 text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white">
+          {{ 'WIZARD.MODE.STANDALONE' | translate }}
+        </span>
+        <span class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
+          {{ 'WIZARD.MODE.STANDALONE_DESC' | translate }}
+        </span>
+      </button>
+
+      <button (click)="selectMode('cloud')"
+        class="flex flex-col items-start p-6
+               border border-gray-200 dark:border-gray-800
+               bg-gray-50 dark:bg-gray-900/50
+               rounded-xl
+               hover:border-gray-900 dark:hover:border-white
+               hover:bg-gray-100 dark:hover:bg-gray-900
+               transition group text-left">
+        <span class="text-xl font-bold mb-2 text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white">
+          {{ 'WIZARD.MODE.CLOUD' | translate }}
+        </span>
+        <span class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
+          {{ 'WIZARD.MODE.CLOUD_DESC' | translate }}
+        </span>
+      </button>
+
+      <!-- Back Button -->
+      <div class="pt-4 md:pt-2">
+        <button (click)="prevStep()" class="text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition py-2 px-4 -ml-4">
+          {{ 'WIZARD.MODE.BACK' | translate }}
+        </button>
+      </div>
     </div>
     }
+
+    <!-- Step 3: Form -->
+    @if (step() === 3) {
+    <div class="flex-1 flex flex-col animate-fade-in py-4">
+      <h2 class="text-3xl font-bold mb-8 tracking-tight">{{ 'WIZARD.CONFIG.TITLE' | translate }}</h2>
+      <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-6">
+
+        <div class="space-y-2">
+          <label for="shopName" class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            {{ 'WIZARD.CONFIG.SHOP_NAME' | translate }}
+          </label>
+          <input id="shopName" formControlName="shopName" type="text"
+            class="w-full
+                   bg-gray-100 dark:bg-gray-900
+                   border border-gray-300 dark:border-gray-800
+                   rounded-lg p-4
+                   text-gray-900 dark:text-white
+                   focus:border-gray-900 dark:focus:border-white
+                   focus:ring-1 focus:ring-gray-900 dark:focus:ring-white
+                   transition outline-none placeholder-gray-400 dark:placeholder-gray-600">
+        </div>
+
+        <div class="space-y-2">
+          <label for="adminEmail" class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            {{ 'WIZARD.CONFIG.ADMIN_EMAIL' | translate }}
+          </label>
+          <input id="adminEmail" formControlName="adminEmail" type="email"
+            class="w-full
+                   bg-gray-100 dark:bg-gray-900
+                   border border-gray-300 dark:border-gray-800
+                   rounded-lg p-4
+                   text-gray-900 dark:text-white
+                   focus:border-gray-900 dark:focus:border-white
+                   focus:ring-1 focus:ring-gray-900 dark:focus:ring-white
+                   transition outline-none placeholder-gray-400 dark:placeholder-gray-600">
+        </div>
+
+        <div class="space-y-2">
+          <label for="adminPassword" class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            {{ 'WIZARD.CONFIG.ADMIN_PASSWORD' | translate }}
+          </label>
+          <input id="adminPassword" formControlName="adminPassword" type="password"
+            class="w-full
+                   bg-gray-100 dark:bg-gray-900
+                   border border-gray-300 dark:border-gray-800
+                   rounded-lg p-4
+                   text-gray-900 dark:text-white
+                   focus:border-gray-900 dark:focus:border-white
+                   focus:ring-1 focus:ring-gray-900 dark:focus:ring-white
+                   transition outline-none placeholder-gray-400 dark:placeholder-gray-600">
+        </div>
+
+        <div class="space-y-2">
+          <label for="adminPasswordConfirm" class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            {{ 'WIZARD.CONFIG.ADMIN_PASSWORD_CONFIRM' | translate }}
+          </label>
+          <input id="adminPasswordConfirm" formControlName="adminPasswordConfirm" type="password"
+            class="w-full
+                   bg-gray-100 dark:bg-gray-900
+                   border border-gray-300 dark:border-gray-800
+                   rounded-lg p-4
+                   text-gray-900 dark:text-white
+                   focus:border-gray-900 dark:focus:border-white
+                   focus:ring-1 focus:ring-gray-900 dark:focus:ring-white
+                   transition outline-none placeholder-gray-400 dark:placeholder-gray-600">
+        </div>
+
+        <div class="pt-8 space-y-4">
+          <button type="submit" [disabled]="form.invalid || loading()"
+            class="w-full md:w-auto md:px-12
+                   bg-gray-900 dark:bg-white
+                   text-white dark:text-black
+                   font-bold py-4 rounded-xl text-lg
+                   hover:bg-gray-700 dark:hover:bg-gray-200
+                   transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
+            @if (!loading()) {
+            <span>{{ 'WIZARD.CONFIG.FINISH' | translate }}</span>
+            }
+            @if (loading()) {
+            <span class="flex items-center justify-center space-x-2">
+              <span class="w-4 h-4 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin"></span>
+              <span>{{ 'WIZARD.CONFIG.SETTING_UP' | translate }}</span>
+            </span>
+            }
+          </button>
+
+          <!-- Mobile Sticky Footer for Back Button -->
+          <div class="md:hidden sticky bottom-0 bg-gradient-to-t from-white dark:from-black via-white dark:via-black to-transparent pb-6 pt-4">
+            <button type="button" (click)="step.set(2)" class="w-full text-gray-400 dark:text-gray-500 py-4">
+              {{ 'WIZARD.CONFIG.BACK' | translate }}
+            </button>
+          </div>
+          <div class="hidden md:block">
+            <button type="button" (click)="step.set(2)"
+              class="text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition py-2">
+              {{ 'WIZARD.CONFIG.BACK' | translate }}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+    }
+  </main>
+
+  <!-- Loading Overlay (saving config) — bewusst dunkel behalten, unabhängig vom Theme -->
+  @if (loading()) {
+  <div class="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50">
+    <div class="w-16 h-16 border-4 border-gray-800 border-t-white rounded-full animate-spin mb-4"></div>
+    <p class="text-xl font-mono text-white">{{ 'WIZARD.LOADING' | translate }}</p>
+  </div>
+  }
+
+  <!-- Restarting Overlay (polling until server is back) — bewusst dunkel behalten -->
+  @if (restarting()) {
+  <div class="fixed inset-0 bg-black flex flex-col items-center justify-center z-50 space-y-6">
+    <div class="flex space-x-2">
+      <div class="w-3 h-3 bg-white rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+      <div class="w-3 h-3 bg-white rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+      <div class="w-3 h-3 bg-white rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+    </div>
+    <div class="text-center space-y-2 text-white">
+      <p class="text-xl font-bold">{{ 'WIZARD.RESTARTING' | translate }}</p>
+      <p class="text-gray-400 text-sm">{{ 'WIZARD.RESTARTING_HINT' | translate }}</p>
+    </div>
+  </div>
+  }
 </div>

@@ -1,6 +1,11 @@
 @use "tailwindcss";
 @use "@angular/material" as mat;
 
+/* Explizite Quellpfade für Tailwind v4 JIT — verhindert Scan-Fehler auf Windows CI und Docker.
+   @source muss nach allen @use-Regeln stehen (SCSS-Anforderung). */
+@source "./app";
+@source "../../../libs";
+
 /* Dark-Mode-Variante: Tailwind dark: Klassen über .dark-Klasse aktivieren */
 /* Hinweis: Block-Syntax (@slot) funktioniert nicht in SCSS — Einzeiler-Syntax verwenden */
 @custom-variant dark (&:where(.dark, .dark *));

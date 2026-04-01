@@ -7,7 +7,7 @@
     "frontendDist": "../../../dist/apps/pos/browser",
     "devUrl": "http://localhost:4200",
     "beforeDevCommand": "pnpm nx serve pos",
-    "beforeBuildCommand": "pnpm nx build pos --configuration=production"
+    "beforeBuildCommand": ""
   },
   "app": {
     "windows": [

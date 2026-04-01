@@ -1,102 +1,160 @@
-# New Nx Repository
+<div align="center">
+  <img src="libs/shared/common/src/assets/logos/panary_logo_color.svg" alt="Panary Logo" width="280">
+  <h3>Offline-First POS & ERP Platform for Food Service</h3>
+  <p>
+    <strong>Angular 21 &middot; FeathersJS v5 &middot; SQLite &middot; Tauri &middot; Nx Monorepo</strong>
+  </p>
+</div>
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+---
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+Panary Core is a modern, offline-first point-of-sale and ERP platform built for restaurants, bakeries, and food-service businesses. It runs as a native desktop app (via Tauri) or in the browser, with full offline capability through a local SQLite database and optional cloud sync via MongoDB.
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!## Generate a library
+## Features
 
-```sh
-npx nx g @nx/js:lib packages/pkg1 --publishable --importPath=@my-org/pkg1
-```
+- **Offline-First Architecture** — Local SQLite database ensures the POS works without internet. Cloud sync via MongoDB when connected.
+- **Multi-Tenant & Multi-Location** — Built-in tenant isolation with role-based access control across locations.
+- **Touch-Optimized POS** — Designed for Sunmi D3 tablets and similar touch-first hardware.
+- **Product-First Data Model** — Unified product table handling standard items, modifiers, and bundles.
+- **Native Desktop App** — Tauri-based builds for Windows and macOS.
+- **Admin Dashboard** — Web-based admin interface for managing products, orders, users, and locations.
+- **20+ Domain Libraries** — Orders, products, customers, working times, recipes, devices, and more.
+- **Wide Event Logging** — Structured canonical log lines with full business context per request.
 
-## Run tasks
-
-To build the library use:
-
-```sh
-npx nx build pkg1
-```
-
-To run any task with Nx use:
-
-```sh
-npx nx <target> <project-name>
-```
-
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
-
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Versioning and releasing
-
-To version and release the library use
+## Architecture
 
 ```
-npx nx release
+panary-core/
+├── apps/
+│   ├── api-edge/          # FeathersJS v5 backend (Koa, SQLite/Knex)
+│   ├── pos/               # Angular POS client + Tauri desktop shell
+│   ├── admin-client/      # Angular admin web interface
+│   └── setup-client/      # Angular onboarding wizard
+├── libs/
+│   ├── domains/           # 20 domain libraries (schemas, types, business logic)
+│   │   ├── orders/        #   Order management
+│   │   ├── products/      #   Product catalog (product-first model)
+│   │   ├── users/         #   Users, roles, RBAC
+│   │   ├── customers/     #   B2C customers
+│   │   ├── locations/     #   Multi-location management
+│   │   ├── devices/       #   POS device configuration
+│   │   ├── working-times/ #   Employee time tracking
+│   │   └── ...            #   + 13 more domains
+│   ├── shared/            # Common utilities, UI components, theming
+│   └── apps/              # App-specific shell libraries
+├── tools/
+│   ├── docker/            # Dockerfiles & compose for edge deployment
+│   ├── generators/        # Custom Nx generator for FeathersJS services
+│   └── scripts/           # Versioning & release scripts
+└── documentation/         # Service creation & generator guides
 ```
 
-Pass `--dry-run` to see what would happen without actually releasing the library.
+Domain libraries export via `@panary-core/[domain]/domain`. Apps import from libs — never the other way around.
 
-[Learn more about Nx release &raquo;](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## Prerequisites
 
-## Keep TypeScript project references up to date
+- [Node.js](https://nodejs.org/) v22+
+- [pnpm](https://pnpm.io/) v9+
+- [Nx](https://nx.dev/) v22+ (installed via `pnpm`)
 
-Nx automatically updates TypeScript [project references](https://www.typescriptlang.org/docs/handbook/project-references.html) in `tsconfig.json` files to ensure they remain accurate based on your project dependencies (`import` or `require` statements). This sync is automatically done when running tasks such as `build` or `typecheck`, which require updated references to function correctly.
+For Tauri desktop builds:
+- [Rust](https://www.rust-lang.org/) toolchain
+- Platform-specific dependencies ([Tauri prerequisites](https://v2.tauri.app/start/prerequisites/))
 
-To manually trigger the process to sync the project graph dependencies information to the TypeScript project references, run the following command:
+## Getting Started
 
-```sh
-npx nx sync
+```bash
+# Install dependencies
+pnpm install
+
+# Run database migrations
+pnpm db:migrate
+
+# Start POS client + API backend in parallel
+pnpm dev
 ```
 
-You can enforce that the TypeScript project references are always in the correct state when running in CI by adding a step to your CI job configuration that runs the following command:
+The POS client runs at `http://localhost:4200`, the API at `http://localhost:3030`.
 
-```sh
-npx nx sync:check
+### Individual Apps
+
+```bash
+# API backend only
+nx serve api-edge
+
+# POS client only
+nx serve pos
+
+# Admin dashboard
+pnpm admin:dev
+
+# Tauri desktop app (dev mode)
+pnpm tauri:dev
 ```
 
-[Learn more about nx sync](https://nx.dev/reference/nx-commands#sync)
+## Tech Stack
 
-## Nx Cloud
+| Layer | Technology |
+|---|---|
+| Frontend | Angular 21, Tailwind CSS v4, Angular Material |
+| Desktop | Tauri 2 (Rust + WebView) |
+| Backend | FeathersJS v5, Koa |
+| Database (Edge) | SQLite via Knex |
+| Database (Cloud) | MongoDB |
+| Schemas | TypeBox (`@feathersjs/typebox`) |
+| Monorepo | Nx 22, pnpm workspaces |
+| Testing | Vitest |
+| CI/CD | GitHub Actions |
+| Logging | Winston (wide events / canonical log lines) |
 
-Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
+## Security Model
 
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+Every external API request passes through three mandatory hooks:
 
-### Set up CI (non-Github Actions CI)
+1. **`authenticate('jwt')`** — Validates the token and populates `context.params.user`
+2. **`authorize()`** — RBAC check against the central permissions matrix
+3. **`multiTenancy()`** — Stamps and filters data by `tenantId` / `locationId`
 
-**Note:** This is only required if your CI provider is not GitHub Actions.
+A post-execution `ensureTenantIsolation()` hook validates that no data leaks across tenant boundaries.
 
-Use the following command to configure a CI workflow for your workspace:
+> [!IMPORTANT]
+> Every new FeathersJS service **must** register all three hooks in `around.all`.
 
-```sh
-npx nx g ci-workflow
+## Useful Commands
+
+```bash
+pnpm dev                        # POS + API parallel
+pnpm db:migrate                 # Run Knex migrations
+pnpm db:create <name>           # Create a new migration
+
+nx test <project>               # Run tests (Vitest)
+nx lint <project>               # Run linter
+nx run-many -t test             # Test all projects
+nx affected -t lint,test,build  # CI: affected projects only
+
+pnpm tauri:build                # Build Tauri desktop app
+pnpm docker:build               # Build Docker image (edge)
+pnpm admin:build                # Production build (admin)
 ```
 
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## Docker (Edge Server)
 
-## Install Nx Console
+```bash
+# Build the edge server image
+pnpm docker:build
 
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
+# Build and push to registry
+pnpm docker:release
+```
 
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+A `docker-compose.edge.yml` is provided in `tools/docker/` for production deployments with persistent SQLite storage.
 
-## Useful links
+## Versioning
 
-Learn more:
+Panary Core uses calendar versioning in the format `YY.MM.INDEX` (e.g., `26.4.3`).
 
-- [Learn more about this workspace setup](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+```bash
+pnpm version:bump               # Bump version
+pnpm release:edge               # Tag & push edge release
+pnpm release:pos                # Tag & push POS release
+```

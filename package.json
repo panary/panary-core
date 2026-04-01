@@ -1,7 +1,7 @@
 {
   "name": "panary-core",
   "version": "2026.2.1",
-  "license": "MIT",
+  "license": "BSL-1.1",
   "keywords": [
     "angular",
     "feathers"
@@ -22,7 +22,8 @@
     "tauri:build": "cd apps/pos && tauri build",
     "admin:dev": "nx serve admin-client",
     "admin:build": "nx build admin-client --configuration=production",
-    "docker:build": "bash tools/docker/build-edge.sh"
+    "docker:build": "bash tools/docker/build-edge.sh",
+    "release:tag": "bash tools/scripts/release-tag.sh"
   },
   "private": true,
   "devDependencies": {

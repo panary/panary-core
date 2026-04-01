@@ -7,10 +7,10 @@ import { DatabaseType } from '@panary-core/shared/common'
 
 export interface ServiceOptions {
   name: string
-  paginate?: any
-  Model: any // Knex Client oder Mongoose Model
-  multi?: boolean | string[] // Erlaubt Massen-Updates (true oder Array von Methoden)
-  id?: string // Optional: Eigene ID-Spalte (Standard: '_id' oder 'id')
+  paginate?: KnexAdapterOptions['paginate']
+  Model: unknown
+  multi?: boolean | string[]
+  id?: string
 }
 
 export function createServiceAdapter<T = unknown, D = Partial<T>, P extends Params = Params, Q = Partial<T>>(

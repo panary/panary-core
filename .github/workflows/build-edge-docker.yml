@@ -35,9 +35,11 @@ jobs:
         id: version
         run: |
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            # Tag-Push: Version direkt aus dem Tag lesen (v26.4.1 → 26.4.1)
             echo "tag=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
           else
-            echo "tag=dev" >> $GITHUB_OUTPUT
+            # workflow_dispatch: Version aus package.json lesen
+            echo "tag=$(jq -r '.version' package.json)" >> $GITHUB_OUTPUT
           fi
 
       - name: Copy .dockerignore

@@ -1,6 +1,6 @@
 {
   "name": "panary-core",
-  "version": "2026.2.1",
+  "version": "26.4.3",
   "license": "BSL-1.1",
   "keywords": [
     "angular",
@@ -22,7 +22,11 @@
     "tauri:build": "cd apps/pos && tauri build",
     "admin:dev": "nx serve admin-client",
     "admin:build": "nx build admin-client --configuration=production",
+    "version:bump": "node tools/scripts/bump-version.mjs",
     "docker:build": "bash tools/docker/build-edge.sh",
+    "docker:release": "bash tools/docker/build-edge.sh --push",
+    "release:edge": "bash tools/scripts/release-tag.sh --type edge --push",
+    "release:pos": "bash tools/scripts/release-tag.sh --type pos --push",
     "release:tag": "bash tools/scripts/release-tag.sh"
   },
   "private": true,

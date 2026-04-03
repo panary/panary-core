@@ -1,3 +1,11 @@
+---
+title: Service-Erstellungsanleitung
+date: 2025-02-13
+category: guide
+domains: []
+status: current
+---
+
 # Service Erstellen - Schritt für Schritt
 
 ## Überblick

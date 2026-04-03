@@ -1,3 +1,11 @@
+---
+title: Tauri Update-Server-Einrichtung
+date: 2025-03-28
+category: guide
+domains: []
+status: current
+---
+
 # Tauri Auto-Update — Einrichtung & Release-Prozess
 
 ## Architektur-Übersicht

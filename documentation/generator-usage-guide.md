@@ -1,4 +1,12 @@
-# 🚀 FeathersJS Service Generator - Anleitung
+---
+title: Nx-Generator-Nutzungsanleitung
+date: 2025-02-13
+category: guide
+domains: []
+status: current
+---
+
+# FeathersJS Service Generator - Anleitung
 
 ## ✅ SO WIRD DER GENERATOR AUSGEFÜHRT
 

@@ -10,7 +10,6 @@ import {
   DeviceType,
   APP_CONFIG,
 } from '@panary-core/shared/data-access-config'
-import { DotGridComponent } from './dot-grid.component'
 import { ThemeServiceService } from '@panary-core/shared/data-access-theme'
 import { LanguageService, LANGUAGES } from '@panary-core/shared/data-access'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -28,7 +27,7 @@ type SetupStep = 'server-login' | 'select-org' | 'device-info' | 'registering' |
 
 @Component({
   selector: 'lib-setup',
-  imports: [CommonModule, FormsModule, DotGridComponent, TranslateModule],
+  imports: [CommonModule, FormsModule, TranslateModule],
   templateUrl: './setup.component.html',
   styleUrl: './setup.component.scss',
   standalone: true,

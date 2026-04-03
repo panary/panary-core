@@ -177,7 +177,10 @@
     "WORKING_TIMES": "Çalışma saatleri",
     "WRITE_OFF": "Zarar kaydı",
     "SETTINGS": "Ayarlar",
-    "EMPLOYEE": "Çalışan"
+    "EMPLOYEE": "Çalışan",
+    "PRE_ORDERS_TODAY": "Bugünkü ön siparişler",
+    "ITEMS": "ürün",
+    "NEXT_PRE_ORDER": "Sonraki ön sipariş saat"
   },
   "ACTIVE_ORDERS": {
     "TITLE": "Açık siparişler",
@@ -339,7 +342,10 @@
     "REGISTERING": "Kaydediliyor...",
     "REGISTER_DEVICE": "Cihazı kaydet",
     "DEVICE_ID": "Cihaz ID",
-    "REDIRECT_LOGIN": "Girişe yönlendiriliyor..."
+    "REDIRECT_LOGIN": "Girişe yönlendiriliyor...",
+    "NEXT": "İleri",
+    "BACK": "Geri",
+    "RETRY": "Tekrar dene"
   },
   "ORDER_DIALOG": {
     "EMPTY_ORDER": "Boş sipariş",

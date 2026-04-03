@@ -177,7 +177,10 @@
     "WORKING_TIMES": "Working times",
     "WRITE_OFF": "Write-off",
     "SETTINGS": "Settings",
-    "EMPLOYEE": "Employee"
+    "EMPLOYEE": "Employee",
+    "PRE_ORDERS_TODAY": "Pre-orders today",
+    "ITEMS": "items",
+    "NEXT_PRE_ORDER": "Next pre-order at"
   },
   "ACTIVE_ORDERS": {
     "TITLE": "Open orders",
@@ -339,7 +342,10 @@
     "REGISTERING": "Registering...",
     "REGISTER_DEVICE": "Register device",
     "DEVICE_ID": "Device ID",
-    "REDIRECT_LOGIN": "Redirecting to login..."
+    "REDIRECT_LOGIN": "Redirecting to login...",
+    "NEXT": "Next",
+    "BACK": "Back",
+    "RETRY": "Try again"
   },
   "ORDER_DIALOG": {
     "EMPTY_ORDER": "Empty order",

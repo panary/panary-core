@@ -1,3 +1,11 @@
+---
+title: Print-Server-API
+date: 2025-03-28
+category: integration
+domains: [locations]
+status: current
+---
+
 # Print-Server & ESC/POS Dokumentation
 
 ## Library: `@point-of-sale/receipt-printer-encoder` v3

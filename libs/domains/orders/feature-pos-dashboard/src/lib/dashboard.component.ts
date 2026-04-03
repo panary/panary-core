@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, computed, effect, inject, OnInit, Signal } from '@angular/core'
+import { ChangeDetectorRef, Component, computed, effect, inject, OnInit, signal, Signal } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { Router } from '@angular/router'
 import { NGX_ECHARTS_CONFIG, NgxEchartsModule } from 'ngx-echarts'
@@ -15,6 +15,7 @@ import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dial
 import { ClosingDialogComponent } from '@panary-core/businessdays/feature-pos-closing-dialog'
 import { PosWriteOffDialogComponent } from '@panary-core/write-offs/feature-pos-dialog'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { PreOrder, PreOrderService } from '@panary-core/pre-orders/data-access'
 
 interface QuickAction {
   label: string
@@ -48,6 +49,10 @@ export class DashboardComponent implements OnInit {
   #cdr = inject(ChangeDetectorRef)
   #dialog = inject(MatDialog)
   #translate = inject(TranslateService)
+  #preOrderService = inject(PreOrderService)
+
+  // Vorbestellungen für heute
+  todayPreOrders = signal<PreOrder[]>([])
 
   isStandaloneMode = computed(() => this.#connectionService.systemMode() === 'standalone')
 
@@ -188,6 +193,42 @@ export class DashboardComponent implements OnInit {
     setInterval(() => {
       this.calculateDuration()
     }, 60000)
+
+    this.fetchTodayPreOrders()
+    this.#listenPreOrderEvents()
+  }
+
+  /** Lauscht auf Realtime-Events des Pre-Order-Service und aktualisiert die KPI */
+  #listenPreOrderEvents(): void {
+    const svc = (this.#preOrderService as any).service
+    if (!svc || typeof svc.on !== 'function') return
+
+    const reload = () => this.fetchTodayPreOrders()
+    svc.on('created', reload)
+    svc.on('patched', reload)
+    svc.on('removed', reload)
+  }
+
+  async fetchTodayPreOrders(): Promise<void> {
+    const start = new Date()
+    start.setHours(0, 0, 0, 0)
+    const end = new Date()
+    end.setHours(23, 59, 59, 999)
+
+    try {
+      const result = await this.#preOrderService.find({
+        query: {
+          scheduledFor: { $gte: start.toISOString(), $lte: end.toISOString() },
+          status: 'pending',
+          $sort: { scheduledFor: 1 },
+          $limit: 50,
+        },
+      })
+      const orders: PreOrder[] = Array.isArray(result) ? result : (result as any).data
+      this.todayPreOrders.set(orders)
+    } catch {
+      this.todayPreOrders.set([])
+    }
   }
 
   // --- Getters ---

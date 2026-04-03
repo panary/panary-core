@@ -24,7 +24,7 @@
       <!-- Added !w-[160px] !min-w-[160px] for fixed width as requested -->
       @for (productGroup of visibleProductGroups; track productGroup._id; let i = $index) {
         <button type="button"
-                class="flex-shrink-0 flex justify-center items-center h-12 rounded-xl text-[10px] font-semibold uppercase tracking-wide active:scale-95 transition-all shadow-sm border border-transparent hover:shadow-md px-1.5"
+                class="flex-shrink-0 flex justify-center items-center h-14 rounded-xl text-[10px] font-semibold uppercase tracking-wide active:scale-95 transition-all shadow-sm border border-transparent hover:shadow-md px-1.5"
                 style="width: 110px; min-width: 90px; max-width: 130px; flex: 1 1 110px;" [style.background-color]="'white'"
                 [style.border-bottom]="'2px solid ' + productGroup.color" [style.color]="'#475569'"
                 (click)="createProductButtons(productGroup)">
@@ -36,7 +36,7 @@
       @if (overflowProductGroups.length > 0) {
         <button mat-button [matMenuTriggerFor]="menu"
                 #menuTrigger="matMenuTrigger"
-                class="!flex !justify-center !items-center !h-12 !rounded-xl !bg-white !text-gray-600 !shadow-sm !border !border-gray-200 !min-w-[50px] hover:!bg-gray-50 group overflow-hidden">
+                class="!flex !justify-center !items-center !h-14 !rounded-xl !bg-white !text-gray-600 !shadow-sm !border !border-gray-200 !min-w-[50px] hover:!bg-gray-50 group overflow-hidden">
           <div class="flex flex-col gap-[3px] transition-all duration-300"
                [class.rotate-90]="menuTrigger.menuOpen"
                [class.scale-90]="menuTrigger.menuOpen">
@@ -362,7 +362,7 @@
           <div class="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-2 content-start pb-4">
             @for (productButton of productButtons; let i = $index; track i) {
               <button type="button"
-                      class="relative h-14 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-semibold text-[10px] uppercase px-2 py-2 flex flex-col items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all"
+                      class="relative h-[72px] bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-semibold text-[10px] uppercase px-2 py-2 flex flex-col items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all"
                       [style.background-color]="productButton.backgroundColor"
                       [style.color]="productButton.fontColor"
                       [class.ring-2]="productButton.pressed" [class.ring-gray-400]="productButton.pressed"

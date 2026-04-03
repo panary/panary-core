@@ -14,22 +14,15 @@ import {
   Transaction,
   TransactionMethod,
 } from '@panary-core/orders/data-access'
-import { PrintDialogComponent } from '@panary-core/orders/data-access'
+import { PrintDialogComponent, CancelOrderDialogComponent } from '@panary-core/orders/data-access'
 import { AuthService } from '@panary-core/auth/data-access'
 import { UserService } from '@panary-core/users/data-access'
-import { User, UserSystemRole } from '@panary-core/users/domain'
+import { User } from '@panary-core/users/domain'
 import { CorporateCustomerService } from '@panary-core/corporate-customers/data-access'
 import { CorporateCustomer } from '@panary-core/corporate-customers/domain'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
-type OverlayView = 'actions' | 'staff-meal' | 'cancel-reason' | 'cancel-pin' | 'discount' | 'corporate'
-
-const CANCEL_REASONS = [
-  'ACTIVE_ORDERS.REASON_COMPLAINT',
-  'ACTIVE_ORDERS.REASON_WRONG_INPUT',
-  'ACTIVE_ORDERS.REASON_DUPLICATE',
-  'ACTIVE_ORDERS.REASON_OTHER',
-] as const
+type OverlayView = 'actions' | 'staff-meal' | 'discount' | 'corporate'
 
 const DISCOUNT_PRESETS = [5, 10, 15, 20, 25, 30] as const
 
@@ -61,6 +54,7 @@ export class ActiveOrdersComponent {
   protected readonly OrderStatus = OrderStatus
 
   zoomLevel: WritableSignal<number> = signal(0.85)
+  zoomOpen = signal(false)
   selectedOrderId: WritableSignal<string | null> = signal(null)
 
   // max-height der Karte in CSS-Koordinaten, korrigiert um den Zoom-Faktor:
@@ -75,12 +69,7 @@ export class ActiveOrdersComponent {
   staffEligibleUsers: WritableSignal<User[]> = signal([])
   staffUsersLoading: WritableSignal<boolean> = signal(false)
 
-  // Storno
-  cancelReasons = CANCEL_REASONS
-  cancelReason = signal<string>('')
-  cancelPin = signal<string>('')
-  managerUsers = signal<User[]>([])
-  managersLoading = signal(false)
+  // Storno (Flow im CancelOrderDialogComponent)
 
   // Rabatt
   discountPresets = DISCOUNT_PRESETS
@@ -138,9 +127,6 @@ export class ActiveOrdersComponent {
       this.selectedOrderId.set(null)
       this.overlayView.set('actions')
       this.staffEligibleUsers.set([])
-      this.cancelReason.set('')
-      this.cancelPin.set('')
-      this.managerUsers.set([])
       this.corporateCustomers.set([])
     } else {
       this.selectedOrderId.set(orderId)
@@ -261,9 +247,6 @@ export class ActiveOrdersComponent {
   backToActions() {
     this.overlayView.set('actions')
     this.staffEligibleUsers.set([])
-    this.cancelReason.set('')
-    this.cancelPin.set('')
-    this.managerUsers.set([])
     this.corporateCustomers.set([])
   }
 
@@ -281,78 +264,19 @@ export class ActiveOrdersComponent {
     return `${user.discountDetails.discount.toFixed(2)} € ${this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_LABEL')}`
   }
 
-  // --- Storno-Flow ---
+  // --- Storno-Flow (delegiert an shared CancelOrderDialogComponent) ---
 
-  cancelOrder() {
-    this.overlayView.set('cancel-reason')
-    this.cancelReason.set('')
-    this.cancelPin.set('')
-    this.loadManagerUsers()
-  }
+  cancelOrder(order: Order) {
+    const ref = this.#matDialog.open(CancelOrderDialogComponent, {
+      data: order,
+      panelClass: 'rounded-dialog',
+    })
 
-  selectCancelReason(reason: string) {
-    this.cancelReason.set(reason)
-    this.cancelPin.set('')
-    this.overlayView.set('cancel-pin')
-  }
-
-  appendPinDigit(digit: string) {
-    const current = this.cancelPin()
-    if (current.length < 6) {
-      this.cancelPin.set(current + digit)
-    }
-  }
-
-  deletePinDigit() {
-    this.cancelPin.update(p => p.slice(0, -1))
-  }
-
-  async confirmCancel(order: Order) {
-    const pin = this.cancelPin()
-    if (pin.length < 4) return
-
-    const matchedManager = this.managerUsers().find(u => u.posPin === pin)
-    if (!matchedManager) {
-      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.INVALID_PIN'), 'OK', { duration: 3000 })
-      this.cancelPin.set('')
-      return
-    }
-
-    const canceledByName = `${matchedManager.firstName} ${matchedManager.lastName}`.trim() || matchedManager.loginname
-    try {
-      await this.#orderService.patch(order._id, {
-        cancellation: {
-          canceledBy: canceledByName,
-          reason: this.cancelReason(),
-          canceledAt: new Date().toISOString(),
-        },
-        status: OrderStatus.ABORTED,
-      })
-      this.resetOverlay()
-      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.ORDER_CANCELED'), undefined, { duration: 2500 })
-    } catch (e) {
-      console.error(e)
-      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.CANCEL_ERROR'), 'OK', { duration: 3000 })
-    }
-  }
-
-  private async loadManagerUsers() {
-    this.managersLoading.set(true)
-    try {
-      const result = await this.#userService.find({ query: { $limit: 200 } })
-      const users: User[] = Array.isArray(result) ? result : (result as any).data
-      this.managerUsers.set(
-        users.filter(
-          u =>
-            (u.role === UserSystemRole.TENANT_MANAGER || u.role === UserSystemRole.TENANT_OWNER) && !!u.posPin,
-        ),
-      )
-    } catch (e) {
-      console.error(e)
-      this.managerUsers.set([])
-    } finally {
-      this.managersLoading.set(false)
-    }
+    ref.afterClosed().subscribe(result => {
+      if (result?.success) {
+        this.resetOverlay()
+      }
+    })
   }
 
   // --- Rabatt-Flow ---
@@ -430,9 +354,6 @@ export class ActiveOrdersComponent {
     this.selectedOrderId.set(null)
     this.overlayView.set('actions')
     this.staffEligibleUsers.set([])
-    this.cancelReason.set('')
-    this.cancelPin.set('')
-    this.managerUsers.set([])
     this.corporateCustomers.set([])
   }
 

@@ -30,24 +30,24 @@ import { TranslateModule } from '@ngx-translate/core'
       <!-- Contact Info -->
       <div class="grid grid-cols-2 gap-4">
         <div class="space-y-1">
-          <label for="pre-order-name" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.CUSTOMER_NAME' | translate }}</label>
+          <label for="pre-order-name" class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.CUSTOMER_NAME' | translate }}</label>
           <input id="pre-order-name" formControlName="name" placeholder="Max Mustermann" cdkFocusInitial
-            class="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl px-4 py-3 text-slate-800 dark:text-gray-200 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none placeholder-slate-400" />
+            class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-800 dark:text-gray-200 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 outline-none placeholder-gray-400" />
         </div>
 
         <div class="space-y-1">
-          <label for="pre-order-phone" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.PHONE' | translate }}</label>
+          <label for="pre-order-phone" class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.PHONE' | translate }}</label>
           <input id="pre-order-phone" formControlName="phone" placeholder="0123 456789"
-            class="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl px-4 py-3 text-slate-800 dark:text-gray-200 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none placeholder-slate-400" />
+            class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-800 dark:text-gray-200 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 outline-none placeholder-gray-400" />
         </div>
       </div>
 
       <!-- Date/Time -->
       <div class="space-y-1">
-        <label for="pre-order-scheduled" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.DATE_TIME' | translate }}</label>
+        <label for="pre-order-scheduled" class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.DATE_TIME' | translate }}</label>
         <input id="pre-order-scheduled" type="datetime-local" formControlName="scheduledFor"
-          class="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl px-4 py-3 text-slate-800 dark:text-gray-200 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none placeholder-slate-400" />
-        <p class="text-xs text-slate-400 mt-1">{{ 'PRE_ORDERS.PICKUP_TIME_HINT' | translate }}</p>
+          class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-800 dark:text-gray-200 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 outline-none placeholder-gray-400" />
+        <p class="text-xs text-gray-400 mt-1">{{ 'PRE_ORDERS.PICKUP_TIME_HINT' | translate }}</p>
       </div>
 
       <!-- Item Selection -->
@@ -55,11 +55,11 @@ import { TranslateModule } from '@ngx-translate/core'
         <h3 class="font-bold text-gray-700">{{ 'PRE_ORDERS.ADD_ITEMS' | translate }}</h3>
 
         <div class="space-y-1 relative">
-          <label for="pre-order-search" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.SEARCH_ITEMS' | translate }}</label>
+          <label for="pre-order-search" class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.SEARCH_ITEMS' | translate }}</label>
           <div class="relative">
             <input id="pre-order-search" [formControl]="searchControl" [matAutocomplete]="auto" [placeholder]="'PRE_ORDERS.ENTER_NAME' | translate"
-              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 pr-10 text-slate-800 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none placeholder-slate-400" />
-            <span class="material-symbols-outlined text-[20px] absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+              class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-10 text-gray-800 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 outline-none placeholder-gray-400" />
+            <span class="material-symbols-outlined text-[20px] absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
           </div>
           <mat-autocomplete
             #auto="matAutocomplete"
@@ -83,7 +83,7 @@ import { TranslateModule } from '@ngx-translate/core'
             <p class="text-center text-gray-400 text-sm py-2">{{ 'PRE_ORDERS.NO_ITEMS_SELECTED' | translate }}</p>
           }
           @for (item of selectedItems(); track item._id + '-' + $index) {
-            <div class="flex justify-between items-center p-2 bg-white dark:bg-gray-900 rounded shadow-sm mb-1 border border-gray-100 dark:border-gray-700">
+            <div class="flex justify-between items-center p-2 bg-white dark:bg-gray-950 rounded shadow-sm mb-1 border border-gray-100 dark:border-gray-700">
               <div class="flex flex-col">
                 <span class="font-medium text-sm">{{ item.name }}</span>
                 <span class="text-xs text-gray-500">{{ item.price | currency: 'EUR' }}</span>
@@ -103,7 +103,7 @@ import { TranslateModule } from '@ngx-translate/core'
 
     <mat-dialog-actions align="end" class="!px-6 !pb-6">
       <button type="button" mat-dialog-close
-        class="px-4 py-2 text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 rounded-xl transition-colors">
+        class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors">
         Abbrechen
       </button>
       <button type="button" [disabled]="form.invalid" (click)="save()"

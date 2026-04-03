@@ -7,17 +7,17 @@ import { TranslateModule } from '@ngx-translate/core'
   imports: [TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-slate-50 dark:bg-gray-900 p-2 rounded-xl shadow-xl border border-slate-200 dark:border-gray-700">
+    <div class="bg-gray-50 dark:bg-gray-950 p-2 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700">
       @if (layout() === 'numeric') {
         <div class="grid grid-cols-3 gap-2">
           @for (key of numericKeys; track key) {
-            <button class="key w-20 h-16 text-2xl rounded-lg bg-white dark:bg-gray-800 shadow-sm border-b-2 border-slate-200 dark:border-gray-600 font-bold active:border-b-0 active:translate-y-[2px] active:bg-slate-50 dark:active:bg-gray-700 dark:text-white transition-all" (click)="onKey(key)">{{ key }}</button>
+            <button class="key w-20 h-16 text-2xl rounded-lg bg-white dark:bg-gray-800 shadow-sm border-b-2 border-gray-200 dark:border-gray-600 font-bold active:border-b-0 active:translate-y-[2px] active:bg-gray-50 dark:active:bg-gray-700 dark:text-white transition-all" (click)="onKey(key)">{{ key }}</button>
           }
           <button class="key w-20 h-16 flex items-center justify-center rounded-lg shadow-sm border-b-2 font-bold active:border-b-0 active:translate-y-[2px] transition-all bg-red-50 text-red-500 border-red-100"
             (click)="backspace.emit()">
             <span class="material-symbols-outlined">backspace</span>
           </button>
-          <button class="key w-20 h-16 text-2xl rounded-lg bg-white dark:bg-gray-800 shadow-sm border-b-2 border-slate-200 dark:border-gray-600 font-bold active:border-b-0 active:translate-y-[2px] active:bg-slate-50 dark:active:bg-gray-700 dark:text-white transition-all" (click)="onKey('0')">0</button>
+          <button class="key w-20 h-16 text-2xl rounded-lg bg-white dark:bg-gray-800 shadow-sm border-b-2 border-gray-200 dark:border-gray-600 font-bold active:border-b-0 active:translate-y-[2px] active:bg-gray-50 dark:active:bg-gray-700 dark:text-white transition-all" (click)="onKey('0')">0</button>
           <button class="key w-20 h-16 text-xl rounded-lg shadow-sm border-b-2 font-bold active:border-b-0 active:translate-y-[2px] transition-all bg-green-50 text-green-600 border-green-100"
             (click)="enter.emit()">OK</button>
         </div>
@@ -26,12 +26,12 @@ import { TranslateModule } from '@ngx-translate/core'
           @for (row of defaultLayout; track $index) {
             <div class="flex justify-center gap-1">
               @for (key of row; track key) {
-                <button class="key w-12 h-14 text-xl rounded-lg bg-white dark:bg-gray-800 shadow-sm border-b-2 border-slate-200 dark:border-gray-600 font-bold active:border-b-0 active:translate-y-[2px] active:bg-slate-50 dark:active:bg-gray-700 dark:text-white transition-all" (click)="onKey(key)">{{ key }}</button>
+                <button class="key w-12 h-14 text-xl rounded-lg bg-white dark:bg-gray-800 shadow-sm border-b-2 border-gray-200 dark:border-gray-600 font-bold active:border-b-0 active:translate-y-[2px] active:bg-gray-50 dark:active:bg-gray-700 dark:text-white transition-all" (click)="onKey(key)">{{ key }}</button>
               }
             </div>
           }
           <div class="flex justify-center gap-2 mt-1">
-            <button class="key w-32 h-12 text-xl rounded-lg shadow-sm border-b-2 border-slate-200 font-bold active:border-b-0 active:translate-y-[2px] transition-all bg-slate-100 dark:bg-gray-700 dark:text-white" (click)="onKey(' ')">SPACE</button>
+            <button class="key w-32 h-12 text-xl rounded-lg shadow-sm border-b-2 border-gray-200 font-bold active:border-b-0 active:translate-y-[2px] transition-all bg-gray-100 dark:bg-gray-700 dark:text-white" (click)="onKey(' ')">SPACE</button>
             <button class="key w-20 h-12 flex items-center justify-center rounded-lg shadow-sm border-b-2 font-bold active:border-b-0 active:translate-y-[2px] transition-all bg-red-50 text-red-500 border-red-100"
               (click)="backspace.emit()">
               <span class="material-symbols-outlined">backspace</span>

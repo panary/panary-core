@@ -25,14 +25,14 @@ export interface ConfirmDialogData {
           [class]="iconBg">
           <span class="material-symbols-outlined text-[32px]" [class]="iconColor">{{ data.icon }}</span>
         </div>
-        <h2 class="text-xl font-bold text-slate-800 dark:text-white text-center">{{ data.title }}</h2>
+        <h2 class="text-xl font-bold text-gray-800 dark:text-white text-center">{{ data.title }}</h2>
       </div>
 
       <!-- Body -->
       <div class="px-6 pb-2 text-center">
-        <p class="text-slate-500 dark:text-gray-400 text-sm leading-relaxed">{{ data.message }}</p>
+        <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">{{ data.message }}</p>
         @if (data.detail) {
-          <p class="mt-2 text-slate-700 dark:text-gray-200 font-semibold text-base">{{ data.detail }}</p>
+          <p class="mt-2 text-gray-700 dark:text-gray-200 font-semibold text-base">{{ data.detail }}</p>
         }
       </div>
 
@@ -46,7 +46,7 @@ export interface ConfirmDialogData {
         </button>
         <button
           (click)="cancel()"
-          class="h-12 w-full rounded-xl font-medium text-sm text-slate-500 dark:text-gray-300 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-700 transition-all active:scale-95">
+          class="h-12 w-full rounded-xl font-medium text-sm text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all active:scale-95">
           Abbrechen
         </button>
       </div>

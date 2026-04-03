@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { SetupService, SetupPayload } from '../setup.service'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { ThemeService } from '../theme.service'
 
 @Component({
   selector: 'app-wizard',
@@ -16,6 +17,7 @@ export class Wizard {
   private fb = inject(FormBuilder)
   private setupService = inject(SetupService)
   private translate = inject(TranslateService)
+  readonly themeService = inject(ThemeService)
 
   // Signal State
   step = signal<number>(1)

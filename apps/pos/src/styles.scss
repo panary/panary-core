@@ -10,6 +10,12 @@
 /* Hinweis: Block-Syntax (@slot) funktioniert nicht in SCSS — Einzeiler-Syntax verwenden */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Farb-Overrides abgestimmt auf den Admin Client (identische OkLCH-Werte) */
+@theme {
+  --color-gray-850: oklch(23% 0.034 264.665);
+  --color-gray-950: oklch(13% 0.028 261);
+}
+
 /* Angular Material Theme — Light (Standard) */
 html {
   @include mat.theme((
@@ -151,7 +157,7 @@ body.dark .mat-mdc-select-panel {
 html, body {
   height: 100dvh;
   margin: 0;
-  background-color: #f8fafc; /* slate-50 */
+  background-color: #f9fafb; /* gray-50 */
 }
 
 /* Manuell auf Dunkel gesetzt */

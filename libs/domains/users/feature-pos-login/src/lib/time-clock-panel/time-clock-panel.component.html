@@ -2,7 +2,7 @@
 @if (mode() === 'embedded') {
   <div class="flex flex-col h-full">
     <!-- Header - centered -->
-    <div class="p-4 border-b border-white/10 text-center">
+    <div class="p-4 text-center">
       <h3 class="text-base font-semibold text-white flex items-center justify-center gap-2">
         <svg class="w-4 h-4 text-[#00B8D4]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -187,7 +187,7 @@
 @if (mode() === 'mobile') {
   <!-- Bouncing Arrow Indicator (behind the panel) -->
   <div
-    class="lg:hidden fixed bottom-20 left-1/2 -translate-x-1/2 z-40 transition-opacity duration-300"
+    class="lg:hidden fixed bottom-[76px] left-1/2 -translate-x-1/2 z-40 transition-opacity duration-300"
     [class.opacity-100]="!isExpanded()"
     [class.opacity-0]="isExpanded()"
   >
@@ -212,7 +212,7 @@
     (touchend)="onTouchEnd()"
   >
     <!-- Panel Card -->
-    <div class="bg-gradient-to-br from-[#162032] to-[#283548] rounded-t-[2rem] shadow-2xl min-h-[400px] flex flex-col">
+    <div class="bg-gradient-to-br from-[#0a0a0f] to-[#111118] rounded-t-[2rem] shadow-2xl min-h-[400px] flex flex-col">
       <!-- Handle Bar (always visible, clickable) -->
       <div
         class="flex justify-center py-3 cursor-pointer"
@@ -250,16 +250,9 @@
             [class.gap-0]="isExpanded()"
           >
             <h3 class="text-base font-semibold text-white whitespace-nowrap">{{ 'TIME_CLOCK.TITLE' | translate }}</h3>
-            <p
-              class="text-white/60 transition-all duration-300 whitespace-nowrap"
-              [class.text-xs]="isExpanded()"
-              [class.text-sm]="!isExpanded()"
-            >
-              @if (!isExpanded()) {
-                <span class="text-white/40">•</span>
-              }
-              {{ 'TIME_CLOCK.SUBTITLE' | translate }}
-            </p>
+            @if (isExpanded()) {
+              <p class="text-white/60 text-xs">{{ 'TIME_CLOCK.SUBTITLE' | translate }}</p>
+            }
           </div>
         </div>
         <!-- Only show close button when expanded -->

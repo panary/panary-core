@@ -1,5 +1,6 @@
 import { HookContext, NextFunction } from '../declarations'
 import { UserSystemRole } from '@panary-core/users/domain'
+import { logger } from '../logger'
 
 export interface MultiTenancyOptions {
   isolateLocation?: boolean // Soll nach Filiale gefiltert werden?
@@ -70,6 +71,15 @@ export const multiTenancy =
 
         // Normale Mitarbeiter sehen NUR ihre Filiale
         if (!isPrivileged && user.locationId) {
+          logger.debug({
+            message: '[Security] multiTenancy: Location-Isolation aktiv',
+            event: 'security.location_scoped',
+            userId: user._id,
+            userRole: user.role,
+            locationId: user.locationId,
+            service: context.path,
+            method: context.method,
+          })
           if (allowGlobalData) {
             // Zeige: Meine Filiale ODER Globale Daten
             query.$or = [{ locationId: user.locationId }, { locationId: null }]

@@ -8,9 +8,11 @@ import {
   RegistrationStatus,
   SetupCredentials,
   DeviceType,
+  APP_CONFIG,
 } from '@panary-core/shared/data-access-config'
-import { ParticleNetworkComponent } from './particle-network.component'
+import { DotGridComponent } from './dot-grid.component'
 import { ThemeServiceService } from '@panary-core/shared/data-access-theme'
+import { LanguageService, LANGUAGES } from '@panary-core/shared/data-access'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 /**
@@ -26,7 +28,7 @@ type SetupStep = 'server-login' | 'select-org' | 'device-info' | 'registering' |
 
 @Component({
   selector: 'lib-setup',
-  imports: [CommonModule, FormsModule, ParticleNetworkComponent, TranslateModule],
+  imports: [CommonModule, FormsModule, DotGridComponent, TranslateModule],
   templateUrl: './setup.component.html',
   styleUrl: './setup.component.scss',
   standalone: true,
@@ -36,7 +38,9 @@ export class SetupComponent {
   private readonly configService = inject(DeviceConfigService)
   private readonly router = inject(Router)
   readonly themeService = inject(ThemeServiceService)
+  readonly languageService = inject(LanguageService)
   readonly translateService = inject(TranslateService)
+  readonly appVersion = inject(APP_CONFIG).appVersion
   //#endregion
 
   //#region Form Data - Step 1: Server & Login
@@ -67,7 +71,6 @@ export class SetupComponent {
   //#region State Signals
   readonly currentStep: WritableSignal<SetupStep> = signal('server-login')
   readonly language: WritableSignal<string> = signal('de')
-  readonly isLanguageDropdownOpen: WritableSignal<boolean> = signal(false)
 
   // From service
   readonly registrationStatus = this.configService.registrationStatus
@@ -93,45 +96,45 @@ export class SetupComponent {
     return this.locations().filter(loc => loc.tenantId === orgId)
   })
 
-  readonly stepTitle = computed(() => {
+  readonly stepTitleKey = computed(() => {
     const step = this.currentStep()
     switch (step) {
       case 'server-login':
-        return this.translateService.instant('SETUP.CONNECT_TITLE')
+        return 'SETUP.CONNECT_TITLE'
       case 'select-org':
-        return this.translateService.instant('SETUP.ORG_TITLE')
+        return 'SETUP.ORG_TITLE'
       case 'device-info':
-        return this.translateService.instant('SETUP.DEVICE_TITLE')
+        return 'SETUP.DEVICE_TITLE'
       case 'registering':
-        return this.translateService.instant('SETUP.REGISTERING_TITLE')
+        return 'SETUP.REGISTERING_TITLE'
       case 'success':
-        return this.translateService.instant('SETUP.SUCCESS_TITLE')
+        return 'SETUP.SUCCESS_TITLE'
       case 'error':
-        return this.translateService.instant('SETUP.ERROR_TITLE')
+        return 'SETUP.ERROR_TITLE'
       default:
-        return this.translateService.instant('SETUP.TITLE')
+        return 'SETUP.TITLE'
     }
   })
 
-  readonly stepDescription = computed(() => {
+  readonly stepDescriptionKey = computed(() => {
     const step = this.currentStep()
     const status = this.registrationStatus()
     switch (step) {
       case 'server-login':
-        return this.translateService.instant('SETUP.CONNECT_DESC')
+        return 'SETUP.CONNECT_DESC'
       case 'select-org':
-        return this.translateService.instant('SETUP.ORG_DESC')
+        return 'SETUP.ORG_DESC'
       case 'device-info':
-        return this.translateService.instant('SETUP.DEVICE_DESC')
+        return 'SETUP.DEVICE_DESC'
       case 'registering':
-        if (status === 'connecting') return this.translateService.instant('SETUP.STATUS_CONNECTING')
-        if (status === 'authenticating') return this.translateService.instant('SETUP.STATUS_AUTH')
-        if (status === 'loading-orgs') return this.translateService.instant('SETUP.STATUS_LOADING')
-        return this.translateService.instant('SETUP.STATUS_REGISTERING')
+        if (status === 'connecting') return 'SETUP.STATUS_CONNECTING'
+        if (status === 'authenticating') return 'SETUP.STATUS_AUTH'
+        if (status === 'loading-orgs') return 'SETUP.STATUS_LOADING'
+        return 'SETUP.STATUS_REGISTERING'
       case 'success':
-        return this.translateService.instant('SETUP.SUCCESS_DESC')
+        return 'SETUP.SUCCESS_DESC'
       case 'error':
-        return this.registrationError() || this.translateService.instant('SETUP.GENERIC_ERROR')
+        return 'SETUP.GENERIC_ERROR'
       default:
         return ''
     }
@@ -153,14 +156,7 @@ export class SetupComponent {
   //#endregion
 
   //#region Language Config
-  readonly availableLanguages = [
-    { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
-    { code: 'en', label: 'English', flag: '🇬🇧' },
-    { code: 'fr', label: 'Français', flag: '🇫🇷' },
-    { code: 'es', label: 'Español', flag: '🇪🇸' },
-    { code: 'pt', label: 'Português', flag: '🇵🇹' },
-    { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
-  ]
+  readonly languages = LANGUAGES
   //#endregion
 
   //#region Constructor
@@ -176,19 +172,12 @@ export class SetupComponent {
   //#endregion
 
   //#region Language Methods
-  toggleLanguageDropdown(): void {
-    this.isLanguageDropdownOpen.update(open => !open)
-  }
-
-  selectLanguage(code: string): void {
-    this.language.set(code)
-    this.configService.updateLanguage(code)
-    this.isLanguageDropdownOpen.set(false)
-  }
-
-  getCurrentLanguageLabel(): string {
-    const lang = this.availableLanguages.find(l => l.code === this.language())
-    return lang ? `${lang.flag} ${lang.label}` : '🇩🇪 Deutsch'
+  cycleLanguage(): void {
+    const codes = this.languages.map(l => l.code)
+    const idx = codes.indexOf(this.languageService.currentLanguage())
+    const next = codes[(idx + 1) % codes.length]
+    this.languageService.setLanguage(next)
+    this.language.set(next)
   }
   //#endregion
 

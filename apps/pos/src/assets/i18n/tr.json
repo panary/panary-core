@@ -256,7 +256,10 @@
     "LOADING": "Siparişler yükleniyor...",
     "NONE_FOUND": "Sipariş bulunamadı",
     "DETAILS": "Detaylar",
-    "SELECT_ORDER": "Bir sipariş seçin"
+    "SELECT_ORDER": "Bir sipariş seçin",
+    "RECEIPT": "Fiş",
+    "PRINT": "Yazdır",
+    "CANCEL": "İptal"
   },
   "WORKING_TIMES": {
     "TITLE": "Çalışma saatlerim",
@@ -274,7 +277,8 @@
     "NO_BREAKS": "Mola yok",
     "STATUS_ACTIVE": "Aktif",
     "STATUS_OFF": "İzinli",
-    "STATUS_WORKED": "Çalışıldı"
+    "STATUS_WORKED": "Çalışıldı",
+    "HIDE_OFF_DAYS": "Boş günleri gizle"
   },
   "WRITE_OFF": {
     "TITLE": "Atık kaydet",
@@ -354,12 +358,6 @@
     "ENTER_NAME": "Ad girin",
     "ENTER_PHONE": "Numara girin"
   },
-  "HISTORY": {
-    "TITLE": "Geçmiş",
-    "RECEIPT": "Fiş",
-    "PRINT": "Yazdır",
-    "CANCEL": "İptal"
-  },
   "MONTHS": {
     "JANUARY": "Ocak",
     "FEBRUARY": "Şubat",
@@ -373,5 +371,40 @@
     "OCTOBER": "Ekim",
     "NOVEMBER": "Kasım",
     "DECEMBER": "Aralık"
+  },
+  "CANCEL_ORDER": {
+    "SELECT_REASON": "İptal nedenini seçin",
+    "ENTER_PIN": "Yönetici PIN girin",
+    "PIN_HINT": "Bir yönetici veya sahip iptali onaylamalıdır",
+    "INVALID_PIN": "Geçersiz PIN",
+    "SUCCESS": "Sipariş iptal edildi",
+    "ERROR": "İptal başarısız",
+    "ALREADY_CANCELED": "Zaten iptal edildi",
+    "REASON_COMPLAINT": "Müşteri şikayeti",
+    "REASON_WRONG_INPUT": "Yanlış giriş",
+    "REASON_DUPLICATE": "Mükerrer sipariş",
+    "REASON_OTHER": "Diğer"
+  },
+  "PRINT": {
+    "TITLE": "Yazdır",
+    "SEND_ALL": "Tüm yazıcılara gönder",
+    "SELECT_PRINTER": "Yazıcı seçin",
+    "NO_PRINTERS": "Yapılandırılmış yazıcı yok",
+    "SENT_ALL": "Yazdırma işi gönderildi",
+    "SENT_TO": "{{name}} adresine gönderildi",
+    "ERROR": "Yazdırma hatası — yazdırma sunucusu çalışıyor mu?"
+  },
+  "ORDER_CHANNEL": {
+    "telephone": "Telefon",
+    "online": "Çevrimiçi",
+    "pos": "Kasa",
+    "app": "Uygulama"
+  },
+  "ORDER_STATUS": {
+    "active": "Aktif",
+    "production": "Hazırlanıyor",
+    "completed": "Tamamlandı",
+    "aborted": "İptal Edildi",
+    "unclaimed": "Teslim Alınmadı"
   }
 }

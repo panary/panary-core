@@ -19,15 +19,15 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
     TranslateModule,
   ],
   template: `
-    <div class="h-full w-full bg-slate-50 dark:bg-black p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border">
+    <div class="h-full w-full bg-gray-50 dark:bg-black p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border">
       <!-- Header & Filters -->
-      <header class="flex-none flex flex-col gap-4 bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-gray-800">
+      <header class="flex-none flex flex-col gap-4 bg-white dark:bg-gray-950 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
         <div class="flex flex-row items-center justify-between">
           <div class="flex items-center gap-4">
-            <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-300 rounded-xl hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors">
+            <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
               <span class="material-symbols-outlined text-[20px]">arrow_back</span>
             </button>
-            <h1 class="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            <h1 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
               <span class="material-symbols-outlined text-[20px] text-indigo-600">event_note</span>
               {{ 'PRE_ORDERS.TITLE' | translate }}
             </h1>
@@ -48,10 +48,10 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
         </div>
 
         <div class="relative">
-          <span class="material-symbols-outlined text-[20px] absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+          <span class="material-symbols-outlined text-[20px] absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
           <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="fetchOrders()"
                  [placeholder]="'PRE_ORDERS.SEARCH_PLACEHOLDER' | translate"
-                 class="w-full h-12 pl-10 pr-4 rounded-xl bg-slate-50 dark:bg-gray-800 border-none outline-none focus:ring-2 focus:ring-indigo-200 transition-all text-slate-700 dark:text-gray-200 placeholder:text-[11px] placeholder:md:text-sm placeholder:text-slate-400" />
+                 class="w-full h-12 pl-10 pr-4 rounded-xl bg-gray-50 dark:bg-gray-800 border-none outline-none focus:ring-2 focus:ring-indigo-200 transition-all text-gray-700 dark:text-gray-200 placeholder:text-[11px] placeholder:md:text-sm placeholder:text-gray-400" />
           <button
             class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-600 text-white rounded-lg shadow-sm hover:bg-indigo-700 active:scale-95 transition-all"
             (click)="fetchOrders()">
@@ -63,16 +63,16 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
       <!-- Content -->
       <div class="flex-1 flex gap-6 min-h-0">
         <!-- Order List -->
-        <div class="flex-1 bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800 overflow-hidden flex flex-col"
+        <div class="flex-1 bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col"
              [class.hidden]="selectedOrder() !== null" [class.lg:flex]="true">
 
           @if (loading()) {
             <div class="flex-1 flex justify-center items-center flex-col gap-4">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-              <span class="text-slate-400 text-sm">{{ 'PRE_ORDERS.LOADING' | translate }}</span>
+              <span class="text-gray-400 text-sm">{{ 'PRE_ORDERS.LOADING' | translate }}</span>
             </div>
           } @else if (orders().length === 0) {
-            <div class="flex-1 flex justify-center items-center flex-col gap-4 text-slate-300">
+            <div class="flex-1 flex justify-center items-center flex-col gap-4 text-gray-300">
               <span class="material-symbols-outlined text-[64px]">event_busy</span>
               <span class="font-medium">{{ 'PRE_ORDERS.NONE_FOUND' | translate }}</span>
             </div>
@@ -80,7 +80,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
             <div class="overflow-y-auto p-2 space-y-2">
               @for (order of orders(); track order._id) {
                 <div
-                  class="p-4 rounded-xl border border-slate-100 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-slate-50 dark:hover:bg-gray-800 hover:shadow-md cursor-pointer transition-all group"
+                  class="p-4 rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-950 hover:bg-gray-50 dark:hover:bg-gray-800 hover:shadow-md cursor-pointer transition-all group"
                   [class.ring-2]="selectedOrder()?._id === order._id"
                   [class.ring-indigo-200]="selectedOrder()?._id === order._id"
                   (click)="toggleOrderSelection(order)"
@@ -90,26 +90,26 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
                   <div class="flex justify-between items-start mb-2">
                     <div class="flex items-center gap-2">
-                       <span class="font-bold text-slate-500 dark:text-gray-400 bg-slate-100 dark:bg-gray-800 px-2 py-0.5 rounded text-xs">
+                       <span class="font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-xs">
                           {{ order.scheduledFor | date: 'dd.MM' }}
                        </span>
                       <span class="text-xs font-bold text-indigo-600">
                           {{ order.scheduledFor | date: 'HH:mm' }} Uhr
                        </span>
                     </div>
-                    <span class="font-bold text-slate-800 dark:text-white">{{ calculateTotal(order) | currency: 'EUR' }}</span>
+                    <span class="font-bold text-gray-800 dark:text-white">{{ calculateTotal(order) | currency: 'EUR' }}</span>
                   </div>
 
-                  <div class="font-medium text-slate-700 dark:text-gray-200 truncate group-hover:text-indigo-700 transition-colors">
+                  <div class="font-medium text-gray-700 dark:text-gray-200 truncate group-hover:text-indigo-700 transition-colors">
                     {{ order.customerContact.name }}
                   </div>
-                  <div class="text-xs text-slate-500 dark:text-gray-400 flex items-center gap-1 mt-1">
+                  <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-1">
                     <span class="material-symbols-outlined text-[12px]">phone</span>
                     {{ order.customerContact.phone }}
                   </div>
 
                   <div class="flex justify-between items-center mt-3">
-                    <span class="text-xs text-slate-500 dark:text-gray-400 bg-slate-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
+                    <span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
                        {{ order.lineItems.length }} {{ 'COMMON.ITEMS' | translate }}
                     </span>
 
@@ -137,14 +137,14 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
         <!-- Order Detail -->
         @if (selectedOrder()) {
         <div
-          class="flex-1 lg:max-w-[450px] bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800 overflow-hidden flex flex-col">
+          class="flex-1 lg:max-w-[450px] bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col">
           <!-- Detail Header -->
-          <div class="p-4 border-b border-slate-100 dark:border-gray-700 flex justify-between items-center bg-slate-50 dark:bg-gray-800">
+          <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800">
             <div>
-              <h2 class="font-bold text-lg text-slate-800 dark:text-white">{{ 'PRE_ORDERS.DETAILS' | translate }}</h2>
-              <p class="text-xs text-slate-500 dark:text-gray-400">{{ selectedOrder()?.scheduledFor | date: 'dd.MM.yyyy HH:mm' }}</p>
+              <h2 class="font-bold text-lg text-gray-800 dark:text-white">{{ 'PRE_ORDERS.DETAILS' | translate }}</h2>
+              <p class="text-xs text-gray-500 dark:text-gray-400">{{ selectedOrder()?.scheduledFor | date: 'dd.MM.yyyy HH:mm' }}</p>
             </div>
-            <button (click)="selectedOrder.set(null)" class="lg:hidden flex items-center justify-center w-10 h-10 text-slate-500 dark:text-gray-400 rounded-xl hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors">
+            <button (click)="selectedOrder.set(null)" class="lg:hidden flex items-center justify-center w-10 h-10 text-gray-500 dark:text-gray-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
               <span class="material-symbols-outlined text-[20px]">close</span>
             </button>
           </div>
@@ -166,7 +166,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
             </div>
 
             <!-- Receipt View -->
-            <div class="bg-white dark:bg-gray-800 border border-slate-100 dark:border-gray-700 rounded-xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+            <div class="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
               <div class="space-y-3 font-mono text-sm">
                 @for (item of selectedOrder()?.lineItems; track item) {
                   <div class="flex justify-between items-start">
@@ -179,7 +179,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                 }
               </div>
 
-              <div class="mt-6 pt-4 border-t-2 border-slate-800 dark:border-gray-200 flex justify-between items-center text-lg font-bold">
+              <div class="mt-6 pt-4 border-t-2 border-gray-800 dark:border-gray-200 flex justify-between items-center text-lg font-bold">
                 <span>{{ 'COMMON.TOTAL' | translate }}</span>
                 <span>{{ calculateTotal(selectedOrder()!) | currency: 'EUR' }}</span>
               </div>
@@ -196,7 +196,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
               </button>
 
               <button
-                class="col-span-2 h-12 rounded-lg bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-red-600 font-medium hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-all flex items-center justify-center gap-2"
+                class="col-span-2 h-12 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-red-600 font-medium hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-all flex items-center justify-center gap-2"
                 (click)="cancelOrder(selectedOrder()!)">
                 <span class="material-symbols-outlined text-[20px]">delete</span>
                 {{ 'PRE_ORDERS.CANCEL_ORDER' | translate }}
@@ -204,7 +204,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
             </div>
             }
             @if (selectedOrder()?.status !== 'pending') {
-            <div class="mt-6 text-center text-slate-400 text-sm">
+            <div class="mt-6 text-center text-gray-400 text-sm">
               {{ selectedOrder()?.status === 'converted' ? ('PRE_ORDERS.ALREADY_COMPLETED' | translate) : ('PRE_ORDERS.ALREADY_CANCELED' | translate) }}
               .
             </div>
@@ -216,7 +216,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
         <!-- Placeholder -->
         @if (!selectedOrder()) {
         <div
-          class="hidden lg:flex flex-1 max-w-[450px] bg-slate-50/50 dark:bg-gray-900/50 border border-dashed border-slate-200 dark:border-gray-700 rounded-2xl justify-center items-center text-slate-400 flex-col gap-2">
+          class="hidden lg:flex flex-1 max-w-[450px] bg-gray-50/50 dark:bg-gray-950/50 border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl justify-center items-center text-gray-400 flex-col gap-2">
           <span class="material-symbols-outlined text-[48px] opacity-20">event_note</span>
           <span class="text-sm font-medium opacity-50">{{ 'PRE_ORDERS.SELECT_PRE_ORDER' | translate }}</span>
         </div>

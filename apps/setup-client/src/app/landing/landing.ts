@@ -3,6 +3,7 @@ import { QRCodeComponent } from 'angularx-qrcode'
 import { RouterLink } from '@angular/router'
 import { TranslateService, TranslateModule } from '@ngx-translate/core'
 import { SetupService } from '../setup.service'
+import { ThemeService } from '../theme.service'
 
 @Component({
   selector: 'app-landing',
@@ -15,6 +16,7 @@ import { SetupService } from '../setup.service'
 export class Landing {
   private translate = inject(TranslateService)
   private setupService = inject(SetupService)
+  readonly themeService = inject(ThemeService)
 
   public setupUrl = signal<string>(window.location.href)
   public ipAddress = signal<string>('')

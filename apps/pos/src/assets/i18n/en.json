@@ -256,7 +256,10 @@
     "LOADING": "Loading orders...",
     "NONE_FOUND": "No orders found",
     "DETAILS": "Details",
-    "SELECT_ORDER": "Select an order"
+    "SELECT_ORDER": "Select an order",
+    "RECEIPT": "Receipt",
+    "PRINT": "Print",
+    "CANCEL": "Cancel"
   },
   "WORKING_TIMES": {
     "TITLE": "My working times",
@@ -274,7 +277,8 @@
     "NO_BREAKS": "No breaks",
     "STATUS_ACTIVE": "Active",
     "STATUS_OFF": "Off",
-    "STATUS_WORKED": "Worked"
+    "STATUS_WORKED": "Worked",
+    "HIDE_OFF_DAYS": "Hide days off"
   },
   "WRITE_OFF": {
     "TITLE": "Record waste",
@@ -354,12 +358,6 @@
     "ENTER_NAME": "Enter name",
     "ENTER_PHONE": "Enter number"
   },
-  "HISTORY": {
-    "TITLE": "History",
-    "RECEIPT": "Receipt",
-    "PRINT": "Print",
-    "CANCEL": "Cancel"
-  },
   "MONTHS": {
     "JANUARY": "January",
     "FEBRUARY": "February",
@@ -373,5 +371,40 @@
     "OCTOBER": "October",
     "NOVEMBER": "November",
     "DECEMBER": "December"
+  },
+  "CANCEL_ORDER": {
+    "SELECT_REASON": "Select cancellation reason",
+    "ENTER_PIN": "Enter manager PIN",
+    "PIN_HINT": "A manager or owner must authorize the cancellation",
+    "INVALID_PIN": "Invalid PIN",
+    "SUCCESS": "Order cancelled",
+    "ERROR": "Cancellation failed",
+    "ALREADY_CANCELED": "Already cancelled",
+    "REASON_COMPLAINT": "Customer complaint",
+    "REASON_WRONG_INPUT": "Incorrect entry",
+    "REASON_DUPLICATE": "Duplicate order",
+    "REASON_OTHER": "Other"
+  },
+  "PRINT": {
+    "TITLE": "Print",
+    "SEND_ALL": "Send to all printers",
+    "SELECT_PRINTER": "Select printer",
+    "NO_PRINTERS": "No printers configured",
+    "SENT_ALL": "Print job sent",
+    "SENT_TO": "Sent to {{name}}",
+    "ERROR": "Print error — is the print server running?"
+  },
+  "ORDER_CHANNEL": {
+    "telephone": "Phone",
+    "online": "Online",
+    "pos": "Counter",
+    "app": "App"
+  },
+  "ORDER_STATUS": {
+    "active": "Active",
+    "production": "In Progress",
+    "completed": "Completed",
+    "aborted": "Cancelled",
+    "unclaimed": "Unclaimed"
   }
 }

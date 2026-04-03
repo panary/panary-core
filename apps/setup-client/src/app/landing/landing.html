@@ -1,13 +1,26 @@
-<div class="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
+<div class="min-h-screen text-gray-900 dark:text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
 
-  <!-- Language Switcher (Absolute Top Right) -->
-  <div class="absolute top-6 right-6 flex space-x-6 z-10">
+  <!-- Language Switcher + Theme Toggle (Top Right) -->
+  <div class="absolute top-6 right-6 flex items-center space-x-4 z-10">
     <button (click)="useLanguage('en')"
       class="text-sm font-bold tracking-widest hover:text-gray-500 dark:hover:text-gray-400 transition uppercase">EN</button>
     <button (click)="useLanguage('de')"
       class="text-sm font-bold tracking-widest hover:text-gray-500 dark:hover:text-gray-400 transition uppercase">DE</button>
     <button (click)="useLanguage('tr')"
       class="text-sm font-bold tracking-widest hover:text-gray-500 dark:hover:text-gray-400 transition uppercase">TR</button>
+    <div class="w-px h-4 bg-gray-300 dark:bg-gray-700"></div>
+    <button (click)="themeService.cycleTheme()"
+      [title]="themeService.themeLabel()"
+      class="w-8 h-8 rounded-full
+             bg-gray-100 dark:bg-gray-800
+             border border-gray-200 dark:border-gray-700
+             text-gray-700 dark:text-gray-300
+             hover:bg-gray-200 dark:hover:bg-gray-700
+             transition-all duration-200
+             flex items-center justify-center
+             text-sm leading-none select-none">
+      {{ themeService.themeIcon() }}
+    </button>
   </div>
 
   <!-- Main Content Container -->

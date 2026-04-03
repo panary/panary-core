@@ -256,7 +256,10 @@
     "LOADING": "Lade Bestellungen...",
     "NONE_FOUND": "Keine Bestellungen gefunden",
     "DETAILS": "Details",
-    "SELECT_ORDER": "Wähle eine Bestellung"
+    "SELECT_ORDER": "Wähle eine Bestellung",
+    "RECEIPT": "Bon",
+    "PRINT": "Drucken",
+    "CANCEL": "Storno"
   },
   "WORKING_TIMES": {
     "TITLE": "Meine Arbeitszeiten",
@@ -274,7 +277,8 @@
     "NO_BREAKS": "Keine Pausen",
     "STATUS_ACTIVE": "Aktiv",
     "STATUS_OFF": "Frei",
-    "STATUS_WORKED": "Erledigt"
+    "STATUS_WORKED": "Erledigt",
+    "HIDE_OFF_DAYS": "Freie Tage ausblenden"
   },
   "WRITE_OFF": {
     "TITLE": "Abfall erfassen",
@@ -354,12 +358,6 @@
     "ENTER_NAME": "Name eingeben",
     "ENTER_PHONE": "Nummer eingeben"
   },
-  "HISTORY": {
-    "TITLE": "Historie",
-    "RECEIPT": "Bon",
-    "PRINT": "Drucken",
-    "CANCEL": "Storno"
-  },
   "MONTHS": {
     "JANUARY": "Januar",
     "FEBRUARY": "Februar",
@@ -373,5 +371,40 @@
     "OCTOBER": "Oktober",
     "NOVEMBER": "November",
     "DECEMBER": "Dezember"
+  },
+  "CANCEL_ORDER": {
+    "SELECT_REASON": "Grund für Storno auswählen",
+    "ENTER_PIN": "Manager-PIN eingeben",
+    "PIN_HINT": "Ein Manager oder Inhaber muss den Storno autorisieren",
+    "INVALID_PIN": "Ungültige PIN",
+    "SUCCESS": "Bestellung storniert",
+    "ERROR": "Storno fehlgeschlagen",
+    "ALREADY_CANCELED": "Bereits storniert",
+    "REASON_COMPLAINT": "Kundenbeschwerde",
+    "REASON_WRONG_INPUT": "Fehlerhafte Eingabe",
+    "REASON_DUPLICATE": "Doppelte Bestellung",
+    "REASON_OTHER": "Sonstiges"
+  },
+  "PRINT": {
+    "TITLE": "Drucken",
+    "SEND_ALL": "An alle Drucker senden",
+    "SELECT_PRINTER": "Drucker auswählen",
+    "NO_PRINTERS": "Keine Drucker konfiguriert",
+    "SENT_ALL": "Druckauftrag gesendet",
+    "SENT_TO": "Gesendet an {{name}}",
+    "ERROR": "Druckfehler — ist der Print-Server aktiv?"
+  },
+  "ORDER_CHANNEL": {
+    "telephone": "Telefon",
+    "online": "Online",
+    "pos": "Kasse",
+    "app": "App"
+  },
+  "ORDER_STATUS": {
+    "active": "Aktiv",
+    "production": "In Zubereitung",
+    "completed": "Abgeschlossen",
+    "aborted": "Storniert",
+    "unclaimed": "Nicht abgeholt"
   }
 }

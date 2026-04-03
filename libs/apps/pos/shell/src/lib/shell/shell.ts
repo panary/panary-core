@@ -11,7 +11,7 @@ interface PosCurrentUser {
 @Component({
   selector: 'lib-shell',
   template: `
-    <div id="app-frame" class="h-full w-full bg-slate-50 dark:bg-black">
+    <div id="app-frame" class="h-full w-full bg-gray-50 dark:bg-black">
       <main class="h-full w-full">
         <router-outlet></router-outlet>
       </main>

@@ -1,58 +1,58 @@
-<div class="h-full w-full bg-slate-50 dark:bg-black p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border">
+<div class="h-full w-full bg-gray-50 dark:bg-black p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border">
   <!-- Header -->
-  <header class="flex-none bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-800 p-4 flex items-center gap-4">
-    <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 rounded-xl hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors">
+  <header class="flex-none bg-white dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 flex items-center gap-4">
+    <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
       <span class="material-symbols-outlined text-[20px]">arrow_back</span>
     </button>
-    <h1 class="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-      <span class="material-symbols-outlined text-[20px] text-slate-500 dark:text-gray-400">settings</span>
+    <h1 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+      <span class="material-symbols-outlined text-[20px] text-gray-500 dark:text-gray-400">settings</span>
       {{ 'SETTINGS.TITLE' | translate }}
     </h1>
 
     <!-- Mobile: Hamburger-Button mit Dropdown -->
     <div class="relative ml-auto md:hidden">
       <button (click)="menuOpen.set(!menuOpen())"
-        class="flex items-center justify-center w-10 h-10 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 rounded-xl hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors">
+        class="flex items-center justify-center w-10 h-10 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
         <span class="material-symbols-outlined text-[20px]">menu</span>
       </button>
 
       @if (menuOpen()) {
         <div class="fixed inset-0 z-40" role="presentation" (click)="menuOpen.set(false)" (keydown.enter)="menuOpen.set(false)"></div>
-        <div class="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl z-50 overflow-hidden p-2 flex flex-col gap-1">
-          <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 dark:text-gray-400 rounded-xl w-full hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
+        <div class="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl z-50 overflow-hidden p-2 flex flex-col gap-1">
+          <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             [class.bg-purple-50]="activeSection === 'general'" [class.dark:bg-purple-950]="activeSection === 'general'" [class.text-purple-700]="activeSection === 'general'" [class.dark:text-purple-300]="activeSection === 'general'"
             (click)="activeSection = 'general'; menuOpen.set(false)">
             <span class="material-symbols-outlined text-[20px]"
-              [class.text-purple-600]="activeSection === 'general'" [class.dark:text-purple-400]="activeSection === 'general'" [class.text-slate-400]="activeSection !== 'general'" [class.dark:text-gray-500]="activeSection !== 'general'">tune</span>
+              [class.text-purple-600]="activeSection === 'general'" [class.dark:text-purple-400]="activeSection === 'general'" [class.text-gray-400]="activeSection !== 'general'" [class.dark:text-gray-500]="activeSection !== 'general'">tune</span>
             {{ 'SETTINGS.GENERAL' | translate }}
           </button>
-          <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 dark:text-gray-400 rounded-xl w-full hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
+          <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             [class.bg-purple-50]="activeSection === 'users'" [class.dark:bg-purple-950]="activeSection === 'users'" [class.text-purple-700]="activeSection === 'users'" [class.dark:text-purple-300]="activeSection === 'users'"
             (click)="activeSection = 'users'; menuOpen.set(false)">
             <span class="material-symbols-outlined text-[20px]"
-              [class.text-purple-600]="activeSection === 'users'" [class.dark:text-purple-400]="activeSection === 'users'" [class.text-slate-400]="activeSection !== 'users'" [class.dark:text-gray-500]="activeSection !== 'users'">people</span>
+              [class.text-purple-600]="activeSection === 'users'" [class.dark:text-purple-400]="activeSection === 'users'" [class.text-gray-400]="activeSection !== 'users'" [class.dark:text-gray-500]="activeSection !== 'users'">people</span>
             {{ 'SETTINGS.USERS' | translate }}
           </button>
-          <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 dark:text-gray-400 rounded-xl w-full hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
+          <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             [class.bg-purple-50]="activeSection === 'printer'" [class.dark:bg-purple-950]="activeSection === 'printer'" [class.text-purple-700]="activeSection === 'printer'" [class.dark:text-purple-300]="activeSection === 'printer'"
             (click)="activeSection = 'printer'; menuOpen.set(false)">
             <span class="material-symbols-outlined text-[20px]"
-              [class.text-purple-600]="activeSection === 'printer'" [class.dark:text-purple-400]="activeSection === 'printer'" [class.text-slate-400]="activeSection !== 'printer'" [class.dark:text-gray-500]="activeSection !== 'printer'">print</span>
+              [class.text-purple-600]="activeSection === 'printer'" [class.dark:text-purple-400]="activeSection === 'printer'" [class.text-gray-400]="activeSection !== 'printer'" [class.dark:text-gray-500]="activeSection !== 'printer'">print</span>
             {{ 'SETTINGS.PRINTER' | translate }}
           </button>
-          <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 dark:text-gray-400 rounded-xl w-full hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
+          <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             [class.bg-purple-50]="activeSection === 'design'" [class.dark:bg-purple-950]="activeSection === 'design'" [class.text-purple-700]="activeSection === 'design'" [class.dark:text-purple-300]="activeSection === 'design'"
             (click)="activeSection = 'design'; menuOpen.set(false)">
             <span class="material-symbols-outlined text-[20px]"
-              [class.text-purple-600]="activeSection === 'design'" [class.dark:text-purple-400]="activeSection === 'design'" [class.text-slate-400]="activeSection !== 'design'" [class.dark:text-gray-500]="activeSection !== 'design'">palette</span>
+              [class.text-purple-600]="activeSection === 'design'" [class.dark:text-purple-400]="activeSection === 'design'" [class.text-gray-400]="activeSection !== 'design'" [class.dark:text-gray-500]="activeSection !== 'design'">palette</span>
             {{ 'SETTINGS.DESIGN' | translate }}
           </button>
-          <div class="h-px bg-slate-100 dark:bg-gray-700 my-1"></div>
-          <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 dark:text-gray-400 rounded-xl w-full hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
+          <div class="h-px bg-gray-100 dark:bg-gray-700 my-1"></div>
+          <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             [class.bg-purple-50]="activeSection === 'info'" [class.dark:bg-purple-950]="activeSection === 'info'" [class.text-purple-700]="activeSection === 'info'" [class.dark:text-purple-300]="activeSection === 'info'"
             (click)="activeSection = 'info'; menuOpen.set(false)">
             <span class="material-symbols-outlined text-[20px]"
-              [class.text-purple-600]="activeSection === 'info'" [class.dark:text-purple-400]="activeSection === 'info'" [class.text-slate-400]="activeSection !== 'info'" [class.dark:text-gray-500]="activeSection !== 'info'">info</span>
+              [class.text-purple-600]="activeSection === 'info'" [class.dark:text-purple-400]="activeSection === 'info'" [class.text-gray-400]="activeSection !== 'info'" [class.dark:text-gray-500]="activeSection !== 'info'">info</span>
             {{ 'SETTINGS.INFO' | translate }}
           </button>
         </div>
@@ -63,73 +63,73 @@
   <main class="flex-1 flex gap-6 min-h-0">
     <!-- Sidebar -->
     <nav
-      class="hidden md:flex w-64 flex-none bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-800 p-4 flex-col gap-2 overflow-y-auto">
-      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 dark:text-gray-400 rounded-xl w-full hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
+      class="hidden md:flex w-64 flex-none bg-white dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 flex-col gap-2 overflow-y-auto">
+      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         [class.bg-purple-50]="activeSection === 'general'" [class.dark:bg-purple-950]="activeSection === 'general'" [class.text-purple-700]="activeSection === 'general'" [class.dark:text-purple-300]="activeSection === 'general'"
         (click)="activeSection = 'general'">
         <span class="material-symbols-outlined text-[20px] mr-3" [class.text-purple-600]="activeSection === 'general'" [class.dark:text-purple-400]="activeSection === 'general'"
-          [class.text-slate-400]="activeSection !== 'general'" [class.dark:text-gray-500]="activeSection !== 'general'">tune</span>
+          [class.text-gray-400]="activeSection !== 'general'" [class.dark:text-gray-500]="activeSection !== 'general'">tune</span>
         {{ 'SETTINGS.GENERAL' | translate }}
       </button>
-      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 dark:text-gray-400 rounded-xl w-full hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
+      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         [class.bg-purple-50]="activeSection === 'users'" [class.dark:bg-purple-950]="activeSection === 'users'" [class.text-purple-700]="activeSection === 'users'" [class.dark:text-purple-300]="activeSection === 'users'"
         (click)="activeSection = 'users'">
         <span class="material-symbols-outlined text-[20px] mr-3" [class.text-purple-600]="activeSection === 'users'" [class.dark:text-purple-400]="activeSection === 'users'"
-          [class.text-slate-400]="activeSection !== 'users'" [class.dark:text-gray-500]="activeSection !== 'users'">people</span>
+          [class.text-gray-400]="activeSection !== 'users'" [class.dark:text-gray-500]="activeSection !== 'users'">people</span>
         {{ 'SETTINGS.USERS' | translate }}
       </button>
-      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 dark:text-gray-400 rounded-xl w-full hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
+      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         [class.bg-purple-50]="activeSection === 'printer'" [class.dark:bg-purple-950]="activeSection === 'printer'" [class.text-purple-700]="activeSection === 'printer'" [class.dark:text-purple-300]="activeSection === 'printer'"
         (click)="activeSection = 'printer'">
         <span class="material-symbols-outlined text-[20px] mr-3" [class.text-purple-600]="activeSection === 'printer'" [class.dark:text-purple-400]="activeSection === 'printer'"
-          [class.text-slate-400]="activeSection !== 'printer'" [class.dark:text-gray-500]="activeSection !== 'printer'">print</span>
+          [class.text-gray-400]="activeSection !== 'printer'" [class.dark:text-gray-500]="activeSection !== 'printer'">print</span>
         {{ 'SETTINGS.PRINTER' | translate }}
       </button>
-      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 dark:text-gray-400 rounded-xl w-full hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
+      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         [class.bg-purple-50]="activeSection === 'design'" [class.dark:bg-purple-950]="activeSection === 'design'" [class.text-purple-700]="activeSection === 'design'" [class.dark:text-purple-300]="activeSection === 'design'"
         (click)="activeSection = 'design'">
         <span class="material-symbols-outlined text-[20px] mr-3" [class.text-purple-600]="activeSection === 'design'" [class.dark:text-purple-400]="activeSection === 'design'"
-          [class.text-slate-400]="activeSection !== 'design'" [class.dark:text-gray-500]="activeSection !== 'design'">palette</span>
+          [class.text-gray-400]="activeSection !== 'design'" [class.dark:text-gray-500]="activeSection !== 'design'">palette</span>
         {{ 'SETTINGS.DESIGN' | translate }}
       </button>
       <div class="flex-1"></div>
-      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-slate-500 dark:text-gray-400 rounded-xl w-full hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
+      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         [class.bg-purple-50]="activeSection === 'info'" [class.dark:bg-purple-950]="activeSection === 'info'" [class.text-purple-700]="activeSection === 'info'" [class.dark:text-purple-300]="activeSection === 'info'"
         (click)="activeSection = 'info'">
         <span class="material-symbols-outlined text-[20px] mr-3" [class.text-purple-600]="activeSection === 'info'" [class.dark:text-purple-400]="activeSection === 'info'"
-          [class.text-slate-400]="activeSection !== 'info'" [class.dark:text-gray-500]="activeSection !== 'info'">info</span>
+          [class.text-gray-400]="activeSection !== 'info'" [class.dark:text-gray-500]="activeSection !== 'info'">info</span>
         {{ 'SETTINGS.INFO' | translate }}
       </button>
     </nav>
 
     <!-- Content Area -->
-    <div class="flex-1 bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-800 p-4 md:p-8 overflow-y-auto">
+    <div class="flex-1 bg-white dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 md:p-8 overflow-y-auto">
       @if (activeSection === 'design') {
-      <div class="max-w-2xl mx-auto">
-        <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+      <div class="max-w-2xl mx-auto flex flex-col gap-6">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
           <span class="material-symbols-outlined text-[20px] text-purple-600">palette</span>
           {{ 'SETTINGS.APPEARANCE' | translate }}
         </h2>
 
-        <div class="bg-slate-50 dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-gray-700 p-6">
-          <h3 class="font-bold text-slate-700 dark:text-gray-200 mb-4">{{ 'SETTINGS.COLOR_SCHEME' | translate }}</h3>
-          <p class="text-slate-500 dark:text-gray-400 mb-6 text-sm">
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+          <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4">{{ 'SETTINGS.COLOR_SCHEME' | translate }}</h3>
+          <p class="text-gray-500 dark:text-gray-400 mb-6 text-sm">
             {{ 'SETTINGS.COLOR_SCHEME_DESC' | translate }}
           </p>
 
-          <div class="w-full flex rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
+          <div class="w-full flex rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 overflow-hidden">
             @for (opt of themeOptions; track opt.value) {
               <button type="button" (click)="setTheme(opt.value)"
                 [class]="themeService.theme === opt.value
-                  ? 'flex-1 h-24 flex flex-col items-center justify-center gap-2 bg-slate-50 dark:bg-gray-800 border-r border-slate-200 dark:border-gray-700 last:border-r-0 transition'
-                  : 'flex-1 h-24 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-gray-800 border-r border-slate-200 dark:border-gray-700 last:border-r-0 transition'">
+                  ? 'flex-1 h-24 flex flex-col items-center justify-center gap-2 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 last:border-r-0 transition'
+                  : 'flex-1 h-24 flex flex-col items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 border-r border-gray-200 dark:border-gray-700 last:border-r-0 transition'">
                 <span class="material-symbols-outlined text-[20px] mb-1"
                       [class.text-purple-600]="themeService.theme === opt.value"
                       [class.dark:text-purple-400]="themeService.theme === opt.value">{{ opt.icon }}</span>
                 <span class="font-bold text-sm"
                       [class.text-purple-700]="themeService.theme === opt.value"
                       [class.dark:text-purple-300]="themeService.theme === opt.value"
-                      [class.text-slate-500]="themeService.theme !== opt.value"
+                      [class.text-gray-500]="themeService.theme !== opt.value"
                       [class.dark:text-gray-400]="themeService.theme !== opt.value">{{ opt.label | translate }}</span>
               </button>
             }
@@ -137,25 +137,25 @@
         </div>
 
         <!-- Sprache -->
-        <div class="bg-slate-50 dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-gray-700 p-6">
-          <h3 class="font-bold text-slate-700 dark:text-gray-200 mb-4">{{ 'SETTINGS.LANGUAGE' | translate }}</h3>
-          <p class="text-slate-500 dark:text-gray-400 mb-6 text-sm">
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+          <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4">{{ 'SETTINGS.LANGUAGE' | translate }}</h3>
+          <p class="text-gray-500 dark:text-gray-400 mb-6 text-sm">
             {{ 'SETTINGS.LANGUAGE_DESC' | translate }}
           </p>
 
-          <div class="w-full flex rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
+          <div class="w-full flex rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 overflow-hidden">
             @for (lang of languageService.languages; track lang.code) {
               <button type="button" (click)="languageService.setLanguage(lang.code)"
                 [class]="languageService.currentLanguage() === lang.code
-                  ? 'flex-1 h-16 flex items-center justify-center gap-2 bg-slate-50 dark:bg-gray-800 border-r border-slate-200 dark:border-gray-700 last:border-r-0 transition'
-                  : 'flex-1 h-16 flex items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-gray-800 border-r border-slate-200 dark:border-gray-700 last:border-r-0 transition'">
+                  ? 'flex-1 h-16 flex items-center justify-center gap-2 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 last:border-r-0 transition'
+                  : 'flex-1 h-16 flex items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 border-r border-gray-200 dark:border-gray-700 last:border-r-0 transition'">
                 <span class="material-symbols-outlined text-[18px]"
                       [class.text-purple-600]="languageService.currentLanguage() === lang.code"
                       [class.dark:text-purple-400]="languageService.currentLanguage() === lang.code">translate</span>
                 <span class="font-bold text-sm"
                       [class.text-purple-700]="languageService.currentLanguage() === lang.code"
                       [class.dark:text-purple-300]="languageService.currentLanguage() === lang.code"
-                      [class.text-slate-500]="languageService.currentLanguage() !== lang.code"
+                      [class.text-gray-500]="languageService.currentLanguage() !== lang.code"
                       [class.dark:text-gray-400]="languageService.currentLanguage() !== lang.code">{{ lang.label }}</span>
               </button>
             }
@@ -164,21 +164,21 @@
       </div>
       } @else if (activeSection === 'general') {
       <div class="max-w-2xl mx-auto">
-        <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
           <span class="material-symbols-outlined text-[20px] text-purple-600">tune</span>
           Allgemein
         </h2>
 
         <div class="flex flex-col gap-6">
           <!-- Location Query -->
-          <div class="bg-slate-50 dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-gray-700 p-6">
-            <h3 class="font-bold text-slate-700 dark:text-gray-200 mb-4 flex items-center gap-2">
-              <span class="material-symbols-outlined text-[20px] text-slate-400 dark:text-gray-500">store</span> {{ 'SETTINGS.LOCATION' | translate }}
+          <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+            <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4 flex items-center gap-2">
+              <span class="material-symbols-outlined text-[20px] text-gray-400 dark:text-gray-500">store</span> {{ 'SETTINGS.LOCATION' | translate }}
             </h3>
-            <div class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 p-4 flex items-center justify-between">
+            <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
               <div>
-                <p class="text-sm text-slate-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.CURRENT_LOCATION' | translate }}</p>
-                <p class="text-lg font-bold text-slate-800 dark:text-white">
+                <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.CURRENT_LOCATION' | translate }}</p>
+                <p class="text-lg font-bold text-gray-800 dark:text-white">
                   {{ locationService.activeLocation()?.name || ('SETTINGS.NO_LOCATION' | translate) }}
                 </p>
               </div>
@@ -189,15 +189,15 @@
           </div>
 
           <!-- Connection Info -->
-          <div class="bg-slate-50 dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-gray-700 p-6">
-            <h3 class="font-bold text-slate-700 dark:text-gray-200 mb-4 flex items-center gap-2">
-              <span class="material-symbols-outlined text-[20px] text-slate-400 dark:text-gray-500">wifi</span> {{ 'SETTINGS.CONNECTION' | translate }}
+          <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+            <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4 flex items-center gap-2">
+              <span class="material-symbols-outlined text-[20px] text-gray-400 dark:text-gray-500">wifi</span> {{ 'SETTINGS.CONNECTION' | translate }}
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <!-- {{ 'SETTINGS.STATUS' | translate }} -->
-              <div class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 p-4 flex items-center justify-between">
+              <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
                 <div>
-                  <p class="text-sm text-slate-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.STATUS' | translate }}</p>
+                  <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.STATUS' | translate }}</p>
                   <div class="flex items-center gap-2">
                     <div class="w-2.5 h-2.5 rounded-full" [class.bg-green-500]="
                           connectionService.connectionState().status === 'connected' ||
@@ -206,7 +206,7 @@
                           connectionService.connectionState().status !== 'connected' &&
                           connectionService.connectionState().status !== 'authenticated'
                         "></div>
-                    <p class="font-bold text-slate-800 dark:text-white">
+                    <p class="font-bold text-gray-800 dark:text-white">
                       {{
                       connectionService.connectionState().status === 'connected' ||
                       connectionService.connectionState().status === 'authenticated'
@@ -219,10 +219,10 @@
               </div>
 
               <!-- Device ID -->
-              <div class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 p-4 flex items-center justify-between">
+              <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
                 <div>
-                  <p class="text-sm text-slate-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.DEVICE_ID' | translate }}</p>
-                  <p class="font-bold text-slate-800 dark:text-white font-mono text-sm">
+                  <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.DEVICE_ID' | translate }}</p>
+                  <p class="font-bold text-gray-800 dark:text-white font-mono text-sm">
                     {{ connectionService.connectionState().deviceId || '-' }}
                   </p>
                 </div>
@@ -230,27 +230,27 @@
 
               <!-- Connected Since -->
               <div
-                class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 p-4 flex items-center justify-between md:col-span-2">
+                class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between md:col-span-2">
                 <div>
-                  <p class="text-sm text-slate-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.CONNECTED_SINCE' | translate }}</p>
-                  <p class="font-bold text-slate-800 dark:text-white">
+                  <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.CONNECTED_SINCE' | translate }}</p>
+                  <p class="font-bold text-gray-800 dark:text-white">
                     {{ connectionService.connectionState().connectedAt }}
                   </p>
                 </div>
-                <span class="material-symbols-outlined text-[20px] text-slate-300 dark:text-gray-600">schedule</span>
+                <span class="material-symbols-outlined text-[20px] text-gray-300 dark:text-gray-600">schedule</span>
               </div>
             </div>
           </div>
 
           <!-- User Info (Auth) -->
-          <div class="bg-slate-50 dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-gray-700 p-6">
-            <h3 class="font-bold text-slate-700 dark:text-gray-200 mb-4 flex items-center gap-2">
-              <span class="material-symbols-outlined text-[20px] text-slate-400 dark:text-gray-500">shield</span> {{ 'SETTINGS.AUTH' | translate }}
+          <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+            <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4 flex items-center gap-2">
+              <span class="material-symbols-outlined text-[20px] text-gray-400 dark:text-gray-500">shield</span> {{ 'SETTINGS.AUTH' | translate }}
             </h3>
-            <div class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 p-4 flex items-center justify-between">
+            <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
               <div>
-                <p class="text-sm text-slate-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.SESSION_STATUS' | translate }}</p>
-                <p class="font-bold text-slate-800 dark:text-white">
+                <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.SESSION_STATUS' | translate }}</p>
+                <p class="font-bold text-gray-800 dark:text-white">
                   {{
                   connectionService.connectionState().status === 'authenticated'
                   ? ('SETTINGS.AUTHENTICATED' | translate)
@@ -260,7 +260,7 @@
               </div>
               <span class="material-symbols-outlined text-[20px]"
                 [class.text-green-500]="connectionService.connectionState().status === 'authenticated'"
-                [class.text-slate-300]="connectionService.connectionState().status !== 'authenticated'"
+                [class.text-gray-300]="connectionService.connectionState().status !== 'authenticated'"
                 [class.dark:text-gray-600]="connectionService.connectionState().status !== 'authenticated'">
                 {{ connectionService.connectionState().status === 'authenticated' ? 'verified_user' : 'no_accounts' }}
               </span>
@@ -270,28 +270,28 @@
       </div>
       } @else if (activeSection === 'printer') {
       <div class="max-w-2xl mx-auto flex flex-col gap-6">
-        <h2 class="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
           <span class="material-symbols-outlined text-[20px] text-purple-600">print</span>
           {{ 'SETTINGS.PRINTER_DEVICES' | translate }}
         </h2>
 
         <!-- Server Configuration Info -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 p-4">
-            <p class="text-xs text-slate-500 dark:text-gray-400 font-medium mb-1 uppercase tracking-wider">Print Server</p>
+          <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1 uppercase tracking-wider">Print Server</p>
             <div class="flex items-center gap-2">
-              <span class="material-symbols-outlined text-[20px] text-slate-400 dark:text-gray-500">dns</span>
-              <p class="font-bold text-slate-800 dark:text-white text-sm truncate"
+              <span class="material-symbols-outlined text-[20px] text-gray-400 dark:text-gray-500">dns</span>
+              <p class="font-bold text-gray-800 dark:text-white text-sm truncate"
                 [matTooltip]="locationService.activeLocation()?.settings?.printSettings?.printServerEnabled ? 'Integriert (aktiv)' : 'Deaktiviert'">
                 {{ locationService.activeLocation()?.settings?.printSettings?.printServerEnabled ? 'Integriert' : 'Deaktiviert' }}
               </p>
             </div>
           </div>
-          <div class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 p-4">
-            <p class="text-xs text-slate-500 dark:text-gray-400 font-medium mb-1 uppercase tracking-wider">MQTT Broker</p>
+          <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1 uppercase tracking-wider">MQTT Broker</p>
             <div class="flex items-center gap-2">
-              <span class="material-symbols-outlined text-[20px] text-slate-400 dark:text-gray-500">hub</span>
-              <p class="font-bold text-slate-800 dark:text-white text-sm truncate">
+              <span class="material-symbols-outlined text-[20px] text-gray-400 dark:text-gray-500">hub</span>
+              <p class="font-bold text-gray-800 dark:text-white text-sm truncate">
                 @if(locationService.activeLocation()?.settings?.printSettings; as ps) {
                 {{ ps.mqttServerProtocol }}://{{ ps.mqttServerUrl }}:{{ ps.mqttServerPort }}
                 } @else {
@@ -307,14 +307,14 @@
           @for (printer of locationService.activeLocation()?.settings?.printSettings?.printers || []; track printer.pid)
           {
           <div
-            class="bg-slate-50 dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 p-3 flex items-center justify-between hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors">
+            class="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
             <div class="flex items-center gap-3">
-              <div class="h-10 w-10 rounded-full bg-slate-200 dark:bg-gray-700 flex items-center justify-center text-slate-600 dark:text-gray-300">
+              <div class="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300">
                 <span class="material-symbols-outlined text-[20px]">{{ printer.type === 'mqtt' ? 'dns' : 'print' }}</span>
               </div>
               <div>
-                <h3 class="font-bold text-slate-800 dark:text-white text-sm leading-tight">{{ printer.name }}</h3>
-                <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-gray-400 font-mono mt-0.5">
+                <h3 class="font-bold text-gray-800 dark:text-white text-sm leading-tight">{{ printer.name }}</h3>
+                <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">
                   <span class="material-symbols-outlined text-[12px]">lan</span>
                   {{ printer.ip || ('SETTINGS.NO_IP' | translate) }}
                 </div>
@@ -329,7 +329,7 @@
           </div>
           } @empty {
           <div
-            class="flex flex-col items-center justify-center py-8 text-slate-400 dark:text-gray-500 border-2 border-dashed border-slate-200 dark:border-gray-700 rounded-xl">
+            class="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
             <span class="material-symbols-outlined text-[40px] opacity-40 mb-2">print_disabled</span>
             <p class="text-sm">{{ 'SETTINGS.NO_PRINTERS' | translate }}</p>
           </div>
@@ -338,7 +338,7 @@
       </div>
       } @else if (activeSection === 'users') {
       <div class="max-w-2xl mx-auto">
-        <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
           <span class="material-symbols-outlined text-[20px] text-purple-600 dark:text-purple-400">people</span>
           {{ 'SETTINGS.USER_PROFILE' | translate }}
         </h2>
@@ -346,55 +346,55 @@
         <div class="flex flex-col gap-6">
           @if (currentUser(); as user) {
           <!-- User Info Card -->
-          <div class="bg-slate-50 dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-gray-700 p-6">
+          <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
             <div class="flex items-center gap-4 mb-6">
               <div
                 class="h-16 w-16 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center text-purple-600 dark:text-purple-300 font-bold text-2xl border-4 border-white dark:border-gray-800 shadow-sm">
                 {{ user.initials || '??' }}
               </div>
               <div>
-                <h3 class="text-xl font-bold text-slate-800 dark:text-white">{{ user.firstName }} {{ user.lastName }}</h3>
-                <p class="text-slate-500 dark:text-gray-400 font-medium">{{ user.staffRole || ('SETTINGS.EMPLOYEE' | translate) }}</p>
+                <h3 class="text-xl font-bold text-gray-800 dark:text-white">{{ user.firstName }} {{ user.lastName }}</h3>
+                <p class="text-gray-500 dark:text-gray-400 font-medium">{{ user.staffRole || ('SETTINGS.EMPLOYEE' | translate) }}</p>
               </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 p-4">
-                <p class="text-sm text-slate-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.EMPLOYEE_NUMBER' | translate }}</p>
-                <p class="font-bold text-slate-800 dark:text-white font-mono text-lg">{{ user.employeeNumber || '-' }}</p>
+              <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.EMPLOYEE_NUMBER' | translate }}</p>
+                <p class="font-bold text-gray-800 dark:text-white font-mono text-lg">{{ user.employeeNumber || '-' }}</p>
               </div>
-              <div class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 p-4">
-                <p class="text-sm text-slate-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.SYSTEM_ROLE' | translate }}</p>
+              <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.SYSTEM_ROLE' | translate }}</p>
                 <div class="flex items-center gap-2">
                   <span class="material-symbols-outlined text-[20px] text-purple-500">badge</span>
-                  <p class="font-bold text-slate-800 dark:text-white">{{ user.staffRole || ('SETTINGS.USER' | translate) }}</p>
+                  <p class="font-bold text-gray-800 dark:text-white">{{ user.staffRole || ('SETTINGS.USER' | translate) }}</p>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Change PIN Section -->
-          <div class="bg-slate-50 dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-gray-700 p-6">
-            <h3 class="font-bold text-slate-700 dark:text-gray-200 mb-4 flex items-center gap-2">
-              <span class="material-symbols-outlined text-[20px] text-slate-400 dark:text-gray-500">lock</span> {{ 'SETTINGS.POS_LOGIN' | translate }}
+          <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+            <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4 flex items-center gap-2">
+              <span class="material-symbols-outlined text-[20px] text-gray-400 dark:text-gray-500">lock</span> {{ 'SETTINGS.POS_LOGIN' | translate }}
             </h3>
 
-            <p class="text-slate-500 dark:text-gray-400 mb-6 text-sm">
+            <p class="text-gray-500 dark:text-gray-400 mb-6 text-sm">
               {{ 'SETTINGS.PIN_CHANGE_DESC' | translate }}
             </p>
 
             <div class="max-w-xs space-y-4">
               <div>
-                <label for="new-pin" class="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">{{ 'SETTINGS.NEW_PIN' | translate }}</label>
+                <label for="new-pin" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ 'SETTINGS.NEW_PIN' | translate }}</label>
                 <input id="new-pin" type="password" [ngModel]="newPin()" (ngModelChange)="newPin.set($event)"
-                  class="w-full bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-600 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono dark:text-white text-center tracking-widest text-lg"
+                  class="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono dark:text-white text-center tracking-widest text-lg"
                   placeholder="••••" maxlength="6" inputmode="numeric">
               </div>
 
               <div>
-                <label for="confirm-pin" class="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">{{ 'SETTINGS.CONFIRM_PIN' | translate }}</label>
+                <label for="confirm-pin" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ 'SETTINGS.CONFIRM_PIN' | translate }}</label>
                 <input id="confirm-pin" type="password" [ngModel]="confirmPin()" (ngModelChange)="confirmPin.set($event)"
-                  class="w-full bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-600 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono dark:text-white text-center tracking-widest text-lg"
+                  class="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono dark:text-white text-center tracking-widest text-lg"
                   placeholder="••••" maxlength="6" inputmode="numeric">
               </div>
 
@@ -413,7 +413,7 @@
               </div>
               }
 
-              <button class="w-full h-12 rounded-xl text-lg font-bold mt-2 bg-yellow-500 text-slate-800 dark:text-gray-900 hover:bg-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              <button class="w-full h-12 rounded-xl text-lg font-bold mt-2 bg-yellow-500 text-gray-800 dark:text-gray-900 hover:bg-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 [disabled]="isSaving() || !newPin() || !confirmPin()" (click)="updatePin()">
                 @if (isSaving()) {
                 <span class="flex items-center justify-center">
@@ -427,7 +427,7 @@
             </div>
           </div>
           } @else {
-          <div class="flex flex-col items-center justify-center py-12 text-slate-400 dark:text-gray-500">
+          <div class="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-gray-500">
             <span class="material-symbols-outlined text-[48px] opacity-40 mb-4">no_accounts</span>
             <p>{{ 'SETTINGS.NO_USER_LOGGED_IN' | translate }}</p>
           </div>
@@ -437,7 +437,7 @@
       } @else if (activeSection === 'info') {
       <!-- Info-Seite: Systeminformationen -->
       <div class="max-w-2xl mx-auto">
-        <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
           <span class="material-symbols-outlined text-[20px] text-purple-600 dark:text-purple-400">info</span>
           {{ 'SETTINGS.INFO' | translate }}
         </h2>
@@ -446,10 +446,10 @@
 
           <!-- Edge Server -->
           @if (edgeInfo(); as info) {
-          <div class="bg-slate-50 dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-gray-700 p-6">
+          <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
             <div class="flex items-center justify-between mb-5">
-              <h3 class="font-bold text-slate-700 dark:text-gray-200 flex items-center gap-2">
-                <span class="material-symbols-outlined text-[20px] text-slate-400 dark:text-gray-500">dns</span>
+              <h3 class="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2">
+                <span class="material-symbols-outlined text-[20px] text-gray-400 dark:text-gray-500">dns</span>
                 Edge Server
               </h3>
               <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-900">
@@ -459,95 +459,95 @@
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-              <div class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 p-4">
-                <p class="text-[11px] text-slate-400 dark:text-gray-500 uppercase tracking-widest mb-1">{{ 'SETTINGS.INFO_VERSION' | translate }}</p>
-                <p class="text-sm font-semibold text-slate-800 dark:text-white font-mono">v{{ info.version }}</p>
+              <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                <p class="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">{{ 'SETTINGS.INFO_VERSION' | translate }}</p>
+                <p class="text-sm font-semibold text-gray-800 dark:text-white font-mono">v{{ info.version }}</p>
               </div>
-              <div class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 p-4">
-                <p class="text-[11px] text-slate-400 dark:text-gray-500 uppercase tracking-widest mb-1">Uptime</p>
-                <p class="text-sm font-semibold text-slate-800 dark:text-white font-mono">{{ formatUptime(info.uptime) }}</p>
+              <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                <p class="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Uptime</p>
+                <p class="text-sm font-semibold text-gray-800 dark:text-white font-mono">{{ formatUptime(info.uptime) }}</p>
               </div>
-              <div class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 p-4">
-                <p class="text-[11px] text-slate-400 dark:text-gray-500 uppercase tracking-widest mb-1">Node.js</p>
-                <p class="text-sm font-semibold text-slate-800 dark:text-white font-mono">{{ info.nodeVersion }}</p>
+              <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                <p class="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Node.js</p>
+                <p class="text-sm font-semibold text-gray-800 dark:text-white font-mono">{{ info.nodeVersion }}</p>
               </div>
-              <div class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 p-4">
-                <p class="text-[11px] text-slate-400 dark:text-gray-500 uppercase tracking-widest mb-1">{{ 'SETTINGS.INFO_PLATFORM' | translate }}</p>
-                <p class="text-sm font-semibold text-slate-800 dark:text-white font-mono">{{ info.platform }}</p>
+              <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                <p class="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">{{ 'SETTINGS.INFO_PLATFORM' | translate }}</p>
+                <p class="text-sm font-semibold text-gray-800 dark:text-white font-mono">{{ info.platform }}</p>
               </div>
-              <div class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 p-4">
-                <p class="text-[11px] text-slate-400 dark:text-gray-500 uppercase tracking-widest mb-1">{{ 'SETTINGS.INFO_HOSTNAME' | translate }}</p>
-                <p class="text-sm font-semibold text-slate-800 dark:text-white font-mono">{{ info.hostname }}</p>
+              <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                <p class="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">{{ 'SETTINGS.INFO_HOSTNAME' | translate }}</p>
+                <p class="text-sm font-semibold text-gray-800 dark:text-white font-mono">{{ info.hostname }}</p>
               </div>
-              <div class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 p-4">
-                <p class="text-[11px] text-slate-400 dark:text-gray-500 uppercase tracking-widest mb-1">IP</p>
-                <p class="text-sm font-semibold text-slate-800 dark:text-white font-mono">{{ info.localIp }}:{{ info.port }}</p>
+              <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                <p class="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">IP</p>
+                <p class="text-sm font-semibold text-gray-800 dark:text-white font-mono">{{ info.localIp }}:{{ info.port }}</p>
               </div>
-              <div class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 p-4">
-                <p class="text-[11px] text-slate-400 dark:text-gray-500 uppercase tracking-widest mb-1">{{ 'SETTINGS.INFO_DATABASE' | translate }}</p>
-                <p class="text-sm font-semibold text-slate-800 dark:text-white font-mono">{{ info.database.type | uppercase }}</p>
+              <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                <p class="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">{{ 'SETTINGS.INFO_DATABASE' | translate }}</p>
+                <p class="text-sm font-semibold text-gray-800 dark:text-white font-mono">{{ info.database.type | uppercase }}</p>
               </div>
-              <div class="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 p-4">
-                <p class="text-[11px] text-slate-400 dark:text-gray-500 uppercase tracking-widest mb-1">{{ 'SETTINGS.INFO_MODE' | translate }}</p>
-                <p class="text-sm font-semibold text-slate-800 dark:text-white font-mono">{{ info.systemMode }}</p>
+              <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                <p class="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">{{ 'SETTINGS.INFO_MODE' | translate }}</p>
+                <p class="text-sm font-semibold text-gray-800 dark:text-white font-mono">{{ info.systemMode }}</p>
               </div>
             </div>
 
             <!-- Memory -->
-            <div class="mt-4 bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 p-4">
-              <p class="text-[11px] text-slate-400 dark:text-gray-500 uppercase tracking-widest mb-2">{{ 'SETTINGS.INFO_MEMORY' | translate }}</p>
+            <div class="mt-4 bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <p class="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{{ 'SETTINGS.INFO_MEMORY' | translate }}</p>
               <div class="flex items-center gap-4">
                 <div class="flex-1">
                   <div class="flex justify-between text-xs mb-1">
-                    <span class="text-slate-500 dark:text-gray-400">Heap</span>
-                    <span class="text-slate-700 dark:text-gray-300 font-mono">{{ formatBytes(info.memory.heapUsed) }} / {{ formatBytes(info.memory.heapTotal) }}</span>
+                    <span class="text-gray-500 dark:text-gray-400">Heap</span>
+                    <span class="text-gray-700 dark:text-gray-300 font-mono">{{ formatBytes(info.memory.heapUsed) }} / {{ formatBytes(info.memory.heapTotal) }}</span>
                   </div>
-                  <div class="h-2 bg-slate-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                  <div class="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                     <div class="h-full bg-purple-500 rounded-full transition-all"
                       [style.width.%]="(info.memory.heapUsed / info.memory.heapTotal) * 100"></div>
                   </div>
                 </div>
                 <div class="text-right">
-                  <p class="text-xs text-slate-500 dark:text-gray-400">RSS</p>
-                  <p class="text-sm font-semibold text-slate-800 dark:text-white font-mono">{{ formatBytes(info.memory.rss) }}</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">RSS</p>
+                  <p class="text-sm font-semibold text-gray-800 dark:text-white font-mono">{{ formatBytes(info.memory.rss) }}</p>
                 </div>
               </div>
             </div>
           </div>
           } @else {
-          <div class="bg-slate-50 dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-gray-700 p-6 flex items-center gap-4">
+          <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 flex items-center gap-4">
             <div class="p-3 rounded-xl bg-red-50 dark:bg-red-950">
               <span class="material-symbols-outlined text-[24px] text-red-500">dns</span>
             </div>
             <div>
-              <h3 class="font-bold text-slate-700 dark:text-gray-200">Edge Server</h3>
+              <h3 class="font-bold text-gray-700 dark:text-gray-200">Edge Server</h3>
               <p class="text-sm text-red-500">{{ 'SETTINGS.INFO_OFFLINE' | translate }}</p>
             </div>
           </div>
           }
 
           <!-- App-Informationen -->
-          <div class="bg-slate-50 dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-gray-700 p-6">
-            <h3 class="font-bold text-slate-700 dark:text-gray-200 flex items-center gap-2 mb-4">
-              <span class="material-symbols-outlined text-[20px] text-slate-400 dark:text-gray-500">smartphone</span>
+          <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+            <h3 class="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
+              <span class="material-symbols-outlined text-[20px] text-gray-400 dark:text-gray-500">smartphone</span>
               {{ 'SETTINGS.INFO_APP' | translate }}
             </h3>
             <div class="space-y-3">
-              <div class="flex justify-between items-center py-2 border-b border-slate-100 dark:border-gray-700">
-                <span class="text-sm text-slate-500 dark:text-gray-400">{{ 'SETTINGS.INFO_VERSION' | translate }}</span>
-                <span class="text-sm font-semibold text-slate-800 dark:text-white font-mono">{{ appConfig.appVersion }}</span>
+              <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+                <span class="text-sm text-gray-500 dark:text-gray-400">{{ 'SETTINGS.INFO_VERSION' | translate }}</span>
+                <span class="text-sm font-semibold text-gray-800 dark:text-white font-mono">{{ appConfig.appVersion }}</span>
               </div>
-              <div class="flex justify-between items-center py-2 border-b border-slate-100 dark:border-gray-700">
-                <span class="text-sm text-slate-500 dark:text-gray-400">{{ 'SETTINGS.INFO_LANGUAGE' | translate }}</span>
-                <span class="text-sm font-semibold text-slate-800 dark:text-white">{{ languageService.currentLanguage().toUpperCase() }}</span>
+              <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+                <span class="text-sm text-gray-500 dark:text-gray-400">{{ 'SETTINGS.INFO_LANGUAGE' | translate }}</span>
+                <span class="text-sm font-semibold text-gray-800 dark:text-white">{{ languageService.currentLanguage().toUpperCase() }}</span>
               </div>
-              <div class="flex justify-between items-center py-2 border-b border-slate-100 dark:border-gray-700">
-                <span class="text-sm text-slate-500 dark:text-gray-400">{{ 'SETTINGS.INFO_THEME' | translate }}</span>
-                <span class="text-sm font-semibold text-slate-800 dark:text-white capitalize">{{ themeService.theme }}</span>
+              <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+                <span class="text-sm text-gray-500 dark:text-gray-400">{{ 'SETTINGS.INFO_THEME' | translate }}</span>
+                <span class="text-sm font-semibold text-gray-800 dark:text-white capitalize">{{ themeService.theme }}</span>
               </div>
               <div class="flex justify-between items-center py-2">
-                <span class="text-sm text-slate-500 dark:text-gray-400">{{ 'SETTINGS.INFO_LOCATION' | translate }}</span>
-                <span class="text-sm font-semibold text-slate-800 dark:text-white">{{ locationService.activeLocation()?.name || '–' }}</span>
+                <span class="text-sm text-gray-500 dark:text-gray-400">{{ 'SETTINGS.INFO_LOCATION' | translate }}</span>
+                <span class="text-sm font-semibold text-gray-800 dark:text-white">{{ locationService.activeLocation()?.name || '–' }}</span>
               </div>
             </div>
           </div>

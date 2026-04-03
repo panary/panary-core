@@ -1,20 +1,19 @@
-<div class="w-full h-dvh flex overflow-hidden bg-slate-50 dark:bg-black">
+<div class="w-full h-dvh flex overflow-hidden bg-gray-50 dark:bg-black">
   <!-- Left Side: Login Content -->
-  <div class="w-full lg:flex-1 relative bg-slate-50 dark:bg-black flex flex-col">
-    <!-- Logo Top Left -->
-    <div class="absolute top-6 left-6 z-10 lg:hidden">
-      <img src="/assets/logos/panary_logo_color.svg" alt="Panary Logo" class="h-7 w-auto block" />
-    </div>
-
-    <!-- Device Info + Language Toggle Top Right (mobile) / Hidden on desktop -->
-    <div class="absolute top-6 right-6 z-10 lg:hidden flex items-center gap-3">
+  <div class="w-full lg:flex-1 relative bg-gray-50 dark:bg-black flex flex-col">
+    <!-- Mobile Header: Logo + Terminal-Name links, Sprache rechts -->
+    <div class="absolute top-6 left-6 right-6 z-10 lg:hidden flex items-start justify-between">
+      <div class="flex flex-col items-start">
+        <img src="/assets/logos/panary_logo_color.svg" alt="Panary Logo" class="h-7 w-auto block dark:hidden" />
+        <img src="/assets/logos/panary_logo_mono.svg" alt="Panary Logo" class="h-7 w-auto hidden dark:block invert" />
+        <span class="text-xs text-gray-400 dark:text-gray-500 font-medium mt-1">{{ deviceName() }}</span>
+      </div>
       <button (click)="cycleLanguage()"
         class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 font-semibold hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
         [title]="'LOGIN.CHANGE_LANGUAGE' | translate">
         <span class="material-symbols-outlined text-[14px]">translate</span>
         {{ languageService.currentLanguage().toUpperCase() }}
       </button>
-      <span class="text-xs text-gray-400 dark:text-gray-500 font-medium">{{ deviceName() }}</span>
     </div>
 
     <!-- Main Content Area -->
@@ -186,7 +185,7 @@
 
     <!-- Footer with Connection Indicator -->
     <div class="absolute bottom-24 lg:bottom-4 left-0 right-0 px-6 flex items-center justify-between">
-      <p class="text-xs text-gray-400 dark:text-gray-500">Panary Terminal &bull; Version 2026.3.1</p>
+      <p class="text-xs text-gray-400 dark:text-gray-500"><span class="hidden sm:inline">Panary Terminal &bull; </span>v2026.3.1</p>
 
       <!-- Update-Indikator -->
       @if (updateService.hasUpdate()) {
@@ -258,19 +257,15 @@
 
   <!-- Right Side: Visual Background with Time Clock (hidden on mobile) -->
   <div
-    class="hidden lg:flex lg:w-[540px] lg:flex-none relative bg-gradient-to-br from-[#162032] to-[#283548] m-4 rounded-xl overflow-hidden">
+    class="hidden lg:flex lg:w-[484px] lg:flex-none relative bg-gradient-to-br from-[#0a0a0f] to-[#111118] m-4 rounded-xl overflow-hidden">
     <!-- Decorative Elements -->
-    <div class="absolute inset-0 opacity-20 pointer-events-none">
+    <div class="absolute inset-0 opacity-20 dark:opacity-10 pointer-events-none">
       <div class="absolute top-1/4 left-1/4 w-64 h-64 bg-[#00B8D4] rounded-full blur-3xl"></div>
       <div class="absolute bottom-1/4 right-1/4 w-48 h-48 bg-[#8B5CF6] rounded-full blur-3xl"></div>
     </div>
 
-    <!-- Content Container -->
-    <div class="relative z-10 w-full flex flex-col">
-      <!-- Top: Branding -->
-      <div class="flex-shrink-0 text-center text-white p-8 pt-12 relative">
-        <!-- Theme Toggle + Language Toggle -->
-        <div class="absolute top-8 right-8 flex items-center gap-2">
+    <!-- Theme Toggle + Language Toggle (unabhängig vom Branding, fest in der Ecke) -->
+    <div class="absolute top-6 right-6 flex items-center gap-2 z-20">
           <button (click)="cycleLanguage()"
             class="h-10 px-3 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center gap-1.5 transition-colors text-white text-xs font-semibold"
             [title]="'LOGIN.CHANGE_LANGUAGE' | translate">
@@ -299,9 +294,14 @@
           </svg>
           }
         </button>
-        </div>
-        <img src="/assets/logos/panary_logo_mono.svg" alt="Panary Logo" class="h-8 w-auto mx-auto mb-2 invert" />
-        <p class="text-base text-white/70">{{ 'LOGIN.TAGLINE' | translate }}</p>
+    </div>
+
+    <!-- Content Container -->
+    <div class="relative z-10 w-full flex flex-col">
+      <!-- Top: Branding -->
+      <div class="flex-shrink-0 text-center text-white p-8 pt-16">
+        <img src="/assets/logos/panary_logo_mono.svg" alt="Panary Logo" class="h-10 w-auto mx-auto mb-3 invert" />
+        <p class="text-lg text-white/70">{{ 'LOGIN.TAGLINE' | translate }}</p>
       </div>
 
       <!-- Middle: Device Info Card -->

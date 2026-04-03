@@ -5,6 +5,7 @@ import { passwordHash } from '@feathersjs/authentication-local'
 import { uuidv7 } from 'uuidv7'
 import type { HookContext } from '../../declarations'
 import { dataValidator, queryValidator } from '../../validators'
+import { logger } from '../../logger'
 
 // Import domain schema
 import { userDataSchema, userPatchSchema, userQuerySchema, userSchema, User, UserQuery, UserSystemRole } from '@panary-core/users/domain'
@@ -93,11 +94,23 @@ const privilegedRoles: string[] = [
 
 export const userQueryResolver = resolve<UserQuery, HookContext>({
   // Sicherheit: Nicht-privilegierte User sehen nur sich selbst
+  // Device-Rollen (device:pos, device:tablet etc.) sind ausgenommen —
+  // sie brauchen die volle User-Liste fuer den Login-Screen.
+  // RBAC (authorize + roles.matrix) steuert bereits, was Devices lesen duerfen.
   _id: async (value, user, context) => {
     if (
       context.params.user &&
-      !privilegedRoles.includes(context.params.user.role)
+      !privilegedRoles.includes(context.params.user.role) &&
+      !context.params.user.role?.startsWith('device:')
     ) {
+      logger.debug({
+        message: '[Security] userQueryResolver: Query auf eigene _id eingeschraenkt',
+        event: 'security.query_restricted',
+        userId: context.params.user._id,
+        userRole: context.params.user.role,
+        service: context.path,
+        method: context.method,
+      })
       return context.params.user._id
     }
     return value

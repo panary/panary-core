@@ -41,6 +41,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.CLOUD_CONNECTION, action: AppAction.MANAGE },
     AppAbility.CAN_SEE_REPORTS,
     AppAbility.CAN_REFUND,
+    AppAbility.CAN_VOID_ORDER,
   ],
 
   [UserSystemRole.TENANT_MANAGER]: [
@@ -51,6 +52,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PRE_ORDERS, action: AppAction.MANAGE },
     { resource: AppResource.PRINT_SERVER, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.APIKEYS, action: AppAction.READ },
+    AppAbility.CAN_VOID_ORDER,
   ],
 
   [UserSystemRole.TENANT_STAFF]: [
@@ -98,6 +100,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Kasse darf natürlich kassieren
     AppAbility.CAN_DISCOUNT,
     AppAbility.CAN_REFUND,
+    AppAbility.CAN_VOID_ORDER,
   ],
 
   // 2. KITCHEN DISPLAY (KDS)

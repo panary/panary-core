@@ -1,21 +1,21 @@
 <div class="h-full w-full p-4 md:p-6 flex flex-col gap-4 overflow-auto box-border">
   <!-- Header -->
-  <header class="flex-none flex items-center bg-white dark:bg-gray-900 rounded-2xl p-3 md:p-4 border border-slate-200 dark:border-gray-800">
+  <header class="flex-none flex items-center bg-white dark:bg-gray-950 rounded-2xl p-3 md:p-4 border border-gray-200 dark:border-gray-800">
     <div class="flex items-center gap-3 flex-1 min-w-0">
       <div
         class="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center font-bold text-lg md:text-xl shadow-lg shadow-indigo-200 dark:shadow-none shrink-0">
         {{ userName.charAt(0) }}
       </div>
       <div class="min-w-0">
-        <h1 class="text-base md:text-xl font-bold text-slate-800 dark:text-white truncate">{{ 'DASHBOARD.HELLO' | translate }} {{ userName }}!</h1>
-        <p class="text-xs text-slate-400 dark:text-gray-500 font-medium">Panary | Terminal</p>
+        <h1 class="text-base md:text-xl font-bold text-gray-800 dark:text-white truncate">{{ 'DASHBOARD.HELLO' | translate }} {{ userName }}!</h1>
+        <p class="text-xs text-gray-400 dark:text-gray-500 font-medium">Panary | Terminal</p>
       </div>
     </div>
 
     <!-- Status Area with Custom Dropdown -->
     <div class="relative mx-2 md:mx-4 shrink-0">
       <button
-        class="flex items-center gap-2 md:gap-4 px-3 md:px-5 py-2 md:py-3 rounded-xl bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 cursor-pointer hover:bg-white dark:hover:bg-gray-800 hover:border-slate-300 dark:hover:border-gray-600 transition-colors select-none"
+        class="flex items-center gap-2 md:gap-4 px-3 md:px-5 py-2 md:py-3 rounded-xl bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-white dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 transition-colors select-none"
         (click)="statusMenuOpen = !statusMenuOpen">
         <div class="relative flex h-3 w-3">
           @if (isOnBreak) {
@@ -29,24 +29,24 @@
           }
         </div>
         <!-- Mobile: nur kurzer Status-Text -->
-        <span class="md:hidden text-xs font-semibold text-slate-700 dark:text-gray-200">
+        <span class="md:hidden text-xs font-semibold text-gray-700 dark:text-gray-200">
           @if (isOnBreak) { Pause } @else if (isStampedIn) { Ein } @else { Aus }
         </span>
         <!-- Desktop: voller Status-Block -->
         <div class="hidden md:flex flex-col items-start">
-          <span class="text-[10px] font-bold text-slate-400 dark:text-gray-500 uppercase tracking-widest">{{ 'DASHBOARD.STATUS_LABEL' | translate }}</span>
-          <span class="text-sm font-semibold text-slate-700 dark:text-gray-200 leading-none">
+          <span class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ 'DASHBOARD.STATUS_LABEL' | translate }}</span>
+          <span class="text-sm font-semibold text-gray-700 dark:text-gray-200 leading-none">
             @if (isOnBreak) {
             {{ 'DASHBOARD.BREAK' | translate }}
             } @else if (isStampedIn) {
             {{ 'DASHBOARD.CLOCKED_IN' | translate }}
-            <span class="text-slate-400 dark:text-gray-500 font-normal ml-1">({{ formattedWorkingTime }})</span>
+            <span class="text-gray-400 dark:text-gray-500 font-normal ml-1">({{ formattedWorkingTime }})</span>
             } @else {
             {{ 'DASHBOARD.CLOCKED_OUT' | translate }}
             }
           </span>
         </div>
-        <span class="material-symbols-outlined text-[18px] md:text-[20px] text-slate-400 dark:text-gray-500 transition-transform duration-200"
+        <span class="material-symbols-outlined text-[18px] md:text-[20px] text-gray-400 dark:text-gray-500 transition-transform duration-200"
           [class.rotate-180]="statusMenuOpen">expand_more</span>
       </button>
 
@@ -54,7 +54,7 @@
       @if (statusMenuOpen) {
       <div class="fixed inset-0 z-40" (click)="statusMenuOpen = false" (keydown.escape)="statusMenuOpen = false" tabindex="-1" role="presentation"></div>
       <div
-        class="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl dark:shadow-black/40 border border-slate-100 dark:border-gray-700 overflow-hidden z-50">
+        class="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-950 rounded-2xl shadow-2xl dark:shadow-black/40 border border-gray-100 dark:border-gray-700 overflow-hidden z-50">
         <div class="p-2 flex flex-col gap-1">
           @if (!isStampedIn) {
           <button (click)="clockIn(); statusMenuOpen = false"
@@ -63,8 +63,8 @@
               <span class="material-symbols-outlined text-[20px]">login</span>
             </div>
             <div class="flex flex-col">
-              <span class="font-semibold text-slate-700 dark:text-gray-200 text-sm">{{ 'DASHBOARD.CLOCK_IN' | translate }}</span>
-              <span class="text-xs text-slate-400 dark:text-gray-500">{{ 'DASHBOARD.START_WORKDAY' | translate }}</span>
+              <span class="font-semibold text-gray-700 dark:text-gray-200 text-sm">{{ 'DASHBOARD.CLOCK_IN' | translate }}</span>
+              <span class="text-xs text-gray-400 dark:text-gray-500">{{ 'DASHBOARD.START_WORKDAY' | translate }}</span>
             </div>
           </button>
           }
@@ -75,19 +75,19 @@
               <span class="material-symbols-outlined text-[20px]">coffee</span>
             </div>
             <div class="flex flex-col">
-              <span class="font-semibold text-slate-700 dark:text-gray-200 text-sm">{{ 'DASHBOARD.START_BREAK' | translate }}</span>
-              <span class="text-xs text-slate-400 dark:text-gray-500">{{ 'DASHBOARD.WILL_LOGOUT' | translate }}</span>
+              <span class="font-semibold text-gray-700 dark:text-gray-200 text-sm">{{ 'DASHBOARD.START_BREAK' | translate }}</span>
+              <span class="text-xs text-gray-400 dark:text-gray-500">{{ 'DASHBOARD.WILL_LOGOUT' | translate }}</span>
             </div>
           </button>
-          <div class="h-px bg-slate-100 dark:bg-gray-700 mx-2 my-1"></div>
+          <div class="h-px bg-gray-100 dark:bg-gray-700 mx-2 my-1"></div>
           <button (click)="clockOut(); statusMenuOpen = false"
             class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors group">
             <div class="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 group-hover:bg-red-200 dark:group-hover:bg-red-900/50 transition-colors">
               <span class="material-symbols-outlined text-[20px]">logout</span>
             </div>
             <div class="flex flex-col">
-              <span class="font-semibold text-slate-700 dark:text-gray-200 text-sm">{{ 'DASHBOARD.CLOCK_OUT' | translate }}</span>
-              <span class="text-xs text-slate-400 dark:text-gray-500">{{ 'DASHBOARD.END_WORKDAY' | translate }}</span>
+              <span class="font-semibold text-gray-700 dark:text-gray-200 text-sm">{{ 'DASHBOARD.CLOCK_OUT' | translate }}</span>
+              <span class="text-xs text-gray-400 dark:text-gray-500">{{ 'DASHBOARD.END_WORKDAY' | translate }}</span>
             </div>
           </button>
           }
@@ -98,19 +98,19 @@
               <span class="material-symbols-outlined text-[20px]">play_arrow</span>
             </div>
             <div class="flex flex-col">
-              <span class="font-semibold text-slate-700 dark:text-gray-200 text-sm">{{ 'DASHBOARD.END_BREAK' | translate }}</span>
-              <span class="text-xs text-slate-400 dark:text-gray-500">{{ 'DASHBOARD.CONTINUE_WORK' | translate }}</span>
+              <span class="font-semibold text-gray-700 dark:text-gray-200 text-sm">{{ 'DASHBOARD.END_BREAK' | translate }}</span>
+              <span class="text-xs text-gray-400 dark:text-gray-500">{{ 'DASHBOARD.CONTINUE_WORK' | translate }}</span>
             </div>
           </button>
-          <div class="h-px bg-slate-100 dark:bg-gray-700 mx-2 my-1"></div>
+          <div class="h-px bg-gray-100 dark:bg-gray-700 mx-2 my-1"></div>
           <button (click)="clockOut(); statusMenuOpen = false"
             class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors group">
             <div class="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 group-hover:bg-red-200 dark:group-hover:bg-red-900/50 transition-colors">
               <span class="material-symbols-outlined text-[20px]">logout</span>
             </div>
             <div class="flex flex-col">
-              <span class="font-semibold text-slate-700 dark:text-gray-200 text-sm">{{ 'DASHBOARD.CLOCK_OUT' | translate }}</span>
-              <span class="text-xs text-slate-400 dark:text-gray-500">{{ 'DASHBOARD.END_WORKDAY' | translate }}</span>
+              <span class="font-semibold text-gray-700 dark:text-gray-200 text-sm">{{ 'DASHBOARD.CLOCK_OUT' | translate }}</span>
+              <span class="text-xs text-gray-400 dark:text-gray-500">{{ 'DASHBOARD.END_WORKDAY' | translate }}</span>
             </div>
           </button>
           }
@@ -119,7 +119,7 @@
       }
     </div>
 
-    <button (click)="logout()" class="flex items-center justify-center w-10 h-10 text-slate-400 dark:text-gray-500 rounded-xl hover:text-red-500 hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors">
+    <button (click)="logout()" class="flex items-center justify-center w-10 h-10 text-gray-400 dark:text-gray-500 rounded-xl hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
       <span class="material-symbols-outlined text-[20px]">logout</span>
     </button>
   </header>
@@ -132,49 +132,49 @@
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 flex-none">
         <!-- KPI 1 -->
         <div
-          class="bg-white dark:bg-gray-900 rounded-2xl p-3 lg:p-5 border border-slate-200 dark:border-gray-800 flex flex-row items-center gap-3 lg:flex-col lg:items-start lg:justify-between hover:border-slate-300 dark:hover:border-gray-700 transition-colors">
+          class="bg-white dark:bg-gray-950 rounded-2xl p-3 lg:p-5 border border-gray-200 dark:border-gray-800 flex flex-row items-center gap-3 lg:flex-col lg:items-start lg:justify-between hover:border-gray-300 dark:hover:border-gray-700 transition-colors">
           <div class="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shrink-0 lg:mb-2">
             <span class="material-symbols-outlined text-[20px]">shopping_cart</span>
           </div>
           <div>
-            <h3 class="text-xl lg:text-3xl font-bold text-slate-800 dark:text-white tracking-tight">{{ activeOrdersCount }}</h3>
-            <p class="text-xs text-slate-500 dark:text-gray-400 font-medium mt-0.5 lg:mt-1">{{ 'DASHBOARD.KPI_OPEN_ORDERS' | translate }}</p>
+            <h3 class="text-xl lg:text-3xl font-bold text-gray-800 dark:text-white tracking-tight">{{ activeOrdersCount }}</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5 lg:mt-1">{{ 'DASHBOARD.KPI_OPEN_ORDERS' | translate }}</p>
           </div>
         </div>
 
         <!-- KPI 2 -->
         <div
-          class="bg-white dark:bg-gray-900 rounded-2xl p-3 lg:p-5 border border-slate-200 dark:border-gray-800 flex flex-row items-center gap-3 lg:flex-col lg:items-start lg:justify-between hover:border-slate-300 dark:hover:border-gray-700 transition-colors">
+          class="bg-white dark:bg-gray-950 rounded-2xl p-3 lg:p-5 border border-gray-200 dark:border-gray-800 flex flex-row items-center gap-3 lg:flex-col lg:items-start lg:justify-between hover:border-gray-300 dark:hover:border-gray-700 transition-colors">
           <div class="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 shrink-0 lg:mb-2">
             <span class="material-symbols-outlined text-[20px]">receipt_long</span>
           </div>
           <div>
-            <h3 class="text-xl lg:text-3xl font-bold text-slate-800 dark:text-white tracking-tight">{{ todayOrdersCount }}</h3>
-            <p class="text-xs text-slate-500 dark:text-gray-400 font-medium mt-0.5 lg:mt-1">{{ 'DASHBOARD.KPI_TOTAL_TODAY' | translate }}</p>
+            <h3 class="text-xl lg:text-3xl font-bold text-gray-800 dark:text-white tracking-tight">{{ todayOrdersCount }}</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5 lg:mt-1">{{ 'DASHBOARD.KPI_TOTAL_TODAY' | translate }}</p>
           </div>
         </div>
 
         <!-- KPI 3 -->
         <div
-          class="bg-white dark:bg-gray-900 rounded-2xl p-3 lg:p-5 border border-slate-200 dark:border-gray-800 flex flex-row items-center gap-3 lg:flex-col lg:items-start lg:justify-between hover:border-slate-300 dark:hover:border-gray-700 transition-colors">
+          class="bg-white dark:bg-gray-950 rounded-2xl p-3 lg:p-5 border border-gray-200 dark:border-gray-800 flex flex-row items-center gap-3 lg:flex-col lg:items-start lg:justify-between hover:border-gray-300 dark:hover:border-gray-700 transition-colors">
           <div class="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 shrink-0 lg:mb-2">
             <span class="material-symbols-outlined text-[20px]">flash_on</span>
           </div>
           <div>
-            <h3 class="text-xl lg:text-3xl font-bold text-slate-800 dark:text-white tracking-tight">{{ productivity }}</h3>
-            <p class="text-xs text-slate-500 dark:text-gray-400 font-medium mt-0.5 lg:mt-1">Ø Orders/Std</p>
+            <h3 class="text-xl lg:text-3xl font-bold text-gray-800 dark:text-white tracking-tight">{{ productivity }}</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5 lg:mt-1">Ø Orders/Std</p>
           </div>
         </div>
 
         <!-- KPI 4 -->
         <div
-          class="bg-white dark:bg-gray-900 rounded-2xl p-3 lg:p-5 border border-slate-200 dark:border-gray-800 flex flex-row items-center gap-3 lg:flex-col lg:items-start lg:justify-between hover:border-slate-300 dark:hover:border-gray-700 transition-colors">
+          class="bg-white dark:bg-gray-950 rounded-2xl p-3 lg:p-5 border border-gray-200 dark:border-gray-800 flex flex-row items-center gap-3 lg:flex-col lg:items-start lg:justify-between hover:border-gray-300 dark:hover:border-gray-700 transition-colors">
           <div class="p-2 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 shrink-0 lg:mb-2">
             <span class="material-symbols-outlined text-[20px]">timer</span>
           </div>
           <div>
-            <h3 class="text-xl lg:text-3xl font-bold text-slate-800 dark:text-white tracking-tight">{{ avgWaitingTime }}</h3>
-            <p class="text-xs text-slate-500 dark:text-gray-400 font-medium mt-0.5 lg:mt-1">Ø Wartezeit</p>
+            <h3 class="text-xl lg:text-3xl font-bold text-gray-800 dark:text-white tracking-tight">{{ avgWaitingTime }}</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5 lg:mt-1">Ø Wartezeit</p>
           </div>
         </div>
 
@@ -182,13 +182,13 @@
 
       <!-- Chart Section -->
       <div
-        class="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-slate-200 dark:border-gray-800 flex-1 min-h-[236px] lg:min-h-[280px] flex flex-col relative overflow-hidden">
+        class="bg-white dark:bg-gray-950 rounded-2xl p-6 border border-gray-200 dark:border-gray-800 flex-1 min-h-[236px] lg:min-h-[280px] flex flex-col relative overflow-hidden">
         <div class="flex-none flex justify-between items-center mb-6">
           <div>
-            <h2 class="text-lg font-bold text-slate-800 dark:text-white">{{ 'DASHBOARD.HOURLY_LOAD' | translate }}</h2>
-            <p class="text-xs text-slate-400 dark:text-gray-500">{{ 'DASHBOARD.ORDERS_OVER_DAY' | translate }}</p>
+            <h2 class="text-lg font-bold text-gray-800 dark:text-white">{{ 'DASHBOARD.HOURLY_LOAD' | translate }}</h2>
+            <p class="text-xs text-gray-400 dark:text-gray-500">{{ 'DASHBOARD.ORDERS_OVER_DAY' | translate }}</p>
           </div>
-          <div class="bg-slate-50 dark:bg-gray-800 px-3 py-1 rounded-lg border border-slate-200 dark:border-gray-700 text-xs text-slate-500 dark:text-gray-400 font-medium">
+          <div class="bg-gray-50 dark:bg-gray-800 px-3 py-1 rounded-lg border border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-medium">
             {{ 'DASHBOARD.TODAY' | translate }}
           </div>
         </div>
@@ -200,20 +200,20 @@
 
     <!-- Right Column: Quick Access -->
     <div
-      class="lg:col-span-4 bg-white dark:bg-gray-900 rounded-2xl p-4 border border-slate-200 dark:border-gray-800 flex flex-col h-full overflow-hidden">
+      class="lg:col-span-4 bg-white dark:bg-gray-950 rounded-2xl p-4 border border-gray-200 dark:border-gray-800 flex flex-col h-full overflow-hidden">
       <div class="flex-none mb-3">
-        <h2 class="text-base font-bold text-slate-800 dark:text-white">{{ 'DASHBOARD.QUICK_ACCESS' | translate }}</h2>
-        <p class="text-xs text-slate-400 dark:text-gray-500">{{ 'DASHBOARD.FREQUENT_ACTIONS' | translate }}</p>
+        <h2 class="text-base font-bold text-gray-800 dark:text-white">{{ 'DASHBOARD.QUICK_ACCESS' | translate }}</h2>
+        <p class="text-xs text-gray-400 dark:text-gray-500">{{ 'DASHBOARD.FREQUENT_ACTIONS' | translate }}</p>
       </div>
 
       <div class="flex flex-wrap gap-2 lg:grid lg:grid-cols-3 flex-1 overflow-auto content-start">
         @for (action of visibleQuickActions(); track action.label) {
         <button (click)="action.action()"
-          class="group relative flex flex-col items-center justify-center gap-1 p-1.5 md:p-3 lg:p-2 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 transition-all duration-200 hover:bg-white dark:hover:bg-gray-800 hover:border-slate-300 dark:hover:border-gray-600 active:scale-95 w-20 h-20 md:w-28 md:h-28 lg:w-full lg:h-auto lg:aspect-square">
+          class="group relative flex flex-col items-center justify-center gap-1 p-1.5 md:p-3 lg:p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 transition-all duration-200 hover:bg-white dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 active:scale-95 w-20 h-20 md:w-28 md:h-28 lg:w-full lg:h-auto lg:aspect-square">
           <div class="p-2 md:p-3 rounded-lg transition-colors duration-200 group-hover:scale-110" [ngClass]="action.bgClass">
             <span class="material-symbols-outlined text-[20px] md:text-[26px]" [ngClass]="action.textClass">{{ action.icon }}</span>
           </div>
-          <span class="hidden md:block font-semibold text-[10px] text-slate-600 dark:text-gray-400 group-hover:text-slate-800 dark:group-hover:text-gray-200 text-center leading-tight">
+          <span class="hidden md:block font-semibold text-[10px] text-gray-600 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-gray-200 text-center leading-tight">
             {{ action.label | translate }}
           </span>
         </button>

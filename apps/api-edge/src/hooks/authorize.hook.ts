@@ -8,6 +8,7 @@ import {
   UserSystemRole
 } from '@panary-core/users/domain'
 import { AppError, AppErrorMessages } from '@panary-core/shared/common'
+import { logger } from '../logger'
 
 // 2. SCHICHT: Rollen-Check (RBAC)
 // Prüft: Darf ein "Staff" überhaupt User sehen/bearbeiten?
@@ -49,6 +50,16 @@ export const authorize = () => async (context: HookContext, next: NextFunction) 
   }
 
   // 7. Zugriff verweigert
+  logger.warn({
+    message: `[Security] Zugriff verweigert: ${user.role} darf ${action} auf ${resource} nicht`,
+    event: 'security.access_denied',
+    userId: user._id,
+    userRole: user.role,
+    resource,
+    action,
+    service: context.path,
+    method: context.method,
+  })
   throw new Forbidden('Access denied', {
     code: AppError.AUTH_NO_PERMISSION,
     role: user.role,

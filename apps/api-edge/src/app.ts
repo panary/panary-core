@@ -8,7 +8,7 @@ import socketio from '@feathersjs/socketio'
 import path from 'path'
 import fs from 'fs'
 import { configurationValidator } from './configuration'
-import type { Application } from './declarations'
+import type { Application, HookContext, NextFunction } from './declarations'
 import { canonicalLog } from './hooks/canonical-log.hook'
 import { logError } from './hooks/log-error'
 import { sqlite } from './sqlite'
@@ -172,13 +172,24 @@ app.configure(services)
 app.configure(configurePrintServer)
 app.configure(channels)
 
-// App-level hooks
+// App-level hooks (global für alle Services)
+// Reihenfolge der around-Hooks (Onion-Modell, äußerster zuerst):
+// 1. canonicalLog     — umschließt alles, misst Dauer, loggt Wide Event
+// 2. logError         — fängt interne Fehler (kein Provider)
+// 3. allowApiKey      — API-Key-Auth → virtueller User (vor Security-Checks)
+// 4. secureByDefault  — authenticate('jwt') + authorize() (erwartet next)
+// 5. tenantIsolation  — prüft nach Service-Ausführung die Tenant-Zugehörigkeit
 app.hooks({
-  around: [canonicalLog, logError, allowApiKey()],
-  before: [secureByDefault({ publicServices: ['authentication'] })],
-  after: [ensureTenantIsolation()],
-  error: [],
-  teardown: [],
+  around: [
+    canonicalLog,
+    logError,
+    allowApiKey(),
+    secureByDefault({ publicServices: ['authentication'] }),
+    async (context: HookContext, next: NextFunction) => {
+      await next()
+      await ensureTenantIsolation()(context)
+    },
+  ],
 })
 
 export { app }

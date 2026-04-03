@@ -45,7 +45,7 @@
   width: clamp(4rem, 6vw, 7rem);
   height: clamp(3rem, 4vh, 5rem);
   font-size: clamp(0.6rem, 1vw, 0.8rem);
-  @apply bg-slate-100 hover:bg-slate-200 transition-colors shadow-sm rounded-xl border border-slate-200;
+  @apply bg-gray-100 hover:bg-gray-200 transition-colors shadow-sm rounded-xl border border-gray-200;
 }
 
 .order-item {
@@ -89,7 +89,7 @@
 }
 
 .b-yellow {
-  @apply bg-yellow-400 hover:bg-yellow-500 text-slate-900 border-yellow-500;
+  @apply bg-yellow-400 hover:bg-yellow-500 text-gray-900 border-yellow-500;
 }
 
 .i-30 {
@@ -104,7 +104,7 @@
   align-items: center;
   min-width: 140px;
   height: 48px;
-  @apply bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition-all rounded-xl font-medium;
+  @apply bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 transition-all rounded-xl font-medium;
   padding: 10px;
   font-size: small;
   text-align: center;
@@ -112,7 +112,7 @@
 }
 
 .subbutton-item:active {
-  @apply scale-95 bg-slate-200;
+  @apply scale-95 bg-gray-200;
 }
 
 .spacer {
@@ -196,7 +196,7 @@
 }
 
 .pressed {
-  @apply bg-slate-300 shadow-inner;
+  @apply bg-gray-300 shadow-inner;
 }
 
 .function-buttons-devider {

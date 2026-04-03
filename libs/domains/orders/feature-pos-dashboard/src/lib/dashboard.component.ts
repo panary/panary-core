@@ -154,8 +154,8 @@ export class DashboardComponent implements OnInit {
       label: 'DASHBOARD.SETTINGS',
       icon: 'settings',
       action: () => this.navigateTo('/settings'),
-      bgClass: 'bg-slate-100 dark:bg-gray-800',
-      textClass: 'text-slate-700 dark:text-gray-300',
+      bgClass: 'bg-gray-100 dark:bg-gray-800',
+      textClass: 'text-gray-700 dark:text-gray-300',
     },
   ]
 

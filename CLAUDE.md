@@ -96,7 +96,32 @@ nx serve pos-client
 
 ---
 
-# 6. Tool-Strategie
+# 6. Dokumentation
+
+Projektdokumentation lebt in `/documentation`. Index: `documentation/INDEX.md`.
+
+Bestehende Dokumente:
+- `generator-usage-guide.md` — Nx-Generator-Nutzung
+- `print-server-api.md` — Print-Server-API
+- `service-creation-guide.md` — Anleitung: Neuen Service erstellen
+- `tauri-update-server-einrichtung.md` — Tauri Update-Server
+
+**Pflicht-Dokumentation bei folgenden Ereignissen:**
+1. **Neues Feature/Domain:** Zweck, API-Übersicht, Nutzungsbeispiele
+2. **Architekturänderung:** Problem → Entscheidung → Konsequenzen (ADR-Format)
+3. **Neuer Service:** Pfad, Methoden, Schemas, Hook-Chain, Besonderheiten
+4. **Komplexe Business-Logik:** Berechnungsregeln, Randfälle, Beispiele
+5. **Setup/Migration:** Schritt-für-Schritt-Anleitung
+6. **Externe Integration:** Protokoll, Konfiguration, Fehlerbehandlung
+7. **Breaking Changes:** Was ändert sich, Migrations-Schritte
+
+**Format:** Markdown mit YAML-Frontmatter (`title`, `date`, `category`, `domains`, `status`).
+**Dateinamen:** `kebab-case`. **Sprache:** Deutsch.
+**Index:** `INDEX.md` pflegen — neues Dokument = neuer Eintrag.
+
+---
+
+# 7. Tool-Strategie
 
 - **Parallelität:** Wenn möglich mehrere Dateien gleichzeitig suchen.
 - **Kontext:** Für Datenbanktyp `apps/api-edge/src/app.ts` oder `system`-Konfiguration prüfen, nie raten.
@@ -104,7 +129,7 @@ nx serve pos-client
 
 ---
 
-# 7. Nx-Richtlinien
+# 8. Nx-Richtlinien
 
 - Aufgaben (build, lint, test, e2e) immer via `nx` ausführen — nie das unterliegende Tool direkt aufrufen.
 - Den Nx MCP-Server und seine Tools nutzen, wenn verfügbar.

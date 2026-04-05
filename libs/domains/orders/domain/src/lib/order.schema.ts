@@ -142,8 +142,8 @@ export const paymentSchema = Type.Object({
 })
 
 export const creationContextSchema = Type.Object({
-  createdBy: Type.String({ format: 'uuid' }), // Was ObjectId
-  createdVia: Type.Optional(Type.String({ format: 'uuid' })), // Was ObjectId
+  createdBy: Type.String({ format: 'uuid' }),
+  createdVia: Type.Optional(Type.String({ format: 'uuid' })),
 })
 //#endregion
 
@@ -162,23 +162,23 @@ export const orderSchema = Type.Object(
 
     lineItems: Type.Array(orderLineItemSchema),
 
-    cancellation: Type.Optional(cancellationSchema),
-    customerPaymentInfo: Type.Optional(customerPaymentInfoSchema),
-    discount: Type.Optional(discountSchema),
-    staffPaymentInfo: Type.Optional(staffPaymentInfoSchema),
-    taxSnapshot: Type.Optional(taxSummarySchema),
+    cancellation: Type.Optional(Type.Union([cancellationSchema, Type.Null()])),
+    customerPaymentInfo: Type.Optional(Type.Union([customerPaymentInfoSchema, Type.Null()])),
+    discount: Type.Optional(Type.Union([discountSchema, Type.Null()])),
+    staffPaymentInfo: Type.Optional(Type.Union([staffPaymentInfoSchema, Type.Null()])),
+    taxSnapshot: Type.Optional(Type.Union([taxSummarySchema, Type.Null()])),
 
-    creationContext: Type.Optional(creationContextSchema),
-    payment: Type.Optional(paymentSchema),
+    creationContext: Type.Optional(Type.Union([creationContextSchema, Type.Null()])),
+    payment: Type.Optional(Type.Union([paymentSchema, Type.Null()])),
 
     isFinished: Type.Boolean(),
     // Wenn gesetzt, wurde diese Order aus einer Vorbestellung konvertiert
-    preOrderId: Type.Optional(Type.String({ format: 'uuid' })),
-    pager: Type.Optional(Type.Number()),
+    preOrderId: Type.Optional(Type.Union([Type.String({ format: 'uuid' }), Type.Null()])),
+    pager: Type.Optional(Type.Union([Type.Number(), Type.Null()])),
     estimatedDuration: Type.Number(),
     remainingTime: Type.Number(),
-    targetCompletionAt: Type.Optional(Type.String({ format: 'date-time' })),
-    table: Type.Optional(Type.String()),
+    targetCompletionAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
+    table: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     recordingDate: Type.String({ format: 'date-time' }),
   },
   { $id: 'Order', additionalProperties: false },
@@ -196,34 +196,40 @@ export type Transaction = Static<typeof transactionSchema>
 //#endregion
 
 //#region Schema for creation (POST)
-export const orderDataSchema = Type.Pick(
-  orderSchema,
+export const orderDataSchema = Type.Intersect(
   [
-    'externalId',
-    'locationId',
-    'tenantId',
-    'createdAt',
-    'updatedAt',
-    'status',
-    'businessDayId',
-    'orderChannel',
-    'dailySequenceNumber',
-    'dineLocation',
-    'lineItems',
-    'cancellation',
-    'customerPaymentInfo',
-    'discount',
-    'staffPaymentInfo',
-    'taxSnapshot',
-    'creationContext',
-    'payment',
-    'isFinished',
-    'preOrderId',
-    'pager',
-    'estimatedDuration',
-    'remainingTime',
-    'table',
-    'recordingDate',
+    Type.Object({ _id: Type.Optional(Type.String()) }),
+    Type.Pick(
+      orderSchema,
+      [
+        'externalId',
+        'locationId',
+        'tenantId',
+        'createdAt',
+        'updatedAt',
+        'status',
+        'businessDayId',
+        'orderChannel',
+        'dailySequenceNumber',
+        'dineLocation',
+        'lineItems',
+        'cancellation',
+        'customerPaymentInfo',
+        'discount',
+        'staffPaymentInfo',
+        'taxSnapshot',
+        'creationContext',
+        'payment',
+        'isFinished',
+        'preOrderId',
+        'pager',
+        'estimatedDuration',
+        'remainingTime',
+        'table',
+        'recordingDate',
+        'targetCompletionAt',
+      ],
+    ),
   ],
   {
     $id: 'OrderData',

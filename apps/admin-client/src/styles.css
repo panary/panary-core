@@ -205,6 +205,24 @@ body.dark {
   100% { background: #fff; color: #000; }
 }
 
+/* ===== Angular Material Dialog — Dark Mode ===== */
+.dark .mat-mdc-dialog-container .mdc-dialog__surface {
+  background-color: #030712;  /* gray-950 */
+  color: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) .mat-mdc-dialog-container .mdc-dialog__surface {
+    background-color: #030712;
+    color: #fff;
+  }
+}
+
+/* Backdrop dunkler im Dark Mode */
+.dark .cdk-overlay-dark-backdrop {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
 /* ===== Router-Outlet Höhenkette ===== */
 app-root, app-admin-layout {
   display: block;

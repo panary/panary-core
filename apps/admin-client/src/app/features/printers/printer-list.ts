@@ -132,7 +132,6 @@ export class PrinterListComponent {
   onAddPrinter() {
     const dialogRef = this.dialog.open(PrinterFormDialogComponent, {
       data: null,
-      panelClass: 'dark:bg-gray-950',
     })
 
     dialogRef.afterClosed().subscribe((result: PrinterFormData | null) => {
@@ -146,7 +145,6 @@ export class PrinterListComponent {
   onEditPrinter(printer: PrinterFormData) {
     const dialogRef = this.dialog.open(PrinterFormDialogComponent, {
       data: { ...printer },
-      panelClass: 'dark:bg-gray-950',
     })
 
     dialogRef.afterClosed().subscribe((result: PrinterFormData | null) => {

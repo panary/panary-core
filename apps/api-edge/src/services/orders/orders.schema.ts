@@ -45,16 +45,19 @@ export const orderDataResolver = resolve<Order, HookContext<OrderService>>({
     return value || OrderStatus.ACTIVE
   },
   creationContext: async (value, data, context) => {
-    const userId = (context.params as any)?.user?._id || value?.createdBy
-    const deviceId = (context.params as any)?.device?._id || value?.createdVia
+    const rawUserId: string | undefined = (context.params as any)?.user?._id || value?.createdBy
+    const rawDeviceId: string | undefined = (context.params as any)?.device?._id || value?.createdVia
 
-    if (!userId && !deviceId) {
+    if (!rawUserId && !rawDeviceId) {
       return value
     }
 
+    // "device:<uuid>" → nur die UUID extrahieren
+    const stripPrefix = (id: string) => id.replace(/^device:/, '')
+
     return {
-      createdBy: userId,
-      createdVia: deviceId
+      createdBy: rawUserId ? stripPrefix(rawUserId) : value?.createdBy!,
+      createdVia: rawDeviceId ? stripPrefix(rawDeviceId) : value?.createdVia,
     }
   }
 })

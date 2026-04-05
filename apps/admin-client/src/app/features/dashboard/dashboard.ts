@@ -186,7 +186,7 @@ export class DashboardComponent implements OnInit {
         this.#api.find('apikeys',        { $limit: 0 }),
         this.#api.find('orders',         { $limit: 0 }),
       ]),
-      lastValueFrom(this.#http.get<EdgeServerInfo>('http://localhost:3030/health')).catch(() => null),
+      lastValueFrom(this.#http.get<EdgeServerInfo>(`${window.location.origin}/health`)).catch(() => null),
       this.#api.find<CloudConnection>('cloud-connection', { $limit: 1 }).catch(() => null),
     ])
 

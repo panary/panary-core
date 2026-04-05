@@ -123,7 +123,7 @@ async function main() {
     if (adminEmail && adminPassword) {
       logger.info('Bootstrapping: Found admin credentials in config. Verifying admin user...')
       try {
-        const adminLogin = 'Admin'
+        const adminLogin = process.env['ADMIN_LOGIN'] || config.adminLogin || 'admin'
 
         const existingUser = await knex('users').where({ loginname: adminLogin }).first()
 

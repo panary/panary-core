@@ -10,10 +10,9 @@ export const generateDefaultLocationSettings: Settings = {
   printSettings: {
     printServerEnabled: true,
     maxNameCharacters: 42,
-    mqttServerProtocol: MqttProtocolType.MQTT,
+    mqttServerProtocol: MqttProtocolType.WS,
     mqttServerUrl: 'localhost',
-    mqttServerPort: 1883,
-    mqttAutoConnect: false,
+    mqttServerPort: 9001,
     printerSequence: [],
     printers: [],
     separationCharacter: '_',

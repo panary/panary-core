@@ -38,18 +38,30 @@ async function resolveLocationId(context: HookContext): Promise<string> {
     })
   }
 
-  const existingUser: User = await app.service('users').get(user.id, {
+  const existingUser: User = await app.service('users').get(user._id, {
     query: { $select: ['activeLocationId'] },
     provider: undefined,
   })
 
-  if (!existingUser.activeLocationId) {
-    throw new BadRequest(AppErrorMessages[AppError.LOCATION_NOT_ASSIGNED], {
-      code: AppError.LOCATION_NOT_ASSIGNED,
-    })
+  if (existingUser.activeLocationId) {
+    return existingUser.activeLocationId as string
   }
 
-  return existingUser.activeLocationId as string
+  // Standalone-Fallback: Einzige Location des Servers verwenden
+  const systemMode = app.get('system')?.mode || 'standalone'
+  if (systemMode === 'standalone') {
+    const locations = (await app.service('locations').find({
+      query: { $limit: 1, $select: ['_id'] },
+      provider: undefined,
+    })) as any
+    if (locations.data?.length > 0) {
+      return locations.data[0]._id
+    }
+  }
+
+  throw new BadRequest(AppErrorMessages[AppError.LOCATION_NOT_ASSIGNED], {
+    code: AppError.LOCATION_NOT_ASSIGNED,
+  })
 }
 
 /**

@@ -2,9 +2,8 @@ import { querySyntax, Static, StringEnum, Type } from '@feathersjs/typebox'
 
 //#region Enums & Constants (Reusable)
 export const MqttProtocolType = {
-  MQTT: 'mqtt',
-  MQTTS: 'mqtts',
   WS: 'ws',
+  WSS: 'wss',
 } as const
 export const mqttProtocol = StringEnum(Object.values(MqttProtocolType))
 
@@ -39,7 +38,6 @@ export const settingsSchema = Type.Object({
     mqttServerProtocol: mqttProtocol,
     mqttServerUrl: Type.String(),
     mqttServerPort: Type.Number({ minimum: 1, maximum: 65535 }),
-    mqttAutoConnect: Type.Optional(Type.Boolean({ default: false })),
     printerSequence: Type.Array(Type.String()),
     printers: Type.Array(
       Type.Object({

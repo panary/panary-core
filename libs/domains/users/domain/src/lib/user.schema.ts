@@ -136,6 +136,7 @@ export const userQueryProperties = Type.Pick(
   [
   '_id',
   'tenantId',
+  'activeLocationId',
   'email',
   'employeeNumber',
   'firstName',

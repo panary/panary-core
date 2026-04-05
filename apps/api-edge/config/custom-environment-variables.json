@@ -4,6 +4,9 @@
     "__format": "number"
   },
   "host": "HOSTNAME",
+  "sqlite": {
+    "connection": "SQLITE_PATH"
+  },
   "authentication": {
     "secret": "FEATHERS_SECRET"
   }

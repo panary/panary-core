@@ -2,7 +2,7 @@ import { Injectable, inject, signal, computed } from '@angular/core'
 import { HttpClient } from '@angular/common/http'
 import { Router } from '@angular/router'
 
-const API_URL = 'http://localhost:3030'
+const API_URL = window.location.origin
 const TOKEN_KEY = 'panary_admin_token'
 
 export interface AuthUser {

@@ -21,7 +21,7 @@ import { formatApiError } from '../../core/error-helper'
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="p-6 max-w-4xl space-y-4 overflow-y-auto h-full">
+    <div class="p-6 max-w-4xl flex flex-col gap-4 overflow-y-auto h-full">
       <div class="flex items-center justify-between min-h-9">
         <h1 class="text-xl font-bold tracking-tight">{{ 'PRINTERS.TITLE' | translate }}</h1>
       </div>
@@ -94,10 +94,9 @@ export class PrinterManagementComponent implements OnInit {
     showDialogAfterOrder: true,
   })
   mqttSettings = signal<MqttSettingsData>({
-    mqttServerProtocol: 'mqtt',
+    mqttServerProtocol: 'ws',
     mqttServerUrl: 'localhost',
-    mqttServerPort: 1883,
-    mqttAutoConnect: false,
+    mqttServerPort: 9001,
   })
 
   /**
@@ -136,7 +135,6 @@ export class PrinterManagementComponent implements OnInit {
         mqttServerProtocol: ps.mqttServerProtocol ?? 'mqtt',
         mqttServerUrl: ps.mqttServerUrl ?? 'localhost',
         mqttServerPort: ps.mqttServerPort ?? 1883,
-        mqttAutoConnect: ps.mqttAutoConnect ?? false,
       })
     } catch (err) {
       this.error.set(formatApiError(err))

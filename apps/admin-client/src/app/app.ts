@@ -1,5 +1,6 @@
-import { Component } from '@angular/core'
+import { Component, inject } from '@angular/core'
 import { RouterOutlet } from '@angular/router'
+import { LanguageService } from '@panary-core/shared/data-access'
 
 @Component({
   imports: [RouterOutlet],
@@ -7,4 +8,7 @@ import { RouterOutlet } from '@angular/router'
   standalone: true,
   template: '<router-outlet />',
 })
-export class App {}
+export class App {
+  // Eager-Init: translate.use() muss vor Login laufen
+  protected lang = inject(LanguageService)
+}

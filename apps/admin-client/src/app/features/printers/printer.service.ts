@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core'
 import { HttpClient } from '@angular/common/http'
 import { lastValueFrom } from 'rxjs'
 
-const API_URL = 'http://localhost:3030'
+const API_URL = window.location.origin
 
 export interface PrintServerStatus {
   status: 'stopped' | 'running' | 'error'

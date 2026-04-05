@@ -31,7 +31,7 @@ import { AuthService } from '../core/auth.service'
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
                      focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none
                      placeholder-slate-400 dark:placeholder-gray-600"
-              placeholder="Admin" />
+              placeholder="admin" />
           </div>
 
           <div class="space-y-1">

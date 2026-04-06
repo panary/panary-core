@@ -62,9 +62,33 @@ RUN apk add --no-cache curl
 
 WORKDIR /app
 
-# Server-Artefakte + node_modules
+# Server-Artefakte (api-edge + Domain-Libraries) + node_modules
 COPY --from=build /build/dist/apps/api-edge/ ./dist/apps/api-edge/
+COPY --from=build /build/dist/libs/ ./dist/libs/
 COPY --from=build /build/node_modules/ ./node_modules/
+
+# Workspace-Pfade (@panary-core/*) fuer Runtime auflösbar machen.
+# TypeScript paths werden beim Build nicht aufgelöst — die kompilierten JS-Dateien
+# enthalten weiterhin require("@panary-core/apikeys/domain") etc.
+# Lösung: Symlinks in node_modules anlegen, die auf die kompilierten Libs zeigen.
+COPY --from=build /build/tsconfig.base.json /tmp/tsconfig.base.json
+RUN node -e " \
+  const ts = JSON.parse(require('fs').readFileSync('/tmp/tsconfig.base.json','utf8')); \
+  const paths = ts.compilerOptions?.paths || {}; \
+  const fs = require('fs'); const path = require('path'); \
+  for (const [alias, targets] of Object.entries(paths)) { \
+    const src = targets[0].replace('/src/index.ts','').replace('/src/server.ts',''); \
+    const distSrc = '/app/dist/' + src; \
+    if (!fs.existsSync(distSrc)) continue; \
+    const parts = alias.split('/'); \
+    const scope = parts[0]; const rest = parts.slice(1).join('/'); \
+    const scopeDir = '/app/node_modules/' + scope; \
+    const linkDir = scopeDir + '/' + rest; \
+    fs.mkdirSync(path.dirname(linkDir), { recursive: true }); \
+    try { fs.symlinkSync(distSrc, linkDir); } catch {} \
+  } \
+  console.log('Workspace path symlinks created.'); \
+" && rm /tmp/tsconfig.base.json
 
 # Admin-Client SPA
 COPY --from=build /build/dist/apps/admin-client/browser/ ./dist/apps/admin-client/browser/

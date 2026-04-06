@@ -192,7 +192,7 @@ Ein `pnpm release` bumpt die Version einmal, erstellt beide Tags (`v26.4.X` + `p
 ### Installation auf Zielsystemen
 
 ```bash
-curl -sL http://get.panary.io/install.sh | bash
+curl -sL http://get.panary.io/install.sh | sudo bash
 ```
 
 Das Skript richtet Docker Compose mit Edge-Server + Watchtower (Auto-Updates) ein.

@@ -6,8 +6,8 @@
 # Erstellt Verzeichnis, .env, docker-compose.yml und startet den Container.
 #
 # Nutzung:
-#   curl -sL http://get.panary.io/install.sh | bash
-#   bash install.sh --port 3030 --dir /opt/panary --tag latest
+#   curl -sL http://get.panary.io/install.sh | sudo bash
+#   sudo bash install.sh --port 3030 --dir /opt/panary --tag latest
 #
 # Nach der Installation:
 #   cd /opt/panary
@@ -93,6 +93,9 @@ echo ""
 echo -e "${BLUE}→ Installationsverzeichnis: ${INSTALL_DIR}${NC}"
 mkdir -p "${INSTALL_DIR}/data"
 
+REAL_USER="${SUDO_USER:-$(whoami)}"
+REAL_GROUP="$(id -gn "$REAL_USER")"
+
 # ============================================================
 # 3. .env generieren (nur bei Erstinstallation)
 # ============================================================
@@ -115,10 +118,12 @@ cat > "$ENV_FILE" <<EOF
 FEATHERS_SECRET=${FEATHERS_SECRET}
 PANARY_PORT=${PORT}
 PANARY_TAG=${TAG}
+PANARY_UID=$(id -u ${REAL_USER})
+PANARY_GID=$(id -g ${REAL_USER})
 EOF
 
-chmod 600 "$ENV_FILE"
-echo -e "${GREEN}✓${NC} .env geschrieben (chmod 600)"
+chmod 640 "$ENV_FILE"
+echo -e "${GREEN}✓${NC} .env geschrieben"
 
 # ============================================================
 # 4. docker-compose.yml schreiben
@@ -142,11 +147,11 @@ services:
   panary-edge:
     image: ghcr.io/panary/panary-edge:${PANARY_TAG:-latest}
     container_name: panary-edge
+    user: "${PANARY_UID:-1000}:${PANARY_GID:-1000}"
     ports:
       - "${PANARY_PORT:-3030}:3030"
     volumes:
       - ./data:/app/data
-      - edge-tmp:/tmp
     environment:
       - NODE_ENV=production
       - FEATHERS_SECRET=${FEATHERS_SECRET}
@@ -162,11 +167,8 @@ services:
     networks:
       - panary-internal
     # --- Hardening ---
-    read_only: true
     security_opt:
       - no-new-privileges:true
-    cap_drop:
-      - ALL
     deploy:
       resources:
         limits:
@@ -192,8 +194,6 @@ services:
     # --- Hardening ---
     security_opt:
       - no-new-privileges:true
-    cap_drop:
-      - ALL
     deploy:
       resources:
         limits:
@@ -204,20 +204,23 @@ networks:
   panary-internal:
     driver: bridge
     internal: false
-
-volumes:
-  edge-tmp:
 COMPOSEOF
 
 echo -e "${GREEN}✓${NC} docker-compose.yml geschrieben"
 
 # ============================================================
-# 5. Bestehenden Container stoppen (Update-Szenario)
+# 5. Berechtigungen setzen — alle Dateien dem aufrufenden User zuweisen
+# ============================================================
+chown -R "${REAL_USER}:${REAL_GROUP}" "${INSTALL_DIR}"
+echo -e "${GREEN}✓${NC} Berechtigungen gesetzt (Besitzer: ${REAL_USER})"
+
+# ============================================================
+# 6. Bestehenden Container stoppen (Update-Szenario)
 # ============================================================
 if docker ps -a --format '{{.Names}}' | grep -q "^panary-edge$"; then
   echo -e "${BLUE}→ Bestehender Container gefunden — wird aktualisiert...${NC}"
   cd "$INSTALL_DIR"
-  docker compose down 2>/dev/null || true
+  su "$REAL_USER" -c "docker compose down" 2>/dev/null || true
 fi
 
 # ============================================================
@@ -225,10 +228,10 @@ fi
 # ============================================================
 echo -e "${BLUE}→ Image pullen: ${IMAGE}:${TAG}${NC}"
 cd "$INSTALL_DIR"
-docker compose pull
+su "$REAL_USER" -c "cd ${INSTALL_DIR} && docker compose pull"
 
 echo -e "${BLUE}→ Container starten...${NC}"
-docker compose up -d
+su "$REAL_USER" -c "cd ${INSTALL_DIR} && docker compose up -d"
 
 # ============================================================
 # 7. Healthcheck warten

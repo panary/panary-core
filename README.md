@@ -139,12 +139,37 @@ pnpm admin:build                # Production build (admin)
 
 ## Docker (Edge Server)
 
+### Voraussetzung: Multi-Platform Builder
+
+`pnpm docker:release` baut für `linux/amd64` und `linux/arm64` gleichzeitig. Der Standard-Driver von Docker Desktop unterstuetzt das nicht. Einmalig einen `buildx`-Builder erstellen:
+
 ```bash
-# Build the edge server image
+docker buildx create --name panary-builder --use --driver docker-container
+```
+
+Der Builder bleibt persistent und wird bei zukuenftigen Builds automatisch verwendet.
+
+### Befehle
+
+```bash
+# Lokaler Build (nur aktuelle Architektur, kein Push)
 pnpm docker:build
 
-# Build and push to registry
+# Multi-Platform Build + Push in die Registry
 pnpm docker:release
+
+# Lokalen Container starten (z.B. zum Testen)
+mkdir -p data
+docker run -d -p 3030:3030 -v "$(pwd)/data":/app/data --name panary-edge ghcr.io/panary/panary-edge:latest
+```
+
+### Weitere Optionen
+
+```bash
+pnpm docker:build -- --platform amd64    # Gezielt fuer Intel/AMD
+pnpm docker:build -- --platform arm64    # Gezielt fuer ARM
+pnpm docker:build -- --tag 26.4.1        # Fester Tag (kein Auto-Bump)
+pnpm docker:build -- --no-bump           # Aktuellen Tag verwenden
 ```
 
 A `docker-compose.edge.yml` is provided in `tools/docker/` for production deployments with persistent SQLite storage.

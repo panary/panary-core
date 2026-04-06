@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Bitwarden Secrets laden
-        uses: bitwarden/sm-action@v3
+        uses: bitwarden/sm-action@v2
         with:
           access_token: ${{ secrets.BW_ACCESS_TOKEN }}
           base_url: https://tresor.ratke.info

@@ -25,9 +25,9 @@
     "version:bump": "node tools/scripts/bump-version.mjs",
     "docker:build": "bash tools/docker/build-edge.sh",
     "docker:release": "bash tools/docker/build-edge.sh --push",
+    "release": "bash tools/scripts/release-tag.sh --push",
     "release:edge": "bash tools/scripts/release-tag.sh --type edge --push",
-    "release:pos": "bash tools/scripts/release-tag.sh --type pos --push",
-    "release:tag": "bash tools/scripts/release-tag.sh"
+    "release:pos": "bash tools/scripts/release-tag.sh --type pos --push"
   },
   "private": true,
   "devDependencies": {

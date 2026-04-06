@@ -174,12 +174,25 @@ pnpm docker:build -- --no-bump           # Aktuellen Tag verwenden
 
 A `docker-compose.edge.yml` is provided in `tools/docker/` for production deployments with persistent SQLite storage.
 
-## Versioning
+## Releases
 
-Panary Core uses calendar versioning in the format `YY.MM.INDEX` (e.g., `26.4.3`).
+Panary Core uses calendar versioning: `YY.MM.INDEX` (z.B. `26.4.3`).
 
 ```bash
-pnpm version:bump               # Bump version
-pnpm release:edge               # Tag & push edge release
-pnpm release:pos                # Tag & push POS release
+pnpm release                    # Edge + POS gemeinsam (eine Version, beide Pipelines)
+pnpm release:edge               # Nur Edge-Server (Docker-Image)
+pnpm release:pos                # Nur POS-App (Tauri/Windows)
 ```
+
+Ein `pnpm release` bumpt die Version einmal, erstellt beide Tags (`v26.4.X` + `pos-v26.4.X`) und pusht. Die CI baut parallel:
+
+- **`v*`-Tag** → `build-edge-docker.yml` → Docker-Image auf GHCR
+- **`pos-v*`-Tag** → `release-pos-windows.yml` → GitHub Release mit Windows-Installer
+
+### Installation auf Zielsystemen
+
+```bash
+curl -sL http://get.panary.io/install.sh | bash
+```
+
+Das Skript richtet Docker Compose mit Edge-Server + Watchtower (Auto-Updates) ein.

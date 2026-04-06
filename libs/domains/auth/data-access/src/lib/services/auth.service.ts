@@ -124,20 +124,19 @@ export class AuthService {
    * @return {string} A formatted error message string containing the error phrase and description,
    *                  or a default message in case of an unexpected error.
    */
-  private parseError(error: HttpErrorResponse | any): string {
+  private parseError(error: HttpErrorResponse | unknown): string {
     try {
-      let statusCode = error.code
-      // Regex to extract the code
-      const match = error.message.match(/: (\d{3})/)
+      const err = error as { code?: number; message?: string }
+      let statusCode = err.code
+      const match = err.message?.match(/: (\d{3})/)
       if (match) {
-        // The status code is returned as a number
         statusCode = parseInt(match[1], 10)
       }
 
-      const errorPhrase: string = httpErrorCodesDE.getErrorPhrase(statusCode)
-      const errorDescription: string = httpErrorCodesDE.getErrorDescription(statusCode)
+      const errorPhrase: string = httpErrorCodesDE.getErrorPhrase(statusCode ?? 0)
+      const errorDescription: string = httpErrorCodesDE.getErrorDescription(statusCode ?? 0)
       return `${errorPhrase}\n${errorDescription}`
-    } catch (error) {
+    } catch {
       return 'Ein unerwarteter Fehler ist aufgetreten.'
     }
   }
@@ -148,22 +147,23 @@ export class AuthService {
    * @param {HttpErrorResponse | any} httpError The HTTP error object or any other error to handle.
    * @return {Observable<never>} An observable that throws an error with the provided error details.
    */
-  private handleError(httpError: HttpErrorResponse | any): Observable<never> {
-    this.#notificationService.show('error', this.parseError(httpError), 5000, httpError.name)
+  private handleError(httpError: HttpErrorResponse | unknown): Observable<never> {
+    const err = httpError as Record<string, unknown>
+    this.#notificationService.show('error', this.parseError(httpError), 5000, err?.['name'] as string)
 
     this.logErrorDetails(httpError)
 
-    return throwError(() => new Error(httpError))
+    return throwError(() => new Error(String(err?.['message'] ?? httpError)))
   }
 
-  private logErrorDetails(error: HttpErrorResponse | any): void {
-    const errorObject = {
-      code: error.code,
-      message: error.message,
-      name: error.name,
-      data: error.data,
-    }
-    console.error(errorObject)
+  private logErrorDetails(error: HttpErrorResponse | unknown): void {
+    const err = error as Record<string, unknown>
+    console.error({
+      code: err?.['code'],
+      message: err?.['message'],
+      name: err?.['name'],
+      data: err?.['data'],
+    })
   }
 
   private validateExploration(exp: number): boolean {

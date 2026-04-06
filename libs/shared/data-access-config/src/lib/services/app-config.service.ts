@@ -17,7 +17,7 @@ export class AppConfigService {
     try {
       // Loads additional configuration from the server (optional)
       this.runtimeConfig = await lastValueFrom(this.http.get<AppConfig>('/assets/config.json'))
-    } catch (error) {
+    } catch {
       console.warn('Could not load runtime config, using environment config')
     }
   }

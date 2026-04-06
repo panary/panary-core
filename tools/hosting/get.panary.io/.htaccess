@@ -1,0 +1,13 @@
+# Panary Edge Server — Installationsskript-Hosting
+#
+# Browser:  https://get.panary.io       → index.html (Landingpage)
+# Terminal: curl -sL https://get.panary.io/install.sh | bash
+
+# .sh-Dateien als Plain-Text ausliefern
+AddType text/plain .sh
+
+# Browser bekommt index.html
+DirectoryIndex index.html
+
+# Kein Directory-Listing
+Options -Indexes

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Panary Edge Server</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect fill='%230f172a' width='64' height='64' rx='13'/%3E%3Crect fill='%23fff' x='16' y='14' width='13' height='35' rx='2'/%3E%3Crect fill='%23fff' x='32' y='14' width='16' height='19' rx='2'/%3E%3C/svg%3E">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #000;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      max-width: 720px;
+      padding: 2rem;
+      text-align: center;
+    }
+    .logo {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.5rem;
+    }
+    .logo span { color: #94a3b8; font-weight: 400; }
+    .subtitle {
+      color: #64748b;
+      font-size: 0.875rem;
+      margin-bottom: 3rem;
+    }
+    .install-box {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: left;
+      margin-bottom: 2rem;
+    }
+    .install-label {
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #475569;
+      margin-bottom: 0.75rem;
+    }
+    .install-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .install-cmd {
+      flex: 1;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.8125rem;
+      color: #e2e8f0;
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    .copy-btn {
+      background: none;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 0.75rem;
+      cursor: pointer;
+      color: #475569;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .copy-btn:hover { color: #94a3b8; border-color: #334155; }
+    .copy-btn:active { transform: scale(0.9); }
+    .copy-btn.copied {
+      color: #22c55e;
+      border-color: #166534;
+      animation: copy-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .copy-btn svg { width: 18px; height: 18px; }
+    .copy-btn .icon-copy, .copy-btn .icon-check { transition: opacity 0.15s, transform 0.15s; }
+    .copy-btn .icon-check { position: absolute; opacity: 0; transform: scale(0.5); }
+    .copy-btn.copied .icon-copy { opacity: 0; transform: scale(0.5); }
+    .copy-btn.copied .icon-check { opacity: 1; transform: scale(1); }
+    @keyframes copy-pop {
+      0% { transform: scale(0.9); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+    .info {
+      color: #475569;
+      font-size: 0.75rem;
+      line-height: 1.8;
+    }
+    .info a { color: #64748b; text-decoration: none; border-bottom: 1px solid #334155; }
+    .info a:hover { color: #94a3b8; }
+    .dot { display: inline-block; width: 6px; height: 6px; background: #22c55e; border-radius: 50%; margin-right: 6px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">Panary <span>Edge</span></div>
+    <p class="subtitle">Offline-First POS &amp; ERP Server</p>
+
+    <div class="install-box">
+      <div class="install-label">Installation</div>
+      <div class="install-row">
+        <div class="install-cmd">curl -sL http://get.panary.io/install.sh | bash</div>
+        <button class="copy-btn" onclick="copyCmd(this)" title="Copy">
+          <svg class="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="info">
+      <p><span class="dot"></span>Requires Docker &amp; Docker Compose</p>
+      <p>Automatic updates via Watchtower</p>
+      <p style="margin-top: 1.5rem"><a href="https://panary.io">panary.io</a></p>
+    </div>
+  </div>
+
+  <script>
+    function copyCmd(btn) {
+      var text = btn.parentElement.querySelector('.install-cmd').textContent.trim()
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+      } else {
+        var ta = document.createElement('textarea')
+        ta.value = text
+        ta.style.position = 'fixed'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+      }
+      btn.classList.add('copied')
+      setTimeout(function() { btn.classList.remove('copied') }, 2000)
+    }
+  </script>
+</body>
+</html>

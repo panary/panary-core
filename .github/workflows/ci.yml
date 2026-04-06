@@ -2,9 +2,7 @@ name: CI
 
 on:
   push:
-    tags:
-      - 'v*'      # Edge-Server Release (pnpm release:edge)
-      - 'pos-v*'  # POS-Windows Release (pnpm release:pos)
+    branches: [main]
   pull_request:
 
 permissions:
@@ -38,6 +36,6 @@ jobs:
         if: github.event_name == 'pull_request'
         run: pnpm nx affected -t lint,test,build --base=origin/${{ github.base_ref }} --head=HEAD
 
-      - name: Lint & Test (Release-Tag)
+      - name: Lint & Test (Push to main)
         if: github.event_name == 'push'
-        run: pnpm nx run-many -t lint,test,build
+        run: pnpm nx affected -t lint,test,build

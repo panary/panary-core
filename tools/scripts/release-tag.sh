@@ -61,7 +61,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ ! -f "$LICENSE" ]]; then
-  echo "❌ LICENSE-Datei nicht gefunden: $LICENSE"
+  echo "Fehler: LICENSE-Datei nicht gefunden: $LICENSE"
   exit 1
 fi
 
@@ -72,7 +72,7 @@ if [ -n "$MANUAL_TAG" ]; then
   # Version aus Tag extrahieren (v26.4.1 → 26.4.1, pos-v26.4.1 → 26.4.1)
   VERSION="${FULL_TAG#pos-}"
   VERSION="${VERSION#v}"
-  echo "📌 Manueller Tag: $FULL_TAG (Version: $VERSION)"
+  echo "Manueller Tag: $FULL_TAG (Version: $VERSION)"
 else
   # Automatisch hochzählen via bump-version.mjs
   echo "→ Version automatisch anheben..."
@@ -91,9 +91,9 @@ CHANGE_DATE="${CHANGE_YEAR}-$(date +%m-%d)"
 CURRENT_YEAR=$(date +%Y)
 
 echo ""
-echo "📋 Release-Tag:  $FULL_TAG"
-echo "📅 Heute:        $TODAY"
-echo "🔄 Change Date:  $CHANGE_DATE (4 Jahre ab heute)"
+echo "  Release-Tag:   $FULL_TAG"
+echo "  Datum:         $TODAY"
+echo "  Change Date:   $CHANGE_DATE (4 Jahre)"
 echo ""
 
 # LICENSE aktualisieren: Change Date
@@ -124,34 +124,44 @@ if ! git diff --quiet "$LICENSE"; then
 fi
 
 if git diff --cached --quiet; then
-  echo "✅ Keine Änderungen zu committen"
+  echo "Keine Aenderungen zu committen."
 else
   git commit -m "chore(release): $FULL_TAG — BSL Change Date $CHANGE_DATE"
-  echo "✏️  Commit erstellt: $(git log --oneline -1)"
+  echo "Commit: $(git log --oneline -1)"
 fi
 
 # Annotiertes Tag erstellen
 git tag -a "$FULL_TAG" -m "Release $FULL_TAG"
-echo "🏷️  Tag erstellt: $FULL_TAG"
+echo "Tag:    $FULL_TAG"
 
 # Optional pushen → löst CI-Pipeline aus
 if [ "$PUSH" = true ]; then
-  git push origin HEAD
-  git push origin "$FULL_TAG"
-  echo ""
-  echo "🚀 Gepusht → CI-Pipeline läuft jetzt"
+  echo "Pushe Commit + Tag..."
+  git push --quiet origin HEAD
+  git push --quiet origin "$FULL_TAG"
 
+  echo ""
+  echo "=== Release $FULL_TAG erfolgreich ==="
+  echo ""
   case "$TYPE" in
     pos)
-      echo "   Pipeline: release-pos-windows.yml (Tag: $FULL_TAG)"
+      echo "  Pipeline:  release-pos-windows.yml"
+      echo "  Tag:       $FULL_TAG"
       ;;
     *)
-      echo "   Pipeline: build-edge-docker.yml (Tag: $FULL_TAG)"
-      echo "   Image:    ghcr.io/panary/panary-edge:$VERSION"
+      echo "  Pipeline:  build-edge-docker.yml"
+      echo "  Tag:       $FULL_TAG"
+      echo "  Image:     ghcr.io/panary/panary-edge:$VERSION"
       ;;
   esac
+  echo ""
+  echo "  CI-Status: https://github.com/panary/panary-core/actions"
+  echo ""
 else
   echo ""
-  echo "Zum Pushen (startet CI-Pipeline):"
+  echo "=== Tag $FULL_TAG erstellt (lokal) ==="
+  echo ""
+  echo "  Zum Pushen (startet CI-Pipeline):"
   echo "  git push origin HEAD && git push origin $FULL_TAG"
+  echo ""
 fi

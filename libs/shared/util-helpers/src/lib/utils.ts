@@ -151,7 +151,7 @@ export class Utils {
     try {
       const url = new URL(urlString)
       return `${url.protocol}//${url.host}`
-    } catch (error) {
+    } catch {
       throw new Error(`Ungültige URL: ${urlString}`)
     }
   }
@@ -173,7 +173,7 @@ export class Utils {
     try {
       // URL ist in modernen Browsern und Node.js (>= 10) global verfügbar
       return new URL(uriString)
-    } catch (e) {
+    } catch {
       // Ignore error
     }
 

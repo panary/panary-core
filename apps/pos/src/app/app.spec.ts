@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing'
 import { provideRouter } from '@angular/router'
+import { provideHttpClient } from '@angular/common/http'
 import { signal } from '@angular/core'
 import { AppComponent } from './app'
 import { ConnectionService, LanguageService } from '@panary-core/shared/data-access'
+import { ThemeServiceService } from '@panary-core/shared/data-access-theme'
 import { TranslateModule } from '@ngx-translate/core'
 
 describe('AppComponent', () => {
@@ -11,6 +13,7 @@ describe('AppComponent', () => {
       imports: [AppComponent, TranslateModule.forRoot()],
       providers: [
         provideRouter([]),
+        provideHttpClient(),
         {
           provide: ConnectionService,
           useValue: {
@@ -30,6 +33,13 @@ describe('AppComponent', () => {
             languages: [],
             loadLanguagePreference: () => Promise.resolve(),
             setLanguage: () => Promise.resolve(),
+          },
+        },
+        {
+          provide: ThemeServiceService,
+          useValue: {
+            theme: 'system',
+            setTheme: () => Promise.resolve(),
           },
         },
       ],

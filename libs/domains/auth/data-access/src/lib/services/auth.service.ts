@@ -274,7 +274,7 @@ export class AuthService {
     const snackBarMessage = 'Benutzer erfolgreich abgemeldet'
     this.#matSnackBar.open(snackBarMessage, AuthService.SNACKBAR_ACTION, { duration: AuthService.SNACKBAR_DURATION })
 
-    if (redirect) return this.#router.navigateByUrl('/login')
+    if (redirect) return this.#router.navigate(['/login'], { replaceUrl: true })
     else return Promise.resolve(true)
   }
 

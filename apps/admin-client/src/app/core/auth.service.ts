@@ -53,7 +53,8 @@ export class AuthService {
     this.#token.set(null)
     this.#user.set(null)
     localStorage.removeItem(TOKEN_KEY)
-    this.router.navigate(['/login'])
+    // replaceUrl: Browser-History-Eintrag ersetzen, damit "Zurueck" nicht zum Dashboard fuehrt
+    this.router.navigate(['/login'], { replaceUrl: true })
   }
 
   /** Prüft gespeicherten Token beim App-Start */

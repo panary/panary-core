@@ -1,7 +1,7 @@
 import { Component, HostListener, inject, OnInit, signal, WritableSignal } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { Router } from '@angular/router'
-import { DeviceConfigService } from '@panary-core/shared/data-access-config'
+import { APP_CONFIG, DeviceConfigService } from '@panary-core/shared/data-access-config'
 // Direct import to avoid circular dependency with Admin's ConnectionService
 import { ConnectionService } from '@panary-core/shared/data-access'
 import { TimeClockEvent, TimeClockPanelComponent } from './time-clock-panel/time-clock-panel.component'
@@ -41,6 +41,7 @@ export class LoginComponent implements OnInit {
   readonly themeService = inject(ThemeServiceService)
   readonly languageService = inject(LanguageService)
   readonly updateService = inject(UpdateService)
+  readonly appVersion = inject(APP_CONFIG).appVersion
   readonly #translateService = inject(TranslateService)
   readonly languages = LANGUAGES
   //#endregion

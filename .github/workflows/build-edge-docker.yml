@@ -56,4 +56,3 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/panary-edge:${{ steps.version.outputs.tag }}
             ghcr.io/${{ github.repository_owner }}/panary-edge:latest
           cache-from: type=gha
-          cache-to: type=gha,mode=max

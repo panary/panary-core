@@ -3,18 +3,28 @@ import { CanActivateFn, Router } from '@angular/router'
 import { DeviceConfigService } from '@panary-core/shared/data-access-config'
 
 /**
- * POS Auth Guard - Prüft ob Setup abgeschlossen ist.
- * Leitet zur Setup-Seite weiter, wenn keine Geräte-Konfiguration vorhanden ist.
+ * POS Auth Guard — Prueft ob Setup abgeschlossen und ein User eingeloggt ist.
+ * Login-Route: Nur wenn Config vorhanden aber kein User eingeloggt.
+ * Geschuetzte Routen: Nur wenn Config vorhanden UND User eingeloggt.
  */
-export const posAuthGuard: CanActivateFn = () => {
+export const posAuthGuard: CanActivateFn = (route) => {
   const configService = inject(DeviceConfigService)
   const router = inject(Router)
 
-  if (configService.hasConfig()) {
+  if (!configService.hasConfig()) {
+    return router.createUrlTree(['/setup'])
+  }
+
+  // Login-Route braucht keinen User-Check
+  if (route.routeConfig?.path === 'login') {
     return true
   }
 
-  // Wenn keine Config, zur Setup-Seite
-  router.navigate(['/setup'])
-  return false
+  // Geschuetzte Routen: User muss eingeloggt sein
+  const storedUser = localStorage.getItem('pos_current_user')
+  if (!storedUser) {
+    return router.createUrlTree(['/login'])
+  }
+
+  return true
 }

@@ -30,6 +30,7 @@ export const appRoutes: Route[] = [
     path: '',
     component: AppPosShellComponent,
     canActivate: [posAuthGuard],
+    canActivateChild: [posAuthGuard],
     children: [
       {
         path: 'dashboard',

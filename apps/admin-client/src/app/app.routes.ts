@@ -9,6 +9,7 @@ export const appRoutes: Routes = [
     path: '',
     component: AdminLayoutComponent,
     canActivate: [authGuard],
+    canActivateChild: [authGuard],
     children: [
       { path: 'dashboard', loadComponent: () => import('./features/dashboard/dashboard').then(m => m.DashboardComponent) },
       { path: 'users', loadComponent: () => import('./features/users/user-list').then(m => m.UserListComponent) },

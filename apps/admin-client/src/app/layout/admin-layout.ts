@@ -194,14 +194,15 @@ export class AdminLayoutComponent {
   }
 
   navItems = [
-    { path: '/dashboard',      label: 'NAV.DASHBOARD',       icon: 'dashboard'   },
-    { path: '/users',          label: 'NAV.USERS',           icon: 'people'      },
-    { path: '/location',       label: 'NAV.LOCATION',        icon: 'store'       },
-    { path: '/product-groups', label: 'NAV.PRODUCT_GROUPS',  icon: 'category'    },
-    { path: '/products',       label: 'NAV.PRODUCTS',        icon: 'inventory_2' },
-    { path: '/printers',       label: 'NAV.PRINTERS',        icon: 'print'       },
-    { path: '/apikeys',        label: 'NAV.API_KEYS',        icon: 'key'         },
-    { path: '/cloud',          label: 'NAV.CLOUD_CONNECTION', icon: 'cloud'       },
+    { path: '/dashboard',      label: 'NAV.DASHBOARD',        icon: 'dashboard'   },
+    { path: '/users',          label: 'NAV.USERS',            icon: 'people'      },
+    { path: '/product-groups', label: 'NAV.PRODUCT_GROUPS',   icon: 'category'    },
+    { path: '/products',       label: 'NAV.PRODUCTS',         icon: 'inventory_2' },
+    { path: '/orders',         label: 'NAV.ORDERS',           icon: 'receipt_long' },
+    { path: '/printers',       label: 'NAV.PRINTERS',         icon: 'print'       },
+    { path: '/apikeys',        label: 'NAV.API_KEYS',         icon: 'key'         },
+    { path: '/cloud',          label: 'NAV.CLOUD_CONNECTION',  icon: 'cloud'       },
+    { path: '/location',       label: 'NAV.LOCATION',         icon: 'store'       },
   ]
 
   setTheme(theme: string) {

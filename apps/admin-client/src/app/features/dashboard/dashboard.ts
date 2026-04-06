@@ -79,21 +79,56 @@ function formatBytes(bytes: number): string {
 
       <!-- KPI Grid -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        @for (kpi of kpis(); track kpi.label) {
-          <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl p-5 flex items-center gap-4 hover:border-slate-300 dark:hover:border-gray-700 transition-colors">
-            <div class="p-3 rounded-xl shrink-0" [style.background-color]="kpi.iconBg">
-              <span class="material-symbols-outlined text-[22px]" [style.color]="kpi.iconColor">{{ kpi.icon }}</span>
+        @if (loading()) {
+          @for (i of [1,2,3,4,5,6]; track i) {
+            <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl p-5 flex items-center gap-4">
+              <div class="w-[46px] h-[46px] rounded-xl bg-slate-100 dark:bg-gray-800 animate-pulse shrink-0"></div>
+              <div class="space-y-2 flex-1">
+                <div class="h-3 w-24 bg-slate-100 dark:bg-gray-800 rounded animate-pulse"></div>
+                <div class="h-8 w-16 bg-slate-100 dark:bg-gray-800 rounded animate-pulse"></div>
+              </div>
             </div>
-            <div>
-              <p class="text-xs font-semibold text-slate-400 dark:text-gray-500 uppercase tracking-widest">{{ kpi.label | translate }}</p>
-              <p class="text-3xl font-bold mt-0.5 text-slate-900 dark:text-white tabular-nums">{{ kpi.value }}</p>
+          }
+        } @else {
+          @for (kpi of kpis(); track kpi.label) {
+            <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl p-5 flex items-center gap-4 hover:border-slate-300 dark:hover:border-gray-700 transition-colors">
+              <div class="p-3 rounded-xl shrink-0" [style.background-color]="kpi.iconBg">
+                <span class="material-symbols-outlined text-[22px]" [style.color]="kpi.iconColor">{{ kpi.icon }}</span>
+              </div>
+              <div>
+                <p class="text-xs font-semibold text-slate-400 dark:text-gray-500 uppercase tracking-widest">{{ kpi.label | translate }}</p>
+                <p class="text-3xl font-bold mt-0.5 text-slate-900 dark:text-white tabular-nums">{{ kpi.value }}</p>
+              </div>
             </div>
-          </div>
+          }
         }
       </div>
 
       <!-- Edge Server Info -->
-      @if (edgeInfo(); as info) {
+      @if (loading()) {
+        <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl p-5">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <div class="p-2.5 rounded-xl bg-slate-100 dark:bg-gray-800 animate-pulse">
+                <div class="w-[22px] h-[22px]"></div>
+              </div>
+              <div class="space-y-1.5">
+                <div class="h-4 w-28 bg-slate-100 dark:bg-gray-800 rounded animate-pulse"></div>
+                <div class="h-3 w-40 bg-slate-100 dark:bg-gray-800 rounded animate-pulse"></div>
+              </div>
+            </div>
+            <div class="h-6 w-16 bg-slate-100 dark:bg-gray-800 rounded-full animate-pulse"></div>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-3">
+            @for (i of [1,2,3,4,5,6,7,8,9]; track i) {
+              <div class="space-y-1.5">
+                <div class="h-2.5 w-16 bg-slate-100 dark:bg-gray-800 rounded animate-pulse"></div>
+                <div class="h-4 w-24 bg-slate-100 dark:bg-gray-800 rounded animate-pulse"></div>
+              </div>
+            }
+          </div>
+        </div>
+      } @else if (edgeInfo(); as info) {
         <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl p-5">
 
           <div class="flex items-center justify-between mb-4">
@@ -146,6 +181,7 @@ export class DashboardComponent implements OnInit {
   #http = inject(HttpClient)
   #t = inject(TranslateService)
 
+  loading = signal(true)
   cloudStatus = signal<CloudStatus>('standalone')
   statusConfig = computed(() => CLOUD_STATUS_CONFIG[this.cloudStatus()])
 
@@ -177,6 +213,8 @@ export class DashboardComponent implements OnInit {
   ])
 
   async ngOnInit() {
+    const minDelay = new Promise(r => setTimeout(r, 300))
+
     const [kpiResults, healthResult, cloudResult] = await Promise.all([
       Promise.allSettled([
         this.#api.find('users',          { $limit: 0 }),
@@ -188,7 +226,8 @@ export class DashboardComponent implements OnInit {
       ]),
       lastValueFrom(this.#http.get<EdgeServerInfo>(`${window.location.origin}/health`)).catch(() => null),
       this.#api.find<CloudConnection>('cloud-connection', { $limit: 1 }).catch(() => null),
-    ])
+      minDelay,
+    ] as const)
 
     const val = (r: PromiseSettledResult<Paginated<unknown>>) =>
       r.status === 'fulfilled' ? String(r.value.total) : '–'
@@ -205,5 +244,7 @@ export class DashboardComponent implements OnInit {
       const pairingStatus = cloudResult?.data[0]?.pairingStatus
       this.cloudStatus.set(pairingStatus ?? 'disconnected')
     }
+
+    this.loading.set(false)
   }
 }

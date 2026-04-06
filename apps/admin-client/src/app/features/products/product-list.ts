@@ -291,6 +291,24 @@ interface SearchCommand {
                 </tbody>
               </table>
             </div>
+
+            @if (hasMore()) {
+              <div class="flex items-center justify-center py-4">
+                <button (click)="loadMore()" [disabled]="loadingMore()"
+                  class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-gray-400
+                         border border-slate-200 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-gray-800
+                         transition disabled:opacity-50">
+                  @if (loadingMore()) {
+                    <span class="flex items-center gap-2">
+                      <span class="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></span>
+                      {{ 'COMMON.LOADING' | translate }}
+                    </span>
+                  } @else {
+                    {{ 'COMMON.LOAD_MORE' | translate }} ({{ products().length }} / {{ totalProducts() }})
+                  }
+                </button>
+              </div>
+            }
           }
         </div>
       </div>
@@ -368,6 +386,9 @@ export class ProductListComponent implements OnInit {
   private t = inject(TranslateService)
   products = signal<any[]>([])
   loading = signal(true)
+  loadingMore = signal(false)
+  totalProducts = signal(0)
+  hasMore = computed(() => this.products().length < this.totalProducts())
   selectedId = signal<string | null>(null)
 
   private formRef = viewChild<ProductFormComponent>('formRef')
@@ -663,22 +684,35 @@ export class ProductListComponent implements OnInit {
     await this.loadProducts()
   }
 
-  private static readonly TYPE_ORDER: Record<string, number> = { PRODUCT: 0, BUNDLE: 1, MODIFIER: 2 }
+  private static readonly PAGE_SIZE = 200
+  private static readonly QUERY = { $limit: ProductListComponent.PAGE_SIZE, $sort: { name: 1 } }
 
   private async loadProducts() {
     try {
-      const result = await this.api.find<any>('products', { $limit: 200 })
-      const sorted = result.data.sort((a: any, b: any) => {
-        const ta = ProductListComponent.TYPE_ORDER[a.productType] ?? 9
-        const tb = ProductListComponent.TYPE_ORDER[b.productType] ?? 9
-        if (ta !== tb) return ta - tb
-        return (a.name || '').localeCompare(b.name || '')
-      })
-      this.products.set(sorted)
+      const result = await this.api.find<any>('products', ProductListComponent.QUERY)
+      this.totalProducts.set(result.total)
+      this.products.set(result.data)
     } catch (e) {
       console.error('Fehler beim Laden der Produkte:', e)
     }
     this.loading.set(false)
+  }
+
+  async loadMore() {
+    if (!this.hasMore() || this.loadingMore()) return
+    this.loadingMore.set(true)
+    try {
+      const result = await this.api.find<any>('products', {
+        ...ProductListComponent.QUERY,
+        $skip: this.products().length,
+      })
+      this.totalProducts.set(result.total)
+      this.products.update(current => [...current, ...result.data])
+    } catch (e) {
+      console.error('Fehler beim Nachladen der Produkte:', e)
+    } finally {
+      this.loadingMore.set(false)
+    }
   }
 
   // --- Export ---

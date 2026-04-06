@@ -20,6 +20,7 @@ export const appRoutes: Routes = [
       { path: 'products/:id', loadComponent: () => import('./features/products/product-form').then(m => m.ProductFormComponent) },
       { path: 'printers', loadComponent: () => import('./features/printers/printer-management').then(m => m.PrinterManagementComponent) },
       { path: 'apikeys', loadComponent: () => import('./features/apikeys/apikey-list').then(m => m.ApikeyListComponent) },
+      { path: 'orders', loadComponent: () => import('./features/orders/order-list').then(m => m.OrderListComponent) },
       { path: 'cloud', loadComponent: () => import('./features/cloud-connection/cloud-connection').then(m => m.CloudConnectionComponent) },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],

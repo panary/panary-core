@@ -297,6 +297,24 @@ interface ProductGroup {
                 </tbody>
               </table>
             </div>
+
+            @if (hasMore()) {
+              <div class="flex items-center justify-center py-4">
+                <button (click)="loadMore()" [disabled]="loadingMore()"
+                  class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-gray-400
+                         border border-slate-200 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-gray-800
+                         transition disabled:opacity-50">
+                  @if (loadingMore()) {
+                    <span class="flex items-center gap-2">
+                      <span class="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></span>
+                      {{ 'COMMON.LOADING' | translate }}
+                    </span>
+                  } @else {
+                    {{ 'COMMON.LOAD_MORE' | translate }} ({{ groups().length }} / {{ totalGroups() }})
+                  }
+                </button>
+              </div>
+            }
           }
         </div>
       </div>
@@ -368,6 +386,9 @@ export class GroupListComponent implements OnInit {
   private t = inject(TranslateService)
   groups = signal<ProductGroup[]>([])
   loading = signal(true)
+  loadingMore = signal(false)
+  totalGroups = signal(0)
+  hasMore = computed(() => this.groups().length < this.totalGroups())
   selectedId = signal<string | null>(null)
 
   private formRef = viewChild<GroupFormComponent>('formRef')
@@ -587,14 +608,35 @@ export class GroupListComponent implements OnInit {
     this.activeFilters.update(filters => filters.filter(f => f.key !== key))
   }
 
+  private static readonly PAGE_SIZE = 100
+  private static readonly QUERY = { $limit: GroupListComponent.PAGE_SIZE, $sort: { name: 1 } }
+
   private async loadGroups() {
     try {
-      const result = await this.api.find<ProductGroup>('product-groups', { $limit: 100 })
+      const result = await this.api.find<ProductGroup>('product-groups', GroupListComponent.QUERY)
+      this.totalGroups.set(result.total)
       this.groups.set(result.data)
     } catch (e) {
       console.error('Fehler beim Laden der Produktgruppen:', e)
     }
     this.loading.set(false)
+  }
+
+  async loadMore() {
+    if (!this.hasMore() || this.loadingMore()) return
+    this.loadingMore.set(true)
+    try {
+      const result = await this.api.find<ProductGroup>('product-groups', {
+        ...GroupListComponent.QUERY,
+        $skip: this.groups().length,
+      })
+      this.totalGroups.set(result.total)
+      this.groups.update(current => [...current, ...result.data])
+    } catch (e) {
+      console.error('Fehler beim Nachladen der Produktgruppen:', e)
+    } finally {
+      this.loadingMore.set(false)
+    }
   }
 
   // --- Export ---

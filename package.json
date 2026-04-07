@@ -30,6 +30,9 @@
     "release:pos": "bash tools/scripts/release-tag.sh --type pos --push"
   },
   "private": true,
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "devDependencies": {
     "@angular-devkit/core": "~21.1.0",
     "@angular-devkit/schematics": "~21.1.0",

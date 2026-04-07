@@ -1,6 +1,6 @@
 {
   "name": "panary-core",
-  "version": "26.4.13",
+  "version": "26.4.14",
   "license": "BSL-1.1",
   "keywords": [
     "angular",
@@ -34,7 +34,9 @@
     "node": ">=22.0.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["better-sqlite3"]
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ]
   },
   "devDependencies": {
     "@angular-devkit/core": "~21.1.0",

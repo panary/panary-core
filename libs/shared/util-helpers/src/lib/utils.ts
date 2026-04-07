@@ -112,7 +112,7 @@ export class Utils {
     }
     const map = new Map<string, string>()
     const pairs = (url.search[0] === '?' ? url.search.substr(1) : url.search).split('&')
-    pairs.forEach(pair => {
+    pairs.forEach((pair: string) => {
       const parts = pair.split('=')
       if (parts.length < 1) {
         return

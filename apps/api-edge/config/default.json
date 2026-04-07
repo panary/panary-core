@@ -18,8 +18,10 @@
     "max": 250
   },
   "sqlite": {
-    "client": "sqlite3",
-    "connection": "data/api-edge.sqlite",
+    "client": "better-sqlite3",
+    "connection": {
+      "filename": "data/api-edge.sqlite"
+    },
     "useNullAsDefault": true
   },
   "authentication": {

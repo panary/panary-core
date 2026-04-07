@@ -21,8 +21,12 @@ export const sqlite = (app: Application) => {
   }
 
   // Connection-Pfad absolut auflösen (relativ zu process.cwd() = Workspace-Root bei nx serve)
-  if (typeof config.connection === 'string') {
-    config.connection = path.resolve(process.cwd(), config.connection)
+  // better-sqlite3 erwartet { filename: '...' }, Knex-Typen kennen dieses Feld nicht
+  const conn = config.connection as any
+  if (typeof conn === 'string') {
+    ;(config as any).connection = { filename: path.resolve(process.cwd(), conn) }
+  } else if (conn?.filename) {
+    conn.filename = path.resolve(process.cwd(), conn.filename)
   }
 
   // --- Start: Migration Source Path Fix ---

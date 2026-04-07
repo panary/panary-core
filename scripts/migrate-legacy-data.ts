@@ -25,7 +25,7 @@ const DB_PATH = resolve(__dirname, '../data/api-edge.sqlite')
 // ── Datenbank-Verbindung ───────────────────────────────────────────────────────
 
 const db = knex({
-  client: 'sqlite3',
+  client: 'better-sqlite3',
   connection: { filename: DB_PATH },
   useNullAsDefault: true,
 })

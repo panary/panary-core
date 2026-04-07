@@ -79,11 +79,15 @@ docker buildx build --platform linux/amd64 \
   -f tools/docker/Dockerfile.edge -t panary-edge:test --load .
 ```
 
-## Empfehlung: sqlite3 → better-sqlite3
+## Migration: sqlite3 → better-sqlite3 (abgeschlossen)
 
-Langfristig sollte eine Migration von `sqlite3` zu `better-sqlite3` erwogen werden:
-- Zuverlässigere Prebuilds (prebuild statt prebuild-install)
-- Synchrone API (bessere Performance bei Single-Threaded-Workloads)
-- Aktiver gepflegt
+Die Migration wurde durchgeführt. Änderungen:
 
-**Achtung:** Dies ist ein separates Projekt, da Knex-Client-Konfiguration und ggf. API-Aufrufe angepasst werden müssen.
+1. **Dependency-Swap:** `sqlite3@^5.1.7` → `better-sqlite3@^11.0.0`
+2. **Knex-Client:** `"client": "sqlite3"` → `"client": "better-sqlite3"` in `config/default.json`
+3. **Connection-Format:** `"connection": "path"` (String) → `"connection": { "filename": "path" }` (Objekt, von better-sqlite3 erwartet)
+4. **Pfad-Auflösung:** `sqlite.ts` und `knexfile.ts` auf Objekt-Format angepasst
+5. **Build-Scripts:** `pnpm.onlyBuiltDependencies` in `package.json` für better-sqlite3 freigeschaltet
+6. **Legacy-Skript:** `scripts/migrate-legacy-data.ts` Client-String angepasst
+
+Keine Änderungen nötig an: Migrationen (21 Dateien), Services (16 Dateien), Hooks, Service-Factory.

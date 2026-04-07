@@ -4,6 +4,7 @@ import { Observable } from 'rxjs'
 
 export interface SetupPayload {
   shopName: string
+  locationName: string
   adminEmail: string
   adminPassword?: string // Optional depending on mode
   mode: 'standalone' | 'cloud'

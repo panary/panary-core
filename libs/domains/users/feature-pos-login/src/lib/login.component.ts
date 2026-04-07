@@ -17,7 +17,6 @@ interface PosUser {
   lastName: string
   email?: string
   isPosUser: boolean
-  posPin?: string
   employeeNumber?: string
   avatar?: string
   initials: string
@@ -193,7 +192,6 @@ export class LoginComponent implements OnInit {
             lastName: string
             email?: string
             isPosUser: boolean
-            posPin?: string
             employeeNumber?: string
             staffRole?: string
             avatar?: string
@@ -259,36 +257,32 @@ export class LoginComponent implements OnInit {
     this.isLoading.set(true)
 
     try {
-      // TODO: Verify PIN via backend
-      // For now, use local verification
-      if (this.pinInput() === user.posPin) {
-        // Store logged in user
-        localStorage.setItem(
-          'pos_current_user',
-          JSON.stringify({
-            _id: user._id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            initials: user.initials,
-            employeeNumber: user.employeeNumber,
-            staffRole: user.staffRole,
-          }),
-        )
+      // Serverseitige PIN-Verifizierung via Custom-Methode
+      const usersService = this.connectionService.usersService as any
+      const verifiedUser = await usersService.verifyPin({ userId: user._id, pin: this.pinInput() })
 
-        this.router.navigate(['/dashboard'])
-      } else {
-        this.pinError.set(true)
-        this.pinInput.set('')
+      // Store logged in user
+      localStorage.setItem(
+        'pos_current_user',
+        JSON.stringify({
+          _id: verifiedUser._id,
+          firstName: verifiedUser.firstName,
+          lastName: verifiedUser.lastName,
+          initials: user.initials,
+          employeeNumber: verifiedUser.employeeNumber,
+          staffRole: verifiedUser.staffRole,
+        }),
+      )
 
-        // Vibrate if supported
-        if (navigator.vibrate) {
-          navigator.vibrate([100, 50, 100])
-        }
-      }
+      this.router.navigate(['/dashboard'])
     } catch (error) {
-      console.error('PIN verification failed:', error)
       this.pinError.set(true)
       this.pinInput.set('')
+
+      // Vibrate if supported
+      if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100])
+      }
     } finally {
       this.isLoading.set(false)
     }

@@ -138,6 +138,8 @@
     "EMPLOYEE_NUMBER_INVALID": "Genau 6 Ziffern.",
     "POS_PIN": "POS-PIN (4\u20136 Ziffern)",
     "POS_PIN_INVALID": "4\u20136 Ziffern.",
+    "PIN_SET": "gesetzt",
+    "PIN_CLICK_TO_CHANGE": "Klicken um zu \u00e4ndern",
     "STAFF_MEAL_DISCOUNT": "Personalessen & Rabatt",
     "STAFF_MEAL_ELIGIBLE": "Personalessen berechtigt",
     "DISCOUNT_TYPE": "Rabatt-Typ",

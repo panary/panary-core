@@ -138,6 +138,8 @@
     "EMPLOYEE_NUMBER_INVALID": "Tam 6 basamak.",
     "POS_PIN": "POS PIN (4\u20136 basamak)",
     "POS_PIN_INVALID": "4\u20136 basamak.",
+    "PIN_SET": "ayarland\u0131",
+    "PIN_CLICK_TO_CHANGE": "De\u011fi\u015ftirmek i\u00e7in t\u0131klay\u0131n",
     "STAFF_MEAL_DISCOUNT": "Personel Yeme\u011fi & \u0130ndirim",
     "STAFF_MEAL_ELIGIBLE": "Personel yeme\u011fi hakk\u0131 var",
     "DISCOUNT_TYPE": "\u0130ndirim T\u00fcr\u00fc",

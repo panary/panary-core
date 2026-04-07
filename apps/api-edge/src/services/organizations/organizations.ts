@@ -14,15 +14,17 @@ const organizationsService = (app: Application) => ({
   async find(_params?: unknown) {
     const knex = app.get('sqliteClient')
 
+    // organizationName hat Vorrang; Fallback auf den ersten Location-Namen
     const rows = await knex('locations')
       .select('tenantId')
+      .min('organizationName as organizationName')
       .min('name as name')
       .groupBy('tenantId')
-      .whereNotNull('tenantId') as { tenantId: string; name: string }[]
+      .whereNotNull('tenantId') as { tenantId: string; organizationName: string | null; name: string }[]
 
     return rows.map(row => ({
       _id: row.tenantId,
-      name: row.name,
+      name: row.organizationName || row.name,
     }))
   },
 })

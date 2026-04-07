@@ -3,6 +3,7 @@ import { resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 import { passwordHash } from '@feathersjs/authentication-local'
 import { uuidv7 } from 'uuidv7'
+import bcrypt from 'bcryptjs'
 import type { HookContext } from '../../declarations'
 import { dataValidator, queryValidator } from '../../validators'
 import { logger } from '../../logger'
@@ -19,8 +20,11 @@ export const userResolver = resolve<User, HookContext<UserService>>({
   // die das Passwort für den bcrypt-Vergleich brauchen.
 })
 export const userExternalResolver = resolve<User, HookContext<UserService>>({
-  // NEVER send the password back to the client!
-  password: async () => undefined
+  // Sensible Felder NIEMALS an den Client senden!
+  password: async () => undefined,
+  // PIN-Hash nie senden, aber Hinweis ob ein PIN gesetzt ist
+  posPin: async () => undefined,
+  hasPosPin: async (value: any, user: any) => !!user.posPin,
 })
 //#endregion
 
@@ -40,6 +44,23 @@ export const userDataResolver = resolve<User, HookContext<UserService>>({
   // Set timestamp
   createdAt: async () => new Date().toISOString(),
   updatedAt: async () => new Date().toISOString(),
+
+  // POS-PIN hashen (bcrypt, Cost Factor 6 — niedrig, da nur 4-6 Ziffern)
+  posPin: async (value: any) => {
+    if (!value) return value
+    return bcrypt.hashSync(value, 6)
+  },
+
+  // Automatisch die Location des erstellenden Users zuweisen (Edge-Modus: eine Location)
+  activeLocationId: async (value: any, data: any, context: HookContext) => {
+    if (value) return value
+    return context.params.user?.activeLocationId || context.params.user?.locationId || null
+  },
+  allowedLocationIds: async (value: any, data: any, context: HookContext) => {
+    if (value && Array.isArray(value) && value.length > 0) return value
+    const locationId = context.params.user?.activeLocationId || context.params.user?.locationId
+    return locationId ? [locationId] : []
+  },
 
   // Generate personnel number
   employeeNumber: async (value, user, context) => {
@@ -76,7 +97,12 @@ export const userPatchResolver = resolve<User, HookContext<UserService>>({
   createdAt: async () => undefined,
   updatedAt: async () => new Date().toISOString(),
   // Auch beim Update: Passwort hashen, falls es geändert wird
-  password: passwordHash({ strategy: 'local' })
+  password: passwordHash({ strategy: 'local' }),
+  // POS-PIN hashen, falls er geändert wird
+  posPin: async (value: any) => {
+    if (!value) return value
+    return bcrypt.hashSync(value, 6)
+  },
 })
 //#endregion
 

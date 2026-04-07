@@ -57,6 +57,7 @@ export const userSchema = Type.Object(
     staffRole: Type.Optional(Type.String()), // z.B. 'waiter'
     isPosUser: Type.Optional(Type.Boolean({ default: false })),
     posPin: Type.Optional(Type.String({ minLength: 4, maxLength: 6 })), // Pattern prüfung machen wir im Validator
+    hasPosPin: Type.Optional(Type.Boolean()), // Virtuelles Feld — vom externalResolver gesetzt, nie in DB gespeichert
     employeeNumber: Type.Optional(Type.String({ minLength: 6, maxLength: 6 })),
 
     // Persönliche Daten
@@ -89,15 +90,16 @@ export type User = Static<typeof userSchema>
 
 //#region Schema für das Erstellen (POST)
 // Wir picken nur die Felder, die der Client senden darf
-// Beim Create erforderlich: loginname, password, tenantId
-// Alles andere hat Defaults oder wird serverseitig gesetzt
+// Beim Create erforderlich: loginname, password
+// tenantId wird vom multiTenancy-Hook gesetzt, nicht vom Client
 export const userDataSchema = Type.Intersect(
   [
     // Pflichtfelder beim Create
-    Type.Pick(userSchema, ['loginname', 'password', 'tenantId']),
+    Type.Pick(userSchema, ['loginname', 'password']),
     // Optionale Felder (haben Defaults oder sind im Schema bereits Optional)
     Type.Partial(
       Type.Pick(userSchema, [
+        'tenantId',
         'activeLocationId',
         'allowStaffMealOrders',
         'allowedLocationIds',

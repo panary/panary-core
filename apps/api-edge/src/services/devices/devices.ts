@@ -158,6 +158,13 @@ export const devices = (app: Application) => {
           if (!device?._id) return context
 
           try {
+            // Raw-Key hier generieren und als _rawApiKey mitgeben, damit der
+            // apikeyDataResolver diesen verwendet statt einen neuen zu erzeugen.
+            // Bei internen Aufrufen (provider: undefined) laeuft der externalResolver
+            // NICHT, daher muss der Raw-Key explizit weitergegeben werden.
+            const { randomUUID } = await import('node:crypto')
+            const rawApiKey = randomUUID()
+
             const apiKeyRecord = await context.app.service('apikeys').create(
               {
                 name: `${device.name} API Key`,
@@ -165,14 +172,14 @@ export const devices = (app: Application) => {
                 tenantId: device.tenantId,
                 locationId: device.locationId,
               },
-              { provider: undefined },
+              { provider: undefined, _rawApiKey: rawApiKey } as any,
             )
 
             // deviceId → apiKeyId verknüpfen
             await context.app.service('devices').patch(device._id, { apiKeyId: apiKeyRecord._id }, { provider: undefined })
 
-            // API-Key nur bei Erstellung zurückgeben (nicht bei späteren Abfragen)
-            device.apiKey = apiKeyRecord.apikey
+            // Klartext-Key an den Client zurueckgeben (Show-Once)
+            device.apiKey = rawApiKey
           } catch (err) {
             logger.error({ message: 'Failed to create API key for device', event: 'devices.apikey_error', error: String(err) })
           }

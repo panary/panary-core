@@ -145,6 +145,7 @@ export const locationSchema = Type.Object(
 
     email: Type.Optional(Type.String({ format: 'email' })),
     name: Type.String(),
+    organizationName: Type.Optional(Type.String()),
     phone: Type.Optional(Type.String()),
     settings: Type.Optional(settingsSchema),
     status: Type.Optional(StringEnum(Object.values(LocationStatus))),

@@ -5,6 +5,7 @@ import type { HookContext } from '../../declarations'
 import { dataValidator, queryValidator } from '../../validators'
 import { randomUUID } from 'node:crypto'
 import { uuidv7 } from 'uuidv7'
+import { sha256 } from '../../utils/crypto.utils'
 
 // Import domain schema
 import {
@@ -21,10 +22,13 @@ import { UserSystemRole } from '@panary-core/users/domain'
 export const apikeyValidator = getValidator(apikeySchema, dataValidator)
 export const apikeyResolver = resolve<Apikey, HookContext>({})
 export const apikeyExternalResolver = resolve<Apikey, HookContext>({
-  // Apikey NIEMALS an den Client zurücksenden!
+  // Apikey-Hash NIEMALS an den Client zuruecksenden!
+  // Bei CREATE: Den Klartext-Key aus context.params._rawApiKey zurueckgeben (Show-Once)
   apikey: async (value: any, apiKey: any, context: HookContext): Promise<string | undefined> => {
-    return context.method === 'create' ? value : undefined
-  }
+    if (context.method === 'create') return context.params._rawApiKey
+    return undefined
+  },
+  apikeyPrefix: async () => undefined,
 })
 //#endregion
 
@@ -37,7 +41,16 @@ export const apikeyDataResolver = resolve<Apikey, HookContext>({
     // In this case, we accept the value ('value'), otherwise we generate a new ID.
     return value || uuidv7()
   },
-  apikey: async (): Promise<string> => randomUUID(),
+  apikey: async (value: any, data: any, context: HookContext): Promise<string> => {
+    // Show-Once-Then-Hash: Klartext-Key generieren, Hash speichern
+    // Interner Aufrufer (z.B. devices.ts) kann den Raw-Key via params._rawApiKey vorgeben
+    const rawKey = context.params._rawApiKey || randomUUID()
+    context.params._rawApiKey = rawKey
+    return sha256(rawKey)
+  },
+  apikeyPrefix: async (value: any, data: any, context: HookContext): Promise<string> => {
+    return (context.params._rawApiKey || '').slice(0, 8)
+  },
   active: async (): Promise<boolean> => true,
   createdAt: async (): Promise<string> => new Date().toISOString(),
   updatedAt: async (): Promise<string> => new Date().toISOString(),
@@ -78,6 +91,7 @@ export const apikeyPatchResolver = resolve<Apikey, HookContext>({
   tenantId: async () => undefined,
   locationId: async () => undefined,
   apikey: async () => undefined,
+  apikeyPrefix: async () => undefined,
   name: async () => undefined,
   description: async () => undefined,
   role: async () => undefined,

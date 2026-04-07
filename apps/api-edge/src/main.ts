@@ -5,6 +5,7 @@ import path from 'path'
 import { startSetupApp } from './setup-app'
 import { constants } from 'fs'
 import { UserSystemRole } from '@panary-core/users/domain'
+import { uuidv7 } from 'uuidv7'
 
 const CONFIG_PATH =
   process.env['PANARY_CONFIG_PATH'] || path.join(process.cwd(), 'data', 'panary.config.json')
@@ -167,6 +168,65 @@ async function main() {
           await attemptRecovery(`Admin-Bootstrap SQLITE_ERROR: ${err.message}`)
         }
       }
+    }
+    // -----------------------------------------------------------------------
+
+    // --- Bootstrapping: Location + Tenant erstellen (falls noch keine existiert) ---
+    try {
+      const locationCount = await knex('locations').count('* as cnt').first()
+      if (!locationCount || Number(locationCount.cnt) === 0) {
+        const tenantId = uuidv7()
+        const locationId = uuidv7()
+        const locationName = config.locationName || config.shopName || 'Hauptstandort'
+        const organizationName = config.shopName || locationName
+        const now = new Date().toISOString()
+
+        logger.info({
+          message: `Bootstrapping: Erstelle Location "${locationName}" (Org: "${organizationName}") mit tenantId ${tenantId}`,
+          event: 'bootstrap.location_create',
+          tenantId,
+          locationId,
+          locationName,
+          organizationName,
+        })
+
+        // Direkt via Knex einfuegen — umgeht Schema-Validierung (address ist beim
+        // Bootstrap noch nicht vorhanden, kann spaeter im Admin-Panel ergaenzt werden)
+        await knex('locations').insert({
+          _id: locationId,
+          tenantId,
+          name: locationName,
+          organizationName,
+          status: 'ACTIVE',
+          settings: JSON.stringify({}),
+          createdAt: now,
+          updatedAt: now,
+        })
+
+        // Admin-User dem Tenant zuordnen
+        const adminUser = await knex('users')
+          .where({ role: UserSystemRole.PLATFORM_OWNER })
+          .whereNull('tenantId')
+          .first()
+
+        if (adminUser) {
+          await knex('users').where({ _id: adminUser._id }).update({
+            tenantId,
+            activeLocationId: locationId,
+            allowedLocationIds: JSON.stringify([locationId]),
+          })
+
+          logger.info({
+            message: `Bootstrapping: Admin-User ${adminUser.loginname} dem Tenant zugeordnet`,
+            event: 'bootstrap.admin_tenant_assigned',
+            userId: adminUser._id,
+            tenantId,
+            locationId,
+          })
+        }
+      }
+    } catch (err: any) {
+      logger.error('Bootstrapping: Location-Erstellung fehlgeschlagen.', err)
     }
     // -----------------------------------------------------------------------
 

@@ -4,6 +4,7 @@ import type { AuthenticationResult } from '@feathersjs/authentication'
 import '@feathersjs/transport-commons'
 import type { Application, HookContext } from './declarations'
 import { logger } from './logger'
+import { sha256, timingSafeCompare } from './utils/crypto.utils'
 
 export const channels = (app: Application) => {
   logger.info({
@@ -19,21 +20,22 @@ export const channels = (app: Application) => {
     if (handshakeAuth?.apiKey && handshakeAuth?.deviceId) {
       // --- DEVICE AUTH FLOW ---
       try {
-        const result = await app.service('apikeys').find(
-          {
-            query: {
-              apikey: handshakeAuth.apiKey,
-              deviceId: handshakeAuth.deviceId,
-              $limit: 1,
-            },
-            provider: undefined,
-          }
-        ) as { data: any[] } | any[]
+        // Lookup direkt via Knex (umgeht Service-Hooks/Validierung/Auth)
+        const inputKey = handshakeAuth.apiKey as string
+        const inputHash = sha256(inputKey)
+        const inputPrefix = inputKey.slice(0, 8)
+        const knex = app.get('sqliteClient')
 
-        const entries = Array.isArray(result) ? result : (result as any).data ?? []
+        const candidates = await knex('apikeys')
+          .where({ apikeyPrefix: inputPrefix, deviceId: handshakeAuth.deviceId })
+          .limit(5)
 
-        if (entries.length > 0 && entries[0].active) {
-          const apiKeyRecord = entries[0]
+        // Timing-Safe Hash-Vergleich gegen alle Kandidaten
+        const apiKeyRecord = candidates.find(
+          (entry: any) => entry.active && timingSafeCompare(inputHash, entry.apikey)
+        )
+
+        if (apiKeyRecord) {
           logger.info({
             message: 'Device authenticated via API key',
             event: 'device.auth',

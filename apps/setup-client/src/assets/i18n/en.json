@@ -26,7 +26,12 @@
     },
     "CONFIG": {
       "TITLE": "Configuration",
-      "SHOP_NAME": "Shop Name",
+      "SHOP_NAME": "Business Name",
+      "SHOP_NAME_PLACEHOLDER": "e.g. Miller's Bakery",
+      "SHOP_NAME_HINT": "Your company name. Used as the organization in the cloud.",
+      "LOCATION_NAME": "Location Name",
+      "LOCATION_NAME_PLACEHOLDER": "e.g. 123 Main Street",
+      "LOCATION_NAME_HINT": "Address or name of this location. A business can have multiple locations.",
       "ADMIN_EMAIL": "Admin Email",
       "ADMIN_PASSWORD": "Admin Password",
       "ADMIN_PASSWORD_CONFIRM": "Confirm Admin Password",

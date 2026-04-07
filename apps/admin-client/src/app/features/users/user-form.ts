@@ -117,13 +117,24 @@ import { objectHash } from '../../core/dirty-check'
             <div class="space-y-1">
               <label for="posPin" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                 {{ 'USERS.POS_PIN' | translate }}
+                @if (!isNew() && hasPosPin() && !editingPin()) {
+                  <span class="text-slate-400 dark:text-gray-500 normal-case tracking-normal">({{ 'USERS.PIN_SET' | translate }})</span>
+                }
               </label>
-              <input id="posPin" [(ngModel)]="form.posPin" name="posPin" #posPin="ngModel"
-                type="text" minlength="4" maxlength="6" pattern="[0-9]*"
-                inputmode="numeric" placeholder="z.B. 1234"
-                [class]="inputClass(posPin)" />
-              @if (posPin.invalid && posPin.touched) {
-                <p class="text-red-500 dark:text-red-400 text-xs mt-1">{{ 'USERS.POS_PIN_INVALID' | translate }}</p>
+              @if (!isNew() && hasPosPin() && !editingPin()) {
+                <button type="button" (click)="editingPin.set(true); form.posPin = ''"
+                  class="w-full text-left bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
+                         text-slate-400 dark:text-gray-500 hover:border-slate-400 dark:hover:border-gray-600 transition cursor-pointer">
+                  &#x2022;&#x2022;&#x2022;&#x2022; &mdash; {{ 'USERS.PIN_CLICK_TO_CHANGE' | translate }}
+                </button>
+              } @else {
+                <input id="posPin" [(ngModel)]="form.posPin" name="posPin" #posPin="ngModel"
+                  type="text" minlength="4" maxlength="6" pattern="[0-9]*"
+                  inputmode="numeric" [placeholder]="isNew() ? 'z.B. 1234' : 'Neuen PIN eingeben'"
+                  [class]="inputClass(posPin)" />
+                @if (posPin.invalid && posPin.touched) {
+                  <p class="text-red-500 dark:text-red-400 text-xs mt-1">{{ 'USERS.POS_PIN_INVALID' | translate }}</p>
+                }
               }
             </div>
           </div>
@@ -213,13 +224,15 @@ export class UserFormComponent {
 
   id = input<string>()
   panelMode = input(false)
-  saved = output<void>()
+  saved = output<string | void>()
   closed = output<void>()
 
   isNew = signal(true)
   saving = signal(false)
   savedSuccess = signal(false)
   errors = signal<string[]>([])
+  hasPosPin = signal(false)
+  editingPin = signal(false)
   private formRef = viewChild<NgForm>('f')
   private originalHash = ''
 
@@ -290,6 +303,8 @@ export class UserFormComponent {
     this.isNew.set(false)
     try {
       const user = await this.api.get<any>('users', userId)
+      this.hasPosPin.set(!!user.hasPosPin)
+      this.editingPin.set(false)
       this.form = {
         loginname: user.loginname || '',
         firstName: user.firstName || '',
@@ -299,7 +314,7 @@ export class UserFormComponent {
         role: user.role || 'tenant:staff',
         staffRole: user.staffRole || '',
         isPosUser: user.isPosUser ?? true,
-        posPin: user.posPin || '',
+        posPin: '',
         employeeNumber: user.employeeNumber || '',
         allowStaffMealOrders: user.allowStaffMealOrders ?? false,
         discountType: user.discountDetails?.discountType || 'percent',
@@ -344,15 +359,17 @@ export class UserFormComponent {
       delete data.discountType
       delete data.discount
 
+      let createdId: string | undefined
       if (this.isNew()) {
-        await this.api.create('users', data)
+        const result = await this.api.create<any>('users', data)
+        createdId = result?._id
       } else {
         await this.api.patch('users', this.id()!, data)
       }
       this.originalHash = objectHash(this.form)
       this.savedSuccess.set(true)
       this.cdr.markForCheck()
-      if (this.panelMode()) this.saved.emit()
+      if (this.panelMode()) this.saved.emit(createdId)
       setTimeout(() => {
         this.savedSuccess.set(false)
         this.cdr.markForCheck()

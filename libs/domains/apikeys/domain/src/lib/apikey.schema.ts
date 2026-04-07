@@ -11,7 +11,8 @@ export const apikeySchema = Type.Object(
   {
     ...baseSchema,
 
-    apikey: Type.String(),
+    apikey: Type.String(), // SHA-256-Hash des Keys (Klartext nur bei Erstellung sichtbar)
+    apikeyPrefix: Type.Optional(Type.String()), // Erste 8 Zeichen des Klartext-Keys fuer Lookup
     name: Type.String(),
     deviceId: Type.Optional(Type.String({ format: 'uuid' })), // Associated device ID (optional)
     validUntil: Type.Optional(Type.String({ format: 'date-time' })),
@@ -60,7 +61,7 @@ export type ApikeyPatch = Static<typeof apikeyPatchSchema>
 //#endregion
 
 //#region Schema für Suchanfragen (Query)
-export const apikeyQueryProperties = Type.Pick(apikeySchema, ['_id', 'apikey', 'deviceId', 'locationId', 'tenantId'])
+export const apikeyQueryProperties = Type.Pick(apikeySchema, ['_id', 'apikey', 'apikeyPrefix', 'deviceId', 'locationId', 'tenantId'])
 export const apikeyQuerySchema = Type.Intersect(
   [
     querySyntax(apikeyQueryProperties),

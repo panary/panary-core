@@ -24,10 +24,11 @@ import { createServiceAdapter } from '@panary-core/shared/data-access/server'
 
 const USER_JSON_FIELDS = ['discountDetails', 'allowedLocationIds', 'permissions']
 import { DatabaseType } from '@panary-core/shared/common'
-import { Conflict } from '@feathersjs/errors'
+import { Conflict, NotAuthenticated } from '@feathersjs/errors'
+import bcrypt from 'bcryptjs'
 
 export const usersPath = 'users'
-export const usersMethods = ['find', 'get', 'create', 'patch', 'remove', 'checkin', 'checkout', 'startBreak', 'endBreak'] as const
+export const usersMethods = ['find', 'get', 'create', 'patch', 'remove', 'checkin', 'checkout', 'startBreak', 'endBreak', 'verifyPin'] as const
 
 export type { UserService } from './users.class'
 export * from './users.schema'
@@ -132,6 +133,24 @@ export const users = (app: Application) => {
     ]
     await app.service('working-times').patch(user.stampingId, { breaks: updatedBreaks }, { provider: undefined })
     return app.service('users').patch(userId, { startBreakAt: null }, { provider: undefined })
+  }
+
+  // Custom method: verifyPin — serverseitige POS-PIN-Verifizierung
+  // Gibt den User (ohne sensible Felder) zurück, wenn der PIN korrekt ist.
+  service.verifyPin = async (data: { userId: string; pin: string }) => {
+    const { userId, pin } = data
+    if (!userId || !pin) throw new NotAuthenticated('userId und pin sind erforderlich')
+
+    // Interner Aufruf — umgeht resolveExternal, damit posPin-Hash geladen wird
+    const user = await app.service('users').get(userId, { provider: undefined })
+    if (!user.posPin) throw new NotAuthenticated('Kein PIN gesetzt')
+
+    const isValid = await bcrypt.compare(pin, user.posPin)
+    if (!isValid) throw new NotAuthenticated('PIN ungueltig')
+
+    // Sensible Felder entfernen
+    const { posPin: _pin, password: _pw, ...safeUser } = user as any
+    return safeUser
   }
 
   // 4. Register the service - as any, since the Factory returns KnexService OR MongoDBService

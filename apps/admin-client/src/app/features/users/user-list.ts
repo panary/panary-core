@@ -135,7 +135,7 @@ interface User {
             <app-user-form #formRef
               [id]="selectedId()!"
               [panelMode]="true"
-              (saved)="onItemSaved()"
+              (saved)="onItemSaved($event)"
               (closed)="tryClose()" />
           </div>
         </div>
@@ -226,8 +226,12 @@ export class UserListComponent implements OnInit {
     this.pendingNavAction = null
   }
 
-  async onItemSaved() {
+  async onItemSaved(createdId?: string | void) {
     await this.loadUsers()
+    // Nach dem Erstellen eines neuen Users automatisch dessen Detail-Ansicht laden
+    if (createdId) {
+      this.selectedId.set(createdId)
+    }
   }
 
   async ngOnInit() {

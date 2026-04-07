@@ -29,6 +29,7 @@ export class Wizard {
   form = this.fb.group(
     {
       shopName: ['', Validators.required],
+      locationName: ['', Validators.required],
       adminEmail: ['', [Validators.required, Validators.email]],
       adminPassword: ['', [Validators.required, Validators.minLength(8)]],
       adminPasswordConfirm: ['', [Validators.required]],
@@ -65,8 +66,9 @@ export class Wizard {
     const formValue = this.form.getRawValue()
 
     const payload: SetupPayload = {
-      mode: this.mode()!, // Valid because check above
+      mode: this.mode()!,
       shopName: formValue.shopName || '',
+      locationName: formValue.locationName || '',
       adminEmail: formValue.adminEmail || '',
       adminPassword: formValue.adminPassword || undefined,
     }

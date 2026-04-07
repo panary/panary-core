@@ -27,6 +27,11 @@
     "CONFIG": {
       "TITLE": "Yapılandırma",
       "SHOP_NAME": "İşletme Adı",
+      "SHOP_NAME_PLACEHOLDER": "ör. Müller Fırını",
+      "SHOP_NAME_HINT": "İşletmenizin adı. Bulutta organizasyon olarak kullanılır.",
+      "LOCATION_NAME": "Konum Adı",
+      "LOCATION_NAME_PLACEHOLDER": "ör. Atatürk Caddesi 46",
+      "LOCATION_NAME_HINT": "Bu konumun adresi veya adı. Bir işletmenin birden fazla konumu olabilir.",
       "ADMIN_EMAIL": "Yönetici E-posta",
       "ADMIN_PASSWORD": "Yönetici Şifresi",
       "ADMIN_PASSWORD_CONFIRM": "Yönetici Şifresini Onayla",

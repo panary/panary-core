@@ -74,9 +74,9 @@ interface ExistingProduct { _id: string; acronym: string; categoryIds: string[] 
               <div class="text-sm text-slate-600 dark:text-gray-400 leading-relaxed">
                 <p class="mb-2">Unser System kennt <strong>drei Produkttypen</strong>:</p>
                 <ul class="space-y-1.5 text-xs text-slate-500 dark:text-gray-400">
-                  <li><strong class="text-slate-700 dark:text-gray-300">📦 Produkt</strong> — Regulärer Artikel (Pizza, Cola, Salat)</li>
-                  <li><strong class="text-slate-700 dark:text-gray-300">➕ Modifier</strong> — Zusatz/Extra (Extra Käse, Soße)</li>
-                  <li><strong class="text-slate-700 dark:text-gray-300">🍽️ Menü</strong> — Bundle aus mehreren Produkten</li>
+                  <li class="flex items-center gap-1.5"><img src="assets/icons/icon-product.svg" alt="" class="w-4 h-4 inline-block" /><strong class="text-slate-700 dark:text-gray-300">Produkt</strong> — Regulärer Artikel (Pizza, Cola, Salat)</li>
+                  <li class="flex items-center gap-1.5"><img src="assets/icons/icon-modifier.svg" alt="" class="w-4 h-4 inline-block" /><strong class="text-slate-700 dark:text-gray-300">Modifier</strong> — Zusatz/Extra (Extra Käse, Soße)</li>
+                  <li class="flex items-center gap-1.5"><img src="assets/icons/icon-bundle.svg" alt="" class="w-4 h-4 inline-block" /><strong class="text-slate-700 dark:text-gray-300">Menü</strong> — Bundle aus mehreren Produkten</li>
                 </ul>
                 <p class="mt-2 font-medium text-slate-900 dark:text-white">Welchen Typ möchtest du anlegen?</p>
               </div>
@@ -87,7 +87,7 @@ interface ExistingProduct { _id: string; acronym: string; categoryIds: string[] 
                   class="border border-slate-200 dark:border-gray-700 rounded-xl p-3 text-center
                          hover:border-slate-900 dark:hover:border-white hover:bg-slate-50 dark:hover:bg-gray-800
                          transition-all duration-200">
-                  <span class="text-xl block mb-1">{{ t.icon }}</span>
+                  <img [src]="t.icon" [alt]="t.label" class="w-6 h-6 mx-auto mb-1 text-slate-700 dark:text-gray-300" />
                   <span class="text-xs font-medium text-slate-900 dark:text-white">{{ t.label }}</span>
                 </button>
               }
@@ -433,9 +433,9 @@ export class ProductWizardComponent implements OnInit {
   })
 
   readonly productTypes = [
-    { value: 'PRODUCT' as const, label: 'Produkt', icon: '📦' },
-    { value: 'MODIFIER' as const, label: 'Modifier', icon: '➕' },
-    { value: 'BUNDLE' as const, label: 'Menü', icon: '🍽️' },
+    { value: 'PRODUCT' as const, label: 'Produkt', icon: 'assets/icons/icon-product.svg' },
+    { value: 'MODIFIER' as const, label: 'Modifier', icon: 'assets/icons/icon-modifier.svg' },
+    { value: 'BUNDLE' as const, label: 'Menü', icon: 'assets/icons/icon-bundle.svg' },
   ]
 
   readonly cls = {

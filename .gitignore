@@ -192,3 +192,6 @@ panary.config.json
 *.sqlite
 *.sqlite-journal
 *.db
+
+.claude/worktrees
+.claude/settings.local.json

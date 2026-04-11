@@ -3,6 +3,7 @@ import { Router, RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { ConnectionService, LanguageService } from '@panary-core/shared/data-access'
 import { ThemeServiceService } from '@panary-core/shared/data-access-theme'
+import { UpdateService } from '@panary-core/shared/data-access-updater'
 
 @Component({
   selector: 'app-root',
@@ -35,6 +36,9 @@ export class AppComponent {
     // Theme- und Sprach-Service initialisieren — Konstruktoren wenden gespeicherte Einstellungen sofort an
     inject(ThemeServiceService)
     inject(LanguageService)
+
+    // Update-Check beim App-Start — auch im Setup-Wizard (isTauri()-Guard im Service)
+    inject(UpdateService).startPeriodicCheck()
   }
 
   isSetupRoute(): boolean {

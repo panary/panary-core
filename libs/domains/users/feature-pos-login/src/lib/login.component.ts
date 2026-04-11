@@ -78,7 +78,6 @@ export class LoginComponent implements OnInit {
   //#region Lifecycle
   ngOnInit(): void {
     this.loadDeviceInfo()
-    this.updateService.startPeriodicCheck()
     this.connectAndLoadUsers().then(r => {
       /* empty */
     })

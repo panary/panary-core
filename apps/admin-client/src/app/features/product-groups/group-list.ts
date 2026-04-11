@@ -269,6 +269,7 @@ interface ProductGroup {
                     @if (!selectedId()) {
                       <th class="px-3 py-2.5">{{ 'PRODUCTS.ACRONYM' | translate }}</th>
                       <th class="px-3 py-2.5">{{ 'PRODUCT_GROUPS.VAT' | translate }}</th>
+                      <th class="px-3 py-2.5 text-center">{{ 'PRODUCT_GROUPS.VISIBLE' | translate }}</th>
                       <th class="px-3 py-2.5">{{ 'COMMON.STATUS' | translate }}</th>
                     }
                   </tr>
@@ -288,6 +289,14 @@ interface ProductGroup {
                       @if (!selectedId()) {
                         <td class="px-3 py-2.5 text-slate-500 dark:text-gray-400 font-mono text-xs">{{ group.acronym }}</td>
                         <td class="px-3 py-2.5 text-slate-500 dark:text-gray-400 text-xs">{{ group.taxInside }}%</td>
+                        <td class="text-center" (click)="$event.stopPropagation()">
+                          <label class="inline-flex items-center justify-center w-12 h-12 cursor-pointer
+                                        rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 transition active:scale-95">
+                            <input type="checkbox" [checked]="!group.excluded"
+                              (change)="toggleExcluded(group)"
+                              class="w-5 h-5 accent-slate-900 dark:accent-white cursor-pointer" />
+                          </label>
+                        </td>
                         <td class="px-3 py-2.5">
                           <span [class]="statusBadge(group.status)">{{ statusLabel(group.status) }}</span>
                         </td>
@@ -455,6 +464,19 @@ export class GroupListComponent implements OnInit {
     if (!id || id === 'new') return -1
     return this.filteredGroups().findIndex(g => g._id === id)
   })
+
+  async toggleExcluded(group: any) {
+    const newValue = !group.excluded
+    try {
+      await this.api.patch('product-groups', group._id, { excluded: newValue })
+      // Lokale Liste aktualisieren
+      this.groups.update(list =>
+        list.map(g => (g._id === group._id ? { ...g, excluded: newValue } : g)),
+      )
+    } catch (e) {
+      console.error('Fehler beim Aktualisieren der Sichtbarkeit:', e)
+    }
+  }
 
   statusBadge(status: string): string {
     const base = 'text-xs px-2.5 py-0.5 rounded-full border'

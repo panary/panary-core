@@ -1,53 +1,60 @@
 <div class="h-full w-full bg-gray-50 dark:bg-black flex flex-col overflow-hidden" (click)="zoomOpen.set(false)">
-  <!-- Header -->
-  <header
-    class="flex-none bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 px-6 py-4 flex justify-between items-center z-10">
-    <div class="flex items-center gap-4">
-      <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-        <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+  <!-- Floating Toolbar -->
+  <div class="fixed bottom-6 right-6 z-30 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
+    <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+      <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+    </button>
+
+    <span class="bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-bold">{{ orders().length }}</span>
+
+    <!-- Zoom: Mobil — Icon mit Popup -->
+    <div class="relative md:hidden">
+      <button (click)="zoomOpen.set(!zoomOpen()); $event.stopPropagation()"
+        class="flex items-center justify-center w-10 h-10 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        [class.bg-gray-100]="zoomOpen()" [class.dark:bg-gray-800]="zoomOpen()">
+        <span class="material-symbols-outlined text-[20px]">aspect_ratio</span>
       </button>
-      <span class="bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-bold">{{ orders().length }}</span>
-      <h1 class="text-xl font-bold text-gray-800 dark:text-white">{{ 'ACTIVE_ORDERS.TITLE' | translate }}</h1>
 
-      <!-- Zoom-Toggle (rechts neben Titel) -->
-      <div class="relative">
-        <button (click)="zoomOpen.set(!zoomOpen()); $event.stopPropagation()"
-          class="flex items-center justify-center w-10 h-10 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          [class.bg-gray-100]="zoomOpen()" [class.dark:bg-gray-800]="zoomOpen()">
-          <span class="material-symbols-outlined text-[20px]">aspect_ratio</span>
-        </button>
-
-        @if (zoomOpen()) {
-          <div (click)="$event.stopPropagation()"
-            class="absolute left-0 top-full mt-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl dark:shadow-black/40 p-3 z-50 animate-[fadeIn_0.15s_ease-out]">
-            <div class="flex items-center gap-2">
-              <button (click)="decreaseZoom()"
-                class="flex items-center justify-center w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all">
-                <span class="material-symbols-outlined text-[22px]">remove</span>
-              </button>
-              <span class="text-sm font-bold text-gray-700 dark:text-gray-200 w-14 text-center select-none">{{ zoomLevel() * 100 | number: '1.0-0' }}%</span>
-              <button (click)="increaseZoom()"
-                class="flex items-center justify-center w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all">
-                <span class="material-symbols-outlined text-[22px]">add</span>
-              </button>
-            </div>
+      @if (zoomOpen()) {
+        <div (click)="$event.stopPropagation()"
+          class="absolute right-0 bottom-full mb-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl dark:shadow-black/40 p-3 z-50 animate-[fadeIn_0.15s_ease-out]">
+          <div class="flex items-center gap-2">
+            <button (click)="decreaseZoom()"
+              class="flex items-center justify-center w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all">
+              <span class="material-symbols-outlined text-[22px]">remove</span>
+            </button>
+            <span class="text-sm font-bold text-gray-700 dark:text-gray-200 w-14 text-center select-none">{{ zoomLevel() * 100 | number: '1.0-0' }}%</span>
+            <button (click)="increaseZoom()"
+              class="flex items-center justify-center w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all">
+              <span class="material-symbols-outlined text-[22px]">add</span>
+            </button>
           </div>
-        }
-      </div>
+        </div>
+      }
     </div>
 
-    <div class="flex items-center gap-2">
-      <!-- Mobil: runder Icon-Button -->
-      <button (click)="openQuickOrder()" class="md:hidden flex items-center justify-center w-10 h-10 rounded-full bg-yellow-500 dark:bg-yellow-400 text-gray-800 dark:text-black hover:bg-yellow-400 dark:hover:bg-yellow-300 transition-colors">
-        <span class="material-symbols-outlined text-[22px]">add</span>
+    <!-- Zoom: Desktop — inline -->
+    <div class="hidden md:flex items-center gap-1.5">
+      <button (click)="decreaseZoom()"
+        class="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all">
+        <span class="material-symbols-outlined text-[18px]">remove</span>
       </button>
-      <!-- Desktop: Button mit Text -->
-      <button (click)="openQuickOrder()" class="hidden md:flex items-center gap-2 rounded-xl h-10 px-4 bg-yellow-500 text-gray-800 font-bold hover:bg-yellow-400 transition-colors">
-        <span class="material-symbols-outlined text-[20px]">add_circle</span>
-        {{ 'ACTIVE_ORDERS.NEW_ORDER' | translate }}
+      <span class="text-xs font-bold text-gray-500 dark:text-gray-400 w-10 text-center select-none tabular-nums">{{ zoomLevel() * 100 | number: '1.0-0' }}%</span>
+      <button (click)="increaseZoom()"
+        class="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all">
+        <span class="material-symbols-outlined text-[18px]">add</span>
       </button>
     </div>
-  </header>
+
+    <!-- Neue Bestellung -->
+    <button (click)="openQuickOrder()" class="md:hidden flex items-center justify-center w-10 h-10 rounded-full bg-yellow-500 dark:bg-yellow-400 text-gray-800 dark:text-black hover:bg-yellow-400 dark:hover:bg-yellow-300 transition-colors">
+      <span class="material-symbols-outlined text-[22px]">add</span>
+    </button>
+    <button (click)="openQuickOrder()" class="hidden md:flex items-center gap-2 rounded-xl h-10 px-4 bg-yellow-500 text-gray-800 font-bold hover:bg-yellow-400 transition-colors">
+      <span class="material-symbols-outlined text-[20px]">add_circle</span>
+      {{ 'ACTIVE_ORDERS.NEW_ORDER' | translate }}
+    </button>
+  </div>
 
   <!-- Horizontaler Scroll-Container (nur X) -->
   <main class="flex-1 overflow-x-auto overflow-y-hidden p-6 relative">
@@ -89,7 +96,7 @@
             <!-- Selection Overlay -->
             @if (selectedOrderId() === order._id) {
             <div
-              class="absolute inset-0 bg-gradient-to-b from-white dark:from-gray-900 to-gray-200 dark:to-gray-800 z-20 flex flex-col items-center justify-center fade-in px-5 py-4 gap-3 overflow-y-auto">
+              class="absolute inset-0 bg-white dark:bg-gray-900 z-20 flex flex-col items-center justify-center fade-in px-5 py-4 gap-3 overflow-y-auto">
 
               @if (overlayView() === 'actions') {
                 <!-- ── Aktions-Ansicht ─────────────────────── -->
@@ -321,8 +328,10 @@
                 </div>
               </div>
 
-            <div class="p-4 font-mono text-sm">
-              <div class="flex flex-col gap-3">
+            <div class="font-mono text-sm"
+              [ngClass]="getUnbundledLineItems(order).length === 1 ? 'px-4 py-10' : getUnbundledLineItems(order).length === 2 ? 'px-4 py-6' : 'p-4'">
+              <div class="flex flex-col"
+                [ngClass]="getUnbundledLineItems(order).length === 1 ? 'gap-4' : getUnbundledLineItems(order).length === 2 ? 'gap-3.5' : 'gap-3'">
                 @for (item of getUnbundledLineItems(order); track item._id) {
                 <div class="flex justify-between items-start">
                   <div class="flex gap-2">

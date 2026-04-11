@@ -58,9 +58,9 @@ export class ActiveOrdersComponent {
   selectedOrderId: WritableSignal<string | null> = signal(null)
 
   // max-height der Karte in CSS-Koordinaten, korrigiert um den Zoom-Faktor:
-  // Verfügbare visuelle Höhe = 100dvh − App-Header(4rem) − Main-Padding(3rem)
+  // Verfügbare visuelle Höhe = 100dvh − Main-Padding(3rem) (kein Page-Header mehr)
   // Im Zoom-Koordinatensystem: ÷ zoom − Buttons(3rem) − Gap(0.5rem)
-  cardMaxHeight = computed(() => `calc((100dvh - 7rem) / ${this.zoomLevel()} - 3.5rem)`)
+  cardMaxHeight = computed(() => `calc((100dvh - 3rem) / ${this.zoomLevel()} - 3.5rem)`)
 
   // Steuert aktive Sub-Ansicht im Overlay
   overlayView: WritableSignal<OverlayView> = signal('actions')

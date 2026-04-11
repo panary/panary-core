@@ -1,5 +1,5 @@
 import { querySyntax, Static, StringEnum, Type } from '@feathersjs/typebox'
-import { baseSchema, recipeReferenceSchema } from '@panary-core/shared/common'
+import { baseSchema, ingredientReferenceSchema, recipeReferenceSchema } from '@panary-core/shared/common'
 
 //#region Enums & Konstanten (Wiederverwendbar)
 // TODO: Füge hier deine Enums und Konstanten hinzu
@@ -62,6 +62,7 @@ export const productSchema = Type.Object(
     // 1. Identification
     externalId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]), // A UUID for technical system purposes (stable external ID)
     name: Type.String(),
+    icon: Type.Optional(Type.String({ maxLength: 8 })), // Emoji-Icon (nur UI, kein Druck)
     acronym: Type.String(), // Short name for kitchen receipt
     description: Type.Optional(Type.String()),
     status: Type.Optional(StringEnum(['ACTIVE', 'DRAFT', 'ARCHIVED'])),
@@ -111,6 +112,7 @@ export const productSchema = Type.Object(
     // 7. merchandise management
     isInvalid: Type.Optional(Type.Boolean()),
     productionTime: Type.Optional(Type.Number()),
+    ingredientReferences: Type.Optional(Type.Array(ingredientReferenceSchema)),
     recipeReferences: Type.Optional(Type.Array(recipeReferenceSchema)),
   },
   { $id: 'Product', additionalProperties: false },
@@ -127,6 +129,7 @@ export const productDataSchema = Type.Intersect(
     Type.Partial(
       Type.Pick(productSchema, [
         'externalId',
+        'icon',
         'description',
         'status',
         'categoryIds',
@@ -137,6 +140,7 @@ export const productDataSchema = Type.Intersect(
         'ui',
         'isInvalid',
         'productionTime',
+        'ingredientReferences',
         'recipeReferences',
       ]),
     ),

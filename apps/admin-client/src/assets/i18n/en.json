@@ -191,7 +191,9 @@
     "SORT_ORDER": "Sort Order",
     "SORT_ORDER_REQUIRED": "Sort order is required (0 = first position).",
     "VAT": "VAT",
-    "HIDE_IN_ORDER": "Hide in order dialog"
+    "HIDE_IN_ORDER": "Hide in order dialog",
+    "VISIBLE": "Visible",
+    "FILTER_BY_GROUP": "Filter by product group"
   },
   "LOCATION": {
     "TITLE": "Location",

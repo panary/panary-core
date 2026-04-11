@@ -191,7 +191,9 @@
     "SORT_ORDER": "S\u0131ralama",
     "SORT_ORDER_REQUIRED": "S\u0131ralama gereklidir (0 = ilk konum).",
     "VAT": "KDV",
-    "HIDE_IN_ORDER": "Sipari\u015f diyalo\u011funda gizle"
+    "HIDE_IN_ORDER": "Sipari\u015f diyalo\u011funda gizle",
+    "VISIBLE": "G\u00f6r\u00fcn\u00fcr",
+    "FILTER_BY_GROUP": "\u00dcr\u00fcn grubuna g\u00f6re filtrele"
   },
   "LOCATION": {
     "TITLE": "Konum",

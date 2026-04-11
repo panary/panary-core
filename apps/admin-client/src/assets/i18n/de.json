@@ -191,7 +191,9 @@
     "SORT_ORDER": "Reihenfolge",
     "SORT_ORDER_REQUIRED": "Reihenfolge ist erforderlich (0 = erste Position).",
     "VAT": "MwSt.",
-    "HIDE_IN_ORDER": "Im Bestelldialog ausblenden"
+    "HIDE_IN_ORDER": "Im Bestelldialog ausblenden",
+    "VISIBLE": "Sichtbar",
+    "FILTER_BY_GROUP": "Nach Produktgruppe filtern"
   },
   "LOCATION": {
     "TITLE": "Standort",

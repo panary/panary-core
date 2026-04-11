@@ -7,6 +7,7 @@ import { formatApiError } from '../../core/error-helper'
 import { objectHash } from '../../core/dirty-check'
 import { ConfirmDialogComponent } from '../../core/confirm-dialog'
 import { SearchableSelectComponent } from '../../shared/searchable-select'
+import { uuidv7 } from 'uuidv7'
 
 interface ProductGroup {
   _id: string
@@ -613,7 +614,7 @@ export class ProductFormComponent implements OnInit {
       if (Array.isArray(p.optionGroups)) {
         this.optionGroups.set(
           p.optionGroups.map((g: any) => ({
-            id: g.id || crypto.randomUUID(),
+            id: g.id || uuidv7(),
             name: g.name || '',
             minSelections: g.minSelections ?? 0,
             maxSelections: g.maxSelections ?? 1,
@@ -652,7 +653,7 @@ export class ProductFormComponent implements OnInit {
     this.optionGroups.update(gs => [
       ...gs,
       {
-        id: crypto.randomUUID(),
+        id: uuidv7(),
         name: '',
         minSelections: 0,
         maxSelections: 1,
@@ -716,7 +717,7 @@ export class ProductFormComponent implements OnInit {
         return
       }
       const copied: OptionGroup[] = source.optionGroups.map((g: any) => ({
-        id: crypto.randomUUID(),
+        id: uuidv7(),
         name: g.name || '',
         minSelections: g.minSelections ?? 0,
         maxSelections: g.maxSelections ?? 1,

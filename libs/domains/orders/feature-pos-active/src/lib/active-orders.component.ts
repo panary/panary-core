@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common'
 import { Router } from '@angular/router'
 import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
+import { uuidv7 } from 'uuidv7'
 import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dialog'
 import {
   Order,
@@ -173,7 +174,7 @@ export class ActiveOrdersComponent {
     const total = this.calculateTotal(order)
 
     const transaction: Transaction = {
-      _id: crypto.randomUUID(),
+      _id: uuidv7(),
       method: TransactionMethod.CASH,
       amount: total,
       currency: 'EUR',

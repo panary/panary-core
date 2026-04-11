@@ -36,10 +36,12 @@ import { PrinterService, type PrintServerStatus } from './printer.service'
             }
           }
 
-          @if (status()?.printerCount !== undefined) {
-            <span class="text-xs text-slate-400 dark:text-gray-500">
-              {{ status()!.printerCount }} Drucker
-            </span>
+          @if (status(); as s) {
+            @if (s.printerCount !== undefined) {
+              <span class="text-xs text-slate-400 dark:text-gray-500">
+                {{ s.printerCount }} Drucker
+              </span>
+            }
           }
         </div>
 

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
+import { uuidv7 } from 'uuidv7'
 
 export interface PrinterFormData {
   pid: string
@@ -132,7 +133,7 @@ export class PrinterFormDialogComponent {
   form: PrinterFormData = this.data
     ? { ...this.data }
     : {
-        pid: crypto.randomUUID(),
+        pid: uuidv7(),
         active: true,
         type: 'ip',
         name: '',

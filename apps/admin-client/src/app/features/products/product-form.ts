@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal, OnInit, input, output, effect, viewChild } from '@angular/core'
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, inject, signal, OnInit, input, output, effect, viewChild } from '@angular/core'
 import { FormsModule, NgForm } from '@angular/forms'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -6,6 +6,7 @@ import { ApiService } from '../../core/api.service'
 import { formatApiError } from '../../core/error-helper'
 import { objectHash } from '../../core/dirty-check'
 import { ConfirmDialogComponent } from '../../core/confirm-dialog'
+import { SearchableSelectComponent } from '../../shared/searchable-select'
 
 interface ProductGroup {
   _id: string
@@ -33,6 +34,7 @@ interface MinimalProduct {
   name: string
   acronym: string
   productType: string
+  categoryIds: string[]
 }
 
 const INPUT = `w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
@@ -47,7 +49,7 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
 @Component({
   selector: 'app-product-form',
   standalone: true,
-  imports: [FormsModule, ConfirmDialogComponent, TranslateModule],
+  imports: [FormsModule, ConfirmDialogComponent, TranslateModule, SearchableSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div [class]="panelMode() ? 'p-5 space-y-5' : 'p-8 max-w-4xl space-y-6'">
@@ -117,8 +119,39 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
         <!-- Name + Kürzel -->
         <div class="grid grid-cols-3 gap-4">
           <div class="col-span-2 space-y-1">
-            <label for="productName" class="${LABEL}">{{ 'COMMON.NAME' | translate }} *</label>
-            <input id="productName" [(ngModel)]="form.name" name="name" type="text" required class="${INPUT}" />
+            <label for="productName" class="${LABEL}">
+              <!-- Emoji-Hinweis -->
+              <span class="relative inline-block mr-1 group">
+                <svg class="w-3.5 h-3.5 inline-block text-slate-300 dark:text-gray-600 cursor-help
+                            hover:text-slate-500 dark:hover:text-gray-400 transition -mt-0.5"
+                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 16v-4"></path>
+                  <path d="M12 8h.01"></path>
+                </svg>
+                <span class="absolute top-1/2 left-full -translate-y-1/2 ml-2 px-3 py-2 rounded-lg
+                             bg-slate-900 dark:bg-white text-white dark:text-black text-[10px] leading-relaxed
+                             whitespace-nowrap opacity-0 pointer-events-none
+                             group-hover:opacity-100 transition-opacity shadow-lg z-30">
+                  Emoji links eingeben:<br/>
+                  <strong>Mac:</strong> Ctrl + Cmd + Leertaste<br/>
+                  <strong>Win:</strong> Win + . (Punkt)<br/>
+                  Oder: Emoji kopieren &amp; einfügen
+                  <span class="absolute top-1/2 right-full -translate-y-1/2 -mr-px
+                               border-4 border-transparent border-r-slate-900 dark:border-r-white"></span>
+                </span>
+              </span>
+              {{ 'COMMON.NAME' | translate }} *
+            </label>
+            <div class="flex items-center ${INPUT} !p-0 overflow-hidden">
+              <input id="productIcon" [(ngModel)]="form.icon" name="icon" type="text" maxlength="4"
+                placeholder="🍽"
+                class="w-11 h-full shrink-0 text-center text-lg bg-transparent outline-none border-r
+                       border-slate-200 dark:border-gray-800 p-3" />
+              <input id="productName" [(ngModel)]="form.name" name="name" type="text" required
+                class="flex-1 bg-transparent outline-none p-3" />
+            </div>
           </div>
           <div class="space-y-1">
             <label for="productAcronym" class="${LABEL}">{{ 'PRODUCTS.ACRONYM' | translate }} *</label>
@@ -201,18 +234,26 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
         <div class="space-y-3">
           <div class="flex items-center justify-between">
             <span class="${LABEL}">{{ 'PRODUCTS.OPTION_GROUPS' | translate }} ({{ optionGroups().length }})</span>
-            <button type="button" (click)="addGroup()"
-              class="text-xs text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
-                     border border-slate-200 dark:border-gray-800 hover:border-slate-400 dark:hover:border-gray-600
-                     px-3 py-1.5 rounded-lg transition">
-              + {{ 'PRODUCTS.GROUP' | translate }}
-            </button>
+            <div class="flex items-center gap-1">
+              <button type="button" (click)="showCopyFromPicker.set(true)"
+                class="text-xs text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
+                       border border-slate-200 dark:border-gray-800 hover:border-slate-400 dark:hover:border-gray-600
+                       px-3 py-1.5 rounded-lg transition">
+                Von Produkt übernehmen
+              </button>
+              <button type="button" (click)="addGroup()"
+                class="text-xs text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
+                       border border-slate-200 dark:border-gray-800 hover:border-slate-400 dark:hover:border-gray-600
+                       px-3 py-1.5 rounded-lg transition">
+                + {{ 'PRODUCTS.GROUP' | translate }}
+              </button>
+            </div>
           </div>
 
           @for (group of optionGroups(); track group.id; let gi = $index) {
             <div class="border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden">
               <!-- Group Header -->
-              <div class="flex items-center gap-3 px-4 py-3 bg-slate-100 dark:bg-gray-900/60 cursor-pointer"
+              <div class="flex items-center gap-3 px-4 py-3 bg-slate-200/70 dark:bg-gray-800/80 cursor-pointer"
                    role="button" tabindex="0"
                    (click)="toggleCollapse(group.id)" (keydown.enter)="toggleCollapse(group.id)">
                 <span class="text-slate-400 dark:text-gray-500 text-xs w-4">{{ isCollapsed(group.id) ? '▶' : '▼' }}</span>
@@ -256,12 +297,31 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                   <div class="space-y-2">
                     <div class="flex items-center justify-between">
                       <span class="${LABEL_SM}">{{ 'PRODUCTS.OPTIONS' | translate }}</span>
-                      <button type="button" (click)="addOption(group)"
-                        class="text-xs text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white
-                               transition px-2 py-1 border border-slate-200 dark:border-gray-800
-                               hover:border-slate-400 dark:hover:border-gray-600 rounded-lg">
-                        + Option
-                      </button>
+                      <div class="flex items-center gap-1">
+                        <!-- Gruppe hinzufügen -->
+                        <button type="button" (click)="openCategoryPicker($event, group.id)"
+                          class="text-xs text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white
+                                 transition px-2 py-1 border border-slate-200 dark:border-gray-800
+                                 hover:border-slate-400 dark:hover:border-gray-600 rounded-lg">
+                          + Gruppe
+                        </button>
+                        <!-- Alle löschen -->
+                        @if (group.options.length > 0) {
+                          <button type="button" (click)="clearOptions(group)"
+                            class="text-xs text-red-400/70 hover:text-red-500
+                                   transition px-2 py-1 border border-slate-200 dark:border-gray-800
+                                   hover:border-red-300 dark:hover:border-red-800 rounded-lg">
+                            Alle löschen
+                          </button>
+                        }
+                        <!-- + Option -->
+                        <button type="button" (click)="addOption(group)"
+                          class="text-xs text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white
+                                 transition px-2 py-1 border border-slate-200 dark:border-gray-800
+                                 hover:border-slate-400 dark:hover:border-gray-600 rounded-lg">
+                          + Option
+                        </button>
+                      </div>
                     </div>
 
                     @if (group.options.length === 0) {
@@ -274,14 +334,10 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                       <div class="flex items-center gap-2 bg-white dark:bg-gray-900/50 border border-slate-200
                                   dark:border-gray-800 rounded-lg p-2">
                         <!-- Produkt auswählen -->
-                        <select [(ngModel)]="opt.productId" [name]="'og_' + gi + '_opt_' + oi + '_pid'"
-                          class="flex-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800
-                                 rounded-lg px-2 py-1.5 text-slate-900 dark:text-white text-sm outline-none min-w-0">
-                          <option value="">Produkt wählen...</option>
-                          @for (p of allProducts(); track p._id) {
-                            <option [value]="p._id">{{ p.name }} ({{ p.acronym }})</option>
-                          }
-                        </select>
+                        <app-searchable-select class="flex-1 min-w-0"
+                          [items]="productSelectItems()"
+                          [(value)]="opt.productId"
+                          placeholder="Produkt suchen..." />
                         <!-- Preisaufschlag -->
                         <div class="flex items-center gap-1 shrink-0">
                           <span class="text-slate-400 dark:text-gray-600 text-xs">+&euro;</span>
@@ -342,6 +398,39 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
         </div>
       </form>
     </div>
+
+    <!-- Kategorie-Picker (fixed, überlagert alles) -->
+    @if (activeCategoryPicker()) {
+      <div class="fixed inset-0 z-50" (click)="activeCategoryPicker.set(null)">
+        <div class="fixed min-w-48 max-h-64 overflow-y-auto bg-white dark:bg-gray-950
+                    border border-slate-200 dark:border-gray-800 rounded-lg shadow-2xl py-1"
+             [style.top.px]="pickerPos().top" [style.left.px]="pickerPos().left"
+             (click)="$event.stopPropagation()">
+          @for (pg of productGroups(); track pg._id) {
+            <button type="button" (click)="addProductsByCategory(pickerGroup()!, pg._id)"
+              class="w-full text-left px-3 py-1.5 text-sm text-slate-700 dark:text-gray-300
+                     hover:bg-slate-50 dark:hover:bg-gray-800 transition flex items-center gap-2">
+              <span class="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                    [style.background-color]="pg.color"></span>
+              {{ pg.name }}
+            </button>
+          } @empty {
+            <p class="px-3 py-2 text-xs text-slate-300 dark:text-gray-600">Keine Gruppen</p>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Produkt-Picker für Options-Gruppen-Übernahme -->
+    @if (showCopyFromPicker()) {
+      <app-searchable-select
+        [items]="productSelectItems()"
+        [(value)]="copyFromValue"
+        [autoOpen]="true"
+        (selected)="copyGroupsFromProduct($event)"
+        (closed)="showCopyFromPicker.set(false)"
+        placeholder="Quellprodukt suchen..." />
+    }
   `,
 })
 export class ProductFormComponent implements OnInit {
@@ -367,7 +456,15 @@ export class ProductFormComponent implements OnInit {
   // OptionGroups + Produktkatalog
   optionGroups = signal<OptionGroup[]>([])
   allProducts = signal<MinimalProduct[]>([])
+  productSelectItems = computed(() =>
+    this.allProducts().map(p => ({ id: p._id, label: p.name, sublabel: p.acronym })),
+  )
   collapsedGroups = signal<Set<string>>(new Set())
+  activeCategoryPicker = signal<string | null>(null)
+  pickerPos = signal<{ top: number; left: number }>({ top: 0, left: 0 })
+  pickerGroup = signal<OptionGroup | null>(null)
+  showCopyFromPicker = signal(false)
+  copyFromValue = signal('')
 
   productTypes = [
     { value: 'PRODUCT', label: 'PRODUCTS.TYPE_PRODUCT' },
@@ -408,6 +505,7 @@ export class ProductFormComponent implements OnInit {
 
   form = {
     name: '',
+    icon: '',
     acronym: '',
     price: 0,
     taxInside: 19,
@@ -429,15 +527,51 @@ export class ProductFormComponent implements OnInit {
   async ngOnInit() {
     // Stammdaten einmalig laden
     try {
-      const [groupResult, productResult] = await Promise.all([
-        this.api.find<ProductGroup>('product-groups', { $limit: 100 }),
-        this.api.find<MinimalProduct>('products', { $limit: 200 }),
+      const [groupResult, allProducts] = await Promise.all([
+        this.api.find<ProductGroup>('product-groups', { $limit: 250 }),
+        this.loadAllProducts(),
       ])
       this.productGroups.set(groupResult.data)
-      this.allProducts.set(productResult.data)
+      this.allProducts.set(allProducts)
     } catch (e) {
       console.error('Fehler beim Laden der Stammdaten:', e)
     }
+  }
+
+  /** Lädt alle Produkte seitenweise mit $select für minimalen Payload */
+  private async loadAllProducts(): Promise<MinimalProduct[]> {
+    const PAGE_SIZE = 250
+    const selectFields = ['_id', 'name', 'acronym', 'productType', 'categoryIds']
+
+    // Erste Seite laden, um total zu erfahren
+    const first = await this.api.find<MinimalProduct>('products', {
+      $limit: PAGE_SIZE,
+      $skip: 0,
+      $sort: { name: 1 },
+      $select: selectFields,
+    })
+
+    const all: MinimalProduct[] = [...first.data]
+
+    // Restliche Seiten parallel laden
+    if (first.total > PAGE_SIZE) {
+      const pages = Math.ceil(first.total / PAGE_SIZE)
+      const remaining = await Promise.all(
+        Array.from({ length: pages - 1 }, (_, i) =>
+          this.api.find<MinimalProduct>('products', {
+            $limit: PAGE_SIZE,
+            $skip: (i + 1) * PAGE_SIZE,
+            $sort: { name: 1 },
+            $select: selectFields,
+          }),
+        ),
+      )
+      for (const page of remaining) {
+        all.push(...page.data)
+      }
+    }
+
+    return all
   }
 
   private async loadProduct(prodId: string | undefined) {
@@ -445,7 +579,7 @@ export class ProductFormComponent implements OnInit {
     this.formRef()?.resetForm()
     this.error.set(null)
     this.form = {
-      name: '', acronym: '', price: 0, taxInside: 19, taxOutside: 7,
+      name: '', icon: '', acronym: '', price: 0, taxInside: 19, taxOutside: 7,
       productType: 'PRODUCT', status: 'DRAFT', bundlePricingMode: 'ROLLUP',
       categoryIds: [],
     }
@@ -466,6 +600,7 @@ export class ProductFormComponent implements OnInit {
       this.externalId.set(p.externalId || null)
       this.form = {
         name: p.name || '',
+        icon: p.icon || '',
         acronym: p.acronym || '',
         price: p.price || 0,
         taxInside: p.taxInside ?? 19,
@@ -541,6 +676,68 @@ export class ProductFormComponent implements OnInit {
     this.optionGroups.update(gs => [...gs])
   }
 
+  clearOptions(group: OptionGroup) {
+    group.options = []
+    this.optionGroups.update(gs => [...gs])
+  }
+
+  addProductsByCategory(group: OptionGroup, categoryId: string) {
+    const existing = new Set(group.options.map(o => o.productId))
+    const newOptions = this.allProducts()
+      .filter(p => p.categoryIds.includes(categoryId) && !existing.has(p._id))
+      .map(p => ({ productId: p._id, priceAdjustment: 0, isDefault: false }))
+    group.options = [...group.options, ...newOptions]
+    this.optionGroups.update(gs => [...gs])
+    this.activeCategoryPicker.set(null)
+  }
+
+  openCategoryPicker(event: MouseEvent, groupId: string) {
+    event.stopPropagation()
+    const btn = event.target as HTMLElement
+    const rect = btn.getBoundingClientRect()
+    const dropdownH = Math.min(this.productGroups().length * 32 + 8, 264) // max-h-64 = 256 + py
+
+    // Passt das Dropdown unter den Button? Sonst darüber anzeigen.
+    const spaceBelow = window.innerHeight - rect.bottom
+    const top = spaceBelow >= dropdownH ? rect.bottom + 4 : rect.top - dropdownH - 4
+
+    // Links vom Button ausrichten, damit es nicht rechts abgeschnitten wird
+    const left = Math.min(rect.left, window.innerWidth - 200)
+
+    this.pickerPos.set({ top, left })
+    this.pickerGroup.set(this.optionGroups().find(g => g.id === groupId) ?? null)
+    this.activeCategoryPicker.set(groupId)
+  }
+
+  async copyGroupsFromProduct(sourceId: string) {
+    try {
+      const source = await this.api.get<any>('products', sourceId)
+      if (!Array.isArray(source.optionGroups) || source.optionGroups.length === 0) {
+        return
+      }
+      const copied: OptionGroup[] = source.optionGroups.map((g: any) => ({
+        id: crypto.randomUUID(),
+        name: g.name || '',
+        minSelections: g.minSelections ?? 0,
+        maxSelections: g.maxSelections ?? 1,
+        freeQuantity: g.freeQuantity ?? 0,
+        options: Array.isArray(g.options)
+          ? g.options.map((o: any) => ({
+              productId: o.productId || '',
+              priceAdjustment: o.priceAdjustment ?? 0,
+              isDefault: o.isDefault ?? false,
+            }))
+          : [],
+      }))
+      this.optionGroups.update(existing => [...existing, ...copied])
+    } catch (e) {
+      console.error('Fehler beim Kopieren der Options-Gruppen:', e)
+    }
+    this.showCopyFromPicker.set(false)
+    this.copyFromValue.set('')
+    this.cdr.markForCheck()
+  }
+
   toggleCollapse(groupId: string) {
     this.collapsedGroups.update(s => {
       const next = new Set(s)
@@ -581,6 +778,9 @@ export class ProductFormComponent implements OnInit {
     try {
       const data: any = { ...this.form }
 
+      // Leeres Icon nicht senden
+      if (!data.icon) delete data.icon
+
       // bundlePricingMode nur bei BUNDLE senden
       if (data.productType !== 'BUNDLE') delete data.bundlePricingMode
 
@@ -605,9 +805,25 @@ export class ProductFormComponent implements OnInit {
       data.optionGroups = data.optionGroups.filter((g: any) => g.name)
 
       if (this.isNew()) {
-        await this.api.create('products', data)
+        const created = await this.api.create<any>('products', data)
+        // Neues Produkt sofort in die lokale Liste aufnehmen (für Option-Picker)
+        this.allProducts.update(list => [...list, {
+          _id: created._id,
+          name: created.name,
+          acronym: created.acronym,
+          productType: created.productType || 'PRODUCT',
+          categoryIds: Array.isArray(created.categoryIds) ? created.categoryIds : [],
+        }])
       } else {
         await this.api.patch('products', this.id()!, data)
+        // Bestehenden Eintrag in der lokalen Liste aktualisieren
+        this.allProducts.update(list =>
+          list.map(p =>
+            p._id === this.id()
+              ? { ...p, name: this.form.name, acronym: this.form.acronym, productType: this.form.productType, categoryIds: this.form.categoryIds }
+              : p,
+          ),
+        )
       }
       this.originalHash = objectHash({ ...this.form, og: this.optionGroups() })
       this.savedSuccess.set(true)

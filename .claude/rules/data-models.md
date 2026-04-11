@@ -16,7 +16,26 @@
 
 ---
 
-## 2. Schema-Definition (TypeBox)
+## 2. Datenbank-Tabellennamen (SQLite / Knex)
+
+Tabellennamen folgen **kebab-case** — konsistent mit Service-Pfaden und Domain-Verzeichnissen.
+
+| Regel | Beispiel |
+|---|---|
+| Einwort-Tabellen | `users`, `products`, `orders`, `devices` |
+| Mehrwort-Tabellen: **kebab-case** | `product-groups`, `order-interactions`, `working-times` |
+| **Niemals** snake_case | ~~`pre_orders`~~ → `pre-orders` |
+| **Niemals** camelCase | ~~`productGroups`~~ → `product-groups` |
+
+**Index-Benennung:** `idx_<tabellenname>_<spalte(n)>` — bei kebab-case im Tabellennamen mit Anführungszeichen:
+
+```sql
+CREATE INDEX IF NOT EXISTS "idx_pre-orders_tenant" ON "pre-orders" (tenantId)
+```
+
+---
+
+## 3. Schema-Definition (TypeBox)
 
 Schemata werden ausschließlich mit TypeBox (`@feathersjs/typebox`) definiert und in `libs/domains/` abgelegt.
 
@@ -43,7 +62,7 @@ export type MyEntity = Static<typeof myEntitySchema>
 
 ---
 
-## 3. "Product First"-Prinzip
+## 4. "Product First"-Prinzip
 
 Es gibt **keine separate `modifiers`-Tabelle**. Alles ist ein `product` mit einem `type`-Feld.
 
@@ -62,7 +81,7 @@ Es gibt **keine separate `modifiers`-Tabelle**. Alles ist ein `product` mit eine
 
 ---
 
-## 4. Domain-Bibliotheksstruktur
+## 5. Domain-Bibliotheksstruktur
 
 Business-Logik (Schemata, Typen, Utilities) lebt ausschließlich in `libs/domains/`.
 
@@ -84,7 +103,7 @@ Apps (`api-edge`, `pos-client`) importieren aus Libs — niemals umgekehrt.
 
 ---
 
-## 5. Schema-Änderungen → Migration erforderlich
+## 6. Schema-Änderungen → Migration erforderlich
 
 Bei Änderungen an bestehenden Schemas:
 - Prüfen, ob eine DB-Migration notwendig ist (SQLite via Knex).
@@ -93,7 +112,7 @@ Bei Änderungen an bestehenden Schemas:
 
 ---
 
-## 6. Validierung
+## 7. Validierung
 
 - Schemas in `libs/domains/.../*.schema.ts` definieren.
 - Validierung über Feathers `schemaHooks.validateQuery` / `schemaHooks.validateData` — niemals manuelle Validierung im Service-Code.

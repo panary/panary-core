@@ -51,7 +51,7 @@ export const preOrders = (app: Application) => {
   }
 
   const service = createServiceAdapter<PreOrder>(app, {
-    name: 'pre_orders',
+    name: 'pre-orders',
     Model,
     paginate,
     id: '_id',
@@ -64,17 +64,17 @@ export const preOrders = (app: Application) => {
 
     if (dbType === DatabaseType.SQLITE) {
       const knex = app.get('sqliteClient')
-      const tableName = 'pre_orders'
+      const tableName = 'pre-orders'
 
       try {
         const hasTable = await knex.schema.hasTable(tableName)
         if (hasTable) {
-          await knex.raw(`CREATE INDEX IF NOT EXISTS idx_pre_orders_tenant ON "${tableName}" (tenantId)`)
+          await knex.raw(`CREATE INDEX IF NOT EXISTS "idx_pre-orders_tenant" ON "${tableName}" (tenantId)`)
           await knex.raw(
-            `CREATE INDEX IF NOT EXISTS idx_pre_orders_tenant_location ON "${tableName}" (tenantId, locationId)`,
+            `CREATE INDEX IF NOT EXISTS "idx_pre-orders_tenant_location" ON "${tableName}" (tenantId, locationId)`,
           )
-          await knex.raw(`CREATE INDEX IF NOT EXISTS idx_pre_orders_status ON "${tableName}" (status)`)
-          await knex.raw(`CREATE INDEX IF NOT EXISTS idx_pre_orders_scheduled ON "${tableName}" (scheduledFor)`)
+          await knex.raw(`CREATE INDEX IF NOT EXISTS "idx_pre-orders_status" ON "${tableName}" (status)`)
+          await knex.raw(`CREATE INDEX IF NOT EXISTS "idx_pre-orders_scheduled" ON "${tableName}" (scheduledFor)`)
           logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'sqlite', service: 'pre-orders' })
         }
       } catch (error) {

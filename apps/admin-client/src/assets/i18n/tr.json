@@ -37,7 +37,8 @@
     "PRINTERS": "Yaz\u0131c\u0131lar",
     "API_KEYS": "API Anahtarlar\u0131",
     "CLOUD_CONNECTION": "Bulut Ba\u011flant\u0131s\u0131",
-    "ORDERS": "Sipari\u015fler"
+    "ORDERS": "Sipari\u015fler",
+    "PAGERS": "\u00c7a\u011fr\u0131 Cihazlar\u0131"
   },
   "COMMON": {
     "SAVE": "Kaydet",
@@ -202,7 +203,21 @@
     "AUTO_CREATED": "Konum ilk kurulumda otomatik olarak olu\u015fturulur.",
     "PHONE": "Telefon",
     "LOAD_ERROR": "Konum y\u00fcklenemedi.",
-    "NAME_REQUIRED": "Ad gereklidir"
+    "NAME_REQUIRED": "Ad gereklidir",
+    "PAGER_SETTINGS": "\u00c7a\u011fr\u0131 Cihaz\u0131 Ayarlar\u0131",
+    "PAGER_DESCRIPTION": "Sipari\u015f diyalo\u011fu i\u00e7in \u00e7a\u011fr\u0131 cihaz\u0131 numaralar\u0131n\u0131 y\u00f6netin.",
+    "PAGER_ENABLED": "\u00c7a\u011fr\u0131 cihazlar\u0131n\u0131 etkinle\u015ftir",
+    "PAGER_ENABLED_HINT": "Sipari\u015f diyalo\u011funda \u00e7a\u011fr\u0131 cihaz\u0131 se\u00e7imini g\u00f6sterir",
+    "PAGER_LIST": "Yap\u0131land\u0131r\u0131lm\u0131\u015f \u00e7a\u011fr\u0131 cihazlar\u0131",
+    "PAGER_COUNT": "\u00e7a\u011fr\u0131 cihaz\u0131 yap\u0131land\u0131r\u0131ld\u0131",
+    "PAGER_BATCH_PLACEHOLDER": "Adet",
+    "PAGER_BATCH_ADD": "Toplu olu\u015ftur",
+    "PAGER_BATCH_MAX": "Tek seferde en fazla 100 \u00e7a\u011fr\u0131 cihaz\u0131.",
+    "PAGER_LIMIT": "En fazla {{max}} \u00e7a\u011fr\u0131 cihaz\u0131na izin verilir.",
+    "PAGER_ADD": "Ekle",
+    "PAGER_NUMBER": "\u00c7a\u011fr\u0131 no.",
+    "PAGER_DUPLICATE": "Bu numara zaten mevcut.",
+    "NO_PAGERS": "Yap\u0131land\u0131r\u0131lm\u0131\u015f \u00e7a\u011fr\u0131 cihaz\u0131 yok"
   },
   "APIKEYS": {
     "TITLE": "API Anahtarlar\u0131",

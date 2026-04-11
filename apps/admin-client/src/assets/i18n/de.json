@@ -37,7 +37,8 @@
     "PRINTERS": "Drucker",
     "API_KEYS": "API-Schl\u00fcssel",
     "CLOUD_CONNECTION": "Cloud-Kopplung",
-    "ORDERS": "Bestellungen"
+    "ORDERS": "Bestellungen",
+    "PAGERS": "Pager"
   },
   "COMMON": {
     "SAVE": "Speichern",
@@ -202,7 +203,21 @@
     "AUTO_CREATED": "Der Standort wird beim ersten Setup automatisch erstellt.",
     "PHONE": "Telefon",
     "LOAD_ERROR": "Standort konnte nicht geladen werden.",
-    "NAME_REQUIRED": "Name ist erforderlich"
+    "NAME_REQUIRED": "Name ist erforderlich",
+    "PAGER_SETTINGS": "Pager-Einstellungen",
+    "PAGER_DESCRIPTION": "Pager-Nummern f\u00fcr den Bestelldialog verwalten.",
+    "PAGER_ENABLED": "Pager aktivieren",
+    "PAGER_ENABLED_HINT": "Zeigt Pager-Auswahl im Bestelldialog an",
+    "PAGER_LIST": "Konfigurierte Pager",
+    "PAGER_COUNT": "Pager konfiguriert",
+    "PAGER_BATCH_PLACEHOLDER": "Anzahl",
+    "PAGER_BATCH_ADD": "Batch erstellen",
+    "PAGER_BATCH_MAX": "Maximal 100 Pager auf einmal.",
+    "PAGER_LIMIT": "Maximal {{max}} Pager erlaubt.",
+    "PAGER_ADD": "Hinzuf\u00fcgen",
+    "PAGER_NUMBER": "Pager-Nr.",
+    "PAGER_DUPLICATE": "Diese Nummer existiert bereits.",
+    "NO_PAGERS": "Keine Pager konfiguriert"
   },
   "APIKEYS": {
     "TITLE": "API-Schl\u00fcssel",

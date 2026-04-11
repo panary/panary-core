@@ -37,7 +37,8 @@
     "PRINTERS": "Printers",
     "API_KEYS": "API Keys",
     "CLOUD_CONNECTION": "Cloud Connection",
-    "ORDERS": "Orders"
+    "ORDERS": "Orders",
+    "PAGERS": "Pagers"
   },
   "COMMON": {
     "SAVE": "Save",
@@ -202,7 +203,21 @@
     "AUTO_CREATED": "The location is automatically created during initial setup.",
     "PHONE": "Phone",
     "LOAD_ERROR": "Failed to load location.",
-    "NAME_REQUIRED": "Name is required"
+    "NAME_REQUIRED": "Name is required",
+    "PAGER_SETTINGS": "Pager Settings",
+    "PAGER_DESCRIPTION": "Manage pager numbers for the order dialog.",
+    "PAGER_ENABLED": "Enable pagers",
+    "PAGER_ENABLED_HINT": "Shows pager selection in the order dialog",
+    "PAGER_LIST": "Configured pagers",
+    "PAGER_COUNT": "pagers configured",
+    "PAGER_BATCH_PLACEHOLDER": "Count",
+    "PAGER_BATCH_ADD": "Create batch",
+    "PAGER_BATCH_MAX": "Maximum 100 pagers at once.",
+    "PAGER_LIMIT": "Maximum {{max}} pagers allowed.",
+    "PAGER_ADD": "Add",
+    "PAGER_NUMBER": "Pager no.",
+    "PAGER_DUPLICATE": "This number already exists.",
+    "NO_PAGERS": "No pagers configured"
   },
   "APIKEYS": {
     "TITLE": "API Keys",

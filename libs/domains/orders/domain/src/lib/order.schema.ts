@@ -98,6 +98,7 @@ export const genericLineItemSchema = Type.Object({
   externalId: Type.String({ format: 'uuid' }),
   amount: Type.Number(),
   name: Type.String(),
+  icon: Type.Optional(Type.String()), // Emoji-Icon (nur UI-Anzeige)
   parentId: Type.Optional(Type.String({ format: 'uuid' })),
   price: Type.Number(),
 

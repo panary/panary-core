@@ -193,7 +193,7 @@ interface SearchCommand {
                 <span class="inline-flex items-center gap-1 bg-slate-100 dark:bg-gray-800 text-slate-700
                              dark:text-gray-300 text-xs font-medium px-2.5 py-1 rounded-lg">
                   <span class="text-slate-400 dark:text-gray-500">{{ filter.key }}:</span>
-                  {{ filter.label | translate }}
+                  {{ filter.label }}
                   <button type="button" (click)="removeFilter(filter.key); $event.stopPropagation()"
                     class="text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-white ml-0.5
                            transition text-[10px]">
@@ -255,13 +255,28 @@ interface SearchCommand {
               <table class="w-full text-sm">
                 <thead>
                   <tr class="border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500
-                             text-xs uppercase tracking-wider">
-                    <th class="px-3 py-2.5">{{ 'COMMON.NAME' | translate }}</th>
+                             text-xs uppercase tracking-wider select-none">
+                    <th class="px-3 py-2.5 cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                        (click)="toggleSort('name')">
+                      {{ 'COMMON.NAME' | translate }}{{ sortIcon('name') }}
+                    </th>
                     @if (!selectedId()) {
-                      <th class="px-3 py-2.5">{{ 'PRODUCTS.ACRONYM' | translate }}</th>
-                      <th class="px-3 py-2.5">{{ 'PRODUCTS.PRICE' | translate }}</th>
-                      <th class="px-3 py-2.5">{{ 'PRODUCTS.TYPE' | translate }}</th>
-                      <th class="px-3 py-2.5">{{ 'COMMON.STATUS' | translate }}</th>
+                      <th class="px-3 py-2.5 cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                          (click)="toggleSort('acronym')">
+                        {{ 'PRODUCTS.ACRONYM' | translate }}{{ sortIcon('acronym') }}
+                      </th>
+                      <th class="px-3 py-2.5 cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                          (click)="toggleSort('price')">
+                        {{ 'PRODUCTS.PRICE' | translate }}{{ sortIcon('price') }}
+                      </th>
+                      <th class="px-3 py-2.5 cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                          (click)="toggleSort('productType')">
+                        {{ 'PRODUCTS.TYPE' | translate }}{{ sortIcon('productType') }}
+                      </th>
+                      <th class="px-3 py-2.5 cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                          (click)="toggleSort('status')">
+                        {{ 'COMMON.STATUS' | translate }}{{ sortIcon('status') }}
+                      </th>
                     }
                   </tr>
                 </thead>
@@ -272,7 +287,15 @@ interface SearchCommand {
                           ? 'bg-slate-100 dark:bg-white/5 border-l-2 border-l-slate-900 dark:border-l-white'
                           : 'hover:bg-slate-50 dark:hover:bg-gray-800/30 border-l-2 border-l-transparent'"
                         class="cursor-pointer border-b border-slate-200/50 dark:border-gray-800/50 transition">
-                      <td class="px-3 py-2.5 font-medium truncate max-w-48">{{ p.name }}</td>
+                      <td class="px-3 py-2.5 font-medium truncate max-w-48">
+                        <span class="inline-flex items-center gap-1.5">
+                          <img [src]="productTypeIcon(p.productType)" alt="" class="w-4 h-4 shrink-0" />
+                          {{ p.name }}
+                          @if (p.icon) {
+                            <span class="shrink-0">{{ p.icon }}</span>
+                          }
+                        </span>
+                      </td>
                       @if (!selectedId()) {
                         <td class="px-3 py-2.5 text-slate-500 dark:text-gray-400 font-mono text-xs">{{ p.acronym }}</td>
                         <td class="px-3 py-2.5 font-mono text-xs">{{ (p.price || 0).toFixed(2) }} &euro;</td>
@@ -292,23 +315,6 @@ interface SearchCommand {
               </table>
             </div>
 
-            @if (hasMore()) {
-              <div class="flex items-center justify-center py-4">
-                <button (click)="loadMore()" [disabled]="loadingMore()"
-                  class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-gray-400
-                         border border-slate-200 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-gray-800
-                         transition disabled:opacity-50">
-                  @if (loadingMore()) {
-                    <span class="flex items-center gap-2">
-                      <span class="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></span>
-                      {{ 'COMMON.LOADING' | translate }}
-                    </span>
-                  } @else {
-                    {{ 'COMMON.LOAD_MORE' | translate }} ({{ products().length }} / {{ totalProducts() }})
-                  }
-                </button>
-              </div>
-            }
           }
         </div>
       </div>
@@ -385,10 +391,9 @@ export class ProductListComponent implements OnInit {
   private api = inject(ApiService)
   private t = inject(TranslateService)
   products = signal<any[]>([])
+  productGroups = signal<{ _id: string; name: string; color: string }[]>([])
   loading = signal(true)
-  loadingMore = signal(false)
   totalProducts = signal(0)
-  hasMore = computed(() => this.products().length < this.totalProducts())
   selectedId = signal<string | null>(null)
 
   private formRef = viewChild<ProductFormComponent>('formRef')
@@ -409,6 +414,24 @@ export class ProductListComponent implements OnInit {
   } | null>(null)
   showErrorLog = signal(false)
 
+  // --- Sortierung ---
+  sortColumn = signal<string>('name')
+  sortDirection = signal<'asc' | 'desc'>('asc')
+
+  toggleSort(column: string) {
+    if (this.sortColumn() === column) {
+      this.sortDirection.update(d => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      this.sortColumn.set(column)
+      this.sortDirection.set('asc')
+    }
+  }
+
+  sortIcon(column: string): string {
+    if (this.sortColumn() !== column) return ''
+    return this.sortDirection() === 'asc' ? ' ▲' : ' ▼'
+  }
+
   // --- Suchleiste ---
   searchText = signal('')
   activeFilters = signal<SearchFilter[]>([])
@@ -417,7 +440,7 @@ export class ProductListComponent implements OnInit {
   pendingCommand = signal<SearchCommand | null>(null)
   highlightIndex = signal(0)
 
-  readonly commands: SearchCommand[] = [
+  commands = computed<SearchCommand[]>(() => [
     {
       key: 'typ',
       label: '/typ:',
@@ -438,12 +461,18 @@ export class ProductListComponent implements OnInit {
         { value: 'ARCHIVED', label: 'COMMON.STATUS_ARCHIVED' },
       ],
     },
-  ]
+    {
+      key: 'gruppe',
+      label: '/gruppe:',
+      description: 'PRODUCT_GROUPS.FILTER_BY_GROUP',
+      values: this.productGroups().map(g => ({ value: g._id, label: g.name })),
+    },
+  ])
 
   /** Nur Kommandos zeigen, die noch nicht aktiv sind */
   visibleCommands = computed(() => {
     const active = new Set(this.activeFilters().map(f => f.key))
-    return this.commands.filter(c => !active.has(c.key))
+    return this.commands().filter(c => !active.has(c.key))
   })
 
   /** Werte des aktuell ausgewaehlten Kommandos */
@@ -457,6 +486,7 @@ export class ProductListComponent implements OnInit {
     for (const f of this.activeFilters()) {
       if (f.key === 'typ') list = list.filter(p => p.productType === f.value)
       if (f.key === 'status') list = list.filter(p => p.status === f.value)
+      if (f.key === 'gruppe') list = list.filter(p => Array.isArray(p.categoryIds) && p.categoryIds.includes(f.value))
     }
 
     // Freitext-Filter (ueber den aktuellen searchText, ohne /-Praefix)
@@ -469,6 +499,16 @@ export class ProductListComponent implements OnInit {
           String(p.price).includes(q),
       )
     }
+
+    // Sortierung
+    const col = this.sortColumn()
+    const dir = this.sortDirection() === 'asc' ? 1 : -1
+    list = [...list].sort((a, b) => {
+      const va = a[col] ?? ''
+      const vb = b[col] ?? ''
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir
+      return String(va).localeCompare(String(vb), 'de') * dir
+    })
 
     return list
   })
@@ -571,9 +611,12 @@ export class ProductListComponent implements OnInit {
     const cmd = this.pendingCommand()
     if (!cmd) return
 
+    // Label übersetzen (i18n-Keys werden aufgelöst, direkte Strings bleiben unverändert)
+    const resolvedLabel = this.t.instant(val.label)
+
     this.activeFilters.update(filters => [
       ...filters.filter(f => f.key !== cmd.key),
-      { key: cmd.key, value: val.value, label: val.label },
+      { key: cmd.key, value: val.value, label: resolvedLabel },
     ])
 
     this.pendingCommand.set(null)
@@ -588,6 +631,14 @@ export class ProductListComponent implements OnInit {
   }
 
   // --- Status-Badges ---
+
+  productTypeIcon(type: string): string {
+    switch (type) {
+      case 'MODIFIER': return 'assets/icons/icon-modifier.svg'
+      case 'BUNDLE': return 'assets/icons/icon-bundle.svg'
+      default: return 'assets/icons/icon-product.svg'
+    }
+  }
 
   statusBadge(status: string): string {
     const base = 'text-xs px-2.5 py-0.5 rounded-full border'
@@ -681,38 +732,55 @@ export class ProductListComponent implements OnInit {
   }
 
   async ngOnInit() {
-    await this.loadProducts()
+    await Promise.all([
+      this.loadProducts(),
+      this.loadProductGroups(),
+    ])
   }
 
-  private static readonly PAGE_SIZE = 200
-  private static readonly QUERY = { $limit: ProductListComponent.PAGE_SIZE, $sort: { name: 1 } }
-
-  private async loadProducts() {
+  private async loadProductGroups() {
     try {
-      const result = await this.api.find<any>('products', ProductListComponent.QUERY)
-      this.totalProducts.set(result.total)
-      this.products.set(result.data)
+      const result = await this.api.find<{ _id: string; name: string; color: string }>('product-groups', { $limit: 250 })
+      this.productGroups.set(result.data)
+    } catch (e) {
+      console.error('Fehler beim Laden der Produktgruppen:', e)
+    }
+  }
+
+  /** Lädt alle Produkte seitenweise (max 250 pro Seite, parallele Requests) */
+  private async loadProducts() {
+    const PAGE_SIZE = 250
+    try {
+      const first = await this.api.find<any>('products', {
+        $limit: PAGE_SIZE,
+        $skip: 0,
+        $sort: { name: 1 },
+      })
+
+      const all = [...first.data]
+
+      if (first.total > PAGE_SIZE) {
+        const pages = Math.ceil(first.total / PAGE_SIZE)
+        const remaining = await Promise.all(
+          Array.from({ length: pages - 1 }, (_, i) =>
+            this.api.find<any>('products', {
+              $limit: PAGE_SIZE,
+              $skip: (i + 1) * PAGE_SIZE,
+              $sort: { name: 1 },
+            }),
+          ),
+        )
+        for (const page of remaining) {
+          all.push(...page.data)
+        }
+      }
+
+      this.totalProducts.set(first.total)
+      this.products.set(all)
     } catch (e) {
       console.error('Fehler beim Laden der Produkte:', e)
     }
     this.loading.set(false)
-  }
-
-  async loadMore() {
-    if (!this.hasMore() || this.loadingMore()) return
-    this.loadingMore.set(true)
-    try {
-      const result = await this.api.find<any>('products', {
-        ...ProductListComponent.QUERY,
-        $skip: this.products().length,
-      })
-      this.totalProducts.set(result.total)
-      this.products.update(current => [...current, ...result.data])
-    } catch (e) {
-      console.error('Fehler beim Nachladen der Produkte:', e)
-    } finally {
-      this.loadingMore.set(false)
-    }
   }
 
   // --- Export ---

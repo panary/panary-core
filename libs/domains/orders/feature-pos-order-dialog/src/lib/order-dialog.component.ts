@@ -1120,19 +1120,18 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         parentId = this.combinations[combinationIndex][articleIndex].parentId
         externalId = this.combinations[combinationIndex][articleIndex].externalId
       }
-      this.productService.extras().forEach((extra: ProductSchema): void => {
-        if ((extra as any).excludedButtons && parentId && (extra as any).excludedButtons.includes(parentId)) {
-          return
-        } else if (
-          (extra as any).excludedSubButtons &&
-          externalId &&
-          (extra as any).excludedSubButtons.includes(externalId)
-        ) {
-          return
-        } else {
+
+      // Produkt des ausgewählten LineItems ermitteln
+      const selectedProduct = externalId ? this.productService.findProductByExternalId(externalId) : undefined
+      const productOptions = selectedProduct?.optionGroups?.flatMap(g => g.options) ?? []
+
+      if (productOptions.length > 0) {
+        // Nur die im Produkt definierten Modifier anzeigen
+        for (const opt of productOptions) {
+          const extra = this.productService.findProductById(opt.productId)
+          if (!extra) continue
           ;(extra as any).callback = () => {
             if ((this._isBlocked && !unblock) || !extra) return
-
             if (this._withoutExtra) {
               this.decreaseExtra(extra)
             } else {
@@ -1141,7 +1140,50 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
           }
           this._productButtons.push(extra)
         }
+      } else {
+        this.setInfoBoxText('Keine Extras für dieses Produkt hinterlegt.')
+      }
+
+      // "Alle Extras"-Button: lädt alle Modifier aus der Datenbank
+      this.functionButtons.push({
+        _id: 'load-all-extras',
+        externalId: this.#functionButtonExternalId,
+        locationId: this.userService.currentUser()?.activeLocationId || '',
+        tenantId: this.authService.tenantId()?.toString() || '',
+        name: 'Alle Extras',
+        index: 0,
+        isFunctionButton: true,
+        isExtra: true,
+        backgroundColor: 'slategray',
+        fontColor: 'white',
+        callback: () => {
+          if (this._isBlocked && !unblock) return
+          this._productButtons = []
+          this.setInfoBoxText('Welche Extras möchten Sie hinzufügen?')
+          this.productService.extras().forEach((extra: ProductSchema): void => {
+            if ((extra as any).excludedButtons && parentId && (extra as any).excludedButtons.includes(parentId)) {
+              return
+            } else if (
+              (extra as any).excludedSubButtons &&
+              externalId &&
+              (extra as any).excludedSubButtons.includes(externalId)
+            ) {
+              return
+            } else {
+              ;(extra as any).callback = () => {
+                if ((this._isBlocked && !unblock) || !extra) return
+                if (this._withoutExtra) {
+                  this.decreaseExtra(extra)
+                } else {
+                  this.increaseExtra(extra)
+                }
+              }
+              this._productButtons.push(extra)
+            }
+          })
+        },
       })
+
       this._lastParentId = parentId
     }
 
@@ -1575,6 +1617,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         externalId: article.externalId ?? '',
         amount: 1,
         name: article.name,
+        icon: article.icon || undefined,
         parentId: article.externalId ?? undefined,
         price: article.price || 0,
         ingredientReferences: (article as any).ingredientReferences || [],

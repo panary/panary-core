@@ -278,6 +278,9 @@
                                 <span class="text-gray-400">{{ extra.amount }}x</span>
                               }
                               <span [class.line-through]="extra.amount < 0" [class.text-gray-400]="extra.amount < 0">{{ extra.name }}</span>
+                              @if (extra.icon) {
+                                <span>{{ extra.icon }}</span>
+                              }
                             </span>
                             @if (extra.amount > 0 && extra.price > 0) {
                               <span class="text-gray-500 font-medium">+{{ extra.amount * (!extra.price ? 0 : extra.price) | currency: 'EUR' }}</span>
@@ -362,7 +365,7 @@
           <div class="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-2 content-start pb-4">
             @for (productButton of productButtons; let i = $index; track i) {
               <button type="button"
-                      class="relative h-[72px] bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-semibold text-[10px] uppercase px-2 py-2 flex flex-col items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all"
+                      class="relative h-[72px] bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-semibold text-[10px] uppercase px-2 py-2 flex items-center justify-center gap-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all"
                       [style.background-color]="productButton.backgroundColor"
                       [style.color]="productButton.fontColor"
                       [class.ring-2]="productButton.pressed" [class.ring-gray-400]="productButton.pressed"
@@ -373,12 +376,14 @@
                   </span>
                 }
                 @if (productButton.icon) {
-                  <span class="material-symbols-outlined text-[16px] opacity-70" style="font-size: inherit">{{ productButton.icon }}</span>
+                  <span class="material-symbols-outlined shrink-0 text-[16px] opacity-70">{{ productButton.icon }}</span>
                 }
-                <span class="text-center leading-tight line-clamp-2 break-words w-full px-1">{{ productButton.name }}</span>
-                @if (priceVisibility && !productButton.isFunctionButton) {
-                  <span class="text-[9px] text-gray-500 font-normal">{{ productButton.price | currency: 'EUR' }}</span>
-                }
+                <span class="flex flex-col items-center min-w-0">
+                  <span class="text-center leading-tight line-clamp-2 w-full px-0.5" style="hyphens: auto; -webkit-hyphens: auto" lang="de">{{ productButton.name }}</span>
+                  @if (priceVisibility && !productButton.isFunctionButton) {
+                    <span class="text-[9px] text-gray-500 font-normal">{{ productButton.price | currency: 'EUR' }}</span>
+                  }
+                </span>
               </button>
             }
           </div>

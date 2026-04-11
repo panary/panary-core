@@ -334,7 +334,7 @@
                       @if (item.modifiers && item.modifiers.length > 0) {
                       @for (extra of item.modifiers; track extra._id) {
                       <div class="text-xs text-gray-500 dark:text-gray-400 pl-2 flex items-center justify-between gap-2 mt-0.5">
-                        <span class="flex items-center gap-1">+ {{ extra.name }}</span>
+                        <span class="flex items-center gap-1">+ {{ extra.name }}@if (extra.icon) { {{ extra.icon }}}</span>
                         @if (extra.price > 0) {
                         <span>{{ formatPrice(extra.price) }}</span>
                         }
@@ -390,7 +390,7 @@
                             @if (item.modifiers && item.modifiers.length > 0) {
                             @for (extra of item.modifiers; track extra._id) {
                             <div class="text-[10px] text-gray-500 dark:text-gray-400 pl-2 flex items-center justify-between gap-2">
-                              <span>+ {{ extra.name }}</span>
+                              <span>+ {{ extra.name }}@if (extra.icon) { {{ extra.icon }}}</span>
                               @if (extra.price > 0) {
                               <span>{{ formatPrice(extra.price) }}</span>
                               }

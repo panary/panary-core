@@ -748,6 +748,23 @@ export class ProductListComponent implements OnInit {
   }
 
   /** Lädt alle Produkte seitenweise (max 250 pro Seite, parallele Requests) */
+  /** Lädt alle Datensätze eines Services seitenweise (für Export) */
+  private async loadAllForExport(service: string): Promise<any[]> {
+    const PAGE_SIZE = 250
+    const first = await this.api.find<any>(service, { $limit: PAGE_SIZE, $skip: 0, $sort: { name: 1 } })
+    const all = [...first.data]
+    if (first.total > PAGE_SIZE) {
+      const pages = Math.ceil(first.total / PAGE_SIZE)
+      const remaining = await Promise.all(
+        Array.from({ length: pages - 1 }, (_, i) =>
+          this.api.find<any>(service, { $limit: PAGE_SIZE, $skip: (i + 1) * PAGE_SIZE, $sort: { name: 1 } }),
+        ),
+      )
+      for (const page of remaining) all.push(...page.data)
+    }
+    return all
+  }
+
   private async loadProducts() {
     const PAGE_SIZE = 250
     try {
@@ -788,13 +805,12 @@ export class ProductListComponent implements OnInit {
   async onExport() {
     this.exporting.set(true)
     try {
-      const [productsResult, groupsResult] = await Promise.all([
-        this.api.find<any>('products', { $limit: 500 }),
-        this.api.find<any>('product-groups', { $limit: 200 }),
+      const [products, groupsResult] = await Promise.all([
+        this.loadAllForExport('products'),
+        this.api.find<any>('product-groups', { $limit: 250 }),
       ])
 
       const groups = groupsResult.data
-      const products = productsResult.data
 
       // Mapping: _id → externalId fuer Gruppen und Produkte
       const groupIdToExternal = new Map<string, string>()

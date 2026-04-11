@@ -3,9 +3,17 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
 import { Title } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
 import { AuthService } from '../core/auth.service'
+import { ApiService } from '../core/api.service'
 import { ThemeServiceService } from '@panary-core/shared/data-access-theme'
 import { LanguageService } from '@panary-core/shared/data-access'
 import { LocationStateService } from '../core/location-state.service'
+
+interface NavItem {
+  path: string
+  label: string
+  icon: string
+  countService?: string
+}
 
 @Component({
   selector: 'app-admin-layout',
@@ -84,12 +92,19 @@ import { LocationStateService } from '../core/location-state.service'
               <span class="shrink-0 flex items-center justify-center w-10">
                 <span class="material-symbols-outlined" style="font-size: 20px; line-height: 1">{{ item.icon }}</span>
               </span>
-              <span class="overflow-hidden whitespace-nowrap text-sm pr-3
-                           transition-[max-width,opacity] duration-200"
+              <span class="overflow-hidden whitespace-nowrap text-sm pr-3 flex items-center
+                           transition-[max-width,opacity,flex] duration-200"
                     [class.max-w-0]="!sidebarOpen()"
-                    [class.max-w-xs]="sidebarOpen()"
+                    [class.flex-0]="!sidebarOpen()"
+                    [class.flex-1]="sidebarOpen()"
                     [class.opacity-0]="!sidebarOpen()">
-                {{ item.label | translate }}
+                <span>{{ item.label | translate }}</span>
+                @if (item.countService && counts()[item.countService] !== undefined) {
+                  <span class="flex-1"></span>
+                  <span class="text-[11px] leading-none tabular-nums text-slate-400 dark:text-gray-500">
+                    {{ counts()[item.countService] }}
+                  </span>
+                }
               </span>
             </a>
           }
@@ -173,6 +188,7 @@ import { LocationStateService } from '../core/location-state.service'
 })
 export class AdminLayoutComponent {
   auth = inject(AuthService)
+  private api = inject(ApiService)
   themeService = inject(ThemeServiceService)
   protected langService = inject(LanguageService)
   locationState = inject(LocationStateService)
@@ -185,25 +201,44 @@ export class AdminLayoutComponent {
     return u ? `${u.firstName} ${u.lastName}`.trim() || u.loginname : ''
   })
 
-  constructor() {
-    this.locationState.load()
-    effect(() => {
-      const name = this.locationState.locationName()
-      this.title.setTitle(name ? `Panary — Hub (${name})` : 'Panary — Hub')
-    })
-  }
-
-  navItems = [
+  navItems: NavItem[] = [
     { path: '/dashboard',      label: 'NAV.DASHBOARD',        icon: 'dashboard'   },
     { path: '/users',          label: 'NAV.USERS',            icon: 'people'      },
-    { path: '/product-groups', label: 'NAV.PRODUCT_GROUPS',   icon: 'category'    },
-    { path: '/products',       label: 'NAV.PRODUCTS',         icon: 'inventory_2' },
+    { path: '/product-groups', label: 'NAV.PRODUCT_GROUPS',   icon: 'category',    countService: 'product-groups' },
+    { path: '/products',       label: 'NAV.PRODUCTS',         icon: 'inventory_2', countService: 'products' },
     { path: '/orders',         label: 'NAV.ORDERS',           icon: 'receipt_long' },
     { path: '/printers',       label: 'NAV.PRINTERS',         icon: 'print'       },
     { path: '/apikeys',        label: 'NAV.API_KEYS',         icon: 'key'         },
     { path: '/cloud',          label: 'NAV.CLOUD_CONNECTION',  icon: 'cloud'       },
     { path: '/location',       label: 'NAV.LOCATION',         icon: 'store'       },
   ]
+
+  counts = signal<Record<string, number>>({})
+
+  constructor() {
+    this.locationState.load()
+    effect(() => {
+      const name = this.locationState.locationName()
+      this.title.setTitle(name ? `Panary — Hub (${name})` : 'Panary — Hub')
+    })
+    this.loadCounts()
+  }
+
+  private async loadCounts() {
+    const services = this.navItems.filter(i => i.countService).map(i => i.countService!)
+    const results: Record<string, number> = {}
+    await Promise.all(
+      services.map(async svc => {
+        try {
+          const res = await this.api.find(svc, { $limit: 0 })
+          results[svc] = res.total
+        } catch {
+          // Count nicht verfügbar — ignorieren
+        }
+      }),
+    )
+    this.counts.set(results)
+  }
 
   setTheme(theme: string) {
     this.themeService.setTheme(theme)

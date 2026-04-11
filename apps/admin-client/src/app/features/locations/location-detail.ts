@@ -5,6 +5,11 @@ import { ApiService } from '../../core/api.service'
 import { formatApiError } from '../../core/error-helper'
 import { LocationStateService } from '../../core/location-state.service'
 
+const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider'
+const INPUT = `w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-3
+               text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
+               focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none text-sm`
+
 @Component({
   selector: 'app-location-detail',
   standalone: true,
@@ -30,31 +35,27 @@ import { LocationStateService } from '../../core/location-state.service'
         <form (ngSubmit)="onSave()" class="space-y-4">
           <!-- Name -->
           <div class="space-y-1.5">
-            <label for="locationName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'COMMON.NAME' | translate }} *</label>
-            <input id="locationName" [(ngModel)]="form.name" name="name" type="text" required
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-3 text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none text-sm" />
+            <label for="locationName" class="${LABEL}">{{ 'COMMON.NAME' | translate }} *</label>
+            <input id="locationName" [(ngModel)]="form.name" name="name" type="text" required class="${INPUT}" />
           </div>
 
           <div class="grid grid-cols-2 gap-3">
             <!-- E-Mail -->
             <div class="space-y-1.5">
-              <label for="locationEmail" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'USERS.EMAIL' | translate }}</label>
-              <input id="locationEmail" [(ngModel)]="form.email" name="email" type="email"
-                class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-3 text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none text-sm" />
+              <label for="locationEmail" class="${LABEL}">{{ 'USERS.EMAIL' | translate }}</label>
+              <input id="locationEmail" [(ngModel)]="form.email" name="email" type="email" class="${INPUT}" />
             </div>
             <!-- Telefon -->
             <div class="space-y-1.5">
-              <label for="locationPhone" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'LOCATION.PHONE' | translate }}</label>
-              <input id="locationPhone" [(ngModel)]="form.phone" name="phone" type="text"
-                class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-3 text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none text-sm" />
+              <label for="locationPhone" class="${LABEL}">{{ 'LOCATION.PHONE' | translate }}</label>
+              <input id="locationPhone" [(ngModel)]="form.phone" name="phone" type="text" class="${INPUT}" />
             </div>
           </div>
 
           <!-- Status -->
           <div class="space-y-1.5">
-            <label for="locationStatus" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'COMMON.STATUS' | translate }}</label>
-            <select id="locationStatus" [(ngModel)]="form.status" name="status"
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-3 text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none text-sm">
+            <label for="locationStatus" class="${LABEL}">{{ 'COMMON.STATUS' | translate }}</label>
+            <select id="locationStatus" [(ngModel)]="form.status" name="status" class="${INPUT}">
               <option value="DRAFT">{{ 'COMMON.STATUS_DRAFT' | translate }}</option>
               <option value="ACTIVE">{{ 'COMMON.STATUS_ACTIVE' | translate }}</option>
             </select>

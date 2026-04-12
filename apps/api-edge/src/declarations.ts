@@ -16,6 +16,7 @@ import { UserPreferenceService } from './services/user-preferences/user-preferen
 import { WorkingTimeService } from './services/working-times/working-times.class'
 import { PreOrderService } from './services/pre-orders/pre-orders.class'
 import { CloudConnectionService } from './services/cloud-connection/cloud-connection.class'
+import { OpeningHourExceptionService } from './services/opening-hour-exceptions/opening-hour-exceptions.class'
 
 export type { NextFunction }
 
@@ -47,6 +48,7 @@ export interface ServiceTypes {
     find(params?: any): Promise<{ _id: string; name: string }[]>
   }
   'cloud-connection': CloudConnectionService
+  'opening-hour-exceptions': OpeningHourExceptionService
 }
 
 // The application instance type that will be used everywhere else

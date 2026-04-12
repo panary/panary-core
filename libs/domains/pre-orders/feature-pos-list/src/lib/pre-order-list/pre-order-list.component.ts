@@ -109,9 +109,20 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                   </div>
 
                   <div class="flex justify-between items-center mt-3">
-                    <span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
-                       {{ order.lineItems.length }} {{ 'COMMON.ITEMS' | translate }}
-                    </span>
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
+                         {{ order.lineItems.length }} {{ 'COMMON.ITEMS' | translate }}
+                      </span>
+                      @if ($any(order).dineLocation === 'dine-in') {
+                        <span class="text-xs font-medium text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
+                          🍽 {{ 'PRE_ORDERS.DINE_IN' | translate }}
+                        </span>
+                      } @else {
+                        <span class="text-xs font-medium text-orange-600 bg-orange-50 dark:bg-orange-900/30 px-2 py-0.5 rounded-full">
+                          🥡 {{ 'PRE_ORDERS.TAKE_OUT' | translate }}
+                        </span>
+                      }
+                    </div>
 
                     @if (order.status === 'converted') {
                       <span

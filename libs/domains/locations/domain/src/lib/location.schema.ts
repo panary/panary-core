@@ -102,6 +102,17 @@ export const settingsSchema = Type.Object({
     E: Type.Optional(taxSchema),
     F: Type.Optional(taxSchema),
   }),
+  openingHoursSettings: Type.Object({
+    enabled: Type.Boolean({ default: false }),
+    regular: Type.Array(
+      Type.Object({
+        day: Type.Number({ minimum: 0, maximum: 6 }), // 0=So, 1=Mo ... 6=Sa
+        open: Type.String(), // "HH:mm"
+        close: Type.String(), // "HH:mm"
+        closed: Type.Boolean({ default: false }),
+      }),
+    ),
+  }),
   invoiceSettings: Type.Optional(
     Type.Object({
       invoiceTemplate: Type.Optional(Type.Any()),

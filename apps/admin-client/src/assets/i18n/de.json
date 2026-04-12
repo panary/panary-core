@@ -38,7 +38,21 @@
     "API_KEYS": "API-Schl\u00fcssel",
     "CLOUD_CONNECTION": "Cloud-Kopplung",
     "ORDERS": "Bestellungen",
-    "PAGERS": "Pager"
+    "PAGERS": "Pager",
+    "OPENING_HOURS": "\u00d6ffnungszeiten"
+  },
+  "OPENING_HOURS": {
+    "TITLE": "\u00d6ffnungszeiten",
+    "DESCRIPTION": "Regul\u00e4re \u00d6ffnungszeiten und Ausnahmen (Feiertage, Betriebsurlaub) verwalten.",
+    "ENABLED": "\u00d6ffnungszeiten aktivieren",
+    "ENABLED_HINT": "Begrenzt Vorbestellungen auf die definierten Zeitfenster",
+    "REGULAR": "Regul\u00e4re \u00d6ffnungszeiten",
+    "OPEN": "Ge\u00f6ffnet",
+    "CLOSED": "Geschlossen",
+    "EXCEPTIONS": "Ausnahmen (Feiertage, Betriebsurlaub)",
+    "ADD_EXCEPTION": "Ausnahme hinzuf\u00fcgen",
+    "NO_EXCEPTIONS": "Keine Ausnahmen konfiguriert",
+    "LOAD_ERROR": "\u00d6ffnungszeiten konnten nicht geladen werden."
   },
   "COMMON": {
     "SAVE": "Speichern",
@@ -81,6 +95,7 @@
     "PLATFORM_ADMIN": "Admin",
     "TENANT_OWNER": "Inhaber",
     "TENANT_MANAGER": "Manager",
+    "TENANT_TECHNICIAN": "Techniker",
     "TENANT_STAFF": "Mitarbeiter",
     "DEVICE_POS": "POS-Kasse",
     "DEVICE_KDS": "K\u00fcchen-Display",

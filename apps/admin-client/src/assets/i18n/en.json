@@ -38,7 +38,21 @@
     "API_KEYS": "API Keys",
     "CLOUD_CONNECTION": "Cloud Connection",
     "ORDERS": "Orders",
-    "PAGERS": "Pagers"
+    "PAGERS": "Pagers",
+    "OPENING_HOURS": "Opening Hours"
+  },
+  "OPENING_HOURS": {
+    "TITLE": "Opening Hours",
+    "DESCRIPTION": "Manage regular opening hours and exceptions (holidays, closures).",
+    "ENABLED": "Enable opening hours",
+    "ENABLED_HINT": "Limits pre-orders to the defined time windows",
+    "REGULAR": "Regular Opening Hours",
+    "OPEN": "Open",
+    "CLOSED": "Closed",
+    "EXCEPTIONS": "Exceptions (Holidays, Closures)",
+    "ADD_EXCEPTION": "Add exception",
+    "NO_EXCEPTIONS": "No exceptions configured",
+    "LOAD_ERROR": "Could not load opening hours."
   },
   "COMMON": {
     "SAVE": "Save",
@@ -81,6 +95,7 @@
     "PLATFORM_ADMIN": "Admin",
     "TENANT_OWNER": "Owner",
     "TENANT_MANAGER": "Manager",
+    "TENANT_TECHNICIAN": "Technician",
     "TENANT_STAFF": "Staff",
     "DEVICE_POS": "POS Terminal",
     "DEVICE_KDS": "Kitchen Display",

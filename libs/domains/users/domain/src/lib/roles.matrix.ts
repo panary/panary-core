@@ -39,9 +39,32 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PRINT_SERVER, action: AppAction.MANAGE },
     { resource: AppResource.APIKEYS, action: AppAction.MANAGE },
     { resource: AppResource.CLOUD_CONNECTION, action: AppAction.MANAGE },
+    { resource: AppResource.OPENING_HOUR_EXCEPTIONS, action: AppAction.MANAGE },
     AppAbility.CAN_SEE_REPORTS,
     AppAbility.CAN_REFUND,
     AppAbility.CAN_VOID_ORDER,
+  ],
+
+  // Techniker — Admin-ähnliche Rechte für Systemkonfiguration und Support
+  [UserSystemRole.TENANT_TECHNICIAN]: [
+    { resource: AppResource.USERS, action: AppAction.MANAGE },
+    { resource: AppResource.PRODUCTS, action: AppAction.MANAGE },
+    { resource: AppResource.PRODUCT_GROUPS, action: AppAction.MANAGE },
+    { resource: AppResource.ORDERS, action: AppAction.MANAGE },
+    { resource: AppResource.WORKING_TIMES, action: AppAction.MANAGE },
+    { resource: AppResource.PRE_ORDERS, action: AppAction.MANAGE },
+    { resource: AppResource.PRINT_SERVER, action: AppAction.MANAGE },
+    { resource: AppResource.APIKEYS, action: AppAction.MANAGE },
+    { resource: AppResource.CLOUD_CONNECTION, action: AppAction.MANAGE },
+    { resource: AppResource.OPENING_HOUR_EXCEPTIONS, action: AppAction.MANAGE },
+    { resource: AppResource.LOCATIONS, action: AppAction.MANAGE },
+    { resource: AppResource.SYSTEM, action: AppAction.MANAGE },
+    AppAbility.CAN_SEE_REPORTS,
+    AppAbility.CAN_REFUND,
+    AppAbility.CAN_VOID_ORDER,
+    AppAbility.CAN_MANAGE_TIME,
+    AppAbility.CAN_SEE_POS_PIN,
+    AppAbility.CAN_READ_SENSITIVE_USER_DATA,
   ],
 
   [UserSystemRole.TENANT_MANAGER]: [
@@ -89,6 +112,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
 
     // Vorbestellungen verwalten
     { resource: AppResource.PRE_ORDERS, action: [AppAction.CREATE, AppAction.READ, AppAction.UPDATE] },
+
+    // Öffnungszeiten-Ausnahmen lesen (für Vorbestelldialog)
+    { resource: AppResource.OPENING_HOUR_EXCEPTIONS, action: AppAction.READ },
 
     // Zeiterfassung erlauben (USERS_TIME_CLOCK)
     { resource: AppResource.WORKING_TIMES, action: [AppAction.CREATE, AppAction.READ, AppAction.UPDATE] },

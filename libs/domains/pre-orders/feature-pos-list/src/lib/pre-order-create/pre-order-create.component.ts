@@ -50,6 +50,27 @@ import { TranslateModule } from '@ngx-translate/core'
         <p class="text-xs text-gray-400 mt-1">{{ 'PRE_ORDERS.PICKUP_TIME_HINT' | translate }}</p>
       </div>
 
+      <!-- Dine Location -->
+      <div class="space-y-1">
+        <label class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.DINE_LOCATION' | translate }}</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" (click)="form.patchValue({ dineLocation: 'take-out' })"
+            [class]="form.get('dineLocation')?.value === 'take-out'
+              ? 'flex items-center justify-center gap-2 py-3.5 rounded-xl font-medium text-sm border-2 border-gray-900 dark:border-white bg-gray-900 dark:bg-white text-white dark:text-black transition'
+              : 'flex items-center justify-center gap-2 py-3.5 rounded-xl font-medium text-sm border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 transition'">
+            <span class="text-lg">🥡</span>
+            {{ 'PRE_ORDERS.TAKE_OUT' | translate }}
+          </button>
+          <button type="button" (click)="form.patchValue({ dineLocation: 'dine-in' })"
+            [class]="form.get('dineLocation')?.value === 'dine-in'
+              ? 'flex items-center justify-center gap-2 py-3.5 rounded-xl font-medium text-sm border-2 border-gray-900 dark:border-white bg-gray-900 dark:bg-white text-white dark:text-black transition'
+              : 'flex items-center justify-center gap-2 py-3.5 rounded-xl font-medium text-sm border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 transition'">
+            <span class="text-lg">🍽</span>
+            {{ 'PRE_ORDERS.DINE_IN' | translate }}
+          </button>
+        </div>
+      </div>
+
       <!-- Item Selection -->
       <div class="flex flex-col gap-2 border-t pt-4">
         <h3 class="font-bold text-gray-700">{{ 'PRE_ORDERS.ADD_ITEMS' | translate }}</h3>
@@ -132,6 +153,7 @@ export class PreOrderCreateComponent implements OnInit {
     name: ['', Validators.required],
     phone: [''],
     scheduledFor: ['', Validators.required],
+    dineLocation: ['take-out', Validators.required],
   })
 
   ngOnInit() {
@@ -153,6 +175,7 @@ export class PreOrderCreateComponent implements OnInit {
         name: this.data.customerContact.name,
         phone: this.data.customerContact.phone,
         scheduledFor: this.data.scheduledFor.slice(0, 16), // Cut seconds for datetime-local
+        dineLocation: (this.data as any).dineLocation || 'take-out',
       })
       // Note: Reconstructing full Product objects from OrderItems is tricky without fetching.
       // For now, edit mode might just be contact info without item editing if items are complex.
@@ -226,6 +249,7 @@ export class PreOrderCreateComponent implements OnInit {
           phone: val.phone || '',
         },
         scheduledFor: new Date(val.scheduledFor!).toISOString(),
+        dineLocation: val.dineLocation || 'take-out',
         lineItems: orderItems,
         status: 'pending' as const,
       }

@@ -17,6 +17,7 @@ export enum UserSystemRole {
   // --- Tenant Ebene (Kunden) ---
   TENANT_OWNER = 'tenant:owner', // Inhaber des Cafés
   TENANT_MANAGER = 'tenant:manager', // Filialleiter
+  TENANT_TECHNICIAN = 'tenant:technician', // Techniker (Admin-ähnliche Rechte)
   TENANT_STAFF = 'tenant:staff', // Kellner / Kassierer
 
   // --- DEVICE ROLES (Maschinen-User) ---

@@ -248,7 +248,10 @@
     "SEARCH_ITEMS": "Artikel suchen...",
     "ENTER_NAME": "Name eingeben...",
     "NO_ITEMS_SELECTED": "Noch keine Artikel ausgewählt",
-    "SAVE_RESERVATION": "Reservierung Speichern"
+    "SAVE_RESERVATION": "Reservierung Speichern",
+    "DINE_LOCATION": "Vor Ort oder Abholung?",
+    "DINE_IN": "Vor Ort",
+    "TAKE_OUT": "Abholung"
   },
   "HISTORY": {
     "TITLE": "Historie",
@@ -359,6 +362,7 @@
   "PRE_ORDER_DIALOG": {
     "TITLE": "Vorbestellung aufnehmen",
     "TIME_STEP": "Zeitpunkt",
+    "DINE_STEP": "Vor Ort / Abholung",
     "CONTACT_STEP": "Kontaktdaten",
     "PHONE_NUMBER": "Telefonnummer",
     "ENTER_NAME": "Name eingeben",

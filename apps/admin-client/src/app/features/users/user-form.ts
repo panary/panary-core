@@ -78,6 +78,7 @@ import { objectHash } from '../../core/dirty-check'
                      text-slate-900 dark:text-white outline-none">
               <option value="tenant:staff">{{ 'ROLES.TENANT_STAFF' | translate }}</option>
               <option value="tenant:manager">{{ 'ROLES.TENANT_MANAGER' | translate }}</option>
+              <option value="tenant:technician">{{ 'ROLES.TENANT_TECHNICIAN' | translate }}</option>
               <option value="tenant:owner">{{ 'ROLES.TENANT_OWNER' | translate }}</option>
             </select>
           </div>

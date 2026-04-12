@@ -65,10 +65,7 @@
     <!-- 3-Spalten Hauptbereich -->
     <div class="flex flex-row w-full flex-1 overflow-hidden px-3 pt-3 pb-2 gap-3 min-h-0">
       <!-- SPALTE 1: Positionen -->
-      <div class="relative flex-none w-[35%] min-w-[300px] flex flex-col h-full z-20 rounded-xl bg-gray-100 dark:bg-gray-800 overflow-hidden">
-        <!-- Neomorphism Overlay -->
-        <div class="absolute inset-0 rounded-xl pointer-events-none z-30
-                    shadow-[inset_6px_6px_16px_rgba(148,163,184,0.35),inset_-6px_-6px_16px_rgba(255,255,255,0.6)]"></div>
+      <div class="relative flex-none w-[35%] min-w-[300px] flex flex-col h-full z-20 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden">
         <!-- Receipt Header -->
         <div class="bg-transparent flex items-center justify-center pt-3 pb-1 text-[10px] text-gray-400 dark:text-gray-500 font-mono rounded-t-xl relative z-10 shrink-0">
           {{ time() | date: 'dd.MM.yyyy HH:mm:ss' }}

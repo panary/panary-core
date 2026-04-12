@@ -1,0 +1,19 @@
+{
+  "name": "opening-hour-exceptions-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/opening-hour-exceptions/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:opening-hour-exceptions"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/domains/opening-hour-exceptions/domain",
+        "main": "libs/domains/opening-hour-exceptions/domain/src/index.ts",
+        "tsConfig": "libs/domains/opening-hour-exceptions/domain/tsconfig.lib.json",
+        "assets": ["libs/domains/opening-hour-exceptions/domain/*.md"]
+      }
+    }
+  }
+}

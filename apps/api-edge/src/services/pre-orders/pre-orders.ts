@@ -3,6 +3,7 @@ import { hooks as schemaHooks } from '@feathersjs/schema'
 import { BadRequest } from '@feathersjs/errors'
 import { parseJsonFields } from '../../hooks/parse-json-fields.hook'
 import { stringifyJsonFields } from '../../hooks/stringify-json-fields.hook'
+import { formatDateISO, getOpeningHoursForDate } from '@panary-core/locations/domain'
 
 const PRE_ORDER_JSON_FIELDS = ['lineItems', 'customerContact', 'metadata']
 
@@ -112,7 +113,7 @@ export const preOrders = (app: Application) => {
         tenantId: preOrder.tenantId,
         status: OrderStatus.ACTIVE,
         orderChannel: OrderChannel.TELEPHONE,
-        dineLocation: DineLocation.TAKE_OUT,
+        dineLocation: preOrder.dineLocation || DineLocation.TAKE_OUT,
         lineItems: preOrder.lineItems,
         preOrderId: preOrder._id,
         isFinished: false,
@@ -180,6 +181,46 @@ export const preOrders = (app: Application) => {
       create: [
         schemaHooks.validateData(preOrderDataValidator),
         schemaHooks.resolveData(preOrderDataResolver),
+        // Öffnungszeiten-Validierung
+        async (context: any) => {
+          const data = context.data
+          if (!data?.scheduledFor) return context
+
+          const locationId = data.locationId || context.params?.user?.locationId
+          if (!locationId) return context
+
+          const location = await app.service('locations').get(locationId, { provider: undefined })
+          const ohs = (location as any)?.settings?.openingHoursSettings
+          if (!ohs?.enabled) return context
+
+          const scheduledDate = new Date(data.scheduledFor)
+
+          // Ausnahmen laden
+          const dateStr = formatDateISO(scheduledDate)
+          const excResult = await app.service('opening-hour-exceptions').find({
+            query: { date: dateStr, tenantId: data.tenantId },
+            provider: undefined,
+          }) as any
+          const exceptions = Array.isArray(excResult) ? excResult : excResult.data || []
+
+          const hours = getOpeningHoursForDate(scheduledDate, ohs.regular || [], exceptions)
+          if (hours.closed) {
+            throw new BadRequest('Vorbestellung nicht möglich — der Betrieb ist an diesem Tag geschlossen.')
+          }
+
+          if (hours.open && hours.close) {
+            const h = scheduledDate.getHours()
+            const m = scheduledDate.getMinutes()
+            const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+            if (timeStr < hours.open || timeStr > hours.close) {
+              throw new BadRequest(
+                `Vorbestellung nicht möglich — die Öffnungszeiten sind ${hours.open} bis ${hours.close} Uhr.`,
+              )
+            }
+          }
+
+          return context
+        },
         stringifyJsonFields(...PRE_ORDER_JSON_FIELDS),
       ],
       patch: [

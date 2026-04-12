@@ -16,6 +16,7 @@ export const AppResource = {
   PRINT_SERVER: 'print-server',
   APIKEYS: 'apikeys',
   CLOUD_CONNECTION: 'cloud-connection',
+  OPENING_HOUR_EXCEPTIONS: 'opening-hour-exceptions',
 } as const
 
 export type AppResource = (typeof AppResource)[keyof typeof AppResource]

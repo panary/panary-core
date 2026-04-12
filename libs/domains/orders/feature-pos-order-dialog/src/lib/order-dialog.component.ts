@@ -684,11 +684,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.showDineLocationSelection = false
 
     const dialogRef = this.matDialog.open(PreOrderQuickDialogComponent, {
-      width: '98vw',
-      height: '95vh',
-      maxWidth: '100vw',
-      maxHeight: '100vh',
-      panelClass: 'order-dialog-panel',
+      width: '720px',
+      maxWidth: '95vw',
+      panelClass: ['!rounded-2xl', 'overflow-hidden'],
     })
 
     dialogRef.afterClosed().subscribe(async (result: { date: Date; time: string; name: string; phone: string } | undefined) => {

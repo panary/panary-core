@@ -51,15 +51,31 @@ export const userDataResolver = resolve<User, HookContext<UserService>>({
     return bcrypt.hashSync(value, 6)
   },
 
-  // Automatisch die Location des erstellenden Users zuweisen (Edge-Modus: eine Location)
+  // Automatisch die Location zuweisen (Edge-Modus: eine Location)
+  // Fallback-Kette: 1. expliziter Wert, 2. Location des Erstellers, 3. erste Location aus DB
   activeLocationId: async (value: any, data: any, context: HookContext) => {
     if (value) return value
-    return context.params.user?.activeLocationId || context.params.user?.locationId || null
+    const fromUser = context.params.user?.activeLocationId || context.params.user?.locationId
+    if (fromUser) return fromUser
+    try {
+      const locations: any = await context.app.service('locations').find({ query: { $limit: 1, $select: ['_id'] }, paginate: false })
+      const list = Array.isArray(locations) ? locations : (locations.data ?? [])
+      return list[0]?._id || null
+    } catch {
+      return null
+    }
   },
   allowedLocationIds: async (value: any, data: any, context: HookContext) => {
     if (value && Array.isArray(value) && value.length > 0) return value
-    const locationId = context.params.user?.activeLocationId || context.params.user?.locationId
-    return locationId ? [locationId] : []
+    const fromUser = context.params.user?.activeLocationId || context.params.user?.locationId
+    if (fromUser) return [fromUser]
+    try {
+      const locations: any = await context.app.service('locations').find({ query: { $limit: 1, $select: ['_id'] }, paginate: false })
+      const list = Array.isArray(locations) ? locations : (locations.data ?? [])
+      return list[0]?._id ? [list[0]._id] : []
+    } catch {
+      return []
+    }
   },
 
   // Generate personnel number

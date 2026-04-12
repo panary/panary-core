@@ -27,25 +27,25 @@ import { ChangeDetectionStrategy, Component, computed, signal, input, output } f
         }
       </div>
 
-      <div class="grid grid-cols-7 gap-1 flex-1 content-start">
+      <div class="grid grid-cols-7 gap-1.5 flex-1 content-start">
         @for (date of daysInMonth(); track $index) {
           @if (date) {
             <button
-              class="w-14 h-14 flex items-center justify-center rounded-full font-medium text-xl transition-all active:scale-90 mx-auto"
+              class="w-10 h-10 flex items-center justify-center rounded-full font-medium text-sm transition-all active:scale-90 mx-auto"
               [class.bg-gray-800]="isSelected(date)"
               [class.text-white]="isSelected(date)"
-              [class.bg-gray-100]="!isSelected(date) && !isPast(date)" [class.dark:bg-gray-800]="!isSelected(date) && !isPast(date)"
-              [class.text-gray-700]="!isSelected(date) && !isPast(date)" [class.dark:text-gray-200]="!isSelected(date) && !isPast(date)"
-              [class.hover:bg-gray-200]="!isSelected(date) && !isPast(date)"
-              [class.text-gray-300]="isPast(date)"
-              [class.bg-gray-50]="isPast(date)"
-              [class.cursor-not-allowed]="isPast(date)"
-              [disabled]="isPast(date)"
+              [class.bg-gray-100]="!isSelected(date) && !isDisabled(date)" [class.dark:bg-gray-800]="!isSelected(date) && !isDisabled(date)"
+              [class.text-gray-700]="!isSelected(date) && !isDisabled(date)" [class.dark:text-gray-200]="!isSelected(date) && !isDisabled(date)"
+              [class.hover:bg-gray-200]="!isSelected(date) && !isDisabled(date)"
+              [class.text-gray-300]="isDisabled(date)"
+              [class.bg-gray-50]="isDisabled(date)"
+              [class.cursor-not-allowed]="isDisabled(date)"
+              [disabled]="isDisabled(date)"
               (click)="selectDate(date)">
               {{ date.getDate() }}
             </button>
           } @else {
-            <div class="w-14 h-14 mx-auto"></div>
+            <div class="w-10 h-10 mx-auto"></div>
           }
         }
       </div>
@@ -54,6 +54,7 @@ import { ChangeDetectionStrategy, Component, computed, signal, input, output } f
 })
 export class TouchCalendarComponent {
   selectedDate = input<Date | null>(null)
+  closedDates = input<Set<string>>(new Set())
   dateChange = output<Date>()
 
   currentMonth = signal(new Date())
@@ -103,5 +104,16 @@ export class TouchCalendarComponent {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     return date < today
+  }
+
+  isClosed(date: Date): boolean {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return this.closedDates().has(`${y}-${m}-${d}`)
+  }
+
+  isDisabled(date: Date): boolean {
+    return this.isPast(date) || this.isClosed(date)
   }
 }

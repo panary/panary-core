@@ -1,6 +1,6 @@
 import { querySyntax, Static, StringEnum, Type } from '@feathersjs/typebox'
 import { baseSchema } from '@panary-core/shared/common'
-import { orderLineItemSchema } from '@panary-core/orders/domain'
+import { DineLocation, orderLineItemSchema } from '@panary-core/orders/domain'
 
 //#region Enums & Constants
 export const PreOrderStatus = {
@@ -19,6 +19,7 @@ export const preOrderSchema = Type.Object(
 
     scheduledFor: Type.String({ format: 'date-time' }),
     status: StringEnum(Object.values(PreOrderStatus)),
+    dineLocation: Type.Optional(StringEnum(Object.values(DineLocation))),
 
     customerContact: Type.Object({
       name: Type.String(),

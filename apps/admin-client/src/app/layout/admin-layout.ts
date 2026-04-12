@@ -209,6 +209,7 @@ export class AdminLayoutComponent {
     { path: '/orders',         label: 'NAV.ORDERS',           icon: 'receipt_long' },
     { path: '/printers',       label: 'NAV.PRINTERS',         icon: 'print'       },
     { path: '/pagers',         label: 'NAV.PAGERS',           icon: 'vibration'   },
+    { path: '/opening-hours',  label: 'NAV.OPENING_HOURS',    icon: 'schedule'    },
     { path: '/apikeys',        label: 'NAV.API_KEYS',         icon: 'key'         },
     { path: '/cloud',          label: 'NAV.CLOUD_CONNECTION',  icon: 'cloud'       },
     { path: '/location',       label: 'NAV.LOCATION',         icon: 'store'       },

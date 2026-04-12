@@ -23,6 +23,7 @@ export const appRoutes: Routes = [
       { path: 'apikeys', loadComponent: () => import('./features/apikeys/apikey-list').then(m => m.ApikeyListComponent) },
       { path: 'orders', loadComponent: () => import('./features/orders/order-list').then(m => m.OrderListComponent) },
       { path: 'pagers', loadComponent: () => import('./features/locations/pager-settings').then(m => m.PagerSettingsComponent) },
+      { path: 'opening-hours', loadComponent: () => import('./features/locations/opening-hours').then(m => m.OpeningHoursComponent) },
       { path: 'cloud', loadComponent: () => import('./features/cloud-connection/cloud-connection').then(m => m.CloudConnectionComponent) },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],

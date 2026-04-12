@@ -218,6 +218,10 @@ export class ConnectionService {
     return this.#app.service('pre-orders')
   }
 
+  get openingHourExceptionsService(): Service {
+    return this.#app.service('opening-hour-exceptions')
+  }
+
   get leaveRequestService(): Service {
     return this.#app.service('leave-requests')
   }
@@ -267,6 +271,9 @@ export class ConnectionService {
     })
     this.#app.use('pre-orders', socketClient.service('pre-orders'), {
       methods: ['find', 'get', 'create', 'update', 'patch', 'remove', 'convert'],
+    })
+    this.#app.use('opening-hour-exceptions', socketClient.service('opening-hour-exceptions'), {
+      methods: ['find', 'get', 'create', 'update', 'patch', 'remove'],
     })
 
     // Explicitly connect if not auto-connected (Device Auth case)

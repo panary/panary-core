@@ -248,7 +248,10 @@
     "SEARCH_ITEMS": "Ürün ara...",
     "ENTER_NAME": "Ad girin...",
     "NO_ITEMS_SELECTED": "Henüz ürün seçilmedi",
-    "SAVE_RESERVATION": "Rezervasyonu kaydet"
+    "SAVE_RESERVATION": "Rezervasyonu kaydet",
+    "DINE_LOCATION": "Yerinde mi, paket mi?",
+    "DINE_IN": "Yerinde",
+    "TAKE_OUT": "Paket"
   },
   "HISTORY": {
     "TITLE": "Geçmiş",
@@ -359,7 +362,8 @@
   "PRE_ORDER_DIALOG": {
     "TITLE": "Ön sipariş oluştur",
     "TIME_STEP": "Tarih ve Saat",
-    "CONTACT_STEP": "İletişim bilgileri",
+    "DINE_STEP": "Yerinde / Paket",
+    "CONTACT_STEP": "\u0130leti\u015fim bilgileri",
     "PHONE_NUMBER": "Telefon numarası",
     "ENTER_NAME": "Ad girin",
     "ENTER_PHONE": "Numara girin"

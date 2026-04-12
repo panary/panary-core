@@ -55,6 +55,18 @@ export const generateDefaultLocationSettings: Settings = {
       name: 'Ermäßigter Steuersatz',
     },
   },
+  openingHoursSettings: {
+    enabled: false,
+    regular: [
+      { day: 0, open: '10:00', close: '22:00', closed: true },
+      { day: 1, open: '10:00', close: '22:00', closed: false },
+      { day: 2, open: '10:00', close: '22:00', closed: false },
+      { day: 3, open: '10:00', close: '22:00', closed: false },
+      { day: 4, open: '10:00', close: '22:00', closed: false },
+      { day: 5, open: '10:00', close: '22:00', closed: false },
+      { day: 6, open: '10:00', close: '22:00', closed: false },
+    ],
+  },
   invoiceSettings: {
     invoiceTemplate: null,
   },

@@ -248,7 +248,10 @@
     "SEARCH_ITEMS": "Search items...",
     "ENTER_NAME": "Enter name...",
     "NO_ITEMS_SELECTED": "No items selected yet",
-    "SAVE_RESERVATION": "Save reservation"
+    "SAVE_RESERVATION": "Save reservation",
+    "DINE_LOCATION": "Dine-in or take-out?",
+    "DINE_IN": "Dine-in",
+    "TAKE_OUT": "Take-out"
   },
   "HISTORY": {
     "TITLE": "History",
@@ -359,6 +362,7 @@
   "PRE_ORDER_DIALOG": {
     "TITLE": "Create pre-order",
     "TIME_STEP": "Date & Time",
+    "DINE_STEP": "Dine-in / Take-out",
     "CONTACT_STEP": "Contact details",
     "PHONE_NUMBER": "Phone number",
     "ENTER_NAME": "Enter name",

@@ -38,7 +38,21 @@
     "API_KEYS": "API Anahtarlar\u0131",
     "CLOUD_CONNECTION": "Bulut Ba\u011flant\u0131s\u0131",
     "ORDERS": "Sipari\u015fler",
-    "PAGERS": "\u00c7a\u011fr\u0131 Cihazlar\u0131"
+    "PAGERS": "\u00c7a\u011fr\u0131 Cihazlar\u0131",
+    "OPENING_HOURS": "\u00c7al\u0131\u015fma Saatleri"
+  },
+  "OPENING_HOURS": {
+    "TITLE": "\u00c7al\u0131\u015fma Saatleri",
+    "DESCRIPTION": "D\u00fczenli \u00e7al\u0131\u015fma saatlerini ve istisnalar\u0131 y\u00f6netin.",
+    "ENABLED": "\u00c7al\u0131\u015fma saatlerini etkinle\u015ftir",
+    "ENABLED_HINT": "\u00d6n sipari\u015fleri belirlenen zaman dilimlerine s\u0131n\u0131rlar",
+    "REGULAR": "D\u00fczenli \u00c7al\u0131\u015fma Saatleri",
+    "OPEN": "A\u00e7\u0131k",
+    "CLOSED": "Kapal\u0131",
+    "EXCEPTIONS": "\u0130stisnalar (Tatil, Kapal\u0131)",
+    "ADD_EXCEPTION": "\u0130stisna ekle",
+    "NO_EXCEPTIONS": "Yap\u0131land\u0131r\u0131lm\u0131\u015f istisna yok",
+    "LOAD_ERROR": "\u00c7al\u0131\u015fma saatleri y\u00fcklenemedi."
   },
   "COMMON": {
     "SAVE": "Kaydet",
@@ -81,6 +95,7 @@
     "PLATFORM_ADMIN": "Y\u00f6netici",
     "TENANT_OWNER": "Sahip",
     "TENANT_MANAGER": "M\u00fcd\u00fcr",
+    "TENANT_TECHNICIAN": "Teknisyen",
     "TENANT_STAFF": "\u00c7al\u0131\u015fan",
     "DEVICE_POS": "POS Kasa",
     "DEVICE_KDS": "Mutfak Ekran\u0131",

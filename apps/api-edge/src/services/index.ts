@@ -15,6 +15,7 @@ import { userPreferences } from './user-preferences/user-preferences'
 import { workingTimes } from './working-times/working-times'
 import { preOrders } from './pre-orders/pre-orders'
 import { cloudConnection } from './cloud-connection/cloud-connection'
+import { openingHourExceptions } from './opening-hour-exceptions/opening-hour-exceptions'
 
 export const services = (app: Application) => {
   app.configure(organizations)
@@ -32,4 +33,5 @@ export const services = (app: Application) => {
   app.configure(workingTimes)
   app.configure(preOrders)
   app.configure(cloudConnection)
+  app.configure(openingHourExceptions)
 }

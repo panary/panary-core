@@ -1,0 +1,22 @@
+{
+  "name": "locations",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/locations",
+  "projectType": "library",
+  "tags": ["type:domain-package", "domain:locations", "publishable"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/libs/domains/locations/domain/dist"],
+      "dependsOn": ["locations-domain:build"],
+      "options": {
+        "command": "echo 'locations package build complete'"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "libs/domains/locations"
+      }
+    }
+  }
+}

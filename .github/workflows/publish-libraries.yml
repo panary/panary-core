@@ -1,0 +1,65 @@
+name: Publish Libraries
+
+# Veröffentlicht alle Libraries mit Tag "publishable" (siehe nx.json release.projects)
+# in GitHub Packages unter dem @panary-core-Scope.
+#
+# Trigger:
+#   - Manuell via workflow_dispatch (mit first-dry-run-Default zum sicheren Testen)
+#   - Automatisch bei Tag-Push "v*" (z.B. v26.5.0) — wird in M5 aktiviert
+on:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 'Dry-Run (kein tatsächliches Publishing)'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@panary-core'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build publishable libraries
+        run: pnpm nx run-many -t build --projects="tag:publishable"
+
+      - name: Dry-Run Publish
+        if: ${{ inputs.dry-run == 'true' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm nx release publish --dry-run
+
+      - name: Publish to GitHub Packages
+        if: ${{ inputs.dry-run != 'true' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm nx release publish

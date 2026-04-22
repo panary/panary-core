@@ -14,10 +14,10 @@ import {
 
 import type { Application } from '../../declarations'
 import type { Product, ProductService } from './products.class'
-import { authorize } from '../../hooks/authorize.hook'
-import { multiTenancy } from '../../hooks/multi-tenancy.hook'
-import { parseJsonFields } from '../../hooks/parse-json-fields.hook'
-import { stringifyJsonFields } from '../../hooks/stringify-json-fields.hook'
+import { authorize } from '@panary-core/shared-backend'
+import { multiTenancy } from '@panary-core/shared-backend'
+import { parseJsonFields } from '@panary-core/shared-backend'
+import { stringifyJsonFields } from '@panary-core/shared-backend'
 
 const PRODUCT_JSON_FIELDS = ['categoryIds', 'optionGroups', 'availability', 'ui', 'ingredientReferences', 'recipeReferences']
 import { createServiceAdapter } from '@panary-core/shared/data-access/server'

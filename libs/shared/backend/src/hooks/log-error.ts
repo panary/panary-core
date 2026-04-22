@@ -1,6 +1,6 @@
 // For more information about this file see https://dove.feathersjs.com/guides/cli/log-error.html
 import type { HookContext, NextFunction } from '../declarations'
-import { logger } from '@panary-core/shared-backend'
+import { logger } from '../logger'
 
 /**
  * Fallback-Error-Logging für interne Aufrufe (ohne Provider).

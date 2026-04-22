@@ -13,8 +13,8 @@ import {
 } from './working-times.schema'
 
 import type { Application } from '../../declarations'
-import { authorize } from '../../hooks/authorize.hook'
-import { multiTenancy } from '../../hooks/multi-tenancy.hook'
+import { authorize } from '@panary-core/shared-backend'
+import { multiTenancy } from '@panary-core/shared-backend'
 import { createServiceAdapter } from '@panary-core/shared/data-access/server'
 import { DatabaseType } from '@panary-core/shared-common'
 import {
@@ -24,8 +24,8 @@ import {
   workingTimeSchema
 } from '@panary-core/working-times/domain'
 import type { WorkingTime, WorkingTimeService } from './working-times.class'
-import { parseJsonFields } from '../../hooks/parse-json-fields.hook'
-import { stringifyJsonFields } from '../../hooks/stringify-json-fields.hook'
+import { parseJsonFields } from '@panary-core/shared-backend'
+import { stringifyJsonFields } from '@panary-core/shared-backend'
 
 export const workingTimesPath = 'working-times'
 export const workingTimesMethods = ['find', 'get', 'create', 'patch', 'remove'] as const

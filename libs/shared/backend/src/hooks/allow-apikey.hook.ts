@@ -1,5 +1,5 @@
 import type { HookContext, NextFunction } from '../declarations'
-import { logger } from '@panary-core/shared-backend'
+import { logger } from '../logger'
 
 /**
  * Around-Hook: Erlaubt API-Key-authentifizierten Device-Verbindungen den Zugriff auf Services.

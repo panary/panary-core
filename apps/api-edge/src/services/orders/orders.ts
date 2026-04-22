@@ -1,7 +1,7 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
-import { parseJsonFields } from '../../hooks/parse-json-fields.hook'
-import { stringifyJsonFields } from '../../hooks/stringify-json-fields.hook'
+import { parseJsonFields } from '@panary-core/shared-backend'
+import { stringifyJsonFields } from '@panary-core/shared-backend'
 
 const ORDER_JSON_FIELDS = ['lineItems', 'cancellation', 'customerPaymentInfo', 'discount', 'staffPaymentInfo', 'taxSnapshot', 'creationContext', 'payment']
 
@@ -17,8 +17,8 @@ import {
 } from './orders.schema'
 
 import type { Application } from '../../declarations'
-import { authorize } from '../../hooks/authorize.hook'
-import { multiTenancy } from '../../hooks/multi-tenancy.hook'
+import { authorize } from '@panary-core/shared-backend'
+import { multiTenancy } from '@panary-core/shared-backend'
 import { createServiceAdapter } from '@panary-core/shared/data-access/server'
 import { DatabaseType } from '@panary-core/shared-common'
 import { orderDataSchema, orderPatchSchema, orderQuerySchema, orderSchema } from '@panary-core/orders/domain'

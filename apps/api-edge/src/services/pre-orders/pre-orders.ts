@@ -1,8 +1,8 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
 import { BadRequest } from '@feathersjs/errors'
-import { parseJsonFields } from '../../hooks/parse-json-fields.hook'
-import { stringifyJsonFields } from '../../hooks/stringify-json-fields.hook'
+import { parseJsonFields } from '@panary-core/shared-backend'
+import { stringifyJsonFields } from '@panary-core/shared-backend'
 import { formatDateISO, getOpeningHoursForDate } from '@panary-core/locations/domain'
 
 const PRE_ORDER_JSON_FIELDS = ['lineItems', 'customerContact', 'metadata']
@@ -19,8 +19,8 @@ import {
 } from './pre-orders.schema'
 
 import type { Application } from '../../declarations'
-import { authorize } from '../../hooks/authorize.hook'
-import { multiTenancy } from '../../hooks/multi-tenancy.hook'
+import { authorize } from '@panary-core/shared-backend'
+import { multiTenancy } from '@panary-core/shared-backend'
 import { createServiceAdapter } from '@panary-core/shared/data-access/server'
 import { DatabaseType } from '@panary-core/shared-common'
 import {

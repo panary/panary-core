@@ -21,7 +21,7 @@ import { stringifyJsonFields } from '../../hooks/stringify-json-fields.hook'
 
 const PRODUCT_JSON_FIELDS = ['categoryIds', 'optionGroups', 'availability', 'ui', 'ingredientReferences', 'recipeReferences']
 import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared/common'
+import { DatabaseType } from '@panary-core/shared-common'
 import {
   productDataSchema,
   productPatchSchema,

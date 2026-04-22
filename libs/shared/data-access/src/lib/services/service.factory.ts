@@ -3,7 +3,7 @@ import type { KnexAdapterOptions } from '@feathersjs/knex'
 import { KnexService } from '@feathersjs/knex'
 import type { MongoDBAdapterOptions } from '@feathersjs/mongodb'
 import { MongoDBService } from '@feathersjs/mongodb'
-import { DatabaseType } from '@panary-core/shared/common'
+import { DatabaseType } from '@panary-core/shared-common'
 
 export interface ServiceOptions {
   name: string

@@ -1,6 +1,6 @@
 import type { Static } from '@feathersjs/typebox'
 import { querySyntax, StringEnum, Type } from '@feathersjs/typebox'
-import { baseSchema } from '@panary-core/shared/common'
+import { baseSchema } from '@panary-core/shared-common'
 import { UserSystemRole } from '@panary-core/users/domain'
 
 //#region Enums & Konstanten (Wiederverwendbar)

@@ -13,7 +13,7 @@ export default [
             '{projectRoot}/vite.config.{js,ts,mjs,mts}',
           ],
           ignoredDependencies: [
-            '@panary-core/shared/common',
+            '@panary-core/shared-common',
             'vitest',
             '@nx/vite',
           ],

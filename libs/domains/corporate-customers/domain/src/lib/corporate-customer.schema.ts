@@ -1,5 +1,5 @@
 import { querySyntax, Static, StringEnum, Type } from '@feathersjs/typebox'
-import { baseCustomerSchema } from '@panary-core/shared/common'
+import { baseCustomerSchema } from '@panary-core/shared-common'
 
 //#region Enums & Constants (Reusable)
 export const DiscountType = {

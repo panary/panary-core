@@ -2,8 +2,8 @@ import { Order } from '../models/order.model'
 import { GenericOrderLineItemSchema, OrderLineItemSchema } from '../models/order-line-item.model'
 import { ProductSchema } from '@panary-core/products/data-access'
 import { ProductService } from '@panary-core/products/data-access'
-import { IngredientReference as IngredientReferenceSchema } from '@panary-core/shared/common'
-import { RecipeReference as RecipeReferenceSchema } from '@panary-core/shared/common'
+import { IngredientReference as IngredientReferenceSchema } from '@panary-core/shared-common'
+import { RecipeReference as RecipeReferenceSchema } from '@panary-core/shared-common'
 import { Id } from '@feathersjs/feathers'
 
 export function getOrderArticles(orderItem: Order): OrderLineItemSchema[] {

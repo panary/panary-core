@@ -1,6 +1,6 @@
 import { HookContext } from '../declarations'
 import { Forbidden } from '@feathersjs/errors'
-import { AppError, AppErrorMessages } from '@panary-core/shared/common'
+import { AppError, AppErrorMessages } from '@panary-core/shared-common'
 import { logger } from '../logger'
 
 export const ensureTenantIsolation = () => async (context: HookContext) => {

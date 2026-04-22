@@ -13,7 +13,7 @@ import {
   PrintDialogComponent,
   CancelOrderDialogComponent,
 } from '@panary-core/orders/data-access'
-import { ExtendedParams } from '@panary-core/shared/common'
+import { ExtendedParams } from '@panary-core/shared-common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 type TimeRange = 'today' | 'yesterday' | 'week' | 'custom'

@@ -1,6 +1,6 @@
 import type { Static } from '@feathersjs/typebox'
 import { querySyntax, Type } from '@feathersjs/typebox'
-<% if (useBaseSchema) { %>import { baseSchema } from '@panary-core/shared/common'<% } %>
+<% if (useBaseSchema) { %>import { baseSchema } from '@panary-core/shared-common'<% } %>
 
 //#region Enums & Constants (Reusable)
 // TODO: Add your enums and constants here

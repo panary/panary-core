@@ -11,7 +11,7 @@ import { StaffPaymentInfo } from '../models/staff-payment-info.model'
 import { CustomerPaymentInfo } from '../models/customer-payment-info.model'
 import { OrderInteractionSchema } from '../models/order-interaction.model'
 import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
-import { ExtendedParams } from '@panary-core/shared/common'
+import { ExtendedParams } from '@panary-core/shared-common'
 import { Observer } from 'rxjs'
 import { LocationService } from '@panary-core/locations/data-access'
 

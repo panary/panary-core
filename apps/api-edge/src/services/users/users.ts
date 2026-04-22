@@ -23,7 +23,7 @@ import { stringifyJsonFields } from '../../hooks/stringify-json-fields.hook'
 import { createServiceAdapter } from '@panary-core/shared/data-access/server'
 
 const USER_JSON_FIELDS = ['discountDetails', 'allowedLocationIds', 'permissions']
-import { DatabaseType } from '@panary-core/shared/common'
+import { DatabaseType } from '@panary-core/shared-common'
 import { Conflict, NotAuthenticated } from '@feathersjs/errors'
 import bcrypt from 'bcryptjs'
 

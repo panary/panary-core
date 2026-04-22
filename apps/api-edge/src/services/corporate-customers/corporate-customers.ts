@@ -17,7 +17,7 @@ import type { CorporateCustomer, CorporateCustomerService } from './corporate-cu
 import { authorize } from '../../hooks/authorize.hook'
 import { multiTenancy } from '../../hooks/multi-tenancy.hook'
 import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared/common'
+import { DatabaseType } from '@panary-core/shared-common'
 import {
   corporateCustomerDataSchema,
   corporateCustomerPatchSchema,

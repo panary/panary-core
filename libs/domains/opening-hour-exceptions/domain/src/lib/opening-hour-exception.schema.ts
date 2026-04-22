@@ -1,5 +1,5 @@
 import { querySyntax, Static, Type } from '@feathersjs/typebox'
-import { baseSchema } from '@panary-core/shared/common'
+import { baseSchema } from '@panary-core/shared-common'
 
 //#region Das Haupt-Datenmodell (Schema)
 export const openingHourExceptionSchema = Type.Object(

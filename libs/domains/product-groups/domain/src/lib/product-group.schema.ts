@@ -1,5 +1,5 @@
 import { querySyntax, Static, StringEnum, Type } from '@feathersjs/typebox'
-import { baseSchema } from '@panary-core/shared/common'
+import { baseSchema } from '@panary-core/shared-common'
 
 //#region Enums & Constants
 export const ProductGroupStatus = {

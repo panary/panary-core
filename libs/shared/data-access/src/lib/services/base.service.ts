@@ -4,7 +4,7 @@ import { Observable, Observer } from 'rxjs'
 // Feathers/Connection Service & Typs
 import type { Id, Paginated, Params } from '@feathersjs/feathers'
 import { cloneDeep } from 'lodash'
-import { BaseDocument, ExtendedParams } from '@panary-core/shared/common'
+import { BaseDocument, ExtendedParams } from '@panary-core/shared-common'
 import { ServiceHelper } from '../utils/service-helper.service'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'

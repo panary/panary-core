@@ -28,7 +28,7 @@
       "@panary-core/users/domain": ["libs/domains/users/domain/src/index.ts"],
       "@panary-core/users/api": ["libs/domains/users/api/src/index.ts"],
       "@panary-core/users/data-access": ["libs/domains/users/data-access/src/index.ts"],
-      "@panary-core/shared/common": ["libs/shared/common/src/index.ts"],
+      "@panary-core/shared-common": ["libs/shared/common/src/index.ts"],
       "@panary-core/shared/data-access": ["libs/shared/data-access/src/index.ts"],
       "@panary-core/shared/data-access/server": ["libs/shared/data-access/src/server.ts"],
       "@panary-core/apikeys/domain": ["libs/domains/apikeys/domain/src/index.ts"],

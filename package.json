@@ -70,6 +70,7 @@
     "@nx/eslint-plugin": "22.6.4",
     "@nx/js": "22.6.4",
     "@nx/node": "22.6.4",
+    "@nx/rollup": "22.6.4",
     "@nx/vite": "22.6.4",
     "@nx/vitest": "22.6.4",
     "@nx/web": "22.6.4",

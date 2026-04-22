@@ -3,7 +3,7 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/shared/common/src",
   "projectType": "library",
-  "tags": [],
+  "tags": ["publishable"],
   "targets": {
     "build": {
       "executor": "@nx/js:tsc",
@@ -20,6 +20,11 @@
             "output": "assets"
           }
         ]
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "dist/libs/shared/common"
       }
     }
   }

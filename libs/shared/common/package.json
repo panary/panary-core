@@ -1,10 +1,26 @@
 {
-  "name": "@panary-core/shared/common",
-  "version": "0.0.1",
-  "private": true,
+  "name": "@panary-core/shared-common",
+  "version": "26.4.20",
+  "license": "BSL-1.1",
   "type": "commonjs",
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/panary/panary-core.git",
+    "directory": "libs/shared/common"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
   "dependencies": {
     "tslib": "^2.3.0"
   }

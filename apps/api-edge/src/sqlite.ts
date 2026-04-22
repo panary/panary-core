@@ -4,7 +4,7 @@ import knex from 'knex'
 import type { Application } from './declarations'
 import path from 'path'
 import fs from 'fs'
-import { logger } from './logger'
+import { logger } from '@panary-core/shared-backend'
 
 declare module './declarations' {
   interface Configuration {

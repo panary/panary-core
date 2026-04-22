@@ -1,6 +1,6 @@
 import path from 'path'
 import fs from 'fs'
-import { logger } from './logger'
+import { logger } from '@panary-core/shared-backend'
 
 // Wir definieren mögliche Orte, wo die Config liegen könnte.
 // Die Reihenfolge ist wichtig!

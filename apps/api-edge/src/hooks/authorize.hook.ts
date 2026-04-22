@@ -8,7 +8,7 @@ import {
   UserSystemRole
 } from '@panary-core/users/domain'
 import { AppError, AppErrorMessages } from '@panary-core/shared-common'
-import { logger } from '../logger'
+import { logger } from '@panary-core/shared-backend'
 
 // 2. SCHICHT: Rollen-Check (RBAC)
 // Prüft: Darf ein "Staff" überhaupt User sehen/bearbeiten?

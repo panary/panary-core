@@ -2,7 +2,7 @@ import net from 'net'
 // @ts-expect-error — keine Typdeklarationen vorhanden
 import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder'
 import type { PrintElement } from '@panary-core/locations/domain'
-import { logger } from '../logger'
+import { logger } from '@panary-core/shared-backend'
 
 const TCP_TIMEOUT = 5000
 

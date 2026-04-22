@@ -26,7 +26,7 @@ import {
   apikeyQuerySchema,
   apikeySchema
 } from '@panary-core/apikeys/domain'
-import { logger } from '../../logger'
+import { logger } from '@panary-core/shared-backend'
 
 export const apikeysPath = 'apikeys'
 export const apikeysMethods: Array<keyof ApiKeyService> = ['find', 'get', 'create', 'patch', 'remove']

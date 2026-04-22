@@ -29,7 +29,7 @@ import { assignDailySequenceNumber } from '../../hooks/assign-daily-sequence-num
 import { calculateTaxDetails } from '../../hooks/calculate-tax-details'
 import { checkMultiOperation } from '../../hooks/check-multi-operation'
 import { createOrderInteractions } from '../../hooks/create-order-interactions'
-import { logger } from '../../logger'
+import { logger } from '@panary-core/shared-backend'
 
 export const ordersPath = 'orders'
 export const ordersMethods = ['find', 'get', 'create', 'patch', 'remove'] as const

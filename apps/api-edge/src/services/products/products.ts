@@ -28,7 +28,7 @@ import {
   productQuerySchema,
   productSchema
 } from '@panary-core/products/domain'
-import { logger } from '../../logger'
+import { logger } from '@panary-core/shared-backend'
 
 export const productsPath = 'products'
 export const productsMethods = ['find', 'get', 'create', 'patch', 'remove'] as const

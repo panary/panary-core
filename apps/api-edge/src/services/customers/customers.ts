@@ -24,7 +24,7 @@ import {
   customerSchema
 } from '@panary-core/customers/domain'
 import type { Customer, CustomerService } from './customers.class'
-import { logger } from '../../logger'
+import { logger } from '@panary-core/shared-backend'
 
 export const customersPath = 'customers'
 export const customersMethods = ['find', 'get', 'create', 'patch', 'remove'] as const

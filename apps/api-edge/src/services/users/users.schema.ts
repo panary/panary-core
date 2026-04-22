@@ -6,7 +6,7 @@ import { uuidv7 } from 'uuidv7'
 import bcrypt from 'bcryptjs'
 import type { HookContext } from '../../declarations'
 import { dataValidator, queryValidator } from '@panary-core/shared-backend'
-import { logger } from '../../logger'
+import { logger } from '@panary-core/shared-backend'
 
 // Import domain schema
 import { userDataSchema, userPatchSchema, userQuerySchema, userSchema, User, UserQuery, UserSystemRole } from '@panary-core/users/domain'

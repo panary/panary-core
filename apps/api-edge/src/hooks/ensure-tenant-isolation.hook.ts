@@ -1,7 +1,7 @@
 import { HookContext } from '../declarations'
 import { Forbidden } from '@feathersjs/errors'
 import { AppError, AppErrorMessages } from '@panary-core/shared-common'
-import { logger } from '../logger'
+import { logger } from '@panary-core/shared-backend'
 
 export const ensureTenantIsolation = () => async (context: HookContext) => {
   // 1. Wenn keine Daten zurückkamen, ist alles gut (nichts zu prüfen)

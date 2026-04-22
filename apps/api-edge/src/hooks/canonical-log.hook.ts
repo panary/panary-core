@@ -1,6 +1,6 @@
 import { uuidv7 } from 'uuidv7'
 import type { HookContext, NextFunction } from '../declarations'
-import { logger } from '../logger'
+import { logger } from '@panary-core/shared-backend'
 
 const SENSITIVE_FIELDS = ['password', 'posPin', 'apikey', 'secret', 'token']
 

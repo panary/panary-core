@@ -1,6 +1,6 @@
 import { HookContext, NextFunction } from '../declarations'
 import { UserSystemRole } from '@panary-core/users/domain'
-import { logger } from '../logger'
+import { logger } from '@panary-core/shared-backend'
 
 export interface MultiTenancyOptions {
   isolateLocation?: boolean // Soll nach Filiale gefiltert werden?

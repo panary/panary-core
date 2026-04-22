@@ -1,7 +1,7 @@
 import type { Application } from '../declarations'
 import { createPrintServerMiddleware } from './print-server.router'
 import { printServerManager } from './print-server.manager'
-import { logger } from '../logger'
+import { logger } from '@panary-core/shared-backend'
 
 /**
  * Registriert die Print-Server Koa-Middleware in der Feathers-App.

@@ -29,7 +29,7 @@ import {
   generateDefaultLocationSettings,
 } from '@panary-core/locations/domain'
 import type { Location, LocationService } from './locations.class'
-import { logger } from '../../logger'
+import { logger } from '@panary-core/shared-backend'
 
 export const locationsPath = 'locations'
 export const locationsMethods = ['find', 'get', 'create', 'patch', 'remove'] as const

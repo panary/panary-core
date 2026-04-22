@@ -24,7 +24,7 @@ import {
   deviceSchema
 } from '@panary-core/devices/domain'
 import type { Device, DeviceService } from './devices.class'
-import { logger } from '../../logger'
+import { logger } from '@panary-core/shared-backend'
 
 export const devicesPath = 'devices'
 export const devicesMethods = ['find', 'get', 'create', 'patch', 'remove'] as const

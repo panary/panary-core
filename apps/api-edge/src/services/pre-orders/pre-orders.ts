@@ -32,7 +32,7 @@ import {
 } from '@panary-core/pre-orders/domain'
 import { DineLocation, OrderChannel, OrderStatus, PaymentState } from '@panary-core/orders/domain'
 import type { PreOrder, PreOrderService } from './pre-orders.class'
-import { logger } from '../../logger'
+import { logger } from '@panary-core/shared-backend'
 
 export const preOrdersPath = 'pre-orders'
 export const preOrdersMethods = ['find', 'get', 'create', 'patch', 'remove', 'convert'] as const

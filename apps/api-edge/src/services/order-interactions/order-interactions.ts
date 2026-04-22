@@ -24,7 +24,7 @@ import {
   orderInteractionSchema
 } from '@panary-core/order-interactions/domain'
 import type { OrderInteraction, OrderInteractionService } from './order-interactions.class'
-import { logger } from '../../logger'
+import { logger } from '@panary-core/shared-backend'
 
 export const orderInteractionsPath = 'order-interactions'
 export const orderInteractionsMethods = ['find', 'get', 'create', 'patch', 'remove'] as const

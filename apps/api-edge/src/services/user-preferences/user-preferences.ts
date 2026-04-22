@@ -24,7 +24,7 @@ import {
   userPreferenceSchema
 } from '@panary-core/user-preferences/domain'
 import type { UserPreference, UserPreferenceService } from './user-preferences.class'
-import { logger } from '../../logger'
+import { logger } from '@panary-core/shared-backend'
 
 export const userPreferencesPath = 'user-preferences'
 export const userPreferencesMethods = ['find', 'get', 'create', 'patch', 'remove'] as const

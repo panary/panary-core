@@ -1,5 +1,5 @@
 import './bootstrap'
-import { logger } from './logger'
+import { logger } from '@panary-core/shared-backend'
 import fs from 'fs/promises'
 import path from 'path'
 import { startSetupApp } from './setup-app'

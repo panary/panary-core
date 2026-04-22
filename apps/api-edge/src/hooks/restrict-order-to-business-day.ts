@@ -3,7 +3,7 @@ import { BadRequest, NotAuthenticated } from '@feathersjs/errors'
 import { User } from '@panary-core/users/domain'
 import { Location } from '@panary-core/locations/domain'
 import { AppError, AppErrorMessages } from '@panary-core/shared-common'
-import { logger } from '../logger'
+import { logger } from '@panary-core/shared-backend'
 import {
   getDifferenceInDays,
   hasActiveOrders,

@@ -14,3 +14,4 @@
 
 export { dataValidator, queryValidator } from './validators'
 export type { Application, HookContext, NextFunction } from './declarations'
+export { logger, configureLoggerLevel } from './logger'

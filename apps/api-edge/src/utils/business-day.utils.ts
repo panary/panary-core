@@ -1,5 +1,5 @@
 import { uuidv7 } from 'uuidv7'
-import { logger } from '../logger'
+import { logger } from '@panary-core/shared-backend'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Feathers context.app hat generischen Typ Application<any, any>
 type FeathersApp = any

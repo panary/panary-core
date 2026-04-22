@@ -1,4 +1,4 @@
-import { logger } from './logger'
+import { logger } from '@panary-core/shared-backend'
 import type { Application } from './declarations'
 import {
   hasActiveOrders,

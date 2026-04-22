@@ -6,7 +6,7 @@ import { printServerManager } from './print-server.manager'
 import type { PrinterConfig } from './print-job.builder'
 import { renderOrderReceipt } from './order-receipt.renderer'
 import { sendToNetworkPrinter } from './escpos.adapter'
-import { logger } from '../logger'
+import { logger } from '@panary-core/shared-backend'
 
 const PREFIX = '/print-server'
 

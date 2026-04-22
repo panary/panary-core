@@ -24,7 +24,7 @@ import {
   openingHourExceptionSchema,
 } from '@panary-core/opening-hour-exceptions/domain'
 import type { OpeningHourException, OpeningHourExceptionService } from './opening-hour-exceptions.class'
-import { logger } from '../../logger'
+import { logger } from '@panary-core/shared-backend'
 
 export const openingHourExceptionsPath = 'opening-hour-exceptions'
 export const openingHourExceptionsMethods = ['find', 'get', 'create', 'patch', 'remove'] as const

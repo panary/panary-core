@@ -5,7 +5,7 @@ import { passwordHash } from '@feathersjs/authentication-local'
 import { uuidv7 } from 'uuidv7'
 import bcrypt from 'bcryptjs'
 import type { HookContext } from '../../declarations'
-import { dataValidator, queryValidator } from '../../validators'
+import { dataValidator, queryValidator } from '@panary-core/shared-backend'
 import { logger } from '../../logger'
 
 // Import domain schema

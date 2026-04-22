@@ -11,3 +11,5 @@
 //   - Validators: dataValidator, queryValidator (Ajv-Instanzen)
 //   - Logger: Winston + Dev-Formatter
 //   - Declarations: Application-Interface-Template
+
+export { dataValidator, queryValidator } from './validators'

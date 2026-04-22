@@ -1,7 +1,7 @@
 import { Static, StringEnum } from '@feathersjs/typebox'
 import { defaultAppConfiguration, getValidator, Type } from '@feathersjs/typebox'
 
-import { dataValidator } from './validators'
+import { dataValidator } from '@panary-core/shared-backend'
 
 export const configurationSchema = Type.Intersect([
   defaultAppConfiguration,

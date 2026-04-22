@@ -1,7 +1,7 @@
 import { resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 import type { HookContext } from '../../declarations'
-import { dataValidator, queryValidator } from '../../validators'
+import { dataValidator, queryValidator } from '@panary-core/shared-backend'
 import { uuidv7 } from 'uuidv7'
 
 // Import domain schema

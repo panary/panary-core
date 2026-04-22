@@ -87,5 +87,22 @@
       "style": "scss"
     }
   },
+  "release": {
+    "projects": ["tag:publishable"],
+    "projectsRelationship": "fixed",
+    "version": {
+      "generatorOptions": {
+        "specifierSource": "prompt",
+        "currentVersionResolver": "disk"
+      }
+    },
+    "changelog": {
+      "workspaceChangelog": {
+        "createRelease": "github"
+      },
+      "projectChangelogs": false
+    },
+    "releaseTagPattern": "v{version}"
+  },
   "analytics": true
 }

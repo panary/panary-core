@@ -13,3 +13,4 @@
 //   - Declarations: Application-Interface-Template
 
 export { dataValidator, queryValidator } from './validators'
+export type { Application, HookContext, NextFunction } from './declarations'

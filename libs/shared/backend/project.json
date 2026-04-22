@@ -1,0 +1,24 @@
+{
+  "name": "shared-backend",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/shared/backend/src",
+  "projectType": "library",
+  "tags": ["publishable", "type:shared", "scope:backend"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/shared/backend",
+        "main": "libs/shared/backend/src/index.ts",
+        "tsConfig": "libs/shared/backend/tsconfig.lib.json",
+        "assets": ["libs/shared/backend/*.md"]
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "dist/libs/shared/backend"
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core'
 import { HttpClient } from '@angular/common/http'
 import { lastValueFrom } from 'rxjs'
-import { AppConfig } from '../models/app-config.model'
+import { AppConfig } from '../models/app-config.schema'
 import { APP_CONFIG } from '../tokens/app-config.token'
 
 @Injectable({

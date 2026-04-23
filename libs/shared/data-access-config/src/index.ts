@@ -1,4 +1,4 @@
-export * from './lib/models/app-config.model'
+export * from './lib/models/app-config.schema'
 export * from './lib/models/device-config.model'
 export * from './lib/services/app-config.service'
 export * from './lib/services/device-config.service'

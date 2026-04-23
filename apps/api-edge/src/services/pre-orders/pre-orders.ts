@@ -1,8 +1,7 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
 import { BadRequest } from '@feathersjs/errors'
-import { parseJsonFields } from '@panary-core/shared-backend'
-import { stringifyJsonFields } from '@panary-core/shared-backend'
+import { getJsonFieldHooks } from '@panary-core/shared-backend'
 import { formatDateISO, getOpeningHoursForDate } from '@panary-core/locations/domain'
 
 const PRE_ORDER_JSON_FIELDS = ['lineItems', 'customerContact', 'metadata']
@@ -163,6 +162,8 @@ export const preOrders = (app: Application) => {
     },
   })
 
+  const jsonHooks = getJsonFieldHooks(app, PRE_ORDER_JSON_FIELDS)
+
   app.service(preOrdersPath).hooks({
     around: {
       all: [
@@ -221,18 +222,18 @@ export const preOrders = (app: Application) => {
 
           return context
         },
-        stringifyJsonFields(...PRE_ORDER_JSON_FIELDS),
+        ...jsonHooks.before,
       ],
       patch: [
         schemaHooks.validateData(preOrderPatchValidator),
         schemaHooks.resolveData(preOrderPatchResolver),
-        stringifyJsonFields(...PRE_ORDER_JSON_FIELDS),
+        ...jsonHooks.before,
       ],
       remove: [],
       // convert: keine Schema-Validierung nötig — die ID kommt als primitiver Wert
     },
     after: {
-      all: [parseJsonFields(...PRE_ORDER_JSON_FIELDS)],
+      all: [...jsonHooks.after],
     },
     error: {
       all: [],

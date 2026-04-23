@@ -18,8 +18,7 @@ import type { Application } from '../../declarations'
 import type { User } from './users.class'
 import { authorize } from '@panary-core/shared-backend'
 import { multiTenancy } from '@panary-core/shared-backend'
-import { parseJsonFields } from '@panary-core/shared-backend'
-import { stringifyJsonFields } from '@panary-core/shared-backend'
+import { getJsonFieldHooks } from '@panary-core/shared-backend'
 import { createServiceAdapter } from '@panary-core/shared/data-access/server'
 
 const USER_JSON_FIELDS = ['discountDetails', 'allowedLocationIds', 'permissions']
@@ -159,6 +158,8 @@ export const users = (app: Application) => {
     events: []
   })
 
+  const jsonHooks = getJsonFieldHooks(app, USER_JSON_FIELDS)
+
   // 5. Register hooks
   app.service(usersPath).hooks({
     around: {
@@ -175,12 +176,12 @@ export const users = (app: Application) => {
       all: [schemaHooks.validateQuery(userQueryValidator), schemaHooks.resolveQuery(userQueryResolver)],
       find: [],
       get: [],
-      create: [schemaHooks.validateData(userDataValidator), schemaHooks.resolveData(userDataResolver), stringifyJsonFields(...USER_JSON_FIELDS)],
-      patch: [schemaHooks.validateData(userPatchValidator), schemaHooks.resolveData(userPatchResolver), stringifyJsonFields(...USER_JSON_FIELDS)],
+      create: [schemaHooks.validateData(userDataValidator), schemaHooks.resolveData(userDataResolver), ...jsonHooks.before],
+      patch: [schemaHooks.validateData(userPatchValidator), schemaHooks.resolveData(userPatchResolver), ...jsonHooks.before],
       remove: []
     },
     after: {
-      all: [parseJsonFields(...USER_JSON_FIELDS)]
+      all: [...jsonHooks.after]
     },
     error: {
       all: []

@@ -1,7 +1,6 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
-import { parseJsonFields } from '@panary-core/shared-backend'
-import { stringifyJsonFields } from '@panary-core/shared-backend'
+import { getJsonFieldHooks } from '@panary-core/shared-backend'
 
 const ORDER_JSON_FIELDS = ['lineItems', 'cancellation', 'customerPaymentInfo', 'discount', 'staffPaymentInfo', 'taxSnapshot', 'creationContext', 'payment']
 
@@ -136,6 +135,8 @@ export const orders = (app: Application) => {
     }
   })
 
+  const jsonHooks = getJsonFieldHooks(app, ORDER_JSON_FIELDS)
+
   // 5. Register hooks
   app.service(ordersPath).hooks({
     around: {
@@ -159,19 +160,19 @@ export const orders = (app: Application) => {
         calculateTaxDetails,
         schemaHooks.validateData(orderDataValidator),
         schemaHooks.resolveData(orderDataResolver),
-        stringifyJsonFields(...ORDER_JSON_FIELDS),
+        ...jsonHooks.before,
       ],
       patch: [
         checkMultiOperation,
         schemaHooks.validateData(orderPatchValidator),
         schemaHooks.resolveData(orderPatchResolver),
-        stringifyJsonFields(...ORDER_JSON_FIELDS),
+        ...jsonHooks.before,
       ],
       remove: []
     },
     after: {
       all: [
-        parseJsonFields(...ORDER_JSON_FIELDS),
+        ...jsonHooks.after,
       ],
       create: [createOrderInteractions()]
     },

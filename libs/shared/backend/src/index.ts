@@ -25,3 +25,6 @@ export { parseJsonFields } from './hooks/parse-json-fields.hook'
 export { restrictToCloud } from './hooks/restrict-to-cloud.hook'
 export { secureByDefault } from './hooks/secure-by-default.hook'
 export { stringifyJsonFields } from './hooks/stringify-json-fields.hook'
+
+// --- Util DB ---
+export { getJsonFieldHooks } from './util-db/get-json-field-hooks'

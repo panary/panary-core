@@ -16,8 +16,7 @@ import type { Application } from '../../declarations'
 import type { Product, ProductService } from './products.class'
 import { authorize } from '@panary-core/shared-backend'
 import { multiTenancy } from '@panary-core/shared-backend'
-import { parseJsonFields } from '@panary-core/shared-backend'
-import { stringifyJsonFields } from '@panary-core/shared-backend'
+import { getJsonFieldHooks } from '@panary-core/shared-backend'
 
 const PRODUCT_JSON_FIELDS = ['categoryIds', 'optionGroups', 'availability', 'ui', 'ingredientReferences', 'recipeReferences']
 import { createServiceAdapter } from '@panary-core/shared/data-access/server'
@@ -145,6 +144,8 @@ export const products = (app: Application) => {
     }
   })
 
+  const jsonHooks = getJsonFieldHooks(app, PRODUCT_JSON_FIELDS)
+
   // 5. Register hooks
   app.service(productsPath).hooks({
     around: {
@@ -167,18 +168,18 @@ export const products = (app: Application) => {
       create: [
         schemaHooks.validateData(productsDataValidator),
         schemaHooks.resolveData(productsDataResolver),
-        stringifyJsonFields(...PRODUCT_JSON_FIELDS),
+        ...jsonHooks.before,
       ],
       patch: [
         schemaHooks.validateData(productsPatchValidator),
         schemaHooks.resolveData(productsPatchResolver),
-        stringifyJsonFields(...PRODUCT_JSON_FIELDS),
+        ...jsonHooks.before,
       ],
       remove: []
     },
     after: {
       all: [
-        parseJsonFields(...PRODUCT_JSON_FIELDS),
+        ...jsonHooks.after,
       ]
     },
     error: {

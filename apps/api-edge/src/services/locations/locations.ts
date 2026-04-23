@@ -1,7 +1,6 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
-import { parseJsonFields } from '@panary-core/shared-backend'
-import { stringifyJsonFields } from '@panary-core/shared-backend'
+import { getJsonFieldHooks } from '@panary-core/shared-backend'
 
 const LOCATION_JSON_FIELDS = ['address', 'currentBusinessDay', 'settings']
 
@@ -129,6 +128,8 @@ export const locations = (app: Application) => {
     }
   })
 
+  const jsonHooks = getJsonFieldHooks(app, LOCATION_JSON_FIELDS)
+
   // 5. Register hooks
   app.service(locationsPath).hooks({
     around: {
@@ -151,18 +152,18 @@ export const locations = (app: Application) => {
       create: [
         schemaHooks.validateData(locationDataValidator),
         schemaHooks.resolveData(locationDataResolver),
-        stringifyJsonFields(...LOCATION_JSON_FIELDS),
+        ...jsonHooks.before,
       ],
       patch: [
         schemaHooks.validateData(locationPatchValidator),
         schemaHooks.resolveData(locationPatchResolver),
-        stringifyJsonFields(...LOCATION_JSON_FIELDS),
+        ...jsonHooks.before,
       ],
       remove: []
     },
     after: {
       all: [
-        parseJsonFields(...LOCATION_JSON_FIELDS),
+        ...jsonHooks.after,
         // Settings mit Defaults auffüllen, falls leer oder unvollständig (Migration von Alt-Daten)
         async (context: any) => {
           const ensureDefaults = (record: any) => {

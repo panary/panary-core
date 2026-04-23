@@ -24,8 +24,9 @@ import {
   workingTimeSchema
 } from '@panary-core/working-times/domain'
 import type { WorkingTime, WorkingTimeService } from './working-times.class'
-import { parseJsonFields } from '@panary-core/shared-backend'
-import { stringifyJsonFields } from '@panary-core/shared-backend'
+import { getJsonFieldHooks } from '@panary-core/shared-backend'
+
+const WORKING_TIME_JSON_FIELDS = ['breaks']
 
 export const workingTimesPath = 'working-times'
 export const workingTimesMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
@@ -70,6 +71,8 @@ export const workingTimes = (app: Application) => {
     }
   })
 
+  const jsonHooks = getJsonFieldHooks(app, WORKING_TIME_JSON_FIELDS)
+
   // 5. Register hooks
   app.service(workingTimesPath).hooks({
     around: {
@@ -92,17 +95,17 @@ export const workingTimes = (app: Application) => {
       create: [
         schemaHooks.validateData(workingTimeDataValidator),
         schemaHooks.resolveData(workingTimeDataResolver),
-        stringifyJsonFields('breaks')
+        ...jsonHooks.before
       ],
       patch: [
         schemaHooks.validateData(workingTimePatchValidator),
         schemaHooks.resolveData(workingTimePatchResolver),
-        stringifyJsonFields('breaks')
+        ...jsonHooks.before
       ],
       remove: []
     },
     after: {
-      all: [parseJsonFields('breaks')]
+      all: [...jsonHooks.after]
     },
     error: {
       all: []

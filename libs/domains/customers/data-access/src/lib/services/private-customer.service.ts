@@ -1,12 +1,12 @@
 import { Injectable, inject } from '@angular/core'
 import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
-import { PrivateCustomer } from '../models/private-customer.model'
+import { Customer } from '@panary-core/customers/domain'
 import { Observer } from 'rxjs'
 
 @Injectable({
   providedIn: 'root',
 })
-export class PrivateCustomerService extends BaseService<PrivateCustomer> {
+export class PrivateCustomerService extends BaseService<Customer> {
   protected override entityLabelKey = 'ENTITY.CUSTOMER'
 
   constructor() {

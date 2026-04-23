@@ -1,4 +1,5 @@
 import { authenticate } from '@feathersjs/authentication'
+import type { Location } from '@panary-core/locations/domain'
 import type { Application } from '../../declarations'
 
 export const organizationsPath = 'organizations'
@@ -12,20 +13,31 @@ export const organizationsPath = 'organizations'
  */
 const organizationsService = (app: Application) => ({
   async find(_params?: unknown) {
-    const knex = app.get('sqliteClient')
+    // DB-agnostisch: statt GROUP BY + MIN() laden wir alle Locations ueber den
+    // Feathers-Service und sortieren + deduplizieren in JavaScript. Das reproduziert
+    // die alte MIN-Semantik (alphabetisch erster Eintrag pro Tenant) portabel fuer
+    // MongoDB-Cloud. `organizationName` ist nicht als Query-Property zugelassen,
+    // daher erfolgt das Sortieren im Anwendungscode.
+    const locations = (await app.service('locations').find({
+      paginate: false,
+    })) as Location[]
 
-    // organizationName hat Vorrang; Fallback auf den ersten Location-Namen
-    const rows = await knex('locations')
-      .select('tenantId')
-      .min('organizationName as organizationName')
-      .min('name as name')
-      .groupBy('tenantId')
-      .whereNotNull('tenantId') as { tenantId: string; organizationName: string | null; name: string }[]
+    const sorted = [...locations].sort((a, b) => {
+      const aKey = a.organizationName || a.name || ''
+      const bKey = b.organizationName || b.name || ''
+      return aKey.localeCompare(bKey)
+    })
 
-    return rows.map(row => ({
-      _id: row.tenantId,
-      name: row.organizationName || row.name,
-    }))
+    const byTenant = new Map<string, { _id: string; name: string }>()
+    for (const loc of sorted) {
+      if (!loc.tenantId || byTenant.has(loc.tenantId)) continue
+      byTenant.set(loc.tenantId, {
+        _id: loc.tenantId,
+        name: loc.organizationName || loc.name,
+      })
+    }
+
+    return Array.from(byTenant.values())
   },
 })
 

@@ -7,7 +7,7 @@ import {
   getCombinations,
   getUnbundledLineItems,
   Order,
-  OrderLineItemSchema,
+  OrderLineItem,
   OrderService,
   OrderStatus,
   PrintDialogComponent,
@@ -219,11 +219,11 @@ export class OrderHistoryComponent implements OnInit {
     return total
   }
 
-  getCombinations(order: Order): OrderLineItemSchema[][] {
+  getCombinations(order: Order): OrderLineItem[][] {
     return getCombinations(order)
   }
 
-  getUnbundledLineItems(order: Order): OrderLineItemSchema[] {
+  getUnbundledLineItems(order: Order): OrderLineItem[] {
     return getUnbundledLineItems(order)
   }
 }

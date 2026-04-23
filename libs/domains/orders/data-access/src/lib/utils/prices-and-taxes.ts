@@ -1,6 +1,12 @@
 // import { environment } from '../../../../../../../apps/admin/src/environments/environment' // TODO: remove environment dependency
-import { GenericOrderLineItemSchema, OrderLineItemSchema } from '../models/order-line-item.model'
-import { DineLocation, DiscountType, Order, TaxInfo } from '@panary-core/orders/domain'
+import {
+  DineLocation,
+  DiscountType,
+  GenericOrderLineItem,
+  Order,
+  OrderLineItem,
+  TaxInfo,
+} from '@panary-core/orders/domain'
 
 function getDefaultTaxSummary(): TaxInfo {
   return {
@@ -22,7 +28,7 @@ function round(value: number): number {
 }
 
 export function calculateArticlePriceWithoutExtras(
-  articleItem: OrderLineItemSchema,
+  articleItem: OrderLineItem,
   generalMenuSideDishPrice: number,
   generalMenuDrinkPrice: number,
 ): number {
@@ -59,7 +65,7 @@ export function calculateArticlePriceWithoutExtras(
 }
 
 export function calculateArticlePrice(
-  articleItem: OrderLineItemSchema,
+  articleItem: OrderLineItem,
   generalMenuSideDishPrice: number,
   generalMenuDrinkPrice: number,
 ): number {
@@ -71,7 +77,7 @@ export function calculateArticlePrice(
 
   printOut('Calculate article price')
 
-  articleItem.modifiers.forEach((extra: GenericOrderLineItemSchema): void => {
+  articleItem.modifiers.forEach((extra: GenericOrderLineItem): void => {
     if (extra.price&&extra.amount>0) {
       articlePrice+=extra.price*extra.amount
       printOut(`+ ExtraPrice: ${extra.price*extra.amount}`)
@@ -85,20 +91,20 @@ export function calculateArticlePrice(
 }
 
 export function calculateSumPriceSeperated(
-  articleItems: OrderLineItemSchema[],
-  combinations: Array<OrderLineItemSchema[]>,
+  articleItems: OrderLineItem[],
+  combinations: Array<OrderLineItem[]>,
   generalMenuSideDishPrice: number,
   generalMenuDrinkPrice: number,
 ): number {
   let sumPriceSeperated=0
 
-  articleItems.forEach((article: OrderLineItemSchema): void => {
+  articleItems.forEach((article: OrderLineItem): void => {
     if (article.price!==undefined) {
       sumPriceSeperated+=calculateArticlePrice(article, generalMenuSideDishPrice, generalMenuDrinkPrice)
     }
   })
 
-  combinations.forEach((articles: OrderLineItemSchema[]): void => {
+  combinations.forEach((articles: OrderLineItem[]): void => {
     sumPriceSeperated+=calculateCombinationPrice(articles, generalMenuSideDishPrice, generalMenuDrinkPrice)
   })
 
@@ -112,7 +118,7 @@ export function calculateSumPrice(
 ): number {
   let sumPrice=0
 
-  orderItem.lineItems.forEach((article: OrderLineItemSchema): void => {
+  orderItem.lineItems.forEach((article: OrderLineItem): void => {
     if (article.price) {
       sumPrice+=calculateArticlePrice(article, generalMenuSideDishPrice, generalMenuDrinkPrice)
     }
@@ -141,13 +147,13 @@ export function calculateSumPriceWithDiscountDetails(
 }
 
 export function calculateCombinationPrice(
-  combination: Array<OrderLineItemSchema>,
+  combination: Array<OrderLineItem>,
   generalMenuSideDishPrice: number,
   generalMenuDrinkPrice: number,
 ): number {
   let combinationPrice=0
 
-  combination.forEach((articleItem: OrderLineItemSchema): void => {
+  combination.forEach((articleItem: OrderLineItem): void => {
     if (articleItem.price!==undefined) {
       combinationPrice+=calculateArticlePrice(articleItem, generalMenuSideDishPrice, generalMenuDrinkPrice)
     }
@@ -156,7 +162,7 @@ export function calculateCombinationPrice(
   return round(combinationPrice)
 }
 
-export function calculateArticleTaxInfomation(article: OrderLineItemSchema, taxRate: string): TaxInfo {
+export function calculateArticleTaxInfomation(article: OrderLineItem, taxRate: string): TaxInfo {
   const taxInfomation: TaxInfo=getDefaultTaxSummary()
 
   switch (taxRate) {
@@ -183,7 +189,7 @@ export function calculateArticleTaxInfomation(article: OrderLineItemSchema, taxR
       }
 
       // Calculate taxes for extras
-      article.modifiers.forEach((extra: GenericOrderLineItemSchema): void => {
+      article.modifiers.forEach((extra: GenericOrderLineItem): void => {
         if (extra.price) {
           const extraPrice: number=extra.price*extra.amount
           const extraTax: number=(extraPrice*article.taxInside)/100
@@ -355,7 +361,7 @@ export function calculateTaxSummary(order: Order): TaxInfo {
 
   const dineLocation: string = order.dineLocation
 
-  order.lineItems.forEach((article: OrderLineItemSchema): void => {
+  order.lineItems.forEach((article: OrderLineItem): void => {
     const articleTaxInformation=calculateArticleTaxInfomation(article, dineLocation)
 
     articleTaxInformation.taxes.forEach((articleTax): void => {

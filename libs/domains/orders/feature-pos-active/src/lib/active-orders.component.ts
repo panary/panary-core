@@ -7,7 +7,7 @@ import { uuidv7 } from 'uuidv7'
 import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dialog'
 import {
   Order,
-  OrderLineItemSchema,
+  OrderLineItem,
   OrderService,
   OrderStatus,
   PaymentState,
@@ -368,7 +368,7 @@ export class ActiveOrdersComponent {
 
   calculateTotal(order: Order): number {
     if (!order.lineItems) return 0
-    return order.lineItems.reduce((acc: number, item: OrderLineItemSchema) => acc + item.price * item.amount, 0)
+    return order.lineItems.reduce((acc: number, item: OrderLineItem) => acc + item.price * item.amount, 0)
   }
 
   isOverdue(order: Order): boolean {
@@ -384,10 +384,10 @@ export class ActiveOrdersComponent {
     return `-${(seed % 2000) / 1000}s`
   }
 
-  getCombinations(order: Order): OrderLineItemSchema[][] {
+  getCombinations(order: Order): OrderLineItem[][] {
     if (!order.lineItems) return []
-    const bundles = new Map<number, OrderLineItemSchema[]>()
-    order.lineItems.forEach((item: OrderLineItemSchema) => {
+    const bundles = new Map<number, OrderLineItem[]>()
+    order.lineItems.forEach((item: OrderLineItem) => {
       if (item.bundleNumber !== undefined && item.bundleNumber !== null) {
         if (!bundles.has(item.bundleNumber)) {
           bundles.set(item.bundleNumber, [])
@@ -398,7 +398,7 @@ export class ActiveOrdersComponent {
     return Array.from(bundles.values())
   }
 
-  getUnbundledLineItems(order: Order): OrderLineItemSchema[] {
+  getUnbundledLineItems(order: Order): OrderLineItem[] {
     if (!order.lineItems) return []
     return order.lineItems.filter((item: any) => item.bundleNumber === undefined || item.bundleNumber === null)
   }

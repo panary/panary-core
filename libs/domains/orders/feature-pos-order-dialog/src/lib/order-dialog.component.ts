@@ -37,7 +37,7 @@ import {
   OrderChannel,
   OrderInteraction,
   OrderInteractionService,
-  OrderLineItemSchema,
+  OrderLineItem,
   OrderService,
   StaffPaymentInfo,
 } from '@panary-core/orders/data-access'
@@ -118,7 +118,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   #functionButtonExternalId: UUID = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx01'
   #recordingDate: Date = new Date()
-  #lineItems: Array<OrderLineItemSchema> = []
+  #lineItems: Array<OrderLineItem> = []
   #orderOpenedAt: Date = new Date()
   #orderInteractions: Array<OrderInteraction> = []
   private _articlesToCombine: Array<number> = []
@@ -188,11 +188,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   visibleProductGroups: ProductGroup[] = []
   overflowProductGroups: ProductGroup[] = []
 
-  get combinations(): OrderLineItemSchema[][] {
+  get combinations(): OrderLineItem[][] {
     return getCombinations({ lineItems: this.#lineItems } as any)
   }
 
-  get unbundledLineItems(): OrderLineItemSchema[] {
+  get unbundledLineItems(): OrderLineItem[] {
     return getUnbundledLineItems({ lineItems: this.#lineItems } as any)
   }
 
@@ -1186,7 +1186,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     // Entfernbare Zutaten
-    let selectedArticleForIngredients: OrderLineItemSchema | undefined
+    let selectedArticleForIngredients: OrderLineItem | undefined
     if (this._selectedProductIndex !== null) {
       selectedArticleForIngredients = this.#lineItems[this._selectedProductIndex]
     } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
@@ -1221,7 +1221,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  toggleRemovableIngredient(ingredient: any, lineItem: OrderLineItemSchema, button: ProductSchema) {
+  toggleRemovableIngredient(ingredient: any, lineItem: OrderLineItem, button: ProductSchema) {
     if ((button as any).pressed) {
       ;(button as any).pressed = false
       lineItem.modifiers.push({
@@ -1450,7 +1450,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     ) {
       return
     }
-    let selectedItem: OrderLineItemSchema
+    let selectedItem: OrderLineItem
     if (this._selectedProductIndex !== null) {
       selectedItem = this.#lineItems[this._selectedProductIndex]
     } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
@@ -1496,7 +1496,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       return
     }
 
-    let selectedItem: OrderLineItemSchema
+    let selectedItem: OrderLineItem
     if (this._selectedProductIndex !== null) {
       selectedItem = this.#lineItems[this._selectedProductIndex]
     } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
@@ -1523,12 +1523,12 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  increaseQuantity(orderLineItem: OrderLineItemSchema, event: Event | null = null): void {
+  increaseQuantity(orderLineItem: OrderLineItem, event: Event | null = null): void {
     if (event) event.stopPropagation()
     orderLineItem.amount++
   }
 
-  decreaseQuantity(orderLineItem: OrderLineItemSchema, event: Event | null = null): void {
+  decreaseQuantity(orderLineItem: OrderLineItem, event: Event | null = null): void {
     if (event) event.stopPropagation()
 
     if (orderLineItem.amount > 1) {
@@ -1591,7 +1591,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         ((article as any).itemType === ItemType.sauce || (article as any).itemType === ItemType.extra))
     if (!isModifier) return
 
-    let selectedArticle: OrderLineItemSchema
+    let selectedArticle: OrderLineItem
     if (this._selectedProductIndex !== null) {
       selectedArticle = this.#lineItems[this._selectedProductIndex]
     } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
@@ -1634,7 +1634,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       (article as any).itemType === ItemType.sauce
     if (!isModifier) return
 
-    let selectedArticle: OrderLineItemSchema
+    let selectedArticle: OrderLineItem
     if (this._selectedProductIndex !== null) {
       selectedArticle = this.#lineItems[this._selectedProductIndex]
     } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
@@ -1792,7 +1792,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /** Gibt das aktuell ausgewählte LineItem zurück (normal oder Kombination) */
-  private getCurrentSelectedLineItem(): OrderLineItemSchema | null {
+  private getCurrentSelectedLineItem(): OrderLineItem | null {
     if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
       return this.combinations[this._selectedCombinationIndex[0]][this._selectedCombinationIndex[1]] ?? null
     }
@@ -1834,7 +1834,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       topic = parentGroup?.name ?? ''
     }
 
-    const orderLineItem: OrderLineItemSchema = {
+    const orderLineItem: OrderLineItem = {
       _id: product._id,
       externalId: product.externalId ?? '',
       acronym: product.acronym,
@@ -2107,15 +2107,15 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     return (product as any).index.toString()
   }
 
-  isLineItemBundled(articleItem: OrderLineItemSchema): boolean {
+  isLineItemBundled(articleItem: OrderLineItem): boolean {
     return articleItem.bundleNumber !== null && articleItem.bundleNumber !== undefined
   }
 
-  calculateArticlePriceWithoutExtras(articleItem: OrderLineItemSchema): number | undefined {
+  calculateArticlePriceWithoutExtras(articleItem: OrderLineItem): number | undefined {
     return calculateArticlePriceWithoutExtras(articleItem, this.generalSideDishPrice, this.generalDrinkPrice)
   }
 
-  calculateArticlePrice(articleItem: OrderLineItemSchema): number {
+  calculateArticlePrice(articleItem: OrderLineItem): number {
     return calculateArticlePrice(articleItem, this.generalSideDishPrice, this.generalDrinkPrice)
   }
 
@@ -2127,11 +2127,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     )
   }
 
-  calculateCombinationPrice(articleItems: OrderLineItemSchema[]): number {
+  calculateCombinationPrice(articleItems: OrderLineItem[]): number {
     return calculateCombinationPrice(articleItems, this.generalSideDishPrice, this.generalDrinkPrice)
   }
 
-  isMenuComplete(orderArticle: OrderLineItemSchema): boolean {
+  isMenuComplete(orderArticle: OrderLineItem): boolean {
     if (!orderArticle.isMenu) return true
     const article: ProductSchema | undefined = this.productService.findProductById(orderArticle._id)
     if (!article) return true

@@ -1,18 +1,17 @@
-import { Order } from '@panary-core/orders/domain'
-import { GenericOrderLineItemSchema, OrderLineItemSchema } from '../models/order-line-item.model'
+import { GenericOrderLineItem, Order, OrderLineItem } from '@panary-core/orders/domain'
 import { ProductSchema } from '@panary-core/products/data-access'
 import { ProductService } from '@panary-core/products/data-access'
 import { IngredientReference as IngredientReferenceSchema } from '@panary-core/shared-common'
 import { RecipeReference as RecipeReferenceSchema } from '@panary-core/shared-common'
 import { Id } from '@feathersjs/feathers'
 
-export function getOrderArticles(orderItem: Order): OrderLineItemSchema[] {
+export function getOrderArticles(orderItem: Order): OrderLineItem[] {
   return [...orderItem.lineItems]
 }
 
-export function getCombinations(order: Order): OrderLineItemSchema[][] {
+export function getCombinations(order: Order): OrderLineItem[][] {
   if (!order.lineItems) return []
-  const bundles = new Map<number, OrderLineItemSchema[]>()
+  const bundles = new Map<number, OrderLineItem[]>()
   order.lineItems.forEach(item => {
     if (item.bundleNumber !== undefined && item.bundleNumber !== null) {
       if (!bundles.has(item.bundleNumber)) {
@@ -24,13 +23,13 @@ export function getCombinations(order: Order): OrderLineItemSchema[][] {
   return Array.from(bundles.values())
 }
 
-export function getUnbundledLineItems(order: Order): OrderLineItemSchema[] {
+export function getUnbundledLineItems(order: Order): OrderLineItem[] {
   if (!order.lineItems) return []
   return order.lineItems.filter(item => item.bundleNumber === undefined || item.bundleNumber === null)
 }
 
 export function getRecipeItemReferences(
-  orderArticleItem: OrderLineItemSchema,
+  orderArticleItem: OrderLineItem,
   mode = 'retain',
   productService: ProductService | null = null,
 ): IngredientReferenceSchema[] {
@@ -54,18 +53,18 @@ export function getRecipeItemReferences(
 }
 
 function getRecipeItemReferencesFromArticle(
-  orderArticleItem: OrderLineItemSchema | ProductSchema,
+  orderArticleItem: OrderLineItem | ProductSchema,
 ): IngredientReferenceSchema[] {
   // TODO: Im neuen Schema: recipeReferences statt ingredientReferences
   return [...((orderArticleItem as any).recipeReferences || [])]
 }
 
 function getRecipeItemReferencesFromExtras(
-  orderArticleItem: OrderLineItemSchema,
+  orderArticleItem: OrderLineItem,
   recipeItems: IngredientReferenceSchema[],
   articleService: ProductService | null = null,
 ): IngredientReferenceSchema[] {
-  orderArticleItem.modifiers.forEach((extra: GenericOrderLineItemSchema): void => {
+  orderArticleItem.modifiers.forEach((extra: GenericOrderLineItem): void => {
     const extraRecipeItemReferences: IngredientReferenceSchema[] = articleService
       ? getArticleByIdAndExtractRecipeItemReferences(articleService, extra._id)
       : extra.ingredientReferences
@@ -75,7 +74,7 @@ function getRecipeItemReferencesFromExtras(
 }
 
 function getRecipeItemReferencesFromProducts(
-  orderLineItem: OrderLineItemSchema,
+  orderLineItem: OrderLineItem,
   ingredientReference: IngredientReferenceSchema[],
   productService: ProductService | null = null,
 ): IngredientReferenceSchema[] {
@@ -106,7 +105,7 @@ function getArticleByIdAndExtractRecipeItemReferences(
 }
 
 export function getRecipeReferences(
-  orderArticleItem: OrderLineItemSchema,
+  orderArticleItem: OrderLineItem,
   mode = 'retain',
   articleService: ProductService | null = null,
 ): RecipeReferenceSchema[] {
@@ -129,16 +128,16 @@ export function getRecipeReferences(
   return recipes
 }
 
-function getRecipesFromArticle(orderArticleItem: OrderLineItemSchema | ProductSchema): RecipeReferenceSchema[] {
+function getRecipesFromArticle(orderArticleItem: OrderLineItem | ProductSchema): RecipeReferenceSchema[] {
   return [...(orderArticleItem.recipeReferences || [])]
 }
 
 function getRecipesFromExtras(
-  orderArticleItem: OrderLineItemSchema,
+  orderArticleItem: OrderLineItem,
   orderRecipes: RecipeReferenceSchema[],
   articleService: ProductService | null = null,
 ): RecipeReferenceSchema[] {
-  orderArticleItem.modifiers.forEach((extra: GenericOrderLineItemSchema): void => {
+  orderArticleItem.modifiers.forEach((extra: GenericOrderLineItem): void => {
     const extraRecipes: RecipeReferenceSchema[] = articleService
       ? getArticleByIdAndExtractRecipes(articleService, extra._id)
       : extra.recipeReferences
@@ -148,7 +147,7 @@ function getRecipesFromExtras(
 }
 
 function getRecipesFromPrducts(
-  orderLineItem: OrderLineItemSchema,
+  orderLineItem: OrderLineItem,
   recipeReference: RecipeReferenceSchema[],
   productService: ProductService | null = null,
 ): RecipeReferenceSchema[] {

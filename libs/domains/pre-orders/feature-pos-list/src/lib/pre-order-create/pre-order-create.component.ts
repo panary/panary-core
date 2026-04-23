@@ -8,7 +8,7 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import { PreOrdersStore } from '../pre-orders.store'
 import { PreOrderService, PreOrder } from '@panary-core/pre-orders/data-access'
 import { ProductService, ProductSchema } from '@panary-core/products/data-access'
-import { OrderLineItemSchema } from '@panary-core/orders/data-access'
+import { OrderLineItem } from '@panary-core/orders/data-access'
 import { debounceTime, tap } from 'rxjs/operators'
 import { TranslateModule } from '@ngx-translate/core'
 
@@ -217,8 +217,8 @@ export class PreOrderCreateComponent implements OnInit {
     if (this.form.valid) {
       const val = this.form.value
 
-      // Map selected ProductSchema to OrderLineItemSchema
-      const orderItems: OrderLineItemSchema[] = this.selectedItems().map(item => {
+      // Map selected ProductSchema to OrderLineItem
+      const orderItems: OrderLineItem[] = this.selectedItems().map(item => {
         return {
           _id: item._id, // We use the item ID as the base ID for now, or generate new ones if needed by backend logic
           externalId: item.externalId || null,
@@ -240,7 +240,7 @@ export class PreOrderCreateComponent implements OnInit {
           bundleNumber: null,
           menuDrink: null,
           menuSideDish: null,
-        } as unknown as OrderLineItemSchema
+        } as unknown as OrderLineItem
       })
 
       const payload = {

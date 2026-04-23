@@ -2,7 +2,6 @@ import { computed, effect, inject, Injectable, Signal, signal, WritableSignal } 
 import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { PrintDialogComponent } from '../components/print-dialog.component'
-import { OrderLineItemSchema } from '../models/order-line-item.model'
 import { OrderChannel } from '../enums/order-chanel.enum'
 import { Id, Paginated } from '@feathersjs/feathers'
 import {
@@ -11,6 +10,7 @@ import {
   DineLocation,
   Discount,
   Order,
+  OrderLineItem,
   OrderStatus,
   StaffPaymentInfo,
 } from '@panary-core/orders/domain'
@@ -220,7 +220,7 @@ export class OrderService extends BaseService<Order> {
   /** PUBLIC PROPERTIES */
   // Refactored: Removed combinations parameter
   async createOrder(
-    lineItems: Array<OrderLineItemSchema>, // combinations: Array<OrderLineItemSchema[]> (Removed)
+    lineItems: Array<OrderLineItem>, // combinations: Array<OrderLineItem[]> (Removed)
     orderChanel: typeof OrderChannel[keyof typeof OrderChannel],
     customerDetails: CustomerPaymentInfo | undefined = undefined,
     discountDetails: Discount | undefined = undefined,
@@ -268,8 +268,8 @@ export class OrderService extends BaseService<Order> {
     return this.createOrderAndOpenPrintDialog(order)
   }
 
-  private sortLineItemsByName(orderLineItems: OrderLineItemSchema[]): void {
-    orderLineItems.sort((a: OrderLineItemSchema, b: OrderLineItemSchema): number => {
+  private sortLineItemsByName(orderLineItems: OrderLineItem[]): void {
+    orderLineItems.sort((a: OrderLineItem, b: OrderLineItem): number => {
       const name1: string = a.topic.toLowerCase()
       const name2: string = b.topic.toLowerCase()
 

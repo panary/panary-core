@@ -186,6 +186,7 @@ export const orderSchema = Type.Object(
 )
 export type Order = Static<typeof orderSchema>
 export type OrderLineItem = Static<typeof orderLineItemSchema>
+export type GenericOrderLineItem = Static<typeof genericLineItemSchema>
 export type TaxInfo = Static<typeof taxSummerySchema>
 export type CustomerPaymentInfo = Static<typeof customerPaymentInfoSchema>
 export type StaffPaymentInfo = Static<typeof staffPaymentInfoSchema>

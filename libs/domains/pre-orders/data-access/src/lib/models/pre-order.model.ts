@@ -1,4 +1,4 @@
-import type { OrderLineItemSchema } from '@panary-core/orders/data-access'
+import type { OrderLineItem } from '@panary-core/orders/data-access'
 
 export interface PreOrder {
   _id: string
@@ -15,7 +15,7 @@ export interface PreOrder {
     phone: string
   }
 
-  lineItems: OrderLineItemSchema[]
+  lineItems: OrderLineItem[]
 
   note?: string
   metadata?: unknown

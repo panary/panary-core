@@ -1,5 +1,4 @@
 export * from './lib/enums/order-chanel.enum'
-export * from './lib/models/order-line-item.model'
 export * from './lib/utils/order-functions'
 export * from './lib/utils/prices-and-taxes'
 export * from './lib/services/order.service'
@@ -18,6 +17,8 @@ export {
   orderDataSchema,
   orderPatchSchema,
   orderQuerySchema,
+  orderLineItemSchema,
+  genericLineItemSchema,
   cancellationSchema,
   discountSchema,
   customerPaymentInfoSchema,
@@ -33,6 +34,8 @@ export type {
   OrderData,
   OrderPatch,
   OrderQuery,
+  OrderLineItem,
+  GenericOrderLineItem,
   Cancellation,
   Discount,
   CreationContext,

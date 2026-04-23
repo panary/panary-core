@@ -1,5 +1,5 @@
 import { computed, effect, inject, Injectable, Signal, signal, WritableSignal } from '@angular/core'
-import { User } from '../models/user.model'
+import { User } from '@panary-core/users/domain'
 import { Id, Paginated, Params } from '@feathersjs/feathers'
 import { Observer } from 'rxjs'
 import { BaseService, ConnectionService } from '@panary-core/shared/data-access'

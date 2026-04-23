@@ -1,12 +1,12 @@
 import { effect, inject, Injectable } from '@angular/core'
 import { Id, Paginated, Params } from '@feathersjs/feathers'
-import { UserPreferenceSchema } from '../models/user-preference.model'
+import { UserPreference } from '@panary-core/user-preferences/domain'
 import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
 
 @Injectable({
   providedIn: 'root',
 })
-export class UserPreferencesService extends BaseService<UserPreferenceSchema> {
+export class UserPreferencesService extends BaseService<UserPreference> {
   protected override entityLabelKey = 'ENTITY.PREFERENCE'
 
   /** CONSTANTS */
@@ -51,10 +51,10 @@ export class UserPreferencesService extends BaseService<UserPreferenceSchema> {
   /** PUBLIC METHODS */
   override async create(
     data:
-      | Omit<UserPreferenceSchema, '_id' | 'locationId' | 'tenantId' | 'userId'>
-      | Omit<UserPreferenceSchema, '_id' | 'locationId' | 'tenantId' | 'userId'>[],
+      | Omit<UserPreference, '_id' | 'locationId' | 'tenantId' | 'userId'>
+      | Omit<UserPreference, '_id' | 'locationId' | 'tenantId' | 'userId'>[],
     params: Params = {},
-  ): Promise<UserPreferenceSchema | UserPreferenceSchema[]> {
+  ): Promise<UserPreference | UserPreference[]> {
     return this.service.create(data, params).catch((error: any) => this.helper.handleError(this.serviceName, error))
   }
 
@@ -282,7 +282,7 @@ export class UserPreferencesService extends BaseService<UserPreferenceSchema> {
       }
 
       // Feathers gibt entweder ein Array oder ein Paginated-Objekt zurück
-      const response: Paginated<UserPreferenceSchema> | UserPreferenceSchema[] = await this.find({ query: { key } })
+      const response: Paginated<UserPreference> | UserPreference[] = await this.find({ query: { key } })
 
       let preferenceId: Id | null = null
 
@@ -295,7 +295,7 @@ export class UserPreferencesService extends BaseService<UserPreferenceSchema> {
         preferenceId = response.data[0]._id
       }
 
-      let result: UserPreferenceSchema | UserPreferenceSchema[]
+      let result: UserPreference | UserPreference[]
 
       if (preferenceId) {
         // Update existing entry

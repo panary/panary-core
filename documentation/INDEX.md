@@ -4,7 +4,12 @@
 
 - [Nx-Generator-Nutzungsanleitung](generator-usage-guide.md) — 2025-02-13 — Schritt-für-Schritt: Nx-Generatoren für Domains, Services, Komponenten
 - [Service-Erstellungsanleitung](service-creation-guide.md) — 2025-02-13 — Anleitung: Neuen FeathersJS-Service anlegen (Schema → Service → Hooks)
+- [ensureIndexes — Entwicklungs-Guide](ensure-indexes-guide.md) — 2026-04-24 — DB-agnostische Index-Deklaration (SQLite/MongoDB) via Factory
 - [Tauri Update-Server-Einrichtung](tauri-update-server-einrichtung.md) — 2025-03-28 — Einrichtung des Auto-Update-Servers für Tauri POS
+
+## Architektur
+
+- [M2 — DB-Agnostik-Refactor](m2-db-agnostik-refactor.md) — 2026-04-24 — Hybrid-Adapter, ensureIndexes, Schema-First, getJsonFieldHooks
 
 ## Sicherheit
 

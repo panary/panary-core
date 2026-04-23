@@ -5,8 +5,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { UserService } from '@panary-core/users/data-access'
 import { User, UserSystemRole } from '@panary-core/users/domain'
 import { OrderService } from '../services/order.service'
-import { Order } from '../models/order.model'
-import { OrderStatus } from '@panary-core/orders/domain'
+import { Order, OrderStatus } from '@panary-core/orders/domain'
 
 const CANCEL_REASONS = [
   'CANCEL_ORDER.REASON_COMPLAINT',

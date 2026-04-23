@@ -4,12 +4,17 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { PrintDialogComponent } from '../components/print-dialog.component'
 import { OrderLineItemSchema } from '../models/order-line-item.model'
 import { OrderChannel } from '../enums/order-chanel.enum'
-import { CreationContext, DineLocation, Order, OrderStatus } from '../models/order.model'
 import { Id, Paginated } from '@feathersjs/feathers'
-import { Discount } from '@panary-core/orders/domain'
-import { StaffPaymentInfo } from '../models/staff-payment-info.model'
-import { CustomerPaymentInfo } from '../models/customer-payment-info.model'
-import { OrderInteractionSchema } from '../models/order-interaction.model'
+import {
+  CreationContext,
+  CustomerPaymentInfo,
+  DineLocation,
+  Discount,
+  Order,
+  OrderStatus,
+  StaffPaymentInfo,
+} from '@panary-core/orders/domain'
+import { OrderInteraction } from '@panary-core/order-interactions/domain'
 import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
 import { ExtendedParams } from '@panary-core/shared-common'
 import { Observer } from 'rxjs'
@@ -225,7 +230,7 @@ export class OrderService extends BaseService<Order> {
     table: string | undefined = undefined,
     dineLocation: typeof DineLocation[keyof typeof DineLocation],
     recordingDate: Date,
-    orderInteractions: Array<OrderInteractionSchema> = [],
+    orderInteractions: Array<OrderInteraction> = [],
     creationContext?: CreationContext,
   ): Promise<number | number[] | null | undefined> {
     // businessDayId wird vom Backend automatisch verwaltet (standalone: Auto-Rotate)
@@ -255,7 +260,7 @@ export class OrderService extends BaseService<Order> {
     if (customerDetails) order.customerPaymentInfo = customerDetails
     if (staffMealDetails) order.staffPaymentInfo = staffMealDetails
     if (discountDetails) order.discount = discountDetails
-    if (orderInteractions.length > 0) (order as Order & { orderInteractions?: OrderInteractionSchema[] }).orderInteractions = orderInteractions
+    if (orderInteractions.length > 0) (order as Order & { orderInteractions?: OrderInteraction[] }).orderInteractions = orderInteractions
     if (creationContext) order.creationContext = creationContext
 
     this.sortLineItemsByName(order.lineItems)

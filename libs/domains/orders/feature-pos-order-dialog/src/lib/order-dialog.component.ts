@@ -31,11 +31,11 @@ import {
   calculateCombinationPrice,
   calculateSumPrice,
   CustomerPaymentInfo,
-  DineLocationSchema,
+  DineLocation,
   getCombinations,
   getUnbundledLineItems,
   OrderChannel,
-  OrderInteractionSchema,
+  OrderInteraction,
   OrderInteractionService,
   OrderLineItemSchema,
   OrderService,
@@ -120,7 +120,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   #recordingDate: Date = new Date()
   #lineItems: Array<OrderLineItemSchema> = []
   #orderOpenedAt: Date = new Date()
-  #orderInteractions: Array<OrderInteractionSchema> = []
+  #orderInteractions: Array<OrderInteraction> = []
   private _articlesToCombine: Array<number> = []
   private _isBlocked = false
   private _customer: CorporateCustomer | undefined = undefined
@@ -141,7 +141,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _productButtons: any[] = []
   private _table: string | undefined = undefined
-  private _dineLocation: typeof DineLocationSchema[keyof typeof DineLocationSchema] | undefined = undefined
+  private _dineLocation: typeof DineLocation[keyof typeof DineLocation] | undefined = undefined
   private _withoutExtra = false
 
   // Bundle/Menü-Flow State
@@ -671,7 +671,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   selectDineLocation(location: 'INSIDE' | 'OUTSIDE'): void {
     this.showDineLocationSelection = false
-    this._dineLocation = location === 'INSIDE' ? DineLocationSchema.DINE_IN : DineLocationSchema.TAKE_OUT
+    this._dineLocation = location === 'INSIDE' ? DineLocation.DINE_IN : DineLocation.TAKE_OUT
 
     if (this.locationService.showPagers) {
       this.setPagerSubbuttons()
@@ -2038,9 +2038,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     let discountDetails: Discount | undefined = undefined
     let customerDetails: CustomerPaymentInfo | undefined = undefined
 
-    const dineLocation = !this._dineLocation ? DineLocationSchema.DINE_IN : this._dineLocation
+    const dineLocation = !this._dineLocation ? DineLocation.DINE_IN : this._dineLocation
 
-    if (dineLocation === DineLocationSchema.TAKE_OUT) {
+    if (dineLocation === DineLocation.TAKE_OUT) {
       this._pager = undefined
       this._table = undefined
     }

@@ -1,4 +1,4 @@
-import { Order } from '../models/order.model'
+import { Order } from '@panary-core/orders/domain'
 import { GenericOrderLineItemSchema, OrderLineItemSchema } from '../models/order-line-item.model'
 import { ProductSchema } from '@panary-core/products/data-access'
 import { ProductService } from '@panary-core/products/data-access'

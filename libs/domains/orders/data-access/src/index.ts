@@ -1,10 +1,5 @@
 export * from './lib/enums/order-chanel.enum'
-export * from './lib/models/order.model'
-export * from './lib/models/order-interaction.model'
 export * from './lib/models/order-line-item.model'
-export * from './lib/models/tax-summary.model'
-export * from './lib/models/staff-payment-info.model'
-export * from './lib/models/customer-payment-info.model'
 export * from './lib/utils/order-functions'
 export * from './lib/utils/prices-and-taxes'
 export * from './lib/services/order.service'
@@ -12,3 +7,52 @@ export * from './lib/services/order-interaction.service'
 export * from './lib/services/order-print.service'
 export * from './lib/components/print-dialog.component'
 export * from './lib/components/cancel-order-dialog.component'
+
+export {
+  OrderStatus,
+  DineLocation,
+  DiscountType,
+  TransactionMethod,
+  PaymentState,
+  orderSchema,
+  orderDataSchema,
+  orderPatchSchema,
+  orderQuerySchema,
+  cancellationSchema,
+  discountSchema,
+  customerPaymentInfoSchema,
+  staffPaymentInfoSchema,
+  transactionSchema,
+  paymentSchema,
+  creationContextSchema,
+  taxSummarySchema,
+  taxSummerySchema,
+} from '@panary-core/orders/domain'
+export type {
+  Order,
+  OrderData,
+  OrderPatch,
+  OrderQuery,
+  Cancellation,
+  Discount,
+  CreationContext,
+  Payment,
+  Transaction,
+  CustomerPaymentInfo,
+  StaffPaymentInfo,
+  TaxInfo,
+} from '@panary-core/orders/domain'
+
+export {
+  OrderInteractionType,
+  orderInteractionSchema,
+  orderInteractionDataSchema,
+  orderInteractionPatchSchema,
+  orderInteractionQuerySchema,
+} from '@panary-core/order-interactions/domain'
+export type {
+  OrderInteraction,
+  OrderInteractionData,
+  OrderInteractionPatch,
+  OrderInteractionQuery,
+} from '@panary-core/order-interactions/domain'

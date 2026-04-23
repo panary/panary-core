@@ -4,7 +4,7 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { LocationService } from '@panary-core/locations/data-access'
 import { OrderPrintService } from '../services/order-print.service'
-import { Order } from '../models/order.model'
+import { Order } from '@panary-core/orders/domain'
 
 interface Printer {
   pid: string

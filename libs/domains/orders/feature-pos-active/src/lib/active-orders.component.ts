@@ -11,7 +11,7 @@ import {
   OrderService,
   OrderStatus,
   PaymentState,
-  PaymentStateInfo,
+  Payment,
   Transaction,
   TransactionMethod,
 } from '@panary-core/orders/data-access'
@@ -182,7 +182,7 @@ export class ActiveOrdersComponent {
       performedBy: currentUser._id.toString(),
     }
 
-    const paymentInfo: PaymentStateInfo = {
+    const paymentInfo: Payment = {
       state: PaymentState.PAID,
       totalAmount: total,
       tipAmount: 0,

@@ -1,8 +1,14 @@
 // import { environment } from '../../../../../../../apps/admin/src/environments/environment' // TODO: remove environment dependency
 import { GenericOrderLineItemSchema, OrderLineItemSchema } from '../models/order-line-item.model'
-import { DineLocation, Order } from '../models/order.model'
-import { getDefaultTaxSummary, TaxSummary } from '../models/tax-summary.model'
-import { DiscountType } from '@panary-core/orders/domain'
+import { DineLocation, DiscountType, Order, TaxInfo } from '@panary-core/orders/domain'
+
+function getDefaultTaxSummary(): TaxInfo {
+  return {
+    taxes: [],
+    netto: 0,
+    brutto: 0,
+  }
+}
 
 function printOut(value: string): void {
   const enablePrintOut = false // TODO: printOut feature
@@ -150,8 +156,8 @@ export function calculateCombinationPrice(
   return round(combinationPrice)
 }
 
-export function calculateArticleTaxInfomation(article: OrderLineItemSchema, taxRate: string): TaxSummary {
-  const taxInfomation: TaxSummary=getDefaultTaxSummary()
+export function calculateArticleTaxInfomation(article: OrderLineItemSchema, taxRate: string): TaxInfo {
+  const taxInfomation: TaxInfo=getDefaultTaxSummary()
 
   switch (taxRate) {
     case DineLocation.DINE_IN:
@@ -344,8 +350,8 @@ export function calculateArticleTaxInfomation(article: OrderLineItemSchema, taxR
   return taxInfomation
 }
 
-export function calculateTaxSummary(order: Order): TaxSummary {
-  const taxInformation: TaxSummary=getDefaultTaxSummary()
+export function calculateTaxSummary(order: Order): TaxInfo {
+  const taxInformation: TaxInfo=getDefaultTaxSummary()
 
   const dineLocation: string = order.dineLocation
 

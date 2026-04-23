@@ -1,0 +1,30 @@
+{
+  "name": "product-groups",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/product-groups",
+  "projectType": "library",
+  "tags": [
+    "type:domain-package",
+    "domain:product-groups",
+    "publishable"
+  ],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": [
+        "{workspaceRoot}/libs/domains/product-groups/domain/dist"
+      ],
+      "dependsOn": [
+        "product-groups-domain:build"
+      ],
+      "options": {
+        "command": "echo 'product-groups package build complete'"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "libs/domains/product-groups"
+      }
+    }
+  }
+}

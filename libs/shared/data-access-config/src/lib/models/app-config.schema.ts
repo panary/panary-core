@@ -1,6 +1,6 @@
 import { Static, Type } from '@feathersjs/typebox'
 
-export const appConfigSchema = Type.Object(
+export const appConfigSchema = /* @__PURE__ */ Type.Object(
   {
     apiUrl: Type.String(),
     websocketPath: Type.String(),

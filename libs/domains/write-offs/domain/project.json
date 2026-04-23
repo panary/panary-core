@@ -3,31 +3,16 @@
   "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/domains/write-offs/domain/src",
   "projectType": "library",
-  "tags": [
-    "type:domain",
-    "domain:write-offs"
-  ],
+  "tags": ["type:domain", "domain:write-offs"],
   "targets": {
     "build": {
-      "executor": "@nx/rollup:rollup",
-      "outputs": [
-        "{workspaceRoot}/libs/domains/write-offs/domain/dist"
-      ],
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
       "options": {
-        "outputPath": "libs/domains/write-offs/domain/dist",
-        "project": "libs/domains/write-offs/package.json",
-        "tsConfig": "libs/domains/write-offs/domain/tsconfig.lib.json",
+        "outputPath": "dist/libs/domains/write-offs/domain",
         "main": "libs/domains/write-offs/domain/src/index.ts",
-        "format": [
-          "cjs"
-        ],
-        "external": [
-          "@feathersjs/feathers",
-          "@feathersjs/typebox",
-          "@sinclair/typebox"
-        ],
-        "generatePackageJson": false,
-        "compiler": "tsc"
+        "tsConfig": "libs/domains/write-offs/domain/tsconfig.lib.json",
+        "assets": ["libs/domains/write-offs/domain/*.md"]
       }
     }
   }

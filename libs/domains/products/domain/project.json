@@ -3,32 +3,16 @@
   "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/domains/products/domain/src",
   "projectType": "library",
-  "tags": [
-    "type:domain",
-    "domain:products"
-  ],
+  "tags": ["type:domain", "domain:products"],
   "targets": {
     "build": {
-      "executor": "@nx/rollup:rollup",
-      "outputs": [
-        "{workspaceRoot}/libs/domains/products/domain/dist"
-      ],
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
       "options": {
-        "outputPath": "libs/domains/products/domain/dist",
-        "project": "libs/domains/products/package.json",
-        "tsConfig": "libs/domains/products/domain/tsconfig.lib.json",
+        "outputPath": "dist/libs/domains/products/domain",
         "main": "libs/domains/products/domain/src/index.ts",
-        "format": [
-          "cjs"
-        ],
-        "external": [
-          "@feathersjs/feathers",
-          "@feathersjs/typebox",
-          "@sinclair/typebox",
-          "@panary-core/shared-common"
-        ],
-        "generatePackageJson": false,
-        "compiler": "tsc"
+        "tsConfig": "libs/domains/products/domain/tsconfig.lib.json",
+        "assets": ["libs/domains/products/domain/*.md"]
       }
     }
   }

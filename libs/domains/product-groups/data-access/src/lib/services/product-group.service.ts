@@ -1,5 +1,5 @@
 import { effect, Injectable, Signal, signal, WritableSignal, inject } from '@angular/core'
-import { ProductGroupSchema } from '../models/product-group.model'
+import { ProductGroup } from '@panary-core/product-groups/domain'
 import { Id, Paginated } from '@feathersjs/feathers'
 import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
 
@@ -13,16 +13,16 @@ type Status = (typeof Status)[keyof typeof Status]
 @Injectable({
   providedIn: 'root',
 })
-export class ProductGroupService extends BaseService<ProductGroupSchema> {
+export class ProductGroupService extends BaseService<ProductGroup> {
   protected override entityLabelKey = 'ENTITY.PRODUCT_GROUP'
 
   /** PRIVATE PROPERTIES */
-  #documents: WritableSignal<ProductGroupSchema[]> = signal([])
+  #documents: WritableSignal<ProductGroup[]> = signal([])
   #isLoading: WritableSignal<boolean> = signal(false)
   #isLoaded: WritableSignal<boolean> = signal(false)
 
   /** PUBLIC PROPERTIES */
-  productGroups: Signal<ProductGroupSchema[]> = this.#documents.asReadonly()
+  productGroups: Signal<ProductGroup[]> = this.#documents.asReadonly()
   isLoading: Signal<boolean> = this.#isLoading.asReadonly()
   isLoaded: Signal<boolean> = this.#isLoaded.asReadonly()
 
@@ -39,13 +39,13 @@ export class ProductGroupService extends BaseService<ProductGroupSchema> {
   }
 
   /** PRIVATE METHODS */
-  protected override handleItemCreated(document: ProductGroupSchema) {
-    this.#documents.update((currentValue: ProductGroupSchema[]) => [...currentValue, document])
+  protected override handleItemCreated(document: ProductGroup) {
+    this.#documents.update((currentValue: ProductGroup[]) => [...currentValue, document])
   }
 
-  protected override handleItemUpdated(document: ProductGroupSchema) {
-    this.#documents.update((value: ProductGroupSchema[]) => {
-      const index: number = value.findIndex((element: ProductGroupSchema): boolean => element._id === document._id)
+  protected override handleItemUpdated(document: ProductGroup) {
+    this.#documents.update((value: ProductGroup[]) => {
+      const index: number = value.findIndex((element: ProductGroup): boolean => element._id === document._id)
 
       if (index !== -1) {
         value[index] = document
@@ -55,9 +55,9 @@ export class ProductGroupService extends BaseService<ProductGroupSchema> {
     })
   }
 
-  protected override handleItemRemoved(document: ProductGroupSchema) {
-    this.#documents.update((value: ProductGroupSchema[]) => {
-      const index: number = value.findIndex((element: ProductGroupSchema): boolean => element._id === document._id)
+  protected override handleItemRemoved(document: ProductGroup) {
+    this.#documents.update((value: ProductGroup[]) => {
+      const index: number = value.findIndex((element: ProductGroup): boolean => element._id === document._id)
 
       if (index !== -1) {
         value.splice(index, 1)
@@ -79,7 +79,7 @@ export class ProductGroupService extends BaseService<ProductGroupSchema> {
       const total = await this.count({ status: Status.active })
       const iterations = Math.ceil(total / limit)
 
-      const allDocuments: ProductGroupSchema[] = []
+      const allDocuments: ProductGroup[] = []
 
       // Alle Seiten nacheinander laden
       for (let i = 0; i < iterations; i++) {
@@ -93,8 +93,8 @@ export class ProductGroupService extends BaseService<ProductGroupSchema> {
           },
         }
 
-        const response: ProductGroupSchema[] | Paginated<ProductGroupSchema> = await this.find(params)
-        const documents: ProductGroupSchema[] = Array.isArray(response) ? response : response.data
+        const response: ProductGroup[] | Paginated<ProductGroup> = await this.find(params)
+        const documents: ProductGroup[] = Array.isArray(response) ? response : response.data
 
         allDocuments.push(...documents)
       }
@@ -157,7 +157,7 @@ export class ProductGroupService extends BaseService<ProductGroupSchema> {
             return
           }
 
-          const productGroups: Omit<ProductGroupSchema, '_id' | 'locationId' | 'tenantId'>[] = []
+          const productGroups: Omit<ProductGroup, '_id' | 'locationId' | 'tenantId'>[] = []
 
           lines.forEach((line, i) => {
             const { _id = '', externalId, name, color, acronym, updatedAt, createdAt } = line
@@ -201,7 +201,7 @@ export class ProductGroupService extends BaseService<ProductGroupSchema> {
               context.warnMessages.push(warnMsg)
             }
 
-            const productGroup: Omit<ProductGroupSchema, '_id' | 'locationId' | 'tenantId'> = {
+            const productGroup: Omit<ProductGroup, '_id' | 'locationId' | 'tenantId'> = {
               externalId,
               name,
               color,
@@ -256,7 +256,7 @@ export class ProductGroupService extends BaseService<ProductGroupSchema> {
               .subscribe()
           } else {
             // Erstellung der ProductGroups als Bulk über die API
-            this.create(productGroups).then((result: ProductGroupSchema[] | ProductGroupSchema) => {
+            this.create(productGroups).then((result: ProductGroup[] | ProductGroup) => {
               if (Array.isArray(result)) {
                 context.successCount = productGroups.length - context.errorMessages.length
               } else {
@@ -304,20 +304,20 @@ export class ProductGroupService extends BaseService<ProductGroupSchema> {
     // }
   }
 
-  getProductGroupById(id: Id | undefined): ProductGroupSchema | undefined {
+  getProductGroupById(id: Id | undefined): ProductGroup | undefined {
     if (!id) return undefined
 
-    const index = this.#documents().findIndex((record: ProductGroupSchema): boolean => {
+    const index = this.#documents().findIndex((record: ProductGroup): boolean => {
       return record._id === id
     })
 
     return index === -1 ? undefined : this.#documents()[index]
   }
 
-  getProductGroupByExternId(externId: string | undefined): ProductGroupSchema | undefined {
+  getProductGroupByExternId(externId: string | undefined): ProductGroup | undefined {
     if (!externId) return undefined
 
-    const index = this.#documents().findIndex((record: ProductGroupSchema): boolean => {
+    const index = this.#documents().findIndex((record: ProductGroup): boolean => {
       return record.externalId === externId
     })
     return index === -1 ? undefined : this.#documents()[index]

@@ -23,7 +23,7 @@ import { animate, style, transition, trigger } from '@angular/animations'
 // UUID als String-Alias (node:crypto UUID ist ein branded type – für Migration vereinfacht)
 type UUID = string
 
-import { ProductGroupSchema, ProductGroupService } from '@panary-core/product-groups/data-access'
+import { ProductGroup, ProductGroupService } from '@panary-core/product-groups/data-access'
 import { ItemType, ProductSchema, ProductService } from '@panary-core/products/data-access'
 import {
   calculateArticlePrice,
@@ -185,8 +185,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   generalDrinkPrice = 0
   extras = this.productService.extras
 
-  visibleProductGroups: ProductGroupSchema[] = []
-  overflowProductGroups: ProductGroupSchema[] = []
+  visibleProductGroups: ProductGroup[] = []
+  overflowProductGroups: ProductGroup[] = []
 
   get combinations(): OrderLineItemSchema[][] {
     return getCombinations({ lineItems: this.#lineItems } as any)
@@ -233,8 +233,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     return this._selectedCombinationIndex
   }
 
-  get productGroups(): ProductGroupSchema[] {
-    return this.productGroupService.productGroups().filter((productGroup: ProductGroupSchema) => !productGroup.excluded)
+  get productGroups(): ProductGroup[] {
+    return this.productGroupService.productGroups().filter((productGroup: ProductGroup) => !productGroup.excluded)
   }
 
   get numbers(): number[] {
@@ -593,7 +593,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  createProductButtons(productGroup: ProductGroupSchema) {
+  createProductButtons(productGroup: ProductGroup) {
     if (this._isBlocked) return
 
     this.clearButtons()
@@ -610,7 +610,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   setProductButtonsByGroupId(groupId: string | undefined) {
     if (!groupId) return this.unselectProduct()
 
-    const group: ProductGroupSchema | undefined =
+    const group: ProductGroup | undefined =
       this.productGroupService.getProductGroupById(groupId)
 
     if (!group) return this.unselectProduct()
@@ -1326,7 +1326,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   setSuccessorSubButtons(product: ProductSchema) {
     if (!(product as any).nextProductGroupExternalId) return
 
-    const byExternId: ProductGroupSchema | undefined = this.productGroupService.getProductGroupByExternId(
+    const byExternId: ProductGroup | undefined = this.productGroupService.getProductGroupByExternId(
       (product as any).nextProductGroupExternalId,
     )
 
@@ -2268,6 +2268,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getArticleGroupBackgroundColor(id: string | undefined): string {
-    return this.productGroups.find((articleGroup: ProductGroupSchema) => articleGroup._id === id)?.color || ''
+    return this.productGroups.find((articleGroup: ProductGroup) => articleGroup._id === id)?.color || ''
   }
 }

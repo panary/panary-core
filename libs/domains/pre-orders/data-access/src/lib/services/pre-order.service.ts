@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core'
 import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
-import { PreOrder } from '../models/pre-order.model'
+import { PreOrder } from '@panary-core/pre-orders/domain'
 import { Service } from '@feathersjs/feathers'
 import { Order } from '@panary-core/orders/data-access'
 import { Observer } from 'rxjs'

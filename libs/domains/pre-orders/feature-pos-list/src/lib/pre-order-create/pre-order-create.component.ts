@@ -249,7 +249,7 @@ export class PreOrderCreateComponent implements OnInit {
           phone: val.phone || '',
         },
         scheduledFor: new Date(val.scheduledFor!).toISOString(),
-        dineLocation: val.dineLocation || 'take-out',
+        dineLocation: (val.dineLocation || 'take-out') as 'dine-in' | 'take-out',
         lineItems: orderItems,
         status: 'pending' as const,
       }

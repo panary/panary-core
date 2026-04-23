@@ -24,7 +24,7 @@ import {
   openingHourExceptionSchema,
 } from '@panary-core/opening-hour-exceptions/domain'
 import type { OpeningHourException, OpeningHourExceptionService } from './opening-hour-exceptions.class'
-import { logger } from '@panary-core/shared-backend'
+import { ensureIndexes } from '@panary-core/shared-backend'
 
 export const openingHourExceptionsPath = 'opening-hour-exceptions'
 export const openingHourExceptionsMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
@@ -49,34 +49,16 @@ export const openingHourExceptions = (app: Application) => {
     multi: [],
   }) as unknown as OpeningHourExceptionService
 
-  ;(service as any).setup = async (app: Application, _path: string) => {
-    const systemConfig = app.get('system') || {}
-    const dbType = systemConfig.dbType || DatabaseType.SQLITE
-
-    if (dbType === DatabaseType.SQLITE) {
-      const knex = app.get('sqliteClient')
-      const tableName = 'opening-hour-exceptions'
-
-      try {
-        const hasTable = await knex.schema.hasTable(tableName)
-        if (hasTable) {
-          await knex.raw(`CREATE INDEX IF NOT EXISTS "idx_opening-hour-exceptions_tenant" ON "${tableName}" (tenantId)`)
-          await knex.raw(
-            `CREATE INDEX IF NOT EXISTS "idx_opening-hour-exceptions_tenant_date" ON "${tableName}" (tenantId, date)`,
-          )
-          logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'sqlite', service: openingHourExceptionsPath })
-        }
-      } catch (error) {
-        logger.error({
-          message: 'Failed to ensure indexes',
-          event: 'db.indexes_error',
-          dbType: 'sqlite',
-          service: openingHourExceptionsPath,
-          error: String(error),
-        })
-      }
-    }
-  }
+  ;(service as any).setup = async (app: Application) =>
+    ensureIndexes(
+      app,
+      openingHourExceptionsPath,
+      [
+        { name: 'idx_opening-hour-exceptions_tenant', columns: ['tenantId'] },
+        { name: 'idx_opening-hour-exceptions_tenant_date', columns: ['tenantId', 'date'] },
+      ],
+      service,
+    )
 
   app.use(openingHourExceptionsPath, service as any, {
     methods: openingHourExceptionsMethods,

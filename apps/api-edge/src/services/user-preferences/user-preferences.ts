@@ -24,7 +24,7 @@ import {
   userPreferenceSchema
 } from '@panary-core/user-preferences/domain'
 import type { UserPreference, UserPreferenceService } from './user-preferences.class'
-import { logger } from '@panary-core/shared-backend'
+import { ensureIndexes } from '@panary-core/shared-backend'
 
 export const userPreferencesPath = 'user-preferences'
 export const userPreferencesMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
@@ -62,64 +62,16 @@ export const userPreferences = (app: Application) => {
     multi: []
   }) as unknown as UserPreferenceService
 
-  ;(service as any).setup = async (app: Application, path: string) => {
-    const systemConfig = app.get('system') || {}
-    const dbType = systemConfig.dbType || DatabaseType.SQLITE
-
-    // --- A) MONGODB STRATEGY ---
-    if (dbType === DatabaseType.MONGODB) {
-      // In der Factory ist 'Model' bei Mongo der Mongoose/Mongo Client
-      // We retrieve the specific model (collection)
-      const adapter = service as any
-      const model = await adapter.getModel(app)
-
-      if (model?.createIndexes) {
-        await model.createIndexes([
-          // TODO: Add specific indexes, e.g.
-          // { key: { tenantId: 1 }, name: 'tenant_index' },
-          // { key: { tenantId: 1, locationId: 1 }, name: 'tenant_location_index' },
-          // { key: { tenantId: 1, externalId: 1 }, unique: true, name: 'tenant_externalId_unique' },
-          // { key: { status: 1 }, name: 'status_index' },
-          // Text Index (Wichtig für Suche!)
-          // {
-          //   key: { name: 'text', acronym: 'text' },
-          //   name: 'text_search_index'
-          // }
-        ])
-        logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'mongodb', service: 'user-preferences' })
-      }
-    }
-
-    // --- B) SQLITE / KNEX STRATEGY ---
-    else if (dbType === DatabaseType.SQLITE) {
-      // At Knex, the 'model' is the query builder (knex instance).
-      const knex = app.get('sqliteClient') // Or app.get('knexClient')
-      const tableName = 'user-preferences'
-
-      try {
-        const hasTable = await knex.schema.hasTable(tableName)
-        if (hasTable) {
-          await knex.schema.alterTable(tableName, (table: any) => {
-            // Indizes nur erstellen, wenn sie nicht existieren
-            // Hinweis: Knex hat keine einfache 'createIndexIfNotExists' API innerhalb von alterTable
-            // daher fängt man Fehler oft ab oder prüft vorher.
-            // Der einfachste Weg für SQLite "Offline First" (Idempotent):
-            // Wir führen Raw SQL aus, da Knex Schema Builder hier manchmal limitiert ist.
-          })
-
-          // Sicherer Weg für SQLite Indizes (Idempotent):
-          await knex.raw(`CREATE INDEX IF NOT EXISTS idx_user_preferences_tenant ON "${tableName}" (tenantId)`)
-          await knex.raw(
-            `CREATE INDEX IF NOT EXISTS idx_user_preferences_tenant_location ON "${tableName}" (tenantId, locationId)`
-          )
-          logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'sqlite', service: 'user-preferences' })
-        }
-      } catch (error) {
-        logger.error({ message: 'Failed to ensure indexes', event: 'db.indexes_error', dbType: 'sqlite', service: 'user-preferences', error: String(error) })
-        // App should still start, maybe the database is locked
-      }
-    }
-  }
+  ;(service as any).setup = async (app: Application) =>
+    ensureIndexes(
+      app,
+      'user-preferences',
+      [
+        { name: 'idx_user_preferences_tenant', columns: ['tenantId'] },
+        { name: 'idx_user_preferences_tenant_location', columns: ['tenantId', 'locationId'] },
+      ],
+      service,
+    )
 
   // 4. Register the service - as any, since the Factory returns KnexService OR MongoDBService
   app.use(userPreferencesPath, service as any, {

@@ -26,7 +26,7 @@ import {
   apikeyQuerySchema,
   apikeySchema
 } from '@panary-core/apikeys/domain'
-import { logger } from '@panary-core/shared-backend'
+import { ensureIndexes } from '@panary-core/shared-backend'
 
 export const apikeysPath = 'apikeys'
 export const apikeysMethods: Array<keyof ApiKeyService> = ['find', 'get', 'create', 'patch', 'remove']
@@ -66,53 +66,23 @@ export const apikeys = (app: Application) => {
     multi: []
   }) as unknown as ApiKeyService
 
-  (service as any).setup = async (app: Application, path: string) => {
-    const systemConfig = app.get('system') || {}
-    const dbType = systemConfig.dbType || DatabaseType.SQLITE
-
-    // --- A) MONGODB STRATEGY ---
-    if (dbType === DatabaseType.MONGODB) {
-      // In der Factory ist 'Model' bei Mongo der Mongoose/Mongo Client
-      // We retrieve the specific model (collection)
-      const model = await (service as any).getModel(app)
-
-      if (model?.createIndexes) {
-        await model.createIndexes([
-          { key: { tenantId: 1 }, name: 'tenant_index' },
-          { key: { tenantId: 1, locationId: 1 }, name: 'tenant_location_index' },
-          { key: { tenantId: 1, apikey: 1 }, unique: true, name: 'tenant_apikey_unique' },
-          { key: { status: 1 }, name: 'status_index' },
-        ])
-        logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'mongodb', service: 'apikeys' })
-      }
-    }
-
-    // --- B) SQLITE / KNEX STRATEGY ---
-    else if (dbType === DatabaseType.SQLITE) {
-      // At Knex, the 'model' is the query builder (knex instance).
-      const knex = app.get('sqliteClient') // Or app.get('knexClient')
-      const tableName = 'apikeys'
-
-      try {
-        const hasTable = await knex.schema.hasTable(tableName)
-        if (hasTable) {
-          await knex.schema.alterTable(tableName, (table: any) => {
-            // Only create indexes if they do not exist.
-            // Note: Knex does not have a simple 'createIndexIfNotExists' API within alterTable,
-            // so errors are often caught or checked beforehand.
-            // The easiest way for SQLite "Offline First" (Idempotent):
-            // We execute Raw SQL, as Knex Schema Builder is sometimes limited here.
-          })
-
-          // Keine nützlichen Spalten zum Indizieren vorhanden (nur _id und text in Migration)
-          logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'sqlite', service: 'apikeys' })
-        }
-      } catch (error) {
-        logger.error({ message: 'Failed to ensure indexes', event: 'db.indexes_error', dbType: 'sqlite', service: 'apikeys', error: String(error) })
-        // App should still start, maybe the database is locked
-      }
-    }
-  }
+  (service as any).setup = async (app: Application) =>
+    ensureIndexes(
+      app,
+      'apikeys',
+      [
+        { name: 'idx_apikeys_tenant', columns: ['tenantId'], dbTypes: [DatabaseType.MONGODB] },
+        { name: 'idx_apikeys_tenant_location', columns: ['tenantId', 'locationId'], dbTypes: [DatabaseType.MONGODB] },
+        {
+          name: 'idx_apikeys_tenant_apikey_unique',
+          columns: ['tenantId', 'apikey'],
+          unique: true,
+          dbTypes: [DatabaseType.MONGODB],
+        },
+        { name: 'idx_apikeys_status', columns: ['status'], dbTypes: [DatabaseType.MONGODB] },
+      ],
+      service,
+    )
 
   // Register service
   app.use(apikeysPath, service as any, {

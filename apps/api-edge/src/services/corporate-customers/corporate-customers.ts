@@ -24,7 +24,7 @@ import {
   corporateCustomerQuerySchema,
   corporateCustomerSchema
 } from '@panary-core/corporate-customers/domain'
-import { logger } from '@panary-core/shared-backend'
+import { ensureIndexes } from '@panary-core/shared-backend'
 
 export const corporateCustomersPath = 'corporate-customers'
 export const corporateCustomersMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
@@ -62,61 +62,17 @@ export const corporateCustomers = (app: Application) => {
     multi: []
   }) as unknown as CorporateCustomerService
 
-  (service as any).setup = async (app: Application, path: string) => {
-    const systemConfig = app.get('system') || {}
-    const dbType = systemConfig.dbType || DatabaseType.SQLITE
-
-    // --- A) MONGODB STRATEGY ---
-    if (dbType === DatabaseType.MONGODB) {
-      // In der Factory ist 'Model' bei Mongo der Mongoose/Mongo Client
-      // We retrieve the specific model (collection)
-      const adapter = service as any
-      const model = await adapter.getModel(app)
-
-      if (model?.createIndexes) {
-        await model.createIndexes([
-          // TODO: Add specific indexes, e.g.
-          { key: { tenantId: 1 }, name: 'tenant_index' },
-          { key: { tenantId: 1, locationId: 1 }, name: 'tenant_location_index' },
-          { key: { status: 1 }, name: 'status_index' },
-        ])
-        logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'mongodb', service: 'corporate-customers' })
-      }
-    }
-
-    // --- B) SQLITE / KNEX STRATEGY ---
-    else if (dbType === DatabaseType.SQLITE) {
-      // At Knex, the 'model' is the query builder (knex instance).
-      const knex = app.get('sqliteClient') // Or app.get('knexClient')
-      const tableName = 'corporate-customers'
-
-      try {
-        const hasTable = await knex.schema.hasTable(tableName)
-        if (hasTable) {
-          await knex.schema.alterTable(tableName, (table: any) => {
-            // Indizes nur erstellen, wenn sie nicht existieren
-            // Hinweis: Knex hat keine einfache 'createIndexIfNotExists' API innerhalb von alterTable
-            // daher fängt man Fehler oft ab oder prüft vorher.
-            // Der einfachste Weg für SQLite "Offline First" (Idempotent):
-            // Wir führen Raw SQL aus, da Knex Schema Builder hier manchmal limitiert ist.
-          })
-
-          // Sicherer Weg für SQLite Indizes (Idempotent):
-          await knex.raw(
-            `CREATE INDEX IF NOT EXISTS idx_corporate_customers_tenant ON "${tableName}" (tenantId)`
-          )
-          await knex.raw(
-            `CREATE INDEX IF NOT EXISTS idx_corporate_customers_tenant_location ON "${tableName}" (tenantId, locationId)`
-          )
-          await knex.raw(`CREATE INDEX IF NOT EXISTS idx_corporate_customers_status ON "${tableName}" (status)`)
-          logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'sqlite', service: 'corporate-customers' })
-        }
-      } catch (error) {
-        logger.error({ message: 'Failed to ensure indexes', event: 'db.indexes_error', dbType: 'sqlite', service: 'corporate-customers', error: String(error) })
-        // App should still start, maybe the database is locked
-      }
-    }
-  }
+  ;(service as any).setup = async (app: Application) =>
+    ensureIndexes(
+      app,
+      'corporate-customers',
+      [
+        { name: 'idx_corporate_customers_tenant', columns: ['tenantId'] },
+        { name: 'idx_corporate_customers_tenant_location', columns: ['tenantId', 'locationId'] },
+        { name: 'idx_corporate_customers_status', columns: ['status'] },
+      ],
+      service,
+    )
 
   // 4. Register the service - as any, since the Factory returns KnexService OR MongoDBService
   app.use(corporateCustomersPath, service as any, {

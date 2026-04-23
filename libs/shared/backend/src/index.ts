@@ -27,4 +27,6 @@ export { secureByDefault } from './hooks/secure-by-default.hook'
 export { stringifyJsonFields } from './hooks/stringify-json-fields.hook'
 
 // --- Util DB ---
+export { ensureIndexes } from './util-db/ensure-indexes'
+export type { IndexDef } from './util-db/ensure-indexes'
 export { getJsonFieldHooks } from './util-db/get-json-field-hooks'

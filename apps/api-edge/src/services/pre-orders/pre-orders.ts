@@ -31,7 +31,7 @@ import {
 } from '@panary-core/pre-orders/domain'
 import { DineLocation, OrderChannel, OrderStatus, PaymentState } from '@panary-core/orders/domain'
 import type { PreOrder, PreOrderService } from './pre-orders.class'
-import { logger } from '@panary-core/shared-backend'
+import { ensureIndexes, logger } from '@panary-core/shared-backend'
 
 export const preOrdersPath = 'pre-orders'
 export const preOrdersMethods = ['find', 'get', 'create', 'patch', 'remove', 'convert'] as const
@@ -58,36 +58,18 @@ export const preOrders = (app: Application) => {
     multi: [],
   }) as unknown as PreOrderService
 
-  ;(service as any).setup = async (app: Application, _path: string) => {
-    const systemConfig = app.get('system') || {}
-    const dbType = systemConfig.dbType || DatabaseType.SQLITE
-
-    if (dbType === DatabaseType.SQLITE) {
-      const knex = app.get('sqliteClient')
-      const tableName = 'pre-orders'
-
-      try {
-        const hasTable = await knex.schema.hasTable(tableName)
-        if (hasTable) {
-          await knex.raw(`CREATE INDEX IF NOT EXISTS "idx_pre-orders_tenant" ON "${tableName}" (tenantId)`)
-          await knex.raw(
-            `CREATE INDEX IF NOT EXISTS "idx_pre-orders_tenant_location" ON "${tableName}" (tenantId, locationId)`,
-          )
-          await knex.raw(`CREATE INDEX IF NOT EXISTS "idx_pre-orders_status" ON "${tableName}" (status)`)
-          await knex.raw(`CREATE INDEX IF NOT EXISTS "idx_pre-orders_scheduled" ON "${tableName}" (scheduledFor)`)
-          logger.info({ message: 'Indexes ensured', event: 'db.indexes', dbType: 'sqlite', service: 'pre-orders' })
-        }
-      } catch (error) {
-        logger.error({
-          message: 'Failed to ensure indexes',
-          event: 'db.indexes_error',
-          dbType: 'sqlite',
-          service: 'pre-orders',
-          error: String(error),
-        })
-      }
-    }
-  }
+  ;(service as any).setup = async (app: Application) =>
+    ensureIndexes(
+      app,
+      'pre-orders',
+      [
+        { name: 'idx_pre-orders_tenant', columns: ['tenantId'] },
+        { name: 'idx_pre-orders_tenant_location', columns: ['tenantId', 'locationId'] },
+        { name: 'idx_pre-orders_status', columns: ['status'] },
+        { name: 'idx_pre-orders_scheduled', columns: ['scheduledFor'] },
+      ],
+      service,
+    )
 
   // Konvertiert eine Vorbestellung in eine echte Bestellung.
   // Der restrictOrderToBusinessDay-Hook der Order läuft automatisch

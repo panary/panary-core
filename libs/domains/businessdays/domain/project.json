@@ -3,16 +3,31 @@
   "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/domains/businessdays/domain/src",
   "projectType": "library",
-  "tags": ["type:domain", "domain:businessdays"],
+  "tags": [
+    "type:domain",
+    "domain:businessdays"
+  ],
   "targets": {
     "build": {
-      "executor": "@nx/js:tsc",
-      "outputs": ["{options.outputPath}"],
+      "executor": "@nx/rollup:rollup",
+      "outputs": [
+        "{workspaceRoot}/libs/domains/businessdays/domain/dist"
+      ],
       "options": {
-        "outputPath": "dist/libs/domains/businessdays/domain",
-        "main": "libs/domains/businessdays/domain/src/index.ts",
+        "outputPath": "libs/domains/businessdays/domain/dist",
+        "project": "libs/domains/businessdays/package.json",
         "tsConfig": "libs/domains/businessdays/domain/tsconfig.lib.json",
-        "assets": ["libs/domains/businessdays/domain/*.md"]
+        "main": "libs/domains/businessdays/domain/src/index.ts",
+        "format": [
+          "cjs"
+        ],
+        "external": [
+          "@feathersjs/feathers",
+          "@feathersjs/typebox",
+          "@sinclair/typebox"
+        ],
+        "generatePackageJson": false,
+        "compiler": "tsc"
       }
     },
     "lint": {

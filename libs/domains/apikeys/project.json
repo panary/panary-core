@@ -1,0 +1,30 @@
+{
+  "name": "apikeys",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/apikeys",
+  "projectType": "library",
+  "tags": [
+    "type:domain-package",
+    "domain:apikeys",
+    "publishable"
+  ],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": [
+        "{workspaceRoot}/libs/domains/apikeys/domain/dist"
+      ],
+      "dependsOn": [
+        "apikeys-domain:build"
+      ],
+      "options": {
+        "command": "echo 'apikeys package build complete'"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "libs/domains/apikeys"
+      }
+    }
+  }
+}

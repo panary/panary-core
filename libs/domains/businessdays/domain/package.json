@@ -1,5 +1,5 @@
 {
-  "name": "cloud-connection-domain-internal",
+  "name": "businessdays-domain-internal",
   "version": "0.0.0-internal",
   "private": true,
   "type": "commonjs",

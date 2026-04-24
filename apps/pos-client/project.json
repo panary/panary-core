@@ -1,31 +1,31 @@
 {
-  "name": "pos",
+  "name": "pos-client",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
   "prefix": "app",
-  "sourceRoot": "apps/pos/src",
+  "sourceRoot": "apps/pos-client/src",
   "tags": [],
   "targets": {
     "build": {
       "executor": "@angular/build:application",
       "outputs": ["{options.outputPath}"],
       "options": {
-        "outputPath": "dist/apps/pos",
-        "browser": "apps/pos/src/main.ts",
-        "tsConfig": "apps/pos/tsconfig.app.json",
+        "outputPath": "dist/apps/pos-client",
+        "browser": "apps/pos-client/src/main.ts",
+        "tsConfig": "apps/pos-client/tsconfig.app.json",
         "inlineStyleLanguage": "scss",
         "assets": [
           {
             "glob": "**/*",
-            "input": "apps/pos/public"
+            "input": "apps/pos-client/public"
           },
           {
             "glob": "**/*",
-            "input": "apps/pos/src/assets",
+            "input": "apps/pos-client/src/assets",
             "output": "assets"
           }
         ],
-        "styles": ["apps/pos/src/styles.scss"],
+        "styles": ["apps/pos-client/src/styles.scss"],
         "externalDependencies": [
           "mongodb",
           "@feathersjs/mongodb",
@@ -71,10 +71,10 @@
       "executor": "@angular/build:dev-server",
       "configurations": {
         "production": {
-          "buildTarget": "pos:build:production"
+          "buildTarget": "pos-client:build:production"
         },
         "development": {
-          "buildTarget": "pos:build:development"
+          "buildTarget": "pos-client:build:development"
         }
       },
       "defaultConfiguration": "development"
@@ -90,8 +90,8 @@
       "continuous": true,
       "executor": "@nx/web:file-server",
       "options": {
-        "buildTarget": "pos:build",
-        "staticFilePath": "dist/apps/pos/browser",
+        "buildTarget": "pos-client:build",
+        "staticFilePath": "dist/apps/pos-client/browser",
         "spa": true
       }
     }

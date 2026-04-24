@@ -45,7 +45,7 @@ Tauri-App (installiert beim Kunden)
 Das Tauri-Update-System verwendet Ed25519-Signaturen. Jedes Release wird signiert, die App prüft die Signatur vor der Installation.
 
 ```bash
-cd panary-core/apps/pos
+cd panary-core/apps/pos-client
 pnpm tauri signer generate -w ~/.tauri/panary-pos.key
 ```
 
@@ -56,7 +56,7 @@ pnpm tauri signer generate -w ~/.tauri/panary-pos.key
 
 ### Public Key eintragen
 
-Den angezeigten Public Key in `apps/pos/src-tauri/tauri.conf.json` eintragen:
+Den angezeigten Public Key in `apps/pos-client/src-tauri/tauri.conf.json` eintragen:
 
 ```json
 "plugins": {
@@ -94,7 +94,7 @@ Den gesamten Inhalt (inkl. `-----BEGIN PRIVATE KEY-----` und `-----END PRIVATE K
 
 ### Version bumpen
 
-Die Version in `apps/pos/src-tauri/tauri.conf.json` ist die **Source of Truth**:
+Die Version in `apps/pos-client/src-tauri/tauri.conf.json` ist die **Source of Truth**:
 
 ```json
 {
@@ -103,7 +103,7 @@ Die Version in `apps/pos/src-tauri/tauri.conf.json` ist die **Source of Truth**:
 ```
 
 Zusätzlich synchronisieren:
-- `apps/pos/src/app/app.config.ts` → `appVersion: '2026.4.0'`
+- `apps/pos-client/src/app/app.config.ts` → `appVersion: '2026.4.0'`
 - `libs/domains/users/feature-pos-login/src/lib/login.component.html` → Footer-Versionstext
 
 ### Tag erstellen und pushen
@@ -172,12 +172,12 @@ Für lokale Tests oder manuelle Builds ohne Release:
 
 ```bash
 cd panary-core
-pnpm nx build pos --configuration=production
-cd apps/pos
+pnpm nx build pos-client --configuration=production
+cd apps/pos-client
 pnpm tauri build
 ```
 
-Der Installer liegt dann unter `apps/pos/src-tauri/target/release/bundle/nsis/`.
+Der Installer liegt dann unter `apps/pos-client/src-tauri/target/release/bundle/nsis/`.
 
 Alternativ kann der bestehende Workflow `build-pos-windows.yml` manuell über GitHub Actions ausgelöst werden (Workflow Dispatch).
 
@@ -216,4 +216,4 @@ https://github.com https://*.github.com https://*.githubusercontent.com
 
 ### Update im Browser-Dev-Modus
 
-Im Browser-Entwicklungsmodus (`nx serve pos`) ist der UpdateService inaktiv — er prüft `__TAURI_INTERNALS__` und überspringt alle Operationen, wenn die App nicht in Tauri läuft.
+Im Browser-Entwicklungsmodus (`nx serve pos-client`) ist der UpdateService inaktiv — er prüft `__TAURI_INTERNALS__` und überspringt alle Operationen, wenn die App nicht in Tauri läuft.

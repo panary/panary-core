@@ -226,7 +226,7 @@ pwd
 # Sollte zeigen: .../panary-core
 
 ls apps/
-# Sollte zeigen: api-edge, pos, etc.
+# Sollte zeigen: api-edge, pos-client, etc.
 ```
 
 ### Fehler: "services/index.ts not found"

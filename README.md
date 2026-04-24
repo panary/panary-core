@@ -83,7 +83,7 @@ The POS client runs at `http://localhost:4200`, the API at `http://localhost:303
 nx serve api-edge
 
 # POS client only
-nx serve pos
+nx serve pos-client
 
 # Admin dashboard
 pnpm admin:dev
@@ -181,7 +181,7 @@ Panary Core uses calendar versioning: `YY.MM.INDEX` (z.B. `26.4.3`).
 ```bash
 pnpm release                    # Edge + POS gemeinsam (eine Version, beide Pipelines)
 pnpm release:edge               # Nur Edge-Server (Docker-Image)
-pnpm release:pos                # Nur POS-App (Tauri/Windows)
+pnpm release:pos-client                # Nur POS-App (Tauri/Windows)
 ```
 
 Ein `pnpm release` bumpt die Version einmal, erstellt beide Tags (`v26.4.X` + `pos-v26.4.X`) und pusht. Die CI baut parallel:

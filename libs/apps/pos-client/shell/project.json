@@ -1,7 +1,7 @@
 {
   "name": "shell",
   "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "libs/apps/pos/shell/src",
+  "sourceRoot": "libs/apps/pos-client/shell/src",
   "prefix": "lib",
   "projectType": "library",
   "tags": ["type:shell", "platform:pos"],

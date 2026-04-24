@@ -20,7 +20,7 @@
     "rootDir": ".",
     "target": "es2022",
     "paths": {
-      "@panary-core/apps/pos/shell": ["libs/apps/pos/shell/src/index.ts"],
+      "@panary-core/apps/pos-client/shell": ["libs/apps/pos-client/shell/src/index.ts"],
       "@panary-core/products/domain": ["libs/domains/products/domain/src/index.ts"],
       "@panary-core/products/api": ["libs/domains/products/api/src/index.ts"],
       "@panary-core/products/data-access": ["libs/domains/products/data-access/src/index.ts"],

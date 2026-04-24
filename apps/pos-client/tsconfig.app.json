@@ -17,7 +17,7 @@
       "path": "../../libs/shared/data-access"
     },
     {
-      "path": "../../libs/apps/pos/shell"
+      "path": "../../libs/apps/pos-client/shell"
     },
     {
       "path": "../../libs/shared/data-access-config"

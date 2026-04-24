@@ -21,7 +21,7 @@ export enum UserSystemRole {
   TENANT_STAFF = 'tenant:staff', // Kellner / Kassierer
 
   // --- DEVICE ROLES (Maschinen-User) ---
-  DEVICE_POS = 'device:pos', // Stationäre Kasse
+  DEVICE_POS = 'device:pos-client', // Stationäre Kasse
   DEVICE_KDS = 'device:kds', // Küchen-Monitor
   DEVICE_TABLET = 'device:tablet', // Mobiles Bestellgerät
   DEVICE_KIOSK = 'device:kiosk', // Selbstbedienungsterminal

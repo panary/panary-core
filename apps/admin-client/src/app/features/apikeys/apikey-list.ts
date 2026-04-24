@@ -173,7 +173,7 @@ export class ApikeyListComponent implements OnInit {
 
   formatRole(role: string): string {
     const map: Record<string, string> = {
-      'device:pos': 'ROLES.DEVICE_POS',
+      'device:pos-client': 'ROLES.DEVICE_POS',
       'device:kds': 'ROLES.DEVICE_KDS',
       'device:tablet': 'ROLES.DEVICE_TABLET',
       'device:kiosk': 'ROLES.DEVICE_KIOSK',

@@ -63,7 +63,7 @@ interface ApikeyDetail {
               <select id="apikeyRole" [(ngModel)]="form.role" name="role"
                 class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                        text-slate-900 dark:text-white outline-none">
-                <option value="device:pos">{{ 'ROLES.DEVICE_POS' | translate }}</option>
+                <option value="device:pos-client">{{ 'ROLES.DEVICE_POS' | translate }}</option>
                 <option value="device:kds">{{ 'ROLES.DEVICE_KDS' | translate }}</option>
                 <option value="device:tablet">{{ 'ROLES.DEVICE_TABLET' | translate }}</option>
                 <option value="device:kiosk">{{ 'ROLES.DEVICE_KIOSK' | translate }}</option>
@@ -244,7 +244,7 @@ export class ApikeyFormComponent {
   form = {
     name: '',
     description: '',
-    role: 'device:pos',
+    role: 'device:pos-client',
     validUntil: '',
   }
 
@@ -266,7 +266,7 @@ export class ApikeyFormComponent {
 
   formatRole(role: string): string {
     const map: Record<string, string> = {
-      'device:pos': 'ROLES.DEVICE_POS',
+      'device:pos-client': 'ROLES.DEVICE_POS',
       'device:kds': 'ROLES.DEVICE_KDS',
       'device:tablet': 'ROLES.DEVICE_TABLET',
       'device:kiosk': 'ROLES.DEVICE_KIOSK',
@@ -304,7 +304,7 @@ export class ApikeyFormComponent {
     this.errors.set([])
     this.confirmingDelete.set(false)
     this.detail.set(null)
-    this.form = { name: '', description: '', role: 'device:pos', validUntil: '' }
+    this.form = { name: '', description: '', role: 'device:pos-client', validUntil: '' }
 
     if (!keyId || keyId === 'new') {
       this.isNew.set(true)

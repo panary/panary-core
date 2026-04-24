@@ -136,7 +136,7 @@ const privilegedRoles: string[] = [
 
 export const userQueryResolver = resolve<UserQuery, HookContext>({
   // Sicherheit: Nicht-privilegierte User sehen nur sich selbst
-  // Device-Rollen (device:pos, device:tablet etc.) sind ausgenommen —
+  // Device-Rollen (device:pos-client, device:tablet etc.) sind ausgenommen —
   // sie brauchen die volle User-Liste fuer den Login-Screen.
   // RBAC (authorize + roles.matrix) steuert bereits, was Devices lesen duerfen.
   _id: async (value, user, context) => {

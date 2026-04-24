@@ -9,7 +9,7 @@
  *
  * Aktualisiert automatisch:
  *   - package.json (Projektroot)
- *   - apps/pos/src-tauri/tauri.conf.json (nur wenn vorhanden)
+ *   - apps/pos-client/src-tauri/tauri.conf.json (nur wenn vorhanden)
  *
  * Gibt die neue Version auf stdout aus (für Shell-Subshells verwendbar).
  *
@@ -26,7 +26,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(__dirname, '../..')
 
 const PKG_PATH = resolve(ROOT, 'package.json')
-const TAURI_CONF_PATH = resolve(ROOT, 'apps/pos/src-tauri/tauri.conf.json')
+const TAURI_CONF_PATH = resolve(ROOT, 'apps/pos-client/src-tauri/tauri.conf.json')
 
 // Aktuelles Datum → YY.MM
 const now = new Date()

@@ -4,9 +4,9 @@
   "version": "26.4.20",
   "identifier": "de.panary.pos",
   "build": {
-    "frontendDist": "../../../dist/apps/pos/browser",
+    "frontendDist": "../../../dist/apps/pos-client/browser",
     "devUrl": "http://localhost:4200",
-    "beforeDevCommand": "pnpm nx serve pos",
+    "beforeDevCommand": "pnpm nx serve pos-client",
     "beforeBuildCommand": ""
   },
   "app": {

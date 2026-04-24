@@ -8,11 +8,11 @@
 # Verwendung:
 #   pnpm release                # Edge + POS gemeinsam (eine Version, beide Tags)
 #   pnpm release:edge           # Nur Edge-Server
-#   pnpm release:pos            # Nur POS-App
+#   pnpm release:pos-client            # Nur POS-App
 #
 #   ./tools/scripts/release-tag.sh --push              # Edge + POS
 #   ./tools/scripts/release-tag.sh --type edge --push  # Nur Edge
-#   ./tools/scripts/release-tag.sh --type pos --push   # Nur POS
+#   ./tools/scripts/release-tag.sh --type pos-client --push   # Nur POS
 #
 set -euo pipefail
 
@@ -53,7 +53,7 @@ echo "→ Neue Version: $VERSION"
 TAGS=()
 case "$TYPE" in
   edge) TAGS+=("v$VERSION") ;;
-  pos)  TAGS+=("pos-v$VERSION") ;;
+  pos-client)  TAGS+=("pos-v$VERSION") ;;
   all)  TAGS+=("v$VERSION" "pos-v$VERSION") ;;
 esac
 
@@ -77,8 +77,8 @@ rm -f "$LICENSE.bak"
 
 # Geaenderte Dateien committen
 git add "$REPO_ROOT/package.json"
-if [ -f "$REPO_ROOT/apps/pos/src-tauri/tauri.conf.json" ]; then
-  git add "$REPO_ROOT/apps/pos/src-tauri/tauri.conf.json"
+if [ -f "$REPO_ROOT/apps/pos-client/src-tauri/tauri.conf.json" ]; then
+  git add "$REPO_ROOT/apps/pos-client/src-tauri/tauri.conf.json"
 fi
 if ! git diff --quiet "$LICENSE"; then
   git add "$LICENSE"
@@ -112,7 +112,7 @@ if [ "$PUSH" = true ]; then
     edge)
       echo "  Edge:   build-edge-docker.yml → ghcr.io/panary/panary-edge:$VERSION"
       ;;
-    pos)
+    pos-client)
       echo "  POS:    release-pos-windows.yml → GitHub Release pos-v$VERSION"
       ;;
     all)

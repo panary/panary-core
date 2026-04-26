@@ -43,6 +43,10 @@ export const AppResource = {
   PLATFORM_BUSINESS_METRICS: 'platform-business-metrics',
   PLATFORM_TENANT_HEALTH: 'platform-tenant-health',
   PLATFORM_ALERTS: 'platform-alerts',
+  PLATFORM_EVENT_STATS: 'platform-event-stats',
+  PLATFORM_CONFIG: 'platform-config',
+  PLATFORM_PUSH_SUBSCRIPTION: 'platform-push-subscription',
+  PLATFORM_CLOUD_CONNECTIONS: 'platform-cloud-connections',
   TENANT_GRANTS: 'tenant-grants',
 
   // Auth-Hilfsdienste (offen für authentifizierte User)

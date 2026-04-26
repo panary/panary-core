@@ -22,6 +22,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PLATFORM_BUSINESS_METRICS, action: AppAction.READ },
     { resource: AppResource.PLATFORM_TENANT_HEALTH, action: AppAction.READ },
     { resource: AppResource.PLATFORM_ALERTS, action: AppAction.MANAGE },
+    { resource: AppResource.PLATFORM_EVENT_STATS, action: AppAction.READ },
+    { resource: AppResource.PLATFORM_CONFIG, action: AppAction.MANAGE },
+    { resource: AppResource.PLATFORM_PUSH_SUBSCRIPTION, action: AppAction.MANAGE },
+    { resource: AppResource.PLATFORM_CLOUD_CONNECTIONS, action: AppAction.READ },
     { resource: AppResource.TENANT_GRANTS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
@@ -43,6 +47,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PLATFORM_BUSINESS_METRICS, action: AppAction.READ },
     { resource: AppResource.PLATFORM_TENANT_HEALTH, action: AppAction.READ },
     { resource: AppResource.PLATFORM_ALERTS, action: [AppAction.READ, AppAction.UPDATE] },
+    { resource: AppResource.PLATFORM_EVENT_STATS, action: AppAction.READ },
+    { resource: AppResource.PLATFORM_CONFIG, action: AppAction.READ },
+    { resource: AppResource.PLATFORM_PUSH_SUBSCRIPTION, action: AppAction.MANAGE },
+    { resource: AppResource.PLATFORM_CLOUD_CONNECTIONS, action: AppAction.READ },
     { resource: AppResource.TENANT_GRANTS, action: AppAction.READ },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
@@ -55,7 +63,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PRODUCTS, action: AppAction.READ },
     { resource: AppResource.SYSTEM, action: AppAction.READ },
     { resource: AppResource.PLATFORM_TENANTS, action: AppAction.READ },
-    { resource: AppResource.PLATFORM_IMPERSONATION, action: AppAction.CREATE },
+    // CREATE: Impersonation starten. DELETE: eigene Sitzung beenden ("Zurück zur Plattform")
+    // — ohne DELETE bleibt der Support-Mitarbeiter im Tenant-Kontext gefangen.
+    { resource: AppResource.PLATFORM_IMPERSONATION, action: [AppAction.CREATE, AppAction.DELETE] },
     { resource: AppResource.PLATFORM_IMPERSONATION_EVENTS, action: AppAction.READ },
     { resource: AppResource.PLATFORM_USER_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_SYSTEM_HEALTH, action: AppAction.READ },
@@ -63,6 +73,11 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PLATFORM_TENANT_HEALTH, action: AppAction.READ },
     // Support liest Alerts und kann sie quittieren (acknowledge), aber nicht loeschen.
     { resource: AppResource.PLATFORM_ALERTS, action: [AppAction.READ, AppAction.UPDATE] },
+    // Support sieht Konfig nur lesend; Schwellenwerte aendert ausschliesslich Owner.
+    { resource: AppResource.PLATFORM_CONFIG, action: AppAction.READ },
+    // Eigene Push-Subscription verwalten (Browser-Notifications fuer Critical-Alerts).
+    { resource: AppResource.PLATFORM_PUSH_SUBSCRIPTION, action: AppAction.MANAGE },
+    { resource: AppResource.PLATFORM_CLOUD_CONNECTIONS, action: AppAction.READ },
     { resource: AppResource.TENANT_GRANTS, action: AppAction.READ },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },

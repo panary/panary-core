@@ -17,6 +17,42 @@ export const AppResource = {
   APIKEYS: 'apikeys',
   CLOUD_CONNECTION: 'cloud-connection',
   OPENING_HOUR_EXCEPTIONS: 'opening-hour-exceptions',
+
+  // Cloud-spezifische Ressourcen (panary-cloud Backend)
+  CORPORATE_CUSTOMERS: 'corporate-customers',
+  RECIPES: 'recipes',
+  INGREDIENTS: 'ingredients',
+  PRICELISTS: 'pricelists',
+  INVENTORIES: 'inventories',
+  INCOMING_GOODS: 'incoming-goods',
+  WRITE_OFFS: 'write-offs',
+  INVOICES: 'invoices',
+  BUSINESS_DAYS: 'businessdays',
+  USER_PREFERENCES: 'user-preferences',
+  DEVICES: 'devices',
+  SHIFTS: 'shifts',
+  LEAVE_REQUESTS: 'leave-requests',
+  ORGANIZATIONS: 'organizations',
+
+  // Plattform-Verwaltungs-Ressourcen (nur Cloud)
+  PLATFORM_TENANTS: 'platform-tenants',
+  PLATFORM_IMPERSONATION: 'platform-impersonation',
+  PLATFORM_IMPERSONATION_EVENTS: 'platform-impersonation-events',
+  PLATFORM_USER_PREFERENCES: 'platform-user-preferences',
+  PLATFORM_SYSTEM_HEALTH: 'platform-system-health',
+  PLATFORM_BUSINESS_METRICS: 'platform-business-metrics',
+  PLATFORM_TENANT_HEALTH: 'platform-tenant-health',
+  PLATFORM_ALERTS: 'platform-alerts',
+  TENANT_GRANTS: 'tenant-grants',
+
+  // Auth-Hilfsdienste (offen für authentifizierte User)
+  PASSWORD_RESET: 'password-reset',
+  EDGE_PAIRING: 'edge-pairing',
+  AUTHENTICATION: 'authentication',
+
+  // Passkey/WebAuthn (Self-Service: User verwaltet eigene Credentials)
+  WEBAUTHN_CREDENTIALS: 'webauthn-credentials',
+  WEBAUTHN_REGISTRATION: 'webauthn-registration',
 } as const
 
 export type AppResource = (typeof AppResource)[keyof typeof AppResource]

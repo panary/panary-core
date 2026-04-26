@@ -247,6 +247,15 @@ async function main() {
       logger.error('Print-Server: Auto-Start fehlgeschlagen.', err)
     }
     // -----------------------------------------------------------------------
+
+    // --- Cloud-Sync-Heartbeat: periodischer Heartbeat an die Cloud ---
+    try {
+      const { startCloudSyncHeartbeatWorker } = await import('./workers/cloud-sync-heartbeat.worker.js')
+      await startCloudSyncHeartbeatWorker(app)
+    } catch (err) {
+      logger.error('Cloud-Sync-Heartbeat: Worker konnte nicht gestartet werden.', err)
+    }
+    // -----------------------------------------------------------------------
   } catch (error) {
     logger.error(
       `Configuration check failed or file missing at ${CONFIG_PATH}. Starting in SETUP MODE.`,

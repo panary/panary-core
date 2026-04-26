@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core'
-import { WorkingTime } from '../models/working-time.model'
+import { WorkingTime } from '@panary-core/working-times/domain'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { User, UserService } from '@panary-core/users/data-access'
 import { BaseService, ConnectionService } from '@panary-core/shared/data-access'

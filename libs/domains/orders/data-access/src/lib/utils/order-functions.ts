@@ -1,5 +1,5 @@
 import { GenericOrderLineItem, Order, OrderLineItem } from '@panary-core/orders/domain'
-import { ProductSchema } from '@panary-core/products/data-access'
+import { ProductSchema } from '@panary-core/products/domain'
 import { ProductService } from '@panary-core/products/data-access'
 import { IngredientReference as IngredientReferenceSchema } from '@panary-core/shared-common'
 import { RecipeReference as RecipeReferenceSchema } from '@panary-core/shared-common'

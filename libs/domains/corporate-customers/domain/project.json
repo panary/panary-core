@@ -6,13 +6,22 @@
   "tags": ["type:domain", "domain:corporate-customers"],
   "targets": {
     "build": {
-      "executor": "@nx/js:tsc",
-      "outputs": ["{options.outputPath}"],
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/corporate-customers/domain/dist"],
       "options": {
-        "outputPath": "dist/libs/domains/corporate-customers/domain",
-        "main": "libs/domains/corporate-customers/domain/src/index.ts",
+        "outputPath": "libs/domains/corporate-customers/domain/dist",
+        "project": "libs/domains/corporate-customers/package.json",
         "tsConfig": "libs/domains/corporate-customers/domain/tsconfig.lib.json",
-        "assets": ["libs/domains/corporate-customers/domain/*.md"]
+        "main": "libs/domains/corporate-customers/domain/src/index.ts",
+        "format": ["cjs"],
+        "external": [
+          "@feathersjs/feathers",
+          "@feathersjs/typebox",
+          "@sinclair/typebox",
+          "@panary-core/shared-common"
+        ],
+        "generatePackageJson": false,
+        "compiler": "tsc"
       }
     }
   }

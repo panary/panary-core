@@ -6,13 +6,22 @@
   "tags": ["type:domain", "domain:orders"],
   "targets": {
     "build": {
-      "executor": "@nx/js:tsc",
-      "outputs": ["{options.outputPath}"],
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/orders/domain/dist"],
       "options": {
-        "outputPath": "dist/libs/domains/orders/domain",
-        "main": "libs/domains/orders/domain/src/index.ts",
+        "outputPath": "libs/domains/orders/domain/dist",
+        "project": "libs/domains/orders/package.json",
         "tsConfig": "libs/domains/orders/domain/tsconfig.lib.json",
-        "assets": ["libs/domains/orders/domain/*.md"]
+        "main": "libs/domains/orders/domain/src/index.ts",
+        "format": ["cjs"],
+        "external": [
+          "@feathersjs/feathers",
+          "@feathersjs/typebox",
+          "@sinclair/typebox",
+          "@panary-core/shared-common"
+        ],
+        "generatePackageJson": false,
+        "compiler": "tsc"
       }
     }
   }

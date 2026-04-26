@@ -6,13 +6,22 @@
   "tags": ["type:domain", "domain:products"],
   "targets": {
     "build": {
-      "executor": "@nx/js:tsc",
-      "outputs": ["{options.outputPath}"],
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/products/domain/dist"],
       "options": {
-        "outputPath": "dist/libs/domains/products/domain",
-        "main": "libs/domains/products/domain/src/index.ts",
+        "outputPath": "libs/domains/products/domain/dist",
+        "project": "libs/domains/products/package.json",
         "tsConfig": "libs/domains/products/domain/tsconfig.lib.json",
-        "assets": ["libs/domains/products/domain/*.md"]
+        "main": "libs/domains/products/domain/src/index.ts",
+        "format": ["cjs"],
+        "external": [
+          "@feathersjs/feathers",
+          "@feathersjs/typebox",
+          "@sinclair/typebox",
+          "@panary-core/shared-common"
+        ],
+        "generatePackageJson": false,
+        "compiler": "tsc"
       }
     }
   }

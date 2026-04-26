@@ -1,0 +1,33 @@
+{
+  "name": "@panary-core/businessdays",
+  "version": "26.4.20",
+  "license": "BSL-1.1",
+  "type": "commonjs",
+  "exports": {
+    "./domain": {
+      "types": "./domain/dist/index.d.ts",
+      "default": "./domain/dist/index.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "domain/dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/panary/panary-core.git",
+    "directory": "libs/domains/businessdays"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "peerDependencies": {
+    "@feathersjs/feathers": "^5.0.40",
+    "@feathersjs/typebox": "^5.0.40",
+    "@sinclair/typebox": "^0.34.0",
+    "@panary-core/shared-common": "^26.4.20"
+  }
+}

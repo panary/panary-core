@@ -6,13 +6,22 @@
   "tags": ["type:domain", "domain:working-times"],
   "targets": {
     "build": {
-      "executor": "@nx/js:tsc",
-      "outputs": ["{options.outputPath}"],
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/working-times/domain/dist"],
       "options": {
-        "outputPath": "dist/libs/domains/working-times/domain",
-        "main": "libs/domains/working-times/domain/src/index.ts",
+        "outputPath": "libs/domains/working-times/domain/dist",
+        "project": "libs/domains/working-times/package.json",
         "tsConfig": "libs/domains/working-times/domain/tsconfig.lib.json",
-        "assets": ["libs/domains/working-times/domain/*.md"]
+        "main": "libs/domains/working-times/domain/src/index.ts",
+        "format": ["cjs"],
+        "external": [
+          "@feathersjs/feathers",
+          "@feathersjs/typebox",
+          "@sinclair/typebox",
+          "@panary-core/shared-common"
+        ],
+        "generatePackageJson": false,
+        "compiler": "tsc"
       }
     }
   }

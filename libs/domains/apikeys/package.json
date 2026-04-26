@@ -1,34 +1,33 @@
 {
-  "name": "@panary-core/shared-backend",
+  "name": "@panary-core/apikeys",
   "version": "26.4.20",
   "license": "BSL-1.1",
   "type": "commonjs",
-  "main": "./src/index.js",
-  "types": "./src/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./src/index.d.ts",
-      "default": "./src/index.js"
+    "./domain": {
+      "types": "./domain/dist/index.d.ts",
+      "default": "./domain/dist/index.cjs.js"
     },
     "./package.json": "./package.json"
   },
+  "files": [
+    "domain/dist",
+    "README.md",
+    "LICENSE"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/panary/panary-core.git",
-    "directory": "libs/shared/backend"
+    "directory": "libs/domains/apikeys"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com",
     "access": "restricted"
   },
-  "dependencies": {
-    "tslib": "^2.3.0",
-    "winston": "^3.18.3"
-  },
   "peerDependencies": {
     "@feathersjs/feathers": "^5.0.40",
-    "@feathersjs/koa": "^5.0.40",
-    "@feathersjs/schema": "^5.0.40",
+    "@feathersjs/typebox": "^5.0.40",
+    "@sinclair/typebox": "^0.34.0",
     "@panary-core/shared-common": "^26.4.20",
     "@panary-core/users": "^26.4.20"
   }

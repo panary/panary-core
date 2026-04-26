@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { DatePipe } from '@angular/common'
 import { FormsModule } from '@angular/forms'
-import { WorkingTime, WorkingTimeService } from '@panary-core/working-times/data-access'
+import { WorkingTime } from '@panary-core/working-times/domain'
+import { WorkingTimeService } from '@panary-core/working-times/data-access'
 import { UserService } from '@panary-core/users/data-access'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -193,7 +194,7 @@ export class WorkingTimeHistoryComponent {
 
     let breakMs = 0
     if (wt.breaks && wt.breaks.length > 0) {
-      wt.breaks.forEach((b: { from: Date; to?: Date }) => {
+      wt.breaks.forEach((b) => {
         if (b.from && b.to) {
           breakMs += new Date(b.to).getTime() - new Date(b.from).getTime()
         } else if (b.from && !b.to) {
@@ -245,7 +246,7 @@ export class WorkingTimeHistoryComponent {
     if (!wt || !wt.breaks || wt.breaks.length === 0) return this.#translate.instant('WORKING_TIMES.NO_BREAKS')
 
     return wt.breaks
-      .map((b: { from: Date; to?: Date }) => {
+      .map((b) => {
         const from = new Date(b.from).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
         const to = b.to
           ? new Date(b.to).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })

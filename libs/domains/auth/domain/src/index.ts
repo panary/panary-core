@@ -1,1 +1,1 @@
-export * from './lib/authentication-item.model'
+export * from './lib/authentication-item.schema'

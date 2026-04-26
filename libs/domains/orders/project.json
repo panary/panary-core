@@ -1,0 +1,22 @@
+{
+  "name": "orders",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/orders",
+  "projectType": "library",
+  "tags": ["type:domain-package", "domain:orders", "publishable"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/libs/domains/orders/domain/dist"],
+      "dependsOn": ["orders-domain:build"],
+      "options": {
+        "command": "echo 'orders package build complete'"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "libs/domains/orders"
+      }
+    }
+  }
+}

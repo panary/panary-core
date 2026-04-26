@@ -1,0 +1,22 @@
+{
+  "name": "working-times",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/working-times",
+  "projectType": "library",
+  "tags": ["type:domain-package", "domain:working-times", "publishable"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/libs/domains/working-times/domain/dist"],
+      "dependsOn": ["working-times-domain:build"],
+      "options": {
+        "command": "echo 'working-times package build complete'"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "libs/domains/working-times"
+      }
+    }
+  }
+}

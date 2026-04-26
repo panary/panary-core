@@ -24,7 +24,8 @@ import { animate, style, transition, trigger } from '@angular/animations'
 type UUID = string
 
 import { ProductGroup, ProductGroupService } from '@panary-core/product-groups/data-access'
-import { ItemType, ProductSchema, ProductService } from '@panary-core/products/data-access'
+import { ItemType, ProductSchema } from '@panary-core/products/domain'
+import { ProductService } from '@panary-core/products/data-access'
 import {
   calculateArticlePrice,
   calculateArticlePriceWithoutExtras,

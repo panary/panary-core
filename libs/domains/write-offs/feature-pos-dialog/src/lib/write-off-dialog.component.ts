@@ -4,14 +4,10 @@ import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms'
 import { MatDialogRef, MatDialogModule, MatDialog } from '@angular/material/dialog'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import { MatSnackBar } from '@angular/material/snack-bar'
-import {
-  WriteOff,
-  WriteOffItemType,
-  WriteOffReason,
-  WriteOffService,
-  WasteType,
-} from '@panary-core/write-offs/data-access'
-import { ProductService, ProductSchema } from '@panary-core/products/data-access'
+import { WriteOff, WriteOffItemType, WriteOffReason, WasteType } from '@panary-core/write-offs/domain'
+import { WriteOffService } from '@panary-core/write-offs/data-access'
+import { ProductSchema } from '@panary-core/products/domain'
+import { ProductService } from '@panary-core/products/data-access'
 import { Ingredient, IngredientService } from '@panary-core/ingredients/data-access'
 import { Recipe, RecipeService } from '@panary-core/recipes/data-access'
 import { UserService } from '@panary-core/users/data-access'

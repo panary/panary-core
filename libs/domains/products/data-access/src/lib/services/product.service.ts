@@ -1,5 +1,5 @@
 import { computed, effect, inject, Injectable, Signal, signal, WritableSignal } from '@angular/core'
-import { ItemType, Pricelist, ProductSchema } from '../models/product.model'
+import { ItemType, Pricelist, ProductSchema } from '@panary-core/products/domain'
 import { Id } from '@feathersjs/feathers'
 import { Observer } from 'rxjs'
 import { BaseService, ConnectionService } from '@panary-core/shared/data-access'

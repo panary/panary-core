@@ -33,7 +33,7 @@ Das Panary-Core-Backend lief bisher hauptsächlich auf SQLite (Edge) und enthiel
 
 - DB-spezifische Features (z.B. MongoDB-Text-Indexe auf mehreren Feldern, SQLite-partielle Indexe) werden über optionale Zusatzfelder am Index-Deskriptor abgebildet. Das macht die Deklaration länger, aber explizit.
 - `MIN()`-/`GROUP BY`-Semantik wurde durch In-Memory-Deduplikation nach `$sort` ersetzt (siehe `organizations.ts`). Bei sehr großen Datenmengen pro Tenant wäre eine eigenständige Cloud-Aggregations-API nötig — vorerst reicht der Ansatz (< 50 Locations pro Tenant).
-- Pre-existierende Migration-Bridges (`product.model.ts` mit `ItemType`/`Pricelist`-Stubs, `authentication-item.model.ts` als JWT-Framework-Typ) bleiben bestehen, bis die jeweils betroffenen Features migriert sind.
+- `ItemType`/`Pricelist` sind als Legacy-Typen in `libs/domains/products/domain/src/lib/legacy-types.ts` abgelegt und werden von `@panary-core/products/domain` re-exportiert. Sie verschwinden, sobald die POS-Menu/Options-UI auf `productType` migriert ist.
 
 ## Umgesetzte Phasen
 
@@ -44,11 +44,15 @@ Das Panary-Core-Backend lief bisher hauptsächlich auf SQLite (Edge) und enthiel
 | 2.2 | `working-times.ts` auf `createServiceAdapter` + `getJsonFieldHooks` umgestellt | ✅ |
 | 2.3 | `ensureIndexes`-Factory + Rollout auf 12 Services | ✅ |
 | 3.1 | `write-offs.schema.ts` als TypeBox-Schema angelegt | ✅ |
-| 3.2 | `authentication-item.model.ts` als Framework-Typ beibehalten | ✅ |
+| 3.2 | `authentication-item.model.ts` → `authentication-item.schema.ts` (TypeBox, `userSchema`-Composition) | ✅ |
 | 3.3 | `order-line-item.model.ts` in `order.schema.ts` integriert (inkl. `GenericOrderLineItem`-Typ) | ✅ |
 | 3.4 | `app-config.model.ts` → `app-config.schema.ts` (TypeBox) | ✅ |
 | 3.5 | `pre-order.model.ts` mit `pre-order.schema.ts` gemerged | ✅ |
-| 4 | Rest-Cleanup + diese Dokumentation | ✅ |
+| 4a | `write-offs.model.ts` trivialen Re-Export aufgelöst — Konsumenten importieren direkt aus `@panary-core/write-offs/domain` | ✅ |
+| 4b | `working-time.model.ts` entfernt — Konsumenten importieren `WorkingTime` aus `@panary-core/working-times/domain` | ✅ |
+| 4c | `product.model.ts` entfernt; `ProductSchema`/`ItemType`/`Pricelist` in `@panary-core/products/domain` (`legacy-types.ts`) integriert | ✅ |
+| 4d | `notification.model.ts` → `notification.types.ts` umbenannt (reiner UI-Framework-Typ, keine Domain) | ✅ |
+| 4e | `db-agnostic.smoke.test.ts` als M3-Gatekeeper ergänzt | ✅ |
 
 ## Guard-Rails (grep-basiert)
 
@@ -62,7 +66,15 @@ grep -rn "knex\.raw\|knex\.schema\|createIndexes" apps/api-edge/src/services
 # Legacy mongoose-Models in Services
 grep -rn "mongoose\." apps/api-edge/src/services
 # Erwartet: keine Treffer
+
+# Legacy .model.ts-Dateien in libs/
+grep -rln "\.model['\"]" --include="*.ts" libs/
+# Erwartet: nur base-document.model, extended-params.model, device-config.model (erlaubte Framework-Typen)
 ```
+
+## M3-Gatekeeper
+
+Der Smoke-Test `apps/api-edge/test/db-agnostic.smoke.test.ts` prüft statisch, dass kein Service direkt `knex` importiert und alle persistenten Services `createServiceAdapter` + `DatabaseType`-Verzweigung verwenden. Fällt dieser Test durch, darf M3 (Schema- und Backend-Package-Extraktion) nicht starten.
 
 ## Verwandte Dokumente
 

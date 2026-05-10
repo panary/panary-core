@@ -1,0 +1,27 @@
+{
+  "name": "allergens-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/allergens/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:allergens"],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/allergens/domain/dist"],
+      "dependsOn": ["^build"],
+      "options": {
+        "outputPath": "libs/domains/allergens/domain/dist",
+        "project": "libs/domains/allergens/package.json",
+        "tsConfig": "libs/domains/allergens/domain/tsconfig.lib.json",
+        "main": "libs/domains/allergens/domain/src/index.ts",
+        "format": ["cjs"],
+        "external": [
+          "@feathersjs/typebox",
+          "@sinclair/typebox"
+        ],
+        "generatePackageJson": false,
+        "compiler": "tsc"
+      }
+    }
+  }
+}

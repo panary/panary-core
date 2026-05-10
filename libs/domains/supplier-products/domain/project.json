@@ -1,0 +1,28 @@
+{
+  "name": "supplier-products-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/supplier-products/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:supplier-products"],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/supplier-products/domain/dist"],
+      "dependsOn": ["^build"],
+      "options": {
+        "outputPath": "libs/domains/supplier-products/domain/dist",
+        "project": "libs/domains/supplier-products/package.json",
+        "tsConfig": "libs/domains/supplier-products/domain/tsconfig.lib.json",
+        "main": "libs/domains/supplier-products/domain/src/index.ts",
+        "format": ["cjs"],
+        "external": [
+          "@feathersjs/typebox",
+          "@sinclair/typebox",
+          "@panary-core/allergens/domain"
+        ],
+        "generatePackageJson": false,
+        "compiler": "tsc"
+      }
+    }
+  }
+}

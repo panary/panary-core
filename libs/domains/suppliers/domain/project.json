@@ -1,0 +1,27 @@
+{
+  "name": "suppliers-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/suppliers/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:suppliers"],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/suppliers/domain/dist"],
+      "dependsOn": ["^build"],
+      "options": {
+        "outputPath": "libs/domains/suppliers/domain/dist",
+        "project": "libs/domains/suppliers/package.json",
+        "tsConfig": "libs/domains/suppliers/domain/tsconfig.lib.json",
+        "main": "libs/domains/suppliers/domain/src/index.ts",
+        "format": ["cjs"],
+        "external": [
+          "@feathersjs/typebox",
+          "@sinclair/typebox"
+        ],
+        "generatePackageJson": false,
+        "compiler": "tsc"
+      }
+    }
+  }
+}

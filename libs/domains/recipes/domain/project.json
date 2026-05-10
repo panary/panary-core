@@ -1,0 +1,24 @@
+{
+  "name": "recipes-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/recipes/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:recipes"],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/recipes/domain/dist"],
+      "dependsOn": ["^build"],
+      "options": {
+        "outputPath": "libs/domains/recipes/domain/dist",
+        "project": "libs/domains/recipes/package.json",
+        "tsConfig": "libs/domains/recipes/domain/tsconfig.lib.json",
+        "main": "libs/domains/recipes/domain/src/index.ts",
+        "format": ["cjs"],
+        "external": ["@feathersjs/typebox", "@sinclair/typebox"],
+        "generatePackageJson": false,
+        "compiler": "tsc"
+      }
+    }
+  }
+}

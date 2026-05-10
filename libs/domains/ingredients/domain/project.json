@@ -1,0 +1,28 @@
+{
+  "name": "ingredients-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/ingredients/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:ingredients"],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/ingredients/domain/dist"],
+      "dependsOn": ["^build"],
+      "options": {
+        "outputPath": "libs/domains/ingredients/domain/dist",
+        "project": "libs/domains/ingredients/package.json",
+        "tsConfig": "libs/domains/ingredients/domain/tsconfig.lib.json",
+        "main": "libs/domains/ingredients/domain/src/index.ts",
+        "format": ["cjs"],
+        "external": [
+          "@feathersjs/typebox",
+          "@sinclair/typebox",
+          "@panary-core/allergens/domain"
+        ],
+        "generatePackageJson": false,
+        "compiler": "tsc"
+      }
+    }
+  }
+}

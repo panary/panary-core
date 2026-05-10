@@ -1,0 +1,24 @@
+{
+  "name": "pricelists-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/pricelists/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:pricelists"],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/pricelists/domain/dist"],
+      "dependsOn": ["^build"],
+      "options": {
+        "outputPath": "libs/domains/pricelists/domain/dist",
+        "project": "libs/domains/pricelists/package.json",
+        "tsConfig": "libs/domains/pricelists/domain/tsconfig.lib.json",
+        "main": "libs/domains/pricelists/domain/src/index.ts",
+        "format": ["cjs"],
+        "external": ["@feathersjs/typebox", "@sinclair/typebox"],
+        "generatePackageJson": false,
+        "compiler": "tsc"
+      }
+    }
+  }
+}

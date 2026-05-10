@@ -184,7 +184,10 @@ export abstract class BaseService<T> {
    * @return {Promise<PaginatedOrArray<T>>} A promise that resolves to the retrieved data, which can be paginated or an array of items.
    */
   async find(params: ExtendedParams = {}): PaginatedOrArray<T> {
-    return this.service.find(params).catch((error: any) => this.helper.handleError(this.serviceName, error))
+    return this.service.find(params).catch((error: unknown) => {
+      this.helper.handleError(this.serviceName, error)
+      throw error
+    })
   }
 
   /**
@@ -195,7 +198,10 @@ export abstract class BaseService<T> {
    * @return {Promise<T>} A promise that resolves to the resource of type T.
    */
   async get(id: Id, params: Params = {}): Promise<T> {
-    return this.service.get(id, params).catch((error: any) => this.helper.handleError(this.serviceName, error))
+    return this.service.get(id, params).catch((error: unknown) => {
+      this.helper.handleError(this.serviceName, error)
+      throw error
+    })
   }
 
   /**
@@ -207,7 +213,10 @@ export abstract class BaseService<T> {
    * @return {Promise<T | T[]>} A promise that resolves with the updated resource(s) or rejects with an error.
    */
   async update(id: Id | null, data: T, params: Params = {}): Promise<T | T[]> {
-    return this.service.update(id, data, params).catch((error: any) => this.helper.handleError(this.serviceName, error))
+    return this.service.update(id, data, params).catch((error: unknown) => {
+      this.helper.handleError(this.serviceName, error)
+      throw error
+    })
   }
 
   /**
@@ -219,7 +228,10 @@ export abstract class BaseService<T> {
    * @return {Promise<T | T[]>} A promise that resolves to the patched resource(s).
    */
   async patch(id: Id | Id[] | null, data: Partial<T>, params: Params = {}): Promise<T | T[]> {
-    return this.service.patch(id, data, params).catch((error: any) => this.helper.handleError(this.serviceName, error))
+    return this.service.patch(id, data, params).catch((error: unknown) => {
+      this.helper.handleError(this.serviceName, error)
+      throw error
+    })
   }
 
   /**
@@ -233,7 +245,10 @@ export abstract class BaseService<T> {
     data: Omit<T, '_id' | 'locationId' | 'tenantId'> | Omit<T, '_id' | 'locationId' | 'tenantId'>[],
     params: Params = {},
   ): Promise<T | T[]> {
-    return this.service.create(data, params).catch((error: any) => this.helper.handleError(this.serviceName, error))
+    return this.service.create(data, params).catch((error: unknown) => {
+      this.helper.handleError(this.serviceName, error)
+      throw error
+    })
   }
 
   /**
@@ -244,7 +259,10 @@ export abstract class BaseService<T> {
    * @return {Promise<T|T[]>} A promise that resolves to the removed resource(s). The return type could be a single resource or an array of resources depending on the operation.
    */
   async remove(id: Id | null, params: Params = {}): Promise<T | T[]> {
-    return this.service.remove(id, params).catch((error: any) => this.helper.handleError(this.serviceName, error))
+    return this.service.remove(id, params).catch((error: unknown) => {
+      this.helper.handleError(this.serviceName, error)
+      throw error
+    })
   }
 
   /**
@@ -308,7 +326,10 @@ export abstract class BaseService<T> {
       duplicate._id = this.generateUniqueId()
       duplicate.name = `${duplicate.name} (Duplikat)`
 
-      return this.service.create(duplicate).catch((error: any) => this.helper.handleError(this.serviceName, error))
+      return this.service.create(duplicate).catch((error: unknown) => {
+      this.helper.handleError(this.serviceName, error)
+      throw error
+    })
     } catch (error) {
       this.matSnackBar.open('Artikel konnte nicht dupliziert werden!', 'OK', {
         duration: (this.constructor as typeof BaseService).SNACKBAR_DURATION,

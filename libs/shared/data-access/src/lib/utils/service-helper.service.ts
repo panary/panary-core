@@ -39,9 +39,40 @@ export class ServiceHelper {
 
     const code = errorCode ?? 500
     const errorPhrase = getErrorPhrase(code)
-    const notificationMessage = `${errorPhrase}\n${displayMessage}`
 
-    this.notificationService.show('error', notificationMessage, 5000, `Fehler HTTP-Code ${code}`)
+    // AJV-Validation-Details aus FeathersError extrahieren. Server liefert sie
+    // in `error.data` (Feathers-Standard) oder `error.errors` (manche Hooks).
+    // Format pro Eintrag: { instancePath: '/gln', message: 'must match pattern' }.
+    // Ohne diese Details sieht der User nur "validation failed" und weiß nicht,
+    // welches Feld zu korrigieren ist.
+    const rawDetails = (e?.['data'] ?? e?.['errors']) as unknown
+    const detailLines: string[] = []
+    if (Array.isArray(rawDetails)) {
+      for (const d of rawDetails) {
+        if (typeof d !== 'object' || d === null) continue
+        const entry = d as { instancePath?: unknown; message?: unknown; params?: unknown }
+        const path = typeof entry.instancePath === 'string' && entry.instancePath ? entry.instancePath : '/'
+        const msg = typeof entry.message === 'string' ? entry.message : 'invalid'
+        // additionalProperty rausziehen — sonst ist `additional properties` ohne Bezug zur Spalte
+        const params = entry.params as { additionalProperty?: unknown } | undefined
+        const extra =
+          params && typeof params.additionalProperty === 'string'
+            ? ` (Feld: ${params.additionalProperty})`
+            : ''
+        detailLines.push(`${path}: ${msg}${extra}`)
+        if (detailLines.length >= 10) break
+      }
+    }
+
+    const notificationMessage = [
+      errorPhrase,
+      displayMessage,
+      ...(detailLines.length > 0 ? ['', 'Details:', ...detailLines] : []),
+    ]
+      .filter(Boolean)
+      .join('\n')
+
+    this.notificationService.show('error', notificationMessage, 7000, `Fehler HTTP-Code ${code}`)
 
     if (code === 401) {
       sessionStorage.clear()

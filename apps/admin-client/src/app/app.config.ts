@@ -13,7 +13,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(appRoutes, withComponentInputBinding()),
     provideHttpClient(withInterceptors([authInterceptor])),
     provideAnimationsAsync(),
-    importProvidersFrom(TranslateModule.forRoot({ defaultLanguage: 'de' })),
+    importProvidersFrom(TranslateModule.forRoot({ fallbackLang: 'de' })),
     provideTranslateHttpLoader({ prefix: './assets/i18n/', suffix: '.json' }),
   ],
 }

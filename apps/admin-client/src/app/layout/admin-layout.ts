@@ -203,7 +203,7 @@ export class AdminLayoutComponent {
 
   navItems: NavItem[] = [
     { path: '/dashboard',      label: 'NAV.DASHBOARD',        icon: 'dashboard'   },
-    { path: '/users',          label: 'NAV.USERS',            icon: 'people'      },
+    { path: '/users',          label: 'NAV.USERS',            icon: 'people',      countService: 'users' },
     { path: '/product-groups', label: 'NAV.PRODUCT_GROUPS',   icon: 'category',    countService: 'product-groups' },
     { path: '/products',       label: 'NAV.PRODUCTS',         icon: 'inventory_2', countService: 'products' },
     { path: '/orders',         label: 'NAV.ORDERS',           icon: 'receipt_long' },

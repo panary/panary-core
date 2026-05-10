@@ -136,23 +136,32 @@ export class LocationService extends BaseService<Location> {
     super(inject(ConnectionService).locationService, 'locationService')
 
     effect((): void => {
-      if (this.connectionService.isAuthenticated()) {
-        const deviceConfig = this.#deviceConfigService.getConfig()
-        const locationId = deviceConfig?.locationId
+      if (!this.connectionService.isAuthenticated()) return
 
-        if (locationId) {
-          console.log(`[LocationService] Loading location: ${locationId} (Source: Device)`)
-          this.loadDocuments()
-          this.get(locationId)
-            .then(response => {
-              console.log(`[LocationService] Active location loaded:`, response.name)
-              this.#activeLocation.set(response)
-            })
-            .catch(error => this.helper.handleError(this.serviceName, error))
-        } else {
-          console.warn('[LocationService] No Location ID found in Device Config')
-        }
+      // Nur ein vollständig registriertes POS-Device hat eine Location-Bindung
+      // über die DeviceConfig (deviceId + apiKey vom Backend). Ohne diese Wäch-
+      // ter würde im Cloud-/Web-Frontend (das `LocationService` transitiv erbt)
+      // eine Legacy-`locationId` aus früheren Edge-Sessions oder ObjectId-
+      // Migrationen einen `locations.get(id)` triggern und der globale
+      // Error-Handler eine "No record found for id …"-Toast bei jedem Login
+      // anzeigen — obwohl die Cloud die aktive Location über die Header-UI
+      // (`setActiveLocation` / `loadAllowedLocations`) auswählt.
+      if (!this.#deviceConfigService.isRegistered()) return
+
+      const locationId = this.#deviceConfigService.getConfig()?.locationId
+      if (!locationId) {
+        console.warn('[LocationService] No Location ID found in Device Config')
+        return
       }
+
+      console.log(`[LocationService] Loading location: ${locationId} (Source: Device)`)
+      this.loadDocuments()
+      this.get(locationId)
+        .then(response => {
+          console.log(`[LocationService] Active location loaded:`, response.name)
+          this.#activeLocation.set(response)
+        })
+        .catch(error => this.helper.handleError(this.serviceName, error))
     })
   }
 

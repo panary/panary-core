@@ -120,7 +120,16 @@ export class LocationDetailComponent implements OnInit {
     this.error.set(null)
     this.saved.set(false)
     try {
-      await this.api.patch('locations', this.locationId()!, this.form)
+      // Leere Optional-Felder NICHT mitsenden — sonst schlaegt das Schema-
+      // Validate (`format: 'email'` etc.) auf einen leeren String an. Nur
+      // tatsaechlich vom User eingegebene Werte patchen.
+      const payload: Record<string, unknown> = {
+        name: this.form.name,
+        status: this.form.status,
+      }
+      if (this.form.email) payload['email'] = this.form.email
+      if (this.form.phone) payload['phone'] = this.form.phone
+      await this.api.patch('locations', this.locationId()!, payload)
       this.locationState.locationName.set(this.form.name)
       this.saved.set(true)
     } catch (e: any) {

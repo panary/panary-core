@@ -1,0 +1,30 @@
+{
+  "name": "audit-events-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/audit-events/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:audit-events"],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/audit-events/domain/dist"],
+      "dependsOn": ["^build"],
+      "options": {
+        "outputPath": "libs/domains/audit-events/domain/dist",
+        "project": "libs/domains/audit-events/package.json",
+        "tsConfig": "libs/domains/audit-events/domain/tsconfig.lib.json",
+        "main": "libs/domains/audit-events/domain/src/index.ts",
+        "format": ["cjs"],
+        "external": [
+          "@feathersjs/feathers",
+          "@feathersjs/typebox",
+          "@sinclair/typebox",
+          "@panary-core/shared-common",
+          "@panary-core/users/domain"
+        ],
+        "generatePackageJson": false,
+        "compiler": "tsc"
+      }
+    }
+  }
+}

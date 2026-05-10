@@ -1,0 +1,22 @@
+{
+  "name": "audit-events",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/audit-events",
+  "projectType": "library",
+  "tags": ["type:domain-package", "domain:audit-events", "publishable"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/libs/domains/audit-events/domain/dist"],
+      "dependsOn": ["audit-events-domain:build"],
+      "options": {
+        "command": "echo 'audit-events package build complete'"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "libs/domains/audit-events"
+      }
+    }
+  }
+}

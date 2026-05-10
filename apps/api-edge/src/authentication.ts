@@ -2,6 +2,7 @@
 import { AuthenticationService, JWTStrategy } from '@feathersjs/authentication'
 import { LocalStrategy } from '@feathersjs/authentication-local'
 import type { Application } from './declarations'
+import { recordAuthFailure, recordAuthSuccess } from './hooks/record-auth-audit-event.hook'
 
 declare module './declarations' {
   interface ServiceTypes {
@@ -33,4 +34,19 @@ export const authentication = (app: Application) => {
   authentication.register('local', new InternalLocalStrategy())
 
   app.use('authentication', authentication)
+
+  // Audit-Hooks: LOGIN bei Erfolg, LOGIN_FAILED bei NotAuthenticated.
+  // Wir koppeln das hier (statt in app.ts), damit der Auth-Service als
+  // einziger den Hook bekommt — recordAuditEvent (App-Level) waere
+  // ungeeignet, weil Audit-Events bei externen Provider-Aufrufen unerwuenscht
+  // schreiben wuerden (und Auth wird vor jedem Service-Call geprueft).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(app.service('authentication') as any).hooks({
+    after: {
+      create: [recordAuthSuccess],
+    },
+    error: {
+      create: [recordAuthFailure],
+    },
+  })
 }

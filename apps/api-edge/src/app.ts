@@ -16,6 +16,9 @@ import { services } from './services/index'
 import { channels } from './channels'
 import { configureLoggerLevel } from '@panary-core/shared-backend'
 import { ensureTenantIsolation } from '@panary-core/shared-backend'
+import { recordSyncOutbox } from './hooks/sync-outbox-recorder.hook'
+import { captureAuditBefore } from './hooks/capture-audit-before.hook'
+import { recordAuditEvent } from './hooks/record-audit-event.hook'
 import { allowApiKey } from '@panary-core/shared-backend'
 import { secureByDefault } from '@panary-core/shared-backend'
 import { authentication } from './authentication'
@@ -115,6 +118,26 @@ app.use(bodyParser())
 app.use(async (ctx, next) => {
   if (ctx.path === '/health' && (ctx.method === 'GET' || ctx.method === 'HEAD')) {
     const mem = process.memoryUsage()
+    // Cloud-Pairing-Status: damit Clients (POS, Setup) ohne RBAC-Recht auf
+    // `cloud-connection` einen Re-Pairing-Bedarf erkennen und sichtbar machen
+    // koennen. Findet kein cloud-connection-Eintrag oder schlaegt der Lookup
+    // fehl, fallen wir still zurueck (Health soll nie 500en).
+    let cloudPairingStatus: string | undefined
+    let cloudTokenErrorReason: string | undefined
+    try {
+      const result = await (app.service('cloud-connection') as any).find({
+        provider: undefined,
+        paginate: false,
+        query: { $limit: 1 },
+      })
+      const conn = Array.isArray(result) ? result[0] : undefined
+      if (conn) {
+        cloudPairingStatus = conn.pairingStatus
+        cloudTokenErrorReason = conn.tokenErrorReason
+      }
+    } catch {
+      // ignore — health darf nicht failen
+    }
     ctx.body = {
       status: 'ok',
       timestamp: new Date().toISOString(),
@@ -134,6 +157,8 @@ app.use(async (ctx, next) => {
       database: {
         type: app.get('system')?.dbType || 'sqlite',
       },
+      cloudPairingStatus,
+      cloudTokenErrorReason,
     }
     ctx.status = 200
     return
@@ -174,11 +199,14 @@ app.configure(channels)
 
 // App-level hooks (global für alle Services)
 // Reihenfolge der around-Hooks (Onion-Modell, äußerster zuerst):
-// 1. canonicalLog     — umschließt alles, misst Dauer, loggt Wide Event
-// 2. logError         — fängt interne Fehler (kein Provider)
-// 3. allowApiKey      — API-Key-Auth → virtueller User (vor Security-Checks)
-// 4. secureByDefault  — authenticate('jwt') + authorize() (erwartet next)
-// 5. tenantIsolation  — prüft nach Service-Ausführung die Tenant-Zugehörigkeit
+// 1. canonicalLog       — umschließt alles, misst Dauer, loggt Wide Event
+// 2. logError           — fängt interne Fehler (kein Provider)
+// 3. allowApiKey        — API-Key-Auth → virtueller User (vor Security-Checks)
+// 4. secureByDefault    — authenticate('jwt') + authorize() (erwartet next)
+// 5. captureAuditBefore — vor Service-Exec: Vor-Zustand für Diff laden
+// 6. tenantIsolation    — prüft nach Service-Ausführung die Tenant-Zugehörigkeit
+// 7. recordSyncOutbox   — Edge→Cloud-Push für orders/order-interactions/working-times/audit-events
+// 8. recordAuditEvent   — append-only Tenant-Audit-Trail (Sidecar zu sync-outbox)
 app.hooks({
   around: [
     canonicalLog,
@@ -186,8 +214,11 @@ app.hooks({
     allowApiKey(),
     secureByDefault({ publicServices: ['authentication'] }),
     async (context: HookContext, next: NextFunction) => {
+      await captureAuditBefore(context)
       await next()
       await ensureTenantIsolation()(context)
+      await recordSyncOutbox(context, async () => undefined as any)
+      await recordAuditEvent(context)
     },
   ],
 })

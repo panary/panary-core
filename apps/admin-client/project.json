@@ -25,7 +25,14 @@
             "output": "assets"
           }
         ],
-        "styles": ["apps/admin-client/src/styles.css"]
+        "styles": ["apps/admin-client/src/styles.css"],
+        "allowedCommonJsDependencies": [
+          "@feathersjs/errors",
+          "@feathersjs/feathers",
+          "@feathersjs/socketio-client",
+          "@feathersjs/authentication-client",
+          "lodash"
+        ]
       },
       "configurations": {
         "production": {
@@ -33,8 +40,8 @@
           "budgets": [
             {
               "type": "initial",
-              "maximumWarning": "500kb",
-              "maximumError": "1mb"
+              "maximumWarning": "1mb",
+              "maximumError": "1.5mb"
             },
             {
               "type": "anyComponentStyle",

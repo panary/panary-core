@@ -1,5 +1,21 @@
 <div class="min-h-screen text-gray-900 dark:text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
 
+  @if (cloudNeedsRePairing()) {
+    <div class="absolute top-6 left-1/2 -translate-x-1/2 z-20 max-w-xl w-full px-4 py-3 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100 dark:border-amber-700 shadow-sm flex items-start gap-3">
+      <span class="material-symbols-outlined text-[20px] mt-0.5">cloud_off</span>
+      <div class="text-sm leading-snug">
+        <div class="font-semibold">Cloud-Verbindung getrennt — Re-Pairing erforderlich</div>
+        <div class="opacity-90">
+          Der Edge-Token wurde von der Cloud zurueckgewiesen
+          @if (cloudTokenErrorReason()) {
+            (Grund: <span class="font-mono">{{ cloudTokenErrorReason() }}</span>)
+          }
+          . Bitte einen neuen Pairing-Code im Cloud-Admin erzeugen und ueber den Wizard erneut pairen.
+        </div>
+      </div>
+    </div>
+  }
+
   <!-- Language Switcher + Theme Toggle (Top Right) -->
   <div class="absolute top-6 right-6 flex items-center space-x-4 z-10">
     <button (click)="useLanguage('en')"

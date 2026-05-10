@@ -24,6 +24,14 @@ import { UpdateService } from '@panary-core/shared/data-access-updater'
         </button>
       </div>
     }
+    <!-- Cloud-Pairing-Indikator: signalisiert, dass der Edge-Token serverseitig
+         abgelaufen oder widerrufen wurde und Re-Pairing erforderlich ist. -->
+    @if (!isSetupRoute() && cloudNeedsRePairing()) {
+      <div class="fixed top-14 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-1.5 px-3 py-1 bg-amber-100/95 dark:bg-amber-900/90 backdrop-blur text-amber-800 dark:text-amber-200 rounded-full text-xs font-semibold border border-amber-300 dark:border-amber-800 shadow-sm">
+        <span class="material-symbols-outlined text-[14px]">cloud_off</span>
+        Cloud-Verbindung getrennt — bitte neu pairen
+      </div>
+    }
     <router-outlet></router-outlet>
   `,
 })
@@ -31,6 +39,7 @@ export class AppComponent {
   #connectionService = inject(ConnectionService)
   #router = inject(Router)
   connectionState = this.#connectionService.connectionState
+  cloudNeedsRePairing = this.#connectionService.cloudNeedsRePairing
 
   constructor() {
     // Theme- und Sprach-Service initialisieren — Konstruktoren wenden gespeicherte Einstellungen sofort an

@@ -1,0 +1,29 @@
+{
+  "name": "cloud-edges-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/cloud-edges/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:cloud-edges"],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/cloud-edges/domain/dist"],
+      "dependsOn": ["^build"],
+      "options": {
+        "outputPath": "libs/domains/cloud-edges/domain/dist",
+        "project": "libs/domains/cloud-edges/package.json",
+        "tsConfig": "libs/domains/cloud-edges/domain/tsconfig.lib.json",
+        "main": "libs/domains/cloud-edges/domain/src/index.ts",
+        "format": ["cjs"],
+        "external": [
+          "@feathersjs/feathers",
+          "@feathersjs/typebox",
+          "@sinclair/typebox",
+          "@panary-core/shared-common"
+        ],
+        "generatePackageJson": false,
+        "compiler": "tsc"
+      }
+    }
+  }
+}

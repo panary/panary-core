@@ -46,6 +46,15 @@ export class ConnectionService {
   #isAuthenticated: WritableSignal<boolean> = signal(false)
   #systemMode: WritableSignal<string> = signal('standalone')
 
+  // Cloud-Pairing-Status aus dem /health-Endpoint des Edge-Backends. Wird beim
+  // Connect und periodisch gepollt (siehe #healthPoll), damit POS- und Setup-
+  // Client einen Auto-Disconnect (z.B. nach Token-Ablauf via Standby) erkennen
+  // koennen, ohne RBAC-Zugriff auf den `cloud-connection`-Service zu brauchen.
+  readonly #cloudPairingStatus: WritableSignal<string | null> = signal(null)
+  readonly #cloudTokenErrorReason: WritableSignal<string | null> = signal(null)
+  #healthPoll: ReturnType<typeof setInterval> | null = null
+  #lastHealthUrl: string | null = null
+
   // Compatibility for POS
   readonly #connectionError: WritableSignal<string | null> = signal(null)
 
@@ -171,6 +180,23 @@ export class ConnectionService {
   get systemMode(): Signal<string> {
     return this.#systemMode.asReadonly()
   }
+
+  /**
+   * Cloud-Pairing-Status, periodisch aus dem Edge-/health gepollt.
+   * `null` = noch nicht ermittelt, ansonsten Werte aus `PairingStatus` aus
+   * `@panary-core/cloud-connection/domain` (`disconnected | pairing | connected | error`).
+   */
+  get cloudPairingStatus(): Signal<string | null> {
+    return this.#cloudPairingStatus.asReadonly()
+  }
+
+  /** Grund eines Cloud-Token-Fehlers (z.B. `token-expired`, `edge-revoked`). */
+  get cloudTokenErrorReason(): Signal<string | null> {
+    return this.#cloudTokenErrorReason.asReadonly()
+  }
+
+  /** True, wenn die Cloud-Verbindung explizit auf DISCONNECTED steht (Re-Pairing erforderlich). */
+  readonly cloudNeedsRePairing = computed(() => this.#cloudPairingStatus() === 'disconnected')
 
   get smartcardService(): Service {
     return this.#app.service('smartcards')
@@ -528,6 +554,21 @@ export class ConnectionService {
   }
 
   private async fetchSystemMode(baseUrl: string): Promise<void> {
+    this.#lastHealthUrl = baseUrl
+    await this.#fetchHealth(baseUrl)
+    // Periodisches Polling, damit Cloud-Auto-Disconnect (Sync-Scheduler patcht
+    // pairingStatus nach 401) im Frontend sichtbar wird, ohne Permission-Recht
+    // auf den `cloud-connection`-Service zu brauchen. 60s ist ein Kompromiss
+    // zwischen Reaktivitaet und Last — der Auto-Disconnect entsteht nach
+    // einem fehlgeschlagenen Heartbeat (alle 30 min Default), also reicht das.
+    if (!this.#healthPoll) {
+      this.#healthPoll = setInterval(() => {
+        if (this.#lastHealthUrl) void this.#fetchHealth(this.#lastHealthUrl)
+      }, 60_000)
+    }
+  }
+
+  async #fetchHealth(baseUrl: string): Promise<void> {
     try {
       const res = await fetch(`${baseUrl}/health`)
       if (res.ok) {
@@ -535,6 +576,12 @@ export class ConnectionService {
         if (data.systemMode) {
           this.#systemMode.set(data.systemMode)
         }
+        this.#cloudPairingStatus.set(
+          typeof data.cloudPairingStatus === 'string' ? data.cloudPairingStatus : null,
+        )
+        this.#cloudTokenErrorReason.set(
+          typeof data.cloudTokenErrorReason === 'string' ? data.cloudTokenErrorReason : null,
+        )
       }
     } catch {
       // Health-Endpoint nicht erreichbar — Fallback bleibt 'standalone'

@@ -36,6 +36,22 @@ export class ApiService {
     return lastValueFrom(this.http.delete<T>(`${API_URL}/${service}/${id}`))
   }
 
+  // Custom-Methods (Feathers v5): werden ueber den X-Service-Method-Header
+  // geroutet, NICHT ueber URL-Pfad-Suffix. Ohne Header degradiert ein Aufruf wie
+  // POST /service/methodName auf service.create() mit Path-Suffix als id und
+  // schlaegt mit Schema-Validation oder unerwartetem Hook-Verhalten fehl.
+  async customMethod<T>(
+    service: string,
+    method: string,
+    data: Record<string, unknown> = {},
+  ): Promise<T> {
+    return lastValueFrom(
+      this.http.post<T>(`${API_URL}/${service}`, data, {
+        headers: { 'X-Service-Method': method },
+      }),
+    )
+  }
+
   /** Feathers-kompatible Query-Serialisierung (verschachtelte Objekte und Arrays wie $sort, $select) */
   private buildQueryString(query: Record<string, any>, prefix = ''): string {
     const parts: string[] = []

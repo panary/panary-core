@@ -16,6 +16,12 @@ import { workingTimes } from './working-times/working-times'
 import { preOrders } from './pre-orders/pre-orders'
 import { cloudConnection } from './cloud-connection/cloud-connection'
 import { openingHourExceptions } from './opening-hour-exceptions/opening-hour-exceptions'
+import { syncConflicts } from './sync-conflicts/sync-conflicts'
+import { syncOutbox } from './sync-outbox/sync-outbox'
+import { syncCursor } from './sync-cursor/sync-cursor'
+import { syncRuns } from './sync-runs/sync-runs'
+import { bootstrapReports } from './bootstrap-reports/bootstrap-reports'
+import { auditEvents } from './audit-events/audit-events'
 
 export const services = (app: Application) => {
   app.configure(organizations)
@@ -34,4 +40,10 @@ export const services = (app: Application) => {
   app.configure(preOrders)
   app.configure(cloudConnection)
   app.configure(openingHourExceptions)
+  app.configure(syncConflicts)
+  app.configure(syncOutbox)
+  app.configure(syncCursor)
+  app.configure(syncRuns)
+  app.configure(bootstrapReports)
+  app.configure(auditEvents)
 }

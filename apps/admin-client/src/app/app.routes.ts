@@ -25,6 +25,7 @@ export const appRoutes: Routes = [
       { path: 'pagers', loadComponent: () => import('./features/locations/pager-settings').then(m => m.PagerSettingsComponent) },
       { path: 'opening-hours', loadComponent: () => import('./features/locations/opening-hours').then(m => m.OpeningHoursComponent) },
       { path: 'cloud', loadComponent: () => import('./features/cloud-connection/cloud-connection').then(m => m.CloudConnectionComponent) },
+      { path: 'cloud/conflicts', loadComponent: () => import('./features/cloud-connection/sync-conflicts').then(m => m.SyncConflictsComponent) },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },

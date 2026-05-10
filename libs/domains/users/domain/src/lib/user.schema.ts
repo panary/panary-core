@@ -31,14 +31,42 @@ export const DiscountType = {
   PERCENT: 'percent',
   AMOUNT: 'amount',
 } as const
+
+/**
+ * User-Rollen, die NIEMALS via Edge→Cloud-Sync gepusht werden duerfen.
+ *
+ * - `platform:*` sind Cloud-interne Identitaeten mit Tenant-Bypass — ein
+ *   kompromittierter Edge koennte sonst privilegierte Cloud-User anlegen.
+ * - `tenant:owner` wird vom Cloud-Admin angelegt (eigene Identitaet/E-Mail).
+ *   Der Edge-`admin`-Bootstrap-User ist ein lokaler Backup-Account und
+ *   gehoert nicht in die Cloud-Owner-Liste — sonst Login-Konflikte und
+ *   verwirrende Doppel-Owner im Cloud-Admin-UI.
+ *
+ * Diese Konstante wird an drei Stellen genutzt:
+ *   1. Edge-Wizard-UI: Checkbox fuer diese Rollen ist deaktiviert.
+ *   2. Edge-Bootstrap-Runner: Records werden vor dem Push gefiltert
+ *      (verhindert "rejected"-Failure-State trotz erwartetem Reject).
+ *   3. Cloud-Sync-Receiver: zweite Verteidigungslinie, lehnt Records ab,
+ *      die trotz Edge-Filter durchschlagen (Defense in Depth).
+ */
+export const SYNC_PUSH_BLOCKED_USER_ROLES: ReadonlySet<UserSystemRole> = new Set([
+  UserSystemRole.PLATFORM_OWNER,
+  UserSystemRole.PLATFORM_ADMIN,
+  UserSystemRole.PLATFORM_SUPPORT,
+  UserSystemRole.TENANT_OWNER,
+])
+
+export const isSyncPushBlockedRole = (role: string | undefined | null): boolean => {
+  if (!role) return false
+  return (SYNC_PUSH_BLOCKED_USER_ROLES as ReadonlySet<string>).has(role)
+}
 //#endregion
 
 //#region Das Haupt-Datenmodell (Schema)
 export const userSchema = Type.Object(
   {
-    // Die globale Public ID (String).
-    // Ersetzt das ObjectId Objekt. Muss ein String sein!
-    _id: Type.String({ pattern: '^[0-9a-fA-F]{24}$' }),
+    // Konsistent mit allen anderen Schemas in panary-core: uuidv7.
+    _id: Type.String({ format: 'uuid' }),
 
     // Cloud-Referenzen sind Strings (ehemals ObjectId)
     tenantId: Type.Union([Type.String(), Type.Null()], { default: null }),
@@ -57,7 +85,11 @@ export const userSchema = Type.Object(
     // POS Spezifika
     staffRole: Type.Optional(Type.String()), // z.B. 'waiter'
     isPosUser: Type.Optional(Type.Boolean({ default: false })),
-    posPin: Type.Optional(Type.String({ minLength: 4, maxLength: 6 })), // Pattern prüfung machen wir im Validator
+    // Beschreibt DB-Realitaet: bcrypt-Hash (60 Zeichen). Die Plain-Text-PIN-
+    // Constraint (4-6 Ziffern) gehoert in `userDataSchema`/`userPatchSchema`
+    // als Input-Validierung — VOR dem hash-Resolver. Ohne diese Trennung
+    // wuerde ein synchronisierter User-Record (Hash) am Ziel abgewiesen.
+    posPin: Type.Optional(Type.String()),
     hasPosPin: Type.Optional(Type.Boolean()), // Virtuelles Feld — vom externalResolver gesetzt, nie in DB gespeichert
     employeeNumber: Type.Optional(Type.String({ minLength: 6, maxLength: 6 })),
 
@@ -97,7 +129,10 @@ export const userDataSchema = Type.Intersect(
   [
     // Pflichtfelder beim Create
     Type.Pick(userSchema, ['loginname', 'password']),
-    // Optionale Felder (haben Defaults oder sind im Schema bereits Optional)
+    // Optionale Felder (haben Defaults oder sind im Schema bereits Optional).
+    // `posPin` bewusst NICHT hier — wird unten mit Plain-Text-Constraint
+    // ueberschrieben (Hauptschema speichert den Hash, hier validieren wir
+    // den Klartext-Input).
     Type.Partial(
       Type.Pick(userSchema, [
         'tenantId',
@@ -113,13 +148,30 @@ export const userDataSchema = Type.Intersect(
         'lastName',
         'mustChangePassword',
         'permissions',
-        'posPin',
         'role',
         'staffRole',
         'stampingId',
         'startBreakAt',
+        'status',
       ]),
     ),
+    // posPin als Klartext-Constraint (4-6 Ziffern) — wird vom userDataResolver
+    // anschliessend zum bcrypt-Hash gewandelt und so in der DB abgelegt. Beim
+    // Sync-Pull-Apply liefert die Cloud aber bereits den Hash — der ist
+    // typischerweise ~60 Zeichen lang. Damit dieser Pfad nicht abgewiesen wird,
+    // erlaubt die Constraint zusaetzlich Strings >= 60 Zeichen (= Hash).
+    Type.Object({
+      posPin: Type.Optional(
+        Type.Union([
+          Type.String({ minLength: 4, maxLength: 6 }), // Plain-Text-Eingabe
+          Type.String({ minLength: 60 }),              // bcrypt-Hash (Sync-Pfad)
+        ]),
+      ),
+    }),
+    // Pflicht fuer Sync-Bootstrap (Edge→Cloud): Edge-Records bringen `_id`,
+    // `createdAt`, `updatedAt` mit. Ohne diese Felder im Schema lehnt
+    // validateData den ganzen Record ab.
+    Type.Partial(Type.Pick(userSchema, ['_id', 'createdAt', 'updatedAt'])),
   ],
   { $id: 'UserData', additionalProperties: false },
 )
@@ -150,6 +202,9 @@ export const userQueryProperties = Type.Pick(
   'isPosUser',
   'stampingId',
   'status',
+  // Pflicht fuer Sync-Pull (Cloud→Edge): Filtern nach `updatedAt > since` und
+  // Sortieren nach `updatedAt` — auch fuer Admin-UI sinnvoll als Sortier-Feld.
+  'updatedAt',
 ])
 export const userQuerySchema = Type.Intersect(
   [

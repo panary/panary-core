@@ -30,30 +30,51 @@ export const userExternalResolver = resolve<User, HookContext<UserService>>({
 
 //#region Create User Resolver (Input / POST)
 export const userDataValidator = getValidator(userDataSchema, dataValidator)
+
+// Modul-Scope: passwordHash-Resolver einmal instanziieren — beim Sync-Apply
+// rufen wir ihn NICHT auf, sonst wuerde der bereits gehashte Cloud-Wert
+// noch einmal gehashed (hash-of-hash → Login broken).
+const _passwordHashFn = passwordHash({ strategy: 'local' })
+
+// Helper: erkennt sync-replikative Aufrufe (Pull-Apply / Bootstrap).
+// Worker setzen `params.fromSync = true`, damit Auto-Generation und Re-Hash
+// von der Sync-Seite uebersprungen wird.
+const isFromSync = (context: HookContext): boolean =>
+  Boolean((context.params as { fromSync?: boolean }).fromSync)
+
 export const userDataResolver = resolve<User, HookContext<UserService>>({
-  _id: async value => {
+  _id: async (value, _row, context) => {
+    if (isFromSync(context)) return value
     // IMPORTANT FOR OFFLINE-FIRST:
     // If the tablet/cash register was offline, it has already generated the ID (UUIDv7) locally and sends it in the body.
     // In this case, we accept the value ('value'), otherwise we generate a new ID.
     return value || uuidv7()
   },
 
-  // Automatic password hashing
-  password: passwordHash({ strategy: 'local' }),
-
-  // Set timestamp
-  createdAt: async () => new Date().toISOString(),
-  updatedAt: async () => new Date().toISOString(),
-
-  // POS-PIN hashen (bcrypt, Cost Factor 6 — niedrig, da nur 4-6 Ziffern)
-  posPin: async (value: any) => {
+  // Automatic password hashing — beim Sync ueberspringen (Hash kommt aus Cloud).
+  password: async (value, row, context) => {
     if (!value) return value
+    if (isFromSync(context)) return value
+    return _passwordHashFn(value, row, context)
+  },
+
+  // Set timestamp — beim Sync den Cloud-Wert uebernehmen, sonst broken
+  // updatedAt-Vergleich beim naechsten Pull (LWW-Logik).
+  createdAt: async (value, _row, context) => (isFromSync(context) ? value : new Date().toISOString()),
+  updatedAt: async (value, _row, context) => (isFromSync(context) ? value : new Date().toISOString()),
+
+  // POS-PIN hashen (bcrypt, Cost Factor 6 — niedrig, da nur 4-6 Ziffern).
+  // Sync-Apply: nicht hashen — Cloud sendet bereits den Hash.
+  posPin: async (value: any, _row: any, context: HookContext) => {
+    if (!value) return value
+    if (isFromSync(context)) return value
     return bcrypt.hashSync(value, 6)
   },
 
   // Automatisch die Location zuweisen (Edge-Modus: eine Location)
   // Fallback-Kette: 1. expliziter Wert, 2. Location des Erstellers, 3. erste Location aus DB
   activeLocationId: async (value: any, data: any, context: HookContext) => {
+    if (isFromSync(context)) return value
     if (value) return value
     const fromUser = context.params.user?.activeLocationId || context.params.user?.locationId
     if (fromUser) return fromUser
@@ -66,6 +87,7 @@ export const userDataResolver = resolve<User, HookContext<UserService>>({
     }
   },
   allowedLocationIds: async (value: any, data: any, context: HookContext) => {
+    if (isFromSync(context)) return value
     if (value && Array.isArray(value) && value.length > 0) return value
     const fromUser = context.params.user?.activeLocationId || context.params.user?.locationId
     if (fromUser) return [fromUser]
@@ -80,6 +102,7 @@ export const userDataResolver = resolve<User, HookContext<UserService>>({
 
   // Generate personnel number
   employeeNumber: async (value, user, context) => {
+    if (isFromSync(context)) return value
     if (value) return value // When a number has been sent, we accept it.
 
     // Help function for 6-digit numbers
@@ -108,15 +131,23 @@ export const userDataResolver = resolve<User, HookContext<UserService>>({
 //#region 3. Patch-User-Resolver (Update / PATCH)
 export const userPatchValidator = getValidator(userPatchSchema, dataValidator)
 export const userPatchResolver = resolve<User, HookContext<UserService>>({
-  _id: async () => undefined,
-  tenantId: async () => undefined,
-  createdAt: async () => undefined,
-  updatedAt: async () => new Date().toISOString(),
-  // Auch beim Update: Passwort hashen, falls es geändert wird
-  password: passwordHash({ strategy: 'local' }),
-  // POS-PIN hashen, falls er geändert wird
-  posPin: async (value: any) => {
+  // Beim Sync-Apply die Cloud-Werte (auch _id/tenantId/createdAt/updatedAt)
+  // unveraendert durchreichen — sonst zerstoert das Patch-Resolver die LWW-
+  // Sync-Semantik und das Konflikt-Tracking.
+  _id: async (value, _row, context) => (isFromSync(context) ? value : undefined),
+  tenantId: async (value, _row, context) => (isFromSync(context) ? value : undefined),
+  createdAt: async (value, _row, context) => (isFromSync(context) ? value : undefined),
+  updatedAt: async (value, _row, context) => (isFromSync(context) ? value : new Date().toISOString()),
+  // Auch beim Update: Passwort hashen, falls es geändert wird — beim Sync NICHT.
+  password: async (value, row, context) => {
     if (!value) return value
+    if (isFromSync(context)) return value
+    return _passwordHashFn(value, row, context)
+  },
+  // POS-PIN hashen, falls er geändert wird — beim Sync NICHT.
+  posPin: async (value: any, _row: any, context: HookContext) => {
+    if (!value) return value
+    if (isFromSync(context)) return value
     return bcrypt.hashSync(value, 6)
   },
 })

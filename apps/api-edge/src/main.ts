@@ -132,10 +132,15 @@ async function main() {
           logger.info(`Bootstrapping: Creating admin user ${adminLogin}...`)
 
           const usersService = app.service('users')
+          // SICHERHEIT: PLATFORM_OWNER ist eine Cloud-Identity (Panary-intern,
+          // Bypass aller Tenant-Filter). Der erste Edge-Admin ist fachlich der
+          // Tenant-Inhaber — TENANT_OWNER reicht fuer alle lokalen Edge-Aktionen
+          // und bekommt beim Sync nicht versehentlich Cross-Tenant-Zugriff in
+          // der Cloud. Cloud-Sync blockt zusaetzlich `platform:*`-Rollen.
           const createdUser = await usersService.create({
             email: adminEmail,
             password: adminPassword,
-            role: UserSystemRole.PLATFORM_OWNER,
+            role: UserSystemRole.TENANT_OWNER,
             loginname: adminLogin,
             firstName: 'Admin',
             lastName: 'User',
@@ -203,9 +208,12 @@ async function main() {
           updatedAt: now,
         })
 
-        // Admin-User dem Tenant zuordnen
+        // Admin-User dem Tenant zuordnen.
+        // Auch alte PLATFORM_OWNER-User (vor dem Security-Downgrade) werden
+        // erkannt — sie bekommen den Tenant zugewiesen und beim naechsten
+        // Edge-Boot per Migration auf TENANT_OWNER umgestellt.
         const adminUser = await knex('users')
-          .where({ role: UserSystemRole.PLATFORM_OWNER })
+          .whereIn('role', [UserSystemRole.TENANT_OWNER, UserSystemRole.PLATFORM_OWNER])
           .whereNull('tenantId')
           .first()
 
@@ -248,12 +256,51 @@ async function main() {
     }
     // -----------------------------------------------------------------------
 
-    // --- Cloud-Sync-Heartbeat: periodischer Heartbeat an die Cloud ---
+    // --- Bootstrap-Resume: nach Edge-Restart abgebrochene Bootstraps fortsetzen (M7.8) ---
     try {
-      const { startCloudSyncHeartbeatWorker } = await import('./workers/cloud-sync-heartbeat.worker.js')
-      await startCloudSyncHeartbeatWorker(app)
+      const { resumePendingBootstraps } = await import('./workers/cloud-bootstrap-runner.worker.js')
+      await resumePendingBootstraps(app)
     } catch (err) {
-      logger.error('Cloud-Sync-Heartbeat: Worker konnte nicht gestartet werden.', err)
+      logger.error('Bootstrap-Resume: Wiederaufnahme fehlgeschlagen.', err)
+    }
+    // -----------------------------------------------------------------------
+
+    // --- Cloud-Sync-Scheduler: Push/Pull/Heartbeat in 4 Modi (M7.4) ---
+    try {
+      const { startCloudSyncSchedulerWorker } = await import('./workers/cloud-sync-scheduler.worker.js')
+      await startCloudSyncSchedulerWorker(app)
+    } catch (err) {
+      logger.error('Cloud-Sync-Scheduler: Worker konnte nicht gestartet werden.', err)
+    }
+    // -----------------------------------------------------------------------
+
+    // --- Auto-Repair-Hook fuer historisch inkonsistente Edge-DBs ---
+    // Heilt einmalig: User mit activeLocationId, die nicht in locations._id
+    // existieren (Geist-Location aus altem Pairing-Bug). Idempotent — bei
+    // konsistenter DB tut der Hook nichts.
+    try {
+      const { runLocationRestampRepair } = await import('./workers/repair-location-restamp.worker.js')
+      await runLocationRestampRepair(app)
+    } catch (err) {
+      logger.error('Auto-Repair-Hook fehlgeschlagen.', err)
+    }
+    // -----------------------------------------------------------------------
+
+    // --- Audit-Cleanup-Worker: nightly 90d-Retention (Phase 2) ---
+    try {
+      const { startAuditCleanupWorker } = await import('./workers/audit-cleanup.worker.js')
+      startAuditCleanupWorker(app)
+    } catch (err) {
+      logger.error('Audit-Cleanup-Worker: Start fehlgeschlagen.', err)
+    }
+    // -----------------------------------------------------------------------
+
+    // --- Sync-Runs-Cleanup-Worker: nightly 30d-Retention der Telemetrie ---
+    try {
+      const { startSyncRunsCleanupWorker } = await import('./workers/sync-runs-cleanup.worker.js')
+      startSyncRunsCleanupWorker(app)
+    } catch (err) {
+      logger.error('Sync-Runs-Cleanup-Worker: Start fehlgeschlagen.', err)
     }
     // -----------------------------------------------------------------------
   } catch (error) {

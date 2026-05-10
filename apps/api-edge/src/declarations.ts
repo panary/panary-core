@@ -17,8 +17,30 @@ import { WorkingTimeService } from './services/working-times/working-times.class
 import { PreOrderService } from './services/pre-orders/pre-orders.class'
 import { CloudConnectionService } from './services/cloud-connection/cloud-connection.class'
 import { OpeningHourExceptionService } from './services/opening-hour-exceptions/opening-hour-exceptions.class'
+import type {
+  SyncConflict,
+  SyncCursor,
+  SyncOutboxEntry,
+  SyncRun,
+} from '@panary-core/sync/domain'
+import type { BootstrapReport } from '@panary-core/cloud-connection/domain'
+import type { AuditEvent } from '@panary-core/audit-events/domain'
 
 export type { NextFunction }
+export type NextHook = NextFunction
+
+// Generischer Service-Adapter-Typ fuer SQLite-Tabellen ohne dedizierte
+// Service-Klasse (sync-conflicts, sync-outbox, sync-cursor). Reicht aus, damit
+// `app.service('...')`-Aufrufe TypeScript-typed bleiben.
+type GenericService<TEntity> = {
+  find(params?: any): Promise<TEntity[] | { data: TEntity[]; total: number }>
+  get(id: string, params?: any): Promise<TEntity>
+  create(data: Partial<TEntity>, params?: any): Promise<TEntity>
+  patch(id: string | null, data: Partial<TEntity>, params?: any): Promise<TEntity | TEntity[]>
+  remove(id: string | null, params?: any): Promise<TEntity | TEntity[]>
+  _get?(id: string, params?: any): Promise<TEntity>
+  _patch?(id: string | null, data: Partial<TEntity>, params?: any): Promise<TEntity | TEntity[]>
+}
 
 declare module '@feathersjs/feathers' {
   interface ServiceOptions {
@@ -49,6 +71,12 @@ export interface ServiceTypes {
   }
   'cloud-connection': CloudConnectionService
   'opening-hour-exceptions': OpeningHourExceptionService
+  'sync-conflicts': GenericService<SyncConflict>
+  'sync-outbox': GenericService<SyncOutboxEntry>
+  'sync-cursor': GenericService<SyncCursor>
+  'sync-runs': GenericService<SyncRun>
+  'bootstrap-reports': GenericService<BootstrapReport>
+  'audit-events': GenericService<AuditEvent>
 }
 
 // The application instance type that will be used everywhere else

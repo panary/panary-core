@@ -14,6 +14,7 @@
 ## Sicherheit
 
 - [Sicherheitshärtung — Sensible Daten](sensitive-data-hardening.md) — 2026-04-07 — POS-PIN bcrypt, API-Key SHA-256, verifyPin Custom-Methode
+- [Tenant-Audit-Events (Edge)](audit-events.md) — 2026-05-06 — Append-only Audit-Trail, Sidecar-Hook zu sync-outbox, SQLite-Trigger fuer Immutability, Cloud-Sync. Phase 2: Audit-Cleanup-Worker (nightly, 90d-Retention nach Cloud-Ack, transaktionaler Trigger-Bypass, Selbst-Audit `AUDIT_CLEANUP`)
 
 ## Infrastruktur
 
@@ -22,3 +23,4 @@
 ## Integrationen
 
 - [Print-Server-API](print-server-api.md) — 2025-03-28 — MQTT-basierte Print-Server-Schnittstelle (Protokoll, Befehle, Konfiguration)
+- [Cloud-Pairing-Wizard — Edge-Seite (M7.2)](cloud-pairing-wizard.md) — 2026-05-02 — Custom-Methods (preflight/startBootstrap/syncNow), Bootstrap-Runner mit drei Direction-Modi, Sync-Scheduler in vier Modi, sync_outbox/sync_cursor/sync_conflicts

@@ -46,6 +46,10 @@ export const productGroupDataSchema = Type.Intersect(
         'taxOutside',
       ]),
     ),
+    // Pflicht fuer Sync-Bootstrap (Edge→Cloud): Edge-Records bringen `_id`,
+    // `createdAt`, `updatedAt` mit. Resolver setzt sie ggf. weiter ueber, aber
+    // ohne diese Felder im Schema wird der Record vom validateData-Hook abgewiesen.
+    Type.Partial(Type.Pick(productGroupSchema, ['_id', 'createdAt', 'updatedAt'])),
   ],
   {
     $id: 'ProductGroupData',
@@ -72,6 +76,9 @@ export const productGroupQueryProperties = Type.Pick(productGroupSchema, [
   'status',
   'tenantId',
   'locationId',
+  // Pflicht fuer Sync-Pull (Cloud→Edge): Filtern nach `updatedAt > since` und
+  // Sortieren nach `updatedAt` — auch fuer Admin-UI sinnvoll als Sortier-Feld.
+  'updatedAt',
 ])
 export const productGroupQuerySchema = Type.Intersect(
   [

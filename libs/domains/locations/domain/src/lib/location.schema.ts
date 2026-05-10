@@ -154,13 +154,17 @@ export const locationSchema = Type.Object(
       }),
     ),
 
-    email: Type.Optional(Type.String({ format: 'email' })),
+    // Optional + akzeptiert leeren String. Hintergrund: AJV prueft `format` auf
+    // jedem nicht-undefined-Wert; ein leerer String aus einem Form-Reset wuerde
+    // sonst gegen "format: email" / "format: uri" abgewiesen. `Type.Optional`
+    // selbst erlaubt nur `undefined`, daher die Union mit `Literal('')`.
+    email: Type.Optional(Type.Union([Type.String({ format: 'email' }), Type.Literal('')])),
     name: Type.String(),
     organizationName: Type.Optional(Type.String()),
     phone: Type.Optional(Type.String()),
     settings: Type.Optional(settingsSchema),
     status: Type.Optional(StringEnum(Object.values(LocationStatus))),
-    website: Type.Optional(Type.String({ format: 'uri' })),
+    website: Type.Optional(Type.Union([Type.String({ format: 'uri' }), Type.Literal('')])),
   },
   { $id: 'Location', additionalProperties: false },
 )

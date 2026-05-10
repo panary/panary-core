@@ -39,10 +39,16 @@ export type Customer = Static<typeof customerSchema>
 //#endregion
 
 //#region Schema for creation (POST)
-export const customerDataSchema = Type.Omit(customerSchema, ['_id', 'createdAt', 'updatedAt'], {
-  $id: 'CustomerData',
-  additionalProperties: false,
-})
+// `_id`, `createdAt`, `updatedAt` werden serverseitig gesetzt — fuer Sync-
+// Bootstrap (Edge→Cloud) muessen sie aber als Optional erlaubt bleiben, weil
+// Edge-Records die Felder mitbringen. Daher Type.Intersect statt Type.Omit.
+export const customerDataSchema = Type.Intersect(
+  [
+    Type.Omit(customerSchema, ['_id', 'createdAt', 'updatedAt']),
+    Type.Partial(Type.Pick(customerSchema, ['_id', 'createdAt', 'updatedAt'])),
+  ],
+  { $id: 'CustomerData', additionalProperties: false },
+)
 export type CustomerData = Static<typeof customerDataSchema>
 //#endregion
 
@@ -71,6 +77,9 @@ export const customerQueryProperties = Type.Pick(customerSchema, [
   'zipCode',
   'locationId',
   'tenantId',
+  // Pflicht fuer Sync-Pull (Cloud→Edge): Filtern nach `updatedAt > since` und
+  // Sortieren nach `updatedAt` — auch fuer Admin-UI sinnvoll als Sortier-Feld.
+  'updatedAt',
 ])
 export const customerQuerySchema = Type.Intersect(
   [

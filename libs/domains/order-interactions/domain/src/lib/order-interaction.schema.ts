@@ -90,6 +90,12 @@ export const orderInteractionQueryProperties = Type.Pick(orderInteractionSchema,
   'sessionId',
   'businessDayId',
   'businessDate',
+  // Pflicht fuer multiTenancy()-Hook (filtert query.tenantId/locationId)
+  // und Sync-Backfill (`createdAt > since`), Sync-Pull (`updatedAt > since`).
+  'tenantId',
+  'locationId',
+  'createdAt',
+  'updatedAt',
 ])
 export const orderInteractionQuerySchema = Type.Intersect(
   [

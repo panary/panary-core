@@ -144,6 +144,10 @@ export const productDataSchema = Type.Intersect(
         'recipeReferences',
       ]),
     ),
+    // Pflicht fuer Sync-Bootstrap (Edge→Cloud): Edge-Records bringen `_id`,
+    // `createdAt`, `updatedAt` mit. Ohne diese Felder im Schema lehnt
+    // validateData den ganzen Record ab.
+    Type.Partial(Type.Pick(productSchema, ['_id', 'createdAt', 'updatedAt'])),
   ],
   { $id: 'ProductData', additionalProperties: false },
 )
@@ -158,7 +162,9 @@ export type ProductPatch = Static<typeof productPatchSchema>
 //#endregion
 
 //#region Schema für Suchanfragen (Query)
-export const productQueryProperties = Type.Pick(productSchema, ['_id', 'locationId', 'tenantId', 'externalId', 'status', 'name', 'productType', 'categoryIds', 'acronym', 'price'])
+// `updatedAt` ist Pflicht fuer Sync-Pull (Cloud→Edge): Filtern nach
+// `updatedAt > since` und Sortieren — auch fuer Admin-UI sinnvoll.
+export const productQueryProperties = Type.Pick(productSchema, ['_id', 'locationId', 'tenantId', 'externalId', 'status', 'name', 'productType', 'categoryIds', 'acronym', 'price', 'updatedAt'])
 export const productQuerySchema = Type.Intersect(
   [
     querySyntax(productQueryProperties),

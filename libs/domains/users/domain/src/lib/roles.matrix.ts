@@ -29,6 +29,18 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.TENANT_GRANTS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
+    // Tenant-Audit-Events: Owner hat Bypass; Eintrag dient als Dokumentation
+    // (siehe authorize-Hook). PLATFORM_SUPPORT bekommt KEINEN Direktzugriff —
+    // Support liest Tenant-Audits nur via Cloud-Impersonation.
+    { resource: AppResource.AUDIT_EVENTS, action: AppAction.READ },
+    { resource: AppResource.AUDIT_EVENT_REDACTIONS, action: AppAction.READ },
+    // Globaler Lieferanten-Katalog (Phase 2): Plattform-Owner pflegt master.
+    { resource: AppResource.GLOBAL_SUPPLIERS, action: AppAction.MANAGE },
+    { resource: AppResource.GLOBAL_SUPPLIER_SUBMISSIONS, action: AppAction.MANAGE },
+    // Tenant-Settings: PLATFORM_OWNER aktiviert das KI-Wareneingang-Feature pro Tenant.
+    { resource: AppResource.TENANT_SETTINGS, action: AppAction.MANAGE },
+    // KI-Wareneingang-Audit (cross-tenant fuer Plattform-Reports).
+    { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT, action: AppAction.READ },
   ],
 
   [UserSystemRole.PLATFORM_ADMIN]: [
@@ -54,6 +66,12 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.TENANT_GRANTS, action: AppAction.READ },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
+    // Globaler Lieferanten-Katalog (Phase 2): Plattform-Admin curated.
+    { resource: AppResource.GLOBAL_SUPPLIERS, action: AppAction.MANAGE },
+    { resource: AppResource.GLOBAL_SUPPLIER_SUBMISSIONS, action: AppAction.MANAGE },
+    // Tenant-Settings darf der Admin lesen (zur Diagnose), aber nicht aendern.
+    { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
+    { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT, action: AppAction.READ },
   ],
 
   [UserSystemRole.PLATFORM_SUPPORT]: [
@@ -81,6 +99,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.TENANT_GRANTS, action: AppAction.READ },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
+    // Globaler Lieferanten-Katalog (Phase 2): Support liest mit, kein Schreibzugriff.
+    { resource: AppResource.GLOBAL_SUPPLIERS, action: AppAction.READ },
+    { resource: AppResource.GLOBAL_SUPPLIER_SUBMISSIONS, action: AppAction.READ },
   ],
 
   // =======================================================
@@ -97,15 +118,32 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.APIKEYS, action: AppAction.MANAGE },
     { resource: AppResource.CLOUD_CONNECTION, action: AppAction.MANAGE },
     { resource: AppResource.OPENING_HOUR_EXCEPTIONS, action: AppAction.MANAGE },
+    { resource: AppResource.CLOUD_EDGES, action: AppAction.MANAGE },
+    { resource: AppResource.EDGE_PAIRING_CODES, action: AppAction.MANAGE },
+    { resource: AppResource.SYNC_CONFLICTS, action: AppAction.MANAGE },
+    { resource: AppResource.SYNC_OUTBOX, action: AppAction.READ },
+    { resource: AppResource.SYNC_CURSOR, action: AppAction.READ },
+    { resource: AppResource.SYNC_RUNS, action: AppAction.READ },
+    { resource: AppResource.BOOTSTRAP_REPORTS, action: AppAction.READ },
     // Cloud-spezifische Ressourcen
     { resource: AppResource.CORPORATE_CUSTOMERS, action: AppAction.MANAGE },
     { resource: AppResource.CUSTOMERS, action: AppAction.MANAGE },
     { resource: AppResource.RECIPES, action: AppAction.MANAGE },
     { resource: AppResource.INGREDIENTS, action: AppAction.MANAGE },
+    { resource: AppResource.SUPPLIERS, action: AppAction.MANAGE },
+    { resource: AppResource.SUPPLIER_PRODUCTS, action: AppAction.MANAGE },
+    // Globaler Lieferanten-Katalog: lesen + Vorschlaege einreichen.
+    { resource: AppResource.GLOBAL_SUPPLIERS, action: AppAction.READ },
+    { resource: AppResource.GLOBAL_SUPPLIER_SUBMISSIONS, action: [AppAction.READ, AppAction.CREATE] },
+    { resource: AppResource.GTIN_LOOKUP_CACHE, action: AppAction.MANAGE },
+    { resource: AppResource.EXTERNAL_OFF_LOOKUP, action: AppAction.READ },
+    { resource: AppResource.INGREDIENTS_IMPORT, action: AppAction.MANAGE },
     { resource: AppResource.PRICELISTS, action: AppAction.MANAGE },
     { resource: AppResource.INVENTORIES, action: AppAction.MANAGE },
     { resource: AppResource.INCOMING_GOODS, action: AppAction.MANAGE },
     { resource: AppResource.WRITE_OFFS, action: AppAction.MANAGE },
+    { resource: AppResource.INVENTORY_MOVEMENTS, action: AppAction.MANAGE },
+    { resource: AppResource.STOCK_LEVELS, action: AppAction.READ },
     { resource: AppResource.INVOICES, action: AppAction.MANAGE },
     { resource: AppResource.BUSINESS_DAYS, action: AppAction.MANAGE },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE },
@@ -115,9 +153,19 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.LOCATIONS, action: AppAction.MANAGE },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
     { resource: AppResource.ORGANIZATIONS, action: AppAction.READ },
+    { resource: AppResource.TENANTS, action: AppAction.READ },
+    // Tenant-Settings: lesen (Anzeige im Settings-UI). Aktivieren bleibt PLATFORM_OWNER.
+    { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
+    // KI-Wareneingang: Foto hochladen + Audit lesen.
+    { resource: AppResource.INCOMING_GOODS_EXTRACT, action: AppAction.CREATE },
+    { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT, action: AppAction.READ },
     { resource: AppResource.TENANT_GRANTS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
+    // Tenant-Audit-Trail (append-only)
+    { resource: AppResource.AUDIT_EVENTS, action: AppAction.READ },
+    // Audit-Redactions (Phase 2 — DSGVO-Loeschungen / Fehleintraege markieren)
+    { resource: AppResource.AUDIT_EVENT_REDACTIONS, action: [AppAction.READ, AppAction.CREATE] },
     AppAbility.CAN_SEE_REPORTS,
     AppAbility.CAN_REFUND,
     AppAbility.CAN_VOID_ORDER,
@@ -135,6 +183,13 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.APIKEYS, action: AppAction.MANAGE },
     { resource: AppResource.CLOUD_CONNECTION, action: AppAction.MANAGE },
     { resource: AppResource.OPENING_HOUR_EXCEPTIONS, action: AppAction.MANAGE },
+    { resource: AppResource.CLOUD_EDGES, action: AppAction.MANAGE },
+    { resource: AppResource.EDGE_PAIRING_CODES, action: AppAction.MANAGE },
+    { resource: AppResource.SYNC_CONFLICTS, action: AppAction.MANAGE },
+    { resource: AppResource.SYNC_OUTBOX, action: AppAction.MANAGE },
+    { resource: AppResource.SYNC_CURSOR, action: AppAction.READ },
+    { resource: AppResource.SYNC_RUNS, action: AppAction.READ },
+    { resource: AppResource.BOOTSTRAP_REPORTS, action: AppAction.READ },
     { resource: AppResource.LOCATIONS, action: AppAction.MANAGE },
     { resource: AppResource.SYSTEM, action: AppAction.MANAGE },
     // Cloud-spezifische Ressourcen
@@ -142,10 +197,20 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.CUSTOMERS, action: AppAction.MANAGE },
     { resource: AppResource.RECIPES, action: AppAction.MANAGE },
     { resource: AppResource.INGREDIENTS, action: AppAction.MANAGE },
+    { resource: AppResource.SUPPLIERS, action: AppAction.MANAGE },
+    { resource: AppResource.SUPPLIER_PRODUCTS, action: AppAction.MANAGE },
+    // Globaler Lieferanten-Katalog: lesen + Vorschlaege einreichen.
+    { resource: AppResource.GLOBAL_SUPPLIERS, action: AppAction.READ },
+    { resource: AppResource.GLOBAL_SUPPLIER_SUBMISSIONS, action: [AppAction.READ, AppAction.CREATE] },
+    { resource: AppResource.GTIN_LOOKUP_CACHE, action: AppAction.MANAGE },
+    { resource: AppResource.EXTERNAL_OFF_LOOKUP, action: AppAction.READ },
+    { resource: AppResource.INGREDIENTS_IMPORT, action: AppAction.MANAGE },
     { resource: AppResource.PRICELISTS, action: AppAction.MANAGE },
     { resource: AppResource.INVENTORIES, action: AppAction.MANAGE },
     { resource: AppResource.INCOMING_GOODS, action: AppAction.MANAGE },
     { resource: AppResource.WRITE_OFFS, action: AppAction.MANAGE },
+    { resource: AppResource.INVENTORY_MOVEMENTS, action: AppAction.MANAGE },
+    { resource: AppResource.STOCK_LEVELS, action: AppAction.READ },
     { resource: AppResource.INVOICES, action: AppAction.MANAGE },
     { resource: AppResource.BUSINESS_DAYS, action: AppAction.MANAGE },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE },
@@ -153,8 +218,17 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.SHIFTS, action: AppAction.MANAGE },
     { resource: AppResource.LEAVE_REQUESTS, action: AppAction.MANAGE },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
+    { resource: AppResource.TENANTS, action: AppAction.READ },
+    // Tenant-Settings + KI-Wareneingang: Techniker hat Manager-aequivalente Rechte.
+    { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
+    { resource: AppResource.INCOMING_GOODS_EXTRACT, action: AppAction.CREATE },
+    { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT, action: AppAction.READ },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
+    // Tenant-Audit-Trail (append-only)
+    { resource: AppResource.AUDIT_EVENTS, action: AppAction.READ },
+    // Audit-Redactions (Phase 2 — DSGVO-Loeschungen / Fehleintraege markieren)
+    { resource: AppResource.AUDIT_EVENT_REDACTIONS, action: [AppAction.READ, AppAction.CREATE] },
     AppAbility.CAN_SEE_REPORTS,
     AppAbility.CAN_REFUND,
     AppAbility.CAN_VOID_ORDER,
@@ -164,6 +238,11 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
   ],
 
   [UserSystemRole.TENANT_MANAGER]: [
+    // Self-Service: Manager darf seinen EIGENEN User-Datensatz patchen
+    // (posPin, password, email). Self-Restriction wird im Service-Hook
+    // `restrictUserSelfPatch` enforced — kein Patch fremder User, keine
+    // Eskalation auf role/tenantId/permissions.
+    { resource: AppResource.USERS, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.PRODUCTS, action: AppAction.MANAGE },
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.READ },
     { resource: AppResource.ORDERS, action: [AppAction.CREATE, AppAction.READ, AppAction.DELETE] },
@@ -171,15 +250,27 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PRE_ORDERS, action: AppAction.MANAGE },
     { resource: AppResource.PRINT_SERVER, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.APIKEYS, action: AppAction.READ },
+    { resource: AppResource.CLOUD_EDGES, action: AppAction.READ },
+    { resource: AppResource.EDGE_PAIRING_CODES, action: AppAction.READ },
     // Cloud-spezifische Ressourcen
     { resource: AppResource.CORPORATE_CUSTOMERS, action: AppAction.MANAGE },
     { resource: AppResource.CUSTOMERS, action: AppAction.MANAGE },
     { resource: AppResource.RECIPES, action: AppAction.READ },
     { resource: AppResource.INGREDIENTS, action: AppAction.READ },
+    { resource: AppResource.SUPPLIERS, action: AppAction.MANAGE },
+    { resource: AppResource.SUPPLIER_PRODUCTS, action: AppAction.MANAGE },
+    // Globaler Lieferanten-Katalog: lesen + Vorschlaege einreichen.
+    { resource: AppResource.GLOBAL_SUPPLIERS, action: AppAction.READ },
+    { resource: AppResource.GLOBAL_SUPPLIER_SUBMISSIONS, action: [AppAction.READ, AppAction.CREATE] },
+    { resource: AppResource.GTIN_LOOKUP_CACHE, action: AppAction.MANAGE },
+    { resource: AppResource.EXTERNAL_OFF_LOOKUP, action: AppAction.READ },
+    { resource: AppResource.INGREDIENTS_IMPORT, action: AppAction.MANAGE },
     { resource: AppResource.PRICELISTS, action: AppAction.MANAGE },
     { resource: AppResource.INVENTORIES, action: AppAction.MANAGE },
     { resource: AppResource.INCOMING_GOODS, action: AppAction.MANAGE },
     { resource: AppResource.WRITE_OFFS, action: AppAction.MANAGE },
+    { resource: AppResource.INVENTORY_MOVEMENTS, action: AppAction.READ },
+    { resource: AppResource.STOCK_LEVELS, action: AppAction.READ },
     { resource: AppResource.INVOICES, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.BUSINESS_DAYS, action: AppAction.MANAGE },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE },
@@ -187,12 +278,28 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.LEAVE_REQUESTS, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.LOCATIONS, action: AppAction.READ },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
+    { resource: AppResource.TENANTS, action: AppAction.READ },
+    // Tenant-Settings: nur lesend; Aktivierung bleibt PLATFORM_OWNER vorbehalten.
+    { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
+    // KI-Wareneingang: Foto hochladen + Audit lesen.
+    { resource: AppResource.INCOMING_GOODS_EXTRACT, action: AppAction.CREATE },
+    { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT, action: AppAction.READ },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
+    // Tenant-Audit-Trail (append-only)
+    { resource: AppResource.AUDIT_EVENTS, action: AppAction.READ },
+    // Manager darf Redactions sehen, aber NICHT selbst durchfuehren — nur
+    // OWNER/TECHNICIAN haben CREATE. Daher hier nur READ.
+    { resource: AppResource.AUDIT_EVENT_REDACTIONS, action: AppAction.READ },
     AppAbility.CAN_VOID_ORDER,
   ],
 
   [UserSystemRole.TENANT_STAFF]: [
+    // Self-Service: Mitarbeiter darf seinen EIGENEN User-Datensatz patchen
+    // (posPin, password, email). Self-Restriction wird im Service-Hook
+    // `restrictUserSelfPatch` enforced — kein Patch fremder User, keine
+    // Eskalation auf role/tenantId/permissions.
+    { resource: AppResource.USERS, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.PRODUCTS, action: AppAction.READ },
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.READ },
     { resource: AppResource.ORDERS, action: [AppAction.CREATE, AppAction.READ] },
@@ -203,12 +310,20 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PRICELISTS, action: AppAction.READ },
     { resource: AppResource.RECIPES, action: AppAction.READ },
     { resource: AppResource.INGREDIENTS, action: AppAction.READ },
+    { resource: AppResource.SUPPLIERS, action: AppAction.READ },
+    { resource: AppResource.SUPPLIER_PRODUCTS, action: AppAction.READ },
+    { resource: AppResource.STOCK_LEVELS, action: AppAction.READ },
     { resource: AppResource.BUSINESS_DAYS, action: AppAction.READ },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE }, // eigene Prefs
     { resource: AppResource.SHIFTS, action: AppAction.READ },
     { resource: AppResource.LEAVE_REQUESTS, action: [AppAction.READ, AppAction.CREATE] },
     { resource: AppResource.LOCATIONS, action: AppAction.READ },
     { resource: AppResource.ORDER_INTERACTIONS, action: [AppAction.READ, AppAction.CREATE] },
+    { resource: AppResource.TENANTS, action: AppAction.READ },
+    // Tenant-Settings: lesen (z.B. um zu wissen, ob KI-Funktion aktiviert ist).
+    { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
+    // KI-Wareneingang: Mitarbeitende duerfen Foto hochladen.
+    { resource: AppResource.INCOMING_GOODS_EXTRACT, action: AppAction.CREATE },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
   ],

@@ -46,6 +46,8 @@ export const AppResource = {
   INCOMING_GOODS_EXTRACT: 'incoming-goods-extract',
   /** Cloud-only: Read-only Audit-Log der KI-Wareneingang-Calls (Cost/Quality). */
   INCOMING_GOODS_EXTRACT_AUDIT: 'incoming-goods-extract-audit',
+  /** Cloud-only: Tagesaggregat des Extract-Audits (Cost-Ledger). */
+  INCOMING_GOODS_EXTRACT_AUDIT_DAILY: 'incoming-goods-extract-audit-daily',
   /** Cloud-only: Pro-Tenant Settings (Feature-Flags, Limits, KI-Konfiguration). */
   TENANT_SETTINGS: 'tenant-settings',
   WRITE_OFFS: 'write-offs',

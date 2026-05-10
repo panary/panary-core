@@ -41,6 +41,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.MANAGE },
     // KI-Wareneingang-Audit (cross-tenant fuer Plattform-Reports).
     { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT, action: AppAction.READ },
+    { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT_DAILY, action: AppAction.READ },
   ],
 
   [UserSystemRole.PLATFORM_ADMIN]: [
@@ -72,6 +73,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Tenant-Settings darf der Admin lesen (zur Diagnose), aber nicht aendern.
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT, action: AppAction.READ },
+    { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT_DAILY, action: AppAction.READ },
   ],
 
   [UserSystemRole.PLATFORM_SUPPORT]: [
@@ -159,6 +161,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // KI-Wareneingang: Foto hochladen + Audit lesen.
     { resource: AppResource.INCOMING_GOODS_EXTRACT, action: AppAction.CREATE },
     { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT, action: AppAction.READ },
+    { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT_DAILY, action: AppAction.READ },
     { resource: AppResource.TENANT_GRANTS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
@@ -223,6 +226,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     { resource: AppResource.INCOMING_GOODS_EXTRACT, action: AppAction.CREATE },
     { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT, action: AppAction.READ },
+    { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT_DAILY, action: AppAction.READ },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
     // Tenant-Audit-Trail (append-only)
@@ -284,6 +288,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // KI-Wareneingang: Foto hochladen + Audit lesen.
     { resource: AppResource.INCOMING_GOODS_EXTRACT, action: AppAction.CREATE },
     { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT, action: AppAction.READ },
+    { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT_DAILY, action: AppAction.READ },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
     // Tenant-Audit-Trail (append-only)

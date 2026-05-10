@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "admin-client",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["nx", "serve", "admin-client"],
+      "port": 4202
+    }
+  ]
+}

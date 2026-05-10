@@ -8,6 +8,7 @@
     "build": {
       "executor": "@nx/rollup:rollup",
       "outputs": ["{workspaceRoot}/libs/domains/apikeys/domain/dist"],
+      "dependsOn": ["^build"],
       "options": {
         "outputPath": "libs/domains/apikeys/domain/dist",
         "project": "libs/domains/apikeys/package.json",

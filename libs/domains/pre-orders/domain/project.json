@@ -6,13 +6,24 @@
   "tags": ["type:domain", "domain:pre-orders"],
   "targets": {
     "build": {
-      "executor": "@nx/js:tsc",
-      "outputs": ["{options.outputPath}"],
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/pre-orders/domain/dist"],
+      "dependsOn": ["^build"],
       "options": {
-        "outputPath": "dist/libs/domains/pre-orders/domain",
-        "main": "libs/domains/pre-orders/domain/src/index.ts",
+        "outputPath": "libs/domains/pre-orders/domain/dist",
+        "project": "libs/domains/pre-orders/package.json",
         "tsConfig": "libs/domains/pre-orders/domain/tsconfig.lib.json",
-        "assets": ["libs/domains/pre-orders/domain/*.md"]
+        "main": "libs/domains/pre-orders/domain/src/index.ts",
+        "format": ["cjs"],
+        "external": [
+          "@feathersjs/feathers",
+          "@feathersjs/typebox",
+          "@sinclair/typebox",
+          "@panary-core/shared-common",
+          "@panary-core/orders/domain"
+        ],
+        "generatePackageJson": false,
+        "compiler": "tsc"
       }
     }
   }

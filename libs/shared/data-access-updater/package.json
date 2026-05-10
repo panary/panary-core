@@ -1,5 +1,5 @@
 {
-  "name": "@panary-core/shared/data-access-updater",
+  "name": "shared-data-access-updater-internal",
   "version": "0.0.1",
   "private": true,
   "type": "commonjs",

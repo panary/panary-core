@@ -8,6 +8,7 @@
     "build": {
       "executor": "@nx/rollup:rollup",
       "outputs": ["{workspaceRoot}/libs/domains/order-interactions/domain/dist"],
+      "dependsOn": ["^build"],
       "options": {
         "outputPath": "libs/domains/order-interactions/domain/dist",
         "project": "libs/domains/order-interactions/package.json",

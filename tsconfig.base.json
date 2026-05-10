@@ -31,7 +31,12 @@
       "@panary-core/shared-common": ["libs/shared/common/src/index.ts"],
       "@panary-core/shared/data-access": ["libs/shared/data-access/src/index.ts"],
       "@panary-core/shared/data-access/server": ["libs/shared/data-access/src/server.ts"],
+      "@panary-core/allergens/domain": ["libs/domains/allergens/domain/src/index.ts"],
       "@panary-core/apikeys/domain": ["libs/domains/apikeys/domain/src/index.ts"],
+      "@panary-core/audit-events/domain": ["libs/domains/audit-events/domain/src/index.ts"],
+      "@panary-core/suppliers/domain": ["libs/domains/suppliers/domain/src/index.ts"],
+      "@panary-core/supplier-products/domain": ["libs/domains/supplier-products/domain/src/index.ts"],
+      "@panary-core/ingredients/domain": ["libs/domains/ingredients/domain/src/index.ts"],
       "@panary-core/customers/domain": ["libs/domains/customers/domain/src/index.ts"],
       "@panary-core/corporate-customers/domain": ["libs/domains/corporate-customers/domain/src/index.ts"],
       "@panary-core/devices/domain": ["libs/domains/devices/domain/src/index.ts"],
@@ -83,6 +88,9 @@
       "@panary-core/pre-orders/domain": ["libs/domains/pre-orders/domain/src/index.ts"],
       "@panary-core/cloud-connection/domain": ["libs/domains/cloud-connection/domain/src/index.ts"],
       "@panary-core/opening-hour-exceptions/domain": ["libs/domains/opening-hour-exceptions/domain/src/index.ts"],
+      "@panary-core/edge-pairing/domain": ["libs/domains/edge-pairing/domain/src/index.ts"],
+      "@panary-core/cloud-edges/domain": ["libs/domains/cloud-edges/domain/src/index.ts"],
+      "@panary-core/sync/domain": ["libs/domains/sync/domain/src/index.ts"],
       "@panary-core/shared-backend": ["libs/shared/backend/src/index.ts"]
     }
   }

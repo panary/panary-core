@@ -1,5 +1,5 @@
 {
-  "name": "@panary-core/product-groups/domain",
+  "name": "product-groups-domain-internal",
   "version": "0.0.1",
   "private": true,
   "type": "commonjs",

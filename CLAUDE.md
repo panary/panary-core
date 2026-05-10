@@ -38,6 +38,28 @@ Vor dem Arbeiten die relevanten Rules lesen:
 - **Geteilter Code:** `libs/domains/[domain-name]` — Apps importieren aus Libs, nie umgekehrt.
   - Import-Pfad: `@panary-core/[domain]/domain`
 
+## 2.1 Domain-Lib Workspace-Pattern
+
+Jede publishable Domain hat zwei Schichten:
+
+- **Eltern-`package.json`** in `libs/domains/[name]/` — der Workspace-Eintrag, `name: "@panary-core/[name]"`, mit `exports`-Map (`./domain` → `./domain/dist/index.cjs.js`) und `peerDependencies`. Wird via `pnpm nx release publish` veröffentlicht.
+- **Subpackage-`package.json`** in `libs/domains/[name]/domain/` — Build-Hint für `@nx/rollup:rollup`, **niemals** Workspace-Paket. `name: "[name]-domain-internal"` (Suffix `-internal`, kein Slash, npm-spec-konform). `private: true`.
+
+Dasselbe Pattern gilt für `libs/shared/[name]` ohne Eltern: `name: "shared-[name]-internal"`.
+
+> **Regel:** Subpackage-`name` darf **niemals** das Slash-Pattern `@panary-core/X/Y` verwenden — pnpm akzeptiert das zwar, aber es kollidiert mit der `exports`-Map des Eltern-Pakets und verstößt gegen npm-Spec.
+
+**Cross-Lib-Imports zwischen Domain-Libs** (z. B. `apikeys/domain` importiert `@panary-core/users/domain`):
+- `external` in `project.json` rollup-Options aufnehmen.
+- `peerDependencies` in der Eltern-`package.json` deklarieren (Format: `"@panary-core/users": "^26.4.20"`).
+- `paths`-Override in der eigenen `tsconfig.lib.json` zur compiled `dist/index.d.ts` setzen (sonst TS6059 wegen rootDir-Verletzung):
+  ```json
+  "paths": {
+    "@panary-core/users/domain": ["../../users/domain/dist/index.d.ts"]
+  }
+  ```
+- `dependsOn: ["^build"]` im rollup-Build-Target sichert die Build-Reihenfolge.
+
 ---
 
 # 3. Primäre Arbeitsabläufe

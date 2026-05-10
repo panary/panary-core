@@ -1,5 +1,5 @@
 {
-  "name": "@panary-core/opening-hour-exceptions/domain",
+  "name": "opening-hour-exceptions-domain-internal",
   "version": "0.0.1",
   "private": true,
   "type": "commonjs",

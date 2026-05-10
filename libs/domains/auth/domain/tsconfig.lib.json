@@ -4,7 +4,10 @@
     "outDir": "../../../../dist/out-tsc",
     "declaration": true,
     "types": ["node"],
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "paths": {
+      "@panary-core/users/domain": ["../../users/domain/dist/index.d.ts"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": [

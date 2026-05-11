@@ -94,7 +94,7 @@
     "eslint-config-prettier": "^10.0.0",
     "jsdom": "^27.1.0",
     "jsonc-eslint-parser": "^2.1.0",
-    "lefthook": "^1.13.7",
+    "lefthook": "^2.1.6",
     "mocha": "^11.7.5",
     "ngx-echarts": "^21.0.0",
     "nodemon": "^3.1.11",

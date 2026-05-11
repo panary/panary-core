@@ -177,32 +177,28 @@ const ghApiPaginated = (path) => {
     log(`${color.yellow}⚠ gh CLI nicht installiert — bash scripts/install-security-tools.sh${color.reset}`)
     return null
   }
-  const result = spawnSync('gh', ['api', '--paginate', path], {
+  // Use --jq '.[]' to emit one object per line (NDJSON). This avoids fragile
+  // bracket-counting across multiple concatenated JSON arrays from --paginate,
+  // which breaks on arrays whose string values contain '[' or ']' characters
+  // (e.g. long Dependabot descriptions with code samples).
+  const result = spawnSync('gh', ['api', '--paginate', '--jq', '.[]', path], {
     encoding: 'utf8',
-    maxBuffer: 1024 * 1024 * 64,
+    maxBuffer: 1024 * 1024 * 128,
   })
   if (result.status !== 0) {
     const err = (result.stderr || '').split('\n')[0]
     log(`${color.red}gh api ${path} failed: ${err}${color.reset}`)
     if (/HTTP 401|authentication/i.test(err)) {
-      log(`${color.yellow}  → gh auth login -s repo,security_events${color.reset}`)
+      log(`${color.yellow}  → gh auth login -s repo${color.reset}`)
     }
     return null
   }
   try {
-    // --paginate concatenates JSON arrays back-to-back. Split via bracket counting.
     const merged = []
-    let buf = result.stdout
-    while (buf.trim()) {
-      let depth = 0, end = -1, started = false
-      for (let i = 0; i < buf.length; i++) {
-        const c = buf[i]
-        if (c === '[') { depth++; started = true }
-        else if (c === ']') { depth--; if (started && depth === 0) { end = i + 1; break } }
-      }
-      if (end === -1) break
-      merged.push(...JSON.parse(buf.slice(0, end)))
-      buf = buf.slice(end).trimStart()
+    for (const line of result.stdout.split('\n')) {
+      const t = line.trim()
+      if (!t) continue
+      merged.push(JSON.parse(t))
     }
     return merged
   } catch (e) {

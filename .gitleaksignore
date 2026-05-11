@@ -1,0 +1,8 @@
+# gitleaks Ignore-Liste — Fingerprints bekannter und akzeptierter Treffer.
+# Format: <commit>:<file>:<rule>:<line>
+#
+# WICHTIG: Eintraege hier dokumentieren, warum der Treffer akzeptiert wird,
+# und unter welchen Bedingungen er aufgehoben werden kann (z.B. nach
+# Rotation des betroffenen Secrets).
+#
+# Aktuell keine Eintraege.

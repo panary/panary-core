@@ -156,8 +156,17 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
     { resource: AppResource.ORGANIZATIONS, action: AppAction.READ },
     { resource: AppResource.TENANTS, action: AppAction.READ },
-    // Tenant-Settings: lesen (Anzeige im Settings-UI). Aktivieren bleibt PLATFORM_OWNER.
-    { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
+    // Tenant-Settings: TENANT_OWNER darf eigene Settings READ + CREATE + UPDATE.
+    // CREATE ist noetig, weil neue Tenants vor dem ersten Toggle kein Settings-
+    // Dokument haben — beim Aktivieren via UI legt das Frontend einen Datensatz
+    // an. Field-Allowlist im `restrictTenantPatch`-Hook (tenant-settings.ts)
+    // beschraenkt die mutierbaren Felder auf `aiExtraction.enabled`,
+    // `aiExtraction.autoMatchThreshold` und `aiExtraction.consentedAt` —
+    // Kosten-/Quotenfelder bleiben PLATFORM_OWNER-only.
+    {
+      resource: AppResource.TENANT_SETTINGS,
+      action: [AppAction.READ, AppAction.CREATE, AppAction.UPDATE],
+    },
     // KI-Wareneingang: Foto hochladen + Audit lesen.
     { resource: AppResource.INCOMING_GOODS_EXTRACT, action: AppAction.CREATE },
     { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT, action: AppAction.READ },

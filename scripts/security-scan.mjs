@@ -74,15 +74,31 @@ const runOsvScanner = () => {
     log(`${color.yellow}⚠ osv-scanner nicht installiert — bash scripts/install-security-tools.sh${color.reset}`)
     return []
   }
-  log(`${color.cyan}► osv-scanner …${color.reset}`)
+  // Lockfile-Discovery: prefer repo-local, fall back to workspace-root parent.
+  // panary-core and panary-cloud share a single pnpm-lock.yaml in _WORKBENCH_PANARY/.
+  const candidates = [
+    resolve(repoRoot, 'pnpm-lock.yaml'),
+    resolve(repoRoot, '..', 'pnpm-lock.yaml'),
+  ]
+  const lockfile = candidates.find(p => existsSync(p))
+  if (!lockfile) {
+    log(`${color.yellow}⚠ pnpm-lock.yaml nicht gefunden (gesucht: ${candidates.join(', ')})${color.reset}`)
+    return []
+  }
+  log(`${color.cyan}► osv-scanner (lockfile: ${lockfile.replace(repoRoot + '/', './').replace(repoRoot, '.')}) …${color.reset}`)
   const result = spawnSync('osv-scanner', [
-    '--lockfile=pnpm-lock.yaml',
+    `--lockfile=${lockfile}`,
     '--format=json',
     repoRoot,
   ], { encoding: 'utf8', maxBuffer: 1024 * 1024 * 64 })
-  // osv-scanner exits 1 when vulnerabilities are found — that's expected.
+  // Exit codes: 0=no vulns, 1=vulns found (expected), others=actual failure.
   if (result.status !== 0 && result.status !== 1) {
-    log(`${color.red}osv-scanner failed: ${(result.stderr || '').split('\n')[0]}${color.reset}`)
+    const errMsg = (result.stderr || '')
+      .split('\n')
+      .filter(l => l && !/^Scanning /.test(l))
+      .join(' | ')
+      .slice(0, 220)
+    log(`${color.red}osv-scanner exit ${result.status}: ${errMsg}${color.reset}`)
     return []
   }
   try {

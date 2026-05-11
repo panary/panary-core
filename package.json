@@ -27,7 +27,11 @@
     "docker:release": "bash tools/docker/build-edge.sh --push",
     "release": "bash tools/scripts/release-tag.sh --push",
     "release:edge": "bash tools/scripts/release-tag.sh --type edge --push",
-    "release:pos-client": "bash tools/scripts/release-tag.sh --type pos-client --push"
+    "release:pos-client": "bash tools/scripts/release-tag.sh --type pos-client --push",
+    "security:install": "bash scripts/install-security-tools.sh",
+    "security:scan": "node scripts/security-scan.mjs --mode=local",
+    "security:report": "node scripts/security-scan.mjs --mode=all --report",
+    "prepare": "lefthook install || true"
   },
   "private": true,
   "engines": {
@@ -90,6 +94,7 @@
     "eslint-config-prettier": "^10.0.0",
     "jsdom": "^27.1.0",
     "jsonc-eslint-parser": "^2.1.0",
+    "lefthook": "^1.13.7",
     "mocha": "^11.7.5",
     "ngx-echarts": "^21.0.0",
     "nodemon": "^3.1.11",

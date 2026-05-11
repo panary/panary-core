@@ -1,0 +1,22 @@
+# Lefthook configuration — security pre-commit / pre-push hooks.
+# https://lefthook.dev/
+#
+# After `pnpm install` the `prepare` script runs `lefthook install`, which
+# wires the hooks into .git/hooks/. To skip a hook ad-hoc:
+#   LEFTHOOK=0 git commit ...
+#   git commit --no-verify ...
+
+pre-commit:
+  parallel: true
+  commands:
+    gitleaks:
+      # Scans only staged content; fails the commit on any leak.
+      run: gitleaks protect --staged --redact --no-banner
+
+pre-push:
+  commands:
+    security-scan:
+      # Local SCA + secret scan. Only Critical findings block the push;
+      # High/Medium/Low get reported but allow the push, because the
+      # existing alert backlog is being worked off incrementally.
+      run: pnpm security:scan --mode=local --quiet --max-severity=critical

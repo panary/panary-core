@@ -1,0 +1,89 @@
+name: Security Scan
+
+on:
+  pull_request:
+  schedule:
+    - cron: '17 4 * * *' # nightly 04:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: read
+  pull-requests: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  osv-scanner:
+    name: osv-scanner (SCA)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google/osv-scanner-action/osv-scanner-action@v2.0.2
+        with:
+          scan-args: |-
+            --recursive
+            --skip-git
+            ./
+
+  gitleaks:
+    name: gitleaks (secrets)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  semgrep:
+    name: semgrep (SAST)
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: semgrep ci
+        run: |
+          semgrep ci \
+            --config=p/owasp-top-ten \
+            --config=p/typescript \
+            --config=p/javascript \
+            --config=p/secrets \
+            --error \
+            --metrics=off
+
+  alert-summary:
+    name: GitHub alert inventory (job summary)
+    runs-on: ubuntu-latest
+    needs: [osv-scanner, gitleaks, semgrep]
+    if: always()
+    permissions:
+      contents: read
+      security-events: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Render summary
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          summary=$GITHUB_STEP_SUMMARY
+          echo "## Security alert inventory (live from GitHub API)" >> "$summary"
+          echo "" >> "$summary"
+
+          echo "### Code-Scanning (open)" >> "$summary"
+          gh api --paginate "/repos/${GITHUB_REPOSITORY}/code-scanning/alerts?state=open&per_page=100" \
+            --jq '. | sort_by(.rule.security_severity_level // .rule.severity) | reverse
+                    | .[] | "- **\(.rule.security_severity_level // .rule.severity // "?")** \(.rule.id) — `\(.most_recent_instance.location.path):\(.most_recent_instance.location.start_line)` — [#\(.number)](\(.html_url))"' \
+            >> "$summary" 2>/dev/null || echo "_keine oder unzugaenglich_" >> "$summary"
+          echo "" >> "$summary"
+
+          echo "### Dependabot (open, sorted by CVSS)" >> "$summary"
+          gh api --paginate "/repos/${GITHUB_REPOSITORY}/dependabot/alerts?state=open&per_page=100" \
+            --jq '. | sort_by(.security_advisory.cvss.score // 0) | reverse
+                    | .[] | "- **\(.security_advisory.severity)** \(.dependency.package.name) (\(.security_vulnerability.vulnerable_version_range)) → fix \(.security_vulnerability.first_patched_version.identifier // "n/a") — [#\(.number)](\(.html_url))"' \
+            >> "$summary" 2>/dev/null || echo "_keine oder unzugaenglich_" >> "$summary"

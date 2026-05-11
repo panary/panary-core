@@ -124,7 +124,7 @@
     "@feathersjs/feathers": "^5.0.40",
     "@feathersjs/knex": "^5.0.40",
     "@feathersjs/koa": "^5.0.40",
-    "@feathersjs/mongodb": "^5.0.40",
+    "@feathersjs/mongodb": "^5.0.44",
     "@feathersjs/schema": "^5.0.40",
     "@feathersjs/socketio": "^5.0.40",
     "@feathersjs/transport-commons": "^5.0.40",

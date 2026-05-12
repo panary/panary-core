@@ -3,6 +3,11 @@ name: Build POS (Windows)
 on:
   workflow_dispatch:
 
+# Least-privilege: Workflow liest nur Quellcode und laedt Artefakte hoch
+# (upload-artifact braucht keine extra-Permissions). Kein Release-Push hier.
+permissions:
+  contents: read
+
 jobs:
   build-windows:
     runs-on: windows-latest

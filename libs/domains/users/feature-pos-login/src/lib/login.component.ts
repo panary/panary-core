@@ -260,7 +260,10 @@ export class LoginComponent implements OnInit {
       const usersService = this.connectionService.usersService as any
       const verifiedUser = await usersService.verifyPin({ userId: user._id, pin: this.pinInput() })
 
-      // Store logged in user
+      // Store logged in user — bewusst OHNE employeeNumber, weil diese als
+      // Sole-Credential fuer Time-Clock-Aktionen (PIN-Eingabe in
+      // time-clock-panel) dient und nicht im localStorage liegen soll.
+      // Konsumenten des pos_current_user lesen employeeNumber nirgends.
       localStorage.setItem(
         'pos_current_user',
         JSON.stringify({
@@ -268,7 +271,6 @@ export class LoginComponent implements OnInit {
           firstName: verifiedUser.firstName,
           lastName: verifiedUser.lastName,
           initials: user.initials,
-          employeeNumber: verifiedUser.employeeNumber,
           staffRole: verifiedUser.staffRole,
         }),
       )

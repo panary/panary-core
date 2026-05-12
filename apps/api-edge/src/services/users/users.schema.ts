@@ -3,6 +3,7 @@ import { resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 import { passwordHash } from '@feathersjs/authentication-local'
 import { uuidv7 } from 'uuidv7'
+import { randomInt } from 'node:crypto'
 import bcrypt from 'bcryptjs'
 import type { HookContext } from '../../declarations'
 import { dataValidator, queryValidator } from '@panary-core/shared-backend'
@@ -105,8 +106,9 @@ export const userDataResolver = resolve<User, HookContext<UserService>>({
     if (isFromSync(context)) return value
     if (value) return value // When a number has been sent, we accept it.
 
-    // Help function for 6-digit numbers
-    const generateNumber = () => String(Math.floor(100000 + Math.random() * 900000))
+    // Kryptografisch sichere 6-stellige Zahl — employeeNumber ist Sole-Credential
+    // fuer Time-Clock-Aktionen, daher kein Math.random() (vorhersagbar/seedbar).
+    const generateNumber = () => String(randomInt(100000, 1_000_000))
 
     let employeeNumber = generateNumber()
     let attempts = 0

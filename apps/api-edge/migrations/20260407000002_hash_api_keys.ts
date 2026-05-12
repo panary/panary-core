@@ -5,6 +5,10 @@ import { createHash } from 'node:crypto'
  * Migrationsskript: Bestehende Klartext-API-Keys zu SHA-256-Hashes migrieren.
  * Fuegt apikeyPrefix-Spalte hinzu und befuellt sie.
  * Einweg-Migration — Klartext-Keys koennen nicht wiederhergestellt werden.
+ *
+ * SHA-256 ist hier korrekt (kein Argon2/bcrypt): API-Keys sind hoch-entropische
+ * Maschinen-Credentials, kein Brute-Force-Risiko. Siehe ausfuehrliche
+ * Begruendung in apps/api-edge/src/utils/crypto.utils.ts.
  */
 export async function up(knex: Knex): Promise<void> {
   // 1. apikeyPrefix-Spalte anlegen (falls noch nicht vorhanden)
@@ -24,6 +28,7 @@ export async function up(knex: Knex): Promise<void> {
     if (key.apikey.length === 64 && /^[0-9a-f]+$/.test(key.apikey)) continue
 
     const prefix = key.apikey.slice(0, 8)
+    // lgtm[js/insufficient-password-hash]
     const hash = createHash('sha256').update(key.apikey).digest('hex')
     await knex('apikeys').where({ _id: key._id }).update({
       apikey: hash,

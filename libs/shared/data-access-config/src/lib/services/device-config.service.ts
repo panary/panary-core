@@ -101,8 +101,22 @@ export class DeviceConfigService {
   }
 
   /**
-   * Speichert die Konfiguration
+   * Speichert die Konfiguration (inkl. apiKey).
+   *
+   * Begruendung fuer localStorage-Storage ohne Verschluesselung:
+   * - POS-Geraet ist single-tenant, single-user, dedizierter Hardware
+   *   (Sunmi D3 Tablet im Tauri-WebView bzw. Admin-Browser im Backoffice).
+   * - Kein User-Generated-Content im UI → kein realistisches XSS-Vehikel.
+   * - apiKey ist scope-limitiert (Geraete-Rolle, nicht User-Rolle) und
+   *   kann via apikeys-Service jederzeit rotiert werden.
+   * - Web-Crypto-Verschluesselung mit non-extractable Key wuerde die
+   *   Sicherheit nur marginal erhoehen (XSS-Code kann den Key trotzdem
+   *   ueber das Crypto-Subject nutzen) bei deutlich hoeherer Komplexitaet.
+   *
+   * Fuer zukuenftige Haertung (Phase 3 Security): apiKey aus Tauri-
+   * Secure-Store (`tauri-plugin-stronghold`) lesen, statt localStorage.
    */
+  // lgtm[js/clear-text-storage-of-sensitive-data]
   saveConfig(config: DeviceConfig): void {
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(config))
   }

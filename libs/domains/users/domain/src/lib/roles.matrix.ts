@@ -151,6 +151,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.DEVICES, action: AppAction.MANAGE },
     { resource: AppResource.SHIFTS, action: AppAction.MANAGE },
+    { resource: AppResource.SHIFT_TEMPLATES, action: AppAction.MANAGE },
     { resource: AppResource.LEAVE_REQUESTS, action: AppAction.MANAGE },
     { resource: AppResource.LOCATIONS, action: AppAction.MANAGE },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
@@ -228,6 +229,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.DEVICES, action: AppAction.MANAGE },
     { resource: AppResource.SHIFTS, action: AppAction.MANAGE },
+    { resource: AppResource.SHIFT_TEMPLATES, action: AppAction.MANAGE },
     { resource: AppResource.LEAVE_REQUESTS, action: AppAction.MANAGE },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
     { resource: AppResource.TENANTS, action: AppAction.READ },
@@ -288,6 +290,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.BUSINESS_DAYS, action: AppAction.MANAGE },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.SHIFTS, action: AppAction.MANAGE },
+    { resource: AppResource.SHIFT_TEMPLATES, action: AppAction.MANAGE },
     { resource: AppResource.LEAVE_REQUESTS, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.LOCATIONS, action: AppAction.READ },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
@@ -330,6 +333,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.BUSINESS_DAYS, action: AppAction.READ },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE }, // eigene Prefs
     { resource: AppResource.SHIFTS, action: AppAction.READ },
+    { resource: AppResource.SHIFT_TEMPLATES, action: AppAction.READ },
     // STAFF: UPDATE wird benötigt, damit der eigene PENDING-Antrag in CANCELLED
     // überführt werden kann. Service-Hook `restrictPatchToManager` schränkt das
     // serverseitig auf die eigene Cancellation ein.

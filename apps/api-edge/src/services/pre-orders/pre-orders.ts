@@ -102,7 +102,6 @@ export const preOrders = (app: Application) => {
         remainingTime: 0,
         dailySequenceNumber: 0, // Wird von assignDailySequenceNumber überschrieben
         recordingDate: new Date().toISOString(),
-        externalId: null,
         payment: {
           state: PaymentState.PENDING,
           totalAmount: 0,

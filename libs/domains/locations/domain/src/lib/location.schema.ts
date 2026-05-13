@@ -145,6 +145,13 @@ export const locationSchema = Type.Object(
       city: Type.String({ minLength: 1 }),
       postalCode: Type.String({ minLength: 1 }),
       country: Type.String({ minLength: 1 }),
+      // ISO-3166-1-alpha-2 (z.B. 'DE', 'AT', 'CH'). Normalisierte Form
+      // neben dem Freitext-`country` — wird von der KI-Beleg-Extraktion
+      // genutzt, um sprach-/MwSt-/Keyword-spezifisches Country-Pack zu
+      // laden (`apps/api-cloud/src/lib/extraction-pipeline/country-packs/`).
+      // Backwards-compat: Optional, Default 'DE' wird im Service-Resolver
+      // gesetzt, damit Bestandskunden ohne Migration weiterarbeiten.
+      countryCode: Type.Optional(Type.String({ pattern: '^[A-Z]{2}$' })),
     }),
 
     currentBusinessDay: Type.Optional(
@@ -165,6 +172,19 @@ export const locationSchema = Type.Object(
     settings: Type.Optional(settingsSchema),
     status: Type.Optional(StringEnum(Object.values(LocationStatus))),
     website: Type.Optional(Type.Union([Type.String({ format: 'uri' }), Type.Literal('')])),
+
+    // BCP-47-Locale-Tag (z.B. 'de-DE', 'de-AT', 'de-CH'). Steuert die
+    // Prompt-Sprache der KI-Beleg-Extraktion. Bewusst getrennt von
+    // `address.countryCode`, weil eine Filiale in DE englischsprachige
+    // Beleg-Erkennung wollen kann (englisches Personal). Default in
+    // Service-Resolver: 'de-DE'.
+    locale: Type.Optional(Type.String()),
+
+    // Standard-Waehrung der Filiale als ISO-4217-Code (EUR, CHF, USD, …).
+    // Bewusst Top-Level statt in `address`, weil DACH-Konzerne in DE-
+    // Adressen mit CHF buchen koennen (Schweizer Mutter). Default in
+    // Service-Resolver: 'EUR'.
+    defaultCurrency: Type.Optional(Type.String({ pattern: '^[A-Z]{3}$' })),
   },
   { $id: 'Location', additionalProperties: false },
 )
@@ -175,7 +195,18 @@ export type Settings = Static<typeof settingsSchema>
 //#region Schema for creation (POST)
 export const locationDataSchema = Type.Pick(
   locationSchema,
-  ['name', 'address', 'tenantId', 'settings', 'email', 'phone', 'website', 'status'],
+  [
+    'name',
+    'address',
+    'tenantId',
+    'settings',
+    'email',
+    'phone',
+    'website',
+    'status',
+    'locale',
+    'defaultCurrency',
+  ],
   {
     $id: 'LocationData',
     additionalProperties: false,

@@ -113,6 +113,12 @@ export const userSchema = Type.Object(
 
     startBreakAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
     permissions: Type.Array(Type.String(), { default: [] }),
+
+    // HR: Urlaubsanspruch pro Jahr in Werktagen. Optional — wenn nicht gesetzt,
+    // wird die Anspruchsberechnung im Frontend ausgeblendet ("Kein Anspruch
+    // konfiguriert"). Wert gilt für den aktuellen Vertrag; Carry-over aus dem
+    // Vorjahr und vertragsspezifische Anpassungen sind in v1 nicht abgebildet.
+    vacationDaysPerYear: Type.Optional(Type.Number({ minimum: 0, maximum: 60 })),
   },
   { $id: 'User', additionalProperties: false },
 )
@@ -153,6 +159,7 @@ export const userDataSchema = Type.Intersect(
         'stampingId',
         'startBreakAt',
         'status',
+        'vacationDaysPerYear',
       ]),
     ),
     // posPin als Klartext-Constraint (4-6 Ziffern) — wird vom userDataResolver

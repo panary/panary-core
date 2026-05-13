@@ -330,7 +330,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.BUSINESS_DAYS, action: AppAction.READ },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE }, // eigene Prefs
     { resource: AppResource.SHIFTS, action: AppAction.READ },
-    { resource: AppResource.LEAVE_REQUESTS, action: [AppAction.READ, AppAction.CREATE] },
+    // STAFF: UPDATE wird benötigt, damit der eigene PENDING-Antrag in CANCELLED
+    // überführt werden kann. Service-Hook `restrictPatchToManager` schränkt das
+    // serverseitig auf die eigene Cancellation ein.
+    { resource: AppResource.LEAVE_REQUESTS, action: [AppAction.READ, AppAction.CREATE, AppAction.UPDATE] },
     { resource: AppResource.LOCATIONS, action: AppAction.READ },
     { resource: AppResource.ORDER_INTERACTIONS, action: [AppAction.READ, AppAction.CREATE] },
     { resource: AppResource.TENANTS, action: AppAction.READ },

@@ -152,6 +152,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.DEVICES, action: AppAction.MANAGE },
     { resource: AppResource.SHIFTS, action: AppAction.MANAGE },
     { resource: AppResource.SHIFT_TEMPLATES, action: AppAction.MANAGE },
+    { resource: AppResource.SHIFT_SWAP_REQUESTS, action: AppAction.MANAGE },
+    { resource: AppResource.OPEN_SHIFT_APPLICATIONS, action: AppAction.MANAGE },
     { resource: AppResource.LEAVE_REQUESTS, action: AppAction.MANAGE },
     { resource: AppResource.LOCATIONS, action: AppAction.MANAGE },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
@@ -230,6 +232,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.DEVICES, action: AppAction.MANAGE },
     { resource: AppResource.SHIFTS, action: AppAction.MANAGE },
     { resource: AppResource.SHIFT_TEMPLATES, action: AppAction.MANAGE },
+    { resource: AppResource.SHIFT_SWAP_REQUESTS, action: AppAction.MANAGE },
+    { resource: AppResource.OPEN_SHIFT_APPLICATIONS, action: AppAction.MANAGE },
     { resource: AppResource.LEAVE_REQUESTS, action: AppAction.MANAGE },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
     { resource: AppResource.TENANTS, action: AppAction.READ },
@@ -291,6 +295,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.SHIFTS, action: AppAction.MANAGE },
     { resource: AppResource.SHIFT_TEMPLATES, action: AppAction.MANAGE },
+    { resource: AppResource.SHIFT_SWAP_REQUESTS, action: AppAction.MANAGE },
+    { resource: AppResource.OPEN_SHIFT_APPLICATIONS, action: AppAction.MANAGE },
     { resource: AppResource.LEAVE_REQUESTS, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.LOCATIONS, action: AppAction.READ },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
@@ -334,6 +340,11 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE }, // eigene Prefs
     { resource: AppResource.SHIFTS, action: AppAction.READ },
     { resource: AppResource.SHIFT_TEMPLATES, action: AppAction.READ },
+    // STAFF: READ alle Swaps, CREATE eigene, UPDATE für Übernahme/Cancel.
+    // Backend-Hook restrictSwapPatchForStaff erzwingt Self-Scope serverseitig.
+    { resource: AppResource.SHIFT_SWAP_REQUESTS, action: [AppAction.READ, AppAction.CREATE, AppAction.UPDATE] },
+    // STAFF: READ eigene Bewerbungen + CREATE neue + UPDATE für Self-Cancel.
+    { resource: AppResource.OPEN_SHIFT_APPLICATIONS, action: [AppAction.READ, AppAction.CREATE, AppAction.UPDATE] },
     // STAFF: UPDATE wird benötigt, damit der eigene PENDING-Antrag in CANCELLED
     // überführt werden kann. Service-Hook `restrictPatchToManager` schränkt das
     // serverseitig auf die eigene Cancellation ein.

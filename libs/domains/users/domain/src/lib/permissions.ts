@@ -59,6 +59,8 @@ export const AppResource = {
   DEVICES: 'devices',
   SHIFTS: 'shifts',
   SHIFT_TEMPLATES: 'shift-templates',
+  SHIFT_SWAP_REQUESTS: 'shift-swap-requests',
+  OPEN_SHIFT_APPLICATIONS: 'open-shift-applications',
   LEAVE_REQUESTS: 'leave-requests',
   ORGANIZATIONS: 'organizations',
 

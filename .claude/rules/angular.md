@@ -39,6 +39,51 @@ constructor() {
 
 RxJS ist weiterhin für HTTP, komplexe async-Ströme und `toSignal()` / `toObservable()` legitim.
 
+### 2.1 `effect()` + async-Aufruf — Pflicht-`untracked()`
+
+> **Jeder async-Aufruf innerhalb eines `effect()` muss in `untracked()` gewrappt sein, wenn er Signals liest/schreibt.**
+
+Anti-Pattern (führt zu Endlos-Loop):
+
+```typescript
+effect(() => {
+  if (this.isAuthenticated()) {
+    void this.store.refresh()  // refresh() liest isLoading() vor erstem await
+                                // → Read landet im Effect-Tracking-Scope.
+                                // refresh() setzt isLoading.set(true)
+                                // → Effect läuft erneut → permanente API-Calls.
+  }
+})
+```
+
+Korrektes Pattern:
+
+```typescript
+import { effect, untracked } from '@angular/core'
+
+effect(() => {
+  if (this.isAuthenticated()) {
+    untracked(() => void this.store.refresh())
+  }
+})
+```
+
+Wenn der Effect bewusst auf ein Signal reagieren soll (z. B. `input()`-Änderung), Read **vor** dem `untracked()` machen:
+
+```typescript
+effect(() => {
+  const id = this.userId()           // bewusst getrackt
+  untracked(() => this.loadUser(id)) // Body NICHT getrackt
+})
+```
+
+**Wann untracked()?**
+- Immer wenn der Effect-Body eine async-Methode mit `void this.x()` oder `await this.x()` aufruft, die intern Signal-State manipuliert
+- Bei Service-Lookups via `signal-getter()`, die in der async-Methode VOR dem ersten `await` stehen
+- Bei Unsicherheit: defensiv setzen — kein Performance-Nachteil, schützt vor Loop
+
+**Symptom-Erkennung:** Wenn das Backend-Log permanent `GET /xxx` im Sekunden-Takt zeigt → Effect-Loop in einer Frontend-Komponente.
+
 ---
 
 ## 3. Inputs & Outputs (Signal-APIs)
@@ -119,7 +164,12 @@ export class MyComponent {
   fullName = computed(() => `${this.user()?.firstName} ${this.user()?.lastName}`)
 
   constructor() {
-    effect(() => this.loadUser(this.userId()))
+    // userId() bewusst getrackt; loadUser-Body via untracked() entkoppelt
+    // (siehe §2.1) — verhindert Endlos-Loop falls loadUser intern Signals setzt.
+    effect(() => {
+      const id = this.userId()
+      untracked(() => this.loadUser(id))
+    })
   }
 
   private async loadUser(id: string) {
@@ -189,9 +239,13 @@ form = new FormGroup({
 `implements OnInit` nur bei Bedarf. Logik bevorzugt im Constructor oder bei der Feld-Initialisierung:
 
 ```typescript
-// Bevorzugt: Initialisierung via effect() im constructor
+// Bevorzugt: Initialisierung via effect() im constructor.
+// id() bewusst getrackt; load-Body in untracked() (siehe §2.1).
 constructor() {
-  effect(() => this.load(this.id()))
+  effect(() => {
+    const id = this.id()
+    untracked(() => this.load(id))
+  })
 }
 
 // Nur wenn notwendig: ngOnInit

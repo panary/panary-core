@@ -2,6 +2,7 @@ import { uuidv7 } from 'uuidv7'
 
 import { SyncableTransactionService } from '@panary-core/edge-pairing/domain'
 import { SyncOp, SyncSource } from '@panary-core/sync/domain'
+import { isSyncPushBlockedRole } from '@panary-core/users/domain'
 import { logger } from '@panary-core/shared-backend'
 
 import type { HookContext, NextHook } from '../declarations'
@@ -39,9 +40,19 @@ export const recordSyncOutbox = async (context: HookContext, _next: NextHook) =>
   // Eintraege aus dem Sync-Outbox-Service selbst NIEMALS rekursiv aufnehmen.
   if (context.path === 'sync-outbox') return context
 
-  const result = context.result as { _id?: string } | undefined
+  const result = context.result as { _id?: string; role?: string } | undefined
   const entityId = (op === SyncOp.REMOVE ? context.id : result?._id) as string | undefined
   if (!entityId) return context
+
+  // Cloud-Sync-Receiver lehnt Users mit privilegierten Rollen
+  // (`platform:*`, `tenant:owner`) explizit ab — diese werden in der Cloud
+  // eigenstaendig verwaltet (Owner-Konflikt-Risiko, Platform-Bypass-Risiko).
+  // Ohne Edge-Filter wuerden die Records dauerhaft im `rejected`-Zustand
+  // landen und Operator-Telemetrie verrauschen. Defense-in-Depth: Cloud bleibt
+  // die zweite Verteidigungslinie.
+  if (context.path === 'users' && op !== SyncOp.REMOVE && isSyncPushBlockedRole(result?.role)) {
+    return context
+  }
 
   const syncSource = (context.params as any)?.syncSource ?? SyncSource.LIVE
   const occurredAt = (result as any)?.updatedAt ?? new Date().toISOString()

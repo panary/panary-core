@@ -62,6 +62,7 @@ export const AppResource = {
   SHIFT_SWAP_REQUESTS: 'shift-swap-requests',
   OPEN_SHIFT_APPLICATIONS: 'open-shift-applications',
   LEAVE_REQUESTS: 'leave-requests',
+  HOLIDAY_CALENDARS: 'holiday-calendars',
   ORGANIZATIONS: 'organizations',
 
   // Plattform-Verwaltungs-Ressourcen (nur Cloud)

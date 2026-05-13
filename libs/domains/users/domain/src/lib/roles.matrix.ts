@@ -155,6 +155,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.SHIFT_SWAP_REQUESTS, action: AppAction.MANAGE },
     { resource: AppResource.OPEN_SHIFT_APPLICATIONS, action: AppAction.MANAGE },
     { resource: AppResource.LEAVE_REQUESTS, action: AppAction.MANAGE },
+    { resource: AppResource.HOLIDAY_CALENDARS, action: AppAction.MANAGE },
     { resource: AppResource.LOCATIONS, action: AppAction.MANAGE },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
     { resource: AppResource.ORGANIZATIONS, action: AppAction.READ },
@@ -235,6 +236,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.SHIFT_SWAP_REQUESTS, action: AppAction.MANAGE },
     { resource: AppResource.OPEN_SHIFT_APPLICATIONS, action: AppAction.MANAGE },
     { resource: AppResource.LEAVE_REQUESTS, action: AppAction.MANAGE },
+    { resource: AppResource.HOLIDAY_CALENDARS, action: AppAction.MANAGE },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
     { resource: AppResource.TENANTS, action: AppAction.READ },
     // Tenant-Settings + KI-Wareneingang: Techniker hat Manager-aequivalente Rechte.
@@ -298,6 +300,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.SHIFT_SWAP_REQUESTS, action: AppAction.MANAGE },
     { resource: AppResource.OPEN_SHIFT_APPLICATIONS, action: AppAction.MANAGE },
     { resource: AppResource.LEAVE_REQUESTS, action: [AppAction.READ, AppAction.UPDATE] },
+    { resource: AppResource.HOLIDAY_CALENDARS, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.LOCATIONS, action: AppAction.READ },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
     { resource: AppResource.TENANTS, action: AppAction.READ },
@@ -349,6 +352,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // überführt werden kann. Service-Hook `restrictPatchToManager` schränkt das
     // serverseitig auf die eigene Cancellation ein.
     { resource: AppResource.LEAVE_REQUESTS, action: [AppAction.READ, AppAction.CREATE, AppAction.UPDATE] },
+    // STAFF darf lesen, welche Tage Feiertage sind — fuer eigene Urlaubsantraege
+    // und die Personalzeit-Sicht. Editieren bleibt MANAGER/OWNER.
+    { resource: AppResource.HOLIDAY_CALENDARS, action: AppAction.READ },
     { resource: AppResource.LOCATIONS, action: AppAction.READ },
     { resource: AppResource.ORDER_INTERACTIONS, action: [AppAction.READ, AppAction.CREATE] },
     { resource: AppResource.TENANTS, action: AppAction.READ },

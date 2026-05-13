@@ -297,12 +297,17 @@ const runPush = async (app: Application, connection: CloudConnection): Promise<n
   if (!cloudToken) return 0
   const entries = await fetchPendingOutbox(app)
   if (entries.length === 0) return 0
+  // Knex serialisiert Objekte beim Insert in die SQLite-TEXT-Spalte `payload`
+  // automatisch als JSON-String, parsed beim Select aber nicht zurueck.
+  // Ohne diesen Parse-Schritt schickt der Worker den rohen JSON-String an die
+  // Cloud, dort verteilt `{...string}` den String zeichenweise und AJV lehnt
+  // alle Ops mit "must have required property '<field>'" ab.
   const ops: SyncOpEntry[] = entries.map(e => ({
     _id: e._id,
     service: e.service,
     op: e.op,
     entityId: e.entityId,
-    payload: e.payload,
+    payload: typeof e.payload === 'string' ? JSON.parse(e.payload) : e.payload,
     occurredAt: e.occurredAt,
     syncSource: e.syncSource,
   }))

@@ -33,6 +33,45 @@ export const DiscountType = {
 } as const
 
 /**
+ * Vertragstyp eines Mitarbeiters. Wird vom Soll-/Ist-Vergleich in der
+ * Personalzeit-Statistik und perspektivisch vom Stundenkonto im POS-Edge
+ * gelesen. Werte sind UI-agnostisch (Anzeige-Labels in der Cloud-Admin-UI).
+ */
+export const ContractType = {
+  FULLTIME: 'FULLTIME',
+  PARTTIME: 'PARTTIME',
+  MINIJOB: 'MINIJOB',
+  SEASONAL: 'SEASONAL',
+} as const
+export type ContractType = (typeof ContractType)[keyof typeof ContractType]
+
+/**
+ * Vertrags-Sub-Schema. Wird als optionales Feld `contract` in `userSchema`
+ * eingebettet und unten als `UserContract`-Typ re-exportiert, damit Konsumenten
+ * (Soll-/Ist-Berechnung in panary-cloud, Stundenkonto im POS-Edge) das Modell
+ * isoliert importieren koennen.
+ */
+export const userContractSchema = Type.Object({
+  contractType: StringEnum(Object.values(ContractType)),
+  /** Vertragliche Wochenstunden (0–60). Vollzeit typisch 40. */
+  hoursPerWeek: Type.Number({ minimum: 0, maximum: 60 }),
+  /**
+   * Tagesplan in Stunden je Wochentag — Reihenfolge Mo, Di, Mi, Do, Fr, Sa, So.
+   * Wenn gesetzt, ist der Tagesplan verbindlich; sonst wird hoursPerWeek/5 auf
+   * Mo–Fr verteilt (Wochenende = 0). Beispiele:
+   *   [8, 8, 8, 8, 8, 0, 0] — Vollzeit klassisch
+   *   [8, 8, 0, 8, 4, 0, 0] — Teilzeit (Mi frei, Fr halb)
+   *   [6, 6, 6, 6, 6, 6, 0] — 36h-Woche Mo–Sa
+   */
+  targetHoursPerDay: Type.Optional(
+    Type.Array(Type.Number({ minimum: 0, maximum: 24 }), { minItems: 7, maxItems: 7 }),
+  ),
+  contractStartDate: Type.Optional(Type.String({ format: 'date' })),
+  contractEndDate: Type.Optional(Type.String({ format: 'date' })),
+})
+export type UserContract = Static<typeof userContractSchema>
+
+/**
  * User-Rollen, die NIEMALS via Edge→Cloud-Sync gepusht werden duerfen.
  *
  * - `platform:*` sind Cloud-interne Identitaeten mit Tenant-Bypass — ein
@@ -119,6 +158,12 @@ export const userSchema = Type.Object(
     // konfiguriert"). Wert gilt für den aktuellen Vertrag; Carry-over aus dem
     // Vorjahr und vertragsspezifische Anpassungen sind in v1 nicht abgebildet.
     vacationDaysPerYear: Type.Optional(Type.Number({ minimum: 0, maximum: 60 })),
+
+    // HR: Vertragsdaten — Single Source of Truth fuer Soll-/Ist-Vergleich
+    // (Cloud-Admin-Personalzeitstatistik) und perspektivisch Stundenkonto im
+    // POS-Edge. Optional: bestehende Tenants laufen ohne Vertragsmodell weiter,
+    // in der Stats-UI erscheint dann "—" in der Soll-Spalte.
+    contract: Type.Optional(userContractSchema),
   },
   { $id: 'User', additionalProperties: false },
 )
@@ -160,6 +205,7 @@ export const userDataSchema = Type.Intersect(
         'startBreakAt',
         'status',
         'vacationDaysPerYear',
+        'contract',
       ]),
     ),
     // posPin als Klartext-Constraint (4-6 Ziffern) — wird vom userDataResolver

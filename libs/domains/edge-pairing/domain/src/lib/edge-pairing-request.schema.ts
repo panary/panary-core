@@ -30,6 +30,12 @@ export const SyncableTransactionService = {
   // Tenant-Audit-Trail: Edge ist Schreiber, Cloud ist Source-of-Truth
   // (10-Jahres-Aufbewahrung, GoBD). Append-only auf beiden Seiten.
   AUDIT_EVENTS: 'audit-events',
+  // Users werden zusaetzlich zur Master-Data-Pull-Pipeline auch live als
+  // transactional Push propagiert — z.B. posPin-Wechsel im POS-Client soll
+  // ohne Wartezeit auf den naechsten Master-Pull in der Cloud landen. Cloud
+  // filtert sicherheitskritische Rollen ueber SYNC_PUSH_BLOCKED_USER_ROLES
+  // (siehe acceptOps in apps/api-cloud/src/services/sync/sync.ts).
+  USERS: 'users',
 } as const
 
 export type SyncableTransactionService =

@@ -1,5 +1,6 @@
 import { uuidv7 } from 'uuidv7'
 
+import { SyncableTransactionService } from '@panary-core/edge-pairing/domain'
 import { SyncOp, SyncSource } from '@panary-core/sync/domain'
 import { logger } from '@panary-core/shared-backend'
 
@@ -11,13 +12,12 @@ import type { HookContext, NextHook } from '../declarations'
 // zur Cloud — sonst wuerde der naechste Pull-Cycle den alten Cloud-Hash
 // zurueckholen und die lokale Aenderung ueberschreiben. Self-Skip im
 // Audit-Recorder verhindert Loops.
-const TRANSACTION_PATHS = new Set<string>([
-  'orders',
-  'order-interactions',
-  'working-times',
-  'audit-events',
-  'users',
-])
+//
+// Quelle: `SyncableTransactionService`-Enum in @panary-core/edge-pairing/domain.
+// Single Source of Truth — die Cloud baut ihre TRANSACTION_ALLOWLIST aus
+// demselben Enum. Drift hier waere Ursache fuer "Service X ist im push-Pfad
+// nicht erlaubt"-Rejects (siehe Sync-Push Allowlist-Check in der Cloud).
+const TRANSACTION_PATHS = new Set<string>(Object.values(SyncableTransactionService))
 
 const METHOD_TO_OP: Record<string, SyncOp | undefined> = {
   create: SyncOp.CREATE,

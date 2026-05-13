@@ -156,6 +156,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.OPEN_SHIFT_APPLICATIONS, action: AppAction.MANAGE },
     { resource: AppResource.LEAVE_REQUESTS, action: AppAction.MANAGE },
     { resource: AppResource.HOLIDAY_CALENDARS, action: AppAction.MANAGE },
+    { resource: AppResource.WORKING_TIME_REPORTS, action: AppAction.CREATE },
     { resource: AppResource.LOCATIONS, action: AppAction.MANAGE },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
     { resource: AppResource.ORGANIZATIONS, action: AppAction.READ },
@@ -237,6 +238,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.OPEN_SHIFT_APPLICATIONS, action: AppAction.MANAGE },
     { resource: AppResource.LEAVE_REQUESTS, action: AppAction.MANAGE },
     { resource: AppResource.HOLIDAY_CALENDARS, action: AppAction.MANAGE },
+    { resource: AppResource.WORKING_TIME_REPORTS, action: AppAction.CREATE },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
     { resource: AppResource.TENANTS, action: AppAction.READ },
     // Tenant-Settings + KI-Wareneingang: Techniker hat Manager-aequivalente Rechte.
@@ -301,6 +303,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.OPEN_SHIFT_APPLICATIONS, action: AppAction.MANAGE },
     { resource: AppResource.LEAVE_REQUESTS, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.HOLIDAY_CALENDARS, action: [AppAction.READ, AppAction.UPDATE] },
+    { resource: AppResource.WORKING_TIME_REPORTS, action: AppAction.CREATE },
     { resource: AppResource.LOCATIONS, action: AppAction.READ },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
     { resource: AppResource.TENANTS, action: AppAction.READ },

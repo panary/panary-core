@@ -63,6 +63,8 @@ export const AppResource = {
   OPEN_SHIFT_APPLICATIONS: 'open-shift-applications',
   LEAVE_REQUESTS: 'leave-requests',
   HOLIDAY_CALENDARS: 'holiday-calendars',
+  /** Cloud-only: PDF-Reports der Personalzeit (Stats-Uebersicht + Lohnkonto). */
+  WORKING_TIME_REPORTS: 'working-time-reports',
   ORGANIZATIONS: 'organizations',
 
   // Plattform-Verwaltungs-Ressourcen (nur Cloud)

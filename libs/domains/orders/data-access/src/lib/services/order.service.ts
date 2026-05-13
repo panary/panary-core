@@ -237,7 +237,6 @@ export class OrderService extends BaseService<Order> {
     const businessDayId = this.#locationService.activeLocation()?.currentBusinessDay?.businessDayId
 
     const order: Omit<Order, '_id' | 'locationId' | 'tenantId'> = {
-      externalId: null,
       status: OrderStatus.ACTIVE,
       businessDayId: businessDayId,
       orderChannel: orderChanel,

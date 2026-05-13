@@ -153,7 +153,11 @@ export const orderSchema = Type.Object(
   {
     ...baseSchema,
     _id: Type.String({ format: 'uuid' }), // Override baseSchema ObjectId
-    externalId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
+    // externalId bewusst NICHT im Order-Schema: anders als bei Stamm-Daten
+    // (products/ingredients/customers) gibt es keinen Use-Case fuer eine
+    // externe Order-ID. Der `_id` (uuidv7) ist die einzige Order-Identitaet.
+    // LineItem.externalId (genericLineItemSchema oben) bleibt — das ist die
+    // Cross-Reference auf das verlinkte Produkt im Katalog.
 
     status: StringEnum(Object.values(OrderStatus)),
     businessDayId: Type.Optional(Type.String({ format: 'uuid' })), // Was ObjectId, now optional for Standalone mode
@@ -204,7 +208,6 @@ export const orderDataSchema = Type.Intersect(
     Type.Pick(
       orderSchema,
       [
-        'externalId',
         'locationId',
         'tenantId',
         'createdAt',

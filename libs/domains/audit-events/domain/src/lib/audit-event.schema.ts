@@ -94,9 +94,17 @@ export type AuditEvent = Static<typeof auditEventSchema>
 //#endregion
 
 //#region Erstellungs-Schema (intern: nur via provider:undefined)
-export const auditEventDataSchema = Type.Omit(auditEventSchema, ['createdAt', 'updatedAt'], {
-  $id: 'AuditEventData',
-})
+// `createdAt`/`updatedAt` bleiben bewusst im Schema enthalten (sie sind im
+// baseSchema bereits `Type.Optional`). Grund: beim Sync-Push uebertraegt der
+// Edge die Erstellungs-/Update-Zeit des Audit-Events mit, damit die Cloud
+// (Source-of-Truth fuer GoBD) den exakten Edge-Zeitpunkt persistiert. Ohne
+// diese Felder lehnte AJV mit "must NOT have additional properties
+// (createdAt)" ab, weil `additionalProperties: false` auf dem Schema aktiv
+// ist.
+export const auditEventDataSchema = Type.Object(
+  { ...auditEventSchema.properties },
+  { $id: 'AuditEventData', additionalProperties: false },
+)
 
 export type AuditEventData = Static<typeof auditEventDataSchema>
 //#endregion

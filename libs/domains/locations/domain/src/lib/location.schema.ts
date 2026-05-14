@@ -167,6 +167,13 @@ export const locationSchema = Type.Object(
     // selbst erlaubt nur `undefined`, daher die Union mit `Literal('')`.
     email: Type.Optional(Type.Union([Type.String({ format: 'email' }), Type.Literal('')])),
     name: Type.String(),
+    /**
+     * @deprecated Phase 7 (Tenant-First-Class-Migration): Der Anzeige-Name
+     * lebt jetzt am Tenant-Doc (`tenants.name` in panary-cloud). Dieses Feld
+     * bleibt im Schema fuer Edge-Sync-Rueckwaertskompatibilitaet, wird aber
+     * nicht mehr aktiv gepflegt. Wird in einer Folge-Migration komplett
+     * entfernt, sobald alle Edge-Instanzen das neue Schema kennen.
+     */
     organizationName: Type.Optional(Type.String()),
     phone: Type.Optional(Type.String()),
     settings: Type.Optional(settingsSchema),
@@ -235,12 +242,17 @@ export type LocationPatch = Static<typeof locationPatchSchema>
 
 //#region Schema for search queries (query)
 export const locationQueryProperties = Type.Pick(locationSchema, ['_id', 'name', 'tenantId', 'currentBusinessDay'])
-export const locationQuerySchema = Type.Intersect(
-  [
-    querySyntax(locationQueryProperties),
-    // Add additional query properties
-    Type.Object({}, { additionalProperties: false }),
-  ],
+// `$or` wird über Property-Spread an die `querySyntax`-Ausgabe gehängt — die
+// Intersect-Variante mit zusätzlichem `Type.Object({$or})` produzierte unter
+// TS 6.x ein "type instantiation is excessively deep" (TS2589) im
+// `getValidator`-Konsumer. Flat-Object ist semantisch identisch und unter
+// dem Tiefen-Limit. AJV validiert `$or`-Items ohnehin lose, daher `Type.Any()`.
+const _locationQueryBase = querySyntax(locationQueryProperties)
+export const locationQuerySchema = Type.Object(
+  {
+    ..._locationQueryBase.properties,
+    $or: Type.Optional(Type.Array(Type.Any())),
+  },
   { additionalProperties: false },
 )
 export type LocationQuery = Static<typeof locationQuerySchema>

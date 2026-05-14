@@ -80,6 +80,17 @@ export const AppResource = {
    *  TENANT_MANAGER (READ). */
   FRAUD_ANALYTICS: 'fraud-analytics',
 
+  /** Cloud-only: Konfigurierbare Schwellen fuer die Stornoanalyse. CRUD-Service
+   *  unter `/fraud-alert-rules`. Owner darf MANAGE, Manager nur READ — Rules
+   *  sind sensitive Konfig. Pro Filiale (`locationId`) ODER tenant-weit
+   *  (`locationId: null`) gesetzt. */
+  FRAUD_ALERT_RULES: 'fraud-alert-rules',
+
+  /** Cloud-only: Append-only Alert-Records, erzeugt durch `evaluateFraudRules()`
+   *  nach Sync-Push. Owner und Manager duerfen READ + UPDATE (Acknowledge);
+   *  CREATE/DELETE bleibt internal. */
+  FRAUD_ALERTS: 'fraud-alerts',
+
   /** Cloud-only: Plan-Katalog (Subscription-Plans). Globale Stammdaten — alle
    *  authentifizierten User lesen, Schreiben nur PLATFORM_*. */
   SUBSCRIPTION_PLANS: 'subscription-plans',

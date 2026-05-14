@@ -25,6 +25,13 @@ export const NotificationEventType = {
 
   ORDER_CREATED: 'order.created',
   ORDER_STATUS_CHANGED: 'order.status_changed',
+
+  /**
+   * Stornoanalyse: Mitarbeiter hat eine konfigurierte Storno-Schwelle ueberschritten.
+   * Adressat: TENANT_OWNER + TENANT_MANAGER der betroffenen Location.
+   * Erzeugt durch `evaluateFraudRules()` nach Sync-Push.
+   */
+  FRAUD_ALERT_TRIGGERED: 'fraud.alert_triggered',
 } as const
 
 export type NotificationEventType = (typeof NotificationEventType)[keyof typeof NotificationEventType]
@@ -122,6 +129,15 @@ export const NOTIFICATION_EVENT_META: Record<NotificationEventType, Notification
   [NotificationEventType.ORDER_STATUS_CHANGED]: {
     category: NotificationCategory.ORDERS,
     label: 'Bestellstatus geändert',
+    defaults: { inApp: true, email: false, push: false },
+  },
+  [NotificationEventType.FRAUD_ALERT_TRIGGERED]: {
+    // Bewusst in der ORDERS-Kategorie — die Preferences-Page gruppiert
+    // tenant-weit, nicht filial-spezifisch. Spaeter ggf. eigene Kategorie
+    // 'security'. Default: nur In-App, weil Stornoanalyse-Alerts
+    // chronisch sein koennen und E-Mail/Push spammig waeren.
+    category: NotificationCategory.ORDERS,
+    label: 'Storno-Schwellenwert ueberschritten',
     defaults: { inApp: true, email: false, push: false },
   },
 }

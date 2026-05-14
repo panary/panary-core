@@ -18,6 +18,7 @@ import {
 import type { Application } from '../../declarations'
 import { authorize } from '@panary-core/shared-backend'
 import { multiTenancy } from '@panary-core/shared-backend'
+import { cloudManaged } from '../../hooks/cloud-managed.hook'
 import { createServiceAdapter } from '@panary-core/shared/data-access/server'
 import { DatabaseType } from '@panary-core/shared-common'
 import {
@@ -99,6 +100,10 @@ export const locations = (app: Application) => {
       all: [
         authenticate('jwt'),
         authorize(),
+        // cloudManaged() vor multiTenancy: externe Writes blocken, sobald die
+        // Edge gepaart ist. Source of Truth fuer Standort-Settings ist die
+        // Cloud — siehe documentation/standort-einstellungen.md.
+        cloudManaged(),
         multiTenancy({ isolateLocation: false }),
 
         schemaHooks.resolveExternal(locationExternalResolver),

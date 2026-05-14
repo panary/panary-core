@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { RouterLink } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { formatApiError } from '../../core/error-helper'
@@ -26,7 +27,7 @@ interface HourException {
 @Component({
   selector: 'app-opening-hours',
   standalone: true,
-  imports: [FormsModule, TranslateModule],
+  imports: [FormsModule, TranslateModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6 max-w-2xl space-y-6 h-full overflow-y-auto">
@@ -39,8 +40,30 @@ interface HourException {
         <p class="text-slate-400 dark:text-gray-500">{{ 'COMMON.LOADING' | translate }}</p>
       } @else {
 
+        @if (cloudManaged()) {
+          <!-- Cloud verwaltet die Standort-Settings — Edge ist read-only. Banner
+               schaltet die Auto-Save-Logik visuell ab und verlinkt in die
+               Cloud-Connection-Seite, falls der User das Pairing inspizieren
+               möchte. -->
+          <div class="flex gap-3 items-start border border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/30 rounded-xl p-4">
+            <i class="ph ph-cloud-arrow-down text-amber-600 dark:text-amber-400 text-xl shrink-0 mt-0.5" aria-hidden="true"></i>
+            <div class="text-sm">
+              <p class="font-medium text-amber-900 dark:text-amber-100">
+                Diese Filiale wird in der Cloud verwaltet.
+              </p>
+              <p class="text-amber-800 dark:text-amber-200 mt-1">
+                Öffnungszeiten und weitere Standort-Einstellungen können nur in der Cloud-Admin-Oberfläche
+                geändert werden. Aktualisierungen erscheinen automatisch nach dem nächsten Sync-Zyklus.
+                <a routerLink="/cloud" class="underline hover:no-underline">Sync-Status anzeigen</a>
+              </p>
+            </div>
+          </div>
+        }
+
         <!-- Toggle -->
-        <div class="flex items-center justify-between border border-slate-200 dark:border-gray-800 rounded-xl p-4">
+        <div class="flex items-center justify-between border border-slate-200 dark:border-gray-800 rounded-xl p-4"
+             [class.opacity-60]="cloudManaged()"
+             [class.pointer-events-none]="cloudManaged()">
           <div>
             <p class="text-sm font-medium text-slate-900 dark:text-white">{{ 'OPENING_HOURS.ENABLED' | translate }}</p>
             <p class="text-xs text-slate-400 dark:text-gray-500 mt-0.5">{{ 'OPENING_HOURS.ENABLED_HINT' | translate }}</p>
@@ -56,7 +79,9 @@ interface HourException {
         </div>
 
         <!-- Reguläre Öffnungszeiten -->
-        <div class="border border-slate-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
+        <div class="border border-slate-200 dark:border-gray-800 rounded-xl p-4 space-y-3"
+             [class.opacity-60]="cloudManaged()"
+             [class.pointer-events-none]="cloudManaged()">
           <span class="${LABEL}">{{ 'OPENING_HOURS.REGULAR' | translate }}</span>
 
           @for (hour of regular; track hour.day) {
@@ -88,7 +113,9 @@ interface HourException {
         </div>
 
         <!-- Ausnahmen -->
-        <div class="border border-slate-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
+        <div class="border border-slate-200 dark:border-gray-800 rounded-xl p-4 space-y-3"
+             [class.opacity-60]="cloudManaged()"
+             [class.pointer-events-none]="cloudManaged()">
           <div class="flex items-center justify-between">
             <span class="${LABEL}">{{ 'OPENING_HOURS.EXCEPTIONS' | translate }}</span>
             <button type="button" (click)="addException()"
@@ -155,6 +182,13 @@ export class OpeningHoursComponent implements OnInit {
   error = signal<string | null>(null)
   locationId = signal<string | null>(null)
   exceptions = signal<HourException[]>([])
+  /**
+   * True wenn die Edge mit der Cloud gepaart ist und Standort-Settings damit
+   * read-only werden. Wird beim Init aus dem `cloud-connection`-Service
+   * gelesen — Cloud ist Source of Truth für Locations (siehe
+   * panary-cloud/documentation/standort-einstellungen.md).
+   */
+  cloudManaged = signal(false)
   private currentSettings: any = {}
 
   enabled = false
@@ -166,6 +200,18 @@ export class OpeningHoursComponent implements OnInit {
 
   async ngOnInit() {
     try {
+      // Pairing-Status laden — bestimmt, ob die UI als read-only läuft.
+      // Fehler hier nicht fatal: im Worst-Case bleibt die UI lokal editierbar
+      // wie vor dem Pairing — das Backend blockiert Writes ohnehin via
+      // cloudManaged()-Hook.
+      try {
+        const conn = await this.api.find<any>('cloud-connection', { $limit: 1 })
+        const paired = conn?.data?.[0]?.pairingStatus === 'connected'
+        this.cloudManaged.set(paired)
+      } catch {
+        this.cloudManaged.set(false)
+      }
+
       const result = await this.api.find<any>('locations', { $limit: 1 })
       if (result.data.length > 0) {
         const loc = result.data[0]

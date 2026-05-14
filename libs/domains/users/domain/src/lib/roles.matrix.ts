@@ -175,6 +175,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.LOCATIONS, action: AppAction.MANAGE },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
     { resource: AppResource.ORGANIZATIONS, action: AppAction.READ },
+    { resource: AppResource.FRAUD_ANALYTICS, action: AppAction.READ },
     // Tenant-First-Class (Phase 1+ Migration): TENANT_OWNER darf eigene
     // Tenant-Stamm-Daten lesen und patchen. Feld-Level-Whitelist im
     // `tenantsRestrictTenantPatchHook` beschraenkt die mutierbaren Felder auf
@@ -270,6 +271,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.HOLIDAY_CALENDARS, action: AppAction.MANAGE },
     { resource: AppResource.WORKING_TIME_REPORTS, action: AppAction.CREATE },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
+    { resource: AppResource.FRAUD_ANALYTICS, action: AppAction.READ },
     // Tenant-First-Class: Techniker liest Tenant-Stamm-Daten, aber editiert
     // nicht (Owner-Privileg).
     { resource: AppResource.TENANTS, action: AppAction.READ },
@@ -346,6 +348,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.WORKING_TIME_REPORTS, action: AppAction.CREATE },
     { resource: AppResource.LOCATIONS, action: AppAction.READ },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
+    { resource: AppResource.FRAUD_ANALYTICS, action: AppAction.READ },
     // Tenant-First-Class: Manager liest Tenant-Stamm-Daten + Audit-Trail.
     { resource: AppResource.TENANTS, action: AppAction.READ },
     { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.READ },

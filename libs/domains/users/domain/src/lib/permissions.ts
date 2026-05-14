@@ -73,6 +73,13 @@ export const AppResource = {
   WORKING_TIME_REPORTS: 'working-time-reports',
   ORGANIZATIONS: 'organizations',
 
+  /** Cloud-only: Stornoanalyse & Mitarbeiter-Verhaltens-Auswertung. On-Demand-
+   *  MongoDB-Aggregation ueber `order-interactions`. Custom-Method-Service
+   *  unter `/fraud-analytics` mit View-Param (`overview`, `staff-ranking`,
+   *  `staff-timeseries`, `order-drilldown`). Sichtbar fuer TENANT_OWNER und
+   *  TENANT_MANAGER (READ). */
+  FRAUD_ANALYTICS: 'fraud-analytics',
+
   /** Cloud-only: Plan-Katalog (Subscription-Plans). Globale Stammdaten — alle
    *  authentifizierten User lesen, Schreiben nur PLATFORM_*. */
   SUBSCRIPTION_PLANS: 'subscription-plans',

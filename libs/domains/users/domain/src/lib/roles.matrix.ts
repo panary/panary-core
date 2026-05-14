@@ -15,6 +15,12 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.SYSTEM, action: AppAction.MANAGE },
     { resource: AppResource.USERS, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_TENANTS, action: AppAction.MANAGE },
+    // Tenant-First-Class (Phase 1+ Migration): kanonischer Tenant-Service mit
+    // Subscription/Billing/TSE/Branding-Stamm-Daten. Plan-Katalog ist eigene
+    // Collection. Audit-Trail Append-Only.
+    { resource: AppResource.TENANTS, action: AppAction.MANAGE },
+    { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.MANAGE },
+    { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
     { resource: AppResource.PLATFORM_IMPERSONATION, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_IMPERSONATION_EVENTS, action: AppAction.READ },
     { resource: AppResource.PLATFORM_USER_PREFERENCES, action: AppAction.MANAGE },
@@ -53,6 +59,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.LOCATIONS, action: AppAction.READ },
     { resource: AppResource.SYSTEM, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_TENANTS, action: AppAction.MANAGE },
+    // Tenant-First-Class (Phase 1+ Migration): wie PLATFORM_OWNER.
+    { resource: AppResource.TENANTS, action: AppAction.MANAGE },
+    { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.MANAGE },
+    { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
     { resource: AppResource.PLATFORM_IMPERSONATION, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_IMPERSONATION_EVENTS, action: AppAction.READ },
     { resource: AppResource.PLATFORM_USER_PREFERENCES, action: AppAction.MANAGE },
@@ -83,6 +93,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PRODUCTS, action: AppAction.READ },
     { resource: AppResource.SYSTEM, action: AppAction.READ },
     { resource: AppResource.PLATFORM_TENANTS, action: AppAction.READ },
+    // Tenant-First-Class (Phase 1+ Migration): Support liest, kein Schreibzugriff.
+    { resource: AppResource.TENANTS, action: AppAction.READ },
+    { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.READ },
+    { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
     // CREATE: Impersonation starten. DELETE: eigene Sitzung beenden ("Zurück zur Plattform")
     // — ohne DELETE bleibt der Support-Mitarbeiter im Tenant-Kontext gefangen.
     { resource: AppResource.PLATFORM_IMPERSONATION, action: [AppAction.CREATE, AppAction.DELETE] },
@@ -161,7 +175,15 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.LOCATIONS, action: AppAction.MANAGE },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
     { resource: AppResource.ORGANIZATIONS, action: AppAction.READ },
-    { resource: AppResource.TENANTS, action: AppAction.READ },
+    // Tenant-First-Class (Phase 1+ Migration): TENANT_OWNER darf eigene
+    // Tenant-Stamm-Daten lesen und patchen. Feld-Level-Whitelist im
+    // `tenantsRestrictTenantPatchHook` beschraenkt die mutierbaren Felder auf
+    // name/branding/localization/legalEntity/incidentContact und ausgewaehlte
+    // billing.address-Pfade — Subscription/Stripe/TSE-Secrets bleiben
+    // PLATFORM_*-only.
+    { resource: AppResource.TENANTS, action: [AppAction.READ, AppAction.UPDATE] },
+    { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.READ },
+    { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
     // Tenant-Settings: TENANT_OWNER darf eigene Settings READ + CREATE + UPDATE.
     // CREATE ist noetig, weil neue Tenants vor dem ersten Toggle kein Settings-
     // Dokument haben — beim Aktivieren via UI legt das Frontend einen Datensatz
@@ -248,7 +270,11 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.HOLIDAY_CALENDARS, action: AppAction.MANAGE },
     { resource: AppResource.WORKING_TIME_REPORTS, action: AppAction.CREATE },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
+    // Tenant-First-Class: Techniker liest Tenant-Stamm-Daten, aber editiert
+    // nicht (Owner-Privileg).
     { resource: AppResource.TENANTS, action: AppAction.READ },
+    { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.READ },
+    { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
     // Tenant-Settings + KI-Wareneingang: Techniker hat Manager-aequivalente Rechte.
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     { resource: AppResource.INCOMING_GOODS_EXTRACT, action: AppAction.CREATE },
@@ -320,7 +346,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.WORKING_TIME_REPORTS, action: AppAction.CREATE },
     { resource: AppResource.LOCATIONS, action: AppAction.READ },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
+    // Tenant-First-Class: Manager liest Tenant-Stamm-Daten + Audit-Trail.
     { resource: AppResource.TENANTS, action: AppAction.READ },
+    { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.READ },
+    { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
     // Tenant-Settings: nur lesend; Aktivierung bleibt PLATFORM_OWNER vorbehalten.
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     // KI-Wareneingang: Foto hochladen + Audit lesen.
@@ -378,7 +407,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.HOLIDAY_CALENDARS, action: AppAction.READ },
     { resource: AppResource.LOCATIONS, action: AppAction.READ },
     { resource: AppResource.ORDER_INTERACTIONS, action: [AppAction.READ, AppAction.CREATE] },
+    // Tenant-First-Class: Staff liest Tenant-Stamm-Daten + Plan-Katalog (UI-
+    // Anzeige Plan-Tier). Audit-Trail bleibt MANAGER+ vorbehalten.
     { resource: AppResource.TENANTS, action: AppAction.READ },
+    { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.READ },
     // Tenant-Settings: lesen (z.B. um zu wissen, ob KI-Funktion aktiviert ist).
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     // KI-Wareneingang: Mitarbeitende duerfen Foto hochladen.

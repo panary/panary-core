@@ -73,6 +73,14 @@ export const AppResource = {
   WORKING_TIME_REPORTS: 'working-time-reports',
   ORGANIZATIONS: 'organizations',
 
+  /** Cloud-only: Plan-Katalog (Subscription-Plans). Globale Stammdaten — alle
+   *  authentifizierten User lesen, Schreiben nur PLATFORM_*. */
+  SUBSCRIPTION_PLANS: 'subscription-plans',
+  /** Cloud-only: Append-Only-Audit-Log fuer Tenant-Stamm-Daten-Aenderungen
+   *  (DSGVO/SOC2). CREATE nur intern; Read fuer TENANT_OWNER (eigener Tenant)
+   *  + PLATFORM_* (alle). */
+  TENANT_AUDIT_TRAIL: 'tenant-audit-trail',
+
   // Plattform-Verwaltungs-Ressourcen (nur Cloud)
   PLATFORM_TENANTS: 'platform-tenants',
   PLATFORM_IMPERSONATION: 'platform-impersonation',

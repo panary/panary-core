@@ -27,11 +27,21 @@ export const NotificationEventType = {
   ORDER_STATUS_CHANGED: 'order.status_changed',
 
   /**
-   * Stornoanalyse: Mitarbeiter hat eine konfigurierte Storno-Schwelle ueberschritten.
-   * Adressat: TENANT_OWNER + TENANT_MANAGER der betroffenen Location.
-   * Erzeugt durch `evaluateFraudRules()` nach Sync-Push.
+   * Stornoanalyse: Mitarbeiter hat eine konfigurierte Storno-Schwelle
+   * ueberschritten (Severity `info`/`warning`). Adressat: TENANT_OWNER +
+   * TENANT_MANAGER der betroffenen Location. Default-Channel: nur In-App,
+   * weil die Schwellen oft chronisch ueberschritten werden (z. B. ein
+   * generell unauffaelliger Mitarbeiter knapp ueber 5 %).
    */
   FRAUD_ALERT_TRIGGERED: 'fraud.alert_triggered',
+
+  /**
+   * Stornoanalyse: KRITISCHER Alert — Severity `critical`. Wird mit
+   * In-App + E-Mail + Push zugestellt, weil hier Bargeldverlust droht
+   * (z. B. Storno nach Zahlung, Refund ueber Schwelle). evaluateFraudRules
+   * mappt automatisch: `rule.severity === 'critical'` -> dieser Event-Typ.
+   */
+  FRAUD_ALERT_CRITICAL: 'fraud.alert_critical',
 } as const
 
 export type NotificationEventType = (typeof NotificationEventType)[keyof typeof NotificationEventType]
@@ -139,5 +149,13 @@ export const NOTIFICATION_EVENT_META: Record<NotificationEventType, Notification
     category: NotificationCategory.ORDERS,
     label: 'Storno-Schwellenwert ueberschritten',
     defaults: { inApp: true, email: false, push: false },
+  },
+  [NotificationEventType.FRAUD_ALERT_CRITICAL]: {
+    // Kritische Stornoanalyse-Alerts: alle Channels an, weil Bargeldverlust
+    // unmittelbar droht. User kann ueber Preferences wieder deaktivieren —
+    // das ist bewusst opt-out statt opt-in.
+    category: NotificationCategory.ORDERS,
+    label: 'Storno-Alarm KRITISCH (Bargeldverlust)',
+    defaults: { inApp: true, email: true, push: true },
   },
 }

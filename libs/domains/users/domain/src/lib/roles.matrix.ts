@@ -117,6 +117,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.WORKING_TIMES, action: AppAction.MANAGE },
     { resource: AppResource.PRE_ORDERS, action: AppAction.MANAGE },
     { resource: AppResource.PRINT_SERVER, action: AppAction.MANAGE },
+    { resource: AppResource.PRINTER_COMMANDS, action: AppAction.MANAGE },
     { resource: AppResource.APIKEYS, action: AppAction.MANAGE },
     { resource: AppResource.CLOUD_CONNECTION, action: AppAction.MANAGE },
     { resource: AppResource.OPENING_HOUR_EXCEPTIONS, action: AppAction.MANAGE },
@@ -183,6 +184,12 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.AUDIT_EVENTS, action: AppAction.READ },
     // Audit-Redactions (Phase 2 — DSGVO-Loeschungen / Fehleintraege markieren)
     { resource: AppResource.AUDIT_EVENT_REDACTIONS, action: [AppAction.READ, AppAction.CREATE] },
+    // Benachrichtigungen: eigene In-App-Records lesen / als gelesen
+    // markieren / loeschen. CREATE entfaellt — Notifications werden vom
+    // Backend-Sender erzeugt (interner Aufruf bypasst authorize()).
+    { resource: AppResource.NOTIFICATIONS, action: [AppAction.READ, AppAction.UPDATE, AppAction.DELETE] },
+    { resource: AppResource.NOTIFICATION_PREFERENCES, action: AppAction.MANAGE },
+    { resource: AppResource.PUSH_SUBSCRIPTIONS, action: AppAction.MANAGE },
     AppAbility.CAN_SEE_REPORTS,
     AppAbility.CAN_REFUND,
     AppAbility.CAN_VOID_ORDER,
@@ -197,6 +204,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.WORKING_TIMES, action: AppAction.MANAGE },
     { resource: AppResource.PRE_ORDERS, action: AppAction.MANAGE },
     { resource: AppResource.PRINT_SERVER, action: AppAction.MANAGE },
+    { resource: AppResource.PRINTER_COMMANDS, action: AppAction.MANAGE },
     { resource: AppResource.APIKEYS, action: AppAction.MANAGE },
     { resource: AppResource.CLOUD_CONNECTION, action: AppAction.MANAGE },
     { resource: AppResource.OPENING_HOUR_EXCEPTIONS, action: AppAction.MANAGE },
@@ -252,6 +260,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.AUDIT_EVENTS, action: AppAction.READ },
     // Audit-Redactions (Phase 2 — DSGVO-Loeschungen / Fehleintraege markieren)
     { resource: AppResource.AUDIT_EVENT_REDACTIONS, action: [AppAction.READ, AppAction.CREATE] },
+    // Benachrichtigungen — wie TENANT_OWNER
+    { resource: AppResource.NOTIFICATIONS, action: [AppAction.READ, AppAction.UPDATE, AppAction.DELETE] },
+    { resource: AppResource.NOTIFICATION_PREFERENCES, action: AppAction.MANAGE },
+    { resource: AppResource.PUSH_SUBSCRIPTIONS, action: AppAction.MANAGE },
     AppAbility.CAN_SEE_REPORTS,
     AppAbility.CAN_REFUND,
     AppAbility.CAN_VOID_ORDER,
@@ -272,6 +284,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.WORKING_TIMES, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.PRE_ORDERS, action: AppAction.MANAGE },
     { resource: AppResource.PRINT_SERVER, action: [AppAction.READ, AppAction.UPDATE] },
+    // Manager darf Test-Drucke aus der Cloud anstoßen (CREATE + READ für Status-Polling).
+    { resource: AppResource.PRINTER_COMMANDS, action: [AppAction.READ, AppAction.CREATE] },
     { resource: AppResource.APIKEYS, action: AppAction.READ },
     { resource: AppResource.CLOUD_EDGES, action: AppAction.READ },
     { resource: AppResource.EDGE_PAIRING_CODES, action: AppAction.READ },
@@ -320,6 +334,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Manager darf Redactions sehen, aber NICHT selbst durchfuehren — nur
     // OWNER/TECHNICIAN haben CREATE. Daher hier nur READ.
     { resource: AppResource.AUDIT_EVENT_REDACTIONS, action: AppAction.READ },
+    // Benachrichtigungen — wie TENANT_OWNER
+    { resource: AppResource.NOTIFICATIONS, action: [AppAction.READ, AppAction.UPDATE, AppAction.DELETE] },
+    { resource: AppResource.NOTIFICATION_PREFERENCES, action: AppAction.MANAGE },
+    { resource: AppResource.PUSH_SUBSCRIPTIONS, action: AppAction.MANAGE },
     AppAbility.CAN_VOID_ORDER,
   ],
 
@@ -367,6 +385,12 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.INCOMING_GOODS_EXTRACT, action: AppAction.CREATE },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
+    // Benachrichtigungen — wie alle Tenant-Rollen: eigene In-App-Records
+    // lesen / als gelesen markieren / loeschen. CREATE entfaellt — der
+    // Sender bypasst authorize() per provider=undefined.
+    { resource: AppResource.NOTIFICATIONS, action: [AppAction.READ, AppAction.UPDATE, AppAction.DELETE] },
+    { resource: AppResource.NOTIFICATION_PREFERENCES, action: AppAction.MANAGE },
+    { resource: AppResource.PUSH_SUBSCRIPTIONS, action: AppAction.MANAGE },
   ],
 
   // =======================================================

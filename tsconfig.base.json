@@ -45,6 +45,7 @@
       "@panary-core/order-interactions/domain": ["libs/domains/order-interactions/domain/src/index.ts"],
       "@panary-core/product-groups/domain": ["libs/domains/product-groups/domain/src/index.ts"],
       "@panary-core/user-preferences/domain": ["libs/domains/user-preferences/domain/src/index.ts"],
+      "@panary-core/notifications/domain": ["libs/domains/notifications/domain/src/index.ts"],
       "@panary-core/apikeys/data-access": ["libs/domains/apikeys/data-access/src/index.ts"],
       "@panary-core/corporate-customers/data-access": ["libs/domains/corporate-customers/data-access/src/index.ts"],
       "@panary-core/customers/data-access": ["libs/domains/customers/data-access/src/index.ts"],

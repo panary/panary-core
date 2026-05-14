@@ -14,6 +14,12 @@ export const AppResource = {
   WORKING_TIMES: 'working-times',
   PRE_ORDERS: 'pre-orders',
   PRINT_SERVER: 'print-server',
+  /**
+   * Cloud→Edge-Befehlswarteschlange für Drucker-Aktionen (z. B. Test-Druck).
+   * Cloud erzeugt PENDING-Jobs, Edge pollt sie im Heartbeat-Worker, führt
+   * lokal aus (Print-Server-Manager.testPrint) und meldet den Status zurück.
+   */
+  PRINTER_COMMANDS: 'printer-commands',
   APIKEYS: 'apikeys',
   CLOUD_CONNECTION: 'cloud-connection',
   OPENING_HOUR_EXCEPTIONS: 'opening-hour-exceptions',
@@ -90,6 +96,13 @@ export const AppResource = {
   // Passkey/WebAuthn (Self-Service: User verwaltet eigene Credentials)
   WEBAUTHN_CREDENTIALS: 'webauthn-credentials',
   WEBAUTHN_REGISTRATION: 'webauthn-registration',
+
+  // Benachrichtigungen (Cloud-only — Tenant-User-In-App + E-Mail + Web-Push).
+  // Owner-Modell: tenantId + userId. User sehen/patchen nur eigene Records
+  // (userScoping-Hook). Erzeugung erfolgt intern (kein CREATE per Client).
+  NOTIFICATIONS: 'notifications',
+  NOTIFICATION_PREFERENCES: 'notification-preferences',
+  PUSH_SUBSCRIPTIONS: 'push-subscriptions',
 } as const
 
 export type AppResource = (typeof AppResource)[keyof typeof AppResource]

@@ -1,0 +1,29 @@
+{
+  "name": "notifications-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/notifications/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:notifications"],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/notifications/domain/dist"],
+      "dependsOn": ["^build"],
+      "options": {
+        "outputPath": "libs/domains/notifications/domain/dist",
+        "project": "libs/domains/notifications/package.json",
+        "tsConfig": "libs/domains/notifications/domain/tsconfig.lib.json",
+        "main": "libs/domains/notifications/domain/src/index.ts",
+        "format": ["cjs"],
+        "external": [
+          "@feathersjs/feathers",
+          "@feathersjs/typebox",
+          "@sinclair/typebox",
+          "@panary-core/shared-common"
+        ],
+        "generatePackageJson": false,
+        "compiler": "tsc"
+      }
+    }
+  }
+}

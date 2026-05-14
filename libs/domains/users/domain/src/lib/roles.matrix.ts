@@ -21,6 +21,12 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.TENANTS, action: AppAction.MANAGE },
     { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.MANAGE },
     { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
+    // OoS-Follow-up: DSGVO-Export, Owner-Transfer, VIES-Validation (Wellen B-E).
+    { resource: AppResource.GDPR_TENANT_EXPORT, action: AppAction.MANAGE },
+    { resource: AppResource.GDPR_SELF_EXPORT, action: AppAction.MANAGE },
+    { resource: AppResource.TENANT_OWNER_TRANSFER, action: AppAction.MANAGE },
+    { resource: AppResource.VAT_VALIDATION_CACHE, action: AppAction.MANAGE },
+    { resource: AppResource.EXTERNAL_VIES_LOOKUP, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_IMPERSONATION, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_IMPERSONATION_EVENTS, action: AppAction.READ },
     { resource: AppResource.PLATFORM_USER_PREFERENCES, action: AppAction.MANAGE },
@@ -63,6 +69,12 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.TENANTS, action: AppAction.MANAGE },
     { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.MANAGE },
     { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
+    // OoS-Follow-up: wie PLATFORM_OWNER.
+    { resource: AppResource.GDPR_TENANT_EXPORT, action: AppAction.MANAGE },
+    { resource: AppResource.GDPR_SELF_EXPORT, action: AppAction.MANAGE },
+    { resource: AppResource.TENANT_OWNER_TRANSFER, action: AppAction.MANAGE },
+    { resource: AppResource.VAT_VALIDATION_CACHE, action: AppAction.MANAGE },
+    { resource: AppResource.EXTERNAL_VIES_LOOKUP, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_IMPERSONATION, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_IMPERSONATION_EVENTS, action: AppAction.READ },
     { resource: AppResource.PLATFORM_USER_PREFERENCES, action: AppAction.MANAGE },
@@ -97,6 +109,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.TENANTS, action: AppAction.READ },
     { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.READ },
     { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
+    // OoS-Follow-up: Support liest VIES-Cache zur Diagnose, kein Export/Transfer.
+    { resource: AppResource.VAT_VALIDATION_CACHE, action: AppAction.READ },
+    { resource: AppResource.GDPR_SELF_EXPORT, action: AppAction.CREATE },
     // CREATE: Impersonation starten. DELETE: eigene Sitzung beenden ("Zurück zur Plattform")
     // — ohne DELETE bleibt der Support-Mitarbeiter im Tenant-Kontext gefangen.
     { resource: AppResource.PLATFORM_IMPERSONATION, action: [AppAction.CREATE, AppAction.DELETE] },
@@ -187,6 +202,12 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.TENANTS, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.READ },
     { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
+    // OoS-Follow-up: Owner darf DSGVO-Tenant-Export anstossen, Owner-Transfer
+    // an einen MANAGER weitergeben, VIES-Cache lesen, Self-Export.
+    { resource: AppResource.GDPR_TENANT_EXPORT, action: AppAction.CREATE },
+    { resource: AppResource.GDPR_SELF_EXPORT, action: AppAction.CREATE },
+    { resource: AppResource.TENANT_OWNER_TRANSFER, action: AppAction.CREATE },
+    { resource: AppResource.VAT_VALIDATION_CACHE, action: AppAction.READ },
     // Tenant-Settings: TENANT_OWNER darf eigene Settings READ + CREATE + UPDATE.
     // CREATE ist noetig, weil neue Tenants vor dem ersten Toggle kein Settings-
     // Dokument haben — beim Aktivieren via UI legt das Frontend einen Datensatz
@@ -281,6 +302,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.TENANTS, action: AppAction.READ },
     { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.READ },
     { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
+    // OoS-Follow-up: Techniker darf eigenen DSGVO-Self-Export anstossen und
+    // VIES-Cache zur Diagnose lesen — kein Tenant-Export, kein Owner-Transfer.
+    { resource: AppResource.GDPR_SELF_EXPORT, action: AppAction.CREATE },
+    { resource: AppResource.VAT_VALIDATION_CACHE, action: AppAction.READ },
     // Tenant-Settings + KI-Wareneingang: Techniker hat Manager-aequivalente Rechte.
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     { resource: AppResource.INCOMING_GOODS_EXTRACT, action: AppAction.CREATE },
@@ -359,6 +384,11 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.TENANTS, action: AppAction.READ },
     { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.READ },
     { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
+    // OoS-Follow-up: Manager darf eigenen DSGVO-Self-Export anstossen und
+    // VIES-Cache lesen (z.B. fuer Lieferanten-USt-IdNr-Diagnose). Tenant-
+    // weiter Export bleibt OWNER vorbehalten.
+    { resource: AppResource.GDPR_SELF_EXPORT, action: AppAction.CREATE },
+    { resource: AppResource.VAT_VALIDATION_CACHE, action: AppAction.READ },
     // Tenant-Settings: nur lesend; Aktivierung bleibt PLATFORM_OWNER vorbehalten.
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     // KI-Wareneingang: Foto hochladen + Audit lesen.
@@ -420,6 +450,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Anzeige Plan-Tier). Audit-Trail bleibt MANAGER+ vorbehalten.
     { resource: AppResource.TENANTS, action: AppAction.READ },
     { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.READ },
+    // OoS-Follow-up: DSGVO-Art-15-Selbstauskunft fuer eigene Personendaten.
+    { resource: AppResource.GDPR_SELF_EXPORT, action: AppAction.CREATE },
     // Tenant-Settings: lesen (z.B. um zu wissen, ob KI-Funktion aktiviert ist).
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     // KI-Wareneingang: Mitarbeitende duerfen Foto hochladen.

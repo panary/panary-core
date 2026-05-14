@@ -26,6 +26,14 @@ export const SyncableMasterDataService = {
   CORPORATE_CUSTOMERS: 'corporate-customers',
   CUSTOMERS: 'customers',
   LOCATIONS: 'locations',
+  // OoS-Welle E Item 4: Tenant-Doc als Master-Data zum Edge syncen
+  // (Receipt-Header/Footer, Branding, Localization). Pull-Service muss
+  // eine **Allowlist-Projection** anwenden (apps/api-cloud/src/services/
+  // sync/projections/tenant-projection.ts) — Stripe/TSE/SecurityPolicy/
+  // internalNotes bleiben Cloud-only.
+  // NIEMALS in SyncableTransactionService aufnehmen — Edge darf Tenants
+  // nicht zurueckschreiben.
+  TENANTS: 'tenants',
 } as const
 
 export type SyncableMasterDataService =

@@ -26,6 +26,11 @@ export const legalEntitySchema = Type.Object(
     registrationCourt: Type.Optional(Type.String({ maxLength: 100 })),
     registrationNumber: Type.Optional(Type.String({ maxLength: 50 })),
     ceoName: Type.Optional(Type.String({ maxLength: 200 })),
+    // VIES-Validation (Welle D Item 5): wird vom trigger-vies-validation-Hook
+    // gesetzt nach EU-VAT-VIES-REST-Lookup. KEIN Overwrite von registeredName
+    // — VIES gibt fuer DE/AT nur valid:bool zurueck (Skeptiker-Befund).
+    vatIdValid: Type.Optional(Type.Boolean()),
+    vatIdValidatedAt: Type.Optional(Type.String({ format: 'date-time' })),
   },
   { $id: 'TenantLegalEntity', additionalProperties: false },
 )
@@ -74,6 +79,13 @@ export const subscriptionSchema = Type.Object(
     maxLocations: Type.Optional(Type.Number({ minimum: 0 })),
     maxUsers: Type.Optional(Type.Number({ minimum: 0 })),
     maxDevices: Type.Optional(Type.Number({ minimum: 0 })),
+    // Plan-Limit-Enforcement (Welle B Item 1): denormalisierte Counter fuer
+    // atomic findOneAndUpdate. Race-frei gegen TOCTOU. Wird vom
+    // enforce-plan-limits-Hook gewartet und vom reconcile-plan-limit-counters-
+    // Skript re-initialisiert. _deletedAt-Records werden NICHT mitgezaehlt.
+    currentLocationCount: Type.Optional(Type.Number({ minimum: 0 })),
+    currentUserCount: Type.Optional(Type.Number({ minimum: 0 })),
+    currentDeviceCount: Type.Optional(Type.Number({ minimum: 0 })),
   },
   { $id: 'TenantSubscription', additionalProperties: false },
 )
@@ -294,6 +306,15 @@ export const tenantSchema = Type.Object(
     suspendedReason: Type.Optional(Type.String({ maxLength: 1000 })),
     archivedAt: Type.Optional(Type.String({ format: 'date-time' })),
     lastLoginAt: Type.Optional(Type.String({ format: 'date-time' })),
+
+    // Soft-Delete fuer Edge-Sync (Welle E Item 4). Wird vom
+    // sync-soft-delete-Hook gesetzt; excludeSoftDeleted filtert externe
+    // Reads. Edge sieht Tombstone via Sync-Pull.
+    _deletedAt: Type.Optional(Type.String({ format: 'date-time' })),
+
+    // Schema-Reserve fuer kuenftigen Merge (Welle C Item 8). Keine
+    // Implementation jetzt — Merge/Split kommt bei realem Use-Case.
+    mergedIntoTenantId: Type.Optional(Type.String()),
 
     // Optimistic Concurrency fuer Cloud->Edge-Sync (Skeptiker-Befund).
     syncVersion: Type.Optional(Type.Number({ minimum: 0 })),

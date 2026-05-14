@@ -99,6 +99,23 @@ export const AppResource = {
    *  + PLATFORM_* (alle). */
   TENANT_AUDIT_TRAIL: 'tenant-audit-trail',
 
+  /** Cloud-only: DSGVO-Art-15-Auskunftsersuchen fuer Tenant-Geschaeftsdaten
+   *  (OoS-Welle D Item 2). Owner-only — Sammler-Service ueber alle tenant-
+   *  scoped Collections mit Platform-Actor-Redaction. */
+  GDPR_TENANT_EXPORT: 'gdpr-tenant-export',
+  /** Cloud-only: DSGVO-Art-15-Auskunftsersuchen fuer persoenliche Daten des
+   *  aufrufenden Users. Jeder authentifizierte User. */
+  GDPR_SELF_EXPORT: 'gdpr-self-export',
+  /** Cloud-only: Custom-Method `tenants.transfer(toUserId)` fuer Tenant-Owner-
+   *  Wechsel (Welle C Item 8). TENANT_OWNER (Self-Transfer) + PLATFORM_*. */
+  TENANT_OWNER_TRANSFER: 'tenant-owner-transfer',
+  /** Cloud-only: TTL-Cache fuer EU-VIES-VAT-Validation (Welle D Item 5).
+   *  Tenant-User lesen, Platform-Admin schreibt (via Hook). */
+  VAT_VALIDATION_CACHE: 'vat-validation-cache',
+  /** Cloud-only: External-Service fuer VIES-Lookup (Welle D Item 5). Wird
+   *  intern vom trigger-vies-validation-Hook aufgerufen. */
+  EXTERNAL_VIES_LOOKUP: 'external/vies-lookup',
+
   // Plattform-Verwaltungs-Ressourcen (nur Cloud)
   PLATFORM_TENANTS: 'platform-tenants',
   PLATFORM_IMPERSONATION: 'platform-impersonation',

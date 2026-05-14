@@ -101,6 +101,9 @@ export const TenantAuditAction = {
   SUBSCRIPTION_CHANGE: 'SUBSCRIPTION_CHANGE',
   OWNER_TRANSFER: 'OWNER_TRANSFER',
   BRANDING_CHANGE: 'BRANDING_CHANGE',
+  // OoS-Items Follow-up:
+  GDPR_EXPORT: 'GDPR_EXPORT', // Welle D Item 2 — Auskunftsersuchen nach DSGVO Art. 15
+  PLAN_LIMIT_VIOLATION: 'PLAN_LIMIT_VIOLATION', // Welle B Item 1 — Plan-Limit-Verstoss (best-effort-Detector)
 } as const
 export type TenantAuditActionValue = (typeof TenantAuditAction)[keyof typeof TenantAuditAction]
 

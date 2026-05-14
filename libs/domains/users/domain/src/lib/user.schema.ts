@@ -130,6 +130,11 @@ export const userSchema = Type.Object(
     // wuerde ein synchronisierter User-Record (Hash) am Ziel abgewiesen.
     posPin: Type.Optional(Type.String()),
     hasPosPin: Type.Optional(Type.Boolean()), // Virtuelles Feld — vom externalResolver gesetzt, nie in DB gespeichert
+    // MFA-Enrollment-Timestamp (OoS-Welle B Item 3): wird vom webauthn-
+    // credentials-after-create-Hook gesetzt, sobald der User die erste
+    // WebAuthn-Credential registriert. Genutzt vom enforce-mfa-Hook zur
+    // Grace-Period-Bestimmung — User mit gesetztem Wert gilt als MFA-faehig.
+    mfaEnrolledAt: Type.Optional(Type.String({ format: 'date-time' })),
     employeeNumber: Type.Optional(Type.String({ minLength: 6, maxLength: 6 })),
 
     // Persönliche Daten
@@ -259,12 +264,17 @@ export const userQueryProperties = Type.Pick(
   // Sortieren nach `updatedAt` — auch fuer Admin-UI sinnvoll als Sortier-Feld.
   'updatedAt',
 ])
-export const userQuerySchema = Type.Intersect(
-  [
-    querySyntax(userQueryProperties),
-    // Zusätzliche Filter hier erlauben falls nötig
-    Type.Object({}, { additionalProperties: false }),
-  ],
+// `$or` wird über Property-Spread an die `querySyntax`-Ausgabe gehängt — die
+// Intersect-Variante mit zusätzlichem `Type.Object({$or})` produzierte unter
+// TS 6.x ein "type instantiation is excessively deep" (TS2589) im
+// `getValidator`-Konsumer. Flat-Object ist semantisch identisch und unter
+// dem Tiefen-Limit. AJV validiert `$or`-Items ohnehin lose, daher `Type.Any()`.
+const _userQueryBase = querySyntax(userQueryProperties)
+export const userQuerySchema = Type.Object(
+  {
+    ..._userQueryBase.properties,
+    $or: Type.Optional(Type.Array(Type.Any())),
+  },
   { additionalProperties: false },
 )
 

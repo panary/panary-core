@@ -27,6 +27,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.TENANT_OWNER_TRANSFER, action: AppAction.MANAGE },
     { resource: AppResource.VAT_VALIDATION_CACHE, action: AppAction.MANAGE },
     { resource: AppResource.EXTERNAL_VIES_LOOKUP, action: AppAction.MANAGE },
+    // OoS-Item-7: Tenant-Logo-Upload (Cross-Tenant fuer Plattform-Admin).
+    { resource: AppResource.TENANT_BRANDING_ASSET, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_IMPERSONATION, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_IMPERSONATION_EVENTS, action: AppAction.READ },
     { resource: AppResource.PLATFORM_USER_PREFERENCES, action: AppAction.MANAGE },
@@ -75,6 +77,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.TENANT_OWNER_TRANSFER, action: AppAction.MANAGE },
     { resource: AppResource.VAT_VALIDATION_CACHE, action: AppAction.MANAGE },
     { resource: AppResource.EXTERNAL_VIES_LOOKUP, action: AppAction.MANAGE },
+    // OoS-Item-7: Tenant-Logo-Upload (Cross-Tenant fuer Plattform-Admin).
+    { resource: AppResource.TENANT_BRANDING_ASSET, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_IMPERSONATION, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_IMPERSONATION_EVENTS, action: AppAction.READ },
     { resource: AppResource.PLATFORM_USER_PREFERENCES, action: AppAction.MANAGE },
@@ -112,6 +116,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // OoS-Follow-up: Support liest VIES-Cache zur Diagnose, kein Export/Transfer.
     { resource: AppResource.VAT_VALIDATION_CACHE, action: AppAction.READ },
     { resource: AppResource.GDPR_SELF_EXPORT, action: AppAction.CREATE },
+    // OoS-Item-7: Support darf Tenant-Logo lesen (Diagnose), nicht schreiben.
+    { resource: AppResource.TENANT_BRANDING_ASSET, action: AppAction.READ },
     // CREATE: Impersonation starten. DELETE: eigene Sitzung beenden ("Zurück zur Plattform")
     // — ohne DELETE bleibt der Support-Mitarbeiter im Tenant-Kontext gefangen.
     { resource: AppResource.PLATFORM_IMPERSONATION, action: [AppAction.CREATE, AppAction.DELETE] },
@@ -208,6 +214,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.GDPR_SELF_EXPORT, action: AppAction.CREATE },
     { resource: AppResource.TENANT_OWNER_TRANSFER, action: AppAction.CREATE },
     { resource: AppResource.VAT_VALIDATION_CACHE, action: AppAction.READ },
+    // OoS-Item-7: Tenant-Logo-Upload (CREATE/REMOVE) und Read fuer Anzeige.
+    { resource: AppResource.TENANT_BRANDING_ASSET, action: AppAction.MANAGE },
     // Tenant-Settings: TENANT_OWNER darf eigene Settings READ + CREATE + UPDATE.
     // CREATE ist noetig, weil neue Tenants vor dem ersten Toggle kein Settings-
     // Dokument haben — beim Aktivieren via UI legt das Frontend einen Datensatz
@@ -306,6 +314,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // VIES-Cache zur Diagnose lesen — kein Tenant-Export, kein Owner-Transfer.
     { resource: AppResource.GDPR_SELF_EXPORT, action: AppAction.CREATE },
     { resource: AppResource.VAT_VALIDATION_CACHE, action: AppAction.READ },
+    // OoS-Item-7: Logo lesen (UI-Anzeige + Beleg-Druck), kein Upload.
+    { resource: AppResource.TENANT_BRANDING_ASSET, action: AppAction.READ },
     // Tenant-Settings + KI-Wareneingang: Techniker hat Manager-aequivalente Rechte.
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     { resource: AppResource.INCOMING_GOODS_EXTRACT, action: AppAction.CREATE },
@@ -389,6 +399,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // weiter Export bleibt OWNER vorbehalten.
     { resource: AppResource.GDPR_SELF_EXPORT, action: AppAction.CREATE },
     { resource: AppResource.VAT_VALIDATION_CACHE, action: AppAction.READ },
+    // OoS-Item-7: Logo lesen (UI-Anzeige + Beleg-Druck), kein Upload.
+    { resource: AppResource.TENANT_BRANDING_ASSET, action: AppAction.READ },
     // Tenant-Settings: nur lesend; Aktivierung bleibt PLATFORM_OWNER vorbehalten.
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     // KI-Wareneingang: Foto hochladen + Audit lesen.
@@ -452,6 +464,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.READ },
     // OoS-Follow-up: DSGVO-Art-15-Selbstauskunft fuer eigene Personendaten.
     { resource: AppResource.GDPR_SELF_EXPORT, action: AppAction.CREATE },
+    // OoS-Item-7: Logo lesen — fuer POS-/Tablet-Belege.
+    { resource: AppResource.TENANT_BRANDING_ASSET, action: AppAction.READ },
     // Tenant-Settings: lesen (z.B. um zu wissen, ob KI-Funktion aktiviert ist).
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     // KI-Wareneingang: Mitarbeitende duerfen Foto hochladen.

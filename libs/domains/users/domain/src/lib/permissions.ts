@@ -116,6 +116,13 @@ export const AppResource = {
    *  intern vom trigger-vies-validation-Hook aufgerufen. */
   EXTERNAL_VIES_LOOKUP: 'external/vies-lookup',
 
+  /** Cloud-only: Tenant-Logo-Upload (OoS-Item-7). Multipart-Endpoint mit
+   *  Validator + sharp-Resize-Pipeline. Schreibt `tenant.branding.logo` als
+   *  BinData (max 200 KB WebP). CREATE/REMOVE nur TENANT_OWNER + PLATFORM_*;
+   *  GET (find) fuer alle authentifizierten User des Tenants (Beleg-Druck-
+   *  Vorbereitung) + Edge-Token (Offline-Belege). */
+  TENANT_BRANDING_ASSET: 'tenant-branding-asset',
+
   // Plattform-Verwaltungs-Ressourcen (nur Cloud)
   PLATFORM_TENANTS: 'platform-tenants',
   PLATFORM_IMPERSONATION: 'platform-impersonation',

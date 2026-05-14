@@ -125,9 +125,45 @@ export type TenantTseAccount = Static<typeof tseAccountSchema>
 //#region Sub-Aggregat: branding
 // Hex-Pattern erlaubt 6-stellige Werte mit fuehrendem #. Custom-Domain ist
 // ein DNS-Name; das tatsaechliche DNS-Setup ist Out-of-Scope V1.
+//
+// Logo wird als BinData (base64-encoded String) direkt im Tenant-Doc
+// gespeichert — kein externer S3/CDN. Upload-Pipeline in
+// `apps/api-cloud/src/services/tenant-branding-asset/`:
+//   1. Multipart-Upload (PNG/JPEG/WebP, max 5 MB)
+//   2. Magic-Number-Validation (verhindert Polyglot-Files)
+//   3. sharp-Resize → max 512x512 WebP, q=85, max 200 KB
+//   4. sha256-Hash fuer Cache-Busting in `<img src="...?v=<hash>">`
+//
+// Edge-Sync transportiert das Logo via projectTenantForEdge (Welle-E-
+// Allowlist-Projection), damit POS-Belege offline mit Logo gedruckt
+// werden koennen.
+export const tenantLogoAssetSchema = Type.Object(
+  {
+    /** base64-encoded BinData (max ~270 KB nach Base64-Overhead bei 200 KB Binary). */
+    data: Type.String({ minLength: 1, maxLength: 300_000 }),
+    contentType: Type.Union([
+      Type.Literal('image/webp'),
+      Type.Literal('image/png'),
+      Type.Literal('image/jpeg'),
+    ]),
+    sizeBytes: Type.Number({ minimum: 1, maximum: 300_000 }),
+    width: Type.Number({ minimum: 1, maximum: 4096 }),
+    height: Type.Number({ minimum: 1, maximum: 4096 }),
+    /** SHA-256-Hex des Binary-Inhalts (vor Base64). Cache-Busting + ETag. */
+    hash: Type.String({ pattern: '^[a-f0-9]{64}$' }),
+    uploadedAt: Type.String({ format: 'date-time' }),
+    uploadedByUserId: Type.String(),
+  },
+  { $id: 'TenantLogoAsset', additionalProperties: false },
+)
+export type TenantLogoAsset = Static<typeof tenantLogoAssetSchema>
+
 export const brandingSchema = Type.Object(
   {
-    logoUrl: Type.Optional(Type.String({ format: 'uri' })),
+    // Tenant-eigenes Logo, hochgeladen via `tenant-branding-asset`-Service.
+    // Ersetzt das frueher genutzte `logoUrl`-Feld (externe URLs) — siehe
+    // OoS-Item-7-ADR und scripts/migrate-tenant-logo-urls.ts.
+    logo: Type.Optional(tenantLogoAssetSchema),
     faviconUrl: Type.Optional(Type.String({ format: 'uri' })),
     primaryColor: Type.Optional(Type.String({ pattern: '^#[0-9a-fA-F]{6}$' })),
     accentColor: Type.Optional(Type.String({ pattern: '^#[0-9a-fA-F]{6}$' })),
@@ -368,6 +404,23 @@ export const TENANT_OWNER_EDITABLE_TOP_LEVEL_FIELDS = [
 // Innerhalb dieser Sub-Aggregate sind nur ausgewaehlte Pfade fuer
 // TENANT_OWNER editierbar.
 export const TENANT_OWNER_EDITABLE_BILLING_FIELDS = ['address', 'invoiceEmail'] as const
+
+// Branding-Sub-Felder, die ein TENANT_OWNER per `tenants.patch` selbst aendern darf.
+// `logo` ist BEWUSST ausgeschlossen — es darf NUR ueber den
+// `tenant-branding-asset`-Service (Backend-Proxy mit Validator + sharp-Resize)
+// gesetzt werden. Direkte Patches auf `branding.logo` werden geblockt, weil
+// sie die Magic-Number-Validation + Size-Limit umgehen wuerden (Tenant-Owner
+// koennte 10 MB-PNG einschmuggeln, oder Polyglot-PDFs).
+export const TENANT_OWNER_EDITABLE_BRANDING_FIELDS = [
+  'faviconUrl',
+  'primaryColor',
+  'accentColor',
+  'customDomain',
+  'receiptHeader',
+  'receiptFooter',
+  'statusPageEnabled',
+  'statusPageSubdomain',
+] as const
 
 // Felder, die selbst der TENANT_OWNER nicht patchen darf — nur platform.
 export const PLATFORM_ONLY_TENANT_FIELDS = [

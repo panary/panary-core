@@ -56,13 +56,28 @@ const PULL_PAGE_SIZE = 500
 
 const cloudConnectionPath = 'cloud-connection'
 
+// Reihenfolge ist relevant beim Initial-Bootstrap:
+//  - LOCATIONS zuerst, weil andere Stammdaten (z.B. users mit allowedLocationIds,
+//    products mit locationId) den Foreign-Key auf locations referenzieren.
+//  - PRODUCT_GROUPS vor PRODUCTS, weil Products auf Product-Groups verweisen.
 const MASTER_DATA_SERVICES: ReadonlyArray<string> = [
+  SyncableMasterDataService.LOCATIONS,
   SyncableMasterDataService.PRODUCT_GROUPS,
   SyncableMasterDataService.PRODUCTS,
   SyncableMasterDataService.USERS,
   SyncableMasterDataService.CORPORATE_CUSTOMERS,
   SyncableMasterDataService.CUSTOMERS,
 ]
+
+// `locations` hat (noch) keinen `externalId`-Mechanismus — Merge-by-external-id
+// kann sie nicht matchen und wuerde fuer jeden Edge-Standort einen
+// `sync-conflict` mit Grund `external-id-missing` erzeugen. Bis ein
+// `externalId`-Feld auf dem Location-Schema existiert, wird `locations` im
+// Merge-Pfad uebersprungen — der `applyCloudTenantId`-Restamp hat zu diesem
+// Zeitpunkt bereits die Location-IDs aligned.
+const MERGE_BY_EXTERNAL_ID_SERVICES: ReadonlyArray<string> = MASTER_DATA_SERVICES.filter(
+  service => service !== SyncableMasterDataService.LOCATIONS,
+)
 
 const TRANSACTION_SERVICES: ReadonlyArray<string> = [
   SyncableTransactionService.ORDERS,
@@ -492,7 +507,7 @@ const runMergeByExternalId = async (
   _bootstrapReportId: string | null,
 ): Promise<void> => {
   const cloudToken = requireDecryptedToken(connection)
-  for (const service of MASTER_DATA_SERVICES) {
+  for (const service of MERGE_BY_EXTERNAL_ID_SERVICES) {
     const cloudPage = await pullMasterDataPage(connection.cloudUrl, cloudToken, service, undefined, undefined)
     const cloudRecords = cloudPage.records
     const edgeRecords = await collectAllRecords(app, service, connection.tenantId!)

@@ -12,12 +12,20 @@ export type InitialSyncDirection = (typeof InitialSyncDirection)[keyof typeof In
 // Pricelists ist ein reines Cloud-Feature (Tier-1-SaaS) und wird zwischen Edge
 // und Cloud NICHT synchronisiert. Daher hier nicht aufgenommen — auch nicht im
 // MasterDataInventory-Vergleich beim Pairing.
+//
+// LOCATIONS: Cloud ist Source of Truth für Standort-Stammdaten (Öffnungszeiten,
+// Feiertage, Tische, Pager). Edge zieht read-only per Pull-Sync. Schreibzugriff
+// am Edge wird über `cloudManaged()`-Hook auf dem `locations`-Service
+// blockiert, sobald die Edge gepaart ist. Nicht im `MasterDataInventory`-
+// Vergleich, weil per Edge eine 1:1-Zuordnung zur Cloud-Filiale gilt — keine
+// Inventur-Differenz möglich.
 export const SyncableMasterDataService = {
   PRODUCTS: 'products',
   PRODUCT_GROUPS: 'product-groups',
   USERS: 'users',
   CORPORATE_CUSTOMERS: 'corporate-customers',
   CUSTOMERS: 'customers',
+  LOCATIONS: 'locations',
 } as const
 
 export type SyncableMasterDataService =

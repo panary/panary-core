@@ -184,6 +184,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.STOCK_LEVELS, action: AppAction.READ },
     { resource: AppResource.INVOICES, action: AppAction.MANAGE },
     { resource: AppResource.BUSINESS_DAYS, action: AppAction.MANAGE },
+    // Tagesabschluss: Owner darf voll MANAGE (start, cancel, reAggregate, audit).
+    { resource: AppResource.BUSINESS_DAY_REPORTS, action: AppAction.MANAGE },
+    { resource: AppResource.BUSINESS_DAY_REPORT_EVENTS, action: AppAction.READ },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.DEVICES, action: AppAction.MANAGE },
     { resource: AppResource.SHIFTS, action: AppAction.MANAGE },
@@ -292,6 +295,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.STOCK_LEVELS, action: AppAction.READ },
     { resource: AppResource.INVOICES, action: AppAction.MANAGE },
     { resource: AppResource.BUSINESS_DAYS, action: AppAction.MANAGE },
+    // Tagesabschluss: Techniker erstellt/wiederholt Reports zur Diagnose, kann
+    // Audit-Freigabe geben.
+    { resource: AppResource.BUSINESS_DAY_REPORTS, action: AppAction.MANAGE },
+    { resource: AppResource.BUSINESS_DAY_REPORT_EVENTS, action: AppAction.READ },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.DEVICES, action: AppAction.MANAGE },
     { resource: AppResource.SHIFTS, action: AppAction.MANAGE },
@@ -377,6 +384,12 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.STOCK_LEVELS, action: AppAction.READ },
     { resource: AppResource.INVOICES, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.BUSINESS_DAYS, action: AppAction.MANAGE },
+    // Tagesabschluss: Manager darf täglich auslösen + lesen, kann aber den
+    // finalen Audit-Stempel nicht setzen (Owner-Privileg). MANAGE deckt
+    // Custom-Methods startClosing/reAggregate; Status-Übergang nach
+    // 'audited' wird im Service-Hook auf Owner+Technician beschränkt.
+    { resource: AppResource.BUSINESS_DAY_REPORTS, action: AppAction.MANAGE },
+    { resource: AppResource.BUSINESS_DAY_REPORT_EVENTS, action: AppAction.READ },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.SHIFTS, action: AppAction.MANAGE },
     { resource: AppResource.SHIFT_TEMPLATES, action: AppAction.MANAGE },
@@ -441,6 +454,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.SUPPLIER_PRODUCTS, action: AppAction.READ },
     { resource: AppResource.STOCK_LEVELS, action: AppAction.READ },
     { resource: AppResource.BUSINESS_DAYS, action: AppAction.READ },
+    // Tagesabschluss: Staff darf nur lesen (z.B. eigene Tageskennzahlen sehen).
+    // CREATE/UPDATE bleibt MANAGER+.
+    { resource: AppResource.BUSINESS_DAY_REPORTS, action: AppAction.READ },
+    { resource: AppResource.BUSINESS_DAY_REPORT_EVENTS, action: AppAction.READ },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE }, // eigene Prefs
     { resource: AppResource.SHIFTS, action: AppAction.READ },
     { resource: AppResource.SHIFT_TEMPLATES, action: AppAction.READ },

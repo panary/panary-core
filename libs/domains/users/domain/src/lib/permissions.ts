@@ -61,6 +61,16 @@ export const AppResource = {
   STOCK_LEVELS: 'stock-levels',
   INVOICES: 'invoices',
   BUSINESS_DAYS: 'businessdays',
+  /** Cloud-only: Tagesabschluss-Reports (Z-Bon-Äquivalent). Custom-Methods
+   *  `startClosing`, `cancelClosing`, `reAggregate` zusätzlich zu CRUD.
+   *  TENANT_OWNER/MANAGER: voller READ + UPDATE (Audit-Freigabe).
+   *  TENANT_STAFF: READ-only auf eigene Filiale.
+   *  Edge-Token: CREATE + UPDATE für sync-getriggerten Closing-Flow. */
+  BUSINESS_DAY_REPORTS: 'business-day-reports',
+  /** Cloud-only: Append-Only-Audit-Trail eines Tagesabschluss-Reports.
+   *  READ für TENANT_OWNER/MANAGER (für Live-Progress-Subscription).
+   *  CREATE nur intern (Pipeline-Steps), kein externer Write. */
+  BUSINESS_DAY_REPORT_EVENTS: 'business-day-report-events',
   USER_PREFERENCES: 'user-preferences',
   DEVICES: 'devices',
   SHIFTS: 'shifts',

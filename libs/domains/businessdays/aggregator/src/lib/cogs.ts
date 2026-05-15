@@ -41,7 +41,23 @@ export interface RecipeIngredientResolution {
   quantityPerOutputUnit: number
   unit: string
 }
+
+/**
+ * Map mit zwei Lookup-Schichten (REV-2):
+ *   - Schluessel `<externalId>:<version>` — historische Versions-Aufloesung
+ *   - Schluessel `<externalId>`         — Fallback auf aktuelle Version
+ *
+ * Wenn `order.lineItems[].recipeReferences[i].version` gesetzt ist, wird die
+ * versionierte Variante bevorzugt; sonst greift der Fallback. Damit bleibt
+ * der Aggregator rueckwaerts-kompatibel mit Maps, die nur die aktuelle
+ * Version enthalten.
+ */
 export type RecipeIngredientMap = ReadonlyMap<string, RecipeIngredientResolution[]>
+
+/** Helper: erzeugt den versions-spezifischen Map-Key. */
+export function versionedRecipeKey(externalId: string, version: number): string {
+  return `${externalId}:v${version}`
+}
 
 /**
  * Berechnet COGS aus verkauften Bestellungen.
@@ -122,15 +138,28 @@ function accumulateLineItem(
     addUsage(ingredientUsage, id, name, unit, usedQuantity)
   }
 
-  // Rezeptur-Auflösung
+  // Rezeptur-Auflösung mit historischer Versions-Auflösung (REV-2):
+  // 1. Wenn recipeReferences[i].version gesetzt: versionierter Map-Key
+  //    `<externalId>:v<version>` versuchen.
+  // 2. Wenn nicht vorhanden ODER version fehlt: Fallback auf `<externalId>`
+  //    (= aktuelle Recipe-Version).
   const recipeRefs = (item as OrderLineItem).recipeReferences ?? []
   for (const ref of recipeRefs) {
     const recipeId = (ref as { externalId?: string; recipeId?: string }).externalId
       ?? (ref as { recipeId?: string }).recipeId
     const refQuantity = (ref as { quantity?: number }).quantity ?? 1
+    const refVersion = (ref as { version?: number }).version
     if (!recipeId) continue
-    const ingredients = recipeIngredients.get(recipeId)
+
+    let ingredients: RecipeIngredientResolution[] | undefined
+    if (typeof refVersion === 'number') {
+      ingredients = recipeIngredients.get(versionedRecipeKey(recipeId, refVersion))
+    }
+    if (!ingredients) {
+      ingredients = recipeIngredients.get(recipeId)
+    }
     if (!ingredients) continue
+
     for (const ing of ingredients) {
       const usedQuantity = ing.quantityPerOutputUnit * refQuantity * effectiveAmount
       addUsage(ingredientUsage, ing.ingredientId, ing.ingredientName, ing.unit, usedQuantity, ing.ingredientVersion)

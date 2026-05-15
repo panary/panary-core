@@ -10,6 +10,8 @@
 ## Architektur
 
 - [M2 — DB-Agnostik-Refactor](m2-db-agnostik-refactor.md) — 2026-04-24 — Hybrid-Adapter, ensureIndexes, Schema-First, getJsonFieldHooks
+- [ADR — Emergency-Override für Drucker-Konfiguration im Edge](emergency-override-adr.md) — 2026-05-14 — Eng begrenzte Notfall-Schreibrechte bei Cloud-Ausfall (≥3 Heartbeat-Fehler ODER >5 min), nur `printSettings`-Patches, eigene `pending-local-overrides`-Tabelle (nicht Sync-Outbox), Reconciliation via `POST /sync-reconcile-overrides` mit Old-Value-Konflikt-Detection
+- [Tagesabschluss-Architektur (Edge + Cloud + Aggregator-Lib)](tagesabschluss-architektur.md) — 2026-05-15 — Lifecycle-Maschine (open → closing-requested → closing-aggregating → closed/failed → audited), Mode-Unterscheidung pro Location (orders-only vs pos-cashier), shared `@panary-core/businessdays/aggregator` als Single Source of Truth für Dashboard-Live + Cloud-Report (Cent-Integer, deterministisch, 57 Fixture-Tests), Sync-Outbox-Vorabprüfung im Edge, lückenlose Z-Bon-Nummer pro Location, KassenSichV-Schema-Reserve
 
 ## Sicherheit
 

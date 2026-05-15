@@ -9,9 +9,25 @@ export const OrderChannel = {
   APP: 'app',
 } as const
 
+// Order-Lifecycle:
+//
+//   ACTIVE      → Bestellung eingegangen, wartet auf Produktionsstart
+//   PRODUCTION  → Kueche in Bearbeitung (heute auf KDS sichtbar)
+//   PRODUCED    → Produktion fertig, Ware aus dem Bestand gebucht; wartet
+//                 auf Uebergabe (zukuenftige Abholtafel-Sicht)
+//   COMPLETED   → Order an Kunde uebergeben / Bezahlung abgeschlossen
+//   ABORTED     → Storniert (vor oder nach PRODUCED). Wenn nach PRODUCED:
+//                 SALES_OUT_REVERSAL-Movement wird erzeugt.
+//   UNCLAIMED   → War COMPLETED, aber nach TTL nicht abgeholt (Sonderfall)
+//
+// Stock-Buchung erfolgt beim Uebergang `→ PRODUCED`. Defensiv triggert der
+// order-stock-update-Hook auch bei `→ COMPLETED` (Uebergangs-Strategie, solange
+// das Frontend direkt PRODUCTION → COMPLETED setzt). Idempotenz ueber
+// `stockBookedAt`-Marker.
 export const OrderStatus = {
   ACTIVE: 'active',
   PRODUCTION: 'production',
+  PRODUCED: 'produced',
   COMPLETED: 'completed',
   ABORTED: 'aborted',
   UNCLAIMED: 'unclaimed',
@@ -185,6 +201,18 @@ export const orderSchema = Type.Object(
     targetCompletionAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
     table: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     recordingDate: Type.String({ format: 'date-time' }),
+
+    // === Verkaufsverbrauch-Buchung (Variante A) ===
+    // Idempotenz-Marker fuer den order-stock-update-Hook in api-cloud.
+    // Gesetzt beim ersten Status-Wechsel auf PRODUCED / COMPLETED / UNCLAIMED.
+    // Doppel-Hook-Aufrufe sind dann No-Op.
+    stockBookedAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
+    // IDs der erzeugten inventory-movements (Typ SALES_OUT). Werden bei Storno
+    // (Status → ABORTED) fuer Reverse-Lookup verwendet.
+    stockMovementIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
+    // Gesetzt nach erfolgreichem Reversal (SALES_OUT_REVERSAL-Movements).
+    // Verhindert Doppel-Reversal bei mehrfachem Status-Wechsel auf ABORTED.
+    stockReversedAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
   },
   { $id: 'Order', additionalProperties: false },
 )
@@ -233,6 +261,12 @@ export const orderDataSchema = Type.Intersect(
         'table',
         'recordingDate',
         'targetCompletionAt',
+        // Stock-Buchungs-Marker werden serverseitig vom Hook gesetzt — hier
+        // bewusst erlaubt fuer Sync-Push (Edge sendet Order mit moeglicherweise
+        // schon gesetztem Marker, Cloud-Hook prueft idempotent).
+        'stockBookedAt',
+        'stockMovementIds',
+        'stockReversedAt',
       ],
     ),
   ],

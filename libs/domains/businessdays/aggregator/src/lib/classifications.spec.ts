@@ -55,4 +55,12 @@ describe('classifications', () => {
     expect(isRegularSale(makeOrder({ status: OrderStatus.ABORTED }))).toBe(false)
     expect(isRegularSale(makeOrder({ paymentState: PaymentState.REFUNDED }))).toBe(false)
   })
+
+  it('PRODUCED + COMPLETED + UNCLAIMED zaehlen alle als regulaerer Verkauf', () => {
+    // Variante-A-Konsistenz: nach dem Hinzufuegen des PRODUCED-Status muss
+    // der Aggregator alle drei "Ware-verbraucht"-Stati gleich behandeln.
+    expect(isRegularSale(makeOrder({ status: OrderStatus.PRODUCED }))).toBe(true)
+    expect(isRegularSale(makeOrder({ status: OrderStatus.COMPLETED }))).toBe(true)
+    expect(isRegularSale(makeOrder({ status: OrderStatus.UNCLAIMED }))).toBe(true)
+  })
 })

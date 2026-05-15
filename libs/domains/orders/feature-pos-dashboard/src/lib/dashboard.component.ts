@@ -11,9 +11,14 @@ import { AuthService } from '@panary-core/auth/data-access'
 import { WorkingTime } from '@panary-core/working-times/domain'
 import { WorkingTimeService } from '@panary-core/working-times/data-access'
 import { LocationService } from '@panary-core/locations/data-access'
+import { BusinessDayService } from '@panary-core/businessdays/data-access'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dialog'
-import { ClosingDialogComponent } from '@panary-core/businessdays/feature-pos-closing-dialog'
+import {
+  ClosingDialogComponent,
+  OpeningDialogComponent,
+} from '@panary-core/businessdays/feature-pos-closing-dialog'
+import { BusinessDayOperationMode } from '@panary-core/businessdays/domain'
 import { PosWriteOffDialogComponent } from '@panary-core/write-offs/feature-pos-dialog'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { PreOrder, PreOrderService } from '@panary-core/pre-orders/data-access'
@@ -26,6 +31,13 @@ interface QuickAction {
   textClass: string
   allowedRoles?: UserSystemRole[]
   hideInStandalone?: boolean
+  /**
+   * Optionaler Sichtbarkeits-Filter, der zur Render-Zeit ausgewertet wird.
+   * Im Gegensatz zu `allowedRoles` (statisch beim Login) kann `condition`
+   * auf reaktive Signals zugreifen (z.B. ob ein Geschäftstag offen ist).
+   * Default: immer sichtbar.
+   */
+  condition?: () => boolean
 }
 
 @Component({
@@ -47,6 +59,7 @@ export class DashboardComponent implements OnInit {
   #workingTimeService = inject(WorkingTimeService)
   #locationService = inject(LocationService)
   #connectionService = inject(ConnectionService)
+  #businessDayService = inject(BusinessDayService)
   #cdr = inject(ChangeDetectorRef)
   #dialog = inject(MatDialog)
   #translate = inject(TranslateService)
@@ -56,6 +69,19 @@ export class DashboardComponent implements OnInit {
   todayPreOrders = signal<PreOrder[]>([])
 
   isStandaloneMode = computed(() => this.#connectionService.systemMode() === 'standalone')
+
+  /**
+   * Indikator, ob die aktive Location einen offenen Geschaeftstag hat.
+   * Quelle: `location.currentBusinessDay.businessDayId` — wird beim
+   * Edge-Sync mit der Cloud konsistent gehalten. Kein zusaetzlicher
+   * Service-Call noetig.
+   */
+  hasOpenBusinessDay = computed(() => {
+    const loc = this.#locationService.activeLocation() as
+      | { currentBusinessDay?: { businessDayId?: string } }
+      | undefined
+    return !!loc?.currentBusinessDay?.businessDayId
+  })
 
   // Signals
   currentUser = computed(() => {
@@ -147,15 +173,26 @@ export class DashboardComponent implements OnInit {
       textClass: 'text-red-500 dark:text-red-400',
       hideInStandalone: true,
     },
-    // Tagesabschluss button removed - moved to Detailed View
-    // {
-    //   label: 'Tagesabschluss',
-    //   icon: 'verified',
-    //   action: () => this.startClosing(),
-    //   bgClass: 'bg-teal-100',
-    //   textClass: 'text-teal-700',
-    //   allowedRoles: [UserRole.admin, UserRole.superAdmin],
-    // },
+    // Tageseroeffnung — nur sichtbar wenn kein Geschaeftstag offen ist.
+    {
+      label: 'DASHBOARD.OPEN_BUSINESS_DAY',
+      icon: 'play_circle',
+      action: () => this.startOpening(),
+      bgClass: 'bg-teal-100 dark:bg-teal-900/30',
+      textClass: 'text-teal-700 dark:text-teal-400',
+      condition: () => !this.hasOpenBusinessDay(),
+      hideInStandalone: true,
+    },
+    // Tagesabschluss — nur sichtbar wenn Geschaeftstag offen ist.
+    {
+      label: 'DASHBOARD.CLOSE_BUSINESS_DAY',
+      icon: 'verified',
+      action: () => this.startClosing(),
+      bgClass: 'bg-indigo-100 dark:bg-indigo-900/30',
+      textClass: 'text-indigo-700 dark:text-indigo-400',
+      condition: () => this.hasOpenBusinessDay(),
+      hideInStandalone: true,
+    },
     {
       label: 'DASHBOARD.SETTINGS',
       icon: 'settings',
@@ -171,6 +208,7 @@ export class DashboardComponent implements OnInit {
 
     return this.quickActions.filter(action => {
       if (action.hideInStandalone && this.isStandaloneMode()) return false
+      if (action.condition && !action.condition()) return false
       if (!action.allowedRoles) return true
       return action.allowedRoles.includes(userRole)
     })
@@ -338,32 +376,64 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  startClosing() {
-    const activeLocation = this.#locationService.activeLocation()
-    const locationId = activeLocation?._id
+  /**
+   * Tageseroeffnung — oeffnet den OpeningDialog. Mode aus
+   * `Location.operationMode` (Default: pos-cashier). Nach Erfolg
+   * aktualisiert sich `hasOpenBusinessDay()` reaktiv, weil der Edge-Service
+   * `Location.currentBusinessDay` patcht.
+   */
+  startOpening() {
+    const activeLocation = this.#locationService.activeLocation() as
+      | { _id?: string; operationMode?: string }
+      | undefined
+    const locationId = activeLocation?._id ?? null
+    const operationMode =
+      activeLocation?.operationMode === 'orders-only'
+        ? BusinessDayOperationMode.ORDERS_ONLY
+        : BusinessDayOperationMode.POS_CASHIER
 
-    this.#dialog.open(ClosingDialogComponent, {
-      width: '500px',
-      maxWidth: '90vw',
-      height: 'auto',
+    this.#dialog.open(OpeningDialogComponent, {
+      width: '480px',
+      maxWidth: '92vw',
       maxHeight: '90vh',
-      disableClose: true,
-      panelClass: 'closing-dialog-panel',
-      data: {
-        locationId: locationId,
-      },
+      disableClose: false,
+      data: { locationId, operationMode },
     })
+  }
 
-    // Ideally, we would trigger the actual closing process here if it's not self-contained or triggered by the store.
-    // Assuming the Store listening is enough for the UI, but something needs to KICKOFF the backend process.
-    // The prompt says "The Dialog opens when startClosing() is triggered".
-    // It implies the user clicks something -> Dialog Opens -> AND connectionService/BusinessDayService.close() is called?
-    // BUT the prompt focuses on "Closing Progress Dialog". It doesn't explicitly say "Implement the backend call".
-    // However, for the progress to start "The backend sends...", the backend must be doing something.
-    // I will lazily assume opening the dialog MIGHT trigger it or we should trigger it.
-    // Let's add the trigger call for completeness if possible, or just open the dialog as requested.
-    // Given "Integration" task, I'll stick to just opening it and letting the Store listen.
-    // If I need to trigger it: this.#businessDayService.closeBusinessDay(locationId)
+  /**
+   * Tagesabschluss — oeffnet den ClosingDialog. Erwartet einen offenen
+   * BusinessDay (Wahrscheinlichkeit ueber `hasOpenBusinessDay()`-Condition
+   * im Quick-Action-Filter). Der Dialog ruft seinerseits closeDay() auf,
+   * was Sync-Outbox-Vorabpruefung + Cloud-Trigger erledigt.
+   */
+  startClosing() {
+    const activeLocation = this.#locationService.activeLocation() as
+      | { _id?: string; currentBusinessDay?: { businessDayId?: string } }
+      | undefined
+    const businessDayId = activeLocation?.currentBusinessDay?.businessDayId
+    if (!businessDayId) {
+      console.warn('startClosing: kein offener Geschäftstag — Aktion ignoriert')
+      return
+    }
+
+    // Volle BusinessDay-Daten aus dem Service holen (operationMode etc.)
+    void (async () => {
+      try {
+        const businessDay = await this.#businessDayService.get(businessDayId)
+        this.#dialog.open(ClosingDialogComponent, {
+          width: '500px',
+          maxWidth: '90vw',
+          height: 'auto',
+          maxHeight: '90vh',
+          disableClose: true,
+          panelClass: 'closing-dialog-panel',
+          data: { businessDay },
+        })
+      } catch (err) {
+        console.error('startClosing: BusinessDay konnte nicht geladen werden', err)
+      }
+    })()
   }
 
   // --- Logic ---

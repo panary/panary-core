@@ -176,6 +176,8 @@
     "HISTORY": "History",
     "WORKING_TIMES": "Working times",
     "WRITE_OFF": "Write-off",
+    "OPEN_BUSINESS_DAY": "Open business day",
+    "CLOSE_BUSINESS_DAY": "Daily closing",
     "SETTINGS": "Settings",
     "EMPLOYEE": "Employee",
     "PRE_ORDERS_TODAY": "Pre-orders today",

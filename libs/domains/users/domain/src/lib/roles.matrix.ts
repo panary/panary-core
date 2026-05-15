@@ -534,6 +534,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Drucken erlauben
     { resource: AppResource.PRINT_SERVER, action: AppAction.CREATE },
 
+    // Tageseröffnung/Tagesabschluss am Edge ausloesen (openDay/closeDay)
+    { resource: AppResource.BUSINESS_DAYS, action: AppAction.MANAGE },
+
     // Kasse darf natürlich kassieren
     AppAbility.CAN_DISCOUNT,
     AppAbility.CAN_REFUND,

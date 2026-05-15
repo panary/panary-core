@@ -1,4 +1,4 @@
-import { Static, StringEnum, Type } from '@feathersjs/typebox'
+import { querySyntax, Static, StringEnum, Type } from '@feathersjs/typebox'
 
 // Lifecycle-Status eines Geschäftstages.
 // 'open'                 → POS kann Bestellungen erfassen
@@ -58,3 +58,45 @@ export const businessDaySchema = Type.Object({
 
 export type BusinessDay = Static<typeof businessDaySchema>
 export type BusinessDaySchema = BusinessDay
+
+// CREATE-Schema: minimal — Service-Resolver setzt _id, status, isOpen, openedAt.
+export const businessDayDataSchema = Type.Object(
+  {
+    _id: Type.Optional(Type.String()),
+    tenantId: Type.Optional(Type.String()),
+    locationId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    date: Type.Optional(Type.String({ format: 'date' })),
+    openedBy: Type.Optional(Type.String()),
+    operationMode: Type.Optional(StringEnum(Object.values(BusinessDayOperationMode))),
+    openingFloatCents: Type.Optional(Type.Integer({ minimum: 0 })),
+  },
+  { $id: 'BusinessDayData', additionalProperties: false },
+)
+export type BusinessDayData = Static<typeof businessDayDataSchema>
+
+// PATCH-Schema: alle Felder optional fuer partielle Updates.
+export const businessDayPatchSchema = Type.Partial(businessDaySchema, {
+  $id: 'BusinessDayPatch',
+})
+export type BusinessDayPatch = Static<typeof businessDayPatchSchema>
+
+// QUERY-Schema: nur sichere Felder zulassen, $or fuer Multi-Status-Suche.
+export const businessDayQueryProperties = Type.Pick(businessDaySchema, [
+  '_id',
+  'tenantId',
+  'locationId',
+  'date',
+  'status',
+  'isOpen',
+  'operationMode',
+  'reportId',
+])
+const _businessDayQueryBase = querySyntax(businessDayQueryProperties)
+export const businessDayQuerySchema = Type.Object(
+  {
+    ..._businessDayQueryBase.properties,
+    $or: Type.Optional(Type.Array(Type.Any())),
+  },
+  { additionalProperties: false },
+)
+export type BusinessDayQuery = Static<typeof businessDayQuerySchema>

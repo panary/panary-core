@@ -8,6 +8,7 @@ import { ProductService } from './services/products/products.class'
 import { CorporateCustomerService } from './services/corporate-customers/corporate-customers.class'
 import { CustomerService } from './services/customers/customers.class'
 import { DeviceService } from './services/devices/devices.class'
+import { BusinessDayService } from './services/business-days/business-days.class'
 import { ProductGroupService } from './services/product-groups/product-groups.class'
 import { LocationService } from './services/locations/locations.class'
 import { OrderService } from './services/orders/orders.class'
@@ -77,6 +78,7 @@ export interface ServiceTypes {
   'sync-runs': GenericService<SyncRun>
   'bootstrap-reports': GenericService<BootstrapReport>
   'audit-events': GenericService<AuditEvent>
+  businessdays: BusinessDayService
 }
 
 // The application instance type that will be used everywhere else

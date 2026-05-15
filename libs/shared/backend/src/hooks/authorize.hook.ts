@@ -85,6 +85,15 @@ function getActionFromMethod(method: string): AppAction {
       return AppAction.DELETE
     case 'convert':
       return AppAction.UPDATE
+    // Tagesabschluss-Custom-Methods (Edge: businessdays-Service,
+    // Cloud: business-day-reports-Service)
+    case 'openDay':
+      return AppAction.CREATE
+    case 'closeDay':
+    case 'startClosing':
+    case 'cancelClosing':
+    case 'reAggregate':
+      return AppAction.UPDATE
     default:
       return AppAction.READ
   }

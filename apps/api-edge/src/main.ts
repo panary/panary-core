@@ -303,6 +303,17 @@ async function main() {
       logger.error('Sync-Runs-Cleanup-Worker: Start fehlgeschlagen.', err)
     }
     // -----------------------------------------------------------------------
+
+    // --- Closing-Status-Refresh-Worker: alle 30s offene Closings refreshen ---
+    try {
+      const { startClosingStatusRefreshWorker } = await import(
+        './workers/closing-status-refresh.worker.js'
+      )
+      startClosingStatusRefreshWorker(app)
+    } catch (err) {
+      logger.error('Closing-Status-Refresh-Worker: Start fehlgeschlagen.', err)
+    }
+    // -----------------------------------------------------------------------
   } catch (error) {
     logger.error(
       `Configuration check failed or file missing at ${CONFIG_PATH}. Starting in SETUP MODE.`,

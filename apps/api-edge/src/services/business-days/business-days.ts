@@ -43,6 +43,7 @@ import type {
   BusinessDayService,
   CloseDayData,
   OpenDayData,
+  RefreshClosingStatusData,
 } from './business-days.class'
 
 import type { Application } from '../../declarations'
@@ -56,6 +57,7 @@ export const businessDaysMethods = [
   'remove',
   'openDay',
   'closeDay',
+  'refreshClosingStatus',
 ] as const
 
 export * from './business-days.schema'
@@ -243,6 +245,127 @@ async function closeDay(
   return patched
 }
 
+/**
+ * Holt den aktuellen Status des zugehoerigen Cloud-Reports und zieht den
+ * Edge-BusinessDay-Status nach.
+ *
+ * Aufrufbar von POS-UI (Pull-on-Demand, wenn der User den Tagesabschluss-
+ * Status sehen will) oder von einem Heartbeat-Worker (Pull-Periodisch).
+ *
+ * State-Mapping:
+ *   Cloud completed → Edge status='closed',  reportId gesetzt
+ *   Cloud failed    → Edge status='failed',  reportErrorMessage gesetzt
+ *   Cloud audited   → Edge status='audited', reportId gesetzt
+ *   Cloud sonst     → keine Aenderung (still aggregating)
+ */
+async function refreshClosingStatus(
+  app: Application,
+  data: RefreshClosingStatusData,
+  params: OpenDayParams = {},
+): Promise<BusinessDay> {
+  const user = params.user
+  if (!user?.tenantId) throw new BadRequest('Tenant-Kontext fehlt')
+  if (!data.businessDayId) throw new BadRequest('businessDayId ist Pflicht')
+
+  const businessDay = (await (app.service(businessDaysPath) as any).get(data.businessDayId, {
+    provider: undefined,
+  })) as BusinessDay | undefined
+  if (!businessDay) throw new NotFound('Geschaeftstag nicht gefunden')
+  if (businessDay.tenantId !== user.tenantId) throw new BadRequest('Tenant-Mismatch')
+
+  // Nur sinnvoll im Zwischen-Status — bereits final-Status nicht erneut pullen
+  if (
+    businessDay.status !== BusinessDayStatus.CLOSING_REQUESTED &&
+    businessDay.status !== BusinessDayStatus.CLOSING_AGGREGATING
+  ) {
+    return businessDay
+  }
+
+  const report = await fetchCloudReportForBusinessDay(app, businessDay.tenantId, businessDay._id)
+  if (!report) {
+    // Cloud ist (noch) nicht erreichbar oder hat noch keinen Report angelegt
+    return businessDay
+  }
+
+  let nextStatus: string | null = null
+  if (report.status === 'completed') nextStatus = BusinessDayStatus.CLOSED
+  else if (report.status === 'audited') nextStatus = BusinessDayStatus.AUDITED
+  else if (report.status === 'failed') nextStatus = BusinessDayStatus.FAILED
+  // pending / aggregating → noch im Zwischen-Status lassen
+  else if (report.status === 'aggregating' && businessDay.status === BusinessDayStatus.CLOSING_REQUESTED) {
+    nextStatus = BusinessDayStatus.CLOSING_AGGREGATING
+  }
+
+  if (!nextStatus) return businessDay
+
+  const patched = (await (app.service(businessDaysPath) as any).patch(
+    data.businessDayId,
+    {
+      status: nextStatus,
+      reportId: report._id ?? null,
+      reportErrorMessage: report.errorMessage ?? null,
+      updatedAt: new Date().toISOString(),
+    },
+    { provider: undefined },
+  )) as BusinessDay
+
+  logger.info({
+    message: 'business-day.status_refreshed',
+    event: 'business_day.status_refreshed',
+    tenantId: user.tenantId,
+    businessDayId: data.businessDayId,
+    previousStatus: businessDay.status,
+    nextStatus,
+    reportId: report._id,
+  })
+
+  return patched
+}
+
+interface CloudReportSnapshot {
+  _id?: string
+  status?: string
+  errorMessage?: string | null
+}
+
+/**
+ * Fragt die Cloud `business-day-reports`-Liste nach dem zum Edge-BusinessDay
+ * gehoerigen Report (via businessDayId). Best-effort: bei Cloud-Ausfall null.
+ */
+async function fetchCloudReportForBusinessDay(
+  app: Application,
+  tenantId: string,
+  businessDayId: string,
+): Promise<CloudReportSnapshot | null> {
+  void tenantId // kommt automatisch ueber Token-Auth in der Cloud
+  const cloudConnection = await loadCloudConnection(app)
+  if (!cloudConnection) return null
+  const baseUrl = cloudConnection.cloudUrl
+  const token = cloudConnection.cloudAccessToken
+  if (!baseUrl || !token) return null
+
+  const url = `${baseUrl.replace(/\/$/, '')}/business-day-reports?businessDayId=${encodeURIComponent(businessDayId)}&$limit=1`
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(10_000),
+    })
+    if (!response.ok) return null
+    const body = (await response.json()) as { data?: CloudReportSnapshot[] } | CloudReportSnapshot[]
+    const items = Array.isArray(body) ? body : (body.data ?? [])
+    return items[0] ?? null
+  } catch (err) {
+    logger.warn({
+      message: 'business-day.refresh_status_failed',
+      event: 'business_day.refresh_status_failed',
+      businessDayId,
+      error: (err as Error).message,
+    })
+    return null
+  }
+}
+
 interface CloudTriggerPayload {
   tenantId: string
   locationId: string | null
@@ -325,6 +448,7 @@ export const businessDays = (app: Application) => {
   }) as unknown as BusinessDayService & {
     openDay: (data: OpenDayData, params?: OpenDayParams) => Promise<BusinessDay>
     closeDay: (data: CloseDayData, params?: OpenDayParams) => Promise<BusinessDay>
+    refreshClosingStatus: (data: RefreshClosingStatusData, params?: OpenDayParams) => Promise<BusinessDay>
   }
 
   // Custom-Methods auf den Service-Proxy haengen
@@ -332,6 +456,8 @@ export const businessDays = (app: Application) => {
     openDay(app, data, params)
   service.closeDay = (data: CloseDayData, params?: OpenDayParams) =>
     closeDay(app, data, params)
+  service.refreshClosingStatus = (data: RefreshClosingStatusData, params?: OpenDayParams) =>
+    refreshClosingStatus(app, data, params)
   ;(service as any).setup = async (app: Application) =>
     ensureIndexes(
       app,

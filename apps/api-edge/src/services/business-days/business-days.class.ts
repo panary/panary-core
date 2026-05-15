@@ -27,8 +27,13 @@ export interface CloseDayData {
   physicalCounts?: Record<string, number>
 }
 
+export interface RefreshClosingStatusData {
+  businessDayId: string
+}
+
 export interface BusinessDayService
   extends ServiceInterface<BusinessDay, BusinessDayData, BusinessDayParams, BusinessDayPatch> {
   openDay(data: OpenDayData, params?: BusinessDayParams): Promise<BusinessDay>
   closeDay(data: CloseDayData, params?: BusinessDayParams): Promise<BusinessDay>
+  refreshClosingStatus(data: RefreshClosingStatusData, params?: BusinessDayParams): Promise<BusinessDay>
 }

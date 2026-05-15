@@ -93,6 +93,7 @@ function getActionFromMethod(method: string): AppAction {
     case 'startClosing':
     case 'cancelClosing':
     case 'reAggregate':
+    case 'refreshClosingStatus':
       return AppAction.UPDATE
     default:
       return AppAction.READ

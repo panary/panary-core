@@ -312,7 +312,12 @@
   },
   "CLOSING": {
     "TITLE": "Gün sonu kapanış",
+    "SUBMIT": "Gün sonu kapanışını başlat",
     "NOT_AVAILABLE": "Gün sonu kapanışı gelecek bir sürümde kullanılabilir olacaktır."
+  },
+  "OPENING": {
+    "TITLE": "İşletme gününü aç",
+    "SUBMIT": "Aç"
   },
   "SETUP": {
     "TITLE": "Kurulum",

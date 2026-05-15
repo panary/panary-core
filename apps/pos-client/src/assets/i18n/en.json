@@ -312,7 +312,12 @@
   },
   "CLOSING": {
     "TITLE": "Daily closing",
+    "SUBMIT": "Start daily closing",
     "NOT_AVAILABLE": "Daily closing will be available in a future version."
+  },
+  "OPENING": {
+    "TITLE": "Open business day",
+    "SUBMIT": "Open"
   },
   "SETUP": {
     "TITLE": "Setup",

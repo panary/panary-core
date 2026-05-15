@@ -312,7 +312,12 @@
   },
   "CLOSING": {
     "TITLE": "Tagesabschluss",
+    "SUBMIT": "Tagesabschluss starten",
     "NOT_AVAILABLE": "Der Tagesabschluss wird in einer zukünftigen Version verfügbar sein."
+  },
+  "OPENING": {
+    "TITLE": "Geschäftstag eröffnen",
+    "SUBMIT": "Eröffnen"
   },
   "SETUP": {
     "TITLE": "Setup",

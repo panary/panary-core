@@ -8,10 +8,15 @@
       "types": "./domain/dist/index.d.ts",
       "default": "./domain/dist/index.cjs.js"
     },
+    "./aggregator": {
+      "types": "./aggregator/dist/index.d.ts",
+      "default": "./aggregator/dist/index.cjs.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
     "domain/dist",
+    "aggregator/dist",
     "README.md",
     "LICENSE"
   ],
@@ -28,6 +33,12 @@
     "@feathersjs/feathers": "^5.0.40",
     "@feathersjs/typebox": "^5.0.40",
     "@sinclair/typebox": "^0.34.0",
-    "@panary-core/shared-common": "^26.4.20"
+    "@panary-core/shared-common": "^26.4.20",
+    "@panary-core/orders": "^26.4.20",
+    "@panary-core/write-offs": "^26.4.20",
+    "@panary-core/working-times": "^26.4.20",
+    "@panary-core/ingredients": "^26.4.20",
+    "@panary-core/recipes": "^26.4.20",
+    "@panary-core/products": "^26.4.20"
   }
 }

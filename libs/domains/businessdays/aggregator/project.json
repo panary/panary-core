@@ -1,0 +1,45 @@
+{
+  "name": "businessdays-aggregator",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/businessdays/aggregator/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:businessdays"],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/businessdays/aggregator/dist"],
+      "dependsOn": ["^build"],
+      "options": {
+        "outputPath": "libs/domains/businessdays/aggregator/dist",
+        "project": "libs/domains/businessdays/package.json",
+        "tsConfig": "libs/domains/businessdays/aggregator/tsconfig.lib.json",
+        "main": "libs/domains/businessdays/aggregator/src/index.ts",
+        "format": ["cjs"],
+        "external": [
+          "@feathersjs/feathers",
+          "@feathersjs/typebox",
+          "@sinclair/typebox",
+          "@panary-core/shared-common",
+          "@panary-core/orders",
+          "@panary-core/write-offs",
+          "@panary-core/working-times",
+          "@panary-core/ingredients",
+          "@panary-core/recipes",
+          "@panary-core/products"
+        ],
+        "generatePackageJson": false,
+        "compiler": "tsc"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
+    "test": {
+      "executor": "@nx/vite:test",
+      "outputs": ["{workspaceRoot}/coverage/libs/domains/businessdays/aggregator"],
+      "options": {
+        "configFile": "libs/domains/businessdays/aggregator/vitest.config.ts"
+      }
+    }
+  }
+}

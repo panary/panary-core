@@ -1,0 +1,10 @@
+{
+  "name": "businessdays-aggregator-internal",
+  "version": "0.0.0-internal",
+  "private": true,
+  "type": "commonjs",
+  "description": "Interne Build-Shell — tatsächliches publishable Package liegt in ../package.json (subpath @panary-core/businessdays/aggregator)",
+  "dependencies": {
+    "tslib": "^2.3.0"
+  }
+}

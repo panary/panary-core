@@ -7,8 +7,11 @@
   "targets": {
     "build": {
       "executor": "nx:run-commands",
-      "outputs": ["{workspaceRoot}/libs/domains/businessdays/domain/dist"],
-      "dependsOn": ["businessdays-domain:build"],
+      "outputs": [
+        "{workspaceRoot}/libs/domains/businessdays/domain/dist",
+        "{workspaceRoot}/libs/domains/businessdays/aggregator/dist"
+      ],
+      "dependsOn": ["businessdays-domain:build", "businessdays-aggregator:build"],
       "options": {
         "command": "echo 'businessdays package build complete'"
       }

@@ -17,6 +17,14 @@ export const LocationStatus = {
   DRAFT: 'DRAFT',
   ARCHIVED: 'ARCHIVED',
 } as const
+
+// Betriebsmodus pro Standort: Reines Bestellsystem ohne Kasse vs. volle Kasse.
+// 'orders-only'   = Tagesabschluss aggregiert nur Bestellungen + Wareneinsatz; keine Kassenabstimmung, kein Z-Bon
+// 'pos-cashier'   = Kassen-Compliance: Opening-Float, Cash-Count, Variance, lückenlose Z-Bon-Nummer
+export const LocationOperationMode = {
+  ORDERS_ONLY: 'orders-only',
+  POS_CASHIER: 'pos-cashier',
+} as const
 //#endregion
 
 //#region Sub-Schemas
@@ -192,6 +200,11 @@ export const locationSchema = Type.Object(
     // Adressen mit CHF buchen koennen (Schweizer Mutter). Default in
     // Service-Resolver: 'EUR'.
     defaultCurrency: Type.Optional(Type.String({ pattern: '^[A-Z]{3}$' })),
+
+    // Betriebsmodus: steuert Verhalten des Tagesabschlusses (Cash-Count vs
+    // reiner Bestellaggregation) und welche UI-Steps angezeigt werden.
+    // Optional + Service-Resolver-Default 'pos-cashier' für Bestandskunden.
+    operationMode: Type.Optional(StringEnum(Object.values(LocationOperationMode))),
   },
   { $id: 'Location', additionalProperties: false },
 )
@@ -213,6 +226,7 @@ export const locationDataSchema = Type.Pick(
     'status',
     'locale',
     'defaultCurrency',
+    'operationMode',
   ],
   {
     $id: 'LocationData',

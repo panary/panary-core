@@ -1,13 +1,57 @@
-import { Type, Static } from '@feathersjs/typebox'
+import { Static, StringEnum, Type } from '@feathersjs/typebox'
+
+// Lifecycle-Status eines Geschäftstages.
+// 'open'                 → POS kann Bestellungen erfassen
+// 'closing-requested'    → POS hat Close getriggert; Edge wartet auf Sync-Outbox-Flush
+// 'closing-aggregating'  → Cloud aggregiert; UI zeigt Live-Progress
+// 'closed'               → Cloud-Report finalisiert + signiert
+// 'failed'               → Aggregation abgebrochen; retry möglich via reAggregate
+// 'audited'              → Manuell vom Manager freigegeben (Sicherheits-Plombe)
+export const BusinessDayStatus = {
+  OPEN: 'open',
+  CLOSING_REQUESTED: 'closing-requested',
+  CLOSING_AGGREGATING: 'closing-aggregating',
+  CLOSED: 'closed',
+  FAILED: 'failed',
+  AUDITED: 'audited',
+} as const
+
+// Snapshot der Location-Betriebsart zur Zeit der Tageseröffnung.
+// Bewusst kopiert (statt referenziert), damit ein nachträgliches Umschalten
+// von 'pos-cashier' → 'orders-only' den bereits offenen Tag nicht beeinflusst.
+export const BusinessDayOperationMode = {
+  ORDERS_ONLY: 'orders-only',
+  POS_CASHIER: 'pos-cashier',
+} as const
 
 export const businessDaySchema = Type.Object({
   _id: Type.String(),
   tenantId: Type.String(),
   locationId: Type.Union([Type.String(), Type.Null()]),
-  date: Type.String({ format: 'date' }),
+
+  date: Type.String({ format: 'date' }), // YYYY-MM-DD, Anker des Geschäftstages
+
+  status: StringEnum(Object.values(BusinessDayStatus)),
   openedAt: Type.String(),
   closedAt: Type.Union([Type.String(), Type.Null()]),
+  openedBy: Type.Optional(Type.String()), // userId
+  closedBy: Type.Optional(Type.String()),
+
+  // Backwards-compat: isOpen ist abgeleitet aus status === 'open', wird aber
+  // weiterhin von älteren Konsumenten gelesen. Resolver hält den Wert konsistent.
   isOpen: Type.Boolean(),
+
+  // Schnappschuss der Betriebsart der Location bei Eröffnung.
+  operationMode: StringEnum(Object.values(BusinessDayOperationMode)),
+
+  // Kassenwerte (nur 'pos-cashier'-Modus); Cents als Integer (kein Float-Geld).
+  openingFloatCents: Type.Optional(Type.Integer({ minimum: 0 })),
+  countedClosingFloatCents: Type.Optional(Type.Integer({ minimum: 0 })),
+
+  // Verknüpfung zum Cloud-Tagesabschluss-Report (uuidv7, Cloud-seitig vergeben).
+  reportId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+  reportErrorMessage: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+
   createdAt: Type.String(),
   updatedAt: Type.String(),
 })

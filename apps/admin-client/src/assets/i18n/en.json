@@ -54,6 +54,14 @@
     "NO_EXCEPTIONS": "No exceptions configured",
     "LOAD_ERROR": "Could not load opening hours."
   },
+  "CLOUD_STATUS": {
+    "SYNC_AGE_MIN": "Last cloud sync {{minutes}} min ago",
+    "SYNC_AGE_HOUR": "Last cloud sync {{hours}} h ago",
+    "SYNC_NEVER": "No cloud sync yet",
+    "TOKEN_EXPIRES_IN_HOURS": "Token expires in {{hours}} h",
+    "TOKEN_EXPIRES_IN_MINUTES": "Token expires in {{minutes}} min",
+    "TOKEN_EXPIRED": "Token expired — re-pair required"
+  },
   "COMMON": {
     "SAVE": "Save",
     "SAVING": "Saving...",

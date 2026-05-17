@@ -55,6 +55,14 @@ export class ConnectionService {
   #healthPoll: ReturnType<typeof setInterval> | null = null
   #lastHealthUrl: string | null = null
 
+  // Cloud-Status-Badge-Datenquellen: aus /health gepollt, RBAC-frei lesbar.
+  // `#tick` triggert ein Re-Compute alle 60s, damit Computed-Werte wie
+  // `Date.now() - lastSyncAt` ohne Polling-Roundtrip aktualisiert werden.
+  readonly #lastSyncAt: WritableSignal<string | null> = signal(null)
+  readonly #edgeTokenExpiresAt: WritableSignal<string | null> = signal(null)
+  readonly #tick: WritableSignal<number> = signal(0)
+  #tickTimer: ReturnType<typeof setInterval> | null = null
+
   // Compatibility for POS
   readonly #connectionError: WritableSignal<string | null> = signal(null)
 
@@ -197,6 +205,60 @@ export class ConnectionService {
 
   /** True, wenn die Cloud-Verbindung explizit auf DISCONNECTED steht (Re-Pairing erforderlich). */
   readonly cloudNeedsRePairing = computed(() => this.#cloudPairingStatus() === 'disconnected')
+
+  // Schwellwerte fuer das Cloud-Status-Badge — bewusst hier zentral, damit
+  // beide Apps (POS + Admin) konsistent rendern. Werte koennen spaeter ueber
+  // Tenant-Settings ueberschrieben werden (siehe Plan-Doku §Schwellwerte).
+  static readonly SYNC_WARN_SEC = 5 * 60 // 5 min
+  static readonly SYNC_CRIT_SEC = 30 * 60 // 30 min
+  static readonly TOKEN_WARN_SEC = 24 * 3600 // 24 h
+  static readonly TOKEN_CRIT_SEC = 3600 // 1 h
+
+  /**
+   * Alter des letzten erfolgreichen Cloud-Syncs.
+   *
+   * `level`-Mapping:
+   *   - `ok`   : Sync < SYNC_WARN_SEC alt
+   *   - `warn` : SYNC_WARN_SEC ≤ Sync-Alter < SYNC_CRIT_SEC
+   *   - `crit` : Sync-Alter ≥ SYNC_CRIT_SEC oder `lastSyncAt` null
+   *
+   * Re-Computed alle 60s ueber `#tick`, plus bei jedem /health-Poll.
+   */
+  readonly syncStaleness = computed<{ ageSec: number | null; level: 'ok' | 'warn' | 'crit' }>(() => {
+    this.#tick()
+    const ts = this.#lastSyncAt()
+    if (!ts) return { ageSec: null, level: 'crit' }
+    const ageSec = Math.floor((Date.now() - Date.parse(ts)) / 1000)
+    const level =
+      ageSec >= ConnectionService.SYNC_CRIT_SEC
+        ? 'crit'
+        : ageSec >= ConnectionService.SYNC_WARN_SEC
+          ? 'warn'
+          : 'ok'
+    return { ageSec, level }
+  })
+
+  /**
+   * Restlaufzeit des Edge-Tokens.
+   *
+   * `level`-Mapping:
+   *   - `ok`   : > TOKEN_WARN_SEC oder kein Datum bekannt (kein Pairing)
+   *   - `warn` : TOKEN_CRIT_SEC < Rest ≤ TOKEN_WARN_SEC
+   *   - `crit` : Rest ≤ TOKEN_CRIT_SEC oder bereits abgelaufen
+   */
+  readonly tokenExpiry = computed<{ remainingSec: number | null; level: 'ok' | 'warn' | 'crit' }>(() => {
+    this.#tick()
+    const ts = this.#edgeTokenExpiresAt()
+    if (!ts) return { remainingSec: null, level: 'ok' }
+    const remainingSec = Math.floor((Date.parse(ts) - Date.now()) / 1000)
+    const level =
+      remainingSec <= ConnectionService.TOKEN_CRIT_SEC
+        ? 'crit'
+        : remainingSec <= ConnectionService.TOKEN_WARN_SEC
+          ? 'warn'
+          : 'ok'
+    return { remainingSec, level }
+  })
 
   get smartcardService(): Service {
     return this.#app.service('smartcards')
@@ -566,6 +628,12 @@ export class ConnectionService {
         if (this.#lastHealthUrl) void this.#fetchHealth(this.#lastHealthUrl)
       }, 60_000)
     }
+    // Separater 60-Sek-Tick fuer das Cloud-Status-Badge — getrennt vom
+    // Healthpoll, damit die "Wie alt"-Computeds auch dann frisch bleiben,
+    // wenn das Health-Polling z.B. wegen Offline pausiert.
+    if (!this.#tickTimer) {
+      this.#tickTimer = setInterval(() => this.#tick.update(v => v + 1), 60_000)
+    }
   }
 
   async #fetchHealth(baseUrl: string): Promise<void> {
@@ -581,6 +649,10 @@ export class ConnectionService {
         )
         this.#cloudTokenErrorReason.set(
           typeof data.cloudTokenErrorReason === 'string' ? data.cloudTokenErrorReason : null,
+        )
+        this.#lastSyncAt.set(typeof data.lastSyncAt === 'string' ? data.lastSyncAt : null)
+        this.#edgeTokenExpiresAt.set(
+          typeof data.edgeTokenExpiresAt === 'string' ? data.edgeTokenExpiresAt : null,
         )
       }
     } catch {

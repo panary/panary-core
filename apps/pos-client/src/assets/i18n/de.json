@@ -27,6 +27,14 @@
     "DELETED_PLURAL": "{{entity}} wurden gelöscht",
     "OK": "OK"
   },
+  "CLOUD_STATUS": {
+    "SYNC_AGE_MIN": "Letzter Cloud-Sync vor {{minutes}} min",
+    "SYNC_AGE_HOUR": "Letzter Cloud-Sync vor {{hours}} h",
+    "SYNC_NEVER": "Noch kein Cloud-Sync",
+    "TOKEN_EXPIRES_IN_HOURS": "Token läuft in {{hours}} h ab",
+    "TOKEN_EXPIRES_IN_MINUTES": "Token läuft in {{minutes}} min ab",
+    "TOKEN_EXPIRED": "Token abgelaufen — neu pairen"
+  },
   "COMMON": {
     "OFFLINE": "Offline",
     "CONNECTED": "Verbunden",

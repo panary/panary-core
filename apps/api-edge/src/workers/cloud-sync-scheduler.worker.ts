@@ -59,6 +59,33 @@ interface SchedulerHandle {
  * Wide-Event-Logs. Wird in den Push/Pull-Catch-Bloecken genutzt, um zu zeigen
  * WELCHES Feld am Edge-internen Service-Validator hängengeblieben ist.
  */
+/**
+ * Liest das `exp`-Feld eines JWTs ohne Signatur-Verifikation.
+ *
+ * Wir vertrauen dem Token-Inhalt nicht fuer Authentifizierung — die Cloud
+ * verifiziert bei jedem Call. Hier brauchen wir nur das Ablaufdatum, um es
+ * lokal in `cloud-connection.edgeTokenExpiresAt` zu spiegeln und damit den
+ * Token-Countdown im POS/Admin-UI zu speisen.
+ *
+ * Gibt `undefined` zurueck, wenn das Token kein gueltiges JWT ist oder kein
+ * `exp`-Claim hat — Fallback ist dann das `nextTokenExpiresAt`-Feld der
+ * Heartbeat-Response.
+ */
+const extractJwtExpiry = (token: string | undefined): string | undefined => {
+  if (!token) return undefined
+  const parts = token.split('.')
+  if (parts.length !== 3) return undefined
+  try {
+    // JWTs nutzen base64url; node's Buffer.from(_, 'base64') akzeptiert
+    // beide Varianten (URL-safe und Standard) seit Node 16.
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8')) as { exp?: number }
+    if (typeof payload.exp !== 'number') return undefined
+    return new Date(payload.exp * 1000).toISOString()
+  } catch {
+    return undefined
+  }
+}
+
 const extractAjvErrors = (err: unknown): Array<{ path: string; message: string; keyword?: string; params?: unknown }> | undefined => {
   const errAny = err as {
     data?: Array<Record<string, unknown>>
@@ -563,13 +590,27 @@ const runHeartbeat = async (app: Application, connection: CloudConnection): Prom
     throw new Error(`Heartbeat fehlgeschlagen: ${response.status} ${text}`)
   }
   const body = (await response.json()) as SyncHeartbeatResponse
+
+  // edgeTokenExpiresAt-Update-Strategie:
+  // 1. Cloud liefert `nextTokenExpiresAt` (auch ohne Token-Rotation, sobald
+  //    Cloud-Side das Feld immer setzt) → bevorzugen
+  // 2. Sonst: aktuelles `cloudToken` (JWT) decodieren und `exp` extrahieren,
+  //    falls noch nichts in der DB steht (Initial-Bootstrap-Fall)
+  let edgeTokenExpiresAt: string | undefined = body.nextTokenExpiresAt
+  if (!edgeTokenExpiresAt && !connection.edgeTokenExpiresAt) {
+    edgeTokenExpiresAt = extractJwtExpiry(cloudToken)
+  }
+
   await (app.service(cloudConnectionPath) as any)._patch(connection._id, {
     lastClockSkewMs: body.clockSkewMs,
     lastSyncAt: new Date().toISOString(),
+    ...(edgeTokenExpiresAt ? { edgeTokenExpiresAt } : {}),
   })
   if (body.nextToken) {
+    const newExpiry = body.nextTokenExpiresAt ?? extractJwtExpiry(body.nextToken)
     await (app.service(cloudConnectionPath) as any)._patch(connection._id, {
       cloudToken: encryptCloudToken(body.nextToken),
+      ...(newExpiry ? { edgeTokenExpiresAt: newExpiry } : {}),
     })
   }
   if (body.clockSkewStatus === ClockSkewStatus.ERROR) {

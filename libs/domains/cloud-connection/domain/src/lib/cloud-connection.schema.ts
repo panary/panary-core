@@ -114,6 +114,11 @@ export const cloudConnectionSchema = Type.Object(
     // und POS-Client den Re-Pairing-Bedarf sichtbar machen koennen.
     lastTokenErrorAt: Type.Optional(Type.String({ format: 'date-time' })),
     tokenErrorReason: Type.Optional(Type.String()),
+    // Spiegelt das Token-Ablaufdatum aus `cloud-edges.tokenExpiresAt` (Cloud-Seite).
+    // Wird vom Sync-Scheduler nach jedem erfolgreichen Sync aktualisiert, damit
+    // POS- und Admin-Client den Token-Countdown anzeigen koennen, ohne dass
+    // jeder Render einen Cloud-Roundtrip erzeugt.
+    edgeTokenExpiresAt: Type.Optional(Type.String({ format: 'date-time' })),
     edgeName: Type.Optional(Type.String()),
 
     // M7.2 Felder
@@ -143,6 +148,18 @@ export const cloudConnectionSchema = Type.Object(
     // Server-seitiger Filter (Cloud-side `PUSH_BLOCKED_USER_ROLES`) bleibt
     // unabhaengig aktiv (Defense in Depth).
     bootstrapUserAllowlist: Type.Optional(Type.Array(Type.String())),
+
+    // Emergency-Override (Edge-only, nicht zur Cloud syncen):
+    // Bei Cloud-Ausfall (>5 min ohne Heartbeat ODER 3 konsekutive Heartbeat-
+    // Fehler) öffnet der `cloudManaged`-Hook eine Whitelist für reine
+    // `printSettings`-Patches. Lokale Änderungen landen in der Tabelle
+    // `pending-local-overrides` (nicht in der Sync-Outbox) und werden beim
+    // nächsten erfolgreichen Heartbeat per Reconciliation-Flow mit dem
+    // Cloud-Stand abgeglichen. Siehe ADR `emergency-override-adr.md`.
+    emergencyOverride: Type.Optional(Type.Boolean({ default: false })),
+    emergencyOverrideSince: Type.Optional(Type.String({ format: 'date-time' })),
+    lastHeartbeatOk: Type.Optional(Type.String({ format: 'date-time' })),
+    consecutiveHeartbeatFailures: Type.Optional(Type.Integer({ minimum: 0, default: 0 })),
   },
   { $id: 'CloudConnection', additionalProperties: false },
 )
@@ -223,6 +240,11 @@ export const cloudConnectionPatchSchema = Type.Partial(
     'lastClockSkewMs',
     'outboxBacklog',
     'bootstrapUserAllowlist',
+    // Emergency-Override-Felder (vom Sync-Scheduler gesetzt)
+    'emergencyOverride',
+    'emergencyOverrideSince',
+    'lastHeartbeatOk',
+    'consecutiveHeartbeatFailures',
     // tenantId/locationId fuer den Re-Stamp-Flow im Bootstrap-Worker
     'tenantId',
     'locationId',

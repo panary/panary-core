@@ -54,6 +54,14 @@
     "NO_EXCEPTIONS": "Keine Ausnahmen konfiguriert",
     "LOAD_ERROR": "\u00d6ffnungszeiten konnten nicht geladen werden."
   },
+  "CLOUD_STATUS": {
+    "SYNC_AGE_MIN": "Letzter Cloud-Sync vor {{minutes}} min",
+    "SYNC_AGE_HOUR": "Letzter Cloud-Sync vor {{hours}} h",
+    "SYNC_NEVER": "Noch kein Cloud-Sync",
+    "TOKEN_EXPIRES_IN_HOURS": "Token läuft in {{hours}} h ab",
+    "TOKEN_EXPIRES_IN_MINUTES": "Token läuft in {{minutes}} min ab",
+    "TOKEN_EXPIRED": "Token abgelaufen — neu pairen"
+  },
   "COMMON": {
     "SAVE": "Speichern",
     "SAVING": "Speichern...",

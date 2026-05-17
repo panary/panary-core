@@ -27,6 +27,14 @@
     "DELETED_PLURAL": "{{entity}} silindi",
     "OK": "Tamam"
   },
+  "CLOUD_STATUS": {
+    "SYNC_AGE_MIN": "Son bulut senkronizasyonu {{minutes}} dk önce",
+    "SYNC_AGE_HOUR": "Son bulut senkronizasyonu {{hours}} sa önce",
+    "SYNC_NEVER": "Henüz bulut senkronizasyonu yok",
+    "TOKEN_EXPIRES_IN_HOURS": "Token {{hours}} sa içinde sona erecek",
+    "TOKEN_EXPIRES_IN_MINUTES": "Token {{minutes}} dk içinde sona erecek",
+    "TOKEN_EXPIRED": "Token süresi doldu — yeniden eşleştirin"
+  },
   "COMMON": {
     "OFFLINE": "Çevrimdışı",
     "CONNECTED": "Bağlı",

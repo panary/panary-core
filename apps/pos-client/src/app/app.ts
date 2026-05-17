@@ -4,11 +4,12 @@ import { TranslateModule } from '@ngx-translate/core'
 import { ConnectionService, LanguageService } from '@panary-core/shared/data-access'
 import { ThemeServiceService } from '@panary-core/shared/data-access-theme'
 import { UpdateService } from '@panary-core/shared/data-access-updater'
+import { CloudStatusBadgesComponent } from '@panary-core/shared/ui-cloud-status'
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterModule, TranslateModule],
+  imports: [RouterModule, TranslateModule, CloudStatusBadgesComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Globaler Connection-Status-Indikator — nicht auf /setup anzeigen -->
@@ -32,6 +33,12 @@ import { UpdateService } from '@panary-core/shared/data-access-updater'
         Cloud-Verbindung getrennt — bitte neu pairen
       </div>
     }
+    <!-- Cloud-Sync-Alter und Token-Restlaufzeit — eigene Reihen unterhalb
+         der RE-PAIRING-Pille. Komponente rendert nichts, wenn beide Trigger
+         auf level === 'ok' stehen (Normalfall). -->
+    @if (!isSetupRoute()) {
+      <lib-cloud-status-badges [sync]="syncStaleness()" [token]="tokenExpiry()" />
+    }
     <router-outlet></router-outlet>
   `,
 })
@@ -40,6 +47,8 @@ export class AppComponent {
   #router = inject(Router)
   connectionState = this.#connectionService.connectionState
   cloudNeedsRePairing = this.#connectionService.cloudNeedsRePairing
+  syncStaleness = this.#connectionService.syncStaleness
+  tokenExpiry = this.#connectionService.tokenExpiry
 
   constructor() {
     // Theme- und Sprach-Service initialisieren — Konstruktoren wenden gespeicherte Einstellungen sofort an

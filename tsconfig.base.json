@@ -71,6 +71,7 @@
       "@panary-core/pre-orders/data-access": ["libs/domains/pre-orders/data-access/src/index.ts"],
       "@panary-core/auth/data-access": ["libs/domains/auth/data-access/src/index.ts"],
       "@panary-core/auth/domain": ["libs/domains/auth/domain/src/index.ts"],
+      "@panary-core/shared/ui-cloud-status": ["libs/shared/ui-cloud-status/src/index.ts"],
       "@panary-core/shared/ui-notifications": ["libs/shared/ui-notifications/src/index.ts"],
       "@panary-core/shared/data-access-config": ["libs/shared/data-access-config/src/index.ts"],
       "@panary-core/shared/util-helpers": ["libs/shared/util-helpers/src/index.ts"],

@@ -54,6 +54,14 @@
     "NO_EXCEPTIONS": "Yap\u0131land\u0131r\u0131lm\u0131\u015f istisna yok",
     "LOAD_ERROR": "\u00c7al\u0131\u015fma saatleri y\u00fcklenemedi."
   },
+  "CLOUD_STATUS": {
+    "SYNC_AGE_MIN": "Son bulut senkronizasyonu {{minutes}} dk önce",
+    "SYNC_AGE_HOUR": "Son bulut senkronizasyonu {{hours}} sa önce",
+    "SYNC_NEVER": "Henüz bulut senkronizasyonu yok",
+    "TOKEN_EXPIRES_IN_HOURS": "Token {{hours}} sa içinde sona erecek",
+    "TOKEN_EXPIRES_IN_MINUTES": "Token {{minutes}} dk içinde sona erecek",
+    "TOKEN_EXPIRED": "Token süresi doldu — yeniden eşleştirin"
+  },
   "COMMON": {
     "SAVE": "Kaydet",
     "SAVING": "Kaydediliyor...",

@@ -3,7 +3,7 @@ title: Cloud-Status-Badge — Sync-Alter + Token-Ablauf (POS + Admin)
 date: 2026-05-16
 category: Feature
 domains: [cloud-connection, shared/ui]
-status: planned
+status: implemented
 ---
 
 # Cloud-Status-Badge — Sync-Alter + Token-Ablauf

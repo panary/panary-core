@@ -124,6 +124,11 @@ app.use(async (ctx, next) => {
     // fehl, fallen wir still zurueck (Health soll nie 500en).
     let cloudPairingStatus: string | undefined
     let cloudTokenErrorReason: string | undefined
+    // Zusaetzlich fuer das Cloud-Status-Badge im POS/Admin: Sync-Alter
+    // und Token-Ablauf — RBAC-frei lesbar, damit jede Render-Pfad-Komponente
+    // den Status kennt, ohne `cloud-connection.get()` aufrufen zu muessen.
+    let lastSyncAt: string | undefined
+    let edgeTokenExpiresAt: string | undefined
     try {
       const result = await (app.service('cloud-connection') as any).find({
         provider: undefined,
@@ -134,6 +139,8 @@ app.use(async (ctx, next) => {
       if (conn) {
         cloudPairingStatus = conn.pairingStatus
         cloudTokenErrorReason = conn.tokenErrorReason
+        lastSyncAt = conn.lastSyncAt
+        edgeTokenExpiresAt = conn.edgeTokenExpiresAt
       }
     } catch {
       // ignore — health darf nicht failen
@@ -159,6 +166,8 @@ app.use(async (ctx, next) => {
       },
       cloudPairingStatus,
       cloudTokenErrorReason,
+      lastSyncAt,
+      edgeTokenExpiresAt,
     }
     ctx.status = 200
     return

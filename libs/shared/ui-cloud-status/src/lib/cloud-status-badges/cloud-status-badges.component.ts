@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
-import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core'
+import { TranslateModule } from '@ngx-translate/core'
 
 import type { SyncStaleness, TokenExpiry } from './cloud-status.types'
 
@@ -15,6 +15,13 @@ import type { SyncStaleness, TokenExpiry } from './cloud-status.types'
  *   - Sync-Alter:    `fixed top-25` (75px) — unter der RE-PAIRING-Pille
  *   - Token-Ablauf:  `fixed top-36` (134px)
  *
+ * i18n-Reaktivitaet: Wir nutzen die `| translate`-Pipe statt
+ * `TranslateService.instant()` in einem `computed()`. Der HttpLoader laedt
+ * die Sprachdateien asynchron — ein `computed()` evaluiert nur bei Signal-
+ * Reads neu, NICHT wenn der TranslateService spaeter den Cache fuellt.
+ * Die Pipe abonniert intern `onTranslationChange` und re-rendert
+ * automatisch, sobald die Sprachdatei geladen ist.
+ *
  * Konsumiert von POS-Client (`apps/pos-client/src/app/app.ts`) und
  * Admin-Client (Shell-Layout).
  */
@@ -24,23 +31,21 @@ import type { SyncStaleness, TokenExpiry } from './cloud-status.types'
   imports: [TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (sync().level !== 'ok') {
+    @if (sync().level !== 'ok'; as _) {
       <div [class]="syncBadgeClasses()" style="top: 6.25rem;">
         <span class="material-symbols-outlined text-[14px]">cloud_sync</span>
-        {{ syncLabel() }}
+        {{ syncMessageKey() | translate: syncMessageParams() }}
       </div>
     }
-    @if (token().level !== 'ok') {
+    @if (token().level !== 'ok'; as _) {
       <div [class]="tokenBadgeClasses()" style="top: 8.5rem;">
         <span class="material-symbols-outlined text-[14px]">key</span>
-        {{ tokenLabel() }}
+        {{ tokenMessageKey() | translate: tokenMessageParams() }}
       </div>
     }
   `,
 })
 export class CloudStatusBadgesComponent {
-  private translate = inject(TranslateService)
-
   sync = input.required<SyncStaleness>()
   token = input.required<TokenExpiry>()
 
@@ -54,31 +59,32 @@ export class CloudStatusBadgesComponent {
   protected readonly syncBadgeClasses = computed(() => this.classesForLevel(this.sync().level))
   protected readonly tokenBadgeClasses = computed(() => this.classesForLevel(this.token().level))
 
-  protected readonly syncLabel = computed(() => {
+  protected readonly syncMessageKey = computed(() => {
     const s = this.sync()
-    if (s.ageSec === null) {
-      return this.translate.instant('CLOUD_STATUS.SYNC_NEVER')
-    }
+    if (s.ageSec === null) return 'CLOUD_STATUS.SYNC_NEVER'
     const minutes = Math.floor(s.ageSec / 60)
-    if (minutes < 60) {
-      return this.translate.instant('CLOUD_STATUS.SYNC_AGE_MIN', { minutes })
-    }
-    const hours = Math.floor(minutes / 60)
-    return this.translate.instant('CLOUD_STATUS.SYNC_AGE_HOUR', { hours })
+    return minutes < 60 ? 'CLOUD_STATUS.SYNC_AGE_MIN' : 'CLOUD_STATUS.SYNC_AGE_HOUR'
   })
 
-  protected readonly tokenLabel = computed(() => {
+  protected readonly syncMessageParams = computed<Record<string, number | undefined>>(() => {
+    const s = this.sync()
+    if (s.ageSec === null) return {}
+    const minutes = Math.floor(s.ageSec / 60)
+    return minutes < 60 ? { minutes } : { hours: Math.floor(minutes / 60) }
+  })
+
+  protected readonly tokenMessageKey = computed(() => {
     const t = this.token()
-    if (t.remainingSec === null) return ''
-    if (t.remainingSec <= 0) {
-      return this.translate.instant('CLOUD_STATUS.TOKEN_EXPIRED')
-    }
+    if (t.remainingSec === null || t.remainingSec <= 0) return 'CLOUD_STATUS.TOKEN_EXPIRED'
     const minutes = Math.floor(t.remainingSec / 60)
-    if (minutes < 60) {
-      return this.translate.instant('CLOUD_STATUS.TOKEN_EXPIRES_IN_MINUTES', { minutes })
-    }
-    const hours = Math.floor(minutes / 60)
-    return this.translate.instant('CLOUD_STATUS.TOKEN_EXPIRES_IN_HOURS', { hours })
+    return minutes < 60 ? 'CLOUD_STATUS.TOKEN_EXPIRES_IN_MINUTES' : 'CLOUD_STATUS.TOKEN_EXPIRES_IN_HOURS'
+  })
+
+  protected readonly tokenMessageParams = computed<Record<string, number | undefined>>(() => {
+    const t = this.token()
+    if (t.remainingSec === null || t.remainingSec <= 0) return {}
+    const minutes = Math.floor(t.remainingSec / 60)
+    return minutes < 60 ? { minutes } : { hours: Math.floor(minutes / 60) }
   })
 
   private classesForLevel(level: 'ok' | 'warn' | 'crit'): string {

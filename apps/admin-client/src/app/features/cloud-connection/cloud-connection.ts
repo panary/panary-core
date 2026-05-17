@@ -885,6 +885,12 @@ export class CloudConnectionComponent implements OnInit {
         if (conn.bootstrapStatus === 'in-progress') {
           this.wizardStep.set('progress')
           void this.pollBootstrapProgress(conn._id)
+        } else if (this.wizardStep() === 'progress') {
+          // Safety-Net: wizardStep haengt von einem frueheren Bootstrap-Lauf
+          // noch auf 'progress', obwohl gar kein Bootstrap mehr laeuft. Beim
+          // Wechsel von 'connected' zurueck zu 'disconnected' (z.B. nach Sync-
+          // 401) wuerde sonst der "Bootstrap laeuft"-Dialog wieder erscheinen.
+          this.wizardStep.set('input')
         }
       }
     } catch {
@@ -1067,12 +1073,17 @@ export class CloudConnectionComponent implements OnInit {
         this.connectionInfo.set(conn)
         if (conn.bootstrapStatus === 'done') {
           this.connectionState.set('connected')
+          // wizardStep zurueck auf 'input', damit ein spaeterer Disconnect
+          // (z.B. durch Sync-401) nicht den haengen-gebliebenen 'progress'-
+          // Step weiter rendert ("Bootstrap laeuft"-Dialog ohne Bootstrap).
+          this.wizardStep.set('input')
           this.cdr.markForCheck()
           return
         }
         if (conn.bootstrapStatus === 'failed') {
           this.connectionState.set('error')
           this.errors.set([conn.bootstrapError ?? 'Bootstrap fehlgeschlagen.'])
+          this.wizardStep.set('input')
           this.cdr.markForCheck()
           return
         }

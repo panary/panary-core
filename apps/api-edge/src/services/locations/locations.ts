@@ -19,6 +19,7 @@ import type { Application } from '../../declarations'
 import { authorize } from '@panary-core/shared-backend'
 import { multiTenancy } from '@panary-core/shared-backend'
 import { cloudManaged } from '../../hooks/cloud-managed.hook'
+import { recordEmergencyOverride } from '../../hooks/record-emergency-override.hook'
 import { createServiceAdapter } from '@panary-core/shared/data-access/server'
 import { DatabaseType } from '@panary-core/shared-common'
 import {
@@ -104,6 +105,13 @@ export const locations = (app: Application) => {
         // Edge gepaart ist. Source of Truth fuer Standort-Settings ist die
         // Cloud — siehe documentation/standort-einstellungen.md.
         cloudManaged(),
+        // Emergency-Override (ADR `emergency-override-adr.md`):
+        // Wenn cloudManaged() den Marker `isEmergencyOverride=true` setzt,
+        // diffed dieser Hook den Vor-/Nach-Zustand der printSettings und
+        // persistiert die Änderung in `pending-local-overrides` (statt der
+        // Sync-Outbox), damit der Reconciliation-Flow beim nächsten Heartbeat
+        // entscheiden kann, ob Edge oder Cloud gewinnt.
+        recordEmergencyOverride(),
         multiTenancy({ isolateLocation: false }),
 
         schemaHooks.resolveExternal(locationExternalResolver),

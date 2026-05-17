@@ -206,10 +206,29 @@ const callCloud = async <T>(opts: CallCloudOptions): Promise<T> => {
     signal: AbortSignal.timeout(opts.timeoutMs),
   })
   if (!response.ok) {
-    const errorBody = await response.text().catch(() => 'Unbekannter Fehler')
-    throw new Error(`Cloud-Antwort ${response.status}: ${errorBody}`)
+    const errorBody = await response.text().catch(() => '')
+    throw new Error(extractCloudErrorMessage(response.status, errorBody))
   }
   return response.json() as Promise<T>
+}
+
+// Cloud-Backend liefert Fehler als FeathersError-JSON (`{ name, message, code, className }`).
+// Damit der User keine JSON-Roh-Antwort sieht, extrahieren wir die `message` und fallen auf
+// generische Fehler-Texte zurueck, wenn das Format unbekannt ist.
+const extractCloudErrorMessage = (status: number, body: string): string => {
+  const trimmed = body.trim()
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(trimmed) as { message?: string; name?: string }
+      if (parsed && typeof parsed.message === 'string' && parsed.message.length > 0) {
+        return parsed.message
+      }
+    } catch {
+      // Faellt durch auf den Roh-Body, falls JSON ungueltig ist.
+    }
+  }
+  if (trimmed.length > 0) return trimmed
+  return `Cloud-Antwort ${status} ohne Fehlerdetails.`
 }
 
 const triggerBootstrapWorker = async (app: Application, cloudConnectionId: string): Promise<void> => {

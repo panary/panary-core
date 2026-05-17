@@ -20,6 +20,7 @@ import {
 import type { Application } from '../declarations'
 import { decryptCloudToken, encryptCloudToken } from '../utils/cloud-token-cipher'
 import { recordSyncRun } from '../services/sync-runs/record-sync-run.helper'
+import { printServerManager } from '../print-server'
 import {
   SyncRunDirection,
   SyncRunOutcome,
@@ -37,6 +38,17 @@ const PULL_TIMEOUT_MS = 30_000
 const PUSH_BATCH_SIZE = 100
 const PULL_PAGE_SIZE = 500
 const MANUAL_HEARTBEAT_INTERVAL_SEC = 30 * 60
+
+// Emergency-Override (ADR `emergency-override-adr.md`):
+// Aktiviert wird der Notfall-Modus, wenn entweder
+// (a) `EMERGENCY_OVERRIDE_FAILURE_THRESHOLD` konsekutive Heartbeat-Fehler
+//     auflaufen, ODER
+// (b) seit `EMERGENCY_OVERRIDE_AFTER_MS` kein erfolgreicher Heartbeat mehr
+//     stattgefunden hat.
+// Trigger (a) reagiert schnell auf akute Ausfälle (3×30s = 1,5min), (b)
+// fängt Edge-Cases auf, in denen das Scheduling pausiert war.
+const EMERGENCY_OVERRIDE_FAILURE_THRESHOLD = 3
+const EMERGENCY_OVERRIDE_AFTER_MS = 5 * 60 * 1000
 
 const MASTER_DATA_SERVICES = Object.values(SyncableMasterDataService) as ReadonlyArray<string>
 
@@ -590,7 +602,10 @@ const runHeartbeat = async (app: Application, connection: CloudConnection): Prom
     throw new Error(`Heartbeat fehlgeschlagen: ${response.status} ${text}`)
   }
   const body = (await response.json()) as SyncHeartbeatResponse
-
+  // Erfolgreicher Heartbeat: lastHeartbeatOk markieren, Failure-Counter resetten.
+  // Falls Notfall-Modus aktiv war: er wird *nicht* hier automatisch deaktiviert
+  // — der Reconciliation-Flow (Phase 5) deaktiviert ihn erst, nachdem die
+  // gepufferten lokalen Overrides mit der Cloud abgeglichen wurden.
   // edgeTokenExpiresAt-Update-Strategie:
   // 1. Cloud liefert `nextTokenExpiresAt` (auch ohne Token-Rotation, sobald
   //    Cloud-Side das Feld immer setzt) → bevorzugen
@@ -604,6 +619,8 @@ const runHeartbeat = async (app: Application, connection: CloudConnection): Prom
   await (app.service(cloudConnectionPath) as any)._patch(connection._id, {
     lastClockSkewMs: body.clockSkewMs,
     lastSyncAt: new Date().toISOString(),
+    lastHeartbeatOk: new Date().toISOString(),
+    consecutiveHeartbeatFailures: 0,
     ...(edgeTokenExpiresAt ? { edgeTokenExpiresAt } : {}),
   })
   if (body.nextToken) {
@@ -621,6 +638,250 @@ const runHeartbeat = async (app: Application, connection: CloudConnection): Prom
     })
   }
   return body
+}
+
+/**
+ * Reconciliation der Emergency-Override-Patches nach Cloud-Reconnect.
+ *
+ * Wird aufgerufen, wenn der Edge im Notfall-Modus lokale Drucker-Änderungen
+ * akzeptiert hat (`pending-local-overrides` enthält Einträge) und der Cloud-
+ * Heartbeat wieder erfolgreich ist. Schickt die gepufferten Patches an
+ * `/sync-reconcile-overrides`, die Cloud entscheidet pro Eintrag per
+ * Old-Value-Vergleich.
+ *
+ * Ergebnis: Akzeptierte Einträge werden lokal gelöscht (Edge gewinnt, Cloud
+ * hat den Patch übernommen). Konflikte bleiben als `status='CONFLICT'`
+ * stehen — UI-gestützte Auflösung ist Folge-Phase.
+ *
+ * Wenn keine Konflikte mehr offen sind, wird der `emergencyOverride`-Flag
+ * der Cloud-Connection zurückgesetzt.
+ */
+const runReconcileOverrides = async (
+  app: Application,
+  connection: CloudConnection,
+): Promise<void> => {
+  if (!connection.emergencyOverride) return
+  const cloudToken = decryptCloudToken(connection.cloudToken)
+  if (!cloudToken) return
+  // Knex-Instanz ist als beliebige Query-Builder-API genutzt — wir typisieren
+  // sie minimal als `any`, weil die `@types/knex`-Generics in diesem Worker
+  // mehr Rauschen als Wert bringen würden (Knex ist runtime-validiert).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const knex = app.get('sqliteClient' as any) as any
+  if (!knex) return
+
+  const pending = (await knex
+    .table('pending-local-overrides')
+    .where({ status: 'PENDING_RECONCILE' })
+    .select()) as Array<Record<string, unknown>>
+  if (pending.length === 0) {
+    // Keine Overrides mehr offen → Notfall-Modus deaktivieren.
+    await (app.service(cloudConnectionPath) as any)
+      ._patch(connection._id, {
+        emergencyOverride: false,
+        emergencyOverrideSince: null,
+      })
+      .catch(() => undefined)
+    logger.info({
+      message: 'Emergency-Override deaktiviert — keine ausstehenden Overrides',
+      event: 'emergency-override.deactivated',
+    })
+    return
+  }
+
+  const overrides = pending.map(row => ({
+    overrideId: row['_id'] as string,
+    recordId: row['recordId'] as string,
+    fieldPath: row['fieldPath'] as string,
+    oldValue: JSON.parse((row['oldValueJson'] as string | null) ?? 'null'),
+    newValue: JSON.parse((row['newValueJson'] as string | null) ?? 'null'),
+  }))
+
+  const response = await cloudFetch(connection.cloudUrl, cloudToken, '/sync-reconcile-overrides', {
+    method: 'POST',
+    body: JSON.stringify({ overrides }),
+    timeoutMs: PUSH_TIMEOUT_MS,
+  })
+  if (response.status === 401) {
+    await handleCloudAuthError(app, connection, response, 'reconcile-overrides')
+    return
+  }
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    logger.warn({
+      message: 'Reconcile-Overrides Cloud-Call fehlgeschlagen',
+      event: 'reconcile.cloud_error',
+      status: response.status,
+      body: text.slice(0, 200),
+    })
+    return
+  }
+  const body = (await response.json()) as {
+    accepted: Array<{ overrideId: string }>
+    conflicts: Array<{ overrideId: string; reason: string }>
+  }
+
+  if (body.accepted.length > 0) {
+    await knex
+      .table('pending-local-overrides')
+      .whereIn(
+        '_id',
+        body.accepted.map(a => a.overrideId),
+      )
+      .del()
+  }
+  if (body.conflicts.length > 0) {
+    await knex
+      .table('pending-local-overrides')
+      .whereIn(
+        '_id',
+        body.conflicts.map(c => c.overrideId),
+      )
+      .update({ status: 'CONFLICT', updatedAt: new Date().toISOString() })
+  }
+
+  logger.info({
+    message: 'Emergency-Override-Reconcile abgeschlossen',
+    event: body.conflicts.length === 0 ? 'reconcile.fast-path' : 'reconcile.with-conflicts',
+    acceptedCount: body.accepted.length,
+    conflictCount: body.conflicts.length,
+  })
+
+  // Override-Flag nur deaktivieren, wenn KEINE Konflikte mehr offen sind.
+  // Konflikte sollen sichtbar bleiben, damit der Admin sie manuell auflösen
+  // kann (kommt in Folge-Phase); solange bleibt der Notfall-Modus aktiv, sodass
+  // der Edge bei Bedarf weiter lokale Patches akzeptiert.
+  if (body.conflicts.length === 0) {
+    await (app.service(cloudConnectionPath) as any)
+      ._patch(connection._id, {
+        emergencyOverride: false,
+        emergencyOverrideSince: null,
+      })
+      .catch(() => undefined)
+    logger.info({
+      message: 'Emergency-Override deaktiviert — Reconcile sauber',
+      event: 'emergency-override.deactivated',
+    })
+  }
+}
+
+/**
+ * Polled die Cloud-`printer-commands`-Queue nach PENDING-Jobs für diesen Edge
+ * und führt sie lokal aus (aktuell ausschließlich `TEST_PRINT`).
+ *
+ * Architektur: Edge ist behind NAT — Cloud kann ihn nicht pushen. Polling im
+ * selben Worker wie der Heartbeat hält die Anzahl der ausgehenden Verbindungen
+ * minimal und nutzt den bereits existierenden cloud-token. Latenz <30 s ist für
+ * Test-Drucke akzeptabel.
+ *
+ * Idempotenz: Wir setzen IN_PROGRESS vor der Ausführung. Doppel-Pulls (z. B.
+ * Worker-Restart mit verbliebener PENDING-Row) führen also zu mindestens einer
+ * Ausführung — Test-Druck ist idempotent (Bon-Ausdruck), daher OK.
+ */
+const runPullPrinterCommands = async (
+  app: Application,
+  connection: CloudConnection,
+): Promise<number> => {
+  const cloudToken = decryptCloudToken(connection.cloudToken)
+  if (!cloudToken) return 0
+  const startMs = performance.now()
+
+  const response = await cloudFetch(
+    connection.cloudUrl,
+    cloudToken,
+    '/printer-commands?status=PENDING&%24limit=20&%24sort%5BrequestedAt%5D=1',
+    { method: 'GET', timeoutMs: HEARTBEAT_TIMEOUT_MS },
+  )
+  if (!response.ok) {
+    // printer-commands ist eine OPTIONALE Sync-Phase (Test-Drucke aus der Cloud).
+    // Manche Cloud-Setups haben den Endpoint nicht für Edge-Token freigeschaltet
+    // — dann darf ein 401/403 hier NICHT das gesamte Pairing zerstoeren. Sobald
+    // heartbeat/push/pull weiterhin OK sind, ist der Token gueltig; nur dieser
+    // Endpoint ist auf Cloud-Seite nicht im EDGE_TOKEN_SCOPED_PATHS-Allowlisting.
+    // Soft-Fail: Log + return 0. Wenn der Token wirklich ungueltig waere, faengt
+    // der Heartbeat das im naechsten Tick ab und faehrt den Disconnect-Pfad.
+    const text = await response.text().catch(() => '')
+    logger.warn({
+      message: 'printer-commands Pull fehlgeschlagen',
+      event: 'printer-commands.pull.error',
+      status: response.status,
+      body: text.slice(0, 200),
+    })
+    return 0
+  }
+  const body = (await response.json()) as {
+    data?: Array<{ _id: string; type: string; printerId: string }>
+  } | Array<{ _id: string; type: string; printerId: string }>
+  const commands = Array.isArray(body) ? body : (body.data ?? [])
+  if (commands.length === 0) return 0
+
+  for (const cmd of commands) {
+    const claimRes = await cloudFetch(
+      connection.cloudUrl,
+      cloudToken,
+      `/printer-commands/${cmd._id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: 'IN_PROGRESS',
+          pickedUpAt: new Date().toISOString(),
+        }),
+        timeoutMs: HEARTBEAT_TIMEOUT_MS,
+      },
+    )
+    if (!claimRes.ok) {
+      // Andere Edge-Instanz hat zuerst gepatcht oder Job ist weg — überspringen.
+      continue
+    }
+
+    let finalPatch: Record<string, unknown>
+    try {
+      if (cmd.type === 'TEST_PRINT') {
+        const r = await printServerManager.testPrint(cmd.printerId)
+        const firstError = r.results[0]?.error
+        finalPatch = r.success
+          ? { status: 'DONE', result: 'Testdruck erfolgreich', completedAt: new Date().toISOString() }
+          : {
+              status: 'FAILED',
+              error: firstError ?? 'Testdruck fehlgeschlagen',
+              completedAt: new Date().toISOString(),
+            }
+      } else {
+        finalPatch = {
+          status: 'FAILED',
+          error: `Unbekannter Befehlstyp: ${cmd.type}`,
+          completedAt: new Date().toISOString(),
+        }
+      }
+    } catch (err) {
+      finalPatch = {
+        status: 'FAILED',
+        error: err instanceof Error ? err.message : String(err),
+        completedAt: new Date().toISOString(),
+      }
+    }
+
+    await cloudFetch(connection.cloudUrl, cloudToken, `/printer-commands/${cmd._id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(finalPatch),
+      timeoutMs: HEARTBEAT_TIMEOUT_MS,
+    }).catch(err => {
+      logger.warn({
+        message: 'printer-commands Result-PATCH fehlgeschlagen',
+        event: 'printer-commands.result.patch_error',
+        commandId: cmd._id,
+        errorMessage: err instanceof Error ? err.message : String(err),
+      })
+    })
+  }
+
+  logger.info({
+    message: 'printer-commands ausgeführt',
+    event: 'printer-commands.completed',
+    count: commands.length,
+    durationMs: Math.round(performance.now() - startMs),
+  })
+  return commands.length
 }
 
 export const runSyncOnce = async (app: Application, _cloudConnectionId: string): Promise<SyncRunStats> => {
@@ -644,6 +905,40 @@ export const runSyncOnce = async (app: Application, _cloudConnectionId: string):
     if (err instanceof EdgePairingRequiredError) pairingRequired = true
     return null
   })
+  // Failure-Tracking für Emergency-Override (ADR `emergency-override-adr.md`).
+  // Nur bei "echten" Heartbeat-Fehlern hochzählen — nicht bei Pairing-401
+  // (Pairing-Required ist eine andere Failure-Klasse, dafür ist der
+  // pairingStatus-DISCONNECTED-Pfad zuständig).
+  if (heartbeat === null && lastError && !pairingRequired) {
+    const nextFailureCount = (connection.consecutiveHeartbeatFailures ?? 0) + 1
+    const lastOkMs = connection.lastHeartbeatOk
+      ? new Date(connection.lastHeartbeatOk).getTime()
+      : connection.connectedAt
+        ? new Date(connection.connectedAt).getTime()
+        : Date.now()
+    const elapsed = Date.now() - lastOkMs
+    const shouldActivateOverride =
+      !connection.emergencyOverride &&
+      (nextFailureCount >= EMERGENCY_OVERRIDE_FAILURE_THRESHOLD ||
+        elapsed >= EMERGENCY_OVERRIDE_AFTER_MS)
+    const patch: Record<string, unknown> = {
+      consecutiveHeartbeatFailures: nextFailureCount,
+    }
+    if (shouldActivateOverride) {
+      patch['emergencyOverride'] = true
+      patch['emergencyOverrideSince'] = new Date().toISOString()
+      logger.warn({
+        message: 'Emergency-Override aktiviert — Cloud unerreichbar',
+        event: 'emergency-override.activated',
+        consecutiveFailures: nextFailureCount,
+        elapsedMsSinceLastOk: elapsed,
+        reason: lastError,
+      })
+    }
+    await (app.service(cloudConnectionPath) as any)
+      ._patch(connection._id, patch)
+      .catch(() => undefined)
+  }
   if (heartbeat === null && lastError) {
     await recordSyncRun(app, {
       tenantId: connection.tenantId!,
@@ -699,6 +994,29 @@ export const runSyncOnce = async (app: Application, _cloudConnectionId: string):
   }
 
   const refreshed = (await (app.service(cloudConnectionPath) as any)._get(connection._id)) as CloudConnection
+
+  // Reconciliation der Emergency-Override-Patches, falls Cloud zurück ist.
+  // No-op, wenn kein Override aktiv oder keine pending-local-overrides existieren.
+  // Failures dürfen den restlichen Sync nicht blockieren.
+  await runReconcileOverrides(app, refreshed).catch(err => {
+    logger.warn({
+      message: 'Reconcile-Overrides mit Exception abgebrochen',
+      event: 'reconcile.worker_exception',
+      errorMessage: err instanceof Error ? err.message : String(err),
+    })
+  })
+
+  // Printer-Commands: kurzer Pull direkt nach dem Heartbeat, bevor Push/Pull
+  // der Master-Daten läuft. Latenz für Test-Drucke bleibt damit <30 s
+  // (Worker-Tick), ohne dass wir einen eigenen Worker brauchen. Failures hier
+  // dürfen Push/Pull nicht blockieren — fangen daher den Error ab.
+  await runPullPrinterCommands(app, refreshed).catch(err => {
+    logger.warn({
+      message: 'printer-commands Pull-Phase mit Exception abgebrochen',
+      event: 'printer-commands.pull.worker_exception',
+      errorMessage: err instanceof Error ? err.message : String(err),
+    })
+  })
 
   // Push: sync-run nur wenn Outbox-Eintraege vorhanden waren (recordSyncRun
   // filtert via accepted+rejected>0 selbst).

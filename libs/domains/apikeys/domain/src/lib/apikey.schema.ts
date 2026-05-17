@@ -61,13 +61,35 @@ export type ApikeyPatch = Static<typeof apikeyPatchSchema>
 //#endregion
 
 //#region Schema für Suchanfragen (Query)
-export const apikeyQueryProperties = Type.Pick(apikeySchema, ['_id', 'apikey', 'apikeyPrefix', 'deviceId', 'locationId', 'tenantId'])
-export const apikeyQuerySchema = Type.Intersect(
-  [
-    querySyntax(apikeyQueryProperties),
-    // Add additional query properties here
-    Type.Object({}, { additionalProperties: false }),
-  ],
+// `name`/`active`/`validUntil`/`createdAt`/`updatedAt` für die Cloud-Admin-Liste:
+// Sortierung nach Name, Filter nach Aktivitäts-Status, Sync-Pull über `updatedAt`.
+export const apikeyQueryProperties = Type.Pick(apikeySchema, [
+  '_id',
+  'apikey',
+  'apikeyPrefix',
+  'deviceId',
+  'locationId',
+  'tenantId',
+  'name',
+  'active',
+  'validUntil',
+  'lastUsedAt',
+  'createdAt',
+  'updatedAt',
+])
+// `$or` wird über Property-Spread an die `querySyntax`-Ausgabe gehängt —
+// `Type.Intersect([..., Type.Object({ $or })])` produzierte unter TS 6.x ein
+// "type instantiation is excessively deep" (TS2589) im `getValidator`-Konsumer.
+// Flat-Object ist semantisch identisch und liegt deutlich unter dem Limit.
+const _apikeyQueryBase = querySyntax(apikeyQueryProperties)
+export const apikeyQuerySchema = Type.Object(
+  {
+    ..._apikeyQueryBase.properties,
+    // `Type.Any()` statt `Type.Record(...)`: AJV validiert `$or`-Items
+    // ohnehin lose, die Detail-Struktur kommt aus den `querySyntax`-
+    // Operatoren in den restlichen Properties.
+    $or: Type.Optional(Type.Array(Type.Any())),
+  },
   { additionalProperties: false },
 )
 

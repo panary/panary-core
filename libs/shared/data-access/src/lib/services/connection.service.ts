@@ -211,7 +211,10 @@ export class ConnectionService {
   // Tenant-Settings ueberschrieben werden (siehe Plan-Doku §Schwellwerte).
   static readonly SYNC_WARN_SEC = 5 * 60 // 5 min
   static readonly SYNC_CRIT_SEC = 30 * 60 // 30 min
-  static readonly TOKEN_WARN_SEC = 24 * 3600 // 24 h
+  // Token-Warn auf 4 h gesenkt — 24 h war zu aggressiv (Pille blieb den
+  // ganzen Tag sichtbar). 4 h gibt genug Vorlauf zum Re-Pairing, ohne
+  // Operator-Noise im Normalbetrieb.
+  static readonly TOKEN_WARN_SEC = 4 * 3600 // 4 h
   static readonly TOKEN_CRIT_SEC = 3600 // 1 h
 
   /**

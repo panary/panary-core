@@ -159,7 +159,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.CLOUD_EDGES, action: AppAction.MANAGE },
     { resource: AppResource.EDGE_PAIRING_CODES, action: AppAction.MANAGE },
     { resource: AppResource.SYNC_CONFLICTS, action: AppAction.MANAGE },
-    { resource: AppResource.SYNC_OUTBOX, action: AppAction.READ },
+    // Sync-Status-Operator-UI: Owner darf Outbox-Eintraege patchen
+    // ("Erneut versuchen" setzt status=pending, attempts=0, nextAttemptAt=null)
+    // und removen ("Verwerfen" loescht den Eintrag terminal).
+    { resource: AppResource.SYNC_OUTBOX, action: AppAction.MANAGE },
     { resource: AppResource.SYNC_CURSOR, action: AppAction.READ },
     { resource: AppResource.SYNC_RUNS, action: AppAction.READ },
     { resource: AppResource.BOOTSTRAP_REPORTS, action: AppAction.READ },
@@ -363,6 +366,11 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.APIKEYS, action: AppAction.READ },
     { resource: AppResource.CLOUD_EDGES, action: AppAction.READ },
     { resource: AppResource.EDGE_PAIRING_CODES, action: AppAction.READ },
+    // Sync-Status-Operator-UI: Manager darf Konflikte aufloesen und
+    // Outbox-Eintraege erneut versuchen / verwerfen (gleicher Workflow wie
+    // Owner, weil das laufende Geschaeft nicht warten kann).
+    { resource: AppResource.SYNC_CONFLICTS, action: AppAction.MANAGE },
+    { resource: AppResource.SYNC_OUTBOX, action: AppAction.MANAGE },
     // Cloud-spezifische Ressourcen
     { resource: AppResource.CORPORATE_CUSTOMERS, action: AppAction.MANAGE },
     { resource: AppResource.CUSTOMERS, action: AppAction.MANAGE },

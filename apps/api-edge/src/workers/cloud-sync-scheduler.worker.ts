@@ -9,13 +9,17 @@ import {
 import { SyncableMasterDataService } from '@panary-core/edge-pairing/domain'
 import {
   CLOCK_SKEW_ERROR_MS,
+  SyncConflictReason,
   type SyncCursor,
   type SyncHeartbeatResponse,
   type SyncOpEntry,
   type SyncOutboxEntry,
   SyncOutboxStatus,
   type SyncPullResponse,
+  type SyncRejection,
+  SyncRejectionClassification,
 } from '@panary-core/sync/domain'
+import { uuidv7 } from 'uuidv7'
 
 import type { Application } from '../declarations'
 import { decryptCloudToken, encryptCloudToken } from '../utils/cloud-token-cipher'
@@ -59,6 +63,19 @@ const RETRY_BACKOFF_SCHEDULE_MS = [
   2 * 3600_000,
   6 * 3600_000,
 ] as const
+
+/**
+ * Maximale Retry-Versuche bei transient errors. Bei Erreichen wird der
+ * Outbox-Eintrag final als `rejected` markiert und ein `sync-conflicts`-
+ * Eintrag mit `reason: PUSH_REJECTED` erzeugt → Operator-Resolution.
+ *
+ * 10 Versuche × Backoff (30s..6h-Cap) = max 1 Eskalation/Tag pro Eintrag.
+ * Vermeidet sowohl vorzeitige Eskalation bei laengeren Cloud-Outages als
+ * auch endlose Retry-Loops bei dauerhaften Problemen.
+ */
+const MAX_ATTEMPTS = 10
+
+const syncConflictsPath = 'sync-conflicts'
 
 /**
  * Berechnet die Wartezeit bis zum naechsten Push-Versuch in Millisekunden.
@@ -475,6 +492,61 @@ const markOutboxInFlight = async (app: Application, ids: string[]): Promise<void
 }
 
 /**
+ * Erzeugt einen `sync-conflicts`-Eintrag fuer einen Cloud-Push-Reject und
+ * markiert den Outbox-Eintrag als final terminal mit Conflict-Verknuepfung.
+ *
+ * Wird in zwei Faellen aufgerufen:
+ *  1. Cloud signalisiert `classification='conflict'` (Tenant-Mismatch oder
+ *     Concurrent-Write) — `conflictReason` und ggf. `cloudPayload` kommen
+ *     dann aus der Cloud-Response.
+ *  2. MAX_ATTEMPTS-Eskalation bei wiederholten transient-Errors —
+ *     `conflictReason: PUSH_REJECTED`, kein cloudPayload (transient liefert
+ *     keinen).
+ *
+ * Operator-UI listet beide Faelle als „Datenkonflikt" und bietet die
+ * Auflosung (USE_EDGE / USE_CLOUD / DISCARD) ueber den existierenden
+ * sync-conflicts-After-Patch-Hook.
+ */
+const escalateToConflict = async (
+  app: Application,
+  entry: SyncOutboxEntry,
+  rejection: SyncRejection,
+  reason: SyncConflictReason,
+  tenantId: string,
+  locationId: string | null,
+): Promise<string | undefined> => {
+  try {
+    const now = new Date().toISOString()
+    const conflict = await (app.service(syncConflictsPath) as any).create(
+      {
+        _id: uuidv7(),
+        tenantId,
+        locationId,
+        service: entry.service,
+        edgeRecordId: entry.entityId,
+        reason,
+        edgePayload: typeof entry.payload === 'string' ? JSON.parse(entry.payload) : entry.payload,
+        cloudPayload: rejection.cloudPayload,
+        status: 'open',
+        createdAt: now,
+        updatedAt: now,
+      },
+      { provider: undefined } as any,
+    )
+    return conflict?._id as string | undefined
+  } catch (err) {
+    logger.warn({
+      message: 'Conflict-Eskalation fehlgeschlagen — Outbox bleibt rejected ohne linkedConflictId',
+      event: 'sync.outbox.escalate_failed',
+      entityId: entry.entityId,
+      service: entry.service,
+      errorMessage: err instanceof Error ? err.message : String(err),
+    })
+    return undefined
+  }
+}
+
+/**
  * Beim Worker-Boot: setzt alle `in-flight`-Eintraege zurueck auf `pending`.
  *
  * Hintergrund: Bei Worker-Crash oder Edge-Restart waehrend einer
@@ -549,13 +621,48 @@ const runPush = async (app: Application, connection: CloudConnection): Promise<n
       const text = await response.text().catch(() => 'Unbekannter Fehler')
       throw new Error(buildCloudErrorMessage('Push', response.status, text, { phase: 'push' }))
     }
-    const body = (await response.json()) as { accepted: string[]; rejected: { _id: string; reason: string }[] }
+    const body = (await response.json()) as { accepted: string[]; rejected: SyncRejection[] }
     await markOutboxAcked(app, body.accepted)
-    // Cloud-Rejects bleiben in dieser Phase noch sofort terminal (alte Semantik).
-    // Commit 5 ersetzt das durch classification-basierte Logik
-    // (transient → markOutboxRetry, conflict → escalateToConflict).
+    // Cloud-Rejects nach Klassifikation behandeln:
+    //  - 'transient' → markOutboxRetry mit Backoff; bei MAX_ATTEMPTS-Erreichen
+    //    Eskalation zu PUSH_REJECTED-Conflict
+    //  - 'conflict' → sofort sync-conflicts-Eintrag (User-Resolution noetig)
+    //  - 'terminal' (Default) → markOutboxTerminal ohne Conflict
+    //
+    // Cloud-Versionen ohne `classification`-Feld liefern `undefined` → Fallback
+    // 'terminal' (Backwards-Compat mit alter Cloud).
     for (const r of body.rejected ?? []) {
-      await markOutboxTerminal(app, [r._id], r.reason)
+      const entry = entries.find(e => e._id === r._id)
+      if (!entry) continue
+      const classification = r.classification ?? SyncRejectionClassification.TERMINAL
+      if (classification === SyncRejectionClassification.TRANSIENT) {
+        const nextAttempts = (entry.attempts ?? 0) + 1
+        if (nextAttempts >= MAX_ATTEMPTS) {
+          const conflictId = await escalateToConflict(
+            app,
+            entry,
+            r,
+            SyncConflictReason.PUSH_REJECTED,
+            connection.tenantId,
+            connection.locationId ?? null,
+          )
+          await markOutboxTerminal(app, [r._id], r.reason, conflictId)
+        } else {
+          await markOutboxRetry(app, [{ _id: r._id, attempts: entry.attempts ?? 0 }], r.reason)
+        }
+      } else if (classification === SyncRejectionClassification.CONFLICT) {
+        const conflictId = await escalateToConflict(
+          app,
+          entry,
+          r,
+          r.conflictReason ?? SyncConflictReason.PUSH_REJECTED,
+          connection.tenantId,
+          connection.locationId ?? null,
+        )
+        await markOutboxTerminal(app, [r._id], r.reason, conflictId)
+      } else {
+        await markOutboxTerminal(app, [r._id], r.reason)
+      }
     }
     return body.accepted.length
   } catch (err) {

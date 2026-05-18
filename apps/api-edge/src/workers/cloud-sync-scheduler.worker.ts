@@ -129,6 +129,34 @@ const extractAjvErrors = (err: unknown): Array<{ path: string; message: string; 
  * Die zurueckgegebene Message ist kompakt fuer den `sync-runs`-Eintrag
  * (errorMessage-Spalte ist begrenzt).
  */
+/**
+ * Erkennt Cloud-Connectivity-Fehler (Network/DNS/Refused/Timeout/TLS).
+ *
+ * Wenn der Cloud-Server gerade neu startet oder netzwerk-bedingt nicht
+ * erreichbar ist, produziert `fetch()` (undici) eine Wand uniformer Fehler —
+ * pro Sync-Phase einmal. Stack-Traces helfen hier nicht, weil der Application-
+ * Code nie ausgefuehrt wurde; der wahre Grund (Connect-Timeout, DNS, …) steht
+ * im `cause`-Feld. Wir nutzen diesen Helper, um solche Fehler kompakt zu
+ * loggen und nachfolgende Phasen im selben Tick zu ueberspringen.
+ *
+ * Erkennt:
+ *  - `TypeError: fetch failed` (undici-Default fuer Connect-/DNS-Fehler)
+ *  - `AbortError` / `TimeoutError` (von `AbortSignal.timeout()`)
+ *  - undici-`cause.code`: `UND_ERR_*`, `ECONNREFUSED`, `ENOTFOUND`, `EAI_AGAIN`,
+ *    `ETIMEDOUT`
+ */
+const isCloudUnreachableError = (err: unknown): boolean => {
+  if (!(err instanceof Error)) return false
+  if (err.name === 'AbortError' || err.name === 'TimeoutError') return true
+  if (err.name === 'TypeError' && err.message === 'fetch failed') return true
+  const cause = (err as { cause?: { code?: string; name?: string } }).cause
+  if (cause?.code && /^(ECONNREFUSED|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|UND_ERR_)/.test(cause.code)) {
+    return true
+  }
+  if (cause?.name === 'AbortError' || cause?.name === 'TimeoutError') return true
+  return false
+}
+
 const buildCloudErrorMessage = (
   pathLabel: string,
   status: number,
@@ -902,7 +930,12 @@ export const runSyncOnce = async (app: Application, _cloudConnectionId: string):
   const hbStartedAt = new Date().toISOString()
   const hbStartMs = performance.now()
   let pairingRequired = false
+  // heartbeatError aufbewahren, damit wir nach `runHeartbeat()` zwischen
+  // Connectivity-Fehlern (Cloud unreachable, kompakt loggen) und echten
+  // Application-Fehlern (Stack-Trace + AJV-Details) unterscheiden koennen.
+  let heartbeatError: unknown = null
   const heartbeat = await runHeartbeat(app, connection).catch(err => {
+    heartbeatError = err
     lastError = err instanceof Error ? err.message : String(err)
     if (err instanceof EdgePairingRequiredError) pairingRequired = true
     return null
@@ -995,6 +1028,26 @@ export const runSyncOnce = async (app: Application, _cloudConnectionId: string):
     }
   }
 
+  // Cloud unerreichbar (DNS/Refused/Timeout, typisch waehrend Cloud-Restarts):
+  // Reconcile/PrinterCommands/Push/Pull haetten ohnehin alle `fetch failed` —
+  // jede dieser 9 Phasen wuerde dasselbe undici-Stacktrace-Triplet loggen.
+  // Wir steigen kompakt aus und warten auf den naechsten Tick. Das
+  // `Sync-Run: heartbeat failure`-Record + Emergency-Override-Tracking sind
+  // bereits oben geschrieben — der Operator sieht die Ursache eindeutig.
+  if (heartbeat === null && isCloudUnreachableError(heartbeatError)) {
+    logger.info({
+      message: 'Cloud unerreichbar — Sync-Phasen ausgesetzt bis zum naechsten Heartbeat',
+      event: 'sync.cloud_unreachable',
+      reason: lastError,
+    })
+    return {
+      pushed: 0,
+      pulled: 0,
+      durationMs: Math.round(performance.now() - start),
+      lastError,
+    }
+  }
+
   const refreshed = (await (app.service(cloudConnectionPath) as any)._get(connection._id)) as CloudConnection
 
   // Reconciliation der Emergency-Override-Patches, falls Cloud zurück ist.
@@ -1013,6 +1066,10 @@ export const runSyncOnce = async (app: Application, _cloudConnectionId: string):
   // (Worker-Tick), ohne dass wir einen eigenen Worker brauchen. Failures hier
   // dürfen Push/Pull nicht blockieren — fangen daher den Error ab.
   await runPullPrinterCommands(app, refreshed).catch(err => {
+    // Cloud-Connect-Fehler haben keinen brauchbaren Stack — nur die
+    // Application-Errors loggen wir mit Detail. Symmetrisch zur Behandlung
+    // in der Pull-Master-Data-Schleife.
+    if (isCloudUnreachableError(err)) return
     logger.warn({
       message: 'printer-commands Pull-Phase mit Exception abgebrochen',
       event: 'printer-commands.pull.worker_exception',
@@ -1043,15 +1100,18 @@ export const runSyncOnce = async (app: Application, _cloudConnectionId: string):
   } catch (err) {
     lastError = err instanceof Error ? err.message : String(err)
     if (err instanceof EdgePairingRequiredError) pairingRequired = true
-    // Stack + AJV-Details mit-loggen, damit der Operator sieht, ob der Error
-    // aus dem Cloud-Fetch oder einem Edge-internen Service-Aufruf stammt.
+    // Stack + AJV-Details nur bei Application-Errors mit-loggen — sonst sieht
+    // der Operator nur, ob der Error aus dem Cloud-Fetch oder einem Edge-
+    // internen Service-Aufruf stammt. Bei Cloud-Connect-Fehlern (fetch failed,
+    // ECONNREFUSED, …) ist der undici-Stack uninformativ — kompakt ohne Stack.
+    const cloudUnreachable = isCloudUnreachableError(err)
     logger.warn({
       message: 'Push-Worker mit Exception abgebrochen',
       event: 'sync.push.worker_exception',
       errorName: err instanceof Error ? err.name : undefined,
       errorMessage: lastError,
-      errorStack: err instanceof Error ? err.stack : undefined,
-      validationErrors: extractAjvErrors(err),
+      errorStack: cloudUnreachable ? undefined : err instanceof Error ? err.stack : undefined,
+      validationErrors: cloudUnreachable ? undefined : extractAjvErrors(err),
     })
     await recordSyncRun(app, {
       tenantId: refreshed.tenantId!,
@@ -1101,17 +1161,18 @@ export const runSyncOnce = async (app: Application, _cloudConnectionId: string):
       const errMsg = err instanceof Error ? err.message : String(err)
       lastError = errMsg
       if (err instanceof EdgePairingRequiredError) pairingRequired = true
-      // Stack + AJV-Details — sonst sieht der Operator nur "validation failed"
-      // ohne zu wissen, ob der Fehler aus dem Cloud-Fetch oder einem Edge-
-      // internen Service-Aufruf (z.B. service.create/patch im Apply-Loop) kommt.
+      // Stack + AJV-Details nur bei Application-Errors — bei Cloud-Connect-
+      // Fehlern (fetch failed/ECONNREFUSED/…) ist der undici-Stack uninformativ
+      // und produziert 7x dasselbe Triplet (ein Stack pro Master-Data-Service).
+      const cloudUnreachable = isCloudUnreachableError(err)
       logger.warn({
         message: 'Pull-Worker mit Exception abgebrochen',
         event: 'sync.pull.worker_exception',
         service,
         errorName: err instanceof Error ? err.name : undefined,
         errorMessage: errMsg,
-        errorStack: err instanceof Error ? err.stack : undefined,
-        validationErrors: extractAjvErrors(err),
+        errorStack: cloudUnreachable ? undefined : err instanceof Error ? err.stack : undefined,
+        validationErrors: cloudUnreachable ? undefined : extractAjvErrors(err),
       })
       await recordSyncRun(app, {
         tenantId: refreshed.tenantId!,

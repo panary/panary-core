@@ -8,7 +8,9 @@ import {
 } from '@panary-core/cloud-connection/domain'
 import { SyncableMasterDataService } from '@panary-core/edge-pairing/domain'
 import {
+  backoffMs,
   CLOCK_SKEW_ERROR_MS,
+  MAX_RETRY_ATTEMPTS,
   SyncConflictReason,
   type SyncCursor,
   type SyncHeartbeatResponse,
@@ -43,50 +45,7 @@ const PUSH_BATCH_SIZE = 100
 const PULL_PAGE_SIZE = 500
 const MANUAL_HEARTBEAT_INTERVAL_SEC = 30 * 60
 
-/**
- * Exponential-Backoff-Schedule fuer transient Cloud-Errors (Netzwerk, 5xx,
- * Cloud-Restart-Fenster). Index = `attempts - 1` (also Versuch 1 → 30s,
- * Versuch 2 → 1min, etc.). Nach Index-Ende: 6h-Cap (Versuch 7+).
- *
- * Begruendung der Werte:
- * - 30s: kurz genug, um einen Cloud-Restart zu ueberbruecken
- * - 1min/5min/30min: typische Stufen fuer Outage-Recovery
- * - 2h/6h: Schutz vor Pile-Up bei laengeren Cloud-Ausfaellen — Operator
- *   bekommt Zeit zur Reaktion (Notification, Support-Ticket etc.)
- * - 6h-Cap × MAX_ATTEMPTS=10 = max 1 Eskalation/Tag pro Eintrag
- */
-const RETRY_BACKOFF_SCHEDULE_MS = [
-  30_000,
-  60_000,
-  5 * 60_000,
-  30 * 60_000,
-  2 * 3600_000,
-  6 * 3600_000,
-] as const
-
-/**
- * Maximale Retry-Versuche bei transient errors. Bei Erreichen wird der
- * Outbox-Eintrag final als `rejected` markiert und ein `sync-conflicts`-
- * Eintrag mit `reason: PUSH_REJECTED` erzeugt → Operator-Resolution.
- *
- * 10 Versuche × Backoff (30s..6h-Cap) = max 1 Eskalation/Tag pro Eintrag.
- * Vermeidet sowohl vorzeitige Eskalation bei laengeren Cloud-Outages als
- * auch endlose Retry-Loops bei dauerhaften Problemen.
- */
-const MAX_ATTEMPTS = 10
-
 const syncConflictsPath = 'sync-conflicts'
-
-/**
- * Berechnet die Wartezeit bis zum naechsten Push-Versuch in Millisekunden.
- * Wird vom Worker auf `nextAttemptAt = now + backoffMs(attempts)` angewandt.
- * Exportiert fuer Vitest.
- */
-export const backoffMs = (attempts: number): number => {
-  if (attempts < 1) return RETRY_BACKOFF_SCHEDULE_MS[0]
-  const i = Math.min(attempts - 1, RETRY_BACKOFF_SCHEDULE_MS.length - 1)
-  return RETRY_BACKOFF_SCHEDULE_MS[i]
-}
 
 // Emergency-Override (ADR `emergency-override-adr.md`):
 // Aktiviert wird der Notfall-Modus, wenn entweder
@@ -637,7 +596,7 @@ const runPush = async (app: Application, connection: CloudConnection): Promise<n
       const classification = r.classification ?? SyncRejectionClassification.TERMINAL
       if (classification === SyncRejectionClassification.TRANSIENT) {
         const nextAttempts = (entry.attempts ?? 0) + 1
-        if (nextAttempts >= MAX_ATTEMPTS) {
+        if (nextAttempts >= MAX_RETRY_ATTEMPTS) {
           const conflictId = await escalateToConflict(
             app,
             entry,

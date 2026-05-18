@@ -12,32 +12,42 @@ import { CloudStatusBadgesComponent } from '@panary-core/shared/ui-cloud-status'
   imports: [RouterModule, TranslateModule, CloudStatusBadgesComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- Globaler Connection-Status-Indikator — nicht auf /setup anzeigen -->
-    @if (!isSetupRoute() && (connectionState().status === 'disconnected' || connectionState().status === 'error')) {
-      <div class="fixed top-3 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2">
-        <div class="px-3 py-1 bg-red-100/90 dark:bg-red-900/90 backdrop-blur text-red-700 dark:text-red-300 rounded-full text-xs font-bold border border-red-200 dark:border-red-800 shadow-sm flex items-center gap-1.5 animate-bounce">
-          <span class="material-symbols-outlined text-[14px]">wifi_off</span>
-          {{ 'COMMON.OFFLINE' | translate }}
-        </div>
-        <button (click)="reloadPage()"
-          class="w-10 h-10 bg-white/90 dark:bg-gray-800/90 backdrop-blur shadow-md rounded-full flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 transition-colors">
-          <span class="material-symbols-outlined text-gray-700 dark:text-gray-200 text-[20px]">refresh</span>
-        </button>
-      </div>
-    }
-    <!-- Cloud-Pairing-Indikator: signalisiert, dass der Edge-Token serverseitig
-         abgelaufen oder widerrufen wurde und Re-Pairing erforderlich ist. -->
-    @if (!isSetupRoute() && cloudNeedsRePairing()) {
-      <div class="fixed top-14 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-1.5 px-3 py-1 bg-amber-100/95 dark:bg-amber-900/90 backdrop-blur text-amber-800 dark:text-amber-200 rounded-full text-xs font-semibold border border-amber-300 dark:border-amber-800 shadow-sm">
-        <span class="material-symbols-outlined text-[14px]">cloud_off</span>
-        Cloud-Verbindung getrennt — bitte neu pairen
-      </div>
-    }
-    <!-- Cloud-Sync-Alter und Token-Restlaufzeit — eigene Reihen unterhalb
-         der RE-PAIRING-Pille. Komponente rendert nichts, wenn beide Trigger
-         auf level === 'ok' stehen (Normalfall). -->
+    <!-- Stack-Container fuer alle Status-Pillen — OFFLINE, RE-PAIRING,
+         SYNC und TOKEN stapeln untereinander statt mit hardcoded top-Offsets
+         zu kaskadieren. Beim Ausblenden einzelner Pillen ruecken die
+         verbleibenden automatisch nach oben. -->
     @if (!isSetupRoute()) {
-      <lib-cloud-status-badges [sync]="syncStaleness()" [token]="tokenExpiry()" />
+      <div
+        class="fixed top-3 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2"
+      >
+        @if (connectionState().status === 'disconnected' || connectionState().status === 'error') {
+          <div
+            class="px-3 py-1 bg-red-100/90 dark:bg-red-900/90 backdrop-blur text-red-700 dark:text-red-300 rounded-full text-xs font-bold border border-red-200 dark:border-red-800 shadow-sm flex items-center gap-1.5 animate-bounce"
+          >
+            <span class="material-symbols-outlined text-[14px]">wifi_off</span>
+            {{ 'COMMON.OFFLINE' | translate }}
+          </div>
+          <button
+            (click)="reloadPage()"
+            class="w-10 h-10 bg-white/90 dark:bg-gray-800/90 backdrop-blur shadow-md rounded-full flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 transition-colors"
+          >
+            <span class="material-symbols-outlined text-gray-700 dark:text-gray-200 text-[20px]">refresh</span>
+          </button>
+        }
+        <!-- Cloud-Pairing-Indikator: signalisiert, dass der Edge-Token serverseitig
+             abgelaufen oder widerrufen wurde und Re-Pairing erforderlich ist. -->
+        @if (cloudNeedsRePairing()) {
+          <div
+            class="flex items-center gap-1.5 px-3 py-1 bg-amber-100/95 dark:bg-amber-900/90 backdrop-blur text-amber-800 dark:text-amber-200 rounded-full text-xs font-semibold border border-amber-300 dark:border-amber-800 shadow-sm"
+          >
+            <span class="material-symbols-outlined text-[14px]">cloud_off</span>
+            Cloud-Verbindung getrennt — bitte neu pairen
+          </div>
+        }
+        <!-- Cloud-Sync-Alter und Token-Restlaufzeit — rendern nur bei Bedarf
+             (level !== 'ok'). -->
+        <lib-cloud-status-badges [sync]="syncStaleness()" [token]="tokenExpiry()" />
+      </div>
     }
     <router-outlet></router-outlet>
   `,

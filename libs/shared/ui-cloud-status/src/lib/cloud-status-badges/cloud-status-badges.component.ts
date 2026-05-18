@@ -4,16 +4,17 @@ import { TranslateModule } from '@ngx-translate/core'
 import type { SyncStaleness, TokenExpiry } from './cloud-status.types'
 
 /**
- * Schwebende Status-Badges fuer Cloud-Sync-Alter und Token-Restlaufzeit.
+ * Status-Badges fuer Cloud-Sync-Alter und Token-Restlaufzeit.
  *
- * Rendert pro Trigger eine eigene `fixed`-positionierte Pille (gleiche Optik
- * wie die OFFLINE/RE-PAIRING-Badges in `apps/pos-client/src/app/app.ts`).
+ * Rendert pro Trigger eine inline-Pille (kein eigenes `fixed`-Positioning).
+ * Der Konsument umschliesst die Komponente mit einem Stack-Container (z.B.
+ * `fixed top-3 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2`),
+ * sodass mehrere Pillen sauber untereinander stapeln und beim Ausblenden
+ * einzelner Pillen die anderen nach oben rutschen — kein Cascade mit
+ * hardcoded `top`-Offsets.
+ *
  * Wenn `level === 'ok'` fuer einen Trigger, wird die jeweilige Pille nicht
  * gerendert — keine UI-Last und kein Operator-Noise im Normalbetrieb.
- *
- * Positionierung:
- *   - Sync-Alter:    `fixed top-25` (75px) — unter der RE-PAIRING-Pille
- *   - Token-Ablauf:  `fixed top-36` (134px)
  *
  * i18n-Reaktivitaet: Wir nutzen die `| translate`-Pipe statt
  * `TranslateService.instant()` in einem `computed()`. Der HttpLoader laedt
@@ -32,13 +33,13 @@ import type { SyncStaleness, TokenExpiry } from './cloud-status.types'
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (sync().level !== 'ok'; as _) {
-      <div [class]="syncBadgeClasses()" style="top: 6.25rem;">
+      <div [class]="syncBadgeClasses()">
         <span class="material-symbols-outlined text-[14px]">cloud_sync</span>
         {{ syncMessageKey() | translate: syncMessageParams() }}
       </div>
     }
     @if (token().level !== 'ok'; as _) {
-      <div [class]="tokenBadgeClasses()" style="top: 8.5rem;">
+      <div [class]="tokenBadgeClasses()">
         <span class="material-symbols-outlined text-[14px]">key</span>
         {{ tokenMessageKey() | translate: tokenMessageParams() }}
       </div>
@@ -49,11 +50,10 @@ export class CloudStatusBadgesComponent {
   sync = input.required<SyncStaleness>()
   token = input.required<TokenExpiry>()
 
-  // Tailwind-Klassen identisch zu den existierenden Badges in
-  // pos-client/src/app/app.ts:30 — bewusst dupliziert (kein Mixin),
-  // damit die UI-Lib keinen Coupling-Pfad zu pos-client-Styles hat.
+  // Inline-Pillen — Positioning macht der Stack-Container des Konsumenten.
+  // Pillen-Optik identisch zu OFFLINE/RE-PAIRING in pos-client/app.ts.
   private readonly BASE_CLASSES =
-    'fixed left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-1.5 px-3 py-1 ' +
+    'flex items-center gap-1.5 px-3 py-1 ' +
     'backdrop-blur rounded-full text-xs font-semibold border shadow-sm'
 
   protected readonly syncBadgeClasses = computed(() => this.classesForLevel(this.sync().level))

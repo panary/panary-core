@@ -10,9 +10,12 @@ import { CloudStatusBadgesComponent } from '@panary-core/shared/ui-cloud-status'
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Cloud-Sync-Alter und Token-Restlaufzeit — schwebende Badge,
-         gleiche Optik wie im POS-Client. Rendert nichts, wenn beide
+         gleiche Optik wie im POS-Client. Stack-Container haelt die Pillen
+         oben am Viewport-Rand. Komponente rendert nichts, wenn beide
          Trigger auf level === 'ok' stehen. -->
-    <lib-cloud-status-badges [sync]="syncStaleness()" [token]="tokenExpiry()" />
+    <div class="fixed top-3 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2">
+      <lib-cloud-status-badges [sync]="syncStaleness()" [token]="tokenExpiry()" />
+    </div>
     <router-outlet />
   `,
 })

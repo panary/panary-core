@@ -794,12 +794,14 @@ const runPullPrinterCommands = async (
   )
   if (!response.ok) {
     // printer-commands ist eine OPTIONALE Sync-Phase (Test-Drucke aus der Cloud).
-    // Manche Cloud-Setups haben den Endpoint nicht für Edge-Token freigeschaltet
-    // — dann darf ein 401/403 hier NICHT das gesamte Pairing zerstoeren. Sobald
-    // heartbeat/push/pull weiterhin OK sind, ist der Token gueltig; nur dieser
-    // Endpoint ist auf Cloud-Seite nicht im EDGE_TOKEN_SCOPED_PATHS-Allowlisting.
-    // Soft-Fail: Log + return 0. Wenn der Token wirklich ungueltig waere, faengt
-    // der Heartbeat das im naechsten Tick ab und faehrt den Disconnect-Pfad.
+    // Die Cloud hat den Endpoint in EDGE_TOKEN_SCOPED_PATHS (authorize.hook) sowie
+    // in `secureByDefault.publicServices` (app.ts) freigeschaltet — Mixed-Auth
+    // (JWT fuer Admin-POST + edgeToken fuer Edge-Pull/Patch). Aeltere Cloud-
+    // Versionen ohne diese Freischaltung antworten weiterhin mit 401/403; das
+    // darf hier NICHT das gesamte Pairing zerstoeren. Sobald heartbeat/push/pull
+    // weiterhin OK sind, ist der Token gueltig. Soft-Fail: Log + return 0. Wenn
+    // der Token wirklich ungueltig waere, faengt der Heartbeat das im naechsten
+    // Tick ab und faehrt den Disconnect-Pfad.
     const text = await response.text().catch(() => '')
     logger.warn({
       message: 'printer-commands Pull fehlgeschlagen',

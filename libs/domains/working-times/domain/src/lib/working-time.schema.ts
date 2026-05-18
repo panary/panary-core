@@ -30,8 +30,12 @@ export type WorkingTime = Static<typeof workingTimeSchema>
 //#endregion
 
 //#region Schema für Erstellung (POST)
+// `_id` als Optional, damit der Edge im Offline-First-Modus die uuidv7 lokal
+// generieren kann und beim Sync-Push zur Cloud das Feld nicht als
+// `additionalProperty` abgelehnt wird (analog zum `orderDataSchema`).
 export const workingTimeDataSchema = Type.Intersect(
   [
+    Type.Object({ _id: Type.Optional(Type.String()) }),
     Type.Pick(workingTimeSchema, ['userId']),
     Type.Partial(
       Type.Pick(workingTimeSchema, ['businessDay', 'checkinDate', 'tenantId', 'locationId']),

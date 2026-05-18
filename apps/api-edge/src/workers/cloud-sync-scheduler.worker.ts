@@ -39,6 +39,38 @@ const PUSH_BATCH_SIZE = 100
 const PULL_PAGE_SIZE = 500
 const MANUAL_HEARTBEAT_INTERVAL_SEC = 30 * 60
 
+/**
+ * Exponential-Backoff-Schedule fuer transient Cloud-Errors (Netzwerk, 5xx,
+ * Cloud-Restart-Fenster). Index = `attempts - 1` (also Versuch 1 → 30s,
+ * Versuch 2 → 1min, etc.). Nach Index-Ende: 6h-Cap (Versuch 7+).
+ *
+ * Begruendung der Werte:
+ * - 30s: kurz genug, um einen Cloud-Restart zu ueberbruecken
+ * - 1min/5min/30min: typische Stufen fuer Outage-Recovery
+ * - 2h/6h: Schutz vor Pile-Up bei laengeren Cloud-Ausfaellen — Operator
+ *   bekommt Zeit zur Reaktion (Notification, Support-Ticket etc.)
+ * - 6h-Cap × MAX_ATTEMPTS=10 = max 1 Eskalation/Tag pro Eintrag
+ */
+const RETRY_BACKOFF_SCHEDULE_MS = [
+  30_000,
+  60_000,
+  5 * 60_000,
+  30 * 60_000,
+  2 * 3600_000,
+  6 * 3600_000,
+] as const
+
+/**
+ * Berechnet die Wartezeit bis zum naechsten Push-Versuch in Millisekunden.
+ * Wird vom Worker auf `nextAttemptAt = now + backoffMs(attempts)` angewandt.
+ * Exportiert fuer Vitest.
+ */
+export const backoffMs = (attempts: number): number => {
+  if (attempts < 1) return RETRY_BACKOFF_SCHEDULE_MS[0]
+  const i = Math.min(attempts - 1, RETRY_BACKOFF_SCHEDULE_MS.length - 1)
+  return RETRY_BACKOFF_SCHEDULE_MS[i]
+}
+
 // Emergency-Override (ADR `emergency-override-adr.md`):
 // Aktiviert wird der Notfall-Modus, wenn entweder
 // (a) `EMERGENCY_OVERRIDE_FAILURE_THRESHOLD` konsekutive Heartbeat-Fehler
@@ -329,33 +361,158 @@ const fetchPendingOutbox = async (app: Application): Promise<SyncOutboxEntry[]> 
   // Praefix — sortiert chronologisch wie `createdAt`). `createdAt` ist nicht
   // in `syncOutboxEntryQueryProperties` enthalten und wuerde von validateQuery
   // mit `additionalProperty: createdAt` abgelehnt.
+  //
+  // `$or` filtert Backoff-Eintraege: nur faellig wenn `nextAttemptAt` <= now
+  // ODER NULL (= Initial-Versuch, nie zuvor gepusht). Schliesst transient
+  // gescheiterte Eintraege bis zum naechsten Slot aus → kein Pile-Up beim
+  // Cloud-Restart.
+  const now = new Date().toISOString()
   const result = await (app.service(syncOutboxPath) as any).find({
     provider: undefined,
     paginate: false,
-    query: { status: SyncOutboxStatus.PENDING, $limit: PUSH_BATCH_SIZE, $sort: { _id: 1 } },
+    query: {
+      status: SyncOutboxStatus.PENDING,
+      $or: [{ nextAttemptAt: { $lte: now } }, { nextAttemptAt: null }],
+      $limit: PUSH_BATCH_SIZE,
+      $sort: { _id: 1 },
+    },
   })
   return Array.isArray(result) ? result : []
 }
 
-const markOutboxStatus = async (
+/**
+ * Markiert Outbox-Eintraege als erfolgreich an die Cloud uebertragen.
+ * Setzt `status='acked'` + `syncedAt`. Audit-Cleanup-Worker raeumt
+ * `acked`-Eintraege spaeter weg.
+ */
+const markOutboxAcked = async (app: Application, ids: string[]): Promise<void> => {
+  const now = new Date().toISOString()
+  for (const id of ids) {
+    await (app.service(syncOutboxPath) as any)
+      .patch(
+        id,
+        { status: SyncOutboxStatus.ACKED, syncedAt: now, lastAttemptAt: now },
+        { provider: undefined } as any,
+      )
+      .catch(() => undefined)
+  }
+}
+
+/**
+ * Markiert Outbox-Eintraege fuer einen spaeteren Retry. Inkrementiert
+ * `attempts` und setzt `nextAttemptAt = now + backoffMs(newAttempts)`.
+ * Wird bei transient errors (Netzwerk, 5xx) aufgerufen.
+ *
+ * Wichtig: Eingangs-`attempts` ist der bisherige Wert; wir schreiben das
+ * inkrementierte Resultat.
+ */
+const markOutboxRetry = async (
+  app: Application,
+  entries: ReadonlyArray<{ _id: string; attempts: number }>,
+  error: string,
+): Promise<void> => {
+  const now = new Date().toISOString()
+  for (const entry of entries) {
+    const nextAttempts = (entry.attempts ?? 0) + 1
+    const next = new Date(Date.now() + backoffMs(nextAttempts)).toISOString()
+    await (app.service(syncOutboxPath) as any)
+      .patch(
+        entry._id,
+        {
+          status: SyncOutboxStatus.PENDING,
+          attempts: nextAttempts,
+          lastAttemptAt: now,
+          nextAttemptAt: next,
+          lastError: error,
+        },
+        { provider: undefined } as any,
+      )
+      .catch(() => undefined)
+  }
+}
+
+/**
+ * Markiert Outbox-Eintraege als final gescheitert (`rejected`). Setzt
+ * `terminalAt`, optional verlinkten Conflict, und stoppt jeglichen
+ * weiteren Retry. Operator muss ueber das Sync-Status-UI eingreifen.
+ */
+const markOutboxTerminal = async (
   app: Application,
   ids: string[],
-  status: SyncOutboxStatus,
-  error?: string,
+  error: string,
+  linkedConflictId?: string,
 ): Promise<void> => {
+  const now = new Date().toISOString()
   for (const id of ids) {
     await (app.service(syncOutboxPath) as any)
       .patch(
         id,
         {
-          status,
-          syncedAt: status === SyncOutboxStatus.ACKED ? new Date().toISOString() : undefined,
+          status: SyncOutboxStatus.REJECTED,
+          terminalAt: now,
+          lastAttemptAt: now,
           lastError: error,
-          lastAttemptAt: new Date().toISOString(),
+          ...(linkedConflictId ? { linkedConflictId } : {}),
         },
         { provider: undefined } as any,
       )
       .catch(() => undefined)
+  }
+}
+
+/** Backwards-Compat-Wrapper fuer den IN_FLIGHT-Uebergang im Push-Loop. */
+const markOutboxInFlight = async (app: Application, ids: string[]): Promise<void> => {
+  const now = new Date().toISOString()
+  for (const id of ids) {
+    await (app.service(syncOutboxPath) as any)
+      .patch(
+        id,
+        { status: SyncOutboxStatus.IN_FLIGHT, lastAttemptAt: now },
+        { provider: undefined } as any,
+      )
+      .catch(() => undefined)
+  }
+}
+
+/**
+ * Beim Worker-Boot: setzt alle `in-flight`-Eintraege zurueck auf `pending`.
+ *
+ * Hintergrund: Bei Worker-Crash oder Edge-Restart waehrend einer
+ * laufenden Push-Operation bleiben Eintraege im `in-flight`-Status haengen
+ * und werden nie wieder vom Worker gezogen (Query filtert auf `pending`).
+ * Recovery-Reset garantiert, dass solche Eintraege beim naechsten
+ * regulaeren Tick wieder gepusht werden.
+ */
+const recoverInFlightOutbox = async (app: Application): Promise<void> => {
+  try {
+    const stuck = await (app.service(syncOutboxPath) as any).find({
+      provider: undefined,
+      paginate: false,
+      query: { status: SyncOutboxStatus.IN_FLIGHT, $limit: 500 },
+    })
+    const entries = (Array.isArray(stuck) ? stuck : []) as Array<{ _id: string }>
+    if (entries.length === 0) return
+    const now = new Date().toISOString()
+    for (const entry of entries) {
+      await (app.service(syncOutboxPath) as any)
+        .patch(
+          entry._id,
+          { status: SyncOutboxStatus.PENDING, lastAttemptAt: now },
+          { provider: undefined } as any,
+        )
+        .catch(() => undefined)
+    }
+    logger.info({
+      message: `IN_FLIGHT-Recovery: ${entries.length} sync-outbox-Eintraege auf pending zurueckgesetzt`,
+      event: 'sync.outbox.recovery',
+      count: entries.length,
+    })
+  } catch (err) {
+    logger.warn({
+      message: 'IN_FLIGHT-Recovery fehlgeschlagen',
+      event: 'sync.outbox.recovery_failed',
+      errorMessage: err instanceof Error ? err.message : String(err),
+    })
   }
 }
 
@@ -378,11 +535,7 @@ const runPush = async (app: Application, connection: CloudConnection): Promise<n
     occurredAt: e.occurredAt,
     syncSource: e.syncSource,
   }))
-  await markOutboxStatus(
-    app,
-    entries.map(e => e._id),
-    SyncOutboxStatus.IN_FLIGHT,
-  )
+  await markOutboxInFlight(app, entries.map(e => e._id))
   try {
     const response = await cloudFetch(connection.cloudUrl, cloudToken, '/sync-push', {
       method: 'POST',
@@ -397,17 +550,23 @@ const runPush = async (app: Application, connection: CloudConnection): Promise<n
       throw new Error(buildCloudErrorMessage('Push', response.status, text, { phase: 'push' }))
     }
     const body = (await response.json()) as { accepted: string[]; rejected: { _id: string; reason: string }[] }
-    await markOutboxStatus(app, body.accepted, SyncOutboxStatus.ACKED)
+    await markOutboxAcked(app, body.accepted)
+    // Cloud-Rejects bleiben in dieser Phase noch sofort terminal (alte Semantik).
+    // Commit 5 ersetzt das durch classification-basierte Logik
+    // (transient → markOutboxRetry, conflict → escalateToConflict).
     for (const r of body.rejected ?? []) {
-      await markOutboxStatus(app, [r._id], SyncOutboxStatus.REJECTED, r.reason)
+      await markOutboxTerminal(app, [r._id], r.reason)
     }
     return body.accepted.length
   } catch (err) {
-    await markOutboxStatus(
+    // Network-Errors / 5xx ohne Response-Body → Backoff-Retry, kein Pile-Up
+    // beim Cloud-Restart. Alle Eintraege der Batch bekommen denselben
+    // attempts++ und denselben naechsten Slot.
+    const errorMessage = err instanceof Error ? err.message : String(err)
+    await markOutboxRetry(
       app,
-      entries.map(e => e._id),
-      SyncOutboxStatus.PENDING,
-      err instanceof Error ? err.message : String(err),
+      entries.map(e => ({ _id: e._id, attempts: e.attempts ?? 0 })),
+      errorMessage,
     )
     throw err
   }
@@ -1223,6 +1382,12 @@ const computeNextScheduledSlot = (times: string[], timezone: string, lastRunAt?:
 export const startCloudSyncSchedulerWorker = async (app: Application): Promise<SchedulerHandle> => {
   let timer: NodeJS.Timeout | null = null
   let stopped = false
+
+  // Recovery vor dem ersten Tick: bei Worker-Crash oder Edge-Restart waehrend
+  // einer laufenden Push-Operation bleiben Eintraege im `in-flight`-Status
+  // haengen. Reset auf `pending`, damit sie beim ersten Tick wieder gezogen
+  // werden.
+  await recoverInFlightOutbox(app)
 
   const tick = async () => {
     if (stopped) return

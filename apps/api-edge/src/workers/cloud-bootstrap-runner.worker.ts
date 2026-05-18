@@ -60,6 +60,9 @@ const cloudConnectionPath = 'cloud-connection'
 //  - LOCATIONS zuerst, weil andere Stammdaten (z.B. users mit allowedLocationIds,
 //    products mit locationId) den Foreign-Key auf locations referenzieren.
 //  - PRODUCT_GROUPS vor PRODUCTS, weil Products auf Product-Groups verweisen.
+//  - BUSINESS_DAYS vor den TRANSACTION_SERVICES (insbesondere `orders`), weil
+//    `order.businessDayId` darauf verweist. Cloud ist Master fuer BusinessDays
+//    im Hybrid-Modell — Edge zieht read-only.
 const MASTER_DATA_SERVICES: ReadonlyArray<string> = [
   SyncableMasterDataService.LOCATIONS,
   SyncableMasterDataService.PRODUCT_GROUPS,
@@ -67,6 +70,7 @@ const MASTER_DATA_SERVICES: ReadonlyArray<string> = [
   SyncableMasterDataService.USERS,
   SyncableMasterDataService.CORPORATE_CUSTOMERS,
   SyncableMasterDataService.CUSTOMERS,
+  SyncableMasterDataService.BUSINESS_DAYS,
 ]
 
 // `locations` hat (noch) keinen `externalId`-Mechanismus — Merge-by-external-id
@@ -75,8 +79,14 @@ const MASTER_DATA_SERVICES: ReadonlyArray<string> = [
 // `externalId`-Feld auf dem Location-Schema existiert, wird `locations` im
 // Merge-Pfad uebersprungen — der `applyCloudTenantId`-Restamp hat zu diesem
 // Zeitpunkt bereits die Location-IDs aligned.
+//
+// `businessdays` haben ebenfalls keinen `externalId`-Mechanismus und sind im
+// Hybrid-Modell Cloud-Master — Edge kann sie nur als Replica halten, nicht
+// merge-konfliktbehaftet anwenden. Daher im Merge-Pfad uebersprungen.
 const MERGE_BY_EXTERNAL_ID_SERVICES: ReadonlyArray<string> = MASTER_DATA_SERVICES.filter(
-  service => service !== SyncableMasterDataService.LOCATIONS,
+  service =>
+    service !== SyncableMasterDataService.LOCATIONS &&
+    service !== SyncableMasterDataService.BUSINESS_DAYS,
 )
 
 const TRANSACTION_SERVICES: ReadonlyArray<string> = [
@@ -457,6 +467,68 @@ const runBootstrapEdgeToCloud = async (
   }
 }
 
+/**
+ * Schreibt `location.currentBusinessDay` lokal nach, nachdem die BusinessDays
+ * via Master-Pull in SQLite gelandet sind.
+ *
+ * Hintergrund Cloud-First-Hybrid: Cloud ist Master fuer BusinessDays. Beim
+ * Pairing zieht der Edge alle BusinessDays als Master-Data (read-only Replica).
+ * Der lokale `location.currentBusinessDay`-Pointer ist aber Edge-managed (POS
+ * + Edge-Order-Hook lesen ihn) und muss nach dem Pull aktualisiert werden,
+ * sonst sieht der POS-Order-Hook keinen offenen Tag und blockt jede Order
+ * mit BUSINESS_DAY_NOT_SET — obwohl die Cloud-Replica einen offenen Tag hat.
+ *
+ * `isEmergencyOverride: true` umgeht den `cloudManaged()`-Hook auf der Edge
+ * (apps/api-edge/src/services/locations/locations.ts:107-109), der externe
+ * Schreibzugriffe auf `locations` nach Pairing blockiert.
+ */
+const reconcileLocationBusinessDay = async (
+  app: Application,
+  tenantId: string,
+): Promise<void> => {
+  try {
+    const openDays = await (app.service('businessdays' as any) as any).find({
+      provider: undefined,
+      paginate: false,
+      query: { tenantId, status: 'open' },
+    })
+    const items = Array.isArray(openDays) ? openDays : (openDays as { data?: unknown[] })?.data ?? []
+    for (const day of items as Array<{ _id: string; locationId: string | null; date: string }>) {
+      if (!day.locationId) continue
+      try {
+        await (app.service('locations' as any) as any).patch(
+          day.locationId,
+          { currentBusinessDay: { businessDayId: day._id, date: day.date } },
+          { provider: undefined, isEmergencyOverride: true },
+        )
+      } catch (err) {
+        logger.warn({
+          message: 'reconcileLocationBusinessDay: location.patch fehlgeschlagen',
+          event: 'sync.bootstrap.business_day_reconcile_failed',
+          tenantId,
+          locationId: day.locationId,
+          businessDayId: day._id,
+          errorMessage: err instanceof Error ? err.message : String(err),
+        })
+      }
+    }
+    logger.info({
+      message: 'BusinessDay-Reconcile abgeschlossen',
+      event: 'sync.bootstrap.business_day_reconcile_done',
+      tenantId,
+      reconciledCount: items.length,
+    })
+  } catch (err) {
+    // Fail-open — Reconcile-Fehler darf den Bootstrap nicht knallen lassen.
+    logger.warn({
+      message: 'reconcileLocationBusinessDay fehlgeschlagen',
+      event: 'sync.bootstrap.business_day_reconcile_error',
+      tenantId,
+      errorMessage: err instanceof Error ? err.message : String(err),
+    })
+  }
+}
+
 const runPullCloudToEdge = async (
   app: Application,
   connection: CloudConnection,
@@ -498,6 +570,10 @@ const runPullCloudToEdge = async (
       throw err
     }
   }
+  // Nach Master-Pull-Loop: BusinessDay-Replica ist in SQLite, aber der
+  // POS-Order-Hook liest `location.currentBusinessDay`. Reconcile setzt den
+  // Pointer auf den offenen Tag — sonst blockt der naechste Order-Versuch.
+  await reconcileLocationBusinessDay(app, connection.tenantId!)
 }
 
 const runMergeByExternalId = async (

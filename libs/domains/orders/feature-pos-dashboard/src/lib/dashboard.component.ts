@@ -32,6 +32,13 @@ interface QuickAction {
   allowedRoles?: UserSystemRole[]
   hideInStandalone?: boolean
   /**
+   * Versteckt den Button, sobald die Edge mit der Cloud gepairt ist
+   * (cloudPairingStatus === 'connected'). Wird fuer BusinessDay-Lifecycle-
+   * Buttons benoetigt: im Hybrid-Modell ist die Cloud Master, Eroeffnung +
+   * Tagesabschluss laufen im Cloud-Admin-Dashboard, NICHT am POS.
+   */
+  hideWhenCloudPaired?: boolean
+  /**
    * Optionaler Sichtbarkeits-Filter, der zur Render-Zeit ausgewertet wird.
    * Im Gegensatz zu `allowedRoles` (statisch beim Login) kann `condition`
    * auf reaktive Signals zugreifen (z.B. ob ein Geschäftstag offen ist).
@@ -69,6 +76,12 @@ export class DashboardComponent implements OnInit {
   todayPreOrders = signal<PreOrder[]>([])
 
   isStandaloneMode = computed(() => this.#connectionService.systemMode() === 'standalone')
+  /**
+   * True wenn die Edge aktiv mit der Cloud gepairt ist. Verwendet von
+   * `visibleQuickActions`, um BusinessDay-Lifecycle-Buttons im Hybrid-Modell
+   * auszublenden — der Lifecycle wird ausschliesslich im Cloud-Admin geregelt.
+   */
+  isCloudPaired = computed(() => this.#connectionService.cloudPairingStatus() === 'connected')
 
   /**
    * Indikator, ob die aktive Location einen offenen Geschaeftstag hat.
@@ -174,6 +187,8 @@ export class DashboardComponent implements OnInit {
       hideInStandalone: true,
     },
     // Tageseroeffnung — nur sichtbar wenn kein Geschaeftstag offen ist.
+    // `hideWhenCloudPaired`: im Hybrid-Modell ist die Cloud Master fuer
+    // BusinessDay-Lifecycle — Eroeffnung laeuft im Cloud-Admin-Dashboard.
     {
       label: 'DASHBOARD.OPEN_BUSINESS_DAY',
       icon: 'play_circle',
@@ -182,8 +197,11 @@ export class DashboardComponent implements OnInit {
       textClass: 'text-teal-700 dark:text-teal-400',
       condition: () => !this.hasOpenBusinessDay(),
       hideInStandalone: true,
+      hideWhenCloudPaired: true,
     },
     // Tagesabschluss — nur sichtbar wenn Geschaeftstag offen ist.
+    // `hideWhenCloudPaired`: gleich wie Open — Cloud-Admin uebernimmt im
+    // Hybrid-Modell den Closing-Workflow.
     {
       label: 'DASHBOARD.CLOSE_BUSINESS_DAY',
       icon: 'verified',
@@ -192,6 +210,7 @@ export class DashboardComponent implements OnInit {
       textClass: 'text-indigo-700 dark:text-indigo-400',
       condition: () => this.hasOpenBusinessDay(),
       hideInStandalone: true,
+      hideWhenCloudPaired: true,
     },
     {
       label: 'DASHBOARD.SETTINGS',
@@ -208,6 +227,7 @@ export class DashboardComponent implements OnInit {
 
     return this.quickActions.filter(action => {
       if (action.hideInStandalone && this.isStandaloneMode()) return false
+      if (action.hideWhenCloudPaired && this.isCloudPaired()) return false
       if (action.condition && !action.condition()) return false
       if (!action.allowedRoles) return true
       return action.allowedRoles.includes(userRole)

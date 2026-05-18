@@ -34,6 +34,18 @@ export const SyncableMasterDataService = {
   // NIEMALS in SyncableTransactionService aufnehmen — Edge darf Tenants
   // nicht zurueckschreiben.
   TENANTS: 'tenants',
+  // BusinessDays werden im Hybrid-Modell (siehe panary-cloud-Plan
+  // `okay-wir-gehen-in-generic-leaf.md`) ausschliesslich Cloud-seitig
+  // erzeugt/transitioniert. Edge zieht den Lifecycle als Master-Data via
+  // Pull-Sync, schreibt aber niemals zurueck — deshalb NICHT in
+  // SyncableTransactionService. Wichtig: BUSINESS_DAYS muss VOR ORDERS
+  // gepullt werden (FK-Logik: order.businessDayId verweist darauf). Die
+  // Object-Insertion-Order in diesem Enum bestimmt heute die Pull-Reihenfolge
+  // des Bootstrap-Workers — daher gehoert es vor dem Locations-Block, aber
+  // nach den klassischen Master-Daten. Cloud-managed-Hook am Edge
+  // (apps/api-edge/src/services/business-days/business-days.ts: guard) blockt
+  // direkte Schreibversuche auf dem Edge-Service.
+  BUSINESS_DAYS: 'businessdays',
 } as const
 
 export type SyncableMasterDataService =
@@ -78,6 +90,11 @@ export type EdgeIdentity = Static<typeof edgeIdentitySchema>
 
 // Inventarvergleich beim Pairing — nur Entitaeten, die zwischen Edge und Cloud
 // tatsaechlich synchronisiert werden. Pricelists ist Cloud-only und nicht hier.
+//
+// `businessDays` ist optional, weil aeltere Edge-Versionen (vor Phase 4 des
+// BusinessDay-Hybrid-Plans) das Feld noch nicht mitschicken. Cloud akzeptiert
+// 0 als Default wenn ungesetzt — der Pairing-Pfad bleibt damit backward-
+// kompatibel.
 export const masterDataInventorySchema = Type.Object(
   {
     products: Type.Number({ minimum: 0 }),
@@ -85,6 +102,7 @@ export const masterDataInventorySchema = Type.Object(
     users: Type.Number({ minimum: 0 }),
     corporateCustomers: Type.Number({ minimum: 0 }),
     customers: Type.Number({ minimum: 0 }),
+    businessDays: Type.Optional(Type.Number({ minimum: 0 })),
   },
   { $id: 'MasterDataInventory', additionalProperties: false },
 )

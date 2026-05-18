@@ -26,6 +26,20 @@ export const syncOutboxEntrySchema = Type.Object(
     lastAttemptAt: Type.Optional(Type.String({ format: 'date-time' })),
     syncedAt: Type.Optional(Type.String({ format: 'date-time' })),
     lastError: Type.Optional(Type.String({ maxLength: 1000 })),
+    // Exponential-Backoff-Steuerung: Worker zieht nur Eintraege deren
+    // nextAttemptAt <= now ODER NULL (= sofort faellig, Default fuer neue
+    // Eintraege). Bei transient errors setzt der Worker das Feld auf
+    // `now + backoffMs(attempts)`.
+    nextAttemptAt: Type.Optional(Type.String({ format: 'date-time' })),
+    // Zeitpunkt, an dem der Eintrag final als `rejected` markiert wurde
+    // (entweder durch persistenten Cloud-Error oder durch
+    // MAX_ATTEMPTS-Eskalation). Nur fuer Audit/Sortierung im Operator-UI.
+    terminalAt: Type.Optional(Type.String({ format: 'date-time' })),
+    // Cross-Referenz auf den sync-conflicts-Eintrag, der bei
+    // classification='conflict' oder MAX_ATTEMPTS-Eskalation erzeugt wurde.
+    // Erlaubt dem Operator-UI, vom Outbox-Eintrag direkt in die
+    // Conflict-Resolution zu springen.
+    linkedConflictId: Type.Optional(Type.String({ format: 'uuid' })),
     createdAt: Type.String({ format: 'date-time' }),
     updatedAt: Type.String({ format: 'date-time' }),
   },
@@ -56,18 +70,27 @@ export const syncOutboxEntryPatchSchema = Type.Partial(
     'lastAttemptAt',
     'syncedAt',
     'lastError',
+    'nextAttemptAt',
+    'terminalAt',
+    'linkedConflictId',
   ]),
   { $id: 'SyncOutboxEntryPatch' },
 )
 
 export type SyncOutboxEntryPatch = Static<typeof syncOutboxEntryPatchSchema>
 
+// `nextAttemptAt` in den Query-Properties, damit der Worker
+// `$or: [{ nextAttemptAt: { $lte: now } }, { nextAttemptAt: null }]`
+// pushen darf, ohne von validateQuery mit `additionalProperty` abgelehnt zu
+// werden. `terminalAt` wird vom Operator-UI fuer "Erledigt"-Tab gefiltert.
 export const syncOutboxEntryQueryProperties = Type.Pick(syncOutboxEntrySchema, [
   '_id',
   'service',
   'status',
   'syncSource',
   'entityId',
+  'nextAttemptAt',
+  'terminalAt',
 ])
 
 export const syncOutboxEntryQuerySchema = Type.Intersect(

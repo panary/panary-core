@@ -15,7 +15,7 @@
 
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
-import { BadRequest, NotFound } from '@feathersjs/errors'
+import { BadRequest, Forbidden, NotFound } from '@feathersjs/errors'
 import { uuidv7 } from 'uuidv7'
 
 import {
@@ -23,6 +23,7 @@ import {
   BusinessDayOperationMode,
 } from '@panary-core/businessdays/domain'
 import { LocationOperationMode } from '@panary-core/locations/domain'
+import { PairingStatus } from '@panary-core/cloud-connection/domain'
 import { authorize, multiTenancy } from '@panary-core/shared-backend'
 import { createServiceAdapter } from '@panary-core/shared/data-access/server'
 import { DatabaseType } from '@panary-core/shared-common'
@@ -68,6 +69,52 @@ interface OpenDayParams {
 }
 
 /**
+ * Wirft Forbidden, sobald die Edge mit der Cloud gepairt ist UND der Aufruf
+ * extern initiiert wurde (z.B. POS-Client). Interne Aufrufe ohne `provider`
+ * (Sync-Apply, Bootstrap, Worker) bleiben durchgelassen.
+ *
+ * Im Hybrid-Modell ist die Cloud Master fuer BusinessDay-Lifecycle, sobald
+ * eine Pairing-Verbindung besteht. Der Edge agiert dann nur als Read-Replica;
+ * `openDay`/`closeDay` werden in der Cloud aufgerufen und kommen via
+ * Sync-Pull-Master-Data zur Edge zurueck.
+ *
+ * Fail-open: wenn `cloud-connection` nicht erreichbar ist, blockiert der
+ * Hook NICHT — damit Bootstrap-Pfade vor Service-Registrierung weiter
+ * funktionieren.
+ */
+async function guardCloudManagedLifecycle(
+  app: Application,
+  params: OpenDayParams,
+  operation: string,
+): Promise<void> {
+  if (!params.provider) return // interner Aufruf — Sync-Apply etc.
+  try {
+    const result = await (app.service('cloud-connection') as any).find({
+      provider: undefined,
+      paginate: false,
+      query: { pairingStatus: PairingStatus.CONNECTED, $limit: 1 },
+    })
+    const list = Array.isArray(result) ? result : []
+    if (list.length > 0) {
+      throw new Forbidden(
+        `Geschaeftstag-${operation} wird in der Cloud verwaltet, ` +
+          `sobald der Edge mit der Cloud gepairt ist. Bitte im Cloud-Admin-` +
+          `Dashboard ausfuehren.`,
+      )
+    }
+  } catch (err) {
+    if (err instanceof Forbidden) throw err
+    // Fail-open bei cloud-connection-Lookup-Fehler
+    logger.warn({
+      message: `guardCloudManagedLifecycle: cloud-connection-Lookup fehlgeschlagen, fail-open`,
+      event: 'business_day.cloud_managed_guard_fail_open',
+      operation,
+      error: (err as Error).message,
+    })
+  }
+}
+
+/**
  * Eroeffnet einen neuen Geschaeftstag.
  * Validierungen:
  *   - kein offener Tag an derselben Location
@@ -75,6 +122,8 @@ interface OpenDayParams {
  *   - operationMode wird aus Location.operationMode kopiert (Snapshot)
  */
 async function openDay(app: Application, data: OpenDayData, params: OpenDayParams = {}): Promise<BusinessDay> {
+  await guardCloudManagedLifecycle(app, params, 'Eroeffnung')
+
   const user = params.user
   if (!user?.tenantId) throw new BadRequest('Tenant-Kontext fehlt — openDay benötigt einen authentifizierten User')
 
@@ -152,6 +201,8 @@ async function closeDay(
   data: CloseDayData,
   params: OpenDayParams = {},
 ): Promise<BusinessDay> {
+  await guardCloudManagedLifecycle(app, params, 'Tagesabschluss')
+
   const user = params.user
   if (!user?.tenantId) throw new BadRequest('Tenant-Kontext fehlt — closeDay benötigt einen authentifizierten User')
   if (!data.businessDayId) throw new BadRequest('businessDayId ist Pflicht')

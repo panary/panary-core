@@ -18,10 +18,22 @@ export type SyncConflictResolution =
   (typeof SyncConflictResolution)[keyof typeof SyncConflictResolution]
 
 export const SyncConflictReason = {
+  // Bootstrap-Konflikte (Cloud-Pull):
   EXTERNAL_ID_MISMATCH: 'external-id-mismatch',
   EXTERNAL_ID_MISSING: 'external-id-missing',
   AMBIGUOUS_NAME_MATCH: 'ambiguous-name-match',
+  // Push-Konflikte (Edge → Cloud):
+  // Catch-all bei MAX_ATTEMPTS-Eskalation (transient wurde dauerhaft transient,
+  // oder die Cloud-Version liefert keine genauere Klassifikation).
   PUSH_REJECTED: 'push-rejected',
+  // Tenant-Mismatch: ensureTenantIsolation lehnt den Record ab, weil die
+  // tenantId zwischen Edge-Stempel und Cloud-Stand auseinanderlaeuft.
+  // Klassischer Cross-Tenant-Konflikt, User muss entscheiden.
+  PUSH_FORBIDDEN: 'push-forbidden',
+  // Concurrent-Write: Cloud-Record wurde nach `op.occurredAt` modifiziert
+  // (Mongoose VersionError oder updatedAt-Vergleich). Edge-Payload und
+  // Cloud-Payload divergieren, User waehlt welche Version gewinnt.
+  PUSH_CONCURRENT_WRITE: 'push-concurrent-write',
 } as const
 
 export type SyncConflictReason = (typeof SyncConflictReason)[keyof typeof SyncConflictReason]

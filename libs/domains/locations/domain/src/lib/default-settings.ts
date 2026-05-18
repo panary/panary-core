@@ -1,5 +1,11 @@
 import { MqttProtocolType, Settings } from './location.schema'
 
+// Letzter Arbeitstag der Woche (JS Date.getDay()-Konvention, 0=So…6=Sa).
+// 5 = Freitag entspricht dem DACH-Standard. Wird im Service-Resolver für
+// neue Locations gesetzt und in der Zeiterfassungs-UI als Fallback verwendet,
+// wenn das Feld auf einer bestehenden Location noch nicht gepflegt ist.
+export const DEFAULT_LAST_WORKDAY_OF_WEEK = 5
+
 export const generateDefaultLocationSettings: Settings = {
   generalSettings: {
     systemOfUnits: 'metric',

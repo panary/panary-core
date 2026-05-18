@@ -205,6 +205,15 @@ export const locationSchema = Type.Object(
     // reiner Bestellaggregation) und welche UI-Steps angezeigt werden.
     // Optional + Service-Resolver-Default 'pos-cashier' für Bestandskunden.
     operationMode: Type.Optional(StringEnum(Object.values(LocationOperationMode))),
+
+    // Letzter Arbeitstag der Woche (0=So…6=Sa, JS Date.getDay()-Konvention).
+    // Steuert das Wochen-Highlighting in der Zeiterfassung — variiert je Land
+    // (DE/AT/CH: 5=Fr, IL: 4=Do, viele Golf-Staaten: 4=Do). Top-Level statt im
+    // Settings-Block, damit der Standort-Detail-Dialog das Feld direkt patchen
+    // kann, ohne den vollen Settings-Tree mergen zu müssen (Konflikt-Risiko
+    // mit parallelen Settings-Patches aus Drucker/Öffnungszeiten-Seiten).
+    // Service-Resolver-Default: 5 (Freitag).
+    lastWorkdayOfWeek: Type.Optional(Type.Integer({ minimum: 0, maximum: 6 })),
   },
   { $id: 'Location', additionalProperties: false },
 )
@@ -227,6 +236,7 @@ export const locationDataSchema = Type.Pick(
     'locale',
     'defaultCurrency',
     'operationMode',
+    'lastWorkdayOfWeek',
   ],
   {
     $id: 'LocationData',

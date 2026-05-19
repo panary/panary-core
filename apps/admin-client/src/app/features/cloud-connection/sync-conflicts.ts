@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, inject, OnInit, signal } from '@angular/core'
 import { ApiService } from '../../core/api.service'
 import { formatApiError } from '../../core/error-helper'
+import { SyncProblemCountService } from '../../core/sync-problem-count.service'
 
 type SyncConflictStatus = 'open' | 'resolved'
 type SyncConflictResolution = 'use-cloud' | 'use-edge' | 'discard'
@@ -302,6 +303,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
 export class SyncConflictsComponent implements OnInit {
   private api = inject(ApiService)
   private cdr = inject(ChangeDetectorRef)
+  private syncProblemCount = inject(SyncProblemCountService)
 
   protected readonly loading = signal(true)
   protected readonly rejectedRows = signal<SyncOutboxRow[]>([])
@@ -439,21 +441,29 @@ export class SyncConflictsComponent implements OnInit {
     }
   }
 
+  /**
+   * Retry-Patch fuer einen Outbox-Eintrag. `null` wird vom Schema
+   * (`Type.Optional(Type.String())`) abgelehnt — daher die alten
+   * lastError/terminalAt/linkedConflictId-Felder einfach weglassen. Worker
+   * ueberschreibt sie beim naechsten Push-Ergebnis. status='pending' +
+   * attempts=0 + nextAttemptAt='in der Vergangenheit' reicht damit der
+   * Worker den Eintrag sofort wieder zieht.
+   */
+  private async patchRetry(row: SyncOutboxRow): Promise<void> {
+    await this.api.patch('sync-outbox', row._id, {
+      status: 'pending',
+      attempts: 0,
+      nextAttemptAt: row.occurredAt,
+    } as Record<string, unknown>)
+  }
+
   async retryRejected(row: SyncOutboxRow) {
     if (this.retryDisabled(row)) return
     this.rowBusy.set(row._id)
     try {
-      // `null` wird vom Schema (`Type.Optional(Type.String())`) abgelehnt;
-      // Felder einfach weglassen — Worker ueberschreibt sie beim naechsten
-      // Push-Ergebnis. Status='pending' + attempts=0 + nextAttemptAt='in
-      // der Vergangenheit' reicht damit der Worker den Eintrag sofort
-      // wieder zieht.
-      await this.api.patch('sync-outbox', row._id, {
-        status: 'pending',
-        attempts: 0,
-        nextAttemptAt: row.occurredAt,
-      } as Record<string, unknown>)
+      await this.patchRetry(row)
       this.rejectedRows.update(rows => rows.filter(r => r._id !== row._id))
+      this.syncProblemCount.refresh()
     } catch (err) {
       this.errors.update(arr => [...arr, formatApiError(err)])
     } finally {
@@ -468,6 +478,7 @@ export class SyncConflictsComponent implements OnInit {
     try {
       await this.api.remove('sync-outbox', row._id)
       this.rejectedRows.update(rows => rows.filter(r => r._id !== row._id))
+      this.syncProblemCount.refresh()
     } catch (err) {
       this.errors.update(arr => [...arr, formatApiError(err)])
     } finally {
@@ -484,19 +495,13 @@ export class SyncConflictsComponent implements OnInit {
       for (const row of [...this.rejectedRows()]) {
         if (this.retryDisabled(row)) continue
         try {
-          await this.api.patch('sync-outbox', row._id, {
-            status: 'pending',
-            attempts: 0,
-            nextAttemptAt: row.occurredAt,
-            lastError: null,
-            terminalAt: null,
-            linkedConflictId: null,
-          } as Record<string, unknown>)
+          await this.patchRetry(row)
         } catch {
           // einzelner Fehler bricht Bulk nicht ab
         }
       }
       await this.reload()
+      this.syncProblemCount.refresh()
     } finally {
       this.bulkBusy.set(false)
       this.cdr.markForCheck()
@@ -508,6 +513,7 @@ export class SyncConflictsComponent implements OnInit {
     try {
       await this.api.patch('sync-conflicts', row._id, { resolution } as Record<string, unknown>)
       this.conflicts.update(rows => rows.filter(r => r._id !== row._id))
+      this.syncProblemCount.refresh()
     } catch (err) {
       this.errors.update(arr => [...arr, formatApiError(err)])
     } finally {

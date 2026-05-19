@@ -4,6 +4,7 @@ import { Title } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
 import { AuthService } from '../core/auth.service'
 import { ApiService } from '../core/api.service'
+import { SyncProblemCountService } from '../core/sync-problem-count.service'
 import { ThemeServiceService } from '@panary-core/shared/data-access-theme'
 import { LanguageService } from '@panary-core/shared/data-access'
 import { LocationStateService } from '../core/location-state.service'
@@ -216,6 +217,7 @@ interface NavItem {
 export class AdminLayoutComponent {
   auth = inject(AuthService)
   private api = inject(ApiService)
+  private syncProblemCount = inject(SyncProblemCountService)
   themeService = inject(ThemeServiceService)
   protected langService = inject(LanguageService)
   locationState = inject(LocationStateService)
@@ -245,13 +247,14 @@ export class AdminLayoutComponent {
 
   counts = signal<Record<string, number>>({})
   /**
-   * Rote-Badge-Counter fuer Hauptnav-Items mit `problemCountKey`. Pollt
-   * alle 60s; bei jedem Wechsel des sichtbaren Counts wird die UI
-   * automatisch via Signal aktualisiert. Defensive Catch-Logik damit
-   * Backend-Ausfall (Cloud-Disconnect → sync-conflicts erreichbar?
-   * sync-outbox läuft lokal) den Sidebar-Render nicht blockiert.
+   * Rote-Badge-Counter fuer Hauptnav-Items mit `problemCountKey`. Liest
+   * aus dem geteilten `SyncProblemCountService` — Operator-UI ruft dort
+   * `refresh()` nach jeder Aktion, damit der Badge sofort aktuell ist
+   * statt erst auf den naechsten 60s-Poll-Tick zu warten.
    */
-  problemCounts = signal<Record<string, number>>({ sync: 0 })
+  problemCounts = computed<Record<string, number>>(() => ({
+    sync: this.syncProblemCount.count(),
+  }))
 
   constructor() {
     this.locationState.load()
@@ -260,11 +263,14 @@ export class AdminLayoutComponent {
       this.title.setTitle(name ? `Panary — Hub (${name})` : 'Panary — Hub')
     })
     this.loadCounts()
-    this.loadProblemCounts()
+    this.syncProblemCount.refresh()
     // 60s-Poll fuer Problem-Indikator (sync-status). Reicht fuer Operator-
     // Use-Case; ein lebenslang offener Tab sieht neue Probleme innerhalb
     // einer Minute. Kein Memory-Cleanup noetig — Sidebar lebt App-weit.
-    setInterval(() => this.loadProblemCounts(), 60_000)
+    // Sofortiges Refresh nach Operator-Aktionen passiert ueber die
+    // SyncConflictsComponent, die nach jeder retry/discard/resolve-Aktion
+    // refresh() auf demselben Service triggert.
+    setInterval(() => this.syncProblemCount.refresh(), 60_000)
   }
 
   private async loadCounts() {
@@ -283,27 +289,8 @@ export class AdminLayoutComponent {
     this.counts.set(results)
   }
 
-  /**
-   * Laedt die Anzahl ausstehender Sync-Probleme (rejected outbox + offene
-   * Konflikte) fuer die rote Sidebar-Badge. Beide Services werden parallel
-   * gepollt; ein einzelner Fehler senkt das Total nicht auf NaN.
-   */
-  private async loadProblemCounts() {
-    let syncTotal = 0
-    try {
-      const rejected = await this.api.find('sync-outbox', { status: 'rejected', $limit: 0 })
-      syncTotal += rejected.total ?? 0
-    } catch {
-      // Service nicht erreichbar → Count nicht erhoehen
-    }
-    try {
-      const conflicts = await this.api.find('sync-conflicts', { status: 'open', $limit: 0 })
-      syncTotal += conflicts.total ?? 0
-    } catch {
-      // dito
-    }
-    this.problemCounts.update(prev => ({ ...prev, sync: syncTotal }))
-  }
+  // loadProblemCounts wurde in `SyncProblemCountService.refresh()`
+  // ausgelagert — Operator-UI kann nach Aktionen direkt darauf zugreifen.
 
   setTheme(theme: string) {
     this.themeService.setTheme(theme)

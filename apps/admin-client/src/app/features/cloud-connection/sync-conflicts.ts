@@ -74,8 +74,21 @@ const OP_LABELS: Record<string, string> = {
 
 const labelForService = (service: string): string => SERVICE_LABELS[service] ?? service
 
+/**
+ * Rejects, die durch eine fixe Cloud-Policy entstehen (z.B. tenant:owner-User
+ * werden vom Cloud-Receiver bewusst abgewiesen). „Erneut versuchen" hilft
+ * hier nie — der Operator sollte den Eintrag verwerfen oder die Aktion in
+ * der Cloud-Admin-UI nachholen.
+ */
+const isPolicyBlockedReject = (row: SyncOutboxRow): boolean => {
+  const err = row.lastError ?? ''
+  return err.includes('Cloud verwaltet diese Rolle selbst') || err.includes('user_role_blocked')
+}
+
 const problemText = (row: SyncOutboxRow): string => {
   const err = row.lastError ?? ''
+  if (isPolicyBlockedReject(row))
+    return 'Diese Daten werden zentral in der Online-Datenbank gepflegt und nicht von hier aus hochgeladen.'
   if (err.includes('additionalProperties')) return 'Daten-Format wird von der Cloud nicht akzeptiert'
   if (err.includes('validation failed')) return 'Daten-Format wird von der Cloud nicht akzeptiert'
   if (err.includes('fetch failed') || err.includes('ECONNREFUSED'))
@@ -101,7 +114,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
         <div>
           <h1 class="text-xl font-bold tracking-tight">Sync-Status</h1>
           <p class="text-slate-500 dark:text-gray-400 text-sm mt-1">
-            Datenabgleich zwischen dieser Baeckerei und der Online-Datenbank.
+            Datenabgleich zwischen diesem Standort und der Online-Datenbank.
           </p>
         </div>
         <div class="flex items-center gap-2">
@@ -154,7 +167,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
           <p class="text-2xl mb-2">✓</p>
           <p class="text-sm text-slate-700 dark:text-gray-200 font-medium">Alles synchron</p>
           <p class="text-xs text-slate-500 mt-1">
-            Keine ausstehenden Sync-Probleme zwischen dieser Baeckerei und der Online-Datenbank.
+            Keine ausstehenden Sync-Probleme zwischen diesem Standort und der Online-Datenbank.
           </p>
         </div>
       } @else {
@@ -177,6 +190,26 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
 
               <p class="text-sm text-slate-600 dark:text-gray-300">{{ problemDescription(row) }}</p>
 
+              @if (isPolicyBlocked(row)) {
+                <!-- Erklaerender Banner fuer Policy-blockierte Rejects (z.B.
+                     tenant:owner-User). Verhindert Support-Anfragen, weil
+                     „Erneut versuchen" hier nie helfen wird — die Cloud lehnt
+                     die Daten grundsaetzlich ab, da sie zentral verwaltet
+                     werden. Verwerfen ist die richtige Aktion. -->
+                <div class="flex gap-3 text-xs bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-md p-3">
+                  <span class="text-amber-700 dark:text-amber-300 text-base leading-none">ⓘ</span>
+                  <div class="space-y-1 text-amber-900 dark:text-amber-100">
+                    <p class="font-medium">Das ist kein Fehler — sondern eine Sicherheitsregel.</p>
+                    <p>
+                      Bestimmte Datentypen (z.B. <strong>Inhaber-Konten</strong>) werden
+                      ausschliesslich im Online-Admin-Bereich gepflegt — nicht von hier
+                      aus. Anpassungen bitte direkt im Cloud-Admin durchfuehren. Diesen
+                      Eintrag kannst du gefahrlos verwerfen — er bleibt lokal erhalten.
+                    </p>
+                  </div>
+                </div>
+              }
+
               @if (row.lastError) {
                 <details class="text-xs">
                   <summary class="cursor-pointer text-slate-500 hover:text-slate-900">
@@ -194,7 +227,13 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                 <button
                   (click)="retryRejected(row)"
                   [disabled]="rowBusy() === row._id || retryDisabled(row)"
-                  [title]="retryDisabled(row) ? 'Server lehnt diese Daten wiederholt ab. Warte oder kontaktiere den Support.' : 'Eintrag wieder zum Hochladen freigeben'"
+                  [title]="
+                    isPolicyBlocked(row)
+                      ? 'Diese Daten werden zentral in der Online-Datenbank gepflegt — Hochladen ist hier nicht moeglich.'
+                      : retryDisabled(row)
+                        ? 'Server lehnt diese Daten wiederholt ab. Warte oder kontaktiere den Support.'
+                        : 'Eintrag wieder zum Hochladen freigeben'
+                  "
                   class="bg-slate-900 dark:bg-white dark:text-slate-900 text-white text-xs px-3 py-1.5 rounded-md hover:opacity-90 disabled:opacity-40"
                 >
                   Erneut versuchen
@@ -238,7 +277,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
 
                   <div class="grid grid-cols-2 gap-3">
                     <div class="bg-slate-50 dark:bg-gray-900/40 rounded-lg p-3">
-                      <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Diese Baeckerei</p>
+                      <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Dieser Standort</p>
                       @if (row.edgePayload) {
                         <pre class="text-[11px] font-mono text-slate-700 dark:text-gray-200 whitespace-pre-wrap break-all">{{ shortJson(row.edgePayload) }}</pre>
                       } @else {
@@ -270,7 +309,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                       [disabled]="rowBusy() === row._id"
                       class="bg-slate-900 dark:bg-white dark:text-slate-900 text-white text-xs px-3 py-1.5 rounded-md hover:opacity-90 disabled:opacity-50"
                     >
-                      Diese Baeckerei behalten
+                      Diesen Standort behalten
                     </button>
                     <button
                       (click)="resolveConflict(row, 'discard')"
@@ -376,8 +415,18 @@ export class SyncConflictsComponent implements OnInit {
     return problemText(row)
   }
 
+  /**
+   * Hinweis-Banner-Sichtbarkeit fuer Policy-blockierte Rejects. Wenn `true`,
+   * blendet das Template eine erklaerende Info-Box ein UND deaktiviert
+   * „Erneut versuchen" — Retry hilft hier nie, weil die Cloud diese Daten
+   * grundsaetzlich nicht annimmt.
+   */
+  protected isPolicyBlocked(row: SyncOutboxRow): boolean {
+    return isPolicyBlockedReject(row)
+  }
+
   protected retryDisabled(row: SyncOutboxRow): boolean {
-    return isRetryOnCooldown(row)
+    return isRetryOnCooldown(row) || isPolicyBlockedReject(row)
   }
 
   protected formatDate(iso: string | undefined): string {
@@ -473,7 +522,7 @@ export class SyncConflictsComponent implements OnInit {
   }
 
   async discardRejected(row: SyncOutboxRow) {
-    if (!confirm(`Eintrag verwerfen?\n\nDieser ${labelForService(row.service)}-Datensatz bleibt nur in der Baeckerei gespeichert und wird NICHT in die Online-Datenbank uebernommen. Diese Aktion kann nicht rueckgaengig gemacht werden.`)) return
+    if (!confirm(`Eintrag verwerfen?\n\nDieser ${labelForService(row.service)}-Datensatz bleibt nur an diesem Standort gespeichert und wird NICHT in die Online-Datenbank uebernommen. Diese Aktion kann nicht rueckgaengig gemacht werden.`)) return
     this.rowBusy.set(row._id)
     try {
       await this.api.remove('sync-outbox', row._id)

@@ -179,6 +179,11 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.GTIN_LOOKUP_CACHE, action: AppAction.MANAGE },
     { resource: AppResource.EXTERNAL_OFF_LOOKUP, action: AppAction.READ },
     { resource: AppResource.INGREDIENTS_IMPORT, action: AppAction.MANAGE },
+    // Katalog-Export/Import: Produktgruppen koennen als JSON/XLSX exportiert
+    // und via JSON re-importiert werden (externalId-Match → Update, sonst
+    // Neu anlegen).
+    { resource: AppResource.PRODUCT_GROUPS_EXPORT, action: AppAction.MANAGE },
+    { resource: AppResource.PRODUCT_GROUPS_IMPORT, action: AppAction.MANAGE },
     { resource: AppResource.PRICELISTS, action: AppAction.MANAGE },
     { resource: AppResource.INVENTORIES, action: AppAction.MANAGE },
     { resource: AppResource.INCOMING_GOODS, action: AppAction.MANAGE },
@@ -290,6 +295,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.GTIN_LOOKUP_CACHE, action: AppAction.MANAGE },
     { resource: AppResource.EXTERNAL_OFF_LOOKUP, action: AppAction.READ },
     { resource: AppResource.INGREDIENTS_IMPORT, action: AppAction.MANAGE },
+    // Katalog-Export/Import (siehe TENANT_OWNER).
+    { resource: AppResource.PRODUCT_GROUPS_EXPORT, action: AppAction.MANAGE },
+    { resource: AppResource.PRODUCT_GROUPS_IMPORT, action: AppAction.MANAGE },
     { resource: AppResource.PRICELISTS, action: AppAction.MANAGE },
     { resource: AppResource.INVENTORIES, action: AppAction.MANAGE },
     { resource: AppResource.INCOMING_GOODS, action: AppAction.MANAGE },
@@ -384,6 +392,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.GTIN_LOOKUP_CACHE, action: AppAction.MANAGE },
     { resource: AppResource.EXTERNAL_OFF_LOOKUP, action: AppAction.READ },
     { resource: AppResource.INGREDIENTS_IMPORT, action: AppAction.MANAGE },
+    // Katalog-Export/Import (siehe TENANT_OWNER).
+    { resource: AppResource.PRODUCT_GROUPS_EXPORT, action: AppAction.MANAGE },
+    { resource: AppResource.PRODUCT_GROUPS_IMPORT, action: AppAction.MANAGE },
     { resource: AppResource.PRICELISTS, action: AppAction.MANAGE },
     { resource: AppResource.INVENTORIES, action: AppAction.MANAGE },
     { resource: AppResource.INCOMING_GOODS, action: AppAction.MANAGE },

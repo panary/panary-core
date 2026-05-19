@@ -45,6 +45,16 @@ export const AppResource = {
   GTIN_LOOKUP_CACHE: 'gtin-lookup-cache',
   EXTERNAL_OFF_LOOKUP: 'external/off-lookup',
   INGREDIENTS_IMPORT: 'ingredients-import',
+  /** Cloud-only: Export von Produktgruppen (JSON oder XLSX). Custom-Method-
+   *  Service `find({ query: { format: 'json' | 'xlsx' } })` liefert
+   *  `{ filename, contentType, contentBase64 }`. TENANT_OWNER/MANAGER/TECHNICIAN
+   *  duerfen exportieren (MANAGE). */
+  PRODUCT_GROUPS_EXPORT: 'product-groups-export',
+  /** Cloud-only: Import von Produktgruppen via JSON. Preview via `find`
+   *  (Dry-Run mit matchType pro Record), Execute via `create` (Upsert,
+   *  externalId-Match → patch, sonst create). TENANT_OWNER/MANAGER/TECHNICIAN
+   *  duerfen importieren (MANAGE). */
+  PRODUCT_GROUPS_IMPORT: 'product-groups-import',
   PRICELISTS: 'pricelists',
   INVENTORIES: 'inventories',
   INCOMING_GOODS: 'incoming-goods',

@@ -162,11 +162,18 @@ export const locationSchema = Type.Object(
       countryCode: Type.Optional(Type.String({ pattern: '^[A-Z]{2}$' })),
     }),
 
+    // Pointer auf den aktuell geoeffneten BusinessDay. Der closeDay-Flow patcht
+    // dieses Feld explizit auf `null`, damit der Banner "Tag noch nicht
+    // eroeffnet" sofort wieder erscheint. `Type.Optional` allein erlaubt nur
+    // `undefined` — daher die Union mit `Type.Null()` zusaetzlich zum Optional.
     currentBusinessDay: Type.Optional(
-      Type.Object({
-        businessDayId: Type.String(), // Was ObjectIdSchema, using String for consistency
-        date: Type.String({ format: 'date' }),
-      }),
+      Type.Union([
+        Type.Object({
+          businessDayId: Type.String(),
+          date: Type.String({ format: 'date' }),
+        }),
+        Type.Null(),
+      ]),
     ),
 
     // Optional + akzeptiert leeren String. Hintergrund: AJV prueft `format` auf

@@ -406,11 +406,15 @@ export class SyncConflictsComponent implements OnInit {
     this.loading.set(true)
     this.errors.set([])
     try {
+      // Sort ueber `_id` (uuidv7 = chronologisch). Funktional identisch zu
+      // createdAt/terminalAt-Sort, aber `_id` ist in beiden Query-Property-
+      // Whitelists garantiert vorhanden — andere Felder wuerden je nach
+      // Server-Version mit „additionalProperties" abgelehnt.
       const [outbox, conflicts] = await Promise.all([
         this.api
           .find<SyncOutboxRow>('sync-outbox', {
             status: 'rejected',
-            $sort: { terminalAt: -1 },
+            $sort: { _id: -1 },
             $limit: 200,
           } as Record<string, unknown>)
           .catch(err => {
@@ -420,7 +424,7 @@ export class SyncConflictsComponent implements OnInit {
         this.api
           .find<SyncConflictRow>('sync-conflicts', {
             status: 'open',
-            $sort: { createdAt: -1 },
+            $sort: { _id: -1 },
           } as Record<string, unknown>)
           .catch(err => {
             this.errors.update(arr => [...arr, `Konflikte: ${formatApiError(err)}`])

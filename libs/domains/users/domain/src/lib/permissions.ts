@@ -79,6 +79,17 @@ export const AppResource = {
    *  Bundle-Sub-Produkte: Pass 1 ohne optionGroups, Pass 2 mit
    *  aufgeloesten Sub-Product-Refs). Resolution via externalId-Anker. */
   PRODUCTS_IMPORT: 'products-import',
+  /** Cloud-only: Export von Preislisten — JSON oder XLSX. Pricelist-
+   *  Product-Refs (`productPrices[].productId`) werden um productExternalId-
+   *  Companion-Felder ergaenzt, damit der Re-Import diese Refs aufloesen
+   *  kann. Audit-Felder (appliedOn, updateStatus) werden mit-exportiert,
+   *  aber serverseitige Felder (updatedAt, updatedBy) gestrippt. */
+  PRICELISTS_EXPORT: 'pricelists-export',
+  /** Cloud-only: Import von Preislisten via JSON. Standalone-Import
+   *  (kein Tiefe-Modus) — referenzierte Produkte muessen bereits im Tenant
+   *  existieren, sonst Conflict-Report. Match-Policy externalId → patch,
+   *  sonst create. */
+  PRICELISTS_IMPORT: 'pricelists-import',
   PRICELISTS: 'pricelists',
   INVENTORIES: 'inventories',
   INCOMING_GOODS: 'incoming-goods',

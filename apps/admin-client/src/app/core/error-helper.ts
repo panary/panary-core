@@ -1,7 +1,8 @@
 type ApiValidationDetail = {
   instancePath?: string
   message?: string
-  params?: { missingProperty?: string }
+  keyword?: string
+  params?: { missingProperty?: string; additionalProperty?: string }
 }
 
 type ApiErrorShape = {
@@ -14,10 +15,17 @@ type ApiErrorShape = {
 export function formatApiError(error: unknown): string {
   const body = ((error as ApiErrorShape)?.error ?? error) as ApiErrorShape
 
-  // Feathers-Validierungsfehler mit Details
+  // Feathers-Validierungsfehler mit Details. additionalProperties-Fehler
+  // listen das beanstandete Feld in params.additionalProperty, nicht in
+  // instancePath — sonst zeigt der Fehler nur ein nichtssagendes
+  // „Unbekanntes Feld" ohne zu sagen welches.
   if (body?.data && Array.isArray(body.data)) {
     const messages = body.data.map(d => {
-      const field = d.instancePath?.replace(/^\//, '') || d.params?.missingProperty || 'Unbekanntes Feld'
+      const field =
+        d.params?.additionalProperty ||
+        d.instancePath?.replace(/^\//, '') ||
+        d.params?.missingProperty ||
+        'Unbekanntes Feld'
       const msg = d.message || 'Ungültig'
       return `${formatFieldName(field)}: ${msg}`
     })

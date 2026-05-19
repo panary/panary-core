@@ -27,7 +27,7 @@
     "CONFIG": {
       "TITLE": "Konfiguration",
       "SHOP_NAME": "Geschäftsname",
-      "SHOP_NAME_PLACEHOLDER": "z.B. Bäckerei Müller",
+      "SHOP_NAME_PLACEHOLDER": "z.B. Mustermann GmbH",
       "SHOP_NAME_HINT": "Der Name Ihres Unternehmens. Wird als Organisation in der Cloud verwendet.",
       "LOCATION_NAME": "Standortname",
       "LOCATION_NAME_PLACEHOLDER": "z.B. Dahler Straße 46",

@@ -55,6 +55,19 @@ export const AppResource = {
    *  externalId-Match → patch, sonst create). TENANT_OWNER/MANAGER/TECHNICIAN
    *  duerfen importieren (MANAGE). */
   PRODUCT_GROUPS_IMPORT: 'product-groups-import',
+  /** Cloud-only: Export von Zutaten als JSON oder XLSX (Inkrement 2 des
+   *  Katalog-Bulk-Operations-Flows). Strippt computed-Felder (`allergens`,
+   *  `supplierProductCount`) zusaetzlich zu den server-verwalteten Feldern. */
+  INGREDIENTS_EXPORT: 'ingredients-export',
+  /** Cloud-only: Export von Rezepten — JSON oder XLSX. Mit Tiefe-Modus
+   *  (`withDependencies=true`) werden alle referenzierten Zutaten transitiv
+   *  mit-exportiert. Strippt currentVersion/history (Server-managed). */
+  RECIPES_EXPORT: 'recipes-export',
+  /** Cloud-only: Import von Rezepten via JSON. Preview + Execute analog
+   *  product-groups-import. Wenn die Datei eine `ingredients[]`-Sektion
+   *  enthaelt, werden diese Zutaten als Erstes upgesertet, damit die
+   *  Recipe-Ingredient-Refs (via externalId) aufgeloest werden koennen. */
+  RECIPES_IMPORT: 'recipes-import',
   PRICELISTS: 'pricelists',
   INVENTORIES: 'inventories',
   INCOMING_GOODS: 'incoming-goods',

@@ -338,17 +338,18 @@ const fetchPendingOutbox = async (app: Application): Promise<SyncOutboxEntry[]> 
   // in `syncOutboxEntryQueryProperties` enthalten und wuerde von validateQuery
   // mit `additionalProperty: createdAt` abgelehnt.
   //
-  // `$or` filtert Backoff-Eintraege: nur faellig wenn `nextAttemptAt` <= now
-  // ODER NULL (= Initial-Versuch, nie zuvor gepusht). Schliesst transient
-  // gescheiterte Eintraege bis zum naechsten Slot aus → kein Pile-Up beim
-  // Cloud-Restart.
+  // `nextAttemptAt <= now` filtert Backoff-Eintraege: nur faellige werden
+  // gezogen. Neue Eintraege bekommen `nextAttemptAt = occurredAt` (= sofort
+  // faellig) im DataResolver gesetzt — kein NULL-Sonderfall noetig. Backfill-
+  // Migration `20260519100000_sync_outbox_next_attempt_backfill.ts` setzt
+  // historische NULL-Werte auf `occurredAt` zurueck.
   const now = new Date().toISOString()
   const result = await (app.service(syncOutboxPath) as any).find({
     provider: undefined,
     paginate: false,
     query: {
       status: SyncOutboxStatus.PENDING,
-      $or: [{ nextAttemptAt: { $lte: now } }, { nextAttemptAt: null }],
+      nextAttemptAt: { $lte: now },
       $limit: PUSH_BATCH_SIZE,
       $sort: { _id: 1 },
     },

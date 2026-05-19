@@ -30,6 +30,15 @@ const syncOutboxDataResolver = resolve<SyncOutboxEntry, HookContext>({
   _id: async value => value || uuidv7(),
   status: async () => SyncOutboxStatus.PENDING,
   attempts: async () => 0,
+  // Pflicht-Default: Neue Outbox-Eintraege sind sofort faellig
+  // (nextAttemptAt = occurredAt). Verhindert NULL-Werte, die der Worker-
+  // Query nicht filtern kann (AJV laesst NULL fuer date-time-Format nicht
+  // zu; siehe sync-hardening-adr Hotfix 2026-05-19). Bei transient Retries
+  // setzt der Worker das Feld auf now + backoffMs(attempts) neu.
+  nextAttemptAt: async (_value, data) => {
+    const d = data as Partial<SyncOutboxEntry>
+    return d.occurredAt ?? new Date().toISOString()
+  },
   createdAt: async () => new Date().toISOString(),
   updatedAt: async () => new Date().toISOString(),
 })

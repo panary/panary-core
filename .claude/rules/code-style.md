@@ -70,7 +70,9 @@ Instruction-Dateien (`.claude/`, `CLAUDE.md`, Kommentare in Rule-Files) immer au
 ## 6. Feathers-spezifische Konventionen
 
 - **Schemata:** TypeBox (`@feathersjs/typebox`) für alle Service-Schemas.
-- **Keine rohen Queries:** Niemals direktes SQL oder Mongo im Service — ausschließlich Feathers Adapter API.
+- **Keine rohen Writes in Services:** Niemals direkte SQL-Inserts/Updates/Deletes (Knex `.insert()`/`.update()`/`.delete()` auf der DB-Connection) oder Mongo-Writes (`insertOne`/`updateOne`/`deleteOne`/`bulkWrite`/…) im Service-Code. Schreib-Pfade laufen **ausschließlich** über die Feathers-Adapter-API (`service.create`/`service.patch`/`service.remove`) — auch bei internen Aufrufen mit `{ provider: undefined }`. Hintergrund: Validator-Hooks (`validateData`/`validatePatch`), `multiTenancy`-Stamping und Resolver-Schutz sind sonst umgangen.
+- **Standard-Reads (`find`/`get` mit einfacher Query):** Über die Adapter-API (`service.find(...)`/`service.get(...)`) — nicht direkt auf der DB-Connection.
+- **Komplexe Analytics-Reads** (Aggregationen, Joins, Window-Functions): Die Feathers-Adapter-API unterstützt sie nicht. Hier ist ein direkter DB-Call legitim, **aber nur** mit explizitem Tenant-Filter (`WHERE tenantId = ?` / `$match: { tenantId }`) als erstem Schritt. Bevorzugt: Helper-Wrapper bauen, der den Tenant-Scope erzwingt, statt jedem Call die Disziplin zu überlassen.
 - **IDs:** `uuidv7` als String. Keine clientseitige ID-Generierung außer für Offline-Sync.
 - **Daten:** ISO 8601-Strings (`YYYY-MM-DDTHH:mm:ss.SSSZ`) für alle Zeitstempel.
 

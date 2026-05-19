@@ -33,7 +33,7 @@ Vor dem Arbeiten die relevanten Rules lesen:
 - **Monorepo:** Nx (Node.js). Alle Befehle via `nx` ausführen.
 - **Backend (API):** FeathersJS v5 (Dove), TypeBox-Schemas, Koa-Transport.
   - **Datenbank:** Hybrid-Adapter-Pattern — Edge: SQLite (Knex), Cloud: MongoDB (Mongoose).
-  - **Regel:** Niemals rohe SQL- oder Mongo-Queries in Services. Feathers Adapter API verwenden.
+  - **Regel:** Schreib-Pfade (SQL-Inserts/Updates/Deletes via Knex bzw. Mongo-Writes) und Standard-Reads ausschließlich über die Feathers-Adapter-API — niemals direkt auf der DB-Connection. Komplexe Analytics-Reads (Aggregationen, Joins) dürfen direkt laufen, müssen aber den Tenant-Filter (`WHERE tenantId = ?`/`$match: { tenantId }`) als ersten Schritt erzwingen. Vollständige Regel siehe `.claude/rules/code-style.md` §6.
 - **Frontend:** Angular (neueste Version), ausschließlich Standalone-Komponenten, Signals für State.
 - **Geteilter Code:** `libs/domains/[domain-name]` — Apps importieren aus Libs, nie umgekehrt.
   - Import-Pfad: `@panary-core/[domain]/domain`

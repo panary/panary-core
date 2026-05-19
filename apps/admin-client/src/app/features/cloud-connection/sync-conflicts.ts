@@ -443,13 +443,15 @@ export class SyncConflictsComponent implements OnInit {
     if (this.retryDisabled(row)) return
     this.rowBusy.set(row._id)
     try {
+      // `null` wird vom Schema (`Type.Optional(Type.String())`) abgelehnt;
+      // Felder einfach weglassen — Worker ueberschreibt sie beim naechsten
+      // Push-Ergebnis. Status='pending' + attempts=0 + nextAttemptAt='in
+      // der Vergangenheit' reicht damit der Worker den Eintrag sofort
+      // wieder zieht.
       await this.api.patch('sync-outbox', row._id, {
         status: 'pending',
         attempts: 0,
         nextAttemptAt: row.occurredAt,
-        lastError: null,
-        terminalAt: null,
-        linkedConflictId: null,
       } as Record<string, unknown>)
       this.rejectedRows.update(rows => rows.filter(r => r._id !== row._id))
     } catch (err) {

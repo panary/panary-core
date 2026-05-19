@@ -4,7 +4,7 @@ import { resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 import { uuidv7 } from 'uuidv7'
 
-import { authorize, multiTenancy, dataValidator, queryValidator } from '@panary-core/shared-backend'
+import { authorize, dataValidator, queryValidator } from '@panary-core/shared-backend'
 import { createServiceAdapter } from '@panary-core/shared/data-access/server'
 import { DatabaseType } from '@panary-core/shared-common'
 import {
@@ -80,7 +80,13 @@ export const syncOutbox = (app: Application) => {
       all: [
         authenticate('jwt'),
         authorize(),
-        multiTenancy({ isolateLocation: false, allowGlobalData: true }),
+        // KEIN multiTenancy() — sync-outbox ist edge-internal Workflow-State,
+        // die DB-Tabelle hat keine `tenantId`-Spalte. Der Hook wuerde
+        // `query.tenantId = user.tenantId` einstempeln und damit jede
+        // authentifizierte UI-Anfrage mit "additional properties: tenantId"
+        // ablehnen. Sicherheit kommt durch authenticate('jwt') + RBAC
+        // (SYNC_OUTBOX: MANAGE nur fuer Owner/Manager/Technician) —
+        // single-tenant Edge erlaubt keine Cross-Tenant-Leckage.
         schemaHooks.resolveExternal(syncOutboxExternalResolver),
         schemaHooks.resolveResult(syncOutboxResolver),
       ],

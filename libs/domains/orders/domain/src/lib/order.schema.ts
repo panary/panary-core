@@ -208,8 +208,13 @@ export const orderSchema = Type.Object(
     // Doppel-Hook-Aufrufe sind dann No-Op.
     stockBookedAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
     // IDs der erzeugten inventory-movements (Typ SALES_OUT). Werden bei Storno
-    // (Status → ABORTED) fuer Reverse-Lookup verwendet.
-    stockMovementIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
+    // (Status → ABORTED) fuer Reverse-Lookup verwendet. `Null` toleriert,
+    // konsistent zu `stockBookedAt`/`stockReversedAt` — Edge serialisiert
+    // ungesetzte nullable SQLite-Spalten als `null` und der Cloud-Sync-Push
+    // wuerde sonst mit `must be array` rejecten (Schema-Drift behoben).
+    stockMovementIds: Type.Optional(
+      Type.Union([Type.Array(Type.String({ format: 'uuid' })), Type.Null()]),
+    ),
     // Gesetzt nach erfolgreichem Reversal (SALES_OUT_REVERSAL-Movements).
     // Verhindert Doppel-Reversal bei mehrfachem Status-Wechsel auf ABORTED.
     stockReversedAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),

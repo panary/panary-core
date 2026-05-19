@@ -68,6 +68,17 @@ export const AppResource = {
    *  enthaelt, werden diese Zutaten als Erstes upgesertet, damit die
    *  Recipe-Ingredient-Refs (via externalId) aufgeloest werden koennen. */
   RECIPES_IMPORT: 'recipes-import',
+  /** Cloud-only: Export von Produkten — JSON oder XLSX. Mit Tiefe-Modus
+   *  werden ProductGroups (via categoryIds), Recipes (via recipeId +
+   *  recipeReferences) und transitiv referenzierte Ingredients mit-
+   *  exportiert. Bundle-Sub-Produkte werden rekursiv mit Cycle-Detection
+   *  aufgesammelt. */
+  PRODUCTS_EXPORT: 'products-export',
+  /** Cloud-only: Import von Produkten via JSON. 4-Phasen-Wizard: Upsert
+   *  ProductGroups → Ingredients → Recipes → Products (mit 2-Pass fuer
+   *  Bundle-Sub-Produkte: Pass 1 ohne optionGroups, Pass 2 mit
+   *  aufgeloesten Sub-Product-Refs). Resolution via externalId-Anker. */
+  PRODUCTS_IMPORT: 'products-import',
   PRICELISTS: 'pricelists',
   INVENTORIES: 'inventories',
   INCOMING_GOODS: 'incoming-goods',

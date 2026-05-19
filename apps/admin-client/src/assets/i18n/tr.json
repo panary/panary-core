@@ -39,7 +39,8 @@
     "CLOUD_CONNECTION": "Bulut Ba\u011flant\u0131s\u0131",
     "ORDERS": "Sipari\u015fler",
     "PAGERS": "\u00c7a\u011fr\u0131 Cihazlar\u0131",
-    "OPENING_HOURS": "\u00c7al\u0131\u015fma Saatleri"
+    "OPENING_HOURS": "\u00c7al\u0131\u015fma Saatleri",
+    "SYNC_STATUS": "Senkronizasyon Durumu"
   },
   "OPENING_HOURS": {
     "TITLE": "\u00c7al\u0131\u015fma Saatleri",

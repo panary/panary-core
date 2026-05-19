@@ -25,6 +25,10 @@ export const appRoutes: Routes = [
       { path: 'pagers', loadComponent: () => import('./features/locations/pager-settings').then(m => m.PagerSettingsComponent) },
       { path: 'opening-hours', loadComponent: () => import('./features/locations/opening-hours').then(m => m.OpeningHoursComponent) },
       { path: 'cloud', loadComponent: () => import('./features/cloud-connection/cloud-connection').then(m => m.CloudConnectionComponent) },
+      // Sync-Status (rejected Outbox + Konflikte). Hauptnav-Pfad; `/cloud/conflicts`
+      // bleibt als Legacy-Alias erhalten — gleiche Komponente, alte Bookmarks
+      // funktionieren weiter.
+      { path: 'sync-status', loadComponent: () => import('./features/cloud-connection/sync-conflicts').then(m => m.SyncConflictsComponent) },
       { path: 'cloud/conflicts', loadComponent: () => import('./features/cloud-connection/sync-conflicts').then(m => m.SyncConflictsComponent) },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],

@@ -39,7 +39,8 @@
     "CLOUD_CONNECTION": "Cloud-Kopplung",
     "ORDERS": "Bestellungen",
     "PAGERS": "Pager",
-    "OPENING_HOURS": "\u00d6ffnungszeiten"
+    "OPENING_HOURS": "\u00d6ffnungszeiten",
+    "SYNC_STATUS": "Sync-Status"
   },
   "OPENING_HOURS": {
     "TITLE": "\u00d6ffnungszeiten",

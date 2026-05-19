@@ -12,7 +12,18 @@ interface NavItem {
   path: string
   label: string
   icon: string
+  /**
+   * Service-Pfad fuer den neutralen grauen Count (z.B. Anzahl Produkte).
+   * Wird via api.find(svc, { $limit: 0 }) geladen.
+   */
   countService?: string
+  /**
+   * Spezial-Indikator fuer Problem-Counts (rote Badge wenn > 0). Aktuell
+   * nur fuer Sync-Status — fasst rejected sync-outbox + offene
+   * sync-conflicts zusammen. Wenn das in mehr Nav-Items gebraucht wird,
+   * generischen `indicator: { kind, severity }` einbauen.
+   */
+  problemCountKey?: 'sync'
 }
 
 @Component({
@@ -89,8 +100,16 @@ interface NavItem {
                       hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-gray-900
                       transition-colors overflow-hidden"
                [title]="sidebarOpen() ? '' : (item.label | translate)">
-              <span class="shrink-0 flex items-center justify-center w-10">
+              <span class="shrink-0 flex items-center justify-center w-10 relative">
                 <span class="material-symbols-outlined" style="font-size: 20px; line-height: 1">{{ item.icon }}</span>
+                <!-- Problem-Indikator im eingeklappten Sidebar-Modus: kleiner
+                     roter Dot oben rechts am Icon. Im aufgeklappten Modus
+                     wird stattdessen die Zahl-Badge rechts neben dem Label
+                     gezeigt (siehe unten). -->
+                @if (item.problemCountKey && problemCounts()[item.problemCountKey] > 0 && !sidebarOpen()) {
+                  <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500"
+                        [title]="problemCounts()[item.problemCountKey] + ' offene Probleme'"></span>
+                }
               </span>
               <span class="overflow-hidden whitespace-nowrap text-sm pr-3 flex items-center
                            transition-[max-width,opacity,flex] duration-200"
@@ -99,7 +118,15 @@ interface NavItem {
                     [class.flex-1]="sidebarOpen()"
                     [class.opacity-0]="!sidebarOpen()">
                 <span>{{ item.label | translate }}</span>
-                @if (item.countService && counts()[item.countService] !== undefined) {
+                @if (item.problemCountKey && problemCounts()[item.problemCountKey] > 0) {
+                  <span class="flex-1"></span>
+                  <span class="text-[11px] leading-none tabular-nums font-medium
+                               bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300
+                               ring-1 ring-inset ring-red-600/20 dark:ring-red-500/30
+                               px-1.5 py-0.5 rounded-full">
+                    {{ problemCounts()[item.problemCountKey] }}
+                  </span>
+                } @else if (item.countService && counts()[item.countService] !== undefined) {
                   <span class="flex-1"></span>
                   <span class="text-[11px] leading-none tabular-nums text-slate-400 dark:text-gray-500">
                     {{ counts()[item.countService] }}
@@ -212,10 +239,19 @@ export class AdminLayoutComponent {
     { path: '/opening-hours',  label: 'NAV.OPENING_HOURS',    icon: 'schedule'    },
     { path: '/apikeys',        label: 'NAV.API_KEYS',         icon: 'key'         },
     { path: '/cloud',          label: 'NAV.CLOUD_CONNECTION',  icon: 'cloud'       },
+    { path: '/sync-status',    label: 'NAV.SYNC_STATUS',      icon: 'sync_problem', problemCountKey: 'sync' },
     { path: '/location',       label: 'NAV.LOCATION',         icon: 'store'       },
   ]
 
   counts = signal<Record<string, number>>({})
+  /**
+   * Rote-Badge-Counter fuer Hauptnav-Items mit `problemCountKey`. Pollt
+   * alle 60s; bei jedem Wechsel des sichtbaren Counts wird die UI
+   * automatisch via Signal aktualisiert. Defensive Catch-Logik damit
+   * Backend-Ausfall (Cloud-Disconnect → sync-conflicts erreichbar?
+   * sync-outbox läuft lokal) den Sidebar-Render nicht blockiert.
+   */
+  problemCounts = signal<Record<string, number>>({ sync: 0 })
 
   constructor() {
     this.locationState.load()
@@ -224,6 +260,11 @@ export class AdminLayoutComponent {
       this.title.setTitle(name ? `Panary — Hub (${name})` : 'Panary — Hub')
     })
     this.loadCounts()
+    this.loadProblemCounts()
+    // 60s-Poll fuer Problem-Indikator (sync-status). Reicht fuer Operator-
+    // Use-Case; ein lebenslang offener Tab sieht neue Probleme innerhalb
+    // einer Minute. Kein Memory-Cleanup noetig — Sidebar lebt App-weit.
+    setInterval(() => this.loadProblemCounts(), 60_000)
   }
 
   private async loadCounts() {
@@ -240,6 +281,28 @@ export class AdminLayoutComponent {
       }),
     )
     this.counts.set(results)
+  }
+
+  /**
+   * Laedt die Anzahl ausstehender Sync-Probleme (rejected outbox + offene
+   * Konflikte) fuer die rote Sidebar-Badge. Beide Services werden parallel
+   * gepollt; ein einzelner Fehler senkt das Total nicht auf NaN.
+   */
+  private async loadProblemCounts() {
+    let syncTotal = 0
+    try {
+      const rejected = await this.api.find('sync-outbox', { status: 'rejected', $limit: 0 })
+      syncTotal += rejected.total ?? 0
+    } catch {
+      // Service nicht erreichbar → Count nicht erhoehen
+    }
+    try {
+      const conflicts = await this.api.find('sync-conflicts', { status: 'open', $limit: 0 })
+      syncTotal += conflicts.total ?? 0
+    } catch {
+      // dito
+    }
+    this.problemCounts.update(prev => ({ ...prev, sync: syncTotal }))
   }
 
   setTheme(theme: string) {

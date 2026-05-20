@@ -16,7 +16,6 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
 import { BadRequest, Forbidden, NotFound } from '@feathersjs/errors'
-import type { HookContext } from '@feathersjs/feathers'
 import { uuidv7 } from 'uuidv7'
 
 import {
@@ -49,7 +48,7 @@ import type {
   RefreshClosingStatusData,
 } from './business-days.class'
 
-import type { Application } from '../../declarations'
+import type { Application, HookContext } from '../../declarations'
 
 export const businessDaysPath = 'businessdays'           // bestehender Tabellen-/Service-Pfad
 export const businessDaysMethods = [
@@ -158,13 +157,13 @@ const resolveCreateData = schemaHooks.resolveData(businessDayDataResolver)
 
 const syncAwareValidateCreate = (context: HookContext): Promise<HookContext> =>
   (context.params as { fromSync?: boolean })?.fromSync
-    ? (validateFullData(context as never) as Promise<HookContext>)
-    : (validateInputData(context as never) as Promise<HookContext>)
+    ? (validateFullData(context) as Promise<HookContext>)
+    : (validateInputData(context) as Promise<HookContext>)
 
 const syncAwareResolveCreate = (context: HookContext): Promise<HookContext> | HookContext =>
   (context.params as { fromSync?: boolean })?.fromSync
     ? context
-    : (resolveCreateData(context as never) as Promise<HookContext>)
+    : (resolveCreateData(context) as Promise<HookContext>)
 
 /**
  * Eroeffnet einen neuen Geschaeftstag.

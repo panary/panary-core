@@ -22,6 +22,7 @@
 ## Infrastruktur
 
 - [Docker-Build-Fix — Native Module](docker-native-module-fix.md) — 2026-04-07 — glibc/musl-Mismatch behoben, Build-Tools für sqlite3, bookworm-slim
+- [Library-Publishing — @panary-core/* via GitHub Packages](library-publishing.md) — 2026-05-20 — Nx-Release-basiertes Publishing der 27 publishable Libs nach GitHub Packages, Tag-Trigger `v*`, Release-Ablauf, publishable-Markierung (Eltern-package.json + project.json), Konsum in panary-cloud via Caret-Ranges
 
 ## Integrationen
 

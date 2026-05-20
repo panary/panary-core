@@ -4,9 +4,14 @@ name: Publish Libraries
 # in GitHub Packages unter dem @panary-core-Scope.
 #
 # Trigger:
-#   - Manuell via workflow_dispatch (mit first-dry-run-Default zum sicheren Testen)
-#   - Automatisch bei Tag-Push "v*" (z.B. v26.5.0) — wird in M5 aktiviert
+#   - Automatisch bei Tag-Push "v*" (z.B. v26.5.0) → echtes Publishing.
+#     Release-Ablauf siehe documentation/library-publishing.md.
+#   - Manuell via workflow_dispatch (Default Dry-Run zum sicheren Testen;
+#     dry-run='false' publiziert die aktuell in den package.json stehende Version).
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       dry-run:
@@ -51,14 +56,16 @@ jobs:
         run: pnpm nx run-many -t build --projects="tag:publishable"
 
       - name: Dry-Run Publish
-        if: ${{ inputs.dry-run == 'true' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run == 'true' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm nx release publish --dry-run
 
+      # Echtes Publishing: bei Tag-Push (v*) immer, bei manuellem Dispatch nur
+      # wenn dry-run explizit auf 'false' steht.
       - name: Publish to GitHub Packages
-        if: ${{ inputs.dry-run != 'true' }}
+        if: ${{ github.event_name == 'push' || inputs.dry-run == 'false' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

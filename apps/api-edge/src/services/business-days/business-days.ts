@@ -39,6 +39,7 @@ import {
   businessDayQueryResolver,
   businessDayQueryValidator,
   businessDayResolver,
+  businessDayValidator,
 } from './business-days.schema'
 import type {
   BusinessDay,
@@ -141,6 +142,29 @@ const cloudManagedHook = (operation: string) => async (context: HookContext): Pr
   await guardCloudManagedLifecycle(app, params, operation)
   return context
 }
+
+// Sync-Apply vs. lokale Eröffnung beim Create-Pfad:
+//
+// `businessDayDataValidator` ist das STRIKTE openDay-Eingabe-Schema
+// (additionalProperties:false, nur 6 Felder) und `businessDayDataResolver`
+// erzwingt status=OPEN/isOpen=true/openedAt=now — beides korrekt für eine
+// lokale Eröffnung, aber FALSCH für den Cloud-Sync: dort kommt der vollständige
+// Lifecycle-Record (auch geschlossene Tage). Bei `fromSync` validieren wir daher
+// gegen das volle `businessDaySchema` und übernehmen den Record UNVERÄNDERT
+// (kein Resolver) — konsistent mit dem `fromSync`-Prinzip (Cloud = Source-of-Truth).
+const validateInputData = schemaHooks.validateData(businessDayDataValidator)
+const validateFullData = schemaHooks.validateData(businessDayValidator)
+const resolveCreateData = schemaHooks.resolveData(businessDayDataResolver)
+
+const syncAwareValidateCreate = (context: HookContext): Promise<HookContext> =>
+  (context.params as { fromSync?: boolean })?.fromSync
+    ? (validateFullData(context as never) as Promise<HookContext>)
+    : (validateInputData(context as never) as Promise<HookContext>)
+
+const syncAwareResolveCreate = (context: HookContext): Promise<HookContext> | HookContext =>
+  (context.params as { fromSync?: boolean })?.fromSync
+    ? context
+    : (resolveCreateData(context as never) as Promise<HookContext>)
 
 /**
  * Eroeffnet einen neuen Geschaeftstag.
@@ -573,8 +597,8 @@ export const businessDays = (app: Application) => {
       get: [],
       create: [
         cloudManagedHook('Eroeffnung'),
-        schemaHooks.validateData(businessDayDataValidator),
-        schemaHooks.resolveData(businessDayDataResolver),
+        syncAwareValidateCreate,
+        syncAwareResolveCreate,
       ],
       patch: [
         cloudManagedHook('Patch'),

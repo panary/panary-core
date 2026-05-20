@@ -147,14 +147,21 @@ export const startBusinessDaysPullWorker = async (
   const tick = async (): Promise<void> => {
     if (stopped) return
     const outcome = await pullBusinessDaysOnce(app)
-    // Adaptive Kadenz: kein Pairing → langer Idle-Backoff; Socket aktiv →
-    // langsamer Safety-Poll (Push übernimmt die Echtzeit); sonst 5s-Fallback.
+    // Adaptive Kadenz:
+    //  - 'idle'  (kein Pairing)        → langer Idle-Backoff
+    //  - 'error' (Pull/Apply schlug fehl) → immer schneller 5s-Retry, AUCH bei
+    //    aktivem Socket — ein fehlgeschlagener Apply (z.B. Schema-Drift) darf
+    //    nicht erst in 5 min erneut versucht werden.
+    //  - 'ok'    + Socket aktiv        → langsamer Safety-Poll (Push macht Echtzeit)
+    //  - 'ok'    + kein Socket         → 5s-Fallback
     const delay =
       outcome === 'idle'
         ? IDLE_BACKOFF_MS
-        : isRealtimeConnected()
-          ? SAFETY_POLL_MS
-          : PULL_INTERVAL_MS
+        : outcome === 'error'
+          ? PULL_INTERVAL_MS
+          : isRealtimeConnected()
+            ? SAFETY_POLL_MS
+            : PULL_INTERVAL_MS
     timer = setTimeout(() => void tick(), delay)
   }
 

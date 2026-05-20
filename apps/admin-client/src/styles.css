@@ -229,7 +229,19 @@ app-root, app-admin-layout {
   height: 100%;
 }
 
-main > *:not(router-outlet) {
+/*
+ * Das geroutete Feature-Element wird von Angular als Geschwister direkt NACH
+ * <router-outlet> eingehaengt. Custom-Elements sind per Default display:inline
+ * → ihre h-full/flex-1-Hoehe kollabiert auf 0 und der Inhalt rutscht unsichtbar
+ * unter den Viewport. Darum hier zwingend display:block + height:100%.
+ *
+ * `router-outlet + *` trifft das geroutete Element unabhaengig davon, wie tief
+ * der Outlet im <main> verschachtelt ist (seit dem Offline-Override-Banner
+ * liegt der Outlet in einem zusaetzlichen <div class="flex-1 overflow-hidden">,
+ * nicht mehr direkt unter <main> — der alte `main > *`-Selektor griff dort nicht
+ * mehr und liess den Hauptinhalt leer erscheinen).
+ */
+router-outlet + * {
   display: block;
   height: 100%;
 }

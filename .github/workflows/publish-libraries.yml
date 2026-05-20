@@ -49,8 +49,13 @@ jobs:
           registry-url: 'https://npm.pkg.github.com'
           scope: '@panary'
 
+      # `--no-frozen-lockfile`: das committete pnpm-lock.yaml ist im Workbench-Setup
+      # ein Snapshot des geteilten Root-Lockfiles (Symlink + skip-worktree). Dessen
+      # `overrides` sind die Vereinigung beider Repos und matchen die Standalone-
+      # package.json-overrides nicht — frozen bräche mit ERR_PNPM_LOCKFILE_CONFIG_MISMATCH
+      # ab. Konsistent zu ci.yml.
       - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build publishable libraries
         run: pnpm nx run-many -t build --projects="tag:publishable"

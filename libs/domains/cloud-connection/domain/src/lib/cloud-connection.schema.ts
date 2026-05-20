@@ -160,6 +160,25 @@ export const cloudConnectionSchema = Type.Object(
     emergencyOverrideSince: Type.Optional(Type.String({ format: 'date-time' })),
     lastHeartbeatOk: Type.Optional(Type.String({ format: 'date-time' })),
     consecutiveHeartbeatFailures: Type.Optional(Type.Integer({ minimum: 0, default: 0 })),
+
+    // Business-Days-Pull-Worker: `since`-Cursor fuer incremental Pulls.
+    // Wird vom Worker nach jedem erfolgreichen Pull auf `now` gesetzt.
+    // `null` (oder fehlend) = erster Pull, ohne `since`-Filter (Cloud
+    // antwortet mit allen tenant-Records bis zum `$limit`).
+    lastBusinessDaysPullAt: Type.Optional(
+      Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
+    ),
+
+    // Offline-Override (Operator-Action bei Cloud-Outage):
+    // Wenn gesetzt und in der Zukunft liegend, darf der Edge im
+    // Connected-Modus voruebergehend `rotateBusinessDay()` ausfuehren —
+    // sonst blockiert er neue Bestellungen mit `BUSINESS_DAY_NOT_SET`.
+    // Wird vom Operator manuell via Admin-Banner gesetzt (Default 2h
+    // ab now), beim naechsten erfolgreichen Pull-Tick auf `null`
+    // zurueckgesetzt (Auto-Reset).
+    offlineOverrideActiveUntil: Type.Optional(
+      Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
+    ),
   },
   { $id: 'CloudConnection', additionalProperties: false },
 )
@@ -245,6 +264,9 @@ export const cloudConnectionPatchSchema = Type.Partial(
     'emergencyOverrideSince',
     'lastHeartbeatOk',
     'consecutiveHeartbeatFailures',
+    // Business-Days-Pull-Cursor + Offline-Override (siehe Hauptschema oben)
+    'lastBusinessDaysPullAt',
+    'offlineOverrideActiveUntil',
     // tenantId/locationId fuer den Re-Stamp-Flow im Bootstrap-Worker
     'tenantId',
     'locationId',

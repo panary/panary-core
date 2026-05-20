@@ -57,6 +57,12 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --no-frozen-lockfile
 
+      # Standalone (ohne Workbench-Workspace) fehlen die node_modules/@panary/*-
+      # Links → @nx/js:tsc (z. B. shared-backend) findet @panary/users/domain nicht.
+      # Das Skript repliziert die Workspace-Links, damit Cross-Lib-Builds auflösen.
+      - name: Link @panary/* packages (Standalone-Resolution)
+        run: bash tools/scripts/link-core-packages.sh
+
       - name: Build publishable libraries
         run: pnpm nx run-many -t build --projects="tag:publishable"
 

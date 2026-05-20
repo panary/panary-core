@@ -27,7 +27,7 @@ jobs:
             ba98581b-4221-40ac-907c-b41a0189001d > TAURI_SIGNING_PRIVATE_KEY_PASSWORD
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 9
 

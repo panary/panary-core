@@ -3,18 +3,30 @@
   "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/domains/apikeys/domain/src",
   "projectType": "library",
-  "tags": ["type:domain", "domain:apikeys"],
+  "tags": [
+    "type:domain",
+    "domain:apikeys"
+  ],
+  "implicitDependencies": [
+    "users-domain"
+  ],
   "targets": {
     "build": {
       "executor": "@nx/rollup:rollup",
-      "outputs": ["{workspaceRoot}/libs/domains/apikeys/domain/dist"],
-      "dependsOn": ["^build"],
+      "outputs": [
+        "{workspaceRoot}/libs/domains/apikeys/domain/dist"
+      ],
+      "dependsOn": [
+        "^build"
+      ],
       "options": {
         "outputPath": "libs/domains/apikeys/domain/dist",
         "project": "libs/domains/apikeys/package.json",
         "tsConfig": "libs/domains/apikeys/domain/tsconfig.lib.json",
         "main": "libs/domains/apikeys/domain/src/index.ts",
-        "format": ["cjs"],
+        "format": [
+          "cjs"
+        ],
         "external": [
           "@feathersjs/feathers",
           "@feathersjs/typebox",

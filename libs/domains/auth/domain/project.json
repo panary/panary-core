@@ -3,18 +3,30 @@
   "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/domains/auth/domain/src",
   "projectType": "library",
-  "tags": ["type:domain", "domain:auth"],
+  "tags": [
+    "type:domain",
+    "domain:auth"
+  ],
+  "implicitDependencies": [
+    "users-domain"
+  ],
   "targets": {
     "build": {
       "executor": "@nx/rollup:rollup",
-      "outputs": ["{workspaceRoot}/libs/domains/auth/domain/dist"],
-      "dependsOn": ["^build"],
+      "outputs": [
+        "{workspaceRoot}/libs/domains/auth/domain/dist"
+      ],
+      "dependsOn": [
+        "^build"
+      ],
       "options": {
         "outputPath": "libs/domains/auth/domain/dist",
         "project": "libs/domains/auth/package.json",
         "tsConfig": "libs/domains/auth/domain/tsconfig.lib.json",
         "main": "libs/domains/auth/domain/src/index.ts",
-        "format": ["cjs"],
+        "format": [
+          "cjs"
+        ],
         "external": [
           "@feathersjs/feathers",
           "@feathersjs/typebox",

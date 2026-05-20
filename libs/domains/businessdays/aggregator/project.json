@@ -3,18 +3,35 @@
   "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/domains/businessdays/aggregator/src",
   "projectType": "library",
-  "tags": ["type:domain", "domain:businessdays"],
+  "tags": [
+    "type:domain",
+    "domain:businessdays"
+  ],
+  "implicitDependencies": [
+    "orders-domain",
+    "write-offs-domain",
+    "working-times-domain",
+    "ingredients-domain",
+    "recipes-domain",
+    "products-domain"
+  ],
   "targets": {
     "build": {
       "executor": "@nx/rollup:rollup",
-      "outputs": ["{workspaceRoot}/libs/domains/businessdays/aggregator/dist"],
-      "dependsOn": ["^build"],
+      "outputs": [
+        "{workspaceRoot}/libs/domains/businessdays/aggregator/dist"
+      ],
+      "dependsOn": [
+        "^build"
+      ],
       "options": {
         "outputPath": "libs/domains/businessdays/aggregator/dist",
         "project": "libs/domains/businessdays/package.json",
         "tsConfig": "libs/domains/businessdays/aggregator/tsconfig.lib.json",
         "main": "libs/domains/businessdays/aggregator/src/index.ts",
-        "format": ["cjs"],
+        "format": [
+          "cjs"
+        ],
         "external": [
           "@feathersjs/feathers",
           "@feathersjs/typebox",
@@ -36,7 +53,9 @@
     },
     "test": {
       "executor": "@nx/vite:test",
-      "outputs": ["{workspaceRoot}/coverage/libs/domains/businessdays/aggregator"],
+      "outputs": [
+        "{workspaceRoot}/coverage/libs/domains/businessdays/aggregator"
+      ],
       "options": {
         "configFile": "libs/domains/businessdays/aggregator/vitest.config.ts"
       }

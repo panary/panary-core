@@ -47,6 +47,10 @@ export function renderStatusPage(options: { host: string; port: number }): strin
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panary Core API — Status</title>
+  <!-- Panary-Favicon (adaptives SVG, light/dark) — inline als Data-URI, da die
+       Status-Seite ein Backend-HTML-String ohne Static-Asset-Serving ist.
+       Quelle: apps/admin-client/public/favicon.svg (1:1 übernommen). -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cstyle%3E.bg%7Bfill:%230f172a%7D.icon%7Bfill:%23ffffff%7D@media(prefers-color-scheme:dark)%7B.bg%7Bfill:%23f1f5f9%7D.icon%7Bfill:%230f172a%7D%7D%3C/style%3E%3Crect class='bg' x='0' y='0' width='64' height='64' rx='13'/%3E%3Crect class='icon' x='16' y='14' width='13' height='35' rx='2'/%3E%3Crect class='icon' x='32' y='14' width='16' height='19' rx='2'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://api.fontshare.com">
   <link href="https://api.fontshare.com/v2/css?f[]=switzer@100,200,300,400,500,600,700,800,900&display=swap" rel="stylesheet">
   <style>

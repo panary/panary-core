@@ -146,7 +146,8 @@
     "swagger-ui-dist": "^5.31.0",
     "uuid": "^14.0.0",
     "uuidv7": "^1.1.0",
-    "winston": "^3.19.0"
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "pnpm": {
     "overrides": {

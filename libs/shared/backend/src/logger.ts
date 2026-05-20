@@ -1,8 +1,18 @@
 // For more information about this file see https://dove.feathersjs.com/guides/cli/logging.html
 import { createLogger, format, transports } from 'winston'
+import DailyRotateFile from 'winston-daily-rotate-file'
 import type { Application } from './declarations'
 
 const isProduction = process.env['NODE_ENV'] === 'production'
+
+// In Test-Läufen (Vitest) KEINE Logdateien schreiben — sonst legt jeder
+// Testlauf data/logs/ an und verrauscht das Repo.
+const isTest = process.env['NODE_ENV'] === 'test' || !!process.env['VITEST']
+
+// Verzeichnis fuer die rotierenden NDJSON-Logdateien. Relativer Default
+// `data/logs` analog zum SQLite-Pfad (`data/api-edge.sqlite`) — landet im
+// gleichen Docker-Volume. Ueber LOG_DIR ueberschreibbar.
+const LOG_DIR = process.env['LOG_DIR'] || 'data/logs'
 
 // --- Farb-Helfer für Dev-Ausgabe ---
 const RESET = '\x1b[0m'
@@ -318,10 +328,27 @@ const prodFormat = format.combine(
   format.json()
 )
 
+// Rotierende Logdatei fuer den Support-Log-Export (Phase 1). Schreibt IMMER
+// strukturiertes JSON (Wide-Events als NDJSON) — unabhaengig vom Console-Format,
+// damit die Datei maschinenlesbar und formatgleich zur Cloud-stdout-JSON ist.
+// Harte Caps gegen Volllaufen des geteilten data/-Volumes (SQLite liegt daneben).
+// Schreibfehler werden geschluckt — Logging darf NIE den Request-Pfad crashen.
+const fileTransport = new DailyRotateFile({
+  dirname: LOG_DIR,
+  filename: 'api-edge-%DATE%.log',
+  datePattern: 'YYYY-MM-DD',
+  maxSize: '20m',
+  maxFiles: '7d',
+  format: prodFormat,
+})
+fileTransport.on('error', () => undefined)
+
 export const logger = createLogger({
   level: 'info',
-  format: isProduction ? prodFormat : devFormat,
-  transports: [new transports.Console()]
+  transports: [
+    new transports.Console({ format: isProduction ? prodFormat : devFormat }),
+    ...(isTest ? [] : [fileTransport]),
+  ],
 })
 
 // Funktion um Logger Level aus Config zu laden

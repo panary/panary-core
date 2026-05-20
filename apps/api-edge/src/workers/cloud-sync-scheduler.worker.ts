@@ -763,6 +763,33 @@ const runPullForService = async (
 }
 
 /**
+ * Einzelner cursor-basierter Pull eines Master-Data-Service — Einstiegspunkt
+ * für den Realtime-Worker (Socket-Push-Trigger). Holt die aktive Connection und
+ * delegiert an `runPullForService` (identische auditierte Pull-/Apply-/Cursor-
+ * Logik wie der periodische Scheduler-Lauf). No-op ohne aktives Pairing; Fehler
+ * (inkl. 401→Re-Pairing) werden geloggt, nicht geworfen — der periodische
+ * Scheduler-Pull bleibt der Fallback.
+ */
+export const pullMasterDataServiceOnce = async (
+  app: Application,
+  service: string,
+): Promise<number> => {
+  const connection = await getActiveConnection(app).catch(() => null)
+  if (!connection) return 0
+  try {
+    return await runPullForService(app, connection, service)
+  } catch (err) {
+    logger.warn({
+      message: 'Realtime-getriggerter Master-Data-Pull fehlgeschlagen',
+      event: 'sync.realtime.master_data_pull_failed',
+      service,
+      errorMessage: err instanceof Error ? err.message : String(err),
+    })
+    return 0
+  }
+}
+
+/**
  * Setzt alle lokalen User auf `status: ARCHIVED`, deren `_id` nicht im
  * Visibility-Snapshot der Cloud auftaucht. Geht davon aus, dass der Snapshot
  * vollstaendig ist (alle fuer diese Edge sichtbaren User).

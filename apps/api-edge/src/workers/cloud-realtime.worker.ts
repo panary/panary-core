@@ -27,7 +27,7 @@ import {
 
 import type { Application } from '../declarations'
 import { decryptCloudToken } from '../utils/cloud-token-cipher'
-import { getActiveConnection } from './cloud-sync-scheduler.worker'
+import { getActiveConnection, pullMasterDataServiceOnce } from './cloud-sync-scheduler.worker'
 import { pullBusinessDaysOnce } from './cloud-pull-business-days.worker'
 import { setRealtimeConnected } from './cloud-realtime-state'
 
@@ -45,6 +45,13 @@ const RANDOMIZATION_FACTOR = 0.5
 
 const BUSINESS_DAYS_SERVICE = 'businessdays'
 
+// Debounce pro Service: ein Bulk-Vorgang in der Cloud (z.B. Katalog-Import mit
+// hunderten Produkt-Patches) feuert hunderte `changed`-Events. Statt hunderte
+// Pulls auszulösen, coalescen wir gleichartige Trigger zu EINEM Pull ~1s nach
+// dem letzten Event (Trailing-Debounce). Der Pull ist cursor-basiert und holt
+// alle aufgelaufenen Änderungen in einem Durchlauf.
+const TRIGGER_DEBOUNCE_MS = 1_000
+
 export interface CloudRealtimeWorkerHandle {
   stop(): void
 }
@@ -56,21 +63,41 @@ export const startCloudRealtimeWorker = async (
   let activeToken: string | null = null
   let activeUrl: string | null = null
   let supervisorTimer: NodeJS.Timeout | null = null
+  const pullTimers = new Map<string, NodeJS.Timeout>()
   let stopped = false
+
+  // Routet einen Service auf den passenden Pull-Pfad: businessdays über den
+  // dedizierten Worker (reconcilet zusätzlich location.currentBusinessDay lokal),
+  // alle anderen Stammdaten über den cursor-basierten Scheduler-Pull.
+  const runServicePull = (service: string): Promise<unknown> =>
+    service === BUSINESS_DAYS_SERVICE
+      ? pullBusinessDaysOnce(app)
+      : pullMasterDataServiceOnce(app, service)
+
+  const schedulePull = (service: string): void => {
+    const existing = pullTimers.get(service)
+    if (existing) clearTimeout(existing)
+    pullTimers.set(
+      service,
+      setTimeout(() => {
+        pullTimers.delete(service)
+        void runServicePull(service).catch(err =>
+          logger.warn({
+            message: 'Realtime-getriggerter Pull fehlgeschlagen',
+            event: 'sync.realtime.trigger_pull_failed',
+            service,
+            errorMessage: err instanceof Error ? err.message : String(err),
+          }),
+        )
+      }, TRIGGER_DEBOUNCE_MS),
+    )
+  }
 
   const triggerServices = (services: string[] | undefined): void => {
     if (!Array.isArray(services)) return
-    if (services.includes(BUSINESS_DAYS_SERVICE)) {
-      void pullBusinessDaysOnce(app).catch(err =>
-        logger.warn({
-          message: 'Realtime-getriggerter BusinessDays-Pull fehlgeschlagen',
-          event: 'sync.realtime.trigger_pull_failed',
-          errorMessage: err instanceof Error ? err.message : String(err),
-        }),
-      )
+    for (const service of services) {
+      if (typeof service === 'string' && service.length > 0) schedulePull(service)
     }
-    // Weitere Services werden vom Cloud-Sync-Scheduler auf seiner Kadenz
-    // abgeholt — Erweiterungspunkt für dedizierte Realtime-Pull-Pfade.
   }
 
   const teardownSocket = (): void => {
@@ -200,6 +227,8 @@ export const startCloudRealtimeWorker = async (
     stop: () => {
       stopped = true
       if (supervisorTimer) clearTimeout(supervisorTimer)
+      for (const timer of pullTimers.values()) clearTimeout(timer)
+      pullTimers.clear()
       teardownSocket()
     },
   }

@@ -11,8 +11,9 @@ const isTest = process.env['NODE_ENV'] === 'test' || !!process.env['VITEST']
 
 // Verzeichnis fuer die rotierenden NDJSON-Logdateien. Relativer Default
 // `data/logs` analog zum SQLite-Pfad (`data/api-edge.sqlite`) — landet im
-// gleichen Docker-Volume. Ueber LOG_DIR ueberschreibbar.
-const LOG_DIR = process.env['LOG_DIR'] || 'data/logs'
+// gleichen Docker-Volume. Ueber LOG_DIR ueberschreibbar. Exportiert, damit der
+// log-export-Service dieselbe Quelle liest (kein dupliziertes Default).
+export const LOG_DIR = process.env['LOG_DIR'] || 'data/logs'
 
 // --- Farb-Helfer für Dev-Ausgabe ---
 const RESET = '\x1b[0m'

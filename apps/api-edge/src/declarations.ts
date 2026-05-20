@@ -79,6 +79,17 @@ export interface ServiceTypes {
   'bootstrap-reports': GenericService<BootstrapReport>
   'audit-events': GenericService<AuditEvent>
   businessdays: BusinessDayService
+  'log-export': {
+    find(params?: any): Promise<{
+      filename: string
+      contentType: string
+      sha256: string
+      lineCount: number
+      fileCount: number
+      generatedAt: string
+      contentBase64: string
+    }>
+  }
 }
 
 // The application instance type that will be used everywhere else

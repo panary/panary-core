@@ -11,7 +11,7 @@ export type { Application, HookContext, NextFunction } from './declarations'
 export { dataValidator, queryValidator } from './validators'
 
 // --- Logger ---
-export { logger, configureLoggerLevel } from './logger'
+export { logger, configureLoggerLevel, LOG_DIR } from './logger'
 
 // --- Hooks ---
 export { allowApiKey } from './hooks/allow-apikey.hook'

@@ -154,6 +154,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PRINT_SERVER, action: AppAction.MANAGE },
     { resource: AppResource.PRINTER_COMMANDS, action: AppAction.MANAGE },
     { resource: AppResource.APIKEYS, action: AppAction.MANAGE },
+    { resource: AppResource.LOG_EXPORT, action: AppAction.READ },
     { resource: AppResource.CLOUD_CONNECTION, action: AppAction.MANAGE },
     { resource: AppResource.OPENING_HOUR_EXCEPTIONS, action: AppAction.MANAGE },
     { resource: AppResource.CLOUD_EDGES, action: AppAction.MANAGE },
@@ -387,6 +388,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Manager darf Test-Drucke aus der Cloud anstoßen (CREATE + READ für Status-Polling).
     { resource: AppResource.PRINTER_COMMANDS, action: [AppAction.READ, AppAction.CREATE] },
     { resource: AppResource.APIKEYS, action: AppAction.READ },
+    { resource: AppResource.LOG_EXPORT, action: AppAction.READ },
     { resource: AppResource.CLOUD_EDGES, action: AppAction.READ },
     { resource: AppResource.EDGE_PAIRING_CODES, action: AppAction.READ },
     // Sync-Status-Operator-UI: Manager darf Konflikte aufloesen und

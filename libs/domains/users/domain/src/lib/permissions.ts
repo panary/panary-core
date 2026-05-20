@@ -30,6 +30,7 @@ export const AppResource = {
   SYNC_CURSOR: 'sync-cursor',
   SYNC_RUNS: 'sync-runs',
   BOOTSTRAP_REPORTS: 'bootstrap-reports',
+  LOG_EXPORT: 'log-export',
   AUDIT_EVENTS: 'audit-events',
   AUDIT_EVENT_REDACTIONS: 'audit-event-redactions',
 

@@ -288,6 +288,19 @@ async function main() {
     }
     // -----------------------------------------------------------------------
 
+    // --- Cloud-Realtime-Worker (Socket.IO-Push, Trigger-Hybrid) ---
+    // Baut OUTBOUND eine Socket.IO-Verbindung zur Cloud auf und empfängt
+    // Push-Trigger (changed/force-sync/revoked). Auf `changed` läuft derselbe
+    // Pull-Pfad wie der 5s-Poll, nur ~instant. Der Pull-Worker bleibt als
+    // Fallback aktiv (adaptive Kadenz via cloud-realtime-state).
+    try {
+      const { startCloudRealtimeWorker } = await import('./workers/cloud-realtime.worker.js')
+      await startCloudRealtimeWorker(app)
+    } catch (err) {
+      logger.error('Cloud-Realtime-Worker konnte nicht gestartet werden.', err)
+    }
+    // -----------------------------------------------------------------------
+
     // --- Auto-Repair-Hook fuer historisch inkonsistente Edge-DBs ---
     // Heilt einmalig: User mit activeLocationId, die nicht in locations._id
     // existieren (Geist-Location aus altem Pairing-Bug). Idempotent — bei

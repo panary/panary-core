@@ -21,13 +21,19 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
+
+      # Bestimmt NX_BASE/NX_HEAD robust (Push: letzter erfolgreicher Run,
+      # Fallback HEAD~1; PR: merge-base). Verhindert, dass `affected` ohne Base
+      # alle ~100 Projekte baut (Runner-OOM / Exit 130). Braucht fetch-depth: 0.
+      - name: Derive affected SHAs
+        uses: nrwl/nx-set-shas@v4
 
       # `--no-frozen-lockfile`, weil das committete pnpm-lock.yaml im Workbench-
       # Setup ein Snapshot des geteilten Root-Lockfiles ist (Symlink + skip-worktree,
@@ -37,10 +43,11 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Lint & Test (PR)
-        if: github.event_name == 'pull_request'
-        run: pnpm nx affected -t lint,test,build --base=origin/${{ github.base_ref }} --head=HEAD
+      # Standalone (ohne Workbench-Workspace) fehlen die node_modules/@panary/*-
+      # Links → @nx/js:tsc (z. B. shared-backend) findet @panary/users/domain nicht.
+      - name: Link @panary/* packages (Standalone-Resolution)
+        run: bash tools/scripts/link-core-packages.sh
 
-      - name: Lint & Test (Push to main)
-        if: github.event_name == 'push'
+      # nx affected liest NX_BASE/NX_HEAD aus der Umgebung (nx-set-shas oben).
+      - name: Lint, Test & Build (affected)
         run: pnpm nx affected -t lint,test,build

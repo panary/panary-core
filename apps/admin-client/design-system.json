@@ -493,7 +493,7 @@
         "checkmarkClass": "save-checkmark",
         "dimensions": { "width": "160px", "height": "48px", "borderRadius": "14px" },
         "cssDefinition": {
-          "comment": "Vollständige CSS-Definition liegt in styles.scss. Muss global eingebunden werden.",
+          "comment": "Vollständige CSS-Definition liegt in styles.css. Muss global eingebunden werden.",
           "light": { "default": "#1e293b / #fff", "hover": "#334155", "success": "#22c55e" },
           "dark":  { "default": "#fff / #000",    "hover": "#e5e5e5", "success": "#22c55e" }
         },
@@ -649,10 +649,10 @@
   },
 
   "copyableCSS": {
-    "comment": "Komplette styles.scss als Referenz für das Save-Button-Muster und globale Resets",
+    "comment": "Komplette styles.css als Referenz für das Save-Button-Muster und globale Resets",
     "globalReset": "html, body { height: 100%; margin: 0; overflow: hidden; font-family: 'Switzer', sans-serif; background-color: #f8fafc; color: #0f172a; -webkit-font-smoothing: antialiased; }",
     "darkReset": ".dark body, body.dark { background-color: #000; color: #fff; }",
-    "heightChain": "app-root, app-admin-layout { display: block; height: 100%; } main > *:not(router-outlet) { display: block; height: 100%; }",
+    "heightChain": "app-root, app-admin-layout { display: block; height: 100%; } router-outlet + * { display: block; height: 100%; }",
     "saveButton": {
       "container": ".save-btn { position: relative; width: 160px; height: 48px; border: none; border-radius: 14px; cursor: pointer; overflow: hidden; transition: transform 0.15s cubic-bezier(0.4,0,0.2,1), background-color 0.3s ease, box-shadow 0.3s ease; }",
       "activeScale": ".save-btn:active:not(:disabled) { transform: scale(0.95); }",

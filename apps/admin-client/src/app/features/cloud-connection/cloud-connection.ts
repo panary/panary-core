@@ -139,28 +139,28 @@ const directionLabel = (dir: InitialDirection): string => {
               @case ('input') {
                 <div class="space-y-5">
                   <div class="space-y-1.5">
-                    <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                    <label for="pairingCode" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                       {{ 'CLOUD.PAIRING_CODE' | translate }}
                     </label>
-                    <input [(ngModel)]="pairingCode" name="pairingCode" type="text"
+                    <input id="pairingCode" [(ngModel)]="pairingCode" name="pairingCode" type="text"
                       maxlength="6" pattern="[0-9]*" inputmode="numeric" placeholder="000000"
                       class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-4
                              font-mono text-2xl text-center tracking-[0.5em]" />
                   </div>
                   <div class="grid grid-cols-2 gap-3">
                     <div class="space-y-1">
-                      <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                      <label for="cloudUrl" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                         {{ 'CLOUD.CLOUD_URL' | translate }}
                       </label>
-                      <input [(ngModel)]="cloudUrl" name="cloudUrl" type="url"
+                      <input id="cloudUrl" [(ngModel)]="cloudUrl" name="cloudUrl" type="url"
                         class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                                font-mono text-xs" />
                     </div>
                     <div class="space-y-1">
-                      <label class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                      <label for="edgeName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                         {{ 'CLOUD.EDGE_NAME' | translate }}
                       </label>
-                      <input [(ngModel)]="edgeName" name="edgeName" type="text"
+                      <input id="edgeName" [(ngModel)]="edgeName" name="edgeName" type="text"
                         placeholder="Hauptstandort"
                         class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3 text-sm" />
                     </div>
@@ -595,8 +595,8 @@ const directionLabel = (dir: InitialDirection): string => {
                 </select>
                 @if (syncMode === 'auto') {
                   <div class="space-y-1">
-                    <label class="text-xs text-slate-500 dark:text-gray-400">Intervall (Sekunden)</label>
-                    <input type="number" [(ngModel)]="syncIntervalSec" name="syncIntervalSec"
+                    <label for="syncIntervalSec" class="text-xs text-slate-500 dark:text-gray-400">Intervall (Sekunden)</label>
+                    <input id="syncIntervalSec" type="number" [(ngModel)]="syncIntervalSec" name="syncIntervalSec"
                       min="60" max="3600" (blur)="onSaveSyncMode()"
                       class="w-32 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-2 text-sm" />
                   </div>

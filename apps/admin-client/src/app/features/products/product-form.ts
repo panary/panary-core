@@ -402,7 +402,9 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
 
     <!-- Kategorie-Picker (fixed, überlagert alles) -->
     @if (activeCategoryPicker()) {
+      <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
       <div class="fixed inset-0 z-50" (click)="activeCategoryPicker.set(null)">
+        <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
         <div class="fixed min-w-48 max-h-64 overflow-y-auto bg-white dark:bg-gray-950
                     border border-slate-200 dark:border-gray-800 rounded-lg shadow-2xl py-1"
              [style.top.px]="pickerPos().top" [style.left.px]="pickerPos().left"

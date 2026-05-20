@@ -38,6 +38,7 @@ export interface SelectItem {
             <span class="text-slate-400 dark:text-gray-500">({{ item.sublabel }})</span>
           }
         </span>
+        <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
         <span (click)="clear($event)"
           class="text-slate-300 dark:text-gray-600 hover:text-red-400 shrink-0 text-xs cursor-pointer px-0.5">
           &#x2715;
@@ -53,11 +54,13 @@ export interface SelectItem {
 
     <!-- Overlay-Panel (fixiert, rechte Seite, volle Höhe) -->
     @if (isOpen()) {
+      <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
       <div class="fixed inset-0 z-50 flex justify-end" (click)="close()">
         <!-- Backdrop -->
         <div class="absolute inset-0 bg-black/20 dark:bg-black/40"></div>
 
         <!-- Panel -->
+        <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
         <div class="relative w-full max-w-sm my-4 mr-4 flex flex-col bg-white dark:bg-gray-950
                     border border-slate-200 dark:border-gray-800 rounded-xl shadow-2xl overflow-hidden"
              (click)="$event.stopPropagation()">

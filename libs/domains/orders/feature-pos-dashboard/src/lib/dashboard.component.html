@@ -179,7 +179,7 @@
         </div>
 
         <!-- KPI 5: Vorbestellungen -->
-        <div (click)="navigateTo('/pre-orders')"
+        <div (click)="navigateTo('/pre-orders')" (keydown.enter)="navigateTo('/pre-orders')" tabindex="0" role="button"
           class="rounded-2xl p-3 lg:p-5 border flex flex-row items-center gap-3 lg:flex-col lg:items-start lg:justify-between transition-colors cursor-pointer"
           [class]="todayPreOrders().length > 0
             ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700'

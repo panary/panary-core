@@ -53,7 +53,7 @@ import { TranslateModule } from '@ngx-translate/core'
 
       <!-- Dine Location -->
       <div class="space-y-1">
-        <label class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.DINE_LOCATION' | translate }}</label>
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.DINE_LOCATION' | translate }}</span>
         <div class="grid grid-cols-2 gap-2">
           <button type="button" (click)="form.patchValue({ dineLocation: 'take-out' })"
             [class]="form.get('dineLocation')?.value === 'take-out'

@@ -14,7 +14,8 @@ export default [
         'error',
         {
           enforceBuildableLibDependency: true,
-          allow: ['^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$'],
+          // Relative package.json-Imports erlauben (z.B. App-Version anzeigen).
+          allow: ['^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$', '^(\\.\\./)+package\\.json$'],
           depConstraints: [
             {
               sourceTag: '*',

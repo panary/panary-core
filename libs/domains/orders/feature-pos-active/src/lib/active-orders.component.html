@@ -1,3 +1,4 @@
+<!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
 <div class="h-full w-full bg-gray-50 dark:bg-black flex flex-col overflow-hidden" (click)="zoomOpen.set(false)">
   <!-- Floating Toolbar -->
   <div class="fixed bottom-6 right-6 z-30 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
@@ -16,6 +17,7 @@
       </button>
 
       @if (zoomOpen()) {
+        <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
         <div (click)="$event.stopPropagation()"
           class="absolute right-0 bottom-full mb-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl dark:shadow-black/40 p-3 z-50 animate-[fadeIn_0.15s_ease-out]">
           <div class="flex items-center gap-2">

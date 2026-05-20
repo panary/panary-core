@@ -46,7 +46,7 @@ jobs:
         run: cp tools/docker/.dockerignore .dockerignore
 
       - name: Build and Push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: tools/docker/Dockerfile.edge

@@ -1,4 +1,6 @@
 import { logger } from '@panary-core/shared-backend'
+import { BusinessDayStatus } from '@panary-core/businessdays/domain'
+import { PairingStatus, CloudConnection } from '@panary-core/cloud-connection/domain'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Feathers context.app hat generischen Typ Application<any, any>
 type FeathersApp = any
@@ -14,6 +16,47 @@ export interface LocationRecord {
     businessDayId: string
     date: string
   } | null
+}
+
+/**
+ * Zentraler Gate-Check fuer das Cloud-Managed-Hybrid (siehe ADR
+ * business-days-cloud-managed): Im CONNECTED-Modus ist die Cloud
+ * Source-of-Truth fuer den BusinessDay-Lifecycle — lokales
+ * `rotateBusinessDay()` ist dann verboten.
+ *
+ * Gibt `true` zurueck, wenn lokale Rotation ERLAUBT ist:
+ *  - kein aktives CONNECTED-Pairing (Standalone), ODER
+ *  - Operator-Override aktiv (`offlineOverrideActiveUntil` in der Zukunft).
+ *
+ * Wird sowohl vom Boot-Pfad (`autoEnsureBusinessDay`) als auch vom
+ * Order-Hook (`restrict-order-to-business-day`) genutzt — eine einzige
+ * Wahrheit, kein Drift zwischen den beiden Auto-Rotate-Einstiegspunkten.
+ */
+export async function isLocalRotationAllowed(app: FeathersApp): Promise<boolean> {
+  let connection: CloudConnection | null = null
+  try {
+    const result = await app.service('cloud-connection').find({
+      provider: undefined,
+      paginate: false,
+      query: { pairingStatus: PairingStatus.CONNECTED, $limit: 1 },
+    })
+    const list = Array.isArray(result) ? result : []
+    connection = (list[0] as CloudConnection | undefined) ?? null
+  } catch {
+    // cloud-connection nicht lesbar → defensiv: lokale Rotation erlauben
+    // (Standalone-Annahme, damit Edge bei DB-Problemen nicht haengt).
+    return true
+  }
+
+  if (!connection) return true // kein Pairing → Standalone
+
+  const until = connection.offlineOverrideActiveUntil
+  if (until) {
+    const untilMs = new Date(until).getTime()
+    if (Number.isFinite(untilMs) && untilMs > Date.now()) return true // Override aktiv
+  }
+
+  return false // CONNECTED ohne Override → Cloud verwaltet den Lifecycle
 }
 
 /**
@@ -60,24 +103,26 @@ export async function rotateBusinessDay(
   // Knex-Direct-Updates mehr. `isEmergencyOverride: true` ist nur fuer den
   // Override-Pfad noetig; im Standalone-Modus (kein CONNECTED) waere auch
   // `provider: undefined` allein ausreichend — fuer Defensive setzen wir
-  // beide Flags konsistent.
+  // beide Flags konsistent. `status` + `isOpen` + `closedAt` halten das
+  // Backward-Compat-Feld und das neue Status-Feld konsistent.
   if (location.currentBusinessDay?.businessDayId) {
     await app.service('businessdays').patch(
       location.currentBusinessDay.businessDayId,
-      { isOpen: false, closedAt: now },
+      { status: BusinessDayStatus.CLOSED, isOpen: false, closedAt: now },
       { provider: undefined, isEmergencyOverride: true },
     )
   }
 
-  // Neuen Geschaeftstag erstellen. Service-Resolver generiert die uuidv7
-  // konsistent ueber `businessDayDataResolver` (statt direkter Aufruf hier).
+  // Neuen Geschaeftstag erstellen. Das `businessDayDataSchema` erlaubt nur
+  // { _id, tenantId, locationId, date, openedBy, operationMode,
+  // openingFloatCents } — `status`/`isOpen`/`openedAt` setzt der
+  // `businessDayDataResolver` serverseitig. Daher hier NUR die erlaubten
+  // Felder schicken, sonst `additionalProperties`-Reject.
   const created = (await app.service('businessdays').create(
     {
       tenantId: location.tenantId,
       locationId: location._id,
       date: today,
-      openedAt: now,
-      isOpen: true,
     },
     { provider: undefined, isEmergencyOverride: true },
   )) as { _id: string }

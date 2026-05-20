@@ -2,6 +2,7 @@ import { logger } from '@panary-core/shared-backend'
 import type { Application } from './declarations'
 import {
   hasActiveOrders,
+  isLocalRotationAllowed,
   rotateBusinessDay,
   shouldAutoRotate,
   type LocationRecord,
@@ -9,12 +10,29 @@ import {
 
 /**
  * Stellt sicher, dass jede Location einen aktuellen Geschaeftstag hat.
- * Wird nur im standalone-Modus (Edge-Server) ausgefuehrt.
- * Idempotent: Erstellt nur dann einen neuen Geschaeftstag, wenn keiner existiert oder das Datum veraltet ist.
+ * Idempotent: Erstellt nur dann einen neuen Geschaeftstag, wenn keiner
+ * existiert oder das Datum veraltet ist.
+ *
+ * Cloud-Managed-Hybrid (siehe ADR): Lokale Rotation laeuft nur, wenn
+ * - `systemMode === 'standalone'` (statische Config) UND
+ * - `isLocalRotationAllowed(app)` (kein CONNECTED-Pairing oder aktiver
+ *   Operator-Override).
+ *
+ * Im CONNECTED-Modus uebernimmt der business-days-Pull-Worker die
+ * Tagesgenerierung von der Cloud — der Boot-Pfad darf dann KEINEN lokalen
+ * Tag anlegen (vermeidet die fruehere ID-Divergenz Edge↔Cloud).
  */
 export async function autoEnsureBusinessDay(app: Application): Promise<void> {
   const systemMode = app.get('system')?.mode || 'standalone'
   if (systemMode !== 'standalone') return
+
+  if (!(await isLocalRotationAllowed(app))) {
+    logger.info(
+      '[AutoBusinessDay] Boot-Rotation uebersprungen — Edge ist mit der Cloud gepairt. ' +
+        'Geschaeftstage werden via business-days-Pull-Worker von der Cloud uebernommen.',
+    )
+    return
+  }
 
   const knex = app.get('sqliteClient')
   const today = new Date().toISOString().slice(0, 10)

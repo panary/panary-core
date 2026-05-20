@@ -52,6 +52,15 @@ const BUSINESS_DAYS_SERVICE = 'businessdays'
 // alle aufgelaufenen Änderungen in einem Durchlauf.
 const TRIGGER_DEBOUNCE_MS = 1_000
 
+// „Cloud erreichbar"-Heartbeat: solange der Socket verbunden ist, aktualisieren
+// wir `lastCloudContactAt` (lokaler DB-Patch, KEIN Cloud-HTTP). Muss deutlich
+// unter der Staleness-Schwelle des Offline-Banners (60s,
+// offline-override-banner.ts) liegen, sonst zeigt der Banner faelschlich
+// „Cloud nicht erreichbar", obwohl der Socket steht. Der Pull-Worker laeuft
+// im Push-Modus nur als 5min-Safety-Net und kann den Heartbeat allein nicht
+// frisch halten.
+const CONTACT_HEARTBEAT_MS = 30_000
+
 export interface CloudRealtimeWorkerHandle {
   stop(): void
 }
@@ -63,8 +72,40 @@ export const startCloudRealtimeWorker = async (
   let activeToken: string | null = null
   let activeUrl: string | null = null
   let supervisorTimer: NodeJS.Timeout | null = null
+  let contactTimer: NodeJS.Timeout | null = null
   const pullTimers = new Map<string, NodeJS.Timeout>()
   let stopped = false
+
+  // Hält `lastCloudContactAt` frisch, solange der Socket verbunden ist (lokaler
+  // Patch, kein Cloud-Roundtrip). Der lebende, authentifizierte Socket IST der
+  // Erreichbarkeitsbeweis. NICHT `lastBusinessDaysPullAt` anfassen — das ist der
+  // Pull-Cursor; ein Vorrücken ohne echten Pull würde Records überspringen.
+  const touchCloudContact = async (): Promise<void> => {
+    try {
+      const connection = await getActiveConnection(app).catch(() => null)
+      if (!connection) return
+      await (app.service('cloud-connection') as any).patch(
+        connection._id,
+        { lastCloudContactAt: new Date().toISOString() },
+        { provider: undefined },
+      )
+    } catch {
+      // best-effort — Heartbeat-Fehler dürfen den Worker nicht stören
+    }
+  }
+
+  const startContactHeartbeat = (): void => {
+    if (contactTimer) return
+    void touchCloudContact()
+    contactTimer = setInterval(() => void touchCloudContact(), CONTACT_HEARTBEAT_MS)
+  }
+
+  const stopContactHeartbeat = (): void => {
+    if (contactTimer) {
+      clearInterval(contactTimer)
+      contactTimer = null
+    }
+  }
 
   // Routet einen Service auf den passenden Pull-Pfad: businessdays über den
   // dedizierten Worker (reconcilet zusätzlich location.currentBusinessDay lokal),
@@ -101,6 +142,7 @@ export const startCloudRealtimeWorker = async (
   }
 
   const teardownSocket = (): void => {
+    stopContactHeartbeat()
     if (socket) {
       socket.removeAllListeners()
       socket.disconnect()
@@ -137,9 +179,11 @@ export const startCloudRealtimeWorker = async (
     s.on('edge:authenticated', (ack: { success?: boolean; error?: string }) => {
       if (ack?.success) {
         setRealtimeConnected(true)
+        startContactHeartbeat()
         logger.info({ message: 'Cloud-Realtime authentifiziert', event: 'sync.realtime.authenticated' })
       } else {
         setRealtimeConnected(false)
+        stopContactHeartbeat()
         logger.warn({
           message: 'Cloud-Realtime-Auth abgelehnt',
           event: 'sync.realtime.auth_rejected',
@@ -150,6 +194,7 @@ export const startCloudRealtimeWorker = async (
 
     s.on('disconnect', (reason: string) => {
       setRealtimeConnected(false)
+      stopContactHeartbeat()
       logger.info({ message: 'Cloud-Realtime getrennt', event: 'sync.realtime.disconnected', reason })
     })
 

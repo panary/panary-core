@@ -115,6 +115,8 @@ export const pullBusinessDaysOnce = async (
     // bei erfolgreicher Wiederverbindung nicht haengenbleiben.
     const patch: Record<string, unknown> = {
       lastBusinessDaysPullAt: tickStart,
+      // Erfolgreicher HTTP-Pull = Cloud erreichbar → Banner-Heartbeat aktualisieren.
+      lastCloudContactAt: tickStart,
     }
     if (connection.offlineOverrideActiveUntil) {
       patch['offlineOverrideActiveUntil'] = null

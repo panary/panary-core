@@ -179,6 +179,18 @@ export const cloudConnectionSchema = Type.Object(
     offlineOverrideActiveUntil: Type.Optional(
       Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
     ),
+
+    // „Cloud erreichbar"-Heartbeat — ENTKOPPELT vom Pull-Cursor
+    // `lastBusinessDaysPullAt`. Wird gesetzt, sobald Cloud-Kontakt bestaetigt
+    // ist: vom Realtime-Worker waehrend aktiver Socket-Verbindung (lokaler
+    // Touch, kein HTTP) UND vom BusinessDays-Pull bei Erfolg. Der Offline-
+    // Banner nutzt dieses Feld (statt des Pull-Cursors), weil der Pull im
+    // Push-Modus nur noch als langsamer Safety-Net laeuft — der Cursor wuerde
+    // sonst faelschlich „stale" wirken, obwohl die Cloud via Socket erreichbar
+    // ist. NICHT als Cursor verwenden (kein incremental-since).
+    lastCloudContactAt: Type.Optional(
+      Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
+    ),
   },
   { $id: 'CloudConnection', additionalProperties: false },
 )
@@ -267,6 +279,7 @@ export const cloudConnectionPatchSchema = Type.Partial(
     // Business-Days-Pull-Cursor + Offline-Override (siehe Hauptschema oben)
     'lastBusinessDaysPullAt',
     'offlineOverrideActiveUntil',
+    'lastCloudContactAt',
     // tenantId/locationId fuer den Re-Stamp-Flow im Bootstrap-Worker
     'tenantId',
     'locationId',

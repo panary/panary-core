@@ -4,14 +4,17 @@ import { ApiService } from '../../core/api.service'
 interface CloudConnectionState {
   _id: string
   pairingStatus: 'connected' | 'disconnected' | 'pairing' | 'error'
-  lastBusinessDaysPullAt: string | null
+  lastCloudContactAt: string | null
   offlineOverrideActiveUntil: string | null
 }
 
 /**
  * Banner-Komponente, die nur erscheint, wenn der Edge im CONNECTED-Modus
- * ist UND das letzte erfolgreiche business-days-Pull-Tick lange her ist
- * (= Cloud unreachable). Operator kann mit einem Klick einen 2-Stunden-
+ * ist UND der letzte Cloud-Kontakt (`lastCloudContactAt`) lange her ist
+ * (= Cloud unreachable). Dieses Feld ist vom Pull-Cursor entkoppelt: der
+ * Realtime-Worker hält es per Socket-Heartbeat frisch, der Pull-Worker setzt
+ * es bei Erfolg. So wirkt der Banner im Push-Modus nicht faelschlich „stale",
+ * obwohl die Cloud via Socket erreichbar ist. Operator kann mit einem Klick einen 2-Stunden-
  * Override aktivieren — danach erlaubt `restrict-order-to-business-day`
  * wieder lokale `rotateBusinessDay()`-Aufrufe.
  *
@@ -64,7 +67,8 @@ export class OfflineOverrideBannerComponent {
 
   /** Setzt Override fuer 2 Stunden. */
   private readonly OVERRIDE_DURATION_MS = 2 * 60 * 60 * 1000
-  /** Cloud gilt als unerreichbar, wenn letzter Pull > 60s her. */
+  /** Cloud gilt als unerreichbar, wenn letzter Cloud-Kontakt > 60s her ist.
+   *  Muss > CONTACT_HEARTBEAT_MS (30s, cloud-realtime.worker.ts) bleiben. */
   private readonly STALE_THRESHOLD_MS = 60_000
 
   protected readonly connection = signal<CloudConnectionState | null>(null)
@@ -81,8 +85,8 @@ export class OfflineOverrideBannerComponent {
 
   protected readonly lastPullAgoMinutes = computed(() => {
     const c = this.connection()
-    if (!c?.lastBusinessDaysPullAt) return '?'
-    const diffMs = this.now() - new Date(c.lastBusinessDaysPullAt).getTime()
+    if (!c?.lastCloudContactAt) return '?'
+    const diffMs = this.now() - new Date(c.lastCloudContactAt).getTime()
     if (!Number.isFinite(diffMs) || diffMs < 0) return '?'
     return Math.floor(diffMs / 60_000).toString()
   })
@@ -100,8 +104,8 @@ export class OfflineOverrideBannerComponent {
     // Override aktiv → immer anzeigen (Operator sieht „noch X Minuten")
     if (this.overrideActive()) return true
     // Sonst nur bei Staleness
-    if (!c.lastBusinessDaysPullAt) return false
-    const diffMs = this.now() - new Date(c.lastBusinessDaysPullAt).getTime()
+    if (!c.lastCloudContactAt) return false
+    const diffMs = this.now() - new Date(c.lastCloudContactAt).getTime()
     return Number.isFinite(diffMs) && diffMs > this.STALE_THRESHOLD_MS
   })
 

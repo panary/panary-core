@@ -16,6 +16,7 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
 import { BadRequest, Forbidden, NotFound } from '@feathersjs/errors'
+import type { HookContext } from '@feathersjs/feathers'
 import { uuidv7 } from 'uuidv7'
 
 import {
@@ -66,6 +67,17 @@ export * from './business-days.schema'
 interface OpenDayParams {
   user?: { _id?: string; tenantId?: string; locationId?: string | null }
   provider?: string
+  /**
+   * Standalone-Fallback bei Cloud-Outage: wenn der Operator im Admin-Client
+   * den Offline-Modus aktiviert hat, setzen die internen Caller
+   * (`rotateBusinessDay`, `reconcileLocationBusinessDay`) dieses Flag,
+   * damit der `cloudManaged`-Hook auch bei aktivem Pairing durchlässt.
+   * Externe Caller (POS-Client, Admin-UI) können das Flag NICHT setzen —
+   * der `protectFromExternal()`-Resolver-Pfad existiert hier nicht, weil
+   * `params.isEmergencyOverride` direkt im `before`-Hook geprüft wird und
+   * niemals in die Datenbank landet.
+   */
+  isEmergencyOverride?: boolean
 }
 
 /**
@@ -88,6 +100,7 @@ async function guardCloudManagedLifecycle(
   operation: string,
 ): Promise<void> {
   if (!params.provider) return // interner Aufruf — Sync-Apply etc.
+  if (params.isEmergencyOverride) return // Operator-Override bei Cloud-Outage
   try {
     const result = await (app.service('cloud-connection') as any).find({
       provider: undefined,
@@ -112,6 +125,21 @@ async function guardCloudManagedLifecycle(
       error: (err as Error).message,
     })
   }
+}
+
+/**
+ * Wrapper, der `guardCloudManagedLifecycle` als Feathers-`before`-Hook
+ * verwendbar macht — pro Service-Methode (`create`/`patch`/`remove`).
+ * Aktuell sind die Lifecycle-Mutationen ueber `openDay`/`closeDay`/
+ * `refreshClosingStatus` abgedeckt, die den Guard explizit aufrufen.
+ * Dieser zusaetzliche Hook schliesst die Luecke fuer den Standard-CRUD-
+ * Pfad (HTTP-POST/PATCH/DELETE direkt auf den Service).
+ */
+const cloudManagedHook = (operation: string) => async (context: HookContext): Promise<HookContext> => {
+  const app = context.app as Application
+  const params = context.params as OpenDayParams
+  await guardCloudManagedLifecycle(app, params, operation)
+  return context
 }
 
 /**
@@ -544,14 +572,16 @@ export const businessDays = (app: Application) => {
       find: [],
       get: [],
       create: [
+        cloudManagedHook('Eroeffnung'),
         schemaHooks.validateData(businessDayDataValidator),
         schemaHooks.resolveData(businessDayDataResolver),
       ],
       patch: [
+        cloudManagedHook('Patch'),
         schemaHooks.validateData(businessDayPatchValidator),
         schemaHooks.resolveData(businessDayPatchResolver),
       ],
-      remove: [],
+      remove: [cloudManagedHook('Loeschen')],
     },
   })
 }

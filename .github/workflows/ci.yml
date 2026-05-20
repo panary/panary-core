@@ -29,8 +29,13 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      # `--no-frozen-lockfile`, weil das committete pnpm-lock.yaml im Workbench-
+      # Setup ein Snapshot des geteilten Root-Lockfiles ist (Symlink + skip-worktree,
+      # siehe panary-cloud/ci.yml). Dessen `overrides` sind die Vereinigung beider
+      # Repos und matchen den Standalone-package.json-overrides hier nicht — frozen
+      # würde mit ERR_PNPM_LOCKFILE_CONFIG_MISMATCH abbrechen. Konsistent zu panary-cloud.
       - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Lint & Test (PR)
         if: github.event_name == 'pull_request'

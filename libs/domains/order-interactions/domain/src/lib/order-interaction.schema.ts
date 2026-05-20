@@ -115,7 +115,7 @@ export type OrderInteraction = Static<typeof orderInteractionSchema>
 //#endregion
 
 //#region Schema for creation (POST)
-export const orderInteractionDataSchema = Type.Pick(
+const orderInteractionPickedDataSchema = Type.Pick(
   orderInteractionSchema,
   [
     'tenantId',
@@ -163,6 +163,18 @@ export const orderInteractionDataSchema = Type.Pick(
     'reprintCount',
     'createdAt',
     'updatedAt',
+  ],
+)
+
+// `_id` ist beim Create optional: der Resolver setzt `value || uuidv7()`.
+// Offline erzeugte POS-Records UND der Sync-Push (Edge→Cloud) bringen die
+// bereits generierte _id mit — ohne diese Erlaubnis lehnt die Cloud den
+// Sync-Create mit „additional properties [field: _id]" ab. Gleiche Struktur
+// wie orderDataSchema (proven für Sync-Push).
+export const orderInteractionDataSchema = Type.Intersect(
+  [
+    Type.Object({ _id: Type.Optional(Type.String()) }),
+    orderInteractionPickedDataSchema,
   ],
   {
     $id: 'OrderInteractionData',

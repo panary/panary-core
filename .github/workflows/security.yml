@@ -31,13 +31,16 @@ jobs:
   gitleaks:
     name: gitleaks (secrets)
     runs-on: ubuntu-latest
+    # Offizielle gitleaks-Binary statt gitleaks-action@v2 — Letztere verlangt für
+    # Org-Repos einen Lizenz-Key (GITLEAKS_LICENSE). Die CLI ist MIT-lizenziert
+    # und kostenlos. `gitleaks dir` scannt den Arbeitsbaum (kein Git-History-Setup
+    # nötig); Exit-Code 1 bei Funden lässt den Job fehlschlagen.
+    container:
+      image: ghcr.io/gitleaks/gitleaks:latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: gitleaks (filesystem scan)
+        run: gitleaks dir . --redact --exit-code 1
 
   semgrep:
     name: semgrep (SAST)

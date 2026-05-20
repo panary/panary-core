@@ -1,4 +1,3 @@
-import { uuidv7 } from 'uuidv7'
 import { logger } from '@panary-core/shared-backend'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Feathers context.app hat generischen Typ Application<any, any>
@@ -37,11 +36,16 @@ export async function hasActiveOrders(app: FeathersApp, businessDayId: string): 
 }
 
 /**
- * Schliesst den alten Geschaeftstag, erstellt einen neuen und aktualisiert die Location.
- * Wird sowohl beim Bootstrap als auch beim Order-Hook verwendet.
+ * Schliesst den alten Geschaeftstag, erstellt einen neuen und aktualisiert
+ * die Location. Wird im Standalone-Modus (kein Cloud-Pairing) sowie im
+ * Operator-Override-Fallback (Cloud unreachable) verwendet.
  *
- * Nutzt Feathers Service API fuer `orders` und `locations`.
- * Fuer `businessdays` wird Knex direkt verwendet, da kein Feathers-Service registriert ist.
+ * Nutzt **ausschliesslich die Feathers-Service-API** — fruehere Versionen
+ * haben `knex('businessdays').insert(...)` direkt aufgerufen und damit den
+ * Service-Layer (inkl. Resolver + `cloudManaged`-Hook) umgangen. Im
+ * Hybrid-Modus blockiert der Hook bei aktivem Pairing externe Schreib-
+ * versuche; interne Aufrufe (`provider: undefined` + `isEmergencyOverride`)
+ * passieren weiter durch.
  *
  * @returns Die neue businessDayId
  */
@@ -50,34 +54,40 @@ export async function rotateBusinessDay(
   location: LocationRecord,
   today: string,
 ): Promise<string> {
-  const knex = app.get('sqliteClient')
   const now = new Date().toISOString()
-  const newId = uuidv7()
 
-  // Vorherigen Geschaeftstag schliessen (kein Feathers-Service fuer businessdays vorhanden)
+  // Vorherigen Geschaeftstag schliessen — gleicher Service-Pfad, keine
+  // Knex-Direct-Updates mehr. `isEmergencyOverride: true` ist nur fuer den
+  // Override-Pfad noetig; im Standalone-Modus (kein CONNECTED) waere auch
+  // `provider: undefined` allein ausreichend — fuer Defensive setzen wir
+  // beide Flags konsistent.
   if (location.currentBusinessDay?.businessDayId) {
-    await knex('businessdays')
-      .where({ _id: location.currentBusinessDay.businessDayId })
-      .update({ isOpen: false, closedAt: now, updatedAt: now })
+    await app.service('businessdays').patch(
+      location.currentBusinessDay.businessDayId,
+      { isOpen: false, closedAt: now },
+      { provider: undefined, isEmergencyOverride: true },
+    )
   }
 
-  // Neuen Geschaeftstag erstellen
-  await knex('businessdays').insert({
-    _id: newId,
-    tenantId: location.tenantId,
-    locationId: location._id,
-    date: today,
-    openedAt: now,
-    isOpen: true,
-    createdAt: now,
-    updatedAt: now,
-  })
+  // Neuen Geschaeftstag erstellen. Service-Resolver generiert die uuidv7
+  // konsistent ueber `businessDayDataResolver` (statt direkter Aufruf hier).
+  const created = (await app.service('businessdays').create(
+    {
+      tenantId: location.tenantId,
+      locationId: location._id,
+      date: today,
+      openedAt: now,
+      isOpen: true,
+    },
+    { provider: undefined, isEmergencyOverride: true },
+  )) as { _id: string }
+  const newId = created._id
 
-  // Location mit neuem Geschaeftstag aktualisieren (interner Aufruf ohne Provider)
+  // Location mit neuem Geschaeftstag aktualisieren.
   await app.service('locations').patch(
     location._id,
     { currentBusinessDay: { businessDayId: newId, date: today } },
-    { provider: undefined },
+    { provider: undefined, isEmergencyOverride: true },
   )
 
   logger.info(

@@ -13,18 +13,18 @@ import {
 } from './working-times.schema'
 
 import type { Application } from '../../declarations'
-import { authorize } from '@panary-core/shared-backend'
-import { multiTenancy } from '@panary-core/shared-backend'
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared-common'
+import { authorize } from '@panary/shared-backend'
+import { multiTenancy } from '@panary/shared-backend'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { DatabaseType } from '@panary/shared-common'
 import {
   workingTimeDataSchema,
   workingTimePatchSchema,
   workingTimeQuerySchema,
   workingTimeSchema
-} from '@panary-core/working-times/domain'
+} from '@panary/working-times/domain'
 import type { WorkingTime, WorkingTimeService } from './working-times.class'
-import { getJsonFieldHooks } from '@panary-core/shared-backend'
+import { getJsonFieldHooks } from '@panary/shared-backend'
 
 const WORKING_TIME_JSON_FIELDS = ['breaks']
 

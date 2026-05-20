@@ -1,6 +1,6 @@
 import { inject } from '@angular/core'
 import { CanActivateFn, Router } from '@angular/router'
-import { DeviceConfigService } from '@panary-core/shared/data-access-config'
+import { DeviceConfigService } from '@panary/shared/data-access-config'
 
 /**
  * Setup Guard - Prüft ob Konfiguration vorhanden ist.

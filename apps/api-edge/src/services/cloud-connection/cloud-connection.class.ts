@@ -8,7 +8,7 @@ import type {
   CloudConnectionData,
   CloudConnectionPatch,
   CloudConnectionQuery
-} from '@panary-core/cloud-connection/domain'
+} from '@panary/cloud-connection/domain'
 
 export type { CloudConnection, CloudConnectionData, CloudConnectionPatch, CloudConnectionQuery }
 

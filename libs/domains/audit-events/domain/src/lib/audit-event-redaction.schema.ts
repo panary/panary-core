@@ -1,7 +1,7 @@
 import type { Static } from '@feathersjs/typebox'
 import { querySyntax, StringEnum, Type } from '@feathersjs/typebox'
 
-import { baseSchema } from '@panary-core/shared-common'
+import { baseSchema } from '@panary/shared-common'
 
 // Redaction-Scope: 'sensitive_only' redacted nur before/after/diff (forensisch
 // streng, DSGVO-Standardfall); 'all' redacted zusaetzlich metadata und

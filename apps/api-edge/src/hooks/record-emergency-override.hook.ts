@@ -12,7 +12,7 @@
 
 import type { NextFunction } from '@feathersjs/feathers'
 import { uuidv7 } from 'uuidv7'
-import { logger } from '@panary-core/shared-backend'
+import { logger } from '@panary/shared-backend'
 
 import type { HookContext } from '../declarations'
 

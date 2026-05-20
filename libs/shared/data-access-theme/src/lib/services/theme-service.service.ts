@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core'
-import { UserPreferencesService } from '@panary-core/user-preferences/data-access'
+import { UserPreferencesService } from '@panary/user-preferences/data-access'
 
 const THEME_STORAGE_KEY = 'app_preference.theme'
 

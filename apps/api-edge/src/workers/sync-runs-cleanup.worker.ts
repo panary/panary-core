@@ -7,7 +7,7 @@
 // Schedule: taeglich um lokale Stunde 3 (Standard, nach audit-cleanup um 2).
 // Der naechste Lauf wird per setTimeout geplant; Jitter vermeidet Cluster-
 // Effekte bei mehreren Edges in der gleichen TZ.
-import { logger } from '@panary-core/shared-backend'
+import { logger } from '@panary/shared-backend'
 
 import type { Application } from '../declarations'
 

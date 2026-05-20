@@ -74,9 +74,9 @@ COPY --from=build /build/dist/apps/api-edge/ ./dist/apps/api-edge/
 COPY --from=build /build/dist/libs/ ./dist/libs/
 COPY --from=build /build/node_modules/ ./node_modules/
 
-# Workspace-Pfade (@panary-core/*) fuer Runtime auflösbar machen.
+# Workspace-Pfade (@panary/*) fuer Runtime auflösbar machen.
 # TypeScript paths werden beim Build nicht aufgelöst — die kompilierten JS-Dateien
-# enthalten weiterhin require("@panary-core/apikeys/domain") etc.
+# enthalten weiterhin require("@panary/apikeys/domain") etc.
 # Lösung: Symlinks in node_modules anlegen, die auf die kompilierten Libs zeigen.
 COPY --from=build /build/tsconfig.base.json /tmp/tsconfig.base.json
 RUN node -e " \

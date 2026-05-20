@@ -9,9 +9,9 @@ import {
   SetupCredentials,
   DeviceType,
   APP_CONFIG,
-} from '@panary-core/shared/data-access-config'
-import { ThemeServiceService } from '@panary-core/shared/data-access-theme'
-import { LanguageService, LANGUAGES } from '@panary-core/shared/data-access'
+} from '@panary/shared/data-access-config'
+import { ThemeServiceService } from '@panary/shared/data-access-theme'
+import { LanguageService, LANGUAGES } from '@panary/shared/data-access'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 /**

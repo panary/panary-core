@@ -8,7 +8,7 @@ import type {
   CorporateCustomerData,
   CorporateCustomerPatch,
   CorporateCustomerQuery
-} from '@panary-core/corporate-customers/domain'
+} from '@panary/corporate-customers/domain'
 
 export type { CorporateCustomer, CorporateCustomerData, CorporateCustomerPatch, CorporateCustomerQuery }
 

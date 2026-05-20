@@ -1,4 +1,4 @@
-import { Order, OrderStatus, PaymentState } from '@panary-core/orders/domain'
+import { Order, OrderStatus, PaymentState } from '@panary/orders/domain'
 
 // Klassifizierer für Order-Aggregation.
 //

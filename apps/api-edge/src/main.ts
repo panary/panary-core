@@ -1,10 +1,10 @@
 import './bootstrap'
-import { logger } from '@panary-core/shared-backend'
+import { logger } from '@panary/shared-backend'
 import fs from 'fs/promises'
 import path from 'path'
 import { startSetupApp } from './setup-app'
 import { constants } from 'fs'
-import { UserSystemRole } from '@panary-core/users/domain'
+import { UserSystemRole } from '@panary/users/domain'
 import { uuidv7 } from 'uuidv7'
 
 const CONFIG_PATH =

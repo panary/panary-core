@@ -17,13 +17,13 @@
 
 import { io, type Socket } from 'socket.io-client'
 
-import { logger } from '@panary-core/shared-backend'
+import { logger } from '@panary/shared-backend'
 import {
   EDGE_EVENTS_PATH,
   EdgeEventName,
   type EdgeChangedEvent,
   type EdgeRevokedEvent,
-} from '@panary-core/sync/domain'
+} from '@panary/sync/domain'
 
 import type { Application } from '../declarations'
 import { decryptCloudToken } from '../utils/cloud-token-cipher'

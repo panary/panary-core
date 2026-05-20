@@ -2,7 +2,7 @@ import { resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 import { uuidv7 } from 'uuidv7'
 
-import { dataValidator, queryValidator } from '@panary-core/shared-backend'
+import { dataValidator, queryValidator } from '@panary/shared-backend'
 import {
   type SyncConflict,
   syncConflictPatchSchema,
@@ -10,7 +10,7 @@ import {
   syncConflictSchema,
   SyncConflictStatus,
   type SyncConflictQuery,
-} from '@panary-core/sync/domain'
+} from '@panary/sync/domain'
 
 import type { HookContext } from '../../declarations'
 

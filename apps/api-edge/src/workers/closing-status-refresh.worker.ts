@@ -12,7 +12,7 @@
 //
 // Pattern angelehnt an sync-runs-cleanup.worker.ts: setTimeout-Rekursion mit
 // Jitter, sauberer Stop, Wide-Event-Logging pro Tick.
-import { logger } from '@panary-core/shared-backend'
+import { logger } from '@panary/shared-backend'
 
 import type { Application } from '../declarations'
 

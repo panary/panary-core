@@ -1,6 +1,6 @@
 import type { Static } from '@feathersjs/typebox'
 import { querySyntax, StringEnum, Type } from '@feathersjs/typebox'
-import { baseSchema } from '@panary-core/shared-common'
+import { baseSchema } from '@panary/shared-common'
 
 export const CloudEdgeStatus = {
   PENDING_PAIRING: 'pending-pairing',

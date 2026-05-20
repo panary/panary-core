@@ -22,8 +22,8 @@ import {
   type AuditAction as AuditActionType,
   type AuditEventData,
   getAuditMapping,
-} from '@panary-core/audit-events/domain'
-import { logger } from '@panary-core/shared-backend'
+} from '@panary/audit-events/domain'
+import { logger } from '@panary/shared-backend'
 
 import type { HookContext } from '../declarations'
 import type { AuditCaptureState } from './capture-audit-before.hook'

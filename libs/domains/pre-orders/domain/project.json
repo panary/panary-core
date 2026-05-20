@@ -19,8 +19,8 @@
           "@feathersjs/feathers",
           "@feathersjs/typebox",
           "@sinclair/typebox",
-          "@panary-core/shared-common",
-          "@panary-core/orders/domain"
+          "@panary/shared-common",
+          "@panary/orders/domain"
         ],
         "generatePackageJson": false,
         "compiler": "tsc"

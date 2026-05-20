@@ -1,4 +1,4 @@
-import { WriteOff, WriteOffReason, WasteType } from '@panary-core/write-offs/domain'
+import { WriteOff, WriteOffReason, WasteType } from '@panary/write-offs/domain'
 import { toCents } from './money'
 
 export interface WasteAggregate {

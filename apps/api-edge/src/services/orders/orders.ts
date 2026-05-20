@@ -1,6 +1,6 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
-import { getJsonFieldHooks } from '@panary-core/shared-backend'
+import { getJsonFieldHooks } from '@panary/shared-backend'
 
 const ORDER_JSON_FIELDS = ['lineItems', 'cancellation', 'customerPaymentInfo', 'discount', 'staffPaymentInfo', 'taxSnapshot', 'creationContext', 'payment']
 
@@ -16,11 +16,11 @@ import {
 } from './orders.schema'
 
 import type { Application } from '../../declarations'
-import { authorize } from '@panary-core/shared-backend'
-import { multiTenancy } from '@panary-core/shared-backend'
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared-common'
-import { orderDataSchema, orderPatchSchema, orderQuerySchema, orderSchema } from '@panary-core/orders/domain'
+import { authorize } from '@panary/shared-backend'
+import { multiTenancy } from '@panary/shared-backend'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { DatabaseType } from '@panary/shared-common'
+import { orderDataSchema, orderPatchSchema, orderQuerySchema, orderSchema } from '@panary/orders/domain'
 import type { Order, OrderService } from './orders.class'
 import { extractOrderInteractions } from '../../hooks/extract-order-interactions'
 import { restrictOrderToBusinessDay } from '../../hooks/restrict-order-to-business-day'
@@ -28,7 +28,7 @@ import { assignDailySequenceNumber } from '../../hooks/assign-daily-sequence-num
 import { calculateTaxDetails } from '../../hooks/calculate-tax-details'
 import { checkMultiOperation } from '../../hooks/check-multi-operation'
 import { createOrderInteractions } from '../../hooks/create-order-interactions'
-import { ensureIndexes } from '@panary-core/shared-backend'
+import { ensureIndexes } from '@panary/shared-backend'
 
 export const ordersPath = 'orders'
 export const ordersMethods = ['find', 'get', 'create', 'patch', 'remove'] as const

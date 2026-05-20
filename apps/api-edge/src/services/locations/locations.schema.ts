@@ -1,7 +1,7 @@
 import { resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 import type { HookContext } from '../../declarations'
-import { dataValidator, queryValidator } from '@panary-core/shared-backend'
+import { dataValidator, queryValidator } from '@panary/shared-backend'
 import { uuidv7 } from 'uuidv7'
 
 // Import domain schema
@@ -14,7 +14,7 @@ import {
   locationSchema,
   generateDefaultLocationSettings, LocationStatus, LocationOperationMode,
   DEFAULT_LAST_WORKDAY_OF_WEEK,
-} from '@panary-core/locations/domain'
+} from '@panary/locations/domain'
 import { LocationService } from './locations.class'
 
 //#region 1. Main Resolver (Output)

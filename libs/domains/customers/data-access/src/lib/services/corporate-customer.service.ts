@@ -1,8 +1,8 @@
 import { effect, inject, Injectable, signal, Signal, WritableSignal } from '@angular/core'
-import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
-import { CorporateCustomer } from '@panary-core/corporate-customers/domain'
+import { BaseService, ConnectionService } from '@panary/shared/data-access'
+import { CorporateCustomer } from '@panary/corporate-customers/domain'
 import { Observer } from 'rxjs'
-// import { AuthService } from '@panary-core/auth/data-access'
+// import { AuthService } from '@panary/auth/data-access'
 
 @Injectable({
   providedIn: 'root',

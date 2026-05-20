@@ -2,9 +2,9 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { LocationService } from '@panary-core/locations/data-access'
+import { LocationService } from '@panary/locations/data-access'
 import { OrderPrintService } from '../services/order-print.service'
-import { Order } from '@panary-core/orders/domain'
+import { Order } from '@panary/orders/domain'
 
 interface Printer {
   pid: string

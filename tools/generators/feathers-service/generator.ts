@@ -177,7 +177,7 @@ export default async function (tree: Tree, schema: FeathersServiceGeneratorSchem
     console.log('Creating domain library...')
 
     const directory = `libs/domains/${names_.fileName}/domain`
-    const importPath = `@panary-core/${names_.fileName}/domain`
+    const importPath = `@panary/${names_.fileName}/domain`
     const tags = `type:domain,domain:${names_.fileName}`
 
     await libraryGenerator(tree, {
@@ -234,7 +234,7 @@ export default async function (tree: Tree, schema: FeathersServiceGeneratorSchem
     console.log('Creating data-access library...')
 
     const dataAccessDirectory = `libs/domains/${names_.fileName}/data-access`
-    const dataAccessImportPath = `@panary-core/${names_.fileName}/data-access`
+    const dataAccessImportPath = `@panary/${names_.fileName}/data-access`
     const dataAccessTags = `type:data-access,domain:${names_.fileName}`
 
     await angularLibraryGenerator(tree, {

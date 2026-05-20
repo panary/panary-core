@@ -14,20 +14,20 @@ import {
 
 import type { Application } from '../../declarations'
 import type { Product, ProductService } from './products.class'
-import { authorize } from '@panary-core/shared-backend'
-import { multiTenancy } from '@panary-core/shared-backend'
-import { getJsonFieldHooks } from '@panary-core/shared-backend'
+import { authorize } from '@panary/shared-backend'
+import { multiTenancy } from '@panary/shared-backend'
+import { getJsonFieldHooks } from '@panary/shared-backend'
 
 const PRODUCT_JSON_FIELDS = ['categoryIds', 'optionGroups', 'availability', 'ui', 'ingredientReferences', 'recipeReferences']
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared-common'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { DatabaseType } from '@panary/shared-common'
 import {
   productDataSchema,
   productPatchSchema,
   productQuerySchema,
   productSchema
-} from '@panary-core/products/domain'
-import { ensureIndexes } from '@panary-core/shared-backend'
+} from '@panary/products/domain'
+import { ensureIndexes } from '@panary/shared-backend'
 
 export const productsPath = 'products'
 export const productsMethods = ['find', 'get', 'create', 'patch', 'remove'] as const

@@ -1,5 +1,5 @@
 {
-  "name": "@panary-core/shared-common",
+  "name": "@panary/shared-common",
   "version": "26.4.20",
   "license": "BSL-1.1",
   "type": "commonjs",

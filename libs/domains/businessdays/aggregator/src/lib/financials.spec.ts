@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { OrderChannel, OrderStatus, DineLocation, PaymentState, TransactionMethod } from '@panary-core/orders/domain'
+import { OrderChannel, OrderStatus, DineLocation, PaymentState, TransactionMethod } from '@panary/orders/domain'
 import { aggregateFinancials, sumChannels, sumPayments } from './financials'
 import { makeOrder, resetIds } from './fixtures/orders.fixtures'
 

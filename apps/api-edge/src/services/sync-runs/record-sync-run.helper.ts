@@ -15,13 +15,13 @@
 
 import { uuidv7 } from 'uuidv7'
 
-import { logger } from '@panary-core/shared-backend'
+import { logger } from '@panary/shared-backend'
 import {
   SyncRunOutcome,
   SyncRunPhase,
   type SyncRunDirection,
   type SyncRunTrigger,
-} from '@panary-core/sync/domain'
+} from '@panary/sync/domain'
 
 import { syncRunsPath } from './sync-runs'
 

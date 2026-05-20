@@ -3,7 +3,7 @@ import type { KnexAdapterParams } from '@feathersjs/knex'
 import type { MongoDBAdapterParams } from '@feathersjs/mongodb'
 
 // Domain Imports
-import type { Location, LocationData, LocationPatch, LocationQuery } from '@panary-core/locations/domain'
+import type { Location, LocationData, LocationPatch, LocationQuery } from '@panary/locations/domain'
 
 export type { Location, LocationData, LocationPatch, LocationQuery }
 

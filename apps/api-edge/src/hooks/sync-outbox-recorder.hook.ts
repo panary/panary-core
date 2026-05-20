@@ -1,9 +1,9 @@
 import { uuidv7 } from 'uuidv7'
 
-import { SyncableTransactionService } from '@panary-core/edge-pairing/domain'
-import { SyncOp, SyncSource } from '@panary-core/sync/domain'
-import { isSyncPushBlockedRole } from '@panary-core/users/domain'
-import { logger } from '@panary-core/shared-backend'
+import { SyncableTransactionService } from '@panary/edge-pairing/domain'
+import { SyncOp, SyncSource } from '@panary/sync/domain'
+import { isSyncPushBlockedRole } from '@panary/users/domain'
+import { logger } from '@panary/shared-backend'
 
 import type { HookContext, NextHook } from '../declarations'
 
@@ -14,7 +14,7 @@ import type { HookContext, NextHook } from '../declarations'
 // zurueckholen und die lokale Aenderung ueberschreiben. Self-Skip im
 // Audit-Recorder verhindert Loops.
 //
-// Quelle: `SyncableTransactionService`-Enum in @panary-core/edge-pairing/domain.
+// Quelle: `SyncableTransactionService`-Enum in @panary/edge-pairing/domain.
 // Single Source of Truth — die Cloud baut ihre TRANSACTION_ALLOWLIST aus
 // demselben Enum. Drift hier waere Ursache fuer "Service X ist im push-Pfad
 // nicht erlaubt"-Rejects (siehe Sync-Push Allowlist-Check in der Cloud).

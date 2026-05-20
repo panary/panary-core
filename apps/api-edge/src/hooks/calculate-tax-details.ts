@@ -1,5 +1,5 @@
 import { HookContext } from '@feathersjs/feathers'
-import { Order, OrderLineItem, TaxInfo } from '@panary-core/orders/domain'
+import { Order, OrderLineItem, TaxInfo } from '@panary/orders/domain'
 
 function calculateTaxForOrderLineItem(
   lineItems: OrderLineItem,

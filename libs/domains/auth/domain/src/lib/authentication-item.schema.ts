@@ -1,5 +1,5 @@
 import { Static, Type } from '@feathersjs/typebox'
-import { userSchema } from '@panary-core/users/domain'
+import { userSchema } from '@panary/users/domain'
 
 export const jwtPayloadSchema = Type.Object({
   iat: Type.Number(),

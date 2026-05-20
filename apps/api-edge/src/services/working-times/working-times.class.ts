@@ -8,7 +8,7 @@ import type {
   WorkingTimeData,
   WorkingTimePatch,
   WorkingTimeQuery
-} from '@panary-core/working-times/domain'
+} from '@panary/working-times/domain'
 
 export type { WorkingTime, WorkingTimeData, WorkingTimePatch, WorkingTimeQuery }
 

@@ -7,7 +7,7 @@
     "moduleResolution": "node",
     "module": "commonjs",
     "paths": {
-      "@panary-core/allergens/domain": ["../../allergens/domain/dist/index.d.ts"]
+      "@panary/allergens/domain": ["../../allergens/domain/dist/index.d.ts"]
     }
   },
   "include": ["src/**/*.ts"],

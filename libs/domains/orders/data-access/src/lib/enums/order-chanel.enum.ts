@@ -1,1 +1,1 @@
-export { OrderChannel } from '@panary-core/orders/domain'
+export { OrderChannel } from '@panary/orders/domain'

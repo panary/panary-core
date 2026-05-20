@@ -23,7 +23,7 @@
 // Multi-Location-Edge (zukuenftig): Hook bricht ab — die Heuristik "erste
 // Location ist die alte" stimmt dann nicht mehr. Manuelle Reparatur noetig.
 
-import { logger } from '@panary-core/shared-backend'
+import { logger } from '@panary/shared-backend'
 
 import type { Application } from '../declarations'
 import { applyCloudTenantId } from '../utils/apply-cloud-tenant-id'

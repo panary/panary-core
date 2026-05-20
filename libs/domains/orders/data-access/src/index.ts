@@ -28,7 +28,7 @@ export {
   creationContextSchema,
   taxSummarySchema,
   taxSummerySchema,
-} from '@panary-core/orders/domain'
+} from '@panary/orders/domain'
 export type {
   Order,
   OrderData,
@@ -44,7 +44,7 @@ export type {
   CustomerPaymentInfo,
   StaffPaymentInfo,
   TaxInfo,
-} from '@panary-core/orders/domain'
+} from '@panary/orders/domain'
 
 export {
   OrderInteractionType,
@@ -52,10 +52,10 @@ export {
   orderInteractionDataSchema,
   orderInteractionPatchSchema,
   orderInteractionQuerySchema,
-} from '@panary-core/order-interactions/domain'
+} from '@panary/order-interactions/domain'
 export type {
   OrderInteraction,
   OrderInteractionData,
   OrderInteractionPatch,
   OrderInteractionQuery,
-} from '@panary-core/order-interactions/domain'
+} from '@panary/order-interactions/domain'

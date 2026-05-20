@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { DatePipe } from '@angular/common'
 import { FormsModule } from '@angular/forms'
-import { WorkingTime } from '@panary-core/working-times/domain'
-import { WorkingTimeService } from '@panary-core/working-times/data-access'
-import { UserService } from '@panary-core/users/data-access'
+import { WorkingTime } from '@panary/working-times/domain'
+import { WorkingTimeService } from '@panary/working-times/data-access'
+import { UserService } from '@panary/users/data-access'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 

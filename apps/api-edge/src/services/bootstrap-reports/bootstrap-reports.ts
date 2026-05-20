@@ -19,16 +19,16 @@ import {
   type BootstrapReportData,
   bootstrapReportDataSchema,
   bootstrapReportQuerySchema,
-} from '@panary-core/cloud-connection/domain'
+} from '@panary/cloud-connection/domain'
 import {
   authorize,
   dataValidator,
   getJsonFieldHooks,
   multiTenancy,
   queryValidator,
-} from '@panary-core/shared-backend'
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared-common'
+} from '@panary/shared-backend'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { DatabaseType } from '@panary/shared-common'
 
 import type { Application, HookContext, NextFunction } from '../../declarations'
 

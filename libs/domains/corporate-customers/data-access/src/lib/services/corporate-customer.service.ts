@@ -1,8 +1,8 @@
 import { effect, inject, Injectable, Signal, signal, WritableSignal } from '@angular/core'
 import { Observer } from 'rxjs'
 import { Paginated } from '@feathersjs/feathers'
-import { CorporateCustomer } from '@panary-core/corporate-customers/domain'
-import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
+import { CorporateCustomer } from '@panary/corporate-customers/domain'
+import { BaseService, ConnectionService } from '@panary/shared/data-access'
 
 @Injectable({
   providedIn: 'root',

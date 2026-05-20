@@ -1,5 +1,5 @@
 import { authenticate } from '@feathersjs/authentication'
-import type { Location } from '@panary-core/locations/domain'
+import type { Location } from '@panary/locations/domain'
 import type { Application } from '../../declarations'
 
 export const organizationsPath = 'organizations'

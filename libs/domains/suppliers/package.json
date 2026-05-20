@@ -1,5 +1,5 @@
 {
-  "name": "@panary-core/suppliers",
+  "name": "@panary/suppliers",
   "version": "26.4.20",
   "license": "BSL-1.1",
   "type": "commonjs",

@@ -18,7 +18,7 @@
 // uebernimmt `rotateBusinessDay()` im Edge-Standalone-Modus die lokale
 // Tagesgenerierung.
 
-import { logger } from '@panary-core/shared-backend'
+import { logger } from '@panary/shared-backend'
 import type { Application } from '../declarations'
 import { decryptCloudToken } from '../utils/cloud-token-cipher'
 import {

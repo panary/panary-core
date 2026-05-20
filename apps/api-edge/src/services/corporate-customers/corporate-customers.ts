@@ -14,17 +14,17 @@ import {
 
 import type { Application } from '../../declarations'
 import type { CorporateCustomer, CorporateCustomerService } from './corporate-customers.class'
-import { authorize } from '@panary-core/shared-backend'
-import { multiTenancy } from '@panary-core/shared-backend'
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared-common'
+import { authorize } from '@panary/shared-backend'
+import { multiTenancy } from '@panary/shared-backend'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { DatabaseType } from '@panary/shared-common'
 import {
   corporateCustomerDataSchema,
   corporateCustomerPatchSchema,
   corporateCustomerQuerySchema,
   corporateCustomerSchema
-} from '@panary-core/corporate-customers/domain'
-import { ensureIndexes } from '@panary-core/shared-backend'
+} from '@panary/corporate-customers/domain'
+import { ensureIndexes } from '@panary/shared-backend'
 
 export const corporateCustomersPath = 'corporate-customers'
 export const corporateCustomersMethods = ['find', 'get', 'create', 'patch', 'remove'] as const

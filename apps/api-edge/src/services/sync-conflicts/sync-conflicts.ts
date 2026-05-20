@@ -1,17 +1,17 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
 
-import { authorize, multiTenancy } from '@panary-core/shared-backend'
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared-common'
+import { authorize, multiTenancy } from '@panary/shared-backend'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { DatabaseType } from '@panary/shared-common'
 import {
   SyncConflictResolution,
   type SyncConflict,
-} from '@panary-core/sync/domain'
+} from '@panary/sync/domain'
 
 import type { Application } from '../../declarations'
 import type { HookContext } from '../../declarations'
-import { logger } from '@panary-core/shared-backend'
+import { logger } from '@panary/shared-backend'
 import {
   syncConflictDataResolver,
   syncConflictDataValidator,

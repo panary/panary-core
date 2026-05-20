@@ -5,9 +5,9 @@ import {
   PermissionRule,
   RolePermissions,
   UserSystemRole,
-} from '@panary-core/users/domain'
+} from '@panary/users/domain'
 import type { Application } from '../declarations'
-import { logger } from '@panary-core/shared-backend'
+import { logger } from '@panary/shared-backend'
 
 /**
  * Koa-Middleware für Authentifizierung auf Print-Server-Endpoints.

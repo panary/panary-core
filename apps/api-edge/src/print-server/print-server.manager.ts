@@ -1,6 +1,6 @@
-import type { PrintJob } from '@panary-core/locations/domain'
+import type { PrintJob } from '@panary/locations/domain'
 import { executePrintJob, buildTestPrintDocument, type PrinterConfig, type PrintResult } from './print-job.builder'
-import { logger } from '@panary-core/shared-backend'
+import { logger } from '@panary/shared-backend'
 
 export interface PrintServerStatus {
   status: 'stopped' | 'running' | 'error'

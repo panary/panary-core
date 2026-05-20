@@ -3,8 +3,8 @@ import { FormsModule } from '@angular/forms'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { TranslateModule } from '@ngx-translate/core'
 
-import { BusinessDay, BusinessDayOperationMode } from '@panary-core/businessdays/domain'
-import { BusinessDayService } from '@panary-core/businessdays/data-access'
+import { BusinessDay, BusinessDayOperationMode } from '@panary/businessdays/domain'
+import { BusinessDayService } from '@panary/businessdays/data-access'
 
 export interface ClosingDialogData {
   businessDay: BusinessDay

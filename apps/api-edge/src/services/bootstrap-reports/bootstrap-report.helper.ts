@@ -14,12 +14,12 @@ import path from 'node:path'
 
 import { uuidv7 } from 'uuidv7'
 
-import { logger } from '@panary-core/shared-backend'
+import { logger } from '@panary/shared-backend'
 import {
   type BootstrapReport,
   BootstrapReportStatus,
   type BootstrapReportDirection,
-} from '@panary-core/cloud-connection/domain'
+} from '@panary/cloud-connection/domain'
 
 import type { Application } from '../../declarations'
 import { bootstrapReportsPath } from './bootstrap-reports'

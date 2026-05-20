@@ -1,4 +1,4 @@
-import { Order, OrderLineItem, GenericOrderLineItem } from '@panary-core/orders/domain'
+import { Order, OrderLineItem, GenericOrderLineItem } from '@panary/orders/domain'
 import { toCents, multiplyCents, sumCents } from './money'
 
 // Kanonische Order-Total-Berechnung.

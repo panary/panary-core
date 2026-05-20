@@ -3,8 +3,8 @@ import { provideRouter } from '@angular/router'
 import { provideHttpClient } from '@angular/common/http'
 import { signal } from '@angular/core'
 import { AppComponent } from './app'
-import { ConnectionService, LanguageService } from '@panary-core/shared/data-access'
-import { ThemeServiceService } from '@panary-core/shared/data-access-theme'
+import { ConnectionService, LanguageService } from '@panary/shared/data-access'
+import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { TranslateModule } from '@ngx-translate/core'
 
 describe('AppComponent', () => {

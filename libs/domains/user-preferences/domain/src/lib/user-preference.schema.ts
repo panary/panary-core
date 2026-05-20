@@ -1,5 +1,5 @@
 import { querySyntax, Static, Type } from '@feathersjs/typebox'
-import { baseSchema } from '@panary-core/shared-common'
+import { baseSchema } from '@panary/shared-common'
 
 //#region The main data model (schema)
 export const userPreferenceSchema = Type.Object(

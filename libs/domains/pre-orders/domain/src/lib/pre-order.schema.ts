@@ -1,6 +1,6 @@
 import { querySyntax, Static, StringEnum, Type } from '@feathersjs/typebox'
-import { baseSchema } from '@panary-core/shared-common'
-import { DineLocation, orderLineItemSchema } from '@panary-core/orders/domain'
+import { baseSchema } from '@panary/shared-common'
+import { DineLocation, orderLineItemSchema } from '@panary/orders/domain'
 
 //#region Enums & Constants
 export const PreOrderStatus = {

@@ -2,7 +2,7 @@
 import { resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 import type { HookContext } from '../../declarations'
-import { dataValidator, queryValidator } from '@panary-core/shared-backend'
+import { dataValidator, queryValidator } from '@panary/shared-backend'
 import { randomUUID } from 'node:crypto'
 import { uuidv7 } from 'uuidv7'
 import { sha256 } from '../../utils/crypto.utils'
@@ -15,8 +15,8 @@ import {
   ApikeyQuery,
   apikeyQuerySchema,
   apikeySchema
-} from '@panary-core/apikeys/domain'
-import { UserSystemRole } from '@panary-core/users/domain'
+} from '@panary/apikeys/domain'
+import { UserSystemRole } from '@panary/users/domain'
 
 //#region 1. Main Resolver (Output)
 export const apikeyValidator = getValidator(apikeySchema, dataValidator)

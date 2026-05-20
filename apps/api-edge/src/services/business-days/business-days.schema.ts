@@ -11,9 +11,9 @@ import {
   businessDaySchema,
   BusinessDayStatus,
   BusinessDayOperationMode,
-} from '@panary-core/businessdays/domain'
+} from '@panary/businessdays/domain'
 
-import { dataValidator, queryValidator } from '@panary-core/shared-backend'
+import { dataValidator, queryValidator } from '@panary/shared-backend'
 import type { HookContext } from '../../declarations'
 import type { BusinessDayService } from './business-days.class'
 

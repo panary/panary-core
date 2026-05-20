@@ -1,12 +1,12 @@
-import { logger } from '@panary-core/shared-backend'
-import { ClockSkewStatus } from '@panary-core/cloud-edges/domain'
+import { logger } from '@panary/shared-backend'
+import { ClockSkewStatus } from '@panary/cloud-edges/domain'
 import {
   type CloudConnection,
   PairingStatus,
   SyncMode,
   SYNC_INTERVAL_DEFAULT_SEC,
-} from '@panary-core/cloud-connection/domain'
-import { SyncableMasterDataService } from '@panary-core/edge-pairing/domain'
+} from '@panary/cloud-connection/domain'
+import { SyncableMasterDataService } from '@panary/edge-pairing/domain'
 import {
   backoffMs,
   CLOCK_SKEW_ERROR_MS,
@@ -20,7 +20,7 @@ import {
   type SyncPullResponse,
   type SyncRejection,
   SyncRejectionClassification,
-} from '@panary-core/sync/domain'
+} from '@panary/sync/domain'
 import { uuidv7 } from 'uuidv7'
 
 import type { Application } from '../declarations'
@@ -32,7 +32,7 @@ import {
   SyncRunOutcome,
   SyncRunPhase,
   SyncRunTrigger,
-} from '@panary-core/sync/domain'
+} from '@panary/sync/domain'
 
 const cloudConnectionPath = 'cloud-connection'
 const syncOutboxPath = 'sync-outbox'

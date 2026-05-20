@@ -1,4 +1,4 @@
-import { DatabaseType } from '@panary-core/shared-common'
+import { DatabaseType } from '@panary/shared-common'
 import type { Application } from '../declarations'
 import { parseJsonFields } from '../hooks/parse-json-fields.hook'
 import { stringifyJsonFields } from '../hooks/stringify-json-fields.hook'

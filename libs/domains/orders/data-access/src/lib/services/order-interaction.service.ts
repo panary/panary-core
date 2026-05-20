@@ -1,8 +1,8 @@
-import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
+import { BaseService, ConnectionService } from '@panary/shared/data-access'
 
 import { inject, Injectable } from '@angular/core'
 
-import { OrderInteraction } from '@panary-core/order-interactions/domain'
+import { OrderInteraction } from '@panary/order-interactions/domain'
 
 @Injectable({
   providedIn: 'root',

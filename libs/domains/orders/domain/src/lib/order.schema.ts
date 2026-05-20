@@ -1,5 +1,5 @@
 import { querySyntax, Static, StringEnum, Type } from '@feathersjs/typebox'
-import { baseSchema, ingredientReferenceSchema, recipeReferenceSchema } from '@panary-core/shared-common'
+import { baseSchema, ingredientReferenceSchema, recipeReferenceSchema } from '@panary/shared-common'
 
 //#region Enums & Constants
 export const OrderChannel = {

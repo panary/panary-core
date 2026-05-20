@@ -2,12 +2,12 @@ import { Route } from '@angular/router'
 import { setupGuard } from './guards/setup.guard'
 import { posAuthGuard } from './guards/pos-auth.guard'
 
-import { SetupComponent } from '@panary-core/system/feature-pos-setup'
-import { LoginComponent } from '@panary-core/users/feature-pos-login'
-import { DashboardComponent } from '@panary-core/orders/feature-pos-dashboard'
+import { SetupComponent } from '@panary/system/feature-pos-setup'
+import { LoginComponent } from '@panary/users/feature-pos-login'
+import { DashboardComponent } from '@panary/orders/feature-pos-dashboard'
 // import { PosShellComponent } from '@panary/shared/ui-layout' -> WE NEED TO MIGRATE SHELL COMPONENT TOO
 import { AppPosShellComponent } from './shell/shell'
-import { ActiveOrdersComponent } from '@panary-core/orders/feature-pos-active'
+import { ActiveOrdersComponent } from '@panary/orders/feature-pos-active'
 
 export const appRoutes: Route[] = [
   {
@@ -42,20 +42,20 @@ export const appRoutes: Route[] = [
       },
       {
         path: 'orders/history',
-        loadComponent: () => import('@panary-core/orders/feature-pos-history').then(m => m.OrderHistoryComponent),
+        loadComponent: () => import('@panary/orders/feature-pos-history').then(m => m.OrderHistoryComponent),
       },
       {
         path: 'settings',
-        loadComponent: () => import('@panary-core/devices/feature-pos-settings').then(m => m.SettingsComponent),
+        loadComponent: () => import('@panary/devices/feature-pos-settings').then(m => m.SettingsComponent),
       },
       {
         path: 'working-times',
         loadComponent: () =>
-          import('@panary-core/working-times/feature-pos-history').then(m => m.WorkingTimeHistoryComponent),
+          import('@panary/working-times/feature-pos-history').then(m => m.WorkingTimeHistoryComponent),
       },
       {
         path: 'pre-orders',
-        loadComponent: () => import('@panary-core/pre-orders/feature-pos-list').then(m => m.PreOrderListComponent),
+        loadComponent: () => import('@panary/pre-orders/feature-pos-list').then(m => m.PreOrderListComponent),
       },
     ],
   },

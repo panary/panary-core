@@ -38,7 +38,7 @@ interface EdgeUserOption {
 // Edge-Bootstrap-Runner filtert sie zusaetzlich vor dem Push (Defense in
 // Depth). Im UI deaktivieren wir die Auswahl, um dem Admin zu signalisieren,
 // dass diese User ohnehin nicht synchronisiert werden — gleiche Liste wie
-// `SYNC_PUSH_BLOCKED_USER_ROLES` in @panary-core/users/domain.
+// `SYNC_PUSH_BLOCKED_USER_ROLES` in @panary/users/domain.
 const isCloudManagedRole = (role: string): boolean => {
   // platform:*-Praefix faengt auch zukuenftige Subrollen mit ab.
   if (role.startsWith('platform:')) return true

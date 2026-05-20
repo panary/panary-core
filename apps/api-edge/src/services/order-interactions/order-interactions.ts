@@ -13,18 +13,18 @@ import {
 } from './order-interactions.schema'
 
 import type { Application } from '../../declarations'
-import { authorize } from '@panary-core/shared-backend'
-import { multiTenancy } from '@panary-core/shared-backend'
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared-common'
+import { authorize } from '@panary/shared-backend'
+import { multiTenancy } from '@panary/shared-backend'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { DatabaseType } from '@panary/shared-common'
 import {
   orderInteractionDataSchema,
   orderInteractionPatchSchema,
   orderInteractionQuerySchema,
   orderInteractionSchema
-} from '@panary-core/order-interactions/domain'
+} from '@panary/order-interactions/domain'
 import type { OrderInteraction, OrderInteractionService } from './order-interactions.class'
-import { ensureIndexes } from '@panary-core/shared-backend'
+import { ensureIndexes } from '@panary/shared-backend'
 
 export const orderInteractionsPath = 'order-interactions'
 export const orderInteractionsMethods = ['find', 'get', 'create', 'patch', 'remove'] as const

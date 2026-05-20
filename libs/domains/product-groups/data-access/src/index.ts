@@ -4,6 +4,6 @@ export type {
   ProductGroupPatch,
   ProductGroupQuery,
   ProductGroupStatus,
-} from '@panary-core/product-groups/domain'
+} from '@panary/product-groups/domain'
 
 export * from './lib/services/product-group.service'

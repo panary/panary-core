@@ -8,7 +8,7 @@ import type {
   OrderInteractionData,
   OrderInteractionPatch,
   OrderInteractionQuery
-} from '@panary-core/order-interactions/domain'
+} from '@panary/order-interactions/domain'
 
 export type { OrderInteraction, OrderInteractionData, OrderInteractionPatch, OrderInteractionQuery }
 

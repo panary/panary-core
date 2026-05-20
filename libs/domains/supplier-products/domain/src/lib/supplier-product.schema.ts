@@ -1,5 +1,5 @@
 import { Static, StringEnum, Type } from '@feathersjs/typebox'
-import { allergenSchema } from '@panary-core/allergens/domain'
+import { allergenSchema } from '@panary/allergens/domain'
 
 export const SUPPLIER_PRODUCT_SOURCES = ['MANUAL', 'OFF', 'GS1'] as const
 export const supplierProductSourceSchema = StringEnum([...SUPPLIER_PRODUCT_SOURCES])

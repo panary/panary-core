@@ -4,7 +4,7 @@ import { Router } from '@angular/router'
 import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { uuidv7 } from 'uuidv7'
-import { OrderDialogComponent } from '@panary-core/orders/feature-pos-order-dialog'
+import { OrderDialogComponent } from '@panary/orders/feature-pos-order-dialog'
 import {
   Order,
   OrderLineItem,
@@ -14,13 +14,13 @@ import {
   Payment,
   Transaction,
   TransactionMethod,
-} from '@panary-core/orders/data-access'
-import { PrintDialogComponent, CancelOrderDialogComponent } from '@panary-core/orders/data-access'
-import { AuthService } from '@panary-core/auth/data-access'
-import { UserService } from '@panary-core/users/data-access'
-import { User } from '@panary-core/users/domain'
-import { CorporateCustomerService } from '@panary-core/corporate-customers/data-access'
-import { CorporateCustomer } from '@panary-core/corporate-customers/domain'
+} from '@panary/orders/data-access'
+import { PrintDialogComponent, CancelOrderDialogComponent } from '@panary/orders/data-access'
+import { AuthService } from '@panary/auth/data-access'
+import { UserService } from '@panary/users/data-access'
+import { User } from '@panary/users/domain'
+import { CorporateCustomerService } from '@panary/corporate-customers/data-access'
+import { CorporateCustomer } from '@panary/corporate-customers/domain'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 type OverlayView = 'actions' | 'staff-meal' | 'discount' | 'corporate'

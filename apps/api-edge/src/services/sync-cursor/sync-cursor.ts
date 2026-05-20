@@ -3,15 +3,15 @@ import { hooks as schemaHooks } from '@feathersjs/schema'
 import { resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 
-import { authorize, multiTenancy, dataValidator, queryValidator } from '@panary-core/shared-backend'
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared-common'
+import { authorize, multiTenancy, dataValidator, queryValidator } from '@panary/shared-backend'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { DatabaseType } from '@panary/shared-common'
 import {
   type SyncCursor,
   syncCursorPatchSchema,
   syncCursorQuerySchema,
   syncCursorSchema,
-} from '@panary-core/sync/domain'
+} from '@panary/sync/domain'
 
 import type { Application, HookContext } from '../../declarations'
 

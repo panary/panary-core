@@ -1,4 +1,4 @@
-import { Order, OrderLineItem } from '@panary-core/orders/domain'
+import { Order, OrderLineItem } from '@panary/orders/domain'
 import { isRegularSale } from './classifications'
 import { getOrderGrossCents } from './order-total'
 import { toCents, multiplyCents } from './money'

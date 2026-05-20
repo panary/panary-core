@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core'
-import { Apikey } from '@panary-core/apikeys/domain'
-import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
+import { Apikey } from '@panary/apikeys/domain'
+import { BaseService, ConnectionService } from '@panary/shared/data-access'
 import { inject } from '@angular/core'
 
 @Injectable({

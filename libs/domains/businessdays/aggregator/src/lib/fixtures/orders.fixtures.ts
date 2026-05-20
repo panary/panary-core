@@ -1,4 +1,4 @@
-import { Order, OrderChannel, OrderStatus, DineLocation, PaymentState, TransactionMethod } from '@panary-core/orders/domain'
+import { Order, OrderChannel, OrderStatus, DineLocation, PaymentState, TransactionMethod } from '@panary/orders/domain'
 
 // Test-Fixtures für Aggregator-Tests.
 // Konvention: jede Funktion baut eine valide Order mit sinnvollen Defaults;

@@ -1,8 +1,8 @@
-import { GenericOrderLineItem, Order, OrderLineItem } from '@panary-core/orders/domain'
-import { ProductSchema } from '@panary-core/products/domain'
-import { ProductService } from '@panary-core/products/data-access'
-import { IngredientReference as IngredientReferenceSchema } from '@panary-core/shared-common'
-import { RecipeReference as RecipeReferenceSchema } from '@panary-core/shared-common'
+import { GenericOrderLineItem, Order, OrderLineItem } from '@panary/orders/domain'
+import { ProductSchema } from '@panary/products/domain'
+import { ProductService } from '@panary/products/data-access'
+import { IngredientReference as IngredientReferenceSchema } from '@panary/shared-common'
+import { RecipeReference as RecipeReferenceSchema } from '@panary/shared-common'
 import { Id } from '@feathersjs/feathers'
 
 export function getOrderArticles(orderItem: Order): OrderLineItem[] {

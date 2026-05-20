@@ -1,5 +1,5 @@
 {
-  "name": "@panary-core/shared-backend",
+  "name": "@panary/shared-backend",
   "version": "26.4.20",
   "license": "BSL-1.1",
   "type": "commonjs",
@@ -29,7 +29,7 @@
     "@feathersjs/feathers": "^5.0.40",
     "@feathersjs/koa": "^5.0.40",
     "@feathersjs/schema": "^5.0.40",
-    "@panary-core/shared-common": "^26.4.20",
-    "@panary-core/users": "^26.4.20"
+    "@panary/shared-common": "^26.4.20",
+    "@panary/users": "^26.4.20"
   }
 }

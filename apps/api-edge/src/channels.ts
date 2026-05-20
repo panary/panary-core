@@ -3,7 +3,7 @@ import type { Params, RealTimeConnection } from '@feathersjs/feathers'
 import type { AuthenticationResult } from '@feathersjs/authentication'
 import '@feathersjs/transport-commons'
 import type { Application, HookContext } from './declarations'
-import { logger } from '@panary-core/shared-backend'
+import { logger } from '@panary/shared-backend'
 import { sha256, timingSafeCompare } from './utils/crypto.utils'
 
 export const channels = (app: Application) => {

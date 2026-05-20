@@ -1,5 +1,5 @@
 import { HookContext } from '@feathersjs/feathers'
-import type { OrderInteractionData } from '@panary-core/order-interactions/domain'
+import type { OrderInteractionData } from '@panary/order-interactions/domain'
 
 /**
  * Before-Create Hook: Extracts orderInteractions from context.data

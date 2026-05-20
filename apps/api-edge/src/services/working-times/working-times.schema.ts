@@ -1,7 +1,7 @@
 import { resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 import type { HookContext } from '../../declarations'
-import { dataValidator, queryValidator } from '@panary-core/shared-backend'
+import { dataValidator, queryValidator } from '@panary/shared-backend'
 import { uuidv7 } from 'uuidv7'
 
 // Import domain schema
@@ -12,7 +12,7 @@ import {
   WorkingTimeQuery,
   workingTimeQuerySchema,
   workingTimeSchema
-} from '@panary-core/working-times/domain'
+} from '@panary/working-times/domain'
 import { WorkingTimeService } from './working-times.class'
 
 //#region 1. Main Resolver (Output)

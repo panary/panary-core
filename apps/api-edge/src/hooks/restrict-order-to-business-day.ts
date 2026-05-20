@@ -1,10 +1,10 @@
 import { HookContext } from '@feathersjs/feathers'
 import { BadRequest, NotAuthenticated } from '@feathersjs/errors'
-import { User } from '@panary-core/users/domain'
-import { Location } from '@panary-core/locations/domain'
-import { PairingStatus, CloudConnection } from '@panary-core/cloud-connection/domain'
-import { AppError, AppErrorMessages } from '@panary-core/shared-common'
-import { logger } from '@panary-core/shared-backend'
+import { User } from '@panary/users/domain'
+import { Location } from '@panary/locations/domain'
+import { PairingStatus, CloudConnection } from '@panary/cloud-connection/domain'
+import { AppError, AppErrorMessages } from '@panary/shared-common'
+import { logger } from '@panary/shared-backend'
 import {
   getDifferenceInDays,
   hasActiveOrders,

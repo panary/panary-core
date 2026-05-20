@@ -1,7 +1,7 @@
 import { effect, inject, Injectable } from '@angular/core'
 import { Id, Paginated, Params } from '@feathersjs/feathers'
-import { UserPreference } from '@panary-core/user-preferences/domain'
-import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
+import { UserPreference } from '@panary/user-preferences/domain'
+import { BaseService, ConnectionService } from '@panary/shared/data-access'
 
 @Injectable({
   providedIn: 'root',

@@ -8,7 +8,7 @@ import type { Knex } from 'knex'
  * faelschlicherweise eine uuidv7 (Copy-Paste-Pattern aus Stamm-Daten-Resolvern).
  *
  * Wir entfernen die Spalte aus der Edge-orders-Tabelle; das Schema in
- * `@panary-core/orders/domain` listet das Feld bereits nicht mehr.
+ * `@panary/orders/domain` listet das Feld bereits nicht mehr.
  *
  * LineItem.externalId (im JSON-Blob `lineItems`) bleibt unangetastet — das
  * ist die Cross-Reference auf das verlinkte Produkt im Katalog.

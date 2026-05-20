@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core'
 import { TranslateService } from '@ngx-translate/core'
-import { UserPreferencesService } from '@panary-core/user-preferences/data-access'
+import { UserPreferencesService } from '@panary/user-preferences/data-access'
 
 export interface LanguageOption {
   code: string

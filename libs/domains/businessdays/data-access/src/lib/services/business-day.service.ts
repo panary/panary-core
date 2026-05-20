@@ -1,7 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core'
 import { Observer } from 'rxjs'
-import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
-import { BusinessDay } from '@panary-core/businessdays/domain'
+import { BaseService, ConnectionService } from '@panary/shared/data-access'
+import { BusinessDay } from '@panary/businessdays/domain'
 
 @Injectable({ providedIn: 'root' })
 export class BusinessDayService extends BaseService<BusinessDay> {

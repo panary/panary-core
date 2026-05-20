@@ -13,12 +13,12 @@ import {
   OrderLineItem,
   OrderStatus,
   StaffPaymentInfo,
-} from '@panary-core/orders/domain'
-import { OrderInteraction } from '@panary-core/order-interactions/domain'
-import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
-import { ExtendedParams } from '@panary-core/shared-common'
+} from '@panary/orders/domain'
+import { OrderInteraction } from '@panary/order-interactions/domain'
+import { BaseService, ConnectionService } from '@panary/shared/data-access'
+import { ExtendedParams } from '@panary/shared-common'
 import { Observer } from 'rxjs'
-import { LocationService } from '@panary-core/locations/data-access'
+import { LocationService } from '@panary/locations/data-access'
 
 @Injectable({
   providedIn: 'root',

@@ -5,7 +5,7 @@ import { provideHttpClient } from '@angular/common/http'
 import { TranslateModule } from '@ngx-translate/core'
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader'
 import { appRoutes } from './app.routes'
-import { APP_CONFIG } from '@panary-core/shared/data-access-config'
+import { APP_CONFIG } from '@panary/shared/data-access-config'
 import packageJson from '../../../../package.json'
 
 export const appConfig: ApplicationConfig = {

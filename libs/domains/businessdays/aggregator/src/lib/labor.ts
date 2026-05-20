@@ -1,4 +1,4 @@
-import { WorkingTime } from '@panary-core/working-times/domain'
+import { WorkingTime } from '@panary/working-times/domain'
 
 export interface LaborAggregate {
   staffCount: number

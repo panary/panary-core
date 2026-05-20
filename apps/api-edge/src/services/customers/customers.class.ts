@@ -3,7 +3,7 @@ import type { KnexAdapterParams } from '@feathersjs/knex'
 import type { MongoDBAdapterParams } from '@feathersjs/mongodb'
 
 // Domain Imports
-import type { Customer, CustomerData, CustomerPatch, CustomerQuery } from '@panary-core/customers/domain'
+import type { Customer, CustomerData, CustomerPatch, CustomerQuery } from '@panary/customers/domain'
 
 export type { Customer, CustomerData, CustomerPatch, CustomerQuery }
 

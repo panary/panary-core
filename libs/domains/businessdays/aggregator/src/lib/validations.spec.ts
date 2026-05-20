@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { TransactionMethod } from '@panary-core/orders/domain'
+import { TransactionMethod } from '@panary/orders/domain'
 import { aggregateFinancials } from './financials'
 import { validateFinancials } from './validations'
 import { makeOrder } from './fixtures/orders.fixtures'

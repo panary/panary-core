@@ -21,13 +21,13 @@ import { uuidv7 } from 'uuidv7'
 import {
   BusinessDayStatus,
   BusinessDayOperationMode,
-} from '@panary-core/businessdays/domain'
-import { LocationOperationMode } from '@panary-core/locations/domain'
-import { PairingStatus } from '@panary-core/cloud-connection/domain'
-import { authorize, multiTenancy } from '@panary-core/shared-backend'
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared-common'
-import { ensureIndexes, logger } from '@panary-core/shared-backend'
+} from '@panary/businessdays/domain'
+import { LocationOperationMode } from '@panary/locations/domain'
+import { PairingStatus } from '@panary/cloud-connection/domain'
+import { authorize, multiTenancy } from '@panary/shared-backend'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { DatabaseType } from '@panary/shared-common'
+import { ensureIndexes, logger } from '@panary/shared-backend'
 
 import {
   businessDayDataResolver,

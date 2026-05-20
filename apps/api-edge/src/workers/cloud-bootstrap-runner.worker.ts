@@ -5,22 +5,22 @@ import {
   type CloudConnection,
   InitialSyncDirection,
   PairingStatus,
-} from '@panary-core/cloud-connection/domain'
+} from '@panary/cloud-connection/domain'
 import {
   SyncableMasterDataService,
   SyncableTransactionService,
-} from '@panary-core/edge-pairing/domain'
+} from '@panary/edge-pairing/domain'
 import {
   SyncOp,
   SyncSource,
   type SyncBootstrapResponse,
   type SyncOpEntry,
   type SyncPullResponse,
-} from '@panary-core/sync/domain'
-import { isSyncPushBlockedRole } from '@panary-core/users/domain'
+} from '@panary/sync/domain'
+import { isSyncPushBlockedRole } from '@panary/users/domain'
 
 import type { Application } from '../declarations'
-import { logger } from '@panary-core/shared-backend'
+import { logger } from '@panary/shared-backend'
 import { applyCloudTenantId, createPrePairingBackup } from '../utils/apply-cloud-tenant-id'
 import { decryptCloudToken } from '../utils/cloud-token-cipher'
 import { recordSyncRun } from '../services/sync-runs/record-sync-run.helper'
@@ -36,13 +36,13 @@ import {
 import {
   type BootstrapReportDirection,
   BootstrapReportStatus,
-} from '@panary-core/cloud-connection/domain'
+} from '@panary/cloud-connection/domain'
 import {
   SyncRunDirection,
   SyncRunOutcome,
   SyncRunPhase,
   SyncRunTrigger,
-} from '@panary-core/sync/domain'
+} from '@panary/sync/domain'
 
 const requireDecryptedToken = (connection: CloudConnection): string => {
   const token = decryptCloudToken(connection.cloudToken)

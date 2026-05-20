@@ -1,8 +1,8 @@
 import { inject, Injectable } from '@angular/core'
-import { WorkingTime } from '@panary-core/working-times/domain'
+import { WorkingTime } from '@panary/working-times/domain'
 import { MatSnackBar } from '@angular/material/snack-bar'
-import { User, UserService } from '@panary-core/users/data-access'
-import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
+import { User, UserService } from '@panary/users/data-access'
+import { BaseService, ConnectionService } from '@panary/shared/data-access'
 import { Observer } from 'rxjs'
 
 @Injectable({

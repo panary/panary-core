@@ -13,9 +13,9 @@ export default [
             '{projectRoot}/vite.config.{js,ts,mjs,mts}',
           ],
           ignoredDependencies: [
-            '@panary-core/user-preferences/domain',
-            '@panary-core/users/domain',
-            '@panary-core/shared/data-access',
+            '@panary/user-preferences/domain',
+            '@panary/users/domain',
+            '@panary/shared/data-access',
             'vitest',
             '@nx/vite',
           ],

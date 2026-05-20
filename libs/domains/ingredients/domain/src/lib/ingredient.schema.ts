@@ -1,5 +1,5 @@
 import { Static, StringEnum, Type } from '@feathersjs/typebox'
-import { allergenSchema, dietaryTagSchema } from '@panary-core/allergens/domain'
+import { allergenSchema, dietaryTagSchema } from '@panary/allergens/domain'
 
 export const INGREDIENT_STATUSES = ['ACTIVE', 'DRAFT', 'ARCHIVED'] as const
 export const ingredientStatusSchema = StringEnum([...INGREDIENT_STATUSES])

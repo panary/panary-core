@@ -3,7 +3,7 @@ import type { KnexAdapterParams } from '@feathersjs/knex'
 import type { MongoDBAdapterParams } from '@feathersjs/mongodb'
 
 // Domain Imports
-import type { Device, DeviceData, DevicePatch, DeviceQuery } from '@panary-core/devices/domain'
+import type { Device, DeviceData, DevicePatch, DeviceQuery } from '@panary/devices/domain'
 
 export type { Device, DeviceData, DevicePatch, DeviceQuery }
 

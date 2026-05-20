@@ -1,6 +1,6 @@
 import { computed, inject, Injectable, Signal, signal, WritableSignal } from '@angular/core'
 import { Router } from '@angular/router'
-import { PreOrder, PreOrderService } from '@panary-core/pre-orders/data-access'
+import { PreOrder, PreOrderService } from '@panary/pre-orders/data-access'
 import { MatSnackBar } from '@angular/material/snack-bar'
 
 @Injectable({

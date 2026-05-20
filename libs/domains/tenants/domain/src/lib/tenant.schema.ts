@@ -1,7 +1,7 @@
 import type { Static } from '@feathersjs/typebox'
 import { querySyntax, StringEnum, Type } from '@feathersjs/typebox'
 
-import { addressSchema } from '@panary-core/shared-common'
+import { addressSchema } from '@panary/shared-common'
 import {
   BillingCustomerType,
   BillingTaxStatus,

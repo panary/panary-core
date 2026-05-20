@@ -23,8 +23,8 @@ import {
   AuditOutcome,
   AuditSeverity,
   type AuditEventData,
-} from '@panary-core/audit-events/domain'
-import { logger } from '@panary-core/shared-backend'
+} from '@panary/audit-events/domain'
+import { logger } from '@panary/shared-backend'
 
 import type { Application } from '../declarations'
 

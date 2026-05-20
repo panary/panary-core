@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { OrderStatus, PaymentState } from '@panary-core/orders/domain'
+import { OrderStatus, PaymentState } from '@panary/orders/domain'
 import {
   isStaffMeal,
   isStaffMealPaid,

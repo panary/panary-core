@@ -6,7 +6,7 @@ import {
   Order,
   OrderLineItem,
   TaxInfo,
-} from '@panary-core/orders/domain'
+} from '@panary/orders/domain'
 
 function getDefaultTaxSummary(): TaxInfo {
   return {

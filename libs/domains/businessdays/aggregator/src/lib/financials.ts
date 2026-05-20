@@ -5,7 +5,7 @@ import {
   TransactionMethod,
   PaymentState,
   Transaction,
-} from '@panary-core/orders/domain'
+} from '@panary/orders/domain'
 import { toCents, sumCents } from './money'
 import { isCancelled, isRefunded, isRegularSale, isStaffMeal, isCorporateMeal } from './classifications'
 import { getOrderGrossCents, getOrderNetCents, getOrderTipCents } from './order-total'

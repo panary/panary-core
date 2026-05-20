@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { WriteOff, WriteOffReason, WasteType, WriteOffItemType } from '@panary-core/write-offs/domain'
+import { WriteOff, WriteOffReason, WasteType, WriteOffItemType } from '@panary/write-offs/domain'
 import { aggregateWriteOffs } from './waste'
 
 function makeWriteOff(opts: Partial<WriteOff> & { reason: WriteOff['reason']; totalCost: number; wasteType?: WriteOff['wasteType'] }): WriteOff {

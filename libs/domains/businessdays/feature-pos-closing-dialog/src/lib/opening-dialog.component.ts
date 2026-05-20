@@ -6,8 +6,8 @@ import { TranslateModule } from '@ngx-translate/core'
 import {
   BusinessDay,
   BusinessDayOperationMode,
-} from '@panary-core/businessdays/domain'
-import { BusinessDayService } from '@panary-core/businessdays/data-access'
+} from '@panary/businessdays/domain'
+import { BusinessDayService } from '@panary/businessdays/data-access'
 
 export interface OpeningDialogData {
   locationId: string | null

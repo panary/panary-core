@@ -1,5 +1,5 @@
 import { HookContext, NextFunction } from '../declarations'
-import { UserSystemRole } from '@panary-core/users/domain'
+import { UserSystemRole } from '@panary/users/domain'
 import { logger } from '../logger'
 
 export interface MultiTenancyOptions {

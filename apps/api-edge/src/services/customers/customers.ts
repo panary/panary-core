@@ -13,18 +13,18 @@ import {
 } from './customers.schema'
 
 import type { Application } from '../../declarations'
-import { authorize } from '@panary-core/shared-backend'
-import { multiTenancy } from '@panary-core/shared-backend'
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared-common'
+import { authorize } from '@panary/shared-backend'
+import { multiTenancy } from '@panary/shared-backend'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { DatabaseType } from '@panary/shared-common'
 import {
   customerDataSchema,
   customerPatchSchema,
   customerQuerySchema,
   customerSchema
-} from '@panary-core/customers/domain'
+} from '@panary/customers/domain'
 import type { Customer, CustomerService } from './customers.class'
-import { ensureIndexes } from '@panary-core/shared-backend'
+import { ensureIndexes } from '@panary/shared-backend'
 
 export const customersPath = 'customers'
 export const customersMethods = ['find', 'get', 'create', 'patch', 'remove'] as const

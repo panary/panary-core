@@ -9,8 +9,8 @@
 //   `params.audit.beforeError` wird gesetzt, der Business-Write laeuft normal.
 // - Bei Bulk-Patches ohne ID (`context.id == null`) wird `bulkOperation: true`
 //   notiert; der Recorder produziert dann ein Audit-Event ohne Diff.
-import { AUDIT_NEVER_AUDIT_PATHS, getAuditMapping } from '@panary-core/audit-events/domain'
-import { logger } from '@panary-core/shared-backend'
+import { AUDIT_NEVER_AUDIT_PATHS, getAuditMapping } from '@panary/audit-events/domain'
+import { logger } from '@panary/shared-backend'
 
 import type { HookContext } from '../declarations'
 

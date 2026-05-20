@@ -1,7 +1,7 @@
 import { resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 import type { HookContext } from '../../declarations'
-import { dataValidator, queryValidator } from '@panary-core/shared-backend'
+import { dataValidator, queryValidator } from '@panary/shared-backend'
 import { uuidv7 } from 'uuidv7'
 
 import {
@@ -11,7 +11,7 @@ import {
   OpeningHourExceptionQuery,
   openingHourExceptionQuerySchema,
   openingHourExceptionSchema,
-} from '@panary-core/opening-hour-exceptions/domain'
+} from '@panary/opening-hour-exceptions/domain'
 import { OpeningHourExceptionService } from './opening-hour-exceptions.class'
 
 //#region 1. Main Resolver (Output)

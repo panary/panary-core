@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import type { Order } from '@panary-core/orders/domain'
+import type { Order } from '@panary/orders/domain'
 import {
   computeCogs,
   versionedRecipeKey,

@@ -6,11 +6,11 @@ export {
   preOrderDataSchema,
   preOrderPatchSchema,
   preOrderQuerySchema,
-} from '@panary-core/pre-orders/domain'
+} from '@panary/pre-orders/domain'
 export type {
   PreOrder,
   PreOrderData,
   PreOrderPatch,
   PreOrderQuery,
   PreOrderStatusType,
-} from '@panary-core/pre-orders/domain'
+} from '@panary/pre-orders/domain'

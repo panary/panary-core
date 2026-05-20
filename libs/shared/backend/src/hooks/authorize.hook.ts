@@ -6,8 +6,8 @@ import {
   PermissionRule,
   RolePermissions,
   UserSystemRole
-} from '@panary-core/users/domain'
-import { AppError, AppErrorMessages } from '@panary-core/shared-common'
+} from '@panary/users/domain'
+import { AppError, AppErrorMessages } from '@panary/shared-common'
 import { logger } from '../logger'
 
 // 2. SCHICHT: Rollen-Check (RBAC)

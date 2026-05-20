@@ -28,7 +28,7 @@ export const pricelistStatusSchema = StringEnum(['DRAFT', 'ACTIVE', 'APPLIED', '
 
 /**
  * Kanonisches Pricelist-Schema. Single Source of Truth — wird von
- * panary-cloud via Reexport konsumiert (`@panary-core/pricelists/domain`).
+ * panary-cloud via Reexport konsumiert (`@panary/pricelists/domain`).
  *
  * Pricelists haben aktuell **keine** Versionierung (kein
  * `currentVersion`/`history`) — Audit erfolgt über `appliedOn` und die

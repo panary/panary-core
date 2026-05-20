@@ -1,8 +1,8 @@
 import { inject, Injectable } from '@angular/core'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { FeathersError } from '@feathersjs/errors'
-import { httpErrorCodesDE } from '@panary-core/util-error-handling'
-import { NotificationService } from '@panary-core/shared/ui-notifications'
+import { httpErrorCodesDE } from '@panary/util-error-handling'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { Router } from '@angular/router'
 
 @Injectable({

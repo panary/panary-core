@@ -19,13 +19,13 @@
           "@feathersjs/feathers",
           "@feathersjs/typebox",
           "@sinclair/typebox",
-          "@panary-core/shared-common",
-          "@panary-core/orders",
-          "@panary-core/write-offs",
-          "@panary-core/working-times",
-          "@panary-core/ingredients",
-          "@panary-core/recipes",
-          "@panary-core/products"
+          "@panary/shared-common",
+          "@panary/orders",
+          "@panary/write-offs",
+          "@panary/working-times",
+          "@panary/ingredients",
+          "@panary/recipes",
+          "@panary/products"
         ],
         "generatePackageJson": false,
         "compiler": "tsc"

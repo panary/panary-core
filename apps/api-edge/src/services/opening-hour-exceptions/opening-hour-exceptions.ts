@@ -13,18 +13,18 @@ import {
 } from './opening-hour-exceptions.schema'
 
 import type { Application } from '../../declarations'
-import { authorize } from '@panary-core/shared-backend'
-import { multiTenancy } from '@panary-core/shared-backend'
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared-common'
+import { authorize } from '@panary/shared-backend'
+import { multiTenancy } from '@panary/shared-backend'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { DatabaseType } from '@panary/shared-common'
 import {
   openingHourExceptionDataSchema,
   openingHourExceptionPatchSchema,
   openingHourExceptionQuerySchema,
   openingHourExceptionSchema,
-} from '@panary-core/opening-hour-exceptions/domain'
+} from '@panary/opening-hour-exceptions/domain'
 import type { OpeningHourException, OpeningHourExceptionService } from './opening-hour-exceptions.class'
-import { ensureIndexes } from '@panary-core/shared-backend'
+import { ensureIndexes } from '@panary/shared-backend'
 
 export const openingHourExceptionsPath = 'opening-hour-exceptions'
 export const openingHourExceptionsMethods = ['find', 'get', 'create', 'patch', 'remove'] as const

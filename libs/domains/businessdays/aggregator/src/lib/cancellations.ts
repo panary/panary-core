@@ -1,4 +1,4 @@
-import { Order } from '@panary-core/orders/domain'
+import { Order } from '@panary/orders/domain'
 import { isCancelled } from './classifications'
 import { getOrderGrossCents } from './order-total'
 

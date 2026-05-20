@@ -2,7 +2,7 @@ import path from 'path'
 import fs from 'fs/promises'
 import os from 'os'
 import { koa, bodyParser, serveStatic } from '@feathersjs/koa'
-import { logger } from '@panary-core/shared-backend'
+import { logger } from '@panary/shared-backend'
 
 // Path to configuration file
 // Default to ./data/panary.config.json relative to CWD, or use env var

@@ -6,11 +6,11 @@ import { uuidv7 } from 'uuidv7'
 import { randomInt } from 'node:crypto'
 import bcrypt from 'bcryptjs'
 import type { HookContext } from '../../declarations'
-import { dataValidator, queryValidator } from '@panary-core/shared-backend'
-import { logger } from '@panary-core/shared-backend'
+import { dataValidator, queryValidator } from '@panary/shared-backend'
+import { logger } from '@panary/shared-backend'
 
 // Import domain schema
-import { userDataSchema, userPatchSchema, userQuerySchema, userSchema, User, UserQuery, UserSystemRole } from '@panary-core/users/domain'
+import { userDataSchema, userPatchSchema, userQuerySchema, userSchema, User, UserQuery, UserSystemRole } from '@panary/users/domain'
 import { UserService } from './users.class'
 
 //#region 1. Main User Resolver (Output)

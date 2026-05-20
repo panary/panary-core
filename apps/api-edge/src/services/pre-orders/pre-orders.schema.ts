@@ -1,7 +1,7 @@
 import { resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 import type { HookContext } from '../../declarations'
-import { dataValidator, queryValidator } from '@panary-core/shared-backend'
+import { dataValidator, queryValidator } from '@panary/shared-backend'
 import { uuidv7 } from 'uuidv7'
 
 import {
@@ -12,7 +12,7 @@ import {
   preOrderQuerySchema,
   preOrderSchema,
   PreOrderStatus,
-} from '@panary-core/pre-orders/domain'
+} from '@panary/pre-orders/domain'
 import type { PreOrderService } from './pre-orders.class'
 
 //#region 1. Main Resolver (Output)

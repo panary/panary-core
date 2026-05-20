@@ -1,5 +1,5 @@
 {
-  "name": "@panary-core/audit-events",
+  "name": "@panary/audit-events",
   "version": "26.4.20",
   "license": "BSL-1.1",
   "type": "commonjs",
@@ -28,7 +28,7 @@
     "@feathersjs/feathers": "^5.0.40",
     "@feathersjs/typebox": "^5.0.40",
     "@sinclair/typebox": "^0.34.0",
-    "@panary-core/shared-common": "^26.4.20",
-    "@panary-core/users": "^26.4.20"
+    "@panary/shared-common": "^26.4.20",
+    "@panary/users": "^26.4.20"
   }
 }

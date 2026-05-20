@@ -1,4 +1,4 @@
-// service.factory ist Server-only → Import via @panary-core/shared/data-access/server
+// service.factory ist Server-only → Import via @panary/shared/data-access/server
 export * from './lib/services/null.service'
 export * from './lib/services/base.service'
 export * from './lib/services/connection.service'

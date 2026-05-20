@@ -1,8 +1,8 @@
 import { inject, Injectable } from '@angular/core'
 import { HttpClient, HttpHeaders } from '@angular/common/http'
 import { lastValueFrom } from 'rxjs'
-import { LocationService } from '@panary-core/locations/data-access'
-import { Order } from '@panary-core/orders/domain'
+import { LocationService } from '@panary/locations/data-access'
+import { Order } from '@panary/orders/domain'
 import { publishViaMqtt } from './mqtt-publish'
 
 const API_URL = window.location.origin

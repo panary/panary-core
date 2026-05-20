@@ -1,8 +1,8 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
 import { BadRequest } from '@feathersjs/errors'
-import { getJsonFieldHooks } from '@panary-core/shared-backend'
-import { formatDateISO, getOpeningHoursForDate } from '@panary-core/locations/domain'
+import { getJsonFieldHooks } from '@panary/shared-backend'
+import { formatDateISO, getOpeningHoursForDate } from '@panary/locations/domain'
 
 const PRE_ORDER_JSON_FIELDS = ['lineItems', 'customerContact', 'metadata']
 
@@ -18,20 +18,20 @@ import {
 } from './pre-orders.schema'
 
 import type { Application } from '../../declarations'
-import { authorize } from '@panary-core/shared-backend'
-import { multiTenancy } from '@panary-core/shared-backend'
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared-common'
+import { authorize } from '@panary/shared-backend'
+import { multiTenancy } from '@panary/shared-backend'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { DatabaseType } from '@panary/shared-common'
 import {
   preOrderDataSchema,
   preOrderPatchSchema,
   preOrderQuerySchema,
   preOrderSchema,
   PreOrderStatus,
-} from '@panary-core/pre-orders/domain'
-import { DineLocation, OrderChannel, OrderStatus, PaymentState } from '@panary-core/orders/domain'
+} from '@panary/pre-orders/domain'
+import { DineLocation, OrderChannel, OrderStatus, PaymentState } from '@panary/orders/domain'
 import type { PreOrder, PreOrderService } from './pre-orders.class'
-import { ensureIndexes, logger } from '@panary-core/shared-backend'
+import { ensureIndexes, logger } from '@panary/shared-backend'
 
 export const preOrdersPath = 'pre-orders'
 export const preOrdersMethods = ['find', 'get', 'create', 'patch', 'remove', 'convert'] as const

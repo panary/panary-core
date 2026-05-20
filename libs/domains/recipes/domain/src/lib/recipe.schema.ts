@@ -35,7 +35,7 @@ export const recipeStatusSchema = StringEnum(['ACTIVE', 'DRAFT', 'ARCHIVED'])
 
 /**
  * Kanonisches Recipe-Schema. Single Source of Truth — wird von panary-cloud
- * via Reexport konsumiert (`@panary-core/recipes/domain`). Edge-Sync und
+ * via Reexport konsumiert (`@panary/recipes/domain`). Edge-Sync und
  * Cloud-Service nutzen denselben Type.
  *
  * Versionsverwaltung über `currentVersion` + `history` (siehe

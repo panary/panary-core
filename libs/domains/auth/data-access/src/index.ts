@@ -1,5 +1,5 @@
 export * from './lib/guards/auth.guard'
 export * from './lib/guards/can-deactivate.guard'
 export * from './lib/guards/prevent-access.guard'
-export * from '@panary-core/auth/domain'
+export * from '@panary/auth/domain'
 export * from './lib/services/auth.service'

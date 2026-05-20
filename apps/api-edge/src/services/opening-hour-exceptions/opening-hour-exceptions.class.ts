@@ -7,7 +7,7 @@ import type {
   OpeningHourExceptionData,
   OpeningHourExceptionPatch,
   OpeningHourExceptionQuery,
-} from '@panary-core/opening-hour-exceptions/domain'
+} from '@panary/opening-hour-exceptions/domain'
 
 export type { OpeningHourException, OpeningHourExceptionData, OpeningHourExceptionPatch, OpeningHourExceptionQuery }
 

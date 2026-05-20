@@ -1,5 +1,5 @@
 import { HookContext } from '@feathersjs/feathers'
-import { OrderInteraction } from '@panary-core/order-interactions/domain'
+import { OrderInteraction } from '@panary/order-interactions/domain'
 
 /**
  * After-Create Hook: Creates order-interactions entries from the stored interactions.

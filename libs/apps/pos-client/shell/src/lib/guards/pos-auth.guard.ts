@@ -1,6 +1,6 @@
 import { inject } from '@angular/core'
 import { CanActivateFn, Router } from '@angular/router'
-import { DeviceConfigService } from '@panary-core/shared/data-access-config'
+import { DeviceConfigService } from '@panary/shared/data-access-config'
 
 /**
  * POS Auth Guard — Prueft ob Setup abgeschlossen und ein User eingeloggt ist.

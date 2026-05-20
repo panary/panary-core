@@ -1,4 +1,4 @@
-import { DatabaseType } from '@panary-core/shared-common'
+import { DatabaseType } from '@panary/shared-common'
 import type { Application } from '../declarations'
 import { logger } from '../logger'
 

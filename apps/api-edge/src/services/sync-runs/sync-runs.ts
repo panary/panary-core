@@ -22,15 +22,15 @@ import {
   type SyncRunData,
   syncRunDataSchema,
   syncRunQuerySchema,
-} from '@panary-core/sync/domain'
+} from '@panary/sync/domain'
 import {
   authorize,
   dataValidator,
   multiTenancy,
   queryValidator,
-} from '@panary-core/shared-backend'
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared-common'
+} from '@panary/shared-backend'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { DatabaseType } from '@panary/shared-common'
 
 import type { Application, HookContext, NextFunction } from '../../declarations'
 

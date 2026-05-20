@@ -17,9 +17,9 @@ import {
 
 import type { Application } from '../../declarations'
 import type { HookContext } from '../../declarations'
-import { authorize, getJsonFieldHooks, logger, multiTenancy } from '@panary-core/shared-backend'
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared-common'
+import { authorize, getJsonFieldHooks, logger, multiTenancy } from '@panary/shared-backend'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { DatabaseType } from '@panary/shared-common'
 import {
   BootstrapStatus,
   cloudConnectionDataSchema,
@@ -34,14 +34,14 @@ import {
   PairingStatus,
   SyncMode,
   SYNC_INTERVAL_DEFAULT_SEC,
-} from '@panary-core/cloud-connection/domain'
+} from '@panary/cloud-connection/domain'
 import {
   PreflightResponse,
   SyncableMasterDataService,
   type EdgeIdentity,
   type EdgePairingResponse,
   type MasterDataInventory,
-} from '@panary-core/edge-pairing/domain'
+} from '@panary/edge-pairing/domain'
 import type { CloudConnection } from './cloud-connection.class'
 
 export const cloudConnectionPath = 'cloud-connection'

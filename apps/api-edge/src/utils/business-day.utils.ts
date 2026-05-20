@@ -1,6 +1,6 @@
-import { logger } from '@panary-core/shared-backend'
-import { BusinessDayStatus } from '@panary-core/businessdays/domain'
-import { PairingStatus, CloudConnection } from '@panary-core/cloud-connection/domain'
+import { logger } from '@panary/shared-backend'
+import { BusinessDayStatus } from '@panary/businessdays/domain'
+import { PairingStatus, CloudConnection } from '@panary/cloud-connection/domain'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Feathers context.app hat generischen Typ Application<any, any>
 type FeathersApp = any

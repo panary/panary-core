@@ -8,7 +8,7 @@ import type {
   ProductGroupData,
   ProductGroupPatch,
   ProductGroupQuery
-} from '@panary-core/product-groups/domain'
+} from '@panary/product-groups/domain'
 
 export type { ProductGroup, ProductGroupData, ProductGroupPatch, ProductGroupQuery }
 

@@ -1,13 +1,13 @@
 import { Component, HostListener, inject, OnInit, signal, WritableSignal } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { Router } from '@angular/router'
-import { APP_CONFIG, DeviceConfigService } from '@panary-core/shared/data-access-config'
+import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 // Direct import to avoid circular dependency with Admin's ConnectionService
-import { ConnectionService } from '@panary-core/shared/data-access'
+import { ConnectionService } from '@panary/shared/data-access'
 import { TimeClockEvent, TimeClockPanelComponent } from './time-clock-panel/time-clock-panel.component'
-import { ThemeServiceService } from '@panary-core/shared/data-access-theme'
-import { UpdateService } from '@panary-core/shared/data-access-updater'
-import { LanguageService, LANGUAGES } from '@panary-core/shared/data-access'
+import { ThemeServiceService } from '@panary/shared/data-access-theme'
+import { UpdateService } from '@panary/shared/data-access-updater'
+import { LanguageService, LANGUAGES } from '@panary/shared/data-access'
 import { TranslateModule } from '@ngx-translate/core'
 import { TranslateService } from '@ngx-translate/core'
 

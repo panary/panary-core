@@ -4,16 +4,16 @@ import { resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 import { uuidv7 } from 'uuidv7'
 
-import { authorize, dataValidator, queryValidator } from '@panary-core/shared-backend'
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared-common'
+import { authorize, dataValidator, queryValidator } from '@panary/shared-backend'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { DatabaseType } from '@panary/shared-common'
 import {
   type SyncOutboxEntry,
   syncOutboxEntryDataSchema,
   syncOutboxEntryPatchSchema,
   syncOutboxEntryQuerySchema,
   SyncOutboxStatus,
-} from '@panary-core/sync/domain'
+} from '@panary/sync/domain'
 
 import type { Application, HookContext } from '../../declarations'
 

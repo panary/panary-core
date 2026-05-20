@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, HostListener, OnInit, computed, inject, output, signal } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ConnectionService } from '@panary-core/shared/data-access'
-import { DeviceConfigService } from '@panary-core/shared/data-access-config'
+import { ConnectionService } from '@panary/shared/data-access'
+import { DeviceConfigService } from '@panary/shared/data-access-config'
 
 /**
  * Erlaubte Rollen für das Entkoppeln eines Geräts.

@@ -13,18 +13,18 @@ import {
 } from './devices.schema'
 
 import type { Application } from '../../declarations'
-import { authorize } from '@panary-core/shared-backend'
-import { multiTenancy } from '@panary-core/shared-backend'
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared-common'
+import { authorize } from '@panary/shared-backend'
+import { multiTenancy } from '@panary/shared-backend'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { DatabaseType } from '@panary/shared-common'
 import {
   deviceDataSchema,
   devicePatchSchema,
   deviceQuerySchema,
   deviceSchema
-} from '@panary-core/devices/domain'
+} from '@panary/devices/domain'
 import type { Device, DeviceService } from './devices.class'
-import { ensureIndexes, logger } from '@panary-core/shared-backend'
+import { ensureIndexes, logger } from '@panary/shared-backend'
 
 export const devicesPath = 'devices'
 export const devicesMethods = ['find', 'get', 'create', 'patch', 'remove'] as const

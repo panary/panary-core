@@ -16,14 +16,14 @@ import {
 
 import type { Application } from '../../declarations'
 import type { User } from './users.class'
-import { authorize } from '@panary-core/shared-backend'
-import { multiTenancy } from '@panary-core/shared-backend'
-import { getJsonFieldHooks } from '@panary-core/shared-backend'
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
+import { authorize } from '@panary/shared-backend'
+import { multiTenancy } from '@panary/shared-backend'
+import { getJsonFieldHooks } from '@panary/shared-backend'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { restrictUserSelfPatch } from '../../hooks/restrict-user-self-patch.hook'
 
 const USER_JSON_FIELDS = ['discountDetails', 'allowedLocationIds', 'permissions']
-import { DatabaseType } from '@panary-core/shared-common'
+import { DatabaseType } from '@panary/shared-common'
 import { Conflict, NotAuthenticated } from '@feathersjs/errors'
 import bcrypt from 'bcryptjs'
 

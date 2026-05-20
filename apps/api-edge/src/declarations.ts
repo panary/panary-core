@@ -23,9 +23,9 @@ import type {
   SyncCursor,
   SyncOutboxEntry,
   SyncRun,
-} from '@panary-core/sync/domain'
-import type { BootstrapReport } from '@panary-core/cloud-connection/domain'
-import type { AuditEvent } from '@panary-core/audit-events/domain'
+} from '@panary/sync/domain'
+import type { BootstrapReport } from '@panary/cloud-connection/domain'
+import type { AuditEvent } from '@panary/audit-events/domain'
 
 export type { NextFunction }
 export type NextHook = NextFunction

@@ -23,9 +23,9 @@ import { animate, style, transition, trigger } from '@angular/animations'
 // UUID als String-Alias (node:crypto UUID ist ein branded type – für Migration vereinfacht)
 type UUID = string
 
-import { ProductGroup, ProductGroupService } from '@panary-core/product-groups/data-access'
-import { ItemType, ProductSchema } from '@panary-core/products/domain'
-import { ProductService } from '@panary-core/products/data-access'
+import { ProductGroup, ProductGroupService } from '@panary/product-groups/data-access'
+import { ItemType, ProductSchema } from '@panary/products/domain'
+import { ProductService } from '@panary/products/data-access'
 import {
   calculateArticlePrice,
   calculateArticlePriceWithoutExtras,
@@ -41,24 +41,24 @@ import {
   OrderLineItem,
   OrderService,
   StaffPaymentInfo,
-} from '@panary-core/orders/data-access'
-import { Discount } from '@panary-core/orders/domain'
-import { PreOrderService } from '@panary-core/pre-orders/data-access'
-import { LocationService } from '@panary-core/locations/data-access'
-import { AuthService } from '@panary-core/auth/data-access'
-import { User, UserService } from '@panary-core/users/data-access'
-import { ConnectionService } from '@panary-core/shared/data-access'
-import { DeviceConfigService } from '@panary-core/shared/data-access-config'
-import { CorporateCustomer } from '@panary-core/corporate-customers/domain'
+} from '@panary/orders/data-access'
+import { Discount } from '@panary/orders/domain'
+import { PreOrderService } from '@panary/pre-orders/data-access'
+import { LocationService } from '@panary/locations/data-access'
+import { AuthService } from '@panary/auth/data-access'
+import { User, UserService } from '@panary/users/data-access'
+import { ConnectionService } from '@panary/shared/data-access'
+import { DeviceConfigService } from '@panary/shared/data-access-config'
+import { CorporateCustomer } from '@panary/corporate-customers/domain'
 import { PreOrderQuickDialogComponent } from './pre-order-quick-dialog.component'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-// TODO: CorporateCustomerService fehlt noch in @panary-core/corporate-customers/data-access — nach Migration einbinden
+// TODO: CorporateCustomerService fehlt noch in @panary/corporate-customers/data-access — nach Migration einbinden
 // TODO: AppButtonDirective fehlt noch in panary-core — nach Migration einbinden
-// TODO: ConfirmActionDialog fehlt noch in panary-core — nach Migration in @panary-core/shared/ui-dialogs einbinden
-// TODO: isLightColor fehlt noch in panary-core — nach Migration in @panary-core/shared/util-theme einbinden
+// TODO: ConfirmActionDialog fehlt noch in panary-core — nach Migration in @panary/shared/ui-dialogs einbinden
+// TODO: isLightColor fehlt noch in panary-core — nach Migration in @panary/shared/util-theme einbinden
 // TODO: PreOrderDialogComponent fehlt noch als eigene Lib in panary-core
 
-/** Inline-Implementierung von AbsPipe bis @panary-core/shared/pipes migriert ist */
+/** Inline-Implementierung von AbsPipe bis @panary/shared/pipes migriert ist */
 @Pipe({ name: 'abs', standalone: true, pure: true })
 export class AbsPipe implements PipeTransform {
   transform(value: number): number {

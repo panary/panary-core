@@ -16,7 +16,7 @@ import type { NextFunction } from '@feathersjs/feathers'
 import {
   PairingStatus,
   type CloudConnection,
-} from '@panary-core/cloud-connection/domain'
+} from '@panary/cloud-connection/domain'
 
 import type { HookContext } from '../declarations'
 

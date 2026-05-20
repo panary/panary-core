@@ -5,10 +5,10 @@ import { FeathersError } from '@feathersjs/errors'
 
 import socketio, { SocketService } from '@feathersjs/socketio-client'
 import io, { Socket } from 'socket.io-client'
-import { Utils } from '@panary-core/shared/util-helpers'
+import { Utils } from '@panary/shared/util-helpers'
 
-import { AppConfigService, DeviceConfigService } from '@panary-core/shared/data-access-config'
-import { BusinessDaySchema } from '@panary-core/businessdays/domain'
+import { AppConfigService, DeviceConfigService } from '@panary/shared/data-access-config'
+import { BusinessDaySchema } from '@panary/businessdays/domain'
 
 type ServiceTypes = {
   users: SocketService & {
@@ -200,7 +200,7 @@ export class ConnectionService {
   /**
    * Cloud-Pairing-Status, periodisch aus dem Edge-/health gepollt.
    * `null` = noch nicht ermittelt, ansonsten Werte aus `PairingStatus` aus
-   * `@panary-core/cloud-connection/domain` (`disconnected | pairing | connected | error`).
+   * `@panary/cloud-connection/domain` (`disconnected | pairing | connected | error`).
    */
   get cloudPairingStatus(): Signal<string | null> {
     return this.#cloudPairingStatus.asReadonly()

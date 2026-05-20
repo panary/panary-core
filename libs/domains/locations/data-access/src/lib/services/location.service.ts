@@ -1,9 +1,9 @@
 import { effect, inject, Injectable, Signal, signal, WritableSignal } from '@angular/core'
 import { Id, Paginated } from '@feathersjs/feathers'
 import { Observer } from 'rxjs'
-import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
-import { DeviceConfigService } from '@panary-core/shared/data-access-config'
-import { Location } from '@panary-core/locations/domain'
+import { BaseService, ConnectionService } from '@panary/shared/data-access'
+import { DeviceConfigService } from '@panary/shared/data-access-config'
+import { Location } from '@panary/locations/domain'
 
 // Typ-Aliase für strukturell relevante Sub-Typen
 export type PrintSettings = NonNullable<NonNullable<Location['settings']>['printSettings']>

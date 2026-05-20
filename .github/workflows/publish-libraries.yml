@@ -1,7 +1,7 @@
 name: Publish Libraries
 
 # Veröffentlicht alle Libraries mit Tag "publishable" (siehe nx.json release.projects)
-# in GitHub Packages unter dem @panary-core-Scope.
+# in GitHub Packages unter dem @panary-Scope.
 #
 # Trigger:
 #   - Automatisch bei Tag-Push "v*" (z.B. v26.5.0) → echtes Publishing.
@@ -47,7 +47,7 @@ jobs:
           node-version: 22
           cache: pnpm
           registry-url: 'https://npm.pkg.github.com'
-          scope: '@panary-core'
+          scope: '@panary'
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile

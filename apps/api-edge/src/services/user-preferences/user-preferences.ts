@@ -13,18 +13,18 @@ import {
 } from './user-preferences.schema'
 
 import type { Application } from '../../declarations'
-import { authorize } from '@panary-core/shared-backend'
-import { multiTenancy } from '@panary-core/shared-backend'
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared-common'
+import { authorize } from '@panary/shared-backend'
+import { multiTenancy } from '@panary/shared-backend'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { DatabaseType } from '@panary/shared-common'
 import {
   userPreferenceDataSchema,
   userPreferencePatchSchema,
   userPreferenceQuerySchema,
   userPreferenceSchema
-} from '@panary-core/user-preferences/domain'
+} from '@panary/user-preferences/domain'
 import type { UserPreference, UserPreferenceService } from './user-preferences.class'
-import { ensureIndexes } from '@panary-core/shared-backend'
+import { ensureIndexes } from '@panary/shared-backend'
 
 export const userPreferencesPath = 'user-preferences'
 export const userPreferencesMethods = ['find', 'get', 'create', 'patch', 'remove'] as const

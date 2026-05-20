@@ -1,7 +1,7 @@
 import { resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 import type { HookContext } from '../../declarations'
-import { dataValidator, queryValidator } from '@panary-core/shared-backend'
+import { dataValidator, queryValidator } from '@panary/shared-backend'
 import { uuidv7 } from 'uuidv7'
 
 // Import domain schema
@@ -12,7 +12,7 @@ import {
   DeviceQuery,
   deviceQuerySchema,
   deviceSchema
-} from '@panary-core/devices/domain'
+} from '@panary/devices/domain'
 import { DeviceService } from './devices.class'
 
 //#region 1. Main Resolver (Output)

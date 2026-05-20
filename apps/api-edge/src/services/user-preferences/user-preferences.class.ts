@@ -8,7 +8,7 @@ import type {
   UserPreferenceData,
   UserPreferencePatch,
   UserPreferenceQuery
-} from '@panary-core/user-preferences/domain'
+} from '@panary/user-preferences/domain'
 
 export type { UserPreference, UserPreferenceData, UserPreferencePatch, UserPreferenceQuery }
 

@@ -19,7 +19,7 @@
           "@feathersjs/feathers",
           "@feathersjs/typebox",
           "@sinclair/typebox",
-          "@panary-core/users/domain"
+          "@panary/users/domain"
         ],
         "generatePackageJson": false,
         "compiler": "tsc"

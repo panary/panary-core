@@ -1,10 +1,10 @@
 import { computed, effect, inject, Injectable, Signal, signal, WritableSignal } from '@angular/core'
-import { User } from '@panary-core/users/domain'
+import { User } from '@panary/users/domain'
 import { Id, Paginated, Params } from '@feathersjs/feathers'
 import { Observer } from 'rxjs'
-import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
-import { AuthService } from '@panary-core/auth/data-access'
-import { Location } from '@panary-core/locations/data-access'
+import { BaseService, ConnectionService } from '@panary/shared/data-access'
+import { AuthService } from '@panary/auth/data-access'
+import { Location } from '@panary/locations/data-access'
 
 @Injectable({
   providedIn: 'root',

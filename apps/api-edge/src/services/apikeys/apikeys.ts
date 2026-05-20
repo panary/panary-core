@@ -16,17 +16,17 @@ import {
 
 import type { Application } from '../../declarations'
 import { Apikey, ApiKeyService } from './apikeys.class'
-import { DatabaseType } from '@panary-core/shared-common'
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { authorize } from '@panary-core/shared-backend'
-import { multiTenancy } from '@panary-core/shared-backend'
+import { DatabaseType } from '@panary/shared-common'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { authorize } from '@panary/shared-backend'
+import { multiTenancy } from '@panary/shared-backend'
 import {
   apikeyDataSchema,
   apikeyPatchSchema,
   apikeyQuerySchema,
   apikeySchema
-} from '@panary-core/apikeys/domain'
-import { ensureIndexes } from '@panary-core/shared-backend'
+} from '@panary/apikeys/domain'
+import { ensureIndexes } from '@panary/shared-backend'
 
 export const apikeysPath = 'apikeys'
 export const apikeysMethods: Array<keyof ApiKeyService> = ['find', 'get', 'create', 'patch', 'remove']

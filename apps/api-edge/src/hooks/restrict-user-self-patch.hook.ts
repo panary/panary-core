@@ -15,7 +15,7 @@
 // Interne Aufrufe (`provider: undefined`, z.B. Sync-Apply) sind unbeeintraechtigt.
 import { Forbidden } from '@feathersjs/errors'
 
-import { UserSystemRole } from '@panary-core/users/domain'
+import { UserSystemRole } from '@panary/users/domain'
 
 import type { HookContext } from '../declarations'
 

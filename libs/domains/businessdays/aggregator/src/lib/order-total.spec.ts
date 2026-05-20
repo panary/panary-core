@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { Order } from '@panary-core/orders/domain'
+import { Order } from '@panary/orders/domain'
 import {
   getOrderGrossCents,
   getOrderNetCents,

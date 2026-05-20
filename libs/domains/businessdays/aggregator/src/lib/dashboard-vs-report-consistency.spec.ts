@@ -5,7 +5,7 @@ import {
   OrderStatus,
   PaymentState,
   TransactionMethod,
-} from '@panary-core/orders/domain'
+} from '@panary/orders/domain'
 
 import { aggregateFinancials } from './financials'
 import { aggregateMealSubsidies } from './meal-subsidies'
@@ -19,8 +19,8 @@ import {
 } from './derived-net-revenue'
 import { validateFinancials } from './validations'
 import { makeOrder, resetIds } from './fixtures/orders.fixtures'
-import type { WriteOff } from '@panary-core/write-offs/domain'
-import { WriteOffItemType, WriteOffReason, WasteType } from '@panary-core/write-offs/domain'
+import type { WriteOff } from '@panary/write-offs/domain'
+import { WriteOffItemType, WriteOffReason, WasteType } from '@panary/write-offs/domain'
 
 /**
  * Konsistenz-Test: Dashboard-Live-Widget und Tagesabschluss-Report

@@ -1,4 +1,4 @@
-// @panary-core/shared-backend
+// @panary/shared-backend
 //
 // Gemeinsame FeathersJS-Backend-Infrastructure für panary-core (SQLite/Edge)
 // und panary-cloud (MongoDB). Wird von allen Domain-Backends (products,

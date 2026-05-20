@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core'
-import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
-import { Customer } from '@panary-core/customers/domain'
+import { BaseService, ConnectionService } from '@panary/shared/data-access'
+import { Customer } from '@panary/customers/domain'
 import { Observer } from 'rxjs'
 
 @Injectable({

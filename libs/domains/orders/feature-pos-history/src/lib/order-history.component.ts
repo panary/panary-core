@@ -12,8 +12,8 @@ import {
   OrderStatus,
   PrintDialogComponent,
   CancelOrderDialogComponent,
-} from '@panary-core/orders/data-access'
-import { ExtendedParams } from '@panary-core/shared-common'
+} from '@panary/orders/data-access'
+import { ExtendedParams } from '@panary/shared-common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 type TimeRange = 'today' | 'yesterday' | 'week' | 'custom'

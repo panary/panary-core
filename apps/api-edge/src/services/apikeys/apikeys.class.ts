@@ -3,7 +3,7 @@ import type { KnexAdapterParams } from '@feathersjs/knex'
 import type { MongoDBAdapterParams } from '@feathersjs/mongodb'
 
 // Domain Import
-import type { Apikey, ApikeyData, ApikeyPatch, ApikeyQuery } from '@panary-core/apikeys/domain'
+import type { Apikey, ApikeyData, ApikeyPatch, ApikeyQuery } from '@panary/apikeys/domain'
 
 export type { Apikey, ApikeyData, ApikeyPatch, ApikeyQuery }
 

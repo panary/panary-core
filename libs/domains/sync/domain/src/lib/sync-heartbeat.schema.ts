@@ -1,7 +1,7 @@
 import type { Static } from '@feathersjs/typebox'
 import { StringEnum, Type } from '@feathersjs/typebox'
 
-import { ClockSkewStatus } from '@panary-core/cloud-edges/domain'
+import { ClockSkewStatus } from '@panary/cloud-edges/domain'
 
 export const CLOCK_SKEW_WARN_MS = 30_000
 export const CLOCK_SKEW_ERROR_MS = 5 * 60_000

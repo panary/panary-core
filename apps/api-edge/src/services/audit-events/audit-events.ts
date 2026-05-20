@@ -18,16 +18,16 @@ import {
   type AuditEventData,
   auditEventDataSchema,
   auditEventQuerySchema,
-} from '@panary-core/audit-events/domain'
+} from '@panary/audit-events/domain'
 import {
   authorize,
   dataValidator,
   getJsonFieldHooks,
   multiTenancy,
   queryValidator,
-} from '@panary-core/shared-backend'
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared-common'
+} from '@panary/shared-backend'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { DatabaseType } from '@panary/shared-common'
 
 import type { Application, HookContext, NextFunction } from '../../declarations'
 

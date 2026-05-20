@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { Router, RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { ConnectionService, LanguageService } from '@panary-core/shared/data-access'
-import { ThemeServiceService } from '@panary-core/shared/data-access-theme'
-import { UpdateService } from '@panary-core/shared/data-access-updater'
-import { CloudStatusBadgesComponent } from '@panary-core/shared/ui-cloud-status'
+import { ConnectionService, LanguageService } from '@panary/shared/data-access'
+import { ThemeServiceService } from '@panary/shared/data-access-theme'
+import { UpdateService } from '@panary/shared/data-access-updater'
+import { CloudStatusBadgesComponent } from '@panary/shared/ui-cloud-status'
 
 @Component({
   selector: 'app-root',

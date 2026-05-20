@@ -1,7 +1,7 @@
 import { effect, Injectable, Signal, signal, WritableSignal, inject } from '@angular/core'
-import { ProductGroup } from '@panary-core/product-groups/domain'
+import { ProductGroup } from '@panary/product-groups/domain'
 import { Id, Paginated } from '@feathersjs/feathers'
-import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
+import { BaseService, ConnectionService } from '@panary/shared/data-access'
 
 const Status = {
   active: 'ACTIVE',

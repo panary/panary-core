@@ -1,6 +1,6 @@
-import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
+import { BaseService, ConnectionService } from '@panary/shared/data-access'
 import { inject, Injectable } from '@angular/core'
-import { WriteOff } from '@panary-core/write-offs/domain'
+import { WriteOff } from '@panary/write-offs/domain'
 import { Observer } from 'rxjs'
 
 @Injectable({

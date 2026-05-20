@@ -1,11 +1,11 @@
 import { computed, effect, inject, Injectable, Signal, signal, WritableSignal } from '@angular/core'
-import { ItemType, Pricelist, ProductSchema } from '@panary-core/products/domain'
+import { ItemType, Pricelist, ProductSchema } from '@panary/products/domain'
 import { Id } from '@feathersjs/feathers'
 import { Observer } from 'rxjs'
-import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
-import { AuthService } from '@panary-core/auth/data-access'
+import { BaseService, ConnectionService } from '@panary/shared/data-access'
+import { AuthService } from '@panary/auth/data-access'
 
-// TODO: Migration – Status-Enum aus @panary-core/products/domain oder shared/common übernehmen
+// TODO: Migration – Status-Enum aus @panary/products/domain oder shared/common übernehmen
 const Status = {
   active: 'ACTIVE',
   draft: 'DRAFT',

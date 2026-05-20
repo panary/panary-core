@@ -1,8 +1,8 @@
 import { inject, Injectable, signal } from '@angular/core'
-import { BaseService, ConnectionService } from '@panary-core/shared/data-access'
-import { PreOrder } from '@panary-core/pre-orders/domain'
+import { BaseService, ConnectionService } from '@panary/shared/data-access'
+import { PreOrder } from '@panary/pre-orders/domain'
 import { Service } from '@feathersjs/feathers'
-import { Order } from '@panary-core/orders/data-access'
+import { Order } from '@panary/orders/data-access'
 import { Observer } from 'rxjs'
 
 interface PreOrdersCustomService extends Service<PreOrder> {

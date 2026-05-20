@@ -1,9 +1,9 @@
 import type { Id, Params, ServiceInterface } from '@feathersjs/feathers'
 import type { KnexAdapterParams } from '@feathersjs/knex'
 import type { MongoDBAdapterParams } from '@feathersjs/mongodb'
-import type { Order } from '@panary-core/orders/domain'
+import type { Order } from '@panary/orders/domain'
 
-import type { PreOrder, PreOrderData, PreOrderPatch, PreOrderQuery } from '@panary-core/pre-orders/domain'
+import type { PreOrder, PreOrderData, PreOrderPatch, PreOrderQuery } from '@panary/pre-orders/domain'
 
 export type { PreOrder, PreOrderData, PreOrderPatch, PreOrderQuery }
 

@@ -1,6 +1,6 @@
-import type { PrintElement, PrintJob, TextLine } from '@panary-core/locations/domain'
+import type { PrintElement, PrintJob, TextLine } from '@panary/locations/domain'
 import { buildEscposBuffer, sendToNetworkPrinter, type EscposOptions } from './escpos.adapter'
-import { logger } from '@panary-core/shared-backend'
+import { logger } from '@panary/shared-backend'
 
 export interface PrinterConfig {
   pid: string

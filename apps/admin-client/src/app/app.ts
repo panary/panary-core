@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { RouterOutlet } from '@angular/router'
-import { ConnectionService, LanguageService } from '@panary-core/shared/data-access'
-import { CloudStatusBadgesComponent } from '@panary-core/shared/ui-cloud-status'
+import { ConnectionService, LanguageService } from '@panary/shared/data-access'
+import { CloudStatusBadgesComponent } from '@panary/shared/ui-cloud-status'
 
 @Component({
   imports: [RouterOutlet, CloudStatusBadgesComponent],

@@ -43,7 +43,7 @@ export const supplierSchema = Type.Object(
     type: Type.Optional(supplierTypeSchema),
     /**
      * Optionale Verlinkung zu einem Eintrag im globalen Lieferanten-Katalog
-     * (`@panary-core/suppliers/domain` → `globalSupplierSchema`). Wenn gesetzt:
+     * (`@panary/suppliers/domain` → `globalSupplierSchema`). Wenn gesetzt:
      *   - Stammdaten wurden initial vom globalen Eintrag kopiert
      *   - Tenant kann lokal überschreiben (Notizen, abweichende Adresse für die Filiale)
      *   - Sync-Button in der Detail-Seite kopiert nicht-veraenderte Felder erneut

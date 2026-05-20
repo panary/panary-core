@@ -1,7 +1,7 @@
 import { resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 import type { HookContext } from '../../declarations'
-import { dataValidator, queryValidator } from '@panary-core/shared-backend'
+import { dataValidator, queryValidator } from '@panary/shared-backend'
 import { uuidv7 } from 'uuidv7'
 
 import {
@@ -12,7 +12,7 @@ import {
   cloudConnectionQuerySchema,
   cloudConnectionSchema,
   PairingStatus,
-} from '@panary-core/cloud-connection/domain'
+} from '@panary/cloud-connection/domain'
 import { encryptCloudToken } from '../../utils/cloud-token-cipher'
 import { CloudConnectionService } from './cloud-connection.class'
 

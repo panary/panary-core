@@ -1,7 +1,7 @@
 import type { Static } from '@feathersjs/typebox'
 import { querySyntax, StringEnum, Type } from '@feathersjs/typebox'
 
-import { baseSchema } from '@panary-core/shared-common'
+import { baseSchema } from '@panary/shared-common'
 import { AuditAction } from './audit-action.enum'
 import { AuditCategory, AuditOutcome, AuditSeverity } from './audit-category.enum'
 

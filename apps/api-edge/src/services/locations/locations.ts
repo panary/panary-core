@@ -1,6 +1,6 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
-import { getJsonFieldHooks } from '@panary-core/shared-backend'
+import { getJsonFieldHooks } from '@panary/shared-backend'
 
 const LOCATION_JSON_FIELDS = ['address', 'currentBusinessDay', 'settings']
 
@@ -16,21 +16,21 @@ import {
 } from './locations.schema'
 
 import type { Application } from '../../declarations'
-import { authorize } from '@panary-core/shared-backend'
-import { multiTenancy } from '@panary-core/shared-backend'
+import { authorize } from '@panary/shared-backend'
+import { multiTenancy } from '@panary/shared-backend'
 import { cloudManaged } from '../../hooks/cloud-managed.hook'
 import { recordEmergencyOverride } from '../../hooks/record-emergency-override.hook'
-import { createServiceAdapter } from '@panary-core/shared/data-access/server'
-import { DatabaseType } from '@panary-core/shared-common'
+import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { DatabaseType } from '@panary/shared-common'
 import {
   locationDataSchema,
   locationPatchSchema,
   locationQuerySchema,
   locationSchema,
   generateDefaultLocationSettings,
-} from '@panary-core/locations/domain'
+} from '@panary/locations/domain'
 import type { Location, LocationService } from './locations.class'
-import { ensureIndexes } from '@panary-core/shared-backend'
+import { ensureIndexes } from '@panary/shared-backend'
 
 export const locationsPath = 'locations'
 export const locationsMethods = ['find', 'get', 'create', 'patch', 'remove'] as const

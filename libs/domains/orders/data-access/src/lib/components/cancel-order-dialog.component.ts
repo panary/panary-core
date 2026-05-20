@@ -2,10 +2,10 @@ import { ChangeDetectionStrategy, Component, inject, signal, computed } from '@a
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { UserService } from '@panary-core/users/data-access'
-import { User, UserSystemRole } from '@panary-core/users/domain'
+import { UserService } from '@panary/users/data-access'
+import { User, UserSystemRole } from '@panary/users/domain'
 import { OrderService } from '../services/order.service'
-import { Order, OrderStatus } from '@panary-core/orders/domain'
+import { Order, OrderStatus } from '@panary/orders/domain'
 
 const CANCEL_REASONS = [
   'CANCEL_ORDER.REASON_COMPLAINT',

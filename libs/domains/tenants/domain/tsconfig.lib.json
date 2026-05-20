@@ -7,7 +7,7 @@
     "moduleResolution": "node",
     "module": "commonjs",
     "paths": {
-      "@panary-core/shared-common": ["../../../shared/common/src/index.ts"]
+      "@panary/shared-common": ["../../../shared/common/src/index.ts"]
     }
   },
   "include": ["src/**/*.ts"],

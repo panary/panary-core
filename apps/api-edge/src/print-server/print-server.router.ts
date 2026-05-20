@@ -1,12 +1,12 @@
 import type { Middleware } from '@feathersjs/koa'
-import { AppAction } from '@panary-core/users/domain'
+import { AppAction } from '@panary/users/domain'
 import type { Application } from '../declarations'
 import { printServerAuth, printServerAuthorize } from './auth.middleware'
 import { printServerManager } from './print-server.manager'
 import type { PrinterConfig } from './print-job.builder'
 import { renderOrderReceipt } from './order-receipt.renderer'
 import { sendToNetworkPrinter } from './escpos.adapter'
-import { logger } from '@panary-core/shared-backend'
+import { logger } from '@panary/shared-backend'
 
 const PREFIX = '/print-server'
 

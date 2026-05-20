@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { OrderStatus } from '@panary-core/orders/domain'
+import { OrderStatus } from '@panary/orders/domain'
 import { aggregateCancellations } from './cancellations'
 import { makeOrder } from './fixtures/orders.fixtures'
 

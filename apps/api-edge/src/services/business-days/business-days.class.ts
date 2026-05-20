@@ -6,7 +6,7 @@ import type {
   BusinessDayData,
   BusinessDayPatch,
   BusinessDayQuery,
-} from '@panary-core/businessdays/domain'
+} from '@panary/businessdays/domain'
 
 export type { BusinessDay, BusinessDayData, BusinessDayPatch, BusinessDayQuery }
 

@@ -30,7 +30,7 @@
               (click)="selectAction(action.action)"
             >
               <div
-                class="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm"
+                class="w-10 h-10 rounded-full bg-white/80 dark:bg-white/10 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm"
               >
                 @switch (action.icon) {
                   @case ('login') {
@@ -281,7 +281,7 @@
                 }} active:scale-95"
                 (click)="selectAction(action.action)"
               >
-                <div class="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center mb-2 shadow-sm">
+                <div class="w-12 h-12 rounded-full bg-white/80 dark:bg-white/10 flex items-center justify-center mb-2 shadow-sm">
                   @switch (action.icon) {
                     @case ('login') {
                       <svg class="w-6 h-6 {{ action.color }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">

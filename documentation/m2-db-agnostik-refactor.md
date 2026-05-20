@@ -16,7 +16,7 @@ Das Panary-Core-Backend lief bisher hauptsächlich auf SQLite (Edge) und enthiel
 
 1. **Hybrid-Adapter-Pattern** bleibt der Kern: `createServiceAdapter()` entscheidet via `DatabaseType` (SQLITE | MONGODB), welcher Adapter verwendet wird.
 2. **Alle rohen Knex-Queries** in Services entfernen. Zugriff erfolgt ausschließlich über die Feathers-Adapter-API (`app.service('...').find(...)`).
-3. **Index-Erstellung** wird durch die neue Factory `ensureIndexes()` in `@panary-core/shared-backend/util-db` zentralisiert. Die Factory liest den DB-Typ aus `app.get('system').dbType` und ruft entweder `CREATE INDEX IF NOT EXISTS` (SQLite via `service.knex.schema.raw`) oder `collection.createIndex` (MongoDB via Mongoose) auf.
+3. **Index-Erstellung** wird durch die neue Factory `ensureIndexes()` in `@panary/shared-backend/util-db` zentralisiert. Die Factory liest den DB-Typ aus `app.get('system').dbType` und ruft entweder `CREATE INDEX IF NOT EXISTS` (SQLite via `service.knex.schema.raw`) oder `collection.createIndex` (MongoDB via Mongoose) auf.
 4. **JSON-Feld-Serialisierung** für SQLite läuft über die zentrale Factory `getJsonFieldHooks()` (stringify bei write, parse bei read). Auf MongoDB sind beide Hooks No-Op.
 5. **Schema-First-Prinzip**: Jede persistierte Entität hat ihr TypeBox-Schema neben `service.ts` (für Edge-Services) bzw. in `libs/domains/[domain]/domain/src/lib/[entity].schema.ts`. Legacy-Interfaces in `*.model.ts` wurden entweder gelöscht (wenn dupliziert) oder zu reinen Re-Exports des TypeBox-abgeleiteten Typs vereinfacht.
 
@@ -33,7 +33,7 @@ Das Panary-Core-Backend lief bisher hauptsächlich auf SQLite (Edge) und enthiel
 
 - DB-spezifische Features (z.B. MongoDB-Text-Indexe auf mehreren Feldern, SQLite-partielle Indexe) werden über optionale Zusatzfelder am Index-Deskriptor abgebildet. Das macht die Deklaration länger, aber explizit.
 - `MIN()`-/`GROUP BY`-Semantik wurde durch In-Memory-Deduplikation nach `$sort` ersetzt (siehe `organizations.ts`). Bei sehr großen Datenmengen pro Tenant wäre eine eigenständige Cloud-Aggregations-API nötig — vorerst reicht der Ansatz (< 50 Locations pro Tenant).
-- `ItemType`/`Pricelist` sind als Legacy-Typen in `libs/domains/products/domain/src/lib/legacy-types.ts` abgelegt und werden von `@panary-core/products/domain` re-exportiert. Sie verschwinden, sobald die POS-Menu/Options-UI auf `productType` migriert ist.
+- `ItemType`/`Pricelist` sind als Legacy-Typen in `libs/domains/products/domain/src/lib/legacy-types.ts` abgelegt und werden von `@panary/products/domain` re-exportiert. Sie verschwinden, sobald die POS-Menu/Options-UI auf `productType` migriert ist.
 
 ## Umgesetzte Phasen
 
@@ -48,9 +48,9 @@ Das Panary-Core-Backend lief bisher hauptsächlich auf SQLite (Edge) und enthiel
 | 3.3 | `order-line-item.model.ts` in `order.schema.ts` integriert (inkl. `GenericOrderLineItem`-Typ) | ✅ |
 | 3.4 | `app-config.model.ts` → `app-config.schema.ts` (TypeBox) | ✅ |
 | 3.5 | `pre-order.model.ts` mit `pre-order.schema.ts` gemerged | ✅ |
-| 4a | `write-offs.model.ts` trivialen Re-Export aufgelöst — Konsumenten importieren direkt aus `@panary-core/write-offs/domain` | ✅ |
-| 4b | `working-time.model.ts` entfernt — Konsumenten importieren `WorkingTime` aus `@panary-core/working-times/domain` | ✅ |
-| 4c | `product.model.ts` entfernt; `ProductSchema`/`ItemType`/`Pricelist` in `@panary-core/products/domain` (`legacy-types.ts`) integriert | ✅ |
+| 4a | `write-offs.model.ts` trivialen Re-Export aufgelöst — Konsumenten importieren direkt aus `@panary/write-offs/domain` | ✅ |
+| 4b | `working-time.model.ts` entfernt — Konsumenten importieren `WorkingTime` aus `@panary/working-times/domain` | ✅ |
+| 4c | `product.model.ts` entfernt; `ProductSchema`/`ItemType`/`Pricelist` in `@panary/products/domain` (`legacy-types.ts`) integriert | ✅ |
 | 4d | `notification.model.ts` → `notification.types.ts` umbenannt (reiner UI-Framework-Typ, keine Domain) | ✅ |
 | 4e | `db-agnostic.smoke.test.ts` als M3-Gatekeeper ergänzt | ✅ |
 

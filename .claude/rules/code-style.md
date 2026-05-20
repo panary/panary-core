@@ -21,7 +21,7 @@ Code **außerhalb** des Änderungsbereichs nicht umformatieren — Git-Diffs min
 - **Typsicherheit:** Keine `any`-Typen ohne expliziten Kommentar. `unknown` bevorzugen.
 - **Enums:** `const enum` oder `as const`-Objekte für externe Werte bevorzugen.
 - **Generics:** Sprechende Namen verwenden (`TEntity` statt `T`).
-- **Importe:** Absolute Pfade über `@panary-core/...`-Alias — keine relativen `../../../`-Importe über Bibliotheksgrenzen.
+- **Importe:** Absolute Pfade über `@panary/...`-Alias — keine relativen `../../../`-Importe über Bibliotheksgrenzen.
 - **Exports:** Immer benannte Exports (`export const`, `export function`) — kein `export default`.
 
 ---

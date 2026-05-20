@@ -36,7 +36,7 @@ Cross-Reference via `correlationId == requestId`.
 
 ## Datenmodell
 
-Schema in `@panary-core/audit-events/domain` (TypeBox).
+Schema in `@panary/audit-events/domain` (TypeBox).
 
 | Feld | Typ | Zweck |
 |---|---|---|
@@ -114,7 +114,7 @@ Zwei Schichten:
 ## Cloud-Sync
 
 `audit-events` ist in `SyncableTransactionService` (in
-`@panary-core/edge-pairing/domain`) und in `TRANSACTION_PATHS` von
+`@panary/edge-pairing/domain`) und in `TRANSACTION_PATHS` von
 `sync-outbox-recorder.hook.ts` enthalten. Jede Audit-Eintrag-Erzeugung
 schreibt einen `sync-outbox`-Eintrag mit `service: 'audit-events'`. Der
 Push-Service in `panary-cloud` empfaengt und persistiert in der

@@ -36,26 +36,26 @@ Vor dem Arbeiten die relevanten Rules lesen:
   - **Regel:** Schreib-Pfade (SQL-Inserts/Updates/Deletes via Knex bzw. Mongo-Writes) und Standard-Reads ausschließlich über die Feathers-Adapter-API — niemals direkt auf der DB-Connection. Komplexe Analytics-Reads (Aggregationen, Joins) dürfen direkt laufen, müssen aber den Tenant-Filter (`WHERE tenantId = ?`/`$match: { tenantId }`) als ersten Schritt erzwingen. Vollständige Regel siehe `.claude/rules/code-style.md` §6.
 - **Frontend:** Angular (neueste Version), ausschließlich Standalone-Komponenten, Signals für State.
 - **Geteilter Code:** `libs/domains/[domain-name]` — Apps importieren aus Libs, nie umgekehrt.
-  - Import-Pfad: `@panary-core/[domain]/domain`
+  - Import-Pfad: `@panary/[domain]/domain`
 
 ## 2.1 Domain-Lib Workspace-Pattern
 
 Jede publishable Domain hat zwei Schichten:
 
-- **Eltern-`package.json`** in `libs/domains/[name]/` — der Workspace-Eintrag, `name: "@panary-core/[name]"`, mit `exports`-Map (`./domain` → `./domain/dist/index.cjs.js`) und `peerDependencies`. Wird via `pnpm nx release publish` veröffentlicht.
+- **Eltern-`package.json`** in `libs/domains/[name]/` — der Workspace-Eintrag, `name: "@panary/[name]"`, mit `exports`-Map (`./domain` → `./domain/dist/index.cjs.js`) und `peerDependencies`. Wird via `pnpm nx release publish` veröffentlicht.
 - **Subpackage-`package.json`** in `libs/domains/[name]/domain/` — Build-Hint für `@nx/rollup:rollup`, **niemals** Workspace-Paket. `name: "[name]-domain-internal"` (Suffix `-internal`, kein Slash, npm-spec-konform). `private: true`.
 
 Dasselbe Pattern gilt für `libs/shared/[name]` ohne Eltern: `name: "shared-[name]-internal"`.
 
-> **Regel:** Subpackage-`name` darf **niemals** das Slash-Pattern `@panary-core/X/Y` verwenden — pnpm akzeptiert das zwar, aber es kollidiert mit der `exports`-Map des Eltern-Pakets und verstößt gegen npm-Spec.
+> **Regel:** Subpackage-`name` darf **niemals** das Slash-Pattern `@panary/X/Y` verwenden — pnpm akzeptiert das zwar, aber es kollidiert mit der `exports`-Map des Eltern-Pakets und verstößt gegen npm-Spec.
 
-**Cross-Lib-Imports zwischen Domain-Libs** (z. B. `apikeys/domain` importiert `@panary-core/users/domain`):
+**Cross-Lib-Imports zwischen Domain-Libs** (z. B. `apikeys/domain` importiert `@panary/users/domain`):
 - `external` in `project.json` rollup-Options aufnehmen.
-- `peerDependencies` in der Eltern-`package.json` deklarieren (Format: `"@panary-core/users": "^26.4.20"`).
+- `peerDependencies` in der Eltern-`package.json` deklarieren (Format: `"@panary/users": "^26.4.20"`).
 - `paths`-Override in der eigenen `tsconfig.lib.json` zur compiled `dist/index.d.ts` setzen (sonst TS6059 wegen rootDir-Verletzung):
   ```json
   "paths": {
-    "@panary-core/users/domain": ["../../users/domain/dist/index.d.ts"]
+    "@panary/users/domain": ["../../users/domain/dist/index.d.ts"]
   }
   ```
 - `dependsOn: ["^build"]` im rollup-Build-Target sichert die Build-Reihenfolge.
@@ -81,7 +81,7 @@ nx g @nx/js:lib --name=[name]-domain domains/[name] \
   --directory=libs/domains/[name]/domain \
   --bundler=tsc --unitTestRunner=vitest \
   --tags="type:domain,domain:[name]" \
-  --importPath=@panary-core/[name]/domain
+  --importPath=@panary/[name]/domain
 
 # FeathersJS-Service erstellen
 nx g ./tools/generators/feathers-service:feathers-service [name]

@@ -97,7 +97,7 @@ libs/domains/
       project.json
 ```
 
-**Import-Pfad:** `@panary-core/[domain]/domain`
+**Import-Pfad:** `@panary/[domain]/domain`
 
 Apps (`api-edge`, `pos-client`) importieren aus Libs — niemals umgekehrt.
 

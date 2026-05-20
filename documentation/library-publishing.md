@@ -1,17 +1,17 @@
 ---
-title: Library-Publishing — @panary-core/* via GitHub Packages
+title: Library-Publishing — @panary/* via GitHub Packages
 date: 2026-05-20
 category: infrastructure
 domains: [all]
 status: current
 ---
 
-# Library-Publishing — `@panary-core/*` via GitHub Packages
+# Library-Publishing — `@panary/*` via GitHub Packages
 
 panary-core ist die Single Source of Truth für die geteilten Domain-Schemas,
 Backend-Hooks und Utilities. panary-cloud (und künftig weitere Konsumenten)
 beziehen diese als versionierte npm-Pakete aus **GitHub Packages**
-(`https://npm.pkg.github.com`, Scope `@panary-core`).
+(`https://npm.pkg.github.com`, Scope `@panary`).
 
 Dieses Dokument beschreibt, **wie** publiziert wird und **welche** Pakete dabei
 veröffentlicht werden.
@@ -52,7 +52,7 @@ die 26 von panary-cloud konsumierten Domains/Shared-Libs + `audit-events`.
 
 Publishable wird ein Domain-Paket durch:
 1. **Eltern-`package.json`** (`libs/domains/<name>/package.json`):
-   `name: "@panary-core/<name>"`, `version`, `exports` (`./domain` →
+   `name: "@panary/<name>"`, `version`, `exports` (`./domain` →
    `./domain/dist/index.cjs.js`), `files: ["domain/dist", …]`, `publishConfig`
    (Registry), `peerDependencies`.
 2. **Eltern-`project.json`** (`libs/domains/<name>/project.json`):
@@ -80,7 +80,7 @@ pnpm nx release version 26.5.0
 
 # 2. Geänderte package.json committen.
 git add libs/domains/*/package.json libs/shared/*/package.json
-git commit -m "chore(release): @panary-core/* auf 26.5.0"
+git commit -m "chore(release): @panary/* auf 26.5.0"
 
 # 3. Tag setzen + pushen → triggert publish-libraries.yml.
 git tag v26.5.0
@@ -108,13 +108,13 @@ pnpm nx release publish --dry-run
 
 ## Konsum in panary-cloud
 
-`panary-cloud/package.json` referenziert die Pakete als `"@panary-core/<name>":
+`panary-cloud/package.json` referenziert die Pakete als `"@panary/<name>":
 "^26.5.0"`. Auflösung:
 
 | Umgebung | Mechanismus |
 |---|---|
 | Lokale Entwicklung | pnpm-Workspace-Root `_WORKBENCH_PANARY/` + `prefer-workspace-packages=true` → lokale Source wird gelinkt, sofern deren Version den Range erfüllt |
-| Prod / CI (standalone) | `.npmrc` mit `@panary-core:registry=https://npm.pkg.github.com` + Read-Token → `pnpm install` zieht die gepinnte Version aus der Registry |
+| Prod / CI (standalone) | `.npmrc` mit `@panary:registry=https://npm.pkg.github.com` + Read-Token → `pnpm install` zieht die gepinnte Version aus der Registry |
 
 Nach einem Core-Release wird die Range in panary-cloud manuell gebumpt
 (Dep-Bump-Commit) → Cloud-CI baut das Image gegen die neue Version → Coolify

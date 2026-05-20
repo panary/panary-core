@@ -49,7 +49,7 @@ panary-core/
 └── documentation/         # Service creation & generator guides
 ```
 
-Domain libraries export via `@panary-core/[domain]/domain`. Apps import from libs — never the other way around.
+Domain libraries export via `@panary/[domain]/domain`. Apps import from libs — never the other way around.
 
 ## Prerequisites
 

@@ -11,7 +11,7 @@
 
 - [M2 — DB-Agnostik-Refactor](m2-db-agnostik-refactor.md) — 2026-04-24 — Hybrid-Adapter, ensureIndexes, Schema-First, getJsonFieldHooks
 - [ADR — Emergency-Override für Drucker-Konfiguration im Edge](emergency-override-adr.md) — 2026-05-14 — Eng begrenzte Notfall-Schreibrechte bei Cloud-Ausfall (≥3 Heartbeat-Fehler ODER >5 min), nur `printSettings`-Patches, eigene `pending-local-overrides`-Tabelle (nicht Sync-Outbox), Reconciliation via `POST /sync-reconcile-overrides` mit Old-Value-Konflikt-Detection
-- [Tagesabschluss-Architektur (Edge + Cloud + Aggregator-Lib)](tagesabschluss-architektur.md) — 2026-05-15 — Lifecycle-Maschine (open → closing-requested → closing-aggregating → closed/failed → audited), Mode-Unterscheidung pro Location (orders-only vs pos-cashier), shared `@panary-core/businessdays/aggregator` als Single Source of Truth für Dashboard-Live + Cloud-Report (Cent-Integer, deterministisch, 57 Fixture-Tests), Sync-Outbox-Vorabprüfung im Edge, lückenlose Z-Bon-Nummer pro Location, KassenSichV-Schema-Reserve
+- [Tagesabschluss-Architektur (Edge + Cloud + Aggregator-Lib)](tagesabschluss-architektur.md) — 2026-05-15 — Lifecycle-Maschine (open → closing-requested → closing-aggregating → closed/failed → audited), Mode-Unterscheidung pro Location (orders-only vs pos-cashier), shared `@panary/businessdays/aggregator` als Single Source of Truth für Dashboard-Live + Cloud-Report (Cent-Integer, deterministisch, 57 Fixture-Tests), Sync-Outbox-Vorabprüfung im Edge, lückenlose Z-Bon-Nummer pro Location, KassenSichV-Schema-Reserve
 - [Cloud-Status-Badge — Sync-Alter + Token-Ablauf (POS + Admin)](cloud-status-badge.md) — 2026-05-16 — Plan für proaktive schwebende Top-Center-Badges (gleiche Optik wie die existierenden OFFLINE/RE-PAIRING-Pillen), wenn der letzte erfolgreiche Cloud-Sync zu lange her ist (WARN > 5 min, CRIT > 30 min) oder der Edge-Token bald abläuft (WARN < 24 h, CRIT < 1 h). Schema-Ergänzung `cloud-connection.edgeTokenExpiresAt`, `/health`-Endpoint-Erweiterung, neue Shared-UI-Lib `<lib-cloud-status-badges>`, eingesetzt in POS und Admin-Dashboard. Status: planned
 
 ## Sicherheit
@@ -22,7 +22,7 @@
 ## Infrastruktur
 
 - [Docker-Build-Fix — Native Module](docker-native-module-fix.md) — 2026-04-07 — glibc/musl-Mismatch behoben, Build-Tools für sqlite3, bookworm-slim
-- [Library-Publishing — @panary-core/* via GitHub Packages](library-publishing.md) — 2026-05-20 — Nx-Release-basiertes Publishing der 27 publishable Libs nach GitHub Packages, Tag-Trigger `v*`, Release-Ablauf, publishable-Markierung (Eltern-package.json + project.json), Konsum in panary-cloud via Caret-Ranges
+- [Library-Publishing — @panary/* via GitHub Packages](library-publishing.md) — 2026-05-20 — Nx-Release-basiertes Publishing der 27 publishable Libs nach GitHub Packages, Tag-Trigger `v*`, Release-Ablauf, publishable-Markierung (Eltern-package.json + project.json), Konsum in panary-cloud via Caret-Ranges
 
 ## Integrationen
 

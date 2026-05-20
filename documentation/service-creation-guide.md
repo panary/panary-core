@@ -41,7 +41,7 @@ apps/api-edge/src/services/products/
 ### 2.1 Schema in shared Library erstellen
 
 ```bash
-nx g @nx/js:lib --name=products-domain --directory=libs/domains/products/domain --bundler=tsc --unitTestRunner=vitest --tags="type:domain,domain:products" --importPath=@panary-core/products/domain
+nx g @nx/js:lib --name=products-domain --directory=libs/domains/products/domain --bundler=tsc --unitTestRunner=vitest --tags="type:domain,domain:products" --importPath=@panary/products/domain
 ```
 
 **Datei:** `libs/domains/products/domain/src/lib/product.schema.ts`
@@ -112,7 +112,7 @@ import type { KnexAdapterParams } from '@feathersjs/knex'
 import type { MongoDBAdapterParams } from '@feathersjs/mongodb'
 
 // Domain Import
-import type { Product, ProductData, ProductPatch, ProductQuery } from '@panary-core/products/domain'
+import type { Product, ProductData, ProductPatch, ProductQuery } from '@panary/products/domain'
 
 export type { Product, ProductData, ProductPatch, ProductQuery }
 
@@ -143,7 +143,7 @@ import {
   productPatchSchema,
   productQuerySchema,
   productSchema
-} from '@panary-core/products/domain'
+} from '@panary/products/domain'
 import { ProductsService } from './products.class'
 
 //#region 1. Main Resolver (Output)
@@ -213,8 +213,8 @@ import type { Application } from '../../declarations'
 import type { Product } from './products.class'
 import { authorize } from '../../hooks/authorize.hook'
 import { multiTenancy } from '../../hooks/multi-tenancy.hook'
-import { createServiceAdapter } from '@panary-core/shared/data-access'
-import { DatabaseType } from '@panary-core/shared/common'
+import { createServiceAdapter } from '@panary/shared/data-access'
+import { DatabaseType } from '@panary/shared/common'
 
 export const productsPath = 'products'
 export const productsMethods = ['find', 'get', 'create', 'patch', 'remove'] as const

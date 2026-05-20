@@ -79,7 +79,7 @@ NX  Generating ./tools/generators/feathers-service:feathers-service
 
 📁 Creating domain library...
 ✅ Domain library created at libs/domains/products/domain/src
-✅ Updated tsconfig.base.json with @panary-core/products/domain path
+✅ Updated tsconfig.base.json with @panary/products/domain path
 
 📁 Creating service files...
 ✅ Service files created at apps/api-edge/src/services/products

@@ -12,7 +12,7 @@ Modernisierter Tagesabschluss-Workflow als Nachfolger der Legacy-`smartfoodorder
 
 | Schicht | Verantwortung |
 |---|---|
-| **`@panary-core/businessdays/aggregator`** | Reine Funktionen — Single Source of Truth für alle Tages-Aggregationen (Dashboard-Live + Tagesabschluss-Report) |
+| **`@panary/businessdays/aggregator`** | Reine Funktionen — Single Source of Truth für alle Tages-Aggregationen (Dashboard-Live + Tagesabschluss-Report) |
 | **api-edge `business-days`-Service** | Lokaler Lifecycle-Service (open/close), Sync-Outbox-Vorabprüfung, Cloud-Trigger |
 | **api-cloud `business-day-reports`-Service** | Heavy-Lifting-Aggregation: Bestellungen, Wareneinsatz, Inventur, Kassenabstimmung, Z-Bon-Nummer-Vergabe |
 

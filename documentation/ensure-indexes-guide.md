@@ -15,7 +15,7 @@ status: active
 ## Aufruf
 
 ```typescript
-import { ensureIndexes } from '@panary-core/shared-backend'
+import { ensureIndexes } from '@panary/shared-backend'
 
 ;(service as any).setup = async (app: Application) =>
   ensureIndexes(

@@ -274,6 +274,20 @@ async function main() {
     }
     // -----------------------------------------------------------------------
 
+    // --- Business-Days-Pull-Worker (Cloud-Managed Hybrid, siehe ADR) ---
+    // Pollt alle 5s im CONNECTED-Modus die Cloud-business-days +
+    // location.currentBusinessDay. Im DISCONNECTED-Modus pausiert er
+    // (rotateBusinessDay() laeuft dann im Standalone-Pfad).
+    try {
+      const { startBusinessDaysPullWorker } = await import(
+        './workers/cloud-pull-business-days.worker.js'
+      )
+      await startBusinessDaysPullWorker(app)
+    } catch (err) {
+      logger.error('BusinessDays-Pull-Worker konnte nicht gestartet werden.', err)
+    }
+    // -----------------------------------------------------------------------
+
     // --- Auto-Repair-Hook fuer historisch inkonsistente Edge-DBs ---
     // Heilt einmalig: User mit activeLocationId, die nicht in locations._id
     // existieren (Geist-Location aus altem Pairing-Bug). Idempotent — bei

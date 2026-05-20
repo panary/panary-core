@@ -8,6 +8,7 @@ import { SyncProblemCountService } from '../core/sync-problem-count.service'
 import { ThemeServiceService } from '@panary-core/shared/data-access-theme'
 import { LanguageService } from '@panary-core/shared/data-access'
 import { LocationStateService } from '../core/location-state.service'
+import { OfflineOverrideBannerComponent } from '../features/cloud-connection/offline-override-banner'
 
 interface NavItem {
   path: string
@@ -30,7 +31,7 @@ interface NavItem {
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslateModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslateModule, OfflineOverrideBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="h-screen bg-slate-50 dark:bg-black flex">
@@ -208,8 +209,13 @@ interface NavItem {
       </aside>
 
       <!-- Main Content -->
-      <main class="flex-1 overflow-hidden">
-        <router-outlet />
+      <main class="flex-1 overflow-hidden flex flex-col">
+        <!-- Banner: zeigt nur bei CONNECTED + Cloud-Outage. Setzt sich
+             beim naechsten erfolgreichen Pull-Tick automatisch zurueck. -->
+        <app-offline-override-banner />
+        <div class="flex-1 overflow-hidden">
+          <router-outlet />
+        </div>
       </main>
     </div>
   `,

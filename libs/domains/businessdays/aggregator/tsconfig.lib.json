@@ -7,12 +7,12 @@
     "moduleResolution": "node",
     "module": "commonjs",
     "paths": {
-      "@panary/orders/domain": ["libs/domains/orders/domain/dist/index.d.ts"],
-      "@panary/write-offs/domain": ["libs/domains/write-offs/domain/dist/index.d.ts"],
-      "@panary/working-times/domain": ["libs/domains/working-times/domain/dist/index.d.ts"],
-      "@panary/ingredients/domain": ["libs/domains/ingredients/domain/dist/index.d.ts"],
-      "@panary/recipes/domain": ["libs/domains/recipes/domain/dist/index.d.ts"],
-      "@panary/products/domain": ["libs/domains/products/domain/dist/index.d.ts"]
+      "@panary/orders/domain": ["../../orders/domain/dist/index.d.ts"],
+      "@panary/write-offs/domain": ["../../write-offs/domain/dist/index.d.ts"],
+      "@panary/working-times/domain": ["../../working-times/domain/dist/index.d.ts"],
+      "@panary/ingredients/domain": ["../../ingredients/domain/dist/index.d.ts"],
+      "@panary/recipes/domain": ["../../recipes/domain/dist/index.d.ts"],
+      "@panary/products/domain": ["../../products/domain/dist/index.d.ts"]
     }
   },
   "include": ["src/**/*.ts"],

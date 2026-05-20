@@ -6,7 +6,7 @@
     "types": ["node"],
     "moduleResolution": "node",
     "paths": {
-      "@panary/users/domain": ["libs/domains/users/domain/dist/index.d.ts"]
+      "@panary/users/domain": ["../../users/domain/dist/index.d.ts"]
     }
   },
   "include": ["src/**/*.ts"],

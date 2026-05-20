@@ -8,7 +8,7 @@
     "module": "commonjs",
     "paths": {
       "@panary/shared-common": ["../../../shared/common/src/index.ts"],
-      "@panary/cloud-edges/domain": ["libs/domains/cloud-edges/domain/dist/index.d.ts"]
+      "@panary/cloud-edges/domain": ["../../cloud-edges/domain/dist/index.d.ts"]
     }
   },
   "include": ["src/**/*.ts"],

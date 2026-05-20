@@ -81,13 +81,18 @@ export interface ServiceTypes {
   businessdays: BusinessDayService
   'log-export': {
     find(params?: any): Promise<{
-      filename: string
-      contentType: string
-      sha256: string
-      lineCount: number
-      fileCount: number
-      generatedAt: string
-      contentBase64: string
+      total: number
+      limit: number
+      skip: number
+      data: Array<{
+        filename: string
+        contentType: string
+        sha256: string
+        lineCount: number
+        fileCount: number
+        generatedAt: string
+        contentBase64: string
+      }>
     }>
   }
 }

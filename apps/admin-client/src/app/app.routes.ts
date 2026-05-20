@@ -30,6 +30,7 @@ export const appRoutes: Routes = [
       // funktionieren weiter.
       { path: 'sync-status', loadComponent: () => import('./features/cloud-connection/sync-conflicts').then(m => m.SyncConflictsComponent) },
       { path: 'cloud/conflicts', loadComponent: () => import('./features/cloud-connection/sync-conflicts').then(m => m.SyncConflictsComponent) },
+      { path: 'logs', loadComponent: () => import('./features/log-export/log-export').then(m => m.LogExportComponent) },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },

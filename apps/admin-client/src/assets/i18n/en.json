@@ -40,7 +40,19 @@
     "ORDERS": "Orders",
     "PAGERS": "Pagers",
     "OPENING_HOURS": "Opening Hours",
-    "SYNC_STATUS": "Sync Status"
+    "SYNC_STATUS": "Sync Status",
+    "LOGS": "Support Logs"
+  },
+  "LOGS": {
+    "TITLE": "Support logs",
+    "DESCRIPTION": "Exports this edge server's technical logs as a compressed file for support.",
+    "HINT": "The bundle contains technical diagnostic data only - no customer data, amounts or passwords.",
+    "EXPORT_BUTTON": "Export support logs",
+    "EXPORTING": "Exporting...",
+    "SUCCESS": "Log bundle downloaded",
+    "LINES": "lines",
+    "FILES": "file(s)",
+    "ERROR": "Export failed"
   },
   "OPENING_HOURS": {
     "TITLE": "Opening Hours",

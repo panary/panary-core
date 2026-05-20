@@ -40,7 +40,19 @@
     "ORDERS": "Bestellungen",
     "PAGERS": "Pager",
     "OPENING_HOURS": "\u00d6ffnungszeiten",
-    "SYNC_STATUS": "Sync-Status"
+    "SYNC_STATUS": "Sync-Status",
+    "LOGS": "Support-Logs"
+  },
+  "LOGS": {
+    "TITLE": "Support-Logs",
+    "DESCRIPTION": "Exportiert die technischen Logs dieses Edge-Servers als komprimierte Datei f\u00fcr den Support.",
+    "HINT": "Das Bundle enth\u00e4lt ausschlie\u00dflich technische Diagnosedaten - keine Kundendaten, Betr\u00e4ge oder Passw\u00f6rter.",
+    "EXPORT_BUTTON": "Support-Logs exportieren",
+    "EXPORTING": "Exportiere...",
+    "SUCCESS": "Log-Bundle heruntergeladen",
+    "LINES": "Zeilen",
+    "FILES": "Datei(en)",
+    "ERROR": "Export fehlgeschlagen"
   },
   "OPENING_HOURS": {
     "TITLE": "\u00d6ffnungszeiten",

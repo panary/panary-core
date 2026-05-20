@@ -26,10 +26,12 @@ export interface LogExportResult {
 // DB-Zugriff); der Edge bedient genau einen Tenant. Zugriff via JWT + RBAC
 // (authorize() prueft AppResource.LOG_EXPORT → nur TENANT_OWNER/MANAGER).
 const createLogExportService = () => ({
-  async find(): Promise<LogExportResult> {
+  // Feathers-idiomatisch paginiert (ein Bundle als einziges data-Item), damit der
+  // admin-client-ApiService.find() es unveraendert konsumiert.
+  async find(): Promise<{ total: number; limit: number; skip: number; data: LogExportResult[] }> {
     const bundle = await buildLogBundle(LOG_DIR)
     const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
-    return {
+    const result: LogExportResult = {
       filename: `edge-logs-${stamp}.ndjson.gz`,
       contentType: 'application/gzip',
       sha256: bundle.sha256,
@@ -38,6 +40,7 @@ const createLogExportService = () => ({
       generatedAt: bundle.generatedAt,
       contentBase64: bundle.gzip.toString('base64'),
     }
+    return { total: 1, limit: 1, skip: 0, data: [result] }
   },
 })
 

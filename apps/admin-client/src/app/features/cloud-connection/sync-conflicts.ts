@@ -213,7 +213,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
               @if (row.lastError) {
                 <details class="text-xs">
                   <summary class="cursor-pointer text-slate-500 hover:text-slate-900">
-                    Technische Details ({{ row.attempts ?? 0 }} Versuche)
+                    Technische Details ({{ row.attempts }} Versuche)
                   </summary>
                   <pre class="mt-2 font-mono text-[11px] bg-slate-50 dark:bg-gray-950 rounded p-2 overflow-auto whitespace-pre-wrap break-all">{{ row.lastError }}</pre>
                   @if (row.payload) {

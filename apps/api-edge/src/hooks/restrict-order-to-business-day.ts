@@ -2,6 +2,7 @@ import { HookContext } from '@feathersjs/feathers'
 import { BadRequest, NotAuthenticated } from '@feathersjs/errors'
 import { User } from '@panary-core/users/domain'
 import { Location } from '@panary-core/locations/domain'
+import { PairingStatus, CloudConnection } from '@panary-core/cloud-connection/domain'
 import { AppError, AppErrorMessages } from '@panary-core/shared-common'
 import { logger } from '@panary-core/shared-backend'
 import {
@@ -10,6 +11,40 @@ import {
   rotateBusinessDay,
   shouldAutoRotate,
 } from '../utils/business-day.utils'
+
+/**
+ * Liest die aktive `cloud-connection`-Verbindung (CONNECTED) und prueft, ob
+ * der Operator gerade einen Offline-Override aktiviert hat (Banner-Action
+ * im Admin-Client). Liefert `null`, wenn kein Pairing aktiv ist (= Standalone).
+ *
+ * Im Standalone-Modus (`null`) UND im Connected-Modus mit aktivem
+ * Offline-Override darf `rotateBusinessDay()` laufen. Im Connected-Modus
+ * ohne Override blockiert der Hook neue Bestellungen mit klarer Operator-
+ * Message.
+ */
+async function getConnectedCloudConnection(
+  context: HookContext,
+): Promise<CloudConnection | null> {
+  try {
+    const result = await context.app.service('cloud-connection').find({
+      provider: undefined,
+      paginate: false,
+      query: { pairingStatus: PairingStatus.CONNECTED, $limit: 1 },
+    })
+    const list = Array.isArray(result) ? result : []
+    return (list[0] as CloudConnection | undefined) ?? null
+  } catch {
+    return null
+  }
+}
+
+function isOfflineOverrideActive(connection: CloudConnection): boolean {
+  const until = connection.offlineOverrideActiveUntil
+  if (!until) return false
+  const untilMs = new Date(until).getTime()
+  if (Number.isNaN(untilMs)) return false
+  return untilMs > Date.now()
+}
 
 /**
  * Ermittelt die locationId anhand des Authentifizierungstyps (API-Key oder User).
@@ -102,8 +137,15 @@ export function restrictOrderToBusinessDay() {
     const today = new Date().toISOString().slice(0, 10)
     const needsRotation = shouldAutoRotate(activeLocation.currentBusinessDay, today)
 
-    // Standalone: Auto-Rotate durchfuehren
-    if (needsRotation && systemMode === 'standalone') {
+    // Im Cloud-Managed-Hybrid (siehe ADR business-days-cloud-managed):
+    // `rotateBusinessDay()` darf nur laufen wenn KEIN aktives Pairing UND
+    // Standalone-System-Mode, ODER wenn der Operator den Offline-Override
+    // gesetzt hat (manueller Bypass bei Cloud-Outage). Sonst blockieren.
+    const cloudConnection = await getConnectedCloudConnection(context)
+    const overrideActive = cloudConnection ? isOfflineOverrideActive(cloudConnection) : false
+    const standaloneAllowed = systemMode === 'standalone' && (!cloudConnection || overrideActive)
+
+    if (needsRotation && standaloneAllowed) {
       // Rotation blockieren wenn noch aktive Bestellungen vorhanden
       if (activeLocation.currentBusinessDay?.businessDayId) {
         const blocked = await hasActiveOrders(app, activeLocation.currentBusinessDay.businessDayId)
@@ -122,7 +164,18 @@ export function restrictOrderToBusinessDay() {
       return context
     }
 
-    // Enterprise: Geschaeftstag muss existieren
+    // Connected ohne Override: kein Auto-Rotate. Cloud ist Master fuer
+    // Lifecycle — Edge wartet auf naechsten Pull oder Operator-Banner.
+    if (needsRotation && cloudConnection && !overrideActive) {
+      throw new BadRequest(
+        'Der aktuelle Geschaeftstag wird in der Cloud verwaltet und ist nicht eroeffnet ' +
+          'oder veraltet. Bitte im Cloud-Admin einen neuen Geschaeftstag eroeffnen — oder ' +
+          'im Edge-Admin den Offline-Modus aktivieren (bei Cloud-Outage).',
+        { code: AppError.BUSINESS_DAY_NOT_SET },
+      )
+    }
+
+    // Enterprise / kein Rotations-Bedarf: Geschaeftstag muss existieren
     if (!activeLocation.currentBusinessDay) {
       throw new BadRequest(AppErrorMessages[AppError.BUSINESS_DAY_NOT_SET], {
         code: AppError.BUSINESS_DAY_NOT_SET,

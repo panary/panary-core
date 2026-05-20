@@ -167,8 +167,8 @@ importers:
         specifier: ^5.0.40
         version: 5.0.44(typescript@6.0.3)
       '@feathersjs/cli':
-        specifier: 5.0.40
-        version: 5.0.40(@types/node@25.9.1)
+        specifier: 5.0.44
+        version: 5.0.44(@types/node@25.9.1)
       '@feathersjs/rest-client':
         specifier: ^5.0.40
         version: 5.0.44
@@ -1889,8 +1889,8 @@ packages:
     resolution: {integrity: sha512-ZTWYtLI1rOa7jvijhJQNNkNJaB/SGCY2q/qgKafoNxBxvyj+u8lIGYi53aZzTL397XbbDG2d7aeBZaV1pc+eMA==}
     engines: {node: '>= 12'}
 
-  '@feathersjs/cli@5.0.40':
-    resolution: {integrity: sha512-Gl20rCU2tuA4AycuDW/mdTXcZ+t/NAfUs/cwBggQIFYPWfN2FmKSIKVBRITjvJpMksHFpieYItYu4ssldsh7Vg==}
+  '@feathersjs/cli@5.0.44':
+    resolution: {integrity: sha512-T4goD/185P78sinrcm6kzW7gWG4TxvFhzhm0V5HnbRlcqXMiarUHP9BuQz0RnBfVqxjHlHcUp2u7RQ0yGv8vlQ==}
     engines: {node: '>= 14'}
     hasBin: true
 
@@ -11118,7 +11118,7 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@feathersjs/cli@5.0.40(@types/node@25.9.1)':
+  '@feathersjs/cli@5.0.44(@types/node@25.9.1)':
     dependencies:
       '@feathersjs/generators': 5.0.44(@types/node@25.9.1)
       chalk: 5.6.2

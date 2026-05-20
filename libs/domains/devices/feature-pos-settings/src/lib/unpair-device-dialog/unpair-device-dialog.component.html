@@ -1,0 +1,259 @@
+<!-- Overlay-Modal — passt zum POS-Touch-First-UI (siehe Login-Pattern).
+     Schließt bei Klick außerhalb des Dialogs nur bei sicheren Schritten. -->
+<div
+  class="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+  role="dialog"
+  aria-modal="true"
+  (click)="cancel()"
+  (keydown.escape)="cancel()"
+  tabindex="-1"
+>
+  <div
+    class="w-full max-w-md bg-white dark:bg-gray-950 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col max-h-[90vh]"
+    (click)="$event.stopPropagation()"
+    (keydown)="$event.stopPropagation()"
+    tabindex="-1"
+  >
+    <!-- Header -->
+    <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
+      <div class="flex items-center gap-3">
+        <div class="h-10 w-10 rounded-full bg-red-50 dark:bg-red-950 flex items-center justify-center text-red-600 dark:text-red-400">
+          <span class="material-symbols-outlined text-[20px]">link_off</span>
+        </div>
+        <div>
+          <h2 class="text-base font-bold text-gray-800 dark:text-white">
+            {{ 'SETTINGS.UNPAIR_TITLE' | translate }}
+          </h2>
+          <p class="text-xs text-gray-500 dark:text-gray-400">{{ deviceName() }}</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        (click)="cancel()"
+        [disabled]="step() === 'unpairing'"
+        class="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        [attr.aria-label]="'COMMON.CLOSE' | translate"
+      >
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto p-5">
+      @switch (step()) {
+        @case ('loading') {
+          <div class="flex flex-col items-center justify-center py-12 gap-3">
+            <span class="material-symbols-outlined text-[40px] text-gray-400 dark:text-gray-500 animate-spin">sync</span>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ 'SETTINGS.UNPAIR_LOADING_USERS' | translate }}</p>
+          </div>
+        }
+
+        @case ('select-user') {
+          <div class="flex flex-col gap-3">
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">
+              {{ 'SETTINGS.UNPAIR_SELECT_USER_DESC' | translate }}
+            </p>
+
+            @if (hasEligibleUsers()) {
+              @for (user of eligibleUsers(); track user._id) {
+                <button
+                  type="button"
+                  (click)="selectUser(user)"
+                  class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 transition-colors text-left"
+                >
+                  <div class="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold flex items-center justify-center">
+                    {{ user.initials || '??' }}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="font-semibold text-gray-800 dark:text-white truncate">
+                      {{ user.firstName }} {{ user.lastName }}
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      {{ user.staffRole || user.role }}
+                    </p>
+                  </div>
+                  <span class="material-symbols-outlined text-gray-300 dark:text-gray-600 text-[20px]">chevron_right</span>
+                </button>
+              }
+            } @else {
+              <div class="flex flex-col items-center text-center gap-3 py-8">
+                <span class="material-symbols-outlined text-[40px] text-gray-300 dark:text-gray-600">person_off</span>
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                  {{ 'SETTINGS.UNPAIR_NO_ELIGIBLE_USERS' | translate }}
+                </p>
+              </div>
+            }
+          </div>
+        }
+
+        @case ('enter-pin') {
+          @if (selectedUser(); as user) {
+            <div class="flex flex-col items-center gap-5">
+              <div class="flex flex-col items-center gap-2">
+                <div class="h-14 w-14 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-xl flex items-center justify-center">
+                  {{ user.initials || '??' }}
+                </div>
+                <p class="font-semibold text-gray-800 dark:text-white">
+                  {{ user.firstName }} {{ user.lastName }}
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">{{ user.staffRole || user.role }}</p>
+              </div>
+
+              <p class="text-sm text-gray-600 dark:text-gray-300 text-center">
+                {{ 'SETTINGS.UNPAIR_ENTER_PIN' | translate }}
+              </p>
+
+              <!-- PIN-Anzeige -->
+              <div class="flex gap-3" [class.animate-shake]="pinError()">
+                @for (i of [0, 1, 2, 3]; track i) {
+                  <div
+                    class="w-3.5 h-3.5 rounded-full transition-colors"
+                    [class.bg-purple-500]="pinInput().length > i && !pinError()"
+                    [class.bg-red-500]="pinError()"
+                    [class.bg-gray-200]="pinInput().length <= i && !pinError()"
+                    [class.dark:bg-gray-700]="pinInput().length <= i && !pinError()"
+                  ></div>
+                }
+              </div>
+
+              @if (errorMessage()) {
+                <p class="text-xs text-red-600 dark:text-red-400 text-center">{{ errorMessage() }}</p>
+              }
+
+              <!-- PIN-Pad -->
+              <div class="grid grid-cols-3 gap-2 w-full max-w-[260px]">
+                @for (digit of ['1', '2', '3', '4', '5', '6', '7', '8', '9']; track digit) {
+                  <button
+                    type="button"
+                    (click)="addDigit(digit)"
+                    [disabled]="isVerifying()"
+                    class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 text-xl font-semibold text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 disabled:opacity-40 transition-all"
+                  >
+                    {{ digit }}
+                  </button>
+                }
+                <button
+                  type="button"
+                  (click)="backToUserList()"
+                  [disabled]="isVerifying()"
+                  class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 disabled:opacity-40 transition-all flex items-center justify-center"
+                  [attr.aria-label]="'COMMON.BACK' | translate"
+                >
+                  <span class="material-symbols-outlined text-[20px]">person</span>
+                </button>
+                <button
+                  type="button"
+                  (click)="addDigit('0')"
+                  [disabled]="isVerifying()"
+                  class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 text-xl font-semibold text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 disabled:opacity-40 transition-all"
+                >
+                  0
+                </button>
+                <button
+                  type="button"
+                  (click)="deleteDigit()"
+                  [disabled]="isVerifying()"
+                  class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 disabled:opacity-40 transition-all flex items-center justify-center"
+                  [attr.aria-label]="'COMMON.DELETE' | translate"
+                >
+                  <span class="material-symbols-outlined text-[20px]">backspace</span>
+                </button>
+              </div>
+
+              @if (isVerifying()) {
+                <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-[14px] animate-spin">sync</span>
+                  {{ 'COMMON.VERIFYING' | translate }}
+                </p>
+              }
+            </div>
+          }
+        }
+
+        @case ('confirm') {
+          <div class="flex flex-col gap-4">
+            <div class="p-4 rounded-xl bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900">
+              <div class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-[22px] text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5">warning</span>
+                <div class="flex-1 text-sm text-red-800 dark:text-red-200">
+                  <p class="font-semibold mb-2">{{ 'SETTINGS.UNPAIR_CONFIRM_HEADING' | translate }}</p>
+                  <ul class="list-disc list-inside space-y-1 text-xs">
+                    <li>{{ 'SETTINGS.UNPAIR_CONFIRM_ITEM_BACKEND' | translate }}</li>
+                    <li>{{ 'SETTINGS.UNPAIR_CONFIRM_ITEM_LOCAL_DATA' | translate }}</li>
+                    <li>{{ 'SETTINGS.UNPAIR_CONFIRM_ITEM_LOGIN' | translate }}</li>
+                    <li>{{ 'SETTINGS.UNPAIR_CONFIRM_ITEM_REPAIR' | translate }}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            @if (verifiedUser(); as user) {
+              <div class="text-xs text-gray-500 dark:text-gray-400 text-center">
+                {{ 'SETTINGS.UNPAIR_AUTHORIZED_BY' | translate }}
+                <span class="font-semibold text-gray-700 dark:text-gray-300">
+                  {{ user.firstName }} {{ user.lastName }}
+                </span>
+              </div>
+            }
+          </div>
+        }
+
+        @case ('unpairing') {
+          <div class="flex flex-col items-center justify-center py-12 gap-3">
+            <span class="material-symbols-outlined text-[40px] text-red-500 animate-spin">sync</span>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ 'SETTINGS.UNPAIR_IN_PROGRESS' | translate }}</p>
+          </div>
+        }
+
+        @case ('error') {
+          <div class="flex flex-col items-center text-center gap-3 py-6">
+            <span class="material-symbols-outlined text-[40px] text-red-500">error</span>
+            <p class="text-sm font-semibold text-gray-800 dark:text-white">
+              {{ 'SETTINGS.UNPAIR_ERROR' | translate }}
+            </p>
+            @if (errorMessage()) {
+              <p class="text-xs text-gray-500 dark:text-gray-400 break-words max-w-full">{{ errorMessage() }}</p>
+            }
+          </div>
+        }
+      }
+    </div>
+
+    <!-- Footer / Actions -->
+    @if (step() === 'confirm') {
+      <div class="flex gap-2 p-4 border-t border-gray-100 dark:border-gray-800">
+        <button
+          type="button"
+          (click)="cancel()"
+          class="flex-1 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+        >
+          {{ 'COMMON.CANCEL' | translate }}
+        </button>
+        <button
+          type="button"
+          (click)="performUnpair()"
+          class="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors"
+        >
+          {{ 'SETTINGS.UNPAIR_BUTTON_CONFIRM' | translate }}
+        </button>
+      </div>
+    } @else if (step() === 'error') {
+      <div class="flex gap-2 p-4 border-t border-gray-100 dark:border-gray-800">
+        <button
+          type="button"
+          (click)="cancel()"
+          class="flex-1 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+        >
+          {{ 'COMMON.CLOSE' | translate }}
+        </button>
+        <button
+          type="button"
+          (click)="retry()"
+          class="flex-1 h-12 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors"
+        >
+          {{ 'COMMON.RETRY' | translate }}
+        </button>
+      </div>
+    }
+  </div>
+</div>

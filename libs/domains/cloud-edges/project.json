@@ -1,0 +1,22 @@
+{
+  "name": "cloud-edges",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/cloud-edges",
+  "projectType": "library",
+  "tags": ["type:domain-package", "domain:cloud-edges", "publishable"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/libs/domains/cloud-edges/domain/dist"],
+      "dependsOn": ["cloud-edges-domain:build"],
+      "options": {
+        "command": "echo 'cloud-edges package build complete'"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "libs/domains/cloud-edges"
+      }
+    }
+  }
+}

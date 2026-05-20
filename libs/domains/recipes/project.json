@@ -1,0 +1,22 @@
+{
+  "name": "recipes",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/recipes",
+  "projectType": "library",
+  "tags": ["type:domain-package", "domain:recipes", "publishable"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/libs/domains/recipes/domain/dist"],
+      "dependsOn": ["recipes-domain:build"],
+      "options": {
+        "command": "echo 'recipes package build complete'"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "libs/domains/recipes"
+      }
+    }
+  }
+}

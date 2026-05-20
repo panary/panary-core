@@ -1,0 +1,22 @@
+{
+  "name": "allergens",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/allergens",
+  "projectType": "library",
+  "tags": ["type:domain-package", "domain:allergens", "publishable"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/libs/domains/allergens/domain/dist"],
+      "dependsOn": ["allergens-domain:build"],
+      "options": {
+        "command": "echo 'allergens package build complete'"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "libs/domains/allergens"
+      }
+    }
+  }
+}

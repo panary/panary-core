@@ -1,4 +1,4 @@
-import { computed, effect, inject, Injectable, Signal, signal, WritableSignal } from '@angular/core'
+import { computed, effect, inject, Injectable, Signal, signal, untracked, WritableSignal } from '@angular/core'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { Router } from '@angular/router'
 import { HttpClient, HttpErrorResponse } from '@angular/common/http'
@@ -113,6 +113,36 @@ export class AuthService {
         }
       })
     })
+
+    // Session-Ablauf-Wächter: Wenn der WS-Layer den Token server-seitig als
+    // ungültig zurückbekommt (401), wird der User sauber ausgeloggt und zum
+    // Login geleitet — statt mit leerem Hauptinhalt in einer stillen
+    // WS-Reconnect-Schleife hängenzubleiben (siehe ConnectionService).
+    // `userSessionExpired()` ist getrackt; logout()/isLoggedIn() laufen via
+    // untracked() (Effect-Loop-Schutz, siehe angular.md §2.1).
+    effect(() => {
+      const expired = this.#connectionService.userSessionExpired()
+      if (!expired) return
+      untracked(() => {
+        if (this.isLoggedIn()) {
+          console.warn('[AuthService] WS-Session server-seitig abgelaufen — Logout + Login-Redirect.')
+          void this.logout()
+        }
+      })
+    })
+
+    // Periodischer Ablauf-Check: Der JWT-Ablauf wurde bisher nur beim App-Init
+    // geprüft. Läuft das Token bei offenem Tab ab (lange Session), blieb der
+    // Nutzer mit leerem Hauptinhalt und „Kein gültiger Token"-WS-Schleife
+    // zurück, ohne Re-Login-Aufforderung. Alle 30 s prüfen und ggf. ausloggen.
+    setInterval(() => {
+      if (!this.isLoggedIn()) return
+      const exp = this.#authenticationItem()?.authentication.payload.exp
+      if (!exp || this.validateExploration(exp)) {
+        console.warn('[AuthService] Token während Laufzeit abgelaufen — Logout + Login-Redirect.')
+        void this.logout()
+      }
+    }, 30_000)
   }
 
   /** PRIVATE METHODS */

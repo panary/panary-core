@@ -1,16 +1,17 @@
-import { Component, inject, OnInit, signal } from '@angular/core'
+import { Component, computed, inject, OnInit, signal } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { HttpClient } from '@angular/common/http'
 import { lastValueFrom } from 'rxjs'
 import { ThemeServiceService } from '@panary-core/shared/data-access-theme'
 import { LocationService } from '@panary-core/locations/data-access'
 import { ConnectionService, LanguageService } from '@panary-core/shared/data-access'
-import { APP_CONFIG } from '@panary-core/shared/data-access-config'
+import { APP_CONFIG, DeviceConfigService } from '@panary-core/shared/data-access-config'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { UnpairDeviceDialogComponent } from './unpair-device-dialog/unpair-device-dialog.component'
 
 interface EdgeServerInfo {
   status: string
@@ -29,7 +30,7 @@ interface EdgeServerInfo {
 @Component({
   selector: 'lib-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatTooltipModule, TranslateModule],
+  imports: [CommonModule, FormsModule, MatTooltipModule, TranslateModule, UnpairDeviceDialogComponent],
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.scss'],
 })
@@ -38,6 +39,7 @@ export class SettingsComponent implements OnInit {
   languageService = inject(LanguageService)
   locationService = inject(LocationService)
   connectionService = inject(ConnectionService)
+  deviceConfigService = inject(DeviceConfigService)
   router = inject(Router)
   translateService = inject(TranslateService)
   #http = inject(HttpClient)
@@ -46,6 +48,9 @@ export class SettingsComponent implements OnInit {
   // For the sidebar selection
   activeSection = 'general'
   menuOpen = signal(false)
+
+  // Unpair-Dialog (Verbindungs-Sektion → Danger-Zone)
+  showUnpairDialog = signal(false)
 
   // Edge Server Info
   edgeInfo = signal<EdgeServerInfo | null>(null)
@@ -64,6 +69,24 @@ export class SettingsComponent implements OnInit {
     { value: 'light', label: 'SETTINGS.THEME_LIGHT', icon: 'light_mode' },
     { value: 'dark', label: 'SETTINGS.THEME_DARK', icon: 'dark_mode' },
   ]
+
+  // Connection-Section: Device-Konfiguration + Tier-Modell
+  readonly deviceConfig = computed(() => this.deviceConfigService.getConfig())
+  readonly tier = this.connectionService.tier
+  readonly showsCloudSyncStatus = this.connectionService.showsCloudSyncStatus
+  readonly syncStaleness = this.connectionService.syncStaleness
+  readonly tierLabelKey = computed<string>(() => {
+    switch (this.tier()) {
+      case 'cloud-direct':
+        return 'SETTINGS.BACKEND_TIER_CLOUD_DIRECT'
+      case 'standalone':
+        return 'SETTINGS.BACKEND_TIER_STANDALONE'
+      case 'edge-with-cloud':
+        return 'SETTINGS.BACKEND_TIER_EDGE_WITH_CLOUD'
+      default:
+        return 'SETTINGS.BACKEND_TIER_UNKNOWN'
+    }
+  })
 
   constructor() {
     this.loadCurrentUser()

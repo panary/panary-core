@@ -1,0 +1,22 @@
+{
+  "name": "edge-pairing",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/edge-pairing",
+  "projectType": "library",
+  "tags": ["type:domain-package", "domain:edge-pairing", "publishable"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/libs/domains/edge-pairing/domain/dist"],
+      "dependsOn": ["edge-pairing-domain:build"],
+      "options": {
+        "command": "echo 'edge-pairing package build complete'"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "libs/domains/edge-pairing"
+      }
+    }
+  }
+}

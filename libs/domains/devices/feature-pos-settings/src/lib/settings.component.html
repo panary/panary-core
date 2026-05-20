@@ -47,6 +47,13 @@
               [class.text-purple-600]="activeSection === 'design'" [class.dark:text-purple-400]="activeSection === 'design'" [class.text-gray-400]="activeSection !== 'design'" [class.dark:text-gray-500]="activeSection !== 'design'">palette</span>
             {{ 'SETTINGS.DESIGN' | translate }}
           </button>
+          <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            [class.bg-purple-50]="activeSection === 'connection'" [class.dark:bg-purple-950]="activeSection === 'connection'" [class.text-purple-700]="activeSection === 'connection'" [class.dark:text-purple-300]="activeSection === 'connection'"
+            (click)="activeSection = 'connection'; menuOpen.set(false)">
+            <span class="material-symbols-outlined text-[20px]"
+              [class.text-purple-600]="activeSection === 'connection'" [class.dark:text-purple-400]="activeSection === 'connection'" [class.text-gray-400]="activeSection !== 'connection'" [class.dark:text-gray-500]="activeSection !== 'connection'">device_hub</span>
+            {{ 'SETTINGS.CONNECTION' | translate }}
+          </button>
           <div class="h-px bg-gray-100 dark:bg-gray-700 my-1"></div>
           <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             [class.bg-purple-50]="activeSection === 'info'" [class.dark:bg-purple-950]="activeSection === 'info'" [class.text-purple-700]="activeSection === 'info'" [class.dark:text-purple-300]="activeSection === 'info'"
@@ -91,6 +98,13 @@
         <span class="material-symbols-outlined text-[20px] mr-3" [class.text-purple-600]="activeSection === 'design'" [class.dark:text-purple-400]="activeSection === 'design'"
           [class.text-gray-400]="activeSection !== 'design'" [class.dark:text-gray-500]="activeSection !== 'design'">palette</span>
         {{ 'SETTINGS.DESIGN' | translate }}
+      </button>
+      <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        [class.bg-purple-50]="activeSection === 'connection'" [class.dark:bg-purple-950]="activeSection === 'connection'" [class.text-purple-700]="activeSection === 'connection'" [class.dark:text-purple-300]="activeSection === 'connection'"
+        (click)="activeSection = 'connection'">
+        <span class="material-symbols-outlined text-[20px] mr-3" [class.text-purple-600]="activeSection === 'connection'" [class.dark:text-purple-400]="activeSection === 'connection'"
+          [class.text-gray-400]="activeSection !== 'connection'" [class.dark:text-gray-500]="activeSection !== 'connection'">device_hub</span>
+        {{ 'SETTINGS.CONNECTION' | translate }}
       </button>
       <div class="flex-1"></div>
       <button class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -188,84 +202,6 @@
             </div>
           </div>
 
-          <!-- Connection Info -->
-          <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
-            <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4 flex items-center gap-2">
-              <span class="material-symbols-outlined text-[20px] text-gray-400 dark:text-gray-500">wifi</span> {{ 'SETTINGS.CONNECTION' | translate }}
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <!-- {{ 'SETTINGS.STATUS' | translate }} -->
-              <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
-                <div>
-                  <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.STATUS' | translate }}</p>
-                  <div class="flex items-center gap-2">
-                    <div class="w-2.5 h-2.5 rounded-full" [class.bg-green-500]="
-                          connectionService.connectionState().status === 'connected' ||
-                          connectionService.connectionState().status === 'authenticated'
-                        " [class.bg-red-500]="
-                          connectionService.connectionState().status !== 'connected' &&
-                          connectionService.connectionState().status !== 'authenticated'
-                        "></div>
-                    <p class="font-bold text-gray-800 dark:text-white">
-                      {{
-                      connectionService.connectionState().status === 'connected' ||
-                      connectionService.connectionState().status === 'authenticated'
-                      ? ('COMMON.CONNECTED' | translate)
-                      : ('SETTINGS.DISCONNECTED' | translate)
-                      }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Device ID -->
-              <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
-                <div>
-                  <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.DEVICE_ID' | translate }}</p>
-                  <p class="font-bold text-gray-800 dark:text-white font-mono text-sm">
-                    {{ connectionService.connectionState().deviceId || '-' }}
-                  </p>
-                </div>
-              </div>
-
-              <!-- Connected Since -->
-              <div
-                class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between md:col-span-2">
-                <div>
-                  <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.CONNECTED_SINCE' | translate }}</p>
-                  <p class="font-bold text-gray-800 dark:text-white">
-                    {{ connectionService.connectionState().connectedAt }}
-                  </p>
-                </div>
-                <span class="material-symbols-outlined text-[20px] text-gray-300 dark:text-gray-600">schedule</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- User Info (Auth) -->
-          <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
-            <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4 flex items-center gap-2">
-              <span class="material-symbols-outlined text-[20px] text-gray-400 dark:text-gray-500">shield</span> {{ 'SETTINGS.AUTH' | translate }}
-            </h3>
-            <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
-              <div>
-                <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.SESSION_STATUS' | translate }}</p>
-                <p class="font-bold text-gray-800 dark:text-white">
-                  {{
-                  connectionService.connectionState().status === 'authenticated'
-                  ? ('SETTINGS.AUTHENTICATED' | translate)
-                  : ('SETTINGS.GUEST' | translate)
-                  }}
-                </p>
-              </div>
-              <span class="material-symbols-outlined text-[20px]"
-                [class.text-green-500]="connectionService.connectionState().status === 'authenticated'"
-                [class.text-gray-300]="connectionService.connectionState().status !== 'authenticated'"
-                [class.dark:text-gray-600]="connectionService.connectionState().status !== 'authenticated'">
-                {{ connectionService.connectionState().status === 'authenticated' ? 'verified_user' : 'no_accounts' }}
-              </span>
-            </div>
-          </div>
         </div>
       </div>
       } @else if (activeSection === 'printer') {
@@ -434,6 +370,125 @@
           }
         </div>
       </div>
+      } @else if (activeSection === 'connection') {
+      <div class="max-w-2xl mx-auto">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
+          <span class="material-symbols-outlined text-[20px] text-purple-600 dark:text-purple-400">device_hub</span>
+          {{ 'SETTINGS.DEVICE_PAIRING' | translate }}
+        </h2>
+
+        <div class="flex flex-col gap-6">
+          <!-- Backend / Tier -->
+          <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+            <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4 flex items-center gap-2">
+              <span class="material-symbols-outlined text-[20px] text-gray-400 dark:text-gray-500">cloud</span>
+              {{ 'SETTINGS.CONNECTION' | translate }}
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:col-span-2">
+                <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.BACKEND_URL' | translate }}</p>
+                <p class="font-mono text-sm font-semibold text-gray-800 dark:text-white break-all">
+                  {{ deviceConfig()?.serverUrl || '-' }}
+                </p>
+              </div>
+              <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.BACKEND_TIER' | translate }}</p>
+                <p class="font-bold text-gray-800 dark:text-white">{{ tierLabelKey() | translate }}</p>
+              </div>
+              <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.STATUS' | translate }}</p>
+                <div class="flex items-center gap-2">
+                  <div class="w-2.5 h-2.5 rounded-full"
+                    [class.bg-green-500]="connectionService.connectionState().status === 'connected' || connectionService.connectionState().status === 'authenticated'"
+                    [class.bg-red-500]="connectionService.connectionState().status !== 'connected' && connectionService.connectionState().status !== 'authenticated'"></div>
+                  <p class="font-bold text-gray-800 dark:text-white">
+                    {{
+                      connectionService.connectionState().status === 'connected' ||
+                      connectionService.connectionState().status === 'authenticated'
+                      ? ('COMMON.CONNECTED' | translate)
+                      : ('SETTINGS.DISCONNECTED' | translate)
+                    }}
+                  </p>
+                </div>
+              </div>
+              @if (showsCloudSyncStatus()) {
+                <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:col-span-2">
+                  <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.LAST_SYNC' | translate }}</p>
+                  @if (syncStaleness().ageSec === null) {
+                    <p class="font-bold text-amber-600 dark:text-amber-400">{{ 'SETTINGS.LAST_SYNC_NEVER' | translate }}</p>
+                  } @else {
+                    <p class="font-bold text-gray-800 dark:text-white">
+                      {{ syncStaleness().ageSec! < 60
+                          ? syncStaleness().ageSec + ' s'
+                          : (syncStaleness().ageSec! < 3600
+                              ? ((syncStaleness().ageSec! / 60) | number:'1.0-0') + ' min'
+                              : ((syncStaleness().ageSec! / 3600) | number:'1.0-0') + ' h') }}
+                    </p>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Device-Info -->
+          <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+            <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4 flex items-center gap-2">
+              <span class="material-symbols-outlined text-[20px] text-gray-400 dark:text-gray-500">point_of_sale</span>
+              {{ 'SETTINGS.DEVICE' | translate }}
+            </h3>
+            @if (deviceConfig(); as cfg) {
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                  <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.DEVICE_NAME' | translate }}</p>
+                  <p class="font-bold text-gray-800 dark:text-white">{{ cfg.deviceName || '-' }}</p>
+                </div>
+                <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                  <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.DEVICE_TYPE' | translate }}</p>
+                  <p class="font-bold text-gray-800 dark:text-white">{{ cfg.deviceType || '-' }}</p>
+                </div>
+                <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:col-span-2">
+                  <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.DEVICE_ID' | translate }}</p>
+                  <p class="font-mono text-sm font-semibold text-gray-800 dark:text-white break-all">{{ cfg.deviceId || '-' }}</p>
+                </div>
+                <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                  <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.TENANT_ID' | translate }}</p>
+                  <p class="font-mono text-xs font-semibold text-gray-800 dark:text-white break-all">{{ cfg.tenantId || '-' }}</p>
+                </div>
+                <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                  <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.LOCATION_ID' | translate }}</p>
+                  <p class="font-mono text-xs font-semibold text-gray-800 dark:text-white break-all">{{ cfg.locationId || '-' }}</p>
+                </div>
+                <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:col-span-2">
+                  <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.PAIRED_AT' | translate }}</p>
+                  <p class="font-semibold text-gray-800 dark:text-white">
+                    {{ cfg.registeredAt ? (cfg.registeredAt | date:'medium') : '-' }}
+                  </p>
+                </div>
+              </div>
+            } @else {
+              <p class="text-sm text-gray-500 dark:text-gray-400">–</p>
+            }
+          </div>
+
+          <!-- Danger Zone -->
+          <div class="bg-red-50 dark:bg-red-950/40 rounded-2xl border border-red-200 dark:border-red-900 p-6">
+            <h3 class="font-bold text-red-700 dark:text-red-300 mb-2 flex items-center gap-2">
+              <span class="material-symbols-outlined text-[20px]">warning</span>
+              {{ 'SETTINGS.DANGER_ZONE' | translate }}
+            </h3>
+            <p class="text-sm text-red-700/80 dark:text-red-300/80 mb-4">
+              {{ 'SETTINGS.UNPAIR_DEVICE_DESC' | translate }}
+            </p>
+            <button
+              type="button"
+              (click)="showUnpairDialog.set(true)"
+              class="h-12 px-5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold flex items-center gap-2 transition-colors">
+              <span class="material-symbols-outlined text-[20px]">link_off</span>
+              {{ 'SETTINGS.UNPAIR_DEVICE' | translate }}
+            </button>
+          </div>
+        </div>
+      </div>
       } @else if (activeSection === 'info') {
       <!-- Info-Seite: Systeminformationen -->
       <div class="max-w-2xl mx-auto">
@@ -558,3 +613,8 @@
     </div>
   </main>
 </div>
+
+<!-- Unpair-Dialog (PIN-Verifikation + Hard-Reset) -->
+@if (showUnpairDialog()) {
+  <lib-unpair-device-dialog (closed)="showUnpairDialog.set(false)" />
+}

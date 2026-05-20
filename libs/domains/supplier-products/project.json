@@ -1,0 +1,22 @@
+{
+  "name": "supplier-products",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/supplier-products",
+  "projectType": "library",
+  "tags": ["type:domain-package", "domain:supplier-products", "publishable"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/libs/domains/supplier-products/domain/dist"],
+      "dependsOn": ["supplier-products-domain:build"],
+      "options": {
+        "command": "echo 'supplier-products package build complete'"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "libs/domains/supplier-products"
+      }
+    }
+  }
+}

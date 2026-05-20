@@ -1,0 +1,22 @@
+{
+  "name": "sync",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/sync",
+  "projectType": "library",
+  "tags": ["type:domain-package", "domain:sync", "publishable"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/libs/domains/sync/domain/dist"],
+      "dependsOn": ["sync-domain:build"],
+      "options": {
+        "command": "echo 'sync package build complete'"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "libs/domains/sync"
+      }
+    }
+  }
+}

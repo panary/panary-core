@@ -10,6 +10,12 @@ import socketio from '@feathersjs/socketio-client'
 import authentication from '@feathersjs/authentication-client'
 import io, { Socket } from 'socket.io-client'
 
+/** Result einer Unpair-Operation. */
+export interface UnpairResult {
+  backendDeleted: boolean
+  backendError?: string
+}
+
 export type RegistrationStatus =
   | 'idle'
   | 'connecting'
@@ -399,6 +405,111 @@ export class DeviceConfigService {
   resetStatus(): void {
     this.registrationStatus.set('idle')
     this.registrationError.set(null)
+  }
+  //#endregion
+
+  //#region Unpair / Factory-Reset
+  /**
+   * Entkoppelt das Gerät vom Backend und führt einen Hard-Reset durch.
+   *
+   * Aufgerufen vom Unpair-Dialog nach erfolgreicher PIN-Verifikation eines
+   * Users mit Rolle TENANT_OWNER, TENANT_MANAGER oder TENANT_TECHNICIAN.
+   *
+   * Schritte:
+   * 1. Backend-DELETE versuchen (best-effort, fehlerresilient — bei 403/offline
+   *    wird trotzdem lokal entkoppelt, sonst hängt das Gerät bei abgelaufenem
+   *    Token / Server-Migration fest).
+   * 2. Socket trennen (verhindert Reconnect-Loop nach Reset).
+   * 3. Alle POS-bezogenen localStorage-Keys löschen.
+   * 4. sessionStorage komplett leeren.
+   * 5. Alle IndexedDB-Datenbanken löschen (Caches, Feathers-Sync-Daten).
+   *
+   * Der Caller sollte nach erfolgreichem Return `window.location.reload()` aufrufen,
+   * damit der setupGuard die App zum Setup-Wizard leitet.
+   */
+  async unpair(): Promise<UnpairResult> {
+    const config = this.getConfig()
+    const result: UnpairResult = { backendDeleted: false }
+
+    // 1. Backend-Cleanup (best-effort)
+    if (config?.deviceId && config?.serverUrl) {
+      try {
+        await this.#callBackendDelete(config)
+        result.backendDeleted = true
+      } catch (err) {
+        // Fehler tolerieren — lokaler Reset läuft trotzdem weiter.
+        // Verwaister Device-Eintrag muss ggf. im Admin-UI bereinigt werden.
+        result.backendError = err instanceof Error ? err.message : String(err)
+        console.warn(
+          '[unpair] Backend-DELETE fehlgeschlagen, fahre mit lokalem Reset fort:',
+          result.backendError,
+        )
+      }
+    }
+
+    // 2. localStorage / sessionStorage clearen
+    const keysToRemove = [
+      this.STORAGE_KEY, // panary_device_config
+      'pos_current_user',
+      'panary_users',
+      'panary_usernames',
+      'panary_company',
+      'panary_server_settings',
+      'authenticationItem',
+    ]
+    keysToRemove.forEach(k => localStorage.removeItem(k))
+    sessionStorage.clear()
+
+    // 3. IndexedDB löschen (Caches, Feathers-Sync-DBs)
+    if ('databases' in indexedDB && typeof indexedDB.databases === 'function') {
+      try {
+        const dbs = await indexedDB.databases()
+        const dbNames: string[] = dbs.map(db => db.name).filter((n): n is string => !!n)
+        await Promise.all(
+          dbNames.map(
+            name =>
+              new Promise<void>(resolve => {
+                const req = indexedDB.deleteDatabase(name)
+                // Bei allen Outcomes resolven — wir blockieren niemals den Reset.
+                req.onsuccess = () => resolve()
+                req.onerror = () => resolve()
+                req.onblocked = () => resolve()
+              }),
+          ),
+        )
+      } catch (err) {
+        console.warn('[unpair] IndexedDB-Cleanup teilweise fehlgeschlagen:', err)
+      }
+    }
+
+    // 4. In-Memory-State zurücksetzen (Status-Signale, Setup-Client)
+    this.clearConfig()
+
+    return result
+  }
+
+  /**
+   * Sendet ein DELETE /devices/:deviceId an das Backend.
+   *
+   * Authentifizierung via Device-API-Key als Bearer-Token. DEVICE_POS hat aktuell
+   * keinen `devices: DELETE` in der Permission-Matrix — der Call wird daher mit
+   * hoher Wahrscheinlichkeit mit 403 fehlschlagen. Wird trotzdem versucht, damit
+   * spätere Backend-Erweiterungen (Custom-Method `devices.unregister` für
+   * Self-Delete) ohne weiteren Frontend-Change funktionieren.
+   */
+  async #callBackendDelete(config: DeviceConfig): Promise<void> {
+    const url = `${config.serverUrl.replace(/\/$/, '')}/devices/${config.deviceId}`
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${config.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!response.ok) {
+      throw new Error(`Backend antwortete mit ${response.status}`)
+    }
   }
   //#endregion
 }

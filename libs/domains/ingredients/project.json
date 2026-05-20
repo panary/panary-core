@@ -1,0 +1,22 @@
+{
+  "name": "ingredients",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/ingredients",
+  "projectType": "library",
+  "tags": ["type:domain-package", "domain:ingredients", "publishable"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/libs/domains/ingredients/domain/dist"],
+      "dependsOn": ["ingredients-domain:build"],
+      "options": {
+        "command": "echo 'ingredients package build complete'"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "libs/domains/ingredients"
+      }
+    }
+  }
+}

@@ -46,6 +46,14 @@ export class ConnectionService {
   #isAuthenticated: WritableSignal<boolean> = signal(false)
   #systemMode: WritableSignal<string> = signal('standalone')
 
+  // Signal: Die User-Session wurde server-seitig als ungültig/abgelaufen
+  // zurückgewiesen (WS-Auth 401). Nur Admin/User-Mode relevant — Device-Mode
+  // (POS) wird in `authenticateSocket()`/`socketLogout()` ohnehin ausgenommen.
+  // Die `AuthService` reagiert auf dieses Signal mit `logout()` + Redirect zum
+  // Login, statt bei abgelaufenem Token still in einer WS-Reconnect-Schleife mit
+  // leerem Hauptinhalt hängenzubleiben.
+  readonly #userSessionExpired: WritableSignal<boolean> = signal(false)
+
   // Cloud-Pairing-Status aus dem /health-Endpoint des Edge-Backends. Wird beim
   // Connect und periodisch gepollt (siehe #healthPoll), damit POS- und Setup-
   // Client einen Auto-Disconnect (z.B. nach Token-Ablauf via Standby) erkennen
@@ -203,8 +211,56 @@ export class ConnectionService {
     return this.#cloudTokenErrorReason.asReadonly()
   }
 
-  /** True, wenn die Cloud-Verbindung explizit auf DISCONNECTED steht (Re-Pairing erforderlich). */
-  readonly cloudNeedsRePairing = computed(() => this.#cloudPairingStatus() === 'disconnected')
+  /**
+   * True, sobald die WS-Authentifizierung server-seitig mit 401 abgelehnt wurde
+   * (Token abgelaufen/ungültig). Die `AuthService` beobachtet das und löst
+   * `logout()` + Login-Redirect aus. Wird beim erfolgreichen (Re-)Auth und beim
+   * `socketLogin()` zurückgesetzt.
+   */
+  get userSessionExpired(): Signal<boolean> {
+    return this.#userSessionExpired.asReadonly()
+  }
+
+  /**
+   * True, wenn die Cloud-Verbindung explizit auf DISCONNECTED steht (Re-Pairing erforderlich).
+   *
+   * Tier-Modell: Re-Pair-Warnung nur sinnvoll, wenn das Edge-Backend bewusst mit
+   * der Cloud verbunden ist (Tier 3, `systemMode='connected'`). Im Cloud-Direkt-
+   * Modus (Tier 1, `systemMode='cloud'`) und Standalone-Edge (Tier 2,
+   * `systemMode='standalone'`) gibt es kein Pairing zwischen Edge und Cloud → keine
+   * Warnung.
+   */
+  readonly cloudNeedsRePairing = computed(() => {
+    if (this.#systemMode() !== 'connected') return false
+    return this.#cloudPairingStatus() === 'disconnected'
+  })
+
+  /**
+   * Aktuelles Tier-Modell des verbundenen Backends.
+   * - `cloud-direct`: POS-Client direkt mit `api-cloud` (Tier 1, akzeptiertes Offline-Risiko).
+   * - `standalone`: Lokaler Edge ohne Cloud-Pairing (Tier 2).
+   * - `edge-with-cloud`: Lokaler Edge mit Cloud-Sync (Tier 3).
+   * - `unknown`: /health noch nicht erreicht.
+   */
+  readonly tier = computed<'cloud-direct' | 'standalone' | 'edge-with-cloud' | 'unknown'>(() => {
+    switch (this.#systemMode()) {
+      case 'cloud':
+        return 'cloud-direct'
+      case 'standalone':
+        return 'standalone'
+      case 'connected':
+        return 'edge-with-cloud'
+      default:
+        return 'unknown'
+    }
+  })
+
+  /**
+   * Sollen Cloud-Sync-Badges (Sync-Alter, Token-Restlaufzeit) angezeigt werden?
+   * Nur in Tier 3 (Edge + Cloud-Sync) — Tier 1 hat nichts zu syncen, Tier 2 ist
+   * bewusst offline-only.
+   */
+  readonly showsCloudSyncStatus = computed(() => this.#systemMode() === 'connected')
 
   // Schwellwerte fuer das Cloud-Status-Badge — bewusst hier zentral, damit
   // beide Apps (POS + Admin) konsistent rendern. Werte koennen spaeter ueber
@@ -398,6 +454,9 @@ export class ConnectionService {
 
   public socketLogin() {
     // Only used for User Auth (JWT)
+    // Frischer Login-Versuch → stale „Session abgelaufen"-Flag zurücksetzen,
+    // damit der AuthService-Wächter nicht direkt nach dem Re-Login erneut feuert.
+    this.#userSessionExpired.set(false)
     if (this.#app.io.connecting) {
       console.warn('socketLogin(): Verbindung läuft bereits, warte auf "connect"...')
       this.#app.io.once('connect', () => {
@@ -479,7 +538,11 @@ export class ConnectionService {
       (error: FeathersError, newAuthResult: any): void => {
         if (error) {
           if (error.code === 401) {
-            console.warn('[WS]: Token nicht gültig – Logout wird ausgeführt.')
+            console.warn('[WS]: Token nicht gültig – Session abgelaufen, Re-Login erforderlich.')
+            // Signalisiert der AuthService, dass die User-Session server-seitig
+            // ungültig ist → sauberer logout()+Login-Redirect statt stiller
+            // Reconnect-Schleife. socketLogout() ignoriert Device-Mode.
+            this.#userSessionExpired.set(true)
             this.socketLogout()
             return
           }
@@ -487,6 +550,7 @@ export class ConnectionService {
           return
         }
         console.log('[WS]: User "' + newAuthResult.user.loginname + '" authenticated!')
+        this.#userSessionExpired.set(false)
         this.#isAuthenticated.set(true)
       },
     )

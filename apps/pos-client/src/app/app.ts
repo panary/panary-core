@@ -44,9 +44,12 @@ import { CloudStatusBadgesComponent } from '@panary-core/shared/ui-cloud-status'
             Cloud-Verbindung getrennt — bitte neu pairen
           </div>
         }
-        <!-- Cloud-Sync-Alter und Token-Restlaufzeit — rendern nur bei Bedarf
-             (level !== 'ok'). -->
-        <lib-cloud-status-badges [sync]="syncStaleness()" [token]="tokenExpiry()" />
+        <!-- Cloud-Sync-Alter und Token-Restlaufzeit — nur in Tier 3 (Edge mit
+             Cloud-Sync). Tier 1 (Cloud-Direkt) und Tier 2 (Standalone-Edge)
+             haben keinen Edge→Cloud-Sync, daher keine Badges. -->
+        @if (showsCloudSyncStatus()) {
+          <lib-cloud-status-badges [sync]="syncStaleness()" [token]="tokenExpiry()" />
+        }
       </div>
     }
     <router-outlet></router-outlet>
@@ -59,6 +62,7 @@ export class AppComponent {
   cloudNeedsRePairing = this.#connectionService.cloudNeedsRePairing
   syncStaleness = this.#connectionService.syncStaleness
   tokenExpiry = this.#connectionService.tokenExpiry
+  showsCloudSyncStatus = this.#connectionService.showsCloudSyncStatus
 
   constructor() {
     // Theme- und Sprach-Service initialisieren — Konstruktoren wenden gespeicherte Einstellungen sofort an

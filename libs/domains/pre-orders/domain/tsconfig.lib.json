@@ -8,7 +8,7 @@
     "module": "commonjs",
     "paths": {
       "@panary/shared-common": ["../../../shared/common/src/index.ts"],
-      "@panary/orders/domain": ["../../orders/domain/dist/index.d.ts"]
+      "@panary/orders/domain": ["libs/domains/orders/domain/dist/index.d.ts"]
     }
   },
   "include": ["src/**/*.ts"],

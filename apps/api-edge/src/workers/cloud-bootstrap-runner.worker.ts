@@ -97,7 +97,7 @@ const TRANSACTION_SERVICES: ReadonlyArray<string> = [
 
 const BACKFILL_RECENT_DAYS = 90
 
-const cloudFetch = async (
+export const cloudFetch = async (
   cloudUrl: string,
   cloudToken: string,
   pathSuffix: string,
@@ -240,7 +240,7 @@ const truncateMasterTables = async (app: Application, tenantId: string): Promise
   }
 }
 
-const pullMasterDataPage = async (
+export const pullMasterDataPage = async (
   cloudUrl: string,
   cloudToken: string,
   service: string,
@@ -262,7 +262,7 @@ const pullMasterDataPage = async (
   return response.json() as Promise<SyncPullResponse>
 }
 
-const applyPulledRecords = async (
+export const applyPulledRecords = async (
   app: Application,
   service: string,
   records: SyncPullResponse['records'],
@@ -482,7 +482,7 @@ const runBootstrapEdgeToCloud = async (
  * (apps/api-edge/src/services/locations/locations.ts:107-109), der externe
  * Schreibzugriffe auf `locations` nach Pairing blockiert.
  */
-const reconcileLocationBusinessDay = async (
+export const reconcileLocationBusinessDay = async (
   app: Application,
   tenantId: string,
 ): Promise<void> => {

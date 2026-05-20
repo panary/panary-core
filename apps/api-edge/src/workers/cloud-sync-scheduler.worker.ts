@@ -298,7 +298,7 @@ const handleCloudAuthError = async (
   throw new EdgePairingRequiredError(reason, phase)
 }
 
-const getActiveConnection = async (app: Application): Promise<CloudConnection | null> => {
+export const getActiveConnection = async (app: Application): Promise<CloudConnection | null> => {
   const result = await (app.service(cloudConnectionPath) as any).find({
     provider: undefined,
     paginate: false,

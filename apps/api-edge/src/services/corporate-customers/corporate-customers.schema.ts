@@ -43,7 +43,18 @@ export const corporateCustomerDataResolver = resolve<
   status: async (value, data, context) => {
     return value || 'DRAFT'
   },
-  ordersCount: async () => 0
+  ordersCount: async () => 0,
+  // `invoices` ist eine SQLite-TEXT-Spalte (JSON-Array, defaultTo '[]'). Der
+  // geteilte `dataValidator` hat KEIN `useDefaults`, daher greift der
+  // Schema-Default [] nicht — bei Sync-Records ohne invoices kommt `undefined`
+  // an, und knex/better-sqlite3 kann undefined nicht binden (Insert bricht).
+  // corporate-customers registriert zudem keine getJsonFieldHooks, also
+  // serialisieren wir hier selbst zu einem gueltigen JSON-String. Cast, weil
+  // die Spalte zwar als unknown[] typisiert ist, in SQLite aber als Text liegt.
+  invoices: async value => {
+    if (value === undefined) return '[]' as unknown as unknown[]
+    return (typeof value === 'string' ? value : JSON.stringify(value)) as unknown as unknown[]
+  }
 })
 //#endregion
 
@@ -57,9 +68,15 @@ export const corporateCustomerPatchResolver = resolve<
   tenantId: async () => undefined,
   locationId: async () => undefined,
   createdAt: async () => undefined,
-  updatedAt: async () => new Date().toISOString()
-
-  // TODO: Add additional resolver logic here
+  updatedAt: async () => new Date().toISOString(),
+  // Beim Sync-Patch (applyPulledRecords) wird der volle Cloud-Record gepatcht.
+  // Fehlt `invoices`, NICHT setzen (vorhandenen Wert behalten); ist es ein
+  // Array/Objekt, zu JSON-String serialisieren (TEXT-Spalte, keine
+  // getJsonFieldHooks — s. Data-Resolver).
+  invoices: async value => {
+    if (value === undefined) return undefined
+    return (typeof value === 'string' ? value : JSON.stringify(value)) as unknown as unknown[]
+  }
 })
 //#endregion
 

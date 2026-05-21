@@ -26,6 +26,7 @@ import {
 import {
   authorize,
   dataValidator,
+  getJsonFieldHooks,
   multiTenancy,
   queryValidator,
 } from '@panary/shared-backend'
@@ -39,21 +40,13 @@ export const syncRunsPath = 'sync-runs'
 const syncRunDataValidator = getValidator(syncRunDataSchema, dataValidator)
 const syncRunQueryValidator = getValidator(syncRunQuerySchema, queryValidator)
 
-const syncRunResolver = resolve<SyncRun, HookContext>({
-  // SQLite gibt die JSON-TEXT-Spalte `details` als String zurueck (Knex parsed
-  // beim SELECT nicht) — hier zurueck in ein Array wandeln, damit das Frontend
-  // direkt damit arbeiten kann. Identisches Muster wie sync-conflicts-Payloads.
-  details: async value => {
-    if (value == null) return undefined
-    if (typeof value !== 'string') return value
-    try {
-      return JSON.parse(value)
-    } catch {
-      return undefined
-    }
-  },
-})
+const syncRunResolver = resolve<SyncRun, HookContext>({})
 const syncRunExternalResolver = resolve<SyncRun, HookContext>({})
+
+// JSON-Feld `details` wird in SQLite als TEXT abgelegt — Knex serialisiert/
+// parsed NICHT automatisch. Der gemeinsame getJsonFieldHooks-Helper uebernimmt
+// das (stringify vor dem Insert, parse nach dem Read). Analog bootstrap-reports.
+const SYNC_RUN_JSON_FIELDS = ['details']
 
 const syncRunDataResolver = resolve<SyncRun, HookContext>({
   _id: async value => value || uuidv7(),
@@ -99,6 +92,8 @@ export const syncRuns = (app: Application) => {
     events: [],
   })
 
+  const jsonHooks = getJsonFieldHooks(app, SYNC_RUN_JSON_FIELDS)
+
   app.service(syncRunsPath).hooks({
     around: {
       all: [
@@ -118,9 +113,10 @@ export const syncRuns = (app: Application) => {
       create: [
         schemaHooks.validateData(syncRunDataValidator),
         schemaHooks.resolveData(syncRunDataResolver),
+        ...jsonHooks.before,
       ],
     },
-    after: { all: [] },
+    after: { all: [...jsonHooks.after] },
     error: { all: [] },
   })
 }

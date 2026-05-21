@@ -174,7 +174,7 @@ const SERVICE_LABEL: Record<string, string> = {
                       {{ row.recordCount }}
                     }
                     @if (row.rejected && row.rejected > 0) {
-                      <span class="text-red-600 dark:text-red-400 ml-1">({{ row.rejected }} rej.)</span>
+                      <span class="text-amber-600 dark:text-amber-400 ml-1">({{ row.rejected }} nicht übern.)</span>
                     }
                   </td>
                   <td class="px-3 py-2 text-right tabular-nums text-slate-500 dark:text-gray-400">{{ row.durationMs }}ms</td>
@@ -323,7 +323,15 @@ const SERVICE_LABEL: Record<string, string> = {
                         <code class="font-mono text-slate-700 dark:text-gray-200 select-all break-all">{{ d.entityId }}</code>
                         @if (d.status && d.status !== 'accepted') {
                           <span
-                            class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] flex-none text-red-700 bg-red-50 dark:text-red-300 dark:bg-red-950/40"
+                            class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] flex-none"
+                            [class.text-amber-700]="d.status === 'retry'"
+                            [class.bg-amber-50]="d.status === 'retry'"
+                            [class.dark:text-amber-300]="d.status === 'retry'"
+                            [class.dark:bg-amber-950/40]="d.status === 'retry'"
+                            [class.text-red-700]="d.status !== 'retry'"
+                            [class.bg-red-50]="d.status !== 'retry'"
+                            [class.dark:text-red-300]="d.status !== 'retry'"
+                            [class.dark:bg-red-950/40]="d.status !== 'retry'"
                             [title]="d.reason || ''">
                             {{ statusLabel(d.status) }}
                           </span>
@@ -532,7 +540,7 @@ export class SyncHistoryComponent implements OnInit, OnDestroy {
       case 'conflict':
         return 'Konflikt'
       case 'retry':
-        return 'Retry'
+        return 'Wird wiederholt'
       default:
         return status
     }

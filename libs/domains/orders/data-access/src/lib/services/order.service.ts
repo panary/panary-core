@@ -184,6 +184,13 @@ export class OrderService extends BaseService<Order> {
     return this.create(newOrder).then((createdOrder: Order | Order[]): number | number[] | undefined | null => {
       if (!createdOrder) return null
 
+      // Eigene Bestellung sofort lokal nachladen. Der Realtime-`created`-Echo
+      // ist auf dem erstellenden Gerät nicht verlässlich; ohne dieses Reload
+      // bliebe das #orders-Signal stale → Dashboard-Diagramm aktualisiert sich
+      // erst nach komplettem Page-Reload. loadDocuments() setzt #orders neu
+      // (→ Chart-Effect) und zeigt den „Bestellungen aktualisiert"-Hinweis.
+      this.loadDocuments()
+
       // Druckdialog öffnen, wenn in den Settings aktiviert
       const showDialog = this.#locationService.activeLocation()?.settings?.printSettings?.showDialogAfterOrder ?? true
       if (showDialog) {

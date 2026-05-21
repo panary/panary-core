@@ -235,10 +235,15 @@ export class DashboardComponent implements OnInit {
   })
 
   constructor() {
-    // React to Order Changes
+    // React to Order Changes — buildOccupancyChartData()/updateKPIs() lesen
+    // this.orders(), daher re-läuft der Effect bei jeder Order-Änderung.
+    // Beide schreiben aber nur Plain-Properties (chartOptions, productivity,
+    // avgWaitingTime); ohne markForCheck rendert die View die neuen Daten nicht
+    // (zoneless) — das Diagramm bliebe bis zum Full-Reload eingefroren.
     effect(() => {
       this.buildOccupancyChartData()
       this.updateKPIs()
+      this.#cdr.markForCheck()
     })
 
     // React to User Changes

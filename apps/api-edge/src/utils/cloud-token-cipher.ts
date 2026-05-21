@@ -80,7 +80,10 @@ export const decryptCloudToken = (value: string | null | undefined): string | nu
   const iv = Buffer.from(ivHex, 'hex')
   const cipherText = Buffer.from(cipherHex, 'hex')
   const tag = Buffer.from(tagHex, 'hex')
-  const decipher = createDecipheriv(ALGORITHM, key, iv)
+  // authTagLength: 16 explizit setzen — verhindert, dass ein gekürzter Auth-Tag
+  // akzeptiert wird (GCM-Forgery-Schutz). Encrypt-Seite nutzt getAuthTag()
+  // (Default 16 Byte), bestehende Ciphertexte bleiben damit kompatibel.
+  const decipher = createDecipheriv(ALGORITHM, key, iv, { authTagLength: 16 })
   decipher.setAuthTag(tag)
   const decrypted = Buffer.concat([decipher.update(cipherText), decipher.final()])
   return decrypted.toString('utf8')

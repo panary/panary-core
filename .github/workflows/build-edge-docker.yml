@@ -34,7 +34,9 @@ jobs:
       - name: Extract Version Tag
         id: version
         run: |
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+          # github-Kontext NICHT direkt interpolieren (Shell-Injection-Risiko,
+          # semgrep run-shell-injection) — die Runner-ENV $GITHUB_REF nutzen.
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             # Tag-Push: Version direkt aus dem Tag lesen (v26.4.1 → 26.4.1)
             echo "tag=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
           else

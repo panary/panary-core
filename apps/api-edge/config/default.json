@@ -54,5 +54,11 @@
     "minuteJitterMs": 300000,
     "cloudReachableMaxAgeDays": 7,
     "batchSize": 1000
-  }
+  },
+  "businessDayRotation": {
+    "enabled": true,
+    "hour": 4,
+    "minuteJitterMs": 60000
+  },
+  "maxBusinessDayOpenHours": 24
 }

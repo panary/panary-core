@@ -24,6 +24,17 @@ export const configurationSchema = Type.Intersect([
         batchSize: Type.Number({ minimum: 1, maximum: 10000 }),
       })
     ),
+    // Standalone-Geschaeftstag-Rotations-Worker. Optional, mit Defaults im Worker.
+    businessDayRotation: Type.Optional(
+      Type.Object({
+        enabled: Type.Boolean(),
+        hour: Type.Number({ minimum: 0, maximum: 23 }),
+        minuteJitterMs: Type.Number({ minimum: 0 }),
+      })
+    ),
+    // Zeit-Guard: verweigert neue Bestellungen, wenn der offene Geschaeftstag
+    // seit Oeffnung laenger als diese Stundenzahl offen ist (Default 24h im Hook).
+    maxBusinessDayOpenHours: Type.Optional(Type.Number({ minimum: 1 })),
   })
 ])
 

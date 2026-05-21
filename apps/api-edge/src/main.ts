@@ -341,6 +341,19 @@ async function main() {
       logger.error('Closing-Status-Refresh-Worker: Start fehlgeschlagen.', err)
     }
     // -----------------------------------------------------------------------
+
+    // --- Business-Day-Rotation-Worker: nightly Auto-Rotation im Standalone-Modus ---
+    // Rotiert den Geschaeftstag zur konfigurierten lokalen Stunde, ohne auf
+    // Server-Neustart oder den ersten Order des neuen Tages zu warten.
+    try {
+      const { startBusinessDayRotationWorker } = await import(
+        './workers/business-day-rotation.worker.js'
+      )
+      startBusinessDayRotationWorker(app)
+    } catch (err) {
+      logger.error('Business-Day-Rotation-Worker: Start fehlgeschlagen.', err)
+    }
+    // -----------------------------------------------------------------------
   } catch (error) {
     logger.error(
       `Configuration check failed or file missing at ${CONFIG_PATH}. Starting in SETUP MODE.`,

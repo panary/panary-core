@@ -26,6 +26,11 @@ export const SyncableMasterDataService = {
   CORPORATE_CUSTOMERS: 'corporate-customers',
   CUSTOMERS: 'customers',
   LOCATIONS: 'locations',
+  // Feiertage/Schließtage: Cloud materialisiert die holiday-calendars-Regel in
+  // konkrete opening-hour-exceptions-Rows (closed:true je Datum) und synct sie
+  // 1:1 read-only zum Edge. Cloud ist Source of Truth — der Edge-Service ist
+  // beim Pairing cloudManaged. Keine FK-Ordnungsabhängigkeit zu ORDERS.
+  OPENING_HOUR_EXCEPTIONS: 'opening-hour-exceptions',
   // OoS-Welle E Item 4: Tenant-Doc als Master-Data zum Edge syncen
   // (Receipt-Header/Footer, Branding, Localization). Pull-Service muss
   // eine **Allowlist-Projection** anwenden (apps/api-cloud/src/services/

@@ -65,6 +65,7 @@ const cloudConnectionPath = 'cloud-connection'
 //    im Hybrid-Modell — Edge zieht read-only.
 const MASTER_DATA_SERVICES: ReadonlyArray<string> = [
   SyncableMasterDataService.LOCATIONS,
+  SyncableMasterDataService.OPENING_HOUR_EXCEPTIONS,
   SyncableMasterDataService.PRODUCT_GROUPS,
   SyncableMasterDataService.PRODUCTS,
   SyncableMasterDataService.USERS,
@@ -86,7 +87,10 @@ const MASTER_DATA_SERVICES: ReadonlyArray<string> = [
 const MERGE_BY_EXTERNAL_ID_SERVICES: ReadonlyArray<string> = MASTER_DATA_SERVICES.filter(
   service =>
     service !== SyncableMasterDataService.LOCATIONS &&
-    service !== SyncableMasterDataService.BUSINESS_DAYS,
+    service !== SyncableMasterDataService.BUSINESS_DAYS &&
+    // Feiertage sind Cloud-materialisiert (kein externalId), Edge hält sie als
+    // Replica — wie locations/businessdays NICHT merge-by-external-id.
+    service !== SyncableMasterDataService.OPENING_HOUR_EXCEPTIONS,
 )
 
 const TRANSACTION_SERVICES: ReadonlyArray<string> = [

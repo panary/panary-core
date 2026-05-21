@@ -15,6 +15,7 @@ import {
 import type { Application } from '../../declarations'
 import { authorize } from '@panary/shared-backend'
 import { multiTenancy } from '@panary/shared-backend'
+import { cloudManaged } from '../../hooks/cloud-managed.hook'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { DatabaseType } from '@panary/shared-common'
 import {
@@ -79,6 +80,11 @@ export const openingHourExceptions = (app: Application) => {
       all: [
         authenticate('jwt'),
         authorize(),
+        // cloudManaged() vor multiTenancy: externe Writes blocken, sobald die
+        // Edge gepaart ist. Feiertage/Schließtage werden in der Cloud verwaltet
+        // (holiday-calendars → materialisiert) und read-only gepullt. Sync-Apply
+        // (provider:undefined) bleibt erlaubt.
+        cloudManaged(),
         multiTenancy({ isolateLocation: true, allowGlobalData: false }),
 
         schemaHooks.resolveExternal(openingHourExceptionExternalResolver),

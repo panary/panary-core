@@ -15,11 +15,22 @@ import { ApiService } from './api.service'
 export class SyncProblemCountService {
   private api = inject(ApiService)
 
-  /** Aktueller Counter — Summe aus rejected Outbox + offene Konflikte. */
+  /**
+   * Aktueller Problem-Counter (ROT) — Summe aus rejected Outbox + offene
+   * Konflikte. Diese Records sind steckengeblieben und brauchen einen Eingriff.
+   */
   readonly count = signal<number>(0)
 
   /**
-   * Laedt den Counter neu. Defensive Catch-Logik: ein gescheiterter Service
+   * Records, die gerade im automatischen Retry-Backoff stecken (AMBER) —
+   * `sync-outbox` mit status=pending und nextAttemptAt in der Zukunft. Diese
+   * heilen sich i.d.R. selbst (transiente Cloud-Fehler) und zaehlen daher NICHT
+   * zum roten Problem-Counter; sie sind nur ein Fruehwarn-Hinweis.
+   */
+  readonly retryingCount = signal<number>(0)
+
+  /**
+   * Laedt die Counter neu. Defensive Catch-Logik: ein gescheiterter Service
    * (z.B. sync-conflicts nicht erreichbar) blockiert den anderen nicht. Jeder
    * Fehler wird verschluckt — die Badge bleibt im Zweifel auf dem letzten
    * bekannten Stand, ein 60s-Poll-Retry holt den richtigen Wert spaeter.
@@ -39,5 +50,17 @@ export class SyncProblemCountService {
       // ignore
     }
     this.count.set(total)
+
+    try {
+      const now = new Date().toISOString()
+      const retrying = await this.api.find('sync-outbox', {
+        status: 'pending',
+        nextAttemptAt: { $gt: now },
+        $limit: 0,
+      })
+      this.retryingCount.set(retrying.total ?? 0)
+    } catch {
+      // ignore
+    }
   }
 }

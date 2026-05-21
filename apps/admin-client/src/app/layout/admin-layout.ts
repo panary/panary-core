@@ -247,7 +247,7 @@ export class AdminLayoutComponent {
     { path: '/pagers',         label: 'NAV.PAGERS',           icon: 'vibration'   },
     { path: '/opening-hours',  label: 'NAV.OPENING_HOURS',    icon: 'schedule'    },
     { path: '/apikeys',        label: 'NAV.API_KEYS',         icon: 'key'         },
-    { path: '/cloud',          label: 'NAV.CLOUD_CONNECTION',  icon: 'cloud'       },
+    { path: '/cloud',          label: 'NAV.CLOUD_CONNECTION',  icon: 'cloud',      problemCountKey: 'sync' },
     { path: '/sync-status',    label: 'NAV.SYNC_STATUS',      icon: 'sync_problem', problemCountKey: 'sync' },
     { path: '/logs',           label: 'NAV.LOGS',             icon: 'description' },
     { path: '/location',       label: 'NAV.LOCATION',         icon: 'store'       },

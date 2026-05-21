@@ -241,7 +241,8 @@ export class AdminLayoutComponent {
     { path: '/users',          label: 'NAV.USERS',            icon: 'people',      countService: 'users' },
     { path: '/product-groups', label: 'NAV.PRODUCT_GROUPS',   icon: 'category',    countService: 'product-groups' },
     { path: '/products',       label: 'NAV.PRODUCTS',         icon: 'inventory_2', countService: 'products' },
-    { path: '/orders',         label: 'NAV.ORDERS',           icon: 'receipt_long' },
+    { path: '/orders',         label: 'NAV.ORDERS',           icon: 'receipt_long', countService: 'orders' },
+    { path: '/business-days',  label: 'NAV.BUSINESS_DAYS',    icon: 'event'       },
     { path: '/printers',       label: 'NAV.PRINTERS',         icon: 'print'       },
     { path: '/pagers',         label: 'NAV.PAGERS',           icon: 'vibration'   },
     { path: '/opening-hours',  label: 'NAV.OPENING_HOURS',    icon: 'schedule'    },
@@ -277,16 +278,27 @@ export class AdminLayoutComponent {
     // Sofortiges Refresh nach Operator-Aktionen passiert ueber die
     // SyncConflictsComponent, die nach jeder retry/discard/resolve-Aktion
     // refresh() auf demselben Service triggert.
-    setInterval(() => this.syncProblemCount.refresh(), 60_000)
+    // Counts (inkl. heutiger Bestellungen) im selben 60s-Takt aktualisieren —
+    // der Sidebar-Tab lebt App-weit, sonst bliebe der „heute"-Badge stale.
+    setInterval(() => {
+      this.syncProblemCount.refresh()
+      void this.loadCounts()
+    }, 60_000)
   }
 
   private async loadCounts() {
+    // Bestellungen: nur HEUTE zählen (lokale Mitternacht), nicht alle Tage —
+    // identische Filter-Semantik wie order-list `getTimeRangeFilter('today')`.
+    const now = new Date()
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
     const services = this.navItems.filter(i => i.countService).map(i => i.countService!)
     const results: Record<string, number> = {}
     await Promise.all(
       services.map(async svc => {
         try {
-          const res = await this.api.find(svc, { $limit: 0 })
+          const query: Record<string, unknown> =
+            svc === 'orders' ? { $limit: 0, createdAt: { $gte: todayStart } } : { $limit: 0 }
+          const res = await this.api.find(svc, query)
           results[svc] = res.total
         } catch {
           // Count nicht verfügbar — ignorieren

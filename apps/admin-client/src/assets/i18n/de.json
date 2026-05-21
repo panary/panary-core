@@ -1,4 +1,22 @@
 {
+  "BUSINESS_DAYS": {
+    "TITLE": "Geschäftstage",
+    "SUBTITLE": "Aus der Cloud synchronisiert (read-only).",
+    "NONE": "Keine Geschäftstage vorhanden.",
+    "DATE": "Datum",
+    "MODE": "Modus",
+    "OPENED": "Geöffnet",
+    "CLOSED": "Geschlossen",
+    "REPORT": "Report",
+    "MODE_ORDERS_ONLY": "Nur Bestellungen",
+    "MODE_POS_CASHIER": "Kasse",
+    "ST_OPEN": "Offen",
+    "ST_CLOSING_REQUESTED": "Abschluss angefordert",
+    "ST_CLOSING_AGGREGATING": "Wird aggregiert",
+    "ST_CLOSED": "Geschlossen",
+    "ST_FAILED": "Fehlgeschlagen",
+    "ST_AUDITED": "Freigegeben"
+  },
   "ENTITY": {
     "DOCUMENT": "Dokument",
     "ORDER": "Bestellung",
@@ -41,7 +59,8 @@
     "PAGERS": "Pager",
     "OPENING_HOURS": "\u00d6ffnungszeiten",
     "SYNC_STATUS": "Sync-Status",
-    "LOGS": "Support-Logs"
+    "LOGS": "Support-Logs",
+    "BUSINESS_DAYS": "Geschäftstage"
   },
   "LOGS": {
     "TITLE": "Support-Logs",

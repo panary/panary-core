@@ -149,6 +149,10 @@
     "ERROR": "Invalid login name or password."
   },
   "DASHBOARD": {
+    "SYNC_PROBLEMS_TITLE": "Synchronization",
+    "SYNC_PROBLEMS_OPEN": "Open sync issues",
+    "SYNC_PROBLEMS_RETRYING": "Being retried",
+    "SYNC_PROBLEMS_RESOLVE": "Resolve",
     "TITLE": "Dashboard",
     "EDGE_SERVER": "Edge Server",
     "ACTIVE": "Active",

@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core'
 import { HttpClient } from '@angular/common/http'
+import { RouterLink } from '@angular/router'
 import { lastValueFrom } from 'rxjs'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService, Paginated } from '../../core/api.service'
+import { SyncProblemCountService } from '../../core/sync-problem-count.service'
 
 type PairingStatus = 'connected' | 'disconnected' | 'pairing' | 'error'
 type CloudStatus = 'standalone' | PairingStatus
@@ -61,7 +63,7 @@ function formatBytes(bytes: number): string {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslateModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6 space-y-4 h-full overflow-y-auto">
@@ -76,6 +78,51 @@ function formatBytes(bytes: number): string {
           {{ statusConfig().labelKey | translate }}
         </div>
       </div>
+
+      <!-- Sync-Hinweis: nur wenn es offene Probleme (rot) oder laufende
+           Retries (amber) gibt. Auf gesunden Systemen unsichtbar. -->
+      @if (syncProblems.count() > 0 || syncProblems.retryingCount() > 0) {
+        <div class="bg-white dark:bg-gray-900/50 border rounded-xl p-4 flex items-center gap-4"
+             [class.border-red-200]="syncProblems.count() > 0"
+             [class.dark:border-red-900/60]="syncProblems.count() > 0"
+             [class.border-amber-200]="syncProblems.count() === 0"
+             [class.dark:border-amber-900/60]="syncProblems.count() === 0">
+          <div class="p-2.5 rounded-xl shrink-0"
+               [class.bg-red-50]="syncProblems.count() > 0"
+               [class.dark:bg-red-950]="syncProblems.count() > 0"
+               [class.bg-amber-50]="syncProblems.count() === 0"
+               [class.dark:bg-amber-950]="syncProblems.count() === 0">
+            <span class="material-symbols-outlined text-[22px]"
+                  [class.text-red-500]="syncProblems.count() > 0"
+                  [class.text-amber-500]="syncProblems.count() === 0">sync_problem</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-bold text-slate-900 dark:text-white">{{ 'DASHBOARD.SYNC_PROBLEMS_TITLE' | translate }}</p>
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs">
+              @if (syncProblems.count() > 0) {
+                <span class="inline-flex items-center gap-1.5 text-red-700 dark:text-red-300">
+                  <span class="w-2 h-2 rounded-full bg-red-500 shrink-0"></span>
+                  <span class="tabular-nums font-semibold">{{ syncProblems.count() }}</span>
+                  {{ 'DASHBOARD.SYNC_PROBLEMS_OPEN' | translate }}
+                </span>
+              }
+              @if (syncProblems.retryingCount() > 0) {
+                <span class="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
+                  <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+                  <span class="tabular-nums font-semibold">{{ syncProblems.retryingCount() }}</span>
+                  {{ 'DASHBOARD.SYNC_PROBLEMS_RETRYING' | translate }}
+                </span>
+              }
+            </div>
+          </div>
+          @if (syncProblems.count() > 0) {
+            <a routerLink="/sync-status"
+               class="shrink-0 text-xs font-semibold px-3 py-2 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-black hover:bg-slate-800 dark:hover:bg-gray-200 transition">
+              {{ 'DASHBOARD.SYNC_PROBLEMS_RESOLVE' | translate }}
+            </a>
+          }
+        </div>
+      }
 
       <!-- KPI Grid -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -180,6 +227,7 @@ export class DashboardComponent implements OnInit {
   #api = inject(ApiService)
   #http = inject(HttpClient)
   #t = inject(TranslateService)
+  protected syncProblems = inject(SyncProblemCountService)
 
   loading = signal(true)
   cloudStatus = signal<CloudStatus>('standalone')
@@ -213,6 +261,11 @@ export class DashboardComponent implements OnInit {
   ])
 
   async ngOnInit() {
+    // Sync-Problem-/Retry-Counter sofort frisch ziehen (Layout pollt zwar im
+    // 60s-Takt denselben Singleton, aber beim Direkt-Landen auf /dashboard
+    // soll die Hinweiskarte ohne Verzoegerung stimmen).
+    void this.syncProblems.refresh()
+
     const minDelay = new Promise(r => setTimeout(r, 300))
 
     const [kpiResults, healthResult, cloudResult] = await Promise.all([

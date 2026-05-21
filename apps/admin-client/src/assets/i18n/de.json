@@ -149,6 +149,10 @@
     "ERROR": "Login-Name oder Passwort falsch."
   },
   "DASHBOARD": {
+    "SYNC_PROBLEMS_TITLE": "Synchronisierung",
+    "SYNC_PROBLEMS_OPEN": "Offene Sync-Probleme",
+    "SYNC_PROBLEMS_RETRYING": "Werden wiederholt",
+    "SYNC_PROBLEMS_RESOLVE": "Auflösen",
     "TITLE": "Dashboard",
     "EDGE_SERVER": "Edge Server",
     "ACTIVE": "Aktiv",

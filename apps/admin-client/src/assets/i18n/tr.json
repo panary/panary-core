@@ -149,6 +149,10 @@
     "ERROR": "Kullan\u0131c\u0131 ad\u0131 veya \u015fifre yanl\u0131\u015f."
   },
   "DASHBOARD": {
+    "SYNC_PROBLEMS_TITLE": "Senkronizasyon",
+    "SYNC_PROBLEMS_OPEN": "A\u00e7\u0131k senkronizasyon sorunlar\u0131",
+    "SYNC_PROBLEMS_RETRYING": "Yeniden deneniyor",
+    "SYNC_PROBLEMS_RESOLVE": "\u00c7\u00f6z",
     "TITLE": "G\u00f6sterge Paneli",
     "EDGE_SERVER": "Edge Sunucu",
     "ACTIVE": "Aktif",

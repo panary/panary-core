@@ -99,6 +99,38 @@ export const isSyncPushBlockedRole = (role: string | undefined | null): boolean 
   if (!role) return false
   return (SYNC_PUSH_BLOCKED_USER_ROLES as ReadonlySet<string>).has(role)
 }
+
+/**
+ * User-Felder, die geraetelokaler, transienter Time-Clock-Runtime-Zustand sind
+ * und NIEMALS ueber Edge<->Cloud synchronisiert werden duerfen:
+ *
+ * - `stampingId`:   Referenz auf den aktiven working-time-Eintrag (Einstempelung).
+ * - `startBreakAt`: Zeitpunkt des Pausenbeginns (gesetzt = User ist in Pause).
+ *
+ * Grund: Diese Felder werden ausschliesslich am Edge gesetzt/geleert (Kommen/
+ * Gehen/Pause am POS). Werden sie mitsynchronisiert, entsteht ein Deadlock —
+ * der Cloud-`stripNullsExcept`-Hook verwirft `null`-Clears, und der
+ * bedingungslose Pull-Apply (kein Last-Write-Wins) holt den alten Wert zurueck,
+ * sodass sich der Pausen-/Stempel-Status vom Edge aus nie mehr beenden laesst.
+ * Die fachliche Pausen-/Arbeitszeit-Historie liegt in `working-times` (eigener
+ * Sync-Pfad), nicht in diesen Runtime-Pointern.
+ *
+ * Genutzt von: Edge-Outbox-Recorder (Push-Payload) + Edge-Sync-Pull-Apply.
+ */
+export const USER_EDGE_LOCAL_FIELDS = ['stampingId', 'startBreakAt'] as const
+
+/**
+ * Entfernt die geraetelokalen Time-Clock-Felder ([[USER_EDGE_LOCAL_FIELDS]]) aus
+ * einem User-Record, bevor er Edge<->Cloud synchronisiert wird. Mutiert eine
+ * flache Kopie und gibt sie zurueck — das Original bleibt unangetastet.
+ */
+export const stripUserEdgeLocalFields = <T extends Record<string, unknown>>(record: T): T => {
+  const copy = { ...record }
+  for (const field of USER_EDGE_LOCAL_FIELDS) {
+    delete copy[field]
+  }
+  return copy
+}
 //#endregion
 
 //#region Das Haupt-Datenmodell (Schema)

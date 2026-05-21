@@ -2,7 +2,7 @@ import { uuidv7 } from 'uuidv7'
 
 import { SyncableTransactionService } from '@panary/edge-pairing/domain'
 import { SyncOp, SyncSource } from '@panary/sync/domain'
-import { isSyncPushBlockedRole } from '@panary/users/domain'
+import { isSyncPushBlockedRole, stripUserEdgeLocalFields } from '@panary/users/domain'
 import { logger } from '@panary/shared-backend'
 
 import type { HookContext, NextHook } from '../declarations'
@@ -57,6 +57,18 @@ export const recordSyncOutbox = async (context: HookContext, _next: NextHook) =>
   const syncSource = (context.params as any)?.syncSource ?? SyncSource.LIVE
   const occurredAt = (result as any)?.updatedAt ?? new Date().toISOString()
 
+  // Geraetelokale Time-Clock-Felder (stampingId/startBreakAt) NIE pushen —
+  // sie sind Edge-Runtime-Zustand. Wuerden sie mitsynchronisiert, koennte der
+  // Pausen-/Stempel-Status vom Edge aus nicht mehr geleert werden (Cloud
+  // stript null-Clears + Pull ueberschreibt ohne LWW). Siehe
+  // USER_EDGE_LOCAL_FIELDS in @panary/users/domain.
+  const payload =
+    op === SyncOp.REMOVE
+      ? null
+      : context.path === 'users'
+        ? stripUserEdgeLocalFields(result as Record<string, unknown>)
+        : result
+
   try {
     await context.app.service('sync-outbox' as any).create(
       {
@@ -64,7 +76,7 @@ export const recordSyncOutbox = async (context: HookContext, _next: NextHook) =>
         service: context.path,
         op,
         entityId,
-        payload: op === SyncOp.REMOVE ? null : result,
+        payload,
         occurredAt,
         syncSource,
       },

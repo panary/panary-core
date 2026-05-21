@@ -17,7 +17,7 @@ import {
   type SyncOpEntry,
   type SyncPullResponse,
 } from '@panary/sync/domain'
-import { isSyncPushBlockedRole } from '@panary/users/domain'
+import { isSyncPushBlockedRole, stripUserEdgeLocalFields } from '@panary/users/domain'
 
 import type { Application } from '../declarations'
 import { logger } from '@panary/shared-backend'
@@ -150,7 +150,9 @@ const buildSyncOp = (record: any, service: string, source: SyncSource): SyncOpEn
   service,
   op: SyncOp.CREATE,
   entityId: record._id,
-  payload: record,
+  // Geraetelokale Time-Clock-Felder (stampingId/startBreakAt) nie pushen —
+  // sie sind reiner Edge-Runtime-Zustand. Siehe USER_EDGE_LOCAL_FIELDS.
+  payload: service === 'users' ? stripUserEdgeLocalFields(record as Record<string, unknown>) : record,
   occurredAt: record.updatedAt ?? new Date().toISOString(),
   syncSource: source,
 })
@@ -287,14 +289,22 @@ export const applyPulledRecords = async (
       // `fromSync: true` siehe sync-scheduler.worker.ts — verhindert
       // Doppelt-Hashing von posPin/password und Override von createdAt/
       // employeeNumber durch Resolver beim Pull-Apply.
+      //
+      // Geraetelokale Time-Clock-Felder (stampingId/startBreakAt) nicht aus
+      // dem Cloud-Record uebernehmen — reiner Edge-Runtime-Zustand. Siehe
+      // USER_EDGE_LOCAL_FIELDS in @panary/users/domain.
+      const incoming =
+        service === 'users'
+          ? stripUserEdgeLocalFields(item.record as Record<string, unknown>)
+          : item.record
       if (existing) {
         await app
           .service(service as any)
-          .patch(item._id, item.record as any, { provider: undefined, fromSync: true } as any)
+          .patch(item._id, incoming as any, { provider: undefined, fromSync: true } as any)
       } else {
         await app
           .service(service as any)
-          .create(item.record as any, { provider: undefined, fromSync: true } as any)
+          .create(incoming as any, { provider: undefined, fromSync: true } as any)
       }
     } catch (err) {
       // AJV-Validierungsdetails extrahieren — sonst loggt der Edge nur das

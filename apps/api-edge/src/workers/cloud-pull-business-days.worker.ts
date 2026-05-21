@@ -98,6 +98,11 @@ export const pullBusinessDaysOnce = async (
       undefined,
     )
     const tickStart = new Date().toISOString()
+    // Cursor = Cloud-`serverTimestamp`, NICHT die Edge-Uhr: der inkrementelle
+    // Pull filtert `updatedAt > since` gegen Cloud-Zeitstempel. Bei Clock-Skew
+    // (Edge-Uhr voraus) würde ein `tickStart`-Cursor neue Cloud-Records dauerhaft
+    // überspringen. Fallback auf Edge-Zeit nur defensiv (Response ohne Feld).
+    const nextSince = response.serverTimestamp ?? tickStart
 
     if (response.records.length > 0) {
       await applyPulledRecords(app, BUSINESS_DAYS_SERVICE, response.records)
@@ -114,8 +119,9 @@ export const pullBusinessDaysOnce = async (
     // Operator-Override ist nur fuer den Ausfall-Zeitraum gedacht und soll
     // bei erfolgreicher Wiederverbindung nicht haengenbleiben.
     const patch: Record<string, unknown> = {
-      lastBusinessDaysPullAt: tickStart,
+      lastBusinessDaysPullAt: nextSince,
       // Erfolgreicher HTTP-Pull = Cloud erreichbar → Banner-Heartbeat aktualisieren.
+      // Bewusst Edge-Zeit (tickStart): „wann hatten WIR zuletzt Kontakt".
       lastCloudContactAt: tickStart,
     }
     if (connection.offlineOverrideActiveUntil) {

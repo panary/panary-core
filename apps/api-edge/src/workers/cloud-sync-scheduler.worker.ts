@@ -656,6 +656,10 @@ const runPullForService = async (
   // Visibility-Snapshot der Cloud — wird nur beim Initial-Pull (page 0,
   // since=undefined) geliefert. Speichern fuer Reconciliation am Loop-Ende.
   let visibilitySnapshot: string[] | undefined
+  // Cursor-Quelle: Cloud-`serverTimestamp` der ERSTEN Seite (High-Watermark).
+  // NICHT die Edge-Uhr — der inkrementelle Filter `updatedAt > since` vergleicht
+  // gegen Cloud-Zeit; eine vorausgehende Edge-Uhr würde Records dauerhaft überspringen.
+  let serverTimestamp: string | undefined
   for (let page = 0; page < 200; page++) {
     const params = new URLSearchParams()
     params.set('service', service)
@@ -682,8 +686,11 @@ const runPullForService = async (
       )
     }
     const body = (await response.json()) as SyncPullResponse
-    if (page === 0 && Array.isArray(body.visibilitySnapshot)) {
-      visibilitySnapshot = body.visibilitySnapshot
+    if (page === 0) {
+      serverTimestamp = body.serverTimestamp
+      if (Array.isArray(body.visibilitySnapshot)) {
+        visibilitySnapshot = body.visibilitySnapshot
+      }
     }
     for (const item of body.records) {
       try {
@@ -746,7 +753,7 @@ const runPullForService = async (
   // (lastPullAt etc.). `updatedAt` wird serverseitig vom resolveData-Resolver
   // des sync-cursor-Service gesetzt (siehe sync-cursor.ts).
   await upsertCursor(app, service, {
-    lastPullAt: new Date().toISOString(),
+    lastPullAt: serverTimestamp ?? new Date().toISOString(),
   })
 
   // Reconciliation: stale-Records, die nicht (mehr) im Visibility-Snapshot

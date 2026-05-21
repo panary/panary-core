@@ -85,3 +85,30 @@ Der **Bootstrap-Pfad** bleibt unverändert (eigener Worker + `bootstrap-reports`
 - Bei sehr großen Pulls sind nur die ersten 500 Record-IDs gespeichert.
 - `details` wird in jeder `find`-Antwort mitgeliefert (gekappt) — für den lokalen
   Edge-Betrieb unkritisch.
+
+## Observability-Erweiterungen (2026-05-22)
+
+Aufbauend auf den Details wurde die Nachvollziehbarkeit von **Push-Rejects**
+ausgebaut (Frage: „warum wurde dieser Record nicht übertragen?"):
+
+- **Edge-Terminal-Log:** `runPush` loggt pro abgelehntem Op ein Wide-Event
+  `sync.push.op_rejected` (`service`, `entityId`, `op`, `classification`,
+  `reason`, `attempts`). Retry = `info`, terminal/conflict = `warn`. Vorher
+  loggte der Edge nur Aggregat-Zähler.
+- **Sync-Status „In Wiederholung"-Tab:** zeigt `sync-outbox`-Einträge mit
+  `status=pending` und `nextAttemptAt > jetzt` (= im Backoff) inkl. `lastError`,
+  Versuch X/10 und nächstem Versuch. Vorher waren transiente Retries in keiner
+  UI sichtbar.
+- **Dashboard-Hinweiskarte + Nav-Badge:** roter Zähler (rejected Outbox + offene
+  Konflikte) jetzt auch am Cloud-Kopplung-Nav-Punkt; Dashboard-Karte zeigt rot
+  (offen) + amber (`retryingCount`, im Backoff).
+- **Sync-History-Popup:** Reject-`reason` inline statt nur als Hover-Tooltip;
+  Status-Badge farbcodiert (retry = amber, conflict/rejected = rot).
+- **Cloud-Gegenstück:** Die Cloud persistiert jeden Reject zusätzlich in der
+  `cloud-sync-reject`-Collection (kurze TTL) — siehe
+  `panary-cloud/documentation/sync-reject-audit.md`.
+
+Lebenszyklus eines nicht übernommenen Records: **transient** → Auto-Retry mit
+Backoff (30s→1min→5min→30min→2h→6h, max. 10), danach Eskalation zu **conflict**;
+**conflict** → `sync-conflicts` (User-Resolution); **terminal** → `rejected`
+(Eingriff nötig). Der Record verschwindet nie still.

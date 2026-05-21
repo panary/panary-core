@@ -14,6 +14,16 @@ type SyncRunPhase = 'bootstrap' | 'push' | 'pull' | 'heartbeat' | 'reconcile'
 type SyncRunDirection = 'edge-to-cloud' | 'cloud-to-edge'
 type SyncRunOutcome = 'success' | 'partial' | 'failure'
 type FilterMode = 'all' | 'pull' | 'push' | 'errors'
+type SyncRunRecordOp = 'create' | 'patch' | 'remove'
+type SyncRunRecordStatus = 'accepted' | 'rejected' | 'conflict' | 'retry'
+
+interface SyncRunRecordDetail {
+  service: string
+  entityId: string
+  op: SyncRunRecordOp
+  status?: SyncRunRecordStatus
+  reason?: string
+}
 
 interface SyncRunRow {
   _id: string
@@ -30,6 +40,13 @@ interface SyncRunRow {
   triggeredBy: string
   startedAt: string
   finishedAt: string
+  details?: SyncRunRecordDetail[]
+}
+
+interface SyncRunDetailGroup {
+  service: string
+  label: string
+  items: SyncRunRecordDetail[]
 }
 
 const REFRESH_INTERVAL_MS = 30_000
@@ -141,11 +158,21 @@ const SERVICE_LABEL: Record<string, string> = {
                     <span class="font-medium">{{ phaseLabel(row.phase) }}</span>
                   </td>
                   <td class="px-3 py-2 text-slate-700 dark:text-gray-200">
-                    {{ serviceLabel(row.service) }}
+                    {{ serviceSummary(row) }}
                   </td>
                   <td class="px-3 py-2 font-mono text-slate-500 dark:text-gray-400">{{ directionLabel(row.direction) }}</td>
                   <td class="px-3 py-2 text-right tabular-nums text-slate-700 dark:text-gray-200">
-                    {{ row.recordCount }}
+                    @if (hasDetails(row)) {
+                      <button
+                        type="button"
+                        (click)="openDetails(row)"
+                        class="tabular-nums underline decoration-dotted underline-offset-2 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                        title="Synchronisierte Records anzeigen">
+                        {{ row.recordCount }}
+                      </button>
+                    } @else {
+                      {{ row.recordCount }}
+                    }
                     @if (row.rejected && row.rejected > 0) {
                       <span class="text-red-600 dark:text-red-400 ml-1">({{ row.rejected }} rej.)</span>
                     }
@@ -231,6 +258,91 @@ const SERVICE_LABEL: Record<string, string> = {
         </footer>
       }
     </section>
+
+    @if (detailRow(); as dr) {
+      <div
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm"
+        tabindex="0"
+        role="button"
+        (click)="closeDetails()"
+        (keydown.enter)="closeDetails()">
+        <div
+          class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col"
+          tabindex="0"
+          role="button"
+          (click)="$event.stopPropagation()"
+          (keydown.enter)="$event.stopPropagation()">
+          <header class="px-5 py-3 border-b border-slate-200 dark:border-gray-800 flex items-start justify-between flex-none">
+            <div>
+              <h3 class="text-sm font-semibold text-slate-900 dark:text-white">
+                {{ phaseLabel(dr.phase) }} · {{ directionLabel(dr.direction) }}
+              </h3>
+              <p class="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
+                {{ formatDate(dr.startedAt) }} · {{ dr.recordCount }} Records
+              </p>
+            </div>
+            <button
+              type="button"
+              (click)="closeDetails()"
+              class="text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white text-lg leading-none px-1"
+              title="Schliessen">
+              ✕
+            </button>
+          </header>
+          <div class="overflow-auto px-5 py-3 flex-1 space-y-4">
+            @if (!dr.details || dr.details.length === 0) {
+              <p class="text-sm text-slate-500 dark:text-gray-400">
+                Für diesen Vorgang wurden keine Record-Details gespeichert.
+              </p>
+            } @else {
+              @for (group of groupedDetails(); track group.service) {
+                <div>
+                  <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-gray-400 mb-1.5">
+                    {{ group.label }}
+                    <span class="text-slate-400 dark:text-gray-500 normal-case">({{ group.items.length }})</span>
+                  </h4>
+                  <ul class="space-y-1">
+                    @for (d of group.items; track d.entityId) {
+                      <li class="flex items-center gap-2 text-xs">
+                        <span
+                          class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium flex-none"
+                          [class.bg-emerald-50]="d.op === 'create'"
+                          [class.text-emerald-700]="d.op === 'create'"
+                          [class.dark:bg-emerald-950/40]="d.op === 'create'"
+                          [class.dark:text-emerald-300]="d.op === 'create'"
+                          [class.bg-sky-50]="d.op === 'patch'"
+                          [class.text-sky-700]="d.op === 'patch'"
+                          [class.dark:bg-sky-950/40]="d.op === 'patch'"
+                          [class.dark:text-sky-300]="d.op === 'patch'"
+                          [class.bg-slate-100]="d.op === 'remove'"
+                          [class.text-slate-600]="d.op === 'remove'"
+                          [class.dark:bg-gray-800]="d.op === 'remove'"
+                          [class.dark:text-gray-300]="d.op === 'remove'">
+                          {{ opLabel(d.op) }}
+                        </span>
+                        <code class="font-mono text-slate-700 dark:text-gray-200 select-all break-all">{{ d.entityId }}</code>
+                        @if (d.status && d.status !== 'accepted') {
+                          <span
+                            class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] flex-none text-red-700 bg-red-50 dark:text-red-300 dark:bg-red-950/40"
+                            [title]="d.reason || ''">
+                            {{ statusLabel(d.status) }}
+                          </span>
+                        }
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+              @if (truncatedCount() > 0) {
+                <p class="text-xs text-slate-400 dark:text-gray-500 italic">
+                  … und {{ truncatedCount() }} weitere (Details auf 500 begrenzt).
+                </p>
+              }
+            }
+          </div>
+        </div>
+      </div>
+    }
   `,
 })
 export class SyncHistoryComponent implements OnInit, OnDestroy {
@@ -241,8 +353,33 @@ export class SyncHistoryComponent implements OnInit, OnDestroy {
   total = signal(0)
   page = signal(1)
   filter = signal<FilterMode>('all')
+  detailRow = signal<SyncRunRow | null>(null)
 
   readonly pageSize = 25
+
+  // Details des aktuell geoeffneten Eintrags, gruppiert nach Service/Entity-Typ.
+  groupedDetails = computed<SyncRunDetailGroup[]>(() => {
+    const dr = this.detailRow()
+    if (!dr?.details?.length) return []
+    const map = new Map<string, SyncRunRecordDetail[]>()
+    for (const d of dr.details) {
+      const arr = map.get(d.service) ?? []
+      arr.push(d)
+      map.set(d.service, arr)
+    }
+    return [...map.entries()].map(([service, items]) => ({
+      service,
+      label: SERVICE_LABEL[service] ?? service,
+      items,
+    }))
+  })
+
+  // Anzahl Records, die NICHT im Detail-Array stehen (Pull-Kappung bei 500).
+  truncatedCount = computed(() => {
+    const dr = this.detailRow()
+    if (!dr) return 0
+    return Math.max(0, dr.recordCount - (dr.details?.length ?? 0))
+  })
 
   filterModes: Array<{ value: FilterMode; label: string }> = [
     { value: 'all', label: 'Alle' },
@@ -359,9 +496,46 @@ export class SyncHistoryComponent implements OnInit, OnDestroy {
     return DIRECTION_LABEL[d] ?? d
   }
 
-  serviceLabel(s: string | null): string {
-    if (!s) return '—'
-    return SERVICE_LABEL[s] ?? s
+  // Push-Eintraege haben service=null (eine aggregierte Batch ueber mehrere
+  // Services). Statt „—" hier die distinkten Services aus den Details ableiten.
+  serviceSummary(row: SyncRunRow): string {
+    if (row.service) return SERVICE_LABEL[row.service] ?? row.service
+    const distinct = new Set((row.details ?? []).map(d => d.service))
+    if (distinct.size === 0) return '—'
+    if (distinct.size === 1) {
+      const only = [...distinct][0]
+      return SERVICE_LABEL[only] ?? only
+    }
+    return `Mehrere (${distinct.size})`
+  }
+
+  hasDetails(row: SyncRunRow): boolean {
+    return (row.details?.length ?? 0) > 0
+  }
+
+  openDetails(row: SyncRunRow) {
+    this.detailRow.set(row)
+  }
+
+  closeDetails() {
+    this.detailRow.set(null)
+  }
+
+  opLabel(op: SyncRunRecordOp): string {
+    return op === 'create' ? 'Neu' : op === 'patch' ? 'Änd.' : 'Gelöscht'
+  }
+
+  statusLabel(status: SyncRunRecordStatus): string {
+    switch (status) {
+      case 'rejected':
+        return 'Abgelehnt'
+      case 'conflict':
+        return 'Konflikt'
+      case 'retry':
+        return 'Retry'
+      default:
+        return status
+    }
   }
 
   formatDate(iso: string): string {

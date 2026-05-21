@@ -102,14 +102,22 @@ export const channels = (app: Application) => {
 
   // eslint-disable-next-line no-unused-vars
   app.publish((data: any, context: HookContext) => {
-    // Interne Aufrufe (kein User-Kontext) → an alle authentifizierten Clients
-    if (!context.params.user) {
-      return app.channel('authenticated')
-    }
+    // Tenant aus dem Record (interne Sync-Applies tragen tenantId) ODER dem
+    // authentifizierten Actor ableiten. Array-sicher (multi-create/patch).
+    const records = Array.isArray(data) ? data : data ? [data] : []
+    const recordTenantId = records.find(
+      (r: any) => typeof r?.tenantId === 'string' && r.tenantId.length > 0
+    )?.tenantId
+    const tenantId = recordTenantId || context.params.user?.tenantId
 
-    const tenantId = data?.tenantId || context.params.user?.tenantId
+    // Kein Tenant ableitbar → NICHTS publishen (kein `authenticated`-Broadcast
+    // mehr — Defense-in-Depth gegen Cross-Tenant-Leaks bei Fehlkonfiguration).
+    // Edge ist single-tenant/single-location → bewusst KEIN Location-Filter
+    // (No-op; und wuerde POS aushungern, da activeLocationId hier nicht
+    // gestempelt wird). Sync-Applies (provider:undefined) tragen tenantId und
+    // erreichen die POS-Clients weiterhin live.
     if (!tenantId) {
-      return app.channel('authenticated')
+      return
     }
 
     // Events nur an Connections desselben Tenants senden

@@ -7,6 +7,7 @@ import {
   SYNC_INTERVAL_DEFAULT_SEC,
 } from '@panary/cloud-connection/domain'
 import { SyncableMasterDataService } from '@panary/edge-pairing/domain'
+import { stripUserEdgeLocalFields } from '@panary/users/domain'
 import {
   backoffMs,
   CLOCK_SKEW_ERROR_MS,
@@ -28,9 +29,12 @@ import { decryptCloudToken, encryptCloudToken } from '../utils/cloud-token-ciphe
 import { recordSyncRun } from '../services/sync-runs/record-sync-run.helper'
 import { printServerManager } from '../print-server'
 import {
+  SyncOp,
   SyncRunDirection,
   SyncRunOutcome,
   SyncRunPhase,
+  type SyncRunRecordDetail,
+  SyncRunRecordStatus,
   SyncRunTrigger,
 } from '@panary/sync/domain'
 
@@ -44,6 +48,11 @@ const PULL_TIMEOUT_MS = 30_000
 const PUSH_BATCH_SIZE = 100
 const PULL_PAGE_SIZE = 500
 const MANUAL_HEARTBEAT_INTERVAL_SEC = 30 * 60
+
+// Obergrenze fuer in einem sync-run gespeicherte Per-Record-Details. Push ist
+// ohnehin auf PUSH_BATCH_SIZE begrenzt; bei grossen Pulls (Bootstrap) wird
+// gekappt — die UI signalisiert das ueber recordCount > details.length.
+const MAX_SYNC_RUN_DETAILS = 500
 
 const syncConflictsPath = 'sync-conflicts'
 
@@ -548,11 +557,19 @@ const recoverInFlightOutbox = async (app: Application): Promise<void> => {
   }
 }
 
-const runPush = async (app: Application, connection: CloudConnection): Promise<number> => {
+interface PushResult {
+  accepted: number
+  rejected: number
+  details: SyncRunRecordDetail[]
+}
+
+const runPush = async (app: Application, connection: CloudConnection): Promise<PushResult> => {
   const cloudToken = decryptCloudToken(connection.cloudToken)
-  if (!cloudToken) return 0
+  if (!cloudToken) return { accepted: 0, rejected: 0, details: [] }
   const entries = await fetchPendingOutbox(app)
-  if (entries.length === 0) return 0
+  if (entries.length === 0) return { accepted: 0, rejected: 0, details: [] }
+  // Per-Record-Details fuer den sync-run-Eintrag (accepted + rejected/conflict).
+  const details: SyncRunRecordDetail[] = []
   // Knex serialisiert Objekte beim Insert in die SQLite-TEXT-Spalte `payload`
   // automatisch als JSON-String, parsed beim Select aber nicht zurueck.
   // Ohne diesen Parse-Schritt schickt der Worker den rohen JSON-String an die
@@ -583,6 +600,16 @@ const runPush = async (app: Application, connection: CloudConnection): Promise<n
     }
     const body = (await response.json()) as { accepted: string[]; rejected: SyncRejection[] }
     await markOutboxAcked(app, body.accepted)
+    for (const id of body.accepted) {
+      const entry = entries.find(e => e._id === id)
+      if (!entry) continue
+      details.push({
+        service: entry.service,
+        entityId: entry.entityId,
+        op: entry.op,
+        status: SyncRunRecordStatus.ACCEPTED,
+      })
+    }
     // Cloud-Rejects nach Klassifikation behandeln:
     //  - 'transient' → markOutboxRetry mit Backoff; bei MAX_ATTEMPTS-Erreichen
     //    Eskalation zu PUSH_REJECTED-Conflict
@@ -595,6 +622,7 @@ const runPush = async (app: Application, connection: CloudConnection): Promise<n
       const entry = entries.find(e => e._id === r._id)
       if (!entry) continue
       const classification = r.classification ?? SyncRejectionClassification.TERMINAL
+      let recordStatus: SyncRunRecordStatus = SyncRunRecordStatus.REJECTED
       if (classification === SyncRejectionClassification.TRANSIENT) {
         const nextAttempts = (entry.attempts ?? 0) + 1
         if (nextAttempts >= MAX_RETRY_ATTEMPTS) {
@@ -607,8 +635,10 @@ const runPush = async (app: Application, connection: CloudConnection): Promise<n
             connection.locationId ?? null,
           )
           await markOutboxTerminal(app, [r._id], r.reason, conflictId)
+          recordStatus = SyncRunRecordStatus.CONFLICT
         } else {
           await markOutboxRetry(app, [{ _id: r._id, attempts: entry.attempts ?? 0 }], r.reason)
+          recordStatus = SyncRunRecordStatus.RETRY
         }
       } else if (classification === SyncRejectionClassification.CONFLICT) {
         const conflictId = await escalateToConflict(
@@ -620,11 +650,24 @@ const runPush = async (app: Application, connection: CloudConnection): Promise<n
           connection.locationId ?? null,
         )
         await markOutboxTerminal(app, [r._id], r.reason, conflictId)
+        recordStatus = SyncRunRecordStatus.CONFLICT
       } else {
         await markOutboxTerminal(app, [r._id], r.reason)
+        recordStatus = SyncRunRecordStatus.REJECTED
       }
+      details.push({
+        service: entry.service,
+        entityId: entry.entityId,
+        op: entry.op,
+        status: recordStatus,
+        reason: r.reason,
+      })
     }
-    return body.accepted.length
+    return {
+      accepted: body.accepted.length,
+      rejected: (body.rejected ?? []).length,
+      details: details.slice(0, MAX_SYNC_RUN_DETAILS),
+    }
   } catch (err) {
     // Network-Errors / 5xx ohne Response-Body → Backoff-Retry, kein Pile-Up
     // beim Cloud-Restart. Alle Eintraege der Batch bekommen denselben
@@ -639,19 +682,26 @@ const runPush = async (app: Application, connection: CloudConnection): Promise<n
   }
 }
 
+interface PullResult {
+  count: number
+  details: SyncRunRecordDetail[]
+}
+
 const runPullForService = async (
   app: Application,
   connection: CloudConnection,
   service: string,
-): Promise<number> => {
+): Promise<PullResult> => {
   const cloudToken = decryptCloudToken(connection.cloudToken)
-  if (!cloudToken) return 0
+  if (!cloudToken) return { count: 0, details: [] }
   const cursor = await (app.service(syncCursorPath) as any)
     .get(`cloud:${service}`, { provider: undefined } as any)
     .catch(() => null)
   const since = cursor?.lastPullAt as string | undefined
 
   let total = 0
+  // Per-Record-Details (gekappt) fuer den sync-run-Eintrag.
+  const details: SyncRunRecordDetail[] = []
   let cursorToken: string | undefined
   // Visibility-Snapshot der Cloud — wird nur beim Initial-Pull (page 0,
   // since=undefined) geliefert. Speichern fuer Reconciliation am Loop-Ende.
@@ -693,12 +743,17 @@ const runPullForService = async (
       }
     }
     for (const item of body.records) {
+      let op: SyncRunRecordDetail['op'] = SyncOp.CREATE
       try {
         if (item.deletedAt) {
+          op = SyncOp.REMOVE
           await app
             .service(service as any)
             .remove(item._id, { provider: undefined, fromSync: true } as any)
             .catch(() => undefined)
+          if (details.length < MAX_SYNC_RUN_DETAILS) {
+            details.push({ service, entityId: item._id, op, status: SyncRunRecordStatus.ACCEPTED })
+          }
           continue
         }
         const existing = await app
@@ -709,14 +764,30 @@ const runPullForService = async (
         // den eingehenden Wert UNVERAENDERT zu uebernehmen — kein Re-Hash auf
         // bereits gehashten posPin/password, kein Re-Generate auf createdAt/
         // employeeNumber. Sonst Doppelt-Hashing → Login-Bruch.
+        //
+        // Geraetelokale Time-Clock-Felder (stampingId/startBreakAt) NICHT aus
+        // dem Cloud-Record uebernehmen — sie sind reiner Edge-Runtime-Zustand
+        // (Kommen/Gehen/Pause am POS). Der Pull-Apply ist bedingungslos (kein
+        // Last-Write-Wins); ohne dieses Strip wuerde ein lokaler Pause-/
+        // Stempel-Clear vom naechsten Pull rueckgaengig gemacht → Deadlock.
+        // Siehe USER_EDGE_LOCAL_FIELDS in @panary/users/domain.
+        const incoming =
+          service === 'users'
+            ? stripUserEdgeLocalFields(item.record as Record<string, unknown>)
+            : item.record
         if (existing) {
+          op = SyncOp.PATCH
           await app
             .service(service as any)
-            .patch(item._id, item.record as any, { provider: undefined, fromSync: true } as any)
+            .patch(item._id, incoming as any, { provider: undefined, fromSync: true } as any)
         } else {
+          op = SyncOp.CREATE
           await app
             .service(service as any)
-            .create(item.record as any, { provider: undefined, fromSync: true } as any)
+            .create(incoming as any, { provider: undefined, fromSync: true } as any)
+        }
+        if (details.length < MAX_SYNC_RUN_DETAILS) {
+          details.push({ service, entityId: item._id, op, status: SyncRunRecordStatus.ACCEPTED })
         }
       } catch (err) {
         // AJV-Validierungsdetails extrahieren — sonst loggt der Edge nur
@@ -742,6 +813,15 @@ const runPullForService = async (
           errorMessage: err instanceof Error ? err.message : String(err),
           validationErrors,
         })
+        if (details.length < MAX_SYNC_RUN_DETAILS) {
+          details.push({
+            service,
+            entityId: item._id,
+            op,
+            status: SyncRunRecordStatus.REJECTED,
+            reason: err instanceof Error ? err.message : String(err),
+          })
+        }
       }
     }
     total += body.records.length
@@ -766,7 +846,7 @@ const runPullForService = async (
     await reconcileStaleUsers(app, visibilitySnapshot, connection.tenantId!)
   }
 
-  return total
+  return { count: total, details }
 }
 
 /**
@@ -784,7 +864,7 @@ export const pullMasterDataServiceOnce = async (
   const connection = await getActiveConnection(app).catch(() => null)
   if (!connection) return 0
   try {
-    return await runPullForService(app, connection, service)
+    return (await runPullForService(app, connection, service)).count
   } catch (err) {
     logger.warn({
       message: 'Realtime-getriggerter Master-Data-Pull fehlgeschlagen',
@@ -1342,17 +1422,23 @@ export const runSyncOnce = async (app: Application, _cloudConnectionId: string):
   const pushStartedAt = new Date().toISOString()
   const pushStartMs = performance.now()
   try {
-    pushed = await runPush(app, refreshed)
-    if (pushed > 0) {
+    const pushResult = await runPush(app, refreshed)
+    pushed = pushResult.accepted
+    // Auch reine Reject-Batches protokollieren (accepted=0, rejected>0) — der
+    // recordSyncRun-Filter laesst accepted+rejected>0 durch und der Operator
+    // soll Push-Rejects in der Historie sehen.
+    if (pushResult.accepted > 0 || pushResult.rejected > 0) {
       await recordSyncRun(app, {
         tenantId: refreshed.tenantId!,
         phase: SyncRunPhase.PUSH,
         direction: SyncRunDirection.EDGE_TO_CLOUD,
         service: null,
-        recordCount: pushed,
-        accepted: pushed,
+        recordCount: pushResult.accepted,
+        accepted: pushResult.accepted,
+        rejected: pushResult.rejected > 0 ? pushResult.rejected : undefined,
+        details: pushResult.details,
         durationMs: Math.round(performance.now() - pushStartMs),
-        outcome: SyncRunOutcome.SUCCESS,
+        outcome: pushResult.rejected > 0 ? SyncRunOutcome.PARTIAL : SyncRunOutcome.SUCCESS,
         triggeredBy: SyncRunTrigger.SCHEDULER,
         startedAt: pushStartedAt,
       })
@@ -1402,17 +1488,20 @@ export const runSyncOnce = async (app: Application, _cloudConnectionId: string):
     const pullStartedAt = new Date().toISOString()
     const pullStartMs = performance.now()
     try {
-      const count = await runPullForService(app, refreshed, service)
+      const { count, details } = await runPullForService(app, refreshed, service)
       pulled += count
       if (count > 0) {
+        const rejectedCount = details.filter(d => d.status === SyncRunRecordStatus.REJECTED).length
         await recordSyncRun(app, {
           tenantId: refreshed.tenantId!,
           phase: SyncRunPhase.PULL,
           direction: SyncRunDirection.CLOUD_TO_EDGE,
           service,
           recordCount: count,
+          rejected: rejectedCount > 0 ? rejectedCount : undefined,
+          details,
           durationMs: Math.round(performance.now() - pullStartMs),
-          outcome: SyncRunOutcome.SUCCESS,
+          outcome: rejectedCount > 0 ? SyncRunOutcome.PARTIAL : SyncRunOutcome.SUCCESS,
           triggeredBy: SyncRunTrigger.SCHEDULER,
           startedAt: pullStartedAt,
         })

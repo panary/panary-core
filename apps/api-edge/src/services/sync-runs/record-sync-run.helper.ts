@@ -20,6 +20,7 @@ import {
   SyncRunOutcome,
   SyncRunPhase,
   type SyncRunDirection,
+  type SyncRunRecordDetail,
   type SyncRunTrigger,
 } from '@panary/sync/domain'
 
@@ -49,6 +50,12 @@ export interface RecordSyncRunInput {
    * Bootstraps zusammen anzuzeigen.
    */
   bootstrapReportId?: string
+  /**
+   * Per-Record-Details des Vorgangs (Service/Entity-Typ + entityId + Operation
+   * + Status). Wird vom Aufrufer bereits auf MAX_SYNC_RUN_DETAILS gekappt.
+   * Leeres/undefiniertes Array → kein `details`-Feld im Eintrag.
+   */
+  details?: SyncRunRecordDetail[]
 }
 
 const isWorthRecording = (input: RecordSyncRunInput): boolean => {
@@ -122,6 +129,9 @@ export const recordSyncRun = async (
         errorMessage: input.errorMessage,
         triggeredBy: input.triggeredBy,
         bootstrapReportId: input.bootstrapReportId,
+        // Array uebergeben (validateData erwartet ein Array) — Knex serialisiert
+        // es in die JSON-TEXT-Spalte. Leeres Array nicht persistieren.
+        details: input.details && input.details.length > 0 ? input.details : undefined,
         startedAt: input.startedAt,
         finishedAt,
       },

@@ -39,7 +39,20 @@ export const syncRunsPath = 'sync-runs'
 const syncRunDataValidator = getValidator(syncRunDataSchema, dataValidator)
 const syncRunQueryValidator = getValidator(syncRunQuerySchema, queryValidator)
 
-const syncRunResolver = resolve<SyncRun, HookContext>({})
+const syncRunResolver = resolve<SyncRun, HookContext>({
+  // SQLite gibt die JSON-TEXT-Spalte `details` als String zurueck (Knex parsed
+  // beim SELECT nicht) — hier zurueck in ein Array wandeln, damit das Frontend
+  // direkt damit arbeiten kann. Identisches Muster wie sync-conflicts-Payloads.
+  details: async value => {
+    if (value == null) return undefined
+    if (typeof value !== 'string') return value
+    try {
+      return JSON.parse(value)
+    } catch {
+      return undefined
+    }
+  },
+})
 const syncRunExternalResolver = resolve<SyncRun, HookContext>({})
 
 const syncRunDataResolver = resolve<SyncRun, HookContext>({

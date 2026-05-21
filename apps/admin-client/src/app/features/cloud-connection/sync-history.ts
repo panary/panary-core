@@ -303,38 +303,42 @@ const SERVICE_LABEL: Record<string, string> = {
                   </h4>
                   <ul class="space-y-1">
                     @for (d of group.items; track d.entityId) {
-                      <li class="flex items-center gap-2 text-xs">
-                        <span
-                          class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium flex-none"
-                          [class.bg-emerald-50]="d.op === 'create'"
-                          [class.text-emerald-700]="d.op === 'create'"
-                          [class.dark:bg-emerald-950/40]="d.op === 'create'"
-                          [class.dark:text-emerald-300]="d.op === 'create'"
-                          [class.bg-sky-50]="d.op === 'patch'"
-                          [class.text-sky-700]="d.op === 'patch'"
-                          [class.dark:bg-sky-950/40]="d.op === 'patch'"
-                          [class.dark:text-sky-300]="d.op === 'patch'"
-                          [class.bg-slate-100]="d.op === 'remove'"
-                          [class.text-slate-600]="d.op === 'remove'"
-                          [class.dark:bg-gray-800]="d.op === 'remove'"
-                          [class.dark:text-gray-300]="d.op === 'remove'">
-                          {{ opLabel(d.op) }}
-                        </span>
-                        <code class="font-mono text-slate-700 dark:text-gray-200 select-all break-all">{{ d.entityId }}</code>
-                        @if (d.status && d.status !== 'accepted') {
+                      <li class="text-xs">
+                        <div class="flex items-center gap-2">
                           <span
-                            class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] flex-none"
-                            [class.text-amber-700]="d.status === 'retry'"
-                            [class.bg-amber-50]="d.status === 'retry'"
-                            [class.dark:text-amber-300]="d.status === 'retry'"
-                            [class.dark:bg-amber-950/40]="d.status === 'retry'"
-                            [class.text-red-700]="d.status !== 'retry'"
-                            [class.bg-red-50]="d.status !== 'retry'"
-                            [class.dark:text-red-300]="d.status !== 'retry'"
-                            [class.dark:bg-red-950/40]="d.status !== 'retry'"
-                            [title]="d.reason || ''">
-                            {{ statusLabel(d.status) }}
+                            class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium flex-none"
+                            [class.bg-emerald-50]="d.op === 'create'"
+                            [class.text-emerald-700]="d.op === 'create'"
+                            [class.dark:bg-emerald-950/40]="d.op === 'create'"
+                            [class.dark:text-emerald-300]="d.op === 'create'"
+                            [class.bg-sky-50]="d.op === 'patch'"
+                            [class.text-sky-700]="d.op === 'patch'"
+                            [class.dark:bg-sky-950/40]="d.op === 'patch'"
+                            [class.dark:text-sky-300]="d.op === 'patch'"
+                            [class.bg-slate-100]="d.op === 'remove'"
+                            [class.text-slate-600]="d.op === 'remove'"
+                            [class.dark:bg-gray-800]="d.op === 'remove'"
+                            [class.dark:text-gray-300]="d.op === 'remove'">
+                            {{ opLabel(d.op) }}
                           </span>
+                          <code class="font-mono text-slate-700 dark:text-gray-200 select-all break-all">{{ d.entityId }}</code>
+                          @if (d.status && d.status !== 'accepted') {
+                            <span
+                              class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] flex-none"
+                              [class.text-amber-700]="d.status === 'retry'"
+                              [class.bg-amber-50]="d.status === 'retry'"
+                              [class.dark:text-amber-300]="d.status === 'retry'"
+                              [class.dark:bg-amber-950/40]="d.status === 'retry'"
+                              [class.text-red-700]="d.status !== 'retry'"
+                              [class.bg-red-50]="d.status !== 'retry'"
+                              [class.dark:text-red-300]="d.status !== 'retry'"
+                              [class.dark:bg-red-950/40]="d.status !== 'retry'">
+                              {{ statusLabel(d.status) }}
+                            </span>
+                          }
+                        </div>
+                        @if (d.reason && d.status && d.status !== 'accepted') {
+                          <p class="mt-0.5 ml-1 text-[11px] text-slate-500 dark:text-gray-400 break-words">{{ d.reason }}</p>
                         }
                       </li>
                     }

@@ -37,13 +37,14 @@ interface SyncOutboxRow {
   status: 'pending' | 'in-flight' | 'acked' | 'rejected'
   attempts: number
   lastAttemptAt?: string
+  nextAttemptAt?: string
   lastError?: string
   terminalAt?: string
   linkedConflictId?: string
   createdAt: string
 }
 
-type TabKey = 'all' | 'rejected' | 'conflicts'
+type TabKey = 'all' | 'retrying' | 'rejected' | 'conflicts'
 
 const SERVICE_LABELS: Record<string, string> = {
   products: 'Produkte',
@@ -171,6 +172,58 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
           </p>
         </div>
       } @else {
+        <!-- In Wiederholung (transiente Rejects im Backoff) -->
+        @if (showRetrying()) {
+          @for (row of retryingRows(); track row._id) {
+            <article class="bg-white dark:bg-gray-900 border border-amber-200 dark:border-amber-900/50 rounded-xl p-4 space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs uppercase tracking-wider text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-300 px-2 py-0.5 rounded">
+                    In Wiederholung
+                  </span>
+                  <span class="text-sm font-medium">
+                    {{ labelForServiceX(row.service) }} {{ opLabel(row.op) }}
+                  </span>
+                  <span class="text-xs font-mono text-slate-400">{{ row.entityId.slice(0, 8) }}…</span>
+                </div>
+                <span class="text-xs text-slate-400">Versuch {{ row.attempts }}/10 · nächster: {{ formatDate(row.nextAttemptAt) }}</span>
+              </div>
+
+              <p class="text-sm text-slate-600 dark:text-gray-300">{{ problemDescription(row) }}</p>
+
+              @if (row.lastError) {
+                <details class="text-xs">
+                  <summary class="cursor-pointer text-slate-500 hover:text-slate-900">
+                    Technische Details ({{ row.attempts }} Versuche)
+                  </summary>
+                  <pre class="mt-2 font-mono text-[11px] bg-slate-50 dark:bg-gray-950 rounded p-2 overflow-auto whitespace-pre-wrap break-all">{{ row.lastError }}</pre>
+                </details>
+              }
+
+              <div class="flex items-center gap-2 pt-1">
+                <button
+                  (click)="forceRetryNow(row)"
+                  [disabled]="rowBusy() === row._id"
+                  title="Sofort erneut versuchen, ohne auf den Backoff zu warten"
+                  class="bg-slate-900 dark:bg-white dark:text-slate-900 text-white text-xs px-3 py-1.5 rounded-md hover:opacity-90 disabled:opacity-40"
+                >
+                  Jetzt erneut versuchen
+                </button>
+                <button
+                  (click)="discardRetrying(row)"
+                  [disabled]="rowBusy() === row._id"
+                  class="text-red-500 text-xs px-3 py-1.5 hover:underline disabled:opacity-50"
+                >
+                  Verwerfen
+                </button>
+                @if (rowBusy() === row._id) {
+                  <span class="text-xs text-slate-500">verarbeite …</span>
+                }
+              </div>
+            </article>
+          }
+        }
+
         <!-- Rejected Outbox (Nicht hochgeladen) -->
         @if (showRejected()) {
           @for (row of rejectedRows(); track row._id) {
@@ -346,6 +399,7 @@ export class SyncConflictsComponent implements OnInit {
 
   protected readonly loading = signal(true)
   protected readonly rejectedRows = signal<SyncOutboxRow[]>([])
+  protected readonly retryingRows = signal<SyncOutboxRow[]>([])
   protected readonly conflicts = signal<SyncConflictRow[]>([])
   protected readonly errors = signal<string[]>([])
   protected readonly rowBusy = signal<string | null>(null)
@@ -354,10 +408,14 @@ export class SyncConflictsComponent implements OnInit {
 
   protected readonly tabs: ReadonlyArray<{ key: TabKey; label: string }> = [
     { key: 'all', label: 'Alle' },
+    { key: 'retrying', label: 'In Wiederholung' },
     { key: 'rejected', label: 'Nicht hochgeladen' },
     { key: 'conflicts', label: 'Datenkonflikte' },
   ]
 
+  protected readonly showRetrying = computed(() =>
+    this.activeTab() === 'all' || this.activeTab() === 'retrying',
+  )
   protected readonly showRejected = computed(() =>
     this.activeTab() === 'all' || this.activeTab() === 'rejected',
   )
@@ -366,7 +424,10 @@ export class SyncConflictsComponent implements OnInit {
   )
 
   protected readonly filteredItems = computed(() => {
-    const items: Array<{ kind: 'rejected' | 'conflict'; id: string }> = []
+    const items: Array<{ kind: 'retrying' | 'rejected' | 'conflict'; id: string }> = []
+    if (this.showRetrying()) {
+      this.retryingRows().forEach(r => items.push({ kind: 'retrying', id: r._id }))
+    }
     if (this.showRejected()) {
       this.rejectedRows().forEach(r => items.push({ kind: 'rejected', id: r._id }))
     }
@@ -390,12 +451,14 @@ export class SyncConflictsComponent implements OnInit {
 
   protected countFor(tab: TabKey): number {
     switch (tab) {
+      case 'retrying':
+        return this.retryingRows().length
       case 'rejected':
         return this.rejectedRows().length
       case 'conflicts':
         return this.conflicts().length
       default:
-        return this.rejectedRows().length + this.conflicts().length
+        return this.retryingRows().length + this.rejectedRows().length + this.conflicts().length
     }
   }
 
@@ -461,7 +524,8 @@ export class SyncConflictsComponent implements OnInit {
       // createdAt/terminalAt-Sort, aber `_id` ist in beiden Query-Property-
       // Whitelists garantiert vorhanden — andere Felder wuerden je nach
       // Server-Version mit „additionalProperties" abgelehnt.
-      const [outbox, conflicts] = await Promise.all([
+      const now = new Date().toISOString()
+      const [outbox, retrying, conflicts] = await Promise.all([
         this.api
           .find<SyncOutboxRow>('sync-outbox', {
             status: 'rejected',
@@ -470,6 +534,21 @@ export class SyncConflictsComponent implements OnInit {
           } as Record<string, unknown>)
           .catch(err => {
             this.errors.update(arr => [...arr, `Outbox: ${formatApiError(err)}`])
+            return { data: [] as SyncOutboxRow[] } as { data: SyncOutboxRow[] }
+          }),
+        // „In Wiederholung": pending mit nextAttemptAt in der Zukunft = im
+        // Backoff (mind. ein Fehlversuch). Frisch-pending (nie versucht) hat
+        // nextAttemptAt in der Vergangenheit und wird hier bewusst NICHT
+        // gezeigt. Identische Semantik wie der Dashboard-Retry-Counter.
+        this.api
+          .find<SyncOutboxRow>('sync-outbox', {
+            status: 'pending',
+            nextAttemptAt: { $gt: now },
+            $sort: { _id: -1 },
+            $limit: 200,
+          } as Record<string, unknown>)
+          .catch(err => {
+            this.errors.update(arr => [...arr, `Wiederholungen: ${formatApiError(err)}`])
             return { data: [] as SyncOutboxRow[] } as { data: SyncOutboxRow[] }
           }),
         this.api
@@ -483,6 +562,7 @@ export class SyncConflictsComponent implements OnInit {
           }),
       ])
       this.rejectedRows.set(outbox.data)
+      this.retryingRows.set(retrying.data)
       this.conflicts.set(conflicts.data)
     } finally {
       this.loading.set(false)
@@ -512,6 +592,38 @@ export class SyncConflictsComponent implements OnInit {
     try {
       await this.patchRetry(row)
       this.rejectedRows.update(rows => rows.filter(r => r._id !== row._id))
+      this.syncProblemCount.refresh()
+    } catch (err) {
+      this.errors.update(arr => [...arr, formatApiError(err)])
+    } finally {
+      this.rowBusy.set(null)
+      this.cdr.markForCheck()
+    }
+  }
+
+  /** „Jetzt erneut versuchen" fuer einen im Backoff wartenden Eintrag —
+   *  macht ihn sofort faellig (patchRetry setzt nextAttemptAt in die
+   *  Vergangenheit + attempts=0). */
+  async forceRetryNow(row: SyncOutboxRow) {
+    this.rowBusy.set(row._id)
+    try {
+      await this.patchRetry(row)
+      this.retryingRows.update(rows => rows.filter(r => r._id !== row._id))
+      this.syncProblemCount.refresh()
+    } catch (err) {
+      this.errors.update(arr => [...arr, formatApiError(err)])
+    } finally {
+      this.rowBusy.set(null)
+      this.cdr.markForCheck()
+    }
+  }
+
+  async discardRetrying(row: SyncOutboxRow) {
+    if (!confirm(`Eintrag verwerfen?\n\nDieser ${labelForService(row.service)}-Datensatz bleibt nur an diesem Standort gespeichert und wird NICHT in die Online-Datenbank uebernommen. Diese Aktion kann nicht rueckgaengig gemacht werden.`)) return
+    this.rowBusy.set(row._id)
+    try {
+      await this.api.remove('sync-outbox', row._id)
+      this.retryingRows.update(rows => rows.filter(r => r._id !== row._id))
       this.syncProblemCount.refresh()
     } catch (err) {
       this.errors.update(arr => [...arr, formatApiError(err)])

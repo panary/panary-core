@@ -6,6 +6,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader'
 import { appRoutes } from './app.routes'
 import { APP_CONFIG } from '@panary/shared/data-access-config'
+import { providePosRealtimeScopeGuard } from './realtime-scope-guard.provider'
 import packageJson from '../../../../package.json'
 
 export const appConfig: ApplicationConfig = {
@@ -23,6 +24,7 @@ export const appConfig: ApplicationConfig = {
       prefix: './assets/i18n/',
       suffix: '.json',
     }),
+    providePosRealtimeScopeGuard(),
     {
       provide: APP_CONFIG,
       useValue: {

@@ -1,5 +1,6 @@
 // service.factory ist Server-only → Import via @panary/shared/data-access/server
 export * from './lib/services/null.service'
+export * from './lib/services/realtime-scope-guard'
 export * from './lib/services/base.service'
 export * from './lib/services/connection.service'
 // export * from './lib/services/mqtt.service' // Noch nicht migriert – LocationService-Abhängigkeit würde Zirkulärdependenz erzeugen

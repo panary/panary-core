@@ -8,6 +8,7 @@ import { BaseDocument, ExtendedParams } from '@panary/shared-common'
 import { ServiceHelper } from '../utils/service-helper.service'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'
+import { REALTIME_SCOPE_GUARD, RealtimeScopeGuard } from './realtime-scope-guard'
 
 // Optional: Reusable type
 export type PaginatedOrArray<T> = Promise<Paginated<T> | T[]>
@@ -28,6 +29,14 @@ export abstract class BaseService<T> {
   protected matSnackBar: MatSnackBar = inject(MatSnackBar)
   protected translate: TranslateService = inject(TranslateService)
   protected ngZone: NgZone = inject(NgZone)
+
+  /**
+   * Optionaler client-seitiger Scope-Guard (Defense-in-Depth). Ohne Provider
+   * (null) werden alle Events akzeptiert — heutiges Verhalten. Mit Provider
+   * werden Events fremder Tenants/Filialen verworfen, bevor sie in den State
+   * gemerged werden. Server-seitige Channel-Isolation bleibt autoritativ.
+   */
+  protected scopeGuard: RealtimeScopeGuard | null = inject(REALTIME_SCOPE_GUARD, { optional: true })
 
   /** i18n-Key für den Entitätsnamen — Subklassen überschreiben diesen Wert */
   protected entityLabelKey = 'ENTITY.DOCUMENT'
@@ -61,29 +70,42 @@ export abstract class BaseService<T> {
 
     this.service
       .on('created', (item: T): void => {
+        if (!this.acceptsRealtimeItem(item)) return
         this.ngZone.run(() => {
           this.handleItemCreated(item)
           this.showSnackbar(Array.isArray(item) ? 'SNACKBAR.CREATED_PLURAL' : 'SNACKBAR.CREATED')
         })
       })
       .on('updated', (item: T): void => {
+        if (!this.acceptsRealtimeItem(item)) return
         this.ngZone.run(() => {
           this.handleItemUpdated(item)
           this.showSnackbar(Array.isArray(item) ? 'SNACKBAR.UPDATED_PLURAL' : 'SNACKBAR.UPDATED')
         })
       })
       .on('patched', (item: T): void => {
+        if (!this.acceptsRealtimeItem(item)) return
         this.ngZone.run(() => {
           this.handleItemUpdated(item)
           this.showSnackbar(Array.isArray(item) ? 'SNACKBAR.CHANGED_PLURAL' : 'SNACKBAR.CHANGED')
         })
       })
       .on('removed', (item: T): void => {
+        if (!this.acceptsRealtimeItem(item)) return
         this.ngZone.run(() => {
           this.handleItemRemoved(item)
           this.showSnackbar(Array.isArray(item) ? 'SNACKBAR.DELETED_PLURAL' : 'SNACKBAR.DELETED')
         })
       })
+  }
+
+  /**
+   * Defense-in-Depth-Filter: fragt den optionalen {@link REALTIME_SCOPE_GUARD},
+   * ob das eingehende Event zum Scope des Clients gehoert. Ohne Guard (kein
+   * Provider) werden alle Events akzeptiert.
+   */
+  private acceptsRealtimeItem(item: T): boolean {
+    return this.scopeGuard?.shouldAccept(item) ?? true
   }
 
   /** Zeigt eine übersetzte Snackbar-Nachricht mit dem Entitätsnamen */

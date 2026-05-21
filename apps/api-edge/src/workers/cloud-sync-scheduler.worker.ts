@@ -655,6 +655,23 @@ const runPush = async (app: Application, connection: CloudConnection): Promise<P
         await markOutboxTerminal(app, [r._id], r.reason)
         recordStatus = SyncRunRecordStatus.REJECTED
       }
+      // Pro abgelehntem Record eine strukturierte Logzeile — sonst ist der Edge
+      // beim Debuggen blind (der Push-Aggregat-Run loggt nur Zaehler). Der
+      // `reason` stammt von der Cloud (sync-push-Receiver) und ist am Edge die
+      // einzige Quelle fuer das WARUM. Retry = info (heilt sich i.d.R. selbst),
+      // terminal/conflict = warn (braucht Eingriff).
+      const rejectLog = recordStatus === SyncRunRecordStatus.RETRY ? logger.info : logger.warn
+      rejectLog.call(logger, {
+        message: `Sync-Push abgelehnt: ${entry.service}/${entry.entityId} (${recordStatus})`,
+        event: 'sync.push.op_rejected',
+        service: entry.service,
+        entityId: entry.entityId,
+        op: entry.op,
+        classification,
+        status: recordStatus,
+        attempts: (entry.attempts ?? 0) + 1,
+        reason: r.reason,
+      })
       details.push({
         service: entry.service,
         entityId: entry.entityId,

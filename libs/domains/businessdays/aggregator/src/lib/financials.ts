@@ -137,13 +137,18 @@ export function aggregateFinancials(orders: ReadonlyArray<Order>): FinancialsAgg
     tipsCents += orderTip
 
     // Steuersplit aus taxSnapshot (vom POS verbindlich vorberechnet).
+    // POS-Vertrag (bestätigt durch reale Order-Daten + die Geschwister-Felder
+    // netto/brutto): `taxLine.amount` ist der NETTO-Anteil dieser Steuerstufe
+    // (amount === netto bei Single-Rate-Orders), `taxLine.tax` die enthaltene
+    // Steuer. Das Brutto der Stufe ist amount + tax. (Frühere Annahme „amount =
+    // Brutto" war falsch und ließ Σ gross um Σ tax zu niedrig ausfallen →
+    // financials.tax_split_mismatch im Persist-Step.)
     if (order.taxSnapshot?.taxes) {
       for (const taxLine of order.taxSnapshot.taxes) {
-        // taxLine.amount = Brutto-Anteil dieser Steuerstufe; taxLine.tax = enthaltene Steuer
         const rate = taxLine.taxRate
-        const gross = toCents(taxLine.amount)
+        const net = toCents(taxLine.amount)
         const tax = toCents(taxLine.tax)
-        const net = gross - tax
+        const gross = net + tax
         const entry = taxAccumulator.get(rate) ?? { netCents: 0, taxCents: 0, grossCents: 0 }
         entry.netCents += net
         entry.taxCents += tax
@@ -167,10 +172,20 @@ export function aggregateFinancials(orders: ReadonlyArray<Order>): FinancialsAgg
     }
 
     // Zahlungsart-Aggregation
-    if (order.payment?.transactions) {
+    if (order.payment?.transactions && order.payment.transactions.length > 0) {
       for (const tx of order.payment.transactions) {
         addTransaction(payments, tx)
       }
+    } else {
+      // Fallback: abgeschlossener Verkauf ohne erfasste Zahlungs-Transaktionen
+      // (z.B. Telefon-Order ohne POS-Zahlungsschritt, Legacy-/Sync-Daten). Die
+      // konkrete Zahlungsart ist unbekannt → als „Sonstige" (otherCents) führen,
+      // ohne Trinkgeld. So bleibt die Persist-Invariante
+      // `Σ payments === grossTotal − tips` erhalten und der Tagesabschluss
+      // schlägt nicht hart fehl; die nicht zugeordnete Summe ist im UI als
+      // „Sonstige" sichtbar. Liegen Transaktionen vor, gilt weiter ihre Summe —
+      // ein echter Mismatch (Transaktionen ≠ Umsatz) wird also nicht verdeckt.
+      payments.otherCents += orderGross - orderTip
     }
 
     // Rabatt-Zählung

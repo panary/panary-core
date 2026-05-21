@@ -61,7 +61,10 @@ export function makeOrder(opts: MakeOrderOptions = {}): Order {
         : null)
       : null,
     taxSnapshot: {
-      taxes: taxes.map(t => ({ taxRate: t.rate, amount: t.gross, tax: t.tax })),
+      // POS-Vertrag: `amount` ist der NETTO-Anteil (= gross − tax), das Brutto
+      // ergibt sich aus amount + tax. Der Fixture-Parameter `t.gross` bezeichnet
+      // weiterhin das Brutto der Steuerstufe — daher amount = gross − tax.
+      taxes: taxes.map(t => ({ taxRate: t.rate, amount: +(t.gross - t.tax).toFixed(2), tax: t.tax })),
       netto,
       brutto: taxes.reduce((acc, t) => acc + t.gross, 0),
     },

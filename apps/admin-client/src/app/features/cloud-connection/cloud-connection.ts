@@ -594,11 +594,12 @@ const directionLabel = (dir: InitialDirection): string => {
                   }
                 </select>
                 @if (syncMode === 'auto') {
-                  <div class="space-y-1">
-                    <label for="syncIntervalSec" class="text-xs text-slate-500 dark:text-gray-400">Intervall (Sekunden)</label>
+                  <div class="flex items-center gap-4">
+                    <label for="syncIntervalSec" class="text-xs text-slate-500 dark:text-gray-400">Intervall</label>
                     <input id="syncIntervalSec" type="number" [(ngModel)]="syncIntervalSec" name="syncIntervalSec"
                       min="60" max="3600" (blur)="onSaveSyncMode()"
-                      class="w-32 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-2 text-sm" />
+                      class="w-28 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-2 text-sm" />
+                    <span class="text-xs text-slate-500 dark:text-gray-400">Sekunden</span>
                   </div>
                 }
                 <div class="flex items-center gap-3">

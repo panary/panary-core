@@ -1,6 +1,8 @@
 import type { Static } from '@feathersjs/typebox'
 import { querySyntax, StringEnum, Type } from '@feathersjs/typebox'
 
+import { SyncOp } from './sync-op.schema'
+
 /**
  * Sync-Run = ein einzelner, fachlich relevanter Sync-Vorgang im
  * Edge↔Cloud-Replikations-Pfad. Wird ausschliesslich vom Edge geschrieben
@@ -42,6 +44,42 @@ export const SyncRunTrigger = {
 } as const
 export type SyncRunTrigger = (typeof SyncRunTrigger)[keyof typeof SyncRunTrigger]
 
+/**
+ * Ergebnis-Status eines einzelnen Records innerhalb eines Sync-Vorgangs.
+ * - `accepted`: Push erfolgreich von der Cloud uebernommen / Pull lokal angewandt.
+ * - `rejected`: Cloud hat den Push final abgelehnt (terminal, kein Retry).
+ * - `conflict`: Daten-Konflikt — wurde zur User-Resolution eskaliert.
+ * - `retry`:    Transienter Reject — wird mit Backoff erneut versucht.
+ */
+export const SyncRunRecordStatus = {
+  ACCEPTED: 'accepted',
+  REJECTED: 'rejected',
+  CONFLICT: 'conflict',
+  RETRY: 'retry',
+} as const
+export type SyncRunRecordStatus = (typeof SyncRunRecordStatus)[keyof typeof SyncRunRecordStatus]
+
+/**
+ * Ein einzelner Record, der im Rahmen eines sync-runs synchronisiert wurde.
+ * Wird als gekappte Liste (`MAX_SYNC_RUN_DETAILS`) im `details`-Feld des
+ * sync-run-Eintrags persistiert, damit der Operator im Admin-Panel exakt
+ * nachvollziehen kann, WELCHE Records (Entity-Typ + ID + Operation) ein Push/
+ * Pull betraf — und das gegen die DB abgleichen kann.
+ */
+export const syncRunRecordDetailSchema = Type.Object(
+  {
+    // Service-/Entity-Typ (z.B. `orders`, `order-interactions`, `users`).
+    service: Type.String({ minLength: 1, maxLength: 80 }),
+    entityId: Type.String(),
+    op: StringEnum(Object.values(SyncOp)),
+    status: Type.Optional(StringEnum(Object.values(SyncRunRecordStatus))),
+    // Klartext-Begruendung bei rejected/conflict (Cloud-Reject-Reason).
+    reason: Type.Optional(Type.String()),
+  },
+  { $id: 'SyncRunRecordDetail', additionalProperties: false },
+)
+export type SyncRunRecordDetail = Static<typeof syncRunRecordDetailSchema>
+
 export const syncRunSchema = Type.Object(
   {
     _id: Type.String({ format: 'uuid' }),
@@ -69,6 +107,15 @@ export const syncRunSchema = Type.Object(
      * verlinken kann. Bei Sync-Scheduler-Runs (Heartbeat etc.) `undefined`.
      */
     bootstrapReportId: Type.Optional(Type.String({ format: 'uuid' })),
+    /**
+     * Per-Record-Details des Vorgangs (gekappt auf MAX_SYNC_RUN_DETAILS).
+     * In SQLite als JSON-TEXT-Spalte persistiert: der recordSyncRun-Helper
+     * uebergibt ein Array (validateData erwartet ein Array), Knex serialisiert
+     * es beim Insert, der resolveResult des sync-runs-Service parsed beim Lesen
+     * zurueck. `undefined` bei Vorgaengen ohne erfasste Records (z.B. Fehler vor
+     * dem ersten Record).
+     */
+    details: Type.Optional(Type.Array(syncRunRecordDetailSchema)),
     startedAt: Type.String({ format: 'date-time' }),
     finishedAt: Type.String({ format: 'date-time' }),
     createdAt: Type.String({ format: 'date-time' }),

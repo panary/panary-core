@@ -7,6 +7,7 @@ import { AppError, AppErrorMessages } from '@panary/shared-common'
 import { logger } from '@panary/shared-backend'
 import {
   getDifferenceInDays,
+  getHoursSince,
   hasActiveOrders,
   rotateBusinessDay,
   shouldAutoRotate,
@@ -100,6 +101,37 @@ async function resolveLocationId(context: HookContext): Promise<string> {
 }
 
 /**
+ * Verweigert neue Bestellungen, wenn der offene Geschaeftstag seit Oeffnung
+ * laenger als `maxBusinessDayOpenHours` (Default 24h, gemessen ab `openedAt`)
+ * offen ist. Greift im Standalone-Pfad, wenn die Auto-Rotation durch noch
+ * aktive Bestellungen blockiert ist — verhindert stilles Anhaeufen von Umsatz
+ * auf einem veralteten Geschaeftstag. Bewusst stunden-basiert (rollend), nicht
+ * kalendertag-basiert.
+ */
+async function ensureBusinessDayNotOpenTooLong(
+  app: HookContext['app'],
+  businessDayId: string,
+): Promise<void> {
+  const maxOpenHours = app.get('maxBusinessDayOpenHours') || 24
+
+  const businessDay = (await app.service('businessdays').get(businessDayId, {
+    query: { $select: ['openedAt'] },
+    provider: undefined,
+  })) as { openedAt?: string }
+
+  if (!businessDay.openedAt) return
+
+  const openHours = getHoursSince(businessDay.openedAt)
+  if (openHours > maxOpenHours) {
+    throw new BadRequest(AppErrorMessages[AppError.BUSINESS_DAY_OPEN_TOO_LONG], {
+      code: AppError.BUSINESS_DAY_OPEN_TOO_LONG,
+      openHours: Math.floor(openHours),
+      maxAllowedOpenHours: maxOpenHours,
+    })
+  }
+}
+
+/**
  * Validiert, dass der aktuelle Geschaeftstag nicht zu alt ist (Enterprise-Modus).
  */
 function validateBusinessDayAge(app: HookContext['app'], businessDayDate: string): void {
@@ -151,6 +183,12 @@ export function restrictOrderToBusinessDay() {
         const blocked = await hasActiveOrders(app, activeLocation.currentBusinessDay.businessDayId)
 
         if (blocked) {
+          // Rotation durch offene Bestellungen blockiert: Bevor wir die neue
+          // Order still dem veralteten Tag zuordnen, pruefen wir das Tages-Alter
+          // seit Oeffnung. Ist die Schwelle ueberschritten, wird die Bestellung
+          // verweigert — der Operator muss die offenen Bestellungen abschliessen.
+          await ensureBusinessDayNotOpenTooLong(app, activeLocation.currentBusinessDay.businessDayId)
+
           logger.warn(
             `[AutoBusinessDay] Rotation fuer Location ${locationId} blockiert — aktive Bestellung(en) im Geschaeftstag ${activeLocation.currentBusinessDay.businessDayId}. Neue Bestellung wird dem aktuellen Geschaeftstag zugeordnet.`,
           )

@@ -162,3 +162,12 @@ export function getDifferenceInDays(date1: Date, date2: Date): number {
 
   return Math.floor(Math.abs(utc2 - utc1) / oneDayInMs)
 }
+
+/**
+ * Verstrichene Stunden seit einem ISO-Zeitstempel (z.B. `businessDay.openedAt`).
+ * Bewusst rollend (echte Zeitspanne) statt kalendertag-basiert — robust gegen
+ * UTC-vs-Lokal-Off-by-one nahe Mitternacht.
+ */
+export function getHoursSince(iso: string): number {
+  return (Date.now() - new Date(iso).getTime()) / 3_600_000
+}

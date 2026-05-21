@@ -23,6 +23,7 @@ export const AppError = {
   // --- BUSINESS DAY (6000-6999) ---
   BUSINESS_DAY_NOT_SET: 'BD_6001',
   BUSINESS_DAY_TOO_OLD: 'BD_6002',
+  BUSINESS_DAY_OPEN_TOO_LONG: 'BD_6003',
 
   // --- VALIDATION (4000-4999) ---
   VALIDATION_FAILED: 'VAL_4000',
@@ -57,6 +58,8 @@ export const AppErrorMessages: Record<AppError, string> = {
 
   [AppError.BUSINESS_DAY_NOT_SET]: 'No current business day is set for this location.',
   [AppError.BUSINESS_DAY_TOO_OLD]: 'The current business day date exceeds the maximum allowed difference.',
+  [AppError.BUSINESS_DAY_OPEN_TOO_LONG]:
+    'Der Geschäftstag ist zu lange geöffnet und kann nicht automatisch wechseln, weil noch Bestellungen offen sind. Bitte offene Bestellungen abschließen und den Geschäftstag abschließen.',
 
   [AppError.VALIDATION_FAILED]: 'Validation failed.',
   [AppError.INVALID_INPUT]: 'Invalid input provided.',

@@ -1,5 +1,6 @@
 import { HookContext } from '@feathersjs/feathers'
 import { OrderInteraction } from '@panary/order-interactions/domain'
+import { logger } from '@panary/shared-backend'
 
 /**
  * After-Create Hook: Creates order-interactions entries from the stored interactions.
@@ -26,12 +27,22 @@ export function createOrderInteractions() {
         // Get the order-interactions service
         const orderInteractionsService = app.service('order-interactions')
 
-        // Batch-Create aller Interactions in einem einzelnen DB-Insert
-        const interactions = orderInteractions.map(interaction => ({
-            ...interaction,
-            orderId
-        }))
-        await orderInteractionsService.create(interactions, params)
+        // Der Service ist mit multi:[] registriert → ein Array-Create würde
+        // MethodNotAllowed werfen. Jede Interaction einzeln anlegen (gleicher
+        // Pfad wie order-cancel). try/catch, damit das Audit-Tracking die bereits
+        // gespeicherte Order nie scheitern lässt und Fehler sichtbar bleiben.
+        try {
+            await Promise.all(
+                orderInteractions.map(interaction => orderInteractionsService.create({ ...interaction, orderId }, params)),
+            )
+        } catch (error) {
+            logger.error({
+                message: 'order-interactions konnten nicht angelegt werden',
+                event: 'order.interactions_failed',
+                orderId,
+                error,
+            })
+        }
 
         return context
     }

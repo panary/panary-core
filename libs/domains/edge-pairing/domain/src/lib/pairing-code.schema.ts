@@ -17,7 +17,7 @@ export const PAIRING_CODE_TTL_MS = 10 * 60 * 1000
 export const pairingCodeSchema = Type.Object(
   {
     ...baseSchema,
-    code: Type.String({ minLength: PAIRING_CODE_LENGTH, maxLength: PAIRING_CODE_LENGTH }),
+    code: Type.String({ minLength: PAIRING_CODE_LENGTH, maxLength: PAIRING_CODE_LENGTH, pattern: '^[0-9]{6}$' }),
     suggestedLocationId: Type.Optional(Type.String({ format: 'uuid' })),
     suggestedEdgeName: Type.Optional(Type.String({ maxLength: 100 })),
     expiresAt: Type.String({ format: 'date-time' }),
@@ -38,7 +38,7 @@ export const pairingCodeDataSchema = Type.Object(
     // die gestempelten Felder nicht als "additional properties" ablehnt.
     tenantId: Type.Optional(Type.String()),
     locationId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
-    suggestedLocationId: Type.Optional(Type.String()),
+    suggestedLocationId: Type.Optional(Type.String({ format: 'uuid' })),
     suggestedEdgeName: Type.Optional(Type.String({ maxLength: 100 })),
   },
   { $id: 'PairingCodeData', additionalProperties: false },

@@ -128,9 +128,9 @@ export type PreflightRequest = Static<typeof preflightRequestSchema>
 export const preflightResponseSchema = Type.Object(
   {
     cloudTenantId: Type.String({ format: 'uuid' }),
-    cloudTenantName: Type.String(),
+    cloudTenantName: Type.String({ maxLength: 200 }),
     cloudLocationId: Type.Optional(Type.String({ format: 'uuid' })),
-    cloudLocationName: Type.Optional(Type.String()),
+    cloudLocationName: Type.Optional(Type.String({ maxLength: 200 })),
     cloudInventory: masterDataInventorySchema,
     suggestedDirection: StringEnum(Object.values(InitialSyncDirection)),
     requiresTenantIdRestamp: Type.Boolean(),

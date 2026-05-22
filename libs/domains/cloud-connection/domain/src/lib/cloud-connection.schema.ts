@@ -100,37 +100,37 @@ export const cloudConnectionSchema = Type.Object(
   {
     ...baseSchema,
 
-    cloudUrl: Type.String({ format: 'uri' }),
-    cloudToken: Type.Optional(Type.String()),
-    cloudEdgeId: Type.Optional(Type.String()),
+    cloudUrl: Type.String({ format: 'uri', maxLength: 2048 }),
+    cloudToken: Type.Optional(Type.String({ maxLength: 4096 })),
+    cloudEdgeId: Type.Optional(Type.String({ format: 'uuid' })),
     pairingStatus: StringEnum(Object.values(PairingStatus)),
     connectedAt: Type.Optional(Type.String({ format: 'date-time' })),
     lastSyncAt: Type.Optional(Type.String({ format: 'date-time' })),
     syncEnabled: Type.Boolean({ default: false }),
-    errorMessage: Type.Optional(Type.String()),
+    errorMessage: Type.Optional(Type.String({ maxLength: 2000 })),
     // Auto-Recovery: Vom Sync-Scheduler gesetzt, wenn die Cloud einen 401
     // ('Edge-Token abgelaufen' / 'Cloud-Edge widerrufen') zurueckgibt — der
     // pairingStatus wird gleichzeitig auf DISCONNECTED gesetzt, damit Setup-
     // und POS-Client den Re-Pairing-Bedarf sichtbar machen koennen.
     lastTokenErrorAt: Type.Optional(Type.String({ format: 'date-time' })),
-    tokenErrorReason: Type.Optional(Type.String()),
+    tokenErrorReason: Type.Optional(Type.String({ maxLength: 2000 })),
     // Spiegelt das Token-Ablaufdatum aus `cloud-edges.tokenExpiresAt` (Cloud-Seite).
     // Wird vom Sync-Scheduler nach jedem erfolgreichen Sync aktualisiert, damit
     // POS- und Admin-Client den Token-Countdown anzeigen koennen, ohne dass
     // jeder Render einen Cloud-Roundtrip erzeugt.
     edgeTokenExpiresAt: Type.Optional(Type.String({ format: 'date-time' })),
-    edgeName: Type.Optional(Type.String()),
+    edgeName: Type.Optional(Type.String({ maxLength: 100 })),
 
     // M7.2 Felder
     initialDirection: Type.Optional(StringEnum(Object.values(InitialSyncDirection))),
     bootstrapStatus: Type.Optional(StringEnum(Object.values(BootstrapStatus))),
     bootstrapStartedAt: Type.Optional(Type.String({ format: 'date-time' })),
     bootstrapCompletedAt: Type.Optional(Type.String({ format: 'date-time' })),
-    bootstrapResumeToken: Type.Optional(Type.String()),
-    bootstrapError: Type.Optional(Type.String()),
+    bootstrapResumeToken: Type.Optional(Type.String({ maxLength: 4096 })),
+    bootstrapError: Type.Optional(Type.String({ maxLength: 2000 })),
     preflightSnapshot: Type.Optional(preflightSnapshotSchema),
     tenantIdRestampedAt: Type.Optional(Type.String({ format: 'date-time' })),
-    preTenantIdRestampBackupPath: Type.Optional(Type.String()),
+    preTenantIdRestampBackupPath: Type.Optional(Type.String({ maxLength: 500 })),
 
     // ADR §7 Sync-Konfiguration
     syncMode: Type.Optional(StringEnum(Object.values(SyncMode))),
@@ -147,7 +147,7 @@ export const cloudConnectionSchema = Type.Object(
     // — alle nicht von der Cloud serverseitig blockierten Users werden gepusht).
     // Server-seitiger Filter (Cloud-side `PUSH_BLOCKED_USER_ROLES`) bleibt
     // unabhaengig aktiv (Defense in Depth).
-    bootstrapUserAllowlist: Type.Optional(Type.Array(Type.String())),
+    bootstrapUserAllowlist: Type.Optional(Type.Array(Type.String({ format: 'uuid' }), { maxItems: 1000 })),
 
     // Emergency-Override (Edge-only, nicht zur Cloud syncen):
     // Bei Cloud-Ausfall (>5 min ohne Heartbeat ODER 3 konsekutive Heartbeat-

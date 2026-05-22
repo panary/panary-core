@@ -142,7 +142,7 @@ export const userSchema = Type.Object(
     // Cloud-Referenzen sind Strings (ehemals ObjectId)
     tenantId: Type.Union([Type.String(), Type.Null()], { default: null }),
     activeLocationId: Type.Union([Type.String(), Type.Null()], { default: null }),
-    allowedLocationIds: Type.Array(Type.String()),
+    allowedLocationIds: Type.Array(Type.String({ format: 'uuid' }), { maxItems: 200 }),
     stampingId: Type.Union([Type.String(), Type.Null()]),
 
     // Zeitstempel
@@ -154,13 +154,13 @@ export const userSchema = Type.Object(
     role: StringEnum(Object.values(UserSystemRole), { default: UserSystemRole.TENANT_STAFF }),
 
     // POS Spezifika
-    staffRole: Type.Optional(Type.String()), // z.B. 'waiter'
+    staffRole: Type.Optional(Type.String({ maxLength: 50 })), // z.B. 'waiter'
     isPosUser: Type.Optional(Type.Boolean({ default: false })),
     // Beschreibt DB-Realitaet: bcrypt-Hash (60 Zeichen). Die Plain-Text-PIN-
     // Constraint (4-6 Ziffern) gehoert in `userDataSchema`/`userPatchSchema`
     // als Input-Validierung — VOR dem hash-Resolver. Ohne diese Trennung
     // wuerde ein synchronisierter User-Record (Hash) am Ziel abgewiesen.
-    posPin: Type.Optional(Type.String()),
+    posPin: Type.Optional(Type.String({ maxLength: 72 })),
     hasPosPin: Type.Optional(Type.Boolean()), // Virtuelles Feld — vom externalResolver gesetzt, nie in DB gespeichert
     // MFA-Enrollment-Timestamp (OoS-Welle B Item 3): wird vom webauthn-
     // credentials-after-create-Hook gesetzt, sobald der User die erste
@@ -171,24 +171,24 @@ export const userSchema = Type.Object(
 
     // Persönliche Daten
     loginname: Type.String({ minLength: 2, maxLength: 30 }),
-    firstName: Type.String({ default: '' }),
-    lastName: Type.String({ default: '' }),
-    email: Type.Optional(Type.String({ format: 'email' })),
-    password: Type.String(), // Wird im API-Layer gehasht
+    firstName: Type.String({ default: '', maxLength: 100 }),
+    lastName: Type.String({ default: '', maxLength: 100 }),
+    email: Type.Optional(Type.String({ format: 'email', maxLength: 254 })),
+    password: Type.String({ maxLength: 72 }), // Wird im API-Layer gehasht
 
     // Einstellungen
     allowStaffMealOrders: Type.Optional(Type.Boolean({ default: false })),
     discountDetails: Type.Optional(
       Type.Object({
         discountType: StringEnum(Object.values(DiscountType)),
-        discount: Type.Number(),
+        discount: Type.Number({ minimum: 0 }),
       }),
     ),
     autoLogOff: Type.Optional(Type.Boolean({ default: true })),
     mustChangePassword: Type.Optional(Type.Boolean({ default: false })),
 
     startBreakAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
-    permissions: Type.Array(Type.String(), { default: [] }),
+    permissions: Type.Array(Type.String({ maxLength: 80 }), { default: [], maxItems: 100 }),
 
     // HR: Urlaubsanspruch pro Jahr in Werktagen. Optional — wenn nicht gesetzt,
     // wird die Anspruchsberechnung im Frontend ausgeblendet ("Kein Anspruch
@@ -254,7 +254,7 @@ export const userDataSchema = Type.Intersect(
       posPin: Type.Optional(
         Type.Union([
           Type.String({ minLength: 4, maxLength: 6 }), // Plain-Text-Eingabe
-          Type.String({ minLength: 60 }),              // bcrypt-Hash (Sync-Pfad)
+          Type.String({ minLength: 60, maxLength: 72 }),              // bcrypt-Hash (Sync-Pfad)
         ]),
       ),
     }),

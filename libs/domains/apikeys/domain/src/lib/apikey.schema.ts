@@ -13,17 +13,17 @@ export const apikeySchema = Type.Object(
 
     apikey: Type.String(), // SHA-256-Hash des Keys (Klartext nur bei Erstellung sichtbar)
     apikeyPrefix: Type.Optional(Type.String()), // Erste 8 Zeichen des Klartext-Keys fuer Lookup
-    name: Type.String(),
+    name: Type.String({ maxLength: 100 }),
     deviceId: Type.Optional(Type.String({ format: 'uuid' })), // Associated device ID (optional)
     validUntil: Type.Optional(Type.String({ format: 'date-time' })),
-    createdBy: Type.String(),
+    createdBy: Type.String({ maxLength: 100 }),
 
     /**
      * Role assigned to this API key.
      * Determines permissions for the device.
      */
     role: StringEnum(Object.values(UserSystemRole)),
-    description: Type.Optional(Type.String()), // Optional description of the API key's purpose
+    description: Type.Optional(Type.String({ maxLength: 500 })), // Optional description of the API key's purpose
     active: Type.Boolean({ default: true }), // Whether this API key is active. Inactive keys cannot authenticate.
     lastUsedAt: Type.Optional(Type.String({ format: 'date-time' })), // Last time this API key was used
   },

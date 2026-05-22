@@ -47,6 +47,7 @@ const stateSnapshotSchema = Type.Object(
         },
         { additionalProperties: true }, // weitere Felder optional ignoriert
       ),
+      { maxItems: 1000 },
     ),
     counts: Type.Record(Type.String(), Type.Integer({ minimum: 0 })),
   },
@@ -56,12 +57,12 @@ const stateSnapshotSchema = Type.Object(
 const restampSchema = Type.Object(
   {
     skipped: Type.Boolean(),
-    reason: Type.Optional(Type.String()),
+    reason: Type.Optional(Type.String({ maxLength: 500 })),
     locationsTableUpdated: Type.Boolean(),
-    affectedTables: Type.Array(Type.String()),
+    affectedTables: Type.Array(Type.String(), { maxItems: 1000 }),
     updatedRowsTotal: Type.Integer({ minimum: 0 }),
     perTable: Type.Optional(Type.Record(Type.String(), Type.Integer({ minimum: 0 }))),
-    backupPath: Type.Optional(Type.String()),
+    backupPath: Type.Optional(Type.String({ maxLength: 500 })),
     durationMs: Type.Integer({ minimum: 0 }),
   },
   { additionalProperties: false },
@@ -70,17 +71,18 @@ const restampSchema = Type.Object(
 const consistencyCheckSchema = Type.Object(
   {
     isHealthy: Type.Boolean(),
-    ghostLocations: Type.Array(Type.String()),
+    ghostLocations: Type.Array(Type.String(), { maxItems: 1000 }),
     tenantIdMismatchCount: Type.Integer({ minimum: 0 }),
     locationIdMismatchCount: Type.Integer({ minimum: 0 }),
     issues: Type.Array(
       Type.Object(
         {
           severity: StringEnum(['WARN', 'ERROR']),
-          message: Type.String(),
+          message: Type.String({ maxLength: 1000 }),
         },
         { additionalProperties: false },
       ),
+      { maxItems: 1000 },
     ),
   },
   { additionalProperties: false },
@@ -95,18 +97,18 @@ export const bootstrapReportSchema = Type.Object(
     completedAt: Type.Optional(Type.String({ format: 'date-time' })),
     status: StringEnum(Object.values(BootstrapReportStatus)),
     direction: StringEnum(Object.values(BootstrapReportDirection)),
-    errorMessage: Type.Optional(Type.String()),
+    errorMessage: Type.Optional(Type.String({ maxLength: 2000 })),
 
     identity: identitySchema,
     preState: stateSnapshotSchema,
     postState: Type.Optional(stateSnapshotSchema),
 
     restamp: Type.Optional(restampSchema),
-    syncRunIds: Type.Array(Type.String()),
+    syncRunIds: Type.Array(Type.String(), { maxItems: 1000 }),
     consistencyCheck: Type.Optional(consistencyCheckSchema),
 
     // JSON-Datei-Pfad (relativ zu dataDir), gesetzt nach `dumpToFile`.
-    jsonExportPath: Type.Optional(Type.String()),
+    jsonExportPath: Type.Optional(Type.String({ maxLength: 500 })),
 
     createdAt: Type.String({ format: 'date-time' }),
     updatedAt: Type.String({ format: 'date-time' }),

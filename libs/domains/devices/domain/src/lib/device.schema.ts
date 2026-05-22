@@ -17,19 +17,19 @@ export const deviceSchema = Type.Object(
 
     deviceId: Type.String({ format: 'uuid' }), // Unique device identifier (UUID), kept from old schema
 
-    name: Type.String(),
+    name: Type.String({ maxLength: 100 }),
     type: StringEnum(Object.values(DeviceType)),
-    apiKeyId: Type.Optional(Type.String()),
+    apiKeyId: Type.Optional(Type.String({ format: 'uuid' })),
     lastSeen: Type.Optional(Type.String({ format: 'date-time' })),
     active: Type.Boolean({ default: true }),
     metadata: Type.Optional(
       Type.Object({
-        userAgent: Type.Optional(Type.String()),
-        ipAddress: Type.Optional(Type.String()),
-        version: Type.Optional(Type.String()),
+        userAgent: Type.Optional(Type.String({ maxLength: 512 })),
+        ipAddress: Type.Optional(Type.String({ maxLength: 45 })),
+        version: Type.Optional(Type.String({ maxLength: 50 })),
       }),
     ),
-    createdBy: Type.String(),
+    createdBy: Type.String({ maxLength: 100 }),
   },
   { $id: 'Device', additionalProperties: false },
 )
@@ -39,18 +39,18 @@ export type Device = Static<typeof deviceSchema>
 //#region Schema for creation (POST)
 export const deviceDataSchema = Type.Object(
   {
-    name: Type.String(),
+    name: Type.String({ maxLength: 100 }),
     type: StringEnum(Object.values(DeviceType)),
     locationId: Type.String(),
     tenantId: Type.String(),
     metadata: Type.Optional(
       Type.Object({
-        userAgent: Type.Optional(Type.String()),
-        ipAddress: Type.Optional(Type.String()),
-        version: Type.Optional(Type.String()),
+        userAgent: Type.Optional(Type.String({ maxLength: 512 })),
+        ipAddress: Type.Optional(Type.String({ maxLength: 45 })),
+        version: Type.Optional(Type.String({ maxLength: 50 })),
       }),
     ),
-    apiKeyId: Type.Optional(Type.String()),
+    apiKeyId: Type.Optional(Type.String({ format: 'uuid' })),
     active: Type.Optional(Type.Boolean({ default: true })),
   },
   { $id: 'DeviceData', additionalProperties: false },

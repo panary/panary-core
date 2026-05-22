@@ -27,12 +27,12 @@ export class AuthService {
   user = this.#user.asReadonly()
   isAuthenticated = computed(() => !!this.#token())
 
-  async login(loginname: string, password: string): Promise<boolean> {
+  async login(email: string, password: string): Promise<boolean> {
     try {
       const result = await this.http
         .post<{ accessToken: string; user: AuthUser }>(`${API_URL}/authentication`, {
           strategy: 'local',
-          loginname,
+          email,
           password,
         })
         .toPromise()

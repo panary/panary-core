@@ -126,7 +126,9 @@ async function main() {
       try {
         const adminLogin = process.env['ADMIN_LOGIN'] || config.adminLogin || 'admin'
 
-        const existingUser = await knex('users').where({ loginname: adminLogin }).first()
+        // E-Mail ist der Login-Identifier — Existenz-Check entsprechend per email
+        // (nicht mehr loginname, das nur noch Anzeige-Handle ist).
+        const existingUser = await knex('users').where({ email: adminEmail }).first()
 
         if (!existingUser) {
           logger.info(`Bootstrapping: Creating admin user ${adminLogin}...`)

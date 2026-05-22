@@ -21,17 +21,17 @@ import { AuthService } from '../core/auth.service'
 
         <form (ngSubmit)="onLogin()" class="space-y-4">
           <div class="space-y-1">
-            <label for="login-name" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-              {{ 'USERS.LOGIN_NAME' | translate }}
+            <label for="login-email" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+              {{ 'USERS.EMAIL' | translate }}
             </label>
             <input
-              id="login-name"
-              [(ngModel)]="loginname" name="loginname" type="text"
+              id="login-email"
+              [(ngModel)]="email" name="email" type="email" autocomplete="username"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
                      focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none
                      placeholder-slate-400 dark:placeholder-gray-600"
-              placeholder="admin" />
+              placeholder="name@firma.de" />
           </div>
 
           <div class="space-y-1">
@@ -75,17 +75,17 @@ export class LoginComponent {
   private auth = inject(AuthService)
   private router = inject(Router)
 
-  loginname = ''
+  email = ''
   password = ''
   loading = signal(false)
   error = signal<string | null>(null)
 
   async onLogin() {
-    if (!this.loginname || !this.password) return
+    if (!this.email || !this.password) return
     this.loading.set(true)
     this.error.set(null)
 
-    const success = await this.auth.login(this.loginname, this.password)
+    const success = await this.auth.login(this.email, this.password)
 
     if (success) {
       this.router.navigate(['/'])

@@ -9,7 +9,7 @@ export const syncPullQuerySchema = Type.Object(
     service: Type.String({ minLength: 1, maxLength: 80 }),
     since: Type.Optional(Type.String({ format: 'date-time' })),
     limit: Type.Optional(Type.Integer({ minimum: 1, maximum: SYNC_PULL_MAX_LIMIT })),
-    cursor: Type.Optional(Type.String()),
+    cursor: Type.Optional(Type.String({ maxLength: 512 })),
   },
   { $id: 'SyncPullQuery', additionalProperties: false },
 )
@@ -30,7 +30,7 @@ export type SyncPullRecord = Static<typeof syncPullRecordSchema>
 
 export const syncPullResponseSchema = Type.Object(
   {
-    service: Type.String(),
+    service: Type.String({ maxLength: 80 }),
     records: Type.Array(syncPullRecordSchema),
     nextCursor: Type.Optional(Type.String()),
     hasMore: Type.Boolean(),

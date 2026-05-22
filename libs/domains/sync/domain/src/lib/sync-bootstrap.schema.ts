@@ -10,7 +10,7 @@ export const syncBootstrapRequestSchema = Type.Object(
     service: Type.String({ minLength: 1, maxLength: 80 }),
     ops: Type.Array(syncOpSchema, { maxItems: SYNC_BOOTSTRAP_MAX_BATCH }),
     finalChunk: Type.Boolean(),
-    resumeToken: Type.Optional(Type.String()),
+    resumeToken: Type.Optional(Type.String({ maxLength: 512 })),
   },
   { $id: 'SyncBootstrapRequest', additionalProperties: false },
 )
@@ -21,7 +21,7 @@ export const syncBootstrapResponseSchema = Type.Object(
   {
     accepted: Type.Array(Type.String({ format: 'uuid' })),
     rejected: Type.Array(syncRejectionSchema),
-    nextResumeToken: Type.Optional(Type.String()),
+    nextResumeToken: Type.Optional(Type.String({ maxLength: 512 })),
     completed: Type.Boolean(),
     serverTimestamp: Type.String({ format: 'date-time' }),
   },

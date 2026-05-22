@@ -15,8 +15,8 @@ export const syncStatusResponseSchema = Type.Object(
     cloudEdgeId: Type.String({ format: 'uuid' }),
     cloudTenantId: Type.String({ format: 'uuid' }),
     serverTimestamp: Type.String({ format: 'date-time' }),
-    revokedReason: Type.Optional(Type.String()),
-    requiredEdgeMinVersion: Type.Optional(Type.String()),
+    revokedReason: Type.Optional(Type.String({ maxLength: 500 })),
+    requiredEdgeMinVersion: Type.Optional(Type.String({ maxLength: 50 })),
   },
   { $id: 'SyncStatusResponse', additionalProperties: false },
 )

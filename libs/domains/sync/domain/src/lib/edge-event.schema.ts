@@ -28,7 +28,7 @@ export const EDGE_EVENT_NAMES = Object.values(EdgeEventName)
 export const edgeChangedEventSchema = Type.Object(
   {
     cloudEdgeId: Type.String({ format: 'uuid' }),
-    services: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
+    services: Type.Array(Type.String({ minLength: 1, maxLength: 80 }), { minItems: 1, maxItems: 50 }),
   },
   { $id: 'EdgeChangedEvent', additionalProperties: false },
 )
@@ -45,7 +45,7 @@ export type EdgeForceSyncEvent = Static<typeof edgeForceSyncEventSchema>
 export const edgeRevokedEventSchema = Type.Object(
   {
     cloudEdgeId: Type.String({ format: 'uuid' }),
-    reason: Type.Optional(Type.String()),
+    reason: Type.Optional(Type.String({ maxLength: 500 })),
   },
   { $id: 'EdgeRevokedEvent', additionalProperties: false },
 )

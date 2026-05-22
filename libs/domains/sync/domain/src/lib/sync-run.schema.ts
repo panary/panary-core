@@ -70,11 +70,11 @@ export const syncRunRecordDetailSchema = Type.Object(
   {
     // Service-/Entity-Typ (z.B. `orders`, `order-interactions`, `users`).
     service: Type.String({ minLength: 1, maxLength: 80 }),
-    entityId: Type.String(),
+    entityId: Type.String({ maxLength: 80 }),
     op: StringEnum(Object.values(SyncOp)),
     status: Type.Optional(StringEnum(Object.values(SyncRunRecordStatus))),
     // Klartext-Begruendung bei rejected/conflict (Cloud-Reject-Reason).
-    reason: Type.Optional(Type.String()),
+    reason: Type.Optional(Type.String({ maxLength: 1000 })),
   },
   { $id: 'SyncRunRecordDetail', additionalProperties: false },
 )
@@ -99,7 +99,7 @@ export const syncRunSchema = Type.Object(
     archived: Type.Optional(Type.Integer({ minimum: 0 })),
     durationMs: Type.Integer({ minimum: 0 }),
     outcome: StringEnum(Object.values(SyncRunOutcome)),
-    errorMessage: Type.Optional(Type.String()),
+    errorMessage: Type.Optional(Type.String({ maxLength: 1000 })),
     triggeredBy: StringEnum(Object.values(SyncRunTrigger)),
     /**
      * Optionale Korrelation zu einem Bootstrap-Report. Wird vom Bootstrap-

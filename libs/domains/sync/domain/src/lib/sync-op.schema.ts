@@ -62,8 +62,8 @@ export type SyncOpEntry = Static<typeof syncOpSchema>
 export const syncRejectionSchema = Type.Object(
   {
     _id: Type.String({ format: 'uuid' }),
-    reason: Type.String(),
-    code: Type.Optional(Type.String()),
+    reason: Type.String({ maxLength: 1000 }),
+    code: Type.Optional(Type.String({ maxLength: 120 })),
     // Optional-only fuer Backwards-Compat: aeltere Cloud-Versionen ohne
     // Klassifikation liefern das Feld nicht; der Edge-Worker faellt dann auf
     // `terminal` zurueck (kein automatisches Retry).

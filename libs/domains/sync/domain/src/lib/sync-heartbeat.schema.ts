@@ -23,7 +23,7 @@ export const syncHeartbeatResponseSchema = Type.Object(
     serverTimestamp: Type.String({ format: 'date-time' }),
     clockSkewStatus: StringEnum(Object.values(ClockSkewStatus)),
     clockSkewMs: Type.Number(),
-    nextToken: Type.Optional(Type.String()),
+    nextToken: Type.Optional(Type.String({ maxLength: 512 })),
     nextTokenExpiresAt: Type.Optional(Type.String({ format: 'date-time' })),
     pullSince: Type.Optional(Type.String({ format: 'date-time' })),
   },

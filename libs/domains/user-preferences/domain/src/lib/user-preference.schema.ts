@@ -7,7 +7,7 @@ export const userPreferenceSchema = Type.Object(
     ...baseSchema,
 
     userId: Type.String({ format: 'uuid' }), // Was ObjectId
-    key: Type.String(),
+    key: Type.String({ maxLength: 120 }),
     value: Type.Any(),
   },
   { $id: 'UserPreference', additionalProperties: false },

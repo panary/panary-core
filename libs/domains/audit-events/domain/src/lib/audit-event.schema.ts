@@ -8,13 +8,13 @@ import { AuditCategory, AuditOutcome, AuditSeverity } from './audit-category.enu
 //#region Sub-Schemas
 export const auditActorSchema = Type.Object(
   {
-    userId: Type.String(),
-    role: Type.String(),
-    sessionId: Type.Optional(Type.String()),
-    ipAddress: Type.Optional(Type.String()),
-    userAgent: Type.Optional(Type.String()),
-    deviceId: Type.Optional(Type.String()),
-    requestId: Type.String(),
+    userId: Type.String({ format: 'uuid' }),
+    role: Type.String({ maxLength: 80 }),
+    sessionId: Type.Optional(Type.String({ maxLength: 80 })),
+    ipAddress: Type.Optional(Type.String({ maxLength: 45 })),
+    userAgent: Type.Optional(Type.String({ maxLength: 500 })),
+    deviceId: Type.Optional(Type.String({ format: 'uuid' })),
+    requestId: Type.String({ format: 'uuid' }),
   },
   { $id: 'AuditActor', additionalProperties: false },
 )
@@ -23,10 +23,10 @@ export type AuditActor = Static<typeof auditActorSchema>
 
 export const auditTargetSchema = Type.Object(
   {
-    resource: Type.String(), // Service-Pfad, z. B. 'orders'
-    entityType: Type.String(), // semantischer Typ, oft == resource (singular)
-    entityId: Type.String(),
-    entityRef: Type.Optional(Type.String()), // menschenlesbarer Verweis (z. B. Beleg-Nr.)
+    resource: Type.String({ maxLength: 80 }), // Service-Pfad, z. B. 'orders'
+    entityType: Type.String({ maxLength: 80 }), // semantischer Typ, oft == resource (singular)
+    entityId: Type.String({ maxLength: 80 }),
+    entityRef: Type.Optional(Type.String({ maxLength: 200 })), // menschenlesbarer Verweis (z. B. Beleg-Nr.)
   },
   { $id: 'AuditTarget', additionalProperties: false },
 )
@@ -62,16 +62,16 @@ export const auditEventSchema = Type.Object(
     after: Type.Optional(Type.Unknown()),
     diff: Type.Optional(Type.Record(Type.String(), diffEntrySchema)),
     metadata: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
-    correlationId: Type.String(),
+    correlationId: Type.String({ maxLength: 64 }),
     // Flache Persistenz-Spiegel der haeufig gefilterten verschachtelten
     // Felder. SQLite-Migration legt sie als eigene Spalten mit Indizes an.
     // Werden vom auditEventDataResolver aus `actor`/`target` abgeleitet —
     // optional im Schema, damit der Validate-Hook sie nicht erzwingt
     // (Cloud-Kontext ohne flache Spalten muss durchgehen koennen).
-    actor_userId: Type.Optional(Type.String()),
-    target_resource: Type.Optional(Type.String()),
-    target_entityType: Type.Optional(Type.String()),
-    target_entityId: Type.Optional(Type.String()),
+    actor_userId: Type.Optional(Type.String({ format: 'uuid' })),
+    target_resource: Type.Optional(Type.String({ maxLength: 80 })),
+    target_entityType: Type.Optional(Type.String({ maxLength: 80 })),
+    target_entityId: Type.Optional(Type.String({ maxLength: 80 })),
     // Phase-2-Read-Only-Felder: Redaction-Marker. NIE persistiert — werden vom
     // Cloud-resolveResult aus der `audit-event-redactions`-Side-Tabelle
     // gemerged. Edge sieht diese Felder nie, weil der Edge-Service keine
@@ -81,8 +81,8 @@ export const auditEventSchema = Type.Object(
       Type.Object({
         redactedAt: Type.String({ format: 'date-time' }),
         redactedBy: Type.String(),
-        redactionReason: Type.String(),
-        scope: Type.String(),
+        redactionReason: Type.String({ maxLength: 500 }),
+        scope: Type.String({ maxLength: 50 }),
         bulkRedactionId: Type.Union([Type.String(), Type.Null()]),
       }),
     ),

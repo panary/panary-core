@@ -16,7 +16,7 @@ export const SYNC_INTERVAL_DEFAULT_SEC = 300
 
 export const syncScheduleSchema = Type.Object(
   {
-    times: Type.Array(Type.String({ pattern: '^([01]\\d|2[0-3]):[0-5]\\d$' }), { minItems: 1 }),
+    times: Type.Array(Type.String({ pattern: '^([01]\\d|2[0-3]):[0-5]\\d$' }), { minItems: 1, maxItems: 48 }),
     timezone: Type.String({ minLength: 1, maxLength: 64 }),
   },
   { $id: 'SyncSchedule', additionalProperties: false },

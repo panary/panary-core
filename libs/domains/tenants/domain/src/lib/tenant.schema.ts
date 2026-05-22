@@ -45,14 +45,14 @@ export const billingSchema = Type.Object(
     customerType: StringEnum(Object.values(BillingCustomerType)),
     address: addressSchema,
     invoiceEmail: Type.Optional(Type.String({ format: 'email' })),
-    stripeCustomerId: Type.Optional(Type.String()),
-    paymentMethodRef: Type.Optional(Type.String()),
-    sepaMandateRef: Type.Optional(Type.String()),
+    stripeCustomerId: Type.Optional(Type.String({ maxLength: 255 })),
+    paymentMethodRef: Type.Optional(Type.String({ maxLength: 255 })),
+    sepaMandateRef: Type.Optional(Type.String({ maxLength: 255 })),
     currency: Type.String({ default: 'EUR', minLength: 3, maxLength: 3 }),
     paymentTerms: Type.Optional(Type.Number({ minimum: 0 })),
     taxStatus: Type.Optional(StringEnum(Object.values(BillingTaxStatus))),
     taxIdValidatedAt: Type.Optional(Type.String({ format: 'date-time' })),
-    idempotencyKeys: Type.Optional(Type.Array(Type.String(), { maxItems: 200 })),
+    idempotencyKeys: Type.Optional(Type.Array(Type.String({ maxLength: 255 }), { maxItems: 200 })),
   },
   { $id: 'TenantBilling', additionalProperties: false },
 )
@@ -72,8 +72,8 @@ export const subscriptionSchema = Type.Object(
     currentPeriodStart: Type.Optional(Type.String({ format: 'date-time' })),
     currentPeriodEnd: Type.Optional(Type.String({ format: 'date-time' })),
     cancelAt: Type.Optional(Type.String({ format: 'date-time' })),
-    stripeSubscriptionId: Type.Optional(Type.String()),
-    appliedCoupons: Type.Optional(Type.Array(Type.String(), { maxItems: 20 })),
+    stripeSubscriptionId: Type.Optional(Type.String({ maxLength: 255 })),
+    appliedCoupons: Type.Optional(Type.Array(Type.String({ maxLength: 80 }), { maxItems: 20 })),
     cancelReason: Type.Optional(Type.String({ maxLength: 200 })),
     cancelFeedback: Type.Optional(Type.String({ maxLength: 2000 })),
     maxLocations: Type.Optional(Type.Number({ minimum: 0 })),
@@ -210,7 +210,7 @@ export const tenantWebhookSubscriptionSchema = Type.Object(
     id: Type.String({ format: 'uuid' }),
     url: Type.String({ format: 'uri' }),
     events: Type.Array(Type.String(), { minItems: 1, maxItems: 50 }),
-    secretRef: Type.Optional(Type.String()),
+    secretRef: Type.Optional(Type.String({ maxLength: 255 })),
     active: Type.Boolean({ default: true }),
     createdAt: Type.String({ format: 'date-time' }),
   },
@@ -237,7 +237,7 @@ export const ssoSchema = Type.Object(
     enabled: Type.Boolean({ default: false }),
     provider: Type.Optional(Type.String({ maxLength: 50 })),
     metadataUrl: Type.Optional(Type.String({ format: 'uri' })),
-    entityId: Type.Optional(Type.String()),
+    entityId: Type.Optional(Type.String({ maxLength: 255 })),
     enforceForRoles: Type.Optional(Type.Array(Type.String(), { maxItems: 20 })),
   },
   { $id: 'TenantSso', additionalProperties: false },
@@ -307,7 +307,7 @@ export const tenantSchema = Type.Object(
     name: Type.String({ minLength: 1, maxLength: 200 }),
     slug: Type.Optional(Type.String({ pattern: '^[a-z0-9-]+$', minLength: 2, maxLength: 80 })),
     status: StringEnum(Object.values(TenantStatus)),
-    ownerUserId: Type.Union([Type.String(), Type.Null()]),
+    ownerUserId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
 
     // Sub-Aggregate
     legalEntity: Type.Optional(legalEntitySchema),
@@ -319,7 +319,7 @@ export const tenantSchema = Type.Object(
 
     // Future-proof — Schema-Felder ohne UI in V1
     region: Type.Optional(StringEnum(Object.values(TenantRegion))),
-    parentTenantId: Type.Optional(Type.String()),
+    parentTenantId: Type.Optional(Type.String({ format: 'uuid' })),
     dataRetentionPolicy: Type.Optional(dataRetentionSchema),
     webhookSubscriptions: Type.Optional(Type.Array(tenantWebhookSubscriptionSchema, { maxItems: 50 })),
     apiQuota: Type.Optional(apiQuotaSchema),
@@ -335,7 +335,7 @@ export const tenantSchema = Type.Object(
     tags: Type.Optional(Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 })),
 
     // Audit
-    createdBy: Type.Union([Type.String(), Type.Null()]),
+    createdBy: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
     createdAt: Type.String({ format: 'date-time' }),
     updatedAt: Type.String({ format: 'date-time' }),
     suspendedAt: Type.Optional(Type.String({ format: 'date-time' })),
@@ -350,7 +350,7 @@ export const tenantSchema = Type.Object(
 
     // Schema-Reserve fuer kuenftigen Merge (Welle C Item 8). Keine
     // Implementation jetzt — Merge/Split kommt bei realem Use-Case.
-    mergedIntoTenantId: Type.Optional(Type.String()),
+    mergedIntoTenantId: Type.Optional(Type.String({ format: 'uuid' })),
 
     // Optimistic Concurrency fuer Cloud->Edge-Sync (Skeptiker-Befund).
     syncVersion: Type.Optional(Type.Number({ minimum: 0 })),

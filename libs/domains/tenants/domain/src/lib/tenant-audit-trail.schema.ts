@@ -16,7 +16,7 @@ export const tenantAuditTrailSchema = Type.Object(
     _id: Type.String({ format: 'uuid' }),
     tenantId: Type.String({ format: 'uuid' }),
 
-    actorUserId: Type.Union([Type.String(), Type.Null()]),
+    actorUserId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
     actorRole: Type.Union([Type.String({ maxLength: 80 }), Type.Null()]),
     source: StringEnum(Object.values(TenantAuditSource)),
 

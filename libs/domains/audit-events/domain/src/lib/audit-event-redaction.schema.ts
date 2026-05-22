@@ -22,7 +22,7 @@ export const auditEventRedactionSchema = Type.Object(
     locationId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
     auditEventId: Type.String({ format: 'uuid' }),
     redactedAt: Type.String({ format: 'date-time' }),
-    redactedBy: Type.String(),
+    redactedBy: Type.String({ format: 'uuid' }),
     redactionReason: Type.String({ minLength: 10, maxLength: 500 }),
     scope: StringEnum(Object.values(RedactionScope)),
     // Bulk-Redactions teilen sich eine bulkRedactionId (uuidv7). Einzelne
@@ -62,11 +62,11 @@ export const auditEventBulkRedactionFilterSchema = Type.Object(
   {
     from: Type.Optional(Type.String({ format: 'date-time' })),
     to: Type.Optional(Type.String({ format: 'date-time' })),
-    category: Type.Optional(Type.String()),
-    action: Type.Optional(Type.String()),
-    actorUserId: Type.Optional(Type.String()),
-    targetEntityId: Type.Optional(Type.String()),
-    targetResource: Type.Optional(Type.String()),
+    category: Type.Optional(Type.String({ maxLength: 80 })),
+    action: Type.Optional(Type.String({ maxLength: 80 })),
+    actorUserId: Type.Optional(Type.String({ maxLength: 80 })),
+    targetEntityId: Type.Optional(Type.String({ maxLength: 80 })),
+    targetResource: Type.Optional(Type.String({ maxLength: 80 })),
   },
   { $id: 'AuditEventBulkRedactionFilter', additionalProperties: false },
 )

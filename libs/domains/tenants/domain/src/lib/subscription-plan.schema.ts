@@ -53,9 +53,9 @@ export const subscriptionPlanSchema = Type.Object(
 
     // Stripe-Referenzen — optional, weil Custom-/Partner-Plaene ohne Stripe-Anbindung
     // moeglich sind (manuelles Billing).
-    stripeProductId: Type.Optional(Type.String()),
-    stripePriceIdMonthly: Type.Optional(Type.String()),
-    stripePriceIdYearly: Type.Optional(Type.String()),
+    stripeProductId: Type.Optional(Type.String({ maxLength: 255 })),
+    stripePriceIdMonthly: Type.Optional(Type.String({ maxLength: 255 })),
+    stripePriceIdYearly: Type.Optional(Type.String({ maxLength: 255 })),
 
     limits: subscriptionPlanLimitsSchema,
     features: subscriptionPlanFeaturesSchema,

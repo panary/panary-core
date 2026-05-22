@@ -5,14 +5,14 @@ export const SYNC_CURSOR_SINGLETON_ID = 'cloud'
 
 export const syncCursorSchema = Type.Object(
   {
-    _id: Type.String({ minLength: 1 }),
+    _id: Type.String({ minLength: 1, maxLength: 80 }),
     service: Type.String({ minLength: 1, maxLength: 80 }),
     lastPullAt: Type.Optional(Type.String({ format: 'date-time' })),
     lastPushAt: Type.Optional(Type.String({ format: 'date-time' })),
     lastHeartbeatAt: Type.Optional(Type.String({ format: 'date-time' })),
     lastClockSkewMs: Type.Optional(Type.Number()),
     lastError: Type.Optional(Type.String({ maxLength: 1000 })),
-    lastBootstrapResumeToken: Type.Optional(Type.String()),
+    lastBootstrapResumeToken: Type.Optional(Type.String({ maxLength: 512 })),
     createdAt: Type.String({ format: 'date-time' }),
     updatedAt: Type.String({ format: 'date-time' }),
   },

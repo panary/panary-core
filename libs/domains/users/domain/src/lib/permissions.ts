@@ -121,6 +121,11 @@ export const AppResource = {
    *  READ für TENANT_OWNER/MANAGER (für Live-Progress-Subscription).
    *  CREATE nur intern (Pipeline-Steps), kein externer Write. */
   BUSINESS_DAY_REPORT_EVENTS: 'business-day-report-events',
+  /** Cloud-only: Kassen-Sessions (Schubladen) für den Multi-Kassen-Tages-
+   *  abschluss. Mehrere pro Geschäftstag, von versch. Benutzern eröffnet.
+   *  TENANT_OWNER/MANAGER/TECHNICIAN: MANAGE. TENANT_STAFF: READ+CREATE+UPDATE
+   *  (öffnen/zählen/schließen — Self-Scope für fremde Sessions später). */
+  CASH_SESSIONS: 'cash-sessions',
   USER_PREFERENCES: 'user-preferences',
   DEVICES: 'devices',
   /** Cloud-only: Live-Zählung der aktuell mit der Cloud verbundenen Geräte

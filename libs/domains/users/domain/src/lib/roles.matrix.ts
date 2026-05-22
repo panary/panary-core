@@ -212,6 +212,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Tagesabschluss: Owner darf voll MANAGE (start, cancel, reAggregate, audit).
     { resource: AppResource.BUSINESS_DAY_REPORTS, action: AppAction.MANAGE },
     { resource: AppResource.BUSINESS_DAY_REPORT_EVENTS, action: AppAction.READ },
+    { resource: AppResource.CASH_SESSIONS, action: AppAction.MANAGE },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.DEVICES, action: AppAction.MANAGE },
     // Live-Verbindungszählung der Geräte (Socket-Registry) — read-only.
@@ -339,6 +340,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Audit-Freigabe geben.
     { resource: AppResource.BUSINESS_DAY_REPORTS, action: AppAction.MANAGE },
     { resource: AppResource.BUSINESS_DAY_REPORT_EVENTS, action: AppAction.READ },
+    { resource: AppResource.CASH_SESSIONS, action: AppAction.MANAGE },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.DEVICES, action: AppAction.MANAGE },
     // Live-Verbindungszählung der Geräte (Socket-Registry) — read-only.
@@ -451,6 +453,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // 'audited' wird im Service-Hook auf Owner+Technician beschränkt.
     { resource: AppResource.BUSINESS_DAY_REPORTS, action: AppAction.MANAGE },
     { resource: AppResource.BUSINESS_DAY_REPORT_EVENTS, action: AppAction.READ },
+    { resource: AppResource.CASH_SESSIONS, action: AppAction.MANAGE },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.SHIFTS, action: AppAction.MANAGE },
     { resource: AppResource.SHIFT_TEMPLATES, action: AppAction.MANAGE },
@@ -520,6 +523,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // CREATE/UPDATE bleibt MANAGER+.
     { resource: AppResource.BUSINESS_DAY_REPORTS, action: AppAction.READ },
     { resource: AppResource.BUSINESS_DAY_REPORT_EVENTS, action: AppAction.READ },
+    // Kassen-Sessions: Staff darf eigene Schubladen öffnen/zählen/schließen.
+    { resource: AppResource.CASH_SESSIONS, action: [AppAction.READ, AppAction.CREATE, AppAction.UPDATE] },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE }, // eigene Prefs
     { resource: AppResource.SHIFTS, action: AppAction.READ },
     { resource: AppResource.SHIFT_TEMPLATES, action: AppAction.READ },

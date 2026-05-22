@@ -60,7 +60,8 @@
     "OPENING_HOURS": "\u00d6ffnungszeiten",
     "SYNC_STATUS": "Sync-Status",
     "LOGS": "Support-Logs",
-    "BUSINESS_DAYS": "Geschäftstage"
+    "BUSINESS_DAYS": "Geschäftstage",
+    "DEVICES": "Geräte"
   },
   "LOGS": {
     "TITLE": "Support-Logs",
@@ -168,12 +169,24 @@
     "KPI_PRODUCT_GROUPS": "Produktgruppen",
     "KPI_API_KEYS": "API-Keys",
     "KPI_ORDERS": "Bestellungen",
+    "KPI_DEVICES": "Geräte",
     "STATUS_STANDALONE": "Standalone-Modus",
     "STATUS_CONNECTED": "Cloud verbunden",
     "STATUS_PAIRING": "Kopplung l\u00e4uft\u2026",
     "STATUS_DISCONNECTED": "Cloud getrennt",
     "STATUS_ERROR": "Verbindungsfehler",
     "STATUS_STALE": "Cloud nicht erreichbar"
+  },
+  "DEVICES": {
+    "TITLE": "Geräte",
+    "NO_DEVICES": "Keine Geräte registriert",
+    "TYPE": "Typ",
+    "DEVICE_ID": "Geräte-ID",
+    "LAST_SEEN": "Letzte Aktivität",
+    "CONNECTION": "Verbindung",
+    "ONLINE": "Verbunden",
+    "OFFLINE": "Getrennt",
+    "CONNECTED": "verbunden"
   },
   "USERS": {
     "TITLE": "Benutzer",

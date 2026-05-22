@@ -5,6 +5,7 @@ import { lastValueFrom } from 'rxjs'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService, Paginated } from '../../core/api.service'
 import { SyncProblemCountService } from '../../core/sync-problem-count.service'
+import { DeviceStatusService } from '../../core/device-status.service'
 
 type PairingStatus = 'connected' | 'disconnected' | 'pairing' | 'error'
 // 'stale' = gekoppelt (pairingStatus=connected), aber seit > CLOUD_CONTACT_STALE_SEC
@@ -157,7 +158,7 @@ function formatBytes(bytes: number): string {
       <!-- KPI Grid -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         @if (loading()) {
-          @for (i of [1,2,3,4,5,6]; track i) {
+          @for (i of [1,2,3,4,5,6,7]; track i) {
             <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl p-5 flex items-center gap-4">
               <div class="w-[46px] h-[46px] rounded-xl bg-slate-100 dark:bg-gray-800 animate-pulse shrink-0"></div>
               <div class="space-y-2 flex-1">
@@ -258,6 +259,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   #http = inject(HttpClient)
   #t = inject(TranslateService)
   protected syncProblems = inject(SyncProblemCountService)
+  #deviceStatus = inject(DeviceStatusService)
 
   #statusTimer: ReturnType<typeof setInterval> | null = null
 
@@ -290,7 +292,33 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { label: 'DASHBOARD.KPI_PRODUCT_GROUPS',   value: '–', icon: 'category',      iconColor: '#d97706', iconBg: '#fffbeb' },
     { label: 'DASHBOARD.KPI_API_KEYS',         value: '–', icon: 'key',           iconColor: '#e11d48', iconBg: '#fff1f2' },
     { label: 'DASHBOARD.KPI_ORDERS',           value: '–', icon: 'receipt_long',  iconColor: '#4f46e5', iconBg: '#eef2ff' },
+    // Geraete: X / Y verbunden (live aus device-connections). Wert + Farbe
+    // werden separat ueber updateDeviceKpi() gesetzt (nicht aus der count-Map).
+    { label: 'DASHBOARD.KPI_DEVICES',          value: '–', icon: 'devices',       iconColor: '#64748b', iconBg: '#f1f5f9' },
   ])
+
+  /** Baut die Geraete-KPI-Karte aus dem DeviceStatusService (online/total). */
+  private deviceKpiCard(): KpiCard {
+    const online = this.#deviceStatus.online()
+    const total = this.#deviceStatus.total()
+    if (online === null || total === null) {
+      // Unbekannt (z.B. fehlendes Recht) → neutral.
+      return { label: 'DASHBOARD.KPI_DEVICES', value: '–', icon: 'devices', iconColor: '#64748b', iconBg: '#f1f5f9' }
+    }
+    const connected = online > 0
+    return {
+      label: 'DASHBOARD.KPI_DEVICES',
+      value: `${online} / ${total}`,
+      icon: 'devices',
+      iconColor: connected ? '#059669' : '#d97706', // gruen ≥1, amber 0
+      iconBg: connected ? '#ecfdf5' : '#fffbeb',
+    }
+  }
+
+  private updateDeviceKpi(): void {
+    const card = this.deviceKpiCard()
+    this.kpis.update(cards => cards.map(c => (c.label === 'DASHBOARD.KPI_DEVICES' ? card : c)))
+  }
 
   async ngOnInit() {
     // Sync-Problem-/Retry-Counter sofort frisch ziehen (Layout pollt zwar im
@@ -311,13 +339,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
       ]),
       lastValueFrom(this.#http.get<EdgeServerInfo>(`${window.location.origin}/health`)).catch(() => null),
       this.#api.find<CloudConnection>('cloud-connection', { $limit: 1 }).catch(() => null),
+      this.#deviceStatus.refresh(),
       minDelay,
     ] as const)
 
     const val = (r: PromiseSettledResult<Paginated<unknown>>) =>
       r.status === 'fulfilled' ? String(r.value.total) : '–'
 
-    this.kpis.update(cards => cards.map((card, i) => ({ ...card, value: val(kpiResults[i]) })))
+    // Nur die count-basierten Karten (Index 0..kpiResults.length-1) befuellen —
+    // die Geraete-Karte wird separat ueber updateDeviceKpi() gesetzt.
+    this.kpis.update(cards =>
+      cards.map((card, i) => (i < kpiResults.length ? { ...card, value: val(kpiResults[i]) } : card)),
+    )
+    this.updateDeviceKpi()
 
     if (healthResult) {
       this.edgeInfo.set(healthResult)
@@ -341,5 +375,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private async refreshCloudStatus(): Promise<void> {
     const r = await this.#api.find<CloudConnection>('cloud-connection', { $limit: 1 }).catch(() => null)
     this.cloudStatus.set(deriveCloudStatus(r?.data[0], Date.now()))
+    // Geraete-Verbindungs-KPI im selben 30s-Takt nachziehen.
+    await this.#deviceStatus.refresh()
+    this.updateDeviceKpi()
   }
 }

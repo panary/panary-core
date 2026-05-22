@@ -60,7 +60,8 @@
     "OPENING_HOURS": "\u00c7al\u0131\u015fma Saatleri",
     "SYNC_STATUS": "Senkronizasyon Durumu",
     "LOGS": "Destek Günlükleri",
-    "BUSINESS_DAYS": "İş Günleri"
+    "BUSINESS_DAYS": "İş Günleri",
+    "DEVICES": "Cihazlar"
   },
   "LOGS": {
     "TITLE": "Destek günlükleri",
@@ -168,12 +169,24 @@
     "KPI_PRODUCT_GROUPS": "\u00dcr\u00fcn Gruplar\u0131",
     "KPI_API_KEYS": "API Anahtarlar\u0131",
     "KPI_ORDERS": "Sipari\u015fler",
+    "KPI_DEVICES": "Cihazlar",
     "STATUS_STANDALONE": "Ba\u011f\u0131ms\u0131z Mod",
     "STATUS_CONNECTED": "Bulut Ba\u011fl\u0131",
     "STATUS_PAIRING": "E\u015fle\u015ftirme devam ediyor\u2026",
     "STATUS_DISCONNECTED": "Bulut Ba\u011flant\u0131s\u0131 Kesildi",
     "STATUS_ERROR": "Ba\u011flant\u0131 Hatas\u0131",
     "STATUS_STALE": "Buluta ula\u015f\u0131lam\u0131yor"
+  },
+  "DEVICES": {
+    "TITLE": "Cihazlar",
+    "NO_DEVICES": "Kayıtlı cihaz yok",
+    "TYPE": "Tür",
+    "DEVICE_ID": "Cihaz Kimliği",
+    "LAST_SEEN": "Son görülme",
+    "CONNECTION": "Bağlantı",
+    "ONLINE": "Bağlı",
+    "OFFLINE": "Bağlı değil",
+    "CONNECTED": "bağlı"
   },
   "USERS": {
     "TITLE": "Kullan\u0131c\u0131lar",

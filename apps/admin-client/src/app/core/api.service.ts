@@ -24,6 +24,17 @@ export class ApiService {
     return lastValueFrom(this.http.get<T>(`${API_URL}/${service}/${id}`))
   }
 
+  /**
+   * GET auf einen Service, der ein einzelnes Objekt liefert (kein Paginated-
+   * Wrapper) — z.B. Custom-Computed-Services wie `device-connections`
+   * ({ online, total, connectedDeviceIds }).
+   */
+  async getResource<T>(service: string, query: Record<string, any> = {}): Promise<T> {
+    const params = this.buildQueryString(query)
+    const qs = params ? `?${params}` : ''
+    return lastValueFrom(this.http.get<T>(`${API_URL}/${service}${qs}`))
+  }
+
   async create<T>(service: string, data: Partial<T>): Promise<T> {
     return lastValueFrom(this.http.post<T>(`${API_URL}/${service}`, data))
   }

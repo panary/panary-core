@@ -5,6 +5,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { AuthService } from '../core/auth.service'
 import { ApiService } from '../core/api.service'
 import { SyncProblemCountService } from '../core/sync-problem-count.service'
+import { DeviceStatusService } from '../core/device-status.service'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { LanguageService } from '@panary/shared/data-access'
 import { LocationStateService } from '../core/location-state.service'
@@ -26,6 +27,12 @@ interface NavItem {
    * generischen `indicator: { kind, severity }` einbauen.
    */
   problemCountKey?: 'sync'
+  /**
+   * Live-Verbindungs-Badge: zeigt die Anzahl gerade verbundener Geraete
+   * (gruen ≥1, amber 0) aus dem DeviceStatusService. Nur fuer den Geraete-
+   * Menuepunkt gesetzt.
+   */
+  connectionBadge?: boolean
 }
 
 @Component({
@@ -112,6 +119,13 @@ interface NavItem {
                   <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500"
                         [title]="problemCounts()[item.problemCountKey] + ' offene Probleme'"></span>
                 }
+                <!-- Geraete-Verbindungs-Dot (eingeklappt): gruen ≥1, amber 0 verbunden. -->
+                @if (item.connectionBadge && deviceStatus.online() !== null && !sidebarOpen()) {
+                  <span class="absolute top-1 right-1 w-2 h-2 rounded-full"
+                        [class.bg-green-500]="(deviceStatus.online() ?? 0) > 0"
+                        [class.bg-amber-500]="(deviceStatus.online() ?? 0) === 0"
+                        [title]="deviceStatus.online() + ' verbunden'"></span>
+                }
               </span>
               <span class="overflow-hidden whitespace-nowrap text-sm pr-3 flex items-center
                            transition-[max-width,opacity,flex] duration-200"
@@ -128,6 +142,23 @@ interface NavItem {
                                px-1.5 py-0.5 rounded-full">
                     {{ problemCounts()[item.problemCountKey] }}
                   </span>
+                } @else if (item.connectionBadge && deviceStatus.online() !== null) {
+                  <span class="flex-1"></span>
+                  @if ((deviceStatus.online() ?? 0) > 0) {
+                    <span class="text-[11px] leading-none tabular-nums font-medium
+                                 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300
+                                 ring-1 ring-inset ring-green-600/20 dark:ring-green-500/30
+                                 px-1.5 py-0.5 rounded-full">
+                      {{ deviceStatus.online() }}
+                    </span>
+                  } @else {
+                    <span class="text-[11px] leading-none tabular-nums font-medium
+                                 bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300
+                                 ring-1 ring-inset ring-amber-600/20 dark:ring-amber-500/30
+                                 px-1.5 py-0.5 rounded-full">
+                      {{ deviceStatus.online() }}
+                    </span>
+                  }
                 } @else if (item.countService && counts()[item.countService] !== undefined) {
                   <span class="flex-1"></span>
                   <span class="text-[11px] leading-none tabular-nums text-slate-400 dark:text-gray-500">
@@ -224,6 +255,7 @@ export class AdminLayoutComponent {
   auth = inject(AuthService)
   private api = inject(ApiService)
   private syncProblemCount = inject(SyncProblemCountService)
+  protected deviceStatus = inject(DeviceStatusService)
   themeService = inject(ThemeServiceService)
   protected langService = inject(LanguageService)
   locationState = inject(LocationStateService)
@@ -245,6 +277,7 @@ export class AdminLayoutComponent {
     { path: '/business-days',  label: 'NAV.BUSINESS_DAYS',    icon: 'event'       },
     { path: '/printers',       label: 'NAV.PRINTERS',         icon: 'print'       },
     { path: '/pagers',         label: 'NAV.PAGERS',           icon: 'vibration'   },
+    { path: '/devices',        label: 'NAV.DEVICES',          icon: 'devices',     connectionBadge: true },
     { path: '/opening-hours',  label: 'NAV.OPENING_HOURS',    icon: 'schedule'    },
     { path: '/apikeys',        label: 'NAV.API_KEYS',         icon: 'key'         },
     { path: '/cloud',          label: 'NAV.CLOUD_CONNECTION',  icon: 'cloud',      problemCountKey: 'sync' },
@@ -272,6 +305,7 @@ export class AdminLayoutComponent {
     })
     this.loadCounts()
     this.syncProblemCount.refresh()
+    void this.deviceStatus.refresh()
     // 60s-Poll fuer Problem-Indikator (sync-status). Reicht fuer Operator-
     // Use-Case; ein lebenslang offener Tab sieht neue Probleme innerhalb
     // einer Minute. Kein Memory-Cleanup noetig — Sidebar lebt App-weit.
@@ -283,6 +317,7 @@ export class AdminLayoutComponent {
     setInterval(() => {
       this.syncProblemCount.refresh()
       void this.loadCounts()
+      void this.deviceStatus.refresh()
     }, 60_000)
   }
 

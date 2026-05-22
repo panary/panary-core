@@ -28,9 +28,9 @@ interface NavItem {
    */
   problemCountKey?: 'sync'
   /**
-   * Live-Verbindungs-Badge: zeigt die Anzahl gerade verbundener Geraete
-   * (gruen ≥1, amber 0) aus dem DeviceStatusService. Nur fuer den Geraete-
-   * Menuepunkt gesetzt.
+   * Verbindungs-Badge: zeigt „verbunden von gesamt" (online/total) aus dem
+   * DeviceStatusService — gleiche neutrale Optik wie die count-Badges (keine
+   * farbliche Hervorhebung). Nur fuer den Geraete-Menuepunkt gesetzt.
    */
   connectionBadge?: boolean
 }
@@ -119,13 +119,6 @@ interface NavItem {
                   <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500"
                         [title]="problemCounts()[item.problemCountKey] + ' offene Probleme'"></span>
                 }
-                <!-- Geraete-Verbindungs-Dot (eingeklappt): gruen ≥1, amber 0 verbunden. -->
-                @if (item.connectionBadge && deviceStatus.online() !== null && !sidebarOpen()) {
-                  <span class="absolute top-1 right-1 w-2 h-2 rounded-full"
-                        [class.bg-green-500]="(deviceStatus.online() ?? 0) > 0"
-                        [class.bg-amber-500]="(deviceStatus.online() ?? 0) === 0"
-                        [title]="deviceStatus.online() + ' verbunden'"></span>
-                }
               </span>
               <span class="overflow-hidden whitespace-nowrap text-sm pr-3 flex items-center
                            transition-[max-width,opacity,flex] duration-200"
@@ -144,21 +137,9 @@ interface NavItem {
                   </span>
                 } @else if (item.connectionBadge && deviceStatus.online() !== null) {
                   <span class="flex-1"></span>
-                  @if ((deviceStatus.online() ?? 0) > 0) {
-                    <span class="text-[11px] leading-none tabular-nums font-medium
-                                 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300
-                                 ring-1 ring-inset ring-green-600/20 dark:ring-green-500/30
-                                 px-1.5 py-0.5 rounded-full">
-                      {{ deviceStatus.online() }}
-                    </span>
-                  } @else {
-                    <span class="text-[11px] leading-none tabular-nums font-medium
-                                 bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300
-                                 ring-1 ring-inset ring-amber-600/20 dark:ring-amber-500/30
-                                 px-1.5 py-0.5 rounded-full">
-                      {{ deviceStatus.online() }}
-                    </span>
-                  }
+                  <span class="text-[11px] leading-none tabular-nums text-slate-400 dark:text-gray-500">
+                    {{ 'NAV.DEVICE_BADGE' | translate: { online: deviceStatus.online() ?? 0, total: deviceStatus.total() ?? 0 } }}
+                  </span>
                 } @else if (item.countService && counts()[item.countService] !== undefined) {
                   <span class="flex-1"></span>
                   <span class="text-[11px] leading-none tabular-nums text-slate-400 dark:text-gray-500">

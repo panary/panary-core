@@ -201,6 +201,12 @@ export const AppResource = {
   PLATFORM_PUSH_SUBSCRIPTION: 'platform-push-subscription',
   PLATFORM_CLOUD_CONNECTIONS: 'platform-cloud-connections',
   TENANT_GRANTS: 'tenant-grants',
+  /** Cloud-only: Globale Identitaets-Collection (E-Mail-Login, Passwort, MFA).
+   *  Tenant-uebergreifend, ohne tenantId. Plattform-only — Tenant-Rollen haben
+   *  KEINEN Matrix-Eintrag (→ 403), wodurch E-Mail-Enumeration ueber Tenants
+   *  hinweg ausgeschlossen ist. Self-Daten erhalten Tenant-User ueber den
+   *  Login-Response/Membership, nicht ueber diesen Service. */
+  ACCOUNTS: 'accounts',
 
   // Auth-Hilfsdienste (offen für authentifizierte User)
   PASSWORD_RESET: 'password-reset',

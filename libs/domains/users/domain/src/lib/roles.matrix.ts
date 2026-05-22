@@ -41,6 +41,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PLATFORM_PUSH_SUBSCRIPTION, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_CLOUD_CONNECTIONS, action: AppAction.READ },
     { resource: AppResource.TENANT_GRANTS, action: AppAction.MANAGE },
+    // Globale Identitaets-Collection (E-Mail-Login). Owner verwaltet Accounts
+    // plattformweit (Dienstleister-Einladungen, Passwort-Reset-Support).
+    { resource: AppResource.ACCOUNTS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
     // Tenant-Audit-Events: Owner hat Bypass; Eintrag dient als Dokumentation
@@ -92,6 +95,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PLATFORM_PUSH_SUBSCRIPTION, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_CLOUD_CONNECTIONS, action: AppAction.READ },
     { resource: AppResource.TENANT_GRANTS, action: AppAction.READ },
+    { resource: AppResource.ACCOUNTS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
     // Globaler Lieferanten-Katalog (Phase 2): Plattform-Admin curated.
@@ -136,6 +140,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PLATFORM_PUSH_SUBSCRIPTION, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_CLOUD_CONNECTIONS, action: AppAction.READ },
     { resource: AppResource.TENANT_GRANTS, action: AppAction.READ },
+    // Support liest Accounts (Login-Diagnose), aendert sie aber nicht.
+    { resource: AppResource.ACCOUNTS, action: AppAction.READ },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
     // Globaler Lieferanten-Katalog (Phase 2): Support liest mit, kein Schreibzugriff.

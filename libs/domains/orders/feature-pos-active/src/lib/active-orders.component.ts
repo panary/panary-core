@@ -254,7 +254,7 @@ export class ActiveOrdersComponent {
   getUserInitials(user: User): string {
     const first = user.firstName?.[0] ?? ''
     const last = user.lastName?.[0] ?? ''
-    return (first + last).toUpperCase() || user.loginname.slice(0, 2).toUpperCase()
+    return (first + last).toUpperCase() || user.loginname?.slice(0, 2).toUpperCase() || '?'
   }
 
   formatDiscount(user: User): string {

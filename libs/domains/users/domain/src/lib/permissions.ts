@@ -123,6 +123,10 @@ export const AppResource = {
   BUSINESS_DAY_REPORT_EVENTS: 'business-day-report-events',
   USER_PREFERENCES: 'user-preferences',
   DEVICES: 'devices',
+  /** Cloud-only: Live-Zählung der aktuell mit der Cloud verbundenen Geräte
+   *  (Socket-Registry). Read-only `find` → { online, total, connectedDeviceIds }.
+   *  READ für TENANT_OWNER + TENANT_TECHNICIAN (spiegelt die DEVICES-Leserechte). */
+  DEVICE_CONNECTIONS: 'device-connections',
   SHIFTS: 'shifts',
   SHIFT_TEMPLATES: 'shift-templates',
   SHIFT_SWAP_REQUESTS: 'shift-swap-requests',

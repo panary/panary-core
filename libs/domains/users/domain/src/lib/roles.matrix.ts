@@ -208,6 +208,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.BUSINESS_DAY_REPORT_EVENTS, action: AppAction.READ },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.DEVICES, action: AppAction.MANAGE },
+    // Live-Verbindungszählung der Geräte (Socket-Registry) — read-only.
+    { resource: AppResource.DEVICE_CONNECTIONS, action: AppAction.READ },
     { resource: AppResource.SHIFTS, action: AppAction.MANAGE },
     { resource: AppResource.SHIFT_TEMPLATES, action: AppAction.MANAGE },
     { resource: AppResource.SHIFT_SWAP_REQUESTS, action: AppAction.MANAGE },
@@ -331,6 +333,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.BUSINESS_DAY_REPORT_EVENTS, action: AppAction.READ },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.DEVICES, action: AppAction.MANAGE },
+    // Live-Verbindungszählung der Geräte (Socket-Registry) — read-only.
+    { resource: AppResource.DEVICE_CONNECTIONS, action: AppAction.READ },
     { resource: AppResource.SHIFTS, action: AppAction.MANAGE },
     { resource: AppResource.SHIFT_TEMPLATES, action: AppAction.MANAGE },
     { resource: AppResource.SHIFT_SWAP_REQUESTS, action: AppAction.MANAGE },

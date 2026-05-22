@@ -85,25 +85,25 @@ export const taxSummarySchema = Type.Object({
 
 export const discountSchema = Type.Object({
   discountType: StringEnum(Object.values(DiscountType)),
-  discount: Type.Number(),
+  discount: Type.Number({ minimum: 0 }),
 })
 
 export const cancellationSchema = Type.Object({
-  canceledBy: Type.String(),
-  reason: Type.String(),
+  canceledBy: Type.String({ format: 'uuid' }),
+  reason: Type.String({ maxLength: 500 }),
   canceledAt: Type.String({ format: 'date-time' }),
 })
 
 export const customerPaymentInfoSchema = Type.Object({
   customerId: Type.String({ format: 'uuid' }), // Was ObjectId
-  customerName: Type.String(),
+  customerName: Type.String({ maxLength: 200 }),
   isPaid: Type.Boolean(),
   payedAt: Type.Optional(Type.String({ format: 'date-time' })), // legacy typo 'payedAt' kept for now, or should fix to paidAt? Keeping structure.
 })
 
 export const staffPaymentInfoSchema = Type.Object({
   userId: Type.String({ format: 'uuid' }), // Was ObjectId
-  userName: Type.String(),
+  userName: Type.String({ maxLength: 200 }),
   isPaid: Type.Boolean(),
   payedAt: Type.Optional(Type.String({ format: 'date-time' })),
 })
@@ -112,18 +112,18 @@ export const genericLineItemSchema = Type.Object({
   // _id: ObjectIdSchema(), // subdoc ID? usually string in array
   _id: Type.String({ format: 'uuid' }),
   externalId: Type.String({ format: 'uuid' }),
-  amount: Type.Number(),
-  name: Type.String(),
-  icon: Type.Optional(Type.String()), // Emoji-Icon (nur UI-Anzeige)
+  amount: Type.Number({ minimum: 0 }),
+  name: Type.String({ maxLength: 200 }),
+  icon: Type.Optional(Type.String({ maxLength: 16 })), // Emoji-Icon (nur UI-Anzeige)
   parentId: Type.Optional(Type.String({ format: 'uuid' })),
-  price: Type.Number(),
+  price: Type.Number({ minimum: 0 }),
 
-  recipeReferences: Type.Array(recipeReferenceSchema),
-  ingredientReferences: Type.Array(ingredientReferenceSchema),
+  recipeReferences: Type.Array(recipeReferenceSchema, { maxItems: 200 }),
+  ingredientReferences: Type.Array(ingredientReferenceSchema, { maxItems: 200 }),
 
-  taxInside: Type.Number(),
-  taxOutside: Type.Number(),
-  topic: Type.String(),
+  taxInside: Type.Number({ minimum: 0 }),
+  taxOutside: Type.Number({ minimum: 0 }),
+  topic: Type.String({ maxLength: 200 }),
 })
 
 export const orderLineItemSchema = Type.Intersect([
@@ -131,8 +131,8 @@ export const orderLineItemSchema = Type.Intersect([
   Type.Object({
     acronym: Type.Optional(Type.String()),
     productGroupExternalId: Type.String({ format: 'uuid' }),
-    bundleNumber: Type.Union([Type.Number(), Type.Null()]),
-    modifiers: Type.Array(genericLineItemSchema),
+    bundleNumber: Type.Union([Type.Number({ minimum: 0 }), Type.Null()]),
+    modifiers: Type.Array(genericLineItemSchema, { maxItems: 100 }),
     index: Type.Optional(Type.Number()),
     isMenu: Type.Boolean(),
     menuDrink: Type.Union([genericLineItemSchema, Type.Null()]),
@@ -143,19 +143,19 @@ export const orderLineItemSchema = Type.Intersect([
 export const transactionSchema = Type.Object({
   _id: Type.String({ format: 'uuid' }), // Was ObjectId
   method: StringEnum(Object.values(TransactionMethod)),
-  amount: Type.Number(),
-  currency: Type.String({ default: 'EUR' }),
+  amount: Type.Number({ minimum: 0 }),
+  currency: Type.String({ default: 'EUR', pattern: '^[A-Z]{3}$' }),
   timestamp: Type.String({ format: 'date-time' }),
-  referenceId: Type.Optional(Type.String()),
+  referenceId: Type.Optional(Type.String({ maxLength: 200 })),
   data: Type.Optional(Type.Any()),
   performedBy: Type.Optional(Type.String({ format: 'uuid' })), // Was ObjectId
 })
 
 export const paymentSchema = Type.Object({
   state: StringEnum(Object.values(PaymentState)),
-  totalAmount: Type.Number(),
-  tipAmount: Type.Number({ default: 0 }),
-  transactions: Type.Array(transactionSchema),
+  totalAmount: Type.Number({ minimum: 0 }),
+  tipAmount: Type.Number({ default: 0, minimum: 0 }),
+  transactions: Type.Array(transactionSchema, { maxItems: 100 }),
 })
 
 export const creationContextSchema = Type.Object({
@@ -178,10 +178,10 @@ export const orderSchema = Type.Object(
     status: StringEnum(Object.values(OrderStatus)),
     businessDayId: Type.Optional(Type.String({ format: 'uuid' })), // Was ObjectId, now optional for Standalone mode
     orderChannel: StringEnum(Object.values(OrderChannel)),
-    dailySequenceNumber: Type.Number(),
+    dailySequenceNumber: Type.Number({ minimum: 0 }),
     dineLocation: StringEnum(Object.values(DineLocation)),
 
-    lineItems: Type.Array(orderLineItemSchema),
+    lineItems: Type.Array(orderLineItemSchema, { maxItems: 500 }),
 
     cancellation: Type.Optional(Type.Union([cancellationSchema, Type.Null()])),
     customerPaymentInfo: Type.Optional(Type.Union([customerPaymentInfoSchema, Type.Null()])),
@@ -195,11 +195,11 @@ export const orderSchema = Type.Object(
     isFinished: Type.Boolean(),
     // Wenn gesetzt, wurde diese Order aus einer Vorbestellung konvertiert
     preOrderId: Type.Optional(Type.Union([Type.String({ format: 'uuid' }), Type.Null()])),
-    pager: Type.Optional(Type.Union([Type.Number(), Type.Null()])),
-    estimatedDuration: Type.Number(),
-    remainingTime: Type.Number(),
+    pager: Type.Optional(Type.Union([Type.Number({ minimum: 0 }), Type.Null()])),
+    estimatedDuration: Type.Number({ minimum: 0 }),
+    remainingTime: Type.Number({ minimum: 0 }),
     targetCompletionAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
-    table: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    table: Type.Optional(Type.Union([Type.String({ maxLength: 50 }), Type.Null()])),
     recordingDate: Type.String({ format: 'date-time' }),
 
     // === Verkaufsverbrauch-Buchung (Variante A) ===
@@ -314,7 +314,7 @@ export const orderQuerySchema = Type.Intersect(
     // Add additional query properties
     Type.Object({}, { additionalProperties: false }),
   ],
-  { additionalProperties: true }, // Old schema had additionalProperties: true in query? check step 234 line 281
+  { additionalProperties: false },
 )
 export type OrderQuery = Static<typeof orderQuerySchema>
 //#endregion

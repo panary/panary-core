@@ -13,21 +13,21 @@ export const corporateCustomerSchema = Type.Object(
   {
     ...baseCustomerSchema,
 
-    name1: Type.String(),
-    name2: Type.Optional(Type.String()),
+    name1: Type.String({ maxLength: 200 }),
+    name2: Type.Optional(Type.String({ maxLength: 200 })),
     eInvoiceRequired: Type.Optional(Type.Boolean()),
-    vatId: Type.Optional(Type.String()),
-    taxNumber: Type.Optional(Type.String()),
-    invoices: Type.Array(Type.Any(), { default: [] }),
+    vatId: Type.Optional(Type.String({ maxLength: 20 })),
+    taxNumber: Type.Optional(Type.String({ maxLength: 30 })),
+    invoices: Type.Array(Type.Any(), { default: [], maxItems: 1000 }),
     discountDetails: Type.Optional(
       Type.Object({
         discountType: StringEnum(Object.values(DiscountType)),
-        discount: Type.Number(),
+        discount: Type.Number({ minimum: 0 }),
       }),
     ),
-    favicon: Type.Optional(Type.String()),
-    image: Type.Optional(Type.String()),
-    ordersCount: Type.Optional(Type.Number()),
+    favicon: Type.Optional(Type.String({ maxLength: 2048 })),
+    image: Type.Optional(Type.String({ maxLength: 2048 })),
+    ordersCount: Type.Optional(Type.Number({ minimum: 0 })),
   },
   { $id: 'CorporateCustomer', additionalProperties: false },
 )

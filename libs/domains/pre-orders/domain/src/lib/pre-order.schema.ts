@@ -22,15 +22,15 @@ export const preOrderSchema = Type.Object(
     dineLocation: Type.Optional(StringEnum(Object.values(DineLocation))),
 
     customerContact: Type.Object({
-      name: Type.String(),
-      phone: Type.String(),
+      name: Type.String({ maxLength: 200 }),
+      phone: Type.String({ maxLength: 40 }),
     }),
 
     // Re-using the exact line item structure from orders for compatibility.
     // Stored as JSON text in SQLite.
-    lineItems: Type.Array(orderLineItemSchema),
+    lineItems: Type.Array(orderLineItemSchema, { maxItems: 500 }),
 
-    note: Type.Optional(Type.String()),
+    note: Type.Optional(Type.String({ maxLength: 500 })),
     metadata: Type.Optional(Type.Any()),
     convertedOrderId: Type.Optional(Type.String({ format: 'uuid' })),
   },

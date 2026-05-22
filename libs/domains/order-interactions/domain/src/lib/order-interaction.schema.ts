@@ -44,8 +44,8 @@ export const orderInteractionSchema = Type.Object(
     // References (changed from ObjectId to String/UUID)
     orderId: Type.Optional(Type.String({ format: 'uuid' })),
     userId: Type.String({ format: 'uuid' }), // Assumed mandatory as per old schema
-    sessionId: Type.Optional(Type.String()), // Session might not be UUID
-    businessDayId: Type.Optional(Type.String()), // BusinessDay ID might be UUID or other format
+    sessionId: Type.Optional(Type.String({ maxLength: 100 })), // Session might not be UUID
+    businessDayId: Type.Optional(Type.String({ maxLength: 100 })), // BusinessDay ID might be UUID or other format
     businessDate: Type.Optional(Type.String({ format: 'date' })),
 
     // Time reference. orderOpenedAt + eventOffsetMs sind ab Phase 4 optional,
@@ -59,17 +59,17 @@ export const orderInteractionSchema = Type.Object(
 
     // Data for position deletion
     productId: Type.Optional(Type.String({ format: 'uuid' })),
-    lineItemId: Type.Optional(Type.Number()),
-    deletedQuantity: Type.Optional(Type.Number()),
+    lineItemId: Type.Optional(Type.Number({ minimum: 0 })),
+    deletedQuantity: Type.Optional(Type.Number({ minimum: 0 })),
 
     // Data for complete cancellation
     hadLineItems: Type.Optional(Type.Boolean()),
-    lineItemCountAtCancel: Type.Optional(Type.Number()),
-    totalQuantityAtCancel: Type.Optional(Type.Number()),
+    lineItemCountAtCancel: Type.Optional(Type.Number({ minimum: 0 })),
+    totalQuantityAtCancel: Type.Optional(Type.Number({ minimum: 0 })),
 
     //#region Phase 4 — Wide-Event-Kontext (alle optional, additiv)
     /** Cross-Service-Korrelation Edge↔Cloud. uuidv7 vom Capture-Hook. */
-    requestId: Type.Optional(Type.String()),
+    requestId: Type.Optional(Type.String({ maxLength: 100 })),
     /** Schicht-Ableitung, wenn am Edge bekannt; sonst von der Aggregation erschlossen. */
     shiftId: Type.Optional(Type.String({ format: 'uuid' })),
     /** Order-Total in Cents vor/nach dem Event. */
@@ -206,6 +206,9 @@ export const orderInteractionQueryProperties = Type.Pick(orderInteractionSchema,
   'locationId',
   'createdAt',
   'updatedAt',
+  // Sortier-/Filterbar: die Cloud hat eigene Indizes auf eventAt
+  // ({ tenantId, userId, eventAt }, { tenantId, type, eventAt }).
+  'eventAt',
 ])
 export const orderInteractionQuerySchema = Type.Intersect(
   [

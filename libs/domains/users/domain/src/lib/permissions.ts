@@ -207,6 +207,11 @@ export const AppResource = {
    *  hinweg ausgeschlossen ist. Self-Daten erhalten Tenant-User ueber den
    *  Login-Response/Membership, nicht ueber diesen Service. */
   ACCOUNTS: 'accounts',
+  /** Cloud-only: Einladung einer E-Mail-Identitaet (account) in den eigenen
+   *  Tenant als Membership (Dienstleister-/Mitarbeiter-Onboarding). Tenant-
+   *  gebunden — der Caller-tenantId bestimmt das Ziel. TENANT_OWNER/TECHNICIAN
+   *  MANAGE, TENANT_MANAGER CREATE (nur Staff einladbar). */
+  ACCOUNT_INVITATIONS: 'account-invitations',
 
   // Auth-Hilfsdienste (offen für authentifizierte User)
   PASSWORD_RESET: 'password-reset',

@@ -265,6 +265,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.TENANT_GRANTS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
+    // Dienstleister/Mitarbeiter per E-Mail in den eigenen Tenant einladen.
+    { resource: AppResource.ACCOUNT_INVITATIONS, action: AppAction.MANAGE },
     // Tenant-Audit-Trail (append-only)
     { resource: AppResource.AUDIT_EVENTS, action: AppAction.READ },
     // Audit-Redactions (Phase 2 — DSGVO-Loeschungen / Fehleintraege markieren)
@@ -379,6 +381,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.NOTIFICATIONS, action: [AppAction.READ, AppAction.UPDATE, AppAction.DELETE] },
     { resource: AppResource.NOTIFICATION_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.PUSH_SUBSCRIPTIONS, action: AppAction.MANAGE },
+    // Dienstleister/Mitarbeiter per E-Mail in den eigenen Tenant einladen.
+    { resource: AppResource.ACCOUNT_INVITATIONS, action: AppAction.MANAGE },
     AppAbility.CAN_SEE_REPORTS,
     AppAbility.CAN_REFUND,
     AppAbility.CAN_VOID_ORDER,

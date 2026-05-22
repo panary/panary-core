@@ -32,10 +32,10 @@ export const businessDaySchema = Type.Object({
   date: Type.String({ format: 'date' }), // YYYY-MM-DD, Anker des Geschäftstages
 
   status: StringEnum(Object.values(BusinessDayStatus)),
-  openedAt: Type.String(),
-  closedAt: Type.Union([Type.String(), Type.Null()]),
-  openedBy: Type.Optional(Type.String()), // userId
-  closedBy: Type.Optional(Type.String()),
+  openedAt: Type.String({ format: 'date-time' }),
+  closedAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
+  openedBy: Type.Optional(Type.String({ maxLength: 64 })), // userId
+  closedBy: Type.Optional(Type.String({ maxLength: 64 })),
 
   // Backwards-compat: isOpen ist abgeleitet aus status === 'open', wird aber
   // weiterhin von älteren Konsumenten gelesen. Resolver hält den Wert konsistent.
@@ -50,10 +50,10 @@ export const businessDaySchema = Type.Object({
 
   // Verknüpfung zum Cloud-Tagesabschluss-Report (uuidv7, Cloud-seitig vergeben).
   reportId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
-  reportErrorMessage: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+  reportErrorMessage: Type.Optional(Type.Union([Type.String({ maxLength: 2000 }), Type.Null()])),
 
-  createdAt: Type.String(),
-  updatedAt: Type.String(),
+  createdAt: Type.String({ format: 'date-time' }),
+  updatedAt: Type.String({ format: 'date-time' }),
 })
 
 export type BusinessDay = Static<typeof businessDaySchema>

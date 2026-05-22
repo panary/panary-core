@@ -39,14 +39,14 @@ export const writeOffSchema = Type.Object(
     // Polymorphic Item Reference
     itemType: StringEnum(Object.values(WriteOffItemType)),
     itemId: Type.String({ format: 'uuid' }),
-    itemName: Type.String(),
-    itemVersion: Type.Number(),
+    itemName: Type.String({ minLength: 1, maxLength: 200 }),
+    itemVersion: Type.Integer({ minimum: 1 }),
 
     // Quantities & Value
-    quantity: Type.Number(),
-    unit: Type.String(),
-    costPerUnit: Type.Number(),
-    totalCost: Type.Number(),
+    quantity: Type.Number({ minimum: 0 }),
+    unit: Type.String({ minLength: 1, maxLength: 32 }),
+    costPerUnit: Type.Number({ minimum: 0 }),
+    totalCost: Type.Number({ minimum: 0 }),
 
     // Classification
     reason: StringEnum(Object.values(WriteOffReason)),
@@ -54,7 +54,7 @@ export const writeOffSchema = Type.Object(
 
     // Meta
     userId: Type.String({ format: 'uuid' }),
-    comment: Type.Optional(Type.String()),
+    comment: Type.Optional(Type.String({ maxLength: 1000 })),
   },
   { $id: 'WriteOff', additionalProperties: false },
 )
@@ -116,7 +116,7 @@ export const writeOffQuerySchema = Type.Intersect(
     querySyntax(writeOffQueryProperties),
     Type.Object({}, { additionalProperties: false }),
   ],
-  { additionalProperties: true },
+  { additionalProperties: false },
 )
 export type WriteOffQuery = Static<typeof writeOffQuerySchema>
 //#endregion

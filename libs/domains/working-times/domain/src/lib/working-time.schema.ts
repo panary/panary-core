@@ -2,8 +2,8 @@ import { querySyntax, Static, Type } from '@feathersjs/typebox'
 
 //#region Subschemas
 const breakSchema = Type.Object({
-  from: Type.String(),
-  to: Type.Union([Type.String(), Type.Null()]),
+  from: Type.String({ format: 'date-time' }),
+  to: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
 })
 //#endregion
 
@@ -15,12 +15,12 @@ export const workingTimeSchema = Type.Object(
     locationId: Type.Union([Type.String(), Type.Null()]),
     userId: Type.String(),
     businessDay: Type.Optional(Type.String({ format: 'date' })),
-    breaks: Type.Array(breakSchema),
-    checkinDate: Type.String(),
-    checkoutDate: Type.Union([Type.String(), Type.Null()]),
-    originCheckinDate: Type.String(),
-    originCheckoutDate: Type.Union([Type.String(), Type.Null()]),
-    updatedBy: Type.Optional(Type.String()),
+    breaks: Type.Array(breakSchema, { maxItems: 50 }),
+    checkinDate: Type.String({ format: 'date-time' }),
+    checkoutDate: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
+    originCheckinDate: Type.String({ format: 'date-time' }),
+    originCheckoutDate: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
+    updatedBy: Type.Optional(Type.String({ maxLength: 64 })),
     createdAt: Type.String(),
     updatedAt: Type.String(),
   },

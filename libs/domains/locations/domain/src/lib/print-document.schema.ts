@@ -19,7 +19,7 @@ const badgeStyle = StringEnum(Object.values(BadgeStyleType))
 //#region PrintElement variants
 export const textElement = Type.Object({
   type: Type.Literal('text'),
-  text: Type.String(),
+  text: Type.String({ maxLength: 2000 }),
   bold: Type.Optional(Type.Boolean({ default: false })),
   italic: Type.Optional(Type.Boolean({ default: false })),
   underline: Type.Optional(Type.Boolean({ default: false })),
@@ -32,21 +32,21 @@ export const textElement = Type.Object({
 
 export const qrElement = Type.Object({
   type: Type.Literal('qr'),
-  data: Type.String(),
+  data: Type.String({ maxLength: 2953 }),
   size: Type.Optional(Type.Number({ minimum: 1, maximum: 16, default: 6 })),
   align: Type.Optional(printAlign),
 })
 
 export const imageElement = Type.Object({
   type: Type.Literal('image'),
-  data: Type.String({ description: 'Base64-encoded image data' }),
+  data: Type.String({ description: 'Base64-encoded image data', maxLength: 200000 }),
   width: Type.Optional(Type.Number({ minimum: 1 })),
   align: Type.Optional(printAlign),
 })
 
 export const badgeElement = Type.Object({
   type: Type.Literal('badge'),
-  text: Type.String(),
+  text: Type.String({ maxLength: 120 }),
   style: Type.Optional(badgeStyle),
   align: Type.Optional(printAlign),
 })
@@ -64,7 +64,7 @@ export const cutElement = Type.Object({
 export const ruleElement = Type.Object({
   type: Type.Literal('rule'),
   style: Type.Optional(StringEnum(['single', 'double'])),
-  character: Type.Optional(Type.String({ default: '-' })),
+  character: Type.Optional(Type.String({ default: '-', maxLength: 1 })),
   count: Type.Optional(Type.Number({ minimum: 1 })),
 })
 
@@ -76,7 +76,7 @@ export const tableColumnSchema = Type.Object({
 })
 
 export const tableCellSchema = Type.Object({
-  text: Type.String(),
+  text: Type.String({ maxLength: 500 }),
   bold: Type.Optional(Type.Boolean({ default: false })),
   width: Type.Optional(Type.Number({ minimum: 1, maximum: 8 })),
   height: Type.Optional(Type.Number({ minimum: 1, maximum: 8 })),
@@ -104,8 +104,8 @@ export const printElementSchema = Type.Union([
 export type PrintElement = Static<typeof printElementSchema>
 
 export const printJobSchema = Type.Object({
-  document: Type.Array(printElementSchema, { minItems: 1 }),
-  printerIds: Type.Optional(Type.Array(Type.String())),
+  document: Type.Array(printElementSchema, { minItems: 1, maxItems: 500 }),
+  printerIds: Type.Optional(Type.Array(Type.String(), { maxItems: 50 })),
   copies: Type.Optional(Type.Number({ minimum: 1, default: 1 })),
 })
 export type PrintJob = Static<typeof printJobSchema>

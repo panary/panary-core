@@ -5,11 +5,11 @@ import { baseSchema } from '@panary/shared-common'
 export const openingHourExceptionSchema = Type.Object(
   {
     ...baseSchema,
-    date: Type.String(), // "YYYY-MM-DD"
-    label: Type.Optional(Type.String()), // z.B. "Heiligabend", "Betriebsurlaub"
+    date: Type.String({ format: 'date' }), // "YYYY-MM-DD"
+    label: Type.Optional(Type.String({ maxLength: 120 })), // z.B. "Heiligabend", "Betriebsurlaub"
     closed: Type.Boolean({ default: true }),
-    open: Type.Optional(Type.String()), // "HH:mm" — überschriebene Öffnungszeit
-    close: Type.Optional(Type.String()), // "HH:mm" — überschriebene Schließzeit
+    open: Type.Optional(Type.String({ pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$' })), // "HH:mm" — überschriebene Öffnungszeit
+    close: Type.Optional(Type.String({ pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$' })), // "HH:mm" — überschriebene Schließzeit
   },
   { $id: 'OpeningHourException', additionalProperties: false },
 )

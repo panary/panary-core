@@ -29,8 +29,8 @@ export const LocationOperationMode = {
 
 //#region Sub-Schemas
 export const taxSchema = Type.Object({
-  taxRate: Type.Number({ default: 0 }),
-  name: Type.String(),
+  taxRate: Type.Number({ default: 0, minimum: 0, maximum: 100 }),
+  name: Type.String({ minLength: 1, maxLength: 60 }),
 })
 
 export const settingsSchema = Type.Object({
@@ -38,11 +38,11 @@ export const settingsSchema = Type.Object({
     systemOfUnits: StringEnum(Object.values(UnitSystem)),
     defaultWeightUnit: StringEnum(['kg', 'g', 'mg', 'lb', 'oz', 'st', 'ton']),
     defaultVolumeUnit: StringEnum(['L', 'ml', 'gal', 'qt', 'pt', 'fl oz', 'tbsp', 'tsp']),
-    timezone: Type.String(), // Removed format: 'timezone' to fix AJV error
+    timezone: Type.String({ maxLength: 64 }), // Removed format: 'timezone' to fix AJV error
   }),
   printSettings: Type.Object({
     printServerEnabled: Type.Optional(Type.Boolean({ default: true })),
-    maxNameCharacters: Type.Number(),
+    maxNameCharacters: Type.Integer({ minimum: 1, maximum: 200 }),
     mqttServerProtocol: mqttProtocol,
     mqttServerUrl: Type.String(),
     mqttServerPort: Type.Number({ minimum: 1, maximum: 65535 }),
@@ -52,7 +52,7 @@ export const settingsSchema = Type.Object({
         pid: Type.String(),
         active: Type.Boolean({ default: true }),
         type: StringEnum(['ip', 'mqtt']),
-        name: Type.String(),
+        name: Type.String({ minLength: 1, maxLength: 60 }),
         ip: Type.Optional(Type.String()),
         port: Type.Optional(Type.Number({ minimum: 1, maximum: 65535, default: 9100 })),
         primaryTopics: Type.Optional(Type.Array(Type.String())),
@@ -60,9 +60,10 @@ export const settingsSchema = Type.Object({
         paperWidth: Type.Optional(StringEnum(['58mm', '80mm'])),
         encoding: Type.Optional(Type.String({ default: 'CP437' })),
       }),
+      { maxItems: 50 },
     ),
-    separationCharacter: Type.String(),
-    separationCharacterCount: Type.Number(),
+    separationCharacter: Type.String({ maxLength: 4 }),
+    separationCharacterCount: Type.Integer({ minimum: 0, maximum: 200 }),
     showDialogAfterOrder: Type.Boolean(),
     backofficePrinter: Type.Optional(Type.String()),
   }),
@@ -77,7 +78,7 @@ export const settingsSchema = Type.Object({
     discounts: Type.Array(
       Type.Object({
         discountType: StringEnum(['percent', 'amount']),
-        discount: Type.Number(),
+        discount: Type.Number({ minimum: 0 }),
       }),
     ),
   }),
@@ -89,7 +90,7 @@ export const settingsSchema = Type.Object({
     enabled: Type.Boolean({ default: false }),
     rooms: Type.Array(
       Type.Object({
-        name: Type.String(),
+        name: Type.String({ minLength: 1, maxLength: 80 }),
         tables: Type.Array(Type.String(), { default: [] }),
       }),
     ),
@@ -115,8 +116,8 @@ export const settingsSchema = Type.Object({
     regular: Type.Array(
       Type.Object({
         day: Type.Number({ minimum: 0, maximum: 6 }), // 0=So, 1=Mo ... 6=Sa
-        open: Type.String(), // "HH:mm"
-        close: Type.String(), // "HH:mm"
+        open: Type.String({ pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$' }), // "HH:mm"
+        close: Type.String({ pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$' }), // "HH:mm"
         closed: Type.Boolean({ default: false }),
       }),
     ),
@@ -149,10 +150,10 @@ export const locationSchema = Type.Object(
     tenantId: Type.String({ format: 'uuid' }), // Organizational affiliation
 
     address: Type.Object({
-      street: Type.String({ minLength: 1 }),
-      city: Type.String({ minLength: 1 }),
-      postalCode: Type.String({ minLength: 1 }),
-      country: Type.String({ minLength: 1 }),
+      street: Type.String({ minLength: 1, maxLength: 200 }),
+      city: Type.String({ minLength: 1, maxLength: 120 }),
+      postalCode: Type.String({ minLength: 1, maxLength: 16 }),
+      country: Type.String({ minLength: 1, maxLength: 80 }),
       // ISO-3166-1-alpha-2 (z.B. 'DE', 'AT', 'CH'). Normalisierte Form
       // neben dem Freitext-`country` — wird von der KI-Beleg-Extraktion
       // genutzt, um sprach-/MwSt-/Keyword-spezifisches Country-Pack zu
@@ -181,7 +182,7 @@ export const locationSchema = Type.Object(
     // sonst gegen "format: email" / "format: uri" abgewiesen. `Type.Optional`
     // selbst erlaubt nur `undefined`, daher die Union mit `Literal('')`.
     email: Type.Optional(Type.Union([Type.String({ format: 'email' }), Type.Literal('')])),
-    name: Type.String(),
+    name: Type.String({ minLength: 1, maxLength: 120 }),
     /**
      * @deprecated Phase 7 (Tenant-First-Class-Migration): Der Anzeige-Name
      * lebt jetzt am Tenant-Doc (`tenants.name` in panary-cloud). Dieses Feld
@@ -189,8 +190,8 @@ export const locationSchema = Type.Object(
      * nicht mehr aktiv gepflegt. Wird in einer Folge-Migration komplett
      * entfernt, sobald alle Edge-Instanzen das neue Schema kennen.
      */
-    organizationName: Type.Optional(Type.String()),
-    phone: Type.Optional(Type.String()),
+    organizationName: Type.Optional(Type.String({ maxLength: 200 })),
+    phone: Type.Optional(Type.String({ maxLength: 32 })),
     settings: Type.Optional(settingsSchema),
     status: Type.Optional(StringEnum(Object.values(LocationStatus))),
     website: Type.Optional(Type.Union([Type.String({ format: 'uri' }), Type.Literal('')])),
@@ -200,7 +201,7 @@ export const locationSchema = Type.Object(
     // `address.countryCode`, weil eine Filiale in DE englischsprachige
     // Beleg-Erkennung wollen kann (englisches Personal). Default in
     // Service-Resolver: 'de-DE'.
-    locale: Type.Optional(Type.String()),
+    locale: Type.Optional(Type.String({ pattern: '^[a-z]{2}(-[A-Z]{2})?$' })),
 
     // Standard-Waehrung der Filiale als ISO-4217-Code (EUR, CHF, USD, …).
     // Bewusst Top-Level statt in `address`, weil DACH-Konzerne in DE-

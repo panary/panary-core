@@ -6,6 +6,38 @@ import type { Application, HookContext } from './declarations'
 import { logger } from '@panary/shared-backend'
 import { sha256, timingSafeCompare } from './utils/crypto.utils'
 
+/**
+ * Stempelt `lastSeen` eines Geräts auf jetzt — Connect-/Disconnect-Tracking für
+ * die Anzeige „letzte Aktivität". Der Edge-`devices`-Service hat `multi: []`,
+ * daher zuerst per `deviceId` finden und dann per `_id` patchen (kein
+ * `patch(null, …)`). Interner Call (provider: undefined), fire-and-forget —
+ * ein Fehler darf den Socket-Lifecycle nicht beeinflussen.
+ *
+ * `devices` ist nicht in der Sync-Allowlist → kein Outbox-/Cloud-Push.
+ */
+const stampDeviceLastSeen = (app: Application, deviceId: string): void => {
+  void (async () => {
+    try {
+      const res = (await app.service('devices').find({
+        query: { deviceId, $limit: 1 },
+        provider: undefined,
+      } as any)) as { data?: Array<{ _id?: string }> } | undefined
+      const id = res?.data?.[0]?._id
+      if (!id) return
+      await app
+        .service('devices')
+        .patch(id, { lastSeen: new Date().toISOString() } as any, { provider: undefined } as any)
+    } catch (err) {
+      logger.warn({
+        message: 'Failed to stamp device lastSeen',
+        event: 'device.last_seen_error',
+        deviceId,
+        error: String(err),
+      })
+    }
+  })()
+}
+
 export const channels = (app: Application) => {
   logger.info({
     message: 'Publishing events with tenant isolation',
@@ -56,6 +88,10 @@ export const channels = (app: Application) => {
           ;(connection as any).deviceRole = apiKeyRecord.role
 
           app.channel('authenticated').join(connection)
+          // Live-Verbindungs-Tracking: lastSeen bei Connect stempeln (Disconnect
+          // siehe app.on('disconnect') unten). Der device-connections-Service
+          // zählt verbundene Geräte live aus der Channel-Registry.
+          stampDeviceLastSeen(app, apiKeyRecord.deviceId)
           socket.emit('device:authenticated', { success: true, deviceId: handshakeAuth.deviceId })
         } else {
           logger.warn({
@@ -81,6 +117,16 @@ export const channels = (app: Application) => {
     } else {
       // Anonyme Verbindung (wartet auf JWT-Login)
       app.channel('anonymous').join(connection)
+    }
+  })
+
+  // Live-Verbindungs-Tracking: bei Disconnect einer Device-Connection die
+  // „letzte Aktivität" (lastSeen) festhalten. Channel-Mitgliedschaft entfernt
+  // Feathers automatisch → der device-connections-Zähler stimmt ohne weiteres Zutun.
+  app.on('disconnect', (connection: RealTimeConnection) => {
+    const deviceId = (connection as any).deviceId
+    if (typeof deviceId === 'string' && deviceId) {
+      stampDeviceLastSeen(app, deviceId)
     }
   })
 

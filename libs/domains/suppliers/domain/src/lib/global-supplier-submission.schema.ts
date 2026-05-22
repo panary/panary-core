@@ -34,7 +34,7 @@ export const globalSupplierSubmissionProposedSchema = Type.Object({
   displayName: Type.Optional(Type.String({ maxLength: 200 })),
   type: supplierTypeSchema,
   country: Type.String({ pattern: '^[A-Z]{2}$' }),
-  industries: Type.Array(supplierIndustrySchema),
+  industries: Type.Array(supplierIndustrySchema, { maxItems: 10 }),
   gln: Type.Optional(Type.String({ pattern: '^[0-9]{13}$' })),
   websiteUrl: Type.Optional(Type.String({ format: 'uri' })),
   // Stammdaten — Tenant darf vorschlagen, Plattform-Reviewer kann beim
@@ -57,22 +57,22 @@ export const globalSupplierSubmissionSchema = Type.Object(
   {
     _id: Type.String(),
     /** Tenant, von dem der Vorschlag kommt — fuer Audit + Tenant-Filter. */
-    submittedByTenantId: Type.String(),
+    submittedByTenantId: Type.String({ maxLength: 64 }),
     /** User-ID des Einreichenden (Tenant-Manager/Owner). */
-    submittedByUserId: Type.String(),
+    submittedByUserId: Type.String({ maxLength: 64 }),
     /** Vorgeschlagene Lieferantendaten. */
     proposed: globalSupplierSubmissionProposedSchema,
     status: globalSupplierSubmissionStatusSchema,
     /** Wenn `MERGED`: Referenz auf bestehenden GlobalSupplier. */
-    mergedIntoId: Type.Optional(Type.String()),
+    mergedIntoId: Type.Optional(Type.String({ maxLength: 64 })),
     /** Optionaler Reviewer-Kommentar (z.B. „abgelehnt: Duplikat von X"). */
     reviewerNote: Type.Optional(Type.String({ maxLength: 1000 })),
     /** `_id` des Plattform-Users, der reviewed hat. */
-    reviewedBy: Type.Optional(Type.String()),
+    reviewedBy: Type.Optional(Type.String({ maxLength: 64 })),
     reviewedAt: Type.Optional(Type.String({ format: 'date-time' })),
     createdAt: Type.Optional(Type.String({ format: 'date-time' })),
     updatedAt: Type.Optional(Type.String({ format: 'date-time' })),
   },
-  { $id: 'GlobalSupplierSubmission' },
+  { $id: 'GlobalSupplierSubmission', additionalProperties: false },
 )
 export type GlobalSupplierSubmission = Static<typeof globalSupplierSubmissionSchema>

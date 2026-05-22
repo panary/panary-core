@@ -12,12 +12,12 @@ export type SupplierProductStatus = (typeof SUPPLIER_PRODUCT_STATUSES)[number]
 export const supplierProductNutritionSchema = Type.Object(
   {
     /** kcal pro 100 g/ml. */
-    kcal: Type.Optional(Type.Number()),
-    protein: Type.Optional(Type.Number()),
-    fat: Type.Optional(Type.Number()),
-    carbs: Type.Optional(Type.Number()),
-    sugar: Type.Optional(Type.Number()),
-    salt: Type.Optional(Type.Number()),
+    kcal: Type.Optional(Type.Number({ minimum: 0 })),
+    protein: Type.Optional(Type.Number({ minimum: 0 })),
+    fat: Type.Optional(Type.Number({ minimum: 0 })),
+    carbs: Type.Optional(Type.Number({ minimum: 0 })),
+    sugar: Type.Optional(Type.Number({ minimum: 0 })),
+    salt: Type.Optional(Type.Number({ minimum: 0 })),
   },
   { $id: 'SupplierProductNutrition' },
 )
@@ -27,7 +27,7 @@ export const supplierProductSchema = Type.Object(
   {
     _id: Type.String(),
     /** FK → Ingredient (Pflicht — jedes Lieferantenprodukt ist einer generischen Zutat zugeordnet). */
-    ingredientId: Type.String(),
+    ingredientId: Type.String({ maxLength: 64 }),
     /** FK → Supplier (optional, null = Eigenmarke / unbekannt). */
     supplierId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     /** EAN-8/12/13/14 — sparse unique pro Tenant. */
@@ -36,16 +36,16 @@ export const supplierProductSchema = Type.Object(
     manufacturer: Type.Optional(Type.String({ maxLength: 200 })),
     brand: Type.Optional(Type.String({ maxLength: 200 })),
     /** Verpackungsgröße — z. B. 25 für 25-kg-Sack. */
-    packageQuantity: Type.Number(),
+    packageQuantity: Type.Number({ exclusiveMinimum: 0 }),
     /** Einheit (KILOGRAM, LITER, PIECE, …). */
     packageUnit: Type.String({ minLength: 1, maxLength: 32 }),
     /** Anzahl Einheiten pro Karton — z. B. 12 Flaschen pro Karton. */
-    unitsPerPackage: Type.Optional(Type.Number()),
-    pricePerPackage: Type.Optional(Type.Number()),
+    unitsPerPackage: Type.Optional(Type.Integer({ minimum: 1 })),
+    pricePerPackage: Type.Optional(Type.Number({ minimum: 0 })),
     /** Berechnet: pricePerPackage / (packageQuantity * (unitsPerPackage ?? 1)). */
-    pricePerBaseUnit: Type.Optional(Type.Number()),
+    pricePerBaseUnit: Type.Optional(Type.Number({ minimum: 0 })),
     /** Unverbindliche Preisempfehlung (UVP) aus OFF, falls vorhanden. */
-    rrp: Type.Optional(Type.Number()),
+    rrp: Type.Optional(Type.Number({ minimum: 0 })),
     currency: Type.Optional(Type.String({ default: 'EUR', maxLength: 8 })),
     imageUrl: Type.Optional(Type.String({ format: 'uri' })),
     allergens: Type.Optional(Type.Array(allergenSchema)),
@@ -60,7 +60,7 @@ export const supplierProductSchema = Type.Object(
     createdAt: Type.Optional(Type.String({ format: 'date-time' })),
     updatedAt: Type.Optional(Type.String({ format: 'date-time' })),
   },
-  { $id: 'SupplierProduct' },
+  { $id: 'SupplierProduct', additionalProperties: false },
 )
 export type SupplierProduct = Static<typeof supplierProductSchema>
 

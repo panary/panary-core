@@ -14,11 +14,11 @@ import { baseSchema, ingredientReferenceSchema, recipeReferenceSchema } from '@p
 // Defines a group of choices (e.g., "Choose your drink," "Extras," "Cooking level")
 const optionGroupSchema = Type.Object({
   id: Type.String({ format: 'uuid' }), // Interne ID für die Gruppe
-  name: Type.String(), // Anzeigename in der Kasse/App (z.B. "Dips & Saucen")
+  name: Type.String({ maxLength: 120 }), // Anzeigename in der Kasse/App (z.B. "Dips & Saucen")
 
-  minSelections: Type.Number({ default: 0 }), // 0 = Optional (extra), 1 = Mandatory (menu step!)
-  maxSelections: Type.Number({ default: 1 }), // 1 = radio buttons, >1 = checkboxes
-  freeQuantity: Type.Number({ default: 0 }), // Replaces 'freeSaucesQuantity' (e.g., the first 2 are free)
+  minSelections: Type.Integer({ default: 0, minimum: 0 }), // 0 = Optional (extra), 1 = Mandatory (menu step!)
+  maxSelections: Type.Integer({ default: 1, minimum: 0 }), // 1 = radio buttons, >1 = checkboxes
+  freeQuantity: Type.Integer({ default: 0, minimum: 0 }), // Replaces 'freeSaucesQuantity' (e.g., the first 2 are free)
 
   // Display type in the cash register
   uiMode: Type.Optional(StringEnum(['GRID', 'LIST', 'MODAL'])),
@@ -28,12 +28,13 @@ const optionGroupSchema = Type.Object({
     Type.Object({
       productId: Type.String({ format: 'uuid' }), // Refers to a REAL product (e.g., "Cola")
       // Case A: Fixed price for this district (e.g., 3.00 €)
-      priceOverride: Type.Optional(Type.Number()),
+      priceOverride: Type.Optional(Type.Number({ minimum: 0 })),
 
       // Case B: Surcharge on the base price (e.g., +1.50 € for shrimp)
       priceAdjustment: Type.Optional(Type.Number()),
       isDefault: Type.Optional(Type.Boolean()), // Preselected?
     }),
+    { maxItems: 100 },
   ),
 })
 
@@ -41,7 +42,7 @@ const optionGroupSchema = Type.Object({
 const availabilitySchema = Type.Object({
   isActive: Type.Boolean({ default: true }),
   mode: Type.Optional(StringEnum(['ALWAYS', 'SCHEDULED', 'OUT_OF_STOCK'])),
-  stock: Type.Optional(Type.Number()),
+  stock: Type.Optional(Type.Number({ minimum: 0 })),
   scheduleRules: Type.Optional(
     Type.Array(
       Type.Object({
@@ -49,6 +50,7 @@ const availabilitySchema = Type.Object({
         timeStart: Type.String({ pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$' }),
         timeEnd: Type.String({ pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$' }),
       }),
+      { maxItems: 50 },
     ),
   ),
 })
@@ -61,15 +63,15 @@ export const productSchema = Type.Object(
 
     // 1. Identification
     externalId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]), // A UUID for technical system purposes (stable external ID)
-    name: Type.String(),
+    name: Type.String({ maxLength: 200 }),
     icon: Type.Optional(Type.String({ maxLength: 8 })), // Emoji-Icon (nur UI, kein Druck)
-    acronym: Type.String(), // Short name for kitchen receipt
-    description: Type.Optional(Type.String()),
+    acronym: Type.String({ maxLength: 32 }), // Short name for kitchen receipt
+    description: Type.Optional(Type.String({ maxLength: 2000 })),
     status: Type.Optional(StringEnum(['ACTIVE', 'DRAFT', 'ARCHIVED'])),
 
     // 2. Categorization (Dynamic!)
     // Simply link the product to one or more category IDs.
-    categoryIds: Type.Array(Type.String({ format: 'uuid' })),
+    categoryIds: Type.Array(Type.String({ format: 'uuid' }), { maxItems: 50 }),
 
     // Die Basis-Art des Produkts für die Logik
     productType: Type.Optional(
@@ -82,9 +84,9 @@ export const productSchema = Type.Object(
     ),
 
     // 3.Price & Taxes
-    price: Type.Number(),
-    taxInside: Type.Number(),
-    taxOutside: Type.Number(),
+    price: Type.Number({ minimum: 0 }),
+    taxInside: Type.Number({ minimum: 0, maximum: 100 }),
+    taxOutside: Type.Number({ minimum: 0, maximum: 100 }),
     bundlePricingMode: Type.Optional(
       StringEnum([
         'ROLLUP', // Method 1: Price = sum of selected options (priceOverrides)
@@ -93,7 +95,7 @@ export const productSchema = Type.Object(
     ),
 
     // 4. Customization & Menu Structure
-    optionGroups: Type.Optional(Type.Array(optionGroupSchema)),
+    optionGroups: Type.Optional(Type.Array(optionGroupSchema, { maxItems: 50 })),
 
     // 5. Availability
     availability: Type.Optional(availabilitySchema),
@@ -102,8 +104,8 @@ export const productSchema = Type.Object(
     ui: Type.Optional(
       Type.Object({
         index: Type.Number(), // Sortierung
-        colorBg: Type.Optional(Type.String()),
-        colorText: Type.Optional(Type.String()),
+        colorBg: Type.Optional(Type.String({ maxLength: 32 })),
+        colorText: Type.Optional(Type.String({ maxLength: 32 })),
         showOptionsAuto: Type.Boolean({ default: false }), // Ersetzt showExtrasAfterSelect
         hideOnMainScreen: Type.Boolean({ default: false }), // Für Modifier, die nur IN Menüs existieren
       }),
@@ -111,9 +113,9 @@ export const productSchema = Type.Object(
 
     // 7. merchandise management
     isInvalid: Type.Optional(Type.Boolean()),
-    productionTime: Type.Optional(Type.Number()),
-    ingredientReferences: Type.Optional(Type.Array(ingredientReferenceSchema)),
-    recipeReferences: Type.Optional(Type.Array(recipeReferenceSchema)),
+    productionTime: Type.Optional(Type.Number({ minimum: 0 })),
+    ingredientReferences: Type.Optional(Type.Array(ingredientReferenceSchema, { maxItems: 200 })),
+    recipeReferences: Type.Optional(Type.Array(recipeReferenceSchema, { maxItems: 200 })),
   },
   { $id: 'Product', additionalProperties: false },
 )

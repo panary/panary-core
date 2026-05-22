@@ -25,15 +25,15 @@ export const ingredientSchema = Type.Object(
     category: Type.Optional(Type.String({ maxLength: 120 })),
     /** Basiseinheit (`GRAM`, `MILLILITER`, `PIECE`). */
     baseUnit: Type.String({ minLength: 1, maxLength: 32 }),
-    baseQuantity: Type.Optional(Type.Number({ default: 1 })),
+    baseQuantity: Type.Optional(Type.Number({ default: 1, minimum: 0 })),
     /** z. B. 25000 für 25-kg-Sack → 25 000 Gramm. */
-    conversionFactor: Type.Optional(Type.Number()),
+    conversionFactor: Type.Optional(Type.Number({ exclusiveMinimum: 0 })),
     /** Manuell gepflegte Allergen-Liste. Aggregiert mit SupplierProduct-Allergenen am Backend. */
-    allergensManual: Type.Optional(Type.Array(allergenSchema)),
+    allergensManual: Type.Optional(Type.Array(allergenSchema, { maxItems: 30 })),
     /** Diät-Tags — manuell + (Phase 2.5) automatisch abgeleitet. */
-    dietaryTags: Type.Optional(Type.Array(dietaryTagSchema)),
+    dietaryTags: Type.Optional(Type.Array(dietaryTagSchema, { maxItems: 30 })),
     /** Standard-Bezugsquelle, falls mehrere SupplierProducts verknüpft sind. */
-    defaultSupplierProductId: Type.Optional(Type.String()),
+    defaultSupplierProductId: Type.Optional(Type.String({ maxLength: 64 })),
     /**
      * Default-Verwendungsmenge — wird beim Hinzufügen dieser Zutat als
      * Referenz in ein Rezept oder Produkt als initiale `quantity`
@@ -45,13 +45,13 @@ export const ingredientSchema = Type.Object(
     /** Versions-Counter (vom `trackVersion`-Hook gepflegt). */
     currentVersion: Type.Optional(Type.Number({ default: 1 })),
     /** Versions-Snapshots — wird vom `trackVersion`-Hook angehängt. */
-    history: Type.Optional(Type.Array(Type.Any())),
+    history: Type.Optional(Type.Array(Type.Any(), { maxItems: 1000 })),
     tenantId: Type.String(),
     locationId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     createdAt: Type.Optional(Type.String({ format: 'date-time' })),
     updatedAt: Type.Optional(Type.String({ format: 'date-time' })),
   },
-  { $id: 'Ingredient' },
+  { $id: 'Ingredient', additionalProperties: false },
 )
 export type Ingredient = Static<typeof ingredientSchema>
 

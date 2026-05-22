@@ -35,7 +35,7 @@ export const globalSupplierSchema = Type.Object(
     /** ISO-3166-1 Alpha-2. Pflicht fuer Default-Filter (`tenant.country`). */
     country: Type.String({ pattern: '^[A-Z]{2}$' }),
     /** Branchen-Tags — leere Liste = nicht eingeordnet. */
-    industries: Type.Array(supplierIndustrySchema),
+    industries: Type.Array(supplierIndustrySchema, { maxItems: 10 }),
     /** GS1 Global Location Number — 13 Ziffern. */
     gln: Type.Optional(Type.String({ pattern: '^[0-9]{13}$' })),
     websiteUrl: Type.Optional(Type.String({ format: 'uri' })),
@@ -52,17 +52,17 @@ export const globalSupplierSchema = Type.Object(
     /** Verifizierungs-Stand. Eintraege ohne Wert sind „pending verification". */
     verifiedAt: Type.Optional(Type.String({ format: 'date-time' })),
     /** `_id` des Plattform-Users, der die Verifizierung gemacht hat. */
-    verifiedBy: Type.Optional(Type.String()),
+    verifiedBy: Type.Optional(Type.String({ maxLength: 64 })),
     /**
      * Wieviele Tenants haben einen lokalen Supplier mit `globalSupplierId =
      * <this._id>` verknuepft. Wird per Hook beim `Supplier.create/patch`
      * inkrementiert (Phase 2.3). Diagnostisch + Sortier-Hilfe.
      */
-    usageCount: Type.Optional(Type.Number({ default: 0 })),
+    usageCount: Type.Optional(Type.Number({ default: 0, minimum: 0 })),
 
     createdAt: Type.Optional(Type.String({ format: 'date-time' })),
     updatedAt: Type.Optional(Type.String({ format: 'date-time' })),
   },
-  { $id: 'GlobalSupplier' },
+  { $id: 'GlobalSupplier', additionalProperties: false },
 )
 export type GlobalSupplier = Static<typeof globalSupplierSchema>

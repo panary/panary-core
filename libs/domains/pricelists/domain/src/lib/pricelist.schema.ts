@@ -16,10 +16,10 @@ import { Static, StringEnum, Type } from '@feathersjs/typebox'
  */
 export const pricelistProductPriceSchema = Type.Object({
   productId: Type.String({ format: 'uuid' }),
-  oldPrice: Type.Number(),
-  newPrice: Type.Optional(Type.Number()),
+  oldPrice: Type.Number({ minimum: 0 }),
+  newPrice: Type.Optional(Type.Number({ minimum: 0 })),
   updatedAt: Type.Optional(Type.String({ format: 'date-time' })),
-  updatedBy: Type.Optional(Type.String()),
+  updatedBy: Type.Optional(Type.String({ maxLength: 64 })),
   updateStatus: StringEnum(['PENDING', 'APPLIED', 'REVERTED', 'SKIPPED']),
 })
 export type PricelistProductPrice = Static<typeof pricelistProductPriceSchema>
@@ -46,10 +46,10 @@ export const pricelistSchema = Type.Object(
 
     externalId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
     name: Type.String({ minLength: 1, maxLength: 255 }),
-    description: Type.Optional(Type.String()),
+    description: Type.Optional(Type.String({ maxLength: 2000 })),
     status: Type.Optional(pricelistStatusSchema),
     appliedOn: Type.Optional(Type.String({ format: 'date-time' })),
-    productPrices: Type.Array(pricelistProductPriceSchema),
+    productPrices: Type.Array(pricelistProductPriceSchema, { maxItems: 5000 }),
   },
   { $id: 'Pricelist', additionalProperties: false },
 )

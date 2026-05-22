@@ -48,12 +48,12 @@ export const supplierSchema = Type.Object(
      *   - Tenant kann lokal überschreiben (Notizen, abweichende Adresse für die Filiale)
      *   - Sync-Button in der Detail-Seite kopiert nicht-veraenderte Felder erneut
      */
-    globalSupplierId: Type.Optional(Type.String()),
+    globalSupplierId: Type.Optional(Type.String({ maxLength: 64 })),
     tenantId: Type.String(),
     locationId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     createdAt: Type.Optional(Type.String({ format: 'date-time' })),
     updatedAt: Type.Optional(Type.String({ format: 'date-time' })),
   },
-  { $id: 'Supplier' },
+  { $id: 'Supplier', additionalProperties: false },
 )
 export type Supplier = Static<typeof supplierSchema>

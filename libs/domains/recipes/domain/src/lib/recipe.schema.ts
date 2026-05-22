@@ -24,8 +24,8 @@ export const recipeIngredientItemSchema = Type.Object(
   {
     externalId: Type.Optional(Type.String({ format: 'uuid' })),
     ingredientId: Type.Optional(Type.String()),
-    quantity: Type.Number(),
-    unit: Type.Optional(Type.String()),
+    quantity: Type.Number({ minimum: 0 }),
+    unit: Type.Optional(Type.String({ maxLength: 32 })),
   },
   { additionalProperties: true },
 )
@@ -57,9 +57,9 @@ export const recipeSchema = Type.Object(
     externalId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
     name: Type.String({ minLength: 1, maxLength: 255 }),
     displayName: Type.Optional(Type.String({ maxLength: 255 })),
-    description: Type.Optional(Type.String()),
-    baseUnit: Type.String(),
-    baseQuantity: Type.Number({ default: 1 }),
+    description: Type.Optional(Type.String({ maxLength: 2000 })),
+    baseUnit: Type.String({ minLength: 1, maxLength: 32 }),
+    baseQuantity: Type.Number({ default: 1, exclusiveMinimum: 0 }),
 
     /**
      * Default-Menge, die beim Hinzufügen dieses Rezepts als Reference in ein
@@ -69,13 +69,13 @@ export const recipeSchema = Type.Object(
      */
     defaultReferenceQuantity: Type.Optional(Type.Number({ minimum: 0 })),
 
-    ingredients: Type.Array(recipeIngredientItemSchema),
+    ingredients: Type.Array(recipeIngredientItemSchema, { maxItems: 200 }),
     status: Type.Optional(recipeStatusSchema),
     priceAdjustment: Type.Optional(Type.Number({ default: 0 })),
 
     // Versionierung — vom version-tracker.hook autoritativ gepflegt
     currentVersion: Type.Optional(Type.Number({ default: 1 })),
-    history: Type.Optional(Type.Array(Type.Any())),
+    history: Type.Optional(Type.Array(Type.Any(), { maxItems: 1000 })),
   },
   { $id: 'Recipe', additionalProperties: false },
 )

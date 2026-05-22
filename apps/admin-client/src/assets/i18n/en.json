@@ -172,7 +172,8 @@
     "STATUS_CONNECTED": "Cloud Connected",
     "STATUS_PAIRING": "Pairing in progress\u2026",
     "STATUS_DISCONNECTED": "Cloud Disconnected",
-    "STATUS_ERROR": "Connection Error"
+    "STATUS_ERROR": "Connection Error",
+    "STATUS_STALE": "Cloud unreachable"
   },
   "USERS": {
     "TITLE": "Users",

@@ -172,7 +172,8 @@
     "STATUS_CONNECTED": "Cloud verbunden",
     "STATUS_PAIRING": "Kopplung l\u00e4uft\u2026",
     "STATUS_DISCONNECTED": "Cloud getrennt",
-    "STATUS_ERROR": "Verbindungsfehler"
+    "STATUS_ERROR": "Verbindungsfehler",
+    "STATUS_STALE": "Cloud nicht erreichbar"
   },
   "USERS": {
     "TITLE": "Benutzer",

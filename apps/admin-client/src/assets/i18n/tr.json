@@ -172,7 +172,8 @@
     "STATUS_CONNECTED": "Bulut Ba\u011fl\u0131",
     "STATUS_PAIRING": "E\u015fle\u015ftirme devam ediyor\u2026",
     "STATUS_DISCONNECTED": "Bulut Ba\u011flant\u0131s\u0131 Kesildi",
-    "STATUS_ERROR": "Ba\u011flant\u0131 Hatas\u0131"
+    "STATUS_ERROR": "Ba\u011flant\u0131 Hatas\u0131",
+    "STATUS_STALE": "Buluta ula\u015f\u0131lam\u0131yor"
   },
   "USERS": {
     "TITLE": "Kullan\u0131c\u0131lar",

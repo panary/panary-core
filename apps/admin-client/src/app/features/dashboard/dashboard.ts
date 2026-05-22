@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core'
 import { HttpClient } from '@angular/common/http'
 import { RouterLink } from '@angular/router'
 import { lastValueFrom } from 'rxjs'
@@ -7,11 +7,14 @@ import { ApiService, Paginated } from '../../core/api.service'
 import { SyncProblemCountService } from '../../core/sync-problem-count.service'
 
 type PairingStatus = 'connected' | 'disconnected' | 'pairing' | 'error'
-type CloudStatus = 'standalone' | PairingStatus
+// 'stale' = gekoppelt (pairingStatus=connected), aber seit > CLOUD_CONTACT_STALE_SEC
+// kein Cloud-Kontakt → Cloud aktuell nicht erreichbar (gekoppelt, invalider Zustand).
+type CloudStatus = 'standalone' | 'stale' | PairingStatus
 
 interface CloudConnection {
   _id: string
   pairingStatus: PairingStatus
+  lastCloudContactAt?: string | null
 }
 
 interface KpiCard {
@@ -42,7 +45,34 @@ const CLOUD_STATUS_CONFIG: Record<CloudStatus, { labelKey: string; icon: string;
   connected:    { labelKey: 'DASHBOARD.STATUS_CONNECTED',     icon: 'cloud_done', pill: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-900', dot: 'bg-emerald-500 animate-pulse' },
   pairing:      { labelKey: 'DASHBOARD.STATUS_PAIRING',       icon: 'cloud_sync', pill: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-900',             dot: 'bg-amber-500 animate-pulse' },
   disconnected: { labelKey: 'DASHBOARD.STATUS_DISCONNECTED',  icon: 'cloud_off',  pill: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700',             dot: 'bg-slate-400' },
+  stale:        { labelKey: 'DASHBOARD.STATUS_STALE',         icon: 'cloud_off',  pill: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-900',             dot: 'bg-amber-500 animate-pulse' },
   error:        { labelKey: 'DASHBOARD.STATUS_ERROR',         icon: 'cloud_off',  pill: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-900',                        dot: 'bg-red-500' },
+}
+
+// Edge↔Cloud-Kontakt gilt als „frisch", solange er < 5 min her ist. Der
+// Realtime-Worker stempelt `lastCloudContactAt` bei aktiver Socket-Verbindung;
+// bleibt es länger aus, ist die Cloud trotz Pairing nicht erreichbar.
+const CLOUD_CONTACT_STALE_SEC = 5 * 60
+
+// Leitet den ECHTEN Kopplungsstatus aus dem cloud-connection-Datensatz ab —
+// NICHT aus der statischen system.mode-Config (die /health als systemMode
+// liefert und unabhängig vom Pairing 'standalone' bleiben kann).
+function deriveCloudStatus(conn: CloudConnection | undefined, nowMs: number): CloudStatus {
+  if (!conn) return 'standalone'
+  switch (conn.pairingStatus) {
+    case 'pairing':
+      return 'pairing'
+    case 'error':
+      return 'error'
+    case 'connected': {
+      const last = conn.lastCloudContactAt ? new Date(conn.lastCloudContactAt).getTime() : null
+      if (last === null) return 'stale'
+      return (nowMs - last) / 1000 > CLOUD_CONTACT_STALE_SEC ? 'stale' : 'connected'
+    }
+    // 'disconnected' = entkoppelt / zurückgesetzt → kein Cloud-Modus.
+    default:
+      return 'standalone'
+  }
 }
 
 function formatUptime(seconds: number): string {
@@ -223,11 +253,13 @@ function formatBytes(bytes: number): string {
     </div>
   `,
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   #api = inject(ApiService)
   #http = inject(HttpClient)
   #t = inject(TranslateService)
   protected syncProblems = inject(SyncProblemCountService)
+
+  #statusTimer: ReturnType<typeof setInterval> | null = null
 
   loading = signal(true)
   cloudStatus = signal<CloudStatus>('standalone')
@@ -291,13 +323,23 @@ export class DashboardComponent implements OnInit {
       this.edgeInfo.set(healthResult)
     }
 
-    if (healthResult?.systemMode === 'standalone') {
-      this.cloudStatus.set('standalone')
-    } else {
-      const pairingStatus = cloudResult?.data[0]?.pairingStatus
-      this.cloudStatus.set(pairingStatus ?? 'disconnected')
-    }
+    // Echter Kopplungsstatus aus dem cloud-connection-Datensatz (live),
+    // NICHT aus dem statischen systemMode (system.mode-Config).
+    this.cloudStatus.set(deriveCloudStatus(cloudResult?.data[0], Date.now()))
 
     this.loading.set(false)
+
+    // Badge live halten: alle 30s nachziehen, damit ein „stale"-Zustand
+    // (Cloud nicht mehr erreichbar) ohne Reload sichtbar wird.
+    this.#statusTimer = setInterval(() => void this.refreshCloudStatus(), 30_000)
+  }
+
+  ngOnDestroy(): void {
+    if (this.#statusTimer) clearInterval(this.#statusTimer)
+  }
+
+  private async refreshCloudStatus(): Promise<void> {
+    const r = await this.#api.find<CloudConnection>('cloud-connection', { $limit: 1 }).catch(() => null)
+    this.cloudStatus.set(deriveCloudStatus(r?.data[0], Date.now()))
   }
 }

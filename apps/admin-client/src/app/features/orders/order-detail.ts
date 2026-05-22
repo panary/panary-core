@@ -60,6 +60,25 @@ import { formatApiError } from '../../core/error-helper'
           }
         </div>
 
+        <!-- Status ändern -->
+        <div class="px-6 py-4 border-t border-slate-200 dark:border-gray-800">
+          <p class="text-xs text-slate-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+            {{ 'ORDERS.CHANGE_STATUS' | translate }}
+          </p>
+          <div class="grid grid-cols-2 gap-2">
+            @for (s of selectableStatuses; track s) {
+              <button (click)="changeStatus(s)"
+                [disabled]="order()!.status === s || saving()"
+                class="py-2 rounded-lg text-xs font-medium border transition disabled:cursor-not-allowed"
+                [class]="order()!.status === s
+                  ? statusBadgeFor(s) + ' border-transparent'
+                  : 'text-slate-600 dark:text-gray-300 border-slate-200 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-800'">
+                {{ statusLabelFor(s) }}
+              </button>
+            }
+          </div>
+        </div>
+
         <!-- Löschen-Button -->
         <div class="p-6 border-t border-slate-200 dark:border-gray-800">
           <button (click)="showDeleteConfirm.set(true)"
@@ -95,17 +114,25 @@ export class OrderDetailComponent {
   orderId = input.required<string>()
   closed = output<void>()
   deleted = output<void>()
+  statusChanged = output<void>()
 
   order = signal<any | null>(null)
   loading = signal(true)
+  saving = signal(false)
   showDeleteConfirm = signal(false)
+  creatorName = signal<string | null>(null)
+  businessDayDate = signal<string | null>(null)
+
+  readonly selectableStatuses = ['active', 'production', 'completed', 'aborted']
 
   constructor() {
     effect(() => this.loadOrder(this.orderId()))
   }
 
-  statusBadge = computed(() => {
-    const s = this.order()?.status
+  statusBadge = computed(() => this.statusBadgeFor(this.order()?.status))
+  statusLabel = computed(() => this.statusLabelFor(this.order()?.status))
+
+  statusBadgeFor(s: string | undefined): string {
     switch (s) {
       case 'active':     return 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400'
       case 'production': return 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400'
@@ -113,10 +140,9 @@ export class OrderDetailComponent {
       case 'aborted':    return 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400'
       default:           return 'bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-gray-400'
     }
-  })
+  }
 
-  statusLabel = computed(() => {
-    const s = this.order()?.status
+  statusLabelFor(s: string | undefined): string {
     switch (s) {
       case 'active':     return this.t.instant('ORDERS.STATUS_ACTIVE')
       case 'production': return this.t.instant('ORDERS.STATUS_PRODUCTION')
@@ -125,29 +151,68 @@ export class OrderDetailComponent {
       case 'unclaimed':  return this.t.instant('ORDERS.STATUS_UNCLAIMED')
       default:           return s ?? '–'
     }
-  })
+  }
 
   infoRows = computed(() => {
     const o = this.order()
     if (!o) return []
+    const businessDay = this.businessDayDate()
     return [
       { label: this.t.instant('ORDERS.CHANNEL'), value: this.channelLabel(o.orderChannel) },
       { label: this.t.instant('ORDERS.DINE_LOCATION'), value: o.dineLocation === 'dine-in' ? 'Vor Ort' : 'Mitnehmen' },
+      { label: this.t.instant('ORDERS.PERSON'), value: this.personLabel(o) },
       { label: this.t.instant('ORDERS.ITEMS_COUNT'), value: String(o.lineItems?.length ?? 0) },
+      { label: this.t.instant('ORDERS.BUSINESS_DAY'), value: businessDay ? this.formatDay(businessDay) : '—' },
       { label: this.t.instant('ORDERS.CREATED_AT'), value: this.formatDate(o.recordingDate || o.createdAt) },
       { label: this.t.instant('ORDERS.PAYMENT_STATUS'), value: this.paymentLabel(o.payment?.state) },
     ]
   })
 
+  private personLabel(o: any): string {
+    return o.staffPaymentInfo?.userName || o.customerPaymentInfo?.customerName || this.creatorName() || '–'
+  }
+
   private async loadOrder(id: string) {
     this.loading.set(true)
+    this.creatorName.set(null)
+    this.businessDayDate.set(null)
     try {
-      const order = await this.api.get('orders', id)
+      const order = await this.api.get<any>('orders', id)
       this.order.set(order)
+      void this.resolveBusinessDay(order.businessDayId)
+      if (!order.staffPaymentInfo?.userName && !order.customerPaymentInfo?.customerName) {
+        void this.resolveCreator(order.creationContext?.createdBy)
+      }
     } catch {
       this.order.set(null)
     } finally {
       this.loading.set(false)
+    }
+  }
+
+  private async resolveBusinessDay(businessDayId: string | undefined) {
+    if (!businessDayId) return
+    try {
+      const day = await this.api.get<{ date?: string }>('businessdays', businessDayId)
+      this.businessDayDate.set(day?.date ?? null)
+    } catch {
+      this.businessDayDate.set(null)
+    }
+  }
+
+  private async resolveCreator(createdBy: string | undefined) {
+    if (!createdBy) return
+    try {
+      const res = await this.api.find<{ firstName?: string; lastName?: string }>('users', {
+        _id: createdBy,
+        $select: ['firstName', 'lastName'],
+        $limit: 1,
+      })
+      const u = res.data[0]
+      const name = u ? [u.firstName, u.lastName].filter(Boolean).join(' ').trim() : ''
+      this.creatorName.set(name || null)
+    } catch {
+      this.creatorName.set(null)
     }
   }
 
@@ -161,6 +226,20 @@ export class OrderDetailComponent {
     }
   }
 
+  async changeStatus(status: string) {
+    if (this.order()?.status === status) return
+    this.saving.set(true)
+    try {
+      await this.api.patch('orders', this.orderId(), { status })
+      await this.loadOrder(this.orderId())
+      this.statusChanged.emit()
+    } catch (err) {
+      console.error(formatApiError(err))
+    } finally {
+      this.saving.set(false)
+    }
+  }
+
   formatCurrency(value: number): string {
     return value?.toFixed(2).replace('.', ',') + ' €'
   }
@@ -169,6 +248,11 @@ export class OrderDetailComponent {
     if (!iso) return '–'
     const d = new Date(iso)
     return d.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }
+
+  private formatDay(date: string): string {
+    const d = new Date(date)
+    return isNaN(d.getTime()) ? date : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
   }
 
   private channelLabel(ch: string): string {

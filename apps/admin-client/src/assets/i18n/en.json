@@ -61,7 +61,8 @@
     "SYNC_STATUS": "Sync Status",
     "LOGS": "Support Logs",
     "BUSINESS_DAYS": "Business Days",
-    "DEVICES": "Devices"
+    "DEVICES": "Devices",
+    "DEVICE_BADGE": "{{online}} of {{total}}"
   },
   "LOGS": {
     "TITLE": "Support logs",
@@ -346,6 +347,7 @@
   },
   "ORDERS": {
     "TITLE": "Orders",
+    "TIME_BUSINESS_DAY": "Current business day",
     "TIME_TODAY": "Today",
     "TIME_YESTERDAY": "Yesterday",
     "TIME_WEEK": "This Week",
@@ -362,6 +364,7 @@
     "STATUS_COMPLETED": "Completed",
     "STATUS_ABORTED": "Cancelled",
     "STATUS_UNCLAIMED": "Unclaimed",
+    "CHANGE_STATUS": "Change status",
     "ITEMS_COUNT": "Items",
     "GROSS": "Gross",
     "NET": "Net",

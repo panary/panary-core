@@ -3,7 +3,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { OrderDetailComponent } from './order-detail'
 
-type TimeRange = 'today' | 'yesterday' | 'week' | 'month'
+type TimeRange = 'businessDay' | 'today' | 'yesterday' | 'week' | 'month'
 
 interface TimeRangeOption {
   key: TimeRange
@@ -11,13 +11,14 @@ interface TimeRangeOption {
 }
 
 const TIME_RANGES: TimeRangeOption[] = [
+  { key: 'businessDay', labelKey: 'ORDERS.TIME_BUSINESS_DAY' },
   { key: 'today', labelKey: 'ORDERS.TIME_TODAY' },
   { key: 'yesterday', labelKey: 'ORDERS.TIME_YESTERDAY' },
   { key: 'week', labelKey: 'ORDERS.TIME_WEEK' },
   { key: 'month', labelKey: 'ORDERS.TIME_MONTH' },
 ]
 
-function getTimeRangeFilter(range: TimeRange): Record<string, any> {
+function getTimeRangeFilter(range: Exclude<TimeRange, 'businessDay'>): Record<string, any> {
   const now = new Date()
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
 
@@ -89,6 +90,7 @@ function getTimeRangeFilter(range: TimeRange): Record<string, any> {
                     <th class="text-left px-3 py-2.5 text-[11px] font-medium text-slate-400 dark:text-gray-500 uppercase tracking-wider">{{ 'ORDERS.CHANNEL' | translate }}</th>
                     <th class="text-left px-3 py-2.5 text-[11px] font-medium text-slate-400 dark:text-gray-500 uppercase tracking-wider">{{ 'ORDERS.DINE_LOCATION' | translate }}</th>
                     <th class="text-left px-3 py-2.5 text-[11px] font-medium text-slate-400 dark:text-gray-500 uppercase tracking-wider">{{ 'ORDERS.PERSON' | translate }}</th>
+                    <th class="text-left px-3 py-2.5 text-[11px] font-medium text-slate-400 dark:text-gray-500 uppercase tracking-wider">{{ 'ORDERS.BUSINESS_DAY' | translate }}</th>
                     <th class="text-right px-3 py-2.5 text-[11px] font-medium text-slate-400 dark:text-gray-500 uppercase tracking-wider">{{ 'ORDERS.AMOUNT' | translate }}</th>
                     <th class="text-right px-4 py-2.5 text-[11px] font-medium text-slate-400 dark:text-gray-500 uppercase tracking-wider">{{ 'ORDERS.DATE' | translate }}</th>
                   </tr>
@@ -116,10 +118,13 @@ function getTimeRangeFilter(range: TimeRange): Record<string, any> {
                           </span>
                         } @else if (order.customerPaymentInfo?.customerName) {
                           {{ order.customerPaymentInfo.customerName }}
+                        } @else if (creatorName(order); as cn) {
+                          {{ cn }}
                         } @else {
                           –
                         }
                       </td>
+                      <td class="px-3 py-2.5 text-sm text-slate-500 dark:text-gray-400 tabular-nums">{{ businessDayLabel(order) }}</td>
                       <td class="px-3 py-2.5 text-sm text-slate-900 dark:text-white text-right tabular-nums font-medium">{{ formatAmount(order) }}</td>
                       <td class="px-4 py-2.5 text-sm text-slate-500 dark:text-gray-400 text-right tabular-nums">{{ formatTime(order.createdAt) }}</td>
                     </tr>
@@ -171,6 +176,7 @@ function getTimeRangeFilter(range: TimeRange): Record<string, any> {
             <app-order-detail
               [orderId]="id"
               (closed)="selectedId.set(null)"
+              (statusChanged)="onOrderChanged()"
               (deleted)="onOrderDeleted()" />
           </div>
         </div>
@@ -188,14 +194,52 @@ export class OrderListComponent implements OnInit {
   orders = signal<any[]>([])
   loading = signal(true)
   selectedId = signal<string | null>(null)
-  timeRange = signal<TimeRange>('today')
+  timeRange = signal<TimeRange>('businessDay')
   currentPage = signal(0)
   totalOrders = signal(0)
+  userNames = signal<Record<string, string>>({})
+  businessDayDates = signal<Record<string, string>>({})
 
   totalPages = computed(() => Math.max(1, Math.ceil(this.totalOrders() / this.pageSize)))
 
   async ngOnInit() {
+    await this.loadUsers()
     await this.loadOrders()
+  }
+
+  private async loadUsers() {
+    try {
+      const users = await this.api.find<{ _id: string; firstName?: string; lastName?: string }>('users', {
+        $select: ['_id', 'firstName', 'lastName'],
+        $limit: 500,
+      })
+      const map: Record<string, string> = {}
+      for (const u of users.data) {
+        const name = [u.firstName, u.lastName].filter(Boolean).join(' ').trim()
+        if (name) map[u._id] = name
+      }
+      this.userNames.set(map)
+    } catch {
+      this.userNames.set({})
+    }
+  }
+
+  private async resolveBusinessDays(orders: any[]) {
+    const ids = [...new Set(orders.map(o => o.businessDayId).filter(Boolean))]
+    const missing = ids.filter(id => !(id in this.businessDayDates()))
+    if (missing.length === 0) return
+    try {
+      const days = await this.api.find<{ _id: string; date: string }>('businessdays', {
+        _id: { $in: missing },
+        $select: ['_id', 'date'],
+        $limit: missing.length,
+      })
+      const map = { ...this.businessDayDates() }
+      for (const d of days.data) map[d._id] = d.date
+      this.businessDayDates.set(map)
+    } catch {
+      /* best effort — Spalte zeigt dann '—' */
+    }
   }
 
   async onTimeRangeChange(range: TimeRange) {
@@ -211,6 +255,10 @@ export class OrderListComponent implements OnInit {
 
   async onOrderDeleted() {
     this.selectedId.set(null)
+    await this.loadOrders()
+  }
+
+  async onOrderChanged() {
     await this.loadOrders()
   }
 
@@ -231,7 +279,20 @@ export class OrderListComponent implements OnInit {
   private async loadOrders() {
     this.loading.set(true)
     try {
-      const filter = getTimeRangeFilter(this.timeRange())
+      const range = this.timeRange()
+      let filter: Record<string, any>
+      if (range === 'businessDay') {
+        const days = await this.api.find<{ _id: string }>('businessdays', { status: 'open', $select: ['_id'], $limit: 100 })
+        const ids = days.data.map(d => d._id)
+        if (ids.length === 0) {
+          this.orders.set([])
+          this.totalOrders.set(0)
+          return
+        }
+        filter = { businessDayId: { $in: ids } }
+      } else {
+        filter = getTimeRangeFilter(range)
+      }
       const result = await this.api.find<any>('orders', {
         ...filter,
         $sort: { createdAt: -1 },
@@ -240,12 +301,25 @@ export class OrderListComponent implements OnInit {
       })
       this.orders.set(result.data)
       this.totalOrders.set(result.total)
+      await this.resolveBusinessDays(result.data)
     } catch {
       this.orders.set([])
       this.totalOrders.set(0)
     } finally {
       this.loading.set(false)
     }
+  }
+
+  creatorName(order: any): string | null {
+    const id = order?.creationContext?.createdBy
+    return (id && this.userNames()[id]) || null
+  }
+
+  businessDayLabel(order: any): string {
+    const date = order?.businessDayId ? this.businessDayDates()[order.businessDayId] : undefined
+    if (!date) return '—'
+    const d = new Date(date)
+    return isNaN(d.getTime()) ? date : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
   }
 
   statusBadge(status: string): string {

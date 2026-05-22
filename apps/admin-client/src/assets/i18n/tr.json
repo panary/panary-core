@@ -61,7 +61,8 @@
     "SYNC_STATUS": "Senkronizasyon Durumu",
     "LOGS": "Destek Günlükleri",
     "BUSINESS_DAYS": "İş Günleri",
-    "DEVICES": "Cihazlar"
+    "DEVICES": "Cihazlar",
+    "DEVICE_BADGE": "{{online}}/{{total}}"
   },
   "LOGS": {
     "TITLE": "Destek günlükleri",
@@ -346,6 +347,7 @@
   },
   "ORDERS": {
     "TITLE": "Sipari\u015fler",
+    "TIME_BUSINESS_DAY": "G\u00fcncel i\u015f g\u00fcn\u00fc",
     "TIME_TODAY": "Bug\u00fcn",
     "TIME_YESTERDAY": "D\u00fcn",
     "TIME_WEEK": "Bu Hafta",
@@ -362,6 +364,7 @@
     "STATUS_COMPLETED": "Tamamland\u0131",
     "STATUS_ABORTED": "\u0130ptal Edildi",
     "STATUS_UNCLAIMED": "Teslim Al\u0131nmad\u0131",
+    "CHANGE_STATUS": "Durumu de\u011fi\u015ftir",
     "ITEMS_COUNT": "Kalem",
     "GROSS": "Br\u00fct",
     "NET": "Net",

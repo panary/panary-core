@@ -252,7 +252,7 @@ export class OrderDetailComponent {
 
   private formatDay(date: string): string {
     const d = new Date(date)
-    return isNaN(d.getTime()) ? date : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    return isNaN(d.getTime()) ? date : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })
   }
 
   private channelLabel(ch: string): string {

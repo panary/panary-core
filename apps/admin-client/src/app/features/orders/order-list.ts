@@ -282,8 +282,16 @@ export class OrderListComponent implements OnInit {
       const range = this.timeRange()
       let filter: Record<string, any>
       if (range === 'businessDay') {
-        const days = await this.api.find<{ _id: string }>('businessdays', { status: 'open', $select: ['_id'], $limit: 100 })
-        const ids = days.data.map(d => d._id)
+        // „Aktueller Geschäftstag" = der currentBusinessDay-Pointer der Location(en),
+        // NICHT alle offenen Tage — sonst tauchten verwaiste, nie geschlossene
+        // Alt-Geschäftstage (status:open) mit in der Liste auf.
+        const locations = await this.api.find<{ currentBusinessDay?: { businessDayId?: string } | null }>('locations', {
+          $select: ['currentBusinessDay'],
+          $limit: 100,
+        })
+        const ids = locations.data
+          .map(l => l.currentBusinessDay?.businessDayId)
+          .filter((id): id is string => !!id)
         if (ids.length === 0) {
           this.orders.set([])
           this.totalOrders.set(0)
@@ -319,7 +327,7 @@ export class OrderListComponent implements OnInit {
     const date = order?.businessDayId ? this.businessDayDates()[order.businessDayId] : undefined
     if (!date) return '—'
     const d = new Date(date)
-    return isNaN(d.getTime()) ? date : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    return isNaN(d.getTime()) ? date : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })
   }
 
   statusBadge(status: string): string {

@@ -26,15 +26,17 @@ des Bestellstatus**, um hängengebliebene Orders aufzuräumen.
 1. **Neuer Filter „Aktueller Geschäftstag" (Default).**
    `apps/admin-client/src/app/features/orders/order-list.ts` — neuer
    `TimeRange`-Wert `'businessDay'` als erster Eintrag und Default-Auswahl.
-   `loadOrders()` holt zunächst die offenen Geschäftstage
-   (`GET /businessdays?status=open&$select[]=_id`) und filtert die Bestellungen
-   per `businessDayId: { $in: [...] }`. Die Kalenderfilter (Heute/Gestern/Woche/
-   Monat) bleiben unverändert fürs Reporting. Bei keinem offenen Geschäftstag wird
-   sauber „Keine Bestellungen" angezeigt (kein leeres `$in`).
+   `loadOrders()` liest den `currentBusinessDay`-Pointer der Location(en)
+   (`GET /locations?$select[]=currentBusinessDay`) und filtert die Bestellungen
+   per `businessDayId: { $in: [pointer-ids] }`. Die Kalenderfilter (Heute/Gestern/
+   Woche/Monat) bleiben unverändert fürs Reporting. Ohne gesetzten
+   `currentBusinessDay` wird sauber „Keine Bestellungen" angezeigt.
 
-   > Hintergrund: Im Cloud-Sync-Betrieb können mehrere Geschäftstage gleichzeitig
-   > `open` sein. `$in` über alle offenen Tage ist daher robuster als der einzelne
-   > `location.currentBusinessDay`-Pointer (den der POS-Client nutzt).
+   > Hintergrund: Es gibt bewusst **nicht** `status:open`-`$in` über alle offenen
+   > Tage — sonst würden verwaiste, nie geschlossene Alt-Geschäftstage (die in der
+   > Praxis vorkommen) mit angezeigt. „Aktueller Geschäftstag" meint exakt den
+   > `location.currentBusinessDay`-Pointer (dieselbe Quelle wie im POS-Client).
+   > Bestellungen verwaister Alt-Tage bleiben über die Kalenderfilter erreichbar.
 
 2. **Status-Änderung in der Detail-Ansicht.**
    `apps/admin-client/src/app/features/orders/order-detail.ts` — Button-Gruppe für

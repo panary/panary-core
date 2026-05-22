@@ -98,6 +98,8 @@ export const AppResource = {
   PRICELISTS: 'pricelists',
   INVENTORIES: 'inventories',
   INCOMING_GOODS: 'incoming-goods',
+  /** Cloud-only: Standorttransfer (Warenausgang Quelle → Wareneingang Ziel). */
+  OUTGOING_GOODS: 'outgoing-goods',
   /** Cloud-only: KI-gestuetzte Extraktion eines Wareneingangs aus einem Beleg-Foto. */
   INCOMING_GOODS_EXTRACT: 'incoming-goods-extract',
   /** Cloud-only: Read-only Audit-Log der KI-Wareneingang-Calls (Cost/Quality). */

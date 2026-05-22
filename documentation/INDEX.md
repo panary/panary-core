@@ -20,6 +20,7 @@
 
 - [Sicherheitshärtung — Sensible Daten](sensitive-data-hardening.md) — 2026-04-07 — POS-PIN bcrypt, API-Key SHA-256, verifyPin Custom-Methode
 - [Tenant-Audit-Events (Edge)](audit-events.md) — 2026-05-06 — Append-only Audit-Trail, Sidecar-Hook zu sync-outbox, SQLite-Trigger fuer Immutability, Cloud-Sync. Phase 2: Audit-Cleanup-Worker (nightly, 90d-Retention nach Cloud-Ack, transaktionaler Trigger-Bypass, Selbst-Audit `AUDIT_CLEANUP`)
+- [Schema-Feld-Härtung (Inline-Constraints)](schema-feld-haertung.md) — 2026-05-22 — Feldbezogene Inline-Limits gegen Dokument-Aufblähung über alle Domänen: `password` maxLength 72 (bcrypt), Freitext-`maxLength`, Preis/Mengen `minimum: 0`, Array-`maxItems` (projektweit erstmals), Zeit/`format`-`pattern`, `orderQuery`/`writeOffQuery` → `additionalProperties: false`. Entscheidung: inline (keine zentrale Lib), `Type.Any()` beibehalten (kein Laufzeit-Gewinn ggü. Unknown, bricht aber TS-Konsumenten), `additionalProperties: false` in `Type.Intersect` empirisch sicher. Bewusst offen: Sync-Payloads, Aggregate, signed quantity
 
 ## Infrastruktur
 

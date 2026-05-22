@@ -55,7 +55,7 @@ export const apikeyDataResolver = resolve<Apikey, HookContext>({
   createdAt: async (): Promise<string> => new Date().toISOString(),
   updatedAt: async (): Promise<string> => new Date().toISOString(),
   createdBy: async (value: any, user: any, context: HookContext) =>
-    context.params?.user?.loginname || 'system',
+    context.params?.user?._id || 'system',
   role: async (value, data, context) => {
     if (value) return value
 

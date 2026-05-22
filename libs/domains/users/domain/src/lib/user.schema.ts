@@ -141,6 +141,12 @@ export const userSchema = Type.Object(
 
     // Cloud-Referenzen sind Strings (ehemals ObjectId)
     tenantId: Type.Union([Type.String(), Type.Null()], { default: null }),
+    // Referenz auf die globale Identitaet (accounts-Collection, nur Cloud). Bei
+    // POS-PIN-Personal `null` (tenant-lokal, kein E-Mail-Login). Am Edge ignoriert
+    // (Edge-User-Doc bleibt flach mit eigenem email/password). MUSS hier deklariert
+    // sein, weil `additionalProperties:false` sonst per Pull projizierte Memberships
+    // mit accountId ablehnen wuerde.
+    accountId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     activeLocationId: Type.Union([Type.String(), Type.Null()], { default: null }),
     allowedLocationIds: Type.Array(Type.String({ format: 'uuid' }), { maxItems: 200 }),
     stampingId: Type.Union([Type.String(), Type.Null()]),
@@ -170,11 +176,17 @@ export const userSchema = Type.Object(
     employeeNumber: Type.Optional(Type.String({ minLength: 6, maxLength: 6 })),
 
     // Persönliche Daten
-    loginname: Type.String({ minLength: 2, maxLength: 30 }),
+    // loginname ist seit der E-Mail-Identitaets-Umstellung nur noch ein
+    // optionaler Anzeige-/Audit-Handle (kein Login-Identifier mehr, keine
+    // Uniqueness). Wird serverseitig aus Vor-/Nachname generiert, falls leer.
+    loginname: Type.Optional(Type.String({ minLength: 2, maxLength: 30 })),
     firstName: Type.String({ default: '', maxLength: 100 }),
     lastName: Type.String({ default: '', maxLength: 100 }),
     email: Type.Optional(Type.String({ format: 'email', maxLength: 254 })),
-    password: Type.String({ maxLength: 72 }), // Wird im API-Layer gehasht
+    // Optional: Cloud-Membership traegt kein Passwort (liegt am `account`); das
+    // flache Edge-User-Doc bekommt den bcrypt-Hash per Sync-Projektion. NICHT
+    // entfernen — sonst bricht die Edge-Validierung des projizierten Docs.
+    password: Type.Optional(Type.String({ maxLength: 72 })), // Wird im API-Layer gehasht
 
     // Einstellungen
     allowStaffMealOrders: Type.Optional(Type.Boolean({ default: false })),
@@ -210,19 +222,22 @@ export type User = Static<typeof userSchema>
 //#endregion
 
 //#region Schema für das Erstellen (POST)
-// Wir picken nur die Felder, die der Client senden darf
-// Beim Create erforderlich: loginname, password
-// tenantId wird vom multiTenancy-Hook gesetzt, nicht vom Client
+// Wir picken nur die Felder, die der Client senden darf.
+// Seit der Identitaets-Umstellung (E-Mail-Login + accounts/Membership-Split) ist
+// KEIN Feld mehr Client-Pflicht beim Create: `loginname` wird serverseitig
+// generiert, `password` lebt am `account` (Cloud) bzw. kommt per Sync-Projektion
+// (Edge), `accountId`/`tenantId` werden serverseitig gestempelt.
 export const userDataSchema = Type.Intersect(
   [
-    // Pflichtfelder beim Create
-    Type.Pick(userSchema, ['loginname', 'password']),
     // Optionale Felder (haben Defaults oder sind im Schema bereits Optional).
     // `posPin` bewusst NICHT hier — wird unten mit Plain-Text-Constraint
     // ueberschrieben (Hauptschema speichert den Hash, hier validieren wir
     // den Klartext-Input).
     Type.Partial(
       Type.Pick(userSchema, [
+        'loginname',
+        'password',
+        'accountId',
         'tenantId',
         'activeLocationId',
         'allowStaffMealOrders',
@@ -281,6 +296,9 @@ export const userQueryProperties = Type.Pick(
   [
   '_id',
   'tenantId',
+  // Pflicht fuer den Account-Login-Lookup (Cloud): `users.find({ accountId })`
+  // listet alle Memberships einer Identitaet fuer den Tenant-Picker.
+  'accountId',
   'activeLocationId',
   'email',
   'employeeNumber',

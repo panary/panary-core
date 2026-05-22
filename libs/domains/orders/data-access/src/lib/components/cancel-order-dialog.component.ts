@@ -191,7 +191,7 @@ export class CancelOrderDialogComponent {
   }
 
   private async executeCancel(authorizer: User): Promise<void> {
-    const name = `${authorizer.firstName} ${authorizer.lastName}`.trim() || authorizer.loginname
+    const name = `${authorizer.firstName} ${authorizer.lastName}`.trim() || authorizer.loginname || authorizer._id
     try {
       await this.#orderService.patch(this.order._id, {
         cancellation: {

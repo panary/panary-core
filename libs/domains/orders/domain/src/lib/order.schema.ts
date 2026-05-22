@@ -89,7 +89,7 @@ export const discountSchema = Type.Object({
 })
 
 export const cancellationSchema = Type.Object({
-  canceledBy: Type.String({ format: 'uuid' }),
+  canceledBy: Type.String({ maxLength: 200 }),
   reason: Type.String({ maxLength: 500 }),
   canceledAt: Type.String({ format: 'date-time' }),
 })

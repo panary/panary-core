@@ -35,6 +35,10 @@ export const AppResource = {
   AUDIT_EVENT_REDACTIONS: 'audit-event-redactions',
 
   // Cloud-spezifische Ressourcen (panary-cloud Backend)
+  /** Cloud-only: Read-only Liste abgelehnter Edge→Cloud-Push-Ops (Sync-Reject-
+   *  Audit, dedupliziert pro Record, kurze TTL). Service-Pfad = Collection
+   *  `cloud-sync-reject`. READ für Support/Owner/Manager (Diagnose). */
+  SYNC_REJECTS: 'cloud-sync-reject',
   TENANTS: 'tenants',
   CORPORATE_CUSTOMERS: 'corporate-customers',
   RECIPES: 'recipes',

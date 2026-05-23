@@ -234,6 +234,7 @@
     "NO_OPEN_ORDERS": "Im Moment gibt es keine offenen Bestellungen.",
     "CHECKOUT": "Kassieren",
     "COMPLETE_ORDER": "Bestellung abschließen",
+    "FINALIZE": "Abschließen",
     "CANCELED": "STORNIERT",
     "STAFF_MEAL": "Personalessen",
     "CANCEL": "Storno",

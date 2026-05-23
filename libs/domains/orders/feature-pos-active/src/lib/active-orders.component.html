@@ -80,14 +80,13 @@
               </button>
               <!-- Spacer -->
               <div class="flex-1"></div>
-              <button class="hover-morph-btn flex items-center justify-center bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 w-12 h-12 rounded-xl border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-200 dark:hover:bg-emerald-900 transition-colors shadow-sm"
-                (click)="completeOrder($event, order)" [title]="'ACTIVE_ORDERS.COMPLETE_ORDER' | translate">
-                <span class="material-symbols-outlined text-[20px]">done_all</span>
-              </button>
+              <!-- Eine generische Abschluss-Aktion: kassiert bei pos-cashier-Modus
+                   (Payment + performedBy), schliesst bei orders-only nur ab. -->
               <button
                 class="hover-morph-btn-rect bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 h-12 px-5 rounded-xl flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 shadow-sm"
-                (click)="checkoutOrder($event, order)">
-                <span class="font-bold text-sm">{{ 'ACTIVE_ORDERS.CHECKOUT' | translate }}</span>
+                (click)="finalizeOrder($event, order)">
+                <span class="material-symbols-outlined text-[20px]">task_alt</span>
+                <span class="font-bold text-sm">{{ 'ACTIVE_ORDERS.FINALIZE' | translate }}</span>
               </button>
             </div>
 

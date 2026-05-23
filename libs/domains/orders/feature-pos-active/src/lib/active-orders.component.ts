@@ -17,6 +17,7 @@ import {
 } from '@panary/orders/data-access'
 import { PrintDialogComponent, CancelOrderDialogComponent } from '@panary/orders/data-access'
 import { AuthService } from '@panary/auth/data-access'
+import { LocationService } from '@panary/locations/data-access'
 import { UserService } from '@panary/users/data-access'
 import { User } from '@panary/users/domain'
 import { CorporateCustomerService } from '@panary/corporate-customers/data-access'
@@ -38,6 +39,7 @@ export class ActiveOrdersComponent {
   #orderService = inject(OrderService)
   #router = inject(Router)
   #authService = inject(AuthService)
+  #locationService = inject(LocationService)
   #matDialog = inject(MatDialog)
   #snackBar = inject(MatSnackBar)
   #userService = inject(UserService)
@@ -154,16 +156,24 @@ export class ActiveOrdersComponent {
     this.#matDialog.open(PrintDialogComponent, { data: order })
   }
 
-  completeOrder(event: Event, order: Order) {
-    event.stopPropagation()
-    if (order._id) {
-      this.#orderService.complete(order._id)
-    }
-  }
-
-  checkoutOrder(event: Event, order: Order) {
+  /**
+   * Eine generische Abschluss-Aktion (ersetzt die getrennten „Fertig"- und
+   * „Kassieren"-Buttons). Verhalten haengt vom `Location.operationMode` ab:
+   *
+   *   - `pos-cashier` (Default): Bestellung kassieren — Bar-Transaktion mit
+   *     `performedBy = aktueller User` anlegen (Basis fuer die Pro-Kassierer-
+   *     Kassenabstimmung) und Status auf COMPLETED setzen.
+   *   - `orders-only`: reines Bestellsystem ohne Kassier-Funktion — nur Status
+   *     auf COMPLETED setzen, KEIN Payment.
+   */
+  finalizeOrder(event: Event, order: Order) {
     event.stopPropagation()
     if (!order._id) return
+
+    if (!this.#isCashierMode()) {
+      this.#orderService.complete(order._id)
+      return
+    }
 
     const currentUser = this.#authService.user()
     if (!currentUser) {
@@ -189,14 +199,18 @@ export class ActiveOrdersComponent {
       transactions: [transaction],
     }
 
-    this.#orderService
-      .patch(order._id, {
-        payment: paymentInfo,
-        status: OrderStatus.COMPLETED,
-      })
-      .then(() => {
-        this.#orderService.complete(order._id)
-      })
+    // Status wird im selben Patch gesetzt — kein zusaetzlicher complete()-Call.
+    this.#orderService.patch(order._id, {
+      payment: paymentInfo,
+      status: OrderStatus.COMPLETED,
+    })
+  }
+
+  /** `orders-only` deaktiviert die Kassier-Funktion; Default ist `pos-cashier`. */
+  #isCashierMode(): boolean {
+    const mode = (this.#locationService.activeLocation() as { operationMode?: string } | undefined)
+      ?.operationMode
+    return mode !== 'orders-only'
   }
 
   // --- Personalessen-Flow ---

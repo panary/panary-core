@@ -234,6 +234,7 @@
     "NO_OPEN_ORDERS": "There are no open orders at the moment.",
     "CHECKOUT": "Checkout",
     "COMPLETE_ORDER": "Complete order",
+    "FINALIZE": "Finalize",
     "CANCELED": "CANCELED",
     "STAFF_MEAL": "Staff meal",
     "CANCEL": "Cancel",

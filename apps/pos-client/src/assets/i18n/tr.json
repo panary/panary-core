@@ -234,6 +234,7 @@
     "NO_OPEN_ORDERS": "Şu anda açık sipariş yok.",
     "CHECKOUT": "Ödeme al",
     "COMPLETE_ORDER": "Siparişi tamamla",
+    "FINALIZE": "Tamamla",
     "CANCELED": "İPTAL EDİLDİ",
     "STAFF_MEAL": "Personel yemeği",
     "CANCEL": "İptal",

@@ -319,7 +319,14 @@ export const userQueryProperties = Type.Pick(
 // TS 6.x ein "type instantiation is excessively deep" (TS2589) im
 // `getValidator`-Konsumer. Flat-Object ist semantisch identisch und unter
 // dem Tiefen-Limit. AJV validiert `$or`-Items ohnehin lose, daher `Type.Any()`.
-const _userQueryBase = querySyntax(userQueryProperties)
+// $regex-Opt-in fuer die globale Such-Leiste (Name/E-Mail) — gilt auch
+// im `$and`-genesteten `$or` (das ueberschriebene Top-Level-`$or` unten
+// deckt nur direkte `$or`-Queries ab).
+const _userQueryBase = querySyntax(userQueryProperties, {
+  firstName: { $regex: Type.String() },
+  lastName: { $regex: Type.String() },
+  email: { $regex: Type.String() },
+})
 export const userQuerySchema = Type.Object(
   {
     ..._userQueryBase.properties,

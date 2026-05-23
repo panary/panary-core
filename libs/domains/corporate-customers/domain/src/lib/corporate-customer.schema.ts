@@ -71,8 +71,11 @@ export const corporateCustomerQueryProperties = Type.Pick(corporateCustomerSchem
 ])
 export const corporateCustomerQuerySchema = Type.Intersect(
   [
-    querySyntax(corporateCustomerQueryProperties),
-    // Add additional query properties
+    // $regex-Opt-in fuer die globale Such-Leiste (Firmenname) — gilt auch in `$or`.
+    querySyntax(corporateCustomerQueryProperties, {
+      name1: { $regex: Type.String() },
+      name2: { $regex: Type.String() },
+    }),
     Type.Object({}, { additionalProperties: false }),
   ],
   { additionalProperties: false },

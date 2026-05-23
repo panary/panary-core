@@ -82,8 +82,11 @@ export const productGroupQueryProperties = Type.Pick(productGroupSchema, [
 ])
 export const productGroupQuerySchema = Type.Intersect(
   [
-    querySyntax(productGroupQueryProperties),
-    // Add additional query properties
+    // $regex-Opt-in fuer die globale Such-Leiste (Name/Akronym) — gilt auch in `$or`.
+    querySyntax(productGroupQueryProperties, {
+      name: { $regex: Type.String() },
+      acronym: { $regex: Type.String() },
+    }),
     Type.Object({}, { additionalProperties: false }),
   ],
   { additionalProperties: false },

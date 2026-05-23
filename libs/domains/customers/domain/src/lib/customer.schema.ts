@@ -83,12 +83,14 @@ export const customerQueryProperties = Type.Pick(customerSchema, [
 ])
 export const customerQuerySchema = Type.Intersect(
   [
+    // $regex-Opt-in fuer die globale Such-Leiste (Name/E-Mail/Telefon) —
+    // gilt auch innerhalb von `$or`.
     querySyntax(customerQueryProperties, {
-      name1: {
-        $regex: Type.String(),
-      },
+      name1: { $regex: Type.String() },
+      name2: { $regex: Type.String() },
+      email: { $regex: Type.String() },
+      phone: { $regex: Type.String() },
     }),
-    // Add additional query properties
     Type.Object({}, { additionalProperties: false }),
   ],
   { additionalProperties: false },

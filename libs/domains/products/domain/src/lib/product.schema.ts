@@ -169,8 +169,13 @@ export type ProductPatch = Static<typeof productPatchSchema>
 export const productQueryProperties = Type.Pick(productSchema, ['_id', 'locationId', 'tenantId', 'externalId', 'status', 'name', 'productType', 'categoryIds', 'acronym', 'price', 'updatedAt'])
 export const productQuerySchema = Type.Intersect(
   [
-    querySyntax(productQueryProperties),
-    // TODO: Füge zusätzliche Query-Properties hinzu
+    // $regex-Opt-in fuer die globale Such-Leiste (case-insensitive Substring
+    // ueber Name/Akronym/externe ID) — gilt auch innerhalb von `$or`.
+    querySyntax(productQueryProperties, {
+      name: { $regex: Type.String() },
+      acronym: { $regex: Type.String() },
+      externalId: { $regex: Type.String() },
+    }),
     Type.Object({}, { additionalProperties: false }),
   ],
   { additionalProperties: false },

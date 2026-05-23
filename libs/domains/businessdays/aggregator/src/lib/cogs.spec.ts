@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 
 import type { Order, OrderLineItem } from '@panary/orders/domain'
-import { DineLocation } from '@panary/orders/domain'
+import { DineLocation, OrderStatus, PaymentState } from '@panary/orders/domain'
 import {
   computeCogs,
   explodeOrderConsumption,
@@ -312,8 +312,7 @@ describe('computeCogs — Verbrauchsmathematik', () => {
       expect(cogs.consumptionLines).toHaveLength(0)
     })
 
-    it('Storno via Status ABORTED traegt nichts bei', async () => {
-      const { OrderStatus } = await import('@panary/orders/domain')
+    it('Storno via Status ABORTED traegt nichts bei', () => {
       const order = makeOrder({
         status: OrderStatus.ABORTED,
         lineItems: [makeLineItem({ amount: 5, ingredientReferences: [directIngredient(ING_FLOUR, 100)] })],
@@ -343,8 +342,7 @@ describe('computeCogs — Verbrauchsmathematik', () => {
       expect(cogs.consumptionLines).toHaveLength(0)
     })
 
-    it('Refund (payment.state REFUNDED) traegt nichts bei', async () => {
-      const { PaymentState } = await import('@panary/orders/domain')
+    it('Refund (payment.state REFUNDED) traegt nichts bei', () => {
       const order = makeOrder({
         paymentState: PaymentState.REFUNDED,
         lineItems: [makeLineItem({ amount: 5, ingredientReferences: [directIngredient(ING_FLOUR, 100)] })],

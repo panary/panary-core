@@ -7,6 +7,7 @@ import { ApiKeyService } from './services/apikeys/apikeys.class'
 import { ProductService } from './services/products/products.class'
 import { CorporateCustomerService } from './services/corporate-customers/corporate-customers.class'
 import { CustomerService } from './services/customers/customers.class'
+import { DiscountService } from './services/discounts/discounts.class'
 import { DeviceService } from './services/devices/devices.class'
 import { BusinessDayService } from './services/business-days/business-days.class'
 import { ProductGroupService } from './services/product-groups/product-groups.class'
@@ -59,6 +60,7 @@ export interface ServiceTypes {
   products: ProductService
   'corporate-customers': CorporateCustomerService
   customers: CustomerService
+  discounts: DiscountService
   devices: DeviceService
   'product-groups': ProductGroupService
   locations: LocationService

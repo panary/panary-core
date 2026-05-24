@@ -25,6 +25,10 @@ export const SyncableMasterDataService = {
   USERS: 'users',
   CORPORATE_CUSTOMERS: 'corporate-customers',
   CUSTOMERS: 'customers',
+  // Rabatt-Definitionen: Cloud ist Source of Truth (Admin-CRUD), Edge zieht
+  // read-only per Pull-Sync (cloudManaged-Guard blockt Edge-Writes nach Pairing).
+  // Keine FK-Abhängigkeit zu ORDERS — klassischer Master-Daten-Block.
+  DISCOUNTS: 'discounts',
   LOCATIONS: 'locations',
   // Feiertage/Schließtage: Cloud materialisiert die holiday-calendars-Regel in
   // konkrete opening-hour-exceptions-Rows (closed:true je Datum) und synct sie

@@ -6,6 +6,7 @@ import type { Application } from '../declarations'
 import { products } from './products/products'
 import { corporateCustomers } from './corporate-customers/corporate-customers'
 import { customers } from './customers/customers'
+import { discounts } from './discounts/discounts'
 import { devices } from './devices/devices'
 import { deviceConnections } from './device-connections/device-connections'
 import { productGroups } from './product-groups/product-groups'
@@ -33,6 +34,7 @@ export const services = (app: Application) => {
   app.configure(products)
   app.configure(corporateCustomers)
   app.configure(customers)
+  app.configure(discounts)
   app.configure(devices)
   // Live-Verbindungszählung der Geräte (Channel-Registry). NACH `devices`
   // registriert, weil der Service intern app.service('devices').find aufruft.

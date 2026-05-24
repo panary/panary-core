@@ -6,6 +6,7 @@ export const AppResource = {
   PRODUCTS: 'products',
   PRODUCT_GROUPS: 'product-groups',
   ORDERS: 'orders',
+  DISCOUNTS: 'discounts',
   INVENTORY: 'inventory',
   LOCATIONS: 'locations',
   SYSTEM: 'system',

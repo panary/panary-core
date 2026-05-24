@@ -1,0 +1,22 @@
+{
+  "name": "discounts",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/discounts",
+  "projectType": "library",
+  "tags": ["type:domain-package", "domain:discounts", "publishable"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/libs/domains/discounts/domain/dist"],
+      "dependsOn": ["discounts-domain:build"],
+      "options": {
+        "command": "echo 'discounts package build complete'"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "libs/domains/discounts"
+      }
+    }
+  }
+}

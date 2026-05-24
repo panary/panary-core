@@ -1,0 +1,29 @@
+{
+  "name": "discounts-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/discounts/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:discounts"],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/discounts/domain/dist"],
+      "dependsOn": ["^build"],
+      "options": {
+        "outputPath": "libs/domains/discounts/domain/dist",
+        "project": "libs/domains/discounts/package.json",
+        "tsConfig": "libs/domains/discounts/domain/tsconfig.lib.json",
+        "main": "libs/domains/discounts/domain/src/index.ts",
+        "format": ["cjs"],
+        "external": [
+          "@feathersjs/feathers",
+          "@feathersjs/typebox",
+          "@sinclair/typebox",
+          "@panary/shared-common"
+        ],
+        "generatePackageJson": false,
+        "compiler": "tsc"
+      }
+    }
+  }
+}

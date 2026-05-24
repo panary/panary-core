@@ -113,6 +113,10 @@ export class ConnectionService {
     return this.#app.service('product-groups')
   }
 
+  get discountsService(): Service {
+    return this.#app.service('discounts')
+  }
+
   get productService(): Service {
     return this.#app.service('products')
   }

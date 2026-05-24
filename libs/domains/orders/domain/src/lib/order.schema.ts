@@ -88,6 +88,30 @@ export const discountSchema = Type.Object({
   discount: Type.Number({ minimum: 0 }),
 })
 
+// Snapshot eines auf die Order angewandten Rabatts (additiv zu `discount`).
+// Einzige Quelle für angewandte Rabatte: Order-Level (`target: 'order'`) und
+// positionsbezogen (`target: 'line'` + `lineItemId`). `computedAmountCents` ist
+// der von der Tax-Engine berechnete, tatsächlich abgezogene Brutto-Betrag (Cents).
+// Werte (valueType/valuePercent/valueCents) sind ein Snapshot der Rabatt-Definition
+// zum Anwendungszeitpunkt — spätere Definitionsänderungen verändern Bons nicht.
+export const appliedDiscountSchema = Type.Object({
+  _id: Type.String({ format: 'uuid' }),
+  discountId: Type.Optional(Type.Union([Type.String({ format: 'uuid' }), Type.Null()])),
+  discountCodeId: Type.Optional(Type.Union([Type.String({ format: 'uuid' }), Type.Null()])),
+  code: Type.Optional(Type.Union([Type.String({ maxLength: 64 }), Type.Null()])),
+  name: Type.String({ maxLength: 120 }),
+  method: StringEnum(['manual', 'automatic', 'code']),
+  target: StringEnum(['order', 'line']),
+  valueType: StringEnum(Object.values(DiscountType)),
+  valuePercent: Type.Number({ minimum: 0, maximum: 100 }),
+  valueCents: Type.Integer({ minimum: 0 }),
+  computedAmountCents: Type.Number({ minimum: 0 }),
+  lineItemId: Type.Optional(Type.Union([Type.String({ format: 'uuid' }), Type.Null()])),
+  appliedBy: Type.Optional(Type.Union([Type.String({ format: 'uuid' }), Type.Null()])),
+  appliedAt: Type.String({ format: 'date-time' }),
+  isStaffMeal: Type.Optional(Type.Boolean()),
+})
+
 export const cancellationSchema = Type.Object({
   canceledBy: Type.String({ maxLength: 200 }),
   reason: Type.String({ maxLength: 500 }),
@@ -186,6 +210,11 @@ export const orderSchema = Type.Object(
     cancellation: Type.Optional(Type.Union([cancellationSchema, Type.Null()])),
     customerPaymentInfo: Type.Optional(Type.Union([customerPaymentInfoSchema, Type.Null()])),
     discount: Type.Optional(Type.Union([discountSchema, Type.Null()])),
+    // Angewandte Rabatte (Phase 1+). Additiv zu `discount` (Rückwärtskompatibilität):
+    // ist diese Liste gesetzt, ist sie führend; sonst greift `discount`. `Null` wird
+    // toleriert, weil der Edge ungesetzte nullable SQLite-Spalten als `null` serialisiert
+    // (sonst „must be array" beim Cloud-Sync-Push — gleiches Muster wie stockMovementIds).
+    appliedDiscounts: Type.Optional(Type.Union([Type.Array(appliedDiscountSchema, { maxItems: 50 }), Type.Null()])),
     staffPaymentInfo: Type.Optional(Type.Union([staffPaymentInfoSchema, Type.Null()])),
     taxSnapshot: Type.Optional(Type.Union([taxSummarySchema, Type.Null()])),
 
@@ -229,6 +258,7 @@ export type CustomerPaymentInfo = Static<typeof customerPaymentInfoSchema>
 export type StaffPaymentInfo = Static<typeof staffPaymentInfoSchema>
 export type Cancellation = Static<typeof cancellationSchema>
 export type Discount = Static<typeof discountSchema>
+export type AppliedDiscount = Static<typeof appliedDiscountSchema>
 export type CreationContext = Static<typeof creationContextSchema>
 export type Payment = Static<typeof paymentSchema>
 export type Transaction = Static<typeof transactionSchema>
@@ -254,6 +284,7 @@ export const orderDataSchema = Type.Intersect(
         'cancellation',
         'customerPaymentInfo',
         'discount',
+        'appliedDiscounts',
         'staffPaymentInfo',
         'taxSnapshot',
         'creationContext',

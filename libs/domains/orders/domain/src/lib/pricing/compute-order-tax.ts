@@ -1,122 +1,157 @@
-import { Discount, GenericOrderLineItem, Order, OrderLineItem, TaxInfo } from '../order.schema'
+import { AppliedDiscount, Discount, GenericOrderLineItem, Order, OrderLineItem, TaxInfo } from '../order.schema'
 import { distributeByLargestRemainder, fromCents, multiplyCents, netFromGross, sumCents, toCents } from './money'
 
 // Kanonische, cents-interne Preis-/Steuer-Engine für den Order-`taxSnapshot`.
 //
-// Single Source of Truth: sowohl der api-edge-Hook (`calculate-tax-details.ts`)
-// als auch der Frontend-Util (`prices-and-taxes.ts → calculateTaxSummary`) rufen
-// diese Funktion. Dadurch entfällt die frühere Duplikation der Steuer-/Rabatt-
-// Arithmetik in zwei divergierenden Implementierungen.
+// Single Source of Truth: api-edge-Hook (`calculate-tax-details.ts`) und
+// Frontend-Util (`prices-and-taxes.ts → calculateTaxSummary`) rufen diese Funktion.
 //
-// Wichtige Eigenschaften:
-//   - `price`-Felder sind BRUTTO (Bruttopreise inkl. MwSt — Gastronomie-Standard).
-//   - MwSt wird fiskalisch korrekt EXTRAHIERT (`netFromGross`), nicht aufgeschlagen.
-//     Der Brutto-Betrag (was der Kunde zahlt) bleibt unverändert; nur der
-//     Netto-/Steuer-Split ist korrekt. Konsistent zum Reporting-Aggregator.
-//   - Pro Steuersatz gilt invariant: netto + steuer === brutto (cent-genau).
-//   - Rabatte werden auf BRUTTO angewandt, danach wird netto/steuer pro Eimer neu
-//     extrahiert → Tax-Integrität bleibt automatisch erhalten.
-//   - Festbetrags-Rabatte werden via Largest-Remainder proportional zum Brutto
-//     verteilt (summen-exakt, kein Cent-Drift).
-
-// Arithmetik der Positionsbestandteile bewusst identisch zur bisherigen Engine:
-//   - Hauptartikel: price × amount
-//   - Modifier: price × modifier.amount (NICHT mit Parent-Menge skaliert)
-//   - Menü-Beilage / -Getränk: price (ohne × amount)
-// Eine Vereinheitlichung mit der Aggregator-Logik (die Modifier/Menü mit der
-// Parent-Menge skaliert) ist bewusst NICHT Teil dieser Konsolidierung, da sie die
-// Brutto-Summen bestehender Bons verschieben würde.
+// Eigenschaften:
+//   - `price`-Felder sind BRUTTO (inkl. MwSt). MwSt wird fiskalisch korrekt
+//     EXTRAHIERT (`netFromGross`) — Brutto bleibt, Netto/Steuer-Split ist korrekt.
+//   - Pro Steuersatz invariant: netto + steuer === brutto (cent-genau).
+//   - Rabatte wirken auf BRUTTO; netto/steuer werden danach pro Eimer neu extrahiert
+//     → Tax-Integrität automatisch erhalten.
+//   - Reihenfolge: erst LINE-Rabatte (auf der jeweiligen Position), dann ORDER-Rabatte
+//     (auf die verbleibende Summe). Mehrere ORDER-Rabatte sequenziell in Array-Reihenfolge.
+//   - Festbeträge werden via Largest-Remainder summen-exakt über Steuersätze verteilt.
+//
+// Rabattquellen (Priorität):
+//   1. `order.appliedDiscounts[]` — wenn gesetzt, führend (Mehrfach-/Positionsrabatte).
+//   2. `order.discount` — Legacy-Einzel-Order-Rabatt (Rückwärtskompatibilität).
+//
+// NEBENEFFEKT: Bei `appliedDiscounts` schreibt die Engine `computedAmountCents` je
+// Eintrag zurück (tatsächlich abgezogener Brutto-Betrag) — bewusst, damit der Bon-
+// Snapshot die realen Beträge führt.
+//
+// Positions-Arithmetik bewusst identisch zur bisherigen Engine (keine Verschiebung
+// bestehender Brutto-Summen): Hauptartikel price×amount, Modifier price×modifier.amount
+// (nicht mit Parent-Menge skaliert), Menü-Beilage/-Getränk price (ohne ×amount).
 
 interface RateBucket {
   taxRate: number
   grossCents: number
 }
 
-function addToBucket(buckets: RateBucket[], taxRate: number, grossCents: number): void {
-  if (grossCents <= 0) return
-  const existing = buckets.find(b => b.taxRate === taxRate)
-  if (existing) {
-    existing.grossCents += grossCents
-  } else {
-    buckets.push({ taxRate, grossCents })
-  }
+interface LineGross {
+  lineItemId: string
+  taxRate: number
+  grossCents: number
 }
 
-function lineItemGrossByRate(line: OrderLineItem, taxRate: number, buckets: RateBucket[]): void {
-  if (line.price) {
-    addToBucket(buckets, taxRate, multiplyCents(toCents(line.price), line.amount))
-  }
+function lineGrossCents(line: OrderLineItem): number {
+  let cents = 0
+  if (line.price) cents += multiplyCents(toCents(line.price), line.amount)
   line.modifiers.forEach((extra: GenericOrderLineItem) => {
-    if (extra.price) {
-      addToBucket(buckets, taxRate, multiplyCents(toCents(extra.price), extra.amount))
-    }
+    if (extra.price) cents += multiplyCents(toCents(extra.price), extra.amount)
   })
-  if (line.menuSideDish && line.menuSideDish.price) {
-    addToBucket(buckets, taxRate, toCents(line.menuSideDish.price))
-  }
-  if (line.menuDrink && line.menuDrink.price) {
-    addToBucket(buckets, taxRate, toCents(line.menuDrink.price))
-  }
+  if (line.menuSideDish && line.menuSideDish.price) cents += toCents(line.menuSideDish.price)
+  if (line.menuDrink && line.menuDrink.price) cents += toCents(line.menuDrink.price)
+  return cents
 }
 
-function collectBuckets(order: Order): RateBucket[] {
+function collectLineGrosses(order: Order): LineGross[] {
   const dineIn = order.dineLocation === 'dine-in'
+  return order.lineItems.map(line => ({
+    lineItemId: line._id,
+    taxRate: dineIn ? line.taxInside : line.taxOutside,
+    grossCents: lineGrossCents(line),
+  }))
+}
+
+function bucketize(lines: LineGross[]): RateBucket[] {
   const buckets: RateBucket[] = []
-  order.lineItems.forEach((line: OrderLineItem) => {
-    const taxRate = dineIn ? line.taxInside : line.taxOutside
-    lineItemGrossByRate(line, taxRate, buckets)
-  })
+  for (const l of lines) {
+    if (l.grossCents <= 0) continue
+    const existing = buckets.find(b => b.taxRate === l.taxRate)
+    if (existing) existing.grossCents += l.grossCents
+    else buckets.push({ taxRate: l.taxRate, grossCents: l.grossCents })
+  }
   return buckets
 }
 
-/**
- * Wendet einen Order-Level-Rabatt auf die Brutto-Beträge der Eimer an (in-place).
- * PERCENT und AMOUNT werden beide über eine summen-exakte Brutto-Verteilung gelöst,
- * damit Reihenfolge mehrerer Rabatte deterministisch bleibt und kein Cent verloren geht.
- */
-function applyOrderDiscount(buckets: RateBucket[], discount: Discount): void {
+/** Rabattbetrag in Cents für eine Brutto-Basis, geklemmt auf [0, base]. */
+function discountAmountCents(valueType: string, valuePercent: number, valueCents: number, baseGrossCents: number): number {
+  if (baseGrossCents <= 0) return 0
+  const raw = valueType === 'percent' ? Math.round((baseGrossCents * valuePercent) / 100) : valueCents
+  return Math.min(Math.max(0, raw), baseGrossCents)
+}
+
+/** Verteilt einen Order-Rabattbetrag (Cents) summen-exakt über die Eimer (in-place). */
+function applyOrderDiscountCents(buckets: RateBucket[], discountCents: number): void {
   const totalGross = sumCents(buckets.map(b => b.grossCents))
-  if (totalGross <= 0) return
-
-  let discountCents: number
-  if (discount.discountType === 'percent') {
-    discountCents = Math.round((totalGross * discount.discount) / 100)
-  } else {
-    discountCents = toCents(discount.discount)
-  }
-  if (discountCents <= 0) return
-  if (discountCents > totalGross) discountCents = totalGross
-
-  const allocations = distributeByLargestRemainder(
-    discountCents,
-    buckets.map(b => b.grossCents),
-  )
+  if (totalGross <= 0 || discountCents <= 0) return
+  const clamped = Math.min(discountCents, totalGross)
+  const allocations = distributeByLargestRemainder(clamped, buckets.map(b => b.grossCents))
   buckets.forEach((b, i) => {
     b.grossCents -= allocations[i]
   })
 }
 
 function bucketsToTaxInfo(buckets: RateBucket[]): TaxInfo {
-  const taxes = buckets
-    .filter(b => b.grossCents > 0)
-    .map(b => {
-      const net = netFromGross(b.grossCents, b.taxRate)
-      const tax = b.grossCents - net
-      return { taxRate: b.taxRate, amount: fromCents(net), tax: fromCents(tax) }
-    })
-  const nettoCents = sumCents(buckets.map(b => (b.grossCents > 0 ? netFromGross(b.grossCents, b.taxRate) : 0)))
-  const bruttoCents = sumCents(buckets.map(b => Math.max(0, b.grossCents)))
+  const positive = buckets.filter(b => b.grossCents > 0)
+  const taxes = positive.map(b => {
+    const net = netFromGross(b.grossCents, b.taxRate)
+    return { taxRate: b.taxRate, amount: fromCents(net), tax: fromCents(b.grossCents - net) }
+  })
+  const nettoCents = sumCents(positive.map(b => netFromGross(b.grossCents, b.taxRate)))
+  const bruttoCents = sumCents(positive.map(b => b.grossCents))
   return { taxes, netto: fromCents(nettoCents), brutto: fromCents(bruttoCents) }
 }
 
+/** Wendet appliedDiscounts an (LINE zuerst, dann ORDER) und schreibt computedAmountCents zurück. */
+function applyAppliedDiscounts(lines: LineGross[], applied: AppliedDiscount[]): RateBucket[] {
+  // 1. LINE-Rabatte auf die jeweilige Position.
+  for (const ad of applied) {
+    if (ad.target !== 'line' || !ad.lineItemId) continue
+    const line = lines.find(l => l.lineItemId === ad.lineItemId)
+    if (!line) {
+      ad.computedAmountCents = 0
+      continue
+    }
+    const amount = discountAmountCents(ad.valueType, ad.valuePercent, ad.valueCents, line.grossCents)
+    line.grossCents -= amount
+    ad.computedAmountCents = amount
+  }
+
+  // 2. ORDER-Rabatte sequenziell auf die verbleibende Summe.
+  const buckets = bucketize(lines)
+  for (const ad of applied) {
+    if (ad.target !== 'order') continue
+    const totalGross = sumCents(buckets.map(b => b.grossCents))
+    const amount = discountAmountCents(ad.valueType, ad.valuePercent, ad.valueCents, totalGross)
+    applyOrderDiscountCents(buckets, amount)
+    ad.computedAmountCents = amount
+  }
+  return buckets
+}
+
 /**
- * Berechnet den `taxSnapshot` einer Order: Steuer-Split pro Satz, Netto, Brutto.
- * Deterministisch, idempotent, keine I/O. Cents-intern, Ausgabe in Euro.
+ * Berechnet den `taxSnapshot` einer Order. Deterministisch, cents-intern, Ausgabe in Euro.
+ * Seiteneffekt: füllt `computedAmountCents` der `order.appliedDiscounts`-Einträge.
  */
 export function computeOrderTax(order: Order): TaxInfo {
-  const buckets = collectBuckets(order)
+  const lines = collectLineGrosses(order)
+
+  if (order.appliedDiscounts && order.appliedDiscounts.length > 0) {
+    const buckets = applyAppliedDiscounts(lines, order.appliedDiscounts)
+    return bucketsToTaxInfo(buckets)
+  }
+
+  // Legacy-Fallback: einzelner Order-Rabatt.
+  const buckets = bucketize(lines)
   if (order.discount) {
-    applyOrderDiscount(buckets, order.discount)
+    applyLegacyDiscount(buckets, order.discount)
   }
   return bucketsToTaxInfo(buckets)
+}
+
+function applyLegacyDiscount(buckets: RateBucket[], discount: Discount): void {
+  const totalGross = sumCents(buckets.map(b => b.grossCents))
+  if (totalGross <= 0) return
+  const amount =
+    discount.discountType === 'percent'
+      ? Math.round((totalGross * discount.discount) / 100)
+      : toCents(discount.discount)
+  applyOrderDiscountCents(buckets, amount)
 }

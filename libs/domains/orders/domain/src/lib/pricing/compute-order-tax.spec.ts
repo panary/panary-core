@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Discount, GenericOrderLineItem, Order, OrderLineItem } from '../order.schema'
+import { AppliedDiscount, Discount, GenericOrderLineItem, Order, OrderLineItem } from '../order.schema'
 import { computeOrderTax } from './compute-order-tax'
 import { toCents } from './money'
 
@@ -162,5 +162,78 @@ describe('computeOrderTax — Invarianten (property-style)', () => {
     const base = computeOrderTax(makeOrder(lines, 'dine-in'))
     const discounted = computeOrderTax(makeOrder(lines, 'dine-in', { discountType: 'amount', discount: 12.34 }))
     expect(roundCents(base.brutto) - roundCents(discounted.brutto)).toBe(toCents(12.34))
+  })
+})
+
+function makeApplied(partial: Partial<AppliedDiscount>): AppliedDiscount {
+  return {
+    _id: '00000000-0000-0000-0000-0000000000aa',
+    name: 'Rabatt',
+    method: 'manual',
+    target: 'order',
+    valueType: 'percent',
+    valuePercent: 10,
+    valueCents: 0,
+    computedAmountCents: 0,
+    appliedAt: '2026-05-25T00:00:00.000Z',
+    ...partial,
+  } as AppliedDiscount
+}
+
+function makeOrderWithApplied(lineItems: OrderLineItem[], applied: AppliedDiscount[], dineLocation: 'dine-in' | 'take-out' = 'dine-in'): Order {
+  return { lineItems, dineLocation, discount: null, appliedDiscounts: applied } as unknown as Order
+}
+
+describe('computeOrderTax — appliedDiscounts', () => {
+  it('einzelner ORDER-Prozentrabatt = Legacy-Verhalten', () => {
+    const lines = [makeLine(100, 1, 19, 7)]
+    const viaApplied = computeOrderTax(makeOrderWithApplied(lines, [makeApplied({ target: 'order', valueType: 'percent', valuePercent: 10 })]))
+    const viaLegacy = computeOrderTax(makeOrder([makeLine(100, 1, 19, 7)], 'dine-in', { discountType: 'percent', discount: 10 }))
+    expect(roundCents(viaApplied.brutto)).toBe(roundCents(viaLegacy.brutto))
+  })
+
+  it('schreibt computedAmountCents zurück', () => {
+    const applied = [makeApplied({ target: 'order', valueType: 'percent', valuePercent: 10 })]
+    computeOrderTax(makeOrderWithApplied([makeLine(100, 1, 19, 7)], applied))
+    expect(applied[0].computedAmountCents).toBe(1000)
+  })
+
+  it('LINE-Rabatt reduziert nur die betroffene Position', () => {
+    const lineA = makeLine(50, 1, 19, 7, { _id: '00000000-0000-0000-0000-00000000000a' })
+    const lineB = makeLine(50, 1, 19, 7, { _id: '00000000-0000-0000-0000-00000000000b' })
+    const applied = [
+      makeApplied({ target: 'line', lineItemId: '00000000-0000-0000-0000-00000000000a', valueType: 'percent', valuePercent: 50 }),
+    ]
+    const r = computeOrderTax(makeOrderWithApplied([lineA, lineB], applied))
+    // lineA 50€ -50% = 25€, lineB 50€ = 50€ → brutto 75€
+    expect(roundCents(r.brutto)).toBe(toCents(75))
+    expect(applied[0].computedAmountCents).toBe(toCents(25))
+  })
+
+  it('mehrere ORDER-Rabatte werden sequenziell angewandt', () => {
+    const applied = [
+      makeApplied({ _id: '00000000-0000-0000-0000-0000000000a1', target: 'order', valueType: 'percent', valuePercent: 10 }),
+      makeApplied({ _id: '00000000-0000-0000-0000-0000000000a2', target: 'order', valueType: 'amount', valueCents: 500 }),
+    ]
+    const r = computeOrderTax(makeOrderWithApplied([makeLine(100, 1, 19, 7)], applied))
+    // 100€ -10% = 90€, dann -5€ = 85€
+    expect(roundCents(r.brutto)).toBe(toCents(85))
+    expect(applied[0].computedAmountCents).toBe(1000)
+    expect(applied[1].computedAmountCents).toBe(500)
+  })
+
+  it('LINE zuerst, dann ORDER; Tax-Integrität bleibt', () => {
+    const lineA = makeLine(60, 1, 19, 7, { _id: '00000000-0000-0000-0000-00000000000a' })
+    const lineB = makeLine(40, 1, 7, 7, { _id: '00000000-0000-0000-0000-00000000000b' })
+    const applied = [
+      makeApplied({ target: 'line', lineItemId: '00000000-0000-0000-0000-00000000000a', valueType: 'amount', valueCents: 1000 }),
+      makeApplied({ _id: '00000000-0000-0000-0000-0000000000a2', target: 'order', valueType: 'percent', valuePercent: 10 }),
+    ]
+    const r = computeOrderTax(makeOrderWithApplied([lineA, lineB], applied))
+    // lineA 60-10=50, lineB 40 → 90; -10% → 81
+    expect(roundCents(r.brutto)).toBe(toCents(81))
+    const netCents = roundCents(r.netto)
+    const taxCents = r.taxes.reduce((s, t) => s + roundCents(t.tax), 0)
+    expect(netCents + taxCents).toBe(roundCents(r.brutto))
   })
 })

@@ -235,6 +235,8 @@
     "CHECKOUT": "Ödeme al",
     "COMPLETE_ORDER": "Siparişi tamamla",
     "FINALIZE": "Tamamla",
+    "FINALIZE_INVALID_ORDER": "Siparişin geçerli bir kimliği yok — tamamlanamıyor.",
+    "FINALIZE_NO_USER": "Oturum açılmamış — ödeme almak için lütfen tekrar giriş yapın.",
     "CANCELED": "İPTAL EDİLDİ",
     "STAFF_MEAL": "Personel yemeği",
     "CANCEL": "İptal",

@@ -235,6 +235,8 @@
     "CHECKOUT": "Kassieren",
     "COMPLETE_ORDER": "Bestellung abschließen",
     "FINALIZE": "Abschließen",
+    "FINALIZE_INVALID_ORDER": "Bestellung hat keine gültige ID — Abschluss nicht möglich.",
+    "FINALIZE_NO_USER": "Kein Benutzer angemeldet — bitte erneut anmelden, um zu kassieren.",
     "CANCELED": "STORNIERT",
     "STAFF_MEAL": "Personalessen",
     "CANCEL": "Storno",

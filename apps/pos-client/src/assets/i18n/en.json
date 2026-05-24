@@ -235,6 +235,8 @@
     "CHECKOUT": "Checkout",
     "COMPLETE_ORDER": "Complete order",
     "FINALIZE": "Finalize",
+    "FINALIZE_INVALID_ORDER": "Order has no valid ID — cannot finalize.",
+    "FINALIZE_NO_USER": "No user logged in — please sign in again to take payment.",
     "CANCELED": "CANCELED",
     "STAFF_MEAL": "Staff meal",
     "CANCEL": "Cancel",

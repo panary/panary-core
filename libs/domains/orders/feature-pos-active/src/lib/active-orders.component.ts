@@ -166,18 +166,31 @@ export class ActiveOrdersComponent {
    *   - `orders-only`: reines Bestellsystem ohne Kassier-Funktion — nur Status
    *     auf COMPLETED setzen, KEIN Payment.
    */
-  finalizeOrder(event: Event, order: Order) {
+  async finalizeOrder(event: Event, order: Order) {
     event.stopPropagation()
-    if (!order._id) return
+    if (!order._id) {
+      // Ohne ID kann der Service nicht aufgerufen werden — der User braucht trotzdem
+      // ein Feedback, sonst wirkt der Klick wie ein toter Button (siehe Bug-Report).
+      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.FINALIZE_INVALID_ORDER'), 'OK', { duration: 3000 })
+      return
+    }
 
     if (!this.#isCashierMode()) {
-      this.#orderService.complete(order._id)
+      // orders-only: nur abschliessen, kein Payment. try/catch verhindert eine
+      // unhandled rejection (BaseService re-throwt nach handleError); die
+      // Fehler-Notification kommt bereits aus handleError → keine zweite Snackbar.
+      try {
+        await this.#orderService.complete(order._id)
+      } catch {
+        /* handleError hat bereits eine Fehler-Notification angezeigt */
+      }
       return
     }
 
     const currentUser = this.#authService.user()
     if (!currentUser) {
-      console.error('No user logged in')
+      // Reiner Client-Abbruch ohne Service-Call → eigenes Feedback nötig.
+      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.FINALIZE_NO_USER'), 'OK', { duration: 3000 })
       return
     }
 
@@ -199,11 +212,15 @@ export class ActiveOrdersComponent {
       transactions: [transaction],
     }
 
-    // Status wird im selben Patch gesetzt — kein zusaetzlicher complete()-Call.
-    this.#orderService.patch(order._id, {
-      payment: paymentInfo,
-      status: OrderStatus.COMPLETED,
-    })
+    try {
+      // Status wird im selben Patch gesetzt — kein zusaetzlicher complete()-Call.
+      await this.#orderService.patch(order._id, {
+        payment: paymentInfo,
+        status: OrderStatus.COMPLETED,
+      })
+    } catch {
+      /* handleError hat bereits eine Fehler-Notification angezeigt */
+    }
   }
 
   /** `orders-only` deaktiviert die Kassier-Funktion; Default ist `pos-cashier`. */

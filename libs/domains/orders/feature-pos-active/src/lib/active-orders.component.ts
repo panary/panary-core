@@ -6,6 +6,7 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { uuidv7 } from 'uuidv7'
 import { OrderDialogComponent } from '@panary/orders/feature-pos-order-dialog'
 import {
+  calculateTaxSummary,
   Order,
   OrderLineItem,
   OrderService,
@@ -422,9 +423,14 @@ export class ActiveOrdersComponent {
     return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(price)
   }
 
+  // Kanonische Gesamtsumme: dieselbe Engine (`computeOrderTax` via
+  // `calculateTaxSummary`), die auch den `taxSnapshot` berechnet. Damit gilt
+  // `payment.totalAmount === taxSnapshot.brutto` immer — die frühere
+  // `Σ price×amount`-Logik ignorierte Modifier/Menü-Komponenten und divergierte
+  // vom Snapshot (Ursache `financials.tax_split_mismatch`).
   calculateTotal(order: Order): number {
     if (!order.lineItems) return 0
-    return order.lineItems.reduce((acc: number, item: OrderLineItem) => acc + item.price * item.amount, 0)
+    return calculateTaxSummary(order).brutto
   }
 
   isOverdue(order: Order): boolean {

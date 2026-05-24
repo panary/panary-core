@@ -237,3 +237,75 @@ describe('computeOrderTax — appliedDiscounts', () => {
     expect(netCents + taxCents).toBe(roundCents(r.brutto))
   })
 })
+
+describe('computeOrderTax — components[] (neues Bundle-Modell)', () => {
+  it('Komponenten tragen eigenen Steuersatz (mehrsatziger Split)', () => {
+    const line = makeLine(7.0, 1, 7, 7, {
+      components: [
+        makeGeneric(2.3, 1, { taxInside: 19, taxOutside: 19 }), // Getränk 19 %
+        makeGeneric(0.9, 1, { taxInside: 7, taxOutside: 7 }), // Beilage 7 %
+      ],
+    })
+    const r = computeOrderTax(makeOrder([line], 'dine-in'))
+    expect(r.brutto).toBeCloseTo(10.2, 5)
+    const byRate = Object.fromEntries(r.taxes.map(t => [t.taxRate, t.amount + t.tax]))
+    expect(byRate[7]).toBeCloseTo(7.9, 5) // Hauptartikel 7,00 + Beilage 0,90
+    expect(byRate[19]).toBeCloseTo(2.3, 5) // Getränk
+  })
+
+  it('Komponenten skalieren mit der Zeilen-Menge', () => {
+    const line = makeLine(7.0, 2, 7, 7, {
+      components: [
+        makeGeneric(2.3, 1, { taxInside: 19, taxOutside: 19 }),
+        makeGeneric(0.9, 1, { taxInside: 7, taxOutside: 7 }),
+      ],
+    })
+    const r = computeOrderTax(makeOrder([line], 'dine-in'))
+    // (7×2) + (2,30×2) + (0,90×2) = 14 + 4,60 + 1,80 = 20,40
+    expect(r.brutto).toBeCloseTo(20.4, 5)
+  })
+
+  it('FIXED-Menü via LINE-Rabatt: Brutto == Festpreis, Split proportional über Sätze', () => {
+    const line = makeLine(7.0, 1, 7, 7, {
+      _id: '00000000-0000-0000-0000-0000000000c1',
+      bundlePricingMode: 'FIXED_PROPORTIONAL',
+      components: [
+        makeGeneric(2.3, 1, { taxInside: 19, taxOutside: 19 }),
+        makeGeneric(0.9, 1, { taxInside: 7, taxOutside: 7 }),
+      ],
+    })
+    // Σ Normalpreise = 10,20; Festpreis 7,00 → Menü-Rabatt 3,20 (320ct) auf die Zeile
+    const applied = [
+      makeApplied({
+        target: 'line',
+        lineItemId: '00000000-0000-0000-0000-0000000000c1',
+        valueType: 'amount',
+        valueCents: 320,
+      }),
+    ]
+    const r = computeOrderTax(makeOrderWithApplied([line], applied))
+    expect(r.brutto).toBeCloseTo(7.0, 5)
+    const sumGross = r.taxes.reduce((s, t) => s + t.amount + t.tax, 0)
+    expect(sumGross).toBeCloseTo(7.0, 5)
+    expect(applied[0].computedAmountCents).toBe(320)
+    // Beide Sätze bleiben erhalten (proportional reduziert, nicht weg-gerundet)
+    expect(r.taxes.map(t => t.taxRate).sort((a, b) => a - b)).toEqual([7, 19])
+    // Tax-Integrität pro Eimer
+    const netCents = roundCents(r.netto)
+    const taxCents = r.taxes.reduce((s, t) => s + roundCents(t.tax), 0)
+    expect(netCents + taxCents).toBe(roundCents(r.brutto))
+  })
+
+  it('Legacy menuDrink/menuSideDish ohne components[] unverändert (Zeilensatz, ein Eimer)', () => {
+    const line = makeLine(5.0, 1, 19, 7, {
+      isMenu: true,
+      menuDrink: makeGeneric(2.0, 1, { taxInside: 7, taxOutside: 7 }),
+      menuSideDish: makeGeneric(1.5, 1, { taxInside: 7, taxOutside: 7 }),
+    })
+    const r = computeOrderTax(makeOrder([line], 'dine-in'))
+    // Legacy-Pfad besteuert alles am Zeilensatz (19 %) → ein Eimer, Brutto 8,50
+    expect(r.brutto).toBeCloseTo(8.5, 5)
+    expect(r.taxes).toHaveLength(1)
+    expect(r.taxes[0].taxRate).toBe(19)
+  })
+})

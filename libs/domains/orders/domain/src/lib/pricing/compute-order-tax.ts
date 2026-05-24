@@ -50,13 +50,61 @@ function lineGrossCents(line: OrderLineItem): number {
   return cents
 }
 
+const rateOf = (it: { taxInside: number; taxOutside: number }, dineIn: boolean): number =>
+  dineIn ? it.taxInside : it.taxOutside
+
+/**
+ * Bundle-Komponenten einer Zeile: neues `components[]` bevorzugt, sonst Legacy
+ * `menuSideDish`/`menuDrink` (Reihenfolge wie bisher: Beilage, dann Getränk).
+ */
+function lineComponents(line: OrderLineItem): GenericOrderLineItem[] {
+  if (Array.isArray(line.components) && line.components.length > 0) {
+    return line.components as GenericOrderLineItem[]
+  }
+  const legacy: GenericOrderLineItem[] = []
+  if (line.menuSideDish) legacy.push(line.menuSideDish)
+  if (line.menuDrink) legacy.push(line.menuDrink)
+  return legacy
+}
+
+/**
+ * Brutto-Atome je Zeile, jeweils mit eigenem Steuersatz.
+ *  - Neue Zeilen mit `components[]`: Hauptartikel + Modifier am Zeilensatz,
+ *    jede Komponente am EIGENEN Steuersatz (parent-skaliert) → mehrsatzige
+ *    Menüs werden fiskalisch korrekt gesplittet.
+ *  - Legacy-Zeilen (ohne `components[]`): unverändert — alles am Zeilensatz
+ *    summiert (kein Snapshot-Drift für Bestands-Orders).
+ *
+ * Festpreis-Menüs (FIXED_PROPORTIONAL) werden NICHT hier behandelt, sondern über
+ * einen Menü-Rabatt (`appliedDiscounts`, target 'line'), der die Summe der
+ * Komponenten-Normalpreise auf den Festpreis senkt — der Rabatt wird unten
+ * summen-exakt über die Steuer-Atome der Zeile verteilt.
+ */
 function collectLineGrosses(order: Order): LineGross[] {
   const dineIn = order.dineLocation === 'dine-in'
-  return order.lineItems.map(line => ({
-    lineItemId: line._id,
-    taxRate: dineIn ? line.taxInside : line.taxOutside,
-    grossCents: lineGrossCents(line),
-  }))
+  const out: LineGross[] = []
+  for (const line of order.lineItems) {
+    const lineRate = rateOf(line, dineIn)
+    if (!(Array.isArray(line.components) && line.components.length > 0)) {
+      out.push({ lineItemId: line._id, taxRate: lineRate, grossCents: lineGrossCents(line) })
+      continue
+    }
+    let mainGross = line.price ? multiplyCents(toCents(line.price), line.amount) : 0
+    line.modifiers.forEach((extra: GenericOrderLineItem) => {
+      if (extra.price) mainGross += multiplyCents(toCents(extra.price), extra.amount * line.amount)
+    })
+    out.push({ lineItemId: line._id, taxRate: lineRate, grossCents: mainGross })
+    for (const c of lineComponents(line)) {
+      if (c.price) {
+        out.push({
+          lineItemId: line._id,
+          taxRate: rateOf(c, dineIn),
+          grossCents: multiplyCents(toCents(c.price), c.amount * line.amount),
+        })
+      }
+    }
+  }
+  return out
 }
 
 function bucketize(lines: LineGross[]): RateBucket[] {
@@ -101,16 +149,23 @@ function bucketsToTaxInfo(buckets: RateBucket[]): TaxInfo {
 
 /** Wendet appliedDiscounts an (LINE zuerst, dann ORDER) und schreibt computedAmountCents zurück. */
 function applyAppliedDiscounts(lines: LineGross[], applied: AppliedDiscount[]): RateBucket[] {
-  // 1. LINE-Rabatte auf die jeweilige Position.
+  // 1. LINE-Rabatte auf die jeweilige Position. Eine Zeile kann mehrere
+  //    Steuer-Atome haben (Hauptsatz + Komponenten-Sätze) → der Rabatt wird
+  //    summen-exakt über die Atome dieser Zeile verteilt (largest-remainder).
+  //    Genau dieser Pfad bildet auch Festpreis-Menüs ab (Menü-Rabatt = Σ
+  //    Normalpreise − Festpreis): das Brutto sinkt auf den Festpreis, pro
+  //    Steuersatz korrekt.
   for (const ad of applied) {
     if (ad.target !== 'line' || !ad.lineItemId) continue
-    const line = lines.find(l => l.lineItemId === ad.lineItemId)
-    if (!line) {
-      ad.computedAmountCents = 0
-      continue
+    const atoms = lines.filter(l => l.lineItemId === ad.lineItemId)
+    const lineTotal = sumCents(atoms.map(l => l.grossCents))
+    const amount = discountAmountCents(ad.valueType, ad.valuePercent, ad.valueCents, lineTotal)
+    if (amount > 0 && lineTotal > 0) {
+      const allocations = distributeByLargestRemainder(amount, atoms.map(l => l.grossCents))
+      atoms.forEach((l, i) => {
+        l.grossCents -= allocations[i]
+      })
     }
-    const amount = discountAmountCents(ad.valueType, ad.valuePercent, ad.valueCents, line.grossCents)
-    line.grossCents -= amount
     ad.computedAmountCents = amount
   }
 

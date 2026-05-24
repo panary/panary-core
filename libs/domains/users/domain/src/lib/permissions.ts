@@ -207,6 +207,19 @@ export const AppResource = {
    *  Ohne STAFF-READ liefert der Bild-Picker-Anzeigepfad 403. */
   STOREFRONT_ASSET: 'storefront-asset',
 
+  /** Cloud-only: Storefront-Seiten (eine Seite = geordnete Liste von
+   *  Section-Instanzen; Shopify-„Seite"-Pendant). CREATE/UPDATE/DELETE:
+   *  TENANT_OWNER + TENANT_MANAGER (Pflege des oeffentlichen Auftritts).
+   *  READ: zusaetzlich TENANT_STAFF — Seiten ansehen, aber nicht bearbeiten.
+   *  Ohne STAFF-READ liefert die Seiten-Liste 403 fuer Staff. */
+  STOREFRONT_PAGES: 'storefront-pages',
+
+  /** Cloud-only: Storefront-Konfiguration (eine pro Location: Zugriff, SEO/
+   *  Social, automatische Weiterleitung, Spamschutz, Crawler-Zugriff + aktives
+   *  Theme; Shopify-„Konfigurationen"-Pendant). READ/UPDATE: TENANT_OWNER +
+   *  TENANT_MANAGER. READ: zusaetzlich TENANT_STAFF. */
+  STOREFRONT_CONFIG: 'storefront-config',
+
   // Plattform-Verwaltungs-Ressourcen (nur Cloud)
   PLATFORM_TENANTS: 'platform-tenants',
   PLATFORM_IMPERSONATION: 'platform-impersonation',

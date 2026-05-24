@@ -194,6 +194,19 @@ export const AppResource = {
    *  Vorbereitung) + Edge-Token (Offline-Belege). */
   TENANT_BRANDING_ASSET: 'tenant-branding-asset',
 
+  /** Cloud-only: Storefront-Bild-Asset-Upload (D-07 / STORE-04). Generischer
+   *  Multipart-Endpoint mit demselben Validierungs-Pattern wie
+   *  tenant-branding-asset (Magic-Number-Check, sharp→WebP, SHA-256-Cache-
+   *  Busting). Anders als das Single-Slot-Logo speichert dieser Service
+   *  MEHRERE Assets pro Tenant/Section (Hero-Bild, Galerie, Logo-Variante)
+   *  als eigene Collection. Storage-Backend (MongoDB BinData) wird in P2/P8
+   *  auf Bunny umgestellt (E4) — der Service-Vertrag bleibt stabil.
+   *  CREATE/DELETE: TENANT_OWNER + TENANT_MANAGER (Upload/Entfernen am
+   *  oeffentlichen Auftritt). READ: zusaetzlich TENANT_STAFF — Staff darf
+   *  Storefront-Bilder im Bild-Picker sehen, aber nicht hochladen/loeschen.
+   *  Ohne STAFF-READ liefert der Bild-Picker-Anzeigepfad 403. */
+  STOREFRONT_ASSET: 'storefront-asset',
+
   // Plattform-Verwaltungs-Ressourcen (nur Cloud)
   PLATFORM_TENANTS: 'platform-tenants',
   PLATFORM_IMPERSONATION: 'platform-impersonation',

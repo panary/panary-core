@@ -248,6 +248,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.VAT_VALIDATION_CACHE, action: AppAction.READ },
     // OoS-Item-7: Tenant-Logo-Upload (CREATE/REMOVE) und Read fuer Anzeige.
     { resource: AppResource.TENANT_BRANDING_ASSET, action: AppAction.MANAGE },
+    // D-07 / STORE-04: Storefront-Bild-Assets. Owner darf hochladen, anzeigen
+    // und entfernen (voller Schreibzugriff am oeffentlichen Auftritt).
+    { resource: AppResource.STOREFRONT_ASSET, action: AppAction.MANAGE },
     // Tenant-Settings: TENANT_OWNER darf eigene Settings READ + CREATE + UPDATE.
     // CREATE ist noetig, weil neue Tenants vor dem ersten Toggle kein Settings-
     // Dokument haben — beim Aktivieren via UI legt das Frontend einen Datensatz
@@ -480,6 +483,12 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.VAT_VALIDATION_CACHE, action: AppAction.READ },
     // OoS-Item-7: Logo lesen (UI-Anzeige + Beleg-Druck), kein Upload.
     { resource: AppResource.TENANT_BRANDING_ASSET, action: AppAction.READ },
+    // D-07 / STORE-04: Storefront-Bild-Assets. Manager darf — wie Owner —
+    // hochladen, anzeigen und entfernen (operative Pflege des Auftritts).
+    {
+      resource: AppResource.STOREFRONT_ASSET,
+      action: [AppAction.CREATE, AppAction.READ, AppAction.DELETE],
+    },
     // Tenant-Settings: nur lesend; Aktivierung bleibt PLATFORM_OWNER vorbehalten.
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     // KI-Wareneingang: Foto hochladen + Audit lesen.
@@ -552,6 +561,11 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.GDPR_SELF_EXPORT, action: AppAction.CREATE },
     // OoS-Item-7: Logo lesen — fuer POS-/Tablet-Belege.
     { resource: AppResource.TENANT_BRANDING_ASSET, action: AppAction.READ },
+    // D-07 / STORE-04: Storefront-Bild-Assets. Staff darf NUR lesen — die
+    // Bilder im Bild-Picker sehen, aber NICHT hochladen/loeschen. Schreib-
+    // rechte am oeffentlichen Auftritt bleiben Owner/Manager vorbehalten.
+    // (Ohne dieses READ liefert der Picker-Anzeigepfad 403 fuer Staff.)
+    { resource: AppResource.STOREFRONT_ASSET, action: AppAction.READ },
     // Tenant-Settings: lesen (z.B. um zu wissen, ob KI-Funktion aktiviert ist).
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     // KI-Wareneingang: Mitarbeitende duerfen Foto hochladen.

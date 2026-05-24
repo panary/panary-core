@@ -187,8 +187,12 @@ export class ActiveOrdersComponent {
       return
     }
 
-    const currentUser = this.#authService.user()
-    if (!currentUser) {
+    // Kassierer ermitteln: im POS hängt der eingeloggte Mitarbeiter NICHT an
+    // AuthService (Verbindung läuft über Geräte-Auth via API-Key), sondern in
+    // `pos_current_user` (PIN-Login). Daher wie im Bestell-Dialog: AuthService
+    // zuerst, dann `pos_current_user` als Fallback.
+    const performedById = this.#resolveCashierId()
+    if (!performedById) {
       // Reiner Client-Abbruch ohne Service-Call → eigenes Feedback nötig.
       this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.FINALIZE_NO_USER'), 'OK', { duration: 3000 })
       return
@@ -202,7 +206,7 @@ export class ActiveOrdersComponent {
       amount: total,
       currency: 'EUR',
       timestamp: new Date().toISOString(),
-      performedBy: currentUser._id.toString(),
+      performedBy: performedById,
     }
 
     const paymentInfo: Payment = {
@@ -221,6 +225,27 @@ export class ActiveOrdersComponent {
     } catch {
       /* handleError hat bereits eine Fehler-Notification angezeigt */
     }
+  }
+
+  /**
+   * Aktueller Kassierer für `performedBy`. POS-Mitarbeiter sind über
+   * `pos_current_user` (PIN-Login) angemeldet, nicht über AuthService
+   * (Geräte-Auth). Reihenfolge wie im Bestell-Dialog: AuthService zuerst, dann
+   * `pos_current_user`. Gibt `null` zurück, wenn keiner ermittelbar ist.
+   */
+  #resolveCashierId(): string | null {
+    const authUserId = this.#authService.user()?._id
+    if (authUserId) return authUserId.toString()
+    try {
+      const stored = localStorage.getItem('pos_current_user')
+      if (stored) {
+        const parsed = JSON.parse(stored) as { _id?: string }
+        if (parsed?._id) return parsed._id
+      }
+    } catch {
+      /* defekter pos_current_user-Eintrag → wie kein User behandeln */
+    }
+    return null
   }
 
   /** `orders-only` deaktiviert die Kassier-Funktion; Default ist `pos-cashier`. */

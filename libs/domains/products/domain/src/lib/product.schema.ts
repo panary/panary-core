@@ -93,6 +93,11 @@ export const productSchema = Type.Object(
         'FIXED_PROPORTIONAL', // Method 2: Price = Fixed menu price, divided according to normal prices
       ]),
     ),
+    // Normalpreis des Hauptgerichts eines FIXED_PROPORTIONAL-Bundles (z.B. der
+    // Hamburger separat 4,40 €). Dient als Gewicht der Marktwert-Verteilung des
+    // Festpreises (`price`) über die Steuersätze. Fehlt der Wert, trägt der Order-
+    // Writer den Restbetrag (Festpreis − Σ Komponenten) als Hauptgewicht ein.
+    mainPrice: Type.Optional(Type.Number({ minimum: 0 })),
 
     // 4. Customization & Menu Structure
     optionGroups: Type.Optional(Type.Array(optionGroupSchema, { maxItems: 50 })),

@@ -161,7 +161,9 @@ export const lineComponentSchema = Type.Intersect([
   genericLineItemSchema,
   Type.Object({
     optionGroupId: Type.Optional(Type.String({ format: 'uuid' })),
-    role: Type.Optional(StringEnum(['drink', 'side', 'sauce', 'extra'])),
+    // 'main' = Hauptgericht eines Bundles (trägt bei FIXED_PROPORTIONAL sein
+    // Normalpreis-Gewicht); übrige Rollen gruppieren in Bon/UI.
+    role: Type.Optional(StringEnum(['main', 'drink', 'side', 'sauce', 'extra'])),
   }),
 ])
 export type LineComponent = Static<typeof lineComponentSchema>

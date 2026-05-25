@@ -222,6 +222,13 @@ export const AppResource = {
    *  TENANT_MANAGER. READ: zusaetzlich TENANT_STAFF. */
   STOREFRONT_CONFIG: 'storefront-config',
 
+  /** Cloud-only, GLOBAL (nicht tenant-scoped): plattform-kuratierter Theme-
+   *  Katalog (Theme-Familien + Color-Presets + Metadaten). Panary-Plattform
+   *  verwaltet ihn zentral; Tenants LESEN ihn nur (Theme-Auswahl auf der
+   *  Storefront-Landing). MANAGE: PLATFORM_OWNER/ADMIN. READ: alle Tenant-Rollen
+   *  (OWNER/MANAGER/STAFF) — ohne READ liefert die Theme-Auswahl im Admin 403. */
+  STOREFRONT_THEME_CATALOG: 'storefront-theme-catalog',
+
   // Plattform-Verwaltungs-Ressourcen (nur Cloud)
   PLATFORM_TENANTS: 'platform-tenants',
   PLATFORM_IMPERSONATION: 'platform-impersonation',

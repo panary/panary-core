@@ -69,16 +69,18 @@ function lineComponents(line: OrderLineItem): GenericOrderLineItem[] {
 
 /**
  * Brutto-Atome je Zeile, jeweils mit eigenem Steuersatz.
- *  - Neue Zeilen mit `components[]`: Hauptartikel + Modifier am Zeilensatz,
- *    jede Komponente am EIGENEN Steuersatz (parent-skaliert) → mehrsatzige
- *    Menüs werden fiskalisch korrekt gesplittet.
+ *  - ROLLUP / à-la-carte (`components[]`, kein FIXED): Hauptartikel + Modifier am
+ *    Zeilensatz, jede Komponente am EIGENEN Steuersatz (parent-skaliert) →
+ *    mehrsatzige Menüs werden fiskalisch korrekt gesplittet.
+ *  - FIXED_PROPORTIONAL (`bundlePricingMode === 'FIXED_PROPORTIONAL'`): `line.price`
+ *    ist der FESTPREIS (Brutto). Er wird summen-exakt (`distributeByLargestRemainder`)
+ *    über die Komponenten-NORMALPREISE verteilt — jede Komponente behält ihren
+ *    eigenen Steuersatz (Marktwertmethode). Das Hauptgericht ist dabei eine
+ *    Komponente (role 'main') mit eigenem Normalpreis-Gewicht; ist kein Gewicht
+ *    gesetzt, trägt der Writer es als Restbetrag (Festpreis − Σ übrige) ein →
+ *    Verteilung bleibt exakt. Ad-hoc-Modifier liegen ON TOP (à-la-carte, am Zeilensatz).
  *  - Legacy-Zeilen (ohne `components[]`): unverändert — alles am Zeilensatz
  *    summiert (kein Snapshot-Drift für Bestands-Orders).
- *
- * Festpreis-Menüs (FIXED_PROPORTIONAL) werden NICHT hier behandelt, sondern über
- * einen Menü-Rabatt (`appliedDiscounts`, target 'line'), der die Summe der
- * Komponenten-Normalpreise auf den Festpreis senkt — der Rabatt wird unten
- * summen-exakt über die Steuer-Atome der Zeile verteilt.
  */
 function collectLineGrosses(order: Order): LineGross[] {
   const dineIn = order.dineLocation === 'dine-in'
@@ -89,6 +91,35 @@ function collectLineGrosses(order: Order): LineGross[] {
       out.push({ lineItemId: line._id, taxRate: lineRate, grossCents: lineGrossCents(line) })
       continue
     }
+
+    // FIXED_PROPORTIONAL: Festpreis (`line.price`) wird über die Komponenten-
+    // Normalpreise verteilt; jede Komponente behält ihren Steuersatz.
+    if (line.bundlePricingMode === 'FIXED_PROPORTIONAL') {
+      const fixedGross = line.price ? multiplyCents(toCents(line.price), line.amount) : 0
+      const comps = lineComponents(line).filter((c: GenericOrderLineItem) => !!c.price)
+      const weights = comps.map((c: GenericOrderLineItem) => multiplyCents(toCents(c.price as number), c.amount * line.amount))
+      const totalWeight = sumCents(weights)
+      if (fixedGross > 0 && totalWeight > 0) {
+        const allocations = distributeByLargestRemainder(fixedGross, weights)
+        comps.forEach((c: GenericOrderLineItem, i: number) => {
+          out.push({ lineItemId: line._id, taxRate: rateOf(c, dineIn), grossCents: allocations[i] })
+        })
+      } else if (fixedGross > 0) {
+        out.push({ lineItemId: line._id, taxRate: lineRate, grossCents: fixedGross })
+      }
+      // Ad-hoc-Modifier sind NICHT Teil des Festpreises → on top am Zeilensatz.
+      line.modifiers.forEach((extra: GenericOrderLineItem) => {
+        if (extra.price) {
+          out.push({
+            lineItemId: line._id,
+            taxRate: lineRate,
+            grossCents: multiplyCents(toCents(extra.price), extra.amount * line.amount),
+          })
+        }
+      })
+      continue
+    }
+
     let mainGross = line.price ? multiplyCents(toCents(line.price), line.amount) : 0
     line.modifiers.forEach((extra: GenericOrderLineItem) => {
       if (extra.price) mainGross += multiplyCents(toCents(extra.price), extra.amount * line.amount)

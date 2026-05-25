@@ -265,35 +265,75 @@ describe('computeOrderTax — components[] (neues Bundle-Modell)', () => {
     expect(r.brutto).toBeCloseTo(20.4, 5)
   })
 
-  it('FIXED-Menü via LINE-Rabatt: Brutto == Festpreis, Split proportional über Sätze', () => {
+  it('FIXED_PROPORTIONAL: Festpreis wird proportional über Komponenten-Normalpreise verteilt', () => {
+    // Festpreis 7,00 €. Komponenten (Normalpreise, je eigener Satz):
+    //   Hauptgericht 4,40 @7 %, Getränk 2,30 @19 %, Beilage 0,90 @7 %  → Σ 7,60
     const line = makeLine(7.0, 1, 7, 7, {
-      _id: '00000000-0000-0000-0000-0000000000c1',
       bundlePricingMode: 'FIXED_PROPORTIONAL',
       components: [
+        makeGeneric(4.4, 1, { taxInside: 7, taxOutside: 7, topic: 'main' }),
         makeGeneric(2.3, 1, { taxInside: 19, taxOutside: 19 }),
         makeGeneric(0.9, 1, { taxInside: 7, taxOutside: 7 }),
       ],
     })
-    // Σ Normalpreise = 10,20; Festpreis 7,00 → Menü-Rabatt 3,20 (320ct) auf die Zeile
-    const applied = [
-      makeApplied({
-        target: 'line',
-        lineItemId: '00000000-0000-0000-0000-0000000000c1',
-        valueType: 'amount',
-        valueCents: 320,
-      }),
-    ]
-    const r = computeOrderTax(makeOrderWithApplied([line], applied))
+    const r = computeOrderTax(makeOrder([line], 'dine-in'))
+    // Brutto == Festpreis, kein Über-/Unterbetrag
     expect(r.brutto).toBeCloseTo(7.0, 5)
-    const sumGross = r.taxes.reduce((s, t) => s + t.amount + t.tax, 0)
-    expect(sumGross).toBeCloseTo(7.0, 5)
-    expect(applied[0].computedAmountCents).toBe(320)
-    // Beide Sätze bleiben erhalten (proportional reduziert, nicht weg-gerundet)
     expect(r.taxes.map(t => t.taxRate).sort((a, b) => a - b)).toEqual([7, 19])
-    // Tax-Integrität pro Eimer
+    const byRate = Object.fromEntries(r.taxes.map(t => [t.taxRate, t.amount + t.tax]))
+    // 700 verteilt über [440,230,90] (largest-remainder) → 405,212,83
+    //   19 %: 2,12 (Getränk) · 7 %: 4,88 (Haupt 4,05 + Beilage 0,83)
+    expect(byRate[19]).toBeCloseTo(2.12, 5)
+    expect(byRate[7]).toBeCloseTo(4.88, 5)
+    // Tax-Integrität: netto + steuer === brutto (cent-genau)
     const netCents = roundCents(r.netto)
     const taxCents = r.taxes.reduce((s, t) => s + roundCents(t.tax), 0)
     expect(netCents + taxCents).toBe(roundCents(r.brutto))
+  })
+
+  it('FIXED_PROPORTIONAL: Restbetrags-Hauptgewicht (mainPrice unbekannt) bleibt summen-exakt', () => {
+    // Writer-Fallback: Haupt = Festpreis − Σ übrige Komponenten = 7,00 − 3,20 = 3,80.
+    // Σ Gewichte = Festpreis → Verteilung ist identisch (Komponenten zum Normalpreis).
+    const line = makeLine(7.0, 1, 7, 7, {
+      bundlePricingMode: 'FIXED_PROPORTIONAL',
+      components: [
+        makeGeneric(3.8, 1, { taxInside: 7, taxOutside: 7, topic: 'main' }),
+        makeGeneric(2.3, 1, { taxInside: 19, taxOutside: 19 }),
+        makeGeneric(0.9, 1, { taxInside: 7, taxOutside: 7 }),
+      ],
+    })
+    const r = computeOrderTax(makeOrder([line], 'dine-in'))
+    expect(r.brutto).toBeCloseTo(7.0, 5)
+    const byRate = Object.fromEntries(r.taxes.map(t => [t.taxRate, t.amount + t.tax]))
+    expect(byRate[19]).toBeCloseTo(2.3, 5) // Getränk zum vollen Normalpreis
+    expect(byRate[7]).toBeCloseTo(4.7, 5) // Haupt 3,80 + Beilage 0,90
+  })
+
+  it('FIXED_PROPORTIONAL: Ad-hoc-Modifier liegt ON TOP des Festpreises', () => {
+    const line = makeLine(7.0, 1, 7, 7, {
+      bundlePricingMode: 'FIXED_PROPORTIONAL',
+      modifiers: [makeGeneric(0.5, 1, { taxInside: 7, taxOutside: 7 })], // Extra-Sauce on top
+      components: [
+        makeGeneric(4.4, 1, { taxInside: 7, taxOutside: 7, topic: 'main' }),
+        makeGeneric(2.3, 1, { taxInside: 19, taxOutside: 19 }),
+      ],
+    })
+    const r = computeOrderTax(makeOrder([line], 'dine-in'))
+    // Festpreis 7,00 + Modifier 0,50 = 7,50
+    expect(r.brutto).toBeCloseTo(7.5, 5)
+  })
+
+  it('FIXED_PROPORTIONAL skaliert mit der Zeilen-Menge', () => {
+    const line = makeLine(7.0, 2, 7, 7, {
+      bundlePricingMode: 'FIXED_PROPORTIONAL',
+      components: [
+        makeGeneric(4.4, 1, { taxInside: 7, taxOutside: 7, topic: 'main' }),
+        makeGeneric(2.3, 1, { taxInside: 19, taxOutside: 19 }),
+        makeGeneric(0.9, 1, { taxInside: 7, taxOutside: 7 }),
+      ],
+    })
+    const r = computeOrderTax(makeOrder([line], 'dine-in'))
+    expect(r.brutto).toBeCloseTo(14.0, 5) // 2× Festpreis
   })
 
   it('Legacy menuDrink/menuSideDish ohne components[] unverändert (Zeilensatz, ein Eimer)', () => {

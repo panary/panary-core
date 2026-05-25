@@ -8,6 +8,7 @@ export const AppResource = {
   ORDERS: 'orders',
   DISCOUNTS: 'discounts',
   DISCOUNT_CODES: 'discount-codes',
+  DISCOUNT_CODE_REDEMPTIONS: 'discount-code-redemptions',
   INVENTORY: 'inventory',
   LOCATIONS: 'locations',
   SYSTEM: 'system',

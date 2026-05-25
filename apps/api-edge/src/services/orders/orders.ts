@@ -26,6 +26,7 @@ import { extractOrderInteractions } from '../../hooks/extract-order-interactions
 import { restrictOrderToBusinessDay } from '../../hooks/restrict-order-to-business-day'
 import { assignDailySequenceNumber } from '../../hooks/assign-daily-sequence-number'
 import { calculateTaxDetails } from '../../hooks/calculate-tax-details'
+import { applyAutomaticDiscounts } from '../../hooks/apply-automatic-discounts'
 import { checkMultiOperation } from '../../hooks/check-multi-operation'
 import { createOrderInteractions } from '../../hooks/create-order-interactions'
 import { ensureIndexes } from '@panary/shared-backend'
@@ -115,6 +116,9 @@ export const orders = (app: Application) => {
         extractOrderInteractions(),
         restrictOrderToBusinessDay(),
         assignDailySequenceNumber(),
+        // Automatik-Rabatte VOR der Steuerberechnung injizieren (greift nur ohne
+        // bereits gesetzten manuellen Rabatt — Kombinationsregel Phase 2).
+        applyAutomaticDiscounts,
         calculateTaxDetails,
         schemaHooks.validateData(orderDataValidator),
         schemaHooks.resolveData(orderDataResolver),

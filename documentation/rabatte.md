@@ -104,18 +104,35 @@ die Auswahl zurück.
   `WILLKOMMEN10`) an/bearbeitet ihn (+ optional Nutzungslimit, Ablaufdatum) über
   `DiscountCodesService` (`@panary-cloud/discounts/data-access`). Anlegen erst
   nach dem ersten Speichern des Rabatts (Code braucht `discountId`).
+- **Einlösung** (`api-cloud/src/services/discount-code-redemptions/`):
+  **append-only** Log (`@panary/discounts/domain → discount-code-redemption`).
+  `create` = Einlösung-oder-Ablehnung — löst den Code tenant-scoped auf, prüft
+  `evaluateCodeRedeemability(code, discount, { redemptionCount, customerId })`
+  gegen den **autoritativen Log-Zähler** (nicht den `usageCount`-Cache), stempelt
+  `discountCodeId`/`discountId`/`code` server-seitig und lehnt nicht-einlösbare
+  Codes mit `400` ab. After-Hook synct `usageCount` best-effort. Kein externes
+  `patch`/`remove` (Log unveränderlich), Cloud-only. **Warum Log statt Counter:**
+  nebenläufige Einlösungen + künftiger Edge→Cloud-Push würden bei read-modify-
+  write Lost Updates erzeugen (Plan R4).
 - **RBAC** (`@panary/users/domain`): `AppResource.DISCOUNTS` (OWNER/MANAGER/
   TECHNICIAN MANAGE, STAFF/DEVICE_POS/DEVICE_TABLET READ) +
-  `DISCOUNT_CODES` (MANAGE für OWNER/MANAGER/TECHNICIAN).
+  `DISCOUNT_CODES` (MANAGE für OWNER/MANAGER/TECHNICIAN) +
+  `DISCOUNT_CODE_REDEMPTIONS` (CREATE+READ für OWNER/MANAGER/STAFF, append-only).
 
 ## Offen / Folgeschritte
 
 - POS-Rabatt-Picker: Live-Stack-UAT (Rabatt in Cloud anlegen → Edge-Sync →
   am POS anwenden) gegen eine gepairte Edge ausstehend; Build/Typecheck grün.
 - Positionsrabatte (`target: 'line'`) im POS-Picker (Phase 2).
-- Promo-Code-**Verwaltung** im Admin ist gebaut (geteilter Code); die
-  **Einlösung** + atomarer `usageCount`-Inc + Public-Validate-Endpoint sind an die
-  Storefront-Roadmap Phase 5 gekoppelt (Code hat bis dahin keinen Einlöse-Pfad).
+- Promo-Code: Verwaltung (Admin) **und** Einlöse-Backend (append-only
+  `discount-code-redemptions`, atomare Validierung) sind gebaut. **Noch offen,
+  weil Client/Infrastruktur fehlt:** (a) **öffentlicher Storefront-Validate-
+  Endpoint** für anonymen Cart-Preview — braucht die Tenant-Auflösung der
+  Storefront (Subdomain/Tenant-Kontext für nicht-authentifizierte Requests);
+  (b) **POS-Code-Eingabe** — der POS spricht den Edge, Codes sind aber Cloud-only;
+  erfordert die Offline-Entscheidung (R1) + einen Edge→Cloud-Online-Proxy;
+  (c) **Storefront-Checkout** (`orders.channel=ONLINE` + Mollie), der die
+  Einlösung tatsächlich aufruft. Alle drei mit der Storefront-Roadmap Phase 5.
 - MwSt-Extraktion (Phase 0): Probeberechnung dokumentiert + 22 Engine-Tests grün
   (siehe `order-bundle-pricing-modell.md` → „MwSt-Extraktion — Korrektur &
   Probeberechnung"); Spot-Check gegen einen physischen Bon optional.

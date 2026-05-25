@@ -115,6 +115,41 @@ Komponenten (Normalpreis · Außer-Haus-Satz): Hauptgericht 4,40 € @7 %, Getr�
 Ist `mainPrice` nicht gesetzt: Hauptgewicht = 7,00 − (2,30 + 0,90) = 3,80 €; Σ
 Gewichte = Festpreis → Komponenten zum vollen Normalpreis, Haupt trägt den Rest.
 
+## MwSt-Extraktion — Korrektur & Probeberechnung
+
+`price`-Felder sind **Brutto** (inkl. MwSt). Die enthaltene Steuer wird
+fiskalisch korrekt **herausgerechnet** (`money.ts → netFromGross`):
+
+```
+netto  = round( brutto × 100 / (100 + satz) )
+steuer = brutto − netto
+```
+
+Das entspricht exakt der MwSt-Ausweisung auf einem deutschen Kassenbon
+(„enthaltene MwSt"). Die **frühere, fehlerhafte** Variante rechnete den
+Prozentsatz fälschlich vom Brutto ab (`brutto × (100 − satz)/100`) — dabei wird
+die Steuer **überzeichnet** und der Netto-Umsatz unterzeichnet.
+
+**Probeberechnung (NEU korrekt vs. ALT falsch):**
+
+| Bon | Brutto | NEU netto / steuer | ALT netto / steuer | Δ Steuer (ALT−NEU) |
+|---|---|---|---|---|
+| Kaffee im Haus (19 %) | 1,19 € | 1,00 / 0,19 | 0,96 / 0,23 | +0,04 € |
+| Brötchen außer Haus (7 %) | 1,07 € | 1,00 / 0,07 | 1,00 / 0,07 | ±0,00 € |
+| Mittagsteller im Haus (19 %) | 11,90 € | 10,00 / 1,90 | 9,64 / 2,26 | +0,36 € |
+| Großbestellung (19 %) | 119,00 € | 100,00 / 19,00 | 96,39 / 22,61 | +3,61 € |
+| Catering (7 %) | 107,00 € | 100,00 / 7,00 | 99,51 / 7,49 | +0,49 € |
+
+Der Fehler skaliert mit Betrag und Satz: bei 119,00 € @ 19 % wies ALT 22,61 €
+statt 19,00 € MwSt aus (+3,61 €). NEU liefert die fiskalisch korrekten 19,00 €.
+
+**Maschinelle Verifikation:** `compute-order-tax.spec.ts` (22 Tests, alle grün)
+prüft die kanonische Extraktion (`1,19 € @19 % → 1,00 / 0,19`) und die Invariante
+`netto + steuer === brutto` (cent-genau) über viele Positions-/Satz-/Rabatt-
+Kombinationen (property-style) — inkl. Mehrsatz-Splits und Largest-Remainder-
+Verteilung. Damit ist die Korrektur gegen Rundungs- und Reihenfolge-Drift
+abgesichert.
+
 ## Konsequenzen
 
 - **`payment.totalAmount === taxSnapshot.brutto`** strukturell garantiert (Single

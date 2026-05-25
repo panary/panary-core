@@ -99,6 +99,41 @@ describe('order-total', () => {
     expect(computeGrossFromLineItems(lineItems as unknown as Order['lineItems'])).toBe(3 * 500 + 3 * 50)
   })
 
+  it('FIXED_PROPORTIONAL: Fallback nutzt den Festpreis (line.price), Komponenten nicht erneut addiert', () => {
+    const lineItems = [
+      {
+        _id: 'l1', externalId: 'e1', amount: 1, name: 'Menü', price: 7,
+        recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: '',
+        productGroupExternalId: 'g1', bundleNumber: null, modifiers: [],
+        isMenu: true, menuDrink: null, menuSideDish: null,
+        bundlePricingMode: 'FIXED_PROPORTIONAL',
+        components: [
+          { _id: 'c0', externalId: 'e0', amount: 1, name: 'Haupt', price: 3.8, recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: 'main', role: 'main' },
+          { _id: 'c1', externalId: 'ec1', amount: 1, name: 'Cola', price: 2.3, recipeReferences: [], ingredientReferences: [], taxInside: 19, taxOutside: 19, topic: '', role: 'drink' },
+          { _id: 'c2', externalId: 'ec2', amount: 1, name: 'Beilage', price: 0.9, recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: '', role: 'side' },
+        ],
+      },
+    ]
+    // Festpreis 7,00 € — Komponenten sind eingerechnet, NICHT erneut addiert
+    expect(computeGrossFromLineItems(lineItems as unknown as Order['lineItems'])).toBe(700)
+  })
+
+  it('components[] (ROLLUP/à-la-carte): Komponenten werden on top addiert (Parent-Amount-skaliert)', () => {
+    const lineItems = [
+      {
+        _id: 'l1', externalId: 'e1', amount: 2, name: 'Bowl', price: 5,
+        recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: '',
+        productGroupExternalId: 'g1', bundleNumber: null, modifiers: [],
+        isMenu: false, menuDrink: null, menuSideDish: null,
+        components: [
+          { _id: 'c1', externalId: 'ec1', amount: 1, name: 'Topping', price: 1.5, recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: '', role: 'extra' },
+        ],
+      },
+    ]
+    // (5,00 + 1,50) × 2 = 13,00 €
+    expect(computeGrossFromLineItems(lineItems as unknown as Order['lineItems'])).toBe(1300)
+  })
+
   it('getOrderTipCents liest Trinkgeld', () => {
     const order = makeOrder({ tipAmount: 2.5 })
     expect(getOrderTipCents(order)).toBe(250)

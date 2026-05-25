@@ -64,6 +64,21 @@ export function computeGrossFromLineItems(lineItems: OrderLineItem[]): number {
 function computeLineItemGrossCents(line: OrderLineItem): number {
   const base = multiplyCents(toCents(line.price), line.amount)
   const modifierCents = (line.modifiers ?? []).map(m => computeGenericGrossCents(m, line.amount))
+
+  // FIXED_PROPORTIONAL: `line.price` IST der Festpreis (Komponenten sind darin
+  // eingerechnet) → Komponenten NICHT erneut addieren; nur Ad-hoc-Modifier on top.
+  if (line.bundlePricingMode === 'FIXED_PROPORTIONAL') {
+    return base + sumCents(modifierCents)
+  }
+
+  // Neues Komponenten-Modell (ROLLUP/à-la-carte): Komponenten addieren on top,
+  // am Parent-Amount skaliert — analog zur Engine `collectLineGrosses`.
+  if (Array.isArray(line.components) && line.components.length > 0) {
+    const componentCents = line.components.map(c => computeGenericGrossCents(c, line.amount))
+    return base + sumCents(modifierCents) + sumCents(componentCents)
+  }
+
+  // Legacy: separate menuDrink/menuSideDish-Slots.
   const drink = line.menuDrink ? computeGenericGrossCents(line.menuDrink, line.amount) : 0
   const side = line.menuSideDish ? computeGenericGrossCents(line.menuSideDish, line.amount) : 0
   return base + sumCents(modifierCents) + drink + side

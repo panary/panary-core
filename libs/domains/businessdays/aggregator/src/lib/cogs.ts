@@ -146,6 +146,13 @@ export function explodeOrderConsumption(
   const dineLocation = (order as { dineLocation?: string }).dineLocation
 
   for (const item of order.lineItems ?? []) {
+    // Material-Verbrauch läuft bewusst über die Legacy-Slots (menuDrink/
+    // menuSideDish/modifiers) + die Zeilen-Rezepte. Der POS-Writer füllt diese
+    // Slots auch bei FIXED_PROPORTIONAL-Bundles weiter (das neue `components[]`
+    // dient nur der fiskalischen Preis-/Steuer-Verteilung, NICHT dem Verbrauch).
+    // Daher hier KEIN components[]-Pfad — sonst entstünde Doppel-Verbrauch
+    // (Slot + Komponente) bzw. fehlender Verbrauch von Ad-hoc-Modifiern. Der
+    // Umstieg auf components[] erfolgt erst beim Sunset der Legacy-Slots.
     accumulateLineItem(item, item.amount, dineLocation, usage, recipeIngredients, unresolved)
     for (const mod of item.modifiers ?? []) {
       accumulateLineItem(mod as OrderLineItem, item.amount * mod.amount, dineLocation, usage, recipeIngredients, unresolved)

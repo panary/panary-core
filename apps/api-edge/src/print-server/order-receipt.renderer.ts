@@ -1,5 +1,6 @@
 // @ts-expect-error — keine Typdeklarationen vorhanden
 import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder'
+import { computeOrderTax } from '@panary/orders/domain'
 import type { EscposOptions } from './escpos.adapter'
 
 const COLUMNS_MAP: Record<string, number> = { '58mm': 32, '80mm': 48 }
@@ -145,7 +146,7 @@ export function renderOrderReceipt(order: any, location: any, options: EscposOpt
   // ─────────────────────────────────────────
   enc.newline()
   enc.rule({ style: 'single' })
-  const totalPrice = calcTotalWithDiscount(order, sideDishPrice, drinkPrice)
+  const totalPrice = calcTotalWithDiscount(order)
   enc.table(
     [{ width: Math.floor(cols * 0.55), align: 'left' }, { width: Math.floor(cols * 0.45), align: 'right' }],
     [[(e: any) => e.bold(true).size(2, 2).text('Gesamt').size(1, 1).bold(false),
@@ -183,11 +184,15 @@ function appendArticle(
       (e: any) => e.bold(true).text(fmtEur(price)).bold(false)]],
   )
 
+  // FIXED_PROPORTIONAL: Komponenten sind im Festpreis enthalten → keine Aufschläge
+  // ausweisen (sonst wirkt der Bon teurer als der fakturierte Festpreis).
+  const isFixed = article.bundlePricingMode === 'FIXED_PROPORTIONAL'
+
   // Menü-Beilage & Getränk — Font B, eingerückt
   if (article.isMenu) {
     if (article.menuSideDish) {
-      const extra = (article.menuSideDish.price ?? 0) > sideDishPrice
-        ? (article.menuSideDish.price ?? 0) - sideDishPrice : 0
+      const extra = isFixed || (article.menuSideDish.price ?? 0) <= sideDishPrice
+        ? 0 : (article.menuSideDish.price ?? 0) - sideDishPrice
       enc.font('B')
       enc.table(
         [{ width: subNameW, marginLeft: 4, align: 'left' }, { width: priceW, align: 'right' }],
@@ -196,8 +201,8 @@ function appendArticle(
       enc.font('A')
     }
     if (article.menuDrink) {
-      const extra = (article.menuDrink.price ?? 0) > drinkPrice
-        ? (article.menuDrink.price ?? 0) - drinkPrice : 0
+      const extra = isFixed || (article.menuDrink.price ?? 0) <= drinkPrice
+        ? 0 : (article.menuDrink.price ?? 0) - drinkPrice
       enc.font('B')
       enc.table(
         [{ width: subNameW, marginLeft: 4, align: 'left' }, { width: priceW, align: 'right' }],
@@ -207,14 +212,15 @@ function appendArticle(
     }
   }
 
-  // Modifiers — Font B, eingerückt
+  // Modifiers — Font B, eingerückt. Bei FIXED sind Menü-Bestandteile inklusive →
+  // kein Einzelpreis (der Festpreis steht oben).
   if (article.modifiers?.length > 0) {
     enc.font('B')
     for (const mod of article.modifiers) {
       let amount = mod.amount
       let modName = mod.name
       if (mod.amount === -1) { amount = 1; modName = `OHNE ${modName}` }
-      const modPrice = (mod.price > 0 && mod.amount > 0) ? fmtEur(mod.price * mod.amount) : ''
+      const modPrice = (!isFixed && mod.price > 0 && mod.amount > 0) ? fmtEur(mod.price * mod.amount) : ''
       enc.table(
         [{ width: subNameW, marginLeft: 4, align: 'left' }, { width: priceW, align: 'right' }],
         [[`${amount}x ${modName}`, modPrice]],
@@ -241,12 +247,20 @@ function round(v: number): number {
 }
 
 function calcArticlePriceSimple(article: any, drinkPrice: number, sideDishPrice: number): number {
+  // FIXED_PROPORTIONAL: `price` IST der Festpreis (Beilage/Getränk eingerechnet) —
+  // nicht erneut aufschlagen, sonst Doppelzählung.
+  if (article.bundlePricingMode === 'FIXED_PROPORTIONAL') {
+    return round((article.price ?? 0) * (article.amount ?? 1))
+  }
   let p = (article.price ?? 0) * (article.amount ?? 1)
   if (article.isMenu) p += drinkPrice + sideDishPrice
   return round(p)
 }
 
 function calcArticlePrice(article: any, sideDishPrice: number, drinkPrice: number): number {
+  if (article.bundlePricingMode === 'FIXED_PROPORTIONAL') {
+    return round((article.price ?? 0) * (article.amount ?? 1))
+  }
   let p = calcArticlePriceSimple(article, drinkPrice, sideDishPrice)
   for (const mod of (article.modifiers || [])) {
     if (mod.price && mod.amount > 0) p += mod.price * mod.amount
@@ -262,20 +276,12 @@ function calcComboPrice(combo: any[], sideDishPrice: number, drinkPrice: number)
   return round(total)
 }
 
-function calcTotalWithDiscount(order: any, sideDishPrice: number, drinkPrice: number): number {
-  let sum = 0
-  for (const item of (order.lineItems || [])) {
-    if (item.price) sum += calcArticlePrice(item, sideDishPrice, drinkPrice)
-  }
-  sum = round(sum)
-  if (order.discount) {
-    if (order.discount.discountType === 'percent') {
-      sum = round(sum - sum * (order.discount.discount / 100))
-    } else if (order.discount.discountType === 'amount') {
-      sum = round(Math.max(0, sum - order.discount.discount))
-    }
-  }
-  return sum
+// Kanonische Gesamtsumme über `computeOrderTax` (@panary/orders/domain) — dieselbe
+// Engine, die taxSnapshot + payment.totalAmount erzeugt. Damit stimmt der Bon-Betrag
+// garantiert mit dem fakturierten Betrag überein und behandelt FIXED-Menüs, das
+// Komponenten-Modell, Legacy-Shape sowie order.discount/appliedDiscounts korrekt.
+function calcTotalWithDiscount(order: any): number {
+  return round(computeOrderTax(order).brutto)
 }
 
 function getCombinations(order: any): any[][] {

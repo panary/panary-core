@@ -42,7 +42,8 @@ import {
   OrderService,
   StaffPaymentInfo,
 } from '@panary/orders/data-access'
-import { Discount, LineComponent } from '@panary/orders/domain'
+import { AppliedDiscount, Discount, LineComponent } from '@panary/orders/domain'
+import { uuidv7 } from 'uuidv7'
 import { PreOrderService } from '@panary/pre-orders/data-access'
 import { LocationService } from '@panary/locations/data-access'
 import { AuthService } from '@panary/auth/data-access'
@@ -2120,9 +2121,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         userName: this._currentUser.firstName + ' ' + this._currentUser.lastName,
         isPaid: false,
       }
-      if (this._currentUser.discountDetails) {
-        discountDetails = this._currentUser.discountDetails as unknown as Discount
-      }
+      discountDetails = this.#toDiscount(this._currentUser.discountDetails) ?? discountDetails
     }
     if (this._customer && this._customer._id) {
       customerDetails = {
@@ -2130,11 +2129,25 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         customerName: this._customer.name1,
         isPaid: false,
       }
-
-      if (this._customer.discountDetails) {
-        discountDetails = this._customer.discountDetails as unknown as Discount
-      }
+      // Kundenrabatt hat Vorrang vor dem Personalessen-Rabatt (bisheriges Verhalten).
+      discountDetails = this.#toDiscount(this._customer.discountDetails) ?? discountDetails
     }
+
+    // appliedDiscounts-Snapshot aus dem aufgelösten Order-Rabatt — ersetzt den
+    // früheren unsicheren `as unknown as Discount`-Cast. order.discount bleibt als
+    // Legacy-Spiegel erhalten; die Tax-Engine nutzt appliedDiscounts führend und
+    // füllt computedAmountCents serverseitig.
+    const appliedDiscounts: AppliedDiscount[] = []
+    if (discountDetails) {
+      appliedDiscounts.push(
+        this.#toAppliedDiscount(discountDetails, {
+          name: staffMealDetails ? 'Personalessen' : (this._customer?.name1 ?? 'Rabatt'),
+          isStaffMeal: !!staffMealDetails,
+          appliedBy: this._currentUser?._id ?? null,
+        }),
+      )
+    }
+
     const orderIndex = this.orderService.createOrder(
       this.#lineItems,
       OrderChannel.TELEPHONE,
@@ -2150,12 +2163,49 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       {
         createdBy: this._currentUser?._id?.toString() || '',
       },
+      appliedDiscounts.length > 0 ? appliedDiscounts : undefined,
     )
 
     this.deleteOrder()
     this.unselectProduct()
 
     this.matDialogRef.close(orderIndex)
+  }
+
+  /**
+   * Validiert die lose `discountDetails`-Struktur (User/Customer) zu einem typsicheren
+   * `Discount`. Ersetzt den früheren `as unknown as Discount`-Cast — ungültige Werte
+   * (unbekannter Typ, negativ) werden verworfen statt blind durchgereicht.
+   */
+  #toDiscount(raw: unknown): Discount | undefined {
+    if (!raw || typeof raw !== 'object') return undefined
+    const dt = (raw as { discountType?: unknown }).discountType
+    const dv = (raw as { discount?: unknown }).discount
+    if ((dt === 'percent' || dt === 'amount') && typeof dv === 'number' && dv >= 0) {
+      return { discountType: dt, discount: dv }
+    }
+    return undefined
+  }
+
+  /** Baut einen AppliedDiscount-Snapshot (manuell, Order-Level) aus einem Discount. */
+  #toAppliedDiscount(
+    d: Discount,
+    opts: { name: string; isStaffMeal: boolean; appliedBy: string | null },
+  ): AppliedDiscount {
+    return {
+      _id: uuidv7(),
+      discountId: null,
+      name: opts.name,
+      method: 'manual',
+      target: 'order',
+      valueType: d.discountType,
+      valuePercent: d.discountType === 'percent' ? d.discount : 0,
+      valueCents: d.discountType === 'amount' ? Math.round(d.discount * 100) : 0,
+      computedAmountCents: 0,
+      appliedBy: opts.appliedBy,
+      appliedAt: new Date().toISOString(),
+      isStaffMeal: opts.isStaffMeal,
+    }
   }
 
   togglePriceVisibility() {

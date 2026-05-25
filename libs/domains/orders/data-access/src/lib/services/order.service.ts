@@ -5,6 +5,7 @@ import { PrintDialogComponent } from '../components/print-dialog.component'
 import { OrderChannel } from '../enums/order-chanel.enum'
 import { Id, Paginated } from '@feathersjs/feathers'
 import {
+  AppliedDiscount,
   CreationContext,
   CustomerPaymentInfo,
   DineLocation,
@@ -239,6 +240,7 @@ export class OrderService extends BaseService<Order> {
     recordingDate: Date,
     orderInteractions: Array<OrderInteraction> = [],
     creationContext?: CreationContext,
+    appliedDiscounts: AppliedDiscount[] | undefined = undefined,
   ): Promise<number | number[] | null | undefined> {
     // businessDayId wird vom Backend automatisch verwaltet (standalone: Auto-Rotate)
     const businessDayId = this.#locationService.activeLocation()?.currentBusinessDay?.businessDayId
@@ -266,6 +268,9 @@ export class OrderService extends BaseService<Order> {
     if (customerDetails) order.customerPaymentInfo = customerDetails
     if (staffMealDetails) order.staffPaymentInfo = staffMealDetails
     if (discountDetails) order.discount = discountDetails
+    // appliedDiscounts ist führend für die Tax-Engine; order.discount bleibt als
+    // Legacy-Spiegel für Alt-Reader (Aggregator/Bon) gesetzt (Rückwärtskompatibilität).
+    if (appliedDiscounts && appliedDiscounts.length > 0) order.appliedDiscounts = appliedDiscounts
     if (orderInteractions.length > 0) (order as Order & { orderInteractions?: OrderInteraction[] }).orderInteractions = orderInteractions
     if (creationContext) order.creationContext = creationContext
 

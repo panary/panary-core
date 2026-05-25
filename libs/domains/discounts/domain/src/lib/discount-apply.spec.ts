@@ -4,7 +4,13 @@ import {
   deriveDiscountDisplayStatus,
   DiscountDisplayStatus,
   discountAppliesToChannel,
+  evaluateAutomaticDiscounts,
+  isAutomaticDiscountApplicable,
   isDiscountApplicable,
+  isEligibleCustomer,
+  isWithinRecurringWindow,
+  matchesScope,
+  meetsMinRequirement,
   resolveDiscountAmountCents,
   validateDiscountConsistency,
 } from './discount-apply'
@@ -108,5 +114,78 @@ describe('validateDiscountConsistency', () => {
     expect(
       validateDiscountConsistency(makeDiscount({ eligibility: 'specific', customerIds: [] })).length,
     ).toBeGreaterThan(0)
+  })
+})
+
+describe('isWithinRecurringWindow', () => {
+  // Mittwoch, 2026-05-27, 18:00 (getDay() === 3)
+  const wed18 = new Date('2026-05-27T18:00:00')
+  it('kein Fenster gesetzt → immer true', () => {
+    expect(isWithinRecurringWindow(makeDiscount(), wed18)).toBe(true)
+  })
+  it('Happy Hour Mo-Fr 17-19 → Mi 18:00 greift', () => {
+    const d = makeDiscount({ recurringWeekdays: [1, 2, 3, 4, 5], recurringStartTime: '17:00', recurringEndTime: '19:00' })
+    expect(isWithinRecurringWindow(d, wed18)).toBe(true)
+  })
+  it('außerhalb der Uhrzeit → false', () => {
+    const d = makeDiscount({ recurringWeekdays: [1, 2, 3, 4, 5], recurringStartTime: '11:00', recurringEndTime: '14:00' })
+    expect(isWithinRecurringWindow(d, wed18)).toBe(false)
+  })
+  it('falscher Wochentag → false', () => {
+    const sun = new Date('2026-05-24T18:00:00') // Sonntag (0)
+    const d = makeDiscount({ recurringWeekdays: [1, 2, 3, 4, 5], recurringStartTime: '17:00', recurringEndTime: '19:00' })
+    expect(isWithinRecurringWindow(d, sun)).toBe(false)
+  })
+})
+
+describe('Bedingungen (Min/Eligibility/Scope)', () => {
+  it('meetsMinRequirement Betrag', () => {
+    const d = makeDiscount({ minRequirementType: 'amount', minAmountCents: 5000 })
+    expect(meetsMinRequirement(d, { orderGrossCents: 6000 })).toBe(true)
+    expect(meetsMinRequirement(d, { orderGrossCents: 4000 })).toBe(false)
+  })
+  it('meetsMinRequirement Menge', () => {
+    const d = makeDiscount({ minRequirementType: 'quantity', minQuantity: 3 })
+    expect(meetsMinRequirement(d, { itemCount: 3 })).toBe(true)
+    expect(meetsMinRequirement(d, { itemCount: 2 })).toBe(false)
+  })
+  it('isEligibleCustomer specific', () => {
+    const d = makeDiscount({ eligibility: 'specific', customerIds: ['c1'] })
+    expect(isEligibleCustomer(d, { customerId: 'c1' })).toBe(true)
+    expect(isEligibleCustomer(d, { customerId: 'c2' })).toBe(false)
+    expect(isEligibleCustomer(d, {})).toBe(false)
+  })
+  it('matchesScope Kategorien', () => {
+    const d = makeDiscount({ appliesTo: 'categories', categoryIds: ['cat1'] })
+    expect(matchesScope(d, { categoryIds: ['cat1', 'cat2'] })).toBe(true)
+    expect(matchesScope(d, { categoryIds: ['cat3'] })).toBe(false)
+  })
+})
+
+describe('evaluateAutomaticDiscounts', () => {
+  const wed18 = new Date('2026-05-27T18:00:00')
+  it('greift bei erfüllten Bedingungen, ignoriert MANUAL/inaktive', () => {
+    const happyHour = makeDiscount({
+      _id: 'a1',
+      method: 'automatic',
+      status: 'ACTIVE',
+      recurringWeekdays: [1, 2, 3, 4, 5],
+      recurringStartTime: '17:00',
+      recurringEndTime: '19:00',
+      minRequirementType: 'amount',
+      minAmountCents: 2000,
+    })
+    const manual = makeDiscount({ _id: 'a2', method: 'manual', status: 'ACTIVE' })
+    const draftAuto = makeDiscount({ _id: 'a3', method: 'automatic', status: 'DRAFT' })
+    const result = evaluateAutomaticDiscounts([happyHour, manual, draftAuto], {
+      now: wed18,
+      orderGrossCents: 3000,
+      channel: 'pos',
+    })
+    expect(result.map(d => d._id)).toEqual(['a1'])
+  })
+  it('greift nicht, wenn Mindestbetrag unterschritten', () => {
+    const d = makeDiscount({ method: 'automatic', minRequirementType: 'amount', minAmountCents: 5000 })
+    expect(isAutomaticDiscountApplicable(d, { now: wed18, orderGrossCents: 1000 })).toBe(false)
   })
 })

@@ -42,7 +42,7 @@ import {
   OrderService,
   StaffPaymentInfo,
 } from '@panary/orders/data-access'
-import { Discount } from '@panary/orders/domain'
+import { Discount, LineComponent } from '@panary/orders/domain'
 import { PreOrderService } from '@panary/pre-orders/data-access'
 import { LocationService } from '@panary/locations/data-access'
 import { AuthService } from '@panary/auth/data-access'
@@ -1727,6 +1727,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
           } else {
             this._isBlocked = false
             // Bundle-Flow abgeschlossen
+            this.finalizeBundleLine(parentProduct)
             this.setProductButtonsByGroupId(parentProduct.categoryIds?.[0])
           }
         },
@@ -1765,6 +1766,13 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       lineItem.modifiers.push(genericItem)
     }
 
+    // FIXED_PROPORTIONAL: zusätzlich generische Komponente mit Normalpreis-Gewicht
+    // (Engine-Eingabe). Legacy-Slots bleiben für Anzeige/alte Reader gefüllt.
+    if (parentProduct.bundlePricingMode === 'FIXED_PROPORTIONAL') {
+      lineItem.components = lineItem.components ?? []
+      lineItem.components.push(this.toComponent(selected, group))
+    }
+
     this.#completedGroups.add(group.id)
 
     // Prüfen ob das gewählte Produkt selbst OptionGroups hat (z.B. Pommes → Soßen)
@@ -1786,6 +1794,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       this.showOptionGroupButtons(nextGroup, parentProduct)
     } else {
       this._isBlocked = false
+      this.finalizeBundleLine(parentProduct)
       this.setProductButtonsByGroupId(parentProduct.categoryIds?.[0])
     }
 
@@ -1820,6 +1829,60 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  /** Rolle einer Bundle-Komponente aus dem OptionGroup-Namen (Bon/UI-Gruppierung). */
+  private roleFromGroupName(name: string): LineComponent['role'] {
+    const n = (name || '').toLowerCase()
+    if (n.includes('beilage') || n.includes('side')) return 'side'
+    if (n.includes('getränk') || n.includes('getraenk') || n.includes('drink')) return 'drink'
+    if (n.includes('sauce') || n.includes('soße') || n.includes('sosse') || n.includes('dip')) return 'sauce'
+    return 'extra'
+  }
+
+  /**
+   * Generische Bundle-Komponente (Engine-Eingabe) mit NORMALPREIS-Gewicht. Anders
+   * als der Legacy-Slot wird hier bewusst der volle Normalpreis geführt (kein
+   * freeQuantity-0): bei FIXED_PROPORTIONAL ist er das Marktwert-Gewicht der
+   * Festpreis-Verteilung, nicht der berechnete Aufpreis.
+   */
+  private toComponent(product: ProductSchema, group: { id?: string; name?: string }): LineComponent {
+    return {
+      ...this.toGenericLineItem(product),
+      price: product.price || 0,
+      optionGroupId: group?.id,
+      role: this.roleFromGroupName(group?.name ?? ''),
+    } as LineComponent
+  }
+
+  /**
+   * Schließt eine FIXED_PROPORTIONAL-Bundle-Zeile ab: ergänzt das Hauptgericht als
+   * Komponente (role 'main') mit Normalpreis-Gewicht. Quelle: product.mainPrice;
+   * fehlt der Wert, dient der Restbetrag (Festpreis − Σ übrige Komponenten) als
+   * Gewicht — so bleibt die Engine-Verteilung summen-exakt == Festpreis. Idempotent.
+   */
+  private finalizeBundleLine(product: ProductSchema): void {
+    if (product.bundlePricingMode !== 'FIXED_PROPORTIONAL') return
+    const lineItem = this.getCurrentSelectedLineItem()
+    if (!lineItem) return
+    lineItem.components = lineItem.components ?? []
+    if (lineItem.components.some(c => c.role === 'main')) return
+
+    const sumComponents = lineItem.components.reduce((s, c) => s + (c.price || 0) * c.amount, 0)
+    const fixed = product.price || 0
+    const mainNormal =
+      product.mainPrice != null && product.mainPrice >= 0
+        ? product.mainPrice
+        : Math.max(0, Math.round((fixed - sumComponents) * 100) / 100)
+
+    lineItem.components.unshift({
+      ...this.toGenericLineItem(product),
+      price: mainNormal,
+      taxInside: product.taxInside || 19,
+      taxOutside: product.taxOutside || 7,
+      topic: 'main',
+      role: 'main',
+    } as LineComponent)
+  }
+
   // ──────────────────────────────────────────────────────────────────────
 
   increaseLineItem(product: ProductSchema, amount: number | undefined = undefined) {
@@ -1847,6 +1910,12 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       isMenu: isBundle,
       menuDrink: null,
       menuSideDish: null,
+      // FIXED_PROPORTIONAL: neues Komponenten-Modell. `price` ist der FESTPREIS
+      // (Verteilungs-Ziel der Engine); die Komponenten (inkl. Hauptgericht) werden
+      // beim Bundle-Abschluss in `finalizeBundleLine` gefüllt. ROLLUP/à-la-carte
+      // bleiben bei der Legacy-Shape (menuDrink/menuSideDish) → keine Regression.
+      bundlePricingMode: product.bundlePricingMode === 'FIXED_PROPORTIONAL' ? 'FIXED_PROPORTIONAL' : undefined,
+      components: product.bundlePricingMode === 'FIXED_PROPORTIONAL' ? [] : undefined,
       name: product.name,
       parentId: product.categoryIds?.[0],
       price: product.price || 0,

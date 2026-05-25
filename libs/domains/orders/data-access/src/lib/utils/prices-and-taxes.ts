@@ -24,6 +24,12 @@ export function calculateArticlePriceWithoutExtras(
   generalMenuSideDishPrice: number,
   generalMenuDrinkPrice: number,
 ): number {
+  // FIXED_PROPORTIONAL: `price` IST der Festpreis (Komponenten sind eingerechnet) →
+  // nicht erneut aufsummieren, sonst Doppelzählung der Menü-Bestandteile.
+  if (articleItem.bundlePricingMode === 'FIXED_PROPORTIONAL') {
+    return round((articleItem.price || 0) * articleItem.amount)
+  }
+
   let articlePrice=0
 
   if (articleItem.price) {
@@ -61,6 +67,11 @@ export function calculateArticlePrice(
   generalMenuSideDishPrice: number,
   generalMenuDrinkPrice: number,
 ): number {
+  // FIXED_PROPORTIONAL: Festpreis ist all-inclusive (Menü-Bestandteile eingerechnet).
+  if (articleItem.bundlePricingMode === 'FIXED_PROPORTIONAL') {
+    return round((articleItem.price || 0) * articleItem.amount)
+  }
+
   let articlePrice: number=calculateArticlePriceWithoutExtras(
     articleItem,
     generalMenuSideDishPrice,

@@ -101,6 +101,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Globaler Lieferanten-Katalog (Phase 2): Plattform-Admin curated.
     { resource: AppResource.GLOBAL_SUPPLIERS, action: AppAction.MANAGE },
     { resource: AppResource.GLOBAL_SUPPLIER_SUBMISSIONS, action: AppAction.MANAGE },
+    // Plattform-Theme-Katalog: PLATFORM_ADMIN kuratiert ihn (PLATFORM_OWNER bypasst ohnehin).
+    { resource: AppResource.STOREFRONT_THEME_CATALOG, action: AppAction.MANAGE },
     // Tenant-Settings darf der Admin lesen (zur Diagnose), aber nicht aendern.
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT, action: AppAction.READ },

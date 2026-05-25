@@ -44,6 +44,7 @@
       "@panary/orders/domain": ["libs/domains/orders/domain/src/index.ts"],
       "@panary/order-interactions/domain": ["libs/domains/order-interactions/domain/src/index.ts"],
       "@panary/discounts/domain": ["libs/domains/discounts/domain/src/index.ts"],
+      "@panary/discounts/data-access": ["libs/domains/discounts/data-access/src/index.ts"],
       "@panary/product-groups/domain": ["libs/domains/product-groups/domain/src/index.ts"],
       "@panary/user-preferences/domain": ["libs/domains/user-preferences/domain/src/index.ts"],
       "@panary/notifications/domain": ["libs/domains/notifications/domain/src/index.ts"],

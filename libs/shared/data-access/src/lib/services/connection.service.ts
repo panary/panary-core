@@ -117,6 +117,10 @@ export class ConnectionService {
     return this.#app.service('discounts')
   }
 
+  get discountCodesService(): Service {
+    return this.#app.service('discount-codes')
+  }
+
   get productService(): Service {
     return this.#app.service('products')
   }

@@ -95,7 +95,15 @@ die Auswahl zurück.
 - **Cloud** (`panary-cloud/apps/api-cloud/src/services/discounts/` +
   `discount-codes/`): Source of Truth via `registerMongoService`
   (`booleanFields`, `dateFields`, `stripNullPayload`). `discount-codes` ist
-  Cloud-only (kein Edge-Sync — Offline-Counter-Problem).
+  Cloud-only (kein Edge-Sync — Offline-Counter-Problem). `codeUpper` ist
+  server-managed: der Data- **und** Patch-Resolver leiten ihn aus `code` ab
+  (case-insensitive Unique `{tenantId, codeUpper}`); `usageCount` ist
+  `protectFromExternal`.
+- **Admin-Code-Verwaltung** (`discounts/feature-admin` → discount-details,
+  `method=code`): „Rabattcode"-Card legt einen **geteilten** Code (z. B.
+  `WILLKOMMEN10`) an/bearbeitet ihn (+ optional Nutzungslimit, Ablaufdatum) über
+  `DiscountCodesService` (`@panary-cloud/discounts/data-access`). Anlegen erst
+  nach dem ersten Speichern des Rabatts (Code braucht `discountId`).
 - **RBAC** (`@panary/users/domain`): `AppResource.DISCOUNTS` (OWNER/MANAGER/
   TECHNICIAN MANAGE, STAFF/DEVICE_POS/DEVICE_TABLET READ) +
   `DISCOUNT_CODES` (MANAGE für OWNER/MANAGER/TECHNICIAN).
@@ -105,8 +113,9 @@ die Auswahl zurück.
 - POS-Rabatt-Picker: Live-Stack-UAT (Rabatt in Cloud anlegen → Edge-Sync →
   am POS anwenden) gegen eine gepairte Edge ausstehend; Build/Typecheck grün.
 - Positionsrabatte (`target: 'line'`) im POS-Picker (Phase 2).
-- Promo-Code-Einlösung + atomarer `usageCount`-Inc + Public-Validate — an die
-  Storefront-Roadmap Phase 5 gekoppelt.
+- Promo-Code-**Verwaltung** im Admin ist gebaut (geteilter Code); die
+  **Einlösung** + atomarer `usageCount`-Inc + Public-Validate-Endpoint sind an die
+  Storefront-Roadmap Phase 5 gekoppelt (Code hat bis dahin keinen Einlöse-Pfad).
 - MwSt-Extraktion (Phase 0): Probeberechnung dokumentiert + 22 Engine-Tests grün
   (siehe `order-bundle-pricing-modell.md` → „MwSt-Extraktion — Korrektur &
   Probeberechnung"); Spot-Check gegen einen physischen Bon optional.

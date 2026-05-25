@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { Discount } from './discount.schema'
+import { DiscountCode } from './discount-code.schema'
 import {
+  CodeRedeemReason,
   deriveDiscountDisplayStatus,
   DiscountDisplayStatus,
   discountAppliesToChannel,
   evaluateAutomaticDiscounts,
+  evaluateCodeRedeemability,
   isAutomaticDiscountApplicable,
   isDiscountApplicable,
   isEligibleCustomer,
@@ -187,5 +190,62 @@ describe('evaluateAutomaticDiscounts', () => {
   it('greift nicht, wenn Mindestbetrag unterschritten', () => {
     const d = makeDiscount({ method: 'automatic', minRequirementType: 'amount', minAmountCents: 5000 })
     expect(isAutomaticDiscountApplicable(d, { now: wed18, orderGrossCents: 1000 })).toBe(false)
+  })
+})
+
+function makeCode(partial: Partial<DiscountCode> = {}): DiscountCode {
+  return {
+    _id: '00000000-0000-0000-0000-0000000000c0',
+    tenantId: '00000000-0000-0000-0000-000000000001',
+    locationId: null,
+    createdAt: '2026-05-25T00:00:00.000Z',
+    updatedAt: '2026-05-25T00:00:00.000Z',
+    discountId: '00000000-0000-0000-0000-0000000000d0',
+    code: 'WILLKOMMEN10',
+    codeUpper: 'WILLKOMMEN10',
+    isShared: true,
+    usageCount: 0,
+    ...partial,
+  } as DiscountCode
+}
+
+describe('evaluateCodeRedeemability', () => {
+  const active = makeDiscount({ status: 'ACTIVE' })
+
+  it('einlösbar bei gültigem Code + aktivem Rabatt', () => {
+    expect(evaluateCodeRedeemability(makeCode(), active).ok).toBe(true)
+  })
+  it('not_found bei fehlendem Code', () => {
+    const r = evaluateCodeRedeemability(null, active)
+    expect(r).toEqual({ ok: false, reason: CodeRedeemReason.NOT_FOUND })
+  })
+  it('deleted bei Tombstone', () => {
+    const r = evaluateCodeRedeemability(makeCode({ _deletedAt: '2026-05-24T00:00:00.000Z' }), active)
+    expect(r.reason).toBe(CodeRedeemReason.DELETED)
+  })
+  it('expired nach Ablaufdatum', () => {
+    const code = makeCode({ expiresAt: '2026-05-01T00:00:00.000Z' })
+    expect(evaluateCodeRedeemability(code, active, { now: new Date('2026-05-25T00:00:00Z') }).reason).toBe(
+      CodeRedeemReason.EXPIRED,
+    )
+  })
+  it('limit_reached anhand des autoritativen redemptionCount (nicht usageCount-Cache)', () => {
+    const code = makeCode({ usageLimit: 3, usageCount: 0 })
+    // Cache sagt 0, aber das append-only-Log zählt 3 → Limit erreicht.
+    expect(evaluateCodeRedeemability(code, active, { redemptionCount: 3 }).reason).toBe(
+      CodeRedeemReason.LIMIT_REACHED,
+    )
+    expect(evaluateCodeRedeemability(code, active, { redemptionCount: 2 }).ok).toBe(true)
+  })
+  it('wrong_customer bei kundengebundenem Code', () => {
+    const code = makeCode({ assignedCustomerId: 'cust-1' })
+    expect(evaluateCodeRedeemability(code, active, { customerId: 'cust-2' }).reason).toBe(
+      CodeRedeemReason.WRONG_CUSTOMER,
+    )
+    expect(evaluateCodeRedeemability(code, active, { customerId: 'cust-1' }).ok).toBe(true)
+  })
+  it('discount_inactive wenn der Rabatt nicht ACTIVE ist', () => {
+    const draft = makeDiscount({ status: 'DRAFT' })
+    expect(evaluateCodeRedeemability(makeCode(), draft).reason).toBe(CodeRedeemReason.DISCOUNT_INACTIVE)
   })
 })

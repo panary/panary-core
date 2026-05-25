@@ -8,6 +8,7 @@ import {
   DiscountStatus,
   DiscountValueType,
 } from './discount.schema'
+import type { DiscountCode } from './discount-code.schema'
 
 // Reine, deterministische Rabatt-Logik — ohne I/O, von Edge, Cloud und Frontend
 // nutzbar (eine Wahrheit für Anwendung, Eligibility und abgeleiteten Status).
@@ -214,6 +215,60 @@ export function isAutomaticDiscountApplicable(discount: Discount, ctx: DiscountC
 /** Filtert eine Rabatt-Liste auf die aktuell greifenden Automatik-Rabatte. */
 export function evaluateAutomaticDiscounts(discounts: Discount[], ctx: DiscountContext = {}): Discount[] {
   return discounts.filter(d => isAutomaticDiscountApplicable(d, ctx))
+}
+
+//#endregion
+
+//#region Phase 3 — Promo-Code-Einlösung
+
+export const CodeRedeemReason = {
+  OK: 'ok',
+  NOT_FOUND: 'not_found',
+  DELETED: 'deleted',
+  EXPIRED: 'expired',
+  LIMIT_REACHED: 'limit_reached',
+  WRONG_CUSTOMER: 'wrong_customer',
+  DISCOUNT_INACTIVE: 'discount_inactive',
+} as const
+export type CodeRedeemReason = (typeof CodeRedeemReason)[keyof typeof CodeRedeemReason]
+
+export interface CodeRedemptionContext {
+  now?: Date
+  /** Identifizierter Kunde (für an einen Kunden gebundene Codes). */
+  customerId?: string | null
+  /**
+   * Autoritative Anzahl bereits erfolgter Einlösungen (aus dem append-only
+   * `discount-code-redemptions`-Log). Fällt auf `code.usageCount` (Cache) zurück.
+   */
+  redemptionCount?: number
+}
+
+/**
+ * Ist ein Promo-Code aktuell einlösbar? Rein, ohne I/O. Der Aufrufer (Cloud-
+ * Redemption-Hook) reicht die autoritative Einlöse-Anzahl + den zugehörigen
+ * Rabatt durch. Limit-Prüfung gegen `redemptionCount` (append-only-Log =
+ * Wahrheit), nicht gegen den best-effort-Cache `code.usageCount`.
+ */
+export function evaluateCodeRedeemability(
+  code: DiscountCode | null | undefined,
+  discount: Discount | null | undefined,
+  ctx: CodeRedemptionContext = {},
+): { ok: boolean; reason: CodeRedeemReason } {
+  if (!code) return { ok: false, reason: CodeRedeemReason.NOT_FOUND }
+  const now = ctx.now ?? new Date()
+  if (code._deletedAt) return { ok: false, reason: CodeRedeemReason.DELETED }
+  if (code.expiresAt && now > new Date(code.expiresAt)) return { ok: false, reason: CodeRedeemReason.EXPIRED }
+  const count = ctx.redemptionCount ?? code.usageCount ?? 0
+  if (code.usageLimit != null && count >= code.usageLimit) {
+    return { ok: false, reason: CodeRedeemReason.LIMIT_REACHED }
+  }
+  if (code.assignedCustomerId && code.assignedCustomerId !== ctx.customerId) {
+    return { ok: false, reason: CodeRedeemReason.WRONG_CUSTOMER }
+  }
+  if (discount && discount.status !== DiscountStatus.ACTIVE) {
+    return { ok: false, reason: CodeRedeemReason.DISCOUNT_INACTIVE }
+  }
+  return { ok: true, reason: CodeRedeemReason.OK }
 }
 
 //#endregion

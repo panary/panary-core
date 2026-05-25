@@ -67,6 +67,25 @@ die Subventions-/COGS-/Z-Bon-Logik (`businessdays/aggregator`) bleibt damit
 unverändert korrekt. Personalessen ist also **Preisreduktion + Subventions-
 Tracking**, nicht das eine oder andere.
 
+## POS-Anwendung (Rabatt-Picker)
+
+Im Order-Dialog (`@panary/orders/feature-pos-order-dialog`) öffnet der
+„Rabatt"-Button (`sell`-Icon, untere Leiste) den `DiscountPickerDialogComponent`.
+Dieser lädt über `DiscountService.loadActivePosDiscounts()` die aktiven,
+**manuellen** Rabatte des POS-Kanals (Cloud-gepflegt, per Sync am Edge) und gibt
+die Auswahl zurück.
+
+- Die Auswahl wird als **Order-Level**-Snapshot (`target: 'order'`, `method:
+  'manual'`, `discountId` gesetzt) beim `placeOrder` in `appliedDiscounts[]`
+  geschrieben; die kanonische Engine füllt `computedAmountCents`.
+- Ist der Rabatt `isStaffMeal`, stempelt der Flow zusätzlich
+  `order.staffPaymentInfo` (siehe Personalessen).
+- Der Dialog zeigt den rabattierten Gesamtbetrag live über `computeOrderTax`
+  (durchgestrichener Originalpreis + neuer Betrag). Reset bei `deleteOrder()`.
+- **Positionsrabatte** (`target: 'line'`) sind bewusst Phase 2 — der Picker ist
+  Order-Level. Mehrfach-/Automatik-Kombination folgt der Engine-Reihenfolge
+  (LINE vor ORDER).
+
 ## Services & Sync
 
 - **Edge** (`apps/api-edge/src/services/discounts/`): read-only Spiegel,
@@ -83,8 +102,11 @@ Tracking**, nicht das eine oder andere.
 
 ## Offen / Folgeschritte
 
-- POS-Rabatt-Picker-UI (Auswahl aus `@panary/discounts/data-access`
-  `loadActivePosDiscounts`) — braucht Edge-Stack-UAT.
+- POS-Rabatt-Picker: Live-Stack-UAT (Rabatt in Cloud anlegen → Edge-Sync →
+  am POS anwenden) gegen eine gepairte Edge ausstehend; Build/Typecheck grün.
+- Positionsrabatte (`target: 'line'`) im POS-Picker (Phase 2).
 - Promo-Code-Einlösung + atomarer `usageCount`-Inc + Public-Validate — an die
   Storefront-Roadmap Phase 5 gekoppelt.
-- MwSt-Korrektur (Phase 0) gegen echte Bons validieren.
+- MwSt-Extraktion (Phase 0): Probeberechnung dokumentiert + 22 Engine-Tests grün
+  (siehe `order-bundle-pricing-modell.md` → „MwSt-Extraktion — Korrektur &
+  Probeberechnung"); Spot-Check gegen einen physischen Bon optional.

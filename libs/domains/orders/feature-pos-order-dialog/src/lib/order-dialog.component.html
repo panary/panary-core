@@ -305,9 +305,29 @@
         <!-- Gesamtbetrag -->
         <div class="bg-transparent shrink-0 rounded-b-xl relative z-10">
           <div class="mx-4 border-b border-dashed border-gray-200 dark:border-gray-700"></div>
+          @if (selectedManualDiscount(); as md) {
+            <div class="flex items-center gap-2 px-4 pt-2">
+              <span class="material-symbols-outlined text-[16px] text-amber-600 dark:text-amber-400">sell</span>
+              <span class="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate flex-1">
+                {{ md.name }}
+                <span class="text-gray-400 dark:text-gray-500">· {{ md.valueType === 'percent' ? md.valuePercent + ' %' : (md.valueCents / 100).toFixed(2) + ' €' }}</span>
+              </span>
+              <button type="button" (click)="clearManualDiscount()"
+                class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95">
+                <span class="material-symbols-outlined text-[16px]">close</span>
+              </button>
+            </div>
+          }
           <div class="flex justify-between items-center px-4 py-2.5">
             <span class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ 'COMMON.TOTAL' | translate }}</span>
-            <span class="text-lg font-black text-gray-800 dark:text-white">{{ calculateSumPrice() | currency: 'EUR' }}</span>
+            @if (selectedManualDiscount()) {
+              <span class="flex items-baseline gap-2">
+                <span class="text-xs font-medium text-gray-400 dark:text-gray-500 line-through">{{ calculateSumPrice() | currency: 'EUR' }}</span>
+                <span class="text-lg font-black text-gray-800 dark:text-white">{{ discountedTotal() | currency: 'EUR' }}</span>
+              </span>
+            } @else {
+              <span class="text-lg font-black text-gray-800 dark:text-white">{{ calculateSumPrice() | currency: 'EUR' }}</span>
+            }
           </div>
         </div>
       </div>
@@ -414,6 +434,14 @@
             {{ 'ORDER_DIALOG.ENTERPRISE_ONLY' | translate }}
           </div>
         }
+      </button>
+      <button
+        class="h-14 w-14 shrink-0 rounded-xl border active:scale-95 flex items-center justify-center transition-colors"
+        [ngClass]="selectedManualDiscount()
+          ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-300'
+          : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'"
+        (click)="openDiscountPicker()" aria-label="Rabatt wählen">
+        <span class="material-symbols-outlined !text-[22px]">sell</span>
       </button>
       <button
         class="h-14 w-32 shrink-0 rounded-xl bg-yellow-400 text-gray-900 font-bold shadow-sm transition-transform text-xs group overflow-hidden active:scale-[0.92] flex items-center justify-center gap-1.5"

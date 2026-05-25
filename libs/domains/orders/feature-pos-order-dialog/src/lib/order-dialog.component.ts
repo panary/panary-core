@@ -42,7 +42,9 @@ import {
   OrderService,
   StaffPaymentInfo,
 } from '@panary/orders/data-access'
-import { AppliedDiscount, Discount, LineComponent } from '@panary/orders/domain'
+import { AppliedDiscount, Discount, LineComponent, computeOrderTax } from '@panary/orders/domain'
+import { Discount as ManagedDiscount } from '@panary/discounts/domain'
+import { DiscountService } from '@panary/discounts/data-access'
 import { uuidv7 } from 'uuidv7'
 import { PreOrderService } from '@panary/pre-orders/data-access'
 import { LocationService } from '@panary/locations/data-access'
@@ -52,6 +54,7 @@ import { ConnectionService } from '@panary/shared/data-access'
 import { DeviceConfigService } from '@panary/shared/data-access-config'
 import { CorporateCustomer } from '@panary/corporate-customers/domain'
 import { PreOrderQuickDialogComponent } from './pre-order-quick-dialog.component'
+import { DiscountPickerDialogComponent } from './discount-picker-dialog.component'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 // TODO: CorporateCustomerService fehlt noch in @panary/corporate-customers/data-access — nach Migration einbinden
 // TODO: AppButtonDirective fehlt noch in panary-core — nach Migration einbinden
@@ -109,6 +112,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly orderInteractionService: OrderInteractionService = inject(OrderInteractionService)
   protected readonly deviceConfigService: DeviceConfigService = inject(DeviceConfigService)
   protected readonly preOrderService: PreOrderService = inject(PreOrderService)
+  protected readonly discountService: DiscountService = inject(DiscountService)
 
   /** VIEW CHILDREN */
   // TODO: @ViewChild durch viewChild()-Signal ersetzen, sobald AfterViewInit-Logik migriert ist
@@ -140,6 +144,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private _selectedProductIndex: number | null = null
   private _selectedCombinationIndex: [number | null, number | null] = [null, null]
   private _staffMealOrder = false
+  // Manuell am POS gewählter Order-Rabatt (Cloud-gepflegte Definition). Wird beim
+  // placeOrder zu einem appliedDiscount-Snapshot; Personalessen-Rabatt stempelt zusätzlich staffPaymentInfo.
+  readonly selectedManualDiscount = signal<ManagedDiscount | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _productButtons: any[] = []
   private _table: string | undefined = undefined
@@ -482,6 +489,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.#lineItems = []
     this.#orderOpenedAt = new Date()
     this.#orderInteractions = []
+    this.selectedManualDiscount.set(null)
   }
 
   unselectProduct() {
@@ -2148,6 +2156,21 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       )
     }
 
+    // Manuell am POS gewählter Order-Rabatt (Cloud-gepflegte Definition).
+    const manual = this.selectedManualDiscount()
+    if (manual) {
+      appliedDiscounts.push(this.#managedToApplied(manual))
+      // Personalessen-Rabatt koppelt an staffPaymentInfo (Subventions-Tracking), falls
+      // nicht ohnehin schon als Personalessen-Bestellung erfasst.
+      if (manual.isStaffMeal && this._currentUser && !staffMealDetails) {
+        staffMealDetails = {
+          userId: this._currentUser._id,
+          userName: this._currentUser.firstName + ' ' + this._currentUser.lastName,
+          isPaid: false,
+        }
+      }
+    }
+
     const orderIndex = this.orderService.createOrder(
       this.#lineItems,
       OrderChannel.TELEPHONE,
@@ -2206,6 +2229,60 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       appliedAt: new Date().toISOString(),
       isStaffMeal: opts.isStaffMeal,
     }
+  }
+
+  /** Baut den AppliedDiscount-Snapshot aus einer Cloud-gepflegten Rabatt-Definition (Order-Level). */
+  #managedToApplied(d: ManagedDiscount): AppliedDiscount {
+    return {
+      _id: uuidv7(),
+      discountId: d._id,
+      name: d.name,
+      method: 'manual',
+      target: 'order',
+      valueType: d.valueType,
+      valuePercent: d.valueType === 'percent' ? d.valuePercent : 0,
+      valueCents: d.valueType === 'amount' ? d.valueCents : 0,
+      computedAmountCents: 0,
+      appliedBy: this._currentUser?._id ?? null,
+      appliedAt: new Date().toISOString(),
+      isStaffMeal: d.isStaffMeal,
+    }
+  }
+
+  /** Öffnet den Touch-Picker für manuelle POS-Rabatte und übernimmt die Auswahl. */
+  openDiscountPicker(): void {
+    const ref = this.matDialog.open(DiscountPickerDialogComponent, {
+      width: '640px',
+      maxWidth: '92vw',
+      panelClass: ['!rounded-2xl', 'overflow-hidden'],
+    })
+    ref.afterClosed().subscribe((selected: ManagedDiscount | undefined) => {
+      if (!selected) return
+      this.selectedManualDiscount.set(selected)
+      this.#cdr.markForCheck()
+    })
+  }
+
+  /** Entfernt den manuell gewählten Rabatt wieder. */
+  clearManualDiscount(): void {
+    this.selectedManualDiscount.set(null)
+    this.#cdr.markForCheck()
+  }
+
+  /**
+   * Vorschau-Gesamtbetrag inkl. manuell gewähltem Rabatt (kanonische Engine).
+   * Ohne Rabatt identisch zu calculateSumPrice (Brutto-Summe).
+   */
+  discountedTotal(): number {
+    const manual = this.selectedManualDiscount()
+    if (!manual) return this.calculateSumPrice()
+    const order = {
+      lineItems: this.#lineItems,
+      dineLocation: !this._dineLocation ? DineLocation.DINE_IN : this._dineLocation,
+      appliedDiscounts: [this.#managedToApplied(manual)],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any
+    return computeOrderTax(order).brutto
   }
 
   togglePriceVisibility() {

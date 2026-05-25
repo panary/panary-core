@@ -88,7 +88,7 @@
     "angularx-qrcode": "^21.0.4",
     "axios": "^1.16.0",
     "cross-env": "^10.1.0",
-    "echarts": "^6.0.0",
+    "echarts": "^6.1.0",
     "esbuild": "^0.28.0",
     "eslint": "^9.8.0",
     "eslint-config-prettier": "^10.0.0",

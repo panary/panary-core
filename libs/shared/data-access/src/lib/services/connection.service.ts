@@ -68,6 +68,10 @@ export class ConnectionService {
   // `Date.now() - lastSyncAt` ohne Polling-Roundtrip aktualisiert werden.
   readonly #lastSyncAt: WritableSignal<string | null> = signal(null)
   readonly #edgeTokenExpiresAt: WritableSignal<string | null> = signal(null)
+  // Cloud-Erreichbarkeit + Offline-Override (aus /health, RBAC-frei) — speisen
+  // den priorisierten Cloud-Status-Banner (cloudUnreachable / offlineModeActive).
+  readonly #lastCloudContactAt: WritableSignal<string | null> = signal(null)
+  readonly #offlineOverrideActiveUntil: WritableSignal<string | null> = signal(null)
   readonly #tick: WritableSignal<number> = signal(0)
   #tickTimer: ReturnType<typeof setInterval> | null = null
 
@@ -280,6 +284,10 @@ export class ConnectionService {
   // Operator-Noise im Normalbetrieb.
   static readonly TOKEN_WARN_SEC = 4 * 3600 // 4 h
   static readonly TOKEN_CRIT_SEC = 3600 // 1 h
+  // Cloud gilt als unerreichbar, wenn der letzte Cloud-Kontakt aelter ist als
+  // diese Schwelle. > Heartbeat (30s) + /health-Poll (60s) + Puffer, sonst
+  // flackert der Banner bei ~61s.
+  static readonly CLOUD_CONTACT_STALE_SEC = 90 // 90 s
 
   /**
    * Alter des letzten erfolgreichen Cloud-Syncs.
@@ -325,6 +333,55 @@ export class ConnectionService {
           ? 'warn'
           : 'ok'
     return { remainingSec, level }
+  })
+
+  /**
+   * Offline-Modus aktiv: Operator hat den 2h-Override (`offlineOverrideActiveUntil`)
+   * gesetzt, der lokale Geschaeftstag-Rotation trotz Cloud-Ausfall erlaubt.
+   * Re-Computed ueber `#tick`, damit der Countdown ohne Poll frisch bleibt.
+   */
+  readonly offlineModeActive = computed(() => {
+    this.#tick()
+    const ts = this.#offlineOverrideActiveUntil()
+    if (!ts) return false
+    const untilMs = Date.parse(ts)
+    return Number.isFinite(untilMs) && untilMs > Date.now()
+  })
+
+  /** Restminuten des aktiven Offline-Override (0, wenn inaktiv). */
+  readonly offlineModeRemainingMin = computed(() => {
+    this.#tick()
+    const ts = this.#offlineOverrideActiveUntil()
+    if (!ts) return 0
+    const remainingMs = Date.parse(ts) - Date.now()
+    return Math.max(0, Math.floor(remainingMs / 60_000))
+  })
+
+  /**
+   * Cloud unerreichbar: Edge ist gepairt (Tier 3, pairing connected), aber der
+   * letzte Cloud-Kontakt ist aelter als CLOUD_CONTACT_STALE_SEC — und es ist
+   * KEIN Offline-Override aktiv (sonst zeigt der Banner den Offline-Modus).
+   * Neue Bestellungen werden in diesem Zustand blockiert.
+   */
+  readonly cloudUnreachable = computed(() => {
+    this.#tick()
+    if (this.#systemMode() !== 'connected') return false
+    if (this.#cloudPairingStatus() !== 'connected') return false
+    if (this.offlineModeActive()) return false
+    const ts = this.#lastCloudContactAt()
+    if (!ts) return false
+    const ageSec = Math.floor((Date.now() - Date.parse(ts)) / 1000)
+    return Number.isFinite(ageSec) && ageSec > ConnectionService.CLOUD_CONTACT_STALE_SEC
+  })
+
+  /** Minuten seit letztem Cloud-Kontakt (null, wenn unbekannt). */
+  readonly lastCloudContactAgeMin = computed(() => {
+    this.#tick()
+    const ts = this.#lastCloudContactAt()
+    if (!ts) return null
+    const ageMs = Date.now() - Date.parse(ts)
+    if (!Number.isFinite(ageMs) || ageMs < 0) return null
+    return Math.floor(ageMs / 60_000)
   })
 
   get smartcardService(): Service {
@@ -728,6 +785,12 @@ export class ConnectionService {
         this.#lastSyncAt.set(typeof data.lastSyncAt === 'string' ? data.lastSyncAt : null)
         this.#edgeTokenExpiresAt.set(
           typeof data.edgeTokenExpiresAt === 'string' ? data.edgeTokenExpiresAt : null,
+        )
+        this.#lastCloudContactAt.set(
+          typeof data.lastCloudContactAt === 'string' ? data.lastCloudContactAt : null,
+        )
+        this.#offlineOverrideActiveUntil.set(
+          typeof data.offlineOverrideActiveUntil === 'string' ? data.offlineOverrideActiveUntil : null,
         )
       }
     } catch {

@@ -129,6 +129,11 @@ app.use(async (ctx, next) => {
     // den Status kennt, ohne `cloud-connection.get()` aufrufen zu muessen.
     let lastSyncAt: string | undefined
     let edgeTokenExpiresAt: string | undefined
+    // Cloud-Erreichbarkeit + Offline-Override — RBAC-frei, damit der priorisierte
+    // Cloud-Status-Banner in POS UND Admin diese Zustaende kennt, ohne RBAC-Recht
+    // auf den `cloud-connection`-Service.
+    let lastCloudContactAt: string | undefined
+    let offlineOverrideActiveUntil: string | undefined
     try {
       const result = await (app.service('cloud-connection') as any).find({
         provider: undefined,
@@ -141,6 +146,8 @@ app.use(async (ctx, next) => {
         cloudTokenErrorReason = conn.tokenErrorReason
         lastSyncAt = conn.lastSyncAt
         edgeTokenExpiresAt = conn.edgeTokenExpiresAt
+        lastCloudContactAt = conn.lastCloudContactAt ?? undefined
+        offlineOverrideActiveUntil = conn.offlineOverrideActiveUntil ?? undefined
       }
     } catch {
       // ignore — health darf nicht failen
@@ -168,6 +175,8 @@ app.use(async (ctx, next) => {
       cloudTokenErrorReason,
       lastSyncAt,
       edgeTokenExpiresAt,
+      lastCloudContactAt,
+      offlineOverrideActiveUntil,
     }
     ctx.status = 200
     return

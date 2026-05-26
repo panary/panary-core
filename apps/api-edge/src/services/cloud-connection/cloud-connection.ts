@@ -467,6 +467,10 @@ export const cloudConnection = (app: Application) => {
       // "Token abgelaufen — neu pairen"-Banner (POS/Admin) verschwindet erst nach
       // dem naechsten erfolgreichen Heartbeat statt sofort beim Re-Pairing.
       edgeTokenExpiresAt: pairResponse.cloudTokenExpiresAt,
+      // Alten Token-Fehlerzustand leeren — sonst meldet /health nach erfolgreichem
+      // Re-Pairing weiterhin einen veralteten tokenErrorReason (z.B. 'token-expired').
+      tokenErrorReason: null,
+      lastTokenErrorAt: null,
       pairingStatus: PairingStatus.CONNECTED,
       connectedAt: now,
       syncEnabled: true,

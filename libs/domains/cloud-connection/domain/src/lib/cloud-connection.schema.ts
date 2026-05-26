@@ -112,8 +112,10 @@ export const cloudConnectionSchema = Type.Object(
     // ('Edge-Token abgelaufen' / 'Cloud-Edge widerrufen') zurueckgibt — der
     // pairingStatus wird gleichzeitig auf DISCONNECTED gesetzt, damit Setup-
     // und POS-Client den Re-Pairing-Bedarf sichtbar machen koennen.
-    lastTokenErrorAt: Type.Optional(Type.String({ format: 'date-time' })),
-    tokenErrorReason: Type.Optional(Type.String({ maxLength: 2000 })),
+    // Nullable, damit der (Re-)Pairing-Flow den alten Token-Fehler aktiv leeren
+    // kann (null = etabliertes Clear-Pattern, vgl. offlineOverrideActiveUntil).
+    lastTokenErrorAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
+    tokenErrorReason: Type.Optional(Type.Union([Type.String({ maxLength: 2000 }), Type.Null()])),
     // Spiegelt das Token-Ablaufdatum aus `cloud-edges.tokenExpiresAt` (Cloud-Seite).
     // Wird vom Sync-Scheduler nach jedem erfolgreichen Sync aktualisiert, damit
     // POS- und Admin-Client den Token-Countdown anzeigen koennen, ohne dass

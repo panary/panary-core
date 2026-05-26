@@ -3,6 +3,8 @@ export * from './lib/services/null.service'
 export * from './lib/services/realtime-scope-guard'
 export * from './lib/services/base.service'
 export * from './lib/services/connection.service'
+export * from './lib/services/cloud-status-banner.selector'
+export * from './lib/services/cloud-status-banner.service'
 // export * from './lib/services/mqtt.service' // Noch nicht migriert – LocationService-Abhängigkeit würde Zirkulärdependenz erzeugen
 
 

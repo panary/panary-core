@@ -39,7 +39,7 @@ Funktion wählt den höchstpriorisierten aktiven Zustand. Die Leiter bildet die
 | 2 | `re-pairing-required` | `cloudNeedsRePairing` (Tier 3 + `cloudPairingStatus==='disconnected'`) | 90 | crit | – |
 | 3 | `offline-mode-active` | Override aktiv (`offlineOverrideActiveUntil` in Zukunft) | 80 | warn | – (Restminuten) |
 | 4 | `token-expired` | `tokenExpiry.level==='crit'` & `remainingSec<=0` | 70 | crit | – |
-| 5 | `cloud-unreachable` | Tier 3 + pairing connected + `lastCloudContactAt` > 90s + Override inaktiv | 60 | crit | `activate-offline-mode` |
+| 5 | `cloud-unreachable` | Tier 3 + pairing connected + `lastCloudContactAt` > `CLOUD_CONTACT_STALE_SEC` (5 min) + Override inaktiv | 60 | crit | `activate-offline-mode` |
 | 6 | `token-expiring-soon` | `tokenExpiry.level==='warn'` | 40 | warn | – |
 | 7/8 | `sync-stale` | `syncStaleness.level==='crit'`/`'warn'` | 30/20 | warn/info | – |
 
@@ -60,8 +60,11 @@ Kein Eintrag aktiv → kein Banner.
   `lastCloudContactAt` stale → Sieger **`token-expired`** → nur „Token abgelaufen —
   neu pairen". (Der abgelaufene Token ist die Wurzel; „nicht erreichbar" + „Sync
   veraltet" sind Folgen.)
-- **Stale-Schwelle 90s** (nicht 60s): Heartbeat 30s + `/health`-Poll 60s + Puffer,
-  sonst flackert der Banner bei ~61s.
+- **Stale-Schwelle 5 min** (`CLOUD_CONTACT_STALE_SEC`): Single Source of Truth im
+  `ConnectionService`, von Dashboard-Pille, Banner UND Cloud-Kopplung-Live-Status
+  geteilt (Konsistenz). Ruhig genug, dass kurze Cloud-Neustarts keinen Fehlalarm
+  auslösen — eine kurze Cloud-Unterbrechung zeigt daher bewusst KEIN „nicht
+  erreichbar".
 
 ## Architektur
 

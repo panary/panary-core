@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http'
 import { RouterLink } from '@angular/router'
 import { lastValueFrom } from 'rxjs'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { ConnectionService } from '@panary/shared/data-access'
 import { ApiService, Paginated } from '../../core/api.service'
 import { SyncProblemCountService } from '../../core/sync-problem-count.service'
 import { DeviceStatusService } from '../../core/device-status.service'
@@ -53,7 +54,9 @@ const CLOUD_STATUS_CONFIG: Record<CloudStatus, { labelKey: string; icon: string;
 // Edge↔Cloud-Kontakt gilt als „frisch", solange er < 5 min her ist. Der
 // Realtime-Worker stempelt `lastCloudContactAt` bei aktiver Socket-Verbindung;
 // bleibt es länger aus, ist die Cloud trotz Pairing nicht erreichbar.
-const CLOUD_CONTACT_STALE_SEC = 5 * 60
+// Zentrale Schwelle aus dem ConnectionService — identisch zu Cloud-Status-Banner
+// und Cloud-Kopplung-Live-Status (Konsistenz über alle drei Oberflächen).
+const CLOUD_CONTACT_STALE_SEC = ConnectionService.CLOUD_CONTACT_STALE_SEC
 
 // Leitet den ECHTEN Kopplungsstatus aus dem cloud-connection-Datensatz ab —
 // NICHT aus der statischen system.mode-Config (die /health als systemMode

@@ -285,9 +285,10 @@ export class ConnectionService {
   static readonly TOKEN_WARN_SEC = 4 * 3600 // 4 h
   static readonly TOKEN_CRIT_SEC = 3600 // 1 h
   // Cloud gilt als unerreichbar, wenn der letzte Cloud-Kontakt aelter ist als
-  // diese Schwelle. > Heartbeat (30s) + /health-Poll (60s) + Puffer, sonst
-  // flackert der Banner bei ~61s.
-  static readonly CLOUD_CONTACT_STALE_SEC = 90 // 90 s
+  // diese Schwelle. SINGLE SOURCE OF TRUTH fuer Dashboard-Pille, Cloud-Status-
+  // Banner und Cloud-Kopplung-Live-Status — alle drei muessen konsistent sein.
+  // 5 min: ruhig genug, dass kurze Cloud-Blips/Neustarts keinen Alarm ausloesen.
+  static readonly CLOUD_CONTACT_STALE_SEC = 5 * 60 // 5 min
 
   /**
    * Alter des letzten erfolgreichen Cloud-Syncs.

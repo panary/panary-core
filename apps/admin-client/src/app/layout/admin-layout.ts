@@ -9,7 +9,6 @@ import { DeviceStatusService } from '../core/device-status.service'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { LanguageService } from '@panary/shared/data-access'
 import { LocationStateService } from '../core/location-state.service'
-import { OfflineOverrideBannerComponent } from '../features/cloud-connection/offline-override-banner'
 
 interface NavItem {
   path: string
@@ -38,7 +37,7 @@ interface NavItem {
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslateModule, OfflineOverrideBannerComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="h-screen bg-slate-50 dark:bg-black flex">
@@ -222,9 +221,7 @@ interface NavItem {
 
       <!-- Main Content -->
       <main class="flex-1 overflow-hidden flex flex-col">
-        <!-- Banner: zeigt nur bei CONNECTED + Cloud-Outage. Setzt sich
-             beim naechsten erfolgreichen Pull-Tick automatisch zurueck. -->
-        <app-offline-override-banner />
+        <!-- Cloud-Status-Banner liegt global in app.ts (priorisiert, ein Banner). -->
         <div class="flex-1 overflow-hidden">
           <router-outlet />
         </div>

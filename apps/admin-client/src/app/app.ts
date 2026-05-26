@@ -1,29 +1,36 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { RouterOutlet } from '@angular/router'
-import { ConnectionService, LanguageService } from '@panary/shared/data-access'
-import { CloudStatusBadgesComponent } from '@panary/shared/ui-cloud-status'
+import { type CloudBannerActionKind, CloudStatusBannerService, LanguageService } from '@panary/shared/data-access'
+import { CloudStatusBannerComponent } from '@panary/shared/ui-cloud-status'
+
+import { OfflineOverrideService } from './core/offline-override.service'
 
 @Component({
-  imports: [RouterOutlet, CloudStatusBadgesComponent],
+  imports: [RouterOutlet, CloudStatusBannerComponent],
   selector: 'app-root',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- Cloud-Sync-Alter und Token-Restlaufzeit — schwebende Badge,
-         gleiche Optik wie im POS-Client. Stack-Container haelt die Pillen
-         oben am Viewport-Rand. Komponente rendert nichts, wenn beide
-         Trigger auf level === 'ok' stehen. -->
-    <div class="fixed top-3 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2">
-      <lib-cloud-status-badges [sync]="syncStaleness()" [token]="tokenExpiry()" />
-    </div>
+    <!-- Genau EIN priorisierter Cloud-Status-Banner (positioniert sich selbst).
+         Offline-Modus-Aktion ist im Admin freigeschaltet (RBAC: cloud-connection). -->
+    <lib-cloud-status-banner [banner]="banner()" [enableOfflineModeAction]="true" (action)="onBannerAction($event)" />
     <router-outlet />
   `,
 })
 export class App {
   // Eager-Init: translate.use() muss vor Login laufen
   protected lang = inject(LanguageService)
-  #connectionService = inject(ConnectionService)
+  #bannerService = inject(CloudStatusBannerService)
+  #offlineOverride = inject(OfflineOverrideService)
 
-  protected readonly syncStaleness = this.#connectionService.syncStaleness
-  protected readonly tokenExpiry = this.#connectionService.tokenExpiry
+  protected readonly banner = this.#bannerService.activeBanner
+
+  protected onBannerAction(kind: CloudBannerActionKind): void {
+    if (kind === 'reload') {
+      window.location.reload()
+      return
+    }
+    // activate-offline-mode
+    void this.#offlineOverride.activate()
+  }
 }

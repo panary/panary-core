@@ -1,2 +1,1 @@
-export * from './lib/cloud-status-badges/cloud-status-badges.component'
-export * from './lib/cloud-status-badges/cloud-status.types'
+export * from './lib/cloud-status-banner/cloud-status-banner.component'

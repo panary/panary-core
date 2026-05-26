@@ -94,7 +94,16 @@
     "SYNC_NEVER": "No cloud sync yet",
     "TOKEN_EXPIRES_IN_HOURS": "Token expires in {{hours}} h",
     "TOKEN_EXPIRES_IN_MINUTES": "Token expires in {{minutes}} min",
-    "TOKEN_EXPIRED": "Token expired — re-pair required"
+    "TOKEN_EXPIRED": "Token expired — re-pair required",
+    "CLIENT_OFFLINE": "No connection to the server",
+    "RELOAD": "Reload",
+    "REPAIRING_REQUIRED": "Cloud connection lost — re-pair required",
+    "REPAIRING_REASON": "Reason: {{reason}}",
+    "CLOUD_UNREACHABLE": "Cloud connection unreachable",
+    "ORDERS_BLOCKED": "New orders are blocked until the cloud responds again.",
+    "ACTIVATE_OFFLINE_MODE": "Activate offline mode",
+    "OFFLINE_MODE_ACTIVE": "Offline mode active",
+    "OFFLINE_MODE_ACTIVE_SUBLINE": "Edge generates business days locally. Auto-reset on the next successful cloud pull. Active for {{minutes}} more minutes."
   },
   "COMMON": {
     "SAVE": "Save",

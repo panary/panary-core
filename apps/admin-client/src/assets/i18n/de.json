@@ -94,7 +94,16 @@
     "SYNC_NEVER": "Noch kein Cloud-Sync",
     "TOKEN_EXPIRES_IN_HOURS": "Token läuft in {{hours}} h ab",
     "TOKEN_EXPIRES_IN_MINUTES": "Token läuft in {{minutes}} min ab",
-    "TOKEN_EXPIRED": "Token abgelaufen — neu pairen"
+    "TOKEN_EXPIRED": "Token abgelaufen — neu pairen",
+    "CLIENT_OFFLINE": "Keine Verbindung zum Server",
+    "RELOAD": "Neu laden",
+    "REPAIRING_REQUIRED": "Cloud-Verbindung getrennt — neu pairen",
+    "REPAIRING_REASON": "Grund: {{reason}}",
+    "CLOUD_UNREACHABLE": "Cloud-Verbindung nicht erreichbar",
+    "ORDERS_BLOCKED": "Neue Bestellungen werden blockiert, bis die Cloud wieder antwortet.",
+    "ACTIVATE_OFFLINE_MODE": "Offline-Modus aktivieren",
+    "OFFLINE_MODE_ACTIVE": "Offline-Modus aktiv",
+    "OFFLINE_MODE_ACTIVE_SUBLINE": "Edge generiert Geschäftstage lokal. Auto-Reset beim nächsten erfolgreichen Cloud-Pull. Aktiv noch {{minutes}} Minuten."
   },
   "COMMON": {
     "SAVE": "Speichern",

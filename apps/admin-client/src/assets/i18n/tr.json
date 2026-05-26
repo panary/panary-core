@@ -94,7 +94,16 @@
     "SYNC_NEVER": "Henüz bulut senkronizasyonu yok",
     "TOKEN_EXPIRES_IN_HOURS": "Token {{hours}} sa içinde sona erecek",
     "TOKEN_EXPIRES_IN_MINUTES": "Token {{minutes}} dk içinde sona erecek",
-    "TOKEN_EXPIRED": "Token süresi doldu — yeniden eşleştirin"
+    "TOKEN_EXPIRED": "Token süresi doldu — yeniden eşleştirin",
+    "CLIENT_OFFLINE": "Sunucuya bağlantı yok",
+    "RELOAD": "Yeniden yükle",
+    "REPAIRING_REQUIRED": "Bulut bağlantısı kesildi — yeniden eşleştirme gerekli",
+    "REPAIRING_REASON": "Neden: {{reason}}",
+    "CLOUD_UNREACHABLE": "Bulut bağlantısına ulaşılamıyor",
+    "ORDERS_BLOCKED": "Bulut yeniden yanıt verene kadar yeni siparişler engellenir.",
+    "ACTIVATE_OFFLINE_MODE": "Çevrimdışı modu etkinleştir",
+    "OFFLINE_MODE_ACTIVE": "Çevrimdışı mod etkin",
+    "OFFLINE_MODE_ACTIVE_SUBLINE": "Edge, iş günlerini yerel olarak oluşturur. Bir sonraki başarılı bulut çekiminde otomatik sıfırlama. {{minutes}} dakika daha etkin."
   },
   "COMMON": {
     "SAVE": "Kaydet",

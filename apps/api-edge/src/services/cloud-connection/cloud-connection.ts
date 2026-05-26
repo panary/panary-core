@@ -462,6 +462,11 @@ export const cloudConnection = (app: Application) => {
       edgeName: data.edgeName,
       cloudToken: pairResponse.cloudToken,
       cloudEdgeId: pairResponse.cloudEdgeId,
+      // Token-Ablauf direkt aus der Pairing-Antwort uebernehmen. Sonst bleibt ein
+      // abgelaufenes edgeTokenExpiresAt aus einem vorherigen Pairing stehen und der
+      // "Token abgelaufen — neu pairen"-Banner (POS/Admin) verschwindet erst nach
+      // dem naechsten erfolgreichen Heartbeat statt sofort beim Re-Pairing.
+      edgeTokenExpiresAt: pairResponse.cloudTokenExpiresAt,
       pairingStatus: PairingStatus.CONNECTED,
       connectedAt: now,
       syncEnabled: true,

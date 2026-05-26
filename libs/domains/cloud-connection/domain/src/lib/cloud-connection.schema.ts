@@ -218,6 +218,10 @@ export const cloudConnectionDataSchema = Type.Object(
     cloudEdgeId: Type.Optional(Type.String()),
     pairingStatus: Type.Optional(StringEnum(Object.values(PairingStatus))),
     connectedAt: Type.Optional(Type.String({ format: 'date-time' })),
+    // Token-Ablauf des frisch gepairten Cloud-Tokens — direkt beim Pairing aus
+    // der Pairing-Antwort uebernommen, damit der Token-Countdown sofort frisch
+    // ist (sonst bleibt ein abgelaufenes edgeTokenExpiresAt stehen).
+    edgeTokenExpiresAt: Type.Optional(Type.String({ format: 'date-time' })),
     syncEnabled: Type.Optional(Type.Boolean()),
     initialDirection: Type.Optional(StringEnum(Object.values(InitialSyncDirection))),
     bootstrapStatus: Type.Optional(StringEnum(Object.values(BootstrapStatus))),
@@ -257,6 +261,7 @@ export const cloudConnectionPatchSchema = Type.Partial(
     'errorMessage',
     'lastTokenErrorAt',
     'tokenErrorReason',
+    'edgeTokenExpiresAt',
     'initialDirection',
     'bootstrapStatus',
     'bootstrapStartedAt',

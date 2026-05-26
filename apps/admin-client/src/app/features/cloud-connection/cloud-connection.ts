@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, inject, signal, OnInit } from '@angular/core'
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, effect, inject, signal, untracked, OnInit } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
+import { ConnectionService } from '@panary/shared/data-access'
 import { ApiService } from '../../core/api.service'
 import { formatApiError } from '../../core/error-helper'
 import { ConfirmDialogComponent } from '../../core/confirm-dialog'
@@ -540,13 +541,19 @@ const directionLabel = (dir: InitialDirection): string => {
                   </div>
                 </div>
               } @else {
-                <div class="flex items-center gap-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900/50 rounded-xl p-4">
-                  <div class="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
-                  <div>
-                    <span class="text-sm text-green-700 dark:text-green-400 font-medium">Mit Cloud verbunden</span>
-                    @if (connectionInfo()?.bootstrapStatus === 'in-progress') {
-                      <span class="text-xs text-amber-700 ml-2">— Bootstrap laeuft</span>
-                    }
+                <!-- Live-Status: persistente Kopplung besteht (gepairt), aber Dot/Label/
+                     Subline spiegeln die AKTUELLE Cloud-Erreichbarkeit (wie der
+                     Dashboard-Banner) statt dauerhaft "verbunden" zu zeigen. -->
+                <div [class]="liveBoxClass()">
+                  <div [class]="liveDotClass()"></div>
+                  <div class="flex flex-col">
+                    <span [class]="liveTextClass()">
+                      {{ liveStatusLabel() }}
+                      @if (connectionInfo()?.bootstrapStatus === 'in-progress') {
+                        <span class="text-xs text-amber-700 ml-1">— Bootstrap laeuft</span>
+                      }
+                    </span>
+                    <span class="text-xs text-slate-500 dark:text-gray-400">{{ liveStatusSubline() }}</span>
                   </div>
                 </div>
               }
@@ -756,6 +763,95 @@ export class CloudConnectionComponent implements OnInit {
   private cdr = inject(ChangeDetectorRef)
   private route = inject(ActivatedRoute)
   private router = inject(Router)
+  // Live-Cloud-Erreichbarkeit aus dem geteilten ConnectionService (/health-Poll,
+  // 60s + 60s-Tick). `connectionState`/`pairingStatus` unten = persistente Kopplung
+  // (gepairt → bleibt 'connected'); diese Signals = LIVE-Status (wie der Dashboard-Banner).
+  #conn = inject(ConnectionService)
+
+  constructor() {
+    // Trennt die Cloud die Kopplung serverseitig (Token widerrufen/abgelaufen),
+    // den Seiten-State EINMALIG neu laden → aus 'connected' wird der Re-Pairing-
+    // Wizard, statt veraltet "Mit Cloud verbunden" zu zeigen. Read getrackt,
+    // loadConnection-Body via untracked() (angular.md §2.1).
+    effect(() => {
+      const needsRePairing = this.#conn.cloudNeedsRePairing()
+      if (needsRePairing && this.connectionState() === 'connected') {
+        untracked(() => void this.loadConnection())
+      }
+    })
+  }
+
+  /**
+   * Live-Erreichbarkeit der Cloud im gepairten Zustand (im Gegensatz zum
+   * persistenten `pairingStatus`). Reihenfolge nach Schwere.
+   */
+  protected readonly liveStatus = computed<'online' | 'offline-mode' | 'unreachable'>(() => {
+    if (this.#conn.offlineModeActive()) return 'offline-mode'
+    if (this.#conn.cloudUnreachable()) return 'unreachable'
+    return 'online'
+  })
+
+  protected liveStatusLabel(): string {
+    switch (this.liveStatus()) {
+      case 'unreachable':
+        return 'Cloud momentan nicht erreichbar'
+      case 'offline-mode':
+        return 'Offline-Modus aktiv'
+      default:
+        return 'Mit Cloud verbunden'
+    }
+  }
+
+  protected liveStatusSubline(): string {
+    const ageMin = this.#conn.lastCloudContactAgeMin()
+    switch (this.liveStatus()) {
+      case 'offline-mode':
+        return `Edge generiert Geschäftstage lokal — noch ${this.#conn.offlineModeRemainingMin()} Min.`
+      case 'unreachable':
+        return ageMin === null
+          ? 'Letzter Cloud-Kontakt unbekannt — neue Bestellungen werden blockiert.'
+          : `Letzter Cloud-Kontakt vor ${ageMin} Min. — neue Bestellungen werden blockiert.`
+      default:
+        return ageMin === null || ageMin <= 0
+          ? 'Online — letzter Kontakt gerade eben.'
+          : `Online — letzter Kontakt vor ${ageMin} Min.`
+    }
+  }
+
+  protected liveBoxClass(): string {
+    const base = 'flex items-center gap-3 border rounded-xl p-4'
+    switch (this.liveStatus()) {
+      case 'unreachable':
+        return `${base} bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50`
+      case 'offline-mode':
+        return `${base} bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/50`
+      default:
+        return `${base} bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900/50`
+    }
+  }
+
+  protected liveDotClass(): string {
+    const base = 'w-3 h-3 rounded-full shrink-0'
+    switch (this.liveStatus()) {
+      case 'unreachable':
+        return `${base} bg-red-500`
+      case 'offline-mode':
+        return `${base} bg-amber-500`
+      default:
+        return `${base} bg-green-400 animate-pulse`
+    }
+  }
+
+  protected liveTextClass(): string {
+    switch (this.liveStatus()) {
+      case 'unreachable':
+        return 'text-sm font-medium text-red-700 dark:text-red-400'
+      case 'offline-mode':
+        return 'text-sm font-medium text-amber-700 dark:text-amber-400'
+      default:
+        return 'text-sm font-medium text-green-700 dark:text-green-400'
+    }
+  }
 
   // Tab-Auswahl im Connected-View. URL-Query-Param `?tab=history` haelt den
   // Wert ueber Reloads hinweg; Default ohne Param ist 'connection'.

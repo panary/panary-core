@@ -3,8 +3,14 @@ title: Cloud-Status-Badge — Sync-Alter + Token-Ablauf (POS + Admin)
 date: 2026-05-16
 category: Feature
 domains: [cloud-connection, shared/ui]
-status: implemented
+status: superseded
 ---
+
+> **⚠️ Abgelöst (2026-05-27):** Die hier beschriebenen separaten Sync-/Token-Badges
+> (`<lib-cloud-status-badges>`) wurden durch das **priorisierte Einzel-Banner-System**
+> ersetzt — es ist nur noch genau ein Banner sichtbar (höchste Gewichtung gewinnt).
+> Siehe [cloud-status-banner-priorisierung.md](cloud-status-banner-priorisierung.md).
+> Dieses Dokument bleibt als Historie der ursprünglichen Badge-Lösung erhalten.
 
 # Cloud-Status-Badge — Sync-Alter + Token-Ablauf
 

@@ -1,68 +1,31 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { Router, RouterModule } from '@angular/router'
-import { TranslateModule } from '@ngx-translate/core'
-import { ConnectionService, LanguageService } from '@panary/shared/data-access'
+import { type CloudBannerActionKind, CloudStatusBannerService, LanguageService } from '@panary/shared/data-access'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { UpdateService } from '@panary/shared/data-access-updater'
-import { CloudStatusBadgesComponent } from '@panary/shared/ui-cloud-status'
+import { CloudStatusBannerComponent } from '@panary/shared/ui-cloud-status'
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterModule, TranslateModule, CloudStatusBadgesComponent],
+  imports: [RouterModule, CloudStatusBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- Stack-Container fuer alle Status-Pillen — OFFLINE, RE-PAIRING,
-         SYNC und TOKEN stapeln untereinander statt mit hardcoded top-Offsets
-         zu kaskadieren. Beim Ausblenden einzelner Pillen ruecken die
-         verbleibenden automatisch nach oben. -->
+    <!-- Genau EIN priorisierter Cloud-Status-Banner (positioniert sich selbst,
+         höchste Gewichtung gewinnt). Im Setup-Wizard ausgeblendet. Der
+         „Offline-Modus aktivieren"-Button ist auf dem Device nicht verfügbar
+         (kein RBAC-Write auf cloud-connection) → enableOfflineModeAction bleibt false. -->
     @if (!isSetupRoute()) {
-      <div
-        class="fixed top-3 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2"
-      >
-        @if (connectionState().status === 'disconnected' || connectionState().status === 'error') {
-          <div
-            class="px-3 py-1 bg-red-100/90 dark:bg-red-900/90 backdrop-blur text-red-700 dark:text-red-300 rounded-full text-xs font-bold border border-red-200 dark:border-red-800 shadow-sm flex items-center gap-1.5 animate-bounce"
-          >
-            <span class="material-symbols-outlined text-[14px]">wifi_off</span>
-            {{ 'COMMON.OFFLINE' | translate }}
-          </div>
-          <button
-            (click)="reloadPage()"
-            class="w-10 h-10 bg-white/90 dark:bg-gray-800/90 backdrop-blur shadow-md rounded-full flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 transition-colors"
-          >
-            <span class="material-symbols-outlined text-gray-700 dark:text-gray-200 text-[20px]">refresh</span>
-          </button>
-        }
-        <!-- Cloud-Pairing-Indikator: signalisiert, dass der Edge-Token serverseitig
-             abgelaufen oder widerrufen wurde und Re-Pairing erforderlich ist. -->
-        @if (cloudNeedsRePairing()) {
-          <div
-            class="flex items-center gap-1.5 px-3 py-1 bg-amber-100/95 dark:bg-amber-900/90 backdrop-blur text-amber-800 dark:text-amber-200 rounded-full text-xs font-semibold border border-amber-300 dark:border-amber-800 shadow-sm"
-          >
-            <span class="material-symbols-outlined text-[14px]">cloud_off</span>
-            Cloud-Verbindung getrennt — bitte neu pairen
-          </div>
-        }
-        <!-- Cloud-Sync-Alter und Token-Restlaufzeit — nur in Tier 3 (Edge mit
-             Cloud-Sync). Tier 1 (Cloud-Direkt) und Tier 2 (Standalone-Edge)
-             haben keinen Edge→Cloud-Sync, daher keine Badges. -->
-        @if (showsCloudSyncStatus()) {
-          <lib-cloud-status-badges [sync]="syncStaleness()" [token]="tokenExpiry()" />
-        }
-      </div>
+      <lib-cloud-status-banner [banner]="banner()" (action)="onBannerAction($event)" />
     }
     <router-outlet></router-outlet>
   `,
 })
 export class AppComponent {
-  #connectionService = inject(ConnectionService)
+  #bannerService = inject(CloudStatusBannerService)
   #router = inject(Router)
-  connectionState = this.#connectionService.connectionState
-  cloudNeedsRePairing = this.#connectionService.cloudNeedsRePairing
-  syncStaleness = this.#connectionService.syncStaleness
-  tokenExpiry = this.#connectionService.tokenExpiry
-  showsCloudSyncStatus = this.#connectionService.showsCloudSyncStatus
+
+  protected readonly banner = this.#bannerService.activeBanner
 
   constructor() {
     // Theme- und Sprach-Service initialisieren — Konstruktoren wenden gespeicherte Einstellungen sofort an
@@ -77,7 +40,10 @@ export class AppComponent {
     return this.#router.url.startsWith('/setup')
   }
 
-  reloadPage() {
-    window.location.reload()
+  protected onBannerAction(kind: CloudBannerActionKind): void {
+    if (kind === 'reload') {
+      window.location.reload()
+    }
+    // activate-offline-mode wird auf dem POS nicht angeboten (Button ausgeblendet).
   }
 }

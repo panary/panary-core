@@ -8,6 +8,9 @@
   "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"],
   "references": [
     {
+      "path": "../../libs/shared/ui-notifications"
+    },
+    {
       "path": "../../libs/shared/ui-cloud-status"
     },
     {

@@ -4,11 +4,12 @@ import { type CloudBannerActionKind, CloudStatusBannerService, LanguageService }
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { UpdateService } from '@panary/shared/data-access-updater'
 import { CloudStatusBannerComponent } from '@panary/shared/ui-cloud-status'
+import { NotificationOutletComponent } from '@panary/shared/ui-notifications'
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterModule, CloudStatusBannerComponent],
+  imports: [RouterModule, CloudStatusBannerComponent, NotificationOutletComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Genau EIN priorisierter Cloud-Status-Banner (positioniert sich selbst,
@@ -18,6 +19,9 @@ import { CloudStatusBannerComponent } from '@panary/shared/ui-cloud-status'
     @if (!isSetupRoute()) {
       <lib-cloud-status-banner [banner]="banner()" (action)="onBannerAction($event)" />
     }
+    <!-- Globaler Toast-Outlet: zeigt NotificationService-Meldungen (u.a. aus
+         handleError). Außerhalb des Setup-Guards, damit auch dort Fehler sichtbar sind. -->
+    <lib-notification-outlet />
     <router-outlet></router-outlet>
   `,
 })

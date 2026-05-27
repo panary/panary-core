@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
-import { FormsModule } from '@angular/forms'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { TranslateModule } from '@ngx-translate/core'
 
@@ -19,8 +18,9 @@ type DialogPhase = 'input' | 'submitting' | 'submitted' | 'failed'
 /**
  * POS-Tageseroeffnungs-Dialog.
  *
- *   - orders-only-Modus: nur Bestaetigung; ruft openDay() ohne float
- *   - pos-cashier-Modus: Eingabe Opening-Float (Pflicht, Cents-Integer im Backend)
+ * Reine Bestaetigung in beiden Modi — KEIN Wechselgeld-Anfangsbestand mehr.
+ * Der Float gehoert seit dem Multi-Kassen-Modell zur Kasse (cash-sessions),
+ * nicht zum Geschaeftstag: er wird beim Eroeffnen der jeweiligen Kasse erfasst.
  *
  * Verhindert mehrfaches Oeffnen — Backend lehnt mit BadRequest ab.
  */
@@ -28,23 +28,13 @@ type DialogPhase = 'input' | 'submitting' | 'submitted' | 'failed'
   selector: 'app-opening-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatDialogModule, TranslateModule, FormsModule],
+  imports: [MatDialogModule, TranslateModule],
   template: `
     <h2 mat-dialog-title>{{ 'OPENING.TITLE' | translate }}</h2>
     <mat-dialog-content class="text-sm space-y-3">
       @if (phase() === 'input') {
         @if (isPosCashier()) {
-          <p>Bitte hinterlegen Sie den Wechselgeld-Anfangsbestand der Kasse.</p>
-          <label class="flex flex-col gap-1">
-            <span class="text-xs text-gray-500 dark:text-gray-400">Anfangsbestand (€)</span>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              [(ngModel)]="openingFloatEuros"
-              class="border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 bg-white dark:bg-gray-900"
-            />
-          </label>
+          <p>Kassen-Modus — das Wechselgeld wird pro Kasse beim Eröffnen der jeweiligen Kasse erfasst, nicht beim Geschäftstag.</p>
         } @else {
           <p>Bestellsystem-Modus — kein Wechselgeld-Anfangsbestand nötig.</p>
         }
@@ -73,7 +63,7 @@ type DialogPhase = 'input' | 'submitting' | 'submitted' | 'failed'
         </button>
         <button
           class="bg-blue-600 text-white rounded-xl px-4 h-10 disabled:opacity-50"
-          [disabled]="!canSubmit() || phase() === 'submitting'"
+          [disabled]="phase() === 'submitting'"
           (click)="submit()"
         >
           {{ 'OPENING.SUBMIT' | translate }}
@@ -89,27 +79,19 @@ export class OpeningDialogComponent {
 
   protected readonly phase = signal<DialogPhase>('input')
   protected readonly errorMessage = signal<string | null>(null)
-  protected openingFloatEuros: number | null = null
   protected createdBusinessDay: BusinessDay | null = null
 
   protected readonly isPosCashier = computed(
     () => this.data.operationMode === BusinessDayOperationMode.POS_CASHIER,
   )
 
-  protected readonly canSubmit = computed(() => {
-    if (!this.isPosCashier()) return true
-    return this.openingFloatEuros !== null && this.openingFloatEuros >= 0
-  })
-
   async submit(): Promise<void> {
     this.phase.set('submitting')
     this.errorMessage.set(null)
     try {
+      // Kein openingFloatCents mehr — Float gehört zur Kasse (cash-sessions).
       this.createdBusinessDay = await this.businessDayService.openDay({
         locationId: this.data.locationId,
-        openingFloatCents: this.isPosCashier()
-          ? Math.round((this.openingFloatEuros ?? 0) * 100)
-          : undefined,
       })
       this.phase.set('submitted')
     } catch (err) {

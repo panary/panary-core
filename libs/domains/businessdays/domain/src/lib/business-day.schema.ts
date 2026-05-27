@@ -44,7 +44,11 @@ export const businessDaySchema = Type.Object({
   // Schnappschuss der Betriebsart der Location bei Eröffnung.
   operationMode: StringEnum(Object.values(BusinessDayOperationMode)),
 
-  // Kassenwerte (nur 'pos-cashier'-Modus); Cents als Integer (kein Float-Geld).
+  // @deprecated Legacy-Single-Float (vor dem Multi-Kassen-Modell). Float gehört
+  // jetzt zur Kasse (cash-sessions.openingFloatCents / countedClosingFloatCents).
+  // Felder BLEIBEN im Vollschema für historische Tage, Sync-Kompatibilität und
+  // den Legacy-Reconciliation-Fallback (compute-cash-reconciliation.ts) — werden
+  // bei neuen Tagen aber nicht mehr geschrieben. Cents als Integer (kein Float-Geld).
   openingFloatCents: Type.Optional(Type.Integer({ minimum: 0 })),
   countedClosingFloatCents: Type.Optional(Type.Integer({ minimum: 0 })),
 
@@ -68,7 +72,8 @@ export const businessDayDataSchema = Type.Object(
     date: Type.Optional(Type.String({ format: 'date' })),
     openedBy: Type.Optional(Type.String()),
     operationMode: Type.Optional(StringEnum(Object.values(BusinessDayOperationMode))),
-    openingFloatCents: Type.Optional(Type.Integer({ minimum: 0 })),
+    // openingFloatCents bewusst NICHT mehr im CREATE-Schema: Float gehört zur
+    // Kasse (cash-sessions), nicht zum Geschäftstag. Tag-Eröffnung ohne Float.
   },
   { $id: 'BusinessDayData', additionalProperties: false },
 )

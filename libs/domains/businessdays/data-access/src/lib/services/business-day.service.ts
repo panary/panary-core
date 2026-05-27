@@ -21,15 +21,15 @@ export class BusinessDayService extends BaseService<BusinessDay> {
 
   /**
    * Tag eroeffnen — ruft Edge-Custom-Method `openDay` auf.
-   * Bei pos-cashier-Mode wird der opening-float in Cents geschickt.
+   * Kein opening-float mehr: das Wechselgeld gehoert zur Kasse (cash-sessions)
+   * und wird beim Eroeffnen der jeweiligen Kasse erfasst.
    */
-  async openDay(opts: { locationId?: string | null; openingFloatCents?: number } = {}): Promise<BusinessDay> {
+  async openDay(opts: { locationId?: string | null } = {}): Promise<BusinessDay> {
     const service = this.connectionService.businessDayService as unknown as {
       openDay: (data: unknown) => Promise<BusinessDay>
     }
     const result = await service.openDay({
       locationId: opts.locationId,
-      openingFloatCents: opts.openingFloatCents,
     })
     this.#currentBusinessDay.set(result)
     return result

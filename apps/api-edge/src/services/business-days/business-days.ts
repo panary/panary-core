@@ -210,6 +210,8 @@ async function openDay(app: Application, data: OpenDayData, params: OpenDayParam
 
   const today = data.date ?? new Date().toISOString().slice(0, 10)
 
+  // Kein openingFloatCents mehr: das Wechselgeld gehört zur Kasse (cash-sessions),
+  // nicht zum Geschäftstag. Tag-Eröffnung legt keinen Float-Anfangsbestand an.
   const created = await (app.service(businessDaysPath) as any).create(
     {
       _id: uuidv7(),
@@ -218,7 +220,6 @@ async function openDay(app: Application, data: OpenDayData, params: OpenDayParam
       date: today,
       openedBy: user._id ?? 'unknown',
       operationMode,
-      openingFloatCents: data.openingFloatCents,
     },
     { provider: undefined },
   )
@@ -230,7 +231,6 @@ async function openDay(app: Application, data: OpenDayData, params: OpenDayParam
     locationId,
     businessDayId: (created as { _id?: string })._id,
     operationMode,
-    openingFloatCents: data.openingFloatCents,
   })
   return created as BusinessDay
 }

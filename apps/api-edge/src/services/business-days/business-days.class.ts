@@ -16,6 +16,7 @@ export type BusinessDayParams = KnexAdapterParams<BusinessDayQuery> & Params
 export interface OpenDayData {
   locationId?: string | null
   date?: string                  // YYYY-MM-DD (default heute)
+  /** @deprecated Float gehört zur Kasse (cash-sessions), nicht zum Geschäftstag — wird beim Eröffnen ignoriert. */
   openingFloatCents?: number
 }
 

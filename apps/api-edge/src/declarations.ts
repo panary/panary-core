@@ -28,7 +28,7 @@ import type {
 } from '@panary/sync/domain'
 import type { BootstrapReport } from '@panary/cloud-connection/domain'
 import type { AuditEvent } from '@panary/audit-events/domain'
-import type { TsePort } from '@panary/tse/domain'
+import type { FiscalCounter, TsePort } from '@panary/tse/domain'
 
 export type { NextFunction }
 export type NextHook = NextFunction
@@ -87,6 +87,7 @@ export interface ServiceTypes {
   'audit-events': GenericService<AuditEvent>
   businessdays: BusinessDayService
   'cash-sessions': CashSessionService
+  'fiscal-counters': GenericService<FiscalCounter>
   'log-export': {
     find(params?: any): Promise<{
       total: number

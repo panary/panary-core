@@ -26,6 +26,7 @@ import { bootstrapReports } from './bootstrap-reports/bootstrap-reports'
 import { auditEvents } from './audit-events/audit-events'
 import { businessDays } from './business-days/business-days'
 import { cashSessions } from './cash-sessions/cash-sessions'
+import { fiscalCounters } from './fiscal-counters/fiscal-counters'
 import { logExport } from './log-export/log-export'
 
 export const services = (app: Application) => {
@@ -42,6 +43,9 @@ export const services = (app: Application) => {
   app.configure(deviceConnections)
   app.configure(productGroups)
   app.configure(locations)
+  // VOR orders: signOrderTseStart vergibt die Fiskal-Vorgangsnummer über
+  // app.service('fiscal-counters') (Vergabe zur Request-Zeit, Registrierung hier).
+  app.configure(fiscalCounters)
   app.configure(orders)
   app.configure(orderInteractions)
   app.configure(userPreferences)

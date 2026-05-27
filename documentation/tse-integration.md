@@ -15,8 +15,8 @@ status: Aktiv
 > aus `api-cloud` genutzt; „Erzeuger signiert" verhindert Doppelsignieren gesyncter
 > Edge-Orders. Die Edge-Order-Signier-Hooks gaten seit Phase B auf `pos-cashier`
 > (geteilter Helfer `requiresFiscalSignature`); ein **separater lückenloser
-> Fiskal-Zähler** (≠ `dailySequenceNumber`) und **Storno-Signierung** folgen.
-> Maßgeblich:
+> Fiskal-Zähler** (≠ `dailySequenceNumber`, Phase C) ist umgesetzt,
+> **Storno-Signierung** folgt. Maßgeblich:
 > [`fiskalisierung-architektur-adr.md`](fiskalisierung-architektur-adr.md).
 
 Provider-agnostische Abstraktion für die KassenSichV-Fiskalisierung (Online-TSE via
@@ -93,6 +93,30 @@ KassenSichV-Belegausgabepflicht: die Signatur erscheint auf dem gedruckten Bon.
 - Gerendert in [order-receipt.renderer.ts](../apps/api-edge/src/print-server/order-receipt.renderer.ts) (`appendTseBlock`, nach der Gesamtsumme). No-Op ohne `order.tse`.
 - 5 zusätzliche Specs (tse-domain 25 gesamt).
 
+## Phase C — Lückenloser Fiskal-Zähler (umgesetzt)
+
+KassenSichV verlangt eine **lückenlose, monoton steigende Vorgangsnummer** je
+Erfassungseinheit (TSE). Bisher diente die zeitbasierte `dailySequenceNumber`
+(`assign-daily-sequence-number.ts`, `MMSS`+Suffix) als `transactionNumber` —
+**nicht** lückenlos/monoton (Defekt S1). Jetzt getrennt:
+- **Eigener Zähler je (tenantId, locationId)** in `@panary/tse/domain`
+  ([fiscal-counter.schema.ts](../libs/domains/tse/domain/src/lib/fiscal-counter.schema.ts)):
+  Entity `fiscal-counters` (`_id = ${tenantId}:${locationId}`, `lastValue`) +
+  pure Helfer `fiscalCounterId` / `nextFiscalCounterValue` (Start bei 1, +1).
+- **Umgebungs-lokal, NICHT gesynct:** eine Location signiert an genau einer
+  Stelle (Edge wenn gepairt, sonst cloud-direkt) → autoritativer Zähler dort.
+  Edge: SQLite-Tabelle ([Migration](../apps/api-edge/migrations/20260527140000_fiscal_counters.ts))
+  + interner Service ([fiscal-counters.ts](../apps/api-edge/src/services/fiscal-counters/fiscal-counters.ts),
+  `allocateFiscalCounter`, atomar via In-Process-`Mutex` + Feathers-Adapter-API,
+  kein Raw-Write). Cloud-Pendant folgt mit dem Cloud-Signier-Pfad (Phase D).
+- **Wiring:** `signOrderTseStart` vergibt vor `startTransaction` den nächsten
+  Zählerwert als `transactionNumber`; `dailySequenceNumber` bleibt reine
+  Bon-/Anzeigenummer. Scope aus dem Geschäftstag-Snapshot (ein Read deckt Gate +
+  Scope). Zähler-Vergabe-Fehler → Fallback auf `dailySequenceNumber` (nie blockierend, §146a).
+- 6 zusätzliche Specs (tse-domain 38 gesamt). **Offen:** Multi-Replica-Atomik im
+  Cloud (mehrere api-cloud-Instanzen) — In-Process-Mutex reicht für Single-Replica
+  Dev/Staging; Härtung mit dem echten Provider/produktivem cloud-direktem Betrieb (F+).
+
 ## DSFinV-K-Export — Gerüst (umgesetzt)
 
 Reusable, getesteter Export-Kern in `@panary/tse/domain`
@@ -121,6 +145,6 @@ ansprechen (konsistenter Signatur-Zähler) und den echten Netzwerk-/Timeout-Pfad
 3. Fiskaly-Real-Adapter (Test-/Prod-Endpoint, `apiKeyRef`/`apiSecretRef` aus BWS via `tenant.tse`).
 
 ## Verification
-- `nx test tse-domain` (14 Specs grün) · `nx build tse-domain` · `nx build api-edge` (alle grün).
+- `nx test tse-domain` (38 Specs grün) · `nx build tse-domain` · `nx build api-edge` (alle grün).
 - Fail-closed: `resolveTseProvider('simulator', true)` wirft (Unit-Test) — Bootstrap würde in
   Produktion mit erzwungenem Simulator abbrechen.

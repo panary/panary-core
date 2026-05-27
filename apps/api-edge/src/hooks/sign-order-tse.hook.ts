@@ -9,36 +9,49 @@ import {
 } from '@panary/tse/domain'
 
 import type { HookContext } from '../declarations'
+import { allocateFiscalCounter } from '../services/fiscal-counters/fiscal-counters'
 
 const resolveClientId = (context: HookContext): string => {
   const user = context.params.user as { deviceId?: string; _id?: string } | undefined
   return user?.deviceId ?? user?._id ?? 'edge'
 }
 
+interface FiscalContext {
+  /** Soll der Vorgang fiskalisch signiert werden (pos-cashier)? */
+  sign: boolean
+  /** Authoritative Scope-Felder aus dem Geschäftstag-Snapshot (für den Zähler). */
+  tenantId?: string
+  locationId?: string
+}
+
 // Fiskal-Gate-Quelle: der `operationMode`-Snapshot des Geschäftstags (von
 // `openDay` aus der Location übernommen, mit pos-cashier-Default falls die
 // Location nicht ladbar war). Bewusst dieselbe Quelle wie `signBusinessDayClose`
 // → Order- und Tagesabschluss-Signierung entscheiden auf der Edge konsistent.
+// Liefert nebenbei tenantId/locationId für den lückenlosen Fiskal-Zähler — ein
+// Read deckt beides ab.
 //
 // fail-safe Richtung Signatur: lässt sich der Modus nicht ermitteln (kein
 // businessDayId, Lookup-Fehler, fehlender Snapshot), wird signiert. Ein
 // unsignierter pos-cashier-Bon ist ein Compliance-Defekt (KassenSichV §146a),
 // ein über-signierter orders-only-Bon nur Verschwendung. Erst ein DEFINITIV
 // als 'orders-only' gelesener Snapshot unterdrückt die Signatur.
-const fiscalSignatureRequired = async (
+const resolveFiscalContext = async (
   context: HookContext,
   businessDayId: string | undefined,
-): Promise<boolean> => {
-  if (!businessDayId) return true
+): Promise<FiscalContext> => {
+  if (!businessDayId) return { sign: true }
   try {
     const businessDay = (await context.app.service('businessdays').get(businessDayId, {
-      query: { $select: ['operationMode'] },
+      query: { $select: ['operationMode', 'tenantId', 'locationId'] },
       provider: undefined,
-    })) as { operationMode?: string } | undefined
-    if (!businessDay?.operationMode) return true
-    return requiresFiscalSignature({ operationMode: businessDay.operationMode })
+    })) as { operationMode?: string; tenantId?: string; locationId?: string } | undefined
+    const tenantId = businessDay?.tenantId
+    const locationId = businessDay?.locationId ?? undefined
+    if (!businessDay?.operationMode) return { sign: true, tenantId, locationId }
+    return { sign: requiresFiscalSignature({ operationMode: businessDay.operationMode }), tenantId, locationId }
   } catch {
-    return true
+    return { sign: true }
   }
 }
 
@@ -52,21 +65,52 @@ export const signOrderTseStart = async (context: HookContext): Promise<HookConte
   if (!tsePort) return context
 
   const data = context.data as
-    | { dailySequenceNumber?: number; businessDayId?: string; tse?: OrderTseInfo | null }
+    | {
+        dailySequenceNumber?: number
+        businessDayId?: string
+        tenantId?: string
+        locationId?: string
+        tse?: OrderTseInfo | null
+      }
     | undefined
   if (!data || typeof data.dailySequenceNumber !== 'number' || data.tse) return context
 
   // Fiskal-Gate (KassenSichV): nur `pos-cashier`-Vorgänge werden signiert,
   // orders-only ist No-Op. Schließt die „signiert jeden Vorgang"-Lücke.
   // `businessDayId` setzt `restrictOrderToBusinessDay` (Hook davor) auf data.
-  if (!(await fiscalSignatureRequired(context, data.businessDayId))) return context
+  const fiscal = await resolveFiscalContext(context, data.businessDayId)
+  if (!fiscal.sign) return context
 
   const clientId = resolveClientId(context)
+
+  // Lückenlose, monoton steigende Fiskal-Vorgangsnummer (≠ dailySequenceNumber,
+  // die zeitbasierte Bon-/Anzeigenummer bleibt unverändert). Scope aus dem
+  // Geschäftstag-Snapshot, Fallback auf die gestempelten data-Felder.
+  const tenantId = fiscal.tenantId ?? data.tenantId
+  const locationId = fiscal.locationId ?? data.locationId
+  let transactionNumber = data.dailySequenceNumber
+  if (tenantId && locationId) {
+    try {
+      transactionNumber = await allocateFiscalCounter(context.app, tenantId, locationId)
+    } catch (err) {
+      // Zähler-Vergabe fehlgeschlagen → mit dailySequenceNumber signieren statt
+      // den Vorgang zu blockieren (§146a). Wird unten als Start-Fehler behandelt,
+      // falls auch startTransaction scheitert.
+      logger.warn({
+        message: 'Fiskal-Zähler-Vergabe fehlgeschlagen — Fallback auf dailySequenceNumber',
+        event: 'tse.fiscal_counter_allocation_failed',
+        tenantId,
+        locationId,
+        errorMessage: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
+
   try {
-    const ref = await tsePort.startTransaction({ clientId, transactionNumber: data.dailySequenceNumber })
+    const ref = await tsePort.startTransaction({ clientId, transactionNumber })
     data.tse = tseInfoFromStart(ref)
   } catch (err) {
-    data.tse = tseInfoFromError({ transactionNumber: data.dailySequenceNumber, clientId, error: err })
+    data.tse = tseInfoFromError({ transactionNumber, clientId, error: err })
     logger.warn({
       message: 'TSE-Start fehlgeschlagen — Order wird unsigniert angelegt (nachzusignieren)',
       event: 'tse.order_start_failed',

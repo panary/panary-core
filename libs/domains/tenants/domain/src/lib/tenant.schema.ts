@@ -85,6 +85,10 @@ export const subscriptionSchema = Type.Object(
     // Stripe-Daten + Stripe-Webhook-Lookup erhalten.
     stripeSubscriptionId: Type.Optional(Type.String({ maxLength: 255 })),
     appliedCoupons: Type.Optional(Type.Array(Type.String({ maxLength: 80 }), { maxItems: 20 })),
+    // Zeitpunkt, ab dem die Subscription PAST_DUE ist — Start der Grace-Periode
+    // (suspend-scheduler suspendiert nach BILLING_GRACE_DAYS). Wird vom PSP-Webhook
+    // gesetzt/zurueckgesetzt.
+    pastDueSince: Type.Optional(Type.String({ format: 'date-time' })),
     cancelReason: Type.Optional(Type.String({ maxLength: 200 })),
     cancelFeedback: Type.Optional(Type.String({ maxLength: 2000 })),
     maxLocations: Type.Optional(Type.Number({ minimum: 0 })),

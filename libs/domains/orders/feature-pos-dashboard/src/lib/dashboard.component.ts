@@ -17,6 +17,7 @@ import { OrderDialogComponent } from '@panary/orders/feature-pos-order-dialog'
 import {
   CashSessionDialogComponent,
   ClosingDialogComponent,
+  ManagerAuthorizeCashSessionDialogComponent,
   OpeningDialogComponent,
 } from '@panary/businessdays/feature-pos-closing-dialog'
 import { BusinessDayOperationMode } from '@panary/businessdays/domain'
@@ -475,13 +476,18 @@ export class DashboardComponent implements OnInit {
   }
 
   /**
-   * Kasse verwalten — öffnet den CashSessionDialog. Hat der aktuelle Kassierer
-   * bereits eine offene Lade, startet der Dialog im Schließen-Modus
-   * (Stückelungs-Zähler); sonst im Eröffnen-Modus. Nur im Cloud-Modus relevant.
+   * Kasse verwalten. Hat der aktuelle Kassierer bereits eine offene Lade →
+   * Zähl-/Schließen-Dialog (CashSessionDialog). Sonst → Manager-PIN-Freigabe-
+   * Dialog (Eröffnung muss von einem berechtigten Mitarbeiter autorisiert
+   * werden — Direkt-Eröffnung durch STAFF ist backend-seitig gesperrt). Nur im
+   * Cloud-Modus relevant.
    */
   manageCashSession() {
     const loc = this.#locationService.activeLocation() as
-      | { currentBusinessDay?: { businessDayId?: string } }
+      | {
+          currentBusinessDay?: { businessDayId?: string }
+          settings?: { cashSessionSettings?: { defaultOpeningFloatCents?: number } }
+        }
       | undefined
     const businessDayId = loc?.currentBusinessDay?.businessDayId
     if (!businessDayId) {
@@ -504,13 +510,32 @@ export class DashboardComponent implements OnInit {
       } catch (err) {
         console.error('manageCashSession: offene Kasse konnte nicht geladen werden', err)
       }
-      const defaultLabel = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || undefined
-      this.#dialog.open(CashSessionDialogComponent, {
-        width: '520px',
+
+      if (session) {
+        // Bestehende Kasse → zählen/schließen (Kassierer darf seine eigene Lade).
+        this.#dialog.open(CashSessionDialogComponent, {
+          width: '520px',
+          maxWidth: '92vw',
+          maxHeight: '90vh',
+          disableClose: false,
+          data: { businessDayId, session },
+        })
+        return
+      }
+
+      // Keine Kasse → manager-autorisierte Eröffnung.
+      const cashierName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || undefined
+      this.#dialog.open(ManagerAuthorizeCashSessionDialogComponent, {
+        width: '460px',
         maxWidth: '92vw',
         maxHeight: '90vh',
         disableClose: false,
-        data: { businessDayId, session, defaultLabel },
+        data: {
+          businessDayId,
+          cashierId: userId,
+          cashierName,
+          defaultOpeningFloatCents: loc?.settings?.cashSessionSettings?.defaultOpeningFloatCents,
+        },
       })
     })()
   }

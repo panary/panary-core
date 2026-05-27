@@ -6,6 +6,12 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { uuidv7 } from 'uuidv7'
 import { OrderDialogComponent } from '@panary/orders/feature-pos-order-dialog'
 import {
+  ManagerAuthorizeCashSessionDialogComponent,
+  type ManagerAuthorizeCashSessionDialogData,
+} from '@panary/businessdays/feature-pos-closing-dialog'
+import type { CashSession } from '@panary/businessdays/domain'
+import { firstValueFrom } from 'rxjs'
+import {
   calculateTaxSummary,
   Order,
   OrderLineItem,
@@ -223,9 +229,67 @@ export class ActiveOrdersComponent {
         payment: paymentInfo,
         status: OrderStatus.COMPLETED,
       })
-    } catch {
-      /* handleError hat bereits eine Fehler-Notification angezeigt */
+    } catch (err) {
+      // Keine offene Kasse für den Kassierer → Inline-CTA: berechtigter
+      // Mitarbeiter gibt die Kasse per PIN frei, danach wird erneut kassiert.
+      if (this.#isCashSessionRequired(err)) {
+        const opened = await this.#promptOpenCashSession(performedById)
+        if (opened) {
+          try {
+            await this.#orderService.patch(order._id, {
+              payment: paymentInfo,
+              status: OrderStatus.COMPLETED,
+            })
+          } catch {
+            /* handleError hat bereits eine Fehler-Notification angezeigt */
+          }
+        }
+      }
+      /* sonst: handleError hat bereits eine Fehler-Notification angezeigt */
     }
+  }
+
+  /** Erkennt den CASH_SESSION_REQUIRED-Fehler (AppError BD_6004) aus dem Guard. */
+  #isCashSessionRequired(err: unknown): boolean {
+    const e = err as { code?: unknown; data?: { code?: unknown } } | undefined
+    return e?.data?.code === 'BD_6004' || e?.code === 'BD_6004'
+  }
+
+  /**
+   * Öffnet den Manager-PIN-Dialog zur Kassen-Freigabe für den Kassierer.
+   * Liefert `true`, wenn eine Kasse eröffnet wurde (→ Bestellung erneut kassieren).
+   */
+  async #promptOpenCashSession(cashierId: string): Promise<boolean> {
+    const loc = this.#locationService.activeLocation() as
+      | {
+          currentBusinessDay?: { businessDayId?: string }
+          settings?: { cashSessionSettings?: { defaultOpeningFloatCents?: number } }
+        }
+      | undefined
+    const businessDayId = loc?.currentBusinessDay?.businessDayId
+    if (!businessDayId) return false
+
+    const cashier = this.#userService.users().find((u: User) => u._id === cashierId)
+    const cashierName = cashier ? `${cashier.firstName ?? ''} ${cashier.lastName ?? ''}`.trim() : undefined
+
+    const data: ManagerAuthorizeCashSessionDialogData = {
+      businessDayId,
+      cashierId,
+      cashierName: cashierName || undefined,
+      defaultOpeningFloatCents: loc?.settings?.cashSessionSettings?.defaultOpeningFloatCents,
+    }
+    const result = await firstValueFrom(
+      this.#matDialog
+        .open(ManagerAuthorizeCashSessionDialogComponent, {
+          width: '460px',
+          maxWidth: '92vw',
+          maxHeight: '90vh',
+          disableClose: false,
+          data,
+        })
+        .afterClosed(),
+    )
+    return !!(result as CashSession | null)
   }
 
   /**

@@ -70,6 +70,26 @@ export class CashSessionService extends BaseService<CashSession> {
     )) as CashSession
   }
 
+  /**
+   * Manager-autorisierte Kassen-Eröffnung am POS. Ruft die Edge-Custom-Method
+   * `openAuthorized` direkt auf — der Server verifiziert den Manager-PIN +
+   * Rolle. Fehler (z.B. PIN ungültig) wirft die Methode; der Dialog fängt sie
+   * inline ab (läuft NICHT über BaseService.handleError).
+   */
+  async openAuthorized(input: {
+    businessDayId: string
+    openedBy: string
+    openingFloatCents: number
+    label: string
+    authorizedByUserId: string
+    pin: string
+  }): Promise<CashSession> {
+    const service = this.connectionService.cashSessionService as unknown as {
+      openAuthorized: (data: unknown) => Promise<CashSession>
+    }
+    return service.openAuthorized(input)
+  }
+
   /** Kasse zählen + schließen — Stückelungen + optionale Entnahmen/Auszahlungen. */
   async closeSession(
     id: string,

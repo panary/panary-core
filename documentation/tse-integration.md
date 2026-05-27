@@ -160,6 +160,29 @@ signiert werden. Bisher wurde `tsePort.cancelTransaction` **nirgends** aufgerufe
   Ausgangs-Transaktion, idempotent (bereits `cancellation` → skip), Cloud zusätzlich
   `fromSync`-Guard. Nie blockierend (§146a — Ausfall → `unavailable`).
 
+## Phase F — tenant.tse-Config-Sync + Provider-Mapper + Secret-Naht (teilweise)
+
+Vorbereitung für per-Tenant-Provider-Auswahl + den künftigen echten Adapter.
+- **Provider-Mapper** (`tse-provider.ts` `tseProviderFromTenant`): mappt
+  `tenant.tse.provider` (FISKALY/SWISSBIT/…) auf die `TseProviderId` — eine Quelle
+  für Edge + Cloud. Aktuell nur `FISKALY → 'fiskaly'`, Rest `undefined`. Mit Spec.
+- **Config-Sync** (`projectTenantForEdge`, api-cloud): kuratiertes `tse`-Sub-Objekt
+  wird zum Edge durchgereicht — **NUR Referenzen/IDs** (provider/status/
+  `apiKeyRef`/`apiSecretRef` = BWS-IDs), NIE Klartext. Kontakt/Notizen/Health
+  bleiben Cloud-only. Refs-only-Allowlist mit eigener Spec abgesichert.
+- **Tenant-aware Cloud-Factory** (`getTsePortForTenant`, jetzt async): Provider aus
+  `tenant.tse.provider` (Vorrang) → sonst Cloud-Config. **§146a-sicher**: ein nicht
+  ermittelbarer/unimplementierter Provider liefert `null` + Warn-Log statt einer
+  Exception (eine Exception hier würde Kassieren/Tagesabschluss blockieren).
+- **Secret-Naht** (`tse-secret-resolver.ts`): `TseSecretResolver`-Interface +
+  `TseResolvedCredentials` + `TseSecretResolverUnavailable` — der Vertrag, über den
+  der echte Adapter `apiKeyRef`/`apiSecretRef` kurz vor dem Provider-Call in
+  Klartext auflöst (Cloud: AES via secret-cipher; Edge: BWS).
+- **Bewusst aufgeschoben (mit dem echten Adapter, da ohne Konsument sonst
+  toter Code):** die AES-/BWS-`TseSecretResolver`-**Implementierungen**, die
+  Edge-Factory-Provider-Auswahl + Port-Re-Init nach Tenant-Pull (Schutz gegen
+  offene Transaktionen). Die Naht (Interface) steht.
+
 ## DSFinV-K-Export — Gerüst (umgesetzt)
 
 Reusable, getesteter Export-Kern in `@panary/tse/domain`
@@ -184,10 +207,11 @@ ansprechen (konsistenter Signatur-Zähler) und den echten Netzwerk-/Timeout-Pfad
 
 ## Folgephasen (Out of scope)
 1. **DSFinV-K Voll-Konformität** — offizielles TAR-Format (alle Tabellen + index.xml) + Export-Endpoint + Prüftool-Validierung.
-2. Edge↔Cloud-Sync der `tenant.tse`-Config + per-Tenant-Provider-Auswahl.
-3. Fiskaly-Real-Adapter (Test-/Prod-Endpoint, `apiKeyRef`/`apiSecretRef` aus BWS via `tenant.tse`).
+2. **Fiskaly-Real-Adapter** (Test-/Prod-Endpoint, echte ProcessData/Zertifikate) — braucht Credentials. Bringt mit:
+   die AES-/BWS-`TseSecretResolver`-Implementierungen (Naht steht, Phase F), die Edge-Factory-Provider-Auswahl
+   + Port-Re-Init nach Tenant-Pull (Schutz gegen offene Transaktionen).
 
 ## Verification
-- `nx test tse-domain` (38 Specs grün) · `nx build tse-domain` · `nx build api-edge` (alle grün).
+- `nx test tse-domain` (44 Specs grün) · `nx build tse-domain` · `nx build api-edge` · `nx build/test api-cloud` (alle grün).
 - Fail-closed: `resolveTseProvider('simulator', true)` wirft (Unit-Test) — Bootstrap würde in
   Produktion mit erzwungenem Simulator abbrechen.

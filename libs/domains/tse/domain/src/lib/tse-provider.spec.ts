@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { resolveTseProvider } from './tse-provider'
+import { resolveTseProvider, tseProviderFromTenant } from './tse-provider'
 import { TseError } from './tse.errors'
 
 describe('resolveTseProvider', () => {
@@ -26,5 +26,22 @@ describe('resolveTseProvider', () => {
 
   it('Unbekannter Provider → wirft', () => {
     expect(() => resolveTseProvider('bogus', false)).toThrow(TseError)
+  })
+})
+
+describe('tseProviderFromTenant', () => {
+  it('FISKALY → fiskaly', () => {
+    expect(tseProviderFromTenant('FISKALY')).toBe('fiskaly')
+  })
+
+  it('Noch nicht adaptierte Provider → undefined (Fallback auf Config/Simulator)', () => {
+    expect(tseProviderFromTenant('SWISSBIT')).toBeUndefined()
+    expect(tseProviderFromTenant('EPSON')).toBeUndefined()
+    expect(tseProviderFromTenant('OTHER')).toBeUndefined()
+  })
+
+  it('undefined/null → undefined', () => {
+    expect(tseProviderFromTenant(undefined)).toBeUndefined()
+    expect(tseProviderFromTenant(null)).toBeUndefined()
   })
 })

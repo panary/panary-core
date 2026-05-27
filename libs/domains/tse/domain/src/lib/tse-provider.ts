@@ -29,3 +29,20 @@ export const resolveTseProvider = (
   }
   return provider
 }
+
+// Mappt den am Tenant gespeicherten Provider (`tenant.tse.provider`, Großschreib-
+// Enum aus `@panary/tenants/domain` — FISKALY/SWISSBIT/EPSON/…) auf die
+// TsePort-Provider-Id. Geteilt von Edge- und Cloud-Factory, damit die per-Tenant-
+// Provider-Auswahl an EINER Stelle definiert ist (kein Drift).
+//
+// Aktuell ist nur ein (künftiger) `fiskaly`-Adapter vorgesehen → `FISKALY` mappt
+// auf `'fiskaly'`, alle anderen auf `undefined` (kein implementierter Adapter →
+// der Aufrufer fällt auf die Config/Simulator zurück bzw. lässt TSE inaktiv).
+export const tseProviderFromTenant = (tenantProvider: string | undefined | null): TseProviderId | undefined => {
+  switch (tenantProvider) {
+    case 'FISKALY':
+      return 'fiskaly'
+    default:
+      return undefined
+  }
+}

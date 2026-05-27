@@ -92,6 +92,17 @@ index.xml gemäß Taxonomie — Tabellen-/Format-Vollständigkeit + Validierung
 (DSFinV-K-Prüftool) folgen mit dem echten Provider. 4 Specs (tse-domain 29).
 Offen: Export-Endpoint/Service (sammelt Tagesorders) + RBAC.
 
+## TSE-Gateway-Container (umgesetzt)
+
+Standalone-App [`apps/tse-gateway`](../apps/tse-gateway/src/main.ts): kapselt den
+`SimulatorTseAdapter` über HTTP (node:http, zero-dep, self-contained esbuild-Bundle),
+damit Staging/E2E + mehrere Edges einen gemeinsamen, zustandsbehafteten Fake-TSE
+ansprechen (konsistenter Signatur-Zähler) und den echten Netzwerk-/Timeout-Pfad testen.
+- Endpoints: `GET /health`, `GET /status`, `POST /transactions`, `/transactions/finish`,
+  `/transactions/cancel`, `/day-close`, `/export`, `/fault` (Ausfall/Latenz-Toggle für §146a-Tests).
+- Ausfall (`/fault {outage:true}`) → Signiervorgänge liefern `503 tse_unavailable`.
+- Build `nx build tse-gateway` → `dist/apps/tse-gateway/main.js`; Dockerfile dabei. NICHT fiskalisch gültig.
+
 ## Folgephasen (Out of scope)
 1. **DSFinV-K Voll-Konformität** — offizielles TAR-Format (alle Tabellen + index.xml) + Export-Endpoint + Prüftool-Validierung.
 2. Edge↔Cloud-Sync der `tenant.tse`-Config + per-Tenant-Provider-Auswahl.

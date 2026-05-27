@@ -1,0 +1,36 @@
+{
+  "name": "tse-gateway",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/tse-gateway/src",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "platform": "node",
+        "outputPath": "dist/apps/tse-gateway",
+        "format": ["cjs"],
+        "bundle": true,
+        "main": "apps/tse-gateway/src/main.ts",
+        "tsConfig": "apps/tse-gateway/tsconfig.app.json",
+        "generatePackageJson": false,
+        "esbuildOptions": {
+          "sourcemap": true,
+          "outExtension": { ".js": ".js" }
+        }
+      }
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "dependsOn": ["build"],
+      "options": {
+        "buildTarget": "tse-gateway:build",
+        "runBuildTargetDependencies": false
+      }
+    }
+  }
+}

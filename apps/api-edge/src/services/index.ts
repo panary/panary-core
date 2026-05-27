@@ -25,6 +25,7 @@ import { syncRuns } from './sync-runs/sync-runs'
 import { bootstrapReports } from './bootstrap-reports/bootstrap-reports'
 import { auditEvents } from './audit-events/audit-events'
 import { businessDays } from './business-days/business-days'
+import { cashSessions } from './cash-sessions/cash-sessions'
 import { logExport } from './log-export/log-export'
 
 export const services = (app: Application) => {
@@ -55,5 +56,6 @@ export const services = (app: Application) => {
   app.configure(bootstrapReports)
   app.configure(auditEvents)
   app.configure(businessDays)
+  app.configure(cashSessions)
   app.configure(logExport)
 }

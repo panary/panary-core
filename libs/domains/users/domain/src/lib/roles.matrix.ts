@@ -656,6 +656,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Tageseröffnung/Tagesabschluss am Edge ausloesen (openDay/closeDay)
     { resource: AppResource.BUSINESS_DAYS, action: AppAction.MANAGE },
 
+    // Eigene Kassenlade(n) am POS eröffnen/zählen/schließen (edge-nativ).
+    // Self-Scope (nur eigene Lade) erzwingt der restrictCashSessionToOwner-Hook.
+    { resource: AppResource.CASH_SESSIONS, action: [AppAction.READ, AppAction.CREATE, AppAction.UPDATE] },
+
     // Kasse darf natürlich kassieren
     AppAbility.CAN_DISCOUNT,
     AppAbility.CAN_REFUND,

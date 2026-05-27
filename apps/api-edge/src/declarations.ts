@@ -10,6 +10,7 @@ import { CustomerService } from './services/customers/customers.class'
 import { DiscountService } from './services/discounts/discounts.class'
 import { DeviceService } from './services/devices/devices.class'
 import { BusinessDayService } from './services/business-days/business-days.class'
+import { CashSessionService } from './services/cash-sessions/cash-sessions.class'
 import { ProductGroupService } from './services/product-groups/product-groups.class'
 import { LocationService } from './services/locations/locations.class'
 import { OrderService } from './services/orders/orders.class'
@@ -81,6 +82,7 @@ export interface ServiceTypes {
   'bootstrap-reports': GenericService<BootstrapReport>
   'audit-events': GenericService<AuditEvent>
   businessdays: BusinessDayService
+  'cash-sessions': CashSessionService
   'log-export': {
     find(params?: any): Promise<{
       total: number

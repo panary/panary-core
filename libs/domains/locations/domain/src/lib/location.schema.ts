@@ -136,6 +136,17 @@ export const settingsSchema = Type.Object({
       textLine4: Type.Optional(Type.String()),
     }),
   ),
+  // Kassen-Einstellungen (Multi-Kassen-Tagesabschluss). Bewusst im settings-
+  // JSON-Blob (wie alle anderen Location-Booleans) — Boolean reist als echtes
+  // JSON-Boolean, keine SQLite-Boolean-Spalten-Coercion nötig.
+  // Abhängigkeit: `autoOpenCashRegister` greift nur mit `defaultOpeningFloatCents > 0`
+  // (Settings-UI erzwingt das; der Order-Guard fällt sonst auf den Manager-Dialog zurück).
+  cashSessionSettings: Type.Optional(
+    Type.Object({
+      autoOpenCashRegister: Type.Optional(Type.Boolean({ default: false })),
+      defaultOpeningFloatCents: Type.Optional(Type.Integer({ minimum: 0, default: 0 })),
+    }),
+  ),
 })
 //#endregion
 

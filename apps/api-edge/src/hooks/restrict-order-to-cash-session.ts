@@ -43,9 +43,8 @@ interface LocationCashConfig {
 }
 
 /**
- * Liest die (optionale) Kassen-Auto-Open-Konfiguration aus den Location-Settings.
- * Defensiv: solange das Feld noch nicht gepflegt ist (Phase 8 ergänzt UI +
- * Schema), gilt `autoOpen=false` → Szenario A (Bestellung ablehnen).
+ * Liest die (optionale) Kassen-Konfiguration aus `location.settings.cashSessionSettings`.
+ * Defensiv: ohne Pflege gilt `autoOpen=false` → Szenario A (Manager-Dialog am POS).
  */
 async function loadCashConfig(
   context: HookContext,
@@ -56,11 +55,14 @@ async function loadCashConfig(
   try {
     const loc = (await context.app.service('locations').get(locationId, {
       provider: undefined,
-    })) as { settings?: { cashSession?: { autoOpen?: boolean; defaultFloatCents?: number } } }
-    const cfg = loc.settings?.cashSession
+    })) as {
+      settings?: { cashSessionSettings?: { autoOpenCashRegister?: boolean; defaultOpeningFloatCents?: number } }
+    }
+    const cfg = loc.settings?.cashSessionSettings
     return {
-      autoOpen: Boolean(cfg?.autoOpen),
-      defaultFloatCents: typeof cfg?.defaultFloatCents === 'number' ? cfg.defaultFloatCents : 0,
+      autoOpen: Boolean(cfg?.autoOpenCashRegister),
+      defaultFloatCents:
+        typeof cfg?.defaultOpeningFloatCents === 'number' ? cfg.defaultOpeningFloatCents : 0,
     }
   } catch {
     return fallback

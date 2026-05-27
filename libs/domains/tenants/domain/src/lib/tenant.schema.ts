@@ -4,6 +4,7 @@ import { querySyntax, StringEnum, Type } from '@feathersjs/typebox'
 import { addressSchema } from '@panary/shared-common'
 import {
   BillingCustomerType,
+  BillingProvider,
   BillingTaxStatus,
   ComplianceSocStatus,
   SubscriptionStatus,
@@ -38,13 +39,18 @@ export type TenantLegalEntity = Static<typeof legalEntitySchema>
 //#endregion
 
 //#region Sub-Aggregat: billing
-// `billing.idempotencyKeys[]` haelt die letzten ~100 verarbeiteten Stripe-
-// Event-IDs zur Deduplikation des Webhooks. Aelteste werden gepruned.
+// `billing.idempotencyKeys[]` haelt die letzten ~100 verarbeiteten PSP-
+// Webhook-Event-IDs (Mollie/Stripe) zur Deduplikation. Aelteste werden gepruned.
 export const billingSchema = Type.Object(
   {
     customerType: StringEnum(Object.values(BillingCustomerType)),
     address: addressSchema,
     invoiceEmail: Type.Optional(Type.String({ format: 'email' })),
+    // Provider-neutrale Billing-Anbindung (Subscription-PSP = Mollie).
+    billingProvider: Type.Optional(StringEnum(Object.values(BillingProvider))),
+    externalCustomerId: Type.Optional(Type.String({ maxLength: 255 })),
+    // @deprecated — durch billingProvider + externalCustomerId abgeloest;
+    // bleibt fuer Bestands-Stripe-Daten + Stripe-Webhook-Lookup erhalten.
     stripeCustomerId: Type.Optional(Type.String({ maxLength: 255 })),
     paymentMethodRef: Type.Optional(Type.String({ maxLength: 255 })),
     sepaMandateRef: Type.Optional(Type.String({ maxLength: 255 })),
@@ -72,6 +78,11 @@ export const subscriptionSchema = Type.Object(
     currentPeriodStart: Type.Optional(Type.String({ format: 'date-time' })),
     currentPeriodEnd: Type.Optional(Type.String({ format: 'date-time' })),
     cancelAt: Type.Optional(Type.String({ format: 'date-time' })),
+    // Provider-neutrale Subscription-Referenz (Mollie/Stripe). `billing.billingProvider`
+    // bestimmt den Anbieter.
+    externalSubscriptionId: Type.Optional(Type.String({ maxLength: 255 })),
+    // @deprecated — durch externalSubscriptionId abgeloest; bleibt fuer Bestands-
+    // Stripe-Daten + Stripe-Webhook-Lookup erhalten.
     stripeSubscriptionId: Type.Optional(Type.String({ maxLength: 255 })),
     appliedCoupons: Type.Optional(Type.Array(Type.String({ maxLength: 80 }), { maxItems: 20 })),
     cancelReason: Type.Optional(Type.String({ maxLength: 200 })),

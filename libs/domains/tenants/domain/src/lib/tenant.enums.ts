@@ -8,8 +8,8 @@ export const TenantStatus = {
 } as const
 export type TenantStatusValue = (typeof TenantStatus)[keyof typeof TenantStatus]
 
-// Subscription-State spiegelt direkt die Stripe-Subscription-Statuus.
-// Stripe-Webhook synchronisiert in dieses Feld.
+// Subscription-State — provider-neutral. Der jeweilige PSP-Webhook
+// (Mollie/Stripe) mappt seinen Provider-Status in dieses Feld.
 export const SubscriptionStatus = {
   TRIALING: 'TRIALING',
   ACTIVE: 'ACTIVE',
@@ -78,12 +78,21 @@ export const BillingCustomerType = {
 } as const
 export type BillingCustomerTypeValue = (typeof BillingCustomerType)[keyof typeof BillingCustomerType]
 
+// Aktiver Zahlungs-/Billing-Anbieter eines Tenants (provider-neutrale Abstraktion).
+// Subscription-Billing laeuft ueber Mollie; STRIPE bleibt fuer Bestand/POS-Acquiring.
+export const BillingProvider = {
+  MOLLIE: 'mollie',
+  STRIPE: 'stripe',
+} as const
+export type BillingProviderValue = (typeof BillingProvider)[keyof typeof BillingProvider]
+
 // Quelle einer Tenant-Aenderung im Audit-Trail. Wichtig fuer DSGVO-
 // Auditing (welche Aenderung kam von Stripe vs. Mensch).
 export const TenantAuditSource = {
   PLATFORM_ADMIN: 'PLATFORM_ADMIN',
   TENANT_OWNER: 'TENANT_OWNER',
   STRIPE_WEBHOOK: 'STRIPE_WEBHOOK',
+  MOLLIE_WEBHOOK: 'MOLLIE_WEBHOOK',
   SYSTEM: 'SYSTEM',
   MIGRATION: 'MIGRATION',
 } as const

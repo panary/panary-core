@@ -64,6 +64,12 @@ export const SyncableTransactionService = {
   ORDERS: 'orders',
   ORDER_INTERACTIONS: 'order-interactions',
   WORKING_TIMES: 'working-times',
+  // Kassen-Sessions (Multi-Kassen-Tagesabschluss): EDGE ist Schreiber (Kassierer
+  // eröffnet/zählt/schließt seine Lade offline am POS), Cloud aggregiert sie beim
+  // Tagesabschluss. Edge→Cloud-Push; der Cloud-recompute-Hook füllt
+  // cashSalesCents/Varianz autoritativ aus den (gesyncten) Bestellungen.
+  // FK: cash-session.businessDayId → businessdays (Master-Data, bereits in Cloud).
+  CASH_SESSIONS: 'cash-sessions',
   // Tenant-Audit-Trail: Edge ist Schreiber, Cloud ist Source-of-Truth
   // (10-Jahres-Aufbewahrung, GoBD). Append-only auf beiden Seiten.
   AUDIT_EVENTS: 'audit-events',

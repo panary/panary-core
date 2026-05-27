@@ -12,12 +12,12 @@ status: Aktiv
 > **Edge-seitig**; das ist nicht mehr die ganze Geschichte. Da Fiskaly eine
 > **Online-TSE** ist, ist **cloud-direktes** fiskalisches Signieren ein
 > erstklassiger Pfad (Onboarding ohne Hardware). Der geteilte `TsePort` wird auch
-> aus `api-cloud` genutzt; „Erzeuger signiert" verhindert Doppelsignieren gesyncter
-> Edge-Orders. Die Edge-Order-Signier-Hooks gaten seit Phase B auf `pos-cashier`
-> (geteilter Helfer `requiresFiscalSignature`); ein **separater lückenloser
-> Fiskal-Zähler** (≠ `dailySequenceNumber`, Phase C) ist umgesetzt,
-> **Storno-Signierung** folgt. Maßgeblich:
-> [`fiskalisierung-architektur-adr.md`](fiskalisierung-architektur-adr.md).
+> aus `api-cloud` genutzt (Phase D, cloud-direkter Signier-Pfad); „Erzeuger
+> signiert" verhindert Doppelsignieren gesyncter Edge-Orders (`fromSync`-Guard).
+> Die Edge-Order-Signier-Hooks gaten seit Phase B auf `pos-cashier` (geteilter
+> Helfer `requiresFiscalSignature`); ein **separater lückenloser Fiskal-Zähler**
+> (≠ `dailySequenceNumber`, Phase C) ist umgesetzt, **Storno-Signierung** folgt.
+> Maßgeblich: [`fiskalisierung-architektur-adr.md`](fiskalisierung-architektur-adr.md).
 
 Provider-agnostische Abstraktion für die KassenSichV-Fiskalisierung (Online-TSE via
 Fiskaly geplant) plus ein Simulator-Adapter für Dev/CI/Staging. Erste Phase: Port +
@@ -116,6 +116,30 @@ Erfassungseinheit (TSE). Bisher diente die zeitbasierte `dailySequenceNumber`
 - 6 zusätzliche Specs (tse-domain 38 gesamt). **Offen:** Multi-Replica-Atomik im
   Cloud (mehrere api-cloud-Instanzen) — In-Process-Mutex reicht für Single-Replica
   Dev/Staging; Härtung mit dem echten Provider/produktivem cloud-direktem Betrieb (F+).
+
+## Phase D — Cloud-Signier-Pfad + Doppelsignier-Guard (umgesetzt, api-cloud)
+
+Cloud-direktes fiskalisches Kassieren ohne Edge (Onboarding-Vision: < 10 Min,
+keine Hardware). Spiegelt die Edge-Signierung in `panary-cloud/apps/api-cloud`:
+- **Per-Tenant-Factory** `getTsePortForTenant(app, tenantId)`
+  (`services/tse/tse-port.factory.ts`, TTL-Cache): Provider aus Cloud-Config
+  `app.get('tse').provider`; ohne Provider inaktiv (Default). Per-Tenant-Cache
+  vorbereitet für tenant.tse-Auswahl (Phase F).
+- **Cloud-Fiskal-Zähler** (`services/fiscal-counters/`, Mongo via
+  `registerMongoService`, `allocateFiscalCounter` mit In-Process-Mutex) — gleiche
+  Domain-Schemata wie Edge, umgebungs-lokal/nicht gesynct.
+- **Signier-Hooks** (`hooks/sign-order-tse.hook.ts`): `signOrderTseStartCloud`
+  (orders `customBeforeHooks.create`, nach `restrictOrderToBusinessDay`),
+  `signOrderTseFinishCloud` (`customBeforeHooks.patch`). Zwei-Phasen wie Edge.
+- **Doppelsignier-Guard (höchste Test-Priorität):** skip bei `params.fromSync`
+  (gesyncte Edge-Order → Edge hat signiert) UND bei bereits gesetztem `order.tse`
+  (kein Überschreiben). Finish nur bei vorhandenem `started`-Snapshot →
+  Soft-Delete-Patch + Re-Patch signierter Orders sind No-Op. 10 Hook-Specs
+  (`sign-order-tse.hook.spec.ts`).
+- **Wiring-Hinweis:** `@panary/tse` als Cloud-Dependency ergänzt (`package.json`
+  + `pnpm install` → node_modules-Symlink), sonst bricht `nx build api-cloud`.
+- **Offen (Phase D-Rest):** Cloud-Tagesabschluss-Signatur (`signDayClose`) im
+  `business-day-reports`-persist-Step für `pos-cashier`.
 
 ## DSFinV-K-Export — Gerüst (umgesetzt)
 

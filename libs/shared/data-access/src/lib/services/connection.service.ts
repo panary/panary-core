@@ -133,6 +133,10 @@ export class ConnectionService {
     return this.#app.service('businessdays')
   }
 
+  get cashSessionService(): Service {
+    return this.#app.service('cash-sessions')
+  }
+
   get corporateCustomerService(): Service {
     return this.#app.service('corporate-customers')
   }

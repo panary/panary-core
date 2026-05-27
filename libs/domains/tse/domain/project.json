@@ -1,0 +1,28 @@
+{
+  "name": "tse-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/tse/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:tse"],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/tse/domain/dist"],
+      "dependsOn": ["^build"],
+      "options": {
+        "outputPath": "libs/domains/tse/domain/dist",
+        "project": "libs/domains/tse/package.json",
+        "tsConfig": "libs/domains/tse/domain/tsconfig.lib.json",
+        "main": "libs/domains/tse/domain/src/index.ts",
+        "format": ["cjs"],
+        "external": [
+          "@feathersjs/feathers",
+          "@feathersjs/typebox",
+          "@sinclair/typebox"
+        ],
+        "generatePackageJson": false,
+        "compiler": "tsc"
+      }
+    }
+  }
+}

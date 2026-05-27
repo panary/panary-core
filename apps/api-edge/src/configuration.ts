@@ -35,6 +35,14 @@ export const configurationSchema = Type.Intersect([
     // Zeit-Guard: verweigert neue Bestellungen, wenn der offene Geschaeftstag
     // seit Oeffnung laenger als diese Stundenzahl offen ist (Default 24h im Hook).
     maxBusinessDayOpenHours: Type.Optional(Type.Number({ minimum: 1 })),
+    // TSE-Fiskalisierung (KassenSichV). Optional — ohne Konfiguration ist TSE in
+    // Nicht-Produktion der Simulator, in Produktion inaktiv (siehe resolveTseProvider).
+    tse: Type.Optional(
+      Type.Object({
+        provider: StringEnum(['simulator', 'fiskaly']),
+        baseUrl: Type.Optional(Type.String()),
+      })
+    ),
   })
 ])
 

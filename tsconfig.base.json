@@ -33,6 +33,7 @@
       "@panary/shared/data-access/server": ["libs/shared/data-access/src/server.ts"],
       "@panary/allergens/domain": ["libs/domains/allergens/domain/src/index.ts"],
       "@panary/apikeys/domain": ["libs/domains/apikeys/domain/src/index.ts"],
+      "@panary/tse/domain": ["libs/domains/tse/domain/src/index.ts"],
       "@panary/audit-events/domain": ["libs/domains/audit-events/domain/src/index.ts"],
       "@panary/suppliers/domain": ["libs/domains/suppliers/domain/src/index.ts"],
       "@panary/supplier-products/domain": ["libs/domains/supplier-products/domain/src/index.ts"],

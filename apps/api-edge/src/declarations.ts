@@ -28,6 +28,7 @@ import type {
 } from '@panary/sync/domain'
 import type { BootstrapReport } from '@panary/cloud-connection/domain'
 import type { AuditEvent } from '@panary/audit-events/domain'
+import type { TsePort } from '@panary/tse/domain'
 
 export type { NextFunction }
 export type NextHook = NextFunction
@@ -52,8 +53,11 @@ declare module '@feathersjs/feathers' {
 }
 
 // The types for app.get(name) and app.set(name)
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface Configuration extends ApplicationConfiguration {}
+export interface Configuration extends ApplicationConfiguration {
+  // Laufzeit-Instanz des TSE-Ports (Fiskalisierung), beim Bootstrap via
+  // `createTsePort` gesetzt. Optional — in Produktion ohne echten Provider inaktiv.
+  tsePort?: TsePort
+}
 
 export interface ServiceTypes {
   users: UserService

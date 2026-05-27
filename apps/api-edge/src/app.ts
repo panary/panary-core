@@ -25,6 +25,7 @@ import { authentication } from './authentication'
 import os from 'os'
 import { getLocalIpAddress, renderStatusPage } from './status-page'
 import { configurePrintServer } from './print-server/index'
+import { createTsePort } from './services/tse/tse-port.factory'
 
 const app: Application = koa(feathers())
 
@@ -214,6 +215,14 @@ app.configure(sqlite)
 app.configure(services)
 app.configure(configurePrintServer)
 app.configure(channels)
+
+// TSE-Port (Fiskalisierung) bereitstellen. Fail-closed-Guard wirft beim Bootstrap,
+// falls ein Simulator in Produktion erzwungen wird; ohne TSE-Konfiguration in
+// Produktion bleibt der Port inaktiv (kein Bruch bestehender Deployments).
+const tsePort = createTsePort(app)
+if (tsePort) {
+  app.set('tsePort', tsePort)
+}
 
 // App-level hooks (global für alle Services)
 // Reihenfolge der around-Hooks (Onion-Modell, äußerster zuerst):

@@ -138,8 +138,10 @@ keine Hardware). Spiegelt die Edge-Signierung in `panary-cloud/apps/api-cloud`:
   (`sign-order-tse.hook.spec.ts`).
 - **Wiring-Hinweis:** `@panary/tse` als Cloud-Dependency ergänzt (`package.json`
   + `pnpm install` → node_modules-Symlink), sonst bricht `nx build api-cloud`.
-- **Offen (Phase D-Rest):** Cloud-Tagesabschluss-Signatur (`signDayClose`) im
-  `business-day-reports`-persist-Step für `pos-cashier`.
+- **Cloud-Tagesabschluss-Signatur:** `business-day-reports.class.ts`
+  `reconcileBusinessDayFromDraft` signiert beim Übergang → `CLOSED` über
+  `getTsePortForTenant` (nur `pos-cashier` + konfigurierter Port), `tseDay*`-Felder
+  in denselben Close-Patch. Cloud-Analogon zu `signBusinessDayClose` (Edge).
 
 ## DSFinV-K-Export — Gerüst (umgesetzt)
 

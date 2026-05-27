@@ -13,4 +13,23 @@ export type { CashSession, CashSessionData, CashSessionPatch, CashSessionQuery }
 
 export type CashSessionParams = KnexAdapterParams<CashSessionQuery> & MongoDBAdapterParams & Params
 
-export type CashSessionService = ServiceInterface<CashSession, CashSessionData, CashSessionParams, CashSessionPatch>
+/** Payload für die manager-autorisierte Kassen-Eröffnung am POS. */
+export interface CashSessionAuthorizedOpenData {
+  businessDayId: string
+  /** Kassierer, FÜR den die Kasse eröffnet wird (nicht der autorisierende Manager). */
+  openedBy: string
+  openingFloatCents: number
+  label: string
+  /** Berechtigter Mitarbeiter (Manager/Inhaber), der per PIN autorisiert. */
+  authorizedByUserId: string
+  pin: string
+}
+
+export type CashSessionService = ServiceInterface<
+  CashSession,
+  CashSessionData,
+  CashSessionParams,
+  CashSessionPatch
+> & {
+  openAuthorized(data: CashSessionAuthorizedOpenData, params?: CashSessionParams): Promise<CashSession>
+}

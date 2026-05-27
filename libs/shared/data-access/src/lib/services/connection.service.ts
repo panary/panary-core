@@ -483,6 +483,12 @@ export class ConnectionService {
     this.#app.use('businessdays', socketClient.service('businessdays'), {
       methods: ['find', 'get', 'create', 'update', 'patch', 'remove', 'open', 'close'],
     })
+    // cash-sessions inkl. Custom-Method openAuthorized (manager-autorisierte
+    // Kassen-Eröffnung am POS) — ohne explizite Registrierung wäre die
+    // Custom-Method clientseitig unsichtbar.
+    this.#app.use('cash-sessions', socketClient.service('cash-sessions'), {
+      methods: ['find', 'get', 'create', 'update', 'patch', 'remove', 'openAuthorized'],
+    })
     this.#app.use('leave-requests', socketClient.service('leave-requests'), {
       methods: ['find', 'get', 'create', 'update', 'patch', 'remove'],
     })

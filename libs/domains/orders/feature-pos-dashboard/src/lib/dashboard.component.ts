@@ -11,10 +11,11 @@ import { AuthService } from '@panary/auth/data-access'
 import { WorkingTime } from '@panary/working-times/domain'
 import { WorkingTimeService } from '@panary/working-times/data-access'
 import { LocationService } from '@panary/locations/data-access'
-import { BusinessDayService } from '@panary/businessdays/data-access'
+import { BusinessDayService, CashSessionService } from '@panary/businessdays/data-access'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { OrderDialogComponent } from '@panary/orders/feature-pos-order-dialog'
 import {
+  CashSessionDialogComponent,
   ClosingDialogComponent,
   OpeningDialogComponent,
 } from '@panary/businessdays/feature-pos-closing-dialog'
@@ -67,6 +68,7 @@ export class DashboardComponent implements OnInit {
   #locationService = inject(LocationService)
   #connectionService = inject(ConnectionService)
   #businessDayService = inject(BusinessDayService)
+  #cashSessionService = inject(CashSessionService)
   #cdr = inject(ChangeDetectorRef)
   #dialog = inject(MatDialog)
   #translate = inject(TranslateService)
@@ -211,6 +213,17 @@ export class DashboardComponent implements OnInit {
       condition: () => this.hasOpenBusinessDay(),
       hideInStandalone: true,
       hideWhenCloudPaired: true,
+    },
+    // Kasse — eigene Lade eröffnen/schließen. Nur im Cloud-Modus (Kassen sind
+    // ein Cloud-Feature; Standalone hat keinen Multi-Kassen-Tagesabschluss) und
+    // bei offenem Geschäftstag.
+    {
+      label: 'Kasse',
+      icon: 'point_of_sale',
+      action: () => this.manageCashSession(),
+      bgClass: 'bg-amber-100 dark:bg-amber-900/30',
+      textClass: 'text-amber-700 dark:text-amber-400',
+      condition: () => this.hasOpenBusinessDay() && this.isCloudPaired(),
     },
     {
       label: 'DASHBOARD.SETTINGS',
@@ -458,6 +471,47 @@ export class DashboardComponent implements OnInit {
       } catch (err) {
         console.error('startClosing: BusinessDay konnte nicht geladen werden', err)
       }
+    })()
+  }
+
+  /**
+   * Kasse verwalten — öffnet den CashSessionDialog. Hat der aktuelle Kassierer
+   * bereits eine offene Lade, startet der Dialog im Schließen-Modus
+   * (Stückelungs-Zähler); sonst im Eröffnen-Modus. Nur im Cloud-Modus relevant.
+   */
+  manageCashSession() {
+    const loc = this.#locationService.activeLocation() as
+      | { currentBusinessDay?: { businessDayId?: string } }
+      | undefined
+    const businessDayId = loc?.currentBusinessDay?.businessDayId
+    if (!businessDayId) {
+      console.warn('manageCashSession: kein offener Geschäftstag — Aktion ignoriert')
+      return
+    }
+    const user = this.#authService.user() as
+      | { _id?: string; firstName?: string; lastName?: string }
+      | undefined
+    const userId = user?._id
+    if (!userId) {
+      console.warn('manageCashSession: kein angemeldeter Benutzer — Aktion ignoriert')
+      return
+    }
+
+    void (async () => {
+      let session = null
+      try {
+        session = await this.#cashSessionService.findOpenForUser(businessDayId, userId)
+      } catch (err) {
+        console.error('manageCashSession: offene Kasse konnte nicht geladen werden', err)
+      }
+      const defaultLabel = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || undefined
+      this.#dialog.open(CashSessionDialogComponent, {
+        width: '520px',
+        maxWidth: '92vw',
+        maxHeight: '90vh',
+        disableClose: false,
+        data: { businessDayId, session, defaultLabel },
+      })
     })()
   }
 

@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
-import { FormsModule } from '@angular/forms'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { TranslateModule } from '@ngx-translate/core'
 
@@ -28,23 +27,17 @@ type DialogPhase = 'input' | 'submitting' | 'submitted' | 'failed'
   selector: 'app-closing-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatDialogModule, TranslateModule, FormsModule],
+  imports: [MatDialogModule, TranslateModule],
   template: `
     <h2 mat-dialog-title>{{ 'CLOSING.TITLE' | translate }}</h2>
     <mat-dialog-content class="text-sm space-y-3">
       @if (phase() === 'input') {
         @if (isPosCashier()) {
-          <p>Bitte zählen Sie den Kassen-Endbestand und geben Sie den Wert in Euro ein.</p>
-          <label class="flex flex-col gap-1">
-            <span class="text-xs text-gray-500 dark:text-gray-400">Gezählter Endbestand (€)</span>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              [(ngModel)]="countedFloatEuros"
-              class="border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 bg-white dark:bg-gray-900"
-            />
-          </label>
+          <p>
+            Die Kassen werden separat pro Kassierer gezählt und geschlossen. Der Tagesabschluss
+            aggregiert alle Kassen in der Cloud. Bitte stellen Sie sicher, dass alle Kassen
+            geschlossen sind, und bestätigen Sie den Abschluss.
+          </p>
         } @else {
           <p>
             Bestellsystem-Modus — kein Kassen-Count nötig. Bestätigen Sie den Tagesabschluss
@@ -79,7 +72,7 @@ type DialogPhase = 'input' | 'submitting' | 'submitted' | 'failed'
         </button>
         <button
           class="bg-blue-600 text-white rounded-xl px-4 h-10 disabled:opacity-50"
-          [disabled]="!canSubmit() || phase() === 'submitting'"
+          [disabled]="phase() === 'submitting'"
           (click)="submit()"
         >
           {{ 'CLOSING.SUBMIT' | translate }}
@@ -95,26 +88,19 @@ export class ClosingDialogComponent {
 
   protected readonly phase = signal<DialogPhase>('input')
   protected readonly errorMessage = signal<string | null>(null)
-  protected countedFloatEuros: number | null = null
 
   protected readonly isPosCashier = computed(
     () => this.data.businessDay.operationMode === BusinessDayOperationMode.POS_CASHIER,
   )
 
-  protected readonly canSubmit = computed(() => {
-    if (!this.isPosCashier()) return true
-    return this.countedFloatEuros !== null && this.countedFloatEuros >= 0
-  })
-
   async submit(): Promise<void> {
     this.phase.set('submitting')
     this.errorMessage.set(null)
     try {
+      // Kein day-level countedClosingFloatCents mehr — Kassen werden pro Session
+      // gezählt/geschlossen; der Tagesabschluss aggregiert sie cloud-seitig.
       await this.businessDayService.closeDay({
         businessDayId: this.data.businessDay._id,
-        countedClosingFloatCents: this.isPosCashier()
-          ? Math.round((this.countedFloatEuros ?? 0) * 100)
-          : undefined,
       })
       this.phase.set('submitted')
     } catch (err) {

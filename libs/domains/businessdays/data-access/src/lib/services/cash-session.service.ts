@@ -63,7 +63,11 @@ export class CashSessionService extends BaseService<CashSession> {
     openingFloatCents: number
     openedBy?: string
   }): Promise<CashSession> {
-    return (await this.create(input as Partial<CashSession>)) as CashSession
+    // Server-Resolver stempeln _id/status/openedBy/openedAt + abgeleitete Felder —
+    // daher genügt das minimale Create-Shape (Cast über die strikte Omit-Signatur).
+    return (await this.create(
+      input as unknown as Omit<CashSession, '_id' | 'locationId' | 'tenantId'>,
+    )) as CashSession
   }
 
   /** Kasse zählen + schließen — Stückelungen + optionale Entnahmen/Auszahlungen. */

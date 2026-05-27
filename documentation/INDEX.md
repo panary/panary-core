@@ -9,6 +9,7 @@
 
 ## Architektur
 
+- [Subscription-Tier-Modell (Connect/Operate/Enterprise)](subscription-tier-modell.md) — 2026-05-27 — Pricing-Modell „Gehirn in jedem Plan": alle End-User-Features (AI, Fraud, Tagesabschluss, Warenwirtschaft, Personal) in jedem Tier; differenziert über Betriebs-Capability (`offlinePos`/`physicalPrintServer` → connect `orders-only` vs operate `pos-cashier`) + Enterprise-Gate (API/SSO/Webhooks). Seed `starter`/`professional` → `connect €29`/`operate €89`; Feature-Flags umsortiert (`advancedReporting`→`fraudAnalytics`, `multiLocation`→`multiLocationConsolidation`). Enforcement cloud-seitig
 - [Rabatte — Datenmodell, Anwendungslogik & Sync](rabatte.md) — 2026-05-25 — `@panary/discounts/domain` (Definition + Code + Anwendungs-/Bedingungs-Logik), `order.appliedDiscounts[]` (LINE→ORDER, Largest-Remainder), MwSt-Extraktion (Phase 0, KassenSichV), Automatik-Hook vor `calculateTaxDetails`, Personalessen = Rabatt + `staffPaymentInfo`, Edge read-only-synced/`cloudManaged`, RBAC DISCOUNTS/DISCOUNT_CODES
 - [M2 — DB-Agnostik-Refactor](m2-db-agnostik-refactor.md) — 2026-04-24 — Hybrid-Adapter, ensureIndexes, Schema-First, getJsonFieldHooks
 - [ADR — Emergency-Override für Drucker-Konfiguration im Edge](emergency-override-adr.md) — 2026-05-14 — Eng begrenzte Notfall-Schreibrechte bei Cloud-Ausfall (≥3 Heartbeat-Fehler ODER >5 min), nur `printSettings`-Patches, eigene `pending-local-overrides`-Tabelle (nicht Sync-Outbox), Reconciliation via `POST /sync-reconcile-overrides` mit Old-Value-Konflikt-Detection

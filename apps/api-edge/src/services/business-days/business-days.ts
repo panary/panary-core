@@ -266,11 +266,12 @@ async function closeDay(
   if (businessDay.status !== BusinessDayStatus.OPEN) {
     throw new BadRequest(`Tag ist nicht offen (Status: ${businessDay.status})`)
   }
-  if (businessDay.operationMode === BusinessDayOperationMode.POS_CASHIER) {
-    if (data.countedClosingFloatCents === undefined) {
-      throw new BadRequest('countedClosingFloatCents ist Pflicht im pos-cashier-Modus')
-    }
-  }
+  // Kein day-level countedClosingFloatCents-Pflichtcheck mehr: Wechselgeld gehört
+  // zur Kasse (cash-session), nicht zum Geschäftstag. Der Edge-closeDay läuft nur
+  // im Standalone-Modus (guardCloudManagedLifecycle blockt ihn bei Pairing) — und
+  // Standalone hat kein Multi-Kassen-Tagesabschluss-Feature. Im Cloud-Modus läuft
+  // der Abschluss in der Cloud, wo die closing-validation (all-cash-sessions-closed
+  // = Blocker, cash-without-session = Warnung) die Vollständigkeit erzwingt.
 
   // Pending Sync-Outbox-Eintraege?
   const outboxPending = await (app.service('sync-outbox') as any)

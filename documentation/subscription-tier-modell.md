@@ -43,6 +43,15 @@ Skalierung/Integration.
 - **Enterprise-Gate:** `apiAccess`, `webhookSubscriptions`, `sso`, `auditTrailExport`,
   `customDomain`, `prioritySupport` — echte Grenzkosten/Sicherheitsfläche.
 
+## Mengenrabatt-Berechnung
+
+Kanonische Quote-Logik in [`subscription-pricing.ts`](../libs/domains/tenants/domain/src/lib/subscription-pricing.ts)
+(`computeSubscriptionQuote`, `VOLUME_DISCOUNT_TIERS`): Per-Location-Listenpreis × Filialzahl mit
+Stufen 1–2 = 0 %, ab 3 = −15 %, ab 10 = −25 %, ab 25 = −35 % + `requiresEnterpriseQuote`.
+Rundung **pro Filiale** (spiegelt Stripe-Quantity-Abrechnung). Single Source für Admin-UI-Anzeige
+und perspektivisch das Stripe-Tiered-Pricing-Setup — Stripe bleibt Billing-Wahrheit, die Tier-
+Schwellen müssen identisch gehalten werden.
+
 ## Konsequenzen
 
 - **Seed-IDs geändert:** `starter`/`professional` → `connect`/`operate`. Pre-Launch ohne

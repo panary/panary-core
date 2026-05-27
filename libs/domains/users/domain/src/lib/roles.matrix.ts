@@ -24,6 +24,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PLATFORM_SUBSCRIPTIONS, action: AppAction.MANAGE },
     // Abo-Rechnungs-Store (§14-UStG, Panary → Tenant). Platform verwaltet voll.
     { resource: AppResource.PLATFORM_SUBSCRIPTION_INVOICES, action: AppAction.MANAGE },
+    // App-seitige Subscription-Promo-Codes (globaler Store). Platform verwaltet voll.
+    { resource: AppResource.PLATFORM_PROMO_CODES, action: AppAction.MANAGE },
     { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
     // OoS-Follow-up: DSGVO-Export, Owner-Transfer, VIES-Validation (Wellen B-E).
     { resource: AppResource.GDPR_TENANT_EXPORT, action: AppAction.MANAGE },
@@ -81,6 +83,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PLATFORM_SUBSCRIPTIONS, action: AppAction.MANAGE },
     // Abo-Rechnungs-Store — wie PLATFORM_OWNER (voller CRUD).
     { resource: AppResource.PLATFORM_SUBSCRIPTION_INVOICES, action: AppAction.MANAGE },
+    // App-seitige Subscription-Promo-Codes — wie PLATFORM_OWNER (voller CRUD).
+    { resource: AppResource.PLATFORM_PROMO_CODES, action: AppAction.MANAGE },
     { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
     // OoS-Follow-up: wie PLATFORM_OWNER.
     { resource: AppResource.GDPR_TENANT_EXPORT, action: AppAction.MANAGE },
@@ -131,6 +135,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PLATFORM_SUBSCRIPTIONS, action: AppAction.READ },
     // Abo-Rechnungen read-only zur Diagnose (Billing-Support).
     { resource: AppResource.PLATFORM_SUBSCRIPTION_INVOICES, action: AppAction.READ },
+    // Promo-Codes read-only zur Diagnose (Billing-Support).
+    { resource: AppResource.PLATFORM_PROMO_CODES, action: AppAction.READ },
     { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
     // OoS-Follow-up: Support liest VIES-Cache zur Diagnose, kein Export/Transfer.
     { resource: AppResource.VAT_VALIDATION_CACHE, action: AppAction.READ },

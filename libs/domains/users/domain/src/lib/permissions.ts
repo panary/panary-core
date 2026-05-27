@@ -245,6 +245,14 @@ export const AppResource = {
    *  TENANT_OWNER (Tenant darf eigene Abo-Rechnungen lesen). Create i.d.R.
    *  intern (Mollie payment.paid → issueInvoiceForPaidSubscription). */
   PLATFORM_SUBSCRIPTION_INVOICES: 'platform-subscription-invoices',
+  /** Cloud-only: Plattform-globale Promo-Codes/Rabatte fuer Subscriptions
+   *  (app-seitig gerechnet — Mollie hat keine Coupon-Engine). Globale Stamm-
+   *  daten ohne tenantId (analog subscription-plans). Rein platform-verwaltet:
+   *  MANAGE fuer PLATFORM_OWNER/ADMIN, READ fuer PLATFORM_SUPPORT. Tenant-Rollen
+   *  haben KEINEN Eintrag (→ 403); die Promo-Anwendung laeuft intern ueber
+   *  platform-subscriptions, Tenants sehen eingeloeste Codes read-only ueber
+   *  `tenant.subscription.appliedCoupons`. */
+  PLATFORM_PROMO_CODES: 'platform-promo-codes',
   PLATFORM_IMPERSONATION: 'platform-impersonation',
   PLATFORM_IMPERSONATION_EVENTS: 'platform-impersonation-events',
   PLATFORM_USER_PREFERENCES: 'platform-user-preferences',

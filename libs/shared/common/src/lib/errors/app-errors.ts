@@ -24,6 +24,7 @@ export const AppError = {
   BUSINESS_DAY_NOT_SET: 'BD_6001',
   BUSINESS_DAY_TOO_OLD: 'BD_6002',
   BUSINESS_DAY_OPEN_TOO_LONG: 'BD_6003',
+  CASH_SESSION_REQUIRED: 'BD_6004',
 
   // --- VALIDATION (4000-4999) ---
   VALIDATION_FAILED: 'VAL_4000',
@@ -60,6 +61,8 @@ export const AppErrorMessages: Record<AppError, string> = {
   [AppError.BUSINESS_DAY_TOO_OLD]: 'The current business day date exceeds the maximum allowed difference.',
   [AppError.BUSINESS_DAY_OPEN_TOO_LONG]:
     'Der Geschäftstag ist zu lange geöffnet und kann nicht automatisch wechseln, weil noch Bestellungen offen sind. Bitte offene Bestellungen abschließen und den Geschäftstag abschließen.',
+  [AppError.CASH_SESSION_REQUIRED]:
+    'Für Sie ist noch keine Kasse eröffnet. Bitte eröffnen Sie zuerst Ihre Kasse oder wenden Sie sich an den Manager.',
 
   [AppError.VALIDATION_FAILED]: 'Validation failed.',
   [AppError.INVALID_INPUT]: 'Invalid input provided.',

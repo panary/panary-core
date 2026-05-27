@@ -227,6 +227,11 @@ export const orderSchema = Type.Object(
 
     status: StringEnum(Object.values(OrderStatus)),
     businessDayId: Type.Optional(Type.String({ format: 'uuid' })), // Was ObjectId, now optional for Standalone mode
+    // Zugeordnete Kassen-Session (cash-session). Serverseitig vom
+    // restrictOrderToCashSession-Guard gestempelt (Cloud-Modus, pos-cashier).
+    // `Null` toleriert — Edge serialisiert ungesetzte nullable SQLite-Spalten
+    // als null (Standalone / orders-only), sonst „must be string" beim Sync-Push.
+    cashSessionId: Type.Optional(Type.Union([Type.String({ format: 'uuid' }), Type.Null()])),
     orderChannel: StringEnum(Object.values(OrderChannel)),
     dailySequenceNumber: Type.Number({ minimum: 0 }),
     dineLocation: StringEnum(Object.values(DineLocation)),
@@ -303,6 +308,7 @@ export const orderDataSchema = Type.Intersect(
         'updatedAt',
         'status',
         'businessDayId',
+        'cashSessionId',
         'orderChannel',
         'dailySequenceNumber',
         'dineLocation',

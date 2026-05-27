@@ -24,6 +24,7 @@ import { orderDataSchema, orderPatchSchema, orderQuerySchema, orderSchema } from
 import type { Order, OrderService } from './orders.class'
 import { extractOrderInteractions } from '../../hooks/extract-order-interactions'
 import { restrictOrderToBusinessDay } from '../../hooks/restrict-order-to-business-day'
+import { restrictOrderToCashSession } from '../../hooks/restrict-order-to-cash-session'
 import { assignDailySequenceNumber } from '../../hooks/assign-daily-sequence-number'
 import { calculateTaxDetails } from '../../hooks/calculate-tax-details'
 import { applyAutomaticDiscounts } from '../../hooks/apply-automatic-discounts'
@@ -115,6 +116,11 @@ export const orders = (app: Application) => {
       create: [
         extractOrderInteractions(),
         restrictOrderToBusinessDay(),
+        // Kassen-Guard NACH der Geschäftstag-Zuordnung (liest businessDayId):
+        // lehnt im Cloud-Modus + pos-cashier ab, wenn keine offene Kasse für den
+        // Kassierer existiert; stempelt sonst cashSessionId. Standalone/orders-only
+        // → No-Op.
+        restrictOrderToCashSession(),
         assignDailySequenceNumber(),
         // Automatik-Rabatte VOR der Steuerberechnung injizieren (greift nur ohne
         // bereits gesetzten manuellen Rabatt — Kombinationsregel Phase 2).

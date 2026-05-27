@@ -1,4 +1,4 @@
-import { Static, StringEnum, Type } from '@feathersjs/typebox'
+import { querySyntax, Static, StringEnum, Type } from '@feathersjs/typebox'
 
 /**
  * Kassen-Session (Schublade / „Tasche") für den Multi-Kassen-Tagesabschluss.
@@ -109,3 +109,46 @@ export function computeExpectedClosingFloatCents(input: {
     input.openingFloatCents + (input.cashSalesCents ?? 0) - (input.cashDropsCents ?? 0) - (input.payoutsCents ?? 0)
   )
 }
+
+// ─── Service-Schemas (CREATE / PATCH / QUERY) — geteilt von Edge + Cloud ───────
+
+/**
+ * CREATE: nur die beim Eröffnen einer Schublade nötigen Felder.
+ * tenantId/locationId werden vom multiTenancy-Hook gestempelt (daher optional).
+ * Privilegierte Rollen dürfen `openedBy` für einen Mitarbeiter setzen; bei STAFF
+ * (oder ohne Angabe) erzwingt der Resolver die eigene userId.
+ */
+export const cashSessionDataSchema = Type.Object(
+  {
+    tenantId: Type.Optional(Type.String()),
+    locationId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    businessDayId: Type.String(),
+    label: Type.String({ minLength: 1, maxLength: 80 }),
+    openingFloatCents: Type.Integer({ minimum: 0 }),
+    openedBy: Type.Optional(Type.String()),
+    deviceId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    notes: Type.Optional(Type.String({ maxLength: 1000 })),
+  },
+  { $id: 'CashSessionData', additionalProperties: false },
+)
+export type CashSessionData = Static<typeof cashSessionDataSchema>
+
+export const cashSessionPatchSchema = Type.Partial(cashSessionSchema, { $id: 'CashSessionPatch' })
+export type CashSessionPatch = Static<typeof cashSessionPatchSchema>
+
+export const cashSessionQueryProperties = Type.Pick(cashSessionSchema, [
+  '_id',
+  'tenantId',
+  'locationId',
+  'businessDayId',
+  'status',
+  'openedBy',
+  // createdAt: für $sort (findForBusinessDay) — sonst lehnt querySyntax das
+  // Sortier-Feld ab („Validation failed").
+  'createdAt',
+])
+export const cashSessionQuerySchema = Type.Intersect(
+  [querySyntax(cashSessionQueryProperties), Type.Object({}, { additionalProperties: false })],
+  { additionalProperties: false },
+)
+export type CashSessionQuery = Static<typeof cashSessionQuerySchema>

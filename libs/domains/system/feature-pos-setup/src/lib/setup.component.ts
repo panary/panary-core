@@ -44,7 +44,7 @@ export class SetupComponent {
 
   //#region Form Data - Step 1: Server & Login
   serverUrl = 'http://localhost:3030'
-  loginname = ''
+  email = ''
   password = ''
   //#endregion
 
@@ -182,7 +182,7 @@ export class SetupComponent {
 
   //#region Form Validation
   isStep1Valid(): boolean {
-    return this.serverUrl.trim().length > 0 && this.loginname.trim().length > 0 && this.password.length > 0
+    return this.serverUrl.trim().length > 0 && this.email.trim().length > 0 && this.password.length > 0
   }
 
   isStep2Valid(): boolean {
@@ -220,7 +220,7 @@ export class SetupComponent {
 
     const credentials: SetupCredentials = {
       serverUrl: this.serverUrl.trim(),
-      loginname: this.loginname.trim(),
+      email: this.email.trim(),
       password: this.password,
     }
 

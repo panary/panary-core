@@ -41,7 +41,7 @@ export interface Location {
 
 // Type-safe Feathers client
 type SetupClient = Application & {
-  authenticate(credentials: { strategy: string; loginname: string; password: string }): Promise<unknown>
+  authenticate(credentials: { strategy: string; email: string; password: string }): Promise<unknown>
   logout(): Promise<void>
   service(name: string): {
     find(params?: { query?: Record<string, unknown> }): Promise<{ data: unknown[] } | unknown[]>
@@ -250,7 +250,7 @@ export class DeviceConfigService {
       // 5. Authenticate with local strategy
       await this.#setupClient.authenticate({
         strategy: 'local',
-        loginname: credentials.loginname,
+        email: credentials.email,
         password: credentials.password,
       })
 

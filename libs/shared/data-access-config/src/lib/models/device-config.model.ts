@@ -85,7 +85,7 @@ export interface DeviceConfig {
  */
 export interface SetupCredentials {
   serverUrl: string
-  loginname: string
+  email: string
   password: string
 }
 

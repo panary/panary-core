@@ -24,7 +24,13 @@ export const subscriptionPlanFeaturesSchema = Type.Object(
     aiExtraction: Type.Optional(Type.Boolean()),
     fraudAnalytics: Type.Optional(Type.Boolean()),
     multiLocationConsolidation: Type.Optional(Type.Boolean()),
-    // Betriebs-Capability — trennt Connect (orders-only) von Operate (pos-cashier).
+    // Fiskalisierung (KassenSichV) — eigenes Add-on, ENTKOPPELT von offlinePos.
+    // Gated `pos-cashier` (fiskalischer Kassenbetrieb + TSE) — buchbar quer über
+    // Tiers, auch cloud-direkt ohne Edge (Online-TSE). Siehe ADR
+    // fiskalisierung-architektur-adr.md.
+    fiscalCashier: Type.Optional(Type.Boolean()),
+    // Betriebs-Capability — Offline-First/Edge (Resilienz-Upsell). NICHT mehr
+    // Voraussetzung fürs Kassieren; `physicalPrintServer` = physischer Bondrucker.
     offlinePos: Type.Optional(Type.Boolean()),
     physicalPrintServer: Type.Optional(Type.Boolean()),
     // Integration & Governance — Enterprise-Gate (echte Grenzkosten/Sicherheitsflaeche).
@@ -110,12 +116,13 @@ export const SUBSCRIPTION_PLAN_SEED_DEFAULTS: ReadonlyArray<Omit<SubscriptionPla
     monthlyPriceCents: 0,
     yearlyPriceCents: 0,
     currency: 'EUR',
-    // Voller Operate-Set (Offline-POS + Fraud + AI), nur 1 Filiale.
+    // Voller Operate-Set (Fiskal + Offline-POS + Fraud + AI), nur 1 Filiale.
     limits: { maxLocations: 1, maxUsers: 30, maxDevices: 8 },
     features: {
       aiExtraction: true,
       fraudAnalytics: true,
       multiLocationConsolidation: true,
+      fiscalCashier: true,
       offlinePos: true,
       physicalPrintServer: true,
     },
@@ -131,11 +138,14 @@ export const SUBSCRIPTION_PLAN_SEED_DEFAULTS: ReadonlyArray<Omit<SubscriptionPla
     yearlyPriceCents: 29580,
     currency: 'EUR',
     limits: { maxLocations: 9, maxUsers: 10, maxDevices: 3 },
-    // Volles ERP-Gehirn (AI + Fraud + Konsolidierung), aber kein Offline-POS/Print.
+    // Volles ERP-Gehirn (AI + Fraud + Konsolidierung). Basis nicht-fiskalisch +
+    // kein Offline-POS — Fiskalisierung (fiscalCashier) als Add-on dazubuchbar
+    // (ermöglicht cloud-direktes Kassieren ohne Edge).
     features: {
       aiExtraction: true,
       fraudAnalytics: true,
       multiLocationConsolidation: true,
+      fiscalCashier: false,
       offlinePos: false,
       physicalPrintServer: false,
     },
@@ -155,6 +165,7 @@ export const SUBSCRIPTION_PLAN_SEED_DEFAULTS: ReadonlyArray<Omit<SubscriptionPla
       aiExtraction: true,
       fraudAnalytics: true,
       multiLocationConsolidation: true,
+      fiscalCashier: true,
       offlinePos: true,
       physicalPrintServer: true,
     },
@@ -175,6 +186,7 @@ export const SUBSCRIPTION_PLAN_SEED_DEFAULTS: ReadonlyArray<Omit<SubscriptionPla
       aiExtraction: true,
       fraudAnalytics: true,
       multiLocationConsolidation: true,
+      fiscalCashier: true,
       offlinePos: true,
       physicalPrintServer: true,
       apiAccess: true,

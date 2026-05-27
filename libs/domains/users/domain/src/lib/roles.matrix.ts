@@ -22,6 +22,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.MANAGE },
     // Subscription-Lifecycle gegen den BillingProvider (Mollie).
     { resource: AppResource.PLATFORM_SUBSCRIPTIONS, action: AppAction.MANAGE },
+    // Abo-Rechnungs-Store (§14-UStG, Panary → Tenant). Platform verwaltet voll.
+    { resource: AppResource.PLATFORM_SUBSCRIPTION_INVOICES, action: AppAction.MANAGE },
     { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
     // OoS-Follow-up: DSGVO-Export, Owner-Transfer, VIES-Validation (Wellen B-E).
     { resource: AppResource.GDPR_TENANT_EXPORT, action: AppAction.MANAGE },
@@ -77,6 +79,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.TENANTS, action: AppAction.MANAGE },
     { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_SUBSCRIPTIONS, action: AppAction.MANAGE },
+    // Abo-Rechnungs-Store — wie PLATFORM_OWNER (voller CRUD).
+    { resource: AppResource.PLATFORM_SUBSCRIPTION_INVOICES, action: AppAction.MANAGE },
     { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
     // OoS-Follow-up: wie PLATFORM_OWNER.
     { resource: AppResource.GDPR_TENANT_EXPORT, action: AppAction.MANAGE },
@@ -125,6 +129,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.READ },
     // Support sieht Subscription-Status read-only (Diagnose), kein Lifecycle-Eingriff.
     { resource: AppResource.PLATFORM_SUBSCRIPTIONS, action: AppAction.READ },
+    // Abo-Rechnungen read-only zur Diagnose (Billing-Support).
+    { resource: AppResource.PLATFORM_SUBSCRIPTION_INVOICES, action: AppAction.READ },
     { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
     // OoS-Follow-up: Support liest VIES-Cache zur Diagnose, kein Export/Transfer.
     { resource: AppResource.VAT_VALIDATION_CACHE, action: AppAction.READ },
@@ -249,6 +255,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // PLATFORM_*-only.
     { resource: AppResource.TENANTS, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.READ },
+    // Abo-Rechnungen: Tenant-Owner darf die eigenen Subscription-Rechnungen lesen
+    // (Download/Beleg-Archiv). Multi-Tenancy-Hook scoped auf den eigenen Tenant.
+    { resource: AppResource.PLATFORM_SUBSCRIPTION_INVOICES, action: AppAction.READ },
     { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
     // OoS-Follow-up: Owner darf DSGVO-Tenant-Export anstossen, Owner-Transfer
     // an einen MANAGER weitergeben, VIES-Cache lesen, Self-Export.

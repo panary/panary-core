@@ -238,6 +238,13 @@ export const AppResource = {
    *  PLATFORM_SUPPORT. Tenant-Rollen haben KEINEN Eintrag (→ 403); Tenants sehen
    *  ihre Subscription read-only ueber den `tenants`-Service. */
   PLATFORM_SUBSCRIPTIONS: 'platform-subscriptions',
+  /** Cloud-only: Abo-Rechnungs-Store (§14-UStG-konforme Subscription-Invoices,
+   *  Panary → Tenant). Eigene Collection, NICHT die order-`invoices` (Bäckerei
+   *  → Endkunde). Gapless Rechnungsnummer pro Jahr, ZUGFeRD-Render als Folge-
+   *  schritt (Stub). MANAGE: PLATFORM_OWNER/ADMIN; READ: PLATFORM_SUPPORT +
+   *  TENANT_OWNER (Tenant darf eigene Abo-Rechnungen lesen). Create i.d.R.
+   *  intern (Mollie payment.paid → issueInvoiceForPaidSubscription). */
+  PLATFORM_SUBSCRIPTION_INVOICES: 'platform-subscription-invoices',
   PLATFORM_IMPERSONATION: 'platform-impersonation',
   PLATFORM_IMPERSONATION_EVENTS: 'platform-impersonation-events',
   PLATFORM_USER_PREFERENCES: 'platform-user-preferences',

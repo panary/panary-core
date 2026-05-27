@@ -74,12 +74,18 @@ Der Geschäftstag wird beim tatsächlichen Schließen TSE-signiert:
 - Pure Helfer ([day-signing.ts](../libs/domains/tse/domain/src/lib/day-signing.ts)): `dayTseFieldsFromSignature` / `dayTseFieldsFromError`.
 - **Nie blockierend** (§146a): ein Ausfall schließt den Tag trotzdem, Status `unavailable` (nachzusignieren). 2 zusätzliche Specs (tse-domain 20 gesamt).
 
+## Phase 3 — Signatur auf dem Bon (umgesetzt)
+
+KassenSichV-Belegausgabepflicht: die Signatur erscheint auf dem gedruckten Bon.
+- Pure `buildTseReceiptBlock` ([receipt.ts](../libs/domains/tse/domain/src/lib/receipt.ts)) aus `order.tse`: `signed` → Transaktion/Signaturzähler/TSE-Zeit + QR-Code (Signaturwert) + ggf. „SIMULATION"-Hinweis; `unavailable`/`failed` → §146a-Beleghinweis.
+- Gerendert in [order-receipt.renderer.ts](../apps/api-edge/src/print-server/order-receipt.renderer.ts) (`appendTseBlock`, nach der Gesamtsumme). No-Op ohne `order.tse`.
+- 5 zusätzliche Specs (tse-domain 25 gesamt).
+
 ## Folgephasen (Out of scope)
 1. **DSFinV-K/TAR-Export** — eigener großer Brocken (offizielles Format + reale Transaktionsdaten + Validierungs-Tools); `tsePort.export` liefert bisher nur eine Referenz (Simulator).
-2. Signatur-Druck auf dem Bon (Print-Server, Belegausgabepflicht).
-3. Edge↔Cloud-Sync der `tenant.tse`-Config + per-Tenant-Provider-Auswahl.
-4. Fiskaly-Real-Adapter (Test-/Prod-Endpoint, `apiKeyRef`/`apiSecretRef` aus BWS via `tenant.tse`).
-5. Standalone-TSE-Gateway-Container (Staging/E2E/Multi-Edge) — teilt die Simulator-Kernlogik.
+2. Edge↔Cloud-Sync der `tenant.tse`-Config + per-Tenant-Provider-Auswahl.
+3. Fiskaly-Real-Adapter (Test-/Prod-Endpoint, `apiKeyRef`/`apiSecretRef` aus BWS via `tenant.tse`).
+4. Standalone-TSE-Gateway-Container (Staging/E2E/Multi-Edge) — teilt die Simulator-Kernlogik.
 
 ## Verification
 - `nx test tse-domain` (14 Specs grün) · `nx build tse-domain` · `nx build api-edge` (alle grün).

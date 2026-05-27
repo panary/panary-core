@@ -1,6 +1,7 @@
 // @ts-expect-error — keine Typdeklarationen vorhanden
 import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder'
 import { computeOrderTax } from '@panary/orders/domain'
+import { buildTseReceiptBlock } from '@panary/tse/domain'
 import type { EscposOptions } from './escpos.adapter'
 
 const COLUMNS_MAP: Record<string, number> = { '58mm': 32, '80mm': 48 }
@@ -155,12 +156,40 @@ export function renderOrderReceipt(order: any, location: any, options: EscposOpt
   enc.rule({ style: 'single' })
 
   // ─────────────────────────────────────────
+  // TSE-SIGNATUR (KassenSichV Belegausgabepflicht)
+  // ─────────────────────────────────────────
+  appendTseBlock(enc, order)
+
+  // ─────────────────────────────────────────
   // FUSSBEREICH
   // ─────────────────────────────────────────
   enc.newline(6)
   enc.cut()
 
   return enc.encode()
+}
+
+// Rendert den TSE-Signaturblock aus `order.tse` (signiert → Signatur + QR;
+// Ausfall → §146a-Hinweis). No-Op ohne TSE-Info.
+function appendTseBlock(enc: any, order: any): void {
+  const tse = order?.tse
+  if (!tse || typeof tse !== 'object') return
+  const block = buildTseReceiptBlock(tse)
+  if (!block) return
+
+  enc.newline()
+  enc.font('B').align('left')
+  enc.bold(true).line(block.title).bold(false)
+  for (const row of block.rows) {
+    enc.line(`${row.label}: ${row.value}`)
+  }
+  if (block.qrPayload) {
+    enc.align('center').qrcode(block.qrPayload, { model: 2, size: 5, errorlevel: 'm' }).align('left')
+  }
+  if (block.note) {
+    enc.bold(true).line(block.note).bold(false)
+  }
+  enc.font('A')
 }
 
 // ─── Artikel-Rendering mit voller Encoder-Kontrolle ───

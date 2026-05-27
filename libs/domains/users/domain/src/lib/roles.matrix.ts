@@ -20,6 +20,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Collection. Audit-Trail Append-Only.
     { resource: AppResource.TENANTS, action: AppAction.MANAGE },
     { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.MANAGE },
+    // Subscription-Lifecycle gegen den BillingProvider (Mollie).
+    { resource: AppResource.PLATFORM_SUBSCRIPTIONS, action: AppAction.MANAGE },
     { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
     // OoS-Follow-up: DSGVO-Export, Owner-Transfer, VIES-Validation (Wellen B-E).
     { resource: AppResource.GDPR_TENANT_EXPORT, action: AppAction.MANAGE },
@@ -74,6 +76,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Tenant-First-Class (Phase 1+ Migration): wie PLATFORM_OWNER.
     { resource: AppResource.TENANTS, action: AppAction.MANAGE },
     { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.MANAGE },
+    { resource: AppResource.PLATFORM_SUBSCRIPTIONS, action: AppAction.MANAGE },
     { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
     // OoS-Follow-up: wie PLATFORM_OWNER.
     { resource: AppResource.GDPR_TENANT_EXPORT, action: AppAction.MANAGE },
@@ -120,6 +123,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Tenant-First-Class (Phase 1+ Migration): Support liest, kein Schreibzugriff.
     { resource: AppResource.TENANTS, action: AppAction.READ },
     { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.READ },
+    // Support sieht Subscription-Status read-only (Diagnose), kein Lifecycle-Eingriff.
+    { resource: AppResource.PLATFORM_SUBSCRIPTIONS, action: AppAction.READ },
     { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
     // OoS-Follow-up: Support liest VIES-Cache zur Diagnose, kein Export/Transfer.
     { resource: AppResource.VAT_VALIDATION_CACHE, action: AppAction.READ },

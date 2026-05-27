@@ -232,6 +232,12 @@ export const AppResource = {
 
   // Plattform-Verwaltungs-Ressourcen (nur Cloud)
   PLATFORM_TENANTS: 'platform-tenants',
+  /** Cloud-only: Subscription-Lifecycle gegen den BillingProvider (Mollie) —
+   *  Custom-Method-Service (create/patch/remove = createSubscription/update/
+   *  cancel). Plattform-only: MANAGE fuer PLATFORM_OWNER/ADMIN, READ fuer
+   *  PLATFORM_SUPPORT. Tenant-Rollen haben KEINEN Eintrag (→ 403); Tenants sehen
+   *  ihre Subscription read-only ueber den `tenants`-Service. */
+  PLATFORM_SUBSCRIPTIONS: 'platform-subscriptions',
   PLATFORM_IMPERSONATION: 'platform-impersonation',
   PLATFORM_IMPERSONATION_EVENTS: 'platform-impersonation-events',
   PLATFORM_USER_PREFERENCES: 'platform-user-preferences',

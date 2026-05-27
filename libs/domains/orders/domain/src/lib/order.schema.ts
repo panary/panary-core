@@ -57,6 +57,15 @@ export const DiscountType = {
   AMOUNT: 'amount',
 } as const
 
+// TSE-Signierstatus eines Bons (KassenSichV). 'unavailable' = TSE war beim
+// Signieren ausgefallen (§146a) → nachzusignieren; 'failed' = anderer Fehler.
+export const OrderTseStatus = {
+  STARTED: 'started',
+  SIGNED: 'signed',
+  FAILED: 'failed',
+  UNAVAILABLE: 'unavailable',
+} as const
+
 export const taxSummerySchema = Type.Object({
   taxes: Type.Array(
     Type.Object({
@@ -212,6 +221,25 @@ export const creationContextSchema = Type.Object({
   createdBy: Type.String({ format: 'uuid' }),
   createdVia: Type.Optional(Type.String({ format: 'uuid' })),
 })
+
+// Eingebetteter TSE-Snapshot (KassenSichV). Strukturell identisch zu
+// `OrderTseInfo` aus `@panary/tse/domain` — bewusst hier dupliziert, um eine
+// Cross-Domain-Abhängigkeit orders→tse zu vermeiden. Vom Edge-Hook
+// `signOrderTse*` gesetzt; im Cloud-Modus read-only synchronisiert.
+export const orderTseSchema = Type.Object({
+  status: StringEnum(Object.values(OrderTseStatus)),
+  provider: Type.String({ maxLength: 40 }),
+  clientId: Type.String({ maxLength: 200 }),
+  transactionNumber: Type.Number({ minimum: 0 }),
+  simulated: Type.Boolean(),
+  startedAt: Type.Optional(Type.String({ format: 'date-time' })),
+  signatureCounter: Type.Optional(Type.Number({ minimum: 0 })),
+  signatureValue: Type.Optional(Type.String({ maxLength: 4096 })),
+  signatureAlgorithm: Type.Optional(Type.String({ maxLength: 80 })),
+  logTime: Type.Optional(Type.String({ format: 'date-time' })),
+  processType: Type.Optional(Type.String({ maxLength: 60 })),
+  errorReason: Type.Optional(Type.String({ maxLength: 500 })),
+})
 //#endregion
 
 //#region The main data model (schema)
@@ -278,6 +306,10 @@ export const orderSchema = Type.Object(
     // Gesetzt nach erfolgreichem Reversal (SALES_OUT_REVERSAL-Movements).
     // Verhindert Doppel-Reversal bei mehrfachem Status-Wechsel auf ABORTED.
     stockReversedAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
+
+    // TSE-Signatur-Snapshot (KassenSichV). Vom Edge-Hook gesetzt; `Null`
+    // toleriert (Edge serialisiert ungesetzte nullable SQLite-Spalten als null).
+    tse: Type.Optional(Type.Union([orderTseSchema, Type.Null()])),
   },
   { $id: 'Order', additionalProperties: false },
 )
@@ -293,6 +325,7 @@ export type AppliedDiscount = Static<typeof appliedDiscountSchema>
 export type CreationContext = Static<typeof creationContextSchema>
 export type Payment = Static<typeof paymentSchema>
 export type Transaction = Static<typeof transactionSchema>
+export type OrderTse = Static<typeof orderTseSchema>
 //#endregion
 
 //#region Schema for creation (POST)
@@ -335,6 +368,9 @@ export const orderDataSchema = Type.Intersect(
         'stockBookedAt',
         'stockMovementIds',
         'stockReversedAt',
+        // TSE-Snapshot wird serverseitig vom Signier-Hook gesetzt; fuer Sync-Push
+        // erlaubt (Edge sendet die bereits signierte Order an die Cloud).
+        'tse',
       ],
     ),
   ],

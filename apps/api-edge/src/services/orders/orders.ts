@@ -2,7 +2,7 @@ import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
 import { getJsonFieldHooks } from '@panary/shared-backend'
 
-const ORDER_JSON_FIELDS = ['lineItems', 'cancellation', 'customerPaymentInfo', 'discount', 'staffPaymentInfo', 'taxSnapshot', 'creationContext', 'payment']
+const ORDER_JSON_FIELDS = ['lineItems', 'cancellation', 'customerPaymentInfo', 'discount', 'staffPaymentInfo', 'taxSnapshot', 'creationContext', 'payment', 'tse']
 
 import {
   orderDataResolver,
@@ -30,6 +30,7 @@ import { calculateTaxDetails } from '../../hooks/calculate-tax-details'
 import { applyAutomaticDiscounts } from '../../hooks/apply-automatic-discounts'
 import { checkMultiOperation } from '../../hooks/check-multi-operation'
 import { createOrderInteractions } from '../../hooks/create-order-interactions'
+import { signOrderTseFinish, signOrderTseStart } from '../../hooks/sign-order-tse.hook'
 import { ensureIndexes } from '@panary/shared-backend'
 
 export const ordersPath = 'orders'
@@ -119,6 +120,9 @@ export const orders = (app: Application) => {
         // Bestellung AUFNEHMEN ist immer erlaubt — der Kassen-Guard läuft jetzt
         // beim KASSIEREN (before.patch, Status→completed), nicht mehr hier.
         assignDailySequenceNumber(),
+        // TSE-Start: signiert den Vorgangsbeginn (KassenSichV) nachdem die
+        // lückenlose Z-Bon-Nummer steht. No-Op ohne aktive TSE; nie blockierend (§146a).
+        signOrderTseStart,
         // Automatik-Rabatte VOR der Steuerberechnung injizieren (greift nur ohne
         // bereits gesetzten manuellen Rabatt — Kombinationsregel Phase 2).
         applyAutomaticDiscounts,
@@ -134,6 +138,9 @@ export const orders = (app: Application) => {
         // den Kassierer (performedBy). VOR validate/resolve, damit cashSessionId
         // gestempelt + früh abgelehnt wird. Standalone/orders-only/Karte → No-Op.
         restrictOrderToCashSession(),
+        // TSE-Abschluss: signiert beim Übergang auf 'completed' den Bon. No-Op
+        // ohne aktive TSE / wenn kein offener TSE-Start vorliegt; nie blockierend (§146a).
+        signOrderTseFinish,
         schemaHooks.validateData(orderPatchValidator),
         schemaHooks.resolveData(orderPatchResolver),
         ...jsonHooks.before,

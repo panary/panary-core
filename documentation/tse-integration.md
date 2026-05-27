@@ -57,13 +57,21 @@ auf Knopfdruck reproduzieren.
 - 14 Vitest-Specs in der Domain-Lib (Simulator-Lifecycle/Fault-Injection + Provider-Auflösung).
   api-edge hat kein Test-Target → Factory ist durch `nx build api-edge` typgeprüft.
 
+## Phase 1 — Order-Signierung (umgesetzt)
+
+Die Einzelbon-Signierung ist gegen den `TsePort` (Simulator) verdrahtet:
+- Order-Schema: eingebetteter `tse`-Snapshot ([order.schema.ts](../libs/domains/orders/domain/src/lib/order.schema.ts) → `orderTseSchema`, Status `started`/`signed`/`failed`/`unavailable`) + Knex-Migration `orders.tse` (JSON).
+- Pure Helfer in `@panary/tse/domain` ([order-signing.ts](../libs/domains/tse/domain/src/lib/order-signing.ts)): `tseInfoFromStart` / `tseInfoFromSignature` / `tseInfoFromError` / `tseRefFromInfo`.
+- Hooks ([sign-order-tse.hook.ts](../apps/api-edge/src/hooks/sign-order-tse.hook.ts)): `signOrderTseStart` (orders `before.create`, nach `assignDailySequenceNumber`) ruft `tsePort.startTransaction`; `signOrderTseFinish` (orders `before.patch`, Übergang → `completed`) ruft `tsePort.finishTransaction`. Beide **No-Op ohne aktive TSE** und **nie blockierend** (§146a: Ausfall → Snapshot `unavailable`, nachzusignieren).
+- 4 zusätzliche Specs in der tse-Domain (18 gesamt).
+- **Offen/Refinement:** präzise Gating auf `operationMode = pos-cashier` (aktuell signiert jeder Vorgang bei aktiver TSE) + Betrags-Einheit; folgt mit dem echten Provider/Cloud-Config.
+
 ## Folgephasen (Out of scope)
-1. Fiskaly-Real-Adapter (Test-/Prod-Endpoint, `apiKeyRef`/`apiSecretRef` aus BWS via `tenant.tse`).
-2. Order-Signier-Hooks (`before.create` Start, `patch`→COMPLETED+PAID Finish) + Order-Signaturfelder + Migration.
-3. Z-Bon-Tagessignatur im businessdays-Close + DSFinV-K/TAR-Export.
-4. Edge↔Cloud-Sync der `tenant.tse`-Config + per-Tenant-Provider-Auswahl.
+1. **Tagesabschluss-Signatur** (`signDayClose`) im businessdays-Close + DSFinV-K/TAR-Export.
+2. Signatur-Druck auf dem Bon (Print-Server, Belegausgabepflicht).
+3. Edge↔Cloud-Sync der `tenant.tse`-Config + per-Tenant-Provider-Auswahl.
+4. Fiskaly-Real-Adapter (Test-/Prod-Endpoint, `apiKeyRef`/`apiSecretRef` aus BWS via `tenant.tse`).
 5. Standalone-TSE-Gateway-Container (Staging/E2E/Multi-Edge) — teilt die Simulator-Kernlogik.
-6. Signatur-Druck auf dem Bon (Print-Server).
 
 ## Verification
 - `nx test tse-domain` (14 Specs grün) · `nx build tse-domain` · `nx build api-edge` (alle grün).

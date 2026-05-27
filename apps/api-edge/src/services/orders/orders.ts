@@ -116,11 +116,8 @@ export const orders = (app: Application) => {
       create: [
         extractOrderInteractions(),
         restrictOrderToBusinessDay(),
-        // Kassen-Guard NACH der Geschäftstag-Zuordnung (liest businessDayId):
-        // lehnt im Cloud-Modus + pos-cashier ab, wenn keine offene Kasse für den
-        // Kassierer existiert; stempelt sonst cashSessionId. Standalone/orders-only
-        // → No-Op.
-        restrictOrderToCashSession(),
+        // Bestellung AUFNEHMEN ist immer erlaubt — der Kassen-Guard läuft jetzt
+        // beim KASSIEREN (before.patch, Status→completed), nicht mehr hier.
         assignDailySequenceNumber(),
         // Automatik-Rabatte VOR der Steuerberechnung injizieren (greift nur ohne
         // bereits gesetzten manuellen Rabatt — Kombinationsregel Phase 2).
@@ -132,6 +129,11 @@ export const orders = (app: Application) => {
       ],
       patch: [
         checkMultiOperation,
+        // Kassen-Guard beim Kassieren: greift nur, wenn der Patch auf 'completed'
+        // wechselt und eine Bar-Transaktion enthält → verlangt offene Kasse für
+        // den Kassierer (performedBy). VOR validate/resolve, damit cashSessionId
+        // gestempelt + früh abgelehnt wird. Standalone/orders-only/Karte → No-Op.
+        restrictOrderToCashSession(),
         schemaHooks.validateData(orderPatchValidator),
         schemaHooks.resolveData(orderPatchResolver),
         ...jsonHooks.before,

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { tseInfoFromError, tseInfoFromSignature, tseInfoFromStart, tseRefFromInfo } from './order-signing'
+import {
+  tseCancellationFromError,
+  tseCancellationFromSignature,
+  tseInfoFromError,
+  tseInfoFromSignature,
+  tseInfoFromStart,
+  tseRefFromInfo,
+} from './order-signing'
 import { SimulatorTseAdapter } from './simulator.adapter'
 import { TseError, TseUnavailableError } from './tse.errors'
 
@@ -68,5 +75,44 @@ describe('order-signing Helfer', () => {
     expect(signed.status).toBe('signed')
     expect(signed.signatureValue).toMatch(/^SIM-/)
     expect(signed.transactionNumber).toBe(7)
+  })
+
+  it('tseCancellationFromSignature erzeugt canceled-Block mit Signatur', () => {
+    const cancellation = tseCancellationFromSignature(
+      {
+        transactionNumber: 7,
+        signatureCounter: 12,
+        signatureValue: 'SIM-cancel',
+        signatureAlgorithm: 'simulated-sha256-v1',
+        logTime: '2026-05-16T11:00:00.000Z',
+        processType: 'SonstigerVorgang',
+        simulated: true,
+      },
+      '2026-05-16T11:00:00.000Z',
+    )
+    expect(cancellation.status).toBe('canceled')
+    expect(cancellation.signatureValue).toBe('SIM-cancel')
+    expect(cancellation.canceledAt).toBe('2026-05-16T11:00:00.000Z')
+  })
+
+  it('tseCancellationFromError: Ausfall → unavailable (§146a), sonst failed', () => {
+    const at = '2026-05-16T11:00:00.000Z'
+    expect(tseCancellationFromError(new TseUnavailableError(), at).status).toBe('unavailable')
+    const failed = tseCancellationFromError(new TseError('storno kaputt'), at)
+    expect(failed.status).toBe('failed')
+    expect(failed.errorReason).toBe('storno kaputt')
+  })
+
+  it('voller Storno-Fluss mit Simulator: start → finish → cancel ergibt canceled-Block', async () => {
+    const tse = new SimulatorTseAdapter()
+    const ref = await tse.startTransaction({ clientId: 'pos-1', transactionNumber: 7 })
+    const start = tseInfoFromStart(ref)
+    const sig = await tse.finishTransaction(tseRefFromInfo(start), { amountCents: 1990 })
+    const signed = tseInfoFromSignature(start, sig)
+    const cancelSig = await tse.cancelTransaction(tseRefFromInfo(signed))
+    const canceled = { ...signed, cancellation: tseCancellationFromSignature(cancelSig, '2026-05-16T11:00:00.000Z') }
+    expect(canceled.status).toBe('signed') // Sale-Signatur bleibt erhalten
+    expect(canceled.cancellation?.status).toBe('canceled')
+    expect(canceled.cancellation?.signatureValue).toMatch(/^SIM-/)
   })
 })

@@ -16,8 +16,8 @@ status: Aktiv
 > signiert" verhindert Doppelsignieren gesyncter Edge-Orders (`fromSync`-Guard).
 > Die Edge-Order-Signier-Hooks gaten seit Phase B auf `pos-cashier` (geteilter
 > Helfer `requiresFiscalSignature`); ein **separater lückenloser Fiskal-Zähler**
-> (≠ `dailySequenceNumber`, Phase C) ist umgesetzt, **Storno-Signierung** folgt.
-> Maßgeblich: [`fiskalisierung-architektur-adr.md`](fiskalisierung-architektur-adr.md).
+> (≠ `dailySequenceNumber`, Phase C) und **Storno-Signierung** (Phase E) sind
+> umgesetzt. Maßgeblich: [`fiskalisierung-architektur-adr.md`](fiskalisierung-architektur-adr.md).
 
 Provider-agnostische Abstraktion für die KassenSichV-Fiskalisierung (Online-TSE via
 Fiskaly geplant) plus ein Simulator-Adapter für Dev/CI/Staging. Erste Phase: Port +
@@ -142,6 +142,23 @@ keine Hardware). Spiegelt die Edge-Signierung in `panary-cloud/apps/api-cloud`:
   `reconcileBusinessDayFromDraft` signiert beim Übergang → `CLOSED` über
   `getTsePortForTenant` (nur `pos-cashier` + konfigurierter Port), `tseDay*`-Felder
   in denselben Close-Patch. Cloud-Analogon zu `signBusinessDayClose` (Edge).
+
+## Phase E — Storno-Signierung (umgesetzt, Edge + Cloud · Fix S2)
+
+KassenSichV: ein Storno/Refund ist ein **eigener fiskalischer Vorgang** und muss
+signiert werden. Bisher wurde `tsePort.cancelTransaction` **nirgends** aufgerufen
+(Defekt S2). Jetzt:
+- **Domain** (`order-signing.ts`): `OrderTseCancellation` + `cancellation`-Block
+  auf `OrderTseInfo` (NEBEN der Sale-Signatur — die bleibt für den Audit erhalten)
+  + pure Helfer `tseCancellationFromSignature` / `tseCancellationFromError`. Der
+  geteilte `orderTseSchema` (`@panary/orders/domain`) trägt das `cancellation`-
+  Objekt. 4 zusätzliche Specs.
+- **Edge** (`sign-order-tse.hook.ts` `signOrderTseCancel`, orders `before.patch`)
+  + **Cloud** (`signOrderTseCancelCloud`, `customBeforeHooks.patch`): beim Übergang
+  → `aborted` wird `cancelTransaction(tseRefFromInfo(existing))` aufgerufen, das
+  Ergebnis landet in `order.tse.cancellation`. Guards: nur signierte/gestartete
+  Ausgangs-Transaktion, idempotent (bereits `cancellation` → skip), Cloud zusätzlich
+  `fromSync`-Guard. Nie blockierend (§146a — Ausfall → `unavailable`).
 
 ## DSFinV-K-Export — Gerüst (umgesetzt)
 

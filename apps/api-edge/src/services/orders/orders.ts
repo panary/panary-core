@@ -30,7 +30,7 @@ import { calculateTaxDetails } from '../../hooks/calculate-tax-details'
 import { applyAutomaticDiscounts } from '../../hooks/apply-automatic-discounts'
 import { checkMultiOperation } from '../../hooks/check-multi-operation'
 import { createOrderInteractions } from '../../hooks/create-order-interactions'
-import { signOrderTseFinish, signOrderTseStart } from '../../hooks/sign-order-tse.hook'
+import { signOrderTseCancel, signOrderTseFinish, signOrderTseStart } from '../../hooks/sign-order-tse.hook'
 import { ensureIndexes } from '@panary/shared-backend'
 
 export const ordersPath = 'orders'
@@ -141,6 +141,9 @@ export const orders = (app: Application) => {
         // TSE-Abschluss: signiert beim Übergang auf 'completed' den Bon. No-Op
         // ohne aktive TSE / wenn kein offener TSE-Start vorliegt; nie blockierend (§146a).
         signOrderTseFinish,
+        // TSE-Storno: signiert beim Übergang auf 'aborted' den Storno/Refund
+        // (eigener fiskalischer Vorgang). No-Op ohne signierte Ausgangs-Transaktion.
+        signOrderTseCancel,
         schemaHooks.validateData(orderPatchValidator),
         schemaHooks.resolveData(orderPatchResolver),
         ...jsonHooks.before,

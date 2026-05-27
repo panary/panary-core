@@ -1,6 +1,8 @@
 import { logger } from '@panary/shared-backend'
 import {
   requiresFiscalSignature,
+  tseCancellationFromError,
+  tseCancellationFromSignature,
   tseInfoFromError,
   tseInfoFromSignature,
   tseInfoFromStart,
@@ -161,6 +163,47 @@ export const signOrderTseFinish = async (context: HookContext): Promise<HookCont
     logger.warn({
       message: 'TSE-Abschluss fehlgeschlagen — Bon bleibt nachzusignieren',
       event: 'tse.order_finish_failed',
+      errorMessage: err instanceof Error ? err.message : String(err),
+    })
+  }
+  return context
+}
+
+// before.patch der orders: signiert den Storno/Refund (KassenSichV: eigener
+// fiskalischer Vorgang) beim Übergang auf 'aborted'. Schreibt das Ergebnis in
+// `order.tse.cancellation` (Sale-Signatur bleibt erhalten). No-Op ohne aktive
+// TSE / ohne signierte Ausgangs-Transaktion / wenn bereits storniert. Nie
+// blockierend (§146a). Behebt S2 (cancelTransaction wurde nirgends aufgerufen).
+export const signOrderTseCancel = async (context: HookContext): Promise<HookContext> => {
+  const tsePort = context.app.get('tsePort')
+  if (!tsePort) return context
+
+  const data = context.data as
+    | { status?: string; cancellation?: { canceledAt?: string } | null; tse?: OrderTseInfo | null }
+    | undefined
+  if (!data || data.status !== 'aborted' || context.id == null) return context
+
+  let existing: OrderTseInfo | undefined
+  try {
+    const current = await context.app.service('orders').get(String(context.id), { provider: undefined })
+    existing = ((data.tse ?? (current.tse as OrderTseInfo | null | undefined)) ?? undefined) as OrderTseInfo | undefined
+  } catch {
+    return context
+  }
+  // Nur eine real existierende TSE-Transaktion (gestartet oder signiert) lässt
+  // sich stornieren. Bereits storniert (cancellation gesetzt) → idempotent skip.
+  if (!existing || (existing.status !== 'signed' && existing.status !== 'started')) return context
+  if (existing.cancellation) return context
+
+  const canceledAt = data.cancellation?.canceledAt ?? new Date().toISOString()
+  try {
+    const signature = await tsePort.cancelTransaction(tseRefFromInfo(existing))
+    data.tse = { ...existing, cancellation: tseCancellationFromSignature(signature, canceledAt) }
+  } catch (err) {
+    data.tse = { ...existing, cancellation: tseCancellationFromError(err, canceledAt) }
+    logger.warn({
+      message: 'TSE-Storno fehlgeschlagen — Storno bleibt nachzusignieren',
+      event: 'tse.order_cancel_failed',
       errorMessage: err instanceof Error ? err.message : String(err),
     })
   }

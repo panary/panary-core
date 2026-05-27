@@ -239,6 +239,24 @@ export const orderTseSchema = Type.Object({
   logTime: Type.Optional(Type.String({ format: 'date-time' })),
   processType: Type.Optional(Type.String({ maxLength: 60 })),
   errorReason: Type.Optional(Type.String({ maxLength: 500 })),
+  // Storno-/Refund-Signatur (KassenSichV: eigener fiskalischer Vorgang). NEBEN
+  // der Verkaufs-Signatur gehalten — die Sale-Signatur bleibt für den Audit
+  // erhalten. Gesetzt von signOrderTseCancel(Cloud) beim Übergang → ABORTED.
+  cancellation: Type.Optional(
+    Type.Object(
+      {
+        status: StringEnum(['canceled', 'failed', 'unavailable']),
+        canceledAt: Type.String({ format: 'date-time' }),
+        signatureCounter: Type.Optional(Type.Number({ minimum: 0 })),
+        signatureValue: Type.Optional(Type.String({ maxLength: 4096 })),
+        signatureAlgorithm: Type.Optional(Type.String({ maxLength: 80 })),
+        logTime: Type.Optional(Type.String({ format: 'date-time' })),
+        processType: Type.Optional(Type.String({ maxLength: 60 })),
+        errorReason: Type.Optional(Type.String({ maxLength: 500 })),
+      },
+      { additionalProperties: false },
+    ),
+  ),
 })
 //#endregion
 

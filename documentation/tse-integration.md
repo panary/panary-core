@@ -8,6 +8,16 @@ status: Aktiv
 
 # TSE-Port + Simulator-Skelett
 
+> **⚠️ Architektur-Update (2026-05-27):** Die hier umgesetzte Signierung ist
+> **Edge-seitig**; das ist nicht mehr die ganze Geschichte. Da Fiskaly eine
+> **Online-TSE** ist, ist **cloud-direktes** fiskalisches Signieren ein
+> erstklassiger Pfad (Onboarding ohne Hardware). Der geteilte `TsePort` wird auch
+> aus `api-cloud` genutzt; „Erzeuger signiert" verhindert Doppelsignieren gesyncter
+> Edge-Orders. Zudem: Order-Signier-Hooks gaten künftig auf `pos-cashier`, ein
+> **separater lückenloser Fiskal-Zähler** (≠ `dailySequenceNumber`) und
+> **Storno-Signierung** kommen hinzu. Maßgeblich:
+> [`fiskalisierung-architektur-adr.md`](fiskalisierung-architektur-adr.md).
+
 Provider-agnostische Abstraktion für die KassenSichV-Fiskalisierung (Online-TSE via
 Fiskaly geplant) plus ein Simulator-Adapter für Dev/CI/Staging. Erste Phase: Port +
 Simulator + Provider-Auflösung + Bootstrap-Wiring. Signier-Hooks, echter Provider und

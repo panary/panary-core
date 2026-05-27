@@ -8,6 +8,13 @@ status: Aktiv
 
 # Subscription-Tier-Modell
 
+> **⚠️ Teilrevision (2026-05-27):** Die hier beschriebene Kopplung „`offlinePos` ⇒
+> `pos-cashier`" (Fiskalisierung nur mit Edge) ist **überholt**. Fiskalisierung wird
+> ein **eigenes Add-on (`fiscalCashier`)**, entkoppelt von `offlinePos`/Edge;
+> cloud-direktes fiskalisches Kassieren ist ein erstklassiger Pfad. Maßgeblich:
+> [`fiskalisierung-architektur-adr.md`](fiskalisierung-architektur-adr.md). Die
+> Feature-Matrix unten wird im Zuge der Umsetzung angepasst.
+
 ADR zum freigegebenen Pricing-Modell und der Umstellung der `subscription-plans`-Seed-Daten
 und Feature-Flags in [`@panary/tenants/domain`](../libs/domains/tenants/domain/src/lib/subscription-plan.schema.ts).
 

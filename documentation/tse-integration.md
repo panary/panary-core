@@ -13,9 +13,10 @@ status: Aktiv
 > **Online-TSE** ist, ist **cloud-direktes** fiskalisches Signieren ein
 > erstklassiger Pfad (Onboarding ohne Hardware). Der geteilte `TsePort` wird auch
 > aus `api-cloud` genutzt; „Erzeuger signiert" verhindert Doppelsignieren gesyncter
-> Edge-Orders. Zudem: Order-Signier-Hooks gaten künftig auf `pos-cashier`, ein
-> **separater lückenloser Fiskal-Zähler** (≠ `dailySequenceNumber`) und
-> **Storno-Signierung** kommen hinzu. Maßgeblich:
+> Edge-Orders. Die Edge-Order-Signier-Hooks gaten seit Phase B auf `pos-cashier`
+> (geteilter Helfer `requiresFiscalSignature`); ein **separater lückenloser
+> Fiskal-Zähler** (≠ `dailySequenceNumber`) und **Storno-Signierung** folgen.
+> Maßgeblich:
 > [`fiskalisierung-architektur-adr.md`](fiskalisierung-architektur-adr.md).
 
 Provider-agnostische Abstraktion für die KassenSichV-Fiskalisierung (Online-TSE via
@@ -73,8 +74,9 @@ Die Einzelbon-Signierung ist gegen den `TsePort` (Simulator) verdrahtet:
 - Order-Schema: eingebetteter `tse`-Snapshot ([order.schema.ts](../libs/domains/orders/domain/src/lib/order.schema.ts) → `orderTseSchema`, Status `started`/`signed`/`failed`/`unavailable`) + Knex-Migration `orders.tse` (JSON).
 - Pure Helfer in `@panary/tse/domain` ([order-signing.ts](../libs/domains/tse/domain/src/lib/order-signing.ts)): `tseInfoFromStart` / `tseInfoFromSignature` / `tseInfoFromError` / `tseRefFromInfo`.
 - Hooks ([sign-order-tse.hook.ts](../apps/api-edge/src/hooks/sign-order-tse.hook.ts)): `signOrderTseStart` (orders `before.create`, nach `assignDailySequenceNumber`) ruft `tsePort.startTransaction`; `signOrderTseFinish` (orders `before.patch`, Übergang → `completed`) ruft `tsePort.finishTransaction`. Beide **No-Op ohne aktive TSE** und **nie blockierend** (§146a: Ausfall → Snapshot `unavailable`, nachzusignieren).
-- 4 zusätzliche Specs in der tse-Domain (18 gesamt).
-- **Offen/Refinement:** präzise Gating auf `operationMode = pos-cashier` (aktuell signiert jeder Vorgang bei aktiver TSE) + Betrags-Einheit; folgt mit dem echten Provider/Cloud-Config.
+- **Fiskal-Gate (Phase B):** `signOrderTseStart` signiert nur noch `pos-cashier`-Vorgänge — geprüft über den geteilten Helfer `requiresFiscalSignature` gegen den `operationMode`-Snapshot des Geschäftstags (gleiche Quelle wie `signBusinessDayClose`). `signOrderTseFinish` gated transitiv: nur ein gestarteter (= pos-cashier) Vorgang hat einen `started`-Snapshot. **fail-safe Richtung Signatur:** ist der Modus nicht ermittelbar (kein `businessDayId`, Lookup-Fehler, fehlender Snapshot), wird signiert — ein unsignierter pos-cashier-Bon wäre ein Compliance-Defekt, ein über-signierter orders-only-Bon nur Verschwendung. Schließt die alte „signiert jeden Vorgang"-Lücke.
+- 4 zusätzliche Specs in der tse-Domain (18 gesamt); `requiresFiscalSignature` mit eigener Spec ([fiscal-gate.spec.ts](../libs/domains/tse/domain/src/lib/fiscal-gate.spec.ts)).
+- **Offen/Refinement:** Betrags-Einheit härten; folgt mit dem echten Provider/Cloud-Config.
 
 ## Phase 2 — Tagesabschluss-Signatur (umgesetzt)
 

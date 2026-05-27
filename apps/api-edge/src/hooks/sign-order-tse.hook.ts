@@ -1,5 +1,6 @@
 import { logger } from '@panary/shared-backend'
 import {
+  requiresFiscalSignature,
   tseInfoFromError,
   tseInfoFromSignature,
   tseInfoFromStart,
@@ -14,6 +15,33 @@ const resolveClientId = (context: HookContext): string => {
   return user?.deviceId ?? user?._id ?? 'edge'
 }
 
+// Fiskal-Gate-Quelle: der `operationMode`-Snapshot des Geschäftstags (von
+// `openDay` aus der Location übernommen, mit pos-cashier-Default falls die
+// Location nicht ladbar war). Bewusst dieselbe Quelle wie `signBusinessDayClose`
+// → Order- und Tagesabschluss-Signierung entscheiden auf der Edge konsistent.
+//
+// fail-safe Richtung Signatur: lässt sich der Modus nicht ermitteln (kein
+// businessDayId, Lookup-Fehler, fehlender Snapshot), wird signiert. Ein
+// unsignierter pos-cashier-Bon ist ein Compliance-Defekt (KassenSichV §146a),
+// ein über-signierter orders-only-Bon nur Verschwendung. Erst ein DEFINITIV
+// als 'orders-only' gelesener Snapshot unterdrückt die Signatur.
+const fiscalSignatureRequired = async (
+  context: HookContext,
+  businessDayId: string | undefined,
+): Promise<boolean> => {
+  if (!businessDayId) return true
+  try {
+    const businessDay = (await context.app.service('businessdays').get(businessDayId, {
+      query: { $select: ['operationMode'] },
+      provider: undefined,
+    })) as { operationMode?: string } | undefined
+    if (!businessDay?.operationMode) return true
+    return requiresFiscalSignature({ operationMode: businessDay.operationMode })
+  } catch {
+    return true
+  }
+}
+
 // before.create der orders: startet die TSE-Transaktion (nach
 // assignDailySequenceNumber) und legt den Start-Snapshot in `order.tse` ab.
 // Ist TSE inaktiv (`tsePort` nicht gesetzt) → No-Op. NIE blockierend (KassenSichV
@@ -23,8 +51,15 @@ export const signOrderTseStart = async (context: HookContext): Promise<HookConte
   const tsePort = context.app.get('tsePort')
   if (!tsePort) return context
 
-  const data = context.data as { dailySequenceNumber?: number; tse?: OrderTseInfo | null } | undefined
+  const data = context.data as
+    | { dailySequenceNumber?: number; businessDayId?: string; tse?: OrderTseInfo | null }
+    | undefined
   if (!data || typeof data.dailySequenceNumber !== 'number' || data.tse) return context
+
+  // Fiskal-Gate (KassenSichV): nur `pos-cashier`-Vorgänge werden signiert,
+  // orders-only ist No-Op. Schließt die „signiert jeden Vorgang"-Lücke.
+  // `businessDayId` setzt `restrictOrderToBusinessDay` (Hook davor) auf data.
+  if (!(await fiscalSignatureRequired(context, data.businessDayId))) return context
 
   const clientId = resolveClientId(context)
   try {
@@ -64,6 +99,9 @@ export const signOrderTseFinish = async (context: HookContext): Promise<HookCont
   } catch {
     return context
   }
+  // Fiskal-Gate transitiv: nur ein in `signOrderTseStart` (also für pos-cashier)
+  // gestarteter Vorgang hat einen 'started'-tse-Snapshot. orders-only-Bons werden
+  // nie gestartet → hier No-Op, ohne erneuten operationMode-Lookup.
   if (!existing || existing.status !== 'started') return context
 
   try {

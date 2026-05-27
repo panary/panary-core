@@ -28,6 +28,11 @@ import { authorize, multiTenancy } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { DatabaseType } from '@panary/shared-common'
 import { ensureIndexes, logger } from '@panary/shared-backend'
+import {
+  dayTseFieldsFromError,
+  dayTseFieldsFromSignature,
+  type BusinessDayTseFields,
+} from '@panary/tse/domain'
 
 import {
   businessDayDataResolver,
@@ -401,12 +406,18 @@ async function refreshClosingStatus(
 
   if (!nextStatus) return businessDay
 
+  // TSE-Tagesabschluss-Signatur beim tatsächlichen Schließen (nur pos-cashier +
+  // aktive TSE). Nie blockierend (§146a) — bei Ausfall wird der Tag trotzdem
+  // geschlossen und als nachzusignieren markiert.
+  const tseDayFields = await signBusinessDayClose(app, businessDay, nextStatus)
+
   const patched = (await (app.service(businessDaysPath) as any).patch(
     data.businessDayId,
     {
       status: nextStatus,
       reportId: report._id ?? null,
       reportErrorMessage: report.errorMessage ?? null,
+      ...tseDayFields,
       updatedAt: new Date().toISOString(),
     },
     { provider: undefined },
@@ -423,6 +434,38 @@ async function refreshClosingStatus(
   })
 
   return patched
+}
+
+// Signiert den Tagesabschluss über den TsePort, sobald der Tag tatsächlich
+// schließt. No-Op außerhalb pos-cashier / ohne aktive TSE. Wirft NIE — ein
+// Ausfall (§146a) markiert den Tag als nachzusignieren statt das Schließen zu
+// blockieren.
+async function signBusinessDayClose(
+  app: Application,
+  businessDay: BusinessDay,
+  nextStatus: string,
+): Promise<Partial<BusinessDayTseFields>> {
+  if (nextStatus !== BusinessDayStatus.CLOSED) return {}
+  if (businessDay.operationMode !== BusinessDayOperationMode.POS_CASHIER) return {}
+  const tsePort = app.get('tsePort')
+  if (!tsePort) return {}
+
+  try {
+    const signature = await tsePort.signDayClose({
+      businessDayId: businessDay._id,
+      closedAt: businessDay.closedAt ?? new Date().toISOString(),
+    })
+    return dayTseFieldsFromSignature(signature)
+  } catch (err) {
+    logger.warn({
+      message: 'TSE-Tagesabschluss-Signatur fehlgeschlagen — Tag wird geschlossen, nachzusignieren',
+      event: 'tse.day_close_failed',
+      tenantId: businessDay.tenantId,
+      businessDayId: businessDay._id,
+      errorMessage: err instanceof Error ? err.message : String(err),
+    })
+    return dayTseFieldsFromError(err)
+  }
 }
 
 interface CloudReportSnapshot {

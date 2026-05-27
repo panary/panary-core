@@ -66,8 +66,16 @@ Die Einzelbon-Signierung ist gegen den `TsePort` (Simulator) verdrahtet:
 - 4 zusätzliche Specs in der tse-Domain (18 gesamt).
 - **Offen/Refinement:** präzise Gating auf `operationMode = pos-cashier` (aktuell signiert jeder Vorgang bei aktiver TSE) + Betrags-Einheit; folgt mit dem echten Provider/Cloud-Config.
 
+## Phase 2 — Tagesabschluss-Signatur (umgesetzt)
+
+Der Geschäftstag wird beim tatsächlichen Schließen TSE-signiert:
+- `signBusinessDayClose` in [business-days.ts](../apps/api-edge/src/services/business-days/business-days.ts) hängt im `refreshClosingStatus` ein: bei Übergang → `CLOSED`, **nur** `operationMode = pos-cashier` + aktive TSE, ruft `tsePort.signDayClose`. Das Ergebnis fließt in denselben internen Close-Patch.
+- Flache Felder am BusinessDay ([business-day.schema.ts](../libs/domains/businessdays/domain/src/lib/business-day.schema.ts)): `tseDayStatus` / `tseDaySignature` / `tseDaySignatureCounter` / `tseDaySimulated` (kein JSON-Hook im businessdays-Service) + Knex-Migration.
+- Pure Helfer ([day-signing.ts](../libs/domains/tse/domain/src/lib/day-signing.ts)): `dayTseFieldsFromSignature` / `dayTseFieldsFromError`.
+- **Nie blockierend** (§146a): ein Ausfall schließt den Tag trotzdem, Status `unavailable` (nachzusignieren). 2 zusätzliche Specs (tse-domain 20 gesamt).
+
 ## Folgephasen (Out of scope)
-1. **Tagesabschluss-Signatur** (`signDayClose`) im businessdays-Close + DSFinV-K/TAR-Export.
+1. **DSFinV-K/TAR-Export** — eigener großer Brocken (offizielles Format + reale Transaktionsdaten + Validierungs-Tools); `tsePort.export` liefert bisher nur eine Referenz (Simulator).
 2. Signatur-Druck auf dem Bon (Print-Server, Belegausgabepflicht).
 3. Edge↔Cloud-Sync der `tenant.tse`-Config + per-Tenant-Provider-Auswahl.
 4. Fiskaly-Real-Adapter (Test-/Prod-Endpoint, `apiKeyRef`/`apiSecretRef` aus BWS via `tenant.tse`).

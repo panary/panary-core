@@ -56,6 +56,14 @@ export const businessDaySchema = Type.Object({
   reportId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
   reportErrorMessage: Type.Optional(Type.Union([Type.String({ maxLength: 2000 }), Type.Null()])),
 
+  // TSE-Tagesabschluss-Signatur (KassenSichV). Flach gespeichert (kein JSON-Hook
+  // im businessdays-Service). Vom Edge beim Schließen gesetzt (nur pos-cashier +
+  // aktive TSE); `unavailable` = TSE war ausgefallen (§146a, nachzusignieren).
+  tseDayStatus: Type.Optional(Type.Union([StringEnum(['signed', 'failed', 'unavailable']), Type.Null()])),
+  tseDaySignature: Type.Optional(Type.Union([Type.String({ maxLength: 4096 }), Type.Null()])),
+  tseDaySignatureCounter: Type.Optional(Type.Union([Type.Number({ minimum: 0 }), Type.Null()])),
+  tseDaySimulated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
+
   createdAt: Type.String({ format: 'date-time' }),
   updatedAt: Type.String({ format: 'date-time' }),
 })

@@ -55,7 +55,8 @@ const AUTHORIZING_ROLES = new Set<string>([
         <label class="flex flex-col gap-1">
           <span class="text-xs text-gray-500 dark:text-gray-400">Freigebende Person</span>
           <select
-            [(ngModel)]="managerId"
+            [ngModel]="managerId()"
+            (ngModelChange)="managerId.set($event)"
             class="border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 bg-white dark:bg-gray-900 h-12"
           >
             <option value="">— bitte wählen —</option>
@@ -71,7 +72,8 @@ const AUTHORIZING_ROLES = new Set<string>([
             type="password"
             inputmode="numeric"
             autocomplete="off"
-            [(ngModel)]="pin"
+            [ngModel]="pin()"
+            (ngModelChange)="pin.set($event)"
             class="border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 bg-white dark:bg-gray-900 h-12"
           />
         </label>
@@ -82,7 +84,8 @@ const AUTHORIZING_ROLES = new Set<string>([
             type="number"
             step="0.01"
             min="0"
-            [(ngModel)]="openingFloatEuros"
+            [ngModel]="openingFloatEuros()"
+            (ngModelChange)="openingFloatEuros.set($event)"
             class="border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 bg-white dark:bg-gray-900 h-12"
           />
         </label>
@@ -130,25 +133,32 @@ export class ManagerAuthorizeCashSessionDialogComponent {
   protected readonly errorMessage = signal<string | null>(null)
   protected resultSession: CashSession | null = null
 
-  protected managerId = ''
-  protected pin = ''
-  protected openingFloatEuros: number | null =
+  // Formular-State als Signals, damit `canSubmit` (computed) auf Änderungen
+  // reagiert. Plain Properties + [(ngModel)] mutieren nur die Property, aber
+  // triggern kein Signal-Re-Compute → der Submit-Button bliebe dauerhaft
+  // deaktiviert.
+  protected readonly managerId = signal<string>('')
+  protected readonly pin = signal<string>('')
+  protected readonly openingFloatEuros = signal<number | null>(
     typeof this.data.defaultOpeningFloatCents === 'number' && this.data.defaultOpeningFloatCents > 0
       ? this.data.defaultOpeningFloatCents / 100
-      : null
+      : null,
+  )
 
   /** Berechtigte Mitarbeiter zur Auswahl. */
   protected readonly managers = computed<User[]>(() =>
     this.userService.users().filter(u => !!u.role && AUTHORIZING_ROLES.has(u.role)),
   )
 
-  protected readonly canSubmit = computed(
-    () =>
-      this.managerId.trim().length > 0 &&
-      this.pin.trim().length > 0 &&
-      this.openingFloatEuros !== null &&
-      this.openingFloatEuros >= 0,
-  )
+  protected readonly canSubmit = computed(() => {
+    const float = this.openingFloatEuros()
+    return (
+      this.managerId().trim().length > 0 &&
+      this.pin().trim().length > 0 &&
+      float !== null &&
+      float >= 0
+    )
+  })
 
   async submit(): Promise<void> {
     this.phase.set('submitting')
@@ -157,10 +167,10 @@ export class ManagerAuthorizeCashSessionDialogComponent {
       this.resultSession = await this.cashSessionService.openAuthorized({
         businessDayId: this.data.businessDayId,
         openedBy: this.data.cashierId,
-        openingFloatCents: Math.round((this.openingFloatEuros ?? 0) * 100),
+        openingFloatCents: Math.round((this.openingFloatEuros() ?? 0) * 100),
         label: this.data.cashierName ? `Kasse ${this.data.cashierName}` : 'Kasse',
-        authorizedByUserId: this.managerId,
-        pin: this.pin,
+        authorizedByUserId: this.managerId(),
+        pin: this.pin(),
       })
       this.phase.set('submitted')
     } catch (err) {

@@ -26,6 +26,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PLATFORM_SUBSCRIPTION_INVOICES, action: AppAction.MANAGE },
     // App-seitige Subscription-Promo-Codes (globaler Store). Platform verwaltet voll.
     { resource: AppResource.PLATFORM_PROMO_CODES, action: AppAction.MANAGE },
+    // Tenant-Self-Service-Aktionen — Platform-Bypass per Impersonation moeglich.
+    { resource: AppResource.TENANT_SUBSCRIPTION_ACTIONS, action: AppAction.MANAGE },
+    // Vier-Augen-Antraege: Owner approved (Hook erzwingt approver !== requester).
+    { resource: AppResource.PLATFORM_SUBSCRIPTION_CHANGE_REQUESTS, action: AppAction.MANAGE },
     { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
     // OoS-Follow-up: DSGVO-Export, Owner-Transfer, VIES-Validation (Wellen B-E).
     { resource: AppResource.GDPR_TENANT_EXPORT, action: AppAction.MANAGE },
@@ -88,6 +92,14 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PLATFORM_SUBSCRIPTION_INVOICES, action: AppAction.MANAGE },
     // App-seitige Subscription-Promo-Codes — wie PLATFORM_OWNER (voller CRUD).
     { resource: AppResource.PLATFORM_PROMO_CODES, action: AppAction.MANAGE },
+    // Tenant-Self-Service-Aktionen — Admin kann via Impersonation agieren.
+    { resource: AppResource.TENANT_SUBSCRIPTION_ACTIONS, action: AppAction.MANAGE },
+    // Vier-Augen-Antraege: ADMIN darf stellen + lesen, aber NICHT approven
+    // (approve-Custom-Method prueft on top, dass nur PLATFORM_OWNER signiert).
+    {
+      resource: AppResource.PLATFORM_SUBSCRIPTION_CHANGE_REQUESTS,
+      action: [AppAction.READ, AppAction.CREATE],
+    },
     { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
     // OoS-Follow-up: wie PLATFORM_OWNER.
     { resource: AppResource.GDPR_TENANT_EXPORT, action: AppAction.MANAGE },
@@ -140,6 +152,20 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PLATFORM_SUBSCRIPTION_INVOICES, action: AppAction.READ },
     // Promo-Codes read-only zur Diagnose (Billing-Support).
     { resource: AppResource.PLATFORM_PROMO_CODES, action: AppAction.READ },
+    // Tenant-Self-Service-Aktionen: Support darf eine eingeschraenkte Sub-Menge
+    // (z. B. Trial-Extension <= 14 Tage) selbst ausloesen. Service-Code
+    // erzwingt die Cap-Logik in der jeweiligen Custom-Method; die Matrix gibt
+    // hier nur die Tuer auf (READ + CREATE — UPDATE-Operationen ueber Patch
+    // sind Support nicht erlaubt, sonst koennte er auch ausserhalb der Cap
+    // mutieren).
+    {
+      resource: AppResource.TENANT_SUBSCRIPTION_ACTIONS,
+      action: [AppAction.READ, AppAction.CREATE],
+    },
+    // Vier-Augen-Antraege: Support sieht die Inbox, kann selbst keine
+    // Requests stellen (CREATE) und nicht approven (MANAGE) — Eskalation
+    // an ADMIN/OWNER.
+    { resource: AppResource.PLATFORM_SUBSCRIPTION_CHANGE_REQUESTS, action: AppAction.READ },
     { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
     // OoS-Follow-up: Support liest VIES-Cache zur Diagnose, kein Export/Transfer.
     { resource: AppResource.VAT_VALIDATION_CACHE, action: AppAction.READ },
@@ -270,6 +296,15 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Abo-Rechnungen: Tenant-Owner darf die eigenen Subscription-Rechnungen lesen
     // (Download/Beleg-Archiv). Multi-Tenancy-Hook scoped auf den eigenen Tenant.
     { resource: AppResource.PLATFORM_SUBSCRIPTION_INVOICES, action: AppAction.READ },
+    // Subscription-Self-Service (Schicht 1 der Drei-Schicht-Sicherung):
+    // Plan-Wechsel zwischen Self-Service-Tiers, Bezahlmethode via PSP-Hosted-
+    // Checkout, Kuendigung zum Periodenende. Custom-Method-Service mit
+    // method-spezifischen Validatoren; Coupon/Limit-Override/Enterprise bleiben
+    // PLATFORM_*-only via separater Resources.
+    {
+      resource: AppResource.TENANT_SUBSCRIPTION_ACTIONS,
+      action: [AppAction.READ, AppAction.CREATE, AppAction.UPDATE],
+    },
     { resource: AppResource.TENANT_AUDIT_TRAIL, action: AppAction.READ },
     // OoS-Follow-up: Owner darf DSGVO-Tenant-Export anstossen, Owner-Transfer
     // an einen MANAGER weitergeben, VIES-Cache lesen, Self-Export.

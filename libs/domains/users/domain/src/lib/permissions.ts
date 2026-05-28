@@ -259,6 +259,24 @@ export const AppResource = {
    *  platform-subscriptions, Tenants sehen eingeloeste Codes read-only ueber
    *  `tenant.subscription.appliedCoupons`. */
   PLATFORM_PROMO_CODES: 'platform-promo-codes',
+  /** Cloud-only: Self-Service-Subscription-Aktionen des Tenant-OWNER
+   *  (Plan-Wechsel zwischen Self-Service-Tiers, Bezahlmethode via PSP-Hosted-
+   *  Checkout, Kuendigung zum Periodenende). Bewusst eigener Service-Pfad
+   *  parallel zu `platform-subscriptions` — Trennung der Rollen: Plattform-
+   *  Personal nutzt `platform-subscriptions`, Tenant-OWNER nutzt diesen Service.
+   *  Erlaubte Methoden sind ausschliesslich die Self-Service-Custom-Methods
+   *  (switchPlanSelfService/setupHostedCheckout/cancelSelfService) — Coupon,
+   *  Limit-Override, Enterprise-Wechsel bleiben PLATFORM_*-only. */
+  TENANT_SUBSCRIPTION_ACTIONS: 'tenant-subscription-actions',
+  /** Cloud-only: Vier-Augen-Antraege fuer kritische Subscription-Operationen
+   *  (Limit-Override, Enterprise-Plan-Zuweisung, Tenant-Archive). Maker
+   *  (PLATFORM_ADMIN/OWNER) erstellt Request mit Pflicht-Reason; Approver
+   *  (anderer PLATFORM_OWNER, !== Maker) approved oder rejected. Status-
+   *  Machine PENDING_APPROVAL → APPROVED/REJECTED/EXPIRED/EXECUTED/FAILED.
+   *  MANAGE: PLATFORM_OWNER (kann approven); READ + CREATE: PLATFORM_ADMIN
+   *  (kann Request stellen, NICHT approven — Hook-seitige Pruefung im
+   *  approve-Custom-Method); READ: PLATFORM_SUPPORT (sieht Inbox). */
+  PLATFORM_SUBSCRIPTION_CHANGE_REQUESTS: 'platform-subscription-change-requests',
   PLATFORM_IMPERSONATION: 'platform-impersonation',
   PLATFORM_IMPERSONATION_EVENTS: 'platform-impersonation-events',
   PLATFORM_USER_PREFERENCES: 'platform-user-preferences',

@@ -130,22 +130,42 @@ export function computeExpectedClosingFloatCents(input: {
  *
  * Pflichtfelder beim Eröffnen werden im zweiten Object des Intersect erzwungen.
  */
-// Type.Composite statt Type.Intersect: merged die TObjects zu EINEM flachen
-// TObject. `additionalProperties: false` greift bei Type.Intersect/`allOf`
-// nicht wie erwartet (AJV checkt nur das outer-Level, das bei Intersect leer
-// ist → alle Branch-Properties werden als „additional" gewertet, inkl. `_id`
-// → Sync-Reject mit „must NOT have additional properties [field: _id]").
-// Composite produziert dagegen ein einzelnes TObject mit Pflicht- ∪
-// Partial-Feldern; `additionalProperties: false` wirkt regulär.
-export const cashSessionDataSchema = Type.Composite(
-  [
-    Type.Partial(cashSessionSchema),
-    Type.Object({
-      businessDayId: Type.String(),
-      label: Type.String({ minLength: 1, maxLength: 80 }),
-      openingFloatCents: Type.Integer({ minimum: 0 }),
-    }),
-  ],
+// EIN flaches TObject mit allen cashSessionSchema-Feldern. Pflicht beim
+// Eröffnen: businessDayId, label, openingFloatCents — alles andere optional,
+// damit der Sync-Push den VOLLEN Edge-Record (inkl. _id, status, openedAt,
+// cashSalesCents, createdAt, updatedAt, …) durch validateData bringt.
+// Bewusst kein Type.Intersect/Type.Partial-Konstrukt: `additionalProperties:
+// false` greift bei AJV nur am Top-Level, bei `allOf` werden Branch-Properties
+// als „additional" gewertet → Sync-Reject mit „must NOT have additional
+// properties [field: _id]". Type.Composite gibt es in dieser TypeBox-Version
+// nicht, daher die Felder explizit aufzählen.
+export const cashSessionDataSchema = Type.Object(
+  {
+    // Pflichtfelder beim Eröffnen (Client-facing):
+    businessDayId: Type.String(),
+    label: Type.String({ minLength: 1, maxLength: 80 }),
+    openingFloatCents: Type.Integer({ minimum: 0 }),
+    // Server-gestempelte Felder + Sync-Push (alle optional):
+    _id: Type.Optional(Type.String()),
+    tenantId: Type.Optional(Type.String()),
+    locationId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    status: Type.Optional(StringEnum(Object.values(CashSessionStatus))),
+    openedBy: Type.Optional(Type.String()),
+    openedAt: Type.Optional(Type.String({ format: 'date-time' })),
+    closedBy: Type.Optional(Type.String()),
+    closedAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
+    deviceId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    denominationCounts: Type.Optional(denominationCountsSchema),
+    countedClosingFloatCents: Type.Optional(Type.Integer()),
+    cashSalesCents: Type.Optional(Type.Integer()),
+    cashDropsCents: Type.Optional(Type.Integer({ minimum: 0 })),
+    payoutsCents: Type.Optional(Type.Integer({ minimum: 0 })),
+    expectedClosingFloatCents: Type.Optional(Type.Integer()),
+    varianceCents: Type.Optional(Type.Integer()),
+    notes: Type.Optional(Type.String({ maxLength: 1000 })),
+    createdAt: Type.Optional(Type.String({ format: 'date-time' })),
+    updatedAt: Type.Optional(Type.String({ format: 'date-time' })),
+  },
   { $id: 'CashSessionData', additionalProperties: false },
 )
 export type CashSessionData = Static<typeof cashSessionDataSchema>

@@ -67,12 +67,17 @@ export const cashSessionSchema = Type.Object({
 
   openedBy: Type.String(), // userId
   openedAt: Type.String({ format: 'date-time' }),
-  closedBy: Type.Optional(Type.String()),
+  // SQLite-Spalte ist nullable; bei offener Session liegt hier NULL.
+  // Type.Optional alleine erlaubt nur undefined — Sync-Push schickt aber
+  // explizit `null` aus der Knex-Row, daher Union mit Type.Null().
+  closedBy: Type.Optional(Type.Union([Type.String(), Type.Null()])),
   closedAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
   deviceId: Type.Optional(Type.Union([Type.String(), Type.Null()])), // POS/Edge-Audit
 
   openingFloatCents: Type.Integer({ minimum: 0 }),
-  denominationCounts: Type.Optional(denominationCountsSchema),
+  // Stueckelungen werden erst beim Schliessen erfasst — Edge speichert NULL,
+  // bis Counts kommen. Union mit Null analog zu closedBy.
+  denominationCounts: Type.Optional(Type.Union([denominationCountsSchema, Type.Null()])),
 
   // Server-berechnet (protectFromExternal) — aus denominationCounts + Inputs:
   countedClosingFloatCents: Type.Integer({ default: 0 }),
@@ -82,9 +87,15 @@ export const cashSessionSchema = Type.Object({
   expectedClosingFloatCents: Type.Integer({ default: 0 }),
   varianceCents: Type.Integer({ default: 0 }), // counted − expected (signiert)
 
-  notes: Type.Optional(Type.String({ maxLength: 1000 })),
+  notes: Type.Optional(Type.Union([Type.String({ maxLength: 1000 }), Type.Null()])),
   createdAt: Type.String({ format: 'date-time' }),
   updatedAt: Type.String({ format: 'date-time' }),
+
+  // Soft-Delete-Tombstone fuer Sync (Cloud<->Edge). Migration legt die Spalte
+  // bereits als nullable an; ohne diese Schema-Deklaration lehnt
+  // `additionalProperties: false` jeden Push ab, weil der Outbox-Recorder das
+  // Feld mitserialisiert (auch wenn es null ist). Pattern analog discount.
+  _deletedAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
 })
 export type CashSession = Static<typeof cashSessionSchema>
 
@@ -152,19 +163,24 @@ export const cashSessionDataSchema = Type.Object(
     status: Type.Optional(StringEnum(Object.values(CashSessionStatus))),
     openedBy: Type.Optional(Type.String()),
     openedAt: Type.Optional(Type.String({ format: 'date-time' })),
-    closedBy: Type.Optional(Type.String()),
+    // Spiegelt das Hauptschema: nullable in DB, daher Union mit Null().
+    closedBy: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     closedAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
     deviceId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
-    denominationCounts: Type.Optional(denominationCountsSchema),
+    denominationCounts: Type.Optional(Type.Union([denominationCountsSchema, Type.Null()])),
     countedClosingFloatCents: Type.Optional(Type.Integer()),
     cashSalesCents: Type.Optional(Type.Integer()),
     cashDropsCents: Type.Optional(Type.Integer({ minimum: 0 })),
     payoutsCents: Type.Optional(Type.Integer({ minimum: 0 })),
     expectedClosingFloatCents: Type.Optional(Type.Integer()),
     varianceCents: Type.Optional(Type.Integer()),
-    notes: Type.Optional(Type.String({ maxLength: 1000 })),
+    notes: Type.Optional(Type.Union([Type.String({ maxLength: 1000 }), Type.Null()])),
     createdAt: Type.Optional(Type.String({ format: 'date-time' })),
     updatedAt: Type.Optional(Type.String({ format: 'date-time' })),
+    // Soft-Delete-Tombstone — siehe cashSessionSchema. Optional, da der
+    // Edge-Record das Feld initial mit NULL serialisiert; ohne diese Zeile
+    // bricht der Sync-Push (Cloud `additionalProperties: false`).
+    _deletedAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
   },
   { $id: 'CashSessionData', additionalProperties: false },
 )
@@ -183,6 +199,9 @@ export const cashSessionQueryProperties = Type.Pick(cashSessionSchema, [
   // createdAt: für $sort (findForBusinessDay) — sonst lehnt querySyntax das
   // Sortier-Feld ab („Validation failed").
   'createdAt',
+  // Sync-Pull filtert Tombstones via `_deletedAt: { $exists: false }` (Default)
+  // oder `params.includeDeleted=true`. Ohne den Pick lehnt querySyntax beide ab.
+  '_deletedAt',
 ])
 export const cashSessionQuerySchema = Type.Intersect(
   [querySyntax(cashSessionQueryProperties), Type.Object({}, { additionalProperties: false })],

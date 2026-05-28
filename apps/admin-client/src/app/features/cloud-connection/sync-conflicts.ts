@@ -285,15 +285,28 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                       ? 'Diese Daten werden zentral in der Online-Datenbank gepflegt — Hochladen ist hier nicht moeglich.'
                       : retryDisabled(row)
                         ? 'Server lehnt diese Daten wiederholt ab. Warte oder kontaktiere den Support.'
-                        : 'Eintrag wieder zum Hochladen freigeben'
+                        : 'Push erneut versuchen mit der urspruenglich gespeicherten Payload'
                   "
                   class="bg-slate-900 dark:bg-white dark:text-slate-900 text-white text-xs px-3 py-1.5 rounded-md hover:opacity-90 disabled:opacity-40"
                 >
                   Erneut versuchen
                 </button>
                 <button
+                  (click)="reEnqueueRejected(row)"
+                  [disabled]="rowBusy() === row._id || isPolicyBlocked(row)"
+                  [title]="
+                    isPolicyBlocked(row)
+                      ? 'Diese Daten werden zentral in der Online-Datenbank gepflegt — Hochladen ist hier nicht moeglich.'
+                      : 'Aktuellen lokalen Stand frisch synchronisieren (laedt den Datensatz neu und stellt ihn in die Warteschlange)'
+                  "
+                  class="bg-emerald-700 dark:bg-emerald-600 text-white text-xs px-3 py-1.5 rounded-md hover:opacity-90 disabled:opacity-40"
+                >
+                  Erneut einreihen
+                </button>
+                <button
                   (click)="discardRejected(row)"
                   [disabled]="rowBusy() === row._id"
+                  title="Sync-Eintrag verwerfen. Der lokale Datensatz bleibt erhalten, wird aber nicht in die Online-Datenbank synchronisiert."
                   class="text-red-500 text-xs px-3 py-1.5 hover:underline disabled:opacity-50"
                 >
                   Verwerfen
@@ -638,6 +651,35 @@ export class SyncConflictsComponent implements OnInit {
     this.rowBusy.set(row._id)
     try {
       await this.api.remove('sync-outbox', row._id)
+      this.rejectedRows.update(rows => rows.filter(r => r._id !== row._id))
+      this.syncProblemCount.refresh()
+    } catch (err) {
+      this.errors.update(arr => [...arr, formatApiError(err)])
+    } finally {
+      this.rowBusy.set(null)
+      this.cdr.markForCheck()
+    }
+  }
+
+  /**
+   * Stellt den AKTUELLEN Stand des lokalen Datensatzes als frischen pending-
+   * Outbox-Eintrag in die Sync-Schlange. Unterschied zu `retryRejected`:
+   *   - retryRejected schickt die alte (abgelehnte) Payload erneut — sinnvoll
+   *     bei transienten Fehlern (Netzwerk, Cloud-Outage), die spaeter als
+   *     terminal eskaliert wurden.
+   *   - reEnqueueRejected laedt den Edge-Record neu und pusht den AKTUELLEN
+   *     Stand — sinnvoll bei Schema-Mismatch, wenn der Operator den lokalen
+   *     Datensatz inzwischen korrigiert hat.
+   * Die alte rejected-Row wird serverseitig entfernt, sobald die neue pending-
+   * Row angelegt ist.
+   */
+  async reEnqueueRejected(row: SyncOutboxRow) {
+    if (this.isPolicyBlocked(row)) return
+    const label = labelForService(row.service)
+    if (!confirm(`Aktuellen ${label}-Datensatz erneut in die Online-Datenbank uebernehmen?\n\nDer lokale Stand wird frisch geladen und neu in die Sync-Warteschlange gestellt.`)) return
+    this.rowBusy.set(row._id)
+    try {
+      await this.api.customMethod<SyncOutboxRow>('sync-outbox', 'reEnqueue', { id: row._id })
       this.rejectedRows.update(rows => rows.filter(r => r._id !== row._id))
       this.syncProblemCount.refresh()
     } catch (err) {

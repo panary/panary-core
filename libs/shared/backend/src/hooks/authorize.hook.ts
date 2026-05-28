@@ -95,6 +95,10 @@ function getActionFromMethod(method: string): AppAction {
     case 'reAggregate':
     case 'refreshClosingStatus':
       return AppAction.UPDATE
+    // Sync-Outbox-Operator-Custom-Method (REV-Sync) — modifiziert den Workflow-
+    // State (rejected → pending + neuer Eintrag), daher UPDATE.
+    case 'reEnqueue':
+      return AppAction.UPDATE
     // Export-Methods (REV-5/REV-6) — reine Lese-Operationen
     case 'exportDsfinvk':
     case 'printZBon':

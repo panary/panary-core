@@ -102,3 +102,14 @@ export const syncOutboxEntryQuerySchema = Type.Intersect(
 )
 
 export type SyncOutboxEntryQuery = Static<typeof syncOutboxEntryQuerySchema>
+
+// Custom-Method `reEnqueue`: erzeugt aus einem rejected Outbox-Eintrag einen
+// frischen pending-Eintrag mit dem AKTUELLEN Stand des Edge-Records. Operator
+// nutzt das, wenn die ursprueglich gepushte Payload (z.B. wegen Schema-Mismatch)
+// abgelehnt wurde und der lokale Datensatz inzwischen korrigiert ist.
+export const reEnqueueOutboxArgsSchema = Type.Object(
+  { id: Type.String({ format: 'uuid' }) },
+  { $id: 'ReEnqueueOutboxArgs', additionalProperties: false },
+)
+
+export type ReEnqueueOutboxArgs = Static<typeof reEnqueueOutboxArgsSchema>

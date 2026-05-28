@@ -103,12 +103,36 @@ export const subscriptionPlanQuerySchema = Type.Intersect(
 export type SubscriptionPlanQuery = Static<typeof subscriptionPlanQuerySchema>
 //#endregion
 
+//#region Plan-Code-Const-Enum
+// Zentrale, getypte Plan-Codes — Single Source of Truth fuer die builtin-Plaene.
+// Ersetzt verstreute String-Literale ('trial'/'connect'/'operate'/'enterprise')
+// in api-cloud (tenant-subscription-actions, platform-subscriptions). Tenant-
+// definierte Custom-Plaene (z. B. 'partner-deal-2026') bleiben als freie Strings
+// moeglich — das Enum deckt nur die mitgelieferten Standard-Tiers ab.
+export const SubscriptionPlanCode = {
+  TRIAL: 'trial',
+  CONNECT: 'connect',
+  OPERATE: 'operate',
+  ENTERPRISE: 'enterprise',
+} as const
+export type SubscriptionPlanCodeValue = (typeof SubscriptionPlanCode)[keyof typeof SubscriptionPlanCode]
+
+// Self-Service-Tiers: Plaene, die ein Tenant-OWNER selbst ohne Plattform-
+// Eingriff wechseln darf. Enterprise ist bewusst NICHT enthalten (Custom-
+// Billing, nur ueber Plattform-Vergabe).
+export const SELF_SERVICE_PLAN_CODES: ReadonlyArray<SubscriptionPlanCodeValue> = [
+  SubscriptionPlanCode.TRIAL,
+  SubscriptionPlanCode.CONNECT,
+  SubscriptionPlanCode.OPERATE,
+]
+//#endregion
+
 //#region Initial-Seed-Defaults
 // Werden vom Seed-Skript (Phase 5.1) angelegt — V1-Vorschlag. Preise
 // koennen vom User vor dem ersten Stripe-Go-Live angepasst werden.
 export const SUBSCRIPTION_PLAN_SEED_DEFAULTS: ReadonlyArray<Omit<SubscriptionPlan, 'createdAt' | 'updatedAt'>> = [
   {
-    _id: 'trial',
+    _id: SubscriptionPlanCode.TRIAL,
     name: 'Trial',
     description: '60 Tage kostenlos testen — voller Operate-Funktionsumfang, eine Filiale.',
     active: true,
@@ -128,7 +152,7 @@ export const SUBSCRIPTION_PLAN_SEED_DEFAULTS: ReadonlyArray<Omit<SubscriptionPla
     },
   },
   {
-    _id: 'connect',
+    _id: SubscriptionPlanCode.CONNECT,
     name: 'Connect',
     description: 'Cloud-Bestellsystem mit vollem Backend — Online Bons, keine Offline-Kasse.',
     active: true,
@@ -151,7 +175,7 @@ export const SUBSCRIPTION_PLAN_SEED_DEFAULTS: ReadonlyArray<Omit<SubscriptionPla
     },
   },
   {
-    _id: 'operate',
+    _id: SubscriptionPlanCode.OPERATE,
     name: 'Operate',
     description: 'Volle Offline-Kasse + ERP — pos-cashier, physischer Druck/KDS, Fiskal-Z-Bon.',
     active: true,
@@ -171,7 +195,7 @@ export const SUBSCRIPTION_PLAN_SEED_DEFAULTS: ReadonlyArray<Omit<SubscriptionPla
     },
   },
   {
-    _id: 'enterprise',
+    _id: SubscriptionPlanCode.ENTERPRISE,
     name: 'Enterprise',
     description: 'Unlimitierte Skalierung + Integration — API, Webhooks, SSO, Audit-Export, Custom Domain.',
     active: true,

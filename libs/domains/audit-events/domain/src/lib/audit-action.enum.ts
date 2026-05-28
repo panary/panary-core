@@ -39,6 +39,13 @@ export const AuditAction = {
   // AUDIT_CLEANUP: Edge-Cleanup-Worker hat alte Eintraege geloescht (Retention).
   AUDIT_REDACT: 'AUDIT_REDACT',
   AUDIT_CLEANUP: 'AUDIT_CLEANUP',
+
+  // Sync-Operationen
+  // SYNC_TRIGGER: Admin/Owner hat aus der Cloud-UI einen Sofort-Sync auf einem
+  // Edge angestossen (Click-to-Sync). Cloud schreibt das Event beim Dispatch,
+  // Edge schreibt es beim Empfang — beide mit derselben correlationId, sodass
+  // der Admin im Audit-Trail die Reise nachvollziehen kann.
+  SYNC_TRIGGER: 'SYNC_TRIGGER',
 } as const
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction]

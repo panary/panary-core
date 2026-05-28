@@ -17,13 +17,23 @@
 
 import { io, type Socket } from 'socket.io-client'
 
+import { uuidv7 } from 'uuidv7'
+
 import { logger } from '@panary/shared-backend'
+import {
+  AuditAction,
+  AuditCategory,
+  AuditOutcome,
+  AuditSeverity,
+  type AuditEventData,
+} from '@panary/audit-events/domain'
 import {
   EDGE_EVENTS_PATH,
   EdgeEventName,
   type EdgeChangedEvent,
   type EdgeForceSyncEvent,
   type EdgeRevokedEvent,
+  syncTriggersPath,
   SyncRunTrigger,
 } from '@panary/sync/domain'
 
@@ -237,6 +247,19 @@ export const startCloudRealtimeWorker = async (
         correlationId,
         requestedByUserId: data?.requestedByUserId,
       })
+      // Edge-seitiges Audit-Event: belegt forensisch, dass der Edge den
+      // Trigger empfangen hat. Wird ueber den bestehenden audit-events-Sync
+      // automatisch in die Cloud repliziert — der Admin sieht in der
+      // Cloud-Audit-Trail dann zwei Records mit derselben correlationId:
+      // Cloud-Dispatch + Edge-Empfang.
+      void writeForceSyncReceivedAudit(app, data).catch(err =>
+        logger.warn({
+          message: 'force-sync Audit-Event konnte nicht geschrieben werden',
+          event: 'sync.trigger.audit_write_failed',
+          correlationId,
+          errorMessage: err instanceof Error ? err.message : String(err),
+        }),
+      )
       void triggerImmediateCycle(app, SyncRunTrigger.CLOUD_PUSH).catch(err =>
         logger.warn({
           message: 'force-sync Cycle fehlgeschlagen',
@@ -302,4 +325,59 @@ export const startCloudRealtimeWorker = async (
       teardownSocket()
     },
   }
+}
+
+/**
+ * Schreibt ein Audit-Event "force-sync empfangen" in die lokale audit-events-
+ * Tabelle. Wird ueber den bestehenden audit-events-Sync-Pfad automatisch in
+ * die Cloud repliziert (audit-events ist SyncableTransactionService).
+ *
+ * Actor:
+ *   - userId: requestedByUserId aus dem Payload (Cloud-User, der den Trigger
+ *     ausgeloest hat). Faellt auf den `cloudEdgeId` zurueck, wenn nicht
+ *     uebermittelt wurde — der Edge selbst ist dann der „Akteur" (legacy
+ *     v1-Caller ohne v2-Payload).
+ *   - role: 'system' (kein User-Login auf dem Edge involviert).
+ */
+const writeForceSyncReceivedAudit = async (app: Application, payload?: EdgeForceSyncEvent): Promise<void> => {
+  const connection = await getActiveConnection(app).catch(() => null)
+  if (!connection?.tenantId) return
+  const correlationId = payload?.correlationId ?? uuidv7()
+  const actorUserId = payload?.requestedByUserId ?? payload?.cloudEdgeId ?? connection._id
+  const cloudEdgeId = payload?.cloudEdgeId ?? connection.cloudEdgeId ?? connection._id
+
+  const event: AuditEventData = {
+    _id: uuidv7(),
+    tenantId: connection.tenantId,
+    locationId: (connection.locationId ?? null) as unknown as string,
+    occurredAt: new Date().toISOString(),
+    actor: {
+      userId: actorUserId,
+      role: 'system',
+      requestId: correlationId,
+    },
+    target: {
+      resource: syncTriggersPath,
+      entityType: 'cloud-edge',
+      entityId: cloudEdgeId,
+    },
+    action: AuditAction.SYNC_TRIGGER,
+    category: AuditCategory.CONFIGURATION,
+    outcome: AuditOutcome.SUCCESS,
+    severity: AuditSeverity.NOTICE,
+    metadata: {
+      source: 'edge-received',
+      scope: payload?.scope ?? 'full-cycle',
+      requestedByUserId: payload?.requestedByUserId,
+      requestedAt: payload?.requestedAt,
+    },
+    correlationId,
+    actor_userId: actorUserId,
+    target_resource: syncTriggersPath,
+    target_entityType: 'cloud-edge',
+    target_entityId: cloudEdgeId,
+  }
+  const persisted: Record<string, unknown> = { ...(event as unknown as Record<string, unknown>) }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (app.service('audit-events' as any) as any).create(persisted as any, { provider: undefined } as any)
 }

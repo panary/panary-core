@@ -81,11 +81,76 @@ export const sqlite = (app: Application) => {
 
   app.set('sqliteClient', db)
 
+  // PRAGMA-Setup. Standardwerte von SQLite (journal_mode=DELETE,
+  // synchronous=FULL, busy_timeout=0) sind fuer Single-Writer-Hobby-Datenbanken
+  // gedacht und kollabieren in der Realitaet eines POS-Betriebs:
+  //
+  //   - DELETE-Journal + FULL-Sync = pro COMMIT mehrere fsync()-Calls. Auf
+  //     einem Sunmi D3 mit eMMC ergibt das ~50-80ms Latenz pro Commit.
+  //   - busy_timeout=0 = ein paralleler Writer (cloud-sync-scheduler /
+  //     audit-cleanup-worker / POS-Order-Save) wird sofort mit SQLITE_BUSY
+  //     abgewiesen, statt zu warten.
+  //
+  // WAL + NORMAL-Sync + 5s busy_timeout sind der Standard fuer Server-
+  // /Edge-Workloads mit gelegentlich parallelen Writern (siehe
+  // https://www.sqlite.org/wal.html). Power-safe bleibt durch NORMAL erhalten
+  // (kein Korruptions-Risiko bei Stromausfall, nur jeweils die letzte
+  // Transaktion kann verlorengehen — akzeptabel, weil Outbox-Sync ohnehin
+  // re-enqueued).
+  //
+  // mmap_size + cache_size dienen dem Read-heavy POS-Pfad (Produktliste,
+  // Bestellliste, Tagesabschluss).
+  //
+  // Hinweis fuer Backup-Skripte: WAL erzeugt zusaetzlich `*.sqlite-wal` und
+  // `*.sqlite-shm`. Backup-Skripte muessen diese Dateien mitziehen, sonst
+  // gehen die letzten Transaktionen verloren — siehe Coolify-Backup-Doku.
+  const setupPragmas = async () => {
+    const pragmas: ReadonlyArray<readonly [string, string]> = [
+      ['journal_mode', 'WAL'],
+      ['synchronous', 'NORMAL'],
+      ['busy_timeout', '5000'],
+      ['foreign_keys', 'ON'],
+      ['cache_size', '-32000'],         // 32 MB Page-Cache (Default: 2 MB)
+      ['temp_store', 'MEMORY'],
+      ['mmap_size', '268435456'],       // 256 MB mmap
+      ['wal_autocheckpoint', '1000'],   // Checkpoint nach 1000 Pages
+    ]
+    for (const [key, value] of pragmas) {
+      try {
+        await db.raw(`PRAGMA ${key} = ${value}`)
+      } catch (err) {
+        logger.warn({
+          message: 'SQLite-Pragma konnte nicht gesetzt werden',
+          event: 'sqlite.pragma_failed',
+          pragma: key,
+          value,
+          error: String(err),
+        })
+      }
+    }
+    // Modus zur Verifikation einmal nachlesen.
+    try {
+      const journalRow = await db.raw('PRAGMA journal_mode')
+      const syncRow = await db.raw('PRAGMA synchronous')
+      logger.info({
+        message: 'SQLite-Pragmas gesetzt',
+        event: 'sqlite.pragmas',
+        journalMode: Array.isArray(journalRow) ? journalRow[0]?.journal_mode : journalRow,
+        synchronous: Array.isArray(syncRow) ? syncRow[0]?.synchronous : syncRow,
+      })
+    } catch {
+      // Verifikation darf nicht fehlschlagen-relevant sein.
+    }
+  }
+
   // Register setup hook so migrations run BEFORE services are accessed
   // Feathers awaits setup hooks when app.listen() or app.setup() is called
   app.hooks({
     setup: [
       async (_context: any, next: any) => {
+        // Pragmas VOR den Migrationen setzen — die Migrationen sollen schon
+        // im WAL-Modus laufen, damit kein DELETE-Journal-Artefakt zurueckbleibt.
+        await setupPragmas()
         if (migrationDir) {
           try {
             await db.migrate.latest()

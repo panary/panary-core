@@ -1271,7 +1271,11 @@ const runPullPrinterCommands = async (
   return commands.length
 }
 
-export const runSyncOnce = async (app: Application, _cloudConnectionId: string): Promise<SyncRunStats> => {
+export const runSyncOnce = async (
+  app: Application,
+  _cloudConnectionId: string,
+  triggeredBy: SyncRunTrigger = SyncRunTrigger.SCHEDULER,
+): Promise<SyncRunStats> => {
   const start = performance.now()
   const connection = await getActiveConnection(app)
   if (!connection) {
@@ -1340,7 +1344,7 @@ export const runSyncOnce = async (app: Application, _cloudConnectionId: string):
       durationMs: Math.round(performance.now() - hbStartMs),
       outcome: SyncRunOutcome.FAILURE,
       errorMessage: lastError,
-      triggeredBy: SyncRunTrigger.SCHEDULER,
+      triggeredBy,
       startedAt: hbStartedAt,
     })
   } else if (heartbeat) {
@@ -1359,7 +1363,7 @@ export const runSyncOnce = async (app: Application, _cloudConnectionId: string):
         errorMessage: skewIssue
           ? `Clock-Skew ${heartbeat.clockSkewStatus} (${heartbeat.clockSkewMs}ms)`
           : undefined,
-        triggeredBy: SyncRunTrigger.SCHEDULER,
+        triggeredBy,
         startedAt: hbStartedAt,
       })
     }
@@ -1456,7 +1460,7 @@ export const runSyncOnce = async (app: Application, _cloudConnectionId: string):
         details: pushResult.details,
         durationMs: Math.round(performance.now() - pushStartMs),
         outcome: pushResult.rejected > 0 ? SyncRunOutcome.PARTIAL : SyncRunOutcome.SUCCESS,
-        triggeredBy: SyncRunTrigger.SCHEDULER,
+        triggeredBy,
         startedAt: pushStartedAt,
       })
     }
@@ -1484,7 +1488,7 @@ export const runSyncOnce = async (app: Application, _cloudConnectionId: string):
       durationMs: Math.round(performance.now() - pushStartMs),
       outcome: SyncRunOutcome.FAILURE,
       errorMessage: lastError,
-      triggeredBy: SyncRunTrigger.SCHEDULER,
+      triggeredBy,
       startedAt: pushStartedAt,
     })
   }
@@ -1519,7 +1523,7 @@ export const runSyncOnce = async (app: Application, _cloudConnectionId: string):
           details,
           durationMs: Math.round(performance.now() - pullStartMs),
           outcome: rejectedCount > 0 ? SyncRunOutcome.PARTIAL : SyncRunOutcome.SUCCESS,
-          triggeredBy: SyncRunTrigger.SCHEDULER,
+          triggeredBy,
           startedAt: pullStartedAt,
         })
       }
@@ -1548,7 +1552,7 @@ export const runSyncOnce = async (app: Application, _cloudConnectionId: string):
         durationMs: Math.round(performance.now() - pullStartMs),
         outcome: SyncRunOutcome.FAILURE,
         errorMessage: errMsg,
-        triggeredBy: SyncRunTrigger.SCHEDULER,
+        triggeredBy,
         startedAt: pullStartedAt,
       })
     }
@@ -1560,6 +1564,60 @@ export const runSyncOnce = async (app: Application, _cloudConnectionId: string):
     durationMs: Math.round(performance.now() - start),
     lastError,
   }
+}
+
+// Single-Flight-Mutex fuer den vollen Sync-Cycle. Garantiert:
+//   - max. 1 Cycle gleichzeitig (`cycleInFlight`)
+//   - max. 1 Catch-up im Queue-Slot (`cycleQueued` — jeder weitere Trigger
+//     waehrend ein Cycle laeuft wird zu DIESEM Slot coalesced; die juengste
+//     Trigger-Reason/correlationId gewinnt). Begruendung: ein Bulk-„3x Sync
+//     klicken" soll genau einen Catch-up nachziehen, nicht 3 hintereinander —
+//     die Pull-Cursors holen Aufgelaufenes ohnehin in einem Lauf.
+// Beide periodischen tick()s UND Cloud-getriggerte force-sync-Events laufen
+// durch denselben Mutex, sonst kann Cloud-Push parallel zum Scheduler-Tick
+// ausgefuehrt werden (Outbox-IN_FLIGHT-Race).
+let cycleInFlight: Promise<SyncRunStats> | null = null
+let cycleQueued: { trigger: SyncRunTrigger } | null = null
+
+export const triggerImmediateCycle = async (app: Application, trigger: SyncRunTrigger): Promise<void> => {
+  if (cycleInFlight) {
+    cycleQueued = { trigger }
+    logger.info({
+      message: 'Sync-Cycle laeuft bereits — Trigger gequeued',
+      event: 'sync.trigger.queued',
+      trigger,
+    })
+    return
+  }
+  const connection = await getActiveConnection(app).catch(() => null)
+  if (!connection) return
+
+  const run = async (): Promise<SyncRunStats> => {
+    try {
+      return await runSyncOnce(app, connection._id, trigger)
+    } finally {
+      cycleInFlight = null
+      if (cycleQueued) {
+        const next = cycleQueued
+        cycleQueued = null
+        // Drain — keine await-Kette, damit triggerImmediateCycle nicht zu
+        // einer Rekursionskette wird (Stack ist begrenzt; setImmediate
+        // entkoppelt).
+        setImmediate(() => {
+          void triggerImmediateCycle(app, next.trigger).catch(err =>
+            logger.warn({
+              message: 'Sync-Cycle (gequeued) fehlgeschlagen',
+              event: 'sync.trigger.cycle.failed',
+              trigger: next.trigger,
+              errorMessage: err instanceof Error ? err.message : String(err),
+            }),
+          )
+        })
+      }
+    }
+  }
+  cycleInFlight = run()
+  await cycleInFlight
 }
 
 const computeNextScheduledSlot = (times: string[], timezone: string, lastRunAt?: string): number => {
@@ -1613,7 +1671,10 @@ export const startCloudSyncSchedulerWorker = async (app: Application): Promise<S
     try {
       switch (mode) {
         case SyncMode.AUTO:
-          await runSyncOnce(app, connection._id)
+          // Ueber triggerImmediateCycle gehen, damit der Mutex Push-Races
+          // zwischen periodischem Tick und Cloud-getriggerten force-sync-
+          // Events verhindert.
+          await triggerImmediateCycle(app, SyncRunTrigger.SCHEDULER)
           delaySec = connection.syncIntervalSec ?? SYNC_INTERVAL_DEFAULT_SEC
           break
         case SyncMode.SCHEDULED: {
@@ -1624,7 +1685,7 @@ export const startCloudSyncSchedulerWorker = async (app: Application): Promise<S
               connection.lastScheduledSyncAt,
             )
             if (ms <= 0) {
-              await runSyncOnce(app, connection._id)
+              await triggerImmediateCycle(app, SyncRunTrigger.SCHEDULER)
               await (app.service(cloudConnectionPath) as any)._patch(connection._id, {
                 lastScheduledSyncAt: new Date().toISOString(),
               })

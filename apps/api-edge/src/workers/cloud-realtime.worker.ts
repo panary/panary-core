@@ -22,12 +22,18 @@ import {
   EDGE_EVENTS_PATH,
   EdgeEventName,
   type EdgeChangedEvent,
+  type EdgeForceSyncEvent,
   type EdgeRevokedEvent,
+  SyncRunTrigger,
 } from '@panary/sync/domain'
 
 import type { Application } from '../declarations'
 import { decryptCloudToken } from '../utils/cloud-token-cipher'
-import { getActiveConnection, pullMasterDataServiceOnce } from './cloud-sync-scheduler.worker'
+import {
+  getActiveConnection,
+  pullMasterDataServiceOnce,
+  triggerImmediateCycle,
+} from './cloud-sync-scheduler.worker'
 import { pullBusinessDaysOnce } from './cloud-pull-business-days.worker'
 import { setRealtimeConnected } from './cloud-realtime-state'
 
@@ -217,9 +223,28 @@ export const startCloudRealtimeWorker = async (
       triggerServices(data?.services)
     })
 
-    s.on(`${EDGE_EVENTS_PATH} ${EdgeEventName.FORCE_SYNC}`, () => {
-      logger.info({ message: 'Edge-Event empfangen: force-sync', event: 'sync.realtime.force_sync' })
-      void pullBusinessDaysOnce(app).catch(() => undefined)
+    s.on(`${EDGE_EVENTS_PATH} ${EdgeEventName.FORCE_SYNC}`, (data?: EdgeForceSyncEvent) => {
+      // Cloud-getriggerter Sofort-Cycle (Admin/Owner klickt "Jetzt synchroni-
+      // sieren" in der Cloud-UI). Voller Scheduler-Cycle wird durch das
+      // Single-Flight-Mutex `triggerImmediateCycle` ausgefuehrt — Coalescing
+      // verhindert Parallel-Runs mit dem periodischen Tick.
+      const correlationId = data?.correlationId
+      const scope = data?.scope ?? 'full-cycle'
+      logger.info({
+        message: 'Edge-Event empfangen: force-sync',
+        event: 'sync.trigger.received',
+        scope,
+        correlationId,
+        requestedByUserId: data?.requestedByUserId,
+      })
+      void triggerImmediateCycle(app, SyncRunTrigger.CLOUD_PUSH).catch(err =>
+        logger.warn({
+          message: 'force-sync Cycle fehlgeschlagen',
+          event: 'sync.trigger.cycle.failed',
+          correlationId,
+          errorMessage: err instanceof Error ? err.message : String(err),
+        }),
+      )
     })
 
     s.on(`${EDGE_EVENTS_PATH} ${EdgeEventName.REVOKED}`, (data: EdgeRevokedEvent) => {

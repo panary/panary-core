@@ -660,6 +660,11 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Kunden lesen/anlegen (für Loyalty)
     { resource: AppResource.CUSTOMERS, action: [AppAction.READ, AppAction.CREATE, AppAction.UPDATE] },
 
+    // Firmenkunden lesen — zum Verknüpfen mit Bestellungen am POS. Anlegen/
+    // Ändern bewusst nicht: Firmenkunden tragen Rechnungsdaten/Steuer-IDs und
+    // werden im Cloud-Admin gepflegt.
+    { resource: AppResource.CORPORATE_CUSTOMERS, action: AppAction.READ },
+
     // Vorbestellungen verwalten
     { resource: AppResource.PRE_ORDERS, action: [AppAction.CREATE, AppAction.READ, AppAction.UPDATE] },
 

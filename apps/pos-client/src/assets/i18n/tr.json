@@ -14,7 +14,9 @@
     "WORKING_TIME": "Çalışma süresi",
     "WRITE_OFF": "Zarar kaydı",
     "PREFERENCE": "Ayar",
-    "BUSINESS_DAY": "İş günü"
+    "BUSINESS_DAY": "İş günü",
+    "CASH_SESSION": "Kasa",
+    "DISCOUNT": "İndirim"
   },
   "SNACKBAR": {
     "CREATED": "{{entity}} oluşturuldu",

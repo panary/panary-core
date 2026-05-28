@@ -14,7 +14,9 @@
     "WORKING_TIME": "Working time",
     "WRITE_OFF": "Write-off",
     "PREFERENCE": "Setting",
-    "BUSINESS_DAY": "Business day"
+    "BUSINESS_DAY": "Business day",
+    "CASH_SESSION": "Cash drawer",
+    "DISCOUNT": "Discount"
   },
   "SNACKBAR": {
     "CREATED": "{{entity}} was created",

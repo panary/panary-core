@@ -14,7 +14,9 @@
     "WORKING_TIME": "Arbeitszeit",
     "WRITE_OFF": "Abschreibung",
     "PREFERENCE": "Einstellung",
-    "BUSINESS_DAY": "Geschäftstag"
+    "BUSINESS_DAY": "Geschäftstag",
+    "CASH_SESSION": "Kasse",
+    "DISCOUNT": "Rabatt"
   },
   "SNACKBAR": {
     "CREATED": "{{entity}} wurde erstellt",

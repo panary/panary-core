@@ -7,6 +7,12 @@
 FROM node:22-bookworm-slim
 WORKDIR /app
 COPY . ./
+# Container laeuft als non-root (`node`-User aus dem Base-Image). Schuetzt
+# vor Container-Escape-Eskalation; erfuellt Semgrep
+# dockerfile.security.missing-user. /app gehoert nach COPY initial root —
+# einmaliges chown gibt dem `node`-User Lesezugriff aufs Bundle.
+RUN chown -R node:node /app
+USER node
 ENV TSE_GATEWAY_PORT=3040
 EXPOSE 3040
 CMD ["node", "main.js"]

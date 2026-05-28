@@ -39,6 +39,7 @@
   },
   "devDependencies": {
     "@angular-devkit/core": "21.2.11",
+    "@sinclair/typebox": "^0.34.0",
     "@angular-devkit/schematics": "21.2.11",
     "@angular/animations": "21.2.13",
     "@angular/build": "21.2.11",

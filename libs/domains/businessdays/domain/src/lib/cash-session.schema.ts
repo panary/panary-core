@@ -130,7 +130,14 @@ export function computeExpectedClosingFloatCents(input: {
  *
  * Pflichtfelder beim Eröffnen werden im zweiten Object des Intersect erzwungen.
  */
-export const cashSessionDataSchema = Type.Intersect(
+// Type.Composite statt Type.Intersect: merged die TObjects zu EINEM flachen
+// TObject. `additionalProperties: false` greift bei Type.Intersect/`allOf`
+// nicht wie erwartet (AJV checkt nur das outer-Level, das bei Intersect leer
+// ist → alle Branch-Properties werden als „additional" gewertet, inkl. `_id`
+// → Sync-Reject mit „must NOT have additional properties [field: _id]").
+// Composite produziert dagegen ein einzelnes TObject mit Pflicht- ∪
+// Partial-Feldern; `additionalProperties: false` wirkt regulär.
+export const cashSessionDataSchema = Type.Composite(
   [
     Type.Partial(cashSessionSchema),
     Type.Object({

@@ -113,22 +113,32 @@ export function computeExpectedClosingFloatCents(input: {
 // ─── Service-Schemas (CREATE / PATCH / QUERY) — geteilt von Edge + Cloud ───────
 
 /**
- * CREATE: nur die beim Eröffnen einer Schublade nötigen Felder.
- * tenantId/locationId werden vom multiTenancy-Hook gestempelt (daher optional).
- * Privilegierte Rollen dürfen `openedBy` für einen Mitarbeiter setzen; bei STAFF
- * (oder ohne Angabe) erzwingt der Resolver die eigene userId.
+ * CREATE-Schema. Zwei Konsumenten:
+ *
+ * 1. **Client-Eröffnung am POS / Cloud-Admin** — sendet nur die Eröffnungs-
+ *    Felder (`businessDayId`, `label`, `openingFloatCents`, optional `openedBy`,
+ *    `deviceId`, `notes`). tenantId/locationId stempelt der multiTenancy-Hook;
+ *    Server-Defaults (`status`, `openedAt`, abgeleitete Geld-Felder …) stempelt
+ *    der Resolver.
+ * 2. **Sync-Push Edge→Cloud** — Outbox-Recorder schickt den **vollen** Edge-
+ *    Record als Payload (inkl. `_id`, `status`, `openedAt`, `cashSalesCents`,
+ *    `createdAt`, `updatedAt`, …). Damit der Cloud-`validateData` diese Felder
+ *    nicht via `additionalProperties: false` ablehnt, sind sie via
+ *    `Type.Partial(cashSessionSchema)` als Optional erlaubt — der Resolver
+ *    überschreibt sie sowieso (sync-fromSync stempelt nicht neu, der bestehende
+ *    Wert überlebt).
+ *
+ * Pflichtfelder beim Eröffnen werden im zweiten Object des Intersect erzwungen.
  */
-export const cashSessionDataSchema = Type.Object(
-  {
-    tenantId: Type.Optional(Type.String()),
-    locationId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
-    businessDayId: Type.String(),
-    label: Type.String({ minLength: 1, maxLength: 80 }),
-    openingFloatCents: Type.Integer({ minimum: 0 }),
-    openedBy: Type.Optional(Type.String()),
-    deviceId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
-    notes: Type.Optional(Type.String({ maxLength: 1000 })),
-  },
+export const cashSessionDataSchema = Type.Intersect(
+  [
+    Type.Partial(cashSessionSchema),
+    Type.Object({
+      businessDayId: Type.String(),
+      label: Type.String({ minLength: 1, maxLength: 80 }),
+      openingFloatCents: Type.Integer({ minimum: 0 }),
+    }),
+  ],
   { $id: 'CashSessionData', additionalProperties: false },
 )
 export type CashSessionData = Static<typeof cashSessionDataSchema>

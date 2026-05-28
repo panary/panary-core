@@ -34,6 +34,17 @@ export const tenantAuditTrailSchema = Type.Object(
 
     notes: Type.Optional(Type.String({ maxLength: 2000 })),
 
+    // Vom Operator explizit eingegebene Begruendung — Pflicht bei Schicht-2/3-
+    // Operationen (Trial-/Grace-Extension, Plan-Wechsel, Limit-Override, …).
+    // Separat von `notes`, weil `reason` UI-seitig validierbar und filterbar ist.
+    reason: Type.Optional(Type.String({ maxLength: 500 })),
+
+    // Action-spezifische strukturierte Daten — z. B. fuer TRIAL_EXTENDED:
+    // `{ extendedByDays: 14, newTrialEndsAt: '...' }`. Nie sensitive Daten
+    // (Passwoerter, Tokens) hier ablegen — Audit-Trail ist append-only und nicht
+    // sanitizable.
+    metadata: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+
     createdAt: Type.String({ format: 'date-time' }),
   },
   { $id: 'TenantAuditTrail', additionalProperties: false },

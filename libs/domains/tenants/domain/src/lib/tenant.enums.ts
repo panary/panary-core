@@ -90,6 +90,10 @@ export type BillingProviderValue = (typeof BillingProvider)[keyof typeof Billing
 // Auditing (welche Aenderung kam von Stripe vs. Mensch).
 export const TenantAuditSource = {
   PLATFORM_ADMIN: 'PLATFORM_ADMIN',
+  // L1-Support darf eine begrenzte Sub-Menge an Plattform-Operationen ausloesen
+  // (z. B. Trial-Extension <= 14 Tage). Eigene Source, damit Audit-Filter "von wem"
+  // sauber zwischen Owner/Admin und Support unterscheidet.
+  PLATFORM_SUPPORT: 'PLATFORM_SUPPORT',
   TENANT_OWNER: 'TENANT_OWNER',
   STRIPE_WEBHOOK: 'STRIPE_WEBHOOK',
   MOLLIE_WEBHOOK: 'MOLLIE_WEBHOOK',
@@ -110,6 +114,27 @@ export const TenantAuditAction = {
   SUBSCRIPTION_CHANGE: 'SUBSCRIPTION_CHANGE',
   OWNER_TRANSFER: 'OWNER_TRANSFER',
   BRANDING_CHANGE: 'BRANDING_CHANGE',
+  // Subscription-Bearbeitung mit Drei-Schicht-Sicherung (siehe documentation/
+  // subscription-administration.md). Granularere Actions als generisches
+  // SUBSCRIPTION_CHANGE — Audit-Filter im UI werden damit aussagekraeftig.
+  //
+  // Schicht 1 (Tenant-OWNER Self-Service):
+  PLAN_SWITCHED_SELF_SERVICE: 'PLAN_SWITCHED_SELF_SERVICE',
+  CANCEL_REQUESTED_SELF_SERVICE: 'CANCEL_REQUESTED_SELF_SERVICE',
+  // Schicht 2 (Plattform Single-Sign — SUPPORT/ADMIN/OWNER):
+  TRIAL_EXTENDED: 'TRIAL_EXTENDED',
+  GRACE_EXTENDED: 'GRACE_EXTENDED',
+  COUPON_APPLIED: 'COUPON_APPLIED',
+  PLAN_SWITCHED_PLATFORM: 'PLAN_SWITCHED_PLATFORM',
+  STATUS_RECOVERY: 'STATUS_RECOVERY',
+  // Schicht 3 (Plattform Dual-Sign — Maker stellt Request, OWNER approved):
+  REQUEST_CREATED: 'REQUEST_CREATED',
+  REQUEST_APPROVED: 'REQUEST_APPROVED',
+  REQUEST_REJECTED: 'REQUEST_REJECTED',
+  REQUEST_EXPIRED: 'REQUEST_EXPIRED',
+  LIMIT_OVERRIDE_APPLIED: 'LIMIT_OVERRIDE_APPLIED',
+  ENTERPRISE_ASSIGNED: 'ENTERPRISE_ASSIGNED',
+  ARCHIVE_REQUESTED: 'ARCHIVE_REQUESTED',
   // OoS-Items Follow-up:
   GDPR_EXPORT: 'GDPR_EXPORT', // Welle D Item 2 — Auskunftsersuchen nach DSGVO Art. 15
   PLAN_LIMIT_VIOLATION: 'PLAN_LIMIT_VIOLATION', // Welle B Item 1 — Plan-Limit-Verstoss (best-effort-Detector)

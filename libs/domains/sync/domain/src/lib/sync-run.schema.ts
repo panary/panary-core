@@ -41,6 +41,9 @@ export const SyncRunTrigger = {
   SCHEDULER: 'scheduler',
   MANUAL: 'manual',
   STARTUP: 'startup',
+  // Cloud-getriggerter Sofort-Cycle (Admin klickt "Jetzt synchronisieren" in
+  // der Cloud-UI → force-sync-Event → triggerImmediateCycle auf dem Edge).
+  CLOUD_PUSH: 'cloud-push',
 } as const
 export type SyncRunTrigger = (typeof SyncRunTrigger)[keyof typeof SyncRunTrigger]
 

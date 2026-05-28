@@ -32,6 +32,12 @@ export const AppResource = {
   SYNC_OUTBOX: 'sync-outbox',
   SYNC_CURSOR: 'sync-cursor',
   SYNC_RUNS: 'sync-runs',
+  /** Cloud-only: Cloud-getriggerter Sofort-Sync auf einem bestimmten Edge.
+   *  Custom-Method-Service `create({ cloudEdgeId })` emittiert ein `force-sync`-
+   *  Event ueber den bestehenden `edge-events`-Backbone an genau diesen Edge.
+   *  CREATE fuer PLATFORM_OWNER (Support), TENANT_OWNER (Inhaber) und
+   *  TENANT_TECHNICIAN (Admin-aequivalent). Rate-Limit pro Edge im Service. */
+  SYNC_TRIGGERS: 'sync-triggers',
   BOOTSTRAP_REPORTS: 'bootstrap-reports',
   LOG_EXPORT: 'log-export',
   AUDIT_EVENTS: 'audit-events',

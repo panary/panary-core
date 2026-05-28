@@ -66,6 +66,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT, action: AppAction.READ },
     { resource: AppResource.SYNC_REJECTS, action: AppAction.READ },
     { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT_DAILY, action: AppAction.READ },
+    // Cloud-getriggerter Sofort-Sync — explizit dokumentiert, der Bypass im
+    // authorize-Hook deckt diesen Eintrag ohnehin ab.
+    { resource: AppResource.SYNC_TRIGGERS, action: AppAction.CREATE },
   ],
 
   [UserSystemRole.PLATFORM_ADMIN]: [
@@ -196,6 +199,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.SYNC_OUTBOX, action: AppAction.MANAGE },
     { resource: AppResource.SYNC_CURSOR, action: AppAction.READ },
     { resource: AppResource.SYNC_RUNS, action: AppAction.READ },
+    // Cloud-getriggerter Sofort-Sync (Click-to-Sync aus dem Cloud-Admin):
+    // Owner stoesst einen Sofort-Cycle auf einem bestimmten Edge an.
+    { resource: AppResource.SYNC_TRIGGERS, action: AppAction.CREATE },
     { resource: AppResource.BOOTSTRAP_REPORTS, action: AppAction.READ },
     // Cloud-spezifische Ressourcen
     { resource: AppResource.CORPORATE_CUSTOMERS, action: AppAction.MANAGE },
@@ -340,6 +346,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.SYNC_OUTBOX, action: AppAction.MANAGE },
     { resource: AppResource.SYNC_CURSOR, action: AppAction.READ },
     { resource: AppResource.SYNC_RUNS, action: AppAction.READ },
+    // Cloud-getriggerter Sofort-Sync — Techniker (Admin-aequivalent) darf
+    // einen Sofort-Cycle pro Edge anstossen (Support-Use-Case).
+    { resource: AppResource.SYNC_TRIGGERS, action: AppAction.CREATE },
     { resource: AppResource.BOOTSTRAP_REPORTS, action: AppAction.READ },
     { resource: AppResource.LOCATIONS, action: AppAction.MANAGE },
     { resource: AppResource.SYSTEM, action: AppAction.MANAGE },

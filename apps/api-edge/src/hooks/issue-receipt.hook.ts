@@ -132,6 +132,15 @@ export const issueReceipt = async (context: HookContext): Promise<HookContext> =
     }
 
     const issuedAt = new Date().toISOString()
+    // Retention (ADR Phase 3): begrenzt die ÖFFENTLICHE Abruf-Dauer — NICHT die
+    // GoBD-Datenaufbewahrung (der Beleg-Datensatz bleibt 10 Jahre erhalten).
+    // retentionDays aus den Location-receiptSettings; ungesetzt = unbefristet abrufbar.
+    const retentionDays = (location?.settings as { receiptSettings?: { retentionDays?: number } } | undefined)
+      ?.receiptSettings?.retentionDays
+    const retainUntil =
+      typeof retentionDays === 'number' && retentionDays > 0
+        ? new Date(new Date(issuedAt).getTime() + retentionDays * 86_400_000).toISOString()
+        : undefined
     const kind = order.tse ? ReceiptKind.SALE : ReceiptKind.ORDER_CONFIRMATION
     const receiptNumber = formatInternalReceiptNumber({
       date: order.recordingDate ?? issuedAt,
@@ -160,6 +169,7 @@ export const issueReceipt = async (context: HookContext): Promise<HookContext> =
       token,
       channelsUsed: [],
       renderHash,
+      ...(retainUntil ? { retainUntil } : {}),
     }
 
     await context.app.service('receipts').create(data, { provider: undefined })

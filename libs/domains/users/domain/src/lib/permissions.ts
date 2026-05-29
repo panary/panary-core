@@ -115,6 +115,21 @@ export const AppResource = {
   INCOMING_GOODS_EXTRACT_AUDIT: 'incoming-goods-extract-audit',
   /** Cloud-only: Tagesaggregat des Extract-Audits (Cost-Ledger). */
   INCOMING_GOODS_EXTRACT_AUDIT_DAILY: 'incoming-goods-extract-audit-daily',
+  /** Cloud-only: KI-gestuetzte Extraktion von Produkten + Produktgruppen aus
+   *  einem Speisekarten-Foto/-PDF (Review-first, kein Schreiben). Mirror zu
+   *  INCOMING_GOODS_EXTRACT, matched gegen den bestehenden Katalog (Dedupe). */
+  MENU_EXTRACT: 'menu-extract',
+  /** Cloud-only: Bulk-Create von Produktgruppen + Produkten nach Review des
+   *  Speisekarten-Scans. Custom-Method `apply(payload)` legt DRAFT-Datensaetze
+   *  ueber die Feathers-Adapter-API an. */
+  MENU_IMPORT: 'menu-import',
+  /** Cloud-only: Read-only Audit-Log der KI-Speisekarten-Scan-Calls (Cost/Quality). */
+  MENU_EXTRACT_AUDIT: 'menu-extract-audit',
+  /** Cloud-only: Onboarding-Fortschritt eines Tenants (generisch, erweiterbar).
+   *  Ein Dokument pro Tenant; persistiert explizite Zustaende (dismissed,
+   *  skipped, explicitlyDone, currentStep), abgeleitete Schritte berechnet der
+   *  Service serverseitig. READ+UPDATE fuer OWNER/TECHNICIAN/MANAGER, READ fuer STAFF. */
+  ONBOARDING_STATE: 'onboarding-state',
   /** Cloud-only: Pro-Tenant Settings (Feature-Flags, Limits, KI-Konfiguration). */
   TENANT_SETTINGS: 'tenant-settings',
   WRITE_OFFS: 'write-offs',

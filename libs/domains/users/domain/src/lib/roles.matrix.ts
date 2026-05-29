@@ -339,6 +339,12 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT, action: AppAction.READ },
     { resource: AppResource.SYNC_REJECTS, action: AppAction.READ },
     { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT_DAILY, action: AppAction.READ },
+    // KI-Speisekarten-Scan: hochladen, anwenden (Bulk-Create), Audit lesen.
+    { resource: AppResource.MENU_EXTRACT, action: AppAction.CREATE },
+    { resource: AppResource.MENU_IMPORT, action: AppAction.CREATE },
+    { resource: AppResource.MENU_EXTRACT_AUDIT, action: AppAction.READ },
+    // Onboarding-Fortschritt: lesen + fortschreiben.
+    { resource: AppResource.ONBOARDING_STATE, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.TENANT_GRANTS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
@@ -456,6 +462,11 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT, action: AppAction.READ },
     { resource: AppResource.SYNC_REJECTS, action: AppAction.READ },
     { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT_DAILY, action: AppAction.READ },
+    // KI-Speisekarten-Scan: Techniker hat Manager-aequivalente Rechte.
+    { resource: AppResource.MENU_EXTRACT, action: AppAction.CREATE },
+    { resource: AppResource.MENU_IMPORT, action: AppAction.CREATE },
+    { resource: AppResource.MENU_EXTRACT_AUDIT, action: AppAction.READ },
+    { resource: AppResource.ONBOARDING_STATE, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
     // Tenant-Audit-Trail (append-only)
@@ -586,6 +597,11 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT, action: AppAction.READ },
     { resource: AppResource.SYNC_REJECTS, action: AppAction.READ },
     { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT_DAILY, action: AppAction.READ },
+    // KI-Speisekarten-Scan: hochladen, anwenden (Bulk-Create), Audit lesen.
+    { resource: AppResource.MENU_EXTRACT, action: AppAction.CREATE },
+    { resource: AppResource.MENU_IMPORT, action: AppAction.CREATE },
+    { resource: AppResource.MENU_EXTRACT_AUDIT, action: AppAction.READ },
+    { resource: AppResource.ONBOARDING_STATE, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
     // Tenant-Audit-Trail (append-only)
@@ -667,6 +683,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     // KI-Wareneingang: Mitarbeitende duerfen Foto hochladen.
     { resource: AppResource.INCOMING_GOODS_EXTRACT, action: AppAction.CREATE },
+    // Onboarding-Fortschritt: nur lesen (Dashboard-Widget), kein Fortschreiben.
+    { resource: AppResource.ONBOARDING_STATE, action: AppAction.READ },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
     // Benachrichtigungen — wie alle Tenant-Rollen: eigene In-App-Records

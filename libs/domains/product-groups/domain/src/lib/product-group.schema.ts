@@ -71,6 +71,9 @@ export const productGroupQueryProperties = Type.Pick(productGroupSchema, [
   '_id',
   'acronym',
   'excluded',
+  // Stabile externe ID — queryable/selectable (konsistent mit `products`), u.a.
+  // fuer Dedupe-Lookups (Menue-Scan) und Sync-Referenzen noetig.
+  'externalId',
   'index',
   'name',
   'status',

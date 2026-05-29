@@ -62,6 +62,11 @@ export type SyncableMasterDataService =
 
 export const SyncableTransactionService = {
   ORDERS: 'orders',
+  // Persistente Belege (§146a AO, ADR beleg-bon-system): edge-originated,
+  // immutable. Edge→Cloud-Push. Cloud-Empfang via receipts-Service + PII-
+  // Projektion (apps/api-cloud/src/services/sync/projections/receipt-projection.ts);
+  // Allowlist-Eintrag in apps/api-cloud/src/services/sync/sync-allowlist.ts.
+  RECEIPTS: 'receipts',
   ORDER_INTERACTIONS: 'order-interactions',
   WORKING_TIMES: 'working-times',
   // Kassen-Sessions (Multi-Kassen-Tagesabschluss): EDGE ist Schreiber (Kassierer

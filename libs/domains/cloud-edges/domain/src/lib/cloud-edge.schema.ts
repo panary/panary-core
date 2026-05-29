@@ -42,6 +42,11 @@ export const cloudEdgeSchema = Type.Object(
     lastSyncAt: Type.Optional(Type.String({ format: 'date-time' })),
     lastClockSkewMs: Type.Optional(Type.Number()),
     lastClockSkewStatus: Type.Optional(StringEnum(Object.values(ClockSkewStatus))),
+    // Live-Verbindungsstatus des Edge-Socket-Channels (cloudseitig gestempelt
+    // bei Socket-Connect/Disconnect, siehe registerEdgeAuthListener). Quelle der
+    // Wahrheit fuer die „online"-Anzeige im Admin-Status-Header — anders als das
+    // staleness-basierte `lastSeenAt` spiegelt es Connect/Disconnect sofort.
+    liveConnected: Type.Optional(Type.Boolean()),
   },
   { $id: 'CloudEdge', additionalProperties: false },
 )
@@ -53,7 +58,19 @@ export type CloudEdge = Static<typeof cloudEdgeSchema>
 // ablehnt — werden serverseitig im cloudEdgePatchResolver wieder auf undefined
 // gesetzt (immutable nach Pairing).
 export const cloudEdgePatchSchema = Type.Partial(
-  Type.Pick(cloudEdgeSchema, ['edgeName', 'status', 'revocationReason', 'tenantId', 'locationId']),
+  Type.Pick(cloudEdgeSchema, [
+    'edgeName',
+    'status',
+    'revocationReason',
+    'tenantId',
+    'locationId',
+    // Cloud-intern gestempeltes Live-Verbindungs-Flag. Muss in der Patch-Pick
+    // stehen, damit der provider-undefined-Stamp aus registerEdgeAuthListener
+    // den `validateData`-Hook passiert (Schema ist additionalProperties:false).
+    // Externe Clients koennen es trotzdem nicht setzen — restrictPatchFields
+    // laesst nur interne Aufrufe durch.
+    'liveConnected',
+  ]),
   { $id: 'CloudEdgePatch' },
 )
 

@@ -27,6 +27,7 @@ import { auditEvents } from './audit-events/audit-events'
 import { businessDays } from './business-days/business-days'
 import { cashSessions } from './cash-sessions/cash-sessions'
 import { fiscalCounters } from './fiscal-counters/fiscal-counters'
+import { receipts } from './receipts/receipts'
 import { logExport } from './log-export/log-export'
 
 export const services = (app: Application) => {
@@ -47,6 +48,8 @@ export const services = (app: Application) => {
   // app.service('fiscal-counters') (Vergabe zur Request-Zeit, Registrierung hier).
   app.configure(fiscalCounters)
   app.configure(orders)
+  // NACH orders: der issue-receipt-Hook (after orders) ruft app.service('receipts').
+  app.configure(receipts)
   app.configure(orderInteractions)
   app.configure(userPreferences)
   app.configure(workingTimes)

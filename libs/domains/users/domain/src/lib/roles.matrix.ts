@@ -201,6 +201,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
   // TENANTS PERMISSIONS
   // =======================================================
   [UserSystemRole.TENANT_OWNER]: [
+    // Persistente Belege (§146a AO, ADR beleg-bon-system): lesen + Status/Retention patchen.
+    { resource: AppResource.RECEIPTS, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.USERS, action: AppAction.MANAGE },
     { resource: AppResource.PRODUCTS, action: AppAction.MANAGE },
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.MANAGE },
@@ -367,6 +369,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
 
   // Techniker — Admin-ähnliche Rechte für Systemkonfiguration und Support
   [UserSystemRole.TENANT_TECHNICIAN]: [
+    // Persistente Belege (§146a AO): lesen + Status/Retention patchen.
+    { resource: AppResource.RECEIPTS, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.USERS, action: AppAction.MANAGE },
     { resource: AppResource.PRODUCTS, action: AppAction.MANAGE },
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.MANAGE },
@@ -493,6 +497,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // `restrictUserSelfPatch` enforced — kein Patch fremder User, keine
     // Eskalation auf role/tenantId/permissions.
     { resource: AppResource.USERS, action: [AppAction.READ, AppAction.UPDATE] },
+    // Persistente Belege (§146a AO): lesen.
+    { resource: AppResource.RECEIPTS, action: AppAction.READ },
     { resource: AppResource.PRODUCTS, action: AppAction.MANAGE },
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.READ },
     { resource: AppResource.ORDERS, action: [AppAction.CREATE, AppAction.READ, AppAction.UPDATE, AppAction.DELETE] },
@@ -622,6 +628,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // `restrictUserSelfPatch` enforced — kein Patch fremder User, keine
     // Eskalation auf role/tenantId/permissions.
     { resource: AppResource.USERS, action: [AppAction.READ, AppAction.UPDATE] },
+    // Persistente Belege (§146a AO): lesen.
+    { resource: AppResource.RECEIPTS, action: AppAction.READ },
     { resource: AppResource.PRODUCTS, action: AppAction.READ },
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.READ },
     { resource: AppResource.ORDERS, action: [AppAction.CREATE, AppAction.READ] },
@@ -707,6 +715,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
 
     // Volle Kontrolle über Bestellungen (ORDERS_FULL)
     { resource: AppResource.ORDERS, action: AppAction.MANAGE },
+
+    // Persistente Belege (§146a AO): am POS lesen/nachdrucken.
+    { resource: AppResource.RECEIPTS, action: AppAction.READ },
 
     // Produkte & Menüs lesen (PRODUCTS_READ)
     { resource: AppResource.PRODUCTS, action: AppAction.READ },

@@ -96,7 +96,8 @@
       "@panary/edge-pairing/domain": ["libs/domains/edge-pairing/domain/src/index.ts"],
       "@panary/cloud-edges/domain": ["libs/domains/cloud-edges/domain/src/index.ts"],
       "@panary/sync/domain": ["libs/domains/sync/domain/src/index.ts"],
-      "@panary/shared-backend": ["libs/shared/backend/src/index.ts"]
+      "@panary/shared-backend": ["libs/shared/backend/src/index.ts"],
+      "@panary/receipts/domain": ["./libs/domains/receipts/domain/src/index.ts"]
     }
   }
 }

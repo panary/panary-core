@@ -1,0 +1,29 @@
+{
+  "name": "receipts-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/receipts/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:receipts"],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/receipts/domain/dist"],
+      "dependsOn": ["^build"],
+      "options": {
+        "outputPath": "libs/domains/receipts/domain/dist",
+        "project": "libs/domains/receipts/package.json",
+        "tsConfig": "libs/domains/receipts/domain/tsconfig.lib.json",
+        "main": "libs/domains/receipts/domain/src/index.ts",
+        "format": ["cjs"],
+        "external": [
+          "@feathersjs/feathers",
+          "@feathersjs/typebox",
+          "@sinclair/typebox",
+          "@panary/shared-common"
+        ],
+        "generatePackageJson": false,
+        "compiler": "tsc"
+      }
+    }
+  }
+}

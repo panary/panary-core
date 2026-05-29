@@ -147,6 +147,27 @@ export const settingsSchema = Type.Object({
       defaultOpeningFloatCents: Type.Optional(Type.Integer({ minimum: 0, default: 0 })),
     }),
   ),
+  // Operative Beleg-/Bon-Einstellungen (ADR beleg-bon-system, D4). Live-patchbar
+  // (kein Storefront-Republish). Das Fiskal-Gate bleibt allein an `operationMode` —
+  // `tseEnabled` ist additiv und kann eine pos-cashier-Pflicht nie schwächen.
+  // `consentNotice` als {de,en?} (LocalizedString-Form; in panary-core inline
+  // gehalten, weil die LocalizedString-Lib cloud-seitig liegt).
+  receiptSettings: Type.Optional(
+    Type.Object({
+      activeChannels: Type.Optional(Type.Array(StringEnum(['qr', 'nfc', 'email', 'print']), { default: ['qr'] })),
+      defaultChannel: Type.Optional(StringEnum(['qr', 'nfc', 'email', 'print'])),
+      localPrintOnly: Type.Optional(Type.Boolean({ default: false })),
+      retentionDays: Type.Optional(Type.Integer({ minimum: 0 })),
+      tseEnabled: Type.Optional(Type.Boolean()),
+      printTarget: Type.Optional(Type.String({ maxLength: 120 })),
+      consentNotice: Type.Optional(
+        Type.Object({
+          de: Type.String({ maxLength: 500 }),
+          en: Type.Optional(Type.String({ maxLength: 500 })),
+        }),
+      ),
+    }),
+  ),
 })
 //#endregion
 

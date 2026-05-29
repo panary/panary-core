@@ -31,6 +31,7 @@ import { applyAutomaticDiscounts } from '../../hooks/apply-automatic-discounts'
 import { checkMultiOperation } from '../../hooks/check-multi-operation'
 import { createOrderInteractions } from '../../hooks/create-order-interactions'
 import { signOrderTseCancel, signOrderTseFinish, signOrderTseStart } from '../../hooks/sign-order-tse.hook'
+import { issueReceipt } from '../../hooks/issue-receipt.hook'
 import { ensureIndexes } from '@panary/shared-backend'
 
 export const ordersPath = 'orders'
@@ -153,6 +154,10 @@ export const orders = (app: Application) => {
     after: {
       all: [
         ...jsonHooks.after,
+        // issueReceipt NACH jsonHooks.after, damit lineItems/taxSnapshot/tse als
+        // geparste Objekte vorliegen. Gated auf create/patch + status='completed'
+        // (idempotent, nie blockierend) — stellt genau einen Beleg pro Order aus.
+        issueReceipt,
       ],
       create: [createOrderInteractions()]
     },

@@ -6,6 +6,11 @@ export const AppResource = {
   PRODUCTS: 'products',
   PRODUCT_GROUPS: 'product-groups',
   ORDERS: 'orders',
+  /** Persistenter elektronischer Beleg (§146a AO). Edge-originated, immutable;
+   *  erzeugt vom issue-receipt-Hook (orders → completed). READ für Tenant-Rollen
+   *  + DEVICE_POS, UPDATE für OWNER/TECHNICIAN (Status/Retention). CREATE läuft
+   *  intern (provider: undefined → authorize-Bypass). */
+  RECEIPTS: 'receipts',
   DISCOUNTS: 'discounts',
   DISCOUNT_CODES: 'discount-codes',
   DISCOUNT_CODE_REDEMPTIONS: 'discount-code-redemptions',

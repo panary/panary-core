@@ -29,6 +29,7 @@ import type {
 import type { BootstrapReport } from '@panary/cloud-connection/domain'
 import type { AuditEvent } from '@panary/audit-events/domain'
 import type { FiscalCounter, TsePort } from '@panary/tse/domain'
+import type { Receipt } from '@panary/receipts/domain'
 
 export type { NextFunction }
 export type NextHook = NextFunction
@@ -88,6 +89,7 @@ export interface ServiceTypes {
   businessdays: BusinessDayService
   'cash-sessions': CashSessionService
   'fiscal-counters': GenericService<FiscalCounter>
+  receipts: GenericService<Receipt>
   'log-export': {
     find(params?: any): Promise<{
       total: number

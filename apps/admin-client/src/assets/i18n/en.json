@@ -196,7 +196,14 @@
     "CONNECTION": "Connection",
     "ONLINE": "Connected",
     "OFFLINE": "Disconnected",
-    "CONNECTED": "connected"
+    "CONNECTED": "connected",
+    "PAIR_DEVICE": "Pair device",
+    "PAIRING_TITLE": "Pair device",
+    "PAIRING_HINT": "Enter the code on the POS terminal or scan the QR code.",
+    "PAIRING_EXPIRES": "The code is valid for a few minutes only.",
+    "PAIRING_GENERATING": "Generating code…",
+    "PAIRING_REGENERATE": "Generate new code",
+    "PAIRING_ERROR": "Could not generate code."
   },
   "USERS": {
     "TITLE": "Users",

@@ -196,7 +196,14 @@
     "CONNECTION": "Bağlantı",
     "ONLINE": "Bağlı",
     "OFFLINE": "Bağlı değil",
-    "CONNECTED": "bağlı"
+    "CONNECTED": "bağlı",
+    "PAIR_DEVICE": "Cihazı eşleştir",
+    "PAIRING_TITLE": "Cihazı eşleştir",
+    "PAIRING_HINT": "Kodu POS terminaline girin veya QR kodunu tarayın.",
+    "PAIRING_EXPIRES": "Kod yalnızca birkaç dakika geçerlidir.",
+    "PAIRING_GENERATING": "Kod oluşturuluyor…",
+    "PAIRING_REGENERATE": "Yeni kod oluştur",
+    "PAIRING_ERROR": "Kod oluşturulamadı."
   },
   "USERS": {
     "TITLE": "Kullan\u0131c\u0131lar",

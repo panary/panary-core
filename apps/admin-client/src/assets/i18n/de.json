@@ -196,7 +196,14 @@
     "CONNECTION": "Verbindung",
     "ONLINE": "Verbunden",
     "OFFLINE": "Getrennt",
-    "CONNECTED": "verbunden"
+    "CONNECTED": "verbunden",
+    "PAIR_DEVICE": "Gerät koppeln",
+    "PAIRING_TITLE": "Gerät koppeln",
+    "PAIRING_HINT": "Code am POS-Terminal eingeben oder den QR-Code scannen.",
+    "PAIRING_EXPIRES": "Der Code ist nur wenige Minuten gültig.",
+    "PAIRING_GENERATING": "Code wird erzeugt…",
+    "PAIRING_REGENERATE": "Neuen Code erzeugen",
+    "PAIRING_ERROR": "Code konnte nicht erzeugt werden."
   },
   "USERS": {
     "TITLE": "Benutzer",

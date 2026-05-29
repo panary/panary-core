@@ -356,6 +356,27 @@ async function main() {
       logger.error('Business-Day-Rotation-Worker: Start fehlgeschlagen.', err)
     }
     // -----------------------------------------------------------------------
+
+    // --- mDNS-Advertising: Edge im LAN als _panary._tcp auffindbar machen ---
+    // Ermoeglicht dem POS-Setup-Wizard, den Hub ohne manuelle IP-Eingabe zu
+    // entdecken. Best-effort — ein Fehlschlag blockiert den Edge nicht.
+    try {
+      const { startMdnsAdvertising } = await import('./mdns-advertiser.js')
+      const firstLocation = await knex('locations')
+        .select('_id', 'organizationName', 'name')
+        .first()
+      startMdnsAdvertising({
+        port,
+        version: process.env.npm_package_version || '0.0.0',
+        organizationName: firstLocation?.organizationName || firstLocation?.name,
+        setupComplete: !!firstLocation,
+        systemMode: app.get('system')?.mode || 'standalone',
+        locationId: firstLocation?._id,
+      })
+    } catch (err) {
+      logger.error('mDNS-Advertising: Start fehlgeschlagen.', err)
+    }
+    // -----------------------------------------------------------------------
   } catch (error) {
     logger.error(
       `Configuration check failed or file missing at ${CONFIG_PATH}. Starting in SETUP MODE.`,

@@ -127,5 +127,15 @@ export async function startSetupApp(port: number) {
   app.listen(port, () => {
     logger.info(`Started in SETUP MODE on http://${getLocalIpAddress()}:${port}`)
     logger.info(`Serving setup client from ${setupClientPath}`)
+    // Auch im Setup-Modus werben, damit der POS-Wizard einen noch nicht
+    // eingerichteten Hub findet und den Hinweis "zuerst einrichten" zeigen kann.
+    void import('./mdns-advertiser.js').then(({ startMdnsAdvertising }) =>
+      startMdnsAdvertising({
+        port,
+        version: process.env['npm_package_version'],
+        setupComplete: false,
+        systemMode: 'setup',
+      })
+    )
   })
 }

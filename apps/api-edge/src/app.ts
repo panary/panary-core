@@ -24,6 +24,7 @@ import { secureByDefault } from '@panary/shared-backend'
 import { authentication } from './authentication'
 import os from 'os'
 import { getLocalIpAddress, renderStatusPage } from './status-page'
+import { registerDevicePairingRoutes } from './device-pairing'
 import { configurePrintServer } from './print-server/index'
 import { createTsePort } from './services/tse/tse-port.factory'
 
@@ -153,6 +154,28 @@ app.use(async (ctx, next) => {
     } catch {
       // ignore — health darf nicht failen
     }
+    // Setup-Status + Betriebsname fuer den POS-Pairing-Wizard: RBAC-frei lesbar,
+    // damit der Setup-Client einen via mDNS gefundenen oder manuell eingegebenen
+    // Hub als "bereit" vs. "noch einzurichten" einordnen und mit dem Betriebsnamen
+    // beschriften kann. Ein konfigurierter Edge hat nach dem Bootstrap immer
+    // mindestens eine Location; fehlt sie (z. B. nach Recovery), gilt der Hub als
+    // noch nicht eingerichtet.
+    let organizationName: string | undefined
+    let setupComplete = false
+    try {
+      const locResult = await (app.service('locations') as any).find({
+        provider: undefined,
+        paginate: false,
+        query: { $limit: 1 },
+      })
+      const loc = Array.isArray(locResult) ? locResult[0] : undefined
+      if (loc) {
+        organizationName = loc.organizationName || loc.name
+        setupComplete = true
+      }
+    } catch {
+      // ignore — health darf nicht failen
+    }
     ctx.body = {
       status: 'ok',
       timestamp: new Date().toISOString(),
@@ -172,6 +195,8 @@ app.use(async (ctx, next) => {
       database: {
         type: app.get('system')?.dbType || 'sqlite',
       },
+      organizationName,
+      setupComplete,
       cloudPairingStatus,
       cloudTokenErrorReason,
       lastSyncAt,
@@ -184,6 +209,11 @@ app.use(async (ctx, next) => {
   }
   await next()
 })
+
+// Geraete-Pairing per Kurz-Code (POST /device-pairing/request-code | /redeem).
+// Plain-Koa-Routen vor den Feathers-Transports — redeem ist bewusst oeffentlich,
+// request-code authentifiziert sich manuell (siehe device-pairing.ts).
+registerDevicePairingRoutes(app)
 
 // Transports
 app.configure(rest())

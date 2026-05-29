@@ -373,15 +373,21 @@ const fetchPendingOutbox = async (app: Application): Promise<SyncOutboxEntry[]> 
  */
 const markOutboxAcked = async (app: Application, ids: string[]): Promise<void> => {
   const now = new Date().toISOString()
-  for (const id of ids) {
-    await (app.service(syncOutboxPath) as any)
-      .patch(
-        id,
-        { status: SyncOutboxStatus.ACKED, syncedAt: now, lastAttemptAt: now },
-        { provider: undefined } as any,
-      )
-      .catch(() => undefined)
-  }
+  // Parallel statt sequenziell: pro Push-Batch bis zu 100 Status-Patches. Im
+  // WAL-Modus (sqlite.ts) ueberlappen die Writes guenstig — sequenzielles
+  // for-await serialisierte sie unnoetig. Bewusst ueber die Feathers-Adapter-
+  // API (kein roher Knex-Bulk-Write — Architektur-Regel §6).
+  await Promise.all(
+    ids.map(id =>
+      (app.service(syncOutboxPath) as any)
+        .patch(
+          id,
+          { status: SyncOutboxStatus.ACKED, syncedAt: now, lastAttemptAt: now },
+          { provider: undefined } as any,
+        )
+        .catch(() => undefined),
+    ),
+  )
 }
 
 /**
@@ -398,23 +404,25 @@ const markOutboxRetry = async (
   error: string,
 ): Promise<void> => {
   const now = new Date().toISOString()
-  for (const entry of entries) {
-    const nextAttempts = (entry.attempts ?? 0) + 1
-    const next = new Date(Date.now() + backoffMs(nextAttempts)).toISOString()
-    await (app.service(syncOutboxPath) as any)
-      .patch(
-        entry._id,
-        {
-          status: SyncOutboxStatus.PENDING,
-          attempts: nextAttempts,
-          lastAttemptAt: now,
-          nextAttemptAt: next,
-          lastError: error,
-        },
-        { provider: undefined } as any,
-      )
-      .catch(() => undefined)
-  }
+  await Promise.all(
+    entries.map(entry => {
+      const nextAttempts = (entry.attempts ?? 0) + 1
+      const next = new Date(Date.now() + backoffMs(nextAttempts)).toISOString()
+      return (app.service(syncOutboxPath) as any)
+        .patch(
+          entry._id,
+          {
+            status: SyncOutboxStatus.PENDING,
+            attempts: nextAttempts,
+            lastAttemptAt: now,
+            nextAttemptAt: next,
+            lastError: error,
+          },
+          { provider: undefined } as any,
+        )
+        .catch(() => undefined)
+    }),
+  )
 }
 
 /**
@@ -429,35 +437,39 @@ const markOutboxTerminal = async (
   linkedConflictId?: string,
 ): Promise<void> => {
   const now = new Date().toISOString()
-  for (const id of ids) {
-    await (app.service(syncOutboxPath) as any)
-      .patch(
-        id,
-        {
-          status: SyncOutboxStatus.REJECTED,
-          terminalAt: now,
-          lastAttemptAt: now,
-          lastError: error,
-          ...(linkedConflictId ? { linkedConflictId } : {}),
-        },
-        { provider: undefined } as any,
-      )
-      .catch(() => undefined)
-  }
+  await Promise.all(
+    ids.map(id =>
+      (app.service(syncOutboxPath) as any)
+        .patch(
+          id,
+          {
+            status: SyncOutboxStatus.REJECTED,
+            terminalAt: now,
+            lastAttemptAt: now,
+            lastError: error,
+            ...(linkedConflictId ? { linkedConflictId } : {}),
+          },
+          { provider: undefined } as any,
+        )
+        .catch(() => undefined),
+    ),
+  )
 }
 
 /** Backwards-Compat-Wrapper fuer den IN_FLIGHT-Uebergang im Push-Loop. */
 const markOutboxInFlight = async (app: Application, ids: string[]): Promise<void> => {
   const now = new Date().toISOString()
-  for (const id of ids) {
-    await (app.service(syncOutboxPath) as any)
-      .patch(
-        id,
-        { status: SyncOutboxStatus.IN_FLIGHT, lastAttemptAt: now },
-        { provider: undefined } as any,
-      )
-      .catch(() => undefined)
-  }
+  await Promise.all(
+    ids.map(id =>
+      (app.service(syncOutboxPath) as any)
+        .patch(
+          id,
+          { status: SyncOutboxStatus.IN_FLIGHT, lastAttemptAt: now },
+          { provider: undefined } as any,
+        )
+        .catch(() => undefined),
+    ),
+  )
 }
 
 /**

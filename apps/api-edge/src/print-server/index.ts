@@ -51,3 +51,6 @@ export async function autoStartPrintServer(app: Application): Promise<void> {
 }
 
 export { printServerManager }
+// Lokaler Beleg-Druck-Kanal (ADR Phase 3): ESC/POS-Renderer für persistente
+// Belege. Konsument ist das ReceiptProvider.print-Binding / der Print-Dispatch.
+export { renderReceiptEscPos } from './receipt-escpos.renderer'

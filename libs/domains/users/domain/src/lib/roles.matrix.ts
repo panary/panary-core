@@ -203,6 +203,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
   [UserSystemRole.TENANT_OWNER]: [
     // Persistente Belege (§146a AO, ADR beleg-bon-system): lesen + Status/Retention patchen.
     { resource: AppResource.RECEIPTS, action: [AppAction.READ, AppAction.UPDATE] },
+    // Strukturierter Fiskal-Export der Belege (Phase 5).
+    { resource: AppResource.RECEIPTS_EXPORT, action: AppAction.READ },
     { resource: AppResource.USERS, action: AppAction.MANAGE },
     { resource: AppResource.PRODUCTS, action: AppAction.MANAGE },
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.MANAGE },
@@ -371,6 +373,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
   [UserSystemRole.TENANT_TECHNICIAN]: [
     // Persistente Belege (§146a AO): lesen + Status/Retention patchen.
     { resource: AppResource.RECEIPTS, action: [AppAction.READ, AppAction.UPDATE] },
+    // Strukturierter Fiskal-Export der Belege (Phase 5).
+    { resource: AppResource.RECEIPTS_EXPORT, action: AppAction.READ },
     { resource: AppResource.USERS, action: AppAction.MANAGE },
     { resource: AppResource.PRODUCTS, action: AppAction.MANAGE },
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.MANAGE },

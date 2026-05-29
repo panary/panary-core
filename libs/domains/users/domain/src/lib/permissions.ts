@@ -11,6 +11,10 @@ export const AppResource = {
    *  + DEVICE_POS, UPDATE für OWNER/TECHNICIAN (Status/Retention). CREATE läuft
    *  intern (provider: undefined → authorize-Bypass). */
   RECEIPTS: 'receipts',
+  /** Cloud-only: strukturierter Fiskal-Export der Belege (Phase 5, ADR §9).
+   *  Custom-Method find → { filename, contentType, contentBase64 }. READ für
+   *  OWNER/TECHNICIAN. DSFinV-K/EKaBS-Mapping = Folge-Schritt ([Steuerberater-Check]). */
+  RECEIPTS_EXPORT: 'receipts-export',
   DISCOUNTS: 'discounts',
   DISCOUNT_CODES: 'discount-codes',
   DISCOUNT_CODE_REDEMPTIONS: 'discount-code-redemptions',

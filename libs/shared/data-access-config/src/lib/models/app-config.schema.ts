@@ -8,6 +8,9 @@ export const appConfigSchema = /* @__PURE__ */ Type.Object(
     production: Type.Boolean(),
     appVersion: Type.String(),
     basicServerUrl: Type.String(),
+    // Fest hinterlegte Panary-Cloud-URL: Default-Pfad im POS-Setup-Wizard
+    // („Mit Panary Cloud verbinden"). Optional, damit nicht jede App sie setzen muss.
+    cloudUrl: Type.Optional(Type.String()),
     printOut: Type.Boolean(),
     localStorageServerSettingsKey: Type.String(),
     localStorageLastLoggedInUserKey: Type.String(),

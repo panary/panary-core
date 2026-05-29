@@ -3,6 +3,7 @@ import {
   DeviceConfig,
   DeviceRegistrationRequest,
   DeviceRegistrationResponse,
+  DeviceType,
   SetupCredentials,
 } from '../models/device-config.model'
 import { feathers, Application } from '@feathersjs/feathers'
@@ -350,6 +351,71 @@ export class DeviceConfigService {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Geräte-Registrierung fehlgeschlagen'
       console.error('Device registration failed:', error)
+      this.registrationError.set(message)
+      this.registrationStatus.set('error')
+      return null
+    }
+  }
+
+  /**
+   * Registriert das Gerät via Pairing-Code beim Edge — ohne Admin-Login.
+   *
+   * Ruft den öffentlichen Endpoint POST /device-pairing/redeem auf. Der Edge
+   * verifiziert den Code, legt das Gerät intern an (Tenant/Standort aus dem
+   * Code-Record) und liefert deviceId + Show-Once-apiKey. Bei Erfolg wird die
+   * DeviceConfig lokal gespeichert (gleiche Shape wie registerDevice).
+   */
+  async redeemPairingCode(
+    serverUrl: string,
+    code: string,
+    device: { deviceName: string; deviceType: DeviceType },
+  ): Promise<DeviceConfig | null> {
+    this.registrationStatus.set('registering')
+    this.registrationError.set(null)
+
+    const url = serverUrl.replace(/\/$/, '')
+    try {
+      const res = await fetch(`${url}/device-pairing/redeem`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: code.trim(),
+          deviceName: device.deviceName.trim(),
+          deviceType: device.deviceType,
+        }),
+        signal: AbortSignal.timeout(10000),
+      })
+
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string; message?: string }
+        const message =
+          res.status === 429
+            ? 'Zu viele Versuche. Bitte einen Moment warten.'
+            : body.message || body.error || `Server antwortete mit ${res.status}`
+        this.registrationError.set(message)
+        this.registrationStatus.set('error')
+        return null
+      }
+
+      const data = (await res.json()) as DeviceRegistrationResponse
+      const config: DeviceConfig = {
+        serverUrl: url,
+        deviceId: data.deviceId,
+        apiKey: data.apiKey,
+        deviceName: data.name,
+        deviceType: data.type,
+        tenantId: data.tenantId,
+        locationId: data.locationId,
+        language: this.getLanguage(),
+        registeredAt: new Date(),
+      }
+
+      this.saveConfig(config)
+      this.registrationStatus.set('success')
+      return config
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Pairing fehlgeschlagen'
+      console.error('Pairing-Code redeem failed:', error)
       this.registrationError.set(message)
       this.registrationStatus.set('error')
       return null

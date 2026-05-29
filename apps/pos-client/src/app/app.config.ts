@@ -33,6 +33,7 @@ export const appConfig: ApplicationConfig = {
         production: false,
         appVersion: packageJson.version,
         basicServerUrl: 'http://localhost:3030',
+        cloudUrl: 'https://cloud.panary.io',
         printOut: false,
         localStorageServerSettingsKey: 'panary_server_settings',
         localStorageLastLoggedInUserKey: 'panary_last_user',

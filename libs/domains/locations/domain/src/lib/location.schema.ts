@@ -154,8 +154,8 @@ export const settingsSchema = Type.Object({
   // gehalten, weil die LocalizedString-Lib cloud-seitig liegt).
   receiptSettings: Type.Optional(
     Type.Object({
-      activeChannels: Type.Optional(Type.Array(StringEnum(['qr', 'nfc', 'email', 'print']), { default: ['qr'] })),
-      defaultChannel: Type.Optional(StringEnum(['qr', 'nfc', 'email', 'print'])),
+      activeChannels: Type.Optional(Type.Array(StringEnum(['qr', 'nfc', 'email', 'wallet', 'print']), { default: ['qr'] })),
+      defaultChannel: Type.Optional(StringEnum(['qr', 'nfc', 'email', 'wallet', 'print'])),
       localPrintOnly: Type.Optional(Type.Boolean({ default: false })),
       retentionDays: Type.Optional(Type.Integer({ minimum: 0 })),
       tseEnabled: Type.Optional(Type.Boolean()),

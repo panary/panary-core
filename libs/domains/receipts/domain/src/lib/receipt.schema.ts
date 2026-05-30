@@ -25,6 +25,7 @@ export const ReceiptChannel = {
   QR: 'qr',
   NFC: 'nfc',
   EMAIL: 'email',
+  WALLET: 'wallet',
   PRINT: 'print',
 } as const
 

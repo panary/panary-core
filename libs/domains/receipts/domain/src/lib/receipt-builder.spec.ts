@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { buildReceiptSnapshot, canonicalReceiptJson, type BuildReceiptSnapshotInput } from './receipt-builder'
 import { formatInternalReceiptNumber } from './receipt-number'
-import { ReceiptKind } from './receipt.schema'
+import { ReceiptKind, type Receipt } from './receipt.schema'
+import { getReceiptDeliveryArtifact } from './receipt-provider'
 
 const baseInput = (): BuildReceiptSnapshotInput => ({
   kind: ReceiptKind.SALE,
@@ -76,5 +77,44 @@ describe('formatInternalReceiptNumber', () => {
         dailySequenceNumber: 42,
       }),
     ).toBe('R-20260530-0190aaaa-0042')
+  })
+})
+
+describe('getReceiptDeliveryArtifact', () => {
+  const receipt = {
+    token: 'AbC123_token-xyz',
+    kind: ReceiptKind.SALE,
+    currency: 'EUR',
+    issuedAt: '2026-05-30T10:00:00.000Z',
+    dailySequenceNumber: 42,
+    lineItems: [{ name: 'Brötchen', quantity: 1, unitPrice: 1, lineTotal: 1, taxRate: 19 }],
+    taxSummary: { taxes: [{ taxRate: 19, amount: 0.84, tax: 0.16 }], netto: 0.84, brutto: 1 },
+    totalGross: 1,
+    seller: { name: 'Bäckerei Test' },
+  } as unknown as Receipt
+  const opts = { baseUrl: 'https://receipts.panary.io' }
+
+  it('qr/url/wallet liefern die Beleg-URL', () => {
+    for (const channel of ['qr', 'url', 'wallet'] as const) {
+      const art = getReceiptDeliveryArtifact(receipt, channel, opts)
+      expect(art.url).toBe('https://receipts.panary.io/r/AbC123_token-xyz')
+    }
+  })
+
+  it('nfc liefert die URL als NDEF-URI-Payload', () => {
+    const art = getReceiptDeliveryArtifact(receipt, 'nfc', opts)
+    expect(art.contentType).toBe('application/vnd.nfc.ndef.uri')
+    expect(art.url).toContain('/r/AbC123_token-xyz')
+  })
+
+  it('html liefert gerendertes Markup', () => {
+    const art = getReceiptDeliveryArtifact(receipt, 'html', opts)
+    expect(art.contentType).toContain('text/html')
+    expect(art.body).toContain('Bäckerei Test')
+  })
+
+  it('pdf/png werfen (Renderer-Dependency erforderlich)', () => {
+    expect(() => getReceiptDeliveryArtifact(receipt, 'pdf', opts)).toThrow()
+    expect(() => getReceiptDeliveryArtifact(receipt, 'png', opts)).toThrow()
   })
 })

@@ -9,6 +9,7 @@ import { ServiceHelper } from '../utils/service-helper.service'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'
 import { REALTIME_SCOPE_GUARD, RealtimeScopeGuard } from './realtime-scope-guard'
+import { CachePolicy, normalizeToRecords, OfflineCacheStore } from '@panary/shared/offline-cache'
 
 // Optional: Reusable type
 export type PaginatedOrArray<T> = Promise<Paginated<T> | T[]>
@@ -37,6 +38,19 @@ export abstract class BaseService<T> {
    * gemerged werden. Server-seitige Channel-Isolation bleibt autoritativ.
    */
   protected scopeGuard: RealtimeScopeGuard | null = inject(REALTIME_SCOPE_GUARD, { optional: true })
+
+  /**
+   * Optionaler Offline-Cache (Connect-Tier). Wird nur in Apps bereitgestellt, die den
+   * Cache aktivieren (POS); ohne Provider (`null`) verhält sich der Service exakt wie
+   * bisher. Subklassen aktivieren ihn über `cachePolicy` (+ optional `cacheStoreName`).
+   */
+  protected cacheStore: OfflineCacheStore | null = inject(OfflineCacheStore, { optional: true })
+
+  /** Cache-Strategie dieses Services. `none` = kein Cache (Default). */
+  protected cachePolicy: CachePolicy = 'none'
+
+  /** Store-/Tabellenname im Cache. Default = `serviceName`; Subklassen setzen i.d.R. den Feathers-Pfad. */
+  protected cacheStoreName: string | null = null
 
   /** i18n-Key für den Entitätsnamen — Subklassen überschreiben diesen Wert */
   protected entityLabelKey = 'ENTITY.DOCUMENT'
@@ -71,6 +85,7 @@ export abstract class BaseService<T> {
     this.service
       .on('created', (item: T): void => {
         if (!this.acceptsRealtimeItem(item)) return
+        this.#cacheUpsert(item)
         this.ngZone.run(() => {
           this.handleItemCreated(item)
           this.showSnackbar(Array.isArray(item) ? 'SNACKBAR.CREATED_PLURAL' : 'SNACKBAR.CREATED')
@@ -78,6 +93,7 @@ export abstract class BaseService<T> {
       })
       .on('updated', (item: T): void => {
         if (!this.acceptsRealtimeItem(item)) return
+        this.#cacheUpsert(item)
         this.ngZone.run(() => {
           this.handleItemUpdated(item)
           this.showSnackbar(Array.isArray(item) ? 'SNACKBAR.UPDATED_PLURAL' : 'SNACKBAR.UPDATED')
@@ -85,6 +101,7 @@ export abstract class BaseService<T> {
       })
       .on('patched', (item: T): void => {
         if (!this.acceptsRealtimeItem(item)) return
+        this.#cacheUpsert(item)
         this.ngZone.run(() => {
           this.handleItemUpdated(item)
           this.showSnackbar(Array.isArray(item) ? 'SNACKBAR.CHANGED_PLURAL' : 'SNACKBAR.CHANGED')
@@ -92,6 +109,7 @@ export abstract class BaseService<T> {
       })
       .on('removed', (item: T): void => {
         if (!this.acceptsRealtimeItem(item)) return
+        this.#cacheRemove(item)
         this.ngZone.run(() => {
           this.handleItemRemoved(item)
           this.showSnackbar(Array.isArray(item) ? 'SNACKBAR.DELETED_PLURAL' : 'SNACKBAR.DELETED')
@@ -106,6 +124,29 @@ export abstract class BaseService<T> {
    */
   private acceptsRealtimeItem(item: T): boolean {
     return this.scopeGuard?.shouldAccept(item) ?? true
+  }
+
+  /** Aktiver Cache-Store-Schlüssel — oder `null`, wenn der Cache für diesen Service inaktiv ist. */
+  #cacheKey(): string | null {
+    if (this.cachePolicy === 'none') return null
+    if (!this.cacheStore?.isReady()) return null
+    return this.cacheStoreName ?? this.serviceName
+  }
+
+  /** Schreibt ein Ergebnis/Event in den Cache (Upsert, fire-and-forget). Scope ist bereits geprüft. */
+  #cacheUpsert(item: unknown): void {
+    const cacheKey = this.#cacheKey()
+    if (!cacheKey) return
+    void this.cacheStore?.upsertMany(cacheKey, normalizeToRecords(item))
+  }
+
+  /** Entfernt ein Ergebnis/Event aus dem Cache (fire-and-forget). */
+  #cacheRemove(item: unknown): void {
+    const cacheKey = this.#cacheKey()
+    if (!cacheKey) return
+    for (const record of normalizeToRecords(item)) {
+      void this.cacheStore?.removeOne(cacheKey, record._id)
+    }
   }
 
   /** Zeigt eine übersetzte Snackbar-Nachricht mit dem Entitätsnamen */
@@ -206,10 +247,20 @@ export abstract class BaseService<T> {
    * @return {Promise<PaginatedOrArray<T>>} A promise that resolves to the retrieved data, which can be paginated or an array of items.
    */
   async find(params: ExtendedParams = {}): PaginatedOrArray<T> {
-    return this.service.find(params).catch((error: unknown) => {
+    const cacheKey = this.#cacheKey()
+    try {
+      const result = await this.service.find(params)
+      this.#cacheUpsert(result)
+      return result
+    } catch (error: unknown) {
+      // Offline-Fallback: bei Netzfehler aus dem Cache liefern statt zu werfen.
+      const cached = cacheKey ? await this.cacheStore?.readAll(cacheKey) : undefined
+      if (cached && cached.length > 0) {
+        return cached as unknown as T[]
+      }
       this.helper.handleError(this.serviceName, error)
       throw error
-    })
+    }
   }
 
   /**
@@ -220,10 +271,19 @@ export abstract class BaseService<T> {
    * @return {Promise<T>} A promise that resolves to the resource of type T.
    */
   async get(id: Id, params: Params = {}): Promise<T> {
-    return this.service.get(id, params).catch((error: unknown) => {
+    const cacheKey = this.#cacheKey()
+    try {
+      const result = await this.service.get(id, params)
+      if (result) this.#cacheUpsert(result)
+      return result
+    } catch (error: unknown) {
+      const cached = cacheKey ? await this.cacheStore?.get(cacheKey, String(id)) : undefined
+      if (cached) {
+        return cached as unknown as T
+      }
       this.helper.handleError(this.serviceName, error)
       throw error
-    })
+    }
   }
 
   /**
@@ -235,10 +295,12 @@ export abstract class BaseService<T> {
    * @return {Promise<T | T[]>} A promise that resolves with the updated resource(s) or rejects with an error.
    */
   async update(id: Id | null, data: T, params: Params = {}): Promise<T | T[]> {
-    return this.service.update(id, data, params).catch((error: unknown) => {
+    const result = await this.service.update(id, data, params).catch((error: unknown) => {
       this.helper.handleError(this.serviceName, error)
       throw error
     })
+    this.#cacheUpsert(result)
+    return result
   }
 
   /**
@@ -250,10 +312,12 @@ export abstract class BaseService<T> {
    * @return {Promise<T | T[]>} A promise that resolves to the patched resource(s).
    */
   async patch(id: Id | Id[] | null, data: Partial<T>, params: Params = {}): Promise<T | T[]> {
-    return this.service.patch(id, data, params).catch((error: unknown) => {
+    const result = await this.service.patch(id, data, params).catch((error: unknown) => {
       this.helper.handleError(this.serviceName, error)
       throw error
     })
+    this.#cacheUpsert(result)
+    return result
   }
 
   /**
@@ -267,10 +331,12 @@ export abstract class BaseService<T> {
     data: Omit<T, '_id' | 'locationId' | 'tenantId'> | Omit<T, '_id' | 'locationId' | 'tenantId'>[],
     params: Params = {},
   ): Promise<T | T[]> {
-    return this.service.create(data, params).catch((error: unknown) => {
+    const result = await this.service.create(data, params).catch((error: unknown) => {
       this.helper.handleError(this.serviceName, error)
       throw error
     })
+    this.#cacheUpsert(result)
+    return result
   }
 
   /**
@@ -281,10 +347,12 @@ export abstract class BaseService<T> {
    * @return {Promise<T|T[]>} A promise that resolves to the removed resource(s). The return type could be a single resource or an array of resources depending on the operation.
    */
   async remove(id: Id | null, params: Params = {}): Promise<T | T[]> {
-    return this.service.remove(id, params).catch((error: unknown) => {
+    const result = await this.service.remove(id, params).catch((error: unknown) => {
       this.helper.handleError(this.serviceName, error)
       throw error
     })
+    this.#cacheRemove(result)
+    return result
   }
 
   /**

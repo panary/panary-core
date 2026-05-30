@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildReceiptSnapshot, canonicalReceiptJson, type BuildReceiptSnapshotInput } from './receipt-builder'
+import { buildReceiptHtml, buildReceiptSnapshot, canonicalReceiptJson, type BuildReceiptSnapshotInput } from './receipt-builder'
 import { formatInternalReceiptNumber } from './receipt-number'
 import { ReceiptKind, type Receipt } from './receipt.schema'
 import { getReceiptDeliveryArtifact } from './receipt-provider'
@@ -116,5 +116,41 @@ describe('getReceiptDeliveryArtifact', () => {
   it('pdf/png werfen (Renderer-Dependency erforderlich)', () => {
     expect(() => getReceiptDeliveryArtifact(receipt, 'pdf', opts)).toThrow()
     expect(() => getReceiptDeliveryArtifact(receipt, 'png', opts)).toThrow()
+  })
+})
+
+describe('buildReceiptHtml branding', () => {
+  const receipt = {
+    kind: ReceiptKind.SALE,
+    currency: 'EUR',
+    issuedAt: '2026-05-30T10:00:00.000Z',
+    dailySequenceNumber: 7,
+    receiptNumber: 'R-1',
+    lineItems: [{ name: 'Brot', quantity: 1, unitPrice: 2, lineTotal: 2, taxRate: 7 }],
+    taxSummary: { taxes: [{ taxRate: 7, amount: 1.87, tax: 0.13 }], netto: 1.87, brutto: 2 },
+    totalGross: 2,
+    seller: { name: 'Bäckerei' },
+    tse: null,
+  } as unknown as Parameters<typeof buildReceiptHtml>[0]
+
+  it('wendet eine gültige Markenfarbe + Logo + Footer an', () => {
+    const html = buildReceiptHtml(receipt, {
+      primaryColor: '#2dd4a4',
+      logoUrl: 'https://cdn.example/logo.webp',
+      footerText: 'Vielen Dank!',
+    })
+    expect(html).toContain('#2dd4a4')
+    expect(html).toContain('<img src="https://cdn.example/logo.webp"')
+    expect(html).toContain('Vielen Dank!')
+  })
+
+  it('ignoriert ungültige Farbe + javascript:-Logo (Injection-Schutz)', () => {
+    const html = buildReceiptHtml(receipt, {
+      primaryColor: 'red;}body{display:none', // kein #hex → ignoriert
+      logoUrl: 'javascript:alert(1)', // kein http(s)/Pfad → ignoriert
+    })
+    expect(html).not.toContain('display:none')
+    expect(html).not.toContain('javascript:')
+    expect(html).toContain('#15181c') // Default-Farbe greift
   })
 })

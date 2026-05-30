@@ -15,6 +15,10 @@ export const AppResource = {
    *  Custom-Method find → { filename, contentType, contentBase64 }. READ für
    *  OWNER/TECHNICIAN. DSFinV-K/EKaBS-Mapping = Folge-Schritt ([Steuerberater-Check]). */
   RECEIPTS_EXPORT: 'receipts-export',
+  /** Cloud-only: E-Mail-Auslieferung eines Belegs (Phase 4, DSGVO-gated). Custom-
+   *  Method create({ token, email, consent }). CREATE für Checkout-Rollen
+   *  (DEVICE_POS + TENANT_STAFF/MANAGER/OWNER/TECHNICIAN). */
+  RECEIPTS_EMAIL: 'receipts-email',
   DISCOUNTS: 'discounts',
   DISCOUNT_CODES: 'discount-codes',
   DISCOUNT_CODE_REDEMPTIONS: 'discount-code-redemptions',

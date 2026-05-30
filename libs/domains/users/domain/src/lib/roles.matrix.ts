@@ -205,6 +205,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.RECEIPTS, action: [AppAction.READ, AppAction.UPDATE] },
     // Strukturierter Fiskal-Export der Belege (Phase 5).
     { resource: AppResource.RECEIPTS_EXPORT, action: AppAction.READ },
+    // Beleg per E-Mail versenden (Phase 4, DSGVO-gated).
+    { resource: AppResource.RECEIPTS_EMAIL, action: AppAction.CREATE },
     { resource: AppResource.USERS, action: AppAction.MANAGE },
     { resource: AppResource.PRODUCTS, action: AppAction.MANAGE },
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.MANAGE },
@@ -375,6 +377,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.RECEIPTS, action: [AppAction.READ, AppAction.UPDATE] },
     // Strukturierter Fiskal-Export der Belege (Phase 5).
     { resource: AppResource.RECEIPTS_EXPORT, action: AppAction.READ },
+    // Beleg per E-Mail versenden (Phase 4, DSGVO-gated).
+    { resource: AppResource.RECEIPTS_EMAIL, action: AppAction.CREATE },
     { resource: AppResource.USERS, action: AppAction.MANAGE },
     { resource: AppResource.PRODUCTS, action: AppAction.MANAGE },
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.MANAGE },
@@ -503,6 +507,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.USERS, action: [AppAction.READ, AppAction.UPDATE] },
     // Persistente Belege (§146a AO): lesen.
     { resource: AppResource.RECEIPTS, action: AppAction.READ },
+    // Beleg per E-Mail versenden (Phase 4, DSGVO-gated).
+    { resource: AppResource.RECEIPTS_EMAIL, action: AppAction.CREATE },
     { resource: AppResource.PRODUCTS, action: AppAction.MANAGE },
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.READ },
     { resource: AppResource.ORDERS, action: [AppAction.CREATE, AppAction.READ, AppAction.UPDATE, AppAction.DELETE] },
@@ -634,6 +640,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.USERS, action: [AppAction.READ, AppAction.UPDATE] },
     // Persistente Belege (§146a AO): lesen.
     { resource: AppResource.RECEIPTS, action: AppAction.READ },
+    // Beleg per E-Mail versenden (Phase 4, DSGVO-gated).
+    { resource: AppResource.RECEIPTS_EMAIL, action: AppAction.CREATE },
     { resource: AppResource.PRODUCTS, action: AppAction.READ },
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.READ },
     { resource: AppResource.ORDERS, action: [AppAction.CREATE, AppAction.READ] },
@@ -722,6 +730,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
 
     // Persistente Belege (§146a AO): am POS lesen/nachdrucken.
     { resource: AppResource.RECEIPTS, action: AppAction.READ },
+    // Beleg per E-Mail an den Gast versenden (Phase 4, DSGVO-gated).
+    { resource: AppResource.RECEIPTS_EMAIL, action: AppAction.CREATE },
 
     // Produkte & Menüs lesen (PRODUCTS_READ)
     { resource: AppResource.PRODUCTS, action: AppAction.READ },

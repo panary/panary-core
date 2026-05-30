@@ -18,6 +18,34 @@ export const ClockSkewStatus = {
 
 export type ClockSkewStatus = (typeof ClockSkewStatus)[keyof typeof ClockSkewStatus]
 
+// Geraete-Provenienz: ob das Geraet von uns verkauft/bereitgestellt und damit
+// SLA-gebunden ist (PANARY_MANAGED) oder Kundenhardware ist (TENANT_SELF_MANAGED).
+// Fachlicher Default beim Pairing/Migration = TENANT_SELF_MANAGED (siehe
+// edge-pairing.create). Bewusst KEIN TypeBox-Default, damit „nie gesetzt" von
+// „bewusst self-managed" unterscheidbar bleibt.
+export const EdgeProvenance = {
+  PANARY_MANAGED: 'panary-managed',
+  TENANT_SELF_MANAGED: 'tenant-self-managed',
+} as const
+
+export type EdgeProvenance = (typeof EdgeProvenance)[keyof typeof EdgeProvenance]
+
+// Abgeleitetes Vertrauens-Niveau der Edge-Identitaet. Server-gestempelt, nie vom
+// Client setzbar.
+//   - UNVERIFIED          : keine pruefbare Herkunft (heutiger Default)
+//   - PROVENANCE_VERIFIED : verifizierbare Supply-Chain-Attestation (cosign/SLSA)
+//                           des offiziellen Images gemeldet — Detektion, KEIN
+//                           kryptografisches Fork-Verbot
+//   - CRYPTO_VERIFIED     : hardware-gebundene Per-Geraet-Identitaet verifiziert
+//                           (Stufe 2 — setzt Imaging-/Provisioning-Pipeline voraus)
+export const EdgeTrustTier = {
+  CRYPTO_VERIFIED: 'crypto-verified',
+  PROVENANCE_VERIFIED: 'provenance-verified',
+  UNVERIFIED: 'unverified',
+} as const
+
+export type EdgeTrustTier = (typeof EdgeTrustTier)[keyof typeof EdgeTrustTier]
+
 export const cloudEdgeSchema = Type.Object(
   {
     ...baseSchema,
@@ -47,6 +75,16 @@ export const cloudEdgeSchema = Type.Object(
     // Wahrheit fuer die „online"-Anzeige im Admin-Status-Header — anders als das
     // staleness-basierte `lastSeenAt` spiegelt es Connect/Disconnect sofort.
     liveConnected: Type.Optional(Type.Boolean()),
+    // Provenienz-Flag (managed vs self-managed). Wird beim Pairing auf
+    // TENANT_SELF_MANAGED defaultet und kann ausschliesslich von Platform-Admins
+    // umgestuft werden (Feld-Level-Gate restrictProvenancePatch in der Cloud) —
+    // cloud-edges ist sonst tenant-MANAGE.
+    provenance: Type.Optional(StringEnum(Object.values(EdgeProvenance))),
+    // Server-abgeleitetes Vertrauens-Niveau. Nie client-setzbar (protectFromExternal).
+    trustTier: Type.Optional(StringEnum(Object.values(EdgeTrustTier))),
+    // Audit der letzten Provenienz-Aenderung.
+    provenanceSetByUserId: Type.Optional(Type.String({ format: 'uuid' })),
+    provenanceSetAt: Type.Optional(Type.String({ format: 'date-time' })),
   },
   { $id: 'CloudEdge', additionalProperties: false },
 )
@@ -70,6 +108,11 @@ export const cloudEdgePatchSchema = Type.Partial(
     // Externe Clients koennen es trotzdem nicht setzen — restrictPatchFields
     // laesst nur interne Aufrufe durch.
     'liveConnected',
+    // Provenienz-Flag. Muss in der Patch-Pick stehen, damit der Platform-Admin-
+    // Patch den additionalProperties:false-Validator passiert. Nicht-Platform-
+    // Aufrufe lehnt restrictProvenancePatch (Cloud) aktiv ab. trustTier und die
+    // Audit-Felder bleiben bewusst DRAUSSEN (server-only via protectFromExternal).
+    'provenance',
   ]),
   { $id: 'CloudEdgePatch' },
 )
@@ -86,6 +129,9 @@ export const cloudEdgeQueryProperties = Type.Pick(cloudEdgeSchema, [
   'pairedAt',
   'lastSeenAt',
   'lastSyncAt',
+  // Provenienz/Trust — Filter + Sortierung in der Edge-Uebersicht.
+  'provenance',
+  'trustTier',
   // Pflicht fuer die EdgeTokenStrategy: findByTokenHash() filtert in der
   // Authentifizierung nach Token-Hash. Externe Clients erreichen die Felder
   // weiterhin nicht, weil cloud-edges nur fuer Platform-User zugreifbar ist

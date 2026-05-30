@@ -97,7 +97,8 @@
       "@panary/cloud-edges/domain": ["libs/domains/cloud-edges/domain/src/index.ts"],
       "@panary/sync/domain": ["libs/domains/sync/domain/src/index.ts"],
       "@panary/shared-backend": ["libs/shared/backend/src/index.ts"],
-      "@panary/receipts/domain": ["./libs/domains/receipts/domain/src/index.ts"]
+      "@panary/receipts/domain": ["./libs/domains/receipts/domain/src/index.ts"],
+      "@panary/shared/offline-cache": ["./libs/shared/offline-cache/src/index.ts"]
     }
   }
 }

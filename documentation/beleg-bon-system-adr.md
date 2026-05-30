@@ -3,7 +3,7 @@ title: Persistentes Beleg-/Bon-System — Datenmodell, Offline-Abruf & Render-St
 date: 2026-05-29
 category: Architektur
 domains: [receipts, orders, tse, locations, sync]
-status: Aktiv (Entscheidung; Implementierung phasenweise)
+status: Umgesetzt (Phase 1–5 Kern gebaut; Branding/Admin-UI + externe Adapter offen)
 ---
 
 # Persistentes Beleg-/Bon-System (§146a AO) — ADR
@@ -146,8 +146,53 @@ nicht-enumerierbarer URL.
 - **Lib-Coupling:** `receipts/domain` importiert `orderLineItemSchema` vs.
   strukturelle Kopie (wie `order.tse`).
 
+## Implementierungsstand (Stand 2026-05-30)
+
+Die Entscheidung ist über alle Phasen hinweg im Kern **umgesetzt** (build-
+verifiziert; auf `main` gemerged). Übersicht der real existierenden Artefakte:
+
+**Phase 1 — Beleg-Kern (Edge):**
+- `@panary/receipts/domain` (`libs/domains/receipts/domain/src/lib/`):
+  `receipt.schema.ts` (Schema + `ReceiptKind`/`ReceiptChannel`/`ReceiptStatus`),
+  `receipt-builder.ts` (`buildReceiptSnapshot`/`canonicalReceiptJson`/
+  `buildReceiptHtml`), `receipt-provider.ts` (`ReceiptProvider` +
+  `getReceiptDeliveryArtifact`/`buildReceiptUrl`), `receipt-number.ts`.
+- Edge: `apps/api-edge/src/services/receipts/receipts.ts`,
+  `apps/api-edge/src/hooks/issue-receipt.hook.ts` (after `orders`→`completed`,
+  HMAC-Token + `sha256`-`renderHash`, idempotent), SQLite-Migration
+  `migrations/…_receipts.ts`.
+- `location.settings.receiptSettings` (live-patchbar), RBAC `RECEIPTS`.
+
+**Phase 2 — Sync + öffentlicher Abruf:** `RECEIPTS` in
+`SyncableTransactionService` (Edge→Cloud-Push); Cloud-Empfangs-Service +
+öffentlicher Abruf — Details im Companion
+[`beleg-abruf-service.md`](../../panary-cloud/documentation/beleg-abruf-service.md).
+
+**Phase 3 — Kassenmodus/Druck:** Retention (`retainUntil` im issue-Hook + 410
+im öffentlichen Abruf — nur Abruf-Dauer, GoBD-Aufbewahrung unberührt);
+ESC/POS-Renderer `apps/api-edge/src/print-server/receipt-escpos.renderer.ts`
+(reuse `buildTseReceiptBlock`).
+
+**Phase 4 — Kanäle:** NFC + Wallet via `getReceiptDeliveryArtifact`
+(NDEF-URI- bzw. URL-Payload); E-Mail = Cloud-Service (Companion).
+
+**Phase 5 — Reform/Export:** Feature-Flags `digitalReceiptMandatory`/
+`cashRegisterMandatory` in `receiptSettings`; Fiskal-Export = Cloud-Service
+(Companion).
+
+**Noch offen (Folge-Schritte):**
+- Brandbare Astro-Abrufseite + `receiptSettings`-Admin-UI + QR-Anzeige am POS
+  (Frontend).
+- NDEF-**Schreiben** am Gerät (Web NFC / Tauri-native); `.pkpass`/Google-Pass-
+  Erzeugung (Apple/Google-Zertifikate + SDK).
+- PDF/PNG-Renderer-Dependency (O3 — kein Paket ohne Zustimmung).
+- Echter Fiskaly-Adapter (Credentials); DSFinV-K-/EKaBS-Mapping
+  ([Steuerberater-Check]).
+- Token-Secret-Provisionierung (O1) für vor-Sync-stabile Edge-lokale Verifikation
+  (Cloud-Abruf benötigt sie nicht — Capability-Lookup per gespeichertem Token).
+
 ## Status
 
 Entschieden 2026-05-29 (Recherche Recht + Wettbewerb + zwei Architektur-
-Evaluierungen abgeschlossen, alle Forks mit dem Inhaber entschieden).
-Implementierung phasenweise (separater Plan).
+Evaluierungen). Phase 1–5-Kern **umgesetzt** 2026-05-30, build-verifiziert, nach
+`main` gemerged. Offene Folge-Schritte siehe oben + „Offene Entscheidungen".

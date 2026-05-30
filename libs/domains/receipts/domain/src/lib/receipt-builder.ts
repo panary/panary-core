@@ -194,16 +194,45 @@ const sortValue = (value: unknown): unknown => {
 
 export const canonicalReceiptJson = (snapshot: ReceiptSnapshotCore): string => JSON.stringify(sortValue(snapshot))
 
+// Optionales Beleg-Branding (Phase 4). Render-time appliziert (render-on-demand)
+// — aktuelles Branding wirkt auf alle Belege ohne Re-Issue. Quelle: Tenant-
+// Branding/Theme-Tokens. Alle Werte werden sanitisiert (CSS-/HTML-Injection).
+export interface ReceiptBranding {
+  /** Markenfarbe (nur #hex akzeptiert; sonst ignoriert). */
+  primaryColor?: string
+  /** Logo-URL (nur http(s)/protokoll-relativ/absolute Pfade/data:image; sonst ignoriert). */
+  logoUrl?: string
+  /** Fußzeilen-Text (z. B. „Vielen Dank!"). */
+  footerText?: string
+}
+
 // Minimaler, deterministischer HTML-Render eines Belegs (render-on-demand).
-// Bewusst dependency-frei; das ausführliche Theming/PDF folgt in Phase 2/3.
+// Bewusst dependency-frei.
 const esc = (s: string): string =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
 const money = (n: number, currency: string): string => `${n.toFixed(2)} ${currency}`
 
-export const buildReceiptHtml = (receipt: Pick<Receipt,
-  'kind' | 'currency' | 'issuedAt' | 'dailySequenceNumber' | 'lineItems' | 'taxSummary' | 'totalGross' | 'seller' | 'tse' | 'receiptNumber'
->): string => {
+// CSS-Injection-Schutz: ausschließlich #hex (3–8 Stellen).
+const safeColor = (c: string | undefined): string | undefined =>
+  c && /^#[0-9a-fA-F]{3,8}$/.test(c) ? c : undefined
+
+// Nur http(s)/protokoll-relativ/absolute Pfade + data:image/ (base64-Logo, sicher
+// in <img>) — blockt javascript:/data:text o. Ä.
+const safeUrl = (u: string | undefined): string | undefined =>
+  u && (/^https?:\/\//.test(u) || u.startsWith('//') || u.startsWith('/') || /^data:image\//.test(u))
+    ? u
+    : undefined
+
+export const buildReceiptHtml = (
+  receipt: Pick<
+    Receipt,
+    'kind' | 'currency' | 'issuedAt' | 'dailySequenceNumber' | 'lineItems' | 'taxSummary' | 'totalGross' | 'seller' | 'tse' | 'receiptNumber'
+  >,
+  branding?: ReceiptBranding,
+): string => {
+  const primary = safeColor(branding?.primaryColor) ?? '#15181c'
+  const logoUrl = safeUrl(branding?.logoUrl)
   const rows = receipt.lineItems
     .map(
       l =>
@@ -218,20 +247,41 @@ export const buildReceiptHtml = (receipt: Pick<Receipt,
         receipt.tse.signatureValue ? `<div class="sig">${esc(receipt.tse.signatureValue)}</div>` : ''
       }</section>`
     : ''
+  const style = `<style>
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#15181c}
+header{text-align:center;border-bottom:2px solid ${primary};padding-bottom:12px;margin-bottom:16px}
+header img{max-height:64px;margin-bottom:8px}
+h1{color:${primary};font-size:1.25rem;margin:0 0 4px}
+.meta{font-size:.85rem;color:#555;margin:2px 0}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.9rem}
+th,td{text-align:left;padding:4px 6px;border-bottom:1px solid #eee}
+td:last-child,th:last-child{text-align:right}
+.total{font-size:1.1rem;font-weight:700;color:${primary};text-align:right;margin:12px 0}
+.tse{margin-top:16px;font-size:.72rem;color:#555;word-break:break-all}
+footer{margin-top:24px;text-align:center;font-size:.8rem;color:#777}
+</style>`
   return [
     '<!doctype html><html lang="de"><head><meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width,initial-scale=1">',
-    `<title>Beleg ${receipt.dailySequenceNumber}</title></head><body>`,
-    `<header><h1>${esc(receipt.seller.name)}</h1>`,
-    receipt.seller.address ? `<div>${esc(receipt.seller.address)}</div>` : '',
-    receipt.seller.taxNumber ? `<div>St-Nr: ${esc(receipt.seller.taxNumber)}</div>` : '',
+    `<title>Beleg ${receipt.dailySequenceNumber}</title>`,
+    style,
+    '</head><body>',
+    '<header>',
+    logoUrl ? `<img src="${esc(logoUrl)}" alt="">` : '',
+    `<h1>${esc(receipt.seller.name)}</h1>`,
+    receipt.seller.address ? `<div class="meta">${esc(receipt.seller.address)}</div>` : '',
+    receipt.seller.taxNumber ? `<div class="meta">St-Nr: ${esc(receipt.seller.taxNumber)}</div>` : '',
     '</header>',
-    `<div>Beleg-Nr: ${esc(receipt.receiptNumber ?? String(receipt.dailySequenceNumber))}</div>`,
-    `<div>Datum: ${esc(receipt.issuedAt)}</div>`,
+    `<div class="meta">Beleg-Nr: ${esc(receipt.receiptNumber ?? String(receipt.dailySequenceNumber))}</div>`,
+    `<div class="meta">Datum: ${esc(receipt.issuedAt)}</div>`,
+    receipt.kind === 'order-confirmation'
+      ? '<div class="meta"><em>Bestellbestätigung — kein steuerlicher Beleg</em></div>'
+      : '',
     `<table><thead><tr><th>Position</th><th>Menge</th><th>Summe</th><th>MwSt</th></tr></thead><tbody>${rows}</tbody></table>`,
     `<div class="total">Gesamt: ${money(receipt.totalGross, receipt.currency)}</div>`,
     `<table class="tax"><thead><tr><th>Satz</th><th>Netto</th><th>Steuer</th></tr></thead><tbody>${taxRows}</tbody></table>`,
     tseBlock,
+    branding?.footerText ? `<footer>${esc(branding.footerText)}</footer>` : '',
     '</body></html>',
   ].join('')
 }

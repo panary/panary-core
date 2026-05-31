@@ -1,29 +1,9 @@
 import { CacheEntity } from './cache-storage.port'
 
-/** Read-/Schreib-Strategie eines Services im Cache. */
-export type CachePolicy = 'none' | 'master-data' | 'transactional'
-
-/**
- * Normalisiert ein Feathers-Service-Ergebnis (Einzelobjekt, Array oder `Paginated`)
- * auf eine flache Datensatzliste — die Form, in der der Cache persistiert.
- */
-export function normalizeToRecords<TEntity extends CacheEntity>(result: unknown): TEntity[] {
-  if (Array.isArray(result)) {
-    return result as TEntity[]
-  }
-  if (
-    result &&
-    typeof result === 'object' &&
-    'data' in result &&
-    Array.isArray((result as { data: unknown }).data)
-  ) {
-    return (result as { data: TEntity[] }).data
-  }
-  if (result && typeof result === 'object' && '_id' in result) {
-    return [result as TEntity]
-  }
-  return []
-}
+// `normalizeToRecords` + `CachePolicy` leben im neutralen shared-common (geteilt mit
+// dem BaseService) — hier re-exportiert für `@panary/shared/offline-cache`-Konsumenten.
+export { normalizeToRecords } from '@panary/shared-common'
+export type { CachePolicy } from '@panary/shared-common'
 
 /**
  * Merge-Strategie für den In-Memory-Mirror. `upsert` ersetzt/ergänzt per `_id`,

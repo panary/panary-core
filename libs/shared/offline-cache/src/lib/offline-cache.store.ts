@@ -1,5 +1,7 @@
 import { Injectable, signal, Signal, WritableSignal } from '@angular/core'
 
+import { OfflineCachePort } from '@panary/shared-common'
+
 import { openCacheDatabase, OpenCacheResult } from './cache-bootstrap'
 import { mergeRecords } from './cache-merge'
 import { CacheEntity, CacheStoragePort, CacheStorageSchema } from './cache-storage.port'
@@ -12,7 +14,7 @@ import { CacheEntity, CacheStoragePort, CacheStorageSchema } from './cache-stora
  * bereitgestellten Adapter durch.
  */
 @Injectable()
-export class OfflineCacheStore {
+export class OfflineCacheStore implements OfflineCachePort {
   #port: CacheStoragePort | null = null
   #databaseName: string | null = null
   readonly #ready: WritableSignal<boolean> = signal(false)

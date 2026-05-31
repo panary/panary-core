@@ -9,7 +9,8 @@ import { ServiceHelper } from '../utils/service-helper.service'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'
 import { REALTIME_SCOPE_GUARD, RealtimeScopeGuard } from './realtime-scope-guard'
-import { CachePolicy, normalizeToRecords, OfflineCacheStore } from '@panary/shared/offline-cache'
+import { CachePolicy, normalizeToRecords, OfflineCachePort } from '@panary/shared-common'
+import { OFFLINE_CACHE } from './offline-cache.token'
 
 // Optional: Reusable type
 export type PaginatedOrArray<T> = Promise<Paginated<T> | T[]>
@@ -44,7 +45,7 @@ export abstract class BaseService<T> {
    * Cache aktivieren (POS); ohne Provider (`null`) verhält sich der Service exakt wie
    * bisher. Subklassen aktivieren ihn über `cachePolicy` (+ optional `cacheStoreName`).
    */
-  protected cacheStore: OfflineCacheStore | null = inject(OfflineCacheStore, { optional: true })
+  protected cacheStore: OfflineCachePort | null = inject(OFFLINE_CACHE, { optional: true })
 
   /** Cache-Strategie dieses Services. `none` = kein Cache (Default). */
   protected cachePolicy: CachePolicy = 'none'

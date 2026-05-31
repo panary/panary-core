@@ -52,6 +52,12 @@ FeathersJS-Service-Schnittstelle funktionieren.
 - Der Cache ist nur ein Baustein: Read-Pfad-Integration am `BaseService`, Outbox/Replay und
   Offline-UX (Banner, Bargeld-Zwang, TSE-Ausfallvermerk, provisorische Belegnummer) folgen in
   späteren Phasen.
+- **Entkopplung (cross-repo):** Der `BaseService` hängt an der Abstraktion `OfflineCachePort`
+  (+ `normalizeToRecords`, `CachePolicy`, `CacheEntity`) in `@panary/shared-common` und am
+  `OFFLINE_CACHE`-Token in `data-access` — **nicht** an `@panary/shared/offline-cache`. So muss
+  das admin-dashboard (panary-cloud) den Cache samt `idb` nicht mitbundeln (es mappt
+  `@panary/shared/offline-cache` nicht). Die POS-App bindet die konkrete `OfflineCacheStore` über
+  `{ provide: OFFLINE_CACHE, useExisting: OfflineCacheStore }`.
 
 ## Geliefert in Phase 1 (`libs/shared/offline-cache`)
 

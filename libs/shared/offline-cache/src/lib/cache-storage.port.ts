@@ -1,5 +1,11 @@
 import { InjectionToken } from '@angular/core'
 
+import { CacheEntity } from '@panary/shared-common'
+
+// CacheEntity lebt im neutralen shared-common (siehe offline-cache-port.ts) — hier
+// re-exportiert, damit `@panary/shared/offline-cache`-Konsumenten ihn weiter beziehen.
+export type { CacheEntity }
+
 /**
  * Schlanker Client-Cache-Storage-Port (Connect-Tier). Kapselt die konkrete
  * Persistenz-Engine (heute IndexedDB via `idb`) hinter einer austauschbaren
@@ -24,14 +30,6 @@ export interface CacheStoreDefinition {
 export interface CacheStorageSchema {
   readonly version: number
   readonly stores: readonly CacheStoreDefinition[]
-}
-
-/** Minimaler Vertrag jedes Cache-Datensatzes: adressierbar über `_id` (uuidv7). */
-export interface CacheEntity {
-  readonly _id: string
-  readonly tenantId?: string | null
-  readonly locationId?: string | null
-  readonly updatedAt?: string
 }
 
 /**

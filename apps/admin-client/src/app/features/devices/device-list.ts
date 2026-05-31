@@ -104,7 +104,14 @@ interface Device {
       }
 
       @if (pairingOpen()) {
+        <!-- Backdrop schliesst per Klick; Tastatur-Pfad laeuft ueber den Schliessen-Button
+             im Dialog + (keydown.escape). a11y-Klick-Regeln hier bewusst deaktiviert
+             (Repo-Muster: searchable-select, active-orders). -->
+        <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
         <div class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-6" (click)="closePairing()">
+          <!-- Inneres Klick-Stop verhindert Schliessen beim Klick in den Dialog; rein
+               visuell, kein eigenes Tastatur-Target noetig. -->
+          <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
           <div class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-8 w-full max-w-sm shadow-xl text-center"
                (click)="$event.stopPropagation()">
             <h2 class="text-lg font-bold mb-1">{{ 'DEVICES.PAIRING_TITLE' | translate }}</h2>

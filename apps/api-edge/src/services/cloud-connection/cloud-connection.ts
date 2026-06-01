@@ -419,9 +419,11 @@ export const cloudConnection = (app: Application) => {
 
     // Synthetischer preflightSnapshot — der Bootstrap-Worker (runBootstrap)
     // braucht ihn fuer applyCloudTenantId und das requiresTenantIdRestamp-Flag.
-    // Cloud-side Inventar bleibt leer (wird beim eigentlichen Bootstrap durch
-    // die Sync-Pipeline neu ermittelt); cloudTenantName/cloudLocationName sind
-    // im Edge-Kontext nicht verfuegbar, der Worker nutzt sie nicht zwingend.
+    // cloudInventory uebernimmt der Wizard aus dem Preflight (vom User gesehener
+    // Cloud-Stand) — Fallback auf Null-Inventar, falls der Client es nicht
+    // mitschickt. Der Worker liest dieses Feld nicht; es dient der Pairing-
+    // Historie. cloudTenantName/cloudLocationName sind im Edge-Kontext nicht
+    // verfuegbar, der Worker nutzt sie nicht zwingend.
     const cloudTenantId = pairResponse.cloudTenantId
     const cloudLocationId = pairResponse.cloudLocationId ?? undefined
     const preflightSnapshot = {
@@ -429,7 +431,13 @@ export const cloudConnection = (app: Application) => {
       cloudTenantName: '',
       cloudLocationId,
       cloudLocationName: undefined,
-      cloudInventory: { products: 0, productGroups: 0, users: 0, corporateCustomers: 0, customers: 0 },
+      cloudInventory: data.cloudInventory ?? {
+        products: 0,
+        productGroups: 0,
+        users: 0,
+        corporateCustomers: 0,
+        customers: 0,
+      },
       edgeInventory,
       suggestedDirection: data.initialDirection,
       requiresTenantIdRestamp: requesterTenantId !== cloudTenantId,

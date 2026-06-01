@@ -1139,6 +1139,7 @@ export class CloudConnectionComponent implements OnInit {
     this.bootstrapping.set(true)
     this.errors.set([])
     try {
+      const cloudInventory = this.preflightResult()?.cloudInventory
       const updated = await this.api.customMethod<CloudConnectionInfo>('cloud-connection', 'startBootstrap', {
         cloudUrl: this.cloudUrl,
         pairingCode: this.pairingCode,
@@ -1146,6 +1147,7 @@ export class CloudConnectionComponent implements OnInit {
         initialDirection: dir,
         confirmDataLoss: this.confirmDataLoss(),
         ...(allowlist ? { bootstrapUserAllowlist: allowlist } : {}),
+        ...(cloudInventory ? { cloudInventory } : {}),
       })
       this.connectionInfo.set(updated)
       this.connectionState.set(updated.pairingStatus)

@@ -353,6 +353,11 @@ export const cloudConnectionStartBootstrapDataSchema = Type.Object(
     // pusht der Worker ausschliesslich Users mit diesen IDs. Wenn `undefined`/
     // leer, gilt der Default (alle vom serverseitigen Filter erlaubten Users).
     bootstrapUserAllowlist: Type.Optional(Type.Array(Type.String())),
+    // Cloud-Inventar aus dem Preflight, das der Wizard dem User bereits gezeigt
+    // hat. Der Edge speichert es 1:1 im preflightSnapshot, damit die Pairing-
+    // Historie den echten Cloud-Stand zum Pairing-Zeitpunkt zeigt (statt 0).
+    // Optional + Fallback auf Null-Inventar — der Bootstrap-Worker liest es nicht.
+    cloudInventory: Type.Optional(masterDataInventorySchema),
   },
   { $id: 'CloudConnectionStartBootstrapData', additionalProperties: false },
 )

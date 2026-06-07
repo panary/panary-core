@@ -334,21 +334,38 @@ const prodFormat = format.combine(
 // damit die Datei maschinenlesbar und formatgleich zur Cloud-stdout-JSON ist.
 // Harte Caps gegen Volllaufen des geteilten data/-Volumes (SQLite liegt daneben).
 // Schreibfehler werden geschluckt — Logging darf NIE den Request-Pfad crashen.
-const fileTransport = new DailyRotateFile({
-  dirname: LOG_DIR,
-  filename: 'api-edge-%DATE%.log',
-  datePattern: 'YYYY-MM-DD',
-  maxSize: '20m',
-  maxFiles: '7d',
-  format: prodFormat,
-})
-fileTransport.on('error', () => undefined)
+// Datei-Transport defensiv erzeugen: In Cloud-/Container-Deployments ist das
+// Arbeitsverzeichnis (z. B. /app) fuer den non-root-User nicht beschreibbar.
+// Der DailyRotateFile-Konstruktor wirft dann SYNCHRON EACCES beim mkdir des
+// LOG_DIR (noch bevor der 'error'-Listener greifen koennte) — das darf den
+// Prozess-Start NICHT crashen. Schlaegt die Erzeugung fehl (oder laeuft ein
+// Test), bleibt es bei Console-only — in der Cloud genau richtig, dort ist
+// stdout-JSON der Log-Kanal. Der Edge mit beschreibbarem data/-Volume bekommt
+// den Datei-Transport unveraendert.
+let fileTransport: DailyRotateFile | undefined
+if (!isTest) {
+  try {
+    fileTransport = new DailyRotateFile({
+      dirname: LOG_DIR,
+      filename: 'api-edge-%DATE%.log',
+      datePattern: 'YYYY-MM-DD',
+      maxSize: '20m',
+      maxFiles: '7d',
+      format: prodFormat,
+    })
+    fileTransport.on('error', () => undefined)
+  } catch (err) {
+    process.stderr.write(
+      `[logger] Datei-Logging deaktiviert (${LOG_DIR} nicht beschreibbar): ${(err as Error).message}\n`
+    )
+  }
+}
 
 export const logger = createLogger({
   level: 'info',
   transports: [
     new transports.Console({ format: isProduction ? prodFormat : devFormat }),
-    ...(isTest ? [] : [fileTransport]),
+    ...(fileTransport ? [fileTransport] : []),
   ],
 })
 

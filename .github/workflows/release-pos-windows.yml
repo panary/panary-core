@@ -22,8 +22,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # bitwarden/sm-action@v2 (Node20-Runtime) statt @v3 (Node24-Runtime).
+      # Node24 ist auf GitHub-Runnern noch nicht GA → startup_failure (Run-
+      # Start ≈ Run-Ende, keine Jobs, keine Logs). v2 ist stabil.
       - name: Bitwarden Secrets laden
-        uses: bitwarden/sm-action@v3
+        uses: bitwarden/sm-action@v2
         with:
           access_token: ${{ secrets.BW_ACCESS_TOKEN }}
           base_url: https://tresor.ratke.info
@@ -73,6 +76,14 @@ jobs:
             - 'esbuild'
             - 'nx'
           "@ | Out-File -Encoding utf8 pnpm-workspace.yaml
+          # .npmrc fuer Workspace-Linking — sonst zieht pnpm @panary/*
+          # aus npm.pkg.github.com (ERR_PNPM_FETCH_401 ohne Auth-Token).
+          @"
+          link-workspace-packages=deep
+          prefer-workspace-packages=true
+          auto-install-peers=true
+          strict-peer-dependencies=false
+          "@ | Out-File -Encoding utf8 .npmrc
           pnpm install --lockfile-only
 
       - name: Install Dependencies

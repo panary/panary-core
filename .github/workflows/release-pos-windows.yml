@@ -7,6 +7,11 @@ on:
 
 permissions:
   contents: write
+  # bitwarden/sm-action verlangt id-token: write (OIDC-Auth gegen den
+  # self-hosted Vault). Ohne diese Permission lehnt GitHub den Workflow
+  # vor der Job-Allokation ab → startup_failure (Run-Start ≈ Run-Ende,
+  # keine Jobs, keine Logs). Beobachtet bei pos-v26.6.1.
+  id-token: write
 
 jobs:
   release-windows:
@@ -18,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Bitwarden Secrets laden
-        uses: bitwarden/sm-action@v2
+        uses: bitwarden/sm-action@v3
         with:
           access_token: ${{ secrets.BW_ACCESS_TOKEN }}
           base_url: https://tresor.ratke.info
@@ -26,10 +31,11 @@ jobs:
             dd793c0b-6aa8-4b66-98e8-b41a0188f86b > TAURI_SIGNING_PRIVATE_KEY
             ba98581b-4221-40ac-907c-b41a0189001d > TAURI_SIGNING_PRIVATE_KEY_PASSWORD
 
+      # Cloud-Pattern: keine `version:` setzen — die Action liest die
+      # autoritative pnpm-Version aus dem `packageManager`-Feld der
+      # package.json. Beide gleichzeitig kollidieren mit ERR_PNPM_BAD_PM_VERSION.
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
-        with:
-          version: 9
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -47,8 +53,30 @@ jobs:
         with:
           workspaces: apps/pos-client/src-tauri -> target
 
+      # CI-Build-Kontext-Vorbereitung (Windows-PowerShell):
+      # 1. pnpm-workspace.yaml liegt nur im Workbench-Root, NICHT im Repo
+      #    → on-the-fly schreiben.
+      # 2. pnpm-lock.yaml ist ein Symlink ins Workbench-Root → bricht in CI.
+      #    Loeschen + mit --lockfile-only neu materialisieren.
+      - name: Workspace-Files fuer CI-Kontext materialisieren
+        shell: pwsh
+        run: |
+          if (Test-Path pnpm-lock.yaml) { Remove-Item -Force pnpm-lock.yaml }
+          @"
+          packages:
+            - 'apps/*'
+            - 'libs/domains/*'
+            - 'libs/shared/*'
+          onlyBuiltDependencies:
+            - '@swc/core'
+            - 'better-sqlite3'
+            - 'esbuild'
+            - 'nx'
+          "@ | Out-File -Encoding utf8 pnpm-workspace.yaml
+          pnpm install --lockfile-only
+
       - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build Angular POS
         run: pnpm nx build pos-client --configuration=production --parallel=1

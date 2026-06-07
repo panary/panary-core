@@ -18,10 +18,11 @@ jobs:
           filter: tree:0
           fetch-depth: 0
 
+      # Cloud-Pattern: keine `version:` setzen — die Action liest die pnpm-
+      # Version aus dem `packageManager`-Feld der package.json. Beide
+      # gleichzeitig kollidieren mit ERR_PNPM_BAD_PM_VERSION (CI #187).
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

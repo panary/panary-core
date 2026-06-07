@@ -50,6 +50,40 @@ jobs:
       - name: Copy .dockerignore
         run: cp tools/docker/.dockerignore .dockerignore
 
+      # Workspace-Files fuer den Docker-Build-Kontext bereitstellen.
+      # Lokal lebt pnpm-workspace.yaml NUR im Workbench-Root (`_WORKBENCH_PANARY/`),
+      # und pnpm-lock.yaml ist ein Symlink dorthin (`pnpm-lock.yaml -> ../pnpm-lock.yaml`).
+      # Im CI fehlt das Workbench-Root → die Datei muss inline geschrieben werden,
+      # und der Symlink muss durch eine echte Lockfile ersetzt werden, sonst
+      # bricht `Dockerfile.edge:23` (COPY pnpm-workspace.yaml/pnpm-lock.yaml)
+      # mit "not found" bzw. broken-link. Beobachtet bei v26.6.1.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js (fuer pnpm install --lockfile-only)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Workspace-Files fuer Docker-Kontext materialisieren
+        run: |
+          # Symlink-Lockfile durch echte Datei ersetzen
+          if [ -L pnpm-lock.yaml ]; then rm pnpm-lock.yaml; fi
+          cat > pnpm-workspace.yaml <<'EOF'
+          packages:
+            - 'apps/*'
+            - 'libs/domains/*'
+            - 'libs/shared/*'
+          onlyBuiltDependencies:
+            - '@swc/core'
+            - 'better-sqlite3'
+            - 'esbuild'
+            - 'nx'
+          EOF
+          # Echte Lockfile generieren (Inhalt landet via COPY im Image und wird
+          # darin von `pnpm install` konsumiert).
+          pnpm install --lockfile-only
+
       - name: Build and Push
         id: docker_build
         uses: docker/build-push-action@v7

@@ -264,6 +264,15 @@ export const AppResource = {
    *  (OWNER/MANAGER/STAFF) — ohne READ liefert die Theme-Auswahl im Admin 403. */
   STOREFRONT_THEME_CATALOG: 'storefront-theme-catalog',
 
+  /** Cloud-only: Publish-to-CDN-Endpunkt fuer den storefront-publish-Service
+   *  (Phase 2). Erzeugt einen immutablen Snapshot und pusht ihn nach Bunny
+   *  Storage. CREATE = manueller Publish-Button (UI kommt Phase 3) + Auto-
+   *  Publish-Trigger. READ = Publish-Status-Abruf.
+   *  TENANT_OWNER/MANAGER: CREATE + READ. TENANT_STAFF: kein Eintrag (→ 403).
+   *  PLATFORM_ADMIN: CREATE + READ (Operator-Eingriff).
+   *  PLATFORM_SUPPORT: READ (Status-Sicht fuer Tickets). */
+  STOREFRONT_PUBLISH: 'storefront-publish',
+
   // Plattform-Verwaltungs-Ressourcen (nur Cloud)
   PLATFORM_TENANTS: 'platform-tenants',
   /** Cloud-only: Subscription-Lifecycle gegen den BillingProvider (Mollie) —

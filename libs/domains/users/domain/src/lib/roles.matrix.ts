@@ -129,6 +129,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.GLOBAL_SUPPLIER_SUBMISSIONS, action: AppAction.MANAGE },
     // Plattform-Theme-Katalog: PLATFORM_ADMIN kuratiert ihn (PLATFORM_OWNER bypasst ohnehin).
     { resource: AppResource.STOREFRONT_THEME_CATALOG, action: AppAction.MANAGE },
+    // Storefront-Publish: Admin darf manuell publizieren (Operator-Eingriff) und Status lesen.
+    { resource: AppResource.STOREFRONT_PUBLISH, action: [AppAction.CREATE, AppAction.READ] },
     // Tenant-Settings darf der Admin lesen (zur Diagnose), aber nicht aendern.
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT, action: AppAction.READ },
@@ -195,6 +197,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Globaler Lieferanten-Katalog (Phase 2): Support liest mit, kein Schreibzugriff.
     { resource: AppResource.GLOBAL_SUPPLIERS, action: AppAction.READ },
     { resource: AppResource.GLOBAL_SUPPLIER_SUBMISSIONS, action: AppAction.READ },
+    // Storefront-Publish: Support sieht Publish-Status fuer Ticket-Diagnose (kein CREATE).
+    { resource: AppResource.STOREFRONT_PUBLISH, action: AppAction.READ },
   ],
 
   // =======================================================
@@ -329,6 +333,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Plattform-Theme-Katalog ist global + plattform-kuratiert → Tenant nur READ
     // (Theme-Auswahl auf der Storefront-Landing).
     { resource: AppResource.STOREFRONT_THEME_CATALOG, action: AppAction.READ },
+    // Storefront-Publish: Owner darf manuell publizieren (Publish-Button, UI kommt Phase 3)
+    // und den Publish-Status abrufen. STAFF hat bewusst KEINEN Eintrag (→ 403).
+    { resource: AppResource.STOREFRONT_PUBLISH, action: [AppAction.CREATE, AppAction.READ] },
     // Tenant-Settings: TENANT_OWNER darf eigene Settings READ + CREATE + UPDATE.
     // CREATE ist noetig, weil neue Tenants vor dem ersten Toggle kein Settings-
     // Dokument haben — beim Aktivieren via UI legt das Frontend einen Datensatz
@@ -606,6 +613,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.STOREFRONT_CONFIG, action: [AppAction.READ, AppAction.UPDATE] },
     // Plattform-Theme-Katalog: nur lesend (global, plattform-kuratiert).
     { resource: AppResource.STOREFRONT_THEME_CATALOG, action: AppAction.READ },
+    // Storefront-Publish: Manager darf — wie Owner — manuell publizieren und Status abrufen.
+    // TENANT_STAFF hat bewusst KEINEN Eintrag (→ 403 beim Publish-Versuch).
+    { resource: AppResource.STOREFRONT_PUBLISH, action: [AppAction.CREATE, AppAction.READ] },
     // Tenant-Settings: nur lesend; Aktivierung bleibt PLATFORM_OWNER vorbehalten.
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     // KI-Wareneingang: Foto hochladen + Audit lesen.

@@ -80,6 +80,14 @@ jobs:
             - 'esbuild'
             - 'nx'
           EOF
+          # .npmrc fuer Workspace-Linking — sonst zieht pnpm @panary/*
+          # aus npm.pkg.github.com (ERR_PNPM_FETCH_401 ohne Auth-Token).
+          cat > .npmrc <<'EOF'
+          link-workspace-packages=deep
+          prefer-workspace-packages=true
+          auto-install-peers=true
+          strict-peer-dependencies=false
+          EOF
           # Echte Lockfile generieren (Inhalt landet via COPY im Image und wird
           # darin von `pnpm install` konsumiert).
           pnpm install --lockfile-only

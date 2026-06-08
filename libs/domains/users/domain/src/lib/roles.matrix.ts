@@ -131,6 +131,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.STOREFRONT_THEME_CATALOG, action: AppAction.MANAGE },
     // Storefront-Publish: Admin darf manuell publizieren (Operator-Eingriff) und Status lesen.
     { resource: AppResource.STOREFRONT_PUBLISH, action: [AppAction.CREATE, AppAction.READ] },
+    // Storefront-Preview-Token (Phase 4 PUBW-05): Admin darf signierte Preview-Links
+    // fuer Tenants erzeugen (Support-/Operator-Eingriff).
+    { resource: AppResource.STOREFRONT_PREVIEW_TOKEN, action: AppAction.CREATE },
     // Tenant-Settings darf der Admin lesen (zur Diagnose), aber nicht aendern.
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT, action: AppAction.READ },
@@ -336,6 +339,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Storefront-Publish: Owner darf manuell publizieren (Publish-Button, UI kommt Phase 3)
     // und den Publish-Status abrufen. STAFF hat bewusst KEINEN Eintrag (→ 403).
     { resource: AppResource.STOREFRONT_PUBLISH, action: [AppAction.CREATE, AppAction.READ] },
+    // Storefront-Preview-Token (Phase 4 PUBW-05, D-11..D-15): Owner darf signierte
+    // Preview-Links fuer den Draft-Render erzeugen (HMAC-Token, TTL 1h). STAFF hat
+    // bewusst KEINEN Eintrag (Staff erzeugen keine Preview-Links).
+    { resource: AppResource.STOREFRONT_PREVIEW_TOKEN, action: AppAction.CREATE },
     // Tenant-Settings: TENANT_OWNER darf eigene Settings READ + CREATE + UPDATE.
     // CREATE ist noetig, weil neue Tenants vor dem ersten Toggle kein Settings-
     // Dokument haben — beim Aktivieren via UI legt das Frontend einen Datensatz
@@ -616,6 +623,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Storefront-Publish: Manager darf — wie Owner — manuell publizieren und Status abrufen.
     // TENANT_STAFF hat bewusst KEINEN Eintrag (→ 403 beim Publish-Versuch).
     { resource: AppResource.STOREFRONT_PUBLISH, action: [AppAction.CREATE, AppAction.READ] },
+    // Storefront-Preview-Token (Phase 4 PUBW-05): Manager darf — wie Owner — signierte
+    // Preview-Links fuer den Draft-Render erzeugen. STAFF hat bewusst KEINEN Eintrag.
+    { resource: AppResource.STOREFRONT_PREVIEW_TOKEN, action: AppAction.CREATE },
     // Tenant-Settings: nur lesend; Aktivierung bleibt PLATFORM_OWNER vorbehalten.
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     // KI-Wareneingang: Foto hochladen + Audit lesen.

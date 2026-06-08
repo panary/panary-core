@@ -273,6 +273,17 @@ export const AppResource = {
    *  PLATFORM_SUPPORT: READ (Status-Sicht fuer Tickets). */
   STOREFRONT_PUBLISH: 'storefront-publish',
 
+  /** Cloud-only: Preview-Token-Service fuer den Draft-Render der Storefront
+   *  (Phase 4 PUBW-05, D-11..D-15). Custom-Method-Service
+   *  `apps/api-cloud/src/services/storefront-preview-token/`. CREATE erzeugt
+   *  einen HMAC-signierten Token (TTL 1h, server-only Secret
+   *  STOREFRONT_PREVIEW_SECRET). Verifikation passiert serverseitig in der
+   *  Astro-Route `/preview/[token]` (kein eigener AppResource-Eintrag).
+   *  TENANT_OWNER + TENANT_MANAGER + PLATFORM_ADMIN: CREATE. TENANT_STAFF:
+   *  kein Eintrag (Staff erzeugen keine Preview-Links). PLATFORM_SUPPORT:
+   *  kein Eintrag (Read-only-Rolle). PLATFORM_OWNER hat strukturellen Bypass. */
+  STOREFRONT_PREVIEW_TOKEN: 'storefront-preview-token',
+
   // Plattform-Verwaltungs-Ressourcen (nur Cloud)
   PLATFORM_TENANTS: 'platform-tenants',
   /** Cloud-only: Subscription-Lifecycle gegen den BillingProvider (Mollie) —

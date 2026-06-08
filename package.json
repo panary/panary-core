@@ -1,6 +1,6 @@
 {
   "name": "panary-core",
-  "version": "26.6.4",
+  "version": "26.6.6",
   "license": "BSL-1.1",
   "packageManager": "pnpm@10.12.1",
   "keywords": [

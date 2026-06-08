@@ -1,0 +1,29 @@
+{
+  "name": "reservations-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/reservations/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:reservations"],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/reservations/domain/dist"],
+      "dependsOn": ["^build"],
+      "options": {
+        "outputPath": "libs/domains/reservations/domain/dist",
+        "project": "libs/domains/reservations/package.json",
+        "tsConfig": "libs/domains/reservations/domain/tsconfig.lib.json",
+        "main": "libs/domains/reservations/domain/src/index.ts",
+        "format": ["cjs"],
+        "external": [
+          "@feathersjs/feathers",
+          "@feathersjs/typebox",
+          "@sinclair/typebox",
+          "@panary/shared-common"
+        ],
+        "generatePackageJson": false,
+        "compiler": "tsc"
+      }
+    }
+  }
+}

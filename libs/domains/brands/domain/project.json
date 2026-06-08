@@ -1,0 +1,29 @@
+{
+  "name": "brands-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/brands/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:brands"],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/brands/domain/dist"],
+      "dependsOn": ["^build"],
+      "options": {
+        "outputPath": "libs/domains/brands/domain/dist",
+        "project": "libs/domains/brands/package.json",
+        "tsConfig": "libs/domains/brands/domain/tsconfig.lib.json",
+        "main": "libs/domains/brands/domain/src/index.ts",
+        "format": ["cjs"],
+        "external": [
+          "@feathersjs/feathers",
+          "@feathersjs/typebox",
+          "@sinclair/typebox",
+          "@panary/shared-common"
+        ],
+        "generatePackageJson": false,
+        "compiler": "tsc"
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "brands",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/brands",
+  "projectType": "library",
+  "tags": ["type:domain-package", "domain:brands", "publishable"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/libs/domains/brands/domain/dist"],
+      "dependsOn": ["brands-domain:build"],
+      "options": {
+        "command": "echo 'brands package build complete'"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "libs/domains/brands"
+      }
+    }
+  }
+}

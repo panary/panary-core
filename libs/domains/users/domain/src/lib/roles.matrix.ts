@@ -73,6 +73,12 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Cloud-getriggerter Sofort-Sync — explizit dokumentiert, der Bypass im
     // authorize-Hook deckt diesen Eintrag ohnehin ab.
     { resource: AppResource.SYNC_TRIGGERS, action: AppAction.CREATE },
+    // Phase 6 — Brand- und Reservierungs-Schicht. Owner hat strukturellen
+    // Bypass; Eintraege dienen der Dokumentation der Mindest-Rechte.
+    { resource: AppResource.BRANDS, action: AppAction.MANAGE },
+    { resource: AppResource.RESERVATIONS, action: AppAction.MANAGE },
+    { resource: AppResource.RESERVATION_TABLES, action: AppAction.MANAGE },
+    { resource: AppResource.RESERVABLE_SLOTS, action: AppAction.MANAGE },
   ],
 
   [UserSystemRole.PLATFORM_ADMIN]: [
@@ -139,6 +145,12 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT, action: AppAction.READ },
     { resource: AppResource.SYNC_REJECTS, action: AppAction.READ },
     { resource: AppResource.INCOMING_GOODS_EXTRACT_AUDIT_DAILY, action: AppAction.READ },
+    // Phase 6 — Brand- und Reservierungs-Schicht. Operator-Eingriff bei
+    // Tenant-Support (z.B. Reservierung manuell stornieren).
+    { resource: AppResource.BRANDS, action: AppAction.MANAGE },
+    { resource: AppResource.RESERVATIONS, action: AppAction.MANAGE },
+    { resource: AppResource.RESERVATION_TABLES, action: AppAction.MANAGE },
+    { resource: AppResource.RESERVABLE_SLOTS, action: AppAction.MANAGE },
   ],
 
   [UserSystemRole.PLATFORM_SUPPORT]: [
@@ -202,6 +214,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.GLOBAL_SUPPLIER_SUBMISSIONS, action: AppAction.READ },
     // Storefront-Publish: Support sieht Publish-Status fuer Ticket-Diagnose (kein CREATE).
     { resource: AppResource.STOREFRONT_PUBLISH, action: AppAction.READ },
+    // Phase 6 — Brand- und Reservierungs-Schicht. Support liest mit (Ticket-
+    // Diagnose), kein Schreibzugriff.
+    { resource: AppResource.BRANDS, action: AppAction.READ },
+    { resource: AppResource.RESERVATIONS, action: AppAction.READ },
   ],
 
   // =======================================================
@@ -380,6 +396,12 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.NOTIFICATIONS, action: [AppAction.READ, AppAction.UPDATE, AppAction.DELETE] },
     { resource: AppResource.NOTIFICATION_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.PUSH_SUBSCRIPTIONS, action: AppAction.MANAGE },
+    // Phase 6 — Brand- und Reservierungs-Schicht: Owner pflegt Marken,
+    // Reservierungen, Tische und Slots vollumfaenglich.
+    { resource: AppResource.BRANDS, action: AppAction.MANAGE },
+    { resource: AppResource.RESERVATIONS, action: AppAction.MANAGE },
+    { resource: AppResource.RESERVATION_TABLES, action: AppAction.MANAGE },
+    { resource: AppResource.RESERVABLE_SLOTS, action: AppAction.MANAGE },
     AppAbility.CAN_SEE_REPORTS,
     AppAbility.CAN_REFUND,
     AppAbility.CAN_VOID_ORDER,
@@ -505,6 +527,12 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PUSH_SUBSCRIPTIONS, action: AppAction.MANAGE },
     // Dienstleister/Mitarbeiter per E-Mail in den eigenen Tenant einladen.
     { resource: AppResource.ACCOUNT_INVITATIONS, action: AppAction.MANAGE },
+    // Phase 6 — Brand- und Reservierungs-Schicht: Techniker hat Admin-
+    // aequivalente Rechte fuer Diagnose/Support.
+    { resource: AppResource.BRANDS, action: AppAction.MANAGE },
+    { resource: AppResource.RESERVATIONS, action: AppAction.MANAGE },
+    { resource: AppResource.RESERVATION_TABLES, action: AppAction.MANAGE },
+    { resource: AppResource.RESERVABLE_SLOTS, action: AppAction.MANAGE },
     AppAbility.CAN_SEE_REPORTS,
     AppAbility.CAN_REFUND,
     AppAbility.CAN_VOID_ORDER,
@@ -649,6 +677,12 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.NOTIFICATIONS, action: [AppAction.READ, AppAction.UPDATE, AppAction.DELETE] },
     { resource: AppResource.NOTIFICATION_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.PUSH_SUBSCRIPTIONS, action: AppAction.MANAGE },
+    // Phase 6 — Brand- und Reservierungs-Schicht: Manager pflegt Marken,
+    // Reservierungen, Tische und Slots gleichberechtigt zum Owner.
+    { resource: AppResource.BRANDS, action: AppAction.MANAGE },
+    { resource: AppResource.RESERVATIONS, action: AppAction.MANAGE },
+    { resource: AppResource.RESERVATION_TABLES, action: AppAction.MANAGE },
+    { resource: AppResource.RESERVABLE_SLOTS, action: AppAction.MANAGE },
     AppAbility.CAN_VOID_ORDER,
   ],
 
@@ -733,6 +767,14 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.NOTIFICATIONS, action: [AppAction.READ, AppAction.UPDATE, AppAction.DELETE] },
     { resource: AppResource.NOTIFICATION_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.PUSH_SUBSCRIPTIONS, action: AppAction.MANAGE },
+    // Phase 6 — Brand- und Reservierungs-Schicht: Staff darf Marken/Tische/
+    // Slots ansehen (Anzeige im Admin/Tisch-Plan), aber NICHT bearbeiten.
+    { resource: AppResource.BRANDS, action: AppAction.READ },
+    { resource: AppResource.RESERVATION_TABLES, action: AppAction.READ },
+    { resource: AppResource.RESERVABLE_SLOTS, action: AppAction.READ },
+    // Reservierungen: Staff sieht den Reservierungs-Bestand und darf Status
+    // setzen (ARRIVED/NO_SHOW/CANCELLED) — KEIN CREATE/DELETE.
+    { resource: AppResource.RESERVATIONS, action: [AppAction.READ, AppAction.UPDATE] },
   ],
 
   // =======================================================

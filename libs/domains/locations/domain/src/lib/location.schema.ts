@@ -187,6 +187,27 @@ export const locationSchema = Type.Object(
 
     tenantId: Type.String({ format: 'uuid' }), // Organizational affiliation
 
+    // Phase 6 BRAND-01 (D-03): FK auf brands._id.
+    // Optional in v26.7.0 für Backward-Compat während Migration (BRAND-02);
+    // Pflicht-Promotion erst in v27.0.0 / Phase 8 OPS Polish, nachdem
+    // Migration alle Bestands-Locations einer Default-Brand zugeordnet hat.
+    brandId: Type.Optional(Type.String({ description: 'uuidv7 — Phase 6 BRAND-01 (Pflicht nach Migration BRAND-02)' })),
+
+    // Phase 6 BRAND-03 / D-14: URL-Slug für Subdomain-Routing
+    // `<location-handle>.<brand-handle>.<panary-tld>` (z.B. mitte.burgerheaven.panary.cloud).
+    // Unique pro brandId (D-18, Compound-Index brandId+handle). Default = slugifyHandle(name)
+    // im Backfill (Plan 06-07). Optional in v26.7.0 für Migrations-Backward-Compat;
+    // Promotion zu Pflicht in v27.0.0 (Phase 8 OPS Polish).
+    handle: Type.Optional(
+      Type.String({
+        pattern: '^[a-z0-9-]+$',
+        minLength: 1,
+        maxLength: 64,
+        description:
+          'URL-Slug für Subdomain-Routing (BRAND-03 / D-14). Unique pro brandId. Optional in v26.7.0, Pflicht ab v27.0.0.',
+      }),
+    ),
+
     address: Type.Object({
       street: Type.String({ minLength: 1, maxLength: 200 }),
       city: Type.String({ minLength: 1, maxLength: 120 }),
@@ -274,6 +295,8 @@ export const locationDataSchema = Type.Pick(
     'name',
     'address',
     'tenantId',
+    'brandId',
+    'handle',
     'settings',
     'email',
     'phone',

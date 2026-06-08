@@ -364,6 +364,32 @@ export const AppResource = {
   NOTIFICATIONS: 'notifications',
   NOTIFICATION_PREFERENCES: 'notification-preferences',
   PUSH_SUBSCRIPTIONS: 'push-subscriptions',
+
+  // =======================================================
+  // Phase 6 — Brand- und Reservierungs-Schicht (panary-cloud)
+  // =======================================================
+  /** Cloud-only: Brand-Aggregat (Marken-Layer ueber Tenant — Branding/Theme/
+   *  Reservation-Settings). Eine Brand kann eine oder mehrere Locations
+   *  zusammenfassen. CRUD: TENANT_OWNER + TENANT_MANAGER. READ: TENANT_STAFF
+   *  (Anzeige im Admin) + PLATFORM_SUPPORT (Diagnose). PLATFORM_ADMIN: CRUD. */
+  BRANDS: 'brands',
+  /** Cloud-only: Reservierungen (Tische, Zeitfenster, Gaeste). CRUD:
+   *  TENANT_OWNER + TENANT_MANAGER. TENANT_STAFF: READ + UPDATE (Status-
+   *  Aenderungen wie ARRIVED/CANCELLED). PLATFORM_ADMIN: CRUD. PLATFORM_SUPPORT:
+   *  READ. Public-Channels (Web-Component-Anlegen, Magic-Link-Manage) laufen
+   *  ueber separate Services (`reservations-public`/`reservation-manage`) und
+   *  werden via publicServices-Allowlist im authorize-Hook geoeffnet. */
+  RESERVATIONS: 'reservations',
+  /** Cloud-only: Stamm-Daten der reservierbaren Tische je Brand/Location
+   *  (Kapazitaet, Bezeichnung, ggf. Bereich). CRUD: TENANT_OWNER +
+   *  TENANT_MANAGER. READ: TENANT_STAFF (Anzeige im Tisch-Plan). PLATFORM_ADMIN:
+   *  CRUD. */
+  RESERVATION_TABLES: 'reservation-tables',
+  /** Cloud-only: Buchbare Zeitfenster (Slot-Definitionen pro Brand/Location:
+   *  Wochentag, Start-/Endzeit, Slot-Laenge, Kapazitaet). CRUD: TENANT_OWNER +
+   *  TENANT_MANAGER. READ: TENANT_STAFF (Anzeige im Reservierungs-Planer).
+   *  PLATFORM_ADMIN: CRUD. */
+  RESERVABLE_SLOTS: 'reservable-slots',
 } as const
 
 export type AppResource = (typeof AppResource)[keyof typeof AppResource]

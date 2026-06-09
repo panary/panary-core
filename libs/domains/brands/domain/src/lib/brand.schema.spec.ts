@@ -1,7 +1,7 @@
 import { Value } from '@sinclair/typebox/value'
 import { describe, expect, it } from 'vitest'
 
-import { brandDataSchema, brandPatchSchema, brandSchema } from './brand.schema'
+import { brandDataSchema, brandPatchSchema, brandSchema, customDomainSchema } from './brand.schema'
 
 const validBrand = {
   _id: '01927d4f-3c2e-7b6a-9a1f-1ce0a8a5d7e1',
@@ -68,3 +68,160 @@ describe('brandPatchSchema', () => {
     expect(Value.Check(brandPatchSchema, {})).toBe(true)
   })
 })
+
+//#region Phase 7 — DOM-01 + DOM-02 + D-26
+// RED-Erwartung: customDomainSchema fehlt heute → Import schlägt fehl.
+// Task 2 macht GREEN (Sub-Aggregat + customDomains:CustomDomain[] + defaultLocationId).
+
+describe('customDomainSchema (Phase 7 D-01)', () => {
+  const validCustomDomain = {
+    hostname: 'restaurant.de',
+    status: 'pending' as const,
+    verificationToken: '0190a000-0000-7000-8000-000000000001',
+  }
+
+  it('akzeptiert ein gültiges CustomDomain-Objekt', () => {
+    expect(Value.Check(customDomainSchema, validCustomDomain)).toBe(true)
+  })
+
+  it('akzeptiert eine Subdomain (sub.restaurant.de)', () => {
+    expect(Value.Check(customDomainSchema, { ...validCustomDomain, hostname: 'sub.restaurant.de' })).toBe(true)
+  })
+
+  it('akzeptiert eine Punycode-Domain (xn--bcher-kva.de)', () => {
+    expect(Value.Check(customDomainSchema, { ...validCustomDomain, hostname: 'xn--bcher-kva.de' })).toBe(true)
+  })
+
+  it('lehnt Uppercase-Hostname ab', () => {
+    expect(Value.Check(customDomainSchema, { ...validCustomDomain, hostname: 'Restaurant.de' })).toBe(false)
+  })
+
+  it('lehnt Hostname mit Protokoll-Prefix ab', () => {
+    expect(
+      Value.Check(customDomainSchema, { ...validCustomDomain, hostname: 'https://restaurant.de' }),
+    ).toBe(false)
+  })
+
+  it('lehnt Hostname mit Trailing-Dot ab', () => {
+    expect(Value.Check(customDomainSchema, { ...validCustomDomain, hostname: 'restaurant.de.' })).toBe(false)
+  })
+
+  it('lehnt Hostname mit Port ab', () => {
+    expect(
+      Value.Check(customDomainSchema, { ...validCustomDomain, hostname: 'restaurant.de:8080' }),
+    ).toBe(false)
+  })
+
+  it('lehnt unbekannten status-Wert ab', () => {
+    expect(Value.Check(customDomainSchema, { ...validCustomDomain, status: 'unknown' })).toBe(false)
+  })
+
+  it('akzeptiert alle vier status-Werte (pending|verified|active|failed)', () => {
+    for (const status of ['pending', 'verified', 'active', 'failed'] as const) {
+      expect(Value.Check(customDomainSchema, { ...validCustomDomain, status })).toBe(true)
+    }
+  })
+
+  it('lehnt zusätzliche Felder ab (additionalProperties:false)', () => {
+    expect(
+      Value.Check(customDomainSchema, { ...validCustomDomain, extra: 'foo' }),
+    ).toBe(false)
+  })
+
+  it('akzeptiert optionale Timestamps (verifiedAt/activatedAt/lastCheckAt) + failureReason', () => {
+    const full = {
+      hostname: 'restaurant.de',
+      status: 'active' as const,
+      verificationToken: '0190a000-0000-7000-8000-000000000001',
+      verifiedAt: '2026-06-09T12:00:00.000Z',
+      activatedAt: '2026-06-09T12:05:00.000Z',
+      lastCheckAt: '2026-06-09T12:00:00.000Z',
+      failureReason: 'NXDOMAIN — TXT-Record nicht gefunden',
+    }
+    expect(Value.Check(customDomainSchema, full)).toBe(true)
+  })
+
+  it('lehnt zu langes failureReason ab (maxLength 500)', () => {
+    const longReason = 'x'.repeat(501)
+    expect(
+      Value.Check(customDomainSchema, { ...validCustomDomain, failureReason: longReason }),
+    ).toBe(false)
+  })
+})
+
+describe('brandSchema customDomains + defaultLocationId (Phase 7 D-01/D-26)', () => {
+  const baseBrand = {
+    _id: '0190a000-0000-7000-8000-000000000001',
+    tenantId: '0190a000-0000-7000-8000-000000000002',
+    name: 'Burgerheaven',
+    handle: 'burgerheaven',
+    createdAt: '2026-06-09T12:00:00.000Z',
+    updatedAt: '2026-06-09T12:00:00.000Z',
+  }
+
+  it('akzeptiert leeres customDomains-Array (Backward-Kompat Phase-6-Stub)', () => {
+    const brand = { ...baseBrand, customDomains: [] }
+    expect(Value.Check(brandSchema, brand)).toBe(true)
+  })
+
+  it('akzeptiert CustomDomain[] (nicht mehr string[])', () => {
+    const brand = {
+      ...baseBrand,
+      customDomains: [
+        {
+          hostname: 'restaurant.de',
+          status: 'pending' as const,
+          verificationToken: '0190a000-0000-7000-8000-000000000003',
+        },
+      ],
+    }
+    expect(Value.Check(brandSchema, brand)).toBe(true)
+  })
+
+  it('lehnt customDomains als string[] ab (Phase-6-Stub ist abgelöst)', () => {
+    const brand = { ...baseBrand, customDomains: ['restaurant.de'] }
+    expect(Value.Check(brandSchema, brand)).toBe(false)
+  })
+
+  it('akzeptiert defaultLocationId optional (fehlend + uuidv7-String beide gültig)', () => {
+    const without = { ...baseBrand, customDomains: [] }
+    const withId = {
+      ...baseBrand,
+      customDomains: [],
+      defaultLocationId: '0190a000-0000-7000-8000-000000000004',
+    }
+    expect(Value.Check(brandSchema, without)).toBe(true)
+    expect(Value.Check(brandSchema, withId)).toBe(true)
+  })
+
+  it('erzwingt maxItems:20 für customDomains', () => {
+    const tooMany = Array.from({ length: 21 }, (_, i) => ({
+      hostname: `domain${i}.de`,
+      status: 'pending' as const,
+      verificationToken: `0190a000-0000-7000-8000-00000000${String(i).padStart(4, '0')}`,
+    }))
+    const brand = { ...baseBrand, customDomains: tooMany }
+    expect(Value.Check(brandSchema, brand)).toBe(false)
+  })
+})
+
+describe('brandPatchSchema customDomains + defaultLocationId (Phase 7 D-01/D-26)', () => {
+  it('akzeptiert customDomains-Patch mit CustomDomain[]', () => {
+    const patch = {
+      customDomains: [
+        {
+          hostname: 'neu.de',
+          status: 'pending' as const,
+          verificationToken: '0190a000-0000-7000-8000-000000000005',
+        },
+      ],
+    }
+    expect(Value.Check(brandPatchSchema, patch)).toBe(true)
+  })
+
+  it('akzeptiert defaultLocationId-Patch', () => {
+    const patch = { defaultLocationId: '0190a000-0000-7000-8000-000000000006' }
+    expect(Value.Check(brandPatchSchema, patch)).toBe(true)
+  })
+})
+//#endregion

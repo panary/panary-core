@@ -44,6 +44,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PLATFORM_USER_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_SYSTEM_HEALTH, action: AppAction.READ },
     { resource: AppResource.PLATFORM_BUSINESS_METRICS, action: AppAction.READ },
+    // KI-Nutzungs-Metriken: plattformweit (cross-tenant Margen-/Abuse-Watchdog)
+    // + Tenant-Eigensicht (via Impersonation). Owner hat strukturellen Bypass.
+    { resource: AppResource.PLATFORM_AI_USAGE, action: AppAction.READ },
+    { resource: AppResource.AI_USAGE_SUMMARY, action: AppAction.READ },
     { resource: AppResource.PLATFORM_TENANT_HEALTH, action: AppAction.READ },
     { resource: AppResource.PLATFORM_ALERTS, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_EVENT_STATS, action: AppAction.READ },
@@ -120,6 +124,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PLATFORM_USER_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_SYSTEM_HEALTH, action: AppAction.READ },
     { resource: AppResource.PLATFORM_BUSINESS_METRICS, action: AppAction.READ },
+    // KI-Nutzungs-Metriken: plattformweit + Tenant-Eigensicht (Diagnose via Impersonation).
+    { resource: AppResource.PLATFORM_AI_USAGE, action: AppAction.READ },
+    { resource: AppResource.AI_USAGE_SUMMARY, action: AppAction.READ },
     { resource: AppResource.PLATFORM_TENANT_HEALTH, action: AppAction.READ },
     { resource: AppResource.PLATFORM_ALERTS, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.PLATFORM_EVENT_STATS, action: AppAction.READ },
@@ -379,6 +386,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.MENU_EXTRACT, action: AppAction.CREATE },
     { resource: AppResource.MENU_IMPORT, action: AppAction.CREATE },
     { resource: AppResource.MENU_EXTRACT_AUDIT, action: AppAction.READ },
+    // KI-Fair-Use-Quota: Tenant-Eigensicht „X / Y Scans diesen Monat".
+    { resource: AppResource.AI_USAGE_SUMMARY, action: AppAction.READ },
     // Onboarding-Fortschritt: lesen + fortschreiben.
     { resource: AppResource.ONBOARDING_STATE, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.TENANT_GRANTS, action: AppAction.MANAGE },
@@ -514,6 +523,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.MENU_EXTRACT, action: AppAction.CREATE },
     { resource: AppResource.MENU_IMPORT, action: AppAction.CREATE },
     { resource: AppResource.MENU_EXTRACT_AUDIT, action: AppAction.READ },
+    // KI-Fair-Use-Quota: Tenant-Eigensicht „X / Y Scans diesen Monat".
+    { resource: AppResource.AI_USAGE_SUMMARY, action: AppAction.READ },
     { resource: AppResource.ONBOARDING_STATE, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
@@ -665,6 +676,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.MENU_EXTRACT, action: AppAction.CREATE },
     { resource: AppResource.MENU_IMPORT, action: AppAction.CREATE },
     { resource: AppResource.MENU_EXTRACT_AUDIT, action: AppAction.READ },
+    // KI-Fair-Use-Quota: Tenant-Eigensicht „X / Y Scans diesen Monat".
+    { resource: AppResource.AI_USAGE_SUMMARY, action: AppAction.READ },
     { resource: AppResource.ONBOARDING_STATE, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
@@ -757,6 +770,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     // KI-Wareneingang: Mitarbeitende duerfen Foto hochladen.
     { resource: AppResource.INCOMING_GOODS_EXTRACT, action: AppAction.CREATE },
+    // KI-Fair-Use-Quota: Staff laedt Scans hoch und sieht den Kontingent-Stand.
+    { resource: AppResource.AI_USAGE_SUMMARY, action: AppAction.READ },
     // Onboarding-Fortschritt: nur lesen (Dashboard-Widget), kein Fortschreiben.
     { resource: AppResource.ONBOARDING_STATE, action: AppAction.READ },
     { resource: AppResource.WEBAUTHN_CREDENTIALS, action: AppAction.MANAGE },

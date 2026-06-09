@@ -138,6 +138,12 @@ export const AppResource = {
   MENU_IMPORT: 'menu-import',
   /** Cloud-only: Read-only Audit-Log der KI-Speisekarten-Scan-Calls (Cost/Quality). */
   MENU_EXTRACT_AUDIT: 'menu-extract-audit',
+  /** Cloud-only: Tenant-Eigensicht „X / Y KI-Scans diesen Monat" (Fair-Use-Quota).
+   *  Read-only find → { period, used, limit, remaining, dayCostEur, dayCostCapEur }.
+   *  READ fuer alle Tenant-Rollen (OWNER/TECHNICIAN/MANAGER/STAFF — Staff laedt
+   *  Scans hoch und sieht den Kontingent-Stand) + PLATFORM_OWNER/ADMIN (Diagnose
+   *  via Impersonation). Service scoped per multiTenancy auf den eigenen Tenant. */
+  AI_USAGE_SUMMARY: 'ai-usage-summary',
   /** Cloud-only: Onboarding-Fortschritt eines Tenants (generisch, erweiterbar).
    *  Ein Dokument pro Tenant; persistiert explizite Zustaende (dismissed,
    *  skipped, explicitlyDone, currentStep), abgeleitete Schritte berechnet der
@@ -330,6 +336,12 @@ export const AppResource = {
   PLATFORM_USER_PREFERENCES: 'platform-user-preferences',
   PLATFORM_SYSTEM_HEALTH: 'platform-system-health',
   PLATFORM_BUSINESS_METRICS: 'platform-business-metrics',
+  /** Cloud-only: Plattform-weite KI-Nutzungs-/Kosten-/Qualitaets-Metriken
+   *  (cross-tenant Margen-/Abuse-Watchdog). Analog PLATFORM_BUSINESS_METRICS —
+   *  Globalblick bleibt PLATFORM_OWNER/ADMIN (READ); PLATFORM_SUPPORT bekommt
+   *  bewusst KEINEN Eintrag. Der Service hat zusaetzlich ein hartes platform:*-
+   *  Gate im find(). */
+  PLATFORM_AI_USAGE: 'platform-ai-usage',
   PLATFORM_TENANT_HEALTH: 'platform-tenant-health',
   PLATFORM_ALERTS: 'platform-alerts',
   PLATFORM_EVENT_STATS: 'platform-event-stats',

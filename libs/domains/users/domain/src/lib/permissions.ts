@@ -279,6 +279,19 @@ export const AppResource = {
    *  PLATFORM_SUPPORT: READ (Status-Sicht fuer Tickets). */
   STOREFRONT_PUBLISH: 'storefront-publish',
 
+  /** Cloud-only: Atomic-Brand-Publish (PUBW-03). POST /storefront-publish-brand —
+   *  publiziert alle Seiten eines Brands als immutablen Snapshot nach Bunny.
+   *  EIGENER AppResource (nicht STOREFRONT_PUBLISH): der globale
+   *  secureByDefault→authorize() prueft den ROHEN Service-Pfad gegen die Matrix,
+   *  BEVOR ein Service-Level-Pfad-Override greift — der Override ist daher
+   *  wirkungslos. Gleiche Rollen wie STOREFRONT_PUBLISH (CREATE). */
+  STOREFRONT_PUBLISH_BRAND: 'storefront-publish-brand',
+
+  /** Cloud-only: Publish-Rollback (POST /storefront-publish-rollback) — setzt einen
+   *  Brand auf einen frueheren Snapshot zurueck. Eigener AppResource aus demselben
+   *  Grund wie STOREFRONT_PUBLISH_BRAND. */
+  STOREFRONT_PUBLISH_ROLLBACK: 'storefront-publish-rollback',
+
   /** Cloud-only: Preview-Token-Service fuer den Draft-Render der Storefront
    *  (Phase 4 PUBW-05, D-11..D-15). Custom-Method-Service
    *  `apps/api-cloud/src/services/storefront-preview-token/`. CREATE erzeugt

@@ -151,5 +151,14 @@ describe('RolePermissions — Phase 6 (BRAND + RESERVATION)', () => {
       expect(roleCan(UserSystemRole.TENANT_OWNER, AppResource.STOREFRONT_PUBLISH, AppAction.CREATE)).toBe(true)
       expect(roleCan(UserSystemRole.TENANT_OWNER, AppResource.STOREFRONT_PUBLISH, AppAction.READ)).toBe(true)
     })
+
+    it('TENANT_OWNER + TENANT_MANAGER haben CREATE auf STOREFRONT_PUBLISH_BRAND + ROLLBACK, STAFF nicht', () => {
+      for (const role of [UserSystemRole.TENANT_OWNER, UserSystemRole.TENANT_MANAGER]) {
+        expect(roleCan(role, AppResource.STOREFRONT_PUBLISH_BRAND, AppAction.CREATE)).toBe(true)
+        expect(roleCan(role, AppResource.STOREFRONT_PUBLISH_ROLLBACK, AppAction.CREATE)).toBe(true)
+      }
+      expect(roleCan(UserSystemRole.TENANT_STAFF, AppResource.STOREFRONT_PUBLISH_BRAND, AppAction.CREATE)).toBe(false)
+      expect(roleCan(UserSystemRole.TENANT_STAFF, AppResource.STOREFRONT_PUBLISH_ROLLBACK, AppAction.CREATE)).toBe(false)
+    })
   })
 })

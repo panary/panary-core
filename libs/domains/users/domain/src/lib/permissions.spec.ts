@@ -32,6 +32,14 @@ describe('AppResource — Phase 6 (BRAND + RESERVATION)', () => {
       expect(AppResource.STOREFRONT_PUBLISH).toBe('storefront-publish')
     })
 
+    it('STOREFRONT_PUBLISH_BRAND bleibt "storefront-publish-brand"', () => {
+      expect(AppResource.STOREFRONT_PUBLISH_BRAND).toBe('storefront-publish-brand')
+    })
+
+    it('STOREFRONT_PUBLISH_ROLLBACK bleibt "storefront-publish-rollback"', () => {
+      expect(AppResource.STOREFRONT_PUBLISH_ROLLBACK).toBe('storefront-publish-rollback')
+    })
+
     it('STOREFRONT_PREVIEW_TOKEN bleibt "storefront-preview-token"', () => {
       expect(AppResource.STOREFRONT_PREVIEW_TOKEN).toBe('storefront-preview-token')
     })

@@ -8,7 +8,10 @@ on:
 jobs:
   build-docker:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 45 statt 30: der cache-lose Edge-Docker-Build (better-sqlite3-Natives,
+    # Multi-Platform) lief chronisch am 30-min-Cap (~50% cancelled, reine
+    # Runner-Varianz). 45 gibt ~50% Headroom; bei weiterem Wachstum erneut anheben.
+    timeout-minutes: 45
 
     permissions:
       contents: read

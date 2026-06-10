@@ -38,6 +38,17 @@ export class ServiceHelper {
       errorMessage?.startsWith('E11000 duplicate key') ? ERROR_DUPLICATE_KEY_MSG : (errorMessage ?? 'Unbekannter Fehler')
 
     const code = errorCode ?? 500
+
+    // Erwartbare Kontext-403: Ein Plattform-User ohne aktive Impersonation trifft
+    // einen tenant-scoped Service ("Tenant-Kontext fehlt" / "… aktiven Tenant-
+    // Kontext (Impersonation) …"). Das ist erwartetes Verhalten, kein User-Fehler
+    // → keinen Toast zeigen (nur Console-Log). Echte Permission-403 (andere
+    // Message) toasten weiterhin normal.
+    if (code === 403 && typeof errorMessage === 'string' && errorMessage.includes('Tenant-Kontext')) {
+      console.warn(`Service "${serviceName}": erwartbarer Kontext-403 unterdrückt — ${errorMessage}`)
+      return
+    }
+
     const errorPhrase = getErrorPhrase(code)
 
     // AJV-Validation-Details aus FeathersError extrahieren. Server liefert sie

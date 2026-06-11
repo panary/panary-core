@@ -334,7 +334,19 @@ export type LocationPatch = Static<typeof locationPatchSchema>
 //#endregion
 
 //#region Schema for search queries (query)
-export const locationQueryProperties = Type.Pick(locationSchema, ['_id', 'name', 'tenantId', 'currentBusinessDay'])
+// `brandId` + `handle` sind im Query-Whitelist, weil das Subdomain-Routing
+// (`storefront-resolve` in panary-cloud) Locations ueber `{ brandId, handle }`
+// aufloest und der Default-Brand-Lifecycle (ensure-location-handle / Migration
+// 006) Bestands-Locations ueber `handle: { $exists: false }` diagnostiziert.
+// Ohne sie lehnt `validateQuery` den Lookup mit "validation failed" ab.
+export const locationQueryProperties = Type.Pick(locationSchema, [
+  '_id',
+  'name',
+  'tenantId',
+  'brandId',
+  'handle',
+  'currentBusinessDay',
+])
 // `$or` wird über Property-Spread an die `querySyntax`-Ausgabe gehängt — die
 // Intersect-Variante mit zusätzlichem `Type.Object({$or})` produzierte unter
 // TS 6.x ein "type instantiation is excessively deep" (TS2589) im

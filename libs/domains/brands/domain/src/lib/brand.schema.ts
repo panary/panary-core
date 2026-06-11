@@ -123,7 +123,11 @@ export const brandPatchSchema = Type.Partial(brandSchema, {
 })
 export type BrandPatch = Static<typeof brandPatchSchema>
 
-export const brandQueryProperties = Type.Pick(brandSchema, ['_id', 'tenantId', 'handle', 'name'])
+// `createdAt` im Query-Whitelist, damit `$sort: { createdAt: 1 }` erlaubt ist —
+// `getDefaultBrandForTenant` (panary-cloud) liest die aelteste Brand als Default.
+// Ohne dieses Feld lehnt `querySyntax`/`validateQuery` den `$sort` mit
+// "validation failed" ab (vgl. Track-A-Migrations-Fix 006-brand-default).
+export const brandQueryProperties = Type.Pick(brandSchema, ['_id', 'tenantId', 'handle', 'name', 'createdAt'])
 export const brandQuerySchema = Type.Intersect(
   [querySyntax(brandQueryProperties), Type.Object({}, { additionalProperties: false })],
   { additionalProperties: false },

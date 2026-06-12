@@ -76,6 +76,11 @@ jobs:
           packages:
             - 'apps/*'
             - 'libs/domains/*'
+            # libs/shared selbst ist das @panary/shared-Parent-Paket (Option A);
+            # ohne diesen Eintrag ist es kein Workspace-Member und pnpm versucht,
+            # den @panary/shared-Peer der Domain-Parents von registry.npmjs.org
+            # zu fetchen → ERR_PNPM_FETCH_404 (so geschehen bei v26.7.5).
+            - 'libs/shared'
             - 'libs/shared/*'
           onlyBuiltDependencies:
             - '@swc/core'

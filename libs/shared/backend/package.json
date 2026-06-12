@@ -7,8 +7,8 @@
   "types": "./src/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.d.ts",
-      "default": "./src/index.js"
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
     },
     "./package.json": "./package.json"
   },
@@ -21,6 +21,11 @@
     "registry": "https://npm.pkg.github.com",
     "access": "restricted"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "tslib": "^2.3.0",
     "winston": "^3.18.3",

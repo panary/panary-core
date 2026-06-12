@@ -9,7 +9,7 @@
       "executor": "@nx/js:tsc",
       "outputs": ["{options.outputPath}"],
       "options": {
-        "outputPath": "dist/libs/shared/backend",
+        "outputPath": "libs/shared/backend/dist",
         "main": "libs/shared/backend/src/index.ts",
         "tsConfig": "libs/shared/backend/tsconfig.lib.json",
         "assets": ["libs/shared/backend/*.md"]
@@ -17,7 +17,7 @@
     },
     "nx-release-publish": {
       "options": {
-        "packageRoot": "dist/libs/shared/backend"
+        "packageRoot": "libs/shared/backend"
       }
     }
   }

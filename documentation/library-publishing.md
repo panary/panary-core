@@ -62,10 +62,14 @@ Publishable wird ein Domain-Paket durch:
    `tags: ["type:domain-package", "domain:<name>", "publishable"]`, Build-Target
    `dependsOn: ["<name>-domain:build"]`, `nx-release-publish.packageRoot`.
 
-Shared-Libs `libs/shared/common` (`@panary/shared-common`) und
-`libs/shared/util-error-handling` bauen via `@nx/js:tsc` **in-place** nach
-`<lib>/dist` (exports `./dist/src/index.js`); `libs/shared/backend` baut
-weiterhin nach `dist/libs/shared/backend` mit entsprechendem `packageRoot`.
+Shared-Libs `libs/shared/common` (`@panary/shared-common`),
+`libs/shared/util-error-handling` und `libs/shared/backend`
+(`@panary/shared-backend`) bauen via `@nx/js:tsc` **in-place** nach
+`<lib>/dist` (exports `./dist/src/index.js`, `packageRoot` = Lib-Verzeichnis,
+`files: ["dist", …]`). `shared-backend` wurde am 2026-06-12 nachgezogen — der
+alte Repo-Root-`outputPath` (`dist/libs/shared/backend`) brach die lokale
+Workbench-Auflösung: der pnpm-Workspace-Link zeigt auf den Source-Ordner, dort
+existierte das in `exports` referenzierte Artefakt nie.
 
 > Beim Anlegen einer neuen Domain, die auch von der Cloud gebraucht wird, **beide**
 > Dateien gemäß obigem Muster anlegen — sonst fehlt das Paket in der Registry und

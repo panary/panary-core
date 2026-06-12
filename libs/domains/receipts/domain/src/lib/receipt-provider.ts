@@ -30,8 +30,12 @@ export interface ReceiptProvider {
 }
 
 // Öffentliche, nicht-enumerierbare Abruf-URL eines Belegs (Token-basiert).
-export const buildReceiptUrl = (baseUrl: string, token: string): string =>
-  `${baseUrl.replace(/\/+$/, '')}/r/${token}`
+export const buildReceiptUrl = (baseUrl: string, token: string): string => {
+  // Trailing-Slashes ohne Regex trimmen (CodeQL js/polynomial-redos).
+  let base = baseUrl
+  while (base.endsWith('/')) base = base.slice(0, -1)
+  return `${base}/r/${token}`
+}
 
 /**
  * Reine, deterministische Liefer-Artefakt-Erzeugung je Kanal (konkrete

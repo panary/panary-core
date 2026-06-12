@@ -106,7 +106,11 @@ const server = createServer((req, res) => {
       send(res, 503, { error: 'tse_unavailable', message: err.message })
       return
     }
-    send(res, 500, { error: 'internal', message: err instanceof Error ? err.message : String(err) })
+    // Fehlerdetails nur ins Log — Antwort bleibt generisch (CodeQL
+    // js/stack-trace-exposure: auch err.message kann Interna leaken).
+    // eslint-disable-next-line no-console -- Standalone-Dev-Tool ohne Winston-Logger
+    console.error('tse-gateway request failed:', err)
+    send(res, 500, { error: 'internal' })
   })
 })
 

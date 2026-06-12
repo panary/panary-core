@@ -4,7 +4,17 @@
 /* Explizite Quellpfade für Tailwind v4 JIT — verhindert Scan-Fehler auf Windows CI und Docker.
    @source muss nach allen @use-Regeln stehen (SCSS-Anforderung). */
 @source "./app";
-@source "../../../libs";
+/* Nur Quell-Verzeichnisse scannen — libs/ enthaelt pnpm-Peer-Symlinks
+   (node_modules/@panary/*), die seit Option A Zyklen bilden koennen, und
+   dist-Build-Artefakte; beides darf der Tailwind-Scanner nicht betreten. */
+/* Nur Quell-Verzeichnisse scannen — tiefenbegrenzte Patterns (kein **):
+   libs/ enthaelt pnpm-Peer-Symlinks (node_modules/@panary/*), die seit
+   Option A Zyklen bilden; ein **-Glob rekursiert dort endlos (Stack-
+   Overflow im angular-sass-Plugin). Zusaetzlich bleiben dist-Artefakte
+   aus dem Klassen-Scan. */
+@source "../../../libs/domains/*/*/src";
+@source "../../../libs/shared/*/src";
+@source "../../../libs/apps/*/*/src";
 
 @font-face {
   font-family: 'Switzer';

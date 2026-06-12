@@ -47,8 +47,11 @@ Source.
 
 ## Was wird publiziert (publishable-Menge)
 
-Publiziert wird jedes Nx-Projekt mit `tag: publishable`. Aktuell **27 Pakete**:
-die 26 von panary-cloud konsumierten Domains/Shared-Libs + `audit-events`.
+Publiziert wird jedes Nx-Projekt mit `tag: publishable`. Seit Option A
+(Registry-Autarkie für panary-cloud, 2026-06-12) **38 Projekte**: 35
+Domain-Parents (alle `libs/domains/*` mit Parent-`package.json`) +
+`@panary/shared` + `@panary/shared-common` + `@panary/shared-backend` +
+`@panary/util-error-handling`.
 
 Publishable wird ein Domain-Paket durch:
 1. **Eltern-`package.json`** (`libs/domains/<name>/package.json`):
@@ -59,13 +62,50 @@ Publishable wird ein Domain-Paket durch:
    `tags: ["type:domain-package", "domain:<name>", "publishable"]`, Build-Target
    `dependsOn: ["<name>-domain:build"]`, `nx-release-publish.packageRoot`.
 
-Shared-Libs (`libs/shared/common`, `libs/shared/backend`) bauen via `@nx/js:tsc`
-nach `dist/libs/shared/<name>` und publizieren mit
-`nx-release-publish.packageRoot: dist/libs/shared/<name>`.
+Shared-Libs `libs/shared/common` (`@panary/shared-common`) und
+`libs/shared/util-error-handling` bauen via `@nx/js:tsc` **in-place** nach
+`<lib>/dist` (exports `./dist/src/index.js`); `libs/shared/backend` baut
+weiterhin nach `dist/libs/shared/backend` mit entsprechendem `packageRoot`.
 
 > Beim Anlegen einer neuen Domain, die auch von der Cloud gebraucht wird, **beide**
 > Dateien gemäß obigem Muster anlegen — sonst fehlt das Paket in der Registry und
 > der Cloud-Standalone-Build scheitert mit 404.
+
+### Angular-Subpaths via ng-packagr (Option A)
+
+Frontend-Libs werden als **zweiter Subpath** des Domain-Parents publiziert
+(`@panary/<name>/data-access`) bzw. als Subpaths des neuen Parent-Pakets
+`@panary/shared` (`./data-access`, `./data-access-config`, `./ui-notifications`,
+`./util-helpers`). Build via `@nx/angular:package` (ng-packagr, **APF partial
+compilation** → `dist/fesm2022/*.mjs` + `dist/types/*.d.ts`).
+
+Das 5-Datei-Muster pro Domain-`data-access` (Referenz: `user-preferences`):
+1. `data-access/ng-package.json` — `dest: ./dist`, `entryFile: src/index.ts`.
+2. `data-access/package.json` — `<name>-data-access-internal`, `private`,
+   `sideEffects: false`, **nur Third-Party**-`peerDependencies`
+   (`@panary/*`-Peers erzeugen Kind→Parent-Task-Zyklen — verboten).
+3. `data-access/project.json` — Build-Target `@nx/angular:package`,
+   `dependsOn: ["^build"]`, `implicitDependencies` auf die **Kind**-Projekte
+   der tatsächlichen `@panary`-Imports (azyklisch).
+4. `data-access/tsconfig.lib.json` — `compilationMode: "partial"`,
+   `baseUrl: "."` + **lib-relative** `paths`-Map auf die gebauten dist-d.ts
+   der Geschwister (die Nx-tmp-tsconfig-Remap-Logik verstümmelt root-relative
+   Einträge; lib-relative ohne `libs/…`-Substring überleben sie).
+5. Parent-`package.json`/`project.json` — `./data-access`-Export auf die
+   konkreten fesm/d.ts-Dateien, `files` + `data-access/dist`, peerDeps-Union,
+   Build-`dependsOn` beide Kinder.
+
+**Fallstricke (gelernt beim Rollout):**
+- ng-packagr default = full compilation → ohne `compilationMode: "partial"`
+  wird eine Publish-Sperre ins dist-package.json injiziert.
+- ng-packagr validiert Imports NICHT gegen die package.json (lodash-Befund) —
+  Peer-Vollständigkeit manuell sichern.
+- Die pnpm-Peer-Links der Parents bilden Symlink-Zyklen unter `libs/`
+  (auth⇄users, shared⇄domains) — `**`-Globs (z. B. Tailwind-`@source`)
+  rekursieren dort endlos; nur tiefenbegrenzte Patterns verwenden.
+- `libs/shared/data-access` publiziert NUR den Browser-Entry (`src/index.ts`);
+  `src/server.ts`/`service.factory.ts` (knex/mongodb) sind via tsconfig-
+  `exclude` vom Lib-Build ausgeschlossen.
 
 ---
 

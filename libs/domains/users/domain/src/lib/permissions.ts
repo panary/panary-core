@@ -348,6 +348,12 @@ export const AppResource = {
   PLATFORM_IMPERSONATION_EVENTS: 'platform-impersonation-events',
   PLATFORM_USER_PREFERENCES: 'platform-user-preferences',
   PLATFORM_SYSTEM_HEALTH: 'platform-system-health',
+  /** Cloud-only: System-Metrik-Zeitreihen (CPU-Load/RAM/Event-Loop/Disk) fuer
+   *  das Auslastungs-Chart der Plattform-Uebersicht. Quelle: AlertEngine-Tick
+   *  persistiert alle 30 s ein Sample (platform-metrics-samples, TTL 8 d);
+   *  dieser Service aggregiert auf 1h/24h/7d-Buckets. READ nur OWNER/ADMIN —
+   *  PLATFORM_SUPPORT sieht in der UI weder Chart noch Sparklines. */
+  PLATFORM_METRICS: 'platform-metrics',
   PLATFORM_BUSINESS_METRICS: 'platform-business-metrics',
   /** Cloud-only: Plattform-weite KI-Nutzungs-/Kosten-/Qualitaets-Metriken
    *  (cross-tenant Margen-/Abuse-Watchdog). Analog PLATFORM_BUSINESS_METRICS —

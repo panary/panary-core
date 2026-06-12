@@ -43,6 +43,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PLATFORM_IMPERSONATION_EVENTS, action: AppAction.READ },
     { resource: AppResource.PLATFORM_USER_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_SYSTEM_HEALTH, action: AppAction.READ },
+    { resource: AppResource.PLATFORM_METRICS, action: AppAction.READ },
     { resource: AppResource.PLATFORM_BUSINESS_METRICS, action: AppAction.READ },
     // KI-Nutzungs-Metriken: plattformweit (cross-tenant Margen-/Abuse-Watchdog)
     // + Tenant-Eigensicht (via Impersonation). Owner hat strukturellen Bypass.
@@ -123,6 +124,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PLATFORM_IMPERSONATION_EVENTS, action: AppAction.READ },
     { resource: AppResource.PLATFORM_USER_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_SYSTEM_HEALTH, action: AppAction.READ },
+    { resource: AppResource.PLATFORM_METRICS, action: AppAction.READ },
     { resource: AppResource.PLATFORM_BUSINESS_METRICS, action: AppAction.READ },
     // KI-Nutzungs-Metriken: plattformweit + Tenant-Eigensicht (Diagnose via Impersonation).
     { resource: AppResource.PLATFORM_AI_USAGE, action: AppAction.READ },

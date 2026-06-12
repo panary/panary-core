@@ -4,6 +4,10 @@
   "license": "BSL-1.1",
   "type": "commonjs",
   "exports": {
+    "./data-access-config": {
+      "types": "./data-access-config/dist/types/shared-data-access-config-internal.d.ts",
+      "default": "./data-access-config/dist/fesm2022/shared-data-access-config-internal.mjs"
+    },
     "./ui-notifications": {
       "types": "./ui-notifications/dist/types/shared-ui-notifications-internal.d.ts",
       "default": "./ui-notifications/dist/fesm2022/shared-ui-notifications-internal.mjs"
@@ -15,6 +19,7 @@
     "./package.json": "./package.json"
   },
   "files": [
+    "data-access-config/dist",
     "ui-notifications/dist",
     "util-helpers/dist",
     "README.md",
@@ -30,6 +35,13 @@
     "access": "restricted"
   },
   "peerDependencies": {
-    "@angular/core": "^21.0.0"
+    "@angular/core": "^21.0.0",
+    "@angular/common": "^21.0.0",
+    "@feathersjs/authentication-client": "^5.0.40",
+    "@feathersjs/feathers": "^5.0.40",
+    "@feathersjs/socketio-client": "^5.0.40",
+    "@feathersjs/typebox": "^5.0.40",
+    "rxjs": "~7.8.0",
+    "socket.io-client": "^4.8.0"
   }
 }

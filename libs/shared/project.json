@@ -8,10 +8,15 @@
     "build": {
       "executor": "nx:run-commands",
       "outputs": [
+        "{workspaceRoot}/libs/shared/data-access-config/dist",
         "{workspaceRoot}/libs/shared/ui-notifications/dist",
         "{workspaceRoot}/libs/shared/util-helpers/dist"
       ],
-      "dependsOn": ["shared-ui-notifications:build", "shared-util-helpers:build"],
+      "dependsOn": [
+        "shared-data-access-config:build",
+        "shared-ui-notifications:build",
+        "shared-util-helpers:build"
+      ],
       "options": {
         "command": "echo 'shared package build complete'"
       }

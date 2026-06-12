@@ -24,6 +24,7 @@ import { secureByDefault } from '@panary/shared-backend'
 import { authentication } from './authentication'
 import os from 'os'
 import { getLocalIpAddress, renderStatusPage } from './status-page'
+import { APP_VERSION } from './version'
 import { registerDevicePairingRoutes } from './device-pairing'
 import { configurePrintServer } from './print-server/index'
 import { createTsePort } from './services/tse/tse-port.factory'
@@ -40,7 +41,7 @@ app.configure(
         title: 'Panary Edge API',
         description:
           'Panary API is a backend service built with FeathersJS, designed to streamline and manage food ordering processes. It provides RESTful and real-time endpoints for handling orders, managing menus, tracking deliveries, and processing payments, aimed at enhancing the efficiency and user experience of food service applications.',
-        version: '1.0.0'
+        version: APP_VERSION
       },
       schemes: ['http', 'https'],
       components: {
@@ -180,7 +181,7 @@ app.use(async (ctx, next) => {
       status: 'ok',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      version: process.env.npm_package_version || '0.0.0',
+      version: APP_VERSION,
       systemMode: app.get('system')?.mode || 'standalone',
       nodeVersion: process.version,
       platform: `${os.platform()} ${os.arch()}`,

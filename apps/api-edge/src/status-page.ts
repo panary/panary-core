@@ -1,4 +1,5 @@
 import os from 'os'
+import { APP_VERSION } from './version'
 
 /**
  * Get the local (non-internal) IPv4 address.
@@ -176,7 +177,7 @@ export function renderStatusPage(options: { host: string; port: number }): strin
     </div>
     <div class="row">
       <span class="label">Version</span>
-      <span class="value">${process.env['npm_package_version'] || '1.0.0'}</span>
+      <span class="value">${APP_VERSION}</span>
     </div>
     <div class="row">
       <span class="label">IP</span>

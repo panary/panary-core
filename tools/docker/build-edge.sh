@@ -81,6 +81,7 @@ if [ "$PUSH" = true ]; then
   docker buildx build \
     --platform linux/amd64,linux/arm64 \
     -f tools/docker/Dockerfile.edge \
+    --build-arg PANARY_VERSION="$TAG" \
     -t "$IMAGE_NAME:$TAG" \
     -t "$IMAGE_NAME:latest" \
     --push \
@@ -92,6 +93,7 @@ elif [ -n "$PLATFORM" ]; then
   docker buildx build \
     --platform "linux/$PLATFORM" \
     -f tools/docker/Dockerfile.edge \
+    --build-arg PANARY_VERSION="$TAG" \
     -t "$IMAGE_NAME:$TAG" \
     --load \
     .
@@ -101,6 +103,7 @@ else
   echo ""
   docker build \
     -f tools/docker/Dockerfile.edge \
+    --build-arg PANARY_VERSION="$TAG" \
     -t "$IMAGE_NAME:$TAG" \
     -t "$IMAGE_NAME:latest" \
     .

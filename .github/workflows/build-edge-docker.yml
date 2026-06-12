@@ -108,6 +108,9 @@ jobs:
           file: tools/docker/Dockerfile.edge
           platforms: linux/amd64,linux/arm64
           push: true
+          # App-Version ins Image injizieren — /health meldet damit den Image-Tag
+          build-args: |
+            PANARY_VERSION=${{ steps.version.outputs.tag }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/panary-edge:${{ steps.version.outputs.tag }}
             ghcr.io/${{ github.repository_owner }}/panary-edge:latest

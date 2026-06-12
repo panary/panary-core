@@ -3,6 +3,7 @@ import { logger } from '@panary/shared-backend'
 import fs from 'fs/promises'
 import path from 'path'
 import { startSetupApp } from './setup-app'
+import { APP_VERSION } from './version'
 import { constants } from 'fs'
 import { UserSystemRole } from '@panary/users/domain'
 import { uuidv7 } from 'uuidv7'
@@ -367,7 +368,7 @@ async function main() {
         .first()
       startMdnsAdvertising({
         port,
-        version: process.env.npm_package_version || '0.0.0',
+        version: APP_VERSION,
         organizationName: firstLocation?.organizationName || firstLocation?.name,
         setupComplete: !!firstLocation,
         systemMode: app.get('system')?.mode || 'standalone',

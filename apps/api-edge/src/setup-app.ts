@@ -3,6 +3,7 @@ import fs from 'fs/promises'
 import os from 'os'
 import { koa, bodyParser, serveStatic } from '@feathersjs/koa'
 import { logger } from '@panary/shared-backend'
+import { APP_VERSION } from './version'
 
 // Path to configuration file
 // Default to ./data/panary.config.json relative to CWD, or use env var
@@ -132,7 +133,7 @@ export async function startSetupApp(port: number) {
     void import('./mdns-advertiser.js').then(({ startMdnsAdvertising }) =>
       startMdnsAdvertising({
         port,
-        version: process.env['npm_package_version'],
+        version: APP_VERSION,
         setupComplete: false,
         systemMode: 'setup',
       })

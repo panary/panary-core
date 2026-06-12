@@ -77,6 +77,7 @@ rm -f "$LICENSE.bak"
 
 # Geaenderte Dateien committen
 git add "$REPO_ROOT/package.json"
+git add "$REPO_ROOT/apps/api-edge/package.json"
 if [ -f "$REPO_ROOT/apps/pos-client/src-tauri/tauri.conf.json" ]; then
   git add "$REPO_ROOT/apps/pos-client/src-tauri/tauri.conf.json"
 fi

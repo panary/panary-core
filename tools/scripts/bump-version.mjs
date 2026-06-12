@@ -9,6 +9,7 @@
  *
  * Aktualisiert automatisch:
  *   - package.json (Projektroot)
+ *   - apps/api-edge/package.json (Quelle für APP_VERSION im /health-Endpoint)
  *   - apps/pos-client/src-tauri/tauri.conf.json (nur wenn vorhanden)
  *
  * Gibt die neue Version auf stdout aus (für Shell-Subshells verwendbar).
@@ -26,6 +27,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(__dirname, '../..')
 
 const PKG_PATH = resolve(ROOT, 'package.json')
+const API_EDGE_PKG_PATH = resolve(ROOT, 'apps/api-edge/package.json')
 const TAURI_CONF_PATH = resolve(ROOT, 'apps/pos-client/src-tauri/tauri.conf.json')
 
 // Aktuelles Datum → YY.MM
@@ -51,6 +53,14 @@ const newVersion = `${newPrefix}.${newIndex}`
 // package.json aktualisieren (2-Leerzeichen-Einrückung beibehalten)
 pkg.version = newVersion
 writeFileSync(PKG_PATH, JSON.stringify(pkg, null, 2) + '\n')
+
+// apps/api-edge/package.json aktualisieren — Laufzeit-Quelle für APP_VERSION
+// (landet via Nx generatePackageJson in dist/apps/api-edge/package.json)
+if (existsSync(API_EDGE_PKG_PATH)) {
+  const edgePkg = JSON.parse(readFileSync(API_EDGE_PKG_PATH, 'utf8'))
+  edgePkg.version = newVersion
+  writeFileSync(API_EDGE_PKG_PATH, JSON.stringify(edgePkg, null, 2) + '\n')
+}
 
 // tauri.conf.json aktualisieren (nur wenn Datei existiert)
 if (existsSync(TAURI_CONF_PATH)) {

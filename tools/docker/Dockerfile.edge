@@ -111,6 +111,12 @@ ENV NODE_ENV=production
 ENV PORT=3030
 ENV HOSTNAME=0.0.0.0
 
+# App-Version aus dem Build (Git-Tag) — /health & Co. weisen damit exakt den
+# Image-Tag aus. Ohne Build-Arg (leer) fällt der Code auf die von Nx generierte
+# dist/apps/api-edge/package.json zurück (Version via bump-version.mjs gepflegt).
+ARG PANARY_VERSION=""
+ENV PANARY_EDGE_VERSION=$PANARY_VERSION
+
 EXPOSE 3030
 
 # Healthcheck

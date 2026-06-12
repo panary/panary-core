@@ -23,6 +23,7 @@ import {
   SyncRejectionClassification,
 } from '@panary/sync/domain'
 import { uuidv7 } from 'uuidv7'
+import { APP_VERSION } from '../version'
 
 import type { Application } from '../declarations'
 import { decryptCloudToken, encryptCloudToken } from '../utils/cloud-token-cipher'
@@ -987,7 +988,7 @@ const runHeartbeat = async (app: Application, connection: CloudConnection): Prom
     body: JSON.stringify({
       edgeTimestamp: new Date().toISOString(),
       edgeClockMonotonicMs: Math.round(startMonotonic),
-      edgeVersion: process.env['npm_package_version'] ?? '0.0.0',
+      edgeVersion: APP_VERSION,
     }),
     timeoutMs: HEARTBEAT_TIMEOUT_MS,
   })

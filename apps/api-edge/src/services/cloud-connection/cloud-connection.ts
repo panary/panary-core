@@ -3,6 +3,7 @@ import { hooks as schemaHooks } from '@feathersjs/schema'
 import { BadRequest } from '@feathersjs/errors'
 
 import { decryptCloudToken } from '../../utils/cloud-token-cipher'
+import { APP_VERSION } from '../../version'
 
 import {
   cloudConnectionDataResolver,
@@ -146,7 +147,7 @@ const buildEdgeIdentity = (ctx: EdgeIdentityContext): EdgeIdentity => ({
   // ("main") oder andere Non-UUIDs werden zu undefined kollabiert (JSON.stringify
   // entfernt undefined komplett aus dem Body).
   localLocationId: ctx.locationId && UUID_PATTERN.test(ctx.locationId) ? ctx.locationId : undefined,
-  edgeVersion: process.env['npm_package_version'] ?? '0.0.0',
+  edgeVersion: APP_VERSION,
   platform: process.platform,
   // Stammdaten der lokalen Edge-Location — fuer den "neuer Standort"-Fall in
   // der Cloud (Cloud legt aus diesen Daten eine neue Location an).

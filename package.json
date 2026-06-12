@@ -167,6 +167,7 @@
       "@peculiar/x509": "1.14.3",
       "asn1js": "3.0.10",
       "axios": "^1.16.0",
+      "esbuild": "^0.28.1",
       "serialize-javascript": "^7.0.5",
       "diff": "^8.0.4",
       "fast-uri": "^3.1.2",

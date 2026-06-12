@@ -15,6 +15,10 @@
         "format": ["cjs"],
         "bundle": false,
         "main": "apps/api-edge/src/main.ts",
+        "additionalEntryPoints": [
+          "libs/shared/data-access/src/server.ts",
+          "libs/shared/data-access/src/lib/services/service.factory.ts"
+        ],
         "tsConfig": "apps/api-edge/tsconfig.app.json",
         "assets": [
           "apps/api-edge/src/assets",

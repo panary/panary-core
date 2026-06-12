@@ -23,13 +23,17 @@
   },
   "dependencies": {
     "tslib": "^2.3.0",
-    "winston": "^3.18.3"
+    "winston": "^3.18.3",
+    "winston-daily-rotate-file": "^5.0.0",
+    "uuidv7": "^1.1.0"
   },
   "peerDependencies": {
     "@feathersjs/feathers": "^5.0.40",
     "@feathersjs/koa": "^5.0.40",
     "@feathersjs/schema": "^5.0.40",
     "@panary/shared-common": "^26.4.20",
-    "@panary/users": "^26.4.20"
+    "@panary/users": "^26.4.20",
+    "@feathersjs/authentication": "^5.0.40",
+    "@feathersjs/errors": "^5.0.40"
   }
 }

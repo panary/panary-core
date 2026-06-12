@@ -8,10 +8,15 @@
       "types": "./ui-notifications/dist/types/shared-ui-notifications-internal.d.ts",
       "default": "./ui-notifications/dist/fesm2022/shared-ui-notifications-internal.mjs"
     },
+    "./util-helpers": {
+      "types": "./util-helpers/dist/index.d.ts",
+      "default": "./util-helpers/dist/index.cjs.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
     "ui-notifications/dist",
+    "util-helpers/dist",
     "README.md",
     "LICENSE"
   ],

@@ -6,6 +6,21 @@
   "projectType": "library",
   "tags": ["type:util", "scope:shared"],
   "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/shared/util-helpers/dist"],
+      "dependsOn": ["^build"],
+      "options": {
+        "outputPath": "libs/shared/util-helpers/dist",
+        "project": "libs/shared/package.json",
+        "tsConfig": "libs/shared/util-helpers/tsconfig.lib.json",
+        "main": "libs/shared/util-helpers/src/index.ts",
+        "format": ["cjs"],
+        "external": [],
+        "generatePackageJson": false,
+        "compiler": "tsc"
+      }
+    },
     "lint": {
       "executor": "@nx/eslint:lint"
     }

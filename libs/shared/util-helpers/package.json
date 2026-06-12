@@ -1,0 +1,10 @@
+{
+  "name": "shared-util-helpers-internal",
+  "version": "0.0.0-internal",
+  "private": true,
+  "type": "commonjs",
+  "description": "Interne Build-Shell — publishable Package liegt in ../package.json (subpath @panary/shared/util-helpers)",
+  "dependencies": {
+    "tslib": "^2.3.0"
+  }
+}

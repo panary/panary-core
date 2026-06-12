@@ -1,0 +1,30 @@
+{
+  "name": "opening-hour-exceptions",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/opening-hour-exceptions",
+  "projectType": "library",
+  "tags": [
+    "type:domain-package",
+    "domain:opening-hour-exceptions",
+    "publishable"
+  ],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": [
+        "{workspaceRoot}/libs/domains/opening-hour-exceptions/domain/dist"
+      ],
+      "dependsOn": [
+        "opening-hour-exceptions-domain:build"
+      ],
+      "options": {
+        "command": "echo 'opening-hour-exceptions package build complete'"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "libs/domains/opening-hour-exceptions"
+      }
+    }
+  }
+}

@@ -4,8 +4,24 @@
   "sourceRoot": "libs/domains/user-preferences/data-access/src",
   "prefix": "lib",
   "projectType": "library",
-  "tags": ["type:data-access", "domain:user-preferences"],
+  "tags": [
+    "type:data-access",
+    "domain:user-preferences"
+  ],
   "targets": {
+    "build": {
+      "executor": "@nx/angular:package",
+      "outputs": [
+        "{workspaceRoot}/libs/domains/user-preferences/data-access/dist"
+      ],
+      "dependsOn": [
+        "^build"
+      ],
+      "options": {
+        "project": "libs/domains/user-preferences/data-access/ng-package.json",
+        "tsConfig": "libs/domains/user-preferences/data-access/tsconfig.lib.json"
+      }
+    },
     "lint": {
       "executor": "@nx/eslint:lint"
     }

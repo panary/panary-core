@@ -1,0 +1,13 @@
+{
+  "name": "user-preferences-data-access-internal",
+  "version": "0.0.0-internal",
+  "private": true,
+  "description": "Interne ng-packagr-Build-Shell — publishable Package liegt in ../package.json (subpath @panary/user-preferences/data-access)",
+  "sideEffects": false,
+  "peerDependencies": {
+    "@angular/core": "^21.0.0"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  }
+}

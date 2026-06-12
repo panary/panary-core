@@ -1,0 +1,32 @@
+{
+  "name": "user-preferences",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/user-preferences",
+  "projectType": "library",
+  "tags": [
+    "type:domain-package",
+    "domain:user-preferences",
+    "publishable"
+  ],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": [
+        "{workspaceRoot}/libs/domains/user-preferences/domain/dist",
+        "{workspaceRoot}/libs/domains/user-preferences/data-access/dist"
+      ],
+      "dependsOn": [
+        "user-preferences-domain:build",
+        "user-preferences-data-access:build"
+      ],
+      "options": {
+        "command": "echo 'user-preferences package build complete'"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "libs/domains/user-preferences"
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "name": "receipts",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/receipts",
+  "projectType": "library",
+  "tags": [
+    "type:domain-package",
+    "domain:receipts",
+    "publishable"
+  ],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": [
+        "{workspaceRoot}/libs/domains/receipts/domain/dist"
+      ],
+      "dependsOn": [
+        "receipts-domain:build"
+      ],
+      "options": {
+        "command": "echo 'receipts package build complete'"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "libs/domains/receipts"
+      }
+    }
+  }
+}

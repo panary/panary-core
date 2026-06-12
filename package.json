@@ -157,17 +157,40 @@
   },
   "pnpm": {
     "overrides": {
+      "@hexagon/base64": "1.1.28",
+      "@levischuck/tiny-cbor": "0.2.11",
+      "@peculiar/asn1-android": "2.6.0",
+      "@peculiar/asn1-ecc": "2.6.1",
+      "@peculiar/asn1-rsa": "2.6.1",
+      "@peculiar/asn1-schema": "2.6.0",
+      "@peculiar/asn1-x509": "2.6.1",
+      "@peculiar/x509": "1.14.3",
+      "asn1js": "3.0.10",
       "axios": "^1.16.0",
       "serialize-javascript": "^7.0.5",
       "diff": "^8.0.4",
       "fast-uri": "^3.1.2",
-      "hono": "^4.12.18",
       "ip-address": "^10.2.0",
       "@babel/plugin-transform-modules-systemjs": "^7.29.4",
-      "brace-expansion": "^5.0.5",
+      "brace-expansion@1": "^1.1.13",
+      "brace-expansion@2": "^2.0.2",
       "yaml": "^2.8.3",
       "follow-redirects": "^1.16.0",
-      "uuid": "^14.0.0"
+      "uuid": "^14.0.0",
+      "ws": "^8.20.1",
+      "qs": "^6.15.2",
+      "tmp": "^0.2.6",
+      "shell-quote": "^1.8.4",
+      "postcss": "^8.5.10",
+      "minimatch@3": "^3.1.4",
+      "minimatch@9": "^9.0.7",
+      "tar": "^7.5.11",
+      "lodash": "^4.18.0",
+      "socket.io-parser": "^4.2.6",
+      "picomatch@2": "^2.3.2",
+      "ajv@8": "^8.18.0",
+      "@tootallnate/once": "^2.0.1",
+      "koa@3": "^3.1.2"
     }
   }
 }

@@ -3,12 +3,22 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/domains/write-offs",
   "projectType": "library",
-  "tags": ["type:domain-package", "domain:write-offs", "publishable"],
+  "tags": [
+    "type:domain-package",
+    "domain:write-offs",
+    "publishable"
+  ],
   "targets": {
     "build": {
       "executor": "nx:run-commands",
-      "outputs": ["{workspaceRoot}/libs/domains/write-offs/domain/dist"],
-      "dependsOn": ["write-offs-domain:build"],
+      "outputs": [
+        "{workspaceRoot}/libs/domains/write-offs/domain/dist",
+        "{workspaceRoot}/libs/domains/write-offs/data-access/dist"
+      ],
+      "dependsOn": [
+        "write-offs-domain:build",
+        "write-offs-data-access:build"
+      ],
       "options": {
         "command": "echo 'write-offs package build complete'"
       }

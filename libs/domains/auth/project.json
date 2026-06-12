@@ -12,10 +12,12 @@
     "build": {
       "executor": "nx:run-commands",
       "outputs": [
-        "{workspaceRoot}/libs/domains/auth/domain/dist"
+        "{workspaceRoot}/libs/domains/auth/domain/dist",
+        "{workspaceRoot}/libs/domains/auth/data-access/dist"
       ],
       "dependsOn": [
-        "auth-domain:build"
+        "auth-domain:build",
+        "auth-data-access:build"
       ],
       "options": {
         "command": "echo 'auth package build complete'"

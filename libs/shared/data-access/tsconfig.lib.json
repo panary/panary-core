@@ -5,7 +5,81 @@
     "declaration": true,
     "sourceMap": true,
     "inlineSources": true,
-    "paths": {}
+    "paths": {
+      "@panary/auth/data-access": [
+        "../../domains/auth/data-access/dist/types/auth-data-access-internal.d.ts"
+      ],
+      "@panary/auth/domain": [
+        "../../domains/auth/domain/dist/index.d.ts"
+      ],
+      "@panary/businessdays/domain": [
+        "../../domains/businessdays/domain/dist/index.d.ts"
+      ],
+      "@panary/corporate-customers/domain": [
+        "../../domains/corporate-customers/domain/dist/index.d.ts"
+      ],
+      "@panary/customers/domain": [
+        "../../domains/customers/domain/dist/index.d.ts"
+      ],
+      "@panary/locations/data-access": [
+        "../../domains/locations/data-access/dist/types/locations-data-access-internal.d.ts"
+      ],
+      "@panary/locations/domain": [
+        "../../domains/locations/domain/dist/index.d.ts"
+      ],
+      "@panary/order-interactions/domain": [
+        "../../domains/order-interactions/domain/dist/index.d.ts"
+      ],
+      "@panary/orders/domain": [
+        "../../domains/orders/domain/dist/index.d.ts"
+      ],
+      "@panary/product-groups/domain": [
+        "../../domains/product-groups/domain/dist/index.d.ts"
+      ],
+      "@panary/products/data-access": [
+        "../../domains/products/data-access/dist/types/products-data-access-internal.d.ts"
+      ],
+      "@panary/products/domain": [
+        "../../domains/products/domain/dist/index.d.ts"
+      ],
+      "@panary/shared-common": [
+        "../common/dist/src/index.d.ts"
+      ],
+      "@panary/shared/data-access": [
+        "dist/types/shared-data-access-internal.d.ts"
+      ],
+      "@panary/shared/data-access-config": [
+        "../data-access-config/dist/types/shared-data-access-config-internal.d.ts"
+      ],
+      "@panary/shared/ui-notifications": [
+        "../ui-notifications/dist/types/shared-ui-notifications-internal.d.ts"
+      ],
+      "@panary/shared/util-helpers": [
+        "../util-helpers/dist/index.d.ts"
+      ],
+      "@panary/user-preferences/data-access": [
+        "../../domains/user-preferences/data-access/dist/types/user-preferences-data-access-internal.d.ts"
+      ],
+      "@panary/user-preferences/domain": [
+        "../../domains/user-preferences/domain/dist/index.d.ts"
+      ],
+      "@panary/users/data-access": [
+        "../../domains/users/data-access/dist/types/users-data-access-internal.d.ts"
+      ],
+      "@panary/users/domain": [
+        "../../domains/users/domain/dist/index.d.ts"
+      ],
+      "@panary/util-error-handling": [
+        "../util-error-handling/dist/src/index.d.ts"
+      ],
+      "@panary/working-times/domain": [
+        "../../domains/working-times/domain/dist/index.d.ts"
+      ],
+      "@panary/write-offs/domain": [
+        "../../domains/write-offs/domain/dist/index.d.ts"
+      ]
+    },
+    "baseUrl": "."
   },
   "include": [
     "src/**/*.ts"

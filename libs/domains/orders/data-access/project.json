@@ -4,10 +4,37 @@
   "sourceRoot": "libs/domains/orders/data-access/src",
   "prefix": "lib",
   "projectType": "library",
-  "tags": ["type:data-access", "domain:orders"],
+  "tags": [
+    "type:data-access",
+    "domain:orders"
+  ],
   "targets": {
+    "build": {
+      "executor": "@nx/angular:package",
+      "outputs": [
+        "{workspaceRoot}/libs/domains/orders/data-access/dist"
+      ],
+      "dependsOn": [
+        "^build"
+      ],
+      "options": {
+        "project": "libs/domains/orders/data-access/ng-package.json",
+        "tsConfig": "libs/domains/orders/data-access/tsconfig.lib.json"
+      }
+    },
     "lint": {
       "executor": "@nx/eslint:lint"
     }
-  }
+  },
+  "implicitDependencies": [
+    "common",
+    "data-access",
+    "locations-data-access",
+    "order-interactions-domain",
+    "orders-domain",
+    "products-data-access",
+    "products-domain",
+    "users-data-access",
+    "users-domain"
+  ]
 }

@@ -3,12 +3,22 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/domains/corporate-customers",
   "projectType": "library",
-  "tags": ["type:domain-package", "domain:corporate-customers", "publishable"],
+  "tags": [
+    "type:domain-package",
+    "domain:corporate-customers",
+    "publishable"
+  ],
   "targets": {
     "build": {
       "executor": "nx:run-commands",
-      "outputs": ["{workspaceRoot}/libs/domains/corporate-customers/domain/dist"],
-      "dependsOn": ["corporate-customers-domain:build"],
+      "outputs": [
+        "{workspaceRoot}/libs/domains/corporate-customers/domain/dist",
+        "{workspaceRoot}/libs/domains/corporate-customers/data-access/dist"
+      ],
+      "dependsOn": [
+        "corporate-customers-domain:build",
+        "corporate-customers-data-access:build"
+      ],
       "options": {
         "command": "echo 'corporate-customers package build complete'"
       }

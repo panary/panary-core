@@ -4,10 +4,30 @@
   "sourceRoot": "libs/domains/corporate-customers/data-access/src",
   "prefix": "lib",
   "projectType": "library",
-  "tags": ["type:data-access", "domain:corporate-customers"],
+  "tags": [
+    "type:data-access",
+    "domain:corporate-customers"
+  ],
   "targets": {
+    "build": {
+      "executor": "@nx/angular:package",
+      "outputs": [
+        "{workspaceRoot}/libs/domains/corporate-customers/data-access/dist"
+      ],
+      "dependsOn": [
+        "^build"
+      ],
+      "options": {
+        "project": "libs/domains/corporate-customers/data-access/ng-package.json",
+        "tsConfig": "libs/domains/corporate-customers/data-access/tsconfig.lib.json"
+      }
+    },
     "lint": {
       "executor": "@nx/eslint:lint"
     }
-  }
+  },
+  "implicitDependencies": [
+    "corporate-customers-domain",
+    "data-access"
+  ]
 }

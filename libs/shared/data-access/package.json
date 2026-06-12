@@ -20,11 +20,6 @@
     "@feathersjs/socketio-client": "^5.0.40",
     "rxjs": "~7.8.0",
     "socket.io-client": "^4.8.0",
-    "@panary/businessdays": "^26.4.20",
-    "@panary/shared": "^26.4.20",
-    "@panary/shared-common": "^26.4.20",
-    "@panary/user-preferences": "^26.4.20",
-    "@panary/util-error-handling": "^26.4.20",
     "lodash": "^4.17.0"
   }
 }

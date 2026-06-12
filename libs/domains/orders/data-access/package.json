@@ -1,0 +1,19 @@
+{
+  "name": "orders-data-access-internal",
+  "version": "0.0.0-internal",
+  "private": true,
+  "description": "Interne ng-packagr-Build-Shell — publishable Package liegt in ../package.json (subpath @panary/orders/data-access)",
+  "sideEffects": false,
+  "peerDependencies": {
+    "@angular/common": "^21.0.0",
+    "@angular/core": "^21.0.0",
+    "@angular/material": "^21.0.0",
+    "@feathersjs/feathers": "^5.0.40",
+    "@ngx-translate/core": "^17.0.0",
+    "mqtt": "^5.0.0",
+    "rxjs": "~7.8.0"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  }
+}

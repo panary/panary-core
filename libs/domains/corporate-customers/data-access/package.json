@@ -1,0 +1,15 @@
+{
+  "name": "corporate-customers-data-access-internal",
+  "version": "0.0.0-internal",
+  "private": true,
+  "description": "Interne ng-packagr-Build-Shell — publishable Package liegt in ../package.json (subpath @panary/corporate-customers/data-access)",
+  "sideEffects": false,
+  "peerDependencies": {
+    "@angular/core": "^21.0.0",
+    "@feathersjs/feathers": "^5.0.40",
+    "rxjs": "~7.8.0"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  }
+}

@@ -22,5 +22,14 @@
     "lint": {
       "executor": "@nx/eslint:lint"
     }
-  }
+  },
+  "implicitDependencies": [
+    "businessdays-domain",
+    "common",
+    "shared-data-access-config",
+    "shared-ui-notifications",
+    "shared-util-error-handling",
+    "shared-util-helpers",
+    "user-preferences-data-access"
+  ]
 }

@@ -3,10 +3,33 @@
   "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/domains/users/data-access/src",
   "projectType": "library",
-  "tags": ["type:api", "domain:users"],
+  "tags": [
+    "type:api",
+    "domain:users"
+  ],
   "targets": {
+    "build": {
+      "executor": "@nx/angular:package",
+      "outputs": [
+        "{workspaceRoot}/libs/domains/users/data-access/dist"
+      ],
+      "dependsOn": [
+        "^build"
+      ],
+      "options": {
+        "project": "libs/domains/users/data-access/ng-package.json",
+        "tsConfig": "libs/domains/users/data-access/tsconfig.lib.json"
+      }
+    },
     "lint": {
       "executor": "@nx/eslint:lint"
     }
-  }
+  },
+  "implicitDependencies": [
+    "auth-data-access",
+    "data-access",
+    "locations-data-access",
+    "user-preferences-domain",
+    "users-domain"
+  ]
 }

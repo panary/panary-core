@@ -6,8 +6,91 @@
     "declarationMap": true,
     "sourceMap": true,
     "inlineSources": true,
-    "types": []
+    "types": [],
+    "paths": {
+      "@panary/auth/data-access": [
+        "../../auth/data-access/dist/types/auth-data-access-internal.d.ts"
+      ],
+      "@panary/auth/domain": [
+        "../../auth/domain/dist/index.d.ts"
+      ],
+      "@panary/businessdays/domain": [
+        "../../businessdays/domain/dist/index.d.ts"
+      ],
+      "@panary/corporate-customers/domain": [
+        "../../corporate-customers/domain/dist/index.d.ts"
+      ],
+      "@panary/customers/domain": [
+        "../../customers/domain/dist/index.d.ts"
+      ],
+      "@panary/locations/data-access": [
+        "../../locations/data-access/dist/types/locations-data-access-internal.d.ts"
+      ],
+      "@panary/locations/domain": [
+        "../../locations/domain/dist/index.d.ts"
+      ],
+      "@panary/order-interactions/domain": [
+        "../../order-interactions/domain/dist/index.d.ts"
+      ],
+      "@panary/orders/domain": [
+        "../../orders/domain/dist/index.d.ts"
+      ],
+      "@panary/product-groups/domain": [
+        "../../product-groups/domain/dist/index.d.ts"
+      ],
+      "@panary/products/data-access": [
+        "../../products/data-access/dist/types/products-data-access-internal.d.ts"
+      ],
+      "@panary/products/domain": [
+        "../../products/domain/dist/index.d.ts"
+      ],
+      "@panary/shared-common": [
+        "../../../shared/common/dist/src/index.d.ts"
+      ],
+      "@panary/shared/data-access": [
+        "../../../shared/data-access/dist/types/shared-data-access-internal.d.ts"
+      ],
+      "@panary/shared/data-access-config": [
+        "../../../shared/data-access-config/dist/types/shared-data-access-config-internal.d.ts"
+      ],
+      "@panary/shared/ui-notifications": [
+        "../../../shared/ui-notifications/dist/types/shared-ui-notifications-internal.d.ts"
+      ],
+      "@panary/shared/util-helpers": [
+        "../../../shared/util-helpers/dist/index.d.ts"
+      ],
+      "@panary/user-preferences/data-access": [
+        "../../user-preferences/data-access/dist/types/user-preferences-data-access-internal.d.ts"
+      ],
+      "@panary/user-preferences/domain": [
+        "../../user-preferences/domain/dist/index.d.ts"
+      ],
+      "@panary/users/data-access": [
+        "dist/types/users-data-access-internal.d.ts"
+      ],
+      "@panary/users/domain": [
+        "../domain/dist/index.d.ts"
+      ],
+      "@panary/util-error-handling": [
+        "../../../shared/util-error-handling/dist/src/index.d.ts"
+      ],
+      "@panary/working-times/domain": [
+        "../../working-times/domain/dist/index.d.ts"
+      ],
+      "@panary/write-offs/domain": [
+        "../../write-offs/domain/dist/index.d.ts"
+      ]
+    },
+    "baseUrl": "."
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"]
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts"
+  ],
+  "angularCompilerOptions": {
+    "compilationMode": "partial"
+  }
 }

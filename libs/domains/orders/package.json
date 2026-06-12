@@ -8,10 +8,15 @@
       "types": "./domain/dist/index.d.ts",
       "default": "./domain/dist/index.cjs.js"
     },
+    "./data-access": {
+      "types": "./data-access/dist/types/orders-data-access-internal.d.ts",
+      "default": "./data-access/dist/fesm2022/orders-data-access-internal.mjs"
+    },
     "./package.json": "./package.json"
   },
   "files": [
     "domain/dist",
+    "data-access/dist",
     "README.md",
     "LICENSE"
   ],
@@ -28,6 +33,17 @@
     "@feathersjs/feathers": "^5.0.40",
     "@feathersjs/typebox": "^5.0.40",
     "@sinclair/typebox": "^0.34.0",
-    "@panary/shared-common": "^26.4.20"
+    "@panary/shared-common": "^26.4.20",
+    "@angular/common": "^21.0.0",
+    "@angular/core": "^21.0.0",
+    "@angular/material": "^21.0.0",
+    "@ngx-translate/core": "^17.0.0",
+    "@panary/locations": "^26.4.20",
+    "@panary/order-interactions": "^26.4.20",
+    "@panary/products": "^26.4.20",
+    "@panary/shared": "^26.4.20",
+    "@panary/users": "^26.4.20",
+    "mqtt": "^5.0.0",
+    "rxjs": "~7.8.0"
   }
 }

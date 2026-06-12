@@ -4,10 +4,30 @@
   "sourceRoot": "libs/domains/product-groups/data-access/src",
   "prefix": "lib",
   "projectType": "library",
-  "tags": ["type:data-access", "domain:product-groups"],
+  "tags": [
+    "type:data-access",
+    "domain:product-groups"
+  ],
   "targets": {
+    "build": {
+      "executor": "@nx/angular:package",
+      "outputs": [
+        "{workspaceRoot}/libs/domains/product-groups/data-access/dist"
+      ],
+      "dependsOn": [
+        "^build"
+      ],
+      "options": {
+        "project": "libs/domains/product-groups/data-access/ng-package.json",
+        "tsConfig": "libs/domains/product-groups/data-access/tsconfig.lib.json"
+      }
+    },
     "lint": {
       "executor": "@nx/eslint:lint"
     }
-  }
+  },
+  "implicitDependencies": [
+    "data-access",
+    "product-groups-domain"
+  ]
 }

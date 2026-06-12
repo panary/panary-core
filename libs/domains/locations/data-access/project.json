@@ -4,10 +4,31 @@
   "sourceRoot": "libs/domains/locations/data-access/src",
   "prefix": "lib",
   "projectType": "library",
-  "tags": ["type:data-access", "domain:locations"],
+  "tags": [
+    "type:data-access",
+    "domain:locations"
+  ],
   "targets": {
+    "build": {
+      "executor": "@nx/angular:package",
+      "outputs": [
+        "{workspaceRoot}/libs/domains/locations/data-access/dist"
+      ],
+      "dependsOn": [
+        "^build"
+      ],
+      "options": {
+        "project": "libs/domains/locations/data-access/ng-package.json",
+        "tsConfig": "libs/domains/locations/data-access/tsconfig.lib.json"
+      }
+    },
     "lint": {
       "executor": "@nx/eslint:lint"
     }
-  }
+  },
+  "implicitDependencies": [
+    "data-access",
+    "locations-domain",
+    "shared-data-access-config"
+  ]
 }

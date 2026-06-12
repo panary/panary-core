@@ -12,11 +12,27 @@
         "{workspaceRoot}/libs/shared/data-access/dist"
       ],
       "dependsOn": [
+        "build-server",
         "^build"
       ],
       "options": {
         "project": "libs/shared/data-access/ng-package.json",
         "tsConfig": "libs/shared/data-access/tsconfig.lib.json"
+      }
+    },
+    "build-server": {
+      "executor": "@nx/js:tsc",
+      "outputs": [
+        "{projectRoot}/dist-server"
+      ],
+      "dependsOn": [
+        "^build"
+      ],
+      "options": {
+        "outputPath": "libs/shared/data-access/dist-server",
+        "main": "libs/shared/data-access/src/server.ts",
+        "tsConfig": "libs/shared/data-access/tsconfig.server.json",
+        "assets": []
       }
     },
     "lint": {

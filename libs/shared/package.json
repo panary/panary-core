@@ -8,6 +8,10 @@
       "types": "./data-access/dist/types/shared-data-access-internal.d.ts",
       "default": "./data-access/dist/fesm2022/shared-data-access-internal.mjs"
     },
+    "./data-access/server": {
+      "types": "./data-access/dist-server/src/server.d.ts",
+      "default": "./data-access/dist-server/src/server.js"
+    },
     "./data-access-config": {
       "types": "./data-access-config/dist/types/shared-data-access-config-internal.d.ts",
       "default": "./data-access-config/dist/fesm2022/shared-data-access-config-internal.mjs"
@@ -24,6 +28,7 @@
   },
   "files": [
     "data-access/dist",
+    "data-access/dist-server",
     "data-access-config/dist",
     "ui-notifications/dist",
     "util-helpers/dist",

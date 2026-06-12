@@ -103,9 +103,23 @@ Das 5-Datei-Muster pro Domain-`data-access` (Referenz: `user-preferences`):
 - Die pnpm-Peer-Links der Parents bilden Symlink-Zyklen unter `libs/`
   (auth⇄users, shared⇄domains) — `**`-Globs (z. B. Tailwind-`@source`)
   rekursieren dort endlos; nur tiefenbegrenzte Patterns verwenden.
-- `libs/shared/data-access` publiziert NUR den Browser-Entry (`src/index.ts`);
-  `src/server.ts`/`service.factory.ts` (knex/mongodb) sind via tsconfig-
-  `exclude` vom Lib-Build ausgeschlossen.
+- `libs/shared/data-access` hat ZWEI Entries: der Browser-Entry
+  (`src/index.ts`, ng-packagr → `./data-access`) schließt
+  `src/server.ts`/`service.factory.ts` (knex/mongodb) via tsconfig-`exclude`
+  aus; der Server-Entry wird separat als CJS gebaut (`build-server`-Target,
+  `@nx/js:tsc` → `data-access/dist-server/`) und als
+  `./data-access/server`-Subpath exportiert. Dessen knex/mongodb-Abhängig-
+  keiten sind BEWUSST keine Peers des Parents — der Subpath ist nur für
+  api-edge/Edge-Runtime gedacht, nie für Cloud-Konsumenten.
+- **In-Place-dist-Pakete (`shared-common`, `util-error-handling`):**
+  `exports` bleibt package-root-relativ (`./dist/src/index.js`), aber
+  `main`/`types` MÜSSEN output-relativ sein (`./src/index.js`). Grund: Der
+  `@nx/js:node`-Executor (api-edge-Serve) mappt den Request via `NX_MAPPINGS`
+  auf das **dist-Verzeichnis**; Pfad-Auflösung liest dort nur `main` (nie
+  `exports`), und `@nx/js:tsc` kopiert authored Felder unverändert
+  (`??=`-Semantik) nach `dist/package.json`. Bare-Specifier-Auflösung nutzt
+  umgekehrt immer `exports` — `main` ist dort toter Ballast. Falsche Felder
+  → `Cannot find module …/dist/dist/src/index.js` beim `nx serve api-edge`.
 
 ---
 

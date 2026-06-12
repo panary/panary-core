@@ -161,6 +161,7 @@ apps/pos-counter/src-tauri/target/
 
 # Build outputs
 dist/
+dist-server/
 tmp/
 out-tsc/
 

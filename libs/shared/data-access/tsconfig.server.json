@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist-server",
+    "rootDir": "src",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "declaration": true,
+    "sourceMap": false,
+    "baseUrl": ".",
+    "paths": {
+      "@panary/shared-common": ["../common/dist/src/index.d.ts"]
+    }
+  },
+  "files": ["src/server.ts"],
+  "include": []
+}

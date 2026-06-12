@@ -1,0 +1,22 @@
+{
+  "name": "shared-package",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/shared",
+  "projectType": "library",
+  "tags": ["type:shared-package", "scope:shared", "publishable"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/libs/shared/ui-notifications/dist"],
+      "dependsOn": ["shared-ui-notifications:build"],
+      "options": {
+        "command": "echo 'shared package build complete'"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "libs/shared"
+      }
+    }
+  }
+}

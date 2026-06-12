@@ -1,0 +1,30 @@
+{
+  "name": "@panary/shared",
+  "version": "26.4.20",
+  "license": "BSL-1.1",
+  "type": "commonjs",
+  "exports": {
+    "./ui-notifications": {
+      "types": "./ui-notifications/dist/types/shared-ui-notifications-internal.d.ts",
+      "default": "./ui-notifications/dist/fesm2022/shared-ui-notifications-internal.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "ui-notifications/dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/panary/panary-core.git",
+    "directory": "libs/shared"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "peerDependencies": {
+    "@angular/core": "^21.0.0"
+  }
+}

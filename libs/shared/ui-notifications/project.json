@@ -6,6 +6,15 @@
   "projectType": "library",
   "tags": ["type:ui", "scope:shared"],
   "targets": {
+    "build": {
+      "executor": "@nx/angular:package",
+      "outputs": ["{workspaceRoot}/libs/shared/ui-notifications/dist"],
+      "dependsOn": ["^build"],
+      "options": {
+        "project": "libs/shared/ui-notifications/ng-package.json",
+        "tsConfig": "libs/shared/ui-notifications/tsconfig.lib.json"
+      }
+    },
     "lint": {
       "executor": "@nx/eslint:lint"
     }

@@ -1,0 +1,13 @@
+{
+  "name": "shared-ui-notifications-internal",
+  "version": "0.0.0-internal",
+  "private": true,
+  "description": "Interne ng-packagr-Build-Shell — publishable Package liegt in ../package.json (subpath @panary/shared/ui-notifications)",
+  "sideEffects": false,
+  "peerDependencies": {
+    "@angular/core": "^21.0.0"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  }
+}

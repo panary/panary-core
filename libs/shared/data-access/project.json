@@ -6,6 +6,19 @@
   "projectType": "library",
   "tags": [],
   "targets": {
+    "build": {
+      "executor": "@nx/angular:package",
+      "outputs": [
+        "{workspaceRoot}/libs/shared/data-access/dist"
+      ],
+      "dependsOn": [
+        "^build"
+      ],
+      "options": {
+        "project": "libs/shared/data-access/ng-package.json",
+        "tsConfig": "libs/shared/data-access/tsconfig.lib.json"
+      }
+    },
     "lint": {
       "executor": "@nx/eslint:lint"
     }

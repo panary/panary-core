@@ -4,9 +4,12 @@
     "outDir": "../../../dist/out-tsc",
     "declaration": true,
     "sourceMap": true,
-    "inlineSources": true
+    "inlineSources": true,
+    "paths": {}
   },
-  "include": ["src/**/*.ts"],
+  "include": [
+    "src/**/*.ts"
+  ],
   "exclude": [
     "vite.config.ts",
     "vite.config.mts",
@@ -19,6 +22,11 @@
     "src/**/*.test.js",
     "src/**/*.spec.js",
     "src/**/*.test.jsx",
-    "src/**/*.spec.jsx"
-  ]
+    "src/**/*.spec.jsx",
+    "src/server.ts",
+    "src/lib/services/service.factory.ts"
+  ],
+  "angularCompilerOptions": {
+    "compilationMode": "partial"
+  }
 }

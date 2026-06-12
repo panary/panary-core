@@ -3,16 +3,22 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/shared",
   "projectType": "library",
-  "tags": ["type:shared-package", "scope:shared", "publishable"],
+  "tags": [
+    "type:shared-package",
+    "scope:shared",
+    "publishable"
+  ],
   "targets": {
     "build": {
       "executor": "nx:run-commands",
       "outputs": [
+        "{workspaceRoot}/libs/shared/data-access/dist",
         "{workspaceRoot}/libs/shared/data-access-config/dist",
         "{workspaceRoot}/libs/shared/ui-notifications/dist",
         "{workspaceRoot}/libs/shared/util-helpers/dist"
       ],
       "dependsOn": [
+        "data-access:build",
         "shared-data-access-config:build",
         "shared-ui-notifications:build",
         "shared-util-helpers:build"

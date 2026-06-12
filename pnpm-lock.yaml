@@ -132,6 +132,9 @@ importers:
       mqtt:
         specifier: ^5.15.1
         version: 5.15.1
+      socket.io-client:
+        specifier: ^4.8.3
+        version: 4.8.3
       swagger-ui-dist:
         specifier: ^5.31.0
         version: 5.32.6
@@ -352,9 +355,6 @@ importers:
       shx:
         specifier: ^0.4.0
         version: 0.4.0
-      socket.io-client:
-        specifier: ^4.8.3
-        version: 4.8.3
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.0

@@ -143,6 +143,13 @@ pnpm nx release publish --dry-run
 > `bump-version.mjs` bleibt für die **App**-Version (Edge/POS/Tauri) zuständig;
 > die **Lib**-Version läuft über `nx release version`. Beide dürfen, müssen aber
 > nicht dieselbe Nummer tragen.
+>
+> **Vermerk (2026-06-12):** Die Releases v26.7.0–v26.7.6 wurden bereits im
+> **Juni** getaggt — das `MM`-Präfix lief dem Kalender einen Monat voraus
+> (begonnen mit v26.7.0 in den Brand-/Reservation-Phasen). Da npm-Versionen
+> unveränderlich sind und monoton steigen müssen, wird die Linie fortgesetzt:
+> Juli-Releases zählen regulär als 26.7.7+ (Schema stimmt ab Juli wieder),
+> August beginnt mit 26.8.0. KEIN Rücksprung auf 26.6.x.
 
 ---
 

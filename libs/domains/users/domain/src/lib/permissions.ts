@@ -305,6 +305,16 @@ export const AppResource = {
 
   // Plattform-Verwaltungs-Ressourcen (nur Cloud)
   PLATFORM_TENANTS: 'platform-tenants',
+  /** Cloud-only: Anlage-Service fuer Plattform-Personal (platform:owner/admin/
+   *  support) — legt account (E-Mail-Login) + Membership (tenantId null) in
+   *  einem Schritt an. MANAGE: PLATFORM_OWNER. CREATE: PLATFORM_ADMIN —
+   *  statisch erlaubt, zur Laufzeit aber zusaetzlich gated ueber
+   *  platform-config `platformUsers.allowAdminCreate` (Default aus) und die
+   *  No-Escalation-Regel im Service (Admin legt nie einen Owner an).
+   *  PLATFORM_SUPPORT: kein Eintrag (→ 403). Bewusst NICHT in
+   *  PLATFORM_MODE_PATHS der Cloud — das waere ein Matrix-Bypass fuer ALLE
+   *  Plattform-Rollen inkl. Support. */
+  PLATFORM_USERS: 'platform-users',
   /** Cloud-only: Subscription-Lifecycle gegen den BillingProvider (Mollie) —
    *  Custom-Method-Service (create/patch/remove = createSubscription/update/
    *  cancel). Plattform-only: MANAGE fuer PLATFORM_OWNER/ADMIN, READ fuer

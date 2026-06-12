@@ -15,6 +15,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.SYSTEM, action: AppAction.MANAGE },
     { resource: AppResource.USERS, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_TENANTS, action: AppAction.MANAGE },
+    // Plattform-Personal-Anlage (account + Membership tenantId null).
+    { resource: AppResource.PLATFORM_USERS, action: AppAction.MANAGE },
     // Tenant-First-Class (Phase 1+ Migration): kanonischer Tenant-Service mit
     // Subscription/Billing/TSE/Branding-Stamm-Daten. Plan-Katalog ist eigene
     // Collection. Audit-Trail Append-Only.
@@ -95,6 +97,12 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.LOCATIONS, action: AppAction.READ },
     { resource: AppResource.SYSTEM, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_TENANTS, action: AppAction.MANAGE },
+    // Plattform-Personal-Anlage: statisch CREATE — zur Laufzeit zusaetzlich
+    // gated ueber platform-config `platformUsers.allowAdminCreate` (Default
+    // aus) und die No-Escalation-Regel im Cloud-Service (Admin legt nie
+    // einen Owner an). Matrix-Eintrag existiert, damit die spaetere
+    // Freischaltung ein reiner Config-Flip ohne Core-Release ist.
+    { resource: AppResource.PLATFORM_USERS, action: AppAction.CREATE },
     // Tenant-First-Class (Phase 1+ Migration): wie PLATFORM_OWNER.
     { resource: AppResource.TENANTS, action: AppAction.MANAGE },
     { resource: AppResource.SUBSCRIPTION_PLANS, action: AppAction.MANAGE },

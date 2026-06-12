@@ -161,4 +161,27 @@ describe('RolePermissions — Phase 6 (BRAND + RESERVATION)', () => {
       expect(roleCan(UserSystemRole.TENANT_STAFF, AppResource.STOREFRONT_PUBLISH_ROLLBACK, AppAction.CREATE)).toBe(false)
     })
   })
+
+  describe('PLATFORM_USERS — Plattform-Personal-Anlage', () => {
+    it('PLATFORM_OWNER hat MANAGE', () => {
+      expect(roleCan(UserSystemRole.PLATFORM_OWNER, AppResource.PLATFORM_USERS, AppAction.CREATE)).toBe(true)
+      expect(roleCan(UserSystemRole.PLATFORM_OWNER, AppResource.PLATFORM_USERS, AppAction.DELETE)).toBe(true)
+    })
+
+    it('PLATFORM_ADMIN hat genau CREATE (Runtime-Gate via platform-config), kein UPDATE/DELETE', () => {
+      expect(roleActions(UserSystemRole.PLATFORM_ADMIN, AppResource.PLATFORM_USERS)).toEqual([AppAction.CREATE])
+    })
+
+    it('PLATFORM_SUPPORT und Tenant-Rollen haben keinerlei Zugriff', () => {
+      const blockedRoles = [
+        UserSystemRole.PLATFORM_SUPPORT,
+        UserSystemRole.TENANT_OWNER,
+        UserSystemRole.TENANT_MANAGER,
+        UserSystemRole.TENANT_STAFF,
+      ]
+      for (const role of blockedRoles) {
+        expect(roleActions(role, AppResource.PLATFORM_USERS)).toEqual([])
+      }
+    })
+  })
 })

@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # Cloud-Pattern: keine `version:` setzen — die Action liest die pnpm-
       # Version aus dem `packageManager`-Feld der package.json.

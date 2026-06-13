@@ -13,7 +13,7 @@ jobs:
   main:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           filter: tree:0
           fetch-depth: 0
@@ -34,7 +34,7 @@ jobs:
       # Fallback HEAD~1; PR: merge-base). Verhindert, dass `affected` ohne Base
       # alle ~100 Projekte baut (Runner-OOM / Exit 130). Braucht fetch-depth: 0.
       - name: Derive affected SHAs
-        uses: nrwl/nx-set-shas@v4
+        uses: nrwl/nx-set-shas@v5
 
       # `--no-frozen-lockfile`, weil das committete pnpm-lock.yaml im Workbench-
       # Setup ein Snapshot des geteilten Root-Lockfiles ist (Symlink + skip-worktree,

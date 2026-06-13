@@ -20,13 +20,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      # bitwarden/sm-action@v2 (Node20-Runtime) statt @v3 (Node24-Runtime).
-      # Node24 ist auf GitHub-Runnern noch nicht GA → startup_failure (Run-
-      # Start ≈ Run-Ende, keine Jobs, keine Logs). v2 ist stabil.
+      # bitwarden/sm-action@v3 (Node24-Runtime). Zuvor war @v2 (Node20) gepinnt,
+      # weil @v3 bei pos-v26.6.1 einen startup_failure verursachte (Node24 auf
+      # GitHub-Runnern damals noch nicht GA → Run-Start ≈ Run-Ende, keine Jobs,
+      # keine Logs). Mit der Node-24-Erzwingung ab 2026-06-16 läuft die node20-
+      # Runtime ohnehin nicht mehr → @v3 ist der einzige tragfähige Pfad.
       - name: Bitwarden Secrets laden
-        uses: bitwarden/sm-action@v2
+        uses: bitwarden/sm-action@v3
         with:
           access_token: ${{ secrets.BW_ACCESS_TOKEN }}
           base_url: https://tresor.ratke.info

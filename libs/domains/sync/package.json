@@ -1,6 +1,6 @@
 {
   "name": "@panary/sync",
-  "version": "26.7.8",
+  "version": "26.7.9",
   "license": "BSL-1.1",
   "type": "commonjs",
   "exports": {

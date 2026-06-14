@@ -74,6 +74,12 @@ jobs:
           packages:
             - 'apps/*'
             - 'libs/domains/*'
+            # libs/shared selbst ist das @panary/shared-Parent-Paket (Option A);
+            # ohne diesen Eintrag ist es kein Workspace-Member und pnpm versucht,
+            # @panary/shared (Peer der Domain-Parents, vom pos-client genutzt)
+            # aus der Registry zu fetchen → FETCH_401 (so bei pos-v26.7.9).
+            # Analog zu build-edge-docker.yml.
+            - 'libs/shared'
             - 'libs/shared/*'
           onlyBuiltDependencies:
             - '@swc/core'

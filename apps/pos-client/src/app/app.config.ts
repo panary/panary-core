@@ -7,6 +7,7 @@ import { provideTranslateHttpLoader } from '@ngx-translate/http-loader'
 import { appRoutes } from './app.routes'
 import { APP_CONFIG } from '@panary/shared/data-access-config'
 import { providePosRealtimeScopeGuard } from './realtime-scope-guard.provider'
+import { providePosOfflineCache } from './offline-cache.provider'
 import packageJson from '../../../../package.json'
 
 export const appConfig: ApplicationConfig = {
@@ -25,6 +26,7 @@ export const appConfig: ApplicationConfig = {
       suffix: '.json',
     }),
     providePosRealtimeScopeGuard(),
+    providePosOfflineCache(),
     {
       provide: APP_CONFIG,
       useValue: {

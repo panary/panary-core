@@ -3,7 +3,7 @@ title: Offline-Cache (Connect-Tier) — Architektur & Storage-Fundament
 date: 2026-05-30
 category: Architektur
 domains: [sync, orders, products, devices]
-status: in-progress (Phase 1 von 6 implementiert)
+status: in-progress (Phasen 1–2 von 6 implementiert)
 ---
 
 # Offline-Cache (Connect-Tier) — Architektur & Storage-Fundament
@@ -71,10 +71,24 @@ FeathersJS-Service-Schnittstelle funktionieren.
 
 Tests: 17 Specs grün (`fake-indexeddb`, node-Environment). `nx lint`/`nx test offline-cache` grün.
 
+## Geliefert in Phase 2 (Read-Pfad + POS-Aktivierung)
+
+- **Cache-Schicht** (`OfflineCacheStore` + Merge-Helfer) und **opt-in `BaseService`-Integration**:
+  `cachePolicy`/`cacheStoreName`, Read mit Offline-Fallback (find/get), Write-Through und
+  Realtime-Spiegelung. Die Abstraktion (`OfflineCachePort`, `normalizeToRecords`, `CacheEntity`,
+  `CachePolicy`) liegt in `@panary/shared-common`, der Token `OFFLINE_CACHE` in `data-access` —
+  kein harter offline-cache-Import im `BaseService` (admin-dashboard bundelt kein `idb`).
+- **POS-Aktivierung** (`apps/pos-client`): `providePosOfflineCache()` (Storage-Port + Store +
+  App-Initializer aus `DeviceConfig`, non-blocking) + `POS_CACHE_SCHEMA`. Aktivierte Services:
+  `products`, `product-groups`, `discounts`, `locations` (master-data) + `orders` (transactional).
+  Bewusst (noch) nicht gecacht: `users` (posPin-Sensibilität, Offline-Wechsel gesperrt);
+  Preise/Rezepte/Zutaten sind über die Produkt-Embedded-Snapshots abgedeckt.
+- Verifiziert: `nx build pos-client` grün (Bundle inkl. `idb`). Ohne gekoppeltes Gerät bleibt der
+  Cache inaktiv → unverändertes Verhalten.
+
 ## Roadmap (Folgephasen)
 
-2. Read-Pfad: `BaseService` cache-bewusst (optionaler Store + `cachePolicy`-Flag), In-Memory-Mirror,
-   Cache-first/SWR (Stammdaten) + network-first/Fallback (orders), Reuse `matchesRealtimeScope`.
+2. ✅ **Read-Pfad + POS-Aktivierung** (siehe oben) — erledigt.
 3. Freshness: `CatalogSyncService` (Bootstrap + Delta-Cursor pro Service).
 4. Write-Pfad: `OutboxStore` + Replay (uuidv7, idempotent, FIFO, Backoff, Klassifikation).
 5. Offline-UX: Connect-Offline-Erkennung, Banner-Eintrag, Bargeld-Zwang, TSE-Ausfallvermerk,

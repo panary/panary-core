@@ -15,6 +15,8 @@ type TaxDetailsSet = NonNullable<NonNullable<Location['settings']>['taxSettings'
 })
 export class LocationService extends BaseService<Location> {
   protected override entityLabelKey = 'ENTITY.LOCATION'
+  protected override cachePolicy = 'master-data' as const
+  protected override cacheStoreName = 'locations'
 
   /** INJECTION */
   #deviceConfigService: DeviceConfigService = inject(DeviceConfigService)

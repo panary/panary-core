@@ -64,11 +64,35 @@ export interface OfflineOutboxInput {
 }
 
 /**
+ * Reduzierte Sicht eines terminal abgelehnten Outbox-Eintrags für die Operator-Anzeige.
+ * Bewusst ohne `payload`/`status`, damit Konsumenten (Settings-UI) nicht die konkrete
+ * `OutboxEntry`-Struktur aus `@panary/shared/offline-cache` importieren müssen.
+ */
+export interface OfflineOutboxRejectedEntry {
+  readonly _id: string
+  readonly service: string
+  readonly op: 'create' | 'patch'
+  readonly entityId: string
+  readonly occurredAt: string
+  readonly attempts: number
+  readonly lastError?: string
+}
+
+/**
  * Schnittstelle für das Einreihen offline erzeugter Mutationen. Die konkrete
  * Implementierung (`OutboxStore`) lebt in `@panary/shared/offline-cache` und wird in
  * der POS-App über den `OFFLINE_OUTBOX`-Token bereitgestellt (analog zu `OFFLINE_CACHE`).
+ *
+ * `pendingCount()`/`rejectedCount()` sind synchrone Signal-Reads (reaktiv im
+ * `computed()` nutzbar) — für den Offline-Banner-Zähler und die Operator-Sicht.
  */
 export interface OfflineOutboxPort {
   isReady(): boolean
   enqueue(input: OfflineOutboxInput): Promise<void>
+  /** Reaktiver Zähler noch ausstehender (pending) Einträge. */
+  pendingCount(): number
+  /** Reaktiver Zähler terminal abgelehnter (rejected) Einträge. */
+  rejectedCount(): number
+  /** Detailliste terminal abgelehnter Einträge — für die Operator-Sicht. */
+  rejected(): Promise<readonly OfflineOutboxRejectedEntry[]>
 }

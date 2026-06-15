@@ -85,6 +85,32 @@ describe('OutboxStore', () => {
     await outbox.clear()
     expect(await outbox.pendingCount()).toBe(0)
   })
+
+  it('pendingCount/rejectedCount sind synchrone, reaktive Zähler', async () => {
+    expect(outbox.pendingCount()).toBe(0)
+    expect(outbox.rejectedCount()).toBe(0)
+    await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
+    await outbox.enqueue(input('o2', '2026-01-01T00:01:00.000Z'))
+    expect(outbox.pendingCount()).toBe(2)
+    await outbox.markRejected('o1', 'terminal')
+    expect(outbox.pendingCount()).toBe(1)
+    expect(outbox.rejectedCount()).toBe(1)
+  })
+
+  it('attach zieht die Zähler aus dem persistierten Store nach', async () => {
+    await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
+    const reattached = new OutboxStore()
+    reattached.attach(port)
+    await new Promise(resolve => setTimeout(resolve, 0)) // attach() refresht asynchron
+    expect(reattached.pendingCount()).toBe(1)
+  })
+
+  it('detach setzt die Zähler zurück', async () => {
+    await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
+    outbox.detach()
+    expect(outbox.pendingCount()).toBe(0)
+    expect(outbox.rejectedCount()).toBe(0)
+  })
 })
 
 describe('outboxBackoffMs', () => {

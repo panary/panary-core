@@ -45,6 +45,8 @@ export interface CloudStatusState {
   userSessionExpired: boolean
   /** Connect-Tier: Offline-Cache aktiv → der POS arbeitet offline weiter (Cache + Outbox). */
   offlineCacheActive?: boolean
+  /** Anzahl noch ausstehender Outbox-Einträge (offline erzeugte Mutationen). */
+  outboxPendingCount?: number
   // Tier-3-Gate (Edge mit Cloud-Sync)
   showsCloudSyncStatus: boolean
   // Edge ↔ Cloud
@@ -74,12 +76,15 @@ export function selectActiveBanner(s: CloudStatusState): CloudBanner | null {
     (s.connectionStatus === 'disconnected' || s.connectionStatus === 'error') &&
     !s.userSessionExpired
   ) {
+    const pending = s.outboxPendingCount ?? 0
     return {
       id: 'connect-offline',
       level: 'warn',
       icon: 'wifi_off',
       messageKey: 'CLOUD_STATUS.CONNECT_OFFLINE',
-      sublineKey: 'CLOUD_STATUS.CONNECT_OFFLINE_SUBLINE',
+      // Mit ausstehenden Bestellungen den Zähler zeigen; sonst der reine TSE-/Bargeld-Hinweis.
+      sublineKey: pending > 0 ? 'CLOUD_STATUS.CONNECT_OFFLINE_SUBLINE_PENDING' : 'CLOUD_STATUS.CONNECT_OFFLINE_SUBLINE',
+      ...(pending > 0 ? { sublineParams: { count: pending } } : {}),
     }
   }
 

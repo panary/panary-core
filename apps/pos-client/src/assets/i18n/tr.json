@@ -39,6 +39,7 @@
     "CLIENT_OFFLINE": "Sunucuya bağlantı yok",
     "CONNECT_OFFLINE": "Çevrimdışı — yalnızca nakit ödeme",
     "CONNECT_OFFLINE_SUBLINE": "Siparişler bağlantı yeniden kurulduğunda iletilecek. TSE kesintisi kaydediliyor.",
+    "CONNECT_OFFLINE_SUBLINE_PENDING": "{{count}} sipariş beklemede — bağlantı yeniden kurulduğunda iletilecek. TSE kesintisi kaydediliyor.",
     "RELOAD": "Yeniden yükle",
     "REPAIRING_REQUIRED": "Bulut bağlantısı kesildi — yeniden eşleştirme gerekli",
     "REPAIRING_REASON": "Neden: {{reason}}",
@@ -184,6 +185,10 @@
     "PAIRED_AT": "Eşleştirme tarihi",
     "LAST_SYNC": "Son eşitleme",
     "LAST_SYNC_NEVER": "Henüz eşitlenmedi",
+    "OUTBOX_TITLE": "Çevrimdışı kuyruk",
+    "OUTBOX_PENDING": "Beklemede",
+    "OUTBOX_REJECTED": "Reddedildi",
+    "OUTBOX_REJECTED_TITLE": "Reddedilen aktarımlar",
     "DANGER_ZONE": "Tehlikeli bölge",
     "UNPAIR_DEVICE": "Cihaz eşleştirmesini kaldır",
     "UNPAIR_DEVICE_DESC": "Cihazı sunucudan ayırır. Tüm yerel veriler silinir. Yeniden eşleştirme gerekir.",
@@ -507,7 +512,10 @@
     "NO_PRINTERS": "Yapılandırılmış yazıcı yok",
     "SENT_ALL": "Yazdırma işi gönderildi",
     "SENT_TO": "{{name}} adresine gönderildi",
-    "ERROR": "Yazdırma hatası — yazdırma sunucusu çalışıyor mu?"
+    "ERROR": "Yazdırma hatası — yazdırma sunucusu çalışıyor mu?",
+    "PROVISIONAL": "geçici",
+    "OFFLINE_NOTICE_TITLE": "Çevrimdışı fiş — TSE kesintisi",
+    "OFFLINE_NOTICE_BODY": "TSE imzası mümkün değil. Kesinti kaydedilir; nihai fiş numarası yeniden bağlanıldığında atanır."
   },
   "ORDER_CHANNEL": {
     "telephone": "Telefon",

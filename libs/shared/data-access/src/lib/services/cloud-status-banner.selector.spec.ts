@@ -152,6 +152,21 @@ describe('selectActiveBanner — Prioritaetsleiter', () => {
     })
     expect(banner?.id).toBe('connect-offline')
     expect(banner?.level).toBe('warn')
+    // Ohne ausstehende Outbox-Einträge: reiner TSE-/Bargeld-Hinweis, kein Zähler.
+    expect(banner?.sublineKey).toBe('CLOUD_STATUS.CONNECT_OFFLINE_SUBLINE')
+    expect(banner?.sublineParams).toBeUndefined()
+  })
+
+  it('connect-offline zeigt den Outbox-Zähler bei ausstehenden Einträgen', () => {
+    const banner = selectActiveBanner({
+      ...healthy(),
+      connectionStatus: 'disconnected',
+      offlineCacheActive: true,
+      outboxPendingCount: 3,
+    })
+    expect(banner?.id).toBe('connect-offline')
+    expect(banner?.sublineKey).toBe('CLOUD_STATUS.CONNECT_OFFLINE_SUBLINE_PENDING')
+    expect(banner?.sublineParams).toEqual({ count: 3 })
   })
 
   it('connect-offline weicht bei abgelaufener Session zurueck (Auth-Flow uebernimmt)', () => {

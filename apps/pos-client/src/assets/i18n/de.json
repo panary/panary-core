@@ -39,6 +39,7 @@
     "CLIENT_OFFLINE": "Keine Verbindung zum Server",
     "CONNECT_OFFLINE": "Offline — nur Barzahlung möglich",
     "CONNECT_OFFLINE_SUBLINE": "Bestellungen werden bei Wiederverbindung übertragen. TSE-Ausfall wird protokolliert.",
+    "CONNECT_OFFLINE_SUBLINE_PENDING": "{{count}} Bestellung(en) ausstehend — Übertragung bei Wiederverbindung. TSE-Ausfall wird protokolliert.",
     "RELOAD": "Neu laden",
     "REPAIRING_REQUIRED": "Cloud-Verbindung getrennt — neu pairen",
     "REPAIRING_REASON": "Grund: {{reason}}",
@@ -184,6 +185,10 @@
     "PAIRED_AT": "Gekoppelt seit",
     "LAST_SYNC": "Letzter Sync",
     "LAST_SYNC_NEVER": "Noch nicht synchronisiert",
+    "OUTBOX_TITLE": "Offline-Warteschlange",
+    "OUTBOX_PENDING": "Ausstehend",
+    "OUTBOX_REJECTED": "Abgelehnt",
+    "OUTBOX_REJECTED_TITLE": "Abgelehnte Übertragungen",
     "DANGER_ZONE": "Gefahrenzone",
     "UNPAIR_DEVICE": "Gerät entkoppeln",
     "UNPAIR_DEVICE_DESC": "Trennt das Gerät vom Server. Alle lokalen Daten werden gelöscht. Re-Pairing nötig.",
@@ -507,7 +512,10 @@
     "NO_PRINTERS": "Keine Drucker konfiguriert",
     "SENT_ALL": "Druckauftrag gesendet",
     "SENT_TO": "Gesendet an {{name}}",
-    "ERROR": "Druckfehler — ist der Print-Server aktiv?"
+    "ERROR": "Druckfehler — ist der Print-Server aktiv?",
+    "PROVISIONAL": "vorläufig",
+    "OFFLINE_NOTICE_TITLE": "Offline-Beleg — TSE-Ausfall",
+    "OFFLINE_NOTICE_BODY": "Keine TSE-Signatur möglich. Der Ausfall wird protokolliert; die endgültige Belegnummer wird bei Wiederverbindung vergeben."
   },
   "ORDER_CHANNEL": {
     "telephone": "Telefon",

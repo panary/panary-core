@@ -3,7 +3,7 @@ title: Offline-Cache (Connect-Tier) — Architektur & Storage-Fundament
 date: 2026-05-30
 category: Architektur
 domains: [sync, orders, products, devices]
-status: in-progress (Phasen 1–4 von 6 implementiert)
+status: in-progress (Phasen 1–5 von 6 implementiert)
 ---
 
 # Offline-Cache (Connect-Tier) — Architektur & Storage-Fundament
@@ -117,12 +117,33 @@ Tests: 17 Specs grün (`fake-indexeddb`, node-Environment). `nx lint`/`nx test o
 - **Cross-Repo:** api-cloud-Skip für **Prod** erst nach Core-Release (`offlineCreated`) + Cloud-Pin-Bump
   aktiv (Option-A-Flow); lokal greift alles. Offen (Folge): Replay-Retry-Timer (heute nur connect-getriggert).
 
+## Geliefert in Phase 5 (Offline-UX)
+
+- **Connect-Offline-Banner** (`selectActiveBanner`, w110): eigener Eintrag `connect-offline` (vor dem
+  generischen `client-offline`), nur bei aktivem Offline-Cache und nicht-abgelaufener Session. Andere
+  Botschaft als `client-offline` (kein Reload, sondern Bargeld-/Nachreich-Hinweis).
+- **Bargeld-Zwang (defensiv)**: `OrderService.#patchOffline` lehnt offline jede Nicht-Bar-Transaktion ab
+  (`TransactionMethod.CASH`-Check → Snackbar + Throw `OFFLINE_CASH_ONLY`). Heute hat der POS ohnehin keine
+  Karten-UI (Stripe = Zukunft); der Guard verhindert, dass je eine Karten-/Online-Zahlung in die Outbox läuft.
+- **Offline-PATCH (Checkout)**: `OrderService.patch` reiht offline einen `patch`-Outbox-Eintrag ein
+  (optimistischer Cache-Merge), statt zu werfen → Bar-Abschluss funktioniert offline.
+- **TSE-Ausfallvermerk auf dem Bon** (`print-dialog.component.ts`): bei `order.offlineCreated` ein
+  Warnblock „Offline-Beleg — TSE-Ausfall" + Belegnummer als **vorläufig** markiert (KassenSichV-Ausfallmodus,
+  kein Nachsignieren).
+- **Outbox-Zähler im Banner**: `OutboxStore` hält reaktive Signal-Zähler (`pendingCount()`/`rejectedCount()`),
+  über `OfflineOutboxPort` exponiert. Der `connect-offline`-Banner zeigt bei ausstehenden Einträgen
+  „{{count}} Bestellung(en) ausstehend" (i18n `CONNECT_OFFLINE_SUBLINE_PENDING`).
+- **Operator-Sicht** (POS-Settings → Verbindung): Karte „Offline-Warteschlange" mit Pending-/Rejected-Zählern
+  und Detailliste terminal abgelehnter Übertragungen (Service · Operation · Fehler · Zeitpunkt). Nur sichtbar,
+  wenn ein Outbox-Provider vorliegt (Connect-Tier; admin inert).
+- Verifiziert: `nx build pos-client` (Dev) grün; offline-cache 48 Specs (inkl. Zähler), data-access 14 Specs
+  (inkl. Pending-Subline). Lint der berührten Libs fehlerfrei.
+
 ## Roadmap (Folgephasen)
 
 2. ✅ **Read-Pfad + POS-Aktivierung** (siehe oben) — erledigt.
 3. ✅ **Freshness — Bootstrap + Delta-Sync** (siehe oben) — erledigt.
 4. ✅ **Write-Pfad — Outbox + Offline-Anlage + Replay** (siehe oben) — erledigt.
-5. Offline-UX: Connect-Offline-Erkennung, Banner-Eintrag, Bargeld-Zwang, TSE-Ausfallvermerk,
-   provisorische `dailySequenceNumber` (Staff-Logout offline gesperrt).
+5. ✅ **Offline-UX** (siehe oben) — erledigt.
 6. Hardening: Performance-Profiling/Web-Worker, Asset-Caching-Stub, Belegnummer-Reconcile-Kontrakt
-   (`api-cloud`, cross-repo).
+   (`api-cloud`, cross-repo), Replay-Retry-Timer (heute nur connect-getriggert), Staff-Logout-Sperre offline.

@@ -26,9 +26,28 @@ interface Printer {
         </div>
         <div>
           <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ 'PRINT.TITLE' | translate }}</h2>
-          <p class="text-xs text-gray-500 dark:text-gray-400">#{{ order.dailySequenceNumber }}</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            #{{ order.dailySequenceNumber }}
+            @if (order.offlineCreated) {
+              <span class="text-amber-600 dark:text-amber-400 font-medium">· {{ 'PRINT.PROVISIONAL' | translate }}</span>
+            }
+          </p>
         </div>
       </div>
+
+      @if (order.offlineCreated) {
+        <!-- KassenSichV: offline ist keine TSE-Signatur moeglich → dokumentierter Ausfall,
+             provisorische Belegnummer; endgueltige Nummer folgt beim Replay (kein Nachsignieren). -->
+        <div class="mb-5 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-3">
+          <div class="flex items-start gap-2.5">
+            <span class="material-symbols-outlined text-[20px] text-amber-600 dark:text-amber-400 mt-0.5">wifi_off</span>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-amber-900 dark:text-amber-200">{{ 'PRINT.OFFLINE_NOTICE_TITLE' | translate }}</p>
+              <p class="text-xs text-amber-800/90 dark:text-amber-300/90 mt-0.5 leading-snug">{{ 'PRINT.OFFLINE_NOTICE_BODY' | translate }}</p>
+            </div>
+          </div>
+        </div>
+      }
 
       <!-- An alle Drucker -->
       <button (click)="printAll()"

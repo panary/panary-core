@@ -39,6 +39,7 @@
     "CLIENT_OFFLINE": "No connection to the server",
     "CONNECT_OFFLINE": "Offline — cash payment only",
     "CONNECT_OFFLINE_SUBLINE": "Orders will be transmitted when the connection is restored. TSE outage is being logged.",
+    "CONNECT_OFFLINE_SUBLINE_PENDING": "{{count}} order(s) pending — transmitted when the connection is restored. TSE outage is being logged.",
     "RELOAD": "Reload",
     "REPAIRING_REQUIRED": "Cloud connection lost — re-pair required",
     "REPAIRING_REASON": "Reason: {{reason}}",
@@ -184,6 +185,10 @@
     "PAIRED_AT": "Paired at",
     "LAST_SYNC": "Last sync",
     "LAST_SYNC_NEVER": "Never synchronized",
+    "OUTBOX_TITLE": "Offline queue",
+    "OUTBOX_PENDING": "Pending",
+    "OUTBOX_REJECTED": "Rejected",
+    "OUTBOX_REJECTED_TITLE": "Rejected transmissions",
     "DANGER_ZONE": "Danger zone",
     "UNPAIR_DEVICE": "Unpair device",
     "UNPAIR_DEVICE_DESC": "Disconnects the device from the server. All local data will be deleted. Re-pairing required.",
@@ -507,7 +512,10 @@
     "NO_PRINTERS": "No printers configured",
     "SENT_ALL": "Print job sent",
     "SENT_TO": "Sent to {{name}}",
-    "ERROR": "Print error — is the print server running?"
+    "ERROR": "Print error — is the print server running?",
+    "PROVISIONAL": "provisional",
+    "OFFLINE_NOTICE_TITLE": "Offline receipt — TSE outage",
+    "OFFLINE_NOTICE_BODY": "No TSE signature possible. The outage is logged; the final receipt number is assigned on reconnection."
   },
   "ORDER_CHANNEL": {
     "telephone": "Phone",

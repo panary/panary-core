@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core'
+import { Injectable, signal } from '@angular/core'
 
-import { OfflineOutboxInput, OfflineOutboxPort } from '@panary/shared-common'
+import { OfflineOutboxInput, OfflineOutboxPort, OfflineOutboxRejectedEntry } from '@panary/shared-common'
 
 import { CACHE_OUTBOX_STORE } from './cache-bootstrap'
 import { CacheStoragePort } from './cache-storage.port'
@@ -19,12 +19,20 @@ export type OutboxEnqueueInput = OfflineOutboxInput
 export class OutboxStore implements OfflineOutboxPort {
   #port: CacheStoragePort | null = null
 
+  // Reaktive Zähler für UI (Offline-Banner + Operator-Sicht). Werden nach jeder
+  // Mutation aus dem Store nachgezogen — synchron lesbar via pendingCount()/rejectedCount().
+  readonly #pending = signal(0)
+  readonly #rejected = signal(0)
+
   attach(port: CacheStoragePort): void {
     this.#port = port
+    void this.#refreshCounts()
   }
 
   detach(): void {
     this.#port = null
+    this.#pending.set(0)
+    this.#rejected.set(0)
   }
 
   isReady(): boolean {
@@ -34,6 +42,7 @@ export class OutboxStore implements OfflineOutboxPort {
   async enqueue(input: OutboxEnqueueInput): Promise<void> {
     const entry: OutboxEntry = { ...input, status: 'pending', attempts: 0 }
     await this.#requirePort().put(CACHE_OUTBOX_STORE, entry)
+    await this.#refreshCounts()
   }
 
   /** Fällige Einträge (pending, `nextAttemptAt` fehlt oder ≤ now), FIFO nach `occurredAt`. */
@@ -46,6 +55,7 @@ export class OutboxStore implements OfflineOutboxPort {
 
   async markAcked(id: string): Promise<void> {
     await this.#requirePort().delete(CACHE_OUTBOX_STORE, id)
+    await this.#refreshCounts()
   }
 
   async markRetry(id: string, nextAttemptAt: string, error?: string): Promise<void> {
@@ -56,25 +66,40 @@ export class OutboxStore implements OfflineOutboxPort {
       nextAttemptAt,
       lastError: error,
     }))
+    await this.#refreshCounts()
   }
 
   async markRejected(id: string, error?: string): Promise<void> {
     await this.#patch(id, entry => ({ ...entry, status: 'rejected', attempts: entry.attempts + 1, lastError: error }))
+    await this.#refreshCounts()
   }
 
-  /** Anzahl noch ausstehender (pending) Einträge — für den UI-Zähler. */
-  async pendingCount(): Promise<number> {
-    return (await this.#all()).filter(entry => entry.status === 'pending').length
+  /** Reaktiver Zähler noch ausstehender (pending) Einträge — synchroner Signal-Read. */
+  pendingCount(): number {
+    return this.#pending()
   }
 
-  /** Terminal abgelehnte Einträge — für die Operator-Sicht (Phase 5). */
-  async rejected(): Promise<OutboxEntry[]> {
+  /** Reaktiver Zähler terminal abgelehnter (rejected) Einträge — synchroner Signal-Read. */
+  rejectedCount(): number {
+    return this.#rejected()
+  }
+
+  /** Terminal abgelehnte Einträge (Detailliste) — für die Operator-Sicht (Phase 5). */
+  async rejected(): Promise<readonly OfflineOutboxRejectedEntry[]> {
     return (await this.#all()).filter(entry => entry.status === 'rejected')
   }
 
   async clear(): Promise<void> {
     if (!this.#port) return
     await this.#port.clear(CACHE_OUTBOX_STORE)
+    await this.#refreshCounts()
+  }
+
+  /** Zähler-Signale aus dem persistierten Store nachziehen (eine Lesung, beide Werte). */
+  async #refreshCounts(): Promise<void> {
+    const all = await this.#all()
+    this.#pending.set(all.filter(entry => entry.status === 'pending').length)
+    this.#rejected.set(all.filter(entry => entry.status === 'rejected').length)
   }
 
   async #all(): Promise<OutboxEntry[]> {

@@ -1,10 +1,11 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core'
+import { Component, computed, effect, inject, OnInit, signal, untracked } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { HttpClient } from '@angular/common/http'
 import { lastValueFrom } from 'rxjs'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { LocationService } from '@panary/locations/data-access'
-import { ConnectionService, LanguageService } from '@panary/shared/data-access'
+import { ConnectionService, LanguageService, OFFLINE_OUTBOX } from '@panary/shared/data-access'
+import type { OfflineOutboxRejectedEntry } from '@panary/shared-common'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
@@ -44,6 +45,8 @@ export class SettingsComponent implements OnInit {
   translateService = inject(TranslateService)
   #http = inject(HttpClient)
   appConfig = inject(APP_CONFIG)
+  // Connect-Tier: nur in der POS-App belegt (admin liefert keinen Provider → null).
+  #outbox = inject(OFFLINE_OUTBOX, { optional: true })
 
   // For the sidebar selection
   activeSection = 'general'
@@ -70,6 +73,12 @@ export class SettingsComponent implements OnInit {
     { value: 'dark', label: 'SETTINGS.THEME_DARK', icon: 'dark_mode' },
   ]
 
+  // Offline-Outbox (Connect-Tier): Zähler reaktiv aus dem Store-Signal, Detailliste async.
+  readonly hasOutbox = this.#outbox !== null
+  readonly outboxPending = computed(() => this.#outbox?.pendingCount() ?? 0)
+  readonly outboxRejected = computed(() => this.#outbox?.rejectedCount() ?? 0)
+  readonly rejectedEntries = signal<readonly OfflineOutboxRejectedEntry[]>([])
+
   // Connection-Section: Device-Konfiguration + Tier-Modell
   readonly deviceConfig = computed(() => this.deviceConfigService.getConfig())
   readonly tier = this.connectionService.tier
@@ -90,6 +99,16 @@ export class SettingsComponent implements OnInit {
 
   constructor() {
     this.loadCurrentUser()
+    // Detailliste der abgelehnten Einträge an den reaktiven Zähler koppeln (angular.md §2.1).
+    effect(() => {
+      this.outboxRejected()
+      untracked(() => void this.#loadRejected())
+    })
+  }
+
+  async #loadRejected(): Promise<void> {
+    if (!this.#outbox) return
+    this.rejectedEntries.set(await this.#outbox.rejected())
   }
 
   async ngOnInit() {

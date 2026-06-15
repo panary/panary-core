@@ -3,7 +3,7 @@ title: Offline-Cache (Connect-Tier) — Architektur & Storage-Fundament
 date: 2026-05-30
 category: Architektur
 domains: [sync, orders, products, devices]
-status: in-progress (Phasen 1–5 von 6 implementiert)
+status: in-progress (Phasen 1–5 + Phase-6-Hardening teilweise; offen: Profiling, Asset-Stub, Reconcile cross-repo)
 ---
 
 # Offline-Cache (Connect-Tier) — Architektur & Storage-Fundament
@@ -139,11 +139,28 @@ Tests: 17 Specs grün (`fake-indexeddb`, node-Environment). `nx lint`/`nx test o
 - Verifiziert: `nx build pos-client` (Dev) grün; offline-cache 48 Specs (inkl. Zähler), data-access 14 Specs
   (inkl. Pending-Subline). Lint der berührten Libs fehlerfrei.
 
+## Geliefert in Phase 6 (Hardening — Teil)
+
+- **Replay-Retry-Timer** (`PosOutboxReplayService`): leichter 30-s-Poll (am kürzesten Backoff ausgerichtet)
+  zieht **backed-off** Einträge nach, solange `pendingCount() > 0`. Schließt die Lücke, dass der
+  Connect-`effect()` nur beim Status-Wechsel auf `authenticated` feuert — eine `transient`-Mutation, die
+  danach in den Backoff läuft, blieb sonst bis zum nächsten Reconnect liegen. `replayAll()` ist durch
+  `#replaying` + `claimDue` idempotent und kurzschließt offline; `ngOnDestroy` räumt den Timer auf.
+- **Staff-Logout-Sperre offline** (`DashboardComponent`): offline ist der Abmelde-Button deaktiviert
+  (+ Tooltip) und `logout()` bricht mit Snackbar ab (`DASHBOARD.LOGOUT_OFFLINE_BLOCKED`). Grund: die
+  Wiederanmeldung läuft über die **serverseitige** PIN-Prüfung (`verifyPin`) und `AuthService.logout()`
+  löscht das Device-JWT (`sessionStorage.clear()`) — Abmelden ohne Verbindung würde das Gerät bis zum
+  Reconnect aussperren (Entscheidung „Device-Session bleibt offline gültig").
+- **Storage-Persistenz** (bereits Phase 1): `requestPersistentStorage()` beim Bootstrap gegen Eviction.
+- Verifiziert: `nx build pos-client` (Dev) grün; Lint `orders-feature-pos-dashboard` fehlerfrei.
+
 ## Roadmap (Folgephasen)
 
 2. ✅ **Read-Pfad + POS-Aktivierung** (siehe oben) — erledigt.
 3. ✅ **Freshness — Bootstrap + Delta-Sync** (siehe oben) — erledigt.
 4. ✅ **Write-Pfad — Outbox + Offline-Anlage + Replay** (siehe oben) — erledigt.
 5. ✅ **Offline-UX** (siehe oben) — erledigt.
-6. Hardening: Performance-Profiling/Web-Worker, Asset-Caching-Stub, Belegnummer-Reconcile-Kontrakt
-   (`api-cloud`, cross-repo), Replay-Retry-Timer (heute nur connect-getriggert), Staff-Logout-Sperre offline.
+6. 🔶 **Hardening (teilweise)**: Replay-Retry-Timer ✅, Staff-Logout-Sperre offline ✅, Storage-`persist()` ✅.
+   **Offen:** Performance-Profiling/Web-Worker (braucht Geräte-Profiling), Asset-Caching-Stub (kein Bild-Feld
+   am Produkt → erst bei `imageUrl`), Belegnummer-Reconcile-Kontrakt (`api-cloud`, **cross-repo**),
+   Geschäftstag-Eröffnung bleibt online-pflichtig (bewusste Annahme).

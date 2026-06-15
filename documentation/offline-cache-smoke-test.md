@@ -195,7 +195,24 @@ Eine Mutation wird **terminal abgelehnt** (Status `rejected`), wenn der Server b
 
 ---
 
-## 10. Aufräumen / Reset
+## 10. Test: Staff-Logout offline gesperrt
+
+Offline kann sich ein abgemeldeter Staff **nicht** erneut anmelden (PIN-Prüfung `verifyPin` ist
+serverseitig; das Abmelden löscht zudem das Device-JWT). Daher ist Abmelden offline gesperrt.
+
+**Schritte**
+1. Offline (Banner sichtbar), als Staff am Dashboard angemeldet.
+2. Den **Abmelde-Button** (Icon `logout`, oben rechts) beachten und antippen.
+
+**Erwartet**
+- Der Button ist **deaktiviert/ausgegraut** (Tooltip „Offline: Abmelden nicht möglich …").
+- Ein Antippen meldet sich **nicht** ab; bei Auslösung erscheint eine Snackbar
+  **„Offline: Abmelden nicht möglich — die Wiederanmeldung braucht eine Verbindung."**
+- Nach Wiederverbindung (online) ist der Abmelde-Button wieder normal nutzbar.
+
+---
+
+## 11. Aufräumen / Reset
 
 - **Outbox/Cache leeren:** Gerät entkoppeln (Settings → Verbindung → Danger-Zone → „Gerät entkoppeln")
   ODER in DevTools die `panary-cache::…`-DB löschen (Application → IndexedDB → Delete database).
@@ -211,7 +228,7 @@ Eine Mutation wird **terminal abgelehnt** (Status `rejected`), wenn der Server b
   läuft nur der Datensatz nach.
 - **Geschäftstag** wird online geöffnet/geschlossen — offline nur innerhalb eines bereits offenen Tags.
 - **Single-Device.** Keine geräteübergreifende Belegnummern-Autorität; die Offline-Nummer ist provisorisch.
-- **Replay-Trigger heute connect-getriggert** (Reconnect/manuell), noch kein Hintergrund-Retry-Timer
-  (Phase 6).
+- **Replay** läuft beim Reconnect **und** zusätzlich über einen 30-s-Retry-Timer (zieht backed-off
+  Einträge nach, solange etwas aussteht).
 - **Produktion (api-cloud-TSE-Skip):** lokal greift alles; für Prod ist Core-Release + Cloud-Pin-Bump nötig
   (Option-A-Flow) — siehe [offline-cache-architecture.md](offline-cache-architecture.md).

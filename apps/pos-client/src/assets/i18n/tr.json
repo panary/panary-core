@@ -210,6 +210,8 @@
   },
   "DASHBOARD": {
     "HELLO": "Merhaba,",
+    "LOGOUT": "Çıkış yap",
+    "LOGOUT_OFFLINE_BLOCKED": "Çevrimdışı: çıkış yapılamaz — yeniden giriş için bağlantı gerekir.",
     "STATUS_LABEL": "Durum",
     "BREAK": "Mola",
     "IN": "Giriş",

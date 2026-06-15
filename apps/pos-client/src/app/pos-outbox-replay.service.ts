@@ -1,4 +1,4 @@
-import { effect, inject, Injectable, untracked } from '@angular/core'
+import { effect, inject, Injectable, OnDestroy, untracked } from '@angular/core'
 import { ConnectionService } from '@panary/shared/data-access'
 import { classifyOutboxError, OUTBOX_MAX_ATTEMPTS, outboxBackoffMs, OutboxEntry, OutboxStore } from '@panary/shared/offline-cache'
 
@@ -7,6 +7,9 @@ interface ReplayTarget {
   create(data: unknown): Promise<unknown>
   patch(id: string, data: unknown): Promise<unknown>
 }
+
+/** Poll-Intervall für fällige Retries (am kürzesten Backoff = 30 s ausgerichtet). */
+const REPLAY_POLL_MS = 30_000
 
 /**
  * Spielt die Offline-Outbox beim (Re-)Connect zum Server zurück (Phase 4, Replay).
@@ -21,10 +24,11 @@ interface ReplayTarget {
  * und die client-`_id` weglassen.
  */
 @Injectable()
-export class PosOutboxReplayService {
+export class PosOutboxReplayService implements OnDestroy {
   readonly #connection = inject(ConnectionService)
   readonly #outbox = inject(OutboxStore)
   #replaying = false
+  #pollTimer: ReturnType<typeof setInterval> | null = null
 
   constructor() {
     effect(() => {
@@ -34,6 +38,24 @@ export class PosOutboxReplayService {
         untracked(() => void this.replayAll())
       }
     })
+
+    // Der Connect-Effekt feuert nur beim Status-Wechsel auf 'authenticated'. Einträge,
+    // die danach in den Backoff laufen (transient), bleiben sonst liegen, solange die
+    // Verbindung 'authenticated' bleibt. Ein leichter Poll zieht fällige Retries nach,
+    // solange überhaupt etwas aussteht (replayAll() ist durch #replaying + claimDue
+    // idempotent und kurzschließt offline).
+    this.#pollTimer = setInterval(() => {
+      if (this.#outbox.isReady() && this.#outbox.pendingCount() > 0) {
+        void this.replayAll()
+      }
+    }, REPLAY_POLL_MS)
+  }
+
+  ngOnDestroy(): void {
+    if (this.#pollTimer) {
+      clearInterval(this.#pollTimer)
+      this.#pollTimer = null
+    }
   }
 
   async replayAll(): Promise<void> {

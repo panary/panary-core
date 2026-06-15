@@ -13,6 +13,7 @@ import { WorkingTimeService } from '@panary/working-times/data-access'
 import { LocationService } from '@panary/locations/data-access'
 import { BusinessDayService, CashSessionService } from '@panary/businessdays/data-access'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
+import { MatSnackBar } from '@angular/material/snack-bar'
 import { OrderDialogComponent } from '@panary/orders/feature-pos-order-dialog'
 import {
   CashSessionDialogComponent,
@@ -74,6 +75,18 @@ export class DashboardComponent implements OnInit {
   #dialog = inject(MatDialog)
   #translate = inject(TranslateService)
   #preOrderService = inject(PreOrderService)
+  #snackBar = inject(MatSnackBar)
+
+  /**
+   * Offline darf sich der Staff nicht abmelden: die Wiederanmeldung läuft über die
+   * serverseitige PIN-Prüfung (`verifyPin`) und `AuthService.logout()` löscht das
+   * Device-JWT (`sessionStorage.clear()`). Ein Abmelden ohne Verbindung würde das
+   * Gerät bis zum Reconnect komplett aussperren.
+   */
+  readonly isOffline = computed(() => {
+    const status = this.#connectionService.connectionState().status
+    return status !== 'connected' && status !== 'authenticated'
+  })
 
   // Vorbestellungen für heute
   todayPreOrders = signal<PreOrder[]>([])
@@ -352,6 +365,10 @@ export class DashboardComponent implements OnInit {
   }
 
   logout() {
+    if (this.isOffline()) {
+      this.#snackBar.open(this.#translate.instant('DASHBOARD.LOGOUT_OFFLINE_BLOCKED'), undefined, { duration: 4000 })
+      return
+    }
     localStorage.removeItem('pos_current_user')
     this.#authService.logout()
   }

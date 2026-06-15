@@ -210,6 +210,8 @@
   },
   "DASHBOARD": {
     "HELLO": "Hallo,",
+    "LOGOUT": "Abmelden",
+    "LOGOUT_OFFLINE_BLOCKED": "Offline: Abmelden nicht möglich — die Wiederanmeldung braucht eine Verbindung.",
     "STATUS_LABEL": "Status",
     "BREAK": "Pause",
     "IN": "Ein",

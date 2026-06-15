@@ -210,6 +210,8 @@
   },
   "DASHBOARD": {
     "HELLO": "Hello,",
+    "LOGOUT": "Log out",
+    "LOGOUT_OFFLINE_BLOCKED": "Offline: logging out is not possible — signing back in requires a connection.",
     "STATUS_LABEL": "Status",
     "BREAK": "Break",
     "IN": "In",

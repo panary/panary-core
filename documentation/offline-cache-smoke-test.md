@@ -227,8 +227,10 @@ serverseitig; das Abmelden löscht zudem das Device-JWT). Daher ist Abmelden off
 - **Kein rückwirkendes TSE-Signieren.** Offline-Orders bleiben als TSE-Ausfall dokumentiert; beim Replay
   läuft nur der Datensatz nach.
 - **Geschäftstag** wird online geöffnet/geschlossen — offline nur innerhalb eines bereits offenen Tags.
-- **Single-Device.** Keine geräteübergreifende Belegnummern-Autorität; die Offline-Nummer ist provisorisch.
+- **Single-Device.** Keine geräteübergreifende Belegnummern-Autorität; die Offline-Nummer ist provisorisch
+  und wird beim Replay vom Server **autoritativ re-gestempelt** (Belegnummer-Reconcile, cloud-seitig).
 - **Replay** läuft beim Reconnect **und** zusätzlich über einen 30-s-Retry-Timer (zieht backed-off
   Einträge nach, solange etwas aussteht).
-- **Produktion (api-cloud-TSE-Skip):** lokal greift alles; für Prod ist Core-Release + Cloud-Pin-Bump nötig
-  (Option-A-Flow) — siehe [offline-cache-architecture.md](offline-cache-architecture.md).
+- **Produktion (cloud-seitige Teile):** Der api-cloud-TSE-Skip **und** die Belegnummer-Reconcile-Vergabe
+  deployen mit einem panary-cloud-`v*`-Tag — **kein** Core-Release nötig (`offlineCreated` ist bereits im
+  gepinnten Core). Lokal greift alles. Details: `panary-cloud/documentation/connect-tier-belegnummer-reconcile.md`.

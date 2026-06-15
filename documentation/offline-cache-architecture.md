@@ -3,7 +3,7 @@ title: Offline-Cache (Connect-Tier) — Architektur & Storage-Fundament
 date: 2026-05-30
 category: Architektur
 domains: [sync, orders, products, devices]
-status: in-progress (Phasen 1–5 + Phase-6-Hardening teilweise; offen: Profiling, Asset-Stub, Reconcile cross-repo)
+status: implementiert (Phasen 1–6); zurückgestellt: Profiling/Web-Worker, Asset-Stub, Multi-Replica-Zähler
 ---
 
 # Offline-Cache (Connect-Tier) — Architektur & Storage-Fundament
@@ -151,8 +151,16 @@ Tests: 17 Specs grün (`fake-indexeddb`, node-Environment). `nx lint`/`nx test o
   Wiederanmeldung läuft über die **serverseitige** PIN-Prüfung (`verifyPin`) und `AuthService.logout()`
   löscht das Device-JWT (`sessionStorage.clear()`) — Abmelden ohne Verbindung würde das Gerät bis zum
   Reconnect aussperren (Entscheidung „Device-Session bleibt offline gültig").
+- **Belegnummer-Reconcile-Kontrakt** (cross-repo, **panary-cloud**): neuer Hook
+  `assignDailySequenceNumberCloud` in den cloud-`orders` vergibt im Connect-Tier die autoritative
+  `dailySequenceNumber` für native Orders — online (`-1`) UND offline-replayed (provisorische Nummer →
+  **re-gestempelt**). `fromSync`-Edge-Orders behalten ihre Nummer. Damit landet keine provisorische
+  Offline-Belegnummer dauerhaft in der Cloud (keine Lücken/Dubletten). Details + Tests in
+  `panary-cloud/documentation/connect-tier-belegnummer-reconcile.md`. Reine api-cloud-Änderung
+  (kein Core-Release; `offlineCreated` ist bereits im gepinnten Core).
 - **Storage-Persistenz** (bereits Phase 1): `requestPersistentStorage()` beim Bootstrap gegen Eviction.
-- Verifiziert: `nx build pos-client` (Dev) grün; Lint `orders-feature-pos-dashboard` fehlerfrei.
+- Verifiziert: `nx build pos-client` (Dev) grün; Lint `orders-feature-pos-dashboard` fehlerfrei;
+  panary-cloud `nx build/lint/test api-cloud` grün (neuer Hook 6 Specs).
 
 ## Roadmap (Folgephasen)
 
@@ -160,7 +168,8 @@ Tests: 17 Specs grün (`fake-indexeddb`, node-Environment). `nx lint`/`nx test o
 3. ✅ **Freshness — Bootstrap + Delta-Sync** (siehe oben) — erledigt.
 4. ✅ **Write-Pfad — Outbox + Offline-Anlage + Replay** (siehe oben) — erledigt.
 5. ✅ **Offline-UX** (siehe oben) — erledigt.
-6. 🔶 **Hardening (teilweise)**: Replay-Retry-Timer ✅, Staff-Logout-Sperre offline ✅, Storage-`persist()` ✅.
-   **Offen:** Performance-Profiling/Web-Worker (braucht Geräte-Profiling), Asset-Caching-Stub (kein Bild-Feld
-   am Produkt → erst bei `imageUrl`), Belegnummer-Reconcile-Kontrakt (`api-cloud`, **cross-repo**),
-   Geschäftstag-Eröffnung bleibt online-pflichtig (bewusste Annahme).
+6. ✅ **Hardening**: Replay-Retry-Timer ✅, Staff-Logout-Sperre offline ✅, Storage-`persist()` ✅,
+   Belegnummer-Reconcile-Kontrakt (api-cloud) ✅. **Bewusst zurückgestellt** (eigene Tickets):
+   Performance-Profiling/Web-Worker (braucht Geräte-Profiling), Asset-Caching-Stub (kein Bild-Feld am
+   Produkt → erst bei `imageUrl`), Multi-Replica-race-freier Belegnummer-Zähler (Single-Replica genügt
+   im Connect-Betrieb), Geschäftstag-Eröffnung bleibt online-pflichtig (bewusste Annahme).

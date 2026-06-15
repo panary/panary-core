@@ -2,6 +2,7 @@ import { computed, inject, Injectable } from '@angular/core'
 
 import { ConnectionService } from './connection.service'
 import { type CloudBanner, selectActiveBanner } from './cloud-status-banner.selector'
+import { OFFLINE_CACHE } from './offline-cache.token'
 
 /**
  * Liefert den EINEN aktuell anzuzeigenden Cloud-Status-Banner (hoechste
@@ -14,6 +15,7 @@ import { type CloudBanner, selectActiveBanner } from './cloud-status-banner.sele
 @Injectable({ providedIn: 'root' })
 export class CloudStatusBannerService {
   #conn = inject(ConnectionService)
+  #offlineCache = inject(OFFLINE_CACHE, { optional: true })
 
   readonly activeBanner = computed<CloudBanner | null>(() => {
     const conn = this.#conn
@@ -23,6 +25,7 @@ export class CloudStatusBannerService {
     return selectActiveBanner({
       connectionStatus: connection.status,
       userSessionExpired: conn.userSessionExpired(),
+      offlineCacheActive: this.#offlineCache?.isReady() ?? false,
       showsCloudSyncStatus: conn.showsCloudSyncStatus(),
       cloudNeedsRePairing: conn.cloudNeedsRePairing(),
       cloudTokenErrorReason: conn.cloudTokenErrorReason(),

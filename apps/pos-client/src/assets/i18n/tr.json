@@ -37,6 +37,8 @@
     "TOKEN_EXPIRES_IN_MINUTES": "Token {{minutes}} dk içinde sona erecek",
     "TOKEN_EXPIRED": "Token süresi doldu — yeniden eşleştirin",
     "CLIENT_OFFLINE": "Sunucuya bağlantı yok",
+    "CONNECT_OFFLINE": "Çevrimdışı — yalnızca nakit ödeme",
+    "CONNECT_OFFLINE_SUBLINE": "Siparişler bağlantı yeniden kurulduğunda iletilecek. TSE kesintisi kaydediliyor.",
     "RELOAD": "Yeniden yükle",
     "REPAIRING_REQUIRED": "Bulut bağlantısı kesildi — yeniden eşleştirme gerekli",
     "REPAIRING_REASON": "Neden: {{reason}}",

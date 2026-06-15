@@ -43,6 +43,8 @@ export interface CloudStatusState {
   connectionStatus: 'disconnected' | 'connecting' | 'connected' | 'authenticated' | 'error'
   /** WS-Auth wurde mit 401 abgelehnt → Auth-Flow uebernimmt (Login-Redirect). */
   userSessionExpired: boolean
+  /** Connect-Tier: Offline-Cache aktiv → der POS arbeitet offline weiter (Cache + Outbox). */
+  offlineCacheActive?: boolean
   // Tier-3-Gate (Edge mit Cloud-Sync)
   showsCloudSyncStatus: boolean
   // Edge ↔ Cloud
@@ -64,6 +66,23 @@ export interface CloudStatusState {
  * Treffer → `null` (kein Banner).
  */
 export function selectActiveBanner(s: CloudStatusState): CloudBanner | null {
+  // 0. (w110) Connect-Tier offline MIT aktivem Offline-Cache — der POS arbeitet
+  //    weiter (Cache + Outbox). Andere Botschaft als das generische client-offline:
+  //    kein Reload, sondern Bargeld-/Nachreich-Hinweis. NICHT bei abgelaufener Session.
+  if (
+    s.offlineCacheActive &&
+    (s.connectionStatus === 'disconnected' || s.connectionStatus === 'error') &&
+    !s.userSessionExpired
+  ) {
+    return {
+      id: 'connect-offline',
+      level: 'warn',
+      icon: 'wifi_off',
+      messageKey: 'CLOUD_STATUS.CONNECT_OFFLINE',
+      sublineKey: 'CLOUD_STATUS.CONNECT_OFFLINE_SUBLINE',
+    }
+  }
+
   // 1. (w100) Client offline — Edge nicht erreichbar. Unterdrueckt alle
   //    Cloud-Aussagen (deren /health-State ist dann ohnehin veraltet).
   //    NICHT bei abgelaufener Session: dort macht der Auth-Flow den Redirect.

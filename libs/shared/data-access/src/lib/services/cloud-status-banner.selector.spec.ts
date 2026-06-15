@@ -143,4 +143,24 @@ describe('selectActiveBanner — Prioritaetsleiter', () => {
     })
     expect(banner?.id).toBe('client-offline')
   })
+
+  it('connect-offline ueberschreibt client-offline bei aktivem Offline-Cache', () => {
+    const banner = selectActiveBanner({
+      ...healthy(),
+      connectionStatus: 'error',
+      offlineCacheActive: true,
+    })
+    expect(banner?.id).toBe('connect-offline')
+    expect(banner?.level).toBe('warn')
+  })
+
+  it('connect-offline weicht bei abgelaufener Session zurueck (Auth-Flow uebernimmt)', () => {
+    const banner = selectActiveBanner({
+      ...healthy(),
+      connectionStatus: 'error',
+      offlineCacheActive: true,
+      userSessionExpired: true,
+    })
+    expect(banner).toBeNull()
+  })
 })

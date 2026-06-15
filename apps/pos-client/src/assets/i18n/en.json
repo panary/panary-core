@@ -37,6 +37,8 @@
     "TOKEN_EXPIRES_IN_MINUTES": "Token expires in {{minutes}} min",
     "TOKEN_EXPIRED": "Token expired — re-pair required",
     "CLIENT_OFFLINE": "No connection to the server",
+    "CONNECT_OFFLINE": "Offline — cash payment only",
+    "CONNECT_OFFLINE_SUBLINE": "Orders will be transmitted when the connection is restored. TSE outage is being logged.",
     "RELOAD": "Reload",
     "REPAIRING_REQUIRED": "Cloud connection lost — re-pair required",
     "REPAIRING_REASON": "Reason: {{reason}}",

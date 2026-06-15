@@ -1,4 +1,4 @@
-import { computed, effect, inject, Injectable, Signal, signal, WritableSignal } from '@angular/core'
+import { computed, effect, inject, Injectable, Signal, signal, untracked, WritableSignal } from '@angular/core'
 import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { PrintDialogComponent } from '../components/print-dialog.component'
@@ -97,7 +97,35 @@ export class OrderService extends BaseService<Order> {
       }
     })
 
+    // Orders-Cache auf den aktuellen Geschäftstag begrenzen. Ohne das wächst der
+    // `orders`-Store unbegrenzt (jede je geladene/empfangene Order wird write-through
+    // gecached). Offline-relevant ist nur der laufende Tag (Liste + Abschluss; offline
+    // angelegte Orders tragen den aktuellen businessDayId) → alte Tage entfernen,
+    // sobald sich der Geschäftstag ändert (oder beim ersten Laden).
+    effect((): void => {
+      const businessDayId = this.#locationService.activeLocation()?.currentBusinessDay?.businessDayId
+      untracked(() => {
+        if (businessDayId && businessDayId !== this.#lastPrunedBusinessDayId) {
+          this.#lastPrunedBusinessDayId = businessDayId
+          void this.#pruneOrdersCacheToBusinessDay(businessDayId)
+        }
+      })
+    })
+
     this.calculateRemainingTimeInterval()
+  }
+
+  #lastPrunedBusinessDayId: string | null = null
+
+  /** Entfernt alle gecachten Orders, die nicht zum aktuellen Geschäftstag gehören. */
+  async #pruneOrdersCacheToBusinessDay(currentBusinessDayId: string): Promise<void> {
+    if (!this.cacheStore?.isReady()) return
+    const cached = await this.cacheStore.readAll<Order>('orders')
+    for (const order of cached) {
+      if (order.businessDayId && order.businessDayId !== currentBusinessDayId) {
+        await this.cacheStore.removeOne('orders', order._id)
+      }
+    }
   }
 
   /** PRIVATE METHODS */

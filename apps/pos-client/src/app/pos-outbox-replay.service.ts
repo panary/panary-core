@@ -1,4 +1,6 @@
 import { effect, inject, Injectable, OnDestroy, untracked } from '@angular/core'
+import { MatSnackBar } from '@angular/material/snack-bar'
+import { TranslateService } from '@ngx-translate/core'
 import { ConnectionService } from '@panary/shared/data-access'
 import { classifyOutboxError, OUTBOX_MAX_ATTEMPTS, outboxBackoffMs, OutboxEntry, OutboxStore } from '@panary/shared/offline-cache'
 
@@ -27,6 +29,8 @@ const REPLAY_POLL_MS = 30_000
 export class PosOutboxReplayService implements OnDestroy {
   readonly #connection = inject(ConnectionService)
   readonly #outbox = inject(OutboxStore)
+  readonly #snackBar = inject(MatSnackBar)
+  readonly #translate = inject(TranslateService)
   #replaying = false
   #pollTimer: ReturnType<typeof setInterval> | null = null
 
@@ -63,6 +67,7 @@ export class PosOutboxReplayService implements OnDestroy {
     if (this.#connection.connectionState().status !== 'authenticated') return
 
     this.#replaying = true
+    const rejectedBefore = this.#outbox.rejectedCount()
     try {
       const due = await this.#outbox.claimDue(new Date().toISOString())
       for (const entry of due) {
@@ -70,6 +75,17 @@ export class PosOutboxReplayService implements OnDestroy {
       }
     } finally {
       this.#replaying = false
+    }
+
+    // Terminal abgelehnte Übertragungen sind sonst still (nur in den Einstellungen
+    // sichtbar) → Operator aktiv informieren.
+    const newlyRejected = this.#outbox.rejectedCount() - rejectedBefore
+    if (newlyRejected > 0) {
+      this.#snackBar.open(
+        this.#translate.instant('SETTINGS.OUTBOX_REPLAY_REJECTED', { count: newlyRejected }),
+        'OK',
+        { duration: 6000 },
+      )
     }
   }
 
@@ -101,12 +117,12 @@ export class PosOutboxReplayService implements OnDestroy {
 
     const attempts = entry.attempts + 1
     if (classification === 'terminal' || attempts >= OUTBOX_MAX_ATTEMPTS) {
-      await this.#outbox.markRejected(entry._id, this.#message(error))
+      await this.#outbox.markRejected(entry._id, this.#describeError(error))
       return
     }
 
     const nextAttemptAt = new Date(Date.now() + outboxBackoffMs(attempts)).toISOString()
-    await this.#outbox.markRetry(entry._id, nextAttemptAt, this.#message(error))
+    await this.#outbox.markRetry(entry._id, nextAttemptAt, this.#describeError(error))
   }
 
   #targetFor(service: string): ReplayTarget | null {
@@ -117,7 +133,24 @@ export class PosOutboxReplayService implements OnDestroy {
     return null
   }
 
-  #message(error: unknown): string {
-    return error instanceof Error ? error.message : String(error)
+  /**
+   * Aussagekräftige Fehlermeldung inkl. Feld-Details (AJV-`data`/`errors`) für die
+   * Operator-Sicht — sonst steht dort nur das generische „validation failed", ohne
+   * zu zeigen, WELCHES Feld den Replay killt.
+   */
+  #describeError(error: unknown): string {
+    const e = error as Record<string, unknown> | null | undefined
+    const base = typeof e?.['message'] === 'string' ? (e['message'] as string) : String(error)
+    const raw = (e?.['data'] ?? e?.['errors']) as unknown
+    if (!Array.isArray(raw) || raw.length === 0) return base
+    const details = raw.slice(0, 5).map(item => {
+      const d = item as { instancePath?: unknown; message?: unknown; params?: unknown }
+      const path = typeof d?.instancePath === 'string' && d.instancePath ? d.instancePath : '/'
+      const msg = typeof d?.message === 'string' ? d.message : 'invalid'
+      const params = d?.params as { additionalProperty?: unknown } | undefined
+      const extra = params && typeof params.additionalProperty === 'string' ? ` (${params.additionalProperty})` : ''
+      return `${path}: ${msg}${extra}`
+    })
+    return `${base} — ${details.join('; ')}`
   }
 }

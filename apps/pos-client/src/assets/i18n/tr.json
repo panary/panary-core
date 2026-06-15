@@ -189,6 +189,7 @@
     "OUTBOX_PENDING": "Beklemede",
     "OUTBOX_REJECTED": "Reddedildi",
     "OUTBOX_REJECTED_TITLE": "Reddedilen aktarımlar",
+    "OUTBOX_REPLAY_REJECTED": "{{count}} aktarım reddedildi — ayrıntılar: Ayarlar → Bağlantı.",
     "DANGER_ZONE": "Tehlikeli bölge",
     "UNPAIR_DEVICE": "Cihaz eşleştirmesini kaldır",
     "UNPAIR_DEVICE_DESC": "Cihazı sunucudan ayırır. Tüm yerel veriler silinir. Yeniden eşleştirme gerekir.",

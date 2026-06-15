@@ -189,6 +189,7 @@
     "OUTBOX_PENDING": "Pending",
     "OUTBOX_REJECTED": "Rejected",
     "OUTBOX_REJECTED_TITLE": "Rejected transmissions",
+    "OUTBOX_REPLAY_REJECTED": "{{count}} transmission(s) rejected — details under Settings → Connection.",
     "DANGER_ZONE": "Danger zone",
     "UNPAIR_DEVICE": "Unpair device",
     "UNPAIR_DEVICE_DESC": "Disconnects the device from the server. All local data will be deleted. Re-pairing required.",

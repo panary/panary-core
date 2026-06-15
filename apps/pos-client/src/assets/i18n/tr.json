@@ -300,6 +300,7 @@
   },
   "PRE_ORDERS": {
     "TITLE": "Ön siparişler",
+    "CONVERT_OFFLINE_BLOCKED": "Dönüştürme çevrimdışı yapılamaz — bağlantı gerektirir.",
     "NEW_PRE_ORDER": "Yeni ön sipariş",
     "SEARCH_PLACEHOLDER": "Ad, telefon ile ara...",
     "LOADING": "Ön siparişler yükleniyor...",

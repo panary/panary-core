@@ -41,10 +41,13 @@ export type PreOrder = Static<typeof preOrderSchema>
 //#endregion
 
 //#region Schema for creation (POST)
-export const preOrderDataSchema = Type.Omit(preOrderSchema, ['_id', 'createdAt', 'updatedAt'], {
-  $id: 'PreOrderData',
-  additionalProperties: false,
-})
+// `_id` optional erlaubt — für offline angelegte Pre-Orders mit client-`_id` (uuidv7),
+// damit der Replay idempotent ist (Resolver: `_id = value || uuidv7()`). Ohne diese
+// Öffnung lehnt der Validator die client-`_id` mit 400 ab (additionalProperties:false).
+export const preOrderDataSchema = Type.Intersect(
+  [Type.Object({ _id: Type.Optional(Type.String()) }), Type.Omit(preOrderSchema, ['_id', 'createdAt', 'updatedAt'])],
+  { $id: 'PreOrderData', additionalProperties: false },
+)
 export type PreOrderData = Static<typeof preOrderDataSchema>
 //#endregion
 
@@ -63,6 +66,8 @@ export const preOrderQueryProperties = Type.Pick(preOrderSchema, [
   'scheduledFor',
   'status',
   'convertedOrderId',
+  // Pflicht für den Offline-Cache-Delta-Sync (`updatedAt > cursor`).
+  'updatedAt',
 ])
 export const preOrderQuerySchema = Type.Intersect(
   [

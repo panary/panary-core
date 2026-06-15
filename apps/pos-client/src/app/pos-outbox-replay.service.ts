@@ -141,9 +141,12 @@ export class PosOutboxReplayService implements OnDestroy, OfflineReplayPort {
   }
 
   #targetFor(service: string): ReplayTarget | null {
-    // Phase 4: nur `orders`. Weitere transactional-Services hier ergänzen.
+    // Rohe Feathers-Services (nicht BaseService — sonst Re-Queue + client-`_id`-Verlust).
     if (service === 'orders') {
       return this.#connection.orderService as unknown as ReplayTarget
+    }
+    if (service === 'pre-orders') {
+      return this.#connection.preOrdersService as unknown as ReplayTarget
     }
     return null
   }

@@ -300,6 +300,7 @@
   },
   "PRE_ORDERS": {
     "TITLE": "Vorbestellungen",
+    "CONVERT_OFFLINE_BLOCKED": "Umwandeln offline nicht möglich — braucht eine Verbindung.",
     "NEW_PRE_ORDER": "Neue Vorbestellung",
     "SEARCH_PLACEHOLDER": "Suche nach Name, Telefon...",
     "LOADING": "Lade Vorbestellungen...",

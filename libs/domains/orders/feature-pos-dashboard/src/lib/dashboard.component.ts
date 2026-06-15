@@ -178,7 +178,8 @@ export class DashboardComponent implements OnInit {
       action: () => this.navigateTo('/pre-orders'),
       bgClass: 'bg-amber-100 dark:bg-amber-900/30',
       textClass: 'text-amber-700 dark:text-amber-400',
-      requiresOnline: true,
+      // Offline nutzbar: Liste aus dem Cache + Anlegen via Outbox. Nur `convert` braucht
+      // online (wird im PreOrderService offline blockiert).
     },
     {
       label: 'DASHBOARD.HISTORY',

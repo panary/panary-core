@@ -33,6 +33,7 @@ export const POS_CACHE_SCHEMA: CacheStorageSchema = {
     cacheStore('discounts'),
     cacheStore('locations'),
     cacheStore('orders'),
+    cacheStore('pre-orders'),
   ],
 }
 

@@ -105,6 +105,16 @@ export class OutboxStore implements OfflineOutboxPort {
     return rejected.length
   }
 
+  /** Alle rejected-Einträge endgültig löschen (Operator-„Verwerfen"). Anzahl gelöscht. */
+  async clearRejected(): Promise<number> {
+    const rejected = (await this.#all()).filter(entry => entry.status === 'rejected')
+    for (const entry of rejected) {
+      await this.#requirePort().delete(CACHE_OUTBOX_STORE, entry._id)
+    }
+    await this.#refreshCounts()
+    return rejected.length
+  }
+
   async clear(): Promise<void> {
     if (!this.#port) return
     await this.#port.clear(CACHE_OUTBOX_STORE)

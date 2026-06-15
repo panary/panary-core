@@ -124,6 +124,19 @@ describe('OutboxStore', () => {
     expect(entry?.status).toBe('pending')
     expect(entry?.attempts).toBe(0)
   })
+
+  it('clearRejected löscht abgelehnte Einträge, lässt pending unberührt', async () => {
+    await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
+    await outbox.enqueue(input('o2', '2026-01-01T00:01:00.000Z'))
+    await outbox.markRejected('o1', 'terminal')
+    const count = await outbox.clearRejected()
+    expect(count).toBe(1)
+    expect(outbox.rejectedCount()).toBe(0)
+    expect(outbox.pendingCount()).toBe(1)
+    expect((await outbox.rejected()).length).toBe(0)
+    const due = await outbox.claimDue('2026-01-01T01:00:00.000Z')
+    expect(due.map(e => e._id)).toEqual(['o2'])
+  })
 })
 
 describe('outboxBackoffMs', () => {

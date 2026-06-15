@@ -137,6 +137,27 @@ export class SettingsComponent implements OnInit {
     }
   }
 
+  /**
+   * Operator-Verwerfen: abgelehnte Einträge endgültig aus der Outbox löschen — für
+   * unwiederbringliche Bad-Payload-Einträge, die nie syncen (z. B. das alte createdBy:'').
+   */
+  async discardRejected(): Promise<void> {
+    if (!this.#outbox || this.isRetrying()) return
+    if (!confirm(this.translateService.instant('SETTINGS.OUTBOX_DISCARD_CONFIRM'))) return
+    this.isRetrying.set(true)
+    try {
+      const count = await this.#outbox.clearRejected()
+      await this.#loadRejected()
+      this.#snackBar.open(
+        this.translateService.instant('SETTINGS.OUTBOX_DISCARD_DONE', { count }),
+        'OK',
+        { duration: 4000 },
+      )
+    } finally {
+      this.isRetrying.set(false)
+    }
+  }
+
   async ngOnInit() {
     try {
       const info = await lastValueFrom(this.#http.get<EdgeServerInfo>('http://localhost:3030/health'))

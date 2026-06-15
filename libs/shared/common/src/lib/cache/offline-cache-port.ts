@@ -102,6 +102,12 @@ export interface OfflineOutboxPort {
    * Replay erneut abgelehnt.
    */
   requeueRejected(): Promise<number>
+  /**
+   * Entfernt alle terminal abgelehnten Einträge endgültig aus der Outbox (Operator-
+   * Aktion „Verwerfen"). Für unwiederbringliche Bad-Payload-Einträge, die nie syncen.
+   * Gibt die Anzahl gelöschter Einträge zurück.
+   */
+  clearRejected(): Promise<number>
 }
 
 /**

@@ -49,6 +49,17 @@ export class ServiceHelper {
       return
     }
 
+    // Erwartbares 404: Ein optionaler Service ist auf dem aktuellen Backend nicht
+    // registriert (z. B. `pre-orders` im Connect-Tier/cloud-direkt — der Edge hat ihn,
+    // die Cloud nicht). Das ist ein Backend-Verfügbarkeits-Fall, kein User-Fehler
+    // → nur Console-Log, kein Toast. Konsumenten fangen den Fehler ohnehin ab (z. B.
+    // Dashboard-Pre-Order-KPI → leer). Ein „record not found" (Get per id) trägt eine
+    // andere Message und toastet weiterhin normal.
+    if (code === 404 && typeof errorMessage === 'string' && /Service '.*' not found/i.test(errorMessage)) {
+      console.warn(`Service "${serviceName}": auf diesem Backend nicht registriert — ${errorMessage}`)
+      return
+    }
+
     const errorPhrase = getErrorPhrase(code)
 
     // AJV-Validation-Details aus FeathersError extrahieren. Server liefert sie

@@ -126,6 +126,18 @@ describe('signOrderTseStart', () => {
     expect(startTransaction).not.toHaveBeenCalled()
   })
 
+  it('signiert offline angelegte Orders NICHT (kein rückwirkendes Signieren, §146a)', async () => {
+    const startTransaction = vi.fn()
+    // pos-cashier würde normal signiert — der offlineCreated-Marker überschreibt das.
+    const data = { dailySequenceNumber: 7, businessDayId: 'bd-1', offlineCreated: true }
+    const ctx = makeContext({ tsePort: { startTransaction }, data, businessDay: { operationMode: 'pos-cashier' } })
+
+    await signOrderTseStart(ctx)
+
+    expect(startTransaction).not.toHaveBeenCalled()
+    expect((data as any).tse).toBeUndefined()
+  })
+
   it('§146a: TSE-Start-Fehler blockiert nicht — Order bleibt mit failed-Snapshot', async () => {
     const startTransaction = vi.fn().mockRejectedValue(new Error('TSE down'))
     const data = { dailySequenceNumber: 7, businessDayId: 'bd-1', tenantId: 't-1', locationId: 'l-1' }

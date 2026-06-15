@@ -38,10 +38,16 @@ export class PosOutboxReplayService implements OnDestroy, OfflineReplayPort {
   constructor() {
     effect(() => {
       const status = this.#connection.connectionState().status
-      const ready = this.#outbox.isReady()
-      if (status === 'authenticated' && ready) {
-        untracked(() => void this.replayAll())
-      }
+      const ready = this.#outbox.isReady() // reaktiv → feuert auch, wenn die Outbox NACH Connect bereit wird
+      untracked(() => {
+        if (status === 'authenticated' && ready) {
+          void this.replayAll()
+        } else if (status !== 'authenticated') {
+          // Verbindung weg (auch mitten im Replay): einen evtl. hängenden Replay
+          // entsperren, sonst blockiert `#replaying` jeden folgenden (Re)Connect-Replay.
+          this.#replaying = false
+        }
+      })
     })
 
     // Der Connect-Effekt feuert nur beim Status-Wechsel auf 'authenticated'. Einträge,
@@ -77,6 +83,9 @@ export class PosOutboxReplayService implements OnDestroy, OfflineReplayPort {
     try {
       const due = await this.#outbox.claimDue(new Date().toISOString())
       for (const entry of due) {
+        // Verbindung mitten im Replay verloren? Abbrechen, statt in hängende
+        // Socket-Buffer-Creates zu laufen — der nächste (Re)Connect setzt fort.
+        if (this.#connection.connectionState().status !== 'authenticated') break
         await this.#replayOne(entry)
       }
     } finally {

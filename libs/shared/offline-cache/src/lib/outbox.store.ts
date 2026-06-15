@@ -23,20 +23,25 @@ export class OutboxStore implements OfflineOutboxPort {
   // Mutation aus dem Store nachgezogen — synchron lesbar via pendingCount()/rejectedCount().
   readonly #pending = signal(0)
   readonly #rejected = signal(0)
+  // Reaktive Bereitschaft: `isReady()` liest dieses Signal, damit ein effect() (Replay-
+  // Trigger) auch dann erneut feuert, wenn die Outbox NACH dem Connect bereit wird.
+  readonly #ready = signal(false)
 
   attach(port: CacheStoragePort): void {
     this.#port = port
+    this.#ready.set(true)
     void this.#refreshCounts()
   }
 
   detach(): void {
     this.#port = null
+    this.#ready.set(false)
     this.#pending.set(0)
     this.#rejected.set(0)
   }
 
   isReady(): boolean {
-    return this.#port !== null
+    return this.#ready()
   }
 
   async enqueue(input: OutboxEnqueueInput): Promise<void> {

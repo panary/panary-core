@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { openCacheDatabase } from './cache-bootstrap'
 import { IdbStorageAdapter } from './idb-storage.adapter'
-import { OUTBOX_BACKOFF_MS, outboxBackoffMs } from './outbox'
+import { classifyOutboxError, OUTBOX_BACKOFF_MS, outboxBackoffMs } from './outbox'
 import { OutboxEnqueueInput, OutboxStore } from './outbox.store'
 
 const DB = 'outbox-test-db'
@@ -95,5 +95,23 @@ describe('outboxBackoffMs', () => {
   it('folgt dem Plan und deckelt am letzten Wert', () => {
     expect(outboxBackoffMs(1)).toBe(OUTBOX_BACKOFF_MS[0])
     expect(outboxBackoffMs(99)).toBe(OUTBOX_BACKOFF_MS[OUTBOX_BACKOFF_MS.length - 1])
+  })
+})
+
+describe('classifyOutboxError', () => {
+  it('erkennt "already-exists" (409 / Duplikat-Meldung)', () => {
+    expect(classifyOutboxError({ code: 409 })).toBe('already-exists')
+    expect(classifyOutboxError(new Error('UNIQUE constraint failed'))).toBe('already-exists')
+  })
+
+  it('erkennt terminale Fehler (400/401/403/422)', () => {
+    expect(classifyOutboxError({ code: 400 })).toBe('terminal')
+    expect(classifyOutboxError({ code: 403 })).toBe('terminal')
+  })
+
+  it('behandelt Netz-/Serverfehler als transient', () => {
+    expect(classifyOutboxError({ code: 500 })).toBe('transient')
+    expect(classifyOutboxError(new Error('Network error'))).toBe('transient')
+    expect(classifyOutboxError(null)).toBe('transient')
   })
 })

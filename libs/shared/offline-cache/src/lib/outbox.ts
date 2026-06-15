@@ -32,3 +32,20 @@ export function outboxBackoffMs(attempts: number): number {
   const index = Math.min(attempts - 1, OUTBOX_BACKOFF_MS.length - 1)
   return OUTBOX_BACKOFF_MS[index]
 }
+
+export type OutboxErrorClass = 'already-exists' | 'terminal' | 'transient'
+
+/**
+ * Klassifiziert einen Replay-Fehler für die Outbox-Steuerung:
+ * - `already-exists`: Server kennt den Datensatz bereits (verlorenes ack / Doppel-Send)
+ *   → idempotent als erledigt behandeln.
+ * - `terminal`: Validierung/Auth (400/401/403/422) → kein Retry, ablehnen.
+ * - `transient`: Netz/Server (Timeout, 5xx, offline) → Backoff-Retry.
+ */
+export function classifyOutboxError(error: unknown): OutboxErrorClass {
+  const code = (error as { code?: number } | null)?.code
+  const message = error instanceof Error ? error.message : String(error)
+  if (code === 409 || /exist|duplicate|unique/i.test(message)) return 'already-exists'
+  if (code === 400 || code === 401 || code === 403 || code === 422) return 'terminal'
+  return 'transient'
+}

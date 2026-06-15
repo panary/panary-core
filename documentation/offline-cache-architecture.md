@@ -3,7 +3,7 @@ title: Offline-Cache (Connect-Tier) — Architektur & Storage-Fundament
 date: 2026-05-30
 category: Architektur
 domains: [sync, orders, products, devices]
-status: in-progress (Phasen 1–3 von 6 implementiert)
+status: in-progress (Phasen 1–4 von 6 implementiert)
 ---
 
 # Offline-Cache (Connect-Tier) — Architektur & Storage-Fundament
@@ -99,11 +99,29 @@ Tests: 17 Specs grün (`fake-indexeddb`, node-Environment). `nx lint`/`nx test o
 - Bewusst offen (Folge): Soft-Delete-Reconciliation im Pull (heute via `cacheBuildId`-Wipe +
   Realtime-`removed`); Web-Worker-Auslagerung.
 
+## Geliefert in Phase 4 (Write-Pfad — Outbox + Offline-Anlage + Replay)
+
+- **`OutboxStore`** (`__outbox`-IDB-Store): enqueue/claimDue/markAcked/markRetry/markRejected, Backoff
+  (`outboxBackoffMs`), Fehler-Klassifikation (`classifyOutboxError`: already-exists/terminal/transient).
+  Implementiert `OfflineOutboxPort` (shared-common), Token `OFFLINE_OUTBOX` (data-access).
+- **Schema-Marker** `offlineCreated` + `provisionalSequenceNumber` (`@panary/orders/domain`).
+- **Backend-TSE-Skip** (api-edge **und** api-cloud): `signOrderTseStart` überspringt `offlineCreated`-
+  Orders → **kein rückwirkendes Signieren** beim Replay (KassenSichV §146a). `_id` wird vom Order-
+  Resolver akzeptiert (idempotent), `dailySequenceNumber` serverseitig re-gestempelt.
+- **OrderService**: offline → `#enqueueOfflineOrder` (uuidv7-`_id`, provisorische Sequenz, Marker),
+  optimistisch in Cache + Outbox, statt zu werfen. Online unverändert; ohne POS-Provider inert.
+- **`PosOutboxReplayService`**: Replay beim (Re-)Connect über die **rohen** Feathers-Services (nicht
+  `BaseService` — sonst Re-Queue + `_id`-Verlust), idempotent, Backoff, `rejected`→Operator (Phase 5),
+  `#replaying`-Guard.
+- Verifiziert: `nx build pos-client` grün; offline-cache 45 Specs, api-edge 12 / api-cloud 16 (TSE-Skip).
+- **Cross-Repo:** api-cloud-Skip für **Prod** erst nach Core-Release (`offlineCreated`) + Cloud-Pin-Bump
+  aktiv (Option-A-Flow); lokal greift alles. Offen (Folge): Replay-Retry-Timer (heute nur connect-getriggert).
+
 ## Roadmap (Folgephasen)
 
 2. ✅ **Read-Pfad + POS-Aktivierung** (siehe oben) — erledigt.
 3. ✅ **Freshness — Bootstrap + Delta-Sync** (siehe oben) — erledigt.
-4. Write-Pfad: `OutboxStore` + Replay (uuidv7, idempotent, FIFO, Backoff, Klassifikation).
+4. ✅ **Write-Pfad — Outbox + Offline-Anlage + Replay** (siehe oben) — erledigt.
 5. Offline-UX: Connect-Offline-Erkennung, Banner-Eintrag, Bargeld-Zwang, TSE-Ausfallvermerk,
    provisorische `dailySequenceNumber` (Staff-Logout offline gesperrt).
 6. Hardening: Performance-Profiling/Web-Worker, Asset-Caching-Stub, Belegnummer-Reconcile-Kontrakt

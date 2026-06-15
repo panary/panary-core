@@ -14,6 +14,7 @@ import {
   requestPersistentStorage,
 } from '@panary/shared/offline-cache'
 import { PosCacheSyncService } from './pos-cache-sync.service'
+import { PosOutboxReplayService } from './pos-outbox-replay.service'
 
 /**
  * POS-Cache-Schema (Connect-Tier). Stores = Feathers-Service-Pfade; jeder Store
@@ -59,6 +60,7 @@ export const providePosOfflineCache = (): EnvironmentProviders =>
     OfflineCacheStore,
     OutboxStore,
     PosCacheSyncService,
+    PosOutboxReplayService,
     { provide: CACHE_STORAGE_PORT, useClass: IdbStorageAdapter },
     { provide: OFFLINE_CACHE, useExisting: OfflineCacheStore },
     { provide: OFFLINE_OUTBOX, useExisting: OutboxStore },
@@ -71,8 +73,10 @@ export const providePosOfflineCache = (): EnvironmentProviders =>
       const outbox = inject(OutboxStore)
       const port = inject(CACHE_STORAGE_PORT)
       const appConfig = inject(APP_CONFIG)
-      // PosCacheSyncService eager instanziieren → startet den Connect-Sync-Effect.
+      // PosCacheSyncService + PosOutboxReplayService eager instanziieren → starten
+      // ihre Connect-Effects (Delta-Sync bzw. Outbox-Replay).
       inject(PosCacheSyncService)
+      inject(PosOutboxReplayService)
       void initPosOfflineCache(deviceConfig, store, outbox, port, appConfig)
     }),
   ])

@@ -1,5 +1,5 @@
 import { EnvironmentProviders, inject, makeEnvironmentProviders, provideAppInitializer } from '@angular/core'
-import { OFFLINE_CACHE, OFFLINE_OUTBOX } from '@panary/shared/data-access'
+import { OFFLINE_CACHE, OFFLINE_OUTBOX, OFFLINE_REPLAY } from '@panary/shared/data-access'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 import {
   buildCacheBuildId,
@@ -64,6 +64,7 @@ export const providePosOfflineCache = (): EnvironmentProviders =>
     { provide: CACHE_STORAGE_PORT, useClass: IdbStorageAdapter },
     { provide: OFFLINE_CACHE, useExisting: OfflineCacheStore },
     { provide: OFFLINE_OUTBOX, useExisting: OutboxStore },
+    { provide: OFFLINE_REPLAY, useExisting: PosOutboxReplayService },
     provideAppInitializer(() => {
       // inject() synchron im Injection-Context auflösen, die Init aber NICHT
       // awaiten — der App-Start darf nicht auf die Cache-Hydration warten

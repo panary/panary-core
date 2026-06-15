@@ -95,4 +95,21 @@ export interface OfflineOutboxPort {
   rejectedCount(): number
   /** Detailliste terminal abgelehnter Einträge — für die Operator-Sicht. */
   rejected(): Promise<readonly OfflineOutboxRejectedEntry[]>
+  /**
+   * Setzt alle terminal abgelehnten Einträge zurück auf `pending` (Operator-Retry).
+   * Gibt die Anzahl re-eingereihter Einträge zurück. Der Payload bleibt unverändert —
+   * ein Eintrag mit fehlerhaftem Payload (z. B. ungültiges Feld) wird beim nächsten
+   * Replay erneut abgelehnt.
+   */
+  requeueRejected(): Promise<number>
+}
+
+/**
+ * Schnittstelle zum manuellen Anstoßen eines Outbox-Replays (Operator-Aktion
+ * „Erneut versuchen"). Implementiert vom `PosOutboxReplayService` (pos-client),
+ * bereitgestellt über den `OFFLINE_REPLAY`-Token. Optional — ohne Provider passiert
+ * nichts (der periodische Replay-Poll zieht re-eingereihte Einträge ohnehin nach).
+ */
+export interface OfflineReplayPort {
+  replayNow(): Promise<void>
 }

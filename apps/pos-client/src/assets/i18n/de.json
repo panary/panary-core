@@ -190,6 +190,8 @@
     "OUTBOX_REJECTED": "Abgelehnt",
     "OUTBOX_REJECTED_TITLE": "Abgelehnte Übertragungen",
     "OUTBOX_REPLAY_REJECTED": "{{count}} Übertragung(en) abgelehnt — Details unter Einstellungen → Verbindung.",
+    "OUTBOX_RETRY": "Erneut versuchen",
+    "OUTBOX_RETRY_DONE": "{{count}} Eintrag/Einträge erneut eingereiht — werden synchronisiert.",
     "DANGER_ZONE": "Gefahrenzone",
     "UNPAIR_DEVICE": "Gerät entkoppeln",
     "UNPAIR_DEVICE_DESC": "Trennt das Gerät vom Server. Alle lokalen Daten werden gelöscht. Re-Pairing nötig.",

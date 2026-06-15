@@ -89,6 +89,22 @@ export class OutboxStore implements OfflineOutboxPort {
     return (await this.#all()).filter(entry => entry.status === 'rejected')
   }
 
+  /** Alle rejected-Einträge zurück auf pending setzen (Operator-Retry). Anzahl re-eingereiht. */
+  async requeueRejected(): Promise<number> {
+    const rejected = (await this.#all()).filter(entry => entry.status === 'rejected')
+    for (const entry of rejected) {
+      await this.#requirePort().put(CACHE_OUTBOX_STORE, {
+        ...entry,
+        status: 'pending',
+        attempts: 0,
+        nextAttemptAt: undefined,
+        lastError: undefined,
+      })
+    }
+    await this.#refreshCounts()
+    return rejected.length
+  }
+
   async clear(): Promise<void> {
     if (!this.#port) return
     await this.#port.clear(CACHE_OUTBOX_STORE)

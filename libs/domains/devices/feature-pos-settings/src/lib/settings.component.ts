@@ -4,12 +4,13 @@ import { HttpClient } from '@angular/common/http'
 import { lastValueFrom } from 'rxjs'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { LocationService } from '@panary/locations/data-access'
-import { ConnectionService, LanguageService, OFFLINE_OUTBOX } from '@panary/shared/data-access'
+import { ConnectionService, LanguageService, OFFLINE_OUTBOX, OFFLINE_REPLAY } from '@panary/shared/data-access'
 import type { OfflineOutboxRejectedEntry } from '@panary/shared-common'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 
+import { MatSnackBar } from '@angular/material/snack-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { UnpairDeviceDialogComponent } from './unpair-device-dialog/unpair-device-dialog.component'
@@ -47,6 +48,8 @@ export class SettingsComponent implements OnInit {
   appConfig = inject(APP_CONFIG)
   // Connect-Tier: nur in der POS-App belegt (admin liefert keinen Provider → null).
   #outbox = inject(OFFLINE_OUTBOX, { optional: true })
+  #replay = inject(OFFLINE_REPLAY, { optional: true })
+  #snackBar = inject(MatSnackBar)
 
   // For the sidebar selection
   activeSection = 'general'
@@ -78,6 +81,7 @@ export class SettingsComponent implements OnInit {
   readonly outboxPending = computed(() => this.#outbox?.pendingCount() ?? 0)
   readonly outboxRejected = computed(() => this.#outbox?.rejectedCount() ?? 0)
   readonly rejectedEntries = signal<readonly OfflineOutboxRejectedEntry[]>([])
+  readonly isRetrying = signal(false)
 
   // Connection-Section: Device-Konfiguration + Tier-Modell
   readonly deviceConfig = computed(() => this.deviceConfigService.getConfig())
@@ -109,6 +113,28 @@ export class SettingsComponent implements OnInit {
   async #loadRejected(): Promise<void> {
     if (!this.#outbox) return
     this.rejectedEntries.set(await this.#outbox.rejected())
+  }
+
+  /**
+   * Operator-Retry: alle abgelehnten Einträge zurück auf pending setzen und sofort einen
+   * Replay anstoßen (sonst greift der periodische Poll). Einträge mit fehlerhaftem Payload
+   * werden dabei erneut abgelehnt — Hinweis im Toast.
+   */
+  async retryRejected(): Promise<void> {
+    if (!this.#outbox || this.isRetrying()) return
+    this.isRetrying.set(true)
+    try {
+      const count = await this.#outbox.requeueRejected()
+      await this.#replay?.replayNow()
+      await this.#loadRejected()
+      this.#snackBar.open(
+        this.translateService.instant('SETTINGS.OUTBOX_RETRY_DONE', { count }),
+        'OK',
+        { duration: 4000 },
+      )
+    } finally {
+      this.isRetrying.set(false)
+    }
   }
 
   async ngOnInit() {

@@ -111,6 +111,19 @@ describe('OutboxStore', () => {
     expect(outbox.pendingCount()).toBe(0)
     expect(outbox.rejectedCount()).toBe(0)
   })
+
+  it('requeueRejected setzt rejected → pending zurück', async () => {
+    await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
+    await outbox.markRejected('o1', 'terminal')
+    expect(outbox.rejectedCount()).toBe(1)
+    const count = await outbox.requeueRejected()
+    expect(count).toBe(1)
+    expect(outbox.rejectedCount()).toBe(0)
+    expect(outbox.pendingCount()).toBe(1)
+    const [entry] = await outbox.claimDue('2026-01-01T01:00:00.000Z')
+    expect(entry?.status).toBe('pending')
+    expect(entry?.attempts).toBe(0)
+  })
 })
 
 describe('outboxBackoffMs', () => {

@@ -2,6 +2,7 @@ import { effect, inject, Injectable, OnDestroy, untracked } from '@angular/core'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'
 import { ConnectionService } from '@panary/shared/data-access'
+import type { OfflineReplayPort } from '@panary/shared-common'
 import { classifyOutboxError, OUTBOX_MAX_ATTEMPTS, outboxBackoffMs, OutboxEntry, OutboxStore } from '@panary/shared/offline-cache'
 
 /** Minimaler Feathers-Service-Ausschnitt für das Replay (create/patch mit voller Payload). */
@@ -26,7 +27,7 @@ const REPLAY_POLL_MS = 30_000
  * und die client-`_id` weglassen.
  */
 @Injectable()
-export class PosOutboxReplayService implements OnDestroy {
+export class PosOutboxReplayService implements OnDestroy, OfflineReplayPort {
   readonly #connection = inject(ConnectionService)
   readonly #outbox = inject(OutboxStore)
   readonly #snackBar = inject(MatSnackBar)
@@ -60,6 +61,11 @@ export class PosOutboxReplayService implements OnDestroy {
       clearInterval(this.#pollTimer)
       this.#pollTimer = null
     }
+  }
+
+  /** OfflineReplayPort: manueller Trigger (Operator „Erneut versuchen"). */
+  replayNow(): Promise<void> {
+    return this.replayAll()
   }
 
   async replayAll(): Promise<void> {

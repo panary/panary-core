@@ -3,7 +3,7 @@ import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { PrintDialogComponent } from '../components/print-dialog.component'
 import { OrderChannel } from '../enums/order-chanel.enum'
-import { Id, Paginated } from '@feathersjs/feathers'
+import { Id, Paginated, Params } from '@feathersjs/feathers'
 import {
   AppliedDiscount,
   CreationContext,
@@ -14,6 +14,7 @@ import {
   OrderLineItem,
   OrderStatus,
   StaffPaymentInfo,
+  TransactionMethod,
 } from '@panary/orders/domain'
 import { OrderInteraction } from '@panary/order-interactions/domain'
 import { BaseService, ConnectionService, OFFLINE_OUTBOX } from '@panary/shared/data-access'
@@ -267,6 +268,39 @@ export class OrderService extends BaseService<Order> {
     const maxSeen = this.#orders().reduce((max, order) => Math.max(max, order.dailySequenceNumber ?? 0), 0)
     this.#provisionalSequenceCursor = Math.max(this.#provisionalSequenceCursor, maxSeen) + 1
     return this.#provisionalSequenceCursor
+  }
+
+  /**
+   * Online → Server; offline → optimistischer Cache-Merge + Outbox (op `patch`), damit
+   * der Checkout (Status/Payment) offline funktioniert. Bargeld-Zwang: offline ist keine
+   * Karten-/Online-Zahlung möglich (Stripe braucht Netz) → wird abgelehnt.
+   */
+  override async patch(id: Id | Id[] | null, data: Partial<Order>, params: Params = {}): Promise<Order | Order[]> {
+    if (this.#shouldQueueOffline() && typeof id === 'string') {
+      return this.#patchOffline(id, data)
+    }
+    return super.patch(id, data, params)
+  }
+
+  async #patchOffline(id: string, data: Partial<Order>): Promise<Order> {
+    if (data.payment?.transactions?.some(t => t.method !== TransactionMethod.CASH)) {
+      this.#matSnackBar.open('Offline ist nur Barzahlung möglich.', 'OK', { duration: 3000 })
+      throw new Error('OFFLINE_CASH_ONLY')
+    }
+
+    const existing = (await this.cacheStore?.get('orders', id)) as Order | undefined
+    const merged = { ...(existing ?? {}), ...data, _id: id, updatedAt: new Date().toISOString() } as Order
+
+    await this.cacheStore?.upsertMany('orders', [merged as unknown as CacheEntity])
+    await this.#outbox?.enqueue({
+      _id: uuidv7(),
+      service: 'orders',
+      op: 'patch',
+      entityId: id,
+      payload: data,
+      occurredAt: new Date().toISOString(),
+    })
+    return merged
   }
 
   private markOrdersAsCompleted(): void {

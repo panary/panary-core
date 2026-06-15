@@ -39,10 +39,11 @@ describe('OutboxStore', () => {
   })
 
   it('enqueue legt einen pending-Eintrag an', async () => {
-    const entry = await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
-    expect(entry.status).toBe('pending')
-    expect(entry.attempts).toBe(0)
+    await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
     expect(await outbox.pendingCount()).toBe(1)
+    const [entry] = await outbox.claimDue('2026-01-01T01:00:00.000Z')
+    expect(entry?.status).toBe('pending')
+    expect(entry?.attempts).toBe(0)
   })
 
   it('claimDue liefert FIFO nach occurredAt', async () => {

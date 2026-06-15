@@ -52,3 +52,23 @@ export function normalizeToRecords<TEntity extends CacheEntity>(result: unknown)
   }
   return []
 }
+
+/** Eingabe für einen neuen Outbox-Eintrag (offline erzeugte Mutation). */
+export interface OfflineOutboxInput {
+  readonly _id: string
+  readonly service: string
+  readonly op: 'create' | 'patch'
+  readonly entityId: string
+  readonly payload: unknown
+  readonly occurredAt: string
+}
+
+/**
+ * Schnittstelle für das Einreihen offline erzeugter Mutationen. Die konkrete
+ * Implementierung (`OutboxStore`) lebt in `@panary/shared/offline-cache` und wird in
+ * der POS-App über den `OFFLINE_OUTBOX`-Token bereitgestellt (analog zu `OFFLINE_CACHE`).
+ */
+export interface OfflineOutboxPort {
+  isReady(): boolean
+  enqueue(input: OfflineOutboxInput): Promise<void>
+}

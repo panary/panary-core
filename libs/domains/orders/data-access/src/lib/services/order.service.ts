@@ -16,10 +16,11 @@ import {
   StaffPaymentInfo,
 } from '@panary/orders/domain'
 import { OrderInteraction } from '@panary/order-interactions/domain'
-import { BaseService, ConnectionService } from '@panary/shared/data-access'
-import { ExtendedParams } from '@panary/shared-common'
+import { BaseService, ConnectionService, OFFLINE_OUTBOX } from '@panary/shared/data-access'
+import { CacheEntity, ExtendedParams, OfflineOutboxPort } from '@panary/shared-common'
 import { Observer } from 'rxjs'
 import { LocationService } from '@panary/locations/data-access'
+import { uuidv7 } from 'uuidv7'
 
 @Injectable({
   providedIn: 'root',
@@ -37,6 +38,8 @@ export class OrderService extends BaseService<Order> {
   /** DEPENDENCIES */
   #locationService: LocationService = inject(LocationService)
   protected connectionService: ConnectionService = inject(ConnectionService)
+  #outbox: OfflineOutboxPort | null = inject(OFFLINE_OUTBOX, { optional: true })
+  #provisionalSequenceCursor = 0
   #matSnackBar: MatSnackBar = inject(MatSnackBar)
   #matDialog: MatDialog = inject(MatDialog)
   #orderIndex = 1
@@ -184,7 +187,7 @@ export class OrderService extends BaseService<Order> {
   private async createOrderAndOpenPrintDialog(
     newOrder: Omit<Order, '_id' | 'locationId' | 'tenantId' | 'createdAt' | 'updatedAt'>,
   ): Promise<number | number[] | undefined | null> {
-    return this.create(newOrder).then((createdOrder: Order | Order[]): number | number[] | undefined | null => {
+    return this.#createOrderRecord(newOrder).then((createdOrder: Order | Order[]): number | number[] | undefined | null => {
       if (!createdOrder) return null
 
       // Eigene Bestellung sofort lokal nachladen. Der Realtime-`created`-Echo
@@ -209,6 +212,61 @@ export class OrderService extends BaseService<Order> {
         return createdOrder.dailySequenceNumber
       }
     })
+  }
+
+  /** Online → Server; offline → optimistisch in Cache + Outbox (Connect-Tier). */
+  async #createOrderRecord(newOrder: Omit<Order, '_id' | 'locationId' | 'tenantId'>): Promise<Order | Order[]> {
+    if (this.#shouldQueueOffline()) {
+      return this.#enqueueOfflineOrder(newOrder)
+    }
+    return this.create(newOrder)
+  }
+
+  #shouldQueueOffline(): boolean {
+    return (
+      this.connectionService.connectionState().status !== 'authenticated' &&
+      !!this.#outbox?.isReady() &&
+      !!this.cacheStore?.isReady()
+    )
+  }
+
+  /**
+   * Legt eine Order offline an: client-`_id` (uuidv7), provisorische Belegnummer +
+   * `offlineCreated`-Marker (das Backend überspringt das TSE-Signieren beim Replay,
+   * KassenSichV §146a), optimistisch in Cache + Outbox. Der Server re-stampt die finale
+   * `dailySequenceNumber` beim Sync.
+   */
+  async #enqueueOfflineOrder(newOrder: Omit<Order, '_id' | 'locationId' | 'tenantId'>): Promise<Order> {
+    const location = this.#locationService.activeLocation()
+    const provisional = this.#nextProvisionalSequence()
+    const order: Order = {
+      ...(newOrder as Order),
+      _id: uuidv7(),
+      tenantId: location?.tenantId ?? '',
+      locationId: location?._id ?? '',
+      dailySequenceNumber: provisional,
+      provisionalSequenceNumber: provisional,
+      offlineCreated: true,
+      updatedAt: new Date().toISOString(),
+    }
+
+    await this.cacheStore?.upsertMany('orders', [order as unknown as CacheEntity])
+    await this.#outbox?.enqueue({
+      _id: uuidv7(),
+      service: 'orders',
+      op: 'create',
+      entityId: order._id,
+      payload: order,
+      occurredAt: order.recordingDate,
+    })
+    return order
+  }
+
+  /** Monoton steigende provisorische Belegnummer (max. gesehene im Cache + lokaler Cursor). */
+  #nextProvisionalSequence(): number {
+    const maxSeen = this.#orders().reduce((max, order) => Math.max(max, order.dailySequenceNumber ?? 0), 0)
+    this.#provisionalSequenceCursor = Math.max(this.#provisionalSequenceCursor, maxSeen) + 1
+    return this.#provisionalSequenceCursor
   }
 
   private markOrdersAsCompleted(): void {

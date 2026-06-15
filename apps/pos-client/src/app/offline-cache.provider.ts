@@ -1,5 +1,5 @@
 import { EnvironmentProviders, inject, makeEnvironmentProviders, provideAppInitializer } from '@angular/core'
-import { OFFLINE_CACHE } from '@panary/shared/data-access'
+import { OFFLINE_CACHE, OFFLINE_OUTBOX } from '@panary/shared/data-access'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 import {
   buildCacheBuildId,
@@ -10,6 +10,7 @@ import {
   CacheStoreDefinition,
   IdbStorageAdapter,
   OfflineCacheStore,
+  OutboxStore,
   requestPersistentStorage,
 } from '@panary/shared/offline-cache'
 import { PosCacheSyncService } from './pos-cache-sync.service'
@@ -56,26 +57,30 @@ function cacheStore(name: string): CacheStoreDefinition {
 export const providePosOfflineCache = (): EnvironmentProviders =>
   makeEnvironmentProviders([
     OfflineCacheStore,
+    OutboxStore,
     PosCacheSyncService,
     { provide: CACHE_STORAGE_PORT, useClass: IdbStorageAdapter },
     { provide: OFFLINE_CACHE, useExisting: OfflineCacheStore },
+    { provide: OFFLINE_OUTBOX, useExisting: OutboxStore },
     provideAppInitializer(() => {
       // inject() synchron im Injection-Context auflösen, die Init aber NICHT
       // awaiten — der App-Start darf nicht auf die Cache-Hydration warten
       // (Performance-Budget). Bis ready=true verhält sich der Cache wie inaktiv.
       const deviceConfig = inject(DeviceConfigService)
       const store = inject(OfflineCacheStore)
+      const outbox = inject(OutboxStore)
       const port = inject(CACHE_STORAGE_PORT)
       const appConfig = inject(APP_CONFIG)
       // PosCacheSyncService eager instanziieren → startet den Connect-Sync-Effect.
       inject(PosCacheSyncService)
-      void initPosOfflineCache(deviceConfig, store, port, appConfig)
+      void initPosOfflineCache(deviceConfig, store, outbox, port, appConfig)
     }),
   ])
 
 async function initPosOfflineCache(
   deviceConfig: DeviceConfigService,
   store: OfflineCacheStore,
+  outbox: OutboxStore,
   port: CacheStoragePort,
   appConfig: { appVersion?: string },
 ): Promise<void> {
@@ -94,6 +99,8 @@ async function initPosOfflineCache(
     })
     await requestPersistentStorage()
     await store.init(port, databaseName, POS_CACHE_SCHEMA, buildId)
+    // Outbox teilt sich die Verbindung des Stores (gleicher Port, __outbox-Store).
+    outbox.attach(port)
   } catch (error) {
     // Cache-Init darf den App-Start nie verhindern — ohne Cache läuft der POS
     // online normal weiter (BaseService fällt auf den Netzpfad zurück).

@@ -1,17 +1,13 @@
 import { Injectable } from '@angular/core'
 
+import { OfflineOutboxInput, OfflineOutboxPort } from '@panary/shared-common'
+
 import { CACHE_OUTBOX_STORE } from './cache-bootstrap'
 import { CacheStoragePort } from './cache-storage.port'
-import { OutboxEntry, OutboxOp } from './outbox'
+import { OutboxEntry } from './outbox'
 
-export interface OutboxEnqueueInput {
-  readonly _id: string
-  readonly service: string
-  readonly op: OutboxOp
-  readonly entityId: string
-  readonly payload: unknown
-  readonly occurredAt: string
-}
+/** Eingabe-Alias (= `OfflineOutboxInput` aus shared-common). */
+export type OutboxEnqueueInput = OfflineOutboxInput
 
 /**
  * Persistenz der Offline-Outbox über den geteilten {@link CacheStoragePort}. Der Port
@@ -20,7 +16,7 @@ export interface OutboxEnqueueInput {
  * (pos-client) — dieser Store ist reine Persistenz.
  */
 @Injectable()
-export class OutboxStore {
+export class OutboxStore implements OfflineOutboxPort {
   #port: CacheStoragePort | null = null
 
   attach(port: CacheStoragePort): void {
@@ -31,14 +27,13 @@ export class OutboxStore {
     this.#port = null
   }
 
-  isAttached(): boolean {
+  isReady(): boolean {
     return this.#port !== null
   }
 
-  async enqueue(input: OutboxEnqueueInput): Promise<OutboxEntry> {
+  async enqueue(input: OutboxEnqueueInput): Promise<void> {
     const entry: OutboxEntry = { ...input, status: 'pending', attempts: 0 }
     await this.#requirePort().put(CACHE_OUTBOX_STORE, entry)
-    return entry
   }
 
   /** Fällige Einträge (pending, `nextAttemptAt` fehlt oder ≤ now), FIFO nach `occurredAt`. */

@@ -11,6 +11,7 @@ import { TranslateService } from '@ngx-translate/core'
 import { REALTIME_SCOPE_GUARD, RealtimeScopeGuard } from './realtime-scope-guard'
 import { CachePolicy, normalizeToRecords, OfflineCachePort } from '@panary/shared-common'
 import { OFFLINE_CACHE } from './offline-cache.token'
+import { ConnectionService } from './connection.service'
 
 // Optional: Reusable type
 export type PaginatedOrArray<T> = Promise<Paginated<T> | T[]>
@@ -46,6 +47,12 @@ export abstract class BaseService<T> {
    * bisher. Subklassen aktivieren ihn über `cachePolicy` (+ optional `cacheStoreName`).
    */
   protected cacheStore: OfflineCachePort | null = inject(OFFLINE_CACHE, { optional: true })
+
+  /**
+   * Verbindungsstatus für den Offline-Kurzschluss der Reads. Optional injiziert:
+   * in Apps ohne ConnectionService (theoretisch) bleibt das Online-Verhalten.
+   */
+  #connection: ConnectionService | null = inject(ConnectionService, { optional: true })
 
   /** Cache-Strategie dieses Services. `none` = kein Cache (Default). */
   protected cachePolicy: CachePolicy = 'none'
@@ -132,6 +139,28 @@ export abstract class BaseService<T> {
     if (this.cachePolicy === 'none') return null
     if (!this.cacheStore?.isReady()) return null
     return this.cacheStoreName ?? this.serviceName
+  }
+
+  /**
+   * Offline = Socket nicht (mehr) verbunden. Wichtig: Socket.IO PUFFERT Emits im
+   * Disconnect (kein `throw`, der Call hängt unendlich) → cache-bewusste Reads dürfen
+   * NICHT auf den Server-Call warten, sondern direkt aus dem Cache lesen. Nur
+   * `authenticated`/`connected` gelten als online; disconnected/connecting/error = offline.
+   */
+  #isOffline(): boolean {
+    const status = this.#connection?.connectionState().status
+    if (!status) return false
+    return status !== 'authenticated' && status !== 'connected'
+  }
+
+  /** Cache-Liste lesen, optional auf `query.businessDayId` gefiltert (Parität zum Online-Read). */
+  async #readCachedList(cacheKey: string, params: ExtendedParams): Promise<T[]> {
+    const cached = ((await this.cacheStore?.readAll(cacheKey)) ?? []) as unknown as T[]
+    const businessDayId = (params?.query as Record<string, unknown> | undefined)?.['businessDayId']
+    if (typeof businessDayId === 'string') {
+      return cached.filter(record => (record as Record<string, unknown>)['businessDayId'] === businessDayId)
+    }
+    return cached
   }
 
   /** Schreibt ein Ergebnis/Event in den Cache (Upsert, fire-and-forget). Scope ist bereits geprüft. */
@@ -249,15 +278,20 @@ export abstract class BaseService<T> {
    */
   async find(params: ExtendedParams = {}): PaginatedOrArray<T> {
     const cacheKey = this.#cacheKey()
+    // Offline-Kurzschluss: Im Disconnect puffert Socket.IO den Emit (kein throw, der
+    // find hängt unendlich) → direkt aus dem Cache lesen, statt nie aufzulösen.
+    if (cacheKey && this.#isOffline()) {
+      return this.#readCachedList(cacheKey, params)
+    }
     try {
       const result = await this.service.find(params)
       this.#cacheUpsert(result)
       return result
     } catch (error: unknown) {
       // Offline-Fallback: bei Netzfehler aus dem Cache liefern statt zu werfen.
-      const cached = cacheKey ? await this.cacheStore?.readAll(cacheKey) : undefined
-      if (cached && cached.length > 0) {
-        return cached as unknown as T[]
+      if (cacheKey) {
+        const cached = await this.#readCachedList(cacheKey, params)
+        if (cached.length > 0) return cached
       }
       this.helper.handleError(this.serviceName, error)
       throw error
@@ -273,6 +307,12 @@ export abstract class BaseService<T> {
    */
   async get(id: Id, params: Params = {}): Promise<T> {
     const cacheKey = this.#cacheKey()
+    // Offline-Kurzschluss (siehe find): nicht auf den hängenden Socket-get warten.
+    if (cacheKey && this.#isOffline()) {
+      const cached = await this.cacheStore?.get(cacheKey, String(id))
+      if (cached) return cached as unknown as T
+      throw new Error('OFFLINE_NOT_CACHED')
+    }
     try {
       const result = await this.service.get(id, params)
       if (result) this.#cacheUpsert(result)

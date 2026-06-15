@@ -300,6 +300,9 @@ export class OrderService extends BaseService<Order> {
       payload: data,
       occurredAt: new Date().toISOString(),
     })
+    // Kein Realtime-`patched`-Echo offline → Liste/Dashboard aus dem Cache nachladen,
+    // damit der Statuswechsel (z. B. Abschluss) sofort sichtbar wird.
+    this.loadDocuments()
     return merged
   }
 

@@ -125,6 +125,13 @@ describe('OutboxStore', () => {
     expect(entry?.attempts).toBe(0)
   })
 
+  it('pendingEntityIds liefert nur entityIds von pending-Einträgen', async () => {
+    await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
+    await outbox.enqueue(input('o2', '2026-01-01T00:01:00.000Z'))
+    await outbox.markRejected('o2', 'terminal')
+    expect(await outbox.pendingEntityIds()).toEqual(['o1'])
+  })
+
   it('clearRejected löscht abgelehnte Einträge, lässt pending unberührt', async () => {
     await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
     await outbox.enqueue(input('o2', '2026-01-01T00:01:00.000Z'))

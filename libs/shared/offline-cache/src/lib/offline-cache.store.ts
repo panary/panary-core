@@ -83,6 +83,16 @@ export class OfflineCacheStore implements OfflineCachePort {
     this.#applyToMirror(store, [{ _id: id }], 'remove')
   }
 
+  /** Ersetzt den gesamten Store-Inhalt (clear + write) und setzt den Mirror neu. */
+  async replaceAll(store: string, records: readonly CacheEntity[]): Promise<void> {
+    if (!this.#port) return
+    await this.#port.clear(store)
+    if (records.length > 0) {
+      await this.#port.bulkPut(store, records)
+    }
+    this.#mirrorSignal(store).set([...records])
+  }
+
   /** Liest den Delta-Sync-Cursor (lastPullAt) eines Services. */
   async getCursor(service: string): Promise<string | undefined> {
     if (!this.#port) return undefined

@@ -79,6 +79,11 @@ export class OutboxStore implements OfflineOutboxPort {
     return this.#pending()
   }
 
+  /** `entityId`s aller pending-Einträge — für den Orders-Mirror (Offline-Orders bewahren). */
+  async pendingEntityIds(): Promise<readonly string[]> {
+    return (await this.#all()).filter(entry => entry.status === 'pending').map(entry => entry.entityId)
+  }
+
   /** Reaktiver Zähler terminal abgelehnter (rejected) Einträge — synchroner Signal-Read. */
   rejectedCount(): number {
     return this.#rejected()

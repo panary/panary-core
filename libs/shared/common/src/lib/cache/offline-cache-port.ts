@@ -29,6 +29,12 @@ export interface OfflineCachePort {
   get<TEntity extends CacheEntity>(store: string, id: string): Promise<TEntity | undefined>
   upsertMany(store: string, records: readonly CacheEntity[]): Promise<void>
   removeOne(store: string, id: string): Promise<void>
+  /**
+   * Ersetzt den gesamten Store-Inhalt durch `records` (clear + write). Für den
+   * server-autoritativen Spiegel transaktionaler Daten (Orders): statt anzuhäufen,
+   * wird der Store bei jedem Online-Load auf die aktuelle Server-Menge gesetzt.
+   */
+  replaceAll(store: string, records: readonly CacheEntity[]): Promise<void>
 }
 
 /**
@@ -91,6 +97,11 @@ export interface OfflineOutboxPort {
   enqueue(input: OfflineOutboxInput): Promise<void>
   /** Reaktiver Zähler noch ausstehender (pending) Einträge. */
   pendingCount(): number
+  /**
+   * `entityId`s aller noch ausstehenden (pending) Einträge — für den Orders-Mirror:
+   * noch nicht gesyncte Offline-Orders bleiben beim Server-Replace erhalten.
+   */
+  pendingEntityIds(): Promise<readonly string[]>
   /** Reaktiver Zähler terminal abgelehnter (rejected) Einträge. */
   rejectedCount(): number
   /** Detailliste terminal abgelehnter Einträge — für die Operator-Sicht. */

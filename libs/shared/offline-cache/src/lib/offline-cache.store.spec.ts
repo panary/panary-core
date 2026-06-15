@@ -69,6 +69,14 @@ describe('OfflineCacheStore', () => {
     expect(store.mirror<TestProduct>('products')().map(p => p._id)).toEqual(['p2'])
   })
 
+  it('replaceAll ersetzt Store-Inhalt + Mirror (kein Anhäufen)', async () => {
+    await store.upsertMany('products', [product('p1'), product('p2'), product('p3')])
+    await store.replaceAll('products', [product('p2', { name: 'neu' }), product('p4')])
+    expect(store.mirror<TestProduct>('products')().map(p => p._id).sort()).toEqual(['p2', 'p4'])
+    expect((await store.readAll<TestProduct>('products')).map(p => p._id).sort()).toEqual(['p2', 'p4'])
+    expect(await store.get<TestProduct>('products', 'p1')).toBeUndefined()
+  })
+
   it('hydratisiert den Mirror beim init aus IndexedDB', async () => {
     await store.upsertMany('products', [product('p1'), product('p2')])
     port.close()

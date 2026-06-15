@@ -1,4 +1,4 @@
-import { computed, effect, inject, Injectable, Signal, signal, untracked, WritableSignal } from '@angular/core'
+import { computed, effect, inject, Injectable, Signal, signal, WritableSignal } from '@angular/core'
 import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { PrintDialogComponent } from '../components/print-dialog.component'
@@ -97,35 +97,32 @@ export class OrderService extends BaseService<Order> {
       }
     })
 
-    // Orders-Cache auf den aktuellen Geschäftstag begrenzen. Ohne das wächst der
-    // `orders`-Store unbegrenzt (jede je geladene/empfangene Order wird write-through
-    // gecached). Offline-relevant ist nur der laufende Tag (Liste + Abschluss; offline
-    // angelegte Orders tragen den aktuellen businessDayId) → alte Tage entfernen,
-    // sobald sich der Geschäftstag ändert (oder beim ersten Laden).
-    effect((): void => {
-      const businessDayId = this.#locationService.activeLocation()?.currentBusinessDay?.businessDayId
-      untracked(() => {
-        if (businessDayId && businessDayId !== this.#lastPrunedBusinessDayId) {
-          this.#lastPrunedBusinessDayId = businessDayId
-          void this.#pruneOrdersCacheToBusinessDay(businessDayId)
-        }
-      })
-    })
-
     this.calculateRemainingTimeInterval()
   }
 
-  #lastPrunedBusinessDayId: string | null = null
+  /**
+   * Server-autoritativer Spiegel des Orders-Caches (statt anhäufendem Write-Through):
+   * Bei jedem Online-Load wird der `orders`-Store auf die aktuelle Server-Menge ERSETZT,
+   * vereinigt mit den noch ausstehenden (pending) Offline-Orders — damit diese im
+   * Reconnect→Replay-Fenster nicht aus Liste/Cache verschwinden. Rejected/synced/alte
+   * Orders fallen dabei automatisch weg → kein Wildwuchs, kein separates Aufräumen.
+   */
+  async #mirrorOrdersCache(serverOrders: Order[]): Promise<void> {
+    const serverIds = new Set(serverOrders.map(order => order._id))
+    const pendingIds = new Set(await this.#outbox?.pendingEntityIds() ?? [])
 
-  /** Entfernt alle gecachten Orders, die nicht zum aktuellen Geschäftstag gehören. */
-  async #pruneOrdersCacheToBusinessDay(currentBusinessDayId: string): Promise<void> {
-    if (!this.cacheStore?.isReady()) return
-    const cached = await this.cacheStore.readAll<Order>('orders')
-    for (const order of cached) {
-      if (order.businessDayId && order.businessDayId !== currentBusinessDayId) {
-        await this.cacheStore.removeOne('orders', order._id)
-      }
+    let preserved: Order[] = []
+    if (this.cacheStore?.isReady() && pendingIds.size > 0) {
+      const cached = await this.cacheStore.readAll<Order>('orders')
+      preserved = cached.filter(order => order.offlineCreated && !serverIds.has(order._id) && pendingIds.has(order._id))
     }
+
+    const mirror = [...serverOrders, ...preserved]
+    this.#orders.set(mirror)
+    if (this.cacheStore?.isReady()) {
+      await this.cacheStore.replaceAll('orders', mirror as unknown as CacheEntity[])
+    }
+    this.calculateRemainingTime()
   }
 
   /** PRIVATE METHODS */
@@ -166,9 +163,17 @@ export class OrderService extends BaseService<Order> {
 
     limit.$limit = this.QUERY_LIMIT
     params = { query: { ...query, ...limit } }
+    // Status VOR dem find festhalten: online → server-autoritativer Spiegel (Replace);
+    // offline kommt das Ergebnis bereits aus dem Cache (find-Kurzschluss).
+    const online = this.connectionService.connectionState().status === 'authenticated'
     this.find(params).then((response: Paginated<Order> | Order[]): void => {
-      this.#orders.set(Array.isArray(response) ? response : response.data)
-      this.calculateRemainingTime()
+      const orders = Array.isArray(response) ? response : response.data
+      if (online) {
+        void this.#mirrorOrdersCache(orders)
+      } else {
+        this.#orders.set(orders)
+        this.calculateRemainingTime()
+      }
       this.#matSnackBar.open(`Bestellungen aktualisiert`, OrderService.SNACKBAR_ACTION, {
         duration: OrderService.SNACKBAR_DURATION,
       })

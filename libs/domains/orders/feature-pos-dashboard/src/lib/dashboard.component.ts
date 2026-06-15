@@ -379,7 +379,19 @@ export class DashboardComponent implements OnInit {
     return !!this.currentUser()?.startBreakAt
   }
 
+  /**
+   * Stempel-/Pausen-Aktionen (checkin/checkout/start-/endBreak) sind serverseitige
+   * Custom-Methods; working-times werden NICHT in der Offline-Outbox nachgereicht.
+   * Offline würde der Call still hängen → sperren (analog Logout-Sperre).
+   */
+  #timeTrackingBlockedOffline(): boolean {
+    if (!this.isOffline()) return false
+    this.#snackBar.open(this.#translate.instant('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED'), undefined, { duration: 4000 })
+    return true
+  }
+
   async clockIn() {
+    if (this.#timeTrackingBlockedOffline()) return
     const user = this.currentUser()
     if (!user) return
 
@@ -396,6 +408,7 @@ export class DashboardComponent implements OnInit {
   }
 
   async clockOut() {
+    if (this.#timeTrackingBlockedOffline()) return
     const user = this.currentUser()
     if (!user?.stampingId) return
 
@@ -408,6 +421,7 @@ export class DashboardComponent implements OnInit {
   }
 
   async startBreak() {
+    if (this.#timeTrackingBlockedOffline()) return
     const user = this.currentUser()
     if (!user?.stampingId) return
 
@@ -420,6 +434,7 @@ export class DashboardComponent implements OnInit {
   }
 
   async endBreak() {
+    if (this.#timeTrackingBlockedOffline()) return
     const user = this.currentUser()
     if (!user?.stampingId) return
 

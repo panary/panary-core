@@ -213,6 +213,7 @@
     "HELLO": "Merhaba,",
     "LOGOUT": "Çıkış yap",
     "LOGOUT_OFFLINE_BLOCKED": "Çevrimdışı: çıkış yapılamaz — yeniden giriş için bağlantı gerekir.",
+    "TIME_TRACKING_OFFLINE_BLOCKED": "Çevrimdışı kullanılamaz — giriş/çıkış ve molalar bağlantı gerektirir.",
     "STATUS_LABEL": "Durum",
     "BREAK": "Mola",
     "IN": "Giriş",

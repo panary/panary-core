@@ -213,6 +213,7 @@
     "HELLO": "Hallo,",
     "LOGOUT": "Abmelden",
     "LOGOUT_OFFLINE_BLOCKED": "Offline: Abmelden nicht möglich — die Wiederanmeldung braucht eine Verbindung.",
+    "TIME_TRACKING_OFFLINE_BLOCKED": "Offline nicht möglich — Stempeln/Pause brauchen eine Verbindung.",
     "STATUS_LABEL": "Status",
     "BREAK": "Pause",
     "IN": "Ein",

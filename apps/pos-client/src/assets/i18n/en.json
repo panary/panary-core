@@ -213,6 +213,7 @@
     "HELLO": "Hello,",
     "LOGOUT": "Log out",
     "LOGOUT_OFFLINE_BLOCKED": "Offline: logging out is not possible — signing back in requires a connection.",
+    "TIME_TRACKING_OFFLINE_BLOCKED": "Not available offline — clocking in/out and breaks require a connection.",
     "STATUS_LABEL": "Status",
     "BREAK": "Break",
     "IN": "In",

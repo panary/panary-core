@@ -346,6 +346,9 @@ export const locationQueryProperties = Type.Pick(locationSchema, [
   'brandId',
   'handle',
   'currentBusinessDay',
+  // Pflicht für den Offline-Cache-Delta-Sync (`updatedAt > cursor`) — sonst lehnt der
+  // Query-Validator die Delta-Query mit 400 „additional property updatedAt" ab.
+  'updatedAt',
 ])
 // `$or` wird über Property-Spread an die `querySyntax`-Ausgabe gehängt — die
 // Intersect-Variante mit zusätzlichem `Type.Object({$or})` produzierte unter

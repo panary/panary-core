@@ -12,6 +12,7 @@ import {
   OfflineCacheStore,
   requestPersistentStorage,
 } from '@panary/shared/offline-cache'
+import { PosCacheSyncService } from './pos-cache-sync.service'
 
 /**
  * POS-Cache-Schema (Connect-Tier). Stores = Feathers-Service-Pfade; jeder Store
@@ -55,6 +56,7 @@ function cacheStore(name: string): CacheStoreDefinition {
 export const providePosOfflineCache = (): EnvironmentProviders =>
   makeEnvironmentProviders([
     OfflineCacheStore,
+    PosCacheSyncService,
     { provide: CACHE_STORAGE_PORT, useClass: IdbStorageAdapter },
     { provide: OFFLINE_CACHE, useExisting: OfflineCacheStore },
     provideAppInitializer(() => {
@@ -65,6 +67,8 @@ export const providePosOfflineCache = (): EnvironmentProviders =>
       const store = inject(OfflineCacheStore)
       const port = inject(CACHE_STORAGE_PORT)
       const appConfig = inject(APP_CONFIG)
+      // PosCacheSyncService eager instanziieren → startet den Connect-Sync-Effect.
+      inject(PosCacheSyncService)
       void initPosOfflineCache(deviceConfig, store, port, appConfig)
     }),
   ])

@@ -83,4 +83,18 @@ describe('OfflineCacheStore', () => {
     await store.destroy()
     expect(store.isReady()).toBe(false)
   })
+
+  it('persistiert und liest Delta-Sync-Cursor pro Service', async () => {
+    expect(await store.getCursor('products')).toBeUndefined()
+    await store.setCursor('products', '2026-05-30T10:00:00.000Z')
+    await store.setCursor('orders', '2026-05-30T11:00:00.000Z')
+    expect(await store.getCursor('products')).toBe('2026-05-30T10:00:00.000Z')
+    expect(await store.getCursor('orders')).toBe('2026-05-30T11:00:00.000Z')
+  })
+
+  it('überschreibt einen vorhandenen Cursor', async () => {
+    await store.setCursor('products', '2026-05-30T10:00:00.000Z')
+    await store.setCursor('products', '2026-05-30T12:00:00.000Z')
+    expect(await store.getCursor('products')).toBe('2026-05-30T12:00:00.000Z')
+  })
 })

@@ -3,7 +3,7 @@ title: Offline-Cache (Connect-Tier) — Architektur & Storage-Fundament
 date: 2026-05-30
 category: Architektur
 domains: [sync, orders, products, devices]
-status: in-progress (Phasen 1–2 von 6 implementiert)
+status: in-progress (Phasen 1–3 von 6 implementiert)
 ---
 
 # Offline-Cache (Connect-Tier) — Architektur & Storage-Fundament
@@ -86,10 +86,23 @@ Tests: 17 Specs grün (`fake-indexeddb`, node-Environment). `nx lint`/`nx test o
 - Verifiziert: `nx build pos-client` grün (Bundle inkl. `idb`). Ohne gekoppeltes Gerät bleibt der
   Cache inaktiv → unverändertes Verhalten.
 
+## Geliefert in Phase 3 (Freshness — Bootstrap + Delta-Sync)
+
+- **Cursor-Persistenz** im `OfflineCacheStore` (`getCursor`/`setCursor`, interner `__cursors`-Store)
+  — lastPullAt pro Service.
+- **`PosCacheSyncService`** (`apps/pos-client`): startet beim (Re-)Connect (effect auf `ready` +
+  `connectionState='authenticated'`, `untracked`) je Service einen paginierten Pull — Delta
+  (`updatedAt > cursor`) wo unterstützt (products, orders), sonst Voll-Refresh-Fallback
+  (product-groups, discounts, locations). Die `find()` cachen über den `BaseService` write-through;
+  der Sync verwaltet nur Cursor + Pagination. `#syncing`-Guard gegen Überlappung.
+- Verifiziert: `nx build pos-client` grün; `nx test offline-cache` grün (32 Specs, inkl. Cursor).
+- Bewusst offen (Folge): Soft-Delete-Reconciliation im Pull (heute via `cacheBuildId`-Wipe +
+  Realtime-`removed`); Web-Worker-Auslagerung.
+
 ## Roadmap (Folgephasen)
 
 2. ✅ **Read-Pfad + POS-Aktivierung** (siehe oben) — erledigt.
-3. Freshness: `CatalogSyncService` (Bootstrap + Delta-Cursor pro Service).
+3. ✅ **Freshness — Bootstrap + Delta-Sync** (siehe oben) — erledigt.
 4. Write-Pfad: `OutboxStore` + Replay (uuidv7, idempotent, FIFO, Backoff, Klassifikation).
 5. Offline-UX: Connect-Offline-Erkennung, Banner-Eintrag, Bargeld-Zwang, TSE-Ausfallvermerk,
    provisorische `dailySequenceNumber` (Staff-Logout offline gesperrt).

@@ -10,6 +10,14 @@ export interface CacheMetaRecord extends CacheEntity {
   readonly createdAt: string
 }
 
+/** Interner Store für die Delta-Sync-Cursor (lastPullAt pro Service-/Store-Name). */
+export const CACHE_CURSORS_STORE = '__cursors'
+
+export interface CacheCursorRecord extends CacheEntity {
+  readonly _id: string
+  readonly value: string
+}
+
 export interface OpenCacheResult {
   /** True, wenn die DB wegen Build-Mismatch verworfen und neu angelegt wurde. */
   readonly wiped: boolean
@@ -50,6 +58,6 @@ export async function openCacheDatabase(
 }
 
 function withMetaStore(schema: CacheStorageSchema): CacheStorageSchema {
-  const metaStore: CacheStoreDefinition = { name: CACHE_META_STORE }
-  return { version: schema.version, stores: [metaStore, ...schema.stores] }
+  const internalStores: CacheStoreDefinition[] = [{ name: CACHE_META_STORE }, { name: CACHE_CURSORS_STORE }]
+  return { version: schema.version, stores: [...internalStores, ...schema.stores] }
 }

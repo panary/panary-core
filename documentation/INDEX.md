@@ -6,6 +6,7 @@
 - [Service-Erstellungsanleitung](service-creation-guide.md) — 2025-02-13 — Anleitung: Neuen FeathersJS-Service anlegen (Schema → Service → Hooks)
 - [ensureIndexes — Entwicklungs-Guide](ensure-indexes-guide.md) — 2026-04-24 — DB-agnostische Index-Deklaration (SQLite/MongoDB) via Factory
 - [Tauri Update-Server-Einrichtung](tauri-update-server-einrichtung.md) — 2025-03-28 — Einrichtung des Auto-Update-Servers für Tauri POS
+- [Offline-Cache (Connect-Tier) — Smoke-Test-Anleitung](offline-cache-smoke-test.md) — 2026-06-15 — Penible manuelle Verifikation des POS-Offline-Cache + Outbox (Phasen 1–5): Bootstrap/Hydration, Offline-Erkennung + `connect-offline`-Banner, optimistische Bar-Bestellung + TSE-Ausfallvermerk/vorläufige Belegnummer auf dem Bon, Bargeld-Zwang, Offline-Checkout (PATCH), Reconnect-Replay (Idempotenz, Re-Stamp, keine Duplikate), Delta-Sync, Reload-Persistenz, Operator-Sicht (Settings → Verbindung → „Offline-Warteschlange" mit Pending-/Rejected-Zählern). Inkl. IndexedDB-Inspektion (`panary-cache::…`), Offline-Simulation per DevTools, Reset & bekannte Grenzen
 
 ## Architektur
 

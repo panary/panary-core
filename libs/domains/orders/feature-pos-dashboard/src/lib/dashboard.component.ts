@@ -48,6 +48,13 @@ interface QuickAction {
    * Default: immer sichtbar.
    */
   condition?: () => boolean
+  /**
+   * Aktion braucht eine Server-Verbindung (z. B. Vorbestellungen, Historie,
+   * Arbeitszeiten, Tagesabschluss). Offline wird der Button deaktiviert (+ Hinweis),
+   * damit der Nutzer nicht ins Leere klickt. Default: offline nutzbar (z. B. Neue
+   * Bestellung, Offene Bestellungen, Einstellungen).
+   */
+  requiresOnline?: boolean
 }
 
 @Component({
@@ -171,6 +178,7 @@ export class DashboardComponent implements OnInit {
       action: () => this.navigateTo('/pre-orders'),
       bgClass: 'bg-amber-100 dark:bg-amber-900/30',
       textClass: 'text-amber-700 dark:text-amber-400',
+      requiresOnline: true,
     },
     {
       label: 'DASHBOARD.HISTORY',
@@ -178,6 +186,7 @@ export class DashboardComponent implements OnInit {
       action: () => this.navigateTo('/orders/history'),
       bgClass: 'bg-purple-100 dark:bg-purple-900/30',
       textClass: 'text-purple-700 dark:text-purple-400',
+      requiresOnline: true,
     },
     {
       label: 'DASHBOARD.WORKING_TIMES',
@@ -185,6 +194,7 @@ export class DashboardComponent implements OnInit {
       action: () => this.navigateTo('/working-times'),
       bgClass: 'bg-orange-100 dark:bg-orange-900/30',
       textClass: 'text-orange-700 dark:text-orange-400',
+      requiresOnline: true,
     },
     {
       label: 'DASHBOARD.WRITE_OFF',
@@ -201,6 +211,7 @@ export class DashboardComponent implements OnInit {
       bgClass: 'bg-red-50 dark:bg-red-900/30',
       textClass: 'text-red-500 dark:text-red-400',
       hideInStandalone: true,
+      requiresOnline: true,
     },
     // Tageseroeffnung — nur sichtbar wenn kein Geschaeftstag offen ist.
     // `hideWhenCloudPaired`: im Hybrid-Modell ist die Cloud Master fuer
@@ -214,6 +225,7 @@ export class DashboardComponent implements OnInit {
       condition: () => !this.hasOpenBusinessDay(),
       hideInStandalone: true,
       hideWhenCloudPaired: true,
+      requiresOnline: true,
     },
     // Tagesabschluss — nur sichtbar wenn Geschaeftstag offen ist.
     // `hideWhenCloudPaired`: gleich wie Open — Cloud-Admin uebernimmt im
@@ -227,6 +239,7 @@ export class DashboardComponent implements OnInit {
       condition: () => this.hasOpenBusinessDay(),
       hideInStandalone: true,
       hideWhenCloudPaired: true,
+      requiresOnline: true,
     },
     // Kasse — eigene Lade eröffnen/schließen. Nur im Cloud-Modus (Kassen sind
     // ein Cloud-Feature; Standalone hat keinen Multi-Kassen-Tagesabschluss) und
@@ -238,6 +251,7 @@ export class DashboardComponent implements OnInit {
       bgClass: 'bg-amber-100 dark:bg-amber-900/30',
       textClass: 'text-amber-700 dark:text-amber-400',
       condition: () => this.hasOpenBusinessDay() && this.isCloudPaired(),
+      requiresOnline: true,
     },
     {
       label: 'DASHBOARD.SETTINGS',

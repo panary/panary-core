@@ -115,6 +115,20 @@ export class OutboxStore implements OfflineOutboxPort {
     return rejected.length
   }
 
+  /**
+   * Backoff aller pending-Einträge zurücksetzen (`nextAttemptAt` + attempts) → sofort
+   * fällig. Für „Jetzt synchronisieren": Einträge, die nach Fehlversuchen im Backoff
+   * stecken (nextAttemptAt in der Zukunft), werden sonst von `claimDue` übersprungen.
+   */
+  async resetPendingBackoff(): Promise<number> {
+    const stuck = (await this.#all()).filter(entry => entry.status === 'pending' && entry.nextAttemptAt)
+    for (const entry of stuck) {
+      await this.#requirePort().put(CACHE_OUTBOX_STORE, { ...entry, attempts: 0, nextAttemptAt: undefined })
+    }
+    await this.#refreshCounts()
+    return stuck.length
+  }
+
   /** Alle rejected-Einträge endgültig löschen (Operator-„Verwerfen"). Anzahl gelöscht. */
   async clearRejected(): Promise<number> {
     const rejected = (await this.#all()).filter(entry => entry.status === 'rejected')

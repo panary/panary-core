@@ -239,7 +239,9 @@
       <div class="flex flex-wrap gap-2 lg:grid lg:grid-cols-3 flex-1 overflow-auto content-start">
         @for (action of visibleQuickActions(); track action.label) {
         <button (click)="action.action()"
-          class="group relative flex flex-col items-center justify-center gap-1 p-1.5 md:p-3 lg:p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 transition-all duration-200 hover:bg-white dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 active:scale-95 w-20 h-20 md:w-28 md:h-28 lg:w-full lg:h-auto lg:aspect-square">
+          [disabled]="action.requiresOnline && isOffline()"
+          [title]="action.requiresOnline && isOffline() ? ('DASHBOARD.ACTION_OFFLINE_BLOCKED' | translate) : ''"
+          class="group relative flex flex-col items-center justify-center gap-1 p-1.5 md:p-3 lg:p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 transition-all duration-200 hover:bg-white dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 active:scale-95 w-20 h-20 md:w-28 md:h-28 lg:w-full lg:h-auto lg:aspect-square disabled:opacity-40 disabled:pointer-events-none">
           <div class="p-2 md:p-3 rounded-lg transition-colors duration-200 group-hover:scale-110" [ngClass]="action.bgClass">
             <span class="material-symbols-outlined text-[20px] md:text-[26px]" [ngClass]="action.textClass">{{ action.icon }}</span>
           </div>

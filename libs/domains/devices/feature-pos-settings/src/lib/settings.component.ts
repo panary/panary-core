@@ -138,6 +138,27 @@ export class SettingsComponent implements OnInit {
   }
 
   /**
+   * „Jetzt synchronisieren": Backoff aller pending-Einträge zurücksetzen + sofort
+   * replayen — für Einträge, die nach Fehlversuchen im Backoff stecken und sonst erst
+   * nach Stunden erneut versucht würden.
+   */
+  async syncNow(): Promise<void> {
+    if (!this.#outbox || this.isRetrying()) return
+    this.isRetrying.set(true)
+    try {
+      const count = await this.#outbox.resetPendingBackoff()
+      await this.#replay?.replayNow()
+      this.#snackBar.open(
+        this.translateService.instant('SETTINGS.OUTBOX_SYNC_NOW_DONE', { count }),
+        'OK',
+        { duration: 4000 },
+      )
+    } finally {
+      this.isRetrying.set(false)
+    }
+  }
+
+  /**
    * Operator-Verwerfen: abgelehnte Einträge endgültig aus der Outbox löschen — für
    * unwiederbringliche Bad-Payload-Einträge, die nie syncen (z. B. das alte createdBy:'').
    */

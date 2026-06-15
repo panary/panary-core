@@ -104,6 +104,11 @@ export interface OfflineOutboxPort {
   pendingEntityIds(): Promise<readonly string[]>
   /** Reaktiver Zähler terminal abgelehnter (rejected) Einträge. */
   rejectedCount(): number
+  /**
+   * Backoff aller pending-Einträge zurücksetzen (sofort fällig) — für „Jetzt
+   * synchronisieren". Gibt die Anzahl zurückgesetzter Einträge zurück.
+   */
+  resetPendingBackoff(): Promise<number>
   /** Detailliste terminal abgelehnter Einträge — für die Operator-Sicht. */
   rejected(): Promise<readonly OfflineOutboxRejectedEntry[]>
   /**

@@ -125,6 +125,17 @@ describe('OutboxStore', () => {
     expect(entry?.attempts).toBe(0)
   })
 
+  it('resetPendingBackoff macht backed-off pending-Einträge sofort fällig', async () => {
+    await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
+    await outbox.markRetry('o1', '2026-01-01T05:00:00.000Z', 'transient') // Backoff weit in der Zukunft
+    expect(await outbox.claimDue('2026-01-01T00:10:00.000Z')).toHaveLength(0)
+    const count = await outbox.resetPendingBackoff()
+    expect(count).toBe(1)
+    const due = await outbox.claimDue('2026-01-01T00:10:00.000Z')
+    expect(due.map(e => e._id)).toEqual(['o1'])
+    expect(due[0]?.attempts).toBe(0)
+  })
+
   it('pendingEntityIds liefert nur entityIds von pending-Einträgen', async () => {
     await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
     await outbox.enqueue(input('o2', '2026-01-01T00:01:00.000Z'))

@@ -55,9 +55,16 @@ export class ServiceHelper {
     // → nur Console-Log, kein Toast. Konsumenten fangen den Fehler ohnehin ab (z. B.
     // Dashboard-Pre-Order-KPI → leer). Ein „record not found" (Get per id) trägt eine
     // andere Message und toastet weiterhin normal.
-    if (code === 404 && typeof errorMessage === 'string' && /Service '.*' not found/i.test(errorMessage)) {
-      console.warn(`Service "${serviceName}": auf diesem Backend nicht registriert — ${errorMessage}`)
-      return
+    // Bewusst String-Vergleich statt Regex: das unbeschränkte `.*` einer
+    // `/Service '.*' not found/`-Variante ist ein polynomieller ReDoS-Vektor
+    // (CodeQL js/polynomial-redos). `startsWith`/`includes` sind linear und
+    // verhaltensgleich für die Feathers-Message „Service '<pfad>' not found".
+    if (code === 404 && typeof errorMessage === 'string') {
+      const lower = errorMessage.toLowerCase()
+      if (lower.startsWith("service '") && lower.includes("' not found")) {
+        console.warn(`Service "${serviceName}": auf diesem Backend nicht registriert — ${errorMessage}`)
+        return
+      }
     }
 
     const errorPhrase = getErrorPhrase(code)

@@ -471,7 +471,14 @@
     "QR_HINT": "Kamerayı hub'ın QR koduna doğrultun.",
     "QR_CANCEL": "İptal",
     "QR_UNSUPPORTED": "Bu cihazda QR tarama desteklenmiyor. Lütfen elle girişi kullanın.",
-    "QR_CAMERA_DENIED": "Kamera erişimi yok. Lütfen izin verin veya elle girişi kullanın."
+    "QR_CAMERA_DENIED": "Kamera erişimi yok. Lütfen izin verin veya elle girişi kullanın.",
+    "CLOUD_URL_OVERRIDE_TITLE": "Bulut URL'sini geçersiz kıl",
+    "CLOUD_URL_OVERRIDE_HINT": "Panary Cloud yerine kendi sunucu URL'nize bağlanın (ör. test/hazırlık ortamı).",
+    "CLOUD_URL_OVERRIDE_LABEL": "Sunucu URL'si",
+    "CLOUD_URL_OVERRIDE_PLACEHOLDER": "https://benim-bulutum.example.com",
+    "CLOUD_URL_OVERRIDE_APPLY": "Uygula",
+    "CLOUD_URL_OVERRIDE_CANCEL": "İptal",
+    "CLOUD_URL_OVERRIDE_RESET": "Panary Cloud'a sıfırla"
   },
   "ORDER_DIALOG": {
     "EMPTY_ORDER": "Boş sipariş",

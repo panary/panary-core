@@ -342,7 +342,15 @@
           <p class="text-sm text-gray-500 dark:text-gray-400 text-center mb-2">{{ stepDescriptionKey() | translate }}</p>
           @if (connectedHubName(); as name) {
             <p class="text-xs text-gray-400 dark:text-gray-500 mb-6">
-              {{ 'SETUP.CONNECTED_TO' | translate }}: <span class="font-semibold text-gray-600 dark:text-gray-300">{{ name }}</span>
+              {{ 'SETUP.CONNECTED_TO' | translate }}:
+              @if (pairingMode() === 'cloud') {
+                <!-- Versteckter Trigger: Klick auf den Cloud-Namen öffnet den URL-Override-Dialog. -->
+                <button type="button" (click)="openUrlOverride()"
+                  title="{{ 'SETUP.CLOUD_URL_OVERRIDE_TITLE' | translate }}"
+                  class="font-semibold text-gray-600 dark:text-gray-300 cursor-pointer hover:underline decoration-dotted underline-offset-4 transition">{{ name }}</button>
+              } @else {
+                <span class="font-semibold text-gray-600 dark:text-gray-300">{{ name }}</span>
+              }
             </p>
           }
 
@@ -606,6 +614,40 @@
         class="mt-6 px-6 py-3 rounded-xl bg-white text-black font-bold hover:bg-gray-200 active:scale-[0.98] transition-all">
         {{ 'SETUP.QR_CANCEL' | translate }}
       </button>
+    </div>
+  }
+
+  <!-- ==================== Cloud-URL-Override-Dialog (versteckt) ==================== -->
+  @if (urlOverrideOpen()) {
+    <div class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-6 animate-[fadeIn_0.2s_ease-out]">
+      <div class="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 p-6 flex flex-col gap-4">
+        <div class="flex flex-col gap-1">
+          <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ 'SETUP.CLOUD_URL_OVERRIDE_TITLE' | translate }}</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400">{{ 'SETUP.CLOUD_URL_OVERRIDE_HINT' | translate }}</p>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label for="customUrl" class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ 'SETUP.CLOUD_URL_OVERRIDE_LABEL' | translate }}</label>
+          <input type="url" id="customUrl" name="customUrl" [(ngModel)]="customUrlInput" (keyup.enter)="applyUrlOverride()"
+            class="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-lg p-3 text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-white focus:ring-1 focus:ring-gray-900 dark:focus:ring-white transition outline-none placeholder-gray-400 dark:placeholder-gray-600"
+            placeholder="{{ 'SETUP.CLOUD_URL_OVERRIDE_PLACEHOLDER' | translate }}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+        </div>
+        <div class="flex gap-3 mt-1">
+          <button type="button" (click)="cancelUrlOverride()"
+            class="flex-none px-4 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold py-3 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-[0.98] transition-all">
+            {{ 'SETUP.CLOUD_URL_OVERRIDE_CANCEL' | translate }}
+          </button>
+          <button type="button" (click)="applyUrlOverride()" [disabled]="customUrlInput.trim().length === 0"
+            class="flex-1 bg-gray-900 dark:bg-white text-white dark:text-black font-bold py-3 rounded-xl hover:bg-gray-700 dark:hover:bg-gray-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+            {{ 'SETUP.CLOUD_URL_OVERRIDE_APPLY' | translate }}
+          </button>
+        </div>
+        @if (cloudUrlCustomized()) {
+          <button type="button" (click)="resetCloudUrl()"
+            class="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 underline underline-offset-2 transition self-center">
+            {{ 'SETUP.CLOUD_URL_OVERRIDE_RESET' | translate }}
+          </button>
+        }
+      </div>
     </div>
   }
 </div>

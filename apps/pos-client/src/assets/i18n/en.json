@@ -471,7 +471,14 @@
     "QR_HINT": "Point the camera at the hub's QR code.",
     "QR_CANCEL": "Cancel",
     "QR_UNSUPPORTED": "QR scanning is not supported on this device. Please use manual entry.",
-    "QR_CAMERA_DENIED": "No camera access. Please grant permission or use manual entry."
+    "QR_CAMERA_DENIED": "No camera access. Please grant permission or use manual entry.",
+    "CLOUD_URL_OVERRIDE_TITLE": "Override cloud URL",
+    "CLOUD_URL_OVERRIDE_HINT": "Connect to a custom server URL instead of the Panary Cloud (e.g. a test/staging environment).",
+    "CLOUD_URL_OVERRIDE_LABEL": "Server URL",
+    "CLOUD_URL_OVERRIDE_PLACEHOLDER": "https://my-cloud.example.com",
+    "CLOUD_URL_OVERRIDE_APPLY": "Apply",
+    "CLOUD_URL_OVERRIDE_CANCEL": "Cancel",
+    "CLOUD_URL_OVERRIDE_RESET": "Reset to Panary Cloud"
   },
   "ORDER_DIALOG": {
     "EMPTY_ORDER": "Empty order",

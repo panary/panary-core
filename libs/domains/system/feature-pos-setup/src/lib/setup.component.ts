@@ -104,6 +104,11 @@ export class SetupComponent {
   readonly probing = signal(false)
   readonly hubError: WritableSignal<string | null> = signal(null)
 
+  // Cloud-URL-Override (versteckt: Klick auf den „Panary Cloud"-Namen im Login-Step)
+  readonly urlOverrideOpen = signal(false)
+  readonly cloudUrlCustomized = signal(false)
+  customUrlInput = ''
+
   // Hub-Discovery (aus dem Service)
   readonly hubs = this.hubDiscovery.hubs
   readonly scanning = this.hubDiscovery.scanning
@@ -241,6 +246,39 @@ export class SetupComponent {
   chooseLocalHub(): void {
     this.pairingMode.set('local')
     this.currentStep.set('hub-prep')
+  }
+  //#endregion
+
+  //#region Cloud-URL-Override (versteckt)
+  /** Öffnet den Dialog zum Überschreiben der Cloud-URL (Klick auf den „Panary Cloud"-Namen). */
+  openUrlOverride(): void {
+    this.customUrlInput = this.serverUrl
+    this.urlOverrideOpen.set(true)
+  }
+
+  /** Übernimmt eine eigene Server-URL (z. B. Test-/Staging-Cloud). */
+  applyUrlOverride(): void {
+    const raw = this.customUrlInput.trim().replace(/\/$/, '')
+    if (!raw) return
+    // Cloud-Override: Standard-Schema ist https; KEIN Edge-Port (:3030) erzwingen
+    // (anders als normalizeUrl im lokalen-Hub-Pfad — die Cloud lauscht auf 443).
+    const url = /^https?:\/\//.test(raw) ? raw : `https://${raw}`
+    this.serverUrl = url
+    this.cloudUrlCustomized.set(true)
+    this.connectedHubName.set(url.replace(/^https?:\/\//, ''))
+    this.urlOverrideOpen.set(false)
+  }
+
+  cancelUrlOverride(): void {
+    this.urlOverrideOpen.set(false)
+  }
+
+  /** Zurück auf die fest hinterlegte Panary Cloud. */
+  resetCloudUrl(): void {
+    this.serverUrl = this.appConfig.cloudUrl || 'https://cloud.panary.io'
+    this.cloudUrlCustomized.set(false)
+    this.connectedHubName.set('Panary Cloud')
+    this.urlOverrideOpen.set(false)
   }
   //#endregion
 

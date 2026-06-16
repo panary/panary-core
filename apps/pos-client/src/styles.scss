@@ -169,6 +169,16 @@ body.dark .mat-mdc-select-panel {
   }
 }
 
+/* Vorbestell-Dialog-Backdrop: weichzeichnen + dezent abdunkeln, damit sich die
+   neue Dialog-Ebene klar vom darunterliegenden Bestelldialog abhebt. Der dunkle
+   Scrim funktioniert in Light UND Dark (Standard-Modal-Verhalten); die Panel-
+   Kante übernimmt im Dark Mode die Border am Dialog-Root. */
+.pre-order-blur-backdrop {
+  background-color: rgba(2, 6, 23, 0.4); /* slate-950 @ 40% */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
 /* ==========================================================================
    Globales Layout: Volle Viewport-Höhe für die gesamte App
    ========================================================================== */

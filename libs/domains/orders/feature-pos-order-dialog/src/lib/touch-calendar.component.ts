@@ -27,18 +27,18 @@ import { ChangeDetectionStrategy, Component, computed, signal, input, output } f
         }
       </div>
 
-      <div class="grid grid-cols-7 gap-1.5 flex-1 content-start">
+      <div class="grid grid-cols-7 gap-2 flex-1 content-start">
         @for (date of daysInMonth(); track $index) {
           @if (date) {
             <button
               class="w-10 h-10 flex items-center justify-center rounded-full font-medium text-sm transition-all active:scale-90 mx-auto"
-              [class.bg-gray-800]="isSelected(date)"
-              [class.text-white]="isSelected(date)"
+              [class.bg-gray-800]="isSelected(date)" [class.dark:bg-white]="isSelected(date)"
+              [class.text-white]="isSelected(date)" [class.dark:text-gray-900]="isSelected(date)"
               [class.bg-gray-100]="!isSelected(date) && !isDisabled(date)" [class.dark:bg-gray-800]="!isSelected(date) && !isDisabled(date)"
               [class.text-gray-700]="!isSelected(date) && !isDisabled(date)" [class.dark:text-gray-200]="!isSelected(date) && !isDisabled(date)"
-              [class.hover:bg-gray-200]="!isSelected(date) && !isDisabled(date)"
-              [class.text-gray-300]="isDisabled(date)"
-              [class.bg-gray-50]="isDisabled(date)"
+              [class.hover:bg-gray-200]="!isSelected(date) && !isDisabled(date)" [class.dark:hover:bg-gray-700]="!isSelected(date) && !isDisabled(date)"
+              [class.text-gray-300]="isDisabled(date)" [class.dark:text-gray-600]="isDisabled(date)"
+              [class.bg-gray-50]="isDisabled(date)" [class.dark:bg-gray-900]="isDisabled(date)"
               [class.cursor-not-allowed]="isDisabled(date)"
               [disabled]="isDisabled(date)"
               (click)="selectDate(date)">

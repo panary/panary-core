@@ -33,7 +33,7 @@ import { TranslateModule } from '@ngx-translate/core'
   ],
   template: `
     <div role="dialog" aria-modal="true" aria-labelledby="pre-order-title"
-         class="flex flex-col w-full h-[620px] bg-white dark:bg-gray-950 rounded-2xl shadow-xl overflow-hidden">
+         class="flex flex-col w-full h-[620px] bg-white dark:bg-gray-950 rounded-2xl overflow-hidden">
 
       <!-- HEADER (h-20) -->
       <div class="h-20 shrink-0 px-6 py-5 flex justify-between items-start">
@@ -64,7 +64,7 @@ import { TranslateModule } from '@ngx-translate/core'
 
       <!-- CONTENT (flex-1) -->
       <div class="flex-1 overflow-hidden relative">
-        <div class="max-w-2xl mx-auto w-full px-6 py-2 h-full overflow-y-auto">
+        <div class="max-w-3xl mx-auto w-full px-6 py-2 h-full overflow-y-auto">
           @switch (currentStep()) {
 
             @case (0) {

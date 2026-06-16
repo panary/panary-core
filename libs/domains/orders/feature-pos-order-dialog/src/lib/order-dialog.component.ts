@@ -702,9 +702,15 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.showDineLocationSelection = false
 
     const dialogRef = this.matDialog.open(PreOrderQuickDialogComponent, {
-      width: '720px',
+      width: '820px',
       maxWidth: '95vw',
-      panelClass: ['!rounded-2xl', 'overflow-hidden'],
+      // Border + Schatten gehören auf das ÄUSSERE Panel (nicht aufs innere Root-Div):
+      // dessen `overflow-hidden` würde sonst die Border-/Schatten-Ecken des Kindes
+      // wegschneiden. Auf dem Panel selbst werden Rand + Schatten voll gerendert.
+      panelClass: ['!rounded-2xl', 'overflow-hidden', 'border', 'border-gray-200', 'dark:border-gray-700', 'shadow-2xl'],
+      // Backdrop weichzeichnen + abdunkeln (Light + Dark), damit sich die neue
+      // Dialog-Ebene klar vom darunterliegenden Bestelldialog abhebt.
+      backdropClass: 'pre-order-blur-backdrop',
     })
 
     dialogRef.afterClosed().subscribe(async (result: { date: Date; time: string; name: string; phone: string } | undefined) => {

@@ -175,7 +175,12 @@ export const preOrders = (app: Application) => {
           const ohs = (location as any)?.settings?.openingHoursSettings
           if (!ohs?.enabled) return context
 
-          const scheduledDate = new Date(data.scheduledFor)
+          // Öffnungszeiten sind Location-lokale Wandzeiten; scheduledFor ist ein
+          // UTC-Instant. In einem UTC-Container läge scheduledDate.getHours()
+          // daneben (11:00 Berlin = 09:00 UTC). Instant in die Location-Zeitzone
+          // projizieren (DST-sicher, server-TZ-unabhängig) — Parität zur Cloud.
+          const tz = (location as any)?.settings?.generalSettings?.timezone || 'Europe/Berlin'
+          const scheduledDate = new Date(new Date(data.scheduledFor).toLocaleString('en-US', { timeZone: tz }))
 
           // Ausnahmen laden
           const dateStr = formatDateISO(scheduledDate)

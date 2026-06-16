@@ -8,7 +8,7 @@ import { ChangeDetectionStrategy, Component, computed, signal, input, output } f
     :host { display: block; height: 100%; }
   `,
   template: `
-    <div class="flex flex-col h-full bg-white dark:bg-gray-950 select-none">
+    <div class="flex flex-col h-full bg-transparent select-none">
       <div class="flex items-center justify-between p-2 mb-2">
         <button (click)="prevMonth()"
           class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
@@ -30,18 +30,7 @@ import { ChangeDetectionStrategy, Component, computed, signal, input, output } f
       <div class="grid grid-cols-7 gap-1.5 flex-1 content-start">
         @for (date of daysInMonth(); track $index) {
           @if (date) {
-            <button
-              class="w-10 h-10 flex items-center justify-center rounded-full font-medium text-sm transition-all active:scale-90 mx-auto"
-              [class.bg-gray-800]="isSelected(date)"
-              [class.text-white]="isSelected(date)"
-              [class.bg-gray-100]="!isSelected(date) && !isDisabled(date)" [class.dark:bg-gray-800]="!isSelected(date) && !isDisabled(date)"
-              [class.text-gray-700]="!isSelected(date) && !isDisabled(date)" [class.dark:text-gray-200]="!isSelected(date) && !isDisabled(date)"
-              [class.hover:bg-gray-200]="!isSelected(date) && !isDisabled(date)"
-              [class.text-gray-300]="isDisabled(date)"
-              [class.bg-gray-50]="isDisabled(date)"
-              [class.cursor-not-allowed]="isDisabled(date)"
-              [disabled]="isDisabled(date)"
-              (click)="selectDate(date)">
+            <button [class]="dayClass(date)" [disabled]="isDisabled(date)" (click)="selectDate(date)">
               {{ date.getDate() }}
             </button>
           } @else {
@@ -90,6 +79,17 @@ export class TouchCalendarComponent {
 
   selectDate(date: Date) {
     this.dateChange.emit(date)
+  }
+
+  dayClass(date: Date): string {
+    const base = 'w-10 h-10 flex items-center justify-center rounded-full font-medium text-sm transition-all active:scale-90 mx-auto'
+    if (this.isSelected(date)) {
+      return `${base} bg-gray-800 text-white dark:bg-white dark:text-gray-900`
+    }
+    if (this.isDisabled(date)) {
+      return `${base} bg-gray-50 text-gray-300 dark:bg-transparent dark:text-gray-600 cursor-not-allowed`
+    }
+    return `${base} bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600`
   }
 
   isSelected(date: Date): boolean {

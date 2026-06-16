@@ -10,6 +10,8 @@ import { Discount, discountAppliesToChannel, DiscountChannel } from '@panary/dis
 @Injectable({ providedIn: 'root' })
 export class DiscountService extends BaseService<Discount> {
   protected override entityLabelKey = 'ENTITY.DISCOUNT'
+  protected override cachePolicy = 'master-data' as const
+  protected override cacheStoreName = 'discounts'
 
   private readonly _activePosDiscounts = signal<Discount[]>([])
   readonly activePosDiscounts = this._activePosDiscounts.asReadonly()

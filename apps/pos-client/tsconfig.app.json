@@ -8,6 +8,27 @@
   "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"],
   "references": [
     {
+      "path": "../../libs/domains/orders/data-access"
+    },
+    {
+      "path": "../../libs/domains/locations/data-access"
+    },
+    {
+      "path": "../../libs/domains/discounts/data-access"
+    },
+    {
+      "path": "../../libs/domains/product-groups/data-access"
+    },
+    {
+      "path": "../../libs/domains/products/data-access"
+    },
+    {
+      "path": "../../libs/shared/common"
+    },
+    {
+      "path": "../../libs/shared/offline-cache"
+    },
+    {
       "path": "../../libs/shared/ui-notifications"
     },
     {

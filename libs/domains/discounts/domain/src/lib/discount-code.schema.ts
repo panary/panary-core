@@ -13,6 +13,9 @@ import { baseSchema } from '@panary/shared-common'
 export const discountCodeSchema = Type.Object(
   {
     ...baseSchema,
+    // Global (tenant-weit) möglich → Service nutzt allowGlobalData (Scope-`$or` mit
+    // locationId: null). baseSchema.locationId ist non-nullable → hier überschreiben.
+    locationId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
     discountId: Type.String({ format: 'uuid' }),
     code: Type.String({ minLength: 1, maxLength: 64 }),
     codeUpper: Type.String({ maxLength: 64 }),

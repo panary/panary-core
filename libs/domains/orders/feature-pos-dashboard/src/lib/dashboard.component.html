@@ -57,8 +57,9 @@
         class="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-900 rounded-2xl shadow-xl dark:shadow-black/40 border border-gray-200 dark:border-gray-700 overflow-hidden z-50">
         <div class="p-2 flex flex-col gap-1">
           @if (!isStampedIn) {
-          <button (click)="clockIn(); statusMenuOpen = false"
-            class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors group">
+          <button (click)="clockIn(); statusMenuOpen = false" [disabled]="isOffline()"
+            [title]="isOffline() ? ('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED' | translate) : ''"
+            class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed">
             <div class="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-200 dark:group-hover:bg-emerald-900/50 transition-colors">
               <span class="material-symbols-outlined text-[20px]">login</span>
             </div>
@@ -69,8 +70,9 @@
           </button>
           }
           @if (isStampedIn && !isOnBreak) {
-          <button (click)="startBreak(); statusMenuOpen = false"
-            class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors group">
+          <button (click)="startBreak(); statusMenuOpen = false" [disabled]="isOffline()"
+            [title]="isOffline() ? ('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED' | translate) : ''"
+            class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed">
             <div class="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 group-hover:bg-amber-200 dark:group-hover:bg-amber-900/50 transition-colors">
               <span class="material-symbols-outlined text-[20px]">coffee</span>
             </div>
@@ -80,8 +82,9 @@
             </div>
           </button>
           <div class="h-px bg-gray-100 dark:bg-gray-700 mx-2 my-1"></div>
-          <button (click)="clockOut(); statusMenuOpen = false"
-            class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors group">
+          <button (click)="clockOut(); statusMenuOpen = false" [disabled]="isOffline()"
+            [title]="isOffline() ? ('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED' | translate) : ''"
+            class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed">
             <div class="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 group-hover:bg-red-200 dark:group-hover:bg-red-900/50 transition-colors">
               <span class="material-symbols-outlined text-[20px]">logout</span>
             </div>
@@ -92,8 +95,9 @@
           </button>
           }
           @if (isOnBreak) {
-          <button (click)="endBreak(); statusMenuOpen = false"
-            class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors group">
+          <button (click)="endBreak(); statusMenuOpen = false" [disabled]="isOffline()"
+            [title]="isOffline() ? ('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED' | translate) : ''"
+            class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed">
             <div class="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-200 dark:group-hover:bg-emerald-900/50 transition-colors">
               <span class="material-symbols-outlined text-[20px]">play_arrow</span>
             </div>
@@ -103,8 +107,9 @@
             </div>
           </button>
           <div class="h-px bg-gray-100 dark:bg-gray-700 mx-2 my-1"></div>
-          <button (click)="clockOut(); statusMenuOpen = false"
-            class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors group">
+          <button (click)="clockOut(); statusMenuOpen = false" [disabled]="isOffline()"
+            [title]="isOffline() ? ('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED' | translate) : ''"
+            class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed">
             <div class="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 group-hover:bg-red-200 dark:group-hover:bg-red-900/50 transition-colors">
               <span class="material-symbols-outlined text-[20px]">logout</span>
             </div>
@@ -119,7 +124,9 @@
       }
     </div>
 
-    <button (click)="logout()" class="flex items-center justify-center w-10 h-10 text-gray-400 dark:text-gray-500 rounded-xl hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+    <button (click)="logout()" [disabled]="isOffline()"
+      [title]="isOffline() ? ('DASHBOARD.LOGOUT_OFFLINE_BLOCKED' | translate) : ('DASHBOARD.LOGOUT' | translate)"
+      class="flex items-center justify-center w-10 h-10 text-gray-400 dark:text-gray-500 rounded-xl hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:hover:text-gray-400 disabled:hover:bg-transparent disabled:cursor-not-allowed">
       <span class="material-symbols-outlined text-[20px]">logout</span>
     </button>
   </header>
@@ -232,7 +239,9 @@
       <div class="flex flex-wrap gap-2 lg:grid lg:grid-cols-3 flex-1 overflow-auto content-start">
         @for (action of visibleQuickActions(); track action.label) {
         <button (click)="action.action()"
-          class="group relative flex flex-col items-center justify-center gap-1 p-1.5 md:p-3 lg:p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 transition-all duration-200 hover:bg-white dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 active:scale-95 w-20 h-20 md:w-28 md:h-28 lg:w-full lg:h-auto lg:aspect-square">
+          [disabled]="action.requiresOnline && isOffline()"
+          [title]="action.requiresOnline && isOffline() ? ('DASHBOARD.ACTION_OFFLINE_BLOCKED' | translate) : ''"
+          class="group relative flex flex-col items-center justify-center gap-1 p-1.5 md:p-3 lg:p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 transition-all duration-200 hover:bg-white dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 active:scale-95 w-20 h-20 md:w-28 md:h-28 lg:w-full lg:h-auto lg:aspect-square disabled:opacity-40 disabled:pointer-events-none">
           <div class="p-2 md:p-3 rounded-lg transition-colors duration-200 group-hover:scale-110" [ngClass]="action.bgClass">
             <span class="material-symbols-outlined text-[20px] md:text-[26px]" [ngClass]="action.textClass">{{ action.icon }}</span>
           </div>

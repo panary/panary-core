@@ -430,6 +430,78 @@
             </div>
           </div>
 
+          <!-- Offline-Outbox (Connect-Tier): offline erzeugte Mutationen + abgelehnte Übertragungen -->
+          @if (hasOutbox) {
+            <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+              <div class="flex items-center justify-between gap-2 mb-4">
+                <h3 class="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-[20px] text-gray-400 dark:text-gray-500">sync</span>
+                  {{ 'SETTINGS.OUTBOX_TITLE' | translate }}
+                </h3>
+                @if (outboxPending() > 0) {
+                  <button type="button" (click)="syncNow()" [disabled]="isRetrying()"
+                    class="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    <span class="material-symbols-outlined text-[16px]">sync</span>
+                    {{ 'SETTINGS.OUTBOX_SYNC_NOW' | translate }}
+                  </button>
+                }
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                  <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.OUTBOX_PENDING' | translate }}</p>
+                  <p class="font-bold text-lg"
+                    [class.text-amber-600]="outboxPending() > 0" [class.dark:text-amber-400]="outboxPending() > 0"
+                    [class.text-gray-800]="outboxPending() === 0" [class.dark:text-white]="outboxPending() === 0">
+                    {{ outboxPending() }}
+                  </p>
+                </div>
+                <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                  <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.OUTBOX_REJECTED' | translate }}</p>
+                  <p class="font-bold text-lg"
+                    [class.text-red-600]="outboxRejected() > 0" [class.dark:text-red-400]="outboxRejected() > 0"
+                    [class.text-gray-800]="outboxRejected() === 0" [class.dark:text-white]="outboxRejected() === 0">
+                    {{ outboxRejected() }}
+                  </p>
+                </div>
+              </div>
+              @if (rejectedEntries().length > 0) {
+                <div class="mt-4 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 p-4">
+                  <div class="flex items-center justify-between gap-2 mb-3">
+                    <p class="text-sm font-semibold text-red-700 dark:text-red-300 flex items-center gap-2">
+                      <span class="material-symbols-outlined text-[18px]">error</span>
+                      {{ 'SETTINGS.OUTBOX_REJECTED_TITLE' | translate }}
+                    </p>
+                    <div class="shrink-0 flex items-center gap-2">
+                      <button type="button" (click)="retryRejected()" [disabled]="isRetrying()"
+                        class="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        <span class="material-symbols-outlined text-[16px]">refresh</span>
+                        {{ 'SETTINGS.OUTBOX_RETRY' | translate }}
+                      </button>
+                      <button type="button" (click)="discardRejected()" [disabled]="isRetrying()"
+                        class="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-950/60 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        <span class="material-symbols-outlined text-[16px]">delete</span>
+                        {{ 'SETTINGS.OUTBOX_DISCARD' | translate }}
+                      </button>
+                    </div>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    @for (entry of rejectedEntries(); track entry._id) {
+                      <div class="rounded-lg bg-white dark:bg-gray-950 border border-red-100 dark:border-red-900/60 px-3 py-2">
+                        <div class="flex items-center justify-between gap-2">
+                          <span class="font-mono text-xs font-semibold text-gray-800 dark:text-gray-100">{{ entry.service }} · {{ entry.op }}</span>
+                          <span class="text-xs text-gray-400 dark:text-gray-500">{{ entry.occurredAt | date:'short' }}</span>
+                        </div>
+                        @if (entry.lastError) {
+                          <p class="text-xs text-red-600 dark:text-red-400 mt-1 break-all">{{ entry.lastError }}</p>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
           <!-- Device-Info -->
           <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
             <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4 flex items-center gap-2">

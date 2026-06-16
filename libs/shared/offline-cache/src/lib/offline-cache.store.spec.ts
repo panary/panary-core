@@ -69,6 +69,14 @@ describe('OfflineCacheStore', () => {
     expect(store.mirror<TestProduct>('products')().map(p => p._id)).toEqual(['p2'])
   })
 
+  it('replaceAll ersetzt Store-Inhalt + Mirror (kein Anhäufen)', async () => {
+    await store.upsertMany('products', [product('p1'), product('p2'), product('p3')])
+    await store.replaceAll('products', [product('p2', { name: 'neu' }), product('p4')])
+    expect(store.mirror<TestProduct>('products')().map(p => p._id).sort()).toEqual(['p2', 'p4'])
+    expect((await store.readAll<TestProduct>('products')).map(p => p._id).sort()).toEqual(['p2', 'p4'])
+    expect(await store.get<TestProduct>('products', 'p1')).toBeUndefined()
+  })
+
   it('hydratisiert den Mirror beim init aus IndexedDB', async () => {
     await store.upsertMany('products', [product('p1'), product('p2')])
     port.close()
@@ -82,5 +90,19 @@ describe('OfflineCacheStore', () => {
     await store.upsert('products', product('p1'))
     await store.destroy()
     expect(store.isReady()).toBe(false)
+  })
+
+  it('persistiert und liest Delta-Sync-Cursor pro Service', async () => {
+    expect(await store.getCursor('products')).toBeUndefined()
+    await store.setCursor('products', '2026-05-30T10:00:00.000Z')
+    await store.setCursor('orders', '2026-05-30T11:00:00.000Z')
+    expect(await store.getCursor('products')).toBe('2026-05-30T10:00:00.000Z')
+    expect(await store.getCursor('orders')).toBe('2026-05-30T11:00:00.000Z')
+  })
+
+  it('überschreibt einen vorhandenen Cursor', async () => {
+    await store.setCursor('products', '2026-05-30T10:00:00.000Z')
+    await store.setCursor('products', '2026-05-30T12:00:00.000Z')
+    expect(await store.getCursor('products')).toBe('2026-05-30T12:00:00.000Z')
   })
 })

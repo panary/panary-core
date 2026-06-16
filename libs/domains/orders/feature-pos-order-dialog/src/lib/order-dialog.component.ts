@@ -321,9 +321,17 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         try {
           const parsed = JSON.parse(storedUser)
           if (parsed._id) {
-            this.userService.get(parsed._id).then((fetchedUser: User): void => {
-              this._currentUser = fetchedUser
-            })
+            // Sofort aus dem localStorage setzen (enthält die gültige User-uuid). Sonst
+            // bliebe _currentUser offline undefined, weil userService.get() ohne
+            // Verbindung nicht auflöst (users sind nicht gecacht) → creationContext.createdBy
+            // fiele auf '' zurück und der Order-Replay scheiterte an der uuid-Validierung.
+            this._currentUser = parsed as User
+            this.userService
+              .get(parsed._id)
+              .then((fetchedUser: User): void => {
+                this._currentUser = fetchedUser
+              })
+              .catch(() => undefined)
           }
         } catch {
           console.error('Failed to parse pos_current_user')
@@ -2183,9 +2191,10 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       dineLocation,
       this.#recordingDate,
       this.#orderInteractions,
-      {
-        createdBy: this._currentUser?._id?.toString() || '',
-      },
+      // creationContext nur mit gültiger User-uuid bauen — sonst weglassen (Schema:
+      // optional/null), statt ein ungültiges createdBy: '' zu senden, das den
+      // (Offline-)Create an der uuid-Validierung scheitern lässt.
+      this._currentUser?._id ? { createdBy: this._currentUser._id.toString() } : undefined,
       appliedDiscounts.length > 0 ? appliedDiscounts : undefined,
     )
 

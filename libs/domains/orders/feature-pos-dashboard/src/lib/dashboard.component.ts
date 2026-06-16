@@ -13,6 +13,7 @@ import { WorkingTimeService } from '@panary/working-times/data-access'
 import { LocationService } from '@panary/locations/data-access'
 import { BusinessDayService, CashSessionService } from '@panary/businessdays/data-access'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
+import { MatSnackBar } from '@angular/material/snack-bar'
 import { OrderDialogComponent } from '@panary/orders/feature-pos-order-dialog'
 import {
   CashSessionDialogComponent,
@@ -47,6 +48,13 @@ interface QuickAction {
    * Default: immer sichtbar.
    */
   condition?: () => boolean
+  /**
+   * Aktion braucht eine Server-Verbindung (z. B. Vorbestellungen, Historie,
+   * Arbeitszeiten, Tagesabschluss). Offline wird der Button deaktiviert (+ Hinweis),
+   * damit der Nutzer nicht ins Leere klickt. Default: offline nutzbar (z. B. Neue
+   * Bestellung, Offene Bestellungen, Einstellungen).
+   */
+  requiresOnline?: boolean
 }
 
 @Component({
@@ -74,6 +82,18 @@ export class DashboardComponent implements OnInit {
   #dialog = inject(MatDialog)
   #translate = inject(TranslateService)
   #preOrderService = inject(PreOrderService)
+  #snackBar = inject(MatSnackBar)
+
+  /**
+   * Offline darf sich der Staff nicht abmelden: die Wiederanmeldung läuft über die
+   * serverseitige PIN-Prüfung (`verifyPin`) und `AuthService.logout()` löscht das
+   * Device-JWT (`sessionStorage.clear()`). Ein Abmelden ohne Verbindung würde das
+   * Gerät bis zum Reconnect komplett aussperren.
+   */
+  readonly isOffline = computed(() => {
+    const status = this.#connectionService.connectionState().status
+    return status !== 'connected' && status !== 'authenticated'
+  })
 
   // Vorbestellungen für heute
   todayPreOrders = signal<PreOrder[]>([])
@@ -158,6 +178,8 @@ export class DashboardComponent implements OnInit {
       action: () => this.navigateTo('/pre-orders'),
       bgClass: 'bg-amber-100 dark:bg-amber-900/30',
       textClass: 'text-amber-700 dark:text-amber-400',
+      // Offline nutzbar: Liste aus dem Cache + Anlegen via Outbox. Nur `convert` braucht
+      // online (wird im PreOrderService offline blockiert).
     },
     {
       label: 'DASHBOARD.HISTORY',
@@ -165,6 +187,7 @@ export class DashboardComponent implements OnInit {
       action: () => this.navigateTo('/orders/history'),
       bgClass: 'bg-purple-100 dark:bg-purple-900/30',
       textClass: 'text-purple-700 dark:text-purple-400',
+      requiresOnline: true,
     },
     {
       label: 'DASHBOARD.WORKING_TIMES',
@@ -172,6 +195,7 @@ export class DashboardComponent implements OnInit {
       action: () => this.navigateTo('/working-times'),
       bgClass: 'bg-orange-100 dark:bg-orange-900/30',
       textClass: 'text-orange-700 dark:text-orange-400',
+      requiresOnline: true,
     },
     {
       label: 'DASHBOARD.WRITE_OFF',
@@ -188,6 +212,7 @@ export class DashboardComponent implements OnInit {
       bgClass: 'bg-red-50 dark:bg-red-900/30',
       textClass: 'text-red-500 dark:text-red-400',
       hideInStandalone: true,
+      requiresOnline: true,
     },
     // Tageseroeffnung — nur sichtbar wenn kein Geschaeftstag offen ist.
     // `hideWhenCloudPaired`: im Hybrid-Modell ist die Cloud Master fuer
@@ -201,6 +226,7 @@ export class DashboardComponent implements OnInit {
       condition: () => !this.hasOpenBusinessDay(),
       hideInStandalone: true,
       hideWhenCloudPaired: true,
+      requiresOnline: true,
     },
     // Tagesabschluss — nur sichtbar wenn Geschaeftstag offen ist.
     // `hideWhenCloudPaired`: gleich wie Open — Cloud-Admin uebernimmt im
@@ -214,6 +240,7 @@ export class DashboardComponent implements OnInit {
       condition: () => this.hasOpenBusinessDay(),
       hideInStandalone: true,
       hideWhenCloudPaired: true,
+      requiresOnline: true,
     },
     // Kasse — eigene Lade eröffnen/schließen. Nur im Cloud-Modus (Kassen sind
     // ein Cloud-Feature; Standalone hat keinen Multi-Kassen-Tagesabschluss) und
@@ -225,6 +252,7 @@ export class DashboardComponent implements OnInit {
       bgClass: 'bg-amber-100 dark:bg-amber-900/30',
       textClass: 'text-amber-700 dark:text-amber-400',
       condition: () => this.hasOpenBusinessDay() && this.isCloudPaired(),
+      requiresOnline: true,
     },
     {
       label: 'DASHBOARD.SETTINGS',
@@ -352,6 +380,10 @@ export class DashboardComponent implements OnInit {
   }
 
   logout() {
+    if (this.isOffline()) {
+      this.#snackBar.open(this.#translate.instant('DASHBOARD.LOGOUT_OFFLINE_BLOCKED'), undefined, { duration: 4000 })
+      return
+    }
     localStorage.removeItem('pos_current_user')
     this.#authService.logout()
   }
@@ -362,7 +394,19 @@ export class DashboardComponent implements OnInit {
     return !!this.currentUser()?.startBreakAt
   }
 
+  /**
+   * Stempel-/Pausen-Aktionen (checkin/checkout/start-/endBreak) sind serverseitige
+   * Custom-Methods; working-times werden NICHT in der Offline-Outbox nachgereicht.
+   * Offline würde der Call still hängen → sperren (analog Logout-Sperre).
+   */
+  #timeTrackingBlockedOffline(): boolean {
+    if (!this.isOffline()) return false
+    this.#snackBar.open(this.#translate.instant('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED'), undefined, { duration: 4000 })
+    return true
+  }
+
   async clockIn() {
+    if (this.#timeTrackingBlockedOffline()) return
     const user = this.currentUser()
     if (!user) return
 
@@ -379,6 +423,7 @@ export class DashboardComponent implements OnInit {
   }
 
   async clockOut() {
+    if (this.#timeTrackingBlockedOffline()) return
     const user = this.currentUser()
     if (!user?.stampingId) return
 
@@ -391,6 +436,7 @@ export class DashboardComponent implements OnInit {
   }
 
   async startBreak() {
+    if (this.#timeTrackingBlockedOffline()) return
     const user = this.currentUser()
     if (!user?.stampingId) return
 
@@ -403,6 +449,7 @@ export class DashboardComponent implements OnInit {
   }
 
   async endBreak() {
+    if (this.#timeTrackingBlockedOffline()) return
     const user = this.currentUser()
     if (!user?.stampingId) return
 

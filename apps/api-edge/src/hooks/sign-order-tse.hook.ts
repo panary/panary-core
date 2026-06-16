@@ -73,8 +73,15 @@ export const signOrderTseStart = async (context: HookContext): Promise<HookConte
         tenantId?: string
         locationId?: string
         tse?: OrderTseInfo | null
+        offlineCreated?: boolean | null
       }
     | undefined
+
+  // Offline angelegte Orders werden NICHT (rückwirkend) signiert (KassenSichV §146a:
+  // kein Nachsignieren). Der TSE-Ausfall ist auf dem offline gedruckten Bon dokumentiert;
+  // beim Replay läuft nur der Order-Datensatz nach. Analog zum `fromSync`-Prinzip.
+  if (data?.offlineCreated) return context
+
   if (!data || typeof data.dailySequenceNumber !== 'number' || data.tse) return context
 
   // Fiskal-Gate (KassenSichV): nur `pos-cashier`-Vorgänge werden signiert,

@@ -1,14 +1,16 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core'
+import { Component, computed, effect, inject, OnInit, signal, untracked } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { HttpClient } from '@angular/common/http'
 import { lastValueFrom } from 'rxjs'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { LocationService } from '@panary/locations/data-access'
-import { ConnectionService, LanguageService } from '@panary/shared/data-access'
+import { ConnectionService, LanguageService, OFFLINE_OUTBOX, OFFLINE_REPLAY } from '@panary/shared/data-access'
+import type { OfflineOutboxRejectedEntry } from '@panary/shared-common'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 
+import { MatSnackBar } from '@angular/material/snack-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { UnpairDeviceDialogComponent } from './unpair-device-dialog/unpair-device-dialog.component'
@@ -44,6 +46,10 @@ export class SettingsComponent implements OnInit {
   translateService = inject(TranslateService)
   #http = inject(HttpClient)
   appConfig = inject(APP_CONFIG)
+  // Connect-Tier: nur in der POS-App belegt (admin liefert keinen Provider → null).
+  #outbox = inject(OFFLINE_OUTBOX, { optional: true })
+  #replay = inject(OFFLINE_REPLAY, { optional: true })
+  #snackBar = inject(MatSnackBar)
 
   // For the sidebar selection
   activeSection = 'general'
@@ -70,6 +76,13 @@ export class SettingsComponent implements OnInit {
     { value: 'dark', label: 'SETTINGS.THEME_DARK', icon: 'dark_mode' },
   ]
 
+  // Offline-Outbox (Connect-Tier): Zähler reaktiv aus dem Store-Signal, Detailliste async.
+  readonly hasOutbox = this.#outbox !== null
+  readonly outboxPending = computed(() => this.#outbox?.pendingCount() ?? 0)
+  readonly outboxRejected = computed(() => this.#outbox?.rejectedCount() ?? 0)
+  readonly rejectedEntries = signal<readonly OfflineOutboxRejectedEntry[]>([])
+  readonly isRetrying = signal(false)
+
   // Connection-Section: Device-Konfiguration + Tier-Modell
   readonly deviceConfig = computed(() => this.deviceConfigService.getConfig())
   readonly tier = this.connectionService.tier
@@ -90,6 +103,80 @@ export class SettingsComponent implements OnInit {
 
   constructor() {
     this.loadCurrentUser()
+    // Detailliste der abgelehnten Einträge an den reaktiven Zähler koppeln (angular.md §2.1).
+    effect(() => {
+      this.outboxRejected()
+      untracked(() => void this.#loadRejected())
+    })
+  }
+
+  async #loadRejected(): Promise<void> {
+    if (!this.#outbox) return
+    this.rejectedEntries.set(await this.#outbox.rejected())
+  }
+
+  /**
+   * Operator-Retry: alle abgelehnten Einträge zurück auf pending setzen und sofort einen
+   * Replay anstoßen (sonst greift der periodische Poll). Einträge mit fehlerhaftem Payload
+   * werden dabei erneut abgelehnt — Hinweis im Toast.
+   */
+  async retryRejected(): Promise<void> {
+    if (!this.#outbox || this.isRetrying()) return
+    this.isRetrying.set(true)
+    try {
+      const count = await this.#outbox.requeueRejected()
+      await this.#replay?.replayNow()
+      await this.#loadRejected()
+      this.#snackBar.open(
+        this.translateService.instant('SETTINGS.OUTBOX_RETRY_DONE', { count }),
+        'OK',
+        { duration: 4000 },
+      )
+    } finally {
+      this.isRetrying.set(false)
+    }
+  }
+
+  /**
+   * „Jetzt synchronisieren": Backoff aller pending-Einträge zurücksetzen + sofort
+   * replayen — für Einträge, die nach Fehlversuchen im Backoff stecken und sonst erst
+   * nach Stunden erneut versucht würden.
+   */
+  async syncNow(): Promise<void> {
+    if (!this.#outbox || this.isRetrying()) return
+    this.isRetrying.set(true)
+    try {
+      const count = await this.#outbox.resetPendingBackoff()
+      await this.#replay?.replayNow()
+      this.#snackBar.open(
+        this.translateService.instant('SETTINGS.OUTBOX_SYNC_NOW_DONE', { count }),
+        'OK',
+        { duration: 4000 },
+      )
+    } finally {
+      this.isRetrying.set(false)
+    }
+  }
+
+  /**
+   * Operator-Verwerfen: abgelehnte Einträge endgültig aus der Outbox löschen — für
+   * unwiederbringliche Bad-Payload-Einträge, die nie syncen (z. B. das alte createdBy:'').
+   */
+  async discardRejected(): Promise<void> {
+    if (!this.#outbox || this.isRetrying()) return
+    if (!confirm(this.translateService.instant('SETTINGS.OUTBOX_DISCARD_CONFIRM'))) return
+    this.isRetrying.set(true)
+    try {
+      const count = await this.#outbox.clearRejected()
+      await this.#loadRejected()
+      this.#snackBar.open(
+        this.translateService.instant('SETTINGS.OUTBOX_DISCARD_DONE', { count }),
+        'OK',
+        { duration: 4000 },
+      )
+    } finally {
+      this.isRetrying.set(false)
+    }
   }
 
   async ngOnInit() {

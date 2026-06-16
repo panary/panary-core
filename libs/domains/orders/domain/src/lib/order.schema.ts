@@ -328,6 +328,17 @@ export const orderSchema = Type.Object(
     // TSE-Signatur-Snapshot (KassenSichV). Vom Edge-Hook gesetzt; `Null`
     // toleriert (Edge serialisiert ungesetzte nullable SQLite-Spalten als null).
     tse: Type.Optional(Type.Union([orderTseSchema, Type.Null()])),
+
+    // === Offline-Erfassung (Connect-Tier) ===
+    // Markiert eine offline angelegte Order. Der Order-create-Hook im Backend
+    // überspringt für markierte Orders das (rückwirkende) TSE-Signieren
+    // (KassenSichV: kein Nachsignieren); die finale `dailySequenceNumber` wird
+    // serverseitig re-gestempelt. `Null` toleriert (Edge-Sync-Serialisierung).
+    offlineCreated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
+    // Provisorische, offline lokal vergebene Belegnummer (für den gedruckten
+    // Ausfall-Bon + Audit). Bleibt erhalten, auch wenn der Server `dailySequenceNumber`
+    // re-stampt.
+    provisionalSequenceNumber: Type.Optional(Type.Union([Type.Number({ minimum: 0 }), Type.Null()])),
   },
   { $id: 'Order', additionalProperties: false },
 )
@@ -389,6 +400,10 @@ export const orderDataSchema = Type.Intersect(
         // TSE-Snapshot wird serverseitig vom Signier-Hook gesetzt; fuer Sync-Push
         // erlaubt (Edge sendet die bereits signierte Order an die Cloud).
         'tse',
+        // Offline-Erfassungs-Marker (Connect-Tier) — vom POS bei Offline-Anlage
+        // gesetzt; steuert den TSE-Skip im create-Hook + bewahrt die Ausfall-Belegnummer.
+        'offlineCreated',
+        'provisionalSequenceNumber',
       ],
     ),
   ],

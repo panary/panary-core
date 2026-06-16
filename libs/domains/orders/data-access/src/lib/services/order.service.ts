@@ -3,7 +3,7 @@ import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { PrintDialogComponent } from '../components/print-dialog.component'
 import { OrderChannel } from '../enums/order-chanel.enum'
-import { Id, Paginated } from '@feathersjs/feathers'
+import { Id, Paginated, Params } from '@feathersjs/feathers'
 import {
   AppliedDiscount,
   CreationContext,
@@ -14,18 +14,22 @@ import {
   OrderLineItem,
   OrderStatus,
   StaffPaymentInfo,
+  TransactionMethod,
 } from '@panary/orders/domain'
 import { OrderInteraction } from '@panary/order-interactions/domain'
-import { BaseService, ConnectionService } from '@panary/shared/data-access'
-import { ExtendedParams } from '@panary/shared-common'
+import { BaseService, ConnectionService, OFFLINE_OUTBOX } from '@panary/shared/data-access'
+import { CacheEntity, ExtendedParams, OfflineOutboxPort } from '@panary/shared-common'
 import { Observer } from 'rxjs'
 import { LocationService } from '@panary/locations/data-access'
+import { uuidv7 } from 'uuidv7'
 
 @Injectable({
   providedIn: 'root',
 })
 export class OrderService extends BaseService<Order> {
   protected override entityLabelKey = 'ENTITY.ORDER'
+  protected override cachePolicy = 'transactional' as const
+  protected override cacheStoreName = 'orders'
 
   /** STATIC PROPERTIES */
   protected readonly QUERY_LIMIT: number = 200
@@ -35,6 +39,8 @@ export class OrderService extends BaseService<Order> {
   /** DEPENDENCIES */
   #locationService: LocationService = inject(LocationService)
   protected connectionService: ConnectionService = inject(ConnectionService)
+  #outbox: OfflineOutboxPort | null = inject(OFFLINE_OUTBOX, { optional: true })
+  #provisionalSequenceCursor = 0
   #matSnackBar: MatSnackBar = inject(MatSnackBar)
   #matDialog: MatDialog = inject(MatDialog)
   #orderIndex = 1
@@ -94,6 +100,31 @@ export class OrderService extends BaseService<Order> {
     this.calculateRemainingTimeInterval()
   }
 
+  /**
+   * Server-autoritativer Spiegel des Orders-Caches (statt anhäufendem Write-Through):
+   * Bei jedem Online-Load wird der `orders`-Store auf die aktuelle Server-Menge ERSETZT,
+   * vereinigt mit den noch ausstehenden (pending) Offline-Orders — damit diese im
+   * Reconnect→Replay-Fenster nicht aus Liste/Cache verschwinden. Rejected/synced/alte
+   * Orders fallen dabei automatisch weg → kein Wildwuchs, kein separates Aufräumen.
+   */
+  async #mirrorOrdersCache(serverOrders: Order[]): Promise<void> {
+    const serverIds = new Set(serverOrders.map(order => order._id))
+    const pendingIds = new Set(await this.#outbox?.pendingEntityIds() ?? [])
+
+    let preserved: Order[] = []
+    if (this.cacheStore?.isReady() && pendingIds.size > 0) {
+      const cached = await this.cacheStore.readAll<Order>('orders')
+      preserved = cached.filter(order => order.offlineCreated && !serverIds.has(order._id) && pendingIds.has(order._id))
+    }
+
+    const mirror = [...serverOrders, ...preserved]
+    this.#orders.set(mirror)
+    if (this.cacheStore?.isReady()) {
+      await this.cacheStore.replaceAll('orders', mirror as unknown as CacheEntity[])
+    }
+    this.calculateRemainingTime()
+  }
+
   /** PRIVATE METHODS */
   protected override handleItemCreated(_document: Order) {
     this.#ordersLastUpdated.set(new Date())
@@ -132,9 +163,17 @@ export class OrderService extends BaseService<Order> {
 
     limit.$limit = this.QUERY_LIMIT
     params = { query: { ...query, ...limit } }
+    // Status VOR dem find festhalten: online → server-autoritativer Spiegel (Replace);
+    // offline kommt das Ergebnis bereits aus dem Cache (find-Kurzschluss).
+    const online = this.connectionService.connectionState().status === 'authenticated'
     this.find(params).then((response: Paginated<Order> | Order[]): void => {
-      this.#orders.set(Array.isArray(response) ? response : response.data)
-      this.calculateRemainingTime()
+      const orders = Array.isArray(response) ? response : response.data
+      if (online) {
+        void this.#mirrorOrdersCache(orders)
+      } else {
+        this.#orders.set(orders)
+        this.calculateRemainingTime()
+      }
       this.#matSnackBar.open(`Bestellungen aktualisiert`, OrderService.SNACKBAR_ACTION, {
         duration: OrderService.SNACKBAR_DURATION,
       })
@@ -182,7 +221,7 @@ export class OrderService extends BaseService<Order> {
   private async createOrderAndOpenPrintDialog(
     newOrder: Omit<Order, '_id' | 'locationId' | 'tenantId' | 'createdAt' | 'updatedAt'>,
   ): Promise<number | number[] | undefined | null> {
-    return this.create(newOrder).then((createdOrder: Order | Order[]): number | number[] | undefined | null => {
+    return this.#createOrderRecord(newOrder).then((createdOrder: Order | Order[]): number | number[] | undefined | null => {
       if (!createdOrder) return null
 
       // Eigene Bestellung sofort lokal nachladen. Der Realtime-`created`-Echo
@@ -207,6 +246,97 @@ export class OrderService extends BaseService<Order> {
         return createdOrder.dailySequenceNumber
       }
     })
+  }
+
+  /** Online → Server; offline → optimistisch in Cache + Outbox (Connect-Tier). */
+  async #createOrderRecord(newOrder: Omit<Order, '_id' | 'locationId' | 'tenantId'>): Promise<Order | Order[]> {
+    if (this.#shouldQueueOffline()) {
+      return this.#enqueueOfflineOrder(newOrder)
+    }
+    return this.create(newOrder)
+  }
+
+  #shouldQueueOffline(): boolean {
+    return (
+      this.connectionService.connectionState().status !== 'authenticated' &&
+      !!this.#outbox?.isReady() &&
+      !!this.cacheStore?.isReady()
+    )
+  }
+
+  /**
+   * Legt eine Order offline an: client-`_id` (uuidv7), provisorische Belegnummer +
+   * `offlineCreated`-Marker (das Backend überspringt das TSE-Signieren beim Replay,
+   * KassenSichV §146a), optimistisch in Cache + Outbox. Der Server re-stampt die finale
+   * `dailySequenceNumber` beim Sync.
+   */
+  async #enqueueOfflineOrder(newOrder: Omit<Order, '_id' | 'locationId' | 'tenantId'>): Promise<Order> {
+    const location = this.#locationService.activeLocation()
+    const provisional = this.#nextProvisionalSequence()
+    const order: Order = {
+      ...(newOrder as Order),
+      _id: uuidv7(),
+      tenantId: location?.tenantId ?? '',
+      locationId: location?._id ?? '',
+      dailySequenceNumber: provisional,
+      provisionalSequenceNumber: provisional,
+      offlineCreated: true,
+      updatedAt: new Date().toISOString(),
+    }
+
+    await this.cacheStore?.upsertMany('orders', [order as unknown as CacheEntity])
+    await this.#outbox?.enqueue({
+      _id: uuidv7(),
+      service: 'orders',
+      op: 'create',
+      entityId: order._id,
+      payload: order,
+      occurredAt: order.recordingDate,
+    })
+    return order
+  }
+
+  /** Monoton steigende provisorische Belegnummer (max. gesehene im Cache + lokaler Cursor). */
+  #nextProvisionalSequence(): number {
+    const maxSeen = this.#orders().reduce((max, order) => Math.max(max, order.dailySequenceNumber ?? 0), 0)
+    this.#provisionalSequenceCursor = Math.max(this.#provisionalSequenceCursor, maxSeen) + 1
+    return this.#provisionalSequenceCursor
+  }
+
+  /**
+   * Online → Server; offline → optimistischer Cache-Merge + Outbox (op `patch`), damit
+   * der Checkout (Status/Payment) offline funktioniert. Bargeld-Zwang: offline ist keine
+   * Karten-/Online-Zahlung möglich (Stripe braucht Netz) → wird abgelehnt.
+   */
+  override async patch(id: Id | Id[] | null, data: Partial<Order>, params: Params = {}): Promise<Order | Order[]> {
+    if (this.#shouldQueueOffline() && typeof id === 'string') {
+      return this.#patchOffline(id, data)
+    }
+    return super.patch(id, data, params)
+  }
+
+  async #patchOffline(id: string, data: Partial<Order>): Promise<Order> {
+    if (data.payment?.transactions?.some(t => t.method !== TransactionMethod.CASH)) {
+      this.#matSnackBar.open('Offline ist nur Barzahlung möglich.', 'OK', { duration: 3000 })
+      throw new Error('OFFLINE_CASH_ONLY')
+    }
+
+    const existing = (await this.cacheStore?.get('orders', id)) as Order | undefined
+    const merged = { ...(existing ?? {}), ...data, _id: id, updatedAt: new Date().toISOString() } as Order
+
+    await this.cacheStore?.upsertMany('orders', [merged as unknown as CacheEntity])
+    await this.#outbox?.enqueue({
+      _id: uuidv7(),
+      service: 'orders',
+      op: 'patch',
+      entityId: id,
+      payload: data,
+      occurredAt: new Date().toISOString(),
+    })
+    // Kein Realtime-`patched`-Echo offline → Liste/Dashboard aus dem Cache nachladen,
+    // damit der Statuswechsel (z. B. Abschluss) sofort sichtbar wird.
+    this.loadDocuments()
+    return merged
   }
 
   private markOrdersAsCompleted(): void {

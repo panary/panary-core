@@ -21,6 +21,8 @@ type UUID = string
 })
 export class ProductService extends BaseService<ProductSchema> {
   protected override entityLabelKey = 'ENTITY.PRODUCT'
+  protected override cachePolicy = 'master-data' as const
+  protected override cacheStoreName = 'products'
 
   #authService: AuthService = inject(AuthService)
   #documents: WritableSignal<ProductSchema[]> = signal([])

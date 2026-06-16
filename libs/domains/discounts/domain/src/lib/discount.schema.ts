@@ -62,6 +62,13 @@ export const discountSchema = Type.Object(
   {
     ...baseSchema,
 
+    // Rabatte können tenant-weit (global, locationId: null) gelten — der Service nutzt
+    // multiTenancy({ allowGlobalData: true }), das `{ locationId: null }` in den
+    // Scope-`$or` injiziert. baseSchema.locationId ist non-nullable, daher hier
+    // überschreiben (sonst 400 „locationId must match format uuid" bei der Query-
+    // Validierung non-privilegierter User). Muster wie pricelist/ingredient/audit-events.
+    locationId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
+
     name: Type.String({ minLength: 1, maxLength: 120 }),
     description: Type.Optional(Type.String({ maxLength: 500 })),
     status: StringEnum(Object.values(DiscountStatus)),

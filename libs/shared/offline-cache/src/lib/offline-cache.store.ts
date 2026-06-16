@@ -2,7 +2,7 @@ import { Injectable, signal, Signal, WritableSignal } from '@angular/core'
 
 import { OfflineCachePort } from '@panary/shared-common'
 
-import { openCacheDatabase, OpenCacheResult } from './cache-bootstrap'
+import { CACHE_CURSORS_STORE, CacheCursorRecord, openCacheDatabase, OpenCacheResult } from './cache-bootstrap'
 import { mergeRecords } from './cache-merge'
 import { CacheEntity, CacheStoragePort, CacheStorageSchema } from './cache-storage.port'
 
@@ -81,6 +81,29 @@ export class OfflineCacheStore implements OfflineCachePort {
     if (!this.#port) return
     await this.#port.delete(store, id)
     this.#applyToMirror(store, [{ _id: id }], 'remove')
+  }
+
+  /** Ersetzt den gesamten Store-Inhalt (clear + write) und setzt den Mirror neu. */
+  async replaceAll(store: string, records: readonly CacheEntity[]): Promise<void> {
+    if (!this.#port) return
+    await this.#port.clear(store)
+    if (records.length > 0) {
+      await this.#port.bulkPut(store, records)
+    }
+    this.#mirrorSignal(store).set([...records])
+  }
+
+  /** Liest den Delta-Sync-Cursor (lastPullAt) eines Services. */
+  async getCursor(service: string): Promise<string | undefined> {
+    if (!this.#port) return undefined
+    const record = await this.#port.get<CacheCursorRecord>(CACHE_CURSORS_STORE, service)
+    return record?.value
+  }
+
+  /** Setzt den Delta-Sync-Cursor (lastPullAt) eines Services. */
+  async setCursor(service: string, value: string): Promise<void> {
+    if (!this.#port) return
+    await this.#port.put<CacheCursorRecord>(CACHE_CURSORS_STORE, { _id: service, value })
   }
 
   /** Verwirft den gesamten Cache (Re-Pairing / Tenant-/Location-Wechsel). */

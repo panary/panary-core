@@ -1,6 +1,6 @@
 {
   "name": "@panary/util-error-handling",
-  "version": "26.7.9",
+  "version": "26.7.10",
   "license": "BSL-1.1",
   "type": "commonjs",
   "main": "./src/index.js",

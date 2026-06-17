@@ -29,7 +29,7 @@ import {
             (click)="selectValue(val)"
             [class]="val === selected()
               ? 'h-12 w-full flex items-center justify-center text-xl font-bold text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700 rounded-lg snap-center transition-all'
-              : 'h-12 w-full flex items-center justify-center text-xl text-gray-400 dark:text-gray-500 opacity-50 snap-center transition-all'">
+              : 'h-12 w-full flex items-center justify-center text-xl text-gray-400 dark:text-gray-400 opacity-50 snap-center transition-all'">
             {{ val.toString().padStart(2, '0') }}
           </button>
         }

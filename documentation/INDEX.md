@@ -30,6 +30,7 @@
 
 ## Sicherheit
 
+- [Granulare Berechtigungen — Helper + Capability-Bundles](granulare-berechtigungen-helper.md) — 2026-06-17 — Geteilte RBAC-Bausteine in `@panary/users/domain` (seit v26.7.11): `hasEffectivePermission` als **einzige** Match-Wahrheit (ersetzt cloud `ruleMatches`/edge `checkRule`/frontend inline-`can()`); Grant-Format `grant:<resource>:<action>` (`parseGrant`/`isValidGrant`, Split am letzten `:` wegen `/` in Ressourcen, unbekannt→null = nie Zugriff); 4 Capability-Bundles (wareneingang/inventur-bestand/katalog/zeit-auswertung) → `expandBundles`. Rein additiv (Rolle ODER Grant), `roles.matrix` unverändert. Volles Feature (Escalation-Guard/UI) in panary-cloud. Edge-Adoption = P2
 - [E-Mail-Identität — Edge- & Shared-Schema-Impact](email-identity-edge-impact.md) — 2026-05-22 — Login von `loginname` auf E-Mail; geteiltes Schema (`loginname`/`password` optional, neues `accountId`, `generateLoginname`); Edge bleibt single-tenant/flach (`usernameField: email`, Bootstrap per email); Sync-Projektion + Gates K3/K4. Voller Cloud-ADR in panary-cloud
 - [Sicherheitshärtung — Sensible Daten](sensitive-data-hardening.md) — 2026-04-07 — POS-PIN bcrypt, API-Key SHA-256, verifyPin Custom-Methode
 - [Tenant-Audit-Events (Edge)](audit-events.md) — 2026-05-06 — Append-only Audit-Trail, Sidecar-Hook zu sync-outbox, SQLite-Trigger fuer Immutability, Cloud-Sync. Phase 2: Audit-Cleanup-Worker (nightly, 90d-Retention nach Cloud-Ack, transaktionaler Trigger-Bypass, Selbst-Audit `AUDIT_CLEANUP`)

@@ -8,9 +8,10 @@ on:
 jobs:
   build-docker:
     runs-on: ubuntu-latest
-    # 45 statt 30: der cache-lose Edge-Docker-Build (better-sqlite3-Natives,
-    # Multi-Platform) lief chronisch am 30-min-Cap (~50% cancelled, reine
-    # Runner-Varianz). 45 gibt ~50% Headroom; bei weiterem Wachstum erneut anheben.
+    # Historisch lief der Edge-Build am 30-min-Cap (cache-los + QEMU-arm64,
+    # ~50% cancelled). Seit 2026-06-18: nur noch linux/amd64 + GHA-Layer-Cache
+    # → deutlich darunter. 45 bleibt grosszuegiger Headroom (Cap, kein Ziel);
+    # nach Beobachtung realer amd64-Zeiten ggf. senken.
     timeout-minutes: 45
 
     permissions:
@@ -27,8 +28,10 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Set up QEMU (Multi-Platform)
-        uses: docker/setup-qemu-action@v4
+      # Hinweis: Der QEMU-Setup-Step (docker/setup-qemu-action) wurde am
+      # 2026-06-18 entfernt — er wird nur fuer die arm64-Emulation gebraucht,
+      # und der Edge baut jetzt nur linux/amd64. Re-Aktivierung: siehe Kommentar
+      # am `platforms:`-Feld im Build-Step + documentation/edge-build-platforms.md.
 
       - name: Login to GHCR
         uses: docker/login-action@v4
@@ -106,7 +109,23 @@ jobs:
         with:
           context: .
           file: tools/docker/Dockerfile.edge
-          platforms: linux/amd64,linux/arm64
+          # 2026-06-18: arm64 entfernt — der Edge laeuft beim Testkunden auf einem
+          # amd64-Linux-Server; das api-edge-Image wird nirgends auf ARM deployt
+          # (die Sunmi-Geraete fahren den pos-client/Frontend, nicht dieses Image).
+          # Das QEMU-emulierte arm64-Cross-Build war der groesste Zeitfresser.
+          #
+          # >>> Re-Aktivierung von arm64 (z.B. ARM-SBC als Edge) — exakt: <<<
+          #   1. Diese Zeile zuruecksetzen auf:
+          #        platforms: linux/amd64,linux/arm64
+          #   2. Den QEMU-Setup-Step wieder VOR dem "Login to GHCR"-Step einfuegen
+          #      (registriert die binfmt-Handler fuer die Emulation):
+          #        - name: Set up QEMU (Multi-Platform)
+          #          uses: docker/setup-qemu-action@v4
+          # Alternative ohne QEMU-Emulation (schneller): arm64 nativ auf einem
+          # ARM-Runner (runs-on: ubuntu-24.04-arm) bauen und per
+          # `docker buildx imagetools create` zur Multi-Arch-Manifest-Liste mergen.
+          # Volle Begruendung: documentation/edge-build-platforms.md
+          platforms: linux/amd64
           push: true
           # App-Version ins Image injizieren — /health meldet damit den Image-Tag
           build-args: |

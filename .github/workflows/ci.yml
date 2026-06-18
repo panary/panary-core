@@ -12,6 +12,19 @@ permissions:
 jobs:
   main:
     runs-on: ubuntu-latest
+    env:
+      # --- Nx Self-Hosted Remote Cache (P6, 2026-06-18) ---
+      # Aktiviert sich automatisch, sobald die Repo-Secrets gesetzt sind; vorher
+      # leer → Nx ignoriert den Remote-Cache (No-op, kein CI-Bruch). Server-Deploy
+      # + Runbook: documentation/nx-remote-cache.md
+      #
+      # Poisoning-Schutz (CVE-2025-36852/CREEP): nur vertrauenswuerdige main-Pushes
+      # bekommen den Read-Write-Token (befuellen den Cache). PRs bekommen hoechstens
+      # den Read-Only-Token; ohne RO-Token bleibt der Server fuer PRs ungesetzt →
+      # reiner lokaler Cache, kein Remote-Schreibzugriff aus einem PR.
+      # (secrets.X != '' im env-Wert ist erlaubt — gleiches Muster wie HAS_NX_CLOUD.)
+      NX_SELF_HOSTED_REMOTE_CACHE_SERVER: ${{ (github.event_name == 'push' || secrets.NX_CACHE_RO_TOKEN != '') && secrets.NX_CACHE_SERVER_URL || '' }}
+      NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN: ${{ github.event_name == 'push' && secrets.NX_CACHE_RW_TOKEN || secrets.NX_CACHE_RO_TOKEN }}
     steps:
       - uses: actions/checkout@v6
         with:

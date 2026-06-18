@@ -115,6 +115,10 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/panary-edge:${{ steps.version.outputs.tag }}
             ghcr.io/${{ github.repository_owner }}/panary-edge:latest
           cache-from: type=gha
+          # cache-to fehlte → der gha-Cache wurde nie geschrieben, cache-from lief
+          # permanent ins Leere. mode=max cached auch die teuren Zwischen-Layer
+          # (better-sqlite3 unter QEMU-arm64 + die drei Angular-Production-Builds).
+          cache-to: type=gha,mode=max
 
       # --- Supply-Chain-Herkunft des OFFIZIELLEN Edge-Images ---
       # Wichtig (Scope-Ehrlichkeit): cosign/SLSA beweisen die HERKUNFT des Images

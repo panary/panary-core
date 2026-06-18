@@ -36,7 +36,10 @@ jobs:
     # und kostenlos. `gitleaks dir` scannt den Arbeitsbaum (kein Git-History-Setup
     # nötig); Exit-Code 1 bei Funden lässt den Job fehlschlagen.
     container:
-      image: ghcr.io/gitleaks/gitleaks:latest
+      # Digest-Pin (Supply-Chain) statt :latest — Updates via Renovate. Hinweis:
+      # gitleaks-Regeln sind im Image gebundelt → der Pin friert sie ein, daher
+      # regelmaessig bumpen. Digest aufgeloest am 2026-06-18.
+      image: ghcr.io/gitleaks/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
     steps:
       - uses: actions/checkout@v6
       - name: gitleaks (filesystem scan)
@@ -46,7 +49,10 @@ jobs:
     name: semgrep (SAST)
     runs-on: ubuntu-latest
     container:
-      image: semgrep/semgrep:latest
+      # Digest-Pin (Supply-Chain) statt :latest — Updates via Renovate. Die
+      # semgrep-Regeln kommen zur Laufzeit aus den p/*-Configs (nicht aus dem
+      # Image) → bleiben trotz Pin frisch. Digest aufgeloest am 2026-06-18.
+      image: semgrep/semgrep@sha256:c180f0c93a17b420c0af5006214a29d3c747c5459c732b740191adf657dd0068
     steps:
       - uses: actions/checkout@v6
       - name: semgrep ci

@@ -32,7 +32,11 @@ COPY libs/ ./libs/
 COPY packages/ ./packages/
 
 # Dependencies installieren
-RUN pnpm install --frozen-lockfile
+# pnpm-Store als BuildKit-Cache-Mount: Packages werden nur bei Lockfile-
+# Aenderung neu aus der Registry geladen (statt bei jedem Build) — greift auch,
+# wenn der Install-Layer durch eine Source-Aenderung invalidiert wird.
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
 
 # Quellcode kopieren
 COPY apps/api-edge/ ./apps/api-edge/

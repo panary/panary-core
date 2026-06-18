@@ -60,16 +60,26 @@ Nx liefert **kein** offizielles Image. Geprüfte Community-Implementierungen
 (v1.3.0 vom 2026-06-15), beansprucht volle OpenAPI-Konformität (→ 409 sollte
 enthalten sein; vor Go-Live testen, siehe unten). Keiner der Server bietet
 server-seitige RO/RW-Token-Trennung — deshalb wird die Trennung CI-seitig über
-zwei Tokens gelöst (Schicht 1 oben). Vor dem Einsatz: Image-Quelle/Lizenz prüfen
-und Tag auf einen **Digest pinnen** (gleiche Supply-Chain-Hygiene wie bei den
-übrigen Images, siehe QW5).
+zwei Tokens gelöst (Schicht 1 oben).
+
+> **Wichtig:** nxcite liefert **kein Docker-Image**, nur ein Rust-Binary aus den
+> GitHub-Releases. Wir bauen daher ein schlankes Wrapper-Image, das das auf
+> **Version + SHA-256 gepinnte** Binary lädt (verifiziert gegen die `checksums.txt`
+> — gleiche Supply-Chain-Hygiene wie QW5). Fertig im Repo:
+> [`tools/nx-cache/Dockerfile`](../tools/nx-cache/Dockerfile) (v1.3.0,
+> linux-x86_64, SHA-256 `65c8b504…ba080c`, verifiziert 2026-06-18).
 
 ## Deployment (Coolify)
 
-Neuen Service in Coolify anlegen (Image z. B. `ghcr.io/nxcite/nx-cache-server`,
-auf Digest pinnen). Secrets via BWS injizieren — analog zum Backup-Container.
+Coolify-Service aus dem Wrapper-Dockerfile `tools/nx-cache/Dockerfile` bauen
+(Version/SHA-256 dort gepinnt). **Secrets als Coolify-Env, NICHT via BWS:** ein
+BWS-Machine-Account ist projekt-weit — gäbe man dem fremdentwickelten Cache einen
+BWS-Token auf das bestehende Projekt, könnte er theoretisch *alle* Secrets lesen
+(api-cloud-JWT, DB-Creds …). Echte Isolation bräuchte ein eigenes BWS-Projekt +
+Machine-Account, also mehr Aufwand als Coolify-Env bei gleichem Ergebnis. Coolify
+verschlüsselt seine Env-Vars at-rest und scoped sie auf genau diesen Service.
 
-Beispiel-Env (an die README des gewählten Servers anpassen):
+Coolify-Env (Werte an die nxcite-README angelehnt):
 
 ```
 # S3-Backend = vorhandenes Ugreen-/MinIO-S3 (eigener Bucket!)

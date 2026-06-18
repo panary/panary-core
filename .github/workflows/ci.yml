@@ -26,7 +26,7 @@ jobs:
       NX_SELF_HOSTED_REMOTE_CACHE_SERVER: ${{ (github.event_name == 'push' || secrets.NX_CACHE_RO_TOKEN != '') && secrets.NX_CACHE_SERVER_URL || '' }}
       NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN: ${{ github.event_name == 'push' && secrets.NX_CACHE_RW_TOKEN || secrets.NX_CACHE_RO_TOKEN }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           filter: tree:0
           fetch-depth: 0
@@ -35,10 +35,10 @@ jobs:
       # Version aus dem `packageManager`-Feld der package.json. Beide
       # gleichzeitig kollidieren mit ERR_PNPM_BAD_PM_VERSION (CI #187).
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 22
           cache: pnpm
@@ -47,7 +47,7 @@ jobs:
       # Fallback HEAD~1; PR: merge-base). Verhindert, dass `affected` ohne Base
       # alle ~100 Projekte baut (Runner-OOM / Exit 130). Braucht fetch-depth: 0.
       - name: Derive affected SHAs
-        uses: nrwl/nx-set-shas@v5
+        uses: nrwl/nx-set-shas@afb73a62d26e41464e9254689e1fd6122ee683c1 # v5
 
       # `--no-frozen-lockfile`, weil das committete pnpm-lock.yaml im Workbench-
       # Setup ein Snapshot des geteilten Root-Lockfiles ist (Symlink + skip-worktree,

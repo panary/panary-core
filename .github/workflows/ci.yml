@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Manueller Cache-Test-Trigger (gh workflow run / Actions-UI „Run workflow"):
+  # baut bei Dispatch ALLE Projekte (nx run-many) statt nur affected → der
+  # Remote-Cache wird garantiert beschrieben/gelesen (affected ist bei Re-Runs
+  # oft leer → kein Cache-Zugriff).
+  workflow_dispatch:
 
 permissions:
   actions: read
@@ -73,7 +78,13 @@ jobs:
           # Beschleuniger" (documentation/nx-remote-cache.md). Echte Lint/Test/
           # Build-Fehler (kein Cache-Bezug) brechen weiterhin sofort ab.
           set -o pipefail
-          run_affected() { pnpm nx affected -t lint,test,build; }
+          run_affected() {
+            if [ "${{ github.event_name }}" = 'workflow_dispatch' ]; then
+              pnpm nx run-many -t lint   # Cache-Test: alle Projekte → Remote-Cache
+            else
+              pnpm nx affected -t lint,test,build
+            fi
+          }
           log="$(mktemp)"
           if run_affected 2>&1 | tee "$log"; then
             exit 0

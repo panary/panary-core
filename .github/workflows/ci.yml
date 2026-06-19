@@ -64,4 +64,23 @@ jobs:
 
       # nx affected liest NX_BASE/NX_HEAD aus der Umgebung (nx-set-shas oben).
       - name: Lint, Test & Build (affected)
-        run: pnpm nx affected -t lint,test,build
+        shell: bash
+        run: |
+          # Remote-Cache-Resilienz: bricht der Lauf wegen eines Remote-Cache-
+          # Fehlers ab (Server 5xx/unreachable/Token), wird EINMAL ohne Remote-
+          # Cache wiederholt (Fallback auf lokalen Cache), statt die CI hart
+          # fehlschlagen zu lassen — Runbook-Absicht "Cache ist optionaler
+          # Beschleuniger" (documentation/nx-remote-cache.md). Echte Lint/Test/
+          # Build-Fehler (kein Cache-Bezug) brechen weiterhin sofort ab.
+          set -o pipefail
+          run_affected() { pnpm nx affected -t lint,test,build; }
+          log="$(mktemp)"
+          if run_affected 2>&1 | tee "$log"; then
+            exit 0
+          fi
+          if [ -n "${NX_SELF_HOSTED_REMOTE_CACHE_SERVER:-}" ] && grep -qiE 'remote cache' "$log"; then
+            echo "::warning title=Nx Remote-Cache::Remote-Cache nicht nutzbar — Retry ohne Remote-Cache (Fallback auf lokalen Cache)."
+            NX_SELF_HOSTED_REMOTE_CACHE_SERVER='' NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN='' run_affected
+            exit $?
+          fi
+          exit 1

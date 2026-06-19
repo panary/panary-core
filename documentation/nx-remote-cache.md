@@ -134,6 +134,26 @@ Remote-Cache. Es ist also kein CI-Bruch, bevor der Server steht. `nx.json` brauc
 keine Änderung (der Env-Var-Mechanismus ist in Nx ≥ 20.8 eingebaut; die
 `cache: true`-targetDefaults sind bereits gesetzt).
 
+## Resilienz — ein Cache-Ausfall bricht die CI nicht (2026-06-19)
+
+Der `affected`-Step in beiden `ci.yml` ist gegen Remote-Cache-Fehler abgesichert:
+schlägt `nx affected` fehl **und** nennt die Ausgabe einen Remote-Cache-Fehler
+(z. B. `Misconfigured remote cache endpoint: … 500`), wird der Lauf **einmal ohne
+Remote-Cache** wiederholt (`NX_SELF_HOSTED_REMOTE_CACHE_SERVER=''` inline) →
+Fallback auf den lokalen Cache. Echte Lint/Test/Build-Fehler ohne Cache-Bezug
+brechen weiterhin **sofort** ab (kein Doppellauf — der erste Versuch bricht bei
+einem Cache-Fehler bereits in der Cache-Init-Phase ab, vor den Tasks). Damit gilt
+die Absicht „der Remote-Cache ist ein optionaler Beschleuniger" auch dann, wenn
+der Server bereits konfiguriert, aber (noch) ungesund ist — eine Server-5xx-Phase
+macht die CI nicht mehr rot, sondern nur langsamer + erzeugt eine GH-`warning`.
+
+> **Hintergrund:** Beim ersten Live-Test (2026-06-19) lieferte der Server für
+> **panary-core** reproduzierbar `500` (panary-cloud lief grün — Hinweis auf
+> abweichende Repo-Secrets `NX_CACHE_SERVER_URL`/`NX_CACHE_RW_TOKEN`), was ohne
+> diesen Fallback die ganze CI hart fehlschlagen ließ. Die Wurzel (Secret/Server)
+> wird separat gefixt; dieser Wrapper ist die CI-seitige Absicherung gegen jede
+> künftige Cache-Störung.
+
 ## Verifikation nach dem Deploy
 
 1. Secrets in beiden Repos setzen.

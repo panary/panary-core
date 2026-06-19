@@ -147,12 +147,21 @@ die Absicht „der Remote-Cache ist ein optionaler Beschleuniger" auch dann, wen
 der Server bereits konfiguriert, aber (noch) ungesund ist — eine Server-5xx-Phase
 macht die CI nicht mehr rot, sondern nur langsamer + erzeugt eine GH-`warning`.
 
-> **Hintergrund:** Beim ersten Live-Test (2026-06-19) lieferte der Server für
-> **panary-core** reproduzierbar `500` (panary-cloud lief grün — Hinweis auf
-> abweichende Repo-Secrets `NX_CACHE_SERVER_URL`/`NX_CACHE_RW_TOKEN`), was ohne
-> diesen Fallback die ganze CI hart fehlschlagen ließ. Die Wurzel (Secret/Server)
-> wird separat gefixt; dieser Wrapper ist die CI-seitige Absicherung gegen jede
-> künftige Cache-Störung.
+> **Hintergrund + Root-Cause (2026-06-19):** Beim ersten Live-Test lief `nx affected`
+> in **panary-core** reproduzierbar in `500` (Nx: „Misconfigured remote cache
+> endpoint"). Die **Server-Logs** zeigten die Ursache: **`NoSuchBucket` — der
+> S3-Bucket `panary-nx-cache` war nie angelegt** (Deploy-Schritt aus dem
+> Deployment-Abschnitt übersehen). Jeder Cache-`get_object` → `NoSuchBucket` →
+> `500`. **panary-cloud** wirkte grün, weil dessen `nx affected
+--base=remotes/origin/main` auf dem frischen Push einen ~leeren Affected-Satz
+> hatte und den Cache gar nicht ansprach — **nicht** weil seine Secrets „richtiger"
+> waren (die Secrets waren nie die Ursache; ein Secret-Reset blieb folgenlos).
+> **Fix: Bucket anlegen.** Dieser Wrapper ist davon unabhängig die CI-seitige
+> Absicherung gegen jede künftige Cache-Störung (Bucket/S3 weg, Server-5xx, Token).
+>
+> **Troubleshooting-Merksatz:** Nx-`500`/„Misconfigured remote cache endpoint" →
+> zuerst die **Cache-Server-Logs** lesen (Coolify). `NoSuchBucket` = Bucket fehlt;
+> `AccessDenied` = S3-Creds/Region falsch; `401` vor dem Server = Token/URL.
 
 ## Verifikation nach dem Deploy
 

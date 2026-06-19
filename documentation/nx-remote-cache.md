@@ -3,7 +3,7 @@ title: Nx Self-Hosted Remote Cache — Server, Sicherheit & Setup
 date: 2026-06-18
 category: Infrastruktur
 domains: [ci, infra]
-status: aktiv (Deploy ausstehend)
+status: aktiv (in Betrieb seit 2026-06-19)
 ---
 
 # Nx Self-Hosted Remote Cache
@@ -160,8 +160,59 @@ macht die CI nicht mehr rot, sondern nur langsamer + erzeugt eine GH-`warning`.
 > Absicherung gegen jede künftige Cache-Störung (Bucket/S3 weg, Server-5xx, Token).
 >
 > **Troubleshooting-Merksatz:** Nx-`500`/„Misconfigured remote cache endpoint" →
-> zuerst die **Cache-Server-Logs** lesen (Coolify). `NoSuchBucket` = Bucket fehlt;
-> `AccessDenied` = S3-Creds/Region falsch; `401` vor dem Server = Token/URL.
+> zuerst die **Cache-Server-Logs** lesen (Coolify). Bisher gesehene Ursachen:
+> `NoSuchBucket` = Bucket fehlt/Name-Mismatch; `Http2 … GoAway(NO_ERROR, Remote)`
+> auf `get_object`/`put_object` = HTTP/2 am Reverse-Proxy (→ Abschnitt
+> „HTTP/2-GOAWAY"); `AccessDenied` = S3-Creds/Region; `401` **vor** dem Server =
+> Token/URL.
+
+## HTTP/2-GOAWAY am Reverse-Proxy (gelöst 2026-06-19)
+
+Nachdem der Bucket existierte, kamen unter **Burst-Last** (viele Cache-Ops pro
+Lauf, v.a. parallele core+cloud-Builds) weiterhin **sporadische `500`**. Die
+nxcite-Logs zeigten **keinen** Storage-Fehler, sondern Transport:
+`S3 get_object failed: … hyper::Error(Http2, GoAway(NO_ERROR, Remote))`.
+
+**Ursache:** `s3.ratke.info` läuft hinter **Nginx Proxy Manager** (SSL-Terminierung,
+forward `http://192.168.178.50:8333` = SeaweedFS S3) mit **„HTTP/2 Support" AN**.
+nginx recycelt HTTP/2-Verbindungen nach `keepalive_requests` (Default 1000) und
+schickt ein `GOAWAY`; der AWS-Rust-SDK-Client in nxcite poolt die HTTP/2-
+Verbindung und wiederholt den mittendrin abgebrochenen Request **nicht** → `500`.
+Intermittierend, weil das GOAWAY erst nach genug Requests auf derselben
+Connection kommt (deshalb laufen Einzel-Läufe sauber, Bursts kippen).
+
+**Fix (1 Toggle):** NPM → `s3.ratke.info` → SSL → **„HTTP/2 Support" AUS**. Eine
+S3-API (Maschine-zu-Maschine, Request/Response) profitiert nicht von HTTP/2;
+HTTP/1.1-Keep-Alive hat kein „GOAWAY-mid-request". **Verifiziert 2026-06-19:**
+core+cloud **gleichzeitig** → 0× GOAWAY/500, `[remote cache]`-Reads sauber.
+SeaweedFS selbst war durchgehend gesund (Volumes für `nx-cache-server` angelegt,
+Writes landen). Hinweis: NPMs „Block Common Exploits" ist für eine S3-API
+potenziell heikel — falls nach dem HTTP/2-Fix vereinzelt `403` (statt `500`)
+auftauchen, dort als Nächstes prüfen.
+
+## Hebel 2 (Nx-Cache in die Docker-Image-Builds) — geprüft & verworfen (2026-06-19)
+
+Versucht: `NX_SELF_HOSTED_REMOTE_CACHE_*` via BuildKit-Secret (kein build-arg →
+kein Layer-Leak) in den `nx build`-Step des admin-dashboard-Image, mit
+Cache-Fehler-Fallback. **Wieder revertiert**, weil der Live-Test zeigte:
+
+- **Unveränderte App:** Der `nx build`-RUN-Layer wird bereits vom
+  **Docker-Registry-Layer-Cache** (`buildcache-staging`) bedient — Layer `CACHED`,
+  ~9 s, `nx build` läuft gar nicht → der Nx-Remote-Cache wird nie erreicht,
+  **redundant**.
+- **Geänderte App** (= der eigentliche 20-Min-Fall): `nx build` muss laufen, aber
+  der Nx-Cache **misst** (neue Quelle = neuer Hash) → **kein Nutzen**.
+- Einzige reale Nische: Cross-Pipeline-Sharing desselben Commits (ein
+  Prod-Release-Build zieht den `build:production`, den ein Staging-Build desselben
+  Commits gecacht hat — die per-Tag-Layer-Caches teilen das nicht, der Nx-Cache
+  schon). Zu speziell für die Komplexität + die zusätzliche Cache-Server-Exposure
+  im Image-Build.
+
+**Fazit:** Der Nx-Remote-Cache lohnt sich für die **`ci.yml`-Validierungsjobs**
+(lint/test/build über Läufe), **nicht** für die Docker-Image-Builds. Der echte
+Hebel gegen langsame (geänderte-Quelle-)Image-Builds ist **Runner-Kapazität**
+(self-hosted Runner — geplant) und **Build-Scope** (z.B. zieht das
+storefront-`--legacy deploy` den ganzen Workspace, ~0.9 GB).
 
 ## Verifikation nach dem Deploy
 
@@ -175,8 +226,10 @@ macht die CI nicht mehr rot, sondern nur langsamer + erzeugt eine GH-`warning`.
 ## Offene/optionale Folgeschritte
 
 - **PR-Read-Caching** über echten RO-Token (Server-Support vorausgesetzt).
-- **Nx-Cache in die Docker-Image-Builds** durchreichen (Env als BuildKit-Secret)
-  — nur wenn der Zusatznutzen die Token-im-Build-Komplexität rechtfertigt.
+- ~~**Nx-Cache in die Docker-Image-Builds** durchreichen~~ — **2026-06-19 geprüft
+  & verworfen** (Docker-Layer-Cache schattet ihn; kein Nutzen bei geänderter
+  Quelle). Details: Abschnitt „Hebel 2 … geprüft & verworfen". Stattdessen:
+  self-hosted Runner + Build-Scope.
 - Nx-Cloud-Reste in `panary-cloud/ci.yml` (`nx record`, `nx fix-ci`,
   `start-ci-run`) sind Nx-**Cloud**-spezifisch und für den self-hosted Cache
   No-ops — bei Gelegenheit entfernen.

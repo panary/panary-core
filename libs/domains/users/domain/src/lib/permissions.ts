@@ -431,6 +431,13 @@ export const AppResource = {
    *  TENANT_MANAGER. READ: TENANT_STAFF (Anzeige im Reservierungs-Planer).
    *  PLATFORM_ADMIN: CRUD. */
   RESERVABLE_SLOTS: 'reservable-slots',
+  /** Cloud-only: Tischlink-/QR-Engine (Table-Ordering, PNRY-FEAT-TABLE-001).
+   *  Pro Tisch ein opaker Capability-Token fuer den Eigendomain-QR. MANAGE:
+   *  TENANT_OWNER + TENANT_MANAGER (Token rotieren/deaktivieren). READ:
+   *  TENANT_STAFF. PLATFORM_ADMIN/SUPPORT: MANAGE (Support). Der oeffentliche
+   *  Resolve laeuft ueber `table-link-public` (authorize-Allowlist, kein
+   *  Matrix-Eintrag). */
+  TABLE_LINKS: 'table-links',
 } as const
 
 export type AppResource = (typeof AppResource)[keyof typeof AppResource]

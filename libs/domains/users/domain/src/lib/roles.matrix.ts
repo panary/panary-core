@@ -86,6 +86,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.RESERVATIONS, action: AppAction.MANAGE },
     { resource: AppResource.RESERVATION_TABLES, action: AppAction.MANAGE },
     { resource: AppResource.TABLE_LINKS, action: AppAction.MANAGE },
+    { resource: AppResource.MERCH_PRODUCTS, action: AppAction.MANAGE },
     { resource: AppResource.RESERVABLE_SLOTS, action: AppAction.MANAGE },
   ],
 
@@ -173,6 +174,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.RESERVATIONS, action: AppAction.MANAGE },
     { resource: AppResource.RESERVATION_TABLES, action: AppAction.MANAGE },
     { resource: AppResource.TABLE_LINKS, action: AppAction.MANAGE },
+    { resource: AppResource.MERCH_PRODUCTS, action: AppAction.MANAGE },
     { resource: AppResource.RESERVABLE_SLOTS, action: AppAction.MANAGE },
   ],
 
@@ -430,6 +432,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.RESERVATIONS, action: AppAction.MANAGE },
     { resource: AppResource.RESERVATION_TABLES, action: AppAction.MANAGE },
     { resource: AppResource.TABLE_LINKS, action: AppAction.MANAGE },
+    // merch-products: Tenant browst den Katalog (READ); Pflege bei PLATFORM.
+    { resource: AppResource.MERCH_PRODUCTS, action: AppAction.READ },
     { resource: AppResource.RESERVABLE_SLOTS, action: AppAction.MANAGE },
     AppAbility.CAN_SEE_REPORTS,
     AppAbility.CAN_REFUND,
@@ -564,6 +568,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.RESERVATIONS, action: AppAction.MANAGE },
     { resource: AppResource.RESERVATION_TABLES, action: AppAction.MANAGE },
     { resource: AppResource.TABLE_LINKS, action: AppAction.MANAGE },
+    // merch-products: Support liest den Katalog (Diagnose), Pflege bei OWNER/ADMIN.
+    { resource: AppResource.MERCH_PRODUCTS, action: AppAction.READ },
     { resource: AppResource.RESERVABLE_SLOTS, action: AppAction.MANAGE },
     AppAbility.CAN_SEE_REPORTS,
     AppAbility.CAN_REFUND,
@@ -720,6 +726,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.RESERVATIONS, action: AppAction.MANAGE },
     { resource: AppResource.RESERVATION_TABLES, action: AppAction.MANAGE },
     { resource: AppResource.TABLE_LINKS, action: AppAction.MANAGE },
+    { resource: AppResource.MERCH_PRODUCTS, action: AppAction.READ },
     { resource: AppResource.RESERVABLE_SLOTS, action: AppAction.MANAGE },
     AppAbility.CAN_VOID_ORDER,
   ],
@@ -812,6 +819,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.BRANDS, action: AppAction.READ },
     { resource: AppResource.RESERVATION_TABLES, action: AppAction.READ },
     { resource: AppResource.TABLE_LINKS, action: AppAction.READ },
+    { resource: AppResource.MERCH_PRODUCTS, action: AppAction.READ },
     { resource: AppResource.RESERVABLE_SLOTS, action: AppAction.READ },
     // Reservierungen: Staff sieht den Reservierungs-Bestand und darf Status
     // setzen (ARRIVED/NO_SHOW/CANCELLED) — KEIN CREATE/DELETE.

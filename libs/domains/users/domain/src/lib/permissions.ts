@@ -438,6 +438,10 @@ export const AppResource = {
    *  Resolve laeuft ueber `table-link-public` (authorize-Allowlist, kein
    *  Matrix-Eintrag). */
   TABLE_LINKS: 'table-links',
+  /** Cloud-only: Sticker-Layout-Katalog (Merch-Shop, PNRY-FEAT-TABLE-001 M2).
+   *  Plattform-kuratiert (global). MANAGE: PLATFORM_OWNER/ADMIN (Katalog
+   *  pflegen). READ: alle Tenant-Rollen + PLATFORM_SUPPORT (Layouts browsen). */
+  MERCH_PRODUCTS: 'merch-products',
 } as const
 
 export type AppResource = (typeof AppResource)[keyof typeof AppResource]

@@ -442,6 +442,10 @@ export const AppResource = {
    *  Plattform-kuratiert (global). MANAGE: PLATFORM_OWNER/ADMIN (Katalog
    *  pflegen). READ: alle Tenant-Rollen + PLATFORM_SUPPORT (Layouts browsen). */
   MERCH_PRODUCTS: 'merch-products',
+  /** Cloud-only: Merch-Bestellungen (PoD-Schicht, PNRY-FEAT-TABLE-001 M3). Vom
+   *  POS-/Fiskal-Order-Strom getrennt. MANAGE: TENANT_OWNER/MANAGER (eigene
+   *  Bestellungen) + PLATFORM_OWNER. READ: TENANT_STAFF + PLATFORM_ADMIN/SUPPORT. */
+  SHOP_ORDERS: 'shop-orders',
 } as const
 
 export type AppResource = (typeof AppResource)[keyof typeof AppResource]

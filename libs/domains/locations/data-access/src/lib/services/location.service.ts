@@ -3,7 +3,7 @@ import { Id, Paginated } from '@feathersjs/feathers'
 import { Observer } from 'rxjs'
 import { BaseService, ConnectionService } from '@panary/shared/data-access'
 import { DeviceConfigService } from '@panary/shared/data-access-config'
-import { Location } from '@panary/locations/domain'
+import { Location, tableEntryLabel } from '@panary/locations/domain'
 
 // Typ-Aliase für strukturell relevante Sub-Typen
 export type PrintSettings = NonNullable<NonNullable<Location['settings']>['printSettings']>
@@ -62,8 +62,9 @@ export class LocationService extends BaseService<Location> {
     const tables: Array<string> = []
 
     this.activeLocation()?.settings?.tableSettings?.rooms?.forEach(room => {
-      room.tables?.forEach((table: string): void => {
-        tables.push(table)
+      // `table` ist string (Legacy) ODER TableEntry-Objekt → robust das Label lesen.
+      room.tables?.forEach(table => {
+        tables.push(tableEntryLabel(table))
       })
     })
 

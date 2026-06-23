@@ -33,6 +33,24 @@ export const taxSchema = Type.Object({
   name: Type.String({ minLength: 1, maxLength: 60 }),
 })
 
+// Eine Tisch-Definition innerhalb eines Raums (tableSettings). Die `id` (uuidv7)
+// ist die STABILE Identität: Tisch-QR-Links/Sticker referenzieren sie, damit ein
+// Umbenennen des `label` bestehende QR-Codes NICHT verwaist. `label` ist die
+// angezeigte Bezeichnung (z. B. „T1"); `seats` optional, weitere Metadaten künftig
+// erweiterbar. Legacy-Daten speichern Tische als reinen String (= label ohne id) —
+// Konsumenten lesen das Label robust über `tableEntryLabel`, die Migration
+// String→Objekt erfolgt cloud-seitig in der Settings-UI beim Speichern.
+export const tableEntrySchema = Type.Object({
+  id: Type.String({ description: 'uuidv7 — stabile Tisch-Identität (übersteht Umbenennung)' }),
+  label: Type.String({ minLength: 1, maxLength: 60 }),
+  seats: Type.Optional(Type.Number({ minimum: 1, maximum: 99 })),
+})
+export type TableEntry = Static<typeof tableEntrySchema>
+
+// Liest das Label eines Tisch-Eintrags, egal ob Legacy-String oder neues Objekt.
+export const tableEntryLabel = (entry: string | TableEntry): string =>
+  typeof entry === 'string' ? entry : entry.label
+
 export const settingsSchema = Type.Object({
   generalSettings: Type.Object({
     systemOfUnits: StringEnum(Object.values(UnitSystem)),
@@ -91,7 +109,10 @@ export const settingsSchema = Type.Object({
     rooms: Type.Array(
       Type.Object({
         name: Type.String({ minLength: 1, maxLength: 80 }),
-        tables: Type.Array(Type.String(), { default: [] }),
+        // Union(string, tableEntry): bestehende Daten (string[]) bleiben gueltig
+        // (Rueckwaerts-Kompatibilitaet), neue Tische werden als Objekt mit stabiler
+        // id gespeichert. Konsumenten normalisieren via `tableEntryLabel`.
+        tables: Type.Array(Type.Union([Type.String(), tableEntrySchema]), { default: [] }),
       }),
     ),
   }),

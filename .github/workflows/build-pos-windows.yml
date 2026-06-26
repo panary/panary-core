@@ -41,6 +41,20 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
+      # Standalone-Resolution der @panary/*-Pakete: legt node_modules/@panary/*-
+      # Symlinks zu den lokalen libs an (identisch zum CI-Workflow). Ohne diesen
+      # Schritt findet `nx build pos-client` @panary/shared-common,
+      # @panary/util-error-handling, @panary/users/domain etc. nicht (TS2307),
+      # weil der nx-tsc-Executor die tsconfig-`paths` nicht honoriert.
+      # MSYS=winsymlinks:nativestrict erzwingt native Windows-Symlinks statt
+      # Datei-Kopien — zwingend, da die libs-`dist/` erst beim Build entstehen
+      # und der Link eine Live-Referenz (keinen Snapshot) braucht.
+      - name: Link @panary/* packages
+        shell: bash
+        env:
+          MSYS: winsymlinks:nativestrict
+        run: bash tools/scripts/link-core-packages.sh
+
       - name: Build Angular POS
         run: pnpm nx build pos-client --configuration=production --parallel=1
 

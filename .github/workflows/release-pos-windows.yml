@@ -100,6 +100,15 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --no-frozen-lockfile
 
+      # Standalone-Resolution der @panary/*-Pakete (siehe build-pos-windows.yml):
+      # node_modules/@panary/*-Symlinks zu den lokalen libs, sonst TS2307 beim
+      # `nx build pos-client`. Native Windows-Symlinks via MSYS erzwingen.
+      - name: Link @panary/* packages
+        shell: bash
+        env:
+          MSYS: winsymlinks:nativestrict
+        run: bash tools/scripts/link-core-packages.sh
+
       - name: Build Angular POS
         run: pnpm nx build pos-client --configuration=production --parallel=1
 

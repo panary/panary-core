@@ -431,6 +431,21 @@ export const AppResource = {
    *  TENANT_MANAGER. READ: TENANT_STAFF (Anzeige im Reservierungs-Planer).
    *  PLATFORM_ADMIN: CRUD. */
   RESERVABLE_SLOTS: 'reservable-slots',
+  /** Cloud-only: Tischlink-/QR-Engine (Table-Ordering, PNRY-FEAT-TABLE-001).
+   *  Pro Tisch ein opaker Capability-Token fuer den Eigendomain-QR. MANAGE:
+   *  TENANT_OWNER + TENANT_MANAGER (Token rotieren/deaktivieren). READ:
+   *  TENANT_STAFF. PLATFORM_ADMIN/SUPPORT: MANAGE (Support). Der oeffentliche
+   *  Resolve laeuft ueber `table-link-public` (authorize-Allowlist, kein
+   *  Matrix-Eintrag). */
+  TABLE_LINKS: 'table-links',
+  /** Cloud-only: Sticker-Layout-Katalog (Merch-Shop, PNRY-FEAT-TABLE-001 M2).
+   *  Plattform-kuratiert (global). MANAGE: PLATFORM_OWNER/ADMIN (Katalog
+   *  pflegen). READ: alle Tenant-Rollen + PLATFORM_SUPPORT (Layouts browsen). */
+  MERCH_PRODUCTS: 'merch-products',
+  /** Cloud-only: Merch-Bestellungen (PoD-Schicht, PNRY-FEAT-TABLE-001 M3). Vom
+   *  POS-/Fiskal-Order-Strom getrennt. MANAGE: TENANT_OWNER/MANAGER (eigene
+   *  Bestellungen) + PLATFORM_OWNER. READ: TENANT_STAFF + PLATFORM_ADMIN/SUPPORT. */
+  SHOP_ORDERS: 'shop-orders',
 } as const
 
 export type AppResource = (typeof AppResource)[keyof typeof AppResource]

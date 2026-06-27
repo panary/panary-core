@@ -21,7 +21,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src 'self' http://*:3030 ws://*:3030 wss://*:3030 https://tauri.localhost tauri://localhost https://github.com https://*.github.com https://*.githubusercontent.com; img-src 'self' data: blob: https://tauri.localhost; font-src 'self' data: https://tauri.localhost; style-src 'self' 'unsafe-inline'"
+      "csp": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src 'self' http://*:3030 ws://*:3030 wss://*:3030 https://tauri.localhost tauri://localhost https://*.panary.io wss://*.panary.io https://*.panary.cloud wss://*.panary.cloud https://github.com https://*.github.com https://*.githubusercontent.com; img-src 'self' data: blob: https://tauri.localhost; font-src 'self' data: https://tauri.localhost; style-src 'self' 'unsafe-inline'"
     }
   },
   "plugins": {

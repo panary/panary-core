@@ -83,7 +83,7 @@
     "@types/bcryptjs": "^3.0.0",
     "@types/lodash": "^4.17.23",
     "@types/mocha": "^10.0.10",
-    "@types/node": "^25.9.1",
+    "@types/node": "^25.9.4",
     "@typescript-eslint/utils": "^8.62.0",
     "@vitest/coverage-v8": "^4.0.0",
     "angular-eslint": "21.4.0",

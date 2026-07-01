@@ -85,7 +85,7 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "^25.9.4",
     "@typescript-eslint/utils": "^8.62.0",
-    "@vitest/coverage-v8": "^4.0.0",
+    "@vitest/coverage-v8": "^4.1.9",
     "angular-eslint": "21.4.0",
     "angularx-qrcode": "^21.0.4",
     "axios": "^1.18.0",
@@ -113,7 +113,7 @@
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.1",
     "vite": "^7.0.0",
-    "vitest": "^4.0.8"
+    "vitest": "^4.1.9"
   },
   "workspaces": [
     "packages/*"

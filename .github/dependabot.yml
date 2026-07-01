@@ -7,6 +7,11 @@ updates:
       day: "monday"
       time: "06:00"
       timezone: "Europe/Berlin"
+    # Supply-Chain-Härtung: 7 Tage Karenz, bevor frisch veröffentlichte
+    # Versionen vorgeschlagen werden — kompromittierte Pakete werden meist
+    # innerhalb dieser Frist entdeckt.
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
@@ -51,6 +56,8 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 3
     labels:
       - "dependencies"
@@ -60,6 +67,8 @@ updates:
     directory: "/apps/pos-client/src-tauri"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 3
     labels:
       - "dependencies"

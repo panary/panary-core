@@ -137,3 +137,37 @@ jobs:
           prerelease: false
           includeUpdaterJson: true
           updaterJsonPreferNsis: true
+
+      # tauri-action (gepinnte v0) laedt das Updater-Manifest bei Tauri-v2-NSIS
+      # NICHT hoch ("Signature not found for the updater JSON. Skipping upload...")
+      # — obwohl die .sig erzeugt und angehaengt wird. Ohne latest.json laeuft der
+      # Client-Update-Check (releases/latest/download/latest.json) in einen 404,
+      # der still im UpdateService-catch verschluckt wird → kein Auto-Update.
+      # Deshalb das Manifest hier deterministisch selbst bauen und anhaengen.
+      # Asset-Name wird aus dem tatsaechlich hochgeladenen Release-Asset gelesen
+      # (GitHub normalisiert Leerzeichen/Em-Dash zu Punkten — nicht rekonstruierbar).
+      - name: Updater-Manifest (latest.json) erzeugen und anhaengen
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#pos-v}"
+
+          shopt -s nullglob
+          sigs=(apps/pos-client/src-tauri/target/release/bundle/nsis/*-setup.exe.sig)
+          SIG_PATH="${sigs[0]:-}"
+          [ -n "$SIG_PATH" ] || { echo "ERROR: keine NSIS-.sig im Bundle gefunden"; exit 1; }
+
+          ASSET=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --json assets --jq '.assets[] | select(.name | endswith("-setup.exe")) | .name' | head -1)
+          [ -n "$ASSET" ] || { echo "ERROR: kein -setup.exe-Asset am Release"; exit 1; }
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ASSET}"
+          PUBDATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          jq -n --rawfile sig "$SIG_PATH" --arg ver "$VERSION" --arg url "$URL" --arg date "$PUBDATE" \
+            '{version:$ver, notes:"Panary POS Update", pub_date:$date, platforms:{"windows-x86_64":{signature:$sig, url:$url}}}' \
+            > latest.json
+          echo "--- latest.json ---"; cat latest.json
+          gh release upload "$TAG" latest.json --repo "$GITHUB_REPOSITORY" --clobber

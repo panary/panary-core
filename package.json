@@ -77,7 +77,7 @@
     "@swc/core": "1.15.41",
     "@swc/helpers": "0.5.23",
     "@tailwindcss/postcss": "^4.3.1",
-    "@tauri-apps/cli": "^2.10.1",
+    "@tauri-apps/cli": "^2.11.3",
     "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-updater": "^2.10.0",
     "@types/bcryptjs": "^3.0.0",

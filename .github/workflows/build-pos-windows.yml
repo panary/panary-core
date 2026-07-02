@@ -88,9 +88,12 @@ jobs:
         with:
           projectPath: apps/pos-client
           tauriScript: pnpm tauri
-          # Pfad relativ zu projectPath (Tauri-CLI liest die Datei beim
-          # Argument-Parsing im Invocation-CWD, vor dem chdir nach src-tauri)
-          args: --config src-tauri/ci-no-updater.conf.json
+          # Absoluter Pfad zwingend: tauri-action fuehrt `pnpm tauri build`
+          # mit CWD im Repo-Root aus (nicht in projectPath), und das Tauri-CLI
+          # liest die --config-Datei beim Argument-Parsing relativ zum CWD.
+          # Ein projectPath-relativer Pfad scheitert mit os error 3
+          # (beobachtet in Run 28625013514).
+          args: --config ${{ github.workspace }}/apps/pos-client/src-tauri/ci-no-updater.conf.json
 
       - name: Upload Installer
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

@@ -309,8 +309,11 @@ export class ProductGroupService extends BaseService<ProductGroup> {
   getProductGroupById(id: Id | undefined): ProductGroup | undefined {
     if (!id) return undefined
 
+    // Tolerant gegen beide Referenz-Konventionen: `product.categoryIds` enthielt
+    // historisch die Gruppen-`_id`, Zielkonvention ist die `externalId`
+    // (categoryIds-Migration 2026-07). Beide Schlüssel sind UUIDs und kollisionsfrei.
     const index = this.#documents().findIndex((record: ProductGroup): boolean => {
-      return record._id === id
+      return record._id === id || record.externalId === id
     })
 
     return index === -1 ? undefined : this.#documents()[index]

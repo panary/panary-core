@@ -11,6 +11,7 @@ import { uuidv7 } from 'uuidv7'
 
 interface ProductGroup {
   _id: string
+  externalId?: string | null
   name: string
   color: string
 }
@@ -219,8 +220,8 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
               @for (group of productGroups(); track group._id) {
                 <label class="flex items-center gap-2 cursor-pointer hover:text-slate-900 dark:hover:text-white
                               transition text-slate-600 dark:text-gray-300 text-sm">
-                  <input type="checkbox" [value]="group._id" [checked]="form.categoryIds.includes(group._id)"
-                    (change)="toggleCategory(group._id, $event)"
+                  <input type="checkbox" [value]="group.externalId ?? group._id" [checked]="isGroupSelected(group)"
+                    (change)="toggleCategory(group, $event)"
                     class="w-4 h-4 accent-slate-900 dark:accent-white" />
                   <span class="inline-block w-3 h-3 rounded-full shrink-0 border border-slate-300 dark:border-gray-700"
                         [style.background-color]="group.color"></span>
@@ -410,7 +411,7 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
              [style.top.px]="pickerPos().top" [style.left.px]="pickerPos().left"
              (click)="$event.stopPropagation()">
           @for (pg of productGroups(); track pg._id) {
-            <button type="button" (click)="addProductsByCategory(pickerGroup()!, pg._id)"
+            <button type="button" (click)="addProductsByCategory(pickerGroup()!, pg)"
               class="w-full text-left px-3 py-1.5 text-sm text-slate-700 dark:text-gray-300
                      hover:bg-slate-50 dark:hover:bg-gray-800 transition flex items-center gap-2">
               <span class="inline-block w-2.5 h-2.5 rounded-full shrink-0"
@@ -640,13 +641,23 @@ export class ProductFormComponent implements OnInit {
 
   // --- Kategorien ---
 
-  toggleCategory(id: string, event: Event) {
+  // categoryIds kann historisch die Gruppen-_id ODER die externalId enthalten
+  // (Zielkonvention: externalId, categoryIds-Migration 2026-07) — Lesen tolerant,
+  // Schreiben immer externalId-bevorzugt.
+  private groupKeys(group: { _id: string; externalId?: string | null }): string[] {
+    return [group.externalId, group._id].filter(Boolean) as string[]
+  }
+
+  isGroupSelected(group: { _id: string; externalId?: string | null }): boolean {
+    const keys = this.groupKeys(group)
+    return this.form.categoryIds.some(cid => keys.includes(cid))
+  }
+
+  toggleCategory(group: { _id: string; externalId?: string | null }, event: Event) {
     const checked = (event.target as HTMLInputElement).checked
-    if (checked) {
-      this.form.categoryIds = [...this.form.categoryIds, id]
-    } else {
-      this.form.categoryIds = this.form.categoryIds.filter(cid => cid !== id)
-    }
+    const keys = this.groupKeys(group)
+    const rest = this.form.categoryIds.filter(cid => !keys.includes(cid))
+    this.form.categoryIds = checked ? [...rest, group.externalId ?? group._id] : rest
   }
 
   // --- OptionGroup Mutationen ---
@@ -684,10 +695,11 @@ export class ProductFormComponent implements OnInit {
     this.optionGroups.update(gs => [...gs])
   }
 
-  addProductsByCategory(group: OptionGroup, categoryId: string) {
+  addProductsByCategory(group: OptionGroup, category: { _id: string; externalId?: string | null }) {
     const existing = new Set(group.options.map(o => o.productId))
+    const keys = this.groupKeys(category)
     const newOptions = this.allProducts()
-      .filter(p => p.categoryIds.includes(categoryId) && !existing.has(p._id))
+      .filter(p => p.categoryIds.some(cid => keys.includes(cid)) && !existing.has(p._id))
       .map(p => ({ productId: p._id, priceAdjustment: 0, isDefault: false }))
     group.options = [...group.options, ...newOptions]
     this.optionGroups.update(gs => [...gs])

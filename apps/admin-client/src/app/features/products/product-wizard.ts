@@ -5,7 +5,7 @@ import { ApiService } from '../../core/api.service'
 import { formatApiError } from '../../core/error-helper'
 
 interface StepAnswer { value: unknown; display: string }
-interface ProductGroup { _id: string; name: string; acronym: string; color: string }
+interface ProductGroup { _id: string; externalId?: string | null; name: string; acronym: string; color: string }
 interface ExistingProduct { _id: string; acronym: string; categoryIds: string[] }
 
 @Component({
@@ -450,6 +450,15 @@ export class ProductWizardComponent implements OnInit {
 
   summaryStep = computed(() => this.stepKeys.length)
 
+  /**
+   * Schlüsselmenge einer Gruppe — categoryIds kann historisch _id ODER externalId
+   * enthalten (Zielkonvention: externalId, categoryIds-Migration 2026-07).
+   */
+  private groupKeysFor(catId: string): string[] {
+    const group = this.productGroups().find(g => g._id === catId || g.externalId === catId)
+    return group ? ([group._id, group.externalId].filter(Boolean) as string[]) : [catId]
+  }
+
   /** Berechnet das vorgeschlagene Kürzel basierend auf der Anzahl bestehender Produkte in der primären Kategorie */
   suggestedAcronym = computed(() => {
     const catId = this.primaryCategoryId()
@@ -457,7 +466,8 @@ export class ProductWizardComponent implements OnInit {
       // Keine Kategorie gewählt → Fallback auf Gesamtanzahl + 1
       return String(this.existingProducts().length + 1)
     }
-    const productsInGroup = this.existingProducts().filter(p => p.categoryIds?.includes(catId))
+    const keys = this.groupKeysFor(catId)
+    const productsInGroup = this.existingProducts().filter(p => p.categoryIds?.some(cid => keys.includes(cid)))
     return String(productsInGroup.length + 1)
   })
 
@@ -471,7 +481,8 @@ export class ProductWizardComponent implements OnInit {
     }
     const group = this.productGroups().find(g => g._id === catId)
     const groupName = group?.name ?? 'dieser Gruppe'
-    const count = this.existingProducts().filter(p => p.categoryIds?.includes(catId)).length
+    const keys = this.groupKeysFor(catId)
+    const count = this.existingProducts().filter(p => p.categoryIds?.some(cid => keys.includes(cid))).length
     if (count === 0) return `In der Gruppe „${groupName}" gibt es noch keine Produkte — dieses wird das erste. `
     return `In der Gruppe „${groupName}" gibt es bereits ${count} Produkte. `
   })
@@ -577,7 +588,11 @@ export class ProductWizardComponent implements OnInit {
   }
 
   submitCategories() {
-    const ids = this.selectedCategories()
+    // Auswahl läuft UI-intern über _id — gespeichert wird externalId-bevorzugt (Zielkonvention).
+    const ids = this.selectedCategories().map(id => {
+      const group = this.productGroups().find(g => g._id === id)
+      return group?.externalId ?? id
+    })
     this.form.update(f => ({ ...f, categoryIds: ids }))
     const names = this.selectedGroupNames()
     const display = names.length > 0 ? `Kategorien: ${names.join(', ')}` : 'Keine Kategorie'

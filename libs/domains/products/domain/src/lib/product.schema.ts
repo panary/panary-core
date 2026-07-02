@@ -70,7 +70,9 @@ export const productSchema = Type.Object(
     status: Type.Optional(StringEnum(['ACTIVE', 'DRAFT', 'ARCHIVED'])),
 
     // 2. Categorization (Dynamic!)
-    // Simply link the product to one or more category IDs.
+    // Referenziert Produktgruppen über deren externalId (Zielkonvention seit der
+    // categoryIds-Migration 2026-07). Bestandsdaten können noch Gruppen-_id
+    // enthalten — Leser müssen tolerant beide Schlüssel matchen.
     categoryIds: Type.Array(Type.String({ format: 'uuid' }), { maxItems: 50 }),
 
     // Die Basis-Art des Produkts für die Logik

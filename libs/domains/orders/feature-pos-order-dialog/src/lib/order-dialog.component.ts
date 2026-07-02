@@ -617,7 +617,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.clearButtons()
     this.setInfoBoxText(productGroup.name, productGroup.color)
     this._selectedProductIndex = null
-    this._productButtons = this.productService.getProductsByGroupId(productGroup._id)
+    this._productButtons = this.productService.getProductsByGroupId(productGroup._id, productGroup.externalId)
     this._productButtons.forEach(ProductButton => {
       ;(ProductButton as any).callback = () => {
         this.increaseLineItem(ProductButton)
@@ -639,7 +639,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this._selectedProductIndex = null
     this._selectedCombinationIndex = [null, null]
     this._lastParentId = undefined
-    this._productButtons = this.productService.getProductsByGroupId(group._id)
+    this._productButtons = this.productService.getProductsByGroupId(group._id, group.externalId)
     this._productButtons.forEach(subButton => {
       ;(subButton as any).callback = () => {
         this.increaseLineItem(subButton)
@@ -1386,7 +1386,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       },
     })
     this.setInfoBoxText(byExternId.name)
-    this._productButtons = this.productService.getProductsByGroupId(byExternId._id)
+    this._productButtons = this.productService.getProductsByGroupId(byExternId._id, byExternId.externalId)
     this._productButtons.forEach(subButton => {
       ;(subButton as any).callback = () => {
         this.increaseLineItem(subButton)

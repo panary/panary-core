@@ -391,7 +391,7 @@ export class ProductListComponent implements OnInit {
   private api = inject(ApiService)
   private t = inject(TranslateService)
   products = signal<any[]>([])
-  productGroups = signal<{ _id: string; name: string; color: string }[]>([])
+  productGroups = signal<{ _id: string; externalId?: string | null; name: string; color: string }[]>([])
   loading = signal(true)
   totalProducts = signal(0)
   selectedId = signal<string | null>(null)
@@ -486,7 +486,12 @@ export class ProductListComponent implements OnInit {
     for (const f of this.activeFilters()) {
       if (f.key === 'typ') list = list.filter(p => p.productType === f.value)
       if (f.key === 'status') list = list.filter(p => p.status === f.value)
-      if (f.key === 'gruppe') list = list.filter(p => Array.isArray(p.categoryIds) && p.categoryIds.includes(f.value))
+      if (f.key === 'gruppe') {
+        // categoryIds kann _id ODER externalId der Gruppe enthalten (Migration 2026-07) — beide matchen.
+        const group = this.productGroups().find(g => g._id === f.value || g.externalId === f.value)
+        const keys = group ? ([group._id, group.externalId].filter(Boolean) as string[]) : [f.value]
+        list = list.filter(p => Array.isArray(p.categoryIds) && p.categoryIds.some((cid: string) => keys.includes(cid)))
+      }
     }
 
     // Freitext-Filter (ueber den aktuellen searchText, ohne /-Praefix)
@@ -834,10 +839,11 @@ export class ProductListComponent implements OnInit {
       const exportedProducts = products.map((p: any) => {
         const cleaned = stripSystemFields(p)
 
-        // categoryIds auf externalIds mappen
+        // categoryIds auf externalIds mappen — Werte können schon externalId sein (Migration 2026-07)
         if (Array.isArray(cleaned.categoryIds)) {
+          const knownExternalIds = new Set(groupIdToExternal.values())
           cleaned.categoryExternalIds = cleaned.categoryIds
-            .map((id: string) => groupIdToExternal.get(id))
+            .map((id: string) => groupIdToExternal.get(id) ?? (knownExternalIds.has(id) ? id : undefined))
             .filter(Boolean)
           delete cleaned.categoryIds
         }
@@ -959,11 +965,10 @@ export class ProductListComponent implements OnInit {
       try {
         const { categoryExternalIds, optionGroups, ...productData } = product
 
-        // categoryExternalIds → lokale categoryIds
+        // categoryExternalIds → categoryIds: Zielkonvention ist die externalId selbst
+        // (Migration 2026-07); nur Referenzen auf unbekannte Gruppen verwerfen.
         if (Array.isArray(categoryExternalIds)) {
-          productData.categoryIds = categoryExternalIds
-            .map((eid: string) => groupExternalToId.get(eid))
-            .filter(Boolean)
+          productData.categoryIds = categoryExternalIds.filter((eid: string) => groupExternalToId.has(eid))
         }
 
         const existingId = productData.externalId ? productExternalToId.get(productData.externalId) : null

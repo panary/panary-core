@@ -223,16 +223,20 @@ export class ProductService extends BaseService<ProductSchema> {
    *                          sorted by their index in ascending order. Returns an empty array
    *                          if no articles match the provided group ID or if data is unavailable.
    */
-  // categoryIds enthält _id-Werte der Produktgruppen, nicht externalId
-  getProductsByGroupId(groupId: string | null): Array<ProductSchema> {
+  // categoryIds referenziert Produktgruppen — Zielkonvention ist die externalId,
+  // Bestandsdaten enthalten teils noch die _id (categoryIds-Migration 2026-07).
+  // Deshalb tolerant gegen beide Schlüssel matchen; Aufrufer geben beide mit.
+  getProductsByGroupId(groupId: string | null, groupExternalId?: string | null): Array<ProductSchema> {
     if (!groupId || !this.#documents) return []
 
     return this.#documents()
-      .filter((p: ProductSchema) => p.categoryIds?.includes(groupId))
+      .filter((p: ProductSchema) =>
+        p.categoryIds?.some(ref => ref === groupId || (groupExternalId != null && ref === groupExternalId)),
+      )
       .sort((a, b) => (a.ui?.index ?? 0) - (b.ui?.index ?? 0))
   }
 
-  /** @deprecated Verwende getProductsByGroupId() — categoryIds enthält _id, nicht externalId */
+  /** @deprecated Verwende getProductsByGroupId() — matcht tolerant _id UND externalId */
   getProductsByProductGroupExternalId(categoryId: UUID | null): Array<ProductSchema> {
     return this.getProductsByGroupId(categoryId as string)
   }

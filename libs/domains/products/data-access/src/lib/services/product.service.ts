@@ -16,6 +16,39 @@ type Status = (typeof Status)[keyof typeof Status]
 // UUID wird nur als Typ verwendet
 type UUID = string
 
+/**
+ * Pure Merge-Logik für Realtime-Events (created/updated/patched): hält die
+ * Invariante von `loadDocuments()` aufrecht — die Liste enthält ausschließlich
+ * ACTIVE-Produkte, sortiert nach `name`. Ein Status-Wechsel weg von ACTIVE
+ * (z.B. Archivierung in einem anderen Tab) entfernt das Produkt aus der Liste.
+ */
+export function mergeActiveProducts(
+  current: readonly ProductSchema[],
+  incoming: ProductSchema | ProductSchema[],
+): ProductSchema[] {
+  const items = Array.isArray(incoming) ? incoming : [incoming]
+  const byId = new Map<string, ProductSchema>()
+  for (const doc of current) byId.set(doc._id, doc)
+  for (const doc of items) {
+    if (!doc?._id) continue
+    if (doc.status === Status.active) {
+      byId.set(doc._id, doc)
+    } else {
+      byId.delete(doc._id)
+    }
+  }
+  return Array.from(byId.values()).sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))
+}
+
+/** Pure Remove-Logik für Realtime-`removed`-Events. */
+export function removeProducts(
+  current: readonly ProductSchema[],
+  incoming: ProductSchema | ProductSchema[],
+): ProductSchema[] {
+  const ids = new Set((Array.isArray(incoming) ? incoming : [incoming]).map(doc => doc?._id))
+  return current.filter(doc => !ids.has(doc._id))
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -96,6 +129,25 @@ export class ProductService extends BaseService<ProductSchema> {
       this.#isLoading.set(false)
       console.log(`Gesamtanzahl der aktiven Produkte: ${ this.#documents().length }`)
     }
+  }
+
+  /**
+   * Realtime-Pflege des `products`-Signals — überschreibt die leeren Stubs aus
+   * `BaseService`. Ohne diese Handler blieb `#documents` nach dem initialen
+   * `loadDocuments()` bis zum Full-Reload eingefroren (stale Verwendungszähler
+   * und Vorschläge in Konsumenten, z.B. panary-cloud product-details).
+   * `configureSocketListeners()` wrappt die Aufrufe bereits in `ngZone.run`.
+   */
+  protected override handleItemCreated(document: ProductSchema | ProductSchema[]): void {
+    this.#documents.update(current => mergeActiveProducts(current, document))
+  }
+
+  protected override handleItemUpdated(document: ProductSchema | ProductSchema[]): void {
+    this.#documents.update(current => mergeActiveProducts(current, document))
+  }
+
+  protected override handleItemRemoved(document: ProductSchema | ProductSchema[]): void {
+    this.#documents.update(current => removeProducts(current, document))
   }
 
   protected override fileReaderOnLoad(_fileReader: FileReader, _observer: Observer<unknown>, _context: unknown) {

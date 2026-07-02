@@ -1,0 +1,81 @@
+# OSV-Scanner: bewusst akzeptierte Advisories für die Tauri-Linux-Build-Deps
+# (Cargo.lock in diesem Verzeichnis). osv-scanner v2.3.8 meldet strenger als
+# v2.0.2; die folgenden Findings sind unmaintained-Crates ohne Fix bzw. an den
+# Tauri-GTK3-Stack gebundene Transitiv-Deps. Regelmäßig re-evaluieren.
+# Scope: nur diese Datei (Auto-Discovery neben Cargo.lock) — pnpm-Scan bleibt streng.
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0413"  # atk
+reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0416"  # atk-sys
+reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0412"  # gdk
+reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0418"  # gdk-sys
+reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0411"  # gdkwayland-sys
+reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0417"  # gdkx11
+reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0414"  # gdkx11-sys
+reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0415"  # gtk
+reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0420"  # gtk-sys
+reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0419"  # gtk3-macros
+reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0429"  # glib
+reason = "gtk-rs glib 0.18 (RUSTSEC-2024-0429, CVSS 6.9 Medium). Fix erst mit glib 0.20 — an den gtk-rs/Tauri-GTK3-Stack gebunden, nicht isoliert bumpbar. Bewusst akzeptiert bis Tauri-Stack-Upgrade."
+
+[[IgnoredVulns]]
+id = "GHSA-wrw7-89jp-8q8g"  # glib (Alias)
+reason = "GHSA-Alias zu RUSTSEC-2024-0429 (glib) — siehe dort."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0370"  # proc-macro-error
+reason = "unmaintained Proc-Macro-Helper (kein Fix); transitive Build-Abhängigkeit."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2025-0081"  # unic-char-property
+reason = "unmaintained Unicode-Crate (kein Fix); transitive Build-Abhängigkeit im Tauri-Stack."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2025-0075"  # unic-char-range
+reason = "unmaintained Unicode-Crate (kein Fix); transitive Build-Abhängigkeit im Tauri-Stack."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2025-0080"  # unic-common
+reason = "unmaintained Unicode-Crate (kein Fix); transitive Build-Abhängigkeit im Tauri-Stack."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2025-0100"  # unic-ucd-ident
+reason = "unmaintained Unicode-Crate (kein Fix); transitive Build-Abhängigkeit im Tauri-Stack."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2025-0098"  # unic-ucd-version
+reason = "unmaintained Unicode-Crate (kein Fix); transitive Build-Abhängigkeit im Tauri-Stack."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0190"  # anyhow
+reason = "anyhow 1.0.102 — fixbar auf 1.0.103. Wird per Dependabot-Cargo-Update nachgezogen; bis dahin bewusst ignoriert."

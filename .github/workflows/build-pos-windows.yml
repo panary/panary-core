@@ -67,6 +67,20 @@ jobs:
           fi
           echo "Angular build OK: $(ls dist/apps/pos-client/browser/ | wc -l) files"
 
+      # Seit a85ef6c steht `bundle.createUpdaterArtifacts: true` in der
+      # tauri.conf.json (Updater-Fix fuer Release pos-v26.7.14). Damit will
+      # JEDER Tauri-Build die Updater-Artefakte signieren und bricht ohne
+      # TAURI_SIGNING_PRIVATE_KEY ab. Dieser Workflow baut nur Test-Artefakte
+      # ohne Release/Updater-Manifest — der Signing-Key bleibt bewusst dem
+      # Release-Workflow vorbehalten (Least-Privilege), stattdessen wird das
+      # Updater-Artefakt hier per Config-Override deaktiviert.
+      # WICHTIG: Override als Datei statt Inline-JSON in `args` — tauri-action
+      # parst `args` mit string-argv, das die JSON-Anfuehrungszeichen als
+      # Quoting interpretiert und wegstrippt → invalides JSON beim Tauri-CLI.
+      - name: Tauri-Config-Override (Updater-Artefakte deaktivieren)
+        shell: bash
+        run: printf '%s' '{"bundle":{"createUpdaterArtifacts":false}}' > apps/pos-client/src-tauri/ci-no-updater.conf.json
+
       - name: Build Tauri (NSIS Installer)
         uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         env:
@@ -74,6 +88,9 @@ jobs:
         with:
           projectPath: apps/pos-client
           tauriScript: pnpm tauri
+          # Pfad relativ zu projectPath (Tauri-CLI liest die Datei beim
+          # Argument-Parsing im Invocation-CWD, vor dem chdir nach src-tauri)
+          args: --config src-tauri/ci-no-updater.conf.json
 
       - name: Upload Installer
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

@@ -15,6 +15,12 @@
 //
 // Audit-Trail: Jeder Cleanup-Lauf erzeugt selbst einen Audit-Event mit
 // `action: AUDIT_CLEANUP`, der die geloeschte Anzahl + Zeitfenster dokumentiert.
+//
+// Phase 2 im selben Nightly-Lauf: Outbox-Retention. `acked` sync-outbox-
+// Eintraege (Voll-Payload-Kopie jeder Mutation) wuerden sonst unbegrenzt
+// wachsen. Fremde Services nach OUTBOX_ACKED_RETENTION_DAYS; audit-events-
+// Eintraege erst nach Audit-Retention + Karenz UND nachdem das Event selbst
+// geloescht wurde — die acked-Row ist der Loeschbarkeits-Beweis des Cleanups.
 import { uuidv7 } from 'uuidv7'
 
 import {
@@ -48,6 +54,18 @@ const DEFAULT_CONFIG: AuditCleanupConfig = {
 
 const SKIP_PATHS = new Set(['audit-events', 'sync-outbox'])
 void SKIP_PATHS // dokumentarisch — der Worker ruft keine dieser Services schreibend
+
+// Retention fuer acked sync-outbox-Eintraege fremder Services (Phase 2 des
+// Nightly-Laufs). 30 Tage decken die Operator-Diagnose im Sync-Status-UI ab;
+// danach hat die Voll-Payload-Kopie am Edge keinen Zweck mehr — die Cloud
+// hat den Push mit `acked` bestaetigt.
+const OUTBOX_ACKED_RETENTION_DAYS = 30
+
+// Karenz fuer acked audit-events-Eintraege OBEN AUF die Audit-Retention:
+// die acked-Row ist der Loeschbarkeits-Beweis des Audit-Cleanups
+// (EXISTS-Subquery in runAuditEventsPhase) und darf erst fallen, wenn das
+// Event selbst sicher weggeraeumt ist.
+const OUTBOX_AUDIT_ACK_GRACE_DAYS = 7
 
 interface SchedulerHandle {
   stop: () => void
@@ -104,10 +122,15 @@ export const startAuditCleanupWorker = (
 }
 
 /**
- * Fuehrt einen einzelnen Cleanup-Lauf aus. Exportiert fuer Tests und manuelle
- * Trigger (z.B. via Custom-Method spaeter).
+ * Fuehrt einen einzelnen Cleanup-Lauf aus (Audit-Events + Outbox-Retention).
+ * Exportiert fuer Tests und manuelle Trigger (z.B. via Custom-Method spaeter).
  */
 export const runOnce = async (app: Application, config: AuditCleanupConfig): Promise<void> => {
+  await runAuditEventsPhase(app, config)
+  await runOutboxRetentionPhase(app, config)
+}
+
+const runAuditEventsPhase = async (app: Application, config: AuditCleanupConfig): Promise<void> => {
   const startedAt = Date.now()
   try {
     if (!(await isCloudReachableRecently(app, config.cloudReachableMaxAgeDays))) {
@@ -244,6 +267,102 @@ export const runOnce = async (app: Application, config: AuditCleanupConfig): Pro
     logger.error({
       message: 'Audit-Cleanup mit Fehler abgebrochen',
       event: 'audit.cleanup.failed',
+      errorMessage: err instanceof Error ? err.message : String(err),
+      errorStack: err instanceof Error ? err.stack : undefined,
+      durationMs: Date.now() - startedAt,
+    })
+  }
+}
+
+export interface OutboxRetentionResult {
+  deletedDefault: number
+  deletedAuditEvents: number
+}
+
+/**
+ * Loescht acked sync-outbox-Eintraege nach Retention-Ablauf. Reine, isoliert
+ * testbare Funktion — arbeitet ausschliesslich auf der uebergebenen
+ * Knex-Instanz und rechnet gegen `options.now`.
+ *
+ * Regeln:
+ *  - Ausschliesslich `status='acked'`. pending/in-flight sind noch nicht
+ *    gepusht; rejected haengt ggf. an einem sync-conflicts-Eintrag
+ *    (linkedConflictId) und bleibt fuer die Operator-Aufloesung stehen.
+ *  - Fremde Services: `syncedAt` aelter als OUTBOX_ACKED_RETENTION_DAYS.
+ *  - `audit-events`: Die acked-Row ist der Loeschbarkeits-Beweis fuer den
+ *    Audit-Cleanup (EXISTS-Subquery in runAuditEventsPhase). Sie darf erst
+ *    fallen, wenn (a) `syncedAt` aelter als Audit-Retention + Karenz ist UND
+ *    (b) das referenzierte Event lokal bereits geloescht wurde — sonst wird
+ *    ein noch vorhandenes altes Event nie mehr loeschbar.
+ *
+ * Direkter Knex-DELETE folgt dem etablierten Cleanup-Worker-Muster dieser
+ * Datei (Trigger-Bypass-Transaktion oben) bzw. sync-runs-cleanup.worker.ts.
+ */
+export const runOutboxRetention = async (
+  knex: import('knex').Knex,
+  options: { auditRetentionDays: number; now?: Date },
+): Promise<OutboxRetentionResult> => {
+  const nowMs = (options.now ?? new Date()).getTime()
+  const defaultCutoff = new Date(nowMs - OUTBOX_ACKED_RETENTION_DAYS * 86_400_000).toISOString()
+  const auditCutoff = new Date(
+    nowMs - (options.auditRetentionDays + OUTBOX_AUDIT_ACK_GRACE_DAYS) * 86_400_000,
+  ).toISOString()
+
+  // `syncedAt` (Ack-Zeitpunkt) als Referenz — NULL-Werte matchen `< cutoff`
+  // in SQLite nie und bleiben konservativ erhalten.
+  const deletedDefault = await knex('sync-outbox')
+    .where('status', 'acked')
+    .whereNot('service', 'audit-events')
+    .where('syncedAt', '<', defaultCutoff)
+    .del()
+
+  const deletedAuditEvents = await knex('sync-outbox')
+    .where('status', 'acked')
+    .where('service', 'audit-events')
+    .where('syncedAt', '<', auditCutoff)
+    .whereNotExists(
+      knex
+        .select(knex.raw('1'))
+        .from('audit-events')
+        .whereRaw('"audit-events"."_id" = "sync-outbox"."entityId"'),
+    )
+    .del()
+
+  return { deletedDefault, deletedAuditEvents }
+}
+
+// Phase 2 des Nightly-Laufs. Bewusst NACH dem Audit-Cleanup: ein Event wird
+// im selben Lauf erst geloescht, bevor sein acked-Beweis fallen darf. Kein
+// Cloud-Reachability-Gate wie in Phase 1 — `acked` heisst, die Cloud hat den
+// Push bereits bestaetigt; die Retention ist offline genauso sicher.
+const runOutboxRetentionPhase = async (
+  app: Application,
+  config: AuditCleanupConfig,
+): Promise<void> => {
+  const startedAt = Date.now()
+  try {
+    const knex = app.get('sqliteClient') as import('knex').Knex | undefined
+    if (!knex) {
+      logger.error({
+        message: 'Outbox-Retention abgebrochen — kein sqliteClient verfuegbar',
+        event: 'sync.outbox.retention.no_db',
+      })
+      return
+    }
+    const result = await runOutboxRetention(knex, { auditRetentionDays: config.retentionDays })
+    if (result.deletedDefault > 0 || result.deletedAuditEvents > 0) {
+      logger.info({
+        message: 'Outbox-Retention abgeschlossen',
+        event: 'sync.outbox.retention.done',
+        deletedDefault: result.deletedDefault,
+        deletedAuditEvents: result.deletedAuditEvents,
+        durationMs: Date.now() - startedAt,
+      })
+    }
+  } catch (err) {
+    logger.error({
+      message: 'Outbox-Retention mit Fehler abgebrochen',
+      event: 'sync.outbox.retention.failed',
       errorMessage: err instanceof Error ? err.message : String(err),
       errorStack: err instanceof Error ? err.stack : undefined,
       durationMs: Date.now() - startedAt,

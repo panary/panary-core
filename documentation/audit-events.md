@@ -182,6 +182,21 @@ Append-only-Garantie temporaer ausgesetzt wird.
 `action: AUDIT_CLEANUP`, `category: CONFIGURATION`, `metadata: { deletedCount,
 retentionDays, cutoff }` geschrieben (pro Tenant separat).
 
+**Outbox-Retention (Phase 2 im selben Nightly-Lauf)**: Nach dem
+Audit-Cleanup loescht `runOutboxRetention` acked `sync-outbox`-Eintraege —
+sonst wuerde die Outbox (Voll-Payload-Kopie jeder Mutation) unbegrenzt
+wachsen. Regeln:
+
+- Nur `status = 'acked'`; `pending`/`in-flight`/`rejected` bleiben stehen
+  (rejected haengt ggf. an einem `sync-conflicts`-Eintrag).
+- Fremde Services (orders, receipts, …): `syncedAt` aelter als 30 Tage
+  (`OUTBOX_ACKED_RETENTION_DAYS`).
+- `audit-events`-Eintraege: erst nach Audit-Retention (`retentionDays`) +
+  7 Tage Karenz (`OUTBOX_AUDIT_ACK_GRACE_DAYS`) UND wenn das referenzierte
+  Event lokal bereits geloescht wurde — die acked-Row ist der
+  Loeschbarkeits-Beweis des Audit-Cleanups (EXISTS-Subquery); zu fruehes
+  Loeschen wuerde alte Events unloeschbar machen.
+
 Konfiguration in `apps/api-edge/config/default.json`:
 ```json
 "auditCleanup": {

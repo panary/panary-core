@@ -369,8 +369,11 @@ const fetchPendingOutbox = async (app: Application): Promise<SyncOutboxEntry[]> 
 
 /**
  * Markiert Outbox-Eintraege als erfolgreich an die Cloud uebertragen.
- * Setzt `status='acked'` + `syncedAt`. Audit-Cleanup-Worker raeumt
- * `acked`-Eintraege spaeter weg.
+ * Setzt `status='acked'` + `syncedAt`. Die Outbox-Retention im nightly
+ * Audit-Cleanup-Worker (`runOutboxRetention` in audit-cleanup.worker.ts)
+ * loescht acked-Eintraege nach Retention-Ablauf — audit-events-Eintraege
+ * erst nach Audit-Retention + Karenz, weil sie der Loeschbarkeits-Beweis
+ * fuer den Audit-Cleanup sind.
  */
 const markOutboxAcked = async (app: Application, ids: string[]): Promise<void> => {
   const now = new Date().toISOString()

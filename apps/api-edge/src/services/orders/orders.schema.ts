@@ -56,7 +56,7 @@ export const orderDataResolver = resolve<Order, HookContext<OrderService>>({
     const stripPrefix = (id: string) => id.replace(/^device:/, '')
 
     return {
-      createdBy: rawUserId ? stripPrefix(rawUserId) : value?.createdBy!,
+      createdBy: (rawUserId ? stripPrefix(rawUserId) : value?.createdBy) as string,
       createdVia: rawDeviceId ? stripPrefix(rawDeviceId) : value?.createdVia,
     }
   }

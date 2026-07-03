@@ -30,7 +30,7 @@ vi.mock('@panary/shared-backend', () => ({
 
 import { recordSyncOutbox } from './sync-outbox-recorder.hook'
 
-const noopNext = (async () => {}) as any
+const noopNext = (async () => undefined) as any
 
 // Stub-Context: `outboxCreate` ist der zu beobachtende sync-outbox.create().
 function makeContext(opts: {

@@ -57,9 +57,11 @@ beim Lesen zurück in ein Array (identisches Muster wie `sync-conflicts`-Payload
   → `rejected | conflict | retry` (+ `reason`).
 - `runPullForService` liefert `{ count, details }`. Pro angewandtem Record
   `{ service, entityId, op }`; fehlgeschlagene Applies → `status: rejected`.
-- **Deckel:** `MAX_SYNC_RUN_DETAILS = 500`. Push ist ohnehin auf
-  `PUSH_BATCH_SIZE = 100` begrenzt; große Pulls (Bootstrap) werden gekappt — die
-  UI signalisiert das über `recordCount > details.length`.
+- **Deckel:** `MAX_SYNC_RUN_DETAILS = 500`. Der Push draint die Outbox
+  batch-weise (bis `MAX_PUSH_BATCHES_PER_CYCLE = 50` Batches à
+  `PUSH_BATCH_SIZE = 100` pro Cycle) und kappt das Details-Aggregat; große
+  Pulls (Bootstrap) werden ebenfalls gekappt — die UI signalisiert das über
+  `recordCount > details.length`.
 - Push-Vorgänge mit Rejects werden jetzt als `outcome: partial` protokolliert
   und tragen den `rejected`-Zähler (das „(N rej.)"-Badge funktioniert dadurch
   auch für Push).

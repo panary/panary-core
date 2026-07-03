@@ -47,12 +47,17 @@ const HEARTBEAT_TIMEOUT_MS = 10_000
 const PUSH_TIMEOUT_MS = 30_000
 const PULL_TIMEOUT_MS = 30_000
 const PUSH_BATCH_SIZE = 100
+// Obergrenze der Drain-Batches pro Push-Phase (analog zur 200-Seiten-Grenze
+// des Pull-Loops): Endlosschleifen-Schutz, falls die Outbox schneller waechst
+// als gepusht wird. 50 x PUSH_BATCH_SIZE = 5000 Eintraege pro Cycle.
+const MAX_PUSH_BATCHES_PER_CYCLE = 50
 const PULL_PAGE_SIZE = 500
 const MANUAL_HEARTBEAT_INTERVAL_SEC = 30 * 60
 
-// Obergrenze fuer in einem sync-run gespeicherte Per-Record-Details. Push ist
-// ohnehin auf PUSH_BATCH_SIZE begrenzt; bei grossen Pulls (Bootstrap) wird
-// gekappt — die UI signalisiert das ueber recordCount > details.length.
+// Obergrenze fuer in einem sync-run gespeicherte Per-Record-Details. Der Push
+// kappt das Aggregat ueber alle Drain-Batches eines Cycles; bei grossen Pulls
+// (Bootstrap) wird ebenfalls gekappt — die UI signalisiert das ueber
+// recordCount > details.length.
 const MAX_SYNC_RUN_DETAILS = 500
 
 const syncConflictsPath = 'sync-conflicts'
@@ -579,11 +584,17 @@ interface PushResult {
   details: SyncRunRecordDetail[]
 }
 
-const runPush = async (app: Application, connection: CloudConnection): Promise<PushResult> => {
+interface PushBatchResult extends PushResult {
+  // Anzahl der aus der Outbox gezogenen Eintraege — steuert den Drain-Loop:
+  // nur ein voller Batch (=== PUSH_BATCH_SIZE) laesst weitere vermuten.
+  fetched: number
+}
+
+const runPushBatch = async (app: Application, connection: CloudConnection): Promise<PushBatchResult> => {
   const cloudToken = decryptCloudToken(connection.cloudToken)
-  if (!cloudToken) return { accepted: 0, rejected: 0, details: [] }
+  if (!cloudToken) return { accepted: 0, rejected: 0, details: [], fetched: 0 }
   const entries = await fetchPendingOutbox(app)
-  if (entries.length === 0) return { accepted: 0, rejected: 0, details: [] }
+  if (entries.length === 0) return { accepted: 0, rejected: 0, details: [], fetched: 0 }
   // Per-Record-Details fuer den sync-run-Eintrag (accepted + rejected/conflict).
   const details: SyncRunRecordDetail[] = []
   // Knex serialisiert Objekte beim Insert in die SQLite-TEXT-Spalte `payload`
@@ -699,7 +710,8 @@ const runPush = async (app: Application, connection: CloudConnection): Promise<P
     return {
       accepted: body.accepted.length,
       rejected: (body.rejected ?? []).length,
-      details: details.slice(0, MAX_SYNC_RUN_DETAILS),
+      details,
+      fetched: entries.length,
     }
   } catch (err) {
     // Network-Errors / 5xx ohne Response-Body → Backoff-Retry, kein Pile-Up
@@ -713,6 +725,40 @@ const runPush = async (app: Application, connection: CloudConnection): Promise<P
     )
     throw err
   }
+}
+
+/**
+ * Push-Phase eines Sync-Cycles: draint die Outbox batch-weise, statt nur einen
+ * einzelnen Batch zu schicken. Solange ein Batch VOLL war (=== PUSH_BATCH_SIZE),
+ * liegen sehr wahrscheinlich weitere faellige Eintraege in der Outbox — direkt
+ * weiterpushen, statt auf den naechsten Tick zu warten (bei 10k Backlog und
+ * 300s-Intervall sonst ~8h Rueckstand). Analog zum Pull, der bis zu 200 Seiten
+ * pro Tick zieht; MAX_PUSH_BATCHES_PER_CYCLE deckelt den Cycle.
+ *
+ * Abbruch bei Teilbatch (Outbox fuer diesen Tick leergezogen) oder Fehler
+ * (Netzwerk/HTTP/401 wirft wie bisher — der Aufrufer protokolliert FAILURE;
+ * bereits geackte Batches sind in der Outbox persistiert, der fehlgeschlagene
+ * Batch ist via markOutboxRetry auf pending+Backoff zurueckgesetzt).
+ *
+ * Export nur fuer den Fokus-Test (test/workers/cloud-sync-push-drain.test.ts).
+ */
+export const runPush = async (app: Application, connection: CloudConnection): Promise<PushResult> => {
+  let accepted = 0
+  let rejected = 0
+  const details: SyncRunRecordDetail[] = []
+  for (let batch = 0; batch < MAX_PUSH_BATCHES_PER_CYCLE; batch++) {
+    const result = await runPushBatch(app, connection)
+    accepted += result.accepted
+    rejected += result.rejected
+    // Aggregat-Kappung ueber alle Batches — die UI erkennt die Kappung ueber
+    // recordCount > details.length (siehe MAX_SYNC_RUN_DETAILS).
+    for (const detail of result.details) {
+      if (details.length >= MAX_SYNC_RUN_DETAILS) break
+      details.push(detail)
+    }
+    if (result.fetched < PUSH_BATCH_SIZE) break
+  }
+  return { accepted, rejected, details }
 }
 
 interface PullResult {

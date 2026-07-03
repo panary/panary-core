@@ -156,6 +156,9 @@
     "winston-daily-rotate-file": "^5.0.0"
   },
   "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ],
     "overrides": {
       "@hexagon/base64": "1.1.28",
       "@levischuck/tiny-cbor": "0.2.11",

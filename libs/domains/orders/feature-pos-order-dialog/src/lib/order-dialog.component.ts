@@ -61,6 +61,7 @@ import { DeviceConfigService } from '@panary/shared/data-access-config'
 import { CorporateCustomer } from '@panary/corporate-customers/domain'
 import { PreOrderQuickDialogComponent } from './pre-order-quick-dialog.component'
 import { DiscountPickerDialogComponent } from './discount-picker-dialog.component'
+import { PosButton, PosProductButton, toPosButton } from './pos-button.model'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 // TODO: CorporateCustomerService fehlt noch in @panary/corporate-customers/data-access — nach Migration einbinden
 // TODO: AppButtonDirective fehlt noch in panary-core — nach Migration einbinden
@@ -137,8 +138,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private _isBlocked = false
   private _customer: CorporateCustomer | undefined = undefined
   private _currentUser: User | undefined = undefined
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _functionButtons: any[] = []
+  private _functionButtons: PosButton[] = []
   private _infoBoxBackgroundColor = '#f1f5f9'
   private _infoBoxText = 'Bitte wählen Sie eine Produktkategorie!'
   private _infoBoxTextColor = 'black'
@@ -153,8 +153,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   // Manuell am POS gewählter Order-Rabatt (Cloud-gepflegte Definition). Wird beim
   // placeOrder zu einem appliedDiscount-Snapshot; Personalessen-Rabatt stempelt zusätzlich staffPaymentInfo.
   readonly selectedManualDiscount = signal<ManagedDiscount | null>(null)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _productButtons: any[] = []
+  private _productButtons: PosButton[] = []
   private _table: string | undefined = undefined
   private _dineLocation: typeof DineLocation[keyof typeof DineLocation] | undefined = undefined
   private _withoutExtra = false
@@ -484,7 +483,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this._infoBoxText = value
   }
 
-  noActionDefined(subButton: ProductSchema): void {
+  noActionDefined(subButton: PosButton): void {
     this.setInfoBoxText('Keine Aktion für die Taste "' + subButton.name + '" definiert!', 'red')
   }
 
@@ -623,12 +622,16 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.clearButtons()
     this.setInfoBoxText(productGroup.name, productGroup.color)
     this._selectedProductIndex = null
-    this._productButtons = this.productService.getProductsByGroupId(productGroup._id, productGroup.externalId)
-    this._productButtons.forEach(ProductButton => {
-      ;(ProductButton as any).callback = () => {
-        this.increaseLineItem(ProductButton)
-      }
-    })
+    // VM-Kopien statt Store-Referenzen — der Dialog darf Cache-Objekte nicht mutieren
+    this._productButtons = this.productService
+      .getProductsByGroupId(productGroup._id, productGroup.externalId)
+      .map(product => {
+        const button = toPosButton(product)
+        button.callback = () => {
+          this.increaseLineItem(button)
+        }
+        return button
+      })
   }
 
   setProductButtonsByGroupId(groupId: string | undefined) {
@@ -645,12 +648,16 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this._selectedProductIndex = null
     this._selectedCombinationIndex = [null, null]
     this._lastParentId = undefined
-    this._productButtons = this.productService.getProductsByGroupId(group._id, group.externalId)
-    this._productButtons.forEach(subButton => {
-      ;(subButton as any).callback = () => {
-        this.increaseLineItem(subButton)
-      }
-    })
+    // VM-Kopien statt Store-Referenzen — der Dialog darf Cache-Objekte nicht mutieren
+    this._productButtons = this.productService
+      .getProductsByGroupId(group._id, group.externalId)
+      .map(product => {
+        const button = toPosButton(product)
+        button.callback = () => {
+          this.increaseLineItem(button)
+        }
+        return button
+      })
   }
 
   setProductionTimeSubbuttons() {
@@ -916,17 +923,15 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         const sideDish: ProductSchema | undefined = this.productService.findProductByExternalId(value)
 
         if (sideDish) {
-          const copyOfSideDish: ProductSchema = JSON.parse(JSON.stringify(sideDish))
-          ;(copyOfSideDish as any).isMenuSideDish = true
-          ;(copyOfSideDish as any).isMenuSubButton = true
-          ;(copyOfSideDish as any).callback = () => {
+          const copyOfSideDish = toPosButton(sideDish, { isMenuSideDish: true, isMenuSubButton: true })
+          copyOfSideDish.callback = () => {
             let parentButton: ProductSchema | undefined
             if (this._lastParentId === undefined) {
               parentButton = undefined
             } else {
               parentButton = this.productService.findProductById(this._lastParentId)
             }
-            if ((copyOfSideDish as any).isMenuSideDish !== undefined && (copyOfSideDish as any).isMenuSideDish) {
+            if (copyOfSideDish.isMenuSideDish !== undefined && copyOfSideDish.isMenuSideDish) {
               this.setMenuSideDish(copyOfSideDish)
               if ((parentButton as any)?.isMenuSideDishSauce !== null && (parentButton as any)?.isMenuSideDishSauce) {
                 this.setMenuSauceButtons((parentButton as any)?.sauces)
@@ -986,11 +991,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       ids.forEach((value: UUID): void => {
         const sauce: ProductSchema | undefined = this.productService.findProductByExternalId(value)
         if (sauce) {
-          const copyOfSauce: ProductSchema = JSON.parse(JSON.stringify(sauce))
-          ;(copyOfSauce as any).isMenuSideDishSauce = true
-          ;(copyOfSauce as any).isExtra = false
-          ;(copyOfSauce as any).isMenuSubButton = true
-          ;(copyOfSauce as any).callback = (): void => {
+          const copyOfSauce = toPosButton(sauce, { isMenuSideDishSauce: true, isExtra: false, isMenuSubButton: true })
+          copyOfSauce.callback = (): void => {
             this.setMenuSideDishSauce(copyOfSauce)
           }
           this._productButtons.push(copyOfSauce)
@@ -1017,10 +1019,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         const drink: ProductSchema | undefined = this.productService.findProductByExternalId(value)
 
         if (drink) {
-          const copyOfDrink: ProductSchema = JSON.parse(JSON.stringify(drink))
-          ;(copyOfDrink as any).isMenuDrink = true
-          ;(copyOfDrink as any).isMenuSubButton = true
-          ;(copyOfDrink as any).callback = (): void => {
+          const copyOfDrink = toPosButton(drink, { isMenuDrink: true, isMenuSubButton: true })
+          copyOfDrink.callback = (): void => {
             let parentButton: ProductSchema | undefined
             if (this._lastParentId === undefined) {
               parentButton = undefined
@@ -1115,14 +1115,16 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     })
 
     if (ids && ids.length > 0) {
-      const extras: Array<ProductSchema> = []
+      const extras: Array<PosProductButton> = []
 
       ids.forEach((externalId: UUID): void => {
-        const extra: undefined | ProductSchema = this.productService.findProductByExternalId(externalId)
+        const product: undefined | ProductSchema = this.productService.findProductByExternalId(externalId)
 
-        if (extra) {
-          ;(extra as any).callback = (): void => {
-            if ((this._isBlocked && !unblock) || !extra) return
+        if (product) {
+          // VM-Kopie statt Store-Referenz — der Dialog darf Cache-Objekte nicht mutieren
+          const extra = toPosButton(product)
+          extra.callback = (): void => {
+            if (this._isBlocked && !unblock) return
 
             if (this._withoutExtra) {
               this.decreaseExtra(extra)
@@ -1161,12 +1163,13 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       const productOptions = selectedProduct?.optionGroups?.flatMap(g => g.options) ?? []
 
       if (productOptions.length > 0) {
-        // Nur die im Produkt definierten Modifier anzeigen
+        // Nur die im Produkt definierten Modifier anzeigen — als VM-Kopie, nie die Store-Referenz
         for (const opt of productOptions) {
-          const extra = this.productService.findProductById(opt.productId)
-          if (!extra) continue
-          ;(extra as any).callback = () => {
-            if ((this._isBlocked && !unblock) || !extra) return
+          const product = this.productService.findProductById(opt.productId)
+          if (!product) continue
+          const extra = toPosButton(product)
+          extra.callback = () => {
+            if (this._isBlocked && !unblock) return
             if (this._withoutExtra) {
               this.decreaseExtra(extra)
             } else {
@@ -1195,18 +1198,20 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
           if (this._isBlocked && !unblock) return
           this._productButtons = []
           this.setInfoBoxText('Welche Extras möchten Sie hinzufügen?')
-          this.productService.extras().forEach((extra: ProductSchema): void => {
-            if ((extra as any).excludedButtons && parentId && (extra as any).excludedButtons.includes(parentId)) {
+          this.productService.extras().forEach((product: ProductSchema): void => {
+            if ((product as any).excludedButtons && parentId && (product as any).excludedButtons.includes(parentId)) {
               return
             } else if (
-              (extra as any).excludedSubButtons &&
+              (product as any).excludedSubButtons &&
               externalId &&
-              (extra as any).excludedSubButtons.includes(externalId)
+              (product as any).excludedSubButtons.includes(externalId)
             ) {
               return
             } else {
-              ;(extra as any).callback = () => {
-                if ((this._isBlocked && !unblock) || !extra) return
+              // VM-Kopie statt Store-Referenz — der Dialog darf Cache-Objekte nicht mutieren
+              const extra = toPosButton(product)
+              extra.callback = () => {
+                if (this._isBlocked && !unblock) return
                 if (this._withoutExtra) {
                   this.decreaseExtra(extra)
                 } else {
@@ -1239,7 +1244,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
           e => e.externalId === ing.externalId && e.name.startsWith('Ohne '),
         )
 
-        const button: ProductSchema = {
+        const button: PosButton = {
           _id: (ing.externalId || '').toString(),
           externalId: ing.externalId,
           name: ing.ingredientName,
@@ -1247,9 +1252,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
           itemType: ItemType.extra,
           price: ing.priceAdjustment || 0,
           productGroupExternalId: this._extraTopic,
-        } as unknown as ProductSchema
+        }
 
-        ;(button as any).callback = () => {
+        button.callback = () => {
           this.toggleRemovableIngredient(ing, selectedArticleForIngredients!, button)
         }
 
@@ -1258,9 +1263,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  toggleRemovableIngredient(ingredient: any, lineItem: OrderLineItem, button: ProductSchema) {
-    if ((button as any).pressed) {
-      ;(button as any).pressed = false
+  toggleRemovableIngredient(ingredient: any, lineItem: OrderLineItem, button: PosButton) {
+    if (button.pressed) {
+      button.pressed = false
       lineItem.modifiers.push({
         _id: (ingredient.externalId || 'temp_id_' + Date.now()).toString(),
         externalId: ingredient.externalId,
@@ -1275,7 +1280,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         ingredientReferences: [],
       })
     } else {
-      ;(button as any).pressed = true
+      button.pressed = true
       const extraIndex = lineItem.modifiers.findIndex(
         e => e.externalId === ingredient.externalId && e.name.startsWith('Ohne '),
       )
@@ -1345,10 +1350,10 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         const sauce: ProductSchema | undefined = this.productService.findProductByExternalId(value)
 
         if (sauce) {
-          const copy: ProductSchema = JSON.parse(JSON.stringify(sauce))
+          const copy = toPosButton(sauce)
 
           copy.price = isInclusive ? 0 : copy.price
-          ;(copy as any).callback = () => {
+          copy.callback = () => {
             this.increaseExtra(copy, 'Soße')
             const nextIndex = currentIndex - 1
             const nextIsInclusive = nextIndex > 0
@@ -1392,12 +1397,16 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       },
     })
     this.setInfoBoxText(byExternId.name)
-    this._productButtons = this.productService.getProductsByGroupId(byExternId._id, byExternId.externalId)
-    this._productButtons.forEach(subButton => {
-      ;(subButton as any).callback = () => {
-        this.increaseLineItem(subButton)
-      }
-    })
+    // VM-Kopien statt Store-Referenzen — der Dialog darf Cache-Objekte nicht mutieren
+    this._productButtons = this.productService
+      .getProductsByGroupId(byExternId._id, byExternId.externalId)
+      .map(successor => {
+        const button = toPosButton(successor)
+        button.callback = () => {
+          this.increaseLineItem(button)
+        }
+        return button
+      })
   }
 
   setCombiSubButtons() {
@@ -1453,7 +1462,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     })
     this.#lineItems.forEach((article, index) => {
       if (this.isLineItemBundled(article)) return
-      const subButton: ProductSchema = {
+      const subButton: PosButton = {
         _id: 'combiButton' + index.toString(),
         externalId: this.#functionButtonExternalId,
         locationId: this.userService.currentUser()?.activeLocationId || '',
@@ -1461,15 +1470,15 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         acronym: '#',
         name: article.name,
         productGroupExternalId: this._combiTopic,
-        ...({ index: index + 1 } as any),
+        index: index + 1,
       }
-      ;(subButton as any).callback = () => {
-        if ((subButton as any).pressed === undefined || !(subButton as any).pressed) {
-          ;(subButton as any).pressed = true
-          this._articlesToCombine.push((subButton as any).index - 1)
+      subButton.callback = () => {
+        if (!subButton.pressed) {
+          subButton.pressed = true
+          this._articlesToCombine.push(index)
         } else {
-          ;(subButton as any).pressed = false
-          const idx = this._articlesToCombine.findIndex(articleIndex => articleIndex === (subButton as any).index - 1)
+          subButton.pressed = false
+          const idx = this._articlesToCombine.findIndex(articleIndex => articleIndex === index)
           if (idx !== -1) {
             this._articlesToCombine.splice(idx, 1)
           }
@@ -1479,9 +1488,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     })
   }
 
-  setMenuSideDish(article: ProductSchema) {
+  setMenuSideDish(article: PosProductButton) {
     if (
-      ((article as any).isMenuSideDish !== undefined && !(article as any).isMenuSideDish) ||
+      (article.isMenuSideDish !== undefined && !article.isMenuSideDish) ||
       (this._selectedProductIndex === null &&
         this._selectedCombinationIndex[0] === null && this._selectedCombinationIndex[1] === null)
     ) {
@@ -1509,13 +1518,13 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       taxInside: article.taxInside || defaultTaxValue,
       taxOutside: article.taxOutside || defaultTaxValue,
       topic:
-        this.productGroupService.getProductGroupById((article as any).productGroupExternalId || '')?.name || '',
+        this.productGroupService.getProductGroupById(article.productGroupExternalId || '')?.name || '',
     }
   }
 
-  setMenuSideDishSauce(subButtonItem: ProductSchema) {
+  setMenuSideDishSauce(subButtonItem: PosProductButton) {
     if (
-      !(subButtonItem as any).isMenuSideDishSauce ||
+      !subButtonItem.isMenuSideDishSauce ||
       (this._selectedProductIndex === null &&
         this._selectedCombinationIndex[0] === null && this._selectedCombinationIndex[1] === null)
     ) {
@@ -1524,9 +1533,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.increaseExtra(subButtonItem)
   }
 
-  setMenuDrink(article: ProductSchema) {
+  setMenuDrink(article: PosProductButton) {
     if (
-      !(article as any).isMenuDrink ||
+      !article.isMenuDrink ||
       (this._selectedProductIndex === null &&
         this._selectedCombinationIndex[0] === null && this._selectedCombinationIndex[1] === null)
     ) {
@@ -1556,7 +1565,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       taxInside: article.taxInside || defaultTaxValue,
       taxOutside: article.taxOutside || defaultTaxValue,
       topic:
-        this.productGroupService.getProductGroupById((article as any).productGroupExternalId || '')?.name || '',
+        this.productGroupService.getProductGroupById(article.productGroupExternalId || '')?.name || '',
     }
   }
 
@@ -1618,14 +1627,13 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  increaseExtra(article: ProductSchema, topic: string | undefined = undefined) {
+  increaseExtra(article: PosProductButton, topic: string | undefined = undefined) {
     // Prüfen ob das Produkt ein Modifier/Extra ist (neues + altes Schema)
     const isModifier =
       article.productType === 'MODIFIER' ||
-      (article as any).isExtra ||
-      (article as any).isMenuSideDishSauce ||
-      ((article as any).itemType &&
-        ((article as any).itemType === ItemType.sauce || (article as any).itemType === ItemType.extra))
+      article.isExtra ||
+      article.isMenuSideDishSauce ||
+      (article.itemType && (article.itemType === ItemType.sauce || article.itemType === ItemType.extra))
     if (!isModifier) return
 
     let selectedArticle: OrderLineItem
@@ -1664,11 +1672,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  decreaseExtra(article: ProductSchema) {
+  decreaseExtra(article: PosProductButton) {
     const isModifier =
       article.productType === 'MODIFIER' ||
-      (article as any).itemType === ItemType.extra ||
-      (article as any).itemType === ItemType.sauce
+      article.itemType === ItemType.extra ||
+      article.itemType === ItemType.sauce
     if (!isModifier) return
 
     let selectedArticle: OrderLineItem
@@ -1770,9 +1778,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       })
     }
 
-    this._productButtons = products as any[]
-    this._productButtons.forEach(btn => {
-      ;(btn as any).callback = () => this.selectOptionGroupItem(btn as ProductSchema, group, parentProduct)
+    // VM-Kopien statt Store-Referenzen — der Dialog darf Cache-Objekte nicht mutieren
+    this._productButtons = products.map(product => {
+      const button = toPosButton(product)
+      button.callback = () => this.selectOptionGroupItem(button, group, parentProduct)
+      return button
     })
 
     this.#cdr.markForCheck()
@@ -2066,8 +2076,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this._articlesToCombine = []
     this.productButtons.forEach(subButton => {
-      if ((subButton as any).productGroupExternalId === undefined) return
-      ;(subButton as any).pressed = false
+      if (subButton.productGroupExternalId === undefined) return
+      subButton.pressed = false
     })
 
     if (this.lineItems.length <= 1) {

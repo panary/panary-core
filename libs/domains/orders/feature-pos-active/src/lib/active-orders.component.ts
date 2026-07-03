@@ -1,4 +1,13 @@
-import { Component, computed, effect, inject, signal, WritableSignal } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+  WritableSignal,
+} from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { Router } from '@angular/router'
 import { MatDialog } from '@angular/material/dialog'
@@ -35,12 +44,42 @@ type OverlayView = 'actions' | 'staff-meal' | 'discount' | 'corporate'
 
 const DISCOUNT_PRESETS = [5, 10, 15, 20, 25, 30] as const
 
+// Ein Formatter für alle Preis-Ausgaben — `new Intl.NumberFormat` pro Aufruf ist teuer
+const EUR_FORMAT = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' })
+
+// Pro-Order-Viewmodel: memoisiert alle Ableitungen (Filter/Gruppierung/Preisformatierung),
+// die sonst pro CD-Zyklus im Template neu berechnet würden (zoneless + OnPush).
+interface ModifierVm {
+  id: string
+  name: string
+  icon?: string
+  priceFormatted: string | null
+}
+
+interface OrderLineVm {
+  item: OrderLineItem
+  lineTotalFormatted: string
+  modifiers: ModifierVm[]
+  sideDishPriceFormatted: string | null
+  drinkPriceFormatted: string | null
+}
+
+interface OrderCardVm {
+  order: Order
+  unbundledLines: OrderLineVm[]
+  combinations: OrderLineVm[][]
+  totalFormatted: string
+  itemsPaddingClass: string
+  itemsGapClass: string
+}
+
 @Component({
   selector: 'lib-active-orders',
   standalone: true,
   imports: [CommonModule, TranslateModule],
   templateUrl: './active-orders.component.html',
   styleUrl: './active-orders.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ActiveOrdersComponent {
   #orderService = inject(OrderService)
@@ -53,12 +92,17 @@ export class ActiveOrdersComponent {
   #corporateCustomerService = inject(CorporateCustomerService)
   #translate = inject(TranslateService)
 
-  // Sort orders by recordingDate descending (Newest first)
+  // Sort orders by recordingDate descending (Newest first).
+  // Spread zwingend: ordersActive() ist ein memoisiertes computed — in-place sort
+  // würde das geteilte Array für alle anderen Konsumenten mutieren.
   sortedOrders = computed(() => {
-    return this.#orderService.ordersActive().sort((a, b) => {
+    return [...this.#orderService.ordersActive()].sort((a, b) => {
       return new Date(b.recordingDate).getTime() - new Date(a.recordingDate).getTime()
     })
   })
+
+  // Memoisiertes Pro-Order-VM — rechnet nur bei Order-Änderungen, nicht pro CD-Zyklus
+  orderVms = computed(() => this.sortedOrders().map(order => this.#buildOrderVm(order)))
 
   orders = this.sortedOrders
   protected readonly OrderStatus = OrderStatus
@@ -92,10 +136,13 @@ export class ActiveOrdersComponent {
   #itemsScrollState = signal<Record<string, { atTop: boolean; atBottom: boolean }>>({})
 
   constructor() {
-    // Nach jedem Render-Zyklus (orders-Änderung) Scroll-States neu prüfen
+    // Nach jedem Render-Zyklus (orders-Änderung) Scroll-States neu prüfen.
+    // sortedOrders() bewusst getrackt; Aktion via untracked() entkoppelt (angular.md §2.1).
     effect(() => {
       this.sortedOrders()
-      Promise.resolve().then(() => this.#checkAllScrollStates())
+      untracked(() => {
+        Promise.resolve().then(() => this.#checkAllScrollStates())
+      })
     })
   }
 
@@ -109,6 +156,10 @@ export class ActiveOrdersComponent {
   #updateScrollState(el: HTMLElement, orderId: string) {
     const atTop = el.scrollTop <= 2
     const atBottom = el.scrollHeight <= el.clientHeight + 2 || el.scrollTop + el.clientHeight >= el.scrollHeight - 2
+    // Nur bei tatsächlicher Kanten-Änderung schreiben — sonst dirtied jeder
+    // Scroll-Frame die Komponente (zoneless: Signal-Write = CD-Zyklus)
+    const prev = this.#itemsScrollState()[orderId]
+    if (prev && prev.atTop === atTop && prev.atBottom === atBottom) return
     this.#itemsScrollState.update(s => ({ ...s, [orderId]: { atTop, atBottom } }))
   }
 
@@ -484,7 +535,7 @@ export class ActiveOrdersComponent {
   }
 
   formatPrice(price: number): string {
-    return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(price)
+    return EUR_FORMAT.format(price)
   }
 
   // Kanonische Gesamtsumme: dieselbe Engine (`computeOrderTax` via
@@ -527,5 +578,38 @@ export class ActiveOrdersComponent {
   getUnbundledLineItems(order: Order): OrderLineItem[] {
     if (!order.lineItems) return []
     return order.lineItems.filter((item: any) => item.bundleNumber === undefined || item.bundleNumber === null)
+  }
+
+  // --- Pro-Order-Viewmodel (memoisiert via orderVms-computed) ---
+
+  #buildOrderVm(order: Order): OrderCardVm {
+    const unbundled = this.getUnbundledLineItems(order)
+    const count = unbundled.length
+    return {
+      order,
+      unbundledLines: unbundled.map(item => this.#buildLineVm(item)),
+      combinations: this.getCombinations(order).map(combo => combo.map(item => this.#buildLineVm(item))),
+      totalFormatted: this.formatPrice(this.calculateTotal(order)),
+      // Karten mit 1–2 Positionen bekommen mehr Luft (identisch zur früheren
+      // ngClass-Ternär-Logik im Template)
+      itemsPaddingClass: count === 1 ? 'px-4 py-10' : count === 2 ? 'px-4 py-6' : 'p-4',
+      itemsGapClass: count === 1 ? 'gap-4' : count === 2 ? 'gap-3.5' : 'gap-3',
+    }
+  }
+
+  #buildLineVm(item: OrderLineItem): OrderLineVm {
+    return {
+      item,
+      lineTotalFormatted: this.formatPrice(item.price * item.amount),
+      modifiers: (item.modifiers ?? []).map(extra => ({
+        id: extra._id,
+        name: extra.name,
+        icon: extra.icon,
+        priceFormatted: extra.price > 0 ? this.formatPrice(extra.price) : null,
+      })),
+      sideDishPriceFormatted:
+        item.menuSideDish && item.menuSideDish.price > 0 ? this.formatPrice(item.menuSideDish.price) : null,
+      drinkPriceFormatted: item.menuDrink && item.menuDrink.price > 0 ? this.formatPrice(item.menuDrink.price) : null,
+    }
   }
 }

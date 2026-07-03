@@ -68,7 +68,8 @@
       </div>
     } @else {
       <div class="flex flex-row gap-6 items-start w-max">
-        @for (order of sortedOrders(); track order._id) {
+        @for (vm of orderVms(); track vm.order._id) {
+          @let order = vm.order;
           <!-- Karten-Wrapper: Buttons oben, Karte darunter — passt sich Inhalt an -->
           <div [style.zoom]="zoomLevel()" class="flex flex-col gap-2 w-80 shrink-0">
 
@@ -329,11 +330,10 @@
                 </div>
               </div>
 
-            <div class="font-mono text-sm"
-              [ngClass]="getUnbundledLineItems(order).length === 1 ? 'px-4 py-10' : getUnbundledLineItems(order).length === 2 ? 'px-4 py-6' : 'p-4'">
-              <div class="flex flex-col"
-                [ngClass]="getUnbundledLineItems(order).length === 1 ? 'gap-4' : getUnbundledLineItems(order).length === 2 ? 'gap-3.5' : 'gap-3'">
-                @for (item of getUnbundledLineItems(order); track item._id) {
+            <div class="font-mono text-sm" [ngClass]="vm.itemsPaddingClass">
+              <div class="flex flex-col" [ngClass]="vm.itemsGapClass">
+                @for (line of vm.unbundledLines; track line.item._id) {
+                @let item = line.item;
                 <div class="flex justify-between items-start">
                   <div class="flex gap-2">
                     <span class="font-bold w-8 shrink-0">{{ item.amount }}x</span>
@@ -341,12 +341,12 @@
                       <span class="text-gray-700 dark:text-gray-200">{{ item.name }}</span>
 
                       <!-- Extras -->
-                      @if (item.modifiers && item.modifiers.length > 0) {
-                      @for (extra of item.modifiers; track extra._id) {
+                      @if (line.modifiers.length > 0) {
+                      @for (extra of line.modifiers; track extra.id) {
                       <div class="text-xs text-gray-500 dark:text-gray-400 pl-2 flex items-center justify-between gap-2 mt-0.5">
                         <span class="flex items-center gap-1">+ {{ extra.name }}@if (extra.icon) { {{ extra.icon }}}</span>
-                        @if (extra.price > 0) {
-                        <span>{{ formatPrice(extra.price) }}</span>
+                        @if (extra.priceFormatted) {
+                        <span>{{ extra.priceFormatted }}</span>
                         }
                       </div>
                       }
@@ -360,8 +360,8 @@
                           <span class="material-symbols-outlined text-[12px] -ml-1">restaurant_menu</span>
                           <span>{{ item.menuSideDish.name }}</span>
                         </div>
-                        @if (item.menuSideDish.price > 0) {
-                        <span>{{ formatPrice(item.menuSideDish.price) }}</span>
+                        @if (line.sideDishPriceFormatted) {
+                        <span>{{ line.sideDishPriceFormatted }}</span>
                         }
                       </div>
                       }
@@ -371,45 +371,46 @@
                           <span class="material-symbols-outlined text-[12px] -ml-1">local_cafe</span>
                           <span>{{ item.menuDrink.name }}</span>
                         </div>
-                        @if (item.menuDrink.price > 0) {
-                        <span>{{ formatPrice(item.menuDrink.price) }}</span>
+                        @if (line.drinkPriceFormatted) {
+                        <span>{{ line.drinkPriceFormatted }}</span>
                         }
                       </div>
                       }
                       }
                     </div>
                   </div>
-                  <span class="font-semibold whitespace-nowrap">{{ formatPrice(item.price * item.amount) }}</span>
+                  <span class="font-semibold whitespace-nowrap">{{ line.lineTotalFormatted }}</span>
                 </div>
                 }
 
                 <!-- Combinations (Grouped Items) -->
-                @if (getCombinations(order).length > 0) {
+                @if (vm.combinations.length > 0) {
                 <div class="border-t border-dashed border-gray-200 dark:border-gray-700 my-1 pt-2">
                   <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">{{ 'ACTIVE_ORDERS.COMBINATIONS' | translate }}</span>
-                  @for (combo of getCombinations(order); track $index) {
+                  @for (combo of vm.combinations; track $index) {
                   <div class="bg-indigo-50/50 dark:bg-indigo-950/30 rounded-lg p-2 mb-2 border border-indigo-100 dark:border-indigo-900 relative">
                     <div class="absolute -left-1 top-3 bottom-3 w-1 bg-indigo-200 dark:bg-indigo-800 rounded-full"></div>
                     <div class="flex flex-col gap-2 pl-2">
-                      @for (item of combo; track item._id) {
+                      @for (line of combo; track line.item._id) {
+                      @let item = line.item;
                       <div class="flex justify-between items-start">
                         <div class="flex gap-2">
                           <span class="font-bold w-4 text-xs">{{ item.amount }}x</span>
                           <div class="flex flex-col">
                             <span class="text-gray-700 dark:text-gray-200 text-sm">{{ item.name }}</span>
-                            @if (item.modifiers && item.modifiers.length > 0) {
-                            @for (extra of item.modifiers; track extra._id) {
+                            @if (line.modifiers.length > 0) {
+                            @for (extra of line.modifiers; track extra.id) {
                             <div class="text-[10px] text-gray-500 dark:text-gray-400 pl-2 flex items-center justify-between gap-2">
                               <span>+ {{ extra.name }}@if (extra.icon) { {{ extra.icon }}}</span>
-                              @if (extra.price > 0) {
-                              <span>{{ formatPrice(extra.price) }}</span>
+                              @if (extra.priceFormatted) {
+                              <span>{{ extra.priceFormatted }}</span>
                               }
                             </div>
                             }
                             }
                           </div>
                         </div>
-                        <span class="font-semibold text-sm">{{ formatPrice(item.price * item.amount) }}</span>
+                        <span class="font-semibold text-sm">{{ line.lineTotalFormatted }}</span>
                       </div>
                       }
                     </div>
@@ -440,7 +441,7 @@
             <div class="bg-white dark:bg-gray-950 px-6 py-4 rounded-b-2xl">
               <div class="flex justify-between items-center">
                 <span class="font-bold text-gray-500 dark:text-gray-400 uppercase text-xs">{{ 'COMMON.TOTAL' | translate }}</span>
-                <span class="text-xl font-black text-gray-800 dark:text-white">{{ formatPrice(calculateTotal(order)) }}</span>
+                <span class="text-xl font-black text-gray-800 dark:text-white">{{ vm.totalFormatted }}</span>
               </div>
             </div>
             </div><!-- Ende fester Footer-Bereich -->

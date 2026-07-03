@@ -10,8 +10,10 @@ status: implemented
 
 Geteilte RBAC-Bausteine in `@panary/users/domain` (seit `v26.7.11`) für das
 Hybrid-Modell **„Rolle (Matrix) ODER additiver Pro-User-Grant"**. Konsumiert von
-Cloud-Backend (`authorize.hook`, `restrict-permission-grants.hook`) und
-Cloud-Frontend (`auth.service.can()`); Edge-Adoption ist P2.
+Cloud-Backend (`authorize.hook`, `restrict-permission-grants.hook`),
+Cloud-Frontend (`auth.service.can()`) und dem Edge-`users`-Service
+(Grant-Escalation-Guard, siehe §4); die Adoption des Helpers im
+Edge-`authorize.hook` ist weiterhin P2.
 
 Das vollständige Feature (Escalation-Guard, UI, Pakete-Zuweisung) ist in
 [panary-cloud/documentation/granulare-berechtigungen.md](../../panary-cloud/documentation/granulare-berechtigungen.md)
@@ -80,14 +82,55 @@ bleiben „dumm", Bundles sind reine UI-/Seed-Sache.
 
 `expandBundles(ids)` → deduplizierte Grant-Strings (unbekannte IDs ignoriert).
 
-## 4. Verifikation
+## 4. Grant-Assignment-Policy (Escalation-Guard, geteilt)
+
+**Datei:** `libs/domains/users/domain/src/lib/grant-assignment-policy.ts` (seit 2026-07-03)
+
+Framework-agnostischer Kern des Escalation-Guards beim **Vergeben** von Grants
+(analog `self-patch-policy.ts`: strukturierte Violation statt Throw). Semantik
+1:1 vom Cloud-Guard (`apps/api-cloud/src/hooks/restrict-permission-grants.hook.ts`)
+übernommen:
+
+```ts
+extractAddedGrants(next, existing)        // Delta: nur NEUE grant:-Tokens (can_* ignoriert)
+checkGrantAssignment(actor, addedGrants)  // → GrantAssignmentViolation | null
+```
+
+- **Decke:** effektive Rechte des Akteurs (`hasEffectivePermission` über Rolle +
+  eigene Grants). Plattform-Akteure (`platform:*`) **oder** Impersonation
+  (`actAs`) werden auf `TENANT_OWNER`-Niveau gedeckelt — nie die
+  Plattform-Rechte des Operators.
+- **Violations:** `MISSING_USER` / `INVALID_GRANT` (Format/unbekannte
+  Ressource-Aktion) / `ESCALATION`. Adapter mappen `INVALID_GRANT` → 400
+  BadRequest, sonst 403 Forbidden.
+- **Delta-Semantik:** Entzug/Beibehalten bereits gesetzter Grants ist immer
+  erlaubt — geprüft werden nur neu hinzukommende Tokens.
+
+**Edge-Adapter:** `apps/api-edge/src/hooks/restrict-permission-grants.hook.ts` —
+verdrahtet in `users.ts` auf `before.create` + `before.patch` (nach
+`restrictUserSelfPatch`, vor `validateData` — analog Cloud). Interner Bypass
+(`provider: undefined`, z. B. Sync-Apply) und Delta-Bildung via internem `get`
+leben im Adapter. Wichtig: `PRIVILEGED_ROLES` (u. a. `TENANT_OWNER`) umgehen die
+Self-Patch-Restriction — dieser Guard ist am Edge der einzige Schutz gegen
+Grant-Selbst-Eskalation. Blockierte Vergaben loggen
+`security.grant_escalation_blocked`.
+
+Der Cloud-Guard nutzt die geteilte Policy noch nicht (lokale Kopie der
+Semantik) — Umstellung braucht Core-Publish + Pin-Bump (Folgearbeit).
+
+## 5. Verifikation
 
 `effective-permissions.spec.ts` (15 Tests): Matrix × Grants, `MANAGE` ⇒ `READ`,
 Unbekannt-Token-Reject, Grant-Parsing mit `/` in der Ressource.
+`grant-assignment-policy.spec.ts` (13 Tests): Rollen-Decke, Plattform-/
+Impersonation-Deckelung, Delta-/Filter-Semantik, INVALID_GRANT.
+`restrict-permission-grants.hook.spec.ts` (api-edge, 6 Tests): interner Bypass,
+Forbidden/BadRequest-Mapping, Delta gegen Bestandsdatensatz.
 
-## 5. Edge-Status (P2)
+## 6. Edge-Status (P2)
 
 `permissions` synchronisiert bereits zum Edge (`USER_JSON_FIELDS`). Die Adoption
 des Helpers im Edge-`authorize.hook` (inkl. `SYSTEM`-Wildcard-Abgleich +
 POS-PIN-Implikationen) steht noch aus — eigener Risiko-Check, da die Edge-Variante
-ein abweichendes `SYSTEM`-Wildcard hat.
+ein abweichendes `SYSTEM`-Wildcard hat. Der Vergabe-Guard (§4) ist am Edge
+bereits scharf.

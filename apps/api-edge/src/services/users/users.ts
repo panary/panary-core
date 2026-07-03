@@ -21,6 +21,7 @@ import { multiTenancy } from '@panary/shared-backend'
 import { getJsonFieldHooks } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { restrictUserSelfPatch } from '../../hooks/restrict-user-self-patch.hook'
+import { restrictPermissionGrants } from '../../hooks/restrict-permission-grants.hook'
 
 const USER_JSON_FIELDS = ['discountDetails', 'allowedLocationIds', 'permissions']
 import { DatabaseType } from '@panary/shared-common'
@@ -177,8 +178,8 @@ export const users = (app: Application) => {
       all: [schemaHooks.validateQuery(userQueryValidator), schemaHooks.resolveQuery(userQueryResolver)],
       find: [],
       get: [],
-      create: [schemaHooks.validateData(userDataValidator), schemaHooks.resolveData(userDataResolver), ...jsonHooks.before],
-      patch: [restrictUserSelfPatch, schemaHooks.validateData(userPatchValidator), schemaHooks.resolveData(userPatchResolver), ...jsonHooks.before],
+      create: [restrictPermissionGrants, schemaHooks.validateData(userDataValidator), schemaHooks.resolveData(userDataResolver), ...jsonHooks.before],
+      patch: [restrictUserSelfPatch, restrictPermissionGrants, schemaHooks.validateData(userPatchValidator), schemaHooks.resolveData(userPatchResolver), ...jsonHooks.before],
       remove: []
     },
     after: {

@@ -40,6 +40,16 @@ export const fiscalCounterSchema = Type.Object(
 )
 export type FiscalCounter = Static<typeof fiscalCounterSchema>
 
+// Create-Schema OHNE createdAt/updatedAt: die Timestamps setzt serverseitig der
+// Data-Resolver — der laeuft aber NACH validateData. Gegen das volle Schema
+// validiert schlaegt daher JEDE Erst-Anlage fehl (BadRequest) und der Zaehler
+// entsteht nie. `_id` bleibt Pflicht: der deterministische Key
+// (fiscalCounterId) wird vom Aufrufer mitgegeben.
+export const fiscalCounterDataSchema = Type.Omit(fiscalCounterSchema, ['createdAt', 'updatedAt'], {
+  $id: 'FiscalCounterData',
+})
+export type FiscalCounterData = Static<typeof fiscalCounterDataSchema>
+
 export const fiscalCounterPatchSchema = Type.Partial(Type.Pick(fiscalCounterSchema, ['lastValue']), {
   $id: 'FiscalCounterPatch',
 })

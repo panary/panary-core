@@ -15,10 +15,10 @@ import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { DatabaseType } from '@panary/shared-common'
 import {
   type FiscalCounter,
+  fiscalCounterDataSchema,
   fiscalCounterId,
   fiscalCounterPatchSchema,
   fiscalCounterQuerySchema,
-  fiscalCounterSchema,
   nextFiscalCounterValue,
 } from '@panary/tse/domain'
 
@@ -26,7 +26,7 @@ import type { Application, HookContext } from '../../declarations'
 
 export const fiscalCountersPath = 'fiscal-counters'
 
-const fiscalCounterDataValidator = getValidator(fiscalCounterSchema, dataValidator)
+const fiscalCounterDataValidator = getValidator(fiscalCounterDataSchema, dataValidator)
 const fiscalCounterPatchValidator = getValidator(fiscalCounterPatchSchema, dataValidator)
 const fiscalCounterQueryValidator = getValidator(fiscalCounterQuerySchema, queryValidator)
 

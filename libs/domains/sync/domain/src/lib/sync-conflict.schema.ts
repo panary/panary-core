@@ -63,6 +63,17 @@ export const syncConflictSchema = Type.Object(
 
 export type SyncConflict = Static<typeof syncConflictSchema>
 
+// Create-Schema OHNE createdAt/updatedAt: die Timestamps setzt serverseitig der
+// Data-Resolver — der laeuft aber NACH validateData. Gegen das volle Schema
+// validiert scheitert jede Erst-Anlage ohne manuell mitgestempelte Timestamps
+// (BadRequest), siehe fiscal-counters-Regression 2026-07-03. `_id`/`status`
+// bleiben Pflicht: beide Sync-Worker (Push-Eskalation + Bootstrap-Merge) geben
+// sie explizit mit.
+export const syncConflictDataSchema = Type.Omit(syncConflictSchema, ['createdAt', 'updatedAt'], {
+  $id: 'SyncConflictData',
+})
+export type SyncConflictData = Static<typeof syncConflictDataSchema>
+
 export const syncConflictPatchSchema = Type.Object(
   {
     resolution: StringEnum(Object.values(SyncConflictResolution)),

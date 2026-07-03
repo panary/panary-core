@@ -612,19 +612,20 @@ const runMergeByExternalId = async (
     for (const edge of edgeRecords as any[]) {
       const ext = edge.externalId
       if (typeof ext !== 'string') {
+        // cloudRecordId/createdAt/updatedAt bewusst weggelassen: das strikte
+        // syncConflictDataSchema erlaubt fuer cloudRecordId nur String (kein
+        // null — Feld fehlt = „kein Cloud-Pendant"), die Timestamps stempelt
+        // der Data-Resolver serverseitig.
         conflicts.push({
           _id: uuidv7(),
           tenantId: connection.tenantId!,
           locationId: connection.locationId ?? null,
           service,
           edgeRecordId: edge._id,
-          cloudRecordId: null,
           reason: 'external-id-missing',
           edgePayload: edge,
           cloudPayload: null,
           status: 'open',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
         })
         continue
       }

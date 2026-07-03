@@ -506,7 +506,9 @@ const escalateToConflict = async (
   locationId: string | null,
 ): Promise<string | undefined> => {
   try {
-    const now = new Date().toISOString()
+    // createdAt/updatedAt NICHT mitgeben: das strikte syncConflictDataSchema
+    // (additionalProperties:false) lehnt sie ab — der Data-Resolver stempelt
+    // sie serverseitig.
     const conflict = await (app.service(syncConflictsPath) as any).create(
       {
         _id: uuidv7(),
@@ -518,8 +520,6 @@ const escalateToConflict = async (
         edgePayload: typeof entry.payload === 'string' ? JSON.parse(entry.payload) : entry.payload,
         cloudPayload: rejection.cloudPayload,
         status: 'open',
-        createdAt: now,
-        updatedAt: now,
       },
       { provider: undefined } as any,
     )

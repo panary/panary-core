@@ -5,16 +5,18 @@ import { uuidv7 } from 'uuidv7'
 import { dataValidator, queryValidator } from '@panary/shared-backend'
 import {
   type SyncConflict,
+  syncConflictDataSchema,
   syncConflictPatchSchema,
   syncConflictQuerySchema,
-  syncConflictSchema,
   SyncConflictStatus,
   type SyncConflictQuery,
 } from '@panary/sync/domain'
 
 import type { HookContext } from '../../declarations'
 
-export const syncConflictDataValidator = getValidator(syncConflictSchema, dataValidator)
+// Create validiert gegen das Data-Schema (ohne createdAt/updatedAt) — die
+// Timestamps stempelt der syncConflictDataResolver NACH der Validierung.
+export const syncConflictDataValidator = getValidator(syncConflictDataSchema, dataValidator)
 export const syncConflictPatchValidator = getValidator(syncConflictPatchSchema, dataValidator)
 export const syncConflictQueryValidator = getValidator(syncConflictQuerySchema, queryValidator)
 

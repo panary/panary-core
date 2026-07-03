@@ -334,13 +334,14 @@ const upsertCursor = async (
   if (existing) {
     await (app.service(syncCursorPath) as any).patch(id, patch, { provider: undefined } as any)
   } else {
+    // createdAt/updatedAt NICHT mitgeben: das strikte syncCursorDataSchema
+    // (additionalProperties:false) lehnt sie ab — der Data-Resolver stempelt
+    // sie serverseitig.
     await (app.service(syncCursorPath) as any).create(
       {
         _id: id,
         service,
         ...patch,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       },
       { provider: undefined } as any,
     )

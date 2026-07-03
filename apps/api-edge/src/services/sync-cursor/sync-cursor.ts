@@ -8,16 +8,18 @@ import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { DatabaseType } from '@panary/shared-common'
 import {
   type SyncCursor,
+  syncCursorDataSchema,
   syncCursorPatchSchema,
   syncCursorQuerySchema,
-  syncCursorSchema,
 } from '@panary/sync/domain'
 
 import type { Application, HookContext } from '../../declarations'
 
 export const syncCursorPath = 'sync-cursor'
 
-const syncCursorDataValidator = getValidator(syncCursorSchema, dataValidator)
+// Create validiert gegen das Data-Schema (ohne createdAt/updatedAt) — die
+// Timestamps stempelt der syncCursorDataResolver NACH der Validierung.
+const syncCursorDataValidator = getValidator(syncCursorDataSchema, dataValidator)
 const syncCursorPatchValidator = getValidator(syncCursorPatchSchema, dataValidator)
 const syncCursorQueryValidator = getValidator(syncCursorQuerySchema, queryValidator)
 

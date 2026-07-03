@@ -21,6 +21,15 @@ export const syncCursorSchema = Type.Object(
 
 export type SyncCursor = Static<typeof syncCursorSchema>
 
+// Create-Schema OHNE createdAt/updatedAt: die Timestamps setzt serverseitig der
+// Data-Resolver — der laeuft aber NACH validateData. Gegen das volle Schema
+// validiert scheitert jede Erst-Anlage ohne manuell mitgestempelte Timestamps
+// (BadRequest), siehe fiscal-counters-Regression 2026-07-03.
+export const syncCursorDataSchema = Type.Omit(syncCursorSchema, ['createdAt', 'updatedAt'], {
+  $id: 'SyncCursorData',
+})
+export type SyncCursorData = Static<typeof syncCursorDataSchema>
+
 export const syncCursorPatchSchema = Type.Partial(
   Type.Pick(syncCursorSchema, [
     'lastPullAt',

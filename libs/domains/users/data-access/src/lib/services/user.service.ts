@@ -26,9 +26,10 @@ export class UserService extends BaseService<User> {
     return this.#users.asReadonly()
   }
 
-  get currentUser(): Signal<User|undefined> {
-    return computed(() => this.#users().find((element: User): boolean => element._id===this.#authService.user()?._id))
-  }
+  // Einmaliges computed-Klassenfeld — als Getter würde jeder Zugriff ein frisches
+  // computed() anlegen (Memoisierung wirkungslos, neuer Reactive-Node pro Read).
+  readonly currentUser: Signal<User|undefined>=computed(() =>
+    this.#users().find((element: User): boolean => element._id===this.#authService.user()?._id))
 
   /** CONSTRUCTOR */
   constructor() {

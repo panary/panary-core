@@ -22,6 +22,12 @@ import { CacheEntity, ExtendedParams, OfflineOutboxPort } from '@panary/shared-c
 import { Observer } from 'rxjs'
 import { LocationService } from '@panary/locations/data-access'
 import { uuidv7 } from 'uuidv7'
+import {
+  applyOrderCreated,
+  applyOrderRemoved,
+  applyOrderUpdated,
+  OrderRealtimeMergeFn,
+} from '../utils/order-realtime-merge'
 
 /** Benanntes Input-Objekt für `OrderService.createOrder` — ersetzt die frühere 13-Parameter-Signatur. */
 export interface CreateOrderInput {
@@ -52,6 +58,8 @@ export class OrderService extends BaseService<Order> {
   protected readonly QUERY_LIMIT: number = 200
   protected readonly SNACKBAR_ACTION: string = 'OK'
   protected readonly SNACKBAR_DURATION: number = 2000
+  /** Coalesced Reconcile: EIN silent-Voll-Reload pro Event-Burst (Drift-Schutz, s. #scheduleReconcile). */
+  protected readonly RECONCILE_DELAY_MS: number = 45000
 
   /** DEPENDENCIES */
   #locationService: LocationService = inject(LocationService)
@@ -68,21 +76,23 @@ export class OrderService extends BaseService<Order> {
   #totalOrders: WritableSignal<number> = signal(0)
   #totalFinishedOrders: WritableSignal<number> = signal(0)
   #ordersLastUpdated = signal<Date>(new Date())
+  #reconcileTimer: ReturnType<typeof setTimeout> | null = null
 
   /** PUBLIC PROPERTIES */
   ordersLastUpdated: Signal<Date> = this.#ordersLastUpdated.asReadonly()
 
+  // Einmalige computed-Klassenfelder — als Getter würde jeder Zugriff ein frisches
+  // computed() anlegen (Memoisierung wirkungslos, neuer Reactive-Node pro Read).
+  readonly ordersActive: Signal<Order[]> = computed(() =>
+    this.#orders().filter((order: Order): boolean => order.status !== OrderStatus.COMPLETED),
+  )
+  readonly ordersCompleted: Signal<Order[]> = computed(() =>
+    this.#orders().filter((order: Order): boolean => order.status !== OrderStatus.ACTIVE),
+  )
+
   /** GETTER */
   get orders() {
     return this.#orders.asReadonly()
-  }
-
-  get ordersActive() {
-    return computed(() => this.#orders().filter((order: Order): boolean => order.status !== OrderStatus.COMPLETED))
-  }
-
-  get ordersCompleted() {
-    return computed(() => this.#orders().filter((order: Order): boolean => order.status !== OrderStatus.ACTIVE))
   }
 
   get orderIndex() {
@@ -143,22 +153,59 @@ export class OrderService extends BaseService<Order> {
   }
 
   /** PRIVATE METHODS */
-  protected override handleItemCreated(_document: Order) {
-    this.#ordersLastUpdated.set(new Date())
-    this.loadDocuments()
+  // Realtime-Events werden direkt ins Orders-Signal gemerged statt pro Event einen
+  // Voll-Reload (3 find-Calls + IndexedDB-replaceAll) auf JEDEM verbundenen POS-Client
+  // auszulösen. Den IndexedDB-Mirror hält die BaseService bereits inkrementell aktuell
+  // (cacheUpsert/cacheRemove laufen VOR diesen Handlern).
+  protected override handleItemCreated(document: Order | Order[]) {
+    this.#applyRealtimeEvent(document, applyOrderCreated)
   }
 
-  protected override handleItemUpdated(_document: Order) {
-    this.#ordersLastUpdated.set(new Date())
-    this.loadDocuments()
+  protected override handleItemUpdated(document: Order | Order[]) {
+    this.#applyRealtimeEvent(document, applyOrderUpdated)
   }
 
-  protected override handleItemRemoved(_document: Order) {
-    this.#ordersLastUpdated.set(new Date())
-    this.loadDocuments()
+  protected override handleItemRemoved(document: Order | Order[]) {
+    this.#applyRealtimeEvent(document, applyOrderRemoved)
   }
 
-  protected override loadDocuments() {
+  #applyRealtimeEvent(document: Order | Order[], merge: OrderRealtimeMergeFn): void {
+    this.#ordersLastUpdated.set(new Date())
+
+    // Ohne aktiven Geschäftstag kein Merge — Parität zum früheren Voll-Reload,
+    // der in loadDocuments ebenfalls early-returnte.
+    const businessDayId = this.#locationService.activeLocation()?.currentBusinessDay?.businessDayId
+    if (businessDayId) {
+      const result = merge(this.#orders(), document, businessDayId)
+      if (result.changed) {
+        this.#orders.set(result.orders)
+        this.calculateRemainingTime()
+      }
+      if (result.totalDelta !== 0) {
+        this.#totalOrders.update(count => Math.max(0, count + result.totalDelta))
+      }
+      if (result.completedDelta !== 0) {
+        this.#totalFinishedOrders.update(count => Math.max(0, count + result.completedDelta))
+      }
+    }
+
+    this.#scheduleReconcile()
+  }
+
+  /**
+   * Drift-Schutz: coalesced Reconcile-Reload. Verpasste Events (Reconnect-Lücken),
+   * Count-Drift bei gedeckelter Liste (> QUERY_LIMIT) o. Ä. werden durch EINEN
+   * silent-Voll-Reload pro Event-Burst korrigiert — statt N Voll-Reloads pro Event.
+   */
+  #scheduleReconcile(): void {
+    if (this.#reconcileTimer !== null) clearTimeout(this.#reconcileTimer)
+    this.#reconcileTimer = setTimeout(() => {
+      this.#reconcileTimer = null
+      this.loadDocuments({ silent: true })
+    }, this.RECONCILE_DELAY_MS)
+  }
+
+  protected override loadDocuments(options?: { silent?: boolean }) {
     const currentBusinessDay = this.#locationService.activeLocation()?.currentBusinessDay
 
     if (!currentBusinessDay) return
@@ -191,9 +238,12 @@ export class OrderService extends BaseService<Order> {
         this.#orders.set(orders)
         this.calculateRemainingTime()
       }
-      this.#matSnackBar.open(`Bestellungen aktualisiert`, OrderService.SNACKBAR_ACTION, {
-        duration: OrderService.SNACKBAR_DURATION,
-      })
+      // silent = Reconcile-Reload im Hintergrund — keine Snackbar alle 45s
+      if (!options?.silent) {
+        this.#matSnackBar.open(`Bestellungen aktualisiert`, OrderService.SNACKBAR_ACTION, {
+          duration: OrderService.SNACKBAR_DURATION,
+        })
+      }
     })
   }
 

@@ -162,6 +162,26 @@ Tests: 17 Specs grün (`fake-indexeddb`, node-Environment). `nx lint`/`nx test o
 - Verifiziert: `nx build pos-client` (Dev) grün; Lint `orders-feature-pos-dashboard` fehlerfrei;
   panary-cloud `nx build/lint/test api-cloud` grün (neuer Hook 6 Specs).
 
+## Nachtrag (2026-07-03, Qualitäts-Review Stufe 2): Realtime-Merge statt Voll-Reload im OrderService
+
+- **Problem:** `OrderService.handleItemCreated/Updated/Removed` verwarfen den Event-Payload und riefen
+  `loadDocuments()` — 3 `find`-Calls (Count, Count COMPLETED, Liste `$limit: 200`) + `replaceAll` des
+  IndexedDB-Spiegels + Snackbar, auf **jedem** verbundenen POS-Client **pro Event** (~1800 finds +
+  600 IDB-Rewrites/Tag bei 300 Orders).
+- **Fix:** Event-Payloads werden direkt ins `#orders`-Signal gemerged (reine Funktionen in
+  `libs/domains/orders/data-access/src/lib/utils/order-realtime-merge.ts`, 18 Specs): `created` = Upsert
+  (Echo-dedupliziert), `patched`/`updated` = Ersetzen (Insert bei unbekannter Order), `removed` = Entfernen.
+  Die Counts (`totalOrders`/`totalFinishedOrders`) werden **inkrementell per Delta** geführt, weil die Liste
+  auf `QUERY_LIMIT` gedeckelt sein kann und die Server-Counts daher nicht aus ihr ableitbar sind.
+  Geschäftstags-Scope-Parität: Dokumente fremder `businessDayId` werden ignoriert bzw. aus Liste/Counts
+  entfernt (Business-Day-Rotation). Den IndexedDB-Spiegel hält die `BaseService`-Realtime-Spiegelung
+  (`cacheUpsert`/`cacheRemove`, s. Phase 2) bereits inkrementell aktuell — kein `replaceAll` mehr im Event-Pfad.
+- **Drift-Schutz:** coalesced Reconcile — 45 s nach dem letzten Event läuft **ein** silent-`loadDocuments`
+  (ohne Snackbar) pro Event-Burst. Korrigiert verpasste Events (Reconnect-Lücken) und Count-Drift bei
+  gedeckelter Liste. Der server-autoritative `replaceAll`-Spiegel (`#mirrorOrdersCache`) greift dabei weiterhin.
+- **Unverändert:** explizite `loadDocuments()`-Pfade (Initial-Load, nach `createOrder`, Offline-PATCH,
+  „alle erledigt", manueller Refresh) inkl. Snackbar; ebenso die generischen `BaseService`-Event-Snackbars.
+
 ## Roadmap (Folgephasen)
 
 2. ✅ **Read-Pfad + POS-Aktivierung** (siehe oben) — erledigt.

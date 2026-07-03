@@ -79,3 +79,11 @@ reason = "unmaintained Unicode-Crate (kein Fix); transitive Build-Abhängigkeit 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0190"  # anyhow
 reason = "anyhow 1.0.102 — fixbar auf 1.0.103. Wird per Dependabot-Cargo-Update nachgezogen; bis dahin bewusst ignoriert."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0194"  # quick-xml (DoS: quadratische Attribut-Duplikat-Prüfung)
+reason = "quick-xml 0.39.4 — Fix erst in 0.41.0, kein 0.39.x-Backport. Einziger Parent plist 1.9.0 (neueste Version, via tauri 2) verlangt strikt ^0.39.2 → nicht isoliert bumpbar. Exposure: plist parst nur eigene Bundle-Metadaten (Info.plist) zur Build-/Bundle-Zeit, kein Angreifer-kontrolliertes XML zur POS-Laufzeit. Re-evaluieren sobald plist quick-xml ≥0.41 erlaubt."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0195"  # quick-xml (DoS: unbegrenzte Namespace-Allokation in NsReader)
+reason = "quick-xml 0.39.4 — Fix erst in 0.41.0, kein 0.39.x-Backport. Einziger Parent plist 1.9.0 (neueste Version, via tauri 2) verlangt strikt ^0.39.2 → nicht isoliert bumpbar. Exposure: plist parst nur eigene Bundle-Metadaten (Info.plist) zur Build-/Bundle-Zeit, kein Angreifer-kontrolliertes XML zur POS-Laufzeit. Re-evaluieren sobald plist quick-xml ≥0.41 erlaubt."

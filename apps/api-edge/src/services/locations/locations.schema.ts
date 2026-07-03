@@ -11,14 +11,12 @@ import {
   locationPatchSchema,
   LocationQuery,
   locationQuerySchema,
-  locationSchema,
   generateDefaultLocationSettings, LocationStatus, LocationOperationMode,
   DEFAULT_LAST_WORKDAY_OF_WEEK,
 } from '@panary/locations/domain'
 import { LocationService } from './locations.class'
 
 //#region 1. Main Resolver (Output)
-export const locationValidator = getValidator(locationSchema, dataValidator)
 export const locationResolver = resolve<Location, HookContext<LocationService>>({})
 export const locationExternalResolver = resolve<Location, HookContext<LocationService>>({})
 //#endregion

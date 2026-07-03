@@ -10,13 +10,11 @@ import {
   deviceDataSchema,
   devicePatchSchema,
   DeviceQuery,
-  deviceQuerySchema,
-  deviceSchema
+  deviceQuerySchema
 } from '@panary/devices/domain'
 import { DeviceService } from './devices.class'
 
 //#region 1. Main Resolver (Output)
-export const deviceValidator = getValidator(deviceSchema, dataValidator)
 export const deviceResolver = resolve<Device, HookContext<DeviceService>>({
   // TODO: Add resolver logic for output here
   // Example: hide fields, resolve relations, etc.

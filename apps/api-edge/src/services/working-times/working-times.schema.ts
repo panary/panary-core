@@ -10,13 +10,11 @@ import {
   workingTimeDataSchema,
   workingTimePatchSchema,
   WorkingTimeQuery,
-  workingTimeQuerySchema,
-  workingTimeSchema
+  workingTimeQuerySchema
 } from '@panary/working-times/domain'
 import { WorkingTimeService } from './working-times.class'
 
 //#region 1. Main Resolver (Output)
-export const workingTimeValidator = getValidator(workingTimeSchema, dataValidator)
 export const workingTimeResolver = resolve<WorkingTime, HookContext<WorkingTimeService>>({})
 export const workingTimeExternalResolver = resolve<WorkingTime, HookContext<WorkingTimeService>>({})
 //#endregion

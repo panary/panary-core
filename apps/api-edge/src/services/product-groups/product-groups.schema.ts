@@ -10,13 +10,11 @@ import {
   productGroupDataSchema,
   productGroupPatchSchema,
   ProductGroupQuery,
-  productGroupQuerySchema,
-  productGroupSchema
+  productGroupQuerySchema
 } from '@panary/product-groups/domain'
 import { ProductGroupService } from './product-groups.class'
 
 //#region 1. Main Resolver (Output)
-export const productGroupValidator = getValidator(productGroupSchema, dataValidator)
 export const productGroupResolver = resolve<ProductGroup, HookContext<ProductGroupService>>({})
 export const productGroupExternalResolver = resolve<ProductGroup, HookContext<ProductGroupService>>({})
 //#endregion

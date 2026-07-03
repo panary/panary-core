@@ -10,13 +10,11 @@ import {
   userPreferenceDataSchema,
   userPreferencePatchSchema,
   UserPreferenceQuery,
-  userPreferenceQuerySchema,
-  userPreferenceSchema
+  userPreferenceQuerySchema
 } from '@panary/user-preferences/domain'
 import { UserPreferenceService } from './user-preferences.class'
 
 //#region 1. Main Resolver (Output)
-export const userPreferenceValidator = getValidator(userPreferenceSchema, dataValidator)
 export const userPreferenceResolver = resolve<UserPreference, HookContext<UserPreferenceService>>({
 })
 export const userPreferenceExternalResolver = resolve<UserPreference, HookContext<UserPreferenceService>>({

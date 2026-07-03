@@ -10,13 +10,11 @@ import {
   corporateCustomerDataSchema,
   corporateCustomerPatchSchema,
   CorporateCustomerQuery,
-  corporateCustomerQuerySchema,
-  corporateCustomerSchema
+  corporateCustomerQuerySchema
 } from '@panary/corporate-customers/domain'
 import { CorporateCustomerService } from './corporate-customers.class'
 
 //#region 1. Main Resolver (Output)
-export const corporateCustomerValidator = getValidator(corporateCustomerSchema, dataValidator)
 export const corporateCustomerResolver = resolve<CorporateCustomer, HookContext<CorporateCustomerService>>({})
 export const corporateCustomerExternalResolver = resolve<
   CorporateCustomer,

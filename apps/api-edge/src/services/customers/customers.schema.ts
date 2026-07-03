@@ -10,13 +10,11 @@ import {
   customerDataSchema,
   customerPatchSchema,
   CustomerQuery,
-  customerQuerySchema,
-  customerSchema
+  customerQuerySchema
 } from '@panary/customers/domain'
 import { CustomerService } from './customers.class'
 
 //#region 1. Main Resolver (Output)
-export const customerValidator = getValidator(customerSchema, dataValidator)
 export const customerResolver = resolve<Customer, HookContext<CustomerService>>({})
 export const customerExternalResolver = resolve<Customer, HookContext<CustomerService>>({})
 //#endregion

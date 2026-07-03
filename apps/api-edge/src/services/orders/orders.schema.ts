@@ -11,13 +11,11 @@ import {
   orderPatchSchema,
   OrderQuery,
   orderQuerySchema,
-  orderSchema,
   OrderStatus
 } from '@panary/orders/domain'
 import { OrderService } from './orders.class'
 
 //#region 1. Main Resolver (Output)
-export const orderValidator = getValidator(orderSchema, dataValidator)
 export const orderResolver = resolve<Order, HookContext<OrderService>>({
   // TODO: Add resolver logic for output here
   // Example: hide fields, resolve relations, etc.

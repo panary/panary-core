@@ -10,12 +10,10 @@ import {
   discountPatchSchema,
   DiscountQuery,
   discountQuerySchema,
-  discountSchema,
 } from '@panary/discounts/domain'
 import { DiscountService } from './discounts.class'
 
 //#region 1. Main Resolver (Output) — keine sensitiven Felder
-export const discountValidator = getValidator(discountSchema, dataValidator)
 export const discountResolver = resolve<Discount, HookContext<DiscountService>>({})
 export const discountExternalResolver = resolve<Discount, HookContext<DiscountService>>({})
 //#endregion

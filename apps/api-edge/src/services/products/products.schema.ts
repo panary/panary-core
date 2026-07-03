@@ -10,13 +10,11 @@ import {
   productDataSchema,
   productPatchSchema,
   ProductQuery,
-  productQuerySchema,
-  productSchema
+  productQuerySchema
 } from '@panary/products/domain'
 import { ProductService } from './products.class'
 
 //#region 1. Main Resolver (Output)
-export const productsValidator = getValidator(productSchema, dataValidator)
 export const productsResolver = resolve<Product, HookContext<ProductService>>({
   // TODO: Add resolver logic for output here
   // Example: Hide fields, resolve relationships, etc.

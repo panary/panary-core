@@ -10,13 +10,11 @@ import {
   orderInteractionDataSchema,
   orderInteractionPatchSchema,
   OrderInteractionQuery,
-  orderInteractionQuerySchema,
-  orderInteractionSchema
+  orderInteractionQuerySchema
 } from '@panary/order-interactions/domain'
 import { OrderInteractionService } from './order-interactions.class'
 
 //#region 1. Main Resolver (Output)
-export const orderInteractionValidator = getValidator(orderInteractionSchema, dataValidator)
 export const orderInteractionResolver = resolve<OrderInteraction, HookContext<OrderInteractionService>>({
   // TODO: Add resolver logic for output here
   // Example: hide fields, resolve relations, etc.

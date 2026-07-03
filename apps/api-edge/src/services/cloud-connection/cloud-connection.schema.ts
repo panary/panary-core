@@ -10,14 +10,12 @@ import {
   cloudConnectionPatchSchema,
   CloudConnectionQuery,
   cloudConnectionQuerySchema,
-  cloudConnectionSchema,
   PairingStatus,
 } from '@panary/cloud-connection/domain'
 import { encryptCloudToken } from '../../utils/cloud-token-cipher'
 import { CloudConnectionService } from './cloud-connection.class'
 
 //#region 1. Main Resolver (Output)
-export const cloudConnectionValidator = getValidator(cloudConnectionSchema, dataValidator)
 export const cloudConnectionResolver = resolve<CloudConnection, HookContext<CloudConnectionService>>({})
 export const cloudConnectionExternalResolver = resolve<CloudConnection, HookContext<CloudConnectionService>>({
   // cloudToken darf NIEMALS an den Client zurückgegeben werden

@@ -10,11 +10,10 @@ import { dataValidator, queryValidator } from '@panary/shared-backend'
 import { logger } from '@panary/shared-backend'
 
 // Import domain schema
-import { userDataSchema, userPatchSchema, userQuerySchema, userSchema, User, UserQuery, UserSystemRole } from '@panary/users/domain'
+import { userDataSchema, userPatchSchema, userQuerySchema, User, UserQuery, UserSystemRole } from '@panary/users/domain'
 import { UserService } from './users.class'
 
 //#region 1. Main User Resolver (Output)
-export const userValidator = getValidator(userSchema, dataValidator)
 export const userResolver = resolve<User, HookContext<UserService>>({
   // Passwort-Feld NICHT hier entfernen — das macht der externalResolver.
   // Der userResolver läuft auch bei internen Aufrufen (z.B. LocalStrategy),

@@ -9,7 +9,6 @@ import {
   cashSessionPatchSchema,
   CashSessionQuery,
   cashSessionQuerySchema,
-  cashSessionSchema,
   CashSessionStatus,
 } from '@panary/businessdays/domain'
 
@@ -39,7 +38,6 @@ const protectExternal =
     context.params.provider && !isFromSync(context) ? undefined : value
 
 //#region Output-Resolver (keine sensitiven Felder)
-export const cashSessionValidator = getValidator(cashSessionSchema, dataValidator)
 export const cashSessionResolver = resolve<CashSession, Ctx>({})
 export const cashSessionExternalResolver = resolve<CashSession, Ctx>({})
 //#endregion

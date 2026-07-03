@@ -10,12 +10,10 @@ import {
   openingHourExceptionPatchSchema,
   OpeningHourExceptionQuery,
   openingHourExceptionQuerySchema,
-  openingHourExceptionSchema,
 } from '@panary/opening-hour-exceptions/domain'
 import { OpeningHourExceptionService } from './opening-hour-exceptions.class'
 
 //#region 1. Main Resolver (Output)
-export const openingHourExceptionValidator = getValidator(openingHourExceptionSchema, dataValidator)
 export const openingHourExceptionResolver = resolve<OpeningHourException, HookContext<OpeningHourExceptionService>>({})
 export const openingHourExceptionExternalResolver = resolve<
   OpeningHourException,

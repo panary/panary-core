@@ -13,13 +13,11 @@ import {
   apikeyDataSchema,
   apikeyPatchSchema,
   ApikeyQuery,
-  apikeyQuerySchema,
-  apikeySchema
+  apikeyQuerySchema
 } from '@panary/apikeys/domain'
 import { UserSystemRole } from '@panary/users/domain'
 
 //#region 1. Main Resolver (Output)
-export const apikeyValidator = getValidator(apikeySchema, dataValidator)
 export const apikeyResolver = resolve<Apikey, HookContext>({})
 export const apikeyExternalResolver = resolve<Apikey, HookContext>({
   // Apikey-Hash NIEMALS an den Client zuruecksenden!

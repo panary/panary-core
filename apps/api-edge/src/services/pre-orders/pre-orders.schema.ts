@@ -10,13 +10,11 @@ import {
   preOrderPatchSchema,
   PreOrderQuery,
   preOrderQuerySchema,
-  preOrderSchema,
   PreOrderStatus,
 } from '@panary/pre-orders/domain'
 import type { PreOrderService } from './pre-orders.class'
 
 //#region 1. Main Resolver (Output)
-export const preOrderValidator = getValidator(preOrderSchema, dataValidator)
 export const preOrderResolver = resolve<PreOrder, HookContext<PreOrderService>>({})
 export const preOrderExternalResolver = resolve<PreOrder, HookContext<PreOrderService>>({})
 //#endregion

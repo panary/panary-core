@@ -206,7 +206,10 @@ export const transactionSchema = Type.Object({
   currency: Type.String({ default: 'EUR', pattern: '^[A-Z]{3}$' }),
   timestamp: Type.String({ format: 'date-time' }),
   referenceId: Type.Optional(Type.String({ maxLength: 200 })),
-  data: Type.Optional(Type.Any()),
+  // Heterogene Zahlungs-Provider-Payload (Terminal-Response, Bargeld-Metadaten, …)
+  // — bewusst strukturoffen. `Unknown` statt `Any` zwingt Konsumenten zum Narrowing,
+  // statt ungeprueft auf Felder zuzugreifen (AJV-Validierung bleibt identisch offen).
+  data: Type.Optional(Type.Unknown()),
   performedBy: Type.Optional(Type.String({ format: 'uuid' })), // Was ObjectId
 })
 

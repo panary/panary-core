@@ -23,7 +23,9 @@ export const customerSchema = Type.Object(
       }),
     ),
     email: Type.Union([Type.String({ format: 'email', maxLength: 254 }), Type.Null()]),
-    invoices: Type.Array(Type.Any(), { maxItems: 1000 }),
+    // Opake Rechnungs-Snapshots — strukturoffen, aber `Unknown` statt `Any` (erzwingt
+    // Narrowing bei Konsumenten); maxItems begrenzt die Overposting-Groesse.
+    invoices: Type.Array(Type.Unknown(), { maxItems: 1000 }),
     image: Type.Optional(Type.String({ maxLength: 2048 })),
     favicon: Type.Optional(Type.String({ maxLength: 2048 })),
     name1: Type.String({ maxLength: 200 }),

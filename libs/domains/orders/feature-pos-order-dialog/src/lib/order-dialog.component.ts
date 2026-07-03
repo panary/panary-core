@@ -42,7 +42,13 @@ import {
   OrderService,
   StaffPaymentInfo,
 } from '@panary/orders/data-access'
-import { AppliedDiscount, Discount, LineComponent, computeOrderTax } from '@panary/orders/domain'
+import {
+  AppliedDiscount,
+  Discount,
+  LineComponent,
+  computeOrderTax,
+  withFixedBundleMainComponent,
+} from '@panary/orders/domain'
 import { Discount as ManagedDiscount } from '@panary/discounts/domain'
 import { DiscountService } from '@panary/discounts/data-access'
 import { uuidv7 } from 'uuidv7'
@@ -1887,30 +1893,25 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    * Schließt eine FIXED_PROPORTIONAL-Bundle-Zeile ab: ergänzt das Hauptgericht als
    * Komponente (role 'main') mit Normalpreis-Gewicht. Quelle: product.mainPrice;
    * fehlt der Wert, dient der Restbetrag (Festpreis − Σ übrige Komponenten) als
-   * Gewicht — so bleibt die Engine-Verteilung summen-exakt == Festpreis. Idempotent.
+   * Gewicht — so bleibt die Engine-Verteilung summen-exakt == Festpreis. Idempotenz
+   * (kein Doppel-main) und Cents-Arithmetik liegen in der Domain-Funktion.
    */
   private finalizeBundleLine(product: ProductSchema): void {
     if (product.bundlePricingMode !== 'FIXED_PROPORTIONAL') return
     const lineItem = this.getCurrentSelectedLineItem()
     if (!lineItem) return
-    lineItem.components = lineItem.components ?? []
-    if (lineItem.components.some(c => c.role === 'main')) return
 
-    const sumComponents = lineItem.components.reduce((s, c) => s + (c.price || 0) * c.amount, 0)
-    const fixed = product.price || 0
-    const mainNormal =
-      product.mainPrice != null && product.mainPrice >= 0
-        ? product.mainPrice
-        : Math.max(0, Math.round((fixed - sumComponents) * 100) / 100)
-
-    lineItem.components.unshift({
-      ...this.toGenericLineItem(product),
-      price: mainNormal,
-      taxInside: product.taxInside || 19,
-      taxOutside: product.taxOutside || 7,
-      topic: 'main',
-      role: 'main',
-    } as LineComponent)
+    lineItem.components = withFixedBundleMainComponent(
+      lineItem.components ?? [],
+      {
+        ...this.toGenericLineItem(product),
+        taxInside: product.taxInside || 19,
+        taxOutside: product.taxOutside || 7,
+        topic: 'main',
+      },
+      product.price,
+      product.mainPrice,
+    )
   }
 
   // ──────────────────────────────────────────────────────────────────────

@@ -72,7 +72,9 @@ Ad-hoc-Modifier liegen ON TOP (à-la-carte, am Zeilensatz).
 `product.mainPrice`. Fehlt der Wert, trägt der Order-Writer den **Restbetrag**
 (Festpreis − Σ übrige Komponenten) als Hauptgewicht ein — die Verteilung bleibt in
 jedem Fall summen-exakt == Festpreis (dann „Hauptgericht absorbiert die Ersparnis"
-statt echt-proportional).
+statt echt-proportional). Die Restgewicht-Logik lebt als reine Domain-Funktion
+(`fixedBundleMainWeight`/`withFixedBundleMainComponent`, cents-intern, idempotent
+gegen Doppel-`main`) in `@panary/orders/domain`; der POS-Writer ruft sie nur noch auf.
 
 > Verworfene Alternative: den Festpreis-Vorteil als `appliedDiscount` (Menü-Rabatt)
 > abbilden. Dagegen: würde als Pseudo-Rabatt in der Rabatt-Statistik auftauchen,
@@ -176,6 +178,7 @@ abgesichert.
 | Order-Schema (components/bundlePricingMode/role) | `libs/domains/orders/domain/src/lib/order.schema.ts` |
 | Engine (Brutto + Steuer-Split, FIXED-Pfad) | `libs/domains/orders/domain/src/lib/pricing/compute-order-tax.ts` |
 | Money-Helfer (Largest-Remainder) | `libs/domains/orders/domain/src/lib/pricing/money.ts` |
+| Restgewicht/main-Komponente (FIXED-Abschluss) | `libs/domains/orders/domain/src/lib/pricing/fixed-bundle-main.ts` |
 | POS-Total (payment-Stempel) | `libs/domains/orders/feature-pos-active/src/lib/active-orders.component.ts` |
 | POS-Writer (Bundle → components[]) | `libs/domains/orders/feature-pos-order-dialog/src/lib/order-dialog.component.ts` |
 | Dialog-Preis-Anzeige (FIXED-aware) | `libs/domains/orders/data-access/src/lib/utils/prices-and-taxes.ts` |
@@ -193,3 +196,8 @@ abgesichert.
   Invariante `netto+steuer==brutto`, Rabatte. 22 Tests.
 - `order-total.spec.ts` — FIXED-Fallback (Festpreis, keine Doppelzählung),
   components[]-ROLLUP-Fallback. +2 Tests.
+- `fixed-bundle-main.spec.ts` — Restbetrags-Hauptgewicht (Writer-Logik): Restbetrag/
+  mainPrice-Vorrang, Klemmen auf 0 bei Σ Komponenten > Festpreis (Verteilung kippt
+  auf die übrigen Komponenten — gelockt), Idempotenz (kein Doppel-`main`),
+  Float-Kanten cents-exakt, Integration mit `computeOrderTax` (Brutto == Festpreis).
+  11 Tests.

@@ -13,6 +13,9 @@ export default defineConfig(() => ({
     globals: true,
     environment: 'node',
     include: ['{src,test,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    // Legt data/ an und migriert die Test-DB einmalig vor dem Worker-Start —
+    // verhindert das Erst-Migrations-Race paralleler Worker (CI: frisches data/).
+    globalSetup: ['./test/global-setup.ts'],
     // Die Integrationstests unter test/ importieren src/app: node-config braucht den
     // Config-Pfad (cwd des Vitest-Workers ist der Workspace-Root, nicht apps/api-edge)
     // und eine eigene SQLite-Datei, damit Testlaeufe nie die Dev-Datenbank anfassen.

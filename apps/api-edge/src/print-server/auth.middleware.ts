@@ -8,6 +8,7 @@ import {
 } from '@panary/users/domain'
 import type { Application } from '../declarations'
 import { logger } from '@panary/shared-backend'
+import { sha256, timingSafeCompare } from '../utils/crypto.utils'
 
 /**
  * Koa-Middleware für Authentifizierung auf Print-Server-Endpoints.
@@ -24,15 +25,22 @@ export function printServerAuth(app: Application): Middleware {
     // --- Variante 1: API-Key Auth (POS-Geräte) ---
     if (apiKey && deviceId) {
       try {
+        // API-Keys werden als SHA-256-Hash gespeichert (apikeyDataResolver) — der
+        // eingehende Klartext-Key muss vor dem Lookup gehasht werden. Lookup über den
+        // apikeyPrefix-Index (erste 8 Zeichen), danach timing-safe Hash-Vergleich gegen
+        // die Kandidaten. Identisches Muster wie der WebSocket-Handshake in channels.ts.
+        const inputHash = sha256(apiKey)
+        const inputPrefix = apiKey.slice(0, 8)
         const apiKeyResult: any = await app.service('apikeys').find({
-          query: { apikey: apiKey, deviceId, $limit: 1 },
+          query: { apikeyPrefix: inputPrefix, deviceId, $limit: 5 },
           provider: undefined,
           paginate: false,
         })
 
-        const keyRecord = Array.isArray(apiKeyResult) ? apiKeyResult[0] : apiKeyResult?.data?.[0]
+        const candidates: any[] = Array.isArray(apiKeyResult) ? apiKeyResult : apiKeyResult?.data ?? []
+        const keyRecord = candidates.find(entry => entry.active && timingSafeCompare(inputHash, entry.apikey))
 
-        if (!keyRecord || !keyRecord.active) {
+        if (!keyRecord) {
           ctx.status = 401
           ctx.body = { error: 'Ungültiger oder deaktivierter API-Key' }
           return

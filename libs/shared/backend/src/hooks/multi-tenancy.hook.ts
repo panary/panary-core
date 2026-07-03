@@ -25,7 +25,12 @@ export const multiTenancy =
     if (user.role && user.role.startsWith('platform:')) {
       if (['create', 'update', 'patch'].includes(context.method)) {
         const data = context.data || {}
-        await stampEdgeDefaults(context, data, user, isolateLocation)
+        // Bulk-Create (multi: ['create']) liefert ein Array — jedes Element
+        // einzeln stempeln, sonst landet der Stamp nur als Property auf dem
+        // Array-Objekt und die Elemente bleiben ungestempelt.
+        for (const item of Array.isArray(data) ? data : [data]) {
+          await stampEdgeDefaults(context, item, user, isolateLocation)
+        }
         context.data = data
       }
       return next()
@@ -38,15 +43,20 @@ export const multiTenancy =
     if (['create', 'update', 'patch'].includes(context.method)) {
       const data = context.data || {}
 
-      // A. Tenant ist Pflicht
-      data.tenantId = user.tenantId
+      // Bulk-Create liefert ein Array — ohne elementweises Stamping bliebe
+      // eine client-seitig gesendete fremde tenantId auf den Elementen stehen
+      // (Cross-Tenant-Injection am Stamp-Schutz vorbei).
+      for (const item of Array.isArray(data) ? data : [data]) {
+        // A. Tenant ist Pflicht
+        item.tenantId = user.tenantId
 
-      // B. Location ist optional (aber für Staff Pflicht)
-      if (isolateLocation && user.locationId) {
-        // Wenn ich Staff bin, MUSS ich Daten meiner Filiale zuordnen
-        // Wenn ich Owner bin, DARF ich wählen (Default: Meine Homebase)
-        if (!data.locationId) {
-          data.locationId = user.locationId
+        // B. Location ist optional (aber für Staff Pflicht)
+        if (isolateLocation && user.locationId) {
+          // Wenn ich Staff bin, MUSS ich Daten meiner Filiale zuordnen
+          // Wenn ich Owner bin, DARF ich wählen (Default: Meine Homebase)
+          if (!item.locationId) {
+            item.locationId = user.locationId
+          }
         }
       }
       context.data = data

@@ -28,7 +28,7 @@ interface BuildContextArgs {
   method: 'find' | 'get' | 'create' | 'update' | 'patch' | 'remove'
   path?: string
   user?: MockUser
-  data?: Record<string, unknown> | undefined
+  data?: Record<string, unknown> | Array<Record<string, unknown>> | undefined
   query?: Record<string, unknown> | undefined
   // Ergebnis des locations-Fallback-Lookups (paginierte Form wie der echte Service)
   locationsResult?: { data: Array<{ _id: string; tenantId: string }> }
@@ -42,6 +42,9 @@ interface TestContext {
   data?: Record<string, unknown>
 }
 
+// Bulk-Create-Tests: Array-data landet im selben ctx.data-Feld — Helper fuer typsichere Element-Zugriffe
+const asItems = (data: TestContext['data']) => data as unknown as Array<Record<string, unknown>>
+
 const buildContext = (args: BuildContextArgs) => {
   const locationsService = {
     find: vi.fn().mockResolvedValue(args.locationsResult ?? { data: [] }),
@@ -51,7 +54,7 @@ const buildContext = (args: BuildContextArgs) => {
     path: args.path ?? 'products',
     method: args.method,
     params: { user: args.user, query: args.query },
-    data: args.data,
+    data: args.data as Record<string, unknown> | undefined,
   }
   return { ctx, locationsService }
 }
@@ -117,19 +120,23 @@ describe('multiTenancy() — locationId-Stamping (isolateLocation)', () => {
     expect(ctx.data?.locationId).toBe('loc-9')
   })
 
-  // REGRESSIONSANKER (Ist-Verhalten, kein Soll): `if (!data.locationId)` ist truthy-basiert —
-  // explizites locationId=null wird mit user.locationId ueberstempelt. Wer null als
-  // "global/tenant-weit" senden will, laeuft in diese Fussangel (siehe Memory
-  // feedback_multitenancy_stamps_explicit_null_location). Aenderung hier = bewusste Entscheidung.
-  it('locationId=null wird aktuell ueberstempelt (Ist-Verhalten gelockt)', async () => {
+  // ENTSCHIEDEN (2026-07-03): Der truthy-Check `if (!item.locationId)` ist beabsichtigt —
+  // explizites locationId=null wird mit user.locationId ueberstempelt. Externe Writes am Edge
+  // sind immer filialgebunden; globale Datensaetze (locationId=null) entstehen ausschliesslich
+  // ueber interne Calls/Sync, die den Hook bypassen. Identisch zum Cloud-Hook (dessen
+  // WRITE-Stamp ist ebenfalls truthy-basiert, siehe Memory
+  // feedback_multitenancy_stamps_explicit_null_location).
+  it('locationId=null wird ueberstempelt (beabsichtigt: externe Writes sind filialgebunden)', async () => {
     const { ctx } = buildContext({ method: 'create', user: staffUser, data: { locationId: null } })
     await run(ctx, { isolateLocation: true })
     expect(ctx.data?.locationId).toBe('loc-1')
   })
 
-  // REGRESSIONSANKER (Ist-Verhalten): anders als im Cloud-Hook wird am Edge AUCH der
-  // Leerstring ('' = "alle Filialen"-Semantik) ueberstempelt, weil !'' ebenfalls true ist.
-  it("locationId='' wird aktuell ebenfalls ueberstempelt (Edge-Abweichung zur Cloud, gelockt)", async () => {
+  // ENTSCHIEDEN (2026-07-03): '' wird wie null ueberstempelt — KEINE Abweichung zur Cloud
+  // (deren `!item.locationId` behandelt '' genauso). Die ''-="alle Filialen"-Konvention ist
+  // eine reine Frontend-Konvention des Cloud-Admins; kein Edge-Client (pos-client/setup-client)
+  // sendet locationId=''.
+  it("locationId='' wird ueberstempelt (beabsichtigt, verhaelt sich identisch zur Cloud)", async () => {
     const { ctx } = buildContext({ method: 'create', user: staffUser, data: { locationId: '' } })
     await run(ctx, { isolateLocation: true })
     expect(ctx.data?.locationId).toBe('loc-1')
@@ -149,6 +156,53 @@ describe('multiTenancy() — locationId-Stamping (isolateLocation)', () => {
     })
     await run(ctx, { isolateLocation: true })
     expect(ctx.data?.locationId).toBeUndefined()
+  })
+})
+
+describe('multiTenancy() — Bulk-Create (Array-data, z.B. products mit multi: [create])', () => {
+  it('stempelt tenantId auf JEDES Element — fremde Element-tenantId wird ueberschrieben', async () => {
+    const { ctx } = buildContext({
+      method: 'create',
+      user: staffUser,
+      data: [{ name: 'Brot' }, { name: 'Croissant', tenantId: 'FREMD' }],
+    })
+    await run(ctx)
+    const items = asItems(ctx.data)
+    expect(items[0]['tenantId']).toBe('t1')
+    expect(items[1]['tenantId']).toBe('t1')
+  })
+
+  it('isolateLocation=true: fehlende locationId wird je Element gestempelt, explizite bleibt', async () => {
+    const { ctx } = buildContext({
+      method: 'create',
+      user: ownerUser,
+      data: [{ name: 'Brot' }, { name: 'Croissant', locationId: 'loc-9' }],
+    })
+    await run(ctx, { isolateLocation: true })
+    const items = asItems(ctx.data)
+    expect(items[0]['locationId']).toBe('loc-1')
+    expect(items[1]['locationId']).toBe('loc-9')
+  })
+
+  it('platform-Rolle: stampEdgeDefaults laeuft pro Element', async () => {
+    const { ctx } = buildContext({
+      method: 'create',
+      user: { _id: 'p1', role: 'platform:owner', tenantId: 't1', locationId: 'loc-1' },
+      data: [{ name: 'Brot' }, { name: 'Croissant' }],
+    })
+    await run(ctx, { isolateLocation: true })
+    const items = asItems(ctx.data)
+    expect(items[0]['tenantId']).toBe('t1')
+    expect(items[0]['locationId']).toBe('loc-1')
+    expect(items[1]['tenantId']).toBe('t1')
+    expect(items[1]['locationId']).toBe('loc-1')
+  })
+
+  it('data bleibt ein Array (kein Objekt-Wrapping durch das Stamping)', async () => {
+    const { ctx } = buildContext({ method: 'create', user: staffUser, data: [{ name: 'Brot' }] })
+    await run(ctx)
+    expect(Array.isArray(ctx.data)).toBe(true)
+    expect(asItems(ctx.data)).toHaveLength(1)
   })
 })
 

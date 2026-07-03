@@ -149,13 +149,64 @@ describe('calculateTaxDetailsOnPatch', () => {
     expect(ctx.data.taxSnapshot.netto).toBeCloseTo(29.41, 5)
   })
 
-  it('lässt den Snapshot bei einem rabatt-irrelevanten Patch unangetastet', async () => {
+  it('berechnet den Snapshot auch beim ENTFERNEN eines Rabatts neu (discount: null)', async () => {
+    // Gespeicherte Order: 40€ @19% mit gesetztem 50%-Rabatt. Patch entfernt ihn
+    // → Snapshot muss zurück auf den vollen Preis (fiskalischer Zielzustand).
+    const stored = makeOrder({
+      lineItems: [makeLineItem({ price: 20, amount: 2 })],
+      discount: { discountType: 'percent', discount: 50 },
+    })
+    const { ctx } = makePatchContext({ id: 'order-1', data: { discount: null }, storedOrder: stored })
+
+    await calculateTaxDetailsOnPatch(ctx)
+
+    expect(ctx.data.taxSnapshot.brutto).toBeCloseTo(40.0, 5)
+    expect(ctx.data.taxSnapshot.netto).toBeCloseTo(33.61, 5)
+  })
+
+  it('berechnet den Snapshot bei einem appliedDiscounts-Patch (führend vor Legacy-discount)', async () => {
+    const stored = makeOrder({ lineItems: [makeLineItem({ price: 20, amount: 2 })] })
+    const applied = {
+      _id: 'ad-1',
+      name: 'Aktion',
+      method: 'manual',
+      target: 'order',
+      valueType: 'percent',
+      valuePercent: 25,
+      valueCents: 0,
+      computedAmountCents: 0,
+      appliedAt: '2026-07-03T12:00:00.000Z',
+    }
+    const { ctx } = makePatchContext({ id: 'order-1', data: { appliedDiscounts: [applied] }, storedOrder: stored })
+
+    await calculateTaxDetailsOnPatch(ctx)
+
+    // 4000 Cents − 25% = 3000 Cents Brutto; Engine schreibt den real abgezogenen
+    // Betrag in den Patch-Eintrag zurück (Bon führt die echten Beträge).
+    expect(ctx.data.taxSnapshot.brutto).toBeCloseTo(30.0, 5)
+    expect(ctx.data.appliedDiscounts[0].computedAmountCents).toBe(1000)
+  })
+
+  it('berechnet den Snapshot bei einem dineLocation-Wechsel neu (19% → 7%)', async () => {
+    const stored = makeOrder({ lineItems: [makeLineItem({ price: 20, amount: 2 })] })
+    const { ctx } = makePatchContext({ id: 'order-1', data: { dineLocation: 'take-out' }, storedOrder: stored })
+
+    await calculateTaxDetailsOnPatch(ctx)
+
+    const snap = ctx.data.taxSnapshot
+    expect(snap.taxes).toHaveLength(1)
+    expect(snap.taxes[0].taxRate).toBe(7)
+    expect(snap.brutto).toBeCloseTo(40.0, 5)
+  })
+
+  it('lässt den Snapshot bei einem preis-irrelevanten Patch unangetastet und liest keine Order', async () => {
     const stored = makeOrder()
-    const { ctx } = makePatchContext({ id: 'order-1', data: { status: 'completed' }, storedOrder: stored })
+    const { ctx, get } = makePatchContext({ id: 'order-1', data: { status: 'completed' }, storedOrder: stored })
 
     await calculateTaxDetailsOnPatch(ctx)
 
     expect(ctx.data.taxSnapshot).toBeUndefined()
+    expect(get).not.toHaveBeenCalled()
   })
 
   it('ist ohne id (Multi-Patch) ein No-Op und liest keine Order', async () => {

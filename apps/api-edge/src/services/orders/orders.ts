@@ -26,7 +26,7 @@ import { extractOrderInteractions } from '../../hooks/extract-order-interactions
 import { restrictOrderToBusinessDay } from '../../hooks/restrict-order-to-business-day'
 import { restrictOrderToCashSession } from '../../hooks/restrict-order-to-cash-session'
 import { assignDailySequenceNumber } from '../../hooks/assign-daily-sequence-number'
-import { calculateTaxDetails } from '../../hooks/calculate-tax-details'
+import { calculateTaxDetails, calculateTaxDetailsOnPatch } from '../../hooks/calculate-tax-details'
 import { applyAutomaticDiscounts } from '../../hooks/apply-automatic-discounts'
 import { checkMultiOperation } from '../../hooks/check-multi-operation'
 import { createOrderInteractions } from '../../hooks/create-order-interactions'
@@ -139,6 +139,12 @@ export const orders = (app: Application) => {
         // den Kassierer (performedBy). VOR validate/resolve, damit cashSessionId
         // gestempelt + früh abgelehnt wird. Standalone/orders-only/Karte → No-Op.
         restrictOrderToCashSession(),
+        // Fiskalischen taxSnapshot bei preisrelevanten Patches (discount /
+        // appliedDiscounts / dineLocation) serverseitig neu berechnen — VOR der
+        // TSE-Signierung, damit die Steueraufteilung beim Signieren/Belegen dem
+        // Zielzustand entspricht, und VOR validate/resolve, damit der berechnete
+        // Snapshot mitvalidiert wird (Spiegel zu `calculateTaxDetails` im create).
+        calculateTaxDetailsOnPatch,
         // TSE-Abschluss: signiert beim Übergang auf 'completed' den Bon. No-Op
         // ohne aktive TSE / wenn kein offener TSE-Start vorliegt; nie blockierend (§146a).
         signOrderTseFinish,

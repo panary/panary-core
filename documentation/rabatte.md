@@ -59,6 +59,42 @@ aus und injiziert den **günstigsten** als `appliedDiscounts`.
 Rabatt gesetzt ist; kein Stacking. Geltungsbereich am Order-Level: PRODUCTS via
 `lineItem.externalId`, CATEGORIES via `productGroupExternalId`.
 
+## Serverseitiger taxSnapshot bei Order-Patches (Fix 2026-07-03)
+
+**Problem:** `calculateTaxDetailsOnPatch` existierte seit Feb 2026 in
+`apps/api-edge/src/hooks/calculate-tax-details.ts`, war aber nie in der
+`before.patch`-Kette der Orders registriert. Der POS-Client patcht Rabatte als
+reines `{ discount }` (Prozent-Rabatt, Personalessen via `discountDetails`,
+Firmenkunde) — der fiskalische `taxSnapshot` blieb dadurch auf dem
+create-Stand (unrabattiert): falscher MwSt-Ausweis auf Beleg (`issueReceipt`)
+und in jeder Snapshot-basierten Auswertung.
+
+**Entscheidung:** Hook in `before.patch` registriert — nach den Guards
+(`checkMultiOperation`, `restrictOrderToCashSession`), **vor**
+`signOrderTseFinish` (Steueraufteilung steht beim Signieren/Belegen fest) und
+vor `validateData`/`resolveData` (berechneter Snapshot wird mitvalidiert;
+Spiegel zur create-Kette). Der Hook rechnet bei allen per Patch erreichbaren
+preisrelevanten Engine-Inputs neu: `discount` (auch `null` = Rabatt
+entfernen), `appliedDiscounts`, `dineLocation` (19 % ↔ 7 %). `lineItems`
+blockt der `orderPatchResolver` — Positionen sind nur beim create formbar.
+
+**Konsequenzen:**
+- Der Server ist für den Snapshot auch bei Patches autoritativ; ein
+  client-gelieferter `taxSnapshot` wird bei preisrelevanten Patches überschrieben.
+- Bestands-Orders, die vor dem Fix einen Rabatt-Patch erhielten, tragen einen
+  veralteten (unrabattierten) Snapshot. Kein automatischer Repair —
+  abgeschlossene/signierte Vorgänge werden nicht stillschweigend umgeschrieben
+  (KassenSichV-Unveränderbarkeit); Erkennung: `discount`/`appliedDiscounts`
+  gesetzt UND `taxSnapshot.brutto ≠ computeOrderTax(order).brutto`.
+- Offene Klärung: Patcht ein Flow einen Legacy-`discount` auf eine Order mit
+  bestehenden `appliedDiscounts` (z. B. Automatik-Rabatt), bleibt
+  `appliedDiscounts` engine-seitig führend — der gepatchte Legacy-Rabatt wirkt
+  dann nicht auf den Snapshot. Kombinationsregel dafür ist fachlich zu klären.
+
+Specs: `calculate-tax-details.spec.ts` (Hook-Verhalten) +
+`test/services/orders/orders.test.ts` (Integration: Registrierung in der
+echten Hook-Kette, cent-korrekt gegen `computeOrderTax`).
+
 ## Personalessen
 
 Ein manueller Rabatt mit `isStaffMeal: true`. Beim Anwenden am POS

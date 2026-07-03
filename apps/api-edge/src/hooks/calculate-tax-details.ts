@@ -12,15 +12,33 @@ export const calculateTaxDetails = async (context: HookContext) => {
 
 export const calculateTaxDetailsOnPatch = async (context: HookContext) => {
   const id = context.id
-  const data = context.data as Order
+  const data = context.data as Partial<Order>
 
   if (!id) {
     return
   }
 
-  const order = await context.app.service('orders').get(id)
-  if (order && data.discount) {
-    order.discount = data.discount
-    context.data.taxSnapshot = computeOrderTax(order)
+  // Preisrelevante Engine-Inputs, die per Patch erreichbar sind (`lineItems`
+  // blockt der orderPatchResolver): Rabattquellen + dine-in/take-out (19 % vs.
+  // 7 %). `undefined`-Check statt Truthiness — auch das ENTFERNEN eines Rabatts
+  // (`discount: null`) muss den fiskalischen Snapshot neu berechnen.
+  const priceRelevant =
+    data.discount !== undefined || data.appliedDiscounts !== undefined || data.dineLocation !== undefined
+  if (!priceRelevant) {
+    return
   }
+
+  const order = await context.app.service('orders').get(id)
+  if (!order) {
+    return
+  }
+
+  // Patch-Werte auf den gespeicherten Stand mergen — die Engine rechnet auf dem
+  // Zielzustand. Hat die Order `appliedDiscounts` (z. B. Automatik-Rabatt vom
+  // create), bleiben diese engine-seitig führend gegenüber dem Legacy-`discount`.
+  if (data.discount !== undefined) order.discount = data.discount
+  if (data.appliedDiscounts !== undefined) order.appliedDiscounts = data.appliedDiscounts
+  if (data.dineLocation !== undefined) order.dineLocation = data.dineLocation
+
+  context.data.taxSnapshot = computeOrderTax(order)
 }

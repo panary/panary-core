@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, inject, OnInit, signal, WritableSignal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, effect, inject, signal, untracked, WritableSignal } from '@angular/core'
 import { Router } from '@angular/router'
 import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
@@ -26,7 +26,7 @@ type TimeRange = 'today' | 'yesterday' | 'week' | 'custom'
   styleUrls: ['./order-history.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class OrderHistoryComponent implements OnInit {
+export class OrderHistoryComponent {
   protected readonly OrderStatus = OrderStatus
   #orderService = inject(OrderService)
   #router = inject(Router)
@@ -46,16 +46,15 @@ export class OrderHistoryComponent implements OnInit {
   customEndDate: Date | null = null
 
   constructor() {
+    // selectedTimeRange() bewusst getrackt; fetchOrders-Body via untracked() entkoppelt (angular.md §2.1) —
+    // sonst landet searchQuery() im Tracking-Scope und jeder Tastendruck löst einen find aus.
+    // Übernimmt auch den Initial-Load (Default 'today' !== 'custom'), daher kein ngOnInit-fetch mehr.
     effect(() => {
       const range = this.selectedTimeRange()
       if (range !== 'custom') {
-        this.fetchOrders()
+        untracked(() => this.fetchOrders())
       }
     })
-  }
-
-  ngOnInit() {
-    this.fetchOrders()
   }
 
   goBack() {

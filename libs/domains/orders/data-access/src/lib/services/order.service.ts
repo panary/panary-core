@@ -23,6 +23,23 @@ import { Observer } from 'rxjs'
 import { LocationService } from '@panary/locations/data-access'
 import { uuidv7 } from 'uuidv7'
 
+/** Benanntes Input-Objekt für `OrderService.createOrder` — ersetzt die frühere 13-Parameter-Signatur. */
+export interface CreateOrderInput {
+  lineItems: Array<OrderLineItem>
+  orderChannel: typeof OrderChannel[keyof typeof OrderChannel]
+  customerDetails?: CustomerPaymentInfo
+  discountDetails?: Discount
+  pager?: number
+  productionTime: number
+  staffMealDetails?: StaffPaymentInfo
+  table?: string
+  dineLocation: typeof DineLocation[keyof typeof DineLocation]
+  recordingDate: Date
+  orderInteractions?: Array<OrderInteraction>
+  creationContext?: CreationContext
+  appliedDiscounts?: AppliedDiscount[]
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -356,37 +373,37 @@ export class OrderService extends BaseService<Order> {
   }
 
   /** PUBLIC PROPERTIES */
-  // Refactored: Removed combinations parameter
-  async createOrder(
-    lineItems: Array<OrderLineItem>, // combinations: Array<OrderLineItem[]> (Removed)
-    orderChanel: typeof OrderChannel[keyof typeof OrderChannel],
-    customerDetails: CustomerPaymentInfo | undefined = undefined,
-    discountDetails: Discount | undefined = undefined,
-    pager: number | undefined = undefined,
-    produktionTime: number,
-    staffMealDetails: StaffPaymentInfo | undefined = undefined,
-    table: string | undefined = undefined,
-    dineLocation: typeof DineLocation[keyof typeof DineLocation],
-    recordingDate: Date,
-    orderInteractions: Array<OrderInteraction> = [],
-    creationContext?: CreationContext,
-    appliedDiscounts: AppliedDiscount[] | undefined = undefined,
-  ): Promise<number | number[] | null | undefined> {
+  async createOrder(input: CreateOrderInput): Promise<number | number[] | null | undefined> {
+    const {
+      lineItems,
+      orderChannel,
+      customerDetails,
+      discountDetails,
+      pager,
+      productionTime,
+      staffMealDetails,
+      table,
+      dineLocation,
+      recordingDate,
+      orderInteractions = [],
+      creationContext,
+      appliedDiscounts,
+    } = input
     // businessDayId wird vom Backend automatisch verwaltet (standalone: Auto-Rotate)
     const businessDayId = this.#locationService.activeLocation()?.currentBusinessDay?.businessDayId
 
     const order: Omit<Order, '_id' | 'locationId' | 'tenantId'> = {
       status: OrderStatus.ACTIVE,
       businessDayId: businessDayId,
-      orderChannel: orderChanel,
+      orderChannel: orderChannel,
       dailySequenceNumber: -1,
       dineLocation: dineLocation,
 
       lineItems: lineItems,
       // combinations: combinations, (Removed)
 
-      estimatedDuration: produktionTime,
-      remainingTime: produktionTime,
+      estimatedDuration: productionTime,
+      remainingTime: productionTime,
       recordingDate: recordingDate instanceof Date ? recordingDate.toISOString() : recordingDate,
       isFinished: false,
       createdAt: new Date().toISOString(),

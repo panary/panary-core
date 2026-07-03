@@ -2192,24 +2192,24 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     }
 
-    const orderIndex = this.orderService.createOrder(
-      this.#lineItems,
-      OrderChannel.TELEPHONE,
+    const orderIndex = this.orderService.createOrder({
+      lineItems: this.#lineItems,
+      orderChannel: OrderChannel.TELEPHONE,
       customerDetails,
       discountDetails,
-      this._pager,
-      this._productionTime,
+      pager: this._pager,
+      productionTime: this._productionTime,
       staffMealDetails,
-      this._table,
+      table: this._table,
       dineLocation,
-      this.#recordingDate,
-      this.#orderInteractions,
+      recordingDate: this.#recordingDate,
+      orderInteractions: this.#orderInteractions,
       // creationContext nur mit gültiger User-uuid bauen — sonst weglassen (Schema:
       // optional/null), statt ein ungültiges createdBy: '' zu senden, das den
       // (Offline-)Create an der uuid-Validierung scheitern lässt.
-      this._currentUser?._id ? { createdBy: this._currentUser._id.toString() } : undefined,
-      appliedDiscounts.length > 0 ? appliedDiscounts : undefined,
-    )
+      creationContext: this._currentUser?._id ? { createdBy: this._currentUser._id.toString() } : undefined,
+      appliedDiscounts: appliedDiscounts.length > 0 ? appliedDiscounts : undefined,
+    })
 
     this.deleteOrder()
     this.unselectProduct()

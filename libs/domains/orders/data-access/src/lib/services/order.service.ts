@@ -1,4 +1,4 @@
-import { computed, effect, inject, Injectable, Signal, signal, WritableSignal } from '@angular/core'
+import { computed, effect, inject, Injectable, Signal, signal, untracked, WritableSignal } from '@angular/core'
 import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { PrintDialogComponent } from '../components/print-dialog.component'
@@ -17,7 +17,7 @@ import {
   TransactionMethod,
 } from '@panary/orders/domain'
 import { OrderInteraction } from '@panary/order-interactions/domain'
-import { BaseService, ConnectionService, OFFLINE_OUTBOX } from '@panary/shared/data-access'
+import { BaseService, ConnectionService, createEnsureLoaded, OFFLINE_OUTBOX } from '@panary/shared/data-access'
 import { CacheEntity, ExtendedParams, OfflineOutboxPort } from '@panary/shared-common'
 import { Observer } from 'rxjs'
 import { LocationService } from '@panary/locations/data-access'
@@ -76,10 +76,15 @@ export class OrderService extends BaseService<Order> {
   #totalOrders: WritableSignal<number> = signal(0)
   #totalFinishedOrders: WritableSignal<number> = signal(0)
   #ordersLastUpdated = signal<Date>(new Date())
+  #isLoaded: WritableSignal<boolean> = signal(false)
   #reconcileTimer: ReturnType<typeof setTimeout> | null = null
 
   /** PUBLIC PROPERTIES */
   ordersLastUpdated: Signal<Date> = this.#ordersLastUpdated.asReadonly()
+  readonly isLoaded: Signal<boolean> = this.#isLoaded.asReadonly()
+
+  /** Idempotenter On-Demand-Load — Alternative zum Auto-Load (s. DATA_ACCESS_AUTO_LOAD). */
+  readonly ensureLoaded: () => Promise<void> = createEnsureLoaded(this.#isLoaded, () => this.loadDocuments())
 
   // Einmalige computed-Klassenfelder — als Getter würde jeder Zugriff ein frisches
   // computed() anlegen (Memoisierung wirkungslos, neuer Reactive-Node pro Read).
@@ -115,14 +120,18 @@ export class OrderService extends BaseService<Order> {
   constructor() {
     super(inject(ConnectionService).orderService, 'orderService')
 
-    effect((): void => {
-      const isAuthenticated = this.connectionService.isAuthenticated()
-      const activeLocation = this.#locationService.activeLocation()
+    // Auto-Load nur, wenn die App ihn nicht via DATA_ACCESS_AUTO_LOAD abgeschaltet hat.
+    if (this.autoLoadEnabled) {
+      effect((): void => {
+        // Getrackte Reads explizit; Lade-Aufruf via untracked() entkoppelt (angular.md §2.1)
+        const isAuthenticated = this.connectionService.isAuthenticated()
+        const activeLocation = this.#locationService.activeLocation()
 
-      if (isAuthenticated && activeLocation) {
-        this.loadDocuments()
-      }
-    })
+        if (isAuthenticated && activeLocation) {
+          untracked(() => void this.loadDocuments())
+        }
+      })
+    }
 
     this.calculateRemainingTimeInterval()
   }
@@ -205,10 +214,10 @@ export class OrderService extends BaseService<Order> {
     }, this.RECONCILE_DELAY_MS)
   }
 
-  protected override loadDocuments(options?: { silent?: boolean }) {
+  protected override loadDocuments(options?: { silent?: boolean }): Promise<void> {
     const currentBusinessDay = this.#locationService.activeLocation()?.currentBusinessDay
 
-    if (!currentBusinessDay) return
+    if (!currentBusinessDay) return Promise.resolve()
 
     let params: ExtendedParams
 
@@ -216,12 +225,12 @@ export class OrderService extends BaseService<Order> {
     const query = { businessDayId: currentBusinessDay.businessDayId }
 
     params = { query: { ...query, ...limit } }
-    this.find(params).then((response: Paginated<Order> | Order[]): void => {
+    const totalLoad = this.find(params).then((response: Paginated<Order> | Order[]): void => {
       this.#totalOrders.set(Array.isArray(response) ? response.length : response.total)
     })
 
     params = { query: { ...query, ...limit, status: OrderStatus.COMPLETED } }
-    this.find(params).then((response: Paginated<Order> | Order[]): void => {
+    const finishedLoad = this.find(params).then((response: Paginated<Order> | Order[]): void => {
       this.#totalFinishedOrders.set(Array.isArray(response) ? response.length : response.total)
     })
 
@@ -230,7 +239,7 @@ export class OrderService extends BaseService<Order> {
     // Status VOR dem find festhalten: online → server-autoritativer Spiegel (Replace);
     // offline kommt das Ergebnis bereits aus dem Cache (find-Kurzschluss).
     const online = this.connectionService.connectionState().status === 'authenticated'
-    this.find(params).then((response: Paginated<Order> | Order[]): void => {
+    const listLoad = this.find(params).then((response: Paginated<Order> | Order[]): void => {
       const orders = Array.isArray(response) ? response : response.data
       if (online) {
         void this.#mirrorOrdersCache(orders)
@@ -245,6 +254,15 @@ export class OrderService extends BaseService<Order> {
         })
       }
     })
+
+    // Aggregat für ensureLoaded(); der catch verhindert unhandled rejections der
+    // Fire-and-forget-Aufrufer (find re-throwt nach handleError). isLoaded bleibt
+    // dann false → ensureLoaded kann retryen.
+    return Promise.all([totalLoad, finishedLoad, listLoad])
+      .then((): void => this.#isLoaded.set(true))
+      .catch((error: unknown): void => {
+        console.error('Fehler beim Laden der Bestellungen:', error)
+      })
   }
 
   protected override fileReaderOnLoad(

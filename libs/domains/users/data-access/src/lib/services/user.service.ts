@@ -1,8 +1,8 @@
-import { computed, effect, inject, Injectable, Signal, signal, WritableSignal } from '@angular/core'
+import { computed, effect, inject, Injectable, Signal, signal, untracked, WritableSignal } from '@angular/core'
 import { User } from '@panary/users/domain'
 import { Id, Paginated, Params } from '@feathersjs/feathers'
 import { Observer } from 'rxjs'
-import { BaseService, ConnectionService } from '@panary/shared/data-access'
+import { BaseService, ConnectionService, createEnsureLoaded } from '@panary/shared/data-access'
 import { AuthService } from '@panary/auth/data-access'
 import { Location } from '@panary/locations/data-access'
 
@@ -18,8 +18,13 @@ export class UserService extends BaseService<User> {
 
   /** PRIVATE PROPERTIES */
   #users: WritableSignal<User[]>=signal([])
+  #isLoaded: WritableSignal<boolean> = signal(false)
 
   /** PUBLIC PROPERTIES */
+  readonly isLoaded: Signal<boolean> = this.#isLoaded.asReadonly()
+
+  /** Idempotenter On-Demand-Load — Alternative zum Auto-Load (s. DATA_ACCESS_AUTO_LOAD). */
+  readonly ensureLoaded: () => Promise<void> = createEnsureLoaded(this.#isLoaded, () => this.loadDocuments())
 
   /** GETTER */
   get users(): Signal<User[]> {
@@ -35,11 +40,18 @@ export class UserService extends BaseService<User> {
   constructor() {
     super(inject(ConnectionService).userService, 'userService')
 
-    effect((): void => {
-      if (this.connectionService.isAuthenticated()) {
-        this.loadDocuments()
-      }
-    })
+    // Auto-Load nur, wenn die App ihn nicht via DATA_ACCESS_AUTO_LOAD abgeschaltet hat.
+    // Bewusst OHNE isLoaded-Bedingung: jeder Auth-Wechsel (Reconnect) lädt die Liste neu.
+    if (this.autoLoadEnabled) {
+      effect((): void => {
+        // Getrackter Read explizit; Lade-Aufruf via untracked() entkoppelt (angular.md §2.1)
+        const isAuthenticated = this.connectionService.isAuthenticated()
+
+        if (isAuthenticated) {
+          untracked(() => void this.loadDocuments())
+        }
+      })
+    }
   }
 
   /** PRIVATE METHODS */
@@ -82,14 +94,16 @@ export class UserService extends BaseService<User> {
     })
   }
 
-  protected override loadDocuments() {
-    this.find({}).then((response: Paginated<User>|User[]): void => {
-      if (Array.isArray(response)) {
-        this.#users.set(response)
-      } else {
-        this.#users.set(response.data)
-      }
-    })
+  protected override async loadDocuments(): Promise<void> {
+    try {
+      const response: Paginated<User> | User[] = await this.find({})
+      this.#users.set(Array.isArray(response) ? response : response.data)
+      this.#isLoaded.set(true)
+    } catch (error) {
+      // find() re-throwt nach handleError — hier fangen, damit der Auto-Load-Effect
+      // keine unhandled rejection produziert; isLoaded bleibt false → ensureLoaded kann retryen
+      console.error('Fehler beim Laden der Benutzer:', error)
+    }
   }
 
   protected override fileReaderOnLoad(

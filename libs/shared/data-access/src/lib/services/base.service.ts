@@ -10,6 +10,7 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'
 import { REALTIME_SCOPE_GUARD, RealtimeScopeGuard } from './realtime-scope-guard'
 import { CachePolicy, normalizeToRecords, OfflineCachePort } from '@panary/shared-common'
+import { DATA_ACCESS_AUTO_LOAD } from './auto-load.token'
 import { OFFLINE_CACHE } from './offline-cache.token'
 import { ConnectionService } from './connection.service'
 
@@ -53,6 +54,13 @@ export abstract class BaseService<T> {
    * in Apps ohne ConnectionService (theoretisch) bleibt das Online-Verhalten.
    */
   #connection: ConnectionService | null = inject(ConnectionService, { optional: true })
+
+  /**
+   * App-weiter Auto-Load-Schalter (s. `DATA_ACCESS_AUTO_LOAD`, Default `true`).
+   * Subklassen mit Konstruktor-Lade-Effect prüfen dieses Flag, BEVOR sie den
+   * Effect registrieren — Konsumenten ohne Eager-Bedarf nutzen `ensureLoaded()`.
+   */
+  protected readonly autoLoadEnabled: boolean = inject(DATA_ACCESS_AUTO_LOAD)
 
   /** Cache-Strategie dieses Services. `none` = kein Cache (Default). */
   protected cachePolicy: CachePolicy = 'none'

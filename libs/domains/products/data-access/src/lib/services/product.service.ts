@@ -1,8 +1,8 @@
-import { computed, effect, inject, Injectable, Signal, signal, WritableSignal } from '@angular/core'
+import { computed, effect, inject, Injectable, Signal, signal, untracked, WritableSignal } from '@angular/core'
 import { ItemType, Pricelist, ProductSchema } from '@panary/products/domain'
 import { Id } from '@feathersjs/feathers'
 import { Observer } from 'rxjs'
-import { BaseService, ConnectionService } from '@panary/shared/data-access'
+import { BaseService, ConnectionService, createEnsureLoaded } from '@panary/shared/data-access'
 import { AuthService } from '@panary/auth/data-access'
 
 // TODO: Migration – Status-Enum aus @panary/products/domain oder shared/common übernehmen
@@ -67,6 +67,9 @@ export class ProductService extends BaseService<ProductSchema> {
   isLoading: Signal<boolean> = this.#isLoading.asReadonly()
   isLoaded: Signal<boolean> = this.#isLoaded.asReadonly()
 
+  /** Idempotenter On-Demand-Load — Alternative zum Auto-Load (s. DATA_ACCESS_AUTO_LOAD). */
+  readonly ensureLoaded: () => Promise<void> = createEnsureLoaded(this.#isLoaded, () => this.loadDocuments())
+
   extras = computed(() =>
     this.#documents()
       // TODO: Migration – ehem. itemType === 'extra', jetzt productType === 'MODIFIER'
@@ -80,11 +83,18 @@ export class ProductService extends BaseService<ProductSchema> {
   constructor() {
     super(inject(ConnectionService).productService, 'productService')
 
-    effect((): void => {
-      if (this.connectionService.isAuthenticated() && !this.#isLoaded()) {
-        this.loadDocuments().then()
-      }
-    })
+    // Auto-Load nur, wenn die App ihn nicht via DATA_ACCESS_AUTO_LOAD abgeschaltet hat.
+    if (this.autoLoadEnabled) {
+      effect((): void => {
+        // Getrackte Reads explizit; Lade-Aufruf via untracked() entkoppelt (angular.md §2.1)
+        const isAuthenticated = this.connectionService.isAuthenticated()
+        const isLoaded = this.#isLoaded()
+
+        if (isAuthenticated && !isLoaded) {
+          untracked(() => void this.loadDocuments())
+        }
+      })
+    }
   }
 
   /** PRIVATE METHODS */

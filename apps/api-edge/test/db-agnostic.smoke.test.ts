@@ -14,16 +14,31 @@ import { join } from 'path'
 
 const SERVICES_DIR = join(__dirname, '..', 'src', 'services')
 
-// Services ohne Adapter-Fabrik (reine Custom-Services, nicht persistenzgebunden).
+// Services ohne Adapter-Fabrik (reine Custom-Services, nicht persistenzgebunden):
+// - device-connections: liest die Feathers-Channel-Registry (keine Persistenz)
+// - log-export: liest lokale Logdateien (keine Persistenz)
+// - tse: nur Port-Factory (tse-port.factory.ts), kein Service-Setup `tse.ts`
 const SERVICES_WITHOUT_ADAPTER = new Set<string>([
   'organizations',
   'cloud-connection',
   'opening-hour-exceptions',
+  'device-connections',
+  'log-export',
+  'tse',
 ])
 
 const readServiceSetup = (serviceName: string): string => {
   const file = join(SERVICES_DIR, serviceName, `${serviceName}.ts`)
   return readFileSync(file, 'utf-8')
+}
+
+// Alle TS-Quellen eines Service-Verzeichnisses (Setup, Klassen, Schemas, Helper) —
+// der knex-Import-Check muss jede Datei erfassen, nicht nur das Service-Setup.
+const listServiceSources = (serviceName: string): Array<[string, string]> => {
+  const dir = join(SERVICES_DIR, serviceName)
+  return readdirSync(dir)
+    .filter(entry => entry.endsWith('.ts'))
+    .map(entry => [entry, readFileSync(join(dir, entry), 'utf-8')])
 }
 
 const listServices = (): string[] =>
@@ -42,10 +57,10 @@ describe('db-agnostic smoke (M2 → M3 gatekeeper)', () => {
   it.each(services)(
     'Service "%s" importiert knex nicht direkt',
     (serviceName) => {
-      const source = readServiceSetup(serviceName)
-
-      expect(source, `${serviceName}.ts`).not.toMatch(/from\s+['"]knex['"]/)
-      expect(source, `${serviceName}.ts`).not.toMatch(/require\(\s*['"]knex['"]\s*\)/)
+      for (const [file, source] of listServiceSources(serviceName)) {
+        expect(source, `${serviceName}/${file}`).not.toMatch(/from\s+['"]knex['"]/)
+        expect(source, `${serviceName}/${file}`).not.toMatch(/require\(\s*['"]knex['"]\s*\)/)
+      }
     },
   )
 

@@ -1,10 +1,8 @@
 // For more information about this file see https://dove.feathersjs.com/guides/cli/service.test.html
 //
-// Hinweis: api-edge hat aktuell keinen Test-Runner (kein `test`-Target in
-// project.json). Diese Spec folgt dem bestehenden Smoke-Test-Pattern
-// (apikeys.test.ts / users.test.ts) und dient als Marker fuer kuenftige
-// vitest-Integration. Volle Unit-Tests fuer `reEnqueueOutboxEntry` siehe
-// Plan-Datei (Edge-Cases: rejected-Guard, edge-record-missing, op-Preservation).
+// Smoke-Test nach bestehendem Pattern (apikeys.test.ts / users.test.ts).
+// Volle Unit-Tests fuer `reEnqueueOutboxEntry` (Edge-Cases: rejected-Guard,
+// edge-record-missing, op-Preservation) stehen noch aus.
 import assert from 'assert'
 import { app } from '../../../src/app'
 

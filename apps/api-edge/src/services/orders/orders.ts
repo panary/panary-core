@@ -2,7 +2,7 @@ import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
 import { getJsonFieldHooks } from '@panary/shared-backend'
 
-const ORDER_JSON_FIELDS = ['lineItems', 'cancellation', 'customerPaymentInfo', 'discount', 'staffPaymentInfo', 'taxSnapshot', 'creationContext', 'payment', 'tse']
+const ORDER_JSON_FIELDS = ['lineItems', 'cancellation', 'customerPaymentInfo', 'discount', 'appliedDiscounts', 'staffPaymentInfo', 'taxSnapshot', 'creationContext', 'payment', 'tse', 'stockMovementIds']
 
 import {
   orderDataResolver,

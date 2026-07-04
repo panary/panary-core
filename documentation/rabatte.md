@@ -30,11 +30,35 @@ Aktiv-Zeitraum abgeleitet (`deriveDiscountDisplayStatus`).
 
 - `order.appliedDiscounts[]` (Snapshot je angewandtem Rabatt: `discountId?`,
   `code?`, `valueType`, `valuePercent`/`valueCents`, `computedAmountCents`,
-  `target`, `lineItemId?`, `isStaffMeal?`). Additiv zum Legacy-Feld
-  `order.discount`, das als Spiegel erhalten bleibt (Aggregator/Bon-Reader).
+  `target`, `lineItemId?`, `isStaffMeal?`). Löst das Legacy-Feld `order.discount`
+  ab: ist `appliedDiscounts` nicht-leer, ist es führend und `order.discount` wird
+  server-seitig geleert (siehe „discount-mutex" unten).
 - Die kanonische Engine `computeOrderTax` (`@panary/orders/domain`, siehe
   [order-bundle-pricing-modell.md](order-bundle-pricing-modell.md)) ist führend:
   ist `appliedDiscounts` gesetzt, nutzt sie diese; sonst Fallback `order.discount`.
+
+### discount-mutex — Einweg-Migration (Fix 2026-07-04)
+
+Der Frontend-Data-Access (`order.service.ts`) setzt beim Anlegen einer
+rabattierten Order **beide** Felder — `appliedDiscounts` (führend) und
+`order.discount` als „Legacy-Spiegel". Damit ohne diese Regel ein fachlich
+unwirksamer `discount` als stale „Karteileiche" in DB/Sync/Audit zurückbliebe
+(Mehrdeutigkeit „welcher Rabatt gilt?"), wird die Invariante serverseitig
+erzwungen: sobald ein Create/Patch (nicht-leere) `appliedDiscounts` schreibt,
+gewinnt das neue Feld und `order.discount` wird **aktiv auf `null` geleert**.
+
+- **Helper (Single Source of Truth):** `clearLegacyDiscountIfApplied`
+  (`@panary/orders/domain → pricing/discount-mutex.ts`).
+- **Verdrahtung:** `discount`-Data-Resolver in Edge
+  (`apps/api-edge/src/services/orders/orders.schema.ts`) **und** Cloud
+  (`apps/api-cloud/src/services/orders/orders.schema.ts`), je für create + patch.
+- **`null` statt `undefined`:** damit ein PATCH einen bereits gespeicherten
+  Legacy-`discount` tatsächlich überschreibt statt ihn nur wegzulassen. Cloud
+  greift auch für Sync-Push-Creates (Alt-Edge-Daten werden mitbereinigt).
+- Ist `appliedDiscounts` leer/ungesetzt, bleibt `order.discount` als aktiver
+  Fallback unverändert. Sicher, weil alle Reader (Tax-Engine + Bon-Renderer via
+  `computeOrderTax`) `appliedDiscounts` bevorzugen und `null`/`undefined`
+  discount identisch behandeln.
 - **Reihenfolge:** erst LINE-Rabatte (auf der jeweiligen Position, summen-exakt
   über die Steuer-Atome verteilt), dann ORDER-Rabatte auf die Restsumme.
   Festbeträge via Largest-Remainder. `computedAmountCents` wird von der Engine

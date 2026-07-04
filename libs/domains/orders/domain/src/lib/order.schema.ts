@@ -333,6 +333,15 @@ export const orderSchema = Type.Object(
     // Gesetzt nach erfolgreichem Reversal (SALES_OUT_REVERSAL-Movements).
     // Verhindert Doppel-Reversal bei mehrfachem Status-Wechsel auf ABORTED.
     stockReversedAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
+    // Bestands-Anomalie-Marker: gesetzt, wenn eine bereits gebuchte Order
+    // (`stockBookedAt`) storniert wird, aber KEINE `stockMovementIds` zum
+    // Reversen hat — der Bestand bleibt dann faelschlich abgezogen. Erlaubt
+    // Operatoren, betroffene Orders dauerhaft aufzufinden/zu filtern (statt nur
+    // eines fluechtigen Warn-Logs). Wird AUSSCHLIESSLICH serverseitig-intern
+    // gesetzt (Cloud-Hook maybeReverseStockBooking, `provider: undefined`) und
+    // ueber den Patch-Resolver vor externer Modifikation geschuetzt. `Null`
+    // toleriert, konsistent zu den uebrigen stock*-Markern (Edge-Sync-Serial.).
+    stockAnomalyDetectedAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
 
     // TSE-Signatur-Snapshot (KassenSichV). Vom Edge-Hook gesetzt; `Null`
     // toleriert (Edge serialisiert ungesetzte nullable SQLite-Spalten als null).

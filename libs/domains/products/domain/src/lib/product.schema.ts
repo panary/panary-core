@@ -23,6 +23,13 @@ const optionGroupSchema = Type.Object({
   // Display type in the cash register
   uiMode: Type.Optional(StringEnum(['GRID', 'LIST', 'MODAL'])),
 
+  // Preis-Aggregation der gewählten Aufpreise dieser Gruppe:
+  //   'SUM'     — alle gewählten Aufpreise werden addiert (Default, verhaltensneutral)
+  //   'HIGHEST' — nur der HÖCHSTE gewählte Aufpreis wird wirksam (z.B. Pizzableche:
+  //               3×4,30€ + 1×8,40€ → nur +8,40€). Freimengen (freeQuantity) greifen
+  //               zuerst, dann gewinnt der höchste der verbleibenden kostenpflichtigen.
+  pricingMode: Type.Optional(StringEnum(['SUM', 'HIGHEST'])),
+
   // The actual options within this group
   options: Type.Array(
     Type.Object({

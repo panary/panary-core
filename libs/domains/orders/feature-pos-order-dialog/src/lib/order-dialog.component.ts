@@ -1655,6 +1655,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         selectedArticle.modifiers[extraIndex].amount += 1
       }
     } else {
+      const group = this.findOptionGroupByTopic(selectedArticle, extraTopic)
       selectedArticle.modifiers.push({
         _id: article._id,
         externalId: article.externalId ?? '',
@@ -1668,7 +1669,12 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         taxInside: article.taxInside || 19,
         taxOutside: article.taxOutside || 19,
         topic: extraTopic,
+        // pricingMode der Herkunftsgruppe (falls HIGHEST) auf das Item stempeln.
+        ...(group?.pricingMode === 'HIGHEST' ? { pricingMode: 'HIGHEST' as const } : {}),
       })
+      if (group?.pricingMode === 'HIGHEST') {
+        this.applyHighestPricingToGroup(selectedArticle, extraTopic, group.freeQuantity || 0)
+      }
     }
   }
 
@@ -1709,6 +1715,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       } else if (selectedArticle.modifiers[extraIndex].amount === 1) {
         selectedArticle.modifiers.splice(extraIndex, 1)
       }
+    }
+    // HIGHEST: nach Entfernen/Reduzieren kann sich der Sieger verschieben → neu bewerten.
+    const group = this.findOptionGroupByTopic(selectedArticle, extraTopic)
+    if (group?.pricingMode === 'HIGHEST') {
+      this.applyHighestPricingToGroup(selectedArticle, extraTopic, group.freeQuantity || 0)
     }
     this._withoutExtra = false
     this.setInfoBoxText('Extras auswählen ...', 'lightgray')
@@ -1809,7 +1820,14 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         genericItem.price = 0 // Kostenlos innerhalb freeQuantity
       }
       genericItem.topic = group.name
+      // pricingMode der Herkunftsgruppe auf das Modifier-Item STEMPELN (Order-Snapshot).
+      if (group.pricingMode === 'HIGHEST') genericItem.pricingMode = 'HIGHEST'
       lineItem.modifiers.push(genericItem)
+      // HIGHEST: nach jeder Auswahl neu bewerten — nur der höchste kostenpflichtige
+      // Aufpreis der Gruppe bleibt wirksam, die übrigen werden auf 0 gesetzt.
+      if (group.pricingMode === 'HIGHEST') {
+        this.applyHighestPricingToGroup(lineItem, group.name, freeQty)
+      }
     }
 
     // FIXED_PROPORTIONAL: zusätzlich generische Komponente mit Normalpreis-Gewicht
@@ -1872,6 +1890,61 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       ingredientReferences: (product as any).ingredientReferences || [],
       recipeReferences: product.recipeReferences || [],
       topic: parentGroup?.name ?? '',
+    }
+  }
+
+  /**
+   * HIGHEST-Preisregel für eine Modifier-Gruppe (`topic`): Von allen gewählten
+   * Optionen wird nur der HÖCHSTE Aufpreis wirksam, die übrigen kostenpflichtigen
+   * werden auf 0 gesetzt. Reihenfolge (Auswahl-Reihenfolge im modifiers-Array):
+   *   1. Die ersten `freeQty` Optionen der Gruppe sind Freimenge → Preis 0.
+   *   2. Unter den verbleibenden kostenpflichtigen Optionen behält nur die mit
+   *      dem höchsten KATALOG-Aufpreis ihren Preis; alle anderen → 0.
+   *
+   * Der Katalog-Preis wird pro Item frisch gelesen (Modifier-`_id` = product._id),
+   * damit wiederholte Auswahl (ein teureres Item kommt dazu) ein zuvor genulltes
+   * Item korrekt wieder bepreist. Rein preisliche Mutation der Order-Zeile —
+   * keine Auswahl wird entfernt.
+   */
+  /**
+   * Findet die Optionsgruppe eines LineItem-Produkts, deren Name dem `topic`
+   * entspricht. Dient dem klassischen Extras-Pfad (`increaseExtra`), der nur den
+   * `topic` kennt, um `pricingMode`/`freeQuantity` der Herkunftsgruppe aufzulösen.
+   */
+  private findOptionGroupByTopic(
+    lineItem: OrderLineItem,
+    topic: string,
+  ): { pricingMode?: 'SUM' | 'HIGHEST'; freeQuantity?: number } | undefined {
+    const product =
+      this.productService.findProductById(lineItem._id) ??
+      (lineItem.externalId ? this.productService.findProductByExternalId(lineItem.externalId) : undefined)
+    return product?.optionGroups?.find(g => g.name === topic)
+  }
+
+  private applyHighestPricingToGroup(lineItem: OrderLineItem, topic: string, freeQty: number): void {
+    const groupMods = lineItem.modifiers.filter(m => m.topic === topic)
+    if (groupMods.length === 0) return
+
+    // Katalog-Aufpreis pro Item (Fallback: aktueller Item-Preis, falls Lookup fehlt).
+    const catalogPrice = (m: (typeof groupMods)[number]): number =>
+      this.productService.findProductById(m._id)?.price ?? m.price ?? 0
+
+    // Freimengen zuerst (Auswahl-Reihenfolge) → 0; Rest ist kostenpflichtig.
+    const paid = groupMods.slice(freeQty)
+    groupMods.slice(0, freeQty).forEach(m => (m.price = 0))
+    if (paid.length === 0) return
+
+    const maxPrice = Math.max(...paid.map(catalogPrice))
+    // Nur EINE Option gewinnt: die erste mit Max-Preis behält, alle anderen → 0.
+    let winnerAssigned = false
+    for (const m of paid) {
+      const price = catalogPrice(m)
+      if (!winnerAssigned && price === maxPrice) {
+        m.price = price
+        winnerAssigned = true
+      } else {
+        m.price = 0
+      }
     }
   }
 

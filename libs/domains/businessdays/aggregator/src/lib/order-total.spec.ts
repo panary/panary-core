@@ -134,6 +134,62 @@ describe('order-total', () => {
     expect(computeGrossFromLineItems(lineItems as unknown as Order['lineItems'])).toBe(1300)
   })
 
+  it('HIGHEST: pro topic zählt nur der höchste Aufpreis, nicht die Summe', () => {
+    // Pizzablech (10,00€) + Extras-Gruppe (HIGHEST): 3×4,30€ + 1×8,40€
+    // → nur +8,40€ statt +21,30€. Ergebnis: 10,00 + 8,40 = 18,40€.
+    const lineItems = [
+      {
+        _id: 'l1', externalId: 'e1', amount: 1, name: 'Pizzablech', price: 10,
+        recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: '',
+        productGroupExternalId: 'g1', bundleNumber: null,
+        isMenu: false, menuDrink: null, menuSideDish: null,
+        modifiers: [
+          { _id: 'm1', externalId: 'em1', amount: 1, name: 'Belag A', price: 4.3, recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: 'Extras', pricingMode: 'HIGHEST' },
+          { _id: 'm2', externalId: 'em2', amount: 1, name: 'Belag B', price: 4.3, recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: 'Extras', pricingMode: 'HIGHEST' },
+          { _id: 'm3', externalId: 'em3', amount: 1, name: 'Belag C', price: 4.3, recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: 'Extras', pricingMode: 'HIGHEST' },
+          { _id: 'm4', externalId: 'em4', amount: 1, name: 'Premium-Belag', price: 8.4, recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: 'Extras', pricingMode: 'HIGHEST' },
+        ],
+      },
+    ]
+    expect(computeGrossFromLineItems(lineItems as unknown as Order['lineItems'])).toBe(1840)
+  })
+
+  it('HIGHEST: getrennte topics gewinnen jeweils ihren eigenen Höchstwert', () => {
+    // Zwei HIGHEST-Gruppen: 'Belag' (max 8,40€) + 'Sauce' (max 2,00€) → 10,00 + 8,40 + 2,00
+    const lineItems = [
+      {
+        _id: 'l1', externalId: 'e1', amount: 1, name: 'Pizzablech', price: 10,
+        recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: '',
+        productGroupExternalId: 'g1', bundleNumber: null,
+        isMenu: false, menuDrink: null, menuSideDish: null,
+        modifiers: [
+          { _id: 'm1', externalId: 'em1', amount: 1, name: 'Belag A', price: 4.3, recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: 'Belag', pricingMode: 'HIGHEST' },
+          { _id: 'm4', externalId: 'em4', amount: 1, name: 'Premium', price: 8.4, recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: 'Belag', pricingMode: 'HIGHEST' },
+          { _id: 's1', externalId: 'es1', amount: 1, name: 'Sauce X', price: 1.5, recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: 'Sauce', pricingMode: 'HIGHEST' },
+          { _id: 's2', externalId: 'es2', amount: 1, name: 'Sauce Y', price: 2.0, recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: 'Sauce', pricingMode: 'HIGHEST' },
+        ],
+      },
+    ]
+    expect(computeGrossFromLineItems(lineItems as unknown as Order['lineItems'])).toBe(2040)
+  })
+
+  it('SUM (Default ohne pricingMode): alle Modifier werden summiert (Regression)', () => {
+    // Kein pricingMode → Bestandsverhalten: 10,00 + 4,30 + 8,40 = 22,70€.
+    const lineItems = [
+      {
+        _id: 'l1', externalId: 'e1', amount: 1, name: 'Pizzablech', price: 10,
+        recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: '',
+        productGroupExternalId: 'g1', bundleNumber: null,
+        isMenu: false, menuDrink: null, menuSideDish: null,
+        modifiers: [
+          { _id: 'm1', externalId: 'em1', amount: 1, name: 'Belag A', price: 4.3, recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: 'Extras' },
+          { _id: 'm4', externalId: 'em4', amount: 1, name: 'Premium', price: 8.4, recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: 'Extras' },
+        ],
+      },
+    ]
+    expect(computeGrossFromLineItems(lineItems as unknown as Order['lineItems'])).toBe(2270)
+  })
+
   it('getOrderTipCents liest Trinkgeld', () => {
     const order = makeOrder({ tipAmount: 2.5 })
     expect(getOrderTipCents(order)).toBe(250)

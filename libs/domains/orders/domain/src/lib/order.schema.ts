@@ -157,6 +157,12 @@ export const genericLineItemSchema = Type.Object({
   taxInside: Type.Number({ minimum: 0 }),
   taxOutside: Type.Number({ minimum: 0 }),
   topic: Type.String({ maxLength: 200 }),
+  // Preis-Aggregations-Modus der Herkunfts-Optionsgruppe, beim Erzeugen der Order
+  // GESTEMPELT (die Order ist ein immutabler Snapshot → nicht später aus dem Katalog
+  // nachschlagen). 'HIGHEST' = pro `topic`-Gruppe wird nur der höchste Aufpreis
+  // wirksam; fehlt/'SUM' = alle Aufpreise summieren (Bestandsdaten verhalten sich
+  // unverändert wie SUM).
+  pricingMode: Type.Optional(StringEnum(['SUM', 'HIGHEST'])),
 })
 
 /**

@@ -61,27 +61,59 @@ export function computeGrossFromLineItems(lineItems: OrderLineItem[]): number {
   return sumCents(lineCents)
 }
 
+/**
+ * Modifier-Brutto einer Zeile in Cents.
+ *
+ * Modifier mit `pricingMode === 'HIGHEST'` werden nach `topic` gruppiert; je
+ * HIGHEST-Gruppe zählt nur der HÖCHSTE Einzel-Aufpreis (`price × amount ×
+ * parentAmount`), nicht die Summe (Pizzableche-Regel). Alle übrigen Modifier
+ * (SUM/kein Modus) werden regulär summiert.
+ *
+ * Konsistenz-Hinweis: Der POS nullt bei HIGHEST-Gruppen die unterlegenen
+ * Aufpreise bereits beim Erzeugen der Order (Snapshot). Diese Aggregation ist
+ * der Fallback-Pfad und rechnet auch dann korrekt, wenn die Preise NICHT
+ * genullt wurden (z.B. Fremd-erzeugte Orders) — der gestempelte `pricingMode`
+ * macht das deterministisch.
+ */
+function computeModifierGrossCents(modifiers: GenericOrderLineItem[], parentAmount: number): number {
+  const highestByTopic = new Map<string, number>()
+  const regularCents: number[] = []
+
+  for (const m of modifiers) {
+    const cents = computeGenericGrossCents(m, parentAmount)
+    if (m.pricingMode === 'HIGHEST') {
+      const key = m.topic ?? ''
+      const current = highestByTopic.get(key) ?? 0
+      if (cents > current) highestByTopic.set(key, cents)
+    } else {
+      regularCents.push(cents)
+    }
+  }
+
+  return sumCents([...regularCents, ...highestByTopic.values()])
+}
+
 function computeLineItemGrossCents(line: OrderLineItem): number {
   const base = multiplyCents(toCents(line.price), line.amount)
-  const modifierCents = (line.modifiers ?? []).map(m => computeGenericGrossCents(m, line.amount))
+  const modifierGross = computeModifierGrossCents(line.modifiers ?? [], line.amount)
 
   // FIXED_PROPORTIONAL: `line.price` IST der Festpreis (Komponenten sind darin
   // eingerechnet) → Komponenten NICHT erneut addieren; nur Ad-hoc-Modifier on top.
   if (line.bundlePricingMode === 'FIXED_PROPORTIONAL') {
-    return base + sumCents(modifierCents)
+    return base + modifierGross
   }
 
   // Neues Komponenten-Modell (ROLLUP/à-la-carte): Komponenten addieren on top,
   // am Parent-Amount skaliert — analog zur Engine `collectLineGrosses`.
   if (Array.isArray(line.components) && line.components.length > 0) {
     const componentCents = line.components.map(c => computeGenericGrossCents(c, line.amount))
-    return base + sumCents(modifierCents) + sumCents(componentCents)
+    return base + modifierGross + sumCents(componentCents)
   }
 
   // Legacy: separate menuDrink/menuSideDish-Slots.
   const drink = line.menuDrink ? computeGenericGrossCents(line.menuDrink, line.amount) : 0
   const side = line.menuSideDish ? computeGenericGrossCents(line.menuSideDish, line.amount) : 0
-  return base + sumCents(modifierCents) + drink + side
+  return base + modifierGross + drink + side
 }
 
 function computeGenericGrossCents(line: GenericOrderLineItem, parentAmount: number): number {

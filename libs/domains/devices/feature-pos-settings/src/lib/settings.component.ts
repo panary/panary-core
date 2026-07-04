@@ -7,6 +7,7 @@ import { LocationService } from '@panary/locations/data-access'
 import { ConnectionService, LanguageService, OFFLINE_OUTBOX, OFFLINE_REPLAY } from '@panary/shared/data-access'
 import type { OfflineOutboxRejectedEntry } from '@panary/shared-common'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
+import { LogService } from '@panary/shared/data-access-updater'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 
@@ -50,6 +51,7 @@ export class SettingsComponent implements OnInit {
   #outbox = inject(OFFLINE_OUTBOX, { optional: true })
   #replay = inject(OFFLINE_REPLAY, { optional: true })
   #snackBar = inject(MatSnackBar)
+  #logService = inject(LogService)
 
   // For the sidebar selection
   activeSection = 'general'
@@ -57,6 +59,11 @@ export class SettingsComponent implements OnInit {
 
   // Unpair-Dialog (Verbindungs-Sektion → Danger-Zone)
   showUnpairDialog = signal(false)
+
+  // Diagnose & Logs (nur POS/Tauri) — In-App-Ansicht + Export der nativen Logdatei
+  showLogs = signal(false)
+  logsLoading = signal(false)
+  logContent = signal('')
 
   // Edge Server Info
   edgeInfo = signal<EdgeServerInfo | null>(null)
@@ -260,5 +267,44 @@ export class SettingsComponent implements OnInit {
 
   goBack() {
     this.router.navigate(['/dashboard'])
+  }
+
+  /** Nur im gepackten Tauri-Client verfügbar (Browser/Dev/admin → ausgeblendet). */
+  protected isDesktop(): boolean {
+    return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+  }
+
+  protected async toggleLogs(): Promise<void> {
+    const next = !this.showLogs()
+    this.showLogs.set(next)
+    if (next) await this.refreshLogs()
+  }
+
+  protected async refreshLogs(): Promise<void> {
+    this.logsLoading.set(true)
+    try {
+      const content = await this.#logService.readLogs()
+      this.logContent.set(content.trim() || this.translateService.instant('SETTINGS.LOGS_EMPTY'))
+    } finally {
+      this.logsLoading.set(false)
+    }
+  }
+
+  /** Öffnet das Log-Verzeichnis im Datei-Explorer, damit die Datei versendbar ist. */
+  protected async exportLogs(): Promise<void> {
+    try {
+      await this.#logService.openLogDirectory()
+    } catch {
+      this.#snackBar.open(this.translateService.instant('SETTINGS.LOGS_EXPORT_ERROR'), '', { duration: 3000 })
+    }
+  }
+
+  protected async copyLogs(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(this.logContent())
+      this.#snackBar.open(this.translateService.instant('SETTINGS.LOGS_COPIED'), '', { duration: 2000 })
+    } catch {
+      /* Clipboard nicht verfügbar — still ignorieren */
+    }
   }
 }

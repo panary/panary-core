@@ -653,6 +653,51 @@
           </div>
           }
 
+          <!-- Diagnose & Logs (nur POS/Tauri) -->
+          @if (isDesktop()) {
+          <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+            <h3 class="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-2">
+              <span class="material-symbols-outlined text-[20px] text-gray-400 dark:text-gray-500">bug_report</span>
+              {{ 'SETTINGS.LOGS_TITLE' | translate }}
+            </h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ 'SETTINGS.LOGS_DESC' | translate }}</p>
+
+            <div class="flex flex-wrap gap-3">
+              <button (click)="toggleLogs()"
+                class="flex items-center gap-2 px-4 h-11 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <span class="material-symbols-outlined text-[20px]">{{ showLogs() ? 'visibility_off' : 'visibility' }}</span>
+                {{ (showLogs() ? 'SETTINGS.LOGS_HIDE' : 'SETTINGS.LOGS_VIEW') | translate }}
+              </button>
+              <button (click)="exportLogs()"
+                class="flex items-center gap-2 px-4 h-11 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <span class="material-symbols-outlined text-[20px]">folder_open</span>
+                {{ 'SETTINGS.LOGS_EXPORT' | translate }}
+              </button>
+            </div>
+
+            @if (showLogs()) {
+            <div class="mt-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs text-gray-400 dark:text-gray-500">{{ 'SETTINGS.LOGS_HINT' | translate }}</span>
+                <div class="flex gap-2">
+                  <button (click)="refreshLogs()" [disabled]="logsLoading()"
+                    class="flex items-center gap-1 px-3 h-9 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50">
+                    <span class="material-symbols-outlined text-[18px]">refresh</span>
+                    {{ 'SETTINGS.LOGS_REFRESH' | translate }}
+                  </button>
+                  <button (click)="copyLogs()"
+                    class="flex items-center gap-1 px-3 h-9 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">content_copy</span>
+                    {{ 'SETTINGS.LOGS_COPY' | translate }}
+                  </button>
+                </div>
+              </div>
+              <pre class="max-h-80 overflow-auto rounded-xl bg-gray-900 text-gray-100 text-xs leading-relaxed p-4 font-mono whitespace-pre-wrap break-words">{{ logContent() }}</pre>
+            </div>
+            }
+          </div>
+          }
+
           <!-- App-Informationen -->
           <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
             <h3 class="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">

@@ -1,4 +1,5 @@
 export * from './lib/order.schema'
+export * from './lib/order-state-machine'
 export * from './lib/pricing/money'
 export * from './lib/pricing/compute-order-tax'
 export * from './lib/pricing/fixed-bundle-main'

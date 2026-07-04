@@ -31,6 +31,7 @@ import { applyAutomaticDiscounts } from '../../hooks/apply-automatic-discounts'
 import { checkMultiOperation } from '../../hooks/check-multi-operation'
 import { createOrderInteractions } from '../../hooks/create-order-interactions'
 import { signOrderTseCancel, signOrderTseFinish, signOrderTseStart } from '../../hooks/sign-order-tse.hook'
+import { validateOrderStatusTransition } from '../../hooks/validate-order-status-transition.hook'
 import { issueReceipt } from '../../hooks/issue-receipt.hook'
 import { ensureIndexes } from '@panary/shared-backend'
 
@@ -134,6 +135,12 @@ export const orders = (app: Application) => {
       ],
       patch: [
         checkMultiOperation,
+        // Status-FSM-Guard (Security „order-status-fsm"): lehnt illegale
+        // Rücksprünge aus Terminal-Status (COMPLETED → ACTIVE/PRODUCTION/PRODUCED,
+        // ABORTED → *) mit 400 ab, BEVOR Kassen-/TSE-Hooks Nebenwirkungen erzeugen.
+        // Vorwärts-Übergänge (inkl. COMPLETED → UNCLAIMED/ABORTED), interne
+        // (kein provider) und Same-Status-Patches passieren.
+        validateOrderStatusTransition,
         // Kassen-Guard beim Kassieren: greift nur, wenn der Patch auf 'completed'
         // wechselt und eine Bar-Transaktion enthält → verlangt offene Kasse für
         // den Kassierer (performedBy). VOR validate/resolve, damit cashSessionId

@@ -82,6 +82,12 @@ export class SetupComponent {
   // Lokaler-Hub-Pfad
   manualHubUrl = ''
   pairingCode = ''
+
+  // Cloud-Login-Modus im `server-login`-Schritt: Pairing-Code (bevorzugt, keine
+  // Credentials aufs Gerät) oder Admin-Zugangsdaten (Fallback). Der Code-Pfad
+  // nutzt denselben submitPairingCode()/redeemPairingCode() wie der lokale Hub —
+  // URL-agnostisch, funktioniert gegen die Cloud (POST /device-pairing/redeem).
+  readonly serverLoginMode = signal<'code' | 'admin'>('code')
   //#endregion
 
   //#region Available Device Types

@@ -476,6 +476,8 @@
     "HUB_AUTH_DESC": "Geben Sie den Pairing-Code ein, den Ihr Hub-Administrator anzeigt.",
     "PAIRING_CODE": "Pairing-Code",
     "PAIRING_CODE_HINT": "6-stelliger Code aus dem Hub-Admin-Bereich (Geräte → Gerät koppeln).",
+    "PAIRING_CODE_HINT_CLOUD": "6-stelliger Code aus dem Cloud-Dashboard (Geräte → Gerät koppeln).",
+    "USE_PAIRING_CODE": "Stattdessen mit Code koppeln",
     "PAIR_DEVICE": "Gerät koppeln",
     "USE_ADMIN_LOGIN": "Stattdessen mit Admin-Login anmelden",
     "CONNECTED_TO": "Verbunden mit",

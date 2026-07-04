@@ -476,6 +476,8 @@
     "HUB_AUTH_DESC": "Hub yöneticinizin gösterdiği eşleştirme kodunu girin.",
     "PAIRING_CODE": "Eşleştirme kodu",
     "PAIRING_CODE_HINT": "Hub yönetim alanından 6 haneli kod (Cihazlar → Cihazı eşleştir).",
+    "PAIRING_CODE_HINT_CLOUD": "Bulut panosundan 6 haneli kod (Cihazlar → Cihazı eşleştir).",
+    "USE_PAIRING_CODE": "Bunun yerine kod ile eşleştir",
     "PAIR_DEVICE": "Cihazı eşleştir",
     "USE_ADMIN_LOGIN": "Bunun yerine yönetici girişi ile oturum aç",
     "CONNECTED_TO": "Bağlı",

@@ -330,13 +330,15 @@
       <!-- ==================== SERVER-LOGIN: Admin-Login (Cloud + Hub-Fallback) ==================== -->
       @if (currentStep() === 'server-login') {
         <div class="flex flex-col items-center animate-[fadeIn_0.3s_ease-out]">
-          <div class="flex items-center gap-2 mb-6">
-            <div class="w-8 h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-black flex items-center justify-center text-sm font-semibold">1</div>
-            <div class="w-8 h-1 bg-gray-300 dark:bg-gray-700 rounded"></div>
-            <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 flex items-center justify-center text-sm font-semibold">2</div>
-            <div class="w-8 h-1 bg-gray-300 dark:bg-gray-700 rounded"></div>
-            <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 flex items-center justify-center text-sm font-semibold">3</div>
-          </div>
+          @if (serverLoginMode() === 'admin') {
+            <div class="flex items-center gap-2 mb-6">
+              <div class="w-8 h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-black flex items-center justify-center text-sm font-semibold">1</div>
+              <div class="w-8 h-1 bg-gray-300 dark:bg-gray-700 rounded"></div>
+              <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 flex items-center justify-center text-sm font-semibold">2</div>
+              <div class="w-8 h-1 bg-gray-300 dark:bg-gray-700 rounded"></div>
+              <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 flex items-center justify-center text-sm font-semibold">3</div>
+            </div>
+          }
 
           <h2 class="text-3xl font-bold tracking-tight mb-2 text-center">{{ stepTitleKey() | translate }}</h2>
           <p class="text-sm text-gray-500 dark:text-gray-400 text-center mb-2">{{ stepDescriptionKey() | translate }}</p>
@@ -354,41 +356,102 @@
             </p>
           }
 
-          <form class="w-full flex flex-col gap-5" (ngSubmit)="submitStep1()">
-            <div class="flex flex-col gap-1.5">
-              <label for="email" class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ 'SETUP.ADMIN_EMAIL' | translate }}</label>
-              <input type="email" id="email" name="email" [(ngModel)]="email"
-                class="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-lg p-4 text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-white focus:ring-1 focus:ring-gray-900 dark:focus:ring-white transition outline-none placeholder-gray-400 dark:placeholder-gray-600"
-                placeholder="admin@example.com" autocomplete="email" required />
-            </div>
+          @if (serverLoginMode() === 'code') {
+            <!-- Cloud-Kopplung per Code (bevorzugt): keine Admin-Credentials aufs Gerät. -->
+            <form class="w-full flex flex-col gap-5" (ngSubmit)="submitPairingCode()">
+              <div class="flex flex-col gap-1.5">
+                <label for="pairingCodeCloud" class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ 'SETUP.PAIRING_CODE' | translate }}</label>
+                <input type="text" id="pairingCodeCloud" name="pairingCodeCloud" [(ngModel)]="pairingCode"
+                  inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••"
+                  class="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-lg p-4 text-center text-2xl font-mono tracking-[0.5em] text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-white focus:ring-1 focus:ring-gray-900 dark:focus:ring-white transition outline-none placeholder-gray-300 dark:placeholder-gray-700" />
+                <p class="text-xs text-gray-400 dark:text-gray-500">{{ 'SETUP.PAIRING_CODE_HINT_CLOUD' | translate }}</p>
+              </div>
 
-            <div class="flex flex-col gap-1.5">
-              <label for="password" class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ 'SETUP.ADMIN_PASSWORD' | translate }}</label>
-              <input type="password" id="password" name="password" [(ngModel)]="password"
-                class="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-lg p-4 text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-white focus:ring-1 focus:ring-gray-900 dark:focus:ring-white transition outline-none placeholder-gray-400 dark:placeholder-gray-600"
-                placeholder="••••••••" autocomplete="current-password" required />
-            </div>
-
-            <div class="flex gap-3 mt-2">
-              <button type="button" (click)="goBack()"
-                class="flex-none px-5 bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-200 font-bold py-4 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-800 active:scale-[0.98] transition-all">
-                {{ 'SETUP.BACK' | translate }}
-              </button>
-              <button type="submit"
-                class="flex-1 bg-gray-900 dark:bg-white text-white dark:text-black font-bold py-4 rounded-xl hover:bg-gray-700 dark:hover:bg-gray-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
-                [disabled]="!isStep1Valid() || isLoading()">
-                @if (isLoading()) {
-                  <span class="inline-block w-4 h-4 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin"></span>
-                  <span>{{ 'SETUP.STATUS_CONNECTING' | translate }}</span>
-                } @else {
-                  {{ 'SETUP.NEXT' | translate }}
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                  </svg>
+              <div class="flex flex-col gap-1.5">
+                <div class="flex justify-between items-center">
+                  <label for="deviceNameCloudCode" class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ 'SETUP.DEVICE_NAME' | translate }}</label>
+                  <span class="text-xs text-gray-400">{{ deviceName.length }}/{{ DEVICE_NAME_MAX_LENGTH }}</span>
+                </div>
+                <input type="text" id="deviceNameCloudCode" name="deviceNameCloudCode" [(ngModel)]="deviceName" [maxlength]="DEVICE_NAME_MAX_LENGTH"
+                  class="w-full bg-gray-100 dark:bg-gray-900 border rounded-lg p-4 text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-white focus:ring-1 focus:ring-gray-900 dark:focus:ring-white transition outline-none placeholder-gray-400 dark:placeholder-gray-600"
+                  [class.border-gray-300]="!getDeviceNameError()"
+                  [class.dark:border-gray-800]="!getDeviceNameError()"
+                  [class.border-red-400]="getDeviceNameError()"
+                  placeholder="z.B. Kasse 1, Haupteingang" />
+                @if (getDeviceNameError(); as nameErr) {
+                  <p class="text-xs text-red-500">{{ nameErr }}</p>
                 }
-              </button>
-            </div>
-          </form>
+              </div>
+
+              <div class="flex flex-col gap-1.5">
+                <label for="deviceTypeCloudCode" class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ 'SETUP.DEVICE_TYPE' | translate }}</label>
+                <select id="deviceTypeCloudCode" name="deviceTypeCloudCode" [(ngModel)]="deviceType"
+                  class="w-full h-14 bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-lg px-4 text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-white transition outline-none cursor-pointer appearance-none">
+                  @for (type of deviceTypes; track type.value) {
+                    <option [value]="type.value">{{ type.label }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="flex gap-3 mt-2">
+                <button type="button" (click)="goBack()"
+                  class="flex-none px-5 bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-200 font-bold py-4 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-800 active:scale-[0.98] transition-all">
+                  {{ 'SETUP.BACK' | translate }}
+                </button>
+                <button type="submit" [disabled]="!isPairingCodeValid() || !isStep3Valid() || isLoading()"
+                  class="flex-1 bg-gray-900 dark:bg-white text-white dark:text-black font-bold py-4 rounded-xl hover:bg-gray-700 dark:hover:bg-gray-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg">
+                  <span class="material-symbols-outlined text-[18px]">link</span>
+                  {{ 'SETUP.PAIR_DEVICE' | translate }}
+                </button>
+              </div>
+            </form>
+
+            <button type="button" (click)="serverLoginMode.set('admin')"
+              class="mt-6 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors underline underline-offset-4">
+              {{ 'SETUP.USE_ADMIN_LOGIN' | translate }}
+            </button>
+          } @else {
+            <form class="w-full flex flex-col gap-5" (ngSubmit)="submitStep1()">
+              <div class="flex flex-col gap-1.5">
+                <label for="email" class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ 'SETUP.ADMIN_EMAIL' | translate }}</label>
+                <input type="email" id="email" name="email" [(ngModel)]="email"
+                  class="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-lg p-4 text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-white focus:ring-1 focus:ring-gray-900 dark:focus:ring-white transition outline-none placeholder-gray-400 dark:placeholder-gray-600"
+                  placeholder="admin@example.com" autocomplete="email" required />
+              </div>
+
+              <div class="flex flex-col gap-1.5">
+                <label for="password" class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ 'SETUP.ADMIN_PASSWORD' | translate }}</label>
+                <input type="password" id="password" name="password" [(ngModel)]="password"
+                  class="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-lg p-4 text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-white focus:ring-1 focus:ring-gray-900 dark:focus:ring-white transition outline-none placeholder-gray-400 dark:placeholder-gray-600"
+                  placeholder="••••••••" autocomplete="current-password" required />
+              </div>
+
+              <div class="flex gap-3 mt-2">
+                <button type="button" (click)="goBack()"
+                  class="flex-none px-5 bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-200 font-bold py-4 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-800 active:scale-[0.98] transition-all">
+                  {{ 'SETUP.BACK' | translate }}
+                </button>
+                <button type="submit"
+                  class="flex-1 bg-gray-900 dark:bg-white text-white dark:text-black font-bold py-4 rounded-xl hover:bg-gray-700 dark:hover:bg-gray-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
+                  [disabled]="!isStep1Valid() || isLoading()">
+                  @if (isLoading()) {
+                    <span class="inline-block w-4 h-4 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin"></span>
+                    <span>{{ 'SETUP.STATUS_CONNECTING' | translate }}</span>
+                  } @else {
+                    {{ 'SETUP.NEXT' | translate }}
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                  }
+                </button>
+              </div>
+            </form>
+
+            <button type="button" (click)="serverLoginMode.set('code')"
+              class="mt-6 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors underline underline-offset-4">
+              {{ 'SETUP.USE_PAIRING_CODE' | translate }}
+            </button>
+          }
         </div>
       }
 

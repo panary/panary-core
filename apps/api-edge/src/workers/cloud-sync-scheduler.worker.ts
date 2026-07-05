@@ -7,11 +7,10 @@ import {
   SYNC_INTERVAL_DEFAULT_SEC,
 } from '@panary/cloud-connection/domain'
 import { SyncableMasterDataService } from '@panary/edge-pairing/domain'
-import { stripUserEdgeLocalFields } from '@panary/users/domain'
 import {
   backoffMs,
   CLOCK_SKEW_ERROR_MS,
-  MAX_RETRY_ATTEMPTS,
+  shouldEscalateAfterRetry,
   SyncConflictReason,
   type SyncCursor,
   type SyncHeartbeatResponse,
@@ -29,8 +28,8 @@ import type { Application } from '../declarations'
 import { decryptCloudToken, encryptCloudToken } from '../utils/cloud-token-cipher'
 import { recordSyncRun } from '../services/sync-runs/record-sync-run.helper'
 import { printServerManager } from '../print-server'
+import { applyPulledRecords, cloudFetch, extractAjvValidationErrors, PULL_PAGE_SIZE } from './sync-apply'
 import {
-  SyncOp,
   SyncRunDirection,
   SyncRunOutcome,
   SyncRunPhase,
@@ -51,7 +50,6 @@ const PUSH_BATCH_SIZE = 100
 // des Pull-Loops): Endlosschleifen-Schutz, falls die Outbox schneller waechst
 // als gepusht wird. 50 x PUSH_BATCH_SIZE = 5000 Eintraege pro Cycle.
 const MAX_PUSH_BATCHES_PER_CYCLE = 50
-const PULL_PAGE_SIZE = 500
 const MANUAL_HEARTBEAT_INTERVAL_SEC = 30 * 60
 
 // Obergrenze fuer in einem sync-run gespeicherte Per-Record-Details. Der Push
@@ -87,14 +85,6 @@ interface SchedulerHandle {
 }
 
 /**
- * Extrahiert AJV-Validierungsfehler aus einem Feathers-`BadRequest`-Error.
- *
- * Feathers packt das AJV-Array unter `.data` (alte Builds: `.errors`). Diese
- * Helper-Funktion sucht beide Stellen und liefert ein flaches Array fuer
- * Wide-Event-Logs. Wird in den Push/Pull-Catch-Bloecken genutzt, um zu zeigen
- * WELCHES Feld am Edge-internen Service-Validator hängengeblieben ist.
- */
-/**
  * Liest das `exp`-Feld eines JWTs ohne Signatur-Verifikation.
  *
  * Wir vertrauen dem Token-Inhalt nicht fuer Authentifizierung — die Cloud
@@ -119,25 +109,6 @@ const extractJwtExpiry = (token: string | undefined): string | undefined => {
   } catch {
     return undefined
   }
-}
-
-const extractAjvErrors = (err: unknown): Array<{ path: string; message: string; keyword?: string; params?: unknown }> | undefined => {
-  const errAny = err as {
-    data?: Array<Record<string, unknown>>
-    errors?: Array<Record<string, unknown>>
-  }
-  const arr = Array.isArray(errAny?.data)
-    ? errAny.data
-    : Array.isArray(errAny?.errors)
-      ? errAny.errors
-      : undefined
-  if (!arr || arr.length === 0) return undefined
-  return arr.map(e => ({
-    path: (e['instancePath'] as string) || (e['path'] as string) || '<root>',
-    message: (e['message'] as string) ?? '?',
-    keyword: e['keyword'] as string | undefined,
-    params: e['params'],
-  }))
 }
 
 /**
@@ -233,26 +204,6 @@ const buildCloudErrorMessage = (
     rawBody: truncated,
   })
   return `${pathLabel} fehlgeschlagen: ${status} ${truncated}`
-}
-
-const cloudFetch = async (
-  cloudUrl: string,
-  cloudToken: string,
-  pathSuffix: string,
-  init: RequestInit & { timeoutMs?: number } = {},
-): Promise<Response> => {
-  const { timeoutMs = HEARTBEAT_TIMEOUT_MS, ...rest } = init
-  return fetch(`${cloudUrl}${pathSuffix}`, {
-    ...rest,
-    headers: {
-      'Content-Type': 'application/json',
-      // Custom-Header statt Authorization: Bearer — vermeidet Konflikt mit der
-      // Cloud-JWT-Strategy, die jeden Bearer-Token zuerst parsed.
-      'X-Edge-Token': cloudToken,
-      ...(rest.headers ?? {}),
-    },
-    signal: AbortSignal.timeout(timeoutMs),
-  })
 }
 
 /**
@@ -652,8 +603,9 @@ const runPushBatch = async (app: Application, connection: CloudConnection): Prom
       const classification = r.classification ?? SyncRejectionClassification.TERMINAL
       let recordStatus: SyncRunRecordStatus = SyncRunRecordStatus.REJECTED
       if (classification === SyncRejectionClassification.TRANSIENT) {
-        const nextAttempts = (entry.attempts ?? 0) + 1
-        if (nextAttempts >= MAX_RETRY_ATTEMPTS) {
+        // Eskalationsgrenze via getestetem Domain-Helper (backoff-schedule.ts) —
+        // nicht inline re-implementieren.
+        if (shouldEscalateAfterRetry(entry.attempts ?? 0)) {
           const conflictId = await escalateToConflict(
             app,
             entry,
@@ -822,87 +774,12 @@ const runPullForService = async (
         visibilitySnapshot = body.visibilitySnapshot
       }
     }
-    for (const item of body.records) {
-      let op: SyncRunRecordDetail['op'] = SyncOp.CREATE
-      try {
-        if (item.deletedAt) {
-          op = SyncOp.REMOVE
-          await app
-            .service(service as any)
-            .remove(item._id, { provider: undefined, fromSync: true } as any)
-            .catch(() => undefined)
-          if (details.length < MAX_SYNC_RUN_DETAILS) {
-            details.push({ service, entityId: item._id, op, status: SyncRunRecordStatus.ACCEPTED })
-          }
-          continue
-        }
-        const existing = await app
-          .service(service as any)
-          .get(item._id, { provider: undefined } as any)
-          .catch(() => null)
-        // `fromSync: true` signalisiert den Resolvern (z.B. userPatchResolver),
-        // den eingehenden Wert UNVERAENDERT zu uebernehmen — kein Re-Hash auf
-        // bereits gehashten posPin/password, kein Re-Generate auf createdAt/
-        // employeeNumber. Sonst Doppelt-Hashing → Login-Bruch.
-        //
-        // Geraetelokale Time-Clock-Felder (stampingId/startBreakAt) NICHT aus
-        // dem Cloud-Record uebernehmen — sie sind reiner Edge-Runtime-Zustand
-        // (Kommen/Gehen/Pause am POS). Der Pull-Apply ist bedingungslos (kein
-        // Last-Write-Wins); ohne dieses Strip wuerde ein lokaler Pause-/
-        // Stempel-Clear vom naechsten Pull rueckgaengig gemacht → Deadlock.
-        // Siehe USER_EDGE_LOCAL_FIELDS in @panary/users/domain.
-        const incoming =
-          service === 'users'
-            ? stripUserEdgeLocalFields(item.record as Record<string, unknown>)
-            : item.record
-        if (existing) {
-          op = SyncOp.PATCH
-          await app
-            .service(service as any)
-            .patch(item._id, incoming as any, { provider: undefined, fromSync: true } as any)
-        } else {
-          op = SyncOp.CREATE
-          await app
-            .service(service as any)
-            .create(incoming as any, { provider: undefined, fromSync: true } as any)
-        }
-        if (details.length < MAX_SYNC_RUN_DETAILS) {
-          details.push({ service, entityId: item._id, op, status: SyncRunRecordStatus.ACCEPTED })
-        }
-      } catch (err) {
-        // AJV-Validierungsdetails extrahieren — sonst loggt der Edge nur
-        // "validation failed". Feathers `BadRequest` packt das AJV-Array
-        // unter `.data` (alte Builds: `.errors`).
-        const errAny = err as {
-          data?: Array<{ instancePath?: string; message?: string; params?: unknown }>
-          errors?: Array<{ instancePath?: string; message?: string; params?: unknown }>
-        }
-        const ajvErrors =
-          Array.isArray(errAny?.data) ? errAny.data
-          : Array.isArray(errAny?.errors) ? errAny.errors
-          : undefined
-        const validationErrors = ajvErrors?.map(e => ({
-          path: e.instancePath || '<root>',
-          message: e.message ?? '?',
-        }))
-        logger.warn({
-          message: 'Pull-Apply fehlgeschlagen',
-          event: 'sync.pull.apply_failed',
-          service,
-          entityId: item._id,
-          errorMessage: err instanceof Error ? err.message : String(err),
-          validationErrors,
-        })
-        if (details.length < MAX_SYNC_RUN_DETAILS) {
-          details.push({
-            service,
-            entityId: item._id,
-            op,
-            status: SyncRunRecordStatus.REJECTED,
-            reason: err instanceof Error ? err.message : String(err),
-          })
-        }
-      }
+    // Apply via geteiltem Modul (Batch-Existenz-Check, fromSync-Upsert,
+    // Per-Record-Fehlerbehandlung) — Details gekappt aggregieren.
+    const pageResult = await applyPulledRecords(app, service, body.records)
+    for (const detail of pageResult.details) {
+      if (details.length >= MAX_SYNC_RUN_DETAILS) break
+      details.push(detail)
     }
     total += body.records.length
     if (!body.hasMore || !body.nextCursor) break
@@ -1541,7 +1418,7 @@ export const runSyncOnce = async (
       errorName: err instanceof Error ? err.name : undefined,
       errorMessage: lastError,
       errorStack: cloudUnreachable ? undefined : err instanceof Error ? err.stack : undefined,
-      validationErrors: cloudUnreachable ? undefined : extractAjvErrors(err),
+      validationErrors: cloudUnreachable ? undefined : extractAjvValidationErrors(err),
     })
     await recordSyncRun(app, {
       tenantId: refreshed.tenantId!,
@@ -1605,7 +1482,7 @@ export const runSyncOnce = async (
         errorName: err instanceof Error ? err.name : undefined,
         errorMessage: errMsg,
         errorStack: cloudUnreachable ? undefined : err instanceof Error ? err.stack : undefined,
-        validationErrors: cloudUnreachable ? undefined : extractAjvErrors(err),
+        validationErrors: cloudUnreachable ? undefined : extractAjvValidationErrors(err),
       })
       await recordSyncRun(app, {
         tenantId: refreshed.tenantId!,

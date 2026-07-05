@@ -15,7 +15,6 @@ import {
   SyncSource,
   type SyncBootstrapResponse,
   type SyncOpEntry,
-  type SyncPullResponse,
 } from '@panary/sync/domain'
 import { isSyncPushBlockedRole, stripUserEdgeLocalFields } from '@panary/users/domain'
 
@@ -37,6 +36,7 @@ import {
   type BootstrapReportDirection,
   BootstrapReportStatus,
 } from '@panary/cloud-connection/domain'
+import { applyPulledRecords, cloudFetch, pullMasterDataPage } from './sync-apply'
 import {
   SyncRunDirection,
   SyncRunOutcome,
@@ -51,8 +51,10 @@ const requireDecryptedToken = (connection: CloudConnection): string => {
 }
 
 const BOOTSTRAP_CHUNK_SIZE = 1000
+// Bootstrap-Calls bewegen grosse Chunks (bis 1000 Records) — laengerer Timeout
+// als der 10s-Default des geteilten cloudFetch (sync-apply.ts). An jeder
+// Call-Site explizit mitgeben.
 const BOOTSTRAP_TIMEOUT_MS = 60_000
-const PULL_PAGE_SIZE = 500
 
 const cloudConnectionPath = 'cloud-connection'
 
@@ -100,26 +102,6 @@ const TRANSACTION_SERVICES: ReadonlyArray<string> = [
 ]
 
 const BACKFILL_RECENT_DAYS = 90
-
-export const cloudFetch = async (
-  cloudUrl: string,
-  cloudToken: string,
-  pathSuffix: string,
-  init: RequestInit & { timeoutMs?: number } = {},
-): Promise<Response> => {
-  const { timeoutMs = BOOTSTRAP_TIMEOUT_MS, ...rest } = init
-  return fetch(`${cloudUrl}${pathSuffix}`, {
-    ...rest,
-    headers: {
-      'Content-Type': 'application/json',
-      // Custom-Header statt Authorization: Bearer — vermeidet Konflikt mit der
-      // Cloud-JWT-Strategy, die jeden Bearer-Token zuerst parsed.
-      'X-Edge-Token': cloudToken,
-      ...(rest.headers ?? {}),
-    },
-    signal: AbortSignal.timeout(timeoutMs),
-  })
-}
 
 const persistStatus = async (
   app: Application,
@@ -173,6 +155,7 @@ const pushBootstrapChunks = async (
         ops: SyncOpEntry[]
         finalChunk: boolean
       }),
+      timeoutMs: BOOTSTRAP_TIMEOUT_MS,
     })
     if (!response.ok) {
       const text = await response.text().catch(() => 'Unbekannter Fehler')
@@ -246,94 +229,6 @@ const truncateMasterTables = async (app: Application, tenantId: string): Promise
   }
 }
 
-export const pullMasterDataPage = async (
-  cloudUrl: string,
-  cloudToken: string,
-  service: string,
-  since: string | undefined,
-  cursor: string | undefined,
-): Promise<SyncPullResponse> => {
-  const params = new URLSearchParams()
-  params.set('service', service)
-  params.set('limit', String(PULL_PAGE_SIZE))
-  if (since) params.set('since', since)
-  if (cursor) params.set('cursor', cursor)
-  const response = await cloudFetch(cloudUrl, cloudToken, `/sync-pull?${params.toString()}`, {
-    method: 'GET',
-  })
-  if (!response.ok) {
-    const text = await response.text().catch(() => 'Unbekannter Fehler')
-    throw new Error(`Pull fuer ${service} fehlgeschlagen: ${response.status} ${text}`)
-  }
-  return response.json() as Promise<SyncPullResponse>
-}
-
-export const applyPulledRecords = async (
-  app: Application,
-  service: string,
-  records: SyncPullResponse['records'],
-): Promise<void> => {
-  for (const item of records) {
-    try {
-      if (item.deletedAt) {
-        await app
-          .service(service as any)
-          .remove(item._id, { provider: undefined, fromSync: true } as any)
-          .catch(() => undefined)
-        continue
-      }
-      const existing = await app
-        .service(service as any)
-        .get(item._id, { provider: undefined } as any)
-        .catch(() => null)
-      // `fromSync: true` siehe sync-scheduler.worker.ts — verhindert
-      // Doppelt-Hashing von posPin/password und Override von createdAt/
-      // employeeNumber durch Resolver beim Pull-Apply.
-      //
-      // Geraetelokale Time-Clock-Felder (stampingId/startBreakAt) nicht aus
-      // dem Cloud-Record uebernehmen — reiner Edge-Runtime-Zustand. Siehe
-      // USER_EDGE_LOCAL_FIELDS in @panary/users/domain.
-      const incoming =
-        service === 'users'
-          ? stripUserEdgeLocalFields(item.record as Record<string, unknown>)
-          : item.record
-      if (existing) {
-        await app
-          .service(service as any)
-          .patch(item._id, incoming as any, { provider: undefined, fromSync: true } as any)
-      } else {
-        await app
-          .service(service as any)
-          .create(incoming as any, { provider: undefined, fromSync: true } as any)
-      }
-    } catch (err) {
-      // AJV-Validierungsdetails extrahieren — sonst loggt der Edge nur das
-      // nichtssagende "validation failed". Feathers `BadRequest` packt das
-      // AJV-Array unter `.data` (alte Builds: `.errors`).
-      const errAny = err as {
-        data?: Array<{ instancePath?: string; message?: string; params?: unknown }>
-        errors?: Array<{ instancePath?: string; message?: string; params?: unknown }>
-      }
-      const ajvErrors =
-        Array.isArray(errAny?.data) ? errAny.data
-        : Array.isArray(errAny?.errors) ? errAny.errors
-        : undefined
-      const validationErrors = ajvErrors?.map(e => ({
-        path: e.instancePath || '<root>',
-        message: e.message ?? '?',
-      }))
-      logger.warn({
-        message: 'Pull-Apply fehlgeschlagen',
-        event: 'sync.pull.apply_failed',
-        service,
-        entityId: item._id,
-        errorMessage: err instanceof Error ? err.message : String(err),
-        validationErrors,
-      })
-    }
-  }
-}
-
 const pullAllPagesForService = async (
   cloudUrl: string,
   cloudToken: string,
@@ -343,8 +238,11 @@ const pullAllPagesForService = async (
   let cursor: string | undefined
   let total = 0
   for (let page = 0; page < 1000; page++) {
-    const response = await pullMasterDataPage(cloudUrl, cloudToken, service, undefined, cursor)
-    await applyPulledRecords(app, service, response.records)
+    const response = await pullMasterDataPage(cloudUrl, cloudToken, service, undefined, cursor, BOOTSTRAP_TIMEOUT_MS)
+    // `mode: 'insert'`: truncateMasterTables hat die Tabellen unmittelbar vor
+    // diesem Loop geleert — jede _id ist garantiert neu, der gebatchte
+    // Existenz-Check des Upsert-Modus waere pro Seite ein Leer-Roundtrip.
+    await applyPulledRecords(app, service, response.records, { mode: 'insert' })
     total += response.records.length
     if (!response.hasMore || !response.nextCursor) break
     cursor = response.nextCursor
@@ -598,7 +496,14 @@ const runMergeByExternalId = async (
 ): Promise<void> => {
   const cloudToken = requireDecryptedToken(connection)
   for (const service of MERGE_BY_EXTERNAL_ID_SERVICES) {
-    const cloudPage = await pullMasterDataPage(connection.cloudUrl, cloudToken, service, undefined, undefined)
+    const cloudPage = await pullMasterDataPage(
+      connection.cloudUrl,
+      cloudToken,
+      service,
+      undefined,
+      undefined,
+      BOOTSTRAP_TIMEOUT_MS,
+    )
     const cloudRecords = cloudPage.records
     const edgeRecords = await collectAllRecords(app, service, connection.tenantId!)
 

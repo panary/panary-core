@@ -21,11 +21,8 @@
 import { logger } from '@panary/shared-backend'
 import type { Application } from '../declarations'
 import { decryptCloudToken } from '../utils/cloud-token-cipher'
-import {
-  applyPulledRecords,
-  pullMasterDataPage,
-  reconcileLocationBusinessDay,
-} from './cloud-bootstrap-runner.worker'
+import { reconcileLocationBusinessDay } from './cloud-bootstrap-runner.worker'
+import { applyPulledRecords, pullMasterDataPage } from './sync-apply'
 import { getActiveConnection } from './cloud-sync-scheduler.worker'
 import { isRealtimeConnected } from './cloud-realtime-state'
 

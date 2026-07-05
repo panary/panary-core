@@ -26,6 +26,12 @@ export const captureAuditBefore = async (context: HookContext): Promise<void> =>
   if (AUDIT_NEVER_AUDIT_PATHS.has(context.path)) return
   if (!MUTATING_METHODS.has(context.method)) return
 
+  // Sync-Applies (Pull/Bootstrap setzen `params.fromSync`) laufen ohne
+  // `params.user` — der record-audit-event.hook schreibt fuer sie ohnehin
+  // KEIN Audit-Event (Akteur-Pflicht, siehe dort Schritt 3). Der Vorzustands-
+  // Load waere pro gepulltem Patch ein nutzloser Doppel-get.
+  if ((context.params as { fromSync?: boolean }).fromSync) return
+
   const mapping = getAuditMapping(context.path, context.method)
   if (!mapping) return
 

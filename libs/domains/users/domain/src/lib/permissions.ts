@@ -52,6 +52,12 @@ export const AppResource = {
    *  TENANT_TECHNICIAN (Admin-aequivalent). Rate-Limit pro Edge im Service. */
   SYNC_TRIGGERS: 'sync-triggers',
   BOOTSTRAP_REPORTS: 'bootstrap-reports',
+  /** Edge-only: revisionssichere Fiskal-Zähler (Belegnummern-Ketten, §146a-AO-
+   *  Vorstufe). Wird ausschließlich intern geschrieben (issue-receipt-Hook,
+   *  provider: undefined → authorize-Bypass); extern read-only für
+   *  OWNER/TECHNICIAN (Diagnose/Prüfung). Vor Stufe 3.2 nur über die
+   *  SYSTEM-Wildcard des alten Edge-Hooks erreichbar. */
+  FISCAL_COUNTERS: 'fiscal-counters',
   LOG_EXPORT: 'log-export',
   AUDIT_EVENTS: 'audit-events',
   AUDIT_EVENT_REDACTIONS: 'audit-event-redactions',

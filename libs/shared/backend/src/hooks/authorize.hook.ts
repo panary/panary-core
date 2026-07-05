@@ -1,18 +1,91 @@
 import { HookContext, NextFunction } from '../declarations'
 import { Forbidden } from '@feathersjs/errors'
 import {
+  AppAbility,
   AppAction,
   AppResource,
-  PermissionRule,
-  RolePermissions,
-  UserSystemRole
+  hasEffectiveAbility,
+  hasEffectivePermission,
+  UserSystemRole,
 } from '@panary/users/domain'
 import { AppError, AppErrorMessages } from '@panary/shared-common'
 import { logger } from '../logger'
 
-// 2. SCHICHT: Rollen-Check (RBAC)
-// Prüft: Darf ein "Staff" überhaupt User sehen/bearbeiten?
-// (Die Matrix entscheidet: Staff darf z.B. NICHT create/delete)
+// 2. SCHICHT: Hybrid-RBAC — Rolle (Matrix) ODER additiver Pro-User-Grant.
+// Die Auswertung laeuft ueber `hasEffectivePermission` aus @panary/users/domain
+// und ist damit dieselbe Quelle der Wahrheit wie im Cloud-authorize-Hook.
+//
+// Bewusste Unterschiede zur alten Edge-Implementierung (Stufe 3.2, 2026-07):
+//  - `user.permissions` (grant:<resource>:<action>) wird jetzt DURCHGESETZT —
+//    vorher prüfte der Edge nur die Rollen-Matrix, vergebene Grants waren
+//    am Edge wirkungslos.
+//  - Die SYSTEM-Matrix-Regel wirkt NICHT mehr als Wildcard über alle
+//    Ressourcen (Cloud-Semantik). Kompensiert durch explizite Matrix-Einträge
+//    (TENANT_TECHNICIAN: fiscal-counters/log-export/organisations READ).
+//  - Unbekannte Custom-Methods fallen nicht mehr still auf READ zurück,
+//    sondern auf den Methodennamen als Action — das matcht nur MANAGE-Regeln.
+
+// Explizites Mapping Feathers-Methode/Custom-Method → AppAction.
+// Jede neue Edge-Custom-Method MUSS hier eingetragen werden — sonst greift
+// der MANAGE-only-Fallback und alle Nicht-MANAGE-Rollen bekommen 403.
+const METHOD_TO_ACTION: Record<string, AppAction> = {
+  find: AppAction.READ,
+  get: AppAction.READ,
+  create: AppAction.CREATE,
+  update: AppAction.UPDATE,
+  patch: AppAction.UPDATE,
+  remove: AppAction.DELETE,
+  // pre-orders: `convert` patcht die Vorbestellung → CONVERTED und legt die
+  // Order an (Order-CREATE wird separat über orders autorisiert) — identisch
+  // zum Cloud-Hook.
+  convert: AppAction.UPDATE,
+  // businessdays: Tagesabschluss-Custom-Methods am Edge.
+  openDay: AppAction.CREATE,
+  closeDay: AppAction.UPDATE,
+  refreshClosingStatus: AppAction.UPDATE,
+  // sync-outbox (REV-Sync): modifiziert den Workflow-State
+  // (rejected → pending + neuer Eintrag), daher UPDATE.
+  reEnqueue: AppAction.UPDATE,
+  // users (POS-Zeiterfassung): verifyPin liest nur (PIN-Check ohne
+  // State-Change) → READ. checkin/checkout/startBreak/endBreak ändern
+  // User + working-times → UPDATE (Cloud-Semantik); Geräte-Rollen ohne
+  // users:UPDATE laufen alternativ über die CAN_CLOCK_IN-Ability (s. u.).
+  verifyPin: AppAction.READ,
+  checkin: AppAction.UPDATE,
+  checkout: AppAction.UPDATE,
+  startBreak: AppAction.UPDATE,
+  endBreak: AppAction.UPDATE,
+  // cash-sessions: autorisierte Eröffnung (Manager-PIN) legt eine Session an.
+  openAuthorized: AppAction.CREATE,
+  // cloud-connection: preflight ist reine Diagnose (READ); startBootstrap und
+  // syncNow mutieren den Pairing-/Sync-State → UPDATE.
+  preflight: AppAction.READ,
+  startBootstrap: AppAction.UPDATE,
+  syncNow: AppAction.UPDATE,
+}
+
+// users-Zeiterfassung: DEVICE_POS/DEVICE_TABLET stempeln Mitarbeiter über das
+// Geräte-JWT und haben bewusst KEIN users:UPDATE (das würde beliebige
+// User-Patches erlauben). Für genau diese vier Methoden genügt alternativ die
+// fachliche CAN_CLOCK_IN-Ability (Matrix-String oder user.permissions).
+const TIME_CLOCK_METHODS: ReadonlySet<string> = new Set(['checkin', 'checkout', 'startBreak', 'endBreak'])
+
+// SQLite speichert `permissions` als JSON-Text. Die users-After-Hooks parsen
+// das Feld normalerweise schon — defensiv trotzdem normalisieren, damit ein
+// un-geparster String weder crasht noch still als „keine Grants" durchgeht.
+const normalizePermissions = (raw: unknown): readonly string[] | undefined => {
+  if (Array.isArray(raw)) return raw.filter((entry): entry is string => typeof entry === 'string')
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed.filter((entry): entry is string => typeof entry === 'string') : undefined
+    } catch {
+      return undefined
+    }
+  }
+  return undefined
+}
+
 export const authorize = () => async (context: HookContext, next: NextFunction) => {
   // 1. Interne Aufrufe durchlassen (kein Provider = Systemaufruf)
   if (!context.params.provider) return next()
@@ -21,31 +94,33 @@ export const authorize = () => async (context: HookContext, next: NextFunction) 
   const { user } = context.params
   if (!user)
     throw new Forbidden(AppErrorMessages[AppError.TENANT_MISMATCH], {
-      code: AppError.TENANT_MISMATCH
+      code: AppError.TENANT_MISMATCH,
     })
 
-  // --- 3. PLATFORM OWNER BYPASS (Der "Gott-Modus") ---
-  // Der Eigentümer der Plattform darf technisch alles.
+  // 3. PLATFORM OWNER BYPASS (der "Gott-Modus")
   if (user.role === UserSystemRole.PLATFORM_OWNER) {
     return next()
   }
 
-  // 4. Aktion und Ressource bestimmen
-  const action = getActionFromMethod(context.method)
-  const resource = context.path as AppResource // z.B. 'users', 'products'
+  // 4. Aktion und Ressource bestimmen. Unbekannte Custom-Methods fallen auf
+  // den Methodennamen als Action zurück → matcht ausschließlich MANAGE-Regeln.
+  const role = user.role as UserSystemRole | undefined
+  const permissions = normalizePermissions(user.permissions)
+  const resource = context.path
+  const method = context.method
+  const action = METHOD_TO_ACTION[method] ?? (method as AppAction)
 
-  // 5. Regeln für die Rolle aus der Matrix holen
-  // Wir casten user.role, falls TS meckert, aber im Schema ist es ja ein Enum.
-  const roleRules = RolePermissions[user.role as UserSystemRole] || []
+  // 5. Rolle (Matrix) ODER additiver Pro-User-Grant (user.permissions) —
+  // geteilte Auswertung mit der Cloud (eine Quelle der Wahrheit).
+  let allowed = hasEffectivePermission(role, permissions, resource, action)
 
-  // 6. Prüfen: Hat die Rolle die Erlaubnis?
-  // Wir iterieren durch die Regeln der Matrix für diese Rolle.
-  const hasRolePermission = roleRules.some((rule: PermissionRule) => checkRule(rule, resource, action))
+  // 6. Zeiterfassungs-Sonderfall: CAN_CLOCK_IN-Ability als Alternative zu
+  // users:UPDATE (POS-/Tablet-Geräte stempeln Staff über das Geräte-JWT).
+  if (!allowed && resource === AppResource.USERS && TIME_CLOCK_METHODS.has(method)) {
+    allowed = hasEffectiveAbility(role, permissions, AppAbility.CAN_CLOCK_IN)
+  }
 
-  // (Optional: Hier könnte man später noch das 'permissions' Array des Users prüfen,
-  // falls wir Ausnahmen für CRUD erlauben wollen. Aktuell regelt das die Matrix.)
-
-  if (hasRolePermission) {
+  if (allowed) {
     return next()
   }
 
@@ -64,63 +139,6 @@ export const authorize = () => async (context: HookContext, next: NextFunction) 
     code: AppError.AUTH_NO_PERMISSION,
     role: user.role,
     resource: resource,
-    action: action
+    action: action,
   })
-}
-
-// --- HILFSFUNKTIONEN (Bleiben gleich) ---
-
-// Mappt Feathers-Methoden auf unsere AppActions
-function getActionFromMethod(method: string): AppAction {
-  switch (method) {
-    case 'find':
-    case 'get':
-      return AppAction.READ
-    case 'create':
-      return AppAction.CREATE
-    case 'update':
-    case 'patch':
-      return AppAction.UPDATE
-    case 'remove':
-      return AppAction.DELETE
-    case 'convert':
-      return AppAction.UPDATE
-    // Tagesabschluss-Custom-Methods (Edge: businessdays-Service,
-    // Cloud: business-day-reports-Service)
-    case 'openDay':
-      return AppAction.CREATE
-    case 'closeDay':
-    case 'startClosing':
-    case 'cancelClosing':
-    case 'reAggregate':
-    case 'refreshClosingStatus':
-      return AppAction.UPDATE
-    // Sync-Outbox-Operator-Custom-Method (REV-Sync) — modifiziert den Workflow-
-    // State (rejected → pending + neuer Eintrag), daher UPDATE.
-    case 'reEnqueue':
-      return AppAction.UPDATE
-    // Export-Methods (REV-5/REV-6) — reine Lese-Operationen
-    case 'exportDsfinvk':
-    case 'printZBon':
-      return AppAction.READ
-    default:
-      return AppAction.READ
-  }
-}
-
-// Prüft eine einzelne Regel aus der Matrix
-function checkRule(rule: any, resource: string, action: string): boolean {
-  // Falls die Regel ein einfacher String ist (AppAbility), ignorieren wir sie hier.
-  // Wir suchen nach Objekten { resource: ..., action: ... }
-  if (typeof rule === 'string') return false
-
-  // 1. Ressource muss passen (oder 'system' für globale Rechte)
-  if (rule.resource !== resource && rule.resource !== AppResource.SYSTEM) {
-    return false
-  }
-
-  // 2. Action muss passen
-  if (rule.action === AppAction.MANAGE) return true // 'manage' schlägt alles
-  if (Array.isArray(rule.action)) return rule.action.includes(action) // Array Check
-  return rule.action === action // Single Check
 }

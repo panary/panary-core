@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { AppAction, AppResource } from './permissions'
+import { AppAbility, AppAction, AppResource } from './permissions'
 import { UserSystemRole } from './user.schema'
 import {
   GRANT_PREFIX,
+  hasEffectiveAbility,
   hasEffectivePermission,
   isValidGrant,
   makeGrant,
@@ -80,6 +81,27 @@ describe('hasEffectivePermission', () => {
   it('unbekannte/abilities-Tokens gewähren nichts', () => {
     const perms = ['can_discount', 'grant:bogus:read', 'grant:incoming-goods:fly']
     expect(hasEffectivePermission(UserSystemRole.TENANT_STAFF, perms, IG, AppAction.READ)).toBe(false)
+  })
+})
+
+describe('hasEffectiveAbility', () => {
+  it('Ability aus der Rollen-Matrix: DEVICE_POS/DEVICE_TABLET tragen CAN_CLOCK_IN', () => {
+    expect(hasEffectiveAbility(UserSystemRole.DEVICE_POS, undefined, AppAbility.CAN_CLOCK_IN)).toBe(true)
+    expect(hasEffectiveAbility(UserSystemRole.DEVICE_TABLET, undefined, AppAbility.CAN_CLOCK_IN)).toBe(true)
+  })
+
+  it('Rolle ohne Ability: DEVICE_KDS hat kein CAN_CLOCK_IN', () => {
+    expect(hasEffectiveAbility(UserSystemRole.DEVICE_KDS, undefined, AppAbility.CAN_CLOCK_IN)).toBe(false)
+  })
+
+  it('Ability additiv über user.permissions (unabhängig von der Rolle)', () => {
+    expect(hasEffectiveAbility(UserSystemRole.DEVICE_KDS, ['can_clock_in'], AppAbility.CAN_CLOCK_IN)).toBe(true)
+    expect(hasEffectiveAbility(undefined, ['can_clock_in'], AppAbility.CAN_CLOCK_IN)).toBe(true)
+  })
+
+  it('leer/undefined gewährt nichts', () => {
+    expect(hasEffectiveAbility(undefined, undefined, AppAbility.CAN_CLOCK_IN)).toBe(false)
+    expect(hasEffectiveAbility(UserSystemRole.DEVICE_KDS, [], AppAbility.CAN_CLOCK_IN)).toBe(false)
   })
 })
 

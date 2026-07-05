@@ -45,22 +45,38 @@ app.service(myPath).hooks({
 
 ## 3. Hook: `authorize()`
 
-**Datei:** `apps/api-edge/src/hooks/authorize.hook.ts`
+**Datei:** `libs/shared/backend/src/hooks/authorize.hook.ts` (`@panary/shared-backend`)
 
-Implementiert Role-Based Access Control (RBAC) über die zentrale `RolePermissions`-Matrix.
+Implementiert Hybrid-RBAC: Rolle (zentrale `RolePermissions`-Matrix) ODER
+additiver Pro-User-Grant (`grant:<resource>:<action>` im `user.permissions`-Array)
+— ausgewertet über `hasEffectivePermission` aus `@panary/users/domain`
+(dieselbe Quelle der Wahrheit wie Cloud-Backend und Frontend-`can()`).
 
 ### Ablauf
 
 1. Interne Aufrufe (kein `context.params.provider`) werden ohne Prüfung durchgelassen.
 2. Nicht authentifizierte Aufrufe werden mit `403 Forbidden` abgelehnt.
 3. `PLATFORM_OWNER` hat vollständigen Bypass (Gott-Modus).
-4. Feathers-Methode wird auf `AppAction` gemappt:
+4. Methode wird über das explizite `METHOD_TO_ACTION`-Mapping auf `AppAction` gemappt:
    - `find`, `get` → `AppAction.READ`
    - `create` → `AppAction.CREATE`
    - `update`, `patch` → `AppAction.UPDATE`
    - `remove` → `AppAction.DELETE`
-5. Prüfung: `RolePermissions[user.role]` enthält eine passende `{ resource, action }`-Regel?
-6. Kein Treffer → `403 Forbidden` mit `AppError.AUTH_NO_PERMISSION`.
+   - Custom-Methods explizit (z. B. `verifyPin` → READ, `checkin`/`checkout`/
+     `startBreak`/`endBreak` → UPDATE, `openAuthorized` → CREATE, `openDay` → CREATE,
+     `closeDay`/`refreshClosingStatus`/`reEnqueue`/`startBootstrap`/`syncNow` → UPDATE,
+     `preflight` → READ, `convert` → UPDATE)
+   - **Unbekannte Custom-Methods** fallen auf den Methodennamen als Action zurück —
+     das matcht nur `MANAGE`-Regeln. **Jede neue Custom-Method MUSS gemappt werden.**
+5. Prüfung: `hasEffectivePermission(role, permissions, resource, action)` —
+   Matrix-Regel ODER Grant. Es gibt **keine `SYSTEM`-Wildcard** (eine
+   `{ resource: SYSTEM }`-Regel matcht nur den Pfad `system`, nichts anderes).
+6. Zeiterfassungs-Sonderfall: `checkin`/`checkout`/`startBreak`/`endBreak` auf
+   `users` sind alternativ über die `CAN_CLOCK_IN`-Ability erlaubt
+   (`hasEffectiveAbility`) — so stempeln `DEVICE_POS`/`DEVICE_TABLET` ohne `users:UPDATE`.
+7. Kein Treffer → `403 Forbidden` mit `AppError.AUTH_NO_PERMISSION`.
+
+Details/ADR: `documentation/edge-authorize-hybrid-rbac.md`.
 
 ### Ressource = Service-Pfad
 

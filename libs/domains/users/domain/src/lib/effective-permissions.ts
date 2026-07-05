@@ -4,7 +4,7 @@
 // Aktion A auf Ressource R?". Sie ersetzt die vormals drei divergenten Kopien
 // der Match-Logik (cloud `ruleMatches`, edge `checkRule`, frontend `can()`).
 
-import { AppAction, AppResource } from './permissions'
+import { AppAbility, AppAction, AppResource } from './permissions'
 import { RolePermissions, type PermissionRule } from './roles.matrix'
 import { UserSystemRole } from './user.schema'
 
@@ -79,4 +79,22 @@ export const hasEffectivePermission = (
     if (grant && grantAllows(grant, resource, action)) return true
   }
   return false
+}
+
+/**
+ * Prüft eine benannte Business-Ability (AppAbility) analog zu
+ * `hasEffectivePermission`: die ROLLE (Ability-String in der Matrix) ODER ein
+ * additiver Eintrag im `user.permissions`-Array genügt — rein additiv.
+ * Beispiel: DEVICE_POS/DEVICE_TABLET tragen `CAN_CLOCK_IN` in der Matrix und
+ * dürfen damit die Zeiterfassungs-Custom-Methods aufrufen, ohne `users:UPDATE`
+ * zu besitzen.
+ */
+export const hasEffectiveAbility = (
+  role: UserSystemRole | undefined,
+  userPermissions: readonly string[] | undefined,
+  ability: AppAbility,
+): boolean => {
+  const roleRules = role ? RolePermissions[role] ?? [] : []
+  if (roleRules.some(rule => rule === ability)) return true
+  return userPermissions?.includes(ability) ?? false
 }

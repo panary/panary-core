@@ -127,10 +127,13 @@ Impersonation-Deckelung, Delta-/Filter-Semantik, INVALID_GRANT.
 `restrict-permission-grants.hook.spec.ts` (api-edge, 6 Tests): interner Bypass,
 Forbidden/BadRequest-Mapping, Delta gegen Bestandsdatensatz.
 
-## 6. Edge-Status (P2)
+## 6. Edge-Status
 
-`permissions` synchronisiert bereits zum Edge (`USER_JSON_FIELDS`). Die Adoption
-des Helpers im Edge-`authorize.hook` (inkl. `SYSTEM`-Wildcard-Abgleich +
-POS-PIN-Implikationen) steht noch aus — eigener Risiko-Check, da die Edge-Variante
-ein abweichendes `SYSTEM`-Wildcard hat. Der Vergabe-Guard (§4) ist am Edge
-bereits scharf.
+**Erledigt (2026-07-06, Qualitäts-Review Stufe 3.2):** Der Edge-`authorize.hook`
+nutzt jetzt `hasEffectivePermission` (Rolle ODER Grant), ein explizites
+Custom-Method-Mapping (MANAGE-only-Fallback statt stillem READ) und hat die
+`SYSTEM`-Wildcard verloren (Cloud-Semantik; kompensiert durch additive
+Matrix-Einträge). Zeiterfassungs-Methoden akzeptieren alternativ die
+`CAN_CLOCK_IN`-Ability via neuem Helper `hasEffectiveAbility`.
+Details: [edge-authorize-hybrid-rbac.md](edge-authorize-hybrid-rbac.md).
+Der Vergabe-Guard (§4) war am Edge bereits vorher scharf.

@@ -286,6 +286,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Owner stoesst einen Sofort-Cycle auf einem bestimmten Edge an.
     { resource: AppResource.SYNC_TRIGGERS, action: AppAction.CREATE },
     { resource: AppResource.BOOTSTRAP_REPORTS, action: AppAction.READ },
+    // Edge-Fiskal-Zaehler: read-only Diagnose/Pruefung (Stufe 3.2 — vorher nur
+    // ueber die SYSTEM-Wildcard des alten Edge-Hooks erreichbar).
+    { resource: AppResource.FISCAL_COUNTERS, action: AppAction.READ },
     // Cloud-spezifische Ressourcen
     { resource: AppResource.CORPORATE_CUSTOMERS, action: AppAction.MANAGE },
     { resource: AppResource.CUSTOMERS, action: AppAction.MANAGE },
@@ -476,6 +479,12 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // einen Sofort-Cycle pro Edge anstossen (Support-Use-Case).
     { resource: AppResource.SYNC_TRIGGERS, action: AppAction.CREATE },
     { resource: AppResource.BOOTSTRAP_REPORTS, action: AppAction.READ },
+    // Stufe 3.2 — Kompensation der entfallenen SYSTEM-Wildcard im Edge-
+    // authorize-Hook: diese Ressourcen erreichte der Techniker vorher nur
+    // implizit ueber `SYSTEM: MANAGE`; jetzt explizit (read-only Diagnose).
+    { resource: AppResource.FISCAL_COUNTERS, action: AppAction.READ },
+    { resource: AppResource.LOG_EXPORT, action: AppAction.READ },
+    { resource: AppResource.ORGANIZATIONS, action: AppAction.READ },
     { resource: AppResource.LOCATIONS, action: AppAction.MANAGE },
     { resource: AppResource.SYSTEM, action: AppAction.MANAGE },
     // Cloud-spezifische Ressourcen

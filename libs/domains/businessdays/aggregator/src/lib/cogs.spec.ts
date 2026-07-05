@@ -719,4 +719,87 @@ describe('computeCogs — Verbrauchsmathematik', () => {
       expect(cogs.consumptionLines[0].unit).toBe('kg')
     })
   })
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Null- und Negativ-Mengen (explodeOrderConsumption) — Verhaltens-Locks #41
+  // ────────────────────────────────────────────────────────────────────────
+  describe('VERHALTEN: Null- und Negativ-Mengen (explodeOrderConsumption)', () => {
+    it('ingredientReference mit quantity 0 → 0-Line wird EMITTIERT (kein Skip)', () => {
+      // Am Code abgelesen: `quantity ?? 0` → addUsage(…, 0) legt die Zutat mit
+      // quantityUsed 0 an. Bewusst gelockt: die Referenz bleibt sichtbar (Line
+      // vorhanden), erzeugt aber keinen Materialabgang; priceConsumptionLines
+      // bewertet sie mit 0 ct. Wer 0-Lines nicht will, muss beim Konsumenten filtern.
+      const order = makeOrder({
+        lineItems: [makeLineItem({ amount: 3, ingredientReferences: [directIngredient(ING_FLOUR, 0)] })],
+      })
+      const { lines } = explodeOrderConsumption(order, new Map())
+      expect(lines).toHaveLength(1)
+      expect(lines[0].ingredientId).toBe(ING_FLOUR)
+      expect(lines[0].quantityUsed).toBe(0)
+    })
+
+    it('item.amount 0 → kein Verbrauch (quantityUsed 0), Line wird dennoch emittiert', () => {
+      // effectiveAmount 0 nullt sowohl direkte Zutaten als auch Rezept-Zutaten —
+      // es entsteht KEIN Materialabgang, aber (wie bei quantity 0) eine 0-Line.
+      const map: RecipeIngredientMap = new Map([
+        [RECIPE_PIZZA, [{ ingredientId: ING_CHEESE, ingredientName: 'Käse', quantityPerOutputUnit: 0.1, unit: 'kg' }]],
+      ])
+      const order = makeOrder({
+        lineItems: [
+          makeLineItem({
+            amount: 0,
+            ingredientReferences: [directIngredient(ING_FLOUR, 50)],
+            recipeReferences: [recipeRef(RECIPE_PIZZA, { quantity: 1 })],
+          }),
+        ],
+      })
+      const { lines, unresolvedRecipes } = explodeOrderConsumption(order, map)
+      const byId = new Map(lines.map(l => [l.ingredientId, l.quantityUsed]))
+      expect(byId.get(ING_FLOUR)).toBe(0)
+      expect(byId.get(ING_CHEESE)).toBe(0)
+      expect(unresolvedRecipes).toHaveLength(0)
+    })
+
+    it('VERHALTEN: negatives item.amount reicht das Vorzeichen unverändert durch (negativer Verbrauch)', () => {
+      // Vorzeichen-Semantik für Bestands-Movements: explodeOrderConsumption
+      // normalisiert NICHT — quantityUsed = quantity × effectiveAmount, Vorzeichen
+      // inklusive. Eine negative Menge bedeutet für den Movement-Layer eine
+      // Bestands-RÜCKFÜHRUNG (Verbrauch mindert sich). Reguläre Stornos laufen
+      // nicht hierüber (cancellation/isRegularSale-Filter bzw. eigener
+      // Movement-Typ) — Schema `amount minimum 0` verhindert negative Mengen im
+      // Normalfluss; dieses Lock macht Änderungen an der Semantik sichtbar.
+      const order = makeOrder({
+        lineItems: [makeLineItem({ amount: -2, ingredientReferences: [directIngredient(ING_FLOUR, 50)] })],
+      })
+      const { lines } = explodeOrderConsumption(order, new Map())
+      expect(lines).toHaveLength(1)
+      expect(lines[0].quantityUsed).toBeCloseTo(-100, 9)
+    })
+
+    it('negativer modifier.amount multipliziert das Vorzeichen (2 × −1 × 10 = −20)', () => {
+      const order = makeOrder({
+        lineItems: [
+          makeLineItem({
+            amount: 2,
+            modifiers: [makeLineItem({ amount: -1, ingredientReferences: [directIngredient(ING_SAUCE, 10)] })],
+          }),
+        ],
+      })
+      const { lines } = explodeOrderConsumption(order, new Map())
+      expect(lines[0].ingredientId).toBe(ING_SAUCE)
+      expect(lines[0].quantityUsed).toBeCloseTo(-20, 9)
+    })
+
+    it('positive und negative Mengen derselben Zutat werden additiv verrechnet (Netting)', () => {
+      const order = makeOrder({
+        lineItems: [
+          makeLineItem({ amount: 1, ingredientReferences: [directIngredient(ING_FLOUR, 100)] }),
+          makeLineItem({ amount: -1, ingredientReferences: [directIngredient(ING_FLOUR, 100)] }),
+        ],
+      })
+      const { lines } = explodeOrderConsumption(order, new Map())
+      expect(lines).toHaveLength(1)
+      expect(lines[0].quantityUsed).toBeCloseTo(0, 9)
+    })
+  })
 })

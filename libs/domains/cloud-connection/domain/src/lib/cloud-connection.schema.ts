@@ -42,7 +42,9 @@ export const SYNC_INTERVAL_MIN_SEC = 60
 export const SYNC_INTERVAL_MAX_SEC = 3600
 export const SYNC_INTERVAL_DEFAULT_SEC = 300
 
-export const DEFAULT_CLOUD_URL = 'https://cloud.panary.io'
+// Seit der Prod-Domain-Migration 2026-07 (cloud.panary.io bleibt als Legacy-
+// Fallback-DNS bestehen, bis alle POS-Builds auf diesem Default sind).
+export const DEFAULT_CLOUD_URL = 'https://api.panary.cloud'
 //#endregion
 
 //#region Sub-Schemas

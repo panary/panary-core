@@ -22,7 +22,7 @@ Kurz-Code-Pairing.
 
 ```
 welcome ──► [Cloud]  ───────────────────────────────────────► server-login
-   │          (feste URL https://cloud.panary.io)                   │
+   │          (feste URL https://api.panary.cloud)                  │
    └──► [Lokaler Hub]                                               │
           ▼                                                         │
        hub-prep (Hinweis + flache SVG-Animation)                    │
@@ -86,7 +86,8 @@ Code-Record** gestempelt (nie aus dem Request-Body — `multiTenancy` stempelt b
   leere Liste im Browser-Dev) + `probeHub(url)` (`/health` → `organizationName`/`setupComplete`).
 - **`DeviceConfigService.redeemPairingCode(serverUrl, code, device)`**: ruft
   `POST /device-pairing/redeem`, speichert `DeviceConfig` (gleiche Shape wie `registerDevice`).
-- **`APP_CONFIG.cloudUrl`** (`https://cloud.panary.io`): Default-Ziel des Cloud-Pfads.
+- **`APP_CONFIG.cloudUrl`** (`https://api.panary.cloud`, bis Prod-Domain-Migration
+  2026-07: `cloud.panary.io`): Default-Ziel des Cloud-Pfads.
 - **`SetupComponent`**: verzweigter `SetupStep`-Flow, Signals + OnPush, i18n (de/en/tr),
   flache CSS-/SVG-Animationen. QR-Scan dependency-frei via `BarcodeDetector`
   (degradiert auf WebKitGTK → manuelle Eingabe).

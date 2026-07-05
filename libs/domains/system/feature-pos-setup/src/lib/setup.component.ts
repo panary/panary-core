@@ -242,7 +242,7 @@ export class SetupComponent {
   /** Default: direkt gegen die fest hinterlegte Panary-Cloud koppeln. */
   chooseCloud(): void {
     this.pairingMode.set('cloud')
-    this.serverUrl = this.appConfig.cloudUrl || 'https://cloud.panary.io'
+    this.serverUrl = this.appConfig.cloudUrl || 'https://api.panary.cloud'
     this.connectedHubName.set('Panary Cloud')
     this.configService.resetStatus()
     this.currentStep.set('server-login')
@@ -281,7 +281,7 @@ export class SetupComponent {
 
   /** Zurück auf die fest hinterlegte Panary Cloud. */
   resetCloudUrl(): void {
-    this.serverUrl = this.appConfig.cloudUrl || 'https://cloud.panary.io'
+    this.serverUrl = this.appConfig.cloudUrl || 'https://api.panary.cloud'
     this.cloudUrlCustomized.set(false)
     this.connectedHubName.set('Panary Cloud')
     this.urlOverrideOpen.set(false)

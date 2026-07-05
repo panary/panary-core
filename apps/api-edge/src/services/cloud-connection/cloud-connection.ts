@@ -73,7 +73,7 @@ const isLocalhostUrl = (url: string): boolean =>
 const normalizeCloudUrl = (url: string): string => {
   const trimmed = url.trim()
   if (!trimmed) throw new BadRequest('Cloud-URL fehlt.')
-  // Akzeptiert "localhost:3031" / "cloud.panary.io" ohne Protokoll und ergaenzt
+  // Akzeptiert "localhost:3031" / "api.panary.cloud" ohne Protokoll und ergaenzt
   // automatisch http:// fuer localhost, https:// fuer alles andere. Sonst wirft
   // node-fetch ein nichtssagendes "fetch failed".
   if (!/^https?:\/\//i.test(trimmed)) {

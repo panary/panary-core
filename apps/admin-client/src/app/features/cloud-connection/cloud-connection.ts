@@ -93,7 +93,7 @@ interface PreflightResult {
   requiresTenantIdRestamp: boolean
 }
 
-const DEFAULT_CLOUD_URL = 'https://cloud.panary.io'
+const DEFAULT_CLOUD_URL = 'https://api.panary.cloud'
 const SYNC_MODE_OPTIONS: { value: SyncMode; label: string; description: string }[] = [
   { value: 'auto', label: 'Automatisch', description: 'Sync laeuft regelmaessig im Hintergrund' },
   { value: 'scheduled', label: 'Zeitplan', description: 'Sync zu festen Uhrzeiten (z. B. nach Feierabend)' },

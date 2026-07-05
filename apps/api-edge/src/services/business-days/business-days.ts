@@ -24,6 +24,7 @@ import {
 } from '@panary/businessdays/domain'
 import { LocationOperationMode } from '@panary/locations/domain'
 import { PairingStatus } from '@panary/cloud-connection/domain'
+import { SyncOutboxStatus } from '@panary/sync/domain'
 import { authorize, multiTenancy } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { DatabaseType } from '@panary/shared-common'
@@ -278,17 +279,30 @@ async function closeDay(
   // der Abschluss in der Cloud, wo die closing-validation (all-cash-sessions-closed
   // = Blocker, cash-without-session = Warnung) die Vollständigkeit erzwingt.
 
-  // Pending Sync-Outbox-Eintraege?
+  // Pending Sync-Outbox-Eintraege? KEIN tenantId-Filter: sync-outbox ist
+  // edge-interner Workflow-State ohne tenantId-Spalte (Edge = single-tenant) —
+  // das Query-Schema (additionalProperties:false) lehnt tenantId ab und der
+  // Guard waere still deaktiviert. in-flight blockt mit: der Push laeuft,
+  // ist aber noch nicht geackt — die Cloud hat die Daten ggf. noch nicht.
   const outboxPending = await (app.service('sync-outbox') as any)
     .find({
       query: {
-        tenantId: user.tenantId,
-        status: 'pending',
+        status: { $in: [SyncOutboxStatus.PENDING, SyncOutboxStatus.IN_FLIGHT] },
         $limit: 0,
       },
       provider: undefined,
     })
-    .catch(() => ({ total: 0 }))
+    .catch((err: unknown) => {
+      // Fail-open wie guardCloudManagedLifecycle — aber nie still: ein
+      // geschluckter Query-Fehler wuerde den Guard unbemerkt deaktivieren.
+      logger.warn({
+        message: 'closeDay: Sync-Outbox-Check fehlgeschlagen, fail-open',
+        event: 'business_day.outbox_check_failed',
+        businessDayId: data.businessDayId,
+        error: (err as Error).message,
+      })
+      return { total: 0 }
+    })
   const pendingTotal = (outboxPending as { total?: number })?.total ?? 0
   if (pendingTotal > 0) {
     throw new BadRequest(

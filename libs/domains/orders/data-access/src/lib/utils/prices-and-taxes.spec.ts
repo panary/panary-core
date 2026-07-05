@@ -260,14 +260,12 @@ describe('DRIFT Anzeige ↔ Engine — dokumentierter Ist-Zustand (Stufe-2-Input
     }
   })
 
-  it.todo(
-    'DRIFT: Legacy-Menü amount>1 — Anzeige skaliert Beilage/Getränk mit der Zeilen-Menge, Engine addiert sie ' +
-      'einmalig: 2× Menü (5,00 + Beilage 1,50 + Getränk 2,00) → Anzeige 17,00 €, Engine-Brutto 13,50 €',
-  )
-  it('Anker: Menü ×2 — Anzeige 17,00 / Engine 13,50', () => {
+  // AUFGELÖST (Engine-Fix, Entscheidung 2026-07-04): Beilage/Getränk zählen jetzt
+  // auch in der Engine PRO Menü — Anzeige und Engine stimmen überein.
+  it('Menü ×2 — Beilage/Getränk PRO Menü: Anzeige 17,00 == Engine 17,00', () => {
     const line = makeLine(5.0, 2, { isMenu: true, menuSideDish: makeGeneric(1.5), menuDrink: makeGeneric(2.0) })
     expect(calculateArticlePrice(line, 1.5, 2.0)).toBe(17.0)
-    expect(computeOrderTax(makeOrder([line])).brutto).toBeCloseTo(13.5, 5)
+    expect(computeOrderTax(makeOrder([line])).brutto).toBeCloseTo(17.0, 5)
   })
 
   it.todo(

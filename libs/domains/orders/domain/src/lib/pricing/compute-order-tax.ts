@@ -24,9 +24,11 @@ import { distributeByLargestRemainder, fromCents, multiplyCents, netFromGross, s
 // Eintrag zurück (tatsächlich abgezogener Brutto-Betrag) — bewusst, damit der Bon-
 // Snapshot die realen Beträge führt.
 //
-// Positions-Arithmetik bewusst identisch zur bisherigen Engine (keine Verschiebung
-// bestehender Brutto-Summen): Hauptartikel price×amount, Modifier price×modifier.amount
-// (nicht mit Parent-Menge skaliert), Menü-Beilage/-Getränk price (ohne ×amount).
+// Positions-Arithmetik: Hauptartikel price×amount, Modifier price×modifier.amount
+// (nicht mit Parent-Menge skaliert — Bestandsverhalten), Menü-Beilage/-Getränk
+// price×amount×Zeilen-Menge (PRO Menü; Entscheidung 2026-07-04 — vorher einmalig,
+// dadurch war der taxSnapshot bei Menü-Menge > 1 fiskal zu niedrig; jetzt identisch
+// zum Reporting-Fallback `order-total.ts`).
 
 interface RateBucket {
   taxRate: number
@@ -45,8 +47,13 @@ function lineGrossCents(line: OrderLineItem): number {
   line.modifiers.forEach((extra: GenericOrderLineItem) => {
     if (extra.price) cents += multiplyCents(toCents(extra.price), extra.amount)
   })
-  if (line.menuSideDish && line.menuSideDish.price) cents += toCents(line.menuSideDish.price)
-  if (line.menuDrink && line.menuDrink.price) cents += toCents(line.menuDrink.price)
+  // Beilage/Getränk zählen PRO Menü: 2 Menüs = 2 Aufpreise (Entscheidung 2026-07-04).
+  if (line.menuSideDish && line.menuSideDish.price) {
+    cents += multiplyCents(toCents(line.menuSideDish.price), line.menuSideDish.amount * line.amount)
+  }
+  if (line.menuDrink && line.menuDrink.price) {
+    cents += multiplyCents(toCents(line.menuDrink.price), line.menuDrink.amount * line.amount)
+  }
   return cents
 }
 

@@ -99,9 +99,25 @@ gegen Doppel-`main`) in `@panary/orders/domain`; der POS-Writer ruft sie nur noc
 
 | Zeilen-Form | Brutto-Atome |
 |---|---|
-| Ohne `components[]` (Legacy) | `lineGrossCents` = price×amount + Modifier + menuDrink + menuSideDish, alles am Zeilensatz |
+| Ohne `components[]` (Legacy) | `lineGrossCents` = price×amount + Modifier + menuDrink×amount×Zeilen-Menge + menuSideDish×amount×Zeilen-Menge, alles am Zeilensatz |
 | `components[]`, kein FIXED (ROLLUP/à-la-carte) | Hauptartikel (`line.price`) + Modifier am Zeilensatz; jede Komponente am EIGENEN Satz (parent-skaliert) |
 | `bundlePricingMode = FIXED_PROPORTIONAL` | `line.price` (Festpreis) per Largest-Remainder über die Komponenten-Normalpreise verteilt, jede am eigenen Satz; Ad-hoc-Modifier on top am Zeilensatz |
+
+### Update 2026-07-06 — Legacy-Menü: Beilage/Getränk zählen PRO Menü
+
+**Problem:** Der Legacy-Pfad addierte `menuSideDish`/`menuDrink` **einmalig** pro
+Zeile — bei Menü-Menge > 1 war der `taxSnapshot` fiskal zu niedrig (2× Menü
+5,00 + 1,50 + 2,00 → Engine 13,50 € statt 17,00 €), während POS-Anzeige und
+Reporting-Fallback (`order-total.ts`) korrekt PRO Menü rechneten.
+
+**Entscheidung (User, 2026-07-04):** Die Cents-Engine ist überall führend;
+einzige Engine-Korrektur ist dieser Legacy-Menü-Fall: Beilage/Getränk skalieren
+mit `komponenten-amount × zeilen-amount` — identisch zu `order-total.ts`.
+Nicht-Menü-Fälle bleiben bitgenau unverändert (Modifier weiterhin
+`price × modifier.amount`, ohne Parent-Skalierung).
+
+**Konsequenz:** Fiskal wirksam für neue Orders (gewollt). Kein Backfill —
+Bestands-Orders behalten ihren gestempelten Snapshot.
 
 ### Beispiel — Festpreis-Menü „Hamburger 100gr" (7,00 € fix, take-out)
 

@@ -91,6 +91,26 @@ describe('computeOrderTax — MwSt-Extraktion (korrekt)', () => {
     const result = computeOrderTax(makeOrder([line], 'dine-in'))
     expect(result.brutto).toBeCloseTo(9.0, 5)
   })
+
+  it('Legacy-Menü ×2: Beilage/Getränk zählen PRO Menü (2× (5,00 + 1,50 + 2,00) → 17,00)', () => {
+    // Entscheidung 2026-07-04: Menü-Aufpreise skalieren mit der Zeilen-Menge —
+    // vorher zählten sie einmalig (13,50), der taxSnapshot war fiskal zu niedrig.
+    const line = makeLine(5.0, 2, 19, 7, {
+      isMenu: true,
+      menuSideDish: makeGeneric(1.5, 1),
+      menuDrink: makeGeneric(2.0, 1),
+    })
+    const result = computeOrderTax(makeOrder([line], 'dine-in'))
+    expect(result.brutto).toBeCloseTo(17.0, 5)
+    expect(result.taxes[0].amount + result.taxes[0].tax).toBeCloseTo(17.0, 5)
+  })
+
+  it('Legacy-Menü ×3 mit Beilagen-Menge 2: price × menge × Zeilen-Menge (5,00×3 + 1,50×2×3 → 24,00)', () => {
+    // Komponenten-Menge wird mitskaliert — identisch zum Reporting-Fallback
+    // `order-total.ts` (computeGenericGrossCents: price × amount × parentAmount).
+    const line = makeLine(5.0, 3, 19, 7, { isMenu: true, menuSideDish: makeGeneric(1.5, 2) })
+    expect(computeOrderTax(makeOrder([line], 'dine-in')).brutto).toBeCloseTo(24.0, 5)
+  })
 })
 
 describe('computeOrderTax — Rabatte', () => {

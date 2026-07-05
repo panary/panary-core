@@ -26,7 +26,7 @@ import { APP_VERSION } from '../version'
 
 import type { Application } from '../declarations'
 import { decryptCloudToken, encryptCloudToken } from '../utils/cloud-token-cipher'
-import { recordSyncRun } from '../services/sync-runs/record-sync-run.helper'
+import { recordSyncRun, type RecordSyncRunInput } from '../services/sync-runs/record-sync-run.helper'
 import { printServerManager } from '../print-server'
 import { applyPulledRecords, cloudFetch, extractAjvValidationErrors, PULL_PAGE_SIZE } from './sync-apply'
 import {
@@ -1211,25 +1211,109 @@ const runPullPrinterCommands = async (
   return commands.length
 }
 
-export const runSyncOnce = async (
-  app: Application,
-  _cloudConnectionId: string,
-  triggeredBy: SyncRunTrigger = SyncRunTrigger.SCHEDULER,
-): Promise<SyncRunStats> => {
-  const start = performance.now()
-  const connection = await getActiveConnection(app)
-  if (!connection) {
-    return { pushed: 0, pulled: 0, durationMs: 0, lastError: 'Keine aktive Cloud-Connection.' }
+// ---------------------------------------------------------------------------
+// Sync-Phasen: `runSyncOnce` ist reine Ablaufsteuerung — Timing, sync-run-
+// Persistenz und die Cloud-Unreachable-Klassifizierung der Fehler-Logs der
+// Push-/Pull-Phasen leben EINMALIG im gemeinsamen Runner `runRecordedPhase`.
+// ---------------------------------------------------------------------------
+
+interface RecordedPhaseResult<TResult> {
+  /** Phasen-Ergebnis — `null`, wenn die Phase mit Exception abgebrochen wurde. */
+  result: TResult | null
+  errorMessage?: string
+  /** true bei Cloud-401 (EdgePairingRequiredError) — Aufrufer bricht Folge-Phasen ab. */
+  pairingRequired: boolean
+}
+
+interface RunRecordedPhaseOptions<TResult> {
+  app: Application
+  tenantId: string
+  phase: RecordSyncRunInput['phase']
+  direction: SyncRunDirection
+  service: string | null
+  triggeredBy: SyncRunTrigger
+  /** Wide-Event fuer den Exception-Fall (`sync.push.worker_exception` etc.). */
+  failureLog: { message: string; event: string }
+  execute: () => Promise<TResult>
+  /**
+   * Mappt das Phasen-Ergebnis auf die recordSyncRun-Felder des Erfolgsfalls.
+   * recordSyncRun filtert selbst (push: accepted+rejected>0, pull:
+   * recordCount>0) — der Mapper muss nicht gaten.
+   */
+  toSuccessRun: (
+    result: TResult,
+  ) => Pick<RecordSyncRunInput, 'recordCount' | 'accepted' | 'rejected' | 'details' | 'outcome'>
+}
+
+const runRecordedPhase = async <TResult>(
+  options: RunRecordedPhaseOptions<TResult>,
+): Promise<RecordedPhaseResult<TResult>> => {
+  const startedAt = new Date().toISOString()
+  const startMs = performance.now()
+  const runBase = {
+    tenantId: options.tenantId,
+    phase: options.phase,
+    direction: options.direction,
+    service: options.service,
+    triggeredBy: options.triggeredBy,
+    startedAt,
   }
+  try {
+    const result = await options.execute()
+    await recordSyncRun(options.app, {
+      ...runBase,
+      durationMs: Math.round(performance.now() - startMs),
+      ...options.toSuccessRun(result),
+    })
+    return { result, pairingRequired: false }
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err)
+    // Stack + AJV-Details nur bei Application-Errors mit-loggen — sonst sieht
+    // der Operator nur, ob der Error aus dem Cloud-Fetch oder einem Edge-
+    // internen Service-Aufruf stammt. Bei Cloud-Connect-Fehlern (fetch failed,
+    // ECONNREFUSED, …) ist der undici-Stack uninformativ — kompakt ohne Stack.
+    const cloudUnreachable = isCloudUnreachableError(err)
+    logger.warn({
+      message: options.failureLog.message,
+      event: options.failureLog.event,
+      ...(options.service ? { service: options.service } : {}),
+      errorName: err instanceof Error ? err.name : undefined,
+      errorMessage,
+      errorStack: cloudUnreachable ? undefined : err instanceof Error ? err.stack : undefined,
+      validationErrors: cloudUnreachable ? undefined : extractAjvValidationErrors(err),
+    })
+    await recordSyncRun(options.app, {
+      ...runBase,
+      durationMs: Math.round(performance.now() - startMs),
+      outcome: SyncRunOutcome.FAILURE,
+      errorMessage,
+    })
+    return { result: null, errorMessage, pairingRequired: err instanceof EdgePairingRequiredError }
+  }
+}
 
-  let pushed = 0
-  let pulled = 0
-  let lastError: string | undefined
+interface HeartbeatPhaseResult {
+  heartbeat: SyncHeartbeatResponse | null
+  lastError?: string
+  pairingRequired: boolean
+  /** Cloud unreachable (DNS/Refused/Timeout) — Aufrufer setzt die Folge-Phasen aus. */
+  cloudUnreachable: boolean
+}
 
-  // Heartbeat: nur dann als sync-run protokollieren, wenn er fachlich relevant
-  // ist (Token-Rotation, Skew-Warning oder Fehler) — stille 5-min-Pings nicht.
+/**
+ * Heartbeat-Phase inkl. Emergency-Override-Failure-Tracking und sync-run-
+ * Protokollierung. Laeuft NICHT ueber runRecordedPhase: Heartbeats haben
+ * eigene Outcome-Regeln (nur Token-Rotation, Skew-Warning oder Fehler werden
+ * protokolliert — stille Pings nicht) und kein worker_exception-Log.
+ */
+const runHeartbeatPhase = async (
+  app: Application,
+  connection: CloudConnection,
+  triggeredBy: SyncRunTrigger,
+): Promise<HeartbeatPhaseResult> => {
   const hbStartedAt = new Date().toISOString()
   const hbStartMs = performance.now()
+  let lastError: string | undefined
   let pairingRequired = false
   // heartbeatError aufbewahren, damit wir nach `runHeartbeat()` zwischen
   // Connectivity-Fehlern (Cloud unreachable, kompakt loggen) und echten
@@ -1308,68 +1392,41 @@ export const runSyncOnce = async (
       })
     }
   }
-  if (heartbeat?.clockSkewMs !== undefined && Math.abs(heartbeat.clockSkewMs) > CLOCK_SKEW_ERROR_MS) {
-    return {
-      pushed: 0,
-      pulled: 0,
-      durationMs: Math.round(performance.now() - start),
-      lastError: 'Clock-Skew zu gross — Push blockiert.',
-    }
+  return {
+    heartbeat,
+    lastError,
+    pairingRequired,
+    cloudUnreachable: heartbeat === null && isCloudUnreachableError(heartbeatError),
   }
+}
 
-  // Wenn der Heartbeat einen 401 gemeldet hat, hat handleCloudAuthError den
-  // pairingStatus bereits auf DISCONNECTED gesetzt. Push/Pull-Phasen mit
-  // ungueltigem Token zu starten waere nur Larm im Log.
-  if (pairingRequired) {
-    return {
-      pushed: 0,
-      pulled: 0,
-      durationMs: Math.round(performance.now() - start),
-      lastError,
-    }
-  }
-
-  // Cloud unerreichbar (DNS/Refused/Timeout, typisch waehrend Cloud-Restarts):
-  // Reconcile/PrinterCommands/Push/Pull haetten ohnehin alle `fetch failed` —
-  // jede dieser 9 Phasen wuerde dasselbe undici-Stacktrace-Triplet loggen.
-  // Wir steigen kompakt aus und warten auf den naechsten Tick. Das
-  // `Sync-Run: heartbeat failure`-Record + Emergency-Override-Tracking sind
-  // bereits oben geschrieben — der Operator sieht die Ursache eindeutig.
-  if (heartbeat === null && isCloudUnreachableError(heartbeatError)) {
-    logger.info({
-      message: 'Cloud unerreichbar — Sync-Phasen ausgesetzt bis zum naechsten Heartbeat',
-      event: 'sync.cloud_unreachable',
-      reason: lastError,
-    })
-    return {
-      pushed: 0,
-      pulled: 0,
-      durationMs: Math.round(performance.now() - start),
-      lastError,
-    }
-  }
-
-  const refreshed = (await (app.service(cloudConnectionPath) as any)._get(connection._id)) as CloudConnection
-
-  // Reconciliation der Emergency-Override-Patches, falls Cloud zurück ist.
-  // No-op, wenn kein Override aktiv oder keine pending-local-overrides existieren.
-  // Failures dürfen den restlichen Sync nicht blockieren.
-  await runReconcileOverrides(app, refreshed).catch(err => {
+/**
+ * Reconcile-Phase: Emergency-Override-Patches mit der Cloud abgleichen, falls
+ * sie zurueck ist. No-op, wenn kein Override aktiv oder keine
+ * pending-local-overrides existieren. Failures duerfen den restlichen Sync
+ * nicht blockieren.
+ */
+const runReconcileOverridesPhase = async (app: Application, connection: CloudConnection): Promise<void> => {
+  await runReconcileOverrides(app, connection).catch(err => {
     logger.warn({
       message: 'Reconcile-Overrides mit Exception abgebrochen',
       event: 'reconcile.worker_exception',
       errorMessage: err instanceof Error ? err.message : String(err),
     })
   })
+}
 
-  // Printer-Commands: kurzer Pull direkt nach dem Heartbeat, bevor Push/Pull
-  // der Master-Daten läuft. Latenz für Test-Drucke bleibt damit <30 s
-  // (Worker-Tick), ohne dass wir einen eigenen Worker brauchen. Failures hier
-  // dürfen Push/Pull nicht blockieren — fangen daher den Error ab.
-  await runPullPrinterCommands(app, refreshed).catch(err => {
+/**
+ * Printer-Commands-Phase: kurzer Pull direkt nach dem Heartbeat, bevor
+ * Push/Pull der Master-Daten laeuft. Latenz fuer Test-Drucke bleibt damit
+ * <30 s (Worker-Tick), ohne dass wir einen eigenen Worker brauchen. Failures
+ * hier duerfen Push/Pull nicht blockieren — fangen daher den Error ab.
+ */
+const runPrinterCommandsPhase = async (app: Application, connection: CloudConnection): Promise<void> => {
+  await runPullPrinterCommands(app, connection).catch(err => {
     // Cloud-Connect-Fehler haben keinen brauchbaren Stack — nur die
     // Application-Errors loggen wir mit Detail. Symmetrisch zur Behandlung
-    // in der Pull-Master-Data-Schleife.
+    // im Phase-Runner der Push-/Pull-Phasen.
     if (isCloudUnreachableError(err)) return
     logger.warn({
       message: 'printer-commands Pull-Phase mit Exception abgebrochen',
@@ -1377,133 +1434,134 @@ export const runSyncOnce = async (
       errorMessage: err instanceof Error ? err.message : String(err),
     })
   })
+}
 
-  // Push: sync-run nur wenn Outbox-Eintraege vorhanden waren (recordSyncRun
-  // filtert via accepted+rejected>0 selbst).
-  const pushStartedAt = new Date().toISOString()
-  const pushStartMs = performance.now()
-  try {
-    const pushResult = await runPush(app, refreshed)
-    pushed = pushResult.accepted
-    // Auch reine Reject-Batches protokollieren (accepted=0, rejected>0) — der
-    // recordSyncRun-Filter laesst accepted+rejected>0 durch und der Operator
-    // soll Push-Rejects in der Historie sehen.
-    if (pushResult.accepted > 0 || pushResult.rejected > 0) {
-      await recordSyncRun(app, {
-        tenantId: refreshed.tenantId!,
-        phase: SyncRunPhase.PUSH,
-        direction: SyncRunDirection.EDGE_TO_CLOUD,
-        service: null,
-        recordCount: pushResult.accepted,
-        accepted: pushResult.accepted,
-        rejected: pushResult.rejected > 0 ? pushResult.rejected : undefined,
-        details: pushResult.details,
-        durationMs: Math.round(performance.now() - pushStartMs),
-        outcome: pushResult.rejected > 0 ? SyncRunOutcome.PARTIAL : SyncRunOutcome.SUCCESS,
-        triggeredBy,
-        startedAt: pushStartedAt,
-      })
-    }
-  } catch (err) {
-    lastError = err instanceof Error ? err.message : String(err)
-    if (err instanceof EdgePairingRequiredError) pairingRequired = true
-    // Stack + AJV-Details nur bei Application-Errors mit-loggen — sonst sieht
-    // der Operator nur, ob der Error aus dem Cloud-Fetch oder einem Edge-
-    // internen Service-Aufruf stammt. Bei Cloud-Connect-Fehlern (fetch failed,
-    // ECONNREFUSED, …) ist der undici-Stack uninformativ — kompakt ohne Stack.
-    const cloudUnreachable = isCloudUnreachableError(err)
-    logger.warn({
-      message: 'Push-Worker mit Exception abgebrochen',
-      event: 'sync.push.worker_exception',
-      errorName: err instanceof Error ? err.name : undefined,
-      errorMessage: lastError,
-      errorStack: cloudUnreachable ? undefined : err instanceof Error ? err.stack : undefined,
-      validationErrors: cloudUnreachable ? undefined : extractAjvValidationErrors(err),
-    })
-    await recordSyncRun(app, {
-      tenantId: refreshed.tenantId!,
-      phase: SyncRunPhase.PUSH,
-      direction: SyncRunDirection.EDGE_TO_CLOUD,
-      service: null,
-      durationMs: Math.round(performance.now() - pushStartMs),
-      outcome: SyncRunOutcome.FAILURE,
-      errorMessage: lastError,
-      triggeredBy,
-      startedAt: pushStartedAt,
-    })
+/**
+ * Push-Phase: draint die Outbox und protokolliert das Aggregat als sync-run.
+ * Auch reine Reject-Batches werden protokolliert (accepted=0, rejected>0) —
+ * der recordSyncRun-Filter laesst accepted+rejected>0 durch und der Operator
+ * soll Push-Rejects in der Historie sehen.
+ */
+const runPushPhase = async (
+  app: Application,
+  connection: CloudConnection,
+  triggeredBy: SyncRunTrigger,
+): Promise<RecordedPhaseResult<PushResult>> =>
+  runRecordedPhase({
+    app,
+    tenantId: connection.tenantId!,
+    phase: SyncRunPhase.PUSH,
+    direction: SyncRunDirection.EDGE_TO_CLOUD,
+    service: null,
+    triggeredBy,
+    failureLog: { message: 'Push-Worker mit Exception abgebrochen', event: 'sync.push.worker_exception' },
+    execute: () => runPush(app, connection),
+    toSuccessRun: result => ({
+      recordCount: result.accepted,
+      accepted: result.accepted,
+      rejected: result.rejected > 0 ? result.rejected : undefined,
+      details: result.details,
+      outcome: result.rejected > 0 ? SyncRunOutcome.PARTIAL : SyncRunOutcome.SUCCESS,
+    }),
+  })
+
+/**
+ * Pull-Phase fuer EINEN Master-Data-Service: sync-run nur wenn recordCount>0
+ * (recordSyncRun-Filter) ODER Fehler; Teil-Rejects ergeben PARTIAL.
+ */
+const runPullServicePhase = async (
+  app: Application,
+  connection: CloudConnection,
+  service: string,
+  triggeredBy: SyncRunTrigger,
+): Promise<RecordedPhaseResult<PullResult>> =>
+  runRecordedPhase({
+    app,
+    tenantId: connection.tenantId!,
+    phase: SyncRunPhase.PULL,
+    direction: SyncRunDirection.CLOUD_TO_EDGE,
+    service,
+    triggeredBy,
+    failureLog: { message: 'Pull-Worker mit Exception abgebrochen', event: 'sync.pull.worker_exception' },
+    execute: () => runPullForService(app, connection, service),
+    toSuccessRun: result => {
+      const rejectedCount = result.details.filter(d => d.status === SyncRunRecordStatus.REJECTED).length
+      return {
+        recordCount: result.count,
+        rejected: rejectedCount > 0 ? rejectedCount : undefined,
+        details: result.details,
+        outcome: rejectedCount > 0 ? SyncRunOutcome.PARTIAL : SyncRunOutcome.SUCCESS,
+      }
+    },
+  })
+
+export const runSyncOnce = async (
+  app: Application,
+  _cloudConnectionId: string,
+  triggeredBy: SyncRunTrigger = SyncRunTrigger.SCHEDULER,
+): Promise<SyncRunStats> => {
+  const start = performance.now()
+  const connection = await getActiveConnection(app)
+  if (!connection) {
+    return { pushed: 0, pulled: 0, durationMs: 0, lastError: 'Keine aktive Cloud-Connection.' }
   }
+  const durationMs = () => Math.round(performance.now() - start)
+
+  const hb = await runHeartbeatPhase(app, connection, triggeredBy)
+  let lastError = hb.lastError
+
+  if (hb.heartbeat?.clockSkewMs !== undefined && Math.abs(hb.heartbeat.clockSkewMs) > CLOCK_SKEW_ERROR_MS) {
+    return { pushed: 0, pulled: 0, durationMs: durationMs(), lastError: 'Clock-Skew zu gross — Push blockiert.' }
+  }
+
+  // Wenn der Heartbeat einen 401 gemeldet hat, hat handleCloudAuthError den
+  // pairingStatus bereits auf DISCONNECTED gesetzt. Push/Pull-Phasen mit
+  // ungueltigem Token zu starten waere nur Larm im Log.
+  if (hb.pairingRequired) {
+    return { pushed: 0, pulled: 0, durationMs: durationMs(), lastError }
+  }
+
+  // Cloud unerreichbar (DNS/Refused/Timeout, typisch waehrend Cloud-Restarts):
+  // Reconcile/PrinterCommands/Push/Pull haetten ohnehin alle `fetch failed` —
+  // jede dieser 9 Phasen wuerde dasselbe undici-Stacktrace-Triplet loggen.
+  // Wir steigen kompakt aus und warten auf den naechsten Tick. Das
+  // `Sync-Run: heartbeat failure`-Record + Emergency-Override-Tracking sind
+  // bereits in der Heartbeat-Phase geschrieben — der Operator sieht die
+  // Ursache eindeutig.
+  if (hb.cloudUnreachable) {
+    logger.info({
+      message: 'Cloud unerreichbar — Sync-Phasen ausgesetzt bis zum naechsten Heartbeat',
+      event: 'sync.cloud_unreachable',
+      reason: lastError,
+    })
+    return { pushed: 0, pulled: 0, durationMs: durationMs(), lastError }
+  }
+
+  const refreshed = (await (app.service(cloudConnectionPath) as any)._get(connection._id)) as CloudConnection
+
+  await runReconcileOverridesPhase(app, refreshed)
+  await runPrinterCommandsPhase(app, refreshed)
+
+  const push = await runPushPhase(app, refreshed, triggeredBy)
+  const pushed = push.result?.accepted ?? 0
+  if (push.errorMessage) lastError = push.errorMessage
+  let pairingRequired = push.pairingRequired
 
   // Wenn Push 401 sah, ist der Token kaputt — Pull-Schleife waere nur Larm.
   if (pairingRequired) {
-    return {
-      pushed,
-      pulled: 0,
-      durationMs: Math.round(performance.now() - start),
-      lastError,
-    }
+    return { pushed, pulled: 0, durationMs: durationMs(), lastError }
   }
 
-  // Pull pro Service: sync-run nur wenn recordCount>0 ODER Fehler.
+  let pulled = 0
   for (const service of MASTER_DATA_SERVICES) {
     if (pairingRequired) break
-    const pullStartedAt = new Date().toISOString()
-    const pullStartMs = performance.now()
-    try {
-      const { count, details } = await runPullForService(app, refreshed, service)
-      pulled += count
-      if (count > 0) {
-        const rejectedCount = details.filter(d => d.status === SyncRunRecordStatus.REJECTED).length
-        await recordSyncRun(app, {
-          tenantId: refreshed.tenantId!,
-          phase: SyncRunPhase.PULL,
-          direction: SyncRunDirection.CLOUD_TO_EDGE,
-          service,
-          recordCount: count,
-          rejected: rejectedCount > 0 ? rejectedCount : undefined,
-          details,
-          durationMs: Math.round(performance.now() - pullStartMs),
-          outcome: rejectedCount > 0 ? SyncRunOutcome.PARTIAL : SyncRunOutcome.SUCCESS,
-          triggeredBy,
-          startedAt: pullStartedAt,
-        })
-      }
-    } catch (err) {
-      const errMsg = err instanceof Error ? err.message : String(err)
-      lastError = errMsg
-      if (err instanceof EdgePairingRequiredError) pairingRequired = true
-      // Stack + AJV-Details nur bei Application-Errors — bei Cloud-Connect-
-      // Fehlern (fetch failed/ECONNREFUSED/…) ist der undici-Stack uninformativ
-      // und produziert 7x dasselbe Triplet (ein Stack pro Master-Data-Service).
-      const cloudUnreachable = isCloudUnreachableError(err)
-      logger.warn({
-        message: 'Pull-Worker mit Exception abgebrochen',
-        event: 'sync.pull.worker_exception',
-        service,
-        errorName: err instanceof Error ? err.name : undefined,
-        errorMessage: errMsg,
-        errorStack: cloudUnreachable ? undefined : err instanceof Error ? err.stack : undefined,
-        validationErrors: cloudUnreachable ? undefined : extractAjvValidationErrors(err),
-      })
-      await recordSyncRun(app, {
-        tenantId: refreshed.tenantId!,
-        phase: SyncRunPhase.PULL,
-        direction: SyncRunDirection.CLOUD_TO_EDGE,
-        service,
-        durationMs: Math.round(performance.now() - pullStartMs),
-        outcome: SyncRunOutcome.FAILURE,
-        errorMessage: errMsg,
-        triggeredBy,
-        startedAt: pullStartedAt,
-      })
-    }
+    const pull = await runPullServicePhase(app, refreshed, service, triggeredBy)
+    pulled += pull.result?.count ?? 0
+    if (pull.errorMessage) lastError = pull.errorMessage
+    if (pull.pairingRequired) pairingRequired = true
   }
 
-  return {
-    pushed,
-    pulled,
-    durationMs: Math.round(performance.now() - start),
-    lastError,
-  }
+  return { pushed, pulled, durationMs: durationMs(), lastError }
 }
 
 // Single-Flight-Mutex fuer den vollen Sync-Cycle. Garantiert:

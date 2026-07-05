@@ -102,6 +102,13 @@ const TRANSACTION_SERVICES: ReadonlyArray<string> = [
 ]
 
 const BACKFILL_RECENT_DAYS = 90
+// Seitengroesse fuer den gechunkten Backfill-Read (Keyset ueber _id) — haelt
+// pro Iteration nur eine Seite statt aller 90-Tage-Records im RAM.
+const BACKFILL_PAGE_SIZE = 500
+// Cap fuer parallel laufende sync-outbox.creates pro Batch. sync-outbox
+// erlaubt kein Multi-Create (`multi: ['patch']`), daher gebatchte
+// Einzel-Creates statt Array-Create.
+const BACKFILL_CREATE_CONCURRENCY = 25
 
 const persistStatus = async (
   app: Application,
@@ -170,45 +177,87 @@ const pushBootstrapChunks = async (
   }
 }
 
-const queueBackfillOutbox = async (
+/**
+ * Reiht die Transaction-Records der letzten BACKFILL_RECENT_DAYS Tage als
+ * BACKFILL-Eintraege in die Sync-Outbox ein — gechunkt statt Vollscan.
+ *
+ * Read-Pfad: Keyset-Pagination (`_id > cursor` + `$sort: { _id: 1 }` +
+ * `$limit`) statt `paginate: false`-Komplettload. uuidv7-_ids sind eindeutig
+ * und zeitlich geordnet — die Seiten sind deterministisch und
+ * ueberschneidungsfrei, ohne die Offset-Kosten von `$skip`.
+ *
+ * `createdAt <= windowEnd` fixiert das Fenster auf den Lauf-Start: Records,
+ * die WAEHREND des Backfills entstehen, erfasst bereits der Live-Outbox-
+ * Recorder — ohne die Obergrenze wuerde das Keyset sie zusaetzlich als
+ * BACKFILL einreihen (Doppel-Push derselben Entity).
+ *
+ * Write-Pfad: gebatchte Einzel-Creates via Promise.all mit Concurrency-Cap
+ * (siehe BACKFILL_CREATE_CONCURRENCY). Fehler pro Record werden geloggt —
+ * ein kaputter Record blockiert nie den Rest. Rueckgabe = erfolgreich
+ * eingereihte Eintraege.
+ *
+ * Exportiert fuer den fokussierten Worker-Test — `pageSize` ist dort
+ * injizierbar, um Mehrseiten-Pagination mit kleinen Fixtures zu erzwingen.
+ */
+export const queueBackfillOutbox = async (
   app: Application,
   service: string,
   tenantId: string,
+  pageSize: number = BACKFILL_PAGE_SIZE,
 ): Promise<number> => {
-  const since = new Date(Date.now() - BACKFILL_RECENT_DAYS * 24 * 60 * 60 * 1000).toISOString()
-  const records = await app.service(service as any).find({
-    provider: undefined,
-    paginate: false,
-    // `paginate: false` reicht aus — `$limit: -1` waere redundant und wuerde vom
-    // AJV-Query-Validator als negative Integer abgelehnt.
-    query: { tenantId, createdAt: { $gte: since } },
-  } as any)
-  const list = Array.isArray(records) ? records : []
-  for (const record of list) {
-    try {
-      await app.service('sync-outbox' as any).create(
-        {
-          _id: uuidv7(),
-          service,
-          op: SyncOp.CREATE,
-          entityId: (record as any)._id,
-          payload: record,
-          occurredAt: (record as any).updatedAt ?? new Date().toISOString(),
-          syncSource: SyncSource.BACKFILL,
-        },
-        { provider: undefined } as any,
+  const startMs = Date.now()
+  const since = new Date(startMs - BACKFILL_RECENT_DAYS * 24 * 60 * 60 * 1000).toISOString()
+  const windowEnd = new Date(startMs).toISOString()
+  let queued = 0
+  let cursor: string | undefined
+  for (;;) {
+    const page = await app.service(service as any).find({
+      provider: undefined,
+      paginate: false,
+      query: {
+        tenantId,
+        createdAt: { $gte: since, $lte: windowEnd },
+        ...(cursor ? { _id: { $gt: cursor } } : {}),
+        $sort: { _id: 1 },
+        $limit: pageSize,
+      },
+    } as any)
+    const list = (Array.isArray(page) ? page : []) as Array<Record<string, unknown>>
+    if (list.length === 0) break
+    for (let offset = 0; offset < list.length; offset += BACKFILL_CREATE_CONCURRENCY) {
+      const batch = list.slice(offset, offset + BACKFILL_CREATE_CONCURRENCY)
+      await Promise.all(
+        batch.map(async record => {
+          try {
+            await app.service('sync-outbox' as any).create(
+              {
+                _id: uuidv7(),
+                service,
+                op: SyncOp.CREATE,
+                entityId: record._id as string,
+                payload: record,
+                occurredAt: (record.updatedAt as string | undefined) ?? new Date().toISOString(),
+                syncSource: SyncSource.BACKFILL,
+              },
+              { provider: undefined } as any,
+            )
+            queued++
+          } catch (err) {
+            logger.warn({
+              message: 'Backfill-Outbox-Eintrag fehlgeschlagen',
+              event: 'sync.backfill.failed',
+              service,
+              entityId: record._id as string,
+              errorMessage: err instanceof Error ? err.message : String(err),
+            })
+          }
+        }),
       )
-    } catch (err) {
-      logger.warn({
-        message: 'Backfill-Outbox-Eintrag fehlgeschlagen',
-        event: 'sync.backfill.failed',
-        service,
-        entityId: (record as any)._id,
-        errorMessage: err instanceof Error ? err.message : String(err),
-      })
     }
+    cursor = list[list.length - 1]._id as string
+    if (list.length < pageSize) break
   }
-  return list.length
+  return queued
 }
 
 const truncateMasterTables = async (app: Application, tenantId: string): Promise<void> => {

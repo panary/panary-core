@@ -17,12 +17,12 @@ import {
   calculateTaxSummary,
 } from './prices-and-taxes'
 
-// Diese Spec lockt den IST-Zustand der Float-basierten POS-Anzeige-Preislogik
-// (Regressionsanker) und vergleicht sie cent-genau mit der kanonischen
-// cents-internen Engine `computeOrderTax` (@panary/orders/domain). Echte
-// Abweichungen sind unten im DRIFT-Block als `it.todo` dokumentiert — sie sind
-// Input für das spätere Refactoring der Anzeige auf die Cents-Engine (Stufe 2).
-// Die Anzeige-Logik selbst wird hier bewusst NICHT verändert.
+// Die POS-Anzeige delegiert seit dem Stufe-2-Refactor vollständig an die
+// kanonische Cents-Engine (`lineItemGrossCents`/`computeOrderTax`,
+// @panary/orders/domain). Diese Spec lockt: Anzeige == Engine cent-genau.
+// Die früher hier dokumentierten DRIFT-Fälle (Float-Anzeige vs. Engine) sind
+// per User-Entscheidung 2026-07-04 aufgelöst — Engine überall führend; die
+// Ist-Anker der alten Float-Logik wurden bewusst auf Engine-Werte aktualisiert.
 
 // Fixture-Helfer analog zur Engine-Spec (compute-order-tax.spec.ts). Steuersatz
 // einheitlich 19/19 — für Brutto-Vergleiche ist nur die Brutto-Summe relevant.
@@ -59,8 +59,6 @@ function makeOrder(lineItems: OrderLineItem[], discount?: Discount): Order {
   return { lineItems, dineLocation: 'dine-in', discount: discount ?? null } as unknown as Order
 }
 
-const GENERAL_SIDE = 1.5
-const GENERAL_DRINK = 1
 const cents = (euro: number) => Math.round(euro * 100)
 
 // FIXED_PROPORTIONAL-Menü 7,00 € — Komponenten wie im POS-Writer (main + Getränk),
@@ -76,88 +74,84 @@ function makeFixedBundle(amount: number, withModifier: boolean): OrderLineItem {
   })
 }
 
-describe('calculateArticlePriceWithoutExtras — Regressionsanker', () => {
+describe('calculateArticlePriceWithoutExtras — Engine-Semantik', () => {
   it('einfacher Artikel: price × amount (3,50 × 2 → 7,00)', () => {
-    expect(calculateArticlePriceWithoutExtras(makeLine(3.5, 2), GENERAL_SIDE, GENERAL_DRINK)).toBe(7.0)
+    expect(calculateArticlePriceWithoutExtras(makeLine(3.5, 2))).toBe(7.0)
   })
 
   it('Artikel ohne Preis → 0', () => {
-    expect(calculateArticlePriceWithoutExtras(makeLine(0, 3), GENERAL_SIDE, GENERAL_DRINK)).toBe(0)
+    expect(calculateArticlePriceWithoutExtras(makeLine(0, 3))).toBe(0)
   })
 
-  it('Menü ohne Beilage/Getränk-Objekt: General-Preise werden aufgeschlagen (5,00 + 1,50 + 1,00 → 7,50)', () => {
-    const line = makeLine(5.0, 1, { isMenu: true })
-    expect(calculateArticlePriceWithoutExtras(line, GENERAL_SIDE, GENERAL_DRINK)).toBe(7.5)
-  })
-
-  it('Menü-Override: menuSideDish.price ≠ General-Preis nutzt den Positionspreis (2× (5,00 + 2,00 + 1,00) → 16,00)', () => {
+  it('Menü-Beilage/Getränk zählen PRO Menü (2× (5,00 + 2,00) → 14,00; kein General-Aufschlag)', () => {
+    // Früher (Float-Logik): 16,00 — inkl. generalDrinkPrice 1,00 ×2 trotz fehlendem
+    // menuDrink-Objekt. Engine kennt keine General-Preise (Entscheidung 2026-07-04).
     const line = makeLine(5.0, 2, { isMenu: true, menuSideDish: makeGeneric(2.0) })
-    expect(calculateArticlePriceWithoutExtras(line, GENERAL_SIDE, GENERAL_DRINK)).toBe(16.0)
+    expect(calculateArticlePriceWithoutExtras(line)).toBe(14.0)
   })
 
-  it('Menü ohne Override: menuSideDish.price === General-Preis fällt auf den General-Preis zurück (→ 7,50)', () => {
-    const line = makeLine(5.0, 1, { isMenu: true, menuSideDish: makeGeneric(GENERAL_SIDE) })
-    expect(calculateArticlePriceWithoutExtras(line, GENERAL_SIDE, GENERAL_DRINK)).toBe(7.5)
+  it('Menü mit Beilage zum General-Preis: Positionspreis zählt (5,00 + 1,50 → 6,50)', () => {
+    const line = makeLine(5.0, 1, { isMenu: true, menuSideDish: makeGeneric(1.5) })
+    expect(calculateArticlePriceWithoutExtras(line)).toBe(6.5)
+  })
+
+  it('FIXED_PROPORTIONAL mit Ad-hoc-Modifier: ohne Extras = Festpreis × Menge (21,00)', () => {
+    expect(calculateArticlePriceWithoutExtras(makeFixedBundle(3, true))).toBe(21.0)
   })
 })
 
-describe('calculateArticlePrice — Regressionsanker', () => {
+describe('calculateArticlePrice — Engine-Semantik', () => {
   it('Artikel + Modifier: 3,50×2 + 0,50×2 → 8,00', () => {
     const line = makeLine(3.5, 2, { modifiers: [makeGeneric(0.5, 2)] })
-    expect(calculateArticlePrice(line, GENERAL_SIDE, GENERAL_DRINK)).toBe(8.0)
+    expect(calculateArticlePrice(line)).toBe(8.0)
   })
 
   it('Modifier mit amount 0 wird ignoriert', () => {
     const line = makeLine(3.5, 2, { modifiers: [makeGeneric(0.5, 0)] })
-    expect(calculateArticlePrice(line, GENERAL_SIDE, GENERAL_DRINK)).toBe(7.0)
+    expect(calculateArticlePrice(line)).toBe(7.0)
   })
 
   it('FIXED_PROPORTIONAL: Festpreis × Menge (7,00 × 3 → 21,00)', () => {
-    expect(calculateArticlePrice(makeFixedBundle(3, false), GENERAL_SIDE, GENERAL_DRINK)).toBe(21.0)
-  })
-
-  it('FIXED_PROPORTIONAL mit Ad-hoc-Modifier: Modifier wird aktuell IGNORIERT (Early-Return) → 21,00', () => {
-    // IST-Zustand-Anker — Soll laut Engine wäre 22,50 (Modifier on top), siehe DRIFT-Block.
-    expect(calculateArticlePrice(makeFixedBundle(3, true), GENERAL_SIDE, GENERAL_DRINK)).toBe(21.0)
+    expect(calculateArticlePrice(makeFixedBundle(3, false))).toBe(21.0)
   })
 })
 
-describe('calculateSumPrice / calculateSumPriceWithDiscountDetails — Regressionsanker', () => {
+describe('calculateSumPrice / calculateSumPriceWithDiscountDetails — Engine-Semantik', () => {
   it('summiert Positionen (3,50×2 + 2,00×1 → 9,00)', () => {
     const order = makeOrder([makeLine(3.5, 2), makeLine(2.0, 1)])
-    expect(calculateSumPrice(order, GENERAL_SIDE, GENERAL_DRINK)).toBe(9.0)
+    expect(calculateSumPrice(order)).toBe(9.0)
   })
 
   it('ohne Rabatt bleibt die Summe unverändert', () => {
     const order = makeOrder([makeLine(3.5, 2)])
-    expect(calculateSumPriceWithDiscountDetails(order, GENERAL_SIDE, GENERAL_DRINK)).toBe(7.0)
+    expect(calculateSumPriceWithDiscountDetails(order)).toBe(7.0)
   })
 
   it('Prozentrabatt: 33 % auf 3 × 3,33 → 6,69', () => {
     const order = makeOrder([makeLine(3.33, 3)], { discountType: DiscountType.PERCENT, discount: 33 })
-    expect(calculateSumPriceWithDiscountDetails(order, GENERAL_SIDE, GENERAL_DRINK)).toBe(6.69)
+    expect(calculateSumPriceWithDiscountDetails(order)).toBe(6.69)
   })
 
   it('Festbetrag-Rabatt: 10,00 − 4,00 → 6,00', () => {
     const order = makeOrder([makeLine(5.0, 2)], { discountType: DiscountType.AMOUNT, discount: 4 })
-    expect(calculateSumPriceWithDiscountDetails(order, GENERAL_SIDE, GENERAL_DRINK)).toBe(6.0)
+    expect(calculateSumPriceWithDiscountDetails(order)).toBe(6.0)
   })
 
   it('Festbetrag-Rabatt größer als Summe klemmt auf 0', () => {
     const order = makeOrder([makeLine(5.0, 2)], { discountType: DiscountType.AMOUNT, discount: 999 })
-    expect(calculateSumPriceWithDiscountDetails(order, GENERAL_SIDE, GENERAL_DRINK)).toBe(0)
+    expect(calculateSumPriceWithDiscountDetails(order)).toBe(0)
   })
 })
 
-describe('calculateCombinationPrice / calculateSumPriceSeperated — Regressionsanker', () => {
+describe('calculateCombinationPrice / calculateSumPriceSeperated — Engine-Semantik', () => {
   it('Kombination summiert die Artikelpreise (3,50×2 + 2,00×1 → 9,00)', () => {
-    expect(calculateCombinationPrice([makeLine(3.5, 2), makeLine(2.0, 1)], GENERAL_SIDE, GENERAL_DRINK)).toBe(9.0)
+    expect(calculateCombinationPrice([makeLine(3.5, 2), makeLine(2.0, 1)])).toBe(9.0)
   })
 
   it('sumPriceSeperated: Einzelartikel + Kombinationen (7,00 + 9,00 → 16,00)', () => {
     const articles = [makeLine(3.5, 2)]
     const combinations = [[makeLine(3.5, 2), makeLine(2.0, 1)]]
-    expect(calculateSumPriceSeperated(articles, combinations, GENERAL_SIDE, GENERAL_DRINK)).toBe(16.0)
+    expect(calculateSumPriceSeperated(articles, combinations)).toBe(16.0)
   })
 })
 
@@ -171,7 +165,7 @@ describe('calculateTaxSummary — delegiert an computeOrderTax', () => {
 describe('Anzeige ↔ Engine — cent-genaue Übereinstimmung', () => {
   it('Artikel + Modifier (legacy, ohne components): 8,00 == Engine-Brutto', () => {
     const line = makeLine(3.5, 2, { modifiers: [makeGeneric(0.5, 2)] })
-    const display = calculateArticlePrice(line, GENERAL_SIDE, GENERAL_DRINK)
+    const display = calculateArticlePrice(line)
     const engine = computeOrderTax(makeOrder([line]))
     expect(display).toBe(8.0)
     expect(cents(display)).toBe(cents(engine.brutto))
@@ -179,7 +173,7 @@ describe('Anzeige ↔ Engine — cent-genaue Übereinstimmung', () => {
 
   it('FIXED_PROPORTIONAL ohne Ad-hoc-Modifier: 21,00 == Engine-Brutto', () => {
     const line = makeFixedBundle(3, false)
-    const display = calculateArticlePrice(line, GENERAL_SIDE, GENERAL_DRINK)
+    const display = calculateArticlePrice(line)
     const engine = computeOrderTax(makeOrder([line]))
     expect(display).toBe(21.0)
     expect(cents(display)).toBe(cents(engine.brutto))
@@ -188,7 +182,7 @@ describe('Anzeige ↔ Engine — cent-genaue Übereinstimmung', () => {
   it('Prozentrabatt 33 % auf 3 × 3,33: 6,69 == Engine-Brutto', () => {
     const discount: Discount = { discountType: DiscountType.PERCENT, discount: 33 }
     const order = makeOrder([makeLine(3.33, 3)], discount)
-    const display = calculateSumPriceWithDiscountDetails(order, GENERAL_SIDE, GENERAL_DRINK)
+    const display = calculateSumPriceWithDiscountDetails(order)
     const engine = computeOrderTax(order)
     expect(display).toBe(6.69)
     expect(cents(display)).toBe(cents(engine.brutto))
@@ -196,14 +190,13 @@ describe('Anzeige ↔ Engine — cent-genaue Übereinstimmung', () => {
 
   it('Menü ×1 mit expliziter Beilage/Getränk: 8,50 == Engine-Brutto', () => {
     const line = makeLine(5.0, 1, { isMenu: true, menuSideDish: makeGeneric(1.5), menuDrink: makeGeneric(2.0) })
-    const display = calculateArticlePrice(line, 1.5, 2.0)
+    const display = calculateArticlePrice(line)
     const engine = computeOrderTax(makeOrder([line]))
     expect(display).toBe(8.5)
     expect(cents(display)).toBe(cents(engine.brutto))
   })
 
   it('Fixture-Tabelle Preis/Menge/Prozentrabatt: Anzeige == Engine-Brutto (cent-genau)', () => {
-    // Kombis ohne Halbcent-Kante — die abweichenden Fälle sind im DRIFT-Block dokumentiert.
     const cases: Array<[number, number, number, number]> = [
       // [preis, menge, rabattProzent, erwartet]
       [1.19, 1, 10, 1.07],
@@ -218,7 +211,7 @@ describe('Anzeige ↔ Engine — cent-genaue Übereinstimmung', () => {
     for (const [price, amount, discountPercent, expected] of cases) {
       const discount: Discount = { discountType: DiscountType.PERCENT, discount: discountPercent }
       const order = makeOrder([makeLine(price, amount)], discount)
-      const display = calculateSumPriceWithDiscountDetails(order, GENERAL_SIDE, GENERAL_DRINK)
+      const display = calculateSumPriceWithDiscountDetails(order)
       const engine = computeOrderTax(order)
       expect(display, `${price}×${amount} −${discountPercent}%`).toBe(expected)
       expect(cents(display), `${price}×${amount} −${discountPercent}%`).toBe(cents(engine.brutto))
@@ -226,55 +219,48 @@ describe('Anzeige ↔ Engine — cent-genaue Übereinstimmung', () => {
   })
 })
 
-// Echte Abweichungen Anzeige ↔ Engine. Die `it.todo`-Einträge beschreiben den
-// Soll-Zustand nach dem Stufe-2-Refactor; die Anker-Tests locken den heutigen
-// Ist-Zustand BEIDER Seiten, damit jede Verschiebung sofort sichtbar wird.
-describe('DRIFT Anzeige ↔ Engine — dokumentierter Ist-Zustand (Stufe-2-Input)', () => {
-  it.todo(
-    'DRIFT: FIXED_PROPORTIONAL mit Ad-hoc-Modifier — Anzeige ignoriert Modifier (Early-Return Z.71-73): ' +
-      '7,00×3 + Modifier 0,50 → Anzeige 21,00 €, Engine-Brutto 22,50 € (Soll: 22,50)',
-  )
-  it('Anker: FIXED_PROPORTIONAL + Modifier — Anzeige 21,00 / Engine 22,50', () => {
+// Die vier früher dokumentierten DRIFT-Fälle (Float-Anzeige ≠ Engine) — jetzt
+// grüne Tests: Anzeige == Engine cent-genau (Entscheidung 2026-07-04, Engine
+// führend; Fall 3 zusätzlich über den Engine-Fix „Beilage/Getränk PRO Menü").
+describe('Aufgelöste Drift-Fälle Anzeige ↔ Engine', () => {
+  it('1. FIXED_PROPORTIONAL + Ad-hoc-Modifier: Modifier zählt on top (21,00 + 3× 0,50 → 22,50)', () => {
+    // Früher ignorierte die Anzeige den Modifier (Early-Return) → 21,00.
     const line = makeFixedBundle(3, true)
-    expect(calculateArticlePrice(line, GENERAL_SIDE, GENERAL_DRINK)).toBe(21.0)
-    expect(computeOrderTax(makeOrder([line])).brutto).toBeCloseTo(22.5, 5)
+    const display = calculateArticlePrice(line)
+    expect(display).toBe(22.5)
+    expect(cents(display)).toBe(cents(computeOrderTax(makeOrder([line])).brutto))
   })
 
-  it.todo(
-    'DRIFT: Prozentrabatt-Halbcent — Anzeige rundet den Endbetrag (toFixed), Engine rundet den Rabattbetrag ' +
-      '(Math.round, half-up): 9,99 −50 % → 5,00 vs 4,99 · 1,25 −10 % → 1,13 vs 1,12 · 3×2,35 −30 % → 4,94 vs 4,93',
-  )
-  it('Anker: Halbcent-Rabattfälle — Anzeige und Engine liegen je 1 Cent auseinander', () => {
-    const cases: Array<[number, number, number, number, number]> = [
-      // [preis, menge, rabattProzent, anzeige, engineBrutto]
-      [9.99, 1, 50, 5.0, 4.99],
-      [1.25, 1, 10, 1.13, 1.12],
-      [2.35, 3, 30, 4.94, 4.93],
+  it('2. Prozentrabatt-Halbcents runden wie die Engine (Rabattbetrag half-up)', () => {
+    // Früher rundete die Anzeige den Endbetrag (toFixed) → je 1 Cent mehr.
+    const cases: Array<[number, number, number, number]> = [
+      // [preis, menge, rabattProzent, erwartet == Engine]
+      [9.99, 1, 50, 4.99],
+      [1.25, 1, 10, 1.12],
+      [2.35, 3, 30, 4.93],
     ]
-    for (const [price, amount, discountPercent, expectedDisplay, expectedEngine] of cases) {
+    for (const [price, amount, discountPercent, expected] of cases) {
       const discount: Discount = { discountType: DiscountType.PERCENT, discount: discountPercent }
       const order = makeOrder([makeLine(price, amount)], discount)
-      const display = calculateSumPriceWithDiscountDetails(order, GENERAL_SIDE, GENERAL_DRINK)
-      expect(display, `${price}×${amount} −${discountPercent}%`).toBe(expectedDisplay)
-      expect(computeOrderTax(order).brutto, `${price}×${amount} −${discountPercent}%`).toBeCloseTo(expectedEngine, 5)
+      const display = calculateSumPriceWithDiscountDetails(order)
+      expect(display, `${price}×${amount} −${discountPercent}%`).toBe(expected)
+      expect(cents(display), `${price}×${amount} −${discountPercent}%`).toBe(cents(computeOrderTax(order).brutto))
     }
   })
 
-  // AUFGELÖST (Engine-Fix, Entscheidung 2026-07-04): Beilage/Getränk zählen jetzt
-  // auch in der Engine PRO Menü — Anzeige und Engine stimmen überein.
-  it('Menü ×2 — Beilage/Getränk PRO Menü: Anzeige 17,00 == Engine 17,00', () => {
+  it('3. Menü ×2 — Beilage/Getränk PRO Menü: Anzeige 17,00 == Engine 17,00', () => {
     const line = makeLine(5.0, 2, { isMenu: true, menuSideDish: makeGeneric(1.5), menuDrink: makeGeneric(2.0) })
-    expect(calculateArticlePrice(line, 1.5, 2.0)).toBe(17.0)
-    expect(computeOrderTax(makeOrder([line])).brutto).toBeCloseTo(17.0, 5)
+    const display = calculateArticlePrice(line)
+    expect(display).toBe(17.0)
+    expect(cents(display)).toBe(cents(computeOrderTax(makeOrder([line])).brutto))
   })
 
-  it.todo(
-    'DRIFT: Menü-General-Preis-Fallback — Anzeige schlägt generalMenuSideDish-/DrinkPrice auch OHNE ' +
-      'Beilage/Getränk-Objekt auf (7,50 €); die Engine kennt keine General-Preise (Brutto 5,00 €)',
-  )
-  it('Anker: Menü ohne Beilage/Getränk-Objekt — Anzeige 7,50 / Engine 5,00', () => {
+  it('4. Menü ohne Beilage/Getränk-Objekt: KEIN General-Preis-Aufschlag mehr (5,00 == Engine)', () => {
+    // Früher schlug die Anzeige generalSideDish-/generalDrinkPrice auf (7,50) —
+    // der fakturierte Betrag (taxSnapshot/payment) enthielt sie nie.
     const line = makeLine(5.0, 1, { isMenu: true })
-    expect(calculateArticlePrice(line, GENERAL_SIDE, GENERAL_DRINK)).toBe(7.5)
-    expect(computeOrderTax(makeOrder([line])).brutto).toBeCloseTo(5.0, 5)
+    const display = calculateArticlePrice(line)
+    expect(display).toBe(5.0)
+    expect(cents(display)).toBe(cents(computeOrderTax(makeOrder([line])).brutto))
   })
 })

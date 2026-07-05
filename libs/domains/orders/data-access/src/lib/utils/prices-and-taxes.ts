@@ -1,173 +1,62 @@
-// import { environment } from '../../../../../../../apps/admin/src/environments/environment' // TODO: remove environment dependency
 import {
   computeOrderTax,
-  DiscountType,
-  GenericOrderLineItem,
+  fromCents,
+  lineItemGrossCents,
   Order,
   OrderLineItem,
+  sumCents,
   TaxInfo,
 } from '@panary/orders/domain'
 
-function printOut(value: string): void {
-  const enablePrintOut = false // TODO: printOut feature
-  if (enablePrintOut) {
-    console.log(value)
-  }
+// POS-Anzeige-Preise — delegieren vollständig an die kanonische Cents-Engine
+// (@panary/orders/domain): Zeilenpreise über die geteilte Quelle
+// `lineItemGrossCents`, Summen mit Rabatt über `computeOrderTax`.
+//
+// Entscheidung 2026-07-04 (bindend): Die Engine ist überall führend; die frühere
+// Float-Logik dieser Datei wurde bewusst entfernt. Damit entfallen die
+// dokumentierten Drift-Fälle (siehe prices-and-taxes.spec.ts):
+//   - FIXED_PROPORTIONAL: Ad-hoc-Modifier zählen jetzt on top des Festpreises.
+//   - Prozentrabatt-Halbcents runden wie die Engine (Rabattbetrag half-up),
+//     nicht mehr über toFixed am Endbetrag.
+//   - General-Menü-Preise (generalSideDish-/generalDrinkPrice) werden NICHT mehr
+//     aufgeschlagen — die Engine kennt sie nicht, der fakturierte Betrag
+//     (taxSnapshot/payment) enthielt sie nie. Der Aufpreis-Ausweis im Template
+//     (menuSideDish.price − generalPrice) bleibt davon unberührt.
+
+/** Zeilenpreis OHNE Ad-hoc-Modifier (Menü-Bestandteile inklusive). */
+export function calculateArticlePriceWithoutExtras(articleItem: OrderLineItem): number {
+  return fromCents(lineItemGrossCents({ ...articleItem, modifiers: [] }))
 }
 
-function round(value: number): number {
-  return parseFloat(value.toFixed(2))
-}
-
-export function calculateArticlePriceWithoutExtras(
-  articleItem: OrderLineItem,
-  generalMenuSideDishPrice: number,
-  generalMenuDrinkPrice: number,
-): number {
-  // FIXED_PROPORTIONAL: `price` IST der Festpreis (Komponenten sind eingerechnet) →
-  // nicht erneut aufsummieren, sonst Doppelzählung der Menü-Bestandteile.
-  if (articleItem.bundlePricingMode === 'FIXED_PROPORTIONAL') {
-    return round((articleItem.price || 0) * articleItem.amount)
-  }
-
-  let articlePrice=0
-
-  if (articleItem.price) {
-    printOut('Calculate article price without extras')
-
-    articlePrice+=articleItem.price*articleItem.amount
-    printOut(`ArticleAmount: ${articleItem.amount}`)
-
-    if (articleItem.isMenu) {
-      if (!articleItem.menuSideDish||articleItem.menuSideDish?.price===generalMenuSideDishPrice) {
-        articlePrice+=generalMenuSideDishPrice*articleItem.amount
-        printOut(`+ GeneralMenuSideDishPrice: ${generalMenuSideDishPrice*articleItem.amount}`)
-      } else {
-        articlePrice+=articleItem.menuSideDish.price*articleItem.amount
-        printOut(`+ MenuSideDishPrice: ${articleItem.menuSideDish.price*articleItem.amount}`)
-      }
-      if (!articleItem.menuDrink||articleItem.menuDrink?.price===generalMenuDrinkPrice) {
-        articlePrice+=generalMenuDrinkPrice*articleItem.amount
-        printOut(`+ GeneralMenuDrinkPrice: ${generalMenuDrinkPrice*articleItem.amount}`)
-      } else {
-        articlePrice+=articleItem.menuDrink.price*articleItem.amount
-        printOut(`+ MenuDrinkPrice: ${articleItem.menuDrink.price*articleItem.amount}`)
-      }
-    }
-  }
-
-  articlePrice=round(articlePrice)
-  printOut(`ResultWithoutExtras: ${articlePrice}`)
-
-  return articlePrice
-}
-
-export function calculateArticlePrice(
-  articleItem: OrderLineItem,
-  generalMenuSideDishPrice: number,
-  generalMenuDrinkPrice: number,
-): number {
-  // FIXED_PROPORTIONAL: Festpreis ist all-inclusive (Menü-Bestandteile eingerechnet).
-  if (articleItem.bundlePricingMode === 'FIXED_PROPORTIONAL') {
-    return round((articleItem.price || 0) * articleItem.amount)
-  }
-
-  let articlePrice: number=calculateArticlePriceWithoutExtras(
-    articleItem,
-    generalMenuSideDishPrice,
-    generalMenuDrinkPrice,
-  )
-
-  printOut('Calculate article price')
-
-  articleItem.modifiers.forEach((extra: GenericOrderLineItem): void => {
-    if (extra.price&&extra.amount>0) {
-      articlePrice+=extra.price*extra.amount
-      printOut(`+ ExtraPrice: ${extra.price*extra.amount}`)
-    }
-  })
-
-  articlePrice=round(articlePrice)
-  printOut(`Result: ${articlePrice}`)
-
-  return articlePrice
+/** Voller Zeilenpreis inkl. Modifier — cent-identisch zur Engine. */
+export function calculateArticlePrice(articleItem: OrderLineItem): number {
+  return fromCents(lineItemGrossCents(articleItem))
 }
 
 export function calculateSumPriceSeperated(
   articleItems: OrderLineItem[],
   combinations: Array<OrderLineItem[]>,
-  generalMenuSideDishPrice: number,
-  generalMenuDrinkPrice: number,
 ): number {
-  let sumPriceSeperated=0
-
-  articleItems.forEach((article: OrderLineItem): void => {
-    if (article.price!==undefined) {
-      sumPriceSeperated+=calculateArticlePrice(article, generalMenuSideDishPrice, generalMenuDrinkPrice)
-    }
-  })
-
-  combinations.forEach((articles: OrderLineItem[]): void => {
-    sumPriceSeperated+=calculateCombinationPrice(articles, generalMenuSideDishPrice, generalMenuDrinkPrice)
-  })
-
-  return round(sumPriceSeperated)
+  const articleCents = articleItems.map(article => lineItemGrossCents(article))
+  const comboCents = combinations.map(articles => sumCents(articles.map(article => lineItemGrossCents(article))))
+  return fromCents(sumCents([...articleCents, ...comboCents]))
 }
 
-export function calculateSumPrice(
-  orderItem: Order,
-  generalMenuSideDishPrice: number,
-  generalMenuDrinkPrice: number,
-): number {
-  let sumPrice=0
-
-  orderItem.lineItems.forEach((article: OrderLineItem): void => {
-    if (article.price) {
-      sumPrice+=calculateArticlePrice(article, generalMenuSideDishPrice, generalMenuDrinkPrice)
-    }
-  })
-
-  return round(sumPrice)
+export function calculateSumPrice(orderItem: Order): number {
+  return fromCents(sumCents(orderItem.lineItems.map(article => lineItemGrossCents(article))))
 }
 
-export function calculateSumPriceWithDiscountDetails(
-  orderItem: Order,
-  generalMenuSideDishPrice: number,
-  generalMenuDrinkPrice: number,
-): number {
-  let sumPrice: number=calculateSumPrice(orderItem, generalMenuSideDishPrice, generalMenuDrinkPrice)
-
-  if (orderItem.discount&&orderItem.discount.discountType===DiscountType.PERCENT) {
-    sumPrice=sumPrice-sumPrice*(orderItem.discount.discount/100)
-  } else if (orderItem.discount&&orderItem.discount.discountType===DiscountType.AMOUNT) {
-    sumPrice=sumPrice-orderItem.discount.discount
-    if (sumPrice<0) {
-      sumPrice=0
-    }
-  }
-
-  return round(sumPrice)
+/** Brutto-Summe inkl. Rabatt — identisch zu `computeOrderTax(order).brutto`. */
+export function calculateSumPriceWithDiscountDetails(orderItem: Order): number {
+  return computeOrderTax(orderItem).brutto
 }
 
-export function calculateCombinationPrice(
-  combination: Array<OrderLineItem>,
-  generalMenuSideDishPrice: number,
-  generalMenuDrinkPrice: number,
-): number {
-  let combinationPrice=0
-
-  combination.forEach((articleItem: OrderLineItem): void => {
-    if (articleItem.price!==undefined) {
-      combinationPrice+=calculateArticlePrice(articleItem, generalMenuSideDishPrice, generalMenuDrinkPrice)
-    }
-  })
-
-  return round(combinationPrice)
+export function calculateCombinationPrice(combination: Array<OrderLineItem>): number {
+  return fromCents(sumCents(combination.map(article => lineItemGrossCents(article))))
 }
 
 // Delegiert an die kanonische Engine `computeOrderTax` (@panary/orders/domain):
 // cents-intern, fiskalisch korrekte MwSt-Extraktion, Single Source of Truth.
-// Die frühere lokale Duplikat-Logik (calculateArticleTaxInfomation) wurde entfernt.
 export function calculateTaxSummary(order: Order): TaxInfo {
   return computeOrderTax(order)
 }

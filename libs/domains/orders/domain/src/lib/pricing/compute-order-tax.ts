@@ -44,7 +44,7 @@ interface LineGross {
 function lineGrossCents(line: OrderLineItem): number {
   let cents = 0
   if (line.price) cents += multiplyCents(toCents(line.price), line.amount)
-  line.modifiers.forEach((extra: GenericOrderLineItem) => {
+  ;(line.modifiers ?? []).forEach((extra: GenericOrderLineItem) => {
     if (extra.price) cents += multiplyCents(toCents(extra.price), extra.amount)
   })
   // Beilage/Getränk zählen PRO Menü: 2 Menüs = 2 Aufpreise (Entscheidung 2026-07-04).
@@ -89,60 +89,78 @@ function lineComponents(line: OrderLineItem): GenericOrderLineItem[] {
  *  - Legacy-Zeilen (ohne `components[]`): unverändert — alles am Zeilensatz
  *    summiert (kein Snapshot-Drift für Bestands-Orders).
  */
+function collectLineAtoms(line: OrderLineItem, dineIn: boolean): LineGross[] {
+  const lineRate = rateOf(line, dineIn)
+  const out: LineGross[] = []
+  if (!(Array.isArray(line.components) && line.components.length > 0)) {
+    out.push({ lineItemId: line._id, taxRate: lineRate, grossCents: lineGrossCents(line) })
+    return out
+  }
+
+  // FIXED_PROPORTIONAL: Festpreis (`line.price`) wird über die Komponenten-
+  // Normalpreise verteilt; jede Komponente behält ihren Steuersatz.
+  if (line.bundlePricingMode === 'FIXED_PROPORTIONAL') {
+    const fixedGross = line.price ? multiplyCents(toCents(line.price), line.amount) : 0
+    const comps = lineComponents(line).filter((c: GenericOrderLineItem) => !!c.price)
+    const weights = comps.map((c: GenericOrderLineItem) => multiplyCents(toCents(c.price as number), c.amount * line.amount))
+    const totalWeight = sumCents(weights)
+    if (fixedGross > 0 && totalWeight > 0) {
+      const allocations = distributeByLargestRemainder(fixedGross, weights)
+      comps.forEach((c: GenericOrderLineItem, i: number) => {
+        out.push({ lineItemId: line._id, taxRate: rateOf(c, dineIn), grossCents: allocations[i] })
+      })
+    } else if (fixedGross > 0) {
+      out.push({ lineItemId: line._id, taxRate: lineRate, grossCents: fixedGross })
+    }
+    // Ad-hoc-Modifier sind NICHT Teil des Festpreises → on top am Zeilensatz.
+    ;(line.modifiers ?? []).forEach((extra: GenericOrderLineItem) => {
+      if (extra.price) {
+        out.push({
+          lineItemId: line._id,
+          taxRate: lineRate,
+          grossCents: multiplyCents(toCents(extra.price), extra.amount * line.amount),
+        })
+      }
+    })
+    return out
+  }
+
+  let mainGross = line.price ? multiplyCents(toCents(line.price), line.amount) : 0
+  ;(line.modifiers ?? []).forEach((extra: GenericOrderLineItem) => {
+    if (extra.price) mainGross += multiplyCents(toCents(extra.price), extra.amount * line.amount)
+  })
+  out.push({ lineItemId: line._id, taxRate: lineRate, grossCents: mainGross })
+  for (const c of lineComponents(line)) {
+    if (c.price) {
+      out.push({
+        lineItemId: line._id,
+        taxRate: rateOf(c, dineIn),
+        grossCents: multiplyCents(toCents(c.price), c.amount * line.amount),
+      })
+    }
+  }
+  return out
+}
+
 function collectLineGrosses(order: Order): LineGross[] {
   const dineIn = order.dineLocation === 'dine-in'
   const out: LineGross[] = []
   for (const line of order.lineItems) {
-    const lineRate = rateOf(line, dineIn)
-    if (!(Array.isArray(line.components) && line.components.length > 0)) {
-      out.push({ lineItemId: line._id, taxRate: lineRate, grossCents: lineGrossCents(line) })
-      continue
-    }
-
-    // FIXED_PROPORTIONAL: Festpreis (`line.price`) wird über die Komponenten-
-    // Normalpreise verteilt; jede Komponente behält ihren Steuersatz.
-    if (line.bundlePricingMode === 'FIXED_PROPORTIONAL') {
-      const fixedGross = line.price ? multiplyCents(toCents(line.price), line.amount) : 0
-      const comps = lineComponents(line).filter((c: GenericOrderLineItem) => !!c.price)
-      const weights = comps.map((c: GenericOrderLineItem) => multiplyCents(toCents(c.price as number), c.amount * line.amount))
-      const totalWeight = sumCents(weights)
-      if (fixedGross > 0 && totalWeight > 0) {
-        const allocations = distributeByLargestRemainder(fixedGross, weights)
-        comps.forEach((c: GenericOrderLineItem, i: number) => {
-          out.push({ lineItemId: line._id, taxRate: rateOf(c, dineIn), grossCents: allocations[i] })
-        })
-      } else if (fixedGross > 0) {
-        out.push({ lineItemId: line._id, taxRate: lineRate, grossCents: fixedGross })
-      }
-      // Ad-hoc-Modifier sind NICHT Teil des Festpreises → on top am Zeilensatz.
-      line.modifiers.forEach((extra: GenericOrderLineItem) => {
-        if (extra.price) {
-          out.push({
-            lineItemId: line._id,
-            taxRate: lineRate,
-            grossCents: multiplyCents(toCents(extra.price), extra.amount * line.amount),
-          })
-        }
-      })
-      continue
-    }
-
-    let mainGross = line.price ? multiplyCents(toCents(line.price), line.amount) : 0
-    line.modifiers.forEach((extra: GenericOrderLineItem) => {
-      if (extra.price) mainGross += multiplyCents(toCents(extra.price), extra.amount * line.amount)
-    })
-    out.push({ lineItemId: line._id, taxRate: lineRate, grossCents: mainGross })
-    for (const c of lineComponents(line)) {
-      if (c.price) {
-        out.push({
-          lineItemId: line._id,
-          taxRate: rateOf(c, dineIn),
-          grossCents: multiplyCents(toCents(c.price), c.amount * line.amount),
-        })
-      }
-    }
+    out.push(...collectLineAtoms(line, dineIn))
   }
   return out
+}
+
+/**
+ * Brutto-Zeilenpreis in Cents — die geteilte Zeilenpreis-Quelle für POS-Anzeige
+ * (`prices-and-taxes.ts`) und Bon-Renderer (`order-receipt.renderer.ts`).
+ * Summiert exakt die Brutto-Atome, die auch `computeOrderTax` (vor Rabatten)
+ * bildet → Anzeige == Engine per Konstruktion (Entscheidung 2026-07-04).
+ * Der Steuersatz-Kontext (dine-in/take-out) beeinflusst nur den Steuer-Split,
+ * nicht das Brutto — für den Zeilenpreis daher irrelevant.
+ */
+export function lineItemGrossCents(line: OrderLineItem): number {
+  return sumCents(collectLineAtoms(line, true).map(atom => atom.grossCents))
 }
 
 function bucketize(lines: LineGross[]): RateBucket[] {

@@ -119,6 +119,16 @@ Nicht-Menü-Fälle bleiben bitgenau unverändert (Modifier weiterhin
 **Konsequenz:** Fiskal wirksam für neue Orders (gewollt). Kein Backfill —
 Bestands-Orders behalten ihren gestempelten Snapshot.
 
+**Geteilte Zeilenpreis-Quelle `lineItemGrossCents`:** Die POS-Anzeige
+(`prices-and-taxes.ts`) rechnet nicht mehr float-basiert, sondern delegiert an
+den exportierten Cents-Zeilenpreis der Engine (identische Brutto-Atome wie
+`computeOrderTax` vor Rabatten). Damit entfallen die dokumentierten Drift-Fälle:
+FIXED-Modifier zählen on top, Halbcent-Rabatte runden wie die Engine, und die
+General-Menü-Preise (`generalSideDishPrice`/`generalDrinkPrice`) werden nicht
+mehr auf den Zeilenpreis aufgeschlagen (der fakturierte Betrag enthielt sie
+nie). Der Aufpreis-Ausweis im Order-Dialog (`menuSideDish.price − generalPrice`)
+bleibt unverändert.
+
 ### Beispiel — Festpreis-Menü „Hamburger 100gr" (7,00 € fix, take-out)
 
 Komponenten (Normalpreis · Außer-Haus-Satz): Hauptgericht 4,40 € @7 %, Getränk
@@ -197,7 +207,7 @@ abgesichert.
 | Restgewicht/main-Komponente (FIXED-Abschluss) | `libs/domains/orders/domain/src/lib/pricing/fixed-bundle-main.ts` |
 | POS-Total (payment-Stempel) | `libs/domains/orders/feature-pos-active/src/lib/active-orders.component.ts` |
 | POS-Writer (Bundle → components[]) | `libs/domains/orders/feature-pos-order-dialog/src/lib/order-dialog.component.ts` |
-| Dialog-Preis-Anzeige (FIXED-aware) | `libs/domains/orders/data-access/src/lib/utils/prices-and-taxes.ts` |
+| Dialog-Preis-Anzeige (delegiert an `lineItemGrossCents`) | `libs/domains/orders/data-access/src/lib/utils/prices-and-taxes.ts` |
 | taxSnapshot-Stempel (Backend) | `apps/api-edge/src/hooks/calculate-tax-details.ts` |
 | Bon-Renderer | `apps/api-edge/src/print-server/order-receipt.renderer.ts` |
 | Order-Total-Fallback | `libs/domains/businessdays/aggregator/src/lib/order-total.ts` |

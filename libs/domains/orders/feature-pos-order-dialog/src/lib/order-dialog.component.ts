@@ -2415,23 +2415,19 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   calculateArticlePriceWithoutExtras(articleItem: OrderLineItem): number | undefined {
-    return calculateArticlePriceWithoutExtras(articleItem, this.generalSideDishPrice, this.generalDrinkPrice)
+    return calculateArticlePriceWithoutExtras(articleItem)
   }
 
   calculateArticlePrice(articleItem: OrderLineItem): number {
-    return calculateArticlePrice(articleItem, this.generalSideDishPrice, this.generalDrinkPrice)
+    return calculateArticlePrice(articleItem)
   }
 
   calculateSumPrice(): number {
-    return calculateSumPrice(
-      { lineItems: this.#lineItems } as any,
-      this.generalSideDishPrice,
-      this.generalDrinkPrice,
-    )
+    return calculateSumPrice({ lineItems: this.#lineItems } as any)
   }
 
   calculateCombinationPrice(articleItems: OrderLineItem[]): number {
-    return calculateCombinationPrice(articleItems, this.generalSideDishPrice, this.generalDrinkPrice)
+    return calculateCombinationPrice(articleItems)
   }
 
   isMenuComplete(orderArticle: OrderLineItem): boolean {

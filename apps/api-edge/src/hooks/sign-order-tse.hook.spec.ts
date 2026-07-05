@@ -1,40 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Domain-Module werden gemockt, damit Vitest die Source-Index der
-// `@panary/<domain>/domain`-Libs nicht kompilieren muss (bekannter
-// Resolution-Konflikt im Workspace) und die Helfer deterministisch sind.
-const requiresFiscalSignature = vi.fn((input: { operationMode?: string | null }) => input.operationMode === 'pos-cashier')
-
-vi.mock('@panary/tse/domain', () => ({
-  requiresFiscalSignature: (input: { operationMode?: string | null }) => requiresFiscalSignature(input),
-  tseInfoFromStart: (ref: any) => ({ status: 'started', ...ref }),
-  tseInfoFromSignature: (base: any, sig: any) => ({ ...base, status: 'signed', signatureValue: sig.signatureValue }),
-  tseInfoFromError: (input: any) => ({
-    status: 'failed',
-    transactionNumber: input.transactionNumber,
-    clientId: input.clientId,
-    provider: input.provider ?? 'unknown',
-    errorReason: input.error instanceof Error ? input.error.message : String(input.error),
-  }),
-  tseCancellationFromSignature: (sig: any, canceledAt: string) => ({
-    status: 'canceled',
-    canceledAt,
-    signatureValue: sig.signatureValue,
-  }),
-  tseCancellationFromError: (error: unknown, canceledAt: string) => ({
-    status: 'failed',
-    canceledAt,
-    errorReason: error instanceof Error ? error.message : String(error),
-  }),
-  tseRefFromInfo: (info: any) => ({
-    transactionNumber: info.transactionNumber,
-    clientId: info.clientId,
-    startedAt: info.startedAt,
-    provider: info.provider,
-    simulated: info.simulated,
-  }),
-}))
-
+// `@panary/tse/domain` läuft REAL (Gate + Signier-Flow leben dort seit der
+// Entspiegelung) — gemockt bleiben nur die app-seitigen Abhängigkeiten
+// (Logger, Fiskal-Zähler-Store). Hier steht die Adapter-Mechanik des Hooks
+// unter Test: tsePort-Beschaffung, Service-Reads, Guard-Verdrahtung.
 vi.mock('@panary/shared-backend', () => ({
   logger: { warn: vi.fn(), info: vi.fn(), error: vi.fn() },
 }))
@@ -73,7 +42,6 @@ function makeContext(opts: {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  requiresFiscalSignature.mockImplementation((input) => input.operationMode === 'pos-cashier')
   allocateFiscalCounter.mockResolvedValue(42)
 })
 

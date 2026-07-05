@@ -160,6 +160,32 @@ signiert werden. Bisher wurde `tsePort.cancelTransaction` **nirgends** aufgerufe
   Ausgangs-Transaktion, idempotent (bereits `cancellation` → skip), Cloud zusätzlich
   `fromSync`-Guard. Nie blockierend (§146a — Ausfall → `unavailable`).
 
+## Entspiegelung der Order-Signier-Hooks (umgesetzt, Core-Teil · Qualitäts-Review Stufe 3.3)
+
+Die zweiphasige Signier-Orchestrierung war zwischen Edge- und Cloud-Hook manuell
+gespiegelt (~220 Zeilen, expliziter „Spiegelt die Edge-Hooks"-Kommentar in
+api-cloud) — Drift-Risiko bei jeder Änderung. Jetzt lebt der transportneutrale
+Kern in `@panary/tse/domain`:
+- **Fiskal-Gate** ([fiscal-gate.ts](../libs/domains/tse/domain/src/lib/fiscal-gate.ts)):
+  `resolveFiscalSignContext(businessDayId, loadBusinessDay)` +
+  `fiscalSignContextFromBusinessDay` (reine Gate-Entscheidung) +
+  `FISCAL_GATE_BUSINESS_DAY_SELECT`. Fail-safe Richtung Signatur (kein
+  businessDayId / Lookup-Fehler / fehlender Snapshot → signieren) unverändert.
+- **Signier-Flow** ([order-signing-flow.ts](../libs/domains/tse/domain/src/lib/order-signing-flow.ts)):
+  Guards (`shouldStartOrderTse`, `canFinishOrderTse`, `canCancelOrderTse`),
+  Zähler-Regel (`allocateOrderTransactionNumber`, Fallback auf
+  `dailySequenceNumber`, nie blockierend) und die drei Phasen-Funktionen
+  `startOrderTseTransaction` / `finishOrderTseTransaction` /
+  `cancelOrderTseTransaction` (§146a-fail-open, identische Log-Events).
+- **Edge-Hook = dünner Adapter** (`sign-order-tse.hook.ts`): tsePort-Beschaffung
+  (`app.get('tsePort')`), Service-Reads (businessdays/orders), Edge-Guard
+  „keine Bon-Nummer → kein Signieren" und Hook-Wiring. 27 zusätzliche
+  Domain-Specs (fiscal-gate + order-signing-flow).
+- **Cloud folgt mit dem nächsten Core-Release** (Pin-Bump nötig): der Cloud-Hook
+  bleibt bis dahin unverändert gespiegelt. App-seitig verbleiben dort bewusst:
+  `fromSync`-Guard, per-Tenant-Port (`getTsePortForTenant` NACH dem Gate),
+  `!tenantId`-Abbruch, Fallback-Nummer 0 und `Cloud-`-Log-Präfixe.
+
 ## Phase F — tenant.tse-Config-Sync + Provider-Mapper + Secret-Naht (teilweise)
 
 Vorbereitung für per-Tenant-Provider-Auswahl + den künftigen echten Adapter.
@@ -212,6 +238,6 @@ ansprechen (konsistenter Signatur-Zähler) und den echten Netzwerk-/Timeout-Pfad
    + Port-Re-Init nach Tenant-Pull (Schutz gegen offene Transaktionen).
 
 ## Verification
-- `nx test tse-domain` (44 Specs grün) · `nx build tse-domain` · `nx build api-edge` · `nx build/test api-cloud` (alle grün).
+- `nx test tse-domain` (71 Specs grün) · `nx build tse-domain` · `nx test/build api-edge` · `nx build/test api-cloud` (alle grün).
 - Fail-closed: `resolveTseProvider('simulator', true)` wirft (Unit-Test) — Bootstrap würde in
   Produktion mit erzwungenem Simulator abbrechen.

@@ -369,3 +369,115 @@ describe('computeOrderTax — components[] (neues Bundle-Modell)', () => {
     expect(r.taxes[0].taxRate).toBe(19)
   })
 })
+
+describe('computeOrderTax — FIXED_PROPORTIONAL Randfälle (#39)', () => {
+  const FIXED_LINE_ID = '00000000-0000-0000-0000-0000000000f1'
+
+  // Hilfsfunktion: Standard-Festpreis-Menü 7,00 € mit Haupt 4,40 @7 %,
+  // Getränk 2,30 @19 %, Beilage 0,90 @7 % → Atome [405, 212, 83] (largest remainder).
+  function makeFixedLine(partial: Partial<OrderLineItem> = {}): OrderLineItem {
+    return makeLine(7.0, 1, 7, 7, {
+      _id: FIXED_LINE_ID,
+      bundlePricingMode: 'FIXED_PROPORTIONAL',
+      components: [
+        makeGeneric(4.4, 1, { taxInside: 7, taxOutside: 7, topic: 'main' }),
+        makeGeneric(2.3, 1, { taxInside: 19, taxOutside: 19 }),
+        makeGeneric(0.9, 1, { taxInside: 7, taxOutside: 7 }),
+      ],
+      ...partial,
+    })
+  }
+
+  function integrityCents(r: ReturnType<typeof computeOrderTax>): void {
+    const netCents = roundCents(r.netto)
+    const taxCents = r.taxes.reduce((s, t) => s + roundCents(t.tax), 0)
+    expect(netCents + taxCents).toBe(roundCents(r.brutto))
+  }
+
+  it('alle Komponenten price 0/null → Brutto == Festpreis, ein Eimer am ZEILENsatz', () => {
+    // Gewichts-Summe 0 → keine Verteilung möglich; die Engine fällt bewusst auf
+    // einen einzelnen Atom am Zeilensatz zurück, damit der Festpreis nicht verloren geht.
+    const line = makeLine(7.0, 1, 7, 7, {
+      bundlePricingMode: 'FIXED_PROPORTIONAL',
+      components: [
+        makeGeneric(0, 1, { taxInside: 19, taxOutside: 19, topic: 'main' }),
+        { ...makeGeneric(0, 1, { taxInside: 19, taxOutside: 19 }), price: null as unknown as number },
+      ],
+    })
+    const r = computeOrderTax(makeOrder([line], 'dine-in'))
+    expect(r.brutto).toBeCloseTo(7.0, 5)
+    expect(r.taxes).toHaveLength(1)
+    expect(r.taxes[0].taxRate).toBe(7) // Zeilensatz, NICHT der Komponenten-Satz (19)
+    integrityCents(r)
+  })
+
+  it('take-out: Komponenten-Steuersätze folgen taxOutside, netto + steuer == brutto', () => {
+    // Identisches Bundle wie dine-in-Basistest, aber Sätze inside≠outside:
+    // Haupt 19→7, Getränk 19→19, Beilage 19→7. Atome bleiben [405, 212, 83].
+    const line = makeLine(7.0, 1, 19, 7, {
+      bundlePricingMode: 'FIXED_PROPORTIONAL',
+      components: [
+        makeGeneric(4.4, 1, { taxInside: 19, taxOutside: 7, topic: 'main' }),
+        makeGeneric(2.3, 1, { taxInside: 19, taxOutside: 19 }),
+        makeGeneric(0.9, 1, { taxInside: 19, taxOutside: 7 }),
+      ],
+    })
+    const r = computeOrderTax(makeOrder([line], 'take-out'))
+    expect(r.brutto).toBeCloseTo(7.0, 5)
+    const byRate = Object.fromEntries(r.taxes.map(t => [t.taxRate, t.amount + t.tax]))
+    expect(byRate[19]).toBeCloseTo(2.12, 5) // Getränk (405+83 gehen auf 7 %)
+    expect(byRate[7]).toBeCloseTo(4.88, 5)
+    integrityCents(r)
+  })
+
+  it('LINE-Prozentrabatt auf FIXED-Zeile: cent-exakt über 7 %- und 19 %-Atome verteilt', () => {
+    // 10 % von 700 ct = 70 ct über die Atome [405, 212, 83] → [41, 21, 8]
+    // (largest remainder) → Eimer 7 %: 439 ct, 19 %: 191 ct.
+    const applied = [
+      makeApplied({ target: 'line', lineItemId: FIXED_LINE_ID, valueType: 'percent', valuePercent: 10 }),
+    ]
+    const r = computeOrderTax(makeOrderWithApplied([makeFixedLine()], applied))
+    expect(roundCents(r.brutto)).toBe(630)
+    expect(applied[0].computedAmountCents).toBe(70)
+    const byRate = Object.fromEntries(r.taxes.map(t => [t.taxRate, roundCents(t.amount + t.tax)]))
+    expect(byRate[7]).toBe(439)
+    expect(byRate[19]).toBe(191)
+    integrityCents(r)
+  })
+
+  it('LINE-Festbetrag-Rabatt auf FIXED-Zeile: cent-exakt über 7 %- und 19 %-Atome verteilt', () => {
+    // 123 ct über [405, 212, 83] → [71, 37, 15] → Eimer 7 %: 402 ct, 19 %: 175 ct.
+    const applied = [
+      makeApplied({ target: 'line', lineItemId: FIXED_LINE_ID, valueType: 'amount', valueCents: 123 }),
+    ]
+    const r = computeOrderTax(makeOrderWithApplied([makeFixedLine()], applied))
+    expect(roundCents(r.brutto)).toBe(577)
+    expect(applied[0].computedAmountCents).toBe(123)
+    const byRate = Object.fromEntries(r.taxes.map(t => [t.taxRate, roundCents(t.amount + t.tax)]))
+    expect(byRate[7]).toBe(402)
+    expect(byRate[19]).toBe(175)
+    integrityCents(r)
+  })
+
+  it('Komponente mit amount 2 verdoppelt ihr Verteilungs-Gewicht', () => {
+    const mkLine = (drinkAmount: number) =>
+      makeLine(7.0, 1, 7, 7, {
+        bundlePricingMode: 'FIXED_PROPORTIONAL',
+        components: [
+          makeGeneric(4.4, 1, { taxInside: 7, taxOutside: 7, topic: 'main' }),
+          makeGeneric(2.3, drinkAmount, { taxInside: 19, taxOutside: 19 }),
+        ],
+      })
+    // amount 1: Gewichte [440, 230] → 700 verteilt als [460, 240]
+    const single = computeOrderTax(makeOrder([mkLine(1)], 'dine-in'))
+    const singleByRate = Object.fromEntries(single.taxes.map(t => [t.taxRate, roundCents(t.amount + t.tax)]))
+    expect(singleByRate[19]).toBe(240)
+    // amount 2: Gewichte [440, 460] → 700 verteilt als [342, 358] — Getränk-Anteil steigt
+    const doubled = computeOrderTax(makeOrder([mkLine(2)], 'dine-in'))
+    expect(doubled.brutto).toBeCloseTo(7.0, 5) // Festpreis bleibt (line.amount unverändert)
+    const doubledByRate = Object.fromEntries(doubled.taxes.map(t => [t.taxRate, roundCents(t.amount + t.tax)]))
+    expect(doubledByRate[19]).toBe(358)
+    expect(doubledByRate[7]).toBe(342)
+    integrityCents(doubled)
+  })
+})

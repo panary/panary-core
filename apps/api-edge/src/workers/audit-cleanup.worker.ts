@@ -277,6 +277,7 @@ const runAuditEventsPhase = async (app: Application, config: AuditCleanupConfig)
 export interface OutboxRetentionResult {
   deletedDefault: number
   deletedAuditEvents: number
+  deletedSuperseded: number
 }
 
 /**
@@ -285,10 +286,16 @@ export interface OutboxRetentionResult {
  * Knex-Instanz und rechnet gegen `options.now`.
  *
  * Regeln:
- *  - Ausschliesslich `status='acked'`. pending/in-flight sind noch nicht
- *    gepusht; rejected haengt ggf. an einem sync-conflicts-Eintrag
- *    (linkedConflictId) und bleibt fuer die Operator-Aufloesung stehen.
- *  - Fremde Services: `syncedAt` aelter als OUTBOX_ACKED_RETENTION_DAYS.
+ *  - `status='acked'` und `status='superseded'` (vom Push-Worker terminal
+ *    uebersprungen, weil ein juengerer Eintrag derselben Entity existiert).
+ *    pending/in-flight sind noch nicht gepusht; rejected haengt ggf. an einem
+ *    sync-conflicts-Eintrag (linkedConflictId) und bleibt fuer die
+ *    Operator-Aufloesung stehen.
+ *  - Fremde Services: `syncedAt` aelter als OUTBOX_ACKED_RETENTION_DAYS;
+ *    superseded-Eintraege analog ueber `terminalAt` (sie haben nie ein
+ *    `syncedAt`). audit-events werden auch hier ausgenommen — superseded darf
+ *    dort praktisch nie auftreten (append-only), im Zweifel bleibt die Row
+ *    konservativ stehen.
  *  - `audit-events`: Die acked-Row ist der Loeschbarkeits-Beweis fuer den
  *    Audit-Cleanup (EXISTS-Subquery in runAuditEventsPhase). Sie darf erst
  *    fallen, wenn (a) `syncedAt` aelter als Audit-Retention + Karenz ist UND
@@ -328,7 +335,16 @@ export const runOutboxRetention = async (
     )
     .del()
 
-  return { deletedDefault, deletedAuditEvents }
+  // Superseded-Eintraege haben kein syncedAt (nie gepusht) — `terminalAt`
+  // (Supersede-Zeitpunkt) ist die Referenz. NULL-Werte matchen `< cutoff`
+  // in SQLite nie und bleiben konservativ erhalten.
+  const deletedSuperseded = await knex('sync-outbox')
+    .where('status', 'superseded')
+    .whereNot('service', 'audit-events')
+    .where('terminalAt', '<', defaultCutoff)
+    .del()
+
+  return { deletedDefault, deletedAuditEvents, deletedSuperseded }
 }
 
 // Phase 2 des Nightly-Laufs. Bewusst NACH dem Audit-Cleanup: ein Event wird
@@ -350,12 +366,13 @@ const runOutboxRetentionPhase = async (
       return
     }
     const result = await runOutboxRetention(knex, { auditRetentionDays: config.retentionDays })
-    if (result.deletedDefault > 0 || result.deletedAuditEvents > 0) {
+    if (result.deletedDefault > 0 || result.deletedAuditEvents > 0 || result.deletedSuperseded > 0) {
       logger.info({
         message: 'Outbox-Retention abgeschlossen',
         event: 'sync.outbox.retention.done',
         deletedDefault: result.deletedDefault,
         deletedAuditEvents: result.deletedAuditEvents,
+        deletedSuperseded: result.deletedSuperseded,
         durationMs: Date.now() - startedAt,
       })
     }

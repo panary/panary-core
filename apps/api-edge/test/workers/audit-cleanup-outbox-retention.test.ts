@@ -26,6 +26,7 @@ describe('audit-cleanup worker — outbox retention', () => {
     service?: string
     status?: string
     syncedAt?: string | null
+    terminalAt?: string | null
   }): Promise<void> => {
     await db('sync-outbox').insert({
       _id: row._id,
@@ -38,6 +39,7 @@ describe('audit-cleanup worker — outbox retention', () => {
       status: row.status ?? 'acked',
       attempts: 0,
       syncedAt: row.syncedAt === undefined ? daysAgo(120) : row.syncedAt,
+      terminalAt: row.terminalAt ?? null,
       createdAt: daysAgo(120),
       updatedAt: daysAgo(120),
     })
@@ -112,6 +114,33 @@ describe('audit-cleanup worker — outbox retention', () => {
     assert.strictEqual(result.deletedDefault, 0)
     assert.strictEqual(result.deletedAuditEvents, 0)
     assert.deepStrictEqual(await remainingIds(), ['orders-in-flight', 'orders-pending', 'orders-rejected'])
+  })
+
+  it('loescht superseded Eintraege fremder Services nach Ablauf der Retention (terminalAt-Referenz)', async () => {
+    // superseded-Eintraege haben nie ein syncedAt (nie gepusht) — die
+    // Retention rechnet gegen terminalAt (Supersede-Zeitpunkt).
+    await insertOutboxRow({ _id: 'orders-superseded-alt', status: 'superseded', syncedAt: null, terminalAt: daysAgo(31) })
+    await insertOutboxRow({ _id: 'orders-superseded-jung', status: 'superseded', syncedAt: null, terminalAt: daysAgo(29) })
+
+    const result = await runOutboxRetention(db, { auditRetentionDays: AUDIT_RETENTION_DAYS, now: NOW })
+
+    assert.strictEqual(result.deletedSuperseded, 1)
+    assert.deepStrictEqual(await remainingIds(), ['orders-superseded-jung'])
+  })
+
+  it('behaelt superseded audit-events Eintraege konservativ (append-only, sollte nie auftreten)', async () => {
+    await insertOutboxRow({
+      _id: 'audit-superseded',
+      service: 'audit-events',
+      status: 'superseded',
+      syncedAt: null,
+      terminalAt: daysAgo(200),
+    })
+
+    const result = await runOutboxRetention(db, { auditRetentionDays: AUDIT_RETENTION_DAYS, now: NOW })
+
+    assert.strictEqual(result.deletedSuperseded, 0)
+    assert.deepStrictEqual(await remainingIds(), ['audit-superseded'])
   })
 
   it('behaelt acked audit-events Eintraege bis Audit-Retention + Karenz', async () => {

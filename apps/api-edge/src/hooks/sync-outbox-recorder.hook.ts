@@ -40,6 +40,13 @@ export const recordSyncOutbox = async (context: HookContext, _next: NextHook) =>
   // Eintraege aus dem Sync-Outbox-Service selbst NIEMALS rekursiv aufnehmen.
   if (context.path === 'sync-outbox') return context
 
+  // Cloud→Edge-Applies (Pull-Apply, Bootstrap-Pull und User-Reconciliation
+  // setzen `params.fromSync = true`) NIEMALS in die Outbox aufnehmen — sonst
+  // Sync-Echo: die Cloud bekaeme ihre eigenen Daten zurueckgepusht und eine
+  // parallel entstandene juengere Cloud-Version wuerde vom Echo ueberschrieben
+  // (der Cloud-Receiver wendet create/patch als bedingungslosen Upsert an).
+  if ((context.params as { fromSync?: boolean } | undefined)?.fromSync) return context
+
   const result = context.result as { _id?: string; role?: string } | undefined
   const entityId = (op === SyncOp.REMOVE ? context.id : result?._id) as string | undefined
   if (!entityId) return context

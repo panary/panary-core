@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Domain-Module + uuidv7 werden gemockt, damit Vitest keine Domain-Source
-// kompilieren muss und die Outbox-Werte deterministisch sind.
+// uuidv7 + Enum-Module werden gemockt, damit die Outbox-Werte deterministisch
+// sind. @panary/users/domain wird bewusst NICHT gemockt: der
+// USER_EDGE_LOCAL_FIELDS-Strip und der Rollen-Block sind sicherheitsrelevante
+// Domain-Logik — die Spec muss die ECHTEN Funktionen treffen, sonst testet sie
+// eine Identitaets-Attrappe (Review-Befund Stufe 4 #47).
 vi.mock('uuidv7', () => ({ uuidv7: () => 'fixed-uuid' }))
 vi.mock('@panary/edge-pairing/domain', () => ({
   SyncableTransactionService: {
@@ -16,13 +19,6 @@ vi.mock('@panary/edge-pairing/domain', () => ({
 vi.mock('@panary/sync/domain', () => ({
   SyncOp: { CREATE: 'create', PATCH: 'patch', REMOVE: 'remove' },
   SyncSource: { LIVE: 'live', BACKFILL: 'backfill' },
-}))
-
-const isSyncPushBlockedRole = vi.fn(() => false)
-const stripUserEdgeLocalFields = vi.fn((record: Record<string, unknown>) => record)
-vi.mock('@panary/users/domain', () => ({
-  isSyncPushBlockedRole: (role: unknown) => isSyncPushBlockedRole(role),
-  stripUserEdgeLocalFields: (record: Record<string, unknown>) => stripUserEdgeLocalFields(record),
 }))
 vi.mock('@panary/shared-backend', () => ({
   logger: { warn: vi.fn(), info: vi.fn(), error: vi.fn() },
@@ -55,8 +51,6 @@ function makeContext(opts: {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  isSyncPushBlockedRole.mockReturnValue(false)
-  stripUserEdgeLocalFields.mockImplementation((record) => record)
 })
 
 describe('recordSyncOutbox', () => {
@@ -110,8 +104,23 @@ describe('recordSyncOutbox', () => {
     expect(outboxCreate).not.toHaveBeenCalled()
   })
 
-  it('überspringt Users mit sync-blockierter Rolle (Defense-in-Depth)', async () => {
-    isSyncPushBlockedRole.mockReturnValue(true)
+  it('überspringt Cloud→Edge-Applies (params.fromSync) — kein Sync-Echo', async () => {
+    // Pull-Apply/Bootstrap/Reconciliation patchen mit { fromSync: true } —
+    // solche Mutationen stammen AUS der Cloud und duerfen nie zurueckgepusht
+    // werden (Echo wuerde juengere Cloud-Staende ueberschreiben).
+    const { ctx, outboxCreate } = makeContext({
+      path: 'users',
+      method: 'patch',
+      result: { _id: 'u-sync', role: 'tenant:staff' },
+      params: { fromSync: true },
+    })
+
+    await recordSyncOutbox(ctx as any, noopNext)
+
+    expect(outboxCreate).not.toHaveBeenCalled()
+  })
+
+  it('überspringt Users mit sync-blockierter Rolle (Defense-in-Depth, echte Domain-Funktion)', async () => {
     const { ctx, outboxCreate } = makeContext({
       path: 'users',
       method: 'create',
@@ -121,6 +130,31 @@ describe('recordSyncOutbox', () => {
     await recordSyncOutbox(ctx as any, noopNext)
 
     expect(outboxCreate).not.toHaveBeenCalled()
+  })
+
+  it('pusht Users mit erlaubter Rolle und stript USER_EDGE_LOCAL_FIELDS (echte Domain-Funktion)', async () => {
+    const { ctx, outboxCreate } = makeContext({
+      path: 'users',
+      method: 'patch',
+      result: {
+        _id: 'u-2',
+        role: 'tenant:staff',
+        loginname: 'staff-1',
+        stampingId: 'wt-42',
+        startBreakAt: '2026-07-06T09:00:00.000Z',
+      },
+    })
+
+    await recordSyncOutbox(ctx as any, noopNext)
+
+    expect(outboxCreate).toHaveBeenCalledTimes(1)
+    const [payload] = outboxCreate.mock.calls[0]
+    expect(payload.entityId).toBe('u-2')
+    expect(payload.payload).toMatchObject({ _id: 'u-2', role: 'tenant:staff', loginname: 'staff-1' })
+    expect(payload.payload).not.toHaveProperty('stampingId')
+    expect(payload.payload).not.toHaveProperty('startBreakAt')
+    // Original-Result bleibt unangetastet (stripUserEdgeLocalFields kopiert flach).
+    expect(ctx.result.stampingId).toBe('wt-42')
   })
 
   it('übernimmt syncSource aus den params (backfill)', async () => {

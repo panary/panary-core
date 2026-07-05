@@ -299,7 +299,18 @@ const upsertCursor = async (
   }
 }
 
-const fetchPendingOutbox = async (app: Application): Promise<SyncOutboxEntry[]> => {
+interface PendingOutboxBatch {
+  /** Push-Kandidaten nach Coalescing — pro (service, entityId) nur der juengste. */
+  entries: SyncOutboxEntry[]
+  /**
+   * Roh-Anzahl der aus der DB gezogenen faelligen Eintraege (inkl. der als
+   * superseded markierten) — steuert den Drain-Loop: nur ein voller Roh-Batch
+   * laesst weitere faellige Eintraege vermuten.
+   */
+  fetched: number
+}
+
+const fetchPendingOutbox = async (app: Application): Promise<PendingOutboxBatch> => {
   // Sort ueber `_id` (uuidv7 enthaelt einen Millisekunden-Zeitstempel als
   // Praefix — sortiert chronologisch wie `createdAt`). `createdAt` ist nicht
   // in `syncOutboxEntryQueryProperties` enthalten und wuerde von validateQuery
@@ -321,7 +332,115 @@ const fetchPendingOutbox = async (app: Application): Promise<SyncOutboxEntry[]> 
       $sort: { _id: 1 },
     },
   })
-  return Array.isArray(result) ? result : []
+  const raw = (Array.isArray(result) ? result : []) as SyncOutboxEntry[]
+  if (raw.length === 0) return { entries: raw, fetched: 0 }
+  return { entries: await coalescePendingEntries(app, raw), fetched: raw.length }
+}
+
+/**
+ * Coalescing pro (service, entityId): nur der JUENGSTE Outbox-Eintrag einer
+ * Entity darf gepusht werden.
+ *
+ * Warum: Der Recorder schreibt pro Mutation einen VOLL-Payload-Eintrag ohne
+ * Deduplizierung. Liegen mehrere Eintraege derselben Entity vor (Mehrfach-
+ * Patch zwischen zwei Ticks; oder ein Backoff-Eintrag wird erst faellig,
+ * nachdem ein juengerer laengst geackt ist), wuerde die aeltere Payload die
+ * juengere in der Cloud ueberschreiben — der Cloud-Receiver wendet create und
+ * patch als bedingungslosen Upsert an und parallelisiert die Ops eines Batches
+ * (Fenster-Reihenfolge nicht garantiert; die Cloud setzt Edge-seitige
+ * Deduplizierung explizit voraus, siehe acceptOps in api-cloud sync.ts).
+ *
+ * Regel: Ein Kandidat ist superseded, sobald IRGENDEIN Eintrag derselben
+ * (service, entityId) mit groesserer `_id` existiert (uuidv7 = chronologisch),
+ * unabhaengig von dessen Status:
+ *  - pending/in-flight → der juengere Voll-Payload subsumiert den aelteren
+ *    Stand und wird (ggf. nach eigenem Backoff) gepusht.
+ *  - acked            → der juengere Stand ist bereits in der Cloud; den
+ *    aelteren jetzt zu pushen waere exakt der Stale-Overwrite.
+ *  - rejected         → der juengere Stand wartet auf Operator-Aufloesung
+ *    (sync-conflicts / reEnqueue); ein aelterer Stand darf ihn nicht
+ *    unterlaufen.
+ * Der juengste Eintrag einer Entity wird nie superseded und behaelt seine
+ * Retry-/Backoff-Semantik (attempts/nextAttemptAt) unveraendert — Coalescing
+ * verwirft also nie Zustand, nur veraltete Zwischenstaende.
+ */
+const coalescePendingEntries = async (
+  app: Application,
+  entries: SyncOutboxEntry[],
+): Promise<SyncOutboxEntry[]> => {
+  const entityIds = [...new Set(entries.map(e => e.entityId))]
+  let siblings: Array<Pick<SyncOutboxEntry, '_id' | 'service' | 'entityId'>>
+  try {
+    const found = await (app.service(syncOutboxPath) as any).find({
+      provider: undefined,
+      paginate: false,
+      query: { entityId: { $in: entityIds }, $select: ['_id', 'service', 'entityId'] },
+    })
+    siblings = Array.isArray(found) ? found : []
+  } catch (err) {
+    // Konservativ degradieren: ohne Sibling-Wissen kein Supersede — lieber ein
+    // redundanter Push (Cloud-Upsert ist idempotent) als ein faelschlich
+    // uebersprungener Eintrag.
+    logger.warn({
+      message: 'Outbox-Coalescing: Sibling-Query fehlgeschlagen — Batch wird ungefiltert gepusht',
+      event: 'sync.outbox.coalesce_failed',
+      errorMessage: err instanceof Error ? err.message : String(err),
+    })
+    return entries
+  }
+  const newestPerEntity = new Map<string, string>()
+  for (const sibling of siblings) {
+    const key = `${sibling.service} ${sibling.entityId}`
+    const current = newestPerEntity.get(key)
+    if (!current || sibling._id > current) newestPerEntity.set(key, sibling._id)
+  }
+  const survivors: SyncOutboxEntry[] = []
+  const superseded: Array<{ _id: string; newestId: string }> = []
+  for (const entry of entries) {
+    const newestId = newestPerEntity.get(`${entry.service} ${entry.entityId}`)
+    if (newestId && newestId > entry._id) {
+      superseded.push({ _id: entry._id, newestId })
+    } else {
+      survivors.push(entry)
+    }
+  }
+  if (superseded.length > 0) {
+    await markOutboxSuperseded(app, superseded)
+  }
+  return survivors
+}
+
+/**
+ * Markiert veraltete Outbox-Eintraege als `superseded` (terminal, wird nie
+ * gepusht). `terminalAt` ist die Retention-Referenz (runOutboxRetention im
+ * Audit-Cleanup-Worker); `lastError` dokumentiert fuer den Operator, welcher
+ * juengere Eintrag den Stand subsumiert hat.
+ */
+const markOutboxSuperseded = async (
+  app: Application,
+  entries: ReadonlyArray<{ _id: string; newestId: string }>,
+): Promise<void> => {
+  const now = new Date().toISOString()
+  await Promise.all(
+    entries.map(entry =>
+      (app.service(syncOutboxPath) as any)
+        .patch(
+          entry._id,
+          {
+            status: SyncOutboxStatus.SUPERSEDED,
+            terminalAt: now,
+            lastError: `Superseded durch juengeren Outbox-Eintrag ${entry.newestId} derselben Entity`,
+          },
+          { provider: undefined } as any,
+        )
+        .catch(() => undefined),
+    ),
+  )
+  logger.info({
+    message: `Outbox-Coalescing: ${entries.length} veraltete Eintraege superseded`,
+    event: 'sync.outbox.superseded',
+    count: entries.length,
+  })
 }
 
 /**
@@ -537,16 +656,19 @@ interface PushResult {
 }
 
 interface PushBatchResult extends PushResult {
-  // Anzahl der aus der Outbox gezogenen Eintraege — steuert den Drain-Loop:
-  // nur ein voller Batch (=== PUSH_BATCH_SIZE) laesst weitere vermuten.
+  // Roh-Anzahl der aus der Outbox gezogenen Eintraege (inkl. superseded) —
+  // steuert den Drain-Loop: nur ein voller Batch (=== PUSH_BATCH_SIZE) laesst
+  // weitere vermuten. Bewusst NICHT die Kandidaten-Anzahl nach Coalescing,
+  // sonst wuerde ein Batch voller superseded-Duplikate den Drain abbrechen,
+  // obwohl weitere faellige Eintraege warten.
   fetched: number
 }
 
 const runPushBatch = async (app: Application, connection: CloudConnection): Promise<PushBatchResult> => {
   const cloudToken = decryptCloudToken(connection.cloudToken)
   if (!cloudToken) return { accepted: 0, rejected: 0, details: [], fetched: 0 }
-  const entries = await fetchPendingOutbox(app)
-  if (entries.length === 0) return { accepted: 0, rejected: 0, details: [], fetched: 0 }
+  const { entries, fetched } = await fetchPendingOutbox(app)
+  if (entries.length === 0) return { accepted: 0, rejected: 0, details: [], fetched }
   // Per-Record-Details fuer den sync-run-Eintrag (accepted + rejected/conflict).
   const details: SyncRunRecordDetail[] = []
   // Knex serialisiert Objekte beim Insert in die SQLite-TEXT-Spalte `payload`
@@ -664,7 +786,7 @@ const runPushBatch = async (app: Application, connection: CloudConnection): Prom
       accepted: body.accepted.length,
       rejected: (body.rejected ?? []).length,
       details,
-      fetched: entries.length,
+      fetched,
     }
   } catch (err) {
     // Network-Errors / 5xx ohne Response-Body → Backoff-Retry, kein Pile-Up
@@ -860,10 +982,14 @@ const reconcileStaleUsers = async (
       if (visible.has(u._id)) continue
       if (u.status === 'ARCHIVED') continue
       try {
+        // `fromSync: true`: die Archivierung ist Cloud-getrieben (Visibility-
+        // Snapshot = Source of Truth). Ohne das Flag wuerde der Outbox-Recorder
+        // den Patch als Edge-Mutation aufnehmen und zur Cloud zurueckpushen
+        // (Sync-Echo) — inklusive Risiko, dort juengere Staende zu ueberschreiben.
         await app.service('users' as any).patch(
           u._id,
           { status: 'ARCHIVED' } as any,
-          { provider: undefined } as any,
+          { provider: undefined, fromSync: true } as any,
         )
         archived++
       } catch (err) {

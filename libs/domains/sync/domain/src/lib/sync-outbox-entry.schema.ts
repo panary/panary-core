@@ -8,6 +8,12 @@ export const SyncOutboxStatus = {
   IN_FLIGHT: 'in-flight',
   ACKED: 'acked',
   REJECTED: 'rejected',
+  // Vom Push-Worker uebersprungen, weil ein JUENGERER Outbox-Eintrag derselben
+  // (service, entityId) existiert. Der Recorder schreibt pro Mutation den
+  // VOLLEN Record als Payload — der juengste Eintrag subsumiert damit alle
+  // aelteren Staende; ein Push des aelteren waere ein Stale-Overwrite in der
+  // Cloud. Terminal: wird nie gepusht, Retention loescht ueber `terminalAt`.
+  SUPERSEDED: 'superseded',
 } as const
 
 export type SyncOutboxStatus = (typeof SyncOutboxStatus)[keyof typeof SyncOutboxStatus]
@@ -31,9 +37,10 @@ export const syncOutboxEntrySchema = Type.Object(
     // Eintraege). Bei transient errors setzt der Worker das Feld auf
     // `now + backoffMs(attempts)`.
     nextAttemptAt: Type.Optional(Type.String({ format: 'date-time' })),
-    // Zeitpunkt, an dem der Eintrag final als `rejected` markiert wurde
-    // (entweder durch persistenten Cloud-Error oder durch
-    // MAX_ATTEMPTS-Eskalation). Nur fuer Audit/Sortierung im Operator-UI.
+    // Zeitpunkt, an dem der Eintrag final als `rejected` (persistenter
+    // Cloud-Error oder MAX_ATTEMPTS-Eskalation) bzw. `superseded` (juengerer
+    // Eintrag derselben Entity) markiert wurde. Fuer Audit/Sortierung im
+    // Operator-UI und als Retention-Referenz fuer superseded-Eintraege.
     terminalAt: Type.Optional(Type.String({ format: 'date-time' })),
     // Cross-Referenz auf den sync-conflicts-Eintrag, der bei
     // classification='conflict' oder MAX_ATTEMPTS-Eskalation erzeugt wurde.

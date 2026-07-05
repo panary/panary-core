@@ -31,6 +31,7 @@ interface OutboxRow {
   lastAttemptAt?: string
   lastError?: string
   syncedAt?: string
+  terminalAt?: string
 }
 
 describe('cloud-sync-scheduler worker — push drain', () => {
@@ -58,17 +59,32 @@ describe('cloud-sync-scheduler worker — push drain', () => {
   }
 
   // Nachbildung der vom Worker genutzten sync-outbox-Queries: fetchPendingOutbox
-  // (find mit status/nextAttemptAt/$limit/$sort) und die Status-Patches
-  // (in-flight/acked/retry).
+  // (find mit status/nextAttemptAt/$limit/$sort), die Coalescing-Sibling-Query
+  // (find mit entityId.$in) und die Status-Patches (in-flight/acked/retry/
+  // superseded).
   const outboxService = {
     find: async (params: {
-      query: { status: string; nextAttemptAt: { $lte: string }; $limit: number }
-    }): Promise<OutboxRow[]> =>
-      rows
-        .filter(r => r.status === params.query.status && r.nextAttemptAt <= params.query.nextAttemptAt.$lte)
+      query: {
+        status?: string
+        nextAttemptAt?: { $lte: string }
+        $limit?: number
+        entityId?: { $in: string[] }
+      }
+    }): Promise<Array<Partial<OutboxRow>>> => {
+      if (params.query.entityId?.$in) {
+        const wanted = new Set(params.query.entityId.$in)
+        return rows
+          .filter(r => wanted.has(r.entityId))
+          .map(r => ({ _id: r._id, service: r.service, entityId: r.entityId }))
+      }
+      return rows
+        .filter(
+          r => r.status === params.query.status && r.nextAttemptAt <= (params.query.nextAttemptAt?.$lte ?? ''),
+        )
         .sort((a, b) => (a._id < b._id ? -1 : 1))
         .slice(0, params.query.$limit)
-        .map(r => ({ ...r })),
+        .map(r => ({ ...r }))
+    },
     patch: async (id: string, data: Partial<OutboxRow>): Promise<OutboxRow> => {
       const row = rows.find(r => r._id === id)
       if (!row) throw new Error(`Outbox-Eintrag ${id} nicht gefunden`)
@@ -151,6 +167,81 @@ describe('cloud-sync-scheduler worker — push drain', () => {
     }
     // Rest wurde nie angefasst.
     assert.strictEqual(rows.filter(r => r.status === SyncOutboxStatus.PENDING && r.attempts === 0).length, 50)
+  })
+
+  // --- Coalescing pro (service, entityId): nur der juengste Eintrag wird gepusht ---
+
+  const seedRow = (overrides: Partial<OutboxRow> & { _id: string; entityId: string }): void => {
+    const past = new Date(Date.now() - 60_000).toISOString()
+    rows.push({
+      service: 'orders',
+      op: SyncOp.PATCH,
+      payload: JSON.stringify({}),
+      occurredAt: past,
+      syncSource: SyncSource.LIVE,
+      status: SyncOutboxStatus.PENDING,
+      attempts: 0,
+      nextAttemptAt: past,
+      ...overrides,
+    })
+  }
+
+  it('coalesct zwei pending-Mutationen derselben Entity auf EINEN Push-Kandidaten mit juengster Payload', async () => {
+    seedRow({ _id: 'e-alt', entityId: 'order-x', payload: JSON.stringify({ rev: 1 }) })
+    seedRow({ _id: 'e-neu', entityId: 'order-x', payload: JSON.stringify({ rev: 2 }) })
+
+    const result = await runPush(app, connection)
+
+    // Genau EIN Cloud-Call mit genau dem juengeren Eintrag.
+    assert.strictEqual(fetchCalls.length, 1)
+    assert.deepStrictEqual(fetchCalls[0].opIds, ['e-neu'])
+    assert.strictEqual(result.accepted, 1)
+    const alt = rows.find(r => r._id === 'e-alt')
+    const neu = rows.find(r => r._id === 'e-neu')
+    assert.strictEqual(alt?.status, SyncOutboxStatus.SUPERSEDED)
+    assert.ok(alt?.terminalAt, 'superseded-Eintrag traegt terminalAt (Retention-Referenz)')
+    assert.match(alt?.lastError ?? '', /e-neu/)
+    assert.strictEqual(neu?.status, SyncOutboxStatus.ACKED)
+  })
+
+  it('supersedet einen faellig gewordenen Backoff-Eintrag, wenn ein juengerer bereits acked ist', async () => {
+    // Szenario Stale-Overwrite: e-alt scheiterte transient (Backoff), waehrend
+    // e-neu laengst erfolgreich gepusht wurde. Ohne Coalescing wuerde e-alt
+    // beim Faelligwerden den juengeren Cloud-Stand ueberschreiben.
+    seedRow({ _id: 'e-alt', entityId: 'order-x', attempts: 2 })
+    seedRow({
+      _id: 'e-neu',
+      entityId: 'order-x',
+      status: SyncOutboxStatus.ACKED,
+      syncedAt: new Date().toISOString(),
+    })
+
+    const result = await runPush(app, connection)
+
+    assert.strictEqual(fetchCalls.length, 0, 'kein Cloud-Call — es gibt keinen Push-Kandidaten')
+    assert.strictEqual(result.accepted, 0)
+    assert.strictEqual(rows.find(r => r._id === 'e-alt')?.status, SyncOutboxStatus.SUPERSEDED)
+  })
+
+  it('coalesct nicht ueber Entity-Grenzen und bricht den Drain nach reinen superseded-Batches nicht ab', async () => {
+    // Erster Roh-Batch (100 aelteste _ids) besteht komplett aus superseded
+    // Duplikaten — der Drain muss trotzdem weiterziehen und die 5 frischen
+    // Eintraege im zweiten Batch pushen (fetched zaehlt Roh-Eintraege).
+    for (let i = 0; i < BATCH_SIZE; i++) {
+      const id = String(i).padStart(5, '0')
+      seedRow({ _id: `a-${id}`, entityId: `dup-${id}` })
+      seedRow({ _id: `b-${id}`, entityId: `dup-${id}`, status: SyncOutboxStatus.ACKED })
+    }
+    for (let i = 0; i < 5; i++) {
+      seedRow({ _id: `z-${i}`, entityId: `frisch-${i}` })
+    }
+
+    const result = await runPush(app, connection)
+
+    assert.strictEqual(result.accepted, 5)
+    assert.strictEqual(fetchCalls.length, 1)
+    assert.deepStrictEqual(fetchCalls[0].opIds, ['z-0', 'z-1', 'z-2', 'z-3', 'z-4'])
+    assert.strictEqual(rows.filter(r => r.status === SyncOutboxStatus.SUPERSEDED).length, BATCH_SIZE)
   })
 
   it('deckelt den Drain bei MAX_PUSH_BATCHES_PER_CYCLE Batches', async () => {

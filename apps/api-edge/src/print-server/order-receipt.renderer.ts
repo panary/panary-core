@@ -1,6 +1,6 @@
 // @ts-expect-error — keine Typdeklarationen vorhanden
 import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder'
-import { computeOrderTax } from '@panary/orders/domain'
+import { computeOrderTax, fromCents, lineItemGrossCents, type OrderLineItem } from '@panary/orders/domain'
 import { buildTseReceiptBlock } from '@panary/tse/domain'
 import type { EscposOptions } from './escpos.adapter'
 
@@ -117,7 +117,7 @@ export function renderOrderReceipt(order: any, location: any, options: EscposOpt
       appendArticle(enc, article, nameW, priceW, subNameW, drinkPrice, sideDishPrice)
     }
 
-    const comboPrice = calcComboPrice(combo, sideDishPrice, drinkPrice)
+    const comboPrice = calcComboPrice(combo)
     enc.table(
       [{ width: nameW, align: 'left' }, { width: priceW, align: 'right' }],
       [['', '--------'], ['', (e: any) => e.bold(true).text(fmtEur(comboPrice)).bold(false)]],
@@ -203,9 +203,7 @@ function appendArticle(
   const name = `${article.amount}x ${prefix}${article.name}`
 
   // Hauptartikel — Produkt fett, Preis fett, in einer Tabellenzeile
-  const price = article.modifiers?.length > 0
-    ? calcArticlePrice(article, sideDishPrice, drinkPrice)
-    : calcArticlePriceSimple(article, drinkPrice, sideDishPrice)
+  const price = calcArticlePrice(article)
 
   enc.table(
     [{ width: nameW, align: 'left' }, { width: priceW, align: 'right' }],
@@ -275,34 +273,24 @@ function round(v: number): number {
   return parseFloat(v.toFixed(2))
 }
 
-function calcArticlePriceSimple(article: any, drinkPrice: number, sideDishPrice: number): number {
-  // FIXED_PROPORTIONAL: `price` IST der Festpreis (Beilage/Getränk eingerechnet) —
-  // nicht erneut aufschlagen, sonst Doppelzählung.
-  if (article.bundlePricingMode === 'FIXED_PROPORTIONAL') {
-    return round((article.price ?? 0) * (article.amount ?? 1))
-  }
-  let p = (article.price ?? 0) * (article.amount ?? 1)
-  if (article.isMenu) p += drinkPrice + sideDishPrice
-  return round(p)
+// Zeilen-/Kombipreise über die geteilte Cents-Quelle `lineItemGrossCents`
+// (@panary/orders/domain) — dieselben Brutto-Atome wie computeOrderTax
+// (taxSnapshot/payment) und die POS-Anzeige (Entscheidung 2026-07-04). Die
+// frühere Float-Nachbildung (General-Preise statt Positionspreise, Menü-
+// Aufpreise nicht mengen-skaliert) entfällt. Bon-Artikel kommen als Roh-JSON,
+// daher Pflichtfelder defensiv auffüllen.
+function toLineItem(article: any): OrderLineItem {
+  return { ...article, amount: article.amount ?? 1, modifiers: article.modifiers ?? [] } as OrderLineItem
 }
 
-function calcArticlePrice(article: any, sideDishPrice: number, drinkPrice: number): number {
-  if (article.bundlePricingMode === 'FIXED_PROPORTIONAL') {
-    return round((article.price ?? 0) * (article.amount ?? 1))
-  }
-  let p = calcArticlePriceSimple(article, drinkPrice, sideDishPrice)
-  for (const mod of (article.modifiers || [])) {
-    if (mod.price && mod.amount > 0) p += mod.price * mod.amount
-  }
-  return round(p)
+function calcArticlePrice(article: any): number {
+  return fromCents(lineItemGrossCents(toLineItem(article)))
 }
 
-function calcComboPrice(combo: any[], sideDishPrice: number, drinkPrice: number): number {
-  let total = 0
-  for (const a of combo) {
-    if (a.price !== undefined) total += calcArticlePrice(a, sideDishPrice, drinkPrice)
-  }
-  return round(total)
+function calcComboPrice(combo: any[]): number {
+  let totalCents = 0
+  for (const a of combo) totalCents += lineItemGrossCents(toLineItem(a))
+  return fromCents(totalCents)
 }
 
 // Kanonische Gesamtsumme über `computeOrderTax` (@panary/orders/domain) — dieselbe

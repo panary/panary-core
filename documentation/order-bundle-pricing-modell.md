@@ -84,9 +84,10 @@ gegen Doppel-`main`) in `@panary/orders/domain`; der POS-Writer ruft sie nur noc
 ### 4. Reader-Strategie: components[] bevorzugt, Legacy-Fallback (Phase 5)
 
 - **Bon** (`order-receipt.renderer.ts`): Gesamtsumme kanonisch über
-  `computeOrderTax` (== Snapshot/Payment). Artikelpreis FIXED-aware (Festpreis statt
-  Doppelzählung); Beilage/Getränk/Modifier bei FIXED ohne Aufschlag (im Festpreis
-  enthalten).
+  `computeOrderTax` (== Snapshot/Payment); Zeilen-/Kombipreise über die geteilte
+  Quelle `lineItemGrossCents` (== Engine == POS-Anzeige, seit 2026-07-06).
+  Beilage/Getränk/Modifier bei FIXED ohne Aufschlag (im Festpreis enthalten);
+  der Aufpreis-Ausweis (`menuSideDish.price − generalPrice`) bleibt rein optisch.
 - **Order-Total-Fallback** (`order-total.ts`, Prio 3 hinter payment → taxSnapshot):
   FIXED nutzt `line.price`; `components[]` wird on top addiert (ROLLUP/à-la-carte);
   sonst Legacy-Slots.

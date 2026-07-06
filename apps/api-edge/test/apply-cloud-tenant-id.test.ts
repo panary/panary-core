@@ -49,47 +49,73 @@ describe('applyCloudTenantId — Restamp gegen die migrierte Test-SQLite', () =>
   }
   const now = new Date().toISOString()
 
+  // Die Datei-SQLite wird von parallelen Vitest-Workern beschrieben —
+  // better-sqlite3 wirft bei konkurrierenden Write-Transaktionen trotz
+  // busy_timeout sofort SQLITE_BUSY ("database is locked"). Kurzer Retry
+  // entschaerft das Race, ohne die Parallelitaet der Suite zu opfern.
+  const withBusyRetry = async <TResult>(fn: () => Promise<TResult>): Promise<TResult> => {
+    let lastErr: unknown
+    for (let attempt = 0; attempt < 8; attempt++) {
+      try {
+        return await fn()
+      } catch (err) {
+        if (!String((err as Error).message).includes('database is locked')) throw err
+        lastErr = err
+        await new Promise(resolve => setTimeout(resolve, 150))
+      }
+    }
+    throw lastErr
+  }
+
   beforeAll(async () => {
     // Seed direkt via Knex: applyCloudTenantId arbeitet selbst auf DB-Ebene
     // (sanktionierte Ausnahme der Adapter-API-Regel) — der Seed spiegelt das.
-    await knex('locations').insert({
-      _id: oldLocationId,
-      tenantId: oldTenantId,
-      name: 'Alte Filiale',
-      operationMode: 'STANDARD',
-      createdAt: now,
-      updatedAt: now,
-    })
-    await knex('products').insert([
-      { _id: ids.productHome, tenantId: oldTenantId, locationId: oldLocationId, name: 'Brot', acronym: 'BR' },
-      { _id: ids.productGlobal, tenantId: oldTenantId, locationId: null, name: 'Croissant', acronym: 'CR' },
-      // Kontrolle: fremder Tenant darf vom Restamp nicht beruehrt werden.
-      { _id: ids.productForeign, tenantId: foreignTenantId, locationId: oldLocationId, name: 'Fremd', acronym: 'FR' },
-    ])
-    await knex('users').insert({
-      _id: ids.user,
-      tenantId: oldTenantId,
-      firstName: 'Resta',
-      lastName: 'Stamp',
-      role: 'tenant:staff',
-      activeLocationId: oldLocationId,
-      allowedLocationIds: JSON.stringify([oldLocationId, otherLocationId]),
-    })
+    await withBusyRetry(() =>
+      knex('locations').insert({
+        _id: oldLocationId,
+        tenantId: oldTenantId,
+        name: 'Alte Filiale',
+        operationMode: 'STANDARD',
+        createdAt: now,
+        updatedAt: now,
+      }),
+    )
+    await withBusyRetry(() =>
+      knex('products').insert([
+        { _id: ids.productHome, tenantId: oldTenantId, locationId: oldLocationId, name: 'Brot', acronym: 'BR' },
+        { _id: ids.productGlobal, tenantId: oldTenantId, locationId: null, name: 'Croissant', acronym: 'CR' },
+        // Kontrolle: fremder Tenant darf vom Restamp nicht beruehrt werden.
+        { _id: ids.productForeign, tenantId: foreignTenantId, locationId: oldLocationId, name: 'Fremd', acronym: 'FR' },
+      ]),
+    )
+    await withBusyRetry(() =>
+      knex('users').insert({
+        _id: ids.user,
+        tenantId: oldTenantId,
+        firstName: 'Resta',
+        lastName: 'Stamp',
+        role: 'tenant:staff',
+        activeLocationId: oldLocationId,
+        allowedLocationIds: JSON.stringify([oldLocationId, otherLocationId]),
+      }),
+    )
     // Skip-Tabelle (RESTAMP_SKIP_TABLES): Diagnose-Historie behaelt die alte ID.
-    await knex('sync-runs').insert({
-      _id: ids.syncRun,
-      tenantId: oldTenantId,
-      phase: 'push',
-      direction: 'edge-to-cloud',
-      recordCount: 1,
-      durationMs: 5,
-      outcome: 'success',
-      triggeredBy: 'scheduler',
-      startedAt: now,
-      finishedAt: now,
-      createdAt: now,
-      updatedAt: now,
-    })
+    await withBusyRetry(() =>
+      knex('sync-runs').insert({
+        _id: ids.syncRun,
+        tenantId: oldTenantId,
+        phase: 'push',
+        direction: 'edge-to-cloud',
+        recordCount: 1,
+        durationMs: 5,
+        outcome: 'success',
+        triggeredBy: 'scheduler',
+        startedAt: now,
+        finishedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      }),
+    )
   })
 
   afterAll(async () => {
@@ -103,12 +129,14 @@ describe('applyCloudTenantId — Restamp gegen die migrierte Test-SQLite', () =>
   })
 
   it('stempelt Nicht-Skip-Tabellen um, laesst Skip-Tabellen und fremde Tenants unveraendert', async () => {
-    const result = await applyCloudTenantId(app as unknown as Application, {
-      oldTenantId,
-      newTenantId,
-      oldLocationId,
-      newLocationId,
-    })
+    const result = await withBusyRetry(() =>
+      applyCloudTenantId(app as unknown as Application, {
+        oldTenantId,
+        newTenantId,
+        oldLocationId,
+        newLocationId,
+      }),
+    )
 
     // Backup-Datei wurde vor dem Restamp angelegt
     assert.ok(result.backupPath, 'backupPath fehlt')

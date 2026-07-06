@@ -133,6 +133,53 @@ async function guardCloudManagedLifecycle(
   }
 }
 
+export type OutboxGuardVerdict = 'skip' | 'warn' | 'block'
+
+/**
+ * Reine Entscheidungslogik des closeDay-Outbox-Guards (Review 2026-07-06) —
+ * als eigene Funktion exportiert, damit die Modi-Matrix OHNE globalen
+ * DB-Zustand testbar ist (eine geseedete CONNECTED-Connection wuerde in der
+ * geteilten Test-SQLite parallele Suiten in den Cloud-Modus kippen):
+ *  - kein CONNECTED-Pairing → skip (Standalone hat keinen Push/Cloud-Report,
+ *    pending akkumuliert dort naturgemaess fuer immer)
+ *  - CONNECTED + pending + Emergency-Override → warn (Cloud-Outage: pending
+ *    ist erwartbar, der Notfall-Abschluss darf nicht blockieren)
+ *  - CONNECTED + pending → block (Cloud-Report braucht vollstaendige Daten)
+ */
+export function evaluateOutboxGuard(input: {
+  cloudConnected: boolean
+  pendingTotal: number
+  isEmergencyOverride: boolean
+}): OutboxGuardVerdict {
+  if (!input.cloudConnected) return 'skip'
+  if (input.pendingTotal <= 0) return 'skip'
+  return input.isEmergencyOverride ? 'warn' : 'block'
+}
+
+/**
+ * Existiert eine CONNECTED cloud-connection? Fail-open (false = standalone
+ * angenommen) bei Lookup-Fehlern — konsistent zu guardCloudManagedLifecycle:
+ * ein kaputter Lookup darf weder Bootstrap-Pfade noch den lokalen
+ * Tagesabschluss blockieren.
+ */
+async function hasConnectedCloudConnection(app: Application): Promise<boolean> {
+  try {
+    const result = await (app.service('cloud-connection') as any).find({
+      provider: undefined,
+      paginate: false,
+      query: { pairingStatus: PairingStatus.CONNECTED, $limit: 1 },
+    })
+    return Array.isArray(result) && result.length > 0
+  } catch (err) {
+    logger.warn({
+      message: 'hasConnectedCloudConnection: Lookup fehlgeschlagen, fail-open (standalone angenommen)',
+      event: 'business_day.cloud_connection_lookup_failed',
+      error: (err as Error).message,
+    })
+    return false
+  }
+}
+
 /**
  * Wrapper, der `guardCloudManagedLifecycle` als Feathers-`before`-Hook
  * verwendbar macht — pro Service-Methode (`create`/`patch`/`remove`).
@@ -279,32 +326,61 @@ async function closeDay(
   // der Abschluss in der Cloud, wo die closing-validation (all-cash-sessions-closed
   // = Blocker, cash-without-session = Warnung) die Vollständigkeit erzwingt.
 
-  // Pending Sync-Outbox-Eintraege? KEIN tenantId-Filter: sync-outbox ist
-  // edge-interner Workflow-State ohne tenantId-Spalte (Edge = single-tenant) —
-  // das Query-Schema (additionalProperties:false) lehnt tenantId ab und der
-  // Guard waere still deaktiviert. in-flight blockt mit: der Push laeuft,
-  // ist aber noch nicht geackt — die Cloud hat die Daten ggf. noch nicht.
-  const outboxPending = await (app.service('sync-outbox') as any)
-    .find({
-      query: {
-        status: { $in: [SyncOutboxStatus.PENDING, SyncOutboxStatus.IN_FLIGHT] },
-        $limit: 0,
-      },
-      provider: undefined,
-    })
-    .catch((err: unknown) => {
-      // Fail-open wie guardCloudManagedLifecycle — aber nie still: ein
-      // geschluckter Query-Fehler wuerde den Guard unbemerkt deaktivieren.
-      logger.warn({
-        message: 'closeDay: Sync-Outbox-Check fehlgeschlagen, fail-open',
-        event: 'business_day.outbox_check_failed',
-        businessDayId: data.businessDayId,
-        error: (err as Error).message,
+  // Der Outbox-Guard schuetzt den CLOUD-Report vor unvollstaendigen Zahlen —
+  // er ist deshalb an den Cloud-Modus gebunden (Review-Befund 2026-07-06):
+  //  - STANDALONE (kein CONNECTED-Pairing): es gibt keinen Push und keinen
+  //    Cloud-Report; der Recorder fuellt die Outbox trotzdem, pending
+  //    akkumuliert dort naturgemaess fuer immer und darf den lokalen
+  //    Abschluss nie blockieren.
+  //  - EMERGENCY-OVERRIDE (Cloud-Outage): pending > 0 ist waehrend einer
+  //    Outage praktisch garantiert — der Notfall-Abschluss darf nicht
+  //    blockieren, wird aber als Warnung protokolliert; der Report heilt
+  //    sich nach der Outage via Sync + refreshClosingStatus.
+  //  - CONNECTED ohne Override: Hard-Block (extern aktuell durch
+  //    guardCloudManagedLifecycle verdeckt; greift fuer interne Aufrufe und
+  //    bleibt als Netz, falls die Lifecycle-Sperre je gelockert wird).
+  const cloudConnected = await hasConnectedCloudConnection(app)
+  let pendingTotal = 0
+  if (cloudConnected) {
+    // KEIN tenantId-Filter: sync-outbox ist edge-interner Workflow-State ohne
+    // tenantId-Spalte (Edge = single-tenant) — das Query-Schema
+    // (additionalProperties:false) lehnt tenantId ab und der Guard waere
+    // still deaktiviert. in-flight blockt mit: der Push laeuft, ist aber
+    // noch nicht geackt — die Cloud hat die Daten ggf. noch nicht.
+    const outboxPending = await (app.service('sync-outbox') as any)
+      .find({
+        query: {
+          status: { $in: [SyncOutboxStatus.PENDING, SyncOutboxStatus.IN_FLIGHT] },
+          $limit: 0,
+        },
+        provider: undefined,
       })
-      return { total: 0 }
+      .catch((err: unknown) => {
+        // Fail-open wie guardCloudManagedLifecycle — aber nie still: ein
+        // geschluckter Query-Fehler wuerde den Guard unbemerkt deaktivieren.
+        logger.warn({
+          message: 'closeDay: Sync-Outbox-Check fehlgeschlagen, fail-open',
+          event: 'business_day.outbox_check_failed',
+          businessDayId: data.businessDayId,
+          error: (err as Error).message,
+        })
+        return { total: 0 }
+      })
+    pendingTotal = (outboxPending as { total?: number })?.total ?? 0
+  }
+  const verdict = evaluateOutboxGuard({
+    cloudConnected,
+    pendingTotal,
+    isEmergencyOverride: params.isEmergencyOverride === true,
+  })
+  if (verdict === 'warn') {
+    logger.warn({
+      message: `closeDay: Emergency-Override schliesst den Tag mit ${pendingTotal} unsynchronen Aenderungen`,
+      event: 'business_day.close_with_pending_outbox',
+      businessDayId: data.businessDayId,
+      pendingTotal,
     })
-  const pendingTotal = (outboxPending as { total?: number })?.total ?? 0
-  if (pendingTotal > 0) {
+  } else if (verdict === 'block') {
     throw new BadRequest(
       `Sync-Outbox enthaelt noch ${pendingTotal} unsynchrone Aenderungen — bitte Edge synchronisieren lassen, bevor der Tag geschlossen wird`,
     )

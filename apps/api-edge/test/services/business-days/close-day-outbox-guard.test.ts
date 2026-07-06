@@ -1,21 +1,27 @@
 // Regressionstest fuer den Sync-Outbox-Guard in closeDay.
 //
-// Hintergrund: Die Guard-Query enthielt frueher `tenantId` — das
-// syncOutboxEntryQuerySchema (additionalProperties:false, keine
-// tenantId-Property, die Tabelle hat auch keine tenantId-Spalte) lehnte die
-// Query ab, der stille .catch() liess pendingTotal immer auf 0 und der
-// Hard-Block gegen unvollstaendige Cloud-Reports griff NIE. Dieser Test
-// laeuft gegen die volle Hook-Kette (inkl. validateQuery, das den Bug
-// ausgeloest hat) und verankert: pending/in-flight blockieren den
-// Tagesabschluss wirklich, terminale Stati (acked/superseded) nicht.
+// Hintergrund (zwei Runden): (1) Die Guard-Query enthielt frueher `tenantId` —
+// das syncOutboxEntryQuerySchema (additionalProperties:false, keine
+// tenantId-Property) lehnte die Query ab, der stille .catch() liess
+// pendingTotal immer auf 0 und der Hard-Block griff NIE. (2) Der reaktivierte
+// Guard blockte danach AUCH im Standalone-Modus (dort laeuft nie ein Push,
+// pending akkumuliert fuer immer) und beim Emergency-Override (Cloud-Outage
+// ⇒ pending garantiert) — Review-Befund 2026-07-06. Der Guard ist deshalb an
+// den Cloud-Modus gebunden.
+//
+// Test-Aufbau BEWUSST ohne geseedete CONNECTED-cloud-connection: die
+// Test-SQLite ist prozessuebergreifend geteilt, und eine CONNECTED-Connection
+// kippt parallele Suiten (restrict-order-to-business-day, cloud-managed) in
+// den Cloud-Modus. Die Modi-Matrix (skip/warn/block) wird deshalb ueber die
+// reine Funktion evaluateOutboxGuard verankert, die Query-Verkabelung (Bug 1)
+// direkt gegen die volle sync-outbox-Hook-Kette, und Standalone end-to-end.
 import assert from 'assert'
 import { uuidv7 } from 'uuidv7'
 import { BadRequest } from '@feathersjs/errors'
 import { BusinessDayStatus } from '@panary/businessdays/domain'
 import { SyncOp, SyncOutboxStatus, SyncSource } from '@panary/sync/domain'
 import { app } from '../../../src/app'
-
-const BLOCK_MESSAGE = /Sync-Outbox enthaelt noch \d+ unsynchrone Aenderungen/
+import { evaluateOutboxGuard } from '../../../src/services/business-days/business-days'
 
 describe('business-days closeDay — Sync-Outbox-Guard', () => {
   const tenantId = uuidv7()
@@ -23,14 +29,14 @@ describe('business-days closeDay — Sync-Outbox-Guard', () => {
   const user = { _id: uuidv7(), tenantId, locationId }
 
   const outboxIds: string[] = []
-  let businessDayId: string
+  const businessDayIds: string[] = []
 
   const businessDays = () =>
     app.service('businessdays') as unknown as {
       openDay(data: { locationId: string }, params: { user: typeof user }): Promise<{ _id: string; status: string }>
       closeDay(
         data: { businessDayId: string },
-        params: { user: typeof user },
+        params: { user: typeof user; isEmergencyOverride?: boolean },
       ): Promise<{ _id: string; status: string; closedBy?: string }>
       get(id: string, params: { provider: undefined }): Promise<{ status: string }>
       remove(id: string, params: { provider: undefined }): Promise<unknown>
@@ -38,13 +44,14 @@ describe('business-days closeDay — Sync-Outbox-Guard', () => {
 
   const outbox = () => app.service('sync-outbox') as any
 
-  const createOutboxEntry = async (status?: string): Promise<string> => {
+  const createOutboxEntry = async (status?: string): Promise<{ id: string; entityId: string }> => {
+    const entityId = uuidv7()
     const entry = (await outbox().create(
       {
         _id: uuidv7(),
         service: 'orders',
         op: SyncOp.CREATE,
-        entityId: uuidv7(),
+        entityId,
         occurredAt: new Date().toISOString(),
         syncSource: SyncSource.LIVE,
       },
@@ -55,40 +62,11 @@ describe('business-days closeDay — Sync-Outbox-Guard', () => {
     if (status && status !== SyncOutboxStatus.PENDING) {
       await outbox().patch(entry._id, { status }, { provider: undefined })
     }
-    return entry._id
-  }
-
-  // Die Test-SQLite ist prozessuebergreifend geteilt: parallel laufende
-  // Testdateien erzeugen ueber den sync-outbox-Recorder eigene pending-
-  // Eintraege (orders/users sind syncpflichtig). Fuer den Erfolgsfall wird
-  // die Outbox daher vor dem closeDay-Versuch drainiert (pending/in-flight →
-  // acked) und bei einem Race mit frisch dazugekommenen Eintraegen erneut
-  // versucht. Kein anderer Test asserted auf pending-Outbox-State in der DB.
-  const closeDayWithDrainedOutbox = async () => {
-    let lastError: unknown
-    for (let attempt = 0; attempt < 5; attempt++) {
-      await outbox().patch(
-        null,
-        { status: SyncOutboxStatus.ACKED },
-        {
-          provider: undefined,
-          query: { status: { $in: [SyncOutboxStatus.PENDING, SyncOutboxStatus.IN_FLIGHT] } },
-        },
-      )
-      try {
-        return await businessDays().closeDay({ businessDayId }, { user })
-      } catch (err) {
-        if (!(err instanceof BadRequest) || !BLOCK_MESSAGE.test(err.message)) throw err
-        lastError = err
-      }
-    }
-    throw lastError
+    return { id: entry._id, entityId }
   }
 
   beforeAll(async () => {
     await app.setup()
-    const day = await businessDays().openDay({ locationId }, { user })
-    businessDayId = day._id
   })
 
   afterAll(async () => {
@@ -97,49 +75,98 @@ describe('business-days closeDay — Sync-Outbox-Guard', () => {
         .remove(id, { provider: undefined })
         .catch(() => undefined)
     }
-    if (businessDayId) await businessDays().remove(businessDayId, { provider: undefined })
+    for (const id of businessDayIds) {
+      await businessDays()
+        .remove(id, { provider: undefined })
+        .catch(() => undefined)
+    }
     await app.teardown()
   })
 
-  it('blockt den Tagesabschluss bei pending Outbox-Eintraegen', async () => {
-    await createOutboxEntry()
+  describe('Modi-Matrix (evaluateOutboxGuard, rein)', () => {
+    it('Standalone prueft nie — auch bei pending', () => {
+      assert.strictEqual(
+        evaluateOutboxGuard({ cloudConnected: false, pendingTotal: 42, isEmergencyOverride: false }),
+        'skip',
+      )
+      assert.strictEqual(
+        evaluateOutboxGuard({ cloudConnected: false, pendingTotal: 42, isEmergencyOverride: true }),
+        'skip',
+      )
+    })
 
-    await assert.rejects(
-      () => businessDays().closeDay({ businessDayId }, { user }),
-      (err: Error) => err instanceof BadRequest && BLOCK_MESSAGE.test(err.message),
-      'closeDay muss bei pending Outbox-Eintraegen mit BadRequest blocken',
-    )
+    it('CONNECTED ohne pending laesst durch', () => {
+      assert.strictEqual(
+        evaluateOutboxGuard({ cloudConnected: true, pendingTotal: 0, isEmergencyOverride: false }),
+        'skip',
+      )
+    })
 
-    const stored = await businessDays().get(businessDayId, { provider: undefined })
-    assert.strictEqual(stored.status, BusinessDayStatus.OPEN, 'Tag muss offen bleiben')
+    it('CONNECTED mit pending blockt hart', () => {
+      assert.strictEqual(
+        evaluateOutboxGuard({ cloudConnected: true, pendingTotal: 1, isEmergencyOverride: false }),
+        'block',
+      )
+    })
+
+    it('Emergency-Override degradiert den Block zur Warnung', () => {
+      assert.strictEqual(
+        evaluateOutboxGuard({ cloudConnected: true, pendingTotal: 7, isEmergencyOverride: true }),
+        'warn',
+      )
+    })
   })
 
-  it('blockt den Tagesabschluss auch bei in-flight Outbox-Eintraegen', async () => {
-    // pending-Eintrag aus dem vorigen Test acken, damit nur in-flight blockt
-    await outbox().patch(
-      null,
-      { status: SyncOutboxStatus.ACKED },
-      { provider: undefined, query: { status: SyncOutboxStatus.PENDING } },
-    )
-    await createOutboxEntry(SyncOutboxStatus.IN_FLIGHT)
+  describe('Guard-Query gegen die volle sync-outbox-Hook-Kette (Bug-1-Regression)', () => {
+    it('pending/in-flight-Zaehlung passiert validateQuery und zaehlt korrekt', async () => {
+      const { id, entityId } = await createOutboxEntry()
 
-    await assert.rejects(
-      () => businessDays().closeDay({ businessDayId }, { user }),
-      (err: Error) => err instanceof BadRequest && BLOCK_MESSAGE.test(err.message),
-      'closeDay muss bei in-flight Outbox-Eintraegen mit BadRequest blocken',
-    )
+      // Exakt die Feld-Formen der Guard-Query (status-$in) + entityId zur
+      // Isolation gegen parallel erzeugte Outbox-Eintraege anderer Suiten.
+      const guardQuery = {
+        entityId,
+        status: { $in: [SyncOutboxStatus.PENDING, SyncOutboxStatus.IN_FLIGHT] },
+        $limit: 0,
+      }
+      const pending = await outbox().find({ query: guardQuery, provider: undefined })
+      assert.strictEqual(pending.total, 1, 'pending-Eintrag muss gezaehlt werden')
+
+      await outbox().patch(id, { status: SyncOutboxStatus.IN_FLIGHT }, { provider: undefined })
+      const inFlight = await outbox().find({ query: guardQuery, provider: undefined })
+      assert.strictEqual(inFlight.total, 1, 'in-flight-Eintrag muss gezaehlt werden')
+
+      await outbox().patch(id, { status: SyncOutboxStatus.ACKED }, { provider: undefined })
+      const acked = await outbox().find({ query: guardQuery, provider: undefined })
+      assert.strictEqual(acked.total, 0, 'acked darf nicht mehr zaehlen')
+    })
+
+    it('tenantId in der Query wird weiterhin abgelehnt — der Ursprungs-Bug bleibt verankert', async () => {
+      // Bug 1: die Guard-Query enthielt tenantId, validateQuery lehnte ab und
+      // der stille .catch() deaktivierte den Guard. Dieser Negativ-Anker
+      // stellt sicher, dass niemand tenantId wieder in die Query aufnimmt
+      // und sich auf "wird schon gefiltert" verlaesst.
+      await assert.rejects(
+        () =>
+          outbox().find({
+            query: { tenantId: uuidv7(), status: SyncOutboxStatus.PENDING, $limit: 0 },
+            provider: undefined,
+          }),
+        (err: Error) => err instanceof BadRequest,
+        'tenantId muss vom sync-outbox-Query-Schema abgelehnt werden',
+      )
+    })
   })
 
-  it('terminale Stati (acked/superseded) blockieren nicht — Tagesabschluss geht durch', async () => {
-    await createOutboxEntry(SyncOutboxStatus.ACKED)
-    await createOutboxEntry(SyncOutboxStatus.SUPERSEDED)
+  describe('closeDay end-to-end (Standalone — keine CONNECTED-Connection in der Test-DB)', () => {
+    it('schliesst trotz pending Outbox-Eintraegen (Guard uebersprungen)', async () => {
+      const day = await businessDays().openDay({ locationId }, { user })
+      businessDayIds.push(day._id)
+      await createOutboxEntry()
 
-    const closed = await closeDayWithDrainedOutbox()
+      const closed = await businessDays().closeDay({ businessDayId: day._id }, { user })
 
-    assert.strictEqual(closed.status, BusinessDayStatus.CLOSING_REQUESTED)
-    assert.strictEqual(closed.closedBy, user._id)
-
-    const stored = await businessDays().get(businessDayId, { provider: undefined })
-    assert.strictEqual(stored.status, BusinessDayStatus.CLOSING_REQUESTED)
+      assert.strictEqual(closed.status, BusinessDayStatus.CLOSING_REQUESTED)
+      assert.strictEqual(closed.closedBy, user._id)
+    })
   })
 })

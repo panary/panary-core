@@ -6,8 +6,10 @@
 // HTTP-Fehlern (Batch geht via markOutboxRetry zurueck auf pending+Backoff)
 // und der Batch-Deckel MAX_PUSH_BATCHES_PER_CYCLE, nicht die Feathers-Schicht.
 import assert from 'assert'
+import { vi } from 'vitest'
 
 import type { CloudConnection } from '@panary/cloud-connection/domain'
+import { logger } from '@panary/shared-backend'
 import { SyncOp, SyncOutboxStatus, SyncSource } from '@panary/sync/domain'
 
 import type { Application } from '../../src/declarations'
@@ -39,6 +41,8 @@ describe('cloud-sync-scheduler worker — push drain', () => {
   let fetchCalls: Array<{ url: string; opIds: string[] }>
   // 1-basierter Index des fetch-Calls, der mit HTTP 500 antworten soll.
   let failOnCall: number | null
+  // Outbox-IDs, deren Status-Patch fehlschlagen soll (Supersede-Fehlerpfad).
+  let failPatchIds: Set<string>
 
   const originalFetch = globalThis.fetch
 
@@ -86,6 +90,7 @@ describe('cloud-sync-scheduler worker — push drain', () => {
         .map(r => ({ ...r }))
     },
     patch: async (id: string, data: Partial<OutboxRow>): Promise<OutboxRow> => {
+      if (failPatchIds.has(id)) throw new Error(`Patch fuer ${id} kuenstlich fehlgeschlagen`)
       const row = rows.find(r => r._id === id)
       if (!row) throw new Error(`Outbox-Eintrag ${id} nicht gefunden`)
       Object.assign(row, data)
@@ -114,6 +119,7 @@ describe('cloud-sync-scheduler worker — push drain', () => {
     rows = []
     fetchCalls = []
     failOnCall = null
+    failPatchIds = new Set()
     globalThis.fetch = (async (input: unknown, init?: { body?: unknown }) => {
       const body = JSON.parse(String(init?.body ?? '{}')) as { ops: Array<{ _id: string }> }
       fetchCalls.push({ url: String(input), opIds: body.ops.map(o => o._id) })
@@ -221,6 +227,40 @@ describe('cloud-sync-scheduler worker — push drain', () => {
     assert.strictEqual(fetchCalls.length, 0, 'kein Cloud-Call — es gibt keinen Push-Kandidaten')
     assert.strictEqual(result.accepted, 0)
     assert.strictEqual(rows.find(r => r._id === 'e-alt')?.status, SyncOutboxStatus.SUPERSEDED)
+  })
+
+  it('loggt beim Supersede nur tatsaechlich markierte Eintraege; Fehlschlaege als failedCount-Warnung', async () => {
+    // e-alt-Patch scheitert → nur f-alt wird wirklich superseded. Das Log darf
+    // nicht den vollen Kandidaten-Count (2) melden.
+    seedRow({ _id: 'e-alt', entityId: 'order-x' })
+    seedRow({ _id: 'e-neu', entityId: 'order-x' })
+    seedRow({ _id: 'f-alt', entityId: 'order-y' })
+    seedRow({ _id: 'f-neu', entityId: 'order-y' })
+    failPatchIds.add('e-alt')
+
+    const infoSpy = vi.spyOn(logger, 'info')
+    const warnSpy = vi.spyOn(logger, 'warn')
+    try {
+      const result = await runPush(app, connection)
+
+      assert.strictEqual(result.accepted, 2)
+      assert.strictEqual(rows.find(r => r._id === 'f-alt')?.status, SyncOutboxStatus.SUPERSEDED)
+      // Fehlgeschlagener Patch: Eintrag bleibt pending und laeuft im naechsten
+      // Cycle erneut durchs Coalescing.
+      assert.strictEqual(rows.find(r => r._id === 'e-alt')?.status, SyncOutboxStatus.PENDING)
+
+      const infoCall = infoSpy.mock.calls
+        .map(c => c[0] as { event?: string; count?: number })
+        .find(a => a?.event === 'sync.outbox.superseded')
+      assert.strictEqual(infoCall?.count, 1)
+      const warnCall = warnSpy.mock.calls
+        .map(c => c[0] as { event?: string; failedCount?: number })
+        .find(a => a?.event === 'sync.outbox.supersede_failed')
+      assert.strictEqual(warnCall?.failedCount, 1)
+    } finally {
+      infoSpy.mockRestore()
+      warnSpy.mockRestore()
+    }
   })
 
   it('coalesct nicht ueber Entity-Grenzen und bricht den Drain nach reinen superseded-Batches nicht ab', async () => {

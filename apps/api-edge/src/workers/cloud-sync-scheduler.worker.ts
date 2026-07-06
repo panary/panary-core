@@ -421,7 +421,7 @@ const markOutboxSuperseded = async (
   entries: ReadonlyArray<{ _id: string; newestId: string }>,
 ): Promise<void> => {
   const now = new Date().toISOString()
-  await Promise.all(
+  const results = await Promise.all(
     entries.map(entry =>
       (app.service(syncOutboxPath) as any)
         .patch(
@@ -433,14 +433,29 @@ const markOutboxSuperseded = async (
           },
           { provider: undefined } as any,
         )
-        .catch(() => undefined),
+        .then(() => true)
+        .catch(() => false),
     ),
   )
-  logger.info({
-    message: `Outbox-Coalescing: ${entries.length} veraltete Eintraege superseded`,
-    event: 'sync.outbox.superseded',
-    count: entries.length,
-  })
+  // Nur tatsaechlich markierte Eintraege loggen — der Kandidaten-Count waere
+  // bei fehlgeschlagenen Einzel-Patches zu hoch. Fehlgeschlagene bleiben
+  // pending und laufen im naechsten Cycle erneut durchs Coalescing.
+  const supersededCount = results.filter(Boolean).length
+  const failedCount = entries.length - supersededCount
+  if (supersededCount > 0) {
+    logger.info({
+      message: `Outbox-Coalescing: ${supersededCount} veraltete Eintraege superseded`,
+      event: 'sync.outbox.superseded',
+      count: supersededCount,
+    })
+  }
+  if (failedCount > 0) {
+    logger.warn({
+      message: `Outbox-Coalescing: ${failedCount} Supersede-Patches fehlgeschlagen — Eintraege bleiben pending`,
+      event: 'sync.outbox.supersede_failed',
+      failedCount,
+    })
+  }
 }
 
 /**

@@ -32,6 +32,17 @@
       "LOCATION_NAME": "Standortname",
       "LOCATION_NAME_PLACEHOLDER": "z.B. Dahler Straße 46",
       "LOCATION_NAME_HINT": "Adresse oder Name dieses Standorts. Ein Unternehmen kann mehrere Standorte haben.",
+      "BUSINESS_TYPE": "Betriebstyp",
+      "BUSINESS_TYPE_PLACEHOLDER": "Bitte auswählen…",
+      "BUSINESS_TYPE_HINT": "Art Ihres Betriebs. Steuert Voreinstellungen wie den Online-Auftritt und kann später je Standort angepasst werden.",
+      "BUSINESS_TYPE_OPTIONS": {
+        "RESTAURANT_CLASSIC": "Restaurant – klassisch",
+        "CAFE_BAKERY": "Café & Bäckerei",
+        "TAKEOUT_DELIVERY": "Imbiss & Lieferdienst",
+        "BAR_NIGHTLIFE": "Bar & Nightlife",
+        "FOODTRUCK_STREETFOOD": "Foodtruck & Streetfood",
+        "FINE_DINING": "Fine Dining & gehoben"
+      },
       "ADMIN_EMAIL": "Admin E-Mail",
       "ADMIN_PASSWORD": "Admin Passwort",
       "ADMIN_PASSWORD_CONFIRM": "Admin Passwort bestätigen",

@@ -5,6 +5,9 @@ import { Observable } from 'rxjs'
 export interface SetupPayload {
   shopName: string
   locationName: string
+  // Betriebstyp (PNRY-FEAT-THEME-002) — Werte entsprechen LocationBusinessType
+  // aus @panary/locations/domain (setup-client bleibt bewusst domain-frei).
+  businessType: string
   adminEmail: string
   adminPassword?: string // Optional depending on mode
   mode: 'standalone' | 'cloud'

@@ -142,6 +142,28 @@
           </div>
         </div>
 
+        <!-- Betriebstyp: volle Breite (PNRY-FEAT-THEME-002) -->
+        <div class="space-y-1">
+          <label for="businessType" class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            {{ 'WIZARD.CONFIG.BUSINESS_TYPE' | translate }}
+          </label>
+          <select id="businessType" formControlName="businessType"
+            class="w-full
+                   bg-gray-100 dark:bg-gray-900
+                   border border-gray-300 dark:border-gray-800
+                   rounded-lg p-3
+                   text-gray-900 dark:text-white
+                   focus:border-gray-900 dark:focus:border-white
+                   focus:ring-1 focus:ring-gray-900 dark:focus:ring-white
+                   transition outline-none">
+            <option value="" disabled>{{ 'WIZARD.CONFIG.BUSINESS_TYPE_PLACEHOLDER' | translate }}</option>
+            @for (option of businessTypeOptions; track option.value) {
+            <option [value]="option.value">{{ option.labelKey | translate }}</option>
+            }
+          </select>
+          <p class="text-xs text-gray-400 dark:text-gray-500">{{ 'WIZARD.CONFIG.BUSINESS_TYPE_HINT' | translate }}</p>
+        </div>
+
         <!-- Admin E-Mail: volle Breite -->
         <div class="space-y-1">
           <label for="adminEmail" class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">

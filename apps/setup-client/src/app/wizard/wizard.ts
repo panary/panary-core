@@ -30,12 +30,24 @@ export class Wizard {
     {
       shopName: ['', Validators.required],
       locationName: ['', Validators.required],
+      businessType: ['', Validators.required],
       adminEmail: ['', [Validators.required, Validators.email]],
       adminPassword: ['', [Validators.required, Validators.minLength(8)]],
       adminPasswordConfirm: ['', [Validators.required]],
     },
     { validators: this.passwordMatchValidator },
   )
+
+  // Werte entsprechen LocationBusinessType aus @panary/locations/domain —
+  // setup-client bleibt bewusst ohne Domain-Lib-Abhängigkeit (schlankes Bundle).
+  readonly businessTypeOptions = [
+    { value: 'RESTAURANT_CLASSIC', labelKey: 'WIZARD.CONFIG.BUSINESS_TYPE_OPTIONS.RESTAURANT_CLASSIC' },
+    { value: 'CAFE_BAKERY', labelKey: 'WIZARD.CONFIG.BUSINESS_TYPE_OPTIONS.CAFE_BAKERY' },
+    { value: 'TAKEOUT_DELIVERY', labelKey: 'WIZARD.CONFIG.BUSINESS_TYPE_OPTIONS.TAKEOUT_DELIVERY' },
+    { value: 'BAR_NIGHTLIFE', labelKey: 'WIZARD.CONFIG.BUSINESS_TYPE_OPTIONS.BAR_NIGHTLIFE' },
+    { value: 'FOODTRUCK_STREETFOOD', labelKey: 'WIZARD.CONFIG.BUSINESS_TYPE_OPTIONS.FOODTRUCK_STREETFOOD' },
+    { value: 'FINE_DINING', labelKey: 'WIZARD.CONFIG.BUSINESS_TYPE_OPTIONS.FINE_DINING' },
+  ]
 
   passwordMatchValidator(g: any) {
     return g.get('adminPassword')?.value === g.get('adminPasswordConfirm')?.value ? null : { mismatch: true }
@@ -69,6 +81,7 @@ export class Wizard {
       mode: this.mode()!,
       shopName: formValue.shopName || '',
       locationName: formValue.locationName || '',
+      businessType: formValue.businessType || '',
       adminEmail: formValue.adminEmail || '',
       adminPassword: formValue.adminPassword || undefined,
     }

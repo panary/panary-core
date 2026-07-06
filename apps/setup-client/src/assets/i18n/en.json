@@ -32,6 +32,17 @@
       "LOCATION_NAME": "Location Name",
       "LOCATION_NAME_PLACEHOLDER": "e.g. 123 Main Street",
       "LOCATION_NAME_HINT": "Address or name of this location. A business can have multiple locations.",
+      "BUSINESS_TYPE": "Business type",
+      "BUSINESS_TYPE_PLACEHOLDER": "Please select…",
+      "BUSINESS_TYPE_HINT": "Type of your business. Drives defaults such as your online presence and can be changed per location later.",
+      "BUSINESS_TYPE_OPTIONS": {
+        "RESTAURANT_CLASSIC": "Restaurant – classic",
+        "CAFE_BAKERY": "Café & bakery",
+        "TAKEOUT_DELIVERY": "Takeout & delivery",
+        "BAR_NIGHTLIFE": "Bar & nightlife",
+        "FOODTRUCK_STREETFOOD": "Food truck & street food",
+        "FINE_DINING": "Fine dining & upscale"
+      },
       "ADMIN_EMAIL": "Admin Email",
       "ADMIN_PASSWORD": "Admin Password",
       "ADMIN_PASSWORD_CONFIRM": "Confirm Admin Password",

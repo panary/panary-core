@@ -32,6 +32,17 @@
       "LOCATION_NAME": "Konum Adı",
       "LOCATION_NAME_PLACEHOLDER": "ör. Atatürk Caddesi 46",
       "LOCATION_NAME_HINT": "Bu konumun adresi veya adı. Bir işletmenin birden fazla konumu olabilir.",
+      "BUSINESS_TYPE": "İşletme türü",
+      "BUSINESS_TYPE_PLACEHOLDER": "Lütfen seçin…",
+      "BUSINESS_TYPE_HINT": "İşletmenizin türü. Çevrimiçi görünüm gibi varsayılanları belirler ve daha sonra şube bazında değiştirilebilir.",
+      "BUSINESS_TYPE_OPTIONS": {
+        "RESTAURANT_CLASSIC": "Restoran – klasik",
+        "CAFE_BAKERY": "Kafe & fırın",
+        "TAKEOUT_DELIVERY": "Büfe & paket servis",
+        "BAR_NIGHTLIFE": "Bar & gece hayatı",
+        "FOODTRUCK_STREETFOOD": "Food truck & sokak lezzetleri",
+        "FINE_DINING": "Fine dining & üst düzey"
+      },
       "ADMIN_EMAIL": "Yönetici E-posta",
       "ADMIN_PASSWORD": "Yönetici Şifresi",
       "ADMIN_PASSWORD_CONFIRM": "Yönetici Şifresini Onayla",

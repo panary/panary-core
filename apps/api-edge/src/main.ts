@@ -205,6 +205,9 @@ async function main() {
           tenantId,
           name: locationName,
           organizationName,
+          // Betriebstyp aus dem Setup-Wizard (PNRY-FEAT-THEME-002); null bei
+          // Alt-Configs ohne das Feld — der Storefront-Wizard erfasst ihn nach.
+          businessType: config.businessType || null,
           status: 'ACTIVE',
           settings: JSON.stringify({}),
           createdAt: now,

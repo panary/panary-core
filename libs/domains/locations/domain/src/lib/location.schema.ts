@@ -25,6 +25,21 @@ export const LocationOperationMode = {
   ORDERS_ONLY: 'orders-only',
   POS_CASHIER: 'pos-cashier',
 } as const
+
+// Betriebstyp des Standorts (PNRY-FEAT-THEME-002). Kanonische Quelle fuer
+// Storefront-Onboarding-Vorauswahl, Theme-Store-Empfehlungen und perspektivisch
+// POS-Defaults. Bewusst am Standort (nicht am Tenant): ein Multi-Location-Tenant
+// kann Restaurant + Bar parallel betreiben. Optional — Bestands-Locations haben
+// keinen Wert; der Storefront-Wizard erfasst ihn nach.
+export const LocationBusinessType = {
+  RESTAURANT_CLASSIC: 'RESTAURANT_CLASSIC',
+  CAFE_BAKERY: 'CAFE_BAKERY',
+  TAKEOUT_DELIVERY: 'TAKEOUT_DELIVERY',
+  BAR_NIGHTLIFE: 'BAR_NIGHTLIFE',
+  FOODTRUCK_STREETFOOD: 'FOODTRUCK_STREETFOOD',
+  FINE_DINING: 'FINE_DINING',
+} as const
+export type LocationBusinessTypeValue = (typeof LocationBusinessType)[keyof typeof LocationBusinessType]
 //#endregion
 
 //#region Sub-Schemas
@@ -294,6 +309,13 @@ export const locationSchema = Type.Object(
     // Optional + Service-Resolver-Default 'pos-cashier' für Bestandskunden.
     operationMode: Type.Optional(StringEnum(Object.values(LocationOperationMode))),
 
+    // Betriebstyp (PNRY-FEAT-THEME-002): Single Source of Truth fuer den
+    // Storefront-Onboarding-Wizard (Schritt-1-Vorauswahl) und Theme-Store-
+    // Empfehlungen. Optional ohne Default — Bestands-Locations pflegen ihn
+    // ueber den Wizard nach; bei Neuanlage via platform-tenants/setup-client
+    // wird er direkt gestempelt.
+    businessType: Type.Optional(StringEnum(Object.values(LocationBusinessType))),
+
     // Letzter Arbeitstag der Woche (0=So…6=Sa, JS Date.getDay()-Konvention).
     // Steuert das Wochen-Highlighting in der Zeiterfassung — variiert je Land
     // (DE/AT/CH: 5=Fr, IL: 4=Do, viele Golf-Staaten: 4=Do). Top-Level statt im
@@ -326,6 +348,7 @@ export const locationDataSchema = Type.Pick(
     'locale',
     'defaultCurrency',
     'operationMode',
+    'businessType',
     'lastWorkdayOfWeek',
   ],
   {
@@ -367,6 +390,8 @@ export const locationQueryProperties = Type.Pick(locationSchema, [
   'brandId',
   'handle',
   'currentBusinessDay',
+  // Theme-Store-Empfehlungen + Wizard-Vorauswahl filtern nach Betriebstyp.
+  'businessType',
   // Pflicht für den Offline-Cache-Delta-Sync (`updatedAt > cursor`) — sonst lehnt der
   // Query-Validator die Delta-Query mit 400 „additional property updatedAt" ab.
   'updatedAt',

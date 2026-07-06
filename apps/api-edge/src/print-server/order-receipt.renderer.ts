@@ -1,6 +1,6 @@
 // @ts-expect-error — keine Typdeklarationen vorhanden
 import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder'
-import { computeOrderTax, fromCents, lineItemGrossCents, type OrderLineItem } from '@panary/orders/domain'
+import { computeOrderTax, fromCents, lineItemGrossCents, multiplyCents, toCents, type OrderLineItem } from '@panary/orders/domain'
 import { buildTseReceiptBlock } from '@panary/tse/domain'
 import type { EscposOptions } from './escpos.adapter'
 
@@ -218,29 +218,41 @@ function appendArticle(
   // Menü-Beilage & Getränk — Font B, eingerückt
   if (article.isMenu) {
     if (article.menuSideDish) {
-      const extra = isFixed || (article.menuSideDish.price ?? 0) <= sideDishPrice
-        ? 0 : (article.menuSideDish.price ?? 0) - sideDishPrice
-      enc.font('B')
-      enc.table(
-        [{ width: subNameW, marginLeft: 4, align: 'left' }, { width: priceW, align: 'right' }],
-        [[`+ ${article.menuSideDish.name}`, extra > 0 ? fmtEur(extra) : '']],
-      )
-      enc.font('A')
+      appendMenuComponentLine(enc, article, article.menuSideDish, sideDishPrice, isFixed, subNameW, priceW)
     }
     if (article.menuDrink) {
-      const extra = isFixed || (article.menuDrink.price ?? 0) <= drinkPrice
-        ? 0 : (article.menuDrink.price ?? 0) - drinkPrice
-      enc.font('B')
-      enc.table(
-        [{ width: subNameW, marginLeft: 4, align: 'left' }, { width: priceW, align: 'right' }],
-        [[`+ ${article.menuDrink.name}`, extra > 0 ? fmtEur(extra) : '']],
-      )
-      enc.font('A')
+      appendMenuComponentLine(enc, article, article.menuDrink, drinkPrice, isFixed, subNameW, priceW)
     }
   }
 
   // Modifiers — Font B, eingerückt. Bei FIXED sind Menü-Bestandteile inklusive →
   // kein Einzelpreis (der Festpreis steht oben).
+  appendModifierLines(enc, article, isFixed, subNameW, priceW)
+}
+
+// Menü-Beilage/-Getränk als SUB-Zeile. Der Aufpreis (Positionspreis − General-
+// Preis) zählt PRO Menü — dieselbe Skalierung wie die Preis-Engine
+// (`lineGrossCents`: component.amount × line.amount, Entscheidung 2026-07-04).
+// Ausgewiesen wird der mengen-skalierte Gesamtaufpreis (wie Hauptzeile und
+// Modifier-Zeilen) — ein einmaliger Aufpreis passt bei Menge > 1 nicht zur
+// Zeilensumme.
+function appendMenuComponentLine(
+  enc: any, article: any, component: any,
+  generalPrice: number, isFixed: boolean,
+  subNameW: number, priceW: number,
+): void {
+  const perUnitCents = isFixed ? 0 : Math.max(0, toCents(component.price ?? 0) - toCents(generalPrice))
+  const units = (component.amount ?? 1) * (article.amount ?? 1)
+  const extraCents = multiplyCents(perUnitCents, units)
+  enc.font('B')
+  enc.table(
+    [{ width: subNameW, marginLeft: 4, align: 'left' }, { width: priceW, align: 'right' }],
+    [[`+ ${component.name}`, extraCents > 0 ? fmtEur(fromCents(extraCents)) : '']],
+  )
+  enc.font('A')
+}
+
+function appendModifierLines(enc: any, article: any, isFixed: boolean, subNameW: number, priceW: number): void {
   if (article.modifiers?.length > 0) {
     enc.font('B')
     for (const mod of article.modifiers) {

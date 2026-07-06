@@ -22,6 +22,7 @@ import {
 } from '@panary/cloud-connection/domain'
 
 import type { Application } from '../../declarations'
+import { extractAjvValidationErrors } from '../../workers/sync-apply'
 import { bootstrapReportsPath } from './bootstrap-reports'
 
 const MASTER_TABLES = [
@@ -231,22 +232,8 @@ export const createReport = async (
     await (app.service(bootstrapReportsPath) as any).create(payload, { provider: undefined })
     return id
   } catch (err) {
-    // AJV-Detail-Extraction — Feathers BadRequest packt das AJV-Array
-    // typischerweise unter `.data` (alte Builds: `.errors`).
-    const errAny = err as {
-      data?: Array<{ instancePath?: string; message?: string; params?: unknown; keyword?: string }>
-      errors?: Array<{ instancePath?: string; message?: string; params?: unknown; keyword?: string }>
-    }
-    const ajvErrors =
-      Array.isArray(errAny?.data) ? errAny.data
-      : Array.isArray(errAny?.errors) ? errAny.errors
-      : undefined
-    const validationErrors = ajvErrors?.map(e => ({
-      path: e.instancePath || '<root>',
-      keyword: e.keyword,
-      message: e.message ?? '?',
-      params: e.params,
-    }))
+    // AJV-Detail-Extraction — geteilte Funktion aus sync-apply (Single Source).
+    const validationErrors = extractAjvValidationErrors(err)
     logger.warn({
       message: 'Bootstrap-Report konnte nicht angelegt werden',
       event: 'sync.bootstrap.report.create_failed',

@@ -20,6 +20,7 @@ import {
 import { logger } from '@panary/shared-backend'
 
 import type { HookContext } from '../declarations'
+import { extractAjvValidationErrors } from '../workers/sync-apply'
 
 const AUTH_PATH = 'authentication'
 
@@ -143,19 +144,8 @@ async function writeAuthEvent(context: HookContext, input: AuthEventInput): Prom
       .create(event as unknown as any, { provider: undefined } as any)
   } catch (err) {
     // AJV-Validierungsdetails extrahieren — ohne sieht man nur "validation
-    // failed". Feathers `BadRequest` packt das AJV-Array unter `.data`.
-    const errAny = err as {
-      data?: Array<{ instancePath?: string; message?: string; params?: unknown }>
-      errors?: Array<{ instancePath?: string; message?: string; params?: unknown }>
-    }
-    const ajvErrors =
-      Array.isArray(errAny?.data) ? errAny.data
-      : Array.isArray(errAny?.errors) ? errAny.errors
-      : undefined
-    const validationErrors = ajvErrors?.map(e => ({
-      path: e.instancePath || '<root>',
-      message: e.message ?? '?',
-    }))
+    // failed". Geteilte Extraktion aus sync-apply (Single Source).
+    const validationErrors = extractAjvValidationErrors(err)
     logger.warn({
       message: 'Auth-Audit-Event konnte nicht geschrieben werden',
       event: 'audit.auth_record_failed',

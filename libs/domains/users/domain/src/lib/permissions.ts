@@ -309,6 +309,28 @@ export const AppResource = {
    *  kein Eintrag (Read-only-Rolle). PLATFORM_OWNER hat strukturellen Bypass. */
   STOREFRONT_PREVIEW_TOKEN: 'storefront-preview-token',
 
+  /** Cloud-only, GLOBAL (nicht tenant-scoped): plattform-kuratierte Preset-
+   *  Bibliothek (PNRY-FEAT-THEME-002) — theme-uebergreifende Token-Sets
+   *  (Farbpalette + Schriftpaarung + Bildwelt) mit Taxonomie (Betriebstyp,
+   *  Kuechen-Tags). Analog STOREFRONT_THEME_CATALOG: MANAGE fuer
+   *  PLATFORM_OWNER/ADMIN, READ fuer alle Tenant-Rollen (Preset-Picker im
+   *  Wizard + auf der Storefront-Landing). */
+  STOREFRONT_PRESET_LIBRARY: 'storefront-preset-library',
+
+  /** Cloud-only: Auto-Scaffolding-Endpunkt des Storefront-Onboarding-Wizards
+   *  (PNRY-FEAT-THEME-002). CREATE legt StorefrontConfig + alle betriebstyp-
+   *  relevanten Seiten mit Content-Templates als Draft an (kein Auto-Publish).
+   *  TENANT_OWNER/MANAGER: CREATE. STAFF: kein Eintrag (→ 403) — analog
+   *  STOREFRONT_PUBLISH. */
+  STOREFRONT_SCAFFOLD: 'storefront-scaffold',
+
+  /** Cloud-only: Custom-Theme-Anfragen an das Panary-Team (PNRY-FEAT-THEME-002,
+   *  „Individuell"-Flow). Nativ in der Plattform verarbeitet (keine E-Mail):
+   *  Tenant erstellt + liest die eigenen Anfragen (multiTenancy-scoped);
+   *  PLATFORM_OWNER/ADMIN verwalten sie (Status-Workflow), PLATFORM_SUPPORT
+   *  liest fuer Ticket-Diagnose. */
+  STOREFRONT_THEME_REQUESTS: 'storefront-theme-requests',
+
   // Plattform-Verwaltungs-Ressourcen (nur Cloud)
   PLATFORM_TENANTS: 'platform-tenants',
   /** Cloud-only: Anlage-Service fuer Plattform-Personal (platform:owner/admin/

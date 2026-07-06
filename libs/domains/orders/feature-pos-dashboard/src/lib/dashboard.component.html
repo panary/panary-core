@@ -4,10 +4,10 @@
     <div class="flex items-center gap-3 flex-1 min-w-0">
       <div
         class="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center font-bold text-lg md:text-xl shadow-lg shadow-indigo-200 dark:shadow-none shrink-0">
-        {{ userName.charAt(0) }}
+        {{ userName().charAt(0) }}
       </div>
       <div class="min-w-0">
-        <h1 class="text-base md:text-xl font-bold text-gray-800 dark:text-white truncate">{{ 'DASHBOARD.HELLO' | translate }} {{ userName }}!</h1>
+        <h1 class="text-base md:text-xl font-bold text-gray-800 dark:text-white truncate">{{ 'DASHBOARD.HELLO' | translate }} {{ userName() }}!</h1>
         <p class="text-xs text-gray-400 dark:text-gray-500 font-medium">Panary | Terminal</p>
       </div>
     </div>
@@ -18,10 +18,10 @@
         class="flex items-center gap-2 md:gap-4 px-3 md:px-5 py-2 md:py-3 rounded-xl bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-white dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 transition-colors select-none"
         (click)="statusMenuOpen = !statusMenuOpen">
         <div class="relative flex h-3 w-3">
-          @if (isOnBreak) {
+          @if (isOnBreak()) {
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
           <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
-          } @else if (isStampedIn) {
+          } @else if (isStampedIn()) {
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
           <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
           } @else {
@@ -30,15 +30,15 @@
         </div>
         <!-- Mobile: nur kurzer Status-Text -->
         <span class="md:hidden text-xs font-semibold text-gray-700 dark:text-gray-200">
-          @if (isOnBreak) { Pause } @else if (isStampedIn) { Ein } @else { Aus }
+          @if (isOnBreak()) { Pause } @else if (isStampedIn()) { Ein } @else { Aus }
         </span>
         <!-- Desktop: voller Status-Block -->
         <div class="hidden md:flex flex-col items-start">
           <span class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ 'DASHBOARD.STATUS_LABEL' | translate }}</span>
           <span class="text-sm font-semibold text-gray-700 dark:text-gray-200 leading-none">
-            @if (isOnBreak) {
+            @if (isOnBreak()) {
             {{ 'DASHBOARD.BREAK' | translate }}
-            } @else if (isStampedIn) {
+            } @else if (isStampedIn()) {
             {{ 'DASHBOARD.CLOCKED_IN' | translate }}
             <span class="text-gray-400 dark:text-gray-500 font-normal ml-1">({{ formattedWorkingTime }})</span>
             } @else {
@@ -56,7 +56,7 @@
       <div
         class="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-900 rounded-2xl shadow-xl dark:shadow-black/40 border border-gray-200 dark:border-gray-700 overflow-hidden z-50">
         <div class="p-2 flex flex-col gap-1">
-          @if (!isStampedIn) {
+          @if (!isStampedIn()) {
           <button (click)="clockIn(); statusMenuOpen = false" [disabled]="isOffline()"
             [title]="isOffline() ? ('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED' | translate) : ''"
             class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed">
@@ -69,7 +69,7 @@
             </div>
           </button>
           }
-          @if (isStampedIn && !isOnBreak) {
+          @if (isStampedIn() && !isOnBreak()) {
           <button (click)="startBreak(); statusMenuOpen = false" [disabled]="isOffline()"
             [title]="isOffline() ? ('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED' | translate) : ''"
             class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed">
@@ -94,7 +94,7 @@
             </div>
           </button>
           }
-          @if (isOnBreak) {
+          @if (isOnBreak()) {
           <button (click)="endBreak(); statusMenuOpen = false" [disabled]="isOffline()"
             [title]="isOffline() ? ('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED' | translate) : ''"
             class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed">
@@ -144,7 +144,7 @@
             <span class="material-symbols-outlined text-[20px]">shopping_cart</span>
           </div>
           <div>
-            <h3 class="text-xl lg:text-3xl font-bold text-gray-800 dark:text-white tracking-tight">{{ activeOrdersCount }}</h3>
+            <h3 class="text-xl lg:text-3xl font-bold text-gray-800 dark:text-white tracking-tight">{{ activeOrdersCount() }}</h3>
             <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5 lg:mt-1">{{ 'DASHBOARD.KPI_OPEN_ORDERS' | translate }}</p>
           </div>
         </div>
@@ -156,7 +156,7 @@
             <span class="material-symbols-outlined text-[20px]">receipt_long</span>
           </div>
           <div>
-            <h3 class="text-xl lg:text-3xl font-bold text-gray-800 dark:text-white tracking-tight">{{ todayOrdersCount }}</h3>
+            <h3 class="text-xl lg:text-3xl font-bold text-gray-800 dark:text-white tracking-tight">{{ todayOrdersCount() }}</h3>
             <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5 lg:mt-1">{{ 'DASHBOARD.KPI_TOTAL_TODAY' | translate }}</p>
           </div>
         </div>

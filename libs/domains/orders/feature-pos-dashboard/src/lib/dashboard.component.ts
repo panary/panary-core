@@ -1,4 +1,16 @@
-import { ChangeDetectorRef, Component, computed, effect, inject, OnInit, signal, Signal } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  inject,
+  OnInit,
+  signal,
+  Signal,
+  untracked,
+} from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { Router } from '@angular/router'
 import { NGX_ECHARTS_CONFIG, NgxEchartsModule } from 'ngx-echarts'
@@ -6,7 +18,7 @@ import type { EChartsOption } from 'echarts'
 import { ConnectionService } from '@panary/shared/data-access'
 import { Order, OrderService, OrderStatus } from '@panary/orders/data-access'
 import { UserService } from '@panary/users/data-access'
-import { UserSystemRole } from '@panary/users/domain'
+import { UserSystemRole, type User } from '@panary/users/domain'
 import { AuthService } from '@panary/auth/data-access'
 import { WorkingTime } from '@panary/working-times/domain'
 import { WorkingTimeService } from '@panary/working-times/data-access'
@@ -66,6 +78,7 @@ interface QuickAction {
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardComponent implements OnInit {
   // Services
@@ -83,6 +96,7 @@ export class DashboardComponent implements OnInit {
   #translate = inject(TranslateService)
   #preOrderService = inject(PreOrderService)
   #snackBar = inject(MatSnackBar)
+  #destroyRef = inject(DestroyRef)
 
   /**
    * Offline darf sich der Staff nicht abmelden: die Wiederanmeldung läuft über die
@@ -288,17 +302,21 @@ export class DashboardComponent implements OnInit {
       this.#cdr.markForCheck()
     })
 
-    // React to User Changes
+    // React to User Changes — currentUser() bewusst getrackt (stampingId-Wechsel
+    // bei Check-in/-out triggert den Reload); der GET-Body läuft in untracked(),
+    // damit Service-Signal-Reads nicht in den Tracking-Scope geraten (angular.md §2.1).
     effect(() => {
-      this.handleUserWorkingTime()
+      const user = this.currentUser()
+      untracked(() => this.handleUserWorkingTime(user))
     })
   }
 
   ngOnInit(): void {
     // Update working time display every minute
-    setInterval(() => {
+    const durationInterval = setInterval(() => {
       this.calculateDuration()
     }, 60000)
+    this.#destroyRef.onDestroy(() => clearInterval(durationInterval))
 
     this.fetchTodayPreOrders()
     this.#listenPreOrderEvents()
@@ -309,10 +327,18 @@ export class DashboardComponent implements OnInit {
     const svc = (this.#preOrderService as any).service
     if (!svc || typeof svc.on !== 'function') return
 
+    // Gleiche Handler-Referenz für on/off — der Feathers-Service ist ein Singleton,
+    // ohne Deregistrierung akkumulieren die Listener über jeden Dashboard-Besuch.
     const reload = () => this.fetchTodayPreOrders()
     svc.on('created', reload)
     svc.on('patched', reload)
     svc.on('removed', reload)
+    this.#destroyRef.onDestroy(() => {
+      if (typeof svc.off !== 'function') return
+      svc.off('created', reload)
+      svc.off('patched', reload)
+      svc.off('removed', reload)
+    })
   }
 
   async fetchTodayPreOrders(): Promise<void> {
@@ -337,9 +363,10 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  // --- Getters ---
+  // --- Abgeleitete Werte (computed statt Getter: memoisiert, kein
+  // localStorage/JSON.parse pro Change-Detection-Durchlauf) ---
 
-  get userName(): string {
+  readonly userName = computed(() => {
     const authName = this.#authService.fullName()
     if (authName && authName !== 'Unknown User') {
       return authName
@@ -357,21 +384,17 @@ export class DashboardComponent implements OnInit {
     }
 
     return this.#translate.instant('DASHBOARD.EMPLOYEE')
-  }
+  })
 
-  get isStampedIn(): boolean {
-    return !!this.currentUser()?.stampingId
-  }
+  readonly isStampedIn = computed(() => !!this.currentUser()?.stampingId)
 
-  get activeOrdersCount(): number {
+  readonly activeOrdersCount = computed(() => {
     return this.orders().filter(
       o => o.status !== OrderStatus.COMPLETED && o.status !== OrderStatus.ABORTED && o.status !== OrderStatus.UNCLAIMED,
     ).length
-  }
+  })
 
-  get todayOrdersCount(): number {
-    return this.orders().length
-  }
+  readonly todayOrdersCount = computed(() => this.orders().length)
 
   // --- Actions ---
 
@@ -390,9 +413,7 @@ export class DashboardComponent implements OnInit {
 
   // --- Time Tracking Actions ---
 
-  get isOnBreak(): boolean {
-    return !!this.currentUser()?.startBreakAt
-  }
+  readonly isOnBreak = computed(() => !!this.currentUser()?.startBreakAt)
 
   /**
    * Stempel-/Pausen-Aktionen (checkin/checkout/start-/endBreak) sind serverseitige
@@ -605,7 +626,7 @@ export class DashboardComponent implements OnInit {
     const now = new Date()
     const startOfDay = new Date(now.setHours(8, 0, 0, 0)) // Assume 8 AM start if no config
     const hoursOpen = Math.max(1, (new Date().getTime() - startOfDay.getTime()) / (1000 * 60 * 60))
-    this.productivity = (this.todayOrdersCount / hoursOpen).toFixed(1)
+    this.productivity = (this.todayOrdersCount() / hoursOpen).toFixed(1)
 
     // Avg Waiting Time (for Active Orders)
     const activeOrders = orders.filter(o => o.status !== OrderStatus.COMPLETED && o.status !== OrderStatus.ABORTED)
@@ -622,8 +643,7 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  private handleUserWorkingTime() {
-    const user = this.currentUser()
+  private handleUserWorkingTime(user: User | undefined = this.currentUser()) {
     if (user?.stampingId) {
       this.#workingTimeService.get(user.stampingId).then(wt => {
         this.currentWorkingTime = wt
@@ -632,6 +652,8 @@ export class DashboardComponent implements OnInit {
     } else {
       this.currentWorkingTime = undefined
       this.formattedWorkingTime = '-'
+      // Plain-Property-Write: ohne markForCheck rendert OnPush/zoneless nicht
+      this.#cdr.markForCheck()
     }
   }
 

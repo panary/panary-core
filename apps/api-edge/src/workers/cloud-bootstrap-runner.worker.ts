@@ -260,7 +260,11 @@ export const queueBackfillOutbox = async (
   return queued
 }
 
-const truncateMasterTables = async (app: Application, tenantId: string): Promise<void> => {
+// Liefert die Services, deren Truncate fehlschlug: dort duerfen die Pull-Seiten
+// NICHT im insert-Modus laufen (Alt-Rows -> PK-Konflikt fuer jede Row, der alte
+// Bestand bliebe stehen) — der Aufrufer degradiert sie auf 'upsert'.
+const truncateMasterTables = async (app: Application, tenantId: string): Promise<Set<string>> => {
+  const failed = new Set<string>()
   for (const service of MASTER_DATA_SERVICES) {
     try {
       await app.service(service as any).remove(null as any, {
@@ -268,6 +272,7 @@ const truncateMasterTables = async (app: Application, tenantId: string): Promise
         query: { tenantId },
       } as any)
     } catch (err) {
+      failed.add(service)
       logger.warn({
         message: 'TRUNCATE waehrend pull-cloud-to-edge fehlgeschlagen',
         event: 'sync.bootstrap.truncate_failed',
@@ -276,6 +281,7 @@ const truncateMasterTables = async (app: Application, tenantId: string): Promise
       })
     }
   }
+  return failed
 }
 
 const pullAllPagesForService = async (
@@ -283,18 +289,34 @@ const pullAllPagesForService = async (
   cloudToken: string,
   app: Application,
   service: string,
+  mode: 'insert' | 'upsert',
 ): Promise<number> => {
   let cursor: string | undefined
   let total = 0
+  let rejectedTotal = 0
   for (let page = 0; page < 1000; page++) {
     const response = await pullMasterDataPage(cloudUrl, cloudToken, service, undefined, cursor, BOOTSTRAP_TIMEOUT_MS)
     // `mode: 'insert'`: truncateMasterTables hat die Tabellen unmittelbar vor
     // diesem Loop geleert — jede _id ist garantiert neu, der gebatchte
     // Existenz-Check des Upsert-Modus waere pro Seite ein Leer-Roundtrip.
-    await applyPulledRecords(app, service, response.records, { mode: 'insert' })
+    // Schlug der Truncate fuer diesen Service fehl, degradiert der Aufrufer
+    // auf 'upsert' (selbstheilend gegen die verbliebenen Alt-Rows).
+    const result = await applyPulledRecords(app, service, response.records, { mode })
+    rejectedTotal += result.rejected
     total += response.records.length
     if (!response.hasMore || !response.nextCursor) break
     cursor = response.nextCursor
+  }
+  if (rejectedTotal > 0) {
+    // Nicht still lassen: recordSyncRun am Aufrufer zaehlt nur die gepullten
+    // Records — rejected Rows waeren sonst unsichtbar verloren.
+    logger.warn({
+      message: `Bootstrap-Pull: ${rejectedTotal} von ${total} Records wurden beim Apply verworfen`,
+      event: 'sync.bootstrap.pull_records_rejected',
+      service,
+      rejectedTotal,
+      total,
+    })
   }
   return total
 }
@@ -495,13 +517,19 @@ const runPullCloudToEdge = async (
   connection: CloudConnection,
   bootstrapReportId: string | null,
 ): Promise<void> => {
-  await truncateMasterTables(app, connection.tenantId!)
+  const truncateFailed = await truncateMasterTables(app, connection.tenantId!)
   const cloudToken = requireDecryptedToken(connection)
   for (const service of MASTER_DATA_SERVICES) {
     const startedAt = new Date().toISOString()
     const startMs = performance.now()
     try {
-      const total = await pullAllPagesForService(connection.cloudUrl, cloudToken, app, service)
+      const total = await pullAllPagesForService(
+        connection.cloudUrl,
+        cloudToken,
+        app,
+        service,
+        truncateFailed.has(service) ? 'upsert' : 'insert',
+      )
       await recordSyncRun(app, {
         tenantId: connection.tenantId!,
         phase: SyncRunPhase.BOOTSTRAP,

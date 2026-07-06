@@ -132,11 +132,14 @@ describe('multiTenancy() — locationId-Stamping (isolateLocation)', () => {
     expect(ctx.data?.locationId).toBe('loc-1')
   })
 
-  // ENTSCHIEDEN (2026-07-03): '' wird wie null ueberstempelt — KEINE Abweichung zur Cloud
-  // (deren `!item.locationId` behandelt '' genauso). Die ''-="alle Filialen"-Konvention ist
-  // eine reine Frontend-Konvention des Cloud-Admins; kein Edge-Client (pos-client/setup-client)
-  // sendet locationId=''.
-  it("locationId='' wird ueberstempelt (beabsichtigt, verhaelt sich identisch zur Cloud)", async () => {
+  // ENTSCHIEDEN (User-Entscheid 2026-07-04, bestaetigt den 2026-07-03-Befund): Der
+  // ''-Overstamp bleibt am Edge BEWUSST bestehen — bewusste Abweichung von der
+  // Cloud-Semantik, in der ''="alle Filialen" eine Admin-Frontend-Konvention ist.
+  // Gruende: eine Edge-Installation bedient genau EINE Filiale; ''-Datensaetze
+  // waeren fuer die filial-gescopten POS-Reads unsichtbar; Sync-Pfade laufen
+  // intern (ohne user) ungestempelt am Check vorbei. Kein Edge-Client
+  // (pos-client/setup-client) sendet locationId=''. Kein Bug-Kandidat mehr.
+  it("locationId='' wird ueberstempelt (bewusste Entscheidung 2026-07-04, Edge ist strikt filialgebunden)", async () => {
     const { ctx } = buildContext({ method: 'create', user: staffUser, data: { locationId: '' } })
     await run(ctx, { isolateLocation: true })
     expect(ctx.data?.locationId).toBe('loc-1')

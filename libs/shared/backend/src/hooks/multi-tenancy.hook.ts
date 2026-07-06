@@ -54,6 +54,14 @@ export const multiTenancy =
         if (isolateLocation && user.locationId) {
           // Wenn ich Staff bin, MUSS ich Daten meiner Filiale zuordnen
           // Wenn ich Owner bin, DARF ich wählen (Default: Meine Homebase)
+          //
+          // ENTSCHIEDEN (User-Entscheid 2026-07-04): Der truthy-Check ueberstempelt
+          // BEWUSST auch explizites locationId='' und null — bewusste Abweichung von
+          // der Cloud-Semantik, in der ''="alle Filialen" eine Admin-Frontend-
+          // Konvention ist. Gruende: (1) eine Edge-Installation bedient genau EINE
+          // Filiale, (2) ''-Datensaetze waeren fuer die filial-gescopten POS-Reads
+          // unsichtbar, (3) Sync-Pfade laufen intern (kein user) ungestempelt an
+          // diesem Check vorbei. NICHT auf `!= null` "fixen".
           if (!item.locationId) {
             item.locationId = user.locationId
           }

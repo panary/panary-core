@@ -42,13 +42,7 @@ import {
   OrderService,
   StaffPaymentInfo,
 } from '@panary/orders/data-access'
-import {
-  AppliedDiscount,
-  Discount,
-  LineComponent,
-  computeOrderTax,
-  withFixedBundleMainComponent,
-} from '@panary/orders/domain'
+import { AppliedDiscount, Discount, computeOrderTax } from '@panary/orders/domain'
 import { Discount as ManagedDiscount } from '@panary/discounts/domain'
 import { DiscountService } from '@panary/discounts/data-access'
 import { uuidv7 } from 'uuidv7'
@@ -62,6 +56,7 @@ import { CorporateCustomer } from '@panary/corporate-customers/domain'
 import { PreOrderQuickDialogComponent } from './pre-order-quick-dialog.component'
 import { DiscountPickerDialogComponent } from './discount-picker-dialog.component'
 import { PosButton, PosButtonUiState, PosProductButton, toPosButton } from './pos-button.model'
+import { BundleFlow } from './bundle-flow'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 // TODO: CorporateCustomerService fehlt noch in @panary/corporate-customers/data-access — nach Migration einbinden
 // TODO: AppButtonDirective fehlt noch in panary-core — nach Migration einbinden
@@ -158,8 +153,13 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private _dineLocation: typeof DineLocation[keyof typeof DineLocation] | undefined = undefined
   private _withoutExtra = false
 
-  // Bundle/Menü-Flow State
-  #completedGroups = new Set<string>()
+  // Bundle/Menü-Flow-Logik (OptionGroup-Sequenz, HIGHEST, FIXED_PROPORTIONAL) — plain class, siehe bundle-flow.ts
+  readonly #bundleFlow = new BundleFlow({
+    findProductById: id => this.productService.findProductById(id),
+    findProductByExternalId: externalId => this.productService.findProductByExternalId(externalId),
+    topicForProduct: product =>
+      this.productGroupService.getProductGroupById(product.categoryIds?.[0] ?? '')?.name ?? '',
+  })
 
   private _combineAllId = 'combineAllArticles'
   private _combineAllName = 'Alle Artikel kombinieren'
@@ -1627,7 +1627,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         selectedArticle.modifiers[extraIndex].amount += 1
       }
     } else {
-      const group = this.findOptionGroupByTopic(selectedArticle, extraTopic)
+      const group = this.#bundleFlow.findOptionGroupByTopic(selectedArticle, extraTopic)
       selectedArticle.modifiers.push({
         _id: article._id,
         externalId: article.externalId ?? '',
@@ -1645,7 +1645,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         ...(group?.pricingMode === 'HIGHEST' ? { pricingMode: 'HIGHEST' as const } : {}),
       })
       if (group?.pricingMode === 'HIGHEST') {
-        this.applyHighestPricingToGroup(selectedArticle, extraTopic, group.freeQuantity || 0)
+        this.#bundleFlow.applyHighestPricingToGroup(selectedArticle, extraTopic, group.freeQuantity || 0)
       }
     }
   }
@@ -1689,9 +1689,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     }
     // HIGHEST: nach Entfernen/Reduzieren kann sich der Sieger verschieben → neu bewerten.
-    const group = this.findOptionGroupByTopic(selectedArticle, extraTopic)
+    const group = this.#bundleFlow.findOptionGroupByTopic(selectedArticle, extraTopic)
     if (group?.pricingMode === 'HIGHEST') {
-      this.applyHighestPricingToGroup(selectedArticle, extraTopic, group.freeQuantity || 0)
+      this.#bundleFlow.applyHighestPricingToGroup(selectedArticle, extraTopic, group.freeQuantity || 0)
     }
     this._withoutExtra = false
     this.setInfoBoxText('Extras auswählen ...', 'lightgray')
@@ -1700,28 +1700,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   // ──────────────────────────────────────────────────────────────────────
   // Bundle/Menü-Flow Helper-Methoden
   // ──────────────────────────────────────────────────────────────────────
-
-  /** Prüft ob ein Produkt ein BUNDLE mit Pflicht-Optionen ist */
-  private isBundleProduct(product: ProductSchema): boolean {
-    // Neues Schema: productType + optionGroups
-    if (product.productType === 'BUNDLE' && (product.optionGroups?.length ?? 0) > 0) return true
-    // Legacy-Fallback: isMenu-Flag
-    return (product as any).isMenu === true
-  }
-
-  /** Gibt die nächste unvollständige OptionGroup zurück (Pflicht zuerst, dann optional) */
-  private getNextMandatoryGroup(product: ProductSchema): any | null {
-    if (!product.optionGroups?.length) return null
-    // Zuerst Pflicht-Gruppen (minSelections > 0)
-    const mandatory = product.optionGroups.find(g =>
-      g.minSelections > 0 && !this.#completedGroups.has(g.id),
-    )
-    if (mandatory) return mandatory
-    // Dann optionale Gruppen (minSelections === 0) — mit Skip-Möglichkeit
-    return product.optionGroups.find(g =>
-      g.minSelections === 0 && !this.#completedGroups.has(g.id),
-    ) ?? null
-  }
 
   /** Zeigt die Auswahl-Buttons für eine OptionGroup an */
   private showOptionGroupButtons(group: any, parentProduct: ProductSchema): void {
@@ -1747,8 +1725,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         backgroundColor: 'darkcyan',
         fontColor: 'white',
         callback: () => {
-          this.#completedGroups.add(group.id)
-          const nextGroup = this.getNextMandatoryGroup(parentProduct)
+          this.#bundleFlow.markCompleted(group.id)
+          const nextGroup = this.#bundleFlow.getNextMandatoryGroup(parentProduct)
           if (nextGroup) {
             this.showOptionGroupButtons(nextGroup, parentProduct)
           } else {
@@ -1776,7 +1754,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     const lineItem = this.getCurrentSelectedLineItem()
     if (!lineItem) return
 
-    const genericItem = this.toGenericLineItem(selected)
+    const genericItem = this.#bundleFlow.toGenericLineItem(selected)
 
     // Speichern basierend auf Gruppen-Name
     const groupName = (group.name || '').toLowerCase()
@@ -1798,7 +1776,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       // HIGHEST: nach jeder Auswahl neu bewerten — nur der höchste kostenpflichtige
       // Aufpreis der Gruppe bleibt wirksam, die übrigen werden auf 0 gesetzt.
       if (group.pricingMode === 'HIGHEST') {
-        this.applyHighestPricingToGroup(lineItem, group.name, freeQty)
+        this.#bundleFlow.applyHighestPricingToGroup(lineItem, group.name, freeQty)
       }
     }
 
@@ -1806,25 +1784,22 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // (Engine-Eingabe). Legacy-Slots bleiben für Anzeige/alte Reader gefüllt.
     if (parentProduct.bundlePricingMode === 'FIXED_PROPORTIONAL') {
       lineItem.components = lineItem.components ?? []
-      lineItem.components.push(this.toComponent(selected, group))
+      lineItem.components.push(this.#bundleFlow.toComponent(selected, group))
     }
 
-    this.#completedGroups.add(group.id)
+    this.#bundleFlow.markCompleted(group.id)
 
     // Prüfen ob das gewählte Produkt selbst OptionGroups hat (z.B. Pommes → Soßen)
-    if (selected.optionGroups?.length) {
-      const subGroups = selected.optionGroups.filter(g => !this.#completedGroups.has(g.id))
-      if (subGroups.length > 0) {
-        // Zwischen-Schritt: OptionGroups des gewählten Produkts anzeigen
-        this.showOptionGroupButtons(subGroups[0], parentProduct)
-        // Sub-OptionGroup-IDs zum Set hinzufügen damit sie nicht nochmal kommen
-        // aber den parentProduct beibehalten für den Rückweg
-        return
-      }
+    // Zwischen-Schritt: OptionGroups des gewählten Produkts anzeigen,
+    // aber den parentProduct beibehalten für den Rückweg
+    const subGroups = this.#bundleFlow.pendingGroups(selected)
+    if (subGroups.length > 0) {
+      this.showOptionGroupButtons(subGroups[0], parentProduct)
+      return
     }
 
     // Nächste Gruppe des Bundle-Produkts oder Unblock
-    const nextGroup = this.getNextMandatoryGroup(parentProduct)
+    const nextGroup = this.#bundleFlow.getNextMandatoryGroup(parentProduct)
 
     if (nextGroup) {
       this.showOptionGroupButtons(nextGroup, parentProduct)
@@ -1848,132 +1823,18 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     return null
   }
 
-  /** Erstellt ein GenericLineItem aus einem Produkt (für menuSideDish, menuDrink, modifiers) */
-  private toGenericLineItem(product: ProductSchema): any {
-    const parentGroup = this.productGroupService.getProductGroupById(product.categoryIds?.[0] ?? '')
-    return {
-      _id: product._id,
-      externalId: product.externalId ?? '',
-      amount: 1,
-      name: product.name,
-      price: product.price || 0,
-      taxInside: product.taxInside || 19,
-      taxOutside: product.taxOutside || 7,
-      ingredientReferences: (product as any).ingredientReferences || [],
-      recipeReferences: product.recipeReferences || [],
-      topic: parentGroup?.name ?? '',
-    }
-  }
-
-  /**
-   * HIGHEST-Preisregel für eine Modifier-Gruppe (`topic`): Von allen gewählten
-   * Optionen wird nur der HÖCHSTE Aufpreis wirksam, die übrigen kostenpflichtigen
-   * werden auf 0 gesetzt. Reihenfolge (Auswahl-Reihenfolge im modifiers-Array):
-   *   1. Die ersten `freeQty` Optionen der Gruppe sind Freimenge → Preis 0.
-   *   2. Unter den verbleibenden kostenpflichtigen Optionen behält nur die mit
-   *      dem höchsten KATALOG-Aufpreis ihren Preis; alle anderen → 0.
-   *
-   * Der Katalog-Preis wird pro Item frisch gelesen (Modifier-`_id` = product._id),
-   * damit wiederholte Auswahl (ein teureres Item kommt dazu) ein zuvor genulltes
-   * Item korrekt wieder bepreist. Rein preisliche Mutation der Order-Zeile —
-   * keine Auswahl wird entfernt.
-   */
-  /**
-   * Findet die Optionsgruppe eines LineItem-Produkts, deren Name dem `topic`
-   * entspricht. Dient dem klassischen Extras-Pfad (`increaseExtra`), der nur den
-   * `topic` kennt, um `pricingMode`/`freeQuantity` der Herkunftsgruppe aufzulösen.
-   */
-  private findOptionGroupByTopic(
-    lineItem: OrderLineItem,
-    topic: string,
-  ): { pricingMode?: 'SUM' | 'HIGHEST'; freeQuantity?: number } | undefined {
-    const product =
-      this.productService.findProductById(lineItem._id) ??
-      (lineItem.externalId ? this.productService.findProductByExternalId(lineItem.externalId) : undefined)
-    return product?.optionGroups?.find(g => g.name === topic)
-  }
-
-  private applyHighestPricingToGroup(lineItem: OrderLineItem, topic: string, freeQty: number): void {
-    const groupMods = lineItem.modifiers.filter(m => m.topic === topic)
-    if (groupMods.length === 0) return
-
-    // Katalog-Aufpreis pro Item (Fallback: aktueller Item-Preis, falls Lookup fehlt).
-    const catalogPrice = (m: (typeof groupMods)[number]): number =>
-      this.productService.findProductById(m._id)?.price ?? m.price ?? 0
-
-    // Freimengen zuerst (Auswahl-Reihenfolge) → 0; Rest ist kostenpflichtig.
-    const paid = groupMods.slice(freeQty)
-    groupMods.slice(0, freeQty).forEach(m => (m.price = 0))
-    if (paid.length === 0) return
-
-    const maxPrice = Math.max(...paid.map(catalogPrice))
-    // Nur EINE Option gewinnt: die erste mit Max-Preis behält, alle anderen → 0.
-    let winnerAssigned = false
-    for (const m of paid) {
-      const price = catalogPrice(m)
-      if (!winnerAssigned && price === maxPrice) {
-        m.price = price
-        winnerAssigned = true
-      } else {
-        m.price = 0
-      }
-    }
-  }
-
-  /** Rolle einer Bundle-Komponente aus dem OptionGroup-Namen (Bon/UI-Gruppierung). */
-  private roleFromGroupName(name: string): LineComponent['role'] {
-    const n = (name || '').toLowerCase()
-    if (n.includes('beilage') || n.includes('side')) return 'side'
-    if (n.includes('getränk') || n.includes('getraenk') || n.includes('drink')) return 'drink'
-    if (n.includes('sauce') || n.includes('soße') || n.includes('sosse') || n.includes('dip')) return 'sauce'
-    return 'extra'
-  }
-
-  /**
-   * Generische Bundle-Komponente (Engine-Eingabe) mit NORMALPREIS-Gewicht. Anders
-   * als der Legacy-Slot wird hier bewusst der volle Normalpreis geführt (kein
-   * freeQuantity-0): bei FIXED_PROPORTIONAL ist er das Marktwert-Gewicht der
-   * Festpreis-Verteilung, nicht der berechnete Aufpreis.
-   */
-  private toComponent(product: ProductSchema, group: { id?: string; name?: string }): LineComponent {
-    return {
-      ...this.toGenericLineItem(product),
-      price: product.price || 0,
-      optionGroupId: group?.id,
-      role: this.roleFromGroupName(group?.name ?? ''),
-    } as LineComponent
-  }
-
-  /**
-   * Schließt eine FIXED_PROPORTIONAL-Bundle-Zeile ab: ergänzt das Hauptgericht als
-   * Komponente (role 'main') mit Normalpreis-Gewicht. Quelle: product.mainPrice;
-   * fehlt der Wert, dient der Restbetrag (Festpreis − Σ übrige Komponenten) als
-   * Gewicht — so bleibt die Engine-Verteilung summen-exakt == Festpreis. Idempotenz
-   * (kein Doppel-main) und Cents-Arithmetik liegen in der Domain-Funktion.
-   */
+  /** Schließt eine FIXED_PROPORTIONAL-Bundle-Zeile ab (Details in BundleFlow.finalizeFixedBundle). */
   private finalizeBundleLine(product: ProductSchema): void {
-    if (product.bundlePricingMode !== 'FIXED_PROPORTIONAL') return
     const lineItem = this.getCurrentSelectedLineItem()
     if (!lineItem) return
-
-    lineItem.components = withFixedBundleMainComponent(
-      lineItem.components ?? [],
-      {
-        ...this.toGenericLineItem(product),
-        taxInside: product.taxInside || 19,
-        taxOutside: product.taxOutside || 7,
-        topic: 'main',
-      },
-      product.price,
-      product.mainPrice,
-    )
+    this.#bundleFlow.finalizeFixedBundle(lineItem, product)
   }
 
   // ──────────────────────────────────────────────────────────────────────
 
   increaseLineItem(product: ProductSchema, amount: number | undefined = undefined) {
     const amountToIncrease: number = amount !== undefined ? amount : this.multiplier
-    const isBundle = this.isBundleProduct(product)
+    const isBundle = this.#bundleFlow.isBundleProduct(product)
 
     let topic: string
     const firstCategoryId = product.categoryIds?.[0]
@@ -2022,9 +1883,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       if (isBundle && product.optionGroups?.length) {
         this._isBlocked = true
         this._selectedCombinationIndex[1] = index
-        this.#completedGroups = new Set()
+        this.#bundleFlow.reset()
         // Bundle-Flow gestartet für: product.name
-        const firstGroup = this.getNextMandatoryGroup(product)
+        const firstGroup = this.#bundleFlow.getNextMandatoryGroup(product)
         if (firstGroup) {
           this.showOptionGroupButtons(firstGroup, product)
         }
@@ -2044,9 +1905,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         // Neuer Bundle-Flow: OptionGroups sequentiell abarbeiten
         this._isBlocked = true
         this._selectedProductIndex = index
-        this.#completedGroups = new Set()
+        this.#bundleFlow.reset()
         // Bundle-Flow gestartet für: product.name
-        const firstGroup = this.getNextMandatoryGroup(product)
+        const firstGroup = this.#bundleFlow.getNextMandatoryGroup(product)
         if (firstGroup) {
           this.showOptionGroupButtons(firstGroup, product)
         }

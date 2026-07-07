@@ -61,7 +61,7 @@ import { DeviceConfigService } from '@panary/shared/data-access-config'
 import { CorporateCustomer } from '@panary/corporate-customers/domain'
 import { PreOrderQuickDialogComponent } from './pre-order-quick-dialog.component'
 import { DiscountPickerDialogComponent } from './discount-picker-dialog.component'
-import { PosButton, PosProductButton, toPosButton } from './pos-button.model'
+import { PosButton, PosButtonUiState, PosProductButton, toPosButton } from './pos-button.model'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 // TODO: CorporateCustomerService fehlt noch in @panary/corporate-customers/data-access — nach Migration einbinden
 // TODO: AppButtonDirective fehlt noch in panary-core — nach Migration einbinden
@@ -904,137 +904,121 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  setMenuSideDishButtons(sideDishElements: Array<UUID> | undefined = undefined): void {
-    this.clearButtons()
-
+  /**
+   * Merkt sich die Id des aktuell gewählten Artikels (Liste oder Kombination) als
+   * Parent für Menü-Folgeschritte. Ohne Auswahl: Fehlermeldung + false.
+   */
+  private rememberSelectedParentId(): boolean {
     if (this._selectedProductIndex !== null) {
       this._lastParentId = this.#lineItems[this._selectedProductIndex]._id
-    } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
+      return true
+    }
+    if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
       this._lastParentId = this.combinations[this._selectedCombinationIndex[0]][this._selectedCombinationIndex[1]]._id
-    } else {
-      this.setInfoBoxText('Bitte wählen Sie zunächst einen Artikel aus.', 'red')
-      return
+      return true
     }
-
-    this.setInfoBoxText('Welche Beilage möchten Sie hinzufügen?')
-
-    if (sideDishElements && sideDishElements.length > 0) {
-      sideDishElements.forEach((value: UUID): void => {
-        const sideDish: ProductSchema | undefined = this.productService.findProductByExternalId(value)
-
-        if (sideDish) {
-          const copyOfSideDish = toPosButton(sideDish, { isMenuSideDish: true, isMenuSubButton: true })
-          copyOfSideDish.callback = () => {
-            let parentButton: ProductSchema | undefined
-            if (this._lastParentId === undefined) {
-              parentButton = undefined
-            } else {
-              parentButton = this.productService.findProductById(this._lastParentId)
-            }
-            if (copyOfSideDish.isMenuSideDish !== undefined && copyOfSideDish.isMenuSideDish) {
-              this.setMenuSideDish(copyOfSideDish)
-              if ((parentButton as any)?.isMenuSideDishSauce !== null && (parentButton as any)?.isMenuSideDishSauce) {
-                this.setMenuSauceButtons((parentButton as any)?.sauces)
-              }
-            }
-          }
-          this._productButtons.push(copyOfSideDish)
-        }
-      })
-    }
+    this.setInfoBoxText('Bitte wählen Sie zunächst einen Artikel aus.', 'red')
+    return false
   }
 
-  setMenuSauceButtons(ids: Array<UUID> | undefined = undefined) {
-    this.clearButtons()
+  private lastParentProduct(): ProductSchema | undefined {
+    if (this._lastParentId === undefined) return undefined
+    return this.productService.findProductById(this._lastParentId)
+  }
 
-    if (this._selectedProductIndex !== null) {
-      this._lastParentId = this.#lineItems[this._selectedProductIndex]._id
-    } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
-      this._lastParentId = this.combinations[this._selectedCombinationIndex[0]][this._selectedCombinationIndex[1]]._id
-    } else {
-      this.setInfoBoxText('Bitte wählen Sie zunächst einen Artikel aus.', 'red')
-      return
+  /**
+   * Gemeinsames Gerüst der Menü-Slot-Schritte (Beilage/Soße/Getränk): Buttons
+   * leeren, Parent-Artikel merken, Slot-Frage anzeigen, optional eine
+   * Skip-Funktionstaste und pro Produkt-Id eine VM-Kopie mit Slot-Flags rendern.
+   */
+  private setMenuSlotButtons(
+    ids: Array<UUID> | undefined,
+    slot: {
+      infoText: string
+      flags: PosButtonUiState
+      onSelect: (copy: PosProductButton) => void
+      buildSkipButton?: (parentButton: ProductSchema | undefined) => PosButton
+    },
+  ): void {
+    this.clearButtons()
+    if (!this.rememberSelectedParentId()) return
+    this.setInfoBoxText(slot.infoText)
+    if (slot.buildSkipButton) {
+      this._functionButtons.push(slot.buildSkipButton(this.lastParentProduct()))
     }
-    this.setInfoBoxText('Welche Soße möchten Sie hinzufügen?')
-    let parentButton: ProductSchema | undefined
-    if (this._lastParentId === undefined) {
-      parentButton = undefined
-    } else {
-      parentButton = this.productService.findProductById(this._lastParentId)
-    }
-    this.functionButtons.push({
-      _id: this._skipSauceId,
-      externalId: this.#functionButtonExternalId,
-      locationId: this.userService.currentUser()?.activeLocationId || '',
-      tenantId: this.authService.tenantId()?.toString() || '',
-      name: this._skipSauceName,
-      index: -1,
-      isFunctionButton: true,
-      isExtra: false,
-      backgroundColor: 'darkcyan',
-      fontColor: 'white',
-      callback: () => {
-        if (parentButton && (parentButton as any).itemType === ItemType.mainDish && (parentButton as any).isMenuDrink) {
-          this.setMenuDrinkButtons((parentButton as any)?.drinks)
-        } else {
-          if (this._selectedProductIndex !== null) {
-            this.#lineItems[this._selectedProductIndex].menuDrink = null
-          } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
-            this.combinations[this._selectedCombinationIndex[0]][this._selectedCombinationIndex[1]].menuDrink = null
+    ids?.forEach((value: UUID): void => {
+      const product: ProductSchema | undefined = this.productService.findProductByExternalId(value)
+      if (!product) return
+      const copy = toPosButton(product, slot.flags)
+      copy.callback = () => slot.onSelect(copy)
+      this._productButtons.push(copy)
+    })
+  }
+
+  setMenuSideDishButtons(sideDishElements: Array<UUID> | undefined = undefined): void {
+    this.setMenuSlotButtons(sideDishElements, {
+      infoText: 'Welche Beilage möchten Sie hinzufügen?',
+      flags: { isMenuSideDish: true, isMenuSubButton: true },
+      onSelect: copy => {
+        const parentButton = this.lastParentProduct()
+        if (copy.isMenuSideDish !== undefined && copy.isMenuSideDish) {
+          this.setMenuSideDish(copy)
+          if ((parentButton as any)?.isMenuSideDishSauce !== null && (parentButton as any)?.isMenuSideDishSauce) {
+            this.setMenuSauceButtons((parentButton as any)?.sauces)
           }
-          this._isBlocked = false
-          this.setProductButtonsByGroupId((parentButton as any)?.categoryIds?.[0])
         }
       },
     })
-    if (ids !== undefined && ids.length > 0) {
-      ids.forEach((value: UUID): void => {
-        const sauce: ProductSchema | undefined = this.productService.findProductByExternalId(value)
-        if (sauce) {
-          const copyOfSauce = toPosButton(sauce, { isMenuSideDishSauce: true, isExtra: false, isMenuSubButton: true })
-          copyOfSauce.callback = (): void => {
-            this.setMenuSideDishSauce(copyOfSauce)
-          }
-          this._productButtons.push(copyOfSauce)
-        }
-      })
-    }
   }
 
-  setMenuDrinkButtons(ids: Array<UUID> | undefined = undefined) {
-    this.clearButtons()
-
-    if (this._selectedProductIndex !== null) {
-      this._lastParentId = this.#lineItems[this._selectedProductIndex]._id
-    } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
-      this._lastParentId = this.combinations[this._selectedCombinationIndex[0]][this._selectedCombinationIndex[1]]._id
-    } else {
-      this.setInfoBoxText('Bitte wählen Sie zunächst einen Artikel aus.', 'red')
-      return
-    }
-    this.setInfoBoxText('Welches Getränk möchten Sie hinzufügen?')
-
-    if (ids !== undefined && ids.length > 0) {
-      ids.forEach((value: UUID): void => {
-        const drink: ProductSchema | undefined = this.productService.findProductByExternalId(value)
-
-        if (drink) {
-          const copyOfDrink = toPosButton(drink, { isMenuDrink: true, isMenuSubButton: true })
-          copyOfDrink.callback = (): void => {
-            let parentButton: ProductSchema | undefined
-            if (this._lastParentId === undefined) {
-              parentButton = undefined
-            } else {
-              parentButton = this.productService.findProductById(this._lastParentId)
+  setMenuSauceButtons(ids: Array<UUID> | undefined = undefined) {
+    this.setMenuSlotButtons(ids, {
+      infoText: 'Welche Soße möchten Sie hinzufügen?',
+      flags: { isMenuSideDishSauce: true, isExtra: false, isMenuSubButton: true },
+      onSelect: copy => this.setMenuSideDishSauce(copy),
+      buildSkipButton: parentButton => ({
+        _id: this._skipSauceId,
+        externalId: this.#functionButtonExternalId,
+        locationId: this.userService.currentUser()?.activeLocationId || '',
+        tenantId: this.authService.tenantId()?.toString() || '',
+        name: this._skipSauceName,
+        index: -1,
+        isFunctionButton: true,
+        isExtra: false,
+        backgroundColor: 'darkcyan',
+        fontColor: 'white',
+        callback: () => {
+          if (
+            parentButton &&
+            (parentButton as any).itemType === ItemType.mainDish &&
+            (parentButton as any).isMenuDrink
+          ) {
+            this.setMenuDrinkButtons((parentButton as any)?.drinks)
+          } else {
+            if (this._selectedProductIndex !== null) {
+              this.#lineItems[this._selectedProductIndex].menuDrink = null
+            } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
+              this.combinations[this._selectedCombinationIndex[0]][this._selectedCombinationIndex[1]].menuDrink = null
             }
-            this.setMenuDrink(copyOfDrink)
             this._isBlocked = false
             this.setProductButtonsByGroupId((parentButton as any)?.categoryIds?.[0])
           }
-          this._productButtons.push(copyOfDrink)
-        }
-      })
-    }
+        },
+      }),
+    })
+  }
+
+  setMenuDrinkButtons(ids: Array<UUID> | undefined = undefined) {
+    this.setMenuSlotButtons(ids, {
+      infoText: 'Welches Getränk möchten Sie hinzufügen?',
+      flags: { isMenuDrink: true, isMenuSubButton: true },
+      onSelect: copy => {
+        const parentButton = this.lastParentProduct()
+        this.setMenuDrink(copy)
+        this._isBlocked = false
+        this.setProductButtonsByGroupId((parentButton as any)?.categoryIds?.[0])
+      },
+    })
   }
 
   setExtraSubButtons(
@@ -1293,27 +1277,15 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   setSauceSubButtons(ids: Array<string> | undefined = undefined, isInclusive = false, currentIndex = 0) {
     this.clearButtons()
 
-    if (this._selectedProductIndex !== null) {
-      this._lastParentId = this.#lineItems[this._selectedProductIndex]._id
-    } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
-      this._lastParentId = this.combinations[this._selectedCombinationIndex[0]][this._selectedCombinationIndex[1]]._id
-    } else {
-      this.setInfoBoxText('Bitte wählen Sie zunächst einen Artikel aus.', 'red')
-      return
-    }
+    if (!this.rememberSelectedParentId()) return
+
     if (isInclusive) {
       this.setInfoBoxText('INKLUSIV: Welche Soße möchten Sie hinzufügen?')
     } else {
       this.setInfoBoxText('Welche Soße möchten Sie hinzufügen?')
     }
 
-    let parentButton: ProductSchema | undefined
-
-    if (this._lastParentId === undefined) {
-      parentButton = undefined
-    } else {
-      parentButton = this.productService.findProductById(this._lastParentId)
-    }
+    const parentButton: ProductSchema | undefined = this.lastParentProduct()
     this.functionButtons.push({
       _id: this._skipSauceId,
       externalId: this.#functionButtonExternalId,

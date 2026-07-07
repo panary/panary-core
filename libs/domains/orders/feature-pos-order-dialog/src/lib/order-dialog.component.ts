@@ -57,6 +57,12 @@ import { PreOrderQuickDialogComponent } from './pre-order-quick-dialog.component
 import { DiscountPickerDialogComponent } from './discount-picker-dialog.component'
 import { PosButton, PosButtonUiState, PosProductButton, toPosButton } from './pos-button.model'
 import { BundleFlow } from './bundle-flow'
+import {
+  BoardSelection,
+  nextBoardSelection,
+  previousBoardSelection,
+  toggleCombinationSelection,
+} from './board-selection'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 // TODO: CorporateCustomerService fehlt noch in @panary/corporate-customers/data-access — nach Migration einbinden
 // TODO: AppButtonDirective fehlt noch in panary-core — nach Migration einbinden
@@ -535,85 +541,41 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   selectCombinationByIndex(combinationIndex: number, articleIndex: number | null) {
     if (this._isBlocked) return
 
-    this._selectedProductIndex = null
-    if (articleIndex === null) {
-      this._selectedCombinationIndex[0] =
-        this._selectedCombinationIndex[0] === null || this._selectedCombinationIndex[0] !== combinationIndex
-          ? combinationIndex
-          : null
-    } else {
-      this._selectedCombinationIndex[0] = combinationIndex
-      this._selectedCombinationIndex[1] =
-        this._selectedCombinationIndex[1] === null || this._selectedCombinationIndex[1] !== articleIndex
-          ? articleIndex
-          : null
-    }
+    this.applyBoardSelection(toggleCombinationSelection(this.boardSelection(), combinationIndex, articleIndex))
   }
 
   increaseSelectedIndex() {
     if (this._isBlocked) return
-    if (this.combinations.length === 0 && this.#lineItems.length === 0) return
 
-    if (this._selectedCombinationIndex[0] === null && this._selectedProductIndex === null) {
-      if (this.combinations.length > 0) {
-        this._selectedCombinationIndex = [0, null]
-      } else {
-        this._selectedProductIndex = 0
-      }
-      return
-    }
-    if (this._selectedCombinationIndex[0] !== null) {
-      if (this._selectedCombinationIndex[0] === this.combinations.length - 1) {
-        this._selectedCombinationIndex = [null, null]
-        if (this.lineItems.length > 0) {
-          this._selectedProductIndex = 0
-        }
-      } else {
-        this._selectedCombinationIndex[0] += 1
-      }
-      return
-    }
-    if (this._selectedProductIndex !== null) {
-      if (this._selectedProductIndex === this.#lineItems.length - 1) {
-        this._selectedProductIndex = null
-        this._selectedCombinationIndex = [null, null]
-      } else {
-        this._selectedProductIndex += 1
-      }
-    }
+    this.applyBoardSelection(
+      nextBoardSelection(this.boardSelection(), {
+        combinations: this.combinations.length,
+        lineItems: this.#lineItems.length,
+      }),
+    )
   }
 
   decreaseSelectedIndex() {
     if (this._isBlocked) return
-    if (this.combinations.length === 0 && this.#lineItems.length === 0) return
 
-    if (this._selectedCombinationIndex[0] === null && this._selectedProductIndex === null) {
-      if (this.lineItems.length > 0) {
-        this._selectedProductIndex = this.lineItems.length - 1
-      } else {
-        this._selectedCombinationIndex = [this.combinations.length - 1, null]
-      }
-      return
+    this.applyBoardSelection(
+      previousBoardSelection(this.boardSelection(), {
+        combinations: this.combinations.length,
+        lineItems: this.#lineItems.length,
+      }),
+    )
+  }
+
+  private boardSelection(): BoardSelection {
+    return {
+      productIndex: this._selectedProductIndex,
+      combinationIndex: [this._selectedCombinationIndex[0], this._selectedCombinationIndex[1]],
     }
-    if (this._selectedCombinationIndex[0] !== null) {
-      if (this._selectedCombinationIndex[0] === 0) {
-        this._selectedCombinationIndex = [null, null]
-        this._selectedProductIndex = null
-      } else {
-        this._selectedCombinationIndex[0] -= 1
-      }
-      return
-    }
-    if (this._selectedProductIndex !== null) {
-      if (this._selectedProductIndex === 0) {
-        this._selectedProductIndex = null
-        if (this.combinations.length > 0) {
-          this._selectedCombinationIndex = [this.combinations.length - 1, null]
-        }
-      } else {
-        this._selectedProductIndex -= 1
-      }
-    }
+  }
+
+  private applyBoardSelection(selection: BoardSelection): void {
+    this._selectedProductIndex = selection.productIndex
+    this._selectedCombinationIndex = [selection.combinationIndex[0], selection.combinationIndex[1]]
   }
 
   createProductButtons(productGroup: ProductGroup) {

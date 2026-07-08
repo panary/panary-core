@@ -42,6 +42,15 @@ export const NotificationEventType = {
    * mappt automatisch: `rule.severity === 'critical'` -> dieser Event-Typ.
    */
   FRAUD_ALERT_CRITICAL: 'fraud.alert_critical',
+
+  /**
+   * Subscription: die Testphase des Tenants endet bald (Standard ~3 Tage vorher).
+   * Adressat: TENANT_OWNER. Ausgelöst durch den PSP-`trial_will_end`-Webhook
+   * (bei hinterlegter Zahlung) bzw. den Trial-Reminder-Sweep (Self-Signup-Trials
+   * ohne PSP). Alle Channels default an — seltenes, wichtiges Billing-Event,
+   * kein Spam-Risiko.
+   */
+  SUBSCRIPTION_TRIAL_WILL_END: 'subscription.trial_will_end',
 } as const
 
 export type NotificationEventType = (typeof NotificationEventType)[keyof typeof NotificationEventType]
@@ -65,6 +74,7 @@ export type NotificationSeverity = (typeof NotificationSeverity)[keyof typeof No
 export const NotificationCategory = {
   PERSONAL: 'personal',
   ORDERS: 'orders',
+  BILLING: 'billing',
 } as const
 
 export type NotificationCategory = (typeof NotificationCategory)[keyof typeof NotificationCategory]
@@ -156,6 +166,13 @@ export const NOTIFICATION_EVENT_META: Record<NotificationEventType, Notification
     // das ist bewusst opt-out statt opt-in.
     category: NotificationCategory.ORDERS,
     label: 'Storno-Alarm KRITISCH (Bargeldverlust)',
+    defaults: { inApp: true, email: true, push: true },
+  },
+  [NotificationEventType.SUBSCRIPTION_TRIAL_WILL_END]: {
+    // Trial-Ende steht bevor: alle Channels default an. Der Owner soll die
+    // Erinnerung nicht verpassen (E-Mail + Push), sonst läuft der Zugang aus.
+    category: NotificationCategory.BILLING,
+    label: 'Testphase endet bald',
     defaults: { inApp: true, email: true, push: true },
   },
 }

@@ -89,6 +89,11 @@ export const subscriptionSchema = Type.Object(
     // (suspend-scheduler suspendiert nach BILLING_GRACE_DAYS). Wird vom PSP-Webhook
     // gesetzt/zurueckgesetzt.
     pastDueSince: Type.Optional(Type.String({ format: 'date-time' })),
+    // Zeitpunkt, zu dem die „Testphase endet bald"-Notification an den Tenant-Owner
+    // gesendet wurde — Idempotenz-Marker, damit weder der PSP-`trial_will_end`-Webhook
+    // noch der Self-Signup-Sweep die Erinnerung doppelt verschicken. Wird beim
+    // Verlassen des TRIALING-Status wieder zurueckgesetzt (Re-Trial möglich).
+    trialWillEndNotifiedAt: Type.Optional(Type.String({ format: 'date-time' })),
     cancelReason: Type.Optional(Type.String({ maxLength: 200 })),
     cancelFeedback: Type.Optional(Type.String({ maxLength: 2000 })),
     maxLocations: Type.Optional(Type.Number({ minimum: 0 })),

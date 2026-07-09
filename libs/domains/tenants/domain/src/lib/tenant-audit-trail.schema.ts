@@ -51,9 +51,13 @@ export const tenantAuditTrailSchema = Type.Object(
 )
 export type TenantAuditTrail = Static<typeof tenantAuditTrailSchema>
 
-// Service ist Append-Only — daher data === full schema minus _id/createdAt
-// (werden serverseitig gesetzt).
-export const tenantAuditTrailDataSchema = Type.Omit(tenantAuditTrailSchema, ['_id', 'createdAt'], {
+// Append-Only-Service: der interne Backend-Hook (tenant-audit-trail.hook.ts)
+// liefert `_id` + `createdAt` EXPLIZIT mit (Konsistenz mit `audit-events`; der
+// Data-Resolver setzt bewusst KEINE Server-Defaults). Das Data-Schema enthaelt
+// daher — anders als das uebliche Omit-Pattern — beide Felder. Ein Omit wuerde
+// sie zusammen mit `additionalProperties: false` verwerfen und JEDEN Audit-Write
+// still scheitern lassen (validateData → 400, vom Hook-try/catch geschluckt).
+export const tenantAuditTrailDataSchema = Type.Object(tenantAuditTrailSchema.properties, {
   $id: 'TenantAuditTrailData',
   additionalProperties: false,
 })

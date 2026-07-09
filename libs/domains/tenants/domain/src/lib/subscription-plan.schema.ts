@@ -24,6 +24,10 @@ export const subscriptionPlanFeaturesSchema = Type.Object(
     aiExtraction: Type.Optional(Type.Boolean()),
     fraudAnalytics: Type.Optional(Type.Boolean()),
     multiLocationConsolidation: Type.Optional(Type.Boolean()),
+    // Online-Bestellannahme (Storefront): Basic (Gratis) zeigt nur die dynamische
+    // Speisekarte + eine Merkliste; ab Connect darf der Gast echte Bestellungen
+    // absenden. Trennt den kostenlosen Schaufenster-Tier von den zahlenden Tiers.
+    onlineOrdering: Type.Optional(Type.Boolean()),
     // Fiskalisierung (KassenSichV) — eigenes Add-on, ENTKOPPELT von offlinePos.
     // Gated `pos-cashier` (fiskalischer Kassenbetrieb + TSE) — buchbar quer über
     // Tiers, auch cloud-direkt ohne Edge (Online-TSE). Siehe ADR
@@ -110,6 +114,9 @@ export type SubscriptionPlanQuery = Static<typeof subscriptionPlanQuerySchema>
 // definierte Custom-Plaene (z. B. 'partner-deal-2026') bleiben als freie Strings
 // moeglich — das Enum deckt nur die mitgelieferten Standard-Tiers ab.
 export const SubscriptionPlanCode = {
+  // Kostenloser Schaufenster-Tier (Speisekarte + Merkliste, keine Bestellannahme).
+  // Auffang-Tier nach Trial-Ablauf und dauerhafter Gratis-Einstieg.
+  BASIC: 'basic',
   TRIAL: 'trial',
   CONNECT: 'connect',
   OPERATE: 'operate',
@@ -121,6 +128,7 @@ export type SubscriptionPlanCodeValue = (typeof SubscriptionPlanCode)[keyof type
 // Eingriff wechseln darf. Enterprise ist bewusst NICHT enthalten (Custom-
 // Billing, nur ueber Plattform-Vergabe).
 export const SELF_SERVICE_PLAN_CODES: ReadonlyArray<SubscriptionPlanCodeValue> = [
+  SubscriptionPlanCode.BASIC,
   SubscriptionPlanCode.TRIAL,
   SubscriptionPlanCode.CONNECT,
   SubscriptionPlanCode.OPERATE,
@@ -131,6 +139,22 @@ export const SELF_SERVICE_PLAN_CODES: ReadonlyArray<SubscriptionPlanCodeValue> =
 // Werden vom Seed-Skript (Phase 5.1) angelegt — V1-Vorschlag. Preise
 // koennen vom User vor dem ersten Stripe-Go-Live angepasst werden.
 export const SUBSCRIPTION_PLAN_SEED_DEFAULTS: ReadonlyArray<Omit<SubscriptionPlan, 'createdAt' | 'updatedAt'>> = [
+  {
+    _id: SubscriptionPlanCode.BASIC,
+    name: 'Basic',
+    description:
+      'Kostenloses Online-Schaufenster — dynamische Speisekarte + Merkliste, ohne Bestellannahme. Upgrade für Kasse & Betrieb.',
+    active: true,
+    visibilityForSelfService: true,
+    monthlyPriceCents: 0,
+    yearlyPriceCents: 0,
+    currency: 'EUR',
+    // Reines Schaufenster: eine Filiale, keine POS-Geräte, keine Operativ-/
+    // ERP-Features. `onlineOrdering` bewusst NICHT gesetzt (Merkliste statt
+    // Bestellung); alle anderen Features false (omitted).
+    limits: { maxLocations: 1, maxUsers: 2, maxDevices: 0 },
+    features: {},
+  },
   {
     _id: SubscriptionPlanCode.TRIAL,
     name: 'Trial',
@@ -146,6 +170,7 @@ export const SUBSCRIPTION_PLAN_SEED_DEFAULTS: ReadonlyArray<Omit<SubscriptionPla
       aiExtraction: true,
       fraudAnalytics: true,
       multiLocationConsolidation: true,
+      onlineOrdering: true,
       fiscalCashier: true,
       offlinePos: true,
       physicalPrintServer: true,
@@ -169,6 +194,7 @@ export const SUBSCRIPTION_PLAN_SEED_DEFAULTS: ReadonlyArray<Omit<SubscriptionPla
       aiExtraction: true,
       fraudAnalytics: true,
       multiLocationConsolidation: true,
+      onlineOrdering: true,
       fiscalCashier: false,
       offlinePos: false,
       physicalPrintServer: false,
@@ -189,6 +215,7 @@ export const SUBSCRIPTION_PLAN_SEED_DEFAULTS: ReadonlyArray<Omit<SubscriptionPla
       aiExtraction: true,
       fraudAnalytics: true,
       multiLocationConsolidation: true,
+      onlineOrdering: true,
       fiscalCashier: true,
       offlinePos: true,
       physicalPrintServer: true,
@@ -210,6 +237,7 @@ export const SUBSCRIPTION_PLAN_SEED_DEFAULTS: ReadonlyArray<Omit<SubscriptionPla
       aiExtraction: true,
       fraudAnalytics: true,
       multiLocationConsolidation: true,
+      onlineOrdering: true,
       fiscalCashier: true,
       offlinePos: true,
       physicalPrintServer: true,

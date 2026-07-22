@@ -1,0 +1,70 @@
+# Supply-Chain-Haertung fuer panary-core.
+#
+# ⚠️ BEWUSST OHNE `packages:`-Key — diese Datei definiert KEINEN Workspace,
+# sie traegt ausschliesslich pnpm-Settings. Grund: pnpm liest
+# `minimumReleaseAge` & Co. NUR aus einer `pnpm-workspace.yaml`, nicht aus
+# `package.json` → `pnpm.*` (empirisch verifiziert mit pnpm 10.34.3, siehe
+# documentation/pnpm-supply-chain-haertung.md). Ohne diese Datei war die
+# Karenz in Core also schlicht nicht vorhanden.
+#
+# Ein `packages:`-Glob wuerde den Standalone-Install (ci.yml,
+# publish-libraries.yml, build-pos-windows.yml) vom heutigen
+# Single-Package-Modus auf einen echten Workspace umstellen — mit ~47
+# zusaetzlichen Lockfile-Importern und `tools/scripts/link-core-packages.sh`
+# als Redundanz. Das ist eine eigene Migration, nicht Teil dieser Haertung.
+#
+# Die drei Install-Modi von panary-core bleiben damit unveraendert:
+#   1. Workbench (`_WORKBENCH_PANARY/`) — der Workbench-Root ist der Workspace,
+#      globbt `panary-core/apps/*` etc. Ein verschachteltes
+#      `pnpm-workspace.yaml` bricht das NICHT (panary-cloud macht es seit
+#      Option A genauso; verifiziert via `pnpm -r list` am Workbench-Root).
+#      Im Workbench-Modus gewinnen die Root-Settings — die Keys hier greifen
+#      dort nicht, der Root traegt denselben Satz.
+#   2. Standalone-CI — kein Workspace, nur das Root-Paket + Symlinks aus
+#      `link-core-packages.sh`. Die Settings hier greifen.
+#   3. Edge-Docker / POS-Windows-Release — die Workflows haengen ihre
+#      `packages:`/`onlyBuiltDependencies:`-Bloecke an DIESE Datei an
+#      (frueher: ueberschrieben, wodurch die Haertung still verloren ging).
+#      Beim Anpassen synchron halten. build-edge-docker.yml haengt die Karenz
+#      fuer seinen Lockfile-Schritt zusaetzlich per
+#      `--config.minimumReleaseAge=0` aus — Begruendung dort im Kommentar.
+#
+# `pnpm.overrides` und `pnpm.onlyBuiltDependencies` bleiben bewusst in der
+# package.json: Dependabot pflegt die Override-Liste dort, und ein Umzug
+# wuerde den Lockfile-Config-Hash aendern. pnpm liest beide Quellen — ein
+# `overrides:`-Key hier wuerde die package.json-Variante still ueberstimmen.
+
+# --- Karenz fuer frisch veroeffentlichte Versionen (7 Tage = 10080 Min.) ---
+# Kompromittierte Pakete werden meist innerhalb dieser Frist entdeckt. Greift
+# bei der Resolution (`pnpm add/update`, `--lockfile-only` ohne Lockfile);
+# ein Install gegen ein vorhandenes Lockfile bleibt unberuehrt. Ab pnpm 10.16.
+minimumReleaseAge: 10080
+
+minimumReleaseAgeExclude:
+  # First-Party: von der eigenen Core-CI publiziert, kein Third-Party-Risiko.
+  # Der Option-A-Release-Flow (Core-Release → sofortiger Cloud-Pin-Bump) setzt
+  # voraus, dass sie unmittelbar konsumierbar sind. Ohne diesen Eintrag faellt
+  # das Lockfile still auf die vorige Version zurueck.
+  - '@panary/*'
+  # --- BEFRISTET: CVE-Overrides, die auf eine noch unreife Version zeigen ---
+  # Beide stammen aus dem OSV-Sweep vom 2026-07-22 (PR #55). Die Overrides in
+  # package.json pinnen exakt die Version, die die Karenz noch blockiert —
+  # ohne Ausnahme scheitert jede vollstaendige Neuaufloesung (Edge-Docker,
+  # POS-Windows-Release) mit ERR_PNPM_NO_MATURE_MATCHING_VERSION.
+  # ENTFERNEN, sobald die Versionen reif sind (danach ist der Eintrag ein
+  # stiller Verzicht auf die Karenz fuer dieses Paket):
+  - 'fast-uri' # 3.1.4 (2026-07-19) — reif ab 2026-07-26
+  - '@hono/node-server' # 2.0.11 (2026-07-21) — reif ab 2026-07-28
+
+# --- Transitive Deps nur aus vertrauenswuerdigen Quellen (ab pnpm 10.26) ---
+blockExoticSubdeps: true
+
+# --- Kein Downgrade von Trust-Evidenz (Provenance-Attestation, ab pnpm 10.21) ---
+trustPolicy: no-downgrade
+# Ohne dieses Ventil bricht jede vollstaendige Neuaufloesung an etablierten
+# Alt-Paketen ab, die vor der Provenance-Aera veroeffentlicht wurden —
+# konkret `chokidar@4.0.3` (2024-12-18, via mocha) mit
+# ERR_PNPM_TRUST_DOWNGRADE. 43200 Min. = 30 Tage: Trust-Downgrades werden nur
+# noch fuer Versionen geprueft, die juenger als 30 Tage sind — genau das
+# Zeitfenster, in dem eine Paketuebernahme relevant ist.
+trustPolicyIgnoreAfter: 43200

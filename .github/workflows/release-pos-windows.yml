@@ -62,15 +62,29 @@ jobs:
           workspaces: apps/pos-client/src-tauri -> target
 
       # CI-Build-Kontext-Vorbereitung (Windows-PowerShell):
-      # 1. pnpm-workspace.yaml liegt nur im Workbench-Root, NICHT im Repo
-      #    → on-the-fly schreiben.
+      # 1. Das Repo bringt eine `pnpm-workspace.yaml` mit, die NUR die
+      #    Supply-Chain-Settings traegt (kein `packages:`-Key). Die
+      #    Workspace-Globs werden hier ANGEHAENGT, nicht drueber geschrieben —
+      #    sonst gingen minimumReleaseAge/trustPolicy/blockExoticSubdeps
+      #    still verloren.
       # 2. pnpm-lock.yaml ist ein Symlink ins Workbench-Root → bricht in CI.
       #    Loeschen + mit --lockfile-only neu materialisieren.
       - name: Workspace-Files fuer CI-Kontext materialisieren
         shell: pwsh
         run: |
           if (Test-Path pnpm-lock.yaml) { Remove-Item -Force pnpm-lock.yaml }
+          # Sicherung: committete Datei muss da sein und darf die angehaengten
+          # Keys noch nicht tragen (YAML verbietet Duplikate).
+          if (-not (Test-Path pnpm-workspace.yaml)) {
+            Write-Error "pnpm-workspace.yaml fehlt im Repo"; exit 1
+          }
+          if (Select-String -Path pnpm-workspace.yaml -Pattern '^(packages|onlyBuiltDependencies):' -Quiet) {
+            Write-Error "pnpm-workspace.yaml traegt bereits packages:/onlyBuiltDependencies: — dieser Step wuerde doppelte YAML-Keys erzeugen. Step und Repo-Datei abgleichen."
+            exit 1
+          }
           @"
+
+          # --- vom CI angehaengt (release-pos-windows.yml) ---
           packages:
             - 'apps/*'
             - 'libs/domains/*'
@@ -86,7 +100,7 @@ jobs:
             - 'better-sqlite3'
             - 'esbuild'
             - 'nx'
-          "@ | Out-File -Encoding utf8 pnpm-workspace.yaml
+          "@ | Out-File -Append -Encoding utf8 pnpm-workspace.yaml
           # .npmrc fuer Workspace-Linking — sonst zieht pnpm @panary/*
           # aus npm.pkg.github.com (ERR_PNPM_FETCH_401 ohne Auth-Token).
           @"
@@ -95,6 +109,15 @@ jobs:
           auto-install-peers=true
           strict-peer-dependencies=false
           "@ | Out-File -Encoding utf8 .npmrc
+          # Anders als build-edge-docker.yml wird das Lockfile hier UNBEDINGT
+          # geloescht → vollstaendige Neuaufloesung. Dabei darf pnpm frei auf
+          # reife Versionen ausweichen, die 7-Tage-Karenz aus
+          # pnpm-workspace.yaml bleibt also aktiv (verifiziert 2026-07-22).
+          # Bricht ein Release mit ERR_PNPM_NO_MATURE_MATCHING_VERSION ab, zeigt
+          # ein `pnpm.overrides`-Eintrag in package.json auf eine Version, die
+          # juenger als 7 Tage ist → Paket befristet in
+          # `minimumReleaseAgeExclude` aufnehmen (siehe
+          # documentation/pnpm-supply-chain-haertung.md).
           pnpm install --lockfile-only
 
       - name: Install Dependencies

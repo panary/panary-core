@@ -28,6 +28,7 @@ tmp/
 # Tests & Docs
 coverage/
 documentation/
+docs/
 **/*.spec.ts
 
 # Legacy (nicht benötigt im Build)

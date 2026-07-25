@@ -13,6 +13,7 @@ Vor dem Arbeiten die relevanten Rules lesen:
 | `.claude/rules/angular.md` | Control Flow, Signals, Signal-Inputs/Outputs, DI via `inject()`, Standalone-Architektur |
 | `.claude/rules/data-models.md` | IDs (uuidv7), Datumsformat, TypeBox-Schemas, „Product First"-Prinzip, Domain-Struktur |
 | `.claude/rules/logging.md` | Wide Events, Canonical Log Lines, Business-Kontext, Dev-Format, Sensitive-Daten-Regeln |
+| `.claude/rules/documentation.md` | OKF-Wiki `/docs`: Struktur, Frontmatter-Profil, ADR-Regeln, Index-/Log-Pflege, Workflows |
 
 ---
 
@@ -118,28 +119,21 @@ nx serve pos-client
 
 ---
 
-# 6. Dokumentation
+# 6. Dokumentation (OKF-Wiki)
 
-Projektdokumentation lebt in `/documentation`. Index: `documentation/INDEX.md`.
+Projektdoku lebt im Wiki `/docs` (Open Knowledge Format v0.2). Einstieg: `docs/index.md`.
+Historie: `docs/log.md`. Verbindliche Regeln (Struktur, Frontmatter, ADRs, Workflows):
+`.claude/rules/documentation.md` — **vor jeder Doku-Arbeit lesen**.
 
-Bestehende Dokumente:
-- `generator-usage-guide.md` — Nx-Generator-Nutzung
-- `print-server-api.md` — Print-Server-API
-- `service-creation-guide.md` — Anleitung: Neuen Service erstellen
-- `tauri-update-server-einrichtung.md` — Tauri Update-Server
+> **Übergangsregel:** `/documentation` ist eingefrorener Alt-Bestand — nur lesen.
+> Neue/geänderte Doku ausschließlich in `/docs`.
 
-**Pflicht-Dokumentation bei folgenden Ereignissen:**
-1. **Neues Feature/Domain:** Zweck, API-Übersicht, Nutzungsbeispiele
-2. **Architekturänderung:** Problem → Entscheidung → Konsequenzen (ADR-Format)
-3. **Neuer Service:** Pfad, Methoden, Schemas, Hook-Chain, Besonderheiten
-4. **Komplexe Business-Logik:** Berechnungsregeln, Randfälle, Beispiele
-5. **Setup/Migration:** Schritt-für-Schritt-Anleitung
-6. **Externe Integration:** Protokoll, Konfiguration, Fehlerbehandlung
-7. **Breaking Changes:** Was ändert sich, Migrations-Schritte
+Kernregeln: Frontmatter-Pflichtfelder `type, title, description, tags, status, generated`;
+ADRs nur in `docs/adr/` als `NNNN-<kebab>.md` mit `type: ADR`; jede Doku-Änderung pflegt
+Ordner-Index + `docs/index.md` + `docs/log.md` im gleichen Commit.
 
-**Format:** Markdown mit YAML-Frontmatter (`title`, `date`, `category`, `domains`, `status`).
-**Dateinamen:** `kebab-case`. **Sprache:** Deutsch.
-**Index:** `INDEX.md` pflegen — neues Dokument = neuer Eintrag.
+**Pflicht-Dokumentation bei:** neuem Feature/Domain, Architekturänderung (→ ADR), neuem
+Service, komplexer Business-Logik, Setup/Migration, externer Integration, Breaking Changes.
 
 ---
 

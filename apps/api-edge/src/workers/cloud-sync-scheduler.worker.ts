@@ -390,14 +390,14 @@ const coalescePendingEntries = async (
   }
   const newestPerEntity = new Map<string, string>()
   for (const sibling of siblings) {
-    const key = `${sibling.service} ${sibling.entityId}`
+    const key = `${sibling.service}\u0000${sibling.entityId}`
     const current = newestPerEntity.get(key)
     if (!current || sibling._id > current) newestPerEntity.set(key, sibling._id)
   }
   const survivors: SyncOutboxEntry[] = []
   const superseded: Array<{ _id: string; newestId: string }> = []
   for (const entry of entries) {
-    const newestId = newestPerEntity.get(`${entry.service} ${entry.entityId}`)
+    const newestId = newestPerEntity.get(`${entry.service}\u0000${entry.entityId}`)
     if (newestId && newestId > entry._id) {
       superseded.push({ _id: entry._id, newestId })
     } else {

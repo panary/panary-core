@@ -10,6 +10,17 @@ Historie: `docs/log.md`.
 
 ---
 
+## 0. Wo Pläne leben
+
+- **Agenten-Arbeitspläne** (Plan-Modus, Session-Skizzen) leben **außerhalb des Repos**
+  (Harness-verwaltet unter `~/.claude/plans/`) und werden **nie committet** — es gibt
+  keinen `.claude/plans/`-Ordner im Repo.
+- **Pläne mit bleibendem Wert** (Roadmaps, Living Plans, vertagte Ausbaustufen,
+  Phasenpläne) gehören als Konzeptseite mit `type: Plan` ins Wiki (`docs/`, Ordner nach
+  Thema) — inklusive Index-/Log-Pflege wie jede andere Konzeptseite.
+
+---
+
 ## 1. Struktur
 
 | Ordner | Inhalt | type-Werte (typisch) |

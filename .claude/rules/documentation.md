@@ -23,16 +23,16 @@ Historie: `docs/log.md`.
 
 ## 1. Struktur
 
-| Ordner | Inhalt | type-Werte (typisch) |
-|---|---|---|
-| `docs/adr/` | Architektur-Entscheidungen, `NNNN-<kebab>.md` fortlaufend | `ADR` |
-| `docs/architecture/` | Architektur-Konzepte ohne Entscheidungscharakter | `Architecture` |
-| `docs/domains/` | Domain-Konzepte & Business-Logik | `Domain Concept` |
-| `docs/security/` | Sicherheit, RBAC, Härtung, Reviews | `Architecture`, `Report` |
-| `docs/guides/` | Anleitungen, Runbooks, Setup, Smoke-Tests | `Guide` |
-| `docs/infrastructure/` | CI, Docker, Deployment, Infra-Betrieb | `Guide`, `Architecture` |
-| `docs/integrations/` | Externe Integrationen (APIs, Provider) | `Architecture`, `Reference` |
-| `docs/references/` | Gespiegeltes Material: Handoffs, Assets, externe Spezifikationen | `Reference` |
+| Ordner                 | Inhalt                                                           | type-Werte (typisch)        |
+| ---------------------- | ---------------------------------------------------------------- | --------------------------- |
+| `docs/adr/`            | Architektur-Entscheidungen, `NNNN-<kebab>.md` fortlaufend        | `ADR`                       |
+| `docs/architecture/`   | Architektur-Konzepte ohne Entscheidungscharakter                 | `Architecture`              |
+| `docs/domains/`        | Domain-Konzepte & Business-Logik                                 | `Domain Concept`            |
+| `docs/security/`       | Sicherheit, RBAC, Härtung, Reviews                               | `Architecture`, `Report`    |
+| `docs/guides/`         | Anleitungen, Runbooks, Setup, Smoke-Tests                        | `Guide`                     |
+| `docs/infrastructure/` | CI, Docker, Deployment, Infra-Betrieb                            | `Guide`, `Architecture`     |
+| `docs/integrations/`   | Externe Integrationen (APIs, Provider)                           | `Architecture`, `Reference` |
+| `docs/references/`     | Gespiegeltes Material: Handoffs, Assets, externe Spezifikationen | `Reference`                 |
 
 Feinere Unterordner (z. B. `domains/orders/`) sind erlaubt; jeder Unterordner bekommt ein
 eigenes `index.md`. Die reservierten Dateinamen `index.md` und `log.md` sind nie
@@ -49,7 +49,7 @@ Pflicht auf jeder Konzeptseite: `type`, `title`, `description`, `tags`, `status`
 type: ADR | Architecture | Domain Concept | Guide | Reference | Report | Plan
 title: <Titel>
 description: <genau ein Satz — wird in Indizes und Suche verwendet>
-tags: [<domain>, ...]          # Domain-Namen wie in libs/domains/*, plus Querschnitts-Tags (ci, infra, sync, ...)
+tags: [<domain>, ...] # Domain-Namen wie in libs/domains/*, plus Querschnitts-Tags (ci, infra, sync, ...)
 status: draft | stable | deprecated
 generated: { by: <actor>, at: <ISO-8601> }
 # optional:

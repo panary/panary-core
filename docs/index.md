@@ -8,10 +8,6 @@ Wissens-Bundle im Open Knowledge Format (OKF v0.2), gepflegt von Agenten, kurati
 Verbindliche Regeln (Struktur, Frontmatter, ADRs, Workflows): `.claude/rules/documentation.md`.
 Historie: [log.md](log.md).
 
-> **Alt-Bestand:** Die bisherige Dokumentation liegt eingefroren in
-> [`/documentation`](../documentation/INDEX.md) (nur lesen) und wird schrittweise
-> hierher migriert (Phase 2).
-
 # Bereiche
 
 * [ADRs](adr/index.md) - Architektur-Entscheidungen (Problem → Entscheidung → Konsequenzen)

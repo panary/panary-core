@@ -16,7 +16,7 @@ Deploy-/Service-Details (separater öffentlicher Abruf-Service auf eigener
 Subdomain) im Companion-Dokument
 [`panary-cloud/docs/adr/0012-beleg-abruf-service.md`](../../../panary-cloud/docs/adr/0012-beleg-abruf-service.md).
 Baut auf der bestehenden Fiskalisierungs-Architektur auf
-([`fiskalisierung-architektur-adr.md`](0005-fiskalisierung-architektur.md),
+([`0005-fiskalisierung-architektur.md`](0005-fiskalisierung-architektur.md),
 [`tse-integration.md`](../integrations/tse-integration.md)).
 
 ## Problem / Auslöser
@@ -169,7 +169,7 @@ verifiziert; auf `main` gemerged). Übersicht der real existierenden Artefakte:
 **Phase 2 — Sync + öffentlicher Abruf:** `RECEIPTS` in
 `SyncableTransactionService` (Edge→Cloud-Push); Cloud-Empfangs-Service +
 öffentlicher Abruf — Details im Companion
-[`beleg-abruf-service.md`](../../../panary-cloud/docs/adr/0012-beleg-abruf-service.md).
+[`panary-cloud/docs/adr/0012-beleg-abruf-service.md`](../../../panary-cloud/docs/adr/0012-beleg-abruf-service.md).
 
 **Phase 3 — Kassenmodus/Druck:** Retention (`retainUntil` im issue-Hook + 410
 im öffentlichen Abruf — nur Abruf-Dauer, GoBD-Aufbewahrung unberührt);

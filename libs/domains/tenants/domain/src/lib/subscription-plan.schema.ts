@@ -31,7 +31,7 @@ export const subscriptionPlanFeaturesSchema = Type.Object(
     // Fiskalisierung (KassenSichV) — eigenes Add-on, ENTKOPPELT von offlinePos.
     // Gated `pos-cashier` (fiskalischer Kassenbetrieb + TSE) — buchbar quer über
     // Tiers, auch cloud-direkt ohne Edge (Online-TSE). Siehe ADR
-    // fiskalisierung-architektur-adr.md.
+    // docs/adr/0005-fiskalisierung-architektur.md.
     fiscalCashier: Type.Optional(Type.Boolean()),
     // Betriebs-Capability — Offline-First/Edge (Resilienz-Upsell). NICHT mehr
     // Voraussetzung fürs Kassieren; `physicalPrintServer` = physischer Bondrucker.

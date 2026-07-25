@@ -11,7 +11,7 @@ Enthält Schemas für:
   (DSGVO/SOC2-Audits).
 
 Hintergrund / Architektur-Entscheidung: siehe
-[panary-cloud/docs/adr/0003-tenant-as-first-class-entity.md](../../../../panary-cloud/docs/adr/0003-tenant-as-first-class-entity.md).
+[panary-cloud/docs/adr/0003-tenant-as-first-class-entity.md](../../../../../panary-cloud/docs/adr/0003-tenant-as-first-class-entity.md).
 
 ## Building
 

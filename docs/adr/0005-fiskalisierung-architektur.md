@@ -13,7 +13,7 @@ generated: { by: claude-code/historic, at: 2026-05-27T00:00:00Z }
 
 ADR zur TSE-Architektur im Dual-Mode (POS am Edge vs. POS direkt an der Cloud).
 **Ersetzt teilweise** die Kopplung „`offlinePos` ⇒ `pos-cashier`" aus
-[`subscription-tier-modell.md`](0006-subscription-tier-modell.md) und die Edge-only-
+[`0006-subscription-tier-modell.md`](0006-subscription-tier-modell.md) und die Edge-only-
 Annahme aus [`tse-integration.md`](../integrations/tse-integration.md).
 
 ## Problem / Auslöser
@@ -71,12 +71,12 @@ dazubuchen."** Die bestehende Edge-Signier-Arbeit wird damit zum Premium-
 Resilienz-Tier — nicht verworfen.
 
 (Zahlungs-Provider sind separat: Tap-to-Pay via Stripe, Subscription-Billing via
-Mollie — siehe panary-cloud `billing-provider-strategie-adr.md`. TSE = fiskalische
+Mollie — siehe panary-cloud `docs/adr/0009-billing-provider-strategie.md`. TSE = fiskalische
 Signatur, unabhängig vom Zahlungsweg.)
 
 ## Konsequenzen / was korrigiert wird
 
-- **`subscription-tier-modell.md`:** `offlinePos` gated NICHT mehr `pos-cashier`;
+- **`0006-subscription-tier-modell.md`:** `offlinePos` gated NICHT mehr `pos-cashier`;
   neues Feature `fiscalCashier`. Fiskalisierung wird Add-on; Edge/Offline separat.
 - **`enforce-operation-mode.hook` / panary-cloud `plan-limit-enforcement.md`:** Gate
   wechselt von `offlinePos` auf `fiscalCashier`; zusätzlich der Doppelsignier-Schutz

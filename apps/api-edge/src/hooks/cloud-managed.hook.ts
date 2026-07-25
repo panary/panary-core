@@ -5,7 +5,7 @@
 // (Sync-Pull/Bootstrap mit `provider: undefined`) sowie reine Read-Methoden
 // bleiben erlaubt — sonst würde der Cloud→Edge-Pull selbst geblockt.
 //
-// **Emergency-Override** (ADR `emergency-override-adr.md`):
+// **Emergency-Override** (ADR `docs/adr/0001-emergency-override.md`):
 // Bei `cloud-connection.emergencyOverride=true` werden **ausschließlich**
 // Patches, deren Diff sich nur auf `settings.printSettings` bezieht, am Edge
 // zugelassen. Andere Bereiche (Öffnungszeiten, Tische, …) bleiben gesperrt —

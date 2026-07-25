@@ -8,7 +8,7 @@
 // autoritative Zähler dort, wo signiert wird. Edge: SQLite-Tabelle
 // `fiscal-counters`; Cloud: Mongo-Collection `fiscal-counters`. Atomare Vergabe
 // über einen In-Process-Mutex + die Feathers-Adapter-API (kein Raw-Write).
-// Siehe ADR fiskalisierung-architektur-adr.md.
+// Siehe ADR docs/adr/0005-fiskalisierung-architektur.md.
 import type { Static } from '@feathersjs/typebox'
 import { querySyntax, Type } from '@feathersjs/typebox'
 

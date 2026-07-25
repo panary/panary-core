@@ -14,7 +14,7 @@ generated: { by: claude-code/historic, at: 2026-05-27T00:00:00Z }
 > `pos-cashier`" (Fiskalisierung nur mit Edge) ist **überholt**. Fiskalisierung wird
 > ein **eigenes Add-on (`fiscalCashier`)**, entkoppelt von `offlinePos`/Edge;
 > cloud-direktes fiskalisches Kassieren ist ein erstklassiger Pfad. Maßgeblich:
-> [`fiskalisierung-architektur-adr.md`](0005-fiskalisierung-architektur.md). Die
+> [`0005-fiskalisierung-architektur.md`](0005-fiskalisierung-architektur.md). Die
 > Feature-Matrix unten wird im Zuge der Umsetzung angepasst.
 
 ADR zum freigegebenen Pricing-Modell und der Umstellung der `subscription-plans`-Seed-Daten
@@ -66,7 +66,7 @@ Schwellen müssen identisch gehalten werden.
 - **Seed-IDs geändert:** `starter`/`professional` → `connect`/`operate`. Pre-Launch ohne
   Datenmigration; bestehende Tenant-`planCode`-Referenzen müssten sonst gemappt werden.
 - **`offlinePos` ist der Enforcement-Anker** für das operationMode-Gate (Cloud-Seite, siehe
-  panary-cloud `documentation/plan-limit-enforcement.md`).
+  panary-cloud `docs/domains/plan-limit-enforcement.md`).
 - **Cloud-Konsum via Option C:** Lokal greift die Änderung sofort (Workspace); für Prod muss
   `PANARY_CORE_REF` in panary-cloud gebumpt werden, sonst kennt die Cloud `offlinePos`/`fraudAnalytics` nicht.
 - **TSE** bleibt optionales Add-on (Online-TSE via Fiskaly, Schema `tenant.tse` mit BWS-Secret-Refs).

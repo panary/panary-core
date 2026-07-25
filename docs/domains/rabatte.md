@@ -35,7 +35,7 @@ Aktiv-Zeitraum abgeleitet (`deriveDiscountDisplayStatus`).
   ab: ist `appliedDiscounts` nicht-leer, ist es führend und `order.discount` wird
   server-seitig geleert (siehe „discount-mutex" unten).
 - Die kanonische Engine `computeOrderTax` (`@panary/orders/domain`, siehe
-  [order-bundle-pricing-modell.md](../adr/0004-order-bundle-pricing-modell.md)) ist führend:
+  [0004-order-bundle-pricing-modell.md](../adr/0004-order-bundle-pricing-modell.md)) ist führend:
   ist `appliedDiscounts` gesetzt, nutzt sie diese; sonst Fallback `order.discount`.
 
 ### discount-mutex — Einweg-Migration (Fix 2026-07-04)
@@ -195,5 +195,5 @@ die Auswahl zurück.
   (c) **Storefront-Checkout** (`orders.channel=ONLINE` + Mollie), der die
   Einlösung tatsächlich aufruft. Alle drei mit der Storefront-Roadmap Phase 5.
 - MwSt-Extraktion (Phase 0): Probeberechnung dokumentiert + 22 Engine-Tests grün
-  (siehe `order-bundle-pricing-modell.md` → „MwSt-Extraktion — Korrektur &
+  (siehe `0004-order-bundle-pricing-modell.md` → „MwSt-Extraktion — Korrektur &
   Probeberechnung"); Spot-Check gegen einen physischen Bon optional.

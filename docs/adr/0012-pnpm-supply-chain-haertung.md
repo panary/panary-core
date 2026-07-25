@@ -235,4 +235,4 @@ unberührt. Die Cargo-Karenz läuft über `cooldown` im Dependabot-Cargo-Eintrag
 - `docs/adr/0002-library-publishing.md` — warum `@panary/*` vom Cooldown
   ausgenommen ist
 - `docs/adr/0009-edge-build-platforms.md` — Edge-Docker-Build
-- `panary-cloud/documentation/` — Cloud-Pendant der Härtung
+- `panary-cloud/docs/` — Cloud-Pendant der Härtung

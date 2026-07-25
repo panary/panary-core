@@ -18,7 +18,7 @@ generated: { by: claude-code/historic, at: 2026-05-16T00:00:00Z }
 > Die Edge-Order-Signier-Hooks gaten seit Phase B auf `pos-cashier` (geteilter
 > Helfer `requiresFiscalSignature`); ein **separater lückenloser Fiskal-Zähler**
 > (≠ `dailySequenceNumber`, Phase C) und **Storno-Signierung** (Phase E) sind
-> umgesetzt. Maßgeblich: [`fiskalisierung-architektur-adr.md`](../adr/0005-fiskalisierung-architektur.md).
+> umgesetzt. Maßgeblich: [`0005-fiskalisierung-architektur.md`](../adr/0005-fiskalisierung-architektur.md).
 
 Provider-agnostische Abstraktion für die KassenSichV-Fiskalisierung (Online-TSE via
 Fiskaly geplant) plus ein Simulator-Adapter für Dev/CI/Staging. Erste Phase: Port +

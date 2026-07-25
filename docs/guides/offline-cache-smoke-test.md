@@ -14,7 +14,7 @@ cloud-direkt). Diese Anleitung führt **penibel** durch jeden ausgelieferten Pfa
 
 > **Geltungsbereich:** `apps/pos-client` im **Connect-Tier** (gepairtes Gerät, cloud-direkt, **ohne**
 > Edge-Hub). Offline ⇒ **nur Bargeld**. Geschäftstag muss **online** geöffnet sein. Single-Device.
-> Architektur-Hintergrund: [offline-cache-architecture.md](../adr/0008-offline-cache-architecture.md).
+> Architektur-Hintergrund: [0008-offline-cache-architecture.md](../adr/0008-offline-cache-architecture.md).
 
 ---
 

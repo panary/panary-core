@@ -43,4 +43,4 @@ Storefront-Wizard nach (kein Backfill).
   Tenant READ), `STOREFRONT_SCAFFOLD` (OWNER/MANAGER CREATE),
   `STOREFRONT_THEME_REQUESTS` (Tenant CREATE+READ, Admin MANAGE, Support READ)
   für die neuen Cloud-Services des Onboarding-Wizards v2 —
-  Details: panary-cloud `documentation/storefront-onboarding-wizard-v2.md`.
+  Details: panary-cloud `docs/domains/storefront-onboarding-wizard-v2.md`.

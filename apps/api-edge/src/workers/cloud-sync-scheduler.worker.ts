@@ -60,7 +60,7 @@ const MAX_SYNC_RUN_DETAILS = 500
 
 const syncConflictsPath = 'sync-conflicts'
 
-// Emergency-Override (ADR `emergency-override-adr.md`):
+// Emergency-Override (ADR `docs/adr/0001-emergency-override.md`):
 // Aktiviert wird der Notfall-Modus, wenn entweder
 // (a) `EMERGENCY_OVERRIDE_FAILURE_THRESHOLD` konsekutive Heartbeat-Fehler
 //     auflaufen, ODER
@@ -1466,7 +1466,7 @@ const runHeartbeatPhase = async (
     if (err instanceof EdgePairingRequiredError) pairingRequired = true
     return null
   })
-  // Failure-Tracking für Emergency-Override (ADR `emergency-override-adr.md`).
+  // Failure-Tracking für Emergency-Override (ADR `docs/adr/0001-emergency-override.md`).
   // Nur bei "echten" Heartbeat-Fehlern hochzählen — nicht bei Pairing-401
   // (Pairing-Required ist eine andere Failure-Klasse, dafür ist der
   // pairingStatus-DISCONNECTED-Pfad zuständig).

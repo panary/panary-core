@@ -23,20 +23,25 @@ Historie: `docs/log.md`.
 
 ## 1. Struktur
 
-| Ordner                 | Inhalt                                                           | type-Werte (typisch)        |
-| ---------------------- | ---------------------------------------------------------------- | --------------------------- |
-| `docs/adr/`            | Architektur-Entscheidungen, `NNNN-<kebab>.md` fortlaufend        | `ADR`                       |
-| `docs/architecture/`   | Architektur-Konzepte ohne Entscheidungscharakter                 | `Architecture`              |
-| `docs/domains/`        | Domain-Konzepte & Business-Logik                                 | `Domain Concept`            |
-| `docs/security/`       | Sicherheit, RBAC, Härtung, Reviews                               | `Architecture`, `Report`    |
-| `docs/guides/`         | Anleitungen, Runbooks, Setup, Smoke-Tests                        | `Guide`                     |
-| `docs/infrastructure/` | CI, Docker, Deployment, Infra-Betrieb                            | `Guide`, `Architecture`     |
-| `docs/integrations/`   | Externe Integrationen (APIs, Provider)                           | `Architecture`, `Reference` |
-| `docs/references/`     | Gespiegeltes Material: Handoffs, Assets, externe Spezifikationen | `Reference`                 |
+| Ordner                 | Inhalt                                                               | type-Werte (typisch)          |
+| ---------------------- | -------------------------------------------------------------------- | ----------------------------- |
+| `docs/adr/`            | Architektur-Entscheidungen, `NNNN-<kebab>.md` fortlaufend            | `ADR`                         |
+| `docs/architecture/`   | Architektur-Konzepte ohne Entscheidungscharakter                     | `Architecture`                |
+| `docs/domains/`        | Domain-Konzepte & Business-Logik                                     | `Domain Concept`              |
+| `docs/security/`       | Sicherheit, RBAC, Härtung, Reviews                                   | `Architecture`, `Report`      |
+| `docs/guides/`         | Anleitungen, Runbooks, Setup, Smoke-Tests                            | `Guide`                       |
+| `docs/infrastructure/` | CI, Docker, Deployment, Infra-Betrieb                                | `Guide`, `Architecture`       |
+| `docs/integrations/`   | Externe Integrationen (APIs, Provider)                               | `Architecture`, `Reference`   |
+| `docs/references/`     | Gespiegeltes Material: Handoffs, Assets, externe Spezifikationen     | `Reference`                   |
+| `docs/raw/`            | Unveränderliche Rohquellen (Originaldokumente) — siehe Hinweis unten | — (keine Frontmatter-Pflicht) |
 
 Feinere Unterordner (z. B. `domains/orders/`) sind erlaubt; jeder Unterordner bekommt ein
 eigenes `index.md`. Die reservierten Dateinamen `index.md` und `log.md` sind nie
 Konzeptseiten. Frontmatter in Index-Dateien nur im Root-`docs/index.md` (`okf_version`).
+
+`docs/raw/` ist die **Rohquellen-Schicht** (Karpathy Layer 1): unveränderliche Originaldokumente
+(z. B. restaurierte Planungsunterlagen). **Nie editieren**, keine Frontmatter-Pflicht, kein
+Prettier; Konzeptseiten verweisen per `sources` darauf. Neues Wissen fließt in Konzeptseiten.
 
 ---
 

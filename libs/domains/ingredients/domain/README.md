@@ -12,7 +12,7 @@ Enthält:
 - `ingredientWithComputedSchema` — erweitertes Read-Schema mit am Backend
   berechneten Aggregaten (`allergens`, `supplierProductCount`).
 
-Siehe `panary-cloud/documentation/ingredients-supplier-products-konzept.md`.
+Siehe `panary-cloud/docs/domains/ingredients-supplier-products-konzept.md`.
 
 ## Building
 

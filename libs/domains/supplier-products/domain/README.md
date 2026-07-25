@@ -7,7 +7,7 @@ Trägt Provenance (`source: MANUAL | OFF | GS1`) und den ungefilterten
 OFF-Payload als `sourceMeta`. Wird konsumiert von `IncomingGoods` und vom
 `api-cloud`-Service `supplier-products`.
 
-Siehe `panary-cloud/documentation/ingredients-supplier-products-konzept.md`.
+Siehe `panary-cloud/docs/domains/ingredients-supplier-products-konzept.md`.
 
 ## Building
 

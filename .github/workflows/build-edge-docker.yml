@@ -31,7 +31,7 @@ jobs:
       # Hinweis: Der QEMU-Setup-Step (docker/setup-qemu-action) wurde am
       # 2026-06-18 entfernt — er wird nur fuer die arm64-Emulation gebraucht,
       # und der Edge baut jetzt nur linux/amd64. Re-Aktivierung: siehe Kommentar
-      # am `platforms:`-Feld im Build-Step + documentation/edge-build-platforms.md.
+      # am `platforms:`-Feld im Build-Step + docs/adr/0009-edge-build-platforms.md.
 
       - name: Login to GHCR
         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
@@ -152,7 +152,7 @@ jobs:
           # Alternative ohne QEMU-Emulation (schneller): arm64 nativ auf einem
           # ARM-Runner (runs-on: ubuntu-24.04-arm) bauen und per
           # `docker buildx imagetools create` zur Multi-Arch-Manifest-Liste mergen.
-          # Volle Begruendung: documentation/edge-build-platforms.md
+          # Volle Begruendung: docs/adr/0009-edge-build-platforms.md
           platforms: linux/amd64
           push: true
           # App-Version ins Image injizieren — /health meldet damit den Image-Tag

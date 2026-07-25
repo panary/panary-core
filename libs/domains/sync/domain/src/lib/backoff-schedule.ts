@@ -4,7 +4,7 @@
  *
  * Pure function — extrahiert aus `cloud-sync-scheduler.worker.ts` damit
  * Vitest die Logik hermetisch im sync-domain-Workspace testen kann (api-edge
- * hat kein eigenes Vitest-Setup, siehe ADR sync-hardening-adr.md).
+ * hat kein eigenes Vitest-Setup, siehe ADR panary-cloud/docs/adr/0004-sync-hardening.md).
  */
 
 /**

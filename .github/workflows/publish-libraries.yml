@@ -5,7 +5,7 @@ name: Publish Libraries
 #
 # Trigger:
 #   - Automatisch bei Tag-Push "v*" (z.B. v26.5.0) → echtes Publishing.
-#     Release-Ablauf siehe documentation/library-publishing.md.
+#     Release-Ablauf siehe docs/adr/0002-library-publishing.md.
 #   - Manuell via workflow_dispatch (Default Dry-Run zum sicheren Testen;
 #     dry-run='false' publiziert die aktuell in den package.json stehende Version).
 on:

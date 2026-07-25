@@ -3,7 +3,7 @@ import { StringEnum } from '@feathersjs/typebox'
 /**
  * Diät-Tags für Zutaten und Rezepte.
  * Werden manuell gepflegt und/oder automatisch aus Allergenen abgeleitet
- * (Phase 2.5 — siehe panary-cloud/documentation/ingredients-supplier-products-konzept.md §10).
+ * (Phase 2.5 — siehe panary-cloud/docs/domains/ingredients-supplier-products-konzept.md §10).
  */
 export const DIETARY_TAGS = [
   'VEGETARIAN',

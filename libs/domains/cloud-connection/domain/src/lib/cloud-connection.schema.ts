@@ -159,7 +159,7 @@ export const cloudConnectionSchema = Type.Object(
     // `printSettings`-Patches. Lokale Änderungen landen in der Tabelle
     // `pending-local-overrides` (nicht in der Sync-Outbox) und werden beim
     // nächsten erfolgreichen Heartbeat per Reconciliation-Flow mit dem
-    // Cloud-Stand abgeglichen. Siehe ADR `emergency-override-adr.md`.
+    // Cloud-Stand abgeglichen. Siehe ADR `docs/adr/0001-emergency-override.md`.
     emergencyOverride: Type.Optional(Type.Boolean({ default: false })),
     emergencyOverrideSince: Type.Optional(Type.String({ format: 'date-time' })),
     lastHeartbeatOk: Type.Optional(Type.String({ format: 'date-time' })),

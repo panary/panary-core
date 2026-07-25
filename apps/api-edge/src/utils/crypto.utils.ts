@@ -5,7 +5,7 @@ import { createHash, timingSafeEqual } from 'node:crypto'
  *
  * Verwendet ausschliesslich fuer API-Key-Hashing (Geraete-Credentials).
  * NICHT fuer Passwoerter — dafuer wird bcrypt via @feathersjs/authentication-local
- * eingesetzt (siehe documentation/security-hardening.md).
+ * eingesetzt (siehe docs/security/sensitive-data-hardening.md).
  *
  * Begruendung fuer SHA-256 (ohne Stretching):
  * - API-Keys sind hoch-entropisch (256+ Bit, kryptografisch zufaellig generiert

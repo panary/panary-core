@@ -114,8 +114,8 @@ export const TenantAuditAction = {
   SUBSCRIPTION_CHANGE: 'SUBSCRIPTION_CHANGE',
   OWNER_TRANSFER: 'OWNER_TRANSFER',
   BRANDING_CHANGE: 'BRANDING_CHANGE',
-  // Subscription-Bearbeitung mit Drei-Schicht-Sicherung (siehe documentation/
-  // subscription-administration.md). Granularere Actions als generisches
+  // Subscription-Bearbeitung mit Drei-Schicht-Sicherung (siehe panary-cloud/
+  // docs/adr/0011-subscription-administration.md). Granularere Actions als generisches
   // SUBSCRIPTION_CHANGE — Audit-Filter im UI werden damit aussagekraeftig.
   //
   // Schicht 1 (Tenant-OWNER Self-Service):

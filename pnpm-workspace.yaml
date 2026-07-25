@@ -4,7 +4,7 @@
 # sie traegt ausschliesslich pnpm-Settings. Grund: pnpm liest
 # `minimumReleaseAge` & Co. NUR aus einer `pnpm-workspace.yaml`, nicht aus
 # `package.json` → `pnpm.*` (empirisch verifiziert mit pnpm 10.34.3, siehe
-# documentation/pnpm-supply-chain-haertung.md). Ohne diese Datei war die
+# docs/adr/0012-pnpm-supply-chain-haertung.md). Ohne diese Datei war die
 # Karenz in Core also schlicht nicht vorhanden.
 #
 # Ein `packages:`-Glob wuerde den Standalone-Install (ci.yml,

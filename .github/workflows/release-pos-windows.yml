@@ -117,7 +117,7 @@ jobs:
           # ein `pnpm.overrides`-Eintrag in package.json auf eine Version, die
           # juenger als 7 Tage ist → Paket befristet in
           # `minimumReleaseAgeExclude` aufnehmen (siehe
-          # documentation/pnpm-supply-chain-haertung.md).
+          # docs/adr/0012-pnpm-supply-chain-haertung.md).
           pnpm install --lockfile-only
 
       - name: Install Dependencies

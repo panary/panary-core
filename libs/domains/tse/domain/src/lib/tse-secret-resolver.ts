@@ -9,7 +9,7 @@
 // Implementierungen leben in den Apps (Cloud/Edge), weil sie umgebungs-spezifische
 // Backends nutzen. Konsument ist der echte Provider-Adapter (z. B. FiskalyAdapter)
 // — bis dieser existiert, ist die Naht ungenutzt (Simulator braucht keine Secrets).
-// Siehe ADR fiskalisierung-architektur-adr.md.
+// Siehe ADR docs/adr/0005-fiskalisierung-architektur.md.
 
 /** Aufgelöste TSE-Credentials (Klartext) — niemals persistieren oder loggen. */
 export interface TseResolvedCredentials {

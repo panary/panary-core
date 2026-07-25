@@ -47,14 +47,21 @@ minimumReleaseAgeExclude:
   # das Lockfile still auf die vorige Version zurueck.
   - '@panary/*'
   # --- BEFRISTET: CVE-Overrides, die auf eine noch unreife Version zeigen ---
-  # Beide stammen aus dem OSV-Sweep vom 2026-07-22 (PR #55). Die Overrides in
-  # package.json pinnen exakt die Version, die die Karenz noch blockiert —
-  # ohne Ausnahme scheitert jede vollstaendige Neuaufloesung (Edge-Docker,
-  # POS-Windows-Release) mit ERR_PNPM_NO_MATURE_MATCHING_VERSION.
+  # Die package.json-Overrides pinnen exakt die gepatchte Version, die die
+  # Karenz noch blockiert — ohne Ausnahme scheitert jede vollstaendige
+  # Neuaufloesung (Edge-Docker, POS-Windows-Release) mit
+  # ERR_PNPM_NO_MATURE_MATCHING_VERSION (empirisch verifiziert 2026-07-25).
   # ENTFERNEN, sobald die Versionen reif sind (danach ist der Eintrag ein
   # stiller Verzicht auf die Karenz fuer dieses Paket):
+  #
+  # OSV-Sweep 2026-07-22 (PR #55):
   - 'fast-uri' # 3.1.4 (2026-07-19) — reif ab 2026-07-26
   - '@hono/node-server' # 2.0.11 (2026-07-21) — reif ab 2026-07-28
+  # OSV-Sweep 2026-07-25 (PR #57) — GHSA-mh99-v99m-4gvg / GHSA-r292-9mhp-454m.
+  # Fix existiert nur in einer <7-Tage-Version, kein reifer Backport:
+  - 'brace-expansion' # 5.0.8 (2026-07-23) — reif ab 2026-07-30
+  - 'tar' # 7.5.21 (2026-07-21) — reif ab 2026-07-28
+  # postcss (8.5.18, PR #57) braucht KEIN Exclude — reife Versionen (8.5.18/19) erfuellen ^8.5.18.
 
 # --- Transitive Deps nur aus vertrauenswuerdigen Quellen (ab pnpm 10.26) ---
 blockExoticSubdeps: true

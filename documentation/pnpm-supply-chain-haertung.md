@@ -68,6 +68,8 @@ minimumReleaseAgeExclude:
   - '@panary/*' # First-Party, eigene Publish-Pipeline
   - 'fast-uri' # befristet, s.u.
   - '@hono/node-server' # befristet, s.u.
+  - 'brace-expansion' # befristet, s.u.
+  - 'tar' # befristet, s.u.
 blockExoticSubdeps: true
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 43200 # 30 Tage
@@ -160,13 +162,20 @@ Paketübernahme relevant ist.
 
 ### Befristete Einträge in `minimumReleaseAgeExclude`
 
-`fast-uri` und `@hono/node-server` stehen dort, weil die CVE-Overrides in
-`package.json` exakt auf eine Version zeigen, die die Karenz noch blockiert.
-**Nach Ablauf entfernen** — danach ist der Eintrag ein stiller Verzicht auf die
-Karenz für dieses Paket:
+Diese Einträge stehen dort, weil die CVE-Overrides in `package.json` exakt auf
+eine Version zeigen, die die Karenz noch blockiert (kein reifer Backport
+verfügbar). **Nach Ablauf entfernen** — danach ist der Eintrag ein stiller
+Verzicht auf die Karenz für dieses Paket:
 
 - `fast-uri` 3.1.4 (2026-07-19) → reif ab **2026-07-26**
 - `@hono/node-server` 2.0.11 (2026-07-21) → reif ab **2026-07-28**
+- `tar` 7.5.21 (2026-07-21) → reif ab **2026-07-28** _(OSV-Sweep PR #57)_
+- `brace-expansion` 5.0.8 (2026-07-23) → reif ab **2026-07-30** _(OSV-Sweep PR #57)_
+
+`postcss` (ebenfalls PR #57, `^8.5.18`) braucht **kein** Exclude — reife
+Versionen (8.5.18/8.5.19) erfüllen den Range. Faustregel: nur Advisories, deren
+**einzige** gepatchte Version jünger als 7 Tage ist, brauchen einen befristeten
+Eintrag.
 
 ### Fehlerbild `ERR_PNPM_NO_MATURE_MATCHING_VERSION`
 

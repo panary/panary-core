@@ -46,7 +46,7 @@ panary-core/
 │   ├── docker/            # Dockerfiles & compose for edge deployment
 │   ├── generators/        # Custom Nx generator for FeathersJS services
 │   └── scripts/           # Versioning & release scripts
-└── documentation/         # Service creation & generator guides
+└── docs/                  # OKF-Dokumentations-Wiki (Einstieg: docs/index.md)
 ```
 
 Domain libraries export via `@panary/[domain]/domain`. Apps import from libs — never the other way around.

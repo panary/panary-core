@@ -21,7 +21,7 @@ jobs:
       # --- Nx Self-Hosted Remote Cache (P6, 2026-06-18) ---
       # Aktiviert sich automatisch, sobald die Repo-Secrets gesetzt sind; vorher
       # leer → Nx ignoriert den Remote-Cache (No-op, kein CI-Bruch). Server-Deploy
-      # + Runbook: documentation/nx-remote-cache.md
+      # + Runbook: docs/infrastructure/nx-remote-cache.md
       #
       # Poisoning-Schutz (CVE-2025-36852/CREEP): nur vertrauenswuerdige main-Pushes
       # bekommen den Read-Write-Token (befuellen den Cache). PRs bekommen hoechstens
@@ -75,7 +75,7 @@ jobs:
           # Fehlers ab (Server 5xx/unreachable/Token), wird EINMAL ohne Remote-
           # Cache wiederholt (Fallback auf lokalen Cache), statt die CI hart
           # fehlschlagen zu lassen — Runbook-Absicht "Cache ist optionaler
-          # Beschleuniger" (documentation/nx-remote-cache.md). Echte Lint/Test/
+          # Beschleuniger" (docs/infrastructure/nx-remote-cache.md). Echte Lint/Test/
           # Build-Fehler (kein Cache-Bezug) brechen weiterhin sofort ab.
           set -o pipefail
           run_affected() {

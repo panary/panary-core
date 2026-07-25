@@ -186,7 +186,7 @@ export class OpeningHoursComponent implements OnInit {
    * True wenn die Edge mit der Cloud gepaart ist und Standort-Settings damit
    * read-only werden. Wird beim Init aus dem `cloud-connection`-Service
    * gelesen — Cloud ist Source of Truth für Locations (siehe
-   * panary-cloud/documentation/standort-einstellungen.md).
+   * panary-cloud/docs/domains/standort-einstellungen.md).
    */
   cloudManaged = signal(false)
   private currentSettings: any = {}

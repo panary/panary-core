@@ -103,7 +103,7 @@ export const locations = (app: Application) => {
         authorize(),
         // cloudManaged() vor multiTenancy: externe Writes blocken, sobald die
         // Edge gepaart ist. Source of Truth fuer Standort-Settings ist die
-        // Cloud — siehe documentation/standort-einstellungen.md.
+        // Cloud — siehe panary-cloud/docs/domains/standort-einstellungen.md.
         cloudManaged(),
         // Emergency-Override (ADR `emergency-override-adr.md`):
         // Wenn cloudManaged() den Marker `isEmergencyOverride=true` setzt,

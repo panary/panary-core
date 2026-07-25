@@ -125,9 +125,6 @@ Projektdoku lebt im Wiki `/docs` (Open Knowledge Format v0.2). Einstieg: `docs/i
 Historie: `docs/log.md`. Verbindliche Regeln (Struktur, Frontmatter, ADRs, Workflows):
 `.claude/rules/documentation.md` — **vor jeder Doku-Arbeit lesen**.
 
-> **Übergangsregel:** `/documentation` ist eingefrorener Alt-Bestand — nur lesen.
-> Neue/geänderte Doku ausschließlich in `/docs`.
-
 Kernregeln: Frontmatter-Pflichtfelder `type, title, description, tags, status, generated`;
 ADRs nur in `docs/adr/` als `NNNN-<kebab>.md` mit `type: ADR`; jede Doku-Änderung pflegt
 Ordner-Index + `docs/index.md` + `docs/log.md` im gleichen Commit.

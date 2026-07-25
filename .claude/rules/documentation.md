@@ -4,11 +4,9 @@ Projektdoku lebt im Wiki `/docs`: ein OKF-v0.2-Bundle (Open Knowledge Format —
 YAML-Frontmatter), gepflegt von Agenten, kuratiert vom Nutzer. Einstieg: `docs/index.md`.
 Historie: `docs/log.md`.
 
-> **Übergangsregel (bis Migrations-Abschluss):** `/documentation` ist eingefrorener
-> Alt-Bestand — nur lesen, niemals schreiben. Neue und geänderte Doku ausschließlich
-> in `/docs`. Wird ein Alt-Dokument inhaltlich angefasst, wird es dabei nach `/docs`
-> migriert (OKF-Frontmatter, Ordner, Index, Log) und im Alt-Index (`documentation/INDEX.md`)
-> als migriert markiert — dieser Vermerk ist die einzige zulässige Änderung im Alt-Bestand.
+> **Hinweis:** Der frühere `/documentation`-Ordner wurde am 2026-07-25 vollständig in
+> dieses Wiki migriert (Frontmatter `generated.by: claude-code/historic` markiert
+> Alt-Bestand). Es gibt keinen zweiten Doku-Ort mehr.
 
 ---
 

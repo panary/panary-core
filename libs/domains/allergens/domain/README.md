@@ -4,7 +4,7 @@ EU-LMIV-Allergen-Enum (14 deklarationspflichtige Hauptallergene), Diät-Tags
 und Mapping-Tabelle für Open-Food-Facts-Allergen-Tags.
 
 Wird konsumiert von Ingredient- und SupplierProduct-Schemas (siehe
-`panary-cloud/documentation/ingredients-supplier-products-konzept.md`).
+`panary-cloud/docs/domains/ingredients-supplier-products-konzept.md`).
 
 ## Building
 

@@ -76,7 +76,7 @@ additiver Pro-User-Grant (`grant:<resource>:<action>` im `user.permissions`-Arra
    (`hasEffectiveAbility`) — so stempeln `DEVICE_POS`/`DEVICE_TABLET` ohne `users:UPDATE`.
 7. Kein Treffer → `403 Forbidden` mit `AppError.AUTH_NO_PERMISSION`.
 
-Details/ADR: `documentation/edge-authorize-hybrid-rbac.md`.
+Details/ADR: `docs/security/edge-authorize-hybrid-rbac.md`.
 
 ### Ressource = Service-Pfad
 

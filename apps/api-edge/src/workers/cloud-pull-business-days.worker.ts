@@ -1,7 +1,7 @@
 // Periodischer Pull-Worker fuer `business-days` (Cloud → Edge).
 //
-// Im Hybrid-Architektur-Modell (siehe panary-cloud/documentation/
-// business-days-cloud-managed-adr.md) ist die Cloud Source-of-Truth fuer
+// Im Hybrid-Architektur-Modell (siehe panary-cloud/docs/adr/
+// 0005-business-days-cloud-managed.md) ist die Cloud Source-of-Truth fuer
 // business-days, sobald der Edge mit ihr gepairt ist. `openDay()` und
 // `closeDay()` laufen in der Cloud-Admin-UI; der Edge zieht den Lifecycle
 // alle 5s, damit:

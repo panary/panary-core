@@ -120,5 +120,35 @@ generated: { by: <actor>, at: <ISO-8601> }
 6. **Externe Integration:** Protokoll, Konfiguration, Fehlerbehandlung
 7. **Breaking Changes:** Was ändert sich, Migrations-Schritte
 
+---
+
+## 7. Architekturmodell (LikeC4) — liegt in panary-cloud
+
+Das LikeC4-Modell bildet das **Gesamtsystem** ab, also auch Edge, POS, Drucker und TSE. Es
+liegt aus technischen Gründen im Nachbar-Repo (`panary-cloud/docs/architecture/c4/`) —
+LikeC4 löst Referenzen nur innerhalb eines Verzeichnisbaums auf, ein repo-übergreifender
+Landschafts-View braucht deshalb einen Eigentümer. Entscheidung:
+`panary-cloud/docs/adr/0028-likec4-architecture-as-code.md`.
+
+**Konsequenz für Arbeit in diesem Repo:** Berührt eine Änderung hier ein Element, eine
+Grenze, ein Fremdsystem oder einen Ablauf, gehört die Modellpflege dazu — der Commit landet
+dann in `panary-cloud`, nicht hier. Typische Auslöser:
+
+- neuer Deployable oder Hintergrund-Worker mit Außenwirkung
+- geänderter Sync-Pfad (Endpunkte, Allowlists, Transport) oder Pairing-Flow
+- neuer öffentlich erreichbarer Endpunkt am Edge → `#public`
+- Fiskalisierung: echter TSE-Adapter statt Simulator → `#planned`/`#partial` fällt weg
+- neue externe Integration (Drucker-Protokoll, Provider, Discovery)
+
+**Nicht** modellrelevant: Schema-Felder, Lint-/Style-Regeln, reines Refactoring, neue
+Migrationen ohne Strukturwirkung.
+
+> Das CI-Gate in `panary-cloud` (`arch:validate`) prüft nur, ob das Modell parst — **nicht**,
+> ob es noch stimmt. Gegen Drift schützt allein diese Regel.
+
+Vollständige Regeln: `panary-cloud/.claude/rules/documentation.md` §7.
+
+---
+
 **Sprache:** Deutsch. **Dateinamen:** `kebab-case`. Keine Doku-Dateien außerhalb von `/docs`
 (Ausnahmen: `README.md`, `CLAUDE.md`, `.claude/`).

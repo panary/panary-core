@@ -6,9 +6,7 @@
     "types": ["node"],
     "moduleResolution": "node",
     "module": "commonjs",
-    "paths": {
-      "@panary/shared-common": ["../../../../dist/libs/shared/common/src/index.d.ts"]
-    }
+    "paths": {}
   },
   "include": ["src/**/*.ts"],
   "exclude": [

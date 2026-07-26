@@ -7,7 +7,6 @@
     "moduleResolution": "node",
     "declaration": true,
     "sourceMap": false,
-    "baseUrl": ".",
     "paths": {
       "@panary/shared-common": ["../common/dist/src/index.d.ts"]
     }

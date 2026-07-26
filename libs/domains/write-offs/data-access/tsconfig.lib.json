@@ -80,8 +80,7 @@
       "@panary/write-offs/domain": [
         "../domain/dist/index.d.ts"
       ]
-    },
-    "baseUrl": "."
+    }
   },
   "include": [
     "src/**/*.ts"

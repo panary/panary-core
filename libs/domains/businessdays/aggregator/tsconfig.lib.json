@@ -6,14 +6,7 @@
     "types": ["node"],
     "moduleResolution": "node",
     "module": "commonjs",
-    "paths": {
-      "@panary/orders/domain": ["../../orders/domain/dist/index.d.ts"],
-      "@panary/write-offs/domain": ["../../write-offs/domain/dist/index.d.ts"],
-      "@panary/working-times/domain": ["../../working-times/domain/dist/index.d.ts"],
-      "@panary/ingredients/domain": ["../../ingredients/domain/dist/index.d.ts"],
-      "@panary/recipes/domain": ["../../recipes/domain/dist/index.d.ts"],
-      "@panary/products/domain": ["../../products/domain/dist/index.d.ts"]
-    }
+    "paths": {}
   },
   "include": ["src/**/*.ts"],
   "exclude": [

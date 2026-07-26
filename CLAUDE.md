@@ -132,6 +132,12 @@ Ordner-Index + `docs/index.md` + `docs/log.md` im gleichen Commit.
 **Pflicht-Dokumentation bei:** neuem Feature/Domain, Architekturänderung (→ ADR), neuem
 Service, komplexer Business-Logik, Setup/Migration, externer Integration, Breaking Changes.
 
+**Architekturmodell (LikeC4):** Das Modell des Gesamtsystems (inkl. Edge, POS, Drucker, TSE)
+liegt in `panary-cloud/docs/architecture/c4/`. Berührt eine Änderung hier ein Element, eine
+Grenze, ein Fremdsystem oder einen Ablauf (Sync-Pfad, Pairing, neuer `#public`-Endpunkt,
+echter TSE-Adapter), wird es mitgepflegt — der Commit landet dann in `panary-cloud`.
+Regeln: `.claude/rules/documentation.md` §7.
+
 ---
 
 # 7. Tool-Strategie

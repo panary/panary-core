@@ -166,20 +166,30 @@ export const genericLineItemSchema = Type.Object({
 })
 
 /**
- * Modifier-Zeile („Extras") einer Order-Position. Einziger Unterschied zum
- * generischen LineItem: `amount` darf −1 sein.
+ * Modifier-Zeile („Extras") einer Order-Position. Unterscheidet sich vom
+ * generischen LineItem in zwei Feldern, weil der POS zwei verschiedene
+ * „OHNE"-Mechanismen hat:
  *
- * −1 ist der POS-Marker für „OHNE <Modifier>" — gesetzt von `decreaseExtra()`
- * im Bestelldialog (OHNE-Toggle + Tipp auf einen Modifier, der noch nicht auf
- * der Position liegt) und vom Bon-Renderer als „OHNE …" ausgegeben. −1 ist der
- * Boden: die UI erzeugt keine kleineren Werte (weiteres Dekrementieren ist
- * No-Op, Inkrementieren springt direkt auf 1). Hauptartikel und
- * Bundle-Komponenten bleiben bei `minimum: 0` — dort hat ein negativer
- * `amount` keine Bedeutung und würde nur negativen Verbrauch/Umsatz erzeugen.
+ * 1. `amount` darf −1 sein — der Marker für „OHNE <Modifier>", gesetzt von
+ *    `decreaseExtra()` (OHNE-Toggle + Tipp auf einen Modifier, der noch nicht
+ *    auf der Position liegt) und vom Bon-Renderer als „OHNE …" ausgegeben. −1
+ *    ist der Boden: die UI erzeugt keine kleineren Werte (weiteres
+ *    Dekrementieren ist No-Op, Inkrementieren springt direkt auf 1).
+ * 2. `price` darf negativ sein — `toggleRemovableIngredient()` übernimmt für
+ *    entfernbare Rezept-Zutaten den konfigurierten `priceAdjustment` als Abzug
+ *    (das Admin-UI schlägt dort −1,00 vor). Bewusst ohne `minimum`: der
+ *    Katalog führt `priceAdjustment` ebenfalls unbegrenzt, eine engere Schranke
+ *    hier wäre genau die Schema-Drift, die diese Klasse von 400ern erzeugt. Die
+ *    Kappung passiert fachlich in `computeOrderTax` (Zeile nie negativ).
+ *
+ * Hauptartikel und Bundle-Komponenten bleiben bei `minimum: 0` — dort haben
+ * negative Werte keine Bedeutung und würden nur negativen Verbrauch/Umsatz
+ * erzeugen.
  */
 export const modifierLineItemSchema = Type.Object({
   ...genericLineItemSchema.properties,
   amount: Type.Number({ minimum: -1 }),
+  price: Type.Number(),
 })
 export type ModifierLineItem = Static<typeof modifierLineItemSchema>
 

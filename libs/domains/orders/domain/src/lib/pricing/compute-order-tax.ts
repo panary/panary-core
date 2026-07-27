@@ -24,7 +24,9 @@ import { distributeByLargestRemainder, fromCents, multiplyCents, netFromGross, s
 // Eintrag zurück (tatsächlich abgezogener Brutto-Betrag) — bewusst, damit der Bon-
 // Snapshot die realen Beträge führt.
 //
-// „OHNE"-Modifier (amount −1) sind preisneutral — siehe `modifierGrossCents`.
+// „OHNE"-Modifier (amount −1) sind preisneutral, Modifier mit negativem `price`
+// (entfernbare Zutat mit konfiguriertem `priceAdjustment`) ziehen ab — die Zeile
+// wird dabei bei 0 geklemmt. Siehe `modifierGrossCents`/`modifiersGrossCents`.
 //
 // Positions-Arithmetik: Hauptartikel price×amount, Modifier price×modifier.amount
 // (nicht mit Parent-Menge skaliert — Bestandsverhalten), Menü-Beilage/-Getränk
@@ -60,12 +62,24 @@ function modifierGrossCents(extra: GenericOrderLineItem, scale = 1): number {
   return multiplyCents(toCents(extra.price), extra.amount * scale)
 }
 
+/**
+ * Summierter Modifier-Beitrag einer Zeile, nach unten auf `−baseCents` geklemmt.
+ *
+ * Modifier dürfen einen NEGATIVEN Preis tragen: `toggleRemovableIngredient()`
+ * übernimmt den konfigurierten `ingredient.priceAdjustment` (Admin-UI schlägt
+ * dort −1,00 vor) als Abzug fürs Weglassen einer Zutat. Ohne Klemme könnte eine
+ * fehlkonfigurierte Zutat die Position ins Negative ziehen — `bucketize()`
+ * verwirft Eimer `<= 0` komplett, die Position samt ihres positiven Anteils
+ * verschwände also lautlos aus dem Steuer-Split.
+ */
+function modifiersGrossCents(line: OrderLineItem, baseCents: number, scale = 1): number {
+  const sum = sumCents((line.modifiers ?? []).map((extra: GenericOrderLineItem) => modifierGrossCents(extra, scale)))
+  return sum < 0 ? Math.max(sum, -baseCents) : sum
+}
+
 function lineGrossCents(line: OrderLineItem): number {
-  let cents = 0
-  if (line.price) cents += multiplyCents(toCents(line.price), line.amount)
-  ;(line.modifiers ?? []).forEach((extra: GenericOrderLineItem) => {
-    cents += modifierGrossCents(extra)
-  })
+  const base = line.price ? multiplyCents(toCents(line.price), line.amount) : 0
+  let cents = base + modifiersGrossCents(line, base)
   // Beilage/Getränk zählen PRO Menü: 2 Menüs = 2 Aufpreise (Entscheidung 2026-07-04).
   if (line.menuSideDish && line.menuSideDish.price) {
     cents += multiplyCents(toCents(line.menuSideDish.price), line.menuSideDish.amount * line.amount)
@@ -104,7 +118,8 @@ function lineComponents(line: OrderLineItem): GenericOrderLineItem[] {
  *    eigenen Steuersatz (Marktwertmethode). Das Hauptgericht ist dabei eine
  *    Komponente (role 'main') mit eigenem Normalpreis-Gewicht; ist kein Gewicht
  *    gesetzt, trägt der Writer es als Restbetrag (Festpreis − Σ übrige) ein →
- *    Verteilung bleibt exakt. Ad-hoc-Modifier liegen ON TOP (à-la-carte, am Zeilensatz).
+ *    Verteilung bleibt exakt. Ad-hoc-Aufpreise liegen ON TOP (à-la-carte, am
+ *    Zeilensatz); Ad-hoc-Abzüge mindern den Festpreis vor der Verteilung.
  *  - Legacy-Zeilen (ohne `components[]`): unverändert — alles am Zeilensatz
  *    summiert (kein Snapshot-Drift für Bestands-Orders).
  */
@@ -119,7 +134,14 @@ function collectLineAtoms(line: OrderLineItem, dineIn: boolean): LineGross[] {
   // FIXED_PROPORTIONAL: Festpreis (`line.price`) wird über die Komponenten-
   // Normalpreise verteilt; jede Komponente behält ihren Steuersatz.
   if (line.bundlePricingMode === 'FIXED_PROPORTIONAL') {
-    const fixedGross = line.price ? multiplyCents(toCents(line.price), line.amount) : 0
+    const listGross = line.price ? multiplyCents(toCents(line.price), line.amount) : 0
+    const modGross = modifiersGrossCents(line, listGross, line.amount)
+    // Ein ABZUG (negativer Modifier-Preis) mindert den Festpreis VOR der
+    // Verteilung, statt als eigenes Atom am Zeilensatz zu liegen: sonst könnte
+    // er einen Steuer-Eimer ins Negative ziehen, und `bucketize()` verwirft
+    // negative Eimer komplett — der Abzug verschwände lautlos. Über die
+    // Verteilung wirkt er proportional auf alle Sätze des Menüs (Marktwert).
+    const fixedGross = modGross < 0 ? Math.max(0, listGross + modGross) : listGross
     const comps = lineComponents(line).filter((c: GenericOrderLineItem) => !!c.price)
     const weights = comps.map((c: GenericOrderLineItem) => multiplyCents(toCents(c.price as number), c.amount * line.amount))
     const totalWeight = sumCents(weights)
@@ -131,20 +153,17 @@ function collectLineAtoms(line: OrderLineItem, dineIn: boolean): LineGross[] {
     } else if (fixedGross > 0) {
       out.push({ lineItemId: line._id, taxRate: lineRate, grossCents: fixedGross })
     }
-    // Ad-hoc-Modifier sind NICHT Teil des Festpreises → on top am Zeilensatz.
-    ;(line.modifiers ?? []).forEach((extra: GenericOrderLineItem) => {
-      const gross = modifierGrossCents(extra, line.amount)
-      if (gross !== 0) {
-        out.push({ lineItemId: line._id, taxRate: lineRate, grossCents: gross })
-      }
-    })
+    // Ad-hoc-AUFPREISE sind NICHT Teil des Festpreises → on top am Zeilensatz.
+    // Als EIN Atom (der Steuer-Split ändert sich dadurch nicht — die Atome
+    // teilten sich ohnehin `lineRate`). Abzüge stecken bereits in `fixedGross`.
+    if (modGross > 0) {
+      out.push({ lineItemId: line._id, taxRate: lineRate, grossCents: modGross })
+    }
     return out
   }
 
-  let mainGross = line.price ? multiplyCents(toCents(line.price), line.amount) : 0
-  ;(line.modifiers ?? []).forEach((extra: GenericOrderLineItem) => {
-    mainGross += modifierGrossCents(extra, line.amount)
-  })
+  const baseGross = line.price ? multiplyCents(toCents(line.price), line.amount) : 0
+  const mainGross = baseGross + modifiersGrossCents(line, baseGross, line.amount)
   out.push({ lineItemId: line._id, taxRate: lineRate, grossCents: mainGross })
   for (const c of lineComponents(line)) {
     if (c.price) {

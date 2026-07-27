@@ -70,6 +70,27 @@ describe('modifierLineItemSchema — „OHNE"-Marker', () => {
   })
 })
 
+describe('modifierLineItemSchema — Abzug via priceAdjustment', () => {
+  // Regression: `toggleRemovableIngredient()` übernimmt für entfernbare Zutaten
+  // `ingredient.priceAdjustment` als Modifier-`price`. Das Admin-UI in
+  // panary-cloud schlägt dort per Placeholder „-1.0" einen NEGATIVEN Wert vor
+  // (Abzug fürs Weglassen) — `price minimum 0` lehnte genau das mit
+  // „/lineItems/0/modifiers/0/price must be >= 0" ab.
+  const withPrice = (price: number) => ({ ...modifier(1), price })
+
+  it('akzeptiert einen negativen Preis', () => {
+    expect(Value.Check(modifierLineItemSchema, withPrice(-1))).toBe(true)
+  })
+
+  it('akzeptiert weiterhin einen Aufpreis', () => {
+    expect(Value.Check(modifierLineItemSchema, withPrice(1.9))).toBe(true)
+  })
+
+  it('lehnt einen nicht-numerischen Preis ab', () => {
+    expect(Value.Check(modifierLineItemSchema, { ...modifier(1), price: '-1' })).toBe(false)
+  })
+})
+
 describe('orderLineItemSchema', () => {
   it('akzeptiert eine Position mit „OHNE"-Modifier (amount −1)', () => {
     expect(Value.Check(orderLineItemSchema, lineItem({ modifiers: [modifier(-1)] }))).toBe(true)
@@ -78,17 +99,34 @@ describe('orderLineItemSchema', () => {
   it('lehnt eine negative Menge auf der Position selbst ab', () => {
     expect(Value.Check(orderLineItemSchema, lineItem({ amount: -1 }))).toBe(false)
   })
+
+  it('akzeptiert eine Position mit Abzugs-Modifier (price −1)', () => {
+    expect(Value.Check(orderLineItemSchema, lineItem({ modifiers: [{ ...modifier(1), price: -1 }] }))).toBe(true)
+  })
+
+  it('lehnt einen negativen Preis auf der Position selbst ab', () => {
+    expect(Value.Check(orderLineItemSchema, lineItem({ price: -1 }))).toBe(false)
+  })
 })
 
 describe('genericLineItemSchema / lineComponentSchema bleiben bei minimum 0', () => {
-  // Negative Mengen haben nur als Modifier-Marker eine Bedeutung. Auf
-  // Hauptartikel und Bundle-Komponenten wuerden sie negativen Verbrauch
-  // (explodeOrderConsumption) und negatives Brutto (computeOrderTax) erzeugen.
+  // Negative Mengen und Preise haben nur auf Modifier-Ebene eine Bedeutung
+  // (OHNE-Marker bzw. konfigurierter Abzug). Auf Hauptartikel und
+  // Bundle-Komponenten wuerden sie negativen Verbrauch (explodeOrderConsumption)
+  // und negatives Brutto (computeOrderTax) erzeugen.
   it('genericLineItemSchema lehnt amount −1 ab', () => {
     expect(Value.Check(genericLineItemSchema, modifier(-1))).toBe(false)
   })
 
+  it('genericLineItemSchema lehnt price −1 ab', () => {
+    expect(Value.Check(genericLineItemSchema, { ...modifier(1), price: -1 })).toBe(false)
+  })
+
   it('lineComponentSchema lehnt amount −1 ab', () => {
     expect(Value.Check(lineComponentSchema, { ...modifier(-1), role: 'drink' })).toBe(false)
+  })
+
+  it('lineComponentSchema lehnt price −1 ab', () => {
+    expect(Value.Check(lineComponentSchema, { ...modifier(1), price: -1, role: 'drink' })).toBe(false)
   })
 })

@@ -259,7 +259,12 @@ function appendModifierLines(enc: any, article: any, isFixed: boolean, subNameW:
       let amount = mod.amount
       let modName = mod.name
       if (mod.amount === -1) { amount = 1; modName = `OHNE ${modName}` }
-      const modPrice = (!isFixed && mod.price > 0 && mod.amount > 0) ? fmtEur(mod.price * mod.amount) : ''
+      // Betrag ausweisen, wenn der Modifier den Zeilenpreis bewegt — auch bei
+      // ABZUG (entfernbare Zutat mit negativem `priceAdjustment`). Bedingung
+      // spiegelt `modifierGrossCents` aus der Preis-Engine: `amount < 0` ist der
+      // preisneutrale OHNE-Marker und bleibt ohne Betrag, sonst rechnete sich
+      // der Bon nicht gegen die Summe auf.
+      const modPrice = (!isFixed && mod.amount > 0 && mod.price !== 0) ? fmtEur(mod.price * mod.amount) : ''
       enc.table(
         [{ width: subNameW, marginLeft: 4, align: 'left' }, { width: priceW, align: 'right' }],
         [[`${amount}x ${modName}`, modPrice]],

@@ -120,6 +120,28 @@ describe('order-total', () => {
     expect(computeGrossFromLineItems(lineItems as unknown as Order['lineItems'])).toBe(670)
   })
 
+  it('Modifier mit negativem Preis zieht ab (entfernbare Zutat), geklemmt bei 0', () => {
+    // `toggleRemovableIngredient()` übernimmt `ingredient.priceAdjustment` als
+    // Modifier-Preis — negativ = Abzug fürs Weglassen. Muss zur Engine
+    // `computeOrderTax` passen, inklusive der Klemme bei 0.
+    const mk = (adj: number) => [
+      {
+        _id: 'l1', externalId: 'e1', amount: 1, name: 'Margherita', price: 6.7,
+        recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: '',
+        productGroupExternalId: 'g1', bundleNumber: null,
+        modifiers: [
+          {
+            _id: 'm1', externalId: 'em1', amount: 1, name: 'Ohne Zwiebeln', price: adj,
+            recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: 'Extras',
+          },
+        ],
+        isMenu: false, menuDrink: null, menuSideDish: null,
+      },
+    ]
+    expect(computeGrossFromLineItems(mk(-1) as unknown as Order['lineItems'])).toBe(570)
+    expect(computeGrossFromLineItems(mk(-99) as unknown as Order['lineItems'])).toBe(0)
+  })
+
   it('FIXED_PROPORTIONAL: Fallback nutzt den Festpreis (line.price), Komponenten nicht erneut addiert', () => {
     const lineItems = [
       {

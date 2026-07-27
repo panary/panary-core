@@ -99,7 +99,11 @@ function computeModifierGrossCents(modifiers: GenericOrderLineItem[], parentAmou
 
 function computeLineItemGrossCents(line: OrderLineItem): number {
   const base = multiplyCents(toCents(line.price), line.amount)
-  const modifierGross = computeModifierGrossCents(line.modifiers ?? [], line.amount)
+  const rawModifierGross = computeModifierGrossCents(line.modifiers ?? [], line.amount)
+  // Modifier dürfen abziehen (entfernbare Zutat mit negativem `priceAdjustment`),
+  // aber die Position nicht ins Negative ziehen — identische Klemme wie in der
+  // Engine `computeOrderTax`, sonst driftet der Reporting-Fallback.
+  const modifierGross = rawModifierGross < 0 ? Math.max(rawModifierGross, -base) : rawModifierGross
 
   // FIXED_PROPORTIONAL: `line.price` IST der Festpreis (Komponenten sind darin
   // eingerechnet) → Komponenten NICHT erneut addieren; nur Ad-hoc-Modifier on top.

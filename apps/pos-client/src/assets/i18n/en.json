@@ -417,6 +417,26 @@
     "TITLE": "Open business day",
     "SUBMIT": "Open"
   },
+  "CASH_SESSION": {
+    "AUTH_TITLE": "Authorize cash drawer",
+    "AUTH_CASHIER_FALLBACK": "the cashier",
+    "AUTH_INTRO": "No cash drawer has been opened for {{name}} yet. An authorized staff member has to approve it.",
+    "AUTH_LOADING_USERS": "Loading authorized staff...",
+    "AUTH_OPENING_FLOAT": "Opening float",
+    "AUTH_OPENING_FLOAT_INVALID": "Please enter a valid amount of 0 € or more.",
+    "AUTH_SELECT_MANAGER": "Select approving person",
+    "AUTH_NO_ELIGIBLE_USERS": "No authorized staff member available.",
+    "AUTH_NO_PIN_USERS": "No authorized staff member has a POS PIN set up.",
+    "AUTH_ENTER_PIN": "Enter PIN to authorize the cash drawer",
+    "AUTH_AMOUNT_LABEL": "Float",
+    "AUTH_ERROR_PIN_INVALID": "Invalid PIN. Please try again.",
+    "AUTH_ERROR_ROLE_DENIED": "This staff member may not authorize a cash drawer.",
+    "AUTH_ERROR_GENERIC": "Authorization failed. Please try again.",
+    "AUTH_LOAD_ERROR": "Staff list could not be loaded.",
+    "AUTH_IN_PROGRESS": "Authorizing cash drawer...",
+    "AUTH_SUCCESS": "Cash drawer opened",
+    "AUTH_SUCCESS_DETAIL": "{{name}} · float {{amount}}"
+  },
   "SETUP": {
     "TITLE": "Setup",
     "CONNECT_TITLE": "Connect to Panary",

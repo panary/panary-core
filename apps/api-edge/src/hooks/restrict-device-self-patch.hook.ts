@@ -25,8 +25,9 @@ import type { HookContext } from '../declarations'
 
 const DEVICE_USER_ID_PREFIX = 'device:'
 
-/** Extrahiert die deviceId des authentifizierten Geraets aus den Params. */
-const resolveActorDeviceId = (context: HookContext): string | undefined => {
+/** Extrahiert die deviceId des authentifizierten Geraets aus den Params.
+ *  Auch vom devices-Query-/External-Resolver genutzt (READ-Self-Scoping). */
+export const resolveActorDeviceId = (context: HookContext): string | undefined => {
   const payloadDeviceId = (context.params.authentication?.payload as { deviceId?: string } | undefined)
     ?.deviceId
   if (payloadDeviceId) return payloadDeviceId

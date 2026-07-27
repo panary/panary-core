@@ -10,9 +10,24 @@ import {
   deviceDataSchema,
   devicePatchSchema,
   DeviceQuery,
-  deviceQuerySchema
+  deviceQuerySchema,
+  DEVICE_PRIVILEGED_ROLES
 } from '@panary/devices/domain'
+import { Forbidden } from '@feathersjs/errors'
 import { DeviceService } from './devices.class'
+import { resolveActorDeviceId } from '../../hooks/restrict-device-self-patch.hook'
+
+// READ-Self-Scoping (PNRY-FEAT-POS-UI-SCALE-001): DEVICE_POS hat devices:READ
+// nur, um den EIGENEN Record zu finden (uiScale-Persistenz). Nicht-privilegierte
+// Rollen duerfen weder fremde Geraete enumerieren noch apiKeyId/metadata sehen.
+// Privilegiert = devices:MANAGE laut Policy plus platform:*-Rollen (Bypass-
+// Semantik analog multiTenancy).
+const isPrivilegedDeviceReader = (context: HookContext): boolean => {
+  if (!context.params.provider) return true // interne Aufrufe unveraendert
+  const role = (context.params.user as { role?: string } | undefined)?.role
+  if (!role) return false
+  return role.startsWith('platform:') || DEVICE_PRIVILEGED_ROLES.has(role)
+}
 
 //#region 1. Main Resolver (Output)
 export const deviceResolver = resolve<Device, HookContext<DeviceService>>({
@@ -20,8 +35,10 @@ export const deviceResolver = resolve<Device, HookContext<DeviceService>>({
   // Example: hide fields, resolve relations, etc.
 })
 export const deviceExternalResolver = resolve<Device, HookContext<DeviceService>>({
-  // TODO: Add resolver logic for external output here
-  // Example: Filtering sensitive data
+  // Maschinen-Credentials-Referenz + Netz-/Client-Details nur fuer
+  // privilegierte Leser — ein POS-Geraet braucht davon nichts.
+  apiKeyId: async (value, device, context) => (isPrivilegedDeviceReader(context) ? value : undefined),
+  metadata: async (value, device, context) => (isPrivilegedDeviceReader(context) ? value : undefined)
 })
 //#endregion
 
@@ -61,12 +78,17 @@ export const devicePatchResolver = resolve<Device, HookContext<DeviceService>>({
 // --- 4. Query Resolver (GET) ---
 export const deviceQueryValidator = getValidator(deviceQuerySchema, queryValidator)
 export const deviceQueryResolver = resolve<DeviceQuery, HookContext<DeviceService>>({
-  // Example: Restriction to own data for normal users
-  // _id: async (value, query, context) => {
-  //   if (context.params.user?.role !== 'admin') {
-  //     return context.params.user?.id
-  //   }
-  //   return value
-  // }
+  // READ-Self-Scoping: nicht-privilegierte Leser (insb. DEVICE_POS) werden
+  // hart auf die eigene deviceId gezwungen — greift fuer find UND get (der
+  // Adapter matcht die Query auch beim get-by-id). Fail-closed: ohne
+  // ableitbare Geraete-Identitaet gibt es keinen devices-Read.
+  deviceId: async (value, query, context) => {
+    if (isPrivilegedDeviceReader(context)) return value
+    const actorDeviceId = resolveActorDeviceId(context)
+    if (!actorDeviceId) {
+      throw new Forbidden('Geraete-Daten sind nur fuer das eigene Geraet lesbar.')
+    }
+    return actorDeviceId
+  }
 })
 //#endregion

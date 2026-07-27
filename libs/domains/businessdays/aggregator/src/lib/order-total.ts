@@ -80,7 +80,11 @@ function computeModifierGrossCents(modifiers: GenericOrderLineItem[], parentAmou
   const regularCents: number[] = []
 
   for (const m of modifiers) {
-    const cents = computeGenericGrossCents(m, parentAmount)
+    // „OHNE"-Modifier (amount −1, POS-Marker aus `decreaseExtra()`) sind
+    // preisneutral: das Extra wurde nie berechnet, also gibt es beim Weglassen
+    // keine Gutschrift. Muss zur Engine `computeOrderTax` passen, sonst driftet
+    // der Reporting-Fallback vom `taxSnapshot` ab.
+    const cents = m.amount <= 0 ? 0 : computeGenericGrossCents(m, parentAmount)
     if (m.pricingMode === 'HIGHEST') {
       const key = m.topic ?? ''
       const current = highestByTopic.get(key) ?? 0
@@ -95,7 +99,11 @@ function computeModifierGrossCents(modifiers: GenericOrderLineItem[], parentAmou
 
 function computeLineItemGrossCents(line: OrderLineItem): number {
   const base = multiplyCents(toCents(line.price), line.amount)
-  const modifierGross = computeModifierGrossCents(line.modifiers ?? [], line.amount)
+  const rawModifierGross = computeModifierGrossCents(line.modifiers ?? [], line.amount)
+  // Modifier dürfen abziehen (entfernbare Zutat mit negativem `priceAdjustment`),
+  // aber die Position nicht ins Negative ziehen — identische Klemme wie in der
+  // Engine `computeOrderTax`, sonst driftet der Reporting-Fallback.
+  const modifierGross = rawModifierGross < 0 ? Math.max(rawModifierGross, -base) : rawModifierGross
 
   // FIXED_PROPORTIONAL: `line.price` IST der Festpreis (Komponenten sind darin
   // eingerechnet) → Komponenten NICHT erneut addieren; nur Ad-hoc-Modifier on top.

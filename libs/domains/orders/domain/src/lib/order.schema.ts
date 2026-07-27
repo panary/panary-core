@@ -166,6 +166,34 @@ export const genericLineItemSchema = Type.Object({
 })
 
 /**
+ * Modifier-Zeile („Extras") einer Order-Position. Unterscheidet sich vom
+ * generischen LineItem in zwei Feldern, weil der POS zwei verschiedene
+ * „OHNE"-Mechanismen hat:
+ *
+ * 1. `amount` darf −1 sein — der Marker für „OHNE <Modifier>", gesetzt von
+ *    `decreaseExtra()` (OHNE-Toggle + Tipp auf einen Modifier, der noch nicht
+ *    auf der Position liegt) und vom Bon-Renderer als „OHNE …" ausgegeben. −1
+ *    ist der Boden: die UI erzeugt keine kleineren Werte (weiteres
+ *    Dekrementieren ist No-Op, Inkrementieren springt direkt auf 1).
+ * 2. `price` darf negativ sein — `toggleRemovableIngredient()` übernimmt für
+ *    entfernbare Rezept-Zutaten den konfigurierten `priceAdjustment` als Abzug
+ *    (das Admin-UI schlägt dort −1,00 vor). Bewusst ohne `minimum`: der
+ *    Katalog führt `priceAdjustment` ebenfalls unbegrenzt, eine engere Schranke
+ *    hier wäre genau die Schema-Drift, die diese Klasse von 400ern erzeugt. Die
+ *    Kappung passiert fachlich in `computeOrderTax` (Zeile nie negativ).
+ *
+ * Hauptartikel und Bundle-Komponenten bleiben bei `minimum: 0` — dort haben
+ * negative Werte keine Bedeutung und würden nur negativen Verbrauch/Umsatz
+ * erzeugen.
+ */
+export const modifierLineItemSchema = Type.Object({
+  ...genericLineItemSchema.properties,
+  amount: Type.Number({ minimum: -1 }),
+  price: Type.Number(),
+})
+export type ModifierLineItem = Static<typeof modifierLineItemSchema>
+
+/**
  * Generische Bundle-Komponente einer Order-Zeile — ersetzt die hartkodierten
  * menuDrink/menuSideDish-Slots. Trägt einen EIGENEN Steuersatz (taxInside/
  * taxOutside aus genericLineItemSchema), damit mehrsatzige Menüs korrekt
@@ -189,7 +217,7 @@ export const orderLineItemSchema = Type.Intersect([
     acronym: Type.Optional(Type.String()),
     productGroupExternalId: Type.String({ format: 'uuid' }),
     bundleNumber: Type.Union([Type.Number({ minimum: 0 }), Type.Null()]),
-    modifiers: Type.Array(genericLineItemSchema, { maxItems: 100 }),
+    modifiers: Type.Array(modifierLineItemSchema, { maxItems: 100 }),
     index: Type.Optional(Type.Number()),
     // Neues Modell: generische Bundle-Komponenten (optional/rückwärtskompatibel).
     // Reader bevorzugen components[], fallen sonst auf menuDrink/menuSideDish.

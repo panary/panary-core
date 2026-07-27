@@ -28,6 +28,7 @@ import { logger } from '@panary/shared-backend'
 import type { HookContext } from '../declarations'
 import type { AuditCaptureState } from './capture-audit-before.hook'
 
+const DEVICE_USER_ID_PREFIX = 'device:'
 const SENSITIVE_FIELDS = ['password', 'posPin', 'apikey', 'secret', 'token']
 const REDACTED = '***REDACTED***'
 
@@ -80,6 +81,7 @@ export const recordAuditEvent = async (context: HookContext): Promise<void> => {
     actor: {
       userId: user._id,
       role: user.role ?? 'unknown',
+      deviceId: deviceIdOf(user._id),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ipAddress: ((context.params as any)?.ip as string | undefined) ?? undefined,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -134,6 +136,17 @@ export const recordAuditEvent = async (context: HookContext): Promise<void> => {
 }
 
 // ----- Hilfsfunktionen -----
+
+/**
+ * Geraete-UUID aus dem virtuellen User einer API-Key-Session.
+ *
+ * `allow-apikey.hook.ts` setzt `params.user._id = 'device:<uuid>'` — es gibt
+ * fuer Geraete keinen User-Datensatz. Damit der Audit-Trail trotzdem nach
+ * Geraet filterbar bleibt, spiegeln wir die UUID in `actor.deviceId`.
+ */
+function deviceIdOf(userId: string): string | undefined {
+  return userId.startsWith(DEVICE_USER_ID_PREFIX) ? userId.slice(DEVICE_USER_ID_PREFIX.length) : undefined
+}
 
 function getSingleResult(result: unknown): Record<string, unknown> | null {
   if (result == null) return null

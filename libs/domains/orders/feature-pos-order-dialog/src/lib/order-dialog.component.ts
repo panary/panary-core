@@ -140,6 +140,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private _customer: CorporateCustomer | undefined = undefined
   private _currentUser: User | undefined = undefined
   private _functionButtons: PosButton[] = []
+  private _functionBlockLabel = ''
   private _infoBoxBackgroundColor = '#f1f5f9'
   private _infoBoxText = 'Bitte wählen Sie eine Produktkategorie!'
   private _infoBoxTextColor = 'black'
@@ -185,9 +186,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private _skipExtraId = 'skipExtra'
   private _skipExtraName = 'ABBRUCH'
   private _skipSauceId = 'skipSauce'
-  private _skipSauceName = 'WEITER'
+  private _skipSauceName = 'ÜBERSPRINGEN'
   private _skipSuccessorId = 'skipSuccessor'
-  private _skipSuccessorName = 'SKIP'
+  private _skipSuccessorName = 'ÜBERSPRINGEN'
   private _tableTopic: UUID = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx04'
   private _withoutExtraId = 'withoutExtra'
   private _numpadNumber: number | undefined = undefined
@@ -231,6 +232,10 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   get infoBoxText() {
     return this._infoBoxText
+  }
+
+  get functionBlockLabel() {
+    return this._functionBlockLabel
   }
 
   get infoBoxBackgroundColor() {
@@ -499,6 +504,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   clearButtons(): void {
     this._functionButtons = []
     this._productButtons = []
+    this._functionBlockLabel = ''
     this.corporateCustomers = []
   }
 
@@ -516,7 +522,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   unselectProduct() {
     if (this._isBlocked) return
-    this._withoutExtra = false
+    this.setWithoutExtra(false)
     this.clearButtons()
     this._selectedProductIndex = null
     this._selectedCombinationIndex = [null, null]
@@ -740,6 +746,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     } else {
       this.setInfoBoxText('Auf welchem Tisch befindet sich die Bestellung?')
     }
+    this._functionBlockLabel = 'Tisch auswählen'
     this._functionButtons.push({
       _id: 'noTables',
       externalId: this.#functionButtonExternalId,
@@ -748,6 +755,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       index: 1,
       name: 'KEIN TISCH',
       isFunctionButton: true,
+      variant: 'skip',
+      icon: 'arrow_forward',
       callback: () => {
         this.setProductionTimeSubbuttons()
       },
@@ -785,6 +794,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     } else {
       this.setInfoBoxText('Welche Pager-Nummer hat der Tisch?')
     }
+    this._functionBlockLabel = 'Pager auswählen'
     this._functionButtons.push({
       _id: 'noPagers',
       externalId: this.#functionButtonExternalId,
@@ -793,6 +803,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       index: 1,
       name: 'KEIN PAGER',
       isFunctionButton: true,
+      variant: 'skip',
+      icon: 'arrow_forward',
       callback: () => {
         this.setProductionTimeSubbuttons()
       },
@@ -827,6 +839,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.clearButtons()
     this.setInfoBoxText('Was möchten Sie löschen?')
+    this._functionBlockLabel = 'Löschen'
     this._functionButtons.push({
       _id: this._deleteCombinationId,
       externalId: this.#functionButtonExternalId,
@@ -835,6 +848,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       index: 1,
       name: this._deleteCombinationName,
       isFunctionButton: true,
+      variant: 'cancel',
+      icon: 'link_off',
       callback: () => {
         this.decreaseCombination()
       },
@@ -847,6 +862,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       index: 3,
       name: this._deleteOrderName,
       isFunctionButton: true,
+      variant: 'cancel',
+      icon: 'delete_forever',
       callback: () => {
         this.#lineItems = []
         return this.unselectProduct()
@@ -861,6 +878,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         index: 4,
         name: this._deleteCustomerName,
         isFunctionButton: true,
+        variant: 'cancel',
+        icon: 'person_remove',
         callback: () => {
           this._customer = undefined
           this.clearButtons()
@@ -900,6 +919,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     ids: Array<UUID> | undefined,
     slot: {
       infoText: string
+      blockLabel?: string
       flags: PosButtonUiState
       onSelect: (copy: PosProductButton) => void
       buildSkipButton?: (parentButton: ProductSchema | undefined) => PosButton
@@ -908,6 +928,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.clearButtons()
     if (!this.rememberSelectedParentId()) return
     this.setInfoBoxText(slot.infoText)
+    this._functionBlockLabel = slot.blockLabel ?? ''
     if (slot.buildSkipButton) {
       this._functionButtons.push(slot.buildSkipButton(this.lastParentProduct()))
     }
@@ -923,6 +944,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   setMenuSideDishButtons(sideDishElements: Array<UUID> | undefined = undefined): void {
     this.setMenuSlotButtons(sideDishElements, {
       infoText: 'Welche Beilage möchten Sie hinzufügen?',
+      blockLabel: 'Beilage auswählen',
       flags: { isMenuSideDish: true, isMenuSubButton: true },
       onSelect: copy => {
         const parentButton = this.lastParentProduct()
@@ -939,6 +961,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   setMenuSauceButtons(ids: Array<UUID> | undefined = undefined) {
     this.setMenuSlotButtons(ids, {
       infoText: 'Welche Soße möchten Sie hinzufügen?',
+      blockLabel: 'Soße auswählen',
       flags: { isMenuSideDishSauce: true, isExtra: false, isMenuSubButton: true },
       onSelect: copy => this.setMenuSideDishSauce(copy),
       buildSkipButton: parentButton => ({
@@ -950,8 +973,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         index: -1,
         isFunctionButton: true,
         isExtra: false,
-        backgroundColor: 'darkcyan',
-        fontColor: 'white',
+        variant: 'skip',
+        icon: 'arrow_forward',
         callback: () => {
           if (
             parentButton &&
@@ -976,6 +999,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   setMenuDrinkButtons(ids: Array<UUID> | undefined = undefined) {
     this.setMenuSlotButtons(ids, {
       infoText: 'Welches Getränk möchten Sie hinzufügen?',
+      blockLabel: 'Getränk auswählen',
       flags: { isMenuDrink: true, isMenuSubButton: true },
       onSelect: copy => {
         const parentButton = this.lastParentProduct()
@@ -1014,8 +1038,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     this.clearButtons()
-    this._withoutExtra = false
+    this.setWithoutExtra(false)
     this.setInfoBoxText('Welche Extras möchten Sie hinzufügen?')
+    this._functionBlockLabel = 'Extras auswählen'
 
     let parentButton: ProductSchema | undefined
 
@@ -1034,8 +1059,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       index: -2,
       isFunctionButton: true,
       isExtra: true,
-      backgroundColor: 'darkcyan',
-      fontColor: 'white',
+      variant: 'cancel',
+      icon: 'close',
       callback: () => {
         if (this._isBlocked) {
           if (parentButton && (parentButton as any).itemType === ItemType.mainDish && (parentButton as any).isMenu) {
@@ -1055,8 +1080,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       index: -1,
       isFunctionButton: true,
       isExtra: true,
-      backgroundColor: 'white',
-      fontColor: 'black',
+      variant: 'skip',
+      icon: 'block',
+      pressed: false,
       callback: () => {
         if (this._isBlocked) return
         this.toggleWithoutExtra()
@@ -1137,12 +1163,12 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         externalId: this.#functionButtonExternalId,
         locationId: this.userService.currentUser()?.activeLocationId || '',
         tenantId: this.authService.tenantId()?.toString() || '',
-        name: 'Alle Extras',
+        name: 'Alle Modifier anzeigen',
         index: 0,
         isFunctionButton: true,
         isExtra: true,
-        backgroundColor: 'slategray',
-        fontColor: 'white',
+        variant: 'confirm',
+        icon: 'check',
         callback: () => {
           if (this._isBlocked && !unblock) return
           this._productButtons = []
@@ -1249,6 +1275,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     } else {
       this.setInfoBoxText('Welche Soße möchten Sie hinzufügen?')
     }
+    this._functionBlockLabel = 'Soße auswählen'
 
     const parentButton: ProductSchema | undefined = this.lastParentProduct()
     this.functionButtons.push({
@@ -1260,8 +1287,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       index: -1,
       isFunctionButton: true,
       isExtra: false,
-      backgroundColor: 'darkcyan',
-      fontColor: 'white',
+      variant: 'skip',
+      icon: 'arrow_forward',
       callback: () => {
         if (this._isBlocked) {
           if (
@@ -1325,8 +1352,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       name: this._skipSuccessorName,
       index: 1,
       isFunctionButton: true,
-      backgroundColor: 'darkcyan',
-      fontColor: 'white',
+      variant: 'skip',
+      icon: 'arrow_forward',
       callback: () => {
         if (this._isBlocked) return
         this._articlesToCombine = []
@@ -1334,6 +1361,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       },
     })
     this.setInfoBoxText(byExternId.name)
+    this._functionBlockLabel = byExternId.name
     // VM-Kopien statt Store-Referenzen — der Dialog darf Cache-Objekte nicht mutieren
     this._productButtons = this.productService
       .getProductsByGroupId(byExternId._id, byExternId.externalId)
@@ -1355,6 +1383,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       this.setInfoBoxText('Für die Kombination werden min. 2 Artikel benötigt.', 'red')
       return
     }
+    this._functionBlockLabel = 'Kombination'
     this._functionButtons.push({
       _id: this._combineId,
       externalId: this.#functionButtonExternalId,
@@ -1363,8 +1392,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       name: this._combineName,
       index: -3,
       isFunctionButton: true,
-      backgroundColor: 'darkcyan',
-      fontColor: 'white',
+      variant: 'confirm',
+      icon: 'merge_type',
       callback: () => {
         this.increaseCombination()
       },
@@ -1377,8 +1406,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       name: this._combineAllName,
       index: -2,
       isFunctionButton: true,
-      backgroundColor: 'lightcyan',
-      fontColor: 'black',
+      variant: 'confirm',
+      icon: 'done_all',
       callback: () => {
         this.combineAllArticles()
       },
@@ -1391,8 +1420,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       index: -1,
       name: this._resolveCombinationName,
       isFunctionButton: true,
-      backgroundColor: 'crimson',
-      fontColor: 'white',
+      variant: 'cancel',
+      icon: 'link_off',
       callback: () => {
         this.resolveCombination()
       },
@@ -1658,7 +1687,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (group?.pricingMode === 'HIGHEST') {
       this.#bundleFlow.applyHighestPricingToGroup(selectedArticle, extraTopic, group.freeQuantity || 0)
     }
-    this._withoutExtra = false
+    this.setWithoutExtra(false)
     this.setInfoBoxText('Extras auswählen ...', 'lightgray')
   }
 
@@ -1670,6 +1699,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private showOptionGroupButtons(group: any, parentProduct: ProductSchema): void {
     this.clearButtons()
     this.setInfoBoxText(group.name)
+    this._functionBlockLabel = group.name
     this._isBlocked = true
 
     // Produkte für die Optionen laden
@@ -1687,8 +1717,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         name: 'ÜBERSPRINGEN',
         index: -2,
         isFunctionButton: true,
-        backgroundColor: 'darkcyan',
-        fontColor: 'white',
+        variant: 'skip',
+        icon: 'arrow_forward',
         callback: () => {
           this.#bundleFlow.markCompleted(group.id)
           const nextGroup = this.#bundleFlow.getNextMandatoryGroup(parentProduct)
@@ -2195,11 +2225,42 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   toggleWithoutExtra() {
     if (this._withoutExtra) {
-      this._withoutExtra = false
+      this.setWithoutExtra(false)
       this.setInfoBoxText('Mit ausgewählt!')
     } else {
-      this._withoutExtra = true
+      this.setWithoutExtra(true)
       this.setInfoBoxText('Ohne ausgewählt!')
+    }
+  }
+
+  /**
+   * Einzige Schreibstelle für den Ohne-Modus: hält den pressed-Zustand der
+   * OHNE-Funktionstaste synchron (auch beim Auto-Reset in decreaseExtra).
+   */
+  private setWithoutExtra(value: boolean): void {
+    this._withoutExtra = value
+    const withoutButton = this._functionButtons.find(button => button._id === this._withoutExtraId)
+    if (withoutButton) withoutButton.pressed = value
+    this.#cdr.markForCheck()
+  }
+
+  /**
+   * Farbcodierung der Funktionstasten nach Wirkung (code-style.md §9):
+   * cancel=Rot (verwirft), skip=Amber (lässt weg), confirm=Teal (übernimmt).
+   * Getönte Fläche + farbiger Rahmen statt Vollton; pressed nur beim OHNE-Toggle.
+   */
+  functionButtonClasses(button: PosButton): string {
+    switch (button.variant) {
+      case 'cancel':
+        return 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100 active:bg-red-200 dark:bg-red-900/30 dark:border-red-900/60 dark:text-red-300 dark:active:bg-red-800/60'
+      case 'skip':
+        return button.pressed
+          ? 'bg-amber-200 border-amber-500 text-amber-800 shadow-inner dark:bg-amber-800/60 dark:border-amber-400 dark:text-amber-200'
+          : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 active:bg-amber-200 dark:bg-amber-900/30 dark:border-amber-900/60 dark:text-amber-300 dark:active:bg-amber-800/60'
+      case 'confirm':
+        return 'bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100 active:bg-teal-200 dark:bg-teal-900/30 dark:border-teal-900/60 dark:text-teal-300 dark:active:bg-teal-800/60'
+      default:
+        return 'bg-white border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700'
     }
   }
 

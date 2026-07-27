@@ -8,6 +8,8 @@ import type { ProductSchema } from '@panary/products/domain'
 export interface PosButtonUiState {
   callback?: () => void
   pressed?: boolean
+  /** Farbcodierung nach Wirkung: cancel=Rot (verwirft), skip=Amber (lässt weg), confirm=Teal (übernimmt) */
+  variant?: 'cancel' | 'skip' | 'confirm'
   /** Legacy-Anzeige-Index synthetischer Tasten; echte Produkte nutzen ui.index */
   index?: number
   isFunctionButton?: boolean

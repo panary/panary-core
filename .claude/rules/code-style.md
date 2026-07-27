@@ -127,3 +127,28 @@ Zielgerät: Sunmi D3 Tablet (Touch-First).
 | Erfolg/Fehler | Semantisch: `--color-success`, `--color-error` |
 | Typografie | Serifenlos, Tablet-optimiert |
 | Komplexe Interaktionen | Angular Material Dialogs |
+
+### 9.1 Farbsystem der POS-Funktionstasten (Bestelldialog)
+
+Funktionstasten im Button-Board des Bestelldialogs (`order-dialog.component`) sind farbcodiert
+nach **Wirkung**, nicht nach Kontext — umgesetzt über `PosButtonUiState.variant` und die
+Klassen-Matrix in `functionButtonClasses()`:
+
+| Variante | Farbe | Wirkung | Beispiele |
+|---|---|---|---|
+| `cancel` | Rot | verwirft / bricht ab | ABBRUCH, Lösch-Tasten, Kombination auflösen |
+| `skip` | Amber | lässt weg / überspringt | OHNE, ÜBERSPRINGEN, KEIN TISCH, KEIN PAGER |
+| `confirm` | Teal | übernimmt / bestätigt | Alle Modifier anzeigen, Kombinieren |
+| — (weiß) | Weiß | Produkte — **nie** Funktion | Produktkacheln |
+
+Regeln:
+- **Kein Vollton:** getönte Fläche (`*-50`) + farbiger 2-px-Rahmen (`*-200`) — vollflächige
+  Farbbalken ziehen mehr Blick als das Raster. Keine Inline-Styles (`backgroundColor`/`fontColor`)
+  auf Funktionstasten.
+- **Kachelmaß = Produktkachel:** Breite `var(--pnry-tile-min)` (8.25rem = 132 px), Höhe 5.375rem
+  (86 px), Icon über Text, linksbündig **vor** dem Raster, außerhalb des Scroll-Containers
+  (beim Scrollen immer sichtbar).
+- **Keine Nummern auf Funktionstasten** — Artikelnummern-Badges nur auf Produktkacheln.
+- **Pressed-Zustand** nur für echte Toggles (OHNE): kräftigere Tönung + dunklerer Rahmen +
+  `aria-pressed`. One-Shot-Tasten (ÜBERSPRINGEN etc.) bekommen nur momentanes
+  `active:`-Feedback.

@@ -12,6 +12,12 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["nx", "serve", "pos-client"],
       "port": 4200
+    },
+    {
+      "name": "api-edge",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["nx", "serve", "api-edge"],
+      "port": 3030
     }
   ]
 }

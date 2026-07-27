@@ -24,6 +24,8 @@ import { distributeByLargestRemainder, fromCents, multiplyCents, netFromGross, s
 // Eintrag zurück (tatsächlich abgezogener Brutto-Betrag) — bewusst, damit der Bon-
 // Snapshot die realen Beträge führt.
 //
+// „OHNE"-Modifier (amount −1) sind preisneutral — siehe `modifierGrossCents`.
+//
 // Positions-Arithmetik: Hauptartikel price×amount, Modifier price×modifier.amount
 // (nicht mit Parent-Menge skaliert — Bestandsverhalten), Menü-Beilage/-Getränk
 // price×amount×Zeilen-Menge (PRO Menü; Entscheidung 2026-07-04 — vorher einmalig,
@@ -41,11 +43,28 @@ interface LineGross {
   grossCents: number
 }
 
+/**
+ * Brutto-Beitrag eines Modifiers in Cents.
+ *
+ * Ein „OHNE"-Modifier (`amount` −1, gesetzt von `decreaseExtra()` im POS-
+ * Bestelldialog) trägt NICHTS bei: das Extra wurde nie berechnet, also gibt es
+ * beim Weglassen auch keine Gutschrift. Ohne diese Klemme zöge „Margherita ohne
+ * Bacon" den Bacon-Aufpreis vom Zeilenpreis ab, während der Bon die OHNE-Zeile
+ * ohne Betrag druckt — der Beleg rechnete sich nicht auf.
+ *
+ * `scale` bildet die bestehende Asymmetrie ab: im Legacy-Pfad zählt der
+ * Modifier einmal (Bestandsverhalten), im Komponenten-Pfad parent-skaliert.
+ */
+function modifierGrossCents(extra: GenericOrderLineItem, scale = 1): number {
+  if (!extra.price || extra.amount <= 0) return 0
+  return multiplyCents(toCents(extra.price), extra.amount * scale)
+}
+
 function lineGrossCents(line: OrderLineItem): number {
   let cents = 0
   if (line.price) cents += multiplyCents(toCents(line.price), line.amount)
   ;(line.modifiers ?? []).forEach((extra: GenericOrderLineItem) => {
-    if (extra.price) cents += multiplyCents(toCents(extra.price), extra.amount)
+    cents += modifierGrossCents(extra)
   })
   // Beilage/Getränk zählen PRO Menü: 2 Menüs = 2 Aufpreise (Entscheidung 2026-07-04).
   if (line.menuSideDish && line.menuSideDish.price) {
@@ -114,12 +133,9 @@ function collectLineAtoms(line: OrderLineItem, dineIn: boolean): LineGross[] {
     }
     // Ad-hoc-Modifier sind NICHT Teil des Festpreises → on top am Zeilensatz.
     ;(line.modifiers ?? []).forEach((extra: GenericOrderLineItem) => {
-      if (extra.price) {
-        out.push({
-          lineItemId: line._id,
-          taxRate: lineRate,
-          grossCents: multiplyCents(toCents(extra.price), extra.amount * line.amount),
-        })
+      const gross = modifierGrossCents(extra, line.amount)
+      if (gross !== 0) {
+        out.push({ lineItemId: line._id, taxRate: lineRate, grossCents: gross })
       }
     })
     return out
@@ -127,7 +143,7 @@ function collectLineAtoms(line: OrderLineItem, dineIn: boolean): LineGross[] {
 
   let mainGross = line.price ? multiplyCents(toCents(line.price), line.amount) : 0
   ;(line.modifiers ?? []).forEach((extra: GenericOrderLineItem) => {
-    if (extra.price) mainGross += multiplyCents(toCents(extra.price), extra.amount * line.amount)
+    mainGross += modifierGrossCents(extra, line.amount)
   })
   out.push({ lineItemId: line._id, taxRate: lineRate, grossCents: mainGross })
   for (const c of lineComponents(line)) {

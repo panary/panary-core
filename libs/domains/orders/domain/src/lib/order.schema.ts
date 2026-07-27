@@ -166,6 +166,24 @@ export const genericLineItemSchema = Type.Object({
 })
 
 /**
+ * Modifier-Zeile („Extras") einer Order-Position. Einziger Unterschied zum
+ * generischen LineItem: `amount` darf −1 sein.
+ *
+ * −1 ist der POS-Marker für „OHNE <Modifier>" — gesetzt von `decreaseExtra()`
+ * im Bestelldialog (OHNE-Toggle + Tipp auf einen Modifier, der noch nicht auf
+ * der Position liegt) und vom Bon-Renderer als „OHNE …" ausgegeben. −1 ist der
+ * Boden: die UI erzeugt keine kleineren Werte (weiteres Dekrementieren ist
+ * No-Op, Inkrementieren springt direkt auf 1). Hauptartikel und
+ * Bundle-Komponenten bleiben bei `minimum: 0` — dort hat ein negativer
+ * `amount` keine Bedeutung und würde nur negativen Verbrauch/Umsatz erzeugen.
+ */
+export const modifierLineItemSchema = Type.Object({
+  ...genericLineItemSchema.properties,
+  amount: Type.Number({ minimum: -1 }),
+})
+export type ModifierLineItem = Static<typeof modifierLineItemSchema>
+
+/**
  * Generische Bundle-Komponente einer Order-Zeile — ersetzt die hartkodierten
  * menuDrink/menuSideDish-Slots. Trägt einen EIGENEN Steuersatz (taxInside/
  * taxOutside aus genericLineItemSchema), damit mehrsatzige Menüs korrekt
@@ -189,7 +207,7 @@ export const orderLineItemSchema = Type.Intersect([
     acronym: Type.Optional(Type.String()),
     productGroupExternalId: Type.String({ format: 'uuid' }),
     bundleNumber: Type.Union([Type.Number({ minimum: 0 }), Type.Null()]),
-    modifiers: Type.Array(genericLineItemSchema, { maxItems: 100 }),
+    modifiers: Type.Array(modifierLineItemSchema, { maxItems: 100 }),
     index: Type.Optional(Type.Number()),
     // Neues Modell: generische Bundle-Komponenten (optional/rückwärtskompatibel).
     // Reader bevorzugen components[], fallen sonst auf menuDrink/menuSideDish.

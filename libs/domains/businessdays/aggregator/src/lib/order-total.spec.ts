@@ -99,6 +99,27 @@ describe('order-total', () => {
     expect(computeGrossFromLineItems(lineItems as unknown as Order['lineItems'])).toBe(3 * 500 + 3 * 50)
   })
 
+  it('„OHNE"-Modifier (amount −1) bleibt preisneutral', () => {
+    // Muss zur Engine `computeOrderTax` passen: der POS-Marker für „OHNE <Extra>"
+    // darf keinen Aufpreis gutschreiben, sonst driftet dieser Reporting-Fallback
+    // vom `taxSnapshot` der Order ab.
+    const lineItems = [
+      {
+        _id: 'l1', externalId: 'e1', amount: 1, name: 'Margherita', price: 6.7,
+        recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: '',
+        productGroupExternalId: 'g1', bundleNumber: null,
+        modifiers: [
+          {
+            _id: 'm1', externalId: 'em1', amount: -1, name: 'Bacon', price: 1.9,
+            recipeReferences: [], ingredientReferences: [], taxInside: 7, taxOutside: 7, topic: 'Extras',
+          },
+        ],
+        isMenu: false, menuDrink: null, menuSideDish: null,
+      },
+    ]
+    expect(computeGrossFromLineItems(lineItems as unknown as Order['lineItems'])).toBe(670)
+  })
+
   it('FIXED_PROPORTIONAL: Fallback nutzt den Festpreis (line.price), Komponenten nicht erneut addiert', () => {
     const lineItems = [
       {

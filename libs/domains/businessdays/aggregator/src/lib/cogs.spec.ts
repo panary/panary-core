@@ -766,8 +766,9 @@ describe('computeCogs — Verbrauchsmathematik', () => {
       // inklusive. Eine negative Menge bedeutet für den Movement-Layer eine
       // Bestands-RÜCKFÜHRUNG (Verbrauch mindert sich). Reguläre Stornos laufen
       // nicht hierüber (cancellation/isRegularSale-Filter bzw. eigener
-      // Movement-Typ) — Schema `amount minimum 0` verhindert negative Mengen im
-      // Normalfluss; dieses Lock macht Änderungen an der Semantik sichtbar.
+      // Movement-Typ) — auf der POSITION verhindert `amount minimum 0` negative
+      // Mengen im Normalfluss (nur MODIFIER dürfen −1 als „OHNE"-Marker führen,
+      // siehe modifierLineItemSchema); dieses Lock macht Änderungen sichtbar.
       const order = makeOrder({
         lineItems: [makeLineItem({ amount: -2, ingredientReferences: [directIngredient(ING_FLOUR, 50)] })],
       })

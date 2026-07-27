@@ -481,3 +481,59 @@ describe('computeOrderTax — FIXED_PROPORTIONAL Randfälle (#39)', () => {
     integrityCents(doubled)
   })
 })
+
+describe('computeOrderTax — „OHNE"-Modifier (amount −1) sind preisneutral', () => {
+  // Regression: `decreaseExtra()` im POS-Bestelldialog legt fuer „OHNE <Extra>"
+  // einen Modifier mit amount −1 an. Wuerde dessen Preis mitgerechnet, zoege
+  // „Margherita ohne Bacon" den Bacon-Aufpreis vom Zeilenpreis ab — waehrend der
+  // Bon die OHNE-Zeile ohne Betrag druckt (order-receipt.renderer.ts).
+  const ohne = (price: number) => makeGeneric(price, -1, { taxInside: 7, taxOutside: 7, topic: 'Extras' })
+  const mit = (price: number) => makeGeneric(price, 1, { taxInside: 7, taxOutside: 7, topic: 'Extras' })
+
+  it('legacy-Zeile: OHNE-Modifier mit Aufpreis aendert das Brutto nicht', () => {
+    const r = computeOrderTax(makeOrder([makeLine(6.7, 1, 7, 7, { modifiers: [ohne(1.9)] })], 'take-out'))
+    expect(r.brutto).toBeCloseTo(6.7, 5)
+  })
+
+  it('positive Modifier zaehlen weiterhin voll', () => {
+    const r = computeOrderTax(
+      makeOrder([makeLine(6.7, 1, 7, 7, { modifiers: [ohne(1.9), mit(1.9)] })], 'take-out'),
+    )
+    expect(r.brutto).toBeCloseTo(8.6, 5)
+  })
+
+  it('Komponenten-Zeile (ROLLUP): OHNE-Modifier bleibt neutral', () => {
+    const r = computeOrderTax(
+      makeOrder(
+        [
+          makeLine(6.7, 2, 7, 7, {
+            modifiers: [ohne(1.9)],
+            components: [makeGeneric(2.0, 1, { taxInside: 19, taxOutside: 19 })],
+          }),
+        ],
+        'take-out',
+      ),
+    )
+    // 2 × 6,70 + 2 × 2,00 — der OHNE-Modifier traegt nichts bei.
+    expect(r.brutto).toBeCloseTo(17.4, 5)
+  })
+
+  it('Festpreis-Menue (FIXED_PROPORTIONAL): OHNE-Modifier erzeugt kein negatives Atom', () => {
+    const r = computeOrderTax(
+      makeOrder(
+        [
+          makeLine(7.0, 1, 7, 7, {
+            bundlePricingMode: 'FIXED_PROPORTIONAL',
+            modifiers: [ohne(1.9)],
+            components: [
+              makeGeneric(4.4, 1, { taxInside: 7, taxOutside: 7, topic: 'main' }),
+              makeGeneric(2.3, 1, { taxInside: 19, taxOutside: 19 }),
+            ],
+          }),
+        ],
+        'dine-in',
+      ),
+    )
+    expect(r.brutto).toBeCloseTo(7.0, 5)
+  })
+})

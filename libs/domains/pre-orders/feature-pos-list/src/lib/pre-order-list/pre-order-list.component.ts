@@ -25,19 +25,19 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
         <div class="flex flex-row items-center justify-between">
           <div class="flex items-center gap-4">
             <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-              <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+              <span class="material-symbols-outlined text-[1.25rem]">arrow_back</span>
             </button>
             <h1 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-              <span class="material-symbols-outlined text-[20px] text-indigo-600">event_note</span>
+              <span class="material-symbols-outlined text-[1.25rem] text-indigo-600">event_note</span>
               {{ 'PRE_ORDERS.TITLE' | translate }}
             </h1>
             <!-- Mobil: runder Icon-Button -->
             <button (click)="openCreateDialog()" class="ml-4 md:hidden flex items-center justify-center w-10 h-10 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition-all">
-              <span class="material-symbols-outlined text-[22px]">add</span>
+              <span class="material-symbols-outlined text-[1.375rem]">add</span>
             </button>
             <!-- Desktop: Button mit Text -->
             <button (click)="openCreateDialog()" class="ml-4 hidden md:flex items-center gap-2 h-10 px-4 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 active:scale-95 transition-all">
-              <span class="material-symbols-outlined text-[20px]">add_circle</span>
+              <span class="material-symbols-outlined text-[1.25rem]">add_circle</span>
               {{ 'PRE_ORDERS.NEW_PRE_ORDER' | translate }}
             </button>
           </div>
@@ -48,14 +48,14 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
         </div>
 
         <div class="relative">
-          <span class="material-symbols-outlined text-[20px] absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+          <span class="material-symbols-outlined text-[1.25rem] absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
           <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="fetchOrders()"
                  [placeholder]="'PRE_ORDERS.SEARCH_PLACEHOLDER' | translate"
-                 class="w-full h-12 pl-10 pr-4 rounded-xl bg-gray-50 dark:bg-gray-800 border-none outline-none focus:ring-2 focus:ring-indigo-200 transition-all text-gray-700 dark:text-gray-200 placeholder:text-[11px] placeholder:md:text-sm placeholder:text-gray-400" />
+                 class="w-full h-12 pl-10 pr-4 rounded-xl bg-gray-50 dark:bg-gray-800 border-none outline-none focus:ring-2 focus:ring-indigo-200 transition-all text-gray-700 dark:text-gray-200 placeholder:text-[0.6875rem] placeholder:md:text-sm placeholder:text-gray-400" />
           <button
             class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-600 text-white rounded-lg shadow-sm hover:bg-indigo-700 active:scale-95 transition-all"
             (click)="fetchOrders()">
-            <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+            <span class="material-symbols-outlined text-[1.25rem]">arrow_forward</span>
           </button>
         </div>
       </header>
@@ -73,7 +73,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
             </div>
           } @else if (orders().length === 0) {
             <div class="flex-1 flex justify-center items-center flex-col gap-4 text-gray-300">
-              <span class="material-symbols-outlined text-[64px]">event_busy</span>
+              <span class="material-symbols-outlined text-[4rem]">event_busy</span>
               <span class="font-medium">{{ 'PRE_ORDERS.NONE_FOUND' | translate }}</span>
             </div>
           } @else {
@@ -104,7 +104,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                     {{ order.customerContact.name }}
                   </div>
                   <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-1">
-                    <span class="material-symbols-outlined text-[12px]">phone</span>
+                    <span class="material-symbols-outlined text-[0.75rem]">phone</span>
                     {{ order.customerContact.phone }}
                   </div>
 
@@ -127,7 +127,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                     @if (order.status === 'converted') {
                       <span
                         class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <span class="material-symbols-outlined text-[12px]">check</span> {{ 'COMMON.DONE' | translate }}
+                        <span class="material-symbols-outlined text-[0.75rem]">check</span> {{ 'COMMON.DONE' | translate }}
                       </span>
                     } @else if (order.status === 'cancelled') {
                       <span class="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
@@ -148,7 +148,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
         <!-- Order Detail -->
         @if (selectedOrder()) {
         <div
-          class="flex-1 lg:max-w-[450px] bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col">
+          class="flex-1 lg:max-w-[28.125rem] bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col">
           <!-- Detail Header -->
           <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800">
             <div>
@@ -156,7 +156,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
               <p class="text-xs text-gray-500 dark:text-gray-400">{{ selectedOrder()?.scheduledFor | date: 'dd.MM.yyyy HH:mm' }}</p>
             </div>
             <button (click)="selectedOrder.set(null)" class="lg:hidden flex items-center justify-center w-10 h-10 text-gray-500 dark:text-gray-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-              <span class="material-symbols-outlined text-[20px]">close</span>
+              <span class="material-symbols-outlined text-[1.25rem]">close</span>
             </button>
           </div>
 
@@ -166,7 +166,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
             <div class="mb-4 p-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl border border-indigo-100 dark:border-indigo-800">
               <div class="font-bold text-indigo-900 dark:text-indigo-200 text-lg">{{ selectedOrder()?.customerContact?.name }}</div>
               <div class="text-indigo-700 dark:text-indigo-300 flex items-center gap-2 mt-1">
-                <span class="material-symbols-outlined text-[16px]">phone</span>
+                <span class="material-symbols-outlined text-[1rem]">phone</span>
                 {{ selectedOrder()?.customerContact?.phone }}
               </div>
               @if (selectedOrder()?.note) {
@@ -202,14 +202,14 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
               <button
                 class="col-span-2 h-12 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2"
                 (click)="convertToLiveOrder(selectedOrder()!)">
-                <span class="material-symbols-outlined text-[20px]">point_of_sale</span>
+                <span class="material-symbols-outlined text-[1.25rem]">point_of_sale</span>
                 {{ 'PRE_ORDERS.CREATE_ORDER' | translate }}
               </button>
 
               <button
                 class="col-span-2 h-12 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-red-600 font-medium hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-all flex items-center justify-center gap-2"
                 (click)="cancelOrder(selectedOrder()!)">
-                <span class="material-symbols-outlined text-[20px]">delete</span>
+                <span class="material-symbols-outlined text-[1.25rem]">delete</span>
                 {{ 'PRE_ORDERS.CANCEL_ORDER' | translate }}
               </button>
             </div>
@@ -227,8 +227,8 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
         <!-- Placeholder -->
         @if (!selectedOrder()) {
         <div
-          class="hidden lg:flex flex-1 max-w-[450px] bg-gray-50/50 dark:bg-gray-950/50 border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl justify-center items-center text-gray-400 flex-col gap-2">
-          <span class="material-symbols-outlined text-[48px] opacity-20">event_note</span>
+          class="hidden lg:flex flex-1 max-w-[28.125rem] bg-gray-50/50 dark:bg-gray-950/50 border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl justify-center items-center text-gray-400 flex-col gap-2">
+          <span class="material-symbols-outlined text-[3rem] opacity-20">event_note</span>
           <span class="text-sm font-medium opacity-50">{{ 'PRE_ORDERS.SELECT_PRE_ORDER' | translate }}</span>
         </div>
         }
@@ -352,7 +352,7 @@ export class PreOrderListComponent implements OnInit {
     const totalFormatted = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(total)
 
     const ref = this.#dialog.open(ConfirmDialogComponent, {
-      width: '380px',
+      width: '23.75rem',
       maxWidth: '95vw',
       panelClass: 'rounded-dialog',
       data: {
@@ -381,7 +381,7 @@ export class PreOrderListComponent implements OnInit {
 
   async cancelOrder(order: PreOrder) {
     const ref = this.#dialog.open(ConfirmDialogComponent, {
-      width: '380px',
+      width: '23.75rem',
       maxWidth: '95vw',
       panelClass: 'rounded-dialog',
       data: {

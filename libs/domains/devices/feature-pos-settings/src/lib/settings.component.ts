@@ -2,7 +2,8 @@ import { Component, computed, effect, inject, OnInit, signal, untracked } from '
 import { CommonModule } from '@angular/common'
 import { HttpClient } from '@angular/common/http'
 import { lastValueFrom } from 'rxjs'
-import { ThemeServiceService } from '@panary/shared/data-access-theme'
+import { ThemeServiceService, UiScaleService } from '@panary/shared/data-access-theme'
+import { UiDensity, type UiDensityLevel } from '@panary/devices/domain'
 import { LocationService } from '@panary/locations/data-access'
 import { ConnectionService, LanguageService, OFFLINE_OUTBOX, OFFLINE_REPLAY } from '@panary/shared/data-access'
 import type { OfflineOutboxRejectedEntry } from '@panary/shared-common'
@@ -39,6 +40,7 @@ interface EdgeServerInfo {
 })
 export class SettingsComponent implements OnInit {
   themeService = inject(ThemeServiceService)
+  uiScaleService = inject(UiScaleService)
   languageService = inject(LanguageService)
   locationService = inject(LocationService)
   connectionService = inject(ConnectionService)
@@ -81,6 +83,14 @@ export class SettingsComponent implements OnInit {
     { value: 'system', label: 'SETTINGS.THEME_SYSTEM', icon: 'brightness_auto' },
     { value: 'light', label: 'SETTINGS.THEME_LIGHT', icon: 'light_mode' },
     { value: 'dark', label: 'SETTINGS.THEME_DARK', icon: 'dark_mode' },
+  ]
+
+  // Fluide UI-Skalierung (PNRY-FEAT-POS-UI-SCALE-001) — analog themeOptions
+  densityOptions: Array<{ value: UiDensityLevel; label: string; icon: string }> = [
+    { value: UiDensity.COMPACT, label: 'SETTINGS.UI_SCALE_DENSITY_COMPACT', icon: 'density_small' },
+    { value: UiDensity.DEFAULT, label: 'SETTINGS.UI_SCALE_DENSITY_DEFAULT', icon: 'density_medium' },
+    { value: UiDensity.COMFORTABLE, label: 'SETTINGS.UI_SCALE_DENSITY_COMFORTABLE', icon: 'density_large' },
+    { value: UiDensity.LARGE, label: 'SETTINGS.UI_SCALE_DENSITY_LARGE', icon: 'zoom_in' },
   ]
 
   // Offline-Outbox (Connect-Tier): Zähler reaktiv aus dem Store-Signal, Detailliste async.
@@ -134,11 +144,9 @@ export class SettingsComponent implements OnInit {
       const count = await this.#outbox.requeueRejected()
       await this.#replay?.replayNow()
       await this.#loadRejected()
-      this.#snackBar.open(
-        this.translateService.instant('SETTINGS.OUTBOX_RETRY_DONE', { count }),
-        'OK',
-        { duration: 4000 },
-      )
+      this.#snackBar.open(this.translateService.instant('SETTINGS.OUTBOX_RETRY_DONE', { count }), 'OK', {
+        duration: 4000,
+      })
     } finally {
       this.isRetrying.set(false)
     }
@@ -155,11 +163,9 @@ export class SettingsComponent implements OnInit {
     try {
       const count = await this.#outbox.resetPendingBackoff()
       await this.#replay?.replayNow()
-      this.#snackBar.open(
-        this.translateService.instant('SETTINGS.OUTBOX_SYNC_NOW_DONE', { count }),
-        'OK',
-        { duration: 4000 },
-      )
+      this.#snackBar.open(this.translateService.instant('SETTINGS.OUTBOX_SYNC_NOW_DONE', { count }), 'OK', {
+        duration: 4000,
+      })
     } finally {
       this.isRetrying.set(false)
     }
@@ -176,11 +182,9 @@ export class SettingsComponent implements OnInit {
     try {
       const count = await this.#outbox.clearRejected()
       await this.#loadRejected()
-      this.#snackBar.open(
-        this.translateService.instant('SETTINGS.OUTBOX_DISCARD_DONE', { count }),
-        'OK',
-        { duration: 4000 },
-      )
+      this.#snackBar.open(this.translateService.instant('SETTINGS.OUTBOX_DISCARD_DONE', { count }), 'OK', {
+        duration: 4000,
+      })
     } finally {
       this.isRetrying.set(false)
     }
@@ -263,6 +267,16 @@ export class SettingsComponent implements OnInit {
     if (val && typeof val === 'string') {
       this.themeService.setTheme(val)
     }
+  }
+
+  toggleUiScale() {
+    this.uiScaleService.setEnabled(!this.uiScaleService.enabled())
+  }
+
+  setUiDensity(level: UiDensityLevel) {
+    // Wirkt sofort (Live-Vorschau) — der Service aendert nur <html>-Klasse
+    // und --pnry-density, kein Reload noetig.
+    this.uiScaleService.setDensity(level)
   }
 
   goBack() {

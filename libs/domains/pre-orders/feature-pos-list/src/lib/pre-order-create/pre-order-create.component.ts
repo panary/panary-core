@@ -27,7 +27,7 @@ import { TranslateModule } from '@ngx-translate/core'
   ],
   template: `
     <h2 mat-dialog-title>{{ 'PRE_ORDERS.NEW_PRE_ORDER' | translate }}</h2>
-    <mat-dialog-content [formGroup]="form" class="flex flex-col gap-4 min-w-[500px]">
+    <mat-dialog-content [formGroup]="form" class="flex flex-col gap-4 min-w-[31.25rem]">
       <!-- Contact Info -->
       <div class="grid grid-cols-2 gap-4">
         <div class="space-y-1">
@@ -81,7 +81,7 @@ import { TranslateModule } from '@ngx-translate/core'
           <div class="relative">
             <input id="pre-order-search" [formControl]="searchControl" [matAutocomplete]="auto" [placeholder]="'PRE_ORDERS.ENTER_NAME' | translate"
               class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-10 text-gray-800 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 outline-none placeholder-gray-400" />
-            <span class="material-symbols-outlined text-[20px] absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+            <span class="material-symbols-outlined text-[1.25rem] absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
           </div>
           <mat-autocomplete
             #auto="matAutocomplete"
@@ -114,7 +114,7 @@ import { TranslateModule } from '@ngx-translate/core'
                 <span class="text-sm font-bold w-6 text-center">1x</span>
                 <button type="button" (click)="removeItem($index)"
                   class="flex items-center justify-center w-8 h-8 rounded-lg text-red-400 hover:bg-red-50 transition-colors">
-                  <span class="material-symbols-outlined text-[20px]">delete</span>
+                  <span class="material-symbols-outlined text-[1.25rem]">delete</span>
                 </button>
               </div>
             </div>

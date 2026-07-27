@@ -11,7 +11,7 @@
       <button (click)="cycleLanguage()"
         class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 font-semibold hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
         [title]="'LOGIN.CHANGE_LANGUAGE' | translate">
-        <span class="material-symbols-outlined text-[14px]">translate</span>
+        <span class="material-symbols-outlined text-[0.875rem]">translate</span>
         {{ languageService.currentLanguage().toUpperCase() }}
       </button>
     </div>
@@ -114,10 +114,10 @@
           }
 
           <!-- Numpad -->
-          <div class="grid grid-cols-3 gap-3 max-w-[280px] mx-auto">
+          <div class="grid grid-cols-3 gap-3 max-w-[17.5rem] mx-auto">
             @for (digit of ['1', '2', '3', '4', '5', '6', '7', '8', '9']; track digit) {
             <button
-              class="h-16 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 text-2xl font-semibold text-[#0F172A] dark:text-white transition-all active:scale-95 disabled:opacity-50"
+              class="pnry-touch h-16 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 text-2xl font-semibold text-[#0F172A] dark:text-white transition-all active:scale-95 disabled:opacity-50"
               (click)="addDigit(digit)" [disabled]="isLoading()">
               {{ digit }}
             </button>
@@ -128,14 +128,14 @@
 
             <!-- Zero -->
             <button
-              class="h-16 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 text-2xl font-semibold text-[#0F172A] dark:text-white transition-all active:scale-95 disabled:opacity-50"
+              class="pnry-touch h-16 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 text-2xl font-semibold text-[#0F172A] dark:text-white transition-all active:scale-95 disabled:opacity-50"
               (click)="addDigit('0')" [disabled]="isLoading()">
               0
             </button>
 
             <!-- Delete -->
             <button
-              class="h-16 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 flex items-center justify-center transition-all active:scale-95 disabled:opacity-50"
+              class="pnry-touch h-16 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 flex items-center justify-center transition-all active:scale-95 disabled:opacity-50"
               (click)="deleteDigit()" [disabled]="isLoading()" [attr.aria-label]="'LOGIN.DELETE_DIGIT' | translate">
               <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -194,7 +194,7 @@
           v{{ updateService.updateAvailable()!.version }} {{ 'LOGIN.UPDATE_AVAILABLE' | translate }}
         </span>
         <button
-          class="px-3 py-1 text-xs font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-full transition-colors min-h-[32px] disabled:opacity-60"
+          class="px-3 py-1 text-xs font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-full transition-colors min-h-[2rem] disabled:opacity-60"
           (click)="updateService.downloadAndInstall()"
           [disabled]="updateService.isDownloading()">
           @if (updateService.isDownloading()) {
@@ -257,7 +257,7 @@
 
   <!-- Right Side: Visual Background with Time Clock (hidden on mobile) -->
   <div
-    class="hidden lg:flex lg:w-[484px] lg:flex-none relative bg-gradient-to-br from-[#0a0a0f] to-[#111118] m-4 rounded-xl overflow-hidden">
+    class="hidden lg:flex lg:w-[30.25rem] lg:flex-none relative bg-gradient-to-br from-[#0a0a0f] to-[#111118] m-4 rounded-xl overflow-hidden">
     <!-- Decorative Elements -->
     <div class="absolute inset-0 opacity-20 dark:opacity-10 pointer-events-none">
       <div class="absolute top-1/4 left-1/4 w-64 h-64 bg-[#00B8D4] rounded-full blur-3xl"></div>
@@ -269,7 +269,7 @@
           <button (click)="cycleLanguage()"
             class="h-10 px-3 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center gap-1.5 transition-colors text-white text-xs font-semibold"
             [title]="'LOGIN.CHANGE_LANGUAGE' | translate">
-            <span class="material-symbols-outlined text-[16px]">translate</span>
+            <span class="material-symbols-outlined text-[1rem]">translate</span>
             {{ languageService.currentLanguage().toUpperCase() }}
           </button>
           <button (click)="toggleTheme()"

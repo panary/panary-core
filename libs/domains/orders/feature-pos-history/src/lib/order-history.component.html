@@ -4,10 +4,10 @@
     <div class="flex flex-row items-center justify-between">
       <div class="flex items-center gap-4">
         <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-          <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+          <span class="material-symbols-outlined text-[1.25rem]">arrow_back</span>
         </button>
         <h1 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-          <span class="material-symbols-outlined text-[20px] text-purple-600">history</span>
+          <span class="material-symbols-outlined text-[1.25rem] text-purple-600">history</span>
           {{ 'HISTORY.TITLE' | translate }}
         </h1>
       </div>
@@ -50,14 +50,14 @@
     </div>
 
     <div class="relative">
-      <span class="material-symbols-outlined text-[20px] absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+      <span class="material-symbols-outlined text-[1.25rem] absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
       <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="fetchOrders()"
         [placeholder]="'HISTORY.SEARCH_PLACEHOLDER' | translate"
-        class="w-full h-12 pl-10 pr-4 rounded-xl bg-gray-50 dark:bg-gray-800 border-none outline-none focus:ring-2 focus:ring-purple-200 transition-all text-gray-700 dark:text-gray-200 placeholder:text-[11px] placeholder:md:text-sm placeholder:text-gray-400" />
+        class="w-full h-12 pl-10 pr-4 rounded-xl bg-gray-50 dark:bg-gray-800 border-none outline-none focus:ring-2 focus:ring-purple-200 transition-all text-gray-700 dark:text-gray-200 placeholder:text-[0.6875rem] placeholder:md:text-sm placeholder:text-gray-400" />
       <button
         class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-purple-600 text-white rounded-lg shadow-sm hover:bg-purple-700 active:scale-95 transition-all"
         (click)="fetchOrders()">
-        <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+        <span class="material-symbols-outlined text-[1.25rem]">arrow_forward</span>
       </button>
     </div>
   </header>
@@ -76,7 +76,7 @@
       </div>
       } @else if (orders().length === 0) {
       <div class="flex-1 flex justify-center items-center flex-col gap-4 text-gray-300">
-        <span class="material-symbols-outlined text-[64px]">search_off</span>
+        <span class="material-symbols-outlined text-[4rem]">search_off</span>
         <span class="font-medium">{{ 'HISTORY.NONE_FOUND' | translate }}</span>
       </div>
       } @else {
@@ -111,11 +111,11 @@
             @if (order.status === OrderStatus.COMPLETED) {
             <span
               class="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-full flex items-center gap-1">
-              <span class="material-symbols-outlined text-[12px]">check</span> {{ 'ORDER_STATUS.completed' | translate }}
+              <span class="material-symbols-outlined text-[0.75rem]">check</span> {{ 'ORDER_STATUS.completed' | translate }}
             </span>
             } @else if (order.status === OrderStatus.ABORTED) {
             <span class="text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 px-2 py-0.5 rounded-full flex items-center gap-1">
-              <span class="material-symbols-outlined text-[12px]">block</span> {{ 'ORDER_STATUS.aborted' | translate }}
+              <span class="material-symbols-outlined text-[0.75rem]">block</span> {{ 'ORDER_STATUS.aborted' | translate }}
             </span>
             } @else {
             <span class="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950 px-2 py-0.5 rounded-full">
@@ -132,7 +132,7 @@
     <!-- Order Detail -->
     @if (selectedOrder()) {
     <div
-      class="flex-1 lg:max-w-[450px] bg-white dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col">
+      class="flex-1 lg:max-w-[28.125rem] bg-white dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col">
       <!-- Detail Header -->
       <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800">
         <div>
@@ -140,7 +140,7 @@
           <p class="text-xs text-gray-500 dark:text-gray-400">{{ 'HISTORY.RECEIPT' | translate }} #{{ selectedOrder()?.dailySequenceNumber }}</p>
         </div>
         <button (click)="selectedOrder.set(null)" class="lg:hidden flex items-center justify-center w-10 h-10 text-gray-500 dark:text-gray-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-          <span class="material-symbols-outlined text-[20px]">close</span>
+          <span class="material-symbols-outlined text-[1.25rem]">close</span>
         </button>
       </div>
 
@@ -201,18 +201,18 @@
 
           <button (click)="printOrder()"
             class="h-10 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-95 transition-all flex items-center justify-center gap-1.5">
-            <span class="material-symbols-outlined text-[16px]">print</span>
+            <span class="material-symbols-outlined text-[1rem]">print</span>
             {{ 'HISTORY.PRINT' | translate }}
           </button>
           @if (selectedOrder()?.status === OrderStatus.ABORTED) {
             <div class="h-10 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium flex items-center justify-center gap-1.5">
-              <span class="material-symbols-outlined text-[16px]">block</span>
+              <span class="material-symbols-outlined text-[1rem]">block</span>
               {{ 'CANCEL_ORDER.ALREADY_CANCELED' | translate }}
             </div>
           } @else {
             <button (click)="cancelOrder()"
               class="h-10 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 font-medium hover:bg-red-100 dark:hover:bg-red-950/60 active:scale-95 transition-all flex items-center justify-center gap-1.5">
-              <span class="material-symbols-outlined text-[16px]">cancel</span>
+              <span class="material-symbols-outlined text-[1rem]">cancel</span>
               {{ 'HISTORY.CANCEL' | translate }}
             </button>
           }
@@ -224,8 +224,8 @@
     <!-- Placeholder when no order selected -->
     @if (!selectedOrder()) {
     <div
-      class="hidden lg:flex flex-1 max-w-[450px] bg-gray-50/50 dark:bg-gray-950/50 border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl justify-center items-center text-gray-400 dark:text-gray-500 flex-col gap-2">
-      <span class="material-symbols-outlined text-[48px] opacity-20">receipt</span>
+      class="hidden lg:flex flex-1 max-w-[28.125rem] bg-gray-50/50 dark:bg-gray-950/50 border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl justify-center items-center text-gray-400 dark:text-gray-500 flex-col gap-2">
+      <span class="material-symbols-outlined text-[3rem] opacity-20">receipt</span>
       <span class="text-sm font-medium opacity-50">{{ 'HISTORY.SELECT_ORDER' | translate }}</span>
     </div>
     }

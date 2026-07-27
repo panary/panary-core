@@ -29,6 +29,7 @@
     "release": "bash tools/scripts/release-tag.sh --push",
     "release:edge": "bash tools/scripts/release-tag.sh --type edge --push",
     "release:pos-client": "bash tools/scripts/release-tag.sh --type pos-client --push",
+    "audit:pos-px": "node tools/pos-px-audit.mjs",
     "security:install": "bash scripts/install-security-tools.sh",
     "security:scan": "node scripts/security-scan.mjs --mode=local",
     "security:report": "node scripts/security-scan.mjs --mode=all --report",

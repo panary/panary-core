@@ -24,7 +24,12 @@ import {
   deviceSchema
 } from '@panary/devices/domain'
 import type { Device, DeviceService } from './devices.class'
-import { ensureIndexes, logger } from '@panary/shared-backend'
+import { ensureIndexes, getJsonFieldHooks, logger } from '@panary/shared-backend'
+import { restrictDeviceSelfPatch } from '../../hooks/restrict-device-self-patch.hook'
+
+// SQLite speichert Objekt-Felder als TEXT — ohne Stringify/Parse-Hooks landet
+// '[object Object]' in der Spalte bzw. der rohe JSON-String beim Client.
+const DEVICE_JSON_FIELDS = ['metadata', 'uiScale']
 
 export const devicesPath = 'devices'
 export const devicesMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
@@ -95,6 +100,8 @@ export const devices = (app: Application) => {
     }
   })
 
+  const jsonHooks = getJsonFieldHooks(app, DEVICE_JSON_FIELDS)
+
   // 5. Register hooks
   app.service(devicesPath).hooks({
     around: {
@@ -111,12 +118,15 @@ export const devices = (app: Application) => {
       all: [schemaHooks.validateQuery(deviceQueryValidator), schemaHooks.resolveQuery(deviceQueryResolver)],
       find: [],
       get: [],
-      create: [schemaHooks.validateData(deviceDataValidator), schemaHooks.resolveData(deviceDataResolver)],
-      patch: [schemaHooks.validateData(devicePatchValidator), schemaHooks.resolveData(devicePatchResolver)],
+      create: [schemaHooks.validateData(deviceDataValidator), schemaHooks.resolveData(deviceDataResolver), ...jsonHooks.before],
+      // restrictDeviceSelfPatch VOR validate/resolve: Self-Restriction-Verstoesse
+      // (fremdes Geraet, nicht-whitelisted Felder) schlagen frueh fehl —
+      // Muster analog restrictUserSelfPatch im users-Service.
+      patch: [restrictDeviceSelfPatch, schemaHooks.validateData(devicePatchValidator), schemaHooks.resolveData(devicePatchResolver), ...jsonHooks.before],
       remove: []
     },
     after: {
-      all: [],
+      all: [...jsonHooks.after],
       // Bei Device-Registrierung automatisch einen API-Key erstellen und im Response zurückgeben
       create: [
         async context => {

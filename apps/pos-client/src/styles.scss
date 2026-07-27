@@ -28,11 +28,49 @@
 /* Hinweis: Block-Syntax (@slot) funktioniert nicht in SCSS — Einzeiler-Syntax verwenden */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Fluid-Skalierungs-Variante (PNRY-FEAT-POS-UI-SCALE-001): fluid:-Utilities greifen nur,
+   wenn die Klasse pnry-fluid-scale auf <html> gesetzt ist (UiScaleService hinter dem
+   Feature-Flag pos-fluid-ui-scaling-v1). Einzeiler-Syntax wie bei dark. */
+@custom-variant fluid (&:where(html.pnry-fluid-scale, html.pnry-fluid-scale *));
+
 /* Farb-Overrides abgestimmt auf den Admin Client (identische OkLCH-Werte) */
 @theme {
   --color-gray-850: oklch(23% 0.034 264.665);
   --color-gray-950: oklch(13% 0.028 261);
 }
+
+/* ==========================================================================
+   Fluide UI-Skalierung — PNRY-FEAT-POS-UI-SCALE-001
+   Aktivierung ausschließlich über die Klasse pnry-fluid-scale auf <html>
+   (setzt der UiScaleService hinter dem Feature-Flag pos-fluid-ui-scaling-v1).
+   Ohne diese Klasse bleibt die App pixelidentisch zum bisherigen Stand,
+   da alle rem-Werte äquivalent zu den früheren px-Werten sind (÷16).
+   ========================================================================== */
+:root {
+  /* Terminal-Density-Faktor — wird vom UiScaleService per Inline-Style überschrieben */
+  --pnry-density: 1;
+  /* clamp()-Parameter der Root-Fontsize — bewusst als Custom Properties (anpassbar ohne Codeänderung) */
+  --pnry-root-fs-min: 14px;
+  --pnry-root-fs-fluid: 0.6vw + 9px;
+  --pnry-root-fs-max: 22px;
+  /* Mindestbreite eines Artikel-Tiles (6.25rem = 100px bei Root 16px — entspricht dem Bestand) */
+  --pnry-tile-min: 6.25rem;
+}
+
+html.pnry-fluid-scale {
+  font-size: calc(
+    clamp(var(--pnry-root-fs-min), var(--pnry-root-fs-fluid), var(--pnry-root-fs-max)) * var(--pnry-density)
+  );
+  /* Im Fluid-Modus gilt das größere Kachelmaß laut Funktionstasten-Design (8.25rem = 132px bei Root 16px,
+     code-style.md §9) — Flag off bleibt beim Bestandsmaß 6.25rem (pixelidentisch, Akzeptanzkriterium 7). */
+  --pnry-tile-min: 8.25rem;
+}
+
+/* Touch-Mindesthöhen nur im fluid-Modus: rem-basiert, aber mit hartem 48px-Floor via max().
+   Begründung: bei compact-Density (0.9) × minimaler Root-Fontsize (14px) wäre 3.5rem = 44.1px < 48px.
+   Das px in max() ist bewusst und Audit-whitelisted. */
+html.pnry-fluid-scale .pnry-touch { min-height: max(3.5rem, 48px) }
+html.pnry-fluid-scale .pnry-touch-primary { min-height: max(4rem, 48px) }
 
 /* Angular Material Theme — Light (Standard) */
 html {
@@ -109,7 +147,7 @@ html[data-theme='dark'] {
   /* Korrekte Angular-Material-21-Token-Namen (mat-snack-bar-*, nicht mdc-snackbar-*) */
   --mat-snack-bar-container-color: #f1f5f9;
   --mat-snack-bar-supporting-text-color: #1e293b;
-  --mat-snack-bar-supporting-text-size: 14px;
+  --mat-snack-bar-supporting-text-size: 0.875rem;
   --mat-snack-bar-supporting-text-weight: 500;
   --mat-snack-bar-container-shape: 1rem;
   --mat-snack-bar-button-color: #2563eb;
@@ -126,13 +164,13 @@ html[data-theme='dark'] {
 /* MatSelect: Dropdown-Panel Styling */
 .mat-mdc-select-panel {
   background: white !important;
-  border-radius: 12px !important;
+  border-radius: 0.75rem !important;
   border: 1px solid #e2e8f0 !important;
   box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1) !important;
 }
 
 .mat-mdc-option {
-  font-size: 14px !important;
+  font-size: 0.875rem !important;
 }
 
 /* Dark-Mode-Overrides für Material-Komponenten mit hartcodierten Farben */
@@ -253,7 +291,7 @@ router-outlet + * {
   font-family: 'Material Icons';
   font-weight: normal;
   font-style: normal;
-  font-size: 24px;
+  font-size: 1.5rem;
   line-height: 1;
   letter-spacing: normal;
   text-transform: none;
@@ -271,7 +309,7 @@ router-outlet + * {
   font-family: 'Material Icons Outlined';
   font-weight: normal;
   font-style: normal;
-  font-size: 24px;
+  font-size: 1.5rem;
   line-height: 1;
   letter-spacing: normal;
   text-transform: none;
@@ -306,7 +344,7 @@ router-outlet + * {
   font-family: 'Material Symbols Outlined';
   font-weight: normal;
   font-style: normal;
-  font-size: 24px;
+  font-size: 1.5rem;
   line-height: 1;
   letter-spacing: normal;
   text-transform: none;

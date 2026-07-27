@@ -33,7 +33,7 @@ import { TranslateModule } from '@ngx-translate/core'
   ],
   template: `
     <div role="dialog" aria-modal="true" aria-labelledby="pre-order-title"
-         class="flex flex-col w-full h-[620px] bg-white dark:bg-gray-950 rounded-2xl overflow-hidden">
+         class="flex flex-col w-full h-[38.75rem] bg-white dark:bg-gray-950 rounded-2xl overflow-hidden">
 
       <!-- HEADER (h-20) -->
       <div class="h-20 shrink-0 px-6 py-5 flex justify-between items-start">
@@ -53,7 +53,7 @@ import { TranslateModule } from '@ngx-translate/core'
         <button (click)="close()" type="button"
           class="w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500
                  hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all">
-          <span class="material-symbols-outlined text-[20px]">close</span>
+          <span class="material-symbols-outlined text-[1.25rem]">close</span>
         </button>
       </div>
 
@@ -108,7 +108,7 @@ import { TranslateModule } from '@ngx-translate/core'
                     ? 'h-28 rounded-xl border-2 border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800/50 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'
                     : 'h-28 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 hover:bg-gray-50 dark:hover:bg-gray-800/30 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'">
                   <div class="h-16 w-16 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
-                    <span class="material-symbols-outlined text-[28px] text-gray-500 dark:text-gray-400">restaurant</span>
+                    <span class="material-symbols-outlined text-[1.75rem] text-gray-500 dark:text-gray-400">restaurant</span>
                   </div>
                   <div>
                     <span class="text-lg font-semibold text-gray-900 dark:text-white block">Im Haus</span>
@@ -121,7 +121,7 @@ import { TranslateModule } from '@ngx-translate/core'
                     ? 'h-28 rounded-xl border-2 border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800/50 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'
                     : 'h-28 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 hover:bg-gray-50 dark:hover:bg-gray-800/30 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'">
                   <div class="h-16 w-16 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
-                    <span class="material-symbols-outlined text-[28px] text-gray-500 dark:text-gray-400">local_mall</span>
+                    <span class="material-symbols-outlined text-[1.75rem] text-gray-500 dark:text-gray-400">local_mall</span>
                   </div>
                   <div>
                     <span class="text-lg font-semibold text-gray-900 dark:text-white block">Außer Haus</span>
@@ -150,7 +150,7 @@ import { TranslateModule } from '@ngx-translate/core'
                       [class.dark:border-gray-700]="activeField() !== 'name'"
                       [attr.aria-describedby]="'name-help'"
                       (click)="setActiveField('name')">
-                      <span class="material-symbols-outlined text-gray-400 mr-2 text-[18px]">person</span>
+                      <span class="material-symbols-outlined text-gray-400 mr-2 text-[1.125rem]">person</span>
                       <span [class.text-gray-400]="!contactFormGroup.get('name')?.value">
                         {{ contactFormGroup.get('name')?.value || ('PRE_ORDER_DIALOG.ENTER_NAME' | translate) }}
                       </span>
@@ -175,7 +175,7 @@ import { TranslateModule } from '@ngx-translate/core'
                       [class.dark:border-gray-700]="activeField() !== 'phone'"
                       [attr.aria-describedby]="'phone-help'"
                       (click)="setActiveField('phone')">
-                      <span class="material-symbols-outlined text-gray-400 mr-2 text-[18px]">phone</span>
+                      <span class="material-symbols-outlined text-gray-400 mr-2 text-[1.125rem]">phone</span>
                       <span [class.text-gray-400]="!contactFormGroup.get('phone')?.value">
                         {{ contactFormGroup.get('phone')?.value || ('PRE_ORDER_DIALOG.ENTER_PHONE' | translate) }}
                       </span>
@@ -210,8 +210,8 @@ import { TranslateModule } from '@ngx-translate/core'
         </div>
       </div>
 
-      <!-- FOOTER (h-[72px]) -->
-      <div class="h-[72px] shrink-0 border-t border-gray-200 dark:border-gray-700 px-6 flex items-center justify-between">
+      <!-- FOOTER (h-[4.5rem]) -->
+      <div class="h-[4.5rem] shrink-0 border-t border-gray-200 dark:border-gray-700 px-6 flex items-center justify-between">
         @if (currentStep() > 0) {
           <button type="button" (click)="prevStep()"
             class="h-11 px-5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300

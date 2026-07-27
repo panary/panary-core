@@ -908,6 +908,13 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Öffnungszeiten-Ausnahmen lesen (für Vorbestelldialog)
     { resource: AppResource.OPENING_HOUR_EXCEPTIONS, action: AppAction.READ },
 
+    // Terminal-eigene UI-Skalierung (PNRY-FEAT-POS-UI-SCALE-001): das POS darf
+    // seinen EIGENEN Device-Datensatz lesen (find via deviceId → _id) und das
+    // uiScale-Feld patchen. Self-Scope (nur eigenes Gerät) + Feld-Whitelist
+    // (nur uiScale) erzwingt der restrictDeviceSelfPatch-Hook
+    // (device-self-patch-policy in @panary/devices/domain).
+    { resource: AppResource.DEVICES, action: [AppAction.READ, AppAction.UPDATE] },
+
     // Zeiterfassung erlauben (USERS_TIME_CLOCK)
     { resource: AppResource.WORKING_TIMES, action: [AppAction.CREATE, AppAction.READ, AppAction.UPDATE] },
     AppAbility.CAN_CLOCK_IN,

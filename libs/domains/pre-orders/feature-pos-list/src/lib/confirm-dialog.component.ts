@@ -23,7 +23,7 @@ export interface ConfirmDialogData {
         <div
           class="flex items-center justify-center w-16 h-16 rounded-2xl"
           [class]="iconBg">
-          <span class="material-symbols-outlined text-[32px]" [class]="iconColor">{{ data.icon }}</span>
+          <span class="material-symbols-outlined text-[2rem]" [class]="iconColor">{{ data.icon }}</span>
         </div>
         <h2 class="text-xl font-bold text-gray-800 dark:text-white text-center">{{ data.title }}</h2>
       </div>

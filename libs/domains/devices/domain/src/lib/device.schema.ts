@@ -8,6 +8,24 @@ export const DeviceType = {
   TABLET: 'tablet',
   OTHER: 'other',
 } as const
+
+// Fluide UI-Skalierung (PNRY-FEAT-POS-UI-SCALE-001): Density-Stufen pro
+// Terminal. Die Faktoren sind bewusst KEINE Enum-Magie — sie sind Defaults,
+// die pro Geraet ueber `uiScale.factors` ueberschreibbar bleiben
+// (Prinzip „Konfiguration statt Hardcoding").
+export const UiDensity = {
+  COMPACT: 'compact',
+  DEFAULT: 'default',
+  COMFORTABLE: 'comfortable',
+  LARGE: 'large',
+} as const
+export type UiDensityLevel = (typeof UiDensity)[keyof typeof UiDensity]
+export const DEFAULT_UI_DENSITY_FACTORS: Readonly<Record<UiDensityLevel, number>> = {
+  compact: 0.9,
+  default: 1,
+  comfortable: 1.15,
+  large: 1.3,
+}
 //#endregion
 
 //#region The main data model (schema)
@@ -28,6 +46,30 @@ export const deviceSchema = Type.Object(
         ipAddress: Type.Optional(Type.String({ maxLength: 45 })),
         version: Type.Optional(Type.String({ maxLength: 50 })),
       }),
+    ),
+    // Terminal-eigene UI-Skalierung (PNRY-FEAT-POS-UI-SCALE-001). Optional —
+    // Geraete werden ohne uiScale angelegt; das Terminal schreibt es via
+    // Self-Patch (siehe device-self-patch-policy.ts) zurueck. `factors` als
+    // Partial-Record ueber die Density-Literale statt Type.Record+StringEnum:
+    // StringEnum ist TUnsafe und kein gueltiger Record-Key (TS-Fehler,
+    // Validierung wuerde zu patternProperties '^.*$' degradieren — beliebige
+    // Keys). So bleiben nur echte Density-Keys erlaubt, jeder optional.
+    uiScale: Type.Optional(
+      Type.Object(
+        {
+          density: StringEnum(Object.values(UiDensity)),
+          factors: Type.Optional(
+            Type.Partial(
+              Type.Record(
+                Type.Union(Object.values(UiDensity).map(value => Type.Literal(value))),
+                Type.Number({ minimum: 0.5, maximum: 2 }),
+                { additionalProperties: false },
+              ),
+            ),
+          ),
+        },
+        { additionalProperties: false },
+      ),
     ),
     createdBy: Type.String({ maxLength: 100 }),
   },

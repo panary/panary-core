@@ -332,7 +332,7 @@ export class ActiveOrdersComponent {
     const result = await firstValueFrom(
       this.#matDialog
         .open(ManagerAuthorizeCashSessionDialogComponent, {
-          width: '460px',
+          width: '28.75rem',
           maxWidth: '92vw',
           maxHeight: '90vh',
           disableClose: false,

@@ -187,7 +187,7 @@
 @if (mode() === 'mobile') {
   <!-- Bouncing Arrow Indicator (behind the panel) -->
   <div
-    class="lg:hidden fixed bottom-[76px] left-1/2 -translate-x-1/2 z-40 transition-opacity duration-300"
+    class="lg:hidden fixed bottom-[4.75rem] left-1/2 -translate-x-1/2 z-40 transition-opacity duration-300"
     [class.opacity-100]="!isExpanded()"
     [class.opacity-0]="isExpanded()"
   >
@@ -205,14 +205,14 @@
 
   <div
     class="lg:hidden fixed inset-x-0 bottom-0 z-50 px-4 transition-transform duration-300 ease-out"
-    [class.translate-y-[calc(100%-72px)]]="!isExpanded()"
+    [class.translate-y-[calc(100%-4.5rem)]]="!isExpanded()"
     [class.translate-y-0]="isExpanded()"
     (touchstart)="onTouchStart($event)"
     (touchmove)="onTouchMove($event)"
     (touchend)="onTouchEnd()"
   >
     <!-- Panel Card -->
-    <div class="bg-gradient-to-br from-[#0a0a0f] to-[#111118] rounded-t-[2rem] shadow-2xl min-h-[400px] flex flex-col">
+    <div class="bg-gradient-to-br from-[#0a0a0f] to-[#111118] rounded-t-[2rem] shadow-2xl min-h-[25rem] flex flex-col">
       <!-- Handle Bar (always visible, clickable) -->
       <div
         class="flex justify-center py-3 cursor-pointer"

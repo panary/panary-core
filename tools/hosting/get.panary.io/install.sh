@@ -74,6 +74,95 @@ if ! docker compose version &> /dev/null; then
 fi
 echo -e "${GREEN}✓${NC} Docker Compose gefunden: $(docker compose version --short)"
 
+# --- Registry-Vorabpruefung ---------------------------------------------------
+# Hintergrund (2026-07-27, Zweitinstallation cpc-buero): Der Pull scheiterte mit
+#   denied: denied
+# obwohl das GHCR-Paket oeffentlich ist. Ursache ist NICHT die Sichtbarkeit,
+# sondern der Client: sobald in der Docker-Config ein (abgelaufener) Login fuer
+# ghcr.io liegt, schickt Docker diesen Token mit — und GHCR antwortet dann mit
+# `denied`, statt auf den anonymen Pfad zurueckzufallen. Ohne jede Credential
+# laeuft derselbe Pull durch.
+#
+# Die Probe geht bewusst an der Docker-Config VORBEI (reines curl gegen die
+# Registry-API) und beantwortet damit genau die Frage, die im Fehlerfall zaehlt:
+# liegt es am Paket/Netz — oder am lokalen Login?
+REPO="${IMAGE#ghcr.io/}"
+REGISTRY_CODE="skipped"
+GHCR_CRED_FILES=""
+
+# Docker-Config des Users, der spaeter tatsaechlich pullt (siehe `su` weiter
+# unten), plus root — je nachdem wie das Skript aufgerufen wurde, greift die eine
+# oder die andere.
+find_ghcr_logins() {
+  local user home cfg
+  for user in "${SUDO_USER:-$(whoami)}" root; do
+    # Fehlschlag hier ist harmlos (unbekannter User, kein getent) — darf aber
+    # unter `set -e` nicht den ganzen Installer abbrechen.
+    home="$(getent passwd "$user" 2>/dev/null | cut -d: -f6)" || home=""
+    [ -n "$home" ] || continue
+    cfg="${home}/.docker/config.json"
+    [ -f "$cfg" ] || continue
+    case " ${GHCR_CRED_FILES} " in *" ${cfg} "*) continue ;; esac
+    if grep -q '"ghcr\.io"' "$cfg" 2>/dev/null; then
+      GHCR_CRED_FILES="${GHCR_CRED_FILES}${cfg} "
+    fi
+  done
+}
+
+# Gibt den HTTP-Status des Manifest-Requests zurueck ("000" = keine Verbindung).
+probe_registry() {
+  local token code
+  token="$(curl -fsS --max-time 10 \
+    "https://ghcr.io/token?scope=repository:${REPO}:pull&service=ghcr.io" 2>/dev/null \
+    | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')" || { echo "000"; return 0; }
+  [ -n "$token" ] || { echo "000"; return 0; }
+  code="$(curl -sS -I -o /dev/null -w '%{http_code}' --max-time 10 \
+    -H "Authorization: Bearer ${token}" \
+    -H 'Accept: application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.list.v2+json,application/vnd.docker.distribution.manifest.v2+json' \
+    "https://ghcr.io/v2/${REPO}/manifests/${TAG}" 2>/dev/null)" || code="000"
+  echo "${code:-000}"
+}
+
+find_ghcr_logins
+
+if ! command -v curl &> /dev/null; then
+  echo -e "${YELLOW}⚠${NC} curl nicht gefunden — Registry-Vorabpruefung uebersprungen."
+else
+  REGISTRY_CODE="$(probe_registry)"
+  case "$REGISTRY_CODE" in
+    200)
+      echo -e "${GREEN}✓${NC} Image oeffentlich erreichbar: ${IMAGE}:${TAG} (kein GitHub-Token noetig)"
+      ;;
+    404)
+      echo -e "${RED}Image-Tag existiert nicht: ${IMAGE}:${TAG}${NC}"
+      echo "Verfuegbare Tags: https://github.com/panary/panary-core/pkgs/container/panary-edge"
+      exit 1
+      ;;
+    401|403)
+      if [ -n "$GHCR_CRED_FILES" ]; then
+        echo -e "${YELLOW}⚠${NC} Anonymer Zugriff auf ${IMAGE}:${TAG} verweigert (HTTP ${REGISTRY_CODE})."
+        echo -e "  Es existiert ein ghcr.io-Login — der Pull laeuft darueber. Weiter."
+      else
+        echo -e "${RED}Kein anonymer Zugriff auf ${IMAGE}:${TAG} (HTTP ${REGISTRY_CODE}).${NC}"
+        echo "Das Paket ist derzeit nicht oeffentlich. Vor der Installation anmelden:"
+        echo "  echo <GITHUB_TOKEN> | docker login ghcr.io -u <github-user> --password-stdin"
+        exit 1
+      fi
+      ;;
+    *)
+      echo -e "${YELLOW}⚠${NC} Registry nicht erreichbar (HTTP ${REGISTRY_CODE}) — Proxy/DNS/Firewall?"
+      echo -e "  Installation laeuft weiter; der Pull kann scheitern."
+      ;;
+  esac
+fi
+
+if [ -n "$GHCR_CRED_FILES" ] && [ "$REGISTRY_CODE" = "200" ]; then
+  echo -e "${YELLOW}⚠${NC} Gespeicherter ghcr.io-Login gefunden:"
+  for cfg in $GHCR_CRED_FILES; do echo "    ${cfg}"; done
+  echo -e "  Das Image ist oeffentlich — der Login wird nicht gebraucht und fuehrt,"
+  echo -e "  falls abgelaufen, zu \"denied: denied\". Im Fehlerfall: ${BOLD}docker logout ghcr.io${NC}"
+fi
+
 # Port pruefen
 if command -v ss &> /dev/null; then
   if ss -tlnp 2>/dev/null | grep -q ":${PORT} "; then
@@ -228,7 +317,32 @@ fi
 # ============================================================
 echo -e "${BLUE}→ Image pullen: ${IMAGE}:${TAG}${NC}"
 cd "$INSTALL_DIR"
-su "$REAL_USER" -c "cd ${INSTALL_DIR} && docker compose pull"
+if ! su "$REAL_USER" -c "cd ${INSTALL_DIR} && docker compose pull"; then
+  echo ""
+  echo -e "${RED}Image-Pull fehlgeschlagen.${NC}"
+  if [ "$REGISTRY_CODE" = "200" ]; then
+    # Die Vorabpruefung hat das Manifest anonym gelesen — Paket und Netzwerkweg
+    # sind also in Ordnung. Bleibt der lokale Docker-Client als Ursache.
+    echo -e "Die Registry liefert ${IMAGE}:${TAG} anonym aus (HTTP 200) — Paket und"
+    echo -e "Netzwerk sind in Ordnung. Ursache ist der lokale Docker-Client:"
+    echo ""
+    echo -e "  ${BOLD}docker logout ghcr.io${NC}          # als ${REAL_USER}"
+    echo -e "  ${BOLD}sudo docker logout ghcr.io${NC}     # zusaetzlich als root"
+    echo ""
+    if [ -n "$GHCR_CRED_FILES" ]; then
+      echo -e "Betroffene Config-Dateien:"
+      for cfg in $GHCR_CRED_FILES; do echo "    ${cfg}"; done
+      echo ""
+    fi
+    echo -e "Danach dieses Skript einfach erneut ausfuehren (es ist idempotent)."
+  else
+    echo -e "Registry-Vorabpruefung: HTTP ${REGISTRY_CODE}. Pruefen:"
+    echo -e "  • Internetzugang / Proxy / Firewall auf ghcr.io"
+    echo -e "  • /etc/docker/daemon.json (Registry-Mirror, Proxy-Eintraege)"
+    echo -e "  • docker logout ghcr.io (abgelaufene Credentials)"
+  fi
+  exit 1
+fi
 
 echo -e "${BLUE}→ Container starten...${NC}"
 su "$REAL_USER" -c "cd ${INSTALL_DIR} && docker compose up -d"

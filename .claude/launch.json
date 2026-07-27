@@ -6,6 +6,12 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["nx", "serve", "admin-client"],
       "port": 4202
+    },
+    {
+      "name": "pos-client",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["nx", "serve", "pos-client"],
+      "port": 4200
     }
   ]
 }

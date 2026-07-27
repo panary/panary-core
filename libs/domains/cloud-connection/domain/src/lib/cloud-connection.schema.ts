@@ -222,6 +222,15 @@ export const cloudConnectionDataSchema = Type.Object(
     cloudEdgeId: Type.Optional(Type.String()),
     pairingStatus: Type.Optional(StringEnum(Object.values(PairingStatus))),
     connectedAt: Type.Optional(Type.String({ format: 'date-time' })),
+    // Token-Fehlerzustand: startBootstrap leert ihn beim (Re-)Pairing aktiv mit
+    // `null`. Die Felder MUESSEN deshalb auch hier stehen — bei einer
+    // Erstinstallation existiert noch kein cloud-connection-Datensatz, der
+    // Upsert nimmt den create-Pfad und dieses Schema ist additionalProperties:false.
+    // Fehlten sie, scheiterte jede Neuinstallation mit
+    // "must NOT have additional properties: tokenErrorReason" (Re-Pairing lief
+    // ueber den patch-Pfad und war deshalb nie betroffen).
+    lastTokenErrorAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
+    tokenErrorReason: Type.Optional(Type.Union([Type.String({ maxLength: 2000 }), Type.Null()])),
     // Token-Ablauf des frisch gepairten Cloud-Tokens — direkt beim Pairing aus
     // der Pairing-Antwort uebernommen, damit der Token-Countdown sofort frisch
     // ist (sonst bleibt ein abgelaufenes edgeTokenExpiresAt stehen).

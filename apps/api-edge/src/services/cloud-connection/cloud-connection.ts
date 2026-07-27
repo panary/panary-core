@@ -509,7 +509,7 @@ export const cloudConnection = (app: Application) => {
       // mit "bereits aktive Edge-Verbindung" blockiert.
       try {
         const baseUrl = ensureSecureUrl(normalizedCloudUrl)
-        await fetch(`${baseUrl}/edge-pairing/${pairResponse.cloudEdgeId}`, {
+        const rollbackResponse = await fetch(`${baseUrl}/edge-pairing/${pairResponse.cloudEdgeId}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -518,6 +518,13 @@ export const cloudConnection = (app: Application) => {
           },
           signal: AbortSignal.timeout(10_000),
         })
+        // fetch wirft bei 4xx/5xx NICHT — ohne diesen Check scheiterte die
+        // Kompensation still und der verwaiste Cloud-Edge blockierte jedes
+        // weitere Pairing mit "bereits aktive Edge-Verbindung", ohne dass eine
+        // einzige Logzeile darauf hinwies.
+        if (!rollbackResponse.ok) {
+          throw new Error(`Cloud lehnte den Rollback mit HTTP ${rollbackResponse.status} ab`)
+        }
       } catch (rollbackErr) {
         logger.error({
           message: 'KRITISCH: Halbzustand — Cloud-Edge konnte nicht zurueckgerollt werden',

@@ -216,12 +216,53 @@ app.use(async (ctx, next) => {
 // request-code authentifiziert sich manuell (siehe device-pairing.ts).
 registerDevicePairingRoutes(app)
 
+/**
+ * CORS-Regel fuer den Socket-Transport: statische Allowlist aus der Config
+ * (`origins`) PLUS Same-Origin.
+ *
+ * Das Admin-Panel wird vom Edge selbst unter `/admin` ausgeliefert und laeuft
+ * damit zwangslaeufig unter dem Host, ueber den der Server gerade angesprochen
+ * wird — `localhost`, LAN-IP oder Hostname im Kundennetz. Eine statische Liste
+ * kann diese Hosts nicht kennen. Sicherheitsneutral: Same-Origin ist genau der
+ * Fall, den die Same-Origin-Policy ohnehin erlaubt; CORS schuetzt gegen
+ * *cross*-origin-Zugriffe, und die bleiben auf die Allowlist beschraenkt.
+ *
+ * Ohne diese Ausnahme liefert der Polling-Handshake ueber die LAN-IP kein
+ * `Access-Control-Allow-Origin` → der Browser verwirft die Antwort. Der
+ * WebSocket-Transport kommt durch (fuer WS erzwingen Browser keine
+ * CORS-Header), der Polling-Rueckfallweg im Client waere aber wirkungslos.
+ *
+ * Das `cors`-Paket (via engine.io) akzeptiert an dieser Stelle einen Delegate
+ * `(req, cb)` — nur so kommt man an den `Host`-Header und damit an die
+ * Same-Origin-Entscheidung; `cors.origin(origin, cb)` bekommt den Request nicht.
+ */
+const socketCorsDelegate = (
+  req: { headers: Record<string, string | string[] | undefined> },
+  callback: (err: Error | null, options: { origin: string | false }) => void
+) => {
+  const allowlist: string[] = app.get('origins') ?? []
+  const origin = typeof req.headers.origin === 'string' ? req.headers.origin : undefined
+  const host = typeof req.headers.host === 'string' ? req.headers.host : undefined
+
+  let isSameOrigin = false
+  if (origin && host) {
+    try {
+      isSameOrigin = new URL(origin).host === host
+    } catch {
+      isSameOrigin = false
+    }
+  }
+
+  const allowed = !!origin && (isSameOrigin || allowlist.includes(origin))
+  callback(null, { origin: allowed ? origin : false })
+}
+
 // Transports
 app.configure(rest())
 app.configure(
   socketio(
     {
-      cors: { origin: app.get('origins') },
+      cors: socketCorsDelegate as never,
       path: '/ws',
       serveClient: false,
       pingInterval: 10000,

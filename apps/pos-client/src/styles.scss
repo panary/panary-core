@@ -53,14 +53,17 @@
   --pnry-root-fs-min: 14px;
   --pnry-root-fs-fluid: 0.6vw + 9px;
   --pnry-root-fs-max: 22px;
-  /* Mindestbreite eines Artikel-Tiles (8.25rem = 132px bei Root 16px — Kachelmaß laut Funktionstasten-Design, code-style.md §9) */
-  --pnry-tile-min: 8.25rem;
+  /* Mindestbreite eines Artikel-Tiles (6.25rem = 100px bei Root 16px — entspricht dem Bestand) */
+  --pnry-tile-min: 6.25rem;
 }
 
 html.pnry-fluid-scale {
   font-size: calc(
     clamp(var(--pnry-root-fs-min), var(--pnry-root-fs-fluid), var(--pnry-root-fs-max)) * var(--pnry-density)
   );
+  /* Im Fluid-Modus gilt das größere Kachelmaß laut Funktionstasten-Design (8.25rem = 132px bei Root 16px,
+     code-style.md §9) — Flag off bleibt beim Bestandsmaß 6.25rem (pixelidentisch, Akzeptanzkriterium 7). */
+  --pnry-tile-min: 8.25rem;
 }
 
 /* Touch-Mindesthöhen nur im fluid-Modus: rem-basiert, aber mit hartem 48px-Floor via max().

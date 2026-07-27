@@ -8,6 +8,8 @@
 #   docker compose -f tools/docker/docker-compose.edge.dev.yml up -d
 #   docker compose -f tools/docker/docker-compose.edge.dev.yml down
 #   docker compose -f tools/docker/docker-compose.edge.dev.yml logs -f
+#
+# Erreichbar unter http://<host-ip>:3031 (host-networking, kein Port-Mapping).
 # ============================================================
 services:
   panary-edge-dev:
@@ -17,11 +19,17 @@ services:
       dockerfile: tools/docker/Dockerfile.edge
     pull_policy: build
     container_name: panary-edge-dev
-    ports:
-      - '3031:3030'
+    # Wie beim Prod-Compose: nur im Host-Netzstack ist der Edge per mDNS
+    # auffindbar (Begruendung dort). Host-Networking kann Ports nicht
+    # umbiegen — statt `3031:3030` laeuft der Prozess direkt auf 3031.
+    # Hinweis: Laeuft parallel der Prod-Container, annoncieren beide auf
+    # demselben Host; bonjour haengt dem zweiten Eintrag automatisch eine
+    # Nummer an, im Wizard erscheinen dann zwei Hubs.
+    network_mode: host
     volumes:
       # ../../data = panary-core/data/ (relativ zur Compose-Datei in tools/docker/)
       - ../../data:/app/data
     environment:
       - NODE_ENV=production
+      - PORT=3031
     restart: 'no'

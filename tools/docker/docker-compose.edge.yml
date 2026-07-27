@@ -9,6 +9,10 @@
 #   docker compose -f tools/docker/docker-compose.edge.yml up -d
 #   docker compose -f tools/docker/docker-compose.edge.yml down
 #   docker compose -f tools/docker/docker-compose.edge.yml down -v   # auch Volume löschen
+#
+# Netzwerk: host — zwingend für mDNS-Auto-Discovery (siehe unten).
+# Nur unter Linux verfügbar; auf Docker Desktop (macOS/Windows) greift
+# host-networking nicht für Multicast — dort bleibt QR/manuelle IP der Weg.
 # ============================================================
 services:
   panary-edge:
@@ -18,8 +22,13 @@ services:
       dockerfile: tools/docker/Dockerfile.edge
     pull_policy: build
     container_name: panary-edge
-    ports:
-      - '3030:3030'
+    # mDNS (`_panary._tcp`) ist Multicast auf 224.0.0.251:5353 mit TTL 1: Pakete
+    # aus einem Bridge-Netz erreichen das physische LAN nie, und der annoncierte
+    # A-Record waere die Container-IP (172.x) — der POS-Wizard bekaeme eine URL,
+    # die es im LAN nicht gibt. Host-Networking legt den Edge in den Netzstack
+    # des Hosts: echte LAN-IP im A-Record, Multicast erreicht die Clients.
+    # Konsequenz: kein `ports:`-Mapping — Port 3030 liegt direkt am Host.
+    network_mode: host
     volumes:
       - panary-edge-data:/app/data
     environment:

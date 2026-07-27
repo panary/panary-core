@@ -231,30 +231,36 @@ cat > "$COMPOSE_FILE" <<'COMPOSEOF'
 #
 # Watchtower prueft stuendlich auf neue Versionen und
 # aktualisiert den Edge-Container automatisch.
+#
+# Netzwerk: host — zwingend, damit der Hub per mDNS (`_panary._tcp`) im LAN
+# gefunden wird. Multicast (224.0.0.251:5353, TTL 1) verlaesst ein Bridge-Netz
+# nicht, und der annoncierte A-Record truege die Container-IP statt der LAN-IP.
+# Deshalb kein `ports:`-Mapping: der Edge lauscht direkt auf PANARY_PORT.
 # ============================================================
 services:
   panary-edge:
     image: ghcr.io/panary/panary-edge:${PANARY_TAG:-latest}
     container_name: panary-edge
     user: "${PANARY_UID:-1000}:${PANARY_GID:-1000}"
-    ports:
-      - "${PANARY_PORT:-3030}:3030"
+    network_mode: host
     volumes:
       - ./data:/app/data
     environment:
       - NODE_ENV=production
       - FEATHERS_SECRET=${FEATHERS_SECRET}
+      # Ohne Port-Mapping muss der Prozess selbst auf dem Zielport lauschen.
+      - PORT=${PANARY_PORT:-3030}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:3030/health"]
+      test: ["CMD", "curl", "-sf", "http://localhost:${PANARY_PORT:-3030}/health"]
       interval: 30s
       timeout: 5s
       start_period: 15s
       retries: 3
     labels:
       - "com.centurylinklabs.watchtower.scope=panary"
-    networks:
-      - panary-internal
+    # Kein `networks:` — mit network_mode: host waere das ein Konflikt.
+    # Watchtower erreicht den Container ohnehin ueber den Docker-Socket.
     # --- Hardening ---
     security_opt:
       - no-new-privileges:true

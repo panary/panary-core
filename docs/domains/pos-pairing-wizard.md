@@ -4,7 +4,7 @@ title: POS-Pairing-Wizard — Cloud-Default + lokaler Hub (mDNS/QR/manuell)
 description: Geführte POS-Inbetriebnahme mit Panary-Cloud-Default und lokaler Hub-Erkennung via mDNS, QR oder manueller IP samt single-use Pairing-Code-Flow.
 tags: [system, devices, data-access-config, pos, pairing]
 status: stable
-generated: { by: claude-code/historic, at: 2026-05-30T00:00:00Z }
+generated: { by: claude-code/opus-5, at: 2026-07-27T00:00:00Z }
 ---
 
 # POS-Pairing-Wizard
@@ -51,6 +51,42 @@ gegenüber dem alten Setup unverändert und wird wiederverwendet.
 - Best-effort: Fehlschlag (blockiertes Multicast, Firewall UDP 5353) blockiert den Edge nicht —
   QR/manuell bleiben nutzbar. Sauberes `unpublish`/`destroy` bei SIGINT/SIGTERM/exit.
 
+#### Betriebsvoraussetzung: Host-Networking im Docker-Betrieb
+
+mDNS ist Multicast auf `224.0.0.251:5353` mit **TTL 1**. Läuft der Edge in einem
+Docker-Bridge-Netz, ist Auto-Discovery **prinzipbedingt tot** — und zwar lautlos, weil das
+Advertising im Container selbst fehlerfrei startet:
+
+1. Multicast aus dem Bridge-Netz erreicht das physische LAN nicht; ein `ports:`-Mapping
+   ändert daran nichts (Port-Forwarding leitet kein Multicast weiter).
+2. Der annoncierte A-Record trägt die Container-IP (`172.x`), nicht die LAN-IP des Hosts.
+   Selbst ein durchgereichtes Paket ergäbe im Wizard eine unerreichbare URL.
+3. Dasselbe trifft den QR-Fallback: dessen Payload nutzt `localIp` aus `/health`, und
+   `getLocalIpAddress()` (`src/status-page.ts`) liefert im Container ebenfalls `172.x`.
+
+Deshalb setzt **jeder** Deployment-Pfad `network_mode: host` und verzichtet auf `ports:`:
+`tools/docker/docker-compose.edge.yml` (Prod-Test), `…edge.dev.yml` (Dev) und die vom
+Installer `tools/hosting/get.panary.io/install.sh` generierte `docker-compose.yml` — der
+Pfad, unter dem Kunden-Edges tatsächlich laufen. Host-Networking kann Ports nicht umbiegen,
+deshalb lauscht der Prozess selbst auf dem Zielport (`PORT`-ENV, gemappt in
+`config/custom-environment-variables.json`): Installer `PORT=${PANARY_PORT:-3030}`,
+Dev-Compose `PORT=3031` statt `3031:3030`. Watchtower bleibt im `panary-internal`-Netz —
+es steuert den Container über den Docker-Socket, nicht über das Netzwerk.
+
+Ist auf dem Host eine Firewall aktiv (ufw), muss **UDP 5353** eingehend offen sein; der
+Installer fasst die Firewall nicht an. Ein bereits laufender `avahi-daemon` ist kein
+Hindernis — `bonjour-service` bindet mit `SO_REUSEADDR` und koexistiert.
+
+> Nur unter Linux wirksam. Auf Docker Desktop (macOS/Windows) leitet host-networking kein
+> Multicast — dort bleiben QR und manuelle IP der Weg. `app.listen(port)` bindet ohne Host,
+> die `HOSTNAME`-ENV beeinflusst nur Log-Ausgaben.
+
+**Diagnose bei „Hub wird nicht gefunden":** `docker logs <container> | grep -i mdns` zeigt,
+ob der Advertiser lief; `avahi-browse -rt _panary._tcp` **auf dem Host** (nicht im Container)
+zeigt, ob die Announcements im LAN ankommen. Beides zusammen trennt Netz-Problem von
+Code-Problem. Edge und POS müssen im selben Layer-2-Segment liegen — über Subnetz-,
+VLAN- oder WLAN-Isolationsgrenzen hinweg ist mDNS nicht routbar.
+
 ### Health-Endpoint — `src/app.ts` (`GET /health`, RBAC-frei)
 Zusätzlich zu den bestehenden Feldern: **`organizationName`** + **`setupComplete`**
 (aus erster `locations`-Zeile). Der Client probt damit jeden gefundenen/manuell
@@ -84,7 +120,15 @@ Code-Record** gestempelt (nie aus dem Request-Body — `multiTenancy` stempelt b
 ## POS-Client (`libs/shared/data-access-config`, `libs/domains/system/feature-pos-setup`)
 
 - **`HubDiscoveryService`**: `discoverHubs()` (Tauri-`invoke` mit Feature-Detection →
-  leere Liste im Browser-Dev) + `probeHub(url)` (`/health` → `organizationName`/`setupComplete`).
+  leere Liste im Browser-Dev) + `probeHub(url, timeoutMs?)` (`/health` →
+  `organizationName`/`setupComplete`).
+- **Adresswahl bei multi-homed Hubs:** Ein Hub annonciert alle Interface-Adressen (LAN,
+  Docker-Bridge, VPN). Blind die erste zu nehmen führt zu einem Eintrag in der Liste, der
+  beim Pairing scheitert. Stattdessen: IPv4 zuerst, darin vorsortiert nach `addressRank`
+  (link-local → CGNAT `100.64/10` → Docker-Range `172.16/12` → Rest), dann `/health`-Probe
+  aller Kandidaten parallel (1,5 s) — die erste erreichbare Adresse in Rangfolge gewinnt.
+  Ist keine erreichbar, bleibt die vorsortierte URL stehen, damit der Hub sichtbar bleibt
+  statt stumm zu verschwinden. Die Liste erscheint sofort und wird nach dem Probe ersetzt.
 - **`DeviceConfigService.redeemPairingCode(serverUrl, code, device)`**: ruft
   `POST /device-pairing/redeem`, speichert `DeviceConfig` (gleiche Shape wie `registerDevice`).
 - **`APP_CONFIG.cloudUrl`** (`https://api.panary.cloud`): Default-Ziel des Cloud-Pfads.

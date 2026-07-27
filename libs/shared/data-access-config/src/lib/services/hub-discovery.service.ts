@@ -11,11 +11,12 @@ export interface DiscoveredHub {
   name: string
   host: string
   port: number
+  /** Adress-Kandidaten, nach Erreichbarkeit vorsortiert (siehe `addressRank`). */
   addresses: string[]
   organizationName?: string
   setupComplete: boolean
   systemMode?: string
-  /** Bevorzugte HTTP-URL zum Pairing (erste IPv4-Adresse). */
+  /** HTTP-URL zum Pairing — die erste per `/health` erreichbare Adresse. */
   url: string
 }
 
@@ -38,6 +39,32 @@ interface RawDiscoveredHub {
 }
 
 type TauriInvoke = (cmd: string, args?: Record<string, unknown>) => Promise<unknown>
+
+/** Probe-Timeout beim Aufloesen mehrdeutiger Hub-Adressen — kurz, laeuft parallel. */
+const ADDRESS_PROBE_TIMEOUT_MS = 1500
+
+/**
+ * Rang einer Adresse als Hub-Ziel — kleiner ist besser.
+ *
+ * Ein Hub annonciert alle Adressen seiner Interfaces (LAN, Docker-Bridge, VPN).
+ * Die erste aus der mDNS-Antwort ist nicht zwingend die, unter der der POS ihn
+ * erreicht — blind zugegriffen landet man leicht auf einer Adresse, die es im
+ * LAN des Clients gar nicht gibt. Die Rangfolge sortiert nur vor; entschieden
+ * wird per `/health`-Probe in `#resolveReachableUrl`.
+ */
+function addressRank(ip: string): number {
+  if (/^169\.254\./.test(ip)) return 3
+  // CGNAT 100.64.0.0/10 — Tailscale & Co.
+  if (/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(ip)) return 2
+  // 172.16.0.0/12 — Default-Range der Docker-Bridge-Netze.
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(ip)) return 1
+  return 0
+}
+
+/** IPv6-Literale brauchen eckige Klammern in der URL. */
+function formatHubUrl(address: string, port: number): string {
+  return address.includes(':') ? `http://[${address}]:${port}` : `http://${address}:${port}`
+}
 
 /**
  * Findet Panary-Hubs im lokalen Netzwerk.
@@ -76,11 +103,13 @@ export class HubDiscoveryService {
     this.scanning.set(true)
     try {
       const raw = (await invoke('discover_panary_hubs', { timeoutMs })) as RawDiscoveredHub[]
-      const mapped = (raw ?? [])
-        .map(r => this.#mapHub(r))
-        .filter((h): h is DiscoveredHub => h !== null)
+      const mapped = (raw ?? []).map(r => this.#mapHub(r)).filter((h): h is DiscoveredHub => h !== null)
+      // Erst die vorsortierte Auswahl zeigen, damit die Liste sofort steht …
       this.hubs.set(mapped)
-      return mapped
+      // … dann mehrdeutige Hubs auf die tatsaechlich erreichbare Adresse festnageln.
+      const resolved = await Promise.all(mapped.map(h => this.#resolveReachableUrl(h)))
+      this.hubs.set(resolved)
+      return resolved
     } catch {
       this.hubs.set([])
       return []
@@ -90,33 +119,63 @@ export class HubDiscoveryService {
   }
 
   #mapHub(raw: RawDiscoveredHub): DiscoveredHub | null {
-    const ipv4 = raw.addresses?.find(a => /^\d+\.\d+\.\d+\.\d+$/.test(a)) ?? raw.addresses?.[0]
-    if (!ipv4) return null
+    const candidates = this.#rankedAddresses(raw.addresses ?? [])
+    const preferred = candidates[0]
+    if (!preferred) return null
     const txt = raw.txt ?? {}
     return {
       id: raw.name,
       name: txt['organizationName'] || raw.host || raw.name,
       host: raw.host,
       port: raw.port,
-      addresses: raw.addresses,
+      addresses: candidates,
       organizationName: txt['organizationName'] || undefined,
       setupComplete: txt['setupComplete'] === 'true',
       systemMode: txt['systemMode'] || undefined,
-      url: `http://${ipv4}:${raw.port}`,
+      url: formatHubUrl(preferred, raw.port),
     }
+  }
+
+  /** IPv4 zuerst, darin nach `addressRank` sortiert (stabil — mDNS-Reihenfolge bleibt Tiebreak). */
+  #rankedAddresses(addresses: string[]): string[] {
+    const ipv4 = addresses.filter(a => /^\d+\.\d+\.\d+\.\d+$/.test(a))
+    // IPv6 nur als Notnagel: ohne IPv4 waere der Hub sonst gar nicht waehlbar.
+    const ordered = ipv4.length > 0 ? ipv4 : addresses
+    return [...ordered].sort((a, b) => addressRank(a) - addressRank(b))
+  }
+
+  /**
+   * Probt die Adress-Kandidaten eines Hubs parallel und uebernimmt die erste
+   * erreichbare in Rangfolge.
+   *
+   * Bleibt alles unerreichbar, behaelt der Hub seine vorsortierte URL und
+   * erscheint weiter in der Liste — der Fehler faellt dann beim Pairing auf,
+   * statt den Hub stumm verschwinden zu lassen.
+   */
+  async #resolveReachableUrl(hub: DiscoveredHub): Promise<DiscoveredHub> {
+    if (hub.addresses.length < 2) return hub
+    const probes = await Promise.all(
+      hub.addresses.map(async address => {
+        const url = formatHubUrl(address, hub.port)
+        const { reachable } = await this.probeHub(url, ADDRESS_PROBE_TIMEOUT_MS)
+        return { url, reachable }
+      }),
+    )
+    const firstReachable = probes.find(p => p.reachable)
+    return firstReachable ? { ...hub, url: firstReachable.url } : hub
   }
 
   /**
    * Prüft eine Hub-URL via `/health` — für mDNS-Treffer und für manuell
    * eingegebene IP/URL. Liefert Setup-Status + Betriebsname.
    */
-  async probeHub(serverUrl: string): Promise<HubProbeResult> {
+  async probeHub(serverUrl: string, timeoutMs = 5000): Promise<HubProbeResult> {
     const url = serverUrl.replace(/\/$/, '')
     try {
       const res = await fetch(`${url}/health`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(timeoutMs),
       })
       if (!res.ok) return { reachable: false }
       const data = (await res.json()) as Record<string, unknown>

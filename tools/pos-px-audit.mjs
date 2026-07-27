@@ -174,7 +174,8 @@ const collectScopeFiles = () => {
     const domainPath = join(domainsDir, domain.name)
     const children = readdirSync(domainPath, { withFileTypes: true })
     for (const child of children) {
-      if (child.isDirectory() && child.name.startsWith('feature-pos-')) {
+      /* 'feature-pos' ohne Suffix (z. B. products/feature-pos) gehört ebenfalls zum Scope */
+      if (child.isDirectory() && (child.name === 'feature-pos' || child.name.startsWith('feature-pos-'))) {
         walk(join(domainPath, child.name, 'src'), files)
       }
     }

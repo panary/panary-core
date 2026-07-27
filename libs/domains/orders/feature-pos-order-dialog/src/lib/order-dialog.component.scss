@@ -1,9 +1,9 @@
 @reference "tailwindcss";
 
 .order-dialog-container {
-  padding: 16px 10px 10px 10px;
+  padding: 1rem 0.625rem 0.625rem 0.625rem;
   width: 100%;
-  height: calc(100% - 60px);
+  height: calc(100% - 3.75rem);
 }
 
 .main-field-container {
@@ -17,8 +17,8 @@
 .button-container {
   display: flex;
   flex-direction: column;
-  margin-left: 10px;
-  margin-right: 10px;
+  margin-left: 0.625rem;
+  margin-right: 0.625rem;
 }
 
 .custom-height-1 {
@@ -33,11 +33,11 @@
 .order-container {
   position: relative;
   width: 100%;
-  min-width: 380px;
-  max-width: 680px;
+  min-width: 23.75rem;
+  max-width: 42.5rem;
   display: flex;
   flex-direction: column;
-  padding: 8px 0;
+  padding: 0.5rem 0;
   height: 100%;
 }
 
@@ -52,19 +52,19 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 8px 4px 2px 4px;
-  margin: 0 12px;
+  padding: 0.5rem 0.25rem 0.125rem 0.25rem;
+  margin: 0 0.75rem;
   cursor: default;
 }
 
 .order-item-combined {
-  padding-left: 5px;
+  padding-left: 0.3125rem;
   border-left: 2px solid red;
 }
 
 .order-item--border {
   border-left: 2px solid lightseagreen;
-  padding-left: 5px;
+  padding-left: 0.3125rem;
 }
 
 .labl {
@@ -93,22 +93,22 @@
 }
 
 .i-30 {
-  height: 30px;
-  width: 30px;
-  font-size: 30px;
+  height: 1.875rem;
+  width: 1.875rem;
+  font-size: 1.875rem;
 }
 
 .subbutton-item {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-width: 140px;
-  height: 48px;
+  min-width: 8.75rem;
+  height: 3rem;
   @apply bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 transition-all rounded-xl font-medium;
-  padding: 10px;
+  padding: 0.625rem;
   font-size: small;
   text-align: center;
-  margin: 4px;
+  margin: 0.25rem;
 }
 
 .subbutton-item:active {
@@ -131,7 +131,7 @@
   display: flex;
   flex-direction: row;
   font-size: smaller;
-  margin-left: 40px;
+  margin-left: 2.5rem;
 }
 
 .info-box {
@@ -141,13 +141,13 @@
   font-size: small;
   text-align: center;
   letter-spacing: 1px;
-  padding: 8px 0;
+  padding: 0.5rem 0;
   font-weight: 500;
   @apply rounded-xl mb-2;
 }
 
 .subbutton-item .mat-badge-content {
-  min-width: 22px;
+  min-width: 1.375rem;
   width: auto;
   background-color: #ffd740;
   color: black;
@@ -157,12 +157,12 @@
 .price-badge {
   position: absolute;
   z-index: 1;
-  top: -8px;
-  right: 8px;
+  top: -0.5rem;
+  right: 0.5rem;
   background-color: darksalmon;
   color: white;
   border-radius: 12px;
-  padding: 2px 8px;
+  padding: 0.125rem 0.5rem;
   font-size: 0.7rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -175,8 +175,8 @@
   border-radius: 10px;
   background-color: #e0e0e0;
   color: black;
-  padding: 0 8px;
-  margin-bottom: 2px;
+  padding: 0 0.5rem;
+  margin-bottom: 0.125rem;
 }
 
 .without-extra {
@@ -188,7 +188,7 @@
   display: flex;
   flex-direction: column;
   font-size: smaller;
-  margin-left: 26px;
+  margin-left: 1.625rem;
 }
 
 .unfinished-menu {
@@ -200,7 +200,7 @@
 }
 
 .function-buttons-devider {
-  margin: 16px 0 8px 0;
+  margin: 1rem 0 0.5rem 0;
 }
 
 .combination-sum-preis {
@@ -212,8 +212,8 @@
   background: #fff !important;
   border-radius: 12px !important;
   box-shadow: 0 8px 24px rgba(0,0,0,.12) !important;
-  padding: 4px !important;
-  margin-top: 8px !important;
+  padding: 0.25rem !important;
+  margin-top: 0.5rem !important;
 }
 
 /* Dark mode support */

@@ -4,10 +4,10 @@
         <div class="flex flex-row items-center justify-between">
             <div class="flex items-center gap-4">
                 <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+                    <span class="material-symbols-outlined text-[1.25rem]">arrow_back</span>
                 </button>
                 <h1 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                    <span class="material-symbols-outlined text-[20px] text-amber-600">schedule</span>
+                    <span class="material-symbols-outlined text-[1.25rem] text-amber-600">schedule</span>
                     {{ 'WORKING_TIMES.TITLE' | translate }}
                 </h1>
             </div>
@@ -18,14 +18,14 @@
                 <div class="flex items-center gap-1">
                     <button (click)="prevMonth()"
                         class="flex items-center justify-center w-9 h-9 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all">
-                        <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                        <span class="material-symbols-outlined text-[1.125rem]">chevron_left</span>
                     </button>
-                    <span class="min-w-[90px] text-center text-sm font-semibold text-gray-700 dark:text-gray-200 select-none">
+                    <span class="min-w-[5.625rem] text-center text-sm font-semibold text-gray-700 dark:text-gray-200 select-none">
                         {{ currentMonthLabel() }}
                     </span>
                     <button (click)="nextMonth()"
                         class="flex items-center justify-center w-9 h-9 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all">
-                        <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                        <span class="material-symbols-outlined text-[1.125rem]">chevron_right</span>
                     </button>
                 </div>
 
@@ -84,7 +84,7 @@
                                             {{ formatDuration(row.breakDuration) }}
                                         </button>
                                         @if (expandedBreakRow() === row) {
-                                            <div class="absolute left-0 top-full mt-1 z-20 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-3 min-w-[180px] text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line leading-relaxed animate-[fadeIn_0.15s_ease-out]">
+                                            <div class="absolute left-0 top-full mt-1 z-20 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-3 min-w-[11.25rem] text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line leading-relaxed animate-[fadeIn_0.15s_ease-out]">
                                                 <div class="font-semibold mb-1 text-gray-800 dark:text-white text-xs">{{ 'WORKING_TIMES.BREAK_TIMES' | translate }}:</div>
                                                 {{ getBreakDetails(row.workingTime) }}
                                             </div>
@@ -123,7 +123,7 @@
             <div class="max-w-5xl mx-auto flex flex-wrap gap-6 md:gap-12 items-center justify-end">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950 flex items-center justify-center">
-                        <span class="material-symbols-outlined text-[20px] text-amber-600">coffee</span>
+                        <span class="material-symbols-outlined text-[1.25rem] text-amber-600">coffee</span>
                     </div>
                     <div>
                         <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ 'WORKING_TIMES.TOTAL_BREAKS' | translate }}</p>
@@ -132,7 +132,7 @@
                 </div>
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center">
-                        <span class="material-symbols-outlined text-[20px] text-emerald-600">schedule</span>
+                        <span class="material-symbols-outlined text-[1.25rem] text-emerald-600">schedule</span>
                     </div>
                     <div>
                         <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ 'WORKING_TIMES.TOTAL_WORK' | translate }}</p>

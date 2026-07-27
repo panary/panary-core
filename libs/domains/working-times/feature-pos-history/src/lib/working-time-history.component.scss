@@ -5,16 +5,16 @@
 }
 
 .mat-column-day {
-  width: 80px;
+  width: 5rem;
 }
 
 .mat-column-status {
-  width: 100px;
+  width: 6.25rem;
 }
 
 td.mat-mdc-cell,
 th.mat-mdc-header-cell {
-  padding: 16px;
+  padding: 1rem;
   border-bottom-color: #f1f5f9;
   background-color: white;
 }
@@ -59,7 +59,7 @@ tr.mat-mdc-row:hover {
 
 /* Break menu styling tweak */
 ::ng-deep .break-menu {
-  min-width: 150px !important;
+  min-width: 9.375rem !important;
   border-radius: 12px !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
 }

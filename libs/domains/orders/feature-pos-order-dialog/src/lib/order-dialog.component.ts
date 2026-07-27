@@ -434,9 +434,12 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     const containerWidth = this.productGroupContainer.nativeElement.clientWidth
-    const buttonWidth = 95
-    const gap = 8
-    const expandButtonWidth = 52
+    // Tab-Breiten sind rem-basiert — im Fluid-Modus wachsen sie mit der Root-Fontsize.
+    // Der Faktor rechnet die px-Rechenkonstanten auf die tatsächlich gerenderte Größe um (Flag off: 16px/16 = 1).
+    const remFactor = (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) / 16
+    const buttonWidth = 95 * remFactor
+    const gap = 8 * remFactor
+    const expandButtonWidth = 52 * remFactor
 
     const maxItems = Math.floor((containerWidth + gap) / (buttonWidth + gap))
 
@@ -677,7 +680,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.showDineLocationSelection = false
 
     const dialogRef = this.matDialog.open(PreOrderQuickDialogComponent, {
-      width: '820px',
+      width: '51.25rem',
       maxWidth: '95vw',
       // Border + Schatten gehören auf das ÄUSSERE Panel (nicht aufs innere Root-Div):
       // dessen `overflow-hidden` würde sonst die Border-/Schatten-Ecken des Kindes
@@ -2153,7 +2156,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Öffnet den Touch-Picker für manuelle POS-Rabatte und übernimmt die Auswahl. */
   openDiscountPicker(): void {
     const ref = this.matDialog.open(DiscountPickerDialogComponent, {
-      width: '640px',
+      width: '40rem',
       maxWidth: '92vw',
       panelClass: ['!rounded-2xl', 'overflow-hidden'],
     })

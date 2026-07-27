@@ -500,7 +500,7 @@ export class DashboardComponent implements OnInit {
         : BusinessDayOperationMode.POS_CASHIER
 
     this.#dialog.open(OpeningDialogComponent, {
-      width: '480px',
+      width: '30rem',
       maxWidth: '92vw',
       maxHeight: '90vh',
       disableClose: false,
@@ -529,7 +529,7 @@ export class DashboardComponent implements OnInit {
       try {
         const businessDay = await this.#businessDayService.get(businessDayId)
         this.#dialog.open(ClosingDialogComponent, {
-          width: '500px',
+          width: '31.25rem',
           maxWidth: '90vw',
           height: 'auto',
           maxHeight: '90vh',
@@ -582,7 +582,7 @@ export class DashboardComponent implements OnInit {
       if (session) {
         // Bestehende Kasse → zählen/schließen (Kassierer darf seine eigene Lade).
         this.#dialog.open(CashSessionDialogComponent, {
-          width: '520px',
+          width: '32.5rem',
           maxWidth: '92vw',
           maxHeight: '90vh',
           disableClose: false,
@@ -594,7 +594,7 @@ export class DashboardComponent implements OnInit {
       // Keine Kasse → manager-autorisierte Eröffnung.
       const cashierName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || undefined
       this.#dialog.open(ManagerAuthorizeCashSessionDialogComponent, {
-        width: '460px',
+        width: '28.75rem',
         maxWidth: '92vw',
         maxHeight: '90vh',
         disableClose: false,

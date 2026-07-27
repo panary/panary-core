@@ -22,7 +22,7 @@ import {
                scrollbar-none relative"
         (scroll)="onScroll()">
         <!-- Top padding (2.5 Items = 120px) -->
-        <div class="h-[120px] shrink-0"></div>
+        <div class="h-[7.5rem] shrink-0"></div>
         @for (val of values(); track val) {
           <button type="button"
             [attr.data-value]="val"
@@ -34,7 +34,7 @@ import {
           </button>
         }
         <!-- Bottom padding (2.5 Items = 120px) -->
-        <div class="h-[120px] shrink-0"></div>
+        <div class="h-[7.5rem] shrink-0"></div>
       </div>
     </div>
   `,

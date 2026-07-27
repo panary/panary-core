@@ -29,7 +29,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* Fluid-Skalierungs-Variante (PNRY-FEAT-POS-UI-SCALE-001): fluid:-Utilities greifen nur,
-   wenn die Klasse pnry-fluid-scale auf <html> gesetzt ist (DensityService hinter dem
+   wenn die Klasse pnry-fluid-scale auf <html> gesetzt ist (UiScaleService hinter dem
    Feature-Flag pos-fluid-ui-scaling-v1). Einzeiler-Syntax wie bei dark. */
 @custom-variant fluid (&:where(html.pnry-fluid-scale, html.pnry-fluid-scale *));
 
@@ -42,12 +42,12 @@
 /* ==========================================================================
    Fluide UI-Skalierung — PNRY-FEAT-POS-UI-SCALE-001
    Aktivierung ausschließlich über die Klasse pnry-fluid-scale auf <html>
-   (setzt der DensityService hinter dem Feature-Flag pos-fluid-ui-scaling-v1).
+   (setzt der UiScaleService hinter dem Feature-Flag pos-fluid-ui-scaling-v1).
    Ohne diese Klasse bleibt die App pixelidentisch zum bisherigen Stand,
    da alle rem-Werte äquivalent zu den früheren px-Werten sind (÷16).
    ========================================================================== */
 :root {
-  /* Terminal-Density-Faktor — wird vom DensityService per Inline-Style überschrieben */
+  /* Terminal-Density-Faktor — wird vom UiScaleService per Inline-Style überschrieben */
   --pnry-density: 1;
   /* clamp()-Parameter der Root-Fontsize — bewusst als Custom Properties (anpassbar ohne Codeänderung) */
   --pnry-root-fs-min: 14px;

@@ -121,6 +121,10 @@ const tailwindRegex = new RegExp(
   'g'
 )
 
+/* Angular-Style-Bindings mit px-Einheit ([style.width.px]="100", [style.top.px]=…) —
+   umgehen sonst beide anderen Muster, weil der Zahlenwert ohne px-Suffix im Binding steht */
+const styleBindingPxRegex = /\[style\.[a-zA-Z-]+\.px\]\s*=/g
+
 const cssRegex = new RegExp(
   `(?:^|[;{\\s])(?:${CSS_SIZE_PROPERTIES.join('|')})\\s*:\\s*[^;}\\n]*\\d+px[^;}\\n]*`,
   'gi'
@@ -187,7 +191,7 @@ const findings = []
 for (const file of collectScopeFiles()) {
   const lines = readFileSync(file, 'utf8').split('\n')
   lines.forEach((line, index) => {
-    for (const regex of [tailwindRegex, cssRegex]) {
+    for (const regex of [tailwindRegex, cssRegex, styleBindingPxRegex]) {
       regex.lastIndex = 0
       let match
       while ((match = regex.exec(line)) !== null) {

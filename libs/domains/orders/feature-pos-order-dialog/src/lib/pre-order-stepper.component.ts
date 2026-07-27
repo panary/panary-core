@@ -15,7 +15,7 @@ export interface StepDef {
     <div class="max-w-sm mx-auto flex items-start" aria-label="Fortschritt">
       @for (step of steps(); track step.index; let i = $index) {
         <!-- Step: Kreis + Label -->
-        <div class="flex flex-col items-center" [style.width.px]="100">
+        <div class="flex flex-col items-center w-[6.25rem]">
           <span [class]="circleClass(i)"
                 [attr.aria-current]="i === currentStep() ? 'step' : null">
             @if (i < currentStep()) {

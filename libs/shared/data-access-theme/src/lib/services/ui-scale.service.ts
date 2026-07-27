@@ -41,9 +41,10 @@ const isDensityLevel = (value: unknown): value is UiDensityLevel =>
 })
 export class UiScaleService {
   #deviceConfigService = inject(DeviceConfigService)
-  // ConnectionService bewusst lazy — der Environment-Initializer laeuft sehr
-  // frueh; die Socket-Erzeugung soll nicht von der UI-Skalierung angestossen
-  // werden, sondern vom regulaeren App-Boot.
+  // ConnectionService bewusst nicht im Konstruktor injizieren: keine harte
+  // Abhaengigkeit im Environment-Init. Der erste Zugriff passiert fruehestens
+  // im Boot-Reconcile — und der ist per queueMicrotask vom synchronen
+  // Initializer-Pfad entkoppelt (siehe Konstruktor).
   #injector = inject(Injector)
 
   readonly #enabled = signal<boolean>(false)
@@ -52,7 +53,13 @@ export class UiScaleService {
 
   readonly enabled = this.#enabled.asReadonly()
   readonly density = this.#density.asReadonly()
-  readonly factor = computed(() => this.#factors()?.[this.#density()] ?? DEFAULT_UI_DENSITY_FACTORS[this.#density()])
+  // Clamp auf die Schema-Grenzen (0.5–2): das Backend validiert nur den
+  // Device-Record — ein manipulierter localStorage-Wert darf das Terminal
+  // nicht mit --pnry-density: 100 unbedienbar machen.
+  readonly factor = computed(() => {
+    const raw = this.#factors()?.[this.#density()] ?? DEFAULT_UI_DENSITY_FACTORS[this.#density()]
+    return Math.min(2, Math.max(0.5, raw))
+  })
 
   // _id des eigenen Device-Datensatzes (via find ueber deviceId ermittelt) —
   // gecacht, damit nicht jeder setDensity-Aufruf einen find ausloest.
@@ -81,7 +88,10 @@ export class UiScaleService {
     // Boot-Reconcile mit dem Device-Record — async, liest/schreibt Signals →
     // untracked-Pflicht (angular.md §2.1). Best-effort: offline/nicht
     // verbunden ist kein Fehler, naechster setDensity versucht es erneut.
-    untracked(() => void this.#reconcileWithDeviceRecord())
+    // Via queueMicrotask vom synchronen Initializer-Pfad entkoppelt, damit
+    // die ConnectionService-Instanziierung (erster Zugriff in
+    // #resolveDeviceRecordId) nicht mitten im Environment-Init passiert.
+    queueMicrotask(() => untracked(() => void this.#reconcileWithDeviceRecord()))
   }
 
   setEnabled(enabled: boolean): void {

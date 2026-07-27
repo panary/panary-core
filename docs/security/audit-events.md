@@ -59,6 +59,25 @@ Flache Index-Spalten zusaetzlich persistiert: `actor_userId`,
 `target_resource`, `target_entityType`, `target_entityId` — alle
 tenant-prefixed indiziert.
 
+### `actor.userId` ist keine UUID
+
+Nicht jeder Akteur hat einen User-Datensatz. `actor.userId` (und die flache
+Spiegelspalte `actor_userId`) ist deshalb ein laengenbegrenzter String, **kein**
+`format: 'uuid'`:
+
+| Akteur | `actor.userId` | Zusaetzlich |
+|---|---|---|
+| Angemeldeter Benutzer | User-uuidv7 | — |
+| Geraet (API-Key/Pairing) | `device:<uuid>` — gesetzt von `allow-apikey.hook.ts` | `actor.deviceId` traegt die reine Geraete-UUID |
+| Fehlgeschlagener Login | `anonymous` | `metadata.attemptedLoginname` |
+
+> **Regress-Historie:** Solange das Feld auf `format: 'uuid'` stand, scheiterte
+> **jedes** Audit-Event einer Kasse und jeder `LOGIN_FAILED`-Eintrag an der
+> Validierung. Der Recorder faengt Schreibfehler ab und loggt nur
+> `audit.record_failed` (siehe „Fehlertoleranz") — der Audit-Trail blieb fuer
+> alle POS-Schreibvorgaenge still leer. Bei Aenderungen an diesem Feld also
+> immer gegen eine Geraete-Session testen, nicht nur gegen einen Web-Login.
+
 ## Resource-Whitelist
 
 Datei: `libs/domains/audit-events/domain/src/lib/audit-resource-map.ts`.

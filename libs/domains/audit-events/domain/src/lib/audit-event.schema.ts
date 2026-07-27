@@ -8,7 +8,13 @@ import { AuditCategory, AuditOutcome, AuditSeverity } from './audit-category.enu
 //#region Sub-Schemas
 export const auditActorSchema = Type.Object(
   {
-    userId: Type.String({ format: 'uuid' }),
+    // KEIN `format: 'uuid'`: Geraete-Sessions (API-Key/Pairing) haben keinen
+    // User-Datensatz — `allow-apikey.hook.ts` setzt `params.user._id` auf
+    // `device:<uuid>`. Mit uuid-Format scheiterte JEDES Audit-Event einer Kasse
+    // an der Validierung (`audit.record_failed`) und der Audit-Trail blieb fuer
+    // alle POS-Schreibvorgaenge leer. Die Geraete-UUID steht zusaetzlich
+    // strukturiert in `deviceId`.
+    userId: Type.String({ maxLength: 80 }),
     role: Type.String({ maxLength: 80 }),
     sessionId: Type.Optional(Type.String({ maxLength: 80 })),
     ipAddress: Type.Optional(Type.String({ maxLength: 45 })),
@@ -68,7 +74,8 @@ export const auditEventSchema = Type.Object(
     // Werden vom auditEventDataResolver aus `actor`/`target` abgeleitet —
     // optional im Schema, damit der Validate-Hook sie nicht erzwingt
     // (Cloud-Kontext ohne flache Spalten muss durchgehen koennen).
-    actor_userId: Type.Optional(Type.String({ format: 'uuid' })),
+    // Format wie `actor.userId` — trägt bei Geräte-Sessions `device:<uuid>`.
+    actor_userId: Type.Optional(Type.String({ maxLength: 80 })),
     target_resource: Type.Optional(Type.String({ maxLength: 80 })),
     target_entityType: Type.Optional(Type.String({ maxLength: 80 })),
     target_entityId: Type.Optional(Type.String({ maxLength: 80 })),

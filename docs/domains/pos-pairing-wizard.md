@@ -129,6 +129,18 @@ Code-Record** gestempelt (nie aus dem Request-Body — `multiTenancy` stempelt b
   aller Kandidaten parallel (1,5 s) — die erste erreichbare Adresse in Rangfolge gewinnt.
   Ist keine erreichbar, bleibt die vorsortierte URL stehen, damit der Hub sichtbar bleibt
   statt stumm zu verschwinden. Die Liste erscheint sofort und wird nach dem Probe ersetzt.
+
+> **Warum clientseitig?** `bonjour-service` erzeugt die A-Records in `Service.records()`
+> hart über `os.networkInterfaces()` — jede nicht-interne Adresse wird annonciert, ohne
+> Filtermöglichkeit. Die `interface`-Option des Konstruktors steuert nur den Multicast-
+> Socket, nicht den Record-Inhalt. Der Edge kann also nicht ansagen, unter welcher seiner
+> Adressen er gemeint ist; die Auswahl gehört zwangsläufig auf die Client-Seite.
+>
+> Real beobachtet (2026-07-27, Edge `26.7.28` auf host-networking): annonciert wurden
+> `172.18.0.1` (Bridge des `panary-internal`-Netzes, das Watchtower weiter nutzt) **und**
+> `10.10.100.77`. Ein Client ohne Rangfolge landete auf `172.18.0.1` → „Hub nicht
+> erreichbar" trotz erfolgreicher Discovery. Die Bridge lässt sich nicht wegkonfigurieren:
+> ohne `panary-internal` bliebe `docker0` mit `172.17.0.1`.
 - **`DeviceConfigService.redeemPairingCode(serverUrl, code, device)`**: ruft
   `POST /device-pairing/redeem`, speichert `DeviceConfig` (gleiche Shape wie `registerDevice`).
 - **`APP_CONFIG.cloudUrl`** (`https://api.panary.cloud`): Default-Ziel des Cloud-Pfads.

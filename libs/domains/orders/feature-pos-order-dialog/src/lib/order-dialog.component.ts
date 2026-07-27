@@ -922,15 +922,15 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       blockLabel?: string
       flags: PosButtonUiState
       onSelect: (copy: PosProductButton) => void
-      buildSkipButton?: (parentButton: ProductSchema | undefined) => PosButton
+      buildFunctionButtons?: (parentButton: ProductSchema | undefined) => PosButton[]
     },
   ): void {
     this.clearButtons()
     if (!this.rememberSelectedParentId()) return
     this.setInfoBoxText(slot.infoText)
     this._functionBlockLabel = slot.blockLabel ?? ''
-    if (slot.buildSkipButton) {
-      this._functionButtons.push(slot.buildSkipButton(this.lastParentProduct()))
+    if (slot.buildFunctionButtons) {
+      this._functionButtons.push(...slot.buildFunctionButtons(this.lastParentProduct()))
     }
     ids?.forEach((value: UUID): void => {
       const product: ProductSchema | undefined = this.productService.findProductByExternalId(value)
@@ -964,7 +964,24 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       blockLabel: 'Soße auswählen',
       flags: { isMenuSideDishSauce: true, isExtra: false, isMenuSubButton: true },
       onSelect: copy => this.setMenuSideDishSauce(copy),
-      buildSkipButton: parentButton => ({
+      buildFunctionButtons: parentButton => [{
+        // ABBRUCH steigt hart aus dem Menü-Schritt aus; bereits gesetzte Slots bleiben,
+        // der Warenkorb markiert das Menü als unvollständig (isMenuComplete).
+        _id: 'cancelMenuSauce',
+        externalId: this.#functionButtonExternalId,
+        locationId: this.userService.currentUser()?.activeLocationId || '',
+        tenantId: this.authService.tenantId()?.toString() || '',
+        name: 'ABBRUCH',
+        index: -2,
+        isFunctionButton: true,
+        isExtra: false,
+        variant: 'cancel',
+        icon: 'close',
+        callback: () => {
+          this._isBlocked = false
+          this.setProductButtonsByGroupId((parentButton as any)?.categoryIds?.[0])
+        },
+      }, {
         _id: this._skipSauceId,
         externalId: this.#functionButtonExternalId,
         locationId: this.userService.currentUser()?.activeLocationId || '',
@@ -992,7 +1009,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
             this.setProductButtonsByGroupId((parentButton as any)?.categoryIds?.[0])
           }
         },
-      }),
+      }],
     })
   }
 
@@ -1278,6 +1295,24 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this._functionBlockLabel = 'Soße auswählen'
 
     const parentButton: ProductSchema | undefined = this.lastParentProduct()
+    // ABBRUCH steigt hart aus der Schrittkette aus (keine Folge-Schritte),
+    // ohne den bereits erfassten Artikel zu entfernen — konsistent zum Extras-ABBRUCH.
+    this.functionButtons.push({
+      _id: 'cancelSauce',
+      externalId: this.#functionButtonExternalId,
+      locationId: this.userService.currentUser()?.activeLocationId || '',
+      tenantId: this.authService.tenantId()?.toString() || '',
+      name: 'ABBRUCH',
+      index: -2,
+      isFunctionButton: true,
+      isExtra: false,
+      variant: 'cancel',
+      icon: 'close',
+      callback: () => {
+        this._isBlocked = false
+        this.setProductButtonsByGroupId((parentButton as any)?.categoryIds?.[0])
+      },
+    })
     this.functionButtons.push({
       _id: this._skipSauceId,
       externalId: this.#functionButtonExternalId,
@@ -1706,6 +1741,27 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     const products: ProductSchema[] = (group.options || [])
       .map((o: any) => this.productService.findProductById(o.productId))
       .filter(Boolean) as ProductSchema[]
+
+    // ABBRUCH verwirft die angefangene Bundle-Konfiguration komplett:
+    // Line-Item entfernen (inkl. item-delete-Interaction), Flow zurücksetzen, zurück zum Raster.
+    this._functionButtons.push({
+      _id: 'cancel-option-group',
+      externalId: this.#functionButtonExternalId,
+      locationId: this.userService.currentUser()?.activeLocationId || '',
+      tenantId: this.authService.tenantId()?.toString() || '',
+      name: 'ABBRUCH',
+      index: -3,
+      isFunctionButton: true,
+      variant: 'cancel',
+      icon: 'close',
+      callback: () => {
+        this.decreaseLineItem()
+        this.#bundleFlow.reset()
+        this._isBlocked = false
+        this.unselectProduct()
+        this.setProductButtonsByGroupId(parentProduct.categoryIds?.[0])
+      },
+    })
 
     // Skip-Button nur bei optionalen Gruppen (minSelections === 0)
     if (group.minSelections === 0) {

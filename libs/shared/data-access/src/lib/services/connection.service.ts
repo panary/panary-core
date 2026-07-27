@@ -665,7 +665,11 @@ export class ConnectionService {
 
       options = {
         path: '/ws',
-        transports: ['websocket'],
+        // WebSocket zuerst, Polling als Rueckfallweg — analog zum Device-Zweig.
+        // Ohne `polling` gibt es keinen Ausweg, sobald ein Reverse-Proxy den
+        // Upgrade-Header nicht weiterreicht: der Client bleibt dann dauerhaft in
+        // der Reconnect-Schleife statt auf HTTP-Long-Polling zurueckzufallen.
+        transports: ['websocket', 'polling'],
         timeout: 10000,
         reconnection: true,
         reconnectionAttempts: Infinity,

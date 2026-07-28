@@ -11,6 +11,9 @@
       "path": "../../libs/shared/data-access-theme"
     },
     {
+      "path": "../../libs/domains/locations/domain"
+    },
+    {
       "path": "../../libs/shared/ui-cloud-status"
     },
     {

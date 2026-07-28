@@ -24,6 +24,19 @@ describe('Feathers application tests', () => {
     assert.ok(data.indexOf('Panary Core API') !== -1)
   })
 
+  // `/health` ist die maessgebliche Quelle fuer das Tier-Modell im Frontend.
+  // `systemMode` wird aus dem Pairing abgeleitet, nicht aus der statischen
+  // Config — ohne Pairing bleibt es 'standalone' (die Ableitungs-Matrix selbst
+  // deckt src/utils/system-mode.spec.ts ab).
+  it('liefert einen abgeleiteten systemMode und die Notfall-Modus-Felder', async () => {
+    const { data } = await axios.get<Record<string, unknown>>(`${appUrl}/health`)
+
+    assert.strictEqual(data['status'], 'ok')
+    assert.strictEqual(data['systemMode'], 'standalone')
+    assert.strictEqual(data['emergencyOverride'], false)
+    assert.ok('emergencyOverrideSince' in data === false || data['emergencyOverrideSince'] === undefined)
+  })
+
   it('shows a 404 JSON error', async () => {
     try {
       await axios.get(`${appUrl}/path/to/nowhere`, {

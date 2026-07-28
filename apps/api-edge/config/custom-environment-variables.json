@@ -4,6 +4,9 @@
     "__format": "number"
   },
   "host": "HOSTNAME",
+  "system": {
+    "mode": "SYSTEM_MODE"
+  },
   "sqlite": {
     "connection": "SQLITE_PATH"
   },

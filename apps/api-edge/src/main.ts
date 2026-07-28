@@ -3,6 +3,7 @@ import { logger } from '@panary/shared-backend'
 import fs from 'fs/promises'
 import path from 'path'
 import { startSetupApp } from './setup-app'
+import { resolveSystemMode } from './utils/system-mode'
 import { APP_VERSION } from './version'
 import { constants } from 'fs'
 import { UserSystemRole } from '@panary/users/domain'
@@ -376,7 +377,11 @@ async function main() {
         version: APP_VERSION,
         organizationName: firstLocation?.organizationName || firstLocation?.name,
         setupComplete: !!firstLocation,
-        systemMode: app.get('system')?.mode || 'standalone',
+        // Einschraenkung: mDNS-TXT wird nur beim Boot publiziert. Ein frisch
+        // gepairter Edge annonciert bis zum naechsten Neustart weiterhin
+        // 'standalone'. Bewusst nicht repariert — der Setup-Wizard prueft
+        // ohnehin /health, das die maessgebliche Quelle ist.
+        systemMode: await resolveSystemMode(app),
         locationId: firstLocation?._id,
       })
     } catch (err) {

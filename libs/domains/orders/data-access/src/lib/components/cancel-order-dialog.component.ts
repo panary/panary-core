@@ -2,8 +2,9 @@ import { ChangeDetectionStrategy, Component, inject, signal, computed } from '@a
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { ConnectionService } from '@panary/shared/data-access'
 import { UserService } from '@panary/users/data-access'
-import { User, UserSystemRole } from '@panary/users/domain'
+import { User, UserStatus, UserSystemRole } from '@panary/users/domain'
 import { OrderService } from '../services/order.service'
 import { Order, OrderStatus } from '@panary/orders/domain'
 
@@ -14,7 +15,21 @@ const CANCEL_REASONS = [
   'CANCEL_ORDER.REASON_OTHER',
 ]
 
-type DialogStep = 'reason' | 'pin'
+/** Rollen, die einen Storno freigeben dürfen. */
+const AUTHORIZING_ROLES: ReadonlySet<string> = new Set([UserSystemRole.TENANT_OWNER, UserSystemRole.TENANT_MANAGER])
+
+/** POS-PINs sind über alle POS-Oberflächen hinweg vierstellig (vgl. Login, Unpair, Kassen-Freigabe). */
+const PIN_LENGTH = 4
+
+type DialogStep = 'reason' | 'select-user' | 'pin'
+
+interface AuthorizingManager {
+  _id: string
+  fullName: string
+  initials: string
+  staffRole?: string
+  role: string
+}
 
 @Component({
   selector: 'lib-cancel-order-dialog',
@@ -22,7 +37,7 @@ type DialogStep = 'reason' | 'pin'
   imports: [TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="p-6 min-w-[360px] max-w-[420px]">
+    <div class="p-6 min-w-[22.5rem] max-w-[26.25rem]">
 
       <!-- Step 1: Grund auswählen -->
       @if (step() === 'reason') {
@@ -50,53 +65,38 @@ type DialogStep = 'reason' | 'pin'
         </div>
       }
 
-      <!-- Step 2: Manager-PIN -->
-      @if (step() === 'pin') {
-        <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-1">{{ 'CANCEL_ORDER.ENTER_PIN' | translate }}</h2>
+      <!-- Step 2: Freigebende Person wählen -->
+      @if (step() === 'select-user') {
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-1">{{ 'CANCEL_ORDER.SELECT_MANAGER' | translate }}</h2>
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">{{ 'CANCEL_ORDER.PIN_HINT' | translate }}</p>
 
-        <!-- PIN Dots -->
-        <div class="flex justify-center gap-3 mb-5">
-          @for (i of [0, 1, 2, 3]; track i) {
-            <div class="w-4 h-4 rounded-full transition-all duration-150"
-              [class.bg-gray-200]="pin().length <= i"
-              [class.dark:bg-gray-700]="pin().length <= i"
-              [class.bg-red-500]="pin().length > i && pinError()"
-              [class.bg-amber-500]="pin().length > i && !pinError()">
-            </div>
-          }
-        </div>
-
-        @if (pinError()) {
-          <p class="text-center text-red-500 text-sm mb-3">{{ 'CANCEL_ORDER.INVALID_PIN' | translate }}</p>
+        @if (managersLoading()) {
+          <p class="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">
+            {{ 'CANCEL_ORDER.LOADING_MANAGERS' | translate }}
+          </p>
+        } @else if (managers().length) {
+          <div class="flex flex-col gap-2">
+            @for (manager of managers(); track manager._id) {
+              <button (click)="selectManager(manager)"
+                class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700
+                       bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700
+                       hover:border-gray-300 dark:hover:border-gray-600 active:scale-[0.98] transition-all text-left">
+                <div class="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300
+                            font-bold flex items-center justify-center">
+                  {{ manager.initials || '??' }}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="font-semibold text-gray-800 dark:text-white truncate">{{ manager.fullName }}</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ manager.staffRole || manager.role }}</p>
+                </div>
+              </button>
+            }
+          </div>
+        } @else {
+          <p class="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">
+            {{ 'CANCEL_ORDER.NO_MANAGERS' | translate }}
+          </p>
         }
-
-        <!-- Numpad -->
-        <div class="grid grid-cols-3 gap-2 max-w-[240px] mx-auto">
-          @for (digit of ['1','2','3','4','5','6','7','8','9']; track digit) {
-            <button (click)="appendDigit(digit)"
-              class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700
-                     active:bg-gray-300 dark:active:bg-gray-600 text-xl font-semibold text-gray-800 dark:text-white
-                     transition-all active:scale-95">
-              {{ digit }}
-            </button>
-          }
-          <div></div>
-          <button (click)="appendDigit('0')"
-            class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700
-                   active:bg-gray-300 dark:active:bg-gray-600 text-xl font-semibold text-gray-800 dark:text-white
-                   transition-all active:scale-95">
-            0
-          </button>
-          <button (click)="deleteDigit()"
-            class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700
-                   flex items-center justify-center transition-all active:scale-95">
-            <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z"></path>
-            </svg>
-          </button>
-        </div>
 
         <div class="flex justify-between items-center pt-5">
           <button (click)="step.set('reason')"
@@ -111,6 +111,80 @@ type DialogStep = 'reason' | 'pin'
           </button>
         </div>
       }
+
+      <!-- Step 3: PIN der freigebenden Person -->
+      @if (step() === 'pin') {
+        @if (selectedManager(); as manager) {
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-1">{{ 'CANCEL_ORDER.ENTER_PIN' | translate }}</h2>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">{{ manager.fullName }}</p>
+        }
+
+        <!-- PIN Dots -->
+        <div class="flex justify-center gap-3 mb-5">
+          @for (i of pinSlots; track i) {
+            <div class="w-4 h-4 rounded-full transition-all duration-150"
+              [class.bg-gray-200]="pin().length <= i && !pinError()"
+              [class.dark:bg-gray-700]="pin().length <= i && !pinError()"
+              [class.bg-red-500]="pinError()"
+              [class.bg-amber-500]="pin().length > i && !pinError()">
+            </div>
+          }
+        </div>
+
+        @if (errorMessage()) {
+          <p class="text-center text-red-500 text-sm mb-3">{{ errorMessage() }}</p>
+        }
+
+        <!-- Numpad -->
+        <div class="grid grid-cols-3 gap-2 max-w-[15rem] mx-auto">
+          @for (digit of digits; track digit) {
+            <button (click)="appendDigit(digit)"
+              [disabled]="verifying()"
+              class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700
+                     active:bg-gray-300 dark:active:bg-gray-600 text-xl font-semibold text-gray-800 dark:text-white
+                     transition-all active:scale-95 disabled:opacity-40">
+              {{ digit }}
+            </button>
+          }
+          <div></div>
+          <button (click)="appendDigit('0')"
+            [disabled]="verifying()"
+            class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700
+                   active:bg-gray-300 dark:active:bg-gray-600 text-xl font-semibold text-gray-800 dark:text-white
+                   transition-all active:scale-95 disabled:opacity-40">
+            0
+          </button>
+          <button (click)="deleteDigit()"
+            [disabled]="verifying()"
+            class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700
+                   flex items-center justify-center transition-all active:scale-95 disabled:opacity-40"
+            [attr.aria-label]="'COMMON.DELETE' | translate">
+            <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z"></path>
+            </svg>
+          </button>
+        </div>
+
+        @if (verifying()) {
+          <p class="text-center text-xs text-gray-500 dark:text-gray-400 pt-4">{{ 'COMMON.VERIFYING' | translate }}</p>
+        }
+
+        <div class="flex justify-between items-center pt-5">
+          <button (click)="backToManagers()"
+            [disabled]="verifying()"
+            class="text-sm font-medium text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-4 py-2 rounded-lg
+                   hover:bg-gray-50 dark:hover:bg-gray-800 transition disabled:opacity-40">
+            {{ 'COMMON.BACK' | translate }}
+          </button>
+          <button (click)="close()"
+            [disabled]="verifying()"
+            class="text-sm font-medium text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-4 py-2 rounded-lg
+                   hover:bg-gray-50 dark:hover:bg-gray-800 transition disabled:opacity-40">
+            {{ 'COMMON.CANCEL' | translate }}
+          </button>
+        </div>
+      }
     </div>
   `,
 })
@@ -118,17 +192,25 @@ export class CancelOrderDialogComponent {
   #dialogRef = inject(MatDialogRef<CancelOrderDialogComponent>)
   #orderService = inject(OrderService)
   #userService = inject(UserService)
+  #connectionService = inject(ConnectionService)
   #snackBar = inject(MatSnackBar)
   #translate = inject(TranslateService)
 
   order: Order = inject(MAT_DIALOG_DATA)
 
   readonly reasons = CANCEL_REASONS
+  readonly digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
+  readonly pinSlots = Array.from({ length: PIN_LENGTH }, (_, i) => i)
+
   step = signal<DialogStep>('reason')
   selectedReason = signal('')
   pin = signal('')
   pinError = signal(false)
-  managerUsers = signal<User[]>([])
+  errorMessage = signal<string | null>(null)
+  verifying = signal(false)
+  managers = signal<AuthorizingManager[]>([])
+  managersLoading = signal(true)
+  selectedManager = signal<AuthorizingManager | null>(null)
 
   // Prüft ob der aktuelle User ein Manager/Owner ist (kein PIN nötig)
   #isManagerOrOwner = computed(() => {
@@ -138,7 +220,7 @@ export class CancelOrderDialogComponent {
   })
 
   constructor() {
-    this.loadManagerUsers()
+    void this.#loadManagers()
   }
 
   selectReason(reason: string): void {
@@ -146,52 +228,91 @@ export class CancelOrderDialogComponent {
 
     if (this.#isManagerOrOwner()) {
       // Manager/Owner können direkt stornieren — kein PIN nötig
-      this.executeCancel(this.#userService.currentUser()!)
+      void this.executeCancel(this.#userService.currentUser()!)
     } else {
-      this.pin.set('')
-      this.pinError.set(false)
-      this.step.set('pin')
+      this.step.set('select-user')
     }
   }
 
-  appendDigit(digit: string): void {
+  selectManager(manager: AuthorizingManager): void {
+    this.selectedManager.set(manager)
+    this.pin.set('')
     this.pinError.set(false)
-    const current = this.pin()
-    if (current.length < 6) {
-      const newPin = current + digit
-      this.pin.set(newPin)
+    this.errorMessage.set(null)
+    this.step.set('pin')
+  }
 
-      // Auto-Submit bei 4+ Stellen
-      if (newPin.length >= 4) {
-        this.verifyPin(newPin)
-      }
+  backToManagers(): void {
+    this.selectedManager.set(null)
+    this.pin.set('')
+    this.pinError.set(false)
+    this.errorMessage.set(null)
+    this.step.set('select-user')
+  }
+
+  appendDigit(digit: string): void {
+    if (this.verifying() || this.pin().length >= PIN_LENGTH) return
+    this.pin.update(p => p + digit)
+    this.pinError.set(false)
+    this.errorMessage.set(null)
+    if (this.pin().length === PIN_LENGTH) {
+      // Kurz verzögert, damit der letzte Punkt vor dem Request sichtbar wird (wie im Login).
+      setTimeout(() => void this.verifyPin(), 100)
     }
   }
 
   deleteDigit(): void {
     this.pin.update(p => p.slice(0, -1))
     this.pinError.set(false)
+    this.errorMessage.set(null)
   }
 
   close(): void {
     this.#dialogRef.close()
   }
 
-  private verifyPin(pin: string): void {
-    const matched = this.managerUsers().find(u => u.posPin === pin)
-    if (!matched) {
-      if (pin.length >= 6) {
-        // Maximale Länge erreicht, aber keine Übereinstimmung
-        this.pinError.set(true)
-        this.pin.set('')
+  /**
+   * Verifiziert den PIN der gewählten Person server-seitig (bcrypt via
+   * `users.verifyPin`). Ein Fehlversuch bleibt bewusst im PIN-Schritt: der
+   * gewählte Manager und der Storno-Grund bleiben erhalten, nur der PIN wird
+   * geleert.
+   */
+  private async verifyPin(): Promise<void> {
+    const manager = this.selectedManager()
+    if (!manager || this.verifying() || this.pin().length < PIN_LENGTH) return
+
+    this.verifying.set(true)
+    try {
+      const usersService = this.#connectionService.usersService as unknown as {
+        verifyPin: (data: { userId: string; pin: string }) => Promise<User>
       }
-      return
+      const verified = await usersService.verifyPin({ userId: manager._id, pin: this.pin() })
+
+      // Defense-in-Depth: Rolle gegen die Server-Antwort gegenprüfen — falls
+      // die Auswahlliste clientseitig manipuliert wurde.
+      if (!verified.role || !AUTHORIZING_ROLES.has(verified.role)) {
+        this.#failPin('CANCEL_ORDER.ROLE_NOT_ALLOWED')
+        return
+      }
+
+      await this.executeCancel(verified)
+    } catch {
+      // Server-Message ist hartkodiert deutsch — eigener übersetzter Text.
+      this.#failPin('CANCEL_ORDER.INVALID_PIN')
+    } finally {
+      this.verifying.set(false)
     }
-    this.executeCancel(matched)
   }
 
-  private async executeCancel(authorizer: User): Promise<void> {
-    const name = `${authorizer.firstName} ${authorizer.lastName}`.trim() || authorizer.loginname || authorizer._id
+  #failPin(messageKey: string): void {
+    this.pinError.set(true)
+    this.pin.set('')
+    this.errorMessage.set(this.#translate.instant(messageKey))
+    navigator.vibrate?.([100, 50, 100])
+  }
+
+  private async executeCancel(authorizer: User | AuthorizingManager): Promise<void> {
+    const name = this.#authorizerName(authorizer)
     try {
       await this.#orderService.patch(this.order._id, {
         cancellation: {
@@ -208,17 +329,48 @@ export class CancelOrderDialogComponent {
     }
   }
 
-  private async loadManagerUsers(): Promise<void> {
+  #authorizerName(authorizer: User | AuthorizingManager): string {
+    if ('fullName' in authorizer) return authorizer.fullName || authorizer._id
+    return `${authorizer.firstName} ${authorizer.lastName}`.trim() || authorizer.loginname || authorizer._id
+  }
+
+  /**
+   * Lädt die freigabeberechtigten Mitarbeiter. Bewusst der rohe Feathers-Service
+   * statt `UserService.find()`: letzterer läuft durch `handleError` und würde
+   * zusätzlich zur Inline-Meldung eine Notification werfen.
+   */
+  async #loadManagers(): Promise<void> {
+    this.managersLoading.set(true)
     try {
-      const result = await this.#userService.find({ query: { $limit: 200 } })
-      const users: User[] = Array.isArray(result) ? result : (result as any).data
-      this.managerUsers.set(
-        users.filter(
-          u => (u.role === UserSystemRole.TENANT_MANAGER || u.role === UserSystemRole.TENANT_OWNER) && !!u.posPin,
-        ),
+      const response = await this.#connectionService.usersService.find({
+        query: { role: { $in: [...AUTHORIZING_ROLES] }, $sort: { firstName: 1 }, $limit: 100 },
+      })
+      const users = (Array.isArray(response) ? response : (response?.data ?? [])) as User[]
+
+      // `hasPosPin` ist ein virtuelles Feld des externen Resolvers (der PIN-Hash
+      // selbst wird nie ausgeliefert) und daher nicht query-fähig — es spiegelt
+      // exakt die Server-Bedingung von `users.verifyPin`.
+      this.managers.set(
+        users
+          .filter(u => u.hasPosPin === true && u.status === UserStatus.ACTIVE)
+          .map(u => this.#toManager(u)),
       )
     } catch {
-      this.managerUsers.set([])
+      this.managers.set([])
+    } finally {
+      this.managersLoading.set(false)
+    }
+  }
+
+  #toManager(user: User): AuthorizingManager {
+    const firstName = user.firstName ?? ''
+    const lastName = user.lastName ?? ''
+    return {
+      _id: String(user._id),
+      fullName: `${firstName} ${lastName}`.trim(),
+      initials: `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase(),
+      staffRole: user.staffRole,
+      role: user.role,
     }
   }
 }

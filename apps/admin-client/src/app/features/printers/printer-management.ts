@@ -156,10 +156,17 @@ export class PrinterManagementComponent implements OnInit {
 
   /**
    * Drucker-CRUD: Sofort in die DB speichern und Print-Server aktualisieren.
+   *
+   * Snapshot/Rollback, damit die Liste bei einem fehlgeschlagenen Save nicht
+   * einen Stand zeigt, den die DB nicht hat — sonst glaubt der Nutzer, der
+   * Drucker sei angelegt, bis er die Seite neu laedt.
    */
   async onPrintersChanged(printers: PrinterFormData[]) {
+    const snapshot = this.printers()
     this.printers.set(printers)
-    await this.persistSettings()
+    if (!(await this.persistSettings())) {
+      this.printers.set(snapshot)
+    }
   }
 
   onPrintSettingsChanged(changes: Partial<PrintSettingsData>) {
@@ -181,10 +188,11 @@ export class PrinterManagementComponent implements OnInit {
    * Nutzt cachedSettings als Basis, damit alle Settings-Bereiche
    * (generalSettings, taxSettings, etc.) erhalten bleiben.
    */
-  private async persistSettings() {
+  /** @returns `true`, wenn der Patch persistiert wurde. */
+  private async persistSettings(): Promise<boolean> {
     if (!this.cachedSettings) {
       this.error.set('Settings nicht geladen. Bitte Seite neu laden.')
-      return
+      return false
     }
 
     this.saving.set(true)
@@ -219,8 +227,10 @@ export class PrinterManagementComponent implements OnInit {
         await this.printerService.restart()
         await this.loadPrintServerStatus()
       }
+      return true
     } catch (err) {
       this.error.set(formatApiError(err))
+      return false
     } finally {
       this.saving.set(false)
     }

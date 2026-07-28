@@ -2,14 +2,16 @@ import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@ang
 import { FormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
-import { formatApiError } from '../../core/error-helper'
+import { CloudManagedBannerComponent } from '../../core/cloud-managed-banner'
+import { CloudManagedService } from '../../core/cloud-managed.service'
+import { formatApiError, getApiErrorCode } from '../../core/error-helper'
 
 const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider'
 
 @Component({
   selector: 'app-pager-settings',
   standalone: true,
-  imports: [FormsModule, TranslateModule],
+  imports: [FormsModule, TranslateModule, CloudManagedBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6 max-w-2xl space-y-4 h-full overflow-y-auto">
@@ -27,24 +29,37 @@ const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase t
           <p class="text-slate-400 dark:text-gray-500 text-lg">{{ 'LOCATION.NO_LOCATION' | translate }}</p>
         </div>
       } @else {
-        <!-- Toggle -->
-        <div class="flex items-center justify-between border border-slate-200 dark:border-gray-800 rounded-xl p-4">
+        @if (readOnly()) {
+          <app-cloud-managed-banner sublineKey="CLOUD_MANAGED.SUBLINE_PAGERS" />
+        }
+
+        <!--
+          Sperre via fieldset[disabled]: deaktiviert alle Controls nativ und
+          nimmt sie aus der Tab-Reihenfolge. min-w-0 und m-0 neutralisieren die
+          UA-Defaults des Fieldsets, das sonst min-width auf min-content setzt
+          und das Flex-Layout bricht.
+        -->
+        <fieldset [disabled]="readOnly()"
+          class="min-w-0 m-0 flex items-center justify-between border border-slate-200 dark:border-gray-800 rounded-xl p-4"
+          [class.opacity-60]="readOnly()">
           <div>
             <p class="text-sm font-medium text-slate-900 dark:text-white">{{ 'LOCATION.PAGER_ENABLED' | translate }}</p>
             <p class="text-xs text-slate-400 dark:text-gray-500 mt-0.5">{{ 'LOCATION.PAGER_ENABLED_HINT' | translate }}</p>
           </div>
           <button type="button" (click)="toggleEnabled()"
-            [class]="pagerEnabled
+            [class]="pagerEnabled()
               ? 'relative w-9 h-5 bg-slate-900 dark:bg-white rounded-full transition'
               : 'relative w-9 h-5 bg-slate-300 dark:bg-gray-700 rounded-full transition'">
-            <span [class]="pagerEnabled
+            <span [class]="pagerEnabled()
               ? 'absolute top-0.5 left-[18px] w-4 h-4 bg-white dark:bg-black rounded-full transition-all'
               : 'absolute top-0.5 left-0.5 w-4 h-4 bg-white dark:bg-black rounded-full transition-all'"></span>
           </button>
-        </div>
+        </fieldset>
 
         <!-- Pager hinzufügen -->
-        <div class="border border-slate-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
+        <fieldset [disabled]="readOnly()"
+          class="min-w-0 m-0 border border-slate-200 dark:border-gray-800 rounded-xl p-4 space-y-3"
+          [class.opacity-60]="readOnly()">
           <span class="${LABEL}">{{ 'LOCATION.PAGER_LIST' | translate }}</span>
 
           <div class="flex items-center gap-2">
@@ -54,9 +69,9 @@ const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase t
               class="flex-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800
                      rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none
                      focus:border-slate-900 dark:focus:border-white font-mono" />
-            <button type="button" (click)="addPager()"
+            <button type="button" (click)="addPager()" [disabled]="saving()"
               class="px-4 py-2.5 text-sm font-medium bg-slate-900 dark:bg-white text-white dark:text-black
-                     rounded-lg hover:bg-slate-800 dark:hover:bg-gray-200 transition">
+                     rounded-lg hover:bg-slate-800 dark:hover:bg-gray-200 transition disabled:opacity-50">
               + {{ 'LOCATION.PAGER_ADD' | translate }}
             </button>
           </div>
@@ -73,11 +88,11 @@ const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase t
               class="flex-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800
                      rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none
                      focus:border-slate-900 dark:focus:border-white font-mono" />
-            <button type="button" (click)="addBatch()"
+            <button type="button" (click)="addBatch()" [disabled]="saving()"
               class="px-4 py-2.5 text-sm font-medium text-slate-500 dark:text-gray-400
                      border border-slate-200 dark:border-gray-800 rounded-lg
                      hover:text-slate-900 dark:hover:text-white hover:border-slate-400
-                     dark:hover:border-gray-600 transition whitespace-nowrap">
+                     dark:hover:border-gray-600 transition whitespace-nowrap disabled:opacity-50">
               {{ 'LOCATION.PAGER_BATCH_ADD' | translate }}
             </button>
           </div>
@@ -86,27 +101,27 @@ const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase t
             <p class="text-red-400 text-xs">{{ batchError() }}</p>
           }
 
-          @if (pagers.length === 0) {
+          @if (pagers().length === 0) {
             <p class="text-slate-300 dark:text-gray-600 text-xs text-center py-6">{{ 'LOCATION.NO_PAGERS' | translate }}</p>
           } @else {
             <div class="flex flex-wrap gap-2">
-              @for (p of pagers; track p) {
+              @for (p of pagers(); track p) {
                 <span class="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-gray-800
                              text-slate-700 dark:text-gray-300 text-sm font-mono
                              pl-3.5 pr-1.5 py-2 rounded-lg">
                   {{ p }}
-                  <button type="button" (click)="removePager(p)"
+                  <button type="button" (click)="removePager(p)" [disabled]="saving()"
                     class="w-7 h-7 flex items-center justify-center rounded-md
                            text-slate-400 dark:text-gray-500 hover:text-red-400
-                           hover:bg-red-50 dark:hover:bg-red-900/20 transition text-xs">
+                           hover:bg-red-50 dark:hover:bg-red-900/20 transition text-xs disabled:opacity-50">
                     ✕
                   </button>
                 </span>
               }
             </div>
-            <p class="text-xs text-slate-400 dark:text-gray-500">{{ pagers.length }} {{ 'LOCATION.PAGER_COUNT' | translate }}</p>
+            <p class="text-xs text-slate-400 dark:text-gray-500">{{ pagers().length }} {{ 'LOCATION.PAGER_COUNT' | translate }}</p>
           }
-        </div>
+        </fieldset>
 
         @if (error()) {
           <p class="text-red-500 dark:text-red-400 text-sm">{{ error() }}</p>
@@ -122,6 +137,10 @@ const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase t
 export class PagerSettingsComponent implements OnInit {
   private api = inject(ApiService)
   private t = inject(TranslateService)
+  private cloudManaged = inject(CloudManagedService)
+
+  /** Cloud ist Source of Truth für Standort-Settings, sobald gepairt. */
+  protected readOnly = this.cloudManaged.readOnly
 
   loading = signal(true)
   saving = signal(false)
@@ -131,8 +150,15 @@ export class PagerSettingsComponent implements OnInit {
   pagerDuplicateError = signal(false)
   batchError = signal<string | null>(null)
 
-  pagerEnabled = false
-  pagers: number[] = []
+  /**
+   * Signals statt Plain-Properties: der Rollback nach einem fehlgeschlagenen
+   * Save passiert nach einem `await`, also ausserhalb des Event-Turns. Mit
+   * Signals ist das unabhaengig von Zone.js korrekt — und bleibt es beim
+   * spaeteren Zoneless-Umstieg.
+   */
+  pagers = signal<number[]>([])
+  pagerEnabled = signal(false)
+
   newPagerNumber: number | null = null
   batchCount: number | null = null
   private currentSettings: any = {}
@@ -140,6 +166,8 @@ export class PagerSettingsComponent implements OnInit {
   private static readonly MAX_PAGERS = 200
 
   async ngOnInit() {
+    // Frischen Cloud-Zustand holen, statt auf den nächsten 60-s-Poll zu warten.
+    void this.cloudManaged.refresh()
     try {
       const result = await this.api.find<any>('locations', { $limit: 1 })
       if (result.data.length > 0) {
@@ -148,8 +176,10 @@ export class PagerSettingsComponent implements OnInit {
         this.currentSettings = loc.settings ?? {}
         const ps = this.currentSettings.pagerSettings
         if (ps) {
-          this.pagerEnabled = ps.enabled ?? false
-          this.pagers = (ps.pagers || []).filter((n: any) => typeof n === 'number').sort((a: number, b: number) => a - b)
+          this.pagerEnabled.set(ps.enabled ?? false)
+          this.pagers.set(
+            (ps.pagers || []).filter((n: any) => typeof n === 'number').sort((a: number, b: number) => a - b),
+          )
         }
       }
     } catch (e) {
@@ -159,29 +189,53 @@ export class PagerSettingsComponent implements OnInit {
     this.loading.set(false)
   }
 
-  addPager() {
+  /**
+   * Mutiert optimistisch, persistiert und rollt bei Fehler exakt zurueck.
+   *
+   * Vorher wurde der lokale State gesetzt und `savePagerSettings()` ohne
+   * `await` aufgerufen: bei 403 blieb die UI auf dem nicht persistierten Stand
+   * stehen — der Nutzer sah seinen Pager in der Liste, bis er neu lud.
+   */
+  async #applyChange(mutate: () => void): Promise<void> {
+    if (this.readOnly()) {
+      this.error.set(this.t.instant('CLOUD_MANAGED.SAVE_BLOCKED'))
+      return
+    }
+    // Ohne diesen Guard koennten zwei parallele Saves ihre Snapshots
+    // ueberkreuzen und ein Rollback den jeweils anderen Stand zerstoeren.
+    if (this.saving()) return
+
+    const snapshot = { pagers: this.pagers(), enabled: this.pagerEnabled() }
+    mutate()
+    if (!(await this.#savePagerSettings())) {
+      this.pagers.set(snapshot.pagers)
+      this.pagerEnabled.set(snapshot.enabled)
+    }
+  }
+
+  async addPager() {
     const num = this.newPagerNumber
     if (num == null || num < 1) return
     this.pagerDuplicateError.set(false)
 
-    if (this.pagers.length >= PagerSettingsComponent.MAX_PAGERS) {
-      this.pagerDuplicateError.set(false)
+    if (this.pagers().length >= PagerSettingsComponent.MAX_PAGERS) {
       this.batchError.set(this.t.instant('LOCATION.PAGER_LIMIT', { max: PagerSettingsComponent.MAX_PAGERS }))
       return
     }
 
-    if (this.pagers.includes(num)) {
+    if (this.pagers().includes(num)) {
       this.pagerDuplicateError.set(true)
       return
     }
 
-    this.pagers = [...this.pagers, num].sort((a, b) => a - b)
-    this.newPagerNumber = null
     this.batchError.set(null)
-    this.savePagerSettings()
+    await this.#applyChange(() => {
+      this.pagers.set([...this.pagers(), num].sort((a, b) => a - b))
+      this.newPagerNumber = null
+    })
   }
 
-  addBatch() {
+  async addBatch() {
     const count = this.batchCount
     this.batchError.set(null)
     this.pagerDuplicateError.set(false)
@@ -193,14 +247,14 @@ export class PagerSettingsComponent implements OnInit {
       return
     }
 
-    const total = this.pagers.length + count
+    const total = this.pagers().length + count
     if (total > PagerSettingsComponent.MAX_PAGERS) {
       this.batchError.set(this.t.instant('LOCATION.PAGER_LIMIT', { max: PagerSettingsComponent.MAX_PAGERS }))
       return
     }
 
     // Nächste freie Nummern finden (ab 1, Lücken füllen)
-    const existing = new Set(this.pagers)
+    const existing = new Set(this.pagers())
     const newPagers: number[] = []
     let candidate = 1
     while (newPagers.length < count) {
@@ -210,22 +264,22 @@ export class PagerSettingsComponent implements OnInit {
       candidate++
     }
 
-    this.pagers = [...this.pagers, ...newPagers].sort((a, b) => a - b)
-    this.batchCount = null
-    this.savePagerSettings()
+    await this.#applyChange(() => {
+      this.pagers.set([...this.pagers(), ...newPagers].sort((a, b) => a - b))
+      this.batchCount = null
+    })
   }
 
-  removePager(num: number) {
-    this.pagers = this.pagers.filter(p => p !== num)
-    this.savePagerSettings()
+  async removePager(num: number) {
+    await this.#applyChange(() => this.pagers.set(this.pagers().filter(p => p !== num)))
   }
 
-  toggleEnabled() {
-    this.pagerEnabled = !this.pagerEnabled
-    this.savePagerSettings()
+  async toggleEnabled() {
+    await this.#applyChange(() => this.pagerEnabled.set(!this.pagerEnabled()))
   }
 
-  private async savePagerSettings() {
+  /** @returns `true`, wenn der Save persistiert wurde. */
+  async #savePagerSettings(): Promise<boolean> {
     this.saving.set(true)
     this.error.set(null)
     this.saved.set(false)
@@ -233,17 +287,22 @@ export class PagerSettingsComponent implements OnInit {
       const mergedSettings = {
         ...this.currentSettings,
         pagerSettings: {
-          enabled: this.pagerEnabled,
-          pagers: this.pagers,
+          enabled: this.pagerEnabled(),
+          pagers: this.pagers(),
         },
       }
       await this.api.patch('locations', this.locationId()!, { settings: mergedSettings })
       this.currentSettings = mergedSettings
       this.saved.set(true)
       setTimeout(() => this.saved.set(false), 2000)
-    } catch (e: any) {
+      return true
+    } catch (e: unknown) {
       this.error.set(formatApiError(e))
+      // Nach 403 CLOUD_MANAGED war der lokale Zustand nachweislich veraltet.
+      if (getApiErrorCode(e) === 'CLOUD_MANAGED') void this.cloudManaged.refresh()
+      return false
+    } finally {
+      this.saving.set(false)
     }
-    this.saving.set(false)
   }
 }

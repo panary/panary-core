@@ -49,7 +49,7 @@
     "ADMIN_PANEL": "Admin Panel",
     "DASHBOARD": "Dashboard",
     "USERS": "Benutzer",
-    "LOCATION": "Standort",
+    "LOCATION": "Stammdaten",
     "PRODUCT_GROUPS": "Produktgruppen",
     "PRODUCTS": "Produkte",
     "PRINTERS": "Drucker",
@@ -62,7 +62,13 @@
     "LOGS": "Support-Logs",
     "BUSINESS_DAYS": "Geschäftstage",
     "DEVICES": "Geräte",
-    "DEVICE_BADGE": "{{online}} von {{total}}"
+    "DEVICE_BADGE": "{{online}} von {{total}}",
+    "GROUP_OPERATIONS": "Betrieb",
+    "GROUP_CATALOG": "Katalog",
+    "GROUP_LOCATION": "Standort",
+    "GROUP_HARDWARE": "Hardware",
+    "GROUP_SYSTEM": "System",
+    "TABLES": "Tische"
   },
   "LOGS": {
     "TITLE": "Support-Logs",

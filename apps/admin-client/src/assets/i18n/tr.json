@@ -49,7 +49,7 @@
     "ADMIN_PANEL": "Y\u00f6netim Paneli",
     "DASHBOARD": "G\u00f6sterge Paneli",
     "USERS": "Kullan\u0131c\u0131lar",
-    "LOCATION": "Konum",
+    "LOCATION": "Ana veriler",
     "PRODUCT_GROUPS": "\u00dcr\u00fcn Gruplar\u0131",
     "PRODUCTS": "\u00dcr\u00fcnler",
     "PRINTERS": "Yaz\u0131c\u0131lar",
@@ -62,7 +62,13 @@
     "LOGS": "Destek Günlükleri",
     "BUSINESS_DAYS": "İş Günleri",
     "DEVICES": "Cihazlar",
-    "DEVICE_BADGE": "{{online}}/{{total}}"
+    "DEVICE_BADGE": "{{online}}/{{total}}",
+    "GROUP_OPERATIONS": "İşletme",
+    "GROUP_CATALOG": "Katalog",
+    "GROUP_LOCATION": "Konum",
+    "GROUP_HARDWARE": "Donanım",
+    "GROUP_SYSTEM": "Sistem",
+    "TABLES": "Masalar"
   },
   "LOGS": {
     "TITLE": "Destek günlükleri",

@@ -10,6 +10,21 @@ import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { LanguageService } from '@panary/shared/data-access'
 import { LocationStateService } from '../core/location-state.service'
 
+/**
+ * Logische Gruppe in der Sidebar. Die Ueberschrift ist ein i18n-Key
+ * (`NAV.GROUP_*`) und erscheint nur im ausgeklappten Zustand; eingeklappt
+ * (w-16) ersetzt sie eine Trennlinie, damit die Icon-Spalte nicht mit Text
+ * bricht.
+ *
+ * Bewusst ohne `order`/`id`/Flag-Felder (anders als das Cloud-Pendant): hier
+ * gibt es genau eine Nav-Definition, die Array-Reihenfolge IST die Reihenfolge,
+ * und Feature-Flags haben auf der Edge keine Entsprechung.
+ */
+interface NavGroup {
+  label: string
+  items: NavItem[]
+}
+
 interface NavItem {
   path: string
   label: string
@@ -94,8 +109,34 @@ interface NavItem {
         </div>
 
         <!-- Navigation -->
-        <nav class="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          @for (item of navItems; track item.path) {
+        <nav class="flex-1 p-3 overflow-y-auto">
+          @for (group of navGroups; track group.label; let firstGroup = $first) {
+
+          <!--
+            Gruppen-Kopf. Ausgeklappt: Caps-Micro-Label. Eingeklappt (w-16)
+            wuerde Text umbrechen oder abgeschnitten werden — stattdessen eine
+            1px-Trennlinie, das minimalste eindeutige Signal fuer eine
+            Gruppengrenze (reiner Abstand waere bei fuenf Gruppen mehrdeutig).
+            Der Container hat in BEIDEN Zustaenden eine feste Hoehe, damit die
+            Icon-Spalte beim Ein-/Ausklappen nicht vertikal springt. Die erste
+            Gruppe bekommt keine Linie — darueber sitzt schon die Logo-Border.
+          -->
+          <div class="flex items-end overflow-hidden"
+               [class.h-7]="sidebarOpen()"
+               [class.h-0]="!sidebarOpen() && firstGroup"
+               [class.h-4]="!sidebarOpen() && !firstGroup">
+            @if (sidebarOpen()) {
+              <span class="px-3 pb-1 text-[10px] font-medium uppercase tracking-widest
+                           text-slate-400 dark:text-gray-600 whitespace-nowrap">
+                {{ group.label | translate }}
+              </span>
+            } @else if (!firstGroup) {
+              <div class="mx-2 mb-1.5 h-px w-full bg-slate-200 dark:bg-gray-800"></div>
+            }
+          </div>
+
+          <div class="space-y-0.5">
+          @for (item of group.items; track item.path) {
             <!--
               Icon in festem w-10 Rahmen (= nav-content-Breite bei w-16 Sidebar mit p-3).
               Die Icon-Position ändert sich NICHT zwischen auf- und zugeklappt — kein Sprung.
@@ -148,10 +189,12 @@ interface NavItem {
               </span>
             </a>
           }
+          </div>
+          }
         </nav>
 
         <!-- Footer: Theme-Toggle + User -->
-        <div class="border-t border-slate-200 dark:border-gray-800"
+        <div class="shrink-0 border-t border-slate-200 dark:border-gray-800"
              [class.p-4]="sidebarOpen()"
              [class.p-3]="!sidebarOpen()">
 
@@ -246,23 +289,42 @@ export class AdminLayoutComponent {
     return u ? `${u.firstName} ${u.lastName}`.trim() || u.loginname : ''
   })
 
-  navItems: NavItem[] = [
-    { path: '/dashboard',      label: 'NAV.DASHBOARD',        icon: 'dashboard'   },
-    { path: '/users',          label: 'NAV.USERS',            icon: 'people',      countService: 'users' },
-    { path: '/product-groups', label: 'NAV.PRODUCT_GROUPS',   icon: 'category',    countService: 'product-groups' },
-    { path: '/products',       label: 'NAV.PRODUCTS',         icon: 'inventory_2', countService: 'products' },
-    { path: '/orders',         label: 'NAV.ORDERS',           icon: 'receipt_long', countService: 'orders' },
-    { path: '/business-days',  label: 'NAV.BUSINESS_DAYS',    icon: 'event'       },
-    { path: '/printers',       label: 'NAV.PRINTERS',         icon: 'print'       },
-    { path: '/pagers',         label: 'NAV.PAGERS',           icon: 'vibration'   },
-    { path: '/devices',        label: 'NAV.DEVICES',          icon: 'devices',     connectionBadge: true },
-    { path: '/opening-hours',  label: 'NAV.OPENING_HOURS',    icon: 'schedule'    },
-    { path: '/apikeys',        label: 'NAV.API_KEYS',         icon: 'key'         },
-    { path: '/cloud',          label: 'NAV.CLOUD_CONNECTION',  icon: 'cloud',      problemCountKey: 'sync' },
-    { path: '/sync-status',    label: 'NAV.SYNC_STATUS',      icon: 'sync_problem', problemCountKey: 'sync' },
-    { path: '/logs',           label: 'NAV.LOGS',             icon: 'description' },
-    { path: '/location',       label: 'NAV.LOCATION',         icon: 'store'       },
+  navGroups: NavGroup[] = [
+    { label: 'NAV.GROUP_OPERATIONS', items: [
+      { path: '/dashboard',      label: 'NAV.DASHBOARD',        icon: 'dashboard'    },
+      { path: '/orders',         label: 'NAV.ORDERS',           icon: 'receipt_long', countService: 'orders' },
+      { path: '/business-days',  label: 'NAV.BUSINESS_DAYS',    icon: 'event'        },
+    ]},
+    { label: 'NAV.GROUP_CATALOG', items: [
+      { path: '/product-groups', label: 'NAV.PRODUCT_GROUPS',   icon: 'category',    countService: 'product-groups' },
+      { path: '/products',       label: 'NAV.PRODUCTS',         icon: 'inventory_2', countService: 'products' },
+    ]},
+    { label: 'NAV.GROUP_LOCATION', items: [
+      { path: '/location',       label: 'NAV.LOCATION',         icon: 'store'        },
+      { path: '/opening-hours',  label: 'NAV.OPENING_HOURS',    icon: 'schedule'     },
+      // Gleiches Icon wie die Tisch-Kacheln im POS-Bestelldialog.
+      { path: '/tables',         label: 'NAV.TABLES',           icon: 'table_restaurant' },
+      { path: '/pagers',         label: 'NAV.PAGERS',           icon: 'vibration'    },
+    ]},
+    { label: 'NAV.GROUP_HARDWARE', items: [
+      { path: '/printers',       label: 'NAV.PRINTERS',         icon: 'print'        },
+      { path: '/devices',        label: 'NAV.DEVICES',          icon: 'devices',     connectionBadge: true },
+    ]},
+    { label: 'NAV.GROUP_SYSTEM', items: [
+      { path: '/users',          label: 'NAV.USERS',            icon: 'people',      countService: 'users' },
+      { path: '/apikeys',        label: 'NAV.API_KEYS',         icon: 'key'          },
+      { path: '/cloud',          label: 'NAV.CLOUD_CONNECTION', icon: 'cloud',       problemCountKey: 'sync' },
+      { path: '/sync-status',    label: 'NAV.SYNC_STATUS',      icon: 'sync_problem', problemCountKey: 'sync' },
+      { path: '/logs',           label: 'NAV.LOGS',             icon: 'description'  },
+    ]},
   ]
+
+  /**
+   * Flache Sicht fuer `loadCounts()`. Bewusst abgeleitet statt parallel
+   * gepflegt — ein zurueckgelassenes leeres `navItems` haette alle
+   * Count-Badges still gekillt, ohne dass der Compiler etwas sagt.
+   */
+  private readonly allNavItems: NavItem[] = this.navGroups.flatMap(g => g.items)
 
   counts = signal<Record<string, number>>({})
   /**
@@ -304,7 +366,7 @@ export class AdminLayoutComponent {
     // identische Filter-Semantik wie order-list `getTimeRangeFilter('today')`.
     const now = new Date()
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
-    const services = this.navItems.filter(i => i.countService).map(i => i.countService!)
+    const services = this.allNavItems.filter(i => i.countService).map(i => i.countService!)
     const results: Record<string, number> = {}
     await Promise.all(
       services.map(async svc => {

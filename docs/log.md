@@ -1,5 +1,9 @@
 # Wiki Update Log
 
+## 2026-07-28
+
+* **Update**: [Edge-Installation — GHCR-Pull-Fehler](infrastructure/edge-installation-ghcr-pull.md) + [POS-Pairing-Wizard](domains/pos-pairing-wizard.md) — Installer-Hosting ist von `get.panary.io` (Strato) auf `get.panary.cloud` (Bunny Storage + Pull Zone) umgezogen; Verzeichnis `tools/hosting/get.panary.io/` entsprechend umbenannt und alle Pfad-/URL-Referenzen nachgezogen. Der dokumentierte Installationsbefehl lief bis dahin per `curl | sudo bash` über **HTTP**, weil der Alt-Host kein funktionierendes HTTPS hatte — also root-Code-Ausführung über eine ungeschützte Verbindung; jetzt HTTPS. Die alte Subdomain ist abgeschaltet, es gibt **keinen** Redirect: Alt-Anleitungen mit `get.panary.io` schlagen fehl statt weitergeleitet zu werden.
+
 ## 2026-07-27
 
 * **Creation**: [„OHNE"-Modifier — Marker `amount −1`, entfernbare Zutaten und Preisregeln](domains/modifier-ohne-marker.md) — die Inline-Feld-Härtung vom 2026-05-22 setzte `minimum: 0` auf `genericLineItemSchema.amount` **und** `.price` und traf damit BEIDE OHNE-Pfade des POS: den Marker `amount: -1` (`decreaseExtra`) und entfernbare Zutaten mit negativem `priceAdjustment` (`toggleRemovableIngredient`, Admin-UI schlägt dort `-1.0` vor). Jede solche Bestellung lief in `400` — am Edge, im POS-Offline-Outbox-Replay (Bestellung verworfen) und beim Cloud-Sync-Push (terminal, ohne Retry und ohne Konflikt-Eintrag). Neues `modifierLineItemSchema`; Marker bleibt preisneutral, konfigurierter Abzug wirkt, Zeile wird bei 0 geklemmt und der Bon weist den Abzug jetzt aus.

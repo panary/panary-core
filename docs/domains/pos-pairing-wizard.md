@@ -66,7 +66,7 @@ Advertising im Container selbst fehlerfrei startet:
 
 Deshalb setzt **jeder** Deployment-Pfad `network_mode: host` und verzichtet auf `ports:`:
 `tools/docker/docker-compose.edge.yml` (Prod-Test), `…edge.dev.yml` (Dev) und die vom
-Installer `tools/hosting/get.panary.io/install.sh` generierte `docker-compose.yml` — der
+Installer `tools/hosting/get.panary.cloud/install.sh` generierte `docker-compose.yml` — der
 Pfad, unter dem Kunden-Edges tatsächlich laufen. Host-Networking kann Ports nicht umbiegen,
 deshalb lauscht der Prozess selbst auf dem Zielport (`PORT`-ENV, gemappt in
 `config/custom-environment-variables.json`): Installer `PORT=${PANARY_PORT:-3030}`,

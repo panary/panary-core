@@ -1,0 +1,18 @@
+# Panary Edge Server — Installationsskript-Hosting
+#
+# Browser:  https://get.panary.cloud       → index.html (Landingpage)
+# Terminal: curl -sL https://get.panary.cloud/install.sh | bash
+#
+# ⚠️ Gilt NUR fuer Apache-Hosting (Alt-Host Strato). Seit 2026-07-27 laeuft
+# get.panary.cloud auf Bunny Storage + Pull Zone — dort ist diese Datei
+# wirkungslos. Die drei Anforderungen unten muessen in der Pull-Zone-
+# Konfiguration gesetzt sein; die Datei bleibt als deren Referenz erhalten.
+
+# .sh-Dateien als Plain-Text ausliefern (sonst laedt der Browser das Skript herunter)
+AddType text/plain .sh
+
+# Browser bekommt index.html
+DirectoryIndex index.html
+
+# Kein Directory-Listing
+Options -Indexes

@@ -6,7 +6,7 @@ tags: [api-edge, docker, infra, deployment]
 status: stable
 generated: { by: claude-code/opus-5, at: 2026-07-27T16:08:22Z }
 sources:
-  - { id: install-sh, resource: tools/hosting/get.panary.io/install.sh, title: Edge-Installationsskript }
+  - { id: install-sh, resource: tools/hosting/get.panary.cloud/install.sh, title: Edge-Installationsskript }
   - { id: build-workflow, resource: .github/workflows/build-edge-docker.yml, title: Build Edge Docker (GHCR-Push) }
 ---
 
@@ -57,7 +57,7 @@ Danach `install.sh` erneut ausführen — das Skript ist idempotent und behält 
 
 ## Registry-Vorabprüfung im Installer
 
-`tools/hosting/get.panary.io/install.sh` prüft seit 2026-07-27 vor jedem Schreibzugriff die
+`tools/hosting/get.panary.cloud/install.sh` prüft seit 2026-07-27 vor jedem Schreibzugriff die
 Registry — bewusst per `curl` **an der Docker-Config vorbei**, damit die Frage „Paket/Netz
 oder lokaler Login?" schon vor dem Pull beantwortet ist:
 

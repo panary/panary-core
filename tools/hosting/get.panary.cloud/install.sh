@@ -6,7 +6,7 @@
 # Erstellt Verzeichnis, .env, docker-compose.yml und startet den Container.
 #
 # Nutzung:
-#   curl -sL http://get.panary.io/install.sh | sudo bash
+#   curl -sL https://get.panary.cloud/install.sh | sudo bash
 #   sudo bash install.sh --port 3030 --dir /opt/panary --tag latest
 #
 # Nach der Installation:

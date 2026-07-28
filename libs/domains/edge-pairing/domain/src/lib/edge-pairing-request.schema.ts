@@ -36,10 +36,13 @@ export const SyncableMasterDataService = {
   // beim Pairing cloudManaged. Keine FK-Ordnungsabhängigkeit zu ORDERS.
   OPENING_HOUR_EXCEPTIONS: 'opening-hour-exceptions',
   // OoS-Welle E Item 4: Tenant-Doc als Master-Data zum Edge syncen
-  // (Receipt-Header/Footer, Branding, Localization). Pull-Service muss
-  // eine **Allowlist-Projection** anwenden (apps/api-cloud/src/services/
-  // sync/projections/tenant-projection.ts) — Stripe/TSE/SecurityPolicy/
-  // internalNotes bleiben Cloud-only.
+  // (Receipt-Header/Footer, Branding, Localization). Pull-Service wendet
+  // eine **Allowlist-Projection** an (apps/api-cloud/src/services/
+  // sync/projections/tenant-projection.ts) — Stripe/SecurityPolicy/
+  // internalNotes bleiben Cloud-only. Edge-Seite: read-only Replica im
+  // `tenants`-Service (Schema: @panary/tenants/domain edge-tenant.schema.ts,
+  // Doku: docs/domains/tenant-edge-replica.md). Beim Bootstrap Cloud-Master-
+  // only (PULL_ONLY_MASTER_SERVICES — kein Push, kein Merge, kein Truncate).
   // NIEMALS in SyncableTransactionService aufnehmen — Edge darf Tenants
   // nicht zurueckschreiben.
   TENANTS: 'tenants',

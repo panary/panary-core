@@ -11,6 +11,7 @@ import { devices } from './devices/devices'
 import { deviceConnections } from './device-connections/device-connections'
 import { productGroups } from './product-groups/product-groups'
 import { locations } from './locations/locations'
+import { tenants } from './tenants/tenants'
 import { orders } from './orders/orders'
 import { orderInteractions } from './order-interactions/order-interactions'
 import { userPreferences } from './user-preferences/user-preferences'
@@ -44,6 +45,8 @@ export const services = (app: Application) => {
   app.configure(deviceConnections)
   app.configure(productGroups)
   app.configure(locations)
+  // Tenant-Stammdaten-Replica (Cloud-managed): Ziel des tenants-Pull-Syncs.
+  app.configure(tenants)
   // VOR orders: signOrderTseStart vergibt die Fiskal-Vorgangsnummer über
   // app.service('fiscal-counters') (Vergabe zur Request-Zeit, Registrierung hier).
   app.configure(fiscalCounters)

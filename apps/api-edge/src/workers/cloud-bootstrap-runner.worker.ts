@@ -76,6 +76,14 @@ const MASTER_DATA_SERVICES: ReadonlyArray<string> = [
   SyncableMasterDataService.BUSINESS_DAYS,
 ]
 
+// Cloud-Master-only-Services: werden beim Bootstrap AUSSCHLIESSLICH Cloud→Edge
+// gepullt (runPullCloudToEdge) — niemals Edge→Cloud gepusht oder gemerged.
+// Die tenants-Replica traegt keine tenantId-Spalte (ihr `_id` IST der Tenant)
+// und keinen externalId-Mechanismus; collectAllRecords/truncateMasterTables
+// mit `query: { tenantId }` liefe direkt in `no such column: tenantId`.
+// Pull immer im upsert-Modus (kein Truncate; genau 1 Row, idempotent).
+const PULL_ONLY_MASTER_SERVICES: ReadonlyArray<string> = [SyncableMasterDataService.TENANTS]
+
 // `locations` hat (noch) keinen `externalId`-Mechanismus — Merge-by-external-id
 // kann sie nicht matchen und wuerde fuer jeden Edge-Standort einen
 // `sync-conflict` mit Grund `external-id-missing` erzeugen. Bis ein
@@ -519,7 +527,9 @@ const runPullCloudToEdge = async (
 ): Promise<void> => {
   const truncateFailed = await truncateMasterTables(app, connection.tenantId!)
   const cloudToken = requireDecryptedToken(connection)
-  for (const service of MASTER_DATA_SERVICES) {
+  // PULL_ONLY_MASTER_SERVICES zuerst: tenants ist die Wurzel-Entitaet (kein
+  // FK auf andere Tabellen, aber semantisch vor allem anderen).
+  for (const service of [...PULL_ONLY_MASTER_SERVICES, ...MASTER_DATA_SERVICES]) {
     const startedAt = new Date().toISOString()
     const startMs = performance.now()
     try {
@@ -528,7 +538,7 @@ const runPullCloudToEdge = async (
         cloudToken,
         app,
         service,
-        truncateFailed.has(service) ? 'upsert' : 'insert',
+        PULL_ONLY_MASTER_SERVICES.includes(service) || truncateFailed.has(service) ? 'upsert' : 'insert',
       )
       await recordSyncRun(app, {
         tenantId: connection.tenantId!,

@@ -13,6 +13,7 @@ import { BusinessDayService } from './services/business-days/business-days.class
 import { CashSessionService } from './services/cash-sessions/cash-sessions.class'
 import { ProductGroupService } from './services/product-groups/product-groups.class'
 import { LocationService } from './services/locations/locations.class'
+import { TenantService } from './services/tenants/tenants.class'
 import { OrderService } from './services/orders/orders.class'
 import { OrderInteractionService } from './services/order-interactions/order-interactions.class'
 import { UserPreferenceService } from './services/user-preferences/user-preferences.class'
@@ -70,6 +71,7 @@ export interface ServiceTypes {
   devices: DeviceService
   'product-groups': ProductGroupService
   locations: LocationService
+  tenants: TenantService
   orders: OrderService
   'order-interactions': OrderInteractionService
   'user-preferences': UserPreferenceService

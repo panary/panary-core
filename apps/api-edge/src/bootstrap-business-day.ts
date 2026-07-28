@@ -28,6 +28,12 @@ import {
  * Tag anlegen (vermeidet die fruehere ID-Divergenz Edge↔Cloud).
  */
 export async function autoEnsureBusinessDay(app: Application): Promise<void> {
+  // Tier 1 (`mode: 'cloud'`) hat gar keinen Edge-Lifecycle — dort pflegt die
+  // Cloud die Geschaeftstage. Das ist die EINZIGE verbleibende Modus-Pruefung
+  // hier: sie beantwortet nicht „darf lokal rotiert werden" (das entscheidet
+  // das Pairing), sondern „gibt es hier ueberhaupt einen lokalen Lifecycle".
+  if (app.get('system')?.mode === 'cloud') return
+
   if (!(await isLocalRotationAllowed(app))) {
     logger.info(
       '[AutoBusinessDay] Boot-Rotation uebersprungen — Edge ist mit der Cloud gepairt. ' +

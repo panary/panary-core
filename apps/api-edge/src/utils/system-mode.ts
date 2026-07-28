@@ -12,6 +12,8 @@
 
 import { PairingStatus } from '@panary/cloud-connection/domain'
 
+import { findConnectedCloudConnection } from './cloud-connection-lookup'
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Feathers Application hat generischen Typ Application<any, any>
 type FeathersApp = any
 
@@ -44,15 +46,9 @@ export const systemModeFromPairing = (
 export const resolveSystemMode = async (app: FeathersApp): Promise<SystemMode> => {
   const configuredMode = app.get('system')?.mode
   if (configuredMode === 'cloud') return 'cloud'
-  try {
-    const result = await app.service('cloud-connection').find({
-      provider: undefined,
-      paginate: false,
-      query: { $limit: 1 },
-    })
-    const list = Array.isArray(result) ? result : []
-    return systemModeFromPairing(configuredMode, list[0]?.pairingStatus)
-  } catch {
-    return 'standalone'
-  }
+  // Gezielt die CONNECTED-Zeile: nur ein aktives Pairing macht Tier 3 aus.
+  // Eine Altlast-Zeile aus einem abgebrochenen Pairing darf den Modus nicht
+  // bestimmen (`findConnectedCloudConnection` ist selbst fail-open).
+  const connection = await findConnectedCloudConnection(app)
+  return systemModeFromPairing(configuredMode, connection?.pairingStatus)
 }

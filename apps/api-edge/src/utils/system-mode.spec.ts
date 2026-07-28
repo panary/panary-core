@@ -32,13 +32,27 @@ describe('systemModeFromPairing', () => {
   })
 })
 
-function makeApp(opts: { configuredMode?: string; connection?: unknown; throws?: boolean }): any {
+/**
+ * Stub-App mit MEHREREN cloud-connection-Zeilen. `find` filtert die Query
+ * nach, damit die Spec beweisen kann, dass die Modus-Herleitung gezielt die
+ * CONNECTED-Zeile waehlt statt der ersten beliebigen.
+ */
+function makeApp(opts: {
+  configuredMode?: string
+  connections?: Array<{ pairingStatus: string }>
+  throws?: boolean
+}): any {
+  const rows = opts.connections ?? []
   return {
     get: (key: string) => (key === 'system' ? { mode: opts.configuredMode ?? 'standalone' } : undefined),
     service: () => ({
       find: opts.throws
         ? vi.fn().mockRejectedValue(new Error('db down'))
-        : vi.fn().mockResolvedValue(opts.connection ? [opts.connection] : []),
+        : vi.fn().mockImplementation(({ query }: any) =>
+            Promise.resolve(
+              query?.pairingStatus ? rows.filter(r => r.pairingStatus === query.pairingStatus) : rows,
+            ),
+          ),
     }),
   }
 }
@@ -49,11 +63,33 @@ beforeEach(() => {
 
 describe('resolveSystemMode', () => {
   it('leitet connected aus einer gepairten cloud-connection ab', async () => {
-    await expect(resolveSystemMode(makeApp({ connection: { pairingStatus: 'connected' } }))).resolves.toBe('connected')
+    await expect(
+      resolveSystemMode(makeApp({ connections: [{ pairingStatus: 'connected' }] })),
+    ).resolves.toBe('connected')
   })
 
   it('leitet standalone ohne cloud-connection ab', async () => {
     await expect(resolveSystemMode(makeApp({}))).resolves.toBe('standalone')
+  })
+
+  // Die Tabelle hat keinen Unique-Constraint: abgebrochene Pairings hinterlassen
+  // Altlast-Zeilen. Waehlte die Herleitung blind die erste, wuerde ein gepairter
+  // Edge als 'standalone' melden — und der Admin-Client saemtliche
+  // Standort-Seiten entsperrt zeigen, obwohl das Backend sie blockt.
+  it('waehlt die CONNECTED-Zeile, auch wenn eine Altlast davor steht', async () => {
+    await expect(
+      resolveSystemMode(
+        makeApp({ connections: [{ pairingStatus: 'disconnected' }, { pairingStatus: 'connected' }] }),
+      ),
+    ).resolves.toBe('connected')
+  })
+
+  it('bleibt standalone, wenn ausschliesslich nicht-verbundene Zeilen existieren', async () => {
+    await expect(
+      resolveSystemMode(
+        makeApp({ connections: [{ pairingStatus: 'disconnected' }, { pairingStatus: 'pending' }] }),
+      ),
+    ).resolves.toBe('standalone')
   })
 
   it('liest die cloud-connection gar nicht erst, wenn cloud konfiguriert ist', async () => {

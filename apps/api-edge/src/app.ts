@@ -24,6 +24,7 @@ import { secureByDefault } from '@panary/shared-backend'
 import { authentication } from './authentication'
 import os from 'os'
 import { getLocalIpAddress, renderStatusPage } from './status-page'
+import { findReportableCloudConnection } from './utils/cloud-connection-lookup'
 import { systemModeFromPairing } from './utils/system-mode'
 import { APP_VERSION } from './version'
 import { registerDevicePairingRoutes } from './device-pairing'
@@ -144,12 +145,12 @@ app.use(async (ctx, next) => {
     let emergencyOverride = false
     let emergencyOverrideSince: string | undefined
     try {
-      const result = await (app.service('cloud-connection') as any).find({
-        provider: undefined,
-        paginate: false,
-        query: { $limit: 1 },
-      })
-      const conn = Array.isArray(result) ? result[0] : undefined
+      // Bevorzugt die CONNECTED-Zeile. Ein blindes `$limit: 1` konnte bei
+      // Altlasten aus abgebrochenen Pairings eine beliebige liefern — und da
+      // `systemMode` und der Notfall-Modus hieraus abgeleitet werden, haette
+      // der Admin-Client dann alle Standort-Seiten entsperrt gezeigt, waehrend
+      // das Backend jeden Save mit 403 ablehnt.
+      const conn = await findReportableCloudConnection(app)
       if (conn) {
         cloudPairingStatus = conn.pairingStatus
         cloudTokenErrorReason = conn.tokenErrorReason

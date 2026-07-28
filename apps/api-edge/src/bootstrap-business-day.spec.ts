@@ -43,7 +43,7 @@ describe('autoEnsureBusinessDay', () => {
   // Kern der Entkopplung: frueher hat `systemMode !== 'standalone'` hier hart
   // abgebrochen. Sobald der Modus aus dem Pairing abgeleitet wird, haette das
   // die Boot-Rotation auf jedem gepairten Edge stillgelegt — auch mit Override.
-  it.each(['standalone', 'connected', 'cloud'])(
+  it.each(['standalone', 'connected'])(
     'rotiert bei erlaubter lokaler Rotation, unabhängig vom systemMode (%s)',
     async systemMode => {
       isLocalRotationAllowed.mockResolvedValue(true)
@@ -54,6 +54,20 @@ describe('autoEnsureBusinessDay', () => {
       expect(rotateBusinessDay).toHaveBeenCalledTimes(1)
     },
   )
+
+  // Tier 1 hat keinen Edge-Lifecycle — dort pflegt die Cloud die Tage. Diese
+  // eine Modus-Pruefung bleibt bewusst bestehen; sie beantwortet nicht „darf
+  // lokal rotiert werden", sondern „gibt es hier ueberhaupt einen lokalen
+  // Lifecycle".
+  it('rotiert im konfigurierten cloud-Modus gar nicht, auch ohne Pairing', async () => {
+    isLocalRotationAllowed.mockResolvedValue(true)
+    shouldAutoRotate.mockReturnValue(true)
+
+    await autoEnsureBusinessDay(makeApp({ systemMode: 'cloud' }))
+
+    expect(rotateBusinessDay).not.toHaveBeenCalled()
+    expect(isLocalRotationAllowed).not.toHaveBeenCalled()
+  })
 
   it('überspringt die Rotation, wenn das Pairing sie verbietet', async () => {
     isLocalRotationAllowed.mockResolvedValue(false)

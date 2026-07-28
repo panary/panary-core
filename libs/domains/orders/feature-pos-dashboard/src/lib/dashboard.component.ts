@@ -30,8 +30,8 @@ import { OrderDialogComponent } from '@panary/orders/feature-pos-order-dialog'
 import {
   CashSessionDialogComponent,
   ClosingDialogComponent,
-  ManagerAuthorizeCashSessionDialogComponent,
   OpeningDialogComponent,
+  openManagerAuthorizeCashSessionDialog,
 } from '@panary/businessdays/feature-pos-closing-dialog'
 import { BusinessDayOperationMode } from '@panary/businessdays/domain'
 import { PosWriteOffDialogComponent } from '@panary/write-offs/feature-pos-dialog'
@@ -562,9 +562,11 @@ export class DashboardComponent implements OnInit {
       console.warn('manageCashSession: kein offener Geschäftstag — Aktion ignoriert')
       return
     }
-    const user = this.#authService.user() as
-      | { _id?: string; firstName?: string; lastName?: string }
-      | undefined
+    // currentUser() statt authService.user(): auf einem POS-Gerät ist der
+    // Auth-User der Geräte-User (API-Key), nicht der per PIN angemeldete
+    // Kassierer. Die Kasse muss aber auf den Kassierer laufen, sonst greift der
+    // cash-session-Guard beim Kassieren weiterhin.
+    const user = this.currentUser()
     const userId = user?._id
     if (!userId) {
       console.warn('manageCashSession: kein angemeldeter Benutzer — Aktion ignoriert')
@@ -591,19 +593,15 @@ export class DashboardComponent implements OnInit {
         return
       }
 
-      // Keine Kasse → manager-autorisierte Eröffnung.
+      // Keine Kasse → manager-autorisierte Eröffnung. Das Ergebnis bleibt hier
+      // ungenutzt: der Dialog quittiert den Erfolg selbst und am Dashboard hängt
+      // kein Zustand an der Kasse (anders als beim Kassieren in active-orders).
       const cashierName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || undefined
-      this.#dialog.open(ManagerAuthorizeCashSessionDialogComponent, {
-        width: '28.75rem',
-        maxWidth: '92vw',
-        maxHeight: '90vh',
-        disableClose: false,
-        data: {
-          businessDayId,
-          cashierId: userId,
-          cashierName,
-          defaultOpeningFloatCents: loc?.settings?.cashSessionSettings?.defaultOpeningFloatCents,
-        },
+      openManagerAuthorizeCashSessionDialog(this.#dialog, {
+        businessDayId,
+        cashierId: String(userId),
+        cashierName,
+        defaultOpeningFloatCents: loc?.settings?.cashSessionSettings?.defaultOpeningFloatCents,
       })
     })()
   }

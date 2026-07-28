@@ -417,6 +417,27 @@
     "TITLE": "Geschäftstag eröffnen",
     "SUBMIT": "Eröffnen"
   },
+  "CASH_SESSION": {
+    "AUTH_TITLE": "Kasse freigeben",
+    "AUTH_CASHIER_FALLBACK": "den Kassierer",
+    "AUTH_INTRO": "Für {{name}} ist noch keine Kasse eröffnet. Ein berechtigter Mitarbeiter muss die Eröffnung freigeben.",
+    "AUTH_LOADING_USERS": "Berechtigte Mitarbeiter werden geladen...",
+    "AUTH_OPENING_FLOAT": "Wechselgeld-Anfangsbestand",
+    "AUTH_OPENING_FLOAT_INVALID": "Bitte einen gültigen Betrag ab 0 € eingeben.",
+    "AUTH_SELECT_MANAGER": "Freigebende Person wählen",
+    "AUTH_NO_ELIGIBLE_USERS": "Kein berechtigter Mitarbeiter verfügbar.",
+    "AUTH_NO_PIN_USERS": "Kein berechtigter Mitarbeiter hat einen POS-PIN hinterlegt.",
+    "AUTH_ENTER_PIN": "PIN eingeben, um die Kasse freizugeben",
+    "AUTH_AMOUNT_LABEL": "Wechselgeld",
+    "AUTH_ERROR_PIN_INVALID": "PIN ungültig. Bitte erneut versuchen.",
+    "AUTH_ERROR_ROLE_DENIED": "Dieser Mitarbeiter darf keine Kasse freigeben.",
+    "AUTH_ERROR_NOT_AUTHORIZED": "Die Kassen-Eröffnung muss von einem berechtigten Mitarbeiter freigegeben werden.",
+    "AUTH_ERROR_GENERIC": "Freigabe fehlgeschlagen. Bitte erneut versuchen.",
+    "AUTH_LOAD_ERROR": "Mitarbeiterliste konnte nicht geladen werden.",
+    "AUTH_IN_PROGRESS": "Kasse wird freigegeben...",
+    "AUTH_SUCCESS": "Kasse eröffnet",
+    "AUTH_SUCCESS_DETAIL": "{{name}} · Wechselgeld {{amount}}"
+  },
   "SETUP": {
     "TITLE": "Setup",
     "CONNECT_TITLE": "Mit Panary verbinden",

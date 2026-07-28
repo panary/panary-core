@@ -417,6 +417,27 @@
     "TITLE": "İşletme gününü aç",
     "SUBMIT": "Aç"
   },
+  "CASH_SESSION": {
+    "AUTH_TITLE": "Kasayı onayla",
+    "AUTH_CASHIER_FALLBACK": "kasiyer",
+    "AUTH_INTRO": "{{name}} için henüz bir kasa açılmadı. Yetkili bir çalışanın açılışı onaylaması gerekir.",
+    "AUTH_LOADING_USERS": "Yetkili çalışanlar yükleniyor...",
+    "AUTH_OPENING_FLOAT": "Başlangıç bozuk para tutarı",
+    "AUTH_OPENING_FLOAT_INVALID": "Lütfen 0 € veya üzeri geçerli bir tutar girin.",
+    "AUTH_SELECT_MANAGER": "Onaylayan kişiyi seçin",
+    "AUTH_NO_ELIGIBLE_USERS": "Yetkili çalışan bulunamadı.",
+    "AUTH_NO_PIN_USERS": "Hiçbir yetkili çalışanın POS PIN'i tanımlı değil.",
+    "AUTH_ENTER_PIN": "Kasayı onaylamak için PIN girin",
+    "AUTH_AMOUNT_LABEL": "Bozuk para",
+    "AUTH_ERROR_PIN_INVALID": "PIN geçersiz. Lütfen tekrar deneyin.",
+    "AUTH_ERROR_ROLE_DENIED": "Bu çalışan kasa onayı veremez.",
+    "AUTH_ERROR_NOT_AUTHORIZED": "Kasa açılışı yetkili bir çalışan tarafından onaylanmalıdır.",
+    "AUTH_ERROR_GENERIC": "Onay başarısız. Lütfen tekrar deneyin.",
+    "AUTH_LOAD_ERROR": "Çalışan listesi yüklenemedi.",
+    "AUTH_IN_PROGRESS": "Kasa onaylanıyor...",
+    "AUTH_SUCCESS": "Kasa açıldı",
+    "AUTH_SUCCESS_DETAIL": "{{name}} · bozuk para {{amount}}"
+  },
   "SETUP": {
     "TITLE": "Kurulum",
     "CONNECT_TITLE": "Panary'ye bağlan",

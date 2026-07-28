@@ -15,7 +15,7 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { uuidv7 } from 'uuidv7'
 import { OrderDialogComponent } from '@panary/orders/feature-pos-order-dialog'
 import {
-  ManagerAuthorizeCashSessionDialogComponent,
+  openManagerAuthorizeCashSessionDialog,
   type ManagerAuthorizeCashSessionDialogData,
 } from '@panary/businessdays/feature-pos-closing-dialog'
 import type { CashSession } from '@panary/businessdays/domain'
@@ -329,17 +329,7 @@ export class ActiveOrdersComponent {
       cashierName: cashierName || undefined,
       defaultOpeningFloatCents: loc?.settings?.cashSessionSettings?.defaultOpeningFloatCents,
     }
-    const result = await firstValueFrom(
-      this.#matDialog
-        .open(ManagerAuthorizeCashSessionDialogComponent, {
-          width: '28.75rem',
-          maxWidth: '92vw',
-          maxHeight: '90vh',
-          disableClose: false,
-          data,
-        })
-        .afterClosed(),
-    )
+    const result = await firstValueFrom(openManagerAuthorizeCashSessionDialog(this.#matDialog, data).afterClosed())
     return !!(result as CashSession | null)
   }
 

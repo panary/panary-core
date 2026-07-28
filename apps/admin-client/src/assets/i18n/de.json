@@ -102,7 +102,8 @@
     "EMERGENCY_SINCE": "Aktiv seit {{minutes}} Minuten",
     "EMERGENCY_END": "Notfall-Modus beenden",
     "EMERGENCY_START": "Notfall-Modus aktivieren",
-    "SAVE_BLOCKED": "Änderung nicht gespeichert — diese Daten werden in der Cloud verwaltet."
+    "SAVE_BLOCKED": "Änderung nicht gespeichert — diese Daten werden in der Cloud verwaltet.",
+    "EMERGENCY_END_CONFIRM": "Danach nimmt der Edge keine lokalen Drucker-Änderungen mehr an. Bereits vorgenommene Änderungen bleiben aktiv und werden beim nächsten Cloud-Kontakt abgeglichen."
   },
   "CLOUD_STATUS": {
     "SYNC_AGE_MIN": "Letzter Cloud-Sync vor {{minutes}} min",
@@ -119,7 +120,10 @@
     "ORDERS_BLOCKED": "Neue Bestellungen werden blockiert, bis die Cloud wieder antwortet.",
     "ACTIVATE_OFFLINE_MODE": "Offline-Modus aktivieren",
     "OFFLINE_MODE_ACTIVE": "Offline-Modus aktiv",
-    "OFFLINE_MODE_ACTIVE_SUBLINE": "Edge generiert Geschäftstage lokal. Auto-Reset beim nächsten erfolgreichen Cloud-Pull. Aktiv noch {{minutes}} Minuten."
+    "OFFLINE_MODE_ACTIVE_SUBLINE": "Edge generiert Geschäftstage lokal. Auto-Reset beim nächsten erfolgreichen Cloud-Pull. Aktiv noch {{minutes}} Minuten.",
+    "EMERGENCY_OVERRIDE_ACTIVE": "Notfall-Modus aktiv",
+    "EMERGENCY_OVERRIDE_SUBLINE": "Lokale Drucker-Änderungen seit {{minutes}} Minuten — werden bei Cloud-Rückkehr abgeglichen.",
+    "END_EMERGENCY_MODE": "Beenden"
   },
   "COMMON": {
     "SAVE": "Speichern",
@@ -155,7 +159,8 @@
     "STATUS_DRAFT": "Entwurf",
     "STATUS_ARCHIVED": "Archiviert",
     "FILTER_BY_STATUS": "Nach Status filtern",
-    "FILTER_BY_TYPE": "Nach Produkttyp filtern"
+    "FILTER_BY_TYPE": "Nach Produkttyp filtern",
+    "CONFIRM": "Bestätigen"
   },
   "ROLES": {
     "PLATFORM_OWNER": "Plattform-Admin",

@@ -15,9 +15,10 @@ import type { CloudBanner, CloudBannerActionKind } from '@panary/shared/data-acc
  * `computed()`) — die Pipe re-rendert automatisch, sobald die Sprachdatei async
  * geladen ist (analog `cloud-status-badges.component.ts`).
  *
- * `enableOfflineModeAction` schaltet den „Offline-Modus aktivieren"-Button frei.
- * Default false (POS/Device hat kein RBAC-Recht auf `cloud-connection`); der
- * Admin-Host setzt true. Die `reload`-Aktion ist ueberall verfuegbar.
+ * `enableOfflineModeAction` schaltet den „Offline-Modus aktivieren"-Button frei,
+ * `enableEmergencyOverrideAction` den „Notfall-Modus beenden"-Button. Beide
+ * default false (POS/Device hat kein RBAC-Recht auf `cloud-connection`); der
+ * Admin-Host setzt sie auf true. Die `reload`-Aktion ist ueberall verfuegbar.
  *
  * Konsumiert vom POS-Client und Admin-Client (`app.ts`).
  */
@@ -52,6 +53,7 @@ import type { CloudBanner, CloudBannerActionKind } from '@panary/shared/data-acc
 export class CloudStatusBannerComponent {
   banner = input<CloudBanner | null>(null)
   enableOfflineModeAction = input<boolean>(false)
+  enableEmergencyOverrideAction = input<boolean>(false)
 
   action = output<CloudBannerActionKind>()
 
@@ -79,11 +81,12 @@ export class CloudStatusBannerComponent {
     return `${base} bg-red-600 dark:bg-red-600 hover:bg-red-700 dark:hover:bg-red-500`
   })
 
-  /** Reload immer; activate-offline-mode nur, wenn vom Host freigeschaltet. */
+  /** Reload immer; RBAC-pflichtige Aktionen nur, wenn vom Host freigeschaltet. */
   protected readonly showAction = computed(() => {
     const a = this.banner()?.action
     if (!a) return false
     if (a.kind === 'activate-offline-mode') return this.enableOfflineModeAction()
+    if (a.kind === 'end-emergency-override') return this.enableEmergencyOverrideAction()
     return true
   })
 

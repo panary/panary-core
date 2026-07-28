@@ -102,7 +102,8 @@
     "EMERGENCY_SINCE": "Active for {{minutes}} minutes",
     "EMERGENCY_END": "End emergency mode",
     "EMERGENCY_START": "Activate emergency mode",
-    "SAVE_BLOCKED": "Change not saved — this data is managed in the cloud."
+    "SAVE_BLOCKED": "Change not saved — this data is managed in the cloud.",
+    "EMERGENCY_END_CONFIRM": "After this the edge no longer accepts local printer changes. Changes already made stay active and are reconciled on the next cloud contact."
   },
   "CLOUD_STATUS": {
     "SYNC_AGE_MIN": "Last cloud sync {{minutes}} min ago",
@@ -119,7 +120,10 @@
     "ORDERS_BLOCKED": "New orders are blocked until the cloud responds again.",
     "ACTIVATE_OFFLINE_MODE": "Activate offline mode",
     "OFFLINE_MODE_ACTIVE": "Offline mode active",
-    "OFFLINE_MODE_ACTIVE_SUBLINE": "Edge generates business days locally. Auto-reset on the next successful cloud pull. Active for {{minutes}} more minutes."
+    "OFFLINE_MODE_ACTIVE_SUBLINE": "Edge generates business days locally. Auto-reset on the next successful cloud pull. Active for {{minutes}} more minutes.",
+    "EMERGENCY_OVERRIDE_ACTIVE": "Emergency mode active",
+    "EMERGENCY_OVERRIDE_SUBLINE": "Local printer changes for {{minutes}} minutes — reconciled once the cloud returns.",
+    "END_EMERGENCY_MODE": "End"
   },
   "COMMON": {
     "SAVE": "Save",
@@ -155,7 +159,8 @@
     "STATUS_DRAFT": "Draft",
     "STATUS_ARCHIVED": "Archived",
     "FILTER_BY_STATUS": "Filter by status",
-    "FILTER_BY_TYPE": "Filter by product type"
+    "FILTER_BY_TYPE": "Filter by product type",
+    "CONFIRM": "Confirm"
   },
   "ROLES": {
     "PLATFORM_OWNER": "Platform Admin",

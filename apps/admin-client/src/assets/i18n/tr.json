@@ -102,7 +102,8 @@
     "EMERGENCY_SINCE": "{{minutes}} dakikadır etkin",
     "EMERGENCY_END": "Acil durum modunu sonlandır",
     "EMERGENCY_START": "Acil durum modunu etkinleştir",
-    "SAVE_BLOCKED": "Değişiklik kaydedilmedi — bu veriler bulutta yönetiliyor."
+    "SAVE_BLOCKED": "Değişiklik kaydedilmedi — bu veriler bulutta yönetiliyor.",
+    "EMERGENCY_END_CONFIRM": "Bundan sonra uç birim yerel yazıcı değişikliklerini kabul etmez. Yapılmış değişiklikler etkin kalır ve bir sonraki bulut temasında eşitlenir."
   },
   "CLOUD_STATUS": {
     "SYNC_AGE_MIN": "Son bulut senkronizasyonu {{minutes}} dk önce",
@@ -119,7 +120,10 @@
     "ORDERS_BLOCKED": "Bulut yeniden yanıt verene kadar yeni siparişler engellenir.",
     "ACTIVATE_OFFLINE_MODE": "Çevrimdışı modu etkinleştir",
     "OFFLINE_MODE_ACTIVE": "Çevrimdışı mod etkin",
-    "OFFLINE_MODE_ACTIVE_SUBLINE": "Edge, iş günlerini yerel olarak oluşturur. Bir sonraki başarılı bulut çekiminde otomatik sıfırlama. {{minutes}} dakika daha etkin."
+    "OFFLINE_MODE_ACTIVE_SUBLINE": "Edge, iş günlerini yerel olarak oluşturur. Bir sonraki başarılı bulut çekiminde otomatik sıfırlama. {{minutes}} dakika daha etkin.",
+    "EMERGENCY_OVERRIDE_ACTIVE": "Acil durum modu etkin",
+    "EMERGENCY_OVERRIDE_SUBLINE": "{{minutes}} dakikadır yerel yazıcı değişiklikleri — bulut döndüğünde eşitlenir.",
+    "END_EMERGENCY_MODE": "Sonlandır"
   },
   "COMMON": {
     "SAVE": "Kaydet",
@@ -155,7 +159,8 @@
     "STATUS_DRAFT": "Taslak",
     "STATUS_ARCHIVED": "Ar\u015fivlendi",
     "FILTER_BY_STATUS": "Duruma g\u00f6re filtrele",
-    "FILTER_BY_TYPE": "\u00dcr\u00fcn t\u00fcr\u00fcne g\u00f6re filtrele"
+    "FILTER_BY_TYPE": "\u00dcr\u00fcn t\u00fcr\u00fcne g\u00f6re filtrele",
+    "CONFIRM": "Onayla"
   },
   "ROLES": {
     "PLATFORM_OWNER": "Platform Y\u00f6neticisi",

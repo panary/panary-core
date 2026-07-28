@@ -40,6 +40,8 @@ export class CloudStatusBannerService {
       offlineModeActive: conn.offlineModeActive(),
       offlineModeRemainingMin: conn.offlineModeRemainingMin(),
       lastCloudContactAgeMin: conn.lastCloudContactAgeMin(),
+      emergencyOverrideActive: conn.emergencyOverrideActive(),
+      emergencyOverrideSinceMin: conn.emergencyOverrideSinceMin(),
     })
   })
 }

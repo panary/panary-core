@@ -42,6 +42,7 @@ Funktion wählt den höchstpriorisierten aktiven Zustand. Die Leiter bildet die
 | 4 | `token-expired` | `tokenExpiry.level==='crit'` & `remainingSec<=0` | 70 | crit | – |
 | 5 | `cloud-unreachable` | Tier 3 + pairing connected + `lastCloudContactAt` > `CLOUD_CONTACT_STALE_SEC` (5 min) + Override inaktiv | 60 | crit | `activate-offline-mode` |
 | 6 | `token-expiring-soon` | `tokenExpiry.level==='warn'` | 40 | warn | – |
+| 6b | `emergency-override-active` | Notfall-Modus aktiv (`emergencyOverride`, ADR 0001) | 35 | warn | `end-emergency-override` |
 | 7/8 | `sync-stale` | `syncStaleness.level==='crit'`/`'warn'` | 30/20 | warn/info | – |
 
 Einträge 2–8 nur in **Tier 3** (`showsCloudSyncStatus` / `systemMode==='connected'`).
@@ -57,6 +58,16 @@ Kein Eintrag aktiv → kein Banner.
   hat den Offline-Modus bewusst aktiviert; sein Countdown darf nicht vom Symptom
   verdeckt werden, das er bereits akzeptiert hat. `re-pairing-required` (w90) bleibt
   darüber — neues, hartes, aktionspflichtiges Versagen.
+- `emergency-override-active` (w35) **unter** den vier aktionspflichtigen
+  Meldungen: `cloud-unreachable` (w60) trägt die `activate-offline-mode`-Aktion,
+  ohne die neue Bestellungen blockiert bleiben — die darf dieser Banner nicht
+  verdecken. **Über** `sync-stale`, das nur ein Symptom desselben Ausfalls ist.
+  Seine eigentliche Daueraussage ist ohnehin nicht die Ausfallwarnung, sondern
+  „es liegen nicht abgeglichene lokale Drucker-Änderungen vor": dieser Zustand
+  überlebt den Ausfall, weil `runReconcileOverrides` das Flag bei offenen
+  Konflikten stehen lässt — dann ist er der einzig verbliebene Banner. Die
+  Aktion ist RBAC-pflichtig und deshalb wie `activate-offline-mode` per
+  Host-Input gegated: nur der Admin-Client schaltet sie frei, der POS nicht.
 - Referenz-Szenario (Praxis): pairing connected, Token abgelaufen, Sync 12 min,
   `lastCloudContactAt` stale → Sieger **`token-expired`** → nur „Token abgelaufen —
   neu pairen". (Der abgelaufene Token ist die Wurzel; „nicht erreichbar" + „Sync

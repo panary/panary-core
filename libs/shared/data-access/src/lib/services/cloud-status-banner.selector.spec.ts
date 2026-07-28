@@ -17,6 +17,8 @@ const healthy = (): CloudStatusState => ({
   offlineModeActive: false,
   offlineModeRemainingMin: 0,
   lastCloudContactAgeMin: 0,
+  emergencyOverrideActive: false,
+  emergencyOverrideSinceMin: null,
 })
 
 describe('selectActiveBanner — Prioritaetsleiter', () => {
@@ -177,5 +179,61 @@ describe('selectActiveBanner — Prioritaetsleiter', () => {
       userSessionExpired: true,
     })
     expect(banner).toBeNull()
+  })
+})
+
+describe('selectActiveBanner — Notfall-Modus (w35)', () => {
+  it('zeigt den Notfall-Banner mit Beenden-Aktion, wenn sonst alles ruhig ist', () => {
+    const banner = selectActiveBanner({
+      ...healthy(),
+      emergencyOverrideActive: true,
+      emergencyOverrideSinceMin: 12,
+    })
+
+    expect(banner?.id).toBe('emergency-override-active')
+    expect(banner?.action?.kind).toBe('end-emergency-override')
+    expect(banner?.sublineParams).toEqual({ minutes: 12 })
+  })
+
+  // Der Notfall-Modus ueberlebt den Ausfall (Reconcile laesst das Flag bei
+  // offenen Konflikten stehen) — genau dann ist er der einzig verbliebene
+  // Banner und traegt die eigentliche Aussage: nicht abgeglichene Aenderungen.
+  it('schlaegt sync-stale, weil das nur ein Symptom desselben Ausfalls ist', () => {
+    const banner = selectActiveBanner({
+      ...healthy(),
+      emergencyOverrideActive: true,
+      syncLevel: 'crit',
+      syncAgeSec: 3600,
+    })
+
+    expect(banner?.id).toBe('emergency-override-active')
+  })
+
+  // cloud-unreachable traegt die activate-offline-mode-Aktion, ohne die
+  // Bestellungen blockiert bleiben — die darf nicht verdeckt werden.
+  it('weicht cloud-unreachable, tokenexpired und Re-Pairing', () => {
+    const withEmergency = { ...healthy(), emergencyOverrideActive: true }
+
+    expect(selectActiveBanner({ ...withEmergency, cloudUnreachable: true })?.id).toBe('cloud-unreachable')
+    expect(
+      selectActiveBanner({ ...withEmergency, tokenLevel: 'crit', tokenRemainingSec: 0 })?.id,
+    ).toBe('token-expired')
+    expect(selectActiveBanner({ ...withEmergency, cloudNeedsRePairing: true })?.id).toBe('re-pairing-required')
+  })
+
+  it('erscheint nicht ausserhalb von Tier 3', () => {
+    const banner = selectActiveBanner({
+      ...healthy(),
+      showsCloudSyncStatus: false,
+      emergencyOverrideActive: true,
+    })
+
+    expect(banner).toBeNull()
+  })
+
+  it('laesst die Subline-Params weg, wenn die Dauer unbekannt ist', () => {
+    const banner = selectActiveBanner({ ...healthy(), emergencyOverrideActive: true })
+
+    expect(banner?.sublineParams).toBeUndefined()
   })
 })

@@ -47,7 +47,10 @@
     "ORDERS_BLOCKED": "New orders are blocked until the cloud responds again.",
     "ACTIVATE_OFFLINE_MODE": "Activate offline mode",
     "OFFLINE_MODE_ACTIVE": "Offline mode active",
-    "OFFLINE_MODE_ACTIVE_SUBLINE": "Edge generates business days locally. Auto-reset on the next successful cloud pull. Active for {{minutes}} more minutes."
+    "OFFLINE_MODE_ACTIVE_SUBLINE": "Edge generates business days locally. Auto-reset on the next successful cloud pull. Active for {{minutes}} more minutes.",
+    "EMERGENCY_OVERRIDE_ACTIVE": "Emergency mode active",
+    "EMERGENCY_OVERRIDE_SUBLINE": "Local printer changes for {{minutes}} minutes — reconciled once the cloud returns.",
+    "END_EMERGENCY_MODE": "End"
   },
   "COMMON": {
     "OFFLINE": "Offline",

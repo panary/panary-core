@@ -53,7 +53,11 @@ export const pushSubscriptionDataSchema = Type.Intersect(
     // 400 "validation failed" — die Push-Registrierung war dadurch tot.
     // Optional (nicht Pick, das waere Pflicht): der Client soll es weiterhin
     // nicht senden muessen, interne Creates ohne User-Kontext bleiben moeglich.
-    Type.Partial(Type.Pick(pushSubscriptionSchema, ['tenantId'])),
+    // `userId` stempelt derselbe Mechanismus, nur aus einem anderen Hook:
+    // `userScoping()` setzt `data.userId = user._id` (der Service ist
+    // per-User isoliert). Ebenfalls vor `validateData` — ohne das Feld
+    // scheiterte der Create nach dem tenantId-Fix an `additionalProperty: "userId"`.
+    Type.Partial(Type.Pick(pushSubscriptionSchema, ['tenantId', 'userId'])),
   ],
   { $id: 'PushSubscriptionData', additionalProperties: false },
 )

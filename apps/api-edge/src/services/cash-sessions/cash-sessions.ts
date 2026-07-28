@@ -3,7 +3,7 @@ import { hooks as schemaHooks } from '@feathersjs/schema'
 import { BadRequest, Forbidden } from '@feathersjs/errors'
 import { authorize, ensureIndexes, getJsonFieldHooks, logger, multiTenancy } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
-import { DatabaseType } from '@panary/shared-common'
+import { AppError, AppErrorMessages, DatabaseType } from '@panary/shared-common'
 import {
   cashSessionDataSchema,
   cashSessionPatchSchema,
@@ -56,10 +56,9 @@ const requireAuthorizedCreate = async (context: HookContext): Promise<HookContex
   if (isFromSync(context)) return context
   const role = (context.params.user as { role?: string } | undefined)?.role
   if (role && PRIVILEGED_CASH_SESSION_ROLES.has(role)) return context
-  throw new Forbidden(
-    'Die Kassen-Eröffnung muss von einem berechtigten Mitarbeiter (Manager/Inhaber) autorisiert werden.',
-    { code: 'CASH_SESSION_AUTH_REQUIRED' },
-  )
+  throw new Forbidden(AppErrorMessages[AppError.CASH_SESSION_AUTH_REQUIRED], {
+    code: AppError.CASH_SESSION_AUTH_REQUIRED,
+  })
 }
 
 /**
@@ -122,7 +121,9 @@ export const cashSessions = (app: Application) => {
         authorizedByUserId,
         businessDayId,
       })
-      throw new Forbidden('PIN ungültig.', { code: 'CASH_SESSION_AUTH_REQUIRED' })
+      throw new Forbidden(AppErrorMessages[AppError.CASH_SESSION_PIN_INVALID], {
+        code: AppError.CASH_SESSION_PIN_INVALID,
+      })
     }
 
     // 2. Rollencheck: nur privilegierte Mitarbeiter dürfen autorisieren.
@@ -134,8 +135,8 @@ export const cashSessions = (app: Application) => {
         authorizedByUserId,
         businessDayId,
       })
-      throw new Forbidden('Dieser Mitarbeiter darf keine Kasse freigeben.', {
-        code: 'CASH_SESSION_AUTH_REQUIRED',
+      throw new Forbidden(AppErrorMessages[AppError.CASH_SESSION_ROLE_DENIED], {
+        code: AppError.CASH_SESSION_ROLE_DENIED,
       })
     }
 

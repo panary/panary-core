@@ -431,6 +431,7 @@
     "AUTH_AMOUNT_LABEL": "Float",
     "AUTH_ERROR_PIN_INVALID": "Invalid PIN. Please try again.",
     "AUTH_ERROR_ROLE_DENIED": "This staff member may not authorize a cash drawer.",
+    "AUTH_ERROR_NOT_AUTHORIZED": "Opening a cash drawer must be authorized by an eligible staff member.",
     "AUTH_ERROR_GENERIC": "Authorization failed. Please try again.",
     "AUTH_LOAD_ERROR": "Staff list could not be loaded.",
     "AUTH_IN_PROGRESS": "Authorizing cash drawer...",

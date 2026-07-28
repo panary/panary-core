@@ -431,6 +431,7 @@
     "AUTH_AMOUNT_LABEL": "Wechselgeld",
     "AUTH_ERROR_PIN_INVALID": "PIN ungültig. Bitte erneut versuchen.",
     "AUTH_ERROR_ROLE_DENIED": "Dieser Mitarbeiter darf keine Kasse freigeben.",
+    "AUTH_ERROR_NOT_AUTHORIZED": "Die Kassen-Eröffnung muss von einem berechtigten Mitarbeiter freigegeben werden.",
     "AUTH_ERROR_GENERIC": "Freigabe fehlgeschlagen. Bitte erneut versuchen.",
     "AUTH_LOAD_ERROR": "Mitarbeiterliste konnte nicht geladen werden.",
     "AUTH_IN_PROGRESS": "Kasse wird freigegeben...",

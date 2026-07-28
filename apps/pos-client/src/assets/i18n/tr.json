@@ -431,6 +431,7 @@
     "AUTH_AMOUNT_LABEL": "Bozuk para",
     "AUTH_ERROR_PIN_INVALID": "PIN geçersiz. Lütfen tekrar deneyin.",
     "AUTH_ERROR_ROLE_DENIED": "Bu çalışan kasa onayı veremez.",
+    "AUTH_ERROR_NOT_AUTHORIZED": "Kasa açılışı yetkili bir çalışan tarafından onaylanmalıdır.",
     "AUTH_ERROR_GENERIC": "Onay başarısız. Lütfen tekrar deneyin.",
     "AUTH_LOAD_ERROR": "Çalışan listesi yüklenemedi.",
     "AUTH_IN_PROGRESS": "Kasa onaylanıyor...",

@@ -25,6 +25,14 @@ export const AppError = {
   BUSINESS_DAY_TOO_OLD: 'BD_6002',
   BUSINESS_DAY_OPEN_TOO_LONG: 'BD_6003',
   CASH_SESSION_REQUIRED: 'BD_6004',
+  // Manager-autorisierte Kassen-Eröffnung (`cash-sessions.openAuthorized`).
+  // Getrennte Codes, damit der Client „PIN falsch" und „Rolle unzulässig"
+  // unterscheiden und lokalisieren kann — ein gemeinsamer Code zwingt ihn
+  // sonst dazu, die hartkodiert deutsche Server-Message anzuzeigen.
+  CASH_SESSION_PIN_INVALID: 'BD_6005',
+  CASH_SESSION_ROLE_DENIED: 'BD_6006',
+  // Direkter externer `create` ohne Autorisierung (Härtung des CRUD-Pfads).
+  CASH_SESSION_AUTH_REQUIRED: 'BD_6007',
 
   // --- VALIDATION (4000-4999) ---
   VALIDATION_FAILED: 'VAL_4000',
@@ -63,6 +71,10 @@ export const AppErrorMessages: Record<AppError, string> = {
     'Der Geschäftstag ist zu lange geöffnet und kann nicht automatisch wechseln, weil noch Bestellungen offen sind. Bitte offene Bestellungen abschließen und den Geschäftstag abschließen.',
   [AppError.CASH_SESSION_REQUIRED]:
     'Für Sie ist noch keine Kasse eröffnet. Bitte eröffnen Sie zuerst Ihre Kasse oder wenden Sie sich an den Manager.',
+  [AppError.CASH_SESSION_PIN_INVALID]: 'PIN ungültig.',
+  [AppError.CASH_SESSION_ROLE_DENIED]: 'Dieser Mitarbeiter darf keine Kasse freigeben.',
+  [AppError.CASH_SESSION_AUTH_REQUIRED]:
+    'Die Kassen-Eröffnung muss von einem berechtigten Mitarbeiter (Manager/Inhaber) autorisiert werden.',
 
   [AppError.VALIDATION_FAILED]: 'Validation failed.',
   [AppError.INVALID_INPUT]: 'Invalid input provided.',

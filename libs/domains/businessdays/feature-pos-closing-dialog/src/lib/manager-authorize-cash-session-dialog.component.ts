@@ -5,6 +5,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 import { CashSession } from '@panary/businessdays/domain'
 import { CashSessionService } from '@panary/businessdays/data-access'
+import { AppError } from '@panary/shared-common'
 import { ConnectionService } from '@panary/shared/data-access'
 import { User, UserStatus, UserSystemRole } from '@panary/users/domain'
 
@@ -44,13 +45,13 @@ const PIN_LENGTH = 4
 const AUTO_CLOSE_MS = 1200
 
 /**
- * Fehlercodes des Edge-Backends → i18n-Key. Aktuell wirft `openAuthorized` für
- * „PIN falsch" und „Rolle unzulässig" denselben Code `CASH_SESSION_AUTH_REQUIRED`;
- * sobald distinkte Codes existieren, greift diese Map ohne weitere Änderung.
+ * Fehlercodes des Edge-Backends → i18n-Key. Die Server-Messages sind hartkodiert
+ * deutsch; über den Code können wir sie lokalisiert ausgeben.
  */
 const AUTH_ERROR_KEYS: Record<string, string> = {
-  BD_6005: 'CASH_SESSION.AUTH_ERROR_PIN_INVALID',
-  BD_6006: 'CASH_SESSION.AUTH_ERROR_ROLE_DENIED',
+  [AppError.CASH_SESSION_PIN_INVALID]: 'CASH_SESSION.AUTH_ERROR_PIN_INVALID',
+  [AppError.CASH_SESSION_ROLE_DENIED]: 'CASH_SESSION.AUTH_ERROR_ROLE_DENIED',
+  [AppError.CASH_SESSION_AUTH_REQUIRED]: 'CASH_SESSION.AUTH_ERROR_NOT_AUTHORIZED',
 }
 
 /**
@@ -298,9 +299,8 @@ export class ManagerAuthorizeCashSessionDialogComponent {
     const appCode = error?.data?.code
 
     if (appCode && AUTH_ERROR_KEYS[appCode]) return this.#translate.instant(AUTH_ERROR_KEYS[appCode])
-    if (appCode === 'CASH_SESSION_AUTH_REQUIRED') {
-      return error?.message?.trim() || this.#translate.instant('CASH_SESSION.AUTH_ERROR_PIN_INVALID')
-    }
+    // Unbekannter Code oder gar keiner (Timeout, 401, Validierung) — die
+    // Server-Message ist besser als nichts, sonst der generische Text.
     return error?.message?.trim() || this.#translate.instant('CASH_SESSION.AUTH_ERROR_GENERIC')
   }
 

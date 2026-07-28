@@ -332,24 +332,31 @@ export type Settings = Static<typeof settingsSchema>
 //#endregion
 
 //#region Schema for creation (POST)
-export const locationDataSchema = Type.Pick(
-  locationSchema,
+export const locationDataSchema = Type.Intersect(
   [
-    'name',
-    'address',
-    'tenantId',
-    'brandId',
-    'handle',
-    'settings',
-    'email',
-    'phone',
-    'website',
-    'status',
-    'locale',
-    'defaultCurrency',
-    'operationMode',
-    'businessType',
-    'lastWorkdayOfWeek',
+    Type.Pick(locationSchema, [
+      'name',
+      'address',
+      'tenantId',
+      'brandId',
+      'handle',
+      'settings',
+      'email',
+      'phone',
+      'website',
+      'status',
+      'locale',
+      'defaultCurrency',
+      'operationMode',
+      'businessType',
+      'lastWorkdayOfWeek',
+    ]),
+    // Pflicht fuer den Cloud→Edge-Sync-Pull-Apply: gepullte Cloud-Records
+    // bringen `_id`, `createdAt`, `updatedAt` mit — ohne diese Felder lehnte
+    // validateData jeden Sync-CREATE terminal ab (Standort-Settings wie
+    // Drucker/Pager/Tische/Oeffnungszeiten kamen nie am Edge an). Muster
+    // identisch zu productDataSchema/customerDataSchema.
+    Type.Partial(Type.Pick(locationSchema, ['_id', 'createdAt', 'updatedAt'])),
   ],
   {
     $id: 'LocationData',

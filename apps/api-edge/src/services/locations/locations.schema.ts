@@ -34,8 +34,13 @@ export const locationDataResolver = resolve<Location, HookContext<LocationServic
   // Set timestamp
   createdAt: async () => new Date().toISOString(),
   updatedAt: async () => new Date().toISOString(),
-  settings: async () => generateDefaultLocationSettings,
-  status: async () => LocationStatus.DRAFT,
+  // Eingehenden Wert bewahren: Der Cloud→Edge-Sync-Pull-Apply legt die
+  // Cloud-Location per CREATE an — ein hartes `() => default` wuerde die
+  // Cloud-Settings (Drucker/Pager/Tische/Oeffnungszeiten) bzw. den
+  // Cloud-Status verwerfen. Default greift nur, wenn nichts mitkommt
+  // (lokaler Setup-Flow).
+  settings: async value => value ?? generateDefaultLocationSettings,
+  status: async value => value ?? LocationStatus.DRAFT,
   // Default-Betriebsmodus: volle Kasse. Setup-Client kann beim Anlegen
   // explizit 'orders-only' setzen für Kunden, die nur Bestellungen verwalten.
   operationMode: async (value) => value || LocationOperationMode.POS_CASHIER,

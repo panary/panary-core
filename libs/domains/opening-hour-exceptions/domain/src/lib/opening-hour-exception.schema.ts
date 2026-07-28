@@ -17,9 +17,17 @@ export type OpeningHourException = Static<typeof openingHourExceptionSchema>
 //#endregion
 
 //#region Schema für Erstellung (POST)
-export const openingHourExceptionDataSchema = Type.Omit(
-  openingHourExceptionSchema,
-  ['_id', 'createdAt', 'updatedAt'],
+// `_id`, `createdAt`, `updatedAt` werden serverseitig gesetzt — fuer den
+// Cloud→Edge-Sync-Pull-Apply muessen sie aber als Optional erlaubt bleiben:
+// die Cloud materialisiert Feiertage/Schliesstage als fertige Records, die der
+// Edge per CREATE uebernimmt (die _ids sind am Edge immer neu). Ohne diese
+// Felder lehnte validateData JEDEN gepullten Record terminal ab — der Service
+// konnte strukturell nie synchronisieren. Muster identisch zu customerDataSchema.
+export const openingHourExceptionDataSchema = Type.Intersect(
+  [
+    Type.Omit(openingHourExceptionSchema, ['_id', 'createdAt', 'updatedAt']),
+    Type.Partial(Type.Pick(openingHourExceptionSchema, ['_id', 'createdAt', 'updatedAt'])),
+  ],
   { $id: 'OpeningHourExceptionData', additionalProperties: false },
 )
 export type OpeningHourExceptionData = Static<typeof openingHourExceptionDataSchema>

@@ -271,6 +271,20 @@ async function main() {
     }
     // -----------------------------------------------------------------------
 
+    // --- Auto-Repair-Hook fuer historisch inkonsistente Edge-DBs ---
+    // Heilt einmalig: locations._id weicht von der Cloud-LocationId ab
+    // (Geist-Location aus altem Pairing-Bug). Muss VOR dem Sync-Scheduler
+    // laufen, damit der erste Pull-Zyklus bereits gegen die restampede
+    // Location patcht (sonst legt der Apply eine zweite Row per create an).
+    // Idempotent — bei konsistenter DB tut der Hook nichts.
+    try {
+      const { runLocationRestampRepair } = await import('./workers/repair-location-restamp.worker.js')
+      await runLocationRestampRepair(app)
+    } catch (err) {
+      logger.error('Auto-Repair-Hook fehlgeschlagen.', err)
+    }
+    // -----------------------------------------------------------------------
+
     // --- Cloud-Sync-Scheduler: Push/Pull/Heartbeat in 4 Modi (M7.4) ---
     try {
       const { startCloudSyncSchedulerWorker } = await import('./workers/cloud-sync-scheduler.worker.js')
@@ -304,18 +318,6 @@ async function main() {
       await startCloudRealtimeWorker(app)
     } catch (err) {
       logger.error('Cloud-Realtime-Worker konnte nicht gestartet werden.', err)
-    }
-    // -----------------------------------------------------------------------
-
-    // --- Auto-Repair-Hook fuer historisch inkonsistente Edge-DBs ---
-    // Heilt einmalig: User mit activeLocationId, die nicht in locations._id
-    // existieren (Geist-Location aus altem Pairing-Bug). Idempotent — bei
-    // konsistenter DB tut der Hook nichts.
-    try {
-      const { runLocationRestampRepair } = await import('./workers/repair-location-restamp.worker.js')
-      await runLocationRestampRepair(app)
-    } catch (err) {
-      logger.error('Auto-Repair-Hook fehlgeschlagen.', err)
     }
     // -----------------------------------------------------------------------
 

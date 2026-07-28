@@ -1,0 +1,58 @@
+import { describe, expect, it } from 'vitest'
+
+import { Ajv, addFormats } from '@feathersjs/schema'
+import type { FormatsPluginOptions } from '@feathersjs/schema'
+import { getValidator } from '@feathersjs/typebox'
+
+import { generateDefaultLocationSettings } from './default-settings'
+import { locationDataSchema } from './location.schema'
+
+// Regression Standort-Settings-Sync (2026-07-28): Das Data-Schema war ein
+// strikter Pick OHNE `_id`/`createdAt`/`updatedAt` (additionalProperties:
+// false). Der Cloud→Edge-Sync-Pull-Apply legt eine unbekannte Cloud-Location
+// aber per CREATE mit dem KOMPLETTEN Cloud-Record an → validateData verwarf
+// jeden Record als „additional property", die Standort-Settings (Drucker/
+// Pager/Tische/Oeffnungszeiten) kamen nie am Edge an. Diese Spec validiert
+// mit derselben AJV-Konfiguration wie der Feathers-`dataValidator`
+// (@panary/shared-backend), damit exakt die Runtime-Semantik geprueft wird.
+const formats: FormatsPluginOptions = ['date-time', 'date', 'email', 'uri', 'uuid']
+const validator = getValidator(locationDataSchema, addFormats(new Ajv({}), formats))
+
+const syncedCloudLocation = {
+  _id: '01890a5d-ac96-774b-bcce-b302099a8057',
+  tenantId: '01890a5d-ac96-774b-bcce-b302099a8058',
+  brandId: '01890a5d-ac96-774b-bcce-b302099a8059',
+  handle: 'hauptfiliale',
+  name: 'Hauptfiliale',
+  address: {
+    street: 'Musterstr. 1',
+    city: 'Musterstadt',
+    postalCode: '12345',
+    country: 'Deutschland',
+  },
+  status: 'ACTIVE',
+  operationMode: 'pos-cashier',
+  settings: generateDefaultLocationSettings,
+  createdAt: '2026-07-28T10:00:00.000Z',
+  updatedAt: '2026-07-28T12:00:00.000Z',
+}
+
+describe('locationDataSchema (Sync-Pull-Apply-CREATE)', () => {
+  it('akzeptiert einen kompletten Cloud-Record inkl. _id/createdAt/updatedAt', async () => {
+    await expect(validator(syncedCloudLocation)).resolves.toBeTruthy()
+  })
+
+  it('akzeptiert weiterhin einen lokalen Create ohne Server-Felder', async () => {
+    await expect(
+      validator({
+        name: 'Neue Filiale',
+        tenantId: '01890a5d-ac96-774b-bcce-b302099a8058',
+        address: syncedCloudLocation.address,
+      }),
+    ).resolves.toBeTruthy()
+  })
+
+  it('lehnt unbekannte Felder weiterhin ab (kein Wildcard-Passthrough)', async () => {
+    await expect(validator({ ...syncedCloudLocation, evilField: 'x' })).rejects.toThrow()
+  })
+})

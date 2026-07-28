@@ -19,6 +19,7 @@ function setup(opts: { settings?: Record<string, unknown>; cloudPaired?: boolean
     emergencyOverrideActive: signal(false),
     emergencyOverrideSinceMin: signal<number | null>(null),
     cloudUnreachable: signal(false),
+    cloudContactUnknown: signal(false),
     refreshHealth: vi.fn().mockResolvedValue(undefined),
   }
   TestBed.configureTestingModule({
@@ -32,6 +33,9 @@ function setup(opts: { settings?: Record<string, unknown>; cloudPaired?: boolean
   const component = TestBed.runInInjectionContext(() => new TableSettingsComponent()) as any
   return { component, api }
 }
+
+/** Die Raum-ID ist clientseitig vergeben — Tests greifen sie ueber die Position ab. */
+const roomId = (component: any, index: number): string => component.rooms()[index].id
 
 const lastPayload = (api: { patch: ReturnType<typeof vi.fn> }) =>
   api.patch.mock.calls.at(-1)?.[2] as { settings: { tableSettings: { rooms: Array<{ name: string; tables: unknown[] }> } } }
@@ -94,11 +98,11 @@ describe('TableSettingsComponent — Auto-Save-Fallen', () => {
     await component.ngOnInit()
     component.addRoom()
 
-    component.commitRoomName(0)
+    component.commitRoomName(roomId(component, 0))
     expect(api.patch).not.toHaveBeenCalled()
 
-    component.onRoomNameInput(0, 'Terrasse')
-    component.commitRoomName(0)
+    component.onRoomNameInput(roomId(component, 0), 'Terrasse')
+    component.commitRoomName(roomId(component, 0))
     await Promise.resolve()
     await Promise.resolve()
 
@@ -111,12 +115,95 @@ describe('TableSettingsComponent — Auto-Save-Fallen', () => {
     const { component, api } = setup({ settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: [] }] } } })
     await component.ngOnInit()
     component.addRoom()
-    component.setPendingTable(1, 'T9')
-    await component.addTables(1)
+    component.setPendingTable(roomId(component, 1), 'T9')
+    await component.addTables(roomId(component, 1))
 
     const rooms = lastPayload(api).settings.tableSettings.rooms
     expect(rooms).toHaveLength(1)
     expect(rooms[0].name).toBe('Innen')
+  })
+})
+
+describe('TableSettingsComponent — Bereichs-Identitaet', () => {
+  // Vorher waren `pendingTable` und `track` an den Array-Index gekoppelt: nach
+  // dem Entfernen eines Bereichs rutschten alle folgenden eine Position vor,
+  // und der eingetippte Text landete im falschen Raum.
+  it('haelt den eingetippten Text am Bereich fest, wenn ein anderer entfernt wird', async () => {
+    const { component } = setup({
+      settings: {
+        tableSettings: {
+          enabled: true,
+          rooms: [
+            { name: 'Innen', tables: [] },
+            { name: 'Terrasse', tables: [] },
+            { name: 'Bar', tables: [] },
+          ],
+        },
+      },
+    })
+    await component.ngOnInit()
+    const barId = roomId(component, 2)
+    component.setPendingTable(barId, 'T20-T22')
+
+    await component.removeRoom(roomId(component, 0))
+
+    // „Bar" steht jetzt an Position 1 — der Text muss mitgewandert sein.
+    expect(component.rooms()[1].id).toBe(barId)
+    expect(component.pendingLabel(barId)).toBe('T20-T22')
+    await component.addTables(barId)
+    expect(component.rooms()[1].tables.map((t: { label: string }) => t.label)).toEqual(['T20', 'T21', 'T22'])
+  })
+
+  it('raeumt den pending-Eintrag eines entfernten Bereichs ab', async () => {
+    const { component } = setup({
+      settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: [] }] } },
+    })
+    await component.ngOnInit()
+    const id = roomId(component, 0)
+    component.setPendingTable(id, 'T1')
+
+    await component.removeRoom(id)
+
+    expect(component.pendingTable()[id]).toBeUndefined()
+  })
+
+  // Ein geleerter Name wuerde beim Speichern herausgefiltert — die UI zeigte
+  // dann einen namenlosen Bereich, waehrend die DB ihn samt Tischen weiterfuehrt.
+  it('faellt bei geleertem Namen auf den gespeicherten zurueck', async () => {
+    const { component, api } = setup({
+      settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: [] }] } },
+    })
+    await component.ngOnInit()
+    const id = roomId(component, 0)
+
+    component.onRoomNameInput(id, '')
+    component.commitRoomName(id)
+
+    expect(component.rooms()[0].name).toBe('Innen')
+    expect(api.patch).not.toHaveBeenCalled()
+  })
+
+  it('laesst einen neu angelegten Bereich leer, statt etwas zu erfinden', async () => {
+    const { component } = setup()
+    await component.ngOnInit()
+    component.addRoom()
+    const id = roomId(component, 0)
+
+    component.onRoomNameInput(id, '')
+    component.commitRoomName(id)
+
+    expect(component.rooms()[0].name).toBe('')
+  })
+
+  it('streift die clientseitigen Felder aus dem Payload', async () => {
+    const { component, api } = setup({
+      settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: [] }] } },
+    })
+    await component.ngOnInit()
+
+    await component.toggleEnabled()
+
+    expect(Object.keys(lastPayload(api).settings.tableSettings.rooms[0]).sort()).toEqual(['name', 'tables'])
   })
 })
 
@@ -125,8 +212,8 @@ describe('TableSettingsComponent — Tisch-Eingabe', () => {
     const { component } = setup({ settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: [] }] } } })
     await component.ngOnInit()
 
-    component.setPendingTable(0, 'T01-T04')
-    await component.addTables(0)
+    component.setPendingTable(roomId(component, 0), 'T01-T04')
+    await component.addTables(roomId(component, 0))
 
     expect(component.rooms()[0].tables.map((t: { label: string }) => t.label)).toEqual(['T01', 'T02', 'T03', 'T04'])
   })
@@ -135,8 +222,8 @@ describe('TableSettingsComponent — Tisch-Eingabe', () => {
     const { component } = setup({ settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: [] }] } } })
     await component.ngOnInit()
 
-    component.setPendingTable(0, 'T1, A1; B2')
-    await component.addTables(0)
+    component.setPendingTable(roomId(component, 0), 'T1, A1; B2')
+    await component.addTables(roomId(component, 0))
 
     expect(component.rooms()[0].tables.map((t: { label: string }) => t.label)).toEqual(['T1', 'A1', 'B2'])
   })
@@ -150,8 +237,8 @@ describe('TableSettingsComponent — Tisch-Eingabe', () => {
     })
     await component.ngOnInit()
 
-    component.setPendingTable(1, 'T1')
-    await component.addTables(1)
+    component.setPendingTable(roomId(component, 1), 'T1')
+    await component.addTables(roomId(component, 1))
 
     expect(component.rooms()[1].tables).toHaveLength(0)
     expect(component.error()).toBe('LOCATION.TABLES_DUPLICATE')
@@ -176,8 +263,8 @@ describe('TableSettingsComponent — Tisch-Eingabe', () => {
     const { component } = setup({ settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: [] }] } } })
     await component.ngOnInit()
 
-    component.setPendingTable(0, 'x'.repeat(61))
-    await component.addTables(0)
+    component.setPendingTable(roomId(component, 0), 'x'.repeat(61))
+    await component.addTables(roomId(component, 0))
 
     expect(component.error()).toBe('LOCATION.TABLES_LABEL_TOO_LONG')
     expect(component.rooms()[0].tables).toHaveLength(0)
@@ -194,8 +281,8 @@ describe('TableSettingsComponent — Cloud-Verwaltung', () => {
 
     component.addRoom()
     await component.toggleEnabled()
-    component.setPendingTable(0, 'T5')
-    await component.addTables(0)
+    component.setPendingTable(roomId(component, 0), 'T5')
+    await component.addTables(roomId(component, 0))
 
     expect(component.rooms()).toHaveLength(1)
     expect(component.enabled()).toBe(true)

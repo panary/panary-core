@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { uuidv7 } from 'uuidv7'
@@ -15,7 +15,22 @@ const INPUT = `w-full bg-white dark:bg-gray-900 border border-slate-200 dark:bor
                text-sm text-slate-900 dark:text-white outline-none focus:border-slate-900 dark:focus:border-white`
 
 interface RoomVm {
+  /**
+   * Rein clientseitige, stabile Identitaet. Das Schema kennt keine Raum-ID —
+   * sie wird beim Speichern wieder abgestreift. Ohne sie waeren `pendingTable`
+   * und `track` an den Array-Index gekoppelt: nach dem Entfernen eines
+   * Bereichs rutschen alle folgenden eine Position vor, und der eingetippte
+   * Text landet im falschen Raum.
+   */
+  id: string
   name: string
+  /**
+   * Zuletzt gespeicherter Name, `null` fuer noch nie persistierte Bereiche.
+   * Leert der Nutzer das Feld, wird darauf zurueckgesetzt — sonst zeigte die UI
+   * einen namenlosen Bereich, waehrend die Datenbank ihn samt Tischen weiter
+   * fuehrt (der Save filtert namenlose Bereiche heraus).
+   */
+  persistedName: string | null
   tables: TableEntry[]
 }
 
@@ -99,14 +114,14 @@ const readLabel = (entry: string | TableEntry): string =>
             <p class="text-slate-300 dark:text-gray-600 text-xs text-center py-6">{{ 'LOCATION.TABLES_NO_ROOMS' | translate }}</p>
           }
 
-          @for (room of rooms(); track $index) {
+          @for (room of rooms(); track room.id) {
             <div class="border border-slate-100 dark:border-gray-800/60 rounded-lg p-3 space-y-3">
               <div class="flex items-center gap-2">
-                <input [ngModel]="room.name" (ngModelChange)="onRoomNameInput($index, $event)"
-                  (change)="commitRoomName($index)" [name]="'room-' + $index" type="text"
+                <input [ngModel]="room.name" (ngModelChange)="onRoomNameInput(room.id, $event)"
+                  (change)="commitRoomName(room.id)" [name]="'room-' + room.id" type="text"
                   placeholder="{{ 'LOCATION.TABLES_ROOM_NAME_PLACEHOLDER' | translate }}"
                   class="${INPUT}" />
-                <button type="button" (click)="removeRoom($index)" [disabled]="saving()"
+                <button type="button" (click)="removeRoom(room.id)" [disabled]="saving()"
                   [title]="'LOCATION.TABLES_REMOVE_ROOM' | translate"
                   class="w-9 h-9 shrink-0 flex items-center justify-center rounded-lg
                          text-slate-400 dark:text-gray-500 hover:text-red-400
@@ -120,12 +135,12 @@ const readLabel = (entry: string | TableEntry): string =>
               }
 
               <div class="flex items-center gap-2">
-                <input [ngModel]="pendingLabel($index)" (ngModelChange)="setPendingTable($index, $event)"
-                  [name]="'table-' + $index" type="text"
+                <input [ngModel]="pendingLabel(room.id)" (ngModelChange)="setPendingTable(room.id, $event)"
+                  [name]="'table-' + room.id" type="text"
                   placeholder="{{ 'LOCATION.TABLES_ADD_PLACEHOLDER' | translate }}"
-                  (keydown.enter)="addTables($index); $event.preventDefault()"
+                  (keydown.enter)="addTables(room.id); $event.preventDefault()"
                   class="${INPUT} font-mono" />
-                <button type="button" (click)="addTables($index)" [disabled]="saving()"
+                <button type="button" (click)="addTables(room.id)" [disabled]="saving()"
                   class="px-4 py-2.5 text-sm font-medium bg-slate-900 dark:bg-white text-white dark:text-black
                          rounded-lg hover:bg-slate-800 dark:hover:bg-gray-200 transition whitespace-nowrap disabled:opacity-50">
                   + {{ 'LOCATION.TABLES_ADD' | translate }}
@@ -143,7 +158,7 @@ const readLabel = (entry: string | TableEntry): string =>
                         ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 ring-1 ring-inset ring-amber-300 dark:ring-amber-700'
                         : 'bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300'">
                       {{ table.label }}
-                      <button type="button" (click)="removeTable($index, table.id)" [disabled]="saving()"
+                      <button type="button" (click)="removeTable(room.id, table.id)" [disabled]="saving()"
                         class="w-7 h-7 flex items-center justify-center rounded-md
                                text-slate-400 dark:text-gray-500 hover:text-red-400
                                hover:bg-red-50 dark:hover:bg-red-900/20 transition text-xs disabled:opacity-50">
@@ -192,7 +207,7 @@ export class TableSettingsComponent implements OnInit {
 
   enabled = signal(false)
   rooms = signal<RoomVm[]>([])
-  pendingTable = signal<Record<number, string>>({})
+  pendingTable = signal<Record<string, string>>({})
 
   private currentSettings: Record<string, unknown> = {}
 
@@ -229,7 +244,9 @@ export class TableSettingsComponent implements OnInit {
   private normalizeRooms(raw: Array<{ name?: string; tables?: Array<string | TableEntry> }> = []): RoomVm[] {
     let sawLegacy = false
     const rooms = (raw ?? []).map(r => ({
+      id: uuidv7(),
       name: r.name ?? '',
+      persistedName: r.name ?? '',
       tables: (r.tables ?? []).map(t => {
         if (typeof t === 'string') {
           sawLegacy = true
@@ -242,8 +259,14 @@ export class TableSettingsComponent implements OnInit {
     return rooms
   }
 
-  /** Label-Vorkommen über ALLE Bereiche — der POS flacht die Räume ab. */
-  private labelCounts(): Map<string, number> {
+  /**
+   * Label-Vorkommen über ALLE Bereiche — der POS flacht die Räume ab.
+   *
+   * Bewusst ein `computed` und keine Methode: das Template fragt pro Tisch-Chip
+   * nach Duplikaten. Als Methode baute es bei den erlaubten Grenzen (50 × 200)
+   * die komplette Map zehntausendfach pro Change-Detection-Lauf neu auf.
+   */
+  private readonly labelCounts = computed(() => {
     const counts = new Map<string, number>()
     for (const room of this.rooms()) {
       for (const table of room.tables) {
@@ -252,7 +275,7 @@ export class TableSettingsComponent implements OnInit {
       }
     }
     return counts
-  }
+  })
 
   /**
    * Raumübergreifendes Duplikat. Nur als Warnung markiert, nie blockierend:
@@ -263,16 +286,16 @@ export class TableSettingsComponent implements OnInit {
     return (this.labelCounts().get(label.toLowerCase()) ?? 0) > 1
   }
 
-  protected pendingLabel(roomIndex: number): string {
-    return this.pendingTable()[roomIndex] ?? ''
+  protected pendingLabel(roomId: string): string {
+    return this.pendingTable()[roomId] ?? ''
   }
 
-  protected setPendingTable(roomIndex: number, value: string) {
-    this.pendingTable.update(map => ({ ...map, [roomIndex]: value }))
+  protected setPendingTable(roomId: string, value: string) {
+    this.pendingTable.update(map => ({ ...map, [roomId]: value }))
   }
 
-  protected onRoomNameInput(roomIndex: number, value: string) {
-    this.rooms.update(list => list.map((r, i) => (i === roomIndex ? { ...r, name: value } : r)))
+  protected onRoomNameInput(roomId: string, value: string) {
+    this.rooms.update(list => list.map(r => (r.id === roomId ? { ...r, name: value } : r)))
   }
 
   /**
@@ -280,8 +303,23 @@ export class TableSettingsComponent implements OnInit {
    * `room.name` hat `minLength: 1` im Schema — ein Save mit leerem Namen liefe
    * in einen 400.
    */
-  protected commitRoomName(roomIndex: number) {
-    if (!this.rooms()[roomIndex]?.name.trim()) return
+  protected commitRoomName(roomId: string) {
+    const room = this.rooms().find(r => r.id === roomId)
+    if (!room) return
+
+    if (!room.name.trim()) {
+      // Ein geleerter Name wuerde beim Speichern herausgefiltert: die UI zeigte
+      // dann einen namenlosen Bereich, waehrend die Datenbank ihn samt Tischen
+      // weiterfuehrt und der POS sie anzeigt. Fuer bereits persistierte
+      // Bereiche deshalb auf den gespeicherten Namen zurueckfallen; neu
+      // angelegte duerfen leer bleiben (Hinweis im Template).
+      if (room.persistedName) {
+        this.rooms.update(list =>
+          list.map(r => (r.id === roomId ? { ...r, name: r.persistedName as string } : r)),
+        )
+      }
+      return
+    }
     void this.save()
   }
 
@@ -296,23 +334,27 @@ export class TableSettingsComponent implements OnInit {
       return
     }
     this.error.set(null)
-    this.rooms.update(list => [...list, { name: '', tables: [] }])
+    this.rooms.update(list => [...list, { id: uuidv7(), name: '', persistedName: null, tables: [] }])
   }
 
-  protected async removeRoom(roomIndex: number) {
+  protected async removeRoom(roomId: string) {
     if (this.blockedByCloud()) return
-    const hadName = !!this.rooms()[roomIndex]?.name.trim()
-    this.rooms.update(list => list.filter((_, i) => i !== roomIndex))
-    // Ein nie gespeicherter Bereich (ohne Namen) braucht keinen Roundtrip.
-    if (hadName) await this.save()
+    const wasPersisted = !!this.rooms().find(r => r.id === roomId)?.persistedName
+    this.rooms.update(list => list.filter(r => r.id !== roomId))
+    this.pendingTable.update(map => {
+      const { [roomId]: _removed, ...rest } = map
+      return rest
+    })
+    // Ein nie gespeicherter Bereich braucht keinen Roundtrip.
+    if (wasPersisted) await this.save()
   }
 
-  protected async addTables(roomIndex: number) {
+  protected async addTables(roomId: string) {
     if (this.blockedByCloud()) return
-    const room = this.rooms()[roomIndex]
+    const room = this.rooms().find(r => r.id === roomId)
     if (!room) return
 
-    const raw = (this.pendingTable()[roomIndex] ?? '').trim()
+    const raw = (this.pendingTable()[roomId] ?? '').trim()
     if (!raw) return
 
     const labels = raw
@@ -360,16 +402,16 @@ export class TableSettingsComponent implements OnInit {
     this.error.set(null)
     this.info.set(this.t.instant('LOCATION.TABLES_ADDED', { added: toAdd.length, skipped }))
     this.rooms.update(list =>
-      list.map((r, i) => (i === roomIndex ? { ...r, tables: [...r.tables, ...toAdd] } : r)),
+      list.map(r => (r.id === roomId ? { ...r, tables: [...r.tables, ...toAdd] } : r)),
     )
-    this.pendingTable.update(map => ({ ...map, [roomIndex]: '' }))
+    this.pendingTable.update(map => ({ ...map, [roomId]: '' }))
     await this.save()
   }
 
-  protected async removeTable(roomIndex: number, tableId: string) {
+  protected async removeTable(roomId: string, tableId: string) {
     if (this.blockedByCloud()) return
     this.rooms.update(list =>
-      list.map((r, i) => (i === roomIndex ? { ...r, tables: r.tables.filter(t => t.id !== tableId) } : r)),
+      list.map(r => (r.id === roomId ? { ...r, tables: r.tables.filter(t => t.id !== tableId) } : r)),
     )
     await this.save()
   }
@@ -418,13 +460,23 @@ export class TableSettingsComponent implements OnInit {
       // Bereich wuerde den gesamten Patch mit 400 scheitern lassen. Die Cloud
       // filtert nur `name === '' && tables.length === 0` — das reicht hier
       // nicht, weil ein unbenannter Bereich MIT Tischen ebenso invalide ist.
-      const cleanedRooms = this.rooms().filter(r => r.name.trim().length > 0)
+      //
+      // `id` und `persistedName` sind reine UI-Felder und werden hier
+      // abgestreift — das Schema kennt an einem Raum nur `name` und `tables`.
+      const cleanedRooms = this.rooms()
+        .filter(r => r.name.trim().length > 0)
+        .map(r => ({ name: r.name, tables: r.tables }))
       const mergedSettings = {
         ...this.currentSettings,
         tableSettings: { enabled: this.enabled(), rooms: cleanedRooms },
       }
       await this.api.patch('locations', this.locationId()!, { settings: mergedSettings })
       this.currentSettings = mergedSettings
+      // Persistierten Stand nachziehen: nur so weiss `commitRoomName`, ob es
+      // einen geleerten Namen zurueckrollen muss oder der Bereich neu ist.
+      this.rooms.update(list =>
+        list.map(r => (r.name.trim().length > 0 ? { ...r, persistedName: r.name } : r)),
+      )
       this.migrationPending.set(false)
       this.saved.set(true)
       setTimeout(() => this.saved.set(false), 2000)

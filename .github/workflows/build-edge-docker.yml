@@ -48,9 +48,15 @@ jobs:
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             # Tag-Push: Version direkt aus dem Tag lesen (v26.4.1 → 26.4.1)
             echo "tag=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+            echo "is_release=true" >> $GITHUB_OUTPUT
           else
-            # workflow_dispatch: Version aus package.json lesen
-            echo "tag=$(jq -r '.version' package.json)" >> $GITHUB_OUTPUT
+            # workflow_dispatch: NIEMALS die package.json-Version verwenden.
+            # Die zeigt auf das zuletzt veroeffentlichte Release — ein Testbuild
+            # vom Branch wuerde damit ein bereits ausgeliefertes Image
+            # ueberschreiben, und wer diese Version pullt, bekaeme etwas
+            # anderes als das, was unter ihr released wurde.
+            echo "tag=staging-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+            echo "is_release=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Copy .dockerignore
@@ -158,9 +164,16 @@ jobs:
           # App-Version ins Image injizieren — /health meldet damit den Image-Tag
           build-args: |
             PANARY_VERSION=${{ steps.version.outputs.tag }}
+          # `:latest` NUR bei einem echten v*-Tag-Push. Jeder installierte Edge
+          # laeuft auf `${PANARY_TAG:-latest}` mit Watchtower im Stundentakt
+          # (tools/hosting/get.panary.cloud/install.sh) — dieser Tag zu bewegen
+          # ist ein automatischer Rollout auf ALLE Kunden, kein Build.
+          # Ein workflow_dispatch vom Branch liefert deshalb ausschliesslich
+          # `staging-<sha>`; darauf kann ein einzelner Test-Edge gezielt
+          # gepinnt werden, ohne alle anderen mitzuziehen.
           tags: |
             ghcr.io/${{ github.repository_owner }}/panary-edge:${{ steps.version.outputs.tag }}
-            ghcr.io/${{ github.repository_owner }}/panary-edge:latest
+            ${{ steps.version.outputs.is_release == 'true' && format('ghcr.io/{0}/panary-edge:latest', github.repository_owner) || '' }}
           cache-from: type=gha
           # cache-to fehlte → der gha-Cache wurde nie geschrieben, cache-from lief
           # permanent ins Leere. mode=max cached auch die teuren Zwischen-Layer

@@ -42,12 +42,17 @@ describe('cloud-connection — setEmergencyOverride', () => {
 
   const service = () => app.service('cloud-connection') as unknown as SetEmergencyOverrideService
 
+  /** Die tenantId wird mit zurueckgegeben: die Override-Zeilen muessen im
+   *  selben Tenant liegen, sonst sieht das Repository sie nicht. */
+  let seededTenantId = ''
+
   async function seedConnection(overrides: Record<string, unknown> = {}): Promise<string> {
     const id = uuidv7()
     const knex = app.get('sqliteClient') as any
+    seededTenantId = (overrides['tenantId'] as string) ?? uuidv7()
     await knex.table('cloud-connection').insert({
       _id: id,
-      tenantId: uuidv7(),
+      tenantId: seededTenantId,
       cloudUrl: 'https://cloud.example.test',
       pairingStatus: PairingStatus.CONNECTED,
       syncEnabled: 1,
@@ -128,7 +133,7 @@ describe('cloud-connection — setEmergencyOverride', () => {
     const now = new Date().toISOString()
     const row = (status: string) => ({
       _id: uuidv7(),
-      tenantId: uuidv7(),
+      tenantId: seededTenantId,
       locationId: uuidv7(),
       tableName: 'locations',
       recordId: uuidv7(),
@@ -162,7 +167,7 @@ describe('cloud-connection — setEmergencyOverride', () => {
     const now = new Date().toISOString()
     await knex.table('pending-local-overrides').insert({
       _id: uuidv7(),
-      tenantId: uuidv7(),
+      tenantId: seededTenantId,
       locationId: uuidv7(),
       tableName: 'locations',
       recordId: uuidv7(),

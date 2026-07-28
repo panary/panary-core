@@ -3,7 +3,11 @@ import { hooks as schemaHooks } from '@feathersjs/schema'
 import { BadRequest } from '@feathersjs/errors'
 
 import { decryptCloudToken } from '../../utils/cloud-token-cipher'
-import { MANUAL_EMERGENCY_OVERRIDE_TTL_MS } from '../../utils/emergency-override'
+import { AUTO_ACTIVATION_SUPPRESSION_MS } from '../../utils/emergency-override'
+import {
+  countOverridesByStatus,
+  discardPendingOverrides,
+} from '../../utils/pending-local-overrides.repository'
 import { APP_VERSION } from '../../version'
 
 import {
@@ -65,33 +69,6 @@ export * from './cloud-connection.schema'
 
 const PREFLIGHT_TIMEOUT_MS = 15_000
 const PAIR_TIMEOUT_MS = 15_000
-
-/**
- * Zaehlt die gepufferten Notfall-Overrides. Der Confirm-Dialog im Admin nennt
- * diese Zahlen, damit „Notfall-Modus beenden" nicht wie ein Datenverlust
- * aussieht: die Eintraege bleiben und werden beim naechsten Cloud-Kontakt
- * regulaer abgeglichen.
- */
-const countPendingOverrides = async (
-  app: Application,
-): Promise<{ pendingCount: number; conflictCount: number }> => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Knex ist hier als generischer Query-Builder genutzt
-  const knex = app.get('sqliteClient' as any) as any
-  if (!knex) return { pendingCount: 0, conflictCount: 0 }
-  try {
-    const rows = (await knex
-      .table('pending-local-overrides')
-      .select('status')) as Array<{ status: string }>
-    return {
-      pendingCount: rows.filter(r => r.status === 'PENDING_RECONCILE').length,
-      conflictCount: rows.filter(r => r.status === 'CONFLICT').length,
-    }
-  } catch {
-    // Tabelle fehlt (Migration noch nicht gelaufen) — kein Grund, den Schalter
-    // scheitern zu lassen.
-    return { pendingCount: 0, conflictCount: 0 }
-  }
-}
 
 // Cloud-seitig sind preflight/create Custom Methods desselben edge-pairing-Service.
 // Standard-CREATE = Pairing-Create (POST /edge-pairing ohne X-Service-Method).
@@ -635,31 +612,32 @@ export const cloudConnection = (app: Application) => {
           // weiterhin ueber der Schwelle — der naechste Fehlversuch wuerde
           // binnen Sekunden re-aktivieren.
           emergencyOverrideSuppressedUntil: new Date(
-            now.getTime() + MANUAL_EMERGENCY_OVERRIDE_TTL_MS,
+            now.getTime() + AUTO_ACTIVATION_SUPPRESSION_MS,
           ).toISOString(),
           consecutiveHeartbeatFailures: 0,
         }
 
+    // Zustandswechsel ZUERST. Vorher lief das Loeschen voran — schlug der Patch
+    // dann fehl, waren die gepufferten Overrides unwiederbringlich weg,
+    // waehrend der Notfall-Modus weiterlief und weiter lokale Patches annahm.
+    await baseService._patch(connection._id, patch as any)
+
+    let discardedCount = 0
     if (!active && data?.discardPendingOverrides) {
       // Bewusst NICHT der Default. Das Loeschen der Audit-Zeilen rollt
       // `settings.printSettings` nicht zurueck — der Edge behielte die
       // geaenderten Drucker-IPs, und die Cloud ueberschriebe sie beim naechsten
       // Pull zu einem unvorhersagbaren Zeitpunkt. Echter Rollback aus
       // `oldValueJson` ist eine eigene Folge-Phase.
-      const knex = app.get('sqliteClient' as any) as any
-      if (knex) {
-        await knex.table('pending-local-overrides').where({ status: 'PENDING_RECONCILE' }).del()
-      }
+      discardedCount = await discardPendingOverrides(app, connection.tenantId!)
     }
 
-    await baseService._patch(connection._id, patch as any)
-
-    const counts = await countPendingOverrides(app)
+    const counts = await countOverridesByStatus(app, connection.tenantId!)
     logger.info({
       message: active ? 'Notfall-Modus manuell aktiviert' : 'Notfall-Modus manuell beendet',
       event: active ? 'emergency-override.manual_activated' : 'emergency-override.manual_deactivated',
       userId: (params?.user as { _id?: string } | undefined)?._id,
-      discardedPendingOverrides: !active && !!data?.discardPendingOverrides,
+      discardedOverrides: discardedCount,
       ...counts,
     })
 

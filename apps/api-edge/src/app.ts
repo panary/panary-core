@@ -153,9 +153,9 @@ app.use(async (ctx, next) => {
       const conn = await findReportableCloudConnection(app)
       if (conn) {
         cloudPairingStatus = conn.pairingStatus
-        cloudTokenErrorReason = conn.tokenErrorReason
-        lastSyncAt = conn.lastSyncAt
-        edgeTokenExpiresAt = conn.edgeTokenExpiresAt
+        cloudTokenErrorReason = conn.tokenErrorReason ?? undefined
+        lastSyncAt = conn.lastSyncAt ?? undefined
+        edgeTokenExpiresAt = conn.edgeTokenExpiresAt ?? undefined
         lastCloudContactAt = conn.lastCloudContactAt ?? undefined
         offlineOverrideActiveUntil = conn.offlineOverrideActiveUntil ?? undefined
         emergencyOverride = !!conn.emergencyOverride

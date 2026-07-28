@@ -30,6 +30,11 @@ import {
   shouldActivateEmergencyOverride,
   shouldAutoDeactivateEmergencyOverride,
 } from '../utils/emergency-override'
+import {
+  deleteOverridesByIds,
+  findPendingOverrides,
+  markOverridesConflicted,
+} from '../utils/pending-local-overrides.repository'
 import { recordSyncRun, type RecordSyncRunInput } from '../services/sync-runs/record-sync-run.helper'
 import { printServerManager } from '../print-server'
 import { applyPulledRecords, cloudFetch, extractAjvValidationErrors, PULL_PAGE_SIZE } from './sync-apply'
@@ -1122,25 +1127,28 @@ const runReconcileOverrides = async (
   if (!connection.emergencyOverride) return
   const cloudToken = decryptCloudToken(connection.cloudToken)
   if (!cloudToken) return
-  // Knex-Instanz ist als beliebige Query-Builder-API genutzt — wir typisieren
-  // sie minimal als `any`, weil die `@types/knex`-Generics in diesem Worker
-  // mehr Rauschen als Wert bringen würden (Knex ist runtime-validiert).
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const knex = app.get('sqliteClient' as any) as any
-  if (!knex) return
 
-  const pending = (await knex
-    .table('pending-local-overrides')
-    .where({ status: 'PENDING_RECONCILE' })
-    .select()) as Array<Record<string, unknown>>
+  // Frischen Stand lesen, BEVOR ueber das Deaktivieren entschieden wird.
+  // `connection` stammt vom Anfang des Sync-Zyklus und hat Push- und
+  // Pull-Phasen hinter sich; aktiviert der Operator in diesem Fenster manuell,
+  // traegt der Snapshot noch `emergencyOverrideSource: 'AUTO'` — der Fast-Path
+  // wuerde die frische Entscheidung wegraeumen. Genau die Race, gegen die
+  // `emergencyOverrideSource` eingefuehrt wurde.
+  const current =
+    ((await (app.service(cloudConnectionPath) as any)
+      ._get(connection._id)
+      .catch(() => null)) as CloudConnection | null) ?? connection
+  if (!current.emergencyOverride) return
+
+  const pending = await findPendingOverrides(app, current.tenantId!)
   if (pending.length === 0) {
     // Keine Overrides mehr offen → Notfall-Modus deaktivieren. Eine noch
     // gueltige MANUELLE Aktivierung bleibt bestehen: sonst raeumt dieser
     // Fast-Path (der ohne jeden Cloud-Call laeuft) eine bewusste
     // Operator-Entscheidung binnen eines Ticks wieder weg.
-    if (shouldAutoDeactivateEmergencyOverride(connection, { pendingCount: 0, conflictCount: 0 }, Date.now())) {
+    if (shouldAutoDeactivateEmergencyOverride(current, { pendingCount: 0, conflictCount: 0 }, Date.now())) {
       await (app.service(cloudConnectionPath) as any)
-        ._patch(connection._id, {
+        ._patch(current._id, {
           emergencyOverride: false,
           emergencyOverrideSince: null,
           emergencyOverrideSource: null,
@@ -1186,24 +1194,14 @@ const runReconcileOverrides = async (
     conflicts: Array<{ overrideId: string; reason: string }>
   }
 
-  if (body.accepted.length > 0) {
-    await knex
-      .table('pending-local-overrides')
-      .whereIn(
-        '_id',
-        body.accepted.map(a => a.overrideId),
-      )
-      .del()
-  }
-  if (body.conflicts.length > 0) {
-    await knex
-      .table('pending-local-overrides')
-      .whereIn(
-        '_id',
-        body.conflicts.map(c => c.overrideId),
-      )
-      .update({ status: 'CONFLICT', updatedAt: new Date().toISOString() })
-  }
+  await deleteOverridesByIds(
+    app,
+    body.accepted.map(a => a.overrideId),
+  )
+  await markOverridesConflicted(
+    app,
+    body.conflicts.map(c => c.overrideId),
+  )
 
   logger.info({
     message: 'Emergency-Override-Reconcile abgeschlossen',
@@ -1218,13 +1216,13 @@ const runReconcileOverrides = async (
   // der Edge bei Bedarf weiter lokale Patches akzeptiert.
   if (
     shouldAutoDeactivateEmergencyOverride(
-      connection,
+      current,
       { pendingCount: 0, conflictCount: body.conflicts.length },
       Date.now(),
     )
   ) {
     await (app.service(cloudConnectionPath) as any)
-      ._patch(connection._id, {
+      ._patch(current._id, {
         emergencyOverride: false,
         emergencyOverrideSince: null,
         emergencyOverrideSource: null,

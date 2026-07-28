@@ -56,6 +56,10 @@ Eine manuelle Aktivierung ist auf **2 h** befristet (gerechnet ab `emergencyOver
 
 Die Entscheidungslogik liegt als pure Funktionen in `apps/api-edge/src/utils/emergency-override.ts` (`shouldActivateEmergencyOverride`, `shouldAutoDeactivateEmergencyOverride`) — ohne App-/DB-Zugriff, damit die Matrix ohne globalen Zustand testbar bleibt.
 
+Die beiden Zeitfenster sind bewusst getrennte Konstanten (`MANUAL_EMERGENCY_OVERRIDE_TTL_MS` für die Lebensdauer einer manuellen Aktivierung, `AUTO_ACTIVATION_SUPPRESSION_MS` für die Sperrfrist des Watchdogs danach), obwohl beide aktuell bei 2 h liegen: sie beantworten verschiedene Fragen, und eine gemeinsame Konstante hätte beim Justieren der einen still die andere mitverschoben.
+
+**Frischer Record vor der Deaktivierung:** `runReconcileOverrides` liest die `cloud-connection` neu, bevor es über das Abschalten entscheidet. Der durchgereichte Snapshot stammt vom Anfang des Sync-Zyklus und hat Push- und Pull-Phasen hinter sich — eine manuelle Aktivierung in diesem Fenster wäre auf dem alten Stand als `AUTO` gelesen und weggeräumt worden.
+
 ### Warum eine Custom-Method statt eines PATCH?
 
 `setEmergencyOverride({ active, discardPendingOverrides? })` auf `cloud-connection`, nicht ein normaler PATCH:
@@ -63,6 +67,8 @@ Die Entscheidungslogik liegt als pure Funktionen in `apps/api-edge/src/utils/eme
 1. **Mehrfeld-Transaktion:** Flag + Since + Source + SuppressedUntil + Failure-Zähler plus die Policy für die gepufferten Overrides. Client-seitig zusammengesetzt gäbe es mehrere Wege in einen halb aktualisierten Zustand.
 2. **`emergencyOverrideSince: null`** war extern gar nicht validierbar — das Schema hatte keine `Null`-Union (der Worker kommt nur durch, weil er `_patch` auf Adapter-Ebene nutzt).
 3. **RBAC:** Ein benannter Methodenname bekommt einen expliziten Eintrag in `METHOD_TO_ACTION` (`UPDATE`), statt implizit auf den `MANAGE`-Fallback zu fallen.
+
+Der Zustandswechsel läuft **vor** einem etwaigen Verwerfen der gepufferten Overrides: umgekehrt wären bei einem fehlgeschlagenen Patch die Zeilen weg, während der Notfall-Modus weiterläuft und weiter lokale Patches annimmt.
 
 Im selben Zug wurden `emergencyOverride*`, `lastHeartbeatOk` und `consecutiveHeartbeatFailures` im `cloudConnectionPatchResolver` als `filterFromExternal` gesperrt. Vorher waren sie extern patchbar — ein Client mit `CLOUD_CONNECTION: MANAGE` hätte damit die Cloud-Hoheit über Standort-Stammdaten aushebeln können, ohne RBAC-Eintrag und ohne Audit-Spur. `offlineOverrideActiveUntil` bleibt bewusst ausgenommen (der `OfflineOverrideService` patcht es extern); Migration auf eine eigene Custom-Method ist ein Folge-Task.
 
@@ -90,6 +96,7 @@ Beide Trigger zusammen = robuste Erkennung ohne unnötige False-Positives (ein e
 | Externer Schreibschutz | `cloudConnectionPatchResolver` in `apps/api-edge/src/services/cloud-connection/cloud-connection.schema.ts` |
 | Whitelist im `cloudManaged()` | `apps/api-edge/src/hooks/cloud-managed.hook.ts` |
 | Override-Persistenz | `apps/api-edge/src/hooks/record-emergency-override.hook.ts` |
+| Tabellen-Zugriff (tenant-scoped) | `apps/api-edge/src/utils/pending-local-overrides.repository.ts` |
 | SQLite-Migration | `apps/api-edge/migrations/20260514000001_cloud_connection_emergency_override.ts` + `20260514000002_pending_local_overrides.ts` + `20260728200000_cloud_connection_emergency_override_manual.ts` |
 | Reconciliation-Push | `runReconcileOverrides()` in `cloud-sync-scheduler.worker.ts` |
 | Schema-Felder | `libs/domains/cloud-connection/domain/src/lib/cloud-connection.schema.ts` (Edge-only Felder) |

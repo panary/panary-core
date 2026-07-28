@@ -28,11 +28,21 @@ export const EMERGENCY_OVERRIDE_FAILURE_THRESHOLD = 3
 export const EMERGENCY_OVERRIDE_AFTER_MS = 5 * 60 * 1000
 
 /**
- * Eine manuelle Aktivierung ist zeitlich begrenzt — ohne Timebox bliebe die
+ * Lebensdauer einer MANUELLEN Aktivierung. Ohne Timebox bliebe die
  * Drucker-Whitelist nach der Rueckkehr der Cloud dauerhaft offen und der Edge
  * wuerde still divergieren.
  */
 export const MANUAL_EMERGENCY_OVERRIDE_TTL_MS = 2 * 60 * 60 * 1000
+
+/**
+ * Sperrfrist der AUTOMATIK nach einer manuellen Deaktivierung.
+ *
+ * Bewusst eine eigene Konstante, obwohl der Wert derzeit gleich ist: die beiden
+ * beantworten unterschiedliche Fragen („wie lange gilt mein Einschalten" vs.
+ * „wie lange halte ich den Watchdog still"). Eine gemeinsame Konstante haette
+ * beim Justieren der einen still die andere mitverschoben.
+ */
+export const AUTO_ACTIVATION_SUPPRESSION_MS = 2 * 60 * 60 * 1000
 
 /** Nur die Felder, die die Entscheidung braucht — bewusst kein CloudConnection. */
 export interface EmergencyOverrideState {

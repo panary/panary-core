@@ -7,8 +7,8 @@ import { ApiService } from '../core/api.service'
 import { SyncProblemCountService } from '../core/sync-problem-count.service'
 import { DeviceStatusService } from '../core/device-status.service'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
-import { LanguageService } from '@panary/shared/data-access'
 import { LocationStateService } from '../core/location-state.service'
+import { LanguagePickerComponent } from '../shared/language-picker'
 
 /**
  * Logische Gruppe in der Sidebar. Die Ueberschrift ist ein i18n-Key
@@ -52,7 +52,7 @@ interface NavItem {
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslateModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslateModule, LanguagePickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="h-screen bg-slate-50 dark:bg-black flex">
@@ -220,16 +220,7 @@ interface NavItem {
                 ◐
               </button>
             </div>
-            <div class="flex items-center gap-1 mb-3 bg-slate-100 dark:bg-gray-900 rounded-lg p-1">
-              @for (lang of langService.languages; track lang.code) {
-                <button (click)="langService.setLanguage(lang.code)"
-                        [class]="langService.currentLanguage() === lang.code
-                          ? 'flex-1 text-xs py-1.5 rounded-md bg-white dark:bg-gray-800 text-slate-900 dark:text-white shadow-sm font-medium transition'
-                          : 'flex-1 text-xs py-1.5 rounded-md text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-300 transition'">
-                  {{ lang.code.toUpperCase() }}
-                </button>
-              }
-            </div>
+            <app-language-picker class="block mb-3" [expanded]="true" />
             <div class="text-xs text-slate-500 dark:text-gray-500 truncate">{{ userName() }}</div>
             <button (click)="auth.logout()"
                     class="text-xs text-slate-400 dark:text-gray-600 hover:text-slate-900 dark:hover:text-white mt-1 transition">
@@ -245,12 +236,7 @@ interface NavItem {
                              hover:text-slate-900 dark:hover:text-white transition">
                 {{ themeService.theme === 'light' ? '☀' : themeService.theme === 'dark' ? '☽' : '◐' }}
               </button>
-              <button (click)="cycleLanguage()"
-                      [title]="('COMMON.LANGUAGE' | translate) + ': ' + langService.currentLanguage().toUpperCase()"
-                      class="text-xs font-medium leading-none text-slate-500 dark:text-gray-400
-                             hover:text-slate-900 dark:hover:text-white transition">
-                {{ langService.currentLanguage().toUpperCase() }}
-              </button>
+              <app-language-picker [expanded]="false" />
               <button (click)="auth.logout()" [title]="'COMMON.LOGOUT' | translate"
                       class="flex items-center justify-center
                              text-slate-400 dark:text-gray-600
@@ -278,7 +264,6 @@ export class AdminLayoutComponent {
   private syncProblemCount = inject(SyncProblemCountService)
   protected deviceStatus = inject(DeviceStatusService)
   themeService = inject(ThemeServiceService)
-  protected langService = inject(LanguageService)
   locationState = inject(LocationStateService)
   private title = inject(Title)
 
@@ -396,9 +381,4 @@ export class AdminLayoutComponent {
     this.themeService.setTheme(next)
   }
 
-  cycleLanguage() {
-    const codes = this.langService.languages.map(l => l.code)
-    const next = codes[(codes.indexOf(this.langService.currentLanguage()) + 1) % codes.length]
-    this.langService.setLanguage(next)
-  }
 }

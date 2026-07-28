@@ -83,27 +83,44 @@ async function resolveLocationId(context: HookContext): Promise<string> {
     return existingUser.activeLocationId as string
   }
 
-  // Eindeutigkeits-Fallback: Der Edge ist per Architektur Single-Location.
-  // Gibt es genau EINE Location, ist sie der eindeutige Kandidat — unabhaengig
-  // vom System-Modus. Frueher haing dieser Zweig an `system.mode ===
+  // Fallback ohne zugewiesene Filiale: Der Edge ist im Regelfall
+  // Single-Location. Frueher haing dieser Zweig an `system.mode ===
   // 'standalone'`; das haette bei einer abgeleiteten Modus-Angabe auf gepairten
   // Edges jede Bestellung mit LOCATION_NOT_ASSIGNED abgewiesen.
   //
-  // `$limit: 2` statt `1` ist bewusst strikter als vorher: bei mehreren
-  // Locations wird nicht mehr blind die erste gewaehlt, sondern sauber
-  // abgelehnt — ein mehrdeutiger Umsatz-Zuordnung ist schlimmer als ein
-  // klarer Fehler.
+  // `$sort` ist der eigentliche Punkt: ohne ihn liefert SQLite eine formal
+  // beliebige Zeile, die Zuordnung waere also nicht reproduzierbar. Mit Sortierung
+  // faellt bei mehreren Locations immer dieselbe — nachvollziehbar statt zufaellig.
+  //
+  // Mehrere Locations werden bewusst NICHT abgelehnt: eine stehende Kasse ist
+  // operativ schlimmer als eine eindeutige, aber moeglicherweise ungewollte
+  // Zuordnung. Der Fall ist auffaellig genug fuer ein Wide-Event, damit er im
+  // Support sichtbar wird, statt still zu bleiben.
   const locations = (await app.service('locations').find({
-    query: { $limit: 2, $select: ['_id'] },
+    query: { $limit: 2, $sort: { _id: 1 }, $select: ['_id'] },
     provider: undefined,
   })) as any
-  if (locations.data?.length === 1) {
-    return locations.data[0]._id
+  const candidates = (locations.data ?? []) as Array<{ _id: string }>
+  if (candidates.length === 0) {
+    throw new BadRequest(AppErrorMessages[AppError.LOCATION_NOT_ASSIGNED], {
+      code: AppError.LOCATION_NOT_ASSIGNED,
+    })
   }
 
-  throw new BadRequest(AppErrorMessages[AppError.LOCATION_NOT_ASSIGNED], {
-    code: AppError.LOCATION_NOT_ASSIGNED,
-  })
+  const total = typeof locations.total === 'number' ? locations.total : candidates.length
+  if (total > 1) {
+    logger.warn({
+      message:
+        'Bestellung ohne activeLocationId auf einem Edge mit mehreren Locations — ' +
+        'erste Location nach _id-Sortierung zugeordnet. activeLocationId am User setzen.',
+      event: 'order.location_fallback_ambiguous',
+      userId: user._id,
+      locationCount: total,
+      chosenLocationId: candidates[0]._id,
+    })
+  }
+
+  return candidates[0]._id
 }
 
 /**

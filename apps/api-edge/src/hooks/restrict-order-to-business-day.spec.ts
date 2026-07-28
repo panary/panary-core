@@ -67,7 +67,12 @@ function makeContext(opts: {
     },
     locations: {
       get: vi.fn().mockResolvedValue(opts.location ?? { _id: 'loc-1', tenantId: 't-1', currentBusinessDay: null }),
-      find: vi.fn().mockResolvedValue({ data: opts.locationList ?? [{ _id: 'loc-1' }] }),
+      find: vi.fn().mockImplementation(() => {
+        const all = opts.locationList ?? [{ _id: 'loc-1' }]
+        // Der Hook liest `total`, um Mehrdeutigkeit zu erkennen, und `$limit: 2`
+        // kappt `data` — der Stub bildet beides nach.
+        return Promise.resolve({ data: all.slice(0, 2), total: all.length })
+      }),
     },
     'cloud-connection': {
       find: vi.fn().mockResolvedValue(opts.cloudConnection ? [opts.cloudConnection] : []),
@@ -202,20 +207,37 @@ describe.each(['standalone', 'connected'])('restrictOrderToBusinessDay (systemMo
     await restrictOrderToBusinessDay()(ctx)
 
     expect(ctx.data.businessDayId).toBe('bd-1')
-    // `$limit: 2` ist die Bedingung fuer die Mehrdeutigkeits-Erkennung.
+    // Ohne `$sort` liefert SQLite eine formal beliebige Zeile — die Zuordnung
+    // waere dann nicht reproduzierbar.
     expect(ctx.__services.locations.find).toHaveBeenCalledWith(
-      expect.objectContaining({ query: expect.objectContaining({ $limit: 2 }) }),
+      expect.objectContaining({
+        query: expect.objectContaining({ $limit: 2, $sort: { _id: 1 } }),
+      }),
     )
   })
 
-  it('wirft BadRequest, wenn der User keine activeLocationId hat und MEHRERE Locations existieren', async () => {
+  // Bewusst KEIN Abbruch: eine stehende Kasse ist operativ schlimmer als eine
+  // eindeutige, aber moeglicherweise ungewollte Zuordnung. Vor diesem Fix
+  // haetten Bestellungen auf Multi-Location-Edges schlicht aufgehoert zu
+  // funktionieren, wo sie vorher liefen.
+  it('ordnet bei MEHREREN Locations deterministisch die erste zu, statt abzubrechen', async () => {
+    shouldAutoRotate.mockReturnValue(false)
+    getDifferenceInDays.mockReturnValue(0)
     const ctx = makeContext({
       systemMode,
       userActiveLocationId: null,
       locationList: [{ _id: 'loc-1' }, { _id: 'loc-2' }],
+      location: {
+        _id: 'loc-1',
+        tenantId: 't-1',
+        currentBusinessDay: { businessDayId: 'bd-1', date: new Date().toISOString().slice(0, 10) },
+      },
     })
 
-    await expect(restrictOrderToBusinessDay()(ctx)).rejects.toBeInstanceOf(BadRequest)
+    await restrictOrderToBusinessDay()(ctx)
+
+    expect(ctx.data.businessDayId).toBe('bd-1')
+    expect(ctx.__services.locations.get).toHaveBeenCalledWith('loc-1', expect.anything())
   })
 
   it('wirft BadRequest, wenn der User keine activeLocationId hat und KEINE Location existiert', async () => {

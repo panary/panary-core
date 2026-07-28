@@ -19,6 +19,8 @@ const healthy = (): CloudStatusState => ({
   lastCloudContactAgeMin: 0,
   emergencyOverrideActive: false,
   emergencyOverrideSinceMin: null,
+  // Admin belegt den Token; der POS laesst ihn ungesetzt.
+  showEmergencyOverride: true,
 })
 
 describe('selectActiveBanner — Prioritaetsleiter', () => {
@@ -219,6 +221,21 @@ describe('selectActiveBanner — Notfall-Modus (w35)', () => {
       selectActiveBanner({ ...withEmergency, tokenLevel: 'crit', tokenRemainingSec: 0 })?.id,
     ).toBe('token-expired')
     expect(selectActiveBanner({ ...withEmergency, cloudNeedsRePairing: true })?.id).toBe('re-pairing-required')
+  })
+
+  // Der Zustand ist ein Administrations-Detail mit RBAC-pflichtiger Aktion —
+  // auf der Kasse waere er dauerhaftes Rauschen ohne Handlungsmoeglichkeit und
+  // wuerde dort ausserdem sync-stale verdraengen.
+  it('erscheint nicht, wenn der Host ihn nicht freischaltet (POS)', () => {
+    const banner = selectActiveBanner({
+      ...healthy(),
+      showEmergencyOverride: false,
+      emergencyOverrideActive: true,
+      syncLevel: 'warn',
+      syncAgeSec: 600,
+    })
+
+    expect(banner?.id).toBe('sync-stale')
   })
 
   it('erscheint nicht ausserhalb von Tier 3', () => {

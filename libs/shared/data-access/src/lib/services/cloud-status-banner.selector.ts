@@ -63,6 +63,13 @@ export interface CloudStatusState {
   /** Notfall-Modus aktiv: lokale Drucker-Patches werden angenommen (ADR 0001). */
   emergencyOverrideActive: boolean
   emergencyOverrideSinceMin: number | null
+  /**
+   * Host zeigt den Notfall-Banner an. Default-`false`-Semantik beim Aufrufer:
+   * der Zustand ist ein Administrations-Detail mit einer RBAC-pflichtigen
+   * Aktion — auf der Kasse waere er dauerhaftes Rauschen ohne
+   * Handlungsmoeglichkeit und wuerde dort `sync-stale` verdraengen.
+   */
+  showEmergencyOverride?: boolean
 }
 
 /**
@@ -180,7 +187,7 @@ export function selectActiveBanner(s: CloudStatusState): CloudBanner | null {
     //     sondern „es liegen nicht abgeglichene lokale Aenderungen vor": dieser
     //     Zustand ueberlebt den Ausfall, weil der Reconcile das Flag bei offenen
     //     Konflikten stehen laesst. Dann ist er der einzig verbliebene Banner.
-    if (s.emergencyOverrideActive) {
+    if (s.emergencyOverrideActive && s.showEmergencyOverride) {
       return {
         id: 'emergency-override-active',
         level: 'warn',

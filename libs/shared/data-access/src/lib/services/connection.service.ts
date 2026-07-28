@@ -426,6 +426,17 @@ export class ConnectionService {
     return Number.isFinite(ageSec) && ageSec > ConnectionService.CLOUD_CONTACT_STALE_SEC
   })
 
+  /**
+   * Es ist gar kein Cloud-Kontakt bekannt. Unterschieden von `cloudUnreachable`,
+   * das bewusst `false` liefert, solange nie Kontakt bestand — sonst wuerde ein
+   * frisch gepairter Edge sofort als „unerreichbar" gemeldet.
+   *
+   * Fuer den Notfall-Modus ist die Unterscheidung wichtig: „seit dem Pairing nie
+   * erreicht" ist genau der Zustand, in dem der Operator die Drucker manuell
+   * freischalten koennen muss.
+   */
+  readonly cloudContactUnknown = computed(() => this.cloudPaired() && this.#lastCloudContactAt() === null)
+
   /** Minuten seit letztem Cloud-Kontakt (null, wenn unbekannt). */
   readonly lastCloudContactAgeMin = computed(() => {
     this.#tick()
@@ -726,6 +737,12 @@ export class ConnectionService {
         autoConnect: true,
       }
     }
+
+    // Health-URL sofort merken, nicht erst im `connect`-Handler: `refreshHealth()`
+    // war sonst ein stiller No-op, solange die Socket-Verbindung nicht stand —
+    // und genau dann brauchen die Seiten den Zustand, weil `healthLoaded` noch
+    // false ist und alle Formulare entsperrt rendern.
+    this.#lastHealthUrl = url
 
     const socket = io(url, options)
 

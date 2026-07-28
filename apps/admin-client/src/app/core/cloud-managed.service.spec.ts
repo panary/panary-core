@@ -10,6 +10,8 @@ interface StubState {
   cloudPaired: boolean
   emergencyOverride: boolean
   cloudUnreachable: boolean
+  /** Kein Cloud-Kontakt bekannt (frisch gepairt, Cloud nie erreicht). */
+  cloudContactUnknown?: boolean
 }
 
 function setup(state: StubState): CloudManagedService {
@@ -19,6 +21,7 @@ function setup(state: StubState): CloudManagedService {
     emergencyOverrideActive: signal(state.emergencyOverride),
     emergencyOverrideSinceMin: signal<number | null>(null),
     cloudUnreachable: signal(state.cloudUnreachable),
+    cloudContactUnknown: signal(state.cloudContactUnknown ?? false),
     refreshHealth: () => Promise.resolve(),
   }
   TestBed.configureTestingModule({
@@ -91,6 +94,22 @@ describe('CloudManagedService', () => {
       const svc = setup({ healthLoaded: true, cloudPaired: true, emergencyOverride: false, cloudUnreachable: false })
 
       expect(svc.canOfferEmergency()).toBe(false)
+    })
+
+    // `cloudUnreachable` liefert bei nie erfolgtem Kontakt bewusst false — sonst
+    // meldete ein frisch gepairter Edge sofort einen Ausfall. Ohne diesen Zweig
+    // waere der Button im dringlichsten Szenario („seit dem Pairing nie
+    // erreicht, Drucker gesperrt") nie sichtbar.
+    it('bietet ihn an, wenn seit dem Pairing nie Cloud-Kontakt bestand', () => {
+      const svc = setup({
+        healthLoaded: true,
+        cloudPaired: true,
+        emergencyOverride: false,
+        cloudUnreachable: false,
+        cloudContactUnknown: true,
+      })
+
+      expect(svc.canOfferEmergency()).toBe(true)
     })
 
     it('bietet ihn ohne Pairing nicht an', () => {

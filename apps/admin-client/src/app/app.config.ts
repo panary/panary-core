@@ -5,6 +5,7 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { TranslateModule } from '@ngx-translate/core'
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader'
 import { APP_CONFIG } from '@panary/shared/data-access-config'
+import { CLOUD_STATUS_BANNER_OPTIONS } from '@panary/shared/data-access'
 import { appRoutes } from './app.routes'
 import { authInterceptor } from './core/auth.interceptor'
 import packageJson from '../../../../package.json'
@@ -63,6 +64,14 @@ export const appConfig: ApplicationConfig = {
         localStorageUsersKey: 'panary_users',
         localStorageCompanyNameKey: 'panary_company',
       },
+    },
+    // Notfall-Modus-Banner nur im Admin: er beschreibt einen reinen
+    // Administrations-Zustand und traegt eine Aktion, die
+    // `CLOUD_CONNECTION: MANAGE` verlangt. Auf der Kasse waere er dauerhaftes
+    // Rauschen ohne Handlungsmoeglichkeit (der POS belegt den Token nicht).
+    {
+      provide: CLOUD_STATUS_BANNER_OPTIONS,
+      useValue: { showEmergencyOverride: true },
     },
   ],
 }

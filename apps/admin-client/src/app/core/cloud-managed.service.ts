@@ -57,7 +57,14 @@ export class CloudManagedService {
    * automatische Aktivierung entsprechend spaet greift.
    */
   readonly canOfferEmergency = computed(
-    () => this.readOnly() && !this.emergencyOverride() && this.#conn.cloudUnreachable(),
+    () =>
+      this.readOnly() &&
+      !this.emergencyOverride() &&
+      // `cloudContactUnknown` ist der Fall „seit dem Pairing nie erreicht":
+      // `cloudUnreachable` liefert dort bewusst false (sonst meldete ein frisch
+      // gepairter Edge sofort einen Ausfall), und ohne diesen Zweig waere der
+      // Button genau im dringlichsten Szenario nie sichtbar.
+      (this.#conn.cloudUnreachable() || this.#conn.cloudContactUnknown()),
   )
 
   /** Sofortiger /health-Roundtrip statt bis zu 60 s Wartezeit. */

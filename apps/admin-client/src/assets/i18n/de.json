@@ -88,6 +88,22 @@
     "NO_EXCEPTIONS": "Keine Ausnahmen konfiguriert",
     "LOAD_ERROR": "\u00d6ffnungszeiten konnten nicht geladen werden."
   },
+  "CLOUD_MANAGED": {
+    "TITLE": "Diese Filiale wird in der Cloud verwaltet.",
+    "BODY": "Änderungen sind nur in der Cloud-Admin-Oberfläche möglich. Aktualisierungen erscheinen automatisch nach dem nächsten Sync-Zyklus.",
+    "SHOW_CONNECTION": "Cloud-Kopplung anzeigen",
+    "SUBLINE_OPENING_HOURS": "Öffnungszeiten und Ausnahmen werden zentral gepflegt.",
+    "SUBLINE_PAGERS": "Pager-Nummern werden zentral gepflegt.",
+    "SUBLINE_TABLES": "Bereiche und Tische werden zentral gepflegt.",
+    "SUBLINE_LOCATION": "Standort-Stammdaten werden zentral gepflegt.",
+    "SUBLINE_PRINTERS": "Drucker-Einstellungen werden zentral gepflegt. Bei Cloud-Ausfall schaltet der Edge den Notfall-Modus automatisch frei.",
+    "EMERGENCY_TITLE": "Notfall-Modus aktiv — Drucker lokal editierbar",
+    "EMERGENCY_BODY": "Die Cloud ist nicht erreichbar. Drucker-Einstellungen können lokal geändert werden und werden bei Cloud-Rückkehr automatisch abgeglichen. Alle anderen Standort-Einstellungen bleiben gesperrt.",
+    "EMERGENCY_SINCE": "Aktiv seit {{minutes}} Minuten",
+    "EMERGENCY_END": "Notfall-Modus beenden",
+    "EMERGENCY_START": "Notfall-Modus aktivieren",
+    "SAVE_BLOCKED": "Änderung nicht gespeichert — diese Daten werden in der Cloud verwaltet."
+  },
   "CLOUD_STATUS": {
     "SYNC_AGE_MIN": "Letzter Cloud-Sync vor {{minutes}} min",
     "SYNC_AGE_HOUR": "Letzter Cloud-Sync vor {{hours}} h",

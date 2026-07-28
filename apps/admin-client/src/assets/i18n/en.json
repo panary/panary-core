@@ -88,6 +88,22 @@
     "NO_EXCEPTIONS": "No exceptions configured",
     "LOAD_ERROR": "Could not load opening hours."
   },
+  "CLOUD_MANAGED": {
+    "TITLE": "This location is managed in the cloud.",
+    "BODY": "Changes are only possible in the cloud admin interface. Updates appear automatically after the next sync cycle.",
+    "SHOW_CONNECTION": "Show cloud connection",
+    "SUBLINE_OPENING_HOURS": "Opening hours and exceptions are maintained centrally.",
+    "SUBLINE_PAGERS": "Pager numbers are maintained centrally.",
+    "SUBLINE_TABLES": "Areas and tables are maintained centrally.",
+    "SUBLINE_LOCATION": "Location master data is maintained centrally.",
+    "SUBLINE_PRINTERS": "Printer settings are maintained centrally. If the cloud becomes unreachable, the edge unlocks emergency mode automatically.",
+    "EMERGENCY_TITLE": "Emergency mode active — printers editable locally",
+    "EMERGENCY_BODY": "The cloud is unreachable. Printer settings can be changed locally and are reconciled automatically once the cloud returns. All other location settings remain locked.",
+    "EMERGENCY_SINCE": "Active for {{minutes}} minutes",
+    "EMERGENCY_END": "End emergency mode",
+    "EMERGENCY_START": "Activate emergency mode",
+    "SAVE_BLOCKED": "Change not saved — this data is managed in the cloud."
+  },
   "CLOUD_STATUS": {
     "SYNC_AGE_MIN": "Last cloud sync {{minutes}} min ago",
     "SYNC_AGE_HOUR": "Last cloud sync {{hours}} h ago",

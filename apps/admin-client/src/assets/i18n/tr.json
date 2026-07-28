@@ -88,6 +88,22 @@
     "NO_EXCEPTIONS": "Yap\u0131land\u0131r\u0131lm\u0131\u015f istisna yok",
     "LOAD_ERROR": "\u00c7al\u0131\u015fma saatleri y\u00fcklenemedi."
   },
+  "CLOUD_MANAGED": {
+    "TITLE": "Bu şube bulutta yönetiliyor.",
+    "BODY": "Değişiklikler yalnızca bulut yönetim arayüzünde yapılabilir. Güncellemeler bir sonraki senkronizasyon döngüsünden sonra otomatik olarak görünür.",
+    "SHOW_CONNECTION": "Bulut bağlantısını göster",
+    "SUBLINE_OPENING_HOURS": "Çalışma saatleri ve istisnalar merkezi olarak yönetilir.",
+    "SUBLINE_PAGERS": "Çağrı cihazı numaraları merkezi olarak yönetilir.",
+    "SUBLINE_TABLES": "Alanlar ve masalar merkezi olarak yönetilir.",
+    "SUBLINE_LOCATION": "Şube ana verileri merkezi olarak yönetilir.",
+    "SUBLINE_PRINTERS": "Yazıcı ayarları merkezi olarak yönetilir. Bulut erişilemez olduğunda uç birim acil durum modunu otomatik olarak açar.",
+    "EMERGENCY_TITLE": "Acil durum modu etkin — yazıcılar yerel olarak düzenlenebilir",
+    "EMERGENCY_BODY": "Buluta erişilemiyor. Yazıcı ayarları yerel olarak değiştirilebilir ve bulut geri döndüğünde otomatik olarak eşitlenir. Diğer tüm şube ayarları kilitli kalır.",
+    "EMERGENCY_SINCE": "{{minutes}} dakikadır etkin",
+    "EMERGENCY_END": "Acil durum modunu sonlandır",
+    "EMERGENCY_START": "Acil durum modunu etkinleştir",
+    "SAVE_BLOCKED": "Değişiklik kaydedilmedi — bu veriler bulutta yönetiliyor."
+  },
   "CLOUD_STATUS": {
     "SYNC_AGE_MIN": "Son bulut senkronizasyonu {{minutes}} dk önce",
     "SYNC_AGE_HOUR": "Son bulut senkronizasyonu {{hours}} sa önce",

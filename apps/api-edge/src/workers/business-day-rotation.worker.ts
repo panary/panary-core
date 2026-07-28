@@ -7,11 +7,10 @@
 // der Geschaeftstag bis zur naechsten Bestellung auf dem Vortag stehen.
 //
 // Der Worker ruft die bestehende `autoEnsureBusinessDay`-Logik (Boot-Pfad)
-// zeitgesteuert auf. Diese kapselt bereits: `systemMode === 'standalone'`-Gate,
-// `isLocalRotationAllowed` (Cloud-Managed-Hybrid), Location-Iteration,
-// `shouldAutoRotate`, den Aktive-Orders-Block und `rotateBusinessDay`. Im
-// CONNECTED-Modus ueberspringt `autoEnsureBusinessDay` selbst — kein doppelter
-// Gate hier noetig.
+// zeitgesteuert auf. Diese kapselt bereits: das `isLocalRotationAllowed`-Gate
+// (Cloud-Managed-Hybrid), Location-Iteration, `shouldAutoRotate`, den
+// Aktive-Orders-Block und `rotateBusinessDay`. Im CONNECTED-Modus ueberspringt
+// `autoEnsureBusinessDay` selbst — kein doppelter Gate hier noetig.
 import { logger } from '@panary/shared-backend'
 
 import { autoEnsureBusinessDay } from '../bootstrap-business-day'

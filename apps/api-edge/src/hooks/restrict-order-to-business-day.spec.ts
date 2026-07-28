@@ -47,17 +47,27 @@ vi.mock('../utils/business-day.utils', () => ({
 import { restrictOrderToBusinessDay } from './restrict-order-to-business-day'
 
 // Stub-App: ein User mit activeLocationId, eine Location und optional eine
-// cloud-connection. `system.mode` steuert standalone vs. enterprise.
+// cloud-connection. `system.mode` ist nur noch Reporting — der Hook darf ihn
+// nicht mehr auswerten; die Spec spiegelt deshalb jeden Fall ueber BEIDE Modi.
 function makeContext(opts: {
   systemMode?: string
   location?: any
   cloudConnection?: any
   data?: any
+  /** `null` simuliert einen User ohne zugewiesene Filiale. */
+  userActiveLocationId?: string | null
+  /** Rueckgabe von `locations.find()` fuer den Eindeutigkeits-Fallback. */
+  locationList?: Array<{ _id: string }>
 }): any {
   const services: Record<string, any> = {
-    users: { get: vi.fn().mockResolvedValue({ activeLocationId: 'loc-1' }) },
+    users: {
+      get: vi.fn().mockResolvedValue({
+        activeLocationId: opts.userActiveLocationId === undefined ? 'loc-1' : opts.userActiveLocationId,
+      }),
+    },
     locations: {
       get: vi.fn().mockResolvedValue(opts.location ?? { _id: 'loc-1', tenantId: 't-1', currentBusinessDay: null }),
+      find: vi.fn().mockResolvedValue({ data: opts.locationList ?? [{ _id: 'loc-1' }] }),
     },
     'cloud-connection': {
       find: vi.fn().mockResolvedValue(opts.cloudConnection ? [opts.cloudConnection] : []),
@@ -71,6 +81,8 @@ function makeContext(opts: {
     },
     params: { user: { _id: 'user-1' } },
     data: opts.data ?? {},
+    // Nur fuer Assertions in den Tests — der Hook nutzt das nicht.
+    __services: services,
   }
 }
 
@@ -78,12 +90,15 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('restrictOrderToBusinessDay', () => {
+// Jeder Fall laeuft ueber beide System-Modi mit IDENTISCHER Erwartung. Das ist
+// die eigentliche Regression-Absicherung: seit der Entkopplung entscheidet
+// allein der Pairing-Zustand, `system.mode` darf keinen Einfluss mehr haben.
+describe.each(['standalone', 'connected'])('restrictOrderToBusinessDay (systemMode=%s)', systemMode => {
   it('lässt einen offenen Geschäftstag passieren und stempelt die businessDayId', async () => {
     shouldAutoRotate.mockReturnValue(false)
     getDifferenceInDays.mockReturnValue(0)
     const ctx = makeContext({
-      systemMode: 'standalone',
+      systemMode,
       location: {
         _id: 'loc-1',
         tenantId: 't-1',
@@ -96,21 +111,21 @@ describe('restrictOrderToBusinessDay', () => {
     expect(ctx.data.businessDayId).toBe('bd-1')
   })
 
-  it('wirft BadRequest, wenn kein Geschäftstag gesetzt ist (standalone, keine Rotation)', async () => {
+  it('wirft BadRequest, wenn kein Geschäftstag gesetzt ist (keine Rotation nötig)', async () => {
     shouldAutoRotate.mockReturnValue(false)
     const ctx = makeContext({
-      systemMode: 'standalone',
+      systemMode,
       location: { _id: 'loc-1', tenantId: 't-1', currentBusinessDay: null },
     })
 
     await expect(restrictOrderToBusinessDay()(ctx)).rejects.toBeInstanceOf(BadRequest)
   })
 
-  it('rotiert im Standalone-Modus automatisch und stempelt die neue businessDayId', async () => {
+  it('rotiert ohne Pairing automatisch und stempelt die neue businessDayId', async () => {
     shouldAutoRotate.mockReturnValue(true)
     rotateBusinessDay.mockResolvedValue('bd-new')
     const ctx = makeContext({
-      systemMode: 'standalone',
+      systemMode,
       location: { _id: 'loc-1', tenantId: 't-1', currentBusinessDay: null },
     })
 
@@ -120,10 +135,10 @@ describe('restrictOrderToBusinessDay', () => {
     expect(ctx.data.businessDayId).toBe('bd-new')
   })
 
-  it('blockiert im Connected-Modus ohne Override, wenn der Tag rotiert werden müsste', async () => {
+  it('blockiert bei aktivem Pairing ohne Override, wenn der Tag rotiert werden müsste', async () => {
     shouldAutoRotate.mockReturnValue(true)
     const ctx = makeContext({
-      systemMode: 'standalone',
+      systemMode,
       location: { _id: 'loc-1', tenantId: 't-1', currentBusinessDay: null },
       cloudConnection: { pairingStatus: 'connected', offlineOverrideActiveUntil: null },
     })
@@ -132,18 +147,82 @@ describe('restrictOrderToBusinessDay', () => {
     expect(rotateBusinessDay).not.toHaveBeenCalled()
   })
 
+  it('rotiert bei aktivem Pairing MIT gültigem Offline-Override', async () => {
+    shouldAutoRotate.mockReturnValue(true)
+    rotateBusinessDay.mockResolvedValue('bd-override')
+    const ctx = makeContext({
+      systemMode,
+      location: { _id: 'loc-1', tenantId: 't-1', currentBusinessDay: null },
+      cloudConnection: {
+        pairingStatus: 'connected',
+        offlineOverrideActiveUntil: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      },
+    })
+
+    await restrictOrderToBusinessDay()(ctx)
+
+    expect(rotateBusinessDay).toHaveBeenCalledTimes(1)
+    expect(ctx.data.businessDayId).toBe('bd-override')
+  })
+
   it('verweigert die Rotation bei aktiven Bestellungen und zu lange offenem Tag', async () => {
     shouldAutoRotate.mockReturnValue(true)
     hasActiveOrders.mockResolvedValue(true)
     // ensureBusinessDayNotOpenTooLong wirft, weil getHoursSince > maxOpenHours.
     getHoursSince.mockReturnValue(48)
     const ctx = makeContext({
-      systemMode: 'standalone',
+      systemMode,
       location: {
         _id: 'loc-1',
         tenantId: 't-1',
         currentBusinessDay: { businessDayId: 'bd-old', date: '2026-05-01' },
       },
+    })
+
+    await expect(restrictOrderToBusinessDay()(ctx)).rejects.toBeInstanceOf(BadRequest)
+  })
+
+  // Der Eindeutigkeits-Fallback ersetzt den frueheren `system.mode === 'standalone'`-
+  // Gate. Ohne diese Tests waere auf einem gepairten Edge jede Bestellung eines
+  // Users ohne activeLocationId mit LOCATION_NOT_ASSIGNED gescheitert.
+  it('löst die Location auf, wenn der User keine activeLocationId hat und genau EINE Location existiert', async () => {
+    shouldAutoRotate.mockReturnValue(false)
+    getDifferenceInDays.mockReturnValue(0)
+    const ctx = makeContext({
+      systemMode,
+      userActiveLocationId: null,
+      locationList: [{ _id: 'loc-1' }],
+      location: {
+        _id: 'loc-1',
+        tenantId: 't-1',
+        currentBusinessDay: { businessDayId: 'bd-1', date: new Date().toISOString().slice(0, 10) },
+      },
+    })
+
+    await restrictOrderToBusinessDay()(ctx)
+
+    expect(ctx.data.businessDayId).toBe('bd-1')
+    // `$limit: 2` ist die Bedingung fuer die Mehrdeutigkeits-Erkennung.
+    expect(ctx.__services.locations.find).toHaveBeenCalledWith(
+      expect.objectContaining({ query: expect.objectContaining({ $limit: 2 }) }),
+    )
+  })
+
+  it('wirft BadRequest, wenn der User keine activeLocationId hat und MEHRERE Locations existieren', async () => {
+    const ctx = makeContext({
+      systemMode,
+      userActiveLocationId: null,
+      locationList: [{ _id: 'loc-1' }, { _id: 'loc-2' }],
+    })
+
+    await expect(restrictOrderToBusinessDay()(ctx)).rejects.toBeInstanceOf(BadRequest)
+  })
+
+  it('wirft BadRequest, wenn der User keine activeLocationId hat und KEINE Location existiert', async () => {
+    const ctx = makeContext({
+      systemMode,
+      userActiveLocationId: null,
+      locationList: [],
     })
 
     await expect(restrictOrderToBusinessDay()(ctx)).rejects.toBeInstanceOf(BadRequest)

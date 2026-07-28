@@ -44,9 +44,17 @@ export const pushSubscriptionSchema = Type.Object(
 )
 export type PushSubscription = Static<typeof pushSubscriptionSchema>
 
-export const pushSubscriptionDataSchema = Type.Pick(
-  pushSubscriptionSchema,
-  ['endpoint', 'keys', 'userAgent'],
+export const pushSubscriptionDataSchema = Type.Intersect(
+  [
+    Type.Pick(pushSubscriptionSchema, ['endpoint', 'keys', 'userAgent']),
+    // `tenantId` schickt der Client NICHT — der `multiTenancy()`-Hook stempelt es
+    // in `around.all`, also VOR `validateData` in `before.create`. Ohne das Feld
+    // scheitert jeder externe Create an `additionalProperties: false` mit
+    // 400 "validation failed" — die Push-Registrierung war dadurch tot.
+    // Optional (nicht Pick, das waere Pflicht): der Client soll es weiterhin
+    // nicht senden muessen, interne Creates ohne User-Kontext bleiben moeglich.
+    Type.Partial(Type.Pick(pushSubscriptionSchema, ['tenantId'])),
+  ],
   { $id: 'PushSubscriptionData', additionalProperties: false },
 )
 export type PushSubscriptionData = Static<typeof pushSubscriptionDataSchema>

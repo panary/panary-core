@@ -33,6 +33,10 @@ export const syncTriggerResponseSchema = Type.Object(
     correlationId: Type.String({ format: 'uuid' }),
     dispatchedAt: Type.String({ format: 'date-time' }),
     scope: Type.Union([Type.Literal(SyncTriggerScope.FULL_CYCLE)]),
+    // true = Edge war beim Trigger nicht live verbunden; die Cloud hat den
+    // Trigger als pendingForceSync geparkt und stellt ihn beim naechsten
+    // Edge-Socket-Connect zu (panary-cloud ADR 0029 — Zustellgarantie).
+    deferred: Type.Optional(Type.Boolean()),
   },
   { $id: 'SyncTriggerResponse', additionalProperties: false },
 )

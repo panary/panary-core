@@ -180,7 +180,27 @@ export const startCloudRealtimeWorker = async (
       // Handshake-Auth: die Cloud (registerEdgeAuthListener) liest
       // `socket.handshake.auth.edgeToken`, validiert ihn und joint die
       // Connection exklusiv in `edge/<cloudEdgeId>`.
-      auth: { edgeToken },
+      //
+      // Als FUNKTION statt statischem Objekt: socket.io-client wertet sie bei
+      // JEDEM (Re-)Handshake aus. Ein statisches `auth: { edgeToken }` friert
+      // den Token vom Connect-Zeitpunkt ein — nach einer Token-Rotation
+      // (HTTP-Sync-Heartbeat) wuerde jeder Auto-Reconnect mit dem stalen Token
+      // abgelehnt, bis der 30s-Supervisor eingreift. Hier wird der aktuelle
+      // Token frisch aus der DB gelesen; `activeToken` wird mitgezogen, damit
+      // der Rotations-Vergleich des Supervisors konsistent bleibt. Fallback
+      // auf den Closure-Token, falls die DB kurzzeitig nicht lesbar ist.
+      auth: cb => {
+        void (async () => {
+          try {
+            const connection = await getActiveConnection(app).catch(() => null)
+            const fresh = connection ? decryptCloudToken(connection.cloudToken) : null
+            if (fresh) activeToken = fresh
+            cb({ edgeToken: fresh ?? edgeToken })
+          } catch {
+            cb({ edgeToken })
+          }
+        })()
+      },
       reconnection: true,
       reconnectionDelay: RECONNECTION_DELAY_MS,
       reconnectionDelayMax: RECONNECTION_DELAY_MAX_MS,
@@ -205,6 +225,11 @@ export const startCloudRealtimeWorker = async (
           event: 'sync.realtime.auth_rejected',
           errorMessage: ack?.error,
         })
+        // Nicht auf den regulaeren 30s-Takt warten: der Supervisor liest den
+        // aktuellen Token aus der DB und reconnectet, falls er rotiert ist.
+        // Ist der Token unveraendert (echt widerrufen/abgelaufen), tut der
+        // Lauf nichts — kein Reconnect-Loop.
+        scheduleSupervise(2_000)
       }
     })
 
@@ -308,12 +333,23 @@ export const startCloudRealtimeWorker = async (
         errorMessage: err instanceof Error ? err.message : String(err),
       })
     }
-    supervisorTimer = setTimeout(() => void supervise(), SUPERVISOR_INTERVAL_MS)
+    scheduleSupervise(SUPERVISOR_INTERVAL_MS)
+  }
+
+  // Plant den naechsten Supervisor-Lauf und ersetzt einen bereits anstehenden
+  // Timer — Einsprungpunkt fuer den regulaeren 30s-Takt UND fuer
+  // ausserplanmaessige Sofort-Laeufe (abgelehnte Socket-Auth). Deklaration als
+  // function (hoisted), damit supervise() und connectSocket() sie unabhaengig
+  // von der Definitionsreihenfolge referenzieren koennen.
+  function scheduleSupervise(delayMs: number): void {
+    if (stopped) return
+    if (supervisorTimer) clearTimeout(supervisorTimer)
+    supervisorTimer = setTimeout(() => void supervise(), delayMs)
   }
 
   // Erststart leicht verzögert (analog Pull-Worker), damit Bootstrap/Pairing
   // sich zuerst stabilisieren kann.
-  supervisorTimer = setTimeout(() => void supervise(), 5_000)
+  scheduleSupervise(5_000)
   logger.info({ message: 'Cloud-Realtime-Worker gestartet', event: 'sync.realtime.started' })
 
   return {

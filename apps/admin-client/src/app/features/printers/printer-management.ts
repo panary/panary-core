@@ -1,6 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
+import { CloudManagedBannerComponent } from '../../core/cloud-managed-banner'
+import { CloudManagedService } from '../../core/cloud-managed.service'
+import { EmergencyOverrideService } from '../../core/emergency-override.service'
 import { PrinterService, type PrintServerStatus } from './printer.service'
 import { PrintServerControlsComponent } from './print-server-controls'
 import { PrinterListComponent } from './printer-list'
@@ -17,6 +20,7 @@ import { formatApiError } from '../../core/error-helper'
     PrinterListComponent,
     PrintSettingsFormComponent,
     MqttSettingsFormComponent,
+    CloudManagedBannerComponent,
     TranslateModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -33,6 +37,38 @@ import { formatApiError } from '../../core/error-helper'
           <p class="text-slate-400 dark:text-gray-500 text-lg">{{ 'LOCATION.NO_LOCATION' | translate }}</p>
         </div>
       } @else {
+        <!--
+          Drei Zustaende: ungepairt = editierbar / gepairt = gesperrt /
+          gepairt + Notfall-Modus = editierbar mit Hinweis. Der Notfall-Modus
+          ist die einzige Ausnahme der Cloud-Hoheit (ADR 0001) — Drucker sind
+          das einzige Settings-Feld mit akuter Hardware-Abhaengigkeit.
+        -->
+        @if (emergency()) {
+          <app-cloud-managed-banner
+            variant="printer-emergency"
+            [sinceMin]="emergencySinceMin()"
+            [showEndButton]="true"
+            (endEmergency)="onEndEmergency()" />
+        } @else if (locked()) {
+          <app-cloud-managed-banner sublineKey="CLOUD_MANAGED.SUBLINE_PRINTERS" />
+
+          @if (canOfferEmergency()) {
+            <!--
+              Nur wenn die Cloud unerreichbar ist und der Auto-Trigger noch
+              nicht gefeuert hat. Schliesst die Luecke im MANUAL-Sync-Modus, wo
+              der Heartbeat nur alle 30 min laeuft.
+            -->
+            <div>
+              <button type="button" (click)="onStartEmergency()" [disabled]="switching()"
+                class="px-4 py-2 text-sm font-medium rounded-lg border border-orange-300 dark:border-orange-700
+                       text-orange-900 dark:text-orange-200 hover:bg-orange-50 dark:hover:bg-orange-900/30
+                       transition disabled:opacity-50">
+                {{ 'CLOUD_MANAGED.EMERGENCY_START' | translate }}
+              </button>
+            </div>
+          }
+        }
+
         <!-- Print-Server Steuerung -->
         <app-print-server-controls
           [status]="printServerStatus()"
@@ -42,16 +78,19 @@ import { formatApiError } from '../../core/error-helper'
         <app-printer-list
           [printers]="printers()"
           [saving]="saving()"
+          [readOnly]="locked()"
           (printersChanged)="onPrintersChanged($event)" />
 
         <!-- Druckeinstellungen -->
         <app-print-settings-form
           [settings]="printSettings()"
+          [readOnly]="locked()"
           (settingsChanged)="onPrintSettingsChanged($event)" />
 
         <!-- MQTT-Konfiguration -->
         <app-mqtt-settings-form
           [settings]="mqttSettings()"
+          [readOnly]="locked()"
           (settingsChanged)="onMqttSettingsChanged($event)" />
 
         @if (error()) {
@@ -64,7 +103,7 @@ import { formatApiError } from '../../core/error-helper'
 
         <!-- Speichern Button -->
         <div class="flex gap-3 pt-2 pb-8">
-          <button (click)="onSave()" [disabled]="saving()"
+          <button (click)="onSave()" [disabled]="saving() || locked()"
             class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-8 py-3 rounded-xl text-sm
                    hover:bg-slate-800 dark:hover:bg-gray-200 transition disabled:opacity-50">
             {{ saving() ? ('COMMON.SAVING' | translate) : ('PRINTERS.SAVE_SETTINGS' | translate) }}
@@ -77,6 +116,18 @@ import { formatApiError } from '../../core/error-helper'
 export class PrinterManagementComponent implements OnInit {
   private api = inject(ApiService)
   private printerService = inject(PrinterService)
+  private cloudManaged = inject(CloudManagedService)
+  private emergencyOverride = inject(EmergencyOverrideService)
+
+  /**
+   * Gesperrt, wenn die Cloud die Settings verwaltet UND kein Notfall-Modus
+   * laeuft. Spiegelt exakt die `isPrinterOnlyPatch`-Whitelist im Backend.
+   */
+  protected readonly locked = computed(() => !this.cloudManaged.printerWritable())
+  protected readonly emergency = this.cloudManaged.printerEmergency
+  protected readonly emergencySinceMin = this.cloudManaged.emergencyOverrideSinceMin
+  protected readonly canOfferEmergency = this.cloudManaged.canOfferEmergency
+  protected readonly switching = signal(false)
 
   loading = signal(true)
   saving = signal(false)
@@ -106,7 +157,39 @@ export class PrinterManagementComponent implements OnInit {
   private cachedSettings: Record<string, any> | null = null
 
   async ngOnInit() {
+    // Frischen Cloud-Zustand holen, statt auf den nächsten 60-s-Poll zu warten.
+    void this.cloudManaged.refresh()
     await this.loadData()
+  }
+
+  /** Notausgang aus dem Notfall-Modus (ADR 0001). */
+  async onEndEmergency() {
+    await this.toggleEmergency(false)
+  }
+
+  /**
+   * Manuelles Aktivieren — nur angeboten, wenn die Cloud unerreichbar ist und
+   * der Auto-Trigger noch nicht gefeuert hat.
+   */
+  async onStartEmergency() {
+    await this.toggleEmergency(true)
+  }
+
+  private async toggleEmergency(active: boolean) {
+    if (this.switching()) return
+    this.switching.set(true)
+    this.error.set('')
+    try {
+      await this.emergencyOverride.setActive(active)
+      // Der Sperrzustand haengt an /health — nach dem Refresh im Service ist er
+      // aktuell, die Settings selbst muessen aber neu geladen werden, falls die
+      // Cloud zwischenzeitlich etwas gepusht hat.
+      await this.loadData()
+    } catch (err) {
+      this.error.set(formatApiError(err))
+    } finally {
+      this.switching.set(false)
+    }
   }
 
   private async loadData() {
@@ -190,6 +273,12 @@ export class PrinterManagementComponent implements OnInit {
    */
   /** @returns `true`, wenn der Patch persistiert wurde. */
   private async persistSettings(): Promise<boolean> {
+    // Letzte Verteidigungslinie vor dem Backend — die Kindkomponenten sperren
+    // die Eingabe, dieser Guard jeden programmatischen Pfad.
+    if (this.locked()) {
+      this.error.set('Diese Daten werden in der Cloud verwaltet.')
+      return false
+    }
     if (!this.cachedSettings) {
       this.error.set('Settings nicht geladen. Bitte Seite neu laden.')
       return false

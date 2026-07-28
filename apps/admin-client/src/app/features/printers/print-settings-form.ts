@@ -19,7 +19,13 @@ export interface PrintSettingsData {
     <div class="bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 rounded-xl p-6">
       <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-6">Druckeinstellungen</h2>
 
-      <div class="space-y-4">
+      <!--
+        fieldset[disabled] sperrt alle Controls nativ und nimmt sie aus der
+        Tab-Reihenfolge. min-w-0, m-0, p-0 und border-0 neutralisieren die
+        UA-Defaults, damit das Layout unveraendert bleibt.
+      -->
+      <fieldset [disabled]="readOnly()" class="min-w-0 m-0 p-0 border-0 space-y-4"
+                [class.opacity-60]="readOnly()">
         <!-- Print-Server aktivieren -->
         <label class="flex items-center gap-3 cursor-pointer">
           <input [ngModel]="settings().printServerEnabled ?? true" (ngModelChange)="onFieldChange('printServerEnabled', $event)"
@@ -80,15 +86,18 @@ export interface PrintSettingsData {
                    text-slate-900 dark:text-white focus:ring-slate-900 dark:focus:ring-white" />
           <span class="text-sm text-slate-700 dark:text-gray-300">Druckdialog nach Bestellung anzeigen</span>
         </label>
-      </div>
+      </fieldset>
     </div>
   `,
 })
 export class PrintSettingsFormComponent {
   settings = input.required<PrintSettingsData>()
+  /** Cloud verwaltet die Drucker-Settings (kein Notfall-Modus aktiv). */
+  readOnly = input(false)
   settingsChanged = output<Partial<PrintSettingsData>>()
 
   onFieldChange(field: string, value: unknown) {
+    if (this.readOnly()) return
     this.settingsChanged.emit({ [field]: value })
   }
 }

@@ -198,8 +198,16 @@ export const applyPulledRecords = async (
         details.push({ service, entityId: item._id, op, status: SyncRunRecordStatus.ACCEPTED })
         continue
       }
-      const incoming =
-        service === 'users' ? stripUserEdgeLocalFields(item.record as Record<string, unknown>) : item.record
+      // `_deletedAt` ist Cloud-only Soft-Delete-Zustand: Tombstones reisen als
+      // `deletedAt` im Wire-Envelope (oben behandelt), aber eine je getombstonte
+      // und wieder resurrectete Cloud-Row behaelt `_deletedAt: null` als Feld im
+      // Dokument. Die geteilten Data-Schemas sind `additionalProperties: false`
+      // und kennen `_deletedAt` nicht → ohne Strip lehnt validateData den ganzen
+      // Record terminal ab (Befund 2026-07-28: opening-hour-exceptions).
+      // Defensiv hier UND in der Cloud-Projektion (sync.ts) gestrippt, damit der
+      // Edge nicht von der Cloud-Deploy-Reihenfolge abhaengt.
+      const { _deletedAt: _cloudSoftDelete, ...cleanRecord } = (item.record ?? {}) as Record<string, unknown>
+      const incoming = service === 'users' ? stripUserEdgeLocalFields(cleanRecord) : cleanRecord
       if (existingIds.has(item._id)) {
         op = SyncOp.PATCH
         await app

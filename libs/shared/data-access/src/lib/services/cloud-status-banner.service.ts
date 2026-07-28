@@ -2,7 +2,7 @@ import { computed, inject, Injectable } from '@angular/core'
 
 import { ConnectionService } from './connection.service'
 import { type CloudBanner, selectActiveBanner } from './cloud-status-banner.selector'
-import { OFFLINE_CACHE, OFFLINE_OUTBOX } from './offline-cache.token'
+import { CLOUD_STATUS_BANNER_OPTIONS, OFFLINE_CACHE, OFFLINE_OUTBOX } from './offline-cache.token'
 
 /**
  * Liefert den EINEN aktuell anzuzeigenden Cloud-Status-Banner (hoechste
@@ -17,6 +17,9 @@ export class CloudStatusBannerService {
   #conn = inject(ConnectionService)
   #offlineCache = inject(OFFLINE_CACHE, { optional: true })
   #outbox = inject(OFFLINE_OUTBOX, { optional: true })
+  // Nicht belegt (POS) → Defaults; nur der Admin-Client schaltet den
+  // Notfall-Banner frei.
+  #options = inject(CLOUD_STATUS_BANNER_OPTIONS, { optional: true })
 
   readonly activeBanner = computed<CloudBanner | null>(() => {
     const conn = this.#conn
@@ -40,6 +43,9 @@ export class CloudStatusBannerService {
       offlineModeActive: conn.offlineModeActive(),
       offlineModeRemainingMin: conn.offlineModeRemainingMin(),
       lastCloudContactAgeMin: conn.lastCloudContactAgeMin(),
+      emergencyOverrideActive: conn.emergencyOverrideActive(),
+      emergencyOverrideSinceMin: conn.emergencyOverrideSinceMin(),
+      showEmergencyOverride: this.#options?.showEmergencyOverride ?? false,
     })
   })
 }

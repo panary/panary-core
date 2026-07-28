@@ -24,6 +24,8 @@ import { secureByDefault } from '@panary/shared-backend'
 import { authentication } from './authentication'
 import os from 'os'
 import { getLocalIpAddress, renderStatusPage } from './status-page'
+import { findReportableCloudConnection } from './utils/cloud-connection-lookup'
+import { systemModeFromPairing } from './utils/system-mode'
 import { APP_VERSION } from './version'
 import { registerDevicePairingRoutes } from './device-pairing'
 import { configurePrintServer } from './print-server/index'
@@ -137,20 +139,27 @@ app.use(async (ctx, next) => {
     // auf den `cloud-connection`-Service.
     let lastCloudContactAt: string | undefined
     let offlineOverrideActiveUntil: string | undefined
+    // Notfall-Modus (ADR 0001) — RBAC-frei, damit Admin-UI und Banner erklaeren
+    // koennen, warum die Drucker-Seite gerade schreibbar ist, waehrend alle
+    // anderen Standort-Einstellungen gesperrt bleiben.
+    let emergencyOverride = false
+    let emergencyOverrideSince: string | undefined
     try {
-      const result = await (app.service('cloud-connection') as any).find({
-        provider: undefined,
-        paginate: false,
-        query: { $limit: 1 },
-      })
-      const conn = Array.isArray(result) ? result[0] : undefined
+      // Bevorzugt die CONNECTED-Zeile. Ein blindes `$limit: 1` konnte bei
+      // Altlasten aus abgebrochenen Pairings eine beliebige liefern — und da
+      // `systemMode` und der Notfall-Modus hieraus abgeleitet werden, haette
+      // der Admin-Client dann alle Standort-Seiten entsperrt gezeigt, waehrend
+      // das Backend jeden Save mit 403 ablehnt.
+      const conn = await findReportableCloudConnection(app)
       if (conn) {
         cloudPairingStatus = conn.pairingStatus
-        cloudTokenErrorReason = conn.tokenErrorReason
-        lastSyncAt = conn.lastSyncAt
-        edgeTokenExpiresAt = conn.edgeTokenExpiresAt
+        cloudTokenErrorReason = conn.tokenErrorReason ?? undefined
+        lastSyncAt = conn.lastSyncAt ?? undefined
+        edgeTokenExpiresAt = conn.edgeTokenExpiresAt ?? undefined
         lastCloudContactAt = conn.lastCloudContactAt ?? undefined
         offlineOverrideActiveUntil = conn.offlineOverrideActiveUntil ?? undefined
+        emergencyOverride = !!conn.emergencyOverride
+        emergencyOverrideSince = conn.emergencyOverrideSince ?? undefined
       }
     } catch {
       // ignore — health darf nicht failen
@@ -182,7 +191,10 @@ app.use(async (ctx, next) => {
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       version: APP_VERSION,
-      systemMode: app.get('system')?.mode || 'standalone',
+      // Aus dem Pairing abgeleitet, nicht aus der statischen Config — sonst
+      // meldet auch ein gepairter Edge dauerhaft 'standalone' und die gesamte
+      // Tier-3-UI bleibt unerreichbar (siehe utils/system-mode.ts).
+      systemMode: systemModeFromPairing(app.get('system')?.mode, cloudPairingStatus),
       nodeVersion: process.version,
       platform: `${os.platform()} ${os.arch()}`,
       hostname: os.hostname(),
@@ -204,6 +216,8 @@ app.use(async (ctx, next) => {
       edgeTokenExpiresAt,
       lastCloudContactAt,
       offlineOverrideActiveUntil,
+      emergencyOverride,
+      emergencyOverrideSince,
     }
     ctx.status = 200
     return

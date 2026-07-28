@@ -8,7 +8,24 @@ type ApiValidationDetail = {
 type ApiErrorShape = {
   error?: unknown
   message?: string
-  data?: ApiValidationDetail[]
+  data?: ApiValidationDetail[] | { code?: string }
+  code?: string
+}
+
+/**
+ * Liest den maschinenlesbaren Fehlercode eines Feathers-Fehlers.
+ *
+ * `new Forbidden(msg, { code: 'CLOUD_MANAGED' })` legt das Objekt in
+ * `error.data` ab — dort, wo bei Validierungsfehlern ein Array steht. Der
+ * Aufrufer soll auf den Code reagieren koennen (z.B. den Cloud-Zustand neu
+ * laden), nicht auf den uebersetzten Meldungstext.
+ */
+export function getApiErrorCode(error: unknown): string | null {
+  const body = ((error as ApiErrorShape)?.error ?? error) as ApiErrorShape
+  if (body?.data && !Array.isArray(body.data) && typeof body.data.code === 'string') {
+    return body.data.code
+  }
+  return typeof body?.code === 'string' ? body.code : null
 }
 
 /** Feathers-Validierungsfehler benutzerfreundlich aufbereiten */

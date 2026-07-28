@@ -29,6 +29,18 @@ type ServiceTypes = {
 
 export type ServiceName = keyof ConnectionService
 
+/**
+ * Pairing-Zustaende, wie sie `/health` als **untypisierter JSON-String**
+ * liefert. Bewusst lokal statt via `PairingStatus` aus
+ * `@panary/cloud-connection/domain`: der Wert kommt hier nie als
+ * Domain-Objekt an, und ein Wert-Import wuerde eine Build-Kante von
+ * `shared/data-access` auf eine Domain-Lib ziehen, die diese Lib sonst
+ * nirgends braucht. Die Konstanten muessen mit `PairingStatus` in
+ * `libs/domains/cloud-connection/domain` uebereinstimmen.
+ */
+const PAIRING_CONNECTED = 'connected'
+const PAIRING_DISCONNECTED = 'disconnected'
+
 @Injectable({
   providedIn: 'root',
 })
@@ -72,6 +84,15 @@ export class ConnectionService {
   // den priorisierten Cloud-Status-Banner (cloudUnreachable / offlineModeActive).
   readonly #lastCloudContactAt: WritableSignal<string | null> = signal(null)
   readonly #offlineOverrideActiveUntil: WritableSignal<string | null> = signal(null)
+  // Notfall-Modus (ADR 0001, aus /health): erlaubt lokale Drucker-Patches trotz
+  // Cloud-Pairing. Speist den Notfall-Banner UND die Seiten-Sperren im Admin.
+  readonly #emergencyOverride: WritableSignal<boolean> = signal(false)
+  readonly #emergencyOverrideSince: WritableSignal<string | null> = signal(null)
+  // `false`, bis der erste /health-Roundtrip durch ist. Konsumenten wie der
+  // CloudManagedService duerfen eine Sperre erst behaupten, wenn der Zustand
+  // wirklich bekannt ist — sonst flackert bei jedem Seitenaufruf ein
+  // "cloud-verwaltet"-Banner auf, das gleich wieder verschwindet.
+  readonly #healthLoaded: WritableSignal<boolean> = signal(false)
   readonly #tick: WritableSignal<number> = signal(0)
   #tickTimer: ReturnType<typeof setInterval> | null = null
 
@@ -248,8 +269,34 @@ export class ConnectionService {
    */
   readonly cloudNeedsRePairing = computed(() => {
     if (this.#systemMode() !== 'connected') return false
-    return this.#cloudPairingStatus() === 'disconnected'
+    return this.#cloudPairingStatus() === PAIRING_DISCONNECTED
   })
+
+  /**
+   * True, wenn der Edge mit der Cloud gepairt ist. Single Source of Truth fuer
+   * „die Cloud verwaltet diese Daten" — sowohl fuer den Status-Banner als auch
+   * fuer die Read-only-Sperren im Admin-Client (siehe CloudManagedService).
+   */
+  readonly cloudPaired = computed(() => this.#cloudPairingStatus() === PAIRING_CONNECTED)
+
+  /** Notfall-Modus aktiv: lokale Drucker-Patches werden trotz Pairing akzeptiert (ADR 0001). */
+  readonly emergencyOverrideActive = computed(() => this.#emergencyOverride())
+
+  /** Minuten seit Aktivierung des Notfall-Modus (null, wenn inaktiv/unbekannt). */
+  readonly emergencyOverrideSinceMin = computed(() => {
+    this.#tick()
+    const ts = this.#emergencyOverrideSince()
+    if (!ts) return null
+    const ageMs = Date.now() - Date.parse(ts)
+    if (!Number.isFinite(ageMs) || ageMs < 0) return null
+    return Math.floor(ageMs / 60_000)
+  })
+
+  /**
+   * True, sobald mindestens ein /health-Roundtrip erfolgreich war. Konsumenten
+   * duerfen vorher keine Sperre behaupten — der Zustand ist schlicht unbekannt.
+   */
+  readonly healthLoaded = computed(() => this.#healthLoaded())
 
   /**
    * Aktuelles Tier-Modell des verbundenen Backends.
@@ -371,13 +418,24 @@ export class ConnectionService {
   readonly cloudUnreachable = computed(() => {
     this.#tick()
     if (this.#systemMode() !== 'connected') return false
-    if (this.#cloudPairingStatus() !== 'connected') return false
+    if (!this.cloudPaired()) return false
     if (this.offlineModeActive()) return false
     const ts = this.#lastCloudContactAt()
     if (!ts) return false
     const ageSec = Math.floor((Date.now() - Date.parse(ts)) / 1000)
     return Number.isFinite(ageSec) && ageSec > ConnectionService.CLOUD_CONTACT_STALE_SEC
   })
+
+  /**
+   * Es ist gar kein Cloud-Kontakt bekannt. Unterschieden von `cloudUnreachable`,
+   * das bewusst `false` liefert, solange nie Kontakt bestand — sonst wuerde ein
+   * frisch gepairter Edge sofort als „unerreichbar" gemeldet.
+   *
+   * Fuer den Notfall-Modus ist die Unterscheidung wichtig: „seit dem Pairing nie
+   * erreicht" ist genau der Zustand, in dem der Operator die Drucker manuell
+   * freischalten koennen muss.
+   */
+  readonly cloudContactUnknown = computed(() => this.cloudPaired() && this.#lastCloudContactAt() === null)
 
   /** Minuten seit letztem Cloud-Kontakt (null, wenn unbekannt). */
   readonly lastCloudContactAgeMin = computed(() => {
@@ -680,6 +738,12 @@ export class ConnectionService {
       }
     }
 
+    // Health-URL sofort merken, nicht erst im `connect`-Handler: `refreshHealth()`
+    // war sonst ein stiller No-op, solange die Socket-Verbindung nicht stand —
+    // und genau dann brauchen die Seiten den Zustand, weil `healthLoaded` noch
+    // false ist und alle Formulare entsperrt rendern.
+    this.#lastHealthUrl = url
+
     const socket = io(url, options)
 
     // Common Events
@@ -807,10 +871,25 @@ export class ConnectionService {
         this.#offlineOverrideActiveUntil.set(
           typeof data.offlineOverrideActiveUntil === 'string' ? data.offlineOverrideActiveUntil : null,
         )
+        this.#emergencyOverride.set(data.emergencyOverride === true)
+        this.#emergencyOverrideSince.set(
+          typeof data.emergencyOverrideSince === 'string' ? data.emergencyOverrideSince : null,
+        )
+        this.#healthLoaded.set(true)
       }
     } catch {
       // Health-Endpoint nicht erreichbar — Fallback bleibt 'standalone'
     }
+  }
+
+  /**
+   * Erzwingt einen sofortigen /health-Roundtrip, statt bis zu 60 s auf den
+   * naechsten Poll zu warten. Noetig nach Zustandswechseln, die der User
+   * gerade selbst ausgeloest hat (Notfall-Modus schalten) oder nach einem
+   * 403 CLOUD_MANAGED — dann war der lokale Zustand nachweislich veraltet.
+   */
+  async refreshHealth(): Promise<void> {
+    if (this.#lastHealthUrl) await this.#fetchHealth(this.#lastHealthUrl)
   }
 
   private getBaseUrl(url: string): string {

@@ -83,21 +83,44 @@ async function resolveLocationId(context: HookContext): Promise<string> {
     return existingUser.activeLocationId as string
   }
 
-  // Standalone-Fallback: Einzige Location des Servers verwenden
-  const systemMode = app.get('system')?.mode || 'standalone'
-  if (systemMode === 'standalone') {
-    const locations = (await app.service('locations').find({
-      query: { $limit: 1, $select: ['_id'] },
-      provider: undefined,
-    })) as any
-    if (locations.data?.length > 0) {
-      return locations.data[0]._id
-    }
+  // Fallback ohne zugewiesene Filiale: Der Edge ist im Regelfall
+  // Single-Location. Frueher haing dieser Zweig an `system.mode ===
+  // 'standalone'`; das haette bei einer abgeleiteten Modus-Angabe auf gepairten
+  // Edges jede Bestellung mit LOCATION_NOT_ASSIGNED abgewiesen.
+  //
+  // `$sort` ist der eigentliche Punkt: ohne ihn liefert SQLite eine formal
+  // beliebige Zeile, die Zuordnung waere also nicht reproduzierbar. Mit Sortierung
+  // faellt bei mehreren Locations immer dieselbe — nachvollziehbar statt zufaellig.
+  //
+  // Mehrere Locations werden bewusst NICHT abgelehnt: eine stehende Kasse ist
+  // operativ schlimmer als eine eindeutige, aber moeglicherweise ungewollte
+  // Zuordnung. Der Fall ist auffaellig genug fuer ein Wide-Event, damit er im
+  // Support sichtbar wird, statt still zu bleiben.
+  const locations = (await app.service('locations').find({
+    query: { $limit: 2, $sort: { _id: 1 }, $select: ['_id'] },
+    provider: undefined,
+  })) as any
+  const candidates = (locations.data ?? []) as Array<{ _id: string }>
+  if (candidates.length === 0) {
+    throw new BadRequest(AppErrorMessages[AppError.LOCATION_NOT_ASSIGNED], {
+      code: AppError.LOCATION_NOT_ASSIGNED,
+    })
   }
 
-  throw new BadRequest(AppErrorMessages[AppError.LOCATION_NOT_ASSIGNED], {
-    code: AppError.LOCATION_NOT_ASSIGNED,
-  })
+  const total = typeof locations.total === 'number' ? locations.total : candidates.length
+  if (total > 1) {
+    logger.warn({
+      message:
+        'Bestellung ohne activeLocationId auf einem Edge mit mehreren Locations — ' +
+        'erste Location nach _id-Sortierung zugeordnet. activeLocationId am User setzen.',
+      event: 'order.location_fallback_ambiguous',
+      userId: user._id,
+      locationCount: total,
+      chosenLocationId: candidates[0]._id,
+    })
+  }
+
+  return candidates[0]._id
 }
 
 /**
@@ -151,8 +174,10 @@ function validateBusinessDayAge(app: HookContext['app'], businessDayDate: string
 /**
  * Hook: Ordnet jeder neuen Bestellung einen gueltigen Geschaeftstag zu.
  *
- * Standalone-Modus: Erstellt bei Bedarf automatisch einen neuen Geschaeftstag (Auto-Rotate).
- * Enterprise-Modus: Erwartet einen bestehenden Geschaeftstag und validiert dessen Alter.
+ * Ohne CONNECTED-Pairing (bzw. mit aktivem Offline-Override): Erstellt bei
+ * Bedarf automatisch einen neuen Geschaeftstag (Auto-Rotate).
+ * Mit CONNECTED-Pairing: Erwartet einen von der Cloud gepflegten Geschaeftstag
+ * und validiert dessen Alter.
  */
 export function restrictOrderToBusinessDay() {
   return async (context: HookContext) => {
@@ -165,19 +190,22 @@ export function restrictOrderToBusinessDay() {
       provider: undefined,
     })
 
-    const systemMode = app.get('system')?.mode || 'standalone'
     const today = new Date().toISOString().slice(0, 10)
     const needsRotation = shouldAutoRotate(activeLocation.currentBusinessDay, today)
 
     // Im Cloud-Managed-Hybrid (siehe ADR business-days-cloud-managed):
-    // `rotateBusinessDay()` darf nur laufen wenn KEIN aktives Pairing UND
-    // Standalone-System-Mode, ODER wenn der Operator den Offline-Override
-    // gesetzt hat (manueller Bypass bei Cloud-Outage). Sonst blockieren.
+    // `rotateBusinessDay()` darf nur laufen, wenn KEIN aktives Pairing besteht
+    // ODER der Operator den Offline-Override gesetzt hat (manueller Bypass bei
+    // Cloud-Outage). Sonst blockieren.
+    //
+    // Der Pairing-Zustand ist hier die alleinige Wahrheit — `system.mode` ist
+    // eine Reporting-Angabe und wird bewusst NICHT mehr geprueft (identische
+    // Regel wie `isLocalRotationAllowed()` im Boot-Pfad).
     const cloudConnection = await getConnectedCloudConnection(context)
     const overrideActive = cloudConnection ? isOfflineOverrideActive(cloudConnection) : false
-    const standaloneAllowed = systemMode === 'standalone' && (!cloudConnection || overrideActive)
+    const localRotationAllowed = !cloudConnection || overrideActive
 
-    if (needsRotation && standaloneAllowed) {
+    if (needsRotation && localRotationAllowed) {
       // Rotation blockieren wenn noch aktive Bestellungen vorhanden
       if (activeLocation.currentBusinessDay?.businessDayId) {
         const blocked = await hasActiveOrders(app, activeLocation.currentBusinessDay.businessDayId)

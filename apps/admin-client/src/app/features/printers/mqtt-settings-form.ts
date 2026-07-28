@@ -43,7 +43,13 @@ export interface MqttSettingsData {
         </div>
       }
 
-      <div class="grid grid-cols-3 gap-4">
+      <!--
+        Nur die Felder sperren, nicht den Verbindungstest darueber: der ist ein
+        reiner Client-Probe gegen den Broker und beruehrt locations nicht.
+        min-w-0 und m-0 neutralisieren die UA-Defaults des Fieldsets.
+      -->
+      <fieldset [disabled]="readOnly()" class="min-w-0 m-0 p-0 border-0 grid grid-cols-3 gap-4"
+                [class.opacity-60]="readOnly()">
         <!-- Protokoll -->
         <div class="space-y-1">
           <label for="mqttProtocol" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Protokoll</label>
@@ -75,12 +81,14 @@ export interface MqttSettingsData {
                    text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
                    focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none" />
         </div>
-      </div>
+      </fieldset>
     </div>
   `,
 })
 export class MqttSettingsFormComponent {
   settings = input.required<MqttSettingsData>()
+  /** Cloud verwaltet die Drucker-Settings (kein Notfall-Modus aktiv). */
+  readOnly = input(false)
   settingsChanged = output<Partial<MqttSettingsData>>()
 
   testing = signal(false)
@@ -88,6 +96,7 @@ export class MqttSettingsFormComponent {
   testError = signal('')
 
   onFieldChange(field: string, value: unknown) {
+    if (this.readOnly()) return
     this.settingsChanged.emit({ [field]: value })
   }
 

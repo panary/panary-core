@@ -17,7 +17,7 @@ import { PrinterService } from './printer.service'
           @if (saving()) {
             <span class="text-xs text-slate-400 dark:text-gray-500">Speichern...</span>
           }
-          <button (click)="onAddPrinter()" [disabled]="saving()"
+          <button (click)="onAddPrinter()" [disabled]="saving() || readOnly()"
             class="px-4 py-2 rounded-lg text-sm font-medium bg-slate-900 dark:bg-white
                    text-white dark:text-black hover:bg-slate-800 dark:hover:bg-gray-200
                    transition disabled:opacity-50">
@@ -87,14 +87,14 @@ import { PrinterService } from './printer.service'
                           {{ testingPrinter() === printer.pid ? '...' : 'Test' }}
                         </button>
                       }
-                      <button (click)="onEditPrinter(printer)"
+                      <button (click)="onEditPrinter(printer)" [disabled]="readOnly()"
                         class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-gray-400
-                               hover:bg-slate-100 dark:hover:bg-gray-800 transition">
+                               hover:bg-slate-100 dark:hover:bg-gray-800 transition disabled:opacity-50">
                         Bearbeiten
                       </button>
-                      <button (click)="onDeletePrinter(printer.pid)"
+                      <button (click)="onDeletePrinter(printer.pid)" [disabled]="readOnly()"
                         class="px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 dark:text-red-400
-                               hover:bg-red-50 dark:hover:bg-red-900/20 transition">
+                               hover:bg-red-50 dark:hover:bg-red-900/20 transition disabled:opacity-50">
                         Löschen
                       </button>
                     </div>
@@ -121,6 +121,13 @@ import { PrinterService } from './printer.service'
 export class PrinterListComponent {
   printers = input<PrinterFormData[]>([])
   saving = input(false)
+  /**
+   * Cloud verwaltet die Drucker-Settings (kein Notfall-Modus aktiv).
+   * Der Testdruck bleibt bewusst erlaubt — er geht an `/print-server/test-print`
+   * und fasst `locations` gar nicht an; bei einem Druckerproblem vor Ort ist
+   * die Diagnose gerade dann wertvoll, wenn nichts geaendert werden darf.
+   */
+  readOnly = input(false)
   printersChanged = output<PrinterFormData[]>()
 
   private dialog = inject(MatDialog)
@@ -130,6 +137,7 @@ export class PrinterListComponent {
   testResult = signal<{ success: boolean; results: Array<{ error?: string }> } | null>(null)
 
   onAddPrinter() {
+    if (this.readOnly()) return
     const dialogRef = this.dialog.open(PrinterFormDialogComponent, {
       data: null,
     })
@@ -143,6 +151,7 @@ export class PrinterListComponent {
   }
 
   onEditPrinter(printer: PrinterFormData) {
+    if (this.readOnly()) return
     const dialogRef = this.dialog.open(PrinterFormDialogComponent, {
       data: { ...printer },
     })
@@ -156,6 +165,7 @@ export class PrinterListComponent {
   }
 
   onDeletePrinter(pid: string) {
+    if (this.readOnly()) return
     const updated = this.printers().filter(p => p.pid !== pid)
     this.printersChanged.emit(updated)
   }

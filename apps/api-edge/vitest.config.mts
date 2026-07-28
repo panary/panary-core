@@ -16,6 +16,16 @@ export default defineConfig(() => ({
     // Legt data/ an und migriert die Test-DB einmalig vor dem Worker-Start —
     // verhindert das Erst-Migrations-Race paralleler Worker (CI: frisches data/).
     globalSetup: ['./test/global-setup.ts'],
+    // Alle Testdateien teilen sich EINE SQLite-Datei (siehe env.SQLITE_PATH).
+    // Mehrere Suites treffen Aussagen ueber globalen Tabellen-Zustand — z.B.
+    // prueft close-day-outbox-guard das Verhalten OHNE CONNECTED-Connection,
+    // waehrend set-emergency-override genau so eine anlegen muss. Parallel
+    // laufend sehen sie gegenseitig ihre Zeilen und flaken.
+    //
+    // Sauberer waere eine DB pro Datei; das geht in Vitest nicht per File
+    // (env ist global). Bis dahin: deterministisch statt schnell — die Suite
+    // liegt ohnehin im Sekundenbereich.
+    fileParallelism: false,
     // Die Integrationstests unter test/ importieren src/app: node-config braucht den
     // Config-Pfad (cwd des Vitest-Workers ist der Workspace-Root, nicht apps/api-edge)
     // und eine eigene SQLite-Datei, damit Testlaeufe nie die Dev-Datenbank anfassen.

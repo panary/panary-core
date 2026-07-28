@@ -24,3 +24,24 @@ export const OFFLINE_OUTBOX = new InjectionToken<OfflineOutboxPort>('OFFLINE_OUT
  * Konsumenten lassen ihn unbelegt → `null` (der periodische Poll greift ohnehin).
  */
 export const OFFLINE_REPLAY = new InjectionToken<OfflineReplayPort>('OFFLINE_REPLAY')
+
+export interface CloudStatusBannerOptions {
+  /**
+   * Den Notfall-Modus-Banner (ADR 0001) anzeigen. Default `false`.
+   *
+   * Er beschreibt einen reinen Administrations-Zustand — lokal angenommene,
+   * noch nicht abgeglichene Drucker-Aenderungen — und traegt eine Aktion, die
+   * `CLOUD_CONNECTION: MANAGE` verlangt. Auf der Kasse waere er dauerhaftes
+   * Rauschen ohne Handlungsmoeglichkeit und wuerde dort ausserdem `sync-stale`
+   * verdraengen. Nur der Admin-Client belegt den Token.
+   */
+  showEmergencyOverride?: boolean
+}
+
+/**
+ * Optionale Host-Konfiguration des priorisierten Cloud-Status-Banners. Nicht
+ * belegt → Defaults (siehe Interface), damit der POS unveraendert bleibt.
+ */
+export const CLOUD_STATUS_BANNER_OPTIONS = new InjectionToken<CloudStatusBannerOptions>(
+  'CLOUD_STATUS_BANNER_OPTIONS',
+)

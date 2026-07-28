@@ -47,7 +47,10 @@
     "ORDERS_BLOCKED": "Bulut yeniden yanıt verene kadar yeni siparişler engellenir.",
     "ACTIVATE_OFFLINE_MODE": "Çevrimdışı modu etkinleştir",
     "OFFLINE_MODE_ACTIVE": "Çevrimdışı mod etkin",
-    "OFFLINE_MODE_ACTIVE_SUBLINE": "Edge, iş günlerini yerel olarak oluşturur. Bir sonraki başarılı bulut çekiminde otomatik sıfırlama. {{minutes}} dakika daha etkin."
+    "OFFLINE_MODE_ACTIVE_SUBLINE": "Edge, iş günlerini yerel olarak oluşturur. Bir sonraki başarılı bulut çekiminde otomatik sıfırlama. {{minutes}} dakika daha etkin.",
+    "EMERGENCY_OVERRIDE_ACTIVE": "Acil durum modu etkin",
+    "EMERGENCY_OVERRIDE_SUBLINE": "{{minutes}} dakikadır yerel yazıcı değişiklikleri — bulut döndüğünde eşitlenir.",
+    "END_EMERGENCY_MODE": "Sonlandır"
   },
   "COMMON": {
     "OFFLINE": "Çevrimdışı",

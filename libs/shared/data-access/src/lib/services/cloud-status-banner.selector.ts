@@ -13,7 +13,7 @@
  */
 
 export type CloudBannerLevel = 'crit' | 'warn' | 'info'
-export type CloudBannerActionKind = 'reload' | 'activate-offline-mode'
+export type CloudBannerActionKind = 'reload' | 'activate-offline-mode' | 'end-emergency-override'
 
 export interface CloudBannerAction {
   kind: CloudBannerActionKind
@@ -60,6 +60,16 @@ export interface CloudStatusState {
   offlineModeActive: boolean
   offlineModeRemainingMin: number
   lastCloudContactAgeMin: number | null
+  /** Notfall-Modus aktiv: lokale Drucker-Patches werden angenommen (ADR 0001). */
+  emergencyOverrideActive: boolean
+  emergencyOverrideSinceMin: number | null
+  /**
+   * Host zeigt den Notfall-Banner an. Default-`false`-Semantik beim Aufrufer:
+   * der Zustand ist ein Administrations-Detail mit einer RBAC-pflichtigen
+   * Aktion — auf der Kasse waere er dauerhaftes Rauschen ohne
+   * Handlungsmoeglichkeit und wuerde dort `sync-stale` verdraengen.
+   */
+  showEmergencyOverride?: boolean
 }
 
 /**
@@ -162,6 +172,32 @@ export function selectActiveBanner(s: CloudStatusState): CloudBanner | null {
         icon: 'key',
         messageKey: useHours ? 'CLOUD_STATUS.TOKEN_EXPIRES_IN_HOURS' : 'CLOUD_STATUS.TOKEN_EXPIRES_IN_MINUTES',
         params: useHours ? { hours: Math.floor(minutes / 60) } : { minutes },
+      }
+    }
+
+    // 6b. (w35) Notfall-Modus aktiv — der Edge nimmt lokale Drucker-Patches an,
+    //     die noch nicht mit der Cloud abgeglichen sind (ADR 0001).
+    //
+    //     Bewusst UNTER den vier aktionspflichtigen Meldungen: `cloud-unreachable`
+    //     (w60) traegt die `activate-offline-mode`-Aktion, ohne die Bestellungen
+    //     blockiert bleiben — die duerfte dieser Banner nicht verdecken. Und ueber
+    //     `sync-stale`, das nur ein Symptom desselben Ausfalls ist.
+    //
+    //     Die eigentliche Daueraussage ist ohnehin nicht die Ausfallwarnung,
+    //     sondern „es liegen nicht abgeglichene lokale Aenderungen vor": dieser
+    //     Zustand ueberlebt den Ausfall, weil der Reconcile das Flag bei offenen
+    //     Konflikten stehen laesst. Dann ist er der einzig verbliebene Banner.
+    if (s.emergencyOverrideActive && s.showEmergencyOverride) {
+      return {
+        id: 'emergency-override-active',
+        level: 'warn',
+        icon: 'emergency_home',
+        messageKey: 'CLOUD_STATUS.EMERGENCY_OVERRIDE_ACTIVE',
+        sublineKey: 'CLOUD_STATUS.EMERGENCY_OVERRIDE_SUBLINE',
+        ...(s.emergencyOverrideSinceMin !== null
+          ? { sublineParams: { minutes: s.emergencyOverrideSinceMin } }
+          : {}),
+        action: { kind: 'end-emergency-override', labelKey: 'CLOUD_STATUS.END_EMERGENCY_MODE' },
       }
     }
 

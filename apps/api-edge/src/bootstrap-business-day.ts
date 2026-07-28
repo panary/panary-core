@@ -14,17 +14,25 @@ import {
  * existiert oder das Datum veraltet ist.
  *
  * Cloud-Managed-Hybrid (siehe ADR): Lokale Rotation laeuft nur, wenn
- * - `systemMode === 'standalone'` (statische Config) UND
- * - `isLocalRotationAllowed(app)` (kein CONNECTED-Pairing oder aktiver
- *   Operator-Override).
+ * `isLocalRotationAllowed(app)` — also kein CONNECTED-Pairing oder ein
+ * aktiver Operator-Override.
+ *
+ * Bewusst OHNE `system.mode`-Vorpruefung: der Modus ist eine Reporting-
+ * Angabe (Tier fuer /health und mDNS), der Pairing-Zustand ist die
+ * fachliche Wahrheit. Beides zu pruefen hiess, dieselbe Frage doppelt zu
+ * beantworten — mit dem Risiko, dass eine geaenderte Modus-Herleitung den
+ * Boot-Pfad still abschaltet.
  *
  * Im CONNECTED-Modus uebernimmt der business-days-Pull-Worker die
  * Tagesgenerierung von der Cloud — der Boot-Pfad darf dann KEINEN lokalen
  * Tag anlegen (vermeidet die fruehere ID-Divergenz Edge↔Cloud).
  */
 export async function autoEnsureBusinessDay(app: Application): Promise<void> {
-  const systemMode = app.get('system')?.mode || 'standalone'
-  if (systemMode !== 'standalone') return
+  // Tier 1 (`mode: 'cloud'`) hat gar keinen Edge-Lifecycle — dort pflegt die
+  // Cloud die Geschaeftstage. Das ist die EINZIGE verbleibende Modus-Pruefung
+  // hier: sie beantwortet nicht „darf lokal rotiert werden" (das entscheidet
+  // das Pairing), sondern „gibt es hier ueberhaupt einen lokalen Lifecycle".
+  if (app.get('system')?.mode === 'cloud') return
 
   if (!(await isLocalRotationAllowed(app))) {
     logger.info(

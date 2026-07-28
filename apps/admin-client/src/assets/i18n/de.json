@@ -49,7 +49,7 @@
     "ADMIN_PANEL": "Admin Panel",
     "DASHBOARD": "Dashboard",
     "USERS": "Benutzer",
-    "LOCATION": "Standort",
+    "LOCATION": "Stammdaten",
     "PRODUCT_GROUPS": "Produktgruppen",
     "PRODUCTS": "Produkte",
     "PRINTERS": "Drucker",
@@ -62,7 +62,13 @@
     "LOGS": "Support-Logs",
     "BUSINESS_DAYS": "Geschäftstage",
     "DEVICES": "Geräte",
-    "DEVICE_BADGE": "{{online}} von {{total}}"
+    "DEVICE_BADGE": "{{online}} von {{total}}",
+    "GROUP_OPERATIONS": "Betrieb",
+    "GROUP_CATALOG": "Katalog",
+    "GROUP_LOCATION": "Standort",
+    "GROUP_HARDWARE": "Hardware",
+    "GROUP_SYSTEM": "System",
+    "TABLES": "Tische"
   },
   "LOGS": {
     "TITLE": "Support-Logs",
@@ -88,6 +94,23 @@
     "NO_EXCEPTIONS": "Keine Ausnahmen konfiguriert",
     "LOAD_ERROR": "\u00d6ffnungszeiten konnten nicht geladen werden."
   },
+  "CLOUD_MANAGED": {
+    "TITLE": "Diese Filiale wird in der Cloud verwaltet.",
+    "BODY": "Änderungen sind nur in der Cloud-Admin-Oberfläche möglich. Aktualisierungen erscheinen automatisch nach dem nächsten Sync-Zyklus.",
+    "SHOW_CONNECTION": "Cloud-Kopplung anzeigen",
+    "SUBLINE_OPENING_HOURS": "Öffnungszeiten und Ausnahmen werden zentral gepflegt.",
+    "SUBLINE_PAGERS": "Pager-Nummern werden zentral gepflegt.",
+    "SUBLINE_TABLES": "Bereiche und Tische werden zentral gepflegt.",
+    "SUBLINE_LOCATION": "Standort-Stammdaten werden zentral gepflegt.",
+    "SUBLINE_PRINTERS": "Drucker-Einstellungen werden zentral gepflegt. Bei Cloud-Ausfall schaltet der Edge den Notfall-Modus automatisch frei.",
+    "EMERGENCY_TITLE": "Notfall-Modus aktiv — Drucker lokal editierbar",
+    "EMERGENCY_BODY": "Die Cloud ist nicht erreichbar. Drucker-Einstellungen können lokal geändert werden und werden bei Cloud-Rückkehr automatisch abgeglichen. Alle anderen Standort-Einstellungen bleiben gesperrt.",
+    "EMERGENCY_SINCE": "Aktiv seit {{minutes}} Minuten",
+    "EMERGENCY_END": "Notfall-Modus beenden",
+    "EMERGENCY_START": "Notfall-Modus aktivieren",
+    "SAVE_BLOCKED": "Änderung nicht gespeichert — diese Daten werden in der Cloud verwaltet.",
+    "EMERGENCY_END_CONFIRM": "Danach nimmt der Edge keine lokalen Drucker-Änderungen mehr an. Bereits vorgenommene Änderungen bleiben aktiv und werden beim nächsten Cloud-Kontakt abgeglichen."
+  },
   "CLOUD_STATUS": {
     "SYNC_AGE_MIN": "Letzter Cloud-Sync vor {{minutes}} min",
     "SYNC_AGE_HOUR": "Letzter Cloud-Sync vor {{hours}} h",
@@ -103,7 +126,10 @@
     "ORDERS_BLOCKED": "Neue Bestellungen werden blockiert, bis die Cloud wieder antwortet.",
     "ACTIVATE_OFFLINE_MODE": "Offline-Modus aktivieren",
     "OFFLINE_MODE_ACTIVE": "Offline-Modus aktiv",
-    "OFFLINE_MODE_ACTIVE_SUBLINE": "Edge generiert Geschäftstage lokal. Auto-Reset beim nächsten erfolgreichen Cloud-Pull. Aktiv noch {{minutes}} Minuten."
+    "OFFLINE_MODE_ACTIVE_SUBLINE": "Edge generiert Geschäftstage lokal. Auto-Reset beim nächsten erfolgreichen Cloud-Pull. Aktiv noch {{minutes}} Minuten.",
+    "EMERGENCY_OVERRIDE_ACTIVE": "Notfall-Modus aktiv",
+    "EMERGENCY_OVERRIDE_SUBLINE": "Lokale Drucker-Änderungen seit {{minutes}} Minuten — werden bei Cloud-Rückkehr abgeglichen.",
+    "END_EMERGENCY_MODE": "Beenden"
   },
   "COMMON": {
     "SAVE": "Speichern",
@@ -139,7 +165,8 @@
     "STATUS_DRAFT": "Entwurf",
     "STATUS_ARCHIVED": "Archiviert",
     "FILTER_BY_STATUS": "Nach Status filtern",
-    "FILTER_BY_TYPE": "Nach Produkttyp filtern"
+    "FILTER_BY_TYPE": "Nach Produkttyp filtern",
+    "CONFIRM": "Bestätigen"
   },
   "ROLES": {
     "PLATFORM_OWNER": "Plattform-Admin",
@@ -307,7 +334,27 @@
     "PAGER_ADD": "Hinzuf\u00fcgen",
     "PAGER_NUMBER": "Pager-Nr.",
     "PAGER_DUPLICATE": "Diese Nummer existiert bereits.",
-    "NO_PAGERS": "Keine Pager konfiguriert"
+    "NO_PAGERS": "Keine Pager konfiguriert",
+    "TABLES_SETTINGS": "Tische",
+    "TABLES_DESCRIPTION": "Bereiche und Tisch-Bezeichnungen für die Tisch-Auswahl im POS pflegen.",
+    "TABLES_ENABLED": "Tischverwaltung aktivieren",
+    "TABLES_ENABLED_HINT": "Zeigt die Tisch-Auswahl im Bestelldialog an",
+    "TABLES_ROOMS": "Bereiche",
+    "TABLES_ROOM_ADD": "Bereich hinzufügen",
+    "TABLES_ROOM_NAME_PLACEHOLDER": "z. B. Terrasse, Innen, Bar",
+    "TABLES_ROOM_NAME_REQUIRED": "Bereich wird erst mit Namen gespeichert.",
+    "TABLES_REMOVE_ROOM": "Bereich entfernen",
+    "TABLES_NO_ROOMS": "Keine Bereiche angelegt",
+    "TABLES_COUNT": "{{count}} Tische",
+    "TABLES_NONE": "Noch keine Tische in diesem Bereich.",
+    "TABLES_ADD": "Hinzufügen",
+    "TABLES_ADD_PLACEHOLDER": "z. B. T1 · T1, T2 · T1-T10",
+    "TABLES_ADD_HINT": "Mehrere auf einmal: mit Komma trennen oder als Bereich (T1-T10).",
+    "TABLES_ADDED": "{{added}} Tisch(e) hinzugefügt, {{skipped}} Duplikat(e) übersprungen.",
+    "TABLES_DUPLICATE": "„{{label}}\" existiert bereits — Tisch-Bezeichnungen müssen über alle Bereiche eindeutig sein.",
+    "TABLES_LABEL_TOO_LONG": "Bezeichnungen dürfen höchstens 60 Zeichen haben.",
+    "TABLES_LIMIT": "Maximal {{max}} Einträge.",
+    "TABLES_MIGRATION_HINT": "Bestehende Tische bekommen beim nächsten Speichern eine stabile ID."
   },
   "APIKEYS": {
     "TITLE": "API-Schl\u00fcssel",

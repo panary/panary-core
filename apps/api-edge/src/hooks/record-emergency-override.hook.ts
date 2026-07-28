@@ -15,8 +15,7 @@ import { uuidv7 } from 'uuidv7'
 import { logger } from '@panary/shared-backend'
 
 import type { HookContext } from '../declarations'
-
-const PENDING_OVERRIDES_TABLE = 'pending-local-overrides'
+import { insertOverrides, OverrideStatus } from '../utils/pending-local-overrides.repository'
 
 interface OverrideFieldDiff {
   fieldPath: string
@@ -107,26 +106,24 @@ export const recordEmergencyOverride =
       | undefined
 
     try {
-      const knex = (context.app.get('sqliteClient') as unknown) as
-        | { table: (name: string) => { insert: (rows: unknown) => Promise<unknown> } }
-        | undefined
-      if (!knex) return
-      const rows = diffs.map(d => ({
-        _id: uuidv7(),
-        tenantId: result.tenantId,
-        locationId: result._id,
-        tableName: 'locations',
-        recordId: result._id,
-        fieldPath: d.fieldPath,
-        oldValueJson: JSON.stringify(d.oldValue ?? null),
-        newValueJson: JSON.stringify(d.newValue ?? null),
-        changedAt: now,
-        changedBy: user?._id ?? null,
-        status: 'PENDING_RECONCILE',
-        createdAt: now,
-        updatedAt: now,
-      }))
-      await knex.table(PENDING_OVERRIDES_TABLE).insert(rows)
+      await insertOverrides(
+        context.app,
+        diffs.map(d => ({
+          _id: uuidv7(),
+          tenantId: result.tenantId!,
+          locationId: result._id!,
+          tableName: 'locations',
+          recordId: result._id!,
+          fieldPath: d.fieldPath,
+          oldValueJson: JSON.stringify(d.oldValue ?? null),
+          newValueJson: JSON.stringify(d.newValue ?? null),
+          changedAt: now,
+          changedBy: user?._id ?? null,
+          status: OverrideStatus.PENDING,
+          createdAt: now,
+          updatedAt: now,
+        })),
+      )
 
       logger.info({
         message: 'Emergency-Override gespeichert',

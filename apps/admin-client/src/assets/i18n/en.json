@@ -49,7 +49,7 @@
     "ADMIN_PANEL": "Admin Panel",
     "DASHBOARD": "Dashboard",
     "USERS": "Users",
-    "LOCATION": "Location",
+    "LOCATION": "Master data",
     "PRODUCT_GROUPS": "Product Groups",
     "PRODUCTS": "Products",
     "PRINTERS": "Printers",
@@ -62,7 +62,13 @@
     "LOGS": "Support Logs",
     "BUSINESS_DAYS": "Business Days",
     "DEVICES": "Devices",
-    "DEVICE_BADGE": "{{online}} of {{total}}"
+    "DEVICE_BADGE": "{{online}} of {{total}}",
+    "GROUP_OPERATIONS": "Operations",
+    "GROUP_CATALOG": "Catalog",
+    "GROUP_LOCATION": "Location",
+    "GROUP_HARDWARE": "Hardware",
+    "GROUP_SYSTEM": "System",
+    "TABLES": "Tables"
   },
   "LOGS": {
     "TITLE": "Support logs",
@@ -88,6 +94,23 @@
     "NO_EXCEPTIONS": "No exceptions configured",
     "LOAD_ERROR": "Could not load opening hours."
   },
+  "CLOUD_MANAGED": {
+    "TITLE": "This location is managed in the cloud.",
+    "BODY": "Changes are only possible in the cloud admin interface. Updates appear automatically after the next sync cycle.",
+    "SHOW_CONNECTION": "Show cloud connection",
+    "SUBLINE_OPENING_HOURS": "Opening hours and exceptions are maintained centrally.",
+    "SUBLINE_PAGERS": "Pager numbers are maintained centrally.",
+    "SUBLINE_TABLES": "Areas and tables are maintained centrally.",
+    "SUBLINE_LOCATION": "Location master data is maintained centrally.",
+    "SUBLINE_PRINTERS": "Printer settings are maintained centrally. If the cloud becomes unreachable, the edge unlocks emergency mode automatically.",
+    "EMERGENCY_TITLE": "Emergency mode active — printers editable locally",
+    "EMERGENCY_BODY": "The cloud is unreachable. Printer settings can be changed locally and are reconciled automatically once the cloud returns. All other location settings remain locked.",
+    "EMERGENCY_SINCE": "Active for {{minutes}} minutes",
+    "EMERGENCY_END": "End emergency mode",
+    "EMERGENCY_START": "Activate emergency mode",
+    "SAVE_BLOCKED": "Change not saved — this data is managed in the cloud.",
+    "EMERGENCY_END_CONFIRM": "After this the edge no longer accepts local printer changes. Changes already made stay active and are reconciled on the next cloud contact."
+  },
   "CLOUD_STATUS": {
     "SYNC_AGE_MIN": "Last cloud sync {{minutes}} min ago",
     "SYNC_AGE_HOUR": "Last cloud sync {{hours}} h ago",
@@ -103,7 +126,10 @@
     "ORDERS_BLOCKED": "New orders are blocked until the cloud responds again.",
     "ACTIVATE_OFFLINE_MODE": "Activate offline mode",
     "OFFLINE_MODE_ACTIVE": "Offline mode active",
-    "OFFLINE_MODE_ACTIVE_SUBLINE": "Edge generates business days locally. Auto-reset on the next successful cloud pull. Active for {{minutes}} more minutes."
+    "OFFLINE_MODE_ACTIVE_SUBLINE": "Edge generates business days locally. Auto-reset on the next successful cloud pull. Active for {{minutes}} more minutes.",
+    "EMERGENCY_OVERRIDE_ACTIVE": "Emergency mode active",
+    "EMERGENCY_OVERRIDE_SUBLINE": "Local printer changes for {{minutes}} minutes — reconciled once the cloud returns.",
+    "END_EMERGENCY_MODE": "End"
   },
   "COMMON": {
     "SAVE": "Save",
@@ -139,7 +165,8 @@
     "STATUS_DRAFT": "Draft",
     "STATUS_ARCHIVED": "Archived",
     "FILTER_BY_STATUS": "Filter by status",
-    "FILTER_BY_TYPE": "Filter by product type"
+    "FILTER_BY_TYPE": "Filter by product type",
+    "CONFIRM": "Confirm"
   },
   "ROLES": {
     "PLATFORM_OWNER": "Platform Admin",
@@ -307,7 +334,27 @@
     "PAGER_ADD": "Add",
     "PAGER_NUMBER": "Pager no.",
     "PAGER_DUPLICATE": "This number already exists.",
-    "NO_PAGERS": "No pagers configured"
+    "NO_PAGERS": "No pagers configured",
+    "TABLES_SETTINGS": "Tables",
+    "TABLES_DESCRIPTION": "Manage areas and table labels for POS table selection.",
+    "TABLES_ENABLED": "Enable table management",
+    "TABLES_ENABLED_HINT": "Shows table selection in the order dialog",
+    "TABLES_ROOMS": "Areas",
+    "TABLES_ROOM_ADD": "Add area",
+    "TABLES_ROOM_NAME_PLACEHOLDER": "e.g. Terrace, Indoor, Bar",
+    "TABLES_ROOM_NAME_REQUIRED": "Area is only saved once it has a name.",
+    "TABLES_REMOVE_ROOM": "Remove area",
+    "TABLES_NO_ROOMS": "No areas configured",
+    "TABLES_COUNT": "{{count}} tables",
+    "TABLES_NONE": "No tables in this area yet.",
+    "TABLES_ADD": "Add",
+    "TABLES_ADD_PLACEHOLDER": "e.g. T1 · T1, T2 · T1-T10",
+    "TABLES_ADD_HINT": "Several at once: separate by comma or use a range (T1-T10).",
+    "TABLES_ADDED": "{{added}} table(s) added, {{skipped}} duplicate(s) skipped.",
+    "TABLES_DUPLICATE": "\"{{label}}\" already exists — table labels must be unique across all areas.",
+    "TABLES_LABEL_TOO_LONG": "Labels may not exceed 60 characters.",
+    "TABLES_LIMIT": "At most {{max}} entries.",
+    "TABLES_MIGRATION_HINT": "Existing tables get a stable ID on the next save."
   },
   "APIKEYS": {
     "TITLE": "API Keys",

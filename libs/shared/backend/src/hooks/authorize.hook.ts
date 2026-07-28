@@ -62,6 +62,7 @@ const METHOD_TO_ACTION: Record<string, AppAction> = {
   preflight: AppAction.READ,
   startBootstrap: AppAction.UPDATE,
   syncNow: AppAction.UPDATE,
+  setEmergencyOverride: AppAction.UPDATE,
 }
 
 // users-Zeiterfassung: DEVICE_POS/DEVICE_TABLET stempeln Mitarbeiter über das

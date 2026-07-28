@@ -24,6 +24,7 @@ export const appRoutes: Routes = [
       { path: 'orders', loadComponent: () => import('./features/orders/order-list').then(m => m.OrderListComponent) },
       { path: 'business-days', loadComponent: () => import('./features/business-days/business-days-list').then(m => m.BusinessDaysListComponent) },
       { path: 'pagers', loadComponent: () => import('./features/locations/pager-settings').then(m => m.PagerSettingsComponent) },
+      { path: 'tables', loadComponent: () => import('./features/locations/table-settings').then(m => m.TableSettingsComponent) },
       { path: 'devices', loadComponent: () => import('./features/devices/device-list').then(m => m.DeviceListComponent) },
       { path: 'opening-hours', loadComponent: () => import('./features/locations/opening-hours').then(m => m.OpeningHoursComponent) },
       { path: 'cloud', loadComponent: () => import('./features/cloud-connection/cloud-connection').then(m => m.CloudConnectionComponent) },

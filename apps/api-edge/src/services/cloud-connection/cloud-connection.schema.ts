@@ -81,6 +81,21 @@ export const cloudConnectionPatchResolver = resolve<CloudConnection, HookContext
   lastScheduledSyncAt: filterFromExternal,
   lastClockSkewMs: filterFromExternal,
   outboxBacklog: filterFromExternal,
+  // Notfall-Modus (ADR 0001): Die Felder steuern, ob der `cloudManaged()`-Hook
+  // lokale Drucker-Patches durchlaesst — ein extern setzbares Flag waere damit
+  // ein Weg, die Cloud-Hoheit ueber Standort-Stammdaten auszuhebeln. Der
+  // einzige externe Weg ist ab jetzt die Custom-Method `setEmergencyOverride`,
+  // die alle Felder konsistent zusammen setzt und ein RBAC-Mapping hat.
+  emergencyOverride: filterFromExternal,
+  emergencyOverrideSince: filterFromExternal,
+  emergencyOverrideSource: filterFromExternal,
+  emergencyOverrideSuppressedUntil: filterFromExternal,
+  lastHeartbeatOk: filterFromExternal,
+  consecutiveHeartbeatFailures: filterFromExternal,
+  // `offlineOverrideActiveUntil` bleibt bewusst ausgenommen: der
+  // OfflineOverrideService im Admin patcht es extern (Banner-Aktion
+  // „Offline-Modus aktivieren"). Migration auf eine eigene Custom-Method ist
+  // als Folge-Task notiert.
 })
 //#endregion
 

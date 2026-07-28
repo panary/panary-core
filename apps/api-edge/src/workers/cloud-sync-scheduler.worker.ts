@@ -26,6 +26,10 @@ import { APP_VERSION } from '../version'
 
 import type { Application } from '../declarations'
 import { decryptCloudToken, encryptCloudToken } from '../utils/cloud-token-cipher'
+import {
+  shouldActivateEmergencyOverride,
+  shouldAutoDeactivateEmergencyOverride,
+} from '../utils/emergency-override'
 import { recordSyncRun, type RecordSyncRunInput } from '../services/sync-runs/record-sync-run.helper'
 import { printServerManager } from '../print-server'
 import { applyPulledRecords, cloudFetch, extractAjvValidationErrors, PULL_PAGE_SIZE } from './sync-apply'
@@ -59,17 +63,6 @@ const MANUAL_HEARTBEAT_INTERVAL_SEC = 30 * 60
 const MAX_SYNC_RUN_DETAILS = 500
 
 const syncConflictsPath = 'sync-conflicts'
-
-// Emergency-Override (ADR `docs/adr/0001-emergency-override.md`):
-// Aktiviert wird der Notfall-Modus, wenn entweder
-// (a) `EMERGENCY_OVERRIDE_FAILURE_THRESHOLD` konsekutive Heartbeat-Fehler
-//     auflaufen, ODER
-// (b) seit `EMERGENCY_OVERRIDE_AFTER_MS` kein erfolgreicher Heartbeat mehr
-//     stattgefunden hat.
-// Trigger (a) reagiert schnell auf akute Ausfälle (3×30s = 1,5min), (b)
-// fängt Edge-Cases auf, in denen das Scheduling pausiert war.
-const EMERGENCY_OVERRIDE_FAILURE_THRESHOLD = 3
-const EMERGENCY_OVERRIDE_AFTER_MS = 5 * 60 * 1000
 
 const MASTER_DATA_SERVICES = Object.values(SyncableMasterDataService) as ReadonlyArray<string>
 
@@ -1141,17 +1134,23 @@ const runReconcileOverrides = async (
     .where({ status: 'PENDING_RECONCILE' })
     .select()) as Array<Record<string, unknown>>
   if (pending.length === 0) {
-    // Keine Overrides mehr offen → Notfall-Modus deaktivieren.
-    await (app.service(cloudConnectionPath) as any)
-      ._patch(connection._id, {
-        emergencyOverride: false,
-        emergencyOverrideSince: null,
+    // Keine Overrides mehr offen → Notfall-Modus deaktivieren. Eine noch
+    // gueltige MANUELLE Aktivierung bleibt bestehen: sonst raeumt dieser
+    // Fast-Path (der ohne jeden Cloud-Call laeuft) eine bewusste
+    // Operator-Entscheidung binnen eines Ticks wieder weg.
+    if (shouldAutoDeactivateEmergencyOverride(connection, { pendingCount: 0, conflictCount: 0 }, Date.now())) {
+      await (app.service(cloudConnectionPath) as any)
+        ._patch(connection._id, {
+          emergencyOverride: false,
+          emergencyOverrideSince: null,
+          emergencyOverrideSource: null,
+        })
+        .catch(() => undefined)
+      logger.info({
+        message: 'Emergency-Override deaktiviert — keine ausstehenden Overrides',
+        event: 'emergency-override.deactivated',
       })
-      .catch(() => undefined)
-    logger.info({
-      message: 'Emergency-Override deaktiviert — keine ausstehenden Overrides',
-      event: 'emergency-override.deactivated',
-    })
+    }
     return
   }
 
@@ -1217,11 +1216,18 @@ const runReconcileOverrides = async (
   // Konflikte sollen sichtbar bleiben, damit der Admin sie manuell auflösen
   // kann (kommt in Folge-Phase); solange bleibt der Notfall-Modus aktiv, sodass
   // der Edge bei Bedarf weiter lokale Patches akzeptiert.
-  if (body.conflicts.length === 0) {
+  if (
+    shouldAutoDeactivateEmergencyOverride(
+      connection,
+      { pendingCount: 0, conflictCount: body.conflicts.length },
+      Date.now(),
+    )
+  ) {
     await (app.service(cloudConnectionPath) as any)
       ._patch(connection._id, {
         emergencyOverride: false,
         emergencyOverrideSince: null,
+        emergencyOverrideSource: null,
       })
       .catch(() => undefined)
     logger.info({
@@ -1478,16 +1484,18 @@ const runHeartbeatPhase = async (
         ? new Date(connection.connectedAt).getTime()
         : Date.now()
     const elapsed = Date.now() - lastOkMs
-    const shouldActivateOverride =
-      !connection.emergencyOverride &&
-      (nextFailureCount >= EMERGENCY_OVERRIDE_FAILURE_THRESHOLD ||
-        elapsed >= EMERGENCY_OVERRIDE_AFTER_MS)
+    const shouldActivateOverride = shouldActivateEmergencyOverride(
+      connection,
+      { failureCount: nextFailureCount, elapsedMsSinceLastOk: elapsed },
+      Date.now(),
+    )
     const patch: Record<string, unknown> = {
       consecutiveHeartbeatFailures: nextFailureCount,
     }
     if (shouldActivateOverride) {
       patch['emergencyOverride'] = true
       patch['emergencyOverrideSince'] = new Date().toISOString()
+      patch['emergencyOverrideSource'] = 'AUTO'
       logger.warn({
         message: 'Emergency-Override aktiviert — Cloud unerreichbar',
         event: 'emergency-override.activated',

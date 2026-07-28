@@ -161,7 +161,25 @@ export const cloudConnectionSchema = Type.Object(
     // nächsten erfolgreichen Heartbeat per Reconciliation-Flow mit dem
     // Cloud-Stand abgeglichen. Siehe ADR `docs/adr/0001-emergency-override.md`.
     emergencyOverride: Type.Optional(Type.Boolean({ default: false })),
-    emergencyOverrideSince: Type.Optional(Type.String({ format: 'date-time' })),
+    // Nullable, weil das Deaktivieren das Feld leert. Ohne Null-Union scheitert
+    // jeder Patch, der nicht am Validator vorbeigeht (der Worker nutzt `_patch`
+    // auf Adapter-Ebene, die Custom-Method laeuft durch die Hook-Pipeline).
+    emergencyOverrideSince: Type.Optional(
+      Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
+    ),
+    // AUTO = vom Heartbeat-Watchdog gesetzt, MANUAL = vom Operator.
+    // Schuetzt eine manuelle Aktivierung davor, vom Reconcile-Fast-Path
+    // weggeraeumt zu werden (siehe utils/emergency-override.ts).
+    emergencyOverrideSource: Type.Optional(
+      Type.Union([StringEnum(['AUTO', 'MANUAL']), Type.Null()]),
+    ),
+    // Legt die Auto-Aktivierung nach einer manuellen Deaktivierung kurz stumm.
+    // Ohne das wuerde der naechste fehlgeschlagene Heartbeat sofort
+    // re-aktivieren, weil `consecutiveHeartbeatFailures` nur bei ERFOLG
+    // zurueckgesetzt wird.
+    emergencyOverrideSuppressedUntil: Type.Optional(
+      Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
+    ),
     lastHeartbeatOk: Type.Optional(Type.String({ format: 'date-time' })),
     consecutiveHeartbeatFailures: Type.Optional(Type.Integer({ minimum: 0, default: 0 })),
 
@@ -289,9 +307,13 @@ export const cloudConnectionPatchSchema = Type.Partial(
     'lastClockSkewMs',
     'outboxBacklog',
     'bootstrapUserAllowlist',
-    // Emergency-Override-Felder (vom Sync-Scheduler gesetzt)
+    // Emergency-Override-Felder (vom Sync-Scheduler bzw. der Custom-Method
+    // `setEmergencyOverride` gesetzt — extern per PATCH gefiltert, siehe
+    // `cloudConnectionPatchResolver` in apps/api-edge)
     'emergencyOverride',
     'emergencyOverrideSince',
+    'emergencyOverrideSource',
+    'emergencyOverrideSuppressedUntil',
     'lastHeartbeatOk',
     'consecutiveHeartbeatFailures',
     // Business-Days-Pull-Cursor + Offline-Override (siehe Hauptschema oben)
@@ -384,4 +406,34 @@ export const cloudConnectionSyncNowResultSchema = Type.Object(
   { $id: 'CloudConnectionSyncNowResult', additionalProperties: false },
 )
 export type CloudConnectionSyncNowResult = Static<typeof cloudConnectionSyncNowResultSchema>
+
+// Custom-Method `setEmergencyOverride` — Kontroll-Switch fuer den Notfall-Modus
+// (ADR 0001). Kein normaler PATCH, weil das Umschalten mehrere Felder plus die
+// Policy fuer die gepufferten Overrides umfasst.
+export const cloudConnectionSetEmergencyOverrideDataSchema = Type.Object(
+  {
+    active: Type.Boolean(),
+    // Nur beim Deaktivieren wirksam. Default `false`: das Loeschen der
+    // Audit-Zeilen rollt `settings.printSettings` NICHT zurueck — der Edge
+    // behielte die lokalen Werte, und die Cloud ueberschriebe sie beim naechsten
+    // Pull zu einem unvorhersagbaren Zeitpunkt.
+    discardPendingOverrides: Type.Optional(Type.Boolean({ default: false })),
+  },
+  { $id: 'CloudConnectionSetEmergencyOverrideData', additionalProperties: false },
+)
+export type CloudConnectionSetEmergencyOverrideData = Static<
+  typeof cloudConnectionSetEmergencyOverrideDataSchema
+>
+
+export const cloudConnectionSetEmergencyOverrideResultSchema = Type.Object(
+  {
+    emergencyOverride: Type.Boolean(),
+    pendingCount: Type.Integer({ minimum: 0 }),
+    conflictCount: Type.Integer({ minimum: 0 }),
+  },
+  { $id: 'CloudConnectionSetEmergencyOverrideResult', additionalProperties: false },
+)
+export type CloudConnectionSetEmergencyOverrideResult = Static<
+  typeof cloudConnectionSetEmergencyOverrideResultSchema
+>
 //#endregion

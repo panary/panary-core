@@ -3,6 +3,7 @@ import { hooks as schemaHooks } from '@feathersjs/schema'
 import { BadRequest } from '@feathersjs/errors'
 
 import { decryptCloudToken } from '../../utils/cloud-token-cipher'
+import { MANUAL_EMERGENCY_OVERRIDE_TTL_MS } from '../../utils/emergency-override'
 import { APP_VERSION } from '../../version'
 
 import {
@@ -29,6 +30,8 @@ import {
   cloudConnectionSchema,
   type CloudConnectionPreflightData,
   type CloudConnectionPreflightResult,
+  type CloudConnectionSetEmergencyOverrideData,
+  type CloudConnectionSetEmergencyOverrideResult,
   type CloudConnectionStartBootstrapData,
   type CloudConnectionSyncNowResult,
   InitialSyncDirection,
@@ -55,12 +58,40 @@ export const cloudConnectionMethods = [
   'preflight',
   'startBootstrap',
   'syncNow',
+  'setEmergencyOverride',
 ] as const
 
 export * from './cloud-connection.schema'
 
 const PREFLIGHT_TIMEOUT_MS = 15_000
 const PAIR_TIMEOUT_MS = 15_000
+
+/**
+ * Zaehlt die gepufferten Notfall-Overrides. Der Confirm-Dialog im Admin nennt
+ * diese Zahlen, damit „Notfall-Modus beenden" nicht wie ein Datenverlust
+ * aussieht: die Eintraege bleiben und werden beim naechsten Cloud-Kontakt
+ * regulaer abgeglichen.
+ */
+const countPendingOverrides = async (
+  app: Application,
+): Promise<{ pendingCount: number; conflictCount: number }> => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Knex ist hier als generischer Query-Builder genutzt
+  const knex = app.get('sqliteClient' as any) as any
+  if (!knex) return { pendingCount: 0, conflictCount: 0 }
+  try {
+    const rows = (await knex
+      .table('pending-local-overrides')
+      .select('status')) as Array<{ status: string }>
+    return {
+      pendingCount: rows.filter(r => r.status === 'PENDING_RECONCILE').length,
+      conflictCount: rows.filter(r => r.status === 'CONFLICT').length,
+    }
+  } catch {
+    // Tabelle fehlt (Migration noch nicht gelaufen) — kein Grund, den Schalter
+    // scheitern zu lassen.
+    return { pendingCount: 0, conflictCount: 0 }
+  }
+}
 
 // Cloud-seitig sind preflight/create Custom Methods desselben edge-pairing-Service.
 // Standard-CREATE = Pairing-Create (POST /edge-pairing ohne X-Service-Method).
@@ -303,6 +334,11 @@ export const cloudConnection = (app: Application) => {
     preflight: (data: CloudConnectionPreflightData, params?: any) => Promise<CloudConnectionPreflightResult>
     startBootstrap: (data: CloudConnectionStartBootstrapData, params?: any) => Promise<CloudConnection>
     syncNow: (data: { cloudConnectionId: string }, params?: any) => Promise<CloudConnectionSyncNowResult>
+    setEmergencyOverride: (
+      data: CloudConnectionSetEmergencyOverrideData,
+      params?: any,
+    ) => Promise<CloudConnectionSetEmergencyOverrideResult>
+    _find: (params?: any) => Promise<CloudConnection[] | { data: CloudConnection[]; total: number }>
     _patch: (id: string, data: Partial<CloudConnection>, params?: any) => Promise<CloudConnection>
     _get: (id: string, params?: any) => Promise<CloudConnection>
   }
@@ -554,6 +590,80 @@ export const cloudConnection = (app: Application) => {
       lastManualSyncAt: new Date().toISOString(),
     } as any)
     return result
+  }
+
+  // Custom-Method: setEmergencyOverride (ADR 0001, Kontroll-Switch im Edge-Admin)
+  //
+  // Bewusst KEIN normaler PATCH: das Umschalten ist eine Mehrfeld-Transaktion
+  // (Flag + Since + Source + SuppressedUntil + Failure-Zaehler) plus eine
+  // Entscheidung ueber die gepufferten Overrides. Client-seitig zusammengesetzt
+  // gaebe es mehrere Wege in einen halb aktualisierten Zustand — und der
+  // Failure-Zaehler gehoert ohnehin nicht in Client-Hand.
+  baseService.setEmergencyOverride = async (data, params) => {
+    const active = data?.active
+    if (typeof active !== 'boolean') throw new BadRequest('active (boolean) fehlt.')
+
+    // Gezielt die CONNECTED-Verbindung waehlen — dieselbe Query wie im
+    // `cloudManaged()`-Hook und in `isLocalRotationAllowed()`. Ein blindes
+    // „erste Zeile" waere nicht deterministisch, sobald mehr als ein Record
+    // existiert (Altlasten aus abgebrochenen Pairings).
+    const list = await baseService._find({
+      paginate: false,
+      query: { pairingStatus: PairingStatus.CONNECTED, $limit: 1 },
+    } as any)
+    const connection = (Array.isArray(list) ? list[0] : undefined) as CloudConnection | undefined
+    if (!connection) {
+      throw new BadRequest('Edge ist nicht mit der Cloud gepairt — Notfall-Modus ist gegenstandslos.')
+    }
+
+    const now = new Date()
+    const nowIso = now.toISOString()
+    const patch: Record<string, unknown> = active
+      ? {
+          emergencyOverride: true,
+          emergencyOverrideSince: nowIso,
+          emergencyOverrideSource: 'MANUAL',
+          emergencyOverrideSuppressedUntil: null,
+        }
+      : {
+          emergencyOverride: false,
+          emergencyOverrideSince: null,
+          emergencyOverrideSource: null,
+          // Ohne diese beiden Zeilen waere der Schalter wirkungslos:
+          // `consecutiveHeartbeatFailures` wird nur bei einem ERFOLGREICHEN
+          // Heartbeat zurueckgesetzt, steht also waehrend des Ausfalls
+          // weiterhin ueber der Schwelle — der naechste Fehlversuch wuerde
+          // binnen Sekunden re-aktivieren.
+          emergencyOverrideSuppressedUntil: new Date(
+            now.getTime() + MANUAL_EMERGENCY_OVERRIDE_TTL_MS,
+          ).toISOString(),
+          consecutiveHeartbeatFailures: 0,
+        }
+
+    if (!active && data?.discardPendingOverrides) {
+      // Bewusst NICHT der Default. Das Loeschen der Audit-Zeilen rollt
+      // `settings.printSettings` nicht zurueck — der Edge behielte die
+      // geaenderten Drucker-IPs, und die Cloud ueberschriebe sie beim naechsten
+      // Pull zu einem unvorhersagbaren Zeitpunkt. Echter Rollback aus
+      // `oldValueJson` ist eine eigene Folge-Phase.
+      const knex = app.get('sqliteClient' as any) as any
+      if (knex) {
+        await knex.table('pending-local-overrides').where({ status: 'PENDING_RECONCILE' }).del()
+      }
+    }
+
+    await baseService._patch(connection._id, patch as any)
+
+    const counts = await countPendingOverrides(app)
+    logger.info({
+      message: active ? 'Notfall-Modus manuell aktiviert' : 'Notfall-Modus manuell beendet',
+      event: active ? 'emergency-override.manual_activated' : 'emergency-override.manual_deactivated',
+      userId: (params?.user as { _id?: string } | undefined)?._id,
+      discardedPendingOverrides: !active && !!data?.discardPendingOverrides,
+      ...counts,
+    })
+
+    return { emergencyOverride: active, ...counts }
   }
 
   app.use(cloudConnectionPath, baseService as any, {

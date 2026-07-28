@@ -1,6 +1,6 @@
 {
   "name": "api-edge",
-  "version": "26.7.30",
+  "version": "26.7.31",
   "private": true,
   "feathers": {
     "language": "ts",

@@ -26,6 +26,17 @@ export { restrictToCloud } from './hooks/restrict-to-cloud.hook'
 export { secureByDefault } from './hooks/secure-by-default.hook'
 export { stringifyJsonFields } from './hooks/stringify-json-fields.hook'
 
+// --- Util Security ---
+export {
+  clearPinFailures,
+  getPinLockoutSeconds,
+  recordPinFailure,
+  resetPinAttemptLimiter,
+  PIN_FAILURE_WINDOW_MS,
+  PIN_LOCKOUT_MS,
+  PIN_MAX_FAILURES,
+} from './util-security/pin-attempt-limiter'
+
 // --- Util DB ---
 export { ensureIndexes } from './util-db/ensure-indexes'
 export type { IndexDef } from './util-db/ensure-indexes'

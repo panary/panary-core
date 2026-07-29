@@ -17,4 +17,8 @@ export interface UserService extends ServiceInterface<User, UserData, UserParams
   startBreak(data: { userId: string }, params?: UserParams): Promise<User>
   endBreak(data: { userId: string }, params?: UserParams): Promise<User>
   verifyPin(data: { userId: string; pin: string }, params?: UserParams): Promise<Omit<User, 'password' | 'posPin'>>
+  changePin(
+    data: { userId: string; currentPin: string; newPin: string },
+    params?: UserParams,
+  ): Promise<Omit<User, 'password' | 'posPin'>>
 }

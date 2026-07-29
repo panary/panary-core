@@ -74,3 +74,115 @@ describe('users service — verifyPin', () => {
     await assert.rejects(service.verifyPin({ pin: '1234' }), (error: { code?: number }) => error.code === 401)
   })
 })
+
+// Business-Logik-Test fuer die Custom-Method `changePin` (POS-PIN-Selbstwechsel
+// am Terminal). Der wichtigste Fall ist der Klartext-Schutz: der interne Patch
+// darf NIEMALS `fromSync: true` setzen, sonst ueberspringt der Resolver das
+// bcrypt-Hashing und der PIN landet im Klartext in der DB.
+describe('users service — changePin', () => {
+  type ChangePinService = {
+    changePin: (
+      data: { userId?: string; currentPin?: string; newPin?: string },
+      params?: { user?: { _id?: string; role?: string; tenantId?: string } },
+    ) => Promise<Record<string, unknown>>
+  }
+
+  const devicePos = { _id: 'device:test', role: 'device:pos-client' }
+
+  let userId: string
+
+  beforeAll(async () => {
+    await app.setup()
+    const created = await app.service('users').create(
+      {
+        firstName: 'Change',
+        lastName: 'Pin',
+        role: 'tenant:staff',
+        isPosUser: true,
+        posPin: '1234',
+        mustChangePosPin: true,
+      } as never,
+      { provider: undefined },
+    )
+    userId = (created as { _id: string })._id
+  })
+
+  afterAll(async () => {
+    if (userId) {
+      await app.service('users').remove(userId, { provider: undefined })
+    }
+    await app.teardown()
+  })
+
+  it('falscher currentPin → NotAuthenticated, PIN und Flag bleiben unveraendert', async () => {
+    const service = app.service('users') as unknown as ChangePinService
+    const before = (await app.service('users').get(userId, { provider: undefined })) as {
+      posPin?: string
+      mustChangePosPin?: unknown
+    }
+
+    await assert.rejects(
+      service.changePin({ userId, currentPin: '0000', newPin: '5678' }, { user: devicePos }),
+      (error: { code?: number }) => error.code === 401,
+    )
+
+    const after = (await app.service('users').get(userId, { provider: undefined })) as {
+      posPin?: string
+      mustChangePosPin?: unknown
+    }
+    assert.strictEqual(after.posPin, before.posPin, 'PIN darf nicht geaendert worden sein')
+    assert.ok(after.mustChangePosPin, 'Flag muss gesetzt bleiben')
+  })
+
+  it('newPin === currentPin → BadRequest (400)', async () => {
+    const service = app.service('users') as unknown as ChangePinService
+    await assert.rejects(
+      service.changePin({ userId, currentPin: '1234', newPin: '1234' }, { user: devicePos }),
+      (error: { code?: number }) => error.code === 400,
+    )
+  })
+
+  it('newPin mit falscher Laenge → BadRequest (400)', async () => {
+    const service = app.service('users') as unknown as ChangePinService
+    for (const bad of ['123', '12345', 'abcd']) {
+      await assert.rejects(
+        service.changePin({ userId, currentPin: '1234', newPin: bad }, { user: devicePos }),
+        (error: { code?: number }) => error.code === 400,
+      )
+    }
+  })
+
+  it('fremder Mandant → Forbidden (403)', async () => {
+    const service = app.service('users') as unknown as ChangePinService
+    await assert.rejects(
+      service.changePin(
+        { userId, currentPin: '1234', newPin: '5678' },
+        { user: { ...devicePos, tenantId: 'fremder-tenant' } },
+      ),
+      (error: { code?: number }) => error.code === 403,
+    )
+  })
+
+  it('korrekter currentPin → neuer PIN als bcrypt-Hash, Flag geloescht, Result ohne Secrets', async () => {
+    const service = app.service('users') as unknown as ChangePinService
+    const result = await service.changePin({ userId, currentPin: '1234', newPin: '5678' }, { user: devicePos })
+
+    assert.strictEqual(result['posPin'], undefined, 'posPin darf nicht im Result stehen')
+    assert.strictEqual(result['password'], undefined, 'password darf nicht im Result stehen')
+
+    const stored = (await app.service('users').get(userId, { provider: undefined })) as {
+      posPin?: string
+      mustChangePosPin?: unknown
+    }
+    // Kernaussage: kein Klartext. Waere `fromSync: true` gesetzt, stuende hier '5678'.
+    assert.notStrictEqual(stored.posPin, '5678', 'neuer PIN darf nicht im Klartext gespeichert sein')
+    assert.ok(String(stored.posPin).startsWith('$2'), 'neuer PIN muss ein bcrypt-Hash sein')
+    assert.ok(!stored.mustChangePosPin, 'Flag muss nach erfolgreichem Wechsel geloescht sein')
+
+    // Der neue PIN muss danach auch fuer den Login gelten.
+    const verify = app.service('users') as unknown as {
+      verifyPin: (d: { userId: string; pin: string }) => Promise<unknown>
+    }
+    await assert.doesNotReject(verify.verifyPin({ userId, pin: '5678' }))
+  })
+})

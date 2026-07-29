@@ -290,7 +290,12 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this._customer) return true
     if (!this._currentUser) return true
     if (!this._currentUser.allowStaffMealOrders) return true
-    return !this._currentUser.allowStaffMealOrders
+    // Personalessen ist rabatt-exklusiv: bei bereits gewähltem Rabatt gesperrt.
+    // Ausnahme ist ein Personalessen-Rabatt — der erzeugt die Personalessen-
+    // Erfassung ohnehin selbst.
+    const manual = this.selectedManualDiscount()
+    if (manual && !manual.isStaffMeal) return true
+    return false
   }
 
   get disableCustomerButton(): boolean {
@@ -354,6 +359,12 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       }
     }
+
+    // Rabatt-Bestand früh laden: der beim Benutzer zugewiesene Personalessen-Rabatt
+    // (`staffMealDiscountId`) wird beim Abschicken gegen dieses Signal aufgelöst.
+    // Ohne Vorladen wäre es leer, solange der Kassierer den Rabatt-Picker nicht
+    // geöffnet hat — das Personalessen liefe dann fälschlich ohne Nachlass durch.
+    void this.discountService.loadActivePosDiscounts().catch(() => undefined)
 
     if (this.locationService.activeLocation()) {
       this.generalSideDishPrice =
@@ -2118,7 +2129,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         userName: this._currentUser.firstName + ' ' + this._currentUser.lastName,
         isPaid: false,
       }
-      discountDetails = this.#toDiscount(this._currentUser.discountDetails) ?? discountDetails
     }
     if (this._customer && this._customer._id) {
       customerDetails = {
@@ -2126,38 +2136,46 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         customerName: this._customer.name1,
         isPaid: false,
       }
-      // Kundenrabatt hat Vorrang vor dem Personalessen-Rabatt (bisheriges Verhalten).
       discountDetails = this.#toDiscount(this._customer.discountDetails) ?? discountDetails
     }
 
-    // appliedDiscounts-Snapshot aus dem aufgelösten Order-Rabatt — ersetzt den
-    // früheren unsicheren `as unknown as Discount`-Cast. order.discount bleibt als
-    // Legacy-Spiegel erhalten; die Tax-Engine nutzt appliedDiscounts führend und
-    // füllt computedAmountCents serverseitig.
-    const appliedDiscounts: AppliedDiscount[] = []
-    if (discountDetails) {
-      appliedDiscounts.push(
-        this.#toAppliedDiscount(discountDetails, {
-          name: staffMealDetails ? 'Personalessen' : (this._customer?.name1 ?? 'Rabatt'),
-          isStaffMeal: !!staffMealDetails,
-          appliedBy: this._currentUser?._id ?? null,
-        }),
-      )
+    const manual = this.selectedManualDiscount()
+
+    // Ein manuell gewählter Personalessen-Rabatt macht die Bestellung zum Personalessen
+    // (Subventions-Tracking), auch wenn die Personalessen-Taste nicht gedrückt wurde.
+    if (manual?.isStaffMeal && this._currentUser && !staffMealDetails) {
+      staffMealDetails = {
+        userId: this._currentUser._id,
+        userName: this._currentUser.firstName + ' ' + this._currentUser.lastName,
+        isPaid: false,
+      }
     }
 
-    // Manuell am POS gewählter Order-Rabatt (Cloud-gepflegte Definition).
-    const manual = this.selectedManualDiscount()
-    if (manual) {
-      appliedDiscounts.push(this.#managedToApplied(manual))
-      // Personalessen-Rabatt koppelt an staffPaymentInfo (Subventions-Tracking), falls
-      // nicht ohnehin schon als Personalessen-Bestellung erfasst.
-      if (manual.isStaffMeal && this._currentUser && !staffMealDetails) {
-        staffMealDetails = {
-          userId: this._currentUser._id,
-          userName: this._currentUser.firstName + ' ' + this._currentUser.lastName,
-          isPaid: false,
-        }
+    // appliedDiscounts ist für die Tax-Engine führend; `order.discount` bleibt nur als
+    // Legacy-Spiegel für den Kundenrabatt erhalten (serverseitig geleert, sobald
+    // appliedDiscounts nicht leer ist — siehe discount-mutex.ts).
+    const appliedDiscounts: AppliedDiscount[] = []
+
+    if (staffMealDetails) {
+      // Personalessen ist rabatt-exklusiv (assertStaffMealDiscountExclusivity): genau der
+      // Personalessen-Rabatt, sonst keiner. Ein manuell gewählter Personalessen-Rabatt
+      // hat Vorrang vor der Zuweisung am Benutzer; ein etwaiger Kundenrabatt entfällt.
+      const staffMealDiscount = manual?.isStaffMeal
+        ? this.#managedToApplied(manual)
+        : this.#resolveAssignedStaffMealDiscount()
+      if (staffMealDiscount) appliedDiscounts.push(staffMealDiscount)
+      discountDetails = undefined
+    } else {
+      if (discountDetails) {
+        appliedDiscounts.push(
+          this.#toAppliedDiscount(discountDetails, {
+            name: this._customer?.name1 ?? 'Rabatt',
+            isStaffMeal: false,
+            appliedBy: this._currentUser?._id ?? null,
+          }),
+        )
       }
+      if (manual) appliedDiscounts.push(this.#managedToApplied(manual))
     }
 
     const orderIndex = this.orderService.createOrder({
@@ -2222,6 +2240,25 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /** Baut den AppliedDiscount-Snapshot aus einer Cloud-gepflegten Rabatt-Definition (Order-Level). */
+  /**
+   * Löst den beim Benutzer zugewiesenen Personalessen-Rabatt
+   * (`user.staffMealDiscountId`, gepflegt in der Cloud-Admin-UI) gegen den lokalen
+   * Rabatt-Bestand auf.
+   *
+   * Läuft die Referenz ins Leere — Rabatt archiviert, gelöscht oder am Edge noch
+   * nicht synchronisiert —, wird die Bestellung ohne Nachlass als Personalessen
+   * erfasst statt abgelehnt: die Erfassung darf an einer Stammdaten-Lücke nicht
+   * scheitern. Der Fall ist in der Cloud sichtbar (Archivieren warnt, wenn der
+   * Rabatt Mitarbeitern zugewiesen ist).
+   */
+  #resolveAssignedStaffMealDiscount(): AppliedDiscount | null {
+    const assignedId = this._currentUser?.staffMealDiscountId
+    if (!assignedId) return null
+    const match = this.discountService.activePosDiscounts().find(d => d._id === assignedId)
+    if (!match?.isStaffMeal) return null
+    return this.#managedToApplied(match)
+  }
+
   #managedToApplied(d: ManagedDiscount): AppliedDiscount {
     return {
       _id: uuidv7(),
@@ -2241,6 +2278,12 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** Öffnet den Touch-Picker für manuelle POS-Rabatte und übernimmt die Auswahl. */
   openDiscountPicker(): void {
+    // Personalessen ist rabatt-exklusiv — der zugewiesene Rabatt gilt, ein zweiter
+    // würde serverseitig ohnehin mit 400 abgelehnt (validateStaffMealExclusivity).
+    if (this.isStaffMealOrder) {
+      this.setInfoBoxText('Personalessen: kein zusätzlicher Rabatt möglich')
+      return
+    }
     const ref = this.matDialog.open(DiscountPickerDialogComponent, {
       width: '40rem',
       maxWidth: '92vw',

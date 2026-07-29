@@ -4,7 +4,7 @@ import { Router } from '@angular/router'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 // Direct import to avoid circular dependency with Admin's ConnectionService
 import { ConnectionService } from '@panary/shared/data-access'
-import { POS_PIN_LENGTH } from '@panary/users/domain'
+import { POS_PIN_LENGTH, requiresPosPinChange } from '@panary/users/domain'
 import { TimeClockEvent, TimeClockPanelComponent } from './time-clock-panel/time-clock-panel.component'
 import { PinPadComponent } from './pin-pad/pin-pad.component'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
@@ -305,9 +305,9 @@ export class LoginComponent implements OnInit {
 
       // Erzwungener PIN-Wechsel: Der Admin hat den PIN vergeben und kennt ihn
       // daher — bis zum Wechsel waere keine POS-Aktion eindeutig zurechenbar.
-      // Truthy-Pruefung, nicht `=== true`: SQLite kennt keinen Boolean-Typ und
-      // liefert 0/1.
-      if (verifiedUser.mustChangePosPin) {
+      // Auswertung ueber den Domain-Helfer, weil der Edge SQLite-Booleans als
+      // 0/1 liefert (siehe requiresPosPinChange).
+      if (requiresPosPinChange(verifiedUser)) {
         this.#verifiedPin = this.pinInput()
         this.#pendingUser = { ...verifiedUser, initials: user.initials }
         this.pinInput.set('')

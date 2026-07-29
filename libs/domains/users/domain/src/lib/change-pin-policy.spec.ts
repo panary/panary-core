@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { checkChangePinRequest, POS_PIN_PATTERN } from './change-pin-policy'
+import { checkChangePinRequest, POS_PIN_PATTERN, requiresPosPinChange } from './change-pin-policy'
 import { UserSystemRole } from './user.schema'
 
 const VALID = { userId: 'u1', currentPin: '1234', newPin: '5678' }
@@ -50,5 +50,31 @@ describe('checkChangePinRequest', () => {
   it('POS_PIN_PATTERN akzeptiert führende Nullen', () => {
     expect(POS_PIN_PATTERN.test('0000')).toBe(true)
     expect(POS_PIN_PATTERN.test('0042')).toBe(true)
+  })
+})
+
+describe('requiresPosPinChange', () => {
+  // Der entscheidende Fall: der Edge liefert SQLite-Booleans als 0/1. Ein
+  // `=== true` im Client wuerde den Zwang still wirkungslos machen.
+  it('erkennt die SQLite-Zahlen 1 und 0', () => {
+    expect(requiresPosPinChange({ mustChangePosPin: 1 })).toBe(true)
+    expect(requiresPosPinChange({ mustChangePosPin: 0 })).toBe(false)
+  })
+
+  it('erkennt echte Booleans', () => {
+    expect(requiresPosPinChange({ mustChangePosPin: true })).toBe(true)
+    expect(requiresPosPinChange({ mustChangePosPin: false })).toBe(false)
+  })
+
+  // Boolean('0') waere true — die haeufigste Falle bei durchgereichten Strings.
+  it('behandelt "0"/"false" als nicht gesetzt', () => {
+    expect(requiresPosPinChange({ mustChangePosPin: '0' })).toBe(false)
+    expect(requiresPosPinChange({ mustChangePosPin: 'false' })).toBe(false)
+  })
+
+  it('fehlendes Feld oder fehlender User → kein Zwang', () => {
+    expect(requiresPosPinChange({})).toBe(false)
+    expect(requiresPosPinChange(null)).toBe(false)
+    expect(requiresPosPinChange(undefined)).toBe(false)
   })
 })

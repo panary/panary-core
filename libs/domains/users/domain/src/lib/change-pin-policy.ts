@@ -30,6 +30,21 @@ import { PRIVILEGED_ROLES } from './self-patch-policy'
 export const POS_PIN_LENGTH = 4
 export const POS_PIN_PATTERN = /^[0-9]{4}$/
 
+/**
+ * Muss dieser Mitarbeiter beim Login zum PIN-Wechsel gezwungen werden?
+ *
+ * Existiert als eigener Helfer, weil das Flag auf dem Weg zum Client durch
+ * SQLite laeuft: dort gibt es keinen Boolean-Typ, der Edge liefert `0`/`1`.
+ * Ein `=== true` wuerde still nie greifen und der Zwang waere wirkungslos.
+ * `'0'` faengt zusaetzlich den Fall ab, dass der Wert irgendwo als String
+ * durchgereicht wird — `Boolean('0')` waere sonst `true`.
+ */
+export const requiresPosPinChange = (user: { mustChangePosPin?: unknown } | null | undefined): boolean => {
+  const value = user?.mustChangePosPin
+  if (value === '0' || value === 'false') return false
+  return Boolean(value)
+}
+
 export interface ChangePinActor {
   _id?: string
   role?: string

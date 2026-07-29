@@ -513,6 +513,7 @@
     "HUB_NOT_SETUP": "Setup needed",
     "HUB_MANUAL_TITLE": "Enter hub manually",
     "HUB_MANUAL_PLACEHOLDER": "e.g. 192.168.1.50",
+    "HUB_MANUAL_INVALID": "Invalid address. Examples: 192.168.1.50, panary.local or http://192.168.1.50:3030",
     "HUB_CONNECT": "Connect",
     "HUB_UNREACHABLE": "Hub not reachable. Please check the address and network.",
     "HUB_SETUP_HINT_TITLE": "Hub needs to be set up first",

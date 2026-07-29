@@ -25,6 +25,18 @@ import { LanguageService, LANGUAGES } from '@panary/shared/data-access'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 /**
+ * Zulaessiger Hostname einer Hub-Adresse: DNS-Label-Kette (IPv4 faellt darunter)
+ * oder eine IPv6-Adresse in eckigen Klammern.
+ *
+ * Die Pruefung auf `new URL()` allein genuegt nicht: Blink akzeptiert
+ * `http://hallo welt:3030` und prozentkodiert das Leerzeichen still zu
+ * `hallo%20welt` (Node wirft an derselben Stelle — Engines verhalten sich hier
+ * unterschiedlich, verifiziert im Browser). Ohne diese zusaetzliche Pruefung
+ * gilt beliebiger Text mit Leerzeichen als gueltige Adresse.
+ */
+const HUB_HOSTNAME_PATTERN = /^(?:[a-z0-9-]+(?:\.[a-z0-9-]+)*|\[[0-9a-f:.]+\])$/i
+
+/**
  * Setup-/Pairing-Schritte:
  *  welcome        – Cloud (Default) vs. lokaler Hub
  *  hub-prep       – Hinweis + Animation „Hub angeschlossen?"
@@ -81,6 +93,8 @@ export class SetupComponent {
 
   // Lokaler-Hub-Pfad
   manualHubUrl = ''
+  // 253 Zeichen ist die maximale DNS-Namenslaenge, plus Schema und Port.
+  readonly manualHubMaxLength = 255
   pairingCode = ''
 
   // Cloud-Login-Modus im `server-login`-Schritt: Pairing-Code (bevorzugt, keine
@@ -580,8 +594,36 @@ export class SetupComponent {
     return url
   }
 
+  /**
+   * Plausibilitaetspruefung der manuellen Hub-Eingabe.
+   *
+   * Bewusst permissiv: erlaubt bleiben IPs, einfache Hostnamen, `panary.local`,
+   * MagicDNS-Namen (`edge.tail1234.ts.net`) und vollstaendige URLs mit
+   * abweichendem Port — der QR-Pfad speist dieselbe `normalizeUrl()`, eine
+   * Einschraenkung auf IP-Adressen wuerde all diese Faelle brechen.
+   *
+   * Abgefangen wird nur, was ueberhaupt keine Adresse ergibt (leer, Leerzeichen,
+   * `javascript:`/`data:`). Ohne die Pruefung laufen solche Eingaben in den
+   * 5-Sekunden-Timeout von `probeHub()` und melden dann "Hub nicht erreichbar" —
+   * das sieht nach einem Netzwerkproblem aus statt nach einem Tippfehler.
+   */
   isManualHubValid(): boolean {
-    return this.manualHubUrl.trim().length > 0
+    const trimmed = this.manualHubUrl.trim()
+    if (!trimmed || trimmed.length > this.manualHubMaxLength) return false
+    try {
+      const url = new URL(this.normalizeUrl(trimmed))
+      // Pfad/Query/Fragment abweisen: `normalizeUrl()` haengt den Standard-Port
+      // hinten an, aus `192.168.1.5/admin` wird dadurch `…/admin:3030` — eine
+      // formal gueltige, praktisch kaputte Adresse. Lieber sofort melden.
+      return HUB_HOSTNAME_PATTERN.test(url.hostname) && url.pathname === '/' && !url.search && !url.hash
+    } catch {
+      return false
+    }
+  }
+
+  /** Es wurde etwas eingegeben, das keine gueltige Adresse ergibt. */
+  manualHubHasFormatError(): boolean {
+    return this.manualHubUrl.trim().length > 0 && !this.isManualHubValid()
   }
 
   resetForm(): void {

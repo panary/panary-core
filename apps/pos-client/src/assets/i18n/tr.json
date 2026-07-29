@@ -513,6 +513,7 @@
     "HUB_NOT_SETUP": "Kurulum gerekli",
     "HUB_MANUAL_TITLE": "Hub'ı elle gir",
     "HUB_MANUAL_PLACEHOLDER": "örn. 192.168.1.50",
+    "HUB_MANUAL_INVALID": "Geçersiz adres. Örnekler: 192.168.1.50, panary.local veya http://192.168.1.50:3030",
     "HUB_CONNECT": "Bağlan",
     "HUB_UNREACHABLE": "Hub'a ulaşılamıyor. Lütfen adresi ve ağı kontrol edin.",
     "HUB_SETUP_HINT_TITLE": "Hub önce kurulmalı",

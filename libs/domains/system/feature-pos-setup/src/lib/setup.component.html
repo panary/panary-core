@@ -210,6 +210,8 @@
             <label for="manualHub" class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ 'SETUP.HUB_MANUAL_TITLE' | translate }}</label>
             <div class="flex gap-2 mt-2">
               <input type="text" id="manualHub" name="manualHub" [(ngModel)]="manualHubUrl"
+                [maxlength]="manualHubMaxLength"
+                inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false"
                 (keyup.enter)="submitManualHub()"
                 class="flex-1 min-w-0 bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-white outline-none placeholder-gray-400 dark:placeholder-gray-600"
                 [placeholder]="'SETUP.HUB_MANUAL_PLACEHOLDER' | translate" />
@@ -222,6 +224,9 @@
                 }
               </button>
             </div>
+            @if (manualHubHasFormatError()) {
+              <p class="mt-2 text-xs text-amber-600 dark:text-amber-400">{{ 'SETUP.HUB_MANUAL_INVALID' | translate }}</p>
+            }
           </div>
 
           <button type="button" (click)="goBack()"

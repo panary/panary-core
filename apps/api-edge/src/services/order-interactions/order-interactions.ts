@@ -9,7 +9,7 @@ import {
   orderInteractionPatchValidator,
   orderInteractionQueryResolver,
   orderInteractionQueryValidator,
-  orderInteractionResolver
+  orderInteractionResolver,
 } from './order-interactions.schema'
 
 import type { Application } from '../../declarations'
@@ -21,7 +21,7 @@ import {
   orderInteractionDataSchema,
   orderInteractionPatchSchema,
   orderInteractionQuerySchema,
-  orderInteractionSchema
+  orderInteractionSchema,
 } from '@panary/order-interactions/domain'
 import type { OrderInteraction, OrderInteractionService } from './order-interactions.class'
 import { ensureIndexes } from '@panary/shared-backend'
@@ -59,7 +59,7 @@ export const orderInteractions = (app: Application) => {
     Model,
     paginate,
     id: '_id',
-    multi: []
+    multi: [],
   }) as unknown as OrderInteractionService
 
   ;(service as any).setup = async (app: Application) =>
@@ -83,9 +83,9 @@ export const orderInteractions = (app: Application) => {
         orderInteraction: orderInteractionSchema,
         orderInteractionData: orderInteractionDataSchema,
         orderInteractionPatch: orderInteractionPatchSchema,
-        orderInteractionQuery: orderInteractionQuerySchema
-      }
-    }
+        orderInteractionQuery: orderInteractionQuerySchema,
+      },
+    },
   })
 
   // 5. Register hooks
@@ -97,32 +97,32 @@ export const orderInteractions = (app: Application) => {
         multiTenancy({ isolateLocation: true, allowGlobalData: false }),
 
         schemaHooks.resolveExternal(orderInteractionExternalResolver),
-        schemaHooks.resolveResult(orderInteractionResolver)
-      ]
+        schemaHooks.resolveResult(orderInteractionResolver),
+      ],
     },
     before: {
       all: [
         schemaHooks.validateQuery(orderInteractionQueryValidator),
-        schemaHooks.resolveQuery(orderInteractionQueryResolver)
+        schemaHooks.resolveQuery(orderInteractionQueryResolver),
       ],
       find: [],
       get: [],
       create: [
         schemaHooks.validateData(orderInteractionDataValidator),
-        schemaHooks.resolveData(orderInteractionDataResolver)
+        schemaHooks.resolveData(orderInteractionDataResolver),
       ],
       patch: [
         schemaHooks.validateData(orderInteractionPatchValidator),
-        schemaHooks.resolveData(orderInteractionPatchResolver)
+        schemaHooks.resolveData(orderInteractionPatchResolver),
       ],
-      remove: []
+      remove: [],
     },
     after: {
-      all: []
+      all: [],
     },
     error: {
-      all: []
-    }
+      all: [],
+    },
   })
 }
 

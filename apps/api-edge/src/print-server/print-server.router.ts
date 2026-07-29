@@ -138,7 +138,10 @@ const routes: Route[] = [
         }
 
         if (printers.length === 0) {
-          ctx.body = { success: false, results: [{ printerId: '', printerName: '', success: false, error: 'Keine aktiven IP-Drucker' }] }
+          ctx.body = {
+            success: false,
+            results: [{ printerId: '', printerName: '', success: false, error: 'Keine aktiven IP-Drucker' }],
+          }
           return
         }
 
@@ -154,18 +157,32 @@ const routes: Route[] = [
           try {
             await sendToNetworkPrinter(printer.ip!, printer.port ?? 9100, buffer)
             results.push({ printerId: printer.pid, printerName: printer.name, success: true })
-            logger.info({ message: `Bestellbon an ${printer.name} gesendet`, event: 'print.order_success', printer: printer.name, orderId })
+            logger.info({
+              message: `Bestellbon an ${printer.name} gesendet`,
+              event: 'print.order_success',
+              printer: printer.name,
+              orderId,
+            })
           } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : String(err)
             results.push({ printerId: printer.pid, printerName: printer.name, success: false, error: msg })
-            logger.error({ message: `Bestellbon-Fehler an ${printer.name}: ${msg}`, event: 'print.order_error', printer: printer.name, orderId })
+            logger.error({
+              message: `Bestellbon-Fehler an ${printer.name}: ${msg}`,
+              event: 'print.order_error',
+              printer: printer.name,
+              orderId,
+            })
           }
         }
 
         ctx.body = { success: results.every(r => r.success), results }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err)
-        logger.error({ message: `print-order fehlgeschlagen: ${message}`, event: 'print-server.print_order_error', orderId })
+        logger.error({
+          message: `print-order fehlgeschlagen: ${message}`,
+          event: 'print-server.print_order_error',
+          orderId,
+        })
         ctx.status = 500
         ctx.body = { success: false, error: message }
       }
@@ -215,10 +232,12 @@ async function loadLocationForUser(app: Application, user: Record<string, unknow
 
   const locationId = user.activeLocationId as string | undefined
   if (locationId) {
-    location = await app.service('locations').get(locationId, { provider: undefined }) as Record<string, unknown>
+    location = (await app.service('locations').get(locationId, { provider: undefined })) as Record<string, unknown>
   } else {
-    const result = await app.service('locations').find({ query: { $limit: 1 }, provider: undefined, paginate: false }) as unknown[]
-    location = Array.isArray(result) ? result[0] as Record<string, unknown> : undefined
+    const result = (await app
+      .service('locations')
+      .find({ query: { $limit: 1 }, provider: undefined, paginate: false })) as unknown[]
+    location = Array.isArray(result) ? (result[0] as Record<string, unknown>) : undefined
   }
 
   if (!location) {

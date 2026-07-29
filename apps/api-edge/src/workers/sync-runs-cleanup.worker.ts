@@ -77,15 +77,10 @@ export const startSyncRunsCleanupWorker = (
   }
 }
 
-export const runOnce = async (
-  app: Application,
-  config: SyncRunsCleanupConfig,
-): Promise<void> => {
+export const runOnce = async (app: Application, config: SyncRunsCleanupConfig): Promise<void> => {
   const startedAt = Date.now()
   try {
-    const knex = app.get('sqliteClient') as
-      | (import('knex').Knex & ((table: string) => unknown))
-      | undefined
+    const knex = app.get('sqliteClient') as (import('knex').Knex & ((table: string) => unknown)) | undefined
     if (!knex) {
       logger.error({
         message: 'Sync-Runs-Cleanup abgebrochen — kein sqliteClient verfuegbar',

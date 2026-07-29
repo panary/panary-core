@@ -26,9 +26,9 @@ const makeContext = (opts: {
     data: opts.data,
     app: {
       service: () => ({
-        get: async () => opts.targetDevice ?? { deviceId: 'dev-1' }
-      })
-    }
+        get: async () => opts.targetDevice ?? { deviceId: 'dev-1' },
+      }),
+    },
   }) as unknown as HookContext
 
 // Virtueller Device-User, wie ihn der allowApiKey-Hook aufbaut.
@@ -36,7 +36,7 @@ const posDeviceUser = {
   _id: 'device:dev-1',
   role: 'device:pos-client',
   tenantId: 't-1',
-  locationId: 'loc-1'
+  locationId: 'loc-1',
 }
 
 describe('restrictDeviceSelfPatch (Feathers-Adapter)', () => {
@@ -51,7 +51,7 @@ describe('restrictDeviceSelfPatch (Feathers-Adapter)', () => {
       user: posDeviceUser,
       id: 'rec-1',
       data: { uiScale: { density: 'large' } },
-      targetDevice: { deviceId: 'dev-1' }
+      targetDevice: { deviceId: 'dev-1' },
     })
     await expect(restrictDeviceSelfPatch(context)).resolves.toBe(context)
   })
@@ -62,7 +62,7 @@ describe('restrictDeviceSelfPatch (Feathers-Adapter)', () => {
       user: posDeviceUser,
       id: 'rec-1',
       data: { uiScale: { density: 'compact' }, tenantId: 't-1', locationId: 'loc-1' },
-      targetDevice: { deviceId: 'dev-1' }
+      targetDevice: { deviceId: 'dev-1' },
     })
     await expect(restrictDeviceSelfPatch(context)).resolves.toBe(context)
   })
@@ -73,7 +73,7 @@ describe('restrictDeviceSelfPatch (Feathers-Adapter)', () => {
       user: posDeviceUser,
       id: 'rec-2',
       data: { uiScale: { density: 'large' } },
-      targetDevice: { deviceId: 'dev-2' }
+      targetDevice: { deviceId: 'dev-2' },
     })
     await expect(restrictDeviceSelfPatch(context)).rejects.toThrowError(Forbidden)
   })
@@ -84,10 +84,10 @@ describe('restrictDeviceSelfPatch (Feathers-Adapter)', () => {
       user: posDeviceUser,
       id: 'rec-1',
       data: { apiKeyId: 'key-2' },
-      targetDevice: { deviceId: 'dev-1' }
+      targetDevice: { deviceId: 'dev-1' },
     })
     await expect(restrictDeviceSelfPatch(context)).rejects.toThrowError(
-      "Feld 'apiKeyId' kann nicht im Geraete-Self-Service geaendert werden. Erlaubt: uiScale."
+      "Feld 'apiKeyId' kann nicht im Geraete-Self-Service geaendert werden. Erlaubt: uiScale.",
     )
   })
 
@@ -96,7 +96,7 @@ describe('restrictDeviceSelfPatch (Feathers-Adapter)', () => {
       provider: 'socketio',
       user: posDeviceUser,
       id: null,
-      data: { uiScale: { density: 'large' } }
+      data: { uiScale: { density: 'large' } },
     })
     await expect(restrictDeviceSelfPatch(context)).rejects.toThrowError(Forbidden)
   })
@@ -108,7 +108,7 @@ describe('restrictDeviceSelfPatch (Feathers-Adapter)', () => {
       authentication: { strategy: 'apiKey', payload: { deviceId: 'dev-1' } },
       id: 'rec-1',
       data: { uiScale: { density: 'default' } },
-      targetDevice: { deviceId: 'dev-1' }
+      targetDevice: { deviceId: 'dev-1' },
     })
     await expect(restrictDeviceSelfPatch(context)).resolves.toBe(context)
   })
@@ -119,7 +119,7 @@ describe('restrictDeviceSelfPatch (Feathers-Adapter)', () => {
       user: { _id: 'user-1', role: 'tenant:owner', tenantId: 't-1' },
       id: 'rec-2',
       data: { name: 'Kasse 2', active: false },
-      targetDevice: { deviceId: 'dev-2' }
+      targetDevice: { deviceId: 'dev-2' },
     })
     await expect(restrictDeviceSelfPatch(context)).resolves.toBe(context)
   })
@@ -134,8 +134,8 @@ describe('Matrix-Sync (Regressionsanker)', () => {
             typeof rule === 'object' &&
             'resource' in rule &&
             rule.resource === AppResource.DEVICES &&
-            (Array.isArray(rule.action) ? rule.action : [rule.action]).includes(AppAction.MANAGE)
-        )
+            (Array.isArray(rule.action) ? rule.action : [rule.action]).includes(AppAction.MANAGE),
+        ),
       )
       .map(([role]) => role)
 
@@ -145,14 +145,10 @@ describe('Matrix-Sync (Regressionsanker)', () => {
 
   it('DEVICE_POS hat devices:READ+UPDATE, aber niemals MANAGE/DELETE', () => {
     const deviceRules = RolePermissions[UserSystemRole.DEVICE_POS].filter(
-      rule => typeof rule === 'object' && 'resource' in rule && rule.resource === AppResource.DEVICES
+      rule => typeof rule === 'object' && 'resource' in rule && rule.resource === AppResource.DEVICES,
     )
     const actions = deviceRules.flatMap(rule =>
-      typeof rule === 'object' && 'action' in rule
-        ? Array.isArray(rule.action)
-          ? rule.action
-          : [rule.action]
-        : []
+      typeof rule === 'object' && 'action' in rule ? (Array.isArray(rule.action) ? rule.action : [rule.action]) : [],
     )
     expect(actions.sort()).toEqual([AppAction.READ, AppAction.UPDATE].sort())
   })

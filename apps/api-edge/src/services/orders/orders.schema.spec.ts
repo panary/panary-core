@@ -35,10 +35,7 @@ describe('orderDataResolver (create) — discount-mutex', () => {
   })
 
   it('behaelt discount, wenn keine appliedDiscounts gesetzt sind (Legacy-Fallback)', async () => {
-    const resolved = await orderDataResolver.resolve(
-      { discount: legacyDiscount, lineItems: [] } as never,
-      ctx(),
-    )
+    const resolved = await orderDataResolver.resolve({ discount: legacyDiscount, lineItems: [] } as never, ctx())
     expect(resolved.discount).toEqual(legacyDiscount)
   })
 })

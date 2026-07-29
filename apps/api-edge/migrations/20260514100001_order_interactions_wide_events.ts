@@ -58,16 +58,12 @@ export async function up(knex: Knex): Promise<void> {
 
   // Filter-Index pro Event-Typ — die Cloud-Aggregation filtert haeufig auf
   // `type IN (...)` (z.B. nur Discounts oder nur Refunds anzeigen).
-  await knex.raw(
-    'CREATE INDEX IF NOT EXISTS "idx_order_interactions_type" ON "order-interactions" (type)',
-  )
+  await knex.raw('CREATE INDEX IF NOT EXISTS "idx_order_interactions_type" ON "order-interactions" (type)')
 
   // Schicht-spezifische Aggregation (Phase 8) — sparse-aequivalent: SQLite
   // indiziert auch NULL-Eintraege, das ist akzeptabel da `shiftId` nur in
   // einer Untermenge gesetzt ist.
-  await knex.raw(
-    'CREATE INDEX IF NOT EXISTS "idx_order_interactions_shift" ON "order-interactions" (shiftId)',
-  )
+  await knex.raw('CREATE INDEX IF NOT EXISTS "idx_order_interactions_shift" ON "order-interactions" (shiftId)')
 }
 
 export async function down(knex: Knex): Promise<void> {

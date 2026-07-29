@@ -39,8 +39,7 @@ const _passwordHashFn = passwordHash({ strategy: 'local' })
 // Helper: erkennt sync-replikative Aufrufe (Pull-Apply / Bootstrap).
 // Worker setzen `params.fromSync = true`, damit Auto-Generation und Re-Hash
 // von der Sync-Seite uebersprungen wird.
-const isFromSync = (context: HookContext): boolean =>
-  Boolean((context.params as { fromSync?: boolean }).fromSync)
+const isFromSync = (context: HookContext): boolean => Boolean((context.params as { fromSync?: boolean }).fromSync)
 
 export const userDataResolver = resolve<User, HookContext<UserService>>({
   _id: async (value, _row, context) => {
@@ -79,7 +78,9 @@ export const userDataResolver = resolve<User, HookContext<UserService>>({
     const fromUser = context.params.user?.activeLocationId || context.params.user?.locationId
     if (fromUser) return fromUser
     try {
-      const locations: any = await context.app.service('locations').find({ query: { $limit: 1, $select: ['_id'] }, paginate: false })
+      const locations: any = await context.app
+        .service('locations')
+        .find({ query: { $limit: 1, $select: ['_id'] }, paginate: false })
       const list = Array.isArray(locations) ? locations : (locations.data ?? [])
       return list[0]?._id || null
     } catch {
@@ -92,7 +93,9 @@ export const userDataResolver = resolve<User, HookContext<UserService>>({
     const fromUser = context.params.user?.activeLocationId || context.params.user?.locationId
     if (fromUser) return [fromUser]
     try {
-      const locations: any = await context.app.service('locations').find({ query: { $limit: 1, $select: ['_id'] }, paginate: false })
+      const locations: any = await context.app
+        .service('locations')
+        .find({ query: { $limit: 1, $select: ['_id'] }, paginate: false })
       const list = Array.isArray(locations) ? locations : (locations.data ?? [])
       return list[0]?._id ? [list[0]._id] : []
     } catch {
@@ -116,7 +119,7 @@ export const userDataResolver = resolve<User, HookContext<UserService>>({
     while (attempts < 10) {
       const existing = (await context.app.service('users').find({
         query: { employeeNumber, $limit: 1 },
-        paginate: false
+        paginate: false,
       })) as User[]
 
       if (existing.length === 0) break
@@ -125,7 +128,7 @@ export const userDataResolver = resolve<User, HookContext<UserService>>({
     }
 
     return employeeNumber
-  }
+  },
 })
 //#endregion
 
@@ -188,6 +191,6 @@ export const userQueryResolver = resolve<UserQuery, HookContext>({
       return context.params.user._id
     }
     return value
-  }
+  },
 })
 //#endregion

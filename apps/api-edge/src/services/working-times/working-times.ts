@@ -9,7 +9,7 @@ import {
   workingTimePatchValidator,
   workingTimeQueryResolver,
   workingTimeQueryValidator,
-  workingTimeResolver
+  workingTimeResolver,
 } from './working-times.schema'
 
 import type { Application } from '../../declarations'
@@ -21,7 +21,7 @@ import {
   workingTimeDataSchema,
   workingTimePatchSchema,
   workingTimeQuerySchema,
-  workingTimeSchema
+  workingTimeSchema,
 } from '@panary/working-times/domain'
 import type { WorkingTime, WorkingTimeService } from './working-times.class'
 import { getJsonFieldHooks } from '@panary/shared-backend'
@@ -53,7 +53,7 @@ export const workingTimes = (app: Application) => {
     Model,
     paginate,
     id: '_id',
-    multi: []
+    multi: [],
   }) as unknown as WorkingTimeService
 
   // 4. Register the service
@@ -66,9 +66,9 @@ export const workingTimes = (app: Application) => {
         workingTime: workingTimeSchema,
         workingTimeData: workingTimeDataSchema,
         workingTimePatch: workingTimePatchSchema,
-        workingTimeQuery: workingTimeQuerySchema
-      }
-    }
+        workingTimeQuery: workingTimeQuerySchema,
+      },
+    },
   })
 
   const jsonHooks = getJsonFieldHooks(app, WORKING_TIME_JSON_FIELDS)
@@ -82,33 +82,30 @@ export const workingTimes = (app: Application) => {
         multiTenancy({ isolateLocation: false }),
 
         schemaHooks.resolveExternal(workingTimeExternalResolver),
-        schemaHooks.resolveResult(workingTimeResolver)
-      ]
+        schemaHooks.resolveResult(workingTimeResolver),
+      ],
     },
     before: {
-      all: [
-        schemaHooks.validateQuery(workingTimeQueryValidator),
-        schemaHooks.resolveQuery(workingTimeQueryResolver)
-      ],
+      all: [schemaHooks.validateQuery(workingTimeQueryValidator), schemaHooks.resolveQuery(workingTimeQueryResolver)],
       find: [],
       get: [],
       create: [
         schemaHooks.validateData(workingTimeDataValidator),
         schemaHooks.resolveData(workingTimeDataResolver),
-        ...jsonHooks.before
+        ...jsonHooks.before,
       ],
       patch: [
         schemaHooks.validateData(workingTimePatchValidator),
         schemaHooks.resolveData(workingTimePatchResolver),
-        ...jsonHooks.before
+        ...jsonHooks.before,
       ],
-      remove: []
+      remove: [],
     },
     after: {
-      all: [...jsonHooks.after]
+      all: [...jsonHooks.after],
     },
     error: {
-      all: []
-    }
+      all: [],
+    },
   })
 }

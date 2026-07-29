@@ -105,8 +105,14 @@ describe('sync-apply — applyPulledRecords', () => {
         ['p-0', SyncOp.REMOVE, SyncRunRecordStatus.ACCEPTED],
       ],
     )
-    assert.deepStrictEqual(calls.patch.map(p => p.id), ['p-1'])
-    assert.deepStrictEqual(calls.create.map(c => c['_id']), ['p-2'])
+    assert.deepStrictEqual(
+      calls.patch.map(p => p.id),
+      ['p-1'],
+    )
+    assert.deepStrictEqual(
+      calls.create.map(c => c['_id']),
+      ['p-2'],
+    )
     assert.deepStrictEqual(calls.remove, ['p-0'])
     assert.strictEqual((store.get('p-1') as { name: string }).name, 'Produkt p-1')
   })
@@ -137,7 +143,10 @@ describe('sync-apply — applyPulledRecords', () => {
     assert.strictEqual(second.applied, 2)
     // Erster Lauf: 2 creates. Zweiter Lauf: 0 creates, 2 patches.
     assert.strictEqual(calls.create.length, 2)
-    assert.deepStrictEqual(calls.patch.map(p => p.id), ['p-1', 'p-2'])
+    assert.deepStrictEqual(
+      calls.patch.map(p => p.id),
+      ['p-1', 'p-2'],
+    )
     assert.strictEqual(store.size, 2)
     assert.ok(second.details.every(d => d.status === SyncRunRecordStatus.ACCEPTED && d.op === SyncOp.PATCH))
   })

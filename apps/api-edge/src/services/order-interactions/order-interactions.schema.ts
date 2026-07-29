@@ -10,7 +10,7 @@ import {
   orderInteractionDataSchema,
   orderInteractionPatchSchema,
   OrderInteractionQuery,
-  orderInteractionQuerySchema
+  orderInteractionQuerySchema,
 } from '@panary/order-interactions/domain'
 import { OrderInteractionService } from './order-interactions.class'
 
@@ -19,10 +19,7 @@ export const orderInteractionResolver = resolve<OrderInteraction, HookContext<Or
   // TODO: Add resolver logic for output here
   // Example: hide fields, resolve relations, etc.
 })
-export const orderInteractionExternalResolver = resolve<
-  OrderInteraction,
-  HookContext<OrderInteractionService>
->({
+export const orderInteractionExternalResolver = resolve<OrderInteraction, HookContext<OrderInteractionService>>({
   // TODO: Add resolver logic for external output here
   // Example: Filtering sensitive data
 })
@@ -51,16 +48,13 @@ export const orderInteractionPatchResolver = resolve<OrderInteraction, HookConte
   tenantId: async () => undefined,
   locationId: async () => undefined,
   createdAt: async () => undefined,
-  updatedAt: async () => new Date().toISOString()
+  updatedAt: async () => new Date().toISOString(),
 })
 //#endregion
 
 // --- 4. Query Resolver (GET) ---
 export const orderInteractionQueryValidator = getValidator(orderInteractionQuerySchema, queryValidator)
-export const orderInteractionQueryResolver = resolve<
-  OrderInteractionQuery,
-  HookContext<OrderInteractionService>
->({
+export const orderInteractionQueryResolver = resolve<OrderInteractionQuery, HookContext<OrderInteractionService>>({
   // Example: Restriction to own data for normal users
   // _id: async (value, query, context) => {
   //   if (context.params.user?.role !== 'admin') {

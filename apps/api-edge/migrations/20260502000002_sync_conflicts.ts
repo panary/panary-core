@@ -26,9 +26,7 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema.raw(
     'CREATE INDEX IF NOT EXISTS "idx_sync_conflicts_tenant_status" ON "sync_conflicts" (tenantId, status)',
   )
-  await knex.schema.raw(
-    'CREATE INDEX IF NOT EXISTS "idx_sync_conflicts_service" ON "sync_conflicts" (service)',
-  )
+  await knex.schema.raw('CREATE INDEX IF NOT EXISTS "idx_sync_conflicts_service" ON "sync_conflicts" (service)')
 }
 
 export async function down(knex: Knex): Promise<void> {

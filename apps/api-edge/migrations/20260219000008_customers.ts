@@ -28,8 +28,8 @@ export async function up(knex: Knex): Promise<void> {
     table.string('image').nullable()
     table.string('favicon').nullable()
 
-    table.text('discountDetails').nullable()   // JSON object
-    table.text('invoices').defaultTo('[]')     // JSON array
+    table.text('discountDetails').nullable() // JSON object
+    table.text('invoices').defaultTo('[]') // JSON array
   })
 
   await knex.raw('CREATE INDEX IF NOT EXISTS idx_customers_tenant ON customers (tenantId)')

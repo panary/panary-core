@@ -24,9 +24,7 @@ export async function up(knex: Knex): Promise<void> {
 
   // Bestandstage auf "closed" stempeln, wenn `closedAt` gesetzt ist —
   // sonst hängen sie im neuen Default 'open' fest.
-  await knex.raw(
-    `UPDATE businessdays SET status = 'closed' WHERE closedAt IS NOT NULL AND closedAt != ''`,
-  )
+  await knex.raw(`UPDATE businessdays SET status = 'closed' WHERE closedAt IS NOT NULL AND closedAt != ''`)
 
   // Index für Pre-Check "ist heute schon ein Tag offen für diese Location?"
   await knex.raw(

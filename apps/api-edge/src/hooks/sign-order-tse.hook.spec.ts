@@ -184,7 +184,9 @@ describe('signOrderTseCancel', () => {
       tsePort: { cancelTransaction },
       data,
       id: 'order-1',
-      currentOrder: { tse: { status: 'signed', cancellation: { status: 'canceled' }, transactionNumber: 42, clientId: 'pos-1' } },
+      currentOrder: {
+        tse: { status: 'signed', cancellation: { status: 'canceled' }, transactionNumber: 42, clientId: 'pos-1' },
+      },
     })
 
     await signOrderTseCancel(ctx)

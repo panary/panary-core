@@ -7,7 +7,7 @@ import type {
   CloudConnection,
   CloudConnectionData,
   CloudConnectionPatch,
-  CloudConnectionQuery
+  CloudConnectionQuery,
 } from '@panary/cloud-connection/domain'
 
 export type { CloudConnection, CloudConnectionData, CloudConnectionPatch, CloudConnectionQuery }
@@ -16,10 +16,9 @@ export type { CloudConnection, CloudConnectionData, CloudConnectionPatch, CloudC
 export type CloudConnectionParams = KnexAdapterParams<CloudConnectionQuery> & MongoDBAdapterParams & Params
 
 // Service Interface - can be either KnexService or MongoDBService
-export interface CloudConnectionService
-  extends ServiceInterface<
-    CloudConnection,
-    CloudConnectionData,
-    CloudConnectionParams,
-    CloudConnectionPatch
-  > {}
+export interface CloudConnectionService extends ServiceInterface<
+  CloudConnection,
+  CloudConnectionData,
+  CloudConnectionParams,
+  CloudConnectionPatch
+> {}

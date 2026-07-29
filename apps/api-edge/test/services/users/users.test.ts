@@ -85,10 +85,12 @@ describe('users service — verifyPin Rate-Limit', () => {
 
   beforeAll(async () => {
     await app.setup()
-    const created = await app.service('users').create(
-      { firstName: 'Brute', lastName: 'Force', role: 'tenant:staff', isPosUser: true, posPin: '1234' } as never,
-      { provider: undefined },
-    )
+    const created = await app
+      .service('users')
+      .create(
+        { firstName: 'Brute', lastName: 'Force', role: 'tenant:staff', isPosUser: true, posPin: '1234' } as never,
+        { provider: undefined },
+      )
     lockUserId = (created as { _id: string })._id
   })
 

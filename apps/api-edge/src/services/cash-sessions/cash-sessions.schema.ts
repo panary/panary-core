@@ -19,8 +19,7 @@ import { PRIVILEGED_CASH_SESSION_ROLES } from '../../hooks/restrict-cash-session
 type Ctx = HookContext<CashSessionService>
 
 // Sync-replikative Aufrufe (Pull-Apply / Bootstrap) setzen `params.fromSync`.
-const isFromSync = (context: Ctx): boolean =>
-  Boolean((context.params as { fromSync?: boolean }).fromSync)
+const isFromSync = (context: Ctx): boolean => Boolean((context.params as { fromSync?: boolean }).fromSync)
 
 // Aktueller User aus den Params (Service-Params-Typ kennt `user` nicht direkt).
 const ctxUser = (context: Ctx): { _id?: string; role?: string } | undefined =>
@@ -60,12 +59,12 @@ export const cashSessionDataResolver = resolve<CashSession, Ctx>({
     return user?._id ?? 'unknown'
   },
   openedAt: async (value, _data, ctx) => (isFromSync(ctx) ? value : new Date().toISOString()),
-  closedAt: async (value, _data, ctx) => (isFromSync(ctx) ? value : value ?? null),
+  closedAt: async (value, _data, ctx) => (isFromSync(ctx) ? value : (value ?? null)),
   // Bargeld-Inputs/abgeleitete Felder beim Eröffnen 0-stempeln (Edge-Insert ohne
   // useDefaults), außer bei Sync-Apply (Cloud-Werte behalten).
-  cashSalesCents: async (value, _data, ctx) => (isFromSync(ctx) ? value : (value as number) ?? 0),
-  cashDropsCents: async (value, _data, ctx) => (isFromSync(ctx) ? value : (value as number) ?? 0),
-  payoutsCents: async (value, _data, ctx) => (isFromSync(ctx) ? value : (value as number) ?? 0),
+  cashSalesCents: async (value, _data, ctx) => (isFromSync(ctx) ? value : ((value as number) ?? 0)),
+  cashDropsCents: async (value, _data, ctx) => (isFromSync(ctx) ? value : ((value as number) ?? 0)),
+  payoutsCents: async (value, _data, ctx) => (isFromSync(ctx) ? value : ((value as number) ?? 0)),
   createdAt: async (value, _data, ctx) => (isFromSync(ctx) ? value : new Date().toISOString()),
   updatedAt: async (value, _data, ctx) => (isFromSync(ctx) ? value : new Date().toISOString()),
 })

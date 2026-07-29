@@ -69,9 +69,7 @@ export const decryptCloudToken = (value: string | null | undefined): string | nu
   }
   const key = deriveKey()
   if (!key) {
-    throw new Error(
-      'cloudToken ist verschluesselt gespeichert, aber EDGE_TOKEN_ENCRYPTION_KEY fehlt.',
-    )
+    throw new Error('cloudToken ist verschluesselt gespeichert, aber EDGE_TOKEN_ENCRYPTION_KEY fehlt.')
   }
   const body = value.slice(ENCRYPTION_PREFIX.length)
   const parts = body.split(':')

@@ -12,7 +12,7 @@ import {
   orderPatchSchema,
   OrderQuery,
   orderQuerySchema,
-  OrderStatus
+  OrderStatus,
 } from '@panary/orders/domain'
 import { OrderService } from './orders.class'
 
@@ -62,7 +62,7 @@ export const orderDataResolver = resolve<Order, HookContext<OrderService>>({
       createdBy: (rawUserId ? stripPrefix(rawUserId) : value?.createdBy) as string,
       createdVia: rawDeviceId ? stripPrefix(rawDeviceId) : value?.createdVia,
     }
-  }
+  },
 })
 //#endregion
 
@@ -80,7 +80,7 @@ export const orderPatchResolver = resolve<Order, HookContext<OrderService>>({
   // wird der Legacy-`discount` aktiv auf `null` ueberschrieben (nicht nur weggelassen),
   // damit ein bereits gespeicherter Alt-Wert in der DB tatsaechlich verschwindet.
   discount: async (value, data) => clearLegacyDiscountIfApplied(value, data),
-  updatedAt: async () => new Date().toISOString()
+  updatedAt: async () => new Date().toISOString(),
 })
 //#endregion
 

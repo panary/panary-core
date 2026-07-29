@@ -33,12 +33,7 @@ const SYSTEM_TABLES = new Set(['sqlite_master', 'sqlite_sequence', 'knex_migrati
  *   bleiben).
  * - `audit-event-redactions`: gehoert konzeptionell zu audit-events.
  */
-const RESTAMP_SKIP_TABLES = new Set([
-  'audit-events',
-  'audit-event-redactions',
-  'bootstrap-reports',
-  'sync-runs',
-])
+const RESTAMP_SKIP_TABLES = new Set(['audit-events', 'audit-event-redactions', 'bootstrap-reports', 'sync-runs'])
 
 const resolveSqliteFilename = (app: Application): string | null => {
   const cfg = app.get('sqlite') as { connection?: { filename?: string } | string } | undefined
@@ -181,10 +176,7 @@ export const applyCloudTenantId = async (
       }
 
       // 2. Pro Single-LocationId-Spalte: separat umstempeln, wenn alte ID matcht.
-      if (
-        opts.newLocationId !== undefined &&
-        opts.oldLocationId !== undefined
-      ) {
+      if (opts.newLocationId !== undefined && opts.oldLocationId !== undefined) {
         for (const col of columns) {
           if (!isSingleLocationCol(col)) continue
           let locQuery = trx(table)
@@ -206,14 +198,16 @@ export const applyCloudTenantId = async (
         // der "ersetze X durch Y in Array" sauber abbildet.
         for (const col of columns) {
           if (!isLocationArrayCol(col)) continue
-          const rows = await trx(table)
-            .select('_id', col)
-            .where('tenantId', opts.newTenantId)
+          const rows = await trx(table).select('_id', col).where('tenantId', opts.newTenantId)
           for (const row of rows as Array<Record<string, unknown>>) {
             const raw = row[col]
             if (typeof raw !== 'string' || raw.length === 0) continue
             let parsed: unknown
-            try { parsed = JSON.parse(raw) } catch { continue }
+            try {
+              parsed = JSON.parse(raw)
+            } catch {
+              continue
+            }
             if (!Array.isArray(parsed)) continue
             const before = JSON.stringify(parsed)
             const replaced = (parsed as string[]).map(id =>

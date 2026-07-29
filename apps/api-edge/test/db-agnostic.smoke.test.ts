@@ -42,7 +42,7 @@ const listServiceSources = (serviceName: string): Array<[string, string]> => {
 }
 
 const listServices = (): string[] =>
-  readdirSync(SERVICES_DIR).filter((entry) => {
+  readdirSync(SERVICES_DIR).filter(entry => {
     const fullPath = join(SERVICES_DIR, entry)
     return statSync(fullPath).isDirectory()
   })
@@ -54,32 +54,27 @@ describe('db-agnostic smoke (M2 → M3 gatekeeper)', () => {
     expect(services.length).toBeGreaterThanOrEqual(12)
   })
 
-  it.each(services)(
-    'Service "%s" importiert knex nicht direkt',
-    (serviceName) => {
-      for (const [file, source] of listServiceSources(serviceName)) {
-        expect(source, `${serviceName}/${file}`).not.toMatch(/from\s+['"]knex['"]/)
-        expect(source, `${serviceName}/${file}`).not.toMatch(/require\(\s*['"]knex['"]\s*\)/)
-      }
-    },
-  )
+  it.each(services)('Service "%s" importiert knex nicht direkt', serviceName => {
+    for (const [file, source] of listServiceSources(serviceName)) {
+      expect(source, `${serviceName}/${file}`).not.toMatch(/from\s+['"]knex['"]/)
+      expect(source, `${serviceName}/${file}`).not.toMatch(/require\(\s*['"]knex['"]\s*\)/)
+    }
+  })
 
-  it.each(services.filter((s) => !SERVICES_WITHOUT_ADAPTER.has(s)))(
+  it.each(services.filter(s => !SERVICES_WITHOUT_ADAPTER.has(s)))(
     'Service "%s" nutzt createServiceAdapter + DatabaseType',
-    (serviceName) => {
+    serviceName => {
       const source = readServiceSetup(serviceName)
 
       expect(source, `${serviceName}.ts nutzt createServiceAdapter`).toMatch(/createServiceAdapter/)
-      expect(source, `${serviceName}.ts liest app.get('system')`).toMatch(
-        /app\.get\(\s*['"]system['"]\s*\)/,
-      )
+      expect(source, `${serviceName}.ts liest app.get('system')`).toMatch(/app\.get\(\s*['"]system['"]\s*\)/)
       expect(source, `${serviceName}.ts verzweigt über DatabaseType`).toMatch(/DatabaseType\./)
     },
   )
 
-  it.each(services.filter((s) => !SERVICES_WITHOUT_ADAPTER.has(s)))(
+  it.each(services.filter(s => !SERVICES_WITHOUT_ADAPTER.has(s)))(
     'Service "%s" greift sqliteClient nur hinter dbType-Check zu',
-    (serviceName) => {
+    serviceName => {
       const source = readServiceSetup(serviceName)
       if (!/sqliteClient/.test(source)) return
 

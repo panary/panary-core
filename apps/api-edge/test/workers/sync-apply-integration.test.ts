@@ -64,16 +64,15 @@ describe('sync-apply — applyPulledRecords Integration (users)', () => {
     assert.strictEqual(result.rejected, 0, JSON.stringify(result.details))
     assert.strictEqual(result.applied, 2)
 
-    const patched = (await app
-      .service('users')
-      .get(existingId, { provider: undefined } as never)) as Record<string, unknown>
+    const patched = (await app.service('users').get(existingId, { provider: undefined } as never)) as Record<
+      string,
+      unknown
+    >
     assert.strictEqual(patched.lastName, 'Gepatcht')
     // stampingId aus dem Cloud-Record darf NICHT ankommen (Edge-Runtime-Feld).
     assert.notStrictEqual(patched.stampingId, 'cloud-junk')
 
-    const created = (await app
-      .service('users')
-      .get(newId, { provider: undefined } as never)) as Record<string, unknown>
+    const created = (await app.service('users').get(newId, { provider: undefined } as never)) as Record<string, unknown>
     // fromSync: Cloud-_id uebernommen, kein lokales Re-Generate.
     assert.strictEqual(created._id, newId)
     assert.strictEqual(created.lastName, 'Neu')

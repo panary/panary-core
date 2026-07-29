@@ -95,9 +95,7 @@ export const findPendingOverrides = async (
 ): Promise<Array<Record<string, unknown>>> => {
   const t = table(app)
   if (!t) return []
-  return (await t.where({ tenantId, status: OverrideStatus.PENDING }).select()) as Array<
-    Record<string, unknown>
-  >
+  return (await t.where({ tenantId, status: OverrideStatus.PENDING }).select()) as Array<Record<string, unknown>>
 }
 
 /** Entfernt die von der Cloud uebernommenen Overrides. */

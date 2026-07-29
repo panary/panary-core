@@ -44,9 +44,9 @@ export const restrictPermissionGrants = async (context: HookContext): Promise<Ho
   // (id null) bleibt konservativ: alle grant:-Tokens gelten als neu.
   let existing: string[] = []
   if (context.method === 'patch' && context.id != null) {
-    const current = (await context.app
-      .service('users')
-      .get(context.id, { provider: undefined })) as { permissions?: string[] }
+    const current = (await context.app.service('users').get(context.id, { provider: undefined })) as {
+      permissions?: string[]
+    }
     existing = Array.isArray(current?.permissions) ? current.permissions : []
   }
 

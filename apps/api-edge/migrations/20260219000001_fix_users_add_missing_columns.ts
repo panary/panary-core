@@ -10,17 +10,17 @@ import type { Knex } from 'knex'
  * (the updated original migration already includes them → no-op).
  */
 export async function up(knex: Knex): Promise<void> {
-  const hasFirstName      = await knex.schema.hasColumn('users', 'firstName')
-  const hasLastName       = await knex.schema.hasColumn('users', 'lastName')
+  const hasFirstName = await knex.schema.hasColumn('users', 'firstName')
+  const hasLastName = await knex.schema.hasColumn('users', 'lastName')
   const hasActiveLocation = await knex.schema.hasColumn('users', 'activeLocationId')
-  const hasStampingId     = await knex.schema.hasColumn('users', 'stampingId')
+  const hasStampingId = await knex.schema.hasColumn('users', 'stampingId')
 
   if (!hasFirstName || !hasLastName || !hasActiveLocation || !hasStampingId) {
     await knex.schema.alterTable('users', table => {
-      if (!hasFirstName)      table.string('firstName').defaultTo('')
-      if (!hasLastName)       table.string('lastName').defaultTo('')
+      if (!hasFirstName) table.string('firstName').defaultTo('')
+      if (!hasLastName) table.string('lastName').defaultTo('')
       if (!hasActiveLocation) table.string('activeLocationId').nullable()
-      if (!hasStampingId)     table.string('stampingId').nullable()
+      if (!hasStampingId) table.string('stampingId').nullable()
     })
   }
 }

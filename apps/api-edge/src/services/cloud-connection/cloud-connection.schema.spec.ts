@@ -15,9 +15,11 @@ import { cloudConnectionPatchResolver } from './cloud-connection.schema'
  * einzige externe Weg ist die Custom-Method `setEmergencyOverride`.
  */
 const resolvePatch = (data: Record<string, unknown>, provider: string | undefined) =>
-  (cloudConnectionPatchResolver as unknown as {
-    resolve: (d: unknown, c: unknown) => Promise<Record<string, unknown>>
-  }).resolve(data, { params: { provider } })
+  (
+    cloudConnectionPatchResolver as unknown as {
+      resolve: (d: unknown, c: unknown) => Promise<Record<string, unknown>>
+    }
+  ).resolve(data, { params: { provider } })
 
 const GUARDED_FIELDS = [
   'emergencyOverride',

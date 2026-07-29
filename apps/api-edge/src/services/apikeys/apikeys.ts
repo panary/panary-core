@@ -11,7 +11,7 @@ import {
   apikeyPatchValidator,
   apikeyQueryResolver,
   apikeyQueryValidator,
-  apikeyResolver
+  apikeyResolver,
 } from './apikeys.schema'
 
 import type { Application } from '../../declarations'
@@ -20,12 +20,7 @@ import { DatabaseType } from '@panary/shared-common'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { authorize } from '@panary/shared-backend'
 import { multiTenancy } from '@panary/shared-backend'
-import {
-  apikeyDataSchema,
-  apikeyPatchSchema,
-  apikeyQuerySchema,
-  apikeySchema
-} from '@panary/apikeys/domain'
+import { apikeyDataSchema, apikeyPatchSchema, apikeyQuerySchema, apikeySchema } from '@panary/apikeys/domain'
 import { ensureIndexes } from '@panary/shared-backend'
 
 export const apikeysPath = 'apikeys'
@@ -63,10 +58,10 @@ export const apikeys = (app: Application) => {
     Model,
     paginate,
     id: '_id',
-    multi: []
+    multi: [],
   }) as unknown as ApiKeyService
 
-  (service as any).setup = async (app: Application) =>
+  ;(service as any).setup = async (app: Application) =>
     ensureIndexes(
       app,
       'apikeys',
@@ -94,9 +89,9 @@ export const apikeys = (app: Application) => {
         apikey: apikeySchema,
         apikeyData: apikeyDataSchema,
         apikeyPatch: apikeyPatchSchema,
-        apikeyQuery: apikeyQuerySchema
-      }
-    }
+        apikeyQuery: apikeyQuerySchema,
+      },
+    },
   })
 
   // Register hooks
@@ -108,8 +103,8 @@ export const apikeys = (app: Application) => {
         multiTenancy({ isolateLocation: true, allowGlobalData: false }),
 
         schemaHooks.resolveExternal(apikeyExternalResolver),
-        schemaHooks.resolveResult(apikeyResolver)
-      ]
+        schemaHooks.resolveResult(apikeyResolver),
+      ],
     },
     before: {
       all: [schemaHooks.validateQuery(apikeyQueryValidator), schemaHooks.resolveQuery(apikeyQueryResolver)],
@@ -117,14 +112,14 @@ export const apikeys = (app: Application) => {
       get: [],
       create: [schemaHooks.validateData(apikeyDataValidator), schemaHooks.resolveData(apikeyDataResolver)],
       patch: [schemaHooks.validateData(apikeyPatchValidator), schemaHooks.resolveData(apikeyPatchResolver)],
-      remove: []
+      remove: [],
     },
     after: {
-      all: []
+      all: [],
     },
     error: {
-      all: []
-    }
+      all: [],
+    },
   })
 }
 

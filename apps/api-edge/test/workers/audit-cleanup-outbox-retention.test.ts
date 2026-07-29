@@ -119,8 +119,18 @@ describe('audit-cleanup worker — outbox retention', () => {
   it('loescht superseded Eintraege fremder Services nach Ablauf der Retention (terminalAt-Referenz)', async () => {
     // superseded-Eintraege haben nie ein syncedAt (nie gepusht) — die
     // Retention rechnet gegen terminalAt (Supersede-Zeitpunkt).
-    await insertOutboxRow({ _id: 'orders-superseded-alt', status: 'superseded', syncedAt: null, terminalAt: daysAgo(31) })
-    await insertOutboxRow({ _id: 'orders-superseded-jung', status: 'superseded', syncedAt: null, terminalAt: daysAgo(29) })
+    await insertOutboxRow({
+      _id: 'orders-superseded-alt',
+      status: 'superseded',
+      syncedAt: null,
+      terminalAt: daysAgo(31),
+    })
+    await insertOutboxRow({
+      _id: 'orders-superseded-jung',
+      status: 'superseded',
+      syncedAt: null,
+      terminalAt: daysAgo(29),
+    })
 
     const result = await runOutboxRetention(db, { auditRetentionDays: AUDIT_RETENTION_DAYS, now: NOW })
 

@@ -9,7 +9,7 @@ import {
   productGroupPatchValidator,
   productGroupQueryResolver,
   productGroupQueryValidator,
-  productGroupResolver
+  productGroupResolver,
 } from './product-groups.schema'
 
 import type { Application } from '../../declarations'
@@ -21,7 +21,7 @@ import {
   productGroupDataSchema,
   productGroupPatchSchema,
   productGroupQuerySchema,
-  productGroupSchema
+  productGroupSchema,
 } from '@panary/product-groups/domain'
 import type { ProductGroup, ProductGroupService } from './product-groups.class'
 import { ensureIndexes } from '@panary/shared-backend'
@@ -59,7 +59,7 @@ export const productGroups = (app: Application) => {
     Model,
     paginate,
     id: '_id',
-    multi: []
+    multi: [],
   }) as unknown as ProductGroupService
 
   ;(service as any).setup = async (app: Application) =>
@@ -90,9 +90,9 @@ export const productGroups = (app: Application) => {
         productGroup: productGroupSchema,
         productGroupData: productGroupDataSchema,
         productGroupPatch: productGroupPatchSchema,
-        productGroupQuery: productGroupQuerySchema
-      }
-    }
+        productGroupQuery: productGroupQuerySchema,
+      },
+    },
   })
 
   // 5. Register hooks
@@ -104,32 +104,23 @@ export const productGroups = (app: Application) => {
         multiTenancy({ isolateLocation: true, allowGlobalData: false }),
 
         schemaHooks.resolveExternal(productGroupExternalResolver),
-        schemaHooks.resolveResult(productGroupResolver)
-      ]
+        schemaHooks.resolveResult(productGroupResolver),
+      ],
     },
     before: {
-      all: [
-        schemaHooks.validateQuery(productGroupQueryValidator),
-        schemaHooks.resolveQuery(productGroupQueryResolver)
-      ],
+      all: [schemaHooks.validateQuery(productGroupQueryValidator), schemaHooks.resolveQuery(productGroupQueryResolver)],
       find: [],
       get: [],
-      create: [
-        schemaHooks.validateData(productGroupDataValidator),
-        schemaHooks.resolveData(productGroupDataResolver)
-      ],
-      patch: [
-        schemaHooks.validateData(productGroupPatchValidator),
-        schemaHooks.resolveData(productGroupPatchResolver)
-      ],
-      remove: []
+      create: [schemaHooks.validateData(productGroupDataValidator), schemaHooks.resolveData(productGroupDataResolver)],
+      patch: [schemaHooks.validateData(productGroupPatchValidator), schemaHooks.resolveData(productGroupPatchResolver)],
+      remove: [],
     },
     after: {
-      all: []
+      all: [],
     },
     error: {
-      all: []
-    }
+      all: [],
+    },
   })
 }
 

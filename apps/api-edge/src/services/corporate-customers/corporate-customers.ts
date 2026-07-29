@@ -9,7 +9,7 @@ import {
   corporateCustomerPatchValidator,
   corporateCustomerQueryResolver,
   corporateCustomerQueryValidator,
-  corporateCustomerResolver
+  corporateCustomerResolver,
 } from './corporate-customers.schema'
 
 import type { Application } from '../../declarations'
@@ -22,7 +22,7 @@ import {
   corporateCustomerDataSchema,
   corporateCustomerPatchSchema,
   corporateCustomerQuerySchema,
-  corporateCustomerSchema
+  corporateCustomerSchema,
 } from '@panary/corporate-customers/domain'
 import { ensureIndexes } from '@panary/shared-backend'
 
@@ -59,7 +59,7 @@ export const corporateCustomers = (app: Application) => {
     Model,
     paginate,
     id: '_id',
-    multi: []
+    multi: [],
   }) as unknown as CorporateCustomerService
 
   ;(service as any).setup = async (app: Application) =>
@@ -84,9 +84,9 @@ export const corporateCustomers = (app: Application) => {
         corporateCustomer: corporateCustomerSchema,
         corporateCustomerData: corporateCustomerDataSchema,
         corporateCustomerPatch: corporateCustomerPatchSchema,
-        corporateCustomerQuery: corporateCustomerQuerySchema
-      }
-    }
+        corporateCustomerQuery: corporateCustomerQuerySchema,
+      },
+    },
   })
 
   // 5. Register hooks
@@ -98,32 +98,32 @@ export const corporateCustomers = (app: Application) => {
         multiTenancy({ isolateLocation: true, allowGlobalData: false }),
 
         schemaHooks.resolveExternal(corporateCustomerExternalResolver),
-        schemaHooks.resolveResult(corporateCustomerResolver)
-      ]
+        schemaHooks.resolveResult(corporateCustomerResolver),
+      ],
     },
     before: {
       all: [
         schemaHooks.validateQuery(corporateCustomerQueryValidator),
-        schemaHooks.resolveQuery(corporateCustomerQueryResolver)
+        schemaHooks.resolveQuery(corporateCustomerQueryResolver),
       ],
       find: [],
       get: [],
       create: [
         schemaHooks.validateData(corporateCustomerDataValidator),
-        schemaHooks.resolveData(corporateCustomerDataResolver)
+        schemaHooks.resolveData(corporateCustomerDataResolver),
       ],
       patch: [
         schemaHooks.validateData(corporateCustomerPatchValidator),
-        schemaHooks.resolveData(corporateCustomerPatchResolver)
+        schemaHooks.resolveData(corporateCustomerPatchResolver),
       ],
-      remove: []
+      remove: [],
     },
     after: {
-      all: []
+      all: [],
     },
     error: {
-      all: []
-    }
+      all: [],
+    },
   })
 }
 

@@ -20,12 +20,8 @@ export async function up(knex: Knex): Promise<void> {
     table.string('updatedAt').notNullable()
   })
 
-  await knex.schema.raw(
-    'CREATE INDEX IF NOT EXISTS "idx_sync_outbox_status" ON "sync_outbox" (status, attempts)',
-  )
-  await knex.schema.raw(
-    'CREATE INDEX IF NOT EXISTS "idx_sync_outbox_service" ON "sync_outbox" (service, occurredAt)',
-  )
+  await knex.schema.raw('CREATE INDEX IF NOT EXISTS "idx_sync_outbox_status" ON "sync_outbox" (status, attempts)')
+  await knex.schema.raw('CREATE INDEX IF NOT EXISTS "idx_sync_outbox_service" ON "sync_outbox" (service, occurredAt)')
 }
 
 export async function down(knex: Knex): Promise<void> {

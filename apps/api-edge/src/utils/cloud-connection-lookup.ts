@@ -19,10 +19,7 @@ import { PairingStatus, type CloudConnection } from '@panary/cloud-connection/do
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Feathers Application hat generischen Typ Application<any, any>
 type FeathersApp = any
 
-const findOne = async (
-  app: FeathersApp,
-  query: Record<string, unknown>,
-): Promise<CloudConnection | null> => {
+const findOne = async (app: FeathersApp, query: Record<string, unknown>): Promise<CloudConnection | null> => {
   const result = await app.service('cloud-connection').find({
     provider: undefined,
     paginate: false,
@@ -36,9 +33,7 @@ const findOne = async (
  * Die aktive (CONNECTED) Verbindung — oder `null`. Identische Semantik wie im
  * `cloudManaged()`-Hook: nur ein aktives Pairing gibt der Cloud die Hoheit.
  */
-export const findConnectedCloudConnection = async (
-  app: FeathersApp,
-): Promise<CloudConnection | null> => {
+export const findConnectedCloudConnection = async (app: FeathersApp): Promise<CloudConnection | null> => {
   try {
     return await findOne(app, { pairingStatus: PairingStatus.CONNECTED, $limit: 1 })
   } catch {
@@ -56,12 +51,11 @@ export const findConnectedCloudConnection = async (
  * Re-Pairing-Bedarf trotzdem melden koennen. Nur die *Reihenfolge* ist neu:
  * existiert eine aktive Verbindung, gewinnt sie immer.
  */
-export const findReportableCloudConnection = async (
-  app: FeathersApp,
-): Promise<CloudConnection | null> => {
+export const findReportableCloudConnection = async (app: FeathersApp): Promise<CloudConnection | null> => {
   try {
-    return (await findOne(app, { pairingStatus: PairingStatus.CONNECTED, $limit: 1 })) ??
-      (await findOne(app, { $limit: 1 }))
+    return (
+      (await findOne(app, { pairingStatus: PairingStatus.CONNECTED, $limit: 1 })) ?? (await findOne(app, { $limit: 1 }))
+    )
   } catch {
     return null
   }

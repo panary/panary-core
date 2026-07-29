@@ -63,9 +63,7 @@ export type BusinessDaysPullOutcome = 'idle' | 'ok' | 'error'
  * `fromSync: true` (Upsert), Pull + Push-getriggerter Pull dürfen sich
  * überlappen, ohne Inkonsistenz.
  */
-export const pullBusinessDaysOnce = async (
-  app: Application,
-): Promise<BusinessDaysPullOutcome> => {
+export const pullBusinessDaysOnce = async (app: Application): Promise<BusinessDaysPullOutcome> => {
   const connection = await getActiveConnection(app).catch(() => null)
   if (!connection) {
     // Kein CONNECTED-Pairing → Idle. `rotateBusinessDay()` im Edge-
@@ -87,13 +85,7 @@ export const pullBusinessDaysOnce = async (
     // Run nach Migration ist das `null` → Cloud antwortet mit allen
     // tenant-Records bis zum `$limit` (sicherer Fallback).
     const since = connection.lastBusinessDaysPullAt ?? undefined
-    const response = await pullMasterDataPage(
-      connection.cloudUrl,
-      cloudToken,
-      BUSINESS_DAYS_SERVICE,
-      since,
-      undefined,
-    )
+    const response = await pullMasterDataPage(connection.cloudUrl, cloudToken, BUSINESS_DAYS_SERVICE, since, undefined)
     const tickStart = new Date().toISOString()
     // Cursor = Cloud-`serverTimestamp`, NICHT die Edge-Uhr: der inkrementelle
     // Pull filtert `updatedAt > since` gegen Cloud-Zeitstempel. Bei Clock-Skew
@@ -124,11 +116,7 @@ export const pullBusinessDaysOnce = async (
     if (connection.offlineOverrideActiveUntil) {
       patch['offlineOverrideActiveUntil'] = null
     }
-    await (app.service('cloud-connection') as any).patch(
-      connection._id,
-      patch,
-      { provider: undefined },
-    )
+    await (app.service('cloud-connection') as any).patch(connection._id, patch, { provider: undefined })
     return 'ok'
   } catch (err) {
     logger.warn({
@@ -143,9 +131,7 @@ export const pullBusinessDaysOnce = async (
   }
 }
 
-export const startBusinessDaysPullWorker = async (
-  app: Application,
-): Promise<BusinessDaysPullWorkerHandle> => {
+export const startBusinessDaysPullWorker = async (app: Application): Promise<BusinessDaysPullWorkerHandle> => {
   let timer: NodeJS.Timeout | null = null
   let stopped = false
 

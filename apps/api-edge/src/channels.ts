@@ -63,9 +63,7 @@ export const channels = (app: Application) => {
           .limit(5)
 
         // Timing-Safe Hash-Vergleich gegen alle Kandidaten
-        const apiKeyRecord = candidates.find(
-          (entry: any) => entry.active && timingSafeCompare(inputHash, entry.apikey)
-        )
+        const apiKeyRecord = candidates.find((entry: any) => entry.active && timingSafeCompare(inputHash, entry.apikey))
 
         if (apiKeyRecord) {
           logger.info({
@@ -151,9 +149,7 @@ export const channels = (app: Application) => {
     // Tenant aus dem Record (interne Sync-Applies tragen tenantId) ODER dem
     // authentifizierten Actor ableiten. Array-sicher (multi-create/patch).
     const records = Array.isArray(data) ? data : data ? [data] : []
-    const recordTenantId = records.find(
-      (r: any) => typeof r?.tenantId === 'string' && r.tenantId.length > 0
-    )?.tenantId
+    const recordTenantId = records.find((r: any) => typeof r?.tenantId === 'string' && r.tenantId.length > 0)?.tenantId
     const tenantId = recordTenantId || context.params.user?.tenantId
 
     // Kein Tenant ableitbar → NICHTS publishen (kein `authenticated`-Broadcast
@@ -167,8 +163,6 @@ export const channels = (app: Application) => {
     }
 
     // Events nur an Connections desselben Tenants senden
-    return app.channel('authenticated').filter(connection =>
-      (connection as any).tenantId === tenantId
-    )
+    return app.channel('authenticated').filter(connection => (connection as any).tenantId === tenantId)
   })
 }

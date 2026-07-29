@@ -4,10 +4,7 @@ import { hooks as schemaHooks } from '@feathersjs/schema'
 import { authorize, multiTenancy } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { DatabaseType } from '@panary/shared-common'
-import {
-  SyncConflictResolution,
-  type SyncConflict,
-} from '@panary/sync/domain'
+import { SyncConflictResolution, type SyncConflict } from '@panary/sync/domain'
 
 import type { Application } from '../../declarations'
 import type { HookContext } from '../../declarations'
@@ -40,9 +37,7 @@ const applyResolutionAfterPatch = async (context: HookContext) => {
         .service(result.service as any)
         .patch(cloud._id, cloud as any, { provider: undefined } as any)
         .catch(async () => {
-          await context.app
-            .service(result.service as any)
-            .create(cloud as any, { provider: undefined } as any)
+          await context.app.service(result.service as any).create(cloud as any, { provider: undefined } as any)
         })
     } else if (result.resolution === SyncConflictResolution.DISCARD) {
       await context.app
@@ -93,18 +88,9 @@ export const syncConflicts = (app: Application) => {
       ],
     },
     before: {
-      all: [
-        schemaHooks.validateQuery(syncConflictQueryValidator),
-        schemaHooks.resolveQuery(syncConflictQueryResolver),
-      ],
-      create: [
-        schemaHooks.validateData(syncConflictDataValidator),
-        schemaHooks.resolveData(syncConflictDataResolver),
-      ],
-      patch: [
-        schemaHooks.validateData(syncConflictPatchValidator),
-        schemaHooks.resolveData(syncConflictPatchResolver),
-      ],
+      all: [schemaHooks.validateQuery(syncConflictQueryValidator), schemaHooks.resolveQuery(syncConflictQueryResolver)],
+      create: [schemaHooks.validateData(syncConflictDataValidator), schemaHooks.resolveData(syncConflictDataResolver)],
+      patch: [schemaHooks.validateData(syncConflictPatchValidator), schemaHooks.resolveData(syncConflictPatchResolver)],
     },
     after: {
       patch: [applyResolutionAfterPatch],

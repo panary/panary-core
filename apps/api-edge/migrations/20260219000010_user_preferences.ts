@@ -11,7 +11,7 @@ export async function up(knex: Knex): Promise<void> {
 
     table.string('userId').notNullable()
     table.string('key').notNullable()
-    table.text('value').nullable()  // JSON: any value
+    table.text('value').nullable() // JSON: any value
   })
 
   await knex.raw('CREATE INDEX IF NOT EXISTS "idx_user_prefs_tenant" ON "user-preferences" (tenantId)')

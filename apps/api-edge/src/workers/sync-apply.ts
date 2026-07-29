@@ -215,9 +215,7 @@ export const applyPulledRecords = async (
           .patch(item._id, incoming as any, { provider: undefined, fromSync: true } as any)
       } else {
         op = SyncOp.CREATE
-        await app
-          .service(service as any)
-          .create(incoming as any, { provider: undefined, fromSync: true } as any)
+        await app.service(service as any).create(incoming as any, { provider: undefined, fromSync: true } as any)
       }
       applied++
       details.push({ service, entityId: item._id, op, status: SyncRunRecordStatus.ACCEPTED })

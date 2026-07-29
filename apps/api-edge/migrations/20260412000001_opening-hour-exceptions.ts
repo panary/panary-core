@@ -16,7 +16,9 @@ export async function up(knex: Knex): Promise<void> {
     table.string('close').nullable() // "HH:mm"
   })
 
-  await knex.raw('CREATE INDEX IF NOT EXISTS "idx_opening-hour-exceptions_tenant" ON "opening-hour-exceptions" (tenantId)')
+  await knex.raw(
+    'CREATE INDEX IF NOT EXISTS "idx_opening-hour-exceptions_tenant" ON "opening-hour-exceptions" (tenantId)',
+  )
   await knex.raw(
     'CREATE INDEX IF NOT EXISTS "idx_opening-hour-exceptions_tenant_date" ON "opening-hour-exceptions" (tenantId, date)',
   )

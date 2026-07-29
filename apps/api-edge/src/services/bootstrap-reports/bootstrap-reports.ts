@@ -20,13 +20,7 @@ import {
   bootstrapReportDataSchema,
   bootstrapReportQuerySchema,
 } from '@panary/cloud-connection/domain'
-import {
-  authorize,
-  dataValidator,
-  getJsonFieldHooks,
-  multiTenancy,
-  queryValidator,
-} from '@panary/shared-backend'
+import { authorize, dataValidator, getJsonFieldHooks, multiTenancy, queryValidator } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { DatabaseType } from '@panary/shared-common'
 
@@ -34,14 +28,7 @@ import type { Application, HookContext, NextFunction } from '../../declarations'
 
 export const bootstrapReportsPath = 'bootstrap-reports'
 
-const REPORT_JSON_FIELDS = [
-  'identity',
-  'preState',
-  'postState',
-  'restamp',
-  'syncRunIds',
-  'consistencyCheck',
-]
+const REPORT_JSON_FIELDS = ['identity', 'preState', 'postState', 'restamp', 'syncRunIds', 'consistencyCheck']
 
 const bootstrapReportDataValidator = getValidator(bootstrapReportDataSchema, dataValidator)
 const bootstrapReportQueryValidator = getValidator(bootstrapReportQuerySchema, queryValidator)
@@ -115,9 +102,7 @@ export const bootstrapReports = (app: Application) => {
         schemaHooks.resolveData(bootstrapReportDataResolver),
         ...jsonHooks.before,
       ],
-      patch: [
-        ...jsonHooks.before,
-      ],
+      patch: [...jsonHooks.before],
     },
     after: {
       all: [...jsonHooks.after],

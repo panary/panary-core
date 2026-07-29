@@ -39,11 +39,7 @@ import {
 
 import type { Application } from '../declarations'
 import { decryptCloudToken } from '../utils/cloud-token-cipher'
-import {
-  getActiveConnection,
-  pullMasterDataServiceOnce,
-  triggerImmediateCycle,
-} from './cloud-sync-scheduler.worker'
+import { getActiveConnection, pullMasterDataServiceOnce, triggerImmediateCycle } from './cloud-sync-scheduler.worker'
 import { pullBusinessDaysOnce } from './cloud-pull-business-days.worker'
 import { setRealtimeConnected } from './cloud-realtime-state'
 
@@ -81,9 +77,7 @@ export interface CloudRealtimeWorkerHandle {
   stop(): void
 }
 
-export const startCloudRealtimeWorker = async (
-  app: Application,
-): Promise<CloudRealtimeWorkerHandle> => {
+export const startCloudRealtimeWorker = async (app: Application): Promise<CloudRealtimeWorkerHandle> => {
   let socket: Socket | null = null
   let activeToken: string | null = null
   let activeUrl: string | null = null
@@ -127,9 +121,7 @@ export const startCloudRealtimeWorker = async (
   // dedizierten Worker (reconcilet zusätzlich location.currentBusinessDay lokal),
   // alle anderen Stammdaten über den cursor-basierten Scheduler-Pull.
   const runServicePull = (service: string): Promise<unknown> =>
-    service === BUSINESS_DAYS_SERVICE
-      ? pullBusinessDaysOnce(app)
-      : pullMasterDataServiceOnce(app, service)
+    service === BUSINESS_DAYS_SERVICE ? pullBusinessDaysOnce(app) : pullMasterDataServiceOnce(app, service)
 
   const schedulePull = (service: string): void => {
     const existing = pullTimers.get(service)

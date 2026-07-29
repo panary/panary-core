@@ -9,7 +9,7 @@ import {
   customerPatchValidator,
   customerQueryResolver,
   customerQueryValidator,
-  customerResolver
+  customerResolver,
 } from './customers.schema'
 
 import type { Application } from '../../declarations'
@@ -17,12 +17,7 @@ import { authorize } from '@panary/shared-backend'
 import { multiTenancy } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { DatabaseType } from '@panary/shared-common'
-import {
-  customerDataSchema,
-  customerPatchSchema,
-  customerQuerySchema,
-  customerSchema
-} from '@panary/customers/domain'
+import { customerDataSchema, customerPatchSchema, customerQuerySchema, customerSchema } from '@panary/customers/domain'
 import type { Customer, CustomerService } from './customers.class'
 import { ensureIndexes } from '@panary/shared-backend'
 
@@ -59,7 +54,7 @@ export const customers = (app: Application) => {
     Model,
     paginate,
     id: '_id',
-    multi: []
+    multi: [],
   }) as unknown as CustomerService
 
   ;(service as any).setup = async (app: Application) =>
@@ -84,9 +79,9 @@ export const customers = (app: Application) => {
         customer: customerSchema,
         customerData: customerDataSchema,
         customerPatch: customerPatchSchema,
-        customerQuery: customerQuerySchema
-      }
-    }
+        customerQuery: customerQuerySchema,
+      },
+    },
   })
 
   // 5. Register hooks
@@ -98,32 +93,23 @@ export const customers = (app: Application) => {
         multiTenancy({ isolateLocation: true, allowGlobalData: false }),
 
         schemaHooks.resolveExternal(customerExternalResolver),
-        schemaHooks.resolveResult(customerResolver)
-      ]
+        schemaHooks.resolveResult(customerResolver),
+      ],
     },
     before: {
-      all: [
-        schemaHooks.validateQuery(customerQueryValidator),
-        schemaHooks.resolveQuery(customerQueryResolver)
-      ],
+      all: [schemaHooks.validateQuery(customerQueryValidator), schemaHooks.resolveQuery(customerQueryResolver)],
       find: [],
       get: [],
-      create: [
-        schemaHooks.validateData(customerDataValidator),
-        schemaHooks.resolveData(customerDataResolver)
-      ],
-      patch: [
-        schemaHooks.validateData(customerPatchValidator),
-        schemaHooks.resolveData(customerPatchResolver)
-      ],
-      remove: []
+      create: [schemaHooks.validateData(customerDataValidator), schemaHooks.resolveData(customerDataResolver)],
+      patch: [schemaHooks.validateData(customerPatchValidator), schemaHooks.resolveData(customerPatchResolver)],
+      remove: [],
     },
     after: {
-      all: []
+      all: [],
     },
     error: {
-      all: []
-    }
+      all: [],
+    },
   })
 }
 

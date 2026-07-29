@@ -8,13 +8,7 @@ import { uuidv7 } from 'uuidv7'
 import { sha256 } from '../../utils/crypto.utils'
 
 // Import domain schema
-import {
-  Apikey,
-  apikeyDataSchema,
-  apikeyPatchSchema,
-  ApikeyQuery,
-  apikeyQuerySchema
-} from '@panary/apikeys/domain'
+import { Apikey, apikeyDataSchema, apikeyPatchSchema, ApikeyQuery, apikeyQuerySchema } from '@panary/apikeys/domain'
 import { UserSystemRole } from '@panary/users/domain'
 
 //#region 1. Main Resolver (Output)
@@ -52,8 +46,7 @@ export const apikeyDataResolver = resolve<Apikey, HookContext>({
   active: async (): Promise<boolean> => true,
   createdAt: async (): Promise<string> => new Date().toISOString(),
   updatedAt: async (): Promise<string> => new Date().toISOString(),
-  createdBy: async (value: any, user: any, context: HookContext) =>
-    context.params?.user?._id || 'system',
+  createdBy: async (value: any, user: any, context: HookContext) => context.params?.user?._id || 'system',
   role: async (value, data, context) => {
     if (value) return value
 
@@ -76,7 +69,7 @@ export const apikeyDataResolver = resolve<Apikey, HookContext>({
       }
     }
     return UserSystemRole.DEVICE_POS
-  }
+  },
 })
 //#endregion
 

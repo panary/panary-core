@@ -19,13 +19,7 @@ import {
   auditEventDataSchema,
   auditEventQuerySchema,
 } from '@panary/audit-events/domain'
-import {
-  authorize,
-  dataValidator,
-  getJsonFieldHooks,
-  multiTenancy,
-  queryValidator,
-} from '@panary/shared-backend'
+import { authorize, dataValidator, getJsonFieldHooks, multiTenancy, queryValidator } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { DatabaseType } from '@panary/shared-common'
 
@@ -64,19 +58,18 @@ function canReadSensitive(context: HookContext): boolean {
 
 const auditEventDataResolver = resolve<AuditEvent, HookContext>({
   _id: async value => value || uuidv7(),
-  createdAt: async (value, entity) => value || (entity as { occurredAt?: string })?.occurredAt || new Date().toISOString(),
-  updatedAt: async (value, entity) => value || (entity as { occurredAt?: string })?.occurredAt || new Date().toISOString(),
+  createdAt: async (value, entity) =>
+    value || (entity as { occurredAt?: string })?.occurredAt || new Date().toISOString(),
+  updatedAt: async (value, entity) =>
+    value || (entity as { occurredAt?: string })?.occurredAt || new Date().toISOString(),
   // Flache Persistenz-Spiegel aus den verschachtelten Feldern ableiten.
   // SQLite-Migration verlangt sie als notNullable — Index-Lookups (z.B.
   // "alle Events fuer userId=X") laufen ueber diese flachen Spalten.
-  actor_userId: async (value, entity) =>
-    value || (entity as { actor?: { userId?: string } })?.actor?.userId,
-  target_resource: async (value, entity) =>
-    value || (entity as { target?: { resource?: string } })?.target?.resource,
+  actor_userId: async (value, entity) => value || (entity as { actor?: { userId?: string } })?.actor?.userId,
+  target_resource: async (value, entity) => value || (entity as { target?: { resource?: string } })?.target?.resource,
   target_entityType: async (value, entity) =>
     value || (entity as { target?: { entityType?: string } })?.target?.entityType,
-  target_entityId: async (value, entity) =>
-    value || (entity as { target?: { entityId?: string } })?.target?.entityId,
+  target_entityId: async (value, entity) => value || (entity as { target?: { entityId?: string } })?.target?.entityId,
 })
 
 const auditEventQueryResolver = resolve<AuditEvent, HookContext>({})
@@ -126,10 +119,7 @@ export const auditEvents = (app: Application) => {
       ],
     },
     before: {
-      all: [
-        schemaHooks.validateQuery(auditEventQueryValidator),
-        schemaHooks.resolveQuery(auditEventQueryResolver),
-      ],
+      all: [schemaHooks.validateQuery(auditEventQueryValidator), schemaHooks.resolveQuery(auditEventQueryResolver)],
       create: [
         schemaHooks.validateData(auditEventDataValidator),
         schemaHooks.resolveData(auditEventDataResolver),

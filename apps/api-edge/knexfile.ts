@@ -11,9 +11,7 @@ const config = { ...app.get('sqlite') }
 const workspaceRoot = path.resolve(__dirname, '../..')
 if (typeof config.connection === 'object' && config.connection?.filename) {
   const filename = config.connection.filename
-  const relative = path.isAbsolute(filename)
-    ? path.relative(process.cwd(), filename)
-    : filename
+  const relative = path.isAbsolute(filename) ? path.relative(process.cwd(), filename) : filename
   config.connection.filename = path.resolve(workspaceRoot, relative)
 } else if (typeof config.connection === 'string') {
   const relative = path.isAbsolute(config.connection)

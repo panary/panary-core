@@ -173,9 +173,7 @@ async function tryResolveTenantId(
     const found = (await context.app
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .service('users' as any)
-      .find({ query, provider: undefined })) as
-      | { data: { tenantId?: string }[] }
-      | { tenantId?: string }[]
+      .find({ query, provider: undefined })) as { data: { tenantId?: string }[] } | { tenantId?: string }[]
 
     const items = Array.isArray(found) ? found : found.data
     if (items.length > 0 && items[0].tenantId) return items[0].tenantId

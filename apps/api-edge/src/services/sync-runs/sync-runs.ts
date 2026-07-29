@@ -17,19 +17,8 @@ import { hooks as schemaHooks, resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 import { uuidv7 } from 'uuidv7'
 
-import {
-  type SyncRun,
-  type SyncRunData,
-  syncRunDataSchema,
-  syncRunQuerySchema,
-} from '@panary/sync/domain'
-import {
-  authorize,
-  dataValidator,
-  getJsonFieldHooks,
-  multiTenancy,
-  queryValidator,
-} from '@panary/shared-backend'
+import { type SyncRun, type SyncRunData, syncRunDataSchema, syncRunQuerySchema } from '@panary/sync/domain'
+import { authorize, dataValidator, getJsonFieldHooks, multiTenancy, queryValidator } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { DatabaseType } from '@panary/shared-common'
 
@@ -106,10 +95,7 @@ export const syncRuns = (app: Application) => {
       ],
     },
     before: {
-      all: [
-        schemaHooks.validateQuery(syncRunQueryValidator),
-        schemaHooks.resolveQuery(syncRunQueryResolver),
-      ],
+      all: [schemaHooks.validateQuery(syncRunQueryValidator), schemaHooks.resolveQuery(syncRunQueryResolver)],
       create: [
         schemaHooks.validateData(syncRunDataValidator),
         schemaHooks.resolveData(syncRunDataResolver),

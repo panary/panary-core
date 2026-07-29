@@ -119,9 +119,7 @@ describe('applyCloudTenantId — Restamp gegen die migrierte Test-SQLite', () =>
   })
 
   afterAll(async () => {
-    await knex('products')
-      .whereIn('_id', [ids.productHome, ids.productGlobal, ids.productForeign])
-      .delete()
+    await knex('products').whereIn('_id', [ids.productHome, ids.productGlobal, ids.productForeign]).delete()
     await knex('users').where({ _id: ids.user }).delete()
     await knex('sync-runs').where({ _id: ids.syncRun }).delete()
     await knex('locations').whereIn('_id', [oldLocationId, newLocationId]).delete()

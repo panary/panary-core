@@ -8,11 +8,6 @@
   "compilerOptions": {
     "rootDir": "."
   },
-  "files": [
-    "knexfile.ts"
-  ],
-  "include": [
-    "src/**/*.ts",
-    "migrations/**/*.ts"
-  ]
+  "files": ["knexfile.ts"],
+  "include": ["src/**/*.ts", "migrations/**/*.ts"]
 }

@@ -11,7 +11,9 @@ import {
   locationPatchSchema,
   LocationQuery,
   locationQuerySchema,
-  generateDefaultLocationSettings, LocationStatus, LocationOperationMode,
+  generateDefaultLocationSettings,
+  LocationStatus,
+  LocationOperationMode,
   DEFAULT_LAST_WORKDAY_OF_WEEK,
 } from '@panary/locations/domain'
 import { LocationService } from './locations.class'
@@ -43,12 +45,11 @@ export const locationDataResolver = resolve<Location, HookContext<LocationServic
   status: async value => value ?? LocationStatus.DRAFT,
   // Default-Betriebsmodus: volle Kasse. Setup-Client kann beim Anlegen
   // explizit 'orders-only' setzen für Kunden, die nur Bestellungen verwalten.
-  operationMode: async (value) => value || LocationOperationMode.POS_CASHIER,
+  operationMode: async value => value || LocationOperationMode.POS_CASHIER,
   // Default-Wochenabschluss: Freitag (DACH-Standard). Cloud-Standort-Dialog
   // erlaubt Override; Bestandskunden ohne Wert fallen Frontend-seitig ebenfalls
   // auf Freitag zurück.
-  lastWorkdayOfWeek: async (value) =>
-    typeof value === 'number' ? value : DEFAULT_LAST_WORKDAY_OF_WEEK,
+  lastWorkdayOfWeek: async value => (typeof value === 'number' ? value : DEFAULT_LAST_WORKDAY_OF_WEEK),
 })
 //#endregion
 
@@ -58,7 +59,7 @@ export const locationPatchResolver = resolve<Location, HookContext<LocationServi
   _id: async () => undefined,
   tenantId: async () => undefined,
   createdAt: async () => undefined,
-  updatedAt: async () => new Date().toISOString()
+  updatedAt: async () => new Date().toISOString(),
 })
 //#endregion
 

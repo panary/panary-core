@@ -39,8 +39,7 @@ const CASH_SESSION_JSON_FIELDS = ['denominationCounts']
 
 export * from './cash-sessions.schema'
 
-const isFromSync = (context: HookContext): boolean =>
-  Boolean((context.params as { fromSync?: boolean }).fromSync)
+const isFromSync = (context: HookContext): boolean => Boolean((context.params as { fromSync?: boolean }).fromSync)
 
 /**
  * Härtung des Standard-`create`-Pfads: Eine Kasse darf extern NICHT mehr von
@@ -108,10 +107,9 @@ export const cashSessions = (app: Application) => {
     // 1. PIN des autorisierenden Mitarbeiters prüfen (wirft NotAuthenticated bei falschem PIN).
     let manager: { _id?: string; role?: string }
     try {
-      manager = (await app.service('users').verifyPin(
-        { userId: authorizedByUserId, pin },
-        { provider: undefined },
-      )) as { _id?: string; role?: string }
+      manager = (await app
+        .service('users')
+        .verifyPin({ userId: authorizedByUserId, pin }, { provider: undefined })) as { _id?: string; role?: string }
     } catch {
       // PIN NIE loggen (logging.md). Nur das Ereignis.
       logger.warn({
@@ -157,7 +155,6 @@ export const cashSessions = (app: Application) => {
       { provider: undefined },
     )
   }
-
   ;(service as any).setup = async (app: Application) =>
     ensureIndexes(
       app,

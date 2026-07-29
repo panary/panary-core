@@ -17,7 +17,7 @@ export async function up(knex: Knex): Promise<void> {
     table.string('productType').nullable()
 
     // Categorization
-    table.text('categoryIds').defaultTo('[]')  // JSON array of UUIDs
+    table.text('categoryIds').defaultTo('[]') // JSON array of UUIDs
 
     // Pricing
     table.float('price').defaultTo(0)
@@ -26,9 +26,9 @@ export async function up(knex: Knex): Promise<void> {
     table.string('bundlePricingMode').nullable()
 
     // Complex nested objects
-    table.text('optionGroups').nullable()   // JSON array
-    table.text('availability').nullable()  // JSON object
-    table.text('ui').nullable()            // JSON object
+    table.text('optionGroups').nullable() // JSON array
+    table.text('availability').nullable() // JSON object
+    table.text('ui').nullable() // JSON object
 
     // Flags
     table.boolean('isInvalid').defaultTo(false)

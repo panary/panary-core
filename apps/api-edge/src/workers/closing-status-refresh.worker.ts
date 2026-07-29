@@ -18,16 +18,16 @@ import type { Application } from '../declarations'
 
 interface ClosingStatusRefreshConfig {
   enabled: boolean
-  intervalMs: number       // typische Tick-Frequenz
-  jitterMs: number         // ±jitter um Spitzen bei mehreren Edges zu vermeiden
+  intervalMs: number // typische Tick-Frequenz
+  jitterMs: number // ±jitter um Spitzen bei mehreren Edges zu vermeiden
   /** Maximale Anzahl Tage, die pro Tick refresht werden. Begrenzt Cloud-Roundtrips. */
   maxPerTick: number
 }
 
 const DEFAULT_CONFIG: ClosingStatusRefreshConfig = {
   enabled: true,
-  intervalMs: 30_000,      // alle 30s
-  jitterMs: 5_000,         // ±5s
+  intervalMs: 30_000, // alle 30s
+  jitterMs: 5_000, // ±5s
   maxPerTick: 5,
 }
 
@@ -67,9 +67,12 @@ export const startClosingStatusRefreshWorker = (
   const scheduleNext = () => {
     if (stopped) return
     const delayMs = config.intervalMs + (Math.random() * 2 - 1) * config.jitterMs
-    timer = setTimeout(() => {
-      void runTick(app, config).finally(scheduleNext)
-    }, Math.max(1_000, delayMs))
+    timer = setTimeout(
+      () => {
+        void runTick(app, config).finally(scheduleNext)
+      },
+      Math.max(1_000, delayMs),
+    )
   }
 
   scheduleNext()
@@ -93,18 +96,17 @@ export const startClosingStatusRefreshWorker = (
  * refreshClosingStatus durchrufen. Defensive Fehlerbehandlung pro Tag —
  * ein einzelner Cloud-Fehler bricht den Tick nicht ab.
  */
-export const runTick = async (
-  app: Application,
-  config: ClosingStatusRefreshConfig,
-): Promise<void> => {
+export const runTick = async (app: Application, config: ClosingStatusRefreshConfig): Promise<void> => {
   const startedAt = Date.now()
   try {
-    const service = (app as unknown as {
-      service: (path: string) => {
-        find: (params?: unknown) => Promise<unknown>
-        refreshClosingStatus: (data: unknown, params?: unknown) => Promise<unknown>
+    const service = (
+      app as unknown as {
+        service: (path: string) => {
+          find: (params?: unknown) => Promise<unknown>
+          refreshClosingStatus: (data: unknown, params?: unknown) => Promise<unknown>
+        }
       }
-    }).service('businessdays')
+    ).service('businessdays')
 
     // Pending-Closings finden — provider:undefined umgeht authorize/multiTenancy
     // (worker ist System-Aktor, kein User-Kontext).
@@ -127,10 +129,10 @@ export const runTick = async (
         // explizit gesetzt sein, da provider:undefined auch die Multi-Tenancy
         // bypassed. Wir uebergeben den User-Mock aus der Row.
         const fakeUser = { tenantId: row.tenantId, locationId: row.locationId, _id: 'system:closing-refresh-worker' }
-        const after = (await service.refreshClosingStatus(
-          { businessDayId: row._id },
-          { provider: undefined, user: fakeUser } as unknown,
-        )) as BusinessDayRow
+        const after = (await service.refreshClosingStatus({ businessDayId: row._id }, {
+          provider: undefined,
+          user: fakeUser,
+        } as unknown)) as BusinessDayRow
         refreshed++
         if (after.status && after.status !== before) transitioned++
       } catch (err) {

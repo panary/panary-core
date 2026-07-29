@@ -62,26 +62,24 @@ describe('orders service — taxSnapshot bei preisrelevanten Patches', () => {
     )) as { _id: string }
     userId = user._id
 
-    createdOrder = (await app
-      .service('orders')
-      .create(
-        {
-          tenantId,
-          locationId,
-          status: 'active',
-          orderChannel: 'pos',
-          dineLocation: 'dine-in',
-          lineItems: [lineItem],
-          isFinished: false,
-          estimatedDuration: 0,
-          remainingTime: 0,
-          recordingDate: new Date().toISOString(),
-        } as never,
-        // params.user aktiviert das multiTenancy-WRITE-Stamping auch intern —
-        // tenantId/locationId muessen daher am User-Objekt haengen (Memory-Regel:
-        // Stamp kommt aus params.user, nie aus dem Quell-Datensatz).
-        { provider: undefined, user: { _id: userId, tenantId, locationId } as never },
-      )) as Order
+    createdOrder = (await app.service('orders').create(
+      {
+        tenantId,
+        locationId,
+        status: 'active',
+        orderChannel: 'pos',
+        dineLocation: 'dine-in',
+        lineItems: [lineItem],
+        isFinished: false,
+        estimatedDuration: 0,
+        remainingTime: 0,
+        recordingDate: new Date().toISOString(),
+      } as never,
+      // params.user aktiviert das multiTenancy-WRITE-Stamping auch intern —
+      // tenantId/locationId muessen daher am User-Objekt haengen (Memory-Regel:
+      // Stamp kommt aus params.user, nie aus dem Quell-Datensatz).
+      { provider: undefined, user: { _id: userId, tenantId, locationId } as never },
+    )) as Order
     orderId = createdOrder._id
   })
 

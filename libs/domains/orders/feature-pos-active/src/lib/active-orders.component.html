@@ -197,12 +197,17 @@
                 <div class="w-3/5 h-px bg-gray-200 dark:bg-gray-700 my-1"></div>
 
                 <div class="grid grid-cols-2 gap-2 w-4/5" tabindex="0" role="button" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
-                  @for (percent of discountPresets; track percent) {
+                  @for (discount of selectableDiscounts(); track discount._id) {
                     <button
-                      class="min-h-14 rounded-xl bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
-                      (click)="applyDiscount(order, percent)">
-                      <span class="text-lg font-black">{{ percent }}%</span>
+                      class="min-h-14 rounded-xl bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 flex flex-col items-center justify-center border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+                      (click)="applyDiscount(order, discount)">
+                      <span class="text-sm font-bold truncate max-w-full px-2">{{ discount.name }}</span>
+                      <span class="text-lg font-black">{{ formatDiscountValue(discount) }}</span>
                     </button>
+                  } @empty {
+                    <p class="col-span-2 text-center text-sm text-gray-500 dark:text-gray-400 py-4">
+                      {{ 'ACTIVE_ORDERS.NO_DISCOUNTS' | translate }}
+                    </p>
                   }
                 </div>
 
@@ -440,8 +445,17 @@
             <!-- ── BOTTOM: Nur Gesamtbetrag ───────────────────── -->
             <div class="bg-white dark:bg-gray-950 px-6 py-4 rounded-b-2xl">
               <div class="flex justify-between items-center">
-                <span class="font-bold text-gray-500 dark:text-gray-400 uppercase text-xs">{{ 'COMMON.TOTAL' | translate }}</span>
-                <span class="text-xl font-black text-gray-800 dark:text-white">{{ vm.totalFormatted }}</span>
+                @if (order.staffPaymentInfo) {
+                  <!-- Personalessen: bewusst KEIN Betrag. Die Rabattsätze sind pro
+                       Mitarbeiter unterschiedlich und sollen am Terminal nicht
+                       ablesbar/vergleichbar sein. Der Betrag steht im Admin und
+                       beim Abschluss. -->
+                  <span class="font-bold text-gray-500 dark:text-gray-400 uppercase text-xs">{{ 'ACTIVE_ORDERS.STAFF_MEAL' | translate }}</span>
+                  <span class="text-sm font-bold text-purple-600 dark:text-purple-400">{{ 'ACTIVE_ORDERS.STAFF_MEAL_DISCOUNT_NOTE' | translate }}</span>
+                } @else {
+                  <span class="font-bold text-gray-500 dark:text-gray-400 uppercase text-xs">{{ 'COMMON.TOTAL' | translate }}</span>
+                  <span class="text-xl font-black text-gray-800 dark:text-white">{{ vm.totalFormatted }}</span>
+                }
               </div>
             </div>
             </div><!-- Ende fester Footer-Bereich -->

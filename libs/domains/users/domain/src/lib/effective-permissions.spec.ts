@@ -103,6 +103,22 @@ describe('hasEffectiveAbility', () => {
     expect(hasEffectiveAbility(undefined, undefined, AppAbility.CAN_CLOCK_IN)).toBe(false)
     expect(hasEffectiveAbility(UserSystemRole.DEVICE_KDS, [], AppAbility.CAN_CLOCK_IN)).toBe(false)
   })
+
+  // CAN_CHANGE_POS_PIN autorisiert `users.changePin` fuer Geraete-Rollen, die
+  // bewusst kein `users:UPDATE` haben. Nur Terminals mit Mitarbeiter-Login
+  // duerfen das — KDS und Kiosk haben keinen PIN-Flow.
+  it('CAN_CHANGE_POS_PIN: DEVICE_POS/DEVICE_TABLET ja, DEVICE_KDS/DEVICE_KIOSK nein', () => {
+    expect(hasEffectiveAbility(UserSystemRole.DEVICE_POS, undefined, AppAbility.CAN_CHANGE_POS_PIN)).toBe(true)
+    expect(hasEffectiveAbility(UserSystemRole.DEVICE_TABLET, undefined, AppAbility.CAN_CHANGE_POS_PIN)).toBe(true)
+    expect(hasEffectiveAbility(UserSystemRole.DEVICE_KDS, undefined, AppAbility.CAN_CHANGE_POS_PIN)).toBe(false)
+    expect(hasEffectiveAbility(UserSystemRole.DEVICE_KIOSK, undefined, AppAbility.CAN_CHANGE_POS_PIN)).toBe(false)
+  })
+
+  it('CAN_CHANGE_POS_PIN additiv über user.permissions', () => {
+    expect(hasEffectiveAbility(UserSystemRole.DEVICE_KDS, ['can_change_pos_pin'], AppAbility.CAN_CHANGE_POS_PIN)).toBe(
+      true,
+    )
+  })
 })
 
 describe('CapabilityBundles / expandBundles', () => {

@@ -24,6 +24,7 @@ export type AuditResourceMethod =
   | 'checkout'
   | 'startBreak'
   | 'endBreak'
+  | 'changePin'
 
 const r = (
   action: AuditActionType,
@@ -60,6 +61,10 @@ export const AUDIT_RESOURCE_MAP: Readonly<
     checkout: r(AuditAction.CLOCK_OUT, AuditCategory.TIME, AuditSeverity.INFO),
     startBreak: r(AuditAction.BREAK_START, AuditCategory.TIME, AuditSeverity.INFO),
     endBreak: r(AuditAction.BREAK_END, AuditCategory.TIME, AuditSeverity.INFO),
+    // POS-PIN-Selbstwechsel am Terminal. Actor ist das Geraet
+    // (`device:<deviceId>`, siehe allowApiKey-Hook), der betroffene Mitarbeiter
+    // steht in `target.entityId`.
+    changePin: r(AuditAction.PIN_CHANGE, AuditCategory.ACCESS, AuditSeverity.NOTICE),
   },
   apikeys: {
     create: r(AuditAction.API_KEY_CREATE, AuditCategory.ACCESS, AuditSeverity.WARNING),

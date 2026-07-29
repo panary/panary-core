@@ -499,6 +499,11 @@ export const AppAbility = {
   CAN_REFUND: 'can_refund',
   CAN_OPEN_DRAWER: 'can_open_drawer',
   CAN_VOID_ORDER: 'can_void_order', // Storno
+  // Erlaubt `users.changePin` ohne `users:UPDATE`. Analog CAN_CLOCK_IN: das
+  // POS-Geraet authentifiziert sich per API-Key als Geraet, nicht als
+  // Mitarbeiter — die Bindung an die Person leistet der currentPin-Beweis
+  // innerhalb der Methode, nicht diese Ability.
+  CAN_CHANGE_POS_PIN: 'can_change_pos_pin',
 
   // =======================================================
   // Zeiterfassung PERMISSIONS

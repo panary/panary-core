@@ -12,6 +12,22 @@
       `discover_panary_hubs` (src/lib.rs) auf macOS still eine leere Liste,
       statt den Berechtigungsdialog auszuloesen.
     -->
+    <!--
+      App Transport Security: macOS blockiert in Apps standardmaessig jede
+      Klartext-HTTP-Verbindung (Browser und curl sind davon ausgenommen, eine
+      App nicht). Der Edge-Hub laeuft per Design ohne TLS unter einer freien
+      IP im LAN oder Tailnet — ohne diese Ausnahme scheitert jeder Zugriff mit
+      "TypeError: Load failed", ohne dass eine CSP-Verletzung sichtbar waere.
+
+      NSAllowsLocalNetworking reicht nicht: es deckt nur RFC-1918-, link-local-
+      und .local-Adressen ab, nicht den CGNAT-Bereich 100.64.0.0/10, den
+      Tailscale verwendet.
+    -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+    </dict>
     <key>NSLocalNetworkUsageDescription</key>
     <string>Panary — Terminal sucht im lokalen Netzwerk nach dem Panary-Edge-Hub.</string>
     <key>NSBonjourServices</key>

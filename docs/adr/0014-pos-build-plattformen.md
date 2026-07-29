@@ -47,6 +47,30 @@ und `NSBonjourServices` — seit macOS 15 verlangt das System eine Local-Network
 für Multicast; ohne diese Keys liefert `discover_panary_hubs` still eine leere Liste, statt
 den Berechtigungsdialog auszulösen.
 
+**2b. App Transport Security abschalten (`NSAllowsArbitraryLoads`).**
+macOS blockiert in Apps standardmäßig **jede Klartext-HTTP-Verbindung**. Browser und
+`curl` sind davon ausgenommen, eine Tauri-App nicht — der Edge-Hub ist damit im gepackten
+Build unerreichbar, obwohl er im Browser derselben Maschine antwortet. Das Fehlerbild ist
+irreführend: der Fetch scheitert mit `TypeError: Load failed`, **ohne** dass eine
+CSP-Verletzung ausgelöst wird (nachgewiesen über einen `securitypolicyviolation`-Listener:
+für die Edge-URL feuert kein Event). Es betrifft LAN-IPs und Tailnet-Adressen gleichermaßen
+und ist nicht mit CSP-Einträgen oder einer IP-Allowlist zu beheben.
+
+`NSAllowsLocalNetworking` reicht nicht: es deckt nur RFC-1918-, link-local- und
+`.local`-Adressen ab, nicht den CGNAT-Bereich `100.64.0.0/10`, den Tailscale verwendet.
+Da der Edge per Design ohne TLS unter einer freien Adresse läuft, ist
+`NSAllowsArbitraryLoads` die einzige Option, die alle Betriebsformen abdeckt. Der Preis:
+die App akzeptiert Klartext-HTTP zu beliebigen Hosts — die Eingrenzung leistet weiterhin
+die CSP (`connect-src` erlaubt nur Port 3030 plus die bekannten Panary-Domains).
+
+**2c. IPC-Kanal in die CSP aufnehmen.**
+Auf macOS/Linux läuft Tauris IPC über `ipc://localhost`, auf Windows über
+`http://ipc.localhost`. Die bestehende `connect-src`-Liste enthielt keines von beiden, was
+auf macOS bei jedem Start zu `violated=connect-src blocked=ipc://localhost/js_log` führte;
+Tauri fiel still auf die langsamere `postMessage`-Schnittstelle zurück. Beide Quellen sind
+jetzt in der gemeinsamen CSP eingetragen — additiv und damit ohne Wirkung auf den
+Windows-Pfad.
+
 **3. Ad-hoc-Signierung (`signingIdentity: "-"`) als Zwischenstand.**
 Es existiert kein Apple-Developer-Zertifikat. Ad-hoc ist auf Apple Silicon der richtige
 Zwischenschritt: das Bundle wird vollständig gesiegelt (`codesign --verify --deep --strict`

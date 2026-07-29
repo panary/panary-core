@@ -62,6 +62,13 @@ export const applyAutomaticDiscounts = async (context: HookContext) => {
   // Kombinationsregel: Automatik nur ohne bestehenden (manuellen) Rabatt.
   if ((order.appliedDiscounts && order.appliedDiscounts.length > 0) || order.discount) return context
 
+  // Personalessen ist rabatt-exklusiv (staff-meal-exclusivity.ts). Ohne diesen Guard
+  // wuerde eine Personalessen-Bestellung, deren zugewiesener Rabatt ins Leere lief
+  // (archiviert → Fallback „ohne Rabatt"), hier einen Automatik-Rabatt einsammeln und
+  // anschliessend am Exklusivitaets-Hook mit 400 scheitern. Automatik ueberspringen
+  // ist das richtige Verhalten — nicht die Bestellung ablehnen.
+  if (order.staffPaymentInfo) return context
+
   const tenantId = (order as { tenantId?: string }).tenantId ?? context.params?.user?.tenantId
   if (!tenantId) return context
 

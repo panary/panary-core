@@ -327,7 +327,7 @@
         </h2>
 
         <div class="flex flex-col gap-6">
-          @if (currentUser(); as user) {
+          @if (displayUser(); as user) {
           <!-- User Info Card -->
           <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
             <div class="flex items-center gap-4 mb-6">
@@ -344,7 +344,14 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.EMPLOYEE_NUMBER' | translate }}</p>
-                <p class="font-bold text-gray-800 dark:text-white font-mono text-lg">{{ user.employeeNumber || '-' }}</p>
+                @if (profileLoading()) {
+                <span class="block h-7 w-24 rounded bg-gray-200 dark:bg-gray-700 animate-pulse"></span>
+                } @else {
+                <p class="font-bold text-gray-800 dark:text-white font-mono text-lg">{{ user.employeeNumber || '—' }}</p>
+                @if (profileError()) {
+                <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">{{ 'SETTINGS.PROFILE_LOAD_ERROR' | translate }}</p>
+                }
+                }
               </div>
               <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">{{ 'SETTINGS.SYSTEM_ROLE' | translate }}</p>

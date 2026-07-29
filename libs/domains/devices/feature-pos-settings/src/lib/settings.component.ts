@@ -17,6 +17,22 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { UnpairDeviceDialogComponent } from './unpair-device-dialog/unpair-device-dialog.component'
 
+/**
+ * Serverseitiger Ausschnitt des eingeloggten Mitarbeiters. Wird per
+ * `usersService.get(_id)` frisch geladen — bewusst NICHT aus dem localStorage:
+ * `employeeNumber` ist das alleinige Credential fuer Time-Clock-Aktionen und
+ * darf den Prozess nicht ueberdauern (siehe login.component.ts).
+ */
+interface PosProfileUser {
+  _id: string
+  firstName?: string
+  lastName?: string
+  staffRole?: string
+  employeeNumber?: string
+  role?: string
+  hasPosPin?: boolean
+}
+
 interface EdgeServerInfo {
   status: string
   uptime: number
@@ -72,11 +88,26 @@ export class SettingsComponent implements OnInit {
 
   // User State
   currentUser = signal<any>(null)
+  currentPin = signal('')
   newPin = signal('')
   confirmPin = signal('')
   pinError = signal<string | null>(null)
   isSaving = signal(false)
   saveMessage = signal<string | null>(null)
+
+  // Serverseitiges Profil (Personalnummer etc.). Der localStorage-Eintrag traegt
+  // nur Name/Initialen — alles Weitere kommt frisch vom Edge.
+  readonly profileUser = signal<PosProfileUser | null>(null)
+  readonly profileLoading = signal(false)
+  readonly profileError = signal(false)
+
+  /** localStorage-Basis + Server-Anreicherung. Offline bleibt die Karte nutzbar. */
+  readonly displayUser = computed<Record<string, unknown> | null>(() => {
+    const base = this.currentUser() as Record<string, unknown> | null
+    const fresh = this.profileUser()
+    if (!base && !fresh) return null
+    return { ...(base ?? {}), ...(fresh ?? {}) }
+  })
 
   // Theme options
   themeOptions = [
@@ -125,6 +156,38 @@ export class SettingsComponent implements OnInit {
       this.outboxRejected()
       untracked(() => void this.#loadRejected())
     })
+
+    // Profil nachladen, sobald die Verbindung steht (angular.md §2.1: async-Body
+    // in untracked(), sonst Effect-Loop über die Signals in #loadProfile).
+    effect(() => {
+      const status = this.connectionService.connectionState().status
+      untracked(() => {
+        if (status === 'authenticated') void this.#loadProfile()
+      })
+    })
+  }
+
+  /**
+   * Laedt den eingeloggten Mitarbeiter frisch vom Edge. Die Personalnummer liegt
+   * bewusst nicht im localStorage (Time-Clock-Credential), der externe Resolver
+   * liefert sie aber an authentifizierte Clients aus.
+   */
+  async #loadProfile(): Promise<void> {
+    const userId = (this.currentUser() as { _id?: string } | null)?._id
+    if (!userId) return
+
+    this.profileLoading.set(true)
+    this.profileError.set(false)
+    try {
+      const user = (await this.connectionService.usersService.get(userId)) as PosProfileUser
+      this.profileUser.set(user)
+    } catch {
+      // Offline oder Edge nicht erreichbar — die Karte bleibt mit den
+      // localStorage-Werten bedienbar, nur die Personalnummer fehlt.
+      this.profileError.set(true)
+    } finally {
+      this.profileLoading.set(false)
+    }
   }
 
   async #loadRejected(): Promise<void> {

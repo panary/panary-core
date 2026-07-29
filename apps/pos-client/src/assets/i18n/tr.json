@@ -182,6 +182,7 @@
     "EMPLOYEE": "Çalışan",
     "EMPLOYEE_NUMBER": "Personel numarası",
     "SYSTEM_ROLE": "Sistem rolü",
+    "PROFILE_LOAD_ERROR": "Çevrimdışı — profil verileri yüklenemedi.",
     "USER": "Kullanıcı",
     "POS_LOGIN": "Giriş (POS)",
     "PIN_CHANGE_DESC": "POS terminaline giriş PIN'inizi buradan değiştirebilirsiniz.",

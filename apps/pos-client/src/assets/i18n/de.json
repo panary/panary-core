@@ -182,6 +182,7 @@
     "EMPLOYEE": "Mitarbeiter",
     "EMPLOYEE_NUMBER": "Personalnummer",
     "SYSTEM_ROLE": "Rolle im System",
+    "PROFILE_LOAD_ERROR": "Offline — Profildaten konnten nicht geladen werden.",
     "USER": "Benutzer",
     "POS_LOGIN": "Anmeldung (POS)",
     "PIN_CHANGE_DESC": "Hier kannst du deinen PIN für die Anmeldung am Kassenterminal ändern.",

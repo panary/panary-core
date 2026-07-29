@@ -182,6 +182,7 @@
     "EMPLOYEE": "Employee",
     "EMPLOYEE_NUMBER": "Employee number",
     "SYSTEM_ROLE": "System role",
+    "PROFILE_LOAD_ERROR": "Offline — profile data could not be loaded.",
     "USER": "User",
     "POS_LOGIN": "Login (POS)",
     "PIN_CHANGE_DESC": "Here you can change your PIN for logging into the POS terminal.",

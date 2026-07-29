@@ -51,6 +51,10 @@ const METHOD_TO_ACTION: Record<string, AppAction> = {
   // User + working-times → UPDATE (Cloud-Semantik); Geräte-Rollen ohne
   // users:UPDATE laufen alternativ über die CAN_CLOCK_IN-Ability (s. u.).
   verifyPin: AppAction.READ,
+  // changePin setzt einen neuen posPin-Hash → UPDATE. Rollen mit users:UPDATE
+  // (TENANT_STAFF/MANAGER) duerfen es damit regulaer; Geraete-Rollen laufen
+  // ueber die CAN_CHANGE_POS_PIN-Ability (s. u.).
+  changePin: AppAction.UPDATE,
   checkin: AppAction.UPDATE,
   checkout: AppAction.UPDATE,
   startBreak: AppAction.UPDATE,
@@ -70,6 +74,14 @@ const METHOD_TO_ACTION: Record<string, AppAction> = {
 // User-Patches erlauben). Für genau diese vier Methoden genügt alternativ die
 // fachliche CAN_CLOCK_IN-Ability (Matrix-String oder user.permissions).
 const TIME_CLOCK_METHODS: ReadonlySet<string> = new Set(['checkin', 'checkout', 'startBreak', 'endBreak'])
+
+// users-PIN-Selbstwechsel: DEVICE_POS/DEVICE_TABLET rufen `changePin` ueber das
+// Geraete-JWT auf und haben bewusst KEIN users:UPDATE. Eigenes Set statt
+// TIME_CLOCK_METHODS zu erweitern — sonst wuerde CAN_CLOCK_IN plaetzlich auch
+// PIN-Wechsel autorisieren (Invarianten-Test in authorize.hook.spec.ts).
+// Die Ability autorisiert nur das GERAET; die Bindung an den Mitarbeiter
+// leistet der currentPin-Beweis innerhalb der Methode.
+const PIN_CHANGE_METHODS: ReadonlySet<string> = new Set(['changePin'])
 
 // SQLite speichert `permissions` als JSON-Text. Die users-After-Hooks parsen
 // das Feld normalerweise schon — defensiv trotzdem normalisieren, damit ein
@@ -119,6 +131,12 @@ export const authorize = () => async (context: HookContext, next: NextFunction) 
   // users:UPDATE (POS-/Tablet-Geräte stempeln Staff über das Geräte-JWT).
   if (!allowed && resource === AppResource.USERS && TIME_CLOCK_METHODS.has(method)) {
     allowed = hasEffectiveAbility(role, permissions, AppAbility.CAN_CLOCK_IN)
+  }
+
+  // 6b. PIN-Selbstwechsel-Sonderfall: CAN_CHANGE_POS_PIN als Alternative zu
+  // users:UPDATE (POS-/Tablet-Terminals ohne Mitarbeiter-Session).
+  if (!allowed && resource === AppResource.USERS && PIN_CHANGE_METHODS.has(method)) {
+    allowed = hasEffectiveAbility(role, permissions, AppAbility.CAN_CHANGE_POS_PIN)
   }
 
   if (allowed) {

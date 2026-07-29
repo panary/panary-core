@@ -25,11 +25,15 @@ import { restrictPermissionGrants } from '../../hooks/restrict-permission-grants
 
 const USER_JSON_FIELDS = ['discountDetails', 'allowedLocationIds', 'permissions']
 import { DatabaseType } from '@panary/shared-common'
-import { Conflict, NotAuthenticated } from '@feathersjs/errors'
+import { BadRequest, Conflict, Forbidden, NotAuthenticated, TooManyRequests } from '@feathersjs/errors'
 import bcrypt from 'bcryptjs'
+import { checkChangePinRequest } from '@panary/users/domain'
+import { clearPinFailures, getPinLockoutSeconds, recordPinFailure } from '@panary/shared-backend'
+import { triggerImmediateCycle } from '../../workers/cloud-sync-scheduler.worker'
+import { SyncRunTrigger } from '@panary/sync/domain'
 
 export const usersPath = 'users'
-export const usersMethods = ['find', 'get', 'create', 'patch', 'remove', 'checkin', 'checkout', 'startBreak', 'endBreak', 'verifyPin'] as const
+export const usersMethods = ['find', 'get', 'create', 'patch', 'remove', 'checkin', 'checkout', 'startBreak', 'endBreak', 'verifyPin', 'changePin'] as const
 
 export type { UserService } from './users.class'
 export * from './users.schema'
@@ -142,15 +146,99 @@ export const users = (app: Application) => {
     const { userId, pin } = data
     if (!userId || !pin) throw new NotAuthenticated('userId und pin sind erforderlich')
 
+    // Eine 4-stellige PIN spannt nur 10.000 Kombinationen auf, bcrypt laeuft mit
+    // Cost 6 — der Vollraum waere sonst in etwa einer Minute durchprobiert. Die
+    // Sperre laeuft von selbst wieder aus, damit ein vertippter Mitarbeiter
+    // nicht dauerhaft von der Kasse ausgesperrt wird.
+    const lockedFor = getPinLockoutSeconds(userId)
+    if (lockedFor !== null) {
+      throw new TooManyRequests(`Zu viele Fehlversuche. Bitte in ${lockedFor} Sekunden erneut versuchen.`)
+    }
+
     // Interner Aufruf — umgeht resolveExternal, damit posPin-Hash geladen wird
     const user = await app.service('users').get(userId, { provider: undefined })
-    if (!user.posPin) throw new NotAuthenticated('Kein PIN gesetzt')
 
-    const isValid = await bcrypt.compare(pin, user.posPin)
-    if (!isValid) throw new NotAuthenticated('PIN ungueltig')
+    // Einheitliche Meldung fuer "kein PIN gesetzt" und "PIN falsch": die
+    // Unterscheidung waere ein Existenz-Oracle fuer jeden am Terminal.
+    if (!user.posPin || !(await bcrypt.compare(pin, user.posPin))) {
+      recordPinFailure(userId)
+      throw new NotAuthenticated('PIN ungueltig')
+    }
+    clearPinFailures(userId)
 
     // Sensible Felder entfernen
     const { posPin: _pin, password: _pw, ...safeUser } = user as any
+    return safeUser
+  }
+
+  // Custom method: changePin — POS-PIN-Selbstwechsel am Terminal.
+  //
+  // Braucht eine eigene Methode, weil sich der POS-Client als GERAET
+  // authentifiziert (virtueller User `device:<deviceId>`, siehe
+  // allowApiKey-Hook): ein regulaerer `patch` scheitert an
+  // restrictUserSelfPatch (FOREIGN_RECORD), und `users:UPDATE` fuer die
+  // Geraete-Rolle waere ein Freibrief fuer beliebige User-Patches.
+  //
+  // `currentPin` ist deshalb Pflicht — er ist die einzige Bindung an die
+  // Person hinter dem Terminal.
+  service.changePin = async (
+    data: { userId: string; currentPin: string; newPin: string },
+    params?: { user?: { _id?: string; role?: string; tenantId?: string } },
+  ) => {
+    const { userId, currentPin, newPin } = data ?? ({} as typeof data)
+
+    const violation = checkChangePinRequest(params?.user, { userId, currentPin, newPin })
+    if (violation) {
+      if (violation.reason === 'FOREIGN_RECORD') throw new Forbidden(violation.message)
+      throw new BadRequest(violation.message)
+    }
+
+    const lockedFor = getPinLockoutSeconds(userId)
+    if (lockedFor !== null) {
+      throw new TooManyRequests(`Zu viele Fehlversuche. Bitte in ${lockedFor} Sekunden erneut versuchen.`)
+    }
+
+    // Interner Aufruf — umgeht resolveExternal, damit der posPin-Hash geladen wird.
+    const user = await app.service('users').get(userId, { provider: undefined })
+
+    // multiTenancy() ist bei Custom-Methods ein No-Op (stempelt/filtert nur
+    // create/update/patch bzw. find/get/remove) — der Tenant-Scope muss hier
+    // explizit geprueft werden, sonst koennte ein Terminal einen fremden
+    // Mandanten adressieren.
+    const actorTenantId = (params?.user as { tenantId?: string } | undefined)?.tenantId
+    if (actorTenantId && user.tenantId !== actorTenantId) {
+      throw new Forbidden('Benutzer gehoert nicht zum eigenen Mandanten')
+    }
+
+    if (!user.posPin || !(await bcrypt.compare(currentPin, user.posPin))) {
+      recordPinFailure(userId)
+      // Einheitliche Meldung: "kein PIN gesetzt" vs. "PIN falsch" waere ein
+      // Existenz-Oracle fuer jeden, der am Terminal steht.
+      throw new NotAuthenticated('Aktuelle PIN ist falsch')
+    }
+    clearPinFailures(userId)
+
+    // Adapter-API statt rohem Knex-Write (code-style.md §6): nur so laufen
+    // Validator, Resolver (bcrypt-Hashing des neuen PINs) und der
+    // sync-outbox-Recorder.
+    //
+    // WICHTIG: hier NIEMALS `fromSync: true` mitgeben. Das wuerde
+    //  a) den bcrypt-Resolver ueberspringen  -> Klartext-PIN in der DB
+    //  b) den Outbox-Eintrag unterdruecken   -> der naechste Cloud-Pull holt
+    //     den alten Hash zurueck und der Wechsel waere wieder weg.
+    const updated = await app
+      .service('users')
+      .patch(userId, { posPin: newPin, mustChangePosPin: false }, { provider: undefined })
+
+    // Push moeglichst sofort, statt bis zum naechsten Scheduler-Tick (Default
+    // 300 s) zu warten: bis der neue Hash in der Cloud liegt, kann ein
+    // Cloud-seitiges Update des Users den alten PIN zurueckspielen (der
+    // Pull-Apply kennt kein Last-Write-Wins). Fire-and-forget — ein
+    // fehlgeschlagener Sync darf den PIN-Wechsel nicht scheitern lassen,
+    // der Outbox-Eintrag bleibt ohnehin bestehen.
+    void triggerImmediateCycle(app, SyncRunTrigger.MANUAL).catch(() => undefined)
+
+    const { posPin: _newPin, password: _pwd, ...safeUser } = updated as any
     return safeUser
   }
 

@@ -198,6 +198,14 @@ export const userSchema = Type.Object(
     ),
     autoLogOff: Type.Optional(Type.Boolean({ default: true })),
     mustChangePassword: Type.Optional(Type.Boolean({ default: false })),
+    // Erzwingt den POS-PIN-Wechsel bei der naechsten Anmeldung am Terminal.
+    // Gesetzt wird das Flag von der Cloud-Admin-UI, sobald ein Admin einen PIN
+    // vergibt oder zuruecksetzt — er kennt den PIN dann naemlich selbst, und
+    // ohne Wechsel waere keine POS-Aktion mehr eindeutig zurechenbar.
+    // Geloescht wird es AUSSCHLIESSLICH von der `changePin`-Custom-Method
+    // (nach Proof-of-Possession) — bewusst NICHT self-patchbar, sonst koennte
+    // sich jeder Mitarbeiter den Zwang selbst wegpatchen.
+    mustChangePosPin: Type.Optional(Type.Boolean({ default: false })),
 
     startBreakAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
     permissions: Type.Array(Type.String({ maxLength: 80 }), { default: [], maxItems: 100 }),
@@ -250,6 +258,7 @@ export const userDataSchema = Type.Intersect(
         'isPosUser',
         'lastName',
         'mustChangePassword',
+        'mustChangePosPin',
         'permissions',
         'role',
         'staffRole',

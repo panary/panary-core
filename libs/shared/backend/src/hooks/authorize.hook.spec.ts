@@ -221,6 +221,35 @@ describe('authorize() — Edge-Custom-Method-Tabelle (Rolle × Methode)', () => 
     await expectForbidden({ path: 'users', method: 'verifyPin', user: deviceKds })
   })
 
+  it('users.changePin (UPDATE): POS/Tablet über Ability, Staff/Manager über users:UPDATE', async () => {
+    await expectAllowed({ path: 'users', method: 'changePin', user: devicePos })
+    await expectAllowed({ path: 'users', method: 'changePin', user: deviceTablet })
+    await expectAllowed({ path: 'users', method: 'changePin', user: staff })
+    await expectAllowed({ path: 'users', method: 'changePin', user: manager })
+  })
+
+  it('users.changePin: Kiosk/KDS haben keinen Mitarbeiter-Login → verboten', async () => {
+    await expectForbidden({ path: 'users', method: 'changePin', user: deviceKiosk })
+    await expectForbidden({ path: 'users', method: 'changePin', user: deviceKds })
+  })
+
+  it('CAN_CHANGE_POS_PIN wirkt NUR auf changePin — kein Durchgriff auf regulären Patch', async () => {
+    // Beweis, dass die Ability keine Hintertür zu beliebigen User-Patches ist.
+    await expectForbidden({ path: 'users', method: 'patch', user: devicePos })
+    await expectForbidden({ path: 'users', method: 'update', user: devicePos })
+    await expectForbidden({ path: 'users', method: 'remove', user: devicePos })
+    // …und nicht auf andere Ressourcen durchschlägt.
+    await expectForbidden({ path: 'products', method: 'changePin', user: devicePos })
+  })
+
+  it('can_change_pos_pin im user.permissions-Array genügt (Sonder-Gerät)', async () => {
+    await expectAllowed({
+      path: 'users',
+      method: 'changePin',
+      user: { ...deviceKds, permissions: ['can_change_pos_pin'] },
+    })
+  })
+
   it('cash-sessions.openAuthorized (CREATE): Staff/POS/Manager ja, Tablet/Kiosk nein', async () => {
     await expectAllowed({ path: 'cash-sessions', method: 'openAuthorized', user: staff })
     await expectAllowed({ path: 'cash-sessions', method: 'openAuthorized', user: devicePos })

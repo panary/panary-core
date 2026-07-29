@@ -21,6 +21,7 @@ export const AuditAction = {
   LOGIN: 'LOGIN',
   LOGIN_FAILED: 'LOGIN_FAILED',
   PIN_VERIFY: 'PIN_VERIFY',
+  PIN_CHANGE: 'PIN_CHANGE',
 
   // Sicherheit / Konfiguration
   PERMISSION_CHANGE: 'PERMISSION_CHANGE',

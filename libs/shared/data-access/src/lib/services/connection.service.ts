@@ -529,7 +529,7 @@ export class ConnectionService {
         'startBreak',
         'endBreak',
         'verifyPin',
-        'mustChangePassword',
+        'changePin',
       ],
     })
     this.#app.use('locations', socketClient.service('locations'), {

@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http'
 import { lastValueFrom } from 'rxjs'
 import { ThemeServiceService, UiScaleService } from '@panary/shared/data-access-theme'
 import { UiDensity, type UiDensityLevel } from '@panary/devices/domain'
+import { POS_PIN_LENGTH } from '@panary/users/domain'
 import { LocationService } from '@panary/locations/data-access'
 import { ConnectionService, LanguageService, OFFLINE_OUTBOX, OFFLINE_REPLAY } from '@panary/shared/data-access'
 import type { OfflineOutboxRejectedEntry } from '@panary/shared-common'
@@ -16,6 +17,27 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { UnpairDeviceDialogComponent } from './unpair-device-dialog/unpair-device-dialog.component'
+
+/**
+ * Serverseitiger Ausschnitt des eingeloggten Mitarbeiters. Wird per
+ * `usersService.get(_id)` frisch geladen — bewusst NICHT aus dem localStorage:
+ * `employeeNumber` ist das alleinige Credential fuer Time-Clock-Aktionen und
+ * darf den Prozess nicht ueberdauern (siehe login.component.ts).
+ */
+interface PosProfileUser {
+  _id: string
+  firstName?: string
+  lastName?: string
+  staffRole?: string
+  employeeNumber?: string
+  role?: string
+  hasPosPin?: boolean
+}
+
+/** localStorage-Basis (Name/Initialen) angereichert um den Server-Record. */
+interface PosDisplayUser extends Partial<PosProfileUser> {
+  initials?: string
+}
 
 interface EdgeServerInfo {
   status: string
@@ -72,11 +94,26 @@ export class SettingsComponent implements OnInit {
 
   // User State
   currentUser = signal<any>(null)
+  currentPin = signal('')
   newPin = signal('')
   confirmPin = signal('')
   pinError = signal<string | null>(null)
   isSaving = signal(false)
   saveMessage = signal<string | null>(null)
+
+  // Serverseitiges Profil (Personalnummer etc.). Der localStorage-Eintrag traegt
+  // nur Name/Initialen — alles Weitere kommt frisch vom Edge.
+  readonly profileUser = signal<PosProfileUser | null>(null)
+  readonly profileLoading = signal(false)
+  readonly profileError = signal(false)
+
+  /** localStorage-Basis + Server-Anreicherung. Offline bleibt die Karte nutzbar. */
+  readonly displayUser = computed<PosDisplayUser | null>(() => {
+    const base = this.currentUser() as PosDisplayUser | null
+    const fresh = this.profileUser()
+    if (!base && !fresh) return null
+    return { ...(base ?? {}), ...(fresh ?? {}) }
+  })
 
   // Theme options
   themeOptions = [
@@ -125,6 +162,38 @@ export class SettingsComponent implements OnInit {
       this.outboxRejected()
       untracked(() => void this.#loadRejected())
     })
+
+    // Profil nachladen, sobald die Verbindung steht (angular.md §2.1: async-Body
+    // in untracked(), sonst Effect-Loop über die Signals in #loadProfile).
+    effect(() => {
+      const status = this.connectionService.connectionState().status
+      untracked(() => {
+        if (status === 'authenticated') void this.#loadProfile()
+      })
+    })
+  }
+
+  /**
+   * Laedt den eingeloggten Mitarbeiter frisch vom Edge. Die Personalnummer liegt
+   * bewusst nicht im localStorage (Time-Clock-Credential), der externe Resolver
+   * liefert sie aber an authentifizierte Clients aus.
+   */
+  async #loadProfile(): Promise<void> {
+    const userId = (this.currentUser() as { _id?: string } | null)?._id
+    if (!userId) return
+
+    this.profileLoading.set(true)
+    this.profileError.set(false)
+    try {
+      const user = (await this.connectionService.usersService.get(userId)) as PosProfileUser
+      this.profileUser.set(user)
+    } catch {
+      // Offline oder Edge nicht erreichbar — die Karte bleibt mit den
+      // localStorage-Werten bedienbar, nur die Personalnummer fehlt.
+      this.profileError.set(true)
+    } finally {
+      this.profileLoading.set(false)
+    }
   }
 
   async #loadRejected(): Promise<void> {
@@ -229,13 +298,23 @@ export class SettingsComponent implements OnInit {
     this.pinError.set(null)
     this.saveMessage.set(null)
 
-    if (this.newPin().length < 4) {
-      this.pinError.set(this.translateService.instant('SETTINGS.PIN_MIN_LENGTH'))
+    if (this.currentPin().length !== POS_PIN_LENGTH) {
+      this.pinError.set(this.translateService.instant('SETTINGS.PIN_CURRENT_REQUIRED'))
+      return
+    }
+
+    if (this.newPin().length !== POS_PIN_LENGTH) {
+      this.pinError.set(this.translateService.instant('SETTINGS.PIN_LENGTH_EXACT', { length: POS_PIN_LENGTH }))
       return
     }
 
     if (this.newPin() !== this.confirmPin()) {
       this.pinError.set(this.translateService.instant('SETTINGS.PIN_MISMATCH'))
+      return
+    }
+
+    if (this.newPin() === this.currentPin()) {
+      this.pinError.set(this.translateService.instant('SETTINGS.PIN_SAME_AS_OLD'))
       return
     }
 
@@ -245,19 +324,30 @@ export class SettingsComponent implements OnInit {
     this.isSaving.set(true)
 
     try {
-      // Use the connection service to patch the user
-      // Note: In a real scenario, we might need a specific endpoint or re-auth
-      // But for POS simplified flow, we try patching the user directly if allowed
-      await this.connectionService.usersService.patch(user._id, {
-        posPin: this.newPin(),
-      })
+      // changePin statt patch: der POS-Client authentifiziert sich als Geraet
+      // und darf `users` nicht patchen (403). Die Custom-Method weist den
+      // Mitarbeiter ueber den aktuellen PIN aus.
+      await (
+        this.connectionService.usersService as unknown as {
+          changePin: (d: { userId: string; currentPin: string; newPin: string }) => Promise<unknown>
+        }
+      ).changePin({ userId: user._id, currentPin: this.currentPin(), newPin: this.newPin() })
 
       this.saveMessage.set(this.translateService.instant('SETTINGS.PIN_CHANGED'))
+      this.currentPin.set('')
       this.newPin.set('')
       this.confirmPin.set('')
     } catch (error: any) {
-      console.error('Failed to update PIN', error)
-      this.pinError.set(error.message || this.translateService.instant('COMMON.SAVE_ERROR'))
+      const code = error?.code
+      if (code === 401) {
+        this.pinError.set(this.translateService.instant('SETTINGS.PIN_WRONG_CURRENT'))
+      } else if (code === 429) {
+        this.pinError.set(this.translateService.instant('SETTINGS.PIN_TOO_MANY_ATTEMPTS'))
+      } else if (code === 400 && error?.message) {
+        this.pinError.set(error.message)
+      } else {
+        this.pinError.set(this.translateService.instant('COMMON.SAVE_ERROR'))
+      }
     } finally {
       this.isSaving.set(false)
     }

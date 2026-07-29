@@ -919,6 +919,11 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.WORKING_TIMES, action: [AppAction.CREATE, AppAction.READ, AppAction.UPDATE] },
     AppAbility.CAN_CLOCK_IN,
 
+    // Eigenen POS-PIN am Terminal aendern (users.changePin) — bewusst als
+    // Ability statt users:UPDATE, das wuerde dem Geraet beliebige User-Patches
+    // erlauben. Self-Scope erzwingt der currentPin-Beweis in der Methode.
+    AppAbility.CAN_CHANGE_POS_PIN,
+
     // Drucken erlauben
     { resource: AppResource.PRINT_SERVER, action: AppAction.CREATE },
 
@@ -965,6 +970,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
 
     { resource: AppResource.WORKING_TIMES, action: [AppAction.CREATE, AppAction.READ, AppAction.UPDATE] },
     AppAbility.CAN_CLOCK_IN,
+    AppAbility.CAN_CHANGE_POS_PIN,
   ],
 
   // 4. KIOSK (Selbstbedienung)

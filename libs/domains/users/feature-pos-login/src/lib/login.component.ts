@@ -4,7 +4,9 @@ import { Router } from '@angular/router'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 // Direct import to avoid circular dependency with Admin's ConnectionService
 import { ConnectionService } from '@panary/shared/data-access'
+import { POS_PIN_LENGTH } from '@panary/users/domain'
 import { TimeClockEvent, TimeClockPanelComponent } from './time-clock-panel/time-clock-panel.component'
+import { PinPadComponent } from './pin-pad/pin-pad.component'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { UpdateService } from '@panary/shared/data-access-updater'
 import { LanguageService, LANGUAGES } from '@panary/shared/data-access'
@@ -24,11 +26,14 @@ interface PosUser {
   staffRole?: string
 }
 
-type LoginStep = 'loading' | 'select-user' | 'enter-pin' | 'error'
+type LoginStep = 'loading' | 'select-user' | 'enter-pin' | 'change-pin' | 'error'
+
+/** Phasen innerhalb des erzwungenen PIN-Wechsels. */
+type ChangePinPhase = 'new' | 'confirm'
 
 @Component({
   selector: 'lib-login',
-  imports: [CommonModule, TimeClockPanelComponent, TranslateModule],
+  imports: [CommonModule, TimeClockPanelComponent, TranslateModule, PinPadComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
@@ -53,6 +58,23 @@ export class LoginComponent implements OnInit {
   readonly pinError: WritableSignal<boolean> = signal(false)
   readonly isLoading: WritableSignal<boolean> = signal(false)
   readonly errorMessage: WritableSignal<string | null> = signal(null)
+
+  // Erzwungener PIN-Wechsel (mustChangePosPin)
+  readonly changePinPhase: WritableSignal<ChangePinPhase> = signal('new')
+  readonly newPin: WritableSignal<string> = signal('')
+  readonly confirmPin: WritableSignal<string> = signal('')
+  readonly changePinError: WritableSignal<string | null> = signal(null)
+
+  /**
+   * Der beim Login verifizierte Klartext-PIN. Wird als Proof-of-Possession an
+   * `changePin` weitergereicht — das Terminal hat keine Mitarbeiter-Session,
+   * der alte PIN ist die einzige Bindung an die Person.
+   *
+   * Bewusst ein privates Feld und kein Signal: nicht im DevTools-Signal-Graph,
+   * nie im localStorage, weg beim Reload (dann ist ein neuer Login faellig).
+   */
+  #verifiedPin: string | null = null
+  #pendingUser: Record<string, unknown> | null = null
 
   // Device info for display
   readonly deviceName: WritableSignal<string> = signal('')
@@ -88,29 +110,38 @@ export class LoginComponent implements OnInit {
   //#region Keyboard Input
   @HostListener('window:keydown', ['$event'])
   handleKeyboardInput(event: KeyboardEvent): void {
-    // Nur reagieren wenn wir im PIN-Eingabe-Schritt sind
-    if (this.currentStep() !== 'enter-pin') {
+    const step = this.currentStep()
+
+    // Nur in den beiden PIN-Eingabe-Schritten reagieren
+    if (step !== 'enter-pin' && step !== 'change-pin') {
       return
     }
+
+    const isChangePin = step === 'change-pin'
 
     // Backspace oder Delete zum Löschen
     if (event.key === 'Backspace' || event.key === 'Delete') {
       event.preventDefault()
-      this.deleteDigit()
+      if (isChangePin) this.deleteChangePinDigit()
+      else this.deleteDigit()
       return
     }
 
-    // Escape um zurück zur Benutzerauswahl zu gehen
+    // Escape um zurück zur Benutzerauswahl zu gehen. Im Wechsel-Schritt bedeutet
+    // das kompletten Rueckzug (inkl. Verwerfen des verifizierten PINs) — der
+    // Zwang laesst sich damit nicht umgehen, nur neu beginnen.
     if (event.key === 'Escape') {
       event.preventDefault()
-      this.backToUsers()
+      if (isChangePin) this.cancelChangePin()
+      else this.backToUsers()
       return
     }
 
     // Nur Ziffern 0-9 akzeptieren
     if (/^[0-9]$/.test(event.key)) {
       event.preventDefault()
-      this.addDigit(event.key)
+      if (isChangePin) this.addChangePinDigit(event.key)
+      else this.addDigit(event.key)
     }
   }
 
@@ -178,6 +209,18 @@ export class LoginComponent implements OnInit {
           isPosUser: true,
           $limit: 50,
           $sort: { firstName: 1 },
+          // $select ist hier eine Sicherheitsmassnahme, keine Optimierung: ohne
+          // sie liefert der Server auch `employeeNumber` aller Mitarbeiter aus
+          // (der externalResolver strippt nur password/posPin). Die
+          // Personalnummer ist aber das alleinige Credential fuer
+          // Time-Clock-Aktionen — jedes Terminal haette damit die Stempel-Codes
+          // der gesamten Belegschaft. Der Login-Screen braucht sie nicht.
+          //
+          // Nur echte Spalten auflisten (virtuelle Felder wie `hasPosPin`
+          // wuerde Knex als "no such column" quittieren). `tenantId` bleibt
+          // drin, damit das Sicherheitsnetz ensureTenantIsolation() weiter
+          // greifen kann — es ueberspringt Records ohne tenantId.
+          $select: ['_id', 'tenantId', 'firstName', 'lastName', 'isPosUser', 'staffRole'],
         },
       })
 
@@ -260,22 +303,23 @@ export class LoginComponent implements OnInit {
       const usersService = this.connectionService.usersService as any
       const verifiedUser = await usersService.verifyPin({ userId: user._id, pin: this.pinInput() })
 
-      // Store logged in user — bewusst OHNE employeeNumber, weil diese als
-      // Sole-Credential fuer Time-Clock-Aktionen (PIN-Eingabe in
-      // time-clock-panel) dient und nicht im localStorage liegen soll.
-      // Konsumenten des pos_current_user lesen employeeNumber nirgends.
-      localStorage.setItem(
-        'pos_current_user',
-        JSON.stringify({
-          _id: verifiedUser._id,
-          firstName: verifiedUser.firstName,
-          lastName: verifiedUser.lastName,
-          initials: user.initials,
-          staffRole: verifiedUser.staffRole,
-        }),
-      )
+      // Erzwungener PIN-Wechsel: Der Admin hat den PIN vergeben und kennt ihn
+      // daher — bis zum Wechsel waere keine POS-Aktion eindeutig zurechenbar.
+      // Truthy-Pruefung, nicht `=== true`: SQLite kennt keinen Boolean-Typ und
+      // liefert 0/1.
+      if (verifiedUser.mustChangePosPin) {
+        this.#verifiedPin = this.pinInput()
+        this.#pendingUser = { ...verifiedUser, initials: user.initials }
+        this.pinInput.set('')
+        this.#resetChangePinInputs()
+        this.currentStep.set('change-pin')
+        // Bewusst KEIN localStorage-Write und keine Navigation: ohne
+        // `pos_current_user` schickt der posAuthGuard jede geschuetzte Route
+        // zurueck auf /login — der Zwang haelt auch gegen manuelle URL-Eingabe.
+        return
+      }
 
-      this.router.navigate(['/dashboard'])
+      this.#completeLogin({ ...verifiedUser, initials: user.initials })
     } catch (error) {
       this.pinError.set(true)
       this.pinInput.set('')
@@ -287,6 +331,142 @@ export class LoginComponent implements OnInit {
     } finally {
       this.isLoading.set(false)
     }
+  }
+
+  /**
+   * Schliesst den Login ab: Sitzungs-User ablegen und ins Dashboard.
+   *
+   * `employeeNumber` bleibt bewusst draussen — sie ist Sole-Credential fuer
+   * Time-Clock-Aktionen und soll nicht im localStorage liegen. Die
+   * Einstellungs-Seite laedt sie bei Bedarf frisch vom Server.
+   */
+  #completeLogin(user: Record<string, any>): void {
+    localStorage.setItem(
+      'pos_current_user',
+      JSON.stringify({
+        _id: user['_id'],
+        firstName: user['firstName'],
+        lastName: user['lastName'],
+        initials: user['initials'],
+        staffRole: user['staffRole'],
+      }),
+    )
+
+    this.#verifiedPin = null
+    this.#pendingUser = null
+    this.router.navigate(['/dashboard'])
+  }
+
+  //#endregion
+
+  //#region Forced PIN Change
+  #resetChangePinInputs(): void {
+    this.changePinPhase.set('new')
+    this.newPin.set('')
+    this.confirmPin.set('')
+    this.changePinError.set(null)
+  }
+
+  /** Aktuell befuellte Eingabe — je nach Phase neuer oder bestaetigter PIN. */
+  private activeChangePin(): WritableSignal<string> {
+    return this.changePinPhase() === 'new' ? this.newPin : this.confirmPin
+  }
+
+  addChangePinDigit(digit: string): void {
+    const target = this.activeChangePin()
+    if (target().length >= POS_PIN_LENGTH) return
+
+    this.changePinError.set(null)
+    target.update(current => current + digit)
+
+    if (target().length < POS_PIN_LENGTH) return
+
+    if (this.changePinPhase() === 'new') {
+      // Zweite Phase: Bestaetigung. Kein Auto-Submit vor dem Abgleich.
+      this.changePinPhase.set('confirm')
+      return
+    }
+
+    setTimeout(() => this.submitNewPin(), 100)
+  }
+
+  deleteChangePinDigit(): void {
+    const target = this.activeChangePin()
+    this.changePinError.set(null)
+
+    // Am Anfang der Bestaetigung zurueck in die erste Phase — sonst haengt der
+    // Nutzer in einer Eingabe fest, die er nicht mehr korrigieren kann.
+    if (target().length === 0 && this.changePinPhase() === 'confirm') {
+      this.changePinPhase.set('new')
+      this.newPin.set('')
+      return
+    }
+
+    target.update(current => current.slice(0, -1))
+  }
+
+  async submitNewPin(): Promise<void> {
+    const userId = this.#pendingUser?.['_id'] as string | undefined
+    const currentPin = this.#verifiedPin
+    if (!userId || !currentPin) return
+
+    if (this.newPin() !== this.confirmPin()) {
+      this.#failChangePin('LOGIN.PIN_MISMATCH')
+      return
+    }
+
+    if (this.newPin() === currentPin) {
+      this.#failChangePin('LOGIN.PIN_SAME_AS_OLD')
+      return
+    }
+
+    this.isLoading.set(true)
+    try {
+      const usersService = this.connectionService.usersService as any
+      const updated = await usersService.changePin({ userId, currentPin, newPin: this.newPin() })
+
+      this.#completeLogin({ ...this.#pendingUser, ...updated, initials: this.#pendingUser?.['initials'] })
+    } catch (error) {
+      const code = (error as { code?: number })?.code
+      const message = (error as { message?: string })?.message
+
+      if (code === 429) {
+        this.#failChangePin('LOGIN.PIN_TOO_MANY_ATTEMPTS')
+      } else if (code === 400 && message) {
+        // Server-Meldung (Format/gleiche PIN) direkt zeigen — sie ist bereits
+        // benutzergerecht formuliert.
+        this.#failChangePin(null, message)
+      } else {
+        this.#failChangePin('LOGIN.PIN_CHANGE_FAILED')
+      }
+    } finally {
+      this.isLoading.set(false)
+    }
+  }
+
+  /**
+   * Setzt die Eingabe zurueck, behaelt aber `#verifiedPin` — sonst muesste sich
+   * der Mitarbeiter nach jedem Vertipper komplett neu anmelden.
+   */
+  #failChangePin(translationKey: string | null, rawMessage?: string): void {
+    this.changePinError.set(translationKey ? this.#translateService.instant(translationKey) : (rawMessage ?? ''))
+    this.changePinPhase.set('new')
+    this.newPin.set('')
+    this.confirmPin.set('')
+
+    if (navigator.vibrate) {
+      navigator.vibrate([100, 50, 100])
+    }
+  }
+
+  /** Abbruch im Wechsel-Dialog: kompletter Rueckzug zur Benutzerauswahl. */
+  cancelChangePin(): void {
+    this.#verifiedPin = null
+    this.#pendingUser = null
+    this.#resetChangePinInputs()
+    this.selectedUser.set(null)
+    this.pinInput.set('')
+    this.currentStep.set('select-user')
   }
 
   //#endregion

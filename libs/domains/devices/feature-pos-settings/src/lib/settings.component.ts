@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http'
 import { lastValueFrom } from 'rxjs'
 import { ThemeServiceService, UiScaleService } from '@panary/shared/data-access-theme'
 import { UiDensity, type UiDensityLevel } from '@panary/devices/domain'
+import { POS_PIN_LENGTH } from '@panary/users/domain'
 import { LocationService } from '@panary/locations/data-access'
 import { ConnectionService, LanguageService, OFFLINE_OUTBOX, OFFLINE_REPLAY } from '@panary/shared/data-access'
 import type { OfflineOutboxRejectedEntry } from '@panary/shared-common'
@@ -31,6 +32,11 @@ interface PosProfileUser {
   employeeNumber?: string
   role?: string
   hasPosPin?: boolean
+}
+
+/** localStorage-Basis (Name/Initialen) angereichert um den Server-Record. */
+interface PosDisplayUser extends Partial<PosProfileUser> {
+  initials?: string
 }
 
 interface EdgeServerInfo {
@@ -102,8 +108,8 @@ export class SettingsComponent implements OnInit {
   readonly profileError = signal(false)
 
   /** localStorage-Basis + Server-Anreicherung. Offline bleibt die Karte nutzbar. */
-  readonly displayUser = computed<Record<string, unknown> | null>(() => {
-    const base = this.currentUser() as Record<string, unknown> | null
+  readonly displayUser = computed<PosDisplayUser | null>(() => {
+    const base = this.currentUser() as PosDisplayUser | null
     const fresh = this.profileUser()
     if (!base && !fresh) return null
     return { ...(base ?? {}), ...(fresh ?? {}) }
@@ -292,13 +298,23 @@ export class SettingsComponent implements OnInit {
     this.pinError.set(null)
     this.saveMessage.set(null)
 
-    if (this.newPin().length < 4) {
-      this.pinError.set(this.translateService.instant('SETTINGS.PIN_MIN_LENGTH'))
+    if (this.currentPin().length !== POS_PIN_LENGTH) {
+      this.pinError.set(this.translateService.instant('SETTINGS.PIN_CURRENT_REQUIRED'))
+      return
+    }
+
+    if (this.newPin().length !== POS_PIN_LENGTH) {
+      this.pinError.set(this.translateService.instant('SETTINGS.PIN_LENGTH_EXACT', { length: POS_PIN_LENGTH }))
       return
     }
 
     if (this.newPin() !== this.confirmPin()) {
       this.pinError.set(this.translateService.instant('SETTINGS.PIN_MISMATCH'))
+      return
+    }
+
+    if (this.newPin() === this.currentPin()) {
+      this.pinError.set(this.translateService.instant('SETTINGS.PIN_SAME_AS_OLD'))
       return
     }
 
@@ -308,19 +324,30 @@ export class SettingsComponent implements OnInit {
     this.isSaving.set(true)
 
     try {
-      // Use the connection service to patch the user
-      // Note: In a real scenario, we might need a specific endpoint or re-auth
-      // But for POS simplified flow, we try patching the user directly if allowed
-      await this.connectionService.usersService.patch(user._id, {
-        posPin: this.newPin(),
-      })
+      // changePin statt patch: der POS-Client authentifiziert sich als Geraet
+      // und darf `users` nicht patchen (403). Die Custom-Method weist den
+      // Mitarbeiter ueber den aktuellen PIN aus.
+      await (
+        this.connectionService.usersService as unknown as {
+          changePin: (d: { userId: string; currentPin: string; newPin: string }) => Promise<unknown>
+        }
+      ).changePin({ userId: user._id, currentPin: this.currentPin(), newPin: this.newPin() })
 
       this.saveMessage.set(this.translateService.instant('SETTINGS.PIN_CHANGED'))
+      this.currentPin.set('')
       this.newPin.set('')
       this.confirmPin.set('')
     } catch (error: any) {
-      console.error('Failed to update PIN', error)
-      this.pinError.set(error.message || this.translateService.instant('COMMON.SAVE_ERROR'))
+      const code = error?.code
+      if (code === 401) {
+        this.pinError.set(this.translateService.instant('SETTINGS.PIN_WRONG_CURRENT'))
+      } else if (code === 429) {
+        this.pinError.set(this.translateService.instant('SETTINGS.PIN_TOO_MANY_ATTEMPTS'))
+      } else if (code === 400 && error?.message) {
+        this.pinError.set(error.message)
+      } else {
+        this.pinError.set(this.translateService.instant('COMMON.SAVE_ERROR'))
+      }
     } finally {
       this.isSaving.set(false)
     }

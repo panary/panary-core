@@ -57,13 +57,13 @@ export const validateStaffMealExclusivity = async (context: HookContext): Promis
   // Vorzustand intern laden, damit `multiTenancy` nicht filtert (sonst 404 statt 400
   // bei fremdem Tenant) — gleiches Muster wie im Status-FSM-Guard.
   const previous = (await context.service.get(context.id, {
-    provider: undefined,
+    provider: undefined
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any)) as StaffMealExclusivityInput
 
   assertOne({
     staffPaymentInfo: touchesStaff ? data.staffPaymentInfo : previous?.staffPaymentInfo,
-    appliedDiscounts: touchesDiscounts ? data.appliedDiscounts : previous?.appliedDiscounts,
+    appliedDiscounts: touchesDiscounts ? data.appliedDiscounts : previous?.appliedDiscounts
   })
   return context
 }

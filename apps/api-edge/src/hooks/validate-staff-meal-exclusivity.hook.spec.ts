@@ -9,7 +9,7 @@ import { BadRequest } from '@feathersjs/errors'
 // des Mocks lässt sich der Merge exakt prüfen.
 const assertStaffMealDiscountExclusivity = vi.fn()
 vi.mock('@panary/orders/domain', () => ({
-  assertStaffMealDiscountExclusivity: (...a: unknown[]) => assertStaffMealDiscountExclusivity(...a),
+  assertStaffMealDiscountExclusivity: (...a: unknown[]) => assertStaffMealDiscountExclusivity(...a)
 }))
 
 import { validateStaffMealExclusivity } from './validate-staff-meal-exclusivity.hook'
@@ -33,7 +33,7 @@ const buildContext = (opts: {
     id: opts.id === undefined ? '1' : opts.id,
     data: opts.data ?? {},
     params: { provider: opts.provider },
-    service: { get: getSpy },
+    service: { get: getSpy }
   } as unknown as HookContext
 }
 
@@ -48,7 +48,7 @@ describe('validateStaffMealExclusivity (Edge)', () => {
     })
     const ctx = buildContext({
       method: 'create',
-      data: { staffPaymentInfo: staff, appliedDiscounts: [foreignDiscount] },
+      data: { staffPaymentInfo: staff, appliedDiscounts: [foreignDiscount] }
     })
     await expect(validateStaffMealExclusivity(ctx)).resolves.toBe(ctx)
     expect(assertStaffMealDiscountExclusivity).not.toHaveBeenCalled()
@@ -62,7 +62,7 @@ describe('validateStaffMealExclusivity (Edge)', () => {
       const ctx = buildContext({
         method: 'create',
         provider: 'socketio',
-        data: { staffPaymentInfo: staff, appliedDiscounts: [foreignDiscount] },
+        data: { staffPaymentInfo: staff, appliedDiscounts: [foreignDiscount] }
       })
       await expect(validateStaffMealExclusivity(ctx)).rejects.toBeInstanceOf(BadRequest)
     })
@@ -71,7 +71,7 @@ describe('validateStaffMealExclusivity (Edge)', () => {
       const ctx = buildContext({
         method: 'create',
         provider: 'socketio',
-        data: { staffPaymentInfo: staff, appliedDiscounts: [staffDiscount] },
+        data: { staffPaymentInfo: staff, appliedDiscounts: [staffDiscount] }
       })
       await expect(validateStaffMealExclusivity(ctx)).resolves.toBe(ctx)
       expect(assertStaffMealDiscountExclusivity).toHaveBeenCalledTimes(1)
@@ -81,7 +81,7 @@ describe('validateStaffMealExclusivity (Edge)', () => {
       const ctx = buildContext({
         method: 'create',
         provider: 'socketio',
-        data: [{ staffPaymentInfo: staff }, { appliedDiscounts: [foreignDiscount] }],
+        data: [{ staffPaymentInfo: staff }, { appliedDiscounts: [foreignDiscount] }]
       })
       await validateStaffMealExclusivity(ctx)
       expect(assertStaffMealDiscountExclusivity).toHaveBeenCalledTimes(2)
@@ -104,7 +104,7 @@ describe('validateStaffMealExclusivity (Edge)', () => {
       expect(getSpy).toHaveBeenCalledWith('1', { provider: undefined })
       expect(assertStaffMealDiscountExclusivity).toHaveBeenCalledWith({
         staffPaymentInfo: staff,
-        appliedDiscounts: [foreignDiscount],
+        appliedDiscounts: [foreignDiscount]
       })
     })
 
@@ -113,12 +113,12 @@ describe('validateStaffMealExclusivity (Edge)', () => {
       const ctx = buildContext({
         provider: 'socketio',
         data: { appliedDiscounts: [foreignDiscount] },
-        getSpy,
+        getSpy
       })
       await validateStaffMealExclusivity(ctx)
       expect(assertStaffMealDiscountExclusivity).toHaveBeenCalledWith({
         staffPaymentInfo: staff,
-        appliedDiscounts: [foreignDiscount],
+        appliedDiscounts: [foreignDiscount]
       })
     })
 
@@ -128,7 +128,7 @@ describe('validateStaffMealExclusivity (Edge)', () => {
       await validateStaffMealExclusivity(ctx)
       expect(assertStaffMealDiscountExclusivity).toHaveBeenCalledWith({
         staffPaymentInfo: null,
-        appliedDiscounts: [staffDiscount],
+        appliedDiscounts: [staffDiscount]
       })
     })
 

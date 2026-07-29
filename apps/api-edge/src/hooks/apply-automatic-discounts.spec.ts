@@ -144,7 +144,12 @@ describe('applyAutomaticDiscounts — Kombinationsregel (günstigster Rabatt, ke
 describe('applyAutomaticDiscounts — Guards', () => {
   it('lässt die Order unverändert, wenn kein Rabatt greift (Mindestbetrag nicht erreicht)', async () => {
     const order = makeOrder({ lineItems: [makeLineItem({ price: 20, amount: 2 })] })
-    const notReached = makeDiscount({ valueType: 'percent', valuePercent: 10, minRequirementType: 'amount', minAmountCents: 10000 })
+    const notReached = makeDiscount({
+      valueType: 'percent',
+      valuePercent: 10,
+      minRequirementType: 'amount',
+      minAmountCents: 10000,
+    })
     const { ctx, find } = makeContext(order, [notReached])
 
     await applyAutomaticDiscounts(ctx)
@@ -154,7 +159,15 @@ describe('applyAutomaticDiscounts — Guards', () => {
   })
 
   it('greift NICHT, wenn bereits ein manueller Rabatt in appliedDiscounts liegt (keine Discounts-Abfrage)', async () => {
-    const manual = { _id: 'ad-1', name: 'Kulanz', method: 'manual', target: 'order', valueType: 'percent', valuePercent: 5, valueCents: 0 }
+    const manual = {
+      _id: 'ad-1',
+      name: 'Kulanz',
+      method: 'manual',
+      target: 'order',
+      valueType: 'percent',
+      valuePercent: 5,
+      valueCents: 0,
+    }
     const order = makeOrder({ appliedDiscounts: [manual] })
     const { ctx, find } = makeContext(order, [amt5()])
 

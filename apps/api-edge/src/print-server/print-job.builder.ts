@@ -29,10 +29,7 @@ export interface PrintResult {
  * Führt einen Druckauftrag aus — sendet das Dokument an alle Ziel-Drucker.
  * Nur IP-Drucker werden vom Backend bedient (MQTT bleibt Frontend-seitig).
  */
-export async function executePrintJob(
-  job: PrintJob,
-  allPrinters: PrinterConfig[],
-): Promise<PrintResult> {
+export async function executePrintJob(job: PrintJob, allPrinters: PrinterConfig[]): Promise<PrintResult> {
   // Ziel-Drucker filtern: nur aktive IP-Drucker
   let targetPrinters = allPrinters.filter(p => p.active && p.type === 'ip')
 
@@ -42,7 +39,10 @@ export async function executePrintJob(
   }
 
   if (targetPrinters.length === 0) {
-    return { success: false, results: [{ printerId: '', printerName: '', success: false, error: 'Keine aktiven IP-Drucker gefunden' }] }
+    return {
+      success: false,
+      results: [{ printerId: '', printerName: '', success: false, error: 'Keine aktiven IP-Drucker gefunden' }],
+    }
   }
 
   const copies = job.copies ?? 1

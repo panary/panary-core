@@ -183,12 +183,12 @@ export const runLocationRestampRepair = async (app: Application): Promise<void> 
     //    bei der naechsten Cloud-Aenderung wieder auftauchen. Der Initial-Pull
     //    ist idempotent (upsert), der Reset also gefahrlos.
     for (const service of CURSOR_RESET_SERVICES) {
-      await (app
+      await app
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .service(syncCursorPath as any)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .remove(`cloud:${service}`, { provider: undefined } as any)
-        .catch(() => undefined))
+        .catch(() => undefined)
     }
   } catch (err) {
     logger.error({

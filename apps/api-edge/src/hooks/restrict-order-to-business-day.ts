@@ -23,9 +23,7 @@ import {
  * ohne Override blockiert der Hook neue Bestellungen mit klarer Operator-
  * Message.
  */
-async function getConnectedCloudConnection(
-  context: HookContext,
-): Promise<CloudConnection | null> {
+async function getConnectedCloudConnection(context: HookContext): Promise<CloudConnection | null> {
   try {
     const result = await context.app.service('cloud-connection').find({
       provider: undefined,
@@ -131,10 +129,7 @@ async function resolveLocationId(context: HookContext): Promise<string> {
  * auf einem veralteten Geschaeftstag. Bewusst stunden-basiert (rollend), nicht
  * kalendertag-basiert.
  */
-async function ensureBusinessDayNotOpenTooLong(
-  app: HookContext['app'],
-  businessDayId: string,
-): Promise<void> {
+async function ensureBusinessDayNotOpenTooLong(app: HookContext['app'], businessDayId: string): Promise<void> {
   const maxOpenHours = app.get('maxBusinessDayOpenHours') || 24
 
   const businessDay = (await app.service('businessdays').get(businessDayId, {

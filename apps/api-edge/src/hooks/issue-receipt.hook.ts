@@ -66,7 +66,14 @@ interface CompletedOrder {
   recordingDate?: string
   dineLocation?: 'dine-in' | 'take-out'
   currency?: string
-  lineItems?: Array<{ externalId?: string; name?: string; amount?: number; price?: number; taxInside?: number; taxOutside?: number }>
+  lineItems?: Array<{
+    externalId?: string
+    name?: string
+    amount?: number
+    price?: number
+    taxInside?: number
+    taxOutside?: number
+  }>
   taxSnapshot?: ReceiptOrderInput['taxSnapshot']
   payment?: ReceiptOrderInput['payment']
   tse?: unknown

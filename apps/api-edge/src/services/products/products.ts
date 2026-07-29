@@ -9,7 +9,7 @@ import {
   productsPatchValidator,
   productsQueryResolver,
   productsQueryValidator,
-  productsResolver
+  productsResolver,
 } from './products.schema'
 
 import type { Application } from '../../declarations'
@@ -18,15 +18,17 @@ import { authorize } from '@panary/shared-backend'
 import { multiTenancy } from '@panary/shared-backend'
 import { getJsonFieldHooks } from '@panary/shared-backend'
 
-const PRODUCT_JSON_FIELDS = ['categoryIds', 'optionGroups', 'availability', 'ui', 'ingredientReferences', 'recipeReferences']
+const PRODUCT_JSON_FIELDS = [
+  'categoryIds',
+  'optionGroups',
+  'availability',
+  'ui',
+  'ingredientReferences',
+  'recipeReferences',
+]
 import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { DatabaseType } from '@panary/shared-common'
-import {
-  productDataSchema,
-  productPatchSchema,
-  productQuerySchema,
-  productSchema
-} from '@panary/products/domain'
+import { productDataSchema, productPatchSchema, productQuerySchema, productSchema } from '@panary/products/domain'
 import { ensureIndexes } from '@panary/shared-backend'
 
 export const productsPath = 'products'
@@ -58,7 +60,7 @@ export const products = (app: Application) => {
     Model,
     paginate,
     id: '_id',
-    multi: ['create', 'patch', 'remove']
+    multi: ['create', 'patch', 'remove'],
   }) as unknown as ProductService
 
   ;(service as any).setup = async (app: Application) =>
@@ -98,9 +100,9 @@ export const products = (app: Application) => {
         product: productSchema,
         productData: productDataSchema,
         productPatch: productPatchSchema,
-        productQuery: productQuerySchema
-      }
-    }
+        productQuery: productQuerySchema,
+      },
+    },
   })
 
   const jsonHooks = getJsonFieldHooks(app, PRODUCT_JSON_FIELDS)
@@ -114,14 +116,11 @@ export const products = (app: Application) => {
         multiTenancy({ isolateLocation: true, allowGlobalData: false }),
 
         schemaHooks.resolveExternal(productsExternalResolver),
-        schemaHooks.resolveResult(productsResolver)
-      ]
+        schemaHooks.resolveResult(productsResolver),
+      ],
     },
     before: {
-      all: [
-        schemaHooks.validateQuery(productsQueryValidator),
-        schemaHooks.resolveQuery(productsQueryResolver)
-      ],
+      all: [schemaHooks.validateQuery(productsQueryValidator), schemaHooks.resolveQuery(productsQueryResolver)],
       find: [],
       get: [],
       create: [
@@ -134,16 +133,14 @@ export const products = (app: Application) => {
         schemaHooks.resolveData(productsPatchResolver),
         ...jsonHooks.before,
       ],
-      remove: []
+      remove: [],
     },
     after: {
-      all: [
-        ...jsonHooks.after,
-      ]
+      all: [...jsonHooks.after],
     },
     error: {
-      all: []
-    }
+      all: [],
+    },
   })
 }
 

@@ -21,12 +21,7 @@ import { WorkingTimeService } from './services/working-times/working-times.class
 import { PreOrderService } from './services/pre-orders/pre-orders.class'
 import { CloudConnectionService } from './services/cloud-connection/cloud-connection.class'
 import { OpeningHourExceptionService } from './services/opening-hour-exceptions/opening-hour-exceptions.class'
-import type {
-  SyncConflict,
-  SyncCursor,
-  SyncOutboxEntry,
-  SyncRun,
-} from '@panary/sync/domain'
+import type { SyncConflict, SyncCursor, SyncOutboxEntry, SyncRun } from '@panary/sync/domain'
 import type { BootstrapReport } from '@panary/cloud-connection/domain'
 import type { AuditEvent } from '@panary/audit-events/domain'
 import type { FiscalCounter, TsePort } from '@panary/tse/domain'

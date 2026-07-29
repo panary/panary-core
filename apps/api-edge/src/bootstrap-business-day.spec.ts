@@ -95,7 +95,11 @@ describe('autoEnsureBusinessDay', () => {
     await autoEnsureBusinessDay(
       makeApp({
         locations: [
-          { _id: 'loc-1', tenantId: 't-1', currentBusinessDay: JSON.stringify({ businessDayId: 'bd-old', date: '2026-05-01' }) },
+          {
+            _id: 'loc-1',
+            tenantId: 't-1',
+            currentBusinessDay: JSON.stringify({ businessDayId: 'bd-old', date: '2026-05-01' }),
+          },
         ],
       }),
     )
@@ -110,7 +114,11 @@ describe('autoEnsureBusinessDay', () => {
     await autoEnsureBusinessDay(
       makeApp({
         locations: [
-          { _id: 'loc-1', tenantId: 't-1', currentBusinessDay: JSON.stringify({ businessDayId: 'bd-old', date: '2026-05-01' }) },
+          {
+            _id: 'loc-1',
+            tenantId: 't-1',
+            currentBusinessDay: JSON.stringify({ businessDayId: 'bd-old', date: '2026-05-01' }),
+          },
         ],
       }),
     )

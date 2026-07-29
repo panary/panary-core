@@ -10,7 +10,7 @@ import {
   productGroupDataSchema,
   productGroupPatchSchema,
   ProductGroupQuery,
-  productGroupQuerySchema
+  productGroupQuerySchema,
 } from '@panary/product-groups/domain'
 import { ProductGroupService } from './product-groups.class'
 
@@ -37,7 +37,7 @@ export const productGroupDataResolver = resolve<ProductGroup, HookContext<Produc
   },
   status: async (value, data, context) => {
     return value || 'DRAFT'
-  }
+  },
 })
 //#endregion
 
@@ -49,7 +49,7 @@ export const productGroupPatchResolver = resolve<ProductGroup, HookContext<Produ
   tenantId: async () => undefined,
   locationId: async () => undefined,
   createdAt: async () => undefined,
-  updatedAt: async () => new Date().toISOString()
+  updatedAt: async () => new Date().toISOString(),
 
   // TODO: Add additional resolver logic here
 })

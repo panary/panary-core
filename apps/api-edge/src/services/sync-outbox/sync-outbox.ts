@@ -86,10 +86,7 @@ const syncOutboxQueryResolver = resolve<SyncOutboxEntry, HookContext>({})
  *    (vom Operator geloescht), erhaelt der Aufrufer einen klaren BadRequest —
  *    die alte rejected-Row bleibt erhalten, es gehen keine Daten verloren.
  */
-async function reEnqueueOutboxEntry(
-  app: Application,
-  data: ReEnqueueOutboxArgs,
-): Promise<SyncOutboxEntry> {
+async function reEnqueueOutboxEntry(app: Application, data: ReEnqueueOutboxArgs): Promise<SyncOutboxEntry> {
   await reEnqueueArgsValidator(data)
 
   const outboxService = app.service(syncOutboxPath) as unknown as {
@@ -101,9 +98,7 @@ async function reEnqueueOutboxEntry(
   const entry = await outboxService.get(data.id, { provider: undefined })
 
   if (entry.status !== SyncOutboxStatus.REJECTED) {
-    throw new BadRequest(
-      `Nur abgelehnte Eintraege koennen erneut eingereiht werden (Status: ${entry.status})`,
-    )
+    throw new BadRequest(`Nur abgelehnte Eintraege koennen erneut eingereiht werden (Status: ${entry.status})`)
   }
 
   let payload: unknown = undefined
@@ -112,13 +107,13 @@ async function reEnqueueOutboxEntry(
       // `entry.service` ist ein generischer string aus der Outbox-Row, deshalb
       // wird der Pfad ueber `any` aufgeloest — Feathers' typisiertes Registry
       // akzeptiert nur die Union der registrierten Service-Pfade.
-      payload = await (app.service(entry.service as never) as unknown as {
-        get(id: string, params: { provider: undefined }): Promise<unknown>
-      }).get(entry.entityId, { provider: undefined })
+      payload = await (
+        app.service(entry.service as never) as unknown as {
+          get(id: string, params: { provider: undefined }): Promise<unknown>
+        }
+      ).get(entry.entityId, { provider: undefined })
     } catch {
-      throw new BadRequest(
-        'Lokaler Datensatz existiert nicht mehr — kann nicht erneut eingereiht werden',
-      )
+      throw new BadRequest('Lokaler Datensatz existiert nicht mehr — kann nicht erneut eingereiht werden')
     }
   }
 
@@ -155,9 +150,9 @@ export const syncOutbox = (app: Application) => {
     multi: ['patch'],
   })
 
-  ;(service as unknown as { reEnqueue: (data: ReEnqueueOutboxArgs) => Promise<SyncOutboxEntry> })
-    .reEnqueue = (data: ReEnqueueOutboxArgs) => reEnqueueOutboxEntry(app, data)
-
+  ;(service as unknown as { reEnqueue: (data: ReEnqueueOutboxArgs) => Promise<SyncOutboxEntry> }).reEnqueue = (
+    data: ReEnqueueOutboxArgs,
+  ) => reEnqueueOutboxEntry(app, data)
   ;(app as any).use(syncOutboxPath, service, {
     methods: ['find', 'get', 'create', 'patch', 'remove', 'reEnqueue'],
     events: [],
@@ -180,18 +175,9 @@ export const syncOutbox = (app: Application) => {
       ],
     },
     before: {
-      all: [
-        schemaHooks.validateQuery(syncOutboxQueryValidator),
-        schemaHooks.resolveQuery(syncOutboxQueryResolver),
-      ],
-      create: [
-        schemaHooks.validateData(syncOutboxDataValidator),
-        schemaHooks.resolveData(syncOutboxDataResolver),
-      ],
-      patch: [
-        schemaHooks.validateData(syncOutboxPatchValidator),
-        schemaHooks.resolveData(syncOutboxPatchResolver),
-      ],
+      all: [schemaHooks.validateQuery(syncOutboxQueryValidator), schemaHooks.resolveQuery(syncOutboxQueryResolver)],
+      create: [schemaHooks.validateData(syncOutboxDataValidator), schemaHooks.resolveData(syncOutboxDataResolver)],
+      patch: [schemaHooks.validateData(syncOutboxPatchValidator), schemaHooks.resolveData(syncOutboxPatchResolver)],
     },
     error: { all: [] },
   })

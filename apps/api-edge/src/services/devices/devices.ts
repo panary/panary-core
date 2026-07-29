@@ -9,7 +9,7 @@ import {
   devicePatchValidator,
   deviceQueryResolver,
   deviceQueryValidator,
-  deviceResolver
+  deviceResolver,
 } from './devices.schema'
 
 import type { Application } from '../../declarations'
@@ -17,12 +17,7 @@ import { authorize } from '@panary/shared-backend'
 import { multiTenancy } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { DatabaseType } from '@panary/shared-common'
-import {
-  deviceDataSchema,
-  devicePatchSchema,
-  deviceQuerySchema,
-  deviceSchema
-} from '@panary/devices/domain'
+import { deviceDataSchema, devicePatchSchema, deviceQuerySchema, deviceSchema } from '@panary/devices/domain'
 import type { Device, DeviceService } from './devices.class'
 import { ensureIndexes, getJsonFieldHooks, logger } from '@panary/shared-backend'
 import { restrictDeviceSelfPatch } from '../../hooks/restrict-device-self-patch.hook'
@@ -64,7 +59,7 @@ export const devices = (app: Application) => {
     Model,
     paginate,
     id: '_id',
-    multi: []
+    multi: [],
   }) as unknown as DeviceService
 
   ;(service as any).setup = async (app: Application) =>
@@ -95,9 +90,9 @@ export const devices = (app: Application) => {
         device: deviceSchema,
         deviceData: deviceDataSchema,
         devicePatch: devicePatchSchema,
-        deviceQuery: deviceQuerySchema
-      }
-    }
+        deviceQuery: deviceQuerySchema,
+      },
+    },
   })
 
   const jsonHooks = getJsonFieldHooks(app, DEVICE_JSON_FIELDS)
@@ -111,19 +106,28 @@ export const devices = (app: Application) => {
         multiTenancy({ isolateLocation: true, allowGlobalData: false }),
 
         schemaHooks.resolveExternal(deviceExternalResolver),
-        schemaHooks.resolveResult(deviceResolver)
-      ]
+        schemaHooks.resolveResult(deviceResolver),
+      ],
     },
     before: {
       all: [schemaHooks.validateQuery(deviceQueryValidator), schemaHooks.resolveQuery(deviceQueryResolver)],
       find: [],
       get: [],
-      create: [schemaHooks.validateData(deviceDataValidator), schemaHooks.resolveData(deviceDataResolver), ...jsonHooks.before],
+      create: [
+        schemaHooks.validateData(deviceDataValidator),
+        schemaHooks.resolveData(deviceDataResolver),
+        ...jsonHooks.before,
+      ],
       // restrictDeviceSelfPatch VOR validate/resolve: Self-Restriction-Verstoesse
       // (fremdes Geraet, nicht-whitelisted Felder) schlagen frueh fehl —
       // Muster analog restrictUserSelfPatch im users-Service.
-      patch: [restrictDeviceSelfPatch, schemaHooks.validateData(devicePatchValidator), schemaHooks.resolveData(devicePatchResolver), ...jsonHooks.before],
-      remove: []
+      patch: [
+        restrictDeviceSelfPatch,
+        schemaHooks.validateData(devicePatchValidator),
+        schemaHooks.resolveData(devicePatchResolver),
+        ...jsonHooks.before,
+      ],
+      remove: [],
     },
     after: {
       all: [...jsonHooks.after],
@@ -152,21 +156,27 @@ export const devices = (app: Application) => {
             )
 
             // deviceId → apiKeyId verknüpfen
-            await context.app.service('devices').patch(device._id, { apiKeyId: apiKeyRecord._id }, { provider: undefined })
+            await context.app
+              .service('devices')
+              .patch(device._id, { apiKeyId: apiKeyRecord._id }, { provider: undefined })
 
             // Klartext-Key an den Client zurueckgeben (Show-Once)
             device.apiKey = rawApiKey
           } catch (err) {
-            logger.error({ message: 'Failed to create API key for device', event: 'devices.apikey_error', error: String(err) })
+            logger.error({
+              message: 'Failed to create API key for device',
+              event: 'devices.apikey_error',
+              error: String(err),
+            })
           }
 
           return context
         },
-      ]
+      ],
     },
     error: {
-      all: []
-    }
+      all: [],
+    },
   })
 }
 

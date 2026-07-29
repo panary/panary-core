@@ -9,8 +9,7 @@ import { constants } from 'fs'
 import { UserSystemRole } from '@panary/users/domain'
 import { uuidv7 } from 'uuidv7'
 
-const CONFIG_PATH =
-  process.env['PANARY_CONFIG_PATH'] || path.join(process.cwd(), 'data', 'panary.config.json')
+const CONFIG_PATH = process.env['PANARY_CONFIG_PATH'] || path.join(process.cwd(), 'data', 'panary.config.json')
 
 // Sentinel-Datei: existiert → Recovery wurde bereits einmal durchgeführt → kein weiterer Versuch
 const RECOVERY_FLAG_PATH = path.join(path.dirname(CONFIG_PATH), '.recovery-attempted')
@@ -62,7 +61,10 @@ async function attemptRecovery(reason: string): Promise<void> {
     // Verzeichnis nicht lesbar — ignorieren, Config wurde bereits gelöscht
   }
 
-  logger.warn({ message: 'Auto-Recovery abgeschlossen. Server wird neu gestartet...', event: 'bootstrap.recovery_complete' })
+  logger.warn({
+    message: 'Auto-Recovery abgeschlossen. Server wird neu gestartet...',
+    event: 'bootstrap.recovery_complete',
+  })
   // Docker-Restart-Policy übernimmt den Neustart; exit(0) gilt als "sauberer Stop"
   process.exit(0)
 }
@@ -95,9 +97,7 @@ async function main() {
     const port = app.get('port') || 3030
     const host = app.get('host') || 'localhost'
 
-    process.on('unhandledRejection', (reason, p) =>
-      logger.error('Unhandled Rejection at: Promise ', p, reason)
-    )
+    process.on('unhandledRejection', (reason, p) => logger.error('Unhandled Rejection at: Promise ', p, reason))
 
     // app.listen() ruft intern app.setup() auf → Migrationen laufen hier
     await app.listen(port)
@@ -141,18 +141,21 @@ async function main() {
           // Tenant-Inhaber — TENANT_OWNER reicht fuer alle lokalen Edge-Aktionen
           // und bekommt beim Sync nicht versehentlich Cross-Tenant-Zugriff in
           // der Cloud. Cloud-Sync blockt zusaetzlich `platform:*`-Rollen.
-          const createdUser = await usersService.create({
-            email: adminEmail,
-            password: adminPassword,
-            role: UserSystemRole.TENANT_OWNER,
-            loginname: adminLogin,
-            firstName: 'Admin',
-            lastName: 'User',
-            tenantId: null,
-            activeLocationId: null,
-            allowedLocationIds: [],
-            permissions: []
-          }, { provider: undefined })
+          const createdUser = await usersService.create(
+            {
+              email: adminEmail,
+              password: adminPassword,
+              role: UserSystemRole.TENANT_OWNER,
+              loginname: adminLogin,
+              firstName: 'Admin',
+              lastName: 'User',
+              tenantId: null,
+              activeLocationId: null,
+              allowedLocationIds: [],
+              permissions: [],
+            },
+            { provider: undefined },
+          )
 
           if (createdUser && createdUser._id) {
             logger.info(`Bootstrapping: Admin user created successfully (ID: ${createdUser._id}).`)
@@ -225,11 +228,13 @@ async function main() {
           .first()
 
         if (adminUser) {
-          await knex('users').where({ _id: adminUser._id }).update({
-            tenantId,
-            activeLocationId: locationId,
-            allowedLocationIds: JSON.stringify([locationId]),
-          })
+          await knex('users')
+            .where({ _id: adminUser._id })
+            .update({
+              tenantId,
+              activeLocationId: locationId,
+              allowedLocationIds: JSON.stringify([locationId]),
+            })
 
           logger.info({
             message: `Bootstrapping: Admin-User ${adminUser.loginname} dem Tenant zugeordnet`,
@@ -300,9 +305,7 @@ async function main() {
     // location.currentBusinessDay. Im DISCONNECTED-Modus pausiert er
     // (rotateBusinessDay() laeuft dann im Standalone-Pfad).
     try {
-      const { startBusinessDaysPullWorker } = await import(
-        './workers/cloud-pull-business-days.worker.js'
-      )
+      const { startBusinessDaysPullWorker } = await import('./workers/cloud-pull-business-days.worker.js')
       await startBusinessDaysPullWorker(app)
     } catch (err) {
       logger.error('BusinessDays-Pull-Worker konnte nicht gestartet werden.', err)
@@ -342,9 +345,7 @@ async function main() {
 
     // --- Closing-Status-Refresh-Worker: alle 30s offene Closings refreshen ---
     try {
-      const { startClosingStatusRefreshWorker } = await import(
-        './workers/closing-status-refresh.worker.js'
-      )
+      const { startClosingStatusRefreshWorker } = await import('./workers/closing-status-refresh.worker.js')
       startClosingStatusRefreshWorker(app)
     } catch (err) {
       logger.error('Closing-Status-Refresh-Worker: Start fehlgeschlagen.', err)
@@ -355,9 +356,7 @@ async function main() {
     // Rotiert den Geschaeftstag zur konfigurierten lokalen Stunde, ohne auf
     // Server-Neustart oder den ersten Order des neuen Tages zu warten.
     try {
-      const { startBusinessDayRotationWorker } = await import(
-        './workers/business-day-rotation.worker.js'
-      )
+      const { startBusinessDayRotationWorker } = await import('./workers/business-day-rotation.worker.js')
       startBusinessDayRotationWorker(app)
     } catch (err) {
       logger.error('Business-Day-Rotation-Worker: Start fehlgeschlagen.', err)
@@ -369,9 +368,7 @@ async function main() {
     // entdecken. Best-effort — ein Fehlschlag blockiert den Edge nicht.
     try {
       const { startMdnsAdvertising } = await import('./mdns-advertiser.js')
-      const firstLocation = await knex('locations')
-        .select('_id', 'organizationName', 'name')
-        .first()
+      const firstLocation = await knex('locations').select('_id', 'organizationName', 'name').first()
       startMdnsAdvertising({
         port,
         version: APP_VERSION,
@@ -389,10 +386,7 @@ async function main() {
     }
     // -----------------------------------------------------------------------
   } catch (error) {
-    logger.error(
-      `Configuration check failed or file missing at ${CONFIG_PATH}. Starting in SETUP MODE.`,
-      error
-    )
+    logger.error(`Configuration check failed or file missing at ${CONFIG_PATH}. Starting in SETUP MODE.`, error)
     await startSetupApp(3030)
   }
 }

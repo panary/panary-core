@@ -15,7 +15,7 @@ export async function up(knex: Knex): Promise<void> {
     table.string('apiKeyId').nullable()
     table.string('lastSeen').nullable()
     table.boolean('active').defaultTo(true)
-    table.text('metadata').nullable()  // { userAgent, ipAddress, version }
+    table.text('metadata').nullable() // { userAgent, ipAddress, version }
     table.string('createdBy').nullable()
   })
 

@@ -2,8 +2,7 @@ import { sumDenominationCounts, type DenominationCounts } from '@panary/business
 
 import type { HookContext } from '../declarations'
 
-const isFromSync = (context: HookContext): boolean =>
-  Boolean((context.params as { fromSync?: boolean }).fromSync)
+const isFromSync = (context: HookContext): boolean => Boolean((context.params as { fromSync?: boolean }).fromSync)
 
 /**
  * Before-Hook (create + patch) am EDGE: berechnet den lokal sicher ableitbaren
@@ -39,8 +38,7 @@ export const recomputeCashSessionTotals = async (context: HookContext): Promise<
     }
   }
 
-  const denominationCounts =
-    (data['denominationCounts'] as DenominationCounts | undefined) ?? baseCounts ?? null
+  const denominationCounts = (data['denominationCounts'] as DenominationCounts | undefined) ?? baseCounts ?? null
   data['countedClosingFloatCents'] = sumDenominationCounts(denominationCounts)
 
   return context

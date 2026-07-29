@@ -10,7 +10,7 @@ export const configurationSchema = Type.Intersect([
     port: Type.Number(),
     system: Type.Object({
       mode: Type.String(),
-      dbType: Type.String()
+      dbType: Type.String(),
     }),
     logLevel: StringEnum(['error', 'warn', 'info', 'debug']),
     // Phase 2 — Audit-Cleanup-Worker (Edge). Optional, mit Defaults im Worker.
@@ -22,7 +22,7 @@ export const configurationSchema = Type.Intersect([
         minuteJitterMs: Type.Number({ minimum: 0 }),
         cloudReachableMaxAgeDays: Type.Number({ minimum: 1 }),
         batchSize: Type.Number({ minimum: 1, maximum: 10000 }),
-      })
+      }),
     ),
     // Standalone-Geschaeftstag-Rotations-Worker. Optional, mit Defaults im Worker.
     businessDayRotation: Type.Optional(
@@ -30,7 +30,7 @@ export const configurationSchema = Type.Intersect([
         enabled: Type.Boolean(),
         hour: Type.Number({ minimum: 0, maximum: 23 }),
         minuteJitterMs: Type.Number({ minimum: 0 }),
-      })
+      }),
     ),
     // Zeit-Guard: verweigert neue Bestellungen, wenn der offene Geschaeftstag
     // seit Oeffnung laenger als diese Stundenzahl offen ist (Default 24h im Hook).
@@ -41,9 +41,9 @@ export const configurationSchema = Type.Intersect([
       Type.Object({
         provider: StringEnum(['simulator', 'fiskaly']),
         baseUrl: Type.Optional(Type.String()),
-      })
+      }),
     ),
-  })
+  }),
 ])
 
 export type ApplicationConfiguration = Static<typeof configurationSchema>

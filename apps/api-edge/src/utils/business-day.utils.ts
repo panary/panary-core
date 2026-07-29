@@ -74,7 +74,8 @@ export async function hasActiveOrders(app: FeathersApp, businessDayId: string): 
     paginate: { default: 0, max: 0 },
   })
 
-  const total = typeof result === 'object' && result !== null && 'total' in result ? (result as { total: number }).total : 0
+  const total =
+    typeof result === 'object' && result !== null && 'total' in result ? (result as { total: number }).total : 0
   return total > 0
 }
 
@@ -92,11 +93,7 @@ export async function hasActiveOrders(app: FeathersApp, businessDayId: string): 
  *
  * @returns Die neue businessDayId
  */
-export async function rotateBusinessDay(
-  app: FeathersApp,
-  location: LocationRecord,
-  today: string,
-): Promise<string> {
+export async function rotateBusinessDay(app: FeathersApp, location: LocationRecord, today: string): Promise<string> {
   const now = new Date().toISOString()
 
   // Vorherigen Geschaeftstag schliessen — gleicher Service-Pfad, keine
@@ -106,11 +103,13 @@ export async function rotateBusinessDay(
   // beide Flags konsistent. `status` + `isOpen` + `closedAt` halten das
   // Backward-Compat-Feld und das neue Status-Feld konsistent.
   if (location.currentBusinessDay?.businessDayId) {
-    await app.service('businessdays').patch(
-      location.currentBusinessDay.businessDayId,
-      { status: BusinessDayStatus.CLOSED, isOpen: false, closedAt: now },
-      { provider: undefined, isEmergencyOverride: true },
-    )
+    await app
+      .service('businessdays')
+      .patch(
+        location.currentBusinessDay.businessDayId,
+        { status: BusinessDayStatus.CLOSED, isOpen: false, closedAt: now },
+        { provider: undefined, isEmergencyOverride: true },
+      )
   }
 
   // Neuen Geschaeftstag erstellen. Das `businessDayDataSchema` erlaubt nur
@@ -129,15 +128,15 @@ export async function rotateBusinessDay(
   const newId = created._id
 
   // Location mit neuem Geschaeftstag aktualisieren.
-  await app.service('locations').patch(
-    location._id,
-    { currentBusinessDay: { businessDayId: newId, date: today } },
-    { provider: undefined, isEmergencyOverride: true },
-  )
+  await app
+    .service('locations')
+    .patch(
+      location._id,
+      { currentBusinessDay: { businessDayId: newId, date: today } },
+      { provider: undefined, isEmergencyOverride: true },
+    )
 
-  logger.info(
-    `[AutoBusinessDay] Neuer Geschaeftstag ${newId} fuer Location ${location._id} eroeffnet (${today}).`,
-  )
+  logger.info(`[AutoBusinessDay] Neuer Geschaeftstag ${newId} fuer Location ${location._id} eroeffnet (${today}).`)
 
   return newId
 }
@@ -145,10 +144,7 @@ export async function rotateBusinessDay(
 /**
  * Prueft ob ein Geschaeftstag-Wechsel noetig ist (Datum veraltet oder kein BD vorhanden).
  */
-export function shouldAutoRotate(
-  currentBusinessDay: LocationRecord['currentBusinessDay'],
-  today: string,
-): boolean {
+export function shouldAutoRotate(currentBusinessDay: LocationRecord['currentBusinessDay'], today: string): boolean {
   return !currentBusinessDay || currentBusinessDay.date !== today
 }
 

@@ -1,6 +1,13 @@
 // @ts-expect-error — keine Typdeklarationen vorhanden
 import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder'
-import { computeOrderTax, fromCents, lineItemGrossCents, multiplyCents, toCents, type OrderLineItem } from '@panary/orders/domain'
+import {
+  computeOrderTax,
+  fromCents,
+  lineItemGrossCents,
+  multiplyCents,
+  toCents,
+  type OrderLineItem,
+} from '@panary/orders/domain'
 import { buildTseReceiptBlock } from '@panary/tse/domain'
 import type { EscposOptions } from './escpos.adapter'
 
@@ -10,7 +17,12 @@ const COLUMNS_MAP: Record<string, number> = { '58mm': 32, '80mm': 48 }
  * Rendert einen Bestellbon direkt mit der Encoder-API.
  * Volle Kontrolle: table() mit Callbacks, font-Wechsel in Zellen, box(), etc.
  */
-export function renderOrderReceipt(order: any, location: any, options: EscposOptions = {}, deviceName?: string): Uint8Array {
+export function renderOrderReceipt(
+  order: any,
+  location: any,
+  options: EscposOptions = {},
+  deviceName?: string,
+): Uint8Array {
   const { paperWidth = '80mm' } = options
   const cols = COLUMNS_MAP[paperWidth] || 48
 
@@ -31,7 +43,9 @@ export function renderOrderReceipt(order: any, location: any, options: EscposOpt
   // ─────────────────────────────────────────
   enc.newline()
   if (location?.address) {
-    enc.align('center').font('B')
+    enc
+      .align('center')
+      .font('B')
       .line(location.address.street)
       .line(`${location.address.postalCode} ${location.address.city}`)
     enc.font('A')
@@ -83,10 +97,24 @@ export function renderOrderReceipt(order: any, location: any, options: EscposOpt
   if (hasExtra) {
     enc.newline()
     if (order.staffPaymentInfo) {
-      enc.bold(true).text('Personalessen: ').bold(false).invert(true).text(order.staffPaymentInfo.userName).invert(false).newline()
+      enc
+        .bold(true)
+        .text('Personalessen: ')
+        .bold(false)
+        .invert(true)
+        .text(order.staffPaymentInfo.userName)
+        .invert(false)
+        .newline()
     }
     if (order.customerPaymentInfo) {
-      enc.bold(true).text('Firmenkunde: ').bold(false).invert(true).text(order.customerPaymentInfo.customerName).invert(false).newline()
+      enc
+        .bold(true)
+        .text('Firmenkunde: ')
+        .bold(false)
+        .invert(true)
+        .text(order.customerPaymentInfo.customerName)
+        .invert(false)
+        .newline()
     }
     if (order.cancellation) {
       enc.newline()
@@ -110,7 +138,12 @@ export function renderOrderReceipt(order: any, location: any, options: EscposOpt
   for (let idx = 0; idx < combinations.length; idx++) {
     const combo = combinations[idx]
     enc.newline(2)
-    enc.bold(true).height(2).line(`Kombination ${idx + 1}`).height(1).bold(false)
+    enc
+      .bold(true)
+      .height(2)
+      .line(`Kombination ${idx + 1}`)
+      .height(1)
+      .bold(false)
     enc.rule({ style: 'single' })
 
     for (const article of combo) {
@@ -119,8 +152,14 @@ export function renderOrderReceipt(order: any, location: any, options: EscposOpt
 
     const comboPrice = calcComboPrice(combo)
     enc.table(
-      [{ width: nameW, align: 'left' }, { width: priceW, align: 'right' }],
-      [['', '--------'], ['', (e: any) => e.bold(true).text(fmtEur(comboPrice)).bold(false)]],
+      [
+        { width: nameW, align: 'left' },
+        { width: priceW, align: 'right' },
+      ],
+      [
+        ['', '--------'],
+        ['', (e: any) => e.bold(true).text(fmtEur(comboPrice)).bold(false)],
+      ],
     )
   }
 
@@ -135,12 +174,16 @@ export function renderOrderReceipt(order: any, location: any, options: EscposOpt
     if (lastTopic !== article.topic) {
       lastTopic = article.topic
       enc.newline(2)
-      enc.bold(true).height(2).line((lastTopic || '').toUpperCase()).height(1).bold(false)
+      enc
+        .bold(true)
+        .height(2)
+        .line((lastTopic || '').toUpperCase())
+        .height(1)
+        .bold(false)
       enc.rule({ style: 'single' })
     }
     appendArticle(enc, article, nameW, priceW, subNameW, drinkPrice, sideDishPrice)
   }
-
 
   // ─────────────────────────────────────────
   // GESAMTSUMME
@@ -149,9 +192,16 @@ export function renderOrderReceipt(order: any, location: any, options: EscposOpt
   enc.rule({ style: 'single' })
   const totalPrice = calcTotalWithDiscount(order)
   enc.table(
-    [{ width: Math.floor(cols * 0.55), align: 'left' }, { width: Math.floor(cols * 0.45), align: 'right' }],
-    [[(e: any) => e.bold(true).size(2, 2).text('Gesamt').size(1, 1).bold(false),
-      (e: any) => e.bold(true).size(2, 2).text(fmtEur(totalPrice)).size(1, 1).bold(false)]],
+    [
+      { width: Math.floor(cols * 0.55), align: 'left' },
+      { width: Math.floor(cols * 0.45), align: 'right' },
+    ],
+    [
+      [
+        (e: any) => e.bold(true).size(2, 2).text('Gesamt').size(1, 1).bold(false),
+        (e: any) => e.bold(true).size(2, 2).text(fmtEur(totalPrice)).size(1, 1).bold(false),
+      ],
+    ],
   )
   enc.rule({ style: 'single' })
 
@@ -195,9 +245,13 @@ function appendTseBlock(enc: any, order: any): void {
 // ─── Artikel-Rendering mit voller Encoder-Kontrolle ───
 
 function appendArticle(
-  enc: any, article: any,
-  nameW: number, priceW: number, subNameW: number,
-  drinkPrice: number, sideDishPrice: number,
+  enc: any,
+  article: any,
+  nameW: number,
+  priceW: number,
+  subNameW: number,
+  drinkPrice: number,
+  sideDishPrice: number,
 ): void {
   const prefix = namePrefix(article)
   const name = `${article.amount}x ${prefix}${article.name}`
@@ -206,9 +260,11 @@ function appendArticle(
   const price = calcArticlePrice(article)
 
   enc.table(
-    [{ width: nameW, align: 'left' }, { width: priceW, align: 'right' }],
-    [[(e: any) => e.bold(true).text(name).bold(false),
-      (e: any) => e.bold(true).text(fmtEur(price)).bold(false)]],
+    [
+      { width: nameW, align: 'left' },
+      { width: priceW, align: 'right' },
+    ],
+    [[(e: any) => e.bold(true).text(name).bold(false), (e: any) => e.bold(true).text(fmtEur(price)).bold(false)]],
   )
 
   // FIXED_PROPORTIONAL: Komponenten sind im Festpreis enthalten → keine Aufschläge
@@ -237,16 +293,23 @@ function appendArticle(
 // Modifier-Zeilen) — ein einmaliger Aufpreis passt bei Menge > 1 nicht zur
 // Zeilensumme.
 function appendMenuComponentLine(
-  enc: any, article: any, component: any,
-  generalPrice: number, isFixed: boolean,
-  subNameW: number, priceW: number,
+  enc: any,
+  article: any,
+  component: any,
+  generalPrice: number,
+  isFixed: boolean,
+  subNameW: number,
+  priceW: number,
 ): void {
   const perUnitCents = isFixed ? 0 : Math.max(0, toCents(component.price ?? 0) - toCents(generalPrice))
   const units = (component.amount ?? 1) * (article.amount ?? 1)
   const extraCents = multiplyCents(perUnitCents, units)
   enc.font('B')
   enc.table(
-    [{ width: subNameW, marginLeft: 4, align: 'left' }, { width: priceW, align: 'right' }],
+    [
+      { width: subNameW, marginLeft: 4, align: 'left' },
+      { width: priceW, align: 'right' },
+    ],
     [[`+ ${component.name}`, extraCents > 0 ? fmtEur(fromCents(extraCents)) : '']],
   )
   enc.font('A')
@@ -258,15 +321,21 @@ function appendModifierLines(enc: any, article: any, isFixed: boolean, subNameW:
     for (const mod of article.modifiers) {
       let amount = mod.amount
       let modName = mod.name
-      if (mod.amount === -1) { amount = 1; modName = `OHNE ${modName}` }
+      if (mod.amount === -1) {
+        amount = 1
+        modName = `OHNE ${modName}`
+      }
       // Betrag ausweisen, wenn der Modifier den Zeilenpreis bewegt — auch bei
       // ABZUG (entfernbare Zutat mit negativem `priceAdjustment`). Bedingung
       // spiegelt `modifierGrossCents` aus der Preis-Engine: `amount < 0` ist der
       // preisneutrale OHNE-Marker und bleibt ohne Betrag, sonst rechnete sich
       // der Bon nicht gegen die Summe auf.
-      const modPrice = (!isFixed && mod.amount > 0 && mod.price !== 0) ? fmtEur(mod.price * mod.amount) : ''
+      const modPrice = !isFixed && mod.amount > 0 && mod.price !== 0 ? fmtEur(mod.price * mod.amount) : ''
       enc.table(
-        [{ width: subNameW, marginLeft: 4, align: 'left' }, { width: priceW, align: 'right' }],
+        [
+          { width: subNameW, marginLeft: 4, align: 'left' },
+          { width: priceW, align: 'right' },
+        ],
         [[`${amount}x ${modName}`, modPrice]],
       )
     }

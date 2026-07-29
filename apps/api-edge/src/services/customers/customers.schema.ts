@@ -10,7 +10,7 @@ import {
   customerDataSchema,
   customerPatchSchema,
   CustomerQuery,
-  customerQuerySchema
+  customerQuerySchema,
 } from '@panary/customers/domain'
 import { CustomerService } from './customers.class'
 
@@ -32,7 +32,7 @@ export const customerDataResolver = resolve<Customer, HookContext<CustomerServic
   // Set timestamp
   createdAt: async () => new Date().toISOString(),
   updatedAt: async () => new Date().toISOString(),
-  ordersCount: async () => 0
+  ordersCount: async () => 0,
 })
 //#endregion
 
@@ -43,7 +43,7 @@ export const customerPatchResolver = resolve<Customer, HookContext<CustomerServi
   tenantId: async () => undefined,
   locationId: async () => undefined,
   createdAt: async () => undefined,
-  updatedAt: async () => new Date().toISOString()
+  updatedAt: async () => new Date().toISOString(),
 })
 //#endregion
 

@@ -121,10 +121,7 @@ describe('cloud-connection — setEmergencyOverride', () => {
   it('lehnt den Aufruf ab, wenn der Edge nicht gepairt ist', async () => {
     await seedConnection({ pairingStatus: PairingStatus.DISCONNECTED })
 
-    await assert.rejects(
-      () => service().setEmergencyOverride({ active: true }, { provider: undefined }),
-      /gepairt/,
-    )
+    await assert.rejects(() => service().setEmergencyOverride({ active: true }, { provider: undefined }), /gepairt/)
   })
 
   it('meldet die Anzahl gepufferter Overrides zurueck', async () => {
@@ -180,10 +177,7 @@ describe('cloud-connection — setEmergencyOverride', () => {
       updatedAt: now,
     })
 
-    await service().setEmergencyOverride(
-      { active: false, discardPendingOverrides: true },
-      { provider: undefined },
-    )
+    await service().setEmergencyOverride({ active: false, discardPendingOverrides: true }, { provider: undefined })
 
     assert.strictEqual((await knex.table('pending-local-overrides').select()).length, 0)
   })

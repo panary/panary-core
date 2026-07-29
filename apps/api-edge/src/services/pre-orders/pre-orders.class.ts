@@ -11,7 +11,6 @@ export type { PreOrder, PreOrderData, PreOrderPatch, PreOrderQuery }
 export type PreOrderParams = KnexAdapterParams<PreOrderQuery> & MongoDBAdapterParams & Params
 
 // Service Interface - can be either KnexService or MongoDBService
-export interface PreOrderService
-  extends ServiceInterface<PreOrder, PreOrderData, PreOrderParams, PreOrderPatch> {
+export interface PreOrderService extends ServiceInterface<PreOrder, PreOrderData, PreOrderParams, PreOrderPatch> {
   convert(id: Id, params?: PreOrderParams): Promise<Order>
 }

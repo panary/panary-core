@@ -11,9 +11,9 @@ export async function up(knex: Knex): Promise<void> {
     table.string('name').notNullable()
 
     // Complex objects stored as JSON text
-    table.text('address').nullable()           // { street, city, postalCode, country }
+    table.text('address').nullable() // { street, city, postalCode, country }
     table.text('currentBusinessDay').nullable() // { businessDayId, date }
-    table.text('settings').nullable()           // Full settings object
+    table.text('settings').nullable() // Full settings object
 
     table.string('email').nullable()
     table.string('phone').nullable()

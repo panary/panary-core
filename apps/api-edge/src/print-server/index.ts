@@ -23,7 +23,10 @@ export async function autoStartPrintServer(app: Application): Promise<void> {
     const location = await knex('locations').first()
 
     if (!location) {
-      logger.info({ message: 'Print-Server Auto-Start übersprungen: Kein Standort konfiguriert', event: 'print-server.auto_skip' })
+      logger.info({
+        message: 'Print-Server Auto-Start übersprungen: Kein Standort konfiguriert',
+        event: 'print-server.auto_skip',
+      })
       return
     }
 
@@ -38,7 +41,10 @@ export async function autoStartPrintServer(app: Application): Promise<void> {
     const enabled = printSettings?.printServerEnabled ?? true
 
     if (!enabled) {
-      logger.info({ message: 'Print-Server Auto-Start übersprungen: printServerEnabled=false', event: 'print-server.auto_disabled' })
+      logger.info({
+        message: 'Print-Server Auto-Start übersprungen: printServerEnabled=false',
+        event: 'print-server.auto_disabled',
+      })
       return
     }
 

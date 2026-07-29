@@ -38,8 +38,8 @@ export function assignDailySequenceNumber() {
       const count = await ordersService.find({
         query: {
           dailySequenceNumber: parseInt(`${dailySequenceNumber}`),
-          $limit: 0
-        }
+          $limit: 0,
+        },
       })
 
       if (count.total === 0) {

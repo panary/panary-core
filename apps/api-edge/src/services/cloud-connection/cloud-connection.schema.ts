@@ -47,8 +47,11 @@ export const cloudConnectionDataResolver = resolve<CloudConnection, HookContext<
 // Server immer. cloudToken wird zusaetzlich im internen Pfad verschluesselt.
 export const cloudConnectionPatchValidator = getValidator(cloudConnectionPatchSchema, dataValidator)
 
-const filterFromExternal = async <T>(value: T, _row: unknown, context: HookContext<CloudConnectionService>): Promise<T | undefined> =>
-  context.params.provider ? undefined : value
+const filterFromExternal = async <T>(
+  value: T,
+  _row: unknown,
+  context: HookContext<CloudConnectionService>,
+): Promise<T | undefined> => (context.params.provider ? undefined : value)
 
 export const cloudConnectionPatchResolver = resolve<CloudConnection, HookContext<CloudConnectionService>>({
   _id: async () => undefined,

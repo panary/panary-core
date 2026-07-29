@@ -11,5 +11,4 @@ export type { Product, ProductData, ProductPatch, ProductQuery }
 export type ProductsParams = KnexAdapterParams<ProductQuery> & MongoDBAdapterParams & Params
 
 // Service Interface - kann sowohl KnexService als auch MongoDBService sein
-export interface ProductService
-  extends ServiceInterface<Product, ProductData, ProductsParams, ProductPatch> {}
+export interface ProductService extends ServiceInterface<Product, ProductData, ProductsParams, ProductPatch> {}

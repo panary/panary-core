@@ -15,11 +15,7 @@
 // apiKeyId-Verknuepfung nach dem Create) sind unbeeintraechtigt.
 import { Forbidden } from '@feathersjs/errors'
 
-import {
-  checkDeviceSelfPatch,
-  DEVICE_PRIVILEGED_ROLES,
-  type DeviceSelfPatchActor
-} from '@panary/devices/domain'
+import { checkDeviceSelfPatch, DEVICE_PRIVILEGED_ROLES, type DeviceSelfPatchActor } from '@panary/devices/domain'
 
 import type { HookContext } from '../declarations'
 
@@ -28,8 +24,7 @@ const DEVICE_USER_ID_PREFIX = 'device:'
 /** Extrahiert die deviceId des authentifizierten Geraets aus den Params.
  *  Auch vom devices-Query-/External-Resolver genutzt (READ-Self-Scoping). */
 export const resolveActorDeviceId = (context: HookContext): string | undefined => {
-  const payloadDeviceId = (context.params.authentication?.payload as { deviceId?: string } | undefined)
-    ?.deviceId
+  const payloadDeviceId = (context.params.authentication?.payload as { deviceId?: string } | undefined)?.deviceId
   if (payloadDeviceId) return payloadDeviceId
 
   const userId = (context.params.user as { _id?: unknown } | undefined)?._id
@@ -70,7 +65,7 @@ export const restrictDeviceSelfPatch = async (context: HookContext): Promise<Hoo
     role: user?.role,
     deviceId: resolveActorDeviceId(context),
     tenantId: user?.tenantId,
-    locationId: user?.locationId
+    locationId: user?.locationId,
   }
 
   const violation = checkDeviceSelfPatch(actor, target?.deviceId ?? null, context.data)

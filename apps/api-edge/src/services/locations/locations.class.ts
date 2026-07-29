@@ -11,5 +11,4 @@ export type { Location, LocationData, LocationPatch, LocationQuery }
 export type LocationParams = KnexAdapterParams<LocationQuery> & MongoDBAdapterParams & Params
 
 // Service Interface - can be either KnexService or MongoDBService
-export interface LocationService
-  extends ServiceInterface<Location, LocationData, LocationParams, LocationPatch> {}
+export interface LocationService extends ServiceInterface<Location, LocationData, LocationParams, LocationPatch> {}

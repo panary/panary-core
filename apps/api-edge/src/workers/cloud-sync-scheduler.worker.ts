@@ -26,10 +26,7 @@ import { APP_VERSION } from '../version'
 
 import type { Application } from '../declarations'
 import { decryptCloudToken, encryptCloudToken } from '../utils/cloud-token-cipher'
-import {
-  shouldActivateEmergencyOverride,
-  shouldAutoDeactivateEmergencyOverride,
-} from '../utils/emergency-override'
+import { shouldActivateEmergencyOverride, shouldAutoDeactivateEmergencyOverride } from '../utils/emergency-override'
 import {
   deleteOverridesByIds,
   findPendingOverrides,
@@ -212,7 +209,10 @@ const buildCloudErrorMessage = (
  */
 class EdgePairingRequiredError extends Error {
   override readonly name = 'EdgePairingRequiredError'
-  constructor(public readonly reason: string, public readonly phase: string) {
+  constructor(
+    public readonly reason: string,
+    public readonly phase: string,
+  ) {
     super(`Edge-Token nicht mehr gueltig (${reason}) in Phase ${phase}`)
   }
 }
@@ -232,7 +232,10 @@ const handleCloudAuthError = async (
   response: Response,
   phase: string,
 ): Promise<void> => {
-  const text = await response.clone().text().catch(() => '')
+  const text = await response
+    .clone()
+    .text()
+    .catch(() => '')
   const reason = text.includes('abgelaufen')
     ? 'token-expired'
     : text.includes('widerrufen')
@@ -271,15 +274,9 @@ export const getActiveConnection = async (app: Application): Promise<CloudConnec
   return Array.isArray(result) ? (result[0] ?? null) : null
 }
 
-const upsertCursor = async (
-  app: Application,
-  service: string,
-  patch: Partial<SyncCursor>,
-): Promise<void> => {
+const upsertCursor = async (app: Application, service: string, patch: Partial<SyncCursor>): Promise<void> => {
   const id = `cloud:${service}`
-  const existing = await (app.service(syncCursorPath) as any)
-    .get(id, { provider: undefined } as any)
-    .catch(() => null)
+  const existing = await (app.service(syncCursorPath) as any).get(id, { provider: undefined } as any).catch(() => null)
   if (existing) {
     await (app.service(syncCursorPath) as any).patch(id, patch, { provider: undefined } as any)
   } else {
@@ -362,10 +359,7 @@ const fetchPendingOutbox = async (app: Application): Promise<PendingOutboxBatch>
  * Retry-/Backoff-Semantik (attempts/nextAttemptAt) unveraendert — Coalescing
  * verwirft also nie Zustand, nur veraltete Zwischenstaende.
  */
-const coalescePendingEntries = async (
-  app: Application,
-  entries: SyncOutboxEntry[],
-): Promise<SyncOutboxEntry[]> => {
+const coalescePendingEntries = async (app: Application, entries: SyncOutboxEntry[]): Promise<SyncOutboxEntry[]> => {
   const entityIds = [...new Set(entries.map(e => e.entityId))]
   let siblings: Array<Pick<SyncOutboxEntry, '_id' | 'service' | 'entityId'>>
   try {
@@ -473,11 +467,9 @@ const markOutboxAcked = async (app: Application, ids: string[]): Promise<void> =
   await Promise.all(
     ids.map(id =>
       (app.service(syncOutboxPath) as any)
-        .patch(
-          id,
-          { status: SyncOutboxStatus.ACKED, syncedAt: now, lastAttemptAt: now },
-          { provider: undefined } as any,
-        )
+        .patch(id, { status: SyncOutboxStatus.ACKED, syncedAt: now, lastAttemptAt: now }, {
+          provider: undefined,
+        } as any)
         .catch(() => undefined),
     ),
   )
@@ -555,11 +547,7 @@ const markOutboxInFlight = async (app: Application, ids: string[]): Promise<void
   await Promise.all(
     ids.map(id =>
       (app.service(syncOutboxPath) as any)
-        .patch(
-          id,
-          { status: SyncOutboxStatus.IN_FLIGHT, lastAttemptAt: now },
-          { provider: undefined } as any,
-        )
+        .patch(id, { status: SyncOutboxStatus.IN_FLIGHT, lastAttemptAt: now }, { provider: undefined } as any)
         .catch(() => undefined),
     ),
   )
@@ -641,11 +629,7 @@ const recoverInFlightOutbox = async (app: Application): Promise<void> => {
     const now = new Date().toISOString()
     for (const entry of entries) {
       await (app.service(syncOutboxPath) as any)
-        .patch(
-          entry._id,
-          { status: SyncOutboxStatus.PENDING, lastAttemptAt: now },
-          { provider: undefined } as any,
-        )
+        .patch(entry._id, { status: SyncOutboxStatus.PENDING, lastAttemptAt: now }, { provider: undefined } as any)
         .catch(() => undefined)
     }
     logger.info({
@@ -698,7 +682,10 @@ const runPushBatch = async (app: Application, connection: CloudConnection): Prom
     occurredAt: e.occurredAt,
     syncSource: e.syncSource,
   }))
-  await markOutboxInFlight(app, entries.map(e => e._id))
+  await markOutboxInFlight(
+    app,
+    entries.map(e => e._id),
+  )
   try {
     const response = await cloudFetch(connection.cloudUrl, cloudToken, '/sync-push', {
       method: 'POST',
@@ -884,12 +871,10 @@ const runPullForService = async (
     if (since) params.set('since', since)
     if (cursorToken) params.set('cursor', cursorToken)
 
-    const response = await cloudFetch(
-      connection.cloudUrl,
-      cloudToken,
-      `/sync-pull?${params.toString()}`,
-      { method: 'GET', timeoutMs: PULL_TIMEOUT_MS },
-    )
+    const response = await cloudFetch(connection.cloudUrl, cloudToken, `/sync-pull?${params.toString()}`, {
+      method: 'GET',
+      timeoutMs: PULL_TIMEOUT_MS,
+    })
     if (response.status === 401) {
       await handleCloudAuthError(app, connection, response, `pull:${service}`)
     }
@@ -949,10 +934,7 @@ const runPullForService = async (
  * (inkl. 401→Re-Pairing) werden geloggt, nicht geworfen — der periodische
  * Scheduler-Pull bleibt der Fallback.
  */
-export const pullMasterDataServiceOnce = async (
-  app: Application,
-  service: string,
-): Promise<number> => {
+export const pullMasterDataServiceOnce = async (app: Application, service: string): Promise<number> => {
   const connection = await getActiveConnection(app).catch(() => null)
   if (!connection) return 0
   try {
@@ -975,11 +957,7 @@ export const pullMasterDataServiceOnce = async (
  *
  * Idempotent — bereits archivierte User bleiben unangetastet.
  */
-const reconcileStaleUsers = async (
-  app: Application,
-  cloudVisibleIds: string[],
-  tenantId: string,
-): Promise<void> => {
+const reconcileStaleUsers = async (app: Application, cloudVisibleIds: string[], tenantId: string): Promise<void> => {
   const startedAt = new Date().toISOString()
   const startMs = performance.now()
   try {
@@ -999,11 +977,9 @@ const reconcileStaleUsers = async (
         // Snapshot = Source of Truth). Ohne das Flag wuerde der Outbox-Recorder
         // den Patch als Edge-Mutation aufnehmen und zur Cloud zurueckpushen
         // (Sync-Echo) — inklusive Risiko, dort juengere Staende zu ueberschreiben.
-        await app.service('users' as any).patch(
-          u._id,
-          { status: 'ARCHIVED' } as any,
-          { provider: undefined, fromSync: true } as any,
-        )
+        await app
+          .service('users' as any)
+          .patch(u._id, { status: 'ARCHIVED' } as any, { provider: undefined, fromSync: true } as any)
         archived++
       } catch (err) {
         logger.warn({
@@ -1120,10 +1096,7 @@ const runHeartbeat = async (app: Application, connection: CloudConnection): Prom
  * Wenn keine Konflikte mehr offen sind, wird der `emergencyOverride`-Flag
  * der Cloud-Connection zurückgesetzt.
  */
-const runReconcileOverrides = async (
-  app: Application,
-  connection: CloudConnection,
-): Promise<void> => {
+const runReconcileOverrides = async (app: Application, connection: CloudConnection): Promise<void> => {
   if (!connection.emergencyOverride) return
   const cloudToken = decryptCloudToken(connection.cloudToken)
   if (!cloudToken) return
@@ -1248,10 +1221,7 @@ const runReconcileOverrides = async (
  * Worker-Restart mit verbliebener PENDING-Row) führen also zu mindestens einer
  * Ausführung — Test-Druck ist idempotent (Bon-Ausdruck), daher OK.
  */
-const runPullPrinterCommands = async (
-  app: Application,
-  connection: CloudConnection,
-): Promise<number> => {
+const runPullPrinterCommands = async (app: Application, connection: CloudConnection): Promise<number> => {
   const cloudToken = decryptCloudToken(connection.cloudToken)
   if (!cloudToken) return 0
   const startMs = performance.now()
@@ -1281,26 +1251,23 @@ const runPullPrinterCommands = async (
     })
     return 0
   }
-  const body = (await response.json()) as {
-    data?: Array<{ _id: string; type: string; printerId: string }>
-  } | Array<{ _id: string; type: string; printerId: string }>
+  const body = (await response.json()) as
+    | {
+        data?: Array<{ _id: string; type: string; printerId: string }>
+      }
+    | Array<{ _id: string; type: string; printerId: string }>
   const commands = Array.isArray(body) ? body : (body.data ?? [])
   if (commands.length === 0) return 0
 
   for (const cmd of commands) {
-    const claimRes = await cloudFetch(
-      connection.cloudUrl,
-      cloudToken,
-      `/printer-commands/${cmd._id}`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify({
-          status: 'IN_PROGRESS',
-          pickedUpAt: new Date().toISOString(),
-        }),
-        timeoutMs: HEARTBEAT_TIMEOUT_MS,
-      },
-    )
+    const claimRes = await cloudFetch(connection.cloudUrl, cloudToken, `/printer-commands/${cmd._id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        status: 'IN_PROGRESS',
+        pickedUpAt: new Date().toISOString(),
+      }),
+      timeoutMs: HEARTBEAT_TIMEOUT_MS,
+    })
     if (!claimRes.ok) {
       // Andere Edge-Instanz hat zuerst gepatcht oder Job ist weg — überspringen.
       continue
@@ -1502,9 +1469,7 @@ const runHeartbeatPhase = async (
         reason: lastError,
       })
     }
-    await (app.service(cloudConnectionPath) as any)
-      ._patch(connection._id, patch)
-      .catch(() => undefined)
+    await (app.service(cloudConnectionPath) as any)._patch(connection._id, patch).catch(() => undefined)
   }
   if (heartbeat === null && lastError) {
     await recordSyncRun(app, {
@@ -1521,8 +1486,7 @@ const runHeartbeatPhase = async (
   } else if (heartbeat) {
     const tokenRotated = !!heartbeat.nextToken
     const skewIssue =
-      heartbeat.clockSkewStatus === ClockSkewStatus.WARN ||
-      heartbeat.clockSkewStatus === ClockSkewStatus.ERROR
+      heartbeat.clockSkewStatus === ClockSkewStatus.WARN || heartbeat.clockSkewStatus === ClockSkewStatus.ERROR
     if (tokenRotated || skewIssue) {
       await recordSyncRun(app, {
         tenantId: connection.tenantId!,
@@ -1531,9 +1495,7 @@ const runHeartbeatPhase = async (
         service: null,
         durationMs: Math.round(performance.now() - hbStartMs),
         outcome: skewIssue ? SyncRunOutcome.PARTIAL : SyncRunOutcome.SUCCESS,
-        errorMessage: skewIssue
-          ? `Clock-Skew ${heartbeat.clockSkewStatus} (${heartbeat.clockSkewMs}ms)`
-          : undefined,
+        errorMessage: skewIssue ? `Clock-Skew ${heartbeat.clockSkewStatus} (${heartbeat.clockSkewMs}ms)` : undefined,
         triggeredBy,
         startedAt: hbStartedAt,
       })

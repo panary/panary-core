@@ -48,11 +48,11 @@ function makeApp(opts: {
     service: () => ({
       find: opts.throws
         ? vi.fn().mockRejectedValue(new Error('db down'))
-        : vi.fn().mockImplementation(({ query }: any) =>
-            Promise.resolve(
-              query?.pairingStatus ? rows.filter(r => r.pairingStatus === query.pairingStatus) : rows,
+        : vi
+            .fn()
+            .mockImplementation(({ query }: any) =>
+              Promise.resolve(query?.pairingStatus ? rows.filter(r => r.pairingStatus === query.pairingStatus) : rows),
             ),
-          ),
     }),
   }
 }
@@ -63,9 +63,9 @@ beforeEach(() => {
 
 describe('resolveSystemMode', () => {
   it('leitet connected aus einer gepairten cloud-connection ab', async () => {
-    await expect(
-      resolveSystemMode(makeApp({ connections: [{ pairingStatus: 'connected' }] })),
-    ).resolves.toBe('connected')
+    await expect(resolveSystemMode(makeApp({ connections: [{ pairingStatus: 'connected' }] }))).resolves.toBe(
+      'connected',
+    )
   })
 
   it('leitet standalone ohne cloud-connection ab', async () => {
@@ -78,17 +78,13 @@ describe('resolveSystemMode', () => {
   // Standort-Seiten entsperrt zeigen, obwohl das Backend sie blockt.
   it('waehlt die CONNECTED-Zeile, auch wenn eine Altlast davor steht', async () => {
     await expect(
-      resolveSystemMode(
-        makeApp({ connections: [{ pairingStatus: 'disconnected' }, { pairingStatus: 'connected' }] }),
-      ),
+      resolveSystemMode(makeApp({ connections: [{ pairingStatus: 'disconnected' }, { pairingStatus: 'connected' }] })),
     ).resolves.toBe('connected')
   })
 
   it('bleibt standalone, wenn ausschliesslich nicht-verbundene Zeilen existieren', async () => {
     await expect(
-      resolveSystemMode(
-        makeApp({ connections: [{ pairingStatus: 'disconnected' }, { pairingStatus: 'pending' }] }),
-      ),
+      resolveSystemMode(makeApp({ connections: [{ pairingStatus: 'disconnected' }, { pairingStatus: 'pending' }] })),
     ).resolves.toBe('standalone')
   })
 

@@ -12,7 +12,7 @@ import {
   locationPatchValidator,
   locationQueryResolver,
   locationQueryValidator,
-  locationResolver
+  locationResolver,
 } from './locations.schema'
 
 import type { Application } from '../../declarations'
@@ -65,18 +65,11 @@ export const locations = (app: Application) => {
     Model,
     paginate,
     id: '_id',
-    multi: []
+    multi: [],
   }) as unknown as LocationService
 
   ;(service as any).setup = async (app: Application) =>
-    ensureIndexes(
-      app,
-      'locations',
-      [
-        { name: 'idx_locations_tenant', columns: ['tenantId'] },
-      ],
-      service,
-    )
+    ensureIndexes(app, 'locations', [{ name: 'idx_locations_tenant', columns: ['tenantId'] }], service)
 
   // 4. Register the service - as any, since the Factory returns KnexService OR MongoDBService
   app.use(locationsPath, service as any, {
@@ -88,9 +81,9 @@ export const locations = (app: Application) => {
         location: locationSchema,
         locationData: locationDataSchema,
         locationPatch: locationPatchSchema,
-        locationQuery: locationQuerySchema
-      }
-    }
+        locationQuery: locationQuerySchema,
+      },
+    },
   })
 
   const jsonHooks = getJsonFieldHooks(app, LOCATION_JSON_FIELDS)
@@ -115,14 +108,11 @@ export const locations = (app: Application) => {
         multiTenancy({ isolateLocation: false }),
 
         schemaHooks.resolveExternal(locationExternalResolver),
-        schemaHooks.resolveResult(locationResolver)
-      ]
+        schemaHooks.resolveResult(locationResolver),
+      ],
     },
     before: {
-      all: [
-        schemaHooks.validateQuery(locationQueryValidator),
-        schemaHooks.resolveQuery(locationQueryResolver)
-      ],
+      all: [schemaHooks.validateQuery(locationQueryValidator), schemaHooks.resolveQuery(locationQueryResolver)],
       find: [],
       get: [],
       create: [
@@ -135,7 +125,7 @@ export const locations = (app: Application) => {
         schemaHooks.resolveData(locationPatchResolver),
         ...jsonHooks.before,
       ],
-      remove: []
+      remove: [],
     },
     after: {
       all: [
@@ -166,11 +156,11 @@ export const locations = (app: Application) => {
           }
           return context
         },
-      ]
+      ],
     },
     error: {
-      all: []
-    }
+      all: [],
+    },
   })
 }
 

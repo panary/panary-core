@@ -13,10 +13,9 @@ export type { OpeningHourException, OpeningHourExceptionData, OpeningHourExcepti
 
 export type OpeningHourExceptionParams = KnexAdapterParams<OpeningHourExceptionQuery> & MongoDBAdapterParams & Params
 
-export interface OpeningHourExceptionService
-  extends ServiceInterface<
-    OpeningHourException,
-    OpeningHourExceptionData,
-    OpeningHourExceptionParams,
-    OpeningHourExceptionPatch
-  > {}
+export interface OpeningHourExceptionService extends ServiceInterface<
+  OpeningHourException,
+  OpeningHourExceptionData,
+  OpeningHourExceptionParams,
+  OpeningHourExceptionPatch
+> {}

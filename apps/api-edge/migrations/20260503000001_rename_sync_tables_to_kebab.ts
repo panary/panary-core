@@ -30,15 +30,9 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema.raw(
     'CREATE INDEX IF NOT EXISTS "idx_sync-conflicts_tenant_status" ON "sync-conflicts" (tenantId, status)',
   )
-  await knex.schema.raw(
-    'CREATE INDEX IF NOT EXISTS "idx_sync-conflicts_service" ON "sync-conflicts" (service)',
-  )
-  await knex.schema.raw(
-    'CREATE INDEX IF NOT EXISTS "idx_sync-outbox_status" ON "sync-outbox" (status, attempts)',
-  )
-  await knex.schema.raw(
-    'CREATE INDEX IF NOT EXISTS "idx_sync-outbox_service" ON "sync-outbox" (service, occurredAt)',
-  )
+  await knex.schema.raw('CREATE INDEX IF NOT EXISTS "idx_sync-conflicts_service" ON "sync-conflicts" (service)')
+  await knex.schema.raw('CREATE INDEX IF NOT EXISTS "idx_sync-outbox_status" ON "sync-outbox" (status, attempts)')
+  await knex.schema.raw('CREATE INDEX IF NOT EXISTS "idx_sync-outbox_service" ON "sync-outbox" (service, occurredAt)')
 }
 
 export async function down(knex: Knex): Promise<void> {

@@ -11,5 +11,4 @@ export type { Customer, CustomerData, CustomerPatch, CustomerQuery }
 export type CustomerParams = KnexAdapterParams<CustomerQuery> & MongoDBAdapterParams & Params
 
 // Service Interface - can be either KnexService or MongoDBService
-export interface CustomerService
-  extends ServiceInterface<Customer, CustomerData, CustomerParams, CustomerPatch> {}
+export interface CustomerService extends ServiceInterface<Customer, CustomerData, CustomerParams, CustomerPatch> {}

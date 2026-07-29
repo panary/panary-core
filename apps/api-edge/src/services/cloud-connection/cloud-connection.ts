@@ -4,10 +4,7 @@ import { BadRequest } from '@feathersjs/errors'
 
 import { decryptCloudToken } from '../../utils/cloud-token-cipher'
 import { AUTO_ACTIVATION_SUPPRESSION_MS } from '../../utils/emergency-override'
-import {
-  countOverridesByStatus,
-  discardPendingOverrides,
-} from '../../utils/pending-local-overrides.repository'
+import { countOverridesByStatus, discardPendingOverrides } from '../../utils/pending-local-overrides.repository'
 import { APP_VERSION } from '../../version'
 
 import {
@@ -75,8 +72,7 @@ const PAIR_TIMEOUT_MS = 15_000
 // Preflight = Custom Method (POST /edge-pairing mit X-Service-Method: preflight).
 const EDGE_PAIRING_PATH = '/edge-pairing'
 
-const isLocalhostUrl = (url: string): boolean =>
-  url.includes('localhost') || url.includes('127.0.0.1')
+const isLocalhostUrl = (url: string): boolean => url.includes('localhost') || url.includes('127.0.0.1')
 
 const normalizeCloudUrl = (url: string): string => {
   const trimmed = url.trim()
@@ -109,7 +105,9 @@ const ensureSecureUrl = (url: string): string => {
 // zuverlaessig und liefert die erwarteten Zahlen.
 const countTable = async (app: Application, tableName: string): Promise<number> => {
   try {
-    const knex = app.get('sqliteClient') as ((tbl: string) => { count: (col: string) => Promise<Array<{ count: number | string }>> }) | undefined
+    const knex = app.get('sqliteClient') as
+      | ((tbl: string) => { count: (col: string) => Promise<Array<{ count: number | string }>> })
+      | undefined
     if (!knex) return 0
     const result = await knex(tableName).count('* as count')
     const row = Array.isArray(result) ? result[0] : undefined
@@ -167,7 +165,9 @@ const buildEdgeIdentity = (ctx: EdgeIdentityContext): EdgeIdentity => ({
  *  Edge ist 1:1 mit einer Location verknuepft — diese Daten gehen mit dem
  *  Pairing als `edgeIdentity` an die Cloud. Cloud entscheidet beim Pair, ob die
  *  ID uebernommen wird oder ein bestehender Cloud-Standort zugewiesen wird. */
-const resolveEdgeLocation = async (app: Application): Promise<{
+const resolveEdgeLocation = async (
+  app: Application,
+): Promise<{
   locationId: string | null
   email?: string
   phone?: string
@@ -372,21 +372,21 @@ export const cloudConnection = (app: Application) => {
   // DB-Upsert via Hook-Pipeline (app.service().create/patch) — Resolver,
   // Validierung, multiTenancy, ensureTenantIsolation laufen alle.
   baseService.startBootstrap = async (data, params) => {
-    if (!data?.cloudUrl || !data?.pairingCode || !data?.edgeName ||
-        !data?.initialDirection || data?.confirmDataLoss === undefined) {
-      throw new BadRequest(
-        'cloudUrl, pairingCode, edgeName, initialDirection und confirmDataLoss sind erforderlich.',
-      )
+    if (
+      !data?.cloudUrl ||
+      !data?.pairingCode ||
+      !data?.edgeName ||
+      !data?.initialDirection ||
+      data?.confirmDataLoss === undefined
+    ) {
+      throw new BadRequest('cloudUrl, pairingCode, edgeName, initialDirection und confirmDataLoss sind erforderlich.')
     }
     const normalizedCloudUrl = ensureSecureUrl(data.cloudUrl)
     const requesterTenantId = params?.user?.tenantId
     if (!requesterTenantId) {
       throw new BadRequest('Edge-User hat keinen tenantId — Setup nicht abgeschlossen.')
     }
-    if (
-      data.initialDirection === InitialSyncDirection.PULL_CLOUD_TO_EDGE &&
-      data.confirmDataLoss !== true
-    ) {
+    if (data.initialDirection === InitialSyncDirection.PULL_CLOUD_TO_EDGE && data.confirmDataLoss !== true) {
       throw new BadRequest('Pull-Cloud-Bootstrap muss explizit bestaetigt werden (confirmDataLoss=true).')
     }
 
@@ -555,7 +555,7 @@ export const cloudConnection = (app: Application) => {
   }
 
   // Custom-Method: syncNow
-  baseService.syncNow = async (data) => {
+  baseService.syncNow = async data => {
     const id = data?.cloudConnectionId
     if (!id) throw new BadRequest('cloudConnectionId fehlt.')
     const connection = await baseService._get(id)
@@ -611,9 +611,7 @@ export const cloudConnection = (app: Application) => {
           // Heartbeat zurueckgesetzt, steht also waehrend des Ausfalls
           // weiterhin ueber der Schwelle — der naechste Fehlversuch wuerde
           // binnen Sekunden re-aktivieren.
-          emergencyOverrideSuppressedUntil: new Date(
-            now.getTime() + AUTO_ACTIVATION_SUPPRESSION_MS,
-          ).toISOString(),
+          emergencyOverrideSuppressedUntil: new Date(now.getTime() + AUTO_ACTIVATION_SUPPRESSION_MS).toISOString(),
           consecutiveHeartbeatFailures: 0,
         }
 
@@ -666,11 +664,7 @@ export const cloudConnection = (app: Application) => {
   // Object — `connection.preflightSnapshot.cloudTenantId` ergibt dann
   // `undefined`, der `requiresIdentityRestamp`-Trigger feuert nicht, und das
   // Bootstrap-Report-Schema schlaegt mit "missing cloudTenantId" fehl.
-  const jsonHooks = getJsonFieldHooks(app, [
-    'bootstrapUserAllowlist',
-    'preflightSnapshot',
-    'syncSchedule',
-  ])
+  const jsonHooks = getJsonFieldHooks(app, ['bootstrapUserAllowlist', 'preflightSnapshot', 'syncSchedule'])
 
   app.service(cloudConnectionPath).hooks({
     around: {
@@ -683,7 +677,10 @@ export const cloudConnection = (app: Application) => {
       ],
     },
     before: {
-      all: [schemaHooks.validateQuery(cloudConnectionQueryValidator), schemaHooks.resolveQuery(cloudConnectionQueryResolver)],
+      all: [
+        schemaHooks.validateQuery(cloudConnectionQueryValidator),
+        schemaHooks.resolveQuery(cloudConnectionQueryResolver),
+      ],
       find: [],
       get: [],
       create: [

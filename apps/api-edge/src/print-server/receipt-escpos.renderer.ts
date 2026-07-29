@@ -30,7 +30,12 @@ export function renderReceiptEscPos(receipt: Receipt, options: EscposOptions = {
   enc.initialize()
 
   // Verkäufer-Kopf (Pflichtangabe Name + Anschrift)
-  enc.newline().align('center').bold(true).line(receipt.seller?.name ?? '').bold(false)
+  enc
+    .newline()
+    .align('center')
+    .bold(true)
+    .line(receipt.seller?.name ?? '')
+    .bold(false)
   if (receipt.seller?.address) enc.font('B').line(receipt.seller.address).font('A')
   if (receipt.seller?.taxNumber) enc.font('B').line(`St-Nr: ${receipt.seller.taxNumber}`).font('A')
   enc.align('left')
@@ -49,7 +54,10 @@ export function renderReceiptEscPos(receipt: Receipt, options: EscposOptions = {
   // Positionen
   for (const li of receipt.lineItems ?? []) {
     enc.table(
-      [{ width: nameW, align: 'left' }, { width: priceW, align: 'right' }],
+      [
+        { width: nameW, align: 'left' },
+        { width: priceW, align: 'right' },
+      ],
       [[`${li.quantity}x ${li.name}`, fmtMoney(li.lineTotal, currency)]],
     )
   }
@@ -57,7 +65,10 @@ export function renderReceiptEscPos(receipt: Receipt, options: EscposOptions = {
   // Gesamtsumme
   enc.newline().rule({ style: 'single' })
   enc.table(
-    [{ width: Math.floor(cols * 0.55), align: 'left' }, { width: Math.floor(cols * 0.45), align: 'right' }],
+    [
+      { width: Math.floor(cols * 0.55), align: 'left' },
+      { width: Math.floor(cols * 0.45), align: 'right' },
+    ],
     [
       [
         (e: any) => e.bold(true).size(2, 2).text('Gesamt').size(1, 1).bold(false),
@@ -70,7 +81,10 @@ export function renderReceiptEscPos(receipt: Receipt, options: EscposOptions = {
   enc.font('B')
   for (const t of receipt.taxSummary?.taxes ?? []) {
     enc.table(
-      [{ width: nameW, align: 'left' }, { width: priceW, align: 'right' }],
+      [
+        { width: nameW, align: 'left' },
+        { width: priceW, align: 'right' },
+      ],
       [[`MwSt ${t.taxRate}% (Netto ${fmtMoney(t.amount, currency)})`, fmtMoney(t.tax, currency)]],
     )
   }

@@ -95,7 +95,9 @@ class PrintServerManager {
     if (printer.type !== 'ip') {
       return {
         success: false,
-        results: [{ printerId, printerName: printer.name, success: false, error: 'Testdruck nur für IP-Drucker verfügbar' }],
+        results: [
+          { printerId, printerName: printer.name, success: false, error: 'Testdruck nur für IP-Drucker verfügbar' },
+        ],
       }
     }
 

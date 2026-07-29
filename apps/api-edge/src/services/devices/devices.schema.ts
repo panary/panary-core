@@ -11,7 +11,7 @@ import {
   devicePatchSchema,
   DeviceQuery,
   deviceQuerySchema,
-  DEVICE_PRIVILEGED_ROLES
+  DEVICE_PRIVILEGED_ROLES,
 } from '@panary/devices/domain'
 import { Forbidden } from '@feathersjs/errors'
 import { DeviceService } from './devices.class'
@@ -38,7 +38,7 @@ export const deviceExternalResolver = resolve<Device, HookContext<DeviceService>
   // Maschinen-Credentials-Referenz + Netz-/Client-Details nur fuer
   // privilegierte Leser — ein POS-Geraet braucht davon nichts.
   apiKeyId: async (value, device, context) => (isPrivilegedDeviceReader(context) ? value : undefined),
-  metadata: async (value, device, context) => (isPrivilegedDeviceReader(context) ? value : undefined)
+  metadata: async (value, device, context) => (isPrivilegedDeviceReader(context) ? value : undefined),
 })
 //#endregion
 
@@ -59,7 +59,7 @@ export const deviceDataResolver = resolve<Device, HookContext<DeviceService>>({
   updatedAt: async () => new Date().toISOString(),
   createdBy: async (value, data, context) => {
     return (context.params as any)?.user?.loginname || 'system'
-  }
+  },
 })
 //#endregion
 
@@ -71,7 +71,7 @@ export const devicePatchResolver = resolve<Device, HookContext<DeviceService>>({
   locationId: async () => undefined,
   deviceId: async () => undefined,
   createdAt: async () => undefined,
-  updatedAt: async () => new Date().toISOString()
+  updatedAt: async () => new Date().toISOString(),
 })
 //#endregion
 
@@ -89,6 +89,6 @@ export const deviceQueryResolver = resolve<DeviceQuery, HookContext<DeviceServic
       throw new Forbidden('Geraete-Daten sind nur fuer das eigene Geraet lesbar.')
     }
     return actorDeviceId
-  }
+  },
 })
 //#endregion

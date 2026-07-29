@@ -8,5 +8,4 @@ export type { Discount, DiscountData, DiscountPatch, DiscountQuery }
 
 export type DiscountParams = KnexAdapterParams<DiscountQuery> & MongoDBAdapterParams & Params
 
-export interface DiscountService
-  extends ServiceInterface<Discount, DiscountData, DiscountParams, DiscountPatch> {}
+export interface DiscountService extends ServiceInterface<Discount, DiscountData, DiscountParams, DiscountPatch> {}

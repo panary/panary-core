@@ -37,12 +37,12 @@ export const sqlite = (app: Application) => {
   // in Docker /app/dist/apps/api-edge/apps/api-edge/src/ — drei Ebenen über die dist-Root.
   const candidates = [
     path.join(process.cwd(), 'dist/apps/api-edge/migrations'), // Docker: /app/dist/apps/api-edge/migrations/
-    path.join(__dirname, '../../../migrations'),                // esbuild-Struktur: src/ -> dist-Root/migrations/
-    path.join(__dirname, '../migrations'),                      // dev: src/ -> ../migrations/
-    path.join(__dirname, 'migrations'),                         // gebündelte Produktion: Geschwister
-    path.join(__dirname, '../../../../migrations'),              // ältere dist-Struktur
-    path.join(process.cwd(), 'apps/api-edge/migrations'),      // Workspace-Root (nx serve)
-    path.join(process.cwd(), 'migrations'),                     // Standalone-Fallback
+    path.join(__dirname, '../../../migrations'), // esbuild-Struktur: src/ -> dist-Root/migrations/
+    path.join(__dirname, '../migrations'), // dev: src/ -> ../migrations/
+    path.join(__dirname, 'migrations'), // gebündelte Produktion: Geschwister
+    path.join(__dirname, '../../../../migrations'), // ältere dist-Struktur
+    path.join(process.cwd(), 'apps/api-edge/migrations'), // Workspace-Root (nx serve)
+    path.join(process.cwd(), 'migrations'), // Standalone-Fallback
   ]
 
   for (const candidate of candidates) {
@@ -110,10 +110,10 @@ export const sqlite = (app: Application) => {
       ['synchronous', 'NORMAL'],
       ['busy_timeout', '5000'],
       ['foreign_keys', 'ON'],
-      ['cache_size', '-32000'],         // 32 MB Page-Cache (Default: 2 MB)
+      ['cache_size', '-32000'], // 32 MB Page-Cache (Default: 2 MB)
       ['temp_store', 'MEMORY'],
-      ['mmap_size', '268435456'],       // 256 MB mmap
-      ['wal_autocheckpoint', '1000'],   // Checkpoint nach 1000 Pages
+      ['mmap_size', '268435456'], // 256 MB mmap
+      ['wal_autocheckpoint', '1000'], // Checkpoint nach 1000 Pages
     ]
     for (const [key, value] of pragmas) {
       try {
@@ -156,11 +156,16 @@ export const sqlite = (app: Application) => {
             await db.migrate.latest()
             logger.info({ message: 'Migrations applied successfully', event: 'sqlite.migrations', migrationDir })
           } catch (err) {
-            logger.error({ message: 'Failed to run migrations', event: 'sqlite.migrations_error', migrationDir, error: String(err) })
+            logger.error({
+              message: 'Failed to run migrations',
+              event: 'sqlite.migrations_error',
+              migrationDir,
+              error: String(err),
+            })
           }
         }
         await next()
-      }
-    ]
+      },
+    ],
   })
 }

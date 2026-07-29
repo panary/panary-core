@@ -12,9 +12,7 @@ export async function up(knex: Knex): Promise<void> {
 
   // Indizes mit konsistentem Namen neu erstellen
   await knex.raw('CREATE INDEX IF NOT EXISTS "idx_pre-orders_tenant" ON "pre-orders" (tenantId)')
-  await knex.raw(
-    'CREATE INDEX IF NOT EXISTS "idx_pre-orders_tenant_location" ON "pre-orders" (tenantId, locationId)',
-  )
+  await knex.raw('CREATE INDEX IF NOT EXISTS "idx_pre-orders_tenant_location" ON "pre-orders" (tenantId, locationId)')
   await knex.raw('CREATE INDEX IF NOT EXISTS "idx_pre-orders_status" ON "pre-orders" (status)')
   await knex.raw('CREATE INDEX IF NOT EXISTS "idx_pre-orders_scheduled" ON "pre-orders" (scheduledFor)')
 }

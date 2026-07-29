@@ -9,9 +9,13 @@ import type { DeviceService } from './devices.class'
 // (insb. DEVICE_POS) werden im Query-Resolver auf die eigene deviceId
 // gezwungen; der External-Resolver strippt apiKeyId/metadata. Privilegierte
 // Rollen und interne Aufrufe bleiben unveraendert.
-const makeContext = (opts: { provider?: string; user?: unknown; authentication?: unknown }): HookContext<DeviceService> =>
+const makeContext = (opts: {
+  provider?: string
+  user?: unknown
+  authentication?: unknown
+}): HookContext<DeviceService> =>
   ({
-    params: { provider: opts.provider, user: opts.user, authentication: opts.authentication }
+    params: { provider: opts.provider, user: opts.user, authentication: opts.authentication },
   }) as unknown as HookContext<DeviceService>
 
 // Virtueller Device-User, wie ihn der allowApiKey-Hook aufbaut.
@@ -19,7 +23,7 @@ const posDeviceUser = {
   _id: 'device:dev-1',
   role: 'device:pos-client',
   tenantId: 't-1',
-  locationId: 'loc-1'
+  locationId: 'loc-1',
 }
 
 const sampleDevice = {
@@ -27,7 +31,7 @@ const sampleDevice = {
   deviceId: 'dev-1',
   name: 'POS Counter 1',
   apiKeyId: 'key-1',
-  metadata: { userAgent: 'ua', ipAddress: '10.0.0.5' }
+  metadata: { userAgent: 'ua', ipAddress: '10.0.0.5' },
 }
 
 describe('deviceQueryResolver — READ-Self-Scoping', () => {
@@ -58,7 +62,7 @@ describe('deviceQueryResolver — READ-Self-Scoping', () => {
     const context = makeContext({
       provider: 'socketio',
       user: posDeviceUser,
-      authentication: { payload: { deviceId: 'dev-1' } }
+      authentication: { payload: { deviceId: 'dev-1' } },
     })
     const resolved = await deviceQueryResolver.resolve({ deviceId: 'dev-fremd' }, context)
     expect(resolved.deviceId).toBe('dev-1')
@@ -70,11 +74,11 @@ describe('deviceQueryResolver — READ-Self-Scoping', () => {
     // entscheidend ist die Ablehnung selbst plus die transportierte Forbidden-Ursache.
     const rejection = await deviceQueryResolver.resolve({}, context).then(
       () => null,
-      e => e as Error & { data?: unknown }
+      e => e as Error & { data?: unknown },
     )
     expect(rejection).not.toBeNull()
     expect(JSON.stringify({ message: rejection?.message, data: rejection?.data })).toContain(
-      'nur fuer das eigene Geraet'
+      'nur fuer das eigene Geraet',
     )
   })
 })

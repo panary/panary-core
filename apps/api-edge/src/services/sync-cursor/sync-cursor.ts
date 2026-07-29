@@ -71,18 +71,9 @@ export const syncCursor = (app: Application) => {
       ],
     },
     before: {
-      all: [
-        schemaHooks.validateQuery(syncCursorQueryValidator),
-        schemaHooks.resolveQuery(syncCursorQueryResolver),
-      ],
-      create: [
-        schemaHooks.validateData(syncCursorDataValidator),
-        schemaHooks.resolveData(syncCursorDataResolver),
-      ],
-      patch: [
-        schemaHooks.validateData(syncCursorPatchValidator),
-        schemaHooks.resolveData(syncCursorPatchResolver),
-      ],
+      all: [schemaHooks.validateQuery(syncCursorQueryValidator), schemaHooks.resolveQuery(syncCursorQueryResolver)],
+      create: [schemaHooks.validateData(syncCursorDataValidator), schemaHooks.resolveData(syncCursorDataResolver)],
+      patch: [schemaHooks.validateData(syncCursorPatchValidator), schemaHooks.resolveData(syncCursorPatchResolver)],
     },
     error: { all: [] },
   })

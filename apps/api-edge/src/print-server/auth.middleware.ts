@@ -1,11 +1,5 @@
 import type { Middleware } from '@feathersjs/koa'
-import {
-  AppAction,
-  AppResource,
-  PermissionRule,
-  RolePermissions,
-  UserSystemRole,
-} from '@panary/users/domain'
+import { AppAction, AppResource, PermissionRule, RolePermissions, UserSystemRole } from '@panary/users/domain'
 import type { Application } from '../declarations'
 import { logger } from '@panary/shared-backend'
 import { sha256, timingSafeCompare } from '../utils/crypto.utils'
@@ -37,7 +31,7 @@ export function printServerAuth(app: Application): Middleware {
           paginate: false,
         })
 
-        const candidates: any[] = Array.isArray(apiKeyResult) ? apiKeyResult : apiKeyResult?.data ?? []
+        const candidates: any[] = Array.isArray(apiKeyResult) ? apiKeyResult : (apiKeyResult?.data ?? [])
         const keyRecord = candidates.find(entry => entry.active && timingSafeCompare(inputHash, entry.apikey))
 
         if (!keyRecord) {
@@ -57,7 +51,10 @@ export function printServerAuth(app: Application): Middleware {
         ctx.state.authenticated = true
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err)
-        logger.warn({ message: `Print-Server API-Key Auth fehlgeschlagen: ${message}`, event: 'print-server.apikey_fail' })
+        logger.warn({
+          message: `Print-Server API-Key Auth fehlgeschlagen: ${message}`,
+          event: 'print-server.apikey_fail',
+        })
         ctx.status = 401
         ctx.body = { error: 'API-Key Validierung fehlgeschlagen' }
         return

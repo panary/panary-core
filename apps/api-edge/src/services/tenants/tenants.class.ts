@@ -8,5 +8,4 @@ export type { EdgeTenant, EdgeTenantData, EdgeTenantPatch, EdgeTenantQuery }
 
 export type TenantParams = KnexAdapterParams<EdgeTenantQuery> & MongoDBAdapterParams & Params
 
-export interface TenantService
-  extends ServiceInterface<EdgeTenant, EdgeTenantData, TenantParams, EdgeTenantPatch> {}
+export interface TenantService extends ServiceInterface<EdgeTenant, EdgeTenantData, TenantParams, EdgeTenantPatch> {}

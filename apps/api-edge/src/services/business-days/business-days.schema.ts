@@ -21,8 +21,7 @@ export const businessDayValidator = getValidator(businessDaySchema, dataValidato
 export const businessDayResolver = resolve<BusinessDay, HookContext<BusinessDayService>>({
   // isOpen wird konsistent zu status gehalten — falls aus alter DB nur status
   // existiert, leite isOpen ab.
-  isOpen: async (value, entity) =>
-    value !== undefined ? value : entity?.status === BusinessDayStatus.OPEN,
+  isOpen: async (value, entity) => (value !== undefined ? value : entity?.status === BusinessDayStatus.OPEN),
 })
 export const businessDayExternalResolver = resolve<BusinessDay, HookContext<BusinessDayService>>({})
 
@@ -35,7 +34,7 @@ export const businessDayDataResolver = resolve<BusinessDay, HookContext<Business
   closedAt: async () => null,
   reportId: async () => null,
   reportErrorMessage: async () => null,
-  operationMode: async (value) => value || BusinessDayOperationMode.POS_CASHIER,
+  operationMode: async value => value || BusinessDayOperationMode.POS_CASHIER,
   createdAt: async () => new Date().toISOString(),
   updatedAt: async () => new Date().toISOString(),
 })
@@ -46,7 +45,7 @@ export const businessDayPatchResolver = resolve<BusinessDay, HookContext<Busines
   tenantId: async () => undefined,
   createdAt: async () => undefined,
   openedAt: async () => undefined,
-  operationMode: async () => undefined,        // Mode-Snapshot ist unveraenderlich
+  operationMode: async () => undefined, // Mode-Snapshot ist unveraenderlich
   updatedAt: async () => new Date().toISOString(),
 })
 

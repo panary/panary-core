@@ -7,8 +7,7 @@ import { APP_VERSION } from './version'
 
 // Path to configuration file
 // Default to ./data/panary.config.json relative to CWD, or use env var
-const CONFIG_PATH =
-  process.env['PANARY_CONFIG_PATH'] || path.join(process.cwd(), 'data', 'panary.config.json')
+const CONFIG_PATH = process.env['PANARY_CONFIG_PATH'] || path.join(process.cwd(), 'data', 'panary.config.json')
 
 /**
  * Get the local IP address of the device (non-internal IPv4)
@@ -39,7 +38,7 @@ export async function startSetupApp(port: number) {
       ctx.body = {
         status: 'unconfigured',
         ip: ip,
-        url: `http://${ip}:${port}`
+        url: `http://${ip}:${port}`,
       }
       return
     }
@@ -116,8 +115,7 @@ export async function startSetupApp(port: number) {
   // Assuming the setup-client is built to dist/apps/setup-client relative to workspace root
   // If running from dist/apps/api-edge, we need to go up
   // ADJUST THIS PATH BASED ON ACTUAL BUILD ARTIFACTS
-  const setupClientPath =
-    process.env['SETUP_CLIENT_PATH'] || path.join(process.cwd(), 'dist/apps/setup-client/browser')
+  const setupClientPath = process.env['SETUP_CLIENT_PATH'] || path.join(process.cwd(), 'dist/apps/setup-client/browser')
 
   if (path.isAbsolute(setupClientPath)) {
     app.use(serveStatic(setupClientPath))
@@ -136,7 +134,7 @@ export async function startSetupApp(port: number) {
         version: APP_VERSION,
         setupComplete: false,
         systemMode: 'setup',
-      })
+      }),
     )
   })
 }

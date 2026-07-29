@@ -43,7 +43,7 @@ app.configure(
         title: 'Panary Edge API',
         description:
           'Panary API is a backend service built with FeathersJS, designed to streamline and manage food ordering processes. It provides RESTful and real-time endpoints for handling orders, managing menus, tracking deliveries, and processing payments, aimed at enhancing the efficiency and user experience of food service applications.',
-        version: APP_VERSION
+        version: APP_VERSION,
       },
       schemes: ['http', 'https'],
       components: {
@@ -51,15 +51,15 @@ app.configure(
           BearerAuth: {
             type: 'http',
             scheme: 'bearer',
-            bearerFormat: 'JWT'
-          }
-        }
+            bearerFormat: 'JWT',
+          },
+        },
       },
-      security: [{ BearerAuth: [] }]
+      security: [{ BearerAuth: [] }],
     },
     ui: swagger.swaggerUI({ docsPath: '/docs' }),
-    idType: 'string'
-  })
+    idType: 'string',
+  }),
 )
 
 // Koa middleware
@@ -252,7 +252,7 @@ registerDevicePairingRoutes(app)
  */
 const socketCorsDelegate = (
   req: { headers: Record<string, string | string[] | undefined> },
-  callback: (err: Error | null, options: { origin: string | false }) => void
+  callback: (err: Error | null, options: { origin: string | false }) => void,
 ) => {
   const allowlist: string[] = app.get('origins') ?? []
   const origin = typeof req.headers.origin === 'string' ? req.headers.origin : undefined
@@ -281,7 +281,7 @@ app.configure(
       serveClient: false,
       pingInterval: 10000,
       pingTimeout: 5000,
-      cookie: false
+      cookie: false,
     },
     io => {
       io.use((socket: any, next: any) => {
@@ -291,8 +291,8 @@ app.configure(
         }
         next()
       })
-    }
-  )
+    },
+  ),
 )
 
 // Services & data

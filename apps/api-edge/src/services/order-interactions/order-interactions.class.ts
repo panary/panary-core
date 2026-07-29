@@ -7,7 +7,7 @@ import type {
   OrderInteraction,
   OrderInteractionData,
   OrderInteractionPatch,
-  OrderInteractionQuery
+  OrderInteractionQuery,
 } from '@panary/order-interactions/domain'
 
 export type { OrderInteraction, OrderInteractionData, OrderInteractionPatch, OrderInteractionQuery }
@@ -16,10 +16,9 @@ export type { OrderInteraction, OrderInteractionData, OrderInteractionPatch, Ord
 export type OrderInteractionParams = KnexAdapterParams<OrderInteractionQuery> & MongoDBAdapterParams & Params
 
 // Service Interface - can be either KnexService or MongoDBService
-export interface OrderInteractionService
-  extends ServiceInterface<
-    OrderInteraction,
-    OrderInteractionData,
-    OrderInteractionParams,
-    OrderInteractionPatch
-  > {}
+export interface OrderInteractionService extends ServiceInterface<
+  OrderInteraction,
+  OrderInteractionData,
+  OrderInteractionParams,
+  OrderInteractionPatch
+> {}

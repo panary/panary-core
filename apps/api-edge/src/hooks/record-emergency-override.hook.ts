@@ -67,8 +67,7 @@ const diffPrintSettings = (
 export const recordEmergencyOverride =
   () =>
   async (context: HookContext, next: NextFunction): Promise<void> => {
-    const isOverridePath =
-      context.path === 'locations' && context.method === 'patch' && context.id != null
+    const isOverridePath = context.path === 'locations' && context.method === 'patch' && context.id != null
     let beforeRecord: { settings?: { printSettings?: Record<string, unknown> } } | null = null
     if (isOverridePath) {
       // Vor dem Patch lesen — der After-Vergleich braucht den Vor-Zustand.
@@ -76,9 +75,12 @@ export const recordEmergencyOverride =
       // Flag setzt BEVOR der Hook hier ausgeführt wird. Falls kein Override:
       // wir verschwenden einen Read-Call, aber bleiben funktional korrekt.
       try {
-        beforeRecord = (await (context.service as unknown as {
-          _get: (id: unknown, params?: unknown) => Promise<typeof beforeRecord>
-        })._get(context.id)) ?? null
+        beforeRecord =
+          (await (
+            context.service as unknown as {
+              _get: (id: unknown, params?: unknown) => Promise<typeof beforeRecord>
+            }
+          )._get(context.id)) ?? null
       } catch {
         beforeRecord = null
       }
@@ -94,16 +96,11 @@ export const recordEmergencyOverride =
       | undefined
     if (!result?._id || !result.tenantId) return
 
-    const diffs = diffPrintSettings(
-      beforeRecord?.settings?.printSettings,
-      result.settings?.printSettings,
-    )
+    const diffs = diffPrintSettings(beforeRecord?.settings?.printSettings, result.settings?.printSettings)
     if (diffs.length === 0) return
 
     const now = new Date().toISOString()
-    const user = (context.params as Record<string, unknown>)['user'] as
-      | { _id?: string }
-      | undefined
+    const user = (context.params as Record<string, unknown>)['user'] as { _id?: string } | undefined
 
     try {
       await insertOverrides(

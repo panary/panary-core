@@ -3,12 +3,7 @@ import type { KnexAdapterParams } from '@feathersjs/knex'
 import type { MongoDBAdapterParams } from '@feathersjs/mongodb'
 
 // Domain Imports
-import type {
-  WorkingTime,
-  WorkingTimeData,
-  WorkingTimePatch,
-  WorkingTimeQuery
-} from '@panary/working-times/domain'
+import type { WorkingTime, WorkingTimeData, WorkingTimePatch, WorkingTimeQuery } from '@panary/working-times/domain'
 
 export type { WorkingTime, WorkingTimeData, WorkingTimePatch, WorkingTimeQuery }
 
@@ -16,10 +11,9 @@ export type { WorkingTime, WorkingTimeData, WorkingTimePatch, WorkingTimeQuery }
 export type WorkingTimeParams = KnexAdapterParams<WorkingTimeQuery> & MongoDBAdapterParams & Params
 
 // Service Interface - can be either KnexService or MongoDBService
-export interface WorkingTimeService
-  extends ServiceInterface<
-    WorkingTime,
-    WorkingTimeData,
-    WorkingTimeParams,
-    WorkingTimePatch
-  > {}
+export interface WorkingTimeService extends ServiceInterface<
+  WorkingTime,
+  WorkingTimeData,
+  WorkingTimeParams,
+  WorkingTimePatch
+> {}

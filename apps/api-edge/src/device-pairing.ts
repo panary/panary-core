@@ -26,10 +26,7 @@ import { UserSystemRole } from '@panary/users/domain'
 
 const PAIRING_CODE_TTL_MS = 10 * 60 * 1000 // 10 Minuten
 const PAIRING_CODE_LENGTH = 6
-const ALLOWED_REQUEST_ROLES = new Set<string>([
-  UserSystemRole.TENANT_OWNER,
-  UserSystemRole.TENANT_MANAGER,
-])
+const ALLOWED_REQUEST_ROLES = new Set<string>([UserSystemRole.TENANT_OWNER, UserSystemRole.TENANT_MANAGER])
 
 // Rate-Limit fuer redeem: max. fehlgeschlagene Versuche pro IP im Zeitfenster.
 // Verhindert Brute-Force des 6-stelligen Codes (10^6 Raum) im LAN.
@@ -106,10 +103,10 @@ export function registerDevicePairingRoutes(app: Application): void {
   app.use(async (ctx, next) => {
     // --- requestCode (authentifiziert: TENANT_OWNER / TENANT_MANAGER) ---
     if (ctx.path === '/device-pairing/request-code' && ctx.method === 'POST') {
-      const user = (await resolveUserFromRequest(
-        app,
-        ctx.headers['authorization'] as string | undefined,
-      )) as Record<string, any> | null
+      const user = (await resolveUserFromRequest(app, ctx.headers['authorization'] as string | undefined)) as Record<
+        string,
+        any
+      > | null
 
       if (!user) {
         ctx.status = 401
@@ -176,7 +173,8 @@ export function registerDevicePairingRoutes(app: Application): void {
       const body = ((ctx.request as { body?: Record<string, unknown> }).body ?? {}) as Record<string, unknown>
       const code = typeof body['code'] === 'string' ? (body['code'] as string).trim() : ''
       const deviceName = typeof body['deviceName'] === 'string' ? (body['deviceName'] as string).trim() : ''
-      const deviceType = typeof body['deviceType'] === 'string' ? (body['deviceType'] as string) : DeviceType.POS_COUNTER
+      const deviceType =
+        typeof body['deviceType'] === 'string' ? (body['deviceType'] as string) : DeviceType.POS_COUNTER
 
       purgeExpired()
       const record = code ? codeStore.get(code) : undefined

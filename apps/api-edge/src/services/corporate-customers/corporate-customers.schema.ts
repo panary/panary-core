@@ -10,24 +10,18 @@ import {
   corporateCustomerDataSchema,
   corporateCustomerPatchSchema,
   CorporateCustomerQuery,
-  corporateCustomerQuerySchema
+  corporateCustomerQuerySchema,
 } from '@panary/corporate-customers/domain'
 import { CorporateCustomerService } from './corporate-customers.class'
 
 //#region 1. Main Resolver (Output)
 export const corporateCustomerResolver = resolve<CorporateCustomer, HookContext<CorporateCustomerService>>({})
-export const corporateCustomerExternalResolver = resolve<
-  CorporateCustomer,
-  HookContext<CorporateCustomerService>
->({})
+export const corporateCustomerExternalResolver = resolve<CorporateCustomer, HookContext<CorporateCustomerService>>({})
 //#endregion
 
 //#region 2. Create Resolver (POST)
 export const corporateCustomerDataValidator = getValidator(corporateCustomerDataSchema, dataValidator)
-export const corporateCustomerDataResolver = resolve<
-  CorporateCustomer,
-  HookContext<CorporateCustomerService>
->({
+export const corporateCustomerDataResolver = resolve<CorporateCustomer, HookContext<CorporateCustomerService>>({
   _id: async value => {
     // IMPORTANT FOR OFFLINE-FIRST:
     // If the tablet/cash register was offline, it has already generated the ID (UUIDv7) locally and sends it in the body.
@@ -52,16 +46,13 @@ export const corporateCustomerDataResolver = resolve<
   invoices: async value => {
     if (value === undefined) return '[]' as unknown as unknown[]
     return (typeof value === 'string' ? value : JSON.stringify(value)) as unknown as unknown[]
-  }
+  },
 })
 //#endregion
 
 //#region 3. Patch User Resolver (Update / PATCH)
 export const corporateCustomerPatchValidator = getValidator(corporateCustomerPatchSchema, dataValidator)
-export const corporateCustomerPatchResolver = resolve<
-  CorporateCustomer,
-  HookContext<CorporateCustomerService>
->({
+export const corporateCustomerPatchResolver = resolve<CorporateCustomer, HookContext<CorporateCustomerService>>({
   _id: async () => undefined,
   tenantId: async () => undefined,
   locationId: async () => undefined,
@@ -74,16 +65,13 @@ export const corporateCustomerPatchResolver = resolve<
   invoices: async value => {
     if (value === undefined) return undefined
     return (typeof value === 'string' ? value : JSON.stringify(value)) as unknown as unknown[]
-  }
+  },
 })
 //#endregion
 
 // --- 4. Query Resolver (GET) ---
 export const corporateCustomerQueryValidator = getValidator(corporateCustomerQuerySchema, queryValidator)
-export const corporateCustomerQueryResolver = resolve<
-  CorporateCustomerQuery,
-  HookContext<CorporateCustomerService>
->({
+export const corporateCustomerQueryResolver = resolve<CorporateCustomerQuery, HookContext<CorporateCustomerService>>({
   // TODO: Add query resolver logic here
   // Example: Restriction to own data for normal users
   // _id: async (value, query, context) => {

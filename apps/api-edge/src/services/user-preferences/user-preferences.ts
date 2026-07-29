@@ -9,7 +9,7 @@ import {
   userPreferencePatchValidator,
   userPreferenceQueryResolver,
   userPreferenceQueryValidator,
-  userPreferenceResolver
+  userPreferenceResolver,
 } from './user-preferences.schema'
 
 import type { Application } from '../../declarations'
@@ -21,7 +21,7 @@ import {
   userPreferenceDataSchema,
   userPreferencePatchSchema,
   userPreferenceQuerySchema,
-  userPreferenceSchema
+  userPreferenceSchema,
 } from '@panary/user-preferences/domain'
 import type { UserPreference, UserPreferenceService } from './user-preferences.class'
 import { ensureIndexes } from '@panary/shared-backend'
@@ -59,7 +59,7 @@ export const userPreferences = (app: Application) => {
     Model,
     paginate,
     id: '_id',
-    multi: []
+    multi: [],
   }) as unknown as UserPreferenceService
 
   ;(service as any).setup = async (app: Application) =>
@@ -83,9 +83,9 @@ export const userPreferences = (app: Application) => {
         userPreference: userPreferenceSchema,
         userPreferenceData: userPreferenceDataSchema,
         userPreferencePatch: userPreferencePatchSchema,
-        userPreferenceQuery: userPreferenceQuerySchema
-      }
-    }
+        userPreferenceQuery: userPreferenceQuerySchema,
+      },
+    },
   })
 
   // 5. Register hooks
@@ -97,32 +97,32 @@ export const userPreferences = (app: Application) => {
         multiTenancy({ isolateLocation: true, allowGlobalData: false }),
 
         schemaHooks.resolveExternal(userPreferenceExternalResolver),
-        schemaHooks.resolveResult(userPreferenceResolver)
-      ]
+        schemaHooks.resolveResult(userPreferenceResolver),
+      ],
     },
     before: {
       all: [
         schemaHooks.validateQuery(userPreferenceQueryValidator),
-        schemaHooks.resolveQuery(userPreferenceQueryResolver)
+        schemaHooks.resolveQuery(userPreferenceQueryResolver),
       ],
       find: [],
       get: [],
       create: [
         schemaHooks.validateData(userPreferenceDataValidator),
-        schemaHooks.resolveData(userPreferenceDataResolver)
+        schemaHooks.resolveData(userPreferenceDataResolver),
       ],
       patch: [
         schemaHooks.validateData(userPreferencePatchValidator),
-        schemaHooks.resolveData(userPreferencePatchResolver)
+        schemaHooks.resolveData(userPreferencePatchResolver),
       ],
-      remove: []
+      remove: [],
     },
     after: {
-      all: []
+      all: [],
     },
     error: {
-      all: []
-    }
+      all: [],
+    },
   })
 }
 

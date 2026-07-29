@@ -28,10 +28,7 @@
     "entity": "user",
     "service": "users",
     "secret": "CHANGE_ME_IN_PRODUCTION",
-    "authStrategies": [
-      "jwt",
-      "local"
-    ],
+    "authStrategies": ["jwt", "local"],
     "jwtOptions": {
       "header": {
         "typ": "access"

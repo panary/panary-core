@@ -113,11 +113,9 @@ export const preOrders = (app: Application) => {
     )
 
     // 4. Vorbestellung als konvertiert markieren
-    await app.service('pre-orders').patch(
-      id,
-      { status: PreOrderStatus.CONVERTED, convertedOrderId: createdOrder._id },
-      { provider: undefined },
-    )
+    await app
+      .service('pre-orders')
+      .patch(id, { status: PreOrderStatus.CONVERTED, convertedOrderId: createdOrder._id }, { provider: undefined })
 
     logger.info({
       message: 'Vorbestellung konvertiert',
@@ -184,10 +182,10 @@ export const preOrders = (app: Application) => {
 
           // Ausnahmen laden
           const dateStr = formatDateISO(scheduledDate)
-          const excResult = await app.service('opening-hour-exceptions').find({
+          const excResult = (await app.service('opening-hour-exceptions').find({
             query: { date: dateStr, tenantId: data.tenantId },
             provider: undefined,
-          }) as any
+          })) as any
           const exceptions = Array.isArray(excResult) ? excResult : excResult.data || []
 
           const hours = getOpeningHoursForDate(scheduledDate, ohs.regular || [], exceptions)

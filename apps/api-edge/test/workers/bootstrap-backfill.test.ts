@@ -24,10 +24,12 @@ describe('cloud-bootstrap-runner — queueBackfillOutbox (chunked)', () => {
   const otherTenantRecordIds: string[] = []
 
   const createWorkingTime = async (forTenantId: string): Promise<string> => {
-    const created = (await app.service('working-times').create(
-      { tenantId: forTenantId, userId, checkinDate: new Date().toISOString() } as never,
-      { provider: undefined } as never,
-    )) as { _id: string }
+    const created = (await app
+      .service('working-times')
+      .create(
+        { tenantId: forTenantId, userId, checkinDate: new Date().toISOString() } as never,
+        { provider: undefined } as never,
+      )) as { _id: string }
     return created._id
   }
 

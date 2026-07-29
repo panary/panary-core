@@ -46,7 +46,10 @@ export function buildEscposBuffer(elements: PrintElement[], options: EscposOptio
         if (el.align) encoder.align(el.align)
         // Bilder müssen als ImageData übergeben werden — Base64-Dekodierung
         // erfolgt im print-job.builder, hier wird das rohe Element weitergereicht
-        logger.warn({ message: 'Image-Element wird übersprungen — erfordert vorverarbeitetes ImageData', event: 'print.image_skip' })
+        logger.warn({
+          message: 'Image-Element wird übersprungen — erfordert vorverarbeitetes ImageData',
+          event: 'print.image_skip',
+        })
         encoder.align('left')
         break
       case 'badge':

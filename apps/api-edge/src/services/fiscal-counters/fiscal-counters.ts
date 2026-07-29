@@ -56,11 +56,7 @@ const allocationMutex = new Mutex()
  * und persistiert ihn atomar, BEVOR der nächste Wert vergeben werden kann.
  * Interner Aufruf (`provider: undefined`) — umgeht Auth/Tenant-Filter.
  */
-export async function allocateFiscalCounter(
-  app: Application,
-  tenantId: string,
-  locationId: string,
-): Promise<number> {
+export async function allocateFiscalCounter(app: Application, tenantId: string, locationId: string): Promise<number> {
   return allocationMutex.runExclusive(async () => {
     const id = fiscalCounterId(tenantId, locationId)
     const service = app.service(fiscalCountersPath)

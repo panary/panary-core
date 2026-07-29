@@ -46,10 +46,7 @@ interface LocationCashConfig {
  * Liest die (optionale) Kassen-Konfiguration aus `location.settings.cashSessionSettings`.
  * Defensiv: ohne Pflege gilt `autoOpen=false` → Szenario A (Manager-Dialog am POS).
  */
-async function loadCashConfig(
-  context: HookContext,
-  locationId: string | null,
-): Promise<LocationCashConfig> {
+async function loadCashConfig(context: HookContext, locationId: string | null): Promise<LocationCashConfig> {
   const fallback: LocationCashConfig = { autoOpen: false, defaultFloatCents: 0 }
   if (!locationId) return fallback
   try {
@@ -61,8 +58,7 @@ async function loadCashConfig(
     const cfg = loc.settings?.cashSessionSettings
     return {
       autoOpen: Boolean(cfg?.autoOpenCashRegister),
-      defaultFloatCents:
-        typeof cfg?.defaultOpeningFloatCents === 'number' ? cfg.defaultOpeningFloatCents : 0,
+      defaultFloatCents: typeof cfg?.defaultOpeningFloatCents === 'number' ? cfg.defaultOpeningFloatCents : 0,
     }
   } catch {
     return fallback

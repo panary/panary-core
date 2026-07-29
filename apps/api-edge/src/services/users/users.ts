@@ -11,7 +11,7 @@ import {
   userPatchValidator,
   userQueryResolver,
   userQueryValidator,
-  userResolver
+  userResolver,
 } from './users.schema'
 
 import type { Application } from '../../declarations'
@@ -33,7 +33,19 @@ import { triggerImmediateCycle } from '../../workers/cloud-sync-scheduler.worker
 import { SyncRunTrigger } from '@panary/sync/domain'
 
 export const usersPath = 'users'
-export const usersMethods = ['find', 'get', 'create', 'patch', 'remove', 'checkin', 'checkout', 'startBreak', 'endBreak', 'verifyPin', 'changePin'] as const
+export const usersMethods = [
+  'find',
+  'get',
+  'create',
+  'patch',
+  'remove',
+  'checkin',
+  'checkout',
+  'startBreak',
+  'endBreak',
+  'verifyPin',
+  'changePin',
+] as const
 
 export type { UserService } from './users.class'
 export * from './users.schema'
@@ -66,7 +78,7 @@ export const users = (app: Application) => {
     name: 'users',
     Model,
     paginate,
-    id: '_id'
+    id: '_id',
   }) as any
 
   // Custom method: checkin — creates a working-time entry and stamps the user
@@ -97,7 +109,7 @@ export const users = (app: Application) => {
         tenantId: user.tenantId,
         locationId: user.activeLocationId || null,
       } as any,
-      { provider: undefined }
+      { provider: undefined },
     )
     return app.service('users').patch(userId, { stampingId: workingTime._id }, { provider: undefined })
   }
@@ -108,11 +120,9 @@ export const users = (app: Application) => {
     const user = await app.service('users').get(userId, { provider: undefined })
     if (!user.stampingId) throw new Conflict('Benutzer ist nicht eingestempelt')
     const now = new Date().toISOString()
-    await app.service('working-times').patch(
-      user.stampingId,
-      { checkoutDate: now, originCheckoutDate: now },
-      { provider: undefined }
-    )
+    await app
+      .service('working-times')
+      .patch(user.stampingId, { checkoutDate: now, originCheckoutDate: now }, { provider: undefined })
     return app.service('users').patch(userId, { stampingId: null, startBreakAt: null }, { provider: undefined })
   }
 
@@ -134,7 +144,7 @@ export const users = (app: Application) => {
     const workingTime = await app.service('working-times').get(user.stampingId, { provider: undefined })
     const updatedBreaks = [
       ...(Array.isArray(workingTime.breaks) ? workingTime.breaks : []),
-      { from: user.startBreakAt, to: new Date().toISOString() }
+      { from: user.startBreakAt, to: new Date().toISOString() },
     ]
     await app.service('working-times').patch(user.stampingId, { breaks: updatedBreaks }, { provider: undefined })
     return app.service('users').patch(userId, { startBreakAt: null }, { provider: undefined })
@@ -245,7 +255,7 @@ export const users = (app: Application) => {
   // 4. Register the service - as any, since the Factory returns KnexService OR MongoDBService
   app.use(usersPath, service as any, {
     methods: usersMethods,
-    events: []
+    events: [],
   })
 
   const jsonHooks = getJsonFieldHooks(app, USER_JSON_FIELDS)
@@ -259,23 +269,34 @@ export const users = (app: Application) => {
         multiTenancy({ isolateLocation: false }),
 
         schemaHooks.resolveExternal(userExternalResolver),
-        schemaHooks.resolveResult(userResolver)
-      ]
+        schemaHooks.resolveResult(userResolver),
+      ],
     },
     before: {
       all: [schemaHooks.validateQuery(userQueryValidator), schemaHooks.resolveQuery(userQueryResolver)],
       find: [],
       get: [],
-      create: [restrictPermissionGrants, schemaHooks.validateData(userDataValidator), schemaHooks.resolveData(userDataResolver), ...jsonHooks.before],
-      patch: [restrictUserSelfPatch, restrictPermissionGrants, schemaHooks.validateData(userPatchValidator), schemaHooks.resolveData(userPatchResolver), ...jsonHooks.before],
-      remove: []
+      create: [
+        restrictPermissionGrants,
+        schemaHooks.validateData(userDataValidator),
+        schemaHooks.resolveData(userDataResolver),
+        ...jsonHooks.before,
+      ],
+      patch: [
+        restrictUserSelfPatch,
+        restrictPermissionGrants,
+        schemaHooks.validateData(userPatchValidator),
+        schemaHooks.resolveData(userPatchResolver),
+        ...jsonHooks.before,
+      ],
+      remove: [],
     },
     after: {
-      all: [...jsonHooks.after]
+      all: [...jsonHooks.after],
     },
     error: {
-      all: []
-    }
+      all: [],
+    },
   })
 }
 

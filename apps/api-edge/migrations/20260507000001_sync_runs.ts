@@ -37,9 +37,7 @@ export async function up(knex: Knex): Promise<void> {
     'CREATE INDEX IF NOT EXISTS "idx_sync-runs_tenant_started" ON "sync-runs" (tenantId, startedAt DESC)',
   )
   // Index fuer den Cleanup-Worker (DELETE WHERE createdAt < threshold)
-  await knex.schema.raw(
-    'CREATE INDEX IF NOT EXISTS "idx_sync-runs_created" ON "sync-runs" (createdAt)',
-  )
+  await knex.schema.raw('CREATE INDEX IF NOT EXISTS "idx_sync-runs_created" ON "sync-runs" (createdAt)')
   // Index fuer Phase-Filter ("Nur Pulls" / "Nur Fehler")
   await knex.schema.raw(
     'CREATE INDEX IF NOT EXISTS "idx_sync-runs_tenant_phase_started" ON "sync-runs" (tenantId, phase, startedAt DESC)',

@@ -23,14 +23,13 @@ export const openingHourExceptionExternalResolver = resolve<
 
 //#region 2. Create Resolver (POST)
 export const openingHourExceptionDataValidator = getValidator(openingHourExceptionDataSchema, dataValidator)
-export const openingHourExceptionDataResolver = resolve<
-  OpeningHourException,
-  HookContext<OpeningHourExceptionService>
->({
-  _id: async value => value || uuidv7(),
-  createdAt: async () => new Date().toISOString(),
-  updatedAt: async () => new Date().toISOString(),
-})
+export const openingHourExceptionDataResolver = resolve<OpeningHourException, HookContext<OpeningHourExceptionService>>(
+  {
+    _id: async value => value || uuidv7(),
+    createdAt: async () => new Date().toISOString(),
+    updatedAt: async () => new Date().toISOString(),
+  },
+)
 //#endregion
 
 //#region 3. Patch Resolver (PATCH)

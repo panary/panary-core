@@ -17,7 +17,7 @@ const potentialPaths = [
   path.resolve(process.cwd(), 'apps/api-edge/config'),
 
   // 4. Fallback für manuelle Aufrufe
-  path.resolve(process.cwd(), 'config')
+  path.resolve(process.cwd(), 'config'),
 ]
 
 let configDir = ''

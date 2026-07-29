@@ -13,18 +13,13 @@
 
 import { Forbidden } from '@feathersjs/errors'
 import type { NextFunction } from '@feathersjs/feathers'
-import {
-  PairingStatus,
-  type CloudConnection,
-} from '@panary/cloud-connection/domain'
+import { PairingStatus, type CloudConnection } from '@panary/cloud-connection/domain'
 
 import type { HookContext } from '../declarations'
 
 const WRITE_METHODS = new Set(['create', 'update', 'patch', 'remove'])
 
-const getActiveCloudConnection = async (
-  app: HookContext['app'],
-): Promise<CloudConnection | null> => {
+const getActiveCloudConnection = async (app: HookContext['app']): Promise<CloudConnection | null> => {
   try {
     const result = await (app.service('cloud-connection') as any).find({
       provider: undefined,
@@ -84,8 +79,7 @@ const isPrinterOnlyPatch = (data: unknown): boolean => {
 export const cloudManaged =
   () =>
   async (context: HookContext, next: NextFunction): Promise<void> => {
-    const isExternalWrite =
-      context.params.provider && WRITE_METHODS.has(context.method)
+    const isExternalWrite = context.params.provider && WRITE_METHODS.has(context.method)
     if (!isExternalWrite) {
       await next()
       return

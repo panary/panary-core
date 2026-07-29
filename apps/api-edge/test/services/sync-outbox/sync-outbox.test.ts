@@ -176,9 +176,7 @@ describe('sync-outbox service — reEnqueue', () => {
     const rawPayload = created.payload
     assert.ok(rawPayload, 'payload wurde gesetzt (nicht null/undefined)')
     const parsed =
-      typeof rawPayload === 'string'
-        ? (JSON.parse(rawPayload) as { _id?: string })
-        : (rawPayload as { _id?: string })
+      typeof rawPayload === 'string' ? (JSON.parse(rawPayload) as { _id?: string }) : (rawPayload as { _id?: string })
     assert.strictEqual(parsed._id, entityId, 'frischer Payload traegt die Ziel-entityId')
 
     // Alter rejected-Eintrag wurde entfernt.
@@ -221,14 +219,11 @@ describe('sync-outbox service — reEnqueue', () => {
     const { outboxId } = await makeRejectedOutboxEntry(SyncOp.PATCH, false)
 
     const service = app.service('sync-outbox') as unknown as ReEnqueueService
-    await assert.rejects(
-      service.reEnqueue({ id: outboxId }),
-      (error: { name?: string; message?: string }) => {
-        assert.strictEqual(error.name, 'BadRequest')
-        assert.match(String(error.message ?? ''), /Datensatz existiert nicht mehr/i)
-        return true
-      },
-    )
+    await assert.rejects(service.reEnqueue({ id: outboxId }), (error: { name?: string; message?: string }) => {
+      assert.strictEqual(error.name, 'BadRequest')
+      assert.match(String(error.message ?? ''), /Datensatz existiert nicht mehr/i)
+      return true
+    })
 
     // Guarantee: alter rejected-Eintrag bleibt erhalten — Operator hat weiterhin
     // die Wahl zwischen „Verwerfen" und „Erneut versuchen".

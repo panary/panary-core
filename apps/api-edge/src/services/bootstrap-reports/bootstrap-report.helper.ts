@@ -119,15 +119,11 @@ export const runConsistencyCheck = async (
   // (1) Ghost-Locations
   let ghostLocations: string[] = []
   try {
-    const userLocs = (await knex('users')
-      .distinct('activeLocationId')
-      .whereNotNull('activeLocationId')) as Array<{ activeLocationId?: string }>
-    const knownLocs = new Set(
-      ((await knex('locations').select('_id')) as Array<{ _id: string }>).map(r => r._id),
-    )
-    ghostLocations = userLocs
-      .map(r => r.activeLocationId!)
-      .filter(id => id && !knownLocs.has(id))
+    const userLocs = (await knex('users').distinct('activeLocationId').whereNotNull('activeLocationId')) as Array<{
+      activeLocationId?: string
+    }>
+    const knownLocs = new Set(((await knex('locations').select('_id')) as Array<{ _id: string }>).map(r => r._id))
+    ghostLocations = userLocs.map(r => r.activeLocationId!).filter(id => id && !knownLocs.has(id))
     if (ghostLocations.length > 0) {
       issues.push({
         severity: 'ERROR',
@@ -145,10 +141,7 @@ export const runConsistencyCheck = async (
   let tenantIdMismatchCount = 0
   for (const table of ['products', 'product-groups', 'customers', 'corporate-customers', 'users']) {
     try {
-      const row = await knex(table)
-        .where('tenantId', '!=', cloudTenantId)
-        .count('* as cnt')
-        .first()
+      const row = await knex(table).where('tenantId', '!=', cloudTenantId).count('* as cnt').first()
       const cnt = Number(row?.cnt ?? 0)
       tenantIdMismatchCount += cnt
       if (cnt > 0) {
@@ -167,10 +160,7 @@ export const runConsistencyCheck = async (
   if (cloudLocationId) {
     for (const table of ['products', 'product-groups']) {
       try {
-        const row = await knex(table)
-          .where('locationId', '!=', cloudLocationId)
-          .count('* as cnt')
-          .first()
+        const row = await knex(table).where('locationId', '!=', cloudLocationId).count('* as cnt').first()
         const cnt = Number(row?.cnt ?? 0)
         locationIdMismatchCount += cnt
         if (cnt > 0) {
@@ -187,9 +177,7 @@ export const runConsistencyCheck = async (
 
   // (4) cloud-connection.locationId muss == cloudLocationId
   try {
-    const conn = (await knex('cloud-connection')
-      .select('locationId')
-      .first()) as { locationId?: string } | undefined
+    const conn = (await knex('cloud-connection').select('locationId').first()) as { locationId?: string } | undefined
     if (cloudLocationId && conn?.locationId !== cloudLocationId) {
       issues.push({
         severity: 'WARN',
@@ -210,10 +198,7 @@ export const runConsistencyCheck = async (
   }
 }
 
-export const createReport = async (
-  app: Application,
-  input: CreateReportInput,
-): Promise<string | null> => {
+export const createReport = async (app: Application, input: CreateReportInput): Promise<string | null> => {
   const id = uuidv7()
   const now = new Date().toISOString()
   const payload = {
@@ -249,7 +234,9 @@ export const createReport = async (
         direction: payload.direction,
         identityKeys: Object.keys(payload.identity ?? {}),
         preStateKeys: Object.keys(payload.preState ?? {}),
-        preStateLocationsCount: Array.isArray(payload.preState?.locations) ? payload.preState.locations.length : 'not-array',
+        preStateLocationsCount: Array.isArray(payload.preState?.locations)
+          ? payload.preState.locations.length
+          : 'not-array',
         preStateCountsKeys: Object.keys(payload.preState?.counts ?? {}),
       },
     })
@@ -284,10 +271,7 @@ export const updateReport = async (
  * Sammelt alle sync-runs, die diesem Bootstrap-Report zugeordnet sind
  * (markiert beim Schreiben via recordSyncRun-Helper mit `bootstrapReportId`).
  */
-export const collectSyncRunIds = async (
-  app: Application,
-  reportId: string | null,
-): Promise<string[]> => {
+export const collectSyncRunIds = async (app: Application, reportId: string | null): Promise<string[]> => {
   if (!reportId) return []
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -334,10 +318,7 @@ const resolveDataDir = (app: Application): string => {
  * persistent — kein Auto-Cleanup. Der Pfad wird in `report.jsonExportPath`
  * vermerkt, damit die UI den Download-Link bauen kann.
  */
-export const dumpToFile = async (
-  app: Application,
-  reportId: string | null,
-): Promise<void> => {
+export const dumpToFile = async (app: Application, reportId: string | null): Promise<void> => {
   if (!reportId) return
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

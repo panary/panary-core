@@ -30,7 +30,7 @@ import type { Application } from '../../declarations'
 
 export interface RecordSyncRunInput {
   tenantId: string
-  phase: typeof SyncRunPhase[keyof typeof SyncRunPhase]
+  phase: (typeof SyncRunPhase)[keyof typeof SyncRunPhase]
   direction: SyncRunDirection
   service?: string | null
   recordCount?: number
@@ -38,7 +38,7 @@ export interface RecordSyncRunInput {
   rejected?: number
   archived?: number
   durationMs: number
-  outcome: typeof SyncRunOutcome[keyof typeof SyncRunOutcome]
+  outcome: (typeof SyncRunOutcome)[keyof typeof SyncRunOutcome]
   errorMessage?: string
   triggeredBy: SyncRunTrigger
   startedAt: string
@@ -83,10 +83,7 @@ const isWorthRecording = (input: RecordSyncRunInput): boolean => {
   }
 }
 
-export const recordSyncRun = async (
-  app: Application,
-  input: RecordSyncRunInput,
-): Promise<void> => {
+export const recordSyncRun = async (app: Application, input: RecordSyncRunInput): Promise<void> => {
   if (!isWorthRecording(input)) return
 
   const finishedAt = input.finishedAt ?? new Date().toISOString()

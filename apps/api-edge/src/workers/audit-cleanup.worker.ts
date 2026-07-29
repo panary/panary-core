@@ -143,9 +143,7 @@ const runAuditEventsPhase = async (app: Application, config: AuditCleanupConfig)
     }
 
     const cutoff = new Date(Date.now() - config.retentionDays * 86_400_000).toISOString()
-    const knex = app.get('sqliteClient') as
-      | (import('knex').Knex & ((table: string) => unknown))
-      | undefined
+    const knex = app.get('sqliteClient') as (import('knex').Knex & ((table: string) => unknown)) | undefined
     if (!knex) {
       logger.error({
         message: 'Audit-Cleanup abgebrochen — kein sqliteClient verfuegbar',
@@ -328,10 +326,7 @@ export const runOutboxRetention = async (
     .where('service', 'audit-events')
     .where('syncedAt', '<', auditCutoff)
     .whereNotExists(
-      knex
-        .select(knex.raw('1'))
-        .from('audit-events')
-        .whereRaw('"audit-events"."_id" = "sync-outbox"."entityId"'),
+      knex.select(knex.raw('1')).from('audit-events').whereRaw('"audit-events"."_id" = "sync-outbox"."entityId"'),
     )
     .del()
 
@@ -351,10 +346,7 @@ export const runOutboxRetention = async (
 // im selben Lauf erst geloescht, bevor sein acked-Beweis fallen darf. Kein
 // Cloud-Reachability-Gate wie in Phase 1 — `acked` heisst, die Cloud hat den
 // Push bereits bestaetigt; die Retention ist offline genauso sicher.
-const runOutboxRetentionPhase = async (
-  app: Application,
-  config: AuditCleanupConfig,
-): Promise<void> => {
+const runOutboxRetentionPhase = async (app: Application, config: AuditCleanupConfig): Promise<void> => {
   const startedAt = Date.now()
   try {
     const knex = app.get('sqliteClient') as import('knex').Knex | undefined
@@ -404,10 +396,7 @@ const computeDelayUntilHour = (targetHour: number): number => {
 // cloud-connection gibt (Edge laeuft ohne Pairing), gilt der Edge als
 // "standalone" — Cleanup laeuft trotzdem (Cloud-Source-of-Truth-Pflicht
 // entfaellt).
-const isCloudReachableRecently = async (
-  app: Application,
-  maxAgeDays: number,
-): Promise<boolean> => {
+const isCloudReachableRecently = async (app: Application, maxAgeDays: number): Promise<boolean> => {
   try {
     const result = (await app
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

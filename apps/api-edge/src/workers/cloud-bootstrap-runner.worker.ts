@@ -6,16 +6,8 @@ import {
   InitialSyncDirection,
   PairingStatus,
 } from '@panary/cloud-connection/domain'
-import {
-  SyncableMasterDataService,
-  SyncableTransactionService,
-} from '@panary/edge-pairing/domain'
-import {
-  SyncOp,
-  SyncSource,
-  type SyncBootstrapResponse,
-  type SyncOpEntry,
-} from '@panary/sync/domain'
+import { SyncableMasterDataService, SyncableTransactionService } from '@panary/edge-pairing/domain'
+import { SyncOp, SyncSource, type SyncBootstrapResponse, type SyncOpEntry } from '@panary/sync/domain'
 import { isSyncPushBlockedRole, stripUserEdgeLocalFields } from '@panary/users/domain'
 
 import type { Application } from '../declarations'
@@ -32,17 +24,9 @@ import {
   runConsistencyCheck,
   updateReport,
 } from '../services/bootstrap-reports/bootstrap-report.helper'
-import {
-  type BootstrapReportDirection,
-  BootstrapReportStatus,
-} from '@panary/cloud-connection/domain'
+import { type BootstrapReportDirection, BootstrapReportStatus } from '@panary/cloud-connection/domain'
 import { applyPulledRecords, cloudFetch, pullMasterDataPage } from './sync-apply'
-import {
-  SyncRunDirection,
-  SyncRunOutcome,
-  SyncRunPhase,
-  SyncRunTrigger,
-} from '@panary/sync/domain'
+import { SyncRunDirection, SyncRunOutcome, SyncRunPhase, SyncRunTrigger } from '@panary/sync/domain'
 
 const requireDecryptedToken = (connection: CloudConnection): string => {
   const token = decryptCloudToken(connection.cloudToken)
@@ -118,19 +102,11 @@ const BACKFILL_PAGE_SIZE = 500
 // Einzel-Creates statt Array-Create.
 const BACKFILL_CREATE_CONCURRENCY = 25
 
-const persistStatus = async (
-  app: Application,
-  id: string,
-  patch: Partial<CloudConnection>,
-): Promise<void> => {
+const persistStatus = async (app: Application, id: string, patch: Partial<CloudConnection>): Promise<void> => {
   await (app.service(cloudConnectionPath) as any)._patch(id, patch)
 }
 
-const collectAllRecords = async (
-  app: Application,
-  service: string,
-  tenantId: string,
-): Promise<unknown[]> => {
+const collectAllRecords = async (app: Application, service: string, tenantId: string): Promise<unknown[]> => {
   const result = await app.service(service as any).find({
     provider: undefined,
     paginate: false,
@@ -275,10 +251,13 @@ const truncateMasterTables = async (app: Application, tenantId: string): Promise
   const failed = new Set<string>()
   for (const service of MASTER_DATA_SERVICES) {
     try {
-      await app.service(service as any).remove(null as any, {
-        provider: undefined,
-        query: { tenantId },
-      } as any)
+      await app.service(service as any).remove(
+        null as any,
+        {
+          provider: undefined,
+          query: { tenantId },
+        } as any,
+      )
     } catch (err) {
       failed.add(service)
       logger.warn({
@@ -473,17 +452,14 @@ const runBootstrapEdgeToCloud = async (
  * (apps/api-edge/src/services/locations/locations.ts:107-109), der externe
  * Schreibzugriffe auf `locations` nach Pairing blockiert.
  */
-export const reconcileLocationBusinessDay = async (
-  app: Application,
-  tenantId: string,
-): Promise<void> => {
+export const reconcileLocationBusinessDay = async (app: Application, tenantId: string): Promise<void> => {
   try {
     const openDays = await (app.service('businessdays' as any) as any).find({
       provider: undefined,
       paginate: false,
       query: { tenantId, status: 'open' },
     })
-    const items = Array.isArray(openDays) ? openDays : (openDays as { data?: unknown[] })?.data ?? []
+    const items = Array.isArray(openDays) ? openDays : ((openDays as { data?: unknown[] })?.data ?? [])
     for (const day of items as Array<{ _id: string; locationId: string | null; date: string }>) {
       if (!day.locationId) continue
       try {
@@ -631,10 +607,9 @@ const runMergeByExternalId = async (
         // ID-Restamping: Edge-Record-ID auf Cloud-ID umstellen.
         try {
           await app.service(service as any).remove(edge._id, { provider: undefined } as any)
-          await app.service(service as any).create(
-            { ...cloudRecord, tenantId: connection.tenantId! },
-            { provider: undefined } as any,
-          )
+          await app
+            .service(service as any)
+            .create({ ...cloudRecord, tenantId: connection.tenantId! }, { provider: undefined } as any)
         } catch (err) {
           logger.warn({
             message: 'Merge-Restamping fehlgeschlagen',
@@ -762,8 +737,7 @@ export const runBootstrap = async (app: Application, cloudConnectionId: string):
     // weicht sie ab, sobald Cloud-Admin eine andere als die lokale Edge-Location
     // zugewiesen hat.
     const requiresIdentityRestamp =
-      connection.preflightSnapshot.requiresTenantIdRestamp ||
-      connection.preflightSnapshot.requiresLocationIdRestamp
+      connection.preflightSnapshot.requiresTenantIdRestamp || connection.preflightSnapshot.requiresLocationIdRestamp
     if (requiresIdentityRestamp) {
       // WICHTIG: oldTenantId/oldLocationId aus dem preflightSnapshot lesen,
       // NICHT aus `connection.tenantId/locationId`. `connection.locationId`

@@ -54,9 +54,7 @@ export async function autoEnsureBusinessDay(app: Application): Promise<void> {
     if (raw.currentBusinessDay) {
       try {
         currentBusinessDay =
-          typeof raw.currentBusinessDay === 'string'
-            ? JSON.parse(raw.currentBusinessDay)
-            : raw.currentBusinessDay
+          typeof raw.currentBusinessDay === 'string' ? JSON.parse(raw.currentBusinessDay) : raw.currentBusinessDay
       } catch {
         currentBusinessDay = null
       }

@@ -18,10 +18,7 @@ import { hooks as schemaHooks } from '@feathersjs/schema'
 import { BadRequest, Forbidden, NotFound } from '@feathersjs/errors'
 import { uuidv7 } from 'uuidv7'
 
-import {
-  BusinessDayStatus,
-  BusinessDayOperationMode,
-} from '@panary/businessdays/domain'
+import { BusinessDayStatus, BusinessDayOperationMode } from '@panary/businessdays/domain'
 import { LocationOperationMode } from '@panary/locations/domain'
 import { PairingStatus } from '@panary/cloud-connection/domain'
 import { SyncOutboxStatus } from '@panary/sync/domain'
@@ -29,11 +26,7 @@ import { authorize, multiTenancy } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { DatabaseType } from '@panary/shared-common'
 import { ensureIndexes, logger } from '@panary/shared-backend'
-import {
-  dayTseFieldsFromError,
-  dayTseFieldsFromSignature,
-  type BusinessDayTseFields,
-} from '@panary/tse/domain'
+import { dayTseFieldsFromError, dayTseFieldsFromSignature, type BusinessDayTseFields } from '@panary/tse/domain'
 
 import {
   businessDayDataResolver,
@@ -56,7 +49,7 @@ import type {
 
 import type { Application, HookContext } from '../../declarations'
 
-export const businessDaysPath = 'businessdays'           // bestehender Tabellen-/Service-Pfad
+export const businessDaysPath = 'businessdays' // bestehender Tabellen-/Service-Pfad
 export const businessDaysMethods = [
   'find',
   'get',
@@ -100,11 +93,7 @@ interface OpenDayParams {
  * Hook NICHT — damit Bootstrap-Pfade vor Service-Registrierung weiter
  * funktionieren.
  */
-async function guardCloudManagedLifecycle(
-  app: Application,
-  params: OpenDayParams,
-  operation: string,
-): Promise<void> {
+async function guardCloudManagedLifecycle(app: Application, params: OpenDayParams, operation: string): Promise<void> {
   if (!params.provider) return // interner Aufruf — Sync-Apply etc.
   if (params.isEmergencyOverride) return // Operator-Override bei Cloud-Outage
   try {
@@ -188,12 +177,14 @@ async function hasConnectedCloudConnection(app: Application): Promise<boolean> {
  * Dieser zusaetzliche Hook schliesst die Luecke fuer den Standard-CRUD-
  * Pfad (HTTP-POST/PATCH/DELETE direkt auf den Service).
  */
-const cloudManagedHook = (operation: string) => async (context: HookContext): Promise<HookContext> => {
-  const app = context.app as Application
-  const params = context.params as OpenDayParams
-  await guardCloudManagedLifecycle(app, params, operation)
-  return context
-}
+const cloudManagedHook =
+  (operation: string) =>
+  async (context: HookContext): Promise<HookContext> => {
+    const app = context.app as Application
+    const params = context.params as OpenDayParams
+    await guardCloudManagedLifecycle(app, params, operation)
+    return context
+  }
 
 // Sync-Apply vs. lokale Eröffnung beim Create-Pfad:
 //
@@ -214,9 +205,7 @@ const syncAwareValidateCreate = (context: HookContext): Promise<HookContext> =>
     : (validateInputData(context) as Promise<HookContext>)
 
 const syncAwareResolveCreate = (context: HookContext): Promise<HookContext> | HookContext =>
-  (context.params as { fromSync?: boolean })?.fromSync
-    ? context
-    : (resolveCreateData(context) as Promise<HookContext>)
+  (context.params as { fromSync?: boolean })?.fromSync ? context : (resolveCreateData(context) as Promise<HookContext>)
 
 /**
  * Eroeffnet einen neuen Geschaeftstag.
@@ -241,7 +230,7 @@ async function openDay(app: Application, data: OpenDayData, params: OpenDayParam
     query: { tenantId: user.tenantId, locationId, status: BusinessDayStatus.OPEN, $limit: 1 },
     provider: undefined,
   })
-  const items = Array.isArray(existing) ? existing : existing?.data ?? []
+  const items = Array.isArray(existing) ? existing : (existing?.data ?? [])
   if (items.length > 0) {
     throw new BadRequest(`Es ist bereits ein Geschaeftstag fuer Location ${locationId} offen`)
   }
@@ -300,11 +289,7 @@ async function openDay(app: Application, data: OpenDayData, params: OpenDayParam
  *  4. Cloud-Trigger: business-day-reports.startClosing aufrufen (HTTP)
  *  5. Sofort returnen — der Cloud-Report kommt asynchron via Sync-Pull
  */
-async function closeDay(
-  app: Application,
-  data: CloseDayData,
-  params: OpenDayParams = {},
-): Promise<BusinessDay> {
+async function closeDay(app: Application, data: CloseDayData, params: OpenDayParams = {}): Promise<BusinessDay> {
   await guardCloudManagedLifecycle(app, params, 'Tagesabschluss')
 
   const user = params.user
@@ -650,15 +635,13 @@ async function triggerCloudClosing(app: Application, payload: CloudTriggerPayloa
   }
 }
 
-async function loadCloudConnection(
-  app: Application,
-): Promise<{ cloudUrl?: string; cloudAccessToken?: string } | null> {
+async function loadCloudConnection(app: Application): Promise<{ cloudUrl?: string; cloudAccessToken?: string } | null> {
   try {
     const result = await (app.service('cloud-connection') as any).find({
       query: { $limit: 1 },
       provider: undefined,
     })
-    const items = Array.isArray(result) ? result : result?.data ?? []
+    const items = Array.isArray(result) ? result : (result?.data ?? [])
     return items[0] ?? null
   } catch {
     return null
@@ -688,10 +671,8 @@ export const businessDays = (app: Application) => {
   }
 
   // Custom-Methods auf den Service-Proxy haengen
-  service.openDay = (data: OpenDayData, params?: OpenDayParams) =>
-    openDay(app, data, params)
-  service.closeDay = (data: CloseDayData, params?: OpenDayParams) =>
-    closeDay(app, data, params)
+  service.openDay = (data: OpenDayData, params?: OpenDayParams) => openDay(app, data, params)
+  service.closeDay = (data: CloseDayData, params?: OpenDayParams) => closeDay(app, data, params)
   service.refreshClosingStatus = (data: RefreshClosingStatusData, params?: OpenDayParams) =>
     refreshClosingStatus(app, data, params)
   ;(service as any).setup = async (app: Application) =>
@@ -705,12 +686,10 @@ export const businessDays = (app: Application) => {
       ],
       service,
     )
-
   ;(app as any).use(businessDaysPath, service, {
     methods: [...businessDaysMethods],
     events: [],
   })
-
   ;(app.service(businessDaysPath) as any).hooks({
     around: {
       all: [
@@ -722,17 +701,10 @@ export const businessDays = (app: Application) => {
       ],
     },
     before: {
-      all: [
-        schemaHooks.validateQuery(businessDayQueryValidator),
-        schemaHooks.resolveQuery(businessDayQueryResolver),
-      ],
+      all: [schemaHooks.validateQuery(businessDayQueryValidator), schemaHooks.resolveQuery(businessDayQueryResolver)],
       find: [],
       get: [],
-      create: [
-        cloudManagedHook('Eroeffnung'),
-        syncAwareValidateCreate,
-        syncAwareResolveCreate,
-      ],
+      create: [cloudManagedHook('Eroeffnung'), syncAwareValidateCreate, syncAwareResolveCreate],
       patch: [
         cloudManagedHook('Patch'),
         schemaHooks.validateData(businessDayPatchValidator),

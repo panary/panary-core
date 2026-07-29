@@ -2,7 +2,19 @@ import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
 import { getJsonFieldHooks } from '@panary/shared-backend'
 
-const ORDER_JSON_FIELDS = ['lineItems', 'cancellation', 'customerPaymentInfo', 'discount', 'appliedDiscounts', 'staffPaymentInfo', 'taxSnapshot', 'creationContext', 'payment', 'tse', 'stockMovementIds']
+const ORDER_JSON_FIELDS = [
+  'lineItems',
+  'cancellation',
+  'customerPaymentInfo',
+  'discount',
+  'appliedDiscounts',
+  'staffPaymentInfo',
+  'taxSnapshot',
+  'creationContext',
+  'payment',
+  'tse',
+  'stockMovementIds',
+]
 
 import {
   orderDataResolver,
@@ -12,7 +24,7 @@ import {
   orderPatchValidator,
   orderQueryResolver,
   orderQueryValidator,
-  orderResolver
+  orderResolver,
 } from './orders.schema'
 
 import type { Application } from '../../declarations'
@@ -69,7 +81,7 @@ export const orders = (app: Application) => {
     Model,
     paginate,
     id: '_id',
-    multi: []
+    multi: [],
   }) as unknown as OrderService
 
   ;(service as any).setup = async (app: Application) =>
@@ -94,9 +106,9 @@ export const orders = (app: Application) => {
         order: orderSchema,
         orderData: orderDataSchema,
         orderPatch: orderPatchSchema,
-        orderQuery: orderQuerySchema
-      }
-    }
+        orderQuery: orderQuerySchema,
+      },
+    },
   })
 
   const jsonHooks = getJsonFieldHooks(app, ORDER_JSON_FIELDS)
@@ -110,8 +122,8 @@ export const orders = (app: Application) => {
         multiTenancy({ isolateLocation: true, allowGlobalData: false }),
 
         schemaHooks.resolveExternal(orderExternalResolver),
-        schemaHooks.resolveResult(orderResolver)
-      ]
+        schemaHooks.resolveResult(orderResolver),
+      ],
     },
     before: {
       all: [schemaHooks.validateQuery(orderQueryValidator), schemaHooks.resolveQuery(orderQueryResolver)],
@@ -172,7 +184,7 @@ export const orders = (app: Application) => {
         schemaHooks.resolveData(orderPatchResolver),
         ...jsonHooks.before,
       ],
-      remove: []
+      remove: [],
     },
     after: {
       all: [
@@ -182,11 +194,11 @@ export const orders = (app: Application) => {
         // (idempotent, nie blockierend) — stellt genau einen Beleg pro Order aus.
         issueReceipt,
       ],
-      create: [createOrderInteractions()]
+      create: [createOrderInteractions()],
     },
     error: {
-      all: []
-    }
+      all: [],
+    },
   })
 }
 

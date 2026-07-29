@@ -15,11 +15,11 @@ function makeApp(rows: Array<{ pairingStatus: string; _id?: string }>, opts: { t
     service: () => ({
       find: opts.throws
         ? vi.fn().mockRejectedValue(new Error('service not registered'))
-        : vi.fn().mockImplementation(({ query }: any) =>
-            Promise.resolve(
-              query?.pairingStatus ? rows.filter(r => r.pairingStatus === query.pairingStatus) : rows,
+        : vi
+            .fn()
+            .mockImplementation(({ query }: any) =>
+              Promise.resolve(query?.pairingStatus ? rows.filter(r => r.pairingStatus === query.pairingStatus) : rows),
             ),
-          ),
     }),
   }
 }

@@ -67,9 +67,7 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema.raw(
     'CREATE INDEX IF NOT EXISTS "idx_audit-events_tenant_action_time" ON "audit-events" (tenantId, action, occurredAt DESC)',
   )
-  await knex.schema.raw(
-    'CREATE INDEX IF NOT EXISTS "idx_audit-events_correlation" ON "audit-events" (correlationId)',
-  )
+  await knex.schema.raw('CREATE INDEX IF NOT EXISTS "idx_audit-events_correlation" ON "audit-events" (correlationId)')
   await knex.schema.raw(
     'CREATE INDEX IF NOT EXISTS "idx_audit-events_tenant_location_time" ON "audit-events" (tenantId, locationId, occurredAt DESC)',
   )

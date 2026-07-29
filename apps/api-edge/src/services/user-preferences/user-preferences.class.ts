@@ -7,7 +7,7 @@ import type {
   UserPreference,
   UserPreferenceData,
   UserPreferencePatch,
-  UserPreferenceQuery
+  UserPreferenceQuery,
 } from '@panary/user-preferences/domain'
 
 export type { UserPreference, UserPreferenceData, UserPreferencePatch, UserPreferenceQuery }
@@ -16,5 +16,9 @@ export type { UserPreference, UserPreferenceData, UserPreferencePatch, UserPrefe
 export type UserPreferenceParams = KnexAdapterParams<UserPreferenceQuery> & MongoDBAdapterParams & Params
 
 // Service Interface - can be either KnexService or MongoDBService
-export interface UserPreferenceService
-  extends ServiceInterface<UserPreference, UserPreferenceData, UserPreferenceParams, UserPreferencePatch> {}
+export interface UserPreferenceService extends ServiceInterface<
+  UserPreference,
+  UserPreferenceData,
+  UserPreferenceParams,
+  UserPreferencePatch
+> {}

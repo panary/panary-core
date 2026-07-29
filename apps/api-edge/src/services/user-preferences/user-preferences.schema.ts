@@ -10,15 +10,13 @@ import {
   userPreferenceDataSchema,
   userPreferencePatchSchema,
   UserPreferenceQuery,
-  userPreferenceQuerySchema
+  userPreferenceQuerySchema,
 } from '@panary/user-preferences/domain'
 import { UserPreferenceService } from './user-preferences.class'
 
 //#region 1. Main Resolver (Output)
-export const userPreferenceResolver = resolve<UserPreference, HookContext<UserPreferenceService>>({
-})
-export const userPreferenceExternalResolver = resolve<UserPreference, HookContext<UserPreferenceService>>({
-})
+export const userPreferenceResolver = resolve<UserPreference, HookContext<UserPreferenceService>>({})
+export const userPreferenceExternalResolver = resolve<UserPreference, HookContext<UserPreferenceService>>({})
 //#endregion
 
 //#region 2. Create Resolver (POST)
@@ -44,7 +42,7 @@ export const userPreferencePatchResolver = resolve<UserPreference, HookContext<U
   tenantId: async () => undefined,
   locationId: async () => undefined,
   createdAt: async () => undefined,
-  updatedAt: async () => new Date().toISOString()
+  updatedAt: async () => new Date().toISOString(),
 })
 //#endregion
 
@@ -59,6 +57,6 @@ export const userPreferenceQueryResolver = resolve<UserPreferenceQuery, HookCont
       return params.user._id
     }
     return value
-  }
+  },
 })
 //#endregion

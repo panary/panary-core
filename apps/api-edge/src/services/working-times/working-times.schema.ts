@@ -10,7 +10,7 @@ import {
   workingTimeDataSchema,
   workingTimePatchSchema,
   WorkingTimeQuery,
-  workingTimeQuerySchema
+  workingTimeQuerySchema,
 } from '@panary/working-times/domain'
 import { WorkingTimeService } from './working-times.class'
 
@@ -29,7 +29,7 @@ export const workingTimeDataResolver = resolve<WorkingTime, HookContext<WorkingT
   checkinDate: async value => value || new Date().toISOString(),
   breaks: async () => [] as WorkingTime['breaks'],
   checkoutDate: async () => null,
-  originCheckoutDate: async () => null
+  originCheckoutDate: async () => null,
 })
 //#endregion
 
@@ -44,7 +44,7 @@ export const workingTimePatchResolver = resolve<WorkingTime, HookContext<Working
   checkinDate: async () => undefined,
   userId: async () => undefined,
   updatedAt: async () => new Date().toISOString(),
-  updatedBy: async (_value, _data, context) => (context.params as any).user?._id
+  updatedBy: async (_value, _data, context) => (context.params as any).user?._id,
 })
 //#endregion
 

@@ -82,9 +82,7 @@ describe('cloud-sync-scheduler worker — push drain', () => {
           .map(r => ({ _id: r._id, service: r.service, entityId: r.entityId }))
       }
       return rows
-        .filter(
-          r => r.status === params.query.status && r.nextAttemptAt <= (params.query.nextAttemptAt?.$lte ?? ''),
-        )
+        .filter(r => r.status === params.query.status && r.nextAttemptAt <= (params.query.nextAttemptAt?.$lte ?? ''))
         .sort((a, b) => (a._id < b._id ? -1 : 1))
         .slice(0, params.query.$limit)
         .map(r => ({ ...r }))

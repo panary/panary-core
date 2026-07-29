@@ -10,7 +10,7 @@ import {
   productDataSchema,
   productPatchSchema,
   ProductQuery,
-  productQuerySchema
+  productQuerySchema,
 } from '@panary/products/domain'
 import { ProductService } from './products.class'
 
@@ -43,7 +43,7 @@ export const productsDataResolver = resolve<Product, HookContext<ProductService>
   status: async (value, data, context) => {
     return value || 'DRAFT'
   },
-  isInvalid: async () => false
+  isInvalid: async () => false,
 })
 //#endregion
 
@@ -55,7 +55,7 @@ export const productsPatchResolver = resolve<Product, HookContext<ProductService
   tenantId: async () => undefined,
   locationId: async () => undefined,
   createdAt: async () => undefined,
-  updatedAt: async () => new Date().toISOString()
+  updatedAt: async () => new Date().toISOString(),
 })
 //#endregion
 

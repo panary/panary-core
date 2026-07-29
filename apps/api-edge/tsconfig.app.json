@@ -12,15 +12,7 @@
     "types": ["node"],
     "moduleResolution": "node"
   },
-  "files": [
-    "src/main.ts"
-  ],
-  "include": [
-    "src/**/*.ts"
-  ],
-  "exclude": [
-    "jest.config.ts",
-    "src/**/*.spec.ts",
-    "test/**/*.ts"
-  ]
+  "files": ["src/main.ts"],
+  "include": ["src/**/*.ts"],
+  "exclude": ["jest.config.ts", "src/**/*.spec.ts", "test/**/*.ts"]
 }

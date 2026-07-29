@@ -128,6 +128,34 @@ die Subventions-/COGS-/Z-Bon-Logik (`businessdays/aggregator`) bleibt damit
 unverändert korrekt. Personalessen ist also **Preisreduktion + Subventions-
 Tracking**, nicht das eine oder andere.
 
+### Zuweisung pro Mitarbeiter (seit 2026-07-29)
+
+Welcher Rabatt gilt, steht am Benutzer: `user.staffMealDiscountId` referenziert
+einen `isStaffMeal`-Rabatt. Drückt der Kassierer „Personalessen", löst der
+Bestelldialog die Referenz gegen den lokalen Rabatt-Bestand auf und wendet sie
+ohne Auswahl an. Läuft sie ins Leere (archiviert/gelöscht/noch nicht
+synchronisiert), wird ohne Nachlass erfasst statt abgelehnt.
+
+Die frühere Wertkopie `user.discountDetails` wird für diesen Pfad **nicht mehr
+gelesen** (Kunden/Firmenkunden nutzen die Struktur weiter). Gepflegt wird die
+Zuweisung in der Cloud-Admin-UI; Standard, Vorbelegung und Rechte:
+`panary-cloud/docs/domains/personalessen-rabatt.md`.
+
+### Exklusivität
+
+Trägt eine Bestellung `staffPaymentInfo`, führt sie **genau den einen**
+Personalessen-Rabatt und sonst keinen — sonst ließen sich Rabatte stapeln
+(100 % Personalessen + 20 % Stammgast) und die Subventions-Auswertung könnte den
+Arbeitgeber-Zuschuss nicht mehr zuordnen. Außerhalb von Personalessen bleiben
+Rabatte normal kombinierbar.
+
+Quelle der Regel: `assertStaffMealDiscountExclusivity` /
+`findStaffMealDiscountConflict` in `pricing/staff-meal-exclusivity.ts` — genutzt
+vom Edge-Hook `validateStaffMealExclusivity` (orders create + patch, merged
+Vorzustand + Body) und vom POS für die UI-Sperre. `applyAutomaticDiscounts`
+überspringt Personalessen-Bestellungen ganz, statt einen Rabatt einzusammeln, an
+dem die Bestellung anschließend scheitert.
+
 ## POS-Anwendung (Rabatt-Picker)
 
 Im Order-Dialog (`@panary/orders/feature-pos-order-dialog`) öffnet der

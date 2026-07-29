@@ -75,6 +75,48 @@ describe('users service — verifyPin', () => {
   })
 })
 
+// Brute-Force-Schutz: ohne Limiter waere der 4-stellige PIN-Raum (10^4) bei
+// bcrypt-Cost 6 in etwa einer Minute durchprobiert. Eigener User, damit die
+// Sperre die uebrigen Tests nicht beeinflusst.
+describe('users service — verifyPin Rate-Limit', () => {
+  type VerifyPinService = { verifyPin: (data: { userId: string; pin: string }) => Promise<unknown> }
+
+  let lockUserId: string
+
+  beforeAll(async () => {
+    await app.setup()
+    const created = await app.service('users').create(
+      { firstName: 'Brute', lastName: 'Force', role: 'tenant:staff', isPosUser: true, posPin: '1234' } as never,
+      { provider: undefined },
+    )
+    lockUserId = (created as { _id: string })._id
+  })
+
+  afterAll(async () => {
+    if (lockUserId) await app.service('users').remove(lockUserId, { provider: undefined })
+    await app.teardown()
+  })
+
+  it('sperrt nach zu vielen Fehlversuchen mit TooManyRequests (429)', async () => {
+    const service = app.service('users') as unknown as VerifyPinService
+
+    let sawLockout = false
+    for (let i = 0; i < 12; i++) {
+      await service.verifyPin({ userId: lockUserId, pin: '9999' }).catch((error: { code?: number }) => {
+        if (error.code === 429) sawLockout = true
+      })
+    }
+    assert.ok(sawLockout, 'nach wiederholten Fehlversuchen muss 429 kommen')
+
+    // Auch der korrekte PIN prallt waehrend der Sperre ab — die Sperre laeuft
+    // aber von selbst aus (siehe pin-attempt-limiter.spec.ts).
+    await assert.rejects(
+      service.verifyPin({ userId: lockUserId, pin: '1234' }),
+      (error: { code?: number }) => error.code === 429,
+    )
+  })
+})
+
 // Business-Logik-Test fuer die Custom-Method `changePin` (POS-PIN-Selbstwechsel
 // am Terminal). Der wichtigste Fall ist der Klartext-Schutz: der interne Patch
 // darf NIEMALS `fromSync: true` setzen, sonst ueberspringt der Resolver das

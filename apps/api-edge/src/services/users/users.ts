@@ -146,12 +146,25 @@ export const users = (app: Application) => {
     const { userId, pin } = data
     if (!userId || !pin) throw new NotAuthenticated('userId und pin sind erforderlich')
 
+    // Eine 4-stellige PIN spannt nur 10.000 Kombinationen auf, bcrypt laeuft mit
+    // Cost 6 — der Vollraum waere sonst in etwa einer Minute durchprobiert. Die
+    // Sperre laeuft von selbst wieder aus, damit ein vertippter Mitarbeiter
+    // nicht dauerhaft von der Kasse ausgesperrt wird.
+    const lockedFor = getPinLockoutSeconds(userId)
+    if (lockedFor !== null) {
+      throw new TooManyRequests(`Zu viele Fehlversuche. Bitte in ${lockedFor} Sekunden erneut versuchen.`)
+    }
+
     // Interner Aufruf — umgeht resolveExternal, damit posPin-Hash geladen wird
     const user = await app.service('users').get(userId, { provider: undefined })
-    if (!user.posPin) throw new NotAuthenticated('Kein PIN gesetzt')
 
-    const isValid = await bcrypt.compare(pin, user.posPin)
-    if (!isValid) throw new NotAuthenticated('PIN ungueltig')
+    // Einheitliche Meldung fuer "kein PIN gesetzt" und "PIN falsch": die
+    // Unterscheidung waere ein Existenz-Oracle fuer jeden am Terminal.
+    if (!user.posPin || !(await bcrypt.compare(pin, user.posPin))) {
+      recordPinFailure(userId)
+      throw new NotAuthenticated('PIN ungueltig')
+    }
+    clearPinFailures(userId)
 
     // Sensible Felder entfernen
     const { posPin: _pin, password: _pw, ...safeUser } = user as any

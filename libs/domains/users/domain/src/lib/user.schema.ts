@@ -190,6 +190,19 @@ export const userSchema = Type.Object(
 
     // Einstellungen
     allowStaffMealOrders: Type.Optional(Type.Boolean({ default: false })),
+    // Zugewiesener Personalessen-Rabatt (Referenz auf `discounts._id`, dort mit
+    // `isStaffMeal: true`). Bewusst Referenz statt Wertkopie: aendert der Inhaber
+    // den Rabattsatz, wirkt das sofort fuer alle zugewiesenen Mitarbeiter.
+    // Wirksam wird die Zuweisung nur bei gesetztem `allowStaffMealOrders` — die
+    // beiden Felder sind absichtlich entkoppelt (Berechtigung vs. Hoehe).
+    // `Null` gehoert in die Union, weil SQLite leere Spalten als `null` liefert und
+    // ein reines `Type.Optional(Type.String())` jeden synchronisierten Datensatz an
+    // der Validierung scheitern liesse.
+    staffMealDiscountId: Type.Optional(Type.Union([Type.String({ format: 'uuid' }), Type.Null()])),
+    // ABGELOEST fuer den User-Pfad: Der POS liest den Personalessen-Rabatt seit der
+    // Umstellung ueber `staffMealDiscountId`. Das Feld bleibt im Schema, weil Kunden
+    // und Firmenkunden dieselbe Struktur weiterverwenden und Alt-Datensaetze aus der
+    // Legacy-Zeit sonst an der Validierung scheitern wuerden.
     discountDetails: Type.Optional(
       Type.Object({
         discountType: StringEnum(Object.values(DiscountType)),
@@ -261,6 +274,7 @@ export const userDataSchema = Type.Intersect(
         'mustChangePosPin',
         'permissions',
         'role',
+        'staffMealDiscountId',
         'staffRole',
         'stampingId',
         'startBreakAt',
@@ -315,6 +329,9 @@ export const userQueryProperties = Type.Pick(
   'lastName',
   'loginname',
   'role',
+  // Pflicht fuer die Nachzieh-Abfrage der Cloud-Admin-UI: „welche Mitarbeiter haben
+  // noch keinen Personalessen-Rabatt zugewiesen?" filtert hierauf.
+  'staffMealDiscountId',
   'staffRole',
   'isPosUser',
   'stampingId',

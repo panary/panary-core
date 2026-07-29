@@ -32,6 +32,9 @@ import {
   TransactionMethod,
 } from '@panary/orders/data-access'
 import { PrintDialogComponent, CancelOrderDialogComponent } from '@panary/orders/data-access'
+import type { AppliedDiscount } from '@panary/orders/domain'
+import { DiscountService } from '@panary/discounts/data-access'
+import type { Discount as ManagedDiscount } from '@panary/discounts/domain'
 import { AuthService } from '@panary/auth/data-access'
 import { LocationService } from '@panary/locations/data-access'
 import { UserService } from '@panary/users/data-access'
@@ -90,6 +93,7 @@ export class ActiveOrdersComponent {
   #snackBar = inject(MatSnackBar)
   #userService = inject(UserService)
   #corporateCustomerService = inject(CorporateCustomerService)
+  #discountService = inject(DiscountService)
   #translate = inject(TranslateService)
 
   // Sort orders by recordingDate descending (Newest first).
@@ -375,6 +379,9 @@ export class ActiveOrdersComponent {
       const users: User[] = Array.isArray(result) ? result : (result as any).data
       // SQLite speichert Booleans als 0/1 — truthy-Prüfung statt striktem Vergleich
       this.staffEligibleUsers.set(users.filter(u => !!u.allowStaffMealOrders))
+      // Rabatt-Bestand mitladen: die Zuweisung am Benutzer ist eine Referenz
+      // (`staffMealDiscountId`) und wird für Anzeige und Buchung hier aufgelöst.
+      await this.#discountService.loadActivePosDiscounts().catch(() => undefined)
     } catch (e) {
       console.error(e)
       this.staffEligibleUsers.set([])
@@ -392,9 +399,14 @@ export class ActiveOrdersComponent {
         isPaid: false,
       },
     }
-    if (user.discountDetails) {
-      patch.discount = user.discountDetails
-    }
+    // Personalessen ist rabatt-exklusiv (assertStaffMealDiscountExclusivity): der
+    // zugewiesene Rabatt ersetzt alles, was vorher auf der Bestellung lag — sonst
+    // lehnt der Exklusivitäts-Hook den Patch mit 400 ab. Der Legacy-Spiegel
+    // `discount` wird mitgeleert, weil er sonst als Tax-Fallback weiterwirkt,
+    // sobald appliedDiscounts leer bleibt.
+    const assigned = this.#resolveAssignedStaffMealDiscount(user)
+    patch.appliedDiscounts = assigned ? [assigned] : []
+    patch.discount = null
     try {
       await this.#orderService.patch(order._id, patch)
       this.selectedOrderId.set(null)
@@ -420,11 +432,44 @@ export class ActiveOrdersComponent {
   }
 
   formatDiscount(user: User): string {
-    if (!user.discountDetails) return this.#translate.instant('ACTIVE_ORDERS.NO_DISCOUNT')
-    if (user.discountDetails.discountType === 'percent') {
-      return `${user.discountDetails.discount} % ${this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_LABEL')}`
+    const assigned = this.#findAssignedStaffMealDiscount(user)
+    if (!assigned) return this.#translate.instant('ACTIVE_ORDERS.NO_DISCOUNT')
+    if (assigned.valueType === 'percent') {
+      return `${assigned.valuePercent} % ${this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_LABEL')}`
     }
-    return `${user.discountDetails.discount.toFixed(2)} € ${this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_LABEL')}`
+    return `${(assigned.valueCents / 100).toFixed(2)} € ${this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_LABEL')}`
+  }
+
+  /**
+   * Findet die Rabatt-Definition, die dem Benutzer als Personalessen-Rabatt
+   * zugewiesen ist. `null`, wenn nichts zugewiesen ist oder die Referenz ins Leere
+   * läuft (archiviert/gelöscht/noch nicht synchronisiert).
+   */
+  #findAssignedStaffMealDiscount(user: User): ManagedDiscount | null {
+    const assignedId = user.staffMealDiscountId
+    if (!assignedId) return null
+    const match = this.#discountService.activePosDiscounts().find(d => d._id === assignedId)
+    return match?.isStaffMeal ? match : null
+  }
+
+  /** Snapshot des zugewiesenen Personalessen-Rabatts für den Order-Patch. */
+  #resolveAssignedStaffMealDiscount(user: User): AppliedDiscount | null {
+    const d = this.#findAssignedStaffMealDiscount(user)
+    if (!d) return null
+    return {
+      _id: uuidv7(),
+      discountId: d._id,
+      name: d.name,
+      method: 'manual',
+      target: 'order',
+      valueType: d.valueType,
+      valuePercent: d.valueType === 'percent' ? d.valuePercent : 0,
+      valueCents: d.valueType === 'amount' ? d.valueCents : 0,
+      computedAmountCents: 0,
+      appliedBy: this.#authService.user()?._id ?? null,
+      appliedAt: new Date().toISOString(),
+      isStaffMeal: true,
+    }
   }
 
   // --- Storno-Flow (delegiert an shared CancelOrderDialogComponent) ---

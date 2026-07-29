@@ -32,6 +32,7 @@ import { checkMultiOperation } from '../../hooks/check-multi-operation'
 import { createOrderInteractions } from '../../hooks/create-order-interactions'
 import { signOrderTseCancel, signOrderTseFinish, signOrderTseStart } from '../../hooks/sign-order-tse.hook'
 import { validateOrderStatusTransition } from '../../hooks/validate-order-status-transition.hook'
+import { validateStaffMealExclusivity } from '../../hooks/validate-staff-meal-exclusivity.hook'
 import { issueReceipt } from '../../hooks/issue-receipt.hook'
 import { ensureIndexes } from '@panary/shared-backend'
 
@@ -128,6 +129,11 @@ export const orders = (app: Application) => {
         // Automatik-Rabatte VOR der Steuerberechnung injizieren (greift nur ohne
         // bereits gesetzten manuellen Rabatt — Kombinationsregel Phase 2).
         applyAutomaticDiscounts,
+        // Personalessen ist rabatt-exklusiv. BEWUSST nach `applyAutomaticDiscounts`:
+        // erst danach steht die finale Rabattliste, sonst liesse sich die Regel über
+        // einen automatisch injizierten Rabatt umgehen. Vor `calculateTaxDetails`,
+        // damit keine Steuer auf eine ungültige Zusammenstellung gerechnet wird.
+        validateStaffMealExclusivity,
         calculateTaxDetails,
         schemaHooks.validateData(orderDataValidator),
         schemaHooks.resolveData(orderDataResolver),
@@ -141,6 +147,10 @@ export const orders = (app: Application) => {
         // Vorwärts-Übergänge (inkl. COMPLETED → UNCLAIMED/ABORTED), interne
         // (kein provider) und Same-Status-Patches passieren.
         validateOrderStatusTransition,
+        // Personalessen-Exklusivität auch beim Patch (nachträgliches „Personalessen
+        // eintragen" bzw. nachträgliches Rabattieren). Merged Vorzustand + Body,
+        // damit die Regel nicht über zwei getrennte Patches umgangen werden kann.
+        validateStaffMealExclusivity,
         // Kassen-Guard beim Kassieren: greift nur, wenn der Patch auf 'completed'
         // wechselt und eine Bar-Transaktion enthält → verlangt offene Kasse für
         // den Kassierer (performedBy). VOR validate/resolve, damit cashSessionId

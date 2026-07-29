@@ -174,6 +174,20 @@ describe('applyAutomaticDiscounts — Guards', () => {
     expect(order.appliedDiscounts).toBeUndefined()
   })
 
+  it('greift NICHT bei Personalessen — auch wenn die Order noch gar keinen Rabatt trägt', async () => {
+    // Personalessen ist rabatt-exklusiv (staff-meal-exclusivity.ts). Trifft der
+    // Fallback „zugewiesener Rabatt archiviert → ohne Rabatt", darf hier kein
+    // Automatik-Rabatt nachrutschen — sonst scheitert die Bestellung anschließend
+    // am Exklusivitäts-Hook mit 400, statt einfach unrabattiert durchzulaufen.
+    const order = makeOrder({ staffPaymentInfo: { userId: 'u-1', userName: 'Max', isPaid: false } })
+    const { ctx, find } = makeContext(order, [amt5()])
+
+    await applyAutomaticDiscounts(ctx)
+
+    expect(find).not.toHaveBeenCalled()
+    expect(order.appliedDiscounts).toBeUndefined()
+  })
+
   it('scopet auf die Filiale: fremd-lokalisierter Rabatt wird verworfen, globaler (locationId null) gewinnt', async () => {
     const order = makeOrder({ lineItems: [makeLineItem({ price: 20, amount: 2 })], locationId: 'loc-1' })
     // Der fremde Rabatt wäre nominal höher — darf aber nie in die Auswahl gelangen.

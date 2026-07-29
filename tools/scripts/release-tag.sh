@@ -114,11 +114,11 @@ if [ "$PUSH" = true ]; then
       echo "  Edge:   build-edge-docker.yml → ghcr.io/panary/panary-edge:$VERSION"
       ;;
     pos-client)
-      echo "  POS:    release-pos-windows.yml → GitHub Release pos-v$VERSION"
+      echo "  POS:    release-pos.yml → GitHub Release pos-v$VERSION"
       ;;
     all)
       echo "  Edge:   build-edge-docker.yml → ghcr.io/panary/panary-edge:$VERSION"
-      echo "  POS:    release-pos-windows.yml → GitHub Release pos-v$VERSION"
+      echo "  POS:    release-pos.yml → GitHub Release pos-v$VERSION"
       ;;
   esac
   echo ""

@@ -9,6 +9,14 @@ generated: { by: claude-code/historic, at: 2025-03-28T00:00:00Z }
 
 # Tauri Auto-Update — Einrichtung & Release-Prozess
 
+> **Geltungsbereich: Windows.** Der hier beschriebene Updater-Pfad (NSIS-Artefakte,
+> minisign-Signatur, `latest.json`) gilt ausschließlich für den Windows-Build. Das
+> macOS-Bundle wird zwar im selben Release mitgeliefert, hat aber **keinen
+> Auto-Updater**: `createUpdaterArtifacts` ist in `tauri.macos.conf.json` auf `false`,
+> und `latest.json` kennt nur den Schlüssel `windows-x86_64`. macOS wird durch einen
+> neuen Download aktualisiert. Begründung und der Weg zu einem macOS-Updater:
+> [ADR 0014 — POS-Build-Plattformen](../adr/0014-pos-build-plattformen.md).
+
 ## Architektur-Übersicht
 
 ```
@@ -118,7 +126,7 @@ git push origin main --tags
 
 ### Automatischer Workflow
 
-Der Push des Tags `pos-v2026.4.0` löst den Workflow `.github/workflows/release-pos-windows.yml` aus:
+Der Push des Tags `pos-v2026.4.0` löst den Workflow `.github/workflows/release-pos.yml` aus:
 
 1. Angular-App wird für Production gebaut
 2. Tauri baut den NSIS-Installer und signiert ihn
@@ -179,8 +187,11 @@ pnpm tauri build
 ```
 
 Der Installer liegt dann unter `apps/pos-client/src-tauri/target/release/bundle/nsis/`.
+Auf einem Mac entstehen stattdessen `bundle/macos/*.app` und `bundle/dmg/*.dmg` — der
+Angular-Build muss dort vorher separat laufen (`pnpm nx build pos-client --configuration=production`),
+weil `beforeBuildCommand` bewusst leer ist.
 
-Alternativ kann der bestehende Workflow `build-pos-windows.yml` manuell über GitHub Actions ausgelöst werden (Workflow Dispatch).
+Alternativ kann der bestehende Workflow `build-pos.yml` manuell über GitHub Actions ausgelöst werden (Workflow Dispatch). Er baut beide Plattformen und legt die Artefakte als Workflow-Artifacts ab, ohne ein Release zu erzeugen.
 
 ---
 

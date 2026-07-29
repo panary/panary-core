@@ -1,4 +1,4 @@
-name: Release POS (Windows)
+name: Release POS
 
 on:
   push:
@@ -84,7 +84,7 @@ jobs:
           }
           @"
 
-          # --- vom CI angehaengt (release-pos-windows.yml) ---
+          # --- vom CI angehaengt (release-pos.yml) ---
           packages:
             - 'apps/*'
             - 'libs/domains/*'
@@ -123,7 +123,7 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --no-frozen-lockfile
 
-      # Standalone-Resolution der @panary/*-Pakete (siehe build-pos-windows.yml):
+      # Standalone-Resolution der @panary/*-Pakete (siehe build-pos.yml):
       # node_modules/@panary/*-Symlinks zu den lokalen libs, sonst TS2307 beim
       # `nx build pos-client`. Native Windows-Symlinks via MSYS erzwingen.
       - name: Link @panary/* packages
@@ -200,3 +200,123 @@ jobs:
             > latest.json
           echo "--- latest.json ---"; cat latest.json
           gh release upload "$TAG" latest.json --repo "$GITHUB_REPOSITORY" --clobber
+
+  # macOS-Bundle (Apple Silicon) an dasselbe Release haengen.
+  #
+  # `needs: release-windows` ist bewusst gesetzt und nicht nur Reihenfolge-
+  # Kosmetik: das GitHub-Release wird von tauri-action im Windows-Job angelegt.
+  # Liefe dieser Job parallel, wuerden zwei Jobs gleichzeitig dasselbe Release
+  # erzeugen wollen. Hier wird deshalb nur noch angehaengt (gh release upload).
+  #
+  # Kein Updater-Pfad: die committete tauri.macos.conf.json setzt
+  # createUpdaterArtifacts auf false, das Manifest latest.json bleibt
+  # Windows-only. Der Update-Check der App faengt den fehlenden
+  # darwin-aarch64-Key im try/catch ab (UpdateService) — das macOS-Bundle wird
+  # also manuell aktualisiert, bis der Apple-Signing-Pfad steht.
+  release-macos:
+    needs: release-windows
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          workspaces: apps/pos-client/src-tauri -> target
+
+      # ACHTUNG: inhaltsgleich zum pwsh-Step im Job release-windows oben.
+      # Bewusst dupliziert statt in ein gemeinsames Skript extrahiert — der
+      # Windows-Release-Pfad ist historisch fragil (Em-Dash im productName,
+      # --config-Pfadaufloesung, Symlink-Lockfile, Bitwarden-Tag-Pinning) und
+      # darf durch die macOS-Erweiterung nicht beruehrbar sein.
+      # Wer hier etwas aendert, aendert es oben mit.
+      - name: Workspace-Files fuer CI-Kontext materialisieren
+        run: |
+          set -euo pipefail
+          rm -f pnpm-lock.yaml
+          if [ ! -f pnpm-workspace.yaml ]; then
+            echo "pnpm-workspace.yaml fehlt im Repo"; exit 1
+          fi
+          if grep -qE '^(packages|onlyBuiltDependencies):' pnpm-workspace.yaml; then
+            echo "pnpm-workspace.yaml traegt bereits packages:/onlyBuiltDependencies: — dieser Step wuerde doppelte YAML-Keys erzeugen. Step und Repo-Datei abgleichen."
+            exit 1
+          fi
+          cat >> pnpm-workspace.yaml <<'YAML'
+
+          # --- vom CI angehaengt (release-pos.yml, Job release-macos) ---
+          packages:
+            - 'apps/*'
+            - 'libs/domains/*'
+            - 'libs/shared'
+            - 'libs/shared/*'
+          onlyBuiltDependencies:
+            - '@swc/core'
+            - 'better-sqlite3'
+            - 'esbuild'
+            - 'nx'
+          YAML
+          cat > .npmrc <<'NPMRC'
+          link-workspace-packages=deep
+          prefer-workspace-packages=true
+          auto-install-peers=true
+          strict-peer-dependencies=false
+          NPMRC
+          pnpm install --lockfile-only
+
+      - name: Install Dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Link @panary/* packages
+        run: bash tools/scripts/link-core-packages.sh
+
+      - name: Build Angular POS
+        run: pnpm nx build pos-client --configuration=production --parallel=1
+
+      - name: Verify Angular Build
+        run: |
+          if [ ! -d "dist/apps/pos-client/browser" ]; then
+            echo "ERROR: Angular build output not found at dist/apps/pos-client/browser"
+            exit 1
+          fi
+          echo "Angular build OK: $(ls dist/apps/pos-client/browser/ | wc -l) files"
+
+      # Ohne tauri-action: das Release existiert dank `needs` bereits, es fehlt
+      # nur noch das Artefakt. Ein zweiter tauri-action-Lauf wuerde hier nur
+      # Release-Verwaltung duplizieren.
+      # cd zwingend: das Tauri-CLI sucht src-tauri relativ zum CWD, und das
+      # ist bei `run:` das Repo-Root (deshalb macht auch das npm-Skript
+      # `tauri:build` diesen Wechsel).
+      - name: Build Tauri (macOS Bundle)
+        run: cd apps/pos-client && pnpm tauri build --target aarch64-apple-darwin
+
+      - name: DMG an Release anhaengen
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+
+          shopt -s nullglob
+          dmgs=(apps/pos-client/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg)
+          DMG_PATH="${dmgs[0]:-}"
+          [ -n "$DMG_PATH" ] || { echo "ERROR: kein .dmg im Bundle gefunden"; exit 1; }
+
+          echo "Haenge an: $DMG_PATH"
+          gh release upload "$TAG" "$DMG_PATH" --repo "$GITHUB_REPOSITORY" --clobber

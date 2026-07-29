@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+      Wird von Tauri beim macOS-Bundling automatisch in die generierte
+      Info.plist gemerged (Tauri sucht diese Datei im Verzeichnis der
+      tauri.conf.json). Auf Windows/Linux ohne Wirkung.
+
+      Seit macOS 15 verlangt das System eine Local-Network-Berechtigung fuer
+      Multicast. Ohne diese beiden Keys liefert der mDNS-Command
+      `discover_panary_hubs` (src/lib.rs) auf macOS still eine leere Liste,
+      statt den Berechtigungsdialog auszuloesen.
+    -->
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>Panary — Terminal sucht im lokalen Netzwerk nach dem Panary-Edge-Hub.</string>
+    <key>NSBonjourServices</key>
+    <array>
+        <string>_panary._tcp</string>
+    </array>
+</dict>
+</plist>

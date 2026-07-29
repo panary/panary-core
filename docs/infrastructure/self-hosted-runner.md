@@ -97,7 +97,7 @@ Host bildet er die hauseigene CI-Beschleunigung.
 | `security.yml` | core + cloud | `[self-hosted, staging]` (optional) | Nightly/PR, braucht Docker |
 | `build-and-push.yml` | cloud | **`ubuntu-latest`** / Prod-Runner | **Prod-Deploy**, nur `v*`-Tag, selten |
 | `build-edge-docker.yml` | core | **`ubuntu-latest`** / Prod-Runner | Edge-Release, selten |
-| `build-/release-pos-windows.yml` | core | **Windows-Runner** | Tauri braucht Windows |
+| `build-pos.yml` / `release-pos.yml` | core | **Windows- + macOS-Runner** | Tauri baut je Zielplattform nativ; macOS-Bundles sind nur auf macOS-Runnern möglich |
 | `publish-libraries.yml` | core | **`ubuntu-latest`** | Release auf Tag |
 
 **Prinzip:** Die **häufigen, nicht-prod** Workflows → Staging-Runner (spart die

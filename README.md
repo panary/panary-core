@@ -16,7 +16,7 @@ Panary Core is a modern, offline-first point-of-sale and ERP platform built for 
 - **Multi-Tenant & Multi-Location** — Built-in tenant isolation with role-based access control across locations.
 - **Touch-Optimized POS** — Designed for Sunmi D3 tablets and similar touch-first hardware.
 - **Product-First Data Model** — Unified product table handling standard items, modifiers, and bundles.
-- **Native Desktop App** — Tauri-based builds for Windows and macOS.
+- **Native Desktop App** — Tauri-based builds for Windows (NSIS installer, auto-updating) and macOS (Apple Silicon `.dmg`, manual update).
 - **Admin Dashboard** — Web-based admin interface for managing products, orders, users, and locations.
 - **20+ Domain Libraries** — Orders, products, customers, working times, recipes, devices, and more.
 - **Wide Event Logging** — Structured canonical log lines with full business context per request.
@@ -187,7 +187,14 @@ pnpm release:pos-client                # Nur POS-App (Tauri/Windows)
 Ein `pnpm release` bumpt die Version einmal, erstellt beide Tags (`v26.4.X` + `pos-v26.4.X`) und pusht. Die CI baut parallel:
 
 - **`v*`-Tag** → `build-edge-docker.yml` → Docker-Image auf GHCR
-- **`pos-v*`-Tag** → `release-pos-windows.yml` → GitHub Release mit Windows-Installer
+- **`pos-v*`-Tag** → `release-pos.yml` → GitHub Release mit Windows-Installer (NSIS) und macOS-Bundle (`.dmg`, Apple Silicon)
+
+Für einen **Testbuild ohne Release** — etwa um die App auf einem Mac auszuprobieren — nicht
+taggen, sondern `build-pos.yml` per Workflow-Dispatch starten: baut von jedem Branch,
+ohne Versions-Bump und ohne den produktiven Updater-Rollout auszulösen. Das heruntergeladene
+macOS-Bundle ist nur ad-hoc signiert und braucht einmalig
+`xattr -dr com.apple.quarantine "/Applications/Panary — Terminal.app"` (oder Rechtsklick →
+Öffnen). Details: [ADR 0014](docs/adr/0014-pos-build-plattformen.md).
 
 ### Installation auf Zielsystemen
 

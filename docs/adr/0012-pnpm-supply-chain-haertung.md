@@ -80,7 +80,7 @@ trustPolicyIgnoreAfter: 43200 # 30 Tage
 ### Warum kein `packages:`-Glob
 
 Ein Glob würde den Standalone-Install (`ci.yml`, `publish-libraries.yml`,
-`build-pos-windows.yml`) vom heutigen Single-Package-Modus auf einen echten
+`build-pos.yml`) vom heutigen Single-Package-Modus auf einen echten
 Workspace umstellen: ~46 zusätzliche Lockfile-Importer und
 `tools/scripts/link-core-packages.sh` als Redundanz. Das ist eine eigene
 Migration, keine Supply-Chain-Härtung.
@@ -120,9 +120,9 @@ alle drei wären wirkungslos gewesen. Der Pin ist deshalb Teil dieser Änderung
 | Pfad                                                       | Workspace-Datei                         | Lockfile                   | Karenz                |
 | ---------------------------------------------------------- | --------------------------------------- | -------------------------- | --------------------- |
 | Workbench (lokal)                                          | Workbench-Root                          | geteilt (Symlink)          | Root-Settings         |
-| `ci.yml`, `publish-libraries.yml`, `build-pos-windows.yml` | committete Datei                        | committet, unverändert     | aktiv                 |
+| `ci.yml`, `publish-libraries.yml`, `build-pos.yml` | committete Datei                        | committet, unverändert     | aktiv                 |
 | `build-edge-docker.yml`                                    | committete Datei **+ angehängte Globs** | committet, wird erweitert  | **ausgehängt** (s.u.) |
-| `release-pos-windows.yml`                                  | committete Datei **+ angehängte Globs** | gelöscht, frisch aufgelöst | aktiv                 |
+| `release-pos.yml`                                  | committete Datei **+ angehängte Globs** | gelöscht, frisch aufgelöst | aktiv                 |
 
 Die beiden Release-Workflows schrieben die Datei bisher inline **neu**. Das
 hätte die Härtung stillschweigend weggeworfen, sobald sie im Repo liegt. Sie
@@ -147,7 +147,7 @@ Karenz ist ein Gate für den Eintritt neuer Versionen** (lokales
 `pnpm add/update`, Dependabot-PRs über `ci.yml`), **nicht für den Konsum eines
 bereits gereviewten Lockfiles**.
 
-`release-pos-windows.yml` löscht das Lockfile unbedingt und löst vollständig neu
+`release-pos.yml` löscht das Lockfile unbedingt und löst vollständig neu
 auf — dort darf pnpm frei auf reife Versionen ausweichen, die Karenz bleibt
 aktiv.
 
@@ -181,7 +181,7 @@ Eintrag.
 
 ### Fehlerbild `ERR_PNPM_NO_MATURE_MATCHING_VERSION`
 
-Tritt auf bei `pnpm add`/`pnpm update` und in `release-pos-windows.yml`. Zwei
+Tritt auf bei `pnpm add`/`pnpm update` und in `release-pos.yml`. Zwei
 Ursachen unterscheiden:
 
 1. **Ein `pnpm.overrides`-Eintrag zeigt auf eine zu junge Version** (typisch nach

@@ -1,4 +1,4 @@
-name: Build POS (Windows)
+name: Build POS (Test-Artefakte)
 
 on:
   workflow_dispatch:
@@ -101,4 +101,84 @@ jobs:
           name: panary-pos-client-windows
           path: |
             apps/pos-client/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+
+  # macOS-Testartefakt (Apple Silicon). Bewusst hier und NICHT nur im
+  # Release-Workflow: ein `pos-v*`-Tag ist ein Produktiv-Release, das alle
+  # Windows-Kassen per Updater erreicht. Ein Testbuild fuer den Mac darf das
+  # nicht ausloesen — deshalb laeuft er ueber workflow_dispatch von einem
+  # beliebigen Branch, ohne Tag und ohne Versions-Bump.
+  build-macos:
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # Target explizit gesetzt statt auf die Runner-Architektur zu vertrauen:
+      # `macos-latest` zeigt heute auf Apple Silicon, das ist aber ein
+      # bewegliches Ziel. Mit explizitem Target ist das Ergebnis deterministisch
+      # (und der Bundle-Pfad traegt dann das Target-Triple, s. Upload-Step).
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          workspaces: apps/pos-client/src-tauri -> target
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Identisch zum Windows-Job, nur ohne MSYS-Env — native Symlinks sind
+      # auf macOS der Normalfall.
+      - name: Link @panary/* packages
+        run: bash tools/scripts/link-core-packages.sh
+
+      - name: Build Angular POS
+        run: pnpm nx build pos-client --configuration=production --parallel=1
+
+      - name: Verify Angular Build
+        run: |
+          if [ ! -d "dist/apps/pos-client/browser" ]; then
+            echo "ERROR: Angular build output not found at dist/apps/pos-client/browser"
+            exit 1
+          fi
+          echo "Angular build OK: $(ls dist/apps/pos-client/browser/ | wc -l) files"
+
+      # Kein --config-Override noetig (anders als beim Windows-Job): die
+      # committete tauri.macos.conf.json wird vom Tauri-CLI beim Bauen auf macOS
+      # automatisch per JSON Merge Patch ueber die tauri.conf.json gelegt und
+      # setzt dort createUpdaterArtifacts auf false. Der Signing-Key bleibt
+      # damit auch hier dem Release-Workflow vorbehalten.
+      - name: Build Tauri (macOS Bundle)
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/pos-client
+          tauriScript: pnpm tauri
+          args: --target aarch64-apple-darwin
+
+      # Nur das .dmg, nicht das .app: upload-artifact zippt ohne Executable-Bits
+      # und ohne Symlinks — ein so uebertragenes .app-Bundle startet auf dem
+      # Zielrechner nicht. Das Disk-Image uebersteht die Runde unbeschadet.
+      - name: Upload macOS-Bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: panary-pos-client-macos-aarch64
+          path: |
+            apps/pos-client/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
           if-no-files-found: error

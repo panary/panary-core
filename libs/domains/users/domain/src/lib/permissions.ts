@@ -177,6 +177,16 @@ export const AppResource = {
    *  TENANT_OWNER/MANAGER/TECHNICIAN: MANAGE. TENANT_STAFF: READ+CREATE+UPDATE
    *  (öffnen/zählen/schließen — Self-Scope für fremde Sessions später). */
   CASH_SESSIONS: 'cash-sessions',
+  /** Cloud-only: Sammelabrechnung offener Personal- und Firmenkundenessen
+   *  (append-only Belegdokument, Korrektur laeuft ueber eine Gegenbuchung).
+   *  Methoden: find/get/create + Custom-Method `openItems` (READ).
+   *  TENANT_OWNER/MANAGER/TECHNICIAN: READ+CREATE. TENANT_STAFF: KEIN Eintrag —
+   *  die Offen-Sicht zeigt die Verzehrhistorie aller Kollegen mit Namen und
+   *  Betraegen (Mitbestimmung/Datenschutz, siehe panary-cloud
+   *  docs/domains/personalessen-abrechnung-plan.md §4.7).
+   *  Bewusst KEIN MANAGE: das deckt jede Aktion ab, auch ein spaeter
+   *  nachgeruestetes `patch` — die Append-only-Zusage waere damit still weg. */
+  MEAL_SETTLEMENTS: 'meal-settlements',
   USER_PREFERENCES: 'user-preferences',
   DEVICES: 'devices',
   /** Cloud-only: Live-Zählung der aktuell mit der Cloud verbundenen Geräte

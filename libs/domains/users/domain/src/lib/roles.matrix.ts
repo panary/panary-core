@@ -334,6 +334,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.BUSINESS_DAY_REPORTS, action: AppAction.MANAGE },
     { resource: AppResource.BUSINESS_DAY_REPORT_EVENTS, action: AppAction.READ },
     { resource: AppResource.CASH_SESSIONS, action: AppAction.MANAGE },
+    // Sammelabrechnung: lesen + anlegen. KEIN MANAGE — der Beleg ist append-only,
+    // Korrektur laeuft ueber eine Gegenbuchung (create mit `reversalOf`).
+    { resource: AppResource.MEAL_SETTLEMENTS, action: [AppAction.READ, AppAction.CREATE] },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.DEVICES, action: AppAction.MANAGE },
     // Live-Verbindungszählung der Geräte (Socket-Registry) — read-only.
@@ -539,6 +542,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.BUSINESS_DAY_REPORTS, action: AppAction.MANAGE },
     { resource: AppResource.BUSINESS_DAY_REPORT_EVENTS, action: AppAction.READ },
     { resource: AppResource.CASH_SESSIONS, action: AppAction.MANAGE },
+    { resource: AppResource.MEAL_SETTLEMENTS, action: [AppAction.READ, AppAction.CREATE] },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.DEVICES, action: AppAction.MANAGE },
     // Live-Verbindungszählung der Geräte (Socket-Registry) — read-only.
@@ -676,6 +680,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.BUSINESS_DAY_REPORTS, action: AppAction.MANAGE },
     { resource: AppResource.BUSINESS_DAY_REPORT_EVENTS, action: AppAction.READ },
     { resource: AppResource.CASH_SESSIONS, action: AppAction.MANAGE },
+    // Sammelabrechnung: der Filialleiter ist der eigentliche Nutzer.
+    { resource: AppResource.MEAL_SETTLEMENTS, action: [AppAction.READ, AppAction.CREATE] },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE },
     { resource: AppResource.SHIFTS, action: AppAction.MANAGE },
     { resource: AppResource.SHIFT_TEMPLATES, action: AppAction.MANAGE },

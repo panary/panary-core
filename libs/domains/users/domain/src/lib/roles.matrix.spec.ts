@@ -54,12 +54,9 @@ describe('RolePermissions — Phase 6 (BRAND + RESERVATION)', () => {
     for (const resource of newResources) {
       it(`hat CREATE+READ+UPDATE+DELETE auf ${resource}`, () => {
         const actions = roleActions(UserSystemRole.TENANT_OWNER, resource)
-        expect(actions).toEqual(expect.arrayContaining([
-          AppAction.CREATE,
-          AppAction.READ,
-          AppAction.UPDATE,
-          AppAction.DELETE,
-        ]))
+        expect(actions).toEqual(
+          expect.arrayContaining([AppAction.CREATE, AppAction.READ, AppAction.UPDATE, AppAction.DELETE]),
+        )
       })
     }
   })
@@ -68,12 +65,9 @@ describe('RolePermissions — Phase 6 (BRAND + RESERVATION)', () => {
     for (const resource of newResources) {
       it(`hat CREATE+READ+UPDATE+DELETE auf ${resource}`, () => {
         const actions = roleActions(UserSystemRole.TENANT_MANAGER, resource)
-        expect(actions).toEqual(expect.arrayContaining([
-          AppAction.CREATE,
-          AppAction.READ,
-          AppAction.UPDATE,
-          AppAction.DELETE,
-        ]))
+        expect(actions).toEqual(
+          expect.arrayContaining([AppAction.CREATE, AppAction.READ, AppAction.UPDATE, AppAction.DELETE]),
+        )
       })
     }
   })
@@ -112,12 +106,9 @@ describe('RolePermissions — Phase 6 (BRAND + RESERVATION)', () => {
     for (const resource of newResources) {
       it(`hat CREATE+READ+UPDATE+DELETE auf ${resource}`, () => {
         const actions = roleActions(UserSystemRole.PLATFORM_ADMIN, resource)
-        expect(actions).toEqual(expect.arrayContaining([
-          AppAction.CREATE,
-          AppAction.READ,
-          AppAction.UPDATE,
-          AppAction.DELETE,
-        ]))
+        expect(actions).toEqual(
+          expect.arrayContaining([AppAction.CREATE, AppAction.READ, AppAction.UPDATE, AppAction.DELETE]),
+        )
       })
     }
   })
@@ -136,9 +127,7 @@ describe('RolePermissions — Phase 6 (BRAND + RESERVATION)', () => {
     it('TENANT_OWNER hat MANAGE auf USERS', () => {
       const rules = RolePermissions[UserSystemRole.TENANT_OWNER] as PermissionRule[]
       expect(rules).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ resource: AppResource.USERS, action: AppAction.MANAGE }),
-        ]),
+        expect.arrayContaining([expect.objectContaining({ resource: AppResource.USERS, action: AppAction.MANAGE })]),
       )
     })
 
@@ -158,7 +147,9 @@ describe('RolePermissions — Phase 6 (BRAND + RESERVATION)', () => {
         expect(roleCan(role, AppResource.STOREFRONT_PUBLISH_ROLLBACK, AppAction.CREATE)).toBe(true)
       }
       expect(roleCan(UserSystemRole.TENANT_STAFF, AppResource.STOREFRONT_PUBLISH_BRAND, AppAction.CREATE)).toBe(false)
-      expect(roleCan(UserSystemRole.TENANT_STAFF, AppResource.STOREFRONT_PUBLISH_ROLLBACK, AppAction.CREATE)).toBe(false)
+      expect(roleCan(UserSystemRole.TENANT_STAFF, AppResource.STOREFRONT_PUBLISH_ROLLBACK, AppAction.CREATE)).toBe(
+        false,
+      )
     })
   })
 
@@ -183,5 +174,41 @@ describe('RolePermissions — Phase 6 (BRAND + RESERVATION)', () => {
         expect(roleActions(role, AppResource.PLATFORM_USERS)).toEqual([])
       }
     })
+  })
+})
+
+describe('RolePermissions — MEAL_SETTLEMENTS (Sammelabrechnung offener Personalessen)', () => {
+  const allowedRoles = [UserSystemRole.TENANT_OWNER, UserSystemRole.TENANT_MANAGER, UserSystemRole.TENANT_TECHNICIAN]
+
+  for (const role of allowedRoles) {
+    it(`${role} hat genau READ + CREATE`, () => {
+      expect(roleActions(role, AppResource.MEAL_SETTLEMENTS).sort()).toEqual([AppAction.CREATE, AppAction.READ].sort())
+    })
+
+    // Append-only: der Beleg wird nie geaendert oder geloescht, Korrektur laeuft
+    // ueber eine Gegenbuchung. MANAGE waere hier still eine Zusagen-Aufweichung.
+    it(`${role} hat KEIN UPDATE und KEIN DELETE`, () => {
+      expect(roleCan(role, AppResource.MEAL_SETTLEMENTS, AppAction.UPDATE)).toBe(false)
+      expect(roleCan(role, AppResource.MEAL_SETTLEMENTS, AppAction.DELETE)).toBe(false)
+    })
+  }
+
+  // Die Offen-Sicht zeigt die Verzehrhistorie aller Kollegen mit Namen und
+  // Betraegen — Mitbestimmung/Datenschutz, siehe panary-cloud
+  // docs/domains/personalessen-abrechnung-plan.md §4.7.
+  it('TENANT_STAFF hat keinerlei Zugriff', () => {
+    expect(roleActions(UserSystemRole.TENANT_STAFF, AppResource.MEAL_SETTLEMENTS)).toEqual([])
+  })
+
+  it('Platform- und Geraete-Rollen haben keinerlei Zugriff', () => {
+    const blockedRoles = [
+      UserSystemRole.PLATFORM_ADMIN,
+      UserSystemRole.PLATFORM_SUPPORT,
+      UserSystemRole.DEVICE_POS,
+      UserSystemRole.DEVICE_TABLET,
+    ]
+    for (const role of blockedRoles) {
+      expect(roleActions(role, AppResource.MEAL_SETTLEMENTS)).toEqual([])
+    }
   })
 })

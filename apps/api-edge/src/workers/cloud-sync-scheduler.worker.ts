@@ -35,6 +35,7 @@ import {
 import { recordSyncRun, type RecordSyncRunInput } from '../services/sync-runs/record-sync-run.helper'
 import { printServerManager } from '../print-server'
 import { applyPulledRecords, cloudFetch, extractAjvValidationErrors, PULL_PAGE_SIZE } from './sync-apply'
+import { collectDeviceCountsForHeartbeat } from './heartbeat-device-counts'
 import {
   SyncRunDirection,
   SyncRunOutcome,
@@ -1025,12 +1026,17 @@ const runHeartbeat = async (app: Application, connection: CloudConnection): Prom
   const cloudToken = decryptCloudToken(connection.cloudToken)
   if (!cloudToken) return null
   const startMonotonic = performance.now()
+  // Vor dem Fetch ermitteln und vollstaendig fehler-isoliert (liefert im
+  // Zweifel null): ein Fehler hier duerfte niemals den Heartbeat scheitern
+  // lassen — drei Fehlschlaege aktivieren den Notfall-Modus der Edge.
+  const deviceConnections = await collectDeviceCountsForHeartbeat(app, connection.tenantId)
   const response = await cloudFetch(connection.cloudUrl, cloudToken, '/sync-heartbeat', {
     method: 'POST',
     body: JSON.stringify({
       edgeTimestamp: new Date().toISOString(),
       edgeClockMonotonicMs: Math.round(startMonotonic),
       edgeVersion: APP_VERSION,
+      ...(deviceConnections ? { deviceConnections } : {}),
     }),
     timeoutMs: HEARTBEAT_TIMEOUT_MS,
   })

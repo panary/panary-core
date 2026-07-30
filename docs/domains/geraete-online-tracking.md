@@ -67,6 +67,36 @@ keine Änderung). Andere Rollen: KPI „–", kein Badge, Liste leer (403 → gr
 Live-Zählung pro Edge-Prozess (am Edge der Normalfall — Single-Instance). `lastSeen`
 liefert zusätzlich „letzte Aktivität" als DB-Record.
 
+## Speist zusaetzlich den Cloud-Heartbeat (seit 2026-07-30)
+
+Die Cloud kann die POS-Clients eines Edge-Kunden nicht sehen: sie halten ihren
+Socket zum Edge, nie zur Cloud, und `devices` steht in keiner Sync-Allowlist.
+Das Admin-Dashboard zeigte deshalb dauerhaft „0 verbunden", waehrend im Laden
+verkauft wurde.
+
+`collectDeviceCountsForHeartbeat`
+([`workers/heartbeat-device-counts.ts`](../../apps/api-edge/src/workers/heartbeat-device-counts.ts))
+ruft diesen Service intern (`provider: undefined`) und legt `{ online, total }`
+als `deviceConnections` in den `/sync-heartbeat`-Payload.
+
+Zwei Eigenschaften sind nicht verhandelbar:
+
+- **`connectedDeviceIds` geht NICHT in die Cloud.** Die Cloud koennte
+  Edge-`deviceId`s ohnehin nicht aufloesen, und eine Liste waere eine unbegrenzt
+  wachsende Nutzlast statt zweier Integer.
+- **Failure-Isolation.** Die Ermittlung laeuft vollstaendig in `try/catch` und
+  liefert im Zweifel `null`. `runHeartbeat` traegt die Token-Rotation, und drei
+  Fehlschlaege (bzw. fuenf Minuten ohne OK) aktivieren den **Notfall-Modus der
+  gesamten Edge** — eine Telemetrie-Nebensache darf das nie ausloesen.
+
+Kadenz und damit Frische haengen am Sync-Modus: `AUTO` alle 5 min (bis 60 min
+einstellbar), `SCHEDULED` nur an den Slots, `MANUAL` alle 30 min, `DISABLED`
+nie. Die Cloud bewertet das entsprechend und rechnet einen fehlenden oder alten
+Report nie als `0`.
+
+Entscheidung, Begruendung und Sicherheitskontext:
+`panary-cloud/docs/adr/0030-edge-geraetezaehlung-ueber-heartbeat.md`.
+
 ## Verwandt
 - Cloud-Pendant: `panary-cloud/docs/architecture/geraete-online-tracking.md`
 - [Cloud-Status-Badge](../architecture/cloud-status-badge.md)

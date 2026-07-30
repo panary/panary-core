@@ -1,5 +1,9 @@
 # Wiki Update Log
 
+## 2026-07-30
+
+* **Update**: [Geräte-Online-Tracking](domains/geraete-online-tracking.md) — der `device-connections`-Service speist jetzt zusätzlich den Cloud-Heartbeat: `collectDeviceCountsForHeartbeat` legt `{ online, total }` als `deviceConnections` in den `/sync-heartbeat`-Payload, damit das Admin-Dashboard die am Edge hängenden POS-Clients überhaupt sehen kann (bisher zeigte es bei Edge-Kunden dauerhaft „0 verbunden“). Zwei nicht verhandelbare Eigenschaften dokumentiert: `connectedDeviceIds` geht **nicht** in die Cloud (nicht auflösbar, unbegrenzt wachsende Nutzlast), und die Ermittlung ist vollständig fehler-isoliert — `runHeartbeat` trägt die Token-Rotation, und drei Fehlschläge aktivieren den Notfall-Modus der gesamten Edge. Entscheidung und Sicherheitskontext liegen als ADR 0030 im Cloud-Wiki.
+
 ## 2026-07-29
 
 * **Update**: [Rabatte](domains/rabatte.md) — Personalessen-Abschnitt erweitert: Welcher Nachlass gilt, steht jetzt als Referenz am Benutzer (`user.staffMealDiscountId`) statt als eingefrorene Wertkopie in `user.discountDetails`; der Bestelldialog löst sie beim Erfassen gegen den lokalen Rabatt-Bestand auf und fällt bei toter Referenz auf „ohne Nachlass" zurück, statt die Bestellung abzulehnen. Neu dokumentiert ist außerdem die Invariante „Personalessen ist rabatt-exklusiv" (`pricing/staff-meal-exclusivity.ts`), durchgesetzt vom Edge-Hook `validateStaffMealExclusivity` (create + patch, merged Vorzustand + Body) und der POS-UI; `applyAutomaticDiscounts` überspringt Personalessen-Bestellungen jetzt, statt einen Rabatt einzusammeln, an dem die Bestellung anschließend scheitert. Cloud-Seite (Standard, Vorbelegung, Rechte): `panary-cloud/docs/domains/personalessen-rabatt.md`.

@@ -486,12 +486,28 @@ export const orderQueryProperties = Type.Pick(orderSchema, [
   'tenantId',
   // Flattened or specific properties could be added if needed
 ])
-export const orderQuerySchema = Type.Intersect(
-  [
-    querySyntax(orderQueryProperties),
-    // Add additional query properties
-    Type.Object({}, { additionalProperties: false }),
-  ],
+// Dot-Notation-Filter fuer verschachtelte Felder (Admin-Bestellliste: „nur
+// Personalessen", „nur rabattierte", „Rabatt X").
+//
+// BEWUSST flach und explizit statt `staffPaymentInfo`/`appliedDiscounts` in
+// `orderQueryProperties` zu picken: `querySyntax` ueber verschachtelte Objekt-
+// bzw. Array-Typen treibt die Typtiefe hoch und laeuft in TS2589
+// („type instantiation is excessively deep") — dieselbe Falle, die weiter unten
+// schon das `$or` aus dem Intersect ins Flat-Object gezwungen hat.
+//
+// Erlaubt ist je Feld ein Gleichheits-Match (konkreter Mitarbeiter / Rabatt) oder
+// ein `$exists` (ueberhaupt Personalessen / ueberhaupt rabattiert).
+const existsOrEquals = Type.Optional(
+  Type.Union([Type.String(), Type.Object({ $exists: Type.Boolean() }, { additionalProperties: false })]),
+)
+
+const _orderQueryBase = querySyntax(orderQueryProperties)
+export const orderQuerySchema = Type.Object(
+  {
+    ..._orderQueryBase.properties,
+    'staffPaymentInfo.userId': existsOrEquals,
+    'appliedDiscounts.discountId': existsOrEquals,
+  },
   { additionalProperties: false },
 )
 export type OrderQuery = Static<typeof orderQuerySchema>

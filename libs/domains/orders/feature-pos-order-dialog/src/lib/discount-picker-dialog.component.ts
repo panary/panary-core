@@ -80,7 +80,11 @@ export class DiscountPickerDialogComponent implements OnInit {
   async ngOnInit(): Promise<void> {
     try {
       const list = await this.#discountService.loadActivePosDiscounts()
-      this.discounts.set(list)
+      // Personalessen-Rabatte gehören nicht in die manuelle Auswahl: sie laufen
+      // über die Personalessen-Taste, wo die Zuweisung am Mitarbeiter greift.
+      // Hier angeboten wären sie doppelt bedienbar — und der Kassierer könnte
+      // einen fremden Satz wählen, statt den ihm zugewiesenen zu bekommen.
+      this.discounts.set(list.filter(d => !d.isStaffMeal))
     } catch {
       this.discounts.set([])
     } finally {

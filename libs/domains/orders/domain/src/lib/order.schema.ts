@@ -501,12 +501,28 @@ const existsOrEquals = Type.Optional(
   Type.Union([Type.String(), Type.Object({ $exists: Type.Boolean() }, { additionalProperties: false })]),
 )
 
+// Betragssuche der Admin-Bestellliste. Bewusst als RANGE statt Gleichheit:
+// `taxSnapshot.brutto` ist ein Double, und ein exakter Vergleich auf einen aus
+// Nutzereingabe geparsten Wert (`'6,70'` → `6.7`) ist bei Fliesskomma
+// unzuverlaessig. Der Aufrufer sucht deshalb mit einer schmalen Spanne um den
+// eingegebenen Betrag.
+const numericRange = Type.Optional(
+  Type.Union([
+    Type.Number(),
+    Type.Object(
+      { $gte: Type.Optional(Type.Number()), $lte: Type.Optional(Type.Number()) },
+      { additionalProperties: false },
+    ),
+  ]),
+)
+
 const _orderQueryBase = querySyntax(orderQueryProperties)
 export const orderQuerySchema = Type.Object(
   {
     ..._orderQueryBase.properties,
     'staffPaymentInfo.userId': existsOrEquals,
     'appliedDiscounts.discountId': existsOrEquals,
+    'taxSnapshot.brutto': numericRange,
   },
   { additionalProperties: false },
 )

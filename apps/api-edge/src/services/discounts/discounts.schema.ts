@@ -14,7 +14,18 @@ import {
 import { DiscountService } from './discounts.class'
 
 //#region 1. Main Resolver (Output) — keine sensitiven Felder
-export const discountResolver = resolve<Discount, HookContext<DiscountService>>({})
+// SQLite kennt keinen Boolean-Typ und liefert 0/1 zurueck. Ohne Normalisierung
+// reicht der POS diese 0 in `order.appliedDiscounts[].isStaffMeal` durch, wo das
+// Schema `Type.Boolean()` verlangt — die Bestellung scheitert dann mit
+// „must be boolean". Die Cloud coerct dieselben Felder bereits beim Schreiben
+// (`booleanFields` in api-cloud/services/discounts), am Edge fehlte das Gegenstueck.
+const toBool = async (value: unknown) => (value === undefined ? undefined : !!value)
+
+export const discountResolver = resolve<Discount, HookContext<DiscountService>>({
+  isStaffMeal: toBool,
+  combinable: toBool,
+  onePerCustomer: toBool,
+})
 export const discountExternalResolver = resolve<Discount, HookContext<DiscountService>>({})
 //#endregion
 

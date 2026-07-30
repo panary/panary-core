@@ -170,3 +170,27 @@ describe('orderQuerySchema — Filter fuer Personalessen und Rabatte', () => {
     expect(Value.Check(orderQuerySchema, { 'staffPaymentInfo.userId': { $regex: 'x' } })).toBe(false)
   })
 })
+
+// Betragssuche: Range statt Gleichheit, weil `taxSnapshot.brutto` ein Double ist
+// und der Suchwert aus einer Nutzereingabe geparst wird.
+describe('orderQuerySchema — Betragssuche', () => {
+  it('akzeptiert eine Spanne um den gesuchten Betrag', () => {
+    expect(Value.Check(orderQuerySchema, { 'taxSnapshot.brutto': { $gte: 6.695, $lte: 6.705 } })).toBe(true)
+  })
+
+  it('akzeptiert einen exakten Betrag', () => {
+    expect(Value.Check(orderQuerySchema, { 'taxSnapshot.brutto': 6.7 })).toBe(true)
+  })
+
+  it('akzeptiert eine einseitige Grenze', () => {
+    expect(Value.Check(orderQuerySchema, { 'taxSnapshot.brutto': { $gte: 10 } })).toBe(true)
+  })
+
+  it('lehnt einen String ab (der Aufrufer muss parsen)', () => {
+    expect(Value.Check(orderQuerySchema, { 'taxSnapshot.brutto': '6,70' })).toBe(false)
+  })
+
+  it('lehnt einen fremden Operator ab', () => {
+    expect(Value.Check(orderQuerySchema, { 'taxSnapshot.brutto': { $regex: '6' } })).toBe(false)
+  })
+})

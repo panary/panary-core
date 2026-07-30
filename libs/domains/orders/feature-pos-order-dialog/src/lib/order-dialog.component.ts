@@ -2272,7 +2272,13 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       computedAmountCents: 0,
       appliedBy: this._currentUser?._id ?? null,
       appliedAt: new Date().toISOString(),
-      isStaffMeal: d.isStaffMeal,
+      // Explizit zu Boolean casten: SQLite liefert 0/1, und das Order-Schema
+      // verlangt hier `Type.Boolean()` — eine durchgereichte 0 liess die ganze
+      // Bestellung mit „must be boolean" scheitern. Der Edge-Resolver
+      // normalisiert inzwischen schon beim Lesen; dieser Cast ist die zweite
+      // Absicherung direkt an der Payload-Grenze, weil ein 400 hier die
+      // Bestellannahme blockiert.
+      isStaffMeal: !!d.isStaffMeal,
     }
   }
 

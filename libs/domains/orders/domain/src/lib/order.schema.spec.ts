@@ -2,7 +2,13 @@ import { FormatRegistry } from '@sinclair/typebox'
 import { Value } from '@sinclair/typebox/value'
 import { beforeAll, describe, expect, it } from 'vitest'
 
-import { genericLineItemSchema, lineComponentSchema, modifierLineItemSchema, orderLineItemSchema } from './order.schema'
+import {
+  genericLineItemSchema,
+  lineComponentSchema,
+  modifierLineItemSchema,
+  orderLineItemSchema,
+  orderQuerySchema,
+} from './order.schema'
 
 // TypeBox liefert keine eingebauten Format-Validatoren — in der Feathers-App
 // uebernimmt AJV das. Fuer Value.Check registrieren wir die verwendeten
@@ -128,5 +134,39 @@ describe('genericLineItemSchema / lineComponentSchema bleiben bei minimum 0', ()
 
   it('lineComponentSchema lehnt price −1 ab', () => {
     expect(Value.Check(lineComponentSchema, { ...modifier(1), price: -1, role: 'drink' })).toBe(false)
+  })
+})
+
+// Dot-Notation-Filter der Admin-Bestellliste. Sie stehen bewusst NICHT in
+// `orderQueryProperties` (TS2589), sondern als flache Properties im
+// Query-Schema — dieser Test haelt fest, dass sie tatsaechlich validieren.
+describe('orderQuerySchema — Filter fuer Personalessen und Rabatte', () => {
+  it('akzeptiert $exists auf staffPaymentInfo.userId (nur Personalessen)', () => {
+    expect(Value.Check(orderQuerySchema, { 'staffPaymentInfo.userId': { $exists: true } })).toBe(true)
+  })
+
+  it('akzeptiert einen konkreten Mitarbeiter', () => {
+    expect(Value.Check(orderQuerySchema, { 'staffPaymentInfo.userId': UUID.line })).toBe(true)
+  })
+
+  it('akzeptiert $exists auf appliedDiscounts.discountId (nur rabattierte)', () => {
+    expect(Value.Check(orderQuerySchema, { 'appliedDiscounts.discountId': { $exists: true } })).toBe(true)
+  })
+
+  it('akzeptiert einen konkreten Rabatt', () => {
+    expect(Value.Check(orderQuerySchema, { 'appliedDiscounts.discountId': UUID.product })).toBe(true)
+  })
+
+  // Die von `querySyntax` generierten Standard-Properties lassen sich hier NICHT
+  // pruefen: `Value.Check` bricht darauf mit „Unknown type" ab (in der App
+  // uebernimmt AJV, das damit klarkommt). Dieser Block deckt deshalb bewusst nur
+  // die selbst definierten Dot-Felder ab.
+
+  it('lehnt unbekannte Felder weiterhin ab (additionalProperties: false)', () => {
+    expect(Value.Check(orderQuerySchema, { nichtVorhanden: 'x' })).toBe(false)
+  })
+
+  it('lehnt einen fremden Operator auf dem Dot-Feld ab', () => {
+    expect(Value.Check(orderQuerySchema, { 'staffPaymentInfo.userId': { $regex: 'x' } })).toBe(false)
   })
 })

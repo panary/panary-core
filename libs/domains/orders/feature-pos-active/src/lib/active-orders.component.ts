@@ -45,7 +45,11 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 type OverlayView = 'actions' | 'staff-meal' | 'discount' | 'corporate'
 
-const DISCOUNT_PRESETS = [5, 10, 15, 20, 25, 30] as const
+// Freie Prozent-Presets gab es hier bis 2026-07-30. Sie schrieben einen
+// Legacy-`discount` ohne `discountId`, ohne `isStaffMeal` und ohne jede
+// Gültigkeitsregel — und umgingen damit die Rabatt-Stammdaten komplett.
+// Rabatte kommen jetzt ausschließlich aus der gepflegten Liste (siehe
+// `selectableDiscounts`).
 
 // Ein Formatter für alle Preis-Ausgaben — `new Intl.NumberFormat` pro Aufruf ist teuer
 const EUR_FORMAT = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' })
@@ -130,7 +134,16 @@ export class ActiveOrdersComponent {
   // Storno (Flow im CancelOrderDialogComponent)
 
   // Rabatt
-  discountPresets = DISCOUNT_PRESETS
+  /**
+   * Am POS wählbare Rabatte: aktive, manuelle Rabatt-Definitionen aus der Cloud.
+   *
+   * Personalessen-Rabatte sind bewusst ausgenommen — die laufen über „Personalessen
+   * eintragen" (dort greift die Zuweisung am Mitarbeiter) und sind rabatt-exklusiv,
+   * ein zweiter Rabatt würde serverseitig ohnehin mit 400 abgelehnt.
+   */
+  protected readonly selectableDiscounts = computed(() =>
+    this.#discountService.activePosDiscounts().filter(d => !d.isStaffMeal),
+  )
 
   // Firma
   corporateCustomers = signal<CorporateCustomer[]>([])
@@ -491,15 +504,50 @@ export class ActiveOrdersComponent {
 
   enterDiscount() {
     this.overlayView.set('discount')
+    // Bestand nachladen — der Nutzer kann den Rabatt-Bereich öffnen, ohne vorher
+    // eine Bestellung angefasst zu haben.
+    void this.#discountService.loadActivePosDiscounts().catch(() => undefined)
   }
 
-  async applyDiscount(order: Order, percent: number) {
+  /** Anzeige-Wert eines Rabatts auf der Auswahl-Kachel („15 %" bzw. „2,50 €"). */
+  protected formatDiscountValue(d: ManagedDiscount): string {
+    return d.valueType === 'percent' ? `${d.valuePercent} %` : `${(d.valueCents / 100).toFixed(2)} €`
+  }
+
+  /**
+   * Wendet einen gepflegten Rabatt auf die Bestellung an.
+   *
+   * Schreibt einen `appliedDiscounts`-Snapshot mit `discountId` (nachvollziehbar,
+   * auswertbar) statt des früheren Legacy-`discount` mit freiem Prozentwert. Der
+   * Legacy-Spiegel wird mitgeleert, sonst wirkte er als Tax-Fallback weiter.
+   */
+  async applyDiscount(order: Order, discount: ManagedDiscount) {
     try {
       await this.#orderService.patch(order._id, {
-        discount: { discountType: 'percent', discount: percent },
-      })
+        appliedDiscounts: [
+          {
+            _id: uuidv7(),
+            discountId: discount._id,
+            name: discount.name,
+            method: 'manual',
+            target: 'order',
+            valueType: discount.valueType,
+            valuePercent: discount.valueType === 'percent' ? discount.valuePercent : 0,
+            valueCents: discount.valueType === 'amount' ? discount.valueCents : 0,
+            computedAmountCents: 0,
+            appliedBy: this.#authService.user()?._id ?? null,
+            appliedAt: new Date().toISOString(),
+            isStaffMeal: false,
+          },
+        ],
+        discount: null,
+      } as never)
       this.resetOverlay()
-      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_APPLIED', { percent }), undefined, { duration: 2500 })
+      this.#snackBar.open(
+        this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_APPLIED', { name: discount.name }),
+        undefined,
+        { duration: 2500 },
+      )
     } catch (e) {
       console.error(e)
       this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_ERROR'), 'OK', { duration: 3000 })

@@ -45,3 +45,16 @@ describe('AppResource — Phase 6 (BRAND + RESERVATION)', () => {
     })
   })
 })
+
+describe('AppResource — MEAL_SETTLEMENTS', () => {
+  // Der Wert MUSS exakt dem Service-Pfad entsprechen: authorize() leitet die
+  // Resource aus `context.path` ab. Ein Tippfehler ergibt 403 fuer alle
+  // Tenant-Rollen, ohne dass der Service selbst auffaellig waere.
+  it('exportiert MEAL_SETTLEMENTS mit Wert "meal-settlements"', () => {
+    expect(AppResource.MEAL_SETTLEMENTS).toBe('meal-settlements')
+  })
+
+  it('CASH_SESSIONS bleibt unveraendert "cash-sessions"', () => {
+    expect(AppResource.CASH_SESSIONS).toBe('cash-sessions')
+  })
+})

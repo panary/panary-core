@@ -27,6 +27,10 @@ export interface RefreshClosingStatusData {
   businessDayId: string
 }
 
+export interface DiscardOrphanDayData {
+  businessDayId: string
+}
+
 export interface BusinessDayService extends ServiceInterface<
   BusinessDay,
   BusinessDayData,
@@ -36,4 +40,5 @@ export interface BusinessDayService extends ServiceInterface<
   openDay(data: OpenDayData, params?: BusinessDayParams): Promise<BusinessDay>
   closeDay(data: CloseDayData, params?: BusinessDayParams): Promise<BusinessDay>
   refreshClosingStatus(data: RefreshClosingStatusData, params?: BusinessDayParams): Promise<BusinessDay>
+  discardOrphanDay(data: DiscardOrphanDayData, params?: BusinessDayParams): Promise<{ discarded: true; _id: string }>
 }

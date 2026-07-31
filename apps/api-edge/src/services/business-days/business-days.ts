@@ -18,6 +18,7 @@ import { hooks as schemaHooks } from '@feathersjs/schema'
 import { BadRequest, Forbidden, NotFound } from '@feathersjs/errors'
 import { uuidv7 } from 'uuidv7'
 
+import { AuditAction, AuditCategory, AuditOutcome, AuditSeverity } from '@panary/audit-events/domain'
 import { BusinessDayStatus, BusinessDayOperationMode } from '@panary/businessdays/domain'
 import { LocationOperationMode } from '@panary/locations/domain'
 import { PairingStatus } from '@panary/cloud-connection/domain'
@@ -43,6 +44,7 @@ import type {
   BusinessDay,
   BusinessDayService,
   CloseDayData,
+  DiscardOrphanDayData,
   OpenDayData,
   RefreshClosingStatusData,
 } from './business-days.class'
@@ -61,6 +63,7 @@ export const businessDaysMethods = [
   'openDay',
   'closeDay',
   'refreshClosingStatus',
+  'discardOrphanDay',
 ] as const
 
 export * from './business-days.schema'
@@ -120,6 +123,185 @@ async function guardCloudManagedLifecycle(app: Application, params: OpenDayParam
       event: 'business_day.cloud_managed_guard_fail_open',
       operation,
       error: (err as Error).message,
+    })
+  }
+}
+
+/**
+ * Zaehlt Datensaetze eines Services, die an einem Geschaeftstag haengen.
+ * Fehler werden bewusst NICHT geschluckt: ein fehlgeschlagener Zaehl-Call darf
+ * niemals als „0 Datensaetze" durchgehen, sonst loeschte der Guard fail-open.
+ */
+async function countLinkedRecords(app: Application, service: string, businessDayId: string): Promise<number> {
+  const result = await (app.service(service as never) as any).find({
+    query: { businessDayId, $limit: 0 },
+    provider: undefined,
+    paginate: { default: 0, max: 0 },
+  })
+  // Ist Pagination am Service abgeschaltet, liefert find ein Array — dann waere
+  // `.total` undefined und der Guard liefe fail-open ins Loeschen.
+  if (Array.isArray(result)) return result.length
+  return (result as { total?: number })?.total ?? 0
+}
+
+/**
+ * Services, die einen Geschaeftstag „belegt" machen. Jeder Treffer blockt.
+ *
+ * Belege sind bewusst NICHT dabei: `receipts` hat kein `businessDayId`, sie
+ * haengen ueber `orderId` an der Bestellung. Bei 0 Bestellungen kann es keinen
+ * Beleg zu diesem Tag geben — der orders-Check deckt sie transitiv ab.
+ */
+const ORPHAN_BLOCKING_SERVICES = [
+  { service: 'orders', label: 'Bestellungen' },
+  { service: 'cash-sessions', label: 'Kassensitzungen' },
+] as const
+
+/**
+ * Verwirft einen verwaisten, leeren Geschaeftstag.
+ *
+ * Hintergrund: bis zur Reparatur von `rotateBusinessDay` konnten pro Filiale
+ * mehrere Tage gleichzeitig offen bleiben. Die aelteren sind lokal entstanden
+ * (Auto-Rotation), der Cloud unbekannt und ueber die UI nicht abschliessbar:
+ * `closeDay` ist bei aktivem Pairing gesperrt und liefe ohne Cloud-Report
+ * ohnehin nur bis `closing-requested`.
+ *
+ * Bewusst eine eigene Methode statt einer Lockerung von `cloudManagedHook`:
+ * die Bedingungen sind eine Mehrfach-Pruefung, kein einfacher Write, und der
+ * Vorgang bekommt so einen eigenen METHOD_TO_ACTION-Eintrag und eine benannte
+ * Audit-Spur.
+ *
+ * Fiskalische Integritaet: geloescht wird ausschliesslich ein Tag OHNE jeden
+ * Geschaeftsvorfall. Ein Tag mit Umsatz ist kein Verwaister, sondern ein
+ * Datenproblem — der darf ueber diesen Pfad nie verschwinden. Der Vorgang
+ * schreibt selbst ein Audit-Event; `audit-events` steht in
+ * SyncableTransactionService, der Loeschvorgang ist damit auch dann in der
+ * Cloud nachweisbar, wenn der geloeschte Tag dort nie existierte.
+ */
+export async function discardOrphanDay(
+  app: Application,
+  data: DiscardOrphanDayData,
+  params: OpenDayParams = {},
+): Promise<{ discarded: true; _id: string }> {
+  const user = params.user
+  // Kein anonymer Aufruf: der Vorgang muss einem Akteur zurechenbar sein.
+  if (!params.provider) {
+    throw new BadRequest('discardOrphanDay ist nur ueber einen authentifizierten Aufruf erlaubt')
+  }
+  if (!user?._id || !user.tenantId) {
+    throw new BadRequest('Tenant-Kontext fehlt — discardOrphanDay benoetigt einen authentifizierten User')
+  }
+  if (!data.businessDayId) throw new BadRequest('businessDayId ist Pflicht')
+
+  const businessDay = (await (app.service(businessDaysPath) as any).get(data.businessDayId, {
+    provider: undefined,
+  })) as BusinessDay | undefined
+  if (!businessDay) throw new NotFound('Geschaeftstag nicht gefunden')
+  if (businessDay.tenantId !== user.tenantId) throw new BadRequest('Tenant-Mismatch')
+
+  if (businessDay.status !== BusinessDayStatus.OPEN) {
+    throw new BadRequest(
+      `Nur offene Geschaeftstage koennen verworfen werden (Status: ${businessDay.status}). ` +
+        `Abgeschlossene und freigegebene Tage sind unantastbar.`,
+    )
+  }
+
+  // Der aktuelle Tag der Filiale ist per Definition kein Verwaister.
+  if (businessDay.locationId) {
+    const location = (await (app.service('locations') as any)
+      .get(businessDay.locationId, { provider: undefined })
+      .catch(() => null)) as { currentBusinessDay?: { businessDayId?: string } | null } | null
+    if (location?.currentBusinessDay?.businessDayId === businessDay._id) {
+      throw new BadRequest('Dieser Geschaeftstag ist der aktuelle Tag der Filiale und kann nicht verworfen werden')
+    }
+  }
+
+  // `rotateBusinessDay` sendet kein `openedBy`, `openDay()` setzt user._id.
+  // Fehlt es, stammt der Tag aus der lokalen Auto-Rotation — genau der Fall,
+  // den die Cloud nie gesehen hat. Ein manuell eroeffneter Tag wird hier nicht
+  // angefasst; der gehoert ueber den regulaeren Abschluss beendet.
+  if (businessDay.openedBy) {
+    throw new BadRequest(
+      'Dieser Geschaeftstag wurde manuell eroeffnet und ist damit kein Verwaister. ' +
+        'Bitte regulaer abschliessen statt verwerfen.',
+    )
+  }
+
+  for (const { service, label } of ORPHAN_BLOCKING_SERVICES) {
+    const total = await countLinkedRecords(app, service, businessDay._id)
+    if (total > 0) {
+      throw new BadRequest(
+        `Geschaeftstag enthaelt ${total} ${label} und kann nicht verworfen werden. ` +
+          `Bitte den Support kontaktieren.`,
+      )
+    }
+  }
+
+  await recordOrphanDiscardAudit(app, businessDay, user)
+  await (app.service(businessDaysPath) as any).remove(businessDay._id, { provider: undefined })
+
+  logger.info({
+    message: 'Verwaister Geschaeftstag verworfen',
+    event: 'business_day.orphan_discarded',
+    tenantId: businessDay.tenantId,
+    locationId: businessDay.locationId,
+    businessDayId: businessDay._id,
+    businessDate: businessDay.date,
+    openedAt: businessDay.openedAt,
+    actorUserId: user._id,
+  })
+
+  return { discarded: true, _id: businessDay._id }
+}
+
+/**
+ * Schreibt die Audit-Spur VOR dem Loeschen — nach dem remove waeren die Daten
+ * fuer den `before`-Block weg. Bewusst AuditAction.DELETE statt eines neuen
+ * Enum-Werts: `audit-events` wird in die Cloud gepusht und dort gegen dasselbe
+ * Enum validiert; ein unbekannter Wert wuerde den Sync terminal rejecten.
+ * Der Sonderfall steht stattdessen in `metadata.reason`.
+ */
+async function recordOrphanDiscardAudit(
+  app: Application,
+  businessDay: BusinessDay,
+  user: { _id?: string; tenantId?: string; role?: string; locationId?: string | null },
+): Promise<void> {
+  try {
+    const correlationId = uuidv7()
+    const event = {
+      _id: uuidv7(),
+      tenantId: businessDay.tenantId,
+      locationId: businessDay.locationId ?? null,
+      occurredAt: new Date().toISOString(),
+      actor: { userId: user._id!, role: user.role ?? 'unknown', requestId: correlationId },
+      target: {
+        resource: businessDaysPath,
+        entityType: 'business-day',
+        entityId: businessDay._id,
+        entityRef: businessDay.date,
+      },
+      action: AuditAction.DELETE,
+      category: AuditCategory.CASH,
+      outcome: AuditOutcome.SUCCESS,
+      severity: AuditSeverity.ALERT,
+      before: { status: businessDay.status, date: businessDay.date, openedAt: businessDay.openedAt },
+      metadata: { reason: 'orphan-business-day-discarded', orderCount: 0, cashSessionCount: 0 },
+      correlationId,
+      // Flache Index-Spalten wie in record-audit-event.hook.ts.
+      actor_userId: user._id,
+      target_resource: businessDaysPath,
+      target_entityType: 'business-day',
+      target_entityId: businessDay._id,
+    }
+    await (app.service('audit-events') as any).create(event, { provider: undefined })
+  } catch (err) {
+    // Audit-Verlust ist akzeptabel, der Business-Pfad bleibt intakt — Muster
+    // wie recordAuditEvent. Der Wide Event unten protokolliert den Vorgang
+    // ohnehin lokal.
+    logger.warn({
+      message: 'discardOrphanDay: Audit-Event konnte nicht geschrieben werden',
+      event: 'business_day.orphan_discard_audit_failed',
+      businessDayId: businessDay._id,
+      errorMessage: err instanceof Error ? err.message : String(err),
     })
   }
 }
@@ -670,6 +852,10 @@ export const businessDays = (app: Application) => {
     openDay: (data: OpenDayData, params?: OpenDayParams) => Promise<BusinessDay>
     closeDay: (data: CloseDayData, params?: OpenDayParams) => Promise<BusinessDay>
     refreshClosingStatus: (data: RefreshClosingStatusData, params?: OpenDayParams) => Promise<BusinessDay>
+    discardOrphanDay: (
+      data: DiscardOrphanDayData,
+      params?: OpenDayParams,
+    ) => Promise<{ discarded: true; _id: string }>
   }
 
   // Custom-Methods auf den Service-Proxy haengen
@@ -677,6 +863,8 @@ export const businessDays = (app: Application) => {
   service.closeDay = (data: CloseDayData, params?: OpenDayParams) => closeDay(app, data, params)
   service.refreshClosingStatus = (data: RefreshClosingStatusData, params?: OpenDayParams) =>
     refreshClosingStatus(app, data, params)
+  service.discardOrphanDay = (data: DiscardOrphanDayData, params?: OpenDayParams) =>
+    discardOrphanDay(app, data, params)
   ;(service as any).setup = async (app: Application) =>
     ensureIndexes(
       app,

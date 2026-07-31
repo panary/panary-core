@@ -43,6 +43,10 @@ const METHOD_TO_ACTION: Record<string, AppAction> = {
   openDay: AppAction.CREATE,
   closeDay: AppAction.UPDATE,
   refreshClosingStatus: AppAction.UPDATE,
+  // businessdays: entfernt einen verwaisten, leeren Geschaeftstag — echtes
+  // DELETE, damit nur Rollen mit Loeschrecht es duerfen (nicht der
+  // MANAGE-Fallback fuer unbekannte Custom-Methods).
+  discardOrphanDay: AppAction.DELETE,
   // sync-outbox (REV-Sync): modifiziert den Workflow-State
   // (rejected → pending + neuer Eintrag), daher UPDATE.
   reEnqueue: AppAction.UPDATE,

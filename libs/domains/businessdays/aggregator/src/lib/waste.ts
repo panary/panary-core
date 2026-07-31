@@ -2,12 +2,12 @@ import { WriteOff, WriteOffReason, WasteType } from '@panary/write-offs/domain'
 import { toCents } from './money'
 
 export interface WasteAggregate {
-  rawCents: number          // Zutaten verdorben (Back-of-House)
-  finishedCents: number     // Fertigprodukt vernichtet (Front-of-House)
-  employeeMealsCents: number  // Mitarbeiterverpflegung als Write-Off gebucht
-  promotionsCents: number     // Promotion / Sample / Gratis-Gabe
-  otherCents: number          // Restkategorien (transfer, theft, quality_check, mistake)
-  totalCents: number          // Σ aller Kategorien
+  rawCents: number // Zutaten verdorben (Back-of-House)
+  finishedCents: number // Fertigprodukt vernichtet (Front-of-House)
+  employeeMealsCents: number // Mitarbeiterverpflegung als Write-Off gebucht
+  promotionsCents: number // Promotion / Sample / Gratis-Gabe
+  otherCents: number // Restkategorien (transfer, theft, quality_check, mistake)
+  totalCents: number // Σ aller Kategorien
 }
 
 const ZERO_WASTE: WasteAggregate = Object.freeze({

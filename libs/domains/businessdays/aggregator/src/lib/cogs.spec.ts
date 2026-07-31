@@ -121,7 +121,10 @@ describe('computeCogs — Verbrauchsmathematik', () => {
 
     it('Referenz nur mit externalId (kein ingredientId) nutzt externalId als Key', () => {
       const order = makeRegularOrder([
-        makeLineItem({ amount: 3, ingredientReferences: [{ externalId: ING_TOMATO, quantity: 10, unit: 'g' } as never] }),
+        makeLineItem({
+          amount: 3,
+          ingredientReferences: [{ externalId: ING_TOMATO, quantity: 10, unit: 'g' } as never],
+        }),
       ])
       const cogs = computeCogs([order], new Map(), new Map())
       expect(cogs.consumptionLines[0].ingredientId).toBe(ING_TOMATO)
@@ -156,9 +159,7 @@ describe('computeCogs — Verbrauchsmathematik', () => {
     })
 
     it('refQuantity fehlt → default 1', () => {
-      const order = makeRegularOrder([
-        makeLineItem({ amount: 5, recipeReferences: [recipeRef(RECIPE_PIZZA)] }),
-      ])
+      const order = makeRegularOrder([makeLineItem({ amount: 5, recipeReferences: [recipeRef(RECIPE_PIZZA)] })])
       const cogs = computeCogs([order], new Map(), pizzaRecipeMap(0.05))
       // 0.05 × 1 (default) × 5 = 0.25
       expect(cogs.consumptionLines[0].quantityUsed).toBeCloseTo(0.25, 9)
@@ -196,18 +197,14 @@ describe('computeCogs — Verbrauchsmathematik', () => {
       // Rezept nicht in der Map (auch nicht versioniert), traegt es NICHTS bei.
       // Das ist eine scharfe Kante — ein fehlerhafter Recipe-Snapshot wuerde
       // den Materialverbrauch lautlos unterschaetzen.
-      const order = makeRegularOrder([
-        makeLineItem({ amount: 10, recipeReferences: [recipeRef(RECIPE_MISSING)] }),
-      ])
+      const order = makeRegularOrder([makeLineItem({ amount: 10, recipeReferences: [recipeRef(RECIPE_MISSING)] })])
       const cogs = computeCogs([order], new Map(), pizzaRecipeMap())
       expect(cogs.consumptionLines).toHaveLength(0)
       expect(cogs.totalFoodCostCents).toBe(0)
     })
 
     it('Rezeptreferenz ohne id (weder externalId noch recipeId) wird uebersprungen', () => {
-      const order = makeRegularOrder([
-        makeLineItem({ amount: 1, recipeReferences: [{ quantity: 1 } as never] }),
-      ])
+      const order = makeRegularOrder([makeLineItem({ amount: 1, recipeReferences: [{ quantity: 1 } as never] })])
       const cogs = computeCogs([order], new Map(), pizzaRecipeMap())
       expect(cogs.consumptionLines).toHaveLength(0)
     })
@@ -218,9 +215,7 @@ describe('computeCogs — Verbrauchsmathematik', () => {
       const order = makeRegularOrder([
         makeLineItem({
           amount: 2,
-          modifiers: [
-            makeLineItem({ amount: 3, ingredientReferences: [directIngredient(ING_SAUCE, 10)] }),
-          ],
+          modifiers: [makeLineItem({ amount: 3, ingredientReferences: [directIngredient(ING_SAUCE, 10)] })],
         }),
       ])
       const cogs = computeCogs([order], new Map(), new Map())
@@ -276,7 +271,10 @@ describe('computeCogs — Verbrauchsmathematik', () => {
         // Rezept des LineItems → Mehl
         [RECIPE_PIZZA, [{ ingredientId: ING_FLOUR, ingredientName: 'Mehl', quantityPerOutputUnit: 0.1, unit: 'kg' }]],
         // Rezept des Modifiers → Tomate
-        [RECIPE_DRINK, [{ ingredientId: ING_TOMATO, ingredientName: 'Tomate', quantityPerOutputUnit: 0.02, unit: 'kg' }]],
+        [
+          RECIPE_DRINK,
+          [{ ingredientId: ING_TOMATO, ingredientName: 'Tomate', quantityPerOutputUnit: 0.02, unit: 'kg' }],
+        ],
       ])
       const order = makeRegularOrder([
         makeLineItem({
@@ -598,7 +596,13 @@ describe('computeCogs — Verbrauchsmathematik', () => {
           RECIPE_PIZZA,
           [
             { ingredientId: ING_FLOUR, ingredientName: 'Mehl', quantityPerOutputUnit: 0.1, unit: 'kg' },
-            { ingredientId: ING_SAUCE, ingredientName: 'Tüte', quantityPerOutputUnit: 1, unit: 'piece', onlyOutsideConsumption: true },
+            {
+              ingredientId: ING_SAUCE,
+              ingredientName: 'Tüte',
+              quantityPerOutputUnit: 1,
+              unit: 'piece',
+              onlyOutsideConsumption: true,
+            },
           ],
         ],
       ])

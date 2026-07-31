@@ -11,7 +11,7 @@ export interface UserSalesEntry {
 }
 
 export interface ProductGroupSalesEntry {
-  groupId: string                // productGroupExternalId
+  groupId: string // productGroupExternalId
   salesCents: number
   quantity: number
 }
@@ -24,13 +24,13 @@ export interface TopProductEntry {
 }
 
 export interface HourlySalesEntry {
-  hour: number                   // 0..23
+  hour: number // 0..23
   salesCents: number
   orderCount: number
 }
 
 export interface StatsAggregate {
-  orderCount: number             // Bonzahl (alle regulären Verkäufe)
+  orderCount: number // Bonzahl (alle regulären Verkäufe)
   averageOrderValueCents: number
   salesByUser: UserSalesEntry[]
   salesByProductGroup: ProductGroupSalesEntry[]
@@ -56,7 +56,8 @@ const TOP_PRODUCTS_LIMIT = 10
  * fließen in Bonzahl, AOV, Bestseller-Listen.
  */
 export function computeStats(orders: ReadonlyArray<Order>): StatsAggregate {
-  if (orders.length === 0) return { ...ZERO_STATS, salesByUser: [], salesByProductGroup: [], topProducts: [], salesByHour: [] }
+  if (orders.length === 0)
+    return { ...ZERO_STATS, salesByUser: [], salesByProductGroup: [], topProducts: [], salesByHour: [] }
 
   const regular = orders.filter(isRegularSale)
   if (regular.length === 0) {
@@ -104,9 +105,7 @@ export function computeStats(orders: ReadonlyArray<Order>): StatsAggregate {
     averageOrderValueCents,
     salesByUser: [...userMap.values()].sort((a, b) => b.salesCents - a.salesCents),
     salesByProductGroup: [...groupMap.values()].sort((a, b) => b.salesCents - a.salesCents),
-    topProducts: [...productMap.values()]
-      .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, TOP_PRODUCTS_LIMIT),
+    topProducts: [...productMap.values()].sort((a, b) => b.quantity - a.quantity).slice(0, TOP_PRODUCTS_LIMIT),
     salesByHour: [...hourMap.values()].sort((a, b) => a.hour - b.hour),
   }
 }

@@ -18,8 +18,21 @@ import { querySyntax, Static, StringEnum, Type } from '@feathersjs/typebox'
  * 8 Münzen (2 €…1 ct) — portiert aus der Legacy-App (cash-count.store.ts).
  */
 export const CASH_DENOMINATIONS_CENTS = [
-  50000, 20000, 10000, 5000, 2000, 1000, 500, // Scheine
-  200, 100, 50, 20, 10, 5, 2, 1, // Münzen
+  50000,
+  20000,
+  10000,
+  5000,
+  2000,
+  1000,
+  500, // Scheine
+  200,
+  100,
+  50,
+  20,
+  10,
+  5,
+  2,
+  1, // Münzen
 ] as const
 
 export type CashDenominationCents = (typeof CASH_DENOMINATIONS_CENTS)[number]
@@ -32,7 +45,9 @@ export type CashDenominationCents = (typeof CASH_DENOMINATIONS_CENTS)[number]
  * Kasse-Schließen scheitert mit „must have required property d_50000".
  */
 const denominationCountsSchema = Type.Object(
-  Object.fromEntries(CASH_DENOMINATIONS_CENTS.map(c => [`d_${c}`, Type.Optional(Type.Integer({ minimum: 0, default: 0 }))])),
+  Object.fromEntries(
+    CASH_DENOMINATIONS_CENTS.map(c => [`d_${c}`, Type.Optional(Type.Integer({ minimum: 0, default: 0 }))]),
+  ),
   { additionalProperties: false },
 )
 export type DenominationCounts = Partial<Record<`d_${CashDenominationCents}`, number>>
@@ -86,6 +101,19 @@ export const cashSessionSchema = Type.Object({
   payoutsCents: Type.Integer({ minimum: 0, default: 0 }),
   expectedClosingFloatCents: Type.Integer({ default: 0 }),
   varianceCents: Type.Integer({ default: 0 }), // counted − expected (signiert)
+  /**
+   * Bar beglichene Forderungen aus der Sammelabrechnung offener Personal-/
+   * Firmenkundenessen. Geht mit **Plus** in den erwarteten Endbestand: das Geld
+   * kommt am Zahltag in die Lade, waehrend der Umsatz fiskalisch am
+   * Leistungstag steht.
+   *
+   * Cloud-abgeleitet — **kein Edge liest oder schreibt es**. Deshalb braucht es
+   * auch keine Knex-Migration: `cash-sessions` ist ein reiner Push (Edge→Cloud),
+   * es gibt keinen Cloud→Edge-Apply. Umgekehrt entstuende sonst ein neues
+   * Risiko — der Outbox-Recorder schickt die volle Knex-Row, und eine noch
+   * nicht gepinnte Cloud lehnte die unbekannte Spalte mit 400 terminal ab.
+   */
+  receivableSettlementsCents: Type.Optional(Type.Integer({ default: 0 })),
 
   notes: Type.Optional(Type.Union([Type.String({ maxLength: 1000 }), Type.Null()])),
   createdAt: Type.String({ format: 'date-time' }),
@@ -109,15 +137,26 @@ export function sumDenominationCounts(counts: DenominationCounts | undefined | n
   return total
 }
 
-/** Erwarteter Endbestand = Anfangsbestand + Bar-Umsatz − Entnahmen − Auszahlungen. */
+/**
+ * Erwarteter Endbestand = Anfangsbestand + Bar-Umsatz + bar beglichene
+ * Forderungen − Entnahmen − Auszahlungen.
+ *
+ * Der Forderungs-Term ist optional und default 0 — ohne Sammelabrechnung und in
+ * Alt-Berichten rechnet die Formel unveraendert.
+ */
 export function computeExpectedClosingFloatCents(input: {
   openingFloatCents: number
   cashSalesCents?: number
   cashDropsCents?: number
   payoutsCents?: number
+  receivableSettlementsCents?: number
 }): number {
   return (
-    input.openingFloatCents + (input.cashSalesCents ?? 0) - (input.cashDropsCents ?? 0) - (input.payoutsCents ?? 0)
+    input.openingFloatCents +
+    (input.cashSalesCents ?? 0) +
+    (input.receivableSettlementsCents ?? 0) -
+    (input.cashDropsCents ?? 0) -
+    (input.payoutsCents ?? 0)
   )
 }
 
@@ -174,6 +213,9 @@ export const cashSessionDataSchema = Type.Object(
     payoutsCents: Type.Optional(Type.Integer({ minimum: 0 })),
     expectedClosingFloatCents: Type.Optional(Type.Integer()),
     varianceCents: Type.Optional(Type.Integer()),
+    // Cloud-abgeleitet; im DATA-Schema, weil der Sync-Push den vollen Record
+    // schickt und `additionalProperties: false` sonst mit 400 abweist.
+    receivableSettlementsCents: Type.Optional(Type.Integer()),
     notes: Type.Optional(Type.Union([Type.String({ maxLength: 1000 }), Type.Null()])),
     createdAt: Type.Optional(Type.String({ format: 'date-time' })),
     updatedAt: Type.Optional(Type.String({ format: 'date-time' })),

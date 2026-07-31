@@ -37,10 +37,7 @@ const ZERO_LABOR: LaborAggregate = Object.freeze({
  * `now` mit; standardmäßig wird `new Date()` verwendet, das macht Tests
  * nicht-deterministisch — Caller muss bei Tagesabschluss explizit setzen.
  */
-export function aggregateLabor(
-  workingTimes: ReadonlyArray<WorkingTime>,
-  now: Date = new Date(),
-): LaborAggregate {
+export function aggregateLabor(workingTimes: ReadonlyArray<WorkingTime>, now: Date = new Date()): LaborAggregate {
   if (workingTimes.length === 0) return { ...ZERO_LABOR, breakdown: { ...ZERO_LABOR.breakdown } }
 
   const distinctUsers = new Set<string>()

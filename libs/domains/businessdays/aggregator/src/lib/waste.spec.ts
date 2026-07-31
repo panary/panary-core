@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest'
 import { WriteOff, WriteOffReason, WasteType, WriteOffItemType } from '@panary/write-offs/domain'
 import { aggregateWriteOffs } from './waste'
 
-function makeWriteOff(opts: Partial<WriteOff> & { reason: WriteOff['reason']; totalCost: number; wasteType?: WriteOff['wasteType'] }): WriteOff {
+function makeWriteOff(
+  opts: Partial<WriteOff> & { reason: WriteOff['reason']; totalCost: number; wasteType?: WriteOff['wasteType'] },
+): WriteOff {
   return {
     _id: 'wo-' + Math.random(),
     tenantId: 't1',
@@ -42,16 +44,12 @@ describe('waste', () => {
   })
 
   it('mappt WASTE ohne wasteType auf finishedCents (Default)', () => {
-    const r = aggregateWriteOffs([
-      makeWriteOff({ reason: WriteOffReason.WASTE, totalCost: 2 }),
-    ])
+    const r = aggregateWriteOffs([makeWriteOff({ reason: WriteOffReason.WASTE, totalCost: 2 })])
     expect(r.finishedCents).toBe(200)
   })
 
   it('mappt EMPLOYEE_MEAL auf employeeMealsCents', () => {
-    const r = aggregateWriteOffs([
-      makeWriteOff({ reason: WriteOffReason.EMPLOYEE_MEAL, totalCost: 4 }),
-    ])
+    const r = aggregateWriteOffs([makeWriteOff({ reason: WriteOffReason.EMPLOYEE_MEAL, totalCost: 4 })])
     expect(r.employeeMealsCents).toBe(400)
   })
 

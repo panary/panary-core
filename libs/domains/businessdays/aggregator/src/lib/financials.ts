@@ -1,18 +1,19 @@
-import {
-  Order,
-  OrderChannel,
-  DineLocation,
-  TransactionMethod,
-  PaymentState,
-  Transaction,
-} from '@panary/orders/domain'
+import { Order, OrderChannel, DineLocation, TransactionMethod, PaymentState, Transaction } from '@panary/orders/domain'
 import { toCents, sumCents } from './money'
-import { isCancelled, isRefunded, isRegularSale, isStaffMeal, isCorporateMeal } from './classifications'
+import {
+  isCancelled,
+  isRefunded,
+  isRegularSale,
+  isStaffMeal,
+  isCorporateMeal,
+  isOpenReceivable,
+  type OrderAggregationOptions,
+} from './classifications'
 import { getOrderGrossCents, getOrderNetCents, getOrderTipCents } from './order-total'
 
 /** Steuersplit-Eintrag pro Steuersatz (z. B. 7%, 19%). */
 export interface TaxSplitEntry {
-  rate: number              // 7, 19, ...
+  rate: number // 7, 19, ...
   netAmountCents: number
   taxAmountCents: number
   grossAmountCents: number
@@ -38,7 +39,32 @@ export interface PaymentBreakdown {
   cardCents: number
   onlineCents: number
   otherCents: number
+  /**
+   * Offene Forderungen aus angeschriebenen Personal-/Firmenkundenessen.
+   *
+   * Bewusst **optional**: waere das Feld required, braeche der Cloud-Typecheck
+   * schon im Pin-Bump-Commit, der nur Ranges und Lockfile enthalten soll. Alt-
+   * Reports ohne das Feld bleiben lesbar; jeder Konsument muss `?? 0` rechnen.
+   */
+  receivablesCents?: number
 }
+
+/**
+ * Die Buckets als Liste — Konsumenten sollen iterieren statt aufzuzaehlen.
+ *
+ * Rund 14 Stellen in Cloud und Edge summieren die vier bisherigen Buckets von
+ * Hand (Z-Bon, DSFinV-K-Export, Finanz-Karten). Ein fuenfter Bucket braeche
+ * dort **nicht am Compiler** — er wuerde einfach nicht mitsummiert und die
+ * Differenz waere still. Wer hierueber iteriert, bekommt neue Buckets
+ * automatisch.
+ */
+export const PAYMENT_BUCKET_KEYS = [
+  'cashCents',
+  'cardCents',
+  'onlineCents',
+  'otherCents',
+  'receivablesCents',
+] as const satisfies ReadonlyArray<keyof PaymentBreakdown>
 
 /** Gesamt-Finanzaggregat eines Geschäftstages. */
 export interface FinancialsAggregate {
@@ -52,9 +78,9 @@ export interface FinancialsAggregate {
   refundsCount: number
   refundsCents: number
   discountsCount: number
-  discountsCents: number       // Summe der gewährten Rabatte (rabattierter Brutto-Anteil)
+  discountsCents: number // Summe der gewährten Rabatte (rabattierter Brutto-Anteil)
   voidsCount: number
-  voidsCents: number           // Stornierte Bons-Brutto
+  voidsCents: number // Stornierte Bons-Brutto
 }
 
 const ZERO_FINANCIALS: FinancialsAggregate = Object.freeze({
@@ -63,7 +89,7 @@ const ZERO_FINANCIALS: FinancialsAggregate = Object.freeze({
   taxes: [],
   channels: { posCents: 0, telephoneCents: 0, onlineCents: 0, appCents: 0 },
   dineLocation: { dineInCents: 0, takeOutCents: 0 },
-  payments: { cashCents: 0, cardCents: 0, onlineCents: 0, otherCents: 0 },
+  payments: { cashCents: 0, cardCents: 0, onlineCents: 0, otherCents: 0, receivablesCents: 0 },
   tipsCents: 0,
   refundsCount: 0,
   refundsCents: 0,
@@ -90,7 +116,10 @@ const ZERO_FINANCIALS: FinancialsAggregate = Object.freeze({
  *
  * Determinismus: Order-Liste wird vor Aggregation nach `_id` sortiert.
  */
-export function aggregateFinancials(orders: ReadonlyArray<Order>): FinancialsAggregate {
+export function aggregateFinancials(
+  orders: ReadonlyArray<Order>,
+  options?: OrderAggregationOptions,
+): FinancialsAggregate {
   if (orders.length === 0) return { ...ZERO_FINANCIALS, taxes: [] }
 
   const sorted = [...orders].sort((a, b) => a._id.localeCompare(b._id))
@@ -107,7 +136,7 @@ export function aggregateFinancials(orders: ReadonlyArray<Order>): FinancialsAgg
 
   const channels: ChannelBreakdown = { posCents: 0, telephoneCents: 0, onlineCents: 0, appCents: 0 }
   const dineLocation: DineLocationBreakdown = { dineInCents: 0, takeOutCents: 0 }
-  const payments: PaymentBreakdown = { cashCents: 0, cardCents: 0, onlineCents: 0, otherCents: 0 }
+  const payments: PaymentBreakdown = { cashCents: 0, cardCents: 0, onlineCents: 0, otherCents: 0, receivablesCents: 0 }
 
   // Steuersplit aggregiert nach Steuersatz; Map<rate, accumulator>
   const taxAccumulator = new Map<number, { netCents: number; taxCents: number; grossCents: number }>()
@@ -159,20 +188,44 @@ export function aggregateFinancials(orders: ReadonlyArray<Order>): FinancialsAgg
 
     // Channel-Aggregation
     switch (order.orderChannel) {
-      case OrderChannel.POS:       channels.posCents += orderGross; break
-      case OrderChannel.TELEPHONE: channels.telephoneCents += orderGross; break
-      case OrderChannel.ONLINE:    channels.onlineCents += orderGross; break
-      case OrderChannel.APP:       channels.appCents += orderGross; break
+      case OrderChannel.POS:
+        channels.posCents += orderGross
+        break
+      case OrderChannel.TELEPHONE:
+        channels.telephoneCents += orderGross
+        break
+      case OrderChannel.ONLINE:
+        channels.onlineCents += orderGross
+        break
+      case OrderChannel.APP:
+        channels.appCents += orderGross
+        break
     }
 
     // DineLocation-Aggregation (relevant für Steuersatz-Erkennung in DE: 7% vs 19%)
     switch (order.dineLocation) {
-      case DineLocation.DINE_IN:  dineLocation.dineInCents += orderGross; break
-      case DineLocation.TAKE_OUT: dineLocation.takeOutCents += orderGross; break
+      case DineLocation.DINE_IN:
+        dineLocation.dineInCents += orderGross
+        break
+      case DineLocation.TAKE_OUT:
+        dineLocation.takeOutCents += orderGross
+        break
     }
 
-    // Zahlungsart-Aggregation
-    if (order.payment?.transactions && order.payment.transactions.length > 0) {
+    // Zahlungsart-Aggregation — drei Zweige, Forderung zuerst.
+    //
+    // Der Zweig steht bewusst NACH den Storno-/Refund-`continue`s (ein
+    // stornierter Bon ist keine Forderung) und VOR der `tx.method`-Verteilung:
+    // der POS bucht fuer ein angeschriebenes Essen zwar eine CASH-Transaktion,
+    // aber es liegt kein Geld in der Lade. Wuerde sie verteilt, waere der
+    // Kassensturz schon am Leistungstag zu hoch — genau der Bestandsfehler,
+    // den dieser Umbau behebt.
+    //
+    // Der Zweig steuert exakt `gross - tip` bei, damit die Persist-Invariante
+    // `Σ payments === grossTotal − tips` haelt.
+    if (isOpenReceivable(order, options?.settlements)) {
+      payments.receivablesCents = (payments.receivablesCents ?? 0) + (orderGross - orderTip)
+    } else if (order.payment?.transactions && order.payment.transactions.length > 0) {
       for (const tx of order.payment.transactions) {
         addTransaction(payments, tx)
       }
@@ -185,6 +238,8 @@ export function aggregateFinancials(orders: ReadonlyArray<Order>): FinancialsAgg
       // schlägt nicht hart fehl; die nicht zugeordnete Summe ist im UI als
       // „Sonstige" sichtbar. Liegen Transaktionen vor, gilt weiter ihre Summe —
       // ein echter Mismatch (Transaktionen ≠ Umsatz) wird also nicht verdeckt.
+      // Seit dem Forderungs-Zweig ist dieser Fall fuer angeschriebene Essen
+      // unerreichbar — sie werden vorher abgefangen.
       payments.otherCents += orderGross - orderTip
     }
 
@@ -241,10 +296,18 @@ export function aggregateFinancials(orders: ReadonlyArray<Order>): FinancialsAgg
 function addTransaction(payments: PaymentBreakdown, tx: Transaction): void {
   const amount = toCents(tx.amount)
   switch (tx.method) {
-    case TransactionMethod.CASH:   payments.cashCents += amount; break
-    case TransactionMethod.CARD:   payments.cardCents += amount; break
-    case TransactionMethod.ONLINE: payments.onlineCents += amount; break
-    case TransactionMethod.OTHER:  payments.otherCents += amount; break
+    case TransactionMethod.CASH:
+      payments.cashCents += amount
+      break
+    case TransactionMethod.CARD:
+      payments.cardCents += amount
+      break
+    case TransactionMethod.ONLINE:
+      payments.onlineCents += amount
+      break
+    case TransactionMethod.OTHER:
+      payments.otherCents += amount
+      break
   }
 }
 
@@ -255,7 +318,7 @@ export function sumChannels(c: ChannelBreakdown): number {
 
 /** Hilfsfunktion: Σ aller Payment-Cents (für Validierung). */
 export function sumPayments(p: PaymentBreakdown): number {
-  return sumCents([p.cashCents, p.cardCents, p.onlineCents, p.otherCents])
+  return sumCents(PAYMENT_BUCKET_KEYS.map(key => p[key] ?? 0))
 }
 
 // Re-export für Konsumenten, die diese Werte direkt lesen wollen

@@ -21,6 +21,7 @@ import { deviceDataSchema, devicePatchSchema, deviceQuerySchema, deviceSchema } 
 import type { Device, DeviceService } from './devices.class'
 import { ensureIndexes, getJsonFieldHooks, logger } from '@panary/shared-backend'
 import { restrictDeviceSelfPatch } from '../../hooks/restrict-device-self-patch.hook'
+import { captureDeviceForCascade, cascadeRemoveDeviceApikeys } from '../../hooks/cascade-device-apikeys.hook'
 
 // SQLite speichert Objekt-Felder als TEXT — ohne Stringify/Parse-Hooks landet
 // '[object Object]' in der Spalte bzw. der rohe JSON-String beim Client.
@@ -127,7 +128,9 @@ export const devices = (app: Application) => {
         schemaHooks.resolveData(devicePatchResolver),
         ...jsonHooks.before,
       ],
-      remove: [],
+      // captureDeviceForCascade merkt sich deviceId/apiKeyId — nach dem remove
+      // ist der Record weg und die Zuordnung nicht mehr aufloesbar.
+      remove: [captureDeviceForCascade],
     },
     after: {
       all: [...jsonHooks.after],
@@ -173,6 +176,10 @@ export const devices = (app: Application) => {
           return context
         },
       ],
+      // Gegenstueck zum automatischen API-Key beim create: ohne Kaskade
+      // hinterlaesst jedes geloeschte Geraet einen verwaisten, weiterhin
+      // gueltigen Schluessel.
+      remove: [cascadeRemoveDeviceApikeys],
     },
     error: {
       all: [],

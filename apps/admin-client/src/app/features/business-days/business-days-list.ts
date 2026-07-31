@@ -4,6 +4,8 @@ import { TranslateModule } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { CloudManagedBannerComponent } from '../../core/cloud-managed-banner'
 import { CloudManagedService } from '../../core/cloud-managed.service'
+import { ConfirmDialogComponent } from '../../core/confirm-dialog'
+import { formatApiError } from '../../core/error-helper'
 
 // Lokales Interface (Konvention im admin-client, vgl. user-list/order-list) —
 // Felder gemäß @panary/businessdays/domain business-day.schema.ts.
@@ -21,7 +23,7 @@ interface BusinessDay {
 @Component({
   selector: 'app-business-days-list',
   standalone: true,
-  imports: [TranslateModule, DatePipe, CloudManagedBannerComponent],
+  imports: [TranslateModule, DatePipe, CloudManagedBannerComponent, ConfirmDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col h-full overflow-hidden">
@@ -60,6 +62,12 @@ interface BusinessDay {
             </div>
           }
 
+          @if (actionError()) {
+            <div class="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 rounded-lg p-4">
+              <p class="text-red-600 dark:text-red-400 text-sm">{{ actionError() }}</p>
+            </div>
+          }
+
           @if (loading()) {
             <p class="text-slate-400 dark:text-gray-500 text-sm">{{ 'COMMON.LOADING' | translate }}</p>
           } @else if (businessDays().length === 0) {
@@ -78,6 +86,7 @@ interface BusinessDay {
                     <th class="px-3 py-2.5">{{ 'BUSINESS_DAYS.OPENED' | translate }}</th>
                     <th class="px-3 py-2.5">{{ 'BUSINESS_DAYS.CLOSED' | translate }}</th>
                     <th class="px-3 py-2.5">{{ 'BUSINESS_DAYS.REPORT' | translate }}</th>
+                    <th class="px-3 py-2.5 text-right">{{ 'COMMON.ACTIONS' | translate }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -117,6 +126,18 @@ interface BusinessDay {
                           <span class="text-slate-400 dark:text-gray-600">—</span>
                         }
                       </td>
+                      <td class="px-3 py-2.5 text-right whitespace-nowrap">
+                        <!-- Nur auf markierten Zeilen: der Backend-Guard ist die
+                             Wahrheit, aber ein Knopf auf jedem Tag laedt zum
+                             Missverstaendnis "Tag loeschen" ein. -->
+                        @if (staleOpenIds().has(bd._id)) {
+                          <button type="button" (click)="pendingDiscard.set(bd)" [disabled]="discarding() === bd._id"
+                            class="text-xs px-2.5 py-1 rounded-lg text-amber-700 dark:text-amber-400
+                                   hover:bg-amber-100 dark:hover:bg-amber-950/40 transition disabled:opacity-50">
+                            {{ 'BUSINESS_DAYS.DISCARD_ACTION' | translate }}
+                          </button>
+                        }
+                      </td>
                     </tr>
                   }
                 </tbody>
@@ -125,6 +146,17 @@ interface BusinessDay {
           }
         </div>
       </div>
+
+      @if (pendingDiscard(); as bd) {
+        <app-confirm-dialog
+          [title]="'BUSINESS_DAYS.DISCARD_TITLE' | translate"
+          [message]="'BUSINESS_DAYS.DISCARD_CONFIRM' | translate: { date: bd.date }"
+          [confirmLabel]="'BUSINESS_DAYS.DISCARD_ACTION' | translate"
+          [dismissLabel]="'COMMON.CANCEL' | translate"
+          (confirmed)="confirmDiscard()"
+          (dismissed)="pendingDiscard.set(null)"
+          (cancelled)="pendingDiscard.set(null)" />
+      }
     </div>
   `,
 })
@@ -134,6 +166,9 @@ export class BusinessDaysListComponent implements OnInit {
 
   businessDays = signal<BusinessDay[]>([])
   loading = signal(true)
+  pendingDiscard = signal<BusinessDay | null>(null)
+  discarding = signal<string | null>(null)
+  actionError = signal<string | null>(null)
 
   /**
    * Solange der Edge gepairt ist, verwaltet die Cloud den Geschaeftstag-Lifecycle
@@ -182,13 +217,38 @@ export class BusinessDaysListComponent implements OnInit {
     // Frischen Cloud-Zustand holen statt bis zu 60 s auf den naechsten Poll zu
     // warten (Muster aus pager-settings/opening-hours).
     void this.cloudManaged.refresh()
+    await this.load()
+    this.loading.set(false)
+  }
+
+  private async load() {
     try {
       const result = await this.api.find<BusinessDay>('businessdays', { $sort: { date: -1 }, $limit: 200 })
       this.businessDays.set(result.data)
     } catch (e) {
       console.error('Fehler beim Laden der Geschäftstage:', e)
     }
-    this.loading.set(false)
+  }
+
+  /**
+   * Verwirft einen verwaisten Tag. Die Bedingungen prueft ausschliesslich das
+   * Backend (sieben Guards in discardOrphanDay) — die Fehlermeldung von dort
+   * wird unveraendert angezeigt, statt sie im UI vorwegzunehmen.
+   */
+  protected async confirmDiscard() {
+    const bd = this.pendingDiscard()
+    this.pendingDiscard.set(null)
+    if (!bd) return
+
+    this.actionError.set(null)
+    this.discarding.set(bd._id)
+    try {
+      await this.api.customMethod('businessdays', 'discardOrphanDay', { businessDayId: bd._id })
+      await this.load()
+    } catch (e: unknown) {
+      this.actionError.set(formatApiError(e))
+    }
+    this.discarding.set(null)
   }
 
   statusLabelKey(status: string): string {

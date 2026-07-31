@@ -16,6 +16,7 @@ interface BusinessDay {
   operationMode: string
   locationId: string | null
   openedAt: string
+  openedBy?: string | null
   closedAt: string | null
   reportErrorMessage?: string | null
 }
@@ -127,10 +128,10 @@ interface BusinessDay {
                         }
                       </td>
                       <td class="px-3 py-2.5 text-right whitespace-nowrap">
-                        <!-- Nur auf markierten Zeilen: der Backend-Guard ist die
-                             Wahrheit, aber ein Knopf auf jedem Tag laedt zum
-                             Missverstaendnis "Tag loeschen" ein. -->
-                        @if (staleOpenIds().has(bd._id)) {
+                        <!-- Nur wo das Verwerfen auch durchgeht: der Backend-Guard
+                             ist die Wahrheit, aber ein Knopf, der garantiert in eine
+                             Fehlermeldung laeuft, ist schlimmer als kein Knopf. -->
+                        @if (discardableIds().has(bd._id)) {
                           <button type="button" (click)="pendingDiscard.set(bd)" [disabled]="discarding() === bd._id"
                             class="text-xs px-2.5 py-1 rounded-lg text-amber-700 dark:text-amber-400
                                    hover:bg-amber-100 dark:hover:bg-amber-950/40 transition disabled:opacity-50">
@@ -212,6 +213,21 @@ export class BusinessDaysListComponent implements OnInit {
   })
 
   hasStaleOpenDays = computed(() => this.staleOpenIds().size > 0)
+
+  /**
+   * Teilmenge der verwaisten Tage, die `discardOrphanDay` auch tatsaechlich
+   * verwirft — gespiegelt an dessen Guard: `openedBy == null`.
+   *
+   * `rotateBusinessDay` sendet kein `openedBy`, `openDay()` setzt `user._id`.
+   * Ein manuell eroeffneter Tag ist also anomal (Badge bleibt), aber kein
+   * Auto-Rotations-Verwaister — er gehoert regulaer abgeschlossen, nicht
+   * verworfen. Die restlichen Guards (Umsatz, aktueller Tag) kann der Client
+   * nicht vorwegnehmen; die pruefft weiterhin nur das Backend.
+   */
+  discardableIds = computed<ReadonlySet<string>>(() => {
+    const byId = new Map(this.businessDays().map(bd => [bd._id, bd]))
+    return new Set([...this.staleOpenIds()].filter(id => !byId.get(id)?.openedBy))
+  })
 
   async ngOnInit() {
     // Frischen Cloud-Zustand holen statt bis zu 60 s auf den naechsten Poll zu

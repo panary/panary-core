@@ -365,6 +365,11 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                 </div>
               }
             </div>
+          } @empty {
+            <p class="text-slate-300 dark:text-gray-600 text-xs text-center py-6 border border-dashed
+                      border-slate-200 dark:border-gray-800 rounded-xl">
+              {{ 'PRODUCTS.NO_OPTION_GROUPS' | translate }}
+            </p>
           }
         </div>
 

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal, computed, OnInit, viewChild, ElementRef } from '@angular/core'
+import { ChangeDetectionStrategy, Component, inject, signal, computed, effect, OnInit, viewChild, ElementRef } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
@@ -356,7 +356,7 @@ interface SearchCommand {
           </div>
 
           <!-- Formular -->
-          <div class="flex-1 overflow-y-auto">
+          <div #panelScroll class="flex-1 overflow-y-auto">
             <app-product-form #formRef
               [id]="selectedId()!"
               [panelMode]="true"
@@ -397,7 +397,21 @@ export class ProductListComponent implements OnInit {
   selectedId = signal<string | null>(null)
 
   private formRef = viewChild<ProductFormComponent>('formRef')
+  private panelScroll = viewChild<ElementRef<HTMLElement>>('panelScroll')
   searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInputRef')
+
+  constructor() {
+    // Der Panel-Scroll behielt seine Position ueber den Produktwechsel hinweg.
+    // Von einem langen Formular (gemessen 3.512 px bei 3 Optionsgruppen) auf ein
+    // kurzes (1.020 px) landete man geklemmt am FUSS des kurzen Produkts — Name,
+    // Status und Typ lagen unsichtbar darueber, die Seite wirkte kaputt.
+    // Reines DOM-Schreiben ohne Signal-Writes, daher kein untracked() noetig.
+    effect(() => {
+      this.selectedId()
+      const host = this.panelScroll()?.nativeElement
+      if (host) host.scrollTop = 0
+    })
+  }
   fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInputRef')
   showWizard = signal(false)
   actionsMenuOpen = signal(false)

@@ -47,6 +47,8 @@ import type {
   RefreshClosingStatusData,
 } from './business-days.class'
 
+import { ensureSingleOpenBusinessDay } from '../../hooks/ensure-single-open-business-day.hook'
+
 import type { Application, HookContext } from '../../declarations'
 
 export const businessDaysPath = 'businessdays' // bestehender Tabellen-/Service-Pfad
@@ -704,7 +706,14 @@ export const businessDays = (app: Application) => {
       all: [schemaHooks.validateQuery(businessDayQueryValidator), schemaHooks.resolveQuery(businessDayQueryResolver)],
       find: [],
       get: [],
-      create: [cloudManagedHook('Eroeffnung'), syncAwareValidateCreate, syncAwareResolveCreate],
+      // ensureSingleOpenBusinessDay ganz zuletzt: erst nach dem Create-Resolver
+      // stehen tenantId/locationId/status final im data-Objekt.
+      create: [
+        cloudManagedHook('Eroeffnung'),
+        syncAwareValidateCreate,
+        syncAwareResolveCreate,
+        ensureSingleOpenBusinessDay,
+      ],
       patch: [
         cloudManagedHook('Patch'),
         schemaHooks.validateData(businessDayPatchValidator),

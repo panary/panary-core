@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { ConfirmDialogComponent } from '../../core/confirm-dialog'
@@ -126,7 +126,11 @@ export class OrderDetailComponent {
   readonly selectableStatuses = ['active', 'production', 'completed', 'aborted']
 
   constructor() {
-    effect(() => this.loadOrder(this.orderId()))
+    // orderId() bewusst getrackt, Loader-Body via untracked() entkoppelt (angular.md §2.1).
+    effect(() => {
+      const id = this.orderId()
+      untracked(() => void this.loadOrder(id))
+    })
   }
 
   statusBadge = computed(() => this.statusBadgeFor(this.order()?.status))

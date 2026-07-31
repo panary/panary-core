@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal, input, output, effect, viewChild } from '@angular/core'
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal, input, output, effect, untracked, viewChild } from '@angular/core'
 import { FormsModule, NgForm } from '@angular/forms'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -279,9 +279,10 @@ export class UserFormComponent {
   }
 
   constructor() {
+    // id() bewusst getrackt, Loader-Body via untracked() entkoppelt (angular.md §2.1).
     effect(() => {
       const userId = this.id()
-      this.loadUser(userId)
+      untracked(() => void this.loadUser(userId))
     })
   }
 

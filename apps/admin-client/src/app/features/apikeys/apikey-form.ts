@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal, input, output, effect, viewChild } from '@angular/core'
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal, input, output, effect, untracked, viewChild } from '@angular/core'
 import { FormsModule, NgForm } from '@angular/forms'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -293,9 +293,12 @@ export class ApikeyFormComponent {
   }
 
   constructor() {
+    // id() bewusst getrackt; loadApikey() setzt vor dem ersten await mehrere
+    // Signals — ohne untracked() landen diese Writes im Tracking-Scope und
+    // koennen den Effect erneut ausloesen (angular.md §2.1).
     effect(() => {
       const keyId = this.id()
-      this.loadApikey(keyId)
+      untracked(() => void this.loadApikey(keyId))
     })
   }
 

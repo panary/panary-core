@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, inject, signal, OnInit, input, output, effect, viewChild } from '@angular/core'
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, inject, signal, OnInit, input, output, effect, untracked, viewChild } from '@angular/core'
 import { FormsModule, NgForm } from '@angular/forms'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -521,10 +521,12 @@ export class ProductFormComponent implements OnInit {
   }
 
   constructor() {
-    // Reagiert auf ID-Änderungen (Prev/Next im Panel)
+    // Reagiert auf ID-Änderungen (Prev/Next im Panel). id() bewusst getrackt;
+    // loadProduct() setzt vor dem ersten await mehrere Signals — ohne
+    // untracked() landen diese Writes im Tracking-Scope (angular.md §2.1).
     effect(() => {
       const prodId = this.id()
-      this.loadProduct(prodId)
+      untracked(() => void this.loadProduct(prodId))
     })
   }
 

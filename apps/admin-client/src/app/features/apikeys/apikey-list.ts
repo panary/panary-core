@@ -78,7 +78,7 @@ interface Apikey {
                           }
                         </td>
                         <td class="px-3 py-2.5 text-slate-500 dark:text-gray-400 text-xs">
-                          {{ key.lastUsedAt ? formatDate(key.lastUsedAt) : '—' }}
+                          {{ key.lastUsedAt ? formatDateTime(key.lastUsedAt) : '—' }}
                         </td>
                         <td class="px-3 py-2.5 text-slate-500 dark:text-gray-400 text-xs">
                           {{ key.validUntil ? formatDate(key.validUntil) : ('APIKEYS.UNLIMITED' | translate) }}
@@ -181,9 +181,25 @@ export class ApikeyListComponent implements OnInit {
     return map[role] ? this.t.instant(map[role]) : role
   }
 
+  /** Tagesgenau — fuer „Gueltig bis". */
   formatDate(iso: string): string {
     try {
       return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    } catch {
+      return iso
+    }
+  }
+
+  /** Minutengenau — fuer „Letzte Nutzung"; dort ist die Uhrzeit die Information. */
+  formatDateTime(iso: string): string {
+    try {
+      return new Date(iso).toLocaleString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
     } catch {
       return iso
     }

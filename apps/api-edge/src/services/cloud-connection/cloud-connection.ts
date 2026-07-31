@@ -224,7 +224,9 @@ const callCloud = async <T>(opts: CallCloudOptions): Promise<T> => {
 // Cloud-Backend liefert Fehler als FeathersError-JSON (`{ name, message, code, className }`).
 // Damit der User keine JSON-Roh-Antwort sieht, extrahieren wir die `message` und fallen auf
 // generische Fehler-Texte zurueck, wenn das Format unbekannt ist.
-const extractCloudErrorMessage = (status: number, body: string): string => {
+// Exportiert, damit die Fallunterscheidung ohne laufende Cloud testbar ist
+// (Muster wie evaluateOutboxGuard in business-days.ts).
+export const extractCloudErrorMessage = (status: number, body: string): string => {
   const trimmed = body.trim()
   if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
     try {
@@ -236,7 +238,20 @@ const extractCloudErrorMessage = (status: number, body: string): string => {
       // Faellt durch auf den Roh-Body, falls JSON ungueltig ist.
     }
   }
-  if (trimmed.length > 0) return trimmed
+  // HTML-Antwort = unter dieser Adresse laeuft kein Panary-Cloud-Backend, sondern
+  // z.B. der Angular-Dev-Server des Admin-Dashboards oder ein Reverse-Proxy.
+  // Frueher wurde der komplette `<!DOCTYPE html>`-Body als Fehlermeldung ins
+  // Admin-UI durchgereicht — der eigentliche Hinweis (falsche URL) ging in den
+  // zwanzig Zeilen Markup unter.
+  if (/^<(!doctype|html)/i.test(trimmed)) {
+    return (
+      `Unter dieser Cloud-URL antwortet keine Panary-Cloud-API — die Adresse liefert eine ` +
+      `HTML-Seite (HTTP ${status}). Bitte die URL des API-Backends eintragen, nicht die des ` +
+      `Admin-Dashboards (lokal: http://localhost:3031).`
+    )
+  }
+  // Deckel gegen weitere Roh-Bodies unbekannter Form (Proxy-Fehlerseiten, Stacktraces).
+  if (trimmed.length > 0) return trimmed.length > 500 ? `${trimmed.slice(0, 500)} …` : trimmed
   return `Cloud-Antwort ${status} ohne Fehlerdetails.`
 }
 

@@ -1,8 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core'
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnInit, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { QRCodeComponent } from 'angularx-qrcode'
 import { ApiService } from '../../core/api.service'
+import { ConfirmDialogComponent } from '../../core/confirm-dialog'
 import { DeviceStatusService } from '../../core/device-status.service'
+import { formatApiError } from '../../core/error-helper'
 
 interface Device {
   _id: string
@@ -16,7 +18,7 @@ interface Device {
 @Component({
   selector: 'app-device-list',
   standalone: true,
-  imports: [TranslateModule, QRCodeComponent],
+  imports: [TranslateModule, QRCodeComponent, ConfirmDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6 space-y-4 h-full overflow-y-auto">
@@ -38,6 +40,12 @@ interface Device {
         </div>
       </div>
 
+      @if (actionError()) {
+        <div class="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 rounded-lg p-4">
+          <p class="text-red-600 dark:text-red-400 text-sm">{{ actionError() }}</p>
+        </div>
+      }
+
       @if (loading()) {
         <p class="text-slate-400 dark:text-gray-500 text-sm">{{ 'COMMON.LOADING' | translate }}</p>
       } @else if (devices().length === 0) {
@@ -54,6 +62,7 @@ interface Device {
                 <th class="px-3 py-2.5">{{ 'DEVICES.LAST_SEEN' | translate }}</th>
                 <th class="px-3 py-2.5">{{ 'DEVICES.CONNECTION' | translate }}</th>
                 <th class="px-3 py-2.5">{{ 'COMMON.STATUS_ACTIVE' | translate }}</th>
+                <th class="px-3 py-2.5 text-right">{{ 'COMMON.ACTIONS' | translate }}</th>
               </tr>
             </thead>
             <tbody>
@@ -96,6 +105,13 @@ interface Device {
                       <span class="inline-block w-2 h-2 rounded-full bg-slate-300 dark:bg-gray-600"></span>
                     }
                   </td>
+                  <td class="px-3 py-2.5 text-right whitespace-nowrap">
+                    <button type="button" (click)="pendingDelete.set(device)"
+                      class="text-xs px-2.5 py-1 rounded-lg text-red-500 dark:text-red-400
+                             hover:bg-red-50 dark:hover:bg-red-950/30 transition">
+                      {{ 'COMMON.DELETE' | translate }}
+                    </button>
+                  </td>
                 </tr>
               }
             </tbody>
@@ -122,7 +138,21 @@ interface Device {
             } @else if (pairingError()) {
               <p class="text-red-500 text-sm py-10">{{ 'DEVICES.PAIRING_ERROR' | translate }}</p>
             } @else {
-              <div class="text-4xl font-mono font-bold tracking-[0.3em] mb-5">{{ pairingCode() }}</div>
+              <div class="flex items-center justify-center gap-2 mb-5">
+                <span class="text-4xl font-mono font-bold tracking-[0.3em]">{{ pairingCode() }}</span>
+                <button type="button" (click)="copyCode()" [title]="'DEVICES.PAIRING_COPY' | translate"
+                  [class]="codeCopied()
+                    ? 'shrink-0 flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-lg text-green-600 dark:text-green-400 transition'
+                    : 'shrink-0 flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-lg text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-gray-800 transition'">
+                  @if (codeCopied()) {
+                    <span aria-hidden="true">&#10003;</span> {{ 'DEVICES.PAIRING_COPIED' | translate }}
+                  } @else {
+                    <span class="material-symbols-outlined" style="font-size: 18px; line-height: 1" aria-hidden="true">
+                      content_copy
+                    </span>
+                  }
+                </button>
+              </div>
               @if (qrPayload()) {
                 <div class="flex justify-center mb-5">
                   <div class="bg-white p-3 rounded-lg">
@@ -146,15 +176,29 @@ interface Device {
           </div>
         </div>
       }
+
+      @if (pendingDelete(); as device) {
+        <app-confirm-dialog
+          [title]="'DEVICES.DELETE_TITLE' | translate"
+          [message]="'DEVICES.DELETE_CONFIRM' | translate: { device: device.name }"
+          [confirmLabel]="'COMMON.DELETE' | translate"
+          [dismissLabel]="'COMMON.CANCEL' | translate"
+          (confirmed)="confirmDelete()"
+          (dismissed)="pendingDelete.set(null)"
+          (cancelled)="pendingDelete.set(null)" />
+      }
     </div>
   `,
 })
 export class DeviceListComponent implements OnInit {
   private api = inject(ApiService)
+  private cdr = inject(ChangeDetectorRef)
   protected deviceStatus = inject(DeviceStatusService)
 
   protected devices = signal<Device[]>([])
   protected loading = signal(true)
+  protected pendingDelete = signal<Device | null>(null)
+  protected actionError = signal<string | null>(null)
 
   // --- Geräte-Pairing per Kurz-Code (ruft den öffentlichen Edge-Endpoint via JWT) ---
   protected pairingOpen = signal(false)
@@ -162,6 +206,7 @@ export class DeviceListComponent implements OnInit {
   protected pairingError = signal(false)
   protected pairingCode = signal('')
   protected qrPayload = signal('')
+  protected codeCopied = signal(false)
 
   private dateFormatter = new Intl.DateTimeFormat('de-DE', {
     day: '2-digit',
@@ -184,8 +229,20 @@ export class DeviceListComponent implements OnInit {
   }
 
   async ngOnInit() {
-    await Promise.all([this.loadDevices(), this.deviceStatus.refresh()])
+    await this.refreshAll()
     this.loading.set(false)
+  }
+
+  /**
+   * Gemeinsamer Reload-Pfad. `DeviceStatusService` ist providedIn:'root' und
+   * speist Tabelle, Sidebar-Badge (NAV.DEVICE_BADGE) und Dashboard-KPI aus
+   * denselben Signals — ein Refresh deckt also alle drei ab.
+   */
+  private async refreshAll(): Promise<void> {
+    await Promise.all([this.loadDevices(), this.deviceStatus.refresh()])
+    // OnPush + async: loadDevices schluckt Fehler still, dann aendert sich kein
+    // Signal. markForCheck ist die billige Absicherung.
+    this.cdr.markForCheck()
   }
 
   private async loadDevices() {
@@ -195,6 +252,25 @@ export class DeviceListComponent implements OnInit {
     } catch {
       // Recht fehlt / Service nicht erreichbar — leere Liste, Empty-State greift.
     }
+  }
+
+  /**
+   * Loescht das Geraet. Der zugehoerige API-Schluessel wird serverseitig
+   * mitgeloescht (cascade-device-apikeys.hook im api-edge) — der Client muss
+   * dafuer nichts tun.
+   */
+  protected async confirmDelete() {
+    const device = this.pendingDelete()
+    this.pendingDelete.set(null)
+    if (!device) return
+
+    this.actionError.set(null)
+    try {
+      await this.api.remove('devices', device._id)
+    } catch (e: unknown) {
+      this.actionError.set(formatApiError(e))
+    }
+    await this.refreshAll()
   }
 
   protected async openPairing() {
@@ -207,6 +283,21 @@ export class DeviceListComponent implements OnInit {
     this.pairingCode.set('')
     this.qrPayload.set('')
     this.pairingError.set(false)
+    this.codeCopied.set(false)
+    // Waehrend der Dialog offen war, hat sich moeglicherweise ein Geraet
+    // gekoppelt. Ohne diesen Refresh musste die Seite manuell neu geladen werden,
+    // damit das neue Geraet in Tabelle und Menueleiste auftaucht.
+    void this.refreshAll()
+  }
+
+  protected async copyCode() {
+    try {
+      await navigator.clipboard.writeText(this.pairingCode())
+      this.codeCopied.set(true)
+      setTimeout(() => this.codeCopied.set(false), 3000)
+    } catch {
+      // Kein Fehler-Banner fuer einen Komfort-Button — der Code ist markierbar.
+    }
   }
 
   protected regeneratePairing() {
@@ -223,6 +314,7 @@ export class DeviceListComponent implements OnInit {
     this.pairingError.set(false)
     this.pairingCode.set('')
     this.qrPayload.set('')
+    this.codeCopied.set(false)
     try {
       const res = await this.api.create<{ code: string }>('device-pairing/request-code', {})
       this.pairingCode.set(res.code)

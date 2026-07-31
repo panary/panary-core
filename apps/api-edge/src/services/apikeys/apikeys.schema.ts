@@ -89,7 +89,13 @@ export const apikeyPatchResolver = resolve<Apikey, HookContext>({
   validUntil: async () => undefined,
   deviceId: async () => undefined,
   createdBy: async () => undefined,
-  lastUsedAt: async () => undefined,
+  // Nutzungs-Telemetrie: ausschliesslich serverseitig stempelbar. Externe
+  // Aufrufer (Admin-UI, POS) koennen das Feld nicht setzen — sonst liesse sich
+  // eine Key-Nutzung vortaeuschen oder verschleiern (Revocation-Hygiene).
+  // Interne Aufrufer (`provider: undefined`) sind die beiden Auth-Pfade:
+  // WS-Handshake (channels.ts) und Print-Server-Middleware, jeweils ueber
+  // `stampApiKeyLastUsed` in utils/apikey-last-used.ts.
+  lastUsedAt: async (value, _data, context) => (context.params.provider ? undefined : value),
   active: async value => value,
   createdAt: async () => undefined,
   updatedAt: async (): Promise<string> => new Date().toISOString(),

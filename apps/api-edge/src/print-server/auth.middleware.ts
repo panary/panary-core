@@ -3,6 +3,7 @@ import { AppAction, AppResource, PermissionRule, RolePermissions, UserSystemRole
 import type { Application } from '../declarations'
 import { logger } from '@panary/shared-backend'
 import { sha256, timingSafeCompare } from '../utils/crypto.utils'
+import { stampApiKeyLastUsed } from '../utils/apikey-last-used'
 
 /**
  * Koa-Middleware für Authentifizierung auf Print-Server-Endpoints.
@@ -39,6 +40,9 @@ export function printServerAuth(app: Application): Middleware {
           ctx.body = { error: 'Ungültiger oder deaktivierter API-Key' }
           return
         }
+
+        // Nutzung stempeln — gedrosselt, weil dieser Pfad pro HTTP-Request laeuft.
+        stampApiKeyLastUsed(app, keyRecord._id)
 
         // Virtuellen User erstellen (wie allowApiKey-Hook)
         ctx.state.user = {

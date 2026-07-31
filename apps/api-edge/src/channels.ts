@@ -5,6 +5,7 @@ import '@feathersjs/transport-commons'
 import type { Application, HookContext } from './declarations'
 import { logger } from '@panary/shared-backend'
 import { sha256, timingSafeCompare } from './utils/crypto.utils'
+import { stampApiKeyLastUsed } from './utils/apikey-last-used'
 
 /**
  * Stempelt `lastSeen` eines Geräts auf jetzt — Connect-/Disconnect-Tracking für
@@ -90,6 +91,10 @@ export const channels = (app: Application) => {
           // siehe app.on('disconnect') unten). Der device-connections-Service
           // zählt verbundene Geräte live aus der Channel-Registry.
           stampDeviceLastSeen(app, apiKeyRecord.deviceId)
+          // Credential-Nutzung getrennt vom Geraet stempeln: `devices.lastSeen`
+          // beantwortet „wann war das Geraet zuletzt da", `apikeys.lastUsedAt`
+          // „wird dieser Schluessel noch benutzt" (Revocation-Hygiene im Admin).
+          stampApiKeyLastUsed(app, apiKeyRecord._id)
           socket.emit('device:authenticated', { success: true, deviceId: handshakeAuth.deviceId })
         } else {
           logger.warn({

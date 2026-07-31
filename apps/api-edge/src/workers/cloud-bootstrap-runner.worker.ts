@@ -460,8 +460,38 @@ export const reconcileLocationBusinessDay = async (app: Application, tenantId: s
       query: { tenantId, status: 'open' },
     })
     const items = Array.isArray(openDays) ? openDays : ((openDays as { data?: unknown[] })?.data ?? [])
+
+    // Pro Location nur den juengsten offenen Tag als Zeiger setzen. Frueher lief
+    // die Schleife ueber ALLE offenen Tage und patchte den Zeiger je Durchlauf —
+    // bei mehreren offenen Tagen derselben Location gewann eine beliebige Zeile
+    // ("last row wins", Reihenfolge undefiniert). Genau dieser Zeiger-Drift liess
+    // aeltere Tage dauerhaft offen zurueck, weil rotateBusinessDay nur das
+    // Zeiger-Ziel schliesst.
+    const newestPerLocation = new Map<string, { _id: string; locationId: string; date: string }>()
+    const openCountPerLocation = new Map<string, number>()
     for (const day of items as Array<{ _id: string; locationId: string | null; date: string }>) {
       if (!day.locationId) continue
+      openCountPerLocation.set(day.locationId, (openCountPerLocation.get(day.locationId) ?? 0) + 1)
+      const current = newestPerLocation.get(day.locationId)
+      // `date` ist YYYY-MM-DD → lexikografischer Vergleich == chronologisch.
+      if (!current || day.date > current.date) {
+        newestPerLocation.set(day.locationId, { _id: day._id, locationId: day.locationId, date: day.date })
+      }
+    }
+
+    for (const [locationId, count] of openCountPerLocation) {
+      if (count > 1) {
+        logger.warn({
+          message: `Location hat ${count} gleichzeitig offene Geschaeftstage`,
+          event: 'business_day.multiple_open_days',
+          tenantId,
+          locationId,
+          openDayCount: count,
+        })
+      }
+    }
+
+    for (const day of newestPerLocation.values()) {
       try {
         await (app.service('locations' as any) as any).patch(
           day.locationId,
@@ -483,7 +513,8 @@ export const reconcileLocationBusinessDay = async (app: Application, tenantId: s
       message: 'BusinessDay-Reconcile abgeschlossen',
       event: 'sync.bootstrap.business_day_reconcile_done',
       tenantId,
-      reconciledCount: items.length,
+      reconciledCount: newestPerLocation.size,
+      openDayCount: items.length,
     })
   } catch (err) {
     // Fail-open — Reconcile-Fehler darf den Bootstrap nicht knallen lassen.

@@ -96,17 +96,52 @@ export async function hasActiveOrders(app: FeathersApp, businessDayId: string): 
 export async function rotateBusinessDay(app: FeathersApp, location: LocationRecord, today: string): Promise<string> {
   const now = new Date().toISOString()
 
-  // Vorherigen Geschaeftstag schliessen — gleicher Service-Pfad, keine
-  // Knex-Direct-Updates mehr. `isEmergencyOverride: true` ist nur fuer den
-  // Override-Pfad noetig; im Standalone-Modus (kein CONNECTED) waere auch
-  // `provider: undefined` allein ausreichend — fuer Defensive setzen wir
-  // beide Flags konsistent. `status` + `isOpen` + `closedAt` halten das
-  // Backward-Compat-Feld und das neue Status-Feld konsistent.
+  // ALLE offenen Geschaeftstage der Location schliessen — nicht nur den, auf den
+  // `location.currentBusinessDay` gerade zeigt.
+  //
+  // Frueher wurde ausschliesslich das Zeiger-Ziel geschlossen. Driftete der
+  // Zeiger einmal (z.B. durch den frueher nicht-deterministischen
+  // `reconcileLocationBusinessDay`), blieb der alte Tag fuer immer offen: die
+  // naechste Rotation schloss wieder nur das neue Zeiger-Ziel. Ergebnis waren
+  // mehrere gleichzeitig offene Tage pro Filiale, die sich ueber die UI nicht
+  // mehr abschliessen liessen. `openDay()` hat gegen diesen Zustand einen Guard,
+  // `rotateBusinessDay` hatte keinen.
+  //
+  // Gleicher Service-Pfad wie bisher, keine Knex-Direct-Updates.
+  // `isEmergencyOverride: true` ist nur fuer den Override-Pfad noetig; im
+  // Standalone-Modus (kein CONNECTED) waere `provider: undefined` allein
+  // ausreichend — fuer Defensive setzen wir beide Flags konsistent.
+  // `status` + `isOpen` + `closedAt` halten Backward-Compat-Feld und
+  // Status-Feld konsistent.
+  const openDays = (await app.service('businessdays').find({
+    query: { tenantId: location.tenantId, locationId: location._id, status: BusinessDayStatus.OPEN },
+    provider: undefined,
+    paginate: false,
+  })) as Array<{ _id: string }> | { data?: Array<{ _id: string }> }
+  const openDayList = Array.isArray(openDays) ? openDays : (openDays?.data ?? [])
+
+  // Der Zeiger kann auf einen Tag zeigen, den die Query nicht liefert (z.B. weil
+  // sein Status bereits gewechselt hat) — dann bleibt der bisherige Pfad greifen.
+  const idsToClose = new Set(openDayList.map(day => day._id))
   if (location.currentBusinessDay?.businessDayId) {
+    idsToClose.add(location.currentBusinessDay.businessDayId)
+  }
+
+  if (idsToClose.size > 1) {
+    logger.warn({
+      message: `[AutoBusinessDay] Location ${location._id} hatte ${idsToClose.size} offene Geschaeftstage — alle werden geschlossen.`,
+      event: 'business_day.multiple_open_days',
+      tenantId: location.tenantId,
+      locationId: location._id,
+      openDayCount: idsToClose.size,
+    })
+  }
+
+  for (const businessDayId of idsToClose) {
     await app
       .service('businessdays')
       .patch(
-        location.currentBusinessDay.businessDayId,
+        businessDayId,
         { status: BusinessDayStatus.CLOSED, isOpen: false, closedAt: now },
         { provider: undefined, isEmergencyOverride: true },
       )

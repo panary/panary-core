@@ -14,18 +14,18 @@ import { aggregateMealSubsidies } from './meal-subsidies'
  * Berichtszahlen fuer **alle** Tenants ab dem Release — und panary-core hat
  * keinen Staging-Kanal, ein `v*`-Tag rollt binnen einer Stunde aus.
  *
- * Diese Datei nagelt deshalb das Verhalten **vor** dem Umbau fest. Sie ist
- * bewusst als erstes entstanden und muss auf **unveraendertem** Produktionscode
- * gruen sein — ein Anker, der erst nach der Aenderung geschrieben wird, misst
- * nichts.
+ * Die Datei entstand **vor** dem Umbau und war auf unveraendertem
+ * Produktionscode gruen (Commit „Regressions-Anker vor dem Forderungs-Umbau") —
+ * ein Anker, der erst nach der Aenderung geschrieben wird, misst nichts. Der
+ * Diff dieses Commits zeigt damit exakt, welche Zahlen der Umbau bewegt hat.
  *
- * Beim Umbau duerfen sich genau drei Zahlen bewegen: `cashCents`,
- * `receivablesCents` und `displayNetRevenueCents`. Jede andere Abweichung ist
- * ein Fehler, kein erwarteter Effekt — deshalb stehen `grossTotalCents`,
- * `taxes`, `channels`, `dineLocation`, `tipsCents`, `refunds*`, `voids*` und
- * saemtliche `mealSubsidies`-Zahlen hier als harte Assertions.
+ * Bewegt haben sich genau drei: `cashCents`, `receivablesCents` und
+ * `displayNetRevenueCents`. Jede weitere Abweichung waere ein Fehler gewesen,
+ * kein erwarteter Effekt — deshalb stehen `grossTotalCents`, `taxes`,
+ * `channels`, `dineLocation`, `tipsCents`, `refunds*`, `voids*` und saemtliche
+ * `mealSubsidies`-Zahlen hier unveraendert als harte Assertions.
  */
-describe('Golden Numbers — gemischter Geschaeftstag (Stand vor dem Forderungs-Umbau)', () => {
+describe('Golden Numbers — gemischter Geschaeftstag', () => {
   const orders = makeMixedDay()
   const financials = aggregateFinancials(orders)
   const meals = aggregateMealSubsidies(orders)
@@ -80,30 +80,48 @@ describe('Golden Numbers — gemischter Geschaeftstag (Stand vor dem Forderungs-
     })
   })
 
-  describe('bewegt sich durch den Umbau — hier der Ausgangswert', () => {
-    it('Bar-Umsatz enthaelt heute noch die offenen Forderungen', () => {
-      // 78,50 € Bar, davon 13,00 € offene Personalessen und 26,40 € offenes
-      // Firmenkundenessen. Nach dem Umbau muessen 39,40 € nach
-      // `receivablesCents` wandern und `cashCents` auf 3.910 ct fallen.
-      expect(financials.payments.cashCents).toBe(7850)
+  describe('durch den Umbau bewegt — mit Begruendung je Zahl', () => {
+    it('Bar-Umsatz enthaelt die offenen Forderungen nicht mehr', () => {
+      // Vorher 7.850 ct. Davon waren 1.300 ct offene Personalessen und 2.640 ct
+      // offenes Firmenkundenessen — Geld, das nie in der Lade lag, weil der POS
+      // fuer angeschriebene Bons trotzdem eine CASH-Transaktion bucht.
+      expect(financials.payments.cashCents).toBe(3910)
+      expect(financials.payments.receivablesCents).toBe(3940)
     })
 
-    it('Anzeige-Netto', () => {
-      expect(deriveDisplayNetRevenueCents(financials, meals)).toBe(16410)
-      expect(deriveCashCardRevenueCents(financials)).toBe(17710)
+    it('Anzeige-Netto zieht die offenen Essen nicht mehr doppelt ab', () => {
+      // Vorher 16.410 ct = (7.850 + 9.860) − 1.300. Der Abzug war noetig,
+      // solange die offenen Essen in `cashCents` steckten. Jetzt sind sie dort
+      // heraus, und ein zusaetzlicher Abzug waere eine zweite Kuerzung.
+      expect(deriveDisplayNetRevenueCents(financials, meals)).toBe(13770)
+      expect(deriveCashCardRevenueCents(financials)).toBe(13770)
     })
 
-    it('Kassen-Soll', () => {
+    it('Kassen-Soll trifft jetzt den tatsaechlichen Ladeninhalt', () => {
+      // Die Lade enthaelt real 174,10 € (200,00 Wechselgeld + 39,10 Bar
+      // − 50,00 Entnahme − 15,00 Auszahlung).
+      const counted = 17410
       const cash = computeCashReconciliation({
         openingFloatCents: 20000,
         cashSalesCents: financials.payments.cashCents,
         cashDropsCents: 5000,
         payoutsCents: 1500,
-        countedClosingFloatCents: 21350,
+        countedClosingFloatCents: counted,
       })
-      // Soll = 200,00 + 78,50 − 50,00 − 15,00 = 213,50 €; gezaehlt exakt so viel.
-      expect(cash.expectedClosingFloatCents).toBe(21350)
+      expect(cash.expectedClosingFloatCents).toBe(17410)
       expect(cash.varianceCents).toBe(0)
+
+      // Der Bestandsfehler in einer Zeile: mit dem alten Bar-Umsatz (7.850)
+      // haette derselbe, korrekt gezaehlte Ladeninhalt eine Abweichung von
+      // exakt den offenen Forderungen gemeldet.
+      const vorher = computeCashReconciliation({
+        openingFloatCents: 20000,
+        cashSalesCents: 7850,
+        cashDropsCents: 5000,
+        payoutsCents: 1500,
+        countedClosingFloatCents: counted,
+      })
+      expect(vorher.varianceCents).toBe(3940)
     })
   })
 
@@ -116,12 +134,14 @@ describe('Golden Numbers — gemischter Geschaeftstag (Stand vor dem Forderungs-
       expect(sumPayments(financials.payments)).toBe(18550)
     })
 
-    it('offene Essen sind heute vollstaendig im Bar-Umsatz enthalten', () => {
-      // Der Ausgangsbefund in einer Zeile: genau diese 39,40 € sind der Grund,
-      // warum der Kassensturz schon am Leistungstag zu hoch liegt.
+    it('offene Essen sind vollstaendig in den Forderungs-Bucket gewandert', () => {
+      // `cashCents_alt === cashCents_neu + receivablesCents_neu` — der
+      // Erhaltungssatz des Umbaus. Es ist kein Geld entstanden oder
+      // verschwunden, es steht nur woanders.
       const offen = meals.staff.sumUnpaidCents + meals.corporate.sumUnpaidCents
       expect(offen).toBe(3940)
-      expect(financials.payments.cashCents).toBeGreaterThanOrEqual(offen)
+      expect(financials.payments.receivablesCents).toBe(offen)
+      expect(financials.payments.cashCents + (financials.payments.receivablesCents ?? 0)).toBe(7850)
     })
   })
 })

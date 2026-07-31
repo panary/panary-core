@@ -1,13 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  toCents,
-  fromCents,
-  sumCents,
-  multiplyCents,
-  applyTaxRate,
-  netFromGross,
-  taxFromGross,
-} from './money'
+import { toCents, fromCents, sumCents, multiplyCents, applyTaxRate, netFromGross, taxFromGross } from './money'
 
 describe('money', () => {
   describe('toCents', () => {
@@ -20,7 +12,7 @@ describe('money', () => {
       expect(toCents('19.99')).toBe(1999)
     })
     it('rundet kommerziell (half-away-from-zero)', () => {
-      expect(toCents(0.005)).toBe(1)   // 0.5ct → 1ct
+      expect(toCents(0.005)).toBe(1) // 0.5ct → 1ct
       expect(toCents(0.004)).toBe(0)
       expect(toCents(-0.005)).toBe(-0) // signed zero erlaubt
     })
@@ -40,11 +32,11 @@ describe('money', () => {
 
   describe('multiplyCents', () => {
     it('multipliziert Preis × Menge', () => {
-      expect(multiplyCents(500, 3)).toBe(1500)        // 5€ × 3 = 15€
-      expect(multiplyCents(199, 2)).toBe(398)         // 1.99€ × 2 = 3.98€
+      expect(multiplyCents(500, 3)).toBe(1500) // 5€ × 3 = 15€
+      expect(multiplyCents(199, 2)).toBe(398) // 1.99€ × 2 = 3.98€
     })
     it('rundet dezimale Mengen', () => {
-      expect(multiplyCents(1000, 0.333)).toBe(333)    // Gewichtsprodukt
+      expect(multiplyCents(1000, 0.333)).toBe(333) // Gewichtsprodukt
     })
     it('liefert 0 bei nicht-finiten Mengen', () => {
       expect(multiplyCents(100, Number.NaN)).toBe(0)

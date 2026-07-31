@@ -1,11 +1,5 @@
 import { Order } from '@panary/orders/domain'
-import {
-  isStaffMeal,
-  isStaffMealPaid,
-  isCorporateMeal,
-  isCorporateMealPaid,
-  isCancelled,
-} from './classifications'
+import { isStaffMeal, isStaffMealPaid, isCorporateMeal, isCorporateMealPaid, isCancelled } from './classifications'
 import { getOrderGrossCents } from './order-total'
 
 /** Aggregat für Personalessen ODER Firmenkundenessen, je `paid` / `unpaid` geteilt. */

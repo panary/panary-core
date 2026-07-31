@@ -17,11 +17,12 @@ describe('derived-net-revenue', () => {
     //   - 1 Personalessen 5€ unbezahlt (Cash) → cashCents += 500
     //   - 1 Personalessen 3€ bezahlt   (Cash) → cashCents += 300
     //
-    // Legacy-Dashboard: Personalessen sind in dailyNetRevenue ENTHALTEN (nur
-    // Corporate wird ausgefiltert). Display-Netto zieht *nur* das unpaid-Stück ab:
+    // Seit dem Forderungs-Umbau kommt dieselbe Zahl auf anderem Weg zustande:
+    // das offene Personalessen (500) landet gar nicht erst in `cashCents`,
+    // statt hinterher abgezogen zu werden.
     //
-    //   cashCardCents = 2000 + 1500 + 500 + 300 = 4300
-    //   displayNet    = 4300 − 500 (unpaid staff) = 3800
+    //   vorher:  cashCard 4300 (inkl. 500 offen) − 500 = 3800
+    //   jetzt:   cashCard 3800 (ohne die 500)          = 3800
     const orders = [
       makeOrder({ grossAmount: 10, paymentMethod: TransactionMethod.CASH }),
       makeOrder({ grossAmount: 10, paymentMethod: TransactionMethod.CASH }),
@@ -35,10 +36,7 @@ describe('derived-net-revenue', () => {
   })
 
   it('Total = financials.grossTotalCents', () => {
-    const orders = [
-      makeOrder({ grossAmount: 10 }),
-      makeOrder({ grossAmount: 20 }),
-    ]
+    const orders = [makeOrder({ grossAmount: 10 }), makeOrder({ grossAmount: 20 })]
     const financials = aggregateFinancials(orders)
     expect(deriveTotalRevenueCents(financials)).toBe(financials.grossTotalCents)
   })

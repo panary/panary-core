@@ -21,7 +21,9 @@ const ING_FLOUR = '00000000-0000-7000-8000-aaaaaaaaaa01'
 const ING_TOMATO = '00000000-0000-7000-8000-aaaaaaaaaa02'
 const ING_CHEESE = '00000000-0000-7000-8000-aaaaaaaaaa03'
 
-function consumptionLine(partial: Partial<ConsumptionLine> & { ingredientId: string; quantityUsed: number }): ConsumptionLine {
+function consumptionLine(
+  partial: Partial<ConsumptionLine> & { ingredientId: string; quantityUsed: number },
+): ConsumptionLine {
   return {
     ingredientName: 'Zutat',
     unit: 'kg',
@@ -45,7 +47,9 @@ describe('buildInventorySnapshot — Bestand-Snapshot-Mathematik', () => {
   it('(a) nur Verbrauch: calculatedClosing = −consumption, kein Waste, kein Stock', () => {
     const snap = buildInventorySnapshot(
       makeInput({
-        consumption: [consumptionLine({ ingredientId: ING_FLOUR, quantityUsed: 3, ingredientName: 'Mehl', unit: 'kg' })],
+        consumption: [
+          consumptionLine({ ingredientId: ING_FLOUR, quantityUsed: 3, ingredientName: 'Mehl', unit: 'kg' }),
+        ],
       }),
     )
     expect(snap.lines).toHaveLength(1)

@@ -155,13 +155,34 @@ export function explodeOrderConsumption(
     // Umstieg auf components[] erfolgt erst beim Sunset der Legacy-Slots.
     accumulateLineItem(item, item.amount, dineLocation, usage, recipeIngredients, unresolved)
     for (const mod of item.modifiers ?? []) {
-      accumulateLineItem(mod as OrderLineItem, item.amount * mod.amount, dineLocation, usage, recipeIngredients, unresolved)
+      accumulateLineItem(
+        mod as OrderLineItem,
+        item.amount * mod.amount,
+        dineLocation,
+        usage,
+        recipeIngredients,
+        unresolved,
+      )
     }
     if (item.menuDrink) {
-      accumulateLineItem(item.menuDrink as OrderLineItem, item.amount * item.menuDrink.amount, dineLocation, usage, recipeIngredients, unresolved)
+      accumulateLineItem(
+        item.menuDrink as OrderLineItem,
+        item.amount * item.menuDrink.amount,
+        dineLocation,
+        usage,
+        recipeIngredients,
+        unresolved,
+      )
     }
     if (item.menuSideDish) {
-      accumulateLineItem(item.menuSideDish as OrderLineItem, item.amount * item.menuSideDish.amount, dineLocation, usage, recipeIngredients, unresolved)
+      accumulateLineItem(
+        item.menuSideDish as OrderLineItem,
+        item.amount * item.menuSideDish.amount,
+        dineLocation,
+        usage,
+        recipeIngredients,
+        unresolved,
+      )
     }
   }
 
@@ -243,9 +264,7 @@ export function computeCogs(
 }
 
 function accumulateLineItem(
-  item:
-    | OrderLineItem
-    | { ingredientReferences?: unknown; recipeReferences?: unknown; amount?: number },
+  item: OrderLineItem | { ingredientReferences?: unknown; recipeReferences?: unknown; amount?: number },
   effectiveAmount: number,
   dineLocation: string | undefined,
   ingredientUsage: Map<string, ConsumptionLine>,

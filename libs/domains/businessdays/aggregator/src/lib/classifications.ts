@@ -50,3 +50,51 @@ export function isStaffMealPaid(order: Order): boolean {
 export function isCorporateMealPaid(order: Order): boolean {
   return isCorporateMeal(order) && order.customerPaymentInfo?.isPaid === true
 }
+
+/**
+ * Sicht auf den Abrechnungsstand, die der Aufrufer mitgibt.
+ *
+ * Die Abrechnung lebt als eigenes Dokument in der Cloud (`meal-settlements`);
+ * die Order selbst wird nie gepatcht (ADR 0001 §3 + 90-Tage-Backfill des
+ * Edge-Bootstraps). Der Aggregator kann den Stand also nicht aus der Order
+ * lesen — er bekommt ihn hereingereicht.
+ */
+export interface SettlementView {
+  /** IDs der Bestellungen, die durch einen gueltigen Beleg abgerechnet sind. */
+  settledOrderIds: ReadonlySet<string>
+}
+
+export interface OrderAggregationOptions {
+  settlements?: SettlementView
+}
+
+/**
+ * Ist dieses Essen abgerechnet?
+ *
+ * **Ohne View** gilt das heutige Boolean-Verhalten (`isPaid === true`) — so
+ * bleiben Bestandsberichte und Aufrufer ohne Settlement-Daten unveraendert.
+ *
+ * **Mit leerer View** heisst es „Information liegt vor, nichts ist abgerechnet"
+ * — ein anderer Zustand als „keine Information". Beide bleiben unterscheidbar,
+ * damit ein vergessener Parameter nie stillschweigend alles auf „offen" kippt.
+ *
+ * Das Legacy-Feld schlaegt die View: ein historisch auf `true` gesetztes
+ * `isPaid` bleibt abgerechnet, auch wenn es dafuer keinen Beleg gibt.
+ */
+export function isMealSettled(order: Order, view?: SettlementView): boolean {
+  if (isStaffMealPaid(order) || isCorporateMealPaid(order)) return true
+  if (!view) return false
+  return view.settledOrderIds.has(order._id)
+}
+
+/**
+ * Offene Forderung = angeschriebenes Essen ohne Abrechnung.
+ *
+ * Genau diese Bestellungen duerfen nicht als Bareinnahme gelten: der POS bucht
+ * fuer sie zwar eine CASH-Transaktion, aber es liegt kein Geld in der Lade.
+ */
+export function isOpenReceivable(order: Order, view?: SettlementView): boolean {
+  if (!isStaffMeal(order) && !isCorporateMeal(order)) return false
+  if (isCancelled(order) || isRefunded(order)) return false
+  return !isMealSettled(order, view)
+}

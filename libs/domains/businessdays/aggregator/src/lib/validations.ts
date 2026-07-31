@@ -5,10 +5,7 @@ import { FinancialsAggregate, sumChannels, sumPayments } from './financials'
 const TAX_ROUNDING_TOLERANCE_PER_RATE_CENTS = 1
 
 export interface ValidationError {
-  code:
-    | 'financials.tax_split_mismatch'
-    | 'financials.payments_mismatch'
-    | 'financials.channels_mismatch'
+  code: 'financials.tax_split_mismatch' | 'financials.payments_mismatch' | 'financials.channels_mismatch'
   message: string
   expectedCents: number
   actualCents: number

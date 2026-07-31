@@ -31,9 +31,7 @@ describe('meal-subsidies', () => {
   })
 
   it('schließt Stornos aus', () => {
-    const orders = [
-      makeOrder({ grossAmount: 5, staffPaymentInfo: { paid: false }, status: OrderStatus.ABORTED }),
-    ]
+    const orders = [makeOrder({ grossAmount: 5, staffPaymentInfo: { paid: false }, status: OrderStatus.ABORTED })]
     const r = aggregateMealSubsidies(orders)
     expect(r.staff.countUnpaid).toBe(0)
   })

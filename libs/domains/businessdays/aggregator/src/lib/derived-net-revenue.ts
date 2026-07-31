@@ -1,29 +1,54 @@
-import { FinancialsAggregate } from './financials'
+import { FinancialsAggregate, sumPayments } from './financials'
 import { MealSubsidiesAggregate } from './meal-subsidies'
 
 /**
- * Reproduziert die "Tagesumsatz netto"-Anzeige des Dashboards exakt.
+ * Betriebsmodus des Standorts. Bewusst als lokale String-Union deklariert statt
+ * aus `@panary/locations/domain` importiert: der Import zoege einen
+ * `external`-Eintrag plus Peer-Dependency nach sich, nur um zwei Literale zu
+ * kennen.
+ */
+export type AggregationOperationMode = 'pos-cashier' | 'orders-only' | string
+
+export interface DisplayNetRevenueOptions {
+  operationMode?: AggregationOperationMode
+}
+
+/**
+ * Reproduziert die "Tagesumsatz netto"-Anzeige des Dashboards.
  *
- * Legacy-Formel (`business-day-info.component.ts:110` in panary-cloud):
- *   netRevenue = dailyNetRevenue − staffMeals.sumUnpaid
+ * Drei Zweige, und die Reihenfolge ist die Aussage:
  *
- * Übersetzt auf neue Datenstruktur:
- *   dailyNetRevenue = Cash- + Card-Umsatz aus regulären Verkäufen
- *                   = financials.payments.cashCents + .cardCents
- *                     (Corporate landet nicht in cash/card,
- *                      Refunds/Stornos sind aus financials ausgeschlossen)
+ * 1. **`receivablesCents` fehlt** — ein Bericht aus der Zeit vor dem
+ *    Forderungs-Bucket. Dann gilt die alte Formel unveraendert
+ *    (`cash + card − offene Personalessen`), sonst aendern sich rueckwirkend
+ *    Zahlen in bereits abgeschlossenen Berichten.
  *
- * Wichtig: Diese Funktion bildet die *Anzeige-Sicht* ab. Sie ist NICHT
- * identisch zum fiskalen Brutto-Netto-Split (`financials.netTotalCents`),
- * sondern beantwortet die Frage "Wieviel Geld liegt nach dem Tag in der
- * Kasse?" abzüglich noch offener Personalessen-Subventionen.
+ * 2. **`orders-only`** — in diesem Modus gibt es keinen Kassierpfad, `cash` und
+ *    `card` sind fuer einen Tag mit Umsatz beide 0. `cash + card` waere hier
+ *    also schlicht falsch; richtig ist alles Vereinnahmte abzueglich der
+ *    offenen Forderungen.
+ *
+ * 3. **sonst** — `cash + card`. Der Abzug der offenen Personalessen entfaellt
+ *    hier bewusst: sie stecken seit dem Forderungs-Umbau gar nicht mehr in
+ *    `cashCents`. Ihn beizubehalten wuerde sie ein zweites Mal abziehen.
  */
 export function deriveDisplayNetRevenueCents(
   financials: FinancialsAggregate,
   meals: MealSubsidiesAggregate,
+  options?: DisplayNetRevenueOptions,
 ): number {
-  const cashCardCents = financials.payments.cashCents + financials.payments.cardCents
-  return cashCardCents - meals.staff.sumUnpaidCents
+  const receivables = financials.payments.receivablesCents
+
+  if (receivables === undefined) {
+    const cashCardCents = financials.payments.cashCents + financials.payments.cardCents
+    return cashCardCents - meals.staff.sumUnpaidCents
+  }
+
+  if (options?.operationMode === 'orders-only') {
+    return sumPayments(financials.payments) - receivables
+  }
+
+  return financials.payments.cashCents + financials.payments.cardCents
 }
 
 /**
@@ -39,6 +64,7 @@ export function deriveTotalRevenueCents(financials: FinancialsAggregate): number
 /**
  * "Tagesumsatz Cash/Card" — schließt Corporate-Bestellungen aus.
  * Identisch zur Dashboard-Formel `dailyNetRevenue` (vor Personalessen-Abzug).
+ * Seit dem Forderungs-Umbau sind offene Essen hier ohnehin nicht mehr drin.
  */
 export function deriveCashCardRevenueCents(financials: FinancialsAggregate): number {
   return financials.payments.cashCents + financials.payments.cardCents

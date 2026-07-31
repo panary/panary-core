@@ -7,11 +7,7 @@ describe('financials', () => {
   beforeEach(() => resetIds())
 
   it('summiert grossTotal über reguläre Bestellungen', () => {
-    const orders = [
-      makeOrder({ grossAmount: 10 }),
-      makeOrder({ grossAmount: 5.5 }),
-      makeOrder({ grossAmount: 0.99 }),
-    ]
+    const orders = [makeOrder({ grossAmount: 10 }), makeOrder({ grossAmount: 5.5 }), makeOrder({ grossAmount: 0.99 })]
     const r = aggregateFinancials(orders)
     expect(r.grossTotalCents).toBe(1000 + 550 + 99)
   })
@@ -43,7 +39,7 @@ describe('financials', () => {
     expect(r.taxes[0].grossAmountCents).toBe(1070)
     expect(r.taxes[0].taxAmountCents).toBe(70)
     expect(r.taxes[1].rate).toBe(19)
-    expect(r.taxes[1].grossAmountCents).toBe(2380)   // 2× 11.90€
+    expect(r.taxes[1].grossAmountCents).toBe(2380) // 2× 11.90€
     expect(r.taxes[1].taxAmountCents).toBe(380)
   })
 

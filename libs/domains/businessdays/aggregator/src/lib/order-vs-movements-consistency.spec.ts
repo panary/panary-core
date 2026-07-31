@@ -1,11 +1,7 @@
 import { describe, it, expect } from 'vitest'
 
 import type { Order } from '@panary/orders/domain'
-import {
-  computeCogs,
-  type IngredientPricingMap,
-  type RecipeIngredientMap,
-} from './cogs'
+import { computeCogs, type IngredientPricingMap, type RecipeIngredientMap } from './cogs'
 import { makeOrder, resetIds } from './fixtures/orders.fixtures'
 
 /**
@@ -107,10 +103,7 @@ describe('Konsistenz: Hook-Buchung ≡ Snapshot-Berechnung', () => {
     for (const order of orders) {
       const cogs = computeCogs([order], pricing, recipes)
       for (const line of cogs.consumptionLines) {
-        perOrderSum.set(
-          line.ingredientId,
-          (perOrderSum.get(line.ingredientId) ?? 0) + line.quantityUsed,
-        )
+        perOrderSum.set(line.ingredientId, (perOrderSum.get(line.ingredientId) ?? 0) + line.quantityUsed)
       }
     }
 

@@ -1,11 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import {
-  DineLocation,
-  OrderChannel,
-  OrderStatus,
-  PaymentState,
-  TransactionMethod,
-} from '@panary/orders/domain'
+import { DineLocation, OrderChannel, OrderStatus, PaymentState, TransactionMethod } from '@panary/orders/domain'
 
 import { aggregateFinancials } from './financials'
 import { aggregateMealSubsidies } from './meal-subsidies'
@@ -44,25 +38,26 @@ const makeWriteOff = (opts: {
   totalCost: number
   reason: WriteOff['reason']
   wasteType?: WriteOff['wasteType']
-}): WriteOff => ({
-  _id: `wo-${opts.itemId}-${Math.random()}`,
-  tenantId: 't1',
-  locationId: 'l1',
-  createdAt: '2026-05-15T11:00:00.000Z',
-  updatedAt: '2026-05-15T11:00:00.000Z',
-  businessDayId: 'bd1',
-  itemType: WriteOffItemType.INGREDIENT,
-  itemId: opts.itemId,
-  itemName: opts.itemId,
-  itemVersion: 1,
-  quantity: opts.quantity,
-  unit: 'kg',
-  costPerUnit: opts.totalCost / opts.quantity,
-  totalCost: opts.totalCost,
-  reason: opts.reason,
-  wasteType: opts.wasteType,
-  userId: 'u1',
-} as WriteOff)
+}): WriteOff =>
+  ({
+    _id: `wo-${opts.itemId}-${Math.random()}`,
+    tenantId: 't1',
+    locationId: 'l1',
+    createdAt: '2026-05-15T11:00:00.000Z',
+    updatedAt: '2026-05-15T11:00:00.000Z',
+    businessDayId: 'bd1',
+    itemType: WriteOffItemType.INGREDIENT,
+    itemId: opts.itemId,
+    itemName: opts.itemId,
+    itemVersion: 1,
+    quantity: opts.quantity,
+    unit: 'kg',
+    costPerUnit: opts.totalCost / opts.quantity,
+    totalCost: opts.totalCost,
+    reason: opts.reason,
+    wasteType: opts.wasteType,
+    userId: 'u1',
+  }) as WriteOff
 
 describe('Konsistenz: Dashboard ≡ Tagesabschluss-Report', () => {
   beforeEach(() => resetIds())
@@ -73,14 +68,49 @@ describe('Konsistenz: Dashboard ≡ Tagesabschluss-Report', () => {
   const buildMixedDay = () => ({
     orders: [
       // 3× reguläre Cash-Verkäufe mit 19% (Take-Out, Standard)
-      makeOrder({ grossAmount: 11.9, paymentMethod: TransactionMethod.CASH, channel: OrderChannel.POS, dineLocation: DineLocation.TAKE_OUT, taxes: [{ rate: 19, gross: 11.9, tax: 1.9 }] }),
-      makeOrder({ grossAmount: 23.8, paymentMethod: TransactionMethod.CASH, channel: OrderChannel.POS, dineLocation: DineLocation.TAKE_OUT, taxes: [{ rate: 19, gross: 23.8, tax: 3.8 }] }),
-      makeOrder({ grossAmount: 5.95, paymentMethod: TransactionMethod.CASH, channel: OrderChannel.POS, dineLocation: DineLocation.TAKE_OUT, taxes: [{ rate: 19, gross: 5.95, tax: 0.95 }] }),
+      makeOrder({
+        grossAmount: 11.9,
+        paymentMethod: TransactionMethod.CASH,
+        channel: OrderChannel.POS,
+        dineLocation: DineLocation.TAKE_OUT,
+        taxes: [{ rate: 19, gross: 11.9, tax: 1.9 }],
+      }),
+      makeOrder({
+        grossAmount: 23.8,
+        paymentMethod: TransactionMethod.CASH,
+        channel: OrderChannel.POS,
+        dineLocation: DineLocation.TAKE_OUT,
+        taxes: [{ rate: 19, gross: 23.8, tax: 3.8 }],
+      }),
+      makeOrder({
+        grossAmount: 5.95,
+        paymentMethod: TransactionMethod.CASH,
+        channel: OrderChannel.POS,
+        dineLocation: DineLocation.TAKE_OUT,
+        taxes: [{ rate: 19, gross: 5.95, tax: 0.95 }],
+      }),
       // 2× reguläre Card-Verkäufe mit 7% (Dine-In, Restaurant)
-      makeOrder({ grossAmount: 10.7, paymentMethod: TransactionMethod.CARD, channel: OrderChannel.POS, dineLocation: DineLocation.DINE_IN, taxes: [{ rate: 7, gross: 10.7, tax: 0.7 }] }),
-      makeOrder({ grossAmount: 21.4, paymentMethod: TransactionMethod.CARD, channel: OrderChannel.POS, dineLocation: DineLocation.DINE_IN, taxes: [{ rate: 7, gross: 21.4, tax: 1.4 }] }),
+      makeOrder({
+        grossAmount: 10.7,
+        paymentMethod: TransactionMethod.CARD,
+        channel: OrderChannel.POS,
+        dineLocation: DineLocation.DINE_IN,
+        taxes: [{ rate: 7, gross: 10.7, tax: 0.7 }],
+      }),
+      makeOrder({
+        grossAmount: 21.4,
+        paymentMethod: TransactionMethod.CARD,
+        channel: OrderChannel.POS,
+        dineLocation: DineLocation.DINE_IN,
+        taxes: [{ rate: 7, gross: 21.4, tax: 1.4 }],
+      }),
       // 1× Online-Bestellung
-      makeOrder({ grossAmount: 15.0, paymentMethod: TransactionMethod.ONLINE, channel: OrderChannel.ONLINE, taxes: [{ rate: 19, gross: 15.0, tax: 2.39 }] }),
+      makeOrder({
+        grossAmount: 15.0,
+        paymentMethod: TransactionMethod.ONLINE,
+        channel: OrderChannel.ONLINE,
+        taxes: [{ rate: 19, gross: 15.0, tax: 2.39 }],
+      }),
       // 1× Personalessen unbezahlt (Cash)
       makeOrder({ grossAmount: 5.0, staffPaymentInfo: { paid: false }, paymentMethod: TransactionMethod.CASH }),
       // 1× Personalessen bezahlt (Cash)
@@ -95,8 +125,20 @@ describe('Konsistenz: Dashboard ≡ Tagesabschluss-Report', () => {
       makeOrder({ grossAmount: 12.5, paymentState: PaymentState.REFUNDED }),
     ],
     writeOffs: [
-      makeWriteOff({ itemId: 'ing-mehl', quantity: 0.5, totalCost: 1.20, reason: WriteOffReason.WASTE, wasteType: WasteType.RAW }),
-      makeWriteOff({ itemId: 'ing-toma', quantity: 0.3, totalCost: 0.90, reason: WriteOffReason.WASTE, wasteType: WasteType.FINISHED }),
+      makeWriteOff({
+        itemId: 'ing-mehl',
+        quantity: 0.5,
+        totalCost: 1.2,
+        reason: WriteOffReason.WASTE,
+        wasteType: WasteType.RAW,
+      }),
+      makeWriteOff({
+        itemId: 'ing-toma',
+        quantity: 0.3,
+        totalCost: 0.9,
+        reason: WriteOffReason.WASTE,
+        wasteType: WasteType.FINISHED,
+      }),
       makeWriteOff({ itemId: 'ing-mehl', quantity: 0.1, totalCost: 0.24, reason: WriteOffReason.EMPLOYEE_MEAL }),
     ],
   })
@@ -159,7 +201,13 @@ describe('Konsistenz: Dashboard ≡ Tagesabschluss-Report', () => {
       taxes: financials.taxes,
       mealSubsidies,
       cancellations,
-      wasteCents: { raw: waste.rawCents, finished: waste.finishedCents, employeeMeals: waste.employeeMealsCents, promotions: waste.promotionsCents, total: waste.totalCents },
+      wasteCents: {
+        raw: waste.rawCents,
+        finished: waste.finishedCents,
+        employeeMeals: waste.employeeMealsCents,
+        promotions: waste.promotionsCents,
+        total: waste.totalCents,
+      },
       displayNetRevenueCents: deriveDisplayNetRevenueCents(financials, mealSubsidies),
     }
 

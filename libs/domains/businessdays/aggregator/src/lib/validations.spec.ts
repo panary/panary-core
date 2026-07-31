@@ -7,8 +7,16 @@ import { makeOrder } from './fixtures/orders.fixtures'
 describe('validations', () => {
   it('Sauberer Datensatz produziert keine Errors', () => {
     const orders = [
-      makeOrder({ grossAmount: 11.9, taxes: [{ rate: 19, gross: 11.9, tax: 1.9 }], paymentMethod: TransactionMethod.CASH }),
-      makeOrder({ grossAmount: 10.7, taxes: [{ rate: 7, gross: 10.7, tax: 0.7 }], paymentMethod: TransactionMethod.CARD }),
+      makeOrder({
+        grossAmount: 11.9,
+        taxes: [{ rate: 19, gross: 11.9, tax: 1.9 }],
+        paymentMethod: TransactionMethod.CASH,
+      }),
+      makeOrder({
+        grossAmount: 10.7,
+        taxes: [{ rate: 7, gross: 10.7, tax: 0.7 }],
+        paymentMethod: TransactionMethod.CARD,
+      }),
     ]
     const financials = aggregateFinancials(orders)
     const result = validateFinancials(financials)
@@ -17,9 +25,7 @@ describe('validations', () => {
   })
 
   it('Erkennt manuell injizierte Inkonsistenz im Channel-Split', () => {
-    const orders = [
-      makeOrder({ grossAmount: 10 }),
-    ]
+    const orders = [makeOrder({ grossAmount: 10 })]
     const financials = aggregateFinancials(orders)
     // Manipulation
     const corrupted = { ...financials, channels: { ...financials.channels, posCents: 9999 } }
@@ -29,9 +35,7 @@ describe('validations', () => {
   })
 
   it('Erkennt manipulierte Payment-Summe', () => {
-    const orders = [
-      makeOrder({ grossAmount: 10, paymentMethod: TransactionMethod.CASH }),
-    ]
+    const orders = [makeOrder({ grossAmount: 10, paymentMethod: TransactionMethod.CASH })]
     const financials = aggregateFinancials(orders)
     const corrupted = { ...financials, payments: { ...financials.payments, cashCents: 1500 } }
     const result = validateFinancials(corrupted)

@@ -1,7 +1,8 @@
 {
   "BUSINESS_DAYS": {
     "TITLE": "Business Days",
-    "SUBTITLE": "Synced from the cloud (read-only).",
+    "SUBTITLE_CLOUD": "Synced from the cloud (read-only).",
+    "SUBTITLE_STANDALONE": "Managed locally on this edge.",
     "NONE": "No business days yet.",
     "DATE": "Date",
     "MODE": "Mode",
@@ -15,7 +16,14 @@
     "ST_CLOSING_AGGREGATING": "Aggregating",
     "ST_CLOSED": "Closed",
     "ST_FAILED": "Failed",
-    "ST_AUDITED": "Audited"
+    "ST_AUDITED": "Audited",
+    "STALE_OPEN": "Stale",
+    "STALE_OPEN_HINT": "An older open day for the same location — likely an aborted day close.",
+    "STALE_BANNER_TITLE": "{{count}} stale open business days",
+    "STALE_BANNER_BODY": "Only one day may be open per location. Older open days result from aborted closes or sync conflicts.",
+    "DISCARD_ACTION": "Discard",
+    "DISCARD_TITLE": "Discard stale business day",
+    "DISCARD_CONFIRM": "The business day of {{date}} will be removed permanently. This is only possible while it contains no orders, receipts or cash sessions."
   },
   "ENTITY": {
     "DOCUMENT": "Document",
@@ -109,7 +117,8 @@
     "EMERGENCY_END": "End emergency mode",
     "EMERGENCY_START": "Activate emergency mode",
     "SAVE_BLOCKED": "Change not saved — this data is managed in the cloud.",
-    "EMERGENCY_END_CONFIRM": "After this the edge no longer accepts local printer changes. Changes already made stay active and are reconciled on the next cloud contact."
+    "EMERGENCY_END_CONFIRM": "After this the edge no longer accepts local printer changes. Changes already made stay active and are reconciled on the next cloud contact.",
+    "SUBLINE_BUSINESS_DAYS": "Business days are opened and closed centrally."
   },
   "CLOUD_STATUS": {
     "SYNC_AGE_MIN": "Last cloud sync {{minutes}} min ago",
@@ -166,7 +175,8 @@
     "STATUS_ARCHIVED": "Archived",
     "FILTER_BY_STATUS": "Filter by status",
     "FILTER_BY_TYPE": "Filter by product type",
-    "CONFIRM": "Confirm"
+    "CONFIRM": "Confirm",
+    "ACTIONS": "Actions"
   },
   "ROLES": {
     "PLATFORM_OWNER": "Platform Admin",
@@ -230,7 +240,12 @@
     "PAIRING_EXPIRES": "The code is valid for a few minutes only.",
     "PAIRING_GENERATING": "Generating code…",
     "PAIRING_REGENERATE": "Generate new code",
-    "PAIRING_ERROR": "Could not generate code."
+    "PAIRING_ERROR": "Could not generate code.",
+    "DELETE_TITLE": "Delete device",
+    "DELETE_CONFIRM": "Device \"{{device}}\" will be deleted. Its API key is removed as well — the device must be paired again afterwards.",
+    "PAIRING_COPY": "Copy code",
+    "PAIRING_COPIED": "Copied",
+    "ACTION_ERROR": "Action failed."
   },
   "USERS": {
     "TITLE": "Users",
@@ -294,7 +309,8 @@
     "NO_OPTIONS": "No options \u2014 click \u201c+ Option\u201d",
     "TYPE_PRODUCT": "Product",
     "TYPE_MODIFIER": "Modifier",
-    "TYPE_BUNDLE": "Menu"
+    "TYPE_BUNDLE": "Menu",
+    "NO_OPTION_GROUPS": "No option groups"
   },
   "PRODUCT_GROUPS": {
     "TITLE": "Product Groups",
@@ -371,11 +387,19 @@
     "ACTIVATE": "Activate",
     "DEACTIVATE": "Deactivate",
     "DELETE_KEY": "Delete API Key",
-    "DELETE_CONFIRM": "Are you sure? Devices using this key will lose access. This action cannot be undone.",
+    "DELETE_CONFIRM": "This action cannot be undone.",
     "DELETE_PERMANENTLY": "Delete permanently",
     "CREATED_AT": "Created at",
     "CREATED_BY": "Created by",
-    "DEVICE_ID": "Device ID"
+    "DEVICE_ID": "Device ID",
+    "DEVICE": "Device",
+    "DEVICE_ORPHANED": "Orphaned",
+    "DEVICE_ORPHANED_HINT": "The linked device no longer exists. This key has no effect.",
+    "DEVICE_UNKNOWN_HINT": "Device data unavailable (missing permission or edge unreachable).",
+    "ORPHAN_TITLE": "Linked device no longer exists",
+    "ORPHAN_MESSAGE": "This API key points to a deleted device and can no longer be used. Delete it now?",
+    "ORPHAN_KEEP": "Keep",
+    "DELETE_DEVICE_WARNING": "Device \"{{device}}\" will immediately lose access to the system."
   },
   "CLOUD": {
     "TITLE": "Cloud Connection",

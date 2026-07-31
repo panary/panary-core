@@ -1,7 +1,8 @@
 {
   "BUSINESS_DAYS": {
     "TITLE": "İş Günleri",
-    "SUBTITLE": "Buluttan senkronize edildi (salt okunur).",
+    "SUBTITLE_CLOUD": "Buluttan senkronize edildi (salt okunur).",
+    "SUBTITLE_STANDALONE": "Bu edge üzerinde yerel olarak yönetiliyor.",
     "NONE": "Henüz iş günü yok.",
     "DATE": "Tarih",
     "MODE": "Mod",
@@ -15,7 +16,14 @@
     "ST_CLOSING_AGGREGATING": "Toplanıyor",
     "ST_CLOSED": "Kapandı",
     "ST_FAILED": "Başarısız",
-    "ST_AUDITED": "Onaylandı"
+    "ST_AUDITED": "Onaylandı",
+    "STALE_OPEN": "Sahipsiz",
+    "STALE_OPEN_HINT": "Aynı şubeye ait daha eski bir açık gün — muhtemelen yarım kalan gün kapanışı.",
+    "STALE_BANNER_TITLE": "{{count}} sahipsiz açık iş günü",
+    "STALE_BANNER_BODY": "Şube başına yalnızca bir gün açık olabilir. Daha eski açık günler yarım kalan kapanışlardan veya senkronizasyon çakışmalarından kaynaklanır.",
+    "DISCARD_ACTION": "Sil",
+    "DISCARD_TITLE": "Sahipsiz iş gününü sil",
+    "DISCARD_CONFIRM": "{{date}} tarihli iş günü kalıcı olarak kaldırılacak. Bu yalnızca sipariş, fiş veya kasa oturumu içermediği sürece mümkündür."
   },
   "ENTITY": {
     "DOCUMENT": "Belge",
@@ -109,7 +117,8 @@
     "EMERGENCY_END": "Acil durum modunu sonlandır",
     "EMERGENCY_START": "Acil durum modunu etkinleştir",
     "SAVE_BLOCKED": "Değişiklik kaydedilmedi — bu veriler bulutta yönetiliyor.",
-    "EMERGENCY_END_CONFIRM": "Bundan sonra uç birim yerel yazıcı değişikliklerini kabul etmez. Yapılmış değişiklikler etkin kalır ve bir sonraki bulut temasında eşitlenir."
+    "EMERGENCY_END_CONFIRM": "Bundan sonra uç birim yerel yazıcı değişikliklerini kabul etmez. Yapılmış değişiklikler etkin kalır ve bir sonraki bulut temasında eşitlenir.",
+    "SUBLINE_BUSINESS_DAYS": "İş günleri merkezi olarak açılır ve kapatılır."
   },
   "CLOUD_STATUS": {
     "SYNC_AGE_MIN": "Son bulut senkronizasyonu {{minutes}} dk önce",
@@ -166,7 +175,8 @@
     "STATUS_ARCHIVED": "Ar\u015fivlendi",
     "FILTER_BY_STATUS": "Duruma g\u00f6re filtrele",
     "FILTER_BY_TYPE": "\u00dcr\u00fcn t\u00fcr\u00fcne g\u00f6re filtrele",
-    "CONFIRM": "Onayla"
+    "CONFIRM": "Onayla",
+    "ACTIONS": "İşlemler"
   },
   "ROLES": {
     "PLATFORM_OWNER": "Platform Y\u00f6neticisi",
@@ -230,7 +240,12 @@
     "PAIRING_EXPIRES": "Kod yalnızca birkaç dakika geçerlidir.",
     "PAIRING_GENERATING": "Kod oluşturuluyor…",
     "PAIRING_REGENERATE": "Yeni kod oluştur",
-    "PAIRING_ERROR": "Kod oluşturulamadı."
+    "PAIRING_ERROR": "Kod oluşturulamadı.",
+    "DELETE_TITLE": "Cihazı sil",
+    "DELETE_CONFIRM": "\"{{device}}\" cihazı silinecek. İlgili API anahtarı da kaldırılır — cihazın sonrasında yeniden eşleştirilmesi gerekir.",
+    "PAIRING_COPY": "Kodu kopyala",
+    "PAIRING_COPIED": "Kopyalandı",
+    "ACTION_ERROR": "İşlem başarısız oldu."
   },
   "USERS": {
     "TITLE": "Kullan\u0131c\u0131lar",
@@ -294,7 +309,8 @@
     "NO_OPTIONS": "Se\u00e7enek yok \u2014 \u201c+ Se\u00e7enek\u201d t\u0131klay\u0131n",
     "TYPE_PRODUCT": "\u00dcr\u00fcn",
     "TYPE_MODIFIER": "Ek se\u00e7enek",
-    "TYPE_BUNDLE": "Men\u00fc"
+    "TYPE_BUNDLE": "Men\u00fc",
+    "NO_OPTION_GROUPS": "Seçenek grubu yok"
   },
   "PRODUCT_GROUPS": {
     "TITLE": "\u00dcr\u00fcn Gruplar\u0131",
@@ -371,11 +387,19 @@
     "ACTIVATE": "Etkinle\u015ftir",
     "DEACTIVATE": "Devre d\u0131\u015f\u0131 b\u0131rak",
     "DELETE_KEY": "API Anahtar\u0131n\u0131 Sil",
-    "DELETE_CONFIRM": "Emin misiniz? Bu anahtar\u0131 kullanan cihazlar eri\u015fimi kaybedecek. Bu i\u015flem geri al\u0131namaz.",
+    "DELETE_CONFIRM": "Bu i\u015flem geri al\u0131namaz.",
     "DELETE_PERMANENTLY": "Kal\u0131c\u0131 olarak sil",
     "CREATED_AT": "Olu\u015fturulma tarihi",
     "CREATED_BY": "Olu\u015fturan",
-    "DEVICE_ID": "Cihaz Kimli\u011fi"
+    "DEVICE_ID": "Cihaz Kimli\u011fi",
+    "DEVICE": "Cihaz",
+    "DEVICE_ORPHANED": "Sahipsiz",
+    "DEVICE_ORPHANED_HINT": "İlişkili cihaz artık mevcut değil. Bu anahtar işlevsiz.",
+    "DEVICE_UNKNOWN_HINT": "Cihaz verileri alınamıyor (yetki eksik veya edge erişilemiyor).",
+    "ORPHAN_TITLE": "İlişkili cihaz artık mevcut değil",
+    "ORPHAN_MESSAGE": "Bu API anahtarı silinmiş bir cihazı işaret ediyor ve artık kullanılamaz. Şimdi silinsin mi?",
+    "ORPHAN_KEEP": "Sakla",
+    "DELETE_DEVICE_WARNING": "\"{{device}}\" cihazı sisteme erişimini hemen kaybedecek."
   },
   "CLOUD": {
     "TITLE": "Bulut Ba\u011flant\u0131s\u0131",

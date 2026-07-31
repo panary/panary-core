@@ -11,7 +11,13 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
                   max-w-sm w-full mx-4 shadow-2xl animate-[scale-in_0.15s_ease-out]"
            tabindex="0" role="button" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
         <p class="text-slate-900 dark:text-white text-sm font-medium mb-1">{{ title() }}</p>
-        <p class="text-slate-500 dark:text-gray-400 text-sm mb-6">{{ message() }}</p>
+        <p class="text-slate-500 dark:text-gray-400 text-sm" [class.mb-6]="!warning()">{{ message() }}</p>
+        @if (warning()) {
+          <p class="text-amber-600 dark:text-amber-400 text-sm mt-3 mb-6 flex items-start gap-1.5">
+            <span class="shrink-0 mt-0.5" aria-hidden="true">&#9888;</span>
+            <span>{{ warning() }}</span>
+          </p>
+        }
 
         <div class="flex gap-2">
           <button (click)="confirmed.emit()"
@@ -48,6 +54,13 @@ export class ConfirmDialogComponent {
   confirmLabel = input('Speichern')
   dismissLabel = input('Verwerfen')
   cancelLabel = input('')
+  /**
+   * Optionaler, optisch abgesetzter Warnhinweis unter der Message — fuer Folgen,
+   * die ueber die eigentliche Aktion hinausgehen (z.B. "Geraet X verliert dadurch
+   * den Zugang"). Leer = kein zusaetzlicher Absatz, alle bestehenden Aufrufer
+   * bleiben unveraendert.
+   */
+  warning = input('')
 
   confirmed = output<void>()
   dismissed = output<void>()

@@ -27,7 +27,7 @@ interface BusinessDay {
         <div class="p-6 space-y-4">
           <div class="min-h-9">
             <h1 class="text-xl font-bold tracking-tight">{{ 'BUSINESS_DAYS.TITLE' | translate }}</h1>
-            <p class="text-xs text-slate-400 dark:text-gray-500 mt-1">{{ 'BUSINESS_DAYS.SUBTITLE' | translate }}</p>
+            <p class="text-xs text-slate-400 dark:text-gray-500 mt-1">{{ 'BUSINESS_DAYS.SUBTITLE_CLOUD' | translate }}</p>
           </div>
 
           @if (loading()) {

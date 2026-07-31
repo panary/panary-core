@@ -1,7 +1,8 @@
 {
   "BUSINESS_DAYS": {
     "TITLE": "Geschäftstage",
-    "SUBTITLE": "Aus der Cloud synchronisiert (read-only).",
+    "SUBTITLE_CLOUD": "Aus der Cloud synchronisiert (read-only).",
+    "SUBTITLE_STANDALONE": "Lokal auf diesem Edge geführt.",
     "NONE": "Keine Geschäftstage vorhanden.",
     "DATE": "Datum",
     "MODE": "Modus",
@@ -15,7 +16,14 @@
     "ST_CLOSING_AGGREGATING": "Wird aggregiert",
     "ST_CLOSED": "Geschlossen",
     "ST_FAILED": "Fehlgeschlagen",
-    "ST_AUDITED": "Freigegeben"
+    "ST_AUDITED": "Freigegeben",
+    "STALE_OPEN": "Verwaist",
+    "STALE_OPEN_HINT": "Ein älterer offener Tag derselben Filiale — vermutlich ein abgebrochener Tagesabschluss.",
+    "STALE_BANNER_TITLE": "{{count}} verwaiste offene Geschäftstage",
+    "STALE_BANNER_BODY": "Pro Filiale darf nur ein Tag offen sein. Ältere offene Tage entstehen durch abgebrochene Abschlüsse oder Sync-Konflikte.",
+    "DISCARD_ACTION": "Verwerfen",
+    "DISCARD_TITLE": "Verwaisten Geschäftstag verwerfen",
+    "DISCARD_CONFIRM": "Der Geschäftstag vom {{date}} wird endgültig entfernt. Das ist nur möglich, solange er keine Bestellungen, Belege oder Kassensitzungen enthält."
   },
   "ENTITY": {
     "DOCUMENT": "Dokument",
@@ -109,7 +117,8 @@
     "EMERGENCY_END": "Notfall-Modus beenden",
     "EMERGENCY_START": "Notfall-Modus aktivieren",
     "SAVE_BLOCKED": "Änderung nicht gespeichert — diese Daten werden in der Cloud verwaltet.",
-    "EMERGENCY_END_CONFIRM": "Danach nimmt der Edge keine lokalen Drucker-Änderungen mehr an. Bereits vorgenommene Änderungen bleiben aktiv und werden beim nächsten Cloud-Kontakt abgeglichen."
+    "EMERGENCY_END_CONFIRM": "Danach nimmt der Edge keine lokalen Drucker-Änderungen mehr an. Bereits vorgenommene Änderungen bleiben aktiv und werden beim nächsten Cloud-Kontakt abgeglichen.",
+    "SUBLINE_BUSINESS_DAYS": "Geschäftstage werden zentral eröffnet und abgeschlossen."
   },
   "CLOUD_STATUS": {
     "SYNC_AGE_MIN": "Letzter Cloud-Sync vor {{minutes}} min",
@@ -166,7 +175,8 @@
     "STATUS_ARCHIVED": "Archiviert",
     "FILTER_BY_STATUS": "Nach Status filtern",
     "FILTER_BY_TYPE": "Nach Produkttyp filtern",
-    "CONFIRM": "Bestätigen"
+    "CONFIRM": "Bestätigen",
+    "ACTIONS": "Aktionen"
   },
   "ROLES": {
     "PLATFORM_OWNER": "Plattform-Admin",
@@ -230,7 +240,12 @@
     "PAIRING_EXPIRES": "Der Code ist nur wenige Minuten gültig.",
     "PAIRING_GENERATING": "Code wird erzeugt…",
     "PAIRING_REGENERATE": "Neuen Code erzeugen",
-    "PAIRING_ERROR": "Code konnte nicht erzeugt werden."
+    "PAIRING_ERROR": "Code konnte nicht erzeugt werden.",
+    "DELETE_TITLE": "Gerät löschen",
+    "DELETE_CONFIRM": "Gerät „{{device}}\" wird gelöscht. Der zugehörige API-Schlüssel wird mit entfernt — das Gerät muss danach neu gekoppelt werden.",
+    "PAIRING_COPY": "Code kopieren",
+    "PAIRING_COPIED": "Kopiert",
+    "ACTION_ERROR": "Aktion fehlgeschlagen."
   },
   "USERS": {
     "TITLE": "Benutzer",
@@ -294,7 +309,8 @@
     "NO_OPTIONS": "Keine Optionen \u2014 klicke \u201c+ Option\u201d",
     "TYPE_PRODUCT": "Produkt",
     "TYPE_MODIFIER": "Modifier",
-    "TYPE_BUNDLE": "Men\u00fc"
+    "TYPE_BUNDLE": "Men\u00fc",
+    "NO_OPTION_GROUPS": "Keine Optionsgruppen"
   },
   "PRODUCT_GROUPS": {
     "TITLE": "Produktgruppen",
@@ -371,11 +387,19 @@
     "ACTIVATE": "Aktivieren",
     "DEACTIVATE": "Deaktivieren",
     "DELETE_KEY": "API-Schl\u00fcssel l\u00f6schen",
-    "DELETE_CONFIRM": "Sind Sie sicher? Ger\u00e4te, die diesen Schl\u00fcssel verwenden, verlieren den Zugriff. Diese Aktion kann nicht r\u00fcckg\u00e4ngig gemacht werden.",
+    "DELETE_CONFIRM": "Diese Aktion kann nicht r\u00fcckg\u00e4ngig gemacht werden.",
     "DELETE_PERMANENTLY": "Endg\u00fcltig l\u00f6schen",
     "CREATED_AT": "Erstellt am",
     "CREATED_BY": "Erstellt von",
-    "DEVICE_ID": "Ger\u00e4te-ID"
+    "DEVICE_ID": "Ger\u00e4te-ID",
+    "DEVICE": "Gerät",
+    "DEVICE_ORPHANED": "Verwaist",
+    "DEVICE_ORPHANED_HINT": "Das zugehörige Gerät existiert nicht mehr. Dieser Schlüssel ist wirkungslos.",
+    "DEVICE_UNKNOWN_HINT": "Gerätedaten nicht abrufbar (fehlende Berechtigung oder Edge nicht erreichbar).",
+    "ORPHAN_TITLE": "Zugehöriges Gerät existiert nicht mehr",
+    "ORPHAN_MESSAGE": "Dieser API-Schlüssel verweist auf ein gelöschtes Gerät und kann nicht mehr verwendet werden. Jetzt löschen?",
+    "ORPHAN_KEEP": "Behalten",
+    "DELETE_DEVICE_WARNING": "Gerät „{{device}}\" verliert dadurch sofort den Zugang zum System."
   },
   "CLOUD": {
     "TITLE": "Cloud-Kopplung",

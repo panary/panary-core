@@ -61,6 +61,39 @@ Beim Closing wird die [`sync-outbox`](../../apps/api-edge/src/services/sync-outb
 
 Der Edge nutzt die existierende [`cloud-connection`](../../apps/api-edge/src/services/cloud-connection) für die HTTP-Verbindung. Best-Effort: bei Cloud-Ausfall bleibt der Tag in `closing-requested` und wird beim nächsten manuellen Retry oder Heartbeat-Reconnect erneut getriggert.
 
+### Nachzieh-Worker (`closing-status-refresh.worker.ts`)
+
+Damit der Manager den Endstatus auch ohne UI-Refresh sieht, pollt ein Worker alle
+~30 s die Tage in `closing-requested`/`closing-aggregating` und ruft pro Tag
+`refreshClosingStatus` — das holt den Report aus der Cloud und patcht den Status.
+
+**Backoff (seit 2026-07-31).** Die ersten zehn Versuche laufen mit voller
+Frequenz — ein normaler Abschluss ist in wenigen Minuten durch. Danach wächst
+der Abstand exponentiell bis maximal ~1 h. Grund: bleibt ein Tag dauerhaft
+hängen (die Cloud hat nie einen Report angelegt), pollte der Worker ihn vorher
+für immer im 30-Sekunden-Takt — ein Cloud-Roundtrip je Tag und Tick, rund 2.880
+pro Tag und Geschäftstag, ohne dass sich je etwas änderte. Ein Statuswechsel
+setzt den Backoff zurück, damit der Folgeschritt
+(`closing-requested` → `aggregating` → `closed`) nicht in der langen Wartezeit
+hängen bleibt.
+
+**Log-Disziplin.** Ein Tick ohne Statusänderung loggt **nichts**. Geloggt wird
+nur eine echte Transition (`business_day.refresh.tick_done`, info) sowie
+einmalig je Tag ein Hänger, der länger als eine Stunde im Zwischenstatus sitzt
+(`business_day.refresh.stuck`, warn). Vorher schrieb der Worker bei jedem Tick
+`refreshedCount=n transitionedCount=0` — bei hängenden Tagen also dieselbe
+nichtssagende Zeile alle 30 s, in der die eine Zeile unterging, die zählt.
+
+> **Diagnose-Hinweis:** `refreshedCount` entspricht dem Wert `maxPerTick`
+> (Default 5), wenn mindestens so viele Tage im Zwischenstatus stehen. Dauerhaft
+> `transitionedCount=0` bei vollem `refreshedCount` heißt: die Tage lösen nicht
+> auf — nicht, dass der Worker arbeitet. Seit dem Backoff meldet sich dieser
+> Zustand von selbst über `business_day.refresh.stuck`.
+
+Der Backoff-Zustand ist **prozess-lokal**: ein Neustart des Edge pollt wieder mit
+voller Frequenz und meldet Hänger erneut. Das ist gewollt — nach einem Neustart
+ist ein frischer Zustellversuch billiger als eine persistierte Sperre.
+
 ---
 
 ## Aggregator-Lib (`libs/domains/businessdays/aggregator/`)

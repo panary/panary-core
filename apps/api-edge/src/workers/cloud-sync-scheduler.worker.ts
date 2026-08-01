@@ -81,13 +81,19 @@ const MANUAL_HEARTBEAT_INTERVAL_SEC = 30 * 60
 const KEEPALIVE_HEARTBEAT_INTERVAL_SEC = 4 * 60 * 60
 
 /**
- * Obergrenze fuer die Wartezeit zwischen zwei Ticks.
+ * Obergrenze fuer die Wartezeit im Modus `scheduled` — und nur dort.
  *
- * Ohne Deckel schlief der Scheduler im Modus `scheduled` bis zu 24 h am Stueck.
- * Es gibt keinen Re-Arm-Pfad: ein Moduswechsel im Admin wird erst beim naechsten
- * Tick gelesen, war also bis zu einen Tag lang wirkungslos. Der Deckel begrenzt
- * das auf 30 Minuten und sichert zugleich, dass der Keepalive oben ueberhaupt
- * zur Auswertung kommt.
+ * Ohne Deckel schlief der Scheduler bis zu 24 h am Stueck bis zum naechsten
+ * Slot. Es gibt keinen Re-Arm-Pfad: ein Moduswechsel im Admin wird erst beim
+ * naechsten Tick gelesen, war also bis zu einen Tag lang wirkungslos. Der
+ * Deckel begrenzt das auf 30 Minuten und sichert zugleich, dass der Keepalive
+ * ueberhaupt zur Auswertung kommt.
+ *
+ * Bewusst NICHT global auf jeden Tick angewandt: AUTO waehlt seine Wartezeit
+ * aus `syncIntervalSec` (60..3600 s). Ein globaler 30-Minuten-Deckel wuerde
+ * einen bewusst gesetzten Stundentakt auf 30 Minuten verkuerzen und die
+ * Sync-Last dieser Installationen verdoppeln. MANUAL (30 min) und DISABLED
+ * (5 min) liegen ohnehin darunter.
  */
 const SCHEDULER_MAX_TICK_SEC = 30 * 60
 
@@ -1868,7 +1874,12 @@ export const startCloudSyncSchedulerWorker = async (app: Application): Promise<S
                 }),
               )
           }
-          delaySec = Math.round(slot.waitMs / 1000)
+          // Deckel NUR hier: nur dieser Zweig erzeugt Wartezeiten jenseits
+          // einer Stunde (bis zu 24 h bis zum naechsten Slot). AUTO (max. 1 h),
+          // MANUAL (30 min) und DISABLED (5 min) sind von sich aus kurz genug
+          // — sie zu deckeln wuerde einen bewusst gesetzten AUTO-Intervall von
+          // 60 Minuten auf 30 verkuerzen und die Sync-Last verdoppeln.
+          delaySec = Math.min(SCHEDULER_MAX_TICK_SEC, Math.round(slot.waitMs / 1000))
           break
         }
         case SyncMode.MANUAL:
@@ -1898,7 +1909,7 @@ export const startCloudSyncSchedulerWorker = async (app: Application): Promise<S
         errorMessage: err instanceof Error ? err.message : String(err),
       })
     }
-    timer = setTimeout(tick, Math.min(SCHEDULER_MAX_TICK_SEC * 1000, Math.max(60_000, delaySec * 1000)))
+    timer = setTimeout(tick, Math.max(60_000, delaySec * 1000))
   }
 
   // Erster Tick mit kurzer Verzoegerung, damit alle Services oben sind.

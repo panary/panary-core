@@ -64,7 +64,7 @@ UI-Counter zeigt offene Konflikte im Connected-State an. Eine dedizierte Konflik
 - `manual`: nur Heartbeat alle 30 min; Push/Pull nur via `cloud-connection.syncNow`
 - `disabled`: keine Datenübertragung — aber weiterhin Keepalive-Heartbeat (siehe unten)
 
-Kein Tick wartet länger als 30 min (`SCHEDULER_MAX_TICK_SEC`). Ohne diesen Deckel schlief der Scheduler in `scheduled` bis zu 24 h; da es keinen Re-Arm-Pfad gibt, war ein Moduswechsel im Admin so lange wirkungslos.
+Im Modus `scheduled` wartet kein Tick länger als 30 min (`SCHEDULER_MAX_TICK_SEC`). Ohne diesen Deckel schlief der Scheduler bis zu 24 h bis zum nächsten Slot; da es keinen Re-Arm-Pfad gibt, war ein Moduswechsel im Admin so lange wirkungslos. Der Deckel gilt bewusst **nur** dort — ein globaler Deckel würde einen bewusst gesetzten `auto`-Stundentakt auf 30 min verkürzen und die Sync-Last verdoppeln.
 
 Ist der Zeitplan unbrauchbar (fehlend, leer, ungültige Uhrzeit, unbekannte Zeitzone) oder steht ein unbekannter Wert in `syncMode`, fährt der Tick `auto`-Verhalten mit Warn-Log (`sync.scheduler.schedule_missing` bzw. `sync.scheduler.unknown_mode`). Der gespeicherte Modus bleibt unangetastet.
 

@@ -86,9 +86,16 @@ manuelles Re-Pairing ist, ist eine Falle, keine Einstellung.
 
 Flankierend:
 
-* **`SCHEDULER_MAX_TICK_SEC` (30 min)** deckelt jede Wartezeit. Ohne Deckel schlief der
-  Scheduler bis zu 24 h; da es keinen Re-Arm-Pfad gibt, war ein Moduswechsel im Admin so lange
-  wirkungslos. Der Deckel sichert zugleich, dass der Keepalive überhaupt zur Auswertung kommt.
+* **`SCHEDULER_MAX_TICK_SEC` (30 min)** deckelt die Wartezeit im Modus `scheduled` — und nur
+  dort. Ohne Deckel schlief der Scheduler bis zu 24 h bis zum nächsten Slot; da es keinen
+  Re-Arm-Pfad gibt, war ein Moduswechsel im Admin so lange wirkungslos. Der Deckel sichert
+  zugleich, dass der Keepalive überhaupt zur Auswertung kommt.
+
+  Bewusst **nicht** global auf jeden Tick: `auto` wählt seine Wartezeit aus `syncIntervalSec`
+  (60–3600 s). Ein globaler Deckel würde einen bewusst gesetzten Stundentakt auf 30 Minuten
+  verkürzen und die Sync-Last dieser Installationen verdoppeln — eine stille Verhaltensänderung
+  bei Kunden, die nie darum gebeten haben. `manual` (30 min) und `disabled` (5 min) liegen
+  ohnehin darunter.
 * **Sichere Auslegung statt Stillstand:** `scheduled` ohne brauchbaren Zeitplan und jeder
   unbekannte Modus-Wert fahren `auto`-Verhalten mit Warn-Log. Der gespeicherte Modus bleibt
   unangetastet — Nutzerkonfiguration wird nicht hinter dem Rücken umgeschrieben.
@@ -102,8 +109,10 @@ Flankierend:
 
 * Ein Edge verliert seine Kopplung nicht mehr durch eine UI-Einstellung. Das galt bisher
   deterministisch für `disabled` und praktisch für `scheduled`.
-* Jeder Edge funkt mindestens alle 4 h, im Regelfall über den Deckel alle 30 min einen Tick
-  (der Tick selbst ist ein einzelner DB-Read, der Heartbeat läuft nur bei Fälligkeit).
+* Jeder Edge funkt mindestens alle 4 h. Die Tick-Frequenz bleibt modusabhängig
+  (`auto`: `syncIntervalSec`, `manual`: 30 min, `disabled`: 5 min, `scheduled`: bis zum
+  nächsten Slot, gedeckelt auf 30 min); der Tick selbst ist ein einzelner DB-Read, der
+  Heartbeat läuft nur bei Fälligkeit.
 * Bestands-Edges mit `scheduled` ohne Zeitplan brauchen keine Migration: der Fallback greift
   beim ersten Tick nach dem Update. Bereits ausgesperrte Edges — Token abgelaufen — brauchen
   weiterhin ein Re-Pairing; das kann kein Code-Fix heilen.

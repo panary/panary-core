@@ -22,6 +22,7 @@ interface MockUser {
   role?: string
   tenantId?: string
   locationId?: string | null
+  activeLocationId?: string | null
 }
 
 interface BuildContextArgs {
@@ -151,7 +152,9 @@ describe('multiTenancy() — locationId-Stamping (isolateLocation)', () => {
     expect(ctx.data?.locationId).toBeUndefined()
   })
 
-  it('User ohne locationId: kein Stamp trotz isolateLocation=true', async () => {
+  // Seit dem Fallback-Lookup (2026-08-01) heisst „kein Stamp" hier: weder User
+  // NOCH Tenant haben eine Filiale (locationsResult ist per Default leer).
+  it('User ohne locationId und Tenant ohne Location: kein Stamp trotz isolateLocation=true', async () => {
     const { ctx } = buildContext({
       method: 'create',
       user: { _id: 'u3', role: UserSystemRole.TENANT_OWNER, tenantId: 't1' },
@@ -365,5 +368,116 @@ describe('multiTenancy() — platform:*-Bypass', () => {
     expect(locationsService.find).toHaveBeenCalledOnce()
     expect(ctx.data?.tenantId).toBe('t-edge')
     expect(ctx.data?.locationId).toBe('loc-edge')
+  })
+})
+
+// REGRESSION 2026-08-01: `POST /apikeys` schlug auf jedem cloud-gebootstrappten
+// Edge mit 400 "must have required property 'locationId'" fehl. Ursache war
+// nicht der Sync, sondern der Hook: er las ausschliesslich `user.locationId`.
+// Dieses Feld existiert am Edge NUR am virtuellen API-Key-User
+// (`allow-apikey.hook.ts`) — das `users`-Schema kennt es gar nicht
+// (`additionalProperties: false`, keine Migration legt die Spalte an).
+// Jeder angemeldete Mensch trug seine Filiale in `activeLocationId`, damit lief
+// sowohl das WRITE-Stamping als auch das READ-Scoping leer.
+describe('multiTenancy() — activeLocationId-Fallback (Regression apikeys-400)', () => {
+  const jwtOwner: MockUser = {
+    _id: 'u-cloud',
+    role: UserSystemRole.TENANT_OWNER,
+    tenantId: 't1',
+    activeLocationId: 'loc-active',
+  }
+  const jwtStaff: MockUser = {
+    _id: 'u-staff',
+    role: UserSystemRole.TENANT_STAFF,
+    tenantId: 't1',
+    activeLocationId: 'loc-active',
+  }
+
+  it('WRITE: User nur mit activeLocationId bekommt trotzdem einen locationId-Stamp', async () => {
+    const { ctx, locationsService } = buildContext({ method: 'create', user: jwtOwner, data: { name: 'POS Kasse 1' } })
+    await run(ctx, { isolateLocation: true })
+    expect(ctx.data?.locationId).toBe('loc-active')
+    // Der User liefert die Filiale bereits — der teure Fallback-Lookup bleibt aus.
+    expect(locationsService.find).not.toHaveBeenCalled()
+  })
+
+  it('WRITE: locationId schlaegt activeLocationId (API-Key-User behaelt Vorrang)', async () => {
+    const { ctx } = buildContext({
+      method: 'create',
+      user: { ...jwtStaff, locationId: 'loc-device' },
+      data: { name: 'X' },
+    })
+    await run(ctx, { isolateLocation: true })
+    expect(ctx.data?.locationId).toBe('loc-device')
+  })
+
+  it('READ: Location-Scoping greift jetzt auch fuer JWT-Staff (vorher still wirkungslos)', async () => {
+    const { ctx } = buildContext({ method: 'find', user: jwtStaff, query: {} })
+    await run(ctx, { isolateLocation: true, allowGlobalData: false })
+    expect(ctx.params.query?.['locationId']).toBe('loc-active')
+  })
+
+  it('READ: allowGlobalData=true baut das $or aus der activeLocationId', async () => {
+    const { ctx } = buildContext({ method: 'find', user: jwtStaff, query: {} })
+    await run(ctx, { isolateLocation: true, allowGlobalData: true })
+    expect(ctx.params.query?.['$or']).toEqual([{ locationId: 'loc-active' }, { locationId: null }])
+  })
+
+  it('WRITE: platform-User nur mit activeLocationId stempelt ohne Fallback-Lookup', async () => {
+    const { ctx, locationsService } = buildContext({
+      method: 'create',
+      user: { _id: 'p3', role: 'platform:owner', tenantId: 't1', activeLocationId: 'loc-active' },
+      data: { name: 'Brot' },
+    })
+    await run(ctx, { isolateLocation: true })
+    expect(ctx.data?.locationId).toBe('loc-active')
+    expect(locationsService.find).not.toHaveBeenCalled()
+  })
+})
+
+// Zweite Verteidigungslinie: liefert WEDER Payload NOCH User eine Filiale
+// (frisch gepullter tenant:owner ohne activeLocationId), holt der Hook die
+// Filiale des Tenants nach — analog `ensureFallbackLocation` im Cloud-Hook.
+describe('multiTenancy() — Location-Fallback-Lookup (WRITE, nicht-platform)', () => {
+  const locationlessOwner: MockUser = { _id: 'u-nolo', role: UserSystemRole.TENANT_OWNER, tenantId: 't1' }
+
+  it('ohne User-Filiale wird die Tenant-Location nachgeschlagen und gestempelt', async () => {
+    const { ctx, locationsService } = buildContext({
+      method: 'create',
+      user: locationlessOwner,
+      data: { name: 'POS Kasse 1' },
+      locationsResult: { data: [{ _id: 'loc-fallback', tenantId: 't1' }] },
+    })
+    await run(ctx, { isolateLocation: true })
+    expect(ctx.data?.locationId).toBe('loc-fallback')
+    expect(locationsService.find).toHaveBeenCalledWith({
+      query: { tenantId: 't1', $limit: 1, $select: ['_id'] },
+      paginate: false,
+    })
+  })
+
+  it('Bulk-Create: der Lookup laeuft genau EINMAL fuer alle Elemente', async () => {
+    const { ctx, locationsService } = buildContext({
+      method: 'create',
+      user: locationlessOwner,
+      data: [{ name: 'A' }, { name: 'B' }, { name: 'C' }],
+      locationsResult: { data: [{ _id: 'loc-fallback', tenantId: 't1' }] },
+    })
+    await run(ctx, { isolateLocation: true })
+    expect(asItems(ctx.data).map(i => i['locationId'])).toEqual(['loc-fallback', 'loc-fallback', 'loc-fallback'])
+    expect(locationsService.find).toHaveBeenCalledOnce()
+  })
+
+  it('Tenant ohne jede Location: kein Stamp — lieber ungestempelt als locationId=null', async () => {
+    const { ctx } = buildContext({ method: 'create', user: locationlessOwner, data: { name: 'X' } })
+    await run(ctx, { isolateLocation: true })
+    expect(ctx.data?.locationId).toBeUndefined()
+  })
+
+  it('isolateLocation=false: kein Lookup, kein Stamp', async () => {
+    const { ctx, locationsService } = buildContext({ method: 'create', user: locationlessOwner, data: { name: 'X' } })
+    await run(ctx)
+    expect(ctx.data?.locationId).toBeUndefined()
+    expect(locationsService.find).not.toHaveBeenCalled()
   })
 })

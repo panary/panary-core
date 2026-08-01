@@ -22,7 +22,7 @@ import { BusinessDayStatus, BusinessDayOperationMode } from '@panary/businessday
 import { LocationOperationMode } from '@panary/locations/domain'
 import { PairingStatus } from '@panary/cloud-connection/domain'
 import { SyncOutboxStatus } from '@panary/sync/domain'
-import { authorize, multiTenancy } from '@panary/shared-backend'
+import { authorize, multiTenancy, resolveUserLocationId } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { DatabaseType } from '@panary/shared-common'
 import { ensureIndexes, logger } from '@panary/shared-backend'
@@ -220,7 +220,10 @@ async function openDay(app: Application, data: OpenDayData, params: OpenDayParam
   const user = params.user
   if (!user?.tenantId) throw new BadRequest('Tenant-Kontext fehlt — openDay benötigt einen authentifizierten User')
 
-  const locationId = data.locationId ?? user.locationId ?? null
+  // `resolveUserLocationId`, nicht `user.locationId`: JWT-User (Admin-Panel)
+  // tragen die Filiale in `activeLocationId` — der direkte Zugriff lief hier
+  // immer ins `null` und quittierte die Tages-Eroeffnung mit einem 400.
+  const locationId = data.locationId ?? resolveUserLocationId(user) ?? null
   if (!locationId) {
     throw new BadRequest('locationId muss am User oder im Payload gesetzt sein')
   }

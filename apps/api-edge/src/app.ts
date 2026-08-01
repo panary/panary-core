@@ -13,6 +13,7 @@ import { canonicalLog } from '@panary/shared-backend'
 import { logError } from '@panary/shared-backend'
 import { sqlite } from './sqlite'
 import { services } from './services/index'
+import { assertStampFields } from './services/assert-stamp-fields'
 import { channels } from './channels'
 import { configureLoggerLevel } from '@panary/shared-backend'
 import { ensureTenantIsolation } from '@panary/shared-backend'
@@ -309,6 +310,10 @@ const tsePort = createTsePort(app)
 if (tsePort) {
   app.set('tsePort', tsePort)
 }
+
+// Boot-Check: passen die DATA-Schemas zu dem, was multiTenancy() stempelt?
+// Loggt nur (nie werfen) — Details und Begruendung in assert-stamp-fields.ts.
+assertStampFields(app)
 
 // App-level hooks (global für alle Services)
 // Reihenfolge der around-Hooks (Onion-Modell, äußerster zuerst):

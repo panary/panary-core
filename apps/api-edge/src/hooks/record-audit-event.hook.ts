@@ -23,7 +23,7 @@ import {
   type AuditEventData,
   getAuditMapping,
 } from '@panary/audit-events/domain'
-import { logger } from '@panary/shared-backend'
+import { logger, resolveUserLocationId } from '@panary/shared-backend'
 
 import type { HookContext } from '../declarations'
 import type { AuditCaptureState } from './capture-audit-before.hook'
@@ -76,7 +76,7 @@ export const recordAuditEvent = async (context: HookContext): Promise<void> => {
   const event: AuditEventData = {
     _id: uuidv7(),
     tenantId: user.tenantId,
-    locationId: (user.locationId ?? null) as unknown as string,
+    locationId: resolveUserLocationId(user) as unknown as string,
     occurredAt,
     actor: {
       userId: user._id,

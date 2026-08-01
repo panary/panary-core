@@ -17,7 +17,7 @@ import {
   AuditSeverity,
   type AuditEventData,
 } from '@panary/audit-events/domain'
-import { logger } from '@panary/shared-backend'
+import { logger, resolveUserLocationId } from '@panary/shared-backend'
 
 import type { HookContext } from '../declarations'
 import { extractAjvValidationErrors } from '../workers/sync-apply'
@@ -29,7 +29,15 @@ export const recordAuthSuccess = async (context: HookContext): Promise<void> => 
   if (context.method !== 'create') return
 
   const result = context.result as
-    | { user?: { _id?: string; tenantId?: string; locationId?: string | null; role?: string } }
+    | {
+        user?: {
+          _id?: string
+          tenantId?: string
+          locationId?: string | null
+          activeLocationId?: string | null
+          role?: string
+        }
+      }
     | undefined
   const user = result?.user
   if (!user || !user._id || !user.tenantId) return
@@ -40,7 +48,7 @@ export const recordAuthSuccess = async (context: HookContext): Promise<void> => 
 
   await writeAuthEvent(context, {
     tenantId: user.tenantId,
-    locationId: user.locationId ?? null,
+    locationId: resolveUserLocationId(user),
     actorUserId: user._id,
     actorRole: user.role ?? 'unknown',
     correlationId,

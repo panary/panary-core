@@ -60,11 +60,21 @@ UI-Counter zeigt offene Konflikte im Connected-State an. Eine dedizierte Konflik
 [`cloud-sync-scheduler.worker.ts`](../../apps/api-edge/src/workers/cloud-sync-scheduler.worker.ts) ersetzt den alten heartbeat-only-Worker. Vier Modi:
 
 - `auto`: alle `syncIntervalSec` (60..3600 s) Push + Pull-Pro-Service + Heartbeat
-- `scheduled`: festgelegte Uhrzeiten in `syncSchedule.times` mit `syncSchedule.timezone`. Verpasste Slots (>24 h) werden einmalig nachgeholt.
+- `scheduled`: festgelegte Uhrzeiten in `syncSchedule.times` mit `syncSchedule.timezone`. Ein bereits vergangener Slot wird bis zu 12 h nachgeholt; nach längerem Stillstand genau einmal, nicht einmal pro verpasstem Tag.
 - `manual`: nur Heartbeat alle 30 min; Push/Pull nur via `cloud-connection.syncNow`
-- `disabled`: nichts
+- `disabled`: keine Datenübertragung — aber weiterhin Keepalive-Heartbeat (siehe unten)
 
-Token-Rotation: Heartbeat-Response kann `nextToken` enthalten. Wird sofort als neues `cloudToken` persistiert.
+Im Modus `scheduled` wartet kein Tick länger als 30 min (`SCHEDULER_MAX_TICK_SEC`). Ohne diesen Deckel schlief der Scheduler bis zu 24 h bis zum nächsten Slot; da es keinen Re-Arm-Pfad gibt, war ein Moduswechsel im Admin so lange wirkungslos. Der Deckel gilt bewusst **nur** dort — ein globaler Deckel würde einen bewusst gesetzten `auto`-Stundentakt auf 30 min verkürzen und die Sync-Last verdoppeln.
+
+Ist der Zeitplan unbrauchbar (fehlend, leer, ungültige Uhrzeit, unbekannte Zeitzone) oder steht ein unbekannter Wert in `syncMode`, fährt der Tick `auto`-Verhalten mit Warn-Log (`sync.scheduler.schedule_missing` bzw. `sync.scheduler.unknown_mode`). Der gespeicherte Modus bleibt unangetastet.
+
+Slot-Berechnung: [`scheduled-slot.ts`](../../apps/api-edge/src/workers/scheduled-slot.ts) als pure function, getestet in `scheduled-slot.spec.ts`. Gestempelt wird in `lastScheduledSyncAt` der **Slot-Zeitpunkt**, nicht die Ausführungszeit — sonst wandert die Doppelfeuer-Sperre mit jeder Laufzeitverzögerung nach hinten.
+
+### Keepalive und Token-Rotation
+
+Token-Rotation: Die Heartbeat-Response kann `nextToken` enthalten und wird sofort als neues `cloudToken` persistiert. Der Heartbeat ist damit der **einzige** Träger der Rotation — die Cloud liefert einen Nachfolge-Token nur dort, und erst wenn die Restlaufzeit unter den Rotationsvorlauf fällt (Default 12 h bei 24 h Lebensdauer).
+
+Deshalb läuft er **modusunabhängig**: liegt der letzte erfolgreiche Heartbeat länger als 4 h zurück (`KEEPALIVE_HEARTBEAT_INTERVAL_SEC`), erzwingt der Tick einen — auch bei `disabled`. Vorher hing der Heartbeat vollständig am `syncMode`, wodurch `disabled` deterministisch und `scheduled` praktisch nach 24 h die Kopplung verlor und ein manuelles Re-Pairing nötig wurde. Begründung, Messwerte und die verworfenen Alternativen: [ADR 0015](../adr/0015-modusunabhaengiger-sync-keepalive.md).
 
 Clock-Skew >5 min → Push wird pausiert, UI zeigt blockierende Meldung.
 

@@ -503,6 +503,21 @@ const directionLabel = (dir: InitialDirection): string => {
           <!-- CONNECTED -->
           @case ('connected') {
             <div class="space-y-5">
+              <!-- Fehleranzeige im Connected-State. Fehlte bisher komplett:
+                   das errors-Signal wurde ausschliesslich in den Wizard-Zweigen
+                   gerendert, obwohl auch onSaveSyncMode/onDisconnect/onReset
+                   hier Fehler setzen — abgelehnte Patches blieben dadurch
+                   unsichtbar. Besonders fuer die Zeitplan-Guards noetig, die
+                   eine Aktion bewusst verweigern und das begruenden muessen. -->
+              @if (errors().length > 0) {
+                <div class="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-xl p-3">
+                  <ul class="text-sm text-red-700 dark:text-red-400 space-y-0.5">
+                    @for (err of errors(); track err) {
+                      <li>{{ err }}</li>
+                    }
+                  </ul>
+                </div>
+              }
               <!-- Tab-Bar — trennt Verbindungs-Settings von der Sync-Historie.
                    Nur im Connected-State sichtbar; Wizard-/Pairing-/Error-States
                    zeigen weiterhin keine Tabs. -->

@@ -36,6 +36,7 @@ import { recordSyncRun, type RecordSyncRunInput } from '../services/sync-runs/re
 import { printServerManager } from '../print-server'
 import { applyPulledRecords, cloudFetch, extractAjvValidationErrors, PULL_PAGE_SIZE } from './sync-apply'
 import { collectDeviceCountsForHeartbeat } from './heartbeat-device-counts'
+import { computeScheduledSlot } from './scheduled-slot'
 import {
   SyncRunDirection,
   SyncRunOutcome,
@@ -58,6 +59,37 @@ const PUSH_BATCH_SIZE = 100
 // als gepusht wird. 50 x PUSH_BATCH_SIZE = 5000 Eintraege pro Cycle.
 const MAX_PUSH_BATCHES_PER_CYCLE = 50
 const MANUAL_HEARTBEAT_INTERVAL_SEC = 30 * 60
+
+/**
+ * Spaetestens nach dieser Zeit ohne erfolgreichen Heartbeat wird einer
+ * erzwungen — in JEDEM Sync-Modus, auch `disabled`.
+ *
+ * Der Heartbeat traegt die Cloud-Token-Rotation: die Cloud liefert einen
+ * Nachfolge-Token nur in der Heartbeat-Antwort, und zwar erst, wenn die
+ * Restlaufzeit unter den Rotationsvorlauf faellt (Default 12 h bei 24 h
+ * Token-Lebensdauer). Ein Edge, der nicht heartbeatet, rotiert also nie und
+ * wird nach Ablauf der Lebensdauer bei jedem Handshake abgelehnt — Re-Pairing
+ * von Hand waere die Folge.
+ *
+ * Genau das ist frueher passiert: `disabled` machte gar keinen Cloud-Call, und
+ * `scheduled` heartbeatete hoechstens im Moment eines Slots. Ein Heartbeat darf
+ * deshalb niemals an einer UI-Einstellung haengen. Vier Stunden liegen
+ * komfortabel unter dem 12-h-Vorlauf (zwei Fehlschlaege in Folge sind
+ * verkraftbar) und kollidieren nicht mit AUTO (max. 1 h) oder MANUAL (30 min),
+ * wo ohnehin haeufiger gefunkt wird.
+ */
+const KEEPALIVE_HEARTBEAT_INTERVAL_SEC = 4 * 60 * 60
+
+/**
+ * Obergrenze fuer die Wartezeit zwischen zwei Ticks.
+ *
+ * Ohne Deckel schlief der Scheduler im Modus `scheduled` bis zu 24 h am Stueck.
+ * Es gibt keinen Re-Arm-Pfad: ein Moduswechsel im Admin wird erst beim naechsten
+ * Tick gelesen, war also bis zu einen Tag lang wirkungslos. Der Deckel begrenzt
+ * das auf 30 Minuten und sichert zugleich, dass der Keepalive oben ueberhaupt
+ * zur Auswertung kommt.
+ */
+const SCHEDULER_MAX_TICK_SEC = 30 * 60
 
 // Obergrenze fuer in einem sync-run gespeicherte Per-Record-Details. Der Push
 // kappt das Aggregat ueber alle Drain-Batches eines Cycles; bei grossen Pulls
@@ -1733,28 +1765,33 @@ export const triggerImmediateCycle = async (app: Application, trigger: SyncRunTr
   await cycleInFlight
 }
 
-const computeNextScheduledSlot = (times: string[], timezone: string, lastRunAt?: string): number => {
-  // Simplified: nimmt naechste Uhrzeit aus times (HH:mm), interpretiert als
-  // lokal in `timezone`. Bei Verpasstem Slot >24h wird sofort gefeuert.
-  const now = new Date()
-  const local = new Date(now.toLocaleString('en-US', { timeZone: timezone }))
-  const baseDate = new Date(local.getFullYear(), local.getMonth(), local.getDate())
-  const offsets = times
-    .map(t => {
-      const [h, m] = t.split(':').map(Number)
-      return new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), h, m).getTime()
-    })
-    .sort((a, b) => a - b)
-  const localNow = local.getTime()
-  for (const o of offsets) {
-    if (o > localNow) return o - localNow
-  }
-  // Alle Slots heute vorbei → naechster fuer morgen
-  if (lastRunAt) {
-    const last = new Date(lastRunAt).getTime()
-    if (Date.now() - last > 24 * 60 * 60 * 1000) return 0
-  }
-  return offsets[0] + 24 * 60 * 60 * 1000 - localNow
+/**
+ * Erzwingt einen Heartbeat, wenn zu lange keiner erfolgreich war — unabhaengig
+ * vom Sync-Modus. Begruendung siehe `KEEPALIVE_HEARTBEAT_INTERVAL_SEC`.
+ *
+ * Fehler werden geschluckt: der Keepalive darf den Tick nicht abbrechen, sonst
+ * kaeme der eigentliche Modus-Zweig nicht mehr dran. Ein dauerhaft
+ * fehlschlagender Heartbeat wird ohnehin ueber `consecutiveHeartbeatFailures`
+ * und den Notfall-Modus behandelt.
+ */
+const runKeepaliveHeartbeat = async (app: Application, connection: CloudConnection): Promise<void> => {
+  const lastOkMs = connection.lastHeartbeatOk ? new Date(connection.lastHeartbeatOk).getTime() : Number.NaN
+  const staleFor = Number.isFinite(lastOkMs) ? Date.now() - lastOkMs : Number.POSITIVE_INFINITY
+  if (staleFor < KEEPALIVE_HEARTBEAT_INTERVAL_SEC * 1000) return
+
+  logger.info({
+    message: 'Keepalive-Heartbeat faellig — Cloud-Token-Rotation absichern',
+    event: 'sync.keepalive.due',
+    syncMode: connection.syncMode ?? SyncMode.AUTO,
+    staleForSec: Number.isFinite(staleFor) ? Math.round(staleFor / 1000) : null,
+  })
+  await runHeartbeat(app, connection).catch(err =>
+    logger.warn({
+      message: 'Keepalive-Heartbeat fehlgeschlagen',
+      event: 'sync.keepalive.failed',
+      errorMessage: err instanceof Error ? err.message : String(err),
+    }),
+  )
 }
 
 export const startCloudSyncSchedulerWorker = async (app: Application): Promise<SchedulerHandle> => {
@@ -1782,29 +1819,56 @@ export const startCloudSyncSchedulerWorker = async (app: Application): Promise<S
     let delaySec = SYNC_INTERVAL_DEFAULT_SEC
 
     try {
+      // Vor dem Modus-Zweig und bewusst ausserhalb davon: haelt die Kopplung
+      // am Leben, egal was der Betreiber eingestellt hat.
+      await runKeepaliveHeartbeat(app, connection)
+
+      const autoCycle = async (): Promise<number> => {
+        // Ueber triggerImmediateCycle gehen, damit der Mutex Push-Races
+        // zwischen periodischem Tick und Cloud-getriggerten force-sync-
+        // Events verhindert.
+        await triggerImmediateCycle(app, SyncRunTrigger.SCHEDULER)
+        return connection.syncIntervalSec ?? SYNC_INTERVAL_DEFAULT_SEC
+      }
+
       switch (mode) {
         case SyncMode.AUTO:
-          // Ueber triggerImmediateCycle gehen, damit der Mutex Push-Races
-          // zwischen periodischem Tick und Cloud-getriggerten force-sync-
-          // Events verhindert.
-          await triggerImmediateCycle(app, SyncRunTrigger.SCHEDULER)
-          delaySec = connection.syncIntervalSec ?? SYNC_INTERVAL_DEFAULT_SEC
+          delaySec = await autoCycle()
           break
         case SyncMode.SCHEDULED: {
-          if (connection.syncSchedule) {
-            const ms = computeNextScheduledSlot(
-              connection.syncSchedule.times,
-              connection.syncSchedule.timezone,
-              connection.lastScheduledSyncAt,
-            )
-            if (ms <= 0) {
-              await triggerImmediateCycle(app, SyncRunTrigger.SCHEDULER)
-              await (app.service(cloudConnectionPath) as any)._patch(connection._id, {
-                lastScheduledSyncAt: new Date().toISOString(),
-              })
-            }
-            delaySec = Math.max(60, Math.round((ms || 60_000) / 1000))
+          const slot = computeScheduledSlot(connection.syncSchedule, new Date(), connection.lastScheduledSyncAt)
+          if (!slot) {
+            // Kein brauchbarer Zeitplan (bis zur Einfuehrung der Zeitplan-UI der
+            // Normalfall fuer jeden Edge, der `scheduled` gewaehlt hat). Frueher
+            // fiel der Tick hier stillschweigend durch: kein Sync, kein
+            // Heartbeat, nur ein 5-Minuten-Leerlauf. AUTO-Verhalten ist die
+            // sichere Auslegung — der gespeicherte Modus bleibt unangetastet,
+            // Nutzerkonfiguration wird nicht hinter dem Ruecken umgeschrieben.
+            logger.warn({
+              message: 'Sync-Modus „scheduled" ohne brauchbaren Zeitplan — faellt auf AUTO-Verhalten zurueck',
+              event: 'sync.scheduler.schedule_missing',
+            })
+            delaySec = await autoCycle()
+            break
           }
+          if (slot.due) {
+            await triggerImmediateCycle(app, SyncRunTrigger.SCHEDULER)
+            // Der Slot-Zeitpunkt, nicht Date.now(): sonst wandert die
+            // Doppelfeuer-Sperre mit jeder Laufzeit-Verzoegerung nach hinten.
+            // Fehlerisoliert, damit ein fehlgeschlagener Patch nicht den
+            // berechneten Abstand verwirft — sonst liefe der Tick in einen
+            // 5-Minuten-Takt und wuerde den Slot dauerhaft wiederholen.
+            await (app.service(cloudConnectionPath) as any)
+              ._patch(connection._id, { lastScheduledSyncAt: slot.dueSlotAt })
+              .catch((err: unknown) =>
+                logger.warn({
+                  message: 'lastScheduledSyncAt konnte nicht gespeichert werden',
+                  event: 'sync.scheduler.slot_stamp_failed',
+                  errorMessage: err instanceof Error ? err.message : String(err),
+                }),
+              )
+          }
+          delaySec = Math.round(slot.waitMs / 1000)
           break
         }
         case SyncMode.MANUAL:
@@ -1814,6 +1878,18 @@ export const startCloudSyncSchedulerWorker = async (app: Application): Promise<S
         case SyncMode.DISABLED:
           delaySec = 5 * 60
           break
+        default:
+          // Unbekannter Wert in der Spalte (Altbestand, manueller Eingriff,
+          // kuenftiger Modus nach einem Downgrade). Frueher fiel er durch alle
+          // case-Zweige und der Edge stand still — AUTO ist die sichere
+          // Auslegung.
+          logger.warn({
+            message: 'Unbekannter Sync-Modus — faellt auf AUTO-Verhalten zurueck',
+            event: 'sync.scheduler.unknown_mode',
+            syncMode: mode,
+          })
+          delaySec = await autoCycle()
+          break
       }
     } catch (err) {
       logger.warn({
@@ -1822,7 +1898,7 @@ export const startCloudSyncSchedulerWorker = async (app: Application): Promise<S
         errorMessage: err instanceof Error ? err.message : String(err),
       })
     }
-    timer = setTimeout(tick, Math.max(60_000, delaySec * 1000))
+    timer = setTimeout(tick, Math.min(SCHEDULER_MAX_TICK_SEC * 1000, Math.max(60_000, delaySec * 1000)))
   }
 
   // Erster Tick mit kurzer Verzoegerung, damit alle Services oben sind.

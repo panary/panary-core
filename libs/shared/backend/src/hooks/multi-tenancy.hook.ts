@@ -7,19 +7,52 @@ export interface MultiTenancyOptions {
   allowGlobalData?: boolean // Dürfen globale Daten (locationId: null) gesehen werden?
 }
 
+/**
+ * Marker auf dem zurueckgegebenen Hook, damit der Boot-Check
+ * (`assert-stamp-fields.ts`) die Optionen eines registrierten Services aus
+ * `service.__hooks.around.all` zurueckgewinnen kann. Ohne Marker muesste der
+ * Check die Optionen dupliziert pflegen — und wuerde bei jedem neuen Service
+ * lautlos driften.
+ */
+export const MULTI_TENANCY_OPTIONS = Symbol.for('panary.multiTenancy.options')
+
+/**
+ * Die effektive Filiale eines Users.
+ *
+ * Am Edge gibt es ZWEI Quellen, weil `params.user` aus zwei Welten stammt:
+ *
+ * - **JWT-User** (Mensch, Admin-Panel/POS-Login): das `users`-Dokument. Dessen
+ *   Schema kennt ueberhaupt kein `locationId` (`additionalProperties: false`),
+ *   die Spalte existiert in keiner Migration — kanonisch ist `activeLocationId`.
+ * - **API-Key-User** (Geraet, WebSocket): der virtuelle User aus
+ *   `allow-apikey.hook.ts`, der `locationId` UND `activeLocationId` setzt.
+ *
+ * Der Hook las frueher ausschliesslich `user.locationId` und war damit fuer
+ * JEDEN angemeldeten Menschen wirkungslos: Writes bekamen keinen Stamp (→ 400
+ * "must have required property 'locationId'" auf allen Services mit
+ * `isolateLocation` und Pflicht-`locationId` im Data-Schema, z. B. `apikeys`),
+ * und das READ-Scoping fiel still aus (Staff sah alle Filialen).
+ *
+ * Dieselbe Fallback-Kette steht bereits in `canonical-log.hook.ts`,
+ * `users.schema.ts` und `device-pairing.ts` — hier ist sie die einzige Quelle.
+ */
+export const resolveUserLocationId = (user: Record<string, any> | undefined | null): string | null =>
+  user?.['locationId'] ?? user?.['activeLocationId'] ?? null
+
 // 3. SCHICHT: Daten-Isolation (Multi-Tenancy)
 // Prüft: Gehört der angefragte User zu meinem Tenant?
 // Konfiguration:
 // - isolateLocation: true -> Staff sieht nur Kollegen seiner Filiale?
 // - allowGlobalData: false -> User gehören immer fest zu etwas.
-export const multiTenancy =
-  (options: MultiTenancyOptions = {}) =>
-  async (context: HookContext, next: NextFunction) => {
+export const multiTenancy = (options: MultiTenancyOptions = {}) => {
+  const hook = async (context: HookContext, next: NextFunction) => {
     const { isolateLocation = false, allowGlobalData = false } = options
     const { user } = context.params
 
     // 1. Interne Aufrufe (kein User/Provider) durchlassen
     if (!user) return next()
+
+    const userLocationId = resolveUserLocationId(user)
 
     // 2. Platform Bypass: Admins sehen alles (READ), aber Stamping bei WRITE
     if (user.role && user.role.startsWith('platform:')) {
@@ -29,7 +62,7 @@ export const multiTenancy =
         // einzeln stempeln, sonst landet der Stamp nur als Property auf dem
         // Array-Objekt und die Elemente bleiben ungestempelt.
         for (const item of Array.isArray(data) ? data : [data]) {
-          await stampEdgeDefaults(context, item, user, isolateLocation)
+          await stampEdgeDefaults(context, item, user, isolateLocation, userLocationId)
         }
         context.data = data
       }
@@ -43,6 +76,28 @@ export const multiTenancy =
     if (['create', 'update', 'patch'].includes(context.method)) {
       const data = context.data || {}
 
+      // Letzte Rettung, wenn WEDER Payload NOCH User eine Filiale liefern (z. B.
+      // ein aus der Cloud gepullter tenant:owner, dessen activeLocationId noch
+      // nicht gesetzt ist). Ohne diesen Lookup bliebe `locationId` ungestempelt
+      // und Services mit Pflicht-locationId im Data-Schema quittierten mit einem
+      // irrefuehrenden 400. Analog zu `ensureFallbackLocation` im Cloud-Hook:
+      // hoechstens EIN Lookup pro Request, im Closure gecacht.
+      let fallbackLocationId: string | null | undefined
+      const ensureFallbackLocation = async (): Promise<string | null> => {
+        if (fallbackLocationId !== undefined) return fallbackLocationId
+        try {
+          const result = (await context.app.service('locations').find({
+            query: { tenantId: user.tenantId, $limit: 1, $select: ['_id'] },
+            paginate: false,
+          })) as any
+          const list = Array.isArray(result) ? result : (result?.data ?? [])
+          fallbackLocationId = list[0]?._id ?? null
+        } catch {
+          fallbackLocationId = null
+        }
+        return fallbackLocationId ?? null
+      }
+
       // Bulk-Create liefert ein Array — ohne elementweises Stamping bliebe
       // eine client-seitig gesendete fremde tenantId auf den Elementen stehen
       // (Cross-Tenant-Injection am Stamp-Schutz vorbei).
@@ -51,7 +106,7 @@ export const multiTenancy =
         item.tenantId = user.tenantId
 
         // B. Location ist optional (aber für Staff Pflicht)
-        if (isolateLocation && user.locationId) {
+        if (isolateLocation) {
           // Wenn ich Staff bin, MUSS ich Daten meiner Filiale zuordnen
           // Wenn ich Owner bin, DARF ich wählen (Default: Meine Homebase)
           //
@@ -63,7 +118,10 @@ export const multiTenancy =
           // unsichtbar, (3) Sync-Pfade laufen intern (kein user) ungestempelt an
           // diesem Check vorbei. NICHT auf `!= null` "fixen".
           if (!item.locationId) {
-            item.locationId = user.locationId
+            const stamp = userLocationId ?? (await ensureFallbackLocation())
+            // Nur stempeln, wenn wirklich etwas da ist — lieber ungestempelt in
+            // die Schema-Validierung laufen als `locationId: null` schreiben.
+            if (stamp) item.locationId = stamp
           }
         }
       }
@@ -88,22 +146,22 @@ export const multiTenancy =
         )
 
         // Normale Mitarbeiter sehen NUR ihre Filiale
-        if (!isPrivileged && user.locationId) {
+        if (!isPrivileged && userLocationId) {
           logger.debug({
             message: '[Security] multiTenancy: Location-Isolation aktiv',
             event: 'security.location_scoped',
             userId: user._id,
             userRole: user.role,
-            locationId: user.locationId,
+            locationId: userLocationId,
             service: context.path,
             method: context.method,
           })
           if (allowGlobalData) {
             // Zeige: Meine Filiale ODER Globale Daten
-            query.$or = [{ locationId: user.locationId }, { locationId: null }]
+            query.$or = [{ locationId: userLocationId }, { locationId: null }]
           } else {
             // Zeige: NUR Meine Filiale
-            query.locationId = user.locationId
+            query.locationId = userLocationId
           }
         }
       }
@@ -113,6 +171,13 @@ export const multiTenancy =
 
     return next()
   }
+
+  // Optionen am Hook hinterlegen, damit der Boot-Check sie aus
+  // `service.__hooks.around.all` zurueckgewinnen kann (siehe MULTI_TENANCY_OPTIONS).
+  Object.defineProperty(hook, MULTI_TENANCY_OPTIONS, { value: options, enumerable: false })
+
+  return hook
+}
 
 /**
  * Edge-Modus: Fehlende tenantId automatisch aus der einzigen Location ermitteln.
@@ -125,11 +190,12 @@ async function stampEdgeDefaults(
   data: Record<string, any>,
   user: Record<string, any>,
   isolateLocation: boolean,
+  userLocationId: string | null,
 ): Promise<void> {
   if (data.tenantId && !isolateLocation && !('locationId' in data)) return
 
   let tenantId = user.tenantId
-  let locationId = user.locationId
+  let locationId = userLocationId
 
   // Wenn der User keinen Tenant hat, den einzigen vorhandenen ermitteln
   if (!tenantId || !locationId) {

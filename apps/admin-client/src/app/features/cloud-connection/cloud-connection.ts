@@ -17,6 +17,11 @@ type BootstrapStatus = 'idle' | 'in-progress' | 'done' | 'failed'
 
 type SyncMode = 'auto' | 'scheduled' | 'manual' | 'disabled'
 
+interface SyncSchedule {
+  times: string[]
+  timezone: string
+}
+
 type WizardStep = 'input' | 'preflight-result' | 'user-selection' | 'progress'
 
 // Tabs sind nur im Connected-State sichtbar — der Wizard belegt im
@@ -80,6 +85,7 @@ interface CloudConnectionInfo {
   preflightSnapshot?: PreflightSnapshot
   syncMode?: SyncMode
   syncIntervalSec?: number
+  syncSchedule?: SyncSchedule
   lastClockSkewMs?: number
 }
 
@@ -98,8 +104,35 @@ const SYNC_MODE_OPTIONS: { value: SyncMode; label: string; description: string }
   { value: 'auto', label: 'Automatisch', description: 'Sync laeuft regelmaessig im Hintergrund' },
   { value: 'scheduled', label: 'Zeitplan', description: 'Sync zu festen Uhrzeiten (z. B. nach Feierabend)' },
   { value: 'manual', label: 'Nur manuell', description: 'Sync nur auf Knopfdruck' },
-  { value: 'disabled', label: 'Deaktiviert', description: 'Kein Sync — Edge sammelt nur lokal' },
+  { value: 'disabled', label: 'Deaktiviert', description: 'Kein Datenaustausch — Edge sammelt nur lokal' },
 ]
+
+// Muss `syncScheduleSchema.times` in @panary/cloud-connection/domain entsprechen.
+const SCHEDULE_TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/
+const DEFAULT_SCHEDULE_TIME = '22:00'
+
+const LOCAL_TIMEZONE = (() => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Berlin'
+  } catch {
+    return 'Europe/Berlin'
+  }
+})()
+
+// `Intl.supportedValuesOf` ist ES2022. Defensiv, weil die Liste sonst leer waere
+// und der Zeitplan-Modus erneut unkonfigurierbar — genau der Zustand, den
+// dieser Bildschirm beheben soll.
+const TIMEZONE_OPTIONS: string[] = (() => {
+  const fallback = [LOCAL_TIMEZONE, 'Europe/Berlin', 'Europe/Vienna', 'Europe/Zurich', 'UTC']
+  let values: string[] | undefined
+  try {
+    values = (Intl as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf?.('timeZone')
+  } catch {
+    values = undefined
+  }
+  const list = values?.length ? values : fallback
+  return list.includes(LOCAL_TIMEZONE) ? list : [LOCAL_TIMEZONE, ...list]
+})()
 
 const directionLabel = (dir: InitialDirection): string => {
   switch (dir) {
@@ -594,7 +627,7 @@ const directionLabel = (dir: InitialDirection): string => {
               <!-- Sync-Mode-Settings -->
               <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
                 <p class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400">Sync-Verhalten</p>
-                <select [(ngModel)]="syncMode" name="syncMode" (change)="onSaveSyncMode()"
+                <select [(ngModel)]="syncMode" name="syncMode" (change)="onSyncModeChange()"
                   class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-2 text-sm">
                   @for (opt of syncModeOptions; track opt.value) {
                     <option [value]="opt.value">{{ opt.label }} — {{ opt.description }}</option>
@@ -608,6 +641,45 @@ const directionLabel = (dir: InitialDirection): string => {
                       class="w-28 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-2 text-sm" />
                     <span class="text-xs text-slate-500 dark:text-gray-400">Sekunden</span>
                   </div>
+                }
+                @if (syncMode === 'scheduled') {
+                  <div class="space-y-3">
+                    <div class="space-y-2">
+                      @for (time of syncScheduleTimes; track $index) {
+                        <div class="flex items-center gap-2">
+                          <input type="time" [(ngModel)]="syncScheduleTimes[$index]"
+                            [name]="'syncScheduleTime-' + $index" (change)="onSaveSyncMode()"
+                            class="w-32 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-2 text-sm" />
+                          <button type="button" (click)="removeScheduleTime($index)" aria-label="Uhrzeit entfernen"
+                            class="text-slate-400 hover:text-red-600 dark:hover:text-red-400 text-sm px-2 py-1">✕</button>
+                        </div>
+                      } @empty {
+                        <p class="text-xs text-amber-700 dark:text-amber-400">
+                          Keine Uhrzeit hinterlegt — bis dahin synchronisiert der Edge wie im Modus „Automatisch".
+                        </p>
+                      }
+                    </div>
+                    <button type="button" (click)="addScheduleTime()"
+                      class="text-xs font-medium text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-1.5">
+                      + Uhrzeit
+                    </button>
+                    <div class="flex items-center gap-4">
+                      <label for="syncScheduleTimezone" class="text-xs text-slate-500 dark:text-gray-400">Zeitzone</label>
+                      <select id="syncScheduleTimezone" [(ngModel)]="syncScheduleTimezone" name="syncScheduleTimezone"
+                        (change)="onSaveSyncMode()"
+                        class="flex-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-2 text-sm">
+                        @for (tz of timezoneOptions; track tz) {
+                          <option [value]="tz">{{ tz }}</option>
+                        }
+                      </select>
+                    </div>
+                  </div>
+                }
+                @if (syncMode === 'scheduled' || syncMode === 'disabled') {
+                  <p class="text-xs text-slate-500 dark:text-gray-400">
+                    Die Cloud-Verbindung wird unabhängig davon regelmäßig gehalten — sonst würde die
+                    Kopplung nach 24 Stunden ablaufen und ein erneutes Koppeln nötig machen.
+                  </p>
                 }
                 <div class="flex items-center gap-3">
                   <button (click)="onSyncNow()" [disabled]="syncing()"
@@ -650,6 +722,7 @@ const directionLabel = (dir: InitialDirection): string => {
                     <div><span class="text-slate-500 dark:text-gray-400">bootstrapStatus:</span> {{ connectionInfo()?.bootstrapStatus ?? '—' }}</div>
                     <div><span class="text-slate-500 dark:text-gray-400">syncMode:</span> {{ connectionInfo()?.syncMode ?? '—' }}</div>
                     <div><span class="text-slate-500 dark:text-gray-400">syncIntervalSec:</span> {{ connectionInfo()?.syncIntervalSec ?? '—' }}</div>
+                    <div class="col-span-2"><span class="text-slate-500 dark:text-gray-400">syncSchedule:</span> {{ syncScheduleDiagnostics() }}</div>
                     <div class="col-span-2"><span class="text-slate-500 dark:text-gray-400">cloudUrl:</span> {{ connectionInfo()?.cloudUrl ?? '—' }}</div>
                     @if (connectionInfo()?.bootstrapError) {
                       <div class="col-span-2 text-red-600 dark:text-red-400"><span class="text-slate-500 dark:text-gray-400">bootstrapError:</span> {{ connectionInfo()?.bootstrapError }}</div>
@@ -888,6 +961,8 @@ export class CloudConnectionComponent implements OnInit {
   edgeName = ''
   syncMode: SyncMode = 'auto'
   syncIntervalSec = 300
+  syncScheduleTimes: string[] = []
+  syncScheduleTimezone = LOCAL_TIMEZONE
 
   // Variante (c): bootstrap-edge-to-cloud wird im UI deaktiviert, wenn die
   // Cloud bereits Stammdaten enthaelt (Cloud ist Quelle der Wahrheit). Cloud-
@@ -913,6 +988,13 @@ export class CloudConnectionComponent implements OnInit {
   })
 
   readonly syncModeOptions = SYNC_MODE_OPTIONS
+  readonly timezoneOptions = TIMEZONE_OPTIONS
+
+  syncScheduleDiagnostics(): string {
+    const schedule = this.connectionInfo()?.syncSchedule
+    if (!schedule?.times?.length) return '—'
+    return `${schedule.times.join(', ')} (${schedule.timezone})`
+  }
 
   canStart = computed(() => {
     const dir = this.selectedDirection()
@@ -977,8 +1059,7 @@ export class CloudConnectionComponent implements OnInit {
         this.connectionState.set(conn.pairingStatus)
         this.cloudUrl = conn.cloudUrl || DEFAULT_CLOUD_URL
         this.edgeName = conn.edgeName || ''
-        this.syncMode = conn.syncMode ?? 'auto'
-        this.syncIntervalSec = conn.syncIntervalSec ?? 300
+        this.applySyncSettingsFrom(conn)
         if (conn.bootstrapStatus === 'in-progress') {
           this.wizardStep.set('progress')
           void this.pollBootstrapProgress(conn._id)
@@ -1204,16 +1285,77 @@ export class CloudConnectionComponent implements OnInit {
     this.errors.set([])
   }
 
+  /** Uebernimmt den persistierten Sync-Stand in die Formularfelder. */
+  private applySyncSettingsFrom(conn: CloudConnectionInfo) {
+    this.syncMode = conn.syncMode ?? 'auto'
+    this.syncIntervalSec = conn.syncIntervalSec ?? 300
+    this.syncScheduleTimes = [...(conn.syncSchedule?.times ?? [])]
+    this.syncScheduleTimezone = conn.syncSchedule?.timezone || LOCAL_TIMEZONE
+  }
+
+  /** Gueltige, entdoppelte und chronologisch sortierte Uhrzeiten. */
+  private normalizedScheduleTimes(): string[] {
+    const seen = new Set<string>()
+    return this.syncScheduleTimes
+      .map(time => (time ?? '').trim())
+      .filter(time => SCHEDULE_TIME_PATTERN.test(time) && !seen.has(time) && seen.add(time))
+      .sort()
+  }
+
+  onSyncModeChange() {
+    // Vorbelegung statt Fehlermeldung beim Umschalten: „Zeitplan" ohne Uhrzeiten
+    // war genau der Zustand, der den Modus funktionsunfaehig machte. Er soll gar
+    // nicht erst entstehen koennen.
+    if (this.syncMode === 'scheduled' && this.normalizedScheduleTimes().length === 0) {
+      this.syncScheduleTimes = [DEFAULT_SCHEDULE_TIME]
+    }
+    void this.onSaveSyncMode()
+  }
+
+  addScheduleTime() {
+    this.syncScheduleTimes = [...this.syncScheduleTimes, DEFAULT_SCHEDULE_TIME]
+    this.cdr.markForCheck()
+  }
+
+  removeScheduleTime(index: number) {
+    if (this.syncMode === 'scheduled' && this.syncScheduleTimes.length <= 1) {
+      this.errors.set(['Im Modus „Zeitplan" muss mindestens eine Uhrzeit hinterlegt sein.'])
+      this.cdr.markForCheck()
+      return
+    }
+    this.syncScheduleTimes = this.syncScheduleTimes.filter((_, i) => i !== index)
+    void this.onSaveSyncMode()
+  }
+
   async onSaveSyncMode() {
     const conn = this.connectionInfo()
     if (!conn) return
+    const times = this.normalizedScheduleTimes()
+    if (this.syncMode === 'scheduled' && times.length === 0) {
+      this.errors.set(['Im Modus „Zeitplan" muss mindestens eine gueltige Uhrzeit hinterlegt sein.'])
+      this.cdr.markForCheck()
+      return
+    }
+    const patch: Record<string, unknown> = {
+      syncMode: this.syncMode,
+      syncIntervalSec: this.syncIntervalSec,
+    }
+    // Nur mitschicken, wenn etwas Gueltiges vorliegt — ein leeres times-Array
+    // verletzt `minItems: 1` im Schema und wuerde den ganzen Patch kippen.
+    if (times.length > 0) {
+      patch['syncSchedule'] = { times, timezone: this.syncScheduleTimezone || LOCAL_TIMEZONE }
+    }
     try {
-      await this.api.patch('cloud-connection', conn._id, {
-        syncMode: this.syncMode,
-        syncIntervalSec: this.syncIntervalSec,
-      } as any)
+      this.errors.set([])
+      await this.api.patch('cloud-connection', conn._id, patch as any)
+      // Reload: ohne ihn zeigt der Diagnose-Bereich weiter den alten Stand, und
+      // eine serverseitige Normalisierung bliebe unsichtbar.
+      await this.loadConnection()
     } catch (e: any) {
       this.errors.set(formatApiError(e).split('\n'))
+      // Rollback auf den zuletzt persistierten Stand — sonst bliebe die UI auf
+      // Werten stehen, die der Server abgelehnt hat.
+      this.applySyncSettingsFrom(conn)
       this.cdr.markForCheck()
     }
   }

@@ -42,6 +42,41 @@ type JsonSchemaLike = {
   oneOf?: JsonSchemaLike[]
 }
 
+/**
+ * Services, deren DATA-Schema ein gestempeltes Feld BEWUSST als Pflicht fuehrt.
+ * Ohne diese Liste meldete der Check dieselben bekannten Faelle bei jedem Boot
+ * und die Warnung waere nach der dritten Woche unsichtbar.
+ *
+ * Jeder Eintrag braucht eine Begruendung — „schon immer so" zaehlt nicht.
+ * Wer einen Service hier eintraegt, entscheidet sich fuer eine potenziell
+ * irrefuehrende 400-Meldung; das muss die Alternative aufwiegen.
+ */
+const REQUIRED_STAMP_EXCEPTIONS: Record<string, string> = {
+  // SQLite hat auf BEIDEN Spalten `notNullable` (20260328000004_pre_orders).
+  // Optional zu machen verwandelt einen klaren 400 in einen
+  // `NOT NULL constraint failed`-500 — eine Verschlechterung.
+  'pre-orders': 'DB-Constraint notNullable auf tenantId und locationId',
+  // `locations.tenantId` ist ebenfalls notNullable (20260219000002). Zusaetzlich
+  // ist der einzige externe Create-Pfad der Sync-Pull-Apply, der OHNE `user`
+  // laeuft — dort ist `required` die einzige Instanz, die einen defekten
+  // Cloud-Record laut ablehnt statt ihn still mit NULL zu schreiben.
+  locations: 'DB-Constraint notNullable auf tenantId + Pull-Apply ohne user',
+  // Diese Services sind Ziel des Cloud→Edge-Pull-Apply (`sync-apply.ts`,
+  // `create(..., { provider: undefined, fromSync: true })` — also ohne `user`,
+  // damit ohne Stempel). Faellt `required` weg, landet ein Cloud-Record ohne
+  // locationId still mit NULL in der Edge-DB und ist fuer den filial-gescopten
+  // POS unsichtbar: „gesynct, aber nicht da" ohne jede Fehlermeldung. Der laute
+  // REJECTED-Eintrag im sync-runs-Detail ist die bessere Diagnose.
+  // Lockerung erst zusammen mit einem Guard, der im fromSync-Pfad ein fehlendes
+  // tenantId/locationId hart ablehnt.
+  products: 'Pull-Apply ohne user — required ist der einzige Schutz',
+  'product-groups': 'Pull-Apply ohne user — required ist der einzige Schutz',
+  customers: 'Pull-Apply ohne user — required ist der einzige Schutz',
+  'corporate-customers': 'Pull-Apply ohne user — required ist der einzige Schutz',
+  'opening-hour-exceptions': 'Pull-Apply ohne user — required ist der einzige Schutz',
+  discounts: 'Pull-Apply ohne user — required ist der einzige Schutz',
+}
+
 export type StampFieldViolation = {
   path: string
   /** Feld fehlt im geschlossenen Schema → jeder externe Create scheitert. */
@@ -188,7 +223,9 @@ export function assertStampFields(app: AppLike): StampFieldViolation[] {
   }
 
   // Aggregiert: eine Zeile fuer alle Services, sonst ertraenkt der Befund das Boot-Log.
-  const requiredOnly = violations.filter(v => !v.missing.length && v.required.length)
+  const requiredOnly = violations.filter(
+    v => !v.missing.length && v.required.length && !REQUIRED_STAMP_EXCEPTIONS[v.path],
+  )
   if (requiredOnly.length) {
     logger.warn({
       message:

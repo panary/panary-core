@@ -118,8 +118,6 @@ export type OrderInteraction = Static<typeof orderInteractionSchema>
 const orderInteractionPickedDataSchema = Type.Pick(
   orderInteractionSchema,
   [
-    'tenantId',
-    'locationId',
     'type',
     'orderId',
     'userId',
@@ -174,6 +172,10 @@ const orderInteractionPickedDataSchema = Type.Pick(
 export const orderInteractionDataSchema = Type.Intersect(
   [
     Type.Object({ _id: Type.Optional(Type.String()) }),
+    // `tenantId`/`locationId` optional: serverseitig von `multiTenancy()`
+    // gestempelt. Als Pflichtfelder waere die 400-Meldung bei fehlgeschlagenem
+    // Stempel irrefuehrend (ADR 0031 in panary-cloud).
+    Type.Partial(Type.Pick(orderInteractionSchema, ['tenantId', 'locationId'])),
     orderInteractionPickedDataSchema,
   ],
   {

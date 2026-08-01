@@ -139,21 +139,27 @@ describe('assertStampFields() — Sweep ueber registrierte Services', () => {
   })
 })
 
-// REGRESSION 2026-08-01: `apikeys` fuehrt `locationId` als Pflichtfeld im
-// DATA-Schema, obwohl multiTenancy() es stempelt. Solange der Stempel greift
-// (Fix im Hook: activeLocationId-Fallback + Location-Lookup) funktioniert der
-// Endpunkt — faellt er aus, ist die 400-Meldung irrefuehrend. Der Check macht
-// diese Kopplung sichtbar; die Assertion haelt fest, dass sie bekannt ist.
-describe('apikeyDataSchema — echter Befund aus dem Bug vom 2026-08-01', () => {
-  it('locationId ist Pflicht, obwohl multiTenancy es stempelt', () => {
+// REGRESSION 2026-08-01: `apikeys` fuehrte `tenantId`/`locationId` als
+// Pflichtfelder im DATA-Schema, obwohl multiTenancy() sie stempelt. Aus dieser
+// Kopplung entstand der 400 „must have required property 'locationId'", der
+// auf den Client zeigte, obwohl die Ursache serverseitig lag. Die Felder sind
+// inzwischen optional — dieser Test haelt das fest.
+describe('apikeyDataSchema — Schema-Falle aus dem Bug vom 2026-08-01', () => {
+  it('tenantId/locationId sind optional, nicht Pflicht', () => {
     const violation = checkStampFields({
       path: 'apikeys',
       dataSchema: apikeyDataSchema,
       mtOptions: { isolateLocation: true, allowGlobalData: false },
     })
-    expect(violation?.required).toContain('locationId')
-    // Das Feld IST im Schema deklariert — der Cloud-Check (nur MISSING) haette
-    // hier nichts gemeldet. Genau dafuer gibt es die REQUIRED-Regel.
-    expect(violation?.missing).toEqual([])
+    expect(violation).toBeNull()
+  })
+
+  it('die Felder sind weiterhin DEKLARIERT — sonst lehnt AJV den Stempel ab', () => {
+    // Optional heisst nicht „entfernt": das Schema ist geschlossen
+    // (`additionalProperties: false`), ein nicht deklariertes Feld wuerde vom
+    // gestempelten Wert als `additionalProperty` abgelehnt. Genau diese zweite
+    // Falle prueft die MISSING-Regel.
+    const props = (apikeyDataSchema as { properties?: Record<string, unknown> }).properties ?? {}
+    expect(Object.keys(props)).toEqual(expect.arrayContaining(['tenantId', 'locationId']))
   })
 })

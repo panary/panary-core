@@ -112,12 +112,13 @@ fn read_logs(app: tauri::AppHandle) -> Result<String, String> {
 #[tauri::command]
 fn open_log_dir(app: tauri::AppHandle) -> Result<(), String> {
     use tauri::Manager;
-    use tauri_plugin_shell::ShellExt;
+    use tauri_plugin_opener::OpenerExt;
     let dir = app.path().app_log_dir().map_err(|e| e.to_string())?;
     // Verzeichnis sicherstellen, falls noch keine Zeile geschrieben wurde.
     let _ = std::fs::create_dir_all(&dir);
-    app.shell()
-        .open(dir.to_string_lossy().into_owned(), None)
+    app.opener()
+        // `None` = Standardanwendung des Systems (Finder/Explorer/Dateimanager).
+        .open_path(dir.to_string_lossy().into_owned(), None::<&str>)
         .map_err(|e| e.to_string())
 }
 
@@ -141,7 +142,7 @@ pub fn run() {
                 .level(log::LevelFilter::Info)
                 .build(),
         )
-        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![

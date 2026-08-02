@@ -14,7 +14,9 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = [] }
-tauri-plugin-shell = "2"
+# Öffnet Pfade/URLs mit der Standardanwendung des Systems (Nachfolger von
+# tauri-plugin-shell::open, das seit Plugin-Version 2.3 deprecated ist).
+tauri-plugin-opener = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 # Persistente Logdatei (Feld-Diagnose) mit Rotation. `log` liefert die Makros,

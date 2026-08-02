@@ -131,9 +131,12 @@ export const settingsSchema = Type.Object({
       }),
     ),
   }),
+  // Frist fuer den Auto-Logoff am POS. Aufloesung ueber
+  // `resolveAutoLogOffTimeoutMs` — dort liegt auch die Untergrenze und die
+  // Begruendung, warum `autoLogOffTimeUnit` ein freies String bleibt.
   genericUserSettings: Type.Object({
-    autoLogOffTime: Type.Number({ default: 30 }),
-    autoLogOffTimeUnit: Type.String({ default: 'sec' }),
+    autoLogOffTime: Type.Number({ default: 2 }),
+    autoLogOffTimeUnit: Type.String({ default: 'min' }),
   }),
   genericProductSettings: Type.Object({
     generalSideDishPrice: Type.Number({ default: 0 }),

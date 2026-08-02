@@ -44,8 +44,8 @@ export const generateDefaultLocationSettings: Settings = {
     rooms: [],
   },
   genericUserSettings: {
-    autoLogOffTime: 30,
-    autoLogOffTimeUnit: 'sec',
+    autoLogOffTime: 2,
+    autoLogOffTimeUnit: 'min',
   },
   genericProductSettings: {
     generalSideDishPrice: 0,

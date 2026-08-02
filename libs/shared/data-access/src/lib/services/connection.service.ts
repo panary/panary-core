@@ -9,6 +9,7 @@ import { Utils } from '@panary/shared/util-helpers'
 
 import { AppConfigService, DeviceConfigService } from '@panary/shared/data-access-config'
 import { BusinessDaySchema } from '@panary/businessdays/domain'
+import { matchesSocketIdentity, type SocketIdentity } from './socket-identity'
 
 type ServiceTypes = {
   users: SocketService & {
@@ -99,6 +100,14 @@ export class ConnectionService {
   // Compatibility for POS
   readonly #connectionError: WritableSignal<string | null> = signal(null)
 
+  // Der Server hat die Geraete-Authentifizierung aktiv ABGELEHNT (deaktiviertes
+  // oder revoziertes Geraet) — im Unterschied zu `#connectionError`, das reine
+  // Transportfehler traegt. Bewusst getrennt: eine Ablehnung ist terminal
+  // (Warten hilft nicht), waehrend socket.io bei Transportfehlern selbsttaetig
+  // weiter reconnected. Und sie darf NICHT den `client-offline`-Banner
+  // ausloesen — der Client ist ja verbunden, nur nicht autorisiert.
+  readonly #deviceAuthRejection: WritableSignal<string | null> = signal(null)
+
   readonly connectionState = computed(() => {
     const linked = this.#serverLink().isConnected
     const auth = this.#isAuthenticated()
@@ -124,6 +133,10 @@ export class ConnectionService {
   #app: any
   // Keep strict typing for internal usage if possible, or any
   #socket: Socket
+  // Mit welcher Identitaet wurde `#socket` gebaut? Nicht aus
+  // `connectionState().deviceId` ableitbar — das ist der LIVE-Wert der Config,
+  // waehrend hier der eingefrorene Wert des Sockets stehen muss.
+  #socketIdentity: SocketIdentity = { deviceId: null, baseUrl: '' }
 
   get userId(): Id | undefined {
     // Helper to decode token or get from storage if needed, but preferably used from AuthService in the app
@@ -572,7 +585,30 @@ export class ConnectionService {
 
   socketConnect(): void {
     this.#connectionError.set(null)
+    this.#deviceAuthRejection.set(null)
     this.#app.io?.connect()
+  }
+
+  /**
+   * Der Server hat die Geraete-Authentifizierung abgelehnt (Grund als String),
+   * sonst `null`. Terminal — im Gegensatz zu einem Transportfehler bringt
+   * Weiterwarten hier nichts.
+   */
+  get deviceAuthRejection(): Signal<string | null> {
+    return this.#deviceAuthRejection.asReadonly()
+  }
+
+  /**
+   * Passt der laufende Socket noch zur uebergebenen DeviceConfig?
+   *
+   * Der Socket wird genau einmal im Konstruktor gebaut — und der laeuft im
+   * `provideAppInitializer`, also vor jeder Route. Wird die Config danach
+   * geaendert (Pairing, Serverwechsel, Entkopplung), traegt der Socket
+   * unveraenderlich die alte URL und den alten `auth`-Payload. Konsumenten
+   * erzwingen dann einen App-Neustart, statt aussichtslos zu reconnecten.
+   */
+  isConfiguredFor(config: { deviceId?: string | null; serverUrl?: string | null } | null): boolean {
+    return matchesSocketIdentity(this.#socketIdentity, config)
   }
 
   socketDisconnect(): void {
@@ -743,6 +779,7 @@ export class ConnectionService {
     // und genau dann brauchen die Seiten den Zustand, weil `healthLoaded` noch
     // false ist und alle Formulare entsperrt rendern.
     this.#lastHealthUrl = url
+    this.#socketIdentity = { deviceId: deviceConfig?.deviceId ?? null, baseUrl: url }
 
     const socket = io(url, options)
 
@@ -786,10 +823,16 @@ export class ConnectionService {
           console.log(`[POS-WS] ✓ Device authenticated!`)
           this.#isAuthenticated.set(true)
           this.#connectionError.set(null)
+          this.#deviceAuthRejection.set(null)
           this.deviceConfigService.updateLastSync()
         } else {
           console.error(`[POS-WS] ✗ Authentication failed:`, data.error)
           this.#isAuthenticated.set(false)
+          // Ohne gesetzten Zustand liefe der Login-Screen in denselben
+          // 15-Sekunden-Timeout wie bei "Server nicht erreichbar" — der Bediener
+          // saehe "Verbindungsfehler", obwohl das Geraet serverseitig abgelehnt
+          // wurde. Zwei grundverschiedene Ursachen, eine Meldung.
+          this.#deviceAuthRejection.set(typeof data.error === 'string' && data.error ? data.error : 'DEVICE_REJECTED')
         }
       })
       .on('device:deactivated', () => {

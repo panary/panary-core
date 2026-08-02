@@ -585,7 +585,13 @@ export class ConnectionService {
 
   socketConnect(): void {
     this.#connectionError.set(null)
-    this.#deviceAuthRejection.set(null)
+    // #deviceAuthRejection wird hier bewusst NICHT zurueckgesetzt: der Socket
+    // verbindet bereits im Konstruktor, die Ablehnung trifft also regelmaessig
+    // ein, bevor der Login-Screen ueberhaupt steht. Ein Reset an dieser Stelle
+    // wuerde sie verwerfen — und weil ein bereits verbundener Socket keinen
+    // zweiten Handshake macht, kaeme nie ein neues `device:authenticated`.
+    // Zurueckgesetzt wird ausschliesslich beim `connect`-Event, wo tatsaechlich
+    // ein frischer Handshake laeuft.
     this.#app.io?.connect()
   }
 
@@ -791,6 +797,10 @@ export class ConnectionService {
           connectedAt: new Date().toLocaleString(),
         })
         this.#connectionError.set(null)
+        // Frischer Handshake laeuft — ein alter Ablehnungsgrund ist damit
+        // ueberholt und wird gleich durch ein neues `device:authenticated`
+        // ersetzt (Erfolg oder erneute Ablehnung).
+        this.#deviceAuthRejection.set(null)
         console.log(`Socket "${socket.id}" established connection.`)
 
         // Systemmodus vom Backend abfragen

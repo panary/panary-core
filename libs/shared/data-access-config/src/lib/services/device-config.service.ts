@@ -341,6 +341,11 @@ export class DeviceConfigService {
         registeredAt: new Date(),
       }
 
+      if (!this.#rejectIncompleteConfig(config)) {
+        this.cleanupSetupClient()
+        return null
+      }
+
       this.saveConfig(config)
       this.registrationStatus.set('success')
 
@@ -410,6 +415,8 @@ export class DeviceConfigService {
         registeredAt: new Date(),
       }
 
+      if (!this.#rejectIncompleteConfig(config)) return null
+
       this.saveConfig(config)
       this.registrationStatus.set('success')
       return config
@@ -420,6 +427,32 @@ export class DeviceConfigService {
       this.registrationStatus.set('error')
       return null
     }
+  }
+
+  /**
+   * Verwirft eine Registrierungs-Antwort, aus der keine benutzbare Config wird.
+   *
+   * Der Edge erzeugt den API-Key in einem `after.create`-Hook, der seinen
+   * eigenen Fehler abfaengt und nicht weiterwirft — schlaegt die Key-Erzeugung
+   * fehl, kommt trotzdem ein `201` zurueck, nur eben ohne `apiKey`. Wird das
+   * gespeichert, ist `hasConfig()` false: der Guard schickt zurueck in den
+   * Wizard, und weil der Abschluss die App neu startet, ist auch die
+   * In-Memory-Session (Admin-JWT, Organisations-/Standortwahl) weg. Der Bediener
+   * stuende wortlos wieder am Anfang — bei einem Geraet, das serverseitig
+   * bereits angelegt ist.
+   *
+   * @returns `true`, wenn die Config gespeichert werden darf.
+   */
+  #rejectIncompleteConfig(config: DeviceConfig): boolean {
+    if (config.deviceId && config.apiKey) return true
+
+    console.error('Registrierung ohne verwertbare Credentials:', {
+      hasDeviceId: !!config.deviceId,
+      hasApiKey: !!config.apiKey,
+    })
+    this.registrationError.set('Der Server hat kein vollständiges Geräte-Zertifikat geliefert. Bitte erneut versuchen.')
+    this.registrationStatus.set('error')
+    return false
   }
 
   /**

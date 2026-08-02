@@ -28,6 +28,12 @@ interface PosUser {
 
 type LoginStep = 'loading' | 'select-user' | 'enter-pin' | 'change-pin' | 'error'
 
+/** Wie lange auf eine authentifizierte Verbindung gewartet wird, bevor die Fehlermaske erscheint. */
+const CONNECTION_TIMEOUT_MS = 15_000
+
+/** Taktung des Zustands-Pollings waehrend des Wartens. */
+const CONNECTION_POLL_INTERVAL_MS = 100
+
 /** Phasen innerhalb des erzwungenen PIN-Wechsels. */
 type ChangePinPhase = 'new' | 'confirm'
 
@@ -178,22 +184,68 @@ export class LoginComponent implements OnInit {
     }
   }
 
+  /**
+   * Wartet, bis die Geraete-Authentifizierung steht.
+   *
+   * Ein Transportfehler beendet das Warten bewusst NICHT: socket.io reconnected
+   * mit `reconnectionAttempts: Infinity` von selbst, und beim Kaltstart des
+   * Terminals (die App startet vor dem WLAN) ist der erste Versuch regelmaessig
+   * der einzige, der scheitert. Bisher kippte genau das den Login sofort in die
+   * Fehlermaske, obwohl die Verbindung Sekunden spaeter stand. Der Fehler wird
+   * nur fuer die Diagnose gemerkt.
+   *
+   * Eine Ablehnung durch den Server (deaktiviertes Geraet) bricht dagegen sofort
+   * ab — dort aendert Warten nichts, und der Bediener braucht eine andere
+   * Meldung als "nicht erreichbar".
+   *
+   * Beide Timer werden in jedem Ausgang abgeraeumt. Ohne das lief die
+   * Poll-Schleife endlos weiter, solange der Status auf 'connected' klebte, und
+   * jedes "Erneut versuchen" startete eine weitere dazu.
+   */
   private waitForConnection(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const checkConnection = () => {
-        const state = this.connectionService.connectionState()
-        if (state.status === 'authenticated') {
-          resolve()
-        } else if (state.status === 'error') {
-          reject(new Error(state.error || 'Connection failed'))
-        } else {
-          setTimeout(checkConnection, 100)
-        }
+      let pollTimer: ReturnType<typeof setTimeout> | null = null
+      let deadlineTimer: ReturnType<typeof setTimeout> | null = null
+      let lastTransportError: string | null = null
+
+      const stop = (): void => {
+        if (pollTimer) clearTimeout(pollTimer)
+        if (deadlineTimer) clearTimeout(deadlineTimer)
+        pollTimer = null
+        deadlineTimer = null
       }
 
-      // Timeout after 15 seconds
-      setTimeout(() => reject(new Error('Connection timeout')), 15000)
-      checkConnection()
+      const fail = (messageKey: string): void => {
+        stop()
+        reject(new Error(this.#translateService.instant(messageKey)))
+      }
+
+      const poll = (): void => {
+        if (this.connectionService.deviceAuthRejection()) {
+          console.error('[POS-Login] Geraet vom Server abgelehnt:', this.connectionService.deviceAuthRejection())
+          fail('LOGIN.DEVICE_REJECTED')
+          return
+        }
+
+        const state = this.connectionService.connectionState()
+        if (state.status === 'authenticated') {
+          stop()
+          resolve()
+          return
+        }
+        if (state.status === 'error') lastTransportError = state.error
+
+        pollTimer = setTimeout(poll, CONNECTION_POLL_INTERVAL_MS)
+      }
+
+      deadlineTimer = setTimeout(() => {
+        // Die rohe socket.io-Meldung ("xhr poll error") hilft nur bei der
+        // Diagnose — dem Bediener wird der uebersetzte Text gezeigt.
+        if (lastTransportError) console.warn('[POS-Login] Letzter Transportfehler:', lastTransportError)
+        fail('LOGIN.CONNECTION_TIMEOUT')
+      }, CONNECTION_TIMEOUT_MS)
+
+      poll()
     })
   }
 
@@ -472,13 +524,35 @@ export class LoginComponent implements OnInit {
   //#endregion
 
   //#region Error Handling
+  /**
+   * Erneut versuchen — aber nur, wenn der laufende Socket ueberhaupt noch zur
+   * gespeicherten DeviceConfig passt.
+   *
+   * Nach einem frischen Pairing (oder einem Serverwechsel) wurde er im Bootstrap
+   * mit der alten, ggf. leeren Config gebaut; URL und auth-Payload sind danach
+   * unveraenderlich. Ein Reconnect kann dann nie ein `device:authenticated`
+   * bekommen und liefe garantiert erneut in den Timeout. Einziger Ausweg ist ein
+   * Neustart der App.
+   */
   retry(): void {
-    this.connectAndLoadUsers()
+    if (!this.connectionService.isConfiguredFor(this.configService.getConfig())) {
+      this.refreshPage()
+      return
+    }
+    void this.connectAndLoadUsers()
   }
 
+  /**
+   * Neustart statt Navigation: nach `clearConfig()` traegt der laufende Socket
+   * weiterhin die alten Geraete-Credentials und reconnected dauerhaft gegen den
+   * alten Server. Bliebe er stehen, koennte ein `device:deactivated` waehrend
+   * des Re-Setups `clearConfig()` ausloesen und die soeben geschriebene neue
+   * Config wieder loeschen. Der `posAuthGuard` schickt nach dem Neustart wegen
+   * `hasConfig() === false` von selbst nach /setup.
+   */
   goToSetup(): void {
     this.configService.clearConfig()
-    this.router.navigate(['/setup'])
+    this.refreshPage()
   }
 
   //#endregion

@@ -107,7 +107,9 @@
     "UPDATE_AVAILABLE": "mevcut",
     "UPDATING": "Güncelleniyor…",
     "UPDATE_AND_RESTART": "Güncelle ve Yeniden Başlat",
-    "CONNECTION_FAILED": "Bağlantı başarısız"
+    "CONNECTION_FAILED": "Bağlantı başarısız",
+    "CONNECTION_TIMEOUT": "Sunucuya ulaşılamıyor. Lütfen ağı ve hub bağlantısını kontrol edin.",
+    "DEVICE_REJECTED": "Bu cihaz sunucu tarafından reddedildi. Lütfen yönetim alanında hâlâ etkin olup olmadığını kontrol edin."
   },
   "TIME_CLOCK": {
     "TITLE": "Çalışma saati kaydı",

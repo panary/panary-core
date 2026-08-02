@@ -107,7 +107,9 @@
     "UPDATE_AVAILABLE": "verfügbar",
     "UPDATING": "Aktualisiere…",
     "UPDATE_AND_RESTART": "Aktualisieren & Neustarten",
-    "CONNECTION_FAILED": "Verbindung fehlgeschlagen"
+    "CONNECTION_FAILED": "Verbindung fehlgeschlagen",
+    "CONNECTION_TIMEOUT": "Server nicht erreichbar. Bitte Netzwerk und Hub prüfen.",
+    "DEVICE_REJECTED": "Dieses Gerät wurde vom Server abgelehnt. Bitte im Admin-Bereich prüfen, ob es noch aktiv ist."
   },
   "TIME_CLOCK": {
     "TITLE": "Arbeitszeiterfassung",

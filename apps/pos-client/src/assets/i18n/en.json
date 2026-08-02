@@ -107,7 +107,9 @@
     "UPDATE_AVAILABLE": "available",
     "UPDATING": "Updating...",
     "UPDATE_AND_RESTART": "Update & Restart",
-    "CONNECTION_FAILED": "Connection failed"
+    "CONNECTION_FAILED": "Connection failed",
+    "CONNECTION_TIMEOUT": "Server unreachable. Please check the network and hub.",
+    "DEVICE_REJECTED": "This device was rejected by the server. Please check in the admin area whether it is still active."
   },
   "TIME_CLOCK": {
     "TITLE": "Time tracking",

@@ -4,7 +4,7 @@ title: POS-Pairing-Wizard — Cloud-Default + lokaler Hub (mDNS/QR/manuell)
 description: Geführte POS-Inbetriebnahme mit Panary-Cloud-Default und lokaler Hub-Erkennung via mDNS, QR oder manueller IP samt single-use Pairing-Code-Flow.
 tags: [system, devices, data-access-config, pos, pairing]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-07-27T00:00:00Z }
+generated: { by: claude-code/opus-5, at: 2026-08-02T00:00:00Z }
 ---
 
 # POS-Pairing-Wizard
@@ -36,11 +36,14 @@ welcome ──► [Cloud]  ─────────────────�
        hub-auth ── Pairing-Code (bevorzugt) ──► redeem ──► success  │
           └──────── Admin-Login (Fallback) ──────────────────► server-login
                                                                     ▼
-                                            select-org ► device-info ► registering ► success ► /login
+                                            select-org ► device-info ► registering ► success ► App-Neustart ► /login
 ```
 
 Der nachgelagerte Teil (`select-org` → `device-info` → `registerDevice`) bleibt
 gegenüber dem alten Setup unverändert und wird wiederverwendet.
+
+Der Abschluss ist bewusst **kein** SPA-Routenwechsel, sondern ein Neustart der App —
+siehe [Invariante](#invariante-deviceconfig-wechsel-erfordert-einen-app-neustart).
 
 ## Edge (`apps/api-edge`)
 
@@ -147,6 +150,50 @@ Code-Record** gestempelt (nie aus dem Request-Body — `multiTenancy` stempelt b
 - **`SetupComponent`**: verzweigter `SetupStep`-Flow, Signals + OnPush, i18n (de/en/tr),
   flache CSS-/SVG-Animationen. QR-Scan dependency-frei via `BarcodeDetector`
   (degradiert auf WebKitGTK → manuelle Eingabe).
+
+## Invariante: DeviceConfig-Wechsel erfordert einen App-Neustart
+
+> Jeder Pfad, der `panary_device_config` schreibt oder löscht, **muss** mit einem
+> Neustart der App enden — nicht mit `router.navigate()`.
+
+**Ursache.** `ConnectionService`
+(`libs/shared/data-access/src/lib/services/connection.service.ts`) baut den
+socket.io-Socket genau einmal im Konstruktor, und der läuft im
+`provideAppInitializer` (`apps/pos-client/src/app/offline-cache.provider.ts`) — also
+**vor jeder Route**. URL und `auth`-Payload sind in den socket.io-Optionen danach
+unveränderlich; `connect()` reaktiviert nur dieselbe eingefrorene Konfiguration.
+
+Beim Erst-Setup existiert zum Bootstrap-Zeitpunkt noch keine DeviceConfig. Der Socket
+entsteht deshalb im Admin-/User-Zweig: Default-URL, **ohne** `auth: { apiKey, deviceId }`.
+Das Gerät bekommt nie ein `device:authenticated`, der Login-Screen läuft in seinen
+Timeout — und ein Retry auf demselben Socket scheitert zwangsläufig erneut.
+
+**Betroffene Pfade — alle enden mit einem Neustart:**
+
+| Pfad | Ort |
+|---|---|
+| Pairing-Abschluss | `SetupComponent.rebootIntoApp()` (Ziel `/`, wie jeder Kaltstart) |
+| Gerät entkoppeln | `unpair-device-dialog.component.ts` |
+| Gerät zurücksetzen | `LoginComponent.resetDevice()` |
+| „Neu einrichten" nach Verbindungsfehler | `LoginComponent.goToSetup()` |
+
+**Warum kein Socket-Hot-Swap.** `BaseService` friert die Feathers-Service-Referenz im
+Konstruktor ein und registriert dort die Realtime-Listener (`created`/`updated`/
+`patched`/`removed`); über ein Dutzend `providedIn: 'root'`-Subklassen holen sie genau
+einmal. Ein Austausch des Sockets ließe Reads **und** die komplette Realtime-Ebene still
+verstummen — ohne Fehler, ohne Log.
+
+**Was der Neustart mitzieht.** Zwei weitere Konsumenten lesen die Config ebenfalls nur
+einmal beim Bootstrap: der Offline-Cache (`initPosOfflineCache` kehrt ohne `tenantId`/
+`serverUrl` früh zurück und wird nie nachgeholt) und die Health-Poll-URL
+(`#lastHealthUrl`, speist `systemMode` und den Cloud-Status-Banner). Ohne Neustart bleiben
+beide bis zum nächsten App-Start falsch.
+
+**Erkennung.** `ConnectionService.isConfiguredFor(config)` vergleicht die eingefrorene
+Socket-Identität (`deviceId` + Protokoll/Host) mit der aktuell gespeicherten Config. Der
+Retry-Button im POS-Login nutzt das: bei Abweichung startet er die App neu, statt
+aussichtslos weiter zu verbinden. Reine Funktion `matchesSocketIdentity()` in
+`socket-identity.ts`, unit-getestet.
 
 ## Admin-Client (`apps/admin-client`)
 

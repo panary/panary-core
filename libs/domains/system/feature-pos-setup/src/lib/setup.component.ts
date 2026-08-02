@@ -10,7 +10,6 @@ import {
 } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
-import { Router } from '@angular/router'
 import {
   DeviceConfigService,
   DeviceRegistrationRequest,
@@ -74,7 +73,6 @@ export class SetupComponent {
   //#region Dependencies
   private readonly configService = inject(DeviceConfigService)
   private readonly hubDiscovery = inject(HubDiscoveryService)
-  private readonly router = inject(Router)
   readonly themeService = inject(ThemeServiceService)
   readonly languageService = inject(LanguageService)
   readonly translateService = inject(TranslateService)
@@ -550,8 +548,29 @@ export class SetupComponent {
     this.registeredDeviceId.set(deviceId)
     this.currentStep.set('success')
     setTimeout(() => {
-      void this.router.navigate(['/login'])
+      this.rebootIntoApp()
     }, 2500)
+  }
+
+  /**
+   * Neustart der App statt reiner SPA-Navigation.
+   *
+   * Der ConnectionService baut den socket.io-Socket genau einmal im Konstruktor
+   * — und der laeuft im `provideAppInitializer`, also vor jeder Route. Beim
+   * Erst-Setup gab es zu dem Zeitpunkt keine DeviceConfig, der Socket zeigt
+   * also ohne Geraete-Credentials auf die Default-URL und bekommt nie ein
+   * `device:authenticated`. URL und auth-Payload sind in den socket.io-Optionen
+   * unveraenderlich; nur ein Neustart liest die frische Config. Er initialisiert
+   * nebenbei auch den Offline-Cache und die Health-Poll-URL, die beide ebenfalls
+   * einmalig beim Bootstrap aus der Config gespeist werden.
+   *
+   * Ziel ist bewusst `/` und nicht `/login`: ein gepairtes Geraet startet im
+   * Alltag immer dort (Route '' → setupGuard → /login). Der Post-Pairing-Boot
+   * wird damit identisch zum taeglichen Kaltstart und macht keine Annahme ueber
+   * SPA-Deep-Link-Fallback oder base href — im Browser wie im Tauri-Build.
+   */
+  private rebootIntoApp(): void {
+    window.location.href = '/'
   }
 
   /** Kontextabhängiges Zurück. */

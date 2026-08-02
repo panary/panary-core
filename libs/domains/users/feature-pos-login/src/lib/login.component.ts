@@ -179,7 +179,9 @@ export class LoginComponent implements OnInit {
       this.currentStep.set('select-user')
     } catch (error) {
       console.error('Failed to connect or load users:', error)
-      this.errorMessage.set(error instanceof Error ? error.message : this.#translateService.instant('LOGIN.CONNECTION_FAILED'))
+      this.errorMessage.set(
+        error instanceof Error ? error.message : this.#translateService.instant('LOGIN.CONNECTION_FAILED'),
+      )
       this.currentStep.set('error')
     }
   }

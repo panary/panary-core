@@ -73,9 +73,7 @@ interface QuickAction {
   selector: 'lib-dashboard',
   standalone: true,
   imports: [CommonModule, MatDialogModule, NgxEchartsModule, TranslateModule],
-  providers: [
-    { provide: NGX_ECHARTS_CONFIG, useValue: { echarts: () => import('echarts') } },
-  ],
+  providers: [{ provide: NGX_ECHARTS_CONFIG, useValue: { echarts: () => import('echarts') } }],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -418,7 +416,9 @@ export class DashboardComponent implements OnInit {
    */
   #timeTrackingBlockedOffline(): boolean {
     if (!this.isOffline()) return false
-    this.#snackBar.open(this.#translate.instant('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED'), undefined, { duration: 4000 })
+    this.#snackBar.open(this.#translate.instant('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED'), undefined, {
+      duration: 4000,
+    })
     return true
   }
 

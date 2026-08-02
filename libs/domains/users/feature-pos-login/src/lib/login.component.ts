@@ -472,13 +472,35 @@ export class LoginComponent implements OnInit {
   //#endregion
 
   //#region Error Handling
+  /**
+   * Erneut versuchen — aber nur, wenn der laufende Socket ueberhaupt noch zur
+   * gespeicherten DeviceConfig passt.
+   *
+   * Nach einem frischen Pairing (oder einem Serverwechsel) wurde er im Bootstrap
+   * mit der alten, ggf. leeren Config gebaut; URL und auth-Payload sind danach
+   * unveraenderlich. Ein Reconnect kann dann nie ein `device:authenticated`
+   * bekommen und liefe garantiert erneut in den Timeout. Einziger Ausweg ist ein
+   * Neustart der App.
+   */
   retry(): void {
-    this.connectAndLoadUsers()
+    if (!this.connectionService.isConfiguredFor(this.configService.getConfig())) {
+      this.refreshPage()
+      return
+    }
+    void this.connectAndLoadUsers()
   }
 
+  /**
+   * Neustart statt Navigation: nach `clearConfig()` traegt der laufende Socket
+   * weiterhin die alten Geraete-Credentials und reconnected dauerhaft gegen den
+   * alten Server. Bliebe er stehen, koennte ein `device:deactivated` waehrend
+   * des Re-Setups `clearConfig()` ausloesen und die soeben geschriebene neue
+   * Config wieder loeschen. Der `posAuthGuard` schickt nach dem Neustart wegen
+   * `hasConfig() === false` von selbst nach /setup.
+   */
   goToSetup(): void {
     this.configService.clearConfig()
-    this.router.navigate(['/setup'])
+    this.refreshPage()
   }
 
   //#endregion

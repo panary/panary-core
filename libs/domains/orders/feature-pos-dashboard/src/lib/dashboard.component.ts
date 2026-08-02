@@ -19,7 +19,7 @@ import { ConnectionService } from '@panary/shared/data-access'
 import { Order, OrderService, OrderStatus } from '@panary/orders/data-access'
 import { UserService } from '@panary/users/data-access'
 import { UserSystemRole, type User } from '@panary/users/domain'
-import { AuthService } from '@panary/auth/data-access'
+import { AuthService, PosSessionService } from '@panary/auth/data-access'
 import { WorkingTime } from '@panary/working-times/domain'
 import { WorkingTimeService } from '@panary/working-times/data-access'
 import { LocationService } from '@panary/locations/data-access'
@@ -86,6 +86,7 @@ export class DashboardComponent implements OnInit {
   #orderService = inject(OrderService)
   #userService = inject(UserService)
   #authService = inject(AuthService)
+  #posSessionService = inject(PosSessionService)
   #workingTimeService = inject(WorkingTimeService)
   #locationService = inject(LocationService)
   #connectionService = inject(ConnectionService)
@@ -99,15 +100,11 @@ export class DashboardComponent implements OnInit {
   #destroyRef = inject(DestroyRef)
 
   /**
-   * Offline darf sich der Staff nicht abmelden: die Wiederanmeldung läuft über die
-   * serverseitige PIN-Prüfung (`verifyPin`) und `AuthService.logout()` löscht das
-   * Device-JWT (`sessionStorage.clear()`). Ein Abmelden ohne Verbindung würde das
-   * Gerät bis zum Reconnect komplett aussperren.
+   * Offline darf sich der Staff nicht abmelden — Begründung und Prüfung liegen
+   * in `PosSessionService`, damit Button-Logout und Inaktivitäts-Logout
+   * dieselbe Sperre teilen.
    */
-  readonly isOffline = computed(() => {
-    const status = this.#connectionService.connectionState().status
-    return status !== 'connected' && status !== 'authenticated'
-  })
+  readonly isOffline = this.#posSessionService.isOffline
 
   // Vorbestellungen für heute
   todayPreOrders = signal<PreOrder[]>([])
@@ -407,8 +404,7 @@ export class DashboardComponent implements OnInit {
       this.#snackBar.open(this.#translate.instant('DASHBOARD.LOGOUT_OFFLINE_BLOCKED'), undefined, { duration: 4000 })
       return
     }
-    localStorage.removeItem('pos_current_user')
-    this.#authService.logout()
+    void this.#posSessionService.endSession('button')
   }
 
   // --- Time Tracking Actions ---

@@ -300,6 +300,15 @@ export class AuthService {
     console.warn('[AuthService] logout() called. Redirect:', redirect, new Error().stack)
     this.#authenticationItem.set(null)
     sessionStorage.clear()
+    // Der POS fuehrt eine zweite Sitzungsebene: das Geraet haengt am
+    // sessionStorage-JWT, der MITARBEITER an `pos_current_user` im
+    // localStorage — und `posAuthGuard` entscheidet ausschliesslich daran.
+    // Blieb der Eintrag hier liegen, kam der Nutzer nach einem Token-Ablauf
+    // (periodischer Check oben, WS-401-Waechter) zwar auf /login, konnte aber
+    // jede geschuetzte Route weiter aufrufen und landete dort ohne gueltiges
+    // Geraete-JWT im leeren Bildschirm samt WS-Reconnect-Schleife.
+    // Im Admin-Client existiert der Schluessel nicht — dort ist die Zeile ein No-Op.
+    localStorage.removeItem('pos_current_user')
 
     const snackBarMessage = 'Benutzer erfolgreich abgemeldet'
     this.#matSnackBar.open(snackBarMessage, AuthService.SNACKBAR_ACTION, { duration: AuthService.SNACKBAR_DURATION })

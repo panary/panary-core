@@ -26,10 +26,12 @@ export const AUTO_LOG_OFF_FALLBACK_SECONDS = 120
  * `validateData` scheitern und — weil `locations` ueber den Sync laeuft — den
  * Datensatz terminal ablehnen.
  */
-export const resolveAutoLogOffTimeoutMs = (settings?: {
-  autoLogOffTime?: unknown
-  autoLogOffTimeUnit?: unknown
-} | null): number => {
+export const resolveAutoLogOffTimeoutMs = (
+  settings?: {
+    autoLogOffTime?: unknown
+    autoLogOffTimeUnit?: unknown
+  } | null,
+): number => {
   const raw = Number(settings?.autoLogOffTime)
   const unit = String(settings?.autoLogOffTimeUnit ?? 'sec').toLowerCase()
   const factor = unit === 'min' ? 60 : unit === 'h' ? 3600 : 1

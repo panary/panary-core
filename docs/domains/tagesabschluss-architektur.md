@@ -57,6 +57,20 @@ status: 'audited'               ← Manager hat Plombe im Admin-Dashboard gesetz
 
 Beim Closing wird die [`sync-outbox`](../../apps/api-edge/src/services/sync-outbox) auf pending-Einträge geprüft. Wenn auch nur **eine** unsynchrone Änderung existiert, wird die Aggregation blockiert — sonst würde die Cloud auf einem unvollständigen Datenbestand rechnen und der Report wäre falsch.
 
+> **Reichweite dieser Prüfung — wichtig.** Sie sitzt im **Edge**-`closeDay` und misst die
+> Outbox **lokal**; genau deshalb ist sie belastbar. Im **gepairten** Betrieb wird sie extern
+> allerdings nie erreicht: `guardCloudManagedLifecycle` sperrt den Edge-`closeDay`, sobald eine
+> `cloud-connection` mit `PairingStatus.CONNECTED` existiert — der Tagesabschluss läuft dann über
+> den Cloud-Service. Der Guard bleibt als Netz für Standalone-Betrieb und interne Aufrufe.
+>
+> Das Cloud-Pendant gibt es bewusst **nicht**: Die Cloud kann Unvollständigkeit vorher nicht
+> feststellen (das Sync-Protokoll trägt keinen Wasserstand), und ein Gate auf einer
+> Edge-Selbstauskunft ist per
+> [ADR 0030](../../../panary-cloud/docs/adr/0030-edge-geraetezaehlung-ueber-heartbeat.md) gesperrt.
+> Stattdessen erkennt die Cloud Nachzügler **nach** dem Abschluss und markiert den Report als
+> rekonziliations-bedürftig —
+> [ADR 0032](../../../panary-cloud/docs/adr/0032-tagesabschluss-vollstaendigkeit-ohne-selbstauskunft.md).
+
 ### Cloud-Trigger
 
 Der Edge nutzt die existierende [`cloud-connection`](../../apps/api-edge/src/services/cloud-connection) für die HTTP-Verbindung. Best-Effort: bei Cloud-Ausfall bleibt der Tag in `closing-requested` und wird beim nächsten manuellen Retry oder Heartbeat-Reconnect erneut getriggert.
@@ -150,15 +164,21 @@ Bei Verletzung → Persist-Step throws, `report.status='failed'`, Diff im `error
 
 ---
 
-## KassenSichV / TSE — Phase 2
+## KassenSichV / TSE
 
-Schema-Felder für TSE-Anbindung sind in `BusinessDayReport.fiscal` reserviert:
+Felder für die TSE-Anbindung in `BusinessDayReport.fiscal`:
 - `tseSerialNumber`
 - `tseSignatureChain`
 - `dsfinvkExportPath`
 - `fiscalDocumentNumber`
 
-Eine Z-Bon-Nummer wird im pos-cashier-Modus lückenlos pro Location vergeben (`steps/assign-z-report-number.ts`, Unique-Index in MongoDB). TSE-Signatur-Anbindung folgt in einer separaten Phase, sobald TSE-Hardware integriert ist.
+Eine Z-Bon-Nummer wird im pos-cashier-Modus lückenlos pro Location vergeben (`steps/assign-z-report-number.ts`, Unique-Index in MongoDB).
+
+**Der Signierpfad existiert bereits** — nicht mehr „Phase 2". `signBusinessDayClose` ruft beim Edge-Closing `tsePort.signDayClose`, das Cloud-Pendant `signCloudDayClose` tut dasselbe. Was fehlt, ist ausschließlich der **Provider-Adapter**: `tse-port.factory.ts` kennt nur den `SimulatorTseAdapter`, der in Produktion fail-closed abgelehnt wird; für `fiskaly` wirft die Factory `TSE_PROVIDER_NOT_IMPLEMENTED`. Solange das so ist, bleibt `fiscal.tseSignatureChain` in Produktion leer.
+
+Ein Signatur-Ausfall blockiert den Abschluss bewusst nie (§146a): der Tag schließt und wird als nachzusignieren markiert.
+
+> **Folge für die Rekonziliation:** Der cloud-seitige `reAggregate` ruft **keinen** TSE-Pfad. Sobald ein echter Adapter aktiv ist, würde eine Neuberechnung Zahlen ändern, über die bereits signiert wurde — deshalb sperrt er seit [ADR 0032](../../../panary-cloud/docs/adr/0032-tagesabschluss-vollstaendigkeit-ohne-selbstauskunft.md) bei gesetzter Signaturkette.
 
 ---
 

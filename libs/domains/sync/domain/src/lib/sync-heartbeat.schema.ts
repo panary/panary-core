@@ -11,6 +11,26 @@ export const syncHeartbeatRequestSchema = Type.Object(
     edgeTimestamp: Type.String({ format: 'date-time' }),
     edgeClockMonotonicMs: Type.Number({ minimum: 0 }),
     edgeVersion: Type.Optional(Type.String({ maxLength: 50 })),
+    // TOTES FELD — wird nirgends gesendet und nirgends gelesen.
+    //
+    // Der Edge befuellt es nicht (`runHeartbeat` in
+    // `cloud-sync-scheduler.worker.ts` baut den Body ohne es), die Cloud
+    // verwirft es (`buildHeartbeatService` liest es nicht), und im
+    // cloud-seitigen `cloudEdgeSchema` existiert es ueberhaupt nicht.
+    //
+    // **Als Gate gesperrt.** Es war einmal als Datenquelle vorgesehen, um den
+    // Tagesabschluss zu blockieren, solange die Outbox nicht leer ist. Das ist
+    // verworfen: der Wert waere eine Selbstauskunft von Kundenhardware
+    // (`trustTier: unverified`) — ein Edge, der 0 meldet, gaebe den Abschluss
+    // trotz fehlender Daten frei; einer, der eine grosse Zahl meldet,
+    // blockierte den Ladenschluss dauerhaft. Siehe
+    // `panary-cloud/docs/adr/0030-edge-geraetezaehlung-ueber-heartbeat.md` und
+    // `panary-cloud/docs/adr/0032-tagesabschluss-vollstaendigkeit-ohne-selbstauskunft.md`.
+    //
+    // Nicht entfernt, weil das einen Core-Release samt Pin-Bump in der Cloud
+    // kostete — an einer Datei, deren Nachbarschaft die ganze Edge-Flotte in
+    // den Notfall-Modus kippen kann. Streichung beim naechsten ohnehin
+    // faelligen Release.
     outboxBacklog: Type.Optional(Type.Integer({ minimum: 0 })),
     // Geraetezaehlung des Edge-LAN (POS/KDS am Edge). Die Cloud kennt diese
     // Clients nicht — sie halten ihren Socket zum Edge, nie zur Cloud — und

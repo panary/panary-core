@@ -35,10 +35,18 @@ export type Apikey = Static<typeof apikeySchema>
 //#endregion
 
 //#region Schema für das Erstellen (POST)
-// Wir picken nur die Felder, die der Client senden darf
+// Wir picken nur die Felder, die der Client senden darf.
+//
+// `tenantId`/`locationId` sind bewusst OPTIONAL: beide werden serverseitig von
+// `multiTenancy()` gestempelt, kein Client sendet sie. Als Pflichtfelder
+// koppelten sie die Fehlermeldung an den Stempel-Erfolg — greift der Stempel
+// nicht, meldet die API „must have required property 'locationId'" und zeigt
+// damit auf den Client, obwohl die Ursache serverseitig liegt. Genau so ist der
+// Bug vom 2026-08-01 aufgeschlagen (ADR 0031 in panary-cloud).
 export const apikeyDataSchema = Type.Intersect(
   [
-    Type.Pick(apikeySchema, ['description', 'deviceId', 'locationId', 'name', 'tenantId', 'validUntil']),
+    Type.Pick(apikeySchema, ['description', 'deviceId', 'name', 'validUntil']),
+    Type.Partial(Type.Pick(apikeySchema, ['locationId', 'tenantId'])),
     Type.Object({
       role: Type.Optional(StringEnum(Object.values(UserSystemRole))),
     }),

@@ -16,9 +16,14 @@ export type UserPreference = Static<typeof userPreferenceSchema>
 //#endregion
 
 //#region Schema for creation (POST)
-export const userPreferenceDataSchema = Type.Pick(
-  userPreferenceSchema,
-  ['tenantId', 'locationId', 'key', 'value', 'userId'],
+// `tenantId`/`locationId` optional: serverseitig von `multiTenancy()` gestempelt,
+// kein Client sendet sie. Als Pflichtfelder waere die 400-Meldung bei
+// fehlgeschlagenem Stempel irrefuehrend (ADR 0031 in panary-cloud).
+export const userPreferenceDataSchema = Type.Intersect(
+  [
+    Type.Pick(userPreferenceSchema, ['key', 'value', 'userId']),
+    Type.Partial(Type.Pick(userPreferenceSchema, ['tenantId', 'locationId'])),
+  ],
   {
     $id: 'UserPreferenceData',
     additionalProperties: false,

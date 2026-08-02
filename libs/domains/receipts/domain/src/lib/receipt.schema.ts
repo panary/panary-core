@@ -193,9 +193,11 @@ export type Receipt = Static<typeof receiptSchema>
 export const receiptDataSchema = Type.Intersect(
   [
     Type.Object({ _id: Type.Optional(Type.String({ format: 'uuid' })) }),
+    // `tenantId`/`locationId` optional: serverseitig von `multiTenancy()`
+    // gestempelt. Als Pflichtfelder waere die 400-Meldung bei fehlgeschlagenem
+    // Stempel irrefuehrend (ADR 0031 in panary-cloud).
+    Type.Partial(Type.Pick(receiptSchema, ['tenantId', 'locationId'])),
     Type.Pick(receiptSchema, [
-      'tenantId',
-      'locationId',
       'createdAt',
       'updatedAt',
       'kind',

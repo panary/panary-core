@@ -83,8 +83,11 @@ export const deviceDataSchema = Type.Object(
   {
     name: Type.String({ maxLength: 100 }),
     type: StringEnum(Object.values(DeviceType)),
-    locationId: Type.String(),
-    tenantId: Type.String(),
+    // Optional, weil serverseitig von `multiTenancy()` gestempelt — als
+    // Pflichtfeld waere die 400-Meldung bei fehlgeschlagenem Stempel
+    // irrefuehrend (ADR 0031 in panary-cloud).
+    locationId: Type.Optional(Type.String()),
+    tenantId: Type.Optional(Type.String()),
     metadata: Type.Optional(
       Type.Object({
         userAgent: Type.Optional(Type.String({ maxLength: 512 })),

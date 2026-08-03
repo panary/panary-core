@@ -70,10 +70,12 @@ Eingefroren wird **kein Budget verbraucht**: beim Auftauen läuft die volle
 Frist neu, nicht der Rest von vorher. Ein kurzer Netzwackler während der
 Vorwarnung darf den Kassierer nicht im nächsten Moment ausloggen.
 
-**Nicht** eingefroren wird während der Pause (`startBreakAt`). `startBreak()`
+**Nicht** eingefroren wird während der Pause (`startBreakAt`) — abgestimmte
+Produktentscheidung: Wer in die Pause geht, ohne das Terminal zu sperren, hat
+es schlicht vergessen; genau dafür gibt es den Auto-Logout. `startBreak()`
 verzichtet bewusst auf den Logout *beim Pausenstart* („No logout to allow easy
-resume"); daraus folgt nicht, dass ein 30 Minuten unbeaufsichtigtes Terminal
-entsperrt bleiben soll.
+resume"), das betrifft aber nur den Moment des Umschaltens und nicht die
+folgenden Minuten ohne Aufsicht.
 
 ## Aktivitätserfassung
 

@@ -84,9 +84,10 @@ bereits abräumt.
   Geräte-JWT, also mit leerem Bildschirm statt Login-Aufforderung.
 - Die Freeze-Liste ist eine Konstante im Idle-Service. Weitere
   freeze-würdige Dialoge werden dort ergänzt, nicht beim Aufrufer.
-- Während der Pause (`startBreakAt`) wird **nicht** eingefroren. Bewusste
-  Abweichung von „No logout to allow easy resume", das den Logout nur beim
-  Pausenstart verhindert.
+- Während der Pause (`startBreakAt`) wird **nicht** eingefroren — abgestimmt:
+  ein Terminal, das ohne Sperre in die Pause geht, ist vergessen worden, nicht
+  bewusst offen gelassen. „No logout to allow easy resume" verhindert den
+  Logout nur im Moment des Pausenstarts, nicht in den Minuten danach.
 - Release-Reihenfolge ist bindend: Core-Release → Cloud-Pin-Bump →
   Cloud-Release mit Migration 007 → erst dann `pos-v*`. Andere Reihenfolge
   bedeutet 60-Sekunden-Logouts auf Bestandsfilialen.

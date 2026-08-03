@@ -44,6 +44,21 @@ export const NotificationEventType = {
   FRAUD_ALERT_CRITICAL: 'fraud.alert_critical',
 
   /**
+   * Tagesabschluss: nach dem Abschluss sind noch Belege für einen bereits
+   * geschlossenen Geschäftstag eingetroffen (ADR 0032 in panary-cloud). Der
+   * Report bildet den Tag nicht mehr vollständig ab und ist
+   * rekonziliations-bedürftig. Adressat: TENANT_OWNER + TENANT_MANAGER der
+   * betroffenen Location.
+   *
+   * Alle Channels default an: Das Ereignis tritt per Definition ein, nachdem
+   * niemand mehr hinschaut (der Edge kommt abends oder am nächsten Morgen
+   * wieder online), und die fiskalische Aussage eines bereits ausgegebenen
+   * Z-Bons ist betroffen. Ein reiner Pull-Kanal wäre hier eine Protokollzeile
+   * für die Betriebsprüfung, keine Korrekturschleife.
+   */
+  BUSINESSDAY_LATE_ARRIVAL: 'businessday.late_arrival',
+
+  /**
    * Subscription: die Testphase des Tenants endet bald (Standard ~3 Tage vorher).
    * Adressat: TENANT_OWNER. Ausgelöst durch den PSP-`trial_will_end`-Webhook
    * (bei hinterlegter Zahlung) bzw. den Trial-Reminder-Sweep (Self-Signup-Trials
@@ -75,6 +90,13 @@ export const NotificationCategory = {
   PERSONAL: 'personal',
   ORDERS: 'orders',
   BILLING: 'billing',
+  /**
+   * Tagesabschluss / Fiskal. Eigene Kategorie statt ORDERS, weil die Toggles
+   * hier nicht den Verkaufsbetrieb betreffen, sondern die Richtigkeit eines
+   * bereits ausgegebenen Fiskaldokuments — ein anderer Adressatenkreis und
+   * eine andere Dringlichkeit.
+   */
+  CLOSING: 'closing',
 } as const
 
 export type NotificationCategory = (typeof NotificationCategory)[keyof typeof NotificationCategory]
@@ -166,6 +188,15 @@ export const NOTIFICATION_EVENT_META: Record<NotificationEventType, Notification
     // das ist bewusst opt-out statt opt-in.
     category: NotificationCategory.ORDERS,
     label: 'Storno-Alarm KRITISCH (Bargeldverlust)',
+    defaults: { inApp: true, email: true, push: true },
+  },
+  [NotificationEventType.BUSINESSDAY_LATE_ARRIVAL]: {
+    // Alle Channels default an, analog FRAUD_ALERT_CRITICAL. Kein Spam-Risiko:
+    // Nachzuegler sind selten, und der Versand ist cloud-seitig pro Report
+    // entprellt — ein Edge, der nach langer Offline-Zeit viele Batches
+    // nachschiebt, loest trotzdem nur eine Benachrichtigung aus.
+    category: NotificationCategory.CLOSING,
+    label: 'Belege nach Tagesabschluss eingetroffen',
     defaults: { inApp: true, email: true, push: true },
   },
   [NotificationEventType.SUBSCRIPTION_TRIAL_WILL_END]: {

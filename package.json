@@ -98,7 +98,7 @@
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^27.1.0",
     "jsonc-eslint-parser": "^2.1.0",
-    "lefthook": "^2.1.6",
+    "lefthook": "^2.1.10",
     "mocha": "^11.7.5",
     "ng-packagr": "~21.2.5",
     "ngx-echarts": "^21.0.0",

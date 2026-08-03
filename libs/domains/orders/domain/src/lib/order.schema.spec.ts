@@ -194,3 +194,29 @@ describe('orderQuerySchema — Betragssuche', () => {
     expect(Value.Check(orderQuerySchema, { 'taxSnapshot.brutto': { $regex: '6' } })).toBe(false)
   })
 })
+
+// Regression zu 26.8.2: die Dot-Felder hingen nur am ERGEBNIS von `querySyntax`.
+// Der `$or`-Zweig wird aber aus dessen EINGABE gebaut und traegt
+// `additionalProperties: false` — er kannte die Felder daher nicht und wies die
+// Suche der Bestellliste mit „BadRequest: validation failed" ab. Die Tests oben
+// liefen trotzdem gruen, weil sie ausschliesslich die oberste Ebene pruefen.
+describe('orderQuerySchema — Dot-Felder innerhalb von $or', () => {
+  it('akzeptiert die Betragssuche der Bestellliste', () => {
+    expect(Value.Check(orderQuerySchema, { $or: [{ 'taxSnapshot.brutto': { $gte: 5.685, $lte: 5.695 } }] })).toBe(true)
+  })
+
+  it('akzeptiert Nummer und Betrag nebeneinander (rein numerische Eingabe)', () => {
+    const query = {
+      $or: [{ dailySequenceNumber: 1040 }, { 'taxSnapshot.brutto': { $gte: 1039.995, $lte: 1040.005 } }],
+    }
+    expect(Value.Check(orderQuerySchema, query)).toBe(true)
+  })
+
+  it('akzeptiert $exists auf einem Dot-Feld innerhalb von $or', () => {
+    expect(Value.Check(orderQuerySchema, { $or: [{ 'staffPaymentInfo.userId': { $exists: true } }] })).toBe(true)
+  })
+
+  it('lehnt ein unbekanntes Feld innerhalb von $or weiterhin ab', () => {
+    expect(Value.Check(orderQuerySchema, { $or: [{ nichtVorhanden: 'x' }] })).toBe(false)
+  })
+})

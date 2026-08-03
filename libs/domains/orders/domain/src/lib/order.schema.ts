@@ -489,44 +489,39 @@ export const orderQueryProperties = Type.Pick(orderSchema, [
   // Flattened or specific properties could be added if needed
 ])
 // Dot-Notation-Filter fuer verschachtelte Felder (Admin-Bestellliste: „nur
-// Personalessen", „nur rabattierte", „Rabatt X").
+// Personalessen", „nur rabattierte", „Rabatt X", Suche nach dem Betrag).
 //
 // BEWUSST flach und explizit statt `staffPaymentInfo`/`appliedDiscounts` in
 // `orderQueryProperties` zu picken: `querySyntax` ueber verschachtelte Objekt-
 // bzw. Array-Typen treibt die Typtiefe hoch und laeuft in TS2589
-// („type instantiation is excessively deep") — dieselbe Falle, die weiter unten
-// schon das `$or` aus dem Intersect ins Flat-Object gezwungen hat.
+// („type instantiation is excessively deep").
 //
-// Erlaubt ist je Feld ein Gleichheits-Match (konkreter Mitarbeiter / Rabatt) oder
-// ein `$exists` (ueberhaupt Personalessen / ueberhaupt rabattiert).
-const existsOrEquals = Type.Optional(
-  Type.Union([Type.String(), Type.Object({ $exists: Type.Boolean() }, { additionalProperties: false })]),
-)
+// Die Felder laufen DURCH `querySyntax` und stehen damit auch innerhalb von
+// `$or`/`$and` zur Verfuegung. Sie nur nachtraeglich an dessen Ergebnis zu haengen
+// (so bis 26.8.2) reichte nicht: der `$or`-Zweig wird aus den uebergebenen
+// Properties gebaut und traegt `additionalProperties: false`. Die Betragssuche der
+// Bestellliste sendet `{ $or: [{ 'taxSnapshot.brutto': … }] }` und lief deshalb in
+// „BadRequest: validation failed", waehrend der Art-Filter funktionierte — der
+// setzt seine Bedingung auf oberster Ebene.
+const orderQueryPropertiesWithNested = Type.Object({
+  ...orderQueryProperties.properties,
+  'staffPaymentInfo.userId': Type.String(),
+  'appliedDiscounts.discountId': Type.String(),
+  // Betragssuche: der Aufrufer fragt eine schmale Spanne statt Gleichheit ab —
+  // `taxSnapshot.brutto` ist ein Double, und ein exakter Vergleich auf einen aus
+  // Nutzereingabe geparsten Wert (`'6,70'` → `6.7`) ist bei Fliesskomma
+  // unzuverlaessig. Die Range-Operatoren (`$gte`/`$lte`) liefert `querySyntax` mit.
+  'taxSnapshot.brutto': Type.Number(),
+})
 
-// Betragssuche der Admin-Bestellliste. Bewusst als RANGE statt Gleichheit:
-// `taxSnapshot.brutto` ist ein Double, und ein exakter Vergleich auf einen aus
-// Nutzereingabe geparsten Wert (`'6,70'` → `6.7`) ist bei Fliesskomma
-// unzuverlaessig. Der Aufrufer sucht deshalb mit einer schmalen Spanne um den
-// eingegebenen Betrag.
-const numericRange = Type.Optional(
-  Type.Union([
-    Type.Number(),
-    Type.Object(
-      { $gte: Type.Optional(Type.Number()), $lte: Type.Optional(Type.Number()) },
-      { additionalProperties: false },
-    ),
-  ]),
-)
-
-const _orderQueryBase = querySyntax(orderQueryProperties)
-export const orderQuerySchema = Type.Object(
-  {
-    ..._orderQueryBase.properties,
-    'staffPaymentInfo.userId': existsOrEquals,
-    'appliedDiscounts.discountId': existsOrEquals,
-    'taxSnapshot.brutto': numericRange,
-  },
-  { additionalProperties: false },
-)
+// `$exists` gehoert nicht zum Standard-Operatorsatz von `querySyntax`, wird fuer
+// „ueberhaupt Personalessen" / „ueberhaupt rabattiert" aber gebraucht. Ueber den
+// extensions-Parameter gilt es an jeder Stelle, an der die Property vorkommt —
+// oberste Ebene wie `$or`.
+const _orderQueryBase = querySyntax(orderQueryPropertiesWithNested, {
+  'staffPaymentInfo.userId': { $exists: Type.Boolean() },
+  'appliedDiscounts.discountId': { $exists: Type.Boolean() },
+})
+export const orderQuerySchema = Type.Object(_orderQueryBase.properties, { additionalProperties: false })
 export type OrderQuery = Static<typeof orderQuerySchema>
 //#endregion

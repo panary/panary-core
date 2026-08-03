@@ -179,7 +179,9 @@ export class LoginComponent implements OnInit {
       this.currentStep.set('select-user')
     } catch (error) {
       console.error('Failed to connect or load users:', error)
-      this.errorMessage.set(error instanceof Error ? error.message : this.#translateService.instant('LOGIN.CONNECTION_FAILED'))
+      this.errorMessage.set(
+        error instanceof Error ? error.message : this.#translateService.instant('LOGIN.CONNECTION_FAILED'),
+      )
       this.currentStep.set('error')
     }
   }
@@ -401,6 +403,16 @@ export class LoginComponent implements OnInit {
         lastName: user['lastName'],
         initials: user['initials'],
         staffRole: user['staffRole'],
+        // Steuert den Inaktivitaets-Logout. `verifyPin` liefert den vollen
+        // Datensatz (nur posPin/password entfernt), das Flag ist hier also
+        // schon da — als SQLite-0/1. Auswertung ausschliesslich ueber
+        // `isAutoLogOffEnabled`, nie per `=== true`.
+        //
+        // Der Weg ueber die Sitzung statt ueber `UserService.users()` ist
+        // Absicht: die Nutzerliste laedt oben mit einem `$select` ohne dieses
+        // Feld, und nach einem Reload ohne Verbindung gibt es sie gar nicht
+        // (`users` liegt bewusst nicht im Offline-Cache).
+        autoLogOff: user['autoLogOff'],
       }),
     )
 

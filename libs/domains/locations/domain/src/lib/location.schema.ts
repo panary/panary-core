@@ -63,8 +63,7 @@ export const tableEntrySchema = Type.Object({
 export type TableEntry = Static<typeof tableEntrySchema>
 
 // Liest das Label eines Tisch-Eintrags, egal ob Legacy-String oder neues Objekt.
-export const tableEntryLabel = (entry: string | TableEntry): string =>
-  typeof entry === 'string' ? entry : entry.label
+export const tableEntryLabel = (entry: string | TableEntry): string => (typeof entry === 'string' ? entry : entry.label)
 
 export const settingsSchema = Type.Object({
   generalSettings: Type.Object({
@@ -131,9 +130,12 @@ export const settingsSchema = Type.Object({
       }),
     ),
   }),
+  // Frist fuer den Auto-Logoff am POS. Aufloesung ueber
+  // `resolveAutoLogOffTimeoutMs` — dort liegt auch die Untergrenze und die
+  // Begruendung, warum `autoLogOffTimeUnit` ein freies String bleibt.
   genericUserSettings: Type.Object({
-    autoLogOffTime: Type.Number({ default: 30 }),
-    autoLogOffTimeUnit: Type.String({ default: 'sec' }),
+    autoLogOffTime: Type.Number({ default: 2 }),
+    autoLogOffTimeUnit: Type.String({ default: 'min' }),
   }),
   genericProductSettings: Type.Object({
     generalSideDishPrice: Type.Number({ default: 0 }),
@@ -190,7 +192,9 @@ export const settingsSchema = Type.Object({
   // gehalten, weil die LocalizedString-Lib cloud-seitig liegt).
   receiptSettings: Type.Optional(
     Type.Object({
-      activeChannels: Type.Optional(Type.Array(StringEnum(['qr', 'nfc', 'email', 'wallet', 'print']), { default: ['qr'] })),
+      activeChannels: Type.Optional(
+        Type.Array(StringEnum(['qr', 'nfc', 'email', 'wallet', 'print']), { default: ['qr'] }),
+      ),
       defaultChannel: Type.Optional(StringEnum(['qr', 'nfc', 'email', 'wallet', 'print'])),
       localPrintOnly: Type.Optional(Type.Boolean({ default: false })),
       retentionDays: Type.Optional(Type.Integer({ minimum: 0 })),

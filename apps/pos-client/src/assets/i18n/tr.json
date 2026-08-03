@@ -1,4 +1,10 @@
 {
+  "POS_IDLE": {
+    "TITLE": "Otomatik oturum kapatma",
+    "MESSAGE": "{{seconds}} saniye içinde oturumun kapatılacak.",
+    "HINT": "Oturumu açık tutmak için ekrana dokun.",
+    "STAY": "Oturumu açık tut"
+  },
   "ENTITY": {
     "DOCUMENT": "Belge",
     "ORDER": "Sipariş",

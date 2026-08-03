@@ -1,4 +1,10 @@
 {
+  "POS_IDLE": {
+    "TITLE": "Automatische Abmeldung",
+    "MESSAGE": "Du wirst in {{seconds}} Sekunden abgemeldet.",
+    "HINT": "Tippe irgendwo, um angemeldet zu bleiben.",
+    "STAY": "Angemeldet bleiben"
+  },
   "ENTITY": {
     "DOCUMENT": "Dokument",
     "ORDER": "Bestellung",

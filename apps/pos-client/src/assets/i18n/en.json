@@ -1,4 +1,10 @@
 {
+  "POS_IDLE": {
+    "TITLE": "Automatic sign-out",
+    "MESSAGE": "You will be signed out in {{seconds}} seconds.",
+    "HINT": "Tap anywhere to stay signed in.",
+    "STAY": "Stay signed in"
+  },
   "ENTITY": {
     "DOCUMENT": "Document",
     "ORDER": "Order",

@@ -169,15 +169,27 @@ eine Version zeigen, die die Karenz noch blockiert (kein reifer Backport
 verfügbar). **Nach Ablauf entfernen** — danach ist der Eintrag ein stiller
 Verzicht auf die Karenz für dieses Paket:
 
-- `fast-uri` 3.1.4 (2026-07-19) → reif ab **2026-07-26**
-- `@hono/node-server` 2.0.11 (2026-07-21) → reif ab **2026-07-28**
-- `tar` 7.5.21 (2026-07-21) → reif ab **2026-07-28** _(OSV-Sweep PR #57)_
-- `brace-expansion` 5.0.8 (2026-07-23) → reif ab **2026-07-30** _(OSV-Sweep PR #57)_
+Stand nach dem OSV-Sweep 2026-08-03:
 
-`postcss` (ebenfalls PR #57, `^8.5.18`) braucht **kein** Exclude — reife
-Versionen (8.5.18/8.5.19) erfüllen den Range. Faustregel: nur Advisories, deren
-**einzige** gepatchte Version jünger als 7 Tage ist, brauchen einen befristeten
-Eintrag.
+- die neun `@angular/*`-**Framework**-Pakete 21.2.19 (2026-07-29) → reif ab **2026-08-05**
+- `brace-expansion` 5.0.9 (2026-07-30) → reif ab **2026-08-06**
+- `fast-uri` 3.1.5 (2026-07-31) → reif ab **2026-08-07**
+- `hono` 4.12.34 (2026-08-03) → reif ab **2026-08-10**
+
+Die Angular-Framework-Pakete peeren exakt aufeinander
+(`@angular/common@21.2.19` verlangt `"@angular/core": "21.2.19"`), deshalb
+braucht die ganze Familie den Eintrag — nicht nur die drei gemeldeten. Bewusst
+**kein** `@angular/*`-Wildcard: die CLI-Familie (`@angular/build`,
+`@angular/cli`, `@angular-devkit/*`, `@schematics/angular`; 21.2.19 bereits vom
+2026-07-09) und `@angular/cdk`/`@angular/material` behalten die Karenz.
+
+Beim selben Sweep **entfernt**, weil reif geworden: `tar` (7.5.21/22) und
+`@hono/node-server` (2.0.11/12), beide reif seit 2026-07-28.
+
+`postcss` (`^8.5.23`), `ip-address` (`^10.2.1`), `socket.io-parser`
+(`^4.2.7`) und `undici` (`^7.29.0`) brauchen **kein** Exclude — reife Versionen
+erfüllen den Range. Faustregel: nur Advisories, deren **einzige** gepatchte
+Version jünger als 7 Tage ist, brauchen einen befristeten Eintrag.
 
 ### Fehlerbild `ERR_PNPM_NO_MATURE_MATCHING_VERSION`
 

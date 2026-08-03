@@ -44,13 +44,13 @@ reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv übe
 id = "RUSTSEC-2024-0419"  # gtk3-macros
 reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
 
+# glib: osv-scanner meldet den Befund unter der GHSA-ID und filtert den
+# RUSTSEC-Alias automatisch mit ("… and 1 alias have been filtered out").
+# Ein zusaetzlicher RUSTSEC-2024-0429-Eintrag bliebe ungenutzt und wuerde als
+# "has unused ignores" gemeldet — deshalb nur die GHSA-ID.
 [[IgnoredVulns]]
-id = "RUSTSEC-2024-0429"  # glib
-reason = "gtk-rs glib 0.18 (RUSTSEC-2024-0429, CVSS 6.9 Medium). Fix erst mit glib 0.20 — an den gtk-rs/Tauri-GTK3-Stack gebunden, nicht isoliert bumpbar. Bewusst akzeptiert bis Tauri-Stack-Upgrade."
-
-[[IgnoredVulns]]
-id = "GHSA-wrw7-89jp-8q8g"  # glib (Alias)
-reason = "GHSA-Alias zu RUSTSEC-2024-0429 (glib) — siehe dort."
+id = "GHSA-wrw7-89jp-8q8g"  # glib (Alias: RUSTSEC-2024-0429)
+reason = "gtk-rs glib 0.18 (CVSS 6.9 Medium). Fix erst mit glib 0.20 — an den gtk-rs/Tauri-GTK3-Stack gebunden, nicht isoliert bumpbar. Bewusst akzeptiert bis Tauri-Stack-Upgrade."
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2024-0370"  # proc-macro-error

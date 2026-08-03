@@ -54,14 +54,30 @@ minimumReleaseAgeExclude:
   # ENTFERNEN, sobald die Versionen reif sind (danach ist der Eintrag ein
   # stiller Verzicht auf die Karenz fuer dieses Paket):
   #
-  # OSV-Sweep 2026-07-22 (PR #55):
-  - 'fast-uri' # 3.1.4 (2026-07-19) — reif ab 2026-07-26
-  - '@hono/node-server' # 2.0.11 (2026-07-21) — reif ab 2026-07-28
-  # OSV-Sweep 2026-07-25 (PR #57) — GHSA-mh99-v99m-4gvg / GHSA-r292-9mhp-454m.
-  # Fix existiert nur in einer <7-Tage-Version, kein reifer Backport:
-  - 'brace-expansion' # 5.0.8 (2026-07-23) — reif ab 2026-07-30
-  - 'tar' # 7.5.21 (2026-07-21) — reif ab 2026-07-28
-  # postcss (8.5.18, PR #57) braucht KEIN Exclude — reife Versionen (8.5.18/19) erfuellen ^8.5.18.
+  # OSV-Sweep 2026-08-03: fast-uri 3.1.5 (GHSA-7p8r-x3mc-p8w7) und
+  # brace-expansion 5.0.9 (GHSA-rgw5-rvv9-x895) sind die jeweils EINZIGE
+  # gepatchte Version ihrer Linie und noch keine 7 Tage alt:
+  - 'fast-uri' # 3.1.5 (2026-07-31) — reif ab 2026-08-07
+  - 'brace-expansion' # 5.0.9 (2026-07-30) — reif ab 2026-08-06
+  - 'hono' # 4.12.34 (2026-08-03) — reif ab 2026-08-10 (GHSA-8j4g-w8fx-2239)
+  # Angular-Framework 21.2.19 (GHSA-jhpw-976m-542j 8.8 / GHSA-jj27-h5hq-8x99 7.6).
+  # Die Framework-Pakete peeren exakt aufeinander ("@angular/core": "21.2.19"),
+  # deshalb braucht die ganze Familie den Eintrag, nicht nur common/compiler/core.
+  # Bewusst KEIN '@angular/*'-Wildcard: die CLI-Familie (build/cli/devkit,
+  # 21.2.19 vom 2026-07-09) und cdk/material behalten die Karenz.
+  - '@angular/animations' # 21.2.19 (2026-07-29) — reif ab 2026-08-05
+  - '@angular/common' # 21.2.19 (2026-07-29) — reif ab 2026-08-05
+  - '@angular/compiler' # 21.2.19 (2026-07-29) — reif ab 2026-08-05
+  - '@angular/compiler-cli' # 21.2.19 (2026-07-29) — reif ab 2026-08-05
+  - '@angular/core' # 21.2.19 (2026-07-29) — reif ab 2026-08-05
+  - '@angular/forms' # 21.2.19 (2026-07-29) — reif ab 2026-08-05
+  - '@angular/language-service' # 21.2.19 (2026-07-29) — reif ab 2026-08-05
+  - '@angular/platform-browser' # 21.2.19 (2026-07-29) — reif ab 2026-08-05
+  - '@angular/router' # 21.2.19 (2026-07-29) — reif ab 2026-08-05
+  # Entfernt am 2026-08-03, weil reif geworden: 'tar' (7.5.21/22, PR #57) und
+  # '@hono/node-server' (2.0.11/12, PR #55) — beide seit 2026-07-28 reif.
+  # ip-address ^10.2.1, socket.io-parser ^4.2.7 und undici ^7.29.0 (OSV-Sweep
+  # 2026-08-03) brauchen KEIN Exclude — ihre Fix-Versionen sind reif.
 
 # --- Transitive Deps nur aus vertrauenswuerdigen Quellen (ab pnpm 10.26) ---
 blockExoticSubdeps: true

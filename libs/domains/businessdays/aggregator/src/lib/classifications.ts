@@ -66,6 +66,25 @@ export interface SettlementView {
 
 export interface OrderAggregationOptions {
   settlements?: SettlementView
+  /**
+   * Betriebsart des Geschaeftstags (Snapshot, nicht der aktuelle Standort).
+   *
+   * `'orders-only'` bedeutet: An diesem Standort wird ueber Panary **nicht
+   * kassiert** — das System laeuft als Bestellsystem neben einer Fremdkasse.
+   * Steuer-Split und Zahlungsarten-Aufteilung entstehen dort gar nicht erst:
+   * Ein zweiter USt-Split neben der gemeldeten Fremdkasse ist das Kernmerkmal
+   * eines Kassenabschlusses, und ein Zahlungsarten-Bild ohne erfasste
+   * Zahlungen ist eine Nullaussage im Gewand eines Datums.
+   *
+   * Fehlt die Option, gilt Kassenbetrieb — Bestandsaufrufer bleiben unveraendert.
+   * Siehe panary-cloud `docs/adr/0036-bestellbetrieb-und-kassenmeldung.md`.
+   */
+  operationMode?: 'orders-only' | 'pos-cashier'
+}
+
+/** Laeuft der Geschaeftstag ohne Kassiervorgang in Panary? */
+export function isOrdersOnly(options?: OrderAggregationOptions): boolean {
+  return options?.operationMode === 'orders-only'
 }
 
 /**

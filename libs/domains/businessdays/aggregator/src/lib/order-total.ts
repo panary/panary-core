@@ -14,10 +14,49 @@ import { toCents, multiplyCents, sumCents } from './money'
 // Multiplikation verwendete. Das produziert bis zu ±5 ct Drift pro Order und
 // ist nicht KassenSichV-tauglich. Wir korrigieren das hier zentral.
 
+/**
+ * Erkennt einen Payment-Stempel, der nie befüllt wurde.
+ *
+ * `pre-orders.convert` legt (bzw. legte) die Order mit
+ * `payment { state: PENDING, totalAmount: 0, tipAmount: 0, transactions: [] }`
+ * an — ein Platzhalter, kein Zahlungsergebnis. Da `0 !== undefined && 0 !== null`
+ * gewann dieser Platzhalter in der Prioritätsliste unten gegen `taxSnapshot`
+ * UND gegen die lineItem-Summe: Die Order zählte mit **0 EUR**, während der
+ * Wareneinsatz normal gerechnet wurde.
+ *
+ * Am Edge fiel das nicht auf, weil der POS beim Bezahlen ein echtes `payment`
+ * schreibt und den Platzhalter überschreibt. In der Cloud passiert das nie,
+ * wenn dort nicht kassiert wird (`orders-only`).
+ *
+ * Die Bedingung ist bewusst **eng** — genau die „nie angefasst"-Signatur:
+ * Betrag 0 UND Status `pending` UND keine einzige Transaktion. Ein legitim mit
+ * 0 EUR abgeschlossener Vorgang (100 % Rabatt, komplett gesponsertes
+ * Personalessen) trägt `state: 'paid'` bzw. Transaktionen und bleibt damit
+ * autoritativ. Das ist wichtig, weil der lineItem-Fallback **keine Rabatte
+ * kennt** — er würde für so eine Order den vollen, unrabattierten Preis
+ * liefern und damit einen schlimmeren Fehler erzeugen als den behobenen.
+ */
+function isUnstampedPaymentPlaceholder(order: Order): boolean {
+  const payment = order.payment
+  if (!payment) return false
+  if (toCents(payment.totalAmount ?? 0) !== 0) return false
+  if (payment.state !== undefined && payment.state !== 'pending') return false
+  if (Array.isArray(payment.transactions) && payment.transactions.length > 0) return false
+  return true
+  // Bewusst KEINE zusätzliche Bedingung auf vorhandene `lineItems`: Der nächste
+  // Schritt der Kette ist `taxSnapshot`, der ohne Positionen auskommt. Fehlen
+  // beide, liefert `computeGrossFromLineItems([])` ohnehin 0 — also derselbe
+  // Wert wie zuvor, kein Verhaltensunterschied.
+}
+
 /** Gesamt-Cents einer Order. Idempotent, deterministisch, keine I/O. */
 export function getOrderGrossCents(order: Order): number {
-  // Primary: Payment-Snapshot
-  if (order.payment?.totalAmount !== undefined && order.payment?.totalAmount !== null) {
+  // Primary: Payment-Snapshot — außer es ist der nie befüllte Platzhalter.
+  if (
+    order.payment?.totalAmount !== undefined &&
+    order.payment?.totalAmount !== null &&
+    !isUnstampedPaymentPlaceholder(order)
+  ) {
     return toCents(order.payment.totalAmount)
   }
 

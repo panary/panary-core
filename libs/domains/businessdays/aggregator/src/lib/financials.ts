@@ -7,6 +7,7 @@ import {
   isStaffMeal,
   isCorporateMeal,
   isOpenReceivable,
+  isOrdersOnly,
   type OrderAggregationOptions,
 } from './classifications'
 import { getOrderGrossCents, getOrderNetCents, getOrderTipCents } from './order-total'
@@ -122,6 +123,8 @@ export function aggregateFinancials(
 ): FinancialsAggregate {
   if (orders.length === 0) return { ...ZERO_FINANCIALS, taxes: [] }
 
+  const ordersOnly = isOrdersOnly(options)
+
   const sorted = [...orders].sort((a, b) => a._id.localeCompare(b._id))
 
   let grossTotalCents = 0
@@ -223,7 +226,16 @@ export function aggregateFinancials(
     //
     // Der Zweig steuert exakt `gross - tip` bei, damit die Persist-Invariante
     // `Σ payments === grossTotal − tips` haelt.
-    if (isOpenReceivable(order, options?.settlements)) {
+    //
+    // Im Bestellbetrieb entfaellt die Verteilung vollstaendig: Es gibt keine
+    // erfassten Zahlungen, die man aufteilen koennte. Der Fallback-Zweig unten
+    // wuerde sonst den kompletten Bestellwert nach „Sonstige" schieben — ein
+    // Donut mit einem Sektor, der eine Nullaussage als Datum ausgibt. Die
+    // Persist-Invariante `Σ payments === grossTotal − tips` wird dafuer
+    // modus-bewusst uebersprungen (validateFinancials).
+    if (ordersOnly) {
+      // bewusst leer
+    } else if (isOpenReceivable(order, options?.settlements)) {
       payments.receivablesCents = (payments.receivablesCents ?? 0) + (orderGross - orderTip)
     } else if (order.payment?.transactions && order.payment.transactions.length > 0) {
       for (const tx of order.payment.transactions) {
@@ -266,15 +278,18 @@ export function aggregateFinancials(
     void isRegularSale
   }
 
-  // Map → sortiertes Array (kleinste Rate zuerst, deterministisch)
-  const taxes: TaxSplitEntry[] = Array.from(taxAccumulator.entries())
-    .sort(([a], [b]) => a - b)
-    .map(([rate, agg]) => ({
-      rate,
-      netAmountCents: agg.netCents,
-      taxAmountCents: agg.taxCents,
-      grossAmountCents: agg.grossCents,
-    }))
+  // Map → sortiertes Array (kleinste Rate zuerst, deterministisch).
+  // Im Bestellbetrieb bleibt der Split leer — siehe Options-Doku.
+  const taxes: TaxSplitEntry[] = ordersOnly
+    ? []
+    : Array.from(taxAccumulator.entries())
+        .sort(([a], [b]) => a - b)
+        .map(([rate, agg]) => ({
+          rate,
+          netAmountCents: agg.netCents,
+          taxAmountCents: agg.taxCents,
+          grossAmountCents: agg.grossCents,
+        }))
 
   return {
     grossTotalCents,

@@ -1,4 +1,5 @@
 import { FinancialsAggregate, sumChannels, sumPayments } from './financials'
+import { isOrdersOnly, type OrderAggregationOptions } from './classifications'
 
 // Rundungstoleranz für Geld-Invarianten — pro Steuerstufe kann ±1ct durch
 // independent rounding entstehen. Bei N Steuerstufen → bis zu N ct Toleranz.
@@ -33,8 +34,12 @@ export interface ValidationResult {
  * der Tagesabschluss als `failed` markiert und ein konkretes Diff im
  * Audit-Trail abgelegt.
  */
-export function validateFinancials(financials: FinancialsAggregate): ValidationResult {
+export function validateFinancials(
+  financials: FinancialsAggregate,
+  options?: OrderAggregationOptions,
+): ValidationResult {
   const errors: ValidationError[] = []
+  const ordersOnly = isOrdersOnly(options)
 
   // 1. Steuer-Split-Konsistenz
   if (financials.taxes.length > 0) {
@@ -75,17 +80,24 @@ export function validateFinancials(financials: FinancialsAggregate): ValidationR
   }
 
   // 2. Σ payments === grossTotal − tips
-  const paymentsSum = sumPayments(financials.payments)
-  const expectedPayments = financials.grossTotalCents - financials.tipsCents
-  const paymentsDiff = Math.abs(paymentsSum - expectedPayments)
-  if (paymentsDiff > 0) {
-    errors.push({
-      code: 'financials.payments_mismatch',
-      message: `Σ payments (${paymentsSum}) ≠ grossTotal − tips (${expectedPayments}) — Diff ${paymentsDiff}ct`,
-      expectedCents: expectedPayments,
-      actualCents: paymentsSum,
-      diffCents: paymentsDiff,
-    })
+  //
+  // Im Bestellbetrieb gibt es keine erfassten Zahlungen — `aggregateFinancials`
+  // laesst die Verteilung dort bewusst leer. Die Invariante wuerde dann bei
+  // JEDEM Bericht anschlagen und den Persist-Step abbrechen; sie prueft eine
+  // Zusage, die dieser Betriebsmodus gar nicht gibt.
+  if (!ordersOnly) {
+    const paymentsSum = sumPayments(financials.payments)
+    const expectedPayments = financials.grossTotalCents - financials.tipsCents
+    const paymentsDiff = Math.abs(paymentsSum - expectedPayments)
+    if (paymentsDiff > 0) {
+      errors.push({
+        code: 'financials.payments_mismatch',
+        message: `Σ payments (${paymentsSum}) ≠ grossTotal − tips (${expectedPayments}) — Diff ${paymentsDiff}ct`,
+        expectedCents: expectedPayments,
+        actualCents: paymentsSum,
+        diffCents: paymentsDiff,
+      })
+    }
   }
 
   // 3. Σ channels === grossTotal

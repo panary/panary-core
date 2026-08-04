@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { Order } from '@panary/orders/domain'
+import { Order, PaymentState } from '@panary/orders/domain'
 import { getOrderGrossCents, getOrderNetCents, getOrderTipCents, computeGrossFromLineItems } from './order-total'
 import { makeOrder } from './fixtures/orders.fixtures'
 
@@ -7,6 +7,69 @@ describe('order-total', () => {
   it('verwendet payment.totalAmount als primäre Quelle', () => {
     const order = makeOrder({ grossAmount: 15.5 })
     expect(getOrderGrossCents(order)).toBe(1550)
+  })
+
+  // Regression: `pre-orders.convert` legte die Order mit einem Platzhalter
+  // `payment { state: PENDING, totalAmount: 0, transactions: [] }` an. Da
+  // `0 !== undefined && 0 !== null` gewann dieser Platzhalter gegen
+  // taxSnapshot UND lineItems — die Order zaehlte mit 0 EUR, waehrend der
+  // Wareneinsatz normal gerechnet wurde (negativer Deckungsbeitrag).
+  describe('nie befuellter Payment-Platzhalter', () => {
+    const placeholder = (order: Order): Order => ({
+      ...order,
+      payment: { state: PaymentState.PENDING, totalAmount: 0, tipAmount: 0, transactions: [] },
+    })
+
+    it('ignoriert den Platzhalter und faellt auf den taxSnapshot zurueck', () => {
+      const order = placeholder(makeOrder({ grossAmount: 12.34 }))
+      expect(getOrderGrossCents(order)).toBe(1234)
+    })
+
+    it('greift nur bei Betrag 0 — ein echter Betrag bleibt autoritativ', () => {
+      const order = makeOrder({ grossAmount: 12.34 })
+      const pendingWithAmount: Order = {
+        ...order,
+        payment: { state: PaymentState.PENDING, totalAmount: 5, tipAmount: 0, transactions: [] },
+      }
+      expect(getOrderGrossCents(pendingWithAmount)).toBe(500)
+    })
+
+    it('greift NICHT bei einem legitim mit 0 EUR bezahlten Vorgang (100 % Rabatt)', () => {
+      // Wichtig: Der lineItem-Fallback kennt keine Rabatte. Wuerde der Guard
+      // hier greifen, lieferte er den vollen unrabattierten Preis — ein
+      // schlimmerer Fehler als der behobene.
+      const order = makeOrder({ grossAmount: 12.34 })
+      const paidZero: Order = {
+        ...order,
+        payment: { state: PaymentState.PAID, totalAmount: 0, tipAmount: 0, transactions: [] },
+      }
+      expect(getOrderGrossCents(paidZero)).toBe(0)
+    })
+
+    it('greift NICHT, wenn Transaktionen vorliegen', () => {
+      const order = makeOrder({ grossAmount: 12.34 })
+      const withTx: Order = {
+        ...order,
+        payment: {
+          state: PaymentState.PENDING,
+          totalAmount: 0,
+          tipAmount: 0,
+          transactions: order.payment?.transactions ?? [],
+        },
+      }
+      expect(getOrderGrossCents(withTx)).toBe(0)
+    })
+
+    it('ohne taxSnapshot UND ohne Positionen bleibt es bei 0 — kein Verhaltensunterschied', () => {
+      const order = makeOrder({ grossAmount: 12.34 })
+      const bare: Order = {
+        ...order,
+        lineItems: [],
+        taxSnapshot: null,
+        payment: { state: PaymentState.PENDING, totalAmount: 0, tipAmount: 0, transactions: [] },
+      } as Order
+      expect(getOrderGrossCents(bare)).toBe(0)
+    })
   })
 
   it('fällt auf taxSnapshot.brutto zurück, wenn payment fehlt', () => {

@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: Print-Server-API
-description: Referenz der Print-Server-Schnittstelle am Edge — Aufrufer, Ziel-Host und Fehler-Events sowie die ESC/POS-Encoder-Library mit Fonts, Größen, Stilen, Befehlen und Konfiguration.
+description: Referenz der Print-Server-Schnittstelle am Edge — Aufrufer, Ziel-Host und Fehler-Events, der mitgelieferte MQTT-Broker sowie die ESC/POS-Encoder-Library mit Fonts, Größen, Stilen, Befehlen und Konfiguration.
 tags: [locations, print-server, esc-pos, mqtt]
 status: stable
 generated: { by: claude-code/historic, at: 2025-03-28T00:00:00Z }
@@ -41,6 +41,57 @@ dann liegt es am Client, nicht am Drucker.
 
 Beachte: `/print-order` antwortet bei Teil- und Totalausfällen mit **HTTP 200**
 und `{ success: false, results: [...] }`. Aufrufer müssen den Body auswerten.
+
+## 0.1 MQTT-Drucker — der Broker läuft auf dem Edge
+
+Drucker mit `type: 'mqtt'` laufen **nicht** über die Endpunkte oben. Sie sind ein
+reiner Client-Pfad: `OrderPrintService.printViaMqtt` verbindet sich per
+MQTT-over-WebSocket zum Broker und publiziert fire-and-forget auf das
+`mqttTopic` des Druckers (`mqtt-publish.ts`, `clean: true`, QoS 0). Das
+Edge-Backend spricht selbst kein MQTT — `print-job.builder.ts` bedient bewusst
+nur IP-Drucker.
+
+Seit 2026-08-04 liefert das Edge-Deployment den Broker mit: `install.sh`
+generiert einen Service `panary-mqtt` (`eclipse-mosquitto:2`) in die
+`docker-compose.yml` beim Kunden, im Host-Netz wie der Edge selbst.
+Entscheidung und Begründung:
+[ADR 0018](../adr/0018-mqtt-broker-im-edge-deployment.md).
+
+| | |
+|---|---|
+| Container | `panary-mqtt`, Host-Networking (kein Port-Mapping) |
+| MQTT/TCP | `1883` — Drucker und native Clients |
+| MQTT/WebSocket | `9001`, Pfad `/mqtt` — der POS |
+| Authentifizierung | keine (`allow_anonymous true`) — Annahme geschlossenes Filialnetz |
+| Persistenz | aus (`persistence false`, kein Volume) |
+| Konfiguration | Inline-`configs`-Eintrag im Compose, braucht Compose 2.23.1+ |
+
+**Ziel-Host:** Dieselbe Falle wie beim HTTP-Pfad, nur eine Ebene tiefer.
+`printSettings.mqttServerUrl` steht per Default auf `localhost`
+(`generateDefaultLocationSettings`) — auf einem Tablet zeigt das auf das Tablet.
+`resolveMqttBrokerHost()`
+(`libs/domains/orders/data-access/src/lib/utils/mqtt-broker-host.ts`) fängt das
+ab: Ein leerer oder selbstbezüglicher Eintrag (`localhost`, `127.0.0.1`,
+`0.0.0.0`, `::1`) fällt **still** auf den Host des gepairten Edge zurück, wo der
+Broker per Definition läuft. Ein explizit gepflegter, abweichender Host gewinnt
+weiterhin. Aufgelöst wird nur der Host — Protokoll und Port bleiben Sache der
+Settings, und der Edge-Port (3030) ist nicht der Broker-Port.
+
+**Fehlersuche:** Dieser Pfad hinterlässt am Edge *keine* Spur — er läuft nicht
+über den Edge. Wenn ein MQTT-Drucker nichts ausgibt, gehört die Prüfung auf den
+Broker, nicht ins Edge-Log:
+
+```bash
+docker logs panary-mqtt
+```
+
+```bash
+mosquitto_sub -h <edge-ip> -p 1883 -t '#' -v
+```
+
+Kommt beim `-t '#'`-Mitschnitt beim Auslösen eines Drucks nichts an, ist der
+Publish nie rausgegangen (Client-Seite). Kommt etwas an, aber der Drucker
+reagiert nicht, liegt es am Subscriber oder am Topic.
 
 ## Library: `@point-of-sale/receipt-printer-encoder` v3
 

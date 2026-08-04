@@ -630,7 +630,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.DISCOUNT_CODE_REDEMPTIONS, action: [AppAction.CREATE, AppAction.READ] },
     { resource: AppResource.WORKING_TIMES, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.PRE_ORDERS, action: AppAction.MANAGE },
-    { resource: AppResource.PRINT_SERVER, action: [AppAction.READ, AppAction.UPDATE] },
+    // MANAGE statt [READ, UPDATE]: `/print-server/print-order` verlangt CREATE.
+    // Ohne das konnte ein Filialleiter den Print-Server zwar starten und stoppen,
+    // aber keinen Bon drucken — und der 403 war bis 2026-08-04 nicht geloggt.
+    { resource: AppResource.PRINT_SERVER, action: AppAction.MANAGE },
     // Manager darf Test-Drucke aus der Cloud anstoßen (CREATE + READ für Status-Polling).
     { resource: AppResource.PRINTER_COMMANDS, action: [AppAction.READ, AppAction.CREATE] },
     { resource: AppResource.APIKEYS, action: AppAction.READ },

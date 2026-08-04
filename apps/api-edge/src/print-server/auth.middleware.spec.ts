@@ -2,11 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { sha256 } from '../utils/crypto.utils'
 
 // Domain-/Backend-Module mocken, damit Vitest keine Domain-Source kompilieren muss.
-// `printServerAuthorize` (nutzt RolePermissions/AppAction/AppResource) wird hier nicht
-// getestet — für den API-Key-Flow genügt UserSystemRole als Fallback-Wert.
+// `printServerAuthorize` (nutzt hasEffectivePermission/AppAction/AppResource) wird hier
+// nicht getestet — für den API-Key-Flow genügt UserSystemRole als Fallback-Wert.
 vi.mock('@panary/users/domain', () => ({
   UserSystemRole: { DEVICE_POS: 'device:pos-client', PLATFORM_OWNER: 'platform:owner' },
-  RolePermissions: {},
+  hasEffectivePermission: vi.fn(() => false),
   AppAction: {},
   AppResource: {},
 }))

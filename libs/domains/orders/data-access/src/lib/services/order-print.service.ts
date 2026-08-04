@@ -5,6 +5,7 @@ import { LocationService } from '@panary/locations/data-access'
 import { Order } from '@panary/orders/domain'
 import { AppConfigService } from '@panary/shared/data-access-config'
 import { resolveEdgeBaseUrl } from '../utils/edge-base-url'
+import { resolveMqttBrokerHost } from '../utils/mqtt-broker-host'
 import { describePrintFailure, type PrintOrderResponse } from '../utils/print-result'
 import { publishViaMqtt } from './mqtt-publish'
 
@@ -96,13 +97,35 @@ export class OrderPrintService {
     })
   }
 
+  /**
+   * Wie `edgeBaseUrl()`, aber ohne Wurf: fuer den MQTT-Fallback ist ein
+   * unbekannter Edge kein Fehler, sondern nur eine Quelle weniger. Beim
+   * HTTP-Druck bleibt der Wurf richtig — dort gibt es kein Ausweichziel.
+   */
+  private tryEdgeBaseUrl(): string | null {
+    try {
+      return this.edgeBaseUrl()
+    } catch {
+      return null
+    }
+  }
+
   private async printViaMqtt(order: Order, printers: PrinterConfig[]): Promise<void> {
     const settings = this.locationService.printSettings
-    if (!settings?.mqttServerUrl || !settings?.mqttServerPort) return
+    if (!settings?.mqttServerPort) return
+
+    // Der Broker laeuft seit `feat(edge): MQTT-Broker …` neben dem Edge, also
+    // auf demselben Host. Ein leerer oder auf `localhost` stehender Eintrag
+    // faellt still darauf zurueck — Begruendung in `utils/mqtt-broker-host.ts`.
+    const host = resolveMqttBrokerHost({
+      configuredHost: settings.mqttServerUrl,
+      edgeBaseUrl: this.tryEdgeBaseUrl(),
+    })
+    if (!host) return
 
     const broker = {
       protocol: settings.mqttServerProtocol || 'ws',
-      host: settings.mqttServerUrl,
+      host,
       port: settings.mqttServerPort,
     }
 

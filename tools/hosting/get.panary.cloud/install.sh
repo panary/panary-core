@@ -74,6 +74,38 @@ if ! docker compose version &> /dev/null; then
 fi
 echo -e "${GREEN}✓${NC} Docker Compose gefunden: $(docker compose version --short)"
 
+# --- Inline-`configs`-Faehigkeit -----------------------------------------------
+# Die mosquitto.conf wird als Inline-Config in die docker-compose.yml geschrieben
+# (`configs: content:`), damit die Installation ohne zweites File auskommt. Das
+# kann erst Compose 2.23.1+. Aeltere Plugins scheitern sonst weiter unten beim
+# `up` mit einem Parse-Fehler, der nicht verraet, woran es liegt.
+#
+# Geprueft wird nicht die Versionsnummer, sondern die Faehigkeit selbst: die
+# Nummer kommt je nach Distribution mit Suffixen wie `-desktop.1` daher, und ein
+# `config`-Lauf ueber stdin ist die exakte Antwort auf die Frage, die zaehlt.
+#
+# Heredoc statt Pipe mit Absicht: unter `set -o pipefail` wuerde ein Leser, der
+# vor dem Ende der Eingabe abbricht, dem Schreiber ein SIGPIPE schicken — die
+# Pipeline meldete 141 und der Check schluege fehl, obwohl Compose zufrieden war.
+if ! docker compose -f - config > /dev/null 2>&1 <<'PROBE'
+services:
+  probe:
+    image: alpine
+    configs:
+      - source: p
+        target: /p
+configs:
+  p:
+    content: "x"
+PROBE
+then
+  echo -e "${RED}Docker Compose ist zu alt.${NC}"
+  echo "Benoetigt wird 2.23.1 oder neuer (Inline-\`configs\`), gefunden: $(docker compose version --short)"
+  echo "Update: https://docs.docker.com/compose/install/linux/"
+  exit 1
+fi
+echo -e "${GREEN}✓${NC} Inline-Configs unterstuetzt"
+
 # --- Registry-Vorabpruefung ---------------------------------------------------
 # Hintergrund (2026-07-27, Zweitinstallation cpc-buero): Der Pull scheiterte mit
 #   denied: denied
@@ -232,6 +264,9 @@ cat > "$COMPOSE_FILE" <<'COMPOSEOF'
 # Watchtower prueft stuendlich auf neue Versionen und
 # aktualisiert den Edge-Container automatisch.
 #
+# Enthaelt neben dem Edge einen MQTT-Broker (panary-mqtt) als Transport fuer
+# den Print-Server — Begruendung am Service selbst.
+#
 # Netzwerk: host — zwingend, damit der Hub per mDNS (`_panary._tcp`) im LAN
 # gefunden wird. Multicast (224.0.0.251:5353, TTL 1) verlaesst ein Bridge-Netz
 # nicht, und der annoncierte A-Record truege die Container-IP statt der LAN-IP.
@@ -272,6 +307,51 @@ services:
         reservations:
           memory: 128M
 
+  # ============================================================
+  # MQTT-Broker (Mosquitto) — Transport fuer den Print-Server.
+  #
+  # Der Edge selbst spricht kein MQTT (das Backend bedient nur IP-Drucker,
+  # siehe print-job.builder.ts). Publisher ist die POS-App, die den Druckauftrag
+  # per MQTT-over-WebSocket absetzt; Subscriber sind Drucker bzw. Print-Bridges
+  # im Filialnetz. Der Broker gehoert deshalb auf den Edge — er ist der einzige
+  # Rechner, der in jeder Filiale garantiert laeuft.
+  #
+  # Host-Networking wie beim Edge: der Broker lauscht damit direkt auf der
+  # LAN-IP des Hosts, ohne NAT-Schicht dazwischen. Konsequenz wie oben — kein
+  # `ports:`-Mapping und kein `networks:`, beides waere im Host-Mode wirkungslos
+  # bzw. ein Konflikt.
+  #
+  # Zustandslos: der POS publiziert mit clean-session und QoS 0, es gibt also
+  # weder Retained Messages noch Offline-Queues zu sichern. Kein Volume — ein
+  # Neustart verliert nichts.
+  # ============================================================
+  panary-mqtt:
+    image: eclipse-mosquitto:2
+    container_name: panary-mqtt
+    network_mode: host
+    configs:
+      - source: mosquitto-conf
+        target: /mosquitto/config/mosquitto.conf
+    restart: unless-stopped
+    healthcheck:
+      # $$SYS statt $SYS: Compose interpoliert den String sonst und der Topic
+      # waere leer. Der Broker beantwortet die Abfrage aus sich selbst heraus.
+      test: ["CMD", "mosquitto_sub", "-h", "127.0.0.1", "-p", "1883", "-t", "$$SYS/broker/uptime", "-C", "1", "-W", "3"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    labels:
+      - "com.centurylinklabs.watchtower.scope=panary"
+    # --- Hardening ---
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.5"
+
   watchtower:
     image: containrrr/watchtower
     container_name: panary-watchtower
@@ -299,6 +379,31 @@ networks:
   panary-internal:
     driver: bridge
     internal: false
+
+configs:
+  mosquitto-conf:
+    # Inline statt separatem File: die Installation bleibt bei einer einzigen
+    # generierten Datei. Setzt Compose 2.23.1+ voraus (oben geprueft).
+    content: |
+      # Mosquitto 2.x bindet ohne expliziten Listener nur an localhost und
+      # weist anonyme Clients ab — fuer den POS waere beides toedlich.
+      # Listener ohne Bind-Adresse = alle Interfaces; im Host-Mode also
+      # direkt die LAN-IP, ohne dass hier eine IP eingetragen werden muss.
+      # allow_anonymous gilt global, nicht pro Listener.
+      allow_anonymous true
+
+      listener 1883
+      protocol mqtt
+
+      listener 9001
+      protocol websockets
+
+      persistence false
+
+      log_dest stdout
+      log_type error
+      log_type warning
+      log_type notice
 COMPOSEOF
 
 echo -e "${GREEN}✓${NC} docker-compose.yml geschrieben"
@@ -382,6 +487,9 @@ echo ""
 echo -e "  ${BOLD}Setup-Wizard:${NC}  http://${LOCAL_IP}:${PORT}"
 echo -e "  ${BOLD}Admin-Panel:${NC}   http://${LOCAL_IP}:${PORT}/admin"
 echo -e "  ${BOLD}Health-Check:${NC}  http://${LOCAL_IP}:${PORT}/health"
+echo ""
+echo -e "  ${BOLD}MQTT-Broker:${NC}   ${LOCAL_IP}:1883 ${BLUE}(MQTT)${NC}  ·  ws://${LOCAL_IP}:9001/mqtt ${BLUE}(WebSocket)${NC}"
+echo -e "                 ${YELLOW}Ohne Authentifizierung — nur fuer das Filialnetz gedacht.${NC}"
 echo ""
 echo -e "  ${BOLD}Verzeichnis:${NC}   ${INSTALL_DIR}"
 echo -e "  ${BOLD}Daten:${NC}         ${INSTALL_DIR}/data"

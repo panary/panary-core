@@ -126,6 +126,18 @@ describe('selectActiveBanner — Prioritaetsleiter', () => {
     expect(banner?.params).toEqual({ minutes: 12 })
   })
 
+  it('sync-stale erklaert die Ueberfaelligkeit und grenzt sie von der Verbindung ab', () => {
+    // Ohne diese Subline liest sich eine Altersangabe wie ein Verbindungsdefekt.
+    // Genau das war die Verwechslung: „Letzter Cloud-Sync vor 21 min" neben
+    // „Online — letzter Kontakt gerade eben".
+    const withAge = selectActiveBanner({ ...healthy(), syncLevel: 'warn', syncAgeSec: 12 * 60 })
+    expect(withAge?.sublineKey).toBe('CLOUD_STATUS.SYNC_OVERDUE_SUBLINE')
+
+    const never = selectActiveBanner({ ...healthy(), syncLevel: 'crit', syncAgeSec: null })
+    expect(never?.messageKey).toBe('CLOUD_STATUS.SYNC_NEVER')
+    expect(never?.sublineKey).toBe('CLOUD_STATUS.SYNC_OVERDUE_SUBLINE')
+  })
+
   it('kein Cloud-Banner ausserhalb Tier 3 (showsCloudSyncStatus=false)', () => {
     const banner = selectActiveBanner({
       ...healthy(),

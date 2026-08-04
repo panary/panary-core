@@ -121,9 +121,10 @@
     "SUBLINE_BUSINESS_DAYS": "Geschäftstage werden zentral eröffnet und abgeschlossen."
   },
   "CLOUD_STATUS": {
-    "SYNC_AGE_MIN": "Letzter Cloud-Sync vor {{minutes}} min",
-    "SYNC_AGE_HOUR": "Letzter Cloud-Sync vor {{hours}} h",
-    "SYNC_NEVER": "Noch kein Cloud-Sync",
+    "SYNC_AGE_MIN": "Letzter Datenabgleich vor {{minutes}} min",
+    "SYNC_AGE_HOUR": "Letzter Datenabgleich vor {{hours}} h",
+    "SYNC_NEVER": "Noch kein Datenabgleich",
+    "SYNC_OVERDUE_SUBLINE": "Der eingeplante Abgleich ist überfällig — die Cloud-Verbindung selbst ist davon unberührt.",
     "TOKEN_EXPIRES_IN_HOURS": "Token läuft in {{hours}} h ab",
     "TOKEN_EXPIRES_IN_MINUTES": "Token läuft in {{minutes}} min ab",
     "TOKEN_EXPIRED": "Token abgelaufen — neu pairen",

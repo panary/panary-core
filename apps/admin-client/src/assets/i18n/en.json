@@ -121,9 +121,10 @@
     "SUBLINE_BUSINESS_DAYS": "Business days are opened and closed centrally."
   },
   "CLOUD_STATUS": {
-    "SYNC_AGE_MIN": "Last cloud sync {{minutes}} min ago",
-    "SYNC_AGE_HOUR": "Last cloud sync {{hours}} h ago",
-    "SYNC_NEVER": "No cloud sync yet",
+    "SYNC_AGE_MIN": "Last data sync {{minutes}} min ago",
+    "SYNC_AGE_HOUR": "Last data sync {{hours}} h ago",
+    "SYNC_NEVER": "No data sync yet",
+    "SYNC_OVERDUE_SUBLINE": "The scheduled sync is overdue — the cloud connection itself is unaffected.",
     "TOKEN_EXPIRES_IN_HOURS": "Token expires in {{hours}} h",
     "TOKEN_EXPIRES_IN_MINUTES": "Token expires in {{minutes}} min",
     "TOKEN_EXPIRED": "Token expired — re-pair required",

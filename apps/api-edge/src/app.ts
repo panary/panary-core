@@ -27,6 +27,7 @@ import os from 'os'
 import { getLocalIpAddress, renderStatusPage } from './status-page'
 import { findReportableCloudConnection } from './utils/cloud-connection-lookup'
 import { systemModeFromPairing } from './utils/system-mode'
+import { computeSyncExpectation } from './utils/sync-expectation'
 import { APP_VERSION } from './version'
 import { registerDevicePairingRoutes } from './device-pairing'
 import { configurePrintServer } from './print-server/index'
@@ -135,6 +136,13 @@ app.use(async (ctx, next) => {
     // den Status kennt, ohne `cloud-connection.get()` aufrufen zu muessen.
     let lastSyncAt: string | undefined
     let edgeTokenExpiresAt: string | undefined
+    // Sync-Erwartung: eingestellter Modus + Zeitpunkt des naechsten geplanten
+    // Abgleichs. Ohne die beiden muesste der Client `lastSyncAt` gegen feste
+    // Schwellen pruefen — und meldete dann in `scheduled` (Slot 22:00) oder in
+    // `auto` mit langem Intervall dauerhaft „Sync veraltet", obwohl der Edge
+    // genau nach Vorgabe laeuft. Siehe utils/sync-expectation.ts.
+    let syncMode: string | undefined
+    let nextExpectedSyncAt: string | undefined
     // Cloud-Erreichbarkeit + Offline-Override — RBAC-frei, damit der priorisierte
     // Cloud-Status-Banner in POS UND Admin diese Zustaende kennt, ohne RBAC-Recht
     // auf den `cloud-connection`-Service.
@@ -161,6 +169,9 @@ app.use(async (ctx, next) => {
         offlineOverrideActiveUntil = conn.offlineOverrideActiveUntil ?? undefined
         emergencyOverride = !!conn.emergencyOverride
         emergencyOverrideSince = conn.emergencyOverrideSince ?? undefined
+        const expectation = computeSyncExpectation(conn)
+        syncMode = expectation.mode
+        nextExpectedSyncAt = expectation.nextExpectedSyncAt ?? undefined
       }
     } catch {
       // ignore — health darf nicht failen
@@ -214,6 +225,8 @@ app.use(async (ctx, next) => {
       cloudPairingStatus,
       cloudTokenErrorReason,
       lastSyncAt,
+      syncMode,
+      nextExpectedSyncAt,
       edgeTokenExpiresAt,
       lastCloudContactAt,
       offlineOverrideActiveUntil,

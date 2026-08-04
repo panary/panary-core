@@ -966,30 +966,6 @@ const runPullForService = async (
 }
 
 /**
- * Einzelner cursor-basierter Pull eines Master-Data-Service — Einstiegspunkt
- * für den Realtime-Worker (Socket-Push-Trigger). Holt die aktive Connection und
- * delegiert an `runPullForService` (identische auditierte Pull-/Apply-/Cursor-
- * Logik wie der periodische Scheduler-Lauf). No-op ohne aktives Pairing; Fehler
- * (inkl. 401→Re-Pairing) werden geloggt, nicht geworfen — der periodische
- * Scheduler-Pull bleibt der Fallback.
- */
-export const pullMasterDataServiceOnce = async (app: Application, service: string): Promise<number> => {
-  const connection = await getActiveConnection(app).catch(() => null)
-  if (!connection) return 0
-  try {
-    return (await runPullForService(app, connection, service)).count
-  } catch (err) {
-    logger.warn({
-      message: 'Realtime-getriggerter Master-Data-Pull fehlgeschlagen',
-      event: 'sync.realtime.master_data_pull_failed',
-      service,
-      errorMessage: err instanceof Error ? err.message : String(err),
-    })
-    return 0
-  }
-}
-
-/**
  * Setzt alle lokalen User auf `status: ARCHIVED`, deren `_id` nicht im
  * Visibility-Snapshot der Cloud auftaucht. Geht davon aus, dass der Snapshot
  * vollstaendig ist (alle fuer diese Edge sichtbaren User).
@@ -1100,9 +1076,19 @@ const runHeartbeat = async (app: Application, connection: CloudConnection): Prom
     edgeTokenExpiresAt = extractJwtExpiry(cloudToken)
   }
 
+  // `lastSyncAt` wird hier BEWUSST NICHT gesetzt.
+  //
+  // Ein Heartbeat traegt keine Geschaeftsdaten — er beweist nur Erreichbarkeit
+  // und traegt die Token-Rotation. Frueher stempelte er trotzdem `lastSyncAt`,
+  // wodurch der Keepalive (alle 4 h, modusunabhaengig) im UI als „Cloud-Sync"
+  // erschien: im Modus `scheduled` behauptete der Edge damit einen Abgleich,
+  // den es nie gab, und das Sync-Alter-Banner sprang trotz korrekt
+  // eingehaltenem Zeitplan an. Erreichbarkeit lebt in `lastHeartbeatOk`
+  // (dieser Patch) und `lastCloudContactAt` (Realtime-Worker);
+  // `lastSyncAt` bedeutet ab jetzt ausschliesslich „letzter Datenabgleich"
+  // und wird nur von `stampLastSyncAt` gesetzt.
   await (app.service(cloudConnectionPath) as any)._patch(connection._id, {
     lastClockSkewMs: body.clockSkewMs,
-    lastSyncAt: new Date().toISOString(),
     lastHeartbeatOk: new Date().toISOString(),
     consecutiveHeartbeatFailures: 0,
     ...(edgeTokenExpiresAt ? { edgeTokenExpiresAt } : {}),
@@ -1648,6 +1634,75 @@ const runPullServicePhase = async (
     },
   })
 
+/**
+ * Stempelt `cloud-connection.lastSyncAt` — den letzten erfolgreichen
+ * DATENABGLEICH mit der Cloud.
+ *
+ * Invariante: Das Feld wird genau dann fortgeschrieben, wenn auch ein
+ * `sync-runs`-Eintrag entstanden sein kann — also nach einem durchgelaufenen
+ * Sync-Cycle (`runSyncOnce`) oder einem getriggerten Stammdaten-Pull
+ * (`pullMasterDataServiceOnce`). Damit deckt sich die Kopfzeile „Letzter
+ * Datenabgleich" im Admin immer mit dem, was die Sync-Historie zeigt.
+ *
+ * NICHT gestempelt wird bei: reinem Heartbeat/Keepalive (kein Datentransfer),
+ * businessdays-Safety-Poll (eigener Cursor `lastBusinessDaysPullAt`, taucht
+ * nicht in der Historie auf) und abgebrochenen Cycles (Cloud unerreichbar,
+ * 401, Clock-Skew) — dort bleibt der letzte bekannte Abgleich stehen, was
+ * genau die Aussage ist, die der Betreiber braucht.
+ *
+ * Fehlerisoliert: ein fehlgeschlagener Stempel darf einen erfolgreichen Sync
+ * nicht nachtraeglich zum Fehler machen.
+ */
+const stampLastSyncAt = async (app: Application, connectionId: string): Promise<void> => {
+  await (app.service(cloudConnectionPath) as any)
+    ._patch(connectionId, { lastSyncAt: new Date().toISOString() })
+    .catch((err: unknown) =>
+      logger.warn({
+        message: 'lastSyncAt konnte nicht gestempelt werden',
+        event: 'sync.last_sync_stamp_failed',
+        errorMessage: err instanceof Error ? err.message : String(err),
+      }),
+    )
+}
+
+/**
+ * Einzelner cursor-basierter Pull eines Master-Data-Service — Einstiegspunkt
+ * fuer den Realtime-Worker (Socket-Push-Trigger). Holt die aktive Connection
+ * und delegiert an `runPullServicePhase`: identische auditierte Pull-/Apply-/
+ * Cursor-Logik wie der periodische Scheduler-Lauf, jetzt inklusive
+ * `sync-runs`-Protokollierung.
+ *
+ * Die Protokollierung ist hier Pflicht, nicht Kosmetik: dieser Pfad laeuft
+ * modusunabhaengig (die Cloud pusht `changed` bei jeder Stammdaten-Mutation).
+ * Ohne Historien-Eintrag saehe der Betreiber im Modus `scheduled` einen
+ * fortgeschriebenen „Letzter Datenabgleich" ohne zugehoerigen Vorgang.
+ * `triggeredBy: CLOUD_PUSH` macht die Cloud als Ausloeser sichtbar und
+ * unterscheidet den Lauf vom Zeitplan.
+ *
+ * No-op ohne aktives Pairing; Fehler (inkl. 401→Re-Pairing) landen im
+ * sync-run und im Log, werden aber nicht geworfen — der periodische
+ * Scheduler-Pull bleibt der Fallback.
+ */
+export const pullMasterDataServiceOnce = async (app: Application, service: string): Promise<number> => {
+  const connection = await getActiveConnection(app).catch(() => null)
+  if (!connection) return 0
+  const pull = await runPullServicePhase(app, connection, service, SyncRunTrigger.CLOUD_PUSH)
+  if (pull.errorMessage) {
+    // Zusaetzlich zum generischen Phasen-Log: nur hier steht, dass der Pull
+    // realtime-getriggert war — der periodische Lauf hat andere Konsequenzen.
+    logger.warn({
+      message: 'Realtime-getriggerter Master-Data-Pull fehlgeschlagen',
+      event: 'sync.realtime.master_data_pull_failed',
+      service,
+      errorMessage: pull.errorMessage,
+    })
+    return 0
+  }
+  const count = pull.result?.count ?? 0
+  if (count > 0) await stampLastSyncAt(app, connection._id)
+  return count
+}
+
 export const runSyncOnce = async (
   app: Application,
   _cloudConnectionId: string,
@@ -1699,6 +1754,10 @@ export const runSyncOnce = async (
   const pushed = push.result?.accepted ?? 0
   if (push.errorMessage) lastError = push.errorMessage
   let pairingRequired = push.pairingRequired
+  // Getrennt von `lastError`: der traegt auch einen Heartbeat-Fehler, der den
+  // Cycle nicht verhindert hat. Fuer den `lastSyncAt`-Stempel zaehlt nur, ob
+  // die datentragenden Phasen sauber durchliefen.
+  let phaseError = push.errorMessage
 
   // Wenn Push 401 sah, ist der Token kaputt — Pull-Schleife waere nur Larm.
   if (pairingRequired) {
@@ -1710,8 +1769,18 @@ export const runSyncOnce = async (
     if (pairingRequired) break
     const pull = await runPullServicePhase(app, refreshed, service, triggeredBy)
     pulled += pull.result?.count ?? 0
-    if (pull.errorMessage) lastError = pull.errorMessage
+    if (pull.errorMessage) {
+      lastError = pull.errorMessage
+      phaseError = pull.errorMessage
+    }
     if (pull.pairingRequired) pairingRequired = true
+  }
+
+  // Der Cycle lief bis zum Ende durch: Push- und Pull-Phasen ohne Fehler, kein
+  // 401 unterwegs. Das ist ein Abgleich — auch dann, wenn nichts zu uebertragen
+  // war (nichts zu tun ist ein gueltiges Ergebnis, kein ausgefallener Sync).
+  if (!pairingRequired && !phaseError) {
+    await stampLastSyncAt(app, refreshed._id)
   }
 
   return { pushed, pulled, durationMs: durationMs(), lastError }

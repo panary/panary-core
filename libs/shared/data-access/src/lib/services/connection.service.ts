@@ -80,6 +80,12 @@ export class ConnectionService {
   // `#tick` triggert ein Re-Compute alle 60s, damit Computed-Werte wie
   // `Date.now() - lastSyncAt` ohne Polling-Roundtrip aktualisiert werden.
   readonly #lastSyncAt: WritableSignal<string | null> = signal(null)
+  // Sync-Erwartung aus /health: der eingestellte Modus und der Zeitpunkt, zu
+  // dem der Edge den naechsten automatischen Abgleich fahren will. `null` =
+  // keine Erwartung (Modus `manual`/`disabled`) → dann gibt es kein
+  // „veraltet", weil es nichts gibt, wogegen etwas veralten koennte.
+  readonly #syncMode: WritableSignal<string | null> = signal(null)
+  readonly #nextExpectedSyncAt: WritableSignal<string | null> = signal(null)
   readonly #edgeTokenExpiresAt: WritableSignal<string | null> = signal(null)
   // Cloud-Erreichbarkeit + Offline-Override (aus /health, RBAC-frei) — speisen
   // den priorisierten Cloud-Status-Banner (cloudUnreachable / offlineModeActive).
@@ -341,8 +347,14 @@ export class ConnectionService {
   // Schwellwerte fuer das Cloud-Status-Badge — bewusst hier zentral, damit
   // beide Apps (POS + Admin) konsistent rendern. Werte koennen spaeter ueber
   // Tenant-Settings ueberschrieben werden (siehe Plan-Doku §Schwellwerte).
-  static readonly SYNC_WARN_SEC = 5 * 60 // 5 min
-  static readonly SYNC_CRIT_SEC = 30 * 60 // 30 min
+  //
+  // Gemessen wird die UEBERFAELLIGKEIT gegenueber `nextExpectedSyncAt`, nicht
+  // mehr das absolute Alter von `lastSyncAt`. Der Unterschied ist der ganze
+  // Punkt: ein Edge im Modus `scheduled` mit Slot 22:00 hat um 14:00 einen
+  // 16 Stunden alten Abgleich und ist trotzdem voellig in Ordnung. Nur wer
+  // seinen eigenen Termin reissen laesst, ist auffaellig.
+  static readonly SYNC_OVERDUE_WARN_SEC = 5 * 60 // 5 min ueberfaellig
+  static readonly SYNC_OVERDUE_CRIT_SEC = 30 * 60 // 30 min ueberfaellig
   // Token-Warn auf 4 h gesenkt — 24 h war zu aggressiv (Pille blieb den
   // ganzen Tag sichtbar). 4 h gibt genug Vorlauf zum Re-Pairing, ohne
   // Operator-Noise im Normalbetrieb.
@@ -354,25 +366,52 @@ export class ConnectionService {
   // 5 min: ruhig genug, dass kurze Cloud-Blips/Neustarts keinen Alarm ausloesen.
   static readonly CLOUD_CONTACT_STALE_SEC = 5 * 60 // 5 min
 
+  /** Eingestellter Sync-Modus laut Edge (`auto` | `scheduled` | `manual` | `disabled`). */
+  readonly syncMode = computed(() => this.#syncMode())
+
   /**
-   * Alter des letzten erfolgreichen Cloud-Syncs.
+   * Zeitpunkt des naechsten vom Edge eingeplanten Abgleichs — `null`, wenn gar
+   * keiner eingeplant ist (`manual`/`disabled`). Speist die Zeile „Naechster
+   * geplanter Abgleich" im Edge-Admin.
+   */
+  readonly nextExpectedSyncAt = computed(() => this.#nextExpectedSyncAt())
+
+  /**
+   * Zustand des Datenabgleichs mit der Cloud.
    *
-   * `level`-Mapping:
-   *   - `ok`   : Sync < SYNC_WARN_SEC alt
-   *   - `warn` : SYNC_WARN_SEC ≤ Sync-Alter < SYNC_CRIT_SEC
-   *   - `crit` : Sync-Alter ≥ SYNC_CRIT_SEC oder `lastSyncAt` null
+   * `ageSec` ist das Alter des letzten Abgleichs (`lastSyncAt`, `null` = noch
+   * keiner) — reine Anzeige. `level` beantwortet dagegen die Frage, ob das ein
+   * PROBLEM ist, und misst dafuer die Ueberfaelligkeit gegenueber dem Termin,
+   * den der Edge sich selbst gesetzt hat (`nextExpectedSyncAt`):
+   *
+   *   - `ok`   : kein Termin eingeplant (manual/disabled) ODER Termin noch nicht
+   *              erreicht ODER weniger als SYNC_OVERDUE_WARN_SEC darueber
+   *   - `warn` : SYNC_OVERDUE_WARN_SEC ≤ Ueberfaelligkeit < …CRIT_SEC
+   *   - `crit` : Ueberfaelligkeit ≥ SYNC_OVERDUE_CRIT_SEC
+   *
+   * Die beiden Groessen sind bewusst entkoppelt. Frueher war `level` direkt aus
+   * dem Alter abgeleitet, was in jedem Modus ausser `auto` mit Default-Intervall
+   * ein Dauer-Fehlalarm war — und was schlimmer wog: `lastSyncAt` wurde damals
+   * vom blossen Heartbeat fortgeschrieben, das Badge behauptete also einen
+   * Abgleich, den es nie gab. Beides ist jetzt getrennt (panary-core ADR 0017).
    *
    * Re-Computed alle 60s ueber `#tick`, plus bei jedem /health-Poll.
    */
   readonly syncStaleness = computed<{ ageSec: number | null; level: 'ok' | 'warn' | 'crit' }>(() => {
     this.#tick()
     const ts = this.#lastSyncAt()
-    if (!ts) return { ageSec: null, level: 'crit' }
-    const ageSec = Math.floor((Date.now() - Date.parse(ts)) / 1000)
+    const ageSec = ts ? Math.floor((Date.now() - Date.parse(ts)) / 1000) : null
+
+    const expected = this.#nextExpectedSyncAt()
+    if (!expected) return { ageSec, level: 'ok' }
+    const expectedMs = Date.parse(expected)
+    if (!Number.isFinite(expectedMs)) return { ageSec, level: 'ok' }
+
+    const overdueSec = Math.floor((Date.now() - expectedMs) / 1000)
     const level =
-      ageSec >= ConnectionService.SYNC_CRIT_SEC
+      overdueSec >= ConnectionService.SYNC_OVERDUE_CRIT_SEC
         ? 'crit'
-        : ageSec >= ConnectionService.SYNC_WARN_SEC
+        : overdueSec >= ConnectionService.SYNC_OVERDUE_WARN_SEC
           ? 'warn'
           : 'ok'
     return { ageSec, level }
@@ -915,6 +954,8 @@ export class ConnectionService {
           typeof data.cloudTokenErrorReason === 'string' ? data.cloudTokenErrorReason : null,
         )
         this.#lastSyncAt.set(typeof data.lastSyncAt === 'string' ? data.lastSyncAt : null)
+        this.#syncMode.set(typeof data.syncMode === 'string' ? data.syncMode : null)
+        this.#nextExpectedSyncAt.set(typeof data.nextExpectedSyncAt === 'string' ? data.nextExpectedSyncAt : null)
         this.#edgeTokenExpiresAt.set(
           typeof data.edgeTokenExpiresAt === 'string' ? data.edgeTokenExpiresAt : null,
         )

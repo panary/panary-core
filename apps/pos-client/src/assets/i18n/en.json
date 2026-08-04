@@ -609,6 +609,7 @@
     "SENT_ALL": "Print job sent",
     "SENT_TO": "Sent to {{name}}",
     "ERROR": "Print error — is the print server running?",
+    "ERROR_DETAIL": "Print error — {{reason}}",
     "PROVISIONAL": "provisional",
     "OFFLINE_NOTICE_TITLE": "Offline receipt — TSE outage",
     "OFFLINE_NOTICE_BODY": "No TSE signature possible. The outage is logged; the final receipt number is assigned on reconnection."

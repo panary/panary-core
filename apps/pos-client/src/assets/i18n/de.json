@@ -609,6 +609,7 @@
     "SENT_ALL": "Druckauftrag gesendet",
     "SENT_TO": "Gesendet an {{name}}",
     "ERROR": "Druckfehler — ist der Print-Server aktiv?",
+    "ERROR_DETAIL": "Druckfehler — {{reason}}",
     "PROVISIONAL": "vorläufig",
     "OFFLINE_NOTICE_TITLE": "Offline-Beleg — TSE-Ausfall",
     "OFFLINE_NOTICE_BODY": "Keine TSE-Signatur möglich. Der Ausfall wird protokolliert; die endgültige Belegnummer wird bei Wiederverbindung vergeben."

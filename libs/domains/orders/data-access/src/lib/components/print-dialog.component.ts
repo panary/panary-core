@@ -120,8 +120,8 @@ export class PrintDialogComponent {
       await this.orderPrintService.printOrder(this.order)
       this.snackBar.open(this.translate.instant('PRINT.SENT_ALL'), undefined, { duration: 2000 })
       this.dialogRef.close(true)
-    } catch {
-      this.snackBar.open(this.translate.instant('PRINT.ERROR'), 'OK', { duration: 4000 })
+    } catch (err: unknown) {
+      this.showPrintError(err)
     }
   }
 
@@ -129,9 +129,25 @@ export class PrintDialogComponent {
     try {
       await this.orderPrintService.printOrder(this.order, [printer.pid])
       this.snackBar.open(this.translate.instant('PRINT.SENT_TO', { name: printer.name }), undefined, { duration: 2000 })
-    } catch {
-      this.snackBar.open(this.translate.instant('PRINT.ERROR'), 'OK', { duration: 4000 })
+    } catch (err: unknown) {
+      this.showPrintError(err)
     }
+  }
+
+  /**
+   * Zeigt den konkreten Grund statt des generischen „Druckfehler".
+   *
+   * Der Kassierer steht vor dem Geraet und kann nur handeln, wenn er weiss, WAS
+   * schiefging — „Theke: connect ETIMEDOUT" fuehrt zum Drucker, „ist der
+   * Print-Server aktiv?" fuehrt nirgendwohin. Ohne Detail bleibt der generische
+   * Text als Rueckfall.
+   */
+  private showPrintError(err: unknown): void {
+    const detail = err instanceof Error ? err.message?.trim() : ''
+    const message = detail
+      ? this.translate.instant('PRINT.ERROR_DETAIL', { reason: detail })
+      : this.translate.instant('PRINT.ERROR')
+    this.snackBar.open(message, 'OK', { duration: 6000 })
   }
 
   close() {

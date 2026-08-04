@@ -103,6 +103,10 @@ export const businessDayQueryProperties = Type.Pick(businessDaySchema, [
   'isOpen',
   'operationMode',
   'reportId',
+  // Flaches date-time-Feld, deshalb ueber Type.Pick sicher: querySyntax baut das
+  // volle Operator-Set ($gt/$lt/…) daraus. Verschachtelte Felder gehoeren hier
+  // NICHT hinein (querySyntax ueber Objekt-/Array-Typen laeuft in TS2589).
+  'openedAt',
 ])
 const _businessDayQueryBase = querySyntax(businessDayQueryProperties)
 export const businessDayQuerySchema = Type.Object(

@@ -1,13 +1,46 @@
 ---
 type: Reference
 title: Print-Server-API
-description: Referenz der MQTT-basierten Print-Server-Schnittstelle und der ESC/POS-Encoder-Library mit Fonts, Größen, Stilen, Befehlen und Konfiguration.
+description: Referenz der Print-Server-Schnittstelle am Edge — Aufrufer, Ziel-Host und Fehler-Events sowie die ESC/POS-Encoder-Library mit Fonts, Größen, Stilen, Befehlen und Konfiguration.
 tags: [locations, print-server, esc-pos, mqtt]
 status: stable
 generated: { by: claude-code/historic, at: 2025-03-28T00:00:00Z }
 ---
 
 # Print-Server & ESC/POS Dokumentation
+
+## 0. Wer ruft den Print-Server — und unter welcher Adresse?
+
+Die Endpunkte liegen unter `/print-server/*` am **Edge** (`api-edge`,
+`print-server.router.ts`) und sind rohe Koa-Routen, keine Feathers-Services.
+Zwei Clients rufen sie:
+
+| Client | Endpunkte | Basis-URL |
+|---|---|---|
+| Edge-Admin (`apps/admin-client`) | `/status`, `/start`, `/stop`, `/restart`, `/test-print` | `window.location.origin` — korrekt, weil der Edge diesen Client selbst ausliefert (`dist/apps/admin-client/browser`) |
+| POS (`OrderPrintService`) | `/print-order` | `resolveEdgeBaseUrl()` aus `libs/domains/orders/data-access/src/lib/utils/edge-base-url.ts` |
+
+> ⚠️ **Der POS darf `window.location.origin` NICHT verwenden.** Er wird nicht vom
+> Edge ausgeliefert und läuft unter eigener Herkunft — bei Tauri
+> `http://tauri.localhost`. Bis 2026-08-04 stand genau das im
+> `OrderPrintService`: Bestellbons gingen an das Gerät selbst, der Edge sah nie
+> eine Anfrage. Der Testdruck aus dem Edge-Admin funktionierte die ganze Zeit
+> und verdeckte den Fehler.
+>
+> `resolveEdgeBaseUrl()` liest dieselben Quellen in derselben Reihenfolge wie
+> `ConnectionService.createSocket` (Device-Config `serverUrl` vor
+> `AppConfigService.apiUrl`, beides über `Utils.getBaseUrl` normalisiert), damit
+> Druck und Socket nicht auf verschiedene Hosts zeigen können.
+
+**Fehlersuche:** Jeder Versuch schreibt ein Wide-Event —
+`print.order_success`, `print.order_error` (Drucker nicht erreichbar),
+`print.order_no_printers` (kein Ziel nach `active && type === 'ip'`),
+`print-server.forbidden` / `print-server.unauthenticated`. Fehlt zu einer
+Bestellung **jedes** dieser Events, ist die Anfrage nie am Edge angekommen —
+dann liegt es am Client, nicht am Drucker.
+
+Beachte: `/print-order` antwortet bei Teil- und Totalausfällen mit **HTTP 200**
+und `{ success: false, results: [...] }`. Aufrufer müssen den Body auswerten.
 
 ## Library: `@point-of-sale/receipt-printer-encoder` v3
 

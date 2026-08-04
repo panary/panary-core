@@ -98,8 +98,38 @@ erreichte, sind jetzt explizit eingetragen (rein additiv, Cloud-kompatibel):
   Ability-Alternative; falls POS-Geräte im Cloud-Direct-Modus stempeln
   sollen, denselben Sonderfall dort nachziehen.
 
+## Nachtrag 2026-08-04 — der Hook war nicht der einzige Prüfpunkt
+
+Problem 1 („Grants wirkungslos") existierte ein zweites Mal, an einer Stelle,
+die der Umbau nicht erfasst hat: `printServerAuthorize`
+(`apps/api-edge/src/print-server/auth.middleware.ts`). Die `/print-server/*`-
+Endpunkte sind **rohe Koa-Middleware** und laufen weder durch die
+Feathers-Hook-Chain noch durch `secureByDefault` — sie hatten ihre eigene
+Matrix-Auswertung über `RolePermissions` behalten und ignorierten Grants
+weiterhin. Umgestellt auf `hasEffectivePermission`, damit dieselbe Quelle der
+Wahrheit gilt.
+
+Merksatz für künftige Arbeit: **Wer einen zentralen Sicherheits-Helper
+umstellt, muss nach Konsumenten ausserhalb der Hook-Chain suchen.** Ein
+`grep` auf `RolePermissions` findet sie; die Hook-Registrierung nicht.
+
+Beim selben Anlass korrigiert: `TENANT_MANAGER` hatte
+`PRINT_SERVER: [READ, UPDATE]` und konnte den Print-Server damit starten und
+stoppen, aber keinen Bon drucken — `/print-order` verlangt CREATE. Jetzt
+`MANAGE`. `TENANT_STAFF` bleibt bewusst ohne Druckberechtigung; POS-Geräte
+drucken über ihre Device-Rolle (`DEVICE_POS`/`DEVICE_KDS`: CREATE).
+
+Verschärfend war, dass beide Abweisungen (401/403) nichts loggten und
+`/print-server/*` nicht durch `canonicalLog` läuft — ein 403 war im Edge-Log
+unsichtbar. Ergänzt als `print-server.unauthenticated` und
+`print-server.forbidden`.
+
 ## Tests
 
+- `apps/api-edge/src/print-server/authorize.middleware.spec.ts`: Matrix-Fälle
+  (DEVICE_POS, TENANT_MANAGER, TENANT_STAFF), additiver Grant
+  `grant:print-server:create`, 401 ohne Benutzer und der Nachweis, dass jede
+  Abweisung ein Wide-Event schreibt.
 - `libs/shared/backend/src/hooks/authorize.hook.spec.ts` (65 Tests gesamt in
   shared-backend): Bypässe, Matrix-/Grant-Fälle, JSON-String-Permissions,
   MANAGE-only-Fallback, Wildcard-Wegfall, CAN_CLOCK_IN-Sonderfall (inkl.

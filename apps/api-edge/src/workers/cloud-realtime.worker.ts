@@ -39,7 +39,12 @@ import {
 
 import type { Application } from '../declarations'
 import { decryptCloudToken } from '../utils/cloud-token-cipher'
-import { getActiveConnection, pullMasterDataServiceOnce, triggerImmediateCycle } from './cloud-sync-scheduler.worker'
+import {
+  getActiveConnection,
+  pullMasterDataServiceOnce,
+  pullPrinterCommandsOnce,
+  triggerImmediateCycle,
+} from './cloud-sync-scheduler.worker'
 import { pullBusinessDaysOnce } from './cloud-pull-business-days.worker'
 import { setRealtimeConnected } from './cloud-realtime-state'
 
@@ -57,6 +62,13 @@ const RANDOMIZATION_FACTOR = 0.5
 
 const BUSINESS_DAYS_SERVICE = 'businessdays'
 
+// Kommando-Queue statt Stammdaten: die Cloud schickt beim Anlegen eines
+// Test-Druck-Jobs `changed` mit diesem Service-Namen, der Edge holt ab, fuehrt
+// aus und meldet zurueck. Ohne diesen Weg haengt der Testdruck am Sync-Tick —
+// Untergrenze 60 s, im Modus `scheduled` bis zum naechsten Slot — waehrend die
+// Cloud-UI nach 60 s aufgibt.
+const PRINTER_COMMANDS_SERVICE = 'printer-commands'
+
 // Debounce pro Service: ein Bulk-Vorgang in der Cloud (z.B. Katalog-Import mit
 // hunderten Produkt-Patches) feuert hunderte `changed`-Events. Statt hunderte
 // Pulls auszulösen, coalescen wir gleichartige Trigger zu EINEM Pull ~1s nach
@@ -72,6 +84,24 @@ const TRIGGER_DEBOUNCE_MS = 1_000
 // im Push-Modus nur als 5min-Safety-Net und kann den Heartbeat allein nicht
 // frisch halten.
 const CONTACT_HEARTBEAT_MS = 30_000
+
+/**
+ * Routet einen Service aus dem `changed`-Event auf den passenden Pull-Pfad:
+ * `businessdays` über den dedizierten Worker (reconcilet zusätzlich
+ * `location.currentBusinessDay` lokal), `printer-commands` über die
+ * Kommando-Queue (claim → ausführen → zurückmelden), alles Übrige über den
+ * cursor-basierten Stammdaten-Pull.
+ *
+ * Auf Modulebene und exportiert, damit die Weiche testbar ist: ein Service, der
+ * faelschlich im Stammdaten-Zweig landet, ruft `/sync-pull?service=…` — und der
+ * antwortet fuer alles ausserhalb der `SyncableMasterDataService`-Allowlist mit
+ * einem Fehler statt mit Daten.
+ */
+export const runServicePull = (app: Application, service: string): Promise<unknown> => {
+  if (service === BUSINESS_DAYS_SERVICE) return pullBusinessDaysOnce(app)
+  if (service === PRINTER_COMMANDS_SERVICE) return pullPrinterCommandsOnce(app)
+  return pullMasterDataServiceOnce(app, service)
+}
 
 export interface CloudRealtimeWorkerHandle {
   stop(): void
@@ -117,12 +147,6 @@ export const startCloudRealtimeWorker = async (app: Application): Promise<CloudR
     }
   }
 
-  // Routet einen Service auf den passenden Pull-Pfad: businessdays über den
-  // dedizierten Worker (reconcilet zusätzlich location.currentBusinessDay lokal),
-  // alle anderen Stammdaten über den cursor-basierten Scheduler-Pull.
-  const runServicePull = (service: string): Promise<unknown> =>
-    service === BUSINESS_DAYS_SERVICE ? pullBusinessDaysOnce(app) : pullMasterDataServiceOnce(app, service)
-
   const schedulePull = (service: string): void => {
     const existing = pullTimers.get(service)
     if (existing) clearTimeout(existing)
@@ -130,7 +154,7 @@ export const startCloudRealtimeWorker = async (app: Application): Promise<CloudR
       service,
       setTimeout(() => {
         pullTimers.delete(service)
-        void runServicePull(service).catch(err =>
+        void runServicePull(app, service).catch(err =>
           logger.warn({
             message: 'Realtime-getriggerter Pull fehlgeschlagen',
             event: 'sync.realtime.trigger_pull_failed',

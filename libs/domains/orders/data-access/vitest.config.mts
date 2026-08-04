@@ -13,6 +13,7 @@ export default defineConfig(() => ({
     alias: {
       '@panary/orders/domain': join(__dirname, '../domain/src/index.ts'),
       '@panary/shared-common': join(__dirname, '../../../shared/common/src/index.ts'),
+      '@panary/shared/util-helpers': join(__dirname, '../../../shared/util-helpers/src/index.ts'),
     },
   },
   test: {

@@ -76,7 +76,7 @@ export interface MqttSettingsData {
         <div class="space-y-1">
           <label for="mqttPort" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Port</label>
           <input id="mqttPort" [ngModel]="settings().mqttServerPort" (ngModelChange)="onFieldChange('mqttServerPort', $event)"
-            name="mqttServerPort" type="number" min="1" max="65535" placeholder="1883"
+            name="mqttServerPort" type="number" min="1" max="65535" placeholder="9001"
             class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                    text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
                    focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none" />

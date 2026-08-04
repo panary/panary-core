@@ -214,10 +214,14 @@ export class PrinterManagementComponent implements OnInit {
         showDialogAfterOrder: ps.showDialogAfterOrder ?? true,
         backofficePrinter: ps.backofficePrinter,
       })
+      // Fallbacks muessen den Schema-Defaults entsprechen (default-settings.ts):
+      // 'mqtt' ist kein gueltiger Enum-Wert (nur ws|wss) und 1883 ist der TCP-Port,
+      // ueber den der Browser-Client nicht sprechen kann. Mit den alten Werten
+      // stand das Select auf keinem Eintrag und ein Speichern lief in 400.
       this.mqttSettings.set({
-        mqttServerProtocol: ps.mqttServerProtocol ?? 'mqtt',
+        mqttServerProtocol: ps.mqttServerProtocol ?? 'ws',
         mqttServerUrl: ps.mqttServerUrl ?? 'localhost',
-        mqttServerPort: ps.mqttServerPort ?? 1883,
+        mqttServerPort: ps.mqttServerPort ?? 9001,
       })
     } catch (err) {
       this.error.set(formatApiError(err))

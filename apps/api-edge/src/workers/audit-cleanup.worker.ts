@@ -10,7 +10,7 @@
 // Trigger bleiben aktiv (kein Datenverlust, kein Trigger-Verlust).
 //
 // Pre-Check: Wenn die Cloud seit > 7 Tagen nicht erreichbar war (kein Eintrag
-// in `cloud-connection.lastSyncAt` innerhalb dieses Fensters), wird der
+// in `cloud-connection.lastHeartbeatOk` innerhalb dieses Fensters), wird der
 // Cleanup-Lauf uebersprungen. Vermeidet Datenverlust bei laengerem Sync-Ausfall.
 //
 // Audit-Trail: Jeder Cleanup-Lauf erzeugt selbst einen Audit-Event mit
@@ -39,7 +39,7 @@ interface AuditCleanupConfig {
   retentionDays: number
   hour: number // 0-23, lokale Server-Zeit (Cron-Stunde)
   minuteJitterMs: number // Random-Delay vor jedem Run, vermeidet Cluster-Effekte
-  cloudReachableMaxAgeDays: number // wenn lastSyncAt aelter ist → skip
+  cloudReachableMaxAgeDays: number // wenn lastHeartbeatOk aelter ist → skip
   batchSize: number // wieviele rows pro Lauf maximal
 }
 
@@ -391,11 +391,20 @@ const computeDelayUntilHour = (targetHour: number): number => {
   return target.getTime() - now.getTime()
 }
 
-// Cloud-Reachability-Check: liest cloud-connection.lastSyncAt und prueft, ob
-// das Datum innerhalb der erlaubten Toleranz liegt. Wenn es keine
+// Cloud-Reachability-Check: liest cloud-connection.lastHeartbeatOk und prueft,
+// ob das Datum innerhalb der erlaubten Toleranz liegt. Wenn es keine
 // cloud-connection gibt (Edge laeuft ohne Pairing), gilt der Edge als
 // "standalone" — Cleanup laeuft trotzdem (Cloud-Source-of-Truth-Pflicht
 // entfaellt).
+//
+// BEWUSST `lastHeartbeatOk`, NICHT `lastSyncAt`: hier wird Erreichbarkeit
+// geprueft („war die Cloud da, um Events entgegenzunehmen?"), nicht
+// Datenfluss. `lastSyncAt` bedeutet seit der Trennung der beiden Begriffe
+// „letzter Datenabgleich" und steht im Modus `scheduled` naturgemaess tagelang
+// still, obwohl die Cloud jederzeit erreichbar war — der Cleanup wuerde dann
+// dauerhaft aussetzen und die Edge-DB unbegrenzt wachsen lassen. Der
+// Keepalive-Heartbeat laeuft dagegen in JEDEM Sync-Modus (alle 4 h) und ist
+// damit der belastbare Erreichbarkeits-Beleg.
 const isCloudReachableRecently = async (app: Application, maxAgeDays: number): Promise<boolean> => {
   try {
     const result = (await app
@@ -407,14 +416,14 @@ const isCloudReachableRecently = async (app: Application, maxAgeDays: number): P
         query: { $limit: 1 },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any)) as unknown as Array<{
-      lastSyncAt?: string
+      lastHeartbeatOk?: string
       pairingStatus?: string
     }>
     const conn = Array.isArray(result) ? result[0] : undefined
     if (!conn) return true // standalone Edge — keine Cloud, kein Sync-Risiko
     if (conn.pairingStatus !== 'connected') return true // ungepairt → standalone
-    if (!conn.lastSyncAt) return false // gepairt aber nie gesynct → vorsichtshalber skip
-    const ageMs = Date.now() - new Date(conn.lastSyncAt).getTime()
+    if (!conn.lastHeartbeatOk) return false // gepairt, aber nie erreicht → vorsichtshalber skip
+    const ageMs = Date.now() - new Date(conn.lastHeartbeatOk).getTime()
     return ageMs <= maxAgeDays * 86_400_000
   } catch {
     // Service nicht verfuegbar → behandeln wie standalone, damit Cleanup

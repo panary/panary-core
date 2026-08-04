@@ -619,11 +619,20 @@ const directionLabel = (dir: InitialDirection): string => {
                   <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400">Verbunden seit</span>
                   <span class="text-sm">{{ formatDate(connectionInfo()?.connectedAt) }}</span>
                 </div>
+                <!-- „Datenabgleich", nicht „Sync": das Feld traegt seit ADR 0017
+                     ausschliesslich echte Datenuebertragungen. Die blosse
+                     Erreichbarkeit steht in der Live-Status-Box darueber
+                     („letzter Kontakt …") — beides gleich zu benennen war genau
+                     der Widerspruch, den Betreiber hier gelesen haben. -->
                 <div class="flex items-center justify-between px-4 py-3">
-                  <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400">Letzter Sync</span>
+                  <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400">Letzter Datenabgleich</span>
                   <span class="text-sm">
-                    {{ connectionInfo()?.lastSyncAt ? formatDate(connectionInfo()?.lastSyncAt) : 'Noch nicht synchronisiert' }}
+                    {{ connectionInfo()?.lastSyncAt ? formatDate(connectionInfo()?.lastSyncAt) : 'Noch nicht abgeglichen' }}
                   </span>
+                </div>
+                <div class="flex items-center justify-between px-4 py-3">
+                  <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400">Naechster geplanter Abgleich</span>
+                  <span class="text-sm">{{ nextExpectedSyncLabel() }}</span>
                 </div>
                 @if (connectionInfo()?.lastClockSkewMs !== undefined) {
                   <div class="flex items-center justify-between px-4 py-3">
@@ -878,6 +887,23 @@ export class CloudConnectionComponent implements OnInit {
     if (this.#conn.cloudUnreachable()) return 'unreachable'
     return 'online'
   })
+
+  /**
+   * Wann faehrt der Edge den naechsten automatischen Abgleich? Kommt fertig
+   * gerechnet aus `/health` (utils/sync-expectation.ts) — Zeitplan-Slots und
+   * IANA-Zonen im Client erneut auszuwerten waere eine zweite Quelle der
+   * Wahrheit, die zwangslaeufig vom Worker abdriftet.
+   *
+   * Kein Termin (`manual`/`disabled`) ist eine Aussage, keine Luecke: sie
+   * erklaert, warum „Letzter Datenabgleich" alt sein darf.
+   */
+  protected nextExpectedSyncLabel(): string {
+    const next = this.#conn.nextExpectedSyncAt()
+    if (next) return this.formatDate(next)
+    return this.#conn.syncMode() === 'manual'
+      ? 'Kein automatischer Abgleich — nur manuell'
+      : 'Kein automatischer Abgleich'
+  }
 
   protected liveStatusLabel(): string {
     switch (this.liveStatus()) {

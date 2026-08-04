@@ -201,11 +201,29 @@ export function selectActiveBanner(s: CloudStatusState): CloudBanner | null {
       }
     }
 
-    // 7./8. (w30/w20) Sync veraltet — rein informativ (niedrigste Prioritaet).
+    // 7./8. (w30/w20) Datenabgleich ueberfaellig — rein informativ (niedrigste
+    //       Prioritaet).
+    //
+    //       `syncLevel` misst NICHT mehr das absolute Alter, sondern die
+    //       Ueberfaelligkeit gegenueber dem naechsten vom Edge eingeplanten
+    //       Abgleich (ConnectionService.syncStaleness). Damit erscheint dieser
+    //       Banner in `scheduled`/`manual`/`disabled` nur noch dann, wenn
+    //       tatsaechlich ein Termin gerissen wurde — vorher stand er dort
+    //       dauerhaft, obwohl der Edge exakt nach Vorgabe lief.
+    //
+    //       Die Subline sagt genau das: nicht „alt", sondern „ueberfaellig".
+    //       Ohne sie liest sich eine Altersangabe wie ein Defekt, sobald der
+    //       Betreiber einen bewusst seltenen Abgleich eingestellt hat.
     if (s.syncLevel === 'crit' || s.syncLevel === 'warn') {
       const level: CloudBannerLevel = s.syncLevel === 'crit' ? 'warn' : 'info'
       if (s.syncAgeSec === null) {
-        return { id: 'sync-stale', level, icon: 'cloud_sync', messageKey: 'CLOUD_STATUS.SYNC_NEVER' }
+        return {
+          id: 'sync-stale',
+          level,
+          icon: 'cloud_sync',
+          messageKey: 'CLOUD_STATUS.SYNC_NEVER',
+          sublineKey: 'CLOUD_STATUS.SYNC_OVERDUE_SUBLINE',
+        }
       }
       const minutes = Math.floor(s.syncAgeSec / 60)
       const useHours = minutes >= 60
@@ -215,6 +233,7 @@ export function selectActiveBanner(s: CloudStatusState): CloudBanner | null {
         icon: 'cloud_sync',
         messageKey: useHours ? 'CLOUD_STATUS.SYNC_AGE_HOUR' : 'CLOUD_STATUS.SYNC_AGE_MIN',
         params: useHours ? { hours: Math.floor(minutes / 60) } : { minutes },
+        sublineKey: 'CLOUD_STATUS.SYNC_OVERDUE_SUBLINE',
       }
     }
   }

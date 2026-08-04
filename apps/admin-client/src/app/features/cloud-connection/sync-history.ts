@@ -64,6 +64,22 @@ const DIRECTION_LABEL: Record<SyncRunDirection, string> = {
   'cloud-to-edge': '← Cloud',
 }
 
+/**
+ * Wer hat den Vorgang ausgeloest? Die Spalte beantwortet die Frage, an der sich
+ * Betreiber im Modus `scheduled` regelmaessig gestossen haben: „warum wurde
+ * synchronisiert, obwohl ich einen Zeitplan eingestellt habe?" — der
+ * eingestellte Modus steuert nur `Automatisch`; `Cloud` (Stammdaten-Aenderung
+ * oder „Jetzt synchronisieren" im Cloud-Admin), `Manuell` und `Edge-Start`
+ * laufen bewusst unabhaengig davon.
+ */
+const TRIGGER_LABEL: Record<string, string> = {
+  bootstrap: 'Erstabgleich',
+  scheduler: 'Automatisch',
+  manual: 'Manuell',
+  startup: 'Edge-Start',
+  'cloud-push': 'Cloud',
+}
+
 const SERVICE_LABEL: Record<string, string> = {
   users: 'Personal',
   products: 'Produkte',
@@ -86,7 +102,7 @@ const SERVICE_LABEL: Record<string, string> = {
         <div>
           <h2 class="text-sm font-semibold">Sync-Historie</h2>
           @if (lastRunAt(); as last) {
-            <p class="text-xs text-slate-500 dark:text-gray-400 mt-0.5">Letzter Sync: {{ formatRelative(last) }}</p>
+            <p class="text-xs text-slate-500 dark:text-gray-400 mt-0.5">Letzter Vorgang: {{ formatRelative(last) }}</p>
           } @else {
             <p class="text-xs text-slate-400 dark:text-gray-500 mt-0.5">Noch keine Sync-Vorgaenge.</p>
           }
@@ -142,6 +158,7 @@ const SERVICE_LABEL: Record<string, string> = {
                 <th class="text-left px-4 py-2 font-medium">Zeit</th>
                 <th class="text-left px-3 py-2 font-medium">Phase</th>
                 <th class="text-left px-3 py-2 font-medium">Service</th>
+                <th class="text-left px-3 py-2 font-medium">Ausgeloest von</th>
                 <th class="text-left px-3 py-2 font-medium">Richtung</th>
                 <th class="text-right px-3 py-2 font-medium">Records</th>
                 <th class="text-right px-3 py-2 font-medium">Dauer</th>
@@ -160,6 +177,7 @@ const SERVICE_LABEL: Record<string, string> = {
                   <td class="px-3 py-2 text-slate-700 dark:text-gray-200">
                     {{ serviceSummary(row) }}
                   </td>
+                  <td class="px-3 py-2 text-slate-500 dark:text-gray-400">{{ triggerLabel(row.triggeredBy) }}</td>
                   <td class="px-3 py-2 font-mono text-slate-500 dark:text-gray-400">{{ directionLabel(row.direction) }}</td>
                   <td class="px-3 py-2 text-right tabular-nums text-slate-700 dark:text-gray-200">
                     @if (hasDetails(row)) {
@@ -198,7 +216,7 @@ const SERVICE_LABEL: Record<string, string> = {
                 </tr>
                 @if (row.errorMessage) {
                   <tr class="bg-red-50/30 dark:bg-red-950/20">
-                    <td colspan="7" class="px-4 py-2 text-[11px] text-red-700 dark:text-red-300 font-mono">
+                    <td colspan="8" class="px-4 py-2 text-[11px] text-red-700 dark:text-red-300 font-mono">
                       ↳ {{ row.errorMessage }}
                     </td>
                   </tr>
@@ -278,7 +296,8 @@ const SERVICE_LABEL: Record<string, string> = {
                 {{ phaseLabel(dr.phase) }} · {{ directionLabel(dr.direction) }}
               </h3>
               <p class="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
-                {{ formatDate(dr.startedAt) }} · {{ dr.recordCount }} Records
+                {{ formatDate(dr.startedAt) }} · {{ dr.recordCount }} Records · ausgeloest von
+                {{ triggerLabel(dr.triggeredBy) }}
               </p>
             </div>
             <button
@@ -506,6 +525,13 @@ export class SyncHistoryComponent implements OnInit, OnDestroy {
 
   directionLabel(d: SyncRunDirection): string {
     return DIRECTION_LABEL[d] ?? d
+  }
+
+  // Fallback auf den Rohwert: ein kuenftiger Trigger soll als unbekanntes
+  // Kuerzel sichtbar sein, nicht als leere Zelle.
+  triggerLabel(t: string | undefined): string {
+    if (!t) return '—'
+    return TRIGGER_LABEL[t] ?? t
   }
 
   // Push-Eintraege haben service=null (eine aggregierte Batch ueber mehrere

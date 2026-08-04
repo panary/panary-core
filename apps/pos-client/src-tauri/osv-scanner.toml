@@ -83,14 +83,3 @@ reason = "quick-xml 0.39.4 — Fix erst in 0.41.0, kein 0.39.x-Backport. Einzige
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0195"  # quick-xml (DoS: unbegrenzte Namespace-Allokation in NsReader)
 reason = "quick-xml 0.39.4 — Fix erst in 0.41.0, kein 0.39.x-Backport. Einziger Parent plist 1.9.0 (neueste Version, via tauri 2) verlangt strikt ^0.39.2 → nicht isoliert bumpbar. Exposure: plist parst nur eigene Bundle-Metadaten (Info.plist) zur Build-/Bundle-Zeit, kein Angreifer-kontrolliertes XML zur POS-Laufzeit. Re-evaluieren sobald plist quick-xml ≥0.41 erlaubt."
-
-# rkyv ist der einzige Eintrag hier, der NICHT kompiliert wird — anders als alle
-# obigen (die sind im Binary, nur nicht fixbar). Der Scanner liest Cargo.lock,
-# und Cargo.lock fuehrt optionale Deps von Deps unabhaengig davon, ob das Feature
-# aktiv ist. Belegt mit:
-#   cargo tree --locked --target all -e normal | grep -c rkyv   → 0
-#   cargo tree --locked --target all -i rkyv                    → "nothing to print"
-# Aktiv an rust_decimal ist nur `std` (via byte-unit), nicht `rkyv`.
-[[IgnoredVulns]]
-id = "RUSTSEC-2026-0235"  # rkyv (OOB-Read bei Rc/Arc-Archiven mit gefaelschter Slice-Laenge)
-reason = "rkyv 0.7.46 wird NICHT kompiliert: optionale Dependency von rust_decimal, deren `rkyv`-Feature nirgends aktiviert ist (nur `std`) — steht ausschliesslich im Lockfile. Nicht bumpbar: rust_decimal 1.42.1 (bereits hoechste mit byte-unit ^1.15 vereinbare Version) verlangt strikt ^0.7.46, und der Fix existiert nur in 0.8.17 — die gesamte 0.7-Linie ist betroffen, ohne Backport. Kette: panary-pos → tauri-plugin-log ^2 → byte-unit ^5 → rust_decimal ^1.15. Exposure: das Advisory braucht `rkyv::access`/`rkyv::from_bytes` auf Angreifer-kontrollierten Archiven; der POS deserialisiert nirgends rkyv-Archive, und der Code ist ohnehin nicht im Binary. Re-evaluieren, sobald byte-unit/rust_decimal auf rkyv 0.8 gehen — dann faellt der Eintrag ersatzlos weg."

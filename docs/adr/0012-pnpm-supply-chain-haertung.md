@@ -241,6 +241,9 @@ Workbench-Root.
 
 `apps/pos-client/src-tauri/` ist ein Cargo-Ökosystem — von pnpm-Keys
 unberührt. Die Cargo-Karenz läuft über `cooldown` im Dependabot-Cargo-Eintrag.
+Wie ein osv-scanner-Befund auf der Cargo-Seite triagiert wird (und warum dort
+`overrides` und Karenz keine Rolle spielen), steht in
+[Cargo-Advisories triagieren](../guides/cargo-advisory-triage.md).
 
 ## Verwandt
 

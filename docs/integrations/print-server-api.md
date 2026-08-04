@@ -42,6 +42,27 @@ dann liegt es am Client, nicht am Drucker.
 Beachte: `/print-order` antwortet bei Teil- und Totalausfällen mit **HTTP 200**
 und `{ success: false, results: [...] }`. Aufrufer müssen den Body auswerten.
 
+### Testdruck aus der Cloud
+
+Der Testdruck geht **nicht** über diese Endpunkte, sondern über die Kommando-Queue
+`printer-commands` in der Cloud — der Edge sitzt hinter NAT und holt ab. Angestoßen
+wird das Abholen seit 2026-08-04 per Push über den vom Edge aufgebauten Socket:
+
+1. Cloud legt den Job an → after-Hook `notifyEdgesForLocation(…, ['printer-commands'])`
+2. `cloud-realtime.worker.ts` empfängt `changed`, `runServicePull` routet auf
+   `pullPrinterCommandsOnce` (Trailing-Debounce 1 s)
+3. Edge claimt per PATCH, ruft `printServerManager.testPrint(pid)`, meldet `DONE`/`FAILED`
+
+> ⚠️ **Der Sync-Tick taugt hierfür nicht** und ist nur noch Rückfallweg für einen
+> getrennten Socket: seine Untergrenze liegt bei 60 s, `syncIntervalSec` erlaubt bis
+> zu 3600 s, und im Modus `scheduled` läuft ein Cycle überhaupt nur im fälligen Slot.
+> Die Cloud-UI gibt nach 60 s auf.
+
+`printServerManager.testPrint` arbeitet auf der beim letzten `start()` eingefrorenen
+Druckerliste — ein in der Cloud **neu angelegter** Drucker ist dort erst nach einem
+Print-Server-Neustart bekannt. Der Bon-Druck über `/print-order` ist davon nicht
+betroffen, er liest die Drucker frisch aus der Location.
+
 ## Library: `@point-of-sale/receipt-printer-encoder` v3
 
 Erzeugt ESC/POS-Befehle als `Uint8Array`, die an jeden Thermodrucker gesendet werden.

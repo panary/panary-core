@@ -1557,9 +1557,16 @@ const runReconcileOverridesPhase = async (app: Application, connection: CloudCon
 
 /**
  * Printer-Commands-Phase: kurzer Pull direkt nach dem Heartbeat, bevor
- * Push/Pull der Master-Daten laeuft. Latenz fuer Test-Drucke bleibt damit
- * <30 s (Worker-Tick), ohne dass wir einen eigenen Worker brauchen. Failures
- * hier duerfen Push/Pull nicht blockieren — fangen daher den Error ab.
+ * Push/Pull der Master-Daten laeuft. Failures hier duerfen Push/Pull nicht
+ * blockieren — fangen daher den Error ab.
+ *
+ * Diese Phase ist seit dem Realtime-Trigger nur noch der **Rueckfallweg** fuer
+ * den Fall eines getrennten Cloud-Sockets. Den Normalfall bedient
+ * `pullPrinterCommandsOnce` (s.u.), angestossen vom `changed`-Event. Der
+ * Tick-Takt taugt fuer Test-Drucke naemlich in keinem Modus: die Untergrenze
+ * liegt bei 60 s, per `syncIntervalSec` sind bis zu 3600 s erlaubt, und in
+ * `scheduled` laeuft ein Cycle ueberhaupt nur im faelligen Slot — waehrend die
+ * Cloud-UI nach 60 s aufgibt.
  */
 const runPrinterCommandsPhase = async (app: Application, connection: CloudConnection): Promise<void> => {
   await runPullPrinterCommands(app, connection).catch(err => {
@@ -1701,6 +1708,25 @@ export const pullMasterDataServiceOnce = async (app: Application, service: strin
   const count = pull.result?.count ?? 0
   if (count > 0) await stampLastSyncAt(app, connection._id)
   return count
+}
+
+/**
+ * Realtime-getriggerter Abruf der Testdruck-Queue — der Normalweg, seit die
+ * Cloud beim Anlegen eines `printer-commands`-Jobs ein `changed`-Event auf den
+ * Edge-Kanal schickt (`cloud-realtime.worker.ts`).
+ *
+ * Bewusst NICHT ueber `pullMasterDataServiceOnce`: `printer-commands` ist kein
+ * Stammdaten-Service mit Cursor, sondern eine Kommando-Queue — der Edge claimt
+ * per PATCH, fuehrt aus und meldet das Ergebnis zurueck. Er steht deshalb auch
+ * nicht in `MASTER_DATA_SERVICES`.
+ *
+ * Fehler bleiben hier, wie in der Tick-Phase: ein nicht abholbarer Testdruck
+ * darf den Realtime-Worker nicht beschaedigen.
+ */
+export const pullPrinterCommandsOnce = async (app: Application): Promise<void> => {
+  const connection = await getActiveConnection(app).catch(() => null)
+  if (!connection) return
+  await runPrinterCommandsPhase(app, connection)
 }
 
 export const runSyncOnce = async (

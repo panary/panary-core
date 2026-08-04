@@ -138,6 +138,21 @@ const routes: Route[] = [
         }
 
         if (printers.length === 0) {
+          // Wide-Event, weil dieser Zweig sonst spurlos ist: er antwortet mit
+          // HTTP 200 und `/print-server/*` laeuft als rohe Koa-Route nicht durch
+          // `canonicalLog`. Ein Bon, der hier verschwindet, war im Edge-Log von
+          // "gar nicht erst angekommen" nicht zu unterscheiden.
+          const all = (settings?.printers ?? []) as Array<{ active?: boolean; type?: string }>
+          logger.warn({
+            message: 'Bestellbon ohne Ziel — keine aktiven IP-Drucker',
+            event: 'print.order_no_printers',
+            orderId,
+            locationId: location['_id'],
+            printersTotal: all.length,
+            printersActive: all.filter(p => p.active).length,
+            printersIp: all.filter(p => p.active && p.type === 'ip').length,
+            requestedPrinterIds: printerIds ?? null,
+          })
           ctx.body = {
             success: false,
             results: [{ printerId: '', printerName: '', success: false, error: 'Keine aktiven IP-Drucker' }],

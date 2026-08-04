@@ -3,9 +3,11 @@ import { HttpClient, HttpHeaders } from '@angular/common/http'
 import { lastValueFrom } from 'rxjs'
 import { LocationService } from '@panary/locations/data-access'
 import { Order } from '@panary/orders/domain'
+import { AppConfigService } from '@panary/shared/data-access-config'
+import { resolveEdgeBaseUrl } from '../utils/edge-base-url'
+import { describePrintFailure, type PrintOrderResponse } from '../utils/print-result'
 import { publishViaMqtt } from './mqtt-publish'
 
-const API_URL = window.location.origin
 const DEVICE_CONFIG_KEY = 'panary_device_config'
 
 interface PrinterConfig {
@@ -20,6 +22,7 @@ interface PrinterConfig {
 export class OrderPrintService {
   private http = inject(HttpClient)
   private locationService = inject(LocationService)
+  private appConfigService = inject(AppConfigService)
 
   /**
    * Sendet eine Bestellung an die angegebenen Drucker.
@@ -37,11 +40,27 @@ export class OrderPrintService {
     const promises: Promise<void>[] = []
 
     if (ipPrinters.length > 0) {
-      promises.push(this.printViaBackend(order, ipPrinters.map(p => p.pid)))
+      promises.push(
+        this.printViaBackend(
+          order,
+          ipPrinters.map(p => p.pid),
+        ),
+      )
     }
 
     if (mqttPrinters.length > 0) {
       promises.push(this.printViaMqtt(order, mqttPrinters))
+    }
+
+    // Ohne diesen Wurf resolvte `Promise.all([])` und der Dialog meldete
+    // „Druckauftrag gesendet", obwohl gar keine Anfrage rausging — der
+    // Scheinerfolg, der jede Fehlersuche in die Irre fuehrt.
+    if (promises.length === 0) {
+      throw new Error(
+        printerIds?.length
+          ? 'Der gewaehlte Drucker ist nicht aktiv oder nicht konfiguriert.'
+          : 'Kein aktiver Drucker konfiguriert.',
+      )
     }
 
     await Promise.all(promises)
@@ -56,7 +75,25 @@ export class OrderPrintService {
     }
     if (printerIds.length) body['printerIds'] = printerIds
 
-    await lastValueFrom(this.http.post(`${API_URL}/print-server/print-order`, body, { headers }))
+    const response = await lastValueFrom(
+      this.http.post<PrintOrderResponse>(`${this.edgeBaseUrl()}/print-server/print-order`, body, { headers }),
+    )
+
+    // Der Endpunkt meldet Teil- und Totalausfaelle mit HTTP 200 im Body
+    // (`success: false` plus `results[].error` je Drucker) — ein nicht
+    // erreichbarer Drucker oder eine leere Zielliste kam hier frueher als Erfolg
+    // an. Fehler gehoeren an den Aufrufer, damit der Dialog sie zeigen kann.
+    if (response && response.success === false) {
+      throw new Error(describePrintFailure(response))
+    }
+  }
+
+  /** Wo liegt der Edge? Aufloesung + Begruendung in `utils/edge-base-url.ts`. */
+  private edgeBaseUrl(): string {
+    return resolveEdgeBaseUrl({
+      deviceServerUrl: this.getDeviceConfig()?.serverUrl,
+      configuredApiUrl: this.appConfigService.apiUrl,
+    })
   }
 
   private async printViaMqtt(order: Order, printers: PrinterConfig[]): Promise<void> {
@@ -77,9 +114,7 @@ export class OrderPrintService {
       printerIds: [] as string[],
     }
 
-    const promises = printers
-      .filter(p => p.mqttTopic)
-      .map(p => publishViaMqtt(payload, p.mqttTopic!, broker, clientId))
+    const promises = printers.filter(p => p.mqttTopic).map(p => publishViaMqtt(payload, p.mqttTopic!, broker, clientId))
 
     await Promise.all(promises)
   }
@@ -96,7 +131,9 @@ export class OrderPrintService {
           })
         }
       }
-    } catch { /* leer */ }
+    } catch {
+      /* leer */
+    }
 
     try {
       const stored = sessionStorage.getItem('authenticationItem')
@@ -104,15 +141,19 @@ export class OrderPrintService {
         const token = JSON.parse(stored)?.accessToken
         if (token) return new HttpHeaders({ Authorization: `Bearer ${token}` })
       }
-    } catch { /* leer */ }
+    } catch {
+      /* leer */
+    }
 
     return new HttpHeaders()
   }
 
-  private getDeviceConfig(): { deviceName?: string; deviceId?: string } | null {
+  private getDeviceConfig(): { deviceName?: string; deviceId?: string; serverUrl?: string } | null {
     try {
       const stored = localStorage.getItem(DEVICE_CONFIG_KEY)
       return stored ? JSON.parse(stored) : null
-    } catch { return null }
+    } catch {
+      return null
+    }
   }
 }

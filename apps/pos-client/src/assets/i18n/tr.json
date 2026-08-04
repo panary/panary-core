@@ -609,6 +609,7 @@
     "SENT_ALL": "Yazdırma işi gönderildi",
     "SENT_TO": "{{name}} adresine gönderildi",
     "ERROR": "Yazdırma hatası — yazdırma sunucusu çalışıyor mu?",
+    "ERROR_DETAIL": "Yazdırma hatası — {{reason}}",
     "PROVISIONAL": "geçici",
     "OFFLINE_NOTICE_TITLE": "Çevrimdışı fiş — TSE kesintisi",
     "OFFLINE_NOTICE_BODY": "TSE imzası mümkün değil. Kesinti kaydedilir; nihai fiş numarası yeniden bağlanıldığında atanır."

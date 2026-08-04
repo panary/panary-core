@@ -1,5 +1,5 @@
 import type { Middleware } from '@feathersjs/koa'
-import { AppAction, AppResource, PermissionRule, RolePermissions, UserSystemRole } from '@panary/users/domain'
+import { AppAction, AppResource, hasEffectivePermission, UserSystemRole } from '@panary/users/domain'
 import type { Application } from '../declarations'
 import { logger } from '@panary/shared-backend'
 import { sha256, timingSafeCompare } from '../utils/crypto.utils'
@@ -97,6 +97,16 @@ export function printServerAuth(app: Application): Middleware {
     }
 
     // --- Kein Auth-Header ---
+    // Wide-Event, weil `/print-server/*` rohe Koa-Routen sind: sie laufen nicht
+    // durch `canonicalLog` und tauchen daher in KEINEM Request-Log auf. Ohne
+    // diese Zeile ist ein Druckauftrag ohne Credentials nicht von "nie
+    // abgeschickt" zu unterscheiden.
+    logger.warn({
+      message: 'Print-Server-Aufruf ohne Credentials abgewiesen',
+      event: 'print-server.unauthenticated',
+      path: ctx.path,
+      method: ctx.method,
+    })
     ctx.status = 401
     ctx.body = { error: 'Authentifizierung erforderlich (Bearer-Token oder X-Api-Key)' }
   }
@@ -119,16 +129,28 @@ export function printServerAuthorize(requiredAction: AppAction): Middleware {
       return next()
     }
 
-    const roleRules = RolePermissions[user.role as UserSystemRole] || []
-    const hasPermission = roleRules.some((rule: PermissionRule) => {
-      if (typeof rule === 'string') return false
-      if (rule.resource !== AppResource.PRINT_SERVER && rule.resource !== AppResource.SYSTEM) return false
-      if (rule.action === AppAction.MANAGE) return true
-      if (Array.isArray(rule.action)) return rule.action.includes(requiredAction)
-      return rule.action === requiredAction
-    })
+    // Geteilte Auswertung mit dem `authorize`-Hook: Rollen-Matrix ODER
+    // additiver Pro-User-Grant (`grant:print-server:<action>`). Vorher las diese
+    // Middleware die rohe `RolePermissions`-Matrix und ignorierte damit als
+    // einzige Stelle im Edge die vergebenen Grants.
+    const hasPermission = hasEffectivePermission(
+      user.role as UserSystemRole,
+      user.permissions as string[] | undefined,
+      AppResource.PRINT_SERVER,
+      requiredAction,
+    )
 
     if (!hasPermission) {
+      // Siehe `print-server.unauthenticated`: ohne dieses Wide-Event ist ein
+      // 403 im Edge-Log unsichtbar.
+      logger.warn({
+        message: 'Print-Server-Aufruf ohne Berechtigung abgewiesen',
+        event: 'print-server.forbidden',
+        path: ctx.path,
+        method: ctx.method,
+        role: user.role,
+        requiredAction,
+      })
       ctx.status = 403
       ctx.body = { error: 'Keine Berechtigung für diese Aktion' }
       return

@@ -1,6 +1,6 @@
 {
   "name": "@panary/shared-common",
-  "version": "26.8.4",
+  "version": "26.8.5",
   "license": "BSL-1.1",
   "type": "commonjs",
   "main": "./src/index.js",

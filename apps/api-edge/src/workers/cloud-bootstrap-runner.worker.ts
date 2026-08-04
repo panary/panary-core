@@ -855,9 +855,17 @@ export const runBootstrap = async (app: Application, cloudConnectionId: string):
         break
     }
 
+    // `lastSyncAt` gehoert hier mit hinein: der Bootstrap IST der erste
+    // Datenabgleich und schreibt eigene `sync-runs`-Eintraege. Frueher war das
+    // egal, weil der Heartbeat das Feld binnen Sekunden mit-stempelte — seit
+    // der Trennung von Abgleich und Erreichbarkeit (ADR 0017) taete das
+    // niemand mehr. Ein frisch gepairter Edge im Modus `scheduled` haette sonst
+    // bis zum ersten Slot „Noch nicht abgeglichen" angezeigt, obwohl gerade der
+    // komplette Datenbestand uebertragen wurde.
     await persistStatus(app, cloudConnectionId, {
       bootstrapStatus: BootstrapStatus.DONE,
       bootstrapCompletedAt: new Date().toISOString(),
+      lastSyncAt: new Date().toISOString(),
       pairingStatus: PairingStatus.CONNECTED,
     })
 

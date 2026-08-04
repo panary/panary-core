@@ -41,5 +41,64 @@ services:
       start_period: 15s
       retries: 3
 
+  # ============================================================
+  # MQTT-Broker (Mosquitto) — Transport fuer den Print-Server.
+  #
+  # Muss deckungsgleich zu dem Service bleiben, den install.sh beim Kunden
+  # generiert — sonst testet dieses Compose eine Konstellation, die es im Feld
+  # nicht gibt.
+  #
+  # Der Edge selbst spricht kein MQTT (das Backend bedient nur IP-Drucker,
+  # siehe print-job.builder.ts). Publisher ist die POS-App per
+  # MQTT-over-WebSocket, Subscriber sind Drucker bzw. Print-Bridges im Netz.
+  #
+  # Host-Networking wie beim Edge: der Broker lauscht direkt auf der LAN-IP,
+  # ohne NAT dazwischen. Deshalb kein `ports:` — im Host-Mode wirkungslos.
+  #
+  # Zustandslos: der POS publiziert mit clean-session und QoS 0, es gibt weder
+  # Retained Messages noch Offline-Queues. Kein Volume noetig.
+  # ============================================================
+  panary-mqtt:
+    image: eclipse-mosquitto:2
+    container_name: panary-mqtt
+    network_mode: host
+    configs:
+      - source: mosquitto-conf
+        target: /mosquitto/config/mosquitto.conf
+    restart: unless-stopped
+    healthcheck:
+      # $$SYS statt $SYS: Compose interpoliert den String sonst und der Topic
+      # waere leer.
+      test: ['CMD', 'mosquitto_sub', '-h', '127.0.0.1', '-p', '1883', '-t', '$$SYS/broker/uptime', '-C', '1', '-W', '3']
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
 volumes:
   panary-edge-data:
+
+configs:
+  mosquitto-conf:
+    # Inline statt separatem File — haelt die Broker-Konfiguration an genau
+    # einer Stelle. Setzt Compose 2.23.1+ voraus.
+    content: |
+      # Mosquitto 2.x bindet ohne expliziten Listener nur an localhost und
+      # weist anonyme Clients ab — fuer den POS waere beides toedlich.
+      # Listener ohne Bind-Adresse = alle Interfaces; im Host-Mode also
+      # direkt die LAN-IP, ohne dass hier eine IP eingetragen werden muss.
+      # allow_anonymous gilt global, nicht pro Listener.
+      allow_anonymous true
+
+      listener 1883
+      protocol mqtt
+
+      listener 9001
+      protocol websockets
+
+      persistence false
+
+      log_dest stdout
+      log_type error
+      log_type warning
+      log_type notice

@@ -212,3 +212,43 @@ describe('RolePermissions — MEAL_SETTLEMENTS (Sammelabrechnung offener Persona
     }
   })
 })
+
+/**
+ * Melderegister fuer die Kassenmeldung nach § 146a Abs. 4 AO.
+ *
+ * Das Register fuehrt die MELDESICHT — inklusive Kassen anderer Hersteller,
+ * die Panary nie sieht (Bruttomethode). Es traegt Steuer- und
+ * Geraetestammdaten, deshalb ist der Zugriff enger als bei `DEVICES`.
+ */
+describe('RolePermissions — FISCAL_DEVICES (§ 146a Abs. 4 AO)', () => {
+  it('TENANT_OWNER darf voll verwalten — er verantwortet die Meldung', () => {
+    expect(roleActions(UserSystemRole.TENANT_OWNER, AppResource.FISCAL_DEVICES).sort()).toEqual(
+      [AppAction.CREATE, AppAction.DELETE, AppAction.READ, AppAction.UPDATE].sort(),
+    )
+  })
+
+  it('TENANT_TECHNICIAN darf voll verwalten — er kennt Serien- und TSE-Nummern', () => {
+    expect(roleCan(UserSystemRole.TENANT_TECHNICIAN, AppResource.FISCAL_DEVICES, AppAction.UPDATE)).toBe(true)
+    expect(roleCan(UserSystemRole.TENANT_TECHNICIAN, AppResource.FISCAL_DEVICES, AppAction.DELETE)).toBe(true)
+  })
+
+  it('TENANT_MANAGER darf pflegen, aber NICHT loeschen', () => {
+    // Ein ausser Betrieb genommenes Geraet wird abgemeldet, nicht entfernt —
+    // die Meldehistorie muss nachvollziehbar bleiben.
+    expect(roleActions(UserSystemRole.TENANT_MANAGER, AppResource.FISCAL_DEVICES).sort()).toEqual(
+      [AppAction.CREATE, AppAction.READ, AppAction.UPDATE].sort(),
+    )
+    expect(roleCan(UserSystemRole.TENANT_MANAGER, AppResource.FISCAL_DEVICES, AppAction.DELETE)).toBe(false)
+  })
+
+  it('TENANT_STAFF hat keinerlei Zugriff', () => {
+    // Kein betrieblicher Anlass, und der Datensatz traegt die Steuernummer.
+    expect(roleActions(UserSystemRole.TENANT_STAFF, AppResource.FISCAL_DEVICES)).toEqual([])
+  })
+
+  it('Geraete-Rollen haben keinerlei Zugriff', () => {
+    for (const role of [UserSystemRole.DEVICE_POS, UserSystemRole.DEVICE_KDS, UserSystemRole.DEVICE_TABLET]) {
+      expect(roleActions(role, AppResource.FISCAL_DEVICES)).toEqual([])
+    }
+  })
+})

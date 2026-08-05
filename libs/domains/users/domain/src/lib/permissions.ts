@@ -193,6 +193,24 @@ export const AppResource = {
    *  (Socket-Registry). Read-only `find` → { online, total, connectedDeviceIds }.
    *  READ für TENANT_OWNER + TENANT_TECHNICIAN (spiegelt die DEVICES-Leserechte). */
   DEVICE_CONNECTIONS: 'device-connections',
+  /** Cloud-only: Register der meldepflichtigen Aufzeichnungssysteme je
+   *  Betriebsstätte für die Kassenmeldung nach § 146a Abs. 4 AO.
+   *
+   *  Bewusst NICHT `DEVICES`: dort stehen die von Panary verwalteten Geräte.
+   *  Dieses Register führt die **Meldesicht** — inklusive Kassen anderer
+   *  Hersteller, die Panary nie sieht. Die Meldung folgt der Bruttomethode
+   *  (bei jeder Meldung alle eAS der Betriebsstätte), eine Liste nur der
+   *  eigenen Geräte wäre systematisch unvollständig und damit objektiv
+   *  unrichtig.
+   *
+   *  Inhalt sind Steuer- und Gerätestammdaten (Steuernummer, TSE-Seriennummer,
+   *  BSI-Zertifizierungs-ID, Anschaffungsdaten). TENANT_OWNER/TECHNICIAN:
+   *  MANAGE. TENANT_MANAGER: READ+CREATE+UPDATE (pflegt, löscht nicht —
+   *  ein außer Betrieb genommenes Gerät wird abgemeldet, nicht entfernt).
+   *  TENANT_STAFF: KEIN Eintrag — kein betrieblicher Anlass, und der Datensatz
+   *  trägt die Steuernummer des Betriebs.
+   *  Siehe panary-cloud docs/domains/kassenmeldung-146a.md. */
+  FISCAL_DEVICES: 'fiscal-devices',
   SHIFTS: 'shifts',
   SHIFT_TEMPLATES: 'shift-templates',
   SHIFT_SWAP_REQUESTS: 'shift-swap-requests',

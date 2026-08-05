@@ -12,7 +12,10 @@ import { ApiService } from '../../core/api.service'
 
 type SyncRunPhase = 'bootstrap' | 'push' | 'pull' | 'heartbeat' | 'reconcile'
 type SyncRunDirection = 'edge-to-cloud' | 'cloud-to-edge'
-type SyncRunOutcome = 'success' | 'partial' | 'failure'
+// `throttled` = die Cloud hat mit 429 gedrosselt. Kein Fehler: der Vorgang hat
+// nicht stattgefunden, aber nichts ist verloren — der naechste Versuch laeuft
+// nach `Retry-After` (siehe SyncRunOutcome in @panary/sync/domain).
+type SyncRunOutcome = 'success' | 'partial' | 'failure' | 'throttled'
 type FilterMode = 'all' | 'pull' | 'push' | 'errors'
 type SyncRunRecordOp = 'create' | 'patch' | 'remove'
 type SyncRunRecordStatus = 'accepted' | 'rejected' | 'conflict' | 'retry'
@@ -211,12 +214,34 @@ const SERVICE_LABEL: Record<string, string> = {
                           Fehler
                         </span>
                       }
+                      @case ('throttled') {
+                        <!-- Bewusst nicht rot: Rueckstau ist der Normalfall eines
+                             aufholenden Edge und heilt sich selbst. Wer sich an rote
+                             Zeilen gewoehnt, uebersieht die echten. -->
+                        <span
+                          class="inline-flex items-center gap-1 text-sky-700 bg-sky-50 dark:text-sky-300 dark:bg-sky-950/40 px-2 py-0.5 rounded text-[11px]"
+                          [title]="row.errorMessage || ''">
+                          Gedrosselt
+                        </span>
+                      }
                     }
                   </td>
                 </tr>
                 @if (row.errorMessage) {
-                  <tr class="bg-red-50/30 dark:bg-red-950/20">
-                    <td colspan="8" class="px-4 py-2 text-[11px] text-red-700 dark:text-red-300 font-mono">
+                  <!-- Farbe folgt dem Outcome: die Detailzeile eines gedrosselten
+                       Laufs traegt eine Wartezeit, keine Fehlermeldung. -->
+                  <tr
+                    [class]="
+                      row.outcome === 'throttled' ? 'bg-sky-50/30 dark:bg-sky-950/20' : 'bg-red-50/30 dark:bg-red-950/20'
+                    ">
+                    <td
+                      colspan="8"
+                      [class]="
+                        'px-4 py-2 text-[11px] font-mono ' +
+                        (row.outcome === 'throttled'
+                          ? 'text-sky-700 dark:text-sky-300'
+                          : 'text-red-700 dark:text-red-300')
+                      ">
                       ↳ {{ row.errorMessage }}
                     </td>
                   </tr>

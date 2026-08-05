@@ -33,6 +33,17 @@ export const SyncRunOutcome = {
   SUCCESS: 'success',
   PARTIAL: 'partial',
   FAILURE: 'failure',
+  /**
+   * Die Cloud hat mit `429 Too Many Requests` gedrosselt — der Vorgang hat nicht
+   * stattgefunden, ist aber auch nicht gescheitert: kein Payload wurde bewertet,
+   * nichts ist verloren, der naechste Versuch laeuft nach `Retry-After`.
+   *
+   * Bewusst ein eigener Wert statt `failure`: Rueckstau ist der Normalfall eines
+   * aufholenden Edge und darf in der Sync-Historie nicht wie ein Defekt
+   * aussehen — sonst gewoehnt sich der Betreiber an rote Zeilen. Siehe
+   * `docs/adr/0019-edge-429-rueckstau-behandlung.md`.
+   */
+  THROTTLED: 'throttled',
 } as const
 export type SyncRunOutcome = (typeof SyncRunOutcome)[keyof typeof SyncRunOutcome]
 

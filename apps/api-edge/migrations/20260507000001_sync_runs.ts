@@ -22,7 +22,7 @@ export async function up(knex: Knex): Promise<void> {
     table.integer('rejected').nullable()
     table.integer('archived').nullable()
     table.integer('durationMs').notNullable().defaultTo(0)
-    table.string('outcome').notNullable() // success | partial | failure
+    table.string('outcome').notNullable() // success | partial | failure | throttled
     table.text('errorMessage').nullable()
     table.string('triggeredBy').notNullable() // bootstrap | scheduler | manual | startup
 

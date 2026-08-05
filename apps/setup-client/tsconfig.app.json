@@ -1,6 +1,10 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    // Siehe tsconfig.spec.json: `tsc --build --emitDeclarationOnly` laeuft ueber
+    // alle referenzierten Projekte, tsconfig.base.json setzt aber
+    // `declaration: false` + `declarationMap: true` (TS5069).
+    "declaration": true,
     "outDir": "../../dist/out-tsc",
     "types": []
   },

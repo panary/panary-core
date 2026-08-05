@@ -24,7 +24,7 @@
         "../../customers/domain/dist/index.d.ts"
       ],
       "@panary/locations/data-access": [
-        "dist/types/locations-data-access-internal.d.ts"
+        "./dist/types/locations-data-access-internal.d.ts"
       ],
       "@panary/locations/domain": [
         "../domain/dist/index.d.ts"

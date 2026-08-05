@@ -46,7 +46,7 @@
         "../common/dist/src/index.d.ts"
       ],
       "@panary/shared/data-access": [
-        "dist/types/shared-data-access-internal.d.ts"
+        "./dist/types/shared-data-access-internal.d.ts"
       ],
       "@panary/shared/data-access-config": [
         "../data-access-config/dist/types/shared-data-access-config-internal.d.ts"

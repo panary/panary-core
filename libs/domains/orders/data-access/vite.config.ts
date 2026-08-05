@@ -5,15 +5,15 @@ import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin'
 import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin'
 
 export default defineConfig(() => ({
-  root: import.meta.dirname,
+  root: __dirname,
   cacheDir: '../../../../node_modules/.vite/libs/domains/orders/data-access',
   plugins: [nxViteTsPaths(), nxCopyAssetsPlugin(['*.md'])],
   resolve: {
     // Die ng-packagr-`paths` in tsconfig.lib.json zeigen auf dist-`.d.ts`
     // (Build-Typ-Auflösung) — für die Vitest-LAUFZEIT auf die TS-Quellen umbiegen.
     alias: {
-      '@panary/orders/domain': join(import.meta.dirname, '../domain/src/index.ts'),
-      '@panary/shared-common': join(import.meta.dirname, '../../../shared/common/src/index.ts'),
+      '@panary/orders/domain': join(__dirname, '../domain/src/index.ts'),
+      '@panary/shared-common': join(__dirname, '../../../shared/common/src/index.ts'),
     },
   },
   // Uncomment this if you are using workers.

@@ -66,6 +66,23 @@ export const NotificationEventType = {
    * kein Spam-Risiko.
    */
   SUBSCRIPTION_TRIAL_WILL_END: 'subscription.trial_will_end',
+
+  /**
+   * Kassenmeldung nach § 146a Abs. 4 AO ist fällig: Ein Standort wurde in den
+   * fiskalischen Kassenbetrieb geschaltet. Die Mitteilung an das Finanzamt hat
+   * **innerhalb eines Monats** zu erfolgen (elektronisch über Mein ELSTER bzw.
+   * ERiC). Adressat: TENANT_OWNER.
+   *
+   * Alle Channels default an — analog SUBSCRIPTION_TRIAL_WILL_END: seltenes
+   * Ereignis mit gesetzlicher Frist, kein Spam-Risiko.
+   *
+   * Wichtig für den Auslöser: Die Benachrichtigung ist eine **Erinnerung, kein
+   * Erfüllungsnachweis**. Die Pflicht besteht bis zur Meldung fort; der
+   * dauerhafte Zustand lebt in der Checkliste unter `/settings/kassenmeldung`
+   * (panary-cloud docs/domains/kassenmeldung-146a.md). Diesen Event NICHT als
+   * „erledigt"-Marker verwenden.
+   */
+  FISCAL_REPORTING_DUE: 'fiscal.reporting_due',
 } as const
 
 export type NotificationEventType = (typeof NotificationEventType)[keyof typeof NotificationEventType]
@@ -204,6 +221,14 @@ export const NOTIFICATION_EVENT_META: Record<NotificationEventType, Notification
     // Erinnerung nicht verpassen (E-Mail + Push), sonst läuft der Zugang aus.
     category: NotificationCategory.BILLING,
     label: 'Testphase endet bald',
+    defaults: { inApp: true, email: true, push: true },
+  },
+  [NotificationEventType.FISCAL_REPORTING_DUE]: {
+    // Gesetzliche Monatsfrist: alle Channels default an, analog Trial-Ende.
+    // Kategorie CLOSING (Tagesabschluss/Fiskal), nicht BILLING — es geht um
+    // eine steuerliche Pflicht des Betriebs, nicht um sein Abo bei uns.
+    category: NotificationCategory.CLOSING,
+    label: 'Kassenmeldung ans Finanzamt fällig',
     defaults: { inApp: true, email: true, push: true },
   },
 }

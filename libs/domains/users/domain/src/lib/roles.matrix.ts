@@ -341,6 +341,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.DEVICES, action: AppAction.MANAGE },
     // Live-Verbindungszählung der Geräte (Socket-Registry) — read-only.
     { resource: AppResource.DEVICE_CONNECTIONS, action: AppAction.READ },
+    // Melderegister § 146a Abs. 4 AO: der Owner verantwortet die Meldung
+    // gegenueber dem Finanzamt und darf das Register voll verwalten.
+    { resource: AppResource.FISCAL_DEVICES, action: AppAction.MANAGE },
     { resource: AppResource.SHIFTS, action: AppAction.MANAGE },
     { resource: AppResource.SHIFT_TEMPLATES, action: AppAction.MANAGE },
     { resource: AppResource.SHIFT_SWAP_REQUESTS, action: AppAction.MANAGE },
@@ -547,6 +550,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.DEVICES, action: AppAction.MANAGE },
     // Live-Verbindungszählung der Geräte (Socket-Registry) — read-only.
     { resource: AppResource.DEVICE_CONNECTIONS, action: AppAction.READ },
+    // Melderegister § 146a Abs. 4 AO: der Techniker installiert die Geraete und
+    // kennt Serien- und TSE-Nummern — er traegt die Meldedaten ein.
+    { resource: AppResource.FISCAL_DEVICES, action: AppAction.MANAGE },
     { resource: AppResource.SHIFTS, action: AppAction.MANAGE },
     { resource: AppResource.SHIFT_TEMPLATES, action: AppAction.MANAGE },
     { resource: AppResource.SHIFT_SWAP_REQUESTS, action: AppAction.MANAGE },
@@ -686,6 +692,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Sammelabrechnung: der Filialleiter ist der eigentliche Nutzer.
     { resource: AppResource.MEAL_SETTLEMENTS, action: [AppAction.READ, AppAction.CREATE] },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE },
+    // Melderegister § 146a Abs. 4 AO: pflegen ja, loeschen nein. Ein ausser
+    // Betrieb genommenes Geraet wird abgemeldet (Feld `decommissionedAt`),
+    // nicht entfernt — die Meldehistorie muss nachvollziehbar bleiben.
+    { resource: AppResource.FISCAL_DEVICES, action: [AppAction.READ, AppAction.CREATE, AppAction.UPDATE] },
     { resource: AppResource.SHIFTS, action: AppAction.MANAGE },
     { resource: AppResource.SHIFT_TEMPLATES, action: AppAction.MANAGE },
     { resource: AppResource.SHIFT_SWAP_REQUESTS, action: AppAction.MANAGE },

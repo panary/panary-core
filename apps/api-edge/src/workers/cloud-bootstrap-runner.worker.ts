@@ -25,7 +25,7 @@ import {
   updateReport,
 } from '../services/bootstrap-reports/bootstrap-report.helper'
 import { type BootstrapReportDirection, BootstrapReportStatus } from '@panary/cloud-connection/domain'
-import { applyPulledRecords, cloudFetch, pullMasterDataPage } from './sync-apply'
+import { applyPulledRecords, cloudFetch, pullMasterDataPage, throwIfRateLimited } from './sync-apply'
 import { SyncRunDirection, SyncRunOutcome, SyncRunPhase, SyncRunTrigger } from '@panary/sync/domain'
 
 const requireDecryptedToken = (connection: CloudConnection): string => {
@@ -148,6 +148,12 @@ const pushBootstrapChunks = async (
       }),
       timeoutMs: BOOTSTRAP_TIMEOUT_MS,
     })
+    // Bewusst KEIN Auto-Retry: der Bootstrap ist ein operator-getriebener
+    // Einmalvorgang mit eigener Statusmaschine — er soll mit klarer Ursache
+    // scheitern und neu angestossen werden, statt in einem Worker-Loop stumm
+    // gegen ein Kontingent zu laufen. Gewonnen ist die eindeutige Diagnose:
+    // `sync.rate_limited` im Log statt „429" in einer generischen Fehlerzeile.
+    throwIfRateLimited(response, 'bootstrap-push')
     if (!response.ok) {
       const text = await response.text().catch(() => 'Unbekannter Fehler')
       throw new Error(`Bootstrap-Push fuer ${service} fehlgeschlagen: ${response.status} ${text}`)

@@ -34,7 +34,14 @@ import {
 } from '../utils/pending-local-overrides.repository'
 import { recordSyncRun, type RecordSyncRunInput } from '../services/sync-runs/record-sync-run.helper'
 import { printServerManager } from '../print-server'
-import { applyPulledRecords, cloudFetch, extractAjvValidationErrors, PULL_PAGE_SIZE } from './sync-apply'
+import {
+  applyPulledRecords,
+  cloudFetch,
+  CloudRateLimitedError,
+  extractAjvValidationErrors,
+  PULL_PAGE_SIZE,
+  throwIfRateLimited,
+} from './sync-apply'
 import { collectDeviceCountsForHeartbeat } from './heartbeat-device-counts'
 import { computeScheduledSlot } from './scheduled-slot'
 import {
@@ -112,6 +119,13 @@ interface SyncRunStats {
   pulled: number
   durationMs: number
   lastError?: string
+  /**
+   * Gesetzt, wenn eine Phase des Cycles ein Cloud-429 gesehen hat: fruehester
+   * Zeitpunkt (ms seit Epoch) fuer den naechsten Cloud-Kontakt. Der Scheduler
+   * dehnt seine Wartezeit bis dorthin — nur so wirkt ein `Retry-After`, das
+   * ueber der Tick-Untergrenze von 60 s liegt.
+   */
+  rateLimitedUntilMs?: number
 }
 
 interface SchedulerHandle {
@@ -550,6 +564,47 @@ const markOutboxRetry = async (
 }
 
 /**
+ * Setzt Outbox-Eintraege nach einem Cloud-Rate-Limit (429) zurueck auf
+ * `pending` — mit `nextAttemptAt` aus `Retry-After`, aber **ohne `attempts++`**.
+ *
+ * Der fehlende Zaehler-Inkrement ist der Kern und keine Nachlaessigkeit: `attempts`
+ * zaehlt bewertete Zustellversuche, und ein 429 ist keiner — die Cloud hat den
+ * Payload nie angesehen. Wuerde er mitzaehlen, traebe anhaltender Rueckstau die
+ * Eintraege ueber `shouldEscalateAfterRetry` in genau die terminale Ablehnung
+ * (`rejected` + `sync-conflicts`), gegen die diese Behandlung existiert: der
+ * Betreiber saehe Datenkonflikte, wo nur ein volles Kontingent war.
+ *
+ * Getrennt von `markOutboxRetry` gelassen, statt dort ein Flag einzubauen —
+ * die beiden beantworten verschiedene Fragen, und ein `skipAttempts`-Parameter
+ * waere genau die Art Schalter, den beim naechsten Umbau jemand falsch setzt.
+ */
+const markOutboxRateLimited = async (
+  app: Application,
+  entries: ReadonlyArray<{ _id: string }>,
+  retryAfterMs: number,
+  error: string,
+): Promise<void> => {
+  const now = new Date().toISOString()
+  const next = new Date(Date.now() + retryAfterMs).toISOString()
+  await Promise.all(
+    entries.map(entry =>
+      (app.service(syncOutboxPath) as any)
+        .patch(
+          entry._id,
+          {
+            status: SyncOutboxStatus.PENDING,
+            lastAttemptAt: now,
+            nextAttemptAt: next,
+            lastError: error,
+          },
+          { provider: undefined } as any,
+        )
+        .catch(() => undefined),
+    ),
+  )
+}
+
+/**
  * Markiert Outbox-Eintraege als final gescheitert (`rejected`). Setzt
  * `terminalAt`, optional verlinkten Conflict, und stoppt jeglichen
  * weiteren Retry. Operator muss ueber das Sync-Status-UI eingreifen.
@@ -734,6 +789,7 @@ const runPushBatch = async (app: Application, connection: CloudConnection): Prom
     if (response.status === 401) {
       await handleCloudAuthError(app, connection, response, 'push')
     }
+    throwIfRateLimited(response, 'push')
     if (!response.ok) {
       const text = await response.text().catch(() => 'Unbekannter Fehler')
       throw new Error(buildCloudErrorMessage('Push', response.status, text, { phase: 'push' }))
@@ -828,6 +884,20 @@ const runPushBatch = async (app: Application, connection: CloudConnection): Prom
       fetched,
     }
   } catch (err) {
+    // Rate-Limit (429) VOR dem generischen Retry-Pfad: die Batch war nie in
+    // Bewertung, darf also keinen Fehlversuch buchen (siehe
+    // markOutboxRateLimited).
+    //
+    // Die Wartezeit kommt aus `Retry-After`, ersatzweise aus der Fensterlaenge
+    // der Cloud (60 s) — bewusst NICHT aus `backoffMs(attempts)`: weil `attempts`
+    // hier eingefroren bleibt, waere dessen Wert ueber alle Wiederholungen
+    // konstant und obendrein pro Eintrag verschieden (30 s fuer frische, Stunden
+    // fuer alte Eintraege derselben Batch). Ein Rueckstau-Signal betrifft die
+    // Verbindung, nicht den einzelnen Datensatz.
+    if (err instanceof CloudRateLimitedError) {
+      await markOutboxRateLimited(app, entries, err.retryAfterMs, err.message)
+      throw err
+    }
     // Network-Errors / 5xx ohne Response-Body → Backoff-Retry, kein Pile-Up
     // beim Cloud-Restart. Alle Eintraege der Batch bekommen denselben
     // attempts++ und denselben naechsten Slot.
@@ -880,7 +950,8 @@ interface PullResult {
   details: SyncRunRecordDetail[]
 }
 
-const runPullForService = async (
+/** Export nur fuer den Fokus-Test (test/workers/cloud-sync-rate-limit.test.ts). */
+export const runPullForService = async (
   app: Application,
   connection: CloudConnection,
   service: string,
@@ -917,6 +988,10 @@ const runPullForService = async (
     if (response.status === 401) {
       await handleCloudAuthError(app, connection, response, `pull:${service}`)
     }
+    // Wirft vor dem Cursor-Update am Loop-Ende: `lastPullAt` bleibt stehen, die
+    // bereits angewandten Seiten sind idempotent (Upsert) — der naechste Tick
+    // holt dieselbe Strecke ohne Verlust nach.
+    throwIfRateLimited(response, `pull:${service}`)
     if (!response.ok) {
       const text = await response.text().catch(() => 'Unbekannter Fehler')
       throw new Error(
@@ -1057,6 +1132,10 @@ const runHeartbeat = async (app: Application, connection: CloudConnection): Prom
   if (response.status === 401) {
     await handleCloudAuthError(app, connection, response, 'heartbeat')
   }
+  // Der kritischste der fuenf Aufrufe: ohne diese Zeile zaehlt ein 429 in
+  // `runHeartbeatPhase` als Fehlversuch und aktiviert nach dreien den
+  // Notfall-Modus der gesamten Edge.
+  throwIfRateLimited(response, 'heartbeat')
   if (!response.ok) {
     const text = await response.text().catch(() => 'Unbekannter Fehler')
     throw new Error(`Heartbeat fehlgeschlagen: ${response.status} ${text}`)
@@ -1182,6 +1261,10 @@ const runReconcileOverrides = async (app: Application, connection: CloudConnecti
     await handleCloudAuthError(app, connection, response, 'reconcile-overrides')
     return
   }
+  // Wirft statt weich auszusteigen — der Phasen-Wrapper laesst den Error still
+  // durch. Wichtig ist nur, dass die pending-Overrides unangetastet bleiben:
+  // sie werden erst nach der Cloud-Antwort geloescht bzw. als CONFLICT markiert.
+  throwIfRateLimited(response, 'reconcile-overrides')
   if (!response.ok) {
     const text = await response.text().catch(() => '')
     logger.warn({
@@ -1262,6 +1345,7 @@ const runPullPrinterCommands = async (app: Application, connection: CloudConnect
     '/printer-commands?status=PENDING&%24limit=20&%24sort%5BrequestedAt%5D=1',
     { method: 'GET', timeoutMs: HEARTBEAT_TIMEOUT_MS },
   )
+  throwIfRateLimited(response, 'printer-commands')
   if (!response.ok) {
     // printer-commands ist eine OPTIONALE Sync-Phase (Test-Drucke aus der Cloud).
     // Die Cloud hat den Endpoint in EDGE_TOKEN_SCOPED_PATHS (authorize.hook) sowie
@@ -1365,6 +1449,10 @@ interface RecordedPhaseResult<TResult> {
   errorMessage?: string
   /** true bei Cloud-401 (EdgePairingRequiredError) — Aufrufer bricht Folge-Phasen ab. */
   pairingRequired: boolean
+  /** true bei Cloud-429 — Aufrufer bricht Folge-Phasen ab, ohne sie als Fehler zu werten. */
+  rateLimited: boolean
+  /** Fruehester Zeitpunkt (ms seit Epoch) fuer den naechsten Versuch, nur bei `rateLimited`. */
+  rateLimitedUntilMs?: number
 }
 
 interface RunRecordedPhaseOptions<TResult> {
@@ -1407,30 +1495,44 @@ const runRecordedPhase = async <TResult>(
       durationMs: Math.round(performance.now() - startMs),
       ...options.toSuccessRun(result),
     })
-    return { result, pairingRequired: false }
+    return { result, pairingRequired: false, rateLimited: false }
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err)
-    // Stack + AJV-Details nur bei Application-Errors mit-loggen — sonst sieht
-    // der Operator nur, ob der Error aus dem Cloud-Fetch oder einem Edge-
-    // internen Service-Aufruf stammt. Bei Cloud-Connect-Fehlern (fetch failed,
-    // ECONNREFUSED, …) ist der undici-Stack uninformativ — kompakt ohne Stack.
-    const cloudUnreachable = isCloudUnreachableError(err)
-    logger.warn({
-      message: options.failureLog.message,
-      event: options.failureLog.event,
-      ...(options.service ? { service: options.service } : {}),
-      errorName: err instanceof Error ? err.name : undefined,
-      errorMessage,
-      errorStack: cloudUnreachable ? undefined : err instanceof Error ? err.stack : undefined,
-      validationErrors: cloudUnreachable ? undefined : extractAjvValidationErrors(err),
-    })
+    // Cloud-Rueckstau (429) ist kein Phasen-Fehler: der Vorgang hat nicht
+    // stattgefunden, aber nichts ist verloren und nichts gescheitert. Deshalb
+    // `throttled` statt `failure` in der Historie — und kein zweites Log, die
+    // Quelle (`throwIfRateLimited`) hat den Fall bereits mit Retry-After
+    // protokolliert.
+    const rateLimited = err instanceof CloudRateLimitedError
+    if (!rateLimited) {
+      // Stack + AJV-Details nur bei Application-Errors mit-loggen — sonst sieht
+      // der Operator nur, ob der Error aus dem Cloud-Fetch oder einem Edge-
+      // internen Service-Aufruf stammt. Bei Cloud-Connect-Fehlern (fetch failed,
+      // ECONNREFUSED, …) ist der undici-Stack uninformativ — kompakt ohne Stack.
+      const cloudUnreachable = isCloudUnreachableError(err)
+      logger.warn({
+        message: options.failureLog.message,
+        event: options.failureLog.event,
+        ...(options.service ? { service: options.service } : {}),
+        errorName: err instanceof Error ? err.name : undefined,
+        errorMessage,
+        errorStack: cloudUnreachable ? undefined : err instanceof Error ? err.stack : undefined,
+        validationErrors: cloudUnreachable ? undefined : extractAjvValidationErrors(err),
+      })
+    }
     await recordSyncRun(options.app, {
       ...runBase,
       durationMs: Math.round(performance.now() - startMs),
-      outcome: SyncRunOutcome.FAILURE,
+      outcome: rateLimited ? SyncRunOutcome.THROTTLED : SyncRunOutcome.FAILURE,
       errorMessage,
     })
-    return { result: null, errorMessage, pairingRequired: err instanceof EdgePairingRequiredError }
+    return {
+      result: null,
+      errorMessage,
+      pairingRequired: err instanceof EdgePairingRequiredError,
+      rateLimited,
+      ...(rateLimited ? { rateLimitedUntilMs: Date.now() + (err as CloudRateLimitedError).retryAfterMs } : {}),
+    }
   }
 }
 
@@ -1440,6 +1542,10 @@ interface HeartbeatPhaseResult {
   pairingRequired: boolean
   /** Cloud unreachable (DNS/Refused/Timeout) — Aufrufer setzt die Folge-Phasen aus. */
   cloudUnreachable: boolean
+  /** Cloud-429 — Aufrufer setzt die Folge-Phasen aus, ohne Fehlversuch zu buchen. */
+  rateLimited: boolean
+  /** Fruehester Zeitpunkt (ms seit Epoch) fuer den naechsten Versuch, nur bei `rateLimited`. */
+  rateLimitedUntilMs?: number
 }
 
 /**
@@ -1447,8 +1553,10 @@ interface HeartbeatPhaseResult {
  * Protokollierung. Laeuft NICHT ueber runRecordedPhase: Heartbeats haben
  * eigene Outcome-Regeln (nur Token-Rotation, Skew-Warning oder Fehler werden
  * protokolliert — stille Pings nicht) und kein worker_exception-Log.
+ *
+ * Export nur fuer den Fokus-Test (test/workers/cloud-sync-rate-limit.test.ts).
  */
-const runHeartbeatPhase = async (
+export const runHeartbeatPhase = async (
   app: Application,
   connection: CloudConnection,
   triggeredBy: SyncRunTrigger,
@@ -1457,6 +1565,8 @@ const runHeartbeatPhase = async (
   const hbStartMs = performance.now()
   let lastError: string | undefined
   let pairingRequired = false
+  let rateLimited = false
+  let rateLimitedUntilMs: number | undefined
   // heartbeatError aufbewahren, damit wir nach `runHeartbeat()` zwischen
   // Connectivity-Fehlern (Cloud unreachable, kompakt loggen) und echten
   // Application-Fehlern (Stack-Trace + AJV-Details) unterscheiden koennen.
@@ -1465,13 +1575,23 @@ const runHeartbeatPhase = async (
     heartbeatError = err
     lastError = err instanceof Error ? err.message : String(err)
     if (err instanceof EdgePairingRequiredError) pairingRequired = true
+    if (err instanceof CloudRateLimitedError) {
+      rateLimited = true
+      rateLimitedUntilMs = Date.now() + err.retryAfterMs
+    }
     return null
   })
   // Failure-Tracking für Emergency-Override (ADR `docs/adr/0001-emergency-override.md`).
   // Nur bei "echten" Heartbeat-Fehlern hochzählen — nicht bei Pairing-401
   // (Pairing-Required ist eine andere Failure-Klasse, dafür ist der
-  // pairingStatus-DISCONNECTED-Pfad zuständig).
-  if (heartbeat === null && lastError && !pairingRequired) {
+  // pairingStatus-DISCONNECTED-Pfad zuständig) und nicht bei Cloud-429.
+  //
+  // Der 429-Ausschluss ist der Kern dieser Datei-Aenderung: die Cloud sagt
+  // „spaeter", nicht „kaputt". Drei gezaehlte 429 in Folge haetten sonst den
+  // Notfall-Modus der GESAMTEN Edge aktiviert — ein Rate-Limit der Cloud haette
+  // damit den Kunden lahmgelegt, den es schuetzen soll
+  // (`docs/adr/0019-edge-429-rueckstau-behandlung.md`).
+  if (heartbeat === null && lastError && !pairingRequired && !rateLimited) {
     const nextFailureCount = (connection.consecutiveHeartbeatFailures ?? 0) + 1
     const lastOkMs = connection.lastHeartbeatOk
       ? new Date(connection.lastHeartbeatOk).getTime()
@@ -1508,7 +1628,7 @@ const runHeartbeatPhase = async (
       direction: SyncRunDirection.EDGE_TO_CLOUD,
       service: null,
       durationMs: Math.round(performance.now() - hbStartMs),
-      outcome: SyncRunOutcome.FAILURE,
+      outcome: rateLimited ? SyncRunOutcome.THROTTLED : SyncRunOutcome.FAILURE,
       errorMessage: lastError,
       triggeredBy,
       startedAt: hbStartedAt,
@@ -1536,6 +1656,8 @@ const runHeartbeatPhase = async (
     lastError,
     pairingRequired,
     cloudUnreachable: heartbeat === null && isCloudUnreachableError(heartbeatError),
+    rateLimited,
+    ...(rateLimitedUntilMs !== undefined ? { rateLimitedUntilMs } : {}),
   }
 }
 
@@ -1547,6 +1669,9 @@ const runHeartbeatPhase = async (
  */
 const runReconcileOverridesPhase = async (app: Application, connection: CloudConnection): Promise<void> => {
   await runReconcileOverrides(app, connection).catch(err => {
+    // 429 hat die Quelle bereits als `sync.rate_limited` protokolliert — kein
+    // zweites Log. Die pending-Overrides bleiben unangetastet liegen.
+    if (err instanceof CloudRateLimitedError) return
     logger.warn({
       message: 'Reconcile-Overrides mit Exception abgebrochen',
       event: 'reconcile.worker_exception',
@@ -1572,8 +1697,8 @@ const runPrinterCommandsPhase = async (app: Application, connection: CloudConnec
   await runPullPrinterCommands(app, connection).catch(err => {
     // Cloud-Connect-Fehler haben keinen brauchbaren Stack — nur die
     // Application-Errors loggen wir mit Detail. Symmetrisch zur Behandlung
-    // im Phase-Runner der Push-/Pull-Phasen.
-    if (isCloudUnreachableError(err)) return
+    // im Phase-Runner der Push-/Pull-Phasen. 429 ist an der Quelle geloggt.
+    if (isCloudUnreachableError(err) || err instanceof CloudRateLimitedError) return
     logger.warn({
       message: 'printer-commands Pull-Phase mit Exception abgebrochen',
       event: 'printer-commands.pull.worker_exception',
@@ -1755,6 +1880,27 @@ export const runSyncOnce = async (
     return { pushed: 0, pulled: 0, durationMs: durationMs(), lastError }
   }
 
+  // Cloud drosselt bereits den Heartbeat — der guenstigste Call des Cycles, mit
+  // eigenem Kontingent auf Cloud-Seite. Reconcile/PrinterCommands/Push/Pull
+  // jetzt trotzdem zu fahren hiesse, ~9 weitere Requests gegen einen Token zu
+  // schicken, dem die Cloud gerade „spaeter" gesagt hat. Wir steigen aus und
+  // warten bis `Retry-After` — analog zum cloudUnreachable-Ausstieg unten.
+  if (hb.rateLimited) {
+    logger.info({
+      message: 'Cloud drosselt — Sync-Phasen ausgesetzt bis zum naechsten Versuch',
+      event: 'sync.rate_limited.cycle_skipped',
+      reason: lastError,
+      retryAfterSec: hb.rateLimitedUntilMs ? Math.round((hb.rateLimitedUntilMs - Date.now()) / 1000) : undefined,
+    })
+    return {
+      pushed: 0,
+      pulled: 0,
+      durationMs: durationMs(),
+      lastError,
+      ...(hb.rateLimitedUntilMs !== undefined ? { rateLimitedUntilMs: hb.rateLimitedUntilMs } : {}),
+    }
+  }
+
   // Cloud unerreichbar (DNS/Refused/Timeout, typisch waehrend Cloud-Restarts):
   // Reconcile/PrinterCommands/Push/Pull haetten ohnehin alle `fetch failed` —
   // jede dieser 9 Phasen wuerde dasselbe undici-Stacktrace-Triplet loggen.
@@ -1780,6 +1926,7 @@ export const runSyncOnce = async (
   const pushed = push.result?.accepted ?? 0
   if (push.errorMessage) lastError = push.errorMessage
   let pairingRequired = push.pairingRequired
+  let rateLimitedUntilMs = push.rateLimitedUntilMs
   // Getrennt von `lastError`: der traegt auch einen Heartbeat-Fehler, der den
   // Cycle nicht verhindert hat. Fuer den `lastSyncAt`-Stempel zaehlt nur, ob
   // die datentragenden Phasen sauber durchliefen.
@@ -1788,6 +1935,18 @@ export const runSyncOnce = async (
   // Wenn Push 401 sah, ist der Token kaputt — Pull-Schleife waere nur Larm.
   if (pairingRequired) {
     return { pushed, pulled: 0, durationMs: durationMs(), lastError }
+  }
+
+  // Dasselbe Argument bei 429: die Datenpfade teilen sich ein Kontingent, ein
+  // gedrosselter Push heisst also, dass auch die acht Pulls abgewiesen wuerden.
+  if (push.rateLimited) {
+    return {
+      pushed,
+      pulled: 0,
+      durationMs: durationMs(),
+      lastError,
+      ...(rateLimitedUntilMs !== undefined ? { rateLimitedUntilMs } : {}),
+    }
   }
 
   let pulled = 0
@@ -1800,6 +1959,10 @@ export const runSyncOnce = async (
       phaseError = pull.errorMessage
     }
     if (pull.pairingRequired) pairingRequired = true
+    if (pull.rateLimited) {
+      rateLimitedUntilMs = pull.rateLimitedUntilMs
+      break
+    }
   }
 
   // Der Cycle lief bis zum Ende durch: Push- und Pull-Phasen ohne Fehler, kein
@@ -1809,7 +1972,13 @@ export const runSyncOnce = async (
     await stampLastSyncAt(app, refreshed._id)
   }
 
-  return { pushed, pulled, durationMs: durationMs(), lastError }
+  return {
+    pushed,
+    pulled,
+    durationMs: durationMs(),
+    lastError,
+    ...(rateLimitedUntilMs !== undefined ? { rateLimitedUntilMs } : {}),
+  }
 }
 
 // Single-Flight-Mutex fuer den vollen Sync-Cycle. Garantiert:
@@ -1825,7 +1994,18 @@ export const runSyncOnce = async (
 let cycleInFlight: Promise<SyncRunStats> | null = null
 let cycleQueued: { trigger: SyncRunTrigger } | null = null
 
-export const triggerImmediateCycle = async (app: Application, trigger: SyncRunTrigger): Promise<void> => {
+/**
+ * Fuehrt einen Sync-Cycle durch den Single-Flight-Mutex aus.
+ *
+ * Rueckgabe sind die Stats des gelaufenen Cycles bzw. `null`, wenn keiner lief
+ * (Cycle bereits unterwegs → gequeued; oder kein aktives Pairing). Der
+ * Scheduler-Tick liest daraus `rateLimitedUntilMs`, um seine Wartezeit an ein
+ * `Retry-After` der Cloud anzupassen; alle uebrigen Aufrufer ignorieren den Wert.
+ */
+export const triggerImmediateCycle = async (
+  app: Application,
+  trigger: SyncRunTrigger,
+): Promise<SyncRunStats | null> => {
   if (cycleInFlight) {
     cycleQueued = { trigger }
     logger.info({
@@ -1833,10 +2013,10 @@ export const triggerImmediateCycle = async (app: Application, trigger: SyncRunTr
       event: 'sync.trigger.queued',
       trigger,
     })
-    return
+    return null
   }
   const connection = await getActiveConnection(app).catch(() => null)
-  if (!connection) return
+  if (!connection) return null
 
   const run = async (): Promise<SyncRunStats> => {
     try {
@@ -1863,7 +2043,7 @@ export const triggerImmediateCycle = async (app: Application, trigger: SyncRunTr
     }
   }
   cycleInFlight = run()
-  await cycleInFlight
+  return await cycleInFlight
 }
 
 /**
@@ -1886,13 +2066,29 @@ const runKeepaliveHeartbeat = async (app: Application, connection: CloudConnecti
     syncMode: connection.syncMode ?? SyncMode.AUTO,
     staleForSec: Number.isFinite(staleFor) ? Math.round(staleFor / 1000) : null,
   })
-  await runHeartbeat(app, connection).catch(err =>
+  await runHeartbeat(app, connection).catch(err => {
+    // 429 ist an der Quelle geloggt und kein Keepalive-Fehler: die Kopplung
+    // bleibt bestehen, nur dieser eine Versuch wurde gedrosselt.
+    if (err instanceof CloudRateLimitedError) return
     logger.warn({
       message: 'Keepalive-Heartbeat fehlgeschlagen',
       event: 'sync.keepalive.failed',
       errorMessage: err instanceof Error ? err.message : String(err),
-    }),
-  )
+    })
+  })
+}
+
+/**
+ * Wartezeit in Sekunden, die ein Cloud-Rate-Limit dem naechsten Tick auferlegt.
+ *
+ * 0, wenn kein 429 im Spiel war — der Aufrufer nimmt dann sein regulaeres
+ * Intervall. Ohne diese Dehnung wuerde `Retry-After` jenseits der
+ * Tick-Untergrenze (60 s) wirkungslos bleiben: der Scheduler klopfte weiter im
+ * eigenen Takt an, obwohl die Cloud eine laengere Pause verlangt hat.
+ */
+const retryAfterDelaySec = (stats: SyncRunStats | null): number => {
+  if (!stats?.rateLimitedUntilMs) return 0
+  return Math.max(0, Math.ceil((stats.rateLimitedUntilMs - Date.now()) / 1000))
 }
 
 export const startCloudSyncSchedulerWorker = async (app: Application): Promise<SchedulerHandle> => {
@@ -1928,8 +2124,9 @@ export const startCloudSyncSchedulerWorker = async (app: Application): Promise<S
         // Ueber triggerImmediateCycle gehen, damit der Mutex Push-Races
         // zwischen periodischem Tick und Cloud-getriggerten force-sync-
         // Events verhindert.
-        await triggerImmediateCycle(app, SyncRunTrigger.SCHEDULER)
-        return connection.syncIntervalSec ?? SYNC_INTERVAL_DEFAULT_SEC
+        const stats = await triggerImmediateCycle(app, SyncRunTrigger.SCHEDULER)
+        const intervalSec = connection.syncIntervalSec ?? SYNC_INTERVAL_DEFAULT_SEC
+        return Math.max(intervalSec, retryAfterDelaySec(stats))
       }
 
       switch (mode) {
@@ -1952,8 +2149,9 @@ export const startCloudSyncSchedulerWorker = async (app: Application): Promise<S
             delaySec = await autoCycle()
             break
           }
+          let rateLimitSec = 0
           if (slot.due) {
-            await triggerImmediateCycle(app, SyncRunTrigger.SCHEDULER)
+            rateLimitSec = retryAfterDelaySec(await triggerImmediateCycle(app, SyncRunTrigger.SCHEDULER))
             // Der Slot-Zeitpunkt, nicht Date.now(): sonst wandert die
             // Doppelfeuer-Sperre mit jeder Laufzeit-Verzoegerung nach hinten.
             // Fehlerisoliert, damit ein fehlgeschlagener Patch nicht den
@@ -1974,7 +2172,10 @@ export const startCloudSyncSchedulerWorker = async (app: Application): Promise<S
           // MANUAL (30 min) und DISABLED (5 min) sind von sich aus kurz genug
           // — sie zu deckeln wuerde einen bewusst gesetzten AUTO-Intervall von
           // 60 Minuten auf 30 verkuerzen und die Sync-Last verdoppeln.
-          delaySec = Math.min(SCHEDULER_MAX_TICK_SEC, Math.round(slot.waitMs / 1000))
+          // Ein Rate-Limit darf den Deckel ueberstimmen: die Cloud hat eine
+          // Pause verlangt, und die naechste Slot-Auswertung waere sonst nur
+          // ein weiterer abgewiesener Cloud-Call.
+          delaySec = Math.max(rateLimitSec, Math.min(SCHEDULER_MAX_TICK_SEC, Math.round(slot.waitMs / 1000)))
           break
         }
         case SyncMode.MANUAL:

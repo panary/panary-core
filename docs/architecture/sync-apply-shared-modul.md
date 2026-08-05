@@ -39,9 +39,19 @@ Neues Modul `apps/api-edge/src/workers/sync-apply.ts` als Single Source für:
 | `extractAjvValidationErrors` | EINE AJV-Fehler-Extraktion (Feathers `BadRequest`: `.data`, alte Builds `.errors`) |
 | `pullMasterDataPage` | eine Seite `/sync-pull` (cursor-basiert, `PULL_PAGE_SIZE` 500) |
 | `applyPulledRecords` | gepullte Records via Service-API anwenden (`fromSync: true`), Rückgabe `{ applied, rejected, details }` |
+| `throwIfRateLimited` | EINE 429-Erkennung inkl. `Retry-After`-Auswertung und der einzigen `sync.rate_limited`-Logzeile; an jeder Call-Site **vor** `!response.ok` aufzurufen |
+| `CloudRateLimitedError` | Marker-Error, an dem die Phasen-Wrapper Cloud-Rückstau von echten Fehlern trennen (trägt `phase` und ausgewertete `retryAfterMs`) |
 
 Konsumenten: `cloud-sync-scheduler.worker.ts`,
 `cloud-bootstrap-runner.worker.ts`, `cloud-pull-business-days.worker.ts`.
+
+### 429-Erkennung an einer Stelle
+
+`throwIfRateLimited` ist bewusst hier gelandet und nicht im Scheduler-Worker: die
+Drosselung kann jeden Edge→Cloud-Call treffen, und der Bootstrap-Runner wie der
+BusinessDays-Poll brauchen dieselbe Behandlung. Die Regeln — 429 zählt nie als
+Fehlversuch, `Retry-After` ist bindend, die Outbox bleibt `pending` — stehen in
+[ADR 0019](../adr/0019-edge-429-rueckstau-behandlung.md).
 
 ### Gebatchter Existenz-Check
 

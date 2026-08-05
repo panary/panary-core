@@ -73,7 +73,7 @@
     "@nx/vitest": "22.7.7",
     "@nx/web": "22.7.7",
     "@schematics/angular": "21.2.19",
-    "@sinclair/typebox": "^0.34.0",
+    "@sinclair/typebox": "^0.25.0",
     "@swc-node/register": "1.11.1",
     "@swc/core": "1.15.41",
     "@swc/helpers": "0.5.23",

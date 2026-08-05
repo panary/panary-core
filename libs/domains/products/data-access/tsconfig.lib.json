@@ -39,7 +39,7 @@
         "../../product-groups/domain/dist/index.d.ts"
       ],
       "@panary/products/data-access": [
-        "dist/types/products-data-access-internal.d.ts"
+        "./dist/types/products-data-access-internal.d.ts"
       ],
       "@panary/products/domain": [
         "../domain/dist/index.d.ts"

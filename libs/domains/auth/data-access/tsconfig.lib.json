@@ -9,7 +9,7 @@
     "types": [],
     "paths": {
       "@panary/auth/data-access": [
-        "dist/types/auth-data-access-internal.d.ts"
+        "./dist/types/auth-data-access-internal.d.ts"
       ],
       "@panary/auth/domain": [
         "../domain/dist/index.d.ts"

@@ -1,4 +1,4 @@
-import { FormatRegistry } from '@sinclair/typebox'
+import { Format } from '@sinclair/typebox/format'
 import { Value } from '@sinclair/typebox/value'
 import { beforeAll, describe, expect, it } from 'vitest'
 
@@ -14,8 +14,8 @@ import {
 // uebernimmt AJV das. Fuer Value.Check registrieren wir die verwendeten
 // Formate lokal (analog sync-trigger.schema.spec).
 beforeAll(() => {
-  if (!FormatRegistry.Has('uuid')) {
-    FormatRegistry.Set('uuid', value => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value))
+  if (!Format.Has('uuid')) {
+    Format.Set('uuid', value => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value))
   }
 })
 

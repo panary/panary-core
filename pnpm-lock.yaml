@@ -262,8 +262,8 @@ importers:
         specifier: 21.2.19
         version: 21.2.19(chokidar@5.0.0)
       '@sinclair/typebox':
-        specifier: ^0.34.0
-        version: 0.34.49
+        specifier: ^0.25.0
+        version: 0.25.24
       '@swc-node/register':
         specifier: 1.11.1
         version: 1.11.1(@swc/core@1.15.41(@swc/helpers@0.5.23))(@swc/types@0.1.26)(typescript@6.0.3)

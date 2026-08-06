@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 
-import { FormatRegistry } from '@sinclair/typebox'
+import { Format } from '@sinclair/typebox/format'
 import { Value } from '@sinclair/typebox/value'
 
 import { edgeForceSyncEventSchema } from './edge-event.schema'
@@ -15,12 +15,16 @@ import {
 // uebernimmt AJV das. Fuer Value.Check muessen wir die Formate, die unsere
 // Schemas verwenden, lokal registrieren. Das erlaubt Schema-Roundtrip-Tests
 // ohne Feathers-Boot.
+//
+// `Format` und nicht `FormatRegistry`: @feathersjs/typebox pinnt
+// @sinclair/typebox auf ^0.25, dort heisst die Registry noch `Format`.
+// Siehe docs/adr/0019-sinclair-typebox-an-feathers-koppeln.md.
 beforeAll(() => {
-  if (!FormatRegistry.Has('uuid')) {
-    FormatRegistry.Set('uuid', value => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value))
+  if (!Format.Has('uuid')) {
+    Format.Set('uuid', value => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value))
   }
-  if (!FormatRegistry.Has('date-time')) {
-    FormatRegistry.Set('date-time', value => !Number.isNaN(Date.parse(value)))
+  if (!Format.Has('date-time')) {
+    Format.Set('date-time', value => !Number.isNaN(Date.parse(value)))
   }
 })
 

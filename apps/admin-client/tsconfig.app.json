@@ -9,22 +9,5 @@
     "types": []
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"],
-  "references": [
-    {
-      "path": "../../libs/shared/data-access-theme"
-    },
-    {
-      "path": "../../libs/domains/locations/domain"
-    },
-    {
-      "path": "../../libs/shared/ui-cloud-status"
-    },
-    {
-      "path": "../../libs/shared/data-access"
-    },
-    {
-      "path": "../../libs/shared/data-access-config"
-    }
-  ]
+  "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"]
 }

@@ -1,7 +1,7 @@
 ---
 type: ADR
 title: '@sinclair/typebox an @feathersjs/typebox koppeln — die direkte Dependency folgt dem Peer, nicht der neuesten Version'
-description: Die Root-Deklaration von @sinclair/typebox zieht von ^0.34.0 auf ^0.25.0 und damit exakt auf den Bereich, den @feathersjs/typebox selbst deklariert; damit verschwinden zwei nominal unvereinbare TSchema-Typen und 96 TS2345-Fehler in fünf Domain-Libs.
+description: Die Root-Deklaration von @sinclair/typebox zieht von ^0.34.0 auf ^0.25.0 und damit exakt auf den Bereich, den @feathersjs/typebox selbst deklariert; die publishable Pakete verlieren den überflüssigen Peer ganz, womit zwei nominal unvereinbare TSchema-Typen und 96 TS2345-Fehler verschwinden.
 tags: [dependencies, typescript, orders, sync, brands, reservations, audit-events]
 status: stable
 decision: accepted
@@ -83,10 +83,23 @@ Laufzeit exportiert das Paket nur `Kind, Hint, Modifier, TypeBuilder, Type` weit
   ist es nachher; die Schema-Validierung von `api-edge` sieht keine Änderung. Außerhalb der
   fünf Specs importiert nichts im Repo `@sinclair/typebox` direkt (geprüft über `libs`, `apps`,
   `tools`).
-- **Offen und bewusst getrennt:** 37 Domain-`package.json` führen `@sinclair/typebox: ^0.34.0`
-  in den `peerDependencies`. Keine einzige der 35 gebauten `dist/index.d.ts` referenziert das
-  Paket, der Eintrag ist also für den veröffentlichten Typ-Vertrag folgenlos — er nennt
-  Konsumenten (u. a. panary-cloud) aber die falsche Linie. Das anzupassen ändert publizierte
-  Paket-Metadaten und gehört in einen eigenen Schritt.
+- **Die `peerDependencies` der publishable Pakete verlieren den Eintrag ganz** — nicht bloß
+  seine Version. 36 `@panary/*`-Pakete führten `@sinclair/typebox: ^0.34.0` neben
+  `@feathersjs/typebox: ^5.0.40`. Der veröffentlichte Typ-Vertrag referenziert das Paket
+  nirgends: über alle 187 emittierten `.d.ts` der Domain-Dists hinweg gibt es **null**
+  `@sinclair/typebox`-Bezüge, aber 65 auf `@feathersjs/typebox` (`declare const userSchema:
+  import("@feathersjs/typebox").TObject<…>`). Konsumenten folgen also ausschließlich über
+  Feathers dorthin, das seine TypeBox-Version selbst mitbringt.
+
+  Damit war der Eintrag nicht nur überflüssig, sondern gegenläufig zu dieser Entscheidung: Er
+  verlangte von Konsumenten — panary-cloud pinnt entsprechend `^0.34.49` — die Installation
+  genau jener Linie, deren Koexistenz mit dem Feathers-Peer die 96 Fehler erzeugt hat. Ein
+  Angleichen auf `^0.25.0` hätte die falsche Aussage nur leiser gemacht; ein Peer, den der
+  Typ-Vertrag nicht anfasst, gehört gestrichen. Das Entfernen lockert eine Anforderung und ist
+  für Konsumenten daher kein Breaking Change.
+
+  > Der Erstbefund stützte sich auf `dist/index.d.ts` — die Datei ist ein reines
+  > `export * from "./src/index"`-Barrel und kann per Konstruktion keine Typreferenz enthalten.
+  > Die belastbare Prüfung läuft über `dist/src/**/*.d.ts`.
 
 Siehe auch: [ADR 0012 — pnpm-Supply-Chain-Härtung](0012-pnpm-supply-chain-haertung.md).

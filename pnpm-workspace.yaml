@@ -54,11 +54,9 @@ minimumReleaseAgeExclude:
   # ENTFERNEN, sobald die Versionen reif sind (danach ist der Eintrag ein
   # stiller Verzicht auf die Karenz fuer dieses Paket):
   #
-  # OSV-Sweep 2026-08-03: fast-uri 3.1.5 (GHSA-7p8r-x3mc-p8w7) und
-  # brace-expansion 5.0.9 (GHSA-rgw5-rvv9-x895) sind die jeweils EINZIGE
-  # gepatchte Version ihrer Linie und noch keine 7 Tage alt:
-  - 'fast-uri' # 3.1.5 (2026-07-31) — reif ab 2026-08-07
-  - 'brace-expansion' # 5.0.9 (2026-07-30) — reif ab 2026-08-06
+  # OSV-Sweep 2026-08-03: fast-uri 3.1.5 (GHSA-7p8r-x3mc-p8w7) ist die EINZIGE
+  # gepatchte Version seiner Linie und noch keine 7 Tage alt:
+  - 'fast-uri' # 3.1.5 (2026-07-31 09:16 UTC) — reif ab 2026-08-07
   - 'hono' # 4.12.34 (2026-08-03) — reif ab 2026-08-10 (GHSA-8j4g-w8fx-2239)
   #
   # Advisory 2026-08-06: js-yaml 4.3.1 (GHSA-5p4m-2wfm-xmqj / CVE-2026-59870,
@@ -68,20 +66,12 @@ minimumReleaseAgeExclude:
   # js-yaml rein transitiv und dev-only (eslint/mocha/nx/cosmiconfig); der
   # Eintrag steht nur, damit osv-scanner (scannt Dev-Deps mit) wieder gruen wird.
   - 'js-yaml' # 4.3.1 (2026-07-31) — reif ab 2026-08-07 17:39 UTC
-  # Angular-Framework 21.2.19 (GHSA-jhpw-976m-542j 8.8 / GHSA-jj27-h5hq-8x99 7.6).
-  # Die Framework-Pakete peeren exakt aufeinander ("@angular/core": "21.2.19"),
-  # deshalb braucht die ganze Familie den Eintrag, nicht nur common/compiler/core.
-  # Bewusst KEIN '@angular/*'-Wildcard: die CLI-Familie (build/cli/devkit,
-  # 21.2.19 vom 2026-07-09) und cdk/material behalten die Karenz.
-  - '@angular/animations' # 21.2.19 (2026-07-29) — reif ab 2026-08-05
-  - '@angular/common' # 21.2.19 (2026-07-29) — reif ab 2026-08-05
-  - '@angular/compiler' # 21.2.19 (2026-07-29) — reif ab 2026-08-05
-  - '@angular/compiler-cli' # 21.2.19 (2026-07-29) — reif ab 2026-08-05
-  - '@angular/core' # 21.2.19 (2026-07-29) — reif ab 2026-08-05
-  - '@angular/forms' # 21.2.19 (2026-07-29) — reif ab 2026-08-05
-  - '@angular/language-service' # 21.2.19 (2026-07-29) — reif ab 2026-08-05
-  - '@angular/platform-browser' # 21.2.19 (2026-07-29) — reif ab 2026-08-05
-  - '@angular/router' # 21.2.19 (2026-07-29) — reif ab 2026-08-05
+  #
+  # Entfernt am 2026-08-07, weil reif geworden: die neun '@angular/*'-Framework-
+  # Pakete (21.2.19, reif seit 2026-08-05, GHSA-jhpw-976m-542j / GHSA-jj27-h5hq-8x99)
+  # und 'brace-expansion' (5.0.9, reif seit 2026-08-06, GHSA-rgw5-rvv9-x895).
+  # Das Lockfile bewegt sich dadurch nicht: die gepinnten Versionen erfuellen
+  # ihre Ranges auch unter der Karenz — verifiziert mit --lockfile-only.
   # Entfernt am 2026-08-03, weil reif geworden: 'tar' (7.5.21/22, PR #57) und
   # '@hono/node-server' (2.0.11/12, PR #55) — beide seit 2026-07-28 reif.
   # ip-address ^10.2.1, socket.io-parser ^4.2.7 und undici ^7.29.0 (OSV-Sweep

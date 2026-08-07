@@ -38,18 +38,32 @@ nicht — und in allen drei Fällen war der Bestand über Monate gewachsen.
 
 ### Ein zweiter Befund: der Bestand war lokal gar nicht messbar
 
-`nx format:check --all` liefert in einem Arbeits-Checkout ein **falsches** Ergebnis.
-Verschachtelte Agent-Worktrees unter `.claude/worktrees/` sind lokale Checkouts dieses
-Repos selbst; sie stehen nur in `.git/info/exclude`, sind also nicht eingecheckt, aber
-Prettier scannt sie mit. In panary-cloud sind das 2319 Dateien. Die Ausgabe bricht dadurch
-**mitten in einem Pfad ab** (letzte Zeile: `.claude/worktree`) und erreicht `apps/` und
-`libs/` nie: gemeldet werden 695 Worktree-Dateien und **null** echte Quelldateien.
+`nx format:check --all` liefert in einem Arbeits-Checkout ein **falsches** Ergebnis, und
+zwar aus zwei sich verstärkenden Gründen.
 
-In der CI tritt das nicht auf — ein frischer Checkout hat keine verschachtelten Worktrees.
-Lokal verfälscht es jede Messung, und zwar in die gefährliche Richtung: Der Lauf sieht
-erfolgreich aus, obwohl er den Quellbaum nie gesehen hat. Dieselbe Klasse wie der
-`osv-scanner`, der aus einem Worktree heraus „No package sources found" meldet und dabei
-grün ist.
+**Erstens schneidet `nx format:check` seine Ausgabe bei exakt 64 KiB ab.** Gemessen in
+panary-cloud: 65537 Bytes, danach bricht die Liste mitten in einem Pfad ab. Alles, was
+alphabetisch dahinter liegt, taucht im Bericht nicht auf — dort waren das 40 Dateien.
+Betroffen ist nur die **Anzeige**: Der Exit-Code stimmt weiterhin (nachgestellt mit einer
+defekten `vitest.workspace.ts` am Alphabet-Ende → Exit 1, Datei benannt), und
+`format:write --all` schreibt auch hinter dem Schnitt. Relevant wird die Kürzung also genau
+dann, wenn man einen Massenbefund **misst** — und damit in dem Moment, in dem die Zahl über
+alles Weitere entscheidet.
+
+**Zweitens scannt Prettier die verschachtelten Agent-Worktrees mit.**
+`.claude/worktrees/` enthält lokale Checkouts dieses Repos selbst; sie stehen nur in
+`.git/info/exclude`, sind also nicht eingecheckt. In panary-cloud sind das 2319 Dateien —
+mehr als der eigentliche Quellbaum. Zusammen mit dem 64-KiB-Schnitt meldete
+`nx format:check --all` dort 695 Worktree-Dateien und **null** echte Quelldateien.
+
+In der CI tritt beides nicht auf — ein frischer Checkout hat keine verschachtelten
+Worktrees, und nach dem Aufräumen ist die Befundmenge klein. Lokal verfälscht es jede
+Messung, und zwar in die gefährliche Richtung: Der Lauf sieht erfolgreich aus, obwohl er
+den Quellbaum nie gesehen hat. Dieselbe Klasse wie der `osv-scanner`, der aus einem
+Worktree heraus „No package sources found" meldet und dabei grün ist.
+
+> **Messregel:** Wer eine Format-Zahl erhebt, prüft mit `prettier --check .` gegen. Der
+> nx-Ausgabe ist bei großen Befundmengen nicht zu trauen.
 
 ## Entscheidung
 
@@ -113,6 +127,37 @@ echte statische Seite.
 - Neue Verzeichnisse mit vendortem Fremdmaterial gehören in `.prettierignore`, nicht in den
   Sweep. Sonst wird Fremdcode an den Hausstil angepasst und weicht bei jedem
   Upstream-Update erneut ab.
+
+### Was ein Format-Sweep trotz „rein mechanisch" brechen kann
+
+Die Umformatierung selbst ändert kein Verhalten. Zwei Klassen hängen aber an **Zeilen**
+statt an Ausdrücken und verschieben sich deshalb mit — beide sind beim Sweep aufgetreten
+und beide sind vor dem nächsten Sweep zu erwarten:
+
+**1. Zeilengebundene Lint-Direktiven.** `eslint-disable-next-line` bindet an die folgende
+Zeile. Fächert Prettier einen einzeiligen Aufruf über mehrere Zeilen auf, rutscht das
+abgedeckte Konstrukt aus dem Wirkungsbereich. In panary-cloud traf das
+`reservations.integration.spec.ts`: zwei `no-explicit-any`-Fehler plus zwei „Unused
+eslint-disable directive"-Warnungen — beide Symptome derselben Ursache. Die robuste Form
+setzt die Direktive direkt über den Ausdruck, nicht über den Aufruf.
+
+**2. Whitespace-Kinder, die Template-Regeln stumm halten.**
+`@angular-eslint/template/elements-content` greift nur bei `children.length === 0`. Ein
+`<button …>` mit einem bloßen Zeilenumbruch davor hat für den Angular-Parser ein
+Whitespace-Textkind — die Regel schweigt. Prettier zieht das zu `></button>` zusammen, das
+Scheinkind fällt weg, und der Befund liegt offen. Genau so kamen hier zwei
+Farbwahl-Buttons ohne `aria-label` ans Licht (`group-form`, `group-wizard`), behoben im
+Folgecommit.
+
+Die zweite Klasse ist keine Regression, sondern eine **Freilegung**: Die Regel war nie
+erfüllt, sie war nur durch einen zufälligen Umbruch stumm. Dass
+`apps/admin-client/src/app/shared/language-picker.ts` denselben `></button>`-Aufbau schon
+vorher hatte und trotzdem grün war, bestätigt das — der Button dort trägt ein
+`[attr.aria-label]` und steht auf der Safelist der Regel.
+
+Praktische Folge für den nächsten Sweep: `lint` **nach** dem Sweep gegen die Baseline von
+`origin/main` vergleichen, nicht nur auf „grün" schauen. Nur der Vergleich trennt
+Freilegung von Regression.
 
 - panary-cloud fährt dieselbe Entscheidung in
   [ADR 0041](https://github.com/panary/panary-cloud/blob/main/docs/adr/0041-format-gate-ohne-base.md).

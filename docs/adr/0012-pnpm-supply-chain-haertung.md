@@ -169,12 +169,21 @@ eine Version zeigen, die die Karenz noch blockiert (kein reifer Backport
 verfügbar). **Nach Ablauf entfernen** — danach ist der Eintrag ein stiller
 Verzicht auf die Karenz für dieses Paket:
 
-Stand nach dem OSV-Sweep 2026-08-03:
+Stand nach dem js-yaml-Fix 2026-08-07:
 
-- die neun `@angular/*`-**Framework**-Pakete 21.2.19 (2026-07-29) → reif ab **2026-08-05**
-- `brace-expansion` 5.0.9 (2026-07-30) → reif ab **2026-08-06**
-- `fast-uri` 3.1.5 (2026-07-31) → reif ab **2026-08-07**
+- die neun `@angular/*`-**Framework**-Pakete 21.2.19 (2026-07-29) → reif seit **2026-08-05**
+- `brace-expansion` 5.0.9 (2026-07-30) → reif seit **2026-08-06**
+- `fast-uri` 3.1.5 (2026-07-31 09:16 UTC) → reif ab **2026-08-07**
 - `hono` 4.12.34 (2026-08-03) → reif ab **2026-08-10**
+- `js-yaml` 4.3.1 (2026-07-31 17:39 UTC) → reif ab **2026-08-07**
+
+Der `js-yaml`-Eintrag kam mit [GHSA-5p4m-2wfm-xmqj](https://osv.dev/GHSA-5p4m-2wfm-xmqj)
+(CVE-2026-59870, quadratischer CPU-Verbrauch beim Auflösen von `!!omap`) dazu. Der Fix
+ist nur in `4.3.1` (dist-tag `v4-legacy`) und in der 5.x-Linie gelandet, nicht in `4.3.0`
+— ein reifer Backport existiert also nicht, womit die Faustregel unten greift. In Core ist
+`js-yaml` rein transitiv und **dev-only** (eslint, mocha, nx, cosmiconfig); `pnpm audit
+--prod` war durchgehend grün. Rot war allein `osv-scanner`, der Dev-Deps nicht ausnimmt —
+inklusive des nächtlichen Laufs.
 
 Die Angular-Framework-Pakete peeren exakt aufeinander
 (`@angular/common@21.2.19` verlangt `"@angular/core": "21.2.19"`), deshalb

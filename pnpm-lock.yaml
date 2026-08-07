@@ -147,8 +147,8 @@ importers:
         specifier: ^4.8.3
         version: 4.8.3
       swagger-ui-dist:
-        specifier: ^5.32.8
-        version: 5.32.8
+        specifier: ^5.32.11
+        version: 5.32.11
       uuid:
         specifier: ^14.0.0
         version: 14.0.0
@@ -8128,8 +8128,8 @@ packages:
   react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
 
-  react-is@19.2.7:
-    resolution: {integrity: sha512-kZFnouyVv7eP/Phmrlo9FK+zcAdriZJvzxXHF1Sl1P377WSGe2G/JxVolhTrB/jeV47lKImhNUsijjHAAbcl/A==}
+  react-is@19.2.8:
+    resolution: {integrity: sha512-s5un28nYxKJw5gvUHyW5PCC28CvBqLu9r3cWgzHT4Vo/5fqqkFcdRYsGcKf50WMPpjjFZS5d76fn3YCo2njKwQ==}
 
   react-refresh@0.18.0:
     resolution: {integrity: sha512-QgT5//D3jfjJb6Gsjxv0Slpj23ip+HtOpnNgnb2S5zU3CB26G/IDPGoy4RJB42wzFE46DRsstbW6tKHoKbhAxw==}
@@ -8849,8 +8849,8 @@ packages:
     engines: {node: '>=16'}
     hasBin: true
 
-  swagger-ui-dist@5.32.8:
-    resolution: {integrity: sha512-dgMdWXIgnI4zX4OPhKEdWnlDODbgm8W3AX0Ivn/BBqcUh6xZsBxhZMnvk6DJyRz1BTrj8dPxtarmEGgkz30oyA==}
+  swagger-ui-dist@5.32.11:
+    resolution: {integrity: sha512-NEZzRuxHHQkbG3GCjNbzz+XRDoM7AztnXyzc2VCW5RXUvZBDW7bb3W29/SPfvav3yOzqnDTOLP2Xzbjxo0bldQ==}
 
   symbol-tree@3.2.4:
     resolution: {integrity: sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw==}
@@ -18504,7 +18504,7 @@ snapshots:
       '@jest/schemas': 30.4.1
       ansi-styles: 5.2.0
       react-is-18: react-is@18.3.1
-      react-is-19: react-is@19.2.7
+      react-is-19: react-is@19.2.8
 
   proc-log@6.1.0: {}
 
@@ -18579,7 +18579,7 @@ snapshots:
 
   react-is@18.3.1: {}
 
-  react-is@19.2.7: {}
+  react-is@19.2.8: {}
 
   react-refresh@0.18.0: {}
 
@@ -19416,7 +19416,7 @@ snapshots:
       picocolors: 1.1.1
       sax: 1.6.0
 
-  swagger-ui-dist@5.32.8:
+  swagger-ui-dist@5.32.11:
     dependencies:
       '@scarf/scarf': 1.4.0
 

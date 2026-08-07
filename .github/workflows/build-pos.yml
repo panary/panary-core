@@ -82,7 +82,7 @@ jobs:
         run: printf '%s' '{"bundle":{"createUpdaterArtifacts":false}}' > apps/pos-client/src-tauri/ci-no-updater.conf.json
 
       - name: Build Tauri (NSIS Installer)
-        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -164,7 +164,7 @@ jobs:
       # setzt dort createUpdaterArtifacts auf false. Der Signing-Key bleibt
       # damit auch hier dem Release-Workflow vorbehalten.
       - name: Build Tauri (macOS Bundle)
-        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

@@ -239,6 +239,7 @@ interface StepAnswer {
                             : 'w-7 h-7 rounded-full hover:scale-110'
                       "
                       [style.background-color]="c"
+                      [attr.aria-label]="'Farbe ' + c"
                       class="transition-all duration-150"
                     ></button>
                   }

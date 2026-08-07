@@ -200,6 +200,7 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
                           : 'w-7 h-7 rounded-full hover:scale-110 hover:ring-1 hover:ring-slate-400 dark:hover:ring-gray-500'
                       "
                       [style.background-color]="c"
+                      [attr.aria-label]="'Farbe ' + c"
                       class="transition-all"
                     ></button>
                   }

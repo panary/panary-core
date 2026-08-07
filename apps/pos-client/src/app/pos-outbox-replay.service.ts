@@ -3,7 +3,13 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'
 import { ConnectionService } from '@panary/shared/data-access'
 import type { OfflineReplayPort } from '@panary/shared-common'
-import { classifyOutboxError, OUTBOX_MAX_ATTEMPTS, outboxBackoffMs, OutboxEntry, OutboxStore } from '@panary/shared/offline-cache'
+import {
+  classifyOutboxError,
+  OUTBOX_MAX_ATTEMPTS,
+  outboxBackoffMs,
+  OutboxEntry,
+  OutboxStore,
+} from '@panary/shared/offline-cache'
 
 /** Minimaler Feathers-Service-Ausschnitt für das Replay (create/patch mit voller Payload). */
 interface ReplayTarget {
@@ -96,11 +102,9 @@ export class PosOutboxReplayService implements OnDestroy, OfflineReplayPort {
     // sichtbar) → Operator aktiv informieren.
     const newlyRejected = this.#outbox.rejectedCount() - rejectedBefore
     if (newlyRejected > 0) {
-      this.#snackBar.open(
-        this.#translate.instant('SETTINGS.OUTBOX_REPLAY_REJECTED', { count: newlyRejected }),
-        'OK',
-        { duration: 6000 },
-      )
+      this.#snackBar.open(this.#translate.instant('SETTINGS.OUTBOX_REPLAY_REJECTED', { count: newlyRejected }), 'OK', {
+        duration: 6000,
+      })
     }
   }
 

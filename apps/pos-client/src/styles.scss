@@ -1,5 +1,5 @@
-@use "tailwindcss";
-@use "@angular/material" as mat;
+@use 'tailwindcss';
+@use '@angular/material' as mat;
 
 /* Explizite Quellpfade für Tailwind v4 JIT — verhindert Scan-Fehler auf Windows CI und Docker.
    @source muss nach allen @use-Regeln stehen (SCSS-Anforderung). */
@@ -69,39 +69,32 @@ html.pnry-fluid-scale {
 /* Touch-Mindesthöhen nur im fluid-Modus: rem-basiert, aber mit hartem 48px-Floor via max().
    Begründung: bei compact-Density (0.9) × minimaler Root-Fontsize (14px) wäre 3.5rem = 44.1px < 48px.
    Das px in max() ist bewusst und Audit-whitelisted. */
-html.pnry-fluid-scale .pnry-touch { min-height: max(3.5rem, 48px) }
-html.pnry-fluid-scale .pnry-touch-primary { min-height: max(4rem, 48px) }
+html.pnry-fluid-scale .pnry-touch {
+  min-height: max(3.5rem, 48px);
+}
+html.pnry-fluid-scale .pnry-touch-primary {
+  min-height: max(4rem, 48px);
+}
 
 /* Angular Material Theme — Light (Standard) */
 html {
-  @include mat.theme((
-    color: (
-      theme-type: light,
-      primary: mat.$azure-palette,
-      tertiary: mat.$blue-palette,
-    ),
-    typography: Switzer,
-    density: 0,
-  ));
+  @include mat.theme(
+    (
+      color: (
+        theme-type: light,
+        primary: mat.$azure-palette,
+        tertiary: mat.$blue-palette,
+      ),
+      typography: Switzer,
+      density: 0,
+    )
+  );
 }
 
 /* Angular Material Theme — Dark (manuell über data-theme-Attribut) */
 html[data-theme='dark'] {
-  @include mat.theme((
-    color: (
-      theme-type: dark,
-      primary: mat.$azure-palette,
-      tertiary: mat.$blue-palette,
-    ),
-    typography: Switzer,
-    density: 0,
-  ));
-}
-
-/* Angular Material Theme — Dark (System-Modus: OS-Präferenz) */
-@media (prefers-color-scheme: dark) {
-  html:not([data-theme]) {
-    @include mat.theme((
+  @include mat.theme(
+    (
       color: (
         theme-type: dark,
         primary: mat.$azure-palette,
@@ -109,7 +102,24 @@ html[data-theme='dark'] {
       ),
       typography: Switzer,
       density: 0,
-    ));
+    )
+  );
+}
+
+/* Angular Material Theme — Dark (System-Modus: OS-Präferenz) */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) {
+    @include mat.theme(
+      (
+        color: (
+          theme-type: dark,
+          primary: mat.$azure-palette,
+          tertiary: mat.$blue-palette,
+        ),
+        typography: Switzer,
+        density: 0,
+      )
+    );
   }
 }
 
@@ -220,7 +230,8 @@ body.dark .mat-mdc-select-panel {
 /* ==========================================================================
    Globales Layout: Volle Viewport-Höhe für die gesamte App
    ========================================================================== */
-html, body {
+html,
+body {
   height: 100dvh;
   margin: 0;
   background-color: #f9fafb; /* gray-50 */
@@ -263,8 +274,7 @@ router-outlet + * {
   font-style: normal;
   font-weight: 400;
   font-display: block;
-  src:
-    url('./assets/fonts/material-icons/flUhRq6tzZclQEJ-Vdg-IuiaDsNc.woff2') format('woff2');
+  src: url('./assets/fonts/material-icons/flUhRq6tzZclQEJ-Vdg-IuiaDsNc.woff2') format('woff2');
 }
 
 /* Material Icons Outlined */
@@ -273,8 +283,7 @@ router-outlet + * {
   font-style: normal;
   font-weight: 400;
   font-display: block;
-  src:
-    url('./assets/fonts/material-icons/gok-H7zzDkdnRel8-DQ6KAXJ69wP1tGnf4ZGhUce.woff2') format('woff2');
+  src: url('./assets/fonts/material-icons/gok-H7zzDkdnRel8-DQ6KAXJ69wP1tGnf4ZGhUce.woff2') format('woff2');
 }
 
 /* Material Symbols Outlined — für <span class="material-symbols-outlined">icon</span> */
@@ -283,8 +292,7 @@ router-outlet + * {
   font-style: normal;
   font-weight: 100 700;
   font-display: block;
-  src:
-    url('./assets/fonts/material-symbols/kJEhBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2') format('woff2');
+  src: url('./assets/fonts/material-symbols/kJEhBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2') format('woff2');
 }
 
 .material-icons {

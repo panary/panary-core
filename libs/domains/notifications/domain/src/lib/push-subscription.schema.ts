@@ -69,12 +69,7 @@ export const pushSubscriptionPatchSchema = Type.Partial(
 )
 export type PushSubscriptionPatch = Static<typeof pushSubscriptionPatchSchema>
 
-const queryProperties = Type.Pick(pushSubscriptionSchema, [
-  '_id',
-  'tenantId',
-  'userId',
-  'endpoint',
-])
+const queryProperties = Type.Pick(pushSubscriptionSchema, ['_id', 'tenantId', 'userId', 'endpoint'])
 export const pushSubscriptionQuerySchema = Type.Intersect(
   [querySyntax(queryProperties), Type.Object({}, { additionalProperties: false })],
   { additionalProperties: false },

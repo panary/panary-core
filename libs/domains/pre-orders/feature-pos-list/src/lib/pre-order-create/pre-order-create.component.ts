@@ -31,41 +31,78 @@ import { TranslateModule } from '@ngx-translate/core'
       <!-- Contact Info -->
       <div class="grid grid-cols-2 gap-4">
         <div class="space-y-1">
-          <label for="pre-order-name" class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.CUSTOMER_NAME' | translate }}</label>
-          <input id="pre-order-name" formControlName="name" placeholder="Max Mustermann" cdkFocusInitial
-            class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-800 dark:text-gray-200 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 outline-none placeholder-gray-400" />
+          <label
+            for="pre-order-name"
+            class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block"
+            >{{ 'PRE_ORDERS.CUSTOMER_NAME' | translate }}</label
+          >
+          <input
+            id="pre-order-name"
+            formControlName="name"
+            placeholder="Max Mustermann"
+            cdkFocusInitial
+            class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-800 dark:text-gray-200 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 outline-none placeholder-gray-400"
+          />
         </div>
 
         <div class="space-y-1">
-          <label for="pre-order-phone" class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.PHONE' | translate }}</label>
-          <input id="pre-order-phone" formControlName="phone" placeholder="0123 456789"
-            class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-800 dark:text-gray-200 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 outline-none placeholder-gray-400" />
+          <label
+            for="pre-order-phone"
+            class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block"
+            >{{ 'PRE_ORDERS.PHONE' | translate }}</label
+          >
+          <input
+            id="pre-order-phone"
+            formControlName="phone"
+            placeholder="0123 456789"
+            class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-800 dark:text-gray-200 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 outline-none placeholder-gray-400"
+          />
         </div>
       </div>
 
       <!-- Date/Time -->
       <div class="space-y-1">
-        <label for="pre-order-scheduled" class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.DATE_TIME' | translate }}</label>
-        <input id="pre-order-scheduled" type="datetime-local" formControlName="scheduledFor"
-          class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-800 dark:text-gray-200 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 outline-none placeholder-gray-400" />
+        <label
+          for="pre-order-scheduled"
+          class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block"
+          >{{ 'PRE_ORDERS.DATE_TIME' | translate }}</label
+        >
+        <input
+          id="pre-order-scheduled"
+          type="datetime-local"
+          formControlName="scheduledFor"
+          class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-800 dark:text-gray-200 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 outline-none placeholder-gray-400"
+        />
         <p class="text-xs text-gray-400 mt-1">{{ 'PRE_ORDERS.PICKUP_TIME_HINT' | translate }}</p>
       </div>
 
       <!-- Dine Location -->
       <div class="space-y-1">
-        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.DINE_LOCATION' | translate }}</span>
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{
+          'PRE_ORDERS.DINE_LOCATION' | translate
+        }}</span>
         <div class="grid grid-cols-2 gap-2">
-          <button type="button" (click)="form.patchValue({ dineLocation: 'take-out' })"
-            [class]="form.get('dineLocation')?.value === 'take-out'
-              ? 'flex items-center justify-center gap-2 py-3.5 rounded-xl font-medium text-sm border-2 border-gray-900 dark:border-white bg-gray-900 dark:bg-white text-white dark:text-black transition'
-              : 'flex items-center justify-center gap-2 py-3.5 rounded-xl font-medium text-sm border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 transition'">
+          <button
+            type="button"
+            (click)="form.patchValue({ dineLocation: 'take-out' })"
+            [class]="
+              form.get('dineLocation')?.value === 'take-out'
+                ? 'flex items-center justify-center gap-2 py-3.5 rounded-xl font-medium text-sm border-2 border-gray-900 dark:border-white bg-gray-900 dark:bg-white text-white dark:text-black transition'
+                : 'flex items-center justify-center gap-2 py-3.5 rounded-xl font-medium text-sm border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 transition'
+            "
+          >
             <span class="text-lg">🥡</span>
             {{ 'PRE_ORDERS.TAKE_OUT' | translate }}
           </button>
-          <button type="button" (click)="form.patchValue({ dineLocation: 'dine-in' })"
-            [class]="form.get('dineLocation')?.value === 'dine-in'
-              ? 'flex items-center justify-center gap-2 py-3.5 rounded-xl font-medium text-sm border-2 border-gray-900 dark:border-white bg-gray-900 dark:bg-white text-white dark:text-black transition'
-              : 'flex items-center justify-center gap-2 py-3.5 rounded-xl font-medium text-sm border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 transition'">
+          <button
+            type="button"
+            (click)="form.patchValue({ dineLocation: 'dine-in' })"
+            [class]="
+              form.get('dineLocation')?.value === 'dine-in'
+                ? 'flex items-center justify-center gap-2 py-3.5 rounded-xl font-medium text-sm border-2 border-gray-900 dark:border-white bg-gray-900 dark:bg-white text-white dark:text-black transition'
+                : 'flex items-center justify-center gap-2 py-3.5 rounded-xl font-medium text-sm border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 transition'
+            "
+          >
             <span class="text-lg">🍽</span>
             {{ 'PRE_ORDERS.DINE_IN' | translate }}
           </button>
@@ -77,11 +114,23 @@ import { TranslateModule } from '@ngx-translate/core'
         <h3 class="font-bold text-gray-700">{{ 'PRE_ORDERS.ADD_ITEMS' | translate }}</h3>
 
         <div class="space-y-1 relative">
-          <label for="pre-order-search" class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{{ 'PRE_ORDERS.SEARCH_ITEMS' | translate }}</label>
+          <label
+            for="pre-order-search"
+            class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block"
+            >{{ 'PRE_ORDERS.SEARCH_ITEMS' | translate }}</label
+          >
           <div class="relative">
-            <input id="pre-order-search" [formControl]="searchControl" [matAutocomplete]="auto" [placeholder]="'PRE_ORDERS.ENTER_NAME' | translate"
-              class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-10 text-gray-800 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 outline-none placeholder-gray-400" />
-            <span class="material-symbols-outlined text-[1.25rem] absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+            <input
+              id="pre-order-search"
+              [formControl]="searchControl"
+              [matAutocomplete]="auto"
+              [placeholder]="'PRE_ORDERS.ENTER_NAME' | translate"
+              class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-10 text-gray-800 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 outline-none placeholder-gray-400"
+            />
+            <span
+              class="material-symbols-outlined text-[1.25rem] absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+              >search</span
+            >
           </div>
           <mat-autocomplete
             #auto="matAutocomplete"
@@ -100,20 +149,27 @@ import { TranslateModule } from '@ngx-translate/core'
         </div>
 
         <!-- Selected Items List -->
-        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-2 max-h-40 overflow-y-auto mb-2 border border-gray-200 dark:border-gray-700">
+        <div
+          class="bg-gray-50 dark:bg-gray-800 rounded-lg p-2 max-h-40 overflow-y-auto mb-2 border border-gray-200 dark:border-gray-700"
+        >
           @if (selectedItems().length === 0) {
             <p class="text-center text-gray-400 text-sm py-2">{{ 'PRE_ORDERS.NO_ITEMS_SELECTED' | translate }}</p>
           }
           @for (item of selectedItems(); track item._id + '-' + $index) {
-            <div class="flex justify-between items-center p-2 bg-white dark:bg-gray-950 rounded shadow-sm mb-1 border border-gray-100 dark:border-gray-700">
+            <div
+              class="flex justify-between items-center p-2 bg-white dark:bg-gray-950 rounded shadow-sm mb-1 border border-gray-100 dark:border-gray-700"
+            >
               <div class="flex flex-col">
                 <span class="font-medium text-sm">{{ item.name }}</span>
                 <span class="text-xs text-gray-500">{{ item.price | currency: 'EUR' }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <span class="text-sm font-bold w-6 text-center">1x</span>
-                <button type="button" (click)="removeItem($index)"
-                  class="flex items-center justify-center w-8 h-8 rounded-lg text-red-400 hover:bg-red-50 transition-colors">
+                <button
+                  type="button"
+                  (click)="removeItem($index)"
+                  class="flex items-center justify-center w-8 h-8 rounded-lg text-red-400 hover:bg-red-50 transition-colors"
+                >
                   <span class="material-symbols-outlined text-[1.25rem]">delete</span>
                 </button>
               </div>
@@ -124,12 +180,19 @@ import { TranslateModule } from '@ngx-translate/core'
     </mat-dialog-content>
 
     <mat-dialog-actions align="end" class="!px-6 !pb-6">
-      <button type="button" mat-dialog-close
-        class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors">
+      <button
+        type="button"
+        mat-dialog-close
+        class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors"
+      >
         Abbrechen
       </button>
-      <button type="button" [disabled]="form.invalid" (click)="save()"
-        class="px-4 py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+      <button
+        type="button"
+        [disabled]="form.invalid"
+        (click)="save()"
+        class="px-4 py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
         Reservierung Speichern
       </button>
     </mat-dialog-actions>

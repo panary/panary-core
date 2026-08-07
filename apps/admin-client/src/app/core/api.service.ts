@@ -51,11 +51,7 @@ export class ApiService {
   // geroutet, NICHT ueber URL-Pfad-Suffix. Ohne Header degradiert ein Aufruf wie
   // POST /service/methodName auf service.create() mit Path-Suffix als id und
   // schlaegt mit Schema-Validation oder unerwartetem Hook-Verhalten fehl.
-  async customMethod<T>(
-    service: string,
-    method: string,
-    data: Record<string, unknown> = {},
-  ): Promise<T> {
+  async customMethod<T>(service: string, method: string, data: Record<string, unknown> = {}): Promise<T> {
     return lastValueFrom(
       this.http.post<T>(`${API_URL}/${service}`, data, {
         headers: { 'X-Service-Method': method },

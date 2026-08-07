@@ -161,11 +161,7 @@ export const tenantLogoAssetSchema = Type.Object(
   {
     /** base64-encoded BinData (max ~270 KB nach Base64-Overhead bei 200 KB Binary). */
     data: Type.String({ minLength: 1, maxLength: 300_000 }),
-    contentType: Type.Union([
-      Type.Literal('image/webp'),
-      Type.Literal('image/png'),
-      Type.Literal('image/jpeg'),
-    ]),
+    contentType: Type.Union([Type.Literal('image/webp'), Type.Literal('image/png'), Type.Literal('image/jpeg')]),
     sizeBytes: Type.Number({ minimum: 1, maximum: 300_000 }),
     width: Type.Number({ minimum: 1, maximum: 4096 }),
     height: Type.Number({ minimum: 1, maximum: 4096 }),

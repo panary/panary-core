@@ -133,7 +133,9 @@ export class OrderHistoryComponent {
           const matchesText =
             (order.customerPaymentInfo?.customerName || '').toLowerCase().includes(searchLower) ||
             (order.staffPaymentInfo?.userName || '').toLowerCase().includes(searchLower) ||
-            String(order.orderChannel || '').toLowerCase().includes(searchLower) ||
+            String(order.orderChannel || '')
+              .toLowerCase()
+              .includes(searchLower) ||
             order.dailySequenceNumber?.toString() === queryText
 
           let matchesPrice = false

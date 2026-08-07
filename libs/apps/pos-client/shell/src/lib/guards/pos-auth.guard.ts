@@ -7,7 +7,7 @@ import { DeviceConfigService } from '@panary/shared/data-access-config'
  * Login-Route: Nur wenn Config vorhanden aber kein User eingeloggt.
  * Geschuetzte Routen: Nur wenn Config vorhanden UND User eingeloggt.
  */
-export const posAuthGuard: CanActivateFn = (route) => {
+export const posAuthGuard: CanActivateFn = route => {
   const configService = inject(DeviceConfigService)
   const router = inject(Router)
 

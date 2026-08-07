@@ -17,7 +17,9 @@
     <!-- Header -->
     <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
       <div class="flex items-center gap-3">
-        <div class="h-10 w-10 rounded-full bg-red-50 dark:bg-red-950 flex items-center justify-center text-red-600 dark:text-red-400">
+        <div
+          class="h-10 w-10 rounded-full bg-red-50 dark:bg-red-950 flex items-center justify-center text-red-600 dark:text-red-400"
+        >
           <span class="material-symbols-outlined text-[1.25rem]">link_off</span>
         </div>
         <div>
@@ -43,7 +45,9 @@
       @switch (step()) {
         @case ('loading') {
           <div class="flex flex-col items-center justify-center py-12 gap-3">
-            <span class="material-symbols-outlined text-[2.5rem] text-gray-400 dark:text-gray-500 animate-spin">sync</span>
+            <span class="material-symbols-outlined text-[2.5rem] text-gray-400 dark:text-gray-500 animate-spin"
+              >sync</span
+            >
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ 'SETTINGS.UNPAIR_LOADING_USERS' | translate }}</p>
           </div>
         }
@@ -61,7 +65,9 @@
                   (click)="selectUser(user)"
                   class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 transition-colors text-left"
                 >
-                  <div class="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold flex items-center justify-center">
+                  <div
+                    class="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold flex items-center justify-center"
+                  >
                     {{ user.initials || '??' }}
                   </div>
                   <div class="flex-1 min-w-0">
@@ -72,7 +78,9 @@
                       {{ user.staffRole || user.role }}
                     </p>
                   </div>
-                  <span class="material-symbols-outlined text-gray-300 dark:text-gray-600 text-[1.25rem]">chevron_right</span>
+                  <span class="material-symbols-outlined text-gray-300 dark:text-gray-600 text-[1.25rem]"
+                    >chevron_right</span
+                  >
                 </button>
               }
             } @else {
@@ -90,12 +98,12 @@
           @if (selectedUser(); as user) {
             <div class="flex flex-col items-center gap-5">
               <div class="flex flex-col items-center gap-2">
-                <div class="h-14 w-14 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-xl flex items-center justify-center">
+                <div
+                  class="h-14 w-14 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-xl flex items-center justify-center"
+                >
                   {{ user.initials || '??' }}
                 </div>
-                <p class="font-semibold text-gray-800 dark:text-white">
-                  {{ user.firstName }} {{ user.lastName }}
-                </p>
+                <p class="font-semibold text-gray-800 dark:text-white">{{ user.firstName }} {{ user.lastName }}</p>
                 <p class="text-xs text-gray-500 dark:text-gray-400">{{ user.staffRole || user.role }}</p>
               </div>
 
@@ -174,7 +182,10 @@
           <div class="flex flex-col gap-4">
             <div class="p-4 rounded-xl bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900">
               <div class="flex items-start gap-3">
-                <span class="material-symbols-outlined text-[1.375rem] text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5">warning</span>
+                <span
+                  class="material-symbols-outlined text-[1.375rem] text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
+                  >warning</span
+                >
                 <div class="flex-1 text-sm text-red-800 dark:text-red-200">
                   <p class="font-semibold mb-2">{{ 'SETTINGS.UNPAIR_CONFIRM_HEADING' | translate }}</p>
                   <ul class="list-disc list-inside space-y-1 text-xs">

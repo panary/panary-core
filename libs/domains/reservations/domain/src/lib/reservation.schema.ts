@@ -34,9 +34,7 @@ export const reservationSchema = Type.Object(
     status: Type.Union(reservationStatusValues.map(v => Type.Literal(v))),
     notes: Type.Optional(Type.String({ maxLength: 1000 })),
     staffNotes: Type.Optional(Type.String({ maxLength: 2000 })),
-    manageToken: Type.Optional(
-      Type.String({ description: 'HMAC-Token (im response NUR beim CREATE)' }),
-    ),
+    manageToken: Type.Optional(Type.String({ description: 'HMAC-Token (im response NUR beim CREATE)' })),
     createdAt: Type.String({ description: 'ISO 8601' }),
     updatedAt: Type.String({ description: 'ISO 8601' }),
   },
@@ -44,11 +42,10 @@ export const reservationSchema = Type.Object(
 )
 export type Reservation = Static<typeof reservationSchema>
 
-export const reservationDataSchema = Type.Omit(
-  reservationSchema,
-  ['_id', 'manageToken', 'createdAt', 'updatedAt'],
-  { $id: 'ReservationData', additionalProperties: false },
-)
+export const reservationDataSchema = Type.Omit(reservationSchema, ['_id', 'manageToken', 'createdAt', 'updatedAt'], {
+  $id: 'ReservationData',
+  additionalProperties: false,
+})
 export type ReservationData = Static<typeof reservationDataSchema>
 
 export const reservationPatchSchema = Type.Partial(

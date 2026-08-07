@@ -105,11 +105,19 @@ describe('checkStampFields() — kein multiTenancy am Service', () => {
 describe('assertStampFields() — Sweep ueber registrierte Services', () => {
   const buildApp = (docsSchemas: Record<string, unknown>, mtOptions: Parameters<typeof multiTenancy>[0] | null) => {
     const app = feathers()
-    app.use('widgets', { async create(d: unknown) { return d } } as never, {
-      methods: ['create'],
-      events: [],
-      docs: { schemas: docsSchemas },
-    } as never)
+    app.use(
+      'widgets',
+      {
+        async create(d: unknown) {
+          return d
+        },
+      } as never,
+      {
+        methods: ['create'],
+        events: [],
+        docs: { schemas: docsSchemas },
+      } as never,
+    )
     if (mtOptions !== null) {
       app.service('widgets').hooks({ around: { all: [multiTenancy(mtOptions)] } })
     }

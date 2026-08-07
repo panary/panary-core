@@ -4,13 +4,13 @@
 
 Einheitliche Einstellungen für alle Projekte im Workspace:
 
-| Option | Wert |
-|---|---|
+| Option            | Wert               |
+| ----------------- | ------------------ |
 | Anführungszeichen | Nur einfache (`'`) |
-| Semikolon | Keines |
-| Einrückung | 2 Leerzeichen |
-| Zeilenlänge | Max. 120 Zeichen |
-| Arrow-Parens | Nur wenn notwendig |
+| Semikolon         | Keines             |
+| Einrückung        | 2 Leerzeichen      |
+| Zeilenlänge       | Max. 120 Zeichen   |
+| Arrow-Parens      | Nur wenn notwendig |
 
 Code **außerhalb** des Änderungsbereichs nicht umformatieren — Git-Diffs minimal halten.
 
@@ -56,14 +56,14 @@ Instruction-Dateien (`.claude/`, `CLAUDE.md`, Kommentare in Rule-Files) immer au
 
 ## 5. Benennung
 
-| Artefakt | Konvention | Beispiel |
-|---|---|---|
-| Dateinamen | `kebab-case` | `user-profile.component.ts` |
-| Klassen / Interfaces | `PascalCase` | `UserProfileComponent` |
-| Variablen / Funktionen | `camelCase` | `getUserById()` |
-| Konstanten | `SCREAMING_SNAKE_CASE` | `MAX_RETRY_COUNT` |
-| Enum-Member | `SCREAMING_SNAKE_CASE` | `UserSystemRole.TENANT_OWNER` |
-| CSS-Klassen | `kebab-case` (Tailwind) | `text-primary-500` |
+| Artefakt               | Konvention              | Beispiel                      |
+| ---------------------- | ----------------------- | ----------------------------- |
+| Dateinamen             | `kebab-case`            | `user-profile.component.ts`   |
+| Klassen / Interfaces   | `PascalCase`            | `UserProfileComponent`        |
+| Variablen / Funktionen | `camelCase`             | `getUserById()`               |
+| Konstanten             | `SCREAMING_SNAKE_CASE`  | `MAX_RETRY_COUNT`             |
+| Enum-Member            | `SCREAMING_SNAKE_CASE`  | `UserSystemRole.TENANT_OWNER` |
+| CSS-Klassen            | `kebab-case` (Tailwind) | `text-primary-500`            |
 
 ---
 
@@ -83,6 +83,7 @@ Instruction-Dateien (`.claude/`, `CLAUDE.md`, Kommentare in Rule-Files) immer au
 Ausführliche Regeln → siehe `angular.md`.
 
 Kurzübersicht:
+
 - Standalone-Komponenten (`standalone: true`), keine NgModules.
 - `ChangeDetectionStrategy.OnPush` auf jeder Komponente.
 - `inject()` für DI — kein Konstruktor-Injection.
@@ -101,11 +102,11 @@ Kurzübersicht:
 
 ```css
 /* styles.css */
-@import "../node_modules/tailwindcss";
+@import '../node_modules/tailwindcss';
 
 @theme {
   --color-primary: oklch(55% 0.2 250);
-  --font-display: "Satoshi", sans-serif;
+  --font-display: 'Satoshi', sans-serif;
 }
 
 @utility text-shadow-sm {
@@ -119,14 +120,14 @@ Kurzübersicht:
 
 Zielgerät: Sunmi D3 Tablet (Touch-First).
 
-| Element | Vorgabe |
-|---|---|
-| Framework | Angular Material + Tailwind CSS |
-| Touch-Targets (Buttons) | Min-Höhe 48px |
-| Primärfarbe | CSS-Variable `--color-primary` (Panary Blue) |
-| Erfolg/Fehler | Semantisch: `--color-success`, `--color-error` |
-| Typografie | Serifenlos, Tablet-optimiert |
-| Komplexe Interaktionen | Angular Material Dialogs |
+| Element                 | Vorgabe                                        |
+| ----------------------- | ---------------------------------------------- |
+| Framework               | Angular Material + Tailwind CSS                |
+| Touch-Targets (Buttons) | Min-Höhe 48px                                  |
+| Primärfarbe             | CSS-Variable `--color-primary` (Panary Blue)   |
+| Erfolg/Fehler           | Semantisch: `--color-success`, `--color-error` |
+| Typografie              | Serifenlos, Tablet-optimiert                   |
+| Komplexe Interaktionen  | Angular Material Dialogs                       |
 
 ### 9.1 Farbsystem der POS-Funktionstasten (Bestelldialog)
 
@@ -134,14 +135,15 @@ Funktionstasten im Button-Board des Bestelldialogs (`order-dialog.component`) si
 nach **Wirkung**, nicht nach Kontext — umgesetzt über `PosButtonUiState.variant` und die
 Klassen-Matrix in `functionButtonClasses()`:
 
-| Variante | Farbe | Wirkung | Beispiele |
-|---|---|---|---|
-| `cancel` | Rot | verwirft / bricht ab | ABBRUCH, Lösch-Tasten, Kombination auflösen |
-| `skip` | Amber | lässt weg / überspringt | OHNE, ÜBERSPRINGEN, KEIN TISCH, KEIN PAGER |
-| `confirm` | Teal | übernimmt / bestätigt | Alle Modifier anzeigen, Kombinieren |
-| — (weiß) | Weiß | Produkte — **nie** Funktion | Produktkacheln |
+| Variante  | Farbe | Wirkung                     | Beispiele                                   |
+| --------- | ----- | --------------------------- | ------------------------------------------- |
+| `cancel`  | Rot   | verwirft / bricht ab        | ABBRUCH, Lösch-Tasten, Kombination auflösen |
+| `skip`    | Amber | lässt weg / überspringt     | OHNE, ÜBERSPRINGEN, KEIN TISCH, KEIN PAGER  |
+| `confirm` | Teal  | übernimmt / bestätigt       | Alle Modifier anzeigen, Kombinieren         |
+| — (weiß)  | Weiß  | Produkte — **nie** Funktion | Produktkacheln                              |
 
 Regeln:
+
 - **Kein Vollton:** getönte Fläche (`*-50`) + farbiger 2-px-Rahmen (`*-200`) — vollflächige
   Farbbalken ziehen mehr Blick als das Raster. Keine Inline-Styles (`backgroundColor`/`fontColor`)
   auf Funktionstasten.

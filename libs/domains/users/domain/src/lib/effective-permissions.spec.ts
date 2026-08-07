@@ -69,9 +69,9 @@ describe('hasEffectivePermission', () => {
 
   it('Grant gilt nur für die genannte Ressource', () => {
     const perms = ['grant:incoming-goods:manage']
-    expect(
-      hasEffectivePermission(UserSystemRole.TENANT_STAFF, perms, AppResource.INVENTORIES, AppAction.READ),
-    ).toBe(false)
+    expect(hasEffectivePermission(UserSystemRole.TENANT_STAFF, perms, AppResource.INVENTORIES, AppAction.READ)).toBe(
+      false,
+    )
   })
 
   it('Grant ohne Rolle wirkt eigenständig', () => {

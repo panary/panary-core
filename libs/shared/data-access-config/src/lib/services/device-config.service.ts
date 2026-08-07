@@ -539,10 +539,7 @@ export class DeviceConfigService {
         // Fehler tolerieren — lokaler Reset läuft trotzdem weiter.
         // Verwaister Device-Eintrag muss ggf. im Admin-UI bereinigt werden.
         result.backendError = err instanceof Error ? err.message : String(err)
-        console.warn(
-          '[unpair] Backend-DELETE fehlgeschlagen, fahre mit lokalem Reset fort:',
-          result.backendError,
-        )
+        console.warn('[unpair] Backend-DELETE fehlgeschlagen, fahre mit lokalem Reset fort:', result.backendError)
       }
     }
 

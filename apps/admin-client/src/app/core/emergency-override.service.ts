@@ -24,10 +24,7 @@ export class EmergencyOverrideService {
   #api = inject(ApiService)
   #cloudManaged = inject(CloudManagedService)
 
-  async setActive(
-    active: boolean,
-    opts?: { discardPendingOverrides?: boolean },
-  ): Promise<SetEmergencyOverrideResult> {
+  async setActive(active: boolean, opts?: { discardPendingOverrides?: boolean }): Promise<SetEmergencyOverrideResult> {
     const result = await this.#api.customMethod<SetEmergencyOverrideResult>(
       'cloud-connection',
       'setEmergencyOverride',

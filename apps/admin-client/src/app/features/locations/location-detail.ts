@@ -23,7 +23,9 @@ const INPUT = `w-full bg-white dark:bg-gray-900 border border-slate-200 dark:bor
         <div class="flex items-center justify-between min-h-9">
           <h1 class="text-xl font-bold tracking-tight">{{ 'LOCATION.TITLE' | translate }}</h1>
         </div>
-        <p class="text-slate-500 dark:text-gray-400 text-sm mt-1 leading-relaxed">{{ 'LOCATION.DESCRIPTION' | translate }}</p>
+        <p class="text-slate-500 dark:text-gray-400 text-sm mt-1 leading-relaxed">
+          {{ 'LOCATION.DESCRIPTION' | translate }}
+        </p>
       </div>
 
       @if (loading()) {
@@ -44,35 +46,34 @@ const INPUT = `w-full bg-white dark:bg-gray-900 border border-slate-200 dark:bor
             Tab-Reihenfolge. min-w-0, m-0, p-0 und border-0 neutralisieren die
             UA-Defaults, damit das Layout unveraendert bleibt.
           -->
-          <fieldset [disabled]="readOnly()" class="min-w-0 m-0 p-0 border-0 space-y-4"
-                    [class.opacity-60]="readOnly()">
-          <!-- Name -->
-          <div class="space-y-1.5">
-            <label for="locationName" class="${LABEL}">{{ 'COMMON.NAME' | translate }} *</label>
-            <input id="locationName" [(ngModel)]="form.name" name="name" type="text" required class="${INPUT}" />
-          </div>
-
-          <div class="grid grid-cols-2 gap-3">
-            <!-- E-Mail -->
+          <fieldset [disabled]="readOnly()" class="min-w-0 m-0 p-0 border-0 space-y-4" [class.opacity-60]="readOnly()">
+            <!-- Name -->
             <div class="space-y-1.5">
-              <label for="locationEmail" class="${LABEL}">{{ 'USERS.EMAIL' | translate }}</label>
-              <input id="locationEmail" [(ngModel)]="form.email" name="email" type="email" class="${INPUT}" />
+              <label for="locationName" class="${LABEL}">{{ 'COMMON.NAME' | translate }} *</label>
+              <input id="locationName" [(ngModel)]="form.name" name="name" type="text" required class="${INPUT}" />
             </div>
-            <!-- Telefon -->
-            <div class="space-y-1.5">
-              <label for="locationPhone" class="${LABEL}">{{ 'LOCATION.PHONE' | translate }}</label>
-              <input id="locationPhone" [(ngModel)]="form.phone" name="phone" type="text" class="${INPUT}" />
-            </div>
-          </div>
 
-          <!-- Status -->
-          <div class="space-y-1.5">
-            <label for="locationStatus" class="${LABEL}">{{ 'COMMON.STATUS' | translate }}</label>
-            <select id="locationStatus" [(ngModel)]="form.status" name="status" class="${INPUT}">
-              <option value="DRAFT">{{ 'COMMON.STATUS_DRAFT' | translate }}</option>
-              <option value="ACTIVE">{{ 'COMMON.STATUS_ACTIVE' | translate }}</option>
-            </select>
-          </div>
+            <div class="grid grid-cols-2 gap-3">
+              <!-- E-Mail -->
+              <div class="space-y-1.5">
+                <label for="locationEmail" class="${LABEL}">{{ 'USERS.EMAIL' | translate }}</label>
+                <input id="locationEmail" [(ngModel)]="form.email" name="email" type="email" class="${INPUT}" />
+              </div>
+              <!-- Telefon -->
+              <div class="space-y-1.5">
+                <label for="locationPhone" class="${LABEL}">{{ 'LOCATION.PHONE' | translate }}</label>
+                <input id="locationPhone" [(ngModel)]="form.phone" name="phone" type="text" class="${INPUT}" />
+              </div>
+            </div>
+
+            <!-- Status -->
+            <div class="space-y-1.5">
+              <label for="locationStatus" class="${LABEL}">{{ 'COMMON.STATUS' | translate }}</label>
+              <select id="locationStatus" [(ngModel)]="form.status" name="status" class="${INPUT}">
+                <option value="DRAFT">{{ 'COMMON.STATUS_DRAFT' | translate }}</option>
+                <option value="ACTIVE">{{ 'COMMON.STATUS_ACTIVE' | translate }}</option>
+              </select>
+            </div>
           </fieldset>
 
           @if (error()) {
@@ -83,8 +84,11 @@ const INPUT = `w-full bg-white dark:bg-gray-900 border border-slate-200 dark:bor
             <p class="text-green-600 dark:text-green-400 text-sm">{{ 'COMMON.SAVED' | translate }}</p>
           }
 
-          <button type="submit" [disabled]="saving() || readOnly()"
-            class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-6 py-3 rounded-xl text-sm hover:bg-slate-800 dark:hover:bg-gray-200 transition disabled:opacity-50">
+          <button
+            type="submit"
+            [disabled]="saving() || readOnly()"
+            class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-6 py-3 rounded-xl text-sm hover:bg-slate-800 dark:hover:bg-gray-200 transition disabled:opacity-50"
+          >
             {{ saving() ? ('COMMON.SAVING' | translate) : ('COMMON.SAVE' | translate) }}
           </button>
         </form>

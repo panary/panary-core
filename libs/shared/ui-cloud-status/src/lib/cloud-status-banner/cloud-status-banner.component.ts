@@ -32,11 +32,15 @@ import type { CloudBanner, CloudBannerActionKind } from '@panary/shared/data-acc
       <div class="fixed top-3 left-1/2 -translate-x-1/2 z-[1000] w-auto max-w-[min(92vw,40rem)]">
         <div [class]="cardClasses()" role="status" aria-live="polite">
           <div class="flex items-start gap-2.5">
-            <span class="material-symbols-outlined text-[18px] leading-none mt-0.5" aria-hidden="true">{{ b.icon }}</span>
+            <span class="material-symbols-outlined text-[18px] leading-none mt-0.5" aria-hidden="true">{{
+              b.icon
+            }}</span>
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold leading-snug">{{ b.messageKey | translate: (b.params ?? {}) }}</p>
+              <p class="text-sm font-semibold leading-snug">{{ b.messageKey | translate: b.params ?? {} }}</p>
               @if (b.sublineKey) {
-                <p class="text-xs opacity-90 mt-0.5 leading-snug">{{ b.sublineKey | translate: (b.sublineParams ?? {}) }}</p>
+                <p class="text-xs opacity-90 mt-0.5 leading-snug">
+                  {{ b.sublineKey | translate: b.sublineParams ?? {} }}
+                </p>
               }
             </div>
             @if (showAction()) {

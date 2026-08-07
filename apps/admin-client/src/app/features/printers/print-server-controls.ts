@@ -14,22 +14,28 @@ import { PrinterService, type PrintServerStatus } from './printer.service'
           <!-- Status-Badge -->
           @switch (status()?.status) {
             @case ('running') {
-              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium
-                           bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+              <span
+                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium
+                           bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+              >
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                 Aktiv
               </span>
             }
             @case ('stopped') {
-              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium
-                           bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400">
+              <span
+                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium
+                           bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400"
+              >
                 <span class="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-gray-500"></span>
                 Gestoppt
               </span>
             }
             @case ('error') {
-              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium
-                           bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+              <span
+                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium
+                           bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+              >
                 <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
                 Fehler
               </span>
@@ -38,9 +44,7 @@ import { PrinterService, type PrintServerStatus } from './printer.service'
 
           @if (status(); as s) {
             @if (s.printerCount !== undefined) {
-              <span class="text-xs text-slate-400 dark:text-gray-500">
-                {{ s.printerCount }} Drucker
-              </span>
+              <span class="text-xs text-slate-400 dark:text-gray-500"> {{ s.printerCount }} Drucker </span>
             }
           }
         </div>
@@ -48,22 +52,31 @@ import { PrinterService, type PrintServerStatus } from './printer.service'
         <!-- Steuerungs-Buttons -->
         <div class="flex items-center gap-2">
           @if (status()?.status !== 'running') {
-            <button (click)="onStart()" [disabled]="actionInProgress()"
+            <button
+              (click)="onStart()"
+              [disabled]="actionInProgress()"
               class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white
-                     hover:bg-emerald-700 transition disabled:opacity-50">
+                     hover:bg-emerald-700 transition disabled:opacity-50"
+            >
               Starten
             </button>
           } @else {
-            <button (click)="onStop()" [disabled]="actionInProgress()"
+            <button
+              (click)="onStop()"
+              [disabled]="actionInProgress()"
               class="px-4 py-2 rounded-lg text-sm font-medium bg-slate-200 dark:bg-gray-800
                      text-slate-700 dark:text-gray-300 hover:bg-slate-300 dark:hover:bg-gray-700
-                     transition disabled:opacity-50">
+                     transition disabled:opacity-50"
+            >
               Stoppen
             </button>
-            <button (click)="onRestart()" [disabled]="actionInProgress()"
+            <button
+              (click)="onRestart()"
+              [disabled]="actionInProgress()"
               class="px-4 py-2 rounded-lg text-sm font-medium bg-slate-900 dark:bg-white
                      text-white dark:text-black hover:bg-slate-800 dark:hover:bg-gray-200
-                     transition disabled:opacity-50">
+                     transition disabled:opacity-50"
+            >
               Neustarten
             </button>
           }
@@ -75,9 +88,7 @@ import { PrinterService, type PrintServerStatus } from './printer.service'
       }
 
       @if (status()?.startedAt) {
-        <p class="mt-2 text-xs text-slate-400 dark:text-gray-600">
-          Gestartet: {{ status()!.startedAt }}
-        </p>
+        <p class="mt-2 text-xs text-slate-400 dark:text-gray-600">Gestartet: {{ status()!.startedAt }}</p>
       }
     </div>
   `,

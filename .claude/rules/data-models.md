@@ -4,13 +4,13 @@
 
 ## 1. Grundlegende Felder
 
-| Feld | Typ | Regel |
-|---|---|---|
-| `_id` | `string` (uuidv7) | Immer `uuidv7`. Kein clientseitige Generierung, außer für Offline-Sync. |
-| `tenantId` | `string` (uuidv7) | Pflicht auf allen mandantenfähigen Entitäten. Unveränderlich nach Erstellung. |
-| `locationId` | `string \| null` | Optional. `null` = globale Daten (tenant-weit sichtbar). |
-| `createdAt` | `string` (ISO 8601) | Unveränderlich. Serverseitig gesetzt. |
-| `updatedAt` | `string` (ISO 8601) | Nur serverseitig aktualisiert (`resolveData`). |
+| Feld         | Typ                 | Regel                                                                         |
+| ------------ | ------------------- | ----------------------------------------------------------------------------- |
+| `_id`        | `string` (uuidv7)   | Immer `uuidv7`. Kein clientseitige Generierung, außer für Offline-Sync.       |
+| `tenantId`   | `string` (uuidv7)   | Pflicht auf allen mandantenfähigen Entitäten. Unveränderlich nach Erstellung. |
+| `locationId` | `string \| null`    | Optional. `null` = globale Daten (tenant-weit sichtbar).                      |
+| `createdAt`  | `string` (ISO 8601) | Unveränderlich. Serverseitig gesetzt.                                         |
+| `updatedAt`  | `string` (ISO 8601) | Nur serverseitig aktualisiert (`resolveData`).                                |
 
 **Datumsformat:** Immer `YYYY-MM-DDTHH:mm:ss.SSSZ` (ISO 8601 mit Millisekunden und Zeitzone).
 
@@ -20,12 +20,12 @@
 
 Tabellennamen folgen **kebab-case** — konsistent mit Service-Pfaden und Domain-Verzeichnissen.
 
-| Regel | Beispiel |
-|---|---|
-| Einwort-Tabellen | `users`, `products`, `orders`, `devices` |
+| Regel                             | Beispiel                                                |
+| --------------------------------- | ------------------------------------------------------- |
+| Einwort-Tabellen                  | `users`, `products`, `orders`, `devices`                |
 | Mehrwort-Tabellen: **kebab-case** | `product-groups`, `order-interactions`, `working-times` |
-| **Niemals** snake_case | ~~`pre_orders`~~ → `pre-orders` |
-| **Niemals** camelCase | ~~`productGroups`~~ → `product-groups` |
+| **Niemals** snake_case            | ~~`pre_orders`~~ → `pre-orders`                         |
+| **Niemals** camelCase             | ~~`productGroups`~~ → `product-groups`                  |
 
 **Index-Benennung:** `idx_<tabellenname>_<spalte(n)>` — bei kebab-case im Tabellennamen mit Anführungszeichen:
 
@@ -56,6 +56,7 @@ export type MyEntity = Static<typeof myEntitySchema>
 ```
 
 **Regelung:**
+
 - Schemata in `libs/domains/[domain]/domain/src/lib/[entity].schema.ts`.
 - Niemals TypeScript-Interfaces manuell schreiben, wenn ein TypeBox-Schema existiert.
 - `Static<typeof schema>` für alle abgeleiteten Typen verwenden.
@@ -66,18 +67,18 @@ export type MyEntity = Static<typeof myEntitySchema>
 
 Es gibt **keine separate `modifiers`-Tabelle**. Alles ist ein `product` mit einem `type`-Feld.
 
-| Typ | Wert | Bedeutung |
-|---|---|---|
-| Standard-Artikel | `PRODUCT` | Reguläres Produkt |
-| Extras/Zusätze | `MODIFIER` | Optionen, die einem Produkt hinzugefügt werden |
-| Menüs/Bundles | `BUNDLE` | Zusammengestellte Produktgruppen |
+| Typ              | Wert       | Bedeutung                                      |
+| ---------------- | ---------- | ---------------------------------------------- |
+| Standard-Artikel | `PRODUCT`  | Reguläres Produkt                              |
+| Extras/Zusätze   | `MODIFIER` | Optionen, die einem Produkt hinzugefügt werden |
+| Menüs/Bundles    | `BUNDLE`   | Zusammengestellte Produktgruppen               |
 
 ### Bundle-Preisgestaltung (`bundlePricingMode`)
 
-| Modus | Bedeutung |
-|---|---|
-| `ROLLUP` | Preis = Summe der Einzelpreise der enthaltenen Produkte |
-| `FIXED_PROPORTIONAL` | Fixer Preis wird proportional auf Produkte aufgeteilt |
+| Modus                | Bedeutung                                               |
+| -------------------- | ------------------------------------------------------- |
+| `ROLLUP`             | Preis = Summe der Einzelpreise der enthaltenen Produkte |
+| `FIXED_PROPORTIONAL` | Fixer Preis wird proportional auf Produkte aufgeteilt   |
 
 ---
 
@@ -106,6 +107,7 @@ Apps (`api-edge`, `pos-client`) importieren aus Libs — niemals umgekehrt.
 ## 6. Schema-Änderungen → Migration erforderlich
 
 Bei Änderungen an bestehenden Schemas:
+
 - Prüfen, ob eine DB-Migration notwendig ist (SQLite via Knex).
 - Neue Migration erstellen: `npm run db:create` im `panary-core/`-Verzeichnis.
 - Anschließend: `npm run db:migrate`.

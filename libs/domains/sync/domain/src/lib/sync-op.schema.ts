@@ -41,8 +41,7 @@ export const SyncRejectionClassification = {
   CONFLICT: 'conflict',
 } as const
 
-export type SyncRejectionClassification =
-  (typeof SyncRejectionClassification)[keyof typeof SyncRejectionClassification]
+export type SyncRejectionClassification = (typeof SyncRejectionClassification)[keyof typeof SyncRejectionClassification]
 
 export const syncOpSchema = Type.Object(
   {

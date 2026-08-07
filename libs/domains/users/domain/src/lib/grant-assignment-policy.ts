@@ -42,9 +42,7 @@ export interface GrantAssignmentViolation {
  * Nicht-grant-Tokens (`can_*`-AppAbilities) sind nicht Teil des Guards.
  */
 export const extractAddedGrants = (next: readonly unknown[], existing: readonly string[]): string[] =>
-  next.filter(
-    (p): p is string => typeof p === 'string' && p.startsWith(GRANT_PREFIX) && !existing.includes(p),
-  )
+  next.filter((p): p is string => typeof p === 'string' && p.startsWith(GRANT_PREFIX) && !existing.includes(p))
 
 /**
  * Kernpruefung des Escalation-Guards. Liefert `null`, wenn der Akteur alle
@@ -63,7 +61,7 @@ export const checkGrantAssignment = (
 
   const isPlatformActor = (typeof actor.role === 'string' && actor.role.startsWith('platform:')) || !!actor.actAs
   const ceilingRole = isPlatformActor ? UserSystemRole.TENANT_OWNER : (actor.role as UserSystemRole | undefined)
-  const ceilingPerms = isPlatformActor ? [] : actor.permissions ?? []
+  const ceilingPerms = isPlatformActor ? [] : (actor.permissions ?? [])
 
   for (const raw of addedGrants) {
     const grant = parseGrant(raw)

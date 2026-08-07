@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  INGREDIENT_STATUSES,
-  INGREDIENT_VERSION_FIELDS,
-  ingredientSchema,
-} from './ingredient.schema'
+import { INGREDIENT_STATUSES, INGREDIENT_VERSION_FIELDS, ingredientSchema } from './ingredient.schema'
 
 describe('ingredientSchema', () => {
   it('hat die Kern-Pflicht-Felder', () => {
@@ -21,11 +17,7 @@ describe('ingredientSchema', () => {
 
 describe('INGREDIENT_VERSION_FIELDS', () => {
   it('enthält genau die drei strukturellen Whitelist-Felder', () => {
-    expect([...INGREDIENT_VERSION_FIELDS]).toEqual([
-      'baseUnit',
-      'baseQuantity',
-      'conversionFactor',
-    ])
+    expect([...INGREDIENT_VERSION_FIELDS]).toEqual(['baseUnit', 'baseQuantity', 'conversionFactor'])
   })
 })
 

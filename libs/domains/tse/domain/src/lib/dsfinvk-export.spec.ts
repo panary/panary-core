@@ -35,7 +35,12 @@ describe('assembleDsfinvkExport', () => {
       to: '2026-05-16T23:59:59.000Z',
       simulated: true,
       orders,
-      dayClose: { signatureCounter: 9, signatureValue: 'SIM-day', closedAt: '2026-05-16T20:00:00.000Z', status: 'signed' },
+      dayClose: {
+        signatureCounter: 9,
+        signatureValue: 'SIM-day',
+        closedAt: '2026-05-16T20:00:00.000Z',
+        status: 'signed',
+      },
     })
     expect(exp.meta.taxonomyVersion).toBe(DSFINVK_TAXONOMY_VERSION)
     expect(exp.meta.orderCount).toBe(2)

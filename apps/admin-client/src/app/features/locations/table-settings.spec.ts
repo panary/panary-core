@@ -38,7 +38,9 @@ function setup(opts: { settings?: Record<string, unknown>; cloudPaired?: boolean
 const roomId = (component: any, index: number): string => component.rooms()[index].id
 
 const lastPayload = (api: { patch: ReturnType<typeof vi.fn> }) =>
-  api.patch.mock.calls.at(-1)?.[2] as { settings: { tableSettings: { rooms: Array<{ name: string; tables: unknown[] }> } } }
+  api.patch.mock.calls.at(-1)?.[2] as {
+    settings: { tableSettings: { rooms: Array<{ name: string; tables: unknown[] }> } }
+  }
 
 beforeEach(() => {
   TestBed.resetTestingModule()
@@ -47,7 +49,9 @@ beforeEach(() => {
 
 describe('TableSettingsComponent — Legacy-Migration', () => {
   it('vergibt Legacy-String-Tischen eine stabile ID und meldet die Migration', async () => {
-    const { component } = setup({ settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: ['T1', 'T2'] }] } } })
+    const { component } = setup({
+      settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: ['T1', 'T2'] }] } },
+    })
 
     await component.ngOnInit()
 
@@ -61,7 +65,9 @@ describe('TableSettingsComponent — Legacy-Migration', () => {
   // Felder wie `seats` still verloren.
   it('erhaelt seats an bestehenden Tisch-Objekten', async () => {
     const { component, api } = setup({
-      settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: [{ id: 'tbl-1', label: 'T1', seats: 4 }] }] } },
+      settings: {
+        tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: [{ id: 'tbl-1', label: 'T1', seats: 4 }] }] },
+      },
     })
     await component.ngOnInit()
 
@@ -72,7 +78,9 @@ describe('TableSettingsComponent — Legacy-Migration', () => {
   })
 
   it('schreibt beim Laden nichts — Migration passiert erst bei einer Nutzeraktion', async () => {
-    const { component, api } = setup({ settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: ['T1'] }] } } })
+    const { component, api } = setup({
+      settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: ['T1'] }] } },
+    })
 
     await component.ngOnInit()
 
@@ -112,7 +120,9 @@ describe('TableSettingsComponent — Auto-Save-Fallen', () => {
   // Ein unbenannter Bereich MIT Tischen ist ebenso invalide — die Cloud-Vorlage
   // filtert nur `name === '' && tables.length === 0`, das reicht hier nicht.
   it('filtert namenlose Bereiche aus dem Payload, auch mit Tischen', async () => {
-    const { component, api } = setup({ settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: [] }] } } })
+    const { component, api } = setup({
+      settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: [] }] } },
+    })
     await component.ngOnInit()
     component.addRoom()
     component.setPendingTable(roomId(component, 1), 'T9')
@@ -209,7 +219,9 @@ describe('TableSettingsComponent — Bereichs-Identitaet', () => {
 
 describe('TableSettingsComponent — Tisch-Eingabe', () => {
   it('expandiert einen Bereich und erhaelt Null-Padding', async () => {
-    const { component } = setup({ settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: [] }] } } })
+    const { component } = setup({
+      settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: [] }] } },
+    })
     await component.ngOnInit()
 
     component.setPendingTable(roomId(component, 0), 'T01-T04')
@@ -219,7 +231,9 @@ describe('TableSettingsComponent — Tisch-Eingabe', () => {
   })
 
   it('nimmt mehrere kommaseparierte Bezeichnungen entgegen', async () => {
-    const { component } = setup({ settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: [] }] } } })
+    const { component } = setup({
+      settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: [] }] } },
+    })
     await component.ngOnInit()
 
     component.setPendingTable(roomId(component, 0), 'T1, A1; B2')
@@ -233,7 +247,15 @@ describe('TableSettingsComponent — Tisch-Eingabe', () => {
   // ununterscheidbare Buttons.
   it('blockt ein raumuebergreifendes Duplikat', async () => {
     const { component, api } = setup({
-      settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: [{ id: 'a', label: 'T1' }] }, { name: 'Terrasse', tables: [] }] } },
+      settings: {
+        tableSettings: {
+          enabled: true,
+          rooms: [
+            { name: 'Innen', tables: [{ id: 'a', label: 'T1' }] },
+            { name: 'Terrasse', tables: [] },
+          ],
+        },
+      },
     })
     await component.ngOnInit()
 
@@ -249,7 +271,15 @@ describe('TableSettingsComponent — Tisch-Eingabe', () => {
   // sonst unbenutzbar.
   it('markiert vorhandene Duplikate nur, ohne das Speichern zu blockieren', async () => {
     const { component, api } = setup({
-      settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: [{ id: 'a', label: 'T1' }] }, { name: 'Terrasse', tables: [{ id: 'b', label: 'T1' }] }] } },
+      settings: {
+        tableSettings: {
+          enabled: true,
+          rooms: [
+            { name: 'Innen', tables: [{ id: 'a', label: 'T1' }] },
+            { name: 'Terrasse', tables: [{ id: 'b', label: 'T1' }] },
+          ],
+        },
+      },
     })
     await component.ngOnInit()
 
@@ -260,7 +290,9 @@ describe('TableSettingsComponent — Tisch-Eingabe', () => {
   })
 
   it('weist zu lange Bezeichnungen ab', async () => {
-    const { component } = setup({ settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: [] }] } } })
+    const { component } = setup({
+      settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: [] }] } },
+    })
     await component.ngOnInit()
 
     component.setPendingTable(roomId(component, 0), 'x'.repeat(61))

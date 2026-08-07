@@ -12,7 +12,8 @@ describe('extractCloudErrorMessage', () => {
   })
 
   it('erklaert eine HTML-Antwort als falsche Cloud-URL, statt das Markup durchzureichen', () => {
-    const body = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot POST /edge-pairing</pre>\n</body>\n</html>'
+    const body =
+      '<!DOCTYPE html>\n<html lang="en">\n<head>\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot POST /edge-pairing</pre>\n</body>\n</html>'
 
     const message = extractCloudErrorMessage(404, body)
 

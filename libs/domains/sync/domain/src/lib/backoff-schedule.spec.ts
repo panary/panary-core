@@ -1,11 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import {
-  backoffMs,
-  MAX_RETRY_ATTEMPTS,
-  RETRY_BACKOFF_SCHEDULE_MS,
-  shouldEscalateAfterRetry,
-} from './backoff-schedule'
+import { backoffMs, MAX_RETRY_ATTEMPTS, RETRY_BACKOFF_SCHEDULE_MS, shouldEscalateAfterRetry } from './backoff-schedule'
 
 describe('backoffMs', () => {
   it('Versuch 1 → 30 Sekunden', () => {

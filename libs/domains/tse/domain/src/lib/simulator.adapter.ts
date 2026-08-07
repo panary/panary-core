@@ -1,10 +1,4 @@
-import type {
-  DayCloseInput,
-  FinishTransactionInput,
-  StartTransactionInput,
-  TseExportRange,
-  TsePort,
-} from './tse-port'
+import type { DayCloseInput, FinishTransactionInput, StartTransactionInput, TseExportRange, TsePort } from './tse-port'
 import { TseProcessType } from './tse-transaction.schema'
 import type {
   TseDaySignature,

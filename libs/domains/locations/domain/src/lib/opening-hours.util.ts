@@ -54,11 +54,7 @@ export function getOpeningHoursForDate(
 /**
  * Prüft ob ein Datum geschlossen ist (regulär oder Ausnahme).
  */
-export function isDateClosed(
-  date: Date,
-  regularHours: RegularHour[],
-  exceptions: HourException[],
-): boolean {
+export function isDateClosed(date: Date, regularHours: RegularHour[], exceptions: HourException[]): boolean {
   return getOpeningHoursForDate(date, regularHours, exceptions).closed
 }
 

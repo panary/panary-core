@@ -1,4 +1,16 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal, OnInit, input, output, effect, untracked, viewChild } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  inject,
+  signal,
+  OnInit,
+  input,
+  output,
+  effect,
+  untracked,
+  viewChild,
+} from '@angular/core'
 import { FormsModule, NgForm } from '@angular/forms'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -15,13 +27,25 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
   template: `
     <div [class]="panelMode() ? 'p-5 space-y-5' : 'p-8 max-w-2xl space-y-6'">
       <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold tracking-tight">{{ (isNew() ? 'PRODUCT_GROUPS.NEW_GROUP' : 'PRODUCT_GROUPS.EDIT_GROUP') | translate }}</h1>
+        <h1 class="text-2xl font-bold tracking-tight">
+          {{ (isNew() ? 'PRODUCT_GROUPS.NEW_GROUP' : 'PRODUCT_GROUPS.EDIT_GROUP') | translate }}
+        </h1>
         @if (!isNew()) {
-          <button type="button" (click)="showDeleteConfirm.set(true)"
+          <button
+            type="button"
+            (click)="showDeleteConfirm.set(true)"
             class="text-slate-400 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition p-2
-                   rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30">
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round">
+                   rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30"
+          >
+            <svg
+              class="w-5 h-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
               <line x1="10" y1="11" x2="10" y2="17" />
@@ -39,24 +63,33 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
           [dismissLabel]="'COMMON.CANCEL' | translate"
           (confirmed)="onDelete()"
           (dismissed)="showDeleteConfirm.set(false)"
-          (cancelled)="showDeleteConfirm.set(false)">
+          (cancelled)="showDeleteConfirm.set(false)"
+        >
         </app-confirm-dialog>
       }
 
       <form #f="ngForm" (ngSubmit)="onSave(f)" class="space-y-5">
         <!-- Status-Pille -->
-        <div class="relative flex bg-slate-100 dark:bg-gray-950 rounded-2xl p-1.5 border border-slate-200 dark:border-gray-800">
-          <div class="absolute top-1.5 bottom-1.5 rounded-xl shadow-lg transition-all duration-300 ease-out"
-               [class]="statusPillBg()"
-               [style.left]="'calc(' + statusIndex * (100 / 3) + '% + 6px)'"
-               [style.width]="'calc(' + 100 / 3 + '% - 4px)'">
-          </div>
+        <div
+          class="relative flex bg-slate-100 dark:bg-gray-950 rounded-2xl p-1.5 border border-slate-200 dark:border-gray-800"
+        >
+          <div
+            class="absolute top-1.5 bottom-1.5 rounded-xl shadow-lg transition-all duration-300 ease-out"
+            [class]="statusPillBg()"
+            [style.left]="'calc(' + statusIndex * (100 / 3) + '% + 6px)'"
+            [style.width]="'calc(' + 100 / 3 + '% - 4px)'"
+          ></div>
           @for (s of statuses; track s.value) {
-            <button type="button" (click)="form.status = s.value"
-              [class]="form.status === s.value
-                ? 'text-slate-900 dark:text-white font-semibold'
-                : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'"
-              class="relative z-10 flex-1 py-2 text-center text-sm rounded-xl transition-colors duration-200">
+            <button
+              type="button"
+              (click)="form.status = s.value"
+              [class]="
+                form.status === s.value
+                  ? 'text-slate-900 dark:text-white font-semibold'
+                  : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
+              "
+              class="relative z-10 flex-1 py-2 text-center text-sm rounded-xl transition-colors duration-200"
+            >
               {{ s.label | translate }}
             </button>
           }
@@ -64,8 +97,10 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
         </div>
 
         @if (!isNew()) {
-          <div class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
-                      grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+          <div
+            class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
+                      grid grid-cols-2 gap-x-6 gap-y-2 text-xs"
+          >
             <div>
               <span class="text-slate-400 dark:text-gray-500">ID</span>
               <p class="text-slate-600 dark:text-gray-300 font-mono mt-0.5 select-all">{{ entityId() }}</p>
@@ -80,52 +115,93 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
         <div class="grid grid-cols-3 gap-4">
           <!-- Name -->
           <div class="col-span-2 space-y-1">
-            <label for="groupName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'COMMON.NAME' | translate }} *</label>
-            <input id="groupName" [(ngModel)]="form.name" name="name" #name="ngModel"
-              type="text" required minlength="1" maxlength="120"
+            <label
+              for="groupName"
+              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+              >{{ 'COMMON.NAME' | translate }} *</label
+            >
+            <input
+              id="groupName"
+              [(ngModel)]="form.name"
+              name="name"
+              #name="ngModel"
+              type="text"
+              required
+              minlength="1"
+              maxlength="120"
               (ngModelChange)="autoAssignColor($event)"
-              [class]="inputClass(name)" />
+              [class]="inputClass(name)"
+            />
             @if (name.invalid && name.touched) {
-              <p class="text-red-500 dark:text-red-400 text-xs mt-1">{{ 'PRODUCT_GROUPS.NAME_REQUIRED' | translate }}</p>
+              <p class="text-red-500 dark:text-red-400 text-xs mt-1">
+                {{ 'PRODUCT_GROUPS.NAME_REQUIRED' | translate }}
+              </p>
             }
           </div>
           <!-- Kürzel -->
           <div class="space-y-1">
-            <label for="groupAcronym" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'PRODUCTS.ACRONYM' | translate }}</label>
-            <input id="groupAcronym" [(ngModel)]="form.acronym" name="acronym" type="text" maxlength="10"
+            <label
+              for="groupAcronym"
+              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+              >{{ 'PRODUCTS.ACRONYM' | translate }}</label
+            >
+            <input
+              id="groupAcronym"
+              [(ngModel)]="form.acronym"
+              name="acronym"
+              type="text"
+              maxlength="10"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono" />
+                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono"
+            />
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <!-- Farbe -->
           <div class="space-y-1">
-            <label for="groupColor" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'PRODUCT_GROUPS.COLOR' | translate }}</label>
+            <label
+              for="groupColor"
+              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+              >{{ 'PRODUCT_GROUPS.COLOR' | translate }}</label
+            >
             <div class="relative">
-              <div class="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-slate-200
-                          dark:border-gray-800 rounded-lg">
-                <span class="w-8 h-8 rounded-full shrink-0 border border-slate-300 dark:border-gray-700"
-                      [style.background-color]="form.color"></span>
+              <div
+                class="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-slate-200
+                          dark:border-gray-800 rounded-lg"
+              >
+                <span
+                  class="w-8 h-8 rounded-full shrink-0 border border-slate-300 dark:border-gray-700"
+                  [style.background-color]="form.color"
+                ></span>
                 <span class="text-sm text-slate-600 dark:text-gray-300 font-mono">{{ form.color }}</span>
-                <button type="button" (click)="showColorPicker = !showColorPicker"
+                <button
+                  type="button"
+                  (click)="showColorPicker = !showColorPicker"
                   class="ml-auto text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white
-                         transition text-xs">
+                         transition text-xs"
+                >
                   {{ showColorPicker ? '▲' : '▼' }}
                 </button>
               </div>
               @if (showColorPicker) {
-                <div class="absolute z-10 mt-1 p-3 bg-white dark:bg-gray-900 border border-slate-300
-                            dark:border-gray-700 rounded-lg shadow-xl flex flex-wrap gap-2 w-full">
+                <div
+                  class="absolute z-10 mt-1 p-3 bg-white dark:bg-gray-900 border border-slate-300
+                            dark:border-gray-700 rounded-lg shadow-xl flex flex-wrap gap-2 w-full"
+                >
                   @for (c of colorPalette; track c) {
-                    <button type="button" (click)="form.color = c; showColorPicker = false"
-                      [class]="form.color === c
-                        ? 'w-7 h-7 rounded-full ring-2 ring-slate-900 dark:ring-white ring-offset-1 ring-offset-white dark:ring-offset-gray-900 scale-110'
-                        : 'w-7 h-7 rounded-full hover:scale-110 hover:ring-1 hover:ring-slate-400 dark:hover:ring-gray-500'"
+                    <button
+                      type="button"
+                      (click)="form.color = c; showColorPicker = false"
+                      [class]="
+                        form.color === c
+                          ? 'w-7 h-7 rounded-full ring-2 ring-slate-900 dark:ring-white ring-offset-1 ring-offset-white dark:ring-offset-gray-900 scale-110'
+                          : 'w-7 h-7 rounded-full hover:scale-110 hover:ring-1 hover:ring-slate-400 dark:hover:ring-gray-500'
+                      "
                       [style.background-color]="c"
-                      class="transition-all">
-                    </button>
+                      class="transition-all"
+                    ></button>
                   }
                 </div>
               }
@@ -134,12 +210,26 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
           </div>
           <!-- Reihenfolge -->
           <div class="space-y-1">
-            <label for="groupSortOrder" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'PRODUCT_GROUPS.SORT_ORDER' | translate }} *</label>
-            <input id="groupSortOrder" [(ngModel)]="form.index" name="index" #indexCtrl="ngModel"
-              type="number" required min="0" step="1"
-              [class]="inputClass(indexCtrl)" />
+            <label
+              for="groupSortOrder"
+              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+              >{{ 'PRODUCT_GROUPS.SORT_ORDER' | translate }} *</label
+            >
+            <input
+              id="groupSortOrder"
+              [(ngModel)]="form.index"
+              name="index"
+              #indexCtrl="ngModel"
+              type="number"
+              required
+              min="0"
+              step="1"
+              [class]="inputClass(indexCtrl)"
+            />
             @if (indexCtrl.invalid && indexCtrl.touched) {
-              <p class="text-red-500 dark:text-red-400 text-xs mt-1">{{ 'PRODUCT_GROUPS.SORT_ORDER_REQUIRED' | translate }}</p>
+              <p class="text-red-500 dark:text-red-400 text-xs mt-1">
+                {{ 'PRODUCT_GROUPS.SORT_ORDER_REQUIRED' | translate }}
+              </p>
             }
           </div>
         </div>
@@ -147,33 +237,65 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
         <!-- MwSt. -->
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-1">
-            <label for="groupVatIn" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'PRODUCTS.TAX_INSIDE' | translate }}</label>
-            <input id="groupVatIn" [(ngModel)]="form.taxInside" name="taxInside" type="number" step="0.1" min="0" max="100"
+            <label
+              for="groupVatIn"
+              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+              >{{ 'PRODUCTS.TAX_INSIDE' | translate }}</label
+            >
+            <input
+              id="groupVatIn"
+              [(ngModel)]="form.taxInside"
+              name="taxInside"
+              type="number"
+              step="0.1"
+              min="0"
+              max="100"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono" />
+                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono"
+            />
           </div>
           <div class="space-y-1">
-            <label for="groupVatOut" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{ 'PRODUCTS.TAX_OUTSIDE' | translate }}</label>
-            <input id="groupVatOut" [(ngModel)]="form.taxOutside" name="taxOutside" type="number" step="0.1" min="0" max="100"
+            <label
+              for="groupVatOut"
+              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+              >{{ 'PRODUCTS.TAX_OUTSIDE' | translate }}</label
+            >
+            <input
+              id="groupVatOut"
+              [(ngModel)]="form.taxOutside"
+              name="taxOutside"
+              type="number"
+              step="0.1"
+              min="0"
+              max="100"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono" />
+                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono"
+            />
           </div>
         </div>
 
         <!-- Sichtbarkeit -->
         <div class="flex items-center gap-6 pt-2">
           <label class="flex items-center gap-2 cursor-pointer">
-            <input [(ngModel)]="form.excluded" name="excluded" type="checkbox"
-              class="w-4 h-4 accent-slate-900 dark:accent-white" />
-            <span class="text-sm text-slate-600 dark:text-gray-300">{{ 'PRODUCT_GROUPS.HIDE_IN_ORDER' | translate }}</span>
+            <input
+              [(ngModel)]="form.excluded"
+              name="excluded"
+              type="checkbox"
+              class="w-4 h-4 accent-slate-900 dark:accent-white"
+            />
+            <span class="text-sm text-slate-600 dark:text-gray-300">{{
+              'PRODUCT_GROUPS.HIDE_IN_ORDER' | translate
+            }}</span>
           </label>
         </div>
 
         <!-- Fehleranzeige -->
         @if (errors().length > 0) {
-          <div class="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 rounded-lg p-4 space-y-1">
+          <div
+            class="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 rounded-lg p-4 space-y-1"
+          >
             @for (err of errors(); track err) {
               <p class="text-red-500 dark:text-red-400 text-sm flex items-start gap-2">
                 <span class="shrink-0 mt-0.5">&#x2715;</span>
@@ -184,10 +306,15 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
         }
 
         <div class="flex gap-3 pt-4">
-          <button type="submit" [disabled]="saving() || savedSuccess() || f.invalid"
-            [class]="'save-btn ' + (savedSuccess() ? 'save-btn--success' : saving() ? 'save-btn--saving' : 'save-btn--default')"
+          <button
+            type="submit"
+            [disabled]="saving() || savedSuccess() || f.invalid"
+            [class]="
+              'save-btn ' + (savedSuccess() ? 'save-btn--success' : saving() ? 'save-btn--saving' : 'save-btn--default')
+            "
             [class.opacity-50]="f.invalid && !saving() && !savedSuccess()"
-            [class.cursor-not-allowed]="f.invalid">
+            [class.cursor-not-allowed]="f.invalid"
+          >
             <span class="save-btn__content">
               @if (savedSuccess()) {
                 <svg class="save-checkmark" viewBox="0 0 24 24">
@@ -201,9 +328,12 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
               }
             </span>
           </button>
-          <button type="button" (click)="onCancel()"
+          <button
+            type="button"
+            (click)="onCancel()"
             class="bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-600
-                   dark:text-gray-300 px-6 py-3 rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-gray-800 transition">
+                   dark:text-gray-300 px-6 py-3 rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-gray-800 transition"
+          >
             {{ 'COMMON.CANCEL' | translate }}
           </button>
         </div>
@@ -227,12 +357,30 @@ export class GroupFormComponent implements OnInit {
 
   // 24 kräftige, gut unterscheidbare Farben für Produktgruppen
   readonly colorPalette = [
-    '#ef4444', '#f97316', '#f59e0b', '#eab308',
-    '#84cc16', '#22c55e', '#10b981', '#14b8a6',
-    '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1',
-    '#8b5cf6', '#a855f7', '#d946ef', '#ec4899',
-    '#f43f5e', '#78716c', '#64748b', '#dc2626',
-    '#059669', '#2563eb', '#7c3aed', '#db2777',
+    '#ef4444',
+    '#f97316',
+    '#f59e0b',
+    '#eab308',
+    '#84cc16',
+    '#22c55e',
+    '#10b981',
+    '#14b8a6',
+    '#06b6d4',
+    '#0ea5e9',
+    '#3b82f6',
+    '#6366f1',
+    '#8b5cf6',
+    '#a855f7',
+    '#d946ef',
+    '#ec4899',
+    '#f43f5e',
+    '#78716c',
+    '#64748b',
+    '#dc2626',
+    '#059669',
+    '#2563eb',
+    '#7c3aed',
+    '#db2777',
   ]
 
   // Farben die bereits von anderen Gruppen benutzt werden
@@ -253,10 +401,14 @@ export class GroupFormComponent implements OnInit {
 
   statusPillBg(): string {
     switch (this.form.status) {
-      case 'ACTIVE': return 'bg-green-600/60 dark:bg-green-800/60'
-      case 'DRAFT': return 'bg-yellow-500/40 dark:bg-yellow-800/40'
-      case 'ARCHIVED': return 'bg-slate-300 dark:bg-gray-800'
-      default: return 'bg-slate-300 dark:bg-gray-800'
+      case 'ACTIVE':
+        return 'bg-green-600/60 dark:bg-green-800/60'
+      case 'DRAFT':
+        return 'bg-yellow-500/40 dark:bg-yellow-800/40'
+      case 'ARCHIVED':
+        return 'bg-slate-300 dark:bg-gray-800'
+      default:
+        return 'bg-slate-300 dark:bg-gray-800'
     }
   }
   errors = signal<string[]>([])
@@ -319,7 +471,9 @@ export class GroupFormComponent implements OnInit {
       const result = await this.api.find<any>('product-groups', { $limit: 100 })
       const colors = new Set(result.data.map((g: any) => g.color?.toLowerCase()).filter(Boolean))
       this.usedColors.set(colors)
-    } catch { /* Ignorieren */ }
+    } catch {
+      /* Ignorieren */
+    }
   }
 
   /** Prüft ob eine Farbe bereits von einer anderen Gruppe verwendet wird */
@@ -357,8 +511,14 @@ export class GroupFormComponent implements OnInit {
     this.formRef()?.resetForm()
     this.errors.set([])
     this.form = {
-      name: '', acronym: '', color: '#6366f1', index: 0,
-      taxInside: 19, taxOutside: 7, excluded: false, status: 'DRAFT',
+      name: '',
+      acronym: '',
+      color: '#6366f1',
+      index: 0,
+      taxInside: 19,
+      taxOutside: 7,
+      excluded: false,
+      status: 'DRAFT',
     }
     this.entityId.set('')
     this.externalId.set(null)

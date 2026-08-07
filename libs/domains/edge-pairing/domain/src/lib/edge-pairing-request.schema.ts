@@ -60,8 +60,7 @@ export const SyncableMasterDataService = {
   BUSINESS_DAYS: 'businessdays',
 } as const
 
-export type SyncableMasterDataService =
-  (typeof SyncableMasterDataService)[keyof typeof SyncableMasterDataService]
+export type SyncableMasterDataService = (typeof SyncableMasterDataService)[keyof typeof SyncableMasterDataService]
 
 export const SyncableTransactionService = {
   ORDERS: 'orders',
@@ -89,8 +88,7 @@ export const SyncableTransactionService = {
   USERS: 'users',
 } as const
 
-export type SyncableTransactionService =
-  (typeof SyncableTransactionService)[keyof typeof SyncableTransactionService]
+export type SyncableTransactionService = (typeof SyncableTransactionService)[keyof typeof SyncableTransactionService]
 
 export const edgeIdentitySchema = Type.Object(
   {

@@ -140,9 +140,8 @@ export const cloudEdgeQueryProperties = Type.Pick(cloudEdgeSchema, [
   'pendingTokenHash',
 ])
 
-export const cloudEdgeQuerySchema = Type.Intersect(
-  [querySyntax(cloudEdgeQueryProperties), Type.Object({})],
-  { additionalProperties: false },
-)
+export const cloudEdgeQuerySchema = Type.Intersect([querySyntax(cloudEdgeQueryProperties), Type.Object({})], {
+  additionalProperties: false,
+})
 
 export type CloudEdgeQuery = Static<typeof cloudEdgeQuerySchema>

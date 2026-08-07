@@ -15,12 +15,7 @@
         "tsConfig": "libs/domains/corporate-customers/domain/tsconfig.lib.json",
         "main": "libs/domains/corporate-customers/domain/src/index.ts",
         "format": ["cjs"],
-        "external": [
-          "@feathersjs/feathers",
-          "@feathersjs/typebox",
-          "@sinclair/typebox",
-          "@panary/shared-common"
-        ],
+        "external": ["@feathersjs/feathers", "@feathersjs/typebox", "@sinclair/typebox", "@panary/shared-common"],
         "generatePackageJson": false,
         "compiler": "tsc"
       }

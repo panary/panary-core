@@ -70,10 +70,7 @@ export const preOrderQueryProperties = Type.Pick(preOrderSchema, [
   'updatedAt',
 ])
 export const preOrderQuerySchema = Type.Intersect(
-  [
-    querySyntax(preOrderQueryProperties),
-    Type.Object({}, { additionalProperties: false }),
-  ],
+  [querySyntax(preOrderQueryProperties), Type.Object({}, { additionalProperties: false })],
   { additionalProperties: false },
 )
 export type PreOrderQuery = Static<typeof preOrderQuerySchema>

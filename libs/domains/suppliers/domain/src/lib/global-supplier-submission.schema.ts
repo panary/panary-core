@@ -14,15 +14,8 @@ import { supplierIndustrySchema } from './global-supplier.schema'
  *               bereits im Katalog ist; `mergedIntoId` zeigt auf den
  *               existierenden GlobalSupplier
  */
-export const GLOBAL_SUPPLIER_SUBMISSION_STATUSES = [
-  'PENDING',
-  'APPROVED',
-  'REJECTED',
-  'MERGED',
-] as const
-export const globalSupplierSubmissionStatusSchema = StringEnum([
-  ...GLOBAL_SUPPLIER_SUBMISSION_STATUSES,
-])
+export const GLOBAL_SUPPLIER_SUBMISSION_STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'MERGED'] as const
+export const globalSupplierSubmissionStatusSchema = StringEnum([...GLOBAL_SUPPLIER_SUBMISSION_STATUSES])
 export type GlobalSupplierSubmissionStatus = (typeof GLOBAL_SUPPLIER_SUBMISSION_STATUSES)[number]
 
 /**

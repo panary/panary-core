@@ -16,11 +16,17 @@ export interface StepDef {
       @for (step of steps(); track step.index; let i = $index) {
         <!-- Step: Kreis + Label -->
         <div class="flex flex-col items-center w-[6.25rem]">
-          <span [class]="circleClass(i)"
-                [attr.aria-current]="i === currentStep() ? 'step' : null">
+          <span [class]="circleClass(i)" [attr.aria-current]="i === currentStep() ? 'step' : null">
             @if (i < currentStep()) {
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                   stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <svg
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
             } @else {
@@ -34,9 +40,13 @@ export interface StepDef {
         <!-- Connector -->
         @if (i < steps().length - 1) {
           <div class="flex-1 mt-5">
-            <div [class]="i < currentStep()
-              ? 'h-0.5 w-full bg-green-400 rounded'
-              : 'h-0.5 w-full bg-gray-200 dark:bg-gray-700 rounded'"></div>
+            <div
+              [class]="
+                i < currentStep()
+                  ? 'h-0.5 w-full bg-green-400 rounded'
+                  : 'h-0.5 w-full bg-gray-200 dark:bg-gray-700 rounded'
+              "
+            ></div>
           </div>
         }
       }

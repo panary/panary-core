@@ -47,12 +47,7 @@ export const customDomainSchema = Type.Object(
       description: 'FQDN, lowercase, ohne Protokoll/Port. Punycode für IDN.',
     }),
     status: Type.Union(
-      [
-        Type.Literal('pending'),
-        Type.Literal('verified'),
-        Type.Literal('active'),
-        Type.Literal('failed'),
-      ],
+      [Type.Literal('pending'), Type.Literal('verified'), Type.Literal('active'), Type.Literal('failed')],
       { default: 'pending' },
     ),
     verificationToken: Type.String({

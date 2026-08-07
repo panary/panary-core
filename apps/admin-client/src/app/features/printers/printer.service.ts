@@ -30,15 +30,21 @@ export class PrinterService {
   }
 
   async start(): Promise<{ success: boolean; status: PrintServerStatus }> {
-    return lastValueFrom(this.http.post<{ success: boolean; status: PrintServerStatus }>(`${API_URL}/print-server/start`, {}))
+    return lastValueFrom(
+      this.http.post<{ success: boolean; status: PrintServerStatus }>(`${API_URL}/print-server/start`, {}),
+    )
   }
 
   async stop(): Promise<{ success: boolean; status: PrintServerStatus }> {
-    return lastValueFrom(this.http.post<{ success: boolean; status: PrintServerStatus }>(`${API_URL}/print-server/stop`, {}))
+    return lastValueFrom(
+      this.http.post<{ success: boolean; status: PrintServerStatus }>(`${API_URL}/print-server/stop`, {}),
+    )
   }
 
   async restart(): Promise<{ success: boolean; status: PrintServerStatus }> {
-    return lastValueFrom(this.http.post<{ success: boolean; status: PrintServerStatus }>(`${API_URL}/print-server/restart`, {}))
+    return lastValueFrom(
+      this.http.post<{ success: boolean; status: PrintServerStatus }>(`${API_URL}/print-server/restart`, {}),
+    )
   }
 
   async testPrint(printerId: string): Promise<PrintResult> {

@@ -97,7 +97,7 @@ export const startOrderTseTransaction = async (input: {
 export const resolveExistingOrderTse = (
   data: { tse?: OrderTseInfo | null },
   current: { tse?: OrderTseInfo | null },
-): OrderTseInfo | undefined => (data.tse ?? current.tse) ?? undefined
+): OrderTseInfo | undefined => data.tse ?? current.tse ?? undefined
 
 // payment.totalAmount wird als Währungseinheit interpretiert → Cent. Der echte
 // Provider-Adapter härtet die Einheit später ab.

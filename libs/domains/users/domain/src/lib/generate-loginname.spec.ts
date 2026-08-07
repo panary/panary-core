@@ -52,13 +52,13 @@ describe('ensureUniqueLoginname', () => {
 
   it('haengt einen numerischen Suffix an, bis frei', async () => {
     const taken = new Set(['mmustermann', 'mmustermann2'])
-    const result = await ensureUniqueLoginname('mmustermann', async (c) => taken.has(c))
+    const result = await ensureUniqueLoginname('mmustermann', async c => taken.has(c))
     expect(result).toBe('mmustermann3')
   })
 
   it('haelt MAX_LENGTH=30 auch mit Suffix ein', async () => {
     const base = 'a'.repeat(30)
-    const result = await ensureUniqueLoginname(base, async (c) => c === base)
+    const result = await ensureUniqueLoginname(base, async c => c === base)
     expect(result.length).toBe(30)
     expect(result.endsWith('2')).toBe(true)
   })

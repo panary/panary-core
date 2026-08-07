@@ -1,12 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  OnDestroy,
-  OnInit,
-  signal,
-} from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core'
 
 import { ApiService } from '../../core/api.service'
 
@@ -101,7 +93,9 @@ const SERVICE_LABEL: Record<string, string> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl flex flex-col">
-      <header class="px-4 py-3 border-b border-slate-200 dark:border-gray-800 flex items-center justify-between flex-none">
+      <header
+        class="px-4 py-3 border-b border-slate-200 dark:border-gray-800 flex items-center justify-between flex-none"
+      >
         <div>
           <h2 class="text-sm font-semibold">Sync-Historie</h2>
           @if (lastRunAt(); as last) {
@@ -123,7 +117,8 @@ const SERVICE_LABEL: Record<string, string> = {
                 [class.dark:text-white]="filter() === m.value"
                 [class.text-slate-500]="filter() !== m.value"
                 [class.dark:text-gray-400]="filter() !== m.value"
-                class="px-2.5 py-1 rounded-md transition">
+                class="px-2.5 py-1 rounded-md transition"
+              >
                 {{ m.label }}
               </button>
             }
@@ -132,7 +127,8 @@ const SERVICE_LABEL: Record<string, string> = {
             (click)="reload()"
             class="text-slate-500 dark:text-gray-400 text-xs hover:text-slate-900 dark:hover:text-white px-2 py-1"
             [disabled]="loading()"
-            title="Aktualisieren">
+            title="Aktualisieren"
+          >
             ⟳
           </button>
         </div>
@@ -140,7 +136,9 @@ const SERVICE_LABEL: Record<string, string> = {
 
       @if (loading() && rows().length === 0) {
         <div class="flex items-center gap-3 py-10 justify-center">
-          <span class="w-5 h-5 border-2 border-slate-300 dark:border-gray-600 border-t-slate-900 dark:border-t-white rounded-full animate-spin"></span>
+          <span
+            class="w-5 h-5 border-2 border-slate-300 dark:border-gray-600 border-t-slate-900 dark:border-t-white rounded-full animate-spin"
+          ></span>
           <span class="text-slate-400 dark:text-gray-500 text-sm">Lade Historie …</span>
         </div>
       } @else if (total() === 0) {
@@ -156,7 +154,9 @@ const SERVICE_LABEL: Record<string, string> = {
       } @else {
         <div class="overflow-auto" style="max-height: 480px">
           <table class="w-full text-xs">
-            <thead class="bg-slate-50 dark:bg-gray-900/40 text-slate-500 dark:text-gray-400 uppercase tracking-wider sticky top-0 z-10">
+            <thead
+              class="bg-slate-50 dark:bg-gray-900/40 text-slate-500 dark:text-gray-400 uppercase tracking-wider sticky top-0 z-10"
+            >
               <tr>
                 <th class="text-left px-4 py-2 font-medium">Zeit</th>
                 <th class="text-left px-3 py-2 font-medium">Phase</th>
@@ -181,14 +181,17 @@ const SERVICE_LABEL: Record<string, string> = {
                     {{ serviceSummary(row) }}
                   </td>
                   <td class="px-3 py-2 text-slate-500 dark:text-gray-400">{{ triggerLabel(row.triggeredBy) }}</td>
-                  <td class="px-3 py-2 font-mono text-slate-500 dark:text-gray-400">{{ directionLabel(row.direction) }}</td>
+                  <td class="px-3 py-2 font-mono text-slate-500 dark:text-gray-400">
+                    {{ directionLabel(row.direction) }}
+                  </td>
                   <td class="px-3 py-2 text-right tabular-nums text-slate-700 dark:text-gray-200">
                     @if (hasDetails(row)) {
                       <button
                         type="button"
                         (click)="openDetails(row)"
                         class="tabular-nums underline decoration-dotted underline-offset-2 hover:text-slate-900 dark:hover:text-white cursor-pointer"
-                        title="Synchronisierte Records anzeigen">
+                        title="Synchronisierte Records anzeigen"
+                      >
                         {{ row.recordCount }}
                       </button>
                     } @else {
@@ -198,19 +201,28 @@ const SERVICE_LABEL: Record<string, string> = {
                       <span class="text-amber-600 dark:text-amber-400 ml-1">({{ row.rejected }} nicht übern.)</span>
                     }
                   </td>
-                  <td class="px-3 py-2 text-right tabular-nums text-slate-500 dark:text-gray-400">{{ row.durationMs }}ms</td>
+                  <td class="px-3 py-2 text-right tabular-nums text-slate-500 dark:text-gray-400">
+                    {{ row.durationMs }}ms
+                  </td>
                   <td class="px-4 py-2">
                     @switch (row.outcome) {
                       @case ('success') {
-                        <span class="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-950/40 px-2 py-0.5 rounded text-[11px]">OK</span>
+                        <span
+                          class="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-950/40 px-2 py-0.5 rounded text-[11px]"
+                          >OK</span
+                        >
                       }
                       @case ('partial') {
-                        <span class="inline-flex items-center gap-1 text-amber-700 bg-amber-50 dark:text-amber-300 dark:bg-amber-950/40 px-2 py-0.5 rounded text-[11px]">Teilweise</span>
+                        <span
+                          class="inline-flex items-center gap-1 text-amber-700 bg-amber-50 dark:text-amber-300 dark:bg-amber-950/40 px-2 py-0.5 rounded text-[11px]"
+                          >Teilweise</span
+                        >
                       }
                       @case ('failure') {
                         <span
                           class="inline-flex items-center gap-1 text-red-700 bg-red-50 dark:text-red-300 dark:bg-red-950/40 px-2 py-0.5 rounded text-[11px]"
-                          [title]="row.errorMessage || ''">
+                          [title]="row.errorMessage || ''"
+                        >
                           Fehler
                         </span>
                       }
@@ -220,7 +232,8 @@ const SERVICE_LABEL: Record<string, string> = {
                              Zeilen gewoehnt, uebersieht die echten. -->
                         <span
                           class="inline-flex items-center gap-1 text-sky-700 bg-sky-50 dark:text-sky-300 dark:bg-sky-950/40 px-2 py-0.5 rounded text-[11px]"
-                          [title]="row.errorMessage || ''">
+                          [title]="row.errorMessage || ''"
+                        >
                           Gedrosselt
                         </span>
                       }
@@ -232,8 +245,11 @@ const SERVICE_LABEL: Record<string, string> = {
                        Laufs traegt eine Wartezeit, keine Fehlermeldung. -->
                   <tr
                     [class]="
-                      row.outcome === 'throttled' ? 'bg-sky-50/30 dark:bg-sky-950/20' : 'bg-red-50/30 dark:bg-red-950/20'
-                    ">
+                      row.outcome === 'throttled'
+                        ? 'bg-sky-50/30 dark:bg-sky-950/20'
+                        : 'bg-red-50/30 dark:bg-red-950/20'
+                    "
+                  >
                     <td
                       colspan="8"
                       [class]="
@@ -241,7 +257,8 @@ const SERVICE_LABEL: Record<string, string> = {
                         (row.outcome === 'throttled'
                           ? 'text-sky-700 dark:text-sky-300'
                           : 'text-red-700 dark:text-red-300')
-                      ">
+                      "
+                    >
                       ↳ {{ row.errorMessage }}
                     </td>
                   </tr>
@@ -251,12 +268,16 @@ const SERVICE_LABEL: Record<string, string> = {
           </table>
         </div>
 
-        <footer class="px-4 py-2 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between text-xs text-slate-600 dark:text-gray-400 flex-none">
+        <footer
+          class="px-4 py-2 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between text-xs text-slate-600 dark:text-gray-400 flex-none"
+        >
           <div>
             {{ rangeLabel() }}
             @if (loading()) {
               <span class="ml-2 inline-flex items-center gap-1 text-slate-400 dark:text-gray-500">
-                <span class="w-3 h-3 border border-slate-300 dark:border-gray-600 border-t-slate-700 dark:border-t-white rounded-full animate-spin"></span>
+                <span
+                  class="w-3 h-3 border border-slate-300 dark:border-gray-600 border-t-slate-700 dark:border-t-white rounded-full animate-spin"
+                ></span>
                 Laden …
               </span>
             }
@@ -267,7 +288,8 @@ const SERVICE_LABEL: Record<string, string> = {
               (click)="goToPage(1)"
               [disabled]="page() === 1 || loading()"
               class="px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:hover:bg-transparent"
-              title="Erste Seite">
+              title="Erste Seite"
+            >
               «
             </button>
             <button
@@ -275,18 +297,18 @@ const SERVICE_LABEL: Record<string, string> = {
               (click)="goToPage(page() - 1)"
               [disabled]="page() === 1 || loading()"
               class="px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:hover:bg-transparent"
-              title="Vorige Seite">
+              title="Vorige Seite"
+            >
               ‹
             </button>
-            <span class="px-2 tabular-nums">
-              Seite {{ page() }} / {{ totalPages() }}
-            </span>
+            <span class="px-2 tabular-nums"> Seite {{ page() }} / {{ totalPages() }} </span>
             <button
               type="button"
               (click)="goToPage(page() + 1)"
               [disabled]="page() >= totalPages() || loading()"
               class="px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:hover:bg-transparent"
-              title="Naechste Seite">
+              title="Naechste Seite"
+            >
               ›
             </button>
             <button
@@ -294,7 +316,8 @@ const SERVICE_LABEL: Record<string, string> = {
               (click)="goToPage(totalPages())"
               [disabled]="page() >= totalPages() || loading()"
               class="px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:hover:bg-transparent"
-              title="Letzte Seite">
+              title="Letzte Seite"
+            >
               »
             </button>
           </div>
@@ -308,14 +331,18 @@ const SERVICE_LABEL: Record<string, string> = {
         tabindex="0"
         role="button"
         (click)="closeDetails()"
-        (keydown.enter)="closeDetails()">
+        (keydown.enter)="closeDetails()"
+      >
         <div
           class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col"
           tabindex="0"
           role="button"
           (click)="$event.stopPropagation()"
-          (keydown.enter)="$event.stopPropagation()">
-          <header class="px-5 py-3 border-b border-slate-200 dark:border-gray-800 flex items-start justify-between flex-none">
+          (keydown.enter)="$event.stopPropagation()"
+        >
+          <header
+            class="px-5 py-3 border-b border-slate-200 dark:border-gray-800 flex items-start justify-between flex-none"
+          >
             <div>
               <h3 class="text-sm font-semibold text-slate-900 dark:text-white">
                 {{ phaseLabel(dr.phase) }} · {{ directionLabel(dr.direction) }}
@@ -329,7 +356,8 @@ const SERVICE_LABEL: Record<string, string> = {
               type="button"
               (click)="closeDetails()"
               class="text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white text-lg leading-none px-1"
-              title="Schliessen">
+              title="Schliessen"
+            >
               ✕
             </button>
           </header>
@@ -362,10 +390,13 @@ const SERVICE_LABEL: Record<string, string> = {
                             [class.bg-slate-100]="d.op === 'remove'"
                             [class.text-slate-600]="d.op === 'remove'"
                             [class.dark:bg-gray-800]="d.op === 'remove'"
-                            [class.dark:text-gray-300]="d.op === 'remove'">
+                            [class.dark:text-gray-300]="d.op === 'remove'"
+                          >
                             {{ opLabel(d.op) }}
                           </span>
-                          <code class="font-mono text-slate-700 dark:text-gray-200 select-all break-all">{{ d.entityId }}</code>
+                          <code class="font-mono text-slate-700 dark:text-gray-200 select-all break-all">{{
+                            d.entityId
+                          }}</code>
                           @if (d.status && d.status !== 'accepted') {
                             <span
                               class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] flex-none"
@@ -376,13 +407,16 @@ const SERVICE_LABEL: Record<string, string> = {
                               [class.text-red-700]="d.status !== 'retry'"
                               [class.bg-red-50]="d.status !== 'retry'"
                               [class.dark:text-red-300]="d.status !== 'retry'"
-                              [class.dark:bg-red-950/40]="d.status !== 'retry'">
+                              [class.dark:bg-red-950/40]="d.status !== 'retry'"
+                            >
                               {{ statusLabel(d.status) }}
                             </span>
                           }
                         </div>
                         @if (d.reason && d.status && d.status !== 'accepted') {
-                          <p class="mt-0.5 ml-1 text-[11px] text-slate-500 dark:text-gray-400 break-words">{{ d.reason }}</p>
+                          <p class="mt-0.5 ml-1 text-[11px] text-slate-500 dark:text-gray-400 break-words">
+                            {{ d.reason }}
+                          </p>
                         }
                       </li>
                     }

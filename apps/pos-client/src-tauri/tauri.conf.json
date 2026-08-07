@@ -26,33 +26,19 @@
   },
   "plugins": {
     "updater": {
-      "endpoints": [
-        "https://github.com/panary/panary-core/releases/latest/download/latest.json"
-      ],
+      "endpoints": ["https://github.com/panary/panary-core/releases/latest/download/latest.json"],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEFFNjZBRjQ4RjhDODA2QkMKUldTOEJzajRTSzltcnVyOWhEQTFYakJ0OHViRmJ5azdneld4Mk55cWpPK29MaTN6KzE4cjdHbGwK"
     }
   },
   "bundle": {
     "active": true,
     "createUpdaterArtifacts": true,
-    "targets": [
-      "nsis",
-      "deb",
-      "appimage"
-    ],
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ],
+    "targets": ["nsis", "deb", "appimage"],
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
     "windows": {
       "nsis": {
         "installMode": "perMachine",
-        "languages": [
-          "German"
-        ],
+        "languages": ["German"],
         "displayLanguageSelector": false
       }
     }

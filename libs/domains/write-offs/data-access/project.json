@@ -4,19 +4,12 @@
   "sourceRoot": "libs/domains/write-offs/data-access/src",
   "prefix": "lib",
   "projectType": "library",
-  "tags": [
-    "type:data-access",
-    "domain:write-offs"
-  ],
+  "tags": ["type:data-access", "domain:write-offs"],
   "targets": {
     "build": {
       "executor": "@nx/angular:package",
-      "outputs": [
-        "{workspaceRoot}/libs/domains/write-offs/data-access/dist"
-      ],
-      "dependsOn": [
-        "^build"
-      ],
+      "outputs": ["{workspaceRoot}/libs/domains/write-offs/data-access/dist"],
+      "dependsOn": ["^build"],
       "options": {
         "project": "libs/domains/write-offs/data-access/ng-package.json",
         "tsConfig": "libs/domains/write-offs/data-access/tsconfig.lib.json"
@@ -26,8 +19,5 @@
       "executor": "@nx/eslint:lint"
     }
   },
-  "implicitDependencies": [
-    "data-access",
-    "write-offs-domain"
-  ]
+  "implicitDependencies": ["data-access", "write-offs-domain"]
 }

@@ -44,9 +44,13 @@ export class UserPreferencesService extends BaseService<UserPreference> {
   }
 
   /** PRIVATE METHODS */
-  protected loadDocuments(): void { /* noop */ }
+  protected loadDocuments(): void {
+    /* noop */
+  }
 
-  protected override fileReaderOnLoad() { /* noop */ }
+  protected override fileReaderOnLoad() {
+    /* noop */
+  }
 
   /** PUBLIC METHODS */
   override async create(

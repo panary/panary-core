@@ -3,24 +3,16 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/shared/util-error-handling/src",
   "projectType": "library",
-  "tags": [
-    "type:util",
-    "scope:shared",
-    "publishable"
-  ],
+  "tags": ["type:util", "scope:shared", "publishable"],
   "targets": {
     "build": {
       "executor": "@nx/js:tsc",
-      "outputs": [
-        "{options.outputPath}"
-      ],
+      "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "libs/shared/util-error-handling/dist",
         "main": "libs/shared/util-error-handling/src/index.ts",
         "tsConfig": "libs/shared/util-error-handling/tsconfig.lib.json",
-        "assets": [
-          "libs/shared/util-error-handling/*.md"
-        ]
+        "assets": ["libs/shared/util-error-handling/*.md"]
       }
     },
     "nx-release-publish": {

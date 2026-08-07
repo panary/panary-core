@@ -373,8 +373,7 @@ export class ActiveOrdersComponent {
 
   /** `orders-only` deaktiviert die Kassier-Funktion; Default ist `pos-cashier`. */
   #isCashierMode(): boolean {
-    const mode = (this.#locationService.activeLocation() as { operationMode?: string } | undefined)
-      ?.operationMode
+    const mode = (this.#locationService.activeLocation() as { operationMode?: string } | undefined)?.operationMode
     return mode !== 'orders-only'
   }
 
@@ -425,7 +424,9 @@ export class ActiveOrdersComponent {
       this.selectedOrderId.set(null)
       this.overlayView.set('actions')
       this.staffEligibleUsers.set([])
-      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.STAFF_MEAL_BOOKED', { name: userName }), undefined, { duration: 2500 })
+      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.STAFF_MEAL_BOOKED', { name: userName }), undefined, {
+        duration: 2500,
+      })
     } catch (e) {
       console.error(e)
       this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.STAFF_MEAL_ERROR'), 'OK', { duration: 3000 })
@@ -589,7 +590,11 @@ export class ActiveOrdersComponent {
     try {
       await this.#orderService.patch(order._id, patch)
       this.resetOverlay()
-      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.COMPANY_ASSIGNED', { name: customer.name1 }), undefined, { duration: 2500 })
+      this.#snackBar.open(
+        this.#translate.instant('ACTIVE_ORDERS.COMPANY_ASSIGNED', { name: customer.name1 }),
+        undefined,
+        { duration: 2500 },
+      )
     } catch (e) {
       console.error(e)
       this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.COMPANY_ERROR'), 'OK', { duration: 3000 })

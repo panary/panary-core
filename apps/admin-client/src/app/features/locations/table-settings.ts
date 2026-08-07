@@ -41,8 +41,7 @@ interface RoomVm {
  * Compiler restlos entfernt, haelt aber die Kopplung ans Schema: driftet es,
  * bricht der Build.
  */
-const readLabel = (entry: string | TableEntry): string =>
-  typeof entry === 'string' ? entry : entry.label
+const readLabel = (entry: string | TableEntry): string => (typeof entry === 'string' ? entry : entry.label)
 
 @Component({
   selector: 'app-table-settings',
@@ -55,7 +54,9 @@ const readLabel = (entry: string | TableEntry): string =>
         <div class="flex items-center justify-between min-h-9">
           <h1 class="text-xl font-bold tracking-tight">{{ 'LOCATION.TABLES_SETTINGS' | translate }}</h1>
         </div>
-        <p class="text-slate-500 dark:text-gray-400 text-sm mt-1 leading-relaxed">{{ 'LOCATION.TABLES_DESCRIPTION' | translate }}</p>
+        <p class="text-slate-500 dark:text-gray-400 text-sm mt-1 leading-relaxed">
+          {{ 'LOCATION.TABLES_DESCRIPTION' | translate }}
+        </p>
       </div>
 
       @if (loading()) {
@@ -79,89 +80,141 @@ const readLabel = (entry: string | TableEntry): string =>
         }
 
         <!-- Toggle -->
-        <fieldset [disabled]="readOnly()"
+        <fieldset
+          [disabled]="readOnly()"
           class="min-w-0 m-0 flex items-center justify-between border border-slate-200 dark:border-gray-800 rounded-xl p-4"
-          [class.opacity-60]="readOnly()">
+          [class.opacity-60]="readOnly()"
+        >
           <div>
-            <p class="text-sm font-medium text-slate-900 dark:text-white">{{ 'LOCATION.TABLES_ENABLED' | translate }}</p>
-            <p class="text-xs text-slate-400 dark:text-gray-500 mt-0.5">{{ 'LOCATION.TABLES_ENABLED_HINT' | translate }}</p>
+            <p class="text-sm font-medium text-slate-900 dark:text-white">
+              {{ 'LOCATION.TABLES_ENABLED' | translate }}
+            </p>
+            <p class="text-xs text-slate-400 dark:text-gray-500 mt-0.5">
+              {{ 'LOCATION.TABLES_ENABLED_HINT' | translate }}
+            </p>
           </div>
-          <button type="button" (click)="toggleEnabled()"
-            [class]="enabled()
-              ? 'relative w-9 h-5 bg-slate-900 dark:bg-white rounded-full transition'
-              : 'relative w-9 h-5 bg-slate-300 dark:bg-gray-700 rounded-full transition'">
-            <span [class]="enabled()
-              ? 'absolute top-0.5 left-[18px] w-4 h-4 bg-white dark:bg-black rounded-full transition-all'
-              : 'absolute top-0.5 left-0.5 w-4 h-4 bg-white dark:bg-black rounded-full transition-all'"></span>
+          <button
+            type="button"
+            (click)="toggleEnabled()"
+            [class]="
+              enabled()
+                ? 'relative w-9 h-5 bg-slate-900 dark:bg-white rounded-full transition'
+                : 'relative w-9 h-5 bg-slate-300 dark:bg-gray-700 rounded-full transition'
+            "
+          >
+            <span
+              [class]="
+                enabled()
+                  ? 'absolute top-0.5 left-[18px] w-4 h-4 bg-white dark:bg-black rounded-full transition-all'
+                  : 'absolute top-0.5 left-0.5 w-4 h-4 bg-white dark:bg-black rounded-full transition-all'
+              "
+            ></span>
           </button>
         </fieldset>
 
         <!-- Bereiche -->
-        <fieldset [disabled]="readOnly()"
+        <fieldset
+          [disabled]="readOnly()"
           class="min-w-0 m-0 border border-slate-200 dark:border-gray-800 rounded-xl p-4 space-y-4"
-          [class.opacity-60]="readOnly()">
+          [class.opacity-60]="readOnly()"
+        >
           <div class="flex items-center justify-between">
             <span class="${LABEL}">{{ 'LOCATION.TABLES_ROOMS' | translate }}</span>
-            <button type="button" (click)="addRoom()" [disabled]="saving()"
+            <button
+              type="button"
+              (click)="addRoom()"
+              [disabled]="saving()"
               class="text-xs text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
                      border border-slate-200 dark:border-gray-800 hover:border-slate-400 dark:hover:border-gray-600
-                     px-3 py-1.5 rounded-lg transition disabled:opacity-50">
+                     px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+            >
               + {{ 'LOCATION.TABLES_ROOM_ADD' | translate }}
             </button>
           </div>
 
           @if (rooms().length === 0) {
-            <p class="text-slate-300 dark:text-gray-600 text-xs text-center py-6">{{ 'LOCATION.TABLES_NO_ROOMS' | translate }}</p>
+            <p class="text-slate-300 dark:text-gray-600 text-xs text-center py-6">
+              {{ 'LOCATION.TABLES_NO_ROOMS' | translate }}
+            </p>
           }
 
           @for (room of rooms(); track room.id) {
             <div class="border border-slate-100 dark:border-gray-800/60 rounded-lg p-3 space-y-3">
               <div class="flex items-center gap-2">
-                <input [ngModel]="room.name" (ngModelChange)="onRoomNameInput(room.id, $event)"
-                  (change)="commitRoomName(room.id)" [name]="'room-' + room.id" type="text"
+                <input
+                  [ngModel]="room.name"
+                  (ngModelChange)="onRoomNameInput(room.id, $event)"
+                  (change)="commitRoomName(room.id)"
+                  [name]="'room-' + room.id"
+                  type="text"
                   placeholder="{{ 'LOCATION.TABLES_ROOM_NAME_PLACEHOLDER' | translate }}"
-                  class="${INPUT}" />
-                <button type="button" (click)="removeRoom(room.id)" [disabled]="saving()"
+                  class="${INPUT}"
+                />
+                <button
+                  type="button"
+                  (click)="removeRoom(room.id)"
+                  [disabled]="saving()"
                   [title]="'LOCATION.TABLES_REMOVE_ROOM' | translate"
                   class="w-9 h-9 shrink-0 flex items-center justify-center rounded-lg
                          text-slate-400 dark:text-gray-500 hover:text-red-400
-                         hover:bg-red-50 dark:hover:bg-red-900/20 transition text-xs disabled:opacity-50">
+                         hover:bg-red-50 dark:hover:bg-red-900/20 transition text-xs disabled:opacity-50"
+                >
                   ✕
                 </button>
               </div>
 
               @if (!room.name.trim()) {
-                <p class="text-amber-600 dark:text-amber-400 text-xs">{{ 'LOCATION.TABLES_ROOM_NAME_REQUIRED' | translate }}</p>
+                <p class="text-amber-600 dark:text-amber-400 text-xs">
+                  {{ 'LOCATION.TABLES_ROOM_NAME_REQUIRED' | translate }}
+                </p>
               }
 
               <div class="flex items-center gap-2">
-                <input [ngModel]="pendingLabel(room.id)" (ngModelChange)="setPendingTable(room.id, $event)"
-                  [name]="'table-' + room.id" type="text"
+                <input
+                  [ngModel]="pendingLabel(room.id)"
+                  (ngModelChange)="setPendingTable(room.id, $event)"
+                  [name]="'table-' + room.id"
+                  type="text"
                   placeholder="{{ 'LOCATION.TABLES_ADD_PLACEHOLDER' | translate }}"
                   (keydown.enter)="addTables(room.id); $event.preventDefault()"
-                  class="${INPUT} font-mono" />
-                <button type="button" (click)="addTables(room.id)" [disabled]="saving()"
+                  class="${INPUT} font-mono"
+                />
+                <button
+                  type="button"
+                  (click)="addTables(room.id)"
+                  [disabled]="saving()"
                   class="px-4 py-2.5 text-sm font-medium bg-slate-900 dark:bg-white text-white dark:text-black
-                         rounded-lg hover:bg-slate-800 dark:hover:bg-gray-200 transition whitespace-nowrap disabled:opacity-50">
+                         rounded-lg hover:bg-slate-800 dark:hover:bg-gray-200 transition whitespace-nowrap disabled:opacity-50"
+                >
                   + {{ 'LOCATION.TABLES_ADD' | translate }}
                 </button>
               </div>
               <p class="text-[11px] text-slate-400 dark:text-gray-500">{{ 'LOCATION.TABLES_ADD_HINT' | translate }}</p>
 
               @if (room.tables.length === 0) {
-                <p class="text-slate-300 dark:text-gray-600 text-xs text-center py-3">{{ 'LOCATION.TABLES_NONE' | translate }}</p>
+                <p class="text-slate-300 dark:text-gray-600 text-xs text-center py-3">
+                  {{ 'LOCATION.TABLES_NONE' | translate }}
+                </p>
               } @else {
                 <div class="flex flex-wrap gap-2">
                   @for (table of room.tables; track table.id) {
-                    <span class="inline-flex items-center gap-1.5 text-sm font-mono pl-3.5 pr-1.5 py-2 rounded-lg"
-                      [class]="isDuplicate(table.label)
-                        ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 ring-1 ring-inset ring-amber-300 dark:ring-amber-700'
-                        : 'bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300'">
+                    <span
+                      class="inline-flex items-center gap-1.5 text-sm font-mono pl-3.5 pr-1.5 py-2 rounded-lg"
+                      [class]="
+                        isDuplicate(table.label)
+                          ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 ring-1 ring-inset ring-amber-300 dark:ring-amber-700'
+                          : 'bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300'
+                      "
+                    >
                       {{ table.label }}
-                      <button type="button" (click)="removeTable(room.id, table.id)" [disabled]="saving()"
+                      <button
+                        type="button"
+                        (click)="removeTable(room.id, table.id)"
+                        [disabled]="saving()"
                         class="w-7 h-7 flex items-center justify-center rounded-md
                                text-slate-400 dark:text-gray-500 hover:text-red-400
-                               hover:bg-red-50 dark:hover:bg-red-900/20 transition text-xs disabled:opacity-50">
+                               hover:bg-red-50 dark:hover:bg-red-900/20 transition text-xs disabled:opacity-50"
+                      >
                         ✕
                       </button>
                     </span>
@@ -314,9 +367,7 @@ export class TableSettingsComponent implements OnInit {
       // Bereiche deshalb auf den gespeicherten Namen zurueckfallen; neu
       // angelegte duerfen leer bleiben (Hinweis im Template).
       if (room.persistedName) {
-        this.rooms.update(list =>
-          list.map(r => (r.id === roomId ? { ...r, name: r.persistedName as string } : r)),
-        )
+        this.rooms.update(list => list.map(r => (r.id === roomId ? { ...r, name: r.persistedName as string } : r)))
       }
       return
     }
@@ -393,17 +444,13 @@ export class TableSettingsComponent implements OnInit {
     }
 
     if (room.tables.length + toAdd.length > TableSettingsComponent.MAX_TABLES_PER_ROOM) {
-      this.error.set(
-        this.t.instant('LOCATION.TABLES_LIMIT', { max: TableSettingsComponent.MAX_TABLES_PER_ROOM }),
-      )
+      this.error.set(this.t.instant('LOCATION.TABLES_LIMIT', { max: TableSettingsComponent.MAX_TABLES_PER_ROOM }))
       return
     }
 
     this.error.set(null)
     this.info.set(this.t.instant('LOCATION.TABLES_ADDED', { added: toAdd.length, skipped }))
-    this.rooms.update(list =>
-      list.map(r => (r.id === roomId ? { ...r, tables: [...r.tables, ...toAdd] } : r)),
-    )
+    this.rooms.update(list => list.map(r => (r.id === roomId ? { ...r, tables: [...r.tables, ...toAdd] } : r)))
     this.pendingTable.update(map => ({ ...map, [roomId]: '' }))
     await this.save()
   }
@@ -474,9 +521,7 @@ export class TableSettingsComponent implements OnInit {
       this.currentSettings = mergedSettings
       // Persistierten Stand nachziehen: nur so weiss `commitRoomName`, ob es
       // einen geleerten Namen zurueckrollen muss oder der Bereich neu ist.
-      this.rooms.update(list =>
-        list.map(r => (r.name.trim().length > 0 ? { ...r, persistedName: r.name } : r)),
-      )
+      this.rooms.update(list => list.map(r => (r.name.trim().length > 0 ? { ...r, persistedName: r.name } : r)))
       this.migrationPending.set(false)
       this.saved.set(true)
       setTimeout(() => this.saved.set(false), 2000)

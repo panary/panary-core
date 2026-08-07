@@ -19,16 +19,24 @@ interface ThemeColors {
 }
 
 const DARK_COLORS: ThemeColors = {
-  restR: 100, restG: 116, restB: 139,   // Slate-500
-  aquaR: 0, aquaG: 184, aquaB: 212,     // Panary Aqua
+  restR: 100,
+  restG: 116,
+  restB: 139, // Slate-500
+  aquaR: 0,
+  aquaG: 184,
+  aquaB: 212, // Panary Aqua
   restOpacity: 0.2,
   activeOpacity: 0.85,
   lineOpacity: 0.1,
 }
 
 const LIGHT_COLORS: ThemeColors = {
-  restR: 148, restG: 163, restB: 184,   // Slate-400
-  aquaR: 0, aquaG: 184, aquaB: 212,     // Panary Aqua
+  restR: 148,
+  restG: 163,
+  restB: 184, // Slate-400
+  aquaR: 0,
+  aquaG: 184,
+  aquaB: 212, // Panary Aqua
   restOpacity: 0.3,
   activeOpacity: 0.7,
   lineOpacity: 0.15,

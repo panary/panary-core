@@ -45,14 +45,10 @@ export class BundleFlow {
   getNextMandatoryGroup(product: ProductSchema): any | null {
     if (!product.optionGroups?.length) return null
     // Zuerst Pflicht-Gruppen (minSelections > 0)
-    const mandatory = product.optionGroups.find(g =>
-      g.minSelections > 0 && !this.#completedGroups.has(g.id),
-    )
+    const mandatory = product.optionGroups.find(g => g.minSelections > 0 && !this.#completedGroups.has(g.id))
     if (mandatory) return mandatory
     // Dann optionale Gruppen (minSelections === 0) — mit Skip-Möglichkeit
-    return product.optionGroups.find(g =>
-      g.minSelections === 0 && !this.#completedGroups.has(g.id),
-    ) ?? null
+    return product.optionGroups.find(g => g.minSelections === 0 && !this.#completedGroups.has(g.id)) ?? null
   }
 
   /** Noch nicht abgearbeitete OptionGroups eines (Unter-)Produkts. */

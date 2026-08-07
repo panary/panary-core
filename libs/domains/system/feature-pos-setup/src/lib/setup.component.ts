@@ -1,13 +1,4 @@
-import {
-  Component,
-  inject,
-  signal,
-  WritableSignal,
-  computed,
-  effect,
-  viewChild,
-  ElementRef,
-} from '@angular/core'
+import { Component, inject, signal, WritableSignal, computed, effect, viewChild, ElementRef } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
 import {
@@ -342,7 +333,11 @@ export class SetupComponent {
 
   async startQrScan(): Promise<void> {
     this.qrError.set(null)
-    const BarcodeDetectorCtor = (window as unknown as { BarcodeDetector?: new (o?: unknown) => { detect(s: unknown): Promise<{ rawValue: string }[]> } }).BarcodeDetector
+    const BarcodeDetectorCtor = (
+      window as unknown as {
+        BarcodeDetector?: new (o?: unknown) => { detect(s: unknown): Promise<{ rawValue: string }[]> }
+      }
+    ).BarcodeDetector
     if (!BarcodeDetectorCtor || !navigator.mediaDevices?.getUserMedia) {
       this.qrError.set('SETUP.QR_UNSUPPORTED')
       return

@@ -48,7 +48,8 @@ import { formatApiError } from '../../core/error-helper'
             variant="printer-emergency"
             [sinceMin]="emergencySinceMin()"
             [showEndButton]="true"
-            (endEmergency)="onEndEmergency()" />
+            (endEmergency)="onEndEmergency()"
+          />
         } @else if (locked()) {
           <app-cloud-managed-banner sublineKey="CLOUD_MANAGED.SUBLINE_PRINTERS" />
 
@@ -59,10 +60,14 @@ import { formatApiError } from '../../core/error-helper'
               der Heartbeat nur alle 30 min laeuft.
             -->
             <div>
-              <button type="button" (click)="onStartEmergency()" [disabled]="switching()"
+              <button
+                type="button"
+                (click)="onStartEmergency()"
+                [disabled]="switching()"
                 class="px-4 py-2 text-sm font-medium rounded-lg border border-orange-300 dark:border-orange-700
                        text-orange-900 dark:text-orange-200 hover:bg-orange-50 dark:hover:bg-orange-900/30
-                       transition disabled:opacity-50">
+                       transition disabled:opacity-50"
+              >
                 {{ 'CLOUD_MANAGED.EMERGENCY_START' | translate }}
               </button>
             </div>
@@ -70,28 +75,29 @@ import { formatApiError } from '../../core/error-helper'
         }
 
         <!-- Print-Server Steuerung -->
-        <app-print-server-controls
-          [status]="printServerStatus()"
-          (statusChanged)="loadPrintServerStatus()" />
+        <app-print-server-controls [status]="printServerStatus()" (statusChanged)="loadPrintServerStatus()" />
 
         <!-- Drucker-Liste -->
         <app-printer-list
           [printers]="printers()"
           [saving]="saving()"
           [readOnly]="locked()"
-          (printersChanged)="onPrintersChanged($event)" />
+          (printersChanged)="onPrintersChanged($event)"
+        />
 
         <!-- Druckeinstellungen -->
         <app-print-settings-form
           [settings]="printSettings()"
           [readOnly]="locked()"
-          (settingsChanged)="onPrintSettingsChanged($event)" />
+          (settingsChanged)="onPrintSettingsChanged($event)"
+        />
 
         <!-- MQTT-Konfiguration -->
         <app-mqtt-settings-form
           [settings]="mqttSettings()"
           [readOnly]="locked()"
-          (settingsChanged)="onMqttSettingsChanged($event)" />
+          (settingsChanged)="onMqttSettingsChanged($event)"
+        />
 
         @if (error()) {
           <p class="text-red-500 dark:text-red-400 text-sm">{{ error() }}</p>
@@ -103,9 +109,12 @@ import { formatApiError } from '../../core/error-helper'
 
         <!-- Speichern Button -->
         <div class="flex gap-3 pt-2 pb-8">
-          <button (click)="onSave()" [disabled]="saving() || locked()"
+          <button
+            (click)="onSave()"
+            [disabled]="saving() || locked()"
             class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-8 py-3 rounded-xl text-sm
-                   hover:bg-slate-800 dark:hover:bg-gray-200 transition disabled:opacity-50">
+                   hover:bg-slate-800 dark:hover:bg-gray-200 transition disabled:opacity-50"
+          >
             {{ saving() ? ('COMMON.SAVING' | translate) : ('PRINTERS.SAVE_SETTINGS' | translate) }}
           </button>
         </div>

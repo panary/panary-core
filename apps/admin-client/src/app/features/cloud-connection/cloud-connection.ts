@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, effect, inject, signal, untracked, OnInit } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+  OnInit,
+} from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
@@ -148,7 +158,14 @@ const directionLabel = (dir: InitialDirection): string => {
 @Component({
   selector: 'app-cloud-connection',
   standalone: true,
-  imports: [FormsModule, RouterLink, ConfirmDialogComponent, TranslateModule, SyncHistoryComponent, BootstrapReportsComponent],
+  imports: [
+    FormsModule,
+    RouterLink,
+    ConfirmDialogComponent,
+    TranslateModule,
+    SyncHistoryComponent,
+    BootstrapReportsComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6 max-w-3xl space-y-4 h-full overflow-y-auto">
@@ -161,8 +178,10 @@ const directionLabel = (dir: InitialDirection): string => {
 
       @if (loading()) {
         <div class="flex items-center gap-3 py-12 justify-center">
-          <span class="w-5 h-5 border-2 border-slate-300 dark:border-gray-600 border-t-slate-900
-                       dark:border-t-white rounded-full animate-spin"></span>
+          <span
+            class="w-5 h-5 border-2 border-slate-300 dark:border-gray-600 border-t-slate-900
+                       dark:border-t-white rounded-full animate-spin"
+          ></span>
           <span class="text-slate-400 dark:text-gray-500 text-sm">{{ 'CLOUD.LOADING_STATUS' | translate }}</span>
         </div>
       } @else {
@@ -173,35 +192,64 @@ const directionLabel = (dir: InitialDirection): string => {
               @case ('input') {
                 <div class="space-y-5">
                   <div class="space-y-1.5">
-                    <label for="pairingCode" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                    <label
+                      for="pairingCode"
+                      class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+                    >
                       {{ 'CLOUD.PAIRING_CODE' | translate }}
                     </label>
-                    <input id="pairingCode" [(ngModel)]="pairingCode" name="pairingCode" type="text"
-                      maxlength="6" pattern="[0-9]*" inputmode="numeric" placeholder="000000"
+                    <input
+                      id="pairingCode"
+                      [(ngModel)]="pairingCode"
+                      name="pairingCode"
+                      type="text"
+                      maxlength="6"
+                      pattern="[0-9]*"
+                      inputmode="numeric"
+                      placeholder="000000"
                       class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-4
-                             font-mono text-2xl text-center tracking-[0.5em]" />
+                             font-mono text-2xl text-center tracking-[0.5em]"
+                    />
                   </div>
                   <div class="grid grid-cols-2 gap-3">
                     <div class="space-y-1">
-                      <label for="cloudUrl" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                      <label
+                        for="cloudUrl"
+                        class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+                      >
                         {{ 'CLOUD.CLOUD_URL' | translate }}
                       </label>
-                      <input id="cloudUrl" [(ngModel)]="cloudUrl" name="cloudUrl" type="url"
+                      <input
+                        id="cloudUrl"
+                        [(ngModel)]="cloudUrl"
+                        name="cloudUrl"
+                        type="url"
                         class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                               font-mono text-xs" />
+                               font-mono text-xs"
+                      />
                     </div>
                     <div class="space-y-1">
-                      <label for="edgeName" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                      <label
+                        for="edgeName"
+                        class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+                      >
                         {{ 'CLOUD.EDGE_NAME' | translate }}
                       </label>
-                      <input id="edgeName" [(ngModel)]="edgeName" name="edgeName" type="text"
+                      <input
+                        id="edgeName"
+                        [(ngModel)]="edgeName"
+                        name="edgeName"
+                        type="text"
                         placeholder="Hauptstandort"
-                        class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3 text-sm" />
+                        class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3 text-sm"
+                      />
                     </div>
                   </div>
 
                   @if (errors().length > 0) {
-                    <div class="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 rounded-lg p-4 space-y-1">
+                    <div
+                      class="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 rounded-lg p-4 space-y-1"
+                    >
                       @for (err of errors(); track err) {
                         <p class="text-red-500 dark:text-red-400 text-sm">✕ {{ err }}</p>
                       }
@@ -209,11 +257,16 @@ const directionLabel = (dir: InitialDirection): string => {
                   }
 
                   <div class="flex items-center gap-3">
-                    <button (click)="onRunPreflight()" [disabled]="preflighting() || pairingCode.length < 6 || !edgeName"
-                      class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-6 py-3 rounded-xl text-sm">
+                    <button
+                      (click)="onRunPreflight()"
+                      [disabled]="preflighting() || pairingCode.length < 6 || !edgeName"
+                      class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-6 py-3 rounded-xl text-sm"
+                    >
                       @if (preflighting()) {
                         <span class="inline-flex items-center gap-2">
-                          <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                          <span
+                            class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
+                          ></span>
                           Pruefe Cloud …
                         </span>
                       } @else {
@@ -227,7 +280,9 @@ const directionLabel = (dir: InitialDirection): string => {
               @case ('preflight-result') {
                 @if (preflightResult(); as pf) {
                   <div class="space-y-5">
-                    <div class="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-xl p-4">
+                    <div
+                      class="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-xl p-4"
+                    >
                       <p class="text-sm text-blue-700 dark:text-blue-300">
                         @if (pf.cloudTenantName) {
                           Cloud-Tenant: <span class="font-medium">{{ pf.cloudTenantName }}</span>
@@ -236,7 +291,9 @@ const directionLabel = (dir: InitialDirection): string => {
                         }
                       </p>
                       @if (pf.cloudTenantName && pf.cloudTenantId) {
-                        <p class="text-xs text-blue-600/80 dark:text-blue-400/70 font-mono mt-1">{{ pf.cloudTenantId }}</p>
+                        <p class="text-xs text-blue-600/80 dark:text-blue-400/70 font-mono mt-1">
+                          {{ pf.cloudTenantId }}
+                        </p>
                       }
                       @if (pf.requiresTenantIdRestamp) {
                         <p class="text-xs text-amber-700 dark:text-amber-400 mt-2">
@@ -248,27 +305,61 @@ const directionLabel = (dir: InitialDirection): string => {
 
                     @if (pf.edgeInventory && pf.cloudInventory) {
                       <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-4">
+                        <div
+                          class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-4"
+                        >
                           <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Edge (lokal)</p>
                           <table class="w-full text-sm">
                             <tbody>
-                              <tr><td class="text-slate-500">Produkte</td><td class="text-right font-mono">{{ pf.edgeInventory.products }}</td></tr>
-                              <tr><td class="text-slate-500">Produktgruppen</td><td class="text-right font-mono">{{ pf.edgeInventory.productGroups }}</td></tr>
-                              <tr><td class="text-slate-500">Personal</td><td class="text-right font-mono">{{ pf.edgeInventory.users }}</td></tr>
-                              <tr><td class="text-slate-500">Firmenkunden</td><td class="text-right font-mono">{{ pf.edgeInventory.corporateCustomers }}</td></tr>
-                              <tr><td class="text-slate-500">Kunden</td><td class="text-right font-mono">{{ pf.edgeInventory.customers }}</td></tr>
+                              <tr>
+                                <td class="text-slate-500">Produkte</td>
+                                <td class="text-right font-mono">{{ pf.edgeInventory.products }}</td>
+                              </tr>
+                              <tr>
+                                <td class="text-slate-500">Produktgruppen</td>
+                                <td class="text-right font-mono">{{ pf.edgeInventory.productGroups }}</td>
+                              </tr>
+                              <tr>
+                                <td class="text-slate-500">Personal</td>
+                                <td class="text-right font-mono">{{ pf.edgeInventory.users }}</td>
+                              </tr>
+                              <tr>
+                                <td class="text-slate-500">Firmenkunden</td>
+                                <td class="text-right font-mono">{{ pf.edgeInventory.corporateCustomers }}</td>
+                              </tr>
+                              <tr>
+                                <td class="text-slate-500">Kunden</td>
+                                <td class="text-right font-mono">{{ pf.edgeInventory.customers }}</td>
+                              </tr>
                             </tbody>
                           </table>
                         </div>
-                        <div class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-4">
+                        <div
+                          class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-4"
+                        >
                           <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Cloud</p>
                           <table class="w-full text-sm">
                             <tbody>
-                              <tr><td class="text-slate-500">Produkte</td><td class="text-right font-mono">{{ pf.cloudInventory.products }}</td></tr>
-                              <tr><td class="text-slate-500">Produktgruppen</td><td class="text-right font-mono">{{ pf.cloudInventory.productGroups }}</td></tr>
-                              <tr><td class="text-slate-500">Personal</td><td class="text-right font-mono">{{ pf.cloudInventory.users }}</td></tr>
-                              <tr><td class="text-slate-500">Firmenkunden</td><td class="text-right font-mono">{{ pf.cloudInventory.corporateCustomers }}</td></tr>
-                              <tr><td class="text-slate-500">Kunden</td><td class="text-right font-mono">{{ pf.cloudInventory.customers }}</td></tr>
+                              <tr>
+                                <td class="text-slate-500">Produkte</td>
+                                <td class="text-right font-mono">{{ pf.cloudInventory.products }}</td>
+                              </tr>
+                              <tr>
+                                <td class="text-slate-500">Produktgruppen</td>
+                                <td class="text-right font-mono">{{ pf.cloudInventory.productGroups }}</td>
+                              </tr>
+                              <tr>
+                                <td class="text-slate-500">Personal</td>
+                                <td class="text-right font-mono">{{ pf.cloudInventory.users }}</td>
+                              </tr>
+                              <tr>
+                                <td class="text-slate-500">Firmenkunden</td>
+                                <td class="text-right font-mono">{{ pf.cloudInventory.corporateCustomers }}</td>
+                              </tr>
+                              <tr>
+                                <td class="text-slate-500">Kunden</td>
+                                <td class="text-right font-mono">{{ pf.cloudInventory.customers }}</td>
+                              </tr>
                             </tbody>
                           </table>
                         </div>
@@ -276,8 +367,10 @@ const directionLabel = (dir: InitialDirection): string => {
                     } @else {
                       <div class="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-xl p-4">
                         <p class="text-sm text-amber-800 dark:text-amber-300">
-                          ⚠ Inventardaten konnten nicht geladen werden. Die Cloud antwortet, aber liefert keinen Bestandsvergleich
-                          — Bootstrap ist trotzdem moeglich. Empfohlene Sync-Richtung: <span class="font-medium">{{ pf.suggestedDirection }}</span>.
+                          ⚠ Inventardaten konnten nicht geladen werden. Die Cloud antwortet, aber liefert keinen
+                          Bestandsvergleich — Bootstrap ist trotzdem moeglich. Empfohlene Sync-Richtung:
+                          <span class="font-medium">{{ pf.suggestedDirection }}</span
+                          >.
                         </p>
                       </div>
                     }
@@ -285,17 +378,24 @@ const directionLabel = (dir: InitialDirection): string => {
                     <div class="space-y-2">
                       <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Initiale Sync-Richtung</p>
                       @for (opt of directionOptions(); track opt.value) {
-                        <label class="flex items-start gap-3 p-3 border border-slate-200 dark:border-gray-800 rounded-lg
+                        <label
+                          class="flex items-start gap-3 p-3 border border-slate-200 dark:border-gray-800 rounded-lg
                                        hover:bg-slate-50 dark:hover:bg-gray-900/30"
-                               [class.cursor-pointer]="!opt.disabled"
-                               [class.cursor-not-allowed]="opt.disabled"
-                               [class.opacity-50]="opt.disabled"
-                               [class.ring-2]="selectedDirection() === opt.value"
-                               [class.ring-slate-900]="selectedDirection() === opt.value">
-                          <input type="radio" name="direction" [value]="opt.value"
-                                 [checked]="selectedDirection() === opt.value"
-                                 [disabled]="opt.disabled"
-                                 (change)="selectedDirection.set(opt.value)" class="mt-1" />
+                          [class.cursor-pointer]="!opt.disabled"
+                          [class.cursor-not-allowed]="opt.disabled"
+                          [class.opacity-50]="opt.disabled"
+                          [class.ring-2]="selectedDirection() === opt.value"
+                          [class.ring-slate-900]="selectedDirection() === opt.value"
+                        >
+                          <input
+                            type="radio"
+                            name="direction"
+                            [value]="opt.value"
+                            [checked]="selectedDirection() === opt.value"
+                            [disabled]="opt.disabled"
+                            (change)="selectedDirection.set(opt.value)"
+                            class="mt-1"
+                          />
                           <div>
                             <p class="text-sm font-medium">{{ opt.label }}</p>
                             <p class="text-xs text-slate-500">{{ opt.description }}</p>
@@ -303,7 +403,9 @@ const directionLabel = (dir: InitialDirection): string => {
                               <p class="text-xs text-amber-700 dark:text-amber-400 mt-1">⚠ {{ opt.disabledReason }}</p>
                             }
                             @if (pf.suggestedDirection === opt.value && !opt.disabled) {
-                              <span class="inline-block mt-1 text-[10px] uppercase font-bold text-emerald-600">Empfehlung</span>
+                              <span class="inline-block mt-1 text-[10px] uppercase font-bold text-emerald-600"
+                                >Empfehlung</span
+                              >
                             }
                           </div>
                         </label>
@@ -311,20 +413,29 @@ const directionLabel = (dir: InitialDirection): string => {
                     </div>
 
                     @if (selectedDirection() === 'pull-cloud-to-edge') {
-                      <label class="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-lg p-3 cursor-pointer">
-                        <input type="checkbox" [checked]="confirmDataLoss()" (change)="confirmDataLoss.set(!confirmDataLoss())" class="mt-1" />
+                      <label
+                        class="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-lg p-3 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          [checked]="confirmDataLoss()"
+                          (change)="confirmDataLoss.set(!confirmDataLoss())"
+                          class="mt-1"
+                        />
                         <span class="text-sm text-amber-800 dark:text-amber-300">
                           Ich verstehe, dass alle lokalen Stammdaten durch Cloud-Daten ersetzt werden.
                         </span>
                       </label>
                       <p class="text-xs text-slate-500 dark:text-slate-400 -mt-2 ml-1">
-                        Vor dem Pull wird automatisch ein vollstaendiges DB-Backup unter <code class="text-[11px]">data/panary.sqlite.pre-pairing-&lt;timestamp&gt;.bak</code> angelegt.
+                        Vor dem Pull wird automatisch ein vollstaendiges DB-Backup unter
+                        <code class="text-[11px]">data/panary.sqlite.pre-pairing-&lt;timestamp&gt;.bak</code> angelegt.
                       </p>
                     }
 
                     @if (selectedDirection() === 'merge-by-external-id') {
                       <p class="text-xs text-slate-500 dark:text-slate-400 ml-1">
-                        Vor dem Merge wird automatisch ein vollstaendiges DB-Backup unter <code class="text-[11px]">data/panary.sqlite.pre-pairing-&lt;timestamp&gt;.bak</code> angelegt.
+                        Vor dem Merge wird automatisch ein vollstaendiges DB-Backup unter
+                        <code class="text-[11px]">data/panary.sqlite.pre-pairing-&lt;timestamp&gt;.bak</code> angelegt.
                       </p>
                     }
 
@@ -337,18 +448,25 @@ const directionLabel = (dir: InitialDirection): string => {
                     }
 
                     <div class="flex items-center gap-3">
-                      <button (click)="onStartBootstrap()" [disabled]="bootstrapping() || !canStart()"
-                        class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-6 py-3 rounded-xl text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                      <button
+                        (click)="onStartBootstrap()"
+                        [disabled]="bootstrapping() || !canStart()"
+                        class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-6 py-3 rounded-xl text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
                         @if (bootstrapping()) {
                           <span class="inline-flex items-center gap-2">
-                            <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                            <span
+                              class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
+                            ></span>
                             <span>Starte Bootstrap …</span>
                           </span>
                         } @else {
                           <span>Bootstrap starten</span>
                         }
                       </button>
-                      <button (click)="onAbortWizard()" class="text-slate-500 text-sm hover:text-slate-900">Abbrechen</button>
+                      <button (click)="onAbortWizard()" class="text-slate-500 text-sm hover:text-slate-900">
+                        Abbrechen
+                      </button>
                     </div>
                   </div>
                 }
@@ -360,29 +478,31 @@ const directionLabel = (dir: InitialDirection): string => {
                     <p class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                       User-Auswahl
                     </p>
-                    <h2 class="text-base font-semibold mt-1">Welche lokalen User sollen in die Cloud uebernommen werden?</h2>
+                    <h2 class="text-base font-semibold mt-1">
+                      Welche lokalen User sollen in die Cloud uebernommen werden?
+                    </h2>
                     <p class="text-xs text-slate-500 dark:text-gray-400 mt-1.5 leading-relaxed">
-                      Default: alle Personal- und Geraete-User vorausgewaehlt. Owner- und Plattform-Rollen
-                      werden grundsaetzlich nicht synchronisiert (Cloud verwaltet sie selbst).
+                      Default: alle Personal- und Geraete-User vorausgewaehlt. Owner- und Plattform-Rollen werden
+                      grundsaetzlich nicht synchronisiert (Cloud verwaltet sie selbst).
                     </p>
                   </div>
 
                   @if (loadingUsers()) {
                     <div class="flex items-center gap-3 py-8 justify-center">
-                      <span class="w-5 h-5 border-2 border-slate-300 dark:border-gray-600 border-t-slate-900
-                                   dark:border-t-white rounded-full animate-spin"></span>
+                      <span
+                        class="w-5 h-5 border-2 border-slate-300 dark:border-gray-600 border-t-slate-900
+                                   dark:border-t-white rounded-full animate-spin"
+                      ></span>
                       <span class="text-slate-400 dark:text-gray-500 text-sm">Lade lokale User …</span>
                     </div>
                   } @else {
                     @if (selectableUsers().length > 0) {
                       <div class="flex items-center gap-2 text-xs">
-                        <button (click)="selectAllUsers()"
-                          class="text-slate-700 dark:text-slate-300 hover:underline">
+                        <button (click)="selectAllUsers()" class="text-slate-700 dark:text-slate-300 hover:underline">
                           Alle auswaehlen
                         </button>
                         <span class="text-slate-300">·</span>
-                        <button (click)="deselectAllUsers()"
-                          class="text-slate-700 dark:text-slate-300 hover:underline">
+                        <button (click)="deselectAllUsers()" class="text-slate-700 dark:text-slate-300 hover:underline">
                           Keine auswaehlen
                         </button>
                         <span class="ml-auto text-slate-500">
@@ -390,15 +510,21 @@ const directionLabel = (dir: InitialDirection): string => {
                         </span>
                       </div>
 
-                      <div class="bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800
-                                  rounded-xl divide-y divide-slate-200 dark:divide-gray-800 overflow-hidden">
+                      <div
+                        class="bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800
+                                  rounded-xl divide-y divide-slate-200 dark:divide-gray-800 overflow-hidden"
+                      >
                         @for (user of selectableUsers(); track user._id) {
-                          <label class="flex items-center gap-3 px-4 py-3 cursor-pointer
-                                         hover:bg-slate-50 dark:hover:bg-gray-900/30">
-                            <input type="checkbox"
-                                   [checked]="isUserSelected(user._id)"
-                                   (change)="toggleUser(user._id)"
-                                   class="w-4 h-4" />
+                          <label
+                            class="flex items-center gap-3 px-4 py-3 cursor-pointer
+                                         hover:bg-slate-50 dark:hover:bg-gray-900/30"
+                          >
+                            <input
+                              type="checkbox"
+                              [checked]="isUserSelected(user._id)"
+                              (change)="toggleUser(user._id)"
+                              class="w-4 h-4"
+                            />
                             <div class="flex-1 min-w-0">
                               <div class="flex items-baseline gap-2 flex-wrap">
                                 <span class="text-sm font-medium truncate">{{ user.loginname }}</span>
@@ -423,16 +549,20 @@ const directionLabel = (dir: InitialDirection): string => {
                     } @else {
                       <div class="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-xl p-4">
                         <p class="text-sm text-amber-800 dark:text-amber-300">
-                          Keine synchronisierbaren User vorhanden. Bootstrap startet ohne User-Push —
-                          Cloud-Stammdaten bleiben unveraendert.
+                          Keine synchronisierbaren User vorhanden. Bootstrap startet ohne User-Push — Cloud-Stammdaten
+                          bleiben unveraendert.
                         </p>
                       </div>
                     }
 
                     @if (blockedUsers().length > 0) {
-                      <details class="bg-slate-50 dark:bg-gray-900/30 border border-slate-200 dark:border-gray-800
-                                       rounded-xl">
-                        <summary class="px-4 py-3 cursor-pointer text-xs font-medium text-slate-600 hover:text-slate-900">
+                      <details
+                        class="bg-slate-50 dark:bg-gray-900/30 border border-slate-200 dark:border-gray-800
+                                       rounded-xl"
+                      >
+                        <summary
+                          class="px-4 py-3 cursor-pointer text-xs font-medium text-slate-600 hover:text-slate-900"
+                        >
                           {{ blockedUsers().length }} User werden nicht synchronisiert (Cloud-verwaltete Rollen)
                         </summary>
                         <div class="px-4 pb-3 pt-1">
@@ -462,24 +592,35 @@ const directionLabel = (dir: InitialDirection): string => {
                   }
 
                   <div class="flex items-center gap-3">
-                    <button (click)="confirmUserSelection()" [disabled]="bootstrapping() || loadingUsers()"
+                    <button
+                      (click)="confirmUserSelection()"
+                      [disabled]="bootstrapping() || loadingUsers()"
                       class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-6 py-3 rounded-xl
-                             text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                             text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
                       @if (bootstrapping()) {
                         <span class="inline-flex items-center gap-2">
-                          <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                          <span
+                            class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
+                          ></span>
                           <span>Starte Bootstrap …</span>
                         </span>
                       } @else {
                         <span>Bootstrap mit Auswahl starten</span>
                       }
                     </button>
-                    <button (click)="backToPreflight()" [disabled]="bootstrapping()"
-                      class="text-slate-500 text-sm hover:text-slate-900 disabled:opacity-50">
+                    <button
+                      (click)="backToPreflight()"
+                      [disabled]="bootstrapping()"
+                      class="text-slate-500 text-sm hover:text-slate-900 disabled:opacity-50"
+                    >
                       Zurueck
                     </button>
-                    <button (click)="onAbortWizard()" [disabled]="bootstrapping()"
-                      class="text-slate-500 text-sm hover:text-slate-900 disabled:opacity-50">
+                    <button
+                      (click)="onAbortWizard()"
+                      [disabled]="bootstrapping()"
+                      class="text-slate-500 text-sm hover:text-slate-900 disabled:opacity-50"
+                    >
                       Abbrechen
                     </button>
                   </div>
@@ -488,7 +629,9 @@ const directionLabel = (dir: InitialDirection): string => {
 
               @case ('progress') {
                 <div class="space-y-4">
-                  <div class="flex items-center gap-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 rounded-xl p-4">
+                  <div
+                    class="flex items-center gap-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 rounded-xl p-4"
+                  >
                     <span class="w-5 h-5 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin"></span>
                     <div>
                       <p class="text-sm text-blue-700 font-medium">Bootstrap laeuft …</p>
@@ -521,255 +664,360 @@ const directionLabel = (dir: InitialDirection): string => {
               <!-- Tab-Bar — trennt Verbindungs-Settings von der Sync-Historie.
                    Nur im Connected-State sichtbar; Wizard-/Pairing-/Error-States
                    zeigen weiterhin keine Tabs. -->
-              <div role="tablist" aria-label="Cloud-Kopplung-Bereiche"
-                   class="flex border-b border-slate-200 dark:border-gray-800">
-                <button role="tab" type="button"
-                        [attr.aria-selected]="activeTab() === 'connection'"
-                        (click)="selectTab('connection')"
-                        [class.border-slate-900]="activeTab() === 'connection'"
-                        [class.dark:border-white]="activeTab() === 'connection'"
-                        [class.text-slate-900]="activeTab() === 'connection'"
-                        [class.dark:text-white]="activeTab() === 'connection'"
-                        [class.text-slate-500]="activeTab() !== 'connection'"
-                        [class.dark:text-gray-400]="activeTab() !== 'connection'"
-                        class="px-4 py-2.5 -mb-px border-b-2 border-transparent text-sm font-medium
-                               hover:text-slate-900 dark:hover:text-white transition">
+              <div
+                role="tablist"
+                aria-label="Cloud-Kopplung-Bereiche"
+                class="flex border-b border-slate-200 dark:border-gray-800"
+              >
+                <button
+                  role="tab"
+                  type="button"
+                  [attr.aria-selected]="activeTab() === 'connection'"
+                  (click)="selectTab('connection')"
+                  [class.border-slate-900]="activeTab() === 'connection'"
+                  [class.dark:border-white]="activeTab() === 'connection'"
+                  [class.text-slate-900]="activeTab() === 'connection'"
+                  [class.dark:text-white]="activeTab() === 'connection'"
+                  [class.text-slate-500]="activeTab() !== 'connection'"
+                  [class.dark:text-gray-400]="activeTab() !== 'connection'"
+                  class="px-4 py-2.5 -mb-px border-b-2 border-transparent text-sm font-medium
+                               hover:text-slate-900 dark:hover:text-white transition"
+                >
                   Verbindung
                 </button>
-                <button role="tab" type="button"
-                        [attr.aria-selected]="activeTab() === 'history'"
-                        (click)="selectTab('history')"
-                        [class.border-slate-900]="activeTab() === 'history'"
-                        [class.dark:border-white]="activeTab() === 'history'"
-                        [class.text-slate-900]="activeTab() === 'history'"
-                        [class.dark:text-white]="activeTab() === 'history'"
-                        [class.text-slate-500]="activeTab() !== 'history'"
-                        [class.dark:text-gray-400]="activeTab() !== 'history'"
-                        class="px-4 py-2.5 -mb-px border-b-2 border-transparent text-sm font-medium
-                               hover:text-slate-900 dark:hover:text-white transition">
+                <button
+                  role="tab"
+                  type="button"
+                  [attr.aria-selected]="activeTab() === 'history'"
+                  (click)="selectTab('history')"
+                  [class.border-slate-900]="activeTab() === 'history'"
+                  [class.dark:border-white]="activeTab() === 'history'"
+                  [class.text-slate-900]="activeTab() === 'history'"
+                  [class.dark:text-white]="activeTab() === 'history'"
+                  [class.text-slate-500]="activeTab() !== 'history'"
+                  [class.dark:text-gray-400]="activeTab() !== 'history'"
+                  class="px-4 py-2.5 -mb-px border-b-2 border-transparent text-sm font-medium
+                               hover:text-slate-900 dark:hover:text-white transition"
+                >
                   Sync-Historie
                 </button>
-                <button role="tab" type="button"
-                        [attr.aria-selected]="activeTab() === 'reports'"
-                        (click)="selectTab('reports')"
-                        [class.border-slate-900]="activeTab() === 'reports'"
-                        [class.dark:border-white]="activeTab() === 'reports'"
-                        [class.text-slate-900]="activeTab() === 'reports'"
-                        [class.dark:text-white]="activeTab() === 'reports'"
-                        [class.text-slate-500]="activeTab() !== 'reports'"
-                        [class.dark:text-gray-400]="activeTab() !== 'reports'"
-                        class="px-4 py-2.5 -mb-px border-b-2 border-transparent text-sm font-medium
-                               hover:text-slate-900 dark:hover:text-white transition">
+                <button
+                  role="tab"
+                  type="button"
+                  [attr.aria-selected]="activeTab() === 'reports'"
+                  (click)="selectTab('reports')"
+                  [class.border-slate-900]="activeTab() === 'reports'"
+                  [class.dark:border-white]="activeTab() === 'reports'"
+                  [class.text-slate-900]="activeTab() === 'reports'"
+                  [class.dark:text-white]="activeTab() === 'reports'"
+                  [class.text-slate-500]="activeTab() !== 'reports'"
+                  [class.dark:text-gray-400]="activeTab() !== 'reports'"
+                  class="px-4 py-2.5 -mb-px border-b-2 border-transparent text-sm font-medium
+                               hover:text-slate-900 dark:hover:text-white transition"
+                >
                   Bootstrap-Reports
                 </button>
               </div>
 
               @if (activeTab() === 'connection') {
-              @if (connectionInfo()?.bootstrapStatus === 'failed') {
-                <div class="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-xl p-4 space-y-3">
-                  <div class="flex items-center gap-3">
-                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
-                    <span class="text-sm text-red-700 dark:text-red-400 font-medium">
-                      Bootstrap fehlgeschlagen — Verbindung in inkonsistentem Zustand
-                    </span>
-                  </div>
-                  @if (connectionInfo()?.bootstrapError) {
-                    <p class="text-xs text-red-600 dark:text-red-400 font-mono pl-6">
-                      {{ connectionInfo()?.bootstrapError }}
+                @if (connectionInfo()?.bootstrapStatus === 'failed') {
+                  <div
+                    class="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-xl p-4 space-y-3"
+                  >
+                    <div class="flex items-center gap-3">
+                      <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                      <span class="text-sm text-red-700 dark:text-red-400 font-medium">
+                        Bootstrap fehlgeschlagen — Verbindung in inkonsistentem Zustand
+                      </span>
+                    </div>
+                    @if (connectionInfo()?.bootstrapError) {
+                      <p class="text-xs text-red-600 dark:text-red-400 font-mono pl-6">
+                        {{ connectionInfo()?.bootstrapError }}
+                      </p>
+                    }
+                    <p class="text-xs text-red-600/80 dark:text-red-400/80 pl-6">
+                      Empfohlene Aktion: Verbindung zuruecksetzen, neuen Pairing-Code generieren und neu pairen.
                     </p>
-                  }
-                  <p class="text-xs text-red-600/80 dark:text-red-400/80 pl-6">
-                    Empfohlene Aktion: Verbindung zuruecksetzen, neuen Pairing-Code generieren und neu pairen.
-                  </p>
-                  <div class="pl-6">
-                    <button (click)="onForceReset()"
-                      class="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg">
-                      Verbindung zuruecksetzen
-                    </button>
+                    <div class="pl-6">
+                      <button
+                        (click)="onForceReset()"
+                        class="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
+                      >
+                        Verbindung zuruecksetzen
+                      </button>
+                    </div>
                   </div>
-                </div>
-              } @else {
-                <!-- Live-Status: persistente Kopplung besteht (gepairt), aber Dot/Label/
+                } @else {
+                  <!-- Live-Status: persistente Kopplung besteht (gepairt), aber Dot/Label/
                      Subline spiegeln die AKTUELLE Cloud-Erreichbarkeit (wie der
                      Dashboard-Banner) statt dauerhaft "verbunden" zu zeigen. -->
-                <div [class]="liveBoxClass()">
-                  <div [class]="liveDotClass()"></div>
-                  <div class="flex flex-col">
-                    <span [class]="liveTextClass()">
-                      {{ liveStatusLabel() }}
-                      @if (connectionInfo()?.bootstrapStatus === 'in-progress') {
-                        <span class="text-xs text-amber-700 ml-1">— Bootstrap laeuft</span>
-                      }
-                    </span>
-                    <span class="text-xs text-slate-500 dark:text-gray-400">{{ liveStatusSubline() }}</span>
+                  <div [class]="liveBoxClass()">
+                    <div [class]="liveDotClass()"></div>
+                    <div class="flex flex-col">
+                      <span [class]="liveTextClass()">
+                        {{ liveStatusLabel() }}
+                        @if (connectionInfo()?.bootstrapStatus === 'in-progress') {
+                          <span class="text-xs text-amber-700 ml-1">— Bootstrap laeuft</span>
+                        }
+                      </span>
+                      <span class="text-xs text-slate-500 dark:text-gray-400">{{ liveStatusSubline() }}</span>
+                    </div>
                   </div>
-                </div>
-              }
+                }
 
-              <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl divide-y divide-slate-200 dark:divide-gray-800">
-                <div class="flex items-center justify-between px-4 py-3">
-                  <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400">Cloud-URL</span>
-                  <span class="text-sm font-mono">{{ connectionInfo()?.cloudUrl }}</span>
-                </div>
-                <div class="flex items-center justify-between px-4 py-3">
-                  <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400">Edge-Name</span>
-                  <span class="text-sm">{{ connectionInfo()?.edgeName || '—' }}</span>
-                </div>
-                <div class="flex items-center justify-between px-4 py-3">
-                  <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400">Verbunden seit</span>
-                  <span class="text-sm">{{ formatDate(connectionInfo()?.connectedAt) }}</span>
-                </div>
-                <!-- „Datenabgleich", nicht „Sync": das Feld traegt seit ADR 0017
+                <div
+                  class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl divide-y divide-slate-200 dark:divide-gray-800"
+                >
+                  <div class="flex items-center justify-between px-4 py-3">
+                    <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400">Cloud-URL</span>
+                    <span class="text-sm font-mono">{{ connectionInfo()?.cloudUrl }}</span>
+                  </div>
+                  <div class="flex items-center justify-between px-4 py-3">
+                    <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400">Edge-Name</span>
+                    <span class="text-sm">{{ connectionInfo()?.edgeName || '—' }}</span>
+                  </div>
+                  <div class="flex items-center justify-between px-4 py-3">
+                    <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400"
+                      >Verbunden seit</span
+                    >
+                    <span class="text-sm">{{ formatDate(connectionInfo()?.connectedAt) }}</span>
+                  </div>
+                  <!-- „Datenabgleich", nicht „Sync": das Feld traegt seit ADR 0017
                      ausschliesslich echte Datenuebertragungen. Die blosse
                      Erreichbarkeit steht in der Live-Status-Box darueber
                      („letzter Kontakt …") — beides gleich zu benennen war genau
                      der Widerspruch, den Betreiber hier gelesen haben. -->
-                <div class="flex items-center justify-between px-4 py-3">
-                  <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400">Letzter Datenabgleich</span>
-                  <span class="text-sm">
-                    {{ connectionInfo()?.lastSyncAt ? formatDate(connectionInfo()?.lastSyncAt) : 'Noch nicht abgeglichen' }}
-                  </span>
-                </div>
-                <div class="flex items-center justify-between px-4 py-3">
-                  <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400">Naechster geplanter Abgleich</span>
-                  <span class="text-sm">{{ nextExpectedSyncLabel() }}</span>
-                </div>
-                @if (connectionInfo()?.lastClockSkewMs !== undefined) {
                   <div class="flex items-center justify-between px-4 py-3">
-                    <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400">Clock-Skew</span>
-                    <span class="text-sm font-mono"
-                          [class.text-amber-600]="abs(connectionInfo()?.lastClockSkewMs ?? 0) > 30000"
-                          [class.dark:text-amber-400]="abs(connectionInfo()?.lastClockSkewMs ?? 0) > 30000"
-                          [class.text-red-600]="abs(connectionInfo()?.lastClockSkewMs ?? 0) > 300000"
-                          [class.dark:text-red-400]="abs(connectionInfo()?.lastClockSkewMs ?? 0) > 300000">
-                      {{ formatSkew(connectionInfo()?.lastClockSkewMs) }}
+                    <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400"
+                      >Letzter Datenabgleich</span
+                    >
+                    <span class="text-sm">
+                      {{
+                        connectionInfo()?.lastSyncAt
+                          ? formatDate(connectionInfo()?.lastSyncAt)
+                          : 'Noch nicht abgeglichen'
+                      }}
                     </span>
                   </div>
-                }
-              </div>
-
-              <!-- Sync-Mode-Settings -->
-              <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
-                <p class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400">Sync-Verhalten</p>
-                <select [(ngModel)]="syncMode" name="syncMode" (change)="onSyncModeChange()"
-                  class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-2 text-sm">
-                  @for (opt of syncModeOptions; track opt.value) {
-                    <option [value]="opt.value">{{ opt.label }} — {{ opt.description }}</option>
-                  }
-                </select>
-                @if (syncMode === 'auto') {
-                  <div class="flex items-center gap-4">
-                    <label for="syncIntervalSec" class="text-xs text-slate-500 dark:text-gray-400">Intervall</label>
-                    <input id="syncIntervalSec" type="number" [(ngModel)]="syncIntervalSec" name="syncIntervalSec"
-                      min="60" max="3600" (blur)="onSaveSyncMode()"
-                      class="w-28 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-2 text-sm" />
-                    <span class="text-xs text-slate-500 dark:text-gray-400">Sekunden</span>
+                  <div class="flex items-center justify-between px-4 py-3">
+                    <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400"
+                      >Naechster geplanter Abgleich</span
+                    >
+                    <span class="text-sm">{{ nextExpectedSyncLabel() }}</span>
                   </div>
-                }
-                @if (syncMode === 'scheduled') {
-                  <div class="space-y-3">
-                    <div class="space-y-2">
-                      @for (time of syncScheduleTimes; track $index) {
-                        <div class="flex items-center gap-2">
-                          <input type="time" [(ngModel)]="syncScheduleTimes[$index]"
-                            [name]="'syncScheduleTime-' + $index" (change)="onSaveSyncMode()"
-                            class="w-32 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-2 text-sm" />
-                          <button type="button" (click)="removeScheduleTime($index)" aria-label="Uhrzeit entfernen"
-                            class="text-slate-400 hover:text-red-600 dark:hover:text-red-400 text-sm px-2 py-1">✕</button>
-                        </div>
-                      } @empty {
-                        <p class="text-xs text-amber-700 dark:text-amber-400">
-                          Keine Uhrzeit hinterlegt — bis dahin synchronisiert der Edge wie im Modus „Automatisch".
-                        </p>
-                      }
+                  @if (connectionInfo()?.lastClockSkewMs !== undefined) {
+                    <div class="flex items-center justify-between px-4 py-3">
+                      <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400">Clock-Skew</span>
+                      <span
+                        class="text-sm font-mono"
+                        [class.text-amber-600]="abs(connectionInfo()?.lastClockSkewMs ?? 0) > 30000"
+                        [class.dark:text-amber-400]="abs(connectionInfo()?.lastClockSkewMs ?? 0) > 30000"
+                        [class.text-red-600]="abs(connectionInfo()?.lastClockSkewMs ?? 0) > 300000"
+                        [class.dark:text-red-400]="abs(connectionInfo()?.lastClockSkewMs ?? 0) > 300000"
+                      >
+                        {{ formatSkew(connectionInfo()?.lastClockSkewMs) }}
+                      </span>
                     </div>
-                    <button type="button" (click)="addScheduleTime()"
-                      class="text-xs font-medium text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-1.5">
-                      + Uhrzeit
-                    </button>
-                    <div class="flex items-center gap-4">
-                      <label for="syncScheduleTimezone" class="text-xs text-slate-500 dark:text-gray-400">Zeitzone</label>
-                      <select id="syncScheduleTimezone" [(ngModel)]="syncScheduleTimezone" name="syncScheduleTimezone"
-                        (change)="onSaveSyncMode()"
-                        class="flex-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-2 text-sm">
-                        @for (tz of timezoneOptions; track tz) {
-                          <option [value]="tz">{{ tz }}</option>
-                        }
-                      </select>
-                    </div>
-                  </div>
-                }
-                @if (syncMode === 'scheduled' || syncMode === 'disabled') {
-                  <p class="text-xs text-slate-500 dark:text-gray-400">
-                    Die Cloud-Verbindung wird unabhängig davon regelmäßig gehalten — sonst würde die
-                    Kopplung nach 24 Stunden ablaufen und ein erneutes Koppeln nötig machen.
-                  </p>
-                }
-                <div class="flex items-center gap-3">
-                  <button (click)="onSyncNow()" [disabled]="syncing()"
-                    class="bg-slate-900 dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg text-sm font-medium">
-                    @if (syncing()) { Synchronisiere … } @else { Jetzt synchronisieren }
-                  </button>
-                  @if (lastSyncResult(); as r) {
-                    <span class="text-xs text-slate-500 dark:text-gray-400">
-                      ↑ {{ r.pushed }} gesendet, ↓ {{ r.pulled }} empfangen, {{ r.durationMs }} ms
-                    </span>
                   }
                 </div>
-              </div>
 
-              @if (openConflictsCount() > 0) {
-                <a routerLink="/cloud/conflicts"
-                   class="block bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-xl p-4 hover:bg-amber-100 transition">
-                  <p class="text-sm font-medium text-amber-800">
-                    {{ openConflictsCount() }} offene Sync-Konflikte erfordern eine Entscheidung.
-                  </p>
-                  <p class="text-xs text-amber-700 mt-1">
-                    Klicken zum Auflösen → Konflikt-Review öffnen
-                  </p>
-                </a>
-              }
+                <!-- Sync-Mode-Settings -->
+                <div
+                  class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl p-4 space-y-3"
+                >
+                  <p class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400">Sync-Verhalten</p>
+                  <select
+                    [(ngModel)]="syncMode"
+                    name="syncMode"
+                    (change)="onSyncModeChange()"
+                    class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-2 text-sm"
+                  >
+                    @for (opt of syncModeOptions; track opt.value) {
+                      <option [value]="opt.value">{{ opt.label }} — {{ opt.description }}</option>
+                    }
+                  </select>
+                  @if (syncMode === 'auto') {
+                    <div class="flex items-center gap-4">
+                      <label for="syncIntervalSec" class="text-xs text-slate-500 dark:text-gray-400">Intervall</label>
+                      <input
+                        id="syncIntervalSec"
+                        type="number"
+                        [(ngModel)]="syncIntervalSec"
+                        name="syncIntervalSec"
+                        min="60"
+                        max="3600"
+                        (blur)="onSaveSyncMode()"
+                        class="w-28 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-2 text-sm"
+                      />
+                      <span class="text-xs text-slate-500 dark:text-gray-400">Sekunden</span>
+                    </div>
+                  }
+                  @if (syncMode === 'scheduled') {
+                    <div class="space-y-3">
+                      <div class="space-y-2">
+                        @for (time of syncScheduleTimes; track $index) {
+                          <div class="flex items-center gap-2">
+                            <input
+                              type="time"
+                              [(ngModel)]="syncScheduleTimes[$index]"
+                              [name]="'syncScheduleTime-' + $index"
+                              (change)="onSaveSyncMode()"
+                              class="w-32 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-2 text-sm"
+                            />
+                            <button
+                              type="button"
+                              (click)="removeScheduleTime($index)"
+                              aria-label="Uhrzeit entfernen"
+                              class="text-slate-400 hover:text-red-600 dark:hover:text-red-400 text-sm px-2 py-1"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        } @empty {
+                          <p class="text-xs text-amber-700 dark:text-amber-400">
+                            Keine Uhrzeit hinterlegt — bis dahin synchronisiert der Edge wie im Modus „Automatisch".
+                          </p>
+                        }
+                      </div>
+                      <button
+                        type="button"
+                        (click)="addScheduleTime()"
+                        class="text-xs font-medium text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-1.5"
+                      >
+                        + Uhrzeit
+                      </button>
+                      <div class="flex items-center gap-4">
+                        <label for="syncScheduleTimezone" class="text-xs text-slate-500 dark:text-gray-400"
+                          >Zeitzone</label
+                        >
+                        <select
+                          id="syncScheduleTimezone"
+                          [(ngModel)]="syncScheduleTimezone"
+                          name="syncScheduleTimezone"
+                          (change)="onSaveSyncMode()"
+                          class="flex-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-2 text-sm"
+                        >
+                          @for (tz of timezoneOptions; track tz) {
+                            <option [value]="tz">{{ tz }}</option>
+                          }
+                        </select>
+                      </div>
+                    </div>
+                  }
+                  @if (syncMode === 'scheduled' || syncMode === 'disabled') {
+                    <p class="text-xs text-slate-500 dark:text-gray-400">
+                      Die Cloud-Verbindung wird unabhängig davon regelmäßig gehalten — sonst würde die Kopplung nach 24
+                      Stunden ablaufen und ein erneutes Koppeln nötig machen.
+                    </p>
+                  }
+                  <div class="flex items-center gap-3">
+                    <button
+                      (click)="onSyncNow()"
+                      [disabled]="syncing()"
+                      class="bg-slate-900 dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg text-sm font-medium"
+                    >
+                      @if (syncing()) {
+                        Synchronisiere …
+                      } @else {
+                        Jetzt synchronisieren
+                      }
+                    </button>
+                    @if (lastSyncResult(); as r) {
+                      <span class="text-xs text-slate-500 dark:text-gray-400">
+                        ↑ {{ r.pushed }} gesendet, ↓ {{ r.pulled }} empfangen, {{ r.durationMs }} ms
+                      </span>
+                    }
+                  </div>
+                </div>
 
-              <!-- Diagnose-Sektion: alle DB-Felder einsehbar, hilft beim Debug
+                @if (openConflictsCount() > 0) {
+                  <a
+                    routerLink="/cloud/conflicts"
+                    class="block bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-xl p-4 hover:bg-amber-100 transition"
+                  >
+                    <p class="text-sm font-medium text-amber-800">
+                      {{ openConflictsCount() }} offene Sync-Konflikte erfordern eine Entscheidung.
+                    </p>
+                    <p class="text-xs text-amber-700 mt-1">Klicken zum Auflösen → Konflikt-Review öffnen</p>
+                  </a>
+                }
+
+                <!-- Diagnose-Sektion: alle DB-Felder einsehbar, hilft beim Debug
                    ohne SQLite-Tool. Plus prominente Hard-Delete-Action.
                    Bewusst VOR der Sync-Historie platziert — Operatoren sehen
                    den DB-State zuerst, bevor sie die Historie durchsuchen. -->
-              <details class="bg-slate-50 dark:bg-gray-900/30 border border-slate-200 dark:border-gray-800 rounded-xl">
-                <summary class="px-4 py-3 cursor-pointer text-xs font-medium text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white">
-                  Diagnose &amp; Erweiterte Aktionen
-                </summary>
-                <div class="px-4 pb-4 pt-3 space-y-4 border-t border-slate-200 dark:border-gray-800">
-                  <div class="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs font-mono">
-                    <div><span class="text-slate-500 dark:text-gray-400">_id:</span> {{ connectionInfo()?._id ?? '—' }}</div>
-                    <div><span class="text-slate-500 dark:text-gray-400">cloudEdgeId:</span> {{ connectionInfo()?.cloudEdgeId ?? '—' }}</div>
-                    <div><span class="text-slate-500 dark:text-gray-400">pairingStatus:</span> {{ connectionInfo()?.pairingStatus ?? '—' }}</div>
-                    <div><span class="text-slate-500 dark:text-gray-400">bootstrapStatus:</span> {{ connectionInfo()?.bootstrapStatus ?? '—' }}</div>
-                    <div><span class="text-slate-500 dark:text-gray-400">syncMode:</span> {{ connectionInfo()?.syncMode ?? '—' }}</div>
-                    <div><span class="text-slate-500 dark:text-gray-400">syncIntervalSec:</span> {{ connectionInfo()?.syncIntervalSec ?? '—' }}</div>
-                    <div class="col-span-2"><span class="text-slate-500 dark:text-gray-400">syncSchedule:</span> {{ syncScheduleDiagnostics() }}</div>
-                    <div class="col-span-2"><span class="text-slate-500 dark:text-gray-400">cloudUrl:</span> {{ connectionInfo()?.cloudUrl ?? '—' }}</div>
-                    @if (connectionInfo()?.bootstrapError) {
-                      <div class="col-span-2 text-red-600 dark:text-red-400"><span class="text-slate-500 dark:text-gray-400">bootstrapError:</span> {{ connectionInfo()?.bootstrapError }}</div>
-                    }
-                    @if (connectionInfo()?.errorMessage) {
-                      <div class="col-span-2 text-red-600 dark:text-red-400"><span class="text-slate-500 dark:text-gray-400">errorMessage:</span> {{ connectionInfo()?.errorMessage }}</div>
-                    }
+                <details
+                  class="bg-slate-50 dark:bg-gray-900/30 border border-slate-200 dark:border-gray-800 rounded-xl"
+                >
+                  <summary
+                    class="px-4 py-3 cursor-pointer text-xs font-medium text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white"
+                  >
+                    Diagnose &amp; Erweiterte Aktionen
+                  </summary>
+                  <div class="px-4 pb-4 pt-3 space-y-4 border-t border-slate-200 dark:border-gray-800">
+                    <div class="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs font-mono">
+                      <div>
+                        <span class="text-slate-500 dark:text-gray-400">_id:</span> {{ connectionInfo()?._id ?? '—' }}
+                      </div>
+                      <div>
+                        <span class="text-slate-500 dark:text-gray-400">cloudEdgeId:</span>
+                        {{ connectionInfo()?.cloudEdgeId ?? '—' }}
+                      </div>
+                      <div>
+                        <span class="text-slate-500 dark:text-gray-400">pairingStatus:</span>
+                        {{ connectionInfo()?.pairingStatus ?? '—' }}
+                      </div>
+                      <div>
+                        <span class="text-slate-500 dark:text-gray-400">bootstrapStatus:</span>
+                        {{ connectionInfo()?.bootstrapStatus ?? '—' }}
+                      </div>
+                      <div>
+                        <span class="text-slate-500 dark:text-gray-400">syncMode:</span>
+                        {{ connectionInfo()?.syncMode ?? '—' }}
+                      </div>
+                      <div>
+                        <span class="text-slate-500 dark:text-gray-400">syncIntervalSec:</span>
+                        {{ connectionInfo()?.syncIntervalSec ?? '—' }}
+                      </div>
+                      <div class="col-span-2">
+                        <span class="text-slate-500 dark:text-gray-400">syncSchedule:</span>
+                        {{ syncScheduleDiagnostics() }}
+                      </div>
+                      <div class="col-span-2">
+                        <span class="text-slate-500 dark:text-gray-400">cloudUrl:</span>
+                        {{ connectionInfo()?.cloudUrl ?? '—' }}
+                      </div>
+                      @if (connectionInfo()?.bootstrapError) {
+                        <div class="col-span-2 text-red-600 dark:text-red-400">
+                          <span class="text-slate-500 dark:text-gray-400">bootstrapError:</span>
+                          {{ connectionInfo()?.bootstrapError }}
+                        </div>
+                      }
+                      @if (connectionInfo()?.errorMessage) {
+                        <div class="col-span-2 text-red-600 dark:text-red-400">
+                          <span class="text-slate-500 dark:text-gray-400">errorMessage:</span>
+                          {{ connectionInfo()?.errorMessage }}
+                        </div>
+                      }
+                    </div>
+                    <div class="pt-3 border-t border-slate-200 dark:border-gray-800">
+                      <button
+                        (click)="confirmingHardDelete.set(true)"
+                        class="bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-3 py-1.5 rounded-md"
+                      >
+                        Verbindung hart loeschen (lokal)
+                      </button>
+                      <p class="text-xs text-slate-500 dark:text-gray-400 mt-1.5">
+                        Entfernt den lokalen DB-Eintrag bedingungslos — Cloud-Side wird best-effort benachrichtigt.
+                        Verwende dies nur bei verwaisten Halbzustaenden.
+                      </p>
+                    </div>
                   </div>
-                  <div class="pt-3 border-t border-slate-200 dark:border-gray-800">
-                    <button (click)="confirmingHardDelete.set(true)"
-                      class="bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-3 py-1.5 rounded-md">
-                      Verbindung hart loeschen (lokal)
-                    </button>
-                    <p class="text-xs text-slate-500 dark:text-gray-400 mt-1.5">
-                      Entfernt den lokalen DB-Eintrag bedingungslos — Cloud-Side wird best-effort
-                      benachrichtigt. Verwende dies nur bei verwaisten Halbzustaenden.
-                    </p>
-                  </div>
-                </div>
-              </details>
+                </details>
 
-              <button (click)="confirmingDisconnect.set(true)"
-                class="text-red-500 text-sm hover:text-red-700">Verbindung trennen</button>
+                <button (click)="confirmingDisconnect.set(true)" class="text-red-500 text-sm hover:text-red-700">
+                  Verbindung trennen
+                </button>
               }
 
               @if (activeTab() === 'history') {
@@ -797,7 +1045,8 @@ const directionLabel = (dir: InitialDirection): string => {
                 [dismissLabel]="'Abbrechen'"
                 (confirmed)="onDisconnect()"
                 (dismissed)="confirmingDisconnect.set(false)"
-                (cancelled)="confirmingDisconnect.set(false)" />
+                (cancelled)="confirmingDisconnect.set(false)"
+              />
             }
 
             @if (confirmingHardDelete()) {
@@ -808,13 +1057,16 @@ const directionLabel = (dir: InitialDirection): string => {
                 [dismissLabel]="'Abbrechen'"
                 (confirmed)="onHardDelete()"
                 (dismissed)="confirmingHardDelete.set(false)"
-                (cancelled)="confirmingHardDelete.set(false)" />
+                (cancelled)="confirmingHardDelete.set(false)"
+              />
             }
           }
 
           @case ('pairing') {
             <div class="space-y-4">
-              <div class="flex items-center gap-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-xl p-4">
+              <div
+                class="flex items-center gap-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-xl p-4"
+              >
                 <span class="w-5 h-5 border-2 border-amber-300 border-t-amber-600 rounded-full animate-spin"></span>
                 <div class="flex-1">
                   <p class="text-sm text-amber-800">Pairing laeuft …</p>
@@ -846,7 +1098,9 @@ const directionLabel = (dir: InitialDirection): string => {
                 </div>
               </div>
               <div class="flex gap-3">
-                <button (click)="onReset()" class="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm">Zuruecksetzen</button>
+                <button (click)="onReset()" class="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm">
+                  Zuruecksetzen
+                </button>
               </div>
             </div>
           }
@@ -996,7 +1250,6 @@ export class CloudConnectionComponent implements OnInit {
   selectableUsers = computed(() => this.edgeUsers().filter(u => !u.blocked))
   blockedUsers = computed(() => this.edgeUsers().filter(u => u.blocked))
 
-
   cloudUrl = DEFAULT_CLOUD_URL
   pairingCode = ''
   edgeName = ''
@@ -1011,21 +1264,23 @@ export class CloudConnectionComponent implements OnInit {
   directionOptions = computed(() => {
     const pf = this.preflightResult()
     const cloudHasData = pf ? Object.values(pf.cloudInventory).some(c => c > 0) : false
-    return (['bootstrap-edge-to-cloud', 'pull-cloud-to-edge', 'merge-by-external-id'] as InitialDirection[]).map(value => ({
-      value,
-      label: directionLabel(value),
-      description:
-        value === 'bootstrap-edge-to-cloud'
-          ? 'Geeignet wenn Cloud noch leer ist'
-          : value === 'pull-cloud-to-edge'
-            ? 'Geeignet wenn Cloud bereits gepflegt ist'
-            : 'Geeignet wenn beide Seiten gepflegt sind und externalIds gesetzt sind',
-      disabled: value === 'bootstrap-edge-to-cloud' && cloudHasData,
-      disabledReason:
-        value === 'bootstrap-edge-to-cloud' && cloudHasData
-          ? 'Cloud enthaelt bereits Stammdaten — Modus gesperrt.'
-          : null,
-    }))
+    return (['bootstrap-edge-to-cloud', 'pull-cloud-to-edge', 'merge-by-external-id'] as InitialDirection[]).map(
+      value => ({
+        value,
+        label: directionLabel(value),
+        description:
+          value === 'bootstrap-edge-to-cloud'
+            ? 'Geeignet wenn Cloud noch leer ist'
+            : value === 'pull-cloud-to-edge'
+              ? 'Geeignet wenn Cloud bereits gepflegt ist'
+              : 'Geeignet wenn beide Seiten gepflegt sind und externalIds gesetzt sind',
+        disabled: value === 'bootstrap-edge-to-cloud' && cloudHasData,
+        disabledReason:
+          value === 'bootstrap-edge-to-cloud' && cloudHasData
+            ? 'Cloud enthaelt bereits Stammdaten — Modus gesperrt.'
+            : null,
+      }),
+    )
   })
 
   readonly syncModeOptions = SYNC_MODE_OPTIONS
@@ -1053,7 +1308,13 @@ export class CloudConnectionComponent implements OnInit {
   formatDate(iso?: string): string {
     if (!iso) return '—'
     try {
-      return new Date(iso).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      return new Date(iso).toLocaleString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
     } catch {
       return iso
     }

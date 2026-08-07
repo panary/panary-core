@@ -6,9 +6,7 @@ const THEME_STORAGE_KEY = 'panary-setup-theme'
 
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
-  readonly theme = signal<ThemeMode>(
-    (localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode | null) ?? 'dark',
-  )
+  readonly theme = signal<ThemeMode>((localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode | null) ?? 'dark')
 
   readonly themeIcon = computed<string>(() => {
     switch (this.theme()) {

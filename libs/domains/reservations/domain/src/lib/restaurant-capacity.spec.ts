@@ -26,11 +26,7 @@ interface Slot {
   locationId: string
 }
 
-function makeApp(opts: {
-  tables: Table[]
-  reservations: Reservation[]
-  slots: Slot[]
-}): MinimalApp {
+function makeApp(opts: { tables: Table[]; reservations: Reservation[]; slots: Slot[] }): MinimalApp {
   return {
     service(path: string) {
       return {

@@ -82,13 +82,7 @@ export class AbsPipe implements PipeTransform {
   selector: 'app-order-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    AbsPipe,
-    CommonModule,
-    FormsModule,
-    MatMenuModule,
-    TranslateModule,
-  ],
+  imports: [AbsPipe, CommonModule, FormsModule, MatMenuModule, TranslateModule],
   templateUrl: './order-dialog.component.html',
   styleUrls: ['./order-dialog.component.scss'],
   animations: [
@@ -157,7 +151,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly selectedManualDiscount = signal<ManagedDiscount | null>(null)
   private _productButtons: PosButton[] = []
   private _table: string | undefined = undefined
-  private _dineLocation: typeof DineLocation[keyof typeof DineLocation] | undefined = undefined
+  private _dineLocation: (typeof DineLocation)[keyof typeof DineLocation] | undefined = undefined
   private _withoutExtra = false
 
   // Bundle/Menü-Flow-Logik (OptionGroup-Sequenz, HIGHEST, FIXED_PROPORTIONAL) — plain class, siehe bundle-flow.ts
@@ -619,8 +613,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   setProductButtonsByGroupId(groupId: string | undefined) {
     if (!groupId) return this.unselectProduct()
 
-    const group: ProductGroup | undefined =
-      this.productGroupService.getProductGroupById(groupId)
+    const group: ProductGroup | undefined = this.productGroupService.getProductGroupById(groupId)
 
     if (!group) return this.unselectProduct()
 
@@ -631,15 +624,13 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this._selectedCombinationIndex = [null, null]
     this._lastParentId = undefined
     // VM-Kopien statt Store-Referenzen — der Dialog darf Cache-Objekte nicht mutieren
-    this._productButtons = this.productService
-      .getProductsByGroupId(group._id, group.externalId)
-      .map(product => {
-        const button = toPosButton(product)
-        button.callback = () => {
-          this.increaseLineItem(button)
-        }
-        return button
-      })
+    this._productButtons = this.productService.getProductsByGroupId(group._id, group.externalId).map(product => {
+      const button = toPosButton(product)
+      button.callback = () => {
+        this.increaseLineItem(button)
+      }
+      return button
+    })
   }
 
   setProductionTimeSubbuttons() {
@@ -702,44 +693,53 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       // Border + Schatten gehören auf das ÄUSSERE Panel (nicht aufs innere Root-Div):
       // dessen `overflow-hidden` würde sonst die Border-/Schatten-Ecken des Kindes
       // wegschneiden. Auf dem Panel selbst werden Rand + Schatten voll gerendert.
-      panelClass: ['!rounded-2xl', 'overflow-hidden', 'border', 'border-gray-200', 'dark:border-gray-700', 'shadow-2xl'],
+      panelClass: [
+        '!rounded-2xl',
+        'overflow-hidden',
+        'border',
+        'border-gray-200',
+        'dark:border-gray-700',
+        'shadow-2xl',
+      ],
       // Backdrop weichzeichnen + abdunkeln (Light + Dark), damit sich die neue
       // Dialog-Ebene klar vom darunterliegenden Bestelldialog abhebt.
       backdropClass: 'pre-order-blur-backdrop',
     })
 
-    dialogRef.afterClosed().subscribe(async (result: { date: Date; time: string; name: string; phone: string } | undefined) => {
-      if (!result) return
+    dialogRef
+      .afterClosed()
+      .subscribe(async (result: { date: Date; time: string; name: string; phone: string } | undefined) => {
+        if (!result) return
 
-      // Datum + Uhrzeit zu ISO-String kombinieren
-      const date = new Date(result.date)
-      const [hours, minutes] = result.time.split(':').map(Number)
-      date.setHours(hours, minutes, 0, 0)
+        // Datum + Uhrzeit zu ISO-String kombinieren
+        const date = new Date(result.date)
+        const [hours, minutes] = result.time.split(':').map(Number)
+        date.setHours(hours, minutes, 0, 0)
 
-      const payload = {
-        customerContact: {
-          name: result.name,
-          phone: result.phone || '',
-        },
-        scheduledFor: date.toISOString(),
-        lineItems: [...this.lineItems],
-        status: 'pending' as const,
-      }
+        const payload = {
+          customerContact: {
+            name: result.name,
+            phone: result.phone || '',
+          },
+          scheduledFor: date.toISOString(),
+          lineItems: [...this.lineItems],
+          status: 'pending' as const,
+        }
 
-      try {
-        await this.preOrderService.create(payload)
-        // Erfolg: den GESAMTEN Bestelldialog schließen (nicht nur den Vorbestell-Dialog).
-        this.matDialogRef.close('preorder-created')
-      } catch (e) {
-        // Fehler (z. B. außerhalb der Öffnungszeiten) INLINE im Bestelldialog
-        // anzeigen — der BaseService-Toast oben rechts wird beim Fokus auf den
-        // zentrierten Dialog leicht übersehen. Dialog bleibt bewusst OFFEN, damit
-        // der Nutzer die Uhrzeit korrigieren kann (die lineItems bleiben erhalten).
-        const msg = (e as { message?: string })?.message || 'Vorbestellung konnte nicht erstellt werden.'
-        this.setInfoBoxText(msg, 'red')
-        console.error('Vorbestellung konnte nicht erstellt werden:', e)
-      }
-    })
+        try {
+          await this.preOrderService.create(payload)
+          // Erfolg: den GESAMTEN Bestelldialog schließen (nicht nur den Vorbestell-Dialog).
+          this.matDialogRef.close('preorder-created')
+        } catch (e) {
+          // Fehler (z. B. außerhalb der Öffnungszeiten) INLINE im Bestelldialog
+          // anzeigen — der BaseService-Toast oben rechts wird beim Fokus auf den
+          // zentrierten Dialog leicht übersehen. Dialog bleibt bewusst OFFEN, damit
+          // der Nutzer die Uhrzeit korrigieren kann (die lineItems bleiben erhalten).
+          const msg = (e as { message?: string })?.message || 'Vorbestellung konnte nicht erstellt werden.'
+          this.setInfoBoxText(msg, 'red')
+          console.error('Vorbestellung konnte nicht erstellt werden:', e)
+        }
+      })
   }
 
   setTableSubbuttons() {
@@ -975,52 +975,55 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       blockLabel: 'Soße auswählen',
       flags: { isMenuSideDishSauce: true, isExtra: false, isMenuSubButton: true },
       onSelect: copy => this.setMenuSideDishSauce(copy),
-      buildFunctionButtons: parentButton => [{
-        // ABBRUCH steigt hart aus dem Menü-Schritt aus; bereits gesetzte Slots bleiben,
-        // der Warenkorb markiert das Menü als unvollständig (isMenuComplete).
-        _id: 'cancelMenuSauce',
-        externalId: this.#functionButtonExternalId,
-        locationId: this.userService.currentUser()?.activeLocationId || '',
-        tenantId: this.authService.tenantId()?.toString() || '',
-        name: 'ABBRUCH',
-        index: -2,
-        isFunctionButton: true,
-        isExtra: false,
-        variant: 'cancel',
-        icon: 'close',
-        callback: () => {
-          this._isBlocked = false
-          this.setProductButtonsByGroupId((parentButton as any)?.categoryIds?.[0])
-        },
-      }, {
-        _id: this._skipSauceId,
-        externalId: this.#functionButtonExternalId,
-        locationId: this.userService.currentUser()?.activeLocationId || '',
-        tenantId: this.authService.tenantId()?.toString() || '',
-        name: this._skipSauceName,
-        index: -1,
-        isFunctionButton: true,
-        isExtra: false,
-        variant: 'skip',
-        icon: 'arrow_forward',
-        callback: () => {
-          if (
-            parentButton &&
-            (parentButton as any).itemType === ItemType.mainDish &&
-            (parentButton as any).isMenuDrink
-          ) {
-            this.setMenuDrinkButtons((parentButton as any)?.drinks)
-          } else {
-            if (this._selectedProductIndex !== null) {
-              this.#lineItems[this._selectedProductIndex].menuDrink = null
-            } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
-              this.combinations[this._selectedCombinationIndex[0]][this._selectedCombinationIndex[1]].menuDrink = null
-            }
+      buildFunctionButtons: parentButton => [
+        {
+          // ABBRUCH steigt hart aus dem Menü-Schritt aus; bereits gesetzte Slots bleiben,
+          // der Warenkorb markiert das Menü als unvollständig (isMenuComplete).
+          _id: 'cancelMenuSauce',
+          externalId: this.#functionButtonExternalId,
+          locationId: this.userService.currentUser()?.activeLocationId || '',
+          tenantId: this.authService.tenantId()?.toString() || '',
+          name: 'ABBRUCH',
+          index: -2,
+          isFunctionButton: true,
+          isExtra: false,
+          variant: 'cancel',
+          icon: 'close',
+          callback: () => {
             this._isBlocked = false
             this.setProductButtonsByGroupId((parentButton as any)?.categoryIds?.[0])
-          }
+          },
         },
-      }],
+        {
+          _id: this._skipSauceId,
+          externalId: this.#functionButtonExternalId,
+          locationId: this.userService.currentUser()?.activeLocationId || '',
+          tenantId: this.authService.tenantId()?.toString() || '',
+          name: this._skipSauceName,
+          index: -1,
+          isFunctionButton: true,
+          isExtra: false,
+          variant: 'skip',
+          icon: 'arrow_forward',
+          callback: () => {
+            if (
+              parentButton &&
+              (parentButton as any).itemType === ItemType.mainDish &&
+              (parentButton as any).isMenuDrink
+            ) {
+              this.setMenuDrinkButtons((parentButton as any)?.drinks)
+            } else {
+              if (this._selectedProductIndex !== null) {
+                this.#lineItems[this._selectedProductIndex].menuDrink = null
+              } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
+                this.combinations[this._selectedCombinationIndex[0]][this._selectedCombinationIndex[1]].menuDrink = null
+              }
+              this._isBlocked = false
+              this.setProductButtonsByGroupId((parentButton as any)?.categoryIds?.[0])
+            }
+          },
+        },
+      ],
     })
   }
 
@@ -1059,7 +1062,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     if (
       this._selectedProductIndex === null &&
-      this._selectedCombinationIndex[0] === null && this._selectedCombinationIndex[1] === null
+      this._selectedCombinationIndex[0] === null &&
+      this._selectedCombinationIndex[1] === null
     ) {
       this.setInfoBoxText('Bitte wählen Sie zunächst einen Artikel aus.', 'red')
       return
@@ -1504,7 +1508,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (
       (article.isMenuSideDish !== undefined && !article.isMenuSideDish) ||
       (this._selectedProductIndex === null &&
-        this._selectedCombinationIndex[0] === null && this._selectedCombinationIndex[1] === null)
+        this._selectedCombinationIndex[0] === null &&
+        this._selectedCombinationIndex[1] === null)
     ) {
       return
     }
@@ -1529,8 +1534,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       recipeReferences: article.recipeReferences || [],
       taxInside: article.taxInside || defaultTaxValue,
       taxOutside: article.taxOutside || defaultTaxValue,
-      topic:
-        this.productGroupService.getProductGroupById(article.productGroupExternalId || '')?.name || '',
+      topic: this.productGroupService.getProductGroupById(article.productGroupExternalId || '')?.name || '',
     }
   }
 
@@ -1538,7 +1542,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (
       !subButtonItem.isMenuSideDishSauce ||
       (this._selectedProductIndex === null &&
-        this._selectedCombinationIndex[0] === null && this._selectedCombinationIndex[1] === null)
+        this._selectedCombinationIndex[0] === null &&
+        this._selectedCombinationIndex[1] === null)
     ) {
       return
     }
@@ -1549,7 +1554,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (
       !article.isMenuDrink ||
       (this._selectedProductIndex === null &&
-        this._selectedCombinationIndex[0] === null && this._selectedCombinationIndex[1] === null)
+        this._selectedCombinationIndex[0] === null &&
+        this._selectedCombinationIndex[1] === null)
     ) {
       return
     }
@@ -1576,8 +1582,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       recipeReferences: article.recipeReferences || [],
       taxInside: article.taxInside || defaultTaxValue,
       taxOutside: article.taxOutside || defaultTaxValue,
-      topic:
-        this.productGroupService.getProductGroupById(article.productGroupExternalId || '')?.name || '',
+      topic: this.productGroupService.getProductGroupById(article.productGroupExternalId || '')?.name || '',
     }
   }
 
@@ -1692,9 +1697,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   decreaseExtra(article: PosProductButton) {
     const isModifier =
-      article.productType === 'MODIFIER' ||
-      article.itemType === ItemType.extra ||
-      article.itemType === ItemType.sauce
+      article.productType === 'MODIFIER' || article.itemType === ItemType.extra || article.itemType === ItemType.sauce
     if (!isModifier) return
 
     let selectedArticle: OrderLineItem

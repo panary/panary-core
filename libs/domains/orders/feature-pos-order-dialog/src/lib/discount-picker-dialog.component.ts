@@ -16,18 +16,24 @@ import { TranslateModule } from '@ngx-translate/core'
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslateModule],
   template: `
-    <div role="dialog" aria-modal="true" aria-labelledby="discount-picker-title"
-         class="flex flex-col w-full h-[35rem] bg-white dark:bg-gray-950 rounded-2xl shadow-xl overflow-hidden">
-
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="discount-picker-title"
+      class="flex flex-col w-full h-[35rem] bg-white dark:bg-gray-950 rounded-2xl shadow-xl overflow-hidden"
+    >
       <!-- HEADER -->
       <div class="h-20 shrink-0 px-6 py-5 flex justify-between items-start">
         <div>
           <h2 id="discount-picker-title" class="text-lg font-bold text-gray-900 dark:text-white">Rabatt wählen</h2>
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manuelle Rabatte für diese Bestellung</p>
         </div>
-        <button (click)="close()" type="button"
+        <button
+          (click)="close()"
+          type="button"
           class="w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500
-                 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all">
+                 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
+        >
           <span class="material-symbols-outlined text-[1.25rem]">close</span>
         </button>
       </div>
@@ -49,15 +55,21 @@ import { TranslateModule } from '@ngx-translate/core'
         } @else {
           <div class="grid grid-cols-2 gap-2.5 content-start py-1">
             @for (d of discounts(); track d._id) {
-              <button type="button" (click)="select(d)"
+              <button
+                type="button"
+                (click)="select(d)"
                 class="pnry-touch h-[5.25rem] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900
                        hover:bg-gray-50 dark:hover:bg-gray-800/50 active:scale-[0.98] transition-all
-                       p-3 flex flex-col items-start justify-between text-left">
+                       p-3 flex flex-col items-start justify-between text-left"
+              >
                 <div class="flex items-center gap-1.5 w-full min-w-0">
                   <span class="text-sm font-semibold text-gray-900 dark:text-white truncate flex-1">{{ d.name }}</span>
                   @if (d.isStaffMeal) {
-                    <span class="shrink-0 text-[0.5625rem] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded
-                                 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">Personal</span>
+                    <span
+                      class="shrink-0 text-[0.5625rem] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded
+                                 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300"
+                      >Personal</span
+                    >
                   }
                 </div>
                 <span class="text-lg font-black text-gray-800 dark:text-gray-100">{{ valueLabel(d) }}</span>

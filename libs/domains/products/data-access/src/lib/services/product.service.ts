@@ -137,7 +137,7 @@ export class ProductService extends BaseService<ProductSchema> {
       this.#isLoaded.set(true) // Endlosschleife verhindern
     } finally {
       this.#isLoading.set(false)
-      console.log(`Gesamtanzahl der aktiven Produkte: ${ this.#documents().length }`)
+      console.log(`Gesamtanzahl der aktiven Produkte: ${this.#documents().length}`)
     }
   }
 

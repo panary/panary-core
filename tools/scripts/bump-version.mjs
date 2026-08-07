@@ -32,8 +32,8 @@ const TAURI_CONF_PATH = resolve(ROOT, 'apps/pos-client/src-tauri/tauri.conf.json
 
 // Aktuelles Datum → YY.MM
 const now = new Date()
-const yy = String(now.getFullYear()).slice(2)  // '26' für 2026
-const mm = String(now.getMonth() + 1)          // '4' für April (keine führende Null)
+const yy = String(now.getFullYear()).slice(2) // '26' für 2026
+const mm = String(now.getMonth() + 1) // '4' für April (keine führende Null)
 const newPrefix = `${yy}.${mm}`
 
 // Aktuelle Version lesen

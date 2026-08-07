@@ -17,12 +17,15 @@ export interface MqttSettingsData {
     <div class="bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 rounded-xl p-6">
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-lg font-semibold text-slate-900 dark:text-white">MQTT-Broker</h2>
-        <button (click)="testConnection()" [disabled]="testing()"
+        <button
+          (click)="testConnection()"
+          [disabled]="testing()"
           class="px-4 py-2 rounded-lg text-sm font-medium transition
                  border border-slate-200 dark:border-gray-700
                  text-slate-600 dark:text-gray-400
                  hover:bg-slate-50 dark:hover:bg-gray-800
-                 disabled:opacity-50">
+                 disabled:opacity-50"
+        >
           @if (testing()) {
             <span class="flex items-center gap-2">
               <span class="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></span>
@@ -35,10 +38,14 @@ export interface MqttSettingsData {
       </div>
 
       @if (testResult()) {
-        <div class="mb-4 px-4 py-3 rounded-lg text-sm"
-          [class]="testResult() === 'success'
-            ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-            : 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'">
+        <div
+          class="mb-4 px-4 py-3 rounded-lg text-sm"
+          [class]="
+            testResult() === 'success'
+              ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+              : 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'
+          "
+        >
           {{ testResult() === 'success' ? 'Verbindung zum Broker erfolgreich!' : testError() }}
         </div>
       }
@@ -48,15 +55,26 @@ export interface MqttSettingsData {
         reiner Client-Probe gegen den Broker und beruehrt locations nicht.
         min-w-0 und m-0 neutralisieren die UA-Defaults des Fieldsets.
       -->
-      <fieldset [disabled]="readOnly()" class="min-w-0 m-0 p-0 border-0 grid grid-cols-3 gap-4"
-                [class.opacity-60]="readOnly()">
+      <fieldset
+        [disabled]="readOnly()"
+        class="min-w-0 m-0 p-0 border-0 grid grid-cols-3 gap-4"
+        [class.opacity-60]="readOnly()"
+      >
         <!-- Protokoll -->
         <div class="space-y-1">
-          <label for="mqttProtocol" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Protokoll</label>
-          <select id="mqttProtocol" [ngModel]="settings().mqttServerProtocol" (ngModelChange)="onFieldChange('mqttServerProtocol', $event)"
+          <label
+            for="mqttProtocol"
+            class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+            >Protokoll</label
+          >
+          <select
+            id="mqttProtocol"
+            [ngModel]="settings().mqttServerProtocol"
+            (ngModelChange)="onFieldChange('mqttServerProtocol', $event)"
             name="mqttServerProtocol"
             class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                   text-slate-900 dark:text-white outline-none">
+                   text-slate-900 dark:text-white outline-none"
+          >
             <option value="ws">ws (WebSocket)</option>
             <option value="wss">wss (WebSocket Secure)</option>
           </select>
@@ -64,22 +82,42 @@ export interface MqttSettingsData {
 
         <!-- URL -->
         <div class="space-y-1">
-          <label for="mqttServerUrl" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Server-URL</label>
-          <input id="mqttServerUrl" [ngModel]="settings().mqttServerUrl" (ngModelChange)="onFieldChange('mqttServerUrl', $event)"
-            name="mqttServerUrl" type="text" placeholder="localhost"
+          <label
+            for="mqttServerUrl"
+            class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+            >Server-URL</label
+          >
+          <input
+            id="mqttServerUrl"
+            [ngModel]="settings().mqttServerUrl"
+            (ngModelChange)="onFieldChange('mqttServerUrl', $event)"
+            name="mqttServerUrl"
+            type="text"
+            placeholder="localhost"
             class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                    text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                   focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none" />
+                   focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none"
+          />
         </div>
 
         <!-- Port -->
         <div class="space-y-1">
-          <label for="mqttPort" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Port</label>
-          <input id="mqttPort" [ngModel]="settings().mqttServerPort" (ngModelChange)="onFieldChange('mqttServerPort', $event)"
-            name="mqttServerPort" type="number" min="1" max="65535" placeholder="9001"
+          <label for="mqttPort" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+            >Port</label
+          >
+          <input
+            id="mqttPort"
+            [ngModel]="settings().mqttServerPort"
+            (ngModelChange)="onFieldChange('mqttServerPort', $event)"
+            name="mqttServerPort"
+            type="number"
+            min="1"
+            max="65535"
+            placeholder="9001"
             class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                    text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                   focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none" />
+                   focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none"
+          />
         </div>
       </fieldset>
     </div>

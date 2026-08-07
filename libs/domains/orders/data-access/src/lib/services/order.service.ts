@@ -32,14 +32,14 @@ import {
 /** Benanntes Input-Objekt für `OrderService.createOrder` — ersetzt die frühere 13-Parameter-Signatur. */
 export interface CreateOrderInput {
   lineItems: Array<OrderLineItem>
-  orderChannel: typeof OrderChannel[keyof typeof OrderChannel]
+  orderChannel: (typeof OrderChannel)[keyof typeof OrderChannel]
   customerDetails?: CustomerPaymentInfo
   discountDetails?: Discount
   pager?: number
   productionTime: number
   staffMealDetails?: StaffPaymentInfo
   table?: string
-  dineLocation: typeof DineLocation[keyof typeof DineLocation]
+  dineLocation: (typeof DineLocation)[keyof typeof DineLocation]
   recordingDate: Date
   orderInteractions?: Array<OrderInteraction>
   creationContext?: CreationContext
@@ -145,7 +145,7 @@ export class OrderService extends BaseService<Order> {
    */
   async #mirrorOrdersCache(serverOrders: Order[]): Promise<void> {
     const serverIds = new Set(serverOrders.map(order => order._id))
-    const pendingIds = new Set(await this.#outbox?.pendingEntityIds() ?? [])
+    const pendingIds = new Set((await this.#outbox?.pendingEntityIds()) ?? [])
 
     let preserved: Order[] = []
     if (this.cacheStore?.isReady() && pendingIds.size > 0) {
@@ -306,31 +306,33 @@ export class OrderService extends BaseService<Order> {
   private async createOrderAndOpenPrintDialog(
     newOrder: Omit<Order, '_id' | 'locationId' | 'tenantId' | 'createdAt' | 'updatedAt'>,
   ): Promise<number | number[] | undefined | null> {
-    return this.#createOrderRecord(newOrder).then((createdOrder: Order | Order[]): number | number[] | undefined | null => {
-      if (!createdOrder) return null
+    return this.#createOrderRecord(newOrder).then(
+      (createdOrder: Order | Order[]): number | number[] | undefined | null => {
+        if (!createdOrder) return null
 
-      // Eigene Bestellung sofort lokal nachladen. Der Realtime-`created`-Echo
-      // ist auf dem erstellenden Gerät nicht verlässlich; ohne dieses Reload
-      // bliebe das #orders-Signal stale → Dashboard-Diagramm aktualisiert sich
-      // erst nach komplettem Page-Reload. loadDocuments() setzt #orders neu
-      // (→ Chart-Effect) und zeigt den „Bestellungen aktualisiert"-Hinweis.
-      this.loadDocuments()
+        // Eigene Bestellung sofort lokal nachladen. Der Realtime-`created`-Echo
+        // ist auf dem erstellenden Gerät nicht verlässlich; ohne dieses Reload
+        // bliebe das #orders-Signal stale → Dashboard-Diagramm aktualisiert sich
+        // erst nach komplettem Page-Reload. loadDocuments() setzt #orders neu
+        // (→ Chart-Effect) und zeigt den „Bestellungen aktualisiert"-Hinweis.
+        this.loadDocuments()
 
-      // Druckdialog öffnen, wenn in den Settings aktiviert
-      const showDialog = this.#locationService.activeLocation()?.settings?.printSettings?.showDialogAfterOrder ?? true
-      if (showDialog) {
-        const orderToPrint = createdOrder instanceof Array ? createdOrder[0] : createdOrder
-        if (orderToPrint) {
-          this.#matDialog.open(PrintDialogComponent, { data: orderToPrint })
+        // Druckdialog öffnen, wenn in den Settings aktiviert
+        const showDialog = this.#locationService.activeLocation()?.settings?.printSettings?.showDialogAfterOrder ?? true
+        if (showDialog) {
+          const orderToPrint = createdOrder instanceof Array ? createdOrder[0] : createdOrder
+          if (orderToPrint) {
+            this.#matDialog.open(PrintDialogComponent, { data: orderToPrint })
+          }
         }
-      }
 
-      if (createdOrder instanceof Array) {
-        return createdOrder.map((order: Order): number => order.dailySequenceNumber)
-      } else {
-        return createdOrder.dailySequenceNumber
-      }
-    })
+        if (createdOrder instanceof Array) {
+          return createdOrder.map((order: Order): number => order.dailySequenceNumber)
+        } else {
+          return createdOrder.dailySequenceNumber
+        }
+      },
+    )
   }
 
   /** Online → Server; offline → optimistisch in Cache + Outbox (Connect-Tier). */
@@ -486,7 +488,8 @@ export class OrderService extends BaseService<Order> {
     // appliedDiscounts ist führend für die Tax-Engine; order.discount bleibt als
     // Legacy-Spiegel für Alt-Reader (Aggregator/Bon) gesetzt (Rückwärtskompatibilität).
     if (appliedDiscounts && appliedDiscounts.length > 0) order.appliedDiscounts = appliedDiscounts
-    if (orderInteractions.length > 0) (order as Order & { orderInteractions?: OrderInteraction[] }).orderInteractions = orderInteractions
+    if (orderInteractions.length > 0)
+      (order as Order & { orderInteractions?: OrderInteraction[] }).orderInteractions = orderInteractions
     if (creationContext) order.creationContext = creationContext
 
     this.sortLineItemsByName(order.lineItems)

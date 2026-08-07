@@ -24,8 +24,7 @@ export const BootstrapReportDirection = {
   PULL_CLOUD_TO_EDGE: 'pull-cloud-to-edge',
   MERGE_BY_EXTERNAL_ID: 'merge-by-external-id',
 } as const
-export type BootstrapReportDirection =
-  (typeof BootstrapReportDirection)[keyof typeof BootstrapReportDirection]
+export type BootstrapReportDirection = (typeof BootstrapReportDirection)[keyof typeof BootstrapReportDirection]
 
 const identitySchema = Type.Object(
   {
@@ -117,11 +116,9 @@ export const bootstrapReportSchema = Type.Object(
 )
 export type BootstrapReport = Static<typeof bootstrapReportSchema>
 
-export const bootstrapReportDataSchema = Type.Omit(
-  bootstrapReportSchema,
-  ['createdAt', 'updatedAt'],
-  { $id: 'BootstrapReportData' },
-)
+export const bootstrapReportDataSchema = Type.Omit(bootstrapReportSchema, ['createdAt', 'updatedAt'], {
+  $id: 'BootstrapReportData',
+})
 export type BootstrapReportData = Static<typeof bootstrapReportDataSchema>
 
 export const bootstrapReportPatchSchema = Type.Partial(bootstrapReportSchema, {
@@ -139,10 +136,7 @@ export const bootstrapReportQueryProperties = Type.Pick(bootstrapReportSchema, [
   'createdAt',
 ])
 export const bootstrapReportQuerySchema = Type.Intersect(
-  [
-    querySyntax(bootstrapReportQueryProperties),
-    Type.Object({}, { additionalProperties: false }),
-  ],
+  [querySyntax(bootstrapReportQueryProperties), Type.Object({}, { additionalProperties: false })],
   { additionalProperties: false },
 )
 export type BootstrapReportQuery = Static<typeof bootstrapReportQuerySchema>

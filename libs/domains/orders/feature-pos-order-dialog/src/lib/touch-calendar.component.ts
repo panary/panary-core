@@ -5,18 +5,25 @@ import { ChangeDetectionStrategy, Component, computed, signal, input, output } f
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
-    :host { display: block; height: 100%; }
+    :host {
+      display: block;
+      height: 100%;
+    }
   `,
   template: `
     <div class="flex flex-col h-full bg-white dark:bg-gray-950 select-none">
       <div class="flex items-center justify-between p-2 mb-2">
-        <button (click)="prevMonth()"
-          class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+        <button
+          (click)="prevMonth()"
+          class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        >
           <span class="material-symbols-outlined">chevron_left</span>
         </button>
         <span class="text-lg font-bold text-gray-800 dark:text-white">{{ monthLabel() }}</span>
-        <button (click)="nextMonth()"
-          class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+        <button
+          (click)="nextMonth()"
+          class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        >
           <span class="material-symbols-outlined">chevron_right</span>
         </button>
       </div>
@@ -32,16 +39,24 @@ import { ChangeDetectionStrategy, Component, computed, signal, input, output } f
           @if (date) {
             <button
               class="w-10 h-10 flex items-center justify-center rounded-full font-medium text-sm transition-all active:scale-90 mx-auto"
-              [class.bg-gray-800]="isSelected(date)" [class.dark:bg-white]="isSelected(date)"
-              [class.text-white]="isSelected(date)" [class.dark:text-gray-900]="isSelected(date)"
-              [class.bg-gray-100]="!isSelected(date) && !isDisabled(date)" [class.dark:bg-gray-800]="!isSelected(date) && !isDisabled(date)"
-              [class.text-gray-700]="!isSelected(date) && !isDisabled(date)" [class.dark:text-gray-200]="!isSelected(date) && !isDisabled(date)"
-              [class.hover:bg-gray-200]="!isSelected(date) && !isDisabled(date)" [class.dark:hover:bg-gray-700]="!isSelected(date) && !isDisabled(date)"
-              [class.text-gray-300]="isDisabled(date)" [class.dark:text-gray-600]="isDisabled(date)"
-              [class.bg-gray-50]="isDisabled(date)" [class.dark:bg-gray-900]="isDisabled(date)"
+              [class.bg-gray-800]="isSelected(date)"
+              [class.dark:bg-white]="isSelected(date)"
+              [class.text-white]="isSelected(date)"
+              [class.dark:text-gray-900]="isSelected(date)"
+              [class.bg-gray-100]="!isSelected(date) && !isDisabled(date)"
+              [class.dark:bg-gray-800]="!isSelected(date) && !isDisabled(date)"
+              [class.text-gray-700]="!isSelected(date) && !isDisabled(date)"
+              [class.dark:text-gray-200]="!isSelected(date) && !isDisabled(date)"
+              [class.hover:bg-gray-200]="!isSelected(date) && !isDisabled(date)"
+              [class.dark:hover:bg-gray-700]="!isSelected(date) && !isDisabled(date)"
+              [class.text-gray-300]="isDisabled(date)"
+              [class.dark:text-gray-600]="isDisabled(date)"
+              [class.bg-gray-50]="isDisabled(date)"
+              [class.dark:bg-gray-900]="isDisabled(date)"
               [class.cursor-not-allowed]="isDisabled(date)"
               [disabled]="isDisabled(date)"
-              (click)="selectDate(date)">
+              (click)="selectDate(date)"
+            >
               {{ date.getDate() }}
             </button>
           } @else {
@@ -95,9 +110,9 @@ export class TouchCalendarComponent {
   isSelected(date: Date): boolean {
     const sel = this.selectedDate()
     if (!sel) return false
-    return date.getDate() === sel.getDate() &&
-      date.getMonth() === sel.getMonth() &&
-      date.getFullYear() === sel.getFullYear()
+    return (
+      date.getDate() === sel.getDate() && date.getMonth() === sel.getMonth() && date.getFullYear() === sel.getFullYear()
+    )
   }
 
   isPast(date: Date): boolean {

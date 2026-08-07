@@ -42,6 +42,4 @@ export interface CloudStatusBannerOptions {
  * Optionale Host-Konfiguration des priorisierten Cloud-Status-Banners. Nicht
  * belegt → Defaults (siehe Interface), damit der POS unveraendert bleibt.
  */
-export const CLOUD_STATUS_BANNER_OPTIONS = new InjectionToken<CloudStatusBannerOptions>(
-  'CLOUD_STATUS_BANNER_OPTIONS',
-)
+export const CLOUD_STATUS_BANNER_OPTIONS = new InjectionToken<CloudStatusBannerOptions>('CLOUD_STATUS_BANNER_OPTIONS')

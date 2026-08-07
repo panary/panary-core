@@ -3,7 +3,7 @@
   "compilerOptions": {
     "noPropertyAccessFromIndexSignature": true,
     "experimentalDecorators": true,
-    "moduleResolution": "bundler",
+    "moduleResolution": "bundler"
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

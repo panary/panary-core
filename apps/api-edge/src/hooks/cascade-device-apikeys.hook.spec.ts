@@ -125,7 +125,11 @@ describe('cascadeRemoveDeviceApikeys', () => {
 
     await cascadeRemoveDeviceApikeys(context)
 
-    expect(apikeyPatch).toHaveBeenCalledWith('key-1', { active: false }, expect.objectContaining({ provider: undefined }))
+    expect(apikeyPatch).toHaveBeenCalledWith(
+      'key-1',
+      { active: false },
+      expect.objectContaining({ provider: undefined }),
+    )
     expect(apikeyPatch.mock.invocationCallOrder[0]).toBeLessThan(apikeyRemove.mock.invocationCallOrder[0])
   })
 

@@ -30,6 +30,5 @@
     "@panary/shared-common": "^26.4.20",
     "@panary/cloud-edges": "^26.4.20"
   },
-  "devDependencies": {
-  }
+  "devDependencies": {}
 }

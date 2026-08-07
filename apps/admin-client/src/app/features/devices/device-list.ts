@@ -26,14 +26,18 @@ interface Device {
         <h1 class="text-xl font-bold tracking-tight">{{ 'DEVICES.TITLE' | translate }}</h1>
         <div class="flex items-center gap-3">
           @if (deviceStatus.online() !== null && deviceStatus.total() !== null) {
-            <span class="text-xs font-semibold px-2.5 py-1 rounded-full
-                         bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-gray-300">
+            <span
+              class="text-xs font-semibold px-2.5 py-1 rounded-full
+                         bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-gray-300"
+            >
               {{ deviceStatus.online() }} / {{ deviceStatus.total() }} {{ 'DEVICES.CONNECTED' | translate }}
             </span>
           }
-          <button (click)="openPairing()"
+          <button
+            (click)="openPairing()"
             class="text-sm font-semibold px-3.5 py-2 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-black
-                   hover:opacity-90 active:scale-[0.98] transition flex items-center gap-1.5">
+                   hover:opacity-90 active:scale-[0.98] transition flex items-center gap-1.5"
+          >
             <span class="text-base leading-none">+</span>
             {{ 'DEVICES.PAIR_DEVICE' | translate }}
           </button>
@@ -49,13 +53,19 @@ interface Device {
       @if (loading()) {
         <p class="text-slate-400 dark:text-gray-500 text-sm">{{ 'COMMON.LOADING' | translate }}</p>
       } @else if (devices().length === 0) {
-        <p class="text-slate-400 dark:text-gray-500 text-center py-12 text-sm">{{ 'DEVICES.NO_DEVICES' | translate }}</p>
+        <p class="text-slate-400 dark:text-gray-500 text-center py-12 text-sm">
+          {{ 'DEVICES.NO_DEVICES' | translate }}
+        </p>
       } @else {
-        <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden">
+        <div
+          class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden"
+        >
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500
-                         text-xs uppercase tracking-wider">
+              <tr
+                class="border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500
+                         text-xs uppercase tracking-wider"
+              >
                 <th class="px-3 py-2.5">{{ 'COMMON.NAME' | translate }}</th>
                 <th class="px-3 py-2.5">{{ 'DEVICES.TYPE' | translate }}</th>
                 <th class="px-3 py-2.5">{{ 'DEVICES.DEVICE_ID' | translate }}</th>
@@ -67,11 +77,15 @@ interface Device {
             </thead>
             <tbody>
               @for (device of devices(); track device._id) {
-                <tr class="border-b border-slate-200/50 dark:border-gray-800/50 hover:bg-slate-50 dark:hover:bg-gray-800/30 transition">
+                <tr
+                  class="border-b border-slate-200/50 dark:border-gray-800/50 hover:bg-slate-50 dark:hover:bg-gray-800/30 transition"
+                >
                   <td class="px-3 py-2.5 font-medium truncate max-w-48">{{ device.name }}</td>
                   <td class="px-3 py-2.5">
-                    <span class="text-xs px-2 py-0.5 rounded-full border border-slate-300 dark:border-gray-700
-                                 text-slate-600 dark:text-gray-300">
+                    <span
+                      class="text-xs px-2 py-0.5 rounded-full border border-slate-300 dark:border-gray-700
+                                 text-slate-600 dark:text-gray-300"
+                    >
                       {{ device.type }}
                     </span>
                   </td>
@@ -83,16 +97,20 @@ interface Device {
                   </td>
                   <td class="px-3 py-2.5">
                     @if (isConnected(device.deviceId)) {
-                      <span class="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full
+                      <span
+                        class="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full
                                    ring-1 ring-inset bg-green-50 text-green-700 ring-green-600/20
-                                   dark:bg-green-900/30 dark:text-green-300 dark:ring-green-500/30">
+                                   dark:bg-green-900/30 dark:text-green-300 dark:ring-green-500/30"
+                      >
                         <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
                         {{ 'DEVICES.ONLINE' | translate }}
                       </span>
                     } @else {
-                      <span class="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full
+                      <span
+                        class="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full
                                    ring-1 ring-inset bg-slate-100 text-slate-600 ring-slate-500/20
-                                   dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-500/30">
+                                   dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-500/30"
+                      >
                         <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
                         {{ 'DEVICES.OFFLINE' | translate }}
                       </span>
@@ -100,15 +118,21 @@ interface Device {
                   </td>
                   <td class="px-3 py-2.5">
                     @if (device.active) {
-                      <span class="inline-block w-2 h-2 rounded-full bg-green-400" [title]="'COMMON.STATUS_ACTIVE' | translate"></span>
+                      <span
+                        class="inline-block w-2 h-2 rounded-full bg-green-400"
+                        [title]="'COMMON.STATUS_ACTIVE' | translate"
+                      ></span>
                     } @else {
                       <span class="inline-block w-2 h-2 rounded-full bg-slate-300 dark:bg-gray-600"></span>
                     }
                   </td>
                   <td class="px-3 py-2.5 text-right whitespace-nowrap">
-                    <button type="button" (click)="pendingDelete.set(device)"
+                    <button
+                      type="button"
+                      (click)="pendingDelete.set(device)"
                       class="text-xs px-2.5 py-1 rounded-lg text-red-500 dark:text-red-400
-                             hover:bg-red-50 dark:hover:bg-red-950/30 transition">
+                             hover:bg-red-50 dark:hover:bg-red-950/30 transition"
+                    >
                       {{ 'COMMON.DELETE' | translate }}
                     </button>
                   </td>
@@ -128,22 +152,32 @@ interface Device {
           <!-- Inneres Klick-Stop verhindert Schliessen beim Klick in den Dialog; rein
                visuell, kein eigenes Tastatur-Target noetig. -->
           <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
-          <div class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-8 w-full max-w-sm shadow-xl text-center"
-               (click)="$event.stopPropagation()">
+          <div
+            class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-8 w-full max-w-sm shadow-xl text-center"
+            (click)="$event.stopPropagation()"
+          >
             <h2 class="text-lg font-bold mb-1">{{ 'DEVICES.PAIRING_TITLE' | translate }}</h2>
             <p class="text-sm text-slate-500 dark:text-gray-400 mb-6">{{ 'DEVICES.PAIRING_HINT' | translate }}</p>
 
             @if (pairingLoading()) {
-              <p class="text-slate-400 dark:text-gray-500 text-sm py-12">{{ 'DEVICES.PAIRING_GENERATING' | translate }}</p>
+              <p class="text-slate-400 dark:text-gray-500 text-sm py-12">
+                {{ 'DEVICES.PAIRING_GENERATING' | translate }}
+              </p>
             } @else if (pairingError()) {
               <p class="text-red-500 text-sm py-10">{{ 'DEVICES.PAIRING_ERROR' | translate }}</p>
             } @else {
               <div class="flex items-center justify-center gap-2 mb-5">
                 <span class="text-4xl font-mono font-bold tracking-[0.3em]">{{ pairingCode() }}</span>
-                <button type="button" (click)="copyCode()" [title]="'DEVICES.PAIRING_COPY' | translate"
-                  [class]="codeCopied()
-                    ? 'shrink-0 flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-lg text-green-600 dark:text-green-400 transition'
-                    : 'shrink-0 flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-lg text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-gray-800 transition'">
+                <button
+                  type="button"
+                  (click)="copyCode()"
+                  [title]="'DEVICES.PAIRING_COPY' | translate"
+                  [class]="
+                    codeCopied()
+                      ? 'shrink-0 flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-lg text-green-600 dark:text-green-400 transition'
+                      : 'shrink-0 flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-lg text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-gray-800 transition'
+                  "
+                >
                   @if (codeCopied()) {
                     <span aria-hidden="true">&#10003;</span> {{ 'DEVICES.PAIRING_COPIED' | translate }}
                   } @else {
@@ -164,12 +198,17 @@ interface Device {
             }
 
             <div class="flex gap-3">
-              <button (click)="closePairing()"
-                class="flex-1 py-2.5 rounded-lg bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-200 font-medium hover:bg-slate-200 dark:hover:bg-gray-700 transition text-sm">
+              <button
+                (click)="closePairing()"
+                class="flex-1 py-2.5 rounded-lg bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-200 font-medium hover:bg-slate-200 dark:hover:bg-gray-700 transition text-sm"
+              >
                 {{ 'COMMON.CLOSE' | translate }}
               </button>
-              <button (click)="regeneratePairing()" [disabled]="pairingLoading()"
-                class="flex-1 py-2.5 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-black font-medium hover:opacity-90 transition disabled:opacity-50 text-sm">
+              <button
+                (click)="regeneratePairing()"
+                [disabled]="pairingLoading()"
+                class="flex-1 py-2.5 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-black font-medium hover:opacity-90 transition disabled:opacity-50 text-sm"
+              >
                 {{ 'DEVICES.PAIRING_REGENERATE' | translate }}
               </button>
             </div>
@@ -185,7 +224,8 @@ interface Device {
           [dismissLabel]="'COMMON.CANCEL' | translate"
           (confirmed)="confirmDelete()"
           (dismissed)="pendingDelete.set(null)"
-          (cancelled)="pendingDelete.set(null)" />
+          (cancelled)="pendingDelete.set(null)"
+        />
       }
     </div>
   `,

@@ -38,7 +38,13 @@ describe('CloudManagedService', () => {
   // Die Wahrheitstabelle IST der Vertrag: sie muss exakt die Backend-Matrix aus
   // cloud-managed.hook.ts spiegeln (ungepairt frei / gepairt gesperrt /
   // gepairt+Notfall nur Drucker frei).
-  const cases: Array<{ name: string; state: StubState; readOnly: boolean; printerWritable: boolean; printerEmergency: boolean }> = [
+  const cases: Array<{
+    name: string
+    state: StubState
+    readOnly: boolean
+    printerWritable: boolean
+    printerEmergency: boolean
+  }> = [
     {
       name: 'ungepairt → alles schreibbar',
       state: { healthLoaded: true, cloudPaired: false, emergencyOverride: false, cloudUnreachable: false },

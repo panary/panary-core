@@ -48,10 +48,16 @@ interface BusinessDay {
           }
 
           @if (hasStaleOpenDays()) {
-            <div class="flex gap-3 items-start border border-amber-200 dark:border-amber-800/60
-                        bg-amber-50 dark:bg-amber-950/30 rounded-xl p-4">
-              <span class="material-symbols-outlined text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"
-                    style="font-size: 20px; line-height: 1" aria-hidden="true">warning</span>
+            <div
+              class="flex gap-3 items-start border border-amber-200 dark:border-amber-800/60
+                        bg-amber-50 dark:bg-amber-950/30 rounded-xl p-4"
+            >
+              <span
+                class="material-symbols-outlined text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"
+                style="font-size: 20px; line-height: 1"
+                aria-hidden="true"
+                >warning</span
+              >
               <div class="text-sm min-w-0 flex-1">
                 <p class="font-medium text-amber-900 dark:text-amber-100">
                   {{ 'BUSINESS_DAYS.STALE_BANNER_TITLE' | translate: { count: staleOpenIds().size } }}
@@ -76,11 +82,15 @@ interface BusinessDay {
               {{ 'BUSINESS_DAYS.NONE' | translate }}
             </p>
           } @else {
-            <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden">
+            <div
+              class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden"
+            >
               <table class="w-full text-sm">
                 <thead>
-                  <tr class="border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500
-                             text-xs uppercase tracking-wider">
+                  <tr
+                    class="border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500
+                             text-xs uppercase tracking-wider"
+                  >
                     <th class="px-3 py-2.5">{{ 'BUSINESS_DAYS.DATE' | translate }}</th>
                     <th class="px-3 py-2.5">{{ 'COMMON.STATUS' | translate }}</th>
                     <th class="px-3 py-2.5">{{ 'BUSINESS_DAYS.MODE' | translate }}</th>
@@ -92,20 +102,26 @@ interface BusinessDay {
                 </thead>
                 <tbody>
                   @for (bd of businessDays(); track bd._id) {
-                    <tr class="border-b border-slate-200/50 dark:border-gray-800/50"
-                        [class.bg-amber-50/60]="staleOpenIds().has(bd._id)"
-                        [class.dark:bg-amber-950/10]="staleOpenIds().has(bd._id)">
+                    <tr
+                      class="border-b border-slate-200/50 dark:border-gray-800/50"
+                      [class.bg-amber-50/60]="staleOpenIds().has(bd._id)"
+                      [class.dark:bg-amber-950/10]="staleOpenIds().has(bd._id)"
+                    >
                       <td class="px-3 py-2.5 font-medium tabular-nums">{{ bd.date }}</td>
                       <td class="px-3 py-2.5">
-                        <span class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full ring-1 ring-inset"
-                              [class]="statusBadgeClass(bd.status)">
+                        <span
+                          class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full ring-1 ring-inset"
+                          [class]="statusBadgeClass(bd.status)"
+                        >
                           {{ statusLabelKey(bd.status) | translate }}
                         </span>
                         @if (staleOpenIds().has(bd._id)) {
-                          <span class="ml-1.5 inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full
+                          <span
+                            class="ml-1.5 inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full
                                        ring-1 ring-inset bg-amber-50 text-amber-700 ring-amber-600/20
                                        dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-500/30"
-                                [title]="'BUSINESS_DAYS.STALE_OPEN_HINT' | translate">
+                            [title]="'BUSINESS_DAYS.STALE_OPEN_HINT' | translate"
+                          >
                             &#9888; {{ 'BUSINESS_DAYS.STALE_OPEN' | translate }}
                           </span>
                         }
@@ -121,8 +137,11 @@ interface BusinessDay {
                       </td>
                       <td class="px-3 py-2.5 text-xs max-w-60">
                         @if (bd.reportErrorMessage) {
-                          <span class="text-red-500 truncate inline-block max-w-full align-bottom"
-                                [title]="bd.reportErrorMessage">⚠ {{ bd.reportErrorMessage }}</span>
+                          <span
+                            class="text-red-500 truncate inline-block max-w-full align-bottom"
+                            [title]="bd.reportErrorMessage"
+                            >⚠ {{ bd.reportErrorMessage }}</span
+                          >
                         } @else {
                           <span class="text-slate-400 dark:text-gray-600">—</span>
                         }
@@ -132,9 +151,13 @@ interface BusinessDay {
                              ist die Wahrheit, aber ein Knopf, der garantiert in eine
                              Fehlermeldung laeuft, ist schlimmer als kein Knopf. -->
                         @if (discardableIds().has(bd._id)) {
-                          <button type="button" (click)="pendingDiscard.set(bd)" [disabled]="discarding() === bd._id"
+                          <button
+                            type="button"
+                            (click)="pendingDiscard.set(bd)"
+                            [disabled]="discarding() === bd._id"
                             class="text-xs px-2.5 py-1 rounded-lg text-amber-700 dark:text-amber-400
-                                   hover:bg-amber-100 dark:hover:bg-amber-950/40 transition disabled:opacity-50">
+                                   hover:bg-amber-100 dark:hover:bg-amber-950/40 transition disabled:opacity-50"
+                          >
                             {{ 'BUSINESS_DAYS.DISCARD_ACTION' | translate }}
                           </button>
                         }
@@ -156,7 +179,8 @@ interface BusinessDay {
           [dismissLabel]="'COMMON.CANCEL' | translate"
           (confirmed)="confirmDiscard()"
           (dismissed)="pendingDiscard.set(null)"
-          (cancelled)="pendingDiscard.set(null)" />
+          (cancelled)="pendingDiscard.set(null)"
+        />
       }
     </div>
   `,
@@ -269,13 +293,20 @@ export class BusinessDaysListComponent implements OnInit {
 
   statusLabelKey(status: string): string {
     switch (status) {
-      case 'open': return 'BUSINESS_DAYS.ST_OPEN'
-      case 'closing-requested': return 'BUSINESS_DAYS.ST_CLOSING_REQUESTED'
-      case 'closing-aggregating': return 'BUSINESS_DAYS.ST_CLOSING_AGGREGATING'
-      case 'closed': return 'BUSINESS_DAYS.ST_CLOSED'
-      case 'failed': return 'BUSINESS_DAYS.ST_FAILED'
-      case 'audited': return 'BUSINESS_DAYS.ST_AUDITED'
-      default: return status
+      case 'open':
+        return 'BUSINESS_DAYS.ST_OPEN'
+      case 'closing-requested':
+        return 'BUSINESS_DAYS.ST_CLOSING_REQUESTED'
+      case 'closing-aggregating':
+        return 'BUSINESS_DAYS.ST_CLOSING_AGGREGATING'
+      case 'closed':
+        return 'BUSINESS_DAYS.ST_CLOSED'
+      case 'failed':
+        return 'BUSINESS_DAYS.ST_FAILED'
+      case 'audited':
+        return 'BUSINESS_DAYS.ST_AUDITED'
+      default:
+        return status
     }
   }
 

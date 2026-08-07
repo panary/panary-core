@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  cloudEdgePatchSchema,
-  cloudEdgeSchema,
-  EdgeProvenance,
-  EdgeTrustTier,
-} from './cloud-edge.schema'
+import { cloudEdgePatchSchema, cloudEdgeSchema, EdgeProvenance, EdgeTrustTier } from './cloud-edge.schema'
 
 describe('cloudEdgeSchema — Provenienz/Trust', () => {
   it('exportiert die zwei Provenienz-Werte', () => {
@@ -12,11 +7,7 @@ describe('cloudEdgeSchema — Provenienz/Trust', () => {
   })
 
   it('exportiert die drei Trust-Tier-Werte', () => {
-    expect(Object.values(EdgeTrustTier)).toEqual([
-      'crypto-verified',
-      'provenance-verified',
-      'unverified',
-    ])
+    expect(Object.values(EdgeTrustTier)).toEqual(['crypto-verified', 'provenance-verified', 'unverified'])
   })
 
   it('fuehrt provenance/trustTier/Audit-Felder als optionale Properties', () => {

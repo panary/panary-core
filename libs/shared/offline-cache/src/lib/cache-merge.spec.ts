@@ -27,7 +27,10 @@ describe('mergeRecords', () => {
   it('upsert ergänzt neue und ersetzt bestehende per _id', () => {
     const result = mergeRecords(
       [{ _id: 'a', updatedAt: '1' }],
-      [{ _id: 'a', updatedAt: '2' }, { _id: 'b', updatedAt: '1' }],
+      [
+        { _id: 'a', updatedAt: '2' },
+        { _id: 'b', updatedAt: '1' },
+      ],
       'upsert',
     )
     expect(result.length).toBe(2)

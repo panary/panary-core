@@ -164,22 +164,16 @@ export const cloudConnectionSchema = Type.Object(
     // Nullable, weil das Deaktivieren das Feld leert. Ohne Null-Union scheitert
     // jeder Patch, der nicht am Validator vorbeigeht (der Worker nutzt `_patch`
     // auf Adapter-Ebene, die Custom-Method laeuft durch die Hook-Pipeline).
-    emergencyOverrideSince: Type.Optional(
-      Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
-    ),
+    emergencyOverrideSince: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
     // AUTO = vom Heartbeat-Watchdog gesetzt, MANUAL = vom Operator.
     // Schuetzt eine manuelle Aktivierung davor, vom Reconcile-Fast-Path
     // weggeraeumt zu werden (siehe utils/emergency-override.ts).
-    emergencyOverrideSource: Type.Optional(
-      Type.Union([StringEnum(['AUTO', 'MANUAL']), Type.Null()]),
-    ),
+    emergencyOverrideSource: Type.Optional(Type.Union([StringEnum(['AUTO', 'MANUAL']), Type.Null()])),
     // Legt die Auto-Aktivierung nach einer manuellen Deaktivierung kurz stumm.
     // Ohne das wuerde der naechste fehlgeschlagene Heartbeat sofort
     // re-aktivieren, weil `consecutiveHeartbeatFailures` nur bei ERFOLG
     // zurueckgesetzt wird.
-    emergencyOverrideSuppressedUntil: Type.Optional(
-      Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
-    ),
+    emergencyOverrideSuppressedUntil: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
     lastHeartbeatOk: Type.Optional(Type.String({ format: 'date-time' })),
     consecutiveHeartbeatFailures: Type.Optional(Type.Integer({ minimum: 0, default: 0 })),
 
@@ -187,9 +181,7 @@ export const cloudConnectionSchema = Type.Object(
     // Wird vom Worker nach jedem erfolgreichen Pull auf `now` gesetzt.
     // `null` (oder fehlend) = erster Pull, ohne `since`-Filter (Cloud
     // antwortet mit allen tenant-Records bis zum `$limit`).
-    lastBusinessDaysPullAt: Type.Optional(
-      Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
-    ),
+    lastBusinessDaysPullAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
 
     // Offline-Override (Operator-Action bei Cloud-Outage):
     // Wenn gesetzt und in der Zukunft liegend, darf der Edge im
@@ -198,9 +190,7 @@ export const cloudConnectionSchema = Type.Object(
     // Wird vom Operator manuell via Admin-Banner gesetzt (Default 2h
     // ab now), beim naechsten erfolgreichen Pull-Tick auf `null`
     // zurueckgesetzt (Auto-Reset).
-    offlineOverrideActiveUntil: Type.Optional(
-      Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
-    ),
+    offlineOverrideActiveUntil: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
 
     // „Cloud erreichbar"-Heartbeat — ENTKOPPELT vom Pull-Cursor
     // `lastBusinessDaysPullAt`. Wird gesetzt, sobald Cloud-Kontakt bestaetigt
@@ -210,9 +200,7 @@ export const cloudConnectionSchema = Type.Object(
     // Push-Modus nur noch als langsamer Safety-Net laeuft — der Cursor wuerde
     // sonst faelschlich „stale" wirken, obwohl die Cloud via Socket erreichbar
     // ist. NICHT als Cursor verwenden (kein incremental-since).
-    lastCloudContactAt: Type.Optional(
-      Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
-    ),
+    lastCloudContactAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
   },
   { $id: 'CloudConnection', additionalProperties: false },
 )
@@ -421,9 +409,7 @@ export const cloudConnectionSetEmergencyOverrideDataSchema = Type.Object(
   },
   { $id: 'CloudConnectionSetEmergencyOverrideData', additionalProperties: false },
 )
-export type CloudConnectionSetEmergencyOverrideData = Static<
-  typeof cloudConnectionSetEmergencyOverrideDataSchema
->
+export type CloudConnectionSetEmergencyOverrideData = Static<typeof cloudConnectionSetEmergencyOverrideDataSchema>
 
 export const cloudConnectionSetEmergencyOverrideResultSchema = Type.Object(
   {
@@ -433,7 +419,5 @@ export const cloudConnectionSetEmergencyOverrideResultSchema = Type.Object(
   },
   { $id: 'CloudConnectionSetEmergencyOverrideResult', additionalProperties: false },
 )
-export type CloudConnectionSetEmergencyOverrideResult = Static<
-  typeof cloudConnectionSetEmergencyOverrideResultSchema
->
+export type CloudConnectionSetEmergencyOverrideResult = Static<typeof cloudConnectionSetEmergencyOverrideResultSchema>
 //#endregion

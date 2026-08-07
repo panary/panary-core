@@ -13,18 +13,21 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 @Component({
   selector: 'lib-pre-order-list',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    TranslateModule,
-  ],
+  imports: [CommonModule, FormsModule, TranslateModule],
   template: `
-    <div class="h-full w-full bg-gray-50 dark:bg-black p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border">
+    <div
+      class="h-full w-full bg-gray-50 dark:bg-black p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border"
+    >
       <!-- Header & Filters -->
-      <header class="flex-none flex flex-col gap-4 bg-white dark:bg-gray-950 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+      <header
+        class="flex-none flex flex-col gap-4 bg-white dark:bg-gray-950 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800"
+      >
         <div class="flex flex-row items-center justify-between">
           <div class="flex items-center gap-4">
-            <button (click)="goBack()" class="flex items-center justify-center w-10 h-10 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <button
+              (click)="goBack()"
+              class="flex items-center justify-center w-10 h-10 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
               <span class="material-symbols-outlined text-[1.25rem]">arrow_back</span>
             </button>
             <h1 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
@@ -32,29 +35,41 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
               {{ 'PRE_ORDERS.TITLE' | translate }}
             </h1>
             <!-- Mobil: runder Icon-Button -->
-            <button (click)="openCreateDialog()" class="ml-4 md:hidden flex items-center justify-center w-10 h-10 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition-all">
+            <button
+              (click)="openCreateDialog()"
+              class="ml-4 md:hidden flex items-center justify-center w-10 h-10 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition-all"
+            >
               <span class="material-symbols-outlined text-[1.375rem]">add</span>
             </button>
             <!-- Desktop: Button mit Text -->
-            <button (click)="openCreateDialog()" class="ml-4 hidden md:flex items-center gap-2 h-10 px-4 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 active:scale-95 transition-all">
+            <button
+              (click)="openCreateDialog()"
+              class="ml-4 hidden md:flex items-center gap-2 h-10 px-4 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 active:scale-95 transition-all"
+            >
               <span class="material-symbols-outlined text-[1.25rem]">add_circle</span>
               {{ 'PRE_ORDERS.NEW_PRE_ORDER' | translate }}
             </button>
           </div>
 
           <!-- Empty right side since button moved left -->
-          <div class="flex gap-2">
-          </div>
+          <div class="flex gap-2"></div>
         </div>
 
         <div class="relative">
-          <span class="material-symbols-outlined text-[1.25rem] absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
-          <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="fetchOrders()"
-                 [placeholder]="'PRE_ORDERS.SEARCH_PLACEHOLDER' | translate"
-                 class="w-full h-12 pl-10 pr-4 rounded-xl bg-gray-50 dark:bg-gray-800 border-none outline-none focus:ring-2 focus:ring-indigo-200 transition-all text-gray-700 dark:text-gray-200 placeholder:text-[0.6875rem] placeholder:md:text-sm placeholder:text-gray-400" />
+          <span class="material-symbols-outlined text-[1.25rem] absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            >search</span
+          >
+          <input
+            type="text"
+            [(ngModel)]="searchQuery"
+            (keyup.enter)="fetchOrders()"
+            [placeholder]="'PRE_ORDERS.SEARCH_PLACEHOLDER' | translate"
+            class="w-full h-12 pl-10 pr-4 rounded-xl bg-gray-50 dark:bg-gray-800 border-none outline-none focus:ring-2 focus:ring-indigo-200 transition-all text-gray-700 dark:text-gray-200 placeholder:text-[0.6875rem] placeholder:md:text-sm placeholder:text-gray-400"
+          />
           <button
             class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-600 text-white rounded-lg shadow-sm hover:bg-indigo-700 active:scale-95 transition-all"
-            (click)="fetchOrders()">
+            (click)="fetchOrders()"
+          >
             <span class="material-symbols-outlined text-[1.25rem]">arrow_forward</span>
           </button>
         </div>
@@ -63,9 +78,11 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
       <!-- Content -->
       <div class="flex-1 flex gap-6 min-h-0">
         <!-- Order List -->
-        <div class="flex-1 bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col"
-             [class.hidden]="selectedOrder() !== null" [class.lg:flex]="true">
-
+        <div
+          class="flex-1 bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col"
+          [class.hidden]="selectedOrder() !== null"
+          [class.lg:flex]="true"
+        >
           @if (loading()) {
             <div class="flex-1 flex justify-center items-center flex-col gap-4">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
@@ -86,21 +103,27 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                   (click)="toggleOrderSelection(order)"
                   (keydown.enter)="toggleOrderSelection(order)"
                   tabindex="0"
-                  role="button">
-
+                  role="button"
+                >
                   <div class="flex justify-between items-start mb-2">
                     <div class="flex items-center gap-2">
-                       <span class="font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-xs">
-                          {{ order.scheduledFor | date: 'dd.MM' }}
-                       </span>
+                      <span
+                        class="font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-xs"
+                      >
+                        {{ order.scheduledFor | date: 'dd.MM' }}
+                      </span>
                       <span class="text-xs font-bold text-indigo-600">
-                          {{ order.scheduledFor | date: 'HH:mm' }} Uhr
-                       </span>
+                        {{ order.scheduledFor | date: 'HH:mm' }} Uhr
+                      </span>
                     </div>
-                    <span class="font-bold text-gray-800 dark:text-white">{{ calculateTotal(order) | currency: 'EUR' }}</span>
+                    <span class="font-bold text-gray-800 dark:text-white">{{
+                      calculateTotal(order) | currency: 'EUR'
+                    }}</span>
                   </div>
 
-                  <div class="font-medium text-gray-700 dark:text-gray-200 truncate group-hover:text-indigo-700 transition-colors">
+                  <div
+                    class="font-medium text-gray-700 dark:text-gray-200 truncate group-hover:text-indigo-700 transition-colors"
+                  >
                     {{ order.customerContact.name }}
                   </div>
                   <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-1">
@@ -110,15 +133,21 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
                   <div class="flex justify-between items-center mt-3">
                     <div class="flex items-center gap-1.5">
-                      <span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
-                         {{ order.lineItems.length }} {{ 'COMMON.ITEMS' | translate }}
+                      <span
+                        class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full"
+                      >
+                        {{ order.lineItems.length }} {{ 'COMMON.ITEMS' | translate }}
                       </span>
                       @if ($any(order).dineLocation === 'dine-in') {
-                        <span class="text-xs font-medium text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
+                        <span
+                          class="text-xs font-medium text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full"
+                        >
                           🍽 {{ 'PRE_ORDERS.DINE_IN' | translate }}
                         </span>
                       } @else {
-                        <span class="text-xs font-medium text-orange-600 bg-orange-50 dark:bg-orange-900/30 px-2 py-0.5 rounded-full">
+                        <span
+                          class="text-xs font-medium text-orange-600 bg-orange-50 dark:bg-orange-900/30 px-2 py-0.5 rounded-full"
+                        >
                           🥡 {{ 'PRE_ORDERS.TAKE_OUT' | translate }}
                         </span>
                       }
@@ -126,17 +155,17 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
                     @if (order.status === 'converted') {
                       <span
-                        class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <span class="material-symbols-outlined text-[0.75rem]">check</span> {{ 'COMMON.DONE' | translate }}
+                        class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1"
+                      >
+                        <span class="material-symbols-outlined text-[0.75rem]">check</span>
+                        {{ 'COMMON.DONE' | translate }}
                       </span>
                     } @else if (order.status === 'cancelled') {
                       <span class="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
                         {{ 'COMMON.CANCELED' | translate }}
                       </span>
                     } @else {
-                      <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                         Offen
-                       </span>
+                      <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full"> Offen </span>
                     }
                   </div>
                 </div>
@@ -147,100 +176,125 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
         <!-- Order Detail -->
         @if (selectedOrder()) {
-        <div
-          class="flex-1 lg:max-w-[28.125rem] bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col">
-          <!-- Detail Header -->
-          <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800">
-            <div>
-              <h2 class="font-bold text-lg text-gray-800 dark:text-white">{{ 'PRE_ORDERS.DETAILS' | translate }}</h2>
-              <p class="text-xs text-gray-500 dark:text-gray-400">{{ selectedOrder()?.scheduledFor | date: 'dd.MM.yyyy HH:mm' }}</p>
-            </div>
-            <button (click)="selectedOrder.set(null)" class="lg:hidden flex items-center justify-center w-10 h-10 text-gray-500 dark:text-gray-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-              <span class="material-symbols-outlined text-[1.25rem]">close</span>
-            </button>
-          </div>
-
-          <!-- Detail Content -->
-          <div class="flex-1 overflow-y-auto p-4">
-            <!-- Customer Card -->
-            <div class="mb-4 p-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl border border-indigo-100 dark:border-indigo-800">
-              <div class="font-bold text-indigo-900 dark:text-indigo-200 text-lg">{{ selectedOrder()?.customerContact?.name }}</div>
-              <div class="text-indigo-700 dark:text-indigo-300 flex items-center gap-2 mt-1">
-                <span class="material-symbols-outlined text-[1rem]">phone</span>
-                {{ selectedOrder()?.customerContact?.phone }}
+          <div
+            class="flex-1 lg:max-w-[28.125rem] bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col"
+          >
+            <!-- Detail Header -->
+            <div
+              class="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800"
+            >
+              <div>
+                <h2 class="font-bold text-lg text-gray-800 dark:text-white">{{ 'PRE_ORDERS.DETAILS' | translate }}</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  {{ selectedOrder()?.scheduledFor | date: 'dd.MM.yyyy HH:mm' }}
+                </p>
               </div>
-              @if (selectedOrder()?.note) {
-                <div class="mt-2 text-sm text-indigo-800 italic border-t border-indigo-200 pt-2">
-                  "{{ selectedOrder()?.note }}"
-                </div>
-              }
+              <button
+                (click)="selectedOrder.set(null)"
+                class="lg:hidden flex items-center justify-center w-10 h-10 text-gray-500 dark:text-gray-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <span class="material-symbols-outlined text-[1.25rem]">close</span>
+              </button>
             </div>
 
-            <!-- Receipt View -->
-            <div class="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
-              <div class="space-y-3 font-mono text-sm">
-                @for (item of selectedOrder()?.lineItems; track item) {
-                  <div class="flex justify-between items-start">
-                    <div class="flex gap-2">
-                      <span class="font-bold">{{ item.amount }}x</span>
-                      <span>{{ item.name }}</span>
-                    </div>
-                    <span>{{ item.price * item.amount | currency: 'EUR' }}</span>
+            <!-- Detail Content -->
+            <div class="flex-1 overflow-y-auto p-4">
+              <!-- Customer Card -->
+              <div
+                class="mb-4 p-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl border border-indigo-100 dark:border-indigo-800"
+              >
+                <div class="font-bold text-indigo-900 dark:text-indigo-200 text-lg">
+                  {{ selectedOrder()?.customerContact?.name }}
+                </div>
+                <div class="text-indigo-700 dark:text-indigo-300 flex items-center gap-2 mt-1">
+                  <span class="material-symbols-outlined text-[1rem]">phone</span>
+                  {{ selectedOrder()?.customerContact?.phone }}
+                </div>
+                @if (selectedOrder()?.note) {
+                  <div class="mt-2 text-sm text-indigo-800 italic border-t border-indigo-200 pt-2">
+                    "{{ selectedOrder()?.note }}"
                   </div>
                 }
               </div>
 
-              <div class="mt-6 pt-4 border-t-2 border-gray-800 dark:border-gray-200 flex justify-between items-center text-lg font-bold">
-                <span>{{ 'COMMON.TOTAL' | translate }}</span>
-                <span>{{ calculateTotal(selectedOrder()!) | currency: 'EUR' }}</span>
+              <!-- Receipt View -->
+              <div
+                class="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.02)]"
+              >
+                <div class="space-y-3 font-mono text-sm">
+                  @for (item of selectedOrder()?.lineItems; track item) {
+                    <div class="flex justify-between items-start">
+                      <div class="flex gap-2">
+                        <span class="font-bold">{{ item.amount }}x</span>
+                        <span>{{ item.name }}</span>
+                      </div>
+                      <span>{{ item.price * item.amount | currency: 'EUR' }}</span>
+                    </div>
+                  }
+                </div>
+
+                <div
+                  class="mt-6 pt-4 border-t-2 border-gray-800 dark:border-gray-200 flex justify-between items-center text-lg font-bold"
+                >
+                  <span>{{ 'COMMON.TOTAL' | translate }}</span>
+                  <span>{{ calculateTotal(selectedOrder()!) | currency: 'EUR' }}</span>
+                </div>
               </div>
-            </div>
 
-            <!-- Metadata Actions -->
-            @if (selectedOrder()?.status === 'pending') {
-            <div class="mt-6 grid grid-cols-2 gap-3">
-              <button
-                class="col-span-2 h-12 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2"
-                (click)="convertToLiveOrder(selectedOrder()!)">
-                <span class="material-symbols-outlined text-[1.25rem]">point_of_sale</span>
-                {{ 'PRE_ORDERS.CREATE_ORDER' | translate }}
-              </button>
+              <!-- Metadata Actions -->
+              @if (selectedOrder()?.status === 'pending') {
+                <div class="mt-6 grid grid-cols-2 gap-3">
+                  <button
+                    class="col-span-2 h-12 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    (click)="convertToLiveOrder(selectedOrder()!)"
+                  >
+                    <span class="material-symbols-outlined text-[1.25rem]">point_of_sale</span>
+                    {{ 'PRE_ORDERS.CREATE_ORDER' | translate }}
+                  </button>
 
-              <button
-                class="col-span-2 h-12 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-red-600 font-medium hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-all flex items-center justify-center gap-2"
-                (click)="cancelOrder(selectedOrder()!)">
-                <span class="material-symbols-outlined text-[1.25rem]">delete</span>
-                {{ 'PRE_ORDERS.CANCEL_ORDER' | translate }}
-              </button>
+                  <button
+                    class="col-span-2 h-12 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-red-600 font-medium hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    (click)="cancelOrder(selectedOrder()!)"
+                  >
+                    <span class="material-symbols-outlined text-[1.25rem]">delete</span>
+                    {{ 'PRE_ORDERS.CANCEL_ORDER' | translate }}
+                  </button>
+                </div>
+              }
+              @if (selectedOrder()?.status !== 'pending') {
+                <div class="mt-6 text-center text-gray-400 text-sm">
+                  {{
+                    selectedOrder()?.status === 'converted'
+                      ? ('PRE_ORDERS.ALREADY_COMPLETED' | translate)
+                      : ('PRE_ORDERS.ALREADY_CANCELED' | translate)
+                  }}
+                  .
+                </div>
+              }
             </div>
-            }
-            @if (selectedOrder()?.status !== 'pending') {
-            <div class="mt-6 text-center text-gray-400 text-sm">
-              {{ selectedOrder()?.status === 'converted' ? ('PRE_ORDERS.ALREADY_COMPLETED' | translate) : ('PRE_ORDERS.ALREADY_CANCELED' | translate) }}
-              .
-            </div>
-            }
           </div>
-        </div>
         }
 
         <!-- Placeholder -->
         @if (!selectedOrder()) {
-        <div
-          class="hidden lg:flex flex-1 max-w-[28.125rem] bg-gray-50/50 dark:bg-gray-950/50 border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl justify-center items-center text-gray-400 flex-col gap-2">
-          <span class="material-symbols-outlined text-[3rem] opacity-20">event_note</span>
-          <span class="text-sm font-medium opacity-50">{{ 'PRE_ORDERS.SELECT_PRE_ORDER' | translate }}</span>
-        </div>
+          <div
+            class="hidden lg:flex flex-1 max-w-[28.125rem] bg-gray-50/50 dark:bg-gray-950/50 border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl justify-center items-center text-gray-400 flex-col gap-2"
+          >
+            <span class="material-symbols-outlined text-[3rem] opacity-20">event_note</span>
+            <span class="text-sm font-medium opacity-50">{{ 'PRE_ORDERS.SELECT_PRE_ORDER' | translate }}</span>
+          </div>
         }
       </div>
     </div>
   `,
-  styles: [`
-    :host {
-      display: block;
-      height: 100%;
-    }
-  `],
+  styles: [
+    `
+      :host {
+        display: block;
+        height: 100%;
+      }
+    `,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PreOrderListComponent implements OnInit {
@@ -409,6 +463,6 @@ export class PreOrderListComponent implements OnInit {
 
   calculateTotal(order: PreOrder): number {
     if (!order.lineItems) return 0
-    return order.lineItems.reduce((acc, item) => acc + (item.price * item.amount), 0)
+    return order.lineItems.reduce((acc, item) => acc + item.price * item.amount, 0)
   }
 }

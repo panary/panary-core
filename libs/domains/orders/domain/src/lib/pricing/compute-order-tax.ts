@@ -143,7 +143,9 @@ function collectLineAtoms(line: OrderLineItem, dineIn: boolean): LineGross[] {
     // Verteilung wirkt er proportional auf alle Sätze des Menüs (Marktwert).
     const fixedGross = modGross < 0 ? Math.max(0, listGross + modGross) : listGross
     const comps = lineComponents(line).filter((c: GenericOrderLineItem) => !!c.price)
-    const weights = comps.map((c: GenericOrderLineItem) => multiplyCents(toCents(c.price as number), c.amount * line.amount))
+    const weights = comps.map((c: GenericOrderLineItem) =>
+      multiplyCents(toCents(c.price as number), c.amount * line.amount),
+    )
     const totalWeight = sumCents(weights)
     if (fixedGross > 0 && totalWeight > 0) {
       const allocations = distributeByLargestRemainder(fixedGross, weights)
@@ -210,7 +212,12 @@ function bucketize(lines: LineGross[]): RateBucket[] {
 }
 
 /** Rabattbetrag in Cents für eine Brutto-Basis, geklemmt auf [0, base]. */
-function discountAmountCents(valueType: string, valuePercent: number, valueCents: number, baseGrossCents: number): number {
+function discountAmountCents(
+  valueType: string,
+  valuePercent: number,
+  valueCents: number,
+  baseGrossCents: number,
+): number {
   if (baseGrossCents <= 0) return 0
   const raw = valueType === 'percent' ? Math.round((baseGrossCents * valuePercent) / 100) : valueCents
   return Math.min(Math.max(0, raw), baseGrossCents)
@@ -221,7 +228,10 @@ function applyOrderDiscountCents(buckets: RateBucket[], discountCents: number): 
   const totalGross = sumCents(buckets.map(b => b.grossCents))
   if (totalGross <= 0 || discountCents <= 0) return
   const clamped = Math.min(discountCents, totalGross)
-  const allocations = distributeByLargestRemainder(clamped, buckets.map(b => b.grossCents))
+  const allocations = distributeByLargestRemainder(
+    clamped,
+    buckets.map(b => b.grossCents),
+  )
   buckets.forEach((b, i) => {
     b.grossCents -= allocations[i]
   })
@@ -252,7 +262,10 @@ function applyAppliedDiscounts(lines: LineGross[], applied: AppliedDiscount[]): 
     const lineTotal = sumCents(atoms.map(l => l.grossCents))
     const amount = discountAmountCents(ad.valueType, ad.valuePercent, ad.valueCents, lineTotal)
     if (amount > 0 && lineTotal > 0) {
-      const allocations = distributeByLargestRemainder(amount, atoms.map(l => l.grossCents))
+      const allocations = distributeByLargestRemainder(
+        amount,
+        atoms.map(l => l.grossCents),
+      )
       atoms.forEach((l, i) => {
         l.grossCents -= allocations[i]
       })

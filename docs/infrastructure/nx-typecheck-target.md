@@ -51,6 +51,13 @@ affected-Zeile der CI.
 > Fehler brechen ab. Beide Wege verfolgen dasselbe Ziel — dass eine Zahl nicht
 > mehr still wachsen kann.
 
+Dieselbe Frage stellte sich am 2026-08-07 für das **Format-Gate**, mit umgekehrtem
+Ausgang: Dort war der Bestand mit 348 Dateien deutlich größer als hier, eine Baseline
+trotzdem falsch — Formatierung ist mechanisch behebbar, eine Baseline hätte den Bestand
+nur konserviert. Aufgeräumt, dann hart. Die Abgrenzung „Baseline nur, wo hinter der Zahl
+echte Arbeit steckt" steht in
+[ADR 0022](../adr/0022-format-gate-ohne-base.md).
+
 ## Messvorschrift
 
 Wer die Fehlerzahl beurteilt, misst leicht falsch. Zwei Fallen, die heute je

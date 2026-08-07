@@ -55,7 +55,10 @@ describe('cloudConnection-Schemas — startBootstrap-Upsert', () => {
     for (const schema of [cloudConnectionDataSchema, cloudConnectionPatchSchema]) {
       for (const field of ['tokenErrorReason', 'lastTokenErrorAt']) {
         const prop = propertiesOf(schema)[field] as { anyOf?: { type?: string }[] }
-        expect(prop.anyOf?.some(variant => variant.type === 'null'), `${field} muss null erlauben`).toBe(true)
+        expect(
+          prop.anyOf?.some(variant => variant.type === 'null'),
+          `${field} muss null erlauben`,
+        ).toBe(true)
       }
     }
   })

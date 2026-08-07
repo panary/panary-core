@@ -98,9 +98,7 @@ describe('reservationSchema (D-21)', () => {
   })
 
   it('lehnt invalides E-Mail-Format ab', () => {
-    expect(Value.Check(reservationSchema, { ...validReservation, customerEmail: 'kein-mail' })).toBe(
-      false,
-    )
+    expect(Value.Check(reservationSchema, { ...validReservation, customerEmail: 'kein-mail' })).toBe(false)
   })
 
   it('lehnt unbekannte Properties ab (additionalProperties: false)', () => {
@@ -134,9 +132,7 @@ describe('reservableSlotSchema (D-21)', () => {
   })
 
   it('lehnt maxConcurrentReservations = 0 ab (min 1)', () => {
-    expect(Value.Check(reservableSlotSchema, { ...validSlot, maxConcurrentReservations: 0 })).toBe(
-      false,
-    )
+    expect(Value.Check(reservableSlotSchema, { ...validSlot, maxConcurrentReservations: 0 })).toBe(false)
   })
 
   it('lehnt unbekannte Properties ab', () => {

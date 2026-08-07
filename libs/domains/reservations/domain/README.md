@@ -9,7 +9,7 @@ Kanonische Reservation-Entities für panary-cloud (Phase 6 R1+R2):
   (`pending → confirmed | cancelled`, `confirmed → cancelled | no-show`,
   terminal: `cancelled`, `no-show`).
 - **`computeCapacity`** — Pure-Function-Helper (Aggregation über aktive Tables
-  + Reservations für ein Datum). KEIN eigener Service (siehe D-22).
+  - Reservations für ein Datum). KEIN eigener Service (siehe D-22).
 
 Hintergrund / Architektur-Entscheidung: siehe
 [panary-cloud/.planning/phases/06-reservierung-r1-r2-brand-schicht/06-CONTEXT.md](../../../../../panary-cloud/.planning/phases/06-reservierung-r1-r2-brand-schicht/06-CONTEXT.md)

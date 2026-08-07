@@ -8,10 +8,10 @@ Angular 21+, ausschließlich Standalone-Architektur. Alle Regeln sind verbindlic
 
 **NIEMALS** Strukturdirektiven verwenden.
 
-| Verboten | Korrekt |
-|---|---|
-| `*ngIf="..."` | `@if (bedingung) { ... } @else { ... }` |
-| `*ngFor="let x of list"` | `@for (x of list; track x.id) { ... } @empty { ... }` |
+| Verboten                      | Korrekt                                                 |
+| ----------------------------- | ------------------------------------------------------- |
+| `*ngIf="..."`                 | `@if (bedingung) { ... } @else { ... }`                 |
+| `*ngFor="let x of list"`      | `@for (x of list; track x.id) { ... } @empty { ... }`   |
 | `*ngSwitch` / `*ngSwitchCase` | `@switch (wert) { @case (a) { ... } @default { ... } }` |
 
 **Pflicht in `@for`:** `track`-Ausdruck immer angeben (bevorzugt eindeutige ID).
@@ -48,10 +48,10 @@ Anti-Pattern (führt zu Endlos-Loop):
 ```typescript
 effect(() => {
   if (this.isAuthenticated()) {
-    void this.store.refresh()  // refresh() liest isLoading() vor erstem await
-                                // → Read landet im Effect-Tracking-Scope.
-                                // refresh() setzt isLoading.set(true)
-                                // → Effect läuft erneut → permanente API-Calls.
+    void this.store.refresh() // refresh() liest isLoading() vor erstem await
+    // → Read landet im Effect-Tracking-Scope.
+    // refresh() setzt isLoading.set(true)
+    // → Effect läuft erneut → permanente API-Calls.
   }
 })
 ```
@@ -72,12 +72,13 @@ Wenn der Effect bewusst auf ein Signal reagieren soll (z. B. `input()`-Änderung
 
 ```typescript
 effect(() => {
-  const id = this.userId()           // bewusst getrackt
+  const id = this.userId() // bewusst getrackt
   untracked(() => this.loadUser(id)) // Body NICHT getrackt
 })
 ```
 
 **Wann untracked()?**
+
 - Immer wenn der Effect-Body eine async-Methode mit `void this.x()` oder `await this.x()` aufruft, die intern Signal-State manipuliert
 - Bei Service-Lookups via `signal-getter()`, die in der async-Methode VOR dem ersten `await` stehen
 - Bei Unsicherheit: defensiv setzen — kein Performance-Nachteil, schützt vor Loop
@@ -143,7 +144,7 @@ constructor(private authService: AuthService) {}
 ```typescript
 @Component({
   selector: 'app-my-component',
-  standalone: true,                              // Pflicht
+  standalone: true, // Pflicht
   imports: [CommonModule, MatButtonModule],
   changeDetection: ChangeDetectionStrategy.OnPush, // Pflicht
   template: `
@@ -183,6 +184,7 @@ export class MyComponent {
 ```
 
 **Checkliste für jede Komponente:**
+
 - [ ] `standalone: true`
 - [ ] `changeDetection: ChangeDetectionStrategy.OnPush`
 - [ ] `inject()` statt Konstruktor-DI
@@ -219,6 +221,7 @@ fullName = computed(() => this.form.value().name)
 ```
 
 **Vorteile gegenüber Reactive Forms:**
+
 - Formularwerte und -status sind Signals — kein `.valueChanges` Observable mehr nötig
 - Nahtlose Integration mit `computed()` und `effect()`
 - `OnPush`-kompatibel ohne manuelle `markForCheck()`-Aufrufe

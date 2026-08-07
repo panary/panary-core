@@ -7,3 +7,22 @@
 
 # OKF-Dokumentations-Wiki: Doku + Referenz-Material nicht durch Prettier umformatieren
 /docs
+
+# Verschachtelte Agent-Worktrees: lokale Checkouts dieses Repos selbst (stehen in
+# .git/info/exclude, sind also nicht eingecheckt). Ohne diese Zeile scannt Prettier
+# sie mit — und `nx format:check --all` bricht die Ausgabe mitten in einem Pfad ab,
+# bevor apps/ und libs/ ueberhaupt erreicht sind. Der Lauf sieht dann gruen aus,
+# obwohl er den Quellbaum nie gesehen hat.
+/.claude/worktrees
+
+# pnpm verwaltet das Lockfile-Format selbst — Prettier-Reformatierung wuerde
+# bei jedem Install-Lauf zurueckgedreht (Dauer-Churn)
+pnpm-lock.yaml
+
+# Vendortes Fremdmaterial: Skill-Dokumentation samt Beispielcode. Prettier wuerde
+# die Beispiele an den Hausstil anpassen (Semikolon weg, Arrow-Parens weg) und
+# damit das Originalmaterial verfaelschen — und bei jedem Upstream-Update erneut.
+/.agents/skills
+
+# Planungsnotizen: Prosa mit handgesetzten Tabellen, kein Code
+/_planning

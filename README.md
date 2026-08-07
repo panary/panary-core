@@ -58,6 +58,7 @@ Domain libraries export via `@panary/[domain]/domain`. Apps import from libs —
 - [Nx](https://nx.dev/) v22+ (installed via `pnpm`)
 
 For Tauri desktop builds:
+
 - [Rust](https://www.rust-lang.org/) toolchain
 - Platform-specific dependencies ([Tauri prerequisites](https://v2.tauri.app/start/prerequisites/))
 
@@ -94,18 +95,18 @@ pnpm tauri:dev
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | Angular 21, Tailwind CSS v4, Angular Material |
-| Desktop | Tauri 2 (Rust + WebView) |
-| Backend | FeathersJS v5, Koa |
-| Database (Edge) | SQLite via Knex |
-| Database (Cloud) | MongoDB |
-| Schemas | TypeBox (`@feathersjs/typebox`) |
-| Monorepo | Nx 22, pnpm workspaces |
-| Testing | Vitest |
-| CI/CD | GitHub Actions |
-| Logging | Winston (wide events / canonical log lines) |
+| Layer            | Technology                                    |
+| ---------------- | --------------------------------------------- |
+| Frontend         | Angular 21, Tailwind CSS v4, Angular Material |
+| Desktop          | Tauri 2 (Rust + WebView)                      |
+| Backend          | FeathersJS v5, Koa                            |
+| Database (Edge)  | SQLite via Knex                               |
+| Database (Cloud) | MongoDB                                       |
+| Schemas          | TypeBox (`@feathersjs/typebox`)               |
+| Monorepo         | Nx 22, pnpm workspaces                        |
+| Testing          | Vitest                                        |
+| CI/CD            | GitHub Actions                                |
+| Logging          | Winston (wide events / canonical log lines)   |
 
 ## Security Model
 

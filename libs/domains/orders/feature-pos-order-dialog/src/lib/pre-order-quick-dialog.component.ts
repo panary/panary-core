@@ -32,9 +32,12 @@ import { TranslateModule } from '@ngx-translate/core'
     TranslateModule,
   ],
   template: `
-    <div role="dialog" aria-modal="true" aria-labelledby="pre-order-title"
-         class="flex flex-col w-full h-[38.75rem] bg-white dark:bg-gray-950 rounded-2xl overflow-hidden">
-
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pre-order-title"
+      class="flex flex-col w-full h-[38.75rem] bg-white dark:bg-gray-950 rounded-2xl overflow-hidden"
+    >
       <!-- HEADER (h-20) -->
       <div class="h-20 shrink-0 px-6 py-5 flex justify-between items-start">
         <div>
@@ -44,15 +47,20 @@ import { TranslateModule } from '@ngx-translate/core'
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             @if (formattedDate()) {
               Vorbestellung für {{ formattedDate() }}
-              @if (formattedTime()) { · {{ formattedTime() }} Uhr }
+              @if (formattedTime()) {
+                · {{ formattedTime() }} Uhr
+              }
             } @else {
               Neue Vorbestellung erstellen
             }
           </p>
         </div>
-        <button (click)="close()" type="button"
+        <button
+          (click)="close()"
+          type="button"
           class="w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500
-                 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all">
+                 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
+        >
           <span class="material-symbols-outlined text-[1.25rem]">close</span>
         </button>
       </div>
@@ -66,31 +74,37 @@ import { TranslateModule } from '@ngx-translate/core'
       <div class="flex-1 overflow-hidden relative">
         <div class="max-w-3xl mx-auto w-full px-6 py-2 h-full overflow-y-auto">
           @switch (currentStep()) {
-
             @case (0) {
               <!-- STEP 1: Zeitpunkt -->
               <div class="grid grid-cols-2 gap-4">
                 <!-- Kalender -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden p-3">
+                <div
+                  class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden p-3"
+                >
                   <app-touch-calendar
                     [selectedDate]="selectedDate()"
                     [closedDates]="closedDatesSet()"
-                    (dateChange)="onDateChange($event)" />
+                    (dateChange)="onDateChange($event)"
+                  />
                 </div>
                 <!-- Scroll-Wheel-Zeitwahl -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700
-                            flex flex-col items-center justify-center p-3">
+                <div
+                  class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700
+                            flex flex-col items-center justify-center p-3"
+                >
                   <span class="text-xs text-gray-400 dark:text-gray-500 mb-2">Uhrzeit wählen</span>
                   <div class="flex items-center gap-3">
                     <app-scroll-wheel
                       [values]="availableHours()"
                       [selected]="selectedHour()"
-                      (valueChange)="onHourChange($event)" />
+                      (valueChange)="onHourChange($event)"
+                    />
                     <span class="text-2xl font-bold text-gray-800 dark:text-white">:</span>
                     <app-scroll-wheel
                       [values]="allMinutes"
                       [selected]="selectedMinute()"
-                      (valueChange)="onMinuteChange($event)" />
+                      (valueChange)="onMinuteChange($event)"
+                    />
                   </div>
                 </div>
               </div>
@@ -103,12 +117,21 @@ import { TranslateModule } from '@ngx-translate/core'
                   Wo wird die Bestellung konsumiert?
                 </p>
                 <!-- Im Haus -->
-                <button type="button" (click)="dineFormGroup.patchValue({ dineLocation: 'dine-in' })"
-                  [class]="dineFormGroup.get('dineLocation')?.value === 'dine-in'
-                    ? 'h-28 rounded-xl border-2 border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800/50 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'
-                    : 'h-28 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 hover:bg-gray-50 dark:hover:bg-gray-800/30 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'">
-                  <div class="h-16 w-16 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
-                    <span class="material-symbols-outlined text-[1.75rem] text-gray-500 dark:text-gray-400">restaurant</span>
+                <button
+                  type="button"
+                  (click)="dineFormGroup.patchValue({ dineLocation: 'dine-in' })"
+                  [class]="
+                    dineFormGroup.get('dineLocation')?.value === 'dine-in'
+                      ? 'h-28 rounded-xl border-2 border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800/50 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'
+                      : 'h-28 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 hover:bg-gray-50 dark:hover:bg-gray-800/30 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'
+                  "
+                >
+                  <div
+                    class="h-16 w-16 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0"
+                  >
+                    <span class="material-symbols-outlined text-[1.75rem] text-gray-500 dark:text-gray-400"
+                      >restaurant</span
+                    >
                   </div>
                   <div>
                     <span class="text-lg font-semibold text-gray-900 dark:text-white block">Im Haus</span>
@@ -116,12 +139,21 @@ import { TranslateModule } from '@ngx-translate/core'
                   </div>
                 </button>
                 <!-- Außer Haus -->
-                <button type="button" (click)="dineFormGroup.patchValue({ dineLocation: 'take-out' })"
-                  [class]="dineFormGroup.get('dineLocation')?.value === 'take-out'
-                    ? 'h-28 rounded-xl border-2 border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800/50 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'
-                    : 'h-28 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 hover:bg-gray-50 dark:hover:bg-gray-800/30 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'">
-                  <div class="h-16 w-16 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
-                    <span class="material-symbols-outlined text-[1.75rem] text-gray-500 dark:text-gray-400">local_mall</span>
+                <button
+                  type="button"
+                  (click)="dineFormGroup.patchValue({ dineLocation: 'take-out' })"
+                  [class]="
+                    dineFormGroup.get('dineLocation')?.value === 'take-out'
+                      ? 'h-28 rounded-xl border-2 border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800/50 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'
+                      : 'h-28 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 hover:bg-gray-50 dark:hover:bg-gray-800/30 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'
+                  "
+                >
+                  <div
+                    class="h-16 w-16 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0"
+                  >
+                    <span class="material-symbols-outlined text-[1.75rem] text-gray-500 dark:text-gray-400"
+                      >local_mall</span
+                    >
                   </div>
                   <div>
                     <span class="text-lg font-semibold text-gray-900 dark:text-white block">Außer Haus</span>
@@ -138,10 +170,14 @@ import { TranslateModule } from '@ngx-translate/core'
                 <div class="grid grid-cols-2 gap-4">
                   <!-- Kundenname -->
                   <div>
-                    <label for="preorder-name" class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                    <label
+                      for="preorder-name"
+                      class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block"
+                    >
                       {{ 'PRE_ORDERS.CUSTOMER_NAME' | translate }}
                     </label>
-                    <div id="preorder-name"
+                    <div
+                      id="preorder-name"
                       class="h-12 px-3 bg-white dark:bg-gray-800 border rounded-lg flex items-center text-base
                              cursor-pointer dark:text-white transition-colors"
                       [class.border-gray-900]="activeField() === 'name'"
@@ -149,7 +185,8 @@ import { TranslateModule } from '@ngx-translate/core'
                       [class.border-gray-200]="activeField() !== 'name'"
                       [class.dark:border-gray-700]="activeField() !== 'name'"
                       [attr.aria-describedby]="'name-help'"
-                      (click)="setActiveField('name')">
+                      (click)="setActiveField('name')"
+                    >
                       <span class="material-symbols-outlined text-gray-400 mr-2 text-[1.125rem]">person</span>
                       <span [class.text-gray-400]="!contactFormGroup.get('name')?.value">
                         {{ contactFormGroup.get('name')?.value || ('PRE_ORDER_DIALOG.ENTER_NAME' | translate) }}
@@ -158,15 +195,21 @@ import { TranslateModule } from '@ngx-translate/core'
                         <div class="w-0.5 h-5 bg-gray-800 dark:bg-white animate-pulse ml-0.5"></div>
                       }
                     </div>
-                    <p id="name-help" class="text-xs text-gray-400 dark:text-gray-500 mt-1">Name für die Bestellabholung</p>
+                    <p id="name-help" class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      Name für die Bestellabholung
+                    </p>
                   </div>
 
                   <!-- Telefonnummer -->
                   <div>
-                    <label for="preorder-phone" class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                    <label
+                      for="preorder-phone"
+                      class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block"
+                    >
                       {{ 'PRE_ORDER_DIALOG.PHONE_NUMBER' | translate }}
                     </label>
-                    <div id="preorder-phone"
+                    <div
+                      id="preorder-phone"
                       class="h-12 px-3 bg-white dark:bg-gray-800 border rounded-lg flex items-center text-base
                              cursor-pointer dark:text-white transition-colors"
                       [class.border-gray-900]="activeField() === 'phone'"
@@ -174,7 +217,8 @@ import { TranslateModule } from '@ngx-translate/core'
                       [class.border-gray-200]="activeField() !== 'phone'"
                       [class.dark:border-gray-700]="activeField() !== 'phone'"
                       [attr.aria-describedby]="'phone-help'"
-                      (click)="setActiveField('phone')">
+                      (click)="setActiveField('phone')"
+                    >
                       <span class="material-symbols-outlined text-gray-400 mr-2 text-[1.125rem]">phone</span>
                       <span [class.text-gray-400]="!contactFormGroup.get('phone')?.value">
                         {{ contactFormGroup.get('phone')?.value || ('PRE_ORDER_DIALOG.ENTER_PHONE' | translate) }}
@@ -183,25 +227,31 @@ import { TranslateModule } from '@ngx-translate/core'
                         <div class="w-0.5 h-5 bg-gray-800 dark:bg-white animate-pulse ml-0.5"></div>
                       }
                     </div>
-                    <p id="phone-help" class="text-xs text-gray-400 dark:text-gray-500 mt-1">Für Rückfragen bei der Bestellung</p>
+                    <p id="phone-help" class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      Für Rückfragen bei der Bestellung
+                    </p>
                   </div>
                 </div>
 
                 <!-- Inline Keyboard (unter beiden Feldern) -->
                 @if (activeField() === 'name') {
                   <div class="transition-all duration-200">
-                    <app-touch-keyboard layout="qwertz"
+                    <app-touch-keyboard
+                      layout="qwertz"
                       (keyPress)="onKeyPress($event)"
                       (backspace)="onBackspace()"
-                      (confirm)="onEnter()" />
+                      (confirm)="onEnter()"
+                    />
                   </div>
                 }
                 @if (activeField() === 'phone') {
                   <div class="transition-all duration-200">
-                    <app-touch-keyboard layout="numpad"
+                    <app-touch-keyboard
+                      layout="numpad"
                       (keyPress)="onKeyPress($event)"
                       (backspace)="onBackspace()"
-                      (confirm)="onEnter()" />
+                      (confirm)="onEnter()"
+                    />
                   </div>
                 }
               </div>
@@ -211,34 +261,49 @@ import { TranslateModule } from '@ngx-translate/core'
       </div>
 
       <!-- FOOTER (h-[4.5rem]) -->
-      <div class="h-[4.5rem] shrink-0 border-t border-gray-200 dark:border-gray-700 px-6 flex items-center justify-between">
+      <div
+        class="h-[4.5rem] shrink-0 border-t border-gray-200 dark:border-gray-700 px-6 flex items-center justify-between"
+      >
         @if (currentStep() > 0) {
-          <button type="button" (click)="prevStep()"
+          <button
+            type="button"
+            (click)="prevStep()"
             class="h-11 px-5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300
-                   hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all">
+                   hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
+          >
             Zurück
           </button>
         } @else {
-          <button type="button" disabled
+          <button
+            type="button"
+            disabled
             class="h-11 px-5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300
-                   opacity-50 pointer-events-none">
+                   opacity-50 pointer-events-none"
+          >
             Zurück
           </button>
         }
 
         @if (currentStep() < 2) {
-          <button type="button" (click)="nextStep()"
+          <button
+            type="button"
+            (click)="nextStep()"
             [disabled]="currentStep() === 0 ? dateFormGroup.invalid : dineFormGroup.invalid"
             class="h-11 px-6 rounded-lg text-sm font-bold bg-gray-900 dark:bg-white text-white dark:text-black
                    disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 dark:hover:bg-gray-200
-                   active:scale-95 transition-all">
+                   active:scale-95 transition-all"
+          >
             Weiter
           </button>
         } @else {
-          <button type="button" (click)="submit()" [disabled]="contactFormGroup.invalid"
+          <button
+            type="button"
+            (click)="submit()"
+            [disabled]="contactFormGroup.invalid"
             class="h-11 px-6 rounded-lg text-sm font-bold bg-gray-900 dark:bg-white text-white dark:text-black
                    disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 dark:hover:bg-gray-200
-                   active:scale-95 transition-all">
+                   active:scale-95 transition-all"
+          >
             Abschließen
           </button>
         }

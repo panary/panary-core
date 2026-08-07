@@ -37,14 +37,7 @@ export const productGroupDataSchema = Type.Intersect(
   [
     Type.Pick(productGroupSchema, ['name', 'color', 'index', 'tenantId', 'locationId']),
     Type.Partial(
-      Type.Pick(productGroupSchema, [
-        'externalId',
-        'acronym',
-        'excluded',
-        'status',
-        'taxInside',
-        'taxOutside',
-      ]),
+      Type.Pick(productGroupSchema, ['externalId', 'acronym', 'excluded', 'status', 'taxInside', 'taxOutside']),
     ),
     // Pflicht fuer Sync-Bootstrap (Edge→Cloud): Edge-Records bringen `_id`,
     // `createdAt`, `updatedAt` mit. Resolver setzt sie ggf. weiter ueber, aber

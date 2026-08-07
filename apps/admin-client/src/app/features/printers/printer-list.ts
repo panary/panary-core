@@ -17,10 +17,13 @@ import { PrinterService } from './printer.service'
           @if (saving()) {
             <span class="text-xs text-slate-400 dark:text-gray-500">Speichern...</span>
           }
-          <button (click)="onAddPrinter()" [disabled]="saving() || readOnly()"
+          <button
+            (click)="onAddPrinter()"
+            [disabled]="saving() || readOnly()"
             class="px-4 py-2 rounded-lg text-sm font-medium bg-slate-900 dark:bg-white
                    text-white dark:text-black hover:bg-slate-800 dark:hover:bg-gray-200
-                   transition disabled:opacity-50">
+                   transition disabled:opacity-50"
+          >
             + Drucker hinzufügen
           </button>
         </div>
@@ -37,27 +40,57 @@ import { PrinterService } from './printer.service'
           <table class="w-full">
             <thead>
               <tr class="border-b border-slate-200 dark:border-gray-800">
-                <th class="text-left p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
-                <th class="text-left p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Typ</th>
-                <th class="text-left p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Adresse</th>
-                <th class="text-left p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Papier</th>
-                <th class="text-center p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Aktiv</th>
-                <th class="text-right p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">Aktionen</th>
+                <th
+                  class="text-left p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+                >
+                  Name
+                </th>
+                <th
+                  class="text-left p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+                >
+                  Typ
+                </th>
+                <th
+                  class="text-left p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+                >
+                  Adresse
+                </th>
+                <th
+                  class="text-left p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+                >
+                  Papier
+                </th>
+                <th
+                  class="text-center p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+                >
+                  Aktiv
+                </th>
+                <th
+                  class="text-right p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+                >
+                  Aktionen
+                </th>
               </tr>
             </thead>
             <tbody>
               @for (printer of printers(); track printer.pid) {
-                <tr class="border-b border-slate-100 dark:border-gray-800/50 hover:bg-slate-50 dark:hover:bg-gray-900/50 transition">
+                <tr
+                  class="border-b border-slate-100 dark:border-gray-800/50 hover:bg-slate-50 dark:hover:bg-gray-900/50 transition"
+                >
                   <td class="p-4 text-sm text-slate-900 dark:text-white font-medium">{{ printer.name }}</td>
                   <td class="p-4">
                     @if (printer.type === 'ip') {
-                      <span class="inline-flex px-2 py-0.5 rounded text-xs font-medium
-                                   bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                      <span
+                        class="inline-flex px-2 py-0.5 rounded text-xs font-medium
+                                   bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                      >
                         WLAN/IP
                       </span>
                     } @else {
-                      <span class="inline-flex px-2 py-0.5 rounded text-xs font-medium
-                                   bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">
+                      <span
+                        class="inline-flex px-2 py-0.5 rounded text-xs font-medium
+                                   bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"
+                      >
                         MQTT
                       </span>
                     }
@@ -80,21 +113,30 @@ import { PrinterService } from './printer.service'
                   <td class="p-4 text-right">
                     <div class="flex items-center justify-end gap-1">
                       @if (printer.type === 'ip') {
-                        <button (click)="onTestPrint(printer.pid)" [disabled]="testingPrinter() === printer.pid"
+                        <button
+                          (click)="onTestPrint(printer.pid)"
+                          [disabled]="testingPrinter() === printer.pid"
                           class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-gray-400
                                  hover:bg-slate-100 dark:hover:bg-gray-800 transition disabled:opacity-50"
-                          title="Testdruck">
+                          title="Testdruck"
+                        >
                           {{ testingPrinter() === printer.pid ? '...' : 'Test' }}
                         </button>
                       }
-                      <button (click)="onEditPrinter(printer)" [disabled]="readOnly()"
+                      <button
+                        (click)="onEditPrinter(printer)"
+                        [disabled]="readOnly()"
                         class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-gray-400
-                               hover:bg-slate-100 dark:hover:bg-gray-800 transition disabled:opacity-50">
+                               hover:bg-slate-100 dark:hover:bg-gray-800 transition disabled:opacity-50"
+                      >
                         Bearbeiten
                       </button>
-                      <button (click)="onDeletePrinter(printer.pid)" [disabled]="readOnly()"
+                      <button
+                        (click)="onDeletePrinter(printer.pid)"
+                        [disabled]="readOnly()"
                         class="px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 dark:text-red-400
-                               hover:bg-red-50 dark:hover:bg-red-900/20 transition disabled:opacity-50">
+                               hover:bg-red-50 dark:hover:bg-red-900/20 transition disabled:opacity-50"
+                      >
                         Löschen
                       </button>
                     </div>
@@ -108,10 +150,17 @@ import { PrinterService } from './printer.service'
 
       @if (testResult()) {
         <div class="p-4 border-t border-slate-200 dark:border-gray-800">
-          <p class="text-sm" [class]="testResult()!.success
-            ? 'text-emerald-600 dark:text-emerald-400'
-            : 'text-red-600 dark:text-red-400'">
-            {{ testResult()!.success ? 'Testdruck erfolgreich!' : 'Testdruck fehlgeschlagen: ' + testResult()!.results[0]?.error }}
+          <p
+            class="text-sm"
+            [class]="
+              testResult()!.success ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+            "
+          >
+            {{
+              testResult()!.success
+                ? 'Testdruck erfolgreich!'
+                : 'Testdruck fehlgeschlagen: ' + testResult()!.results[0]?.error
+            }}
           </p>
         </div>
       }

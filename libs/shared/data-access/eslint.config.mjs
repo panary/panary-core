@@ -12,11 +12,7 @@ export default [
             '{projectRoot}/eslint.config.{js,cjs,mjs,ts,cts,mts}',
             '{projectRoot}/vite.config.{js,ts,mjs,mts}',
           ],
-          ignoredDependencies: [
-            '@panary/shared-common',
-            'vitest',
-            '@nx/vite',
-          ],
+          ignoredDependencies: ['@panary/shared-common', 'vitest', '@nx/vite'],
         },
       ],
     },

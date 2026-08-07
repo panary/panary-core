@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { distributeByLargestRemainder, fromCents, multiplyCents, netFromGross, sumCents, taxFromGross, toCents } from './money'
+import {
+  distributeByLargestRemainder,
+  fromCents,
+  multiplyCents,
+  netFromGross,
+  sumCents,
+  taxFromGross,
+  toCents,
+} from './money'
 
 // Sperrt die Cent-Arithmetik der Live-Preis-/Steuer-Engine fest (#40).
 //

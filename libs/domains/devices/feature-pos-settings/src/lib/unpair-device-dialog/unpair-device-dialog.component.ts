@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, HostListener, OnInit, computed, inject, output, signal } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  HostListener,
+  OnInit,
+  computed,
+  inject,
+  output,
+  signal,
+} from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ConnectionService } from '@panary/shared/data-access'
@@ -11,11 +20,7 @@ import { DeviceConfigService } from '@panary/shared/data-access-config'
  * Defense-in-Depth: Filter clientseitig (Liste), zusätzlich Backend-Rückgabe
  * gegen-prüfen.
  */
-const UNPAIR_ALLOWED_ROLES: ReadonlySet<string> = new Set([
-  'tenant:owner',
-  'tenant:manager',
-  'tenant:technician',
-])
+const UNPAIR_ALLOWED_ROLES: ReadonlySet<string> = new Set(['tenant:owner', 'tenant:manager', 'tenant:technician'])
 
 interface EligibleUser {
   _id: string
@@ -155,10 +160,7 @@ export class UnpairDeviceDialogComponent implements OnInit {
       if (!result.backendDeleted) {
         // Backend-Cleanup fehlgeschlagen — lokal trotzdem entkoppelt.
         // Hinweis fürs Log, aber kein Block — der User soll zum Setup zurück.
-        console.warn(
-          '[unpair] Backend-DELETE fehlgeschlagen, lokaler Reset erfolgreich:',
-          result.backendError,
-        )
+        console.warn('[unpair] Backend-DELETE fehlgeschlagen, lokaler Reset erfolgreich:', result.backendError)
       }
 
       // Hard-Reload — setupGuard sieht hasConfig()=false → /setup

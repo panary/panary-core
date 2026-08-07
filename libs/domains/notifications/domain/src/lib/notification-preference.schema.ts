@@ -16,9 +16,7 @@ export const notificationPreferenceSchema = Type.Object(
     tenantId: Type.String({ format: 'uuid' }),
     userId: Type.String({ format: 'uuid' }),
 
-    eventType: Type.Union(
-      (Object.values(NotificationEventType) as string[]).map(v => Type.Literal(v)),
-    ),
+    eventType: Type.Union((Object.values(NotificationEventType) as string[]).map(v => Type.Literal(v))),
 
     inApp: Type.Boolean(),
     email: Type.Boolean(),
@@ -44,12 +42,7 @@ export const notificationPreferencePatchSchema = Type.Partial(
 )
 export type NotificationPreferencePatch = Static<typeof notificationPreferencePatchSchema>
 
-const queryProperties = Type.Pick(notificationPreferenceSchema, [
-  '_id',
-  'tenantId',
-  'userId',
-  'eventType',
-])
+const queryProperties = Type.Pick(notificationPreferenceSchema, ['_id', 'tenantId', 'userId', 'eventType'])
 export const notificationPreferenceQuerySchema = Type.Intersect(
   [querySyntax(queryProperties), Type.Object({}, { additionalProperties: false })],
   { additionalProperties: false },

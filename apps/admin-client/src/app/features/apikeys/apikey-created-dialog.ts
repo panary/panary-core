@@ -6,10 +6,14 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm">
-      <div class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl p-6
+      <div
+        class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl p-6
                   max-w-md w-full mx-4 shadow-2xl animate-[scale-in_0.15s_ease-out]"
-           tabindex="0" role="button" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
-
+        tabindex="0"
+        role="button"
+        (click)="$event.stopPropagation()"
+        (keydown.enter)="$event.stopPropagation()"
+      >
         <div class="flex items-center gap-3 mb-4">
           <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
             <span class="text-green-600 dark:text-green-400 text-lg">⚿</span>
@@ -30,19 +34,25 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
         </p>
 
         <div class="flex gap-2">
-          <button (click)="copyToClipboard()"
-            [class]="copied()
-              ? 'flex-1 bg-green-600 text-white font-bold py-2.5 rounded-xl text-sm transition'
-              : 'flex-1 bg-slate-900 dark:bg-white text-white dark:text-black font-bold py-2.5 rounded-xl text-sm hover:bg-slate-800 dark:hover:bg-gray-200 transition'">
+          <button
+            (click)="copyToClipboard()"
+            [class]="
+              copied()
+                ? 'flex-1 bg-green-600 text-white font-bold py-2.5 rounded-xl text-sm transition'
+                : 'flex-1 bg-slate-900 dark:bg-white text-white dark:text-black font-bold py-2.5 rounded-xl text-sm hover:bg-slate-800 dark:hover:bg-gray-200 transition'
+            "
+          >
             @if (copied()) {
               ✓ Kopiert
             } @else {
               Kopieren
             }
           </button>
-          <button (click)="closed.emit()"
+          <button
+            (click)="closed.emit()"
             class="bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 font-medium py-2.5 px-5
-                   rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-gray-700 transition">
+                   rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-gray-700 transition"
+          >
             Schließen
           </button>
         </div>
@@ -51,8 +61,14 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
   `,
   styles: `
     @keyframes scale-in {
-      from { transform: scale(0.95); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
+      from {
+        transform: scale(0.95);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
     }
   `,
 })

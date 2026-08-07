@@ -40,7 +40,6 @@ interface HourException {
       @if (loading()) {
         <p class="text-slate-400 dark:text-gray-500">{{ 'COMMON.LOADING' | translate }}</p>
       } @else {
-
         @if (readOnly()) {
           <app-cloud-managed-banner sublineKey="CLOUD_MANAGED.SUBLINE_OPENING_HOURS" />
         }
@@ -53,38 +52,59 @@ interface HourException {
           min-w-0 und m-0 neutralisieren die UA-Defaults des Fieldsets (sonst
           erzwingt es min-width auf min-content und bricht das Flex-Layout).
         -->
-        <fieldset [disabled]="readOnly()"
-             class="min-w-0 m-0 flex items-center justify-between border border-slate-200 dark:border-gray-800 rounded-xl p-4"
-             [class.opacity-60]="readOnly()">
+        <fieldset
+          [disabled]="readOnly()"
+          class="min-w-0 m-0 flex items-center justify-between border border-slate-200 dark:border-gray-800 rounded-xl p-4"
+          [class.opacity-60]="readOnly()"
+        >
           <div>
             <p class="text-sm font-medium text-slate-900 dark:text-white">{{ 'OPENING_HOURS.ENABLED' | translate }}</p>
-            <p class="text-xs text-slate-400 dark:text-gray-500 mt-0.5">{{ 'OPENING_HOURS.ENABLED_HINT' | translate }}</p>
+            <p class="text-xs text-slate-400 dark:text-gray-500 mt-0.5">
+              {{ 'OPENING_HOURS.ENABLED_HINT' | translate }}
+            </p>
           </div>
-          <button type="button" (click)="toggleEnabled()"
-            [class]="enabled
-              ? 'relative w-9 h-5 bg-slate-900 dark:bg-white rounded-full transition'
-              : 'relative w-9 h-5 bg-slate-300 dark:bg-gray-700 rounded-full transition'">
-            <span [class]="enabled
-              ? 'absolute top-0.5 left-[18px] w-4 h-4 bg-white dark:bg-black rounded-full transition-all'
-              : 'absolute top-0.5 left-0.5 w-4 h-4 bg-white dark:bg-black rounded-full transition-all'"></span>
+          <button
+            type="button"
+            (click)="toggleEnabled()"
+            [class]="
+              enabled
+                ? 'relative w-9 h-5 bg-slate-900 dark:bg-white rounded-full transition'
+                : 'relative w-9 h-5 bg-slate-300 dark:bg-gray-700 rounded-full transition'
+            "
+          >
+            <span
+              [class]="
+                enabled
+                  ? 'absolute top-0.5 left-[18px] w-4 h-4 bg-white dark:bg-black rounded-full transition-all'
+                  : 'absolute top-0.5 left-0.5 w-4 h-4 bg-white dark:bg-black rounded-full transition-all'
+              "
+            ></span>
           </button>
         </fieldset>
 
         <!-- Reguläre Öffnungszeiten -->
-        <fieldset [disabled]="readOnly()"
-             class="min-w-0 m-0 border border-slate-200 dark:border-gray-800 rounded-xl p-4 space-y-3"
-             [class.opacity-60]="readOnly()">
+        <fieldset
+          [disabled]="readOnly()"
+          class="min-w-0 m-0 border border-slate-200 dark:border-gray-800 rounded-xl p-4 space-y-3"
+          [class.opacity-60]="readOnly()"
+        >
           <span class="${LABEL}">{{ 'OPENING_HOURS.REGULAR' | translate }}</span>
 
           @for (hour of regular; track hour.day) {
             <div class="flex items-center gap-3 py-1.5">
               <!-- Tag -->
-              <span class="w-28 text-sm font-medium text-slate-700 dark:text-gray-300 shrink-0">{{ dayName(hour.day) }}</span>
+              <span class="w-28 text-sm font-medium text-slate-700 dark:text-gray-300 shrink-0">{{
+                dayName(hour.day)
+              }}</span>
 
               <!-- Geöffnet/Geschlossen Toggle -->
               <label class="flex items-center gap-2 cursor-pointer shrink-0">
-                <input type="checkbox" [checked]="!hour.closed" (change)="hour.closed = !hour.closed; saveRegular()"
-                  class="w-4 h-4 accent-slate-900 dark:accent-white" />
+                <input
+                  type="checkbox"
+                  [checked]="!hour.closed"
+                  (change)="hour.closed = !hour.closed; saveRegular()"
+                  class="w-4 h-4 accent-slate-900 dark:accent-white"
+                />
                 <span class="text-xs text-slate-500 dark:text-gray-400 w-16">
                   {{ hour.closed ? ('OPENING_HOURS.CLOSED' | translate) : ('OPENING_HOURS.OPEN' | translate) }}
                 </span>
@@ -92,61 +112,108 @@ interface HourException {
 
               <!-- Zeiten -->
               @if (!hour.closed) {
-                <input type="time" [(ngModel)]="hour.open" [name]="'open-' + hour.day" (change)="saveRegular()"
+                <input
+                  type="time"
+                  [(ngModel)]="hour.open"
+                  [name]="'open-' + hour.day"
+                  (change)="saveRegular()"
                   class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg px-2 py-1.5 text-sm
-                         text-slate-900 dark:text-white outline-none focus:border-slate-900 dark:focus:border-white" />
+                         text-slate-900 dark:text-white outline-none focus:border-slate-900 dark:focus:border-white"
+                />
                 <span class="text-slate-400 text-xs">—</span>
-                <input type="time" [(ngModel)]="hour.close" [name]="'close-' + hour.day" (change)="saveRegular()"
+                <input
+                  type="time"
+                  [(ngModel)]="hour.close"
+                  [name]="'close-' + hour.day"
+                  (change)="saveRegular()"
                   class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg px-2 py-1.5 text-sm
-                         text-slate-900 dark:text-white outline-none focus:border-slate-900 dark:focus:border-white" />
+                         text-slate-900 dark:text-white outline-none focus:border-slate-900 dark:focus:border-white"
+                />
               }
             </div>
           }
         </fieldset>
 
         <!-- Ausnahmen -->
-        <fieldset [disabled]="readOnly()"
-             class="min-w-0 m-0 border border-slate-200 dark:border-gray-800 rounded-xl p-4 space-y-3"
-             [class.opacity-60]="readOnly()">
+        <fieldset
+          [disabled]="readOnly()"
+          class="min-w-0 m-0 border border-slate-200 dark:border-gray-800 rounded-xl p-4 space-y-3"
+          [class.opacity-60]="readOnly()"
+        >
           <div class="flex items-center justify-between">
             <span class="${LABEL}">{{ 'OPENING_HOURS.EXCEPTIONS' | translate }}</span>
-            <button type="button" (click)="addException()"
+            <button
+              type="button"
+              (click)="addException()"
               class="text-xs text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
                      border border-slate-200 dark:border-gray-800 hover:border-slate-400 dark:hover:border-gray-600
-                     px-3 py-1.5 rounded-lg transition">
+                     px-3 py-1.5 rounded-lg transition"
+            >
               + {{ 'OPENING_HOURS.ADD_EXCEPTION' | translate }}
             </button>
           </div>
 
           @if (exceptions().length === 0) {
-            <p class="text-slate-300 dark:text-gray-600 text-xs text-center py-4">{{ 'OPENING_HOURS.NO_EXCEPTIONS' | translate }}</p>
+            <p class="text-slate-300 dark:text-gray-600 text-xs text-center py-4">
+              {{ 'OPENING_HOURS.NO_EXCEPTIONS' | translate }}
+            </p>
           } @else {
             @for (exc of exceptions(); track exc._id || $index) {
               <div class="flex items-center gap-3 py-1.5 border-t border-slate-100 dark:border-gray-800 first:border-0">
-                <input type="date" [(ngModel)]="exc.date" [name]="'exc-date-' + $index" (change)="saveException(exc)"
+                <input
+                  type="date"
+                  [(ngModel)]="exc.date"
+                  [name]="'exc-date-' + $index"
+                  (change)="saveException(exc)"
                   class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg px-2 py-1.5 text-sm
-                         text-slate-900 dark:text-white outline-none focus:border-slate-900 dark:focus:border-white" />
-                <input type="text" [(ngModel)]="exc.label" [name]="'exc-label-' + $index" (change)="saveException(exc)"
-                  placeholder="Bezeichnung" class="flex-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800
+                         text-slate-900 dark:text-white outline-none focus:border-slate-900 dark:focus:border-white"
+                />
+                <input
+                  type="text"
+                  [(ngModel)]="exc.label"
+                  [name]="'exc-label-' + $index"
+                  (change)="saveException(exc)"
+                  placeholder="Bezeichnung"
+                  class="flex-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800
                          rounded-lg px-2 py-1.5 text-sm text-slate-900 dark:text-white outline-none
-                         focus:border-slate-900 dark:focus:border-white" />
+                         focus:border-slate-900 dark:focus:border-white"
+                />
                 <label class="flex items-center gap-1.5 cursor-pointer shrink-0">
-                  <input type="checkbox" [checked]="exc.closed" (change)="exc.closed = !exc.closed; saveException(exc)"
-                    class="w-4 h-4 accent-slate-900 dark:accent-white" />
-                  <span class="text-xs text-slate-500 dark:text-gray-400">{{ 'OPENING_HOURS.CLOSED' | translate }}</span>
+                  <input
+                    type="checkbox"
+                    [checked]="exc.closed"
+                    (change)="exc.closed = !exc.closed; saveException(exc)"
+                    class="w-4 h-4 accent-slate-900 dark:accent-white"
+                  />
+                  <span class="text-xs text-slate-500 dark:text-gray-400">{{
+                    'OPENING_HOURS.CLOSED' | translate
+                  }}</span>
                 </label>
                 @if (!exc.closed) {
-                  <input type="time" [(ngModel)]="exc.open" [name]="'exc-open-' + $index" (change)="saveException(exc)"
+                  <input
+                    type="time"
+                    [(ngModel)]="exc.open"
+                    [name]="'exc-open-' + $index"
+                    (change)="saveException(exc)"
                     class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg px-2 py-1.5 text-sm
-                           text-slate-900 dark:text-white outline-none" />
+                           text-slate-900 dark:text-white outline-none"
+                  />
                   <span class="text-slate-400 text-xs">—</span>
-                  <input type="time" [(ngModel)]="exc.close" [name]="'exc-close-' + $index" (change)="saveException(exc)"
+                  <input
+                    type="time"
+                    [(ngModel)]="exc.close"
+                    [name]="'exc-close-' + $index"
+                    (change)="saveException(exc)"
                     class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg px-2 py-1.5 text-sm
-                           text-slate-900 dark:text-white outline-none" />
+                           text-slate-900 dark:text-white outline-none"
+                  />
                 }
-                <button type="button" (click)="removeException(exc)"
+                <button
+                  type="button"
+                  (click)="removeException(exc)"
                   class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 dark:text-gray-500
-                         hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition text-xs shrink-0">
+                         hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition text-xs shrink-0"
+                >
                   ✕
                 </button>
               </div>

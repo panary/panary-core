@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, inject, signal, computed, effect, OnInit, viewChild, ElementRef } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+  computed,
+  effect,
+  OnInit,
+  viewChild,
+  ElementRef,
+} from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
@@ -27,32 +37,49 @@ interface SearchCommand {
   template: `
     <div class="flex h-full overflow-hidden">
       <!-- Linke Seite: Tabelle -->
-      <div [class]="selectedId() ? 'w-72 shrink-0 border-r border-slate-200 dark:border-gray-800' : 'flex-1'"
-           class="overflow-y-auto">
+      <div
+        [class]="selectedId() ? 'w-72 shrink-0 border-r border-slate-200 dark:border-gray-800' : 'flex-1'"
+        class="overflow-y-auto"
+      >
         <div class="p-6 space-y-4">
           <div class="flex items-center justify-between min-h-9">
             <h1 class="text-xl font-bold tracking-tight">{{ 'PRODUCTS.TITLE' | translate }}</h1>
             <div class="flex items-center gap-2">
               @if (!selectedId()) {
                 <!-- Alle Buttons sichtbar wenn kein Panel -->
-                <button (click)="onExport()" [disabled]="exporting()"
+                <button
+                  (click)="onExport()"
+                  [disabled]="exporting()"
                   class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
                          px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
-                         hover:bg-slate-50 dark:hover:bg-gray-800 transition">
+                         hover:bg-slate-50 dark:hover:bg-gray-800 transition"
+                >
                   {{ exporting() ? ('COMMON.EXPORTING' | translate) : ('COMMON.EXPORT' | translate) }}
                 </button>
-                <button (click)="fileInput()?.nativeElement?.click()" [disabled]="importing()"
+                <button
+                  (click)="fileInput()?.nativeElement?.click()"
+                  [disabled]="importing()"
                   class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
                          px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
-                         hover:bg-slate-50 dark:hover:bg-gray-800 transition">
+                         hover:bg-slate-50 dark:hover:bg-gray-800 transition"
+                >
                   {{ importing() ? ('COMMON.IMPORTING' | translate) : ('COMMON.IMPORT' | translate) }}
                 </button>
-                <button (click)="showWizard.set(true)"
+                <button
+                  (click)="showWizard.set(true)"
                   class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
                          px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
-                         hover:bg-slate-50 dark:hover:bg-gray-800 transition flex items-center gap-1.5">
-                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                       stroke-linecap="round" stroke-linejoin="round">
+                         hover:bg-slate-50 dark:hover:bg-gray-800 transition flex items-center gap-1.5"
+                >
+                  <svg
+                    class="w-3.5 h-3.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
                     <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
                     <path d="M2 17l10 5 10-5"></path>
                     <path d="M2 12l10 5 10-5"></path>
@@ -62,38 +89,62 @@ interface SearchCommand {
               } @else {
                 <!-- Kebab-Menü wenn Panel geöffnet -->
                 <div class="relative">
-                  <button (click)="actionsMenuOpen.set(!actionsMenuOpen())"
-                          class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
+                  <button
+                    (click)="actionsMenuOpen.set(!actionsMenuOpen())"
+                    class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
                                  w-8 h-8 flex items-center justify-center rounded-lg
                                  border border-slate-200 dark:border-gray-800
                                  hover:bg-slate-50 dark:hover:bg-gray-800 transition text-base leading-none"
-                          title="Weitere Aktionen">
+                    title="Weitere Aktionen"
+                  >
                     ···
                   </button>
                   @if (actionsMenuOpen()) {
-                    <div class="fixed inset-0 z-40" role="button" tabindex="0"
-                         (click)="actionsMenuOpen.set(false)" (keydown.enter)="actionsMenuOpen.set(false)"></div>
-                    <div class="absolute right-0 top-full mt-1 z-50 w-44
+                    <div
+                      class="fixed inset-0 z-40"
+                      role="button"
+                      tabindex="0"
+                      (click)="actionsMenuOpen.set(false)"
+                      (keydown.enter)="actionsMenuOpen.set(false)"
+                    ></div>
+                    <div
+                      class="absolute right-0 top-full mt-1 z-50 w-44
                                 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800
-                                rounded-xl shadow-xl p-1 flex flex-col gap-0.5">
-                      <button (click)="onExport(); actionsMenuOpen.set(false)" [disabled]="exporting()"
+                                rounded-xl shadow-xl p-1 flex flex-col gap-0.5"
+                    >
+                      <button
+                        (click)="onExport(); actionsMenuOpen.set(false)"
+                        [disabled]="exporting()"
                         class="w-full text-left text-xs px-3 py-2 rounded-lg
                                text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition
-                               disabled:opacity-50">
+                               disabled:opacity-50"
+                      >
                         {{ exporting() ? ('COMMON.EXPORTING' | translate) : ('COMMON.EXPORT' | translate) }}
                       </button>
-                      <button (click)="fileInput()?.nativeElement?.click(); actionsMenuOpen.set(false)" [disabled]="importing()"
+                      <button
+                        (click)="fileInput()?.nativeElement?.click(); actionsMenuOpen.set(false)"
+                        [disabled]="importing()"
                         class="w-full text-left text-xs px-3 py-2 rounded-lg
                                text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition
-                               disabled:opacity-50">
+                               disabled:opacity-50"
+                      >
                         {{ importing() ? ('COMMON.IMPORTING' | translate) : ('COMMON.IMPORT' | translate) }}
                       </button>
                       <div class="h-px bg-slate-100 dark:bg-gray-800 my-0.5"></div>
-                      <button (click)="showWizard.set(true); actionsMenuOpen.set(false)"
+                      <button
+                        (click)="showWizard.set(true); actionsMenuOpen.set(false)"
                         class="w-full text-left text-xs px-3 py-2 rounded-lg flex items-center gap-2
-                               text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition">
-                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                             stroke-linecap="round" stroke-linejoin="round">
+                               text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition"
+                      >
+                        <svg
+                          class="w-3.5 h-3.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
                           <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
                           <path d="M2 17l10 5 10-5"></path>
                           <path d="M2 12l10 5 10-5"></path>
@@ -105,9 +156,11 @@ interface SearchCommand {
                 </div>
               }
               <input #fileInputRef type="file" accept=".json" class="hidden" (change)="onFileSelected($event)" />
-              <button (click)="selectItem('new')"
+              <button
+                (click)="selectItem('new')"
                 class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-4 py-2 rounded-xl text-xs
-                       hover:bg-slate-800 dark:hover:bg-gray-200 transition">
+                       hover:bg-slate-800 dark:hover:bg-gray-200 transition"
+              >
                 + {{ 'COMMON.NEW' | translate }}
               </button>
             </div>
@@ -115,63 +168,93 @@ interface SearchCommand {
 
           <!-- Import-Ergebnis -->
           @if (importResult()) {
-            <div class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
-                        text-sm space-y-1">
+            <div
+              class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
+                        text-sm space-y-1"
+            >
               <div class="flex items-center justify-between">
                 <p class="font-medium text-slate-900 dark:text-white">{{ 'COMMON.IMPORT_COMPLETE' | translate }}</p>
                 <div class="flex items-center gap-2">
                   @if (importResult()!.errors > 0) {
-                    <button (click)="showErrorLog.set(true)"
+                    <button
+                      (click)="showErrorLog.set(true)"
                       class="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition"
-                      title="Fehlerdetails anzeigen">
-                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                           stroke-linecap="round" stroke-linejoin="round">
+                      title="Fehlerdetails anzeigen"
+                    >
+                      <svg
+                        class="w-4 h-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
                         <circle cx="12" cy="12" r="10"></circle>
                         <line x1="12" y1="8" x2="12" y2="12"></line>
                         <line x1="12" y1="16" x2="12.01" y2="16"></line>
                       </svg>
                     </button>
                   }
-                  <button (click)="importResult.set(null); showErrorLog.set(false)"
-                    class="text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-white text-xs transition">
+                  <button
+                    (click)="importResult.set(null); showErrorLog.set(false)"
+                    class="text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-white text-xs transition"
+                  >
                     ✕
                   </button>
                 </div>
               </div>
               <p class="text-slate-500 dark:text-gray-400">
-                {{ 'PRODUCT_GROUPS.TITLE' | translate }}: {{ importResult()!.groupsCreated }} {{ 'COMMON.CREATED' | translate }}, {{ importResult()!.groupsUpdated }} {{ 'COMMON.UPDATED' | translate }}
+                {{ 'PRODUCT_GROUPS.TITLE' | translate }}: {{ importResult()!.groupsCreated }}
+                {{ 'COMMON.CREATED' | translate }}, {{ importResult()!.groupsUpdated }}
+                {{ 'COMMON.UPDATED' | translate }}
               </p>
               <p class="text-slate-500 dark:text-gray-400">
-                {{ 'PRODUCTS.TITLE' | translate }}: {{ importResult()!.productsCreated }} {{ 'COMMON.CREATED' | translate }}, {{ importResult()!.productsUpdated }} {{ 'COMMON.UPDATED' | translate }}
+                {{ 'PRODUCTS.TITLE' | translate }}: {{ importResult()!.productsCreated }}
+                {{ 'COMMON.CREATED' | translate }}, {{ importResult()!.productsUpdated }}
+                {{ 'COMMON.UPDATED' | translate }}
               </p>
               @if (importResult()!.errors > 0) {
-                <p class="text-red-500 dark:text-red-400">{{ 'COMMON.ERRORS' | translate }}: {{ importResult()!.errors }}</p>
+                <p class="text-red-500 dark:text-red-400">
+                  {{ 'COMMON.ERRORS' | translate }}: {{ importResult()!.errors }}
+                </p>
               }
             </div>
           }
 
           <!-- Fehler-Log Popup -->
           @if (showErrorLog() && importResult()?.errorLogs?.length) {
-            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm"
-                 role="button" tabindex="0"
-                 (click)="showErrorLog.set(false)" (keydown.enter)="showErrorLog.set(false)">
-              <div class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl
+            <div
+              class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm"
+              role="button"
+              tabindex="0"
+              (click)="showErrorLog.set(false)"
+              (keydown.enter)="showErrorLog.set(false)"
+            >
+              <div
+                class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl
                           max-w-2xl w-full mx-4 shadow-2xl max-h-[80vh] flex flex-col"
-                   role="presentation"
-                   (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
+                role="presentation"
+                (click)="$event.stopPropagation()"
+                (keydown.enter)="$event.stopPropagation()"
+              >
                 <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-gray-800">
                   <p class="text-slate-900 dark:text-white font-medium">
                     {{ 'COMMON.IMPORT_ERRORS' | translate }} ({{ importResult()!.errorLogs.length }})
                   </p>
-                  <button (click)="showErrorLog.set(false)"
-                    class="text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-white transition">
+                  <button
+                    (click)="showErrorLog.set(false)"
+                    class="text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-white transition"
+                  >
                     ✕
                   </button>
                 </div>
                 <div class="overflow-y-auto p-5 space-y-2 text-xs font-mono">
                   @for (log of importResult()!.errorLogs; track $index) {
-                    <div class="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/30 rounded-lg
-                                p-3 text-red-700 dark:text-red-300 break-all">
+                    <div
+                      class="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/30 rounded-lg
+                                p-3 text-red-700 dark:text-red-300 break-all"
+                    >
                       {{ log }}
                     </div>
                   }
@@ -182,27 +265,37 @@ interface SearchCommand {
 
           <!-- Suchleiste mit Kommando-System -->
           <div class="relative">
-            <div class="flex items-center flex-wrap gap-1.5 bg-white dark:bg-gray-900 border border-slate-200
+            <div
+              class="flex items-center flex-wrap gap-1.5 bg-white dark:bg-gray-900 border border-slate-200
                         dark:border-gray-800 rounded-lg px-3 py-2 focus-within:border-slate-900
                         dark:focus-within:border-white focus-within:ring-1 focus-within:ring-slate-900
                         dark:focus-within:ring-white transition min-h-[42px]"
-                 role="presentation"
-                 (click)="searchInput()?.nativeElement?.focus()" (keydown.enter)="searchInput()?.nativeElement?.focus()">
+              role="presentation"
+              (click)="searchInput()?.nativeElement?.focus()"
+              (keydown.enter)="searchInput()?.nativeElement?.focus()"
+            >
               <!-- Aktive Filter-Chips -->
               @for (filter of activeFilters(); track filter.key) {
-                <span class="inline-flex items-center gap-1 bg-slate-100 dark:bg-gray-800 text-slate-700
-                             dark:text-gray-300 text-xs font-medium px-2.5 py-1 rounded-lg">
+                <span
+                  class="inline-flex items-center gap-1 bg-slate-100 dark:bg-gray-800 text-slate-700
+                             dark:text-gray-300 text-xs font-medium px-2.5 py-1 rounded-lg"
+                >
                   <span class="text-slate-400 dark:text-gray-500">{{ filter.key }}:</span>
                   {{ filter.label }}
-                  <button type="button" (click)="removeFilter(filter.key); $event.stopPropagation()"
+                  <button
+                    type="button"
+                    (click)="removeFilter(filter.key); $event.stopPropagation()"
                     class="text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-white ml-0.5
-                           transition text-[10px]">
+                           transition text-[10px]"
+                  >
                     ✕
                   </button>
                 </span>
               }
               <!-- Eingabefeld -->
-              <input #searchInputRef type="text"
+              <input
+                #searchInputRef
+                type="text"
                 [ngModel]="searchText()"
                 (ngModelChange)="onSearchInput($event)"
                 (keydown)="onSearchKeydown($event)"
@@ -210,34 +303,48 @@ interface SearchCommand {
                 (blur)="onSearchBlur()"
                 [placeholder]="activeFilters().length > 0 ? 'Weiter filtern...' : 'Suche... (/ für Kommandos)'"
                 class="flex-1 min-w-[120px] bg-transparent outline-none text-sm text-slate-900 dark:text-white
-                       placeholder-slate-400 dark:placeholder-gray-600" />
+                       placeholder-slate-400 dark:placeholder-gray-600"
+              />
             </div>
 
             <!-- Autocomplete Dropdown -->
             @if (showDropdown()) {
-              <div class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-900 border border-slate-200
-                          dark:border-gray-700 rounded-lg shadow-xl overflow-hidden">
+              <div
+                class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-900 border border-slate-200
+                          dark:border-gray-700 rounded-lg shadow-xl overflow-hidden"
+              >
                 @if (dropdownPhase() === 'command') {
                   @for (cmd of visibleCommands(); track cmd.key; let i = $index) {
-                    <button type="button"
+                    <button
+                      type="button"
                       (mousedown)="selectCommand(cmd); $event.preventDefault()"
-                      [class]="i === highlightIndex()
-                        ? 'bg-slate-100 dark:bg-gray-800'
-                        : 'hover:bg-slate-50 dark:hover:bg-gray-800/50'"
-                      class="w-full px-3 py-2.5 flex items-center gap-3 text-left transition">
-                      <span class="text-xs font-mono text-slate-500 dark:text-gray-400 bg-slate-100
-                                   dark:bg-gray-800 px-1.5 py-0.5 rounded">{{ cmd.label }}</span>
+                      [class]="
+                        i === highlightIndex()
+                          ? 'bg-slate-100 dark:bg-gray-800'
+                          : 'hover:bg-slate-50 dark:hover:bg-gray-800/50'
+                      "
+                      class="w-full px-3 py-2.5 flex items-center gap-3 text-left transition"
+                    >
+                      <span
+                        class="text-xs font-mono text-slate-500 dark:text-gray-400 bg-slate-100
+                                   dark:bg-gray-800 px-1.5 py-0.5 rounded"
+                        >{{ cmd.label }}</span
+                      >
                       <span class="text-sm text-slate-600 dark:text-gray-300">{{ cmd.description | translate }}</span>
                     </button>
                   }
                 } @else {
                   @for (val of visibleValues(); track val.value; let i = $index) {
-                    <button type="button"
+                    <button
+                      type="button"
                       (mousedown)="selectValue(val); $event.preventDefault()"
-                      [class]="i === highlightIndex()
-                        ? 'bg-slate-100 dark:bg-gray-800'
-                        : 'hover:bg-slate-50 dark:hover:bg-gray-800/50'"
-                      class="w-full px-3 py-2.5 text-left text-sm text-slate-700 dark:text-gray-300 transition">
+                      [class]="
+                        i === highlightIndex()
+                          ? 'bg-slate-100 dark:bg-gray-800'
+                          : 'hover:bg-slate-50 dark:hover:bg-gray-800/50'
+                      "
+                      class="w-full px-3 py-2.5 text-left text-sm text-slate-700 dark:text-gray-300 transition"
+                    >
                       {{ val.label | translate }}
                     </button>
                   }
@@ -251,30 +358,44 @@ interface SearchCommand {
               {{ (products().length === 0 ? 'PRODUCTS.NO_PRODUCTS' : 'COMMON.NO_RESULTS') | translate }}
             </p>
           } @else {
-            <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden">
+            <div
+              class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden"
+            >
               <table class="w-full text-sm">
                 <thead>
-                  <tr class="border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500
-                             text-xs uppercase tracking-wider select-none">
-                    <th class="px-3 py-2.5 cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
-                        (click)="toggleSort('name')">
+                  <tr
+                    class="border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500
+                             text-xs uppercase tracking-wider select-none"
+                  >
+                    <th
+                      class="px-3 py-2.5 cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                      (click)="toggleSort('name')"
+                    >
                       {{ 'COMMON.NAME' | translate }}{{ sortIcon('name') }}
                     </th>
                     @if (!selectedId()) {
-                      <th class="px-3 py-2.5 cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
-                          (click)="toggleSort('acronym')">
+                      <th
+                        class="px-3 py-2.5 cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                        (click)="toggleSort('acronym')"
+                      >
                         {{ 'PRODUCTS.ACRONYM' | translate }}{{ sortIcon('acronym') }}
                       </th>
-                      <th class="px-3 py-2.5 cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
-                          (click)="toggleSort('price')">
+                      <th
+                        class="px-3 py-2.5 cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                        (click)="toggleSort('price')"
+                      >
                         {{ 'PRODUCTS.PRICE' | translate }}{{ sortIcon('price') }}
                       </th>
-                      <th class="px-3 py-2.5 cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
-                          (click)="toggleSort('productType')">
+                      <th
+                        class="px-3 py-2.5 cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                        (click)="toggleSort('productType')"
+                      >
                         {{ 'PRODUCTS.TYPE' | translate }}{{ sortIcon('productType') }}
                       </th>
-                      <th class="px-3 py-2.5 cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
-                          (click)="toggleSort('status')">
+                      <th
+                        class="px-3 py-2.5 cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                        (click)="toggleSort('status')"
+                      >
                         {{ 'COMMON.STATUS' | translate }}{{ sortIcon('status') }}
                       </th>
                     }
@@ -282,11 +403,15 @@ interface SearchCommand {
                 </thead>
                 <tbody>
                   @for (p of filteredProducts(); track p._id) {
-                    <tr (click)="selectItem(p._id)"
-                        [class]="p._id === selectedId()
+                    <tr
+                      (click)="selectItem(p._id)"
+                      [class]="
+                        p._id === selectedId()
                           ? 'bg-slate-100 dark:bg-white/5 border-l-2 border-l-slate-900 dark:border-l-white'
-                          : 'hover:bg-slate-50 dark:hover:bg-gray-800/30 border-l-2 border-l-transparent'"
-                        class="cursor-pointer border-b border-slate-200/50 dark:border-gray-800/50 transition">
+                          : 'hover:bg-slate-50 dark:hover:bg-gray-800/30 border-l-2 border-l-transparent'
+                      "
+                      class="cursor-pointer border-b border-slate-200/50 dark:border-gray-800/50 transition"
+                    >
                       <td class="px-3 py-2.5 font-medium truncate max-w-48">
                         <span class="inline-flex items-center gap-1.5">
                           <img [src]="productTypeIcon(p.productType)" alt="" class="w-4 h-4 shrink-0" />
@@ -300,8 +425,10 @@ interface SearchCommand {
                         <td class="px-3 py-2.5 text-slate-500 dark:text-gray-400 font-mono text-xs">{{ p.acronym }}</td>
                         <td class="px-3 py-2.5 font-mono text-xs">{{ (p.price || 0).toFixed(2) }} &euro;</td>
                         <td class="px-3 py-2.5">
-                          <span class="text-xs px-2 py-0.5 rounded-full border border-slate-300 dark:border-gray-700
-                                       text-slate-600 dark:text-gray-300">
+                          <span
+                            class="text-xs px-2 py-0.5 rounded-full border border-slate-300 dark:border-gray-700
+                                       text-slate-600 dark:text-gray-300"
+                          >
                             {{ p.productType || 'PRODUCT' }}
                           </span>
                         </td>
@@ -314,7 +441,6 @@ interface SearchCommand {
                 </tbody>
               </table>
             </div>
-
           }
         </div>
       </div>
@@ -323,13 +449,18 @@ interface SearchCommand {
       @if (selectedId()) {
         <div class="flex-1 flex flex-col overflow-hidden">
           <!-- Panel Header mit Navigation -->
-          <div class="shrink-0 bg-slate-50 dark:bg-gray-950 border-b border-slate-200 dark:border-gray-800
-                      px-4 py-2.5 flex items-center gap-2">
-            <button (click)="prevItem()" [disabled]="currentIndex() <= 0"
+          <div
+            class="shrink-0 bg-slate-50 dark:bg-gray-950 border-b border-slate-200 dark:border-gray-800
+                      px-4 py-2.5 flex items-center gap-2"
+          >
+            <button
+              (click)="prevItem()"
+              [disabled]="currentIndex() <= 0"
               class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
                      disabled:text-slate-300 dark:disabled:text-gray-700 disabled:cursor-not-allowed
                      w-8 h-8 flex items-center justify-center rounded-lg
-                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm">
+                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm"
+            >
               ◀
             </button>
             <span class="text-xs text-slate-400 dark:text-gray-500 min-w-12 text-center">
@@ -339,29 +470,36 @@ interface SearchCommand {
                 {{ 'COMMON.NEW' | translate }}
               }
             </span>
-            <button (click)="nextItem()" [disabled]="currentIndex() >= filteredProducts().length - 1"
+            <button
+              (click)="nextItem()"
+              [disabled]="currentIndex() >= filteredProducts().length - 1"
               class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
                      disabled:text-slate-300 dark:disabled:text-gray-700 disabled:cursor-not-allowed
                      w-8 h-8 flex items-center justify-center rounded-lg
-                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm">
+                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm"
+            >
               ▶
             </button>
             <div class="flex-1"></div>
-            <button (click)="selectedId.set(null)"
+            <button
+              (click)="selectedId.set(null)"
               class="text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white w-8 h-8
                      flex items-center justify-center rounded-lg
-                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm">
+                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm"
+            >
               ✕
             </button>
           </div>
 
           <!-- Formular -->
           <div #panelScroll class="flex-1 overflow-y-auto">
-            <app-product-form #formRef
+            <app-product-form
+              #formRef
               [id]="selectedId()!"
               [panelMode]="true"
               (saved)="onItemSaved()"
-              (closed)="tryClose()" />
+              (closed)="tryClose()"
+            />
           </div>
         </div>
       }
@@ -376,13 +514,12 @@ interface SearchCommand {
           cancelLabel="Abbrechen"
           (confirmed)="onDialogSave()"
           (dismissed)="onDialogDiscard()"
-          (cancelled)="onDialogCancel()" />
+          (cancelled)="onDialogCancel()"
+        />
       }
 
       @if (showWizard()) {
-        <app-product-wizard
-          (saved)="onWizardSaved()"
-          (cancelled)="showWizard.set(false)" />
+        <app-product-wizard (saved)="onWizardSaved()" (cancelled)="showWizard.set(false)" />
       }
     </div>
   `,
@@ -421,8 +558,10 @@ export class ProductListComponent implements OnInit {
   exporting = signal(false)
   importing = signal(false)
   importResult = signal<{
-    groupsCreated: number; groupsUpdated: number
-    productsCreated: number; productsUpdated: number
+    groupsCreated: number
+    groupsUpdated: number
+    productsCreated: number
+    productsUpdated: number
     errors: number
     errorLogs: string[]
   } | null>(null)
@@ -512,10 +651,7 @@ export class ProductListComponent implements OnInit {
     const q = this.freitextQuery().toLowerCase().trim()
     if (q) {
       list = list.filter(
-        p =>
-          p.name?.toLowerCase().includes(q) ||
-          p.acronym?.toLowerCase().includes(q) ||
-          String(p.price).includes(q),
+        p => p.name?.toLowerCase().includes(q) || p.acronym?.toLowerCase().includes(q) || String(p.price).includes(q),
       )
     }
 
@@ -596,8 +732,7 @@ export class ProductListComponent implements OnInit {
       return
     }
 
-    const items =
-      this.dropdownPhase() === 'command' ? this.visibleCommands() : this.visibleValues()
+    const items = this.dropdownPhase() === 'command' ? this.visibleCommands() : this.visibleValues()
     const maxIdx = items.length - 1
 
     if (event.key === 'ArrowDown') {
@@ -653,9 +788,12 @@ export class ProductListComponent implements OnInit {
 
   productTypeIcon(type: string): string {
     switch (type) {
-      case 'MODIFIER': return 'assets/icons/icon-modifier.svg'
-      case 'BUNDLE': return 'assets/icons/icon-bundle.svg'
-      default: return 'assets/icons/icon-product.svg'
+      case 'MODIFIER':
+        return 'assets/icons/icon-modifier.svg'
+      case 'BUNDLE':
+        return 'assets/icons/icon-bundle.svg'
+      default:
+        return 'assets/icons/icon-product.svg'
     }
   }
 
@@ -699,18 +837,13 @@ export class ProductListComponent implements OnInit {
 
   prevItem() {
     const idx = this.currentIndex()
-    if (idx > 0)
-      this.navigateWithDirtyCheck(() =>
-        this.selectedId.set(this.filteredProducts()[idx - 1]._id),
-      )
+    if (idx > 0) this.navigateWithDirtyCheck(() => this.selectedId.set(this.filteredProducts()[idx - 1]._id))
   }
 
   nextItem() {
     const idx = this.currentIndex()
     if (idx < this.filteredProducts().length - 1)
-      this.navigateWithDirtyCheck(() =>
-        this.selectedId.set(this.filteredProducts()[idx + 1]._id),
-      )
+      this.navigateWithDirtyCheck(() => this.selectedId.set(this.filteredProducts()[idx + 1]._id))
   }
 
   tryClose() {
@@ -751,15 +884,14 @@ export class ProductListComponent implements OnInit {
   }
 
   async ngOnInit() {
-    await Promise.all([
-      this.loadProducts(),
-      this.loadProductGroups(),
-    ])
+    await Promise.all([this.loadProducts(), this.loadProductGroups()])
   }
 
   private async loadProductGroups() {
     try {
-      const result = await this.api.find<{ _id: string; name: string; color: string }>('product-groups', { $limit: 250 })
+      const result = await this.api.find<{ _id: string; name: string; color: string }>('product-groups', {
+        $limit: 250,
+      })
       this.productGroups.set(result.data)
     } catch (e) {
       console.error('Fehler beim Laden der Produktgruppen:', e)
@@ -930,7 +1062,14 @@ export class ProductListComponent implements OnInit {
     this.importing.set(true)
     this.importResult.set(null)
 
-    const result = { groupsCreated: 0, groupsUpdated: 0, productsCreated: 0, productsUpdated: 0, errors: 0, errorLogs: [] as string[] }
+    const result = {
+      groupsCreated: 0,
+      groupsUpdated: 0,
+      productsCreated: 0,
+      productsUpdated: 0,
+      errors: 0,
+      errorLogs: [] as string[],
+    }
 
     // Phase 1: Produktgruppen importieren
     const groupExternalToId = new Map<string, string>()
@@ -941,7 +1080,9 @@ export class ProductListComponent implements OnInit {
       for (const g of existing.data) {
         if (g.externalId) groupExternalToId.set(g.externalId, g._id)
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     for (const group of data.productGroups) {
       try {
@@ -970,7 +1111,9 @@ export class ProductListComponent implements OnInit {
       for (const p of existing.data) {
         if (p.externalId) productExternalToId.set(p.externalId, p._id)
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     // Produkte mit aufgeloesten categoryIds erstellen/aktualisieren
     const productsWithOptionGroups: { id: string; optionGroups: any[] }[] = []
@@ -1036,9 +1179,16 @@ export class ProductListComponent implements OnInit {
 
   /** Felder die in SQLite als 0/1 gespeichert werden, aber Boolean sein muessen */
   private static readonly BOOLEAN_FIELDS = new Set([
-    'excluded', 'isInvalid', 'isDefault', 'isActive', 'isRemovable',
-    'showOptionsAuto', 'hideOnMainScreen', 'onlyOutsideConsumption',
-    'isPosUser', 'allowStaffMealOrders',
+    'excluded',
+    'isInvalid',
+    'isDefault',
+    'isActive',
+    'isRemovable',
+    'showOptionsAuto',
+    'hideOnMainScreen',
+    'onlyOutsideConsumption',
+    'isPosUser',
+    'allowStaffMealOrders',
   ])
 
   /** Bereinigt Export-Daten: entfernt null-Werte, korrigiert SQLite-Integer-Booleans */

@@ -80,9 +80,7 @@ describe('checkGrantAssignment', () => {
 
 describe('extractAddedGrants', () => {
   it('filtert Nicht-grant-Tokens (AppAbilities) heraus', () => {
-    expect(extractAddedGrants(['can_discount', 'grant:orders:read', 'can_refund'], [])).toEqual([
-      'grant:orders:read',
-    ])
+    expect(extractAddedGrants(['can_discount', 'grant:orders:read', 'can_refund'], [])).toEqual(['grant:orders:read'])
   })
 
   it('Delta-Semantik: bereits gesetzte Grants werden nicht erneut geprueft', () => {

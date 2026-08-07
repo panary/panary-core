@@ -68,110 +68,120 @@
     "colors": {
       "comment": "Alle Farben als Tailwind-Klassen-Paare [light, dark]. Inline-Styles nur für dynamische Icon-Farben.",
       "surface": {
-        "appBackground":    { "light": "bg-slate-50",      "dark": "dark:bg-black" },
-        "sidebar":          { "light": "bg-white",         "dark": "dark:bg-gray-950" },
-        "card":             { "light": "bg-white",         "dark": "dark:bg-gray-900/50" },
-        "cardAlt":          { "light": "bg-slate-50",      "dark": "dark:bg-gray-900/50" },
-        "input":            { "light": "bg-white",         "dark": "dark:bg-gray-900" },
-        "panelHeader":      { "light": "bg-slate-50",      "dark": "dark:bg-gray-950" },
-        "tableRow":         { "light": "bg-white",         "dark": "dark:bg-gray-900/50" },
-        "tableRowSelected": { "light": "bg-slate-100",     "dark": "dark:bg-white/5" },
-        "tableRowHover":    { "light": "hover:bg-slate-50","dark": "dark:hover:bg-gray-800/30" },
-        "themeToggle":      { "light": "bg-slate-100",     "dark": "dark:bg-gray-900" },
-        "themeToggleItem":  { "light": "bg-white",         "dark": "dark:bg-gray-800" }
+        "appBackground": { "light": "bg-slate-50", "dark": "dark:bg-black" },
+        "sidebar": { "light": "bg-white", "dark": "dark:bg-gray-950" },
+        "card": { "light": "bg-white", "dark": "dark:bg-gray-900/50" },
+        "cardAlt": { "light": "bg-slate-50", "dark": "dark:bg-gray-900/50" },
+        "input": { "light": "bg-white", "dark": "dark:bg-gray-900" },
+        "panelHeader": { "light": "bg-slate-50", "dark": "dark:bg-gray-950" },
+        "tableRow": { "light": "bg-white", "dark": "dark:bg-gray-900/50" },
+        "tableRowSelected": { "light": "bg-slate-100", "dark": "dark:bg-white/5" },
+        "tableRowHover": { "light": "hover:bg-slate-50", "dark": "dark:hover:bg-gray-800/30" },
+        "themeToggle": { "light": "bg-slate-100", "dark": "dark:bg-gray-900" },
+        "themeToggleItem": { "light": "bg-white", "dark": "dark:bg-gray-800" }
       },
       "border": {
-        "default":      { "light": "border-slate-200",    "dark": "dark:border-gray-800" },
-        "strong":       { "light": "border-slate-300",    "dark": "dark:border-gray-700" },
-        "subtle":       { "light": "border-slate-200/50", "dark": "dark:border-gray-800/50" },
-        "selected":     { "light": "border-l-slate-900",  "dark": "dark:border-l-white" },
+        "default": { "light": "border-slate-200", "dark": "dark:border-gray-800" },
+        "strong": { "light": "border-slate-300", "dark": "dark:border-gray-700" },
+        "subtle": { "light": "border-slate-200/50", "dark": "dark:border-gray-800/50" },
+        "selected": { "light": "border-l-slate-900", "dark": "dark:border-l-white" },
         "sectionBreak": { "light": "border-t border-slate-200", "dark": "dark:border-gray-800" }
       },
       "text": {
-        "primary":     { "light": "text-slate-900",  "dark": "dark:text-white" },
-        "secondary":   { "light": "text-slate-600",  "dark": "dark:text-gray-300" },
-        "tertiary":    { "light": "text-slate-500",  "dark": "dark:text-gray-400" },
-        "muted":       { "light": "text-slate-400",  "dark": "dark:text-gray-500" },
-        "veryMuted":   { "light": "text-slate-400",  "dark": "dark:text-gray-600" },
-        "placeholder": { "light": "text-slate-400",  "dark": "dark:text-gray-600" },
-        "label":       { "light": "text-slate-500",  "dark": "dark:text-gray-400" },
-        "tableHeader": { "light": "text-slate-400",  "dark": "dark:text-gray-500" }
+        "primary": { "light": "text-slate-900", "dark": "dark:text-white" },
+        "secondary": { "light": "text-slate-600", "dark": "dark:text-gray-300" },
+        "tertiary": { "light": "text-slate-500", "dark": "dark:text-gray-400" },
+        "muted": { "light": "text-slate-400", "dark": "dark:text-gray-500" },
+        "veryMuted": { "light": "text-slate-400", "dark": "dark:text-gray-600" },
+        "placeholder": { "light": "text-slate-400", "dark": "dark:text-gray-600" },
+        "label": { "light": "text-slate-500", "dark": "dark:text-gray-400" },
+        "tableHeader": { "light": "text-slate-400", "dark": "dark:text-gray-500" }
       },
       "interactive": {
         "primaryButton": {
-          "bg":      { "light": "bg-slate-900",          "dark": "dark:bg-white" },
-          "text":    { "light": "text-white",            "dark": "dark:text-black" },
-          "hover":   { "light": "hover:bg-slate-800",    "dark": "dark:hover:bg-gray-200" }
+          "bg": { "light": "bg-slate-900", "dark": "dark:bg-white" },
+          "text": { "light": "text-white", "dark": "dark:text-black" },
+          "hover": { "light": "hover:bg-slate-800", "dark": "dark:hover:bg-gray-200" }
         },
         "secondaryButton": {
-          "bg":      { "light": "bg-slate-100",          "dark": "dark:bg-gray-900" },
-          "border":  { "light": "border-slate-200",      "dark": "dark:border-gray-800" },
-          "text":    { "light": "text-slate-600",        "dark": "dark:text-gray-300" },
-          "hover":   { "light": "hover:bg-slate-200",    "dark": "dark:hover:bg-gray-800" }
+          "bg": { "light": "bg-slate-100", "dark": "dark:bg-gray-900" },
+          "border": { "light": "border-slate-200", "dark": "dark:border-gray-800" },
+          "text": { "light": "text-slate-600", "dark": "dark:text-gray-300" },
+          "hover": { "light": "hover:bg-slate-200", "dark": "dark:hover:bg-gray-800" }
         },
         "ghostButton": {
-          "text":    { "light": "text-slate-500",        "dark": "dark:text-gray-400" },
-          "hover":   { "light": "hover:text-slate-900 hover:bg-slate-100", "dark": "dark:hover:text-white dark:hover:bg-gray-800" }
+          "text": { "light": "text-slate-500", "dark": "dark:text-gray-400" },
+          "hover": {
+            "light": "hover:text-slate-900 hover:bg-slate-100",
+            "dark": "dark:hover:text-white dark:hover:bg-gray-800"
+          }
         },
         "navItem": {
-          "default": { "light": "text-slate-500",        "dark": "dark:text-gray-400" },
-          "hover":   { "light": "hover:text-slate-900 hover:bg-slate-50", "dark": "dark:hover:text-white dark:hover:bg-gray-900" },
-          "active":  { "light": "bg-slate-100 text-slate-900", "dark": "dark:bg-gray-800 dark:text-white" }
+          "default": { "light": "text-slate-500", "dark": "dark:text-gray-400" },
+          "hover": {
+            "light": "hover:text-slate-900 hover:bg-slate-50",
+            "dark": "dark:hover:text-white dark:hover:bg-gray-900"
+          },
+          "active": { "light": "bg-slate-100 text-slate-900", "dark": "dark:bg-gray-800 dark:text-white" }
         }
       },
       "status": {
         "success": {
-          "text":   { "light": "text-green-600",    "dark": "dark:text-green-400" },
-          "bg":     { "light": "bg-green-50",       "dark": "dark:bg-green-950/20" },
-          "border": { "light": "border-green-200",  "dark": "dark:border-green-900/50" },
-          "dot":    "bg-green-400",
+          "text": { "light": "text-green-600", "dark": "dark:text-green-400" },
+          "bg": { "light": "bg-green-50", "dark": "dark:bg-green-950/20" },
+          "border": { "light": "border-green-200", "dark": "dark:border-green-900/50" },
+          "dot": "bg-green-400",
           "badgeBg": "bg-green-500/10",
           "badgeText": "text-green-400",
           "badgeBorder": "border-green-500/20"
         },
         "error": {
-          "text":   { "light": "text-red-500",      "dark": "dark:text-red-400" },
-          "bg":     { "light": "bg-red-50",         "dark": "dark:bg-red-950/50" },
-          "border": { "light": "border-red-200",    "dark": "dark:border-red-900/50" },
-          "dot":    "bg-red-500"
+          "text": { "light": "text-red-500", "dark": "dark:text-red-400" },
+          "bg": { "light": "bg-red-50", "dark": "dark:bg-red-950/50" },
+          "border": { "light": "border-red-200", "dark": "dark:border-red-900/50" },
+          "dot": "bg-red-500"
         },
         "warning": {
-          "text":   { "light": "text-amber-700",    "dark": "dark:text-amber-400" },
-          "bg":     { "light": "bg-amber-50",       "dark": "dark:bg-amber-950" },
-          "border": { "light": "border-amber-200",  "dark": "dark:border-amber-900" },
-          "dot":    "bg-amber-500 animate-pulse"
+          "text": { "light": "text-amber-700", "dark": "dark:text-amber-400" },
+          "bg": { "light": "bg-amber-50", "dark": "dark:bg-amber-950" },
+          "border": { "light": "border-amber-200", "dark": "dark:border-amber-900" },
+          "dot": "bg-amber-500 animate-pulse"
         },
         "info": {
-          "text":   { "light": "text-emerald-700",  "dark": "dark:text-emerald-400" },
-          "bg":     { "light": "bg-emerald-50",     "dark": "dark:bg-emerald-950" },
-          "border": { "light": "border-emerald-200","dark": "dark:border-emerald-900" },
-          "dot":    "bg-emerald-500 animate-pulse"
+          "text": { "light": "text-emerald-700", "dark": "dark:text-emerald-400" },
+          "bg": { "light": "bg-emerald-50", "dark": "dark:bg-emerald-950" },
+          "border": { "light": "border-emerald-200", "dark": "dark:border-emerald-900" },
+          "dot": "bg-emerald-500 animate-pulse"
         },
         "neutral": {
-          "text":   { "light": "text-slate-600",    "dark": "dark:text-slate-400" },
-          "bg":     { "light": "bg-slate-100",      "dark": "dark:bg-slate-800" },
-          "border": { "light": "border-slate-200",  "dark": "dark:border-slate-700" },
-          "dot":    "bg-slate-400"
+          "text": { "light": "text-slate-600", "dark": "dark:text-slate-400" },
+          "bg": { "light": "bg-slate-100", "dark": "dark:bg-slate-800" },
+          "border": { "light": "border-slate-200", "dark": "dark:border-slate-700" },
+          "dot": "bg-slate-400"
         },
         "badgeDraft": {
-          "bg": "bg-yellow-500/10", "text": "text-yellow-400", "border": "border-yellow-500/20"
+          "bg": "bg-yellow-500/10",
+          "text": "text-yellow-400",
+          "border": "border-yellow-500/20"
         },
         "badgeArchived": {
-          "bg": "bg-gray-500/10", "text": "text-gray-400", "border": "border-gray-500/20"
+          "bg": "bg-gray-500/10",
+          "text": "text-gray-400",
+          "border": "border-gray-500/20"
         }
       },
       "kpiIconColors": {
         "comment": "Direkte Inline-Style-Werte für Icon-Vordergrund und Hintergrund in KPI-Karten",
-        "blue":   { "iconColor": "#2563eb", "iconBg": "#eff6ff" },
+        "blue": { "iconColor": "#2563eb", "iconBg": "#eff6ff" },
         "purple": { "iconColor": "#7c3aed", "iconBg": "#f5f3ff" },
-        "teal":   { "iconColor": "#059669", "iconBg": "#ecfdf5" },
-        "amber":  { "iconColor": "#d97706", "iconBg": "#fffbeb" },
-        "rose":   { "iconColor": "#e11d48", "iconBg": "#fff1f2" },
+        "teal": { "iconColor": "#059669", "iconBg": "#ecfdf5" },
+        "amber": { "iconColor": "#d97706", "iconBg": "#fffbeb" },
+        "rose": { "iconColor": "#e11d48", "iconBg": "#fff1f2" },
         "indigo": { "iconColor": "#4f46e5", "iconBg": "#eef2ff" }
       },
       "focus": {
         "defaultRing": "focus:border-slate-900 dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white",
-        "errorRing":   "border-red-500/50 focus:border-red-400 focus:ring-red-400",
+        "errorRing": "border-red-500/50 focus:border-red-400 focus:ring-red-400",
         "successRing": "border-green-500/30 focus:border-green-400 focus:ring-green-400"
       }
     },
@@ -182,68 +192,68 @@
         "mono": "'JetBrains Mono', monospace"
       },
       "scale": {
-        "micro":     { "class": "text-[10px]", "usage": "Kleinste Beschriftungen, Sidebar-Subtitel" },
-        "tiny":      { "class": "text-[11px]", "usage": "Sonderfälle, kompakte Pflichtfelder" },
-        "xs":        { "class": "text-xs",     "usage": "Labels (uppercase), Tabellen-Header, Fehlermeldungen" },
-        "sm":        { "class": "text-sm",     "usage": "Fließtext, Tabellenzeilen, Beschreibungen" },
-        "base":      { "class": "text-base",   "usage": "Standard-Körpertext" },
-        "lg":        { "class": "text-lg",     "usage": "Abschnittsüberschriften" },
-        "xl":        { "class": "text-xl",     "usage": "Seiten-Haupttitel (h1 auf jeder Seite)" },
-        "2xl":       { "class": "text-2xl",    "usage": "Formular-Überschriften in eigenem Panel" },
-        "3xl":       { "class": "text-3xl",    "usage": "KPI-Zahlenwerte (tabular-nums)" }
+        "micro": { "class": "text-[10px]", "usage": "Kleinste Beschriftungen, Sidebar-Subtitel" },
+        "tiny": { "class": "text-[11px]", "usage": "Sonderfälle, kompakte Pflichtfelder" },
+        "xs": { "class": "text-xs", "usage": "Labels (uppercase), Tabellen-Header, Fehlermeldungen" },
+        "sm": { "class": "text-sm", "usage": "Fließtext, Tabellenzeilen, Beschreibungen" },
+        "base": { "class": "text-base", "usage": "Standard-Körpertext" },
+        "lg": { "class": "text-lg", "usage": "Abschnittsüberschriften" },
+        "xl": { "class": "text-xl", "usage": "Seiten-Haupttitel (h1 auf jeder Seite)" },
+        "2xl": { "class": "text-2xl", "usage": "Formular-Überschriften in eigenem Panel" },
+        "3xl": { "class": "text-3xl", "usage": "KPI-Zahlenwerte (tabular-nums)" }
       },
       "weights": {
-        "normal":    "font-normal",
-        "medium":    "font-medium",
-        "semibold":  "font-semibold",
-        "bold":      "font-bold"
+        "normal": "font-normal",
+        "medium": "font-medium",
+        "semibold": "font-semibold",
+        "bold": "font-bold"
       },
       "tracking": {
-        "tight":     "tracking-tight",
-        "normal":    "tracking-normal",
-        "wider":     "tracking-wider",
-        "widest":    "tracking-widest",
-        "code":      "tracking-[0.5em]"
+        "tight": "tracking-tight",
+        "normal": "tracking-normal",
+        "wider": "tracking-wider",
+        "widest": "tracking-widest",
+        "code": "tracking-[0.5em]"
       },
       "leading": {
-        "snug":      "leading-snug",
-        "relaxed":   "leading-relaxed"
+        "snug": "leading-snug",
+        "relaxed": "leading-relaxed"
       },
       "special": {
         "tabularNums": "tabular-nums",
-        "fontMono":    "font-mono",
-        "uppercase":   "uppercase",
-        "truncate":    "truncate",
-        "breakAll":    "break-all"
+        "fontMono": "font-mono",
+        "uppercase": "uppercase",
+        "truncate": "truncate",
+        "breakAll": "break-all"
       },
       "patterns": {
-        "pageTitle":     "text-xl font-bold tracking-tight",
-        "formTitle":     "text-2xl font-bold tracking-tight",
-        "sectionLabel":  "text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider",
-        "tableHeader":   "text-xs uppercase tracking-wider text-slate-400 dark:text-gray-500",
-        "label":         "text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider",
-        "bodyText":      "text-sm text-slate-600 dark:text-gray-300",
-        "mutedText":     "text-sm text-slate-400 dark:text-gray-500",
-        "kpiValue":      "text-3xl font-bold tabular-nums text-slate-900 dark:text-white",
-        "kpiLabel":      "text-xs font-semibold text-slate-400 dark:text-gray-500 uppercase tracking-widest"
+        "pageTitle": "text-xl font-bold tracking-tight",
+        "formTitle": "text-2xl font-bold tracking-tight",
+        "sectionLabel": "text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider",
+        "tableHeader": "text-xs uppercase tracking-wider text-slate-400 dark:text-gray-500",
+        "label": "text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider",
+        "bodyText": "text-sm text-slate-600 dark:text-gray-300",
+        "mutedText": "text-sm text-slate-400 dark:text-gray-500",
+        "kpiValue": "text-3xl font-bold tabular-nums text-slate-900 dark:text-white",
+        "kpiLabel": "text-xs font-semibold text-slate-400 dark:text-gray-500 uppercase tracking-widest"
       }
     },
 
     "spacing": {
       "comment": "Tailwind-Spacing-Skala (1 Einheit = 4px). Verwendete Werte in diesem Projekt:",
       "used": ["0", "0.5", "1", "1.5", "2", "2.5", "3", "4", "5", "6", "8"],
-      "pagePadding":    "p-6",
-      "pagePaddingXY":  "px-6 py-6",
-      "cardPadding":    "p-5",
-      "inputPadding":   "p-3",
+      "pagePadding": "p-6",
+      "pagePaddingXY": "px-6 py-6",
+      "cardPadding": "p-5",
+      "inputPadding": "p-3",
       "buttonPaddingMd": "px-4 py-2",
       "buttonPaddingLg": "px-6 py-3",
       "sidebarPadding": "p-3",
-      "tableCell":      "px-3 py-2.5",
+      "tableCell": "px-3 py-2.5",
       "gap": {
-        "tight":  "gap-1.5",
+        "tight": "gap-1.5",
         "default": "gap-3",
-        "loose":  "gap-4",
+        "loose": "gap-4",
         "section": "gap-6"
       },
       "spaceY": {
@@ -254,20 +264,20 @@
     },
 
     "borderRadius": {
-      "input":    "rounded-lg",
-      "button":   "rounded-xl",
-      "card":     "rounded-xl",
-      "dialog":   "rounded-2xl",
-      "pill":     "rounded-full",
-      "navItem":  "rounded-lg",
+      "input": "rounded-lg",
+      "button": "rounded-xl",
+      "card": "rounded-xl",
+      "dialog": "rounded-2xl",
+      "pill": "rounded-full",
+      "navItem": "rounded-lg",
       "saveButton": "14px (inline border-radius)"
     },
 
     "shadows": {
       "themeToggleActive": "shadow-sm",
-      "focusedElement":    "shadow-lg",
-      "dropdown":          "shadow-xl",
-      "dialog":            "shadow-2xl"
+      "focusedElement": "shadow-lg",
+      "dropdown": "shadow-xl",
+      "dialog": "shadow-2xl"
     }
   },
 
@@ -283,25 +293,35 @@
     },
     "navigationIcons": {
       "comment": "Unicode-Sonderzeichen als Nav-Icons (kein Material Symbols für Nav)",
-      "dashboard":      "◫",
-      "users":          "◉",
-      "location":       "⊡",
-      "productGroups":  "▣",
-      "products":       "▤",
-      "printers":       "⎙",
-      "apiKeys":        "⚿",
-      "cloud":          "☁",
-      "themeLight":     "☀",
-      "themeDark":      "☽",
-      "themeSystem":    "◐",
-      "prevArrow":      "◀",
-      "nextArrow":      "▶",
-      "close":          "✕",
-      "check":          "✓"
+      "dashboard": "◫",
+      "users": "◉",
+      "location": "⊡",
+      "productGroups": "▣",
+      "products": "▤",
+      "printers": "⎙",
+      "apiKeys": "⚿",
+      "cloud": "☁",
+      "themeLight": "☀",
+      "themeDark": "☽",
+      "themeSystem": "◐",
+      "prevArrow": "◀",
+      "nextArrow": "▶",
+      "close": "✕",
+      "check": "✓"
     },
     "materialIconsUsed": [
-      "people", "store", "inventory_2", "category", "key", "receipt_long",
-      "lan", "cloud_done", "cloud_sync", "cloud_off", "settings", "lock"
+      "people",
+      "store",
+      "inventory_2",
+      "category",
+      "key",
+      "receipt_long",
+      "lan",
+      "cloud_done",
+      "cloud_sync",
+      "cloud_off",
+      "settings",
+      "lock"
     ]
   },
 
@@ -322,15 +342,15 @@
 
   "animations": {
     "transitions": {
-      "default":    "transition (150ms ease)",
-      "colors":     "transition-colors",
-      "all":        "transition-all",
-      "fast":       "transition duration-100",
-      "medium":     "transition duration-300"
+      "default": "transition (150ms ease)",
+      "colors": "transition-colors",
+      "all": "transition-all",
+      "fast": "transition duration-100",
+      "medium": "transition duration-300"
     },
     "standard": {
-      "spin":       "animate-spin",
-      "pulse":      "animate-pulse"
+      "spin": "animate-spin",
+      "pulse": "animate-pulse"
     },
     "custom": {
       "dialogEntrance": {
@@ -352,7 +372,7 @@
       },
       "saveReset": {
         "light": "@keyframes save-reset { 0% { background: #22c55e; } 100% { background: #1e293b; } }",
-        "dark":  "@keyframes save-reset-dark { 0% { background: #22c55e; } 100% { background: #fff; color: #000; } }",
+        "dark": "@keyframes save-reset-dark { 0% { background: #22c55e; } 100% { background: #fff; color: #000; } }",
         "duration": "0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards"
       }
     }
@@ -415,7 +435,6 @@
   },
 
   "components": {
-
     "table": {
       "description": "Tabellenansicht mit optionalem Master-Detail-Split",
       "container": "bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden",
@@ -484,7 +503,7 @@
         "containerClass": "save-btn",
         "states": {
           "default": "save-btn--default",
-          "saving":  "save-btn--saving",
+          "saving": "save-btn--saving",
           "success": "save-btn--success",
           "resetting": "save-btn--resetting"
         },
@@ -495,7 +514,7 @@
         "cssDefinition": {
           "comment": "Vollständige CSS-Definition liegt in styles.css. Muss global eingebunden werden.",
           "light": { "default": "#1e293b / #fff", "hover": "#334155", "success": "#22c55e" },
-          "dark":  { "default": "#fff / #000",    "hover": "#e5e5e5", "success": "#22c55e" }
+          "dark": { "default": "#fff / #000", "hover": "#e5e5e5", "success": "#22c55e" }
         },
         "svgCheckmark": "<svg class=\"save-checkmark\" viewBox=\"0 0 24 24\"><path d=\"M4 12l6 6L20 6\" /></svg>"
       }
@@ -504,8 +523,8 @@
     "badge": {
       "base": "text-xs px-2.5 py-0.5 rounded-full border",
       "role": "text-xs px-2 py-0.5 rounded-full border border-slate-300 dark:border-gray-700 text-slate-600 dark:text-gray-300",
-      "statusActive":   "text-xs px-2.5 py-0.5 rounded-full border bg-green-500/10 text-green-400 border-green-500/20",
-      "statusDraft":    "text-xs px-2.5 py-0.5 rounded-full border bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+      "statusActive": "text-xs px-2.5 py-0.5 rounded-full border bg-green-500/10 text-green-400 border-green-500/20",
+      "statusDraft": "text-xs px-2.5 py-0.5 rounded-full border bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
       "statusArchived": "text-xs px-2.5 py-0.5 rounded-full border bg-gray-500/10 text-gray-400 border-gray-500/20"
     },
 
@@ -515,18 +534,18 @@
       "dot": "w-2 h-2 rounded-full",
       "icon": "material-symbols-outlined text-[16px]",
       "variants": {
-        "connected":    "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-900",
-        "pairing":      "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-900",
+        "connected": "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-900",
+        "pairing": "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-900",
         "disconnected": "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700",
-        "error":        "bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-900",
-        "standalone":   "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+        "error": "bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-900",
+        "standalone": "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
       },
       "dotVariants": {
-        "connected":    "bg-emerald-500 animate-pulse",
-        "pairing":      "bg-amber-500 animate-pulse",
+        "connected": "bg-emerald-500 animate-pulse",
+        "pairing": "bg-amber-500 animate-pulse",
         "disconnected": "bg-slate-400",
-        "error":        "bg-red-500",
-        "standalone":   "bg-slate-400"
+        "error": "bg-red-500",
+        "standalone": "bg-slate-400"
       }
     },
 
@@ -566,8 +585,8 @@
       "saveSpinnerCSS": {
         "size": "18px × 18px",
         "borderLight": "2.5px solid rgba(255,255,255,0.15), border-top: #fff",
-        "borderDark":  "2.5px solid rgba(0,0,0,0.15), border-top: #000",
-        "animation":   "save-spin 0.6s linear infinite"
+        "borderDark": "2.5px solid rgba(0,0,0,0.15), border-top: #000",
+        "animation": "save-spin 0.6s linear infinite"
       }
     },
 

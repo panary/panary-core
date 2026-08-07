@@ -7,29 +7,38 @@ import { DecimalPipe } from '@angular/common'
   imports: [DecimalPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
-    :host { display: block; height: 100%; }
+    :host {
+      display: block;
+      height: 100%;
+    }
   `,
   template: `
     <div class="flex flex-col items-center h-full select-none">
       <!-- Stunden:Minuten Anzeige -->
       <div class="flex items-end gap-2 text-4xl font-bold mb-6 mt-4">
-        <button (click)="switchToHours()"
+        <button
+          (click)="switchToHours()"
           class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
           [class.text-gray-800]="mode() === 'HOURS'"
-          [class.text-gray-400]="mode() !== 'HOURS'">
-          {{ hour() !== null ? (hour()! | number:'2.0') : '--' }}
+          [class.text-gray-400]="mode() !== 'HOURS'"
+        >
+          {{ hour() !== null ? (hour()! | number: '2.0') : '--' }}
         </button>
         <span class="mb-2 text-gray-400">:</span>
-        <button (click)="switchToMinutes()"
+        <button
+          (click)="switchToMinutes()"
           class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
           [class.text-gray-800]="mode() === 'MINUTES'"
-          [class.text-gray-400]="mode() !== 'MINUTES'">
-          {{ minute() !== null ? (minute()! | number:'2.0') : '--' }}
+          [class.text-gray-400]="mode() !== 'MINUTES'"
+        >
+          {{ minute() !== null ? (minute()! | number: '2.0') : '--' }}
         </button>
       </div>
 
       <!-- Uhren-Zifferblatt -->
-      <div class="relative w-96 h-96 bg-gray-50 dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-700 shadow-inner flex items-center justify-center">
+      <div
+        class="relative w-96 h-96 bg-gray-50 dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-700 shadow-inner flex items-center justify-center"
+      >
         @if (mode() === 'HOURS') {
           <!-- Äußerer Ring (1-12) -->
           @for (h of outerHours; track h) {
@@ -39,7 +48,8 @@ import { DecimalPipe } from '@angular/common'
               [class.text-white]="hour() === h"
               [class.bg-white]="hour() !== h"
               [style.transform]="hourTransform(h, '9.5rem')"
-              (click)="selectHour(h)">
+              (click)="selectHour(h)"
+            >
               {{ h }}
             </button>
           }
@@ -52,8 +62,9 @@ import { DecimalPipe } from '@angular/common'
               [class.bg-gray-200]="hour() !== h"
               [class.text-gray-500]="hour() !== h"
               [style.transform]="hourTransform(h === 0 ? 12 : h - 12, '6.5rem')"
-              (click)="selectHour(h)">
-              {{ h | number:'2.0' }}
+              (click)="selectHour(h)"
+            >
+              {{ h | number: '2.0' }}
             </button>
           }
         } @else {
@@ -65,8 +76,9 @@ import { DecimalPipe } from '@angular/common'
               [class.text-white]="minute() === m"
               [class.bg-white]="minute() !== m"
               [style.transform]="minuteTransform(m)"
-              (click)="selectMinute(m)">
-              {{ m | number:'2.0' }}
+              (click)="selectMinute(m)"
+            >
+              {{ m | number: '2.0' }}
             </button>
           }
           <div class="w-2 h-2 bg-gray-400 rounded-full"></div>

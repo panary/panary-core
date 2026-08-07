@@ -80,10 +80,7 @@ export const tseInfoFromError = (input: {
 
 // Storno-Signatur aus einer erfolgreichen cancelTransaction. Ergänzt die
 // ursprüngliche `OrderTseInfo` um den `cancellation`-Block (Sale-Signatur bleibt).
-export const tseCancellationFromSignature = (
-  signature: TseSignature,
-  canceledAt: string,
-): OrderTseCancellation => ({
+export const tseCancellationFromSignature = (signature: TseSignature, canceledAt: string): OrderTseCancellation => ({
   status: 'canceled',
   canceledAt,
   signatureCounter: signature.signatureCounter,

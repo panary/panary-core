@@ -65,7 +65,10 @@ export type TenantAuditTrailData = Static<typeof tenantAuditTrailDataSchema>
 
 // Patch ist verboten (Append-Only) — Schema existiert nur fuer Type-Compat
 // mit Feathers-Resolver-Signatur.
-export const tenantAuditTrailPatchSchema = Type.Object({}, { $id: 'TenantAuditTrailPatch', additionalProperties: false })
+export const tenantAuditTrailPatchSchema = Type.Object(
+  {},
+  { $id: 'TenantAuditTrailPatch', additionalProperties: false },
+)
 export type TenantAuditTrailPatch = Static<typeof tenantAuditTrailPatchSchema>
 
 export const tenantAuditTrailQueryProperties = Type.Pick(tenantAuditTrailSchema, [

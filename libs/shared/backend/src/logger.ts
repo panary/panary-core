@@ -156,9 +156,7 @@ function formatAjvParams(params: Record<string, unknown> | undefined, keyword: s
     case 'additionalProperties':
       return params.additionalProperty ? ` '${params.additionalProperty}'` : ''
     case 'enum':
-      return Array.isArray(params.allowedValues)
-        ? ` [${params.allowedValues.join(', ')}]`
-        : ''
+      return Array.isArray(params.allowedValues) ? ` [${params.allowedValues.join(', ')}]` : ''
     case 'type':
       return params.type ? ` (expected ${params.type})` : ''
     case 'minLength':
@@ -242,10 +240,23 @@ function formatBusinessSegments(biz: Record<string, unknown>): string[] {
 
   // Generischer Fallback: Alle nicht erkannten Felder kompakt ausgeben
   const handledKeys = new Set([
-    'orderChannel', 'dineLocation', 'dailySequenceNumber', 'lineItemCount',
-    'grossAmount', 'netAmount', 'paymentState', 'paymentMethod', 'orderStatus',
-    'productType', 'productStatus', 'price', 'stockLevel',
-    'operation', 'totalWorkTime_minutes', 'breakCount', 'businessDate',
+    'orderChannel',
+    'dineLocation',
+    'dailySequenceNumber',
+    'lineItemCount',
+    'grossAmount',
+    'netAmount',
+    'paymentState',
+    'paymentMethod',
+    'orderStatus',
+    'productType',
+    'productStatus',
+    'price',
+    'stockLevel',
+    'operation',
+    'totalWorkTime_minutes',
+    'breakCount',
+    'businessDate',
   ])
   for (const [key, val] of Object.entries(biz)) {
     if (!handledKeys.has(key) && val != null && val !== '') {
@@ -269,12 +280,18 @@ function formatGenericLog(info: Record<string, unknown>): string {
   let line = `${DIM}${formatTime()}${RESET} `
   line += `${levelColor}${BOLD}${padLevel(level)}${RESET} `
 
-  const msg = typeof info.message === 'string' && info.message.length > 0
-    ? info.message
-    : undefined
+  const msg = typeof info.message === 'string' && info.message.length > 0 ? info.message : undefined
 
   // Bekannte interne Felder, die nicht als Meta ausgegeben werden
-  const skipKeys = new Set(['message', 'level', 'timestamp', 'splat', Symbol.for('level'), Symbol.for('message'), Symbol.for('splat')])
+  const skipKeys = new Set([
+    'message',
+    'level',
+    'timestamp',
+    'splat',
+    Symbol.for('level'),
+    Symbol.for('message'),
+    Symbol.for('splat'),
+  ])
 
   // Alle Meta-Felder sammeln (alles außer message/level/timestamp)
   const meta: string[] = []
@@ -301,7 +318,7 @@ function formatGenericLog(info: Record<string, unknown>): string {
  * landet das Objekt als info.message. Diese Format-Stufe spreizt die Felder auf Top-Level,
  * damit format.printf einheitlich darauf zugreifen kann.
  */
-const normalizeObject = format((info) => {
+const normalizeObject = format(info => {
   if (typeof info.message === 'object' && info.message !== null) {
     const msg = info.message as Record<string, unknown>
     Object.assign(info, msg)
@@ -313,21 +330,17 @@ const normalizeObject = format((info) => {
 // --- Dev-Format: Menschenlesbare Konsolenausgabe ---
 const devFormat = format.combine(
   normalizeObject(),
-  format.printf((info) => {
+  format.printf(info => {
     // Wide Events erkennen: haben service + method + statusCode
     if (info.service && info.method && info.statusCode != null) {
       return formatWideEvent(info as Record<string, unknown>)
     }
     return formatGenericLog(info as Record<string, unknown>)
-  })
+  }),
 )
 
 // --- Prod-Format: Strukturiertes JSON ---
-const prodFormat = format.combine(
-  normalizeObject(),
-  format.timestamp(),
-  format.json()
-)
+const prodFormat = format.combine(normalizeObject(), format.timestamp(), format.json())
 
 // Rotierende Logdatei fuer den Support-Log-Export (Phase 1). Schreibt IMMER
 // strukturiertes JSON (Wide-Events als NDJSON) — unabhaengig vom Console-Format,
@@ -356,7 +369,7 @@ if (!isTest) {
     fileTransport.on('error', () => undefined)
   } catch (err) {
     process.stderr.write(
-      `[logger] Datei-Logging deaktiviert (${LOG_DIR} nicht beschreibbar): ${(err as Error).message}\n`
+      `[logger] Datei-Logging deaktiviert (${LOG_DIR} nicht beschreibbar): ${(err as Error).message}\n`,
     )
   }
 }

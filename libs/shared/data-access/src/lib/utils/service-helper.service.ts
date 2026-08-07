@@ -34,8 +34,9 @@ export class ServiceHelper {
     const errorCode = typeof e?.['code'] === 'number' ? e['code'] : undefined
 
     // Logik für Fehlerbehandlung
-    const displayMessage =
-      errorMessage?.startsWith('E11000 duplicate key') ? ERROR_DUPLICATE_KEY_MSG : (errorMessage ?? 'Unbekannter Fehler')
+    const displayMessage = errorMessage?.startsWith('E11000 duplicate key')
+      ? ERROR_DUPLICATE_KEY_MSG
+      : (errorMessage ?? 'Unbekannter Fehler')
 
     const code = errorCode ?? 500
 
@@ -85,9 +86,7 @@ export class ServiceHelper {
         // additionalProperty rausziehen — sonst ist `additional properties` ohne Bezug zur Spalte
         const params = entry.params as { additionalProperty?: unknown } | undefined
         const extra =
-          params && typeof params.additionalProperty === 'string'
-            ? ` (Feld: ${params.additionalProperty})`
-            : ''
+          params && typeof params.additionalProperty === 'string' ? ` (Feld: ${params.additionalProperty})` : ''
         detailLines.push(`${path}: ${msg}${extra}`)
         if (detailLines.length >= 10) break
       }

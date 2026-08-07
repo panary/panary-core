@@ -45,7 +45,7 @@ export const ensureTenantIsolation = () => async (context: HookContext) => {
         })
 
         throw new Forbidden(AppErrorMessages[AppError.TENANT_MISMATCH], {
-          code: AppError.TENANT_MISMATCH
+          code: AppError.TENANT_MISMATCH,
         })
       }
     }

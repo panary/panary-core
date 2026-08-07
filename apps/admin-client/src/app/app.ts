@@ -22,7 +22,8 @@ import { OfflineOverrideService } from './core/offline-override.service'
       [banner]="banner()"
       [enableOfflineModeAction]="true"
       [enableEmergencyOverrideAction]="true"
-      (action)="onBannerAction($event)" />
+      (action)="onBannerAction($event)"
+    />
 
     @if (emergencyError(); as err) {
       <!--
@@ -32,15 +33,24 @@ import { OfflineOverrideService } from './core/offline-override.service'
         Backend-Fehler gezeigt — vorher verschluckte ein leerer catch das 403
         eines TENANT_MANAGER vollstaendig.
       -->
-      <div class="fixed top-20 left-1/2 -translate-x-1/2 z-[1000] max-w-[min(92vw,40rem)]
+      <div
+        class="fixed top-20 left-1/2 -translate-x-1/2 z-[1000] max-w-[min(92vw,40rem)]
                   rounded-xl border border-red-200 dark:border-red-800
                   bg-red-50/95 dark:bg-red-900/90 px-4 py-2.5 shadow-md
-                  flex items-start gap-2.5" role="alert">
-        <span class="material-symbols-outlined text-[18px] leading-none mt-0.5 text-red-700 dark:text-red-200"
-              aria-hidden="true">error</span>
+                  flex items-start gap-2.5"
+        role="alert"
+      >
+        <span
+          class="material-symbols-outlined text-[18px] leading-none mt-0.5 text-red-700 dark:text-red-200"
+          aria-hidden="true"
+          >error</span
+        >
         <p class="text-sm text-red-800 dark:text-red-200 flex-1">{{ err }}</p>
-        <button type="button" (click)="emergencyError.set(null)"
-                class="shrink-0 text-xs font-medium text-red-800 dark:text-red-200 underline">
+        <button
+          type="button"
+          (click)="emergencyError.set(null)"
+          class="shrink-0 text-xs font-medium text-red-800 dark:text-red-200 underline"
+        >
           {{ 'COMMON.CLOSE' | translate }}
         </button>
       </div>
@@ -54,7 +64,8 @@ import { OfflineOverrideService } from './core/offline-override.service'
         [dismissLabel]="'COMMON.CANCEL' | translate"
         (confirmed)="onEndEmergencyConfirmed()"
         (dismissed)="confirmEndEmergency.set(false)"
-        (cancelled)="confirmEndEmergency.set(false)" />
+        (cancelled)="confirmEndEmergency.set(false)"
+      />
     }
 
     <router-outlet />

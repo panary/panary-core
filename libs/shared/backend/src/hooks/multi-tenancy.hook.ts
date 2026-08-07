@@ -142,7 +142,7 @@ export const multiTenancy = (options: MultiTenancyOptions = {}) => {
       if (isolateLocation) {
         // Privilegierte User (Chef/Manager) sehen ALLE Filialen
         const isPrivileged = [UserSystemRole.TENANT_OWNER, UserSystemRole.TENANT_MANAGER].includes(
-          user.role as UserSystemRole
+          user.role as UserSystemRole,
         )
 
         // Normale Mitarbeiter sehen NUR ihre Filiale

@@ -229,9 +229,7 @@ describe('selectActiveBanner — Notfall-Modus (w35)', () => {
     const withEmergency = { ...healthy(), emergencyOverrideActive: true }
 
     expect(selectActiveBanner({ ...withEmergency, cloudUnreachable: true })?.id).toBe('cloud-unreachable')
-    expect(
-      selectActiveBanner({ ...withEmergency, tokenLevel: 'crit', tokenRemainingSec: 0 })?.id,
-    ).toBe('token-expired')
+    expect(selectActiveBanner({ ...withEmergency, tokenLevel: 'crit', tokenRemainingSec: 0 })?.id).toBe('token-expired')
     expect(selectActiveBanner({ ...withEmergency, cloudNeedsRePairing: true })?.id).toBe('re-pairing-required')
   })
 

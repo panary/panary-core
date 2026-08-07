@@ -90,24 +90,27 @@ Details/ADR: `docs/security/edge-authorize-hybrid-rbac.md`.
 
 ### Optionen
 
-| Option | Typ | Beschreibung |
-|---|---|---|
-| `isolateLocation` | `boolean` | Filiale-Level-Isolation aktivieren |
+| Option            | Typ       | Beschreibung                                            |
+| ----------------- | --------- | ------------------------------------------------------- |
+| `isolateLocation` | `boolean` | Filiale-Level-Isolation aktivieren                      |
 | `allowGlobalData` | `boolean` | Globale Datensätze (`locationId: null`) sichtbar machen |
 
 ### Verhalten
 
 **WRITE-Operationen** (`create`, `update`, `patch`) — Stamping:
+
 - `data.tenantId = user.tenantId` wird erzwungen (nicht überschreibbar).
 - Bei `isolateLocation: true`: `data.locationId = user.locationId` wenn nicht explizit gesetzt.
 
 **READ-Operationen** (`find`, `get`, `remove`) — Scoping:
+
 - `query.tenantId = user.tenantId` wird immer gesetzt (harter Filter auf DB-Ebene).
 - Bei `isolateLocation: true`:
   - `TENANT_OWNER`, `TENANT_MANAGER` → kein Location-Filter (sehen alle Filialen).
   - Alle anderen Rollen → nur eigene Filiale; bei `allowGlobalData: true` zusätzlich `locationId: null`.
 
 **Bypasses:**
+
 - Kein User (interne Aufrufe) → kein Filter.
 - Rollen mit Prefix `platform:` → vollständiger Bypass.
 
@@ -165,27 +168,27 @@ Rollen mit Prefix `platform:` erhalten in `multiTenancy()` automatisch Bypass.
 
 Die Matrix ist die einzige Quelle der Wahrheit für RBAC-Berechtigungen.
 
-| Rolle | Ressourcen & Aktionen |
-|---|---|
-| `PLATFORM_OWNER` | `system: MANAGE`, `users: MANAGE` |
-| `PLATFORM_ADMIN` | `users: READ` |
-| `PLATFORM_SUPPORT` | `users/orders/products/system: READ` |
-| `TENANT_OWNER` | `users/products: MANAGE`, `orders: READ`, + Abilities: Reports, Refund |
-| `TENANT_MANAGER` | `products: MANAGE`, `orders: CREATE+READ` |
-| `TENANT_STAFF` | `products: READ`, `orders: CREATE+READ` |
-| `DEVICE_POS` | `orders: MANAGE`, `products/users: READ`, `customers: READ+CREATE+UPDATE`, + Abilities: Clock-In, Discount, Refund |
-| `DEVICE_KDS` | `orders: READ+UPDATE`, `products: READ` |
-| `DEVICE_TABLET` | `orders: READ+CREATE+UPDATE`, `products/users: READ`, + Ability: Clock-In |
-| `DEVICE_KIOSK` | `products: READ`, `orders: CREATE+READ` |
+| Rolle              | Ressourcen & Aktionen                                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `PLATFORM_OWNER`   | `system: MANAGE`, `users: MANAGE`                                                                                  |
+| `PLATFORM_ADMIN`   | `users: READ`                                                                                                      |
+| `PLATFORM_SUPPORT` | `users/orders/products/system: READ`                                                                               |
+| `TENANT_OWNER`     | `users/products: MANAGE`, `orders: READ`, + Abilities: Reports, Refund                                             |
+| `TENANT_MANAGER`   | `products: MANAGE`, `orders: CREATE+READ`                                                                          |
+| `TENANT_STAFF`     | `products: READ`, `orders: CREATE+READ`                                                                            |
+| `DEVICE_POS`       | `orders: MANAGE`, `products/users: READ`, `customers: READ+CREATE+UPDATE`, + Abilities: Clock-In, Discount, Refund |
+| `DEVICE_KDS`       | `orders: READ+UPDATE`, `products: READ`                                                                            |
+| `DEVICE_TABLET`    | `orders: READ+CREATE+UPDATE`, `products/users: READ`, + Ability: Clock-In                                          |
+| `DEVICE_KIOSK`     | `products: READ`, `orders: CREATE+READ`                                                                            |
 
 ### AppAction-Mapping
 
-| Wert | Bedeutung |
-|---|---|
-| `READ` | `find`, `get` |
-| `CREATE` | `create` |
-| `UPDATE` | `update`, `patch` |
-| `DELETE` | `remove` |
+| Wert     | Bedeutung                                 |
+| -------- | ----------------------------------------- |
+| `READ`   | `find`, `get`                             |
+| `CREATE` | `create`                                  |
+| `UPDATE` | `update`, `patch`                         |
+| `DELETE` | `remove`                                  |
 | `MANAGE` | Alle Aktionen (überschreibt alle anderen) |
 
 ---
@@ -197,10 +200,12 @@ Sensitive Felder müssen über Feathers-Resolver geschützt werden — niemals �
 ### Pflicht-Resolver-Muster
 
 **Externe Ausgabe** (`resolveExternal`):
+
 - `password` → immer `undefined`
 - `apikey` → nur bei `context.method === 'create'` zurückgeben, sonst `undefined`
 
 **PATCH/UPDATE** (`resolveData`):
+
 - `_id` → `undefined` (nicht veränderbar)
 - `tenantId` → `undefined` (nicht veränderbar)
 - `createdAt` → `undefined` (nicht veränderbar)
@@ -233,10 +238,10 @@ export const myPatchResolver = resolve<MyEntity, HookContext>({
 
 **Datei:** `apps/api-edge/src/authentication.ts`
 
-| Strategie | Verwendung |
-|---|---|
-| `jwt` | Primäre Authentifizierung (stateless, Token-basiert) |
-| `local` | E-Mail/Passwort-Login → generiert JWT |
+| Strategie | Verwendung                                           |
+| --------- | ---------------------------------------------------- |
+| `jwt`     | Primäre Authentifizierung (stateless, Token-basiert) |
+| `local`   | E-Mail/Passwort-Login → generiert JWT                |
 
 ---
 

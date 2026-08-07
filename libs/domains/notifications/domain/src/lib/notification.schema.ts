@@ -26,12 +26,8 @@ export const notificationSchema = Type.Object(
     userId: Type.String({ format: 'uuid' }),
 
     // Event-Klassifizierung
-    eventType: Type.Union(
-      (Object.values(NotificationEventType) as string[]).map(v => Type.Literal(v)),
-    ),
-    severity: Type.Union(
-      (Object.values(NotificationSeverity) as string[]).map(v => Type.Literal(v)),
-    ),
+    eventType: Type.Union((Object.values(NotificationEventType) as string[]).map(v => Type.Literal(v))),
+    severity: Type.Union((Object.values(NotificationSeverity) as string[]).map(v => Type.Literal(v))),
 
     // UI-Anzeige
     title: Type.String({ minLength: 1, maxLength: 200 }),
@@ -79,10 +75,10 @@ export type NotificationData = Static<typeof notificationDataSchema>
  * via Resolver auf `undefined` gesetzt (`protectFromExternal`-Pattern aus
  * `code-style.md §9.8`).
  */
-export const notificationPatchSchema = Type.Partial(
-  Type.Pick(notificationSchema, ['readAt']),
-  { $id: 'NotificationPatch', additionalProperties: false },
-)
+export const notificationPatchSchema = Type.Partial(Type.Pick(notificationSchema, ['readAt']), {
+  $id: 'NotificationPatch',
+  additionalProperties: false,
+})
 export type NotificationPatch = Static<typeof notificationPatchSchema>
 
 const queryProperties = Type.Pick(notificationSchema, [

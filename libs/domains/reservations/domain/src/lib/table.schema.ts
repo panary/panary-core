@@ -35,13 +35,7 @@ export type TableData = Static<typeof tableDataSchema>
 export const tablePatchSchema = Type.Partial(tableSchema, { $id: 'TablePatch' })
 export type TablePatch = Static<typeof tablePatchSchema>
 
-export const tableQueryProperties = Type.Pick(tableSchema, [
-  '_id',
-  'tenantId',
-  'brandId',
-  'locationId',
-  'isActive',
-])
+export const tableQueryProperties = Type.Pick(tableSchema, ['_id', 'tenantId', 'brandId', 'locationId', 'isActive'])
 export const tableQuerySchema = Type.Intersect(
   [querySyntax(tableQueryProperties), Type.Object({}, { additionalProperties: false })],
   { additionalProperties: false },

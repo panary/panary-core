@@ -45,7 +45,9 @@ function denomLabel(cents: number): string {
           <p>Bitte zählen Sie Ihre Kasse und erfassen Sie die Stückelung.</p>
           <div class="grid grid-cols-2 gap-2">
             @for (cents of denominations; track cents) {
-              <label class="flex items-center justify-between gap-2 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1">
+              <label
+                class="flex items-center justify-between gap-2 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1"
+              >
                 <span class="text-xs text-gray-600 dark:text-gray-300 w-14">{{ label(cents) }}</span>
                 <input
                   type="number"

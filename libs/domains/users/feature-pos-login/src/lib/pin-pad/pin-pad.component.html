@@ -1,21 +1,26 @@
 <!-- PIN Dots -->
 <div class="flex justify-center gap-4 mb-8">
   @for (i of dots(); track i) {
-  <div class="w-4 h-4 rounded-full transition-all duration-150"
-    [class.bg-gray-200]="value().length <= i && !error()"
-    [class.bg-[#00B8D4]]="value().length > i && !error()" [class.bg-red-500]="error()"
-    [class.scale-110]="value().length === i + 1"></div>
+    <div
+      class="w-4 h-4 rounded-full transition-all duration-150"
+      [class.bg-gray-200]="value().length <= i && !error()"
+      [class.bg-[#00B8D4]]="value().length > i && !error()"
+      [class.bg-red-500]="error()"
+      [class.scale-110]="value().length === i + 1"
+    ></div>
   }
 </div>
 
 <!-- Numpad -->
 <div class="grid grid-cols-3 gap-3 max-w-[17.5rem] mx-auto">
   @for (d of digits; track d) {
-  <button
-    class="pnry-touch h-16 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 text-2xl font-semibold text-[#0F172A] dark:text-white transition-all active:scale-95 disabled:opacity-50"
-    (click)="digit.emit(d)" [disabled]="disabled()">
-    {{ d }}
-  </button>
+    <button
+      class="pnry-touch h-16 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 text-2xl font-semibold text-[#0F172A] dark:text-white transition-all active:scale-95 disabled:opacity-50"
+      (click)="digit.emit(d)"
+      [disabled]="disabled()"
+    >
+      {{ d }}
+    </button>
   }
 
   <!-- Empty -->
@@ -24,18 +29,26 @@
   <!-- Zero -->
   <button
     class="pnry-touch h-16 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 text-2xl font-semibold text-[#0F172A] dark:text-white transition-all active:scale-95 disabled:opacity-50"
-    (click)="digit.emit('0')" [disabled]="disabled()">
+    (click)="digit.emit('0')"
+    [disabled]="disabled()"
+  >
     0
   </button>
 
   <!-- Delete -->
   <button
     class="pnry-touch h-16 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 flex items-center justify-center transition-all active:scale-95 disabled:opacity-50"
-    (click)="backspace.emit()" [disabled]="disabled()" [attr.aria-label]="'LOGIN.DELETE_DIGIT' | translate">
+    (click)="backspace.emit()"
+    [disabled]="disabled()"
+    [attr.aria-label]="'LOGIN.DELETE_DIGIT' | translate"
+  >
     <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-        d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z">
-      </path>
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z"
+      ></path>
     </svg>
   </button>
 </div>

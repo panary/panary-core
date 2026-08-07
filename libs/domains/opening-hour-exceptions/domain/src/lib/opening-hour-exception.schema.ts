@@ -49,10 +49,7 @@ export const openingHourExceptionQueryProperties = Type.Pick(openingHourExceptio
   'closed',
 ])
 export const openingHourExceptionQuerySchema = Type.Intersect(
-  [
-    querySyntax(openingHourExceptionQueryProperties),
-    Type.Object({}, { additionalProperties: false }),
-  ],
+  [querySyntax(openingHourExceptionQueryProperties), Type.Object({}, { additionalProperties: false })],
   { additionalProperties: false },
 )
 export type OpeningHourExceptionQuery = Static<typeof openingHourExceptionQuerySchema>

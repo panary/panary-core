@@ -45,12 +45,7 @@ export function normalizeToRecords<TEntity extends CacheEntity>(result: unknown)
   if (Array.isArray(result)) {
     return result as TEntity[]
   }
-  if (
-    result &&
-    typeof result === 'object' &&
-    'data' in result &&
-    Array.isArray((result as { data: unknown }).data)
-  ) {
+  if (result && typeof result === 'object' && 'data' in result && Array.isArray((result as { data: unknown }).data)) {
     return (result as { data: TEntity[] }).data
   }
   if (result && typeof result === 'object' && '_id' in result) {

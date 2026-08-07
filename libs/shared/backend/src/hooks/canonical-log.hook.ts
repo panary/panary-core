@@ -46,7 +46,13 @@ export const canonicalLog = async (context: HookContext, next: NextFunction) => 
 
     logger.info(event)
   } catch (error: unknown) {
-    const err = error as Record<string, unknown> & { code?: number; name?: string; message?: string; stack?: string; data?: unknown }
+    const err = error as Record<string, unknown> & {
+      code?: number
+      name?: string
+      message?: string
+      stack?: string
+      data?: unknown
+    }
 
     enrichWithUserContext(event, context)
     enrichWithBusinessContext(event, context)
@@ -126,7 +132,11 @@ function enrichWithBusinessContext(event: Record<string, unknown>, context: Hook
   }
 }
 
-function enrichOrderContext(biz: Record<string, unknown>, result: Record<string, unknown> | null, context: HookContext) {
+function enrichOrderContext(
+  biz: Record<string, unknown>,
+  result: Record<string, unknown> | null,
+  context: HookContext,
+) {
   const source = result || (context.data as Record<string, unknown> | undefined)
   if (!source) return
 
@@ -185,10 +195,14 @@ function enrichUserMethodContext(biz: Record<string, unknown>, context: HookCont
   const method = context.method
   if (!['checkin', 'checkout', 'startBreak', 'endBreak'].includes(method)) return
 
-  biz.operation = method === 'checkin' ? 'clock-in'
-    : method === 'checkout' ? 'clock-out'
-    : method === 'startBreak' ? 'break-start'
-    : 'break-end'
+  biz.operation =
+    method === 'checkin'
+      ? 'clock-in'
+      : method === 'checkout'
+        ? 'clock-out'
+        : method === 'startBreak'
+          ? 'break-start'
+          : 'break-end'
 }
 
 function enrichWorkingTimeContext(biz: Record<string, unknown>, result: Record<string, unknown> | null) {

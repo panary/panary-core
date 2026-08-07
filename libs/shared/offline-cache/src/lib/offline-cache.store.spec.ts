@@ -51,7 +51,11 @@ describe('OfflineCacheStore', () => {
 
   it('upsert schreibt in IndexedDB und Mirror', async () => {
     await store.upsert('products', product('p1', { name: 'A' }))
-    expect(store.mirror<TestProduct>('products')().map(p => p._id)).toEqual(['p1'])
+    expect(
+      store
+        .mirror<TestProduct>('products')()
+        .map(p => p._id),
+    ).toEqual(['p1'])
     expect(await store.get<TestProduct>('products', 'p1')).toBeDefined()
   })
 
@@ -66,13 +70,22 @@ describe('OfflineCacheStore', () => {
   it('removeOne entfernt aus IndexedDB und Mirror', async () => {
     await store.upsertMany('products', [product('p1'), product('p2')])
     await store.removeOne('products', 'p1')
-    expect(store.mirror<TestProduct>('products')().map(p => p._id)).toEqual(['p2'])
+    expect(
+      store
+        .mirror<TestProduct>('products')()
+        .map(p => p._id),
+    ).toEqual(['p2'])
   })
 
   it('replaceAll ersetzt Store-Inhalt + Mirror (kein Anhäufen)', async () => {
     await store.upsertMany('products', [product('p1'), product('p2'), product('p3')])
     await store.replaceAll('products', [product('p2', { name: 'neu' }), product('p4')])
-    expect(store.mirror<TestProduct>('products')().map(p => p._id).sort()).toEqual(['p2', 'p4'])
+    expect(
+      store
+        .mirror<TestProduct>('products')()
+        .map(p => p._id)
+        .sort(),
+    ).toEqual(['p2', 'p4'])
     expect((await store.readAll<TestProduct>('products')).map(p => p._id).sort()).toEqual(['p2', 'p4'])
     expect(await store.get<TestProduct>('products', 'p1')).toBeUndefined()
   })

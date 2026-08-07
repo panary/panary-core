@@ -214,20 +214,26 @@ const esc = (s: string): string =>
 const money = (n: number, currency: string): string => `${n.toFixed(2)} ${currency}`
 
 // CSS-Injection-Schutz: ausschließlich #hex (3–8 Stellen).
-const safeColor = (c: string | undefined): string | undefined =>
-  c && /^#[0-9a-fA-F]{3,8}$/.test(c) ? c : undefined
+const safeColor = (c: string | undefined): string | undefined => (c && /^#[0-9a-fA-F]{3,8}$/.test(c) ? c : undefined)
 
 // Nur http(s)/protokoll-relativ/absolute Pfade + data:image/ (base64-Logo, sicher
 // in <img>) — blockt javascript:/data:text o. Ä.
 const safeUrl = (u: string | undefined): string | undefined =>
-  u && (/^https?:\/\//.test(u) || u.startsWith('//') || u.startsWith('/') || /^data:image\//.test(u))
-    ? u
-    : undefined
+  u && (/^https?:\/\//.test(u) || u.startsWith('//') || u.startsWith('/') || /^data:image\//.test(u)) ? u : undefined
 
 export const buildReceiptHtml = (
   receipt: Pick<
     Receipt,
-    'kind' | 'currency' | 'issuedAt' | 'dailySequenceNumber' | 'lineItems' | 'taxSummary' | 'totalGross' | 'seller' | 'tse' | 'receiptNumber'
+    | 'kind'
+    | 'currency'
+    | 'issuedAt'
+    | 'dailySequenceNumber'
+    | 'lineItems'
+    | 'taxSummary'
+    | 'totalGross'
+    | 'seller'
+    | 'tse'
+    | 'receiptNumber'
   >,
   branding?: ReceiptBranding,
 ): string => {
@@ -240,7 +246,10 @@ export const buildReceiptHtml = (
     )
     .join('')
   const taxRows = receipt.taxSummary.taxes
-    .map(t => `<tr><td>${t.taxRate}%</td><td>${money(t.amount, receipt.currency)}</td><td>${money(t.tax, receipt.currency)}</td></tr>`)
+    .map(
+      t =>
+        `<tr><td>${t.taxRate}%</td><td>${money(t.amount, receipt.currency)}</td><td>${money(t.tax, receipt.currency)}</td></tr>`,
+    )
     .join('')
   const tseBlock = receipt.tse
     ? `<section class="tse"><div>TSE: ${esc(receipt.tse.provider)} · Tx ${receipt.tse.transactionNumber}</div>${

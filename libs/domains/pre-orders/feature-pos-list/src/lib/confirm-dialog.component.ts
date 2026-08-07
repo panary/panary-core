@@ -20,9 +20,7 @@ export interface ConfirmDialogData {
     <div class="flex flex-col w-full">
       <!-- Icon Header -->
       <div class="flex flex-col items-center gap-3 px-6 pt-7 pb-4">
-        <div
-          class="flex items-center justify-center w-16 h-16 rounded-2xl"
-          [class]="iconBg">
+        <div class="flex items-center justify-center w-16 h-16 rounded-2xl" [class]="iconBg">
           <span class="material-symbols-outlined text-[2rem]" [class]="iconColor">{{ data.icon }}</span>
         </div>
         <h2 class="text-xl font-bold text-gray-800 dark:text-white text-center">{{ data.title }}</h2>
@@ -41,12 +39,14 @@ export interface ConfirmDialogData {
         <button
           (click)="confirm()"
           class="h-12 w-full rounded-xl font-bold text-sm transition-all active:scale-95"
-          [class]="confirmClass">
+          [class]="confirmClass"
+        >
           {{ data.confirmText }}
         </button>
         <button
           (click)="cancel()"
-          class="h-12 w-full rounded-xl font-medium text-sm text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all active:scale-95">
+          class="h-12 w-full rounded-xl font-medium text-sm text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all active:scale-95"
+        >
           Abbrechen
         </button>
       </div>
@@ -58,15 +58,11 @@ export class ConfirmDialogComponent {
   readonly #ref = inject(MatDialogRef<ConfirmDialogComponent>)
 
   get iconBg(): string {
-    return this.data.confirmVariant === 'danger'
-      ? 'bg-red-50'
-      : 'bg-indigo-50'
+    return this.data.confirmVariant === 'danger' ? 'bg-red-50' : 'bg-indigo-50'
   }
 
   get iconColor(): string {
-    return this.data.confirmVariant === 'danger'
-      ? 'text-red-500'
-      : 'text-indigo-600'
+    return this.data.confirmVariant === 'danger' ? 'text-red-500' : 'text-indigo-600'
   }
 
   get confirmClass(): string {

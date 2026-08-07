@@ -17,19 +17,25 @@ import {
       @if (label()) {
         <span class="text-sm text-gray-400 dark:text-gray-500 mb-2">{{ label() }}</span>
       }
-      <div #scrollContainer
+      <div
+        #scrollContainer
         class="w-20 h-72 overflow-y-scroll snap-y snap-mandatory rounded-lg bg-gray-50 dark:bg-gray-800
                scrollbar-none relative"
-        (scroll)="onScroll()">
+        (scroll)="onScroll()"
+      >
         <!-- Top padding (2.5 Items = 120px) -->
         <div class="h-[7.5rem] shrink-0"></div>
         @for (val of values(); track val) {
-          <button type="button"
+          <button
+            type="button"
             [attr.data-value]="val"
             (click)="selectValue(val)"
-            [class]="val === selected()
-              ? 'h-12 w-full flex items-center justify-center text-xl font-bold text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700 rounded-lg snap-center transition-all'
-              : 'h-12 w-full flex items-center justify-center text-xl text-gray-400 dark:text-gray-400 opacity-50 snap-center transition-all'">
+            [class]="
+              val === selected()
+                ? 'h-12 w-full flex items-center justify-center text-xl font-bold text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700 rounded-lg snap-center transition-all'
+                : 'h-12 w-full flex items-center justify-center text-xl text-gray-400 dark:text-gray-400 opacity-50 snap-center transition-all'
+            "
+          >
             {{ val.toString().padStart(2, '0') }}
           </button>
         }
@@ -39,8 +45,12 @@ import {
     </div>
   `,
   styles: `
-    .scrollbar-none { scrollbar-width: none; }
-    .scrollbar-none::-webkit-scrollbar { display: none; }
+    .scrollbar-none {
+      scrollbar-width: none;
+    }
+    .scrollbar-none::-webkit-scrollbar {
+      display: none;
+    }
   `,
 })
 export class ScrollWheelComponent {

@@ -466,9 +466,9 @@ export abstract class BaseService<T> {
       duplicate.name = `${duplicate.name} (Duplikat)`
 
       return this.service.create(duplicate).catch((error: unknown) => {
-      this.helper.handleError(this.serviceName, error)
-      throw error
-    })
+        this.helper.handleError(this.serviceName, error)
+        throw error
+      })
     } catch (error) {
       this.matSnackBar.open('Artikel konnte nicht dupliziert werden!', 'OK', {
         duration: (this.constructor as typeof BaseService).SNACKBAR_DURATION,

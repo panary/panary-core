@@ -27,7 +27,8 @@ interface LogExportResult {
       </header>
 
       <section
-        class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-4 max-w-2xl">
+        class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-4 max-w-2xl"
+      >
         <p class="text-sm text-slate-600 dark:text-gray-300">{{ 'LOGS.HINT' | translate }}</p>
 
         <button
@@ -36,14 +37,15 @@ interface LogExportResult {
           [disabled]="exporting()"
           class="px-4 py-2 rounded-lg bg-slate-900 dark:bg-slate-700 text-white text-sm font-medium
                  hover:bg-slate-800 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed
-                 transition-colors">
+                 transition-colors"
+        >
           {{ (exporting() ? 'LOGS.EXPORTING' : 'LOGS.EXPORT_BUTTON') | translate }}
         </button>
 
         @if (lastResult(); as r) {
           <p class="text-sm text-emerald-600 dark:text-emerald-400">
-            {{ 'LOGS.SUCCESS' | translate }} — {{ r.lineCount }} {{ 'LOGS.LINES' | translate }},
-            {{ r.fileCount }} {{ 'LOGS.FILES' | translate }}
+            {{ 'LOGS.SUCCESS' | translate }} — {{ r.lineCount }} {{ 'LOGS.LINES' | translate }}, {{ r.fileCount }}
+            {{ 'LOGS.FILES' | translate }}
           </p>
         }
         @if (error(); as e) {

@@ -3,20 +3,12 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/domains/tse",
   "projectType": "library",
-  "tags": [
-    "type:domain-package",
-    "domain:tse",
-    "publishable"
-  ],
+  "tags": ["type:domain-package", "domain:tse", "publishable"],
   "targets": {
     "build": {
       "executor": "nx:run-commands",
-      "outputs": [
-        "{workspaceRoot}/libs/domains/tse/domain/dist"
-      ],
-      "dependsOn": [
-        "tse-domain:build"
-      ],
+      "outputs": ["{workspaceRoot}/libs/domains/tse/domain/dist"],
+      "dependsOn": ["tse-domain:build"],
       "options": {
         "command": "echo 'tse package build complete'"
       }

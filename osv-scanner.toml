@@ -1,0 +1,41 @@
+# OSV-Scanner: bewusst akzeptierte Advisories fuer das npm-Lockfile in DIESEM
+# Verzeichnis (pnpm-lock.yaml). osv-scanner sucht seine Konfiguration nur im
+# Verzeichnis des gescannten Manifests und vererbt sie NICHT an
+# Unterverzeichnisse — die Cargo-Ausnahmen des Tauri-Stacks stehen deshalb
+# weiterhin getrennt in apps/pos-client/src-tauri/osv-scanner.toml.
+#
+# Einordnung, Messbefunde und Aufraeum-Termine: docs/security/osv-befund-2026-08-07.md
+# Pendant in panary-cloud/osv-scanner.toml — synchron halten.
+
+# --- image-size: kein Fix verfuegbar -----------------------------------------
+# Beide Advisories melden `first_patched_version: null` und
+# `vulnerable_version_range: <= 2.0.2`. Die neueste veroeffentlichte Version IST
+# 2.0.2 (npm dist-tag `latest`, 2025-04-02) — es gibt also keine unbetroffene
+# Version, ein Versionssprung bringt nichts. Auch ein `less`-Bump hilft nicht:
+# sowohl less@4.5.1 als auch das neuere less@4.6.4 fuehren image-size@0.5.5 als
+# optionalDependency.
+#
+# Herkunft: less ist Pflicht-Peer von less-loader@12.3.3, das als Dependency an
+# @nx/rspack bzw. @nx/webpack haengt (Build-Tooling).
+#
+# Angriffsvorbedingung: ein angreifergelieferter Bildpuffer muss die JXL/HEIF-
+# bzw. ICNS-Parser erreichen. less ruft image-size ausschliesslich aus den
+# Less-Funktionen image-size()/image-width()/image-height() auf. Im Repo
+# gemessen: 0 `.less`-Dateien (`git ls-files '*.less'`) und 0 Vorkommen dieser
+# drei Funktionen in den Quellen. Auf dem geprueften Aufrufpfad ist der Parser
+# damit nicht erreichbar; eine darueber hinausgehende Aussage zur
+# Ausnutzbarkeit ist nicht belegt.
+#
+# Re-Evaluation spaetestens zum ignoreUntil-Datum, frueher bei: einem Fix von
+# image-size, oder sobald `.less`-Dateien in den Workspace einziehen — dann
+# wird der Parser real erreichbar und diese Einordnung faellt.
+
+[[IgnoredVulns]]
+id = "GHSA-5p2g-fcmc-qvqq"  # image-size: JXL/HEIF-Parser, DoS durch Endlosschleife (CVSS 8.7)
+ignoreUntil = 2026-11-07
+reason = "Kein Fix verfuegbar (alle Versionen <= 2.0.2 betroffen, latest ist 2.0.2). Build-Zeit-Abhaengigkeit: optionalDependency von less, das ueber less-loader an @nx/rspack/@nx/webpack haengt. Vorbedingung ist ein angreifergelieferter Bildpuffer im JXL/HEIF-Parser; less erreicht image-size nur ueber image-size()/image-width()/image-height() und im Repo gibt es 0 .less-Dateien und 0 Aufrufe dieser Funktionen. Re-Evaluation bei Fix oder sobald .less-Dateien einziehen."
+
+[[IgnoredVulns]]
+id = "GHSA-w3rx-r6r6-pgpr"  # image-size: ICNS-Parser, DoS durch Endlosschleife (CVSS 8.7)
+ignoreUntil = 2026-11-07
+reason = "Kein Fix verfuegbar (alle Versionen <= 2.0.2 betroffen, latest ist 2.0.2). Build-Zeit-Abhaengigkeit: optionalDependency von less, das ueber less-loader an @nx/rspack/@nx/webpack haengt. Vorbedingung ist ein angreifergelieferter ICNS-Bildpuffer; less erreicht image-size nur ueber image-size()/image-width()/image-height() und im Repo gibt es 0 .less-Dateien und 0 Aufrufe dieser Funktionen. Re-Evaluation bei Fix oder sobald .less-Dateien einziehen."

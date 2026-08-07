@@ -139,7 +139,7 @@
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^11.0.0",
     "bonjour-service": "^1.4.0",
-    "bson": "^7.2.0",
+    "bson": "^7.3.1",
     "feathers-hooks-common": "^8.2.1",
     "feathers-swagger": "^3.0.0",
     "idb": "^8.0.3",

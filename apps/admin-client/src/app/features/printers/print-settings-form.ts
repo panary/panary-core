@@ -24,66 +24,100 @@ export interface PrintSettingsData {
         Tab-Reihenfolge. min-w-0, m-0, p-0 und border-0 neutralisieren die
         UA-Defaults, damit das Layout unveraendert bleibt.
       -->
-      <fieldset [disabled]="readOnly()" class="min-w-0 m-0 p-0 border-0 space-y-4"
-                [class.opacity-60]="readOnly()">
+      <fieldset [disabled]="readOnly()" class="min-w-0 m-0 p-0 border-0 space-y-4" [class.opacity-60]="readOnly()">
         <!-- Print-Server aktivieren -->
         <label class="flex items-center gap-3 cursor-pointer">
-          <input [ngModel]="settings().printServerEnabled ?? true" (ngModelChange)="onFieldChange('printServerEnabled', $event)"
-            name="printServerEnabled" type="checkbox"
+          <input
+            [ngModel]="settings().printServerEnabled ?? true"
+            (ngModelChange)="onFieldChange('printServerEnabled', $event)"
+            name="printServerEnabled"
+            type="checkbox"
             class="w-4 h-4 rounded border-slate-300 dark:border-gray-600
-                   text-slate-900 dark:text-white focus:ring-slate-900 dark:focus:ring-white" />
+                   text-slate-900 dark:text-white focus:ring-slate-900 dark:focus:ring-white"
+          />
           <span class="text-sm text-slate-700 dark:text-gray-300">Print-Server beim Start automatisch aktivieren</span>
         </label>
 
         <div class="grid grid-cols-3 gap-4">
           <!-- Max Zeichen Artikelname -->
           <div class="space-y-1">
-            <label for="maxNameCharacters" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+            <label
+              for="maxNameCharacters"
+              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+            >
               Max. Zeichen Artikelname
             </label>
-            <input id="maxNameCharacters" [ngModel]="settings().maxNameCharacters" (ngModelChange)="onFieldChange('maxNameCharacters', $event)"
-              name="maxNameCharacters" type="number" min="10" max="80"
+            <input
+              id="maxNameCharacters"
+              [ngModel]="settings().maxNameCharacters"
+              (ngModelChange)="onFieldChange('maxNameCharacters', $event)"
+              name="maxNameCharacters"
+              type="number"
+              min="10"
+              max="80"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none" />
+                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none"
+            />
           </div>
 
           <!-- Trennzeichen -->
           <div class="space-y-1">
-            <label for="separationCharacter" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+            <label
+              for="separationCharacter"
+              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+            >
               Trennzeichen
             </label>
-            <select id="separationCharacter" [ngModel]="settings().separationCharacter" (ngModelChange)="onFieldChange('separationCharacter', $event)"
+            <select
+              id="separationCharacter"
+              [ngModel]="settings().separationCharacter"
+              (ngModelChange)="onFieldChange('separationCharacter', $event)"
               name="separationCharacter"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white outline-none">
+                     text-slate-900 dark:text-white outline-none"
+            >
               <option value="_">_ (Unterstrich)</option>
               <option value="-">- (Bindestrich)</option>
               <option value=".">. (Punkt)</option>
               <option value="*">* (Stern)</option>
-              <option value="=">=  (Gleichzeichen)</option>
+              <option value="=">= (Gleichzeichen)</option>
             </select>
           </div>
 
           <!-- Trennzeichen-Anzahl -->
           <div class="space-y-1">
-            <label for="separationCharacterCount" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+            <label
+              for="separationCharacterCount"
+              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+            >
               Trennlinien-Länge
             </label>
-            <input id="separationCharacterCount" [ngModel]="settings().separationCharacterCount" (ngModelChange)="onFieldChange('separationCharacterCount', $event)"
-              name="separationCharacterCount" type="number" min="10" max="80"
+            <input
+              id="separationCharacterCount"
+              [ngModel]="settings().separationCharacterCount"
+              (ngModelChange)="onFieldChange('separationCharacterCount', $event)"
+              name="separationCharacterCount"
+              type="number"
+              min="10"
+              max="80"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none" />
+                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none"
+            />
           </div>
         </div>
 
         <!-- Druckdialog nach Bestellung -->
         <label class="flex items-center gap-3 cursor-pointer">
-          <input [ngModel]="settings().showDialogAfterOrder" (ngModelChange)="onFieldChange('showDialogAfterOrder', $event)"
-            name="showDialogAfterOrder" type="checkbox"
+          <input
+            [ngModel]="settings().showDialogAfterOrder"
+            (ngModelChange)="onFieldChange('showDialogAfterOrder', $event)"
+            name="showDialogAfterOrder"
+            type="checkbox"
             class="w-4 h-4 rounded border-slate-300 dark:border-gray-600
-                   text-slate-900 dark:text-white focus:ring-slate-900 dark:focus:ring-white" />
+                   text-slate-900 dark:text-white focus:ring-slate-900 dark:focus:ring-white"
+          />
           <span class="text-sm text-slate-700 dark:text-gray-300">Druckdialog nach Bestellung anzeigen</span>
         </label>
       </fieldset>

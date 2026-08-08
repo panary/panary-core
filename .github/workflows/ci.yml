@@ -67,8 +67,30 @@ jobs:
       - name: Link @panary/* packages (Standalone-Resolution)
         run: bash tools/scripts/link-core-packages.sh
 
+      # `--all`, nicht `--base`: Ein `format:check --base=…` prüft ausschließlich
+      # Dateien, die gegen main geändert wurden — auf main selbst also nie. Drift
+      # wächst dort unbemerkt und schlägt erst zu, wenn jemand eine Datei aus
+      # fremdem Grund anfasst; dann bricht sein PR an fremder Schuld ab (belegt in
+      # panary-cloud #95: alle 21 beanstandeten Dateien waren schon vorher nicht
+      # konform). Bewusst OHNE Baseline — anders als beim Typecheck ist der Bestand
+      # hier mit einem Befehl behebbar, eine Baseline würde ihn nur konservieren.
+      # Begründung: docs/adr/0022-format-gate-ohne-base.md
+      - name: Format-Gate (workspace-weit)
+        run: pnpm nx format:check --all
+
       # nx affected liest NX_BASE/NX_HEAD aus der Umgebung (nx-set-shas oben).
-      - name: Lint, Test & Build (affected)
+      #
+      # `typecheck` ist seit 2026-08-06 dabei und bewusst HART, ohne Baseline: der
+      # Workspace ist grün (83 Projekte, 0 Fehler). Bis dahin lief das Target
+      # workspace-weit ins Leere — `tsc --build --emitDeclarationOnly` starb an
+      # TS5069 in den spec-tsconfigs, bevor eine einzige Datei geprüft wurde (#110).
+      # In der Zeit sind unbemerkt 96 Typfehler aufgelaufen (#111). Genau deshalb
+      # steht das Gate hier: ohne Gate wächst so etwas still weiter.
+      #
+      # panary-cloud fährt dieselbe Absicht mit einem Baseline-Gate, weil dort 334
+      # vorbestehende Fehler liegen. Hier wäre eine Baseline nur Maschinerie ohne
+      # Inhalt — und ein hartes Gate ist das stärkere Versprechen.
+      - name: Lint, Test, Typecheck & Build (affected)
         shell: bash
         run: |
           # Remote-Cache-Resilienz: bricht der Lauf wegen eines Remote-Cache-
@@ -82,7 +104,7 @@ jobs:
             if [ "${{ github.event_name }}" = 'workflow_dispatch' ]; then
               pnpm nx run-many -t lint   # Cache-Test: alle Projekte → Remote-Cache
             else
-              pnpm nx affected -t lint,test,build
+              pnpm nx affected -t lint,test,typecheck,build
             fi
           }
           log="$(mktemp)"

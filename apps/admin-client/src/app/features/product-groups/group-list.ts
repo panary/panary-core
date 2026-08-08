@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, inject, signal, computed, OnInit, viewChild, ElementRef } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+  computed,
+  OnInit,
+  viewChild,
+  ElementRef,
+} from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
@@ -39,32 +48,49 @@ interface ProductGroup {
   template: `
     <div class="flex h-full overflow-hidden">
       <!-- Linke Seite: Tabelle -->
-      <div [class]="selectedId() ? 'w-72 shrink-0 border-r border-slate-200 dark:border-gray-800' : 'flex-1'"
-           class="overflow-y-auto">
+      <div
+        [class]="selectedId() ? 'w-72 shrink-0 border-r border-slate-200 dark:border-gray-800' : 'flex-1'"
+        class="overflow-y-auto"
+      >
         <div class="p-6 space-y-4">
           <div class="flex items-center justify-between min-h-9">
             <h1 class="text-xl font-bold tracking-tight">{{ 'PRODUCT_GROUPS.TITLE' | translate }}</h1>
             <div class="flex items-center gap-2">
               @if (!selectedId()) {
                 <!-- Alle Buttons sichtbar wenn kein Panel -->
-                <button (click)="onExport()" [disabled]="exporting()"
+                <button
+                  (click)="onExport()"
+                  [disabled]="exporting()"
                   class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
                          px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
-                         hover:bg-slate-50 dark:hover:bg-gray-800 transition">
+                         hover:bg-slate-50 dark:hover:bg-gray-800 transition"
+                >
                   {{ exporting() ? ('COMMON.EXPORTING' | translate) : ('COMMON.EXPORT' | translate) }}
                 </button>
-                <button (click)="fileInput()?.nativeElement?.click()" [disabled]="importing()"
+                <button
+                  (click)="fileInput()?.nativeElement?.click()"
+                  [disabled]="importing()"
                   class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
                          px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
-                         hover:bg-slate-50 dark:hover:bg-gray-800 transition">
+                         hover:bg-slate-50 dark:hover:bg-gray-800 transition"
+                >
                   {{ importing() ? ('COMMON.IMPORTING' | translate) : ('COMMON.IMPORT' | translate) }}
                 </button>
-                <button (click)="showWizard.set(true)"
+                <button
+                  (click)="showWizard.set(true)"
                   class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
                          px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
-                         hover:bg-slate-50 dark:hover:bg-gray-800 transition flex items-center gap-1.5">
-                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                       stroke-linecap="round" stroke-linejoin="round">
+                         hover:bg-slate-50 dark:hover:bg-gray-800 transition flex items-center gap-1.5"
+                >
+                  <svg
+                    class="w-3.5 h-3.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
                     <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
                     <path d="M2 17l10 5 10-5"></path>
                     <path d="M2 12l10 5 10-5"></path>
@@ -74,38 +100,62 @@ interface ProductGroup {
               } @else {
                 <!-- Kebab-Menü wenn Panel geöffnet -->
                 <div class="relative">
-                  <button (click)="actionsMenuOpen.set(!actionsMenuOpen())"
-                          class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
+                  <button
+                    (click)="actionsMenuOpen.set(!actionsMenuOpen())"
+                    class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
                                  w-8 h-8 flex items-center justify-center rounded-lg
                                  border border-slate-200 dark:border-gray-800
                                  hover:bg-slate-50 dark:hover:bg-gray-800 transition text-base leading-none"
-                          title="Weitere Aktionen">
+                    title="Weitere Aktionen"
+                  >
                     ···
                   </button>
                   @if (actionsMenuOpen()) {
-                    <div class="fixed inset-0 z-40" role="button" tabindex="0"
-                         (click)="actionsMenuOpen.set(false)" (keydown.enter)="actionsMenuOpen.set(false)"></div>
-                    <div class="absolute right-0 top-full mt-1 z-50 w-44
+                    <div
+                      class="fixed inset-0 z-40"
+                      role="button"
+                      tabindex="0"
+                      (click)="actionsMenuOpen.set(false)"
+                      (keydown.enter)="actionsMenuOpen.set(false)"
+                    ></div>
+                    <div
+                      class="absolute right-0 top-full mt-1 z-50 w-44
                                 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800
-                                rounded-xl shadow-xl p-1 flex flex-col gap-0.5">
-                      <button (click)="onExport(); actionsMenuOpen.set(false)" [disabled]="exporting()"
+                                rounded-xl shadow-xl p-1 flex flex-col gap-0.5"
+                    >
+                      <button
+                        (click)="onExport(); actionsMenuOpen.set(false)"
+                        [disabled]="exporting()"
                         class="w-full text-left text-xs px-3 py-2 rounded-lg
                                text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition
-                               disabled:opacity-50">
+                               disabled:opacity-50"
+                      >
                         {{ exporting() ? ('COMMON.EXPORTING' | translate) : ('COMMON.EXPORT' | translate) }}
                       </button>
-                      <button (click)="fileInput()?.nativeElement?.click(); actionsMenuOpen.set(false)" [disabled]="importing()"
+                      <button
+                        (click)="fileInput()?.nativeElement?.click(); actionsMenuOpen.set(false)"
+                        [disabled]="importing()"
                         class="w-full text-left text-xs px-3 py-2 rounded-lg
                                text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition
-                               disabled:opacity-50">
+                               disabled:opacity-50"
+                      >
                         {{ importing() ? ('COMMON.IMPORTING' | translate) : ('COMMON.IMPORT' | translate) }}
                       </button>
                       <div class="h-px bg-slate-100 dark:bg-gray-800 my-0.5"></div>
-                      <button (click)="showWizard.set(true); actionsMenuOpen.set(false)"
+                      <button
+                        (click)="showWizard.set(true); actionsMenuOpen.set(false)"
                         class="w-full text-left text-xs px-3 py-2 rounded-lg flex items-center gap-2
-                               text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition">
-                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                             stroke-linecap="round" stroke-linejoin="round">
+                               text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition"
+                      >
+                        <svg
+                          class="w-3.5 h-3.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
                           <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
                           <path d="M2 17l10 5 10-5"></path>
                           <path d="M2 12l10 5 10-5"></path>
@@ -117,9 +167,11 @@ interface ProductGroup {
                 </div>
               }
               <input #fileInputRef type="file" accept=".json" class="hidden" (change)="onFileSelected($event)" />
-              <button (click)="selectItem('new')"
+              <button
+                (click)="selectItem('new')"
                 class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-4 py-2 rounded-xl text-xs
-                       hover:bg-slate-800 dark:hover:bg-gray-200 transition">
+                       hover:bg-slate-800 dark:hover:bg-gray-200 transition"
+              >
                 + {{ 'COMMON.NEW' | translate }}
               </button>
             </div>
@@ -127,60 +179,87 @@ interface ProductGroup {
 
           <!-- Import-Ergebnis -->
           @if (importResult()) {
-            <div class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
-                        text-sm space-y-1">
+            <div
+              class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
+                        text-sm space-y-1"
+            >
               <div class="flex items-center justify-between">
                 <p class="font-medium text-slate-900 dark:text-white">{{ 'COMMON.IMPORT_COMPLETE' | translate }}</p>
                 <div class="flex items-center gap-2">
                   @if (importResult()!.errors > 0) {
-                    <button (click)="showErrorLog.set(true)"
+                    <button
+                      (click)="showErrorLog.set(true)"
                       class="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition"
-                      title="Fehlerdetails anzeigen">
-                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                           stroke-linecap="round" stroke-linejoin="round">
+                      title="Fehlerdetails anzeigen"
+                    >
+                      <svg
+                        class="w-4 h-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
                         <circle cx="12" cy="12" r="10"></circle>
                         <line x1="12" y1="8" x2="12" y2="12"></line>
                         <line x1="12" y1="16" x2="12.01" y2="16"></line>
                       </svg>
                     </button>
                   }
-                  <button (click)="importResult.set(null); showErrorLog.set(false)"
-                    class="text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-white text-xs transition">
+                  <button
+                    (click)="importResult.set(null); showErrorLog.set(false)"
+                    class="text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-white text-xs transition"
+                  >
                     ✕
                   </button>
                 </div>
               </div>
               <p class="text-slate-500 dark:text-gray-400">
-                {{ 'COMMON.CREATED' | translate }}: {{ importResult()!.created }}, {{ 'COMMON.UPDATED' | translate }}: {{ importResult()!.updated }}
+                {{ 'COMMON.CREATED' | translate }}: {{ importResult()!.created }}, {{ 'COMMON.UPDATED' | translate }}:
+                {{ importResult()!.updated }}
               </p>
               @if (importResult()!.errors > 0) {
-                <p class="text-red-500 dark:text-red-400">{{ 'COMMON.ERRORS' | translate }}: {{ importResult()!.errors }}</p>
+                <p class="text-red-500 dark:text-red-400">
+                  {{ 'COMMON.ERRORS' | translate }}: {{ importResult()!.errors }}
+                </p>
               }
             </div>
           }
 
           <!-- Fehler-Log Popup -->
           @if (showErrorLog() && importResult()?.errorLogs?.length) {
-            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm"
-                 role="button" tabindex="0"
-                 (click)="showErrorLog.set(false)" (keydown.enter)="showErrorLog.set(false)">
-              <div class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl
+            <div
+              class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm"
+              role="button"
+              tabindex="0"
+              (click)="showErrorLog.set(false)"
+              (keydown.enter)="showErrorLog.set(false)"
+            >
+              <div
+                class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl
                           max-w-2xl w-full mx-4 shadow-2xl max-h-[80vh] flex flex-col"
-                   role="presentation"
-                   (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
+                role="presentation"
+                (click)="$event.stopPropagation()"
+                (keydown.enter)="$event.stopPropagation()"
+              >
                 <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-gray-800">
                   <p class="text-slate-900 dark:text-white font-medium">
                     {{ 'COMMON.IMPORT_ERRORS' | translate }} ({{ importResult()!.errorLogs.length }})
                   </p>
-                  <button (click)="showErrorLog.set(false)"
-                    class="text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-white transition">
+                  <button
+                    (click)="showErrorLog.set(false)"
+                    class="text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-white transition"
+                  >
                     ✕
                   </button>
                 </div>
                 <div class="overflow-y-auto p-5 space-y-2 text-xs font-mono">
                   @for (log of importResult()!.errorLogs; track $index) {
-                    <div class="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/30 rounded-lg
-                                p-3 text-red-700 dark:text-red-300 break-all">
+                    <div
+                      class="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/30 rounded-lg
+                                p-3 text-red-700 dark:text-red-300 break-all"
+                    >
                       {{ log }}
                     </div>
                   }
@@ -191,25 +270,35 @@ interface ProductGroup {
 
           <!-- Suchleiste -->
           <div class="relative">
-            <div class="flex items-center flex-wrap gap-1.5 bg-white dark:bg-gray-900 border border-slate-200
+            <div
+              class="flex items-center flex-wrap gap-1.5 bg-white dark:bg-gray-900 border border-slate-200
                         dark:border-gray-800 rounded-lg px-3 py-2 focus-within:border-slate-900
                         dark:focus-within:border-white focus-within:ring-1 focus-within:ring-slate-900
                         dark:focus-within:ring-white transition min-h-[42px]"
-                 role="presentation"
-                 (click)="searchInputEl()?.nativeElement?.focus()" (keydown.enter)="searchInputEl()?.nativeElement?.focus()">
+              role="presentation"
+              (click)="searchInputEl()?.nativeElement?.focus()"
+              (keydown.enter)="searchInputEl()?.nativeElement?.focus()"
+            >
               @for (filter of activeFilters(); track filter.key) {
-                <span class="inline-flex items-center gap-1 bg-slate-100 dark:bg-gray-800 text-slate-700
-                             dark:text-gray-300 text-xs font-medium px-2.5 py-1 rounded-lg">
+                <span
+                  class="inline-flex items-center gap-1 bg-slate-100 dark:bg-gray-800 text-slate-700
+                             dark:text-gray-300 text-xs font-medium px-2.5 py-1 rounded-lg"
+                >
                   <span class="text-slate-400 dark:text-gray-500">{{ filter.key }}:</span>
                   {{ filter.label | translate }}
-                  <button type="button" (click)="removeFilter(filter.key); $event.stopPropagation()"
+                  <button
+                    type="button"
+                    (click)="removeFilter(filter.key); $event.stopPropagation()"
                     class="text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-white ml-0.5
-                           transition text-[10px]">
+                           transition text-[10px]"
+                  >
                     ✕
                   </button>
                 </span>
               }
-              <input #searchInputRef type="text"
+              <input
+                #searchInputRef
+                type="text"
                 [ngModel]="searchText()"
                 (ngModelChange)="onSearchInput($event)"
                 (keydown)="onSearchKeydown($event)"
@@ -217,33 +306,47 @@ interface ProductGroup {
                 (blur)="onSearchBlur()"
                 [placeholder]="activeFilters().length > 0 ? 'Weiter filtern...' : 'Suche... (/ für Kommandos)'"
                 class="flex-1 min-w-[120px] bg-transparent outline-none text-sm text-slate-900 dark:text-white
-                       placeholder-slate-400 dark:placeholder-gray-600" />
+                       placeholder-slate-400 dark:placeholder-gray-600"
+              />
             </div>
 
             @if (showDropdown()) {
-              <div class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-900 border border-slate-200
-                          dark:border-gray-700 rounded-lg shadow-xl overflow-hidden">
+              <div
+                class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-900 border border-slate-200
+                          dark:border-gray-700 rounded-lg shadow-xl overflow-hidden"
+              >
                 @if (dropdownPhase() === 'command') {
                   @for (cmd of visibleCommands(); track cmd.key; let i = $index) {
-                    <button type="button"
+                    <button
+                      type="button"
                       (mousedown)="selectCommand(cmd); $event.preventDefault()"
-                      [class]="i === highlightIndex()
-                        ? 'bg-slate-100 dark:bg-gray-800'
-                        : 'hover:bg-slate-50 dark:hover:bg-gray-800/50'"
-                      class="w-full px-3 py-2.5 flex items-center gap-3 text-left transition">
-                      <span class="text-xs font-mono text-slate-500 dark:text-gray-400 bg-slate-100
-                                   dark:bg-gray-800 px-1.5 py-0.5 rounded">{{ cmd.label }}</span>
+                      [class]="
+                        i === highlightIndex()
+                          ? 'bg-slate-100 dark:bg-gray-800'
+                          : 'hover:bg-slate-50 dark:hover:bg-gray-800/50'
+                      "
+                      class="w-full px-3 py-2.5 flex items-center gap-3 text-left transition"
+                    >
+                      <span
+                        class="text-xs font-mono text-slate-500 dark:text-gray-400 bg-slate-100
+                                   dark:bg-gray-800 px-1.5 py-0.5 rounded"
+                        >{{ cmd.label }}</span
+                      >
                       <span class="text-sm text-slate-600 dark:text-gray-300">{{ cmd.description | translate }}</span>
                     </button>
                   }
                 } @else {
                   @for (val of visibleValues(); track val.value; let i = $index) {
-                    <button type="button"
+                    <button
+                      type="button"
                       (mousedown)="selectValue(val); $event.preventDefault()"
-                      [class]="i === highlightIndex()
-                        ? 'bg-slate-100 dark:bg-gray-800'
-                        : 'hover:bg-slate-50 dark:hover:bg-gray-800/50'"
-                      class="w-full px-3 py-2.5 text-left text-sm text-slate-700 dark:text-gray-300 transition">
+                      [class]="
+                        i === highlightIndex()
+                          ? 'bg-slate-100 dark:bg-gray-800'
+                          : 'hover:bg-slate-50 dark:hover:bg-gray-800/50'
+                      "
+                      class="w-full px-3 py-2.5 text-left text-sm text-slate-700 dark:text-gray-300 transition"
+                    >
                       {{ val.label | translate }}
                     </button>
                   }
@@ -259,11 +362,15 @@ interface ProductGroup {
               {{ (groups().length === 0 ? 'PRODUCT_GROUPS.NO_GROUPS' : 'COMMON.NO_RESULTS') | translate }}
             </p>
           } @else {
-            <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden">
+            <div
+              class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden"
+            >
               <table class="w-full text-sm">
                 <thead>
-                  <tr class="border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500
-                             text-xs uppercase tracking-wider">
+                  <tr
+                    class="border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500
+                             text-xs uppercase tracking-wider"
+                  >
                     <th class="px-3 py-2.5 w-8"></th>
                     <th class="px-3 py-2.5">{{ 'COMMON.NAME' | translate }}</th>
                     @if (!selectedId()) {
@@ -276,25 +383,38 @@ interface ProductGroup {
                 </thead>
                 <tbody>
                   @for (group of filteredGroups(); track group._id) {
-                    <tr (click)="selectItem(group._id)"
-                        [class]="group._id === selectedId()
+                    <tr
+                      (click)="selectItem(group._id)"
+                      [class]="
+                        group._id === selectedId()
                           ? 'bg-slate-100 dark:bg-white/5 border-l-2 border-l-slate-900 dark:border-l-white'
-                          : 'hover:bg-slate-50 dark:hover:bg-gray-800/30 border-l-2 border-l-transparent'"
-                        class="cursor-pointer border-b border-slate-200/50 dark:border-gray-800/50 transition">
+                          : 'hover:bg-slate-50 dark:hover:bg-gray-800/30 border-l-2 border-l-transparent'
+                      "
+                      class="cursor-pointer border-b border-slate-200/50 dark:border-gray-800/50 transition"
+                    >
                       <td class="px-3 py-2.5">
-                        <span class="inline-block w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-gray-700"
-                              [style.background-color]="group.color"></span>
+                        <span
+                          class="inline-block w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-gray-700"
+                          [style.background-color]="group.color"
+                        ></span>
                       </td>
                       <td class="px-3 py-2.5 font-medium truncate max-w-40">{{ group.name }}</td>
                       @if (!selectedId()) {
-                        <td class="px-3 py-2.5 text-slate-500 dark:text-gray-400 font-mono text-xs">{{ group.acronym }}</td>
+                        <td class="px-3 py-2.5 text-slate-500 dark:text-gray-400 font-mono text-xs">
+                          {{ group.acronym }}
+                        </td>
                         <td class="px-3 py-2.5 text-slate-500 dark:text-gray-400 text-xs">{{ group.taxInside }}%</td>
                         <td class="text-center" (click)="$event.stopPropagation()">
-                          <label class="inline-flex items-center justify-center w-12 h-12 cursor-pointer
-                                        rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 transition active:scale-95">
-                            <input type="checkbox" [checked]="!group.excluded"
+                          <label
+                            class="inline-flex items-center justify-center w-12 h-12 cursor-pointer
+                                        rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 transition active:scale-95"
+                          >
+                            <input
+                              type="checkbox"
+                              [checked]="!group.excluded"
                               (change)="toggleExcluded(group)"
-                              class="w-5 h-5 accent-slate-900 dark:accent-white cursor-pointer" />
+                              class="w-5 h-5 accent-slate-900 dark:accent-white cursor-pointer"
+                            />
                           </label>
                         </td>
                         <td class="px-3 py-2.5">
@@ -309,13 +429,18 @@ interface ProductGroup {
 
             @if (hasMore()) {
               <div class="flex items-center justify-center py-4">
-                <button (click)="loadMore()" [disabled]="loadingMore()"
+                <button
+                  (click)="loadMore()"
+                  [disabled]="loadingMore()"
                   class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-gray-400
                          border border-slate-200 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-gray-800
-                         transition disabled:opacity-50">
+                         transition disabled:opacity-50"
+                >
                   @if (loadingMore()) {
                     <span class="flex items-center gap-2">
-                      <span class="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></span>
+                      <span
+                        class="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"
+                      ></span>
                       {{ 'COMMON.LOADING' | translate }}
                     </span>
                   } @else {
@@ -332,13 +457,18 @@ interface ProductGroup {
       @if (selectedId()) {
         <div class="flex-1 flex flex-col overflow-hidden">
           <!-- Panel Header mit Navigation -->
-          <div class="shrink-0 bg-slate-50 dark:bg-gray-950 border-b border-slate-200 dark:border-gray-800
-                      px-4 py-2.5 flex items-center gap-2">
-            <button (click)="prevItem()" [disabled]="currentIndex() <= 0"
+          <div
+            class="shrink-0 bg-slate-50 dark:bg-gray-950 border-b border-slate-200 dark:border-gray-800
+                      px-4 py-2.5 flex items-center gap-2"
+          >
+            <button
+              (click)="prevItem()"
+              [disabled]="currentIndex() <= 0"
               class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
                      disabled:text-slate-300 dark:disabled:text-gray-700 disabled:cursor-not-allowed
                      w-8 h-8 flex items-center justify-center rounded-lg
-                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm">
+                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm"
+            >
               ◀
             </button>
             <span class="text-xs text-slate-400 dark:text-gray-500 min-w-12 text-center">
@@ -348,29 +478,36 @@ interface ProductGroup {
                 {{ 'COMMON.NEW' | translate }}
               }
             </span>
-            <button (click)="nextItem()" [disabled]="currentIndex() >= filteredGroups().length - 1"
+            <button
+              (click)="nextItem()"
+              [disabled]="currentIndex() >= filteredGroups().length - 1"
               class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
                      disabled:text-slate-300 dark:disabled:text-gray-700 disabled:cursor-not-allowed
                      w-8 h-8 flex items-center justify-center rounded-lg
-                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm">
+                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm"
+            >
               ▶
             </button>
             <div class="flex-1"></div>
-            <button (click)="tryClose()"
+            <button
+              (click)="tryClose()"
               class="text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white w-8 h-8
                      flex items-center justify-center rounded-lg
-                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm">
+                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm"
+            >
               ✕
             </button>
           </div>
 
           <!-- Formular -->
           <div class="flex-1 overflow-y-auto">
-            <app-group-form #formRef
+            <app-group-form
+              #formRef
               [id]="selectedId()!"
               [panelMode]="true"
               (saved)="onItemSaved()"
-              (closed)="tryClose()" />
+              (closed)="tryClose()"
+            />
           </div>
         </div>
       }
@@ -379,13 +516,12 @@ interface ProductGroup {
         <app-confirm-dialog
           (confirmed)="onDialogSave()"
           (dismissed)="onDialogDiscard()"
-          (cancelled)="onDialogCancel()" />
+          (cancelled)="onDialogCancel()"
+        />
       }
 
       @if (showWizard()) {
-        <app-group-wizard
-          (saved)="onWizardSaved()"
-          (cancelled)="showWizard.set(false)" />
+        <app-group-wizard (saved)="onWizardSaved()" (cancelled)="showWizard.set(false)" />
       }
     </div>
   `,
@@ -442,10 +578,7 @@ export class GroupListComponent implements OnInit {
     }
     const q = this.searchText().toLowerCase().trim()
     if (q && !q.startsWith('/')) {
-      list = list.filter(g =>
-        g.name?.toLowerCase().includes(q) ||
-        g.acronym?.toLowerCase().includes(q),
-      )
+      list = list.filter(g => g.name?.toLowerCase().includes(q) || g.acronym?.toLowerCase().includes(q))
     }
     return list
   })
@@ -453,7 +586,10 @@ export class GroupListComponent implements OnInit {
   exporting = signal(false)
   importing = signal(false)
   importResult = signal<{
-    created: number; updated: number; errors: number; errorLogs: string[]
+    created: number
+    updated: number
+    errors: number
+    errorLogs: string[]
   } | null>(null)
   showErrorLog = signal(false)
 
@@ -470,9 +606,7 @@ export class GroupListComponent implements OnInit {
     try {
       await this.api.patch('product-groups', group._id, { excluded: newValue })
       // Lokale Liste aktualisieren
-      this.groups.update(list =>
-        list.map(g => (g._id === group._id ? { ...g, excluded: newValue } : g)),
-      )
+      this.groups.update(list => list.map(g => (g._id === group._id ? { ...g, excluded: newValue } : g)))
     } catch (e) {
       console.error('Fehler beim Aktualisieren der Sichtbarkeit:', e)
     }
@@ -481,15 +615,23 @@ export class GroupListComponent implements OnInit {
   statusBadge(status: string): string {
     const base = 'text-xs px-2.5 py-0.5 rounded-full border'
     switch (status) {
-      case 'ACTIVE': return `${base} bg-green-500/10 text-green-400 border-green-500/20`
-      case 'DRAFT': return `${base} bg-yellow-500/10 text-yellow-400 border-yellow-500/20`
-      case 'ARCHIVED': return `${base} bg-gray-500/10 text-gray-400 border-gray-500/20`
-      default: return `${base} bg-gray-500/10 text-gray-400 border-gray-500/20`
+      case 'ACTIVE':
+        return `${base} bg-green-500/10 text-green-400 border-green-500/20`
+      case 'DRAFT':
+        return `${base} bg-yellow-500/10 text-yellow-400 border-yellow-500/20`
+      case 'ARCHIVED':
+        return `${base} bg-gray-500/10 text-gray-400 border-gray-500/20`
+      default:
+        return `${base} bg-gray-500/10 text-gray-400 border-gray-500/20`
     }
   }
 
   statusLabel(status: string): string {
-    const map: Record<string, string> = { ACTIVE: 'COMMON.STATUS_ACTIVE', DRAFT: 'COMMON.STATUS_DRAFT', ARCHIVED: 'COMMON.STATUS_ARCHIVED' }
+    const map: Record<string, string> = {
+      ACTIVE: 'COMMON.STATUS_ACTIVE',
+      DRAFT: 'COMMON.STATUS_DRAFT',
+      ARCHIVED: 'COMMON.STATUS_ARCHIVED',
+    }
     return map[status] ? this.t.instant(map[status]) : status
   }
 
@@ -513,7 +655,8 @@ export class GroupListComponent implements OnInit {
 
   nextItem() {
     const idx = this.currentIndex()
-    if (idx < this.filteredGroups().length - 1) this.navigateWithDirtyCheck(() => this.selectedId.set(this.filteredGroups()[idx + 1]._id))
+    if (idx < this.filteredGroups().length - 1)
+      this.navigateWithDirtyCheck(() => this.selectedId.set(this.filteredGroups()[idx + 1]._id))
   }
 
   tryClose() {
@@ -598,13 +741,22 @@ export class GroupListComponent implements OnInit {
       return
     }
     const items = this.dropdownPhase() === 'command' ? this.visibleCommands() : this.visibleValues()
-    if (event.key === 'ArrowDown') { event.preventDefault(); this.highlightIndex.update(i => Math.min(i + 1, items.length - 1)) }
-    else if (event.key === 'ArrowUp') { event.preventDefault(); this.highlightIndex.update(i => Math.max(i - 1, 0)) }
-    else if (event.key === 'Enter') {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      this.highlightIndex.update(i => Math.min(i + 1, items.length - 1))
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      this.highlightIndex.update(i => Math.max(i - 1, 0))
+    } else if (event.key === 'Enter') {
       event.preventDefault()
       const idx = this.highlightIndex()
-      if (this.dropdownPhase() === 'command') { const cmd = this.visibleCommands()[idx]; if (cmd) this.selectCommand(cmd) }
-      else { const val = this.visibleValues()[idx]; if (val) this.selectValue(val) }
+      if (this.dropdownPhase() === 'command') {
+        const cmd = this.visibleCommands()[idx]
+        if (cmd) this.selectCommand(cmd)
+      } else {
+        const val = this.visibleValues()[idx]
+        if (val) this.selectValue(val)
+      }
     }
   }
 
@@ -618,7 +770,10 @@ export class GroupListComponent implements OnInit {
   selectValue(val: { value: string; label: string }) {
     const cmd = this.pendingCommandFilter()
     if (!cmd) return
-    this.activeFilters.update(filters => [...filters.filter(f => f.key !== cmd.key), { key: cmd.key, value: val.value, label: val.label }])
+    this.activeFilters.update(filters => [
+      ...filters.filter(f => f.key !== cmd.key),
+      { key: cmd.key, value: val.value, label: val.label },
+    ])
     this.pendingCommandFilter.set(null)
     this.dropdownPhase.set('command')
     this.showDropdown.set(false)
@@ -729,7 +884,9 @@ export class GroupListComponent implements OnInit {
       for (const g of existing.data) {
         if (g.externalId) externalToId.set(g.externalId, g._id)
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     for (const group of data.productGroups) {
       try {

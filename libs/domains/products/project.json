@@ -3,11 +3,7 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/domains/products",
   "projectType": "library",
-  "tags": [
-    "type:domain-package",
-    "domain:products",
-    "publishable"
-  ],
+  "tags": ["type:domain-package", "domain:products", "publishable"],
   "targets": {
     "build": {
       "executor": "nx:run-commands",
@@ -15,10 +11,7 @@
         "{workspaceRoot}/libs/domains/products/domain/dist",
         "{workspaceRoot}/libs/domains/products/data-access/dist"
       ],
-      "dependsOn": [
-        "products-domain:build",
-        "products-data-access:build"
-      ],
+      "dependsOn": ["products-domain:build", "products-data-access:build"],
       "options": {
         "command": "echo 'products package build complete'"
       }

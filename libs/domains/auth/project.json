@@ -3,11 +3,7 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/domains/auth",
   "projectType": "library",
-  "tags": [
-    "type:domain-package",
-    "domain:auth",
-    "publishable"
-  ],
+  "tags": ["type:domain-package", "domain:auth", "publishable"],
   "targets": {
     "build": {
       "executor": "nx:run-commands",
@@ -15,10 +11,7 @@
         "{workspaceRoot}/libs/domains/auth/domain/dist",
         "{workspaceRoot}/libs/domains/auth/data-access/dist"
       ],
-      "dependsOn": [
-        "auth-domain:build",
-        "auth-data-access:build"
-      ],
+      "dependsOn": ["auth-domain:build", "auth-data-access:build"],
       "options": {
         "command": "echo 'auth package build complete'"
       }

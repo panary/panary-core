@@ -1,4 +1,4 @@
-import { FormatRegistry } from '@sinclair/typebox'
+import { Format } from '@sinclair/typebox/format'
 import { Value } from '@sinclair/typebox/value'
 import { beforeAll, describe, expect, it } from 'vitest'
 
@@ -10,10 +10,10 @@ import { tableSchema } from './table.schema'
 // Fuer Value.Check muessen wir die Formate lokal registrieren, damit Schema-
 // Roundtrip-Tests ohne Feathers-Boot moeglich sind (analog sync-trigger.spec).
 beforeAll(() => {
-  if (!FormatRegistry.Has('email')) {
+  if (!Format.Has('email')) {
     // Pragmatisches RFC-5322-naehe Pattern — der Lib-Konsumer macht die echte
     // Validierung via AJV/Feathers. Hier nur „nicht offensichtlich falsch".
-    FormatRegistry.Set('email', value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+    Format.Set('email', value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
   }
 })
 
@@ -98,9 +98,7 @@ describe('reservationSchema (D-21)', () => {
   })
 
   it('lehnt invalides E-Mail-Format ab', () => {
-    expect(Value.Check(reservationSchema, { ...validReservation, customerEmail: 'kein-mail' })).toBe(
-      false,
-    )
+    expect(Value.Check(reservationSchema, { ...validReservation, customerEmail: 'kein-mail' })).toBe(false)
   })
 
   it('lehnt unbekannte Properties ab (additionalProperties: false)', () => {
@@ -134,9 +132,7 @@ describe('reservableSlotSchema (D-21)', () => {
   })
 
   it('lehnt maxConcurrentReservations = 0 ab (min 1)', () => {
-    expect(Value.Check(reservableSlotSchema, { ...validSlot, maxConcurrentReservations: 0 })).toBe(
-      false,
-    )
+    expect(Value.Check(reservableSlotSchema, { ...validSlot, maxConcurrentReservations: 0 })).toBe(false)
   })
 
   it('lehnt unbekannte Properties ab', () => {

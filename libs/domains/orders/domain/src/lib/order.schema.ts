@@ -355,9 +355,7 @@ export const orderSchema = Type.Object(
     // konsistent zu `stockBookedAt`/`stockReversedAt` — Edge serialisiert
     // ungesetzte nullable SQLite-Spalten als `null` und der Cloud-Sync-Push
     // wuerde sonst mit `must be array` rejecten (Schema-Drift behoben).
-    stockMovementIds: Type.Optional(
-      Type.Union([Type.Array(Type.String({ format: 'uuid' })), Type.Null()]),
-    ),
+    stockMovementIds: Type.Optional(Type.Union([Type.Array(Type.String({ format: 'uuid' })), Type.Null()])),
     // Gesetzt nach erfolgreichem Reversal (SALES_OUT_REVERSAL-Movements).
     // Verhindert Doppel-Reversal bei mehrfachem Status-Wechsel auf ABORTED.
     stockReversedAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
@@ -411,49 +409,46 @@ export const orderDataSchema = Type.Intersect(
     // gestempelt. Als Pflichtfelder waere die 400-Meldung bei fehlgeschlagenem
     // Stempel irrefuehrend (ADR 0031 in panary-cloud).
     Type.Partial(Type.Pick(orderSchema, ['locationId', 'tenantId'])),
-    Type.Pick(
-      orderSchema,
-      [
-        'createdAt',
-        'updatedAt',
-        'status',
-        'businessDayId',
-        'cashSessionId',
-        'orderChannel',
-        'dailySequenceNumber',
-        'dineLocation',
-        'lineItems',
-        'cancellation',
-        'customerPaymentInfo',
-        'discount',
-        'appliedDiscounts',
-        'staffPaymentInfo',
-        'taxSnapshot',
-        'creationContext',
-        'payment',
-        'isFinished',
-        'preOrderId',
-        'pager',
-        'estimatedDuration',
-        'remainingTime',
-        'table',
-        'recordingDate',
-        'targetCompletionAt',
-        // Stock-Buchungs-Marker werden serverseitig vom Hook gesetzt — hier
-        // bewusst erlaubt fuer Sync-Push (Edge sendet Order mit moeglicherweise
-        // schon gesetztem Marker, Cloud-Hook prueft idempotent).
-        'stockBookedAt',
-        'stockMovementIds',
-        'stockReversedAt',
-        // TSE-Snapshot wird serverseitig vom Signier-Hook gesetzt; fuer Sync-Push
-        // erlaubt (Edge sendet die bereits signierte Order an die Cloud).
-        'tse',
-        // Offline-Erfassungs-Marker (Connect-Tier) — vom POS bei Offline-Anlage
-        // gesetzt; steuert den TSE-Skip im create-Hook + bewahrt die Ausfall-Belegnummer.
-        'offlineCreated',
-        'provisionalSequenceNumber',
-      ],
-    ),
+    Type.Pick(orderSchema, [
+      'createdAt',
+      'updatedAt',
+      'status',
+      'businessDayId',
+      'cashSessionId',
+      'orderChannel',
+      'dailySequenceNumber',
+      'dineLocation',
+      'lineItems',
+      'cancellation',
+      'customerPaymentInfo',
+      'discount',
+      'appliedDiscounts',
+      'staffPaymentInfo',
+      'taxSnapshot',
+      'creationContext',
+      'payment',
+      'isFinished',
+      'preOrderId',
+      'pager',
+      'estimatedDuration',
+      'remainingTime',
+      'table',
+      'recordingDate',
+      'targetCompletionAt',
+      // Stock-Buchungs-Marker werden serverseitig vom Hook gesetzt — hier
+      // bewusst erlaubt fuer Sync-Push (Edge sendet Order mit moeglicherweise
+      // schon gesetztem Marker, Cloud-Hook prueft idempotent).
+      'stockBookedAt',
+      'stockMovementIds',
+      'stockReversedAt',
+      // TSE-Snapshot wird serverseitig vom Signier-Hook gesetzt; fuer Sync-Push
+      // erlaubt (Edge sendet die bereits signierte Order an die Cloud).
+      'tse',
+      // Offline-Erfassungs-Marker (Connect-Tier) — vom POS bei Offline-Anlage
+      // gesetzt; steuert den TSE-Skip im create-Hook + bewahrt die Ausfall-Belegnummer.
+      'offlineCreated',
+      'provisionalSequenceNumber',
+    ]),
   ],
   {
     $id: 'OrderData',

@@ -1,5 +1,10 @@
 import { AuditAction, type AuditAction as AuditActionType } from './audit-action.enum'
-import { AuditCategory, AuditSeverity, type AuditCategory as AuditCategoryType, type AuditSeverity as AuditSeverityType } from './audit-category.enum'
+import {
+  AuditCategory,
+  AuditSeverity,
+  type AuditCategory as AuditCategoryType,
+  type AuditSeverity as AuditSeverityType,
+} from './audit-category.enum'
 
 // Mapping: (Service-Pfad, FeathersJS-Methode) → (Audit-Action, Category, Severity).
 // Dient als Whitelist für den `record-audit-event`-Hook im Edge-Backend.
@@ -34,56 +39,55 @@ const r = (
 ): AuditResourceMapping => ({ action, category, severity, dynamicAction })
 
 // Map<resource, Map<method, mapping>>
-export const AUDIT_RESOURCE_MAP: Readonly<
-  Record<string, Partial<Record<AuditResourceMethod, AuditResourceMapping>>>
-> = {
-  orders: {
-    create: r(AuditAction.CREATE, AuditCategory.TRANSACTION, AuditSeverity.INFO),
-    patch: r(AuditAction.UPDATE, AuditCategory.TRANSACTION, AuditSeverity.NOTICE),
-    update: r(AuditAction.UPDATE, AuditCategory.TRANSACTION, AuditSeverity.NOTICE),
-    remove: r(AuditAction.DELETE, AuditCategory.TRANSACTION, AuditSeverity.WARNING),
-  },
-  'order-interactions': {
-    // dynamicAction: VOID / REFUND / DISCOUNT abgeleitet aus data.interactionType
-    create: r(AuditAction.UPDATE, AuditCategory.TRANSACTION, AuditSeverity.NOTICE, true),
-  },
-  products: {
-    // dynamicAction: PRICE_CHANGE wenn `price` im Diff liegt, sonst UPDATE
-    patch: r(AuditAction.UPDATE, AuditCategory.PRICING, AuditSeverity.NOTICE, true),
-    update: r(AuditAction.UPDATE, AuditCategory.PRICING, AuditSeverity.NOTICE, true),
-  },
-  users: {
-    // dynamicAction: PERMISSION_CHANGE wenn `role`/`permissions` im Diff
-    patch: r(AuditAction.UPDATE, AuditCategory.CONFIGURATION, AuditSeverity.WARNING, true),
-    update: r(AuditAction.UPDATE, AuditCategory.CONFIGURATION, AuditSeverity.WARNING, true),
-    // Custom Methods (Zeiterfassung)
-    checkin: r(AuditAction.CLOCK_IN, AuditCategory.TIME, AuditSeverity.INFO),
-    checkout: r(AuditAction.CLOCK_OUT, AuditCategory.TIME, AuditSeverity.INFO),
-    startBreak: r(AuditAction.BREAK_START, AuditCategory.TIME, AuditSeverity.INFO),
-    endBreak: r(AuditAction.BREAK_END, AuditCategory.TIME, AuditSeverity.INFO),
-    // POS-PIN-Selbstwechsel am Terminal. Actor ist das Geraet
-    // (`device:<deviceId>`, siehe allowApiKey-Hook), der betroffene Mitarbeiter
-    // steht in `target.entityId`.
-    changePin: r(AuditAction.PIN_CHANGE, AuditCategory.ACCESS, AuditSeverity.NOTICE),
-  },
-  apikeys: {
-    create: r(AuditAction.API_KEY_CREATE, AuditCategory.ACCESS, AuditSeverity.WARNING),
-    remove: r(AuditAction.API_KEY_REVOKE, AuditCategory.ACCESS, AuditSeverity.WARNING),
-  },
-  'working-times': {
-    create: r(AuditAction.CLOCK_IN, AuditCategory.TIME, AuditSeverity.INFO),
-    patch: r(AuditAction.UPDATE, AuditCategory.TIME, AuditSeverity.NOTICE),
-    update: r(AuditAction.UPDATE, AuditCategory.TIME, AuditSeverity.NOTICE),
-  },
-  customers: {
-    patch: r(AuditAction.UPDATE, AuditCategory.DATA_MUTATION, AuditSeverity.INFO),
-    update: r(AuditAction.UPDATE, AuditCategory.DATA_MUTATION, AuditSeverity.INFO),
-    remove: r(AuditAction.DELETE, AuditCategory.DATA_MUTATION, AuditSeverity.WARNING),
-  },
-  'write-offs': {
-    create: r(AuditAction.WRITE_OFF, AuditCategory.CASH, AuditSeverity.NOTICE),
-  },
-}
+export const AUDIT_RESOURCE_MAP: Readonly<Record<string, Partial<Record<AuditResourceMethod, AuditResourceMapping>>>> =
+  {
+    orders: {
+      create: r(AuditAction.CREATE, AuditCategory.TRANSACTION, AuditSeverity.INFO),
+      patch: r(AuditAction.UPDATE, AuditCategory.TRANSACTION, AuditSeverity.NOTICE),
+      update: r(AuditAction.UPDATE, AuditCategory.TRANSACTION, AuditSeverity.NOTICE),
+      remove: r(AuditAction.DELETE, AuditCategory.TRANSACTION, AuditSeverity.WARNING),
+    },
+    'order-interactions': {
+      // dynamicAction: VOID / REFUND / DISCOUNT abgeleitet aus data.interactionType
+      create: r(AuditAction.UPDATE, AuditCategory.TRANSACTION, AuditSeverity.NOTICE, true),
+    },
+    products: {
+      // dynamicAction: PRICE_CHANGE wenn `price` im Diff liegt, sonst UPDATE
+      patch: r(AuditAction.UPDATE, AuditCategory.PRICING, AuditSeverity.NOTICE, true),
+      update: r(AuditAction.UPDATE, AuditCategory.PRICING, AuditSeverity.NOTICE, true),
+    },
+    users: {
+      // dynamicAction: PERMISSION_CHANGE wenn `role`/`permissions` im Diff
+      patch: r(AuditAction.UPDATE, AuditCategory.CONFIGURATION, AuditSeverity.WARNING, true),
+      update: r(AuditAction.UPDATE, AuditCategory.CONFIGURATION, AuditSeverity.WARNING, true),
+      // Custom Methods (Zeiterfassung)
+      checkin: r(AuditAction.CLOCK_IN, AuditCategory.TIME, AuditSeverity.INFO),
+      checkout: r(AuditAction.CLOCK_OUT, AuditCategory.TIME, AuditSeverity.INFO),
+      startBreak: r(AuditAction.BREAK_START, AuditCategory.TIME, AuditSeverity.INFO),
+      endBreak: r(AuditAction.BREAK_END, AuditCategory.TIME, AuditSeverity.INFO),
+      // POS-PIN-Selbstwechsel am Terminal. Actor ist das Geraet
+      // (`device:<deviceId>`, siehe allowApiKey-Hook), der betroffene Mitarbeiter
+      // steht in `target.entityId`.
+      changePin: r(AuditAction.PIN_CHANGE, AuditCategory.ACCESS, AuditSeverity.NOTICE),
+    },
+    apikeys: {
+      create: r(AuditAction.API_KEY_CREATE, AuditCategory.ACCESS, AuditSeverity.WARNING),
+      remove: r(AuditAction.API_KEY_REVOKE, AuditCategory.ACCESS, AuditSeverity.WARNING),
+    },
+    'working-times': {
+      create: r(AuditAction.CLOCK_IN, AuditCategory.TIME, AuditSeverity.INFO),
+      patch: r(AuditAction.UPDATE, AuditCategory.TIME, AuditSeverity.NOTICE),
+      update: r(AuditAction.UPDATE, AuditCategory.TIME, AuditSeverity.NOTICE),
+    },
+    customers: {
+      patch: r(AuditAction.UPDATE, AuditCategory.DATA_MUTATION, AuditSeverity.INFO),
+      update: r(AuditAction.UPDATE, AuditCategory.DATA_MUTATION, AuditSeverity.INFO),
+      remove: r(AuditAction.DELETE, AuditCategory.DATA_MUTATION, AuditSeverity.WARNING),
+    },
+    'write-offs': {
+      create: r(AuditAction.WRITE_OFF, AuditCategory.CASH, AuditSeverity.NOTICE),
+    },
+  }
 
 // Schreib-Pfade, die NIEMALS auditiert werden — verhindert Self-Audit-Loops und
 // reduziert Noise. Komplementär zur Whitelist oben.

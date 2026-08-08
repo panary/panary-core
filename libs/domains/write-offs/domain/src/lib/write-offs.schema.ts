@@ -112,10 +112,7 @@ export const writeOffQueryProperties = Type.Pick(writeOffSchema, [
   'updatedAt',
 ])
 export const writeOffQuerySchema = Type.Intersect(
-  [
-    querySyntax(writeOffQueryProperties),
-    Type.Object({}, { additionalProperties: false }),
-  ],
+  [querySyntax(writeOffQueryProperties), Type.Object({}, { additionalProperties: false })],
   { additionalProperties: false },
 )
 export type WriteOffQuery = Static<typeof writeOffQuerySchema>

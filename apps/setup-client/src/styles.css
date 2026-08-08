@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* Explizite Quellpfade für Tailwind v4 JIT — nötig in Docker (kein .git-Verzeichnis) */
 @source "./app";

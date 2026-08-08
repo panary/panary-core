@@ -57,10 +57,12 @@ describe('apikeys service — Create durch JWT-User mit activeLocationId', () =>
   })
 
   it('stempelt locationId aus activeLocationId — nicht aus der ersten Tenant-Location', async () => {
-    const created = (await app.service('apikeys').create(
-      { name: 'POS Kasse 1', description: 'Regressionstest' } as never,
-      { provider: 'rest', authenticated: true, user: ownerUser } as never,
-    )) as { _id: string; locationId: string; tenantId: string }
+    const created = (await app
+      .service('apikeys')
+      .create(
+        { name: 'POS Kasse 1', description: 'Regressionstest' } as never,
+        { provider: 'rest', authenticated: true, user: ownerUser } as never,
+      )) as { _id: string; locationId: string; tenantId: string }
 
     assert.strictEqual(created.locationId, activeLocationId, 'locationId stammt aus activeLocationId')
     assert.notStrictEqual(created.locationId, firstLocationId, 'nicht der Fallback-Lookup hat gestempelt')
@@ -68,19 +70,23 @@ describe('apikeys service — Create durch JWT-User mit activeLocationId', () =>
   })
 
   it('explizit gesendete locationId bleibt erhalten (Owner darf die Filiale waehlen)', async () => {
-    const created = (await app.service('apikeys').create(
-      { name: 'POS Kasse 2', locationId: firstLocationId } as never,
-      { provider: 'rest', authenticated: true, user: ownerUser } as never,
-    )) as { locationId: string }
+    const created = (await app
+      .service('apikeys')
+      .create(
+        { name: 'POS Kasse 2', locationId: firstLocationId } as never,
+        { provider: 'rest', authenticated: true, user: ownerUser } as never,
+      )) as { locationId: string }
 
     assert.strictEqual(created.locationId, firstLocationId)
   })
 
   it('User ganz ohne Filiale faellt auf die erste Location des Tenants zurueck', async () => {
-    const created = (await app.service('apikeys').create(
-      { name: 'POS Kasse 3' } as never,
-      { provider: 'rest', authenticated: true, user: { _id: uuidv7(), role: 'tenant:owner', tenantId } } as never,
-    )) as { locationId: string }
+    const created = (await app
+      .service('apikeys')
+      .create(
+        { name: 'POS Kasse 3' } as never,
+        { provider: 'rest', authenticated: true, user: { _id: uuidv7(), role: 'tenant:owner', tenantId } } as never,
+      )) as { locationId: string }
 
     assert.strictEqual(created.locationId, firstLocationId)
   })

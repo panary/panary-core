@@ -24,14 +24,18 @@ interface Apikey {
   template: `
     <div class="flex h-full overflow-hidden">
       <!-- Linke Seite: Tabelle -->
-      <div [class]="selectedId() ? 'w-72 shrink-0 border-r border-slate-200 dark:border-gray-800' : 'flex-1'"
-           class="overflow-y-auto">
+      <div
+        [class]="selectedId() ? 'w-72 shrink-0 border-r border-slate-200 dark:border-gray-800' : 'flex-1'"
+        class="overflow-y-auto"
+      >
         <div class="p-6 space-y-4">
           <div class="flex items-center justify-between min-h-9">
             <h1 class="text-xl font-bold tracking-tight">{{ 'APIKEYS.TITLE' | translate }}</h1>
-            <button (click)="selectItem('new')"
+            <button
+              (click)="selectItem('new')"
               class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-4 py-2 rounded-xl text-xs
-                     hover:bg-slate-800 dark:hover:bg-gray-200 transition">
+                     hover:bg-slate-800 dark:hover:bg-gray-200 transition"
+            >
               + {{ 'COMMON.NEW' | translate }}
             </button>
           </div>
@@ -39,13 +43,19 @@ interface Apikey {
           @if (loading()) {
             <p class="text-slate-400 dark:text-gray-500 text-sm">{{ 'COMMON.LOADING' | translate }}</p>
           } @else if (apikeys().length === 0) {
-            <p class="text-slate-400 dark:text-gray-500 text-center py-12 text-sm">{{ 'APIKEYS.NO_KEYS' | translate }}</p>
+            <p class="text-slate-400 dark:text-gray-500 text-center py-12 text-sm">
+              {{ 'APIKEYS.NO_KEYS' | translate }}
+            </p>
           } @else {
-            <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden">
+            <div
+              class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden"
+            >
               <table class="w-full text-sm">
                 <thead>
-                  <tr class="border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500
-                             text-xs uppercase tracking-wider">
+                  <tr
+                    class="border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500
+                             text-xs uppercase tracking-wider"
+                  >
                     <th class="px-3 py-2.5">{{ 'COMMON.NAME' | translate }}</th>
                     @if (!selectedId()) {
                       <th class="px-3 py-2.5">{{ 'USERS.ROLE' | translate }}</th>
@@ -57,16 +67,22 @@ interface Apikey {
                 </thead>
                 <tbody>
                   @for (key of apikeys(); track key._id) {
-                    <tr (click)="selectItem(key._id)"
-                        [class]="key._id === selectedId()
+                    <tr
+                      (click)="selectItem(key._id)"
+                      [class]="
+                        key._id === selectedId()
                           ? 'bg-slate-100 dark:bg-white/5 border-l-2 border-l-slate-900 dark:border-l-white'
-                          : 'hover:bg-slate-50 dark:hover:bg-gray-800/30 border-l-2 border-l-transparent'"
-                        class="cursor-pointer border-b border-slate-200/50 dark:border-gray-800/50 transition">
+                          : 'hover:bg-slate-50 dark:hover:bg-gray-800/30 border-l-2 border-l-transparent'
+                      "
+                      class="cursor-pointer border-b border-slate-200/50 dark:border-gray-800/50 transition"
+                    >
                       <td class="px-3 py-2.5 font-medium truncate max-w-40">{{ key.name }}</td>
                       @if (!selectedId()) {
                         <td class="px-3 py-2.5">
-                          <span class="text-xs px-2 py-0.5 rounded-full border border-slate-300 dark:border-gray-700
-                                       text-slate-600 dark:text-gray-300">
+                          <span
+                            class="text-xs px-2 py-0.5 rounded-full border border-slate-300 dark:border-gray-700
+                                       text-slate-600 dark:text-gray-300"
+                          >
                             {{ formatRole(key.role) }}
                           </span>
                         </td>
@@ -96,13 +112,18 @@ interface Apikey {
       <!-- Rechte Seite: Side-Panel -->
       @if (selectedId()) {
         <div class="flex-1 flex flex-col overflow-hidden">
-          <div class="shrink-0 bg-slate-50 dark:bg-gray-950 border-b border-slate-200 dark:border-gray-800
-                      px-4 py-2.5 flex items-center gap-2">
-            <button (click)="prevItem()" [disabled]="currentIndex() <= 0"
+          <div
+            class="shrink-0 bg-slate-50 dark:bg-gray-950 border-b border-slate-200 dark:border-gray-800
+                      px-4 py-2.5 flex items-center gap-2"
+          >
+            <button
+              (click)="prevItem()"
+              [disabled]="currentIndex() <= 0"
               class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
                      disabled:text-slate-300 dark:disabled:text-gray-700 disabled:cursor-not-allowed
                      w-8 h-8 flex items-center justify-center rounded-lg
-                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm">
+                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm"
+            >
               ◀
             </button>
             <span class="text-xs text-slate-400 dark:text-gray-500 min-w-12 text-center">
@@ -112,29 +133,36 @@ interface Apikey {
                 {{ 'COMMON.NEW' | translate }}
               }
             </span>
-            <button (click)="nextItem()" [disabled]="currentIndex() >= apikeys().length - 1"
+            <button
+              (click)="nextItem()"
+              [disabled]="currentIndex() >= apikeys().length - 1"
               class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
                      disabled:text-slate-300 dark:disabled:text-gray-700 disabled:cursor-not-allowed
                      w-8 h-8 flex items-center justify-center rounded-lg
-                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm">
+                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm"
+            >
               ▶
             </button>
             <div class="flex-1"></div>
-            <button (click)="selectedId.set(null)"
+            <button
+              (click)="selectedId.set(null)"
               class="text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white w-8 h-8
                      flex items-center justify-center rounded-lg
-                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm">
+                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm"
+            >
               ✕
             </button>
           </div>
 
           <div class="flex-1 overflow-y-auto">
-            <app-apikey-form #formRef
+            <app-apikey-form
+              #formRef
               [id]="selectedId()!"
               [panelMode]="true"
               (saved)="onItemSaved()"
               (created)="onKeyCreated($event)"
-              (closed)="tryClose()" />
+              (closed)="tryClose()"
+            />
           </div>
         </div>
       }
@@ -143,13 +171,12 @@ interface Apikey {
         <app-confirm-dialog
           (confirmed)="onDialogSave()"
           (dismissed)="onDialogDiscard()"
-          (cancelled)="onDialogCancel()" />
+          (cancelled)="onDialogCancel()"
+        />
       }
 
       @if (createdApikey()) {
-        <app-apikey-created-dialog
-          [apikey]="createdApikey()!"
-          (closed)="createdApikey.set(null)" />
+        <app-apikey-created-dialog [apikey]="createdApikey()!" (closed)="createdApikey.set(null)" />
       }
     </div>
   `,
@@ -225,7 +252,8 @@ export class ApikeyListComponent implements OnInit {
 
   nextItem() {
     const idx = this.currentIndex()
-    if (idx < this.apikeys().length - 1) this.navigateWithDirtyCheck(() => this.selectedId.set(this.apikeys()[idx + 1]._id))
+    if (idx < this.apikeys().length - 1)
+      this.navigateWithDirtyCheck(() => this.selectedId.set(this.apikeys()[idx + 1]._id))
   }
 
   tryClose() {

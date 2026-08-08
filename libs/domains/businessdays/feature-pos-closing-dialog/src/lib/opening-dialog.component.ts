@@ -2,10 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { TranslateModule } from '@ngx-translate/core'
 
-import {
-  BusinessDay,
-  BusinessDayOperationMode,
-} from '@panary/businessdays/domain'
+import { BusinessDay, BusinessDayOperationMode } from '@panary/businessdays/domain'
 import { BusinessDayService } from '@panary/businessdays/data-access'
 
 export interface OpeningDialogData {
@@ -34,7 +31,10 @@ type DialogPhase = 'input' | 'submitting' | 'submitted' | 'failed'
     <mat-dialog-content class="text-sm space-y-3">
       @if (phase() === 'input') {
         @if (isPosCashier()) {
-          <p>Kassen-Modus — das Wechselgeld wird pro Kasse beim Eröffnen der jeweiligen Kasse erfasst, nicht beim Geschäftstag.</p>
+          <p>
+            Kassen-Modus — das Wechselgeld wird pro Kasse beim Eröffnen der jeweiligen Kasse erfasst, nicht beim
+            Geschäftstag.
+          </p>
         } @else {
           <p>Bestellsystem-Modus — kein Wechselgeld-Anfangsbestand nötig.</p>
         }
@@ -81,9 +81,7 @@ export class OpeningDialogComponent {
   protected readonly errorMessage = signal<string | null>(null)
   protected createdBusinessDay: BusinessDay | null = null
 
-  protected readonly isPosCashier = computed(
-    () => this.data.operationMode === BusinessDayOperationMode.POS_CASHIER,
-  )
+  protected readonly isPosCashier = computed(() => this.data.operationMode === BusinessDayOperationMode.POS_CASHIER)
 
   async submit(): Promise<void> {
     this.phase.set('submitting')

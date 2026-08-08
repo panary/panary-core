@@ -1,4 +1,17 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, inject, signal, OnInit, input, output, effect, untracked, viewChild } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  computed,
+  inject,
+  signal,
+  OnInit,
+  input,
+  output,
+  effect,
+  untracked,
+  viewChild,
+} from '@angular/core'
 import { FormsModule, NgForm } from '@angular/forms'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -56,13 +69,25 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
   template: `
     <div [class]="panelMode() ? 'p-5 space-y-5' : 'p-8 max-w-4xl space-y-6'">
       <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold tracking-tight">{{ (isNew() ? 'PRODUCTS.NEW_PRODUCT' : 'PRODUCTS.EDIT_PRODUCT') | translate }}</h1>
+        <h1 class="text-2xl font-bold tracking-tight">
+          {{ (isNew() ? 'PRODUCTS.NEW_PRODUCT' : 'PRODUCTS.EDIT_PRODUCT') | translate }}
+        </h1>
         @if (!isNew()) {
-          <button type="button" (click)="showDeleteConfirm.set(true)"
+          <button
+            type="button"
+            (click)="showDeleteConfirm.set(true)"
             class="text-slate-400 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition p-2
-                   rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30">
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round">
+                   rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30"
+          >
+            <svg
+              class="w-5 h-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
               <line x1="10" y1="11" x2="10" y2="17" />
@@ -80,24 +105,33 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
           [dismissLabel]="'COMMON.CANCEL' | translate"
           (confirmed)="onDelete()"
           (dismissed)="showDeleteConfirm.set(false)"
-          (cancelled)="showDeleteConfirm.set(false)">
+          (cancelled)="showDeleteConfirm.set(false)"
+        >
         </app-confirm-dialog>
       }
 
       <form #f="ngForm" (ngSubmit)="onSave()" class="space-y-5">
         <!-- Status-Pille -->
-        <div class="relative flex bg-slate-100 dark:bg-gray-950 rounded-2xl p-1.5 border border-slate-200 dark:border-gray-800">
-          <div class="absolute top-1.5 bottom-1.5 rounded-xl shadow-lg transition-all duration-300 ease-out"
-               [class]="statusPillBg()"
-               [style.left]="'calc(' + statusIndex * (100 / 3) + '% + 6px)'"
-               [style.width]="'calc(' + 100 / 3 + '% - 4px)'">
-          </div>
+        <div
+          class="relative flex bg-slate-100 dark:bg-gray-950 rounded-2xl p-1.5 border border-slate-200 dark:border-gray-800"
+        >
+          <div
+            class="absolute top-1.5 bottom-1.5 rounded-xl shadow-lg transition-all duration-300 ease-out"
+            [class]="statusPillBg()"
+            [style.left]="'calc(' + statusIndex * (100 / 3) + '% + 6px)'"
+            [style.width]="'calc(' + 100 / 3 + '% - 4px)'"
+          ></div>
           @for (s of statuses; track s.value) {
-            <button type="button" (click)="form.status = s.value"
-              [class]="form.status === s.value
-                ? 'text-slate-900 dark:text-white font-semibold'
-                : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'"
-              class="relative z-10 flex-1 py-2 text-center text-sm rounded-xl transition-colors duration-200">
+            <button
+              type="button"
+              (click)="form.status = s.value"
+              [class]="
+                form.status === s.value
+                  ? 'text-slate-900 dark:text-white font-semibold'
+                  : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
+              "
+              class="relative z-10 flex-1 py-2 text-center text-sm rounded-xl transition-colors duration-200"
+            >
               {{ s.label | translate }}
             </button>
           }
@@ -105,8 +139,10 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
         </div>
 
         @if (!isNew()) {
-          <div class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
-                      grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+          <div
+            class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
+                      grid grid-cols-2 gap-x-6 gap-y-2 text-xs"
+          >
             <div>
               <span class="text-slate-400 dark:text-gray-500">ID</span>
               <p class="text-slate-600 dark:text-gray-300 font-mono mt-0.5 select-all">{{ entityId() }}</p>
@@ -124,57 +160,94 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
             <label for="productName" class="${LABEL}">
               <!-- Emoji-Hinweis -->
               <span class="relative inline-block mr-1 group">
-                <svg class="w-3.5 h-3.5 inline-block text-slate-300 dark:text-gray-600 cursor-help
+                <svg
+                  class="w-3.5 h-3.5 inline-block text-slate-300 dark:text-gray-600 cursor-help
                             hover:text-slate-500 dark:hover:text-gray-400 transition -mt-0.5"
-                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" stroke-linejoin="round">
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
                   <circle cx="12" cy="12" r="10"></circle>
                   <path d="M12 16v-4"></path>
                   <path d="M12 8h.01"></path>
                 </svg>
-                <span class="absolute top-1/2 left-full -translate-y-1/2 ml-2 px-3 py-2 rounded-lg
+                <span
+                  class="absolute top-1/2 left-full -translate-y-1/2 ml-2 px-3 py-2 rounded-lg
                              bg-slate-900 dark:bg-white text-white dark:text-black text-[10px] leading-relaxed
                              whitespace-nowrap opacity-0 pointer-events-none
-                             group-hover:opacity-100 transition-opacity shadow-lg z-30">
-                  Emoji links eingeben:<br/>
-                  <strong>Mac:</strong> Ctrl + Cmd + Leertaste<br/>
-                  <strong>Win:</strong> Win + . (Punkt)<br/>
+                             group-hover:opacity-100 transition-opacity shadow-lg z-30"
+                >
+                  Emoji links eingeben:<br />
+                  <strong>Mac:</strong> Ctrl + Cmd + Leertaste<br />
+                  <strong>Win:</strong> Win + . (Punkt)<br />
                   Oder: Emoji kopieren &amp; einfügen
-                  <span class="absolute top-1/2 right-full -translate-y-1/2 -mr-px
-                               border-4 border-transparent border-r-slate-900 dark:border-r-white"></span>
+                  <span
+                    class="absolute top-1/2 right-full -translate-y-1/2 -mr-px
+                               border-4 border-transparent border-r-slate-900 dark:border-r-white"
+                  ></span>
                 </span>
               </span>
               {{ 'COMMON.NAME' | translate }} *
             </label>
             <div class="flex items-center ${INPUT} !p-0 overflow-hidden">
-              <input id="productIcon" [(ngModel)]="form.icon" name="icon" type="text" maxlength="4"
+              <input
+                id="productIcon"
+                [(ngModel)]="form.icon"
+                name="icon"
+                type="text"
+                maxlength="4"
                 placeholder="🍽"
                 class="w-11 h-full shrink-0 text-center text-lg bg-transparent outline-none border-r
-                       border-slate-200 dark:border-gray-800 p-3" />
-              <input id="productName" [(ngModel)]="form.name" name="name" type="text" required
-                class="flex-1 bg-transparent outline-none p-3" />
+                       border-slate-200 dark:border-gray-800 p-3"
+              />
+              <input
+                id="productName"
+                [(ngModel)]="form.name"
+                name="name"
+                type="text"
+                required
+                class="flex-1 bg-transparent outline-none p-3"
+              />
             </div>
           </div>
           <div class="space-y-1">
             <label for="productAcronym" class="${LABEL}">{{ 'PRODUCTS.ACRONYM' | translate }} *</label>
-            <input id="productAcronym" [(ngModel)]="form.acronym" name="acronym" type="text" required maxlength="10"
-              class="${INPUT} font-mono" />
+            <input
+              id="productAcronym"
+              [(ngModel)]="form.acronym"
+              name="acronym"
+              type="text"
+              required
+              maxlength="10"
+              class="${INPUT} font-mono"
+            />
           </div>
         </div>
 
         <!-- Typ-Pille (gleitend) -->
-        <div class="relative flex bg-slate-100 dark:bg-gray-950 rounded-2xl p-1.5 border border-slate-200 dark:border-gray-800">
+        <div
+          class="relative flex bg-slate-100 dark:bg-gray-950 rounded-2xl p-1.5 border border-slate-200 dark:border-gray-800"
+        >
           <!-- Gleitende Pille -->
-          <div class="absolute top-1.5 bottom-1.5 rounded-xl bg-white dark:bg-gray-800 shadow-lg transition-all duration-300 ease-out"
-               [style.left]="'calc(' + typeIndex * (100 / 3) + '% + 6px)'"
-               [style.width]="'calc(' + 100 / 3 + '% - 4px)'">
-          </div>
+          <div
+            class="absolute top-1.5 bottom-1.5 rounded-xl bg-white dark:bg-gray-800 shadow-lg transition-all duration-300 ease-out"
+            [style.left]="'calc(' + typeIndex * (100 / 3) + '% + 6px)'"
+            [style.width]="'calc(' + 100 / 3 + '% - 4px)'"
+          ></div>
           @for (t of productTypes; track t.value) {
-            <button type="button" (click)="form.productType = t.value"
-              [class]="form.productType === t.value
-                ? 'text-slate-900 dark:text-white font-semibold'
-                : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'"
-              class="relative z-10 flex-1 py-2.5 text-center text-sm rounded-xl transition-colors duration-200">
+            <button
+              type="button"
+              (click)="form.productType = t.value"
+              [class]="
+                form.productType === t.value
+                  ? 'text-slate-900 dark:text-white font-semibold'
+                  : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
+              "
+              class="relative z-10 flex-1 py-2.5 text-center text-sm rounded-xl transition-colors duration-200"
+            >
               {{ t.label | translate }}
             </button>
           }
@@ -185,18 +258,37 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
         <div class="grid grid-cols-3 gap-4">
           <div class="space-y-1">
             <label for="productPrice" class="${LABEL}">{{ 'PRODUCTS.PRICE' | translate }} (&euro;) *</label>
-            <input id="productPrice" [(ngModel)]="form.price" name="price" type="number" step="0.01" min="0"
-              class="${INPUT} font-mono" />
+            <input
+              id="productPrice"
+              [(ngModel)]="form.price"
+              name="price"
+              type="number"
+              step="0.01"
+              min="0"
+              class="${INPUT} font-mono"
+            />
           </div>
           <div class="space-y-1">
             <label for="productTaxInside" class="${LABEL}">{{ 'PRODUCTS.TAX_INSIDE' | translate }}</label>
-            <input id="productTaxInside" [(ngModel)]="form.taxInside" name="taxInside" type="number" step="0.1"
-              class="${INPUT} font-mono" />
+            <input
+              id="productTaxInside"
+              [(ngModel)]="form.taxInside"
+              name="taxInside"
+              type="number"
+              step="0.1"
+              class="${INPUT} font-mono"
+            />
           </div>
           <div class="space-y-1">
             <label for="productTaxOutside" class="${LABEL}">{{ 'PRODUCTS.TAX_OUTSIDE' | translate }}</label>
-            <input id="productTaxOutside" [(ngModel)]="form.taxOutside" name="taxOutside" type="number" step="0.1"
-              class="${INPUT} font-mono" />
+            <input
+              id="productTaxOutside"
+              [(ngModel)]="form.taxOutside"
+              name="taxOutside"
+              type="number"
+              step="0.1"
+              class="${INPUT} font-mono"
+            />
           </div>
         </div>
 
@@ -204,7 +296,12 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
         @if (form.productType === 'BUNDLE') {
           <div class="space-y-1">
             <label for="productBundlePricingMode" class="${LABEL}">{{ 'PRODUCTS.BUNDLE_PRICING' | translate }}</label>
-            <select id="productBundlePricingMode" [(ngModel)]="form.bundlePricingMode" name="bundlePricingMode" class="${INPUT}">
+            <select
+              id="productBundlePricingMode"
+              [(ngModel)]="form.bundlePricingMode"
+              name="bundlePricingMode"
+              class="${INPUT}"
+            >
               <option value="ROLLUP">{{ 'PRODUCTS.BUNDLE_ROLLUP' | translate }}</option>
               <option value="FIXED_PROPORTIONAL">{{ 'PRODUCTS.BUNDLE_FIXED' | translate }}</option>
             </select>
@@ -215,16 +312,26 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
         @if (productGroups().length > 0) {
           <div class="space-y-2">
             <span class="${LABEL}">{{ 'PRODUCT_GROUPS.TITLE' | translate }}</span>
-            <div class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
-                        grid grid-cols-2 gap-2">
+            <div
+              class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
+                        grid grid-cols-2 gap-2"
+            >
               @for (group of productGroups(); track group._id) {
-                <label class="flex items-center gap-2 cursor-pointer hover:text-slate-900 dark:hover:text-white
-                              transition text-slate-600 dark:text-gray-300 text-sm">
-                  <input type="checkbox" [value]="group.externalId ?? group._id" [checked]="isGroupSelected(group)"
+                <label
+                  class="flex items-center gap-2 cursor-pointer hover:text-slate-900 dark:hover:text-white
+                              transition text-slate-600 dark:text-gray-300 text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    [value]="group.externalId ?? group._id"
+                    [checked]="isGroupSelected(group)"
                     (change)="toggleCategory(group, $event)"
-                    class="w-4 h-4 accent-slate-900 dark:accent-white" />
-                  <span class="inline-block w-3 h-3 rounded-full shrink-0 border border-slate-300 dark:border-gray-700"
-                        [style.background-color]="group.color"></span>
+                    class="w-4 h-4 accent-slate-900 dark:accent-white"
+                  />
+                  <span
+                    class="inline-block w-3 h-3 rounded-full shrink-0 border border-slate-300 dark:border-gray-700"
+                    [style.background-color]="group.color"
+                  ></span>
                   {{ group.name }}
                 </label>
               }
@@ -237,16 +344,22 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
           <div class="flex items-center justify-between">
             <span class="${LABEL}">{{ 'PRODUCTS.OPTION_GROUPS' | translate }} ({{ optionGroups().length }})</span>
             <div class="flex items-center gap-1">
-              <button type="button" (click)="showCopyFromPicker.set(true)"
+              <button
+                type="button"
+                (click)="showCopyFromPicker.set(true)"
                 class="text-xs text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
                        border border-slate-200 dark:border-gray-800 hover:border-slate-400 dark:hover:border-gray-600
-                       px-3 py-1.5 rounded-lg transition">
+                       px-3 py-1.5 rounded-lg transition"
+              >
                 Von Produkt übernehmen
               </button>
-              <button type="button" (click)="addGroup()"
+              <button
+                type="button"
+                (click)="addGroup()"
                 class="text-xs text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
                        border border-slate-200 dark:border-gray-800 hover:border-slate-400 dark:hover:border-gray-600
-                       px-3 py-1.5 rounded-lg transition">
+                       px-3 py-1.5 rounded-lg transition"
+              >
                 + {{ 'PRODUCTS.GROUP' | translate }}
               </button>
             </div>
@@ -255,43 +368,87 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
           @for (group of optionGroups(); track group.id; let gi = $index) {
             <div class="border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden">
               <!-- Group Header -->
-              <div class="flex items-center gap-3 px-4 py-3 bg-slate-200/70 dark:bg-gray-800/80 cursor-pointer"
-                   role="button" tabindex="0"
-                   (click)="toggleCollapse(group.id)" (keydown.enter)="toggleCollapse(group.id)">
-                <span class="text-slate-400 dark:text-gray-500 text-xs w-4">{{ isCollapsed(group.id) ? '▶' : '▼' }}</span>
+              <div
+                class="flex items-center gap-3 px-4 py-3 bg-slate-200/70 dark:bg-gray-800/80 cursor-pointer"
+                role="button"
+                tabindex="0"
+                (click)="toggleCollapse(group.id)"
+                (keydown.enter)="toggleCollapse(group.id)"
+              >
+                <span class="text-slate-400 dark:text-gray-500 text-xs w-4">{{
+                  isCollapsed(group.id) ? '▶' : '▼'
+                }}</span>
                 <span class="flex-1 text-sm font-medium text-slate-900 dark:text-white truncate">
                   {{ group.name || ('PRODUCTS.UNNAMED_GROUP' | translate) }}
                 </span>
                 <span class="text-xs text-slate-400 dark:text-gray-600">{{ group.options.length }} Option(en)</span>
-                <button type="button" (click)="removeGroup(group.id); $event.stopPropagation()"
-                  class="text-slate-400 dark:text-gray-600 hover:text-red-400 text-xs px-2 transition">&#x2715;</button>
+                <button
+                  type="button"
+                  (click)="removeGroup(group.id); $event.stopPropagation()"
+                  class="text-slate-400 dark:text-gray-600 hover:text-red-400 text-xs px-2 transition"
+                >
+                  &#x2715;
+                </button>
               </div>
 
               @if (!isCollapsed(group.id)) {
                 <div class="p-4 space-y-4 bg-slate-50 dark:bg-gray-900/20">
                   <!-- Gruppenname -->
                   <div class="space-y-1">
-                    <label [attr.for]="'optGroupName-' + gi" class="${LABEL_SM}">{{ 'PRODUCTS.GROUP_NAME' | translate }} *</label>
-                    <input [id]="'optGroupName-' + gi" [(ngModel)]="group.name" [name]="'og_' + gi + '_name'" type="text"
-                      required placeholder="z.B. Saucen & Dips" class="${INPUT_SM}" />
+                    <label [attr.for]="'optGroupName-' + gi" class="${LABEL_SM}"
+                      >{{ 'PRODUCTS.GROUP_NAME' | translate }} *</label
+                    >
+                    <input
+                      [id]="'optGroupName-' + gi"
+                      [(ngModel)]="group.name"
+                      [name]="'og_' + gi + '_name'"
+                      type="text"
+                      required
+                      placeholder="z.B. Saucen & Dips"
+                      class="${INPUT_SM}"
+                    />
                   </div>
 
                   <!-- Min / Max / Gratis -->
                   <div class="grid grid-cols-3 gap-3">
                     <div class="space-y-1">
-                      <label [attr.for]="'optGroupMin-' + gi" class="${LABEL_SM}">{{ 'PRODUCTS.MIN_SELECTION' | translate }}</label>
-                      <input [id]="'optGroupMin-' + gi" [(ngModel)]="group.minSelections" [name]="'og_' + gi + '_min'"
-                        type="number" min="0" class="${INPUT_SM} font-mono" />
+                      <label [attr.for]="'optGroupMin-' + gi" class="${LABEL_SM}">{{
+                        'PRODUCTS.MIN_SELECTION' | translate
+                      }}</label>
+                      <input
+                        [id]="'optGroupMin-' + gi"
+                        [(ngModel)]="group.minSelections"
+                        [name]="'og_' + gi + '_min'"
+                        type="number"
+                        min="0"
+                        class="${INPUT_SM} font-mono"
+                      />
                     </div>
                     <div class="space-y-1">
-                      <label [attr.for]="'optGroupMax-' + gi" class="${LABEL_SM}">{{ 'PRODUCTS.MAX_SELECTION' | translate }}</label>
-                      <input [id]="'optGroupMax-' + gi" [(ngModel)]="group.maxSelections" [name]="'og_' + gi + '_max'"
-                        type="number" min="1" class="${INPUT_SM} font-mono" />
+                      <label [attr.for]="'optGroupMax-' + gi" class="${LABEL_SM}">{{
+                        'PRODUCTS.MAX_SELECTION' | translate
+                      }}</label>
+                      <input
+                        [id]="'optGroupMax-' + gi"
+                        [(ngModel)]="group.maxSelections"
+                        [name]="'og_' + gi + '_max'"
+                        type="number"
+                        min="1"
+                        class="${INPUT_SM} font-mono"
+                      />
                     </div>
                     <div class="space-y-1">
-                      <label [attr.for]="'optGroupFree-' + gi" class="${LABEL_SM}">{{ 'PRODUCTS.FREE_QUANTITY' | translate }}</label>
-                      <input [id]="'optGroupFree-' + gi" [(ngModel)]="group.freeQuantity" [name]="'og_' + gi + '_free'"
-                        type="number" min="0" class="${INPUT_SM} font-mono" />
+                      <label [attr.for]="'optGroupFree-' + gi" class="${LABEL_SM}">{{
+                        'PRODUCTS.FREE_QUANTITY' | translate
+                      }}</label>
+                      <input
+                        [id]="'optGroupFree-' + gi"
+                        [(ngModel)]="group.freeQuantity"
+                        [name]="'og_' + gi + '_free'"
+                        type="number"
+                        min="0"
+                        class="${INPUT_SM} font-mono"
+                      />
                     </div>
                   </div>
 
@@ -301,26 +458,35 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                       <span class="${LABEL_SM}">{{ 'PRODUCTS.OPTIONS' | translate }}</span>
                       <div class="flex items-center gap-1">
                         <!-- Gruppe hinzufügen -->
-                        <button type="button" (click)="openCategoryPicker($event, group.id)"
+                        <button
+                          type="button"
+                          (click)="openCategoryPicker($event, group.id)"
                           class="text-xs text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white
                                  transition px-2 py-1 border border-slate-200 dark:border-gray-800
-                                 hover:border-slate-400 dark:hover:border-gray-600 rounded-lg">
+                                 hover:border-slate-400 dark:hover:border-gray-600 rounded-lg"
+                        >
                           + Gruppe
                         </button>
                         <!-- Alle löschen -->
                         @if (group.options.length > 0) {
-                          <button type="button" (click)="clearOptions(group)"
+                          <button
+                            type="button"
+                            (click)="clearOptions(group)"
                             class="text-xs text-red-400/70 hover:text-red-500
                                    transition px-2 py-1 border border-slate-200 dark:border-gray-800
-                                   hover:border-red-300 dark:hover:border-red-800 rounded-lg">
+                                   hover:border-red-300 dark:hover:border-red-800 rounded-lg"
+                          >
                             Alle löschen
                           </button>
                         }
                         <!-- + Option -->
-                        <button type="button" (click)="addOption(group)"
+                        <button
+                          type="button"
+                          (click)="addOption(group)"
                           class="text-xs text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white
                                  transition px-2 py-1 border border-slate-200 dark:border-gray-800
-                                 hover:border-slate-400 dark:hover:border-gray-600 rounded-lg">
+                                 hover:border-slate-400 dark:hover:border-gray-600 rounded-lg"
+                        >
                           + Option
                         </button>
                       </div>
@@ -333,30 +499,48 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                     }
 
                     @for (opt of group.options; track $index; let oi = $index) {
-                      <div class="flex items-center gap-2 bg-white dark:bg-gray-900/50 border border-slate-200
-                                  dark:border-gray-800 rounded-lg p-2">
+                      <div
+                        class="flex items-center gap-2 bg-white dark:bg-gray-900/50 border border-slate-200
+                                  dark:border-gray-800 rounded-lg p-2"
+                      >
                         <!-- Produkt auswählen -->
-                        <app-searchable-select class="flex-1 min-w-0"
+                        <app-searchable-select
+                          class="flex-1 min-w-0"
                           [items]="productSelectItems()"
                           [(value)]="opt.productId"
-                          placeholder="Produkt suchen..." />
+                          placeholder="Produkt suchen..."
+                        />
                         <!-- Preisaufschlag -->
                         <div class="flex items-center gap-1 shrink-0">
                           <span class="text-slate-400 dark:text-gray-600 text-xs">+&euro;</span>
-                          <input [(ngModel)]="opt.priceAdjustment" [name]="'og_' + gi + '_opt_' + oi + '_adj'"
-                            type="number" step="0.01" placeholder="0.00"
+                          <input
+                            [(ngModel)]="opt.priceAdjustment"
+                            [name]="'og_' + gi + '_opt_' + oi + '_adj'"
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
                             class="w-20 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800
-                                   rounded-lg px-2 py-1.5 text-slate-900 dark:text-white text-sm outline-none font-mono" />
+                                   rounded-lg px-2 py-1.5 text-slate-900 dark:text-white text-sm outline-none font-mono"
+                          />
                         </div>
                         <!-- Standard -->
-                        <label class="flex items-center gap-1 text-xs text-slate-400 dark:text-gray-500 shrink-0 cursor-pointer">
-                          <input [(ngModel)]="opt.isDefault" [name]="'og_' + gi + '_opt_' + oi + '_def'"
-                            type="checkbox" class="w-3 h-3 accent-slate-900 dark:accent-white" />
+                        <label
+                          class="flex items-center gap-1 text-xs text-slate-400 dark:text-gray-500 shrink-0 cursor-pointer"
+                        >
+                          <input
+                            [(ngModel)]="opt.isDefault"
+                            [name]="'og_' + gi + '_opt_' + oi + '_def'"
+                            type="checkbox"
+                            class="w-3 h-3 accent-slate-900 dark:accent-white"
+                          />
                           Std.
                         </label>
                         <!-- Entfernen -->
-                        <button type="button" (click)="removeOption(group, oi)"
-                          class="text-slate-400 dark:text-gray-600 hover:text-red-400 text-xs shrink-0 transition px-1">
+                        <button
+                          type="button"
+                          (click)="removeOption(group, oi)"
+                          class="text-slate-400 dark:text-gray-600 hover:text-red-400 text-xs shrink-0 transition px-1"
+                        >
                           &#x2715;
                         </button>
                       </div>
@@ -366,8 +550,10 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
               }
             </div>
           } @empty {
-            <p class="text-slate-300 dark:text-gray-600 text-xs text-center py-6 border border-dashed
-                      border-slate-200 dark:border-gray-800 rounded-xl">
+            <p
+              class="text-slate-300 dark:text-gray-600 text-xs text-center py-6 border border-dashed
+                      border-slate-200 dark:border-gray-800 rounded-xl"
+            >
               {{ 'PRODUCTS.NO_OPTION_GROUPS' | translate }}
             </p>
           }
@@ -380,10 +566,15 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
 
         <!-- Aktionen -->
         <div class="flex gap-3 pt-4">
-          <button type="submit" [disabled]="saving() || savedSuccess()"
-            [class]="'save-btn ' + (savedSuccess() ? 'save-btn--success' : saving() ? 'save-btn--saving' : 'save-btn--default')"
+          <button
+            type="submit"
+            [disabled]="saving() || savedSuccess()"
+            [class]="
+              'save-btn ' + (savedSuccess() ? 'save-btn--success' : saving() ? 'save-btn--saving' : 'save-btn--default')
+            "
             [class.opacity-50]="!form.name && !saving() && !savedSuccess()"
-            [class.cursor-not-allowed]="!form.name">
+            [class.cursor-not-allowed]="!form.name"
+          >
             <span class="save-btn__content">
               @if (savedSuccess()) {
                 <svg class="save-checkmark" viewBox="0 0 24 24">
@@ -397,9 +588,12 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
               }
             </span>
           </button>
-          <button type="button" (click)="panelMode() ? closed.emit() : router.navigate(['/products'])"
+          <button
+            type="button"
+            (click)="panelMode() ? closed.emit() : router.navigate(['/products'])"
             class="bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-600
-                   dark:text-gray-300 px-6 py-3 rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-gray-800 transition">
+                   dark:text-gray-300 px-6 py-3 rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-gray-800 transition"
+          >
             {{ 'COMMON.CANCEL' | translate }}
           </button>
         </div>
@@ -411,16 +605,21 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
       <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
       <div class="fixed inset-0 z-50" (click)="activeCategoryPicker.set(null)">
         <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
-        <div class="fixed min-w-48 max-h-64 overflow-y-auto bg-white dark:bg-gray-950
+        <div
+          class="fixed min-w-48 max-h-64 overflow-y-auto bg-white dark:bg-gray-950
                     border border-slate-200 dark:border-gray-800 rounded-lg shadow-2xl py-1"
-             [style.top.px]="pickerPos().top" [style.left.px]="pickerPos().left"
-             (click)="$event.stopPropagation()">
+          [style.top.px]="pickerPos().top"
+          [style.left.px]="pickerPos().left"
+          (click)="$event.stopPropagation()"
+        >
           @for (pg of productGroups(); track pg._id) {
-            <button type="button" (click)="addProductsByCategory(pickerGroup()!, pg)"
+            <button
+              type="button"
+              (click)="addProductsByCategory(pickerGroup()!, pg)"
               class="w-full text-left px-3 py-1.5 text-sm text-slate-700 dark:text-gray-300
-                     hover:bg-slate-50 dark:hover:bg-gray-800 transition flex items-center gap-2">
-              <span class="inline-block w-2.5 h-2.5 rounded-full shrink-0"
-                    [style.background-color]="pg.color"></span>
+                     hover:bg-slate-50 dark:hover:bg-gray-800 transition flex items-center gap-2"
+            >
+              <span class="inline-block w-2.5 h-2.5 rounded-full shrink-0" [style.background-color]="pg.color"></span>
               {{ pg.name }}
             </button>
           } @empty {
@@ -438,7 +637,8 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
         [autoOpen]="true"
         (selected)="copyGroupsFromProduct($event)"
         (closed)="showCopyFromPicker.set(false)"
-        placeholder="Quellprodukt suchen..." />
+        placeholder="Quellprodukt suchen..."
+      />
     }
   `,
 })
@@ -465,9 +665,7 @@ export class ProductFormComponent implements OnInit {
   // OptionGroups + Produktkatalog
   optionGroups = signal<OptionGroup[]>([])
   allProducts = signal<MinimalProduct[]>([])
-  productSelectItems = computed(() =>
-    this.allProducts().map(p => ({ id: p._id, label: p.name, sublabel: p.acronym })),
-  )
+  productSelectItems = computed(() => this.allProducts().map(p => ({ id: p._id, label: p.name, sublabel: p.acronym })))
   collapsedGroups = signal<Set<string>>(new Set())
   activeCategoryPicker = signal<string | null>(null)
   pickerPos = signal<{ top: number; left: number }>({ top: 0, left: 0 })
@@ -497,10 +695,14 @@ export class ProductFormComponent implements OnInit {
 
   statusPillBg(): string {
     switch (this.form.status) {
-      case 'ACTIVE': return 'bg-green-600/60 dark:bg-green-800/60'
-      case 'DRAFT': return 'bg-yellow-500/40 dark:bg-yellow-800/40'
-      case 'ARCHIVED': return 'bg-slate-300 dark:bg-gray-800'
-      default: return 'bg-slate-300 dark:bg-gray-800'
+      case 'ACTIVE':
+        return 'bg-green-600/60 dark:bg-green-800/60'
+      case 'DRAFT':
+        return 'bg-yellow-500/40 dark:bg-yellow-800/40'
+      case 'ARCHIVED':
+        return 'bg-slate-300 dark:bg-gray-800'
+      default:
+        return 'bg-slate-300 dark:bg-gray-800'
     }
   }
   private formRef = viewChild<NgForm>('f')
@@ -590,8 +792,15 @@ export class ProductFormComponent implements OnInit {
     this.formRef()?.resetForm()
     this.error.set(null)
     this.form = {
-      name: '', icon: '', acronym: '', price: 0, taxInside: 19, taxOutside: 7,
-      productType: 'PRODUCT', status: 'DRAFT', bundlePricingMode: 'ROLLUP',
+      name: '',
+      icon: '',
+      acronym: '',
+      price: 0,
+      taxInside: 19,
+      taxOutside: 7,
+      productType: 'PRODUCT',
+      status: 'DRAFT',
+      bundlePricingMode: 'ROLLUP',
       categoryIds: [],
     }
     this.optionGroups.set([])
@@ -829,20 +1038,29 @@ export class ProductFormComponent implements OnInit {
       if (this.isNew()) {
         const created = await this.api.create<any>('products', data)
         // Neues Produkt sofort in die lokale Liste aufnehmen (für Option-Picker)
-        this.allProducts.update(list => [...list, {
-          _id: created._id,
-          name: created.name,
-          acronym: created.acronym,
-          productType: created.productType || 'PRODUCT',
-          categoryIds: Array.isArray(created.categoryIds) ? created.categoryIds : [],
-        }])
+        this.allProducts.update(list => [
+          ...list,
+          {
+            _id: created._id,
+            name: created.name,
+            acronym: created.acronym,
+            productType: created.productType || 'PRODUCT',
+            categoryIds: Array.isArray(created.categoryIds) ? created.categoryIds : [],
+          },
+        ])
       } else {
         await this.api.patch('products', this.id()!, data)
         // Bestehenden Eintrag in der lokalen Liste aktualisieren
         this.allProducts.update(list =>
           list.map(p =>
             p._id === this.id()
-              ? { ...p, name: this.form.name, acronym: this.form.acronym, productType: this.form.productType, categoryIds: this.form.categoryIds }
+              ? {
+                  ...p,
+                  name: this.form.name,
+                  acronym: this.form.acronym,
+                  productType: this.form.productType,
+                  categoryIds: this.form.categoryIds,
+                }
               : p,
           ),
         )

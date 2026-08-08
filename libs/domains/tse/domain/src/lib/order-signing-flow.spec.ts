@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, type Mock } from 'vitest'
 
 import {
   allocateOrderTransactionNumber,
@@ -15,7 +15,13 @@ import {
 import type { OrderTseInfo } from './order-signing'
 import { TseUnavailableError } from './tse.errors'
 
-const makeLogger = (): TseSigningLogger & { warn: ReturnType<typeof vi.fn> } => ({ warn: vi.fn() })
+// `vi.fn()` ohne Typparameter liefert `Mock<Procedure | Constructable>` — das
+// erfuellt die konkrete `warn`-Signatur des Loggers nicht, die Intersection ist
+// damit unbewohnbar (TS2322). Signatur explizit mitgeben: der Mock bleibt
+// assertierbar UND typkompatibel.
+const makeLogger = (): TseSigningLogger & { warn: Mock<TseSigningLogger['warn']> } => ({
+  warn: vi.fn<TseSigningLogger['warn']>(),
+})
 
 const startedInfo: OrderTseInfo = {
   status: 'started',

@@ -85,11 +85,6 @@ export type Recipe = Static<typeof recipeSchema>
  * Versionsrelevante Felder — Whitelist für `version-tracker.hook`.
  * `defaultReferenceQuantity` ist explizit NICHT enthalten (UI-Hilfsfeld).
  */
-export const RECIPE_VERSION_FIELDS = [
-  'baseUnit',
-  'baseQuantity',
-  'priceAdjustment',
-  'ingredients',
-] as const
+export const RECIPE_VERSION_FIELDS = ['baseUnit', 'baseQuantity', 'priceAdjustment', 'ingredients'] as const
 
 export type RecipeVersionField = (typeof RECIPE_VERSION_FIELDS)[number]

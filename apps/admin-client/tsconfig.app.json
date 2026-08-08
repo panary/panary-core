@@ -1,26 +1,13 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    // Siehe tsconfig.spec.json: `tsc --build --emitDeclarationOnly` laeuft ueber
+    // alle referenzierten Projekte, tsconfig.base.json setzt aber
+    // `declaration: false` + `declarationMap: true` (TS5069).
+    "declaration": true,
     "outDir": "../../dist/out-tsc",
     "types": []
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"],
-  "references": [
-    {
-      "path": "../../libs/shared/data-access-theme"
-    },
-    {
-      "path": "../../libs/domains/locations/domain"
-    },
-    {
-      "path": "../../libs/shared/ui-cloud-status"
-    },
-    {
-      "path": "../../libs/shared/data-access"
-    },
-    {
-      "path": "../../libs/shared/data-access-config"
-    }
-  ]
+  "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"]
 }

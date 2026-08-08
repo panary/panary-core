@@ -20,14 +20,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 @Component({
   selector: 'lib-write-off-dialog',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    MatDialogModule,
-    MatAutocompleteModule,
-    TranslateModule,
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, MatAutocompleteModule, TranslateModule],
   templateUrl: './write-off-dialog.component.html',
   styleUrls: ['./write-off-dialog.component.scss'],
 })
@@ -205,7 +198,9 @@ export class PosWriteOffDialogComponent {
       if (stored) {
         try {
           userId = JSON.parse(stored)._id
-        } catch (e) { /* noop */ }
+        } catch (e) {
+          /* noop */
+        }
       }
     }
 

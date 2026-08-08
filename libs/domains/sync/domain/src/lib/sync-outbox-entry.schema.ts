@@ -101,10 +101,7 @@ export const syncOutboxEntryQueryProperties = Type.Pick(syncOutboxEntrySchema, [
 ])
 
 export const syncOutboxEntryQuerySchema = Type.Intersect(
-  [
-    querySyntax(syncOutboxEntryQueryProperties),
-    Type.Object({}, { additionalProperties: false }),
-  ],
+  [querySyntax(syncOutboxEntryQueryProperties), Type.Object({}, { additionalProperties: false })],
   { additionalProperties: false },
 )
 

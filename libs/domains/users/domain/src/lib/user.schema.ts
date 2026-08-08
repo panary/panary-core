@@ -63,9 +63,7 @@ export const userContractSchema = Type.Object({
    *   [8, 8, 0, 8, 4, 0, 0] — Teilzeit (Mi frei, Fr halb)
    *   [6, 6, 6, 6, 6, 6, 0] — 36h-Woche Mo–Sa
    */
-  targetHoursPerDay: Type.Optional(
-    Type.Array(Type.Number({ minimum: 0, maximum: 24 }), { minItems: 7, maxItems: 7 }),
-  ),
+  targetHoursPerDay: Type.Optional(Type.Array(Type.Number({ minimum: 0, maximum: 24 }), { minItems: 7, maxItems: 7 })),
   contractStartDate: Type.Optional(Type.String({ format: 'date' })),
   contractEndDate: Type.Optional(Type.String({ format: 'date' })),
 })
@@ -292,7 +290,7 @@ export const userDataSchema = Type.Intersect(
       posPin: Type.Optional(
         Type.Union([
           Type.String({ minLength: 4, maxLength: 6 }), // Plain-Text-Eingabe
-          Type.String({ minLength: 60, maxLength: 72 }),              // bcrypt-Hash (Sync-Pfad)
+          Type.String({ minLength: 60, maxLength: 72 }), // bcrypt-Hash (Sync-Pfad)
         ]),
       ),
     }),
@@ -314,9 +312,7 @@ export type UserPatch = Static<typeof userPatchSchema>
 //#endregion
 
 //#region Schema für Suchanfragen (Query)
-export const userQueryProperties = Type.Pick(
-  userSchema,
-  [
+export const userQueryProperties = Type.Pick(userSchema, [
   '_id',
   'tenantId',
   // Pflicht fuer den Account-Login-Lookup (Cloud): `users.find({ accountId })`

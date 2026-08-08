@@ -67,10 +67,7 @@ function makeFixedBundle(amount: number, withModifier: boolean): OrderLineItem {
   return makeLine(7.0, amount, {
     bundlePricingMode: 'FIXED_PROPORTIONAL',
     modifiers: withModifier ? [makeGeneric(0.5, 1)] : [],
-    components: [
-      makeGeneric(4.4, 1, { topic: 'main' }),
-      makeGeneric(2.3, 1),
-    ],
+    components: [makeGeneric(4.4, 1, { topic: 'main' }), makeGeneric(2.3, 1)],
   })
 }
 

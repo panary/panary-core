@@ -5,11 +5,13 @@
 Das Backend verwendet **Wide Events** — pro externem Service-Call wird genau **eine strukturierte JSON-Logzeile** erzeugt, die alle relevanten Dimensionen enthält.
 
 **Zentraler Hook:** `apps/api-edge/src/hooks/canonical-log.hook.ts`
+
 - Registriert als äußerster `around.all`-Hook in `app.ts`
 - Umschließt den gesamten Request-Lifecycle (inkl. Fehler)
 - Interne Aufrufe (kein `provider`) werden nicht geloggt
 
 **Logger:** `apps/api-edge/src/logger.ts` (Winston)
+
 - **Production** (`NODE_ENV=production`): Strukturiertes JSON
 - **Development** (default): Menschenlesbare Konsolenzeile
 
@@ -19,17 +21,17 @@ Das Backend verwendet **Wide Events** — pro externem Service-Call wird genau *
 
 Jedes Wide Event enthält automatisch:
 
-| Feld | Quelle |
-|---|---|
-| `requestId` | uuidv7, generiert pro Request |
-| `service`, `method`, `provider` | `HookContext` |
-| `userId`, `userRole`, `tenantId`, `locationId`, `deviceId` | `context.params.user` |
-| `status`, `statusCode` | Erfolg/Fehler |
-| `duration_ms` | `performance.now()` Differenz |
-| `resultCount` | Anzahl zurückgegebener Datensätze |
-| `errorName`, `errorMessage`, `errorStack` | Nur bei Fehlern |
-| `validationErrors`, `requestData` | Nur bei 400-Fehlern |
-| `businessContext` | Service-spezifische Geschäftsdaten |
+| Feld                                                       | Quelle                             |
+| ---------------------------------------------------------- | ---------------------------------- |
+| `requestId`                                                | uuidv7, generiert pro Request      |
+| `service`, `method`, `provider`                            | `HookContext`                      |
+| `userId`, `userRole`, `tenantId`, `locationId`, `deviceId` | `context.params.user`              |
+| `status`, `statusCode`                                     | Erfolg/Fehler                      |
+| `duration_ms`                                              | `performance.now()` Differenz      |
+| `resultCount`                                              | Anzahl zurückgegebener Datensätze  |
+| `errorName`, `errorMessage`, `errorStack`                  | Nur bei Fehlern                    |
+| `validationErrors`, `requestData`                          | Nur bei 400-Fehlern                |
+| `businessContext`                                          | Service-spezifische Geschäftsdaten |
 
 ---
 
@@ -37,13 +39,13 @@ Jedes Wide Event enthält automatisch:
 
 Der `canonicalLog`-Hook reichert automatisch `businessContext` an für:
 
-| Service | Felder |
-|---|---|
-| `orders` | orderChannel, dineLocation, lineItemCount, grossAmount, paymentState, paymentMethod, dailySequenceNumber |
-| `products` | productType, productStatus, price, availabilityMode, stockLevel |
-| `users` (custom methods) | operation (clock-in/out, break-start/end) |
-| `working-times` | checkinDate, checkoutDate, breakCount, businessDate |
-| `order-interactions` | interactionType, orderId, deletedQuantity |
+| Service                  | Felder                                                                                                   |
+| ------------------------ | -------------------------------------------------------------------------------------------------------- |
+| `orders`                 | orderChannel, dineLocation, lineItemCount, grossAmount, paymentState, paymentMethod, dailySequenceNumber |
+| `products`               | productType, productStatus, price, availabilityMode, stockLevel                                          |
+| `users` (custom methods) | operation (clock-in/out, break-start/end)                                                                |
+| `working-times`          | checkinDate, checkoutDate, breakCount, businessDate                                                      |
+| `order-interactions`     | interactionType, orderId, deletedQuantity                                                                |
 
 Neue Services können Enrichment hinzufügen in `enrichWithBusinessContext()` via `switch (context.path)`.
 

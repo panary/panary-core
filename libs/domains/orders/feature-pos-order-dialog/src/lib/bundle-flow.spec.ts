@@ -83,11 +83,7 @@ describe('BundleFlow.applyHighestPricingToGroup', () => {
     { _id: 'b', topic: 'Soßen', price: 3 },
     { _id: 'x', topic: 'Extras', price: 9 },
   ]
-  const soßen = [
-    product({ _id: 'a', price: 2 }),
-    product({ _id: 'b', price: 3 }),
-    product({ _id: 'c', price: 5 }),
-  ]
+  const soßen = [product({ _id: 'a', price: 2 }), product({ _id: 'b', price: 3 }), product({ _id: 'c', price: 5 })]
 
   it('nur der höchste Katalog-Aufpreis der Gruppe bleibt wirksam, andere Topics unberührt', () => {
     const flow = new BundleFlow(catalog(soßen))
@@ -120,7 +116,12 @@ describe('BundleFlow.applyHighestPricingToGroup', () => {
 
   it('fällt auf den Item-Preis zurück, wenn der Katalog-Lookup fehlt', () => {
     const flow = new BundleFlow(catalog([]))
-    const li = lineItem({ modifiers: [{ _id: 'a', topic: 'Soßen', price: 2 }, { _id: 'b', topic: 'Soßen', price: 3 }] })
+    const li = lineItem({
+      modifiers: [
+        { _id: 'a', topic: 'Soßen', price: 2 },
+        { _id: 'b', topic: 'Soßen', price: 3 },
+      ],
+    })
     flow.applyHighestPricingToGroup(li, 'Soßen', 0)
     expect(li.modifiers.map(m => m.price)).toEqual([0, 3])
   })

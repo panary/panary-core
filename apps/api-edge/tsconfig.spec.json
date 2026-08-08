@@ -1,6 +1,12 @@
 {
   "extends": "./tsconfig.app.json",
   "compilerOptions": {
+    // `tsc --build --emitDeclarationOnly` (das typecheck-Target des
+    // @nx/js/typescript-Plugins) laeuft ueber ALLE referenzierten Projekte,
+    // also auch ueber dieses. tsconfig.base.json setzt `declaration: false`
+    // und `declarationMap: true` — ohne die folgende Zeile scheitert der
+    // Typecheck mit TS5069, bevor eine einzige Datei geprueft wurde.
+    "declaration": true,
     "outDir": "../../dist/out-tsc",
     "module": "commonjs",
     "moduleResolution": "node",

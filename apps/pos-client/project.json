@@ -26,13 +26,7 @@
           }
         ],
         "styles": ["apps/pos-client/src/styles.scss"],
-        "externalDependencies": [
-          "mongodb",
-          "@feathersjs/mongodb",
-          "socks",
-          "@feathersjs/knex",
-          "knex"
-        ]
+        "externalDependencies": ["mongodb", "@feathersjs/mongodb", "socks", "@feathersjs/knex", "knex"]
       },
       "configurations": {
         "production": {

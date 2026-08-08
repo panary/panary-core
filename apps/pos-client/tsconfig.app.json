@@ -1,53 +1,13 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    // Siehe tsconfig.spec.json: `tsc --build --emitDeclarationOnly` laeuft ueber
+    // alle referenzierten Projekte, tsconfig.base.json setzt aber
+    // `declaration: false` + `declarationMap: true` (TS5069).
+    "declaration": true,
     "outDir": "../../dist/out-tsc",
     "types": []
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"],
-  "references": [
-    {
-      "path": "../../libs/domains/orders/data-access"
-    },
-    {
-      "path": "../../libs/domains/locations/data-access"
-    },
-    {
-      "path": "../../libs/domains/discounts/data-access"
-    },
-    {
-      "path": "../../libs/domains/product-groups/data-access"
-    },
-    {
-      "path": "../../libs/domains/products/data-access"
-    },
-    {
-      "path": "../../libs/shared/common"
-    },
-    {
-      "path": "../../libs/shared/offline-cache"
-    },
-    {
-      "path": "../../libs/shared/ui-notifications"
-    },
-    {
-      "path": "../../libs/shared/ui-cloud-status"
-    },
-    {
-      "path": "../../libs/shared/data-access-updater"
-    },
-    {
-      "path": "../../libs/shared/data-access-theme"
-    },
-    {
-      "path": "../../libs/shared/data-access"
-    },
-    {
-      "path": "../../libs/apps/pos-client/shell"
-    },
-    {
-      "path": "../../libs/shared/data-access-config"
-    }
-  ]
+  "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"]
 }

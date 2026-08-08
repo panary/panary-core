@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { buildReceiptHtml, buildReceiptSnapshot, canonicalReceiptJson, type BuildReceiptSnapshotInput } from './receipt-builder'
+import {
+  buildReceiptHtml,
+  buildReceiptSnapshot,
+  canonicalReceiptJson,
+  type BuildReceiptSnapshotInput,
+} from './receipt-builder'
 import { formatInternalReceiptNumber } from './receipt-number'
 import { ReceiptKind, type Receipt } from './receipt.schema'
 import { getReceiptDeliveryArtifact } from './receipt-provider'
@@ -20,7 +25,14 @@ const baseInput = (): BuildReceiptSnapshotInput => ({
     dineLocation: 'dine-in',
     currency: 'EUR',
     lineItems: [
-      { externalId: '0190aaaa-1111-7ccc-8ddd-eeeeeeeeeeee', name: 'Brötchen', amount: 3, price: 1, taxInside: 19, taxOutside: 7 },
+      {
+        externalId: '0190aaaa-1111-7ccc-8ddd-eeeeeeeeeeee',
+        name: 'Brötchen',
+        amount: 3,
+        price: 1,
+        taxInside: 19,
+        taxOutside: 7,
+      },
       { name: 'Kaffee', amount: 1, price: 2.5, taxInside: 19, taxOutside: 7 },
     ],
     taxSnapshot: { taxes: [{ taxRate: 19, amount: 4.62, tax: 0.88 }], netto: 4.62, brutto: 5.5 },
@@ -33,13 +45,24 @@ describe('buildReceiptSnapshot', () => {
   it('mappt Order-Positionen auf Belegpositionen (im Haus → taxInside)', () => {
     const core = buildReceiptSnapshot(baseInput())
     expect(core.lineItems).toEqual([
-      { externalId: '0190aaaa-1111-7ccc-8ddd-eeeeeeeeeeee', name: 'Brötchen', quantity: 3, unitPrice: 1, lineTotal: 3, taxRate: 19 },
+      {
+        externalId: '0190aaaa-1111-7ccc-8ddd-eeeeeeeeeeee',
+        name: 'Brötchen',
+        quantity: 3,
+        unitPrice: 1,
+        lineTotal: 3,
+        taxRate: 19,
+      },
       { name: 'Kaffee', quantity: 1, unitPrice: 2.5, lineTotal: 2.5, taxRate: 19 },
     ])
     expect(core.totalGross).toBe(5.5)
     expect(core.paymentMethod).toBe('cash')
     expect(core.paymentState).toBe('paid')
-    expect(core.seller).toEqual({ name: 'Bäckerei Test', address: 'Hauptstr. 1, 10115 Berlin, DE', taxNumber: '12/345/67890' })
+    expect(core.seller).toEqual({
+      name: 'Bäckerei Test',
+      address: 'Hauptstr. 1, 10115 Berlin, DE',
+      taxNumber: '12/345/67890',
+    })
   })
 
   it('wählt außer Haus den taxOutside-Satz', () => {

@@ -102,7 +102,9 @@
               </svg>
             </button>
             <div>
-              <h4 class="text-white font-medium text-sm">{{ getActionConfig(selectedAction()!)?.label! | translate }}</h4>
+              <h4 class="text-white font-medium text-sm">
+                {{ getActionConfig(selectedAction()!)?.label! | translate }}
+              </h4>
               <p class="text-xs text-white/60">{{ 'TIME_CLOCK.ENTER_EMPLOYEE_NUMBER' | translate }}</p>
             </div>
           </div>
@@ -122,7 +124,9 @@
           </div>
 
           @if (pinError()) {
-            <p class="text-red-400 text-xs text-center mb-3">{{ errorMessage() || ('TIME_CLOCK.INVALID_EMPLOYEE_NUMBER' | translate) }}</p>
+            <p class="text-red-400 text-xs text-center mb-3">
+              {{ errorMessage() || ('TIME_CLOCK.INVALID_EMPLOYEE_NUMBER' | translate) }}
+            </p>
           }
 
           <!-- Numpad (Compact) -->
@@ -281,7 +285,9 @@
                 }} active:scale-95"
                 (click)="selectAction(action.action)"
               >
-                <div class="w-12 h-12 rounded-full bg-white/80 dark:bg-white/10 flex items-center justify-center mb-2 shadow-sm">
+                <div
+                  class="w-12 h-12 rounded-full bg-white/80 dark:bg-white/10 flex items-center justify-center mb-2 shadow-sm"
+                >
                   @switch (action.icon) {
                     @case ('login') {
                       <svg class="w-6 h-6 {{ action.color }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -352,7 +358,9 @@
                 </svg>
               </button>
               <div>
-                <h4 class="text-white font-semibold text-lg">{{ getActionConfig(selectedAction()!)?.label! | translate }}</h4>
+                <h4 class="text-white font-semibold text-lg">
+                  {{ getActionConfig(selectedAction()!)?.label! | translate }}
+                </h4>
                 <p class="text-sm text-white/60">{{ 'TIME_CLOCK.ENTER_EMPLOYEE_NUMBER' | translate }}</p>
               </div>
             </div>

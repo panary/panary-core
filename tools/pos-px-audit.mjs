@@ -118,17 +118,14 @@ const CSS_SIZE_PROPERTIES = [
 
 const tailwindRegex = new RegExp(
   `(?:^|[\\s"'\`(:])-?(?:${TAILWIND_SIZE_PREFIXES.join('|')})-\\[[^\\]]*\\d+px[^\\]]*\\]`,
-  'g'
+  'g',
 )
 
 /* Angular-Style-Bindings mit px-Einheit ([style.width.px]="100", [style.top.px]=…) —
    umgehen sonst beide anderen Muster, weil der Zahlenwert ohne px-Suffix im Binding steht */
 const styleBindingPxRegex = /\[style\.[a-zA-Z-]+\.px\]\s*=/g
 
-const cssRegex = new RegExp(
-  `(?:^|[;{\\s])(?:${CSS_SIZE_PROPERTIES.join('|')})\\s*:\\s*[^;}\\n]*\\d+px[^;}\\n]*`,
-  'gi'
-)
+const cssRegex = new RegExp(`(?:^|[;{\\s])(?:${CSS_SIZE_PROPERTIES.join('|')})\\s*:\\s*[^;}\\n]*\\d+px[^;}\\n]*`, 'gi')
 
 /** true, wenn der Fund über die Whitelist entschärft ist */
 const isWhitelisted = (line, match) => {
@@ -216,7 +213,10 @@ for (const f of findings) {
 /* Zusammenfassung je Top-Scope — macht sichtbar, welche Pakete noch aufräumen müssen */
 const byScope = new Map()
 for (const f of findings) {
-  const scope = f.file.split('/').slice(0, f.file.startsWith('libs/domains') ? 4 : 3).join('/')
+  const scope = f.file
+    .split('/')
+    .slice(0, f.file.startsWith('libs/domains') ? 4 : 3)
+    .join('/')
   byScope.set(scope, (byScope.get(scope) ?? 0) + 1)
 }
 console.log(`\npos-px-audit: ${findings.length} Finding(s) gesamt`)

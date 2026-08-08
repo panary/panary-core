@@ -947,21 +947,15 @@ export class ConnectionService {
         if (data.systemMode) {
           this.#systemMode.set(data.systemMode)
         }
-        this.#cloudPairingStatus.set(
-          typeof data.cloudPairingStatus === 'string' ? data.cloudPairingStatus : null,
-        )
+        this.#cloudPairingStatus.set(typeof data.cloudPairingStatus === 'string' ? data.cloudPairingStatus : null)
         this.#cloudTokenErrorReason.set(
           typeof data.cloudTokenErrorReason === 'string' ? data.cloudTokenErrorReason : null,
         )
         this.#lastSyncAt.set(typeof data.lastSyncAt === 'string' ? data.lastSyncAt : null)
         this.#syncMode.set(typeof data.syncMode === 'string' ? data.syncMode : null)
         this.#nextExpectedSyncAt.set(typeof data.nextExpectedSyncAt === 'string' ? data.nextExpectedSyncAt : null)
-        this.#edgeTokenExpiresAt.set(
-          typeof data.edgeTokenExpiresAt === 'string' ? data.edgeTokenExpiresAt : null,
-        )
-        this.#lastCloudContactAt.set(
-          typeof data.lastCloudContactAt === 'string' ? data.lastCloudContactAt : null,
-        )
+        this.#edgeTokenExpiresAt.set(typeof data.edgeTokenExpiresAt === 'string' ? data.edgeTokenExpiresAt : null)
+        this.#lastCloudContactAt.set(typeof data.lastCloudContactAt === 'string' ? data.lastCloudContactAt : null)
         this.#offlineOverrideActiveUntil.set(
           typeof data.offlineOverrideActiveUntil === 'string' ? data.offlineOverrideActiveUntil : null,
         )

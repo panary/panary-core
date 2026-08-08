@@ -26,7 +26,11 @@ export interface ReceiptProvider {
   /** Reine, deterministische Snapshot-Erzeugung (Source of Truth). */
   generate(input: BuildReceiptSnapshotInput): ReceiptSnapshotCore
   /** Reine Render-/Liefer-Artefakt-Erzeugung für einen Kanal. */
-  getDeliveryArtifact(receipt: Receipt, channel: ReceiptDeliveryChannel, options: ReceiptDeliveryOptions): ReceiptDeliveryArtifact
+  getDeliveryArtifact(
+    receipt: Receipt,
+    channel: ReceiptDeliveryChannel,
+    options: ReceiptDeliveryOptions,
+  ): ReceiptDeliveryArtifact
 }
 
 // Öffentliche, nicht-enumerierbare Abruf-URL eines Belegs (Token-basiert).

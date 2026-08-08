@@ -41,9 +41,7 @@ describe('brandSchema', () => {
   })
 
   it('lehnt branding.primaryColor ab, wenn nicht im 6-stelligen Hex-Pattern', () => {
-    expect(
-      Value.Check(brandSchema, { ...validBrand, branding: { primaryColor: 'not-a-color' } }),
-    ).toBe(false)
+    expect(Value.Check(brandSchema, { ...validBrand, branding: { primaryColor: 'not-a-color' } })).toBe(false)
   })
 })
 
@@ -97,9 +95,7 @@ describe('customDomainSchema (Phase 7 D-01)', () => {
   })
 
   it('lehnt Hostname mit Protokoll-Prefix ab', () => {
-    expect(
-      Value.Check(customDomainSchema, { ...validCustomDomain, hostname: 'https://restaurant.de' }),
-    ).toBe(false)
+    expect(Value.Check(customDomainSchema, { ...validCustomDomain, hostname: 'https://restaurant.de' })).toBe(false)
   })
 
   it('lehnt Hostname mit Trailing-Dot ab', () => {
@@ -107,9 +103,7 @@ describe('customDomainSchema (Phase 7 D-01)', () => {
   })
 
   it('lehnt Hostname mit Port ab', () => {
-    expect(
-      Value.Check(customDomainSchema, { ...validCustomDomain, hostname: 'restaurant.de:8080' }),
-    ).toBe(false)
+    expect(Value.Check(customDomainSchema, { ...validCustomDomain, hostname: 'restaurant.de:8080' })).toBe(false)
   })
 
   it('lehnt unbekannten status-Wert ab', () => {
@@ -123,9 +117,7 @@ describe('customDomainSchema (Phase 7 D-01)', () => {
   })
 
   it('lehnt zusätzliche Felder ab (additionalProperties:false)', () => {
-    expect(
-      Value.Check(customDomainSchema, { ...validCustomDomain, extra: 'foo' }),
-    ).toBe(false)
+    expect(Value.Check(customDomainSchema, { ...validCustomDomain, extra: 'foo' })).toBe(false)
   })
 
   it('akzeptiert optionale Timestamps (verifiedAt/activatedAt/lastCheckAt) + failureReason', () => {
@@ -143,9 +135,7 @@ describe('customDomainSchema (Phase 7 D-01)', () => {
 
   it('lehnt zu langes failureReason ab (maxLength 500)', () => {
     const longReason = 'x'.repeat(501)
-    expect(
-      Value.Check(customDomainSchema, { ...validCustomDomain, failureReason: longReason }),
-    ).toBe(false)
+    expect(Value.Check(customDomainSchema, { ...validCustomDomain, failureReason: longReason })).toBe(false)
   })
 })
 

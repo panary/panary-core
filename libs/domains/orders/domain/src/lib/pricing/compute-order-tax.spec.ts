@@ -123,9 +123,7 @@ describe('computeOrderTax — Rabatte', () => {
 
   it('Festbetrag-Rabatt wird summen-exakt über Steuersätze verteilt', () => {
     const discount: Discount = { discountType: 'amount', discount: 5 }
-    const result = computeOrderTax(
-      makeOrder([makeLine(60, 1, 19, 7), makeLine(40, 1, 7, 7)], 'dine-in', discount),
-    )
+    const result = computeOrderTax(makeOrder([makeLine(60, 1, 19, 7), makeLine(40, 1, 7, 7)], 'dine-in', discount))
     expect(result.brutto).toBeCloseTo(95, 5)
     const sumGross = result.taxes.reduce((s, t) => s + t.amount + t.tax, 0)
     expect(sumGross).toBeCloseTo(95, 5)
@@ -159,7 +157,9 @@ describe('computeOrderTax — Invarianten (property-style)', () => {
     for (const dine of ['dine-in', 'take-out'] as const) {
       for (const [ti, to] of rates) {
         for (let n = 1; n <= 3; n++) {
-          const lines = Array.from({ length: n }, (_, i) => makeLine(prices[(i * 3) % prices.length], (i % 2) + 1, ti, to))
+          const lines = Array.from({ length: n }, (_, i) =>
+            makeLine(prices[(i * 3) % prices.length], (i % 2) + 1, ti, to),
+          )
           for (const d of discounts) {
             const r = computeOrderTax(makeOrder(lines, dine, d))
             expect(r.brutto).toBeGreaterThanOrEqual(0)
@@ -200,15 +200,23 @@ function makeApplied(partial: Partial<AppliedDiscount>): AppliedDiscount {
   } as AppliedDiscount
 }
 
-function makeOrderWithApplied(lineItems: OrderLineItem[], applied: AppliedDiscount[], dineLocation: 'dine-in' | 'take-out' = 'dine-in'): Order {
+function makeOrderWithApplied(
+  lineItems: OrderLineItem[],
+  applied: AppliedDiscount[],
+  dineLocation: 'dine-in' | 'take-out' = 'dine-in',
+): Order {
   return { lineItems, dineLocation, discount: null, appliedDiscounts: applied } as unknown as Order
 }
 
 describe('computeOrderTax — appliedDiscounts', () => {
   it('einzelner ORDER-Prozentrabatt = Legacy-Verhalten', () => {
     const lines = [makeLine(100, 1, 19, 7)]
-    const viaApplied = computeOrderTax(makeOrderWithApplied(lines, [makeApplied({ target: 'order', valueType: 'percent', valuePercent: 10 })]))
-    const viaLegacy = computeOrderTax(makeOrder([makeLine(100, 1, 19, 7)], 'dine-in', { discountType: 'percent', discount: 10 }))
+    const viaApplied = computeOrderTax(
+      makeOrderWithApplied(lines, [makeApplied({ target: 'order', valueType: 'percent', valuePercent: 10 })]),
+    )
+    const viaLegacy = computeOrderTax(
+      makeOrder([makeLine(100, 1, 19, 7)], 'dine-in', { discountType: 'percent', discount: 10 }),
+    )
     expect(roundCents(viaApplied.brutto)).toBe(roundCents(viaLegacy.brutto))
   })
 
@@ -222,7 +230,12 @@ describe('computeOrderTax — appliedDiscounts', () => {
     const lineA = makeLine(50, 1, 19, 7, { _id: '00000000-0000-0000-0000-00000000000a' })
     const lineB = makeLine(50, 1, 19, 7, { _id: '00000000-0000-0000-0000-00000000000b' })
     const applied = [
-      makeApplied({ target: 'line', lineItemId: '00000000-0000-0000-0000-00000000000a', valueType: 'percent', valuePercent: 50 }),
+      makeApplied({
+        target: 'line',
+        lineItemId: '00000000-0000-0000-0000-00000000000a',
+        valueType: 'percent',
+        valuePercent: 50,
+      }),
     ]
     const r = computeOrderTax(makeOrderWithApplied([lineA, lineB], applied))
     // lineA 50€ -50% = 25€, lineB 50€ = 50€ → brutto 75€
@@ -232,8 +245,18 @@ describe('computeOrderTax — appliedDiscounts', () => {
 
   it('mehrere ORDER-Rabatte werden sequenziell angewandt', () => {
     const applied = [
-      makeApplied({ _id: '00000000-0000-0000-0000-0000000000a1', target: 'order', valueType: 'percent', valuePercent: 10 }),
-      makeApplied({ _id: '00000000-0000-0000-0000-0000000000a2', target: 'order', valueType: 'amount', valueCents: 500 }),
+      makeApplied({
+        _id: '00000000-0000-0000-0000-0000000000a1',
+        target: 'order',
+        valueType: 'percent',
+        valuePercent: 10,
+      }),
+      makeApplied({
+        _id: '00000000-0000-0000-0000-0000000000a2',
+        target: 'order',
+        valueType: 'amount',
+        valueCents: 500,
+      }),
     ]
     const r = computeOrderTax(makeOrderWithApplied([makeLine(100, 1, 19, 7)], applied))
     // 100€ -10% = 90€, dann -5€ = 85€
@@ -246,8 +269,18 @@ describe('computeOrderTax — appliedDiscounts', () => {
     const lineA = makeLine(60, 1, 19, 7, { _id: '00000000-0000-0000-0000-00000000000a' })
     const lineB = makeLine(40, 1, 7, 7, { _id: '00000000-0000-0000-0000-00000000000b' })
     const applied = [
-      makeApplied({ target: 'line', lineItemId: '00000000-0000-0000-0000-00000000000a', valueType: 'amount', valueCents: 1000 }),
-      makeApplied({ _id: '00000000-0000-0000-0000-0000000000a2', target: 'order', valueType: 'percent', valuePercent: 10 }),
+      makeApplied({
+        target: 'line',
+        lineItemId: '00000000-0000-0000-0000-00000000000a',
+        valueType: 'amount',
+        valueCents: 1000,
+      }),
+      makeApplied({
+        _id: '00000000-0000-0000-0000-0000000000a2',
+        target: 'order',
+        valueType: 'percent',
+        valuePercent: 10,
+      }),
     ]
     const r = computeOrderTax(makeOrderWithApplied([lineA, lineB], applied))
     // lineA 60-10=50, lineB 40 → 90; -10% → 81
@@ -433,9 +466,7 @@ describe('computeOrderTax — FIXED_PROPORTIONAL Randfälle (#39)', () => {
   it('LINE-Prozentrabatt auf FIXED-Zeile: cent-exakt über 7 %- und 19 %-Atome verteilt', () => {
     // 10 % von 700 ct = 70 ct über die Atome [405, 212, 83] → [41, 21, 8]
     // (largest remainder) → Eimer 7 %: 439 ct, 19 %: 191 ct.
-    const applied = [
-      makeApplied({ target: 'line', lineItemId: FIXED_LINE_ID, valueType: 'percent', valuePercent: 10 }),
-    ]
+    const applied = [makeApplied({ target: 'line', lineItemId: FIXED_LINE_ID, valueType: 'percent', valuePercent: 10 })]
     const r = computeOrderTax(makeOrderWithApplied([makeFixedLine()], applied))
     expect(roundCents(r.brutto)).toBe(630)
     expect(applied[0].computedAmountCents).toBe(70)
@@ -447,9 +478,7 @@ describe('computeOrderTax — FIXED_PROPORTIONAL Randfälle (#39)', () => {
 
   it('LINE-Festbetrag-Rabatt auf FIXED-Zeile: cent-exakt über 7 %- und 19 %-Atome verteilt', () => {
     // 123 ct über [405, 212, 83] → [71, 37, 15] → Eimer 7 %: 402 ct, 19 %: 175 ct.
-    const applied = [
-      makeApplied({ target: 'line', lineItemId: FIXED_LINE_ID, valueType: 'amount', valueCents: 123 }),
-    ]
+    const applied = [makeApplied({ target: 'line', lineItemId: FIXED_LINE_ID, valueType: 'amount', valueCents: 123 })]
     const r = computeOrderTax(makeOrderWithApplied([makeFixedLine()], applied))
     expect(roundCents(r.brutto)).toBe(577)
     expect(applied[0].computedAmountCents).toBe(123)
@@ -496,9 +525,7 @@ describe('computeOrderTax — „OHNE"-Modifier (amount −1) sind preisneutral'
   })
 
   it('positive Modifier zaehlen weiterhin voll', () => {
-    const r = computeOrderTax(
-      makeOrder([makeLine(6.7, 1, 7, 7, { modifiers: [ohne(1.9), mit(1.9)] })], 'take-out'),
-    )
+    const r = computeOrderTax(makeOrder([makeLine(6.7, 1, 7, 7, { modifiers: [ohne(1.9), mit(1.9)] })], 'take-out'))
     expect(r.brutto).toBeCloseTo(8.6, 5)
   })
 
@@ -570,10 +597,7 @@ describe('computeOrderTax — entfernbare Zutat mit negativem priceAdjustment', 
     // Sonst verwirft bucketize() den Eimer komplett (grossCents <= 0) und die
     // Position verschwaende samt ihres positiven Anteils aus dem Steuer-Split.
     const r = computeOrderTax(
-      makeOrder(
-        [makeLine(6.7, 1, 7, 7, { modifiers: [ohneZutat(-99)] }), makeLine(3.0, 1, 7, 7)],
-        'take-out',
-      ),
+      makeOrder([makeLine(6.7, 1, 7, 7, { modifiers: [ohneZutat(-99)] }), makeLine(3.0, 1, 7, 7)], 'take-out'),
     )
     expect(r.brutto).toBeCloseTo(3.0, 5)
   })

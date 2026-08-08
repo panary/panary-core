@@ -35,13 +35,15 @@ const OPEN_DAY = {
 
 const USER = { _id: 'u-1', tenantId: 't-1', role: 'tenant:owner', locationId: 'loc-1' }
 
-function makeApp(opts: {
-  businessDay?: Record<string, unknown> | null
-  currentBusinessDayId?: string | null
-  orderCount?: number
-  cashSessionCount?: number
-  auditThrows?: boolean
-} = {}) {
+function makeApp(
+  opts: {
+    businessDay?: Record<string, unknown> | null
+    currentBusinessDayId?: string | null
+    orderCount?: number
+    cashSessionCount?: number
+    auditThrows?: boolean
+  } = {},
+) {
   const businessDayGet = vi.fn().mockImplementation(async () => {
     if (opts.businessDay === null) return undefined
     return opts.businessDay ?? OPEN_DAY

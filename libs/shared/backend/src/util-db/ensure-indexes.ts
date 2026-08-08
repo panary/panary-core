@@ -53,7 +53,7 @@ export async function ensureIndexes(
 
   const systemConfig = app.get('system') || {}
   const dbType = (systemConfig.dbType || DatabaseType.SQLITE) as DatabaseType
-  const applicable = indexes.filter((idx) => !idx.dbTypes || idx.dbTypes.includes(dbType))
+  const applicable = indexes.filter(idx => !idx.dbTypes || idx.dbTypes.includes(dbType))
   if (!applicable.length) return
 
   if (dbType === DatabaseType.SQLITE) {
@@ -81,9 +81,7 @@ export async function ensureIndexes(
         const unique = idx.unique ? 'UNIQUE ' : ''
         const cols = idx.columns.join(', ')
         const where = idx.whereSqlite ? ` WHERE ${idx.whereSqlite}` : ''
-        await knex.raw(
-          `CREATE ${unique}INDEX IF NOT EXISTS "${idx.name}" ON "${serviceName}" (${cols})${where}`,
-        )
+        await knex.raw(`CREATE ${unique}INDEX IF NOT EXISTS "${idx.name}" ON "${serviceName}" (${cols})${where}`)
         created++
       } catch (error) {
         logger.error({
@@ -116,8 +114,8 @@ export async function ensureIndexes(
 
       if (!model?.createIndexes) return
 
-      const specs = applicable.map((idx) => {
-        const key = idx.mongoSpec ?? Object.fromEntries(idx.columns.map((c) => [c, 1 as const]))
+      const specs = applicable.map(idx => {
+        const key = idx.mongoSpec ?? Object.fromEntries(idx.columns.map(c => [c, 1 as const]))
         const spec: Record<string, unknown> = { key, name: idx.name }
         if (idx.unique) spec['unique'] = true
         if (idx.mongoSparse) spec['sparse'] = true

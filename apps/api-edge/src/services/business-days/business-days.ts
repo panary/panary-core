@@ -855,10 +855,7 @@ export const businessDays = (app: Application) => {
     openDay: (data: OpenDayData, params?: OpenDayParams) => Promise<BusinessDay>
     closeDay: (data: CloseDayData, params?: OpenDayParams) => Promise<BusinessDay>
     refreshClosingStatus: (data: RefreshClosingStatusData, params?: OpenDayParams) => Promise<BusinessDay>
-    discardOrphanDay: (
-      data: DiscardOrphanDayData,
-      params?: OpenDayParams,
-    ) => Promise<{ discarded: true; _id: string }>
+    discardOrphanDay: (data: DiscardOrphanDayData, params?: OpenDayParams) => Promise<{ discarded: true; _id: string }>
   }
 
   // Custom-Methods auf den Service-Proxy haengen
@@ -866,8 +863,7 @@ export const businessDays = (app: Application) => {
   service.closeDay = (data: CloseDayData, params?: OpenDayParams) => closeDay(app, data, params)
   service.refreshClosingStatus = (data: RefreshClosingStatusData, params?: OpenDayParams) =>
     refreshClosingStatus(app, data, params)
-  service.discardOrphanDay = (data: DiscardOrphanDayData, params?: OpenDayParams) =>
-    discardOrphanDay(app, data, params)
+  service.discardOrphanDay = (data: DiscardOrphanDayData, params?: OpenDayParams) => discardOrphanDay(app, data, params)
   ;(service as any).setup = async (app: Application) =>
     ensureIndexes(
       app,

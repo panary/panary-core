@@ -119,10 +119,7 @@ export const auditEventRedactionQueryProperties = Type.Pick(auditEventRedactionS
 ])
 
 export const auditEventRedactionQuerySchema = Type.Intersect(
-  [
-    querySyntax(auditEventRedactionQueryProperties),
-    Type.Object({}, { additionalProperties: false }),
-  ],
+  [querySyntax(auditEventRedactionQueryProperties), Type.Object({}, { additionalProperties: false })],
   { additionalProperties: false },
 )
 

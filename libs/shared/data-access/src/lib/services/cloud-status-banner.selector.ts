@@ -194,9 +194,7 @@ export function selectActiveBanner(s: CloudStatusState): CloudBanner | null {
         icon: 'emergency_home',
         messageKey: 'CLOUD_STATUS.EMERGENCY_OVERRIDE_ACTIVE',
         sublineKey: 'CLOUD_STATUS.EMERGENCY_OVERRIDE_SUBLINE',
-        ...(s.emergencyOverrideSinceMin !== null
-          ? { sublineParams: { minutes: s.emergencyOverrideSinceMin } }
-          : {}),
+        ...(s.emergencyOverrideSinceMin !== null ? { sublineParams: { minutes: s.emergencyOverrideSinceMin } } : {}),
         action: { kind: 'end-emergency-override', labelKey: 'CLOUD_STATUS.END_EMERGENCY_MODE' },
       }
     }

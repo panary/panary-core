@@ -5,5 +5,11 @@
   "printWidth": 120,
   "trailingComma": "all",
   "bracketSpacing": true,
-  "arrowParens": "avoid"
+  "arrowParens": "avoid",
+  "overrides": [
+    {
+      "files": ["apps/**/src/**/*.html", "libs/**/*.html"],
+      "options": { "parser": "angular" }
+    }
+  ]
 }

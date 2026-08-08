@@ -15,7 +15,9 @@ export class WriteOffService extends BaseService<WriteOff> {
   }
 
   /** PRIVATE METHODS */
-  protected override loadDocuments() { /* empty */ }
+  protected override loadDocuments() {
+    /* empty */
+  }
 
   protected override fileReaderOnLoad(
     fileReader: FileReader,
@@ -26,7 +28,9 @@ export class WriteOffService extends BaseService<WriteOff> {
       successCount: number
       multi: boolean
     },
-  ) { /* empty */ }
+  ) {
+    /* empty */
+  }
 
   /** PUBLIC METHODS */
 }

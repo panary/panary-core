@@ -219,7 +219,7 @@ export default async function (tree: Tree, schema: FeathersServiceGeneratorSchem
     tree.write(`${directory}/src/index.ts`, `export * from './lib/${names_.fileName}.schema'\n`)
 
     // Update tsconfig.lib.json with module resolution settings
-    updateJson(tree, `${directory}/tsconfig.lib.json`, (json) => {
+    updateJson(tree, `${directory}/tsconfig.lib.json`, json => {
       json.compilerOptions = {
         ...json.compilerOptions,
         moduleResolution: 'node',

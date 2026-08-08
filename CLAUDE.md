@@ -6,14 +6,14 @@ Du bist ein erfahrener Software-Ingenieur und interaktiver CLI-Agent, der an "Pa
 
 Vor dem Arbeiten die relevanten Rules lesen:
 
-| Datei | Inhalt |
-|---|---|
-| `.claude/rules/security.md` | Multi-Tenancy, Hooks (`authorize`, `multiTenancy`, `ensureTenantIsolation`), Rollen, Permissions-Matrix, Resolver |
-| `.claude/rules/code-style.md` | Prettier, TypeScript-Konventionen, Benennung, Tailwind v4, Design-System |
-| `.claude/rules/angular.md` | Control Flow, Signals, Signal-Inputs/Outputs, DI via `inject()`, Standalone-Architektur |
-| `.claude/rules/data-models.md` | IDs (uuidv7), Datumsformat, TypeBox-Schemas, „Product First"-Prinzip, Domain-Struktur |
-| `.claude/rules/logging.md` | Wide Events, Canonical Log Lines, Business-Kontext, Dev-Format, Sensitive-Daten-Regeln |
-| `.claude/rules/documentation.md` | OKF-Wiki `/docs`: Struktur, Frontmatter-Profil, ADR-Regeln, Index-/Log-Pflege, Workflows |
+| Datei                            | Inhalt                                                                                                            |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `.claude/rules/security.md`      | Multi-Tenancy, Hooks (`authorize`, `multiTenancy`, `ensureTenantIsolation`), Rollen, Permissions-Matrix, Resolver |
+| `.claude/rules/code-style.md`    | Prettier, TypeScript-Konventionen, Benennung, Tailwind v4, Design-System                                          |
+| `.claude/rules/angular.md`       | Control Flow, Signals, Signal-Inputs/Outputs, DI via `inject()`, Standalone-Architektur                           |
+| `.claude/rules/data-models.md`   | IDs (uuidv7), Datumsformat, TypeBox-Schemas, „Product First"-Prinzip, Domain-Struktur                             |
+| `.claude/rules/logging.md`       | Wide Events, Canonical Log Lines, Business-Kontext, Dev-Format, Sensitive-Daten-Regeln                            |
+| `.claude/rules/documentation.md` | OKF-Wiki `/docs`: Struktur, Frontmatter-Profil, ADR-Regeln, Index-/Log-Pflege, Workflows                          |
 
 ---
 
@@ -24,7 +24,7 @@ Vor dem Arbeiten die relevanten Rules lesen:
 - **Paketmanager:** Ausschließlich `pnpm` verwenden — niemals `npm` oder `yarn`. Pakete installieren via `pnpm add -w <paket>` (das `-w`-Flag ist für die korrekte Ausführung im Workspace-Root zwingend erforderlich).
 - **Bibliotheken:** **NIEMALS** eine Bibliothek als verfügbar voraussetzen. Zuerst `package.json` prüfen. Keine neuen Pakete ohne ausdrückliche Zustimmung des Nutzers installieren.
 - **Idiomatische Änderungen:** TypeBox für Schemas, Signals für Angular-Zustand und Feathers-Resolver für Datenschutz verwenden.
-- **Kommentare:** Nur für das *Warum* komplexer Logik — nicht für das *Was*.
+- **Kommentare:** Nur für das _Warum_ komplexer Logik — nicht für das _Was_.
 - **Proaktivität:** Wenn eine Schema-Änderung eine DB-Migration oder ein Typ-Update erfordert, dies erwähnen oder einplanen.
 
 ---
@@ -51,6 +51,7 @@ Dasselbe Pattern gilt für `libs/shared/[name]` ohne Eltern: `name: "shared-[nam
 > **Regel:** Subpackage-`name` darf **niemals** das Slash-Pattern `@panary/X/Y` verwenden — pnpm akzeptiert das zwar, aber es kollidiert mit der `exports`-Map des Eltern-Pakets und verstößt gegen npm-Spec.
 
 **Cross-Lib-Imports zwischen Domain-Libs** (z. B. `apikeys/domain` importiert `@panary/users/domain`):
+
 - `external` in `project.json` rollup-Options aufnehmen.
 - `peerDependencies` in der Eltern-`package.json` deklarieren (Format: `"@panary/users": "^26.4.20"`).
 - `paths`-Override in der eigenen `tsconfig.lib.json` zur compiled `dist/index.d.ts` setzen (sonst TS6059 wegen rootDir-Verletzung):

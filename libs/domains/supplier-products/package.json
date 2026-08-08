@@ -26,7 +26,6 @@
   },
   "peerDependencies": {
     "@feathersjs/typebox": "^5.0.40",
-    "@sinclair/typebox": "^0.34.0",
     "@panary/allergens": "^26.4.20"
   }
 }

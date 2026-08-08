@@ -13,11 +13,11 @@ export class UserService extends BaseService<User> {
   protected override entityLabelKey = 'ENTITY.USER'
 
   /** INJECTION */
-  #authService: AuthService=inject(AuthService)
-  protected connectionService: ConnectionService=inject(ConnectionService)
+  #authService: AuthService = inject(AuthService)
+  protected connectionService: ConnectionService = inject(ConnectionService)
 
   /** PRIVATE PROPERTIES */
-  #users: WritableSignal<User[]>=signal([])
+  #users: WritableSignal<User[]> = signal([])
   #isLoaded: WritableSignal<boolean> = signal(false)
 
   /** PUBLIC PROPERTIES */
@@ -33,8 +33,9 @@ export class UserService extends BaseService<User> {
 
   // Einmaliges computed-Klassenfeld — als Getter würde jeder Zugriff ein frisches
   // computed() anlegen (Memoisierung wirkungslos, neuer Reactive-Node pro Read).
-  readonly currentUser: Signal<User|undefined>=computed(() =>
-    this.#users().find((element: User): boolean => element._id===this.#authService.user()?._id))
+  readonly currentUser: Signal<User | undefined> = computed(() =>
+    this.#users().find((element: User): boolean => element._id === this.#authService.user()?._id),
+  )
 
   /** CONSTRUCTOR */
   constructor() {
@@ -60,16 +61,16 @@ export class UserService extends BaseService<User> {
   }
 
   protected override handleItemUpdated(document: User) {
-    let reloadWindow=false
+    let reloadWindow = false
     this.#users.update((currentValue: User[]) => {
-      const index: number=currentValue.findIndex((element: User): boolean => element._id===document._id)
+      const index: number = currentValue.findIndex((element: User): boolean => element._id === document._id)
 
-      if (index!==-1) {
-        if (currentValue[index].activeLocationId!==document.activeLocationId) {
-          reloadWindow=true
+      if (index !== -1) {
+        if (currentValue[index].activeLocationId !== document.activeLocationId) {
+          reloadWindow = true
         }
 
-        currentValue[index]=document
+        currentValue[index] = document
 
         return [...currentValue]
       }
@@ -84,9 +85,9 @@ export class UserService extends BaseService<User> {
 
   protected override handleItemRemoved(document: User) {
     this.#users.update((currentValue: User[]) => {
-      const index: number=currentValue.findIndex((element: User): boolean => element._id===document._id)
+      const index: number = currentValue.findIndex((element: User): boolean => element._id === document._id)
 
-      if (index!==-1) {
+      if (index !== -1) {
         currentValue.splice(index, 1)
         return [...currentValue]
       }
@@ -120,25 +121,31 @@ export class UserService extends BaseService<User> {
   }
 
   /** PUBLIC METHODS */
-  async checkin(userId: Id, params: Params={}): Promise<User> {
-    return this.service.checkin(userId, params).catch((error: unknown) => this.helper.handleError(this.serviceName, error))
+  async checkin(userId: Id, params: Params = {}): Promise<User> {
+    return this.service
+      .checkin(userId, params)
+      .catch((error: unknown) => this.helper.handleError(this.serviceName, error))
   }
 
-  async checkout(userId: Id, params: Params={}): Promise<User> {
-    return this.service.checkout(userId, params).catch((error: unknown) => this.helper.handleError(this.serviceName, error))
+  async checkout(userId: Id, params: Params = {}): Promise<User> {
+    return this.service
+      .checkout(userId, params)
+      .catch((error: unknown) => this.helper.handleError(this.serviceName, error))
   }
 
-  async startBreak(userId: Id, params: Params={}): Promise<User> {
+  async startBreak(userId: Id, params: Params = {}): Promise<User> {
     return this.service
       .startBreak(userId, params)
       .catch((error: unknown) => this.helper.handleError(this.serviceName, error))
   }
 
-  async endBreak(userId: Id, params: Params={}): Promise<User> {
-    return this.service.endBreak(userId, params).catch((error: unknown) => this.helper.handleError(this.serviceName, error))
+  async endBreak(userId: Id, params: Params = {}): Promise<User> {
+    return this.service
+      .endBreak(userId, params)
+      .catch((error: unknown) => this.helper.handleError(this.serviceName, error))
   }
 
-  async mustChangePassword(data: { newPassword: string }, params: Params={}): Promise<User> {
+  async mustChangePassword(data: { newPassword: string }, params: Params = {}): Promise<User> {
     console.log(data)
     return this.service
       .mustChangePassword(data, params)
@@ -146,35 +153,35 @@ export class UserService extends BaseService<User> {
   }
 
   updateLocalStorageUsers(): void {
-    this.find({}).then((response: Paginated<User>|User[]): void => {
+    this.find({}).then((response: Paginated<User> | User[]): void => {
       let users: User[]
       if (Array.isArray(response)) {
-        users=response
+        users = response
       } else {
-        users=response.data
+        users = response.data
       }
       localStorage.setItem('usernameList', JSON.stringify(users.map((record: User) => record.loginname)))
     })
   }
 
   isUserStampedIn(userId: string): boolean {
-    const user: User|undefined=this.#users().find((record: User): boolean => record._id===userId)
+    const user: User | undefined = this.#users().find((record: User): boolean => record._id === userId)
 
-    return !(!user||!user.stampingId)
+    return !(!user || !user.stampingId)
   }
 
   stampedInUsers(): Array<User> {
-    return this.#users().filter((user: User) => user.stampingId!==undefined&&user.stampingId!==null)
+    return this.#users().filter((user: User) => user.stampingId !== undefined && user.stampingId !== null)
   }
 
-  getUserById(id: Id): User|undefined {
+  getUserById(id: Id): User | undefined {
     return this.#users().find((record: User): boolean => {
-      return record._id===id
+      return record._id === id
     })
   }
 
   toggleLocation(location: Location) {
-    const id: Id|undefined=this.currentUser()?._id
+    const id: Id | undefined = this.currentUser()?._id
 
     if (!id) return
 

@@ -4,19 +4,12 @@
   "sourceRoot": "libs/domains/auth/data-access/src",
   "prefix": "lib",
   "projectType": "library",
-  "tags": [
-    "type:data-access",
-    "domain:auth"
-  ],
+  "tags": ["type:data-access", "domain:auth"],
   "targets": {
     "build": {
       "executor": "@nx/angular:package",
-      "outputs": [
-        "{workspaceRoot}/libs/domains/auth/data-access/dist"
-      ],
-      "dependsOn": [
-        "^build"
-      ],
+      "outputs": ["{workspaceRoot}/libs/domains/auth/data-access/dist"],
+      "dependsOn": ["^build"],
       "options": {
         "project": "libs/domains/auth/data-access/ng-package.json",
         "tsConfig": "libs/domains/auth/data-access/tsconfig.lib.json"

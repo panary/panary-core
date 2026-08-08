@@ -65,10 +65,7 @@ export function taxFromGross(grossCents: number, taxRatePercent: number): number
  * Garantie: Σ Resultat === totalCents (sofern totalCents <= Σ weights bzw. geklemmt),
  * keine verlorenen/erfundenen Cents durch unabhängiges Runden pro Eimer.
  */
-export function distributeByLargestRemainder(
-  totalCents: number,
-  weights: ReadonlyArray<number>,
-): number[] {
+export function distributeByLargestRemainder(totalCents: number, weights: ReadonlyArray<number>): number[] {
   const weightSum = sumCents(weights)
   if (weightSum <= 0 || totalCents <= 0) return weights.map(() => 0)
 
@@ -77,9 +74,7 @@ export function distributeByLargestRemainder(
   let remainder = totalCents - sumCents(floored)
 
   // Verbleibende Cents an die größten Nachkomma-Reste vergeben.
-  const order = exact
-    .map((v, i) => ({ i, frac: v - Math.floor(v) }))
-    .sort((a, b) => b.frac - a.frac)
+  const order = exact.map((v, i) => ({ i, frac: v - Math.floor(v) })).sort((a, b) => b.frac - a.frac)
 
   const result = [...floored]
   for (let k = 0; k < order.length && remainder > 0; k++) {

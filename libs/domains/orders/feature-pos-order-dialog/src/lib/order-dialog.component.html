@@ -1,16 +1,30 @@
-<section [ngStyle]="{ 'background-color': infoBoxBackgroundColor === '#f1f5f9' ? null : infoBoxBackgroundColor }"
-         class="h-full flex flex-col rounded-3xl overflow-hidden bg-gray-50 dark:bg-gray-950 relative">
+<section
+  [ngStyle]="{ 'background-color': infoBoxBackgroundColor === '#f1f5f9' ? null : infoBoxBackgroundColor }"
+  class="h-full flex flex-col rounded-3xl overflow-hidden bg-gray-50 dark:bg-gray-950 relative"
+>
   <!-- Info Header -->
   <div class="flex flex-row px-4 pr-3 items-center justify-between shrink-0 h-10">
     <div id="infoBox" class="info-box flex-1 transition-all duration-300" [@changeInfoBoxText]="infoBoxText">
-      <div id="infoBoxText" class="info-box-text text-xs font-semibold text-center text-gray-700 dark:text-gray-200"
-           [ngStyle]="{ color: infoBoxBackgroundColor !== '#f1f5f9' ? (infoBoxTextColor === 'black' ? 'white' : infoBoxTextColor) : null }">
+      <div
+        id="infoBoxText"
+        class="info-box-text text-xs font-semibold text-center text-gray-700 dark:text-gray-200"
+        [ngStyle]="{
+          color:
+            infoBoxBackgroundColor !== '#f1f5f9' ? (infoBoxTextColor === 'black' ? 'white' : infoBoxTextColor) : null,
+        }"
+      >
         {{ infoBoxText }}
       </div>
     </div>
-    <button (click)="dialogClose()"
-            class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/20 transition"
-            [ngClass]="infoBoxBackgroundColor !== '#f1f5f9' ? 'text-white/80 hover:text-white' : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'">
+    <button
+      (click)="dialogClose()"
+      class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/20 transition"
+      [ngClass]="
+        infoBoxBackgroundColor !== '#f1f5f9'
+          ? 'text-white/80 hover:text-white'
+          : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+      "
+    >
       <span class="material-symbols-outlined" style="font-size: inherit">close</span>
     </button>
   </div>
@@ -19,35 +33,51 @@
   <div class="bg-gray-100 dark:bg-gray-950 mx-2 mb-2 flex-1 rounded-2xl overflow-hidden flex flex-col">
     <!-- Menu group container (Top Tabs) ------------------------------------------------------- -->
     <!-- Added #productGroupContainer reference for ResizeObserver -->
-    <div #productGroupContainer class="flex justify-start pt-3 pb-1.5 px-2 gap-2 shrink-0 overflow-hidden w-full relative">
+    <div
+      #productGroupContainer
+      class="flex justify-start pt-3 pb-1.5 px-2 gap-2 shrink-0 overflow-hidden w-full relative"
+    >
       <!-- Loop over VISIBLE menu groups -->
       <!-- Added !w-[10rem] !min-w-[10rem] for fixed width as requested -->
       @for (productGroup of visibleProductGroups; track productGroup._id; let i = $index) {
-        <button type="button"
-                class="pnry-touch flex-shrink-0 flex justify-center items-center h-14 rounded-xl text-[0.625rem] font-semibold uppercase tracking-wide active:scale-95 transition-all shadow-sm border border-transparent hover:shadow-md px-1.5 bg-white dark:bg-gray-800 text-black dark:text-gray-200"
-                style="width: 6.875rem; min-width: 5.625rem; max-width: 8.125rem; flex: 1 1 6.875rem;"
-                [style.border-bottom]="'2px solid ' + productGroup.color"
-                (click)="createProductButtons(productGroup)">
+        <button
+          type="button"
+          class="pnry-touch flex-shrink-0 flex justify-center items-center h-14 rounded-xl text-[0.625rem] font-semibold uppercase tracking-wide active:scale-95 transition-all shadow-sm border border-transparent hover:shadow-md px-1.5 bg-white dark:bg-gray-800 text-black dark:text-gray-200"
+          style="width: 6.875rem; min-width: 5.625rem; max-width: 8.125rem; flex: 1 1 6.875rem"
+          [style.border-bottom]="'2px solid ' + productGroup.color"
+          (click)="createProductButtons(productGroup)"
+        >
           <span class="text-center leading-tight line-clamp-2 break-words w-full">{{ productGroup.name }}</span>
         </button>
       }
 
       <!-- Overflow Button (only visible if we have hidden items) -->
       @if (overflowProductGroups.length > 0) {
-        <button mat-button [matMenuTriggerFor]="menu"
-                #menuTrigger="matMenuTrigger"
-                class="!flex !justify-center !items-center !h-14 !rounded-xl !bg-white dark:!bg-gray-800 !text-gray-600 dark:!text-gray-200 !shadow-sm !border !border-gray-200 dark:!border-gray-700 !min-w-[3.125rem] hover:!bg-gray-50 dark:hover:!bg-gray-700 group overflow-hidden">
-          <div class="flex flex-col gap-[0.1875rem] transition-all duration-300"
-               [class.rotate-90]="menuTrigger.menuOpen"
-               [class.scale-90]="menuTrigger.menuOpen">
-            <span class="w-[1.125rem] h-[0.125rem] bg-gray-500 rounded-full transition-all duration-300"
-                  [class.translate-y-[0.3125rem]]="menuTrigger.menuOpen"
-                  [class.rotate-45]="menuTrigger.menuOpen"></span>
-            <span class="w-[1.125rem] h-[0.125rem] bg-gray-500 rounded-full transition-all duration-300"
-                  [class.opacity-0]="menuTrigger.menuOpen"></span>
-            <span class="w-[1.125rem] h-[0.125rem] bg-gray-500 rounded-full transition-all duration-300"
-                  [class.-translate-y-[0.3125rem]]="menuTrigger.menuOpen"
-                  [class.-rotate-45]="menuTrigger.menuOpen"></span>
+        <button
+          mat-button
+          [matMenuTriggerFor]="menu"
+          #menuTrigger="matMenuTrigger"
+          class="!flex !justify-center !items-center !h-14 !rounded-xl !bg-white dark:!bg-gray-800 !text-gray-600 dark:!text-gray-200 !shadow-sm !border !border-gray-200 dark:!border-gray-700 !min-w-[3.125rem] hover:!bg-gray-50 dark:hover:!bg-gray-700 group overflow-hidden"
+        >
+          <div
+            class="flex flex-col gap-[0.1875rem] transition-all duration-300"
+            [class.rotate-90]="menuTrigger.menuOpen"
+            [class.scale-90]="menuTrigger.menuOpen"
+          >
+            <span
+              class="w-[1.125rem] h-[0.125rem] bg-gray-500 rounded-full transition-all duration-300"
+              [class.translate-y-[0.3125rem]]="menuTrigger.menuOpen"
+              [class.rotate-45]="menuTrigger.menuOpen"
+            ></span>
+            <span
+              class="w-[1.125rem] h-[0.125rem] bg-gray-500 rounded-full transition-all duration-300"
+              [class.opacity-0]="menuTrigger.menuOpen"
+            ></span>
+            <span
+              class="w-[1.125rem] h-[0.125rem] bg-gray-500 rounded-full transition-all duration-300"
+              [class.-translate-y-[0.3125rem]]="menuTrigger.menuOpen"
+              [class.-rotate-45]="menuTrigger.menuOpen"
+            ></span>
           </div>
         </button>
 
@@ -65,24 +95,33 @@
     <!-- 3-Spalten Hauptbereich -->
     <div class="flex flex-row w-full flex-1 overflow-hidden px-3 pt-3 pb-2 gap-3 min-h-0">
       <!-- SPALTE 1: Positionen -->
-      <div class="relative flex-none w-[35%] min-w-[18.75rem] flex flex-col h-full z-20 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div
+        class="relative flex-none w-[35%] min-w-[18.75rem] flex flex-col h-full z-20 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden"
+      >
         <!-- Receipt Header -->
-        <div class="bg-transparent flex items-center justify-center pt-3 pb-1 text-[0.625rem] text-gray-400 dark:text-gray-500 font-mono rounded-t-xl relative z-10 shrink-0">
+        <div
+          class="bg-transparent flex items-center justify-center pt-3 pb-1 text-[0.625rem] text-gray-400 dark:text-gray-500 font-mono rounded-t-xl relative z-10 shrink-0"
+        >
           {{ time() | date: 'dd.MM.yyyy HH:mm:ss' }}
         </div>
 
         <!-- Scrollable Order Items -->
         <div class="bg-transparent flex-1 overflow-x-hidden overflow-y-auto p-3 min-h-0 relative z-10">
           @if (customer) {
-            <div class="text-sm my-2 p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg mx-2 border border-blue-100 dark:border-blue-900/50">
+            <div
+              class="text-sm my-2 p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg mx-2 border border-blue-100 dark:border-blue-900/50"
+            >
               <p class="highlight">
-                Firmenkundenbestellung von <span class="font-bold">{{ customer.name1 }}</span>.
+                Firmenkundenbestellung von <span class="font-bold">{{ customer.name1 }}</span
+                >.
               </p>
             </div>
           }
 
           @if (currentUser && isStaffMealOrder) {
-            <div class="text-sm my-2 p-3 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-lg mx-2 border border-amber-100 dark:border-amber-900/50">
+            <div
+              class="text-sm my-2 p-3 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-lg mx-2 border border-amber-100 dark:border-amber-900/50"
+            >
               <p class="highlight">
                 Personalessen von
                 <span class="font-bold">{{ currentUser.firstName }} {{ currentUser.lastName }} </span>.
@@ -91,25 +130,33 @@
           }
 
           @for (combination of combinations; track combination[0].bundleNumber; let i = $index) {
-            <div class="rounded-xl mt-2 border border-gray-200 dark:border-gray-700 mx-1 overflow-hidden transition-colors duration-200">
+            <div
+              class="rounded-xl mt-2 border border-gray-200 dark:border-gray-700 mx-1 overflow-hidden transition-colors duration-200"
+            >
               <!-- Kombinations-Header mit +/- Buttons -->
-              <div class="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-[0.625rem] font-bold uppercase tracking-wider px-3 py-1 flex items-center gap-1.5">
+              <div
+                class="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-[0.625rem] font-bold uppercase tracking-wider px-3 py-1 flex items-center gap-1.5"
+              >
                 <span>{{ 'ACTIVE_ORDERS.COMBINATIONS' | translate }} {{ i + 1 }}</span>
                 <span class="w-px h-4 bg-gray-400"></span>
-                <button type="button"
-                        class="w-6 h-6 rounded-md flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 active:scale-90 transition-all text-gray-600 dark:text-gray-300"
-                        (click)="decreaseCombinationQuantity(i, $event)">
+                <button
+                  type="button"
+                  class="w-6 h-6 rounded-md flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 active:scale-90 transition-all text-gray-600 dark:text-gray-300"
+                  (click)="decreaseCombinationQuantity(i, $event)"
+                >
                   <span class="material-symbols-outlined !text-[1rem]">remove</span>
                 </button>
-                <button type="button"
-                        class="w-6 h-6 rounded-md flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 active:scale-90 transition-all text-gray-600 dark:text-gray-300"
-                        (click)="increaseCombinationQuantity(i, $event)">
+                <button
+                  type="button"
+                  class="w-6 h-6 rounded-md flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 active:scale-90 transition-all text-gray-600 dark:text-gray-300"
+                  (click)="increaseCombinationQuantity(i, $event)"
+                >
                   <span class="material-symbols-outlined !text-[1rem]">add</span>
                 </button>
                 <span class="flex-1"></span>
                 <span class="font-bold text-gray-700 dark:text-gray-200 text-base">{{
-                    calculateCombinationPrice(combination) | currency: 'EUR'
-                  }}</span>
+                  calculateCombinationPrice(combination) | currency: 'EUR'
+                }}</span>
               </div>
 
               <!-- Einzelne Positionen -->
@@ -117,52 +164,70 @@
                 @for (lineItem of combination; track lineItem._id; let j = $index) {
                   <div
                     class="flex flex-col px-2 py-1.5 cursor-pointer rounded-lg transition-all duration-200 hover:bg-white dark:hover:bg-gray-700"
-                    [ngClass]="selectedCombinationIndex[0] === i && selectedCombinationIndex[1] === j
-                      ? 'bg-white dark:bg-gray-700'
-                      : ''"
-                    (click)="selectCombinationByIndex(i, j)">
-                    <div class="flex items-center gap-2 w-full"
-                         [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'">
+                    [ngClass]="
+                      selectedCombinationIndex[0] === i && selectedCombinationIndex[1] === j
+                        ? 'bg-white dark:bg-gray-700'
+                        : ''
+                    "
+                    (click)="selectCombinationByIndex(i, j)"
+                  >
+                    <div
+                      class="flex items-center gap-2 w-full"
+                      [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'"
+                    >
                       <!-- Einzelne Position +/- -->
                       <div class="flex items-center gap-1 shrink-0">
-                        <button type="button"
-                                class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-90 transition-all"
-                                [class.text-red-500]="lineItem.amount === 1"
-                                [class.text-gray-500]="lineItem.amount > 1"
-                                (click)="decreaseQuantity(lineItem, $event)">
+                        <button
+                          type="button"
+                          class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-90 transition-all"
+                          [class.text-red-500]="lineItem.amount === 1"
+                          [class.text-gray-500]="lineItem.amount > 1"
+                          (click)="decreaseQuantity(lineItem, $event)"
+                        >
                           @if (lineItem.amount === 1) {
                             <span class="material-symbols-outlined !text-[1.125rem]">delete</span>
                           } @else {
                             <span class="material-symbols-outlined !text-[1.125rem]">remove</span>
                           }
                         </button>
-                        <span class="font-bold text-gray-700 dark:text-gray-300 min-w-[1rem] text-center text-sm">{{ lineItem.amount }}</span>
-                        <button type="button"
-                                class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-90 transition-all text-gray-500"
-                                (click)="increaseQuantity(lineItem, $event)">
+                        <span class="font-bold text-gray-700 dark:text-gray-300 min-w-[1rem] text-center text-sm">{{
+                          lineItem.amount
+                        }}</span>
+                        <button
+                          type="button"
+                          class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-90 transition-all text-gray-500"
+                          (click)="increaseQuantity(lineItem, $event)"
+                        >
                           <span class="material-symbols-outlined !text-[1.125rem]">add</span>
                         </button>
                       </div>
 
-                      <span class="text-[0.9375rem] font-medium text-gray-800 dark:text-gray-200 flex-1 truncate leading-tight">
+                      <span
+                        class="text-[0.9375rem] font-medium text-gray-800 dark:text-gray-200 flex-1 truncate leading-tight"
+                      >
                         {{ lineItem.name }}
                       </span>
 
                       <span class="text-[0.9375rem] font-bold text-gray-900 dark:text-white shrink-0">
                         @if (calculateArticlePriceWithoutExtras(lineItem) !== calculateArticlePrice(lineItem)) {
                           <span class="text-xs text-gray-400 line-through mr-1">{{
-                              calculateArticlePriceWithoutExtras(lineItem) | currency: 'EUR'
-                            }}</span>
+                            calculateArticlePriceWithoutExtras(lineItem) | currency: 'EUR'
+                          }}</span>
                         }
                         {{ calculateArticlePrice(lineItem) | currency: 'EUR' }}
                       </span>
                     </div>
 
                     @if (lineItem.isMenu) {
-                      <div class="flex flex-col gap-0.5 text-xs text-gray-500 ml-[5.5rem] mt-0.5"
-                           [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'">
+                      <div
+                        class="flex flex-col gap-0.5 text-xs text-gray-500 ml-[5.5rem] mt-0.5"
+                        [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'"
+                      >
                         <div class="flex justify-between">
-                          <span>{{ 'ORDER_DIALOG.SIDE_DISH' | translate }}: {{ lineItem.menuSideDish?.name || 'ohne' }}</span>
+                          <span
+                            >{{ 'ORDER_DIALOG.SIDE_DISH' | translate }}:
+                            {{ lineItem.menuSideDish?.name || 'ohne' }}</span
+                          >
                           @if (lineItem.menuSideDish && lineItem.menuSideDish.price > generalSideDishPrice) {
                             <span>+ {{ lineItem.menuSideDish.price - generalSideDishPrice | currency: 'EUR' }}</span>
                           }
@@ -177,8 +242,10 @@
                     }
 
                     @for (extra of lineItem.modifiers; track extra._id) {
-                      <div class="flex justify-between text-xs text-gray-500 ml-[5.5rem]"
-                           [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'">
+                      <div
+                        class="flex justify-between text-xs text-gray-500 ml-[5.5rem]"
+                        [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'"
+                      >
                         <span>
                           {{ extra.amount | abs }}x
                           @if (extra.amount < 0) {
@@ -206,14 +273,18 @@
               <div
                 class="group mx-1 mb-1 rounded-xl py-2 pl-4 pr-3 transition-all duration-200 hover:bg-white dark:hover:bg-gray-700"
                 [ngClass]="selectedProductIndex === i ? 'bg-white dark:bg-gray-700' : ''"
-                (click)="toggleProductSelection(i)">
+                (click)="toggleProductSelection(i)"
+              >
                 <div class="flex items-start gap-3">
                   <!-- Quantity Controls -->
                   <div class="flex flex-row gap-1 shrink-0 items-center">
-                    <button type="button"
-                            class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-90 transition-all"
-                            [class.text-red-500]="lineItem.amount === 1" [class.text-gray-500]="lineItem.amount > 1"
-                            (click)="decreaseQuantity(lineItem, $event)">
+                    <button
+                      type="button"
+                      class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-90 transition-all"
+                      [class.text-red-500]="lineItem.amount === 1"
+                      [class.text-gray-500]="lineItem.amount > 1"
+                      (click)="decreaseQuantity(lineItem, $event)"
+                    >
                       @if (lineItem.amount === 1) {
                         <span class="material-symbols-outlined !text-[1.125rem]">delete</span>
                       } @else {
@@ -221,11 +292,15 @@
                       }
                     </button>
 
-                    <span class="font-bold text-gray-700 dark:text-gray-300 min-w-[1rem] text-center text-sm">{{ lineItem.amount }}</span>
+                    <span class="font-bold text-gray-700 dark:text-gray-300 min-w-[1rem] text-center text-sm">{{
+                      lineItem.amount
+                    }}</span>
 
-                    <button type="button"
-                            class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-90 transition-all text-gray-500"
-                            (click)="increaseQuantity(lineItem, $event)">
+                    <button
+                      type="button"
+                      class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-90 transition-all text-gray-500"
+                      (click)="increaseQuantity(lineItem, $event)"
+                    >
                       <span class="material-symbols-outlined !text-[1.125rem]">add</span>
                     </button>
                   </div>
@@ -239,18 +314,23 @@
                       <div class="text-[0.9375rem] font-bold text-gray-900 dark:text-white whitespace-nowrap">
                         @if (calculateArticlePriceWithoutExtras(lineItem) !== calculateArticlePrice(lineItem)) {
                           <span class="text-xs text-gray-400 line-through mr-1">{{
-                              calculateArticlePriceWithoutExtras(lineItem) | currency: 'EUR'
-                            }}</span>
+                            calculateArticlePriceWithoutExtras(lineItem) | currency: 'EUR'
+                          }}</span>
                         }
                         {{ calculateArticlePrice(lineItem) | currency: 'EUR' }}
                       </div>
                     </div>
 
                     @if (lineItem.isMenu) {
-                      <div class="mt-1 flex flex-col gap-0.5 text-xs text-gray-500"
-                           [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'">
+                      <div
+                        class="mt-1 flex flex-col gap-0.5 text-xs text-gray-500"
+                        [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'"
+                      >
                         <div class="flex justify-between">
-                          <span>{{ 'ORDER_DIALOG.SIDE_DISH' | translate }}: {{ lineItem.menuSideDish?.name || 'ohne' }}</span>
+                          <span
+                            >{{ 'ORDER_DIALOG.SIDE_DISH' | translate }}:
+                            {{ lineItem.menuSideDish?.name || 'ohne' }}</span
+                          >
                           @if (lineItem.menuSideDish && lineItem.menuSideDish.price > generalSideDishPrice) {
                             <span>+{{ lineItem.menuSideDish.price - generalSideDishPrice | currency: 'EUR' }}</span>
                           }
@@ -265,22 +345,31 @@
                     }
 
                     @if (lineItem.modifiers.length > 0) {
-                      <div class="mt-1.5 pt-1.5 border-t border-dashed border-gray-200 dark:border-gray-700 flex flex-col gap-0.5">
+                      <div
+                        class="mt-1.5 pt-1.5 border-t border-dashed border-gray-200 dark:border-gray-700 flex flex-col gap-0.5"
+                      >
                         @for (extra of lineItem.modifiers; track extra._id) {
                           <div class="flex justify-between items-center text-xs text-gray-500">
                             <span class="flex items-center gap-1">
                               @if (extra.amount < 0) {
-                                <span class="bg-gray-800 text-white text-[0.5625rem] font-bold px-1.5 py-0.5 rounded uppercase leading-none">ohne</span>
+                                <span
+                                  class="bg-gray-800 text-white text-[0.5625rem] font-bold px-1.5 py-0.5 rounded uppercase leading-none"
+                                  >ohne</span
+                                >
                               } @else {
                                 <span class="text-gray-400">{{ extra.amount }}x</span>
                               }
-                              <span [class.line-through]="extra.amount < 0" [class.text-gray-400]="extra.amount < 0">{{ extra.name }}</span>
+                              <span [class.line-through]="extra.amount < 0" [class.text-gray-400]="extra.amount < 0">{{
+                                extra.name
+                              }}</span>
                               @if (extra.icon) {
                                 <span>{{ extra.icon }}</span>
                               }
                             </span>
                             @if (extra.amount > 0 && extra.price > 0) {
-                              <span class="text-gray-500 font-medium">+{{ extra.amount * (!extra.price ? 0 : extra.price) | currency: 'EUR' }}</span>
+                              <span class="text-gray-500 font-medium"
+                                >+{{ extra.amount * (!extra.price ? 0 : extra.price) | currency: 'EUR' }}</span
+                              >
                             }
                           </div>
                         }
@@ -294,12 +383,13 @@
 
           @if (lineItems.length === 0 && combinations.length === 0) {
             <div class="h-full flex flex-col justify-center items-center text-gray-300">
-              <span class="material-symbols-outlined mb-4" style="font-size: 4rem; color: #cbd5e1;">shopping_cart</span>
-              <h3 class="font-medium text-lg text-gray-400 dark:text-gray-500">{{ 'ORDER_DIALOG.EMPTY_ORDER' | translate }}</h3>
+              <span class="material-symbols-outlined mb-4" style="font-size: 4rem; color: #cbd5e1">shopping_cart</span>
+              <h3 class="font-medium text-lg text-gray-400 dark:text-gray-500">
+                {{ 'ORDER_DIALOG.EMPTY_ORDER' | translate }}
+              </h3>
               <p class="text-sm text-gray-400 dark:text-gray-500">{{ 'ORDER_DIALOG.ADD_ITEMS' | translate }}</p>
             </div>
           }
-
         </div>
 
         <!-- Gesamtbetrag -->
@@ -310,23 +400,39 @@
               <span class="material-symbols-outlined text-[1rem] text-amber-600 dark:text-amber-400">sell</span>
               <span class="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate flex-1">
                 {{ md.name }}
-                <span class="text-gray-400 dark:text-gray-500">· {{ md.valueType === 'percent' ? md.valuePercent + ' %' : (md.valueCents / 100).toFixed(2) + ' €' }}</span>
+                <span class="text-gray-400 dark:text-gray-500"
+                  >·
+                  {{
+                    md.valueType === 'percent' ? md.valuePercent + ' %' : (md.valueCents / 100).toFixed(2) + ' €'
+                  }}</span
+                >
               </span>
-              <button type="button" (click)="clearManualDiscount()"
-                class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95">
+              <button
+                type="button"
+                (click)="clearManualDiscount()"
+                class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95"
+              >
                 <span class="material-symbols-outlined text-[1rem]">close</span>
               </button>
             </div>
           }
           <div class="flex justify-between items-center px-4 py-2.5">
-            <span class="text-[0.625rem] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ 'COMMON.TOTAL' | translate }}</span>
+            <span class="text-[0.625rem] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{
+              'COMMON.TOTAL' | translate
+            }}</span>
             @if (selectedManualDiscount()) {
               <span class="flex items-baseline gap-2">
-                <span class="text-xs font-medium text-gray-400 dark:text-gray-500 line-through">{{ calculateSumPrice() | currency: 'EUR' }}</span>
-                <span class="text-lg font-black text-gray-800 dark:text-white">{{ discountedTotal() | currency: 'EUR' }}</span>
+                <span class="text-xs font-medium text-gray-400 dark:text-gray-500 line-through">{{
+                  calculateSumPrice() | currency: 'EUR'
+                }}</span>
+                <span class="text-lg font-black text-gray-800 dark:text-white">{{
+                  discountedTotal() | currency: 'EUR'
+                }}</span>
               </span>
             } @else {
-              <span class="text-lg font-black text-gray-800 dark:text-white">{{ calculateSumPrice() | currency: 'EUR' }}</span>
+              <span class="text-lg font-black text-gray-800 dark:text-white">{{
+                calculateSumPrice() | currency: 'EUR'
+              }}</span>
             }
           </div>
         </div>
@@ -334,23 +440,29 @@
 
       <!-- SPALTE 2: Funktionstasten -->
       <div class="flex flex-col gap-1.5 shrink-0 pt-0">
-        <button (click)="unselectProduct()"
-                class="pnry-touch h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+        <button
+          (click)="unselectProduct()"
+          class="pnry-touch h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        >
           <span class="material-symbols-outlined text-[1.375rem]" style="font-size: inherit">remove_done</span>
         </button>
-        <button (click)="togglePriceVisibility()"
-                class="pnry-touch h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                [class.text-blue-500]="priceVisibility">
+        <button
+          (click)="togglePriceVisibility()"
+          class="pnry-touch h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          [class.text-blue-500]="priceVisibility"
+        >
           <span class="material-symbols-outlined text-[1.375rem]" style="font-size: inherit">euro_symbol</span>
         </button>
         <button
           class="pnry-touch h-14 w-14 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-900/50 text-red-500 dark:text-red-400 active:scale-95 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/50"
-          (click)="setDeleteSubbuttons()">
+          (click)="setDeleteSubbuttons()"
+        >
           <span class="material-symbols-outlined text-[1.375rem]" style="font-size: inherit">delete_forever</span>
         </button>
         <button
           class="pnry-touch h-14 w-14 rounded-xl bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-900/50 text-purple-600 dark:text-purple-300 active:scale-95 flex items-center justify-center hover:bg-purple-100 dark:hover:bg-purple-900/50"
-          (click)="setCombiSubButtons()">
+          (click)="setCombiSubButtons()"
+        >
           <span class="material-symbols-outlined rotate-90 text-[1.375rem]" style="font-size: inherit">merge_type</span>
         </button>
       </div>
@@ -361,11 +473,13 @@
         @if (functionButtons.length > 0) {
           <div class="flex flex-wrap items-stretch gap-2 shrink-0 px-3 pt-0 pb-3">
             @for (functionButton of functionButtons; track functionButton._id; let i = $index) {
-              <button type="button"
-                      class="pnry-touch w-[var(--pnry-tile-min,8.25rem)] h-[5.375rem] shrink-0 rounded-xl border-2 flex flex-col items-center justify-center gap-1 font-bold text-[0.625rem] tracking-wide uppercase px-2 transition-all active:scale-95"
-                      [ngClass]="functionButtonClasses(functionButton)"
-                      [attr.aria-pressed]="functionButton.pressed ?? null"
-                      (click)="functionButton.callback == undefined ? pass() : functionButton.callback()">
+              <button
+                type="button"
+                class="pnry-touch w-[var(--pnry-tile-min,8.25rem)] h-[5.375rem] shrink-0 rounded-xl border-2 flex flex-col items-center justify-center gap-1 font-bold text-[0.625rem] tracking-wide uppercase px-2 transition-all active:scale-95"
+                [ngClass]="functionButtonClasses(functionButton)"
+                [attr.aria-pressed]="functionButton.pressed ?? null"
+                (click)="functionButton.callback == undefined ? pass() : functionButton.callback()"
+              >
                 @if (functionButton.icon) {
                   <span class="material-symbols-outlined" style="font-size: 1.25rem">{{ functionButton.icon }}</span>
                 }
@@ -374,7 +488,10 @@
             }
             @if (functionBlockLabel) {
               <div class="w-px self-stretch bg-gray-200 dark:bg-gray-700 mx-1"></div>
-              <span class="self-center text-[0.625rem] tracking-widest uppercase font-semibold text-gray-400 dark:text-gray-500">{{ functionBlockLabel }}</span>
+              <span
+                class="self-center text-[0.625rem] tracking-widest uppercase font-semibold text-gray-400 dark:text-gray-500"
+                >{{ functionBlockLabel }}</span
+              >
             }
           </div>
           <div class="h-px bg-gray-200 dark:bg-gray-700 mx-3 shrink-0"></div>
@@ -383,26 +500,42 @@
         <!-- Product Buttons (scrollbar) -->
         <div class="flex-1 overflow-y-auto px-3 pt-3 pb-2 min-h-0">
           <!-- Artikel-Raster: --pnry-tile-min löst flag-off zu 8.25rem (=132px) auf und wächst im Fluid-Modus mit -->
-          <div class="grid grid-cols-[repeat(auto-fill,minmax(var(--pnry-tile-min,8.25rem),1fr))] gap-2 content-start pb-4">
+          <div
+            class="grid grid-cols-[repeat(auto-fill,minmax(var(--pnry-tile-min,8.25rem),1fr))] gap-2 content-start pb-4"
+          >
             @for (productButton of productButtons; let i = $index; track i) {
-              <button type="button"
-                      class="pnry-touch relative h-[5.375rem] bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-black dark:text-gray-200 font-semibold text-[0.625rem] uppercase px-2 py-2 flex items-center justify-center gap-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all"
-                      [style.background-color]="productButton.backgroundColor"
-                      [style.color]="productButton.fontColor"
-                      [class.ring-2]="productButton.pressed" [class.ring-gray-400]="productButton.pressed"
-                      (click)="!productButton.callback ? noActionDefined(productButton) : productButton.callback()">
-                @if (!productButton.isFunctionButton && (productButton.ui?.index != null)) {
-                  <span class="absolute -top-1.5 -left-1 bg-gray-200 text-black text-[0.5rem] font-semibold min-w-[1rem] h-[0.875rem] px-2 rounded flex items-center justify-center tracking-widest">
+              <button
+                type="button"
+                class="pnry-touch relative h-[5.375rem] bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-black dark:text-gray-200 font-semibold text-[0.625rem] uppercase px-2 py-2 flex items-center justify-center gap-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all"
+                [style.background-color]="productButton.backgroundColor"
+                [style.color]="productButton.fontColor"
+                [class.ring-2]="productButton.pressed"
+                [class.ring-gray-400]="productButton.pressed"
+                (click)="!productButton.callback ? noActionDefined(productButton) : productButton.callback()"
+              >
+                @if (!productButton.isFunctionButton && productButton.ui?.index != null) {
+                  <span
+                    class="absolute -top-1.5 -left-1 bg-gray-200 text-black text-[0.5rem] font-semibold min-w-[1rem] h-[0.875rem] px-2 rounded flex items-center justify-center tracking-widest"
+                  >
                     {{ productButton.ui?.index }}
                   </span>
                 }
                 @if (productButton.icon) {
-                  <span class="material-symbols-outlined shrink-0 text-[1rem] opacity-70">{{ productButton.icon }}</span>
+                  <span class="material-symbols-outlined shrink-0 text-[1rem] opacity-70">{{
+                    productButton.icon
+                  }}</span>
                 }
                 <span class="flex flex-col items-center min-w-0">
-                  <span class="text-center leading-tight line-clamp-2 w-full px-0.5" style="hyphens: auto; -webkit-hyphens: auto" lang="de">{{ productButton.name }}</span>
+                  <span
+                    class="text-center leading-tight line-clamp-2 w-full px-0.5"
+                    style="hyphens: auto; -webkit-hyphens: auto"
+                    lang="de"
+                    >{{ productButton.name }}</span
+                  >
                   @if (priceVisibility && !productButton.isFunctionButton) {
-                    <span class="text-[0.5625rem] text-gray-500 font-normal">{{ productButton.price | currency: 'EUR' }}</span>
+                    <span class="text-[0.5625rem] text-gray-500 font-normal">{{
+                      productButton.price | currency: 'EUR'
+                    }}</span>
                   }
                 </span>
               </button>
@@ -417,7 +550,9 @@
       <!-- ── Links: Funktionstasten ── -->
       <button
         class="pnry-touch h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-        (click)="setAsStaffMealOrder()" [disabled]="disableStaffMealButton">
+        (click)="setAsStaffMealOrder()"
+        [disabled]="disableStaffMealButton"
+      >
         <span class="material-symbols-outlined !text-[1.375rem]">local_dining</span>
       </button>
       <button
@@ -429,29 +564,38 @@
         [class.cursor-not-allowed]="isStandaloneMode()"
         [class.hover:bg-gray-100]="!isStandaloneMode()"
         [class.dark:hover:bg-gray-700]="!isStandaloneMode()"
-        (click)="isStandaloneMode() ? null : setCustomerSubButtons()" [disabled]="disableCustomerButton || isStandaloneMode()">
+        (click)="isStandaloneMode() ? null : setCustomerSubButtons()"
+        [disabled]="disableCustomerButton || isStandaloneMode()"
+      >
         <span class="material-symbols-outlined text-[1.375rem]" style="font-size: inherit">apartment</span>
         @if (isStandaloneMode()) {
-          <div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[0.625rem] px-2.5 py-1.5
-                      rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 group-active:opacity-100
-                      transition-opacity pointer-events-none shadow-lg z-50">
+          <div
+            class="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[0.625rem] px-2.5 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity pointer-events-none shadow-lg z-50"
+          >
             {{ 'ORDER_DIALOG.ENTERPRISE_ONLY' | translate }}
           </div>
         }
       </button>
       <button
         class="pnry-touch h-14 w-14 shrink-0 rounded-xl border active:scale-95 flex items-center justify-center transition-colors"
-        [ngClass]="selectedManualDiscount()
-          ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-300'
-          : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'"
-        (click)="openDiscountPicker()" aria-label="Rabatt wählen">
+        [ngClass]="
+          selectedManualDiscount()
+            ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-300'
+            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+        "
+        (click)="openDiscountPicker()"
+        aria-label="Rabatt wählen"
+      >
         <span class="material-symbols-outlined !text-[1.375rem]">sell</span>
       </button>
       <button
         class="pnry-touch-primary h-14 w-32 shrink-0 rounded-xl bg-yellow-400 text-gray-900 font-bold shadow-sm transition-transform text-xs group overflow-hidden active:scale-[0.92] flex items-center justify-center gap-1.5"
-        (click)="setTaxRateSubbuttons()">
+        (click)="setTaxRateSubbuttons()"
+      >
         <span>{{ 'ORDER_DIALOG.ORDER' | translate }}</span>
-        <span class="material-symbols-outlined !text-[1.125rem] transition-transform duration-300 ease-out group-hover:translate-x-1 group-active:scale-125">
+        <span
+          class="material-symbols-outlined !text-[1.125rem] transition-transform duration-300 ease-out group-hover:translate-x-1 group-active:scale-125"
+        >
           arrow_forward
         </span>
       </button>
@@ -462,7 +606,8 @@
       <!-- ── Rechts: Multiplier + Numpad ── -->
       <div
         class="h-14 w-40 shrink-0 rounded-xl bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer flex flex-col justify-center gap-0.5 px-3 overflow-hidden"
-        (click)="applyProductSearch()">
+        (click)="applyProductSearch()"
+      >
         <span class="text-[0.5rem] text-gray-400 font-bold uppercase tracking-wider leading-none">Multiplier</span>
         <div class="flex items-center justify-start gap-1.5">
           <span class="font-bold text-lg text-gray-800 dark:text-white shrink-0 leading-tight">{{ multiplier }}</span>
@@ -476,13 +621,15 @@
         @for (number of numbers; track number) {
           <button
             class="pnry-touch h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-bold text-lg text-black dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
-            (click)="numpadAction(number)">
+            (click)="numpadAction(number)"
+          >
             {{ number }}
           </button>
         }
         <button
           class="pnry-touch h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-bold text-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-colors flex items-center justify-center"
-          (click)="numpadReset()">
+          (click)="numpadReset()"
+        >
           C
         </button>
       </div>
@@ -491,12 +638,14 @@
       <div class="lg:hidden flex gap-1.5">
         <button
           class="pnry-touch h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-bold text-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-colors flex items-center justify-center"
-          (click)="numpadReset()">
+          (click)="numpadReset()"
+        >
           C
         </button>
         <button
           class="h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-bold text-lg text-black dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
-          (click)="showNumpadPopup = !showNumpadPopup">
+          (click)="showNumpadPopup = !showNumpadPopup"
+        >
           <span class="material-symbols-outlined !text-[1.375rem]">dialpad</span>
         </button>
       </div>
@@ -505,51 +654,62 @@
         <!-- Backdrop -->
         <div class="fixed inset-0 z-40" (click)="showNumpadPopup = false"></div>
         <!-- Popup: mittig über dem Multiplier -->
-        <div class="fixed z-50 w-[12.25rem]"
-             style="bottom: 7rem; right: 6.25rem;">
+        <div class="fixed z-50 w-[12.25rem]" style="bottom: 7rem; right: 6.25rem">
           <div class="bg-white dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-700 p-2.5 relative">
             <!-- Pfeil nach unten -->
-            <div class="absolute -bottom-[0.4375rem] left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white dark:bg-gray-950 border-r border-b border-gray-200 dark:border-gray-700 rotate-45"></div>
+            <div
+              class="absolute -bottom-[0.4375rem] left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white dark:bg-gray-950 border-r border-b border-gray-200 dark:border-gray-700 rotate-45"
+            ></div>
             <div class="grid grid-cols-3 gap-1.5">
-              @for (number of [1,2,3,4,5,6,7,8,9]; track number) {
+              @for (number of [1, 2, 3, 4, 5, 6, 7, 8, 9]; track number) {
                 <button
                   class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-lg text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
-                  (click)="numpadAction(number)">
+                  (click)="numpadAction(number)"
+                >
                   {{ number }}
                 </button>
               }
               <button
                 class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-colors flex items-center justify-center"
-                (click)="numpadReset()">
+                (click)="numpadReset()"
+              >
                 C
               </button>
               <button
                 class="w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-lg text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
-                (click)="numpadAction(0)">
+                (click)="numpadAction(0)"
+              >
                 0
               </button>
               <button
                 class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
-                (click)="showNumpadPopup = false">
+                (click)="showNumpadPopup = false"
+              >
                 <span class="material-symbols-outlined !text-[1.25rem]">check</span>
               </button>
             </div>
           </div>
         </div>
-        }
+      }
     </div>
 
     <!-- Customer Filter / Selection -->
     @if (corporateCustomers.length > 0) {
-      <div class="pt-2 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 rounded-t-2xl p-4 shadow-lg mx-2">
+      <div
+        class="pt-2 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 rounded-t-2xl p-4 shadow-lg mx-2"
+      >
         <div class="flex gap-2 overflow-x-auto pb-2 noscroll">
           @for (character of characters; track character) {
-            <button class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold shrink-0"
-                    (click)="applyCharacterFilter(character)">
+            <button
+              class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold shrink-0"
+              (click)="applyCharacterFilter(character)"
+            >
               {{ character }}
             </button>
           }
-          <button class="px-3 h-8 rounded-full bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 text-xs font-bold shrink-0 hover:bg-red-100 dark:hover:bg-red-900/50">
+          <button
+            class="px-3 h-8 rounded-full bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 text-xs font-bold shrink-0 hover:bg-red-100 dark:hover:bg-red-900/50"
+          >
             Reset
           </button>
         </div>
@@ -557,41 +717,78 @@
           @for (customer of corporateCustomers; track customer) {
             <button
               class="h-12 px-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium text-left truncate hover:bg-white dark:hover:bg-gray-700 hover:shadow-sm"
-              (click)="setCustomer(customer)">
+              (click)="setCustomer(customer)"
+            >
               {{ customer.name1 }}
             </button>
           }
         </div>
         <div class="flex items-center justify-center gap-2 mt-2">
-          <button class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center text-sm font-bold transition-colors">←</button>
+          <button
+            class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center text-sm font-bold transition-colors"
+          >
+            ←
+          </button>
           <span class="text-xs text-gray-500">Seite 1 / 1</span>
-          <button class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center text-sm font-bold transition-colors">→</button>
+          <button
+            class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center text-sm font-bold transition-colors"
+          >
+            →
+          </button>
         </div>
       </div>
     }
   </div>
   <!-- Blocking Overlay -->
   @if (showDineLocationSelection) {
-    <div class="absolute inset-0 z-[60] bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-8"
-         (click)="showDineLocationSelection = false">
-      <div (click)="$event.stopPropagation()"
-           class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-6 flex flex-row gap-4 items-center justify-center">
-        <button (click)="selectDineLocation('INSIDE')"
-                class="flex flex-col items-center justify-center w-32 h-24 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-800 dark:hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-700 active:scale-95 transition-all group">
-          <span class="material-symbols-outlined mb-1.5 text-gray-400 group-hover:text-gray-900 transition-colors text-[2rem]">restaurant</span>
-          <span class="text-sm font-semibold text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">Im Haus</span>
+    <div
+      class="absolute inset-0 z-[60] bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-8"
+      (click)="showDineLocationSelection = false"
+    >
+      <div
+        (click)="$event.stopPropagation()"
+        class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-6 flex flex-row gap-4 items-center justify-center"
+      >
+        <button
+          (click)="selectDineLocation('INSIDE')"
+          class="flex flex-col items-center justify-center w-32 h-24 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-800 dark:hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-700 active:scale-95 transition-all group"
+        >
+          <span
+            class="material-symbols-outlined mb-1.5 text-gray-400 group-hover:text-gray-900 transition-colors text-[2rem]"
+            >restaurant</span
+          >
+          <span
+            class="text-sm font-semibold text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white"
+            >Im Haus</span
+          >
         </button>
 
-        <button (click)="selectDineLocation('OUTSIDE')"
-                class="flex flex-col items-center justify-center w-32 h-24 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-800 dark:hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-700 active:scale-95 transition-all group">
-          <span class="material-symbols-outlined mb-1.5 text-gray-400 group-hover:text-gray-900 transition-colors text-[2rem]">local_mall</span>
-          <span class="text-sm font-semibold text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">Außer Haus</span>
+        <button
+          (click)="selectDineLocation('OUTSIDE')"
+          class="flex flex-col items-center justify-center w-32 h-24 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-800 dark:hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-700 active:scale-95 transition-all group"
+        >
+          <span
+            class="material-symbols-outlined mb-1.5 text-gray-400 group-hover:text-gray-900 transition-colors text-[2rem]"
+            >local_mall</span
+          >
+          <span
+            class="text-sm font-semibold text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white"
+            >Außer Haus</span
+          >
         </button>
 
-        <button (click)="openPreOrderDialog()"
-                class="flex flex-col items-center justify-center w-32 h-24 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-800 dark:hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-700 active:scale-95 transition-all group">
-          <span class="material-symbols-outlined mb-1.5 text-gray-400 group-hover:text-gray-900 transition-colors text-[2rem]">event</span>
-          <span class="text-sm font-semibold text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">{{ 'PRE_ORDERS.TITLE' | translate }}</span>
+        <button
+          (click)="openPreOrderDialog()"
+          class="flex flex-col items-center justify-center w-32 h-24 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-800 dark:hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-700 active:scale-95 transition-all group"
+        >
+          <span
+            class="material-symbols-outlined mb-1.5 text-gray-400 group-hover:text-gray-900 transition-colors text-[2rem]"
+            >event</span
+          >
+          <span
+            class="text-sm font-semibold text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white"
+            >{{ 'PRE_ORDERS.TITLE' | translate }}</span
+          >
         </button>
       </div>
     </div>
@@ -601,18 +798,24 @@
     <!-- Admin Mode Overlay -->
     @if (data?.mode === 'admin') {
       <div class="absolute inset-0 z-50 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center p-8">
-        <div class="bg-white dark:bg-gray-950 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-8 max-w-lg w-full text-center">
+        <div
+          class="bg-white dark:bg-gray-950 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-8 max-w-lg w-full text-center"
+        >
           <div class="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <span class="material-symbols-outlined text-gray-500" style="font-size: 2rem">block</span>
           </div>
-          <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-2">{{ 'ORDER_DIALOG.ORDER_NOT_POSSIBLE' | translate }}</h2>
+          <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-2">
+            {{ 'ORDER_DIALOG.ORDER_NOT_POSSIBLE' | translate }}
+          </h2>
           <p class="text-gray-600 dark:text-gray-400 mb-8 leading-relaxed text-sm">
             {{ blockingReason }}
           </p>
           <div class="flex justify-center">
             <!-- TODO: appButton-Direktive nach Migration einbinden (@panary/shared/directives) -->
-            <button class="h-12 px-8 rounded-xl bg-gray-800 text-white font-bold hover:bg-gray-700 active:scale-95 transition-all"
-                    (click)="dialogClose()">
+            <button
+              class="h-12 px-8 rounded-xl bg-gray-800 text-white font-bold hover:bg-gray-700 active:scale-95 transition-all"
+              (click)="dialogClose()"
+            >
               Schließen
             </button>
           </div>
@@ -625,11 +828,16 @@
           <div class="h-20 w-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <span class="material-symbols-outlined text-red-500" style="font-size: 2.5rem">block</span>
           </div>
-          <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">{{ 'ORDER_DIALOG.ORDER_NOT_POSSIBLE' | translate }}</h2>
+          <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+            {{ 'ORDER_DIALOG.ORDER_NOT_POSSIBLE' | translate }}
+          </h2>
           <p class="text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
             {{ blockingReason }}
           </p>
-          <button class="h-12 rounded-xl text-lg px-8 bg-red-500 text-white font-bold hover:bg-red-600 transition" (click)="dialogClose()">
+          <button
+            class="h-12 rounded-xl text-lg px-8 bg-red-500 text-white font-bold hover:bg-red-600 transition"
+            (click)="dialogClose()"
+          >
             Schließen
           </button>
         </div>

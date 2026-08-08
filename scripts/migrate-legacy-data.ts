@@ -532,7 +532,8 @@ async function migrateProducts(): Promise<void> {
     const optionGroups = buildProductOptionGroups(article)
 
     // Menü-Beilagen und Menü-Getränke: hideOnMainScreen
-    const isMenuComponent = article.isMenuDrink === true || article.isMenuSideDish === true || article.isMenuSideDishSouce === true
+    const isMenuComponent =
+      article.isMenuDrink === true || article.isMenuSideDish === true || article.isMenuSideDishSouce === true
 
     await db('products').insert({
       _id: newId,
@@ -628,7 +629,11 @@ async function main(): Promise<void> {
     const existingProducts = await db('products').where({ tenantId: DEV_TENANT_ID }).count('* as count').first()
     const existingIngredients = await db('ingredients').where({ tenantId: DEV_TENANT_ID }).count('* as count').first()
 
-    if ((existingGroups?.count as number) > 0 || (existingProducts?.count as number) > 0 || (existingIngredients?.count as number) > 0) {
+    if (
+      (existingGroups?.count as number) > 0 ||
+      (existingProducts?.count as number) > 0 ||
+      (existingIngredients?.count as number) > 0
+    ) {
       console.log('\n⚠ Es existieren bereits Daten für diesen Tenant.')
       console.log('  Lösche bestehende Daten...')
       await db('products').where({ tenantId: DEV_TENANT_ID }).delete()

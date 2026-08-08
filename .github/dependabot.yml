@@ -1,12 +1,12 @@
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "06:00"
-      timezone: "Europe/Berlin"
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Europe/Berlin'
     # Supply-Chain-Härtung: 7 Tage Karenz, bevor frisch veröffentlichte
     # Versionen vorgeschlagen werden — kompromittierte Pakete werden meist
     # innerhalb dieser Frist entdeckt.
@@ -14,62 +14,62 @@ updates:
       default-days: 7
     open-pull-requests-limit: 5
     labels:
-      - "dependencies"
+      - 'dependencies'
     groups:
       nx:
         patterns:
-          - "nx"
-          - "@nx/*"
+          - 'nx'
+          - '@nx/*'
       angular:
         patterns:
-          - "@angular/*"
-          - "@angular-devkit/*"
-          - "@schematics/angular"
-          - "angular-eslint"
+          - '@angular/*'
+          - '@angular-devkit/*'
+          - '@schematics/angular'
+          - 'angular-eslint'
       feathersjs:
         patterns:
-          - "@feathersjs/*"
-          - "feathers-*"
+          - '@feathersjs/*'
+          - 'feathers-*'
       eslint:
         patterns:
-          - "eslint"
-          - "@typescript-eslint/*"
-          - "eslint-*"
-          - "@eslint/*"
+          - 'eslint'
+          - '@typescript-eslint/*'
+          - 'eslint-*'
+          - '@eslint/*'
       typescript:
         patterns:
-          - "typescript"
-          - "@types/*"
+          - 'typescript'
+          - '@types/*'
       vitest:
         patterns:
-          - "vitest"
-          - "@vitest/*"
+          - 'vitest'
+          - '@vitest/*'
       tauri:
         patterns:
-          - "@tauri-apps/*"
+          - '@tauri-apps/*'
     ignore:
       # Major-Bumps sind koordinierte Migrationen — nie automatisch
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "monthly"
+      interval: 'monthly'
     cooldown:
       default-days: 7
     open-pull-requests-limit: 3
     labels:
-      - "dependencies"
-      - "ci"
+      - 'dependencies'
+      - 'ci'
 
-  - package-ecosystem: "cargo"
-    directory: "/apps/pos-client/src-tauri"
+  - package-ecosystem: 'cargo'
+    directory: '/apps/pos-client/src-tauri'
     schedule:
-      interval: "monthly"
+      interval: 'monthly'
     cooldown:
       default-days: 7
     open-pull-requests-limit: 3
     labels:
-      - "dependencies"
-      - "tauri"
+      - 'dependencies'
+      - 'tauri'

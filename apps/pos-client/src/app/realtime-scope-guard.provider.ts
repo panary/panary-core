@@ -1,9 +1,5 @@
 import { inject, Provider } from '@angular/core'
-import {
-  REALTIME_SCOPE_GUARD,
-  RealtimeScopeGuard,
-  matchesRealtimeScope,
-} from '@panary/shared/data-access'
+import { REALTIME_SCOPE_GUARD, RealtimeScopeGuard, matchesRealtimeScope } from '@panary/shared/data-access'
 import { DeviceConfigService } from '@panary/shared/data-access-config'
 
 /**

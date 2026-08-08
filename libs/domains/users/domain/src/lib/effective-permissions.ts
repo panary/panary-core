@@ -26,8 +26,7 @@ export interface ParsedGrant {
 }
 
 /** Baut einen Grant-String aus Ressource + Aktion. */
-export const makeGrant = (resource: AppResource, action: AppAction): string =>
-  `${GRANT_PREFIX}${resource}:${action}`
+export const makeGrant = (resource: AppResource, action: AppAction): string => `${GRANT_PREFIX}${resource}:${action}`
 
 /**
  * Parst `grant:<resource>:<action>`. Ressourcen dürfen `/` enthalten (z. B.
@@ -71,7 +70,7 @@ export const hasEffectivePermission = (
   resource: string,
   action: AppAction,
 ): boolean => {
-  const roleRules = role ? RolePermissions[role] ?? [] : []
+  const roleRules = role ? (RolePermissions[role] ?? []) : []
   if (roleRules.some(rule => roleRuleMatches(rule, resource, action))) return true
   if (!userPermissions) return false
   for (const raw of userPermissions) {
@@ -94,7 +93,7 @@ export const hasEffectiveAbility = (
   userPermissions: readonly string[] | undefined,
   ability: AppAbility,
 ): boolean => {
-  const roleRules = role ? RolePermissions[role] ?? [] : []
+  const roleRules = role ? (RolePermissions[role] ?? []) : []
   if (roleRules.some(rule => rule === ability)) return true
   return userPermissions?.includes(ability) ?? false
 }

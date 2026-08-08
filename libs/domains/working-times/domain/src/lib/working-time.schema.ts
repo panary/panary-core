@@ -46,10 +46,7 @@ export type WorkingTime = Static<typeof workingTimeSchema>
 // (FormControl), nicht das Sync-Schema — konsistent zu `order.schema.ts`
 // und robust gegen künftige Schema-Erweiterungen.
 export const workingTimeDataSchema = Type.Intersect(
-  [
-    Type.Object({ _id: Type.Optional(Type.String()) }),
-    Type.Partial(workingTimeSchema),
-  ],
+  [Type.Object({ _id: Type.Optional(Type.String()) }), Type.Partial(workingTimeSchema)],
   { $id: 'WorkingTimeData', additionalProperties: false },
 )
 export type WorkingTimeData = Static<typeof workingTimeDataSchema>
@@ -75,10 +72,7 @@ export const workingTimeQueryProperties = Type.Pick(workingTimeSchema, [
   'createdAt',
 ])
 export const workingTimeQuerySchema = Type.Intersect(
-  [
-    querySyntax(workingTimeQueryProperties),
-    Type.Object({}, { additionalProperties: false }),
-  ],
+  [querySyntax(workingTimeQueryProperties), Type.Object({}, { additionalProperties: false })],
   { additionalProperties: false },
 )
 export type WorkingTimeQuery = Static<typeof workingTimeQuerySchema>

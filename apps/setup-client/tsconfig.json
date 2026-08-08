@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noPropertyAccessFromIndexSignature": true,
-    "experimentalDecorators": true,
+    "experimentalDecorators": true
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

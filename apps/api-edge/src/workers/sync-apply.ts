@@ -16,7 +16,13 @@
 // Pull-Seite statt einem `get().catch(() => null)` pro Record. Bei einer
 // vollen 500er-Seite spart das 499 Feathers-Roundtrips (inkl. Hook-Chains).
 import { logger } from '@panary/shared-backend'
-import { SyncOp, type SyncPullResponse, type SyncRunRecordDetail, SyncRunRecordStatus } from '@panary/sync/domain'
+import {
+  rateLimitDelayMs,
+  SyncOp,
+  type SyncPullResponse,
+  type SyncRunRecordDetail,
+  SyncRunRecordStatus,
+} from '@panary/sync/domain'
 import { stripUserEdgeLocalFields } from '@panary/users/domain'
 
 import type { Application } from '../declarations'
@@ -48,6 +54,56 @@ export const cloudFetch = async (
     },
     signal: AbortSignal.timeout(timeoutMs),
   })
+}
+
+/**
+ * Marker-Error fuer ein Rueckstau-Signal der Cloud (HTTP 429).
+ *
+ * Er trennt „die Cloud hat mich gedrosselt" von „der Call ist gescheitert" —
+ * eine Unterscheidung, die es vorher nicht gab und deren Fehlen den teuersten
+ * Weg nahm: `runHeartbeatPhase` zaehlte den 429 als Fehlversuch, und drei davon
+ * aktivieren den Notfall-Modus der GESAMTEN Edge. Ein Rate-Limit der Cloud
+ * konnte damit den Kunden lahmlegen, den es schuetzen soll.
+ *
+ * `retryAfterMs` ist bereits ausgewertet und geklemmt (siehe
+ * `rateLimitDelayMs`); Aufrufer rechnen nicht selbst am Header.
+ * Entscheidung: `docs/adr/0019-edge-429-rueckstau-behandlung.md`.
+ */
+export class CloudRateLimitedError extends Error {
+  override readonly name = 'CloudRateLimitedError'
+  constructor(
+    public readonly phase: string,
+    public readonly retryAfterMs: number,
+    public readonly retryAfterHeader: string | null,
+  ) {
+    super(`Cloud-Rate-Limit (429) in Phase ${phase} — naechster Versuch in ${Math.round(retryAfterMs / 1000)}s`)
+  }
+}
+
+/**
+ * Wirft `CloudRateLimitedError`, wenn die Cloud mit 429 geantwortet hat — sonst
+ * no-op. An JEDER Cloud-Call-Site VOR der bestehenden `!response.ok`-Behandlung
+ * aufrufen; alle anderen Statuscodes bleiben dadurch unveraendert.
+ *
+ * Die eine Logzeile entsteht hier, an der Quelle: `sync.rate_limited` traegt
+ * Phase, Roh-Header und ausgewertete Wartezeit. Aufrufer duerfen den 429 NICHT
+ * erneut loggen (die Phasen-Wrapper unterdruecken ihre generischen
+ * `*.worker_exception`-Warns fuer diesen Error-Typ) — sonst steht derselbe
+ * Vorgang bis zu dreimal im Terminal.
+ */
+export const throwIfRateLimited = (response: Response, phase: string, nowMs: number = Date.now()): void => {
+  if (response.status !== 429) return
+  const header = response.headers.get('retry-after')
+  const retryAfterMs = rateLimitDelayMs(header, nowMs)
+  logger.warn({
+    message: `Cloud drosselt (429) in Phase ${phase} — Wiederholung in ${Math.round(retryAfterMs / 1000)}s`,
+    event: 'sync.rate_limited',
+    phase,
+    status: 429,
+    retryAfterHeader: header,
+    retryAfterMs,
+  })
+  throw new CloudRateLimitedError(phase, retryAfterMs, header)
 }
 
 export interface AjvValidationErrorDetail {
@@ -97,6 +153,7 @@ export const pullMasterDataPage = async (
     method: 'GET',
     timeoutMs,
   })
+  throwIfRateLimited(response, `pull:${service}`)
   if (!response.ok) {
     const text = await response.text().catch(() => 'Unbekannter Fehler')
     throw new Error(`Pull fuer ${service} fehlgeschlagen: ${response.status} ${text}`)

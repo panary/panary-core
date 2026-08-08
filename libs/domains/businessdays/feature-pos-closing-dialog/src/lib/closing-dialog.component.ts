@@ -34,22 +34,21 @@ type DialogPhase = 'input' | 'submitting' | 'submitted' | 'failed'
       @if (phase() === 'input') {
         @if (isPosCashier()) {
           <p>
-            Die Kassen werden separat pro Kassierer gezählt und geschlossen. Der Tagesabschluss
-            aggregiert alle Kassen in der Cloud. Bitte stellen Sie sicher, dass alle Kassen
-            geschlossen sind, und bestätigen Sie den Abschluss.
+            Die Kassen werden separat pro Kassierer gezählt und geschlossen. Der Tagesabschluss aggregiert alle Kassen
+            in der Cloud. Bitte stellen Sie sicher, dass alle Kassen geschlossen sind, und bestätigen Sie den Abschluss.
           </p>
         } @else {
           <p>
-            Bestellsystem-Modus — kein Kassen-Count nötig. Bestätigen Sie den Tagesabschluss
-            und der Cloud-Report wird im Hintergrund erstellt.
+            Bestellsystem-Modus — kein Kassen-Count nötig. Bestätigen Sie den Tagesabschluss und der Cloud-Report wird
+            im Hintergrund erstellt.
           </p>
         }
       } @else if (phase() === 'submitting') {
         <p>Tagesabschluss wird ausgelöst…</p>
       } @else if (phase() === 'submitted') {
         <p>
-          Tagesabschluss wurde an die Cloud übermittelt. Der finale Report kann im
-          Admin-Dashboard unter „Tagesabschluss" eingesehen werden.
+          Tagesabschluss wurde an die Cloud übermittelt. Der finale Report kann im Admin-Dashboard unter
+          „Tagesabschluss" eingesehen werden.
         </p>
       } @else if (phase() === 'failed') {
         <div class="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-xl">

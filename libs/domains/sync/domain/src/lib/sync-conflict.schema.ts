@@ -14,8 +14,7 @@ export const SyncConflictResolution = {
   DISCARD: 'discard',
 } as const
 
-export type SyncConflictResolution =
-  (typeof SyncConflictResolution)[keyof typeof SyncConflictResolution]
+export type SyncConflictResolution = (typeof SyncConflictResolution)[keyof typeof SyncConflictResolution]
 
 export const SyncConflictReason = {
   // Bootstrap-Konflikte (Cloud-Pull):
@@ -94,10 +93,7 @@ export const syncConflictQueryProperties = Type.Pick(syncConflictSchema, [
 ])
 
 export const syncConflictQuerySchema = Type.Intersect(
-  [
-    querySyntax(syncConflictQueryProperties),
-    Type.Object({}, { additionalProperties: false }),
-  ],
+  [querySyntax(syncConflictQueryProperties), Type.Object({}, { additionalProperties: false })],
   { additionalProperties: false },
 )
 

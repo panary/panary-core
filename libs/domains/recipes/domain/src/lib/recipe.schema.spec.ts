@@ -37,11 +37,6 @@ describe('recipeSchema', () => {
 
 describe('RECIPE_VERSION_FIELDS', () => {
   it('enthält die strukturellen + preisbildenden Felder', () => {
-    expect([...RECIPE_VERSION_FIELDS]).toEqual([
-      'baseUnit',
-      'baseQuantity',
-      'priceAdjustment',
-      'ingredients',
-    ])
+    expect([...RECIPE_VERSION_FIELDS]).toEqual(['baseUnit', 'baseQuantity', 'priceAdjustment', 'ingredients'])
   })
 })

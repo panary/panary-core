@@ -113,10 +113,7 @@ export async function computeCapacity(args: CapacityArgs, app: MinimalApp): Prom
   const slots = unwrap<SlotLike>(slotsResp)
   const slotAvailability: SlotAvailability[] = slots.map(s => ({
     slotId: s._id,
-    remaining: Math.max(
-      0,
-      s.maxConcurrentReservations - reservations.filter(r => r.reservedSlotId === s._id).length,
-    ),
+    remaining: Math.max(0, s.maxConcurrentReservations - reservations.filter(r => r.reservedSlotId === s._id).length),
   }))
 
   return { totalSeats, reservedSeats, availableSeats, slotAvailability }

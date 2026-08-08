@@ -127,16 +127,28 @@ describe('isWithinRecurringWindow', () => {
     expect(isWithinRecurringWindow(makeDiscount(), wed18)).toBe(true)
   })
   it('Happy Hour Mo-Fr 17-19 → Mi 18:00 greift', () => {
-    const d = makeDiscount({ recurringWeekdays: [1, 2, 3, 4, 5], recurringStartTime: '17:00', recurringEndTime: '19:00' })
+    const d = makeDiscount({
+      recurringWeekdays: [1, 2, 3, 4, 5],
+      recurringStartTime: '17:00',
+      recurringEndTime: '19:00',
+    })
     expect(isWithinRecurringWindow(d, wed18)).toBe(true)
   })
   it('außerhalb der Uhrzeit → false', () => {
-    const d = makeDiscount({ recurringWeekdays: [1, 2, 3, 4, 5], recurringStartTime: '11:00', recurringEndTime: '14:00' })
+    const d = makeDiscount({
+      recurringWeekdays: [1, 2, 3, 4, 5],
+      recurringStartTime: '11:00',
+      recurringEndTime: '14:00',
+    })
     expect(isWithinRecurringWindow(d, wed18)).toBe(false)
   })
   it('falscher Wochentag → false', () => {
     const sun = new Date('2026-05-24T18:00:00') // Sonntag (0)
-    const d = makeDiscount({ recurringWeekdays: [1, 2, 3, 4, 5], recurringStartTime: '17:00', recurringEndTime: '19:00' })
+    const d = makeDiscount({
+      recurringWeekdays: [1, 2, 3, 4, 5],
+      recurringStartTime: '17:00',
+      recurringEndTime: '19:00',
+    })
     expect(isWithinRecurringWindow(d, sun)).toBe(false)
   })
 })
@@ -232,9 +244,7 @@ describe('evaluateCodeRedeemability', () => {
   it('limit_reached anhand des autoritativen redemptionCount (nicht usageCount-Cache)', () => {
     const code = makeCode({ usageLimit: 3, usageCount: 0 })
     // Cache sagt 0, aber das append-only-Log zählt 3 → Limit erreicht.
-    expect(evaluateCodeRedeemability(code, active, { redemptionCount: 3 }).reason).toBe(
-      CodeRedeemReason.LIMIT_REACHED,
-    )
+    expect(evaluateCodeRedeemability(code, active, { redemptionCount: 3 }).reason).toBe(CodeRedeemReason.LIMIT_REACHED)
     expect(evaluateCodeRedeemability(code, active, { redemptionCount: 2 }).ok).toBe(true)
   })
   it('wrong_customer bei kundengebundenem Code', () => {

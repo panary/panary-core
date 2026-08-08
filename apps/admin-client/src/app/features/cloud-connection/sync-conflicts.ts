@@ -92,8 +92,7 @@ const problemText = (row: SyncOutboxRow): string => {
     return 'Diese Daten werden zentral in der Online-Datenbank gepflegt und nicht von hier aus hochgeladen.'
   if (err.includes('additionalProperties')) return 'Daten-Format wird von der Cloud nicht akzeptiert'
   if (err.includes('validation failed')) return 'Daten-Format wird von der Cloud nicht akzeptiert'
-  if (err.includes('fetch failed') || err.includes('ECONNREFUSED'))
-    return 'Cloud zeitweise nicht erreichbar'
+  if (err.includes('fetch failed') || err.includes('ECONNREFUSED')) return 'Cloud zeitweise nicht erreichbar'
   if (err.includes('No record found')) return 'Cloud-Datensatz nicht (mehr) vorhanden'
   return err.length > 100 ? err.slice(0, 98) + '…' : err || 'Nicht hochgeladen'
 }
@@ -158,9 +157,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
 
       @if (loading()) {
         <div class="flex items-center gap-3 py-12 justify-center">
-          <span
-            class="w-5 h-5 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin"
-          ></span>
+          <span class="w-5 h-5 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin"></span>
           <span class="text-slate-400 text-sm">Lade Sync-Status …</span>
         </div>
       } @else if (filteredItems().length === 0) {
@@ -175,18 +172,22 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
         <!-- In Wiederholung (transiente Rejects im Backoff) -->
         @if (showRetrying()) {
           @for (row of retryingRows(); track row._id) {
-            <article class="bg-white dark:bg-gray-900 border border-amber-200 dark:border-amber-900/50 rounded-xl p-4 space-y-2">
+            <article
+              class="bg-white dark:bg-gray-900 border border-amber-200 dark:border-amber-900/50 rounded-xl p-4 space-y-2"
+            >
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <span class="text-xs uppercase tracking-wider text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-300 px-2 py-0.5 rounded">
+                  <span
+                    class="text-xs uppercase tracking-wider text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-300 px-2 py-0.5 rounded"
+                  >
                     In Wiederholung
                   </span>
-                  <span class="text-sm font-medium">
-                    {{ labelForServiceX(row.service) }} {{ opLabel(row.op) }}
-                  </span>
+                  <span class="text-sm font-medium"> {{ labelForServiceX(row.service) }} {{ opLabel(row.op) }} </span>
                   <span class="text-xs font-mono text-slate-400">{{ row.entityId.slice(0, 8) }}…</span>
                 </div>
-                <span class="text-xs text-slate-400">Versuch {{ row.attempts }}/10 · nächster: {{ formatDate(row.nextAttemptAt) }}</span>
+                <span class="text-xs text-slate-400"
+                  >Versuch {{ row.attempts }}/10 · nächster: {{ formatDate(row.nextAttemptAt) }}</span
+                >
               </div>
 
               <p class="text-sm text-slate-600 dark:text-gray-300">{{ problemDescription(row) }}</p>
@@ -196,7 +197,10 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                   <summary class="cursor-pointer text-slate-500 hover:text-slate-900">
                     Technische Details ({{ row.attempts }} Versuche)
                   </summary>
-                  <pre class="mt-2 font-mono text-[11px] bg-slate-50 dark:bg-gray-950 rounded p-2 overflow-auto whitespace-pre-wrap break-all">{{ row.lastError }}</pre>
+                  <pre
+                    class="mt-2 font-mono text-[11px] bg-slate-50 dark:bg-gray-950 rounded p-2 overflow-auto whitespace-pre-wrap break-all"
+                    >{{ row.lastError }}</pre
+                  >
                 </details>
               }
 
@@ -227,15 +231,17 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
         <!-- Rejected Outbox (Nicht hochgeladen) -->
         @if (showRejected()) {
           @for (row of rejectedRows(); track row._id) {
-            <article class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-2">
+            <article
+              class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-2"
+            >
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <span class="text-xs uppercase tracking-wider text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-300 px-2 py-0.5 rounded">
+                  <span
+                    class="text-xs uppercase tracking-wider text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-300 px-2 py-0.5 rounded"
+                  >
                     Nicht hochgeladen
                   </span>
-                  <span class="text-sm font-medium">
-                    {{ labelForServiceX(row.service) }} {{ opLabel(row.op) }}
-                  </span>
+                  <span class="text-sm font-medium"> {{ labelForServiceX(row.service) }} {{ opLabel(row.op) }} </span>
                   <span class="text-xs font-mono text-slate-400">{{ row.entityId.slice(0, 8) }}…</span>
                 </div>
                 <span class="text-xs text-slate-400">{{ formatDate(row.terminalAt ?? row.occurredAt) }}</span>
@@ -249,15 +255,16 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                      „Erneut versuchen" hier nie helfen wird — die Cloud lehnt
                      die Daten grundsaetzlich ab, da sie zentral verwaltet
                      werden. Verwerfen ist die richtige Aktion. -->
-                <div class="flex gap-3 text-xs bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-md p-3">
+                <div
+                  class="flex gap-3 text-xs bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-md p-3"
+                >
                   <span class="text-amber-700 dark:text-amber-300 text-base leading-none">ⓘ</span>
                   <div class="space-y-1 text-amber-900 dark:text-amber-100">
                     <p class="font-medium">Das ist kein Fehler — sondern eine Sicherheitsregel.</p>
                     <p>
-                      Bestimmte Datentypen (z.B. <strong>Inhaber-Konten</strong>) werden
-                      ausschliesslich im Online-Admin-Bereich gepflegt — nicht von hier
-                      aus. Anpassungen bitte direkt im Cloud-Admin durchfuehren. Diesen
-                      Eintrag kannst du gefahrlos verwerfen — er bleibt lokal erhalten.
+                      Bestimmte Datentypen (z.B. <strong>Inhaber-Konten</strong>) werden ausschliesslich im
+                      Online-Admin-Bereich gepflegt — nicht von hier aus. Anpassungen bitte direkt im Cloud-Admin
+                      durchfuehren. Diesen Eintrag kannst du gefahrlos verwerfen — er bleibt lokal erhalten.
                     </p>
                   </div>
                 </div>
@@ -268,10 +275,16 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                   <summary class="cursor-pointer text-slate-500 hover:text-slate-900">
                     Technische Details ({{ row.attempts }} Versuche)
                   </summary>
-                  <pre class="mt-2 font-mono text-[11px] bg-slate-50 dark:bg-gray-950 rounded p-2 overflow-auto whitespace-pre-wrap break-all">{{ row.lastError }}</pre>
+                  <pre
+                    class="mt-2 font-mono text-[11px] bg-slate-50 dark:bg-gray-950 rounded p-2 overflow-auto whitespace-pre-wrap break-all"
+                    >{{ row.lastError }}</pre
+                  >
                   @if (row.payload) {
                     <p class="text-slate-500 mt-2 mb-1 uppercase tracking-wider">Payload</p>
-                    <pre class="font-mono text-[11px] bg-slate-50 dark:bg-gray-950 rounded p-2 overflow-auto whitespace-pre-wrap break-all max-h-60">{{ shortJson(row.payload) }}</pre>
+                    <pre
+                      class="font-mono text-[11px] bg-slate-50 dark:bg-gray-950 rounded p-2 overflow-auto whitespace-pre-wrap break-all max-h-60"
+                      >{{ shortJson(row.payload) }}</pre
+                    >
                   }
                 </details>
               }
@@ -333,7 +346,9 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                 <article class="border-b border-gray-100 dark:border-gray-800 last:border-b-0 px-4 py-3 space-y-2">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                      <span class="text-xs uppercase tracking-wider text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-300 px-2 py-0.5 rounded">
+                      <span
+                        class="text-xs uppercase tracking-wider text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-300 px-2 py-0.5 rounded"
+                      >
                         {{ labelForReason(row.reason) }}
                       </span>
                       <span class="text-xs font-mono text-slate-400">{{ row.edgeRecordId.slice(0, 8) }}…</span>
@@ -345,7 +360,10 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                     <div class="bg-slate-50 dark:bg-gray-900/40 rounded-lg p-3">
                       <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Dieser Standort</p>
                       @if (row.edgePayload) {
-                        <pre class="text-[11px] font-mono text-slate-700 dark:text-gray-200 whitespace-pre-wrap break-all">{{ shortJson(row.edgePayload) }}</pre>
+                        <pre
+                          class="text-[11px] font-mono text-slate-700 dark:text-gray-200 whitespace-pre-wrap break-all"
+                          >{{ shortJson(row.edgePayload) }}</pre
+                        >
                       } @else {
                         <p class="text-xs text-slate-400">—</p>
                       }
@@ -353,7 +371,10 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                     <div class="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-3">
                       <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Online-Datenbank</p>
                       @if (row.cloudPayload) {
-                        <pre class="text-[11px] font-mono text-slate-700 dark:text-gray-200 whitespace-pre-wrap break-all">{{ shortJson(row.cloudPayload) }}</pre>
+                        <pre
+                          class="text-[11px] font-mono text-slate-700 dark:text-gray-200 whitespace-pre-wrap break-all"
+                          >{{ shortJson(row.cloudPayload) }}</pre
+                        >
                       } @else {
                         <p class="text-xs text-slate-400">— (kein Cloud-Pendant)</p>
                       }
@@ -426,15 +447,9 @@ export class SyncConflictsComponent implements OnInit {
     { key: 'conflicts', label: 'Datenkonflikte' },
   ]
 
-  protected readonly showRetrying = computed(() =>
-    this.activeTab() === 'all' || this.activeTab() === 'retrying',
-  )
-  protected readonly showRejected = computed(() =>
-    this.activeTab() === 'all' || this.activeTab() === 'rejected',
-  )
-  protected readonly showConflicts = computed(() =>
-    this.activeTab() === 'all' || this.activeTab() === 'conflicts',
-  )
+  protected readonly showRetrying = computed(() => this.activeTab() === 'all' || this.activeTab() === 'retrying')
+  protected readonly showRejected = computed(() => this.activeTab() === 'all' || this.activeTab() === 'rejected')
+  protected readonly showConflicts = computed(() => this.activeTab() === 'all' || this.activeTab() === 'conflicts')
 
   protected readonly filteredItems = computed(() => {
     const items: Array<{ kind: 'retrying' | 'rejected' | 'conflict'; id: string }> = []
@@ -632,7 +647,12 @@ export class SyncConflictsComponent implements OnInit {
   }
 
   async discardRetrying(row: SyncOutboxRow) {
-    if (!confirm(`Eintrag verwerfen?\n\nDieser ${labelForService(row.service)}-Datensatz bleibt nur an diesem Standort gespeichert und wird NICHT in die Online-Datenbank uebernommen. Diese Aktion kann nicht rueckgaengig gemacht werden.`)) return
+    if (
+      !confirm(
+        `Eintrag verwerfen?\n\nDieser ${labelForService(row.service)}-Datensatz bleibt nur an diesem Standort gespeichert und wird NICHT in die Online-Datenbank uebernommen. Diese Aktion kann nicht rueckgaengig gemacht werden.`,
+      )
+    )
+      return
     this.rowBusy.set(row._id)
     try {
       await this.api.remove('sync-outbox', row._id)
@@ -647,7 +667,12 @@ export class SyncConflictsComponent implements OnInit {
   }
 
   async discardRejected(row: SyncOutboxRow) {
-    if (!confirm(`Eintrag verwerfen?\n\nDieser ${labelForService(row.service)}-Datensatz bleibt nur an diesem Standort gespeichert und wird NICHT in die Online-Datenbank uebernommen. Diese Aktion kann nicht rueckgaengig gemacht werden.`)) return
+    if (
+      !confirm(
+        `Eintrag verwerfen?\n\nDieser ${labelForService(row.service)}-Datensatz bleibt nur an diesem Standort gespeichert und wird NICHT in die Online-Datenbank uebernommen. Diese Aktion kann nicht rueckgaengig gemacht werden.`,
+      )
+    )
+      return
     this.rowBusy.set(row._id)
     try {
       await this.api.remove('sync-outbox', row._id)
@@ -676,7 +701,12 @@ export class SyncConflictsComponent implements OnInit {
   async reEnqueueRejected(row: SyncOutboxRow) {
     if (this.isPolicyBlocked(row)) return
     const label = labelForService(row.service)
-    if (!confirm(`Aktuellen ${label}-Datensatz erneut in die Online-Datenbank uebernehmen?\n\nDer lokale Stand wird frisch geladen und neu in die Sync-Warteschlange gestellt.`)) return
+    if (
+      !confirm(
+        `Aktuellen ${label}-Datensatz erneut in die Online-Datenbank uebernehmen?\n\nDer lokale Stand wird frisch geladen und neu in die Sync-Warteschlange gestellt.`,
+      )
+    )
+      return
     this.rowBusy.set(row._id)
     try {
       await this.api.customMethod<SyncOutboxRow>('sync-outbox', 'reEnqueue', { id: row._id })

@@ -34,11 +34,10 @@ export const reservableSlotSchema = Type.Object(
 )
 export type ReservableSlot = Static<typeof reservableSlotSchema>
 
-export const reservableSlotDataSchema = Type.Omit(
-  reservableSlotSchema,
-  ['_id', 'createdAt', 'updatedAt'],
-  { $id: 'ReservableSlotData', additionalProperties: false },
-)
+export const reservableSlotDataSchema = Type.Omit(reservableSlotSchema, ['_id', 'createdAt', 'updatedAt'], {
+  $id: 'ReservableSlotData',
+  additionalProperties: false,
+})
 export type ReservableSlotData = Static<typeof reservableSlotDataSchema>
 
 export const reservableSlotPatchSchema = Type.Partial(reservableSlotSchema, {

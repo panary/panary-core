@@ -183,7 +183,20 @@ export type ProductPatch = Static<typeof productPatchSchema>
 // `createdAt` zusaetzlich queryable/sortierbar: die Admin-Uebersicht bietet
 // „Sortieren nach Erstelldatum" an — ohne dieses Feld lehnt der `$sort`-Validator
 // (querySyntax + additionalProperties:false) die Anfrage mit 400 ab.
-export const productQueryProperties = Type.Pick(productSchema, ['_id', 'locationId', 'tenantId', 'externalId', 'status', 'name', 'productType', 'categoryIds', 'acronym', 'price', 'createdAt', 'updatedAt'])
+export const productQueryProperties = Type.Pick(productSchema, [
+  '_id',
+  'locationId',
+  'tenantId',
+  'externalId',
+  'status',
+  'name',
+  'productType',
+  'categoryIds',
+  'acronym',
+  'price',
+  'createdAt',
+  'updatedAt',
+])
 export const productQuerySchema = Type.Intersect(
   [
     // $regex-Opt-in fuer die globale Such-Leiste (case-insensitive Substring

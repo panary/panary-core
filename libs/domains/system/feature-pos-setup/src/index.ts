@@ -1,2 +1,2 @@
-export * from './lib/lib.routes';
-export * from './lib/setup.component';
+export * from './lib/lib.routes'
+export * from './lib/setup.component'

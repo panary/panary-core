@@ -29,7 +29,9 @@ interface Printer {
           <p class="text-xs text-gray-500 dark:text-gray-400">
             #{{ order.dailySequenceNumber }}
             @if (order.offlineCreated) {
-              <span class="text-amber-600 dark:text-amber-400 font-medium">· {{ 'PRINT.PROVISIONAL' | translate }}</span>
+              <span class="text-amber-600 dark:text-amber-400 font-medium"
+                >· {{ 'PRINT.PROVISIONAL' | translate }}</span
+              >
             }
           </p>
         </div>
@@ -38,44 +40,62 @@ interface Printer {
       @if (order.offlineCreated) {
         <!-- KassenSichV: offline ist keine TSE-Signatur moeglich → dokumentierter Ausfall,
              provisorische Belegnummer; endgueltige Nummer folgt beim Replay (kein Nachsignieren). -->
-        <div class="mb-5 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-3">
+        <div
+          class="mb-5 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-3"
+        >
           <div class="flex items-start gap-2.5">
-            <span class="material-symbols-outlined text-[20px] text-amber-600 dark:text-amber-400 mt-0.5">wifi_off</span>
+            <span class="material-symbols-outlined text-[20px] text-amber-600 dark:text-amber-400 mt-0.5"
+              >wifi_off</span
+            >
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold text-amber-900 dark:text-amber-200">{{ 'PRINT.OFFLINE_NOTICE_TITLE' | translate }}</p>
-              <p class="text-xs text-amber-800/90 dark:text-amber-300/90 mt-0.5 leading-snug">{{ 'PRINT.OFFLINE_NOTICE_BODY' | translate }}</p>
+              <p class="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                {{ 'PRINT.OFFLINE_NOTICE_TITLE' | translate }}
+              </p>
+              <p class="text-xs text-amber-800/90 dark:text-amber-300/90 mt-0.5 leading-snug">
+                {{ 'PRINT.OFFLINE_NOTICE_BODY' | translate }}
+              </p>
             </div>
           </div>
         </div>
       }
 
       <!-- An alle Drucker -->
-      <button (click)="printAll()"
+      <button
+        (click)="printAll()"
         class="w-full flex items-center gap-3 px-4 py-3 rounded-xl
                bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800
                text-blue-700 dark:text-blue-300 font-medium text-sm
                hover:bg-blue-100 dark:hover:bg-blue-950/60
-               active:scale-[0.98] transition-all">
+               active:scale-[0.98] transition-all"
+      >
         <span class="material-symbols-outlined text-[20px]">print</span>
         {{ 'PRINT.SEND_ALL' | translate }}
       </button>
 
       @if (printers.length > 0) {
         <div class="my-4 border-t border-gray-200 dark:border-gray-700"></div>
-        <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">{{ 'PRINT.SELECT_PRINTER' | translate }}</p>
+        <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
+          {{ 'PRINT.SELECT_PRINTER' | translate }}
+        </p>
 
         <div class="flex flex-col gap-2">
           @for (printer of printers; track printer.pid) {
-            <button (click)="printTo(printer)"
+            <button
+              (click)="printTo(printer)"
               class="w-full flex items-center gap-3 px-4 py-3 rounded-xl
                      bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
                      text-gray-700 dark:text-gray-200 font-medium text-sm
                      hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600
-                     active:scale-[0.98] transition-all">
-              <div class="w-8 h-8 rounded-lg flex items-center justify-center"
-                [class]="printer.type === 'ip'
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'
-                  : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'">
+                     active:scale-[0.98] transition-all"
+            >
+              <div
+                class="w-8 h-8 rounded-lg flex items-center justify-center"
+                [class]="
+                  printer.type === 'ip'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'
+                "
+              >
                 <span class="material-symbols-outlined text-[18px]">
                   {{ printer.type === 'ip' ? 'print' : 'hub' }}
                 </span>
@@ -94,9 +114,11 @@ interface Printer {
       }
 
       <div class="flex justify-end pt-4">
-        <button (click)="close()"
+        <button
+          (click)="close()"
           class="text-sm font-medium text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-4 py-2 rounded-lg
-                 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+        >
           {{ 'COMMON.CLOSE' | translate }}
         </button>
       </div>
@@ -111,9 +133,7 @@ export class PrintDialogComponent {
   private translate = inject(TranslateService)
   order: Order = inject(MAT_DIALOG_DATA)
 
-  printers: Printer[] = (this.locationService.printers || []).filter(
-    (p: Printer) => p.active,
-  )
+  printers: Printer[] = (this.locationService.printers || []).filter((p: Printer) => p.active)
 
   async printAll() {
     try {

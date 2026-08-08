@@ -4,19 +4,12 @@
   "sourceRoot": "libs/domains/businessdays/data-access/src",
   "prefix": "lib",
   "projectType": "library",
-  "tags": [
-    "type:data-access",
-    "domain:businessdays"
-  ],
+  "tags": ["type:data-access", "domain:businessdays"],
   "targets": {
     "build": {
       "executor": "@nx/angular:package",
-      "outputs": [
-        "{workspaceRoot}/libs/domains/businessdays/data-access/dist"
-      ],
-      "dependsOn": [
-        "^build"
-      ],
+      "outputs": ["{workspaceRoot}/libs/domains/businessdays/data-access/dist"],
+      "dependsOn": ["^build"],
       "options": {
         "project": "libs/domains/businessdays/data-access/ng-package.json",
         "tsConfig": "libs/domains/businessdays/data-access/tsconfig.lib.json"
@@ -26,8 +19,5 @@
       "executor": "@nx/eslint:lint"
     }
   },
-  "implicitDependencies": [
-    "businessdays-domain",
-    "data-access"
-  ]
+  "implicitDependencies": ["businessdays-domain", "data-access"]
 }

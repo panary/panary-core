@@ -32,7 +32,6 @@
   "peerDependencies": {
     "@feathersjs/feathers": "^5.0.40",
     "@feathersjs/typebox": "^5.0.40",
-    "@sinclair/typebox": "^0.34.0",
     "@panary/users": "^26.4.20",
     "@angular/common": "^21.0.0",
     "@angular/core": "^21.0.0",

@@ -18,14 +18,7 @@
  *   bekommt Zeit zur Reaktion (Notification, Support-Ticket etc.)
  * - 6h-Cap × MAX_ATTEMPTS=10 = max 1 Eskalation/Tag pro Eintrag
  */
-export const RETRY_BACKOFF_SCHEDULE_MS = [
-  30_000,
-  60_000,
-  5 * 60_000,
-  30 * 60_000,
-  2 * 3600_000,
-  6 * 3600_000,
-] as const
+export const RETRY_BACKOFF_SCHEDULE_MS = [30_000, 60_000, 5 * 60_000, 30 * 60_000, 2 * 3600_000, 6 * 3600_000] as const
 
 /**
  * Maximale Retry-Versuche bei transient errors. Bei Erreichen wird der
@@ -54,5 +47,4 @@ export const backoffMs = (attempts: number): number => {
  * erreichen wuerde — der Worker eskaliert dann zu `sync-conflicts` statt
  * weiteren Retry zu planen.
  */
-export const shouldEscalateAfterRetry = (currentAttempts: number): boolean =>
-  currentAttempts + 1 >= MAX_RETRY_ATTEMPTS
+export const shouldEscalateAfterRetry = (currentAttempts: number): boolean => currentAttempts + 1 >= MAX_RETRY_ATTEMPTS

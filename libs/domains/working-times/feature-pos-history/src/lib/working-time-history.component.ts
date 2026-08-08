@@ -120,7 +120,7 @@ export class WorkingTimeHistoryComponent {
 
   //#region Pausen-Details Toggle
   toggleBreakDetails(row: DailySummary): void {
-    this.expandedBreakRow.update(current => current === row ? null : row)
+    this.expandedBreakRow.update(current => (current === row ? null : row))
   }
   //#endregion
 
@@ -194,7 +194,7 @@ export class WorkingTimeHistoryComponent {
 
     let breakMs = 0
     if (wt.breaks && wt.breaks.length > 0) {
-      wt.breaks.forEach((b) => {
+      wt.breaks.forEach(b => {
         if (b.from && b.to) {
           breakMs += new Date(b.to).getTime() - new Date(b.from).getTime()
         } else if (b.from && !b.to) {
@@ -246,11 +246,9 @@ export class WorkingTimeHistoryComponent {
     if (!wt || !wt.breaks || wt.breaks.length === 0) return this.#translate.instant('WORKING_TIMES.NO_BREAKS')
 
     return wt.breaks
-      .map((b) => {
+      .map(b => {
         const from = new Date(b.from).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
-        const to = b.to
-          ? new Date(b.to).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
-          : '...'
+        const to = b.to ? new Date(b.to).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '...'
         return `${from} - ${to}`
       })
       .join('\n')

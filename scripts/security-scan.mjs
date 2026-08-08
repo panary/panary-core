@@ -32,7 +32,7 @@ const flag = (name, def = null) => {
   if (a.includes('=')) return a.split('=').slice(1).join('=')
   return args[idx + 1] ?? true
 }
-const has = (name) => args.includes(`--${name}`)
+const has = name => args.includes(`--${name}`)
 
 const MODE = flag('mode', 'all')
 const FORMAT = flag('format', 'console')
@@ -41,20 +41,31 @@ const QUIET = has('quiet')
 const MAX_SEV = flag('max-severity', null)
 
 const SEVERITY_ORDER = ['low', 'medium', 'high', 'critical']
-const sevIndex = (s) => SEVERITY_ORDER.indexOf(String(s || '').toLowerCase())
+const sevIndex = s => SEVERITY_ORDER.indexOf(String(s || '').toLowerCase())
 
 const color = {
-  reset: '\x1b[0m', bold: '\x1b[1m', dim: '\x1b[2m',
-  red: '\x1b[31m', yellow: '\x1b[33m', green: '\x1b[32m',
-  cyan: '\x1b[36m', magenta: '\x1b[35m',
+  reset: '\x1b[0m',
+  bold: '\x1b[1m',
+  dim: '\x1b[2m',
+  red: '\x1b[31m',
+  yellow: '\x1b[33m',
+  green: '\x1b[32m',
+  cyan: '\x1b[36m',
+  magenta: '\x1b[35m',
 }
-const log = (msg) => { if (!QUIET) process.stderr.write(msg + '\n') }
+const log = msg => {
+  if (!QUIET) process.stderr.write(msg + '\n')
+}
 
 // ---------- Helpers ----------
 
-const hasTool = (cmd) => {
-  try { execSync(`command -v ${cmd}`, { stdio: 'ignore' }); return true }
-  catch { return false }
+const hasTool = cmd => {
+  try {
+    execSync(`command -v ${cmd}`, { stdio: 'ignore' })
+    return true
+  } catch {
+    return false
+  }
 }
 
 const detectRepo = () => {
@@ -76,21 +87,19 @@ const runOsvScanner = () => {
   }
   // Lockfile-Discovery: prefer repo-local, fall back to workspace-root parent.
   // panary-core and panary-cloud share a single pnpm-lock.yaml in _WORKBENCH_PANARY/.
-  const candidates = [
-    resolve(repoRoot, 'pnpm-lock.yaml'),
-    resolve(repoRoot, '..', 'pnpm-lock.yaml'),
-  ]
+  const candidates = [resolve(repoRoot, 'pnpm-lock.yaml'), resolve(repoRoot, '..', 'pnpm-lock.yaml')]
   const lockfile = candidates.find(p => existsSync(p))
   if (!lockfile) {
     log(`${color.yellow}⚠ pnpm-lock.yaml nicht gefunden (gesucht: ${candidates.join(', ')})${color.reset}`)
     return []
   }
-  log(`${color.cyan}► osv-scanner (lockfile: ${lockfile.replace(repoRoot + '/', './').replace(repoRoot, '.')}) …${color.reset}`)
-  const result = spawnSync('osv-scanner', [
-    `--lockfile=${lockfile}`,
-    '--format=json',
-    repoRoot,
-  ], { encoding: 'utf8', maxBuffer: 1024 * 1024 * 64 })
+  log(
+    `${color.cyan}► osv-scanner (lockfile: ${lockfile.replace(repoRoot + '/', './').replace(repoRoot, '.')}) …${color.reset}`,
+  )
+  const result = spawnSync('osv-scanner', [`--lockfile=${lockfile}`, '--format=json', repoRoot], {
+    encoding: 'utf8',
+    maxBuffer: 1024 * 1024 * 64,
+  })
   // Exit codes: 0=no vulns, 1=vulns found (expected), others=actual failure.
   if (result.status !== 0 && result.status !== 1) {
     const errMsg = (result.stderr || '')
@@ -104,12 +113,18 @@ const runOsvScanner = () => {
   try {
     const data = JSON.parse(result.stdout || '{}')
     const findings = []
-    for (const r of (data.results || [])) {
-      for (const pkg of (r.packages || [])) {
-        for (const v of (pkg.vulnerabilities || [])) {
+    for (const r of data.results || []) {
+      for (const pkg of r.packages || []) {
+        for (const v of pkg.vulnerabilities || []) {
           const groupSev = pkg.groups?.find(g => g.ids?.includes(v.id))?.max_severity
           const severity = groupSev
-            ? (Number(groupSev) >= 9 ? 'critical' : Number(groupSev) >= 7 ? 'high' : Number(groupSev) >= 4 ? 'medium' : 'low')
+            ? Number(groupSev) >= 9
+              ? 'critical'
+              : Number(groupSev) >= 7
+                ? 'high'
+                : Number(groupSev) >= 4
+                  ? 'medium'
+                  : 'low'
             : (v.database_specific?.severity || 'unknown').toLowerCase()
           findings.push({
             source: 'osv',
@@ -137,14 +152,11 @@ const runGitleaks = () => {
     return []
   }
   log(`${color.cyan}► gitleaks …${color.reset}`)
-  const result = spawnSync('gitleaks', [
-    'detect',
-    '--no-banner',
-    '--redact',
-    '--report-format=json',
-    '--report-path=/dev/stdout',
-    '--source', repoRoot,
-  ], { encoding: 'utf8', maxBuffer: 1024 * 1024 * 32 })
+  const result = spawnSync(
+    'gitleaks',
+    ['detect', '--no-banner', '--redact', '--report-format=json', '--report-path=/dev/stdout', '--source', repoRoot],
+    { encoding: 'utf8', maxBuffer: 1024 * 1024 * 32 },
+  )
   if (result.status !== 0 && result.status !== 1) {
     log(`${color.red}gitleaks failed: ${(result.stderr || '').split('\n')[0]}${color.reset}`)
     return []
@@ -172,7 +184,7 @@ const runGitleaks = () => {
 
 // ---------- Remote (GitHub API via gh) ----------
 
-const ghApiPaginated = (path) => {
+const ghApiPaginated = path => {
   if (!hasTool('gh')) {
     log(`${color.yellow}⚠ gh CLI nicht installiert — bash scripts/install-security-tools.sh${color.reset}`)
     return null
@@ -240,7 +252,7 @@ const fetchDependabot = (owner, repo) => {
 
 // ---------- Output ----------
 
-const groupBySeverity = (findings) => {
+const groupBySeverity = findings => {
   const groups = { critical: [], high: [], medium: [], low: [], unknown: [] }
   for (const f of findings) {
     const sev = ['critical', 'high', 'medium', 'low'].includes(f.severity) ? f.severity : 'unknown'
@@ -249,7 +261,7 @@ const groupBySeverity = (findings) => {
   return groups
 }
 
-const renderConsole = (findings) => {
+const renderConsole = findings => {
   const groups = groupBySeverity(findings)
   const sevColor = { critical: color.red, high: color.red, medium: color.yellow, low: color.cyan, unknown: color.dim }
   let out = `\n${color.bold}Security Scan Report — ${new Date().toISOString()}${color.reset}\n`
@@ -260,7 +272,9 @@ const renderConsole = (findings) => {
     for (const f of groups[sev]) {
       const loc = f.file
         ? `${f.file}${f.line ? `:${f.line}` : ''}`
-        : (f.package ? `${f.package}@${f.version || '?'}` : '')
+        : f.package
+          ? `${f.package}@${f.version || '?'}`
+          : ''
       out += `  [${f.source}] ${f.id} ${color.dim}${loc}${color.reset}\n`
       if (f.summary) out += `    ${String(f.summary).split('\n')[0].slice(0, 110)}\n`
       if (f.fix) out += `    → fix: ${f.fix}\n`
@@ -287,7 +301,9 @@ const renderMarkdown = (findings, meta) => {
     for (const f of groups[sev]) {
       const loc = f.file
         ? `\`${f.file}${f.line ? `:${f.line}` : ''}\``
-        : (f.package ? `\`${f.package}@${f.version || '?'}\`` : '')
+        : f.package
+          ? `\`${f.package}@${f.version || '?'}\``
+          : ''
       out += `- **[${f.source}]** ${f.id} ${loc}\n`
       if (f.summary) out += `  - ${String(f.summary).split('\n')[0]}\n`
       if (f.fix) out += `  - **Fix:** \`${f.fix}\`\n`
@@ -303,7 +319,9 @@ const renderMarkdown = (findings, meta) => {
 const main = () => {
   const repoMeta = detectRepo()
   if (!repoMeta && MODE !== 'local') {
-    log(`${color.yellow}⚠ Konnte Repo nicht aus 'git remote get-url origin' ableiten — falle auf --mode=local zurueck${color.reset}`)
+    log(
+      `${color.yellow}⚠ Konnte Repo nicht aus 'git remote get-url origin' ableiten — falle auf --mode=local zurueck${color.reset}`,
+    )
   }
 
   const findings = []

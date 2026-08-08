@@ -55,13 +55,7 @@ export type PairingCodeData = Static<typeof pairingCodeDataSchema>
 // (consumePairingCode) — externe Clients duerfen sie nicht setzen, das
 // erzwingt der patchResolver durch Filterung auf provider=undefined.
 export const pairingCodePatchSchema = Type.Partial(
-  Type.Pick(pairingCodeSchema, [
-    'status',
-    'tenantId',
-    'locationId',
-    'consumedByCloudEdgeId',
-    'consumedAt',
-  ]),
+  Type.Pick(pairingCodeSchema, ['status', 'tenantId', 'locationId', 'consumedByCloudEdgeId', 'consumedAt']),
   { $id: 'PairingCodePatch' },
 )
 

@@ -11,7 +11,9 @@ import { logger } from '@panary/shared-backend'
 
 // Import domain schema
 import { userDataSchema, userPatchSchema, userQuerySchema, User, UserQuery, UserSystemRole } from '@panary/users/domain'
+import { intersectAllowedIds } from '@panary/devices/domain'
 import { UserService } from './users.class'
+import { getDeviceAccessScope } from '../../hooks/device-access-mode.util'
 
 //#region 1. Main User Resolver (Output)
 export const userResolver = resolve<User, HookContext<UserService>>({
@@ -170,27 +172,48 @@ const privilegedRoles: string[] = [
 ]
 
 export const userQueryResolver = resolve<UserQuery, HookContext>({
-  // Sicherheit: Nicht-privilegierte User sehen nur sich selbst
-  // Device-Rollen (device:pos-client, device:tablet etc.) sind ausgenommen —
-  // sie brauchen die volle User-Liste fuer den Login-Screen.
-  // RBAC (authorize + roles.matrix) steuert bereits, was Devices lesen duerfen.
-  _id: async (value, user, context) => {
-    if (
-      context.params.user &&
-      !privilegedRoles.includes(context.params.user.role) &&
-      !context.params.user.role?.startsWith('device:')
-    ) {
+  // Sicherheit: Nicht-privilegierte User sehen nur sich selbst.
+  //
+  // Device-Rollen (device:pos-client, device:tablet etc.) brauchen fuer den
+  // Login-Screen mehr als sich selbst — aber nicht mehr zwingend die VOLLE
+  // Liste: Auf einem zugewiesenen Geraet (PNRY-FEAT-DEVICE-ASSIGNMENT-001)
+  // schrumpft sie auf `assignedUserIds ∪ Freigabe-Rollen`. Weil das hier auf
+  // der Query sitzt, greift es fuer `find` UND `get` — der Adapter matcht die
+  // Query auch beim get-by-id, sonst waere get-by-id der Umweg um das Scoping.
+  //
+  // RBAC (authorize + roles.matrix) steuert weiterhin, WAS Devices lesen duerfen.
+  _id: async (value, query, context) => {
+    const actor = context.params.user
+    if (!actor) return value
+    if (privilegedRoles.includes(actor.role)) return value
+
+    if (actor.role?.startsWith('device:')) {
+      // Aufgeloest hat das der resolveDeviceAccessScope-Hook (before.all) —
+      // hier darf nichts mehr werfen, Feathers wuerde es zu einem
+      // nichtssagenden 400 „Error resolving data" verpacken.
+      const allowedIds = getDeviceAccessScope(context)
+      if (allowedIds === null) return value
+
       logger.debug({
-        message: '[Security] userQueryResolver: Query auf eigene _id eingeschraenkt',
-        event: 'security.query_restricted',
-        userId: context.params.user._id,
-        userRole: context.params.user.role,
+        message: '[Security] userQueryResolver: Query auf zugewiesene Mitarbeiter eingeschraenkt',
+        event: 'security.query_restricted_device_assignment',
+        userRole: actor.role,
         service: context.path,
         method: context.method,
+        allowedCount: allowedIds.length,
       })
-      return context.params.user._id
+      return intersectAllowedIds(value, allowedIds)
     }
-    return value
+
+    logger.debug({
+      message: '[Security] userQueryResolver: Query auf eigene _id eingeschraenkt',
+      event: 'security.query_restricted',
+      userId: actor._id,
+      userRole: actor.role,
+      service: context.path,
+      method: context.method,
+    })
+    return actor._id
   },
 })
 //#endregion

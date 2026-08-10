@@ -31,6 +31,14 @@ greift er für `find` **und** `get`; get-by-id ist damit kein Umweg. Der POS-Umb
 Sprung in die PIN-Eingabe, ausgeblendetes Stempel-Panel) ist reine UX und **keine
 Sicherheitsgrenze** — die Zuweisung wirkt auch gegen einen alten oder manipulierten Client.
 
+Die *Auflösung* des Personenkreises liegt allerdings nicht im Resolver, sondern in einem
+`before.all`-Hook (`resolveDeviceAccessScope`), der das Ergebnis auf `context.params` legt.
+Grund: Feathers verpackt jeden Fehler aus `resolveQuery` in ein
+`BadRequest('Error resolving data')`. Die fail-closed-Ablehnung eines unbekannten Geräts käme
+sonst als 400 mit unbrauchbarer Meldung an statt als 403. Nebeneffekt: Resolver und
+`verifyPin`-Hook teilen sich dieselbe Auflösung, statt sie nacheinander zweimal zu machen.
+Details: [Domain-Konzept](../domains/pos-geraete-zuweisung.md).
+
 Ergänzend lehnt `verifyPin` fremde `userId`s mit **derselben Meldung** wie einen falschen PIN ab.
 Ein eigener Text wäre ein Oracle, an dem sich die Zuweisung eines Geräts abfragen ließe.
 

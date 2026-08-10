@@ -22,6 +22,8 @@ import { getJsonFieldHooks } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { restrictUserSelfPatch } from '../../hooks/restrict-user-self-patch.hook'
 import { restrictPermissionGrants } from '../../hooks/restrict-permission-grants.hook'
+import { restrictDeviceAccessMode } from '../../hooks/restrict-device-access-mode.hook'
+import { resolveDeviceAccessScope } from '../../hooks/device-access-mode.util'
 
 const USER_JSON_FIELDS = ['discountDetails', 'allowedLocationIds', 'permissions']
 import { DatabaseType } from '@panary/shared-common'
@@ -273,7 +275,14 @@ export const users = (app: Application) => {
       ],
     },
     before: {
-      all: [schemaHooks.validateQuery(userQueryValidator), schemaHooks.resolveQuery(userQueryResolver)],
+      // resolveDeviceAccessScope VOR den Schema-Hooks: Der Fail-closed-Fall
+      // (Geraet ohne Datensatz) muss als 403 durchwerfen. Aus dem Resolver
+      // heraus verpackt Feathers ihn zu einem 400 „Error resolving data".
+      all: [
+        resolveDeviceAccessScope,
+        schemaHooks.validateQuery(userQueryValidator),
+        schemaHooks.resolveQuery(userQueryResolver),
+      ],
       find: [],
       get: [],
       create: [
@@ -290,6 +299,12 @@ export const users = (app: Application) => {
         ...jsonHooks.before,
       ],
       remove: [],
+      // Geraete-Zuweisung: Das users.find-Scoping bestimmt nur, was der
+      // Login-Screen anzeigt. Diese beiden Methoden sind ueber den
+      // Geraete-Socket direkt erreichbar und brauchen deshalb ihre eigene
+      // Pruefung — vor dem bcrypt-Vergleich in der Methode.
+      verifyPin: [restrictDeviceAccessMode],
+      changePin: [restrictDeviceAccessMode],
     },
     after: {
       all: [...jsonHooks.after],

@@ -70,10 +70,12 @@ echo "  Datum:         $TODAY"
 echo "  Change Date:   $CHANGE_DATE (4 Jahre)"
 echo ""
 
-# LICENSE aktualisieren
-sed -i.bak -E "s/^Change Date:.*$/Change Date:          $CHANGE_DATE (Four years from the release date)/" "$LICENSE"
-sed -i.bak -E "s/\(c\) ([0-9]{4})-[0-9]{4}/\(c\) \1-$CURRENT_YEAR/" "$LICENSE"
-rm -f "$LICENSE.bak"
+# Die LICENSE pflegt bump-version.mjs mit (Change Date + Copyright-Jahr) — hier
+# bewusst kein zweites sed. Es gibt zwei Release-Pfade: dieses Skript und den
+# Lib-Release-Ablauf (`nx release version` + bump-version.mjs), der dieses
+# Skript umgeht, weil es die publishable Libs nicht bumpt. Solange die Pflege
+# nur hier lag, verlor der zweite Pfad sie stillschweigend.
+# $CHANGE_DATE/$CURRENT_YEAR bleiben fuer die Anzeige und die Commit-Message.
 
 # Geaenderte Dateien committen
 git add "$REPO_ROOT/package.json"

@@ -24,6 +24,7 @@
     "admin:dev": "nx serve admin-client",
     "admin:build": "nx build admin-client --configuration=production",
     "version:bump": "node tools/scripts/bump-version.mjs",
+    "release:verify": "node --test tools/scripts/bump-version.spec.mjs",
     "docker:build": "bash tools/docker/build-edge.sh",
     "docker:release": "bash tools/docker/build-edge.sh --push",
     "release": "bash tools/scripts/release-tag.sh --push",

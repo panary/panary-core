@@ -103,6 +103,16 @@ jobs:
           node scripts/docs-log.spec.mjs
           pnpm docs:log:check
 
+      # bump-version.mjs laeuft nur beim Release — also genau dann, wenn ein
+      # Fehler am teuersten ist und niemand mehr hinsieht. Bei v26.8.10 schrieb
+      # es tauri.conf.json ueber einen JSON-Round-Trip zurueck und formatierte
+      # dabei ~20 Zeilen um; aufgefallen ist das nur, weil jemand die Gegenprobe
+      # "der Release-Commit enthaelt ausschliesslich Versionszeilen" von Hand
+      # gefahren hat. Der Spec haelt beides fest: Formatierung bleibt, und ein
+      # fehlender Versionsschluessel bricht ab statt still durchzulaufen.
+      - name: Release-Werkzeug pruefen
+        run: pnpm release:verify
+
       # nx affected liest NX_BASE/NX_HEAD aus der Umgebung (nx-set-shas oben).
       #
       # `typecheck` ist seit 2026-08-06 dabei und bewusst HART, ohne Baseline: der

@@ -57,5 +57,5 @@
     "hour": 4,
     "minuteJitterMs": 60000
   },
-  "maxBusinessDayOpenHours": 24
+  "maxBusinessDayOpenHours": 26
 }

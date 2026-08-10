@@ -1,7 +1,7 @@
 ---
 type: Domain Concept
 title: Geschäftstag — Automatische Rotation (Standalone) + Zeit-Guard
-description: Nightly Rotations-Worker rotiert den Geschäftstag zeitgesteuert und ein Zeit-Guard verweigert neue Bestellungen, wenn der Tag länger als 24 Stunden offen ist.
+description: Nightly Rotations-Worker rotiert den Geschäftstag zeitgesteuert und ein Zeit-Guard verweigert neue Bestellungen, wenn der Tag länger als die Schwelle offen ist — gemessen ab openedAt, pro Standort konfigurierbar.
 tags: [businessdays, orders]
 status: stable
 generated: { by: claude-code/historic, at: 2026-05-22T00:00:00Z }
@@ -57,15 +57,19 @@ Im Aktive-Orders-Block-Branch von `restrict-order-to-business-day.ts`: bevor ein
 neue Order dem veralteten Tag zugeordnet wird, prüft `ensureBusinessDayNotOpenTooLong`
 das Alter seit `openedAt`.
 
-- Schwelle `maxBusinessDayOpenHours` (Default **24h**), `app.get(...) || 24`.
+- Schwelle `maxBusinessDayOpenHours` (Default **26 h** seit ADR 0047 — vorher 24;
+  siehe Abschnitt C zur Auflösung inkl. Standort-Override).
 - Überschreitung → `400 BadRequest` mit Code `BUSINESS_DAY_OPEN_TOO_LONG`
-  (`BD_6003`), Daten `{ openHours, maxAllowedOpenHours }`.
+  (`BD_6003`), Daten `{ openHours, maxAllowedOpenHours }`. Bewusst ein **anderer**
+  Code als beim reinen Altersüberschreiten (`BUSINESS_DAY_TOO_OLD`, Abschnitt C):
+  Hier muss der Operator erst die offenen Bestellungen abschließen, dann rotiert
+  der Tag von selbst — eine andere Handlung, also eine andere Meldung.
 - Helper `getHoursSince(iso)` in `business-day.utils.ts` — bewusst **rollend**
   (echte Zeitspanne), nicht kalendertag-basiert, robust gegen UTC-Off-by-one
   nahe Mitternacht. Deckt sich mit „bei spätabendlicher Öffnung gilt die
   Bestellung bis ~24h später".
 
-### C — Schwelle pro Standort (Schema vorhanden, Edge-Konsument folgt)
+### C — Stundenschwelle statt Kalendertag, pro Standort konfigurierbar
 
 `maxBusinessDayOpenHours` ist ein deployment-weiter Config-Wert — in einem
 Multi-Tenant-Betrieb das falsche Granulat. Seit 2026-08-10 trägt das
@@ -78,18 +82,43 @@ settings.businessDaySettings?.maxOpenHours   // Integer, 1…168
 Nicht gesetzt = Server-Default (`maxBusinessDayOpenHours`), also unverändertes
 Verhalten für jeden Bestands-Standort.
 
-> ⚠️ **Der Edge liest den Wert noch nicht.** Diese Änderung ist reine
-> Schema-Erweiterung, damit die Cloud sie typisiert konsumieren kann
-> (panary/panary-cloud#133). Der edge-seitige Umbau — der tote
-> `validateBusinessDayAge`-Guard und der CONNECTED-Zweig, der schon beim ersten
-> Kalendertagswechsel sperrt — läuft unter **panary/panary-core#134**. Bis dahin
-> gilt für den Edge unverändert, was in Abschnitt B steht.
+Auflösung: Standort-Wert → `maxBusinessDayOpenHours` aus der Config → Hauskonstante
+26. Identisch zur Cloud (`restrict-order-to-business-day.hook.ts`); der Config-Default
+wurde von 24 auf 26 gezogen, damit beide Gates nicht unterschiedlich früh sperren.
+
+**Was der gepairte Betrieb vorher tat.** Der CONNECTED-Zweig warf `BUSINESS_DAY_NOT_SET`,
+sobald `currentBusinessDay.date !== today` — ohne jede Toleranz, und `today` kam aus
+`toISOString().slice(0,10)`, also **UTC**, während die Cloud den Geschäftstag in
+Filial-Lokalzeit stempelt. In CEST sprang die Sperre damit um **02:00 Ortszeit**: Ein
+gepairter Edge konnte keinen Geschäftstag über Mitternacht betreiben. Dieser Zweig ist
+ersatzlos entfallen; ein veraltetes **Datum** ist kein Grund mehr, ein zu langer
+**Betrieb** schon.
+
+`validateBusinessDayAge` (kalendertagsbasiert, strukturell nie erreichbar) und sein
+Helper `getDifferenceInDays` sind mit entfernt — unter der neuen Regel gäbe es nichts
+mehr, was sie messen könnten. `maxOrderDifferenceDays` existiert damit nirgends mehr.
+
+- Überschreitung → `400 BadRequest` mit `BUSINESS_DAY_TOO_OLD` (`BD_6002`), Meldung
+  auf Deutsch mit Datum, Laufzeit und Grenze; Vokabular je `operationMode` nach
+  panary-cloud ADR 0037 („Betriebstag beenden" statt „Tagesabschluss" im Bestellbetrieb).
+- Fehlt ein brauchbarer `openedAt`, wird die Altersprüfung **übersprungen** und
+  geloggt (`business_day.age_check_skipped`) statt zu sperren — eine Sperre soll aus
+  dem Betrieb kommen, nicht aus einem Datenfehler.
+- Der Hook liest die Location bewusst **ohne `$select`**: `settings` steht nicht in
+  `locationQueryProperties`, ein `$select` darauf scheitert am Query-Validator.
 
 Die gemeinsame Entscheidung (Stundenschwelle statt Kalendertags-Vergleich, für
 **beide** Repos) steht in `panary-cloud/docs/adr/0047-order-gate-stundenschwelle.md`.
 Sie bestätigt die Begründung aus Abschnitt B: `getHoursSince` wurde dort bereits
 bewusst rollend statt kalendertag-basiert gebaut, „robust gegen UTC-Off-by-one
-nahe Mitternacht" — genau der Defekt, an dem der Cloud-Gate scheiterte.
+nahe Mitternacht" — genau der Defekt, an dem der Cloud-Gate scheiterte. Der Edge
+hatte die richtige Form also längst; sie hing nur an einem Zweig, den der gepairte
+Betrieb nie erreicht.
+
+> ⚠️ **Die Auto-Rotation bleibt kalendertagsbasiert** (`shouldAutoRotate`, UTC-Datum) —
+> das ist Absicht: „ein neuer Tag bekommt einen neuen Geschäftstag" ist ein
+> Kalenderbegriff. Nur die **Sperre** hängt nicht mehr daran. Der UTC-Anker der
+> Rotation behält damit den Caveat aus Abschnitt A.
 
 ## Konsequenzen
 
@@ -112,6 +141,7 @@ nahe Mitternacht" — genau der Defekt, an dem der Cloud-Gate scheiterte.
 | `apps/api-edge/src/utils/business-day.utils.ts` | `getHoursSince` |
 | `libs/shared/common/src/lib/errors/app-errors.ts` | Code `BUSINESS_DAY_OPEN_TOO_LONG` |
 | `libs/domains/locations/domain/src/lib/location.schema.ts` | `settings.businessDaySettings.maxOpenHours` (Abschnitt C) |
+| `apps/api-edge/src/utils/business-day.utils.ts` | `getDifferenceInDays` entfernt (Abschnitt C) |
 
 ## Manuelle Verifikation
 

@@ -14,25 +14,25 @@ describe('cash-reconciliation', () => {
     expect(r.varianceCents).toBe(0)
   })
 
+  it('negative Variance = Fehlbetrag', () => {
+    const r = computeCashReconciliation({
+      openingFloatCents: 10000,
+      cashSalesCents: 30000,
+      cashDropsCents: 0,
+      payoutsCents: 0,
+      countedClosingFloatCents: 39000, // 10€ fehlen → counted 39000 − expected 40000 = −1000
+    })
+    expect(r.varianceCents).toBe(-1000)
+  })
+
   it('positive Variance = Überschuss', () => {
     const r = computeCashReconciliation({
       openingFloatCents: 10000,
       cashSalesCents: 30000,
       cashDropsCents: 0,
       payoutsCents: 0,
-      countedClosingFloatCents: 39000, // 10€ fehlen → expected 40000 − counted 39000 = 1000
+      countedClosingFloatCents: 41000, // 10€ zu viel → counted 41000 − expected 40000 = 1000
     })
     expect(r.varianceCents).toBe(1000)
-  })
-
-  it('negative Variance = Überbestand', () => {
-    const r = computeCashReconciliation({
-      openingFloatCents: 10000,
-      cashSalesCents: 30000,
-      cashDropsCents: 0,
-      payoutsCents: 0,
-      countedClosingFloatCents: 41000,
-    })
-    expect(r.varianceCents).toBe(-1000)
   })
 })

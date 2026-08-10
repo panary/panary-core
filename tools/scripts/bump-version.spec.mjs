@@ -82,8 +82,14 @@ describe('bump-version — Versionsberechnung', () => {
     const expected = `${String(now.getFullYear()).slice(2)}.${now.getMonth() + 1}.`
     const out = run(dir)
     assert.ok(out.startsWith(expected), `erwartet Präfix ${expected}, war ${out}`)
-    assert.match(read(dir, 'package.json'), new RegExp(`"version": "${out.replace(/\./g, '\\.')}"`))
-    assert.match(read(dir, 'apps/api-edge/package.json'), new RegExp(`"version": "${out.replace(/\./g, '\\.')}"`))
+    // Teilstring statt Regex: Die gesuchte Zeichenfolge ist wörtlich bekannt,
+    // eine Regex bräuchte hier nur Escaping und brächte nichts. Der frühere
+    // `out.replace(/\./g, '\\.')` maskierte ausschließlich Punkte und war damit
+    // unvollständiges Escaping (CodeQL `js/incomplete-sanitization`) — harmlos,
+    // solange `out` eine Versionsnummer ist, aber eine Konstruktion, die bei
+    // jeder Wiederverwendung neu geprüft werden müsste.
+    assert.ok(read(dir, 'package.json').includes(`"version": "${out}"`))
+    assert.ok(read(dir, 'apps/api-edge/package.json').includes(`"version": "${out}"`))
   })
 })
 

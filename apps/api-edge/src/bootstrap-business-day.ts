@@ -1,5 +1,6 @@
 import { logger } from '@panary/shared-backend'
 import type { Application } from './declarations'
+import { businessDateForLocation, type LocationTimezoneSource } from './utils/business-day-date'
 import {
   hasActiveOrders,
   isLocalRotationAllowed,
@@ -7,6 +8,17 @@ import {
   shouldAutoRotate,
   type LocationRecord,
 } from './utils/business-day.utils'
+
+/** `currentBusinessDay` und `settings` liegen als JSON-Text in SQLite. */
+function parseJsonColumn<TValue>(raw: unknown): TValue | null {
+  if (!raw) return null
+  if (typeof raw !== 'string') return raw as TValue
+  try {
+    return JSON.parse(raw) as TValue
+  } catch {
+    return null
+  }
+}
 
 /**
  * Stellt sicher, dass jede Location einen aktuellen Geschaeftstag hat.
@@ -43,28 +55,27 @@ export async function autoEnsureBusinessDay(app: Application): Promise<void> {
   }
 
   const knex = app.get('sqliteClient')
-  const today = new Date().toISOString().slice(0, 10)
+  // EIN Zeitpunkt fuer alle Locations — der Kalendertag wird pro Filiale in
+  // deren Zeitzone daraus abgeleitet, nicht pro Schleifendurchlauf neu gemessen.
+  const now = new Date()
 
-  const locations = await knex('locations').select('_id', 'tenantId', 'currentBusinessDay')
+  const locations = await knex('locations').select('_id', 'tenantId', 'currentBusinessDay', 'settings')
 
   for (const raw of locations) {
-    // currentBusinessDay ist als JSON-Text in SQLite gespeichert
-    let currentBusinessDay: LocationRecord['currentBusinessDay'] = null
-
-    if (raw.currentBusinessDay) {
-      try {
-        currentBusinessDay =
-          typeof raw.currentBusinessDay === 'string' ? JSON.parse(raw.currentBusinessDay) : raw.currentBusinessDay
-      } catch {
-        currentBusinessDay = null
-      }
-    }
+    const currentBusinessDay = parseJsonColumn<NonNullable<LocationRecord['currentBusinessDay']>>(
+      raw.currentBusinessDay,
+    )
+    const settings = parseJsonColumn<NonNullable<LocationTimezoneSource['settings']>>(raw.settings)
 
     const location: LocationRecord = {
       _id: raw._id,
       tenantId: raw.tenantId,
       currentBusinessDay,
     }
+
+    // Kalendertag in Filial-Lokalzeit statt UTC — sonst wechselt er in CEST um
+    // 02:00 Ortszeit mitten im Nachtbetrieb (siehe `business-day-date.ts`).
+    const today = businessDateForLocation({ settings }, now)
 
     if (!shouldAutoRotate(currentBusinessDay, today)) {
       logger.info(`[AutoBusinessDay] Geschaeftstag fuer Location ${location._id} ist aktuell (${today}).`)

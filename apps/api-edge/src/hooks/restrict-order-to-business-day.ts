@@ -5,6 +5,7 @@ import { Location } from '@panary/locations/domain'
 import { PairingStatus, CloudConnection } from '@panary/cloud-connection/domain'
 import { AppError, AppErrorMessages } from '@panary/shared-common'
 import { logger } from '@panary/shared-backend'
+import { businessDateForLocation } from '../utils/business-day-date'
 import { getHoursSince, hasActiveOrders, rotateBusinessDay, shouldAutoRotate } from '../utils/business-day.utils'
 
 /**
@@ -245,7 +246,12 @@ export function restrictOrderToBusinessDay() {
     // Kalendertag die richtige Groesse (ein neuer Tag bekommt einen neuen
     // Geschaeftstag). Die **Sperre** haengt seit ADR 0047 nicht mehr daran,
     // sondern an der Laufzeit seit `openedAt`.
-    const today = new Date().toISOString().slice(0, 10)
+    //
+    // Der Kalendertag ist der der **Filiale**, nicht der von UTC: mit
+    // `toISOString()` wechselte er in CEST um 02:00 Ortszeit und teilte einen
+    // Nachtbetrieb 18:00 → 04:00 auf zwei Geschaeftstage auf — sporadisch, weil
+    // es nur passiert, wenn in genau dem Moment keine Bestellung offen ist.
+    const today = businessDateForLocation(activeLocation)
     const needsRotation = shouldAutoRotate(activeLocation.currentBusinessDay, today)
 
     // Im Cloud-Managed-Hybrid (siehe ADR business-days-cloud-managed):

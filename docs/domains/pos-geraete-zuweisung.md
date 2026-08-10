@@ -71,6 +71,44 @@ Die Ablehnung ist **wortgleich** mit der eines falschen PINs (`PIN ungueltig` bz
 Text wäre ein Oracle für die Zuweisung jedes Geräts, und ein stehenbleibender Fehlversuchs-
 Zähler wäre dasselbe Oracle über die Hintertür („zehn Versuche ohne Sperre = fremder Benutzer").
 
+## Zuweisung beim Pairing
+
+Ein Gerät kann schon beim Pairing zugewiesen werden. Die Werte reisen im
+**Code-Record**, nicht im Request-Body des Redeem:
+
+```
+POST /device-pairing/request-code   (authentifiziert: Inhaber/Filialleiter)
+  Body:     { locationId?, deviceAccessMode?, assignedUserIds? }
+  →         validiert, legt sie im Code-Record ab
+  Response: { code, expiresAt, ttlSeconds, deviceAccessMode, assignedUserIds }
+
+POST /device-pairing/redeem          (öffentlich, rate-limited)
+  Body:     { code, deviceName, deviceType }        ← unverändert
+  →         Zuweisung kommt AUS DEM CODE-RECORD
+  Response: { …, deviceAccessMode, assignedUsers }
+```
+
+Der Redeem ist **unauthentifiziert**. Wäre die Zuweisung dort ein Body-Feld, könnte sich jeder
+mit einem gültigen Code ein Gerät auf einen beliebigen Mitarbeiter ausstellen — dieselbe
+Begründung, aus der `tenantId`/`locationId` seit jeher nur aus dem Code-Record kommen. Die
+Route liest aus dem Redeem-Body ausschließlich `code`, `deviceName` und `deviceType`; beide
+Richtungen (Zuweisung hineinschmuggeln, Zuweisung abwählen) sind mit HTTP-Tests abgesichert.
+
+Zwei Details, die leicht andersherum gebaut würden:
+
+- **Geprüft wird beim Ausstellen, nicht beim Einlösen.** Sonst stünde am Terminal jemand vor
+  einem Code, der aus einem Grund scheitert, den er weder sieht noch beheben kann. Es gelten
+  exakt dieselben Regeln wie am `devices`-Schreibpfad — die Prüfung ist dieselbe Funktion
+  (`assertUsersAssignable`), nicht eine zweite Implementierung.
+- **`shared` wird nicht materialisiert.** Ist keine Zuweisung gewünscht, bleibt die Spalte
+  leer statt ein explizites `'shared'` zu tragen: Ein frisch gepairtes Gerät sieht in der
+  Datenbank aus wie ein Bestandsgerät. Die Response echot trotzdem `deviceAccessMode: 'shared'`.
+
+Das **Echo im `request-code`-Response** hat einen zweiten Zweck neben der Bestätigung: Ein
+älterer Edge kennt die Felder nicht und echot sie folglich nicht. Daran erkennt eine neuere
+Admin-UI, dass dieser Edge die Zuweisung nicht unterstützt — statt sie anzubieten und
+stillschweigend zu verlieren.
+
 ## Fail-closed — und was das kostet
 
 Lässt sich die Geräte-Identität nicht auflösen oder gibt es keinen `devices`-Datensatz zur

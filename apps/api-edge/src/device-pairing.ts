@@ -1,8 +1,17 @@
 import crypto from 'node:crypto'
 import type { Application } from './declarations'
 import { logger } from '@panary/shared-backend'
-import { DeviceType } from '@panary/devices/domain'
+import {
+  checkDeviceAssignmentWrite,
+  DeviceAccessMode,
+  DeviceType,
+  isDeviceAssigned,
+  resolveAssignedUserIds,
+  resolveDeviceAccessMode,
+  type DeviceAccessModeValue,
+} from '@panary/devices/domain'
 import { UserSystemRole } from '@panary/users/domain'
+import { assertUsersAssignable, type AssignableUser } from './utils/assignable-users'
 
 /**
  * Geraete-Pairing per Kurz-Code.
@@ -38,6 +47,20 @@ interface PairingCodeRecord {
   locationId: string
   createdBy: string
   expiresAt: number
+  // Geraete-Zuweisung (PNRY-FEAT-DEVICE-ASSIGNMENT-001). Steht hier und NICHT
+  // im Redeem-Body, aus demselben Grund wie tenantId/locationId: Der Redeem ist
+  // oeffentlich. Wer die Zuweisung dort mitschicken koennte, koennte sich ein
+  // Geraet auf einen beliebigen Mitarbeiter ausstellen.
+  deviceAccessMode?: DeviceAccessModeValue
+  assignedUserIds?: string[]
+  /** Nur zur Anzeige im Wizard — kein Bestandteil der Entscheidung. */
+  assignedUsers?: PairingAssignedUser[]
+}
+
+interface PairingAssignedUser {
+  _id: string
+  firstName?: string
+  lastName?: string
 }
 
 interface FailureRecord {
@@ -99,6 +122,42 @@ async function resolveUserFromRequest(app: Application, authHeader?: string) {
   }
 }
 
+const toPairingAssignedUser = (user: AssignableUser): PairingAssignedUser => ({
+  _id: user._id as string,
+  firstName: user.firstName,
+  lastName: user.lastName,
+})
+
+/**
+ * Liest `deviceAccessMode`/`assignedUserIds` aus dem `request-code`-Body und
+ * validiert sie mit **denselben** Regeln wie der `devices`-Schreibpfad
+ * (`checkDeviceAssignmentWrite` + `assertUsersAssignable`). Wirft bei jedem
+ * Verstoss; der Aufrufer mappt das auf 400.
+ *
+ * `internal: true`, weil hier die Route selbst die Rolle prueft
+ * (ALLOWED_REQUEST_ROLES, oben) — das Rollen-Gate der Policy wuerde sonst ein
+ * zweites, abweichendes Rollenmodell einfuehren.
+ */
+const resolveRequestedAssignment = async (
+  app: Application,
+  body: Record<string, unknown>,
+  tenantId: string,
+): Promise<{ deviceAccessMode: DeviceAccessModeValue; assignedUserIds: string[]; users: AssignableUser[] }> => {
+  const requested = {
+    ...('deviceAccessMode' in body ? { deviceAccessMode: body['deviceAccessMode'] } : {}),
+    ...('assignedUserIds' in body ? { assignedUserIds: body['assignedUserIds'] } : {}),
+  }
+
+  const violation = checkDeviceAssignmentWrite({ internal: true }, requested)
+  if (violation) throw new Error(violation.message)
+
+  const deviceAccessMode = resolveDeviceAccessMode(requested)
+  const assignedUserIds = isDeviceAssigned(requested) ? resolveAssignedUserIds(requested) : []
+  const users = await assertUsersAssignable(app, assignedUserIds, tenantId)
+
+  return { deviceAccessMode, assignedUserIds, users }
+}
+
 export function registerDevicePairingRoutes(app: Application): void {
   app.use(async (ctx, next) => {
     // --- requestCode (authentifiziert: TENANT_OWNER / TENANT_MANAGER) ---
@@ -138,10 +197,41 @@ export function registerDevicePairingRoutes(app: Application): void {
         return
       }
 
+      // Zuweisung schon beim Ausstellen des Codes pruefen, nicht erst beim
+      // Redeem: Am Terminal steht dann jemand vor einem Code, der aus einem
+      // Grund scheitert, den er weder sieht noch beheben kann.
+      let assignment: { deviceAccessMode: DeviceAccessModeValue; assignedUserIds: string[]; users: AssignableUser[] }
+      try {
+        assignment = await resolveRequestedAssignment(app, body, tenantId)
+      } catch (err) {
+        ctx.status = 400
+        ctx.body = {
+          error: 'invalid_assignment',
+          message: err instanceof Error ? err.message : 'Zuweisung ungültig.',
+        }
+        return
+      }
+
       purgeExpired()
       const code = generateUniqueCode()
       const expiresAt = Date.now() + PAIRING_CODE_TTL_MS
-      codeStore.set(code, { tenantId, locationId, createdBy: user['_id'], expiresAt })
+      codeStore.set(code, {
+        tenantId,
+        locationId,
+        createdBy: user['_id'],
+        expiresAt,
+        // `shared` wird bewusst NICHT mitgeschrieben: Ein frisch gepairtes
+        // Geraet soll dieselbe leere Spalte haben wie ein Bestandsgeraet.
+        // `NULL → shared` ist die Abwaertskompatibilitaets-Garantie (ADR 0023);
+        // materialisierte Defaults waeren die zweite Wahrheit daneben.
+        ...(assignment.deviceAccessMode === DeviceAccessMode.ASSIGNED
+          ? {
+              deviceAccessMode: assignment.deviceAccessMode,
+              assignedUserIds: assignment.assignedUserIds,
+              assignedUsers: assignment.users.map(toPairingAssignedUser),
+            }
+          : {}),
+      })
 
       logger.info({
         message: 'Pairing-Code ausgestellt',
@@ -149,6 +239,8 @@ export function registerDevicePairingRoutes(app: Application): void {
         tenantId,
         locationId,
         userId: user['_id'],
+        deviceAccessMode: assignment.deviceAccessMode,
+        assignedUserCount: assignment.assignedUserIds.length,
         // Code selbst NICHT loggen (sensibel)
       })
 
@@ -157,6 +249,12 @@ export function registerDevicePairingRoutes(app: Application): void {
         code,
         expiresAt: new Date(expiresAt).toISOString(),
         ttlSeconds: PAIRING_CODE_TTL_MS / 1000,
+        // Echo der Zuweisung. Doppelter Zweck: Bestaetigung fuer den Admin —
+        // und Faehigkeits-Sonde. Ein aelterer Edge kennt die Felder nicht und
+        // echot sie folglich nicht; die Admin-UI erkennt daran, dass sie die
+        // Zuweisung nicht anbieten darf, statt sie stillschweigend zu verlieren.
+        deviceAccessMode: assignment.deviceAccessMode,
+        assignedUserIds: assignment.assignedUserIds,
       }
       return
     }
@@ -209,6 +307,13 @@ export function registerDevicePairingRoutes(app: Application): void {
             // nicht — daher explizit setzen.
             tenantId: record.tenantId,
             locationId: record.locationId,
+            // Dieselbe Begruendung fuer die Zuweisung: Der Redeem ist
+            // oeffentlich. Ein Body-Feld waere ein Selbstbedienungsladen —
+            // jeder mit einem gueltigen Code koennte sich ein Geraet auf einen
+            // beliebigen Mitarbeiter ausstellen. Der Body wird oben bewusst
+            // nur nach code/deviceName/deviceType durchsucht.
+            ...(record.deviceAccessMode ? { deviceAccessMode: record.deviceAccessMode } : {}),
+            ...(record.assignedUserIds?.length ? { assignedUserIds: record.assignedUserIds } : {}),
           },
           { provider: undefined },
         )) as Record<string, any>
@@ -233,6 +338,12 @@ export function registerDevicePairingRoutes(app: Application): void {
           tenantId: device['tenantId'],
           locationId: device['locationId'],
           organizationName,
+          deviceAccessMode: resolveDeviceAccessMode(device),
+          // Namen nur zur Anzeige im Wizard („Dieses Gerät gehört zu …").
+          // Bewusst aus dem Code-Record und nicht aus einem zweiten
+          // users-Lookup: Der Redeem ist unauthentifiziert, ein Lookup dort
+          // waere ein Namens-Leak fuer jeden mit einem gueltigen Code.
+          assignedUsers: isDeviceAssigned(device) ? (record.assignedUsers ?? []) : [],
         }
         logger.info({
           message: 'Geraet via Pairing-Code registriert',
@@ -240,6 +351,7 @@ export function registerDevicePairingRoutes(app: Application): void {
           tenantId: record.tenantId,
           locationId: record.locationId,
           deviceId: device['deviceId'],
+          deviceAccessMode: resolveDeviceAccessMode(device),
         })
       } catch (err) {
         logger.error({

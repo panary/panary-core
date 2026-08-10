@@ -116,7 +116,11 @@
     "UPDATE_AND_RESTART": "Update & Restart",
     "CONNECTION_FAILED": "Connection failed",
     "CONNECTION_TIMEOUT": "Server unreachable. Please check the network and hub.",
-    "DEVICE_REJECTED": "This device was rejected by the server. Please check in the admin area whether it is still active."
+    "DEVICE_REJECTED": "This device was rejected by the server. Please check in the admin area whether it is still active.",
+    "ASSIGNMENT_ERROR_TITLE": "No assigned employee available",
+    "ASSIGNMENT_ERROR_HINT": "This device is assigned to specific employees, but none of them can sign in right now — most likely they were archived. An administrator has to adjust the assignment in the admin panel.",
+    "ASSIGNED_DEVICE_LABEL": "This device belongs to",
+    "ASSIGNED_DEVICE_HINT": "Only assigned employees and approvers can sign in here."
   },
   "TIME_CLOCK": {
     "TITLE": "Time tracking",
@@ -260,7 +264,13 @@
     "PIN_WRONG_CURRENT": "The current PIN is incorrect",
     "PIN_SAME_AS_OLD": "The new PIN must differ from the current one",
     "PIN_TOO_MANY_ATTEMPTS": "Too many failed attempts. Please wait a moment.",
-    "PIN_LENGTH_EXACT": "The PIN must consist of exactly {{length}} digits"
+    "PIN_LENGTH_EXACT": "The PIN must consist of exactly {{length}} digits",
+    "DEVICE_ASSIGNMENT": "Assignment",
+    "DEVICE_ASSIGNMENT_SHARED": "Shared terminal — all POS users",
+    "DEVICE_ASSIGNMENT_ASSIGNED": "Assigned to {{count}} employee(s)",
+    "DEVICE_ASSIGNMENT_MANAGED": "Managed by the administrator",
+    "SECURITY": "Security",
+    "SECURITY_PIN_ONLY": "Sign-in works by PIN only. No other methods are available at the moment."
   },
   "DASHBOARD": {
     "HELLO": "Hello,",

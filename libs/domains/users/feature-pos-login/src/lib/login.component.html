@@ -40,43 +40,77 @@
               <p class="text-sm text-gray-500">{{ 'LOGIN.SELECT_ACCOUNT' | translate }}</p>
             </div>
 
-            <!-- User Grid -->
-            <div class="grid grid-cols-3 sm:grid-cols-4 gap-3">
-              @for (user of posUsers(); track user._id; let i = $index) {
-                <button
-                  class="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 transition-all group"
-                  (click)="selectUser(user)"
-                  [style.animation-delay]="i * 0.03 + 's'"
-                  style="animation: fadeIn 0.3s ease-out backwards"
-                >
-                  <!-- Avatar -->
-                  <div
-                    class="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md group-hover:scale-105 transition-transform"
-                    [style.background-color]="user.color"
+            @if (!isShared()) {
+              <!-- Zugewiesenes Geraet: kompakte Zeilenliste statt Kachelraster.
+                   Zwei bis fuenf Eintraege in einem 4-spaltigen Raster saehen
+                   aus wie eine halb geladene Seite. -->
+              <div class="flex flex-col gap-2">
+                @for (user of posUsers(); track user._id) {
+                  <button
+                    class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-[0.99] transition-all text-left"
+                    (click)="selectUser(user)"
                   >
-                    {{ user.initials }}
-                  </div>
-                  <!-- Name -->
-                  <span class="text-xs font-medium text-gray-700 dark:text-gray-200 text-center truncate w-full">
-                    {{ user.firstName }}
-                  </span>
-                </button>
-              }
-            </div>
-
-            @if (posUsers().length === 0) {
-              <div class="text-center py-12">
-                <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="1.5"
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                  ></path>
-                </svg>
-                <p class="text-gray-500 dark:text-gray-400 text-sm">{{ 'LOGIN.NO_POS_USERS' | translate }}</p>
-                <p class="text-gray-400 text-xs mt-1">{{ 'LOGIN.CREATE_POS_USERS' | translate }}</p>
+                    <div
+                      class="w-11 h-11 shrink-0 rounded-full flex items-center justify-center text-white font-bold shadow-md"
+                      [style.background-color]="user.color"
+                    >
+                      {{ user.initials }}
+                    </div>
+                    <div class="min-w-0">
+                      <p class="text-sm font-semibold text-[#0F172A] dark:text-white truncate">
+                        {{ user.firstName }} {{ user.lastName }}
+                      </p>
+                      @if (user.staffRole) {
+                        <p class="text-xs text-gray-500 truncate">{{ user.staffRole }}</p>
+                      }
+                    </div>
+                  </button>
+                }
               </div>
+            } @else {
+              <!-- User Grid -->
+              <div class="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                @for (user of posUsers(); track user._id; let i = $index) {
+                  <button
+                    class="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 transition-all group"
+                    (click)="selectUser(user)"
+                    [style.animation-delay]="i * 0.03 + 's'"
+                    style="animation: fadeIn 0.3s ease-out backwards"
+                  >
+                    <!-- Avatar -->
+                    <div
+                      class="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md group-hover:scale-105 transition-transform"
+                      [style.background-color]="user.color"
+                    >
+                      {{ user.initials }}
+                    </div>
+                    <!-- Name -->
+                    <span class="text-xs font-medium text-gray-700 dark:text-gray-200 text-center truncate w-full">
+                      {{ user.firstName }}
+                    </span>
+                  </button>
+                }
+              </div>
+
+              @if (posUsers().length === 0) {
+                <div class="text-center py-12">
+                  <svg
+                    class="w-16 h-16 mx-auto text-gray-300 mb-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.5"
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                    ></path>
+                  </svg>
+                  <p class="text-gray-500 dark:text-gray-400 text-sm">{{ 'LOGIN.NO_POS_USERS' | translate }}</p>
+                  <p class="text-gray-400 text-xs mt-1">{{ 'LOGIN.CREATE_POS_USERS' | translate }}</p>
+                </div>
+              }
             }
           </div>
         }
@@ -86,20 +120,24 @@
           <div class="animate-[fadeIn_0.3s_ease-out] relative">
             <!-- Back Button + User Info -->
             <div class="flex items-center gap-4 mb-8">
-              <button
-                class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
-                (click)="backToUsers()"
-                [attr.aria-label]="'LOGIN.BACK_TO_USERS' | translate"
-              >
-                <svg
-                  class="w-5 h-5 text-gray-600 dark:text-gray-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              @if (!isSingleUserDevice()) {
+                <!-- Bei genau einem zugewiesenen Mitarbeiter fuehrt „zurueck"
+                     in dieselbe Maske — der Pfeil waere eine Taste ohne Ziel. -->
+                <button
+                  class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
+                  (click)="backToUsers()"
+                  [attr.aria-label]="'LOGIN.BACK_TO_USERS' | translate"
                 >
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                </svg>
-              </button>
+                  <svg
+                    class="w-5 h-5 text-gray-600 dark:text-gray-300"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                  </svg>
+                </button>
+              }
 
               <div
                 class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md"
@@ -123,12 +161,18 @@
             }
 
             <lib-pin-pad
+              [length]="pinLength"
               [value]="pinInput()"
               [error]="pinError()"
               [disabled]="isLoading()"
               (digit)="addDigit($event)"
               (backspace)="deleteDigit()"
             />
+
+            <!-- Bewusst leergelassener Slot unter dem Ziffernblock: Hier landet
+                 spaeter der Biometrie-Einstieg (ADR 0023, vertagt). Die Hoehe
+                 jetzt zu reservieren haelt das Layout stabil, wenn er kommt. -->
+            <div class="min-h-12"></div>
 
             @if (isLoading()) {
               <div class="absolute inset-0 bg-white/80 dark:bg-black/80 flex items-center justify-center">
@@ -206,6 +250,39 @@
                 <div class="w-8 h-8 border-4 border-[#00B8D4] border-t-transparent rounded-full animate-spin"></div>
               </div>
             }
+          </div>
+        }
+
+        <!-- ============== ZUWEISUNG INS LEERE ============== -->
+        @if (currentStep() === 'assignment-error') {
+          <!-- Das Geraet ist zugewiesen, aber kein zugewiesener Mitarbeiter ist
+               (mehr) anmeldbar — typischerweise archiviert. Bewusst KEIN
+               Rueckfall auf die volle Benutzerliste: Genau die soll auf einem
+               zugewiesenen Geraet ja nicht erscheinen. -->
+          <div class="flex flex-col items-center animate-[fadeIn_0.3s_ease-out]">
+            <div class="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-6">
+              <svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                ></path>
+              </svg>
+            </div>
+            <h2 class="text-xl font-semibold text-[#0F172A] dark:text-white mb-2">
+              {{ 'LOGIN.ASSIGNMENT_ERROR_TITLE' | translate }}
+            </h2>
+            <p class="text-sm text-gray-500 text-center mb-6 max-w-sm">
+              {{ 'LOGIN.ASSIGNMENT_ERROR_HINT' | translate }}
+            </p>
+
+            <button
+              class="px-6 py-2.5 bg-[#00B8D4] text-white font-medium rounded-lg hover:bg-[#00a7c0] transition-colors"
+              (click)="retry()"
+            >
+              {{ 'COMMON.RETRY' | translate }}
+            </button>
           </div>
         }
 
@@ -411,13 +488,23 @@
         </div>
       </div>
 
-      <!-- Bottom: Time Clock Panel -->
+      <!-- Bottom: Time Clock Panel (nur auf geteilten Geraeten) -->
       <div class="flex-1 mt-6">
-        <lib-time-clock-panel
-          mode="embedded"
-          [users]="posUsers()"
-          (actionConfirmed)="onTimeClockAction($event)"
-        ></lib-time-clock-panel>
+        @if (isShared()) {
+          <lib-time-clock-panel
+            mode="embedded"
+            [users]="posUsers()"
+            (actionConfirmed)="onTimeClockAction($event)"
+          ></lib-time-clock-panel>
+        } @else if (assignedUserNames().length) {
+          <div class="rounded-2xl bg-white/10 border border-white/15 p-5">
+            <p class="text-xs uppercase tracking-wider text-white/50 mb-2">
+              {{ 'LOGIN.ASSIGNED_DEVICE_LABEL' | translate }}
+            </p>
+            <p class="text-lg font-semibold text-white leading-snug">{{ assignedUserNames().join(' · ') }}</p>
+            <p class="text-xs text-white/50 mt-3">{{ 'LOGIN.ASSIGNED_DEVICE_HINT' | translate }}</p>
+          </div>
+        }
       </div>
     </div>
 
@@ -427,11 +514,14 @@
     ></div>
   </div>
 
-  <!-- Mobile: Time Clock Panel (Slide-In) -->
-  <lib-time-clock-panel
-    class="lg:hidden"
-    mode="mobile"
-    [users]="posUsers()"
-    (actionConfirmed)="onTimeClockAction($event)"
-  ></lib-time-clock-panel>
+  <!-- Mobile: Time Clock Panel (Slide-In) — ebenfalls nur geteilt.
+       Genau der mobile Fall ist das Diensthandy aus dem Anlass des Features. -->
+  @if (isShared()) {
+    <lib-time-clock-panel
+      class="lg:hidden"
+      mode="mobile"
+      [users]="posUsers()"
+      (actionConfirmed)="onTimeClockAction($event)"
+    ></lib-time-clock-panel>
+  }
 </div>

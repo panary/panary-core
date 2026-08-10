@@ -10,6 +10,7 @@ import { ConnectionService, LanguageService, OFFLINE_OUTBOX, OFFLINE_REPLAY } fr
 import type { OfflineOutboxRejectedEntry } from '@panary/shared-common'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 import { LogService } from '@panary/shared/data-access-updater'
+import { DeviceAssignmentService } from '@panary/devices/data-access'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 
@@ -62,6 +63,12 @@ interface EdgeServerInfo {
 })
 export class SettingsComponent implements OnInit {
   themeService = inject(ThemeServiceService)
+  /**
+   * Nur zur Anzeige: Die Zuweisung ist die Zugriffsentscheidung und liegt
+   * deshalb NIE im Geraete-Self-Service (ADR 0023). Am Terminal soll aber
+   * nachvollziehbar sein, warum der Login-Screen so aussieht wie er aussieht.
+   */
+  protected readonly deviceAssignment = inject(DeviceAssignmentService)
   uiScaleService = inject(UiScaleService)
   languageService = inject(LanguageService)
   locationService = inject(LocationService)

@@ -116,7 +116,11 @@
     "UPDATE_AND_RESTART": "Aktualisieren & Neustarten",
     "CONNECTION_FAILED": "Verbindung fehlgeschlagen",
     "CONNECTION_TIMEOUT": "Server nicht erreichbar. Bitte Netzwerk und Hub prüfen.",
-    "DEVICE_REJECTED": "Dieses Gerät wurde vom Server abgelehnt. Bitte im Admin-Bereich prüfen, ob es noch aktiv ist."
+    "DEVICE_REJECTED": "Dieses Gerät wurde vom Server abgelehnt. Bitte im Admin-Bereich prüfen, ob es noch aktiv ist.",
+    "ASSIGNMENT_ERROR_TITLE": "Kein zugewiesener Mitarbeiter verfügbar",
+    "ASSIGNMENT_ERROR_HINT": "Dieses Gerät ist bestimmten Mitarbeitern zugewiesen, aber keiner davon kann sich derzeit anmelden — vermutlich wurde er archiviert. Ein Administrator muss die Zuweisung im Admin-Panel anpassen.",
+    "ASSIGNED_DEVICE_LABEL": "Dieses Gerät gehört zu",
+    "ASSIGNED_DEVICE_HINT": "Nur zugewiesene Mitarbeiter und Freigabe-Berechtigte können sich hier anmelden."
   },
   "TIME_CLOCK": {
     "TITLE": "Arbeitszeiterfassung",
@@ -260,7 +264,13 @@
     "PIN_WRONG_CURRENT": "Der aktuelle PIN ist falsch",
     "PIN_SAME_AS_OLD": "Der neue PIN darf nicht dem bisherigen entsprechen",
     "PIN_TOO_MANY_ATTEMPTS": "Zu viele Fehlversuche. Bitte kurz warten.",
-    "PIN_LENGTH_EXACT": "Der PIN muss aus genau {{length}} Ziffern bestehen"
+    "PIN_LENGTH_EXACT": "Der PIN muss aus genau {{length}} Ziffern bestehen",
+    "DEVICE_ASSIGNMENT": "Zuweisung",
+    "DEVICE_ASSIGNMENT_SHARED": "Geteiltes Terminal — alle POS-Benutzer",
+    "DEVICE_ASSIGNMENT_ASSIGNED": "Zugewiesen an {{count}} Mitarbeiter",
+    "DEVICE_ASSIGNMENT_MANAGED": "Vom Administrator verwaltet",
+    "SECURITY": "Sicherheit",
+    "SECURITY_PIN_ONLY": "Die Anmeldung erfolgt ausschließlich per PIN. Weitere Verfahren sind derzeit nicht verfügbar."
   },
   "DASHBOARD": {
     "HELLO": "Hallo,",

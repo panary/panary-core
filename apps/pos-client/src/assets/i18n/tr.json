@@ -116,7 +116,11 @@
     "UPDATE_AND_RESTART": "Güncelle ve Yeniden Başlat",
     "CONNECTION_FAILED": "Bağlantı başarısız",
     "CONNECTION_TIMEOUT": "Sunucuya ulaşılamıyor. Lütfen ağı ve hub bağlantısını kontrol edin.",
-    "DEVICE_REJECTED": "Bu cihaz sunucu tarafından reddedildi. Lütfen yönetim alanında hâlâ etkin olup olmadığını kontrol edin."
+    "DEVICE_REJECTED": "Bu cihaz sunucu tarafından reddedildi. Lütfen yönetim alanında hâlâ etkin olup olmadığını kontrol edin.",
+    "ASSIGNMENT_ERROR_TITLE": "Atanmış çalışan yok",
+    "ASSIGNMENT_ERROR_HINT": "Bu cihaz belirli çalışanlara atanmış, ancak şu anda hiçbiri giriş yapamıyor — büyük olasılıkla arşivlendiler. Bir yöneticinin atamayı yönetim panelinden düzeltmesi gerekiyor.",
+    "ASSIGNED_DEVICE_LABEL": "Bu cihaz şuna ait",
+    "ASSIGNED_DEVICE_HINT": "Buraya yalnızca atanmış çalışanlar ve onay yetkilileri giriş yapabilir."
   },
   "TIME_CLOCK": {
     "TITLE": "Çalışma saati kaydı",
@@ -260,7 +264,13 @@
     "PIN_WRONG_CURRENT": "Mevcut PIN yanlış",
     "PIN_SAME_AS_OLD": "Yeni PIN mevcut PIN ile aynı olamaz",
     "PIN_TOO_MANY_ATTEMPTS": "Çok fazla başarısız deneme. Lütfen biraz bekleyin.",
-    "PIN_LENGTH_EXACT": "PIN tam olarak {{length}} haneli olmalıdır"
+    "PIN_LENGTH_EXACT": "PIN tam olarak {{length}} haneli olmalıdır",
+    "DEVICE_ASSIGNMENT": "Atama",
+    "DEVICE_ASSIGNMENT_SHARED": "Paylaşımlı terminal — tüm POS kullanıcıları",
+    "DEVICE_ASSIGNMENT_ASSIGNED": "{{count}} çalışana atanmış",
+    "DEVICE_ASSIGNMENT_MANAGED": "Yönetici tarafından yönetilir",
+    "SECURITY": "Güvenlik",
+    "SECURITY_PIN_ONLY": "Giriş yalnızca PIN ile yapılır. Şu anda başka bir yöntem mevcut değil."
   },
   "DASHBOARD": {
     "HELLO": "Merhaba,",

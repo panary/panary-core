@@ -939,6 +939,29 @@
                       {{ cfg.deviceId || '-' }}
                     </p>
                   </div>
+                  <!-- Schreibgeschuetzt: Die Zuweisung IST die
+                       Zugriffsentscheidung und darf deshalb nie im
+                       Geraete-Self-Service liegen (siehe ADR 0023). Sie steht
+                       hier nur, damit am Terminal nachvollziehbar ist, warum
+                       der Login-Screen so aussieht, wie er aussieht. -->
+                  <div
+                    class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:col-span-2"
+                  >
+                    <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">
+                      {{ 'SETTINGS.DEVICE_ASSIGNMENT' | translate }}
+                    </p>
+                    <p class="font-bold text-gray-800 dark:text-white">
+                      {{
+                        deviceAssignment.isAssigned()
+                          ? ('SETTINGS.DEVICE_ASSIGNMENT_ASSIGNED'
+                            | translate: { count: deviceAssignment.assignedUserIds().length })
+                          : ('SETTINGS.DEVICE_ASSIGNMENT_SHARED' | translate)
+                      }}
+                    </p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      {{ 'SETTINGS.DEVICE_ASSIGNMENT_MANAGED' | translate }}
+                    </p>
+                  </div>
                   <div class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                     <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">
                       {{ 'SETTINGS.TENANT_ID' | translate }}
@@ -969,6 +992,19 @@
               } @else {
                 <p class="text-sm text-gray-500 dark:text-gray-400">–</p>
               }
+            </div>
+
+            <!-- Sicherheit — heute nur der PIN. Der Abschnitt existiert als
+                 Platzhalter fuer die Biometrie (ADR 0023, vertagt bis
+                 Capacitor-Client mit Sensor ODER POS ueber HTTPS). Dann kommt
+                 hier „gerätegebundener Schluessel + Server-Challenge" dazu; der
+                 PIN bleibt in jedem Fall Pflicht-Fallback. -->
+            <div class="bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+              <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
+                <span class="material-symbols-outlined text-[1.25rem]">security</span>
+                {{ 'SETTINGS.SECURITY' | translate }}
+              </h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">{{ 'SETTINGS.SECURITY_PIN_ONLY' | translate }}</p>
             </div>
 
             <!-- Danger Zone -->

@@ -1,6 +1,7 @@
-import { Component, HostListener, inject, OnInit, signal, WritableSignal } from '@angular/core'
+import { Component, computed, HostListener, inject, OnInit, signal, WritableSignal } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { Router } from '@angular/router'
+import { DeviceAssignmentService } from '@panary/devices/data-access'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 // Direct import to avoid circular dependency with Admin's ConnectionService
 import { ConnectionService } from '@panary/shared/data-access'
@@ -26,7 +27,7 @@ interface PosUser {
   staffRole?: string
 }
 
-type LoginStep = 'loading' | 'select-user' | 'enter-pin' | 'change-pin' | 'error'
+type LoginStep = 'loading' | 'select-user' | 'enter-pin' | 'change-pin' | 'error' | 'assignment-error'
 
 /** Wie lange auf eine authentifizierte Verbindung gewartet wird, bevor die Fehlermaske erscheint. */
 const CONNECTION_TIMEOUT_MS = 15_000
@@ -48,6 +49,7 @@ export class LoginComponent implements OnInit {
   private readonly router = inject(Router)
   private readonly configService = inject(DeviceConfigService)
   private readonly connectionService = inject(ConnectionService)
+  protected readonly deviceAssignment = inject(DeviceAssignmentService)
   readonly themeService = inject(ThemeServiceService)
   readonly languageService = inject(LanguageService)
   readonly updateService = inject(UpdateService)
@@ -88,6 +90,41 @@ export class LoginComponent implements OnInit {
 
   // Connection status exposed for template
   readonly connectionState = this.connectionService.connectionState
+
+  //#region Geraete-Zuweisung (PNRY-FEAT-DEVICE-ASSIGNMENT-001)
+  /**
+   * Steuert das Personalnummer-Stempel-Panel. Auf einem zugewiesenen Geraet
+   * ergibt eine Liste aller Personalnummern keinen Sinn mehr.
+   *
+   * **Bewusst UI-Kosmetik:** `users.checkin` prueft die Personalnummer
+   * serverseitig nicht (eigenes Ticket). Das `users.find`-Scoping schliesst auf
+   * zugewiesenen Geraeten den bequemen Weg mit, nicht den Endpunkt. Das
+   * Dashboard-Statusmenue bleibt der abgesicherte Stempelpfad und aendert sich
+   * nicht.
+   */
+  readonly isShared = computed(() => this.deviceAssignment.isShared())
+
+  /** Genau ein Mitarbeiter → kein Zurueck-Pfeil, es gibt nichts zum Zurueck. */
+  readonly isSingleUserDevice = computed(() => this.deviceAssignment.isAssigned() && this.posUsers().length === 1)
+
+  /**
+   * „Dieses Geraet gehoert zu …" in der rechten Panel-Haelfte.
+   *
+   * Gefiltert auf `assignedUserIds` — `posUsers()` traegt auf einem zugewiesenen
+   * Geraet zusaetzlich die Freigabe-Rollen (Inhaber, Filialleiter, Techniker).
+   * Die gehoeren zwar auf den Login-Screen, aber nicht in diesen Satz: Das
+   * Geraet gehoert ihnen nicht.
+   */
+  readonly assignedUserNames = computed(() => {
+    if (!this.deviceAssignment.isAssigned()) return []
+    const assignedIds = new Set(this.deviceAssignment.assignedUserIds())
+    return this.posUsers()
+      .filter(user => assignedIds.has(user._id))
+      .map(user => `${user.firstName} ${user.lastName}`.trim())
+  })
+
+  protected readonly pinLength = POS_PIN_LENGTH
+  //#endregion
   //#endregion
 
   //#region Avatar Colors
@@ -173,10 +210,15 @@ export class LoginComponent implements OnInit {
       // Wait for connection
       await this.waitForConnection()
 
+      // Zuweisung VOR den Benutzern: Sie entscheidet, wie der Screen aussieht.
+      // Ein Fehler dabei darf den Login nicht kippen — der Server-Scope wirkt
+      // ohnehin, der Service faellt still auf `shared` zurueck.
+      await this.deviceAssignment.refresh().catch(() => undefined)
+
       // Load POS users
       await this.loadPosUsers()
 
-      this.currentStep.set('select-user')
+      this.currentStep.set(this.#resolveEntryStep())
     } catch (error) {
       console.error('Failed to connect or load users:', error)
       this.errorMessage.set(
@@ -309,6 +351,31 @@ export class LoginComponent implements OnInit {
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase()
   }
 
+  /**
+   * Einstiegsschritt nach dem Laden. Auf einem zugewiesenen Geraet mit genau
+   * einem Mitarbeiter waere die Benutzerauswahl eine Liste mit einem Eintrag —
+   * ein Klick, den niemand braucht.
+   *
+   * `users.find` ist serverseitig bereits auf `assignedUserIds ∪ Freigabe-Rollen`
+   * verengt (Schritt 2); die Liste hier IST der erlaubte Personenkreis. Bleibt
+   * sie auf einem zugewiesenen Geraet leer, ist die Zuweisung kaputt (Mitarbeiter
+   * archiviert oder geloescht) — dann `assignment-error` und **niemals** ein
+   * Rueckfall auf die volle Liste, denn genau die soll hier ja nicht erscheinen.
+   */
+  #resolveEntryStep(): LoginStep {
+    if (!this.deviceAssignment.isAssigned()) return 'select-user'
+
+    const users = this.posUsers()
+    if (users.length === 0) return 'assignment-error'
+    if (users.length === 1) {
+      this.selectedUser.set(users[0])
+      this.pinInput.set('')
+      this.pinError.set(false)
+      return 'enter-pin'
+    }
+    return 'select-user'
+  }
+
   //#endregion
 
   //#region User Selection
@@ -323,19 +390,24 @@ export class LoginComponent implements OnInit {
     this.selectedUser.set(null)
     this.pinInput.set('')
     this.pinError.set(false)
-    this.currentStep.set('select-user')
+    // Auf einem Ein-Personen-Geraet fuehrt „zurueck" wieder in dieselbe
+    // PIN-Eingabe — der Pfeil ist dort ausgeblendet, das hier ist die
+    // Absicherung fuer den Tastatur-Pfad (Escape).
+    this.currentStep.set(this.#resolveEntryStep())
   }
 
   //#endregion
 
   //#region PIN Input
   addDigit(digit: string): void {
-    if (this.pinInput().length < 4) {
+    // POS_PIN_LENGTH statt der frueheren hartcodierten 4: Der Wechsel-Dialog
+    // nutzte die Konstante bereits, dieser Pfad nicht — eine Aenderung der
+    // Laenge haette hier still danebengelegen.
+    if (this.pinInput().length < POS_PIN_LENGTH) {
       this.pinInput.update(current => current + digit)
       this.pinError.set(false)
 
-      // Auto-submit bei 4 Ziffern
-      if (this.pinInput().length === 4) {
+      if (this.pinInput().length === POS_PIN_LENGTH) {
         setTimeout(() => this.verifyPin(), 100)
       }
     }
@@ -523,14 +595,22 @@ export class LoginComponent implements OnInit {
     }
   }
 
-  /** Abbruch im Wechsel-Dialog: kompletter Rueckzug zur Benutzerauswahl. */
+  /**
+   * Abbruch im Wechsel-Dialog: Rueckzug dorthin, wo der Login begonnen hat.
+   *
+   * Frueher immer nach `select-user` — auf einem Geraet mit genau EINEM
+   * zugewiesenen Mitarbeiter landete der Bediener damit auf einem Screen mit
+   * einer einzigen Kachel, die er nie gesehen hatte, oder (waehrend die
+   * Zuweisung noch laedt) auf einem leeren. Der Einstiegsschritt ist die
+   * richtige Antwort, nicht ein fester Schritt.
+   */
   cancelChangePin(): void {
     this.#verifiedPin = null
     this.#pendingUser = null
     this.#resetChangePinInputs()
     this.selectedUser.set(null)
     this.pinInput.set('')
-    this.currentStep.set('select-user')
+    this.currentStep.set(this.#resolveEntryStep())
   }
 
   //#endregion

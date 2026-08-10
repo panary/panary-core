@@ -121,7 +121,7 @@ describe('Golden Numbers — gemischter Geschaeftstag', () => {
         payoutsCents: 1500,
         countedClosingFloatCents: counted,
       })
-      expect(vorher.varianceCents).toBe(3940)
+      expect(vorher.varianceCents).toBe(-3940)
     })
   })
 

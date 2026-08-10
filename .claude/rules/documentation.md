@@ -2,7 +2,7 @@
 
 Projektdoku lebt im Wiki `/docs`: ein OKF-v0.2-Bundle (Open Knowledge Format — Markdown +
 YAML-Frontmatter), gepflegt von Agenten, kuratiert vom Nutzer. Einstieg: `docs/index.md`.
-Historie: `docs/log.md`.
+Historie: `docs/log.d/` (ein Fragment je Eintrag), zusammengesetzt via `pnpm docs:log`.
 
 > **Hinweis:** Der frühere `/documentation`-Ordner wurde am 2026-07-25 vollständig in
 > dieses Wiki migriert (Frontmatter `generated.by: claude-code/historic` markiert
@@ -34,10 +34,15 @@ Historie: `docs/log.md`.
 | `docs/integrations/`   | Externe Integrationen (APIs, Provider)                               | `Architecture`, `Reference`   |
 | `docs/references/`     | Gespiegeltes Material: Handoffs, Assets, externe Spezifikationen     | `Reference`                   |
 | `docs/raw/`            | Unveränderliche Rohquellen (Originaldokumente) — siehe Hinweis unten | — (keine Frontmatter-Pflicht) |
+| `docs/log.d/`          | Historie als Fragmente, `<YYYY-MM-DD>-<nr>-<slug>.md` — siehe §4.2   | — (keine Frontmatter-Pflicht) |
 
 Feinere Unterordner (z. B. `domains/orders/`) sind erlaubt; jeder Unterordner bekommt ein
 eigenes `index.md`. Die reservierten Dateinamen `index.md` und `log.md` sind nie
 Konzeptseiten. Frontmatter in Index-Dateien nur im Root-`docs/index.md` (`okf_version`).
+
+**Ausnahme `docs/log.d/`:** kein `index.md`, keine Frontmatter. Ein Index dort wäre die eine
+Datei, die wieder jeder PR anfassen müsste — also genau der Konflikt, gegen den die Fragmente
+angelegt wurden (#137). Die Übersicht erzeugt `pnpm docs:log`.
 
 `docs/raw/` ist die **Rohquellen-Schicht** (Karpathy Layer 1): unveränderliche Originaldokumente
 (z. B. restaurierte Planungsunterlagen). **Nie editieren**, keine Frontmatter-Pflicht, kein
@@ -90,8 +95,15 @@ generated: { by: <actor>, at: <ISO-8601> }
 
 1. **Ordner-Index** und **Root-`docs/index.md`** aktualisieren
    (Eintragsformat: `* [Titel](pfad.md) - <description aus dem Frontmatter>`).
-2. **`docs/log.md`** ergänzen — neuester Eintrag oben:
-   `## YYYY-MM-DD` + `* **Creation|Update|Deprecation**: <Satz mit Link>`.
+2. **Log-Fragment anlegen** — `docs/log.d/<YYYY-MM-DD>-<nr>-<slug>.md`, Inhalt sind die
+   Bullets selbst (`* **Creation|Update|Deprecation**: <Satz mit Link>`), ohne Datums-Header
+   und ohne Frontmatter. `<nr>` ist die **Issue-Nummer** (ohne Issue: die PR-Nummer) —
+   sie ist der einzige Diskriminator, den eine Session ohne Blick auf die anderen bestimmen
+   kann. Eine laufende Tagesnummer wäre abstimmungspflichtig und damit wieder
+   kollisionsanfällig; genau daran konfligierte vorher `docs/log.md` (#137).
+   ⚠️ Fragmente liegen **eine Ebene tiefer** — jeder relative Link braucht ein zusätzliches
+   `../` (`[…](../adr/….md)`), sonst ist er in der Fragment-Ansicht tot.
+   `docs/log.md` selbst wird **nicht** mehr angefasst.
 3. **Querverweise** setzen: relative Markdown-Links auf verwandte Konzepte (beide Richtungen
    prüfen). Links auf noch-nicht-geschriebene Konzepte sind erlaubt — sie markieren Bedarf.
 

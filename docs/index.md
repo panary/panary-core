@@ -6,7 +6,7 @@ okf_version: "0.2"
 
 Wissens-Bundle im Open Knowledge Format (OKF v0.2), gepflegt von Agenten, kuratiert vom Nutzer.
 Verbindliche Regeln (Struktur, Frontmatter, ADRs, Workflows): `.claude/rules/documentation.md`.
-Historie: [log.md](log.md).
+Historie: [log.d/](log.d/) — zusammengesetzte Ansicht via `pnpm docs:log`.
 
 # Bereiche
 

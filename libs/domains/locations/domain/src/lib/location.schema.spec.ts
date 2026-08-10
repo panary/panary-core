@@ -56,3 +56,40 @@ describe('locationDataSchema (Sync-Pull-Apply-CREATE)', () => {
     await expect(validator({ ...syncedCloudLocation, evilField: 'x' })).rejects.toThrow()
   })
 })
+
+// Standort-Grace fuer den Order-Gate (panary-cloud ADR 0046, panary-cloud#133 /
+// panary-core#134). Die Gruppe ist optional: Bestands-Locations tragen sie nicht
+// und muessen weiter validieren — sonst waere die Schema-Erweiterung ein
+// Breaking Change fuer jeden bereits gesyncten Record.
+describe('settings.businessDaySettings', () => {
+  const withBusinessDaySettings = (businessDaySettings: unknown) => ({
+    ...syncedCloudLocation,
+    settings: { ...generateDefaultLocationSettings, businessDaySettings },
+  })
+
+  it('akzeptiert eine Location ohne die Gruppe (Bestand)', async () => {
+    expect(generateDefaultLocationSettings).not.toHaveProperty('businessDaySettings')
+    await expect(validator(syncedCloudLocation)).resolves.toBeTruthy()
+  })
+
+  it('akzeptiert maxOpenHours innerhalb der Grenzen', async () => {
+    await expect(validator(withBusinessDaySettings({ maxOpenHours: 30 }))).resolves.toBeTruthy()
+  })
+
+  it('akzeptiert die leere Gruppe (kein Pflicht-Feld darin)', async () => {
+    await expect(validator(withBusinessDaySettings({}))).resolves.toBeTruthy()
+  })
+
+  it('lehnt 0 und negative Werte ab — eine Sperre ab der ersten Sekunde ist kein gueltiger Betrieb', async () => {
+    await expect(validator(withBusinessDaySettings({ maxOpenHours: 0 }))).rejects.toThrow()
+    await expect(validator(withBusinessDaySettings({ maxOpenHours: -1 }))).rejects.toThrow()
+  })
+
+  it('lehnt Werte oberhalb einer Woche ab', async () => {
+    await expect(validator(withBusinessDaySettings({ maxOpenHours: 169 }))).rejects.toThrow()
+  })
+
+  it('lehnt Nicht-Ganzzahlen ab', async () => {
+    await expect(validator(withBusinessDaySettings({ maxOpenHours: 26.5 }))).rejects.toThrow()
+  })
+})

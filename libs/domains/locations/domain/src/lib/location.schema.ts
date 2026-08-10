@@ -185,6 +185,20 @@ export const settingsSchema = Type.Object({
       defaultOpeningFloatCents: Type.Optional(Type.Integer({ minimum: 0, default: 0 })),
     }),
   ),
+  // Geschäftstags-Einstellungen. `maxOpenHours` ist die Obergrenze, bis zu der ein
+  // offener Geschäftstag noch Bestellungen annimmt — gemessen ab `openedAt`, nicht
+  // als Kalendertags-Differenz. Stunden statt Tagen, weil ein Kalendertag nur in der
+  // Filial-Zeitzone eindeutig ist: der Order-Gate rechnete in UTC, während der Tag in
+  // Filialzeit gestempelt wird, und sperrte einen Nachtbetrieb 18:00 → 04:00 deshalb
+  // ab 02:00 CEST. Eine Stundendifferenz ist zeitzonenfrei exakt und liegt auf einer
+  // Linie mit `openDurationHours` und `maxBusinessDayOpenHours`.
+  // Nicht gesetzt = Server-Default (api-cloud/api-edge `maxBusinessDayOpenHours`).
+  // Entscheidung: panary-cloud ADR 0046; Umsetzung panary-cloud#133 + panary-core#134.
+  businessDaySettings: Type.Optional(
+    Type.Object({
+      maxOpenHours: Type.Optional(Type.Integer({ minimum: 1, maximum: 168 })),
+    }),
+  ),
   // Operative Beleg-/Bon-Einstellungen (ADR beleg-bon-system, D4). Live-patchbar
   // (kein Storefront-Republish). Das Fiskal-Gate bleibt allein an `operationMode` —
   // `tseEnabled` ist additiv und kann eine pos-cashier-Pflicht nie schwächen.

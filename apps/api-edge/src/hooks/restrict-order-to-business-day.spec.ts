@@ -34,13 +34,11 @@ vi.mock('@panary/shared-backend', () => ({
 const shouldAutoRotate = vi.fn()
 const rotateBusinessDay = vi.fn()
 const hasActiveOrders = vi.fn()
-const getDifferenceInDays = vi.fn()
 const getHoursSince = vi.fn()
 vi.mock('../utils/business-day.utils', () => ({
   shouldAutoRotate: (...a: unknown[]) => shouldAutoRotate(...a),
   rotateBusinessDay: (...a: unknown[]) => rotateBusinessDay(...a),
   hasActiveOrders: (...a: unknown[]) => hasActiveOrders(...a),
-  getDifferenceInDays: (...a: unknown[]) => getDifferenceInDays(...a),
   getHoursSince: (...a: unknown[]) => getHoursSince(...a),
 }))
 
@@ -58,6 +56,10 @@ function makeContext(opts: {
   userActiveLocationId?: string | null
   /** Rueckgabe von `locations.find()` fuer den Eindeutigkeits-Fallback. */
   locationList?: Array<{ _id: string }>
+  /** Config-Wert der Altersgrenze; `undefined` = Hauskonstante 26. */
+  maxBusinessDayOpenHours?: number
+  /** Rueckgabe von `businessdays.get()` — steuert Zeitstempel und Betriebsart. */
+  businessDay?: { openedAt?: string; operationMode?: string }
 }): any {
   const services: Record<string, any> = {
     users: {
@@ -77,11 +79,17 @@ function makeContext(opts: {
     'cloud-connection': {
       find: vi.fn().mockResolvedValue(opts.cloudConnection ? [opts.cloudConnection] : []),
     },
-    businessdays: { get: vi.fn().mockResolvedValue({ openedAt: new Date().toISOString() }) },
+    businessdays: {
+      get: vi.fn().mockResolvedValue(opts.businessDay ?? { openedAt: new Date().toISOString() }),
+    },
   }
   return {
     app: {
-      get: (key: string) => (key === 'system' ? { mode: opts.systemMode ?? 'standalone' } : undefined),
+      get: (key: string) => {
+        if (key === 'system') return { mode: opts.systemMode ?? 'standalone' }
+        if (key === 'maxBusinessDayOpenHours') return opts.maxBusinessDayOpenHours
+        return undefined
+      },
       service: (path: string) => services[path],
     },
     params: { user: { _id: 'user-1' } },
@@ -93,6 +101,11 @@ function makeContext(opts: {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  // `clearAllMocks` loescht Aufrufe, NICHT Implementierungen — ohne diesen
+  // Default schleppt ein `mockReturnValue(48)` aus einem Test die Altersgrenze
+  // in alle folgenden. Seit die Grenze in JEDEM Pfad geprueft wird (ADR 0047,
+  // vorher nur im Aktive-Orders-Zweig), waere das ein stiller Fehlschlag.
+  getHoursSince.mockReturnValue(1)
 })
 
 // Jeder Fall laeuft ueber beide System-Modi mit IDENTISCHER Erwartung. Das ist
@@ -101,7 +114,6 @@ beforeEach(() => {
 describe.each(['standalone', 'connected'])('restrictOrderToBusinessDay (systemMode=%s)', systemMode => {
   it('lässt einen offenen Geschäftstag passieren und stempelt die businessDayId', async () => {
     shouldAutoRotate.mockReturnValue(false)
-    getDifferenceInDays.mockReturnValue(0)
     const ctx = makeContext({
       systemMode,
       location: {
@@ -140,7 +152,7 @@ describe.each(['standalone', 'connected'])('restrictOrderToBusinessDay (systemMo
     expect(ctx.data.businessDayId).toBe('bd-new')
   })
 
-  it('blockiert bei aktivem Pairing ohne Override, wenn der Tag rotiert werden müsste', async () => {
+  it('blockiert bei aktivem Pairing ohne Override, wenn gar kein Tag eröffnet ist', async () => {
     shouldAutoRotate.mockReturnValue(true)
     const ctx = makeContext({
       systemMode,
@@ -150,6 +162,17 @@ describe.each(['standalone', 'connected'])('restrictOrderToBusinessDay (systemMo
 
     await expect(restrictOrderToBusinessDay()(ctx)).rejects.toBeInstanceOf(BadRequest)
     expect(rotateBusinessDay).not.toHaveBeenCalled()
+  })
+
+  it('nennt im gepairten Betrieb den Cloud-Admin als Handlungsort', async () => {
+    shouldAutoRotate.mockReturnValue(true)
+    const ctx = makeContext({
+      systemMode,
+      location: { _id: 'loc-1', tenantId: 't-1', currentBusinessDay: null },
+      cloudConnection: { pairingStatus: 'connected', offlineOverrideActiveUntil: null },
+    })
+
+    await expect(restrictOrderToBusinessDay()(ctx)).rejects.toThrow(/Cloud-Admin/)
   })
 
   it('rotiert bei aktivem Pairing MIT gültigem Offline-Override', async () => {
@@ -192,7 +215,6 @@ describe.each(['standalone', 'connected'])('restrictOrderToBusinessDay (systemMo
   // Users ohne activeLocationId mit LOCATION_NOT_ASSIGNED gescheitert.
   it('löst die Location auf, wenn der User keine activeLocationId hat und genau EINE Location existiert', async () => {
     shouldAutoRotate.mockReturnValue(false)
-    getDifferenceInDays.mockReturnValue(0)
     const ctx = makeContext({
       systemMode,
       userActiveLocationId: null,
@@ -222,7 +244,6 @@ describe.each(['standalone', 'connected'])('restrictOrderToBusinessDay (systemMo
   // funktionieren, wo sie vorher liefen.
   it('ordnet bei MEHREREN Locations deterministisch die erste zu, statt abzubrechen', async () => {
     shouldAutoRotate.mockReturnValue(false)
-    getDifferenceInDays.mockReturnValue(0)
     const ctx = makeContext({
       systemMode,
       userActiveLocationId: null,
@@ -248,5 +269,170 @@ describe.each(['standalone', 'connected'])('restrictOrderToBusinessDay (systemMo
     })
 
     await expect(restrictOrderToBusinessDay()(ctx)).rejects.toBeInstanceOf(BadRequest)
+  })
+})
+
+// Der Kern von panary-cloud ADR 0047. Vorher sperrte der gepairte Betrieb, sobald
+// `currentBusinessDay.date !== today` — mit `today` aus `toISOString()`, also UTC,
+// waehrend die Cloud in Filial-Lokalzeit stempelt. In CEST sprang die Sperre damit
+// um 02:00 Ortszeit, und ein gepairter Edge konnte keinen Geschaeftstag ueber
+// Mitternacht betreiben.
+describe('Altersgrenze im gepairten Betrieb (Stunden statt Kalendertage)', () => {
+  const connected = { pairingStatus: 'connected', offlineOverrideActiveUntil: null }
+  /** Gestriges Datum — vor dem Fix allein schon ein Sperrgrund. */
+  const yesterday = new Date(Date.now() - 24 * 3600 * 1000).toISOString().slice(0, 10)
+
+  const pairedContext = (over: Record<string, unknown> = {}) =>
+    makeContext({
+      systemMode: 'connected',
+      cloudConnection: connected,
+      location: {
+        _id: 'loc-1',
+        tenantId: 't-1',
+        currentBusinessDay: { businessDayId: 'bd-night', date: yesterday },
+        ...((over.location as object) ?? {}),
+      },
+      ...over,
+    })
+
+  it('lässt einen Übernacht-Betrieb 18:00 → 04:00 durch (10 h offen, Datum von gestern)', async () => {
+    shouldAutoRotate.mockReturnValue(true) // Datum ≠ heute
+    getHoursSince.mockReturnValue(10)
+    const ctx = pairedContext()
+
+    await restrictOrderToBusinessDay()(ctx)
+
+    expect(ctx.data.businessDayId).toBe('bd-night')
+    expect(rotateBusinessDay).not.toHaveBeenCalled()
+  })
+
+  it('lässt auch dicht unter der Schwelle durch (25 h bei Grenze 26)', async () => {
+    shouldAutoRotate.mockReturnValue(true)
+    getHoursSince.mockReturnValue(25)
+    const ctx = pairedContext()
+
+    await restrictOrderToBusinessDay()(ctx)
+
+    expect(ctx.data.businessDayId).toBe('bd-night')
+  })
+
+  it('sperrt einen Tag von vorgestern (50 h) mit BUSINESS_DAY_TOO_OLD', async () => {
+    shouldAutoRotate.mockReturnValue(true)
+    getHoursSince.mockReturnValue(50)
+    const ctx = pairedContext()
+
+    await expect(restrictOrderToBusinessDay()(ctx)).rejects.toMatchObject({
+      data: { code: 'BUSINESS_DAY_TOO_OLD', openHours: 50, maxAllowedOpenHours: 26 },
+    })
+  })
+
+  it('sperrt knapp oberhalb der Schwelle (27 h bei Grenze 26)', async () => {
+    shouldAutoRotate.mockReturnValue(true)
+    getHoursSince.mockReturnValue(27)
+
+    await expect(restrictOrderToBusinessDay()(pairedContext())).rejects.toBeInstanceOf(BadRequest)
+  })
+
+  it('nennt Datum, Laufzeit und Grenze in der Meldung', async () => {
+    shouldAutoRotate.mockReturnValue(true)
+    getHoursSince.mockReturnValue(50)
+
+    await expect(restrictOrderToBusinessDay()(pairedContext())).rejects.toThrow(
+      new RegExp(`${yesterday}.*50 Stunden.*26 Stunden`),
+    )
+  })
+
+  it('sagt im Bestellbetrieb „Betriebstag beenden" statt „Tagesabschluss"', async () => {
+    shouldAutoRotate.mockReturnValue(true)
+    getHoursSince.mockReturnValue(50)
+    const ctx = pairedContext({ businessDay: { openedAt: '2026-08-08T18:00:00.000Z', operationMode: 'orders-only' } })
+
+    await expect(restrictOrderToBusinessDay()(ctx)).rejects.toThrow(/Betriebstag beenden/)
+  })
+
+  it('sagt im Kassenbetrieb „Tagesabschluss"', async () => {
+    shouldAutoRotate.mockReturnValue(true)
+    getHoursSince.mockReturnValue(50)
+    const ctx = pairedContext({ businessDay: { openedAt: '2026-08-08T18:00:00.000Z', operationMode: 'pos-cashier' } })
+
+    await expect(restrictOrderToBusinessDay()(ctx)).rejects.toThrow(/Tagesabschluss/)
+  })
+
+  it('lässt durch, wenn kein brauchbarer Zeitstempel existiert (fail-open, laut)', async () => {
+    shouldAutoRotate.mockReturnValue(true)
+    const ctx = pairedContext({ businessDay: {} }) // kein openedAt
+
+    await restrictOrderToBusinessDay()(ctx)
+
+    expect(ctx.data.businessDayId).toBe('bd-night')
+  })
+})
+
+describe('Standort-Override der Altersgrenze', () => {
+  const connected = { pairingStatus: 'connected', offlineOverrideActiveUntil: null }
+  const withOverride = (maxOpenHours?: number, configValue?: number) =>
+    makeContext({
+      systemMode: 'connected',
+      cloudConnection: connected,
+      maxBusinessDayOpenHours: configValue,
+      location: {
+        _id: 'loc-1',
+        tenantId: 't-1',
+        currentBusinessDay: { businessDayId: 'bd-1', date: '2026-08-08' },
+        settings: maxOpenHours === undefined ? {} : { businessDaySettings: { maxOpenHours } },
+      },
+    })
+
+  it('übersteuert den Default nach OBEN (Grenze 48 statt 26)', async () => {
+    shouldAutoRotate.mockReturnValue(true)
+    getHoursSince.mockReturnValue(40)
+    const ctx = withOverride(48)
+
+    await restrictOrderToBusinessDay()(ctx)
+
+    expect(ctx.data.businessDayId).toBe('bd-1')
+  })
+
+  it('übersteuert den Default nach UNTEN (Grenze 12 statt 26)', async () => {
+    shouldAutoRotate.mockReturnValue(true)
+    getHoursSince.mockReturnValue(20)
+
+    await expect(restrictOrderToBusinessDay()(withOverride(12))).rejects.toMatchObject({
+      data: { maxAllowedOpenHours: 12 },
+    })
+  })
+
+  it('fällt auf den Config-Wert zurück, wenn der Standort nichts gesetzt hat', async () => {
+    shouldAutoRotate.mockReturnValue(true)
+    getHoursSince.mockReturnValue(40)
+
+    await expect(restrictOrderToBusinessDay()(withOverride(undefined, 30))).rejects.toMatchObject({
+      data: { maxAllowedOpenHours: 30 },
+    })
+  })
+
+  it('fällt auf die Hauskonstante 26 zurück, wenn auch die Config nichts liefert', async () => {
+    shouldAutoRotate.mockReturnValue(true)
+    getHoursSince.mockReturnValue(40)
+
+    await expect(restrictOrderToBusinessDay()(withOverride(undefined, undefined))).rejects.toMatchObject({
+      data: { maxAllowedOpenHours: 26 },
+    })
+  })
+
+  // `settings` steht NICHT in `locationQueryProperties` — ein `$select` darauf
+  // scheitert am Query-Validator („validation failed"). Deshalb liest der Hook
+  // die Location voll und genau einmal, statt einen zweiten Call fuer die
+  // Settings zu machen. Gemockte Service-Stubs sehen den Validator nicht; den
+  // Fall haben die Integrationstests unter `test/services/orders/` gefangen.
+  it('liest die Location genau einmal und ohne $select', async () => {
+    shouldAutoRotate.mockReturnValue(false)
+    const ctx = withOverride(48)
+
+    await restrictOrderToBusinessDay()(ctx)
+
+    expect(ctx.__services.locations.get).toHaveBeenCalledTimes(1)
+    const params = ctx.__services.locations.get.mock.calls[0][1]
+    expect(params.query?.$select).toBeUndefined()
   })
 })

@@ -184,17 +184,6 @@ export function shouldAutoRotate(currentBusinessDay: LocationRecord['currentBusi
 }
 
 /**
- * Berechnet die absolute Differenz in Tagen zwischen zwei Daten.
- */
-export function getDifferenceInDays(date1: Date, date2: Date): number {
-  const oneDayInMs = 1000 * 60 * 60 * 24
-  const utc1 = Date.UTC(date1.getFullYear(), date1.getMonth(), date1.getDate())
-  const utc2 = Date.UTC(date2.getFullYear(), date2.getMonth(), date2.getDate())
-
-  return Math.floor(Math.abs(utc2 - utc1) / oneDayInMs)
-}
-
-/**
  * Verstrichene Stunden seit einem ISO-Zeitstempel (z.B. `businessDay.openedAt`).
  * Bewusst rollend (echte Zeitspanne) statt kalendertag-basiert — robust gegen
  * UTC-vs-Lokal-Off-by-one nahe Mitternacht.

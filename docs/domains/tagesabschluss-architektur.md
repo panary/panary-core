@@ -142,6 +142,10 @@ src/lib/
 
 **Determinismus:** Vor jeder Aggregation werden Inputs nach `_id` sortiert. Reproduzierbar bei `reAggregate`.
 
+**Vorzeichen-Konvention (Kassendifferenz):** `varianceCents = counted − expected`. Positiv = Überschuss (mehr Geld in der Lade als erwartet), negativ = Fehlbetrag. Die Konvention gilt repo-übergreifend: [`cash-session.schema.ts`](../../libs/domains/businessdays/domain/src/lib/cash-session.schema.ts), der Cloud-Hook `recompute-cash-session`, das Z-Bon-PDF und die Abstimmungs-Card der Tagesabschluss-Detailseite führen dasselbe Vorzeichen.
+
+Bis panary/panary-core#133 rechnete [`cash-reconciliation.ts`](../../libs/domains/businessdays/aggregator/src/lib/cash-reconciliation.ts) als **einzige** Stelle die Gegenrichtung — die Cloud-UI meldete Fehlbeträge deshalb als „Überschuss". Ein erneuter Dreh kehrt still jede gespeicherte Differenz um und ist ohne begleitende Re-Aggregation der Bestandsberichte nicht deploybar. Hintergrund und Bestandsdaten-Pfad: `panary-cloud/docs/adr/0045-kassendifferenz-vorzeichen.md`.
+
 ---
 
 ## Konsistenz-Garantie

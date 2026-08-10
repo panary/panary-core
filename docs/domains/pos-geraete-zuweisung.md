@@ -109,6 +109,32 @@ Das **Echo im `request-code`-Response** hat einen zweiten Zweck neben der Bestä
 Admin-UI, dass dieser Edge die Zuweisung nicht unterstützt — statt sie anzubieten und
 stillschweigend zu verlieren.
 
+## Pflege im Edge-Admin
+
+Die Zuweisung wird dort gepflegt, wo das Gerät gepairt wurde. Für POS-Terminals ist das der
+**Edge-Admin** (`apps/admin-client`, Geräteliste) — gepairte Geräte leben in der Edge-SQLite und
+werden nicht in die Cloud gesynct, im lokalen Hub-Betrieb gibt es also gar keinen zweiten Ort.
+
+Zwei Einstiege, beide über dieselbe Auswahl-Komponente
+(`device-assignment-picker.ts`):
+
+- **Zeilen-Aktion „Zuweisung"** an einem bestehenden Gerät → Overlay im Stil des Pairing-Modals.
+- **Im Pairing-Dialog**, bevor der Code erzeugt wird. Weil die Zuweisung im Code-Record reist,
+  erzeugt eine Änderung dort einen **neuen** Code — der alte trägt noch die alte Zuweisung.
+  Die QR-Payload bleibt unverändert `{url, code}`; das Terminal muss davon nichts wissen.
+
+Drei Dinge, die die UI absichtlich tut:
+
+- **Warnung vor dem letzten geteilten Terminal.** Das Personalnummer-Stempel-Panel erscheint nur
+  auf `shared`-Geräten. Wird das letzte davon zugewiesen, hat der Standort keine Stempel-Station
+  mehr. Die Warnung ist **beratend, keine Sperre** — es gibt legitime Aufstellungen ohne
+  Stempel-Station, und das Dashboard-Statusmenü bleibt als Stempelpfad erhalten.
+- **Beim Zurückschalten auf `shared` wird die Liste geleert.** Eine stehengebliebene Liste sähe
+  beim nächsten Blick in die Datenbank wie eine aktive Zuweisung aus.
+- **Fähigkeits-Sonde statt Versionsabfrage.** Echot der Edge in der `request-code`-Antwort kein
+  `deviceAccessMode`, blendet die UI die Zuweisung aus. Ein älterer Edge würde die Auswahl beim
+  Redeem stillschweigend verlieren — sie gar nicht erst anzubieten ist das ehrlichere Verhalten.
+
 ## Fail-closed — und was das kostet
 
 Lässt sich die Geräte-Identität nicht auflösen oder gibt es keinen `devices`-Datensatz zur

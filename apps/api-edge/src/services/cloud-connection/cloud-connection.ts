@@ -106,8 +106,7 @@ const ensureSecureUrl = (url: string): string => {
 const countTable = async (app: Application, tableName: string): Promise<number> => {
   try {
     const knex = app.get('sqliteClient') as
-      | ((tbl: string) => { count: (col: string) => Promise<Array<{ count: number | string }>> })
-      | undefined
+      ((tbl: string) => { count: (col: string) => Promise<Array<{ count: number | string }>> }) | undefined
     if (!knex) return 0
     const result = await knex(tableName).count('* as count')
     const row = Array.isArray(result) ? result[0] : undefined

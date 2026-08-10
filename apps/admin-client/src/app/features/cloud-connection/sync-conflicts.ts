@@ -199,8 +199,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                   </summary>
                   <pre
                     class="mt-2 font-mono text-[11px] bg-slate-50 dark:bg-gray-950 rounded p-2 overflow-auto whitespace-pre-wrap break-all"
-                    >{{ row.lastError }}</pre
-                  >
+                    >{{ row.lastError }}</pre>
                 </details>
               }
 
@@ -277,14 +276,12 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                   </summary>
                   <pre
                     class="mt-2 font-mono text-[11px] bg-slate-50 dark:bg-gray-950 rounded p-2 overflow-auto whitespace-pre-wrap break-all"
-                    >{{ row.lastError }}</pre
-                  >
+                    >{{ row.lastError }}</pre>
                   @if (row.payload) {
                     <p class="text-slate-500 mt-2 mb-1 uppercase tracking-wider">Payload</p>
                     <pre
                       class="font-mono text-[11px] bg-slate-50 dark:bg-gray-950 rounded p-2 overflow-auto whitespace-pre-wrap break-all max-h-60"
-                      >{{ shortJson(row.payload) }}</pre
-                    >
+                      >{{ shortJson(row.payload) }}</pre>
                   }
                 </details>
               }
@@ -362,8 +359,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                       @if (row.edgePayload) {
                         <pre
                           class="text-[11px] font-mono text-slate-700 dark:text-gray-200 whitespace-pre-wrap break-all"
-                          >{{ shortJson(row.edgePayload) }}</pre
-                        >
+                          >{{ shortJson(row.edgePayload) }}</pre>
                       } @else {
                         <p class="text-xs text-slate-400">—</p>
                       }
@@ -373,8 +369,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                       @if (row.cloudPayload) {
                         <pre
                           class="text-[11px] font-mono text-slate-700 dark:text-gray-200 whitespace-pre-wrap break-all"
-                          >{{ shortJson(row.cloudPayload) }}</pre
-                        >
+                          >{{ shortJson(row.cloudPayload) }}</pre>
                       } @else {
                         <p class="text-xs text-slate-400">— (kein Cloud-Pendant)</p>
                       }

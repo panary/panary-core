@@ -109,8 +109,7 @@ export async function ensureIndexes(
     try {
       const adapter = serviceInstance as { getModel?: (app: Application) => Promise<unknown> } | undefined
       const model = (await adapter?.getModel?.(app)) as
-        | { createIndexes?: (specs: unknown[]) => Promise<unknown> }
-        | undefined
+        { createIndexes?: (specs: unknown[]) => Promise<unknown> } | undefined
 
       if (!model?.createIndexes) return
 

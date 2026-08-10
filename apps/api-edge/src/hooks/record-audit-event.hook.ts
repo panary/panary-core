@@ -45,8 +45,7 @@ export const recordAuditEvent = async (context: HookContext): Promise<void> => {
   // record-auth-audit-event.hook.ts (mit explizitem Akteur).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const user = (context.params as any)?.user as
-    | { _id?: string; role?: string; tenantId?: string; locationId?: string | null; permissions?: string[] }
-    | undefined
+    { _id?: string; role?: string; tenantId?: string; locationId?: string | null; permissions?: string[] } | undefined
   if (!user || !user._id || !user.tenantId) return
 
   // 4. Result extrahieren

@@ -47,3 +47,31 @@ describe('FISCAL_REPORTING_DUE', () => {
     })
   })
 })
+
+describe('BUSINESSDAY_OVERDUE', () => {
+  it('liegt in der Tagesabschluss-Kategorie', () => {
+    // Der ueberlange Tag ist ein Abschluss-Thema, kein Bestell-Thema — die
+    // Preferences-Page gruppiert danach.
+    expect(NOTIFICATION_EVENT_META[NotificationEventType.BUSINESSDAY_OVERDUE].category).toBe(
+      NotificationCategory.CLOSING,
+    )
+  })
+
+  it('ist auf allen Kanaelen vorbelegt — der Zustand faellt sonst niemandem auf', () => {
+    // Eine Meldung, die nur in einer Oberflaeche steht, die in diesem Zustand
+    // keiner aufruft, reproduziert genau das Problem, das sie loesen soll.
+    expect(NOTIFICATION_EVENT_META[NotificationEventType.BUSINESSDAY_OVERDUE].defaults).toEqual({
+      inApp: true,
+      email: true,
+      push: true,
+    })
+  })
+
+  it('ist von BUSINESSDAY_LATE_ARRIVAL unterscheidbar', () => {
+    // Beide betreffen den Tagesabschluss, meinen aber verschiedene
+    // Lebensphasen: LATE_ARRIVAL trifft einen GESCHLOSSENEN Tag, OVERDUE einen
+    // noch OFFENEN. Ein gemeinsamer Event-Typ haette die Preferences beider
+    // Faelle aneinandergekoppelt.
+    expect(NotificationEventType.BUSINESSDAY_OVERDUE).not.toBe(NotificationEventType.BUSINESSDAY_LATE_ARRIVAL)
+  })
+})

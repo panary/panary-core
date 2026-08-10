@@ -252,3 +252,31 @@ describe('RolePermissions — FISCAL_DEVICES (§ 146a Abs. 4 AO)', () => {
     }
   })
 })
+
+/**
+ * Entprellungs-Marker der Ueberlaengen-Eskalation (panary-cloud ADR 0046).
+ *
+ * Geschrieben wird ausschliesslich intern vom Sweep. Extern ist der Marker
+ * READ-only — ein zuruecksetzbarer Marker waere eine stumme Abschaltung der
+ * Eskalation, und zwar durch genau die Rolle, die eskaliert werden soll.
+ */
+describe('RolePermissions — BUSINESS_DAY_OVERDUE_NOTICES', () => {
+  it('gibt Owner, Manager und Techniker READ — sie sind die Eskalations-Empfaenger', () => {
+    for (const role of [UserSystemRole.TENANT_OWNER, UserSystemRole.TENANT_MANAGER, UserSystemRole.TENANT_TECHNICIAN]) {
+      expect(roleCan(role, AppResource.BUSINESS_DAY_OVERDUE_NOTICES, AppAction.READ), role).toBe(true)
+    }
+  })
+
+  it('gibt niemandem einen Schreibzugriff — auch nicht dem Owner', () => {
+    for (const role of Object.values(UserSystemRole)) {
+      for (const action of [AppAction.CREATE, AppAction.UPDATE, AppAction.DELETE]) {
+        expect(roleCan(role, AppResource.BUSINESS_DAY_OVERDUE_NOTICES, action), `${role}/${action}`).toBe(false)
+      }
+    }
+  })
+
+  it('TENANT_STAFF hat keinerlei Zugriff', () => {
+    // Der Marker sagt aus, ob und wann die LEITUNG eskaliert wurde.
+    expect(roleActions(UserSystemRole.TENANT_STAFF, AppResource.BUSINESS_DAY_OVERDUE_NOTICES)).toEqual([])
+  })
+})

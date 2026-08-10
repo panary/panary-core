@@ -333,6 +333,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Tagesabschluss: Owner darf voll MANAGE (start, cancel, reAggregate, audit).
     { resource: AppResource.BUSINESS_DAY_REPORTS, action: AppAction.MANAGE },
     { resource: AppResource.BUSINESS_DAY_REPORT_EVENTS, action: AppAction.READ },
+    // Ueberlaengen-Marker: nur READ. Der Marker gehoert dem Sweep — waere er
+    // extern schreibbar, koennte ein Reset die Eskalation stumm abschalten.
+    { resource: AppResource.BUSINESS_DAY_OVERDUE_NOTICES, action: AppAction.READ },
     { resource: AppResource.CASH_SESSIONS, action: AppAction.MANAGE },
     // Sammelabrechnung: lesen + anlegen. KEIN MANAGE — der Beleg ist append-only,
     // Korrektur laeuft ueber eine Gegenbuchung (create mit `reversalOf`).
@@ -544,6 +547,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Audit-Freigabe geben.
     { resource: AppResource.BUSINESS_DAY_REPORTS, action: AppAction.MANAGE },
     { resource: AppResource.BUSINESS_DAY_REPORT_EVENTS, action: AppAction.READ },
+    { resource: AppResource.BUSINESS_DAY_OVERDUE_NOTICES, action: AppAction.READ },
     { resource: AppResource.CASH_SESSIONS, action: AppAction.MANAGE },
     { resource: AppResource.MEAL_SETTLEMENTS, action: [AppAction.READ, AppAction.CREATE] },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE },
@@ -688,6 +692,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // 'audited' wird im Service-Hook auf Owner+Technician beschränkt.
     { resource: AppResource.BUSINESS_DAY_REPORTS, action: AppAction.MANAGE },
     { resource: AppResource.BUSINESS_DAY_REPORT_EVENTS, action: AppAction.READ },
+    { resource: AppResource.BUSINESS_DAY_OVERDUE_NOTICES, action: AppAction.READ },
     { resource: AppResource.CASH_SESSIONS, action: AppAction.MANAGE },
     // Sammelabrechnung: der Filialleiter ist der eigentliche Nutzer.
     { resource: AppResource.MEAL_SETTLEMENTS, action: [AppAction.READ, AppAction.CREATE] },
@@ -815,6 +820,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // CREATE/UPDATE bleibt MANAGER+.
     { resource: AppResource.BUSINESS_DAY_REPORTS, action: AppAction.READ },
     { resource: AppResource.BUSINESS_DAY_REPORT_EVENTS, action: AppAction.READ },
+    // BEWUSST KEIN BUSINESS_DAY_OVERDUE_NOTICES: Der Marker sagt aus, ob und
+    // wann die Filialleitung eskaliert wurde — eine Aufsichts-Information ueber
+    // die Leitung, kein Betriebsdatum des Personals. Empfaenger der Eskalation
+    // sind Owner/Manager/Techniker; Staff hat auch keinen Anlass, sie zu lesen.
     // Kassen-Sessions: Staff darf eigene Schubladen öffnen/zählen/schließen.
     { resource: AppResource.CASH_SESSIONS, action: [AppAction.READ, AppAction.CREATE, AppAction.UPDATE] },
     { resource: AppResource.USER_PREFERENCES, action: AppAction.MANAGE }, // eigene Prefs

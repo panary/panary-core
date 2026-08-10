@@ -21,6 +21,7 @@ import { deviceDataSchema, devicePatchSchema, deviceQuerySchema, deviceSchema } 
 import type { Device, DeviceService } from './devices.class'
 import { ensureIndexes, getJsonFieldHooks, logger } from '@panary/shared-backend'
 import { restrictDeviceSelfPatch } from '../../hooks/restrict-device-self-patch.hook'
+import { validateDeviceAssignment } from '../../hooks/validate-device-assignment.hook'
 import { captureDeviceForCascade, cascadeRemoveDeviceApikeys } from '../../hooks/cascade-device-apikeys.hook'
 
 // SQLite speichert Objekt-Felder als TEXT — ohne Stringify/Parse-Hooks landet
@@ -119,7 +120,11 @@ export const devices = (app: Application) => {
       all: [schemaHooks.validateQuery(deviceQueryValidator), schemaHooks.resolveQuery(deviceQueryResolver)],
       find: [],
       get: [],
+      // validateDeviceAssignment VOR validateData: Ein Zuweisungs-Verstoss soll
+      // mit seiner eigenen Meldung scheitern, nicht mit einer generischen
+      // Schema-Meldung.
       create: [
+        validateDeviceAssignment,
         schemaHooks.validateData(deviceDataValidator),
         schemaHooks.resolveData(deviceDataResolver),
         ...jsonHooks.before,
@@ -129,6 +134,7 @@ export const devices = (app: Application) => {
       // Muster analog restrictUserSelfPatch im users-Service.
       patch: [
         restrictDeviceSelfPatch,
+        validateDeviceAssignment,
         schemaHooks.validateData(devicePatchValidator),
         schemaHooks.resolveData(devicePatchResolver),
         ...jsonHooks.before,

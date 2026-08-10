@@ -233,3 +233,9 @@ Eingabe abgefedert.
    („Verbunden mit: <Betrieb>"); Sprachwechsel de/en/tr.
 4. `discover_panary_hubs` im Tauri-Build (Windows + Ubuntu); Linux-Bundle (`deb`/`appimage`)
    baut durch — offen: erfordert `cargo`/Tauri-Toolchain-Run.
+
+## Verwandt
+
+* [Zugewiesene POS-Geräte](pos-geraete-zuweisung.md) — ein Gerät kann beim Pairing optional auf
+  einzelne Mitarbeiter eingeschränkt werden. Die Zuweisung reist im **Code-Record**, nicht im
+  Redeem-Body; die QR-Payload `{url, code}` bleibt davon unberührt.

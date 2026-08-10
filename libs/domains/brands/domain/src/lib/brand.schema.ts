@@ -97,6 +97,19 @@ export const brandSchema = Type.Object(
         description: 'uuidv7 — Default-Location-Target für Custom-Domain-Routing (DOM-01 D-26).',
       }),
     ),
+    // Gate-Feld für den Storefront-Offline-Schalter (panary-cloud liest es im
+    // Resolve-/Auslieferungspfad). Bewusst ein eigenes Feld neben `publishedAt`
+    // (storefront-config) statt eines Status-Enums: Der Auto-Publish-Debounce
+    // hängt an storefront-config und würde ein dortiges Statusfeld beim nächsten
+    // Publish zurück auf „online" schreiben. `null`/fehlend = online — Bestand
+    // bleibt ohne Migration valide. Additiv-optional, kein protectFromExternal:
+    // der externe Patch IST der Toggle, der Schutz ist die RBAC-Matrix (BRANDS
+    // MANAGE nur für TENANT_OWNER/TENANT_MANAGER).
+    storefrontOfflineAt: Type.Optional(
+      Type.Union([Type.Null(), Type.String({ format: 'date-time' })], {
+        description: 'ISO 8601 — gesetzt = Storefront dieser Marke offline genommen; null/fehlend = online.',
+      }),
+    ),
     createdAt: Type.String({ description: 'ISO 8601' }),
     updatedAt: Type.String({ description: 'ISO 8601' }),
   },

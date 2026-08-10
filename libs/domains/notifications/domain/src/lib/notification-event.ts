@@ -59,6 +59,20 @@ export const NotificationEventType = {
   BUSINESSDAY_LATE_ARRIVAL: 'businessday.late_arrival',
 
   /**
+   * Geschäftstag läuft ungewöhnlich lange offen (ADR 0046 in panary-cloud).
+   * Der cloud-seitige Sweep meldet ab einer Stundenschwelle (Default 26 h) an
+   * TENANT_OWNER + TENANT_MANAGER der betroffenen Location und wiederholt die
+   * Meldung, solange der Tag offen bleibt.
+   *
+   * Alle Channels default an — aus demselben Grund wie bei
+   * `BUSINESSDAY_LATE_ARRIVAL`, nur schärfer: Der Zustand ist per Definition
+   * einer, den bisher niemand bemerkt hat. Eine Meldung, die nur in einer
+   * Oberfläche steht, die in diesem Zustand keiner aufruft, reproduziert genau
+   * das Problem, das sie lösen soll.
+   */
+  BUSINESSDAY_OVERDUE: 'businessday.overdue',
+
+  /**
    * Subscription: die Testphase des Tenants endet bald (Standard ~3 Tage vorher).
    * Adressat: TENANT_OWNER. Ausgelöst durch den PSP-`trial_will_end`-Webhook
    * (bei hinterlegter Zahlung) bzw. den Trial-Reminder-Sweep (Self-Signup-Trials
@@ -214,6 +228,15 @@ export const NOTIFICATION_EVENT_META: Record<NotificationEventType, Notification
     // nachschiebt, loest trotzdem nur eine Benachrichtigung aus.
     category: NotificationCategory.CLOSING,
     label: 'Belege nach Tagesabschluss eingetroffen',
+    defaults: { inApp: true, email: true, push: true },
+  },
+  [NotificationEventType.BUSINESSDAY_OVERDUE]: {
+    // Alle Channels default an, analog BUSINESSDAY_LATE_ARRIVAL. Kein
+    // Spam-Risiko trotz Wiederholung: der cloud-seitige Sweep entprellt je
+    // Geschaeftstag auf 24 h und schreibt den Stand persistent — ein
+    // API-Neustart setzt die Entprellung nicht zurueck.
+    category: NotificationCategory.CLOSING,
+    label: 'Geschaeftstag laeuft ungewoehnlich lange',
     defaults: { inApp: true, email: true, push: true },
   },
   [NotificationEventType.SUBSCRIPTION_TRIAL_WILL_END]: {

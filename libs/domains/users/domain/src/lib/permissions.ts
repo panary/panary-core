@@ -172,6 +172,14 @@ export const AppResource = {
    *  READ für TENANT_OWNER/MANAGER (für Live-Progress-Subscription).
    *  CREATE nur intern (Pipeline-Steps), kein externer Write. */
   BUSINESS_DAY_REPORT_EVENTS: 'business-day-report-events',
+  /** Cloud-only: Entprellungs-Marker der Überlängen-Eskalation (ADR 0046 in
+   *  panary-cloud) — je offenem Geschäftstag ein Dokument mit Erst-/Letzt-
+   *  Meldezeitpunkt und Eskalationsstufe.
+   *  READ für TENANT_OWNER/MANAGER (Diagnose: „wurde überhaupt gemeldet?").
+   *  Geschrieben wird ausschließlich intern vom Sweep — kein externer Write,
+   *  auch nicht für den Owner: ein zurückgesetzter Marker wäre eine stumme
+   *  Abschaltung der Eskalation. */
+  BUSINESS_DAY_OVERDUE_NOTICES: 'business-day-overdue-notice',
   /** Cloud-only: Kassen-Sessions (Schubladen) für den Multi-Kassen-Tages-
    *  abschluss. Mehrere pro Geschäftstag, von versch. Benutzern eröffnet.
    *  TENANT_OWNER/MANAGER/TECHNICIAN: MANAGE. TENANT_STAFF: READ+CREATE+UPDATE

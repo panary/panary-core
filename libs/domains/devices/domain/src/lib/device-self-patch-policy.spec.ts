@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { DEVICE_ASSIGNMENT_FIELDS } from './device-access-mode'
 import { checkDeviceSelfPatch, DEVICE_PRIVILEGED_ROLES, SELF_PATCHABLE_DEVICE_FIELDS } from './device-self-patch-policy'
 
 const posDevice = {
@@ -92,6 +93,15 @@ describe('Invarianten (Regressionsanker)', () => {
   it('SELF_PATCHABLE_DEVICE_FIELDS enthaelt keine Eskalations-Felder', () => {
     for (const field of ['apiKeyId', 'tenantId', 'locationId', 'active', 'type', 'deviceId']) {
       expect(SELF_PATCHABLE_DEVICE_FIELDS.has(field), field).toBe(false)
+    }
+  })
+
+  it('Zuweisungs-Felder sind NIEMALS self-patchable — sie SIND die Zugriffsentscheidung', () => {
+    // Ein zugewiesenes Geraet duerfte sich sonst per Self-Patch selbst auf
+    // `shared` zuruecksetzen und damit die ganze Belegschaft freischalten.
+    for (const field of DEVICE_ASSIGNMENT_FIELDS) {
+      expect(SELF_PATCHABLE_DEVICE_FIELDS.has(field), field).toBe(false)
+      expect(checkDeviceSelfPatch(posDevice, 'dev-1', { [field]: 'shared' })?.field, field).toBe(field)
     }
   })
 

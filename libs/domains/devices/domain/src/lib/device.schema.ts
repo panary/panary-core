@@ -1,6 +1,8 @@
 import { querySyntax, Static, StringEnum, Type } from '@feathersjs/typebox'
 import { baseSchema } from '@panary/shared-common'
 
+import { DeviceAccessMode, MAX_ASSIGNED_USER_IDS } from './device-access-mode'
+
 //#region Enums & Constants (Reusable)
 export const DeviceType = {
   POS_COUNTER: 'pos-counter',
@@ -71,6 +73,15 @@ export const deviceSchema = Type.Object(
         { additionalProperties: false },
       ),
     ),
+    // Geraete-Zuweisung (PNRY-FEAT-DEVICE-ASSIGNMENT-001). BEIDE Felder
+    // optional: Bestandsgeraete tragen sie nicht, und `additionalProperties:
+    // false` verbietet nur Fremd-Keys, nicht das Fehlen. Regeln und Defaults in
+    // device-access-mode.ts — hier steht bewusst KEIN `default`, damit
+    // `undefined` als „shared" durch genau einen Helfer laeuft.
+    deviceAccessMode: Type.Optional(StringEnum(Object.values(DeviceAccessMode))),
+    assignedUserIds: Type.Optional(
+      Type.Array(Type.String({ format: 'uuid' }), { maxItems: MAX_ASSIGNED_USER_IDS, uniqueItems: true }),
+    ),
     createdBy: Type.String({ maxLength: 100 }),
   },
   { $id: 'Device', additionalProperties: false },
@@ -97,6 +108,14 @@ export const deviceDataSchema = Type.Object(
     ),
     apiKeyId: Type.Optional(Type.String({ format: 'uuid' })),
     active: Type.Optional(Type.Boolean({ default: true })),
+    // Zwingend auch im POST-Schema: `validateData` laeuft auch bei
+    // `provider: undefined`, und der Pairing-Redeem-Pfad legt die Zuweisung
+    // bereits beim Create an. Fehlten die Felder hier, verwuerfe
+    // `additionalProperties: false` sie mit einem 400.
+    deviceAccessMode: Type.Optional(StringEnum(Object.values(DeviceAccessMode))),
+    assignedUserIds: Type.Optional(
+      Type.Array(Type.String({ format: 'uuid' }), { maxItems: MAX_ASSIGNED_USER_IDS, uniqueItems: true }),
+    ),
   },
   { $id: 'DeviceData', additionalProperties: false },
 )
@@ -118,6 +137,10 @@ export type DevicePatch = Static<typeof devicePatchSchema>
 //#endregion
 
 //#region Schema for search queries (query)
+// `assignedUserIds` fehlt hier bewusst: am Edge liegt die Liste als TEXT/JSON in
+// SQLite — ein Gleichheitsvergleich waere still falsch (er vergliche den
+// serialisierten String). Wer nach zugewiesenen Geraeten filtern will, nimmt
+// `deviceAccessMode` und filtert die Liste in der Anwendung.
 export const deviceQueryProperties = Type.Pick(deviceSchema, [
   '_id',
   'deviceId',
@@ -126,6 +149,7 @@ export const deviceQueryProperties = Type.Pick(deviceSchema, [
   'active',
   'locationId',
   'tenantId',
+  'deviceAccessMode',
 ])
 export const deviceQuerySchema = Type.Intersect(
   [

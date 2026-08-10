@@ -25,7 +25,10 @@ import { captureDeviceForCascade, cascadeRemoveDeviceApikeys } from '../../hooks
 
 // SQLite speichert Objekt-Felder als TEXT — ohne Stringify/Parse-Hooks landet
 // '[object Object]' in der Spalte bzw. der rohe JSON-String beim Client.
-const DEVICE_JSON_FIELDS = ['metadata', 'uiScale']
+// `assignedUserIds` gehoert dazu: ohne Stringify-Hook schreibt der
+// SQLite-Adapter die Liste als 'a,b' in die TEXT-Spalte — beim Lesen kaeme kein
+// Array zurueck und ein zugewiesenes Geraet sperrte sich fail-closed aus.
+const DEVICE_JSON_FIELDS = ['metadata', 'uiScale', 'assignedUserIds']
 
 export const devicesPath = 'devices'
 export const devicesMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
@@ -70,6 +73,8 @@ export const devices = (app: Application) => {
       [
         { name: 'idx_devices_tenant', columns: ['tenantId'] },
         { name: 'idx_devices_tenant_location', columns: ['tenantId', 'locationId'] },
+        // Admin-UI filtert die Geraeteliste nach Zuweisungs-Modus.
+        { name: 'idx_devices_tenant_access_mode', columns: ['tenantId', 'deviceAccessMode'] },
         {
           name: 'idx_devices_tenant_deviceId_unique',
           columns: ['tenantId', 'deviceId'],

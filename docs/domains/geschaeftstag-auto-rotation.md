@@ -65,6 +65,32 @@ das Alter seit `openedAt`.
   nahe Mitternacht. Deckt sich mit „bei spätabendlicher Öffnung gilt die
   Bestellung bis ~24h später".
 
+### C — Schwelle pro Standort (Schema vorhanden, Edge-Konsument folgt)
+
+`maxBusinessDayOpenHours` ist ein deployment-weiter Config-Wert — in einem
+Multi-Tenant-Betrieb das falsche Granulat. Seit 2026-08-10 trägt das
+Location-Schema deshalb eine optionale Gruppe:
+
+```ts
+settings.businessDaySettings?.maxOpenHours   // Integer, 1…168
+```
+
+Nicht gesetzt = Server-Default (`maxBusinessDayOpenHours`), also unverändertes
+Verhalten für jeden Bestands-Standort.
+
+> ⚠️ **Der Edge liest den Wert noch nicht.** Diese Änderung ist reine
+> Schema-Erweiterung, damit die Cloud sie typisiert konsumieren kann
+> (panary/panary-cloud#133). Der edge-seitige Umbau — der tote
+> `validateBusinessDayAge`-Guard und der CONNECTED-Zweig, der schon beim ersten
+> Kalendertagswechsel sperrt — läuft unter **panary/panary-core#134**. Bis dahin
+> gilt für den Edge unverändert, was in Abschnitt B steht.
+
+Die gemeinsame Entscheidung (Stundenschwelle statt Kalendertags-Vergleich, für
+**beide** Repos) steht in `panary-cloud/docs/adr/0046-order-gate-stundenschwelle.md`.
+Sie bestätigt die Begründung aus Abschnitt B: `getHoursSince` wurde dort bereits
+bewusst rollend statt kalendertag-basiert gebaut, „robust gegen UTC-Off-by-one
+nahe Mitternacht" — genau der Defekt, an dem der Cloud-Gate scheiterte.
+
 ## Konsequenzen
 
 - Normalfall (keine offenen Alt-Orders): Tag rotiert automatisch zur konfigurierten
@@ -85,6 +111,7 @@ das Alter seit `openedAt`.
 | `apps/api-edge/src/hooks/restrict-order-to-business-day.ts` | Zeit-Guard `ensureBusinessDayNotOpenTooLong` |
 | `apps/api-edge/src/utils/business-day.utils.ts` | `getHoursSince` |
 | `libs/shared/common/src/lib/errors/app-errors.ts` | Code `BUSINESS_DAY_OPEN_TOO_LONG` |
+| `libs/domains/locations/domain/src/lib/location.schema.ts` | `settings.businessDaySettings.maxOpenHours` (Abschnitt C) |
 
 ## Manuelle Verifikation
 

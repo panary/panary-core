@@ -10,6 +10,18 @@ on:
   # oft leer → kein Cache-Zugriff).
   workflow_dispatch:
 
+# Nur PR-Laeufe zusammenfassen: ein neuer Push auf denselben PR bricht den noch
+# laufenden Lauf ab. Die Git-Disziplin verlangt "Commit nach jeder abgeschlossenen
+# Einheit" — ohne diese Gruppe lief jeder Zwischenstand bis zum Ende durch, obwohl
+# sein Ergebnis niemanden mehr interessiert.
+# Push-auf-main und Dispatch bekommen ueber github.sha eine eigene Gruppe und werden
+# NIE abgebrochen: Dort schreibt der Nx-Remote-Cache mit dem RW-Token (siehe env
+# unten), ein abgebrochener main-Lauf hinterliesse einen halb gefuellten Cache. Auf
+# PRs kann das nicht passieren — die bekommen hoechstens den RO-Token.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.head_ref || github.sha }}
+  cancel-in-progress: true
+
 permissions:
   actions: read
   contents: read
@@ -17,6 +29,10 @@ permissions:
 jobs:
   main:
     runs-on: ubuntu-latest
+    # Gemessene Laufzeit 4-11 min. Ohne diese Zeile greift der GitHub-Default von
+    # SECHS Stunden — als einziger Workflow des Repos hatte ausgerechnet die PR-CI
+    # keinen Deckel (build-edge-docker 45, build-pos/release-pos je 60).
+    timeout-minutes: 30
     env:
       # --- Nx Self-Hosted Remote Cache (P6, 2026-06-18) ---
       # Aktiviert sich automatisch, sobald die Repo-Secrets gesetzt sind; vorher
@@ -77,6 +93,15 @@ jobs:
       # Begründung: docs/adr/0022-format-gate-ohne-base.md
       - name: Format-Gate (workspace-weit)
         run: pnpm nx format:check --all
+
+      # Der Wiki-Log liegt seit #137 als Fragmente in docs/log.d/ — `--check` faengt
+      # falsch benannte, leere oder header-lose Fragmente ab, bevor sie auf main
+      # landen. Der Spec laeuft mit, weil ein Gate, dessen Test nie laeuft, der Fall
+      # "sieht gruen aus, ist es aber nicht" ist.
+      - name: Wiki-Log-Fragmente pruefen
+        run: |
+          node scripts/docs-log.spec.mjs
+          pnpm docs:log:check
 
       # nx affected liest NX_BASE/NX_HEAD aus der Umgebung (nx-set-shas oben).
       #

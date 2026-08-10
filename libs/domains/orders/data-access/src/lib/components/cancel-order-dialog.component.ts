@@ -4,7 +4,7 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ConnectionService } from '@panary/shared/data-access'
 import { UserService } from '@panary/users/data-access'
-import { User, UserStatus, UserSystemRole } from '@panary/users/domain'
+import { ORDER_CANCEL_AUTHORIZING_ROLES, User, UserStatus } from '@panary/users/domain'
 import { OrderService } from '../services/order.service'
 import { Order, OrderStatus } from '@panary/orders/domain'
 
@@ -15,8 +15,12 @@ const CANCEL_REASONS = [
   'CANCEL_ORDER.REASON_OTHER',
 ]
 
-/** Rollen, die einen Storno freigeben dürfen. */
-const AUTHORIZING_ROLES: ReadonlySet<string> = new Set([UserSystemRole.TENANT_OWNER, UserSystemRole.TENANT_MANAGER])
+/**
+ * Rollen, die einen Storno freigeben dürfen. Zentral in `@panary/users/domain`,
+ * weil die Geräte-Zuweisung (`DEVICE_ACCESS_EXEMPT_ROLES`) genau diesen Kreis
+ * auf zugewiesenen Geräten sichtbar halten muss — sonst wäre der Notfallpfad tot.
+ */
+const AUTHORIZING_ROLES = ORDER_CANCEL_AUTHORIZING_ROLES
 
 /** POS-PINs sind über alle POS-Oberflächen hinweg vierstellig (vgl. Login, Unpair, Kassen-Freigabe). */
 const PIN_LENGTH = 4
@@ -250,7 +254,7 @@ export class CancelOrderDialogComponent {
   #isManagerOrOwner = computed(() => {
     const user = this.#userService.currentUser()
     if (!user) return false
-    return user.role === UserSystemRole.TENANT_MANAGER || user.role === UserSystemRole.TENANT_OWNER
+    return !!user.role && AUTHORIZING_ROLES.has(user.role)
   })
 
   constructor() {

@@ -92,8 +92,7 @@ export const recordEmergencyOverride =
     if (!(context.params as Record<string, unknown>)['isEmergencyOverride']) return
 
     const result = context.result as
-      | { _id?: string; tenantId?: string; settings?: { printSettings?: Record<string, unknown> } }
-      | undefined
+      { _id?: string; tenantId?: string; settings?: { printSettings?: Record<string, unknown> } } | undefined
     if (!result?._id || !result.tenantId) return
 
     const diffs = diffPrintSettings(beforeRecord?.settings?.printSettings, result.settings?.printSettings)

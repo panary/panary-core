@@ -123,8 +123,7 @@ export class DashboardComponent implements OnInit {
    */
   hasOpenBusinessDay = computed(() => {
     const loc = this.#locationService.activeLocation() as
-      | { currentBusinessDay?: { businessDayId?: string } }
-      | undefined
+      { currentBusinessDay?: { businessDayId?: string } } | undefined
     return !!loc?.currentBusinessDay?.businessDayId
   })
 
@@ -487,8 +486,7 @@ export class DashboardComponent implements OnInit {
    */
   startOpening() {
     const activeLocation = this.#locationService.activeLocation() as
-      | { _id?: string; operationMode?: string }
-      | undefined
+      { _id?: string; operationMode?: string } | undefined
     const locationId = activeLocation?._id ?? null
     const operationMode =
       activeLocation?.operationMode === 'orders-only'
@@ -512,8 +510,7 @@ export class DashboardComponent implements OnInit {
    */
   startClosing() {
     const activeLocation = this.#locationService.activeLocation() as
-      | { _id?: string; currentBusinessDay?: { businessDayId?: string } }
-      | undefined
+      { _id?: string; currentBusinessDay?: { businessDayId?: string } } | undefined
     const businessDayId = activeLocation?.currentBusinessDay?.businessDayId
     if (!businessDayId) {
       console.warn('startClosing: kein offener Geschäftstag — Aktion ignoriert')

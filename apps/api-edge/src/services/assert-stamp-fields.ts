@@ -178,8 +178,7 @@ function readMultiTenancyOptions(service: unknown): MultiTenancyOptions | null {
  */
 function readDataSchema(service: unknown): unknown {
   const options = getServiceOptions(service as Parameters<typeof getServiceOptions>[0]) as
-    | { docs?: { schemas?: Record<string, unknown> } }
-    | undefined
+    { docs?: { schemas?: Record<string, unknown> } } | undefined
   const schemas = options?.docs?.schemas
   if (!schemas) return undefined
   const key = Object.keys(schemas).find(k => k.toLowerCase().endsWith('data'))

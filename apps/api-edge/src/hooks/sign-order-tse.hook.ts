@@ -82,8 +82,7 @@ export const signOrderTseFinish = async (context: HookContext): Promise<HookCont
   if (!tsePort) return context
 
   const data = context.data as
-    | { status?: string; payment?: { totalAmount?: number } | null; tse?: OrderTseInfo | null }
-    | undefined
+    { status?: string; payment?: { totalAmount?: number } | null; tse?: OrderTseInfo | null } | undefined
   if (!data || data.status !== 'completed' || context.id == null) return context
 
   let existing: OrderTseInfo | undefined
@@ -111,8 +110,7 @@ export const signOrderTseCancel = async (context: HookContext): Promise<HookCont
   if (!tsePort) return context
 
   const data = context.data as
-    | { status?: string; cancellation?: { canceledAt?: string } | null; tse?: OrderTseInfo | null }
-    | undefined
+    { status?: string; cancellation?: { canceledAt?: string } | null; tse?: OrderTseInfo | null } | undefined
   if (!data || data.status !== 'aborted' || context.id == null) return context
 
   let existing: OrderTseInfo | undefined

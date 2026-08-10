@@ -18,13 +18,7 @@ export interface UnpairResult {
 }
 
 export type RegistrationStatus =
-  | 'idle'
-  | 'connecting'
-  | 'authenticating'
-  | 'loading-orgs'
-  | 'registering'
-  | 'success'
-  | 'error'
+  'idle' | 'connecting' | 'authenticating' | 'loading-orgs' | 'registering' | 'success' | 'error'
 
 /**
  * Organization/Location für Setup-Auswahl

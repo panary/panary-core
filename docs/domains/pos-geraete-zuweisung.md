@@ -135,6 +135,36 @@ Drei Dinge, die die UI absichtlich tut:
   `deviceAccessMode`, blendet die UI die Zuweisung aus. Ein älterer Edge würde die Auswahl beim
   Redeem stillschweigend verlieren — sie gar nicht erst anzubieten ist das ehrlichere Verhalten.
 
+## Der Login-Screen am zugewiesenen Gerät
+
+Alles hier ist **UX, keine Sicherheitsgrenze** — durchgesetzt wird serverseitig (siehe oben).
+Der `DeviceAssignmentService` (`@panary/devices/data-access`) löst den eigenen Device-Record
+auf und hält den Zustand als Signals; localStorage dient nur als Anzeige-Cache gegen den
+Flash der geteilten Ansicht beim Kaltstart.
+
+| Zugewiesene Mitarbeiter | Einstieg |
+| --- | --- |
+| 1 | direkt in die PIN-Eingabe, **ohne** Zurück-Pfeil |
+| 2–5 | kompakte Zeilenliste statt Kachelraster |
+| 0 gültige | `assignment-error` — **nie** Rückfall auf die volle Liste |
+
+Der Nullfall tritt ein, wenn ein zugewiesener Mitarbeiter archiviert wurde. Auf die volle
+Liste zurückzufallen wäre genau das Verhalten, das die Zuweisung verhindern soll.
+
+Weitere Punkte:
+
+- **Das Stempel-Panel ist auf zugewiesenen Geräten ausgeblendet** (Desktop und Mobil). Bewusst
+  Kosmetik: `users.checkin` prüft die Personalnummer serverseitig nie. Das Dashboard-Statusmenü
+  bleibt unverändert und ist dort der besser abgesicherte Stempelpfad.
+- **`cancelChangePin()` führt zum Einstiegsschritt zurück**, nicht mehr fest zu `select-user`.
+  Auf einem Ein-Personen-Gerät landete der Bediener sonst auf einem Screen mit einer einzigen
+  Kachel, die er nie gesehen hatte.
+- **Realtime:** Der `patched`-Listener filtert auf die **eigene** `deviceId`. Das
+  `devices`-Publish geht an den gesamten Mandanten — ohne Filter übernähme ein Terminal die
+  Zuweisung jedes anderen Geräts, sobald irgendwo im Betrieb eines gepatcht wird.
+- **POS-Einstellungen** zeigen die Zuweisung schreibgeschützt („vom Administrator verwaltet")
+  plus einen Abschnitt „Sicherheit" als Platzhalter für die vertagte Biometrie.
+
 ## Fail-closed — und was das kostet
 
 Lässt sich die Geräte-Identität nicht auflösen oder gibt es keinen `devices`-Datensatz zur

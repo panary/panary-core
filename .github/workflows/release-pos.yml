@@ -145,7 +145,7 @@ jobs:
           echo "Angular build OK: $(ls dist/apps/pos-client/browser/ | wc -l) files"
 
       - name: Build Tauri & Create Release
-        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ env.TAURI_SIGNING_PRIVATE_KEY }}
@@ -158,15 +158,25 @@ jobs:
           releaseBody: 'Neues Release der Panary POS App. Siehe Changelog für Details.'
           releaseDraft: false
           prerelease: false
-          includeUpdaterJson: true
+          # v1.0.0 hat den Input von includeUpdaterJson zu uploadUpdaterJson
+          # umbenannt. Der alte Name wuerde von GitHub Actions nur als
+          # "Unexpected input" gewarnt, nicht als Fehler — der Schalter waere
+          # still wirkungslos.
+          uploadUpdaterJson: true
           updaterJsonPreferNsis: true
 
-      # tauri-action (gepinnte v0) laedt das Updater-Manifest bei Tauri-v2-NSIS
-      # NICHT hoch ("Signature not found for the updater JSON. Skipping upload...")
-      # — obwohl die .sig erzeugt und angehaengt wird. Ohne latest.json laeuft der
-      # Client-Update-Check (releases/latest/download/latest.json) in einen 404,
-      # der still im UpdateService-catch verschluckt wird → kein Auto-Update.
-      # Deshalb das Manifest hier deterministisch selbst bauen und anhaengen.
+      # Der eigene Manifest-Step stammt aus der v0-Zeit: dort lud tauri-action das
+      # Updater-Manifest bei Tauri-v2-NSIS NICHT hoch ("Signature not found for the
+      # updater JSON. Skipping upload...") — obwohl die .sig erzeugt und angehaengt
+      # wurde. Ohne latest.json laeuft der Client-Update-Check
+      # (releases/latest/download/latest.json) in einen 404, der still im
+      # UpdateService-catch verschluckt wird → kein Auto-Update.
+      #
+      # v1.0.0 hat die Signatur-Zuordnung laut Changelog repariert; ob damit auch
+      # dieser Fall faellt, zeigt erst das naechste echte pos-v*-Release. Bis dahin
+      # bleibt der Step als Absicherung stehen — er ueberschreibt per --clobber und
+      # kollidiert deshalb nicht mit einem von der Action hochgeladenen Manifest.
+      # Nach dem ersten gruenen v1-Release pruefen, ob er entfallen kann.
       # Asset-Name wird aus dem tatsaechlich hochgeladenen Release-Asset gelesen
       # (GitHub normalisiert Leerzeichen/Em-Dash zu Punkten — nicht rekonstruierbar).
       - name: Updater-Manifest (latest.json) erzeugen und anhaengen

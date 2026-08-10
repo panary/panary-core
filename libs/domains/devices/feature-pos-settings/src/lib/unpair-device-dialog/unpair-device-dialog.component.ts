@@ -12,15 +12,14 @@ import { CommonModule } from '@angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ConnectionService } from '@panary/shared/data-access'
 import { DeviceConfigService } from '@panary/shared/data-access-config'
+import { UNPAIR_ALLOWED_ROLES } from '@panary/users/domain'
 
-/**
- * Erlaubte Rollen für das Entkoppeln eines Geräts.
- *
- * Eine PIN-Verifikation muss auf einen User mit einer dieser Rollen treffen.
- * Defense-in-Depth: Filter clientseitig (Liste), zusätzlich Backend-Rückgabe
- * gegen-prüfen.
- */
-const UNPAIR_ALLOWED_ROLES: ReadonlySet<string> = new Set(['tenant:owner', 'tenant:manager', 'tenant:technician'])
+// `UNPAIR_ALLOWED_ROLES` liegt zentral in `@panary/users/domain`: Eine
+// PIN-Verifikation muss auf einen User mit einer dieser Rollen treffen
+// (Defense-in-Depth — Filter clientseitig, Backend-Rückgabe zusätzlich
+// gegengeprüft). Der Kreis muss mit `DEVICE_ACCESS_EXEMPT_ROLES` der
+// Geräte-Zuweisung übereinstimmen, sonst wäre das Entkoppeln auf einem
+// zugewiesenen Gerät unwiderruflich blockiert.
 
 interface EligibleUser {
   _id: string

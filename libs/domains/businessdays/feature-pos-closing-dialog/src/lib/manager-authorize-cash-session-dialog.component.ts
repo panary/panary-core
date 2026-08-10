@@ -7,7 +7,7 @@ import { CashSession } from '@panary/businessdays/domain'
 import { CashSessionService } from '@panary/businessdays/data-access'
 import { AppError } from '@panary/shared-common'
 import { ConnectionService } from '@panary/shared/data-access'
-import { User, UserStatus, UserSystemRole } from '@panary/users/domain'
+import { CASH_SESSION_AUTHORIZING_ROLES, User, UserStatus } from '@panary/users/domain'
 
 export interface ManagerAuthorizeCashSessionDialogData {
   businessDayId: string
@@ -28,15 +28,13 @@ interface AuthorizingManager {
   role: string
 }
 
-/** Rollen, die eine Kassen-Eröffnung autorisieren dürfen (Spiegel von PRIVILEGED_CASH_SESSION_ROLES). */
-const AUTHORIZING_ROLES: readonly string[] = [
-  UserSystemRole.PLATFORM_OWNER,
-  UserSystemRole.PLATFORM_ADMIN,
-  UserSystemRole.PLATFORM_SUPPORT,
-  UserSystemRole.TENANT_OWNER,
-  UserSystemRole.TENANT_MANAGER,
-  UserSystemRole.TENANT_TECHNICIAN,
-]
+/**
+ * Rollen, die eine Kassen-Eröffnung autorisieren dürfen (Spiegel von
+ * PRIVILEGED_CASH_SESSION_ROLES). Zentral in `@panary/users/domain`, weil die
+ * Geräte-Zuweisung (`DEVICE_ACCESS_EXEMPT_ROLES`) genau diesen Kreis auf
+ * zugewiesenen Geräten sichtbar halten muss — sonst wäre die Freigabe tot.
+ */
+const AUTHORIZING_ROLES = CASH_SESSION_AUTHORIZING_ROLES
 
 /** POS-PINs sind über alle POS-Oberflächen hinweg vierstellig (vgl. Login, Storno, Unpair). */
 const PIN_LENGTH = 4

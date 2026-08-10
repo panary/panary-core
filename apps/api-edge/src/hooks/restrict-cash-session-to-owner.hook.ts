@@ -1,6 +1,6 @@
 import { Forbidden } from '@feathersjs/errors'
 
-import { UserSystemRole } from '@panary/users/domain'
+import { CASH_SESSION_AUTHORIZING_ROLES } from '@panary/users/domain'
 
 import type { HookContext } from '../declarations'
 
@@ -12,15 +12,12 @@ import type { HookContext } from '../declarations'
  *
  * DEVICE_POS ist bewusst NICHT privilegiert: das Geraet kann zwar Kassen
  * anlegen/lesen, aber nur die eigene (openedBy == aktueller Kassierer).
+ *
+ * Die Liste selbst lebt in `@panary/users/domain` — der POS-Dialog braucht
+ * denselben Kreis, und die Geraete-Zuweisung muss ihn auf zugewiesenen Geraeten
+ * sichtbar halten (DEVICE_ACCESS_EXEMPT_ROLES).
  */
-export const PRIVILEGED_CASH_SESSION_ROLES = new Set<string>([
-  UserSystemRole.PLATFORM_OWNER,
-  UserSystemRole.PLATFORM_ADMIN,
-  UserSystemRole.PLATFORM_SUPPORT,
-  UserSystemRole.TENANT_OWNER,
-  UserSystemRole.TENANT_MANAGER,
-  UserSystemRole.TENANT_TECHNICIAN,
-])
+export const PRIVILEGED_CASH_SESSION_ROLES = CASH_SESSION_AUTHORIZING_ROLES
 
 /**
  * Self-Scope fuer `cash-sessions`: STAFF/POS darf nur die EIGENEN Kassenladen

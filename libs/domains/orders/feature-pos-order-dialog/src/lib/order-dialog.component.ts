@@ -48,6 +48,7 @@ import { DiscountService } from '@panary/discounts/data-access'
 import { uuidv7 } from 'uuidv7'
 import { PreOrderService } from '@panary/pre-orders/data-access'
 import { LocationService } from '@panary/locations/data-access'
+import { defaultOrderChannel, toggledOrderChannel, type PosOrderChannel } from './order-channel'
 import { AuthService } from '@panary/auth/data-access'
 import { User, UserService } from '@panary/users/data-access'
 import { ConnectionService } from '@panary/shared/data-access'
@@ -149,6 +150,21 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   // Manuell am POS gewählter Order-Rabatt (Cloud-gepflegte Definition). Wird beim
   // placeOrder zu einem appliedDiscount-Snapshot; Personalessen-Rabatt stempelt zusätzlich staffPaymentInfo.
   readonly selectedManualDiscount = signal<ManagedDiscount | null>(null)
+
+  /**
+   * Vertriebskanal der Bestellung.
+   *
+   * Stand bis panary/panary-core#133 hart auf `TELEPHONE` — deshalb meldete
+   * jeder Tagesabschluss „Telefon 100 %, POS 0 %", auch im Modus POS-Kasse,
+   * und der `posCents`-Bucket des Aggregators war strukturell immer 0.
+   *
+   * Bewusst eine **Auswahl** statt einer Ableitung aus dem Betriebsmodus: Der
+   * Dialog nimmt an der Kasse auch Telefonbestellungen auf. Eine reine
+   * Kontext-Ableitung hätte die dann als POS gezählt und den Fehler nur
+   * umgedreht. Vorbelegt wird trotzdem nach Betriebsmodus, damit der
+   * Regelfall ohne zusätzlichen Griff stimmt.
+   */
+  readonly orderChannel = signal<PosOrderChannel>(OrderChannel.TELEPHONE)
   private _productButtons: PosButton[] = []
   private _table: string | undefined = undefined
   private _dineLocation: (typeof DineLocation)[keyof typeof DineLocation] | undefined = undefined
@@ -366,6 +382,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       this.generalDrinkPrice =
         this.locationService.activeLocation()?.settings?.genericProductSettings?.generalDrinkPrice || 0
     }
+
+    // Vorbelegung des Vertriebskanals nach Betriebsmodus. `orders-only` hat
+    // keinen Kassierpfad — dort bleibt es bei Telefon. Der Kassierer kann pro
+    // Bestellung abweichen.
+    this.orderChannel.set(defaultOrderChannel(this.locationService.activeLocation()?.operationMode))
 
     effect(() => {
       // Produktgruppen-Signal beobachten → Sichtbarkeit neu berechnen
@@ -2183,7 +2204,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const orderIndex = this.orderService.createOrder({
       lineItems: this.#lineItems,
-      orderChannel: OrderChannel.TELEPHONE,
+      orderChannel: this.orderChannel(),
       customerDetails,
       discountDetails,
       pager: this._pager,
@@ -2283,6 +2304,20 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       // Bestellannahme blockiert.
       isStaffMeal: !!d.isStaffMeal,
     }
+  }
+
+  /**
+   * Schaltet den Vertriebskanal zwischen Kasse und Telefon um.
+   *
+   * Nur diese beiden: `ONLINE` und `APP` entstehen nicht an der Kasse, sie
+   * kommen aus der Storefront bzw. der App. Eine Auswahl mit vier Werten hätte
+   * an einem Touch-Gerät zwei Werte angeboten, die nie richtig sein können.
+   */
+  toggleOrderChannel(): void {
+    this.orderChannel.update(toggledOrderChannel)
+    this.setInfoBoxText(
+      this.orderChannel() === OrderChannel.POS ? 'Kanal: Kasse (vor Ort)' : 'Kanal: Telefonbestellung',
+    )
   }
 
   /** Öffnet den Touch-Picker für manuelle POS-Rabatte und übernimmt die Auswahl. */

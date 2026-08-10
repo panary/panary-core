@@ -588,6 +588,25 @@
       >
         <span class="material-symbols-outlined !text-[1.375rem]">sell</span>
       </button>
+      <!-- Vertriebskanal: getönt = Kasse, neutral = Telefon. Der Zustand muss
+           ohne Antippen ablesbar sein — er landet unverändert im Z-Bon. -->
+      <button
+        class="pnry-touch h-14 w-14 shrink-0 rounded-xl border active:scale-95 flex items-center justify-center transition-colors"
+        [ngClass]="
+          orderChannel() === 'pos'
+            ? 'bg-teal-50 dark:bg-teal-900/30 border-teal-200 dark:border-teal-900/50 text-teal-600 dark:text-teal-300'
+            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+        "
+        (click)="toggleOrderChannel()"
+        [attr.aria-pressed]="orderChannel() === 'pos'"
+        [attr.aria-label]="
+          orderChannel() === 'pos' ? 'Kanal: Kasse — zu Telefon wechseln' : 'Kanal: Telefon — zu Kasse wechseln'
+        "
+      >
+        <span class="material-symbols-outlined !text-[1.375rem]">
+          {{ orderChannel() === 'pos' ? 'point_of_sale' : 'call' }}
+        </span>
+      </button>
       <button
         class="pnry-touch-primary h-14 w-32 shrink-0 rounded-xl bg-yellow-400 text-gray-900 font-bold shadow-sm transition-transform text-xs group overflow-hidden active:scale-[0.92] flex items-center justify-center gap-1.5"
         (click)="setTaxRateSubbuttons()"

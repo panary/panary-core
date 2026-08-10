@@ -19,18 +19,9 @@ import {
   touchesDeviceAssignment,
   type DeviceAccessState,
 } from '@panary/devices/domain'
-import { UserStatus } from '@panary/users/domain'
+import { assertUsersAssignable } from '../utils/assignable-users'
 
 import type { HookContext } from '../declarations'
-
-interface AssignableUser {
-  _id?: string
-  isPosUser?: boolean
-  status?: string
-}
-
-const asArray = <T>(result: unknown): T[] =>
-  Array.isArray(result) ? (result as T[]) : ((result as { data?: T[] } | undefined)?.data ?? [])
 
 export const validateDeviceAssignment = async (context: HookContext): Promise<HookContext> => {
   if (!touchesDeviceAssignment(context.data)) return context
@@ -63,7 +54,10 @@ export const validateDeviceAssignment = async (context: HookContext): Promise<Ho
     throw new BadRequest('Mandant des Geraets ist nicht bestimmbar — Zuweisung abgelehnt.')
   }
 
-  await assertUsersAssignable(context, ids, tenantId)
+  // Dieselbe Pruefung nutzt die Pairing-Route (device-pairing.ts) — eine
+  // Zuweisung, die dort durchkommt und hier scheitert, waere ein Geraet, das
+  // sich beim Anlegen selbst zerlegt.
+  await assertUsersAssignable(context.app, ids, tenantId)
   return context
 }
 
@@ -71,32 +65,4 @@ const loadCurrentState = async (context: HookContext): Promise<DeviceAccessState
   if (context.method !== 'patch' || context.id === null || context.id === undefined) return undefined
   // NotFound laeuft bewusst durch — der eigentliche Patch scheiterte identisch.
   return (await context.app.service('devices').get(context.id, { provider: undefined })) as DeviceAccessState
-}
-
-const assertUsersAssignable = async (context: HookContext, ids: string[], tenantId: string): Promise<void> => {
-  const result = await context.app.service('users').find({
-    query: { _id: { $in: ids }, tenantId, $limit: ids.length },
-    provider: undefined,
-  })
-  const users = asArray<AssignableUser>(result)
-  const byId = new Map(users.map(user => [user._id, user]))
-
-  for (const id of ids) {
-    const user = byId.get(id)
-    // Fremder Mandant und „gibt es nicht" fallen bewusst zusammen: Der
-    // Tenant-Filter oben macht beides ununterscheidbar, und das ist richtig so.
-    if (!user) {
-      throw new BadRequest(`Mitarbeiter ${id} existiert nicht in diesem Mandanten.`)
-    }
-    if (!user.isPosUser) {
-      throw new BadRequest(`Mitarbeiter ${id} ist kein POS-Benutzer und kann sich am Terminal nicht anmelden.`)
-    }
-    // Nicht im Plan enumeriert, aber dieselbe Fehlerklasse: Ein archivierter
-    // Mitarbeiter erzeugt beim Zuweisen sofort das Terminal, an das niemand
-    // mehr herankommt. Das nachtraegliche Archivieren bleibt offen (eigenes
-    // Ticket) — der neue Fehler wird hier wenigstens nicht erst gebaut.
-    if (user.status && user.status !== UserStatus.ACTIVE) {
-      throw new BadRequest(`Mitarbeiter ${id} ist nicht aktiv und kann einem Geraet nicht zugewiesen werden.`)
-    }
-  }
 }

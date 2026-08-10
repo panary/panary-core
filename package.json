@@ -150,7 +150,7 @@
     "mongodb": "^7.1.0",
     "mqtt": "^5.15.1",
     "socket.io-client": "^4.8.3",
-    "swagger-ui-dist": "^5.32.8",
+    "swagger-ui-dist": "^5.32.11",
     "uuid": "^14.0.0",
     "uuidv7": "^1.1.0",
     "winston": "^3.19.0",

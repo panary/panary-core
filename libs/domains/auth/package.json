@@ -1,6 +1,6 @@
 {
   "name": "@panary/auth",
-  "version": "26.8.11",
+  "version": "26.8.12",
   "license": "BSL-1.1",
   "type": "commonjs",
   "exports": {

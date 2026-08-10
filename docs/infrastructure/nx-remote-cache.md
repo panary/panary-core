@@ -232,6 +232,9 @@ storefront-`--legacy deploy` den ganzen Workspace, ~0.9 GB).
   & verworfen** (Docker-Layer-Cache schattet ihn; kein Nutzen bei geänderter
   Quelle). Details: Abschnitt „Hebel 2 … geprüft & verworfen". Stattdessen:
   self-hosted Runner + Build-Scope.
-- Nx-Cloud-Reste in `panary-cloud/ci.yml` (`nx record`, `nx fix-ci`,
-  `start-ci-run`) sind Nx-**Cloud**-spezifisch und für den self-hosted Cache
-  No-ops — bei Gelegenheit entfernen.
+- ~~Nx-Cloud-Reste in `panary-cloud/ci.yml` (`nx record`, `nx fix-ci`,
+  `start-ci-run`) entfernen~~ — **2026-08-10 erledigt**
+  ([panary-cloud#153](https://github.com/panary/panary-cloud/issues/153)):
+  Distribution-Step, `nx record`-Wrapper im Format-Gate und `fix-ci`-Step sind
+  raus; die Exit-Semantik des Format-Gates wurde gegengeprüft (künstliche
+  Drift → Exit 1, unverändert zum Wrapper).

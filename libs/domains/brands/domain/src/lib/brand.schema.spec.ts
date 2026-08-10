@@ -1,7 +1,17 @@
+import { Format } from '@sinclair/typebox/format'
 import { Value } from '@sinclair/typebox/value'
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 
 import { brandDataSchema, brandPatchSchema, brandSchema, customDomainSchema } from './brand.schema'
+
+// TypeBox liefert keine eingebauten Format-Validatoren — in der Feathers-App
+// uebernimmt AJV das. Fuer Value.Check registrieren wir das verwendete Format
+// lokal (analog sync-trigger.schema.spec / audit-event.schema.spec).
+beforeAll(() => {
+  if (!Format.Has('date-time')) {
+    Format.Set('date-time', value => !Number.isNaN(Date.parse(value)))
+  }
+})
 
 const validBrand = {
   _id: '01927d4f-3c2e-7b6a-9a1f-1ce0a8a5d7e1',
@@ -212,6 +222,40 @@ describe('brandPatchSchema customDomains + defaultLocationId (Phase 7 D-01/D-26)
   it('akzeptiert defaultLocationId-Patch', () => {
     const patch = { defaultLocationId: '0190a000-0000-7000-8000-000000000006' }
     expect(Value.Check(brandPatchSchema, patch)).toBe(true)
+  })
+})
+//#endregion
+
+//#region storefrontOfflineAt — Gate-Feld für den Storefront-Offline-Schalter (core#132)
+describe('brandSchema storefrontOfflineAt', () => {
+  it('Bestand ohne das Feld bleibt valide (additiv-optional, keine Migration)', () => {
+    expect(Value.Check(brandSchema, validBrand)).toBe(true)
+  })
+
+  it('akzeptiert null (= online)', () => {
+    expect(Value.Check(brandSchema, { ...validBrand, storefrontOfflineAt: null })).toBe(true)
+  })
+
+  it('akzeptiert einen ISO-8601-String (= offline seit)', () => {
+    expect(Value.Check(brandSchema, { ...validBrand, storefrontOfflineAt: '2026-08-10T09:30:00.000Z' })).toBe(true)
+  })
+
+  it('lehnt einen Fantasiewert ab (format: date-time)', () => {
+    expect(Value.Check(brandSchema, { ...validBrand, storefrontOfflineAt: 'gestern-abend' })).toBe(false)
+  })
+
+  it('lehnt eine Zahl ab (kein Unix-Timestamp)', () => {
+    expect(Value.Check(brandSchema, { ...validBrand, storefrontOfflineAt: 1754818200000 })).toBe(false)
+  })
+})
+
+describe('brandPatchSchema storefrontOfflineAt (der Toggle)', () => {
+  it('akzeptiert das Offline-Nehmen ({ storefrontOfflineAt: ISO-String })', () => {
+    expect(Value.Check(brandPatchSchema, { storefrontOfflineAt: '2026-08-10T09:30:00.000Z' })).toBe(true)
+  })
+
+  it('akzeptiert den Rückweg ({ storefrontOfflineAt: null })', () => {
+    expect(Value.Check(brandPatchSchema, { storefrontOfflineAt: null })).toBe(true)
   })
 })
 //#endregion

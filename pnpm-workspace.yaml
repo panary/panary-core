@@ -67,6 +67,16 @@ minimumReleaseAgeExclude:
   # Eintrag steht nur, damit osv-scanner (scannt Dev-Deps mit) wieder gruen wird.
   - 'js-yaml' # 4.3.1 (2026-07-31) — reif ab 2026-08-07 17:39 UTC
   #
+  # Advisory 2026-08-07: nanoid 3.3.17 (GHSA-2v37-7h3g-55p8, Endlosschleife in
+  # customRandom/customAlphabet bei size 0). Transitiv via postcss.
+  # ACHTUNG beim Aufraeumen: der Override in package.json pinnt EXAKT '3.3.17',
+  # nicht '^3.3.17'. Grund: 3.3.18 ist am 2026-08-07 16:41 UTC erschienen — ein
+  # Caret wuerde zusammen mit diesem Exclude auf eine wenige Stunden alte Version
+  # aufloesen, also genau auf das Zeitfenster, gegen das die Karenz gebaut ist.
+  # Ab dem 2026-08-10 10:39 UTC diesen Eintrag entfernen UND den Pin auf
+  # '^3.3.17' lockern (ein stehender Exakt-Pin blockiert kuenftige Patches).
+  - 'nanoid' # 3.3.17 (2026-08-03 10:39 UTC) — reif ab 2026-08-10 10:39 UTC
+  #
   # Entfernt am 2026-08-07, weil reif geworden: die neun '@angular/*'-Framework-
   # Pakete (21.2.19, reif seit 2026-08-05, GHSA-jhpw-976m-542j / GHSA-jj27-h5hq-8x99)
   # und 'brace-expansion' (5.0.9, reif seit 2026-08-06, GHSA-rgw5-rvv9-x895).

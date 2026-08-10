@@ -83,6 +83,16 @@ export const render = fragments => {
 }
 
 const main = () => {
+  // `pnpm docs:log | head` bzw. ein Pager, den der Leser mit q verlaesst, schliesst
+  // stdout, waehrend noch geschrieben wird. Ohne diesen Handler stirbt Node mit
+  // einem EPIPE-Stacktrace — reproduzierbar in panary-cloud, wo die Ausgabe den
+  // 64-KB-Pipe-Puffer ueberschreitet. Frueher Abbruch durch den Leser ist hier kein
+  // Fehler, sondern der Normalfall.
+  process.stdout.on('error', error => {
+    if (error.code === 'EPIPE') process.exit(0)
+    throw error
+  })
+
   const { fragments, problems } = readFragments()
 
   if (process.argv.includes('--check')) {

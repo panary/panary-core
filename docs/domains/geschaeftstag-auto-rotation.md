@@ -86,7 +86,7 @@ Verhalten für jeden Bestands-Standort.
 > gilt für den Edge unverändert, was in Abschnitt B steht.
 
 Die gemeinsame Entscheidung (Stundenschwelle statt Kalendertags-Vergleich, für
-**beide** Repos) steht in `panary-cloud/docs/adr/0046-order-gate-stundenschwelle.md`.
+**beide** Repos) steht in `panary-cloud/docs/adr/0047-order-gate-stundenschwelle.md`.
 Sie bestätigt die Begründung aus Abschnitt B: `getHoursSince` wurde dort bereits
 bewusst rollend statt kalendertag-basiert gebaut, „robust gegen UTC-Off-by-one
 nahe Mitternacht" — genau der Defekt, an dem der Cloud-Gate scheiterte.

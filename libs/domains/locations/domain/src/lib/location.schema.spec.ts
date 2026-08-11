@@ -92,4 +92,29 @@ describe('settings.businessDaySettings', () => {
   it('lehnt Nicht-Ganzzahlen ab', async () => {
     await expect(validator(withBusinessDaySettings({ maxOpenHours: 26.5 }))).rejects.toThrow()
   })
+
+  // Auto-Rotation ueberlanger Betriebstage (panary-cloud ADR 0048 Stufe 2,
+  // panary-cloud#177). Das Feld ist optional UND hat Default `false` — beides
+  // ist noetig: optional, damit Bestands-Locations validieren; Default `false`,
+  // damit ein Standort ohne ausdrueckliches Opt-in nie rotiert wird.
+  it('akzeptiert autoRotate als Opt-in', async () => {
+    await expect(validator(withBusinessDaySettings({ autoRotate: true }))).resolves.toBeTruthy()
+    await expect(validator(withBusinessDaySettings({ autoRotate: false }))).resolves.toBeTruthy()
+  })
+
+  it('akzeptiert autoRotate zusammen mit maxOpenHours', async () => {
+    await expect(validator(withBusinessDaySettings({ maxOpenHours: 30, autoRotate: true }))).resolves.toBeTruthy()
+  })
+
+  it('laesst autoRotate weg, wenn es nicht gesetzt ist — der Default macht daraus kein Opt-in', async () => {
+    const validated = (await validator(withBusinessDaySettings({ maxOpenHours: 30 }))) as {
+      settings: { businessDaySettings?: { autoRotate?: boolean } }
+    }
+    expect(validated.settings.businessDaySettings?.autoRotate).toBeFalsy()
+  })
+
+  it('lehnt nicht-boolesche autoRotate-Werte ab', async () => {
+    await expect(validator(withBusinessDaySettings({ autoRotate: 'true' }))).rejects.toThrow()
+    await expect(validator(withBusinessDaySettings({ autoRotate: 1 }))).rejects.toThrow()
+  })
 })

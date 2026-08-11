@@ -194,9 +194,19 @@ export const settingsSchema = Type.Object({
   // Linie mit `openDurationHours` und `maxBusinessDayOpenHours`.
   // Nicht gesetzt = Server-Default (api-cloud/api-edge `maxBusinessDayOpenHours`).
   // Entscheidung: panary-cloud ADR 0046; Umsetzung panary-cloud#133 + panary-core#134.
+  // `autoRotate` ist das Opt-in des Betreibers, seinen ueberlangen Betriebstag
+  // cloud-seitig selbst beenden und den naechsten eroeffnen zu lassen (panary-cloud
+  // ADR 0048 Stufe 2, panary-cloud#177). Bewusst ein Standort-Feld und KEIN
+  // Feature-Flag: „meine Filiale darf automatisch rotieren" ist eine
+  // Betreiber-Entscheidung, kein Rollout-Schalter. Default `false` — ohne Opt-in
+  // aendert sich fuer einen Standort nichts.
+  // Wirkt nur bei `businessDay.operationMode === 'orders-only'`; bei `pos-cashier`
+  // verbietet ADR 0048 den Auto-Abschluss (Z-Bon ohne Ist-Zaehlung,
+  // § 146 Abs. 1 S. 2 AO). Das Gate sitzt cloud-seitig, nicht hier.
   businessDaySettings: Type.Optional(
     Type.Object({
       maxOpenHours: Type.Optional(Type.Integer({ minimum: 1, maximum: 168 })),
+      autoRotate: Type.Optional(Type.Boolean({ default: false })),
     }),
   ),
   // Operative Beleg-/Bon-Einstellungen (ADR beleg-bon-system, D4). Live-patchbar

@@ -36,8 +36,17 @@ export const notificationPreferenceDataSchema = Type.Pick(
 )
 export type NotificationPreferenceData = Static<typeof notificationPreferenceDataSchema>
 
+/**
+ * Patch — fachlich sind nur die drei Kanal-Flags patchbar. `tenantId` +
+ * `userId` stehen hier, weil die Cloud-Hooks sie in `around.all` stempeln
+ * (`multiTenancy()` bzw. `userScoping()`), also VOR `validateData` in
+ * `before.patch`. Ohne die Felder scheitert jeder externe Patch an
+ * `additionalProperties: false` mit 400 "validation failed" —
+ * panary/panary-core#174. Optional statt Pflicht: interne Patches ohne
+ * User-Kontext bleiben moeglich.
+ */
 export const notificationPreferencePatchSchema = Type.Partial(
-  Type.Pick(notificationPreferenceSchema, ['inApp', 'email', 'push']),
+  Type.Pick(notificationPreferenceSchema, ['inApp', 'email', 'push', 'tenantId', 'userId']),
   { $id: 'NotificationPreferencePatch', additionalProperties: false },
 )
 export type NotificationPreferencePatch = Static<typeof notificationPreferencePatchSchema>

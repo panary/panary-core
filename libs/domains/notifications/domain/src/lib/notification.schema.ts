@@ -71,11 +71,21 @@ export const notificationDataSchema = Type.Pick(
 export type NotificationData = Static<typeof notificationDataSchema>
 
 /**
- * Patch — **nur** `readAt` ist externes patchable. Alle anderen Felder werden
+ * Patch — fachlich ist **nur** `readAt` patchbar. Alle anderen Felder werden
  * via Resolver auf `undefined` gesetzt (`protectFromExternal`-Pattern aus
  * `code-style.md §9.8`).
+ *
+ * `tenantId` + `userId` stehen hier **nicht** als Client-Erlaubnis, sondern
+ * weil die Cloud-Hooks sie stempeln, bevor validiert wird: `multiTenancy()`
+ * setzt `data.tenantId` und `userScoping()` setzt `data.userId` — beide in
+ * `around.all`, also VOR `validateData` in `before.patch`. Ohne die Felder
+ * scheitert jeder externe Patch an `additionalProperties: false` mit
+ * 400 "validation failed"; „als gelesen markieren" war dadurch tot
+ * (panary/panary-core#174, panary/panary-cloud#199). Optional statt Pflicht:
+ * interne Patches ohne User-Kontext bleiben moeglich. Dieselbe Ursache wie beim
+ * DATA-Schema von `pushSubscription` — dort ist der Fix schon drin.
  */
-export const notificationPatchSchema = Type.Partial(Type.Pick(notificationSchema, ['readAt']), {
+export const notificationPatchSchema = Type.Partial(Type.Pick(notificationSchema, ['readAt', 'tenantId', 'userId']), {
   $id: 'NotificationPatch',
   additionalProperties: false,
 })

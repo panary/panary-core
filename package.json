@@ -33,6 +33,8 @@
     "audit:pos-px": "node tools/pos-px-audit.mjs",
     "docs:log": "node scripts/docs-log.mjs",
     "docs:log:check": "node scripts/docs-log.mjs --check",
+    "empty-targets:gate": "node scripts/empty-test-targets.mjs",
+    "empty-targets:gate:update": "node scripts/empty-test-targets.mjs --update",
     "security:install": "bash scripts/install-security-tools.sh",
     "security:scan": "node scripts/security-scan.mjs --mode=local",
     "security:report": "node scripts/security-scan.mjs --mode=all --report",

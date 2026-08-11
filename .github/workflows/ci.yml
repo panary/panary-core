@@ -113,6 +113,23 @@ jobs:
       - name: Release-Werkzeug pruefen
         run: pnpm release:verify
 
+      # Seit #159 hat jedes Projekt mit eigenem Code ein `test`-Target — 45 der 86
+      # davon ohne eine einzige Spec. Das war Absicht (ohne Target laeuft eine
+      # spaeter angelegte Spec still ins Leere, #155), erzeugt aber genau die
+      # Sorte Problem, gegen die auch das Typecheck-Gate gebaut wurde: In der
+      # CI-Ausgabe ist ein leeres Target von einem vollen nicht zu unterscheiden,
+      # beide melden gruen. Dieses Gate friert die LISTE der leeren Projekte ein
+      # und bricht ab, sobald ein weiteres dazukommt; ein Projekt, das seine erste
+      # Spec bekommt, bricht nicht ab. Details und Pflege:
+      # scripts/empty-test-targets.mjs.
+      #
+      # Der Spec laeuft davor — ein Gate, dessen Test nie laeuft, ist derselbe
+      # Fall "sieht gruen aus, ist es aber nicht", den es verhindern soll.
+      - name: Leerstand der test-Targets pruefen
+        run: |
+          node scripts/empty-test-targets.spec.mjs
+          pnpm empty-targets:gate
+
       # nx affected liest NX_BASE/NX_HEAD aus der Umgebung (nx-set-shas oben).
       #
       # `typecheck` ist seit 2026-08-06 dabei und bewusst HART, ohne Baseline: der

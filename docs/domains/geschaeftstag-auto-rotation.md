@@ -108,6 +108,26 @@ mehr, was sie messen könnten. `maxOrderDifferenceDays` existiert damit nirgends
 - Der Hook liest die Location bewusst **ohne `$select`**: `settings` steht nicht in
   `locationQueryProperties`, ein `$select` darauf scheitert am Query-Validator.
 
+Seit 2026-08-11 trägt dieselbe Gruppe ein zweites, **rein cloud-seitig wirksames** Feld:
+
+```ts
+settings.businessDaySettings?.autoRotate   // Boolean, Default false
+```
+
+Es ist das Opt-in des Betreibers, einen überlangen Betriebstag **cloud-seitig** beenden und
+den nächsten eröffnen zu lassen (panary-cloud ADR 0048 Stufe 2, panary/panary-cloud#177).
+Der Edge liest es nicht und wird es nicht lesen: Seine Rotation hängt an
+`isLocalRotationAllowed()` und ist im gepairten Betrieb ohnehin aus (ADR 0005) — genau die
+Lücke, aus der die Überlängen-Eskalation entstanden ist. Das Feld steht hier, weil das
+Location-Schema hier steht, nicht weil der Edge es auswertet.
+
+Bewusst **kein** Feature-Flag: „meine Filiale darf automatisch rotieren" ist eine
+Betreiber-Entscheidung, kein Rollout-Schalter. Ohne Opt-in ändert sich für einen Standort
+nichts. Das Gate auf `orders-only` sitzt cloud-seitig und liest den bei Eröffnung
+eingefrorenen `businessDay.operationMode`, nicht den der Location — bei `pos-cashier`
+verbietet ADR 0048 den Auto-Abschluss (ein Z-Bon ohne Ist-Zählung ist fiskalisch schlechter
+als der lange Tag, § 146 Abs. 1 S. 2 AO).
+
 Die gemeinsame Entscheidung (Stundenschwelle statt Kalendertags-Vergleich, für
 **beide** Repos) steht in `panary-cloud/docs/adr/0047-order-gate-stundenschwelle.md`.
 Sie bestätigt die Begründung aus Abschnitt B: `getHoursSince` wurde dort bereits
@@ -187,6 +207,7 @@ Altersgrenze dieselbe Zahl. Der Boot-Pfad fängt einen verwaisten Zeiger ab
 | `apps/api-edge/src/utils/business-day.utils.ts` | `getHoursSince` |
 | `libs/shared/common/src/lib/errors/app-errors.ts` | Code `BUSINESS_DAY_OPEN_TOO_LONG` |
 | `libs/domains/locations/domain/src/lib/location.schema.ts` | `settings.businessDaySettings.maxOpenHours` (Abschnitt C) |
+| `libs/domains/locations/domain/src/lib/location.schema.ts` | `settings.businessDaySettings.autoRotate` — cloud-seitiges Opt-in (Abschnitt C) |
 | `apps/api-edge/src/utils/business-day.utils.ts` | `getDifferenceInDays` entfernt (Abschnitt C) |
 | `apps/api-edge/src/utils/business-day-date.ts` | NEU — Kalendertag in Filialzeit (Abschnitt D) |
 | `apps/api-edge/src/utils/business-day.utils.ts` | `MIN_OPEN_HOURS_BEFORE_ROTATION`, `loadBusinessDayRuntime`, `shouldAutoRotate` (Abschnitt D) |

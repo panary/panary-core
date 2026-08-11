@@ -103,6 +103,16 @@ jobs:
           node scripts/docs-log.spec.mjs
           pnpm docs:log:check
 
+      # Gleiche Konfliktklasse eine Ebene weiter: Die ADR-Liste in docs/adr/index.md
+      # war die eine Zeile, die jeder ADR-PR am selben Ort anhaengte. Sie ist seit
+      # #161 ein Generat (`pnpm docs:adr:index`) — der Check haelt Dateinamen,
+      # Frontmatter-Pflichtfelder und doppelte Nummern fest und schlaegt an, wenn die
+      # Liste in index.md nachwaechst. Begruendung: docs/adr/0025-adr-index-generiert-statt-gepflegt.md
+      - name: ADR-Index und -Nummern pruefen
+        run: |
+          node scripts/docs-adr-index.spec.mjs
+          pnpm docs:adr:index:check
+
       # bump-version.mjs laeuft nur beim Release — also genau dann, wenn ein
       # Fehler am teuersten ist und niemand mehr hinsieht. Bei v26.8.10 schrieb
       # es tauri.conf.json ueber einen JSON-Round-Trip zurueck und formatierte

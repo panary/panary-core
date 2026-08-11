@@ -123,12 +123,18 @@ nx serve pos-client
 # 6. Dokumentation (OKF-Wiki)
 
 Projektdoku lebt im Wiki `/docs` (Open Knowledge Format v0.2). Einstieg: `docs/index.md`.
-Historie: `docs/log.md`. Verbindliche Regeln (Struktur, Frontmatter, ADRs, Workflows):
+Historie: `docs/log.d/` (ein Fragment je Eintrag, zusammengesetzt via `pnpm docs:log`).
+Verbindliche Regeln (Struktur, Frontmatter, ADRs, Workflows):
 `.claude/rules/documentation.md` — **vor jeder Doku-Arbeit lesen**.
 
 Kernregeln: Frontmatter-Pflichtfelder `type, title, description, tags, status, generated`;
 ADRs nur in `docs/adr/` als `NNNN-<kebab>.md` mit `type: ADR`; jede Doku-Änderung pflegt
-Ordner-Index + `docs/index.md` + `docs/log.md` im gleichen Commit.
+Ordner-`index.md` + `docs/index.md` + ein neues Fragment in `docs/log.d/` im gleichen Commit.
+
+⚠️ **Zwei Ausnahmen von der Index-Pflege** — beide, weil eine gepflegte Liste die eine Datei
+ist, die jeder PR am selben Ort anfasst: `docs/log.d/` hat gar keinen Index (#137), und
+`docs/adr/index.md` trägt **keine ADR-Liste** — die erzeugt `pnpm docs:adr:index`, die nächste
+freie Nummer `pnpm docs:adr:next` ([ADR 0025](docs/adr/0025-adr-index-generiert-statt-gepflegt.md)).
 
 **Pflicht-Dokumentation bei:** neuem Feature/Domain, Architekturänderung (→ ADR), neuem
 Service, komplexer Business-Logik, Setup/Migration, externer Integration, Breaking Changes.

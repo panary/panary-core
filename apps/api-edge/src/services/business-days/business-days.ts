@@ -20,7 +20,6 @@ import { uuidv7 } from 'uuidv7'
 
 import { AuditAction, AuditCategory, AuditOutcome, AuditSeverity } from '@panary/audit-events/domain'
 import { BusinessDayStatus, BusinessDayOperationMode } from '@panary/businessdays/domain'
-import { LocationOperationMode } from '@panary/locations/domain'
 import { PairingStatus } from '@panary/cloud-connection/domain'
 import { SyncOutboxStatus } from '@panary/sync/domain'
 import { authorize, multiTenancy, resolveUserLocationId } from '@panary/shared-backend'
@@ -388,7 +387,13 @@ const syncAwareValidateCreate = (context: HookContext): Promise<HookContext> =>
     ? (validateFullData(context) as Promise<HookContext>)
     : (validateInputData(context) as Promise<HookContext>)
 
-const syncAwareResolveCreate = (context: HookContext): Promise<HookContext> | HookContext =>
+// Exportiert, damit die Sync-Weiche testbar ist, ohne die App zu booten —
+// dieselbe Begruendung wie bei `discardOrphanDay`/`evaluateOutboxGuard`. Sie
+// traegt seit panary/panary-core#157 die `fromSync`-Ausnahme des Fiskal-Snapshots:
+// weil hier der GESAMTE Resolver uebersprungen wird, braucht
+// `businessDayDataResolver.operationMode` keinen eigenen `fromSync`-Zweig (anders
+// als in der Cloud).
+export const syncAwareResolveCreate = (context: HookContext): Promise<HookContext> | HookContext =>
   (context.params as { fromSync?: boolean })?.fromSync ? context : (resolveCreateData(context) as Promise<HookContext>)
 
 /**
@@ -396,7 +401,10 @@ const syncAwareResolveCreate = (context: HookContext): Promise<HookContext> | Ho
  * Validierungen:
  *   - kein offener Tag an derselben Location
  *   - locationId vom User oder Payload
- *   - operationMode wird aus Location.operationMode kopiert (Snapshot)
+ *
+ * Den Fiskal-Snapshot (`operationMode`) setzt der `businessDayDataResolver` aus
+ * der Location — nicht dieser Pfad. Er gilt damit fuer jeden `create`, nicht nur
+ * fuer den ueber `openDay`.
  */
 async function openDay(app: Application, data: OpenDayData, params: OpenDayParams = {}): Promise<BusinessDay> {
   await guardCloudManagedLifecycle(app, params, 'Eroeffnung')
@@ -422,25 +430,16 @@ async function openDay(app: Application, data: OpenDayData, params: OpenDayParam
     throw new BadRequest(`Es ist bereits ein Geschaeftstag fuer Location ${locationId} offen`)
   }
 
-  // operationMode aus Location laden
-  let operationMode: 'orders-only' | 'pos-cashier' = BusinessDayOperationMode.POS_CASHIER
-  try {
-    const location = await (app.service('locations') as any).get(locationId, { provider: undefined })
-    const mode = (location as { operationMode?: string } | undefined)?.operationMode
-    if (mode === LocationOperationMode.ORDERS_ONLY) operationMode = BusinessDayOperationMode.ORDERS_ONLY
-  } catch (err) {
-    logger.warn({
-      message: 'openDay: Location nicht ladbar, fallback auf pos-cashier',
-      event: 'business_day.open_fallback',
-      locationId,
-      error: (err as Error).message,
-    })
-  }
-
   const today = data.date ?? new Date().toISOString().slice(0, 10)
 
   // Kein openingFloatCents mehr: das Wechselgeld gehört zur Kasse (cash-sessions),
   // nicht zum Geschäftstag. Tag-Eröffnung legt keinen Float-Anfangsbestand an.
+  //
+  // Kein `operationMode`: Den Fiskal-Snapshot leitet der `businessDayDataResolver`
+  // aus der Location ab (panary/panary-core#157). Hier ihn zusaetzlich zu bestimmen
+  // waere eine zweite Ableitung derselben Sache — genau die Drift, die den Befund
+  // ermoeglicht hat: Der Resolver kannte den Wert nur als Default, die sorgfaeltige
+  // Logik sass allein hier, und wer `create` direkt aufrief, umging sie.
   const created = await (app.service(businessDaysPath) as any).create(
     {
       _id: uuidv7(),
@@ -448,7 +447,6 @@ async function openDay(app: Application, data: OpenDayData, params: OpenDayParam
       locationId,
       date: today,
       openedBy: user._id ?? 'unknown',
-      operationMode,
     },
     { provider: undefined },
   )
@@ -459,7 +457,9 @@ async function openDay(app: Application, data: OpenDayData, params: OpenDayParam
     tenantId: user.tenantId,
     locationId,
     businessDayId: (created as { _id?: string })._id,
-    operationMode,
+    // Aus dem erzeugten Datensatz, nicht aus einer lokalen Variable: geloggt wird,
+    // was tatsaechlich gespeichert wurde.
+    operationMode: (created as { operationMode?: string }).operationMode,
   })
   return created as BusinessDay
 }

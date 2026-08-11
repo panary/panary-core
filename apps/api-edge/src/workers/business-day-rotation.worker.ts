@@ -22,9 +22,19 @@ interface BusinessDayRotationConfig {
   minuteJitterMs: number // Random-Delay vor jedem Lauf, vermeidet Cluster-Effekte
 }
 
-// hour: 4 lokal ist in CET/CEST (UTC+1/+2) sicher nach UTC-Mitternacht —
-// `autoEnsureBusinessDay` ankert `today` auf das UTC-Datum, eine niedrigere
-// Stunde koennte in CEST noch im UTC-Vortag liegen und nicht rotieren.
+// hour: 4 liegt nach dem Ende eines typischen Nachtbetriebs und vor dem
+// Aufsperren — der Lauf trifft also den Moment, in dem sicher nichts offen ist.
+//
+// Der frueher hier stehende UTC-Anker-Caveat ist entfallen: `autoEnsureBusinessDay`
+// ankert `today` seit #154 auf den Kalendertag der **Filiale**, nicht mehr auf den
+// von UTC. Eine niedrigere Stunde laege damit nicht mehr im „UTC-Vortag" und wuerde
+// trotzdem rotieren.
+//
+// Was bleibt: der Worker feuert zur Stunde der **Server**-Zeitzone, entschieden
+// wird in der der Filiale. Laufen die beiden auseinander (Edge-Box in anderer Zone
+// als die Filiale), kann der Lauf vor der lokalen Mitternacht liegen und nichts
+// tun — dann rotiert die Lazy-Rotation im Order-Hook nach. Der Regelfall ist die
+// Box in der Filiale, also beide Zonen gleich.
 const DEFAULT_CONFIG: BusinessDayRotationConfig = {
   enabled: true,
   hour: 4,

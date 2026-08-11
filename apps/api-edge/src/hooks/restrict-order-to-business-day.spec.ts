@@ -35,11 +35,12 @@ const shouldAutoRotate = vi.fn()
 const rotateBusinessDay = vi.fn()
 const hasActiveOrders = vi.fn()
 const getHoursSince = vi.fn()
+const loadBusinessDayRuntime = vi.fn()
 vi.mock('../utils/business-day.utils', () => ({
   shouldAutoRotate: (...a: unknown[]) => shouldAutoRotate(...a),
   rotateBusinessDay: (...a: unknown[]) => rotateBusinessDay(...a),
   hasActiveOrders: (...a: unknown[]) => hasActiveOrders(...a),
-  getHoursSince: (...a: unknown[]) => getHoursSince(...a),
+  loadBusinessDayRuntime: (...a: unknown[]) => loadBusinessDayRuntime(...a),
 }))
 
 import { restrictOrderToBusinessDay } from './restrict-order-to-business-day'
@@ -106,6 +107,19 @@ beforeEach(() => {
   // in alle folgenden. Seit die Grenze in JEDEM Pfad geprueft wird (ADR 0047,
   // vorher nur im Aktive-Orders-Zweig), waere das ein stiller Fehlschlag.
   getHoursSince.mockReturnValue(1)
+
+  // `loadBusinessDayRuntime` ist der gemeinsame Loader von Rotations-Guard und
+  // Altersgrenze; er selbst ist in `business-day.utils.spec.ts` abgedeckt. Hier
+  // steht er nur als duenne Attrappe, damit die beiden bestehenden Test-Stellhebel
+  // — `businessDay: { openedAt, operationMode }` und `getHoursSince` — weiter das
+  // tun, was ihre Namen sagen.
+  loadBusinessDayRuntime.mockImplementation(async (app: any, businessDayId: string) => {
+    const day = await app.service('businessdays').get(businessDayId, { provider: undefined })
+    return {
+      openHours: day.openedAt ? getHoursSince(day.openedAt) : null,
+      operationMode: day.operationMode,
+    }
+  })
 })
 
 // Jeder Fall laeuft ueber beide System-Modi mit IDENTISCHER Erwartung. Das ist
@@ -434,5 +448,55 @@ describe('Standort-Override der Altersgrenze', () => {
     expect(ctx.__services.locations.get).toHaveBeenCalledTimes(1)
     const params = ctx.__services.locations.get.mock.calls[0][1]
     expect(params.query?.$select).toBeUndefined()
+  })
+})
+
+// Der Mindest-Laufzeit-Guard selbst steckt in `shouldAutoRotate` (dort getestet).
+// Hier interessiert nur, dass der Hook ihn ueberhaupt fuettert — und zwar aus
+// demselben Read, aus dem auch die Altersgrenze rechnet.
+describe('Laufzeit-Beschaffung für Rotations-Guard und Altersgrenze', () => {
+  it('reicht die Laufzeit an shouldAutoRotate durch', async () => {
+    shouldAutoRotate.mockReturnValue(false)
+    getHoursSince.mockReturnValue(7)
+    const ctx = makeContext({
+      location: {
+        _id: 'loc-1',
+        tenantId: 't-1',
+        currentBusinessDay: { businessDayId: 'bd-night', date: '2026-07-29' },
+      },
+    })
+
+    await restrictOrderToBusinessDay()(ctx)
+
+    expect(loadBusinessDayRuntime).toHaveBeenCalledWith(expect.anything(), 'bd-night')
+    expect(shouldAutoRotate.mock.calls[0][2]).toBe(7)
+  })
+
+  // Zwei getrennte Reads koennten in derselben Anfrage verschiedene Zahlen
+  // liefern — und zwischen Guard (10 h) und Sperre (26 h) liegen nur 16 Stunden.
+  it('liest den Geschäftstag genau einmal pro Anfrage', async () => {
+    shouldAutoRotate.mockReturnValue(false)
+    const ctx = makeContext({
+      location: {
+        _id: 'loc-1',
+        tenantId: 't-1',
+        currentBusinessDay: { businessDayId: 'bd-1', date: '2026-07-29' },
+      },
+    })
+
+    await restrictOrderToBusinessDay()(ctx)
+
+    expect(loadBusinessDayRuntime).toHaveBeenCalledTimes(1)
+  })
+
+  it('lädt nichts, wenn gar kein Geschäftstag gesetzt ist', async () => {
+    shouldAutoRotate.mockReturnValue(true)
+    rotateBusinessDay.mockResolvedValue('bd-neu')
+    const ctx = makeContext({ location: { _id: 'loc-1', tenantId: 't-1', currentBusinessDay: null } })
+
+    await restrictOrderToBusinessDay()(ctx)
+
+    expect(loadBusinessDayRuntime).not.toHaveBeenCalled()
+    expect(shouldAutoRotate.mock.calls[0][2]).toBeNull()
   })
 })

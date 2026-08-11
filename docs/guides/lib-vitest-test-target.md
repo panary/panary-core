@@ -111,6 +111,19 @@ Kombination, an der `tsc` mit **TS5069** abbricht, *bevor* eine einzige Datei ge
 wird. Genau daran lief das Gate workspace-weit ins Leere, während unbemerkt 96
 Typfehler aufliefen (#110, #111). Seit dem Fix ist `typecheck` hart und ohne Baseline.
 
+### Wann die spec-tsconfig entfällt
+
+Sie hängt am `typecheck`-Target. Projekte ohne `tsconfig.json` haben keines — dort wäre
+sie Maschinerie ohne Wirkung, und es bleibt bei der `vitest.config.mts` allein. Im
+Workspace betrifft das genau zwei Projekte (#159):
+
+| Projekt                      | Warum                                                                       |
+| ---------------------------- | --------------------------------------------------------------------------- |
+| `tse-gateway`                | App mit `tsconfig.app.json` statt `tsconfig.json`; Specs sind dort exkludiert |
+| `feathers-service-generator` | Tool ganz ohne tsconfig; Specs laufen über `@nx/devkit/testing`               |
+
+Für jede Lib mit `tsconfig.lib.json` gilt der Regelfall oben.
+
 ---
 
 ## 3. Angular-Klassen ohne TestBed instanziieren
@@ -176,6 +189,36 @@ Zum Schluss die Gegenprobe, die den eigentlichen Wert der Specs belegt: die
 abgesicherte Stelle im Quellcode absichtlich brechen und prüfen, dass **genau** die
 zuständige Spec fehlschlägt. Eine Spec, die nach einer Mutation grün bleibt, misst
 nichts.
+
+---
+
+## 5. Ein Target ist noch keine Abdeckung
+
+Seit #159 hat **jedes Projekt mit eigenem Code** ein `test`-Target. Gemessen direkt
+danach: **45 der 86 Targets enthalten keine einzige Spec-Datei** — 35 davon neu aus
+#159, 10 waren es schon vorher. `passWithNoTests: true` macht sie grün, und in der
+CI-Ausgabe sieht ein leeres Target genauso aus wie ein volles.
+
+Das ist Absicht und trotzdem eine Falle. Der Nutzen liegt allein darin, dass eine
+künftig angelegte Spec **läuft**: Ohne Target wird sie stillschweigend übersprungen,
+und `nx affected -t test` meldet trotzdem Erfolg — genau der Zustand, der in #155 zwei
+Projekte betraf und dort erst bei der Code-Review auffiel. Der Nutzen liegt *nicht*
+in der Zahl grüner Test-Tasks.
+
+Wer wissen will, wo tatsächlich getestet wird, zählt Spec-Dateien, nicht Targets:
+
+```bash
+pnpm nx show projects --with-target=test --json | tr -d '[]"' | tr ',' '\n' | while read -r p; do
+  [ -z "$p" ] && continue
+  root=$(pnpm nx show project "$p" --json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).root))")
+  n=$(find "$root" -name '*.spec.ts' -o -name '*.test.ts' 2>/dev/null | grep -vc node_modules)
+  [ "$n" -eq 0 ] && echo "leer: $p"
+done
+```
+
+Ausbaustufe: eine ordentliche Ausbaustufe wäre, diese Zählung als Kennzahl in die CI
+zu heben, statt sie auf Zuruf laufen zu lassen. Vorher ist die Zahl der leeren Targets
+unsichtbar, und Unsichtbares wächst.
 
 ---
 

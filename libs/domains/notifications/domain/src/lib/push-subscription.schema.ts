@@ -63,8 +63,15 @@ export const pushSubscriptionDataSchema = Type.Intersect(
 )
 export type PushSubscriptionData = Static<typeof pushSubscriptionDataSchema>
 
+/**
+ * Patch — fachlich sind nur `userAgent` + `lastUsedAt` patchbar. `tenantId` +
+ * `userId` stehen hier aus demselben Grund wie im DATA-Schema oben: die Hooks
+ * stempeln sie in `around.all`, also VOR `validateData` in `before.patch`. Der
+ * DATA-Pfad wurde 2026-07-27 gefixt, der PATCH-Pfad blieb offen — und mit ihm
+ * das `lastUsedAt`-Update des Senders (panary/panary-core#174).
+ */
 export const pushSubscriptionPatchSchema = Type.Partial(
-  Type.Pick(pushSubscriptionSchema, ['userAgent', 'lastUsedAt']),
+  Type.Pick(pushSubscriptionSchema, ['userAgent', 'lastUsedAt', 'tenantId', 'userId']),
   { $id: 'PushSubscriptionPatch', additionalProperties: false },
 )
 export type PushSubscriptionPatch = Static<typeof pushSubscriptionPatchSchema>

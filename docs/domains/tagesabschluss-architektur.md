@@ -28,6 +28,10 @@ Pro Filiale konfigurierbar via [`Location.operationMode`](../../libs/domains/loc
 
 Der Modus wird bei Tageseröffnung als Snapshot in [`BusinessDay.operationMode`](../../libs/domains/businessdays/domain/src/lib/business-day.schema.ts) eingefroren — nachträgliches Umschalten der Location wirkt erst auf den nächsten Tag.
 
+Der Snapshot entsteht **serverseitig im `businessDayDataResolver`** ([business-days.schema.ts](../../apps/api-edge/src/services/business-days/business-days.schema.ts)) und ist nicht aus der Anfrage bestimmbar: Ein `operationMode` aus der Create-Payload wird verworfen, nicht als Default behandelt. Das ist kein Detail der Hygiene — der Snapshot ist das Fiskal-Gate für die TSE-Signierung der Bestellungen ([sign-order-tse.hook.ts](../../apps/api-edge/src/hooks/sign-order-tse.hook.ts)) und für den Kassen-Zwang ([restrict-order-to-cash-session.ts](../../apps/api-edge/src/hooks/restrict-order-to-cash-session.ts)). Solange er wählbar war, bestimmte ein Kassen-Token selbst, ob die Bestellungen seines Tages signiert werden (`create` steht in `businessDaysMethods`, `DEVICE_POS` hat `MANAGE` auf `BUSINESS_DAYS`). Ist die Location nicht ladbar, fällt der Resolver auf `pos-cashier` — **fail-safe Richtung Signieren**: zu viel Fiskalisierung ist ein Aufwands-, zu wenig ein Rechtsproblem.
+
+Ausgenommen ist allein der Sync-Apply: `syncAwareResolveCreate` überspringt bei `fromSync` den gesamten Create-Resolver, weil dort der vollständige Lifecycle-Record der Cloud ankommt. Der Snapshot eines gepullten Tages stammt aus derselben Quelle, nur zum richtigen Zeitpunkt — ihn lokal aus der *aktuellen* Betriebsart zu überschreiben schriebe Historie um. Gleiche Regel wie im Cloud-Gegenstück (panary/panary-cloud#146).
+
 ---
 
 ## Edge-Service (`apps/api-edge/src/services/business-days/`)
@@ -50,7 +54,7 @@ status: 'audited'               ← Manager hat Plombe im Admin-Dashboard gesetz
 
 | Methode | Aufruf | Effekt |
 |---|---|---|
-| `openDay({ locationId?, openingFloatCents? })` | POS bei Schichtbeginn | Neuer BusinessDay mit `status='open'`. Verhindert Mehrfach-Eröffnung pro Location. Stempelt operationMode-Snapshot aus Location. |
+| `openDay({ locationId?, openingFloatCents? })` | POS bei Schichtbeginn | Neuer BusinessDay mit `status='open'`. Verhindert Mehrfach-Eröffnung pro Location. Den operationMode-Snapshot setzt der Create-Resolver (s. o.), nicht diese Methode — sonst gäbe es zwei Ableitungen derselben Sache, und die über `create` wäre die schwächere. |
 | `closeDay({ businessDayId, countedClosingFloatCents?, cashDropsCents?, payoutsCents?, physicalCounts? })` | POS bei Tagesende | 1. Prüft `sync-outbox` auf pending Einträge — Hard-Block bei Backlog. 2. Setzt `status='closing-requested'`, `closedAt`, `closedBy`. 3. HTTP-POST an Cloud-Service `business-day-reports.startClosing`. |
 
 ### Outbox-Vorabprüfung

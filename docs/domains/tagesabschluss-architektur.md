@@ -39,6 +39,8 @@ Der Snapshot entsteht **serverseitig im `businessDayDataResolver`** ([business-d
 
 Ausgenommen ist allein der Sync-Apply: `syncAwareResolveCreate` überspringt bei `fromSync` den gesamten Create-Resolver, weil dort der vollständige Lifecycle-Record der Cloud ankommt. Der Snapshot eines gepullten Tages stammt aus derselben Quelle, nur zum richtigen Zeitpunkt — ihn lokal aus der *aktuellen* Betriebsart zu überschreiben schriebe Historie um. Gleiche Regel wie im Cloud-Gegenstück (panary/panary-cloud#146).
 
+Entscheidung samt verworfener Alternative (den `cloudManagedHook` härten statt den Resolver): [ADR 0026 — Fiskal-Snapshot des Geschäftstags wird serverseitig abgeleitet](../adr/0026-fiskal-snapshot-serverseitig-abgeleitet.md).
+
 ---
 
 ## Edge-Service (`apps/api-edge/src/services/business-days/`)

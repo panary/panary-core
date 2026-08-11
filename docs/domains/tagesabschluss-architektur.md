@@ -17,6 +17,13 @@ Modernisierter Tagesabschluss-Workflow als Nachfolger der Legacy-`smartfoodorder
 | **api-edge `business-days`-Service** | Lokaler Lifecycle-Service (open/close), Sync-Outbox-Vorabprüfung, Cloud-Trigger |
 | **api-cloud `business-day-reports`-Service** | Heavy-Lifting-Aggregation: Bestellungen, Wareneinsatz, Inventur, Kassenabstimmung, Z-Bon-Nummer-Vergabe |
 
+> **Als Ablaufdiagramm:** Das LikeC4-Modell (`panary-cloud/docs/architecture/c4/`, [ADR 0028](../../../panary-cloud/docs/adr/0028-likec4-architecture-as-code.md))
+> trägt den Tagesabschluss seit panary/panary-cloud#187 in drei Views: `dynBusinessDayClosing`
+> (Regelfall — Abschluss im Cloud-Admin, Rückweg über den Business-Day-Pull zum Edge),
+> `dynBusinessDayClosingEdge` (der hier beschriebene Edge-Pfad, erreichbar nur ohne aktives
+> Pairing) und `dynBusinessDayRotation` (04:00-Rotation plus Überlängen-Sweep der Cloud).
+> Ansehen mit `pnpm arch:dev` **in panary-cloud**.
+
 ---
 
 ## Mode-Unterscheidung (Location.operationMode)

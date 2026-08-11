@@ -46,37 +46,25 @@ minimumReleaseAgeExclude:
   # voraus, dass sie unmittelbar konsumierbar sind. Ohne diesen Eintrag faellt
   # das Lockfile still auf die vorige Version zurueck.
   - '@panary/*'
-  # --- BEFRISTET: CVE-Overrides, die auf eine noch unreife Version zeigen ---
-  # Die package.json-Overrides pinnen exakt die gepatchte Version, die die
-  # Karenz noch blockiert — ohne Ausnahme scheitert jede vollstaendige
-  # Neuaufloesung (Edge-Docker, POS-Windows-Release) mit
+  #
+  # --- Befristete Ausnahmen: aktuell KEINE ------------------------------------
+  # Ein Paket gehoert nur so lange hierher, wie sein package.json-Override auf
+  # eine Version zeigt, die die Karenz noch blockiert — sonst scheitert jede
+  # vollstaendige Neuaufloesung (Edge-Docker, POS-Windows-Release) mit
   # ERR_PNPM_NO_MATURE_MATCHING_VERSION (empirisch verifiziert 2026-07-25).
-  # ENTFERNEN, sobald die Versionen reif sind (danach ist der Eintrag ein
-  # stiller Verzicht auf die Karenz fuer dieses Paket):
+  # Sobald die Version reif ist, MUSS der Eintrag weg: danach ist er ein stiller
+  # Verzicht auf die Karenz fuer genau das Paket, das gerade erst gepatcht wurde.
+  # Jeder Eintrag traegt deshalb sein Reife-Datum im Zeilenkommentar.
   #
-  # OSV-Sweep 2026-08-03: fast-uri 3.1.5 (GHSA-7p8r-x3mc-p8w7) ist die EINZIGE
-  # gepatchte Version seiner Linie und noch keine 7 Tage alt:
-  - 'fast-uri' # 3.1.5 (2026-07-31 09:16 UTC) — reif ab 2026-08-07
-  - 'hono' # 4.12.34 (2026-08-03) — reif ab 2026-08-10 (GHSA-8j4g-w8fx-2239)
-  #
-  # Advisory 2026-08-06: js-yaml 4.3.1 (GHSA-5p4m-2wfm-xmqj / CVE-2026-59870,
-  # quadratischer CPU-Verbrauch beim Aufloesen von `!!omap`). Der Fix ist NUR in
-  # 4.3.1 (v4-legacy) und 5.2.1+ gelandet, nicht in 4.3.0 — und 4.3.1 ist am
-  # 2026-07-31 17:39 UTC erschienen, also erst heute Abend reif. In Core ist
-  # js-yaml rein transitiv und dev-only (eslint/mocha/nx/cosmiconfig); der
-  # Eintrag steht nur, damit osv-scanner (scannt Dev-Deps mit) wieder gruen wird.
-  - 'js-yaml' # 4.3.1 (2026-07-31) — reif ab 2026-08-07 17:39 UTC
-  #
-  # Advisory 2026-08-07: nanoid 3.3.17 (GHSA-2v37-7h3g-55p8, Endlosschleife in
-  # customRandom/customAlphabet bei size 0). Transitiv via postcss.
-  # ACHTUNG beim Aufraeumen: der Override in package.json pinnt EXAKT '3.3.17',
-  # nicht '^3.3.17'. Grund: 3.3.18 ist am 2026-08-07 16:41 UTC erschienen — ein
-  # Caret wuerde zusammen mit diesem Exclude auf eine wenige Stunden alte Version
-  # aufloesen, also genau auf das Zeitfenster, gegen das die Karenz gebaut ist.
-  # Ab dem 2026-08-10 10:39 UTC diesen Eintrag entfernen UND den Pin auf
-  # '^3.3.17' lockern (ein stehender Exakt-Pin blockiert kuenftige Patches).
-  - 'nanoid' # 3.3.17 (2026-08-03 10:39 UTC) — reif ab 2026-08-10 10:39 UTC
-  #
+  # Entfernt am 2026-08-11, weil reif geworden: 'fast-uri' (3.1.5, publiziert
+  # 2026-07-31 09:16 UTC → reif seit 2026-08-07), 'js-yaml' (4.3.1, 2026-07-31
+  # 17:39 UTC → 2026-08-07), 'hono' (4.12.34, 2026-08-03 02:36 UTC → 2026-08-10)
+  # und 'nanoid' (3.3.17, 2026-08-03 10:39 UTC → 2026-08-10). Termin stand in
+  # docs/security/osv-befund-2026-08-07.md. Im selben Zug wurde der
+  # nanoid-Override von EXAKT '3.3.17' auf '^3.3.17' gelockert — ein stehender
+  # Exakt-Pin blockiert kuenftige Patches. Er loest weiterhin auf 3.3.17 auf,
+  # weil 3.3.18 (2026-08-07 16:41 UTC) erst am 2026-08-14 reif wird; genau das
+  # ist das gewuenschte Verhalten.
   # Entfernt am 2026-08-07, weil reif geworden: die neun '@angular/*'-Framework-
   # Pakete (21.2.19, reif seit 2026-08-05, GHSA-jhpw-976m-542j / GHSA-jj27-h5hq-8x99)
   # und 'brace-expansion' (5.0.9, reif seit 2026-08-06, GHSA-rgw5-rvv9-x895).

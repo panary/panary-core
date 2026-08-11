@@ -1,9 +1,14 @@
 // Einziger Trigger der fiskalischen Signierpflicht (KassenSichV): der
-// Betriebsmodus der Location ist `pos-cashier`. Bewusst als geteilter Helfer in
-// der Domain-Lib, damit Edge- UND Cloud-Signier-Hooks identisch entscheiden
-// (keine doppelte Logik, kein Drift). Der Wert 'pos-cashier' ist der stabile
-// LocationOperationMode aus @panary/locations/domain — hier als Literal
-// gehalten, um keine Cross-Domain-Abhängigkeit tse→locations einzuführen.
+// `operationMode`-Snapshot des GESCHÄFTSTAGS ist `pos-cashier` — nicht die
+// aktuelle Betriebsart der Location. Der Snapshot wird bei Eröffnung aus der
+// Location abgeleitet und friert damit ein: Eine Umstellung um 10:00 lässt den
+// laufenden Tag unverändert weiter signieren. Dass er serverseitig abgeleitet
+// und nicht aus der Anfrage bestimmbar ist, regelt ADR 0026. Bewusst als
+// geteilter Helfer in der Domain-Lib, damit Edge- UND Cloud-Signier-Hooks
+// identisch entscheiden (keine doppelte Logik, kein Drift). Der Wert
+// 'pos-cashier' ist derselbe String in BusinessDayOperationMode und
+// LocationOperationMode — hier als Literal gehalten, um keine
+// Cross-Domain-Abhängigkeit tse→businessdays/locations einzuführen.
 export const FISCAL_OPERATION_MODE = 'pos-cashier'
 
 export const requiresFiscalSignature = (input: { operationMode?: string | null }): boolean =>

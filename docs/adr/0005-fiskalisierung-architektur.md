@@ -46,8 +46,16 @@ unabhängige Achsen**, die das alte Modell fälschlich vermischte.
    §146a) — Voraussetzung für *Ausfallsicherheit*, nicht fürs Kassieren.
 3. **Signieren provider-agnostisch aus dem geteilten `TsePort`**, ausführbar in
    **Cloud (api-cloud → Fiskaly) UND Edge**. Trigger ist ausschließlich
-   `location.operationMode === 'pos-cashier'` — identisch in Edge und Cloud, in
-   einem **geteilten Domain-Helfer** gekapselt (keine Doppel-Logik).
+   `businessDay.operationMode === 'pos-cashier'` — der **Snapshot**, den die
+   Tageseröffnung aus `location.operationMode` ableitet, nicht die Location
+   selbst. Wird die Betriebsart um 10:00 umgestellt, signiert der laufende Tag
+   weiter zu Ende. Identisch in Edge und Cloud, in einem **geteilten
+   Domain-Helfer** gekapselt (`requiresFiscalSignature` /
+   `fiscalSignContextFromBusinessDay` in
+   [`fiscal-gate.ts`](../../libs/domains/tse/domain/src/lib/fiscal-gate.ts)) —
+   keine Doppel-Logik. Dass dieser Snapshot nicht aus der Anfrage bestimmbar
+   ist, regelt
+   [`0026-fiskal-snapshot-serverseitig-abgeleitet.md`](0026-fiskal-snapshot-serverseitig-abgeleitet.md).
 4. **Single fiscal source — „Erzeuger signiert":** Die Cloud signiert nur native
    cloud-direkte Orders; **synchronisierte Edge-Orders werden NIE re-signiert**.
    Guards: `params.fromSync` **und** bereits gesetztes `order.tse` (geprüft am

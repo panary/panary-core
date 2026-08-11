@@ -44,6 +44,9 @@ Konzeptseiten. Frontmatter in Index-Dateien nur im Root-`docs/index.md` (`okf_ve
 Datei, die wieder jeder PR anfassen müsste — also genau der Konflikt, gegen den die Fragmente
 angelegt wurden (#137). Die Übersicht erzeugt `pnpm docs:log`.
 
+**Ausnahme `docs/adr/`:** `index.md` existiert, trägt aber aus demselben Grund **keine Liste** —
+die erzeugt `pnpm docs:adr:index` (§3, #161).
+
 `docs/raw/` ist die **Rohquellen-Schicht** (Karpathy Layer 1): unveränderliche Originaldokumente
 (z. B. restaurierte Planungsunterlagen). **Nie editieren**, keine Frontmatter-Pflicht, kein
 Prettier; Konzeptseiten verweisen per `sources` darauf. Neues Wissen fließt in Konzeptseiten.
@@ -82,7 +85,22 @@ generated: { by: <actor>, at: <ISO-8601> }
 
 ## 3. ADRs
 
-- Immer in `docs/adr/`, Dateiname `NNNN-<kebab-titel>.md` (nächste freie Nummer, vierstellig).
+- Immer in `docs/adr/`, Dateiname `NNNN-<kebab-titel>.md`. **Die Nummer nicht raten und nicht
+  aus dem Ordner ablesen** — sie kommt aus:
+
+  ```bash
+  pnpm docs:adr:next    # höchste + 1, über origin/main UND alle Worktrees des Repos
+  ```
+
+  Ein `ls docs/adr/` sieht nur den eigenen Baum. Am 2026-08-10 hatten dadurch in panary-cloud
+  drei parallele Sessions gleichzeitig `0046` belegt; zwei mussten umnummerieren, und
+  aufgefallen ist es erst über einen bereits in **diesem** Repo gemergten Kommentar.
+
+- **Keine Index-Pflege für ADRs.** Die annotierte Liste steht nicht in `docs/adr/index.md`,
+  sondern kommt aus `pnpm docs:adr:index` ([ADR 0025](../../docs/adr/0025-adr-index-generiert-statt-gepflegt.md)).
+  Ein neuer ADR fasst deshalb **keine geteilte Datei** an — nur die eigene `NNNN-*.md` und das
+  Log-Fragment (§4.2). `pnpm docs:adr:index:check` ist CI-Gate und bricht ab, wenn die Liste in
+  `index.md` nachwächst.
 - `type: ADR` + Extension-Feld `decision: proposed | accepted | superseded | rejected`.
 - Body-Gliederung: `## Problem` → `## Entscheidung` → `## Konsequenzen` (weitere Abschnitte erlaubt).
 - Superseded: `decision: superseded`, `status: deprecated`, Link auf das Nachfolge-ADR.
@@ -95,6 +113,8 @@ generated: { by: <actor>, at: <ISO-8601> }
 
 1. **Ordner-Index** und **Root-`docs/index.md`** aktualisieren
    (Eintragsformat: `* [Titel](pfad.md) - <description aus dem Frontmatter>`).
+   ⚠️ **Ausnahme `docs/adr/`:** dort nichts eintragen — die Liste ist ein Generat (§3).
+   `docs/index.md` verweist nur auf den Ordner, nicht auf einzelne ADRs, bleibt also unberührt.
 2. **Log-Fragment anlegen** — `docs/log.d/<YYYY-MM-DD>-<nr>-<slug>.md`, Inhalt sind die
    Bullets selbst (`* **Creation|Update|Deprecation**: <Satz mit Link>`), ohne Datums-Header
    und ohne Frontmatter. `<nr>` ist die **Issue-Nummer** (ohne Issue: die PR-Nummer) —

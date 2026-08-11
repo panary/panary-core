@@ -4,7 +4,7 @@ title: OSV-Befund 2026-08-07 — nanoid gefixt, image-size als akzeptiertes Risi
 description: Zwei Advisory-Änderungen legten den nächtlichen OSV-Scan lahm; nanoid ist über einen exakt gepinnten Override geschlossen, für image-size existiert kein Fix und der Befund ist befristet als akzeptiertes Risiko dokumentiert.
 tags: [security, supply-chain, dependencies, ci]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-08-07T22:20:49.000Z }
+generated: { by: claude-code/opus-5, at: 2026-08-11T11:20:00.000Z }
 stale_after: 2026-11-07
 ---
 
@@ -44,6 +44,13 @@ zu diesem Zeitpunkt wenige Stunden alte Version aufgelöst — also genau auf da
 Zeitfenster, gegen das die Karenz gebaut ist. Der exakte Pin nimmt stattdessen
 die Version, die geprüft wurde und zum Zeitpunkt der Entscheidung vier Tage
 öffentlich war.
+
+> **Erledigt am 2026-08-11.** `nanoid` ist seit 2026-08-10 10:39 UTC reif; der
+> Exclude ist entfernt und der Override auf `'^3.3.17'` gelockert. Die Karenz
+> greift damit wieder und übernimmt die Rolle, die vorher der Exakt-Pin hatte:
+> `^3.3.17` löst weiterhin auf **3.3.17** auf, weil `3.3.18` erst am 2026-08-14
+> reif wird. Das Lockfile bewegt sich dadurch um genau eine Zeile (der
+> `overrides:`-Kopf), die Resolution bleibt unverändert.
 
 ### Angriffsvorbedingung
 
@@ -94,10 +101,11 @@ statt den Eintrag stillschweigend altern zu lassen.
 
 ## Aufräum-Termine
 
-- **Ab 2026-08-10 10:39 UTC:** `nanoid` aus `minimumReleaseAgeExclude` entfernen
-  **und** den Override von `'3.3.17'` auf `'^3.3.17'` lockern. Ein
-  stehengelassener Exclude ist ein stiller Verzicht auf die Karenz; ein
-  stehender Exakt-Pin blockiert künftige Patches.
+- ~~**Ab 2026-08-10 10:39 UTC:** `nanoid` aus `minimumReleaseAgeExclude`
+  entfernen **und** den Override von `'3.3.17'` auf `'^3.3.17'` lockern.~~
+  **Erledigt am 2026-08-11** — zusammen mit den drei übrigen abgelaufenen
+  Befristungen (`fast-uri`, `js-yaml`, `hono`). `minimumReleaseAgeExclude` trägt
+  damit wieder nur den dauerhaften `'@panary/*'`-Eintrag.
 - **Bis 2026-11-07:** image-size neu bewerten. Früher handeln, sobald ein Fix
   erscheint oder `.less`-Dateien in den Workspace einziehen — dann wird der
   Parser real erreichbar und die Einordnung oben fällt.

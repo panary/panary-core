@@ -205,20 +205,43 @@ und `nx affected -t test` meldet trotzdem Erfolg — genau der Zustand, der in #
 Projekte betraf und dort erst bei der Code-Review auffiel. Der Nutzen liegt *nicht*
 in der Zahl grüner Test-Tasks.
 
-Wer wissen will, wo tatsächlich getestet wird, zählt Spec-Dateien, nicht Targets:
+Seit #162 misst die CI das. Das Gate friert die **Liste** der leeren Projekte in
+`empty-test-targets-baseline.json` ein und bricht ab, sobald ein weiteres dazukommt:
 
 ```bash
-pnpm nx show projects --with-target=test --json | tr -d '[]"' | tr ',' '\n' | while read -r p; do
-  [ -z "$p" ] && continue
-  root=$(pnpm nx show project "$p" --json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).root))")
-  n=$(find "$root" -name '*.spec.ts' -o -name '*.test.ts' 2>/dev/null | grep -vc node_modules)
-  [ "$n" -eq 0 ] && echo "leer: $p"
-done
+pnpm empty-targets:gate
 ```
 
-Ausbaustufe: eine ordentliche Ausbaustufe wäre, diese Zählung als Kennzahl in die CI
-zu heben, statt sie auf Zuruf laufen zu lassen. Vorher ist die Zahl der leeren Targets
-unsichtbar, und Unsichtbares wächst.
+```
+Leerstand: 45 von 86 test-Targets ohne eine einzige Spec-Datei.
+Kein neues leeres test-Target.
+```
+
+**Richtung.** Wachstum bricht ab. Ein Projekt, das seine erste Spec bekommt, bricht
+*nicht* ab — es wird nur gemeldet, damit die Baseline nachgezogen wird:
+
+```bash
+pnpm empty-targets:gate:update
+```
+
+Warum die Baseline eine Liste ist und kein Zähler: Bekommt Projekt A seine erste Spec
+(−1) und wird Projekt B neu und leer angelegt (+1), bleibt die Summe 45 — und niemand
+sieht es. Dieselbe Überlegung wie bei `mongo-raw-gate.mjs` in panary-cloud, wo ein
+reiner Zähler aus demselben Grund verworfen wurde.
+
+**Neues Projekt angelegt und das Gate ist rot?** Das ist der Normalfall und kein
+Fehler im Gate: Ein frisch generiertes Projekt hat ein `test`-Target und noch keine
+Spec. Zwei zulässige Antworten — eine Spec schreiben, oder den Leerstand mit
+`:update` quittieren und im PR begründen. Was nicht geht, ist ihn unbemerkt zu lassen;
+genau dafür existiert das Gate.
+
+> ⚠️ Die Baseline ist eine regenerierbare Datei und ein Konflikt-Kandidat wie
+> `pnpm-lock.yaml`. Bei einem Merge-Konflikt **nie zeilenweise auflösen**, sondern
+> neu erzeugen:
+>
+> ```bash
+> git checkout --theirs empty-test-targets-baseline.json && pnpm empty-targets:gate:update
+> ```
 
 ---
 

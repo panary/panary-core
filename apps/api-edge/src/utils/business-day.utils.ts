@@ -177,10 +177,80 @@ export async function rotateBusinessDay(app: FeathersApp, location: LocationReco
 }
 
 /**
- * Prueft ob ein Geschaeftstag-Wechsel noetig ist (Datum veraltet oder kein BD vorhanden).
+ * Mindest-Laufzeit, bevor ein Kalendertagswechsel den Geschaeftstag rotieren darf.
+ *
+ * Ohne sie schneidet der Wechsel den Nachtbetrieb: Ein Tag, der um 18:00 eroeffnet
+ * wurde, waere um 00:00 Ortszeit „von gestern" und wuerde mitten im Lauf rotiert —
+ * sobald in dem Moment zufaellig keine Bestellung offen ist. **10** ist genau die
+ * Laenge des Bezugsfalls 18:00 → 04:00 aus #154; kuerzere Werte schneiden ihn,
+ * laengere schieben den regulaeren Tageswechsel unnoetig weit in den Vormittag.
+ *
+ * Bewusst deutlich unter der Sperrschwelle (26 h, panary-cloud ADR 0047): der Tag
+ * rotiert lange bevor das Order-Gate greifen wuerde, die beiden Regeln koennen sich
+ * also nicht gegenseitig blockieren.
+ *
+ * Bekannte, bewusst in Kauf genommene Folge: Ein spaet eroeffneter Tag (z.B. 22:00)
+ * rotiert erst am naechsten Vormittag (08:00) statt um Mitternacht. Beginnt dort
+ * frueher Service, landen die ersten Bestellungen noch auf dem Vortag. Der Fall
+ * braucht eine manuelle Abend-Eroeffnung mit anschliessendem Frueh-Service, ist
+ * selbstheilend und bleibt weit von der 26-h-Sperre entfernt. Sollte er auftreten,
+ * waere die Erweiterung „ODER lokale Uhrzeit >= Rotationsstunde" der Ausweg.
  */
-export function shouldAutoRotate(currentBusinessDay: LocationRecord['currentBusinessDay'], today: string): boolean {
-  return !currentBusinessDay || currentBusinessDay.date !== today
+export const MIN_OPEN_HOURS_BEFORE_ROTATION = 10
+
+/**
+ * Laufzeit und Betriebsart des Geschaeftstags. `openHours` ist `null`, wenn kein
+ * brauchbarer `openedAt` vorliegt.
+ */
+export interface BusinessDayRuntime {
+  openHours: number | null
+  operationMode?: string
+}
+
+/**
+ * Liest `openedAt`/`operationMode` des Geschaeftstags und rechnet die Laufzeit aus.
+ * Eine Quelle fuer beide Konsumenten — den Rotations-Guard und die Altersgrenze
+ * des Order-Gates —, damit die beiden nie auf verschiedene Zahlen schauen.
+ */
+export async function loadBusinessDayRuntime(app: FeathersApp, businessDayId: string): Promise<BusinessDayRuntime> {
+  const businessDay = (await app.service('businessdays').get(businessDayId, {
+    query: { $select: ['openedAt', 'operationMode'] },
+    provider: undefined,
+  })) as { openedAt?: string; operationMode?: string }
+
+  if (!businessDay.openedAt) return { openHours: null, operationMode: businessDay.operationMode }
+
+  const openHours = getHoursSince(businessDay.openedAt)
+  return {
+    openHours: Number.isFinite(openHours) ? openHours : null,
+    operationMode: businessDay.operationMode,
+  }
+}
+
+/**
+ * Prueft ob ein Geschaeftstag-Wechsel noetig ist.
+ *
+ * Zwei Bedingungen, beide muessen zutreffen:
+ * 1. Der Kalendertag der **Filiale** hat gewechselt (`today` kommt aus
+ *    `businessDateForLocation`, nicht aus `toISOString()` — siehe #154).
+ * 2. Der Geschaeftstag laeuft mindestens `MIN_OPEN_HOURS_BEFORE_ROTATION`.
+ *
+ * `openHours === null` (kein brauchbarer `openedAt`) rotiert wie vor der
+ * Mindest-Laufzeit. Die Richtung ist Absicht: ein Tag, der nie rotiert, sammelt
+ * Umsatz weiter an, und weil die Altersgrenze denselben fehlenden Zeitstempel
+ * ueberspringt (`business_day.age_check_skipped`), wuerde ihn auch das Gate nicht
+ * stoppen. Ein Datenfehler darf den Lifecycle nicht anhalten.
+ */
+export function shouldAutoRotate(
+  currentBusinessDay: LocationRecord['currentBusinessDay'],
+  today: string,
+  openHours?: number | null,
+): boolean {
+  if (!currentBusinessDay) return true
+  if (currentBusinessDay.date === today) return false
+  if (openHours === null || openHours === undefined) return true
+
+  return openHours >= MIN_OPEN_HOURS_BEFORE_ROTATION
 }
 
 /**

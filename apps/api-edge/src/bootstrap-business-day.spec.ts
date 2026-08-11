@@ -8,11 +8,13 @@ const isLocalRotationAllowed = vi.fn()
 const shouldAutoRotate = vi.fn()
 const hasActiveOrders = vi.fn()
 const rotateBusinessDay = vi.fn()
+const loadBusinessDayRuntime = vi.fn()
 vi.mock('./utils/business-day.utils', () => ({
   isLocalRotationAllowed: (...a: unknown[]) => isLocalRotationAllowed(...a),
   shouldAutoRotate: (...a: unknown[]) => shouldAutoRotate(...a),
   hasActiveOrders: (...a: unknown[]) => hasActiveOrders(...a),
   rotateBusinessDay: (...a: unknown[]) => rotateBusinessDay(...a),
+  loadBusinessDayRuntime: (...a: unknown[]) => loadBusinessDayRuntime(...a),
 }))
 
 import { autoEnsureBusinessDay } from './bootstrap-business-day'
@@ -39,6 +41,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   hasActiveOrders.mockResolvedValue(false)
   rotateBusinessDay.mockResolvedValue('bd-new')
+  loadBusinessDayRuntime.mockResolvedValue({ openHours: 30 })
 })
 
 describe('autoEnsureBusinessDay', () => {
@@ -125,7 +128,69 @@ describe('autoEnsureBusinessDay', () => {
       }),
     )
 
-    expect(shouldAutoRotate).toHaveBeenCalledWith({ businessDayId: 'bd-old', date: '2026-05-01' }, expect.any(String))
+    expect(shouldAutoRotate).toHaveBeenCalledWith(
+      { businessDayId: 'bd-old', date: '2026-05-01' },
+      expect.any(String),
+      30,
+    )
+  })
+
+  // Der Mindest-Laufzeit-Guard entscheidet nur mit, wenn der Boot-Pfad die
+  // Laufzeit auch beschafft — sonst rotierte er wieder allein am Kalendertag.
+  it('reicht die Laufzeit des Geschäftstags an den Rotations-Guard durch', async () => {
+    isLocalRotationAllowed.mockResolvedValue(true)
+    shouldAutoRotate.mockReturnValue(false)
+    loadBusinessDayRuntime.mockResolvedValue({ openHours: 6 })
+
+    await autoEnsureBusinessDay(
+      makeApp({
+        locations: [
+          {
+            _id: 'loc-1',
+            tenantId: 't-1',
+            currentBusinessDay: JSON.stringify({ businessDayId: 'bd-night', date: '2026-07-29' }),
+          },
+        ],
+      }),
+    )
+
+    expect(loadBusinessDayRuntime).toHaveBeenCalledWith(expect.anything(), 'bd-night')
+    expect(shouldAutoRotate.mock.calls[0][2]).toBe(6)
+  })
+
+  // Ein verwaister Zeiger auf EINER Filiale darf den Lauf ueber alle uebrigen
+  // nicht abbrechen — und die betroffene rotiert dann ohne Mindest-Laufzeit,
+  // statt stehenzubleiben.
+  it('bricht nicht ab, wenn der Geschäftstag einer Location nicht ladbar ist', async () => {
+    isLocalRotationAllowed.mockResolvedValue(true)
+    shouldAutoRotate.mockReturnValue(true)
+    loadBusinessDayRuntime.mockRejectedValueOnce(new Error('No record found for id bd-weg'))
+
+    await autoEnsureBusinessDay(
+      makeApp({
+        locations: [
+          {
+            _id: 'loc-kaputt',
+            tenantId: 't-1',
+            currentBusinessDay: JSON.stringify({ businessDayId: 'bd-weg', date: '2026-07-29' }),
+          },
+          { _id: 'loc-ok', tenantId: 't-1', currentBusinessDay: null },
+        ],
+      }),
+    )
+
+    expect(shouldAutoRotate.mock.calls[0][2]).toBeNull()
+    expect(rotateBusinessDay).toHaveBeenCalledTimes(2)
+  })
+
+  it('lädt gar keine Laufzeit, wenn die Location noch keinen Geschäftstag hat', async () => {
+    isLocalRotationAllowed.mockResolvedValue(true)
+    shouldAutoRotate.mockReturnValue(true)
+
+    await autoEnsureBusinessDay(makeApp({}))
+
+    expect(loadBusinessDayRuntime).not.toHaveBeenCalled()
+    expect(shouldAutoRotate.mock.calls[0][2]).toBeNull()
   })
 
   // Ohne `settings` in der Projektion bekaeme `businessDateForLocation` immer

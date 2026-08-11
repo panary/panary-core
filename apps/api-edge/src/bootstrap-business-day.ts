@@ -4,6 +4,7 @@ import { businessDateForLocation, type LocationTimezoneSource } from './utils/bu
 import {
   hasActiveOrders,
   isLocalRotationAllowed,
+  loadBusinessDayRuntime,
   rotateBusinessDay,
   shouldAutoRotate,
   type LocationRecord,
@@ -16,6 +17,34 @@ function parseJsonColumn<TValue>(raw: unknown): TValue | null {
   try {
     return JSON.parse(raw) as TValue
   } catch {
+    return null
+  }
+}
+
+/**
+ * Laufzeit des Geschaeftstags fuer den Mindest-Laufzeit-Guard.
+ *
+ * Anders als im Order-Hook darf ein nicht ladbarer Geschaeftstag hier nichts
+ * abbrechen: Der Boot-Pfad laeuft ueber ALLE Locations, ein verwaister Zeiger auf
+ * einer Filiale wuerde sonst die Rotation aller uebrigen mitreissen. `null`
+ * bedeutet fuer `shouldAutoRotate` „ohne Mindest-Laufzeit entscheiden" — also
+ * rotieren, statt den Lifecycle stehen zu lassen.
+ */
+async function loadOpenHoursOrNull(
+  app: Application,
+  businessDayId: string,
+  locationId: string,
+): Promise<number | null> {
+  try {
+    return (await loadBusinessDayRuntime(app, businessDayId)).openHours
+  } catch (err) {
+    logger.warn({
+      message: '[AutoBusinessDay] Geschaeftstag nicht ladbar — Rotation ohne Mindest-Laufzeit entschieden',
+      event: 'business_day.runtime_unreadable',
+      locationId,
+      businessDayId,
+      errorMessage: err instanceof Error ? err.message : String(err),
+    })
     return null
   }
 }
@@ -76,8 +105,11 @@ export async function autoEnsureBusinessDay(app: Application): Promise<void> {
     // Kalendertag in Filial-Lokalzeit statt UTC — sonst wechselt er in CEST um
     // 02:00 Ortszeit mitten im Nachtbetrieb (siehe `business-day-date.ts`).
     const today = businessDateForLocation({ settings }, now)
+    const openHours = currentBusinessDay?.businessDayId
+      ? await loadOpenHoursOrNull(app, currentBusinessDay.businessDayId, location._id)
+      : null
 
-    if (!shouldAutoRotate(currentBusinessDay, today)) {
+    if (!shouldAutoRotate(currentBusinessDay, today, openHours)) {
       logger.info(`[AutoBusinessDay] Geschaeftstag fuer Location ${location._id} ist aktuell (${today}).`)
       continue
     }

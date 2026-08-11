@@ -6,7 +6,13 @@ import { PairingStatus, CloudConnection } from '@panary/cloud-connection/domain'
 import { AppError, AppErrorMessages } from '@panary/shared-common'
 import { logger } from '@panary/shared-backend'
 import { businessDateForLocation } from '../utils/business-day-date'
-import { getHoursSince, hasActiveOrders, rotateBusinessDay, shouldAutoRotate } from '../utils/business-day.utils'
+import {
+  hasActiveOrders,
+  loadBusinessDayRuntime,
+  rotateBusinessDay,
+  shouldAutoRotate,
+  type BusinessDayRuntime,
+} from '../utils/business-day.utils'
 
 /**
  * Letzte Verteidigungslinie, wenn weder Standort noch Config einen Wert liefern.
@@ -139,33 +145,6 @@ function resolveMaxOpenHours(app: HookContext['app'], location: Location): numbe
 }
 
 /**
- * Laufzeit des Geschaeftstags in Stunden seit `openedAt`.
- *
- * `null`, wenn kein brauchbarer Zeitstempel vorliegt — dann wird die
- * Altersgrenze uebersprungen statt zu sperren. Ein falsch-positiver Blocker
- * legt den Bestellbetrieb still, und ein `reopen` gibt es nicht
- * (Risiko-Asymmetrie aus panary-cloud ADR 0032). Eine Sperre soll aus dem
- * Betrieb kommen, nicht aus einem Datenfehler.
- */
-async function loadOpenHours(
-  app: HookContext['app'],
-  businessDayId: string,
-): Promise<{ openHours: number | null; operationMode?: string }> {
-  const businessDay = (await app.service('businessdays').get(businessDayId, {
-    query: { $select: ['openedAt', 'operationMode'] },
-    provider: undefined,
-  })) as { openedAt?: string; operationMode?: string }
-
-  if (!businessDay.openedAt) return { openHours: null, operationMode: businessDay.operationMode }
-
-  const openHours = getHoursSince(businessDay.openedAt)
-  return {
-    openHours: Number.isFinite(openHours) ? openHours : null,
-    operationMode: businessDay.operationMode,
-  }
-}
-
-/**
  * Vokabular nach panary-cloud ADR 0037: im Bestellbetrieb (`orders-only`) gibt
  * es keinen „Tagesabschluss" — der Begriff ist im Gastro-Sprachgebrauch synonym
  * mit Z-Abschluss, den der Modus gerade nicht erzeugt.
@@ -188,15 +167,16 @@ function closingWording(operationMode: string | undefined): string {
  * keinen Geschaeftstag ueber Mitternacht betreiben. Begruendung und gemeinsame
  * Regel fuer beide Repos: panary-cloud ADR 0047.
  */
-async function ensureBusinessDayNotOpenTooLong(
+function ensureBusinessDayNotOpenTooLong(
   app: HookContext['app'],
   location: Location,
   businessDayId: string,
+  runtime: BusinessDayRuntime,
   errorCode: string,
   message: (openHours: number, maxOpenHours: number, operationMode?: string) => string,
-): Promise<void> {
+): void {
   const maxOpenHours = resolveMaxOpenHours(app, location)
-  const { openHours, operationMode } = await loadOpenHours(app, businessDayId)
+  const { openHours, operationMode } = runtime
 
   if (openHours === null) {
     logger.warn({
@@ -252,7 +232,17 @@ export function restrictOrderToBusinessDay() {
     // Nachtbetrieb 18:00 → 04:00 auf zwei Geschaeftstage auf — sporadisch, weil
     // es nur passiert, wenn in genau dem Moment keine Bestellung offen ist.
     const today = businessDateForLocation(activeLocation)
-    const needsRotation = shouldAutoRotate(activeLocation.currentBusinessDay, today)
+
+    // Die Laufzeit wird EINMAL geladen und von beiden Regeln benutzt: vom
+    // Rotations-Guard (Mindest-Laufzeit) und von der Altersgrenze weiter unten.
+    // Zwei getrennte Reads koennten in derselben Anfrage verschiedene Zahlen
+    // liefern — und die beiden Regeln liegen nur 10 bzw. 26 Stunden auseinander.
+    const currentBusinessDayId = activeLocation.currentBusinessDay?.businessDayId
+    const runtime: BusinessDayRuntime = currentBusinessDayId
+      ? await loadBusinessDayRuntime(app, currentBusinessDayId)
+      : { openHours: null }
+
+    const needsRotation = shouldAutoRotate(activeLocation.currentBusinessDay, today, runtime.openHours)
 
     // Im Cloud-Managed-Hybrid (siehe ADR business-days-cloud-managed):
     // `rotateBusinessDay()` darf nur laufen, wenn KEIN aktives Pairing besteht
@@ -280,10 +270,11 @@ export function restrictOrderToBusinessDay() {
           // Eigener Fehlercode: Die noetige Handlung ist hier eine andere als
           // beim reinen Ueberschreiten der Altersgrenze — erst die offenen
           // Bestellungen abschliessen, dann rotiert der Tag von selbst.
-          await ensureBusinessDayNotOpenTooLong(
+          ensureBusinessDayNotOpenTooLong(
             app,
             activeLocation,
             activeLocation.currentBusinessDay.businessDayId,
+            runtime,
             AppError.BUSINESS_DAY_OPEN_TOO_LONG,
             () => AppErrorMessages[AppError.BUSINESS_DAY_OPEN_TOO_LONG],
           )
@@ -321,10 +312,11 @@ export function restrictOrderToBusinessDay() {
       )
     }
 
-    await ensureBusinessDayNotOpenTooLong(
+    ensureBusinessDayNotOpenTooLong(
       app,
       activeLocation,
       activeLocation.currentBusinessDay.businessDayId,
+      runtime,
       AppError.BUSINESS_DAY_TOO_OLD,
       (openHours, maxOpenHours, operationMode) =>
         `Der Geschaeftstag vom ${activeLocation.currentBusinessDay?.date ?? '—'} ist seit ${openHours} ` +

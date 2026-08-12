@@ -69,6 +69,14 @@ const REQUIRED_STAMP_EXCEPTIONS: Record<string, string> = {
   // REJECTED-Eintrag im sync-runs-Detail ist die bessere Diagnose.
   // Lockerung erst zusammen mit einem Guard, der im fromSync-Pfad ein fehlendes
   // tenantId/locationId hart ablehnt.
+  //
+  // `products`/`product-groups` fuehren `locationId` seit #190 als
+  // `Type.Union([String, Null])` — ein EXPLIZITES `null` ist dort jetzt ein
+  // gueltiger Wert („tenant-weit", sichtbar dank `allowGlobalData: true`) und
+  // nicht mehr der oben beschriebene Unfall. Die Begruendung fuer `required`
+  // bleibt davon unberuehrt: Sie zielt auf das FEHLENDE Feld, das AJV weiterhin
+  // ablehnt. Fuer die uebrigen Eintraege der Liste ist NULL nach wie vor der
+  // Unsichtbarkeits-Fall — deren Services laufen ohne `allowGlobalData`.
   products: 'Pull-Apply ohne user — required ist der einzige Schutz',
   'product-groups': 'Pull-Apply ohne user — required ist der einzige Schutz',
   customers: 'Pull-Apply ohne user — required ist der einzige Schutz',

@@ -101,7 +101,10 @@ export const productGroups = (app: Application) => {
       all: [
         authenticate('jwt'),
         authorize(),
-        multiTenancy({ isolateLocation: true, allowGlobalData: false }),
+        // Siehe products.ts: `locationId: null` = tenant-weit geteilte Stammdaten, für jede
+        // Filiale sichtbar. Angelegt werden sie nur in der Cloud (Katalog-Rollout), der
+        // Edge-WRITE-Stempel bleibt filialgebunden.
+        multiTenancy({ isolateLocation: true, allowGlobalData: true }),
 
         schemaHooks.resolveExternal(productGroupExternalResolver),
         schemaHooks.resolveResult(productGroupResolver),

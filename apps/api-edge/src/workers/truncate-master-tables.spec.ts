@@ -105,7 +105,9 @@ describe('truncateMasterTables', () => {
   it('bricht ab, wenn ein Service nicht leer wird — kein stiller Erfolg', async () => {
     const { app } = makeApp({ users: { removeIsNoop: true } })
 
-    await expect(truncateMasterTables(app as never, TENANT, MASTER_SERVICES)).rejects.toThrow(/\[service=users\].*TRUNCATE unvollstaendig/s)
+    await expect(truncateMasterTables(app as never, TENANT, MASTER_SERVICES)).rejects.toThrow(
+      /\[service=users\].*TRUNCATE unvollstaendig/s,
+    )
   })
 
   it('bricht beim ersten unvollstaendigen Service ab, statt weiterzulaufen', async () => {

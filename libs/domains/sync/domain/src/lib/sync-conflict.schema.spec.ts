@@ -27,9 +27,12 @@ describe('syncConflictPatchSchema', () => {
     ).resolves.toBeTruthy()
   })
 
-  it.each(Object.values(SyncConflictResolution))('akzeptiert die Resolution %s mit Tenant-Stempel', async resolution => {
-    await expect(validator({ resolution, tenantId: 'tenant-1' })).resolves.toBeTruthy()
-  })
+  it.each(Object.values(SyncConflictResolution))(
+    'akzeptiert die Resolution %s mit Tenant-Stempel',
+    async resolution => {
+      await expect(validator({ resolution, tenantId: 'tenant-1' })).resolves.toBeTruthy()
+    },
+  )
 
   it('akzeptiert den Patch weiterhin ohne tenantId (interner Aufruf ohne Nutzerkontext)', async () => {
     await expect(validator({ resolution: SyncConflictResolution.DISCARD })).resolves.toBeTruthy()
@@ -44,9 +47,7 @@ describe('syncConflictPatchSchema', () => {
   })
 
   it('lehnt weiterhin jedes andere Feld ab — tenantId ist die einzige Ausnahme', async () => {
-    await expect(
-      validator({ resolution: SyncConflictResolution.USE_EDGE, status: 'resolved' }),
-    ).rejects.toThrow()
+    await expect(validator({ resolution: SyncConflictResolution.USE_EDGE, status: 'resolved' })).rejects.toThrow()
     await expect(
       validator({ resolution: SyncConflictResolution.USE_EDGE, resolvedByUserId: 'user-1' }),
     ).rejects.toThrow()

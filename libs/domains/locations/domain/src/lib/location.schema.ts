@@ -264,7 +264,10 @@ export const locationSchema = Type.Object(
     // damit den GESAMTEN Bootstrap abbrach (`locations` ist der erste Service
     // in MASTER_DATA_SERVICES). Befund Testserver 2026-08-12, #183.
     brandId: Type.Optional(
-      Type.Union([Type.String({ description: 'uuidv7 — Phase 6 BRAND-01 (Pflicht nach Migration BRAND-02)' }), Type.Null()]),
+      Type.Union([
+        Type.String({ description: 'uuidv7 — Phase 6 BRAND-01 (Pflicht nach Migration BRAND-02)' }),
+        Type.Null(),
+      ]),
     ),
 
     // Phase 6 BRAND-03 / D-14: URL-Slug für Subdomain-Routing

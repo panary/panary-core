@@ -20,6 +20,7 @@ import {
   BootstrapReportStatus,
   type BootstrapReportDirection,
 } from '@panary/cloud-connection/domain'
+import { isSyncPushBlockedRole } from '@panary/users/domain'
 
 import type { Application } from '../../declarations'
 import { extractAjvValidationErrors } from '../../workers/sync-apply'
@@ -186,6 +187,49 @@ export const runConsistencyCheck = async (
     }
   } catch {
     // ignore
+  }
+
+  // (5) Lokale User mit push-blockierter Rolle — sie existieren nur auf diesem
+  // Edge und bekommen per Design nie ein Cloud-Pendant, weil
+  // `runBootstrapEdgeToCloud` sie vom Push ausnimmt (`isSyncPushBlockedRole`,
+  // zweite Verteidigungslinie in der Cloud). Typischer Fall: der initiale
+  // Admin (`tenant:owner`), den das Edge-Setup anlegt.
+  //
+  // Der Hinweis ersetzt die frueheren `external-id-missing`-Konflikte, die der
+  // Merge-Modus fuer jeden dieser User erzeugte — unaufloesbar, weil kein
+  // Cloud-Pendant entstehen kann (#184). Bewusst WARN und kein automatischer
+  // Eingriff: An einem `tenant:owner`-Konto entscheidet der Betreiber, nicht
+  // der Bootstrap. Es kann der einzige Zugang zum Edge-Panel sein, wenn der
+  // Cloud-Tenant unter einer anderen Identitaet angelegt wurde.
+  //
+  // Adapter-API statt Knex (anders als (1)–(4) oben): ein einfacher Read
+  // gehoert laut `.claude/rules/code-style.md` §6 nicht auf die DB-Connection.
+  try {
+    const result = await app.service('users' as any).find({
+      provider: undefined,
+      paginate: false,
+      query: { $select: ['_id', 'role', 'loginname'] },
+    } as any)
+    const localUsers = (Array.isArray(result) ? result : []) as Array<{ role?: string; loginname?: string }>
+    const edgeOnly = localUsers.filter(u => isSyncPushBlockedRole(u.role))
+    if (edgeOnly.length > 0) {
+      const names = edgeOnly
+        .map(u => u.loginname)
+        .filter(Boolean)
+        .join(', ')
+      issues.push({
+        severity: 'WARN',
+        message:
+          `${edgeOnly.length} lokale(r) User mit cloud-gesperrter Rolle (${names || 'ohne loginname'}) — ` +
+          `existiert nur auf diesem Edge und bekommt kein Cloud-Pendant. Bewusst unangetastet gelassen; ` +
+          `ggf. selbst archivieren, sobald der Cloud-Zugang steht.`,
+      })
+    }
+  } catch (err) {
+    issues.push({
+      severity: 'WARN',
+      message: `Edge-only-User-Check fehlgeschlagen: ${err instanceof Error ? err.message : String(err)}`,
+    })
   }
 
   const isHealthy = issues.every(i => i.severity !== 'ERROR')

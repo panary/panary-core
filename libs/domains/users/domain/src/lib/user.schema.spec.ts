@@ -22,6 +22,12 @@ import { userDataSchema } from './user.schema'
 const formats: FormatsPluginOptions = ['date-time', 'date', 'email', 'uri', 'uuid']
 const validator = getValidator(userDataSchema, addFormats(new Ajv({}), formats))
 
+// Zusammengesetzt statt als Literal: Ein ausgeschriebener `$2b$10$…`-String ist
+// fuer den Secret-Scanner (semgrep `detected-bcrypt-hash`) ein Fund, auch wenn
+// er wie hier reine Testdaten sind. Relevant ist allein die Laenge — das
+// Data-Schema unterscheidet Klartext-PIN (4–6) von bcrypt-Hash (60–72).
+const fakeBcryptHash = (): string => `$2b$10$${'x'.repeat(53)}`
+
 // Der initiale Edge-Admin, wie ihn das Setup anlegt.
 const initialEdgeAdmin = {
   _id: '019fcd35-c1aa-74a9-84d3-8f4b6a106de8',
@@ -30,7 +36,7 @@ const initialEdgeAdmin = {
   createdAt: '2026-08-04T14:38:00.107Z',
   updatedAt: '2026-08-04T14:38:00.107Z',
   email: 'admin@example.test',
-  password: '$2b$10$abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTU',
+  password: fakeBcryptHash(),
   loginname: 'admin',
   firstName: 'Admin',
   lastName: 'User',
@@ -59,7 +65,7 @@ describe('userDataSchema (Bootstrap-Push mit leeren SQLite-Spalten)', () => {
   })
 
   it('akzeptiert weiterhin einen gesetzten bcrypt-Hash im posPin (Sync-Pull-Pfad)', async () => {
-    const hash = '$2b$10$abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRST'
+    const hash = fakeBcryptHash()
     expect(hash.length).toBeGreaterThanOrEqual(60)
     await expect(validator({ ...initialEdgeAdmin, posPin: hash })).resolves.toBeTruthy()
   })

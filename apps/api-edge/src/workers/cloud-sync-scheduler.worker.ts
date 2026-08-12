@@ -44,6 +44,7 @@ import {
 } from './sync-apply'
 import { collectDeviceCountsForHeartbeat } from './heartbeat-device-counts'
 import { computeScheduledSlot } from './scheduled-slot'
+import { selectStaleUsersToArchive } from './stale-user-reconciliation'
 import {
   SyncRunDirection,
   SyncRunOutcome,
@@ -1031,8 +1032,11 @@ export const runPullForService = async (
   // der Cloud auftauchen, werden lokal archiviert. Aktuell nur fuer `users`,
   // weil Filial-Membership-Wechsel der konkrete Anwendungsfall ist.
   // Records werden NICHT geloescht — Working-Times, Orders etc. referenzieren
-  // weiterhin auf die User-IDs. Der `status: ARCHIVED` blendet sie nur aus
-  // POS-Login und Admin-User-Liste aus.
+  // weiterhin auf die User-IDs. `status: ARCHIVED` sperrt den Login (Passwort
+  // und POS-PIN, sessionwirksam) und blendet den User aus der
+  // POS-Personalauswahl aus; in der Admin-User-Liste bleibt er sichtbar, sonst
+  // waere er nicht mehr reaktivierbar (#187 — bis dahin war der Status am Edge
+  // vollstaendig wirkungslos, obwohl dieser Kommentar das Gegenteil behauptete).
   if (service === 'users' && Array.isArray(visibilitySnapshot)) {
     await reconcileStaleUsers(app, visibilitySnapshot, connection.tenantId!)
   }
@@ -1045,23 +1049,36 @@ export const runPullForService = async (
  * Visibility-Snapshot der Cloud auftaucht. Geht davon aus, dass der Snapshot
  * vollstaendig ist (alle fuer diese Edge sichtbaren User).
  *
+ * Welche User das betrifft, entscheidet `selectStaleUsersToArchive` — dort steht
+ * auch, warum Rollen der Push-Blockliste (`tenant:owner`) ausgenommen sind.
+ *
  * Idempotent — bereits archivierte User bleiben unangetastet.
  */
 const reconcileStaleUsers = async (app: Application, cloudVisibleIds: string[], tenantId: string): Promise<void> => {
   const startedAt = new Date().toISOString()
   const startMs = performance.now()
   try {
-    const visible = new Set(cloudVisibleIds)
     const local = (await app.service('users' as any).find({
       provider: undefined,
       paginate: false,
-      query: { $select: ['_id', 'status'] },
-    } as any)) as Array<{ _id: string; status?: string }>
+      // `role` mitlesen: ohne das Feld liefe die Push-Blocklisten-Ausnahme in
+      // `selectStaleUsersToArchive` ins Leere (jede Rolle waere `undefined`).
+      // `tenantId` explizit — der interne Aufruf traegt keinen User, also
+      // stempelt `multiTenancy` hier NICHT.
+      query: { tenantId, $select: ['_id', 'status', 'role'] },
+    } as any)) as Array<{ _id: string; status?: string; role?: string }>
     const list = Array.isArray(local) ? local : []
+    const { toArchive, keptUnpushable } = selectStaleUsersToArchive(list, cloudVisibleIds)
+    if (keptUnpushable.length > 0) {
+      logger.info({
+        message: 'User-Reconciliation: nie gepushte Rollen von der Archivierung ausgenommen',
+        event: 'sync.reconcile.users_kept_unpushable',
+        kept: keptUnpushable.length,
+        totalLocal: list.length,
+      })
+    }
     let archived = 0
-    for (const u of list) {
-      if (visible.has(u._id)) continue
-      if (u.status === 'ARCHIVED') continue
+    for (const id of toArchive) {
       try {
         // `fromSync: true`: die Archivierung ist Cloud-getrieben (Visibility-
         // Snapshot = Source of Truth). Ohne das Flag wuerde der Outbox-Recorder
@@ -1069,13 +1086,13 @@ const reconcileStaleUsers = async (app: Application, cloudVisibleIds: string[], 
         // (Sync-Echo) — inklusive Risiko, dort juengere Staende zu ueberschreiben.
         await app
           .service('users' as any)
-          .patch(u._id, { status: 'ARCHIVED' } as any, { provider: undefined, fromSync: true } as any)
+          .patch(id, { status: 'ARCHIVED' } as any, { provider: undefined, fromSync: true } as any)
         archived++
       } catch (err) {
         logger.warn({
           message: 'User-Reconciliation: Archivieren fehlgeschlagen',
           event: 'sync.reconcile.archive_failed',
-          entityId: u._id,
+          entityId: id,
           errorMessage: err instanceof Error ? err.message : String(err),
         })
       }

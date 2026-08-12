@@ -24,13 +24,14 @@ import { restrictUserSelfPatch } from '../../hooks/restrict-user-self-patch.hook
 import { restrictPermissionGrants } from '../../hooks/restrict-permission-grants.hook'
 import { restrictDeviceAccessMode } from '../../hooks/restrict-device-access-mode.hook'
 import { resolveDeviceAccessScope } from '../../hooks/device-access-mode.util'
+import { isLoginBlockedByStatus } from '../../utils/user-login-status'
 
 const USER_JSON_FIELDS = ['discountDetails', 'allowedLocationIds', 'permissions']
 import { DatabaseType } from '@panary/shared-common'
 import { BadRequest, Conflict, Forbidden, NotAuthenticated, TooManyRequests } from '@feathersjs/errors'
 import bcrypt from 'bcryptjs'
 import { checkChangePinRequest } from '@panary/users/domain'
-import { clearPinFailures, getPinLockoutSeconds, recordPinFailure } from '@panary/shared-backend'
+import { clearPinFailures, getPinLockoutSeconds, logger, recordPinFailure } from '@panary/shared-backend'
 import { triggerImmediateCycle } from '../../workers/cloud-sync-scheduler.worker'
 import { SyncRunTrigger } from '@panary/sync/domain'
 
@@ -170,6 +171,26 @@ export const users = (app: Application) => {
     // Interner Aufruf — umgeht resolveExternal, damit posPin-Hash geladen wird
     const user = await app.service('users').get(userId, { provider: undefined })
 
+    // #187: Nicht aktive Konten kommen auch per PIN nicht durch. Der
+    // Listen-Filter (userQueryResolver) blendet sie im Login-Screen zwar aus,
+    // aber `verifyPin` braucht nur eine `userId` und ist ueber den
+    // Geraete-Socket direkt erreichbar — dieselbe Begruendung, aus der
+    // restrict-device-access-mode.hook.ts existiert.
+    //
+    // Wortgleiche Meldung und mitlaufender Fehlversuchs-Zaehler wie dort: ein
+    // eigener Text („Konto archiviert") waere das Oracle, das die einheitliche
+    // Ablehnung gerade verhindern soll. Der Klartext-Grund steht im Log.
+    if (isLoginBlockedByStatus(user)) {
+      logger.warn({
+        message: 'PIN-Anmeldung abgelehnt: Konto ist nicht aktiv',
+        event: 'security.pin_login_inactive_user',
+        entityId: userId,
+        userStatus: user.status,
+      })
+      recordPinFailure(userId)
+      throw new NotAuthenticated('PIN ungueltig')
+    }
+
     // Einheitliche Meldung fuer "kein PIN gesetzt" und "PIN falsch": die
     // Unterscheidung waere ein Existenz-Oracle fuer jeden am Terminal.
     if (!user.posPin || !(await bcrypt.compare(pin, user.posPin))) {
@@ -220,6 +241,20 @@ export const users = (app: Application) => {
     const actorTenantId = (params?.user as { tenantId?: string } | undefined)?.tenantId
     if (actorTenantId && user.tenantId !== actorTenantId) {
       throw new Forbidden('Benutzer gehoert nicht zum eigenen Mandanten')
+    }
+
+    // #187: gleiche Sperre wie in verifyPin — ein nicht aktives Konto soll sich
+    // auch keinen neuen PIN setzen koennen. Meldung wortgleich mit dem falschen
+    // PIN unten (siehe restrict-device-access-mode.hook.ts).
+    if (isLoginBlockedByStatus(user)) {
+      logger.warn({
+        message: 'PIN-Wechsel abgelehnt: Konto ist nicht aktiv',
+        event: 'security.pin_change_inactive_user',
+        entityId: userId,
+        userStatus: user.status,
+      })
+      recordPinFailure(userId)
+      throw new NotAuthenticated('Aktuelle PIN ist falsch')
     }
 
     if (!user.posPin || !(await bcrypt.compare(currentPin, user.posPin))) {

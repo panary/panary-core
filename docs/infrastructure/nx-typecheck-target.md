@@ -85,5 +85,5 @@ im Repo bereits Schaden angerichtet haben und deshalb **keine** Lösung sind:
 Beide Muster hat panary-cloud in [#95](https://github.com/panary/panary-cloud/pull/95)
 wieder ausgebaut, nachdem sie dort 57 Fehler erzeugt hatten.
 
-Siehe auch: [TypeScript-7-Migration](typescript-7-migration.md),
-[Nx Self-Hosted Remote Cache](nx-remote-cache.md).
+Siehe auch: [TypeScript-7-Migration](typescript-7-migration.md).
+Der Nx-Remote-Cache ist dokumentiert in `panary-cloud/docs/infrastructure/nx-remote-cache.md`.

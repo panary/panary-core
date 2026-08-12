@@ -14,6 +14,13 @@ export const productGroupSchema = Type.Object(
   {
     ...baseSchema,
 
+    // Tenant-weite Produktgruppen (`locationId: null`) — analog zu products: ein
+    // Katalog-Rollout legt geteilte Stammdaten einmal an, jede Filiale des Mandanten
+    // sieht sie über multiTenancy({ allowGlobalData: true }). baseSchema.locationId ist
+    // non-nullable, daher hier überschreiben. Im DATA-Schema bleibt das Feld Pflicht;
+    // zulässig wird nur ein explizites `null`, nicht ein fehlendes Feld.
+    locationId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
+
     externalId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
 
     status: Type.Optional(StringEnum(Object.values(ProductGroupStatus))),

@@ -113,7 +113,13 @@ export const products = (app: Application) => {
       all: [
         authenticate('jwt'),
         authorize(),
-        multiTenancy({ isolateLocation: true, allowGlobalData: false }),
+        // `allowGlobalData: true`: Produkte mit `locationId: null` sind tenant-weit geteilte
+        // Stammdaten und für JEDE Filiale des Mandanten sichtbar (Scope-`$or` statt hartem
+        // `query.locationId`). Erzeugt werden sie ausschliesslich in der Cloud (Katalog-Rollout,
+        // panary/panary-cloud#217) und kommen per Sync-Pull an den Edge — der WRITE-Stempel
+        // dieses Hooks überschreibt ein explizites `null` weiterhin mit der Filiale des Users,
+        // ein Edge-Client kann tenant-weite Datensätze also nicht anlegen.
+        multiTenancy({ isolateLocation: true, allowGlobalData: true }),
 
         schemaHooks.resolveExternal(productsExternalResolver),
         schemaHooks.resolveResult(productsResolver),

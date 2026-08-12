@@ -68,6 +68,19 @@ export const productSchema = Type.Object(
   {
     ...baseSchema,
 
+    // Produkte können tenant-weit gelten (`locationId: null`) — geteilte Stammdaten, die
+    // ein Katalog-Rollout einmal anlegt und die jede Filiale des Mandanten sieht. Der
+    // Edge-Service nutzt dafür multiTenancy({ allowGlobalData: true }), das
+    // `{ locationId: null }` in den Scope-`$or` injiziert. baseSchema.locationId ist
+    // non-nullable, daher hier überschreiben. Muster wie discount/pricelist/ingredient.
+    //
+    // `locationId` bleibt im DATA-Schema PFLICHT (siehe productDataSchema): Neu ist nur,
+    // dass ein EXPLIZITES `null` zulässig wird. Ein FEHLENDES Feld bleibt abgelehnt —
+    // `assert-stamp-fields.ts` führt genau dieses `required` als einzigen Schutz davor,
+    // dass der Pull-Apply (ohne `user`, also ohne Stempel) einen Cloud-Record still mit
+    // NULL in die Edge-DB schreibt.
+    locationId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
+
     // 1. Identification
     externalId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]), // A UUID for technical system purposes (stable external ID)
     name: Type.String({ maxLength: 200 }),

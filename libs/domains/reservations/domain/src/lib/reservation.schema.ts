@@ -48,8 +48,20 @@ export const reservationDataSchema = Type.Omit(reservationSchema, ['_id', 'manag
 })
 export type ReservationData = Static<typeof reservationDataSchema>
 
+/**
+ * `tenantId` und `brandId` stehen bewusst NICHT mehr in der Omit-Liste: Der
+ * Cloud-Hook `multiTenancy({ isolateBrand: true })` stempelt sie in `around.all`
+ * — also VOR `validateData` in `before.patch`. Das Schema erbt
+ * `additionalProperties: false` von `reservationSchema` (Type.Omit vererbt es,
+ * auch wenn die Options nur `$id` setzen), weshalb jeder externe Patch mit
+ * 400 "validation failed" scheiterte (panary/panary-cloud#200).
+ *
+ * Durch `Type.Partial` sind beide optional — der Client muss sie nicht senden,
+ * und interne Aufrufe ohne Nutzerkontext bleiben moeglich. Eine Erlaubnis sind
+ * sie nicht: Der Hook ueberschreibt jeden mitgesendeten Wert.
+ */
 export const reservationPatchSchema = Type.Partial(
-  Type.Omit(reservationSchema, ['_id', 'tenantId', 'brandId', 'manageToken', 'createdAt', 'updatedAt']),
+  Type.Omit(reservationSchema, ['_id', 'manageToken', 'createdAt', 'updatedAt']),
   { $id: 'ReservationPatch' },
 )
 export type ReservationPatch = Static<typeof reservationPatchSchema>

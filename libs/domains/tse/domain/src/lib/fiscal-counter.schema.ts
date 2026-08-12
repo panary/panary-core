@@ -50,7 +50,16 @@ export const fiscalCounterDataSchema = Type.Omit(fiscalCounterSchema, ['createdA
 })
 export type FiscalCounterData = Static<typeof fiscalCounterDataSchema>
 
-export const fiscalCounterPatchSchema = Type.Partial(Type.Pick(fiscalCounterSchema, ['lastValue']), {
+/**
+ * Fachlich ist nur `lastValue` patchbar. `tenantId` steht trotzdem drin: Der
+ * Cloud-Hook `multiTenancy()` stempelt es in `around.all` — also VOR
+ * `validateData` in `before.patch`. Das Schema erbt `additionalProperties:
+ * false` von `fiscalCounterSchema` (Type.Pick vererbt es, auch wenn die Options
+ * nur `$id` setzen), weshalb jeder externe Patch mit 400 "validation failed"
+ * scheiterte (panary/panary-cloud#200). Optional statt Pflicht: der Edge patcht
+ * den Zaehler intern ohne Nutzerkontext.
+ */
+export const fiscalCounterPatchSchema = Type.Partial(Type.Pick(fiscalCounterSchema, ['lastValue', 'tenantId']), {
   $id: 'FiscalCounterPatch',
 })
 export type FiscalCounterPatch = Static<typeof fiscalCounterPatchSchema>

@@ -75,8 +75,15 @@ Gefangen wird die Klasse deshalb an zwei Stellen:
   Benachrichtigung, die sich nicht wegklicken lässt — das Frontend verschluckte den
   400er in einem leeren `catch` und rollte still zurück.
 
-Beide Male war der Defekt **stumm**: ein 400er, den niemand sah. Die Fehlerbehandlung im
-Konsumenten ist deshalb Teil dieser Regel, nicht ihr Beiwerk.
+* **2026-08-12, `sync-conflicts`** (panary/panary-core#183): Dritte Wiederholung, diesmal
+  in einem handgeschriebenen Patch-Schema — also außerhalb dessen, wonach die Messung vom
+  Vortag gesucht hatte. Aufgefallen beim Pairing eines Edge-Testservers: Der Merge-Modus
+  erzeugte einen Personal-Konflikt, und beide Auflösungs-Buttons im Admin-Panel liefen ins
+  Leere. Hier war der 400er **nicht** stumm — er stand als „Mandant: must NOT have
+  additional properties" im Panel, nur ohne Bezug zum geklickten Button.
+
+Die ersten beiden Male war der Defekt **stumm**: ein 400er, den niemand sah. Die
+Fehlerbehandlung im Konsumenten ist deshalb Teil dieser Regel, nicht ihr Beiwerk.
 
 ## Bestand (Stand 2026-08-11)
 
@@ -95,10 +102,23 @@ Gemessen am kompilierten Schema (`schema.additionalProperties`) sind in `libs/do
 | Schema | `tenantId` | Anmerkung |
 | --- | --- | --- |
 | `workingTimePatchSchema` | fehlt | Service läuft mit `multiTenancy({ isolateLocation: false })` |
-| `fiscalCounterPatchSchema` | fehlt | auch cloud-seitig geflaggt |
 | `syncCursorPatchSchema` | fehlt | Sync-Pfad, meist `skipMultiTenancy` |
 | `syncOutboxEntryPatchSchema` | fehlt | dito |
+| `fiscalCounterPatchSchema` | ~~fehlt~~ → vorhanden | behoben in panary/panary-core#180 |
+| `syncConflictPatchSchema` | ~~fehlte in dieser Liste~~ → vorhanden | behoben in panary/panary-core#183, siehe unten |
 | `pairingCodePatchSchema`, `cloudEdgePatchSchema`, `cloudConnectionPatchSchema` | vorhanden | unauffällig |
+
+🚨 **Diese Liste war schon bei ihrer Entstehung unvollständig.** `syncConflictPatchSchema`
+hatte denselben Defekt und stand nicht darin — es ist kein abgeleitetes Schema
+(`Type.Pick`/`Type.Partial`), sondern ein handgeschriebenes
+`Type.Object({ resolution }, { additionalProperties: false })`. Wer nach geerbten
+Schließungen sucht, findet es nicht; es trägt sein `additionalProperties: false` selbst.
+Am 2026-08-12 fiel es beim Edge-Pairing auf — offene Sync-Konflikte ließen sich über das
+Admin-Panel überhaupt nicht auflösen (panary/panary-core#183).
+
+Konsequenz für künftige Messungen: Das Kriterium ist **nicht** „abgeleitetes Schema mit
+geerbter Schließung", sondern schlicht `schema.additionalProperties === false` am
+kompilierten Schema — unabhängig davon, woher die Schließung kommt.
 
 Der Edge stempelt bei `patch` genauso wie bei `create`
 (`libs/shared/backend/src/hooks/multi-tenancy.hook.ts`, `['create','update','patch']`).

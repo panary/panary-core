@@ -45,6 +45,20 @@ Migration: [`20260502000001_cloud_connection_v2.ts`](../../apps/api-edge/migrati
 
 Bei Fehlern bleibt `bootstrapStatus = failed` mit `bootstrapError`-Text. Wiederholung: aktuell nur durch erneuten `startBootstrap`-Aufruf moeglich (`bootstrapResumeToken` ist vorbereitet, aber Resume-Logik fuer Edge-Initiative noch offen).
 
+### Destruktiver Modus `pull-cloud-to-edge`: Truncate ist Vorbedingung, kein Versuch
+
+[`truncateMasterTables`](../../apps/api-edge/src/workers/truncate-master-tables.ts) leert die Stammdaten des Mandanten, bevor der Pull im `insert`-Modus laeuft. Es **wirft**, sobald ein Service danach nicht leer ist — der Bootstrap endet dann in `failed`, statt einen gemischten Bestand als Erfolg zu melden. Das DB-Backup aus Schritt 1 bleibt unberuehrt.
+
+Warum das eine eigene Regel braucht: Der naheliegende Bulk-`remove(null, { query })` funktioniert nur, wenn `remove` in den `multi`-Adapter-Optionen des Service steht. Von den acht Master-Services tut das ausschliesslich `products`. Bis #183 protokollierte der Runner die sieben Fehlschlaege („Can not remove multiple entries") nur als Warnung, degradierte den Pull still auf `upsert` und meldete „Bootstrap erfolgreich abgeschlossen" — mit vollstaendig erhaltenem Alt-Bestand, obwohl der Operator `confirmDataLoss` bestaetigt hatte. Sichtbar wurde es erst an der Folge (`Location hat 2 gleichzeitig offene Geschaeftstage`).
+
+> ⚠️ `multi: ['remove']` auf den betroffenen Services waere der naheliegende, aber falsche Fix: Der Feathers-Adapter unterscheidet nicht zwischen internem und externem Aufruf — ein `DELETE /users` ohne id wuerde damit alle Tenant-User loeschen. Der Truncate faellt stattdessen auf Einzel-Removes zurueck und verifiziert das Ergebnis.
+
+### Push-Payloads: `null` aus leeren SQLite-Spalten
+
+Der Edge-Push liest Stammdaten-Rows roh (`collectAllRecords`) und reicht sie unveraendert an die Cloud-Validierung. Jede nie befuellte nullable Spalte kommt dabei als `null` an — nicht als `undefined`. Ein Domain-Feld, das nur `Type.Optional(Type.String())` deklariert, weist den kompletten Record ab und reisst den **gesamten** Bootstrap mit, weil `runBootstrapEdgeToCloud` beim ersten Service-Fehler wirft und `locations` an erster Stelle steht.
+
+**Regel:** Ein Schema-Feld, dessen SQLite-Spalte nullable ist und nicht bei jedem Create gesetzt wird, gehoert als `Type.Optional(Type.Union([<typ>, Type.Null()]))` deklariert. Betroffen waren `locations.brandId/handle/locale/defaultCurrency` und `users.staffRole/posPin/discountDetails` (#183); `users.staffMealDiscountId` und `users.activeLocationId` trugen die Union bereits.
+
 ## Konflikt-Review
 
 [`sync-conflicts`](../../apps/api-edge/src/services/sync-conflicts/sync-conflicts.ts) speichert Records aus `merge-by-external-id`-Bootstrap. Patch mit `resolution`-Feld triggert Anwendung:
@@ -54,6 +68,8 @@ Bei Fehlern bleibt `bootstrapStatus = failed` mit `bootstrapError`-Text. Wiederh
 - `discard`: lokaler Edge-Record wird geloescht
 
 UI-Counter zeigt offene Konflikte im Connected-State an. Eine dedizierte Konflikt-Tabellen-Komponente mit Diff-Anzeige fehlt noch (TODO).
+
+> ⚠️ `syncConflictPatchSchema` fuehrt neben `resolution` auch `tenantId` — nicht als Erlaubnis, sondern weil `multiTenancy()` in `around.all` stempelt und damit **vor** `validateData` in `before.patch` laeuft. Ohne das Feld scheiterte jeder externe Patch an `additionalProperties: false` mit 400 („Mandant: must NOT have additional properties"), Konflikte waren ueber die UI gar nicht aufloesbar (#183). Der Patch-Resolver verwirft `_id`/`tenantId`/`createdAt` anschliessend wieder. Gleiche Klasse wie panary/panary-cloud#200 — bei jedem handgeschriebenen Patch-Schema pruefen.
 
 ## Sync-Scheduler
 

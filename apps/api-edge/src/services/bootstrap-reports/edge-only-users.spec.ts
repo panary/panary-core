@@ -29,7 +29,9 @@ function makeApp(users: MockUser[], shouldThrow = false) {
 
 describe('collectEdgeOnlyUserIssue', () => {
   it('meldet den initialen tenant:owner als WARN', async () => {
-    const issue = await collectEdgeOnlyUserIssue(makeApp([{ _id: 'u1', role: 'tenant:owner', loginname: 'admin' }]) as never)
+    const issue = await collectEdgeOnlyUserIssue(
+      makeApp([{ _id: 'u1', role: 'tenant:owner', loginname: 'admin' }]) as never,
+    )
 
     expect(issue?.severity).toBe('WARN')
     expect(issue?.message).toContain('admin')

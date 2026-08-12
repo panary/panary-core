@@ -44,7 +44,9 @@ describe('MERGE_BY_EXTERNAL_ID_SERVICES', () => {
     for (const service of MERGE_BY_EXTERNAL_ID_SERVICES) {
       const schema = DATA_SCHEMAS[service]
       expect(schema, `Kein Data-Schema fuer '${service}' hinterlegt — Spec erweitern`).toBeDefined()
-      expect(propertyNames(schema), `'${service}' steht im Merge-Pfad, hat aber kein externalId`).toContain('externalId')
+      expect(propertyNames(schema), `'${service}' steht im Merge-Pfad, hat aber kein externalId`).toContain(
+        'externalId',
+      )
     }
   })
 

@@ -10,7 +10,15 @@ import { dataValidator, queryValidator } from '@panary/shared-backend'
 import { logger } from '@panary/shared-backend'
 
 // Import domain schema
-import { userDataSchema, userPatchSchema, userQuerySchema, User, UserQuery, UserSystemRole } from '@panary/users/domain'
+import {
+  userDataSchema,
+  userPatchSchema,
+  userQuerySchema,
+  User,
+  UserQuery,
+  UserStatus,
+  UserSystemRole,
+} from '@panary/users/domain'
 import { intersectAllowedIds } from '@panary/devices/domain'
 import { UserService } from './users.class'
 import { getDeviceAccessScope } from '../../hooks/device-access-mode.util'
@@ -214,6 +222,24 @@ export const userQueryResolver = resolve<UserQuery, HookContext>({
       method: context.method,
     })
     return actor._id
+  },
+
+  // #187: Auf Geraeten zeigt der Login-Screen nur aktive Mitarbeiter.
+  //
+  // Warum hier und nicht global: Die Admin-User-Liste MUSS archivierte Konten
+  // weiter sehen — sonst waere ein faelschlich archivierter Mitarbeiter nicht
+  // mehr reaktivierbar, weil er aus der einzigen Oberflaeche verschwindet, in
+  // der man ihn wieder aktiv schalten koennte. Der Filter gehoert also an den
+  // Geraete-Pfad, nicht an den Resolver global.
+  //
+  // Erzwungen statt nur als Default: Ein Terminal, das `status=ARCHIVED`
+  // anfragt, bekommt trotzdem nur Aktive. Das Scoping oben kann die Liste nur
+  // ueber `_id` verkleinern und wuerde einen archivierten, aber weiterhin
+  // zugewiesenen Mitarbeiter durchlassen.
+  status: async (value, _query, context) => {
+    const actor = context.params.user
+    if (!actor?.role?.startsWith('device:')) return value
+    return UserStatus.ACTIVE
   },
 })
 //#endregion

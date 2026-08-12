@@ -61,13 +61,17 @@ Der Edge-Push liest Stammdaten-Rows roh (`collectAllRecords`) und reicht sie unv
 
 ## Konflikt-Review
 
-[`sync-conflicts`](../../apps/api-edge/src/services/sync-conflicts/sync-conflicts.ts) speichert Records aus `merge-by-external-id`-Bootstrap. Patch mit `resolution`-Feld triggert Anwendung:
+[`sync-conflicts`](../../apps/api-edge/src/services/sync-conflicts/sync-conflicts.ts) speichert Records aus `merge-by-external-id`-Bootstrap. Der Modus verarbeitet dabei ausschliesslich Services, deren Domain-Schema `externalId` fuehrt — aktuell `product-groups` und `products` ([ADR 0027](../adr/0027-merge-bootstrap-nur-mit-externalid.md), Allowlist in [`merge-services.ts`](../../apps/api-edge/src/workers/merge-services.ts)). Alle uebrigen Stammdaten laufen ueber den nachgelagerten Edge→Cloud-Push.
+
+Patch mit `resolution`-Feld triggert Anwendung:
 
 - `use-cloud`: Cloud-Variante wird auf den Edge-Service angewandt
 - `use-edge`: lokal nichts (Outbox-Push uebernimmt Edge-Variante)
 - `discard`: lokaler Edge-Record wird geloescht
 
 UI-Counter zeigt offene Konflikte im Connected-State an. Eine dedizierte Konflikt-Tabellen-Komponente mit Diff-Anzeige fehlt noch (TODO).
+
+Lokale User, die per Design nie ein Cloud-Pendant bekommen (`tenant:owner`, `platform:*` — sie stehen auf der Push-Blockliste), erzeugen **keinen** Konflikt mehr, sondern erscheinen als `WARN` im Konsistenz-Check des Bootstrap-Reports ([`edge-only-users.ts`](../../apps/api-edge/src/services/bootstrap-reports/edge-only-users.ts)). Bis #184 legte der Merge-Modus fuer sie einen `external-id-missing`-Konflikt an, der sich nicht aufloesen liess: Ohne Cloud-Pendant ist `use-cloud` gegenstandslos, `use-edge` folgenlos und `discard` loescht das Owner-Konto.
 
 > ⚠️ `syncConflictPatchSchema` fuehrt neben `resolution` auch `tenantId` — nicht als Erlaubnis, sondern weil `multiTenancy()` in `around.all` stempelt und damit **vor** `validateData` in `before.patch` laeuft. Ohne das Feld scheiterte jeder externe Patch an `additionalProperties: false` mit 400 („Mandant: must NOT have additional properties"), Konflikte waren ueber die UI gar nicht aufloesbar (#183). Der Patch-Resolver verwirft `_id`/`tenantId`/`createdAt` anschliessend wieder. Gleiche Klasse wie panary/panary-cloud#200 — bei jedem handgeschriebenen Patch-Schema pruefen.
 

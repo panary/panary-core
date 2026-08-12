@@ -24,6 +24,7 @@ import {
 import type { Application } from '../../declarations'
 import { extractAjvValidationErrors } from '../../workers/sync-apply'
 import { bootstrapReportsPath } from './bootstrap-reports'
+import { collectEdgeOnlyUserIssue } from './edge-only-users'
 
 const MASTER_TABLES = [
   'locations',
@@ -187,6 +188,10 @@ export const runConsistencyCheck = async (
   } catch {
     // ignore
   }
+
+  // (5) Lokale User, die per Design nie ein Cloud-Pendant bekommen (#184).
+  const edgeOnlyIssue = await collectEdgeOnlyUserIssue(app)
+  if (edgeOnlyIssue) issues.push(edgeOnlyIssue)
 
   const isHealthy = issues.every(i => i.severity !== 'ERROR')
   return {

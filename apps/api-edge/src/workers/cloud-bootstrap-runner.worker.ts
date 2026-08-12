@@ -26,6 +26,7 @@ import {
 } from '../services/bootstrap-reports/bootstrap-report.helper'
 import { type BootstrapReportDirection, BootstrapReportStatus } from '@panary/cloud-connection/domain'
 import { applyPulledRecords, cloudFetch, pullMasterDataPage, throwIfRateLimited } from './sync-apply'
+import { MERGE_BY_EXTERNAL_ID_SERVICES } from './merge-services'
 import { truncateMasterTables } from './truncate-master-tables'
 import { SyncRunDirection, SyncRunOutcome, SyncRunPhase, SyncRunTrigger } from '@panary/sync/domain'
 
@@ -68,25 +69,6 @@ const MASTER_DATA_SERVICES: ReadonlyArray<string> = [
 // mit `query: { tenantId }` liefe direkt in `no such column: tenantId`.
 // Pull immer im upsert-Modus (kein Truncate; genau 1 Row, idempotent).
 const PULL_ONLY_MASTER_SERVICES: ReadonlyArray<string> = [SyncableMasterDataService.TENANTS]
-
-// `locations` hat (noch) keinen `externalId`-Mechanismus — Merge-by-external-id
-// kann sie nicht matchen und wuerde fuer jeden Edge-Standort einen
-// `sync-conflict` mit Grund `external-id-missing` erzeugen. Bis ein
-// `externalId`-Feld auf dem Location-Schema existiert, wird `locations` im
-// Merge-Pfad uebersprungen — der `applyCloudTenantId`-Restamp hat zu diesem
-// Zeitpunkt bereits die Location-IDs aligned.
-//
-// `businessdays` haben ebenfalls keinen `externalId`-Mechanismus und sind im
-// Hybrid-Modell Cloud-Master — Edge kann sie nur als Replica halten, nicht
-// merge-konfliktbehaftet anwenden. Daher im Merge-Pfad uebersprungen.
-const MERGE_BY_EXTERNAL_ID_SERVICES: ReadonlyArray<string> = MASTER_DATA_SERVICES.filter(
-  service =>
-    service !== SyncableMasterDataService.LOCATIONS &&
-    service !== SyncableMasterDataService.BUSINESS_DAYS &&
-    // Feiertage sind Cloud-materialisiert (kein externalId), Edge hält sie als
-    // Replica — wie locations/businessdays NICHT merge-by-external-id.
-    service !== SyncableMasterDataService.OPENING_HOUR_EXCEPTIONS,
-)
 
 const TRANSACTION_SERVICES: ReadonlyArray<string> = [
   SyncableTransactionService.ORDERS,

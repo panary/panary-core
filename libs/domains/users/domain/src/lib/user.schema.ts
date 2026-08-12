@@ -158,13 +158,18 @@ export const userSchema = Type.Object(
     role: StringEnum(Object.values(UserSystemRole), { default: UserSystemRole.TENANT_STAFF }),
 
     // POS Spezifika
-    staffRole: Type.Optional(Type.String({ maxLength: 50 })), // z.B. 'waiter'
+    // `Null` in der Union aus demselben Grund wie bei `staffMealDiscountId`
+    // (siehe unten): SQLite liefert die nie befuellte Spalte als `null`, und der
+    // Bootstrap-Push reicht den Record roh an die Cloud-Validierung. Belegt am
+    // Testserver 2026-08-12 (#183) — der initiale Admin traegt `staffRole: null`.
+    staffRole: Type.Optional(Type.Union([Type.String({ maxLength: 50 }), Type.Null()])), // z.B. 'waiter'
     isPosUser: Type.Optional(Type.Boolean({ default: false })),
     // Beschreibt DB-Realitaet: bcrypt-Hash (60 Zeichen). Die Plain-Text-PIN-
     // Constraint (4-6 Ziffern) gehoert in `userDataSchema`/`userPatchSchema`
     // als Input-Validierung — VOR dem hash-Resolver. Ohne diese Trennung
     // wuerde ein synchronisierter User-Record (Hash) am Ziel abgewiesen.
-    posPin: Type.Optional(Type.String({ maxLength: 72 })),
+    // `Null`: PIN-lose User (z.B. der initiale Admin) haben die Spalte leer (#183).
+    posPin: Type.Optional(Type.Union([Type.String({ maxLength: 72 }), Type.Null()])),
     hasPosPin: Type.Optional(Type.Boolean()), // Virtuelles Feld — vom externalResolver gesetzt, nie in DB gespeichert
     // MFA-Enrollment-Timestamp (OoS-Welle B Item 3): wird vom webauthn-
     // credentials-after-create-Hook gesetzt, sobald der User die erste
@@ -201,11 +206,16 @@ export const userSchema = Type.Object(
     // Umstellung ueber `staffMealDiscountId`. Das Feld bleibt im Schema, weil Kunden
     // und Firmenkunden dieselbe Struktur weiterverwenden und Alt-Datensaetze aus der
     // Legacy-Zeit sonst an der Validierung scheitern wuerden.
+    // `Null`: siehe `staffMealDiscountId` — leere Spalte kommt als `null` aus
+    // SQLite und lief im Bootstrap-Push in die Cloud-Validierung (#183).
     discountDetails: Type.Optional(
-      Type.Object({
-        discountType: StringEnum(Object.values(DiscountType)),
-        discount: Type.Number({ minimum: 0 }),
-      }),
+      Type.Union([
+        Type.Object({
+          discountType: StringEnum(Object.values(DiscountType)),
+          discount: Type.Number({ minimum: 0 }),
+        }),
+        Type.Null(),
+      ]),
     ),
     autoLogOff: Type.Optional(Type.Boolean({ default: true })),
     mustChangePassword: Type.Optional(Type.Boolean({ default: false })),
@@ -291,6 +301,7 @@ export const userDataSchema = Type.Intersect(
         Type.Union([
           Type.String({ minLength: 4, maxLength: 6 }), // Plain-Text-Eingabe
           Type.String({ minLength: 60, maxLength: 72 }), // bcrypt-Hash (Sync-Pfad)
+          Type.Null(), // PIN-loser User — leere SQLite-Spalte im Bootstrap-Push (#183)
         ]),
       ),
     }),

@@ -73,9 +73,25 @@ export const syncConflictDataSchema = Type.Omit(syncConflictSchema, ['createdAt'
 })
 export type SyncConflictData = Static<typeof syncConflictDataSchema>
 
+/**
+ * Fachlich ist nur `resolution` patchbar. `tenantId` steht trotzdem drin: Der
+ * Edge-Hook `multiTenancy()` stempelt es in `around.all` — also VOR
+ * `validateData` in `before.patch`. Mit `additionalProperties: false` scheiterte
+ * dadurch JEDER externe Patch mit 400 „validation failed", im Admin-Panel
+ * sichtbar als „Mandant: must NOT have additional properties". Konkret hiess
+ * das: Offene Konflikte liessen sich ueber die UI ueberhaupt nicht aufloesen —
+ * weder „Diesen Standort behalten" noch „Verwerfen" (#183).
+ *
+ * `Type.Optional` statt Pflicht: interne Aufrufe ohne Nutzerkontext bleiben
+ * moeglich. Eine Erlaubnis ist es nicht — der Hook ueberschreibt jeden
+ * mitgesendeten Wert, und `syncConflictPatchResolver` verwirft ihn zusaetzlich.
+ *
+ * Gleiche Klasse wie panary/panary-cloud#200 (fiscal-counter, reservation).
+ */
 export const syncConflictPatchSchema = Type.Object(
   {
     resolution: StringEnum(Object.values(SyncConflictResolution)),
+    tenantId: Type.Optional(Type.String()),
   },
   { $id: 'SyncConflictPatch', additionalProperties: false },
 )

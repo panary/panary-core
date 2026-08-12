@@ -30,11 +30,16 @@ export const syncConflictDataResolver = resolve<SyncConflict, HookContext>({
   updatedAt: async () => new Date().toISOString(),
 })
 
-// Patch-Daten kommen schon vom Validator gefiltert (nur `resolution` ist
-// erlaubt). Der Resolver setzt zusaetzlich Status, Timestamp und User —
-// alle weiteren Felder werden vom Validator abgewiesen, deswegen brauchen
-// sie hier keinen expliziten "undefined"-Resolver.
+// Patch-Daten kommen schon vom Validator gefiltert. `tenantId` ist seit #183
+// im Patch-Schema erlaubt — nicht als Erlaubnis, sondern weil `multiTenancy()`
+// es in `around.all` stempelt, bevor `validateData` laeuft. Der Resolver wirft
+// es hier wieder weg (Pflichtmuster aus `.claude/rules/security.md` §8:
+// `_id`/`tenantId`/`createdAt` sind nicht veraenderbar) — sonst koennte ein
+// mitgesendeter Wert den Konflikt einem fremden Mandanten zuschreiben.
 export const syncConflictPatchResolver = resolve<Record<string, unknown>, HookContext>({
+  _id: async () => undefined,
+  tenantId: async () => undefined,
+  createdAt: async () => undefined,
   updatedAt: async () => new Date().toISOString(),
   status: async (_value, _row, context) => {
     if ((context.data as any)?.resolution) return SyncConflictStatus.RESOLVED

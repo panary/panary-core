@@ -26,6 +26,7 @@ import {
 } from '../services/bootstrap-reports/bootstrap-report.helper'
 import { type BootstrapReportDirection, BootstrapReportStatus } from '@panary/cloud-connection/domain'
 import { applyPulledRecords, cloudFetch, pullMasterDataPage, throwIfRateLimited } from './sync-apply'
+import { truncateMasterTables } from './truncate-master-tables'
 import { SyncRunDirection, SyncRunOutcome, SyncRunPhase, SyncRunTrigger } from '@panary/sync/domain'
 
 const requireDecryptedToken = (connection: CloudConnection): string => {
@@ -250,33 +251,6 @@ export const queueBackfillOutbox = async (
   return queued
 }
 
-// Liefert die Services, deren Truncate fehlschlug: dort duerfen die Pull-Seiten
-// NICHT im insert-Modus laufen (Alt-Rows -> PK-Konflikt fuer jede Row, der alte
-// Bestand bliebe stehen) — der Aufrufer degradiert sie auf 'upsert'.
-const truncateMasterTables = async (app: Application, tenantId: string): Promise<Set<string>> => {
-  const failed = new Set<string>()
-  for (const service of MASTER_DATA_SERVICES) {
-    try {
-      await app.service(service as any).remove(
-        null as any,
-        {
-          provider: undefined,
-          query: { tenantId },
-        } as any,
-      )
-    } catch (err) {
-      failed.add(service)
-      logger.warn({
-        message: 'TRUNCATE waehrend pull-cloud-to-edge fehlgeschlagen',
-        event: 'sync.bootstrap.truncate_failed',
-        service,
-        errorMessage: err instanceof Error ? err.message : String(err),
-      })
-    }
-  }
-  return failed
-}
-
 const pullAllPagesForService = async (
   cloudUrl: string,
   cloudToken: string,
@@ -290,10 +264,10 @@ const pullAllPagesForService = async (
   for (let page = 0; page < 1000; page++) {
     const response = await pullMasterDataPage(cloudUrl, cloudToken, service, undefined, cursor, BOOTSTRAP_TIMEOUT_MS)
     // `mode: 'insert'`: truncateMasterTables hat die Tabellen unmittelbar vor
-    // diesem Loop geleert — jede _id ist garantiert neu, der gebatchte
-    // Existenz-Check des Upsert-Modus waere pro Seite ein Leer-Roundtrip.
-    // Schlug der Truncate fuer diesen Service fehl, degradiert der Aufrufer
-    // auf 'upsert' (selbstheilend gegen die verbliebenen Alt-Rows).
+    // diesem Loop geleert UND das verifiziert — jede _id ist garantiert neu, der
+    // gebatchte Existenz-Check des Upsert-Modus waere pro Seite ein
+    // Leer-Roundtrip. Wird eine Tabelle nicht leer, kommt der Loop gar nicht
+    // erst zustande (truncateMasterTables wirft, siehe dort).
     const result = await applyPulledRecords(app, service, response.records, { mode })
     rejectedTotal += result.rejected
     total += response.records.length
@@ -538,7 +512,9 @@ const runPullCloudToEdge = async (
   connection: CloudConnection,
   bootstrapReportId: string | null,
 ): Promise<void> => {
-  const truncateFailed = await truncateMasterTables(app, connection.tenantId!)
+  // Wirft, wenn eine Tabelle nicht leer wird — dann bricht der Bootstrap ab und
+  // landet in `failed`, statt einen gemischten Bestand als Erfolg zu melden.
+  await truncateMasterTables(app, connection.tenantId!, MASTER_DATA_SERVICES)
   const cloudToken = requireDecryptedToken(connection)
   // PULL_ONLY_MASTER_SERVICES zuerst: tenants ist die Wurzel-Entitaet (kein
   // FK auf andere Tabellen, aber semantisch vor allem anderen).
@@ -551,7 +527,7 @@ const runPullCloudToEdge = async (
         cloudToken,
         app,
         service,
-        PULL_ONLY_MASTER_SERVICES.includes(service) || truncateFailed.has(service) ? 'upsert' : 'insert',
+        PULL_ONLY_MASTER_SERVICES.includes(service) ? 'upsert' : 'insert',
       )
       await recordSyncRun(app, {
         tenantId: connection.tenantId!,

@@ -266,7 +266,9 @@ export class ManagerAuthorizeCashSessionDialogComponent {
       _id: String(user._id),
       fullName: `${firstName} ${lastName}`.trim(),
       initials: `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase(),
-      staffRole: user.staffRole,
+      // `?? undefined`: `staffRole` ist seit #183 `string | null` (leere
+      // SQLite-Spalte). Fuer dieses UI-DTO ist „nicht gesetzt" genau ein Zustand.
+      staffRole: user.staffRole ?? undefined,
       role: user.role,
     }
   }

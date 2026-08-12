@@ -255,21 +255,36 @@ export const locationSchema = Type.Object(
     // Optional in v26.7.0 für Backward-Compat während Migration (BRAND-02);
     // Pflicht-Promotion erst in v27.0.0 / Phase 8 OPS Polish, nachdem
     // Migration alle Bestands-Locations einer Default-Brand zugeordnet hat.
-    brandId: Type.Optional(Type.String({ description: 'uuidv7 — Phase 6 BRAND-01 (Pflicht nach Migration BRAND-02)' })),
+    //
+    // `Type.Null()` ist Pflicht, nicht Kosmetik: Migration
+    // `20260728170000_locations_add_brand_columns` legt die Spalte `nullable()`
+    // an, der Edge befuellt sie nie — SQLite liefert also `null`, nicht
+    // `undefined`. `Type.Optional` allein erlaubt nur letzteres, weshalb der
+    // Bootstrap-Push die Location mit `/brandId: must be string` abwies und
+    // damit den GESAMTEN Bootstrap abbrach (`locations` ist der erste Service
+    // in MASTER_DATA_SERVICES). Befund Testserver 2026-08-12, #183.
+    brandId: Type.Optional(
+      Type.Union([Type.String({ description: 'uuidv7 — Phase 6 BRAND-01 (Pflicht nach Migration BRAND-02)' }), Type.Null()]),
+    ),
 
     // Phase 6 BRAND-03 / D-14: URL-Slug für Subdomain-Routing
     // `<location-handle>.<brand-handle>.<panary-tld>` (z.B. mitte.burgerheaven.panary.cloud).
     // Unique pro brandId (D-18, Compound-Index brandId+handle). Default = slugifyHandle(name)
     // im Backfill (Plan 06-07). Optional in v26.7.0 für Migrations-Backward-Compat;
     // Promotion zu Pflicht in v27.0.0 (Phase 8 OPS Polish).
+    // `Type.Null()` aus demselben Grund wie bei `brandId` — dieselbe Migration,
+    // dieselbe nie befuellte nullable Spalte (#183).
     handle: Type.Optional(
-      Type.String({
-        pattern: '^[a-z0-9-]+$',
-        minLength: 1,
-        maxLength: 64,
-        description:
-          'URL-Slug für Subdomain-Routing (BRAND-03 / D-14). Unique pro brandId. Optional in v26.7.0, Pflicht ab v27.0.0.',
-      }),
+      Type.Union([
+        Type.String({
+          pattern: '^[a-z0-9-]+$',
+          minLength: 1,
+          maxLength: 64,
+          description:
+            'URL-Slug für Subdomain-Routing (BRAND-03 / D-14). Unique pro brandId. Optional in v26.7.0, Pflicht ab v27.0.0.',
+        }),
+        Type.Null(),
+      ]),
     ),
 
     address: Type.Object({
@@ -324,13 +339,17 @@ export const locationSchema = Type.Object(
     // `address.countryCode`, weil eine Filiale in DE englischsprachige
     // Beleg-Erkennung wollen kann (englisches Personal). Default in
     // Service-Resolver: 'de-DE'.
-    locale: Type.Optional(Type.String({ pattern: '^[a-z]{2}(-[A-Z]{2})?$' })),
+    // `Type.Null()`: gleiche Migration wie `brandId`/`handle`, gleiche Falle (#183).
+    // Der Default 'de-DE' kommt erst im Cloud-Service-Resolver — am Edge bleibt
+    // die Spalte leer.
+    locale: Type.Optional(Type.Union([Type.String({ pattern: '^[a-z]{2}(-[A-Z]{2})?$' }), Type.Null()])),
 
     // Standard-Waehrung der Filiale als ISO-4217-Code (EUR, CHF, USD, …).
     // Bewusst Top-Level statt in `address`, weil DACH-Konzerne in DE-
     // Adressen mit CHF buchen koennen (Schweizer Mutter). Default in
     // Service-Resolver: 'EUR'.
-    defaultCurrency: Type.Optional(Type.String({ pattern: '^[A-Z]{3}$' })),
+    // `Type.Null()`: siehe `locale` — gleiche Migration, gleicher Befund (#183).
+    defaultCurrency: Type.Optional(Type.Union([Type.String({ pattern: '^[A-Z]{3}$' }), Type.Null()])),
 
     // Betriebsmodus: steuert Verhalten des Tagesabschlusses (Cash-Count vs
     // reiner Bestellaggregation) und welche UI-Steps angezeigt werden.

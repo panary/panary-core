@@ -57,6 +57,37 @@ describe('locationDataSchema (Sync-Pull-Apply-CREATE)', () => {
   })
 })
 
+// Bootstrap-Push Edge→Cloud (#183, Befund Testserver 2026-08-12). Migration
+// `20260728170000_locations_add_brand_columns` legt brandId/handle/locale/
+// defaultCurrency `nullable()` an; der Edge befuellt sie nie. `collectAllRecords`
+// liest die Row roh, also kommen die Felder als `null` — nicht als `undefined`.
+// Mit reinem `Type.Optional` wies die Cloud den Record mit
+// „/brandId: must be string" ab und riss den GESAMTEN Bootstrap mit
+// (`locations` ist der erste Service in MASTER_DATA_SERVICES).
+describe('locationDataSchema (Bootstrap-Push mit leeren SQLite-Spalten)', () => {
+  const edgeLocationWithNulls = {
+    ...syncedCloudLocation,
+    brandId: null,
+    handle: null,
+    locale: null,
+    defaultCurrency: null,
+  }
+
+  it('akzeptiert eine Edge-Location mit null in allen vier Brand-Spalten', async () => {
+    await expect(validator(edgeLocationWithNulls)).resolves.toBeTruthy()
+  })
+
+  it.each(['brandId', 'handle', 'locale', 'defaultCurrency'])('akzeptiert null in %s einzeln', async field => {
+    await expect(validator({ ...syncedCloudLocation, [field]: null })).resolves.toBeTruthy()
+  })
+
+  it('validiert gesetzte Werte weiterhin gegen ihr Pattern', async () => {
+    await expect(validator({ ...syncedCloudLocation, handle: 'Groß Buchstaben' })).rejects.toThrow()
+    await expect(validator({ ...syncedCloudLocation, defaultCurrency: 'euro' })).rejects.toThrow()
+    await expect(validator({ ...syncedCloudLocation, locale: 'de_DE' })).rejects.toThrow()
+  })
+})
+
 // Standort-Grace fuer den Order-Gate (panary-cloud ADR 0046, panary-cloud#133 /
 // panary-core#134). Die Gruppe ist optional: Bestands-Locations tragen sie nicht
 // und muessen weiter validieren — sonst waere die Schema-Erweiterung ein

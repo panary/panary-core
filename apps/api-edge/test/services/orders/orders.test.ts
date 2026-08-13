@@ -144,4 +144,44 @@ describe('orders service — taxSnapshot bei preisrelevanten Patches', () => {
 
     assert.deepStrictEqual(patched.taxSnapshot, before.taxSnapshot)
   })
+
+  // Verankert die REGISTRIERUNG von `rejectLegacyDiscount` in before.create/patch
+  // (ADR 0030). Die Regel selbst ist per Unit-Spec gelockt; ein nicht registrierter
+  // Hook faellt nur hier auf. Die Patch-Faelle oben laufen bewusst weiter intern
+  // (`provider: undefined`) — sie belegen zugleich, dass der Sync-Pfad offen bleibt.
+  describe('Legacy-Rabattfeld ist abgeschafft', () => {
+    const legacyDiscount = { discountType: 'percent', discount: 50 } as const
+
+    // `device:pos-client` traegt `orders: MANAGE` — die Rolle, unter der der POS
+    // patcht. tenantId/locationId am User, sonst filtert `multiTenancy` die Order weg
+    // und der Test misst einen 404 statt der Regel.
+    const posParams = () =>
+      ({
+        provider: 'rest',
+        authenticated: true,
+        user: { _id: userId, role: 'device:pos-client', tenantId, locationId, activeLocationId: locationId },
+      }) as never
+
+    it('externer Patch mit discount → 400', async () => {
+      await assert.rejects(
+        () => app.service('orders').patch(orderId, { discount: legacyDiscount } as never, posParams()),
+        (err: { code?: number }) => err.code === 400,
+      )
+    })
+
+    it('interner Patch mit discount bleibt erlaubt (Sync-Apply waere sonst terminal)', async () => {
+      const patched = (await app
+        .service('orders')
+        .patch(orderId, { discount: legacyDiscount } as never, { provider: undefined })) as Order
+      assert.strictEqual(Math.round(patched.taxSnapshot!.brutto * 100), 2000)
+
+      // Ausgangslage fuer nachfolgende Tests wiederherstellen.
+      await app.service('orders').patch(orderId, { discount: null } as never, { provider: undefined })
+    })
+
+    it('externer Patch mit discount: null bleibt erlaubt (Migrationspfad)', async () => {
+      const patched = (await app.service('orders').patch(orderId, { discount: null } as never, posParams())) as Order
+      assert.strictEqual(Math.round(patched.taxSnapshot!.brutto * 100), 4000)
+    })
+  })
 })

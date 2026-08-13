@@ -2175,9 +2175,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     }
 
-    // appliedDiscounts ist für die Tax-Engine führend; `order.discount` bleibt nur als
-    // Legacy-Spiegel für den Kundenrabatt erhalten (serverseitig geleert, sobald
-    // appliedDiscounts nicht leer ist — siehe discount-mutex.ts).
+    // Einzige Rabattquelle (ADR 0030). `discountDetails` ist ab hier nur noch die
+    // Zwischenstufe aus den Kunden-Stammdaten, aus der der Snapshot gebaut wird — an
+    // die Order geht ausschließlich `appliedDiscounts`.
     const appliedDiscounts: AppliedDiscount[] = []
 
     if (staffMealDetails) {
@@ -2206,7 +2206,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       lineItems: this.#lineItems,
       orderChannel: this.orderChannel(),
       customerDetails,
-      discountDetails,
       pager: this._pager,
       productionTime: this._productionTime,
       staffMealDetails,

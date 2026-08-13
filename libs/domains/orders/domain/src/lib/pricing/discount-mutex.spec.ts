@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clearLegacyDiscountIfApplied } from './discount-mutex'
+import { assertNoLegacyDiscountWrite, clearLegacyDiscountIfApplied, findLegacyDiscountWrite } from './discount-mutex'
 import type { AppliedDiscount, Discount } from '../order.schema'
 
 // discount-mutex: sobald eine Order (nicht-leere) `appliedDiscounts` traegt, gewinnt
@@ -43,5 +43,40 @@ describe('clearLegacyDiscountIfApplied', () => {
 
   it('laesst undefined discount ohne appliedDiscounts unveraendert (kein Feld-Rauschen)', () => {
     expect(clearLegacyDiscountIfApplied(undefined, {})).toBeUndefined()
+  })
+})
+
+// Abschaffung des Legacy-Felds (ADR 0030): ein externer Schreibzugriff auf `discount`
+// wird sichtbar abgelehnt. Das LEEREN bleibt erlaubt — es ist der Migrationspfad.
+describe('findLegacyDiscountWrite', () => {
+  it('meldet einen gesetzten Legacy-discount', () => {
+    expect(findLegacyDiscountWrite({ discount: legacyDiscount })).toContain('abgeschafft')
+  })
+
+  it('meldet auch einen Festbetrags-Rabatt', () => {
+    expect(findLegacyDiscountWrite({ discount: { discountType: 'amount', discount: 5 } })).not.toBeNull()
+  })
+
+  it('laesst discount: null durch (Alt-Wert leeren ist der Migrationspfad)', () => {
+    expect(findLegacyDiscountWrite({ discount: null })).toBeNull()
+  })
+
+  it('laesst einen Patch ohne discount-Feld durch', () => {
+    expect(findLegacyDiscountWrite({})).toBeNull()
+  })
+
+  it('ist tolerant gegenueber null/undefined-Payloads', () => {
+    expect(findLegacyDiscountWrite(null)).toBeNull()
+    expect(findLegacyDiscountWrite(undefined)).toBeNull()
+  })
+})
+
+describe('assertNoLegacyDiscountWrite', () => {
+  it('wirft bei gesetztem Legacy-discount', () => {
+    expect(() => assertNoLegacyDiscountWrite({ discount: legacyDiscount })).toThrow(/abgeschafft/)
+  })
+
+  it('wirft nicht beim Leeren', () => {
+    expect(() => assertNoLegacyDiscountWrite({ discount: null })).not.toThrow()
   })
 })

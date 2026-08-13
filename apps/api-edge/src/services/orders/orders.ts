@@ -45,6 +45,7 @@ import { createOrderInteractions } from '../../hooks/create-order-interactions'
 import { signOrderTseCancel, signOrderTseFinish, signOrderTseStart } from '../../hooks/sign-order-tse.hook'
 import { validateOrderStatusTransition } from '../../hooks/validate-order-status-transition.hook'
 import { validateStaffMealExclusivity } from '../../hooks/validate-staff-meal-exclusivity.hook'
+import { rejectLegacyDiscount } from '../../hooks/reject-legacy-discount.hook'
 import { issueReceipt } from '../../hooks/issue-receipt.hook'
 import { ensureIndexes } from '@panary/shared-backend'
 
@@ -130,6 +131,9 @@ export const orders = (app: Application) => {
       find: [],
       get: [],
       create: [
+        // Legacy-Rabattfeld ist abgeschafft (ADR 0030) — GANZ vorne, damit der 400
+        // faellt, bevor Sequenznummer und TSE-Start Nebenwirkungen erzeugen.
+        rejectLegacyDiscount,
         extractOrderInteractions(),
         restrictOrderToBusinessDay(),
         // Bestellung AUFNEHMEN ist immer erlaubt — der Kassen-Guard läuft jetzt
@@ -153,6 +157,9 @@ export const orders = (app: Application) => {
       ],
       patch: [
         checkMultiOperation,
+        // Legacy-Rabattfeld ist abgeschafft (ADR 0030) — vor den TSE-/Kassen-Hooks,
+        // damit ein abgelehnter Patch keine fiskalischen Nebenwirkungen hinterlaesst.
+        rejectLegacyDiscount,
         // Status-FSM-Guard (Security „order-status-fsm"): lehnt illegale
         // Rücksprünge aus Terminal-Status (COMPLETED → ACTIVE/PRODUCTION/PRODUCED,
         // ABORTED → *) mit 400 ab, BEVOR Kassen-/TSE-Hooks Nebenwirkungen erzeugen.

@@ -38,32 +38,47 @@ Aktiv-Zeitraum abgeleitet (`deriveDiscountDisplayStatus`).
   [0004-order-bundle-pricing-modell.md](../adr/0004-order-bundle-pricing-modell.md)) ist führend:
   ist `appliedDiscounts` gesetzt, nutzt sie diese; sonst Fallback `order.discount`.
 
-### discount-mutex — Einweg-Migration (Fix 2026-07-04)
+### discount-mutex — Abschaffung des Legacy-Felds ([ADR 0030](../adr/0030-legacy-rabattfeld-abgeschafft.md))
 
-Der Frontend-Data-Access (`order.service.ts`) setzt beim Anlegen einer
-rabattierten Order **beide** Felder — `appliedDiscounts` (führend) und
-`order.discount` als „Legacy-Spiegel". Damit ohne diese Regel ein fachlich
-unwirksamer `discount` als stale „Karteileiche" in DB/Sync/Audit zurückbliebe
-(Mehrdeutigkeit „welcher Rabatt gilt?"), wird die Invariante serverseitig
-erzwungen: sobald ein Create/Patch (nicht-leere) `appliedDiscounts` schreibt,
-gewinnt das neue Feld und `order.discount` wird **aktiv auf `null` geleert**.
+`order.discount` wird abgeschafft. Es gibt genau **eine** Rabattquelle je Order:
+`appliedDiscounts`.
 
-- **Helper (Single Source of Truth):** `clearLegacyDiscountIfApplied`
-  (`@panary/orders/domain → pricing/discount-mutex.ts`).
-- **Verdrahtung:** `discount`-Data-Resolver in Edge
-  (`apps/api-edge/src/services/orders/orders.schema.ts`) **und** Cloud
-  (`apps/api-cloud/src/services/orders/orders.schema.ts`), je für create + patch.
-- **`null` statt `undefined`:** damit ein PATCH einen bereits gespeicherten
-  Legacy-`discount` tatsächlich überschreibt statt ihn nur wegzulassen. Cloud
-  greift auch für Sync-Push-Creates (Alt-Edge-Daten werden mitbereinigt).
-- Ist `appliedDiscounts` leer/ungesetzt, bleibt `order.discount` als aktiver
-  Fallback unverändert. Sicher, weil alle Reader (Tax-Engine + Bon-Renderer via
-  `computeOrderTax`) `appliedDiscounts` bevorzugen und `null`/`undefined`
-  discount identisch behandeln.
+Die frühere Einweg-Migration (2026-07-04) leerte `order.discount`, sobald ein
+Create/Patch nicht-leere `appliedDiscounts` schrieb. Sie entschied das allein am
+**eingehenden Payload** und sah deshalb nicht, wenn ein Flow nur `{ discount }` auf
+eine Order patchte, die in der DB bereits `appliedDiscounts` trug: Der Legacy-Rabatt
+wurde gespeichert und von der Engine ignoriert — ein Rabatt ohne Wirkung auf Preis,
+`taxSnapshot` und Bon (panary/panary-core#181). Statt einer Kombinationsregel fällt
+das Feld weg.
+
+- **Extern → `400`:** `rejectLegacyDiscount`
+  (`apps/api-edge/src/hooks/reject-legacy-discount.hook.ts`) lehnt einen gesetzten
+  `discount` in `before.create`/`before.patch` ab. Regel als reine Funktion:
+  `findLegacyDiscountWrite` / `assertNoLegacyDiscountWrite`
+  (`@panary/orders/domain → pricing/discount-mutex.ts`). Sichtbar ablehnen statt still
+  strippen — sonst wäre es dieselbe Fehlerklasse wie vorher.
+- **`discount: null` bleibt erlaubt** — das Leeren ist der Migrationspfad für
+  Bestands-Orders.
+- **Intern (Sync-Apply) unverändert:** `clearLegacyDiscountIfApplied` im
+  `discount`-Data-Resolver, Edge **und** Cloud, je create + patch. Ein `400` wäre im
+  Sync-Apply TERMINAL (rejected ohne Retry) — Bestandsdaten von Alt-Edges blieben
+  dauerhaft hängen.
+- **POS:** `applyCorporateCustomer` schreibt den Vertragsrabatt des Firmenkunden als
+  `AppliedDiscount` (`discountId: null`, Name = Kundenname) und **ersetzt** die
+  bestehende Liste — konsistent zu `applyDiscount`/`applyStaffMeal`. Der Legacy-Spiegel
+  in `order.service.ts` und im Bestelldialog ist entfallen.
 - **Reihenfolge:** erst LINE-Rabatte (auf der jeweiligen Position, summen-exakt
   über die Steuer-Atome verteilt), dann ORDER-Rabatte auf die Restsumme.
   Festbeträge via Largest-Remainder. `computedAmountCents` wird von der Engine
   zurückgeschrieben. Tax-Integrität (netto + steuer = brutto) bleibt pro Satz.
+
+⚠️ **Noch offen (Schritt 2+3 von panary/panary-core#181):** Der
+Tagesabschluss-Aggregator (`financials.ts`) liest die Rabatt-KPI weiterhin
+**ausschließlich** aus `order.discount` und kennt `appliedDiscounts` nicht. Da der
+Mutex `discount` leert, zählt jeder über den POS gewährte Rabatt derzeit als
+**0 Rabatte / 0,00 €** — im Z-Bon, in `discountRatePercent` und in der Cloud-Karte
+„Finanzen" (dort zusätzlich `LIVE_KPI_ORDER_PROJECTION`). Das wird nachgezogen, bevor
+`discount` aus Schema, Engine und Sync verschwindet.
 
 ### MwSt-Extraktion (Phase 0)
 
@@ -111,10 +126,12 @@ blockt der `orderPatchResolver` — Positionen sind nur beim create formbar.
   abgeschlossene/signierte Vorgänge werden nicht stillschweigend umgeschrieben
   (KassenSichV-Unveränderbarkeit); Erkennung: `discount`/`appliedDiscounts`
   gesetzt UND `taxSnapshot.brutto ≠ computeOrderTax(order).brutto`.
-- Offene Klärung: Patcht ein Flow einen Legacy-`discount` auf eine Order mit
-  bestehenden `appliedDiscounts` (z. B. Automatik-Rabatt), bleibt
-  `appliedDiscounts` engine-seitig führend — der gepatchte Legacy-Rabatt wirkt
-  dann nicht auf den Snapshot. Kombinationsregel dafür ist fachlich zu klären.
+- ~~Offene Klärung: Kombinationsregel für einen Legacy-`discount`-Patch auf eine
+  Order mit bestehenden `appliedDiscounts`.~~ **Erledigt 2026-08-13** — es gibt keine
+  Kombinationsregel, das Legacy-Feld ist abgeschafft
+  ([ADR 0030](../adr/0030-legacy-rabattfeld-abgeschafft.md)). Ein externer
+  `discount`-Schreibzugriff wird mit `400` abgelehnt, statt wirkungslos gespeichert zu
+  werden.
 
 Specs: `calculate-tax-details.spec.ts` (Hook-Verhalten) +
 `test/services/orders/orders.test.ts` (Integration: Registrierung in der

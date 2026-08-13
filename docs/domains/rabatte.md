@@ -72,13 +72,31 @@ das Feld weg.
   Festbeträge via Largest-Remainder. `computedAmountCents` wird von der Engine
   zurückgeschrieben. Tax-Integrität (netto + steuer = brutto) bleibt pro Satz.
 
-⚠️ **Noch offen (Schritt 2+3 von panary/panary-core#181):** Der
-Tagesabschluss-Aggregator (`financials.ts`) liest die Rabatt-KPI weiterhin
-**ausschließlich** aus `order.discount` und kennt `appliedDiscounts` nicht. Da der
-Mutex `discount` leert, zählt jeder über den POS gewährte Rabatt derzeit als
-**0 Rabatte / 0,00 €** — im Z-Bon, in `discountRatePercent` und in der Cloud-Karte
-„Finanzen" (dort zusätzlich `LIVE_KPI_ORDER_PROJECTION`). Das wird nachgezogen, bevor
-`discount` aus Schema, Engine und Sync verschwindet.
+### Rabatt-KPI im Tagesabschluss
+
+`aggregateFinancials` (`@panary/businessdays/aggregator → financials.ts`) zählt
+`appliedDiscounts` und summiert deren `computedAmountCents` — den von
+`computeOrderTax` zurückgeschriebenen, tatsächlich abgezogenen Brutto-Betrag. Eine
+Rückrechnung wie beim Legacy-Pfad ist damit nicht nötig.
+
+- **`discountsCount` ist PRO ORDER**, nicht pro Rabatt-Eintrag: Der Wert speist die
+  Quote rabattierter Bestellungen. Eine Order mit zwei Rabatten ist eine rabattierte
+  Order, nicht zwei.
+- **Legacy-Fallback** (`order.discount`) bleibt für Bestands-Orders und entfällt mit
+  dem Feld selbst. Bei PERCENT wird der Abzug aus dem bereits rabattierten Brutto
+  zurückgerechnet (`gross × p / (100 − p)`), bei AMOUNT steht er direkt im Feld (Euro).
+- Bestands-Orders ohne Engine-Durchlauf tragen `computedAmountCents: 0` und zählen als
+  rabattiert mit 0 € — statt mit einer geratenen Summe.
+
+Bis 2026-08-13 las die Aggregation **ausschließlich** `order.discount`. Da der Mutex
+genau dieses Feld leert, sobald `appliedDiscounts` gesetzt sind, zählte jeder über den
+POS gewährte Rabatt als **0 Rabatte / 0,00 €** — im Z-Bon, in der Rabatt-Quote und in
+der Cloud-Karte „Finanzen".
+
+⚠️ **Cloud-Seite offen** (panary/panary-cloud#253): `LIVE_KPI_ORDER_PROJECTION`
+schneidet `appliedDiscounts` noch weg. Beim nächsten Pin-Bump muss das Feld in die
+Projektion — `live-kpis.spec.ts` rechnet Fixtures projiziert und unprojiziert gegen
+einander und wird sonst rot.
 
 ### MwSt-Extraktion (Phase 0)
 

@@ -63,7 +63,9 @@ der Aufrufpfad erreichbar gewesen, hätte sie anders ausfallen können.
 ## 🚨 Der teuerste Fund: beide Wege scheitern lautlos
 
 Beim Vorbereiten wurde in einem Wegwerf-Projekt mit identischer Konfiguration
-(`minimumReleaseAge: 10080`, `nanoid: '^3.3.17'`, Konsument `postcss`) gemessen:
+(`minimumReleaseAge: 10080`, `nanoid: '^3.3.17'`, Konsument `postcss`) gemessen —
+mit **pnpm 10.34.3**, der Version aus `packageManager`; „abgelaufen" ist über
+`minimumReleaseAge: 0` simuliert:
 
 | Lauf | Karenz | Ergebnis | Exit |
 | --- | --- | --- | --- |

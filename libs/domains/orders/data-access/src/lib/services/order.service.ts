@@ -9,7 +9,6 @@ import {
   CreationContext,
   CustomerPaymentInfo,
   DineLocation,
-  Discount,
   Order,
   OrderLineItem,
   OrderStatus,
@@ -34,7 +33,6 @@ export interface CreateOrderInput {
   lineItems: Array<OrderLineItem>
   orderChannel: (typeof OrderChannel)[keyof typeof OrderChannel]
   customerDetails?: CustomerPaymentInfo
-  discountDetails?: Discount
   pager?: number
   productionTime: number
   staffMealDetails?: StaffPaymentInfo
@@ -448,7 +446,6 @@ export class OrderService extends BaseService<Order> {
       lineItems,
       orderChannel,
       customerDetails,
-      discountDetails,
       pager,
       productionTime,
       staffMealDetails,
@@ -484,9 +481,8 @@ export class OrderService extends BaseService<Order> {
     if (table) order.table = table
     if (customerDetails) order.customerPaymentInfo = customerDetails
     if (staffMealDetails) order.staffPaymentInfo = staffMealDetails
-    if (discountDetails) order.discount = discountDetails
-    // appliedDiscounts ist führend für die Tax-Engine; order.discount bleibt als
-    // Legacy-Spiegel für Alt-Reader (Aggregator/Bon) gesetzt (Rückwärtskompatibilität).
+    // Einzige Rabattquelle (ADR 0030). Der frühere Legacy-Spiegel `order.discount`
+    // entfällt — der Server lehnt ihn ab, statt ihn still zu verwerfen.
     if (appliedDiscounts && appliedDiscounts.length > 0) order.appliedDiscounts = appliedDiscounts
     if (orderInteractions.length > 0)
       (order as Order & { orderInteractions?: OrderInteraction[] }).orderInteractions = orderInteractions

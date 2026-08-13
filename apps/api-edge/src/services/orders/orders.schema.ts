@@ -6,7 +6,6 @@ import { uuidv7 } from 'uuidv7'
 
 // Import domain schema
 import {
-  clearLegacyDiscountIfApplied,
   Order,
   orderDataSchema,
   orderPatchSchema,
@@ -43,10 +42,6 @@ export const orderDataResolver = resolve<Order, HookContext<OrderService>>({
   status: async (value, data, context) => {
     return value || OrderStatus.ACTIVE
   },
-  // discount-mutex (Einweg-Migration): traegt die Order (nicht-leere) `appliedDiscounts`,
-  // ist das neue Feld fuehrend → Legacy-`discount` aktiv leeren, statt ihn als stale
-  // Karteileiche mitzuschreiben. Siehe @panary/orders/domain → clearLegacyDiscountIfApplied.
-  discount: async (value, data) => clearLegacyDiscountIfApplied(value, data),
   creationContext: async (value, data, context) => {
     const rawUserId: string | undefined = (context.params as any)?.user?._id || value?.createdBy
     const rawDeviceId: string | undefined = (context.params as any)?.device?._id || value?.createdVia
@@ -76,10 +71,6 @@ export const orderPatchResolver = resolve<Order, HookContext<OrderService>>({
   recordingDate: async () => undefined,
   dailySequenceNumber: async () => undefined,
   lineItems: async () => undefined,
-  // discount-mutex (Einweg-Migration): setzt der Patch (nicht-leere) `appliedDiscounts`,
-  // wird der Legacy-`discount` aktiv auf `null` ueberschrieben (nicht nur weggelassen),
-  // damit ein bereits gespeicherter Alt-Wert in der DB tatsaechlich verschwindet.
-  discount: async (value, data) => clearLegacyDiscountIfApplied(value, data),
   updatedAt: async () => new Date().toISOString(),
 })
 //#endregion

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  AppliedDiscount,
   computeOrderTax,
-  Discount,
   DiscountType,
   GenericOrderLineItem,
   Order,
@@ -55,8 +55,25 @@ function makeLine(price: number, amount: number, partial: Partial<OrderLineItem>
   } as OrderLineItem
 }
 
-function makeOrder(lineItems: OrderLineItem[], discount?: Discount): Order {
-  return { lineItems, dineLocation: 'dine-in', discount: discount ?? null } as unknown as Order
+// Rabatte kommen ausschliesslich ueber `appliedDiscounts` (ADR 0030) — das
+// Legacy-Feld `order.discount` gibt es nicht mehr.
+function makeOrder(lineItems: OrderLineItem[], appliedDiscounts?: AppliedDiscount[]): Order {
+  return { lineItems, dineLocation: 'dine-in', appliedDiscounts: appliedDiscounts ?? null } as unknown as Order
+}
+
+function orderDiscount(partial: Partial<AppliedDiscount>): AppliedDiscount {
+  return {
+    _id: '00000000-0000-0000-0000-0000000000aa',
+    name: 'Rabatt',
+    method: 'manual',
+    target: 'order',
+    valueType: DiscountType.PERCENT,
+    valuePercent: 0,
+    valueCents: 0,
+    computedAmountCents: 0,
+    appliedAt: '2026-08-13T12:00:00.000Z',
+    ...partial,
+  } as AppliedDiscount
 }
 
 const cents = (euro: number) => Math.round(euro * 100)
@@ -125,17 +142,17 @@ describe('calculateSumPrice / calculateSumPriceWithDiscountDetails — Engine-Se
   })
 
   it('Prozentrabatt: 33 % auf 3 × 3,33 → 6,69', () => {
-    const order = makeOrder([makeLine(3.33, 3)], { discountType: DiscountType.PERCENT, discount: 33 })
+    const order = makeOrder([makeLine(3.33, 3)], [orderDiscount({ valueType: DiscountType.PERCENT, valuePercent: 33 })])
     expect(calculateSumPriceWithDiscountDetails(order)).toBe(6.69)
   })
 
   it('Festbetrag-Rabatt: 10,00 − 4,00 → 6,00', () => {
-    const order = makeOrder([makeLine(5.0, 2)], { discountType: DiscountType.AMOUNT, discount: 4 })
+    const order = makeOrder([makeLine(5.0, 2)], [orderDiscount({ valueType: DiscountType.AMOUNT, valueCents: 400 })])
     expect(calculateSumPriceWithDiscountDetails(order)).toBe(6.0)
   })
 
   it('Festbetrag-Rabatt größer als Summe klemmt auf 0', () => {
-    const order = makeOrder([makeLine(5.0, 2)], { discountType: DiscountType.AMOUNT, discount: 999 })
+    const order = makeOrder([makeLine(5.0, 2)], [orderDiscount({ valueType: DiscountType.AMOUNT, valueCents: 99900 })])
     expect(calculateSumPriceWithDiscountDetails(order)).toBe(0)
   })
 })
@@ -154,7 +171,7 @@ describe('calculateCombinationPrice / calculateSumPriceSeperated — Engine-Sema
 
 describe('calculateTaxSummary — delegiert an computeOrderTax', () => {
   it('liefert exakt das Engine-Ergebnis (gleiches Order-Objekt)', () => {
-    const order = makeOrder([makeLine(3.33, 3)], { discountType: DiscountType.PERCENT, discount: 33 })
+    const order = makeOrder([makeLine(3.33, 3)], [orderDiscount({ valueType: DiscountType.PERCENT, valuePercent: 33 })])
     expect(calculateTaxSummary(order)).toEqual(computeOrderTax(order))
   })
 })
@@ -177,8 +194,7 @@ describe('Anzeige ↔ Engine — cent-genaue Übereinstimmung', () => {
   })
 
   it('Prozentrabatt 33 % auf 3 × 3,33: 6,69 == Engine-Brutto', () => {
-    const discount: Discount = { discountType: DiscountType.PERCENT, discount: 33 }
-    const order = makeOrder([makeLine(3.33, 3)], discount)
+    const order = makeOrder([makeLine(3.33, 3)], [orderDiscount({ valuePercent: 33 })])
     const display = calculateSumPriceWithDiscountDetails(order)
     const engine = computeOrderTax(order)
     expect(display).toBe(6.69)
@@ -206,8 +222,7 @@ describe('Anzeige ↔ Engine — cent-genaue Übereinstimmung', () => {
       [7.77, 2, 12, 13.68],
     ]
     for (const [price, amount, discountPercent, expected] of cases) {
-      const discount: Discount = { discountType: DiscountType.PERCENT, discount: discountPercent }
-      const order = makeOrder([makeLine(price, amount)], discount)
+      const order = makeOrder([makeLine(price, amount)], [orderDiscount({ valuePercent: discountPercent })])
       const display = calculateSumPriceWithDiscountDetails(order)
       const engine = computeOrderTax(order)
       expect(display, `${price}×${amount} −${discountPercent}%`).toBe(expected)
@@ -237,8 +252,7 @@ describe('Aufgelöste Drift-Fälle Anzeige ↔ Engine', () => {
       [2.35, 3, 30, 4.93],
     ]
     for (const [price, amount, discountPercent, expected] of cases) {
-      const discount: Discount = { discountType: DiscountType.PERCENT, discount: discountPercent }
-      const order = makeOrder([makeLine(price, amount)], discount)
+      const order = makeOrder([makeLine(price, amount)], [orderDiscount({ valuePercent: discountPercent })])
       const display = calculateSumPriceWithDiscountDetails(order)
       expect(display, `${price}×${amount} −${discountPercent}%`).toBe(expected)
       expect(cents(display), `${price}×${amount} −${discountPercent}%`).toBe(cents(computeOrderTax(order).brutto))

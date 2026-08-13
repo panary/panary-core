@@ -92,13 +92,17 @@ export const taxSummarySchema = Type.Object({
   brutto: Type.Number(),
 })
 
+// Konditionen-Shape der STAMMDATEN (`discountDetails` an Kunde, Firmenkunde, User,
+// Filiale) — NICHT mehr ein Feld der Order. Das gleichnamige Order-Feld `discount` ist
+// mit ADR 0030 entfallen; dieses Schema bleibt, weil der POS die Stammdaten-Konditionen
+// damit typsicher einliest (`#toDiscount`) und daraus einen `AppliedDiscount` baut.
 export const discountSchema = Type.Object({
   discountType: StringEnum(Object.values(DiscountType)),
   discount: Type.Number({ minimum: 0 }),
 })
 
-// Snapshot eines auf die Order angewandten Rabatts (additiv zu `discount`).
-// Einzige Quelle für angewandte Rabatte: Order-Level (`target: 'order'`) und
+// Snapshot eines auf die Order angewandten Rabatts — die einzige Rabattquelle.
+// Order-Level (`target: 'order'`) und
 // positionsbezogen (`target: 'line'` + `lineItemId`). `computedAmountCents` ist
 // der von der Tax-Engine berechnete, tatsächlich abgezogene Brutto-Betrag (Cents).
 // Werte (valueType/valuePercent/valueCents) sind ein Snapshot der Rabatt-Definition
@@ -323,11 +327,10 @@ export const orderSchema = Type.Object(
 
     cancellation: Type.Optional(Type.Union([cancellationSchema, Type.Null()])),
     customerPaymentInfo: Type.Optional(Type.Union([customerPaymentInfoSchema, Type.Null()])),
-    discount: Type.Optional(Type.Union([discountSchema, Type.Null()])),
-    // Angewandte Rabatte (Phase 1+). Additiv zu `discount` (Rückwärtskompatibilität):
-    // ist diese Liste gesetzt, ist sie führend; sonst greift `discount`. `Null` wird
-    // toleriert, weil der Edge ungesetzte nullable SQLite-Spalten als `null` serialisiert
-    // (sonst „must be array" beim Cloud-Sync-Push — gleiches Muster wie stockMovementIds).
+    // Einzige Rabattquelle der Order (ADR 0030) — das frühere Legacy-Feld `discount`
+    // ist entfernt. `Null` wird toleriert, weil der Edge ungesetzte nullable
+    // SQLite-Spalten als `null` serialisiert (sonst „must be array" beim
+    // Cloud-Sync-Push — gleiches Muster wie stockMovementIds).
     appliedDiscounts: Type.Optional(Type.Union([Type.Array(appliedDiscountSchema, { maxItems: 50 }), Type.Null()])),
     staffPaymentInfo: Type.Optional(Type.Union([staffPaymentInfoSchema, Type.Null()])),
     taxSnapshot: Type.Optional(Type.Union([taxSummarySchema, Type.Null()])),
@@ -421,7 +424,6 @@ export const orderDataSchema = Type.Intersect(
       'lineItems',
       'cancellation',
       'customerPaymentInfo',
-      'discount',
       'appliedDiscounts',
       'staffPaymentInfo',
       'taxSnapshot',

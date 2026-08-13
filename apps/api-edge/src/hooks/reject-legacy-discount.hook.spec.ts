@@ -92,13 +92,16 @@ describe('rejectLegacyDiscount (Edge)', () => {
       await expect(rejectLegacyDiscount(ctx)).rejects.toBeInstanceOf(BadRequest)
     })
 
-    it('discount: null passiert — Alt-Wert leeren ist der Migrationspfad', async () => {
+    // Seit das Feld auch aus `orderSchema` entfernt ist, gibt es keinen erlaubten
+    // Wert mehr — der Guard feuert auf die Anwesenheit des Schluessels, damit die
+    // sprechende Meldung greift statt einer generischen Schema-Verletzung.
+    it('auch discount: null wird abgelehnt', async () => {
       const ctx = buildContext({
         method: 'patch',
         provider: 'rest',
         data: { appliedDiscounts: [appliedDiscount], discount: null },
       })
-      await expect(rejectLegacyDiscount(ctx)).resolves.toBe(ctx)
+      await expect(rejectLegacyDiscount(ctx)).rejects.toBeInstanceOf(BadRequest)
     })
 
     it('Patches ohne discount-Feld passieren unverändert', async () => {

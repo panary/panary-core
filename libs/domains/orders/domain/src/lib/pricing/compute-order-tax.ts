@@ -1,4 +1,4 @@
-import { AppliedDiscount, Discount, GenericOrderLineItem, Order, OrderLineItem, TaxInfo } from '../order.schema'
+import { AppliedDiscount, GenericOrderLineItem, Order, OrderLineItem, TaxInfo } from '../order.schema'
 import { distributeByLargestRemainder, fromCents, multiplyCents, netFromGross, sumCents, toCents } from './money'
 
 // Kanonische, cents-interne Preis-/Steuer-Engine für den Order-`taxSnapshot`.
@@ -16,9 +16,9 @@ import { distributeByLargestRemainder, fromCents, multiplyCents, netFromGross, s
 //     (auf die verbleibende Summe). Mehrere ORDER-Rabatte sequenziell in Array-Reihenfolge.
 //   - Festbeträge werden via Largest-Remainder summen-exakt über Steuersätze verteilt.
 //
-// Rabattquellen (Priorität):
-//   1. `order.appliedDiscounts[]` — wenn gesetzt, führend (Mehrfach-/Positionsrabatte).
-//   2. `order.discount` — Legacy-Einzel-Order-Rabatt (Rückwärtskompatibilität).
+// Rabattquelle: ausschliesslich `order.appliedDiscounts[]` (ADR 0030). Das frühere
+// Legacy-Feld `order.discount` und sein Fallback-Zweig sind entfallen — zwei Quellen
+// für dieselbe Aussage waren mehrdeutig und erzeugten Rabatte ohne Wirkung.
 //
 // NEBENEFFEKT: Bei `appliedDiscounts` schreibt die Engine `computedAmountCents` je
 // Eintrag zurück (tatsächlich abgezogener Brutto-Betrag) — bewusst, damit der Bon-
@@ -297,20 +297,5 @@ export function computeOrderTax(order: Order): TaxInfo {
     return bucketsToTaxInfo(buckets)
   }
 
-  // Legacy-Fallback: einzelner Order-Rabatt.
-  const buckets = bucketize(lines)
-  if (order.discount) {
-    applyLegacyDiscount(buckets, order.discount)
-  }
-  return bucketsToTaxInfo(buckets)
-}
-
-function applyLegacyDiscount(buckets: RateBucket[], discount: Discount): void {
-  const totalGross = sumCents(buckets.map(b => b.grossCents))
-  if (totalGross <= 0) return
-  const amount =
-    discount.discountType === 'percent'
-      ? Math.round((totalGross * discount.discount) / 100)
-      : toCents(discount.discount)
-  applyOrderDiscountCents(buckets, amount)
+  return bucketsToTaxInfo(bucketize(lines))
 }

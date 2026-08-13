@@ -1,7 +1,7 @@
 ---
 type: Domain Concept
 title: 'Rabatte — Datenmodell, Anwendungslogik & Sync'
-description: 'Rabattsystem für POS und Storefront: Domänen-Lib @panary/discounts/domain, Anwendung über order.appliedDiscounts mit MwSt-Extraktion, Automatik-Hook, Personalessen, discount-mutex und Edge-Sync.'
+description: 'Rabattsystem für POS und Storefront: Domänen-Lib @panary/discounts/domain, Anwendung ausschließlich über order.appliedDiscounts mit MwSt-Extraktion, Automatik-Hook, Personalessen, Rabatt-KPI und Edge-Sync.'
 tags: [discounts, orders, sync, pos]
 status: stable
 generated: { by: claude-code/historic, at: 2026-05-25T00:00:00Z }
@@ -31,67 +31,92 @@ Aktiv-Zeitraum abgeleitet (`deriveDiscountDisplayStatus`).
 
 - `order.appliedDiscounts[]` (Snapshot je angewandtem Rabatt: `discountId?`,
   `code?`, `valueType`, `valuePercent`/`valueCents`, `computedAmountCents`,
-  `target`, `lineItemId?`, `isStaffMeal?`). Löst das Legacy-Feld `order.discount`
-  ab: ist `appliedDiscounts` nicht-leer, ist es führend und `order.discount` wird
-  server-seitig geleert (siehe „discount-mutex" unten).
+  `target`, `lineItemId?`, `isStaffMeal?`) ist die **einzige** Rabattquelle der Order.
+  Das frühere Legacy-Feld `order.discount` ist entfernt (siehe unten).
 - Die kanonische Engine `computeOrderTax` (`@panary/orders/domain`, siehe
-  [0004-order-bundle-pricing-modell.md](../adr/0004-order-bundle-pricing-modell.md)) ist führend:
-  ist `appliedDiscounts` gesetzt, nutzt sie diese; sonst Fallback `order.discount`.
+  [0004-order-bundle-pricing-modell.md](../adr/0004-order-bundle-pricing-modell.md)) rechnet
+  ausschließlich auf `appliedDiscounts`.
 
-### discount-mutex — Abschaffung des Legacy-Felds ([ADR 0030](../adr/0030-legacy-rabattfeld-abgeschafft.md))
+### Legacy-Feld `order.discount` — entfernt ([ADR 0030](../adr/0030-legacy-rabattfeld-abgeschafft.md))
 
-`order.discount` wird abgeschafft. Es gibt genau **eine** Rabattquelle je Order:
+`order.discount` existiert nicht mehr. Es gibt genau **eine** Rabattquelle je Order:
 `appliedDiscounts`.
 
-Die frühere Einweg-Migration (2026-07-04) leerte `order.discount`, sobald ein
-Create/Patch nicht-leere `appliedDiscounts` schrieb. Sie entschied das allein am
-**eingehenden Payload** und sah deshalb nicht, wenn ein Flow nur `{ discount }` auf
+Die frühere Einweg-Migration („discount-mutex", 2026-07-04) leerte `order.discount`,
+sobald ein Create/Patch nicht-leere `appliedDiscounts` schrieb. Sie entschied das allein
+am **eingehenden Payload** und sah deshalb nicht, wenn ein Flow nur `{ discount }` auf
 eine Order patchte, die in der DB bereits `appliedDiscounts` trug: Der Legacy-Rabatt
 wurde gespeichert und von der Engine ignoriert — ein Rabatt ohne Wirkung auf Preis,
-`taxSnapshot` und Bon (panary/panary-core#181). Statt einer Kombinationsregel fällt
-das Feld weg.
+`taxSnapshot` und Bon (panary/panary-core#181). Statt einer Kombinationsregel fiel das
+Feld weg.
 
-- **Extern → `400`:** `rejectLegacyDiscount`
-  (`apps/api-edge/src/hooks/reject-legacy-discount.hook.ts`) lehnt einen gesetzten
-  `discount` in `before.create`/`before.patch` ab. Regel als reine Funktion:
-  `findLegacyDiscountWrite` / `assertNoLegacyDiscountWrite`
-  (`@panary/orders/domain → pricing/discount-mutex.ts`). Sichtbar ablehnen statt still
-  strippen — sonst wäre es dieselbe Fehlerklasse wie vorher.
-- **`discount: null` bleibt erlaubt** — das Leeren ist der Migrationspfad für
-  Bestands-Orders.
-- **Intern (Sync-Apply) unverändert:** `clearLegacyDiscountIfApplied` im
-  `discount`-Data-Resolver, Edge **und** Cloud, je create + patch. Ein `400` wäre im
-  Sync-Apply TERMINAL (rejected ohne Retry) — Bestandsdaten von Alt-Edges blieben
-  dauerhaft hängen.
+Entfernt wurden: `orderSchema.discount` samt `orderDataSchema`-Pick, der Fallback-Zweig
+in `computeOrderTax`, `ORDER_JSON_FIELDS`, die `discount`-Data-Resolver am Edge, der
+Legacy-Zweig der Rabatt-KPI und die SQLite-Spalte
+(`20260813210000_orders_drop_legacy_discount.ts`).
+
+- **Guard bleibt:** `rejectLegacyDiscount`
+  (`apps/api-edge/src/hooks/reject-legacy-discount.hook.ts`) lehnt einen Patch/Create ab,
+  der den Schlüssel `discount` überhaupt mitschickt — **inklusive `discount: null`**.
+  Regel als reine Funktion: `findLegacyDiscountWrite` / `assertNoLegacyDiscountWrite`
+  (`@panary/orders/domain → pricing/discount-mutex.ts`). `additionalProperties: false`
+  würde ebenfalls greifen; der Hook läuft aber als **erster** in der Kette — vor
+  Sequenznummer und TSE-Start — und nennt beim Namen, was zu tun ist.
 - **POS:** `applyCorporateCustomer` schreibt den Vertragsrabatt des Firmenkunden als
   `AppliedDiscount` (`discountId: null`, Name = Kundenname) und **ersetzt** die
-  bestehende Liste — konsistent zu `applyDiscount`/`applyStaffMeal`. Der Legacy-Spiegel
-  in `order.service.ts` und im Bestelldialog ist entfallen.
+  bestehende Liste — konsistent zu `applyDiscount`/`applyStaffMeal`.
+- **`discountSchema` / `Discount` bleiben** in `@panary/orders/domain`: Sie beschreiben
+  das Konditionen-Shape der **Stammdaten** (`discountDetails` an Kunde, Firmenkunde,
+  User, Filiale), aus dem der POS den Snapshot baut — nicht mehr ein Feld der Order.
 - **Reihenfolge:** erst LINE-Rabatte (auf der jeweiligen Position, summen-exakt
   über die Steuer-Atome verteilt), dann ORDER-Rabatte auf die Restsumme.
   Festbeträge via Largest-Remainder. `computedAmountCents` wird von der Engine
   zurückgeschrieben. Tax-Integrität (netto + steuer = brutto) bleibt pro Satz.
+
+#### Erkennung von Bestands-Orders
+
+🚨 **Kein automatischer Repair.** Abgeschlossene bzw. TSE-signierte Vorgänge werden nach
+KassenSichV nicht stillschweigend umgeschrieben — Treffer werden **berichtet**, nicht
+korrigiert. Am Edge ist die Spalte mit der Migration weg; die Erkennung läuft deshalb auf
+der Cloud-MongoDB, wo die gepushten Orders liegen (Zugang: ephemerer SSH-Tunnel, siehe
+Betriebsdoku):
+
+```js
+// Bestand mit gesetztem Legacy-Rabatt (wirkungslos, sobald appliedDiscounts existiert)
+db.orders.countDocuments({ discount: { $ne: null, $exists: true } })
+
+db.orders
+  .find(
+    { discount: { $ne: null, $exists: true } },
+    { _id: 1, tenantId: 1, locationId: 1, createdAt: 1, discount: 1, appliedDiscounts: 1, 'taxSnapshot.brutto': 1 },
+  )
+  .sort({ createdAt: 1 })
+  .limit(50)
+```
+
+Ein Treffer mit **nicht-leerem** `appliedDiscounts` ist der Fall aus #181: Der
+gespeicherte `discount` war schon vor der Entfernung wirkungslos, der `taxSnapshot`
+stimmt also weiterhin. Ein Treffer **ohne** `appliedDiscounts` hatte einen wirksamen
+Legacy-Rabatt — dort ist der `taxSnapshot` korrekt, aber die Rabattherkunft ist nach der
+Feld-Entfernung nicht mehr auslesbar.
 
 ### Rabatt-KPI im Tagesabschluss
 
 `aggregateFinancials` (`@panary/businessdays/aggregator → financials.ts`) zählt
 `appliedDiscounts` und summiert deren `computedAmountCents` — den von
 `computeOrderTax` zurückgeschriebenen, tatsächlich abgezogenen Brutto-Betrag. Eine
-Rückrechnung wie beim Legacy-Pfad ist damit nicht nötig.
+Eine Rückrechnung ist damit nicht nötig.
 
 - **`discountsCount` ist PRO ORDER**, nicht pro Rabatt-Eintrag: Der Wert speist die
   Quote rabattierter Bestellungen. Eine Order mit zwei Rabatten ist eine rabattierte
   Order, nicht zwei.
-- **Legacy-Fallback** (`order.discount`) bleibt für Bestands-Orders und entfällt mit
-  dem Feld selbst. Bei PERCENT wird der Abzug aus dem bereits rabattierten Brutto
-  zurückgerechnet (`gross × p / (100 − p)`), bei AMOUNT steht er direkt im Feld (Euro).
 - Bestands-Orders ohne Engine-Durchlauf tragen `computedAmountCents: 0` und zählen als
   rabattiert mit 0 € — statt mit einer geratenen Summe.
 
-Bis 2026-08-13 las die Aggregation **ausschließlich** `order.discount`. Da der Mutex
-genau dieses Feld leert, sobald `appliedDiscounts` gesetzt sind, zählte jeder über den
-POS gewährte Rabatt als **0 Rabatte / 0,00 €** — im Z-Bon, in der Rabatt-Quote und in
-der Cloud-Karte „Finanzen".
+Bis 2026-08-13 las die Aggregation **ausschließlich** das inzwischen entfernte
+`order.discount`. Da der Mutex genau dieses Feld leerte, sobald `appliedDiscounts`
+gesetzt waren, zählte jeder über den POS gewährte Rabatt als **0 Rabatte / 0,00 €** —
+im Z-Bon, in der Rabatt-Quote und in der Cloud-Karte „Finanzen".
 
 ⚠️ **Cloud-Seite offen** (panary/panary-cloud#253): `LIVE_KPI_ORDER_PROJECTION`
 schneidet `appliedDiscounts` noch weg. Beim nächsten Pin-Bump muss das Feld in die

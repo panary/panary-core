@@ -413,12 +413,9 @@ export class ActiveOrdersComponent {
     }
     // Personalessen ist rabatt-exklusiv (assertStaffMealDiscountExclusivity): der
     // zugewiesene Rabatt ersetzt alles, was vorher auf der Bestellung lag — sonst
-    // lehnt der Exklusivitäts-Hook den Patch mit 400 ab. Der Legacy-Spiegel
-    // `discount` wird mitgeleert, weil er sonst als Tax-Fallback weiterwirkt,
-    // sobald appliedDiscounts leer bleibt.
+    // lehnt der Exklusivitäts-Hook den Patch mit 400 ab.
     const assigned = this.#resolveAssignedStaffMealDiscount(user)
     patch.appliedDiscounts = assigned ? [assigned] : []
-    patch.discount = null
     try {
       await this.#orderService.patch(order._id, patch)
       this.selectedOrderId.set(null)
@@ -519,8 +516,7 @@ export class ActiveOrdersComponent {
    * Wendet einen gepflegten Rabatt auf die Bestellung an.
    *
    * Schreibt einen `appliedDiscounts`-Snapshot mit `discountId` (nachvollziehbar,
-   * auswertbar) statt des früheren Legacy-`discount` mit freiem Prozentwert. Der
-   * Legacy-Spiegel wird mitgeleert, sonst wirkte er als Tax-Fallback weiter.
+   * auswertbar) statt des früheren Legacy-`discount` mit freiem Prozentwert.
    */
   async applyDiscount(order: Order, discount: ManagedDiscount) {
     try {
@@ -541,7 +537,6 @@ export class ActiveOrdersComponent {
             isStaffMeal: false,
           },
         ],
-        discount: null,
       } as never)
       this.resetOverlay()
       this.#snackBar.open(
@@ -594,9 +589,6 @@ export class ActiveOrdersComponent {
     const contractDiscount = this.#toCorporateAppliedDiscount(customer)
     if (contractDiscount) {
       patch.appliedDiscounts = [contractDiscount]
-      // Alt-Wert aus der Zeit vor der Umstellung mitleeren; `null` ist erlaubt,
-      // nur das SETZEN eines Legacy-Rabatts lehnt der Server ab.
-      patch.discount = null
     }
     try {
       await this.#orderService.patch(order._id, patch)
@@ -632,8 +624,7 @@ export class ActiveOrdersComponent {
       target: 'order',
       valueType: d.discountType,
       valuePercent: d.discountType === 'percent' ? d.discount : 0,
-      // Legacy-Festbeträge stehen in Euro (so rechnete `applyLegacyDiscount`),
-      // `valueCents` ist Integer-Cent.
+      // Die Konditionen der Stammdaten stehen in Euro, `valueCents` ist Integer-Cent.
       valueCents: d.discountType === 'amount' ? Math.round(d.discount * 100) : 0,
       computedAmountCents: 0,
       appliedBy: this.#authService.user()?._id ?? null,

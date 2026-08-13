@@ -177,16 +177,6 @@ describe('applyAutomaticDiscounts — Guards', () => {
     expect(order.appliedDiscounts).toEqual([manual])
   })
 
-  it('greift NICHT, wenn der Legacy-Order-Rabatt (order.discount) gesetzt ist', async () => {
-    const order = makeOrder({ discount: { discountType: 'percent', discount: 10 } })
-    const { ctx, find } = makeContext(order, [amt5()])
-
-    await applyAutomaticDiscounts(ctx)
-
-    expect(find).not.toHaveBeenCalled()
-    expect(order.appliedDiscounts).toBeUndefined()
-  })
-
   it('greift NICHT bei Personalessen — auch wenn die Order noch gar keinen Rabatt trägt', async () => {
     // Personalessen ist rabatt-exklusiv (staff-meal-exclusivity.ts). Trifft der
     // Fallback „zugewiesener Rabatt archiviert → ohne Rabatt", darf hier kein

@@ -97,9 +97,9 @@ describe('financials', () => {
     expect(r1).toEqual(r2)
   })
 
-  // Bis ADR 0030 las die Aggregation ausschliesslich `order.discount`. Da der
-  // discount-mutex das Feld leert, sobald appliedDiscounts gesetzt sind, zaehlte
-  // jeder ueber den POS gewaehrte Rabatt als 0 Rabatte / 0,00 €.
+  // `appliedDiscounts` ist die einzige Rabattquelle (ADR 0030). Vorher las die
+  // Aggregation ausschliesslich das inzwischen entfernte `order.discount` und zaehlte
+  // deshalb jeden ueber den POS gewaehrten Rabatt als 0 Rabatte / 0,00 €.
   describe('Rabatt-KPI', () => {
     it('zaehlt appliedDiscounts ueber computedAmountCents', () => {
       const orders = [makeOrder({ grossAmount: 9, appliedDiscounts: [makeAppliedDiscount(100)] })]
@@ -133,36 +133,6 @@ describe('financials', () => {
       const r = aggregateFinancials([makeOrder({ grossAmount: 10, appliedDiscounts: [makeAppliedDiscount(0)] })])
       expect(r.discountsCount).toBe(1)
       expect(r.discountsCents).toBe(0)
-    })
-
-    describe('Legacy-Fallback (Bestands-Orders vor ADR 0030)', () => {
-      it('AMOUNT: Festbetrag direkt in Cents', () => {
-        const r = aggregateFinancials([
-          makeOrder({ grossAmount: 10, discount: { discountType: 'amount', discount: 2.5 } }),
-        ])
-        expect(r.discountsCount).toBe(1)
-        expect(r.discountsCents).toBe(250)
-      })
-
-      it('PERCENT: Abzug wird aus dem bereits rabattierten Brutto zurueckgerechnet', () => {
-        // 10,00 € nach 20 % Rabatt → Abzug = 1000 × 20 / 80 = 250 Cents.
-        const r = aggregateFinancials([
-          makeOrder({ grossAmount: 10, discount: { discountType: 'percent', discount: 20 } }),
-        ])
-        expect(r.discountsCents).toBe(250)
-      })
-
-      it('appliedDiscounts gewinnt gegen einen gleichzeitig gesetzten Legacy-Wert', () => {
-        const r = aggregateFinancials([
-          makeOrder({
-            grossAmount: 10,
-            discount: { discountType: 'amount', discount: 99 },
-            appliedDiscounts: [makeAppliedDiscount(100)],
-          }),
-        ])
-        expect(r.discountsCount).toBe(1)
-        expect(r.discountsCents).toBe(100)
-      })
     })
   })
 })

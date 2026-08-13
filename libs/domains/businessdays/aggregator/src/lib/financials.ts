@@ -255,15 +255,11 @@ export function aggregateFinancials(
       payments.otherCents += orderGross - orderTip
     }
 
-    // Rabatt-Zählung. `appliedDiscounts` ist führend (ADR 0030) — bis zu dieser
-    // Änderung las die Aggregation AUSSCHLIESSLICH `order.discount`. Da der
-    // discount-mutex das Legacy-Feld leert, sobald appliedDiscounts gesetzt sind,
-    // zählte jeder über den POS gewährte Rabatt als 0 Rabatte / 0,00 €.
+    // Rabatt-Zählung über `appliedDiscounts` — die einzige Rabattquelle (ADR 0030).
     //
-    // `discountsCount` bleibt bewusst PRO ORDER (nicht pro Rabatt-Eintrag): Der
-    // Wert speist die Rabatt-Quote der Cloud-Auswertung, also den Anteil
-    // rabattierter Bestellungen. Eine Order mit zwei Rabatten ist eine
-    // rabattierte Order, nicht zwei.
+    // `discountsCount` ist bewusst PRO ORDER (nicht pro Rabatt-Eintrag): Der Wert
+    // speist die Rabatt-Quote der Cloud-Auswertung, also den Anteil rabattierter
+    // Bestellungen. Eine Order mit zwei Rabatten ist eine rabattierte Order, nicht zwei.
     const applied = Array.isArray(order.appliedDiscounts) ? order.appliedDiscounts : []
     if (applied.length > 0) {
       discountsCount++
@@ -272,17 +268,6 @@ export function aggregateFinancials(
       // Bestands-Orders ohne Engine-Durchlauf steht dort 0; dann zählt die Order
       // als rabattiert mit 0 € statt mit einer geratenen Summe.
       for (const ad of applied) discountsCents += Math.max(0, Math.round(ad.computedAmountCents ?? 0))
-    } else if (order.discount) {
-      // Legacy-Fallback für Bestands-Orders von vor der Umstellung. Entfällt mit
-      // dem Feld selbst (Schritt 3 von panary/panary-core#181).
-      discountsCount++
-      // `orderGross` ist der bereits rabattierte Brutto-Wert; bei PERCENT wird der
-      // Abzug daraus zurückgerechnet, bei AMOUNT steht er direkt im Feld (Euro).
-      if (order.discount.discountType === 'amount') {
-        discountsCents += toCents(order.discount.discount)
-      } else {
-        discountsCents += Math.round((orderGross * order.discount.discount) / (100 - order.discount.discount))
-      }
     }
 
     // Personalessen / Firmenkundenessen bleiben hier IM grossTotal —

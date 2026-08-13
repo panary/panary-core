@@ -29,9 +29,7 @@ export interface MakeOrderOptions {
   recordingDate?: string
   createdBy?: string
   lineItems?: Order['lineItems']
-  /** Legacy-Rabattfeld — nur noch fuer Bestands-Orders relevant (ADR 0030). */
-  discount?: Order['discount']
-  /** Fuehrende Rabattquelle. `computedAmountCents` ist der abgezogene Brutto-Betrag. */
+  /** Einzige Rabattquelle. `computedAmountCents` ist der abgezogene Brutto-Betrag. */
   appliedDiscounts?: Order['appliedDiscounts']
 }
 
@@ -80,7 +78,6 @@ export function makeOrder(opts: MakeOrderOptions = {}): Order {
           ? { customerId: id(), customerName: 'Corp Inc', isPaid: opts.customerPaymentInfo.paid }
           : null
         : null,
-    discount: opts.discount ?? null,
     ...(opts.appliedDiscounts ? { appliedDiscounts: opts.appliedDiscounts } : {}),
     staffPaymentInfo:
       opts.staffPaymentInfo !== undefined

@@ -80,15 +80,25 @@ eines fiskalisch relevanten Feldes deutlich teurer.
   Firmenkunden nicht mehr zuweisen (der `400` verwirft den ganzen Patch, auch
   `customerPaymentInfo`). Der POS-Build muss vor dem Pre-Production-Test mit ausgerollt
   werden.
-- Der Tagesabschluss-Aggregator (`financials.ts`) liest die Rabatt-KPI bisher
-  **ausschließlich** aus `order.discount` und kennt `appliedDiscounts` nicht. Da der
-  Mutex `discount` leert, zählt jeder über den POS gewährte Rabatt heute als
-  **0 Rabatte / 0,00 €** — im Z-Bon, in `discountRatePercent` und in der Cloud-Karte
-  „Finanzen". Dasselbe gilt für `LIVE_KPI_ORDER_PROJECTION` in panary-cloud. Beides wird
-  im Zuge dieser Entscheidung nachgezogen, bevor das Feld verschwindet.
+- Der Tagesabschluss-Aggregator (`financials.ts`) las die Rabatt-KPI **ausschließlich**
+  aus `order.discount` und kannte `appliedDiscounts` nicht. Da der Mutex `discount`
+  leerte, zählte jeder über den POS gewährte Rabatt als **0 Rabatte / 0,00 €** — im
+  Z-Bon, in `discountRatePercent` und in der Cloud-Karte „Finanzen". Am Edge behoben;
+  in panary-cloud fehlt `appliedDiscounts` noch in `LIVE_KPI_ORDER_PROJECTION`
+  (panary/panary-cloud#253).
 - Die Entfernung von `discount` aus `orderSchema`, `computeOrderTax`, Sync-Feldliste,
-  `ORDER_JSON_FIELDS` und der SQLite-Migration ist ein Breaking Change am Order-Schema
+  `ORDER_JSON_FIELDS` und der SQLite-Tabelle ist ein Breaking Change am Order-Schema
   und braucht einen Core-Release plus Pin-Bump in panary-cloud.
+- ⚠️ **Der Pin-Bump kann Sync-Pushes TERMINAL rejecten.** `orderCloudSchema` wird aus
+  dem Core-`orderSchema` gebaut, beide tragen `additionalProperties: false`. Ein Edge,
+  der noch `discount` mitschickt, scheitert dann an `validateData` mit `400` — und im
+  Sync-Apply ist ein `400` terminal. `validateData` läuft unabhängig vom `provider`,
+  der Ausnahmepfad für interne Aufrufe greift dort also nicht. Die Cloud braucht einen
+  Strip-Hook **vor** dem Bump (panary/panary-cloud#253).
+- Seit der Entfernung lehnt der Guard auch `discount: null` ab. Solange das Feld
+  existierte, war das Leeren der Migrationspfad; jetzt gibt es keinen erlaubten Wert
+  mehr, und ein Guard, der ausgerechnet `null` durchwinkt, ließe genau die unklare
+  Fehlermeldung übrig, die er verhindern soll.
 - 🚨 **Kein stiller Repair.** Bestands-Orders mit gesetztem `discount` werden vor der
   Feld-Entfernung erkannt und **berichtet**, nicht umgeschrieben — abgeschlossene bzw.
   signierte Vorgänge sind nach KassenSichV unveränderbar.

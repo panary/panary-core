@@ -6,7 +6,6 @@ const ORDER_JSON_FIELDS = [
   'lineItems',
   'cancellation',
   'customerPaymentInfo',
-  'discount',
   'appliedDiscounts',
   'staffPaymentInfo',
   'taxSnapshot',

@@ -1,66 +1,44 @@
-import { AppliedDiscount, Discount } from '../order.schema'
+import { Discount } from '../order.schema'
 
-// Invariante „discount-mutex" — Abschaffung des Legacy-Rabattfelds.
+// Nachhut der abgeschafften Rabatt-Doppelung (ADR 0030).
 //
-// Eine Order kannte zwei Rabattquellen (siehe compute-order-tax.ts):
-//   1. `appliedDiscounts[]` — das Modell; ist es nicht-leer, ist es fuer
-//      Tax-Engine UND Bon-Renderer FUEHREND (`order.discount` wird ignoriert).
-//   2. `discount` — Legacy-Einzel-Order-Rabatt (Fallback, nur wenn appliedDiscounts leer).
+// Eine Order kannte zwei Rabattquellen: `appliedDiscounts[]` (führend) und `discount`
+// (Legacy-Einzelrabatt, Fallback). Der frühere „discount-mutex" leerte `discount`,
+// sobald `appliedDiscounts` geschrieben wurden — entschied das aber allein am
+// eingehenden Payload und sah deshalb nicht, wenn ein Flow nur `{ discount }` auf eine
+// Order patchte, die den gespeicherten Vorzustand bereits trug. Ergebnis war ein
+// persistierter Rabatt ohne Wirkung auf Preis, `taxSnapshot` und Bon
+// (panary/panary-core#181).
 //
-// Zwei Quellen fuer dieselbe Aussage sind mehrdeutig („welcher Rabatt gilt?"), und die
-// Mehrdeutigkeit war nicht theoretisch: Patchte ein Flow nur `{ discount }` auf eine
-// Order, die in der DB bereits `appliedDiscounts` trug, wurde der Legacy-Wert
-// gespeichert, aber von der Engine ignoriert — ein persistierter Rabatt ohne Wirkung
-// auf Preis, `taxSnapshot` und Bon (panary/panary-core#181). Der frueher hier
-// implementierte Payload-Vergleich konnte das nicht sehen, weil er den gespeicherten
-// Vorzustand nicht kannte.
+// `discount` ist inzwischen aus `orderSchema`, der Engine, der Sync-Feldliste und der
+// SQLite-Tabelle entfernt; `clearLegacyDiscountIfApplied` ist damit gegenstandslos und
+// entfallen. Übrig bleibt der Guard.
 //
-// Entscheidung (ADR 0030): keine Kombinationsregel, sondern Abschaffung. Es gibt genau
-// eine Rabattquelle, und das ist `appliedDiscounts`.
+// Der Guard ist bewusst NICHT durch `additionalProperties: false` ersetzt worden,
+// obwohl `validateData` das Feld ohnehin abwiese: Er läuft als erster Hook — vor
+// Sequenznummer und TSE-Start — und nennt beim Namen, was zu tun ist, statt eine
+// generische Schema-Verletzung zu melden.
 //
-// Daraus folgen die zwei Funktionen unten — bewusst mit unterschiedlicher Haerte:
-//
-//   * EXTERN (echte Clients): `findLegacyDiscountWrite` → der Schreibzugriff wird
-//     sichtbar mit 400 abgelehnt. Stilles Strippen waere die gleiche Fehlerklasse wie
-//     vorher: Ein Client meldet einen Rabatt an, der Server verwirft ihn wortlos.
-//   * INTERN (Sync-Apply, Migrations-Pfade): `clearLegacyDiscountIfApplied` — der
-//     bisherige Mutex bleibt. Ein 400 waere im Sync-Apply TERMINAL (rejected ohne
-//     Retry); Bestandsdaten von Alt-Edges wuerden dauerhaft haengenbleiben. Alt-Werte
-//     werden dort weiter still bereinigt, sobald `appliedDiscounts` mitkommt.
-
-/**
- * Liefert den fuer den `discount`-Data-Resolver (create/patch) aufzuloesenden Wert:
- * `null`, sobald die Order eine nicht-leere `appliedDiscounts`-Liste traegt, sonst
- * der unveraenderte Eingangswert.
- *
- * Rueckgabe `null` (nicht `undefined`), damit ein PATCH einen bereits gespeicherten
- * Legacy-`discount` tatsaechlich ueberschreibt — ein `undefined`-Resolver-Ergebnis
- * wuerde das Feld nur weglassen und den Alt-Wert in der DB stehen lassen.
- */
-export function clearLegacyDiscountIfApplied(
-  value: Discount | null | undefined,
-  data: { appliedDiscounts?: AppliedDiscount[] | null },
-): Discount | null | undefined {
-  const hasApplied = Array.isArray(data.appliedDiscounts) && data.appliedDiscounts.length > 0
-  return hasApplied ? null : value
-}
+// Er feuert auf die ANWESENHEIT des Schlüssels, nicht auf einen Wert. Solange das Feld
+// noch existierte, war `discount: null` erlaubt (Migrationspfad: Alt-Wert leeren) —
+// seit der Entfernung lehnt das Schema auch `null` ab, und ein Guard, der ausgerechnet
+// diesen Fall durchwinkt, würde die eine unklare Fehlermeldung übrig lassen, die er
+// verhindern soll.
 
 export interface LegacyDiscountWriteInput {
   discount?: Discount | null
 }
 
 /**
- * Liefert eine Fehlerbeschreibung, wenn ein Schreibzugriff den abgeschafften
- * Legacy-`discount` mit einem Wert belegt — sonst `null`. Nicht-werfend, damit
+ * Liefert eine Fehlerbeschreibung, wenn ein Schreibzugriff das abgeschaffte
+ * Legacy-Feld `discount` überhaupt mitschickt — sonst `null`. Nicht-werfend, damit
  * UI-Code den Zustand abfragen kann, ohne try/catch zu bauen.
  *
- * `discount: null` und `discount: undefined` sind ausdruecklich erlaubt: Das LEEREN
- * eines Alt-Werts ist der Migrationspfad, nicht sein Gegenteil. Die POS-Flows senden
- * es beim Rabattieren mit, damit ein vor der Umstellung gespeicherter Legacy-Wert
- * verschwindet.
+ * Ausschlaggebend ist die ANWESENHEIT des Schlüssels — auch `discount: null` wird
+ * abgelehnt, weil das Feld nicht mehr existiert.
  */
 export function findLegacyDiscountWrite(data: LegacyDiscountWriteInput | null | undefined): string | null {
-  if (!data?.discount) return null
+  if (!data || typeof data !== 'object' || !('discount' in data)) return null
   return (
     'Das Feld `discount` ist abgeschafft und wird nicht mehr angenommen. ' +
     'Rabatte gehoeren als Snapshot nach `appliedDiscounts`.'

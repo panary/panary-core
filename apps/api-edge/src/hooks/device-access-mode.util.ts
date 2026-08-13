@@ -73,8 +73,17 @@ export const resolveDeviceAccessScope = async (context: HookContext): Promise<Ho
  * `resolveDeviceAccessScope` im selben Request gelaufen ist — ohne den Hook
  * gaebe es keine Einschraenkung, deshalb ist `null` auch der Default.
  */
-export const getDeviceAccessScope = (context: HookContext): string[] | null =>
-  (context.params as ScopedParams)[SCOPE_PARAM] ?? null
+export const getDeviceAccessScope = (context: HookContext): string[] | null => readDeviceAccessScope(context.params)
+
+/**
+ * Dasselbe fuer Aufrufer, die nur `params` haben statt eines HookContext — die
+ * Custom-Methods des users-Service (checkin/checkout/startBreak/endBreak,
+ * panary/panary-core#189) bekommen `params` direkt herein und nie einen
+ * Context. Eigener Export statt `params.deviceAccessScope` an der Aufrufstelle,
+ * damit der Feldname genau hier definiert bleibt.
+ */
+export const readDeviceAccessScope = (params: unknown): string[] | null =>
+  (params as ScopedParams | undefined)?.[SCOPE_PARAM] ?? null
 
 /**
  * Liefert die User-IDs, die sich an diesem Geraet anmelden duerfen — oder

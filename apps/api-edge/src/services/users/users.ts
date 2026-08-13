@@ -15,7 +15,7 @@ import {
 } from './users.schema'
 
 import type { Application } from '../../declarations'
-import type { User } from './users.class'
+import type { User, UserParams } from './users.class'
 import { authorize } from '@panary/shared-backend'
 import { multiTenancy } from '@panary/shared-backend'
 import { getJsonFieldHooks } from '@panary/shared-backend'
@@ -23,8 +23,12 @@ import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { restrictUserSelfPatch } from '../../hooks/restrict-user-self-patch.hook'
 import { restrictPermissionGrants } from '../../hooks/restrict-permission-grants.hook'
 import { restrictDeviceAccessMode } from '../../hooks/restrict-device-access-mode.hook'
-import { resolveDeviceAccessScope } from '../../hooks/device-access-mode.util'
+import { readDeviceAccessScope, resolveDeviceAccessScope } from '../../hooks/device-access-mode.util'
 import { isLoginBlockedByStatus } from '../../utils/user-login-status'
+import { assertTimeClockAccess, type TimeClockActor } from './time-clock-scope'
+
+/** Params-Ausschnitt der Stempel-Methoden — siehe assertTimeClockScope unten. */
+type TimeClockParams = UserParams & { user?: TimeClockActor; deviceAccessScope?: string[] | null }
 
 const USER_JSON_FIELDS = ['discountDetails', 'allowedLocationIds', 'permissions']
 import { DatabaseType } from '@panary/shared-common'
@@ -84,10 +88,23 @@ export const users = (app: Application) => {
     id: '_id',
   }) as any
 
+  // Aufrufer-Scope der vier Stempel-Methoden (#189). Die Pruefung steht in
+  // jeder Methode unmittelbar nach dem `get` — also vor jedem Schreibvorgang
+  // UND vor jeder Vorbedingung: Kaeme sie danach, unterschiede „bereits
+  // eingestempelt" von „nicht eingestempelt" und waere ein Zustands-Oracle
+  // ueber fremde Mitarbeiter. Begruendung: time-clock-scope.ts.
+  //
+  // `UserParams` allein reicht als Typ nicht: Es kennt weder `user` (dieselbe
+  // Luecke, die changePin unten mit einem eigenen Inline-Typ ausgleicht) noch
+  // den vom before.all-Hook abgelegten `deviceAccessScope`.
+  const assertTimeClockScope = (user: User, params?: TimeClockParams) =>
+    assertTimeClockAccess(params?.user, user, { deviceAccessScope: readDeviceAccessScope(params) })
+
   // Custom method: checkin — creates a working-time entry and stamps the user
-  service.checkin = async (data: string | { userId: string }) => {
+  service.checkin = async (data: string | { userId: string }, params?: TimeClockParams) => {
     const userId = typeof data === 'string' ? data : data.userId
     const user = await app.service('users').get(userId, { provider: undefined })
+    assertTimeClockScope(user, params)
     if (user.stampingId) throw new Conflict('Benutzer ist bereits eingestempelt')
 
     // Determine businessDay from the user's active location
@@ -118,9 +135,10 @@ export const users = (app: Application) => {
   }
 
   // Custom method: checkout — closes the working-time entry and clears the stamp
-  service.checkout = async (data: string | { userId: string }) => {
+  service.checkout = async (data: string | { userId: string }, params?: TimeClockParams) => {
     const userId = typeof data === 'string' ? data : data.userId
     const user = await app.service('users').get(userId, { provider: undefined })
+    assertTimeClockScope(user, params)
     if (!user.stampingId) throw new Conflict('Benutzer ist nicht eingestempelt')
     const now = new Date().toISOString()
     await app
@@ -130,18 +148,20 @@ export const users = (app: Application) => {
   }
 
   // Custom method: startBreak — records break start time on the user
-  service.startBreak = async (data: string | { userId: string }) => {
+  service.startBreak = async (data: string | { userId: string }, params?: TimeClockParams) => {
     const userId = typeof data === 'string' ? data : data.userId
     const user = await app.service('users').get(userId, { provider: undefined })
+    assertTimeClockScope(user, params)
     if (!user.stampingId) throw new Conflict('Benutzer ist nicht eingestempelt')
     if (user.startBreakAt) throw new Conflict('Benutzer ist bereits in der Pause')
     return app.service('users').patch(userId, { startBreakAt: new Date().toISOString() }, { provider: undefined })
   }
 
   // Custom method: endBreak — appends break to working-time and clears break start
-  service.endBreak = async (data: string | { userId: string }) => {
+  service.endBreak = async (data: string | { userId: string }, params?: TimeClockParams) => {
     const userId = typeof data === 'string' ? data : data.userId
     const user = await app.service('users').get(userId, { provider: undefined })
+    assertTimeClockScope(user, params)
     if (!user.stampingId) throw new Conflict('Benutzer ist nicht eingestempelt')
     if (!user.startBreakAt) throw new Conflict('Benutzer ist nicht in der Pause')
     const workingTime = await app.service('working-times').get(user.stampingId, { provider: undefined })
@@ -338,6 +358,12 @@ export const users = (app: Application) => {
       // Login-Screen anzeigt. Diese beiden Methoden sind ueber den
       // Geraete-Socket direkt erreichbar und brauchen deshalb ihre eigene
       // Pruefung — vor dem bcrypt-Vergleich in der Methode.
+      //
+      // 🚫 NICHT auf checkin/checkout/startBreak/endBreak ziehen (#189): Der
+      // Hook traegt eine PIN-Tarnung (wortgleiche Ablehnung + `recordPinFailure`)
+      // und wuerde an einem Stempel-Aufruf den PIN-Lockout eines Kollegen
+      // ausloesen, ohne dass je eine PIN im Spiel war — ein DoS-Vektor, den es
+      // vorher nicht gab. Die Geraete-Zuweisung prueft dort `assertTimeClockAccess`.
       verifyPin: [restrictDeviceAccessMode],
       changePin: [restrictDeviceAccessMode],
     },

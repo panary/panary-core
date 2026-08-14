@@ -38,13 +38,6 @@
         "generatePackageJson": false,
         "compiler": "tsc"
       }
-    },
-    "test": {
-      "executor": "@nx/vite:test",
-      "outputs": ["{workspaceRoot}/coverage/libs/domains/businessdays/aggregator"],
-      "options": {
-        "configFile": "libs/domains/businessdays/aggregator/vitest.config.ts"
-      }
     }
   }
 }

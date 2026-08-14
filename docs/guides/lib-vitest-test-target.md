@@ -85,12 +85,25 @@ export default defineConfig(() => ({
 >
 > ✅ **Seit [#210](https://github.com/panary/panary-core/issues/210) hängt daran ein Gate**
 > (`pnpm targets:overrides:gate`, in der CI neben dem Leerstands-Gate). Es bricht ab, sobald
-> eine `project.json` ein `lint`, `typecheck`, `test-ci`, `build-deps` oder `watch-deps`
-> selbst deklariert — die Namen liest es aus `nx.json`, nicht hartkodiert, damit eine
-> Umbenennung wie in #204 es mitzieht. **`build` und `test` bewacht es bewusst nicht:**
-> Dort gibt es legitime explizite Targets (98 bzw. 5 im Bestand), ein Gate darauf hätte fast
-> nur Fehlalarme. Ein handgeschriebenes `test`-Target fängt also weiterhin niemand außer
-> dem Leser dieser Zeilen.
+> eine `project.json` ein `lint`, `typecheck`, `test`, `test-ci`, `build-deps` oder
+> `watch-deps` selbst deklariert — die Namen liest es aus `nx.json`, nicht hartkodiert, damit
+> eine Umbenennung wie in #204 es mitzieht.
+>
+> **`test` kam mit [#213](https://github.com/panary/panary-core/issues/213) dazu**, und der
+> Anlass korrigiert die vorherige Einschätzung: #210 hatte `test` mit „5 legitime Fälle, null
+> echte Funde" ausgenommen. Zwei der fünf waren jedoch echte Drift, und zwar teure —
+> `businessdays-aggregator` und `orders-feature-pos-order-dialog` deklarierten `test` mit
+> `@nx/vite:test`, für den es **kein `targetDefaults`** gibt. Ohne `cache` und `inputs` liefen
+> ihre Tests bei **jedem** CI-Lauf neu (gemessen: unveränderter zweiter Lauf → 162 Tests
+> erneut ausgeführt; nach dem Entfernen → „Nx read the output from the cache").
+>
+> Die drei Angular-Apps bleiben erlaubt, aber nicht über eine Projektliste: Das Gate führt
+> eine **Executor-Allowlist** (`test` → `@angular/build:unit-test`). Eine vierte Angular-App
+> muss deshalb nichts quittieren, ein `@nx/vite:test` schlägt weiterhin an.
+>
+> ⚠️ **`build` bleibt ungeprüft** — 98 legitime Fälle, viele davon generisches
+> `nx:run-commands`, an dem eine Executor-Allowlist nichts unterscheiden könnte. Das Gate
+> druckt seine Lücken bei jedem Lauf mit aus, damit die Abdeckung nicht überschätzt wird.
 
 Gegenprobe nach dem Anlegen — das Delta im Projektgraphen muss **genau `test`** sein,
 sonst hat man nebenbei etwas anderes verändert:

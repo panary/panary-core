@@ -154,3 +154,86 @@ Regeln:
 - **Pressed-Zustand** nur für echte Toggles (OHNE): kräftigere Tönung + dunklerer Rahmen +
   `aria-pressed`. One-Shot-Tasten (ÜBERSPRINGEN etc.) bekommen nur momentanes
   `active:`-Feedback.
+
+---
+
+## 10. Spec-Isolation: Aufzeichnungsobjekte gehören in den Test, nicht in den `describe`-Scope
+
+> 🚨 **Ein `let recorder` im `describe`-Scope, das `beforeEach` neu zuweist, verwandelt jeden
+> Timeout in einen zweiten, inhaltlich falschen Fehler in einem anderen Test.**
+
+Der Reflex ist verbreitet und sieht harmlos aus:
+
+```ts
+// FALSCH — der Mock schreibt in die AKTUELLE Bindung, nicht in die von damals
+describe('X', () => {
+  let calls: Call[]
+  beforeEach(() => {
+    calls = []
+  })
+  // … Mock pusht in `calls` …
+})
+```
+
+**Warum das bricht:** Vitest bricht beim Timeout den **Test** ab, nicht die laufende
+Promise-Kette. Die kommt später zurück und ruft ihre Mocks weiter auf — die schreiben in
+`calls`, und `calls` zeigt inzwischen auf das Array des **nächsten** Tests. Der zählt einen
+Aufruf zu viel und scheitert mit einer Meldung, die mit ihm nichts zu tun hat. Wer sie liest,
+sucht den Fehler in der Produktionslogik; er sitzt in der Testisolation.
+
+```ts
+// RICHTIG — der Mock schliesst über DIESE Instanz; ein Nachzuegler schreibt in sein
+// eigenes, totes Objekt und erreicht den naechsten Test nicht mehr
+function createRecorder() {
+  return { calls: [] as Call[], purgeCalled: false }
+}
+
+it('…', async () => {
+  const rec = createRecorder()
+  installMocks(rec)
+  // …
+})
+```
+
+**Ein `vi.fn()` im `describe`-Scope ist derselbe Fall.** Das ist die Form, in der das Muster in
+core auftritt — `mock.calls` **ist** ein Aufzeichnungsarray, nur von Vitest geführt statt selbst
+geschrieben. Ein `beforeEach`, das `findMock = vi.fn()` neu zuweist, lässt einen Nachzügler aus
+Test 1 in das Handle von Test 2 schreiben, und dessen `mock.calls[0]` ist dann fremd. Wer
+`mock.calls`/`mock.results` auswertet, legt das Handle deshalb **im Test** an.
+
+**Herkunft: gemessen in panary-cloud, nicht hier.** Der Fall ist in
+panary/panary-cloud#241 aufgeschlagen (Timeout in `storefront-publish.spec.ts` T1 → Folgefehler
+`expected [...] to have a length of 1 but got 2` in T2), dort mit erzwungenem Timeout wortgleich
+reproduziert und als Regressionstest festgehalten. Die Mechanik ist reine Vitest-Semantik und
+gilt in core unverändert; die Regel steht hier, damit sie beim Schreiben neuer Specs gefunden
+wird — nicht, weil core einen eigenen Vorfall hätte.
+
+**Der Timeout ist nicht die Ursache.** Ihn hochzudrehen macht die Kaskade seltener, nicht
+falsch — Schritt 1 ist immer der Recorder. **Kein pauschales `testTimeout`** in einer
+`vitest.config.mts`: Das nähme allen anderen Specs die schnelle Fehlermeldung. Wo ein
+Suite-Timeout wirklich nötig ist (`describe('X', { timeout: 30_000 }, …)`), gehört die
+Begründung daneben — und zwar eine gemessene, nicht „ist manchmal langsam".
+
+**Betroffen ist nur, wer eine abbrechbare async-Kette startet.** Eine Spec, deren Test synchron
+durchläuft, hat keine Nachzügler — dort ist die geteilte Bindung folgenlos, aber auch nicht
+billiger. Bei **neuen** Specs deshalb ausnahmslos je Test anlegen.
+
+**Bestand (gemessen am 2026-08-14, 159 Spec-Dateien in `apps/` + `libs/`):** Das klassische
+Recorder-Array gibt es in core **nicht** — 0 Treffer. Sechs Specs weisen eine
+`describe`-Scope-Bindung in `beforeEach` neu zu, überwiegend die Instanz des Systems under Test
+(`libs/shared/offline-cache/*.spec.ts` mit `port`/`store`/`outbox`/`adapter`,
+`libs/domains/tse/domain/src/lib/simulator.adapter.spec.ts` mit `tse`). Der einzige Treffer mit
+Aufzeichnungscharakter ist `apps/api-edge/src/print-server/auth.middleware.spec.ts` (`findMock`,
+drei async-Tests). Keiner davon ist mit dieser Regel umgebaut worden — sie greift für Neues.
+Reproduzierbar:
+
+```bash
+for f in $(grep -rl beforeEach apps libs --include='*.spec.ts'); do
+  perl -0ne 'while (/beforeEach\(\s*(?:async\s*)?\(\)\s*=>\s*\{(.*?)\n\s*\}\)/gs) {
+    $b=$1; while ($b =~ /^\s*(\w+)\s*=\s*[^=]/gm) { print "$ARGV: $1\n" } }' "$f"
+done | sort -u
+```
+
+Das Muster in der inneren Schleife ist bewusst weiter als das cloud-Gegenstück (`= []|false|{}`):
+Es findet auch `vi.fn()`- und SUT-Zuweisungen. Enger gefasst meldet es in core null Treffer und
+sieht wie Entwarnung aus.

@@ -214,13 +214,26 @@ function addBundleLines(component: any, count: number, id = 'p-menu'): string[] 
   return component['lineItems'].map((l: { _id: string }) => l._id)
 }
 
+/**
+ * Setzt einen Positionsrabatt auf die Zeile an `index`.
+ *
+ * Die Zeilen-ID wird gelesen, nicht geraten: Seit #230 ist sie eine `uuidv7` und
+ * nicht mehr die Produkt-ID, unter der ein Test sie vorher direkt ablegen konnte.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function discountLine(component: any, index: number, discount: ManagedDiscount = managedDiscount()): string {
+  const id = component['lineItems'][index]._id as string
+  component['lineDiscounts'].update((current: Record<string, ManagedDiscount>) => ({ ...current, [id]: discount }))
+  return id
+}
+
 describe('OrderDialog — Reset-Pfade der Positionsrabatte', () => {
   it('deleteOrder() raeumt manuellen Rabatt, Code UND Positionsrabatte weg', () => {
     const { component } = setup()
     component.increaseLineItem(product('p-1'))
     component.selectedManualDiscount.set(managedDiscount())
     component.appliedCodeDiscount.set({ ok: true, code: 'SOMMER' })
-    component.lineDiscounts.set({ 'p-1': managedDiscount() })
+    discountLine(component, 0)
 
     component.deleteOrder()
 
@@ -232,7 +245,7 @@ describe('OrderDialog — Reset-Pfade der Positionsrabatte', () => {
   it('decreaseQuantity() nimmt bei Menge 1 die Zeile UND ihren Rabatt mit', () => {
     const { component } = setup()
     component.increaseLineItem(product('p-1'))
-    component.lineDiscounts.set({ 'p-1': managedDiscount() })
+    discountLine(component, 0)
 
     component.decreaseQuantity(component.lineItems[0], null)
 
@@ -244,31 +257,33 @@ describe('OrderDialog — Reset-Pfade der Positionsrabatte', () => {
     const { component } = setup()
     component.increaseLineItem(product('p-1'))
     component.increaseLineItem(product('p-1')) // Duplikat-Check erhoeht die Menge
-    component.lineDiscounts.set({ 'p-1': managedDiscount() })
+    const id = discountLine(component, 0)
 
     component.decreaseQuantity(component.lineItems[0], null)
 
     expect(component.lineItems).toHaveLength(1)
-    expect(component.lineDiscounts()['p-1']).toBeDefined()
+    expect(component.lineDiscounts()[id]).toBeDefined()
   })
 
   it('decreaseLineItem() raeumt den Rabatt der geloeschten Zeile weg', () => {
     const { component } = setup()
     component.increaseLineItem(product('p-1'))
     component.increaseLineItem(product('p-2'))
-    component.lineDiscounts.set({ 'p-1': managedDiscount(), 'p-2': managedDiscount() })
+    discountLine(component, 0)
+    const bleibt = discountLine(component, 1)
     component.selectProduct(0)
 
     component.decreaseLineItem()
 
-    expect(component.lineDiscounts()).toEqual({ 'p-2': expect.anything() })
+    expect(component.lineDiscounts()).toEqual({ [bleibt]: expect.anything() })
   })
 
   it('decreaseCombination() raeumt die Rabatte aller Zeilen der Kombination weg', () => {
     const { component } = setup()
     component.increaseLineItem(product('p-1'))
     component.increaseLineItem(product('p-2'))
-    component.lineDiscounts.set({ 'p-1': managedDiscount(), 'p-2': managedDiscount() })
+    discountLine(component, 0)
+    discountLine(component, 1)
     component.combineAllArticles()
     component['_selectedCombinationIndex'] = [0, null]
 
@@ -283,13 +298,87 @@ describe('OrderDialog — Reset-Pfade der Positionsrabatte', () => {
     // traefe der alte Rabatt die neue Zeile, ohne dass ihn jemand gesetzt hat.
     const { component } = setup()
     component.increaseLineItem(product('p-1'))
-    component.lineDiscounts.set({ 'p-1': managedDiscount() })
+    discountLine(component, 0)
     component.decreaseQuantity(component.lineItems[0], null)
 
     component.increaseLineItem(product('p-1'))
 
     expect(component.lineDiscounts()).toEqual({})
     expect(component.lineDiscountOf(component.lineItems[0])).toBeUndefined()
+  })
+})
+
+describe('OrderDialog — Zeilen-Identitaet (#230)', () => {
+  it('jede Zeile bekommt eine eigene ID, nicht die des Produkts', () => {
+    const { component } = setup()
+    component.increaseLineItem(product('p-1'))
+
+    const line = component.lineItems[0]
+    expect(line._id).not.toBe('p-1')
+    // Die Produkt-Identitaet steht weiterhin auf der Zeile — sie traegt jetzt nur
+    // ein anderes Feld.
+    expect(line.externalId).toBe('ext-p-1')
+  })
+
+  it('derselbe Nicht-Bundle-Artikel zweimal erhoeht die Menge statt eine zweite Zeile anzulegen', () => {
+    // Bestandsverhalten, das die ID-Umstellung NICHT aendern darf: Der Duplikat-Check
+    // laeuft seit #230 ueber `externalId` statt ueber `_id`.
+    const { component } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.increaseLineItem(product('p-1'))
+
+    expect(component.lineItems).toHaveLength(1)
+    expect(component.lineItems[0].amount).toBe(2)
+  })
+
+  it('zwei verschiedene Artikel bleiben zwei Zeilen', () => {
+    const { component } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.increaseLineItem(product('p-2'))
+
+    expect(component.lineItems).toHaveLength(2)
+  })
+
+  it('Artikel ohne externalId fallen NICHT zu einer Zeile zusammen', () => {
+    // Das Schema erlaubt `externalId: null`; `increaseLineItem` macht daraus `''`.
+    // Ohne die Leer-Absicherung im Duplikat-Check haetten alle Alt-Produkte denselben
+    // Schluessel und der Warenkorb fiele zu einer einzigen Zeile zusammen.
+    const { component } = setup()
+    component.increaseLineItem(product('p-1', { externalId: null } as never))
+    component.increaseLineItem(product('p-2', { externalId: null } as never))
+
+    expect(component.lineItems).toHaveLength(2)
+    expect(component.lineItems[0]._id).not.toBe(component.lineItems[1]._id)
+  })
+
+  it('isMenuComplete() loest das Produkt weiterhin auf — ueber externalId', () => {
+    // Die Menue-Vollstaendigkeit faerbt die Zeile im Warenkorb rot. Sie loeste das
+    // Produkt ueber `lineItem._id` auf; nach #230 findet der Katalog darunter nichts
+    // mehr. Hier zaehlt, DASS der Lookup die Zeile trifft — die Legacy-Flags dahinter
+    // (`isMenuSideDish`/`isMenuDrink`) stehen nicht mehr im ProductSchema, siehe PR.
+    const gefunden: string[] = []
+    const { component } = setup()
+    component['productService'].findProductByExternalId = (ext: string) => {
+      gefunden.push(ext)
+      return { isMenuSideDish: true } as never
+    }
+    component.increaseLineItem(product('p-menu', { isMenu: true } as never))
+
+    expect(component.isMenuComplete(component.lineItems[0])).toBe(false)
+    expect(gefunden).toEqual(['ext-p-menu'])
+  })
+
+  it('die Mehrdeutigkeits-Sperre aus #179 feuert im Normalbetrieb nicht mehr', () => {
+    // Sie bleibt als Rueckfallsicherung stehen (Bestands-Orders, kuenftige Regressionen),
+    // darf aber keinen regulaeren Vorgang mehr blockieren.
+    const { component } = setup()
+    addBundleLines(component, 3)
+
+    for (let i = 0; i < 3; i++) {
+      component.selectProduct(i)
+      expect(component.canApplyLineDiscount()).toBe(true)
+    }
+    expect(new Set(component.lineItems.map((l: { _id: string }) => l._id)).size).toBe(3)
   })
 })
 
@@ -310,15 +399,29 @@ describe('OrderDialog — Gate-Verdrahtung der Rabatt-Picker', () => {
     expect(component.canApplyLineDiscount()).toBe(false)
   })
 
-  it('canApplyLineDiscount() ist bei doppelter Zeilen-ID gesperrt (zwei gleiche Menues)', () => {
-    // Der Bundle-Pfad setzt den Duplikat-Check aus: zwei Zeilen, eine `_id`.
-    // Ein Rabatt darauf traefe die Steuer-Atome beider Zeilen (#230).
+  it('zwei gleiche Menues sind zwei unterscheidbare Zeilen — der Positionsrabatt ist erlaubt', () => {
+    // Kern von #230: Der Bundle-Pfad setzt den Duplikat-Check bewusst aus (zwei Menues
+    // sind zwei Zeilen). Vorher trugen beide die Produkt-ID, und die Mehrdeutigkeits-
+    // Sperre aus #179 verhinderte den Rabatt. Jetzt hat jede Zeile ihre eigene `uuidv7`.
     const { component } = setup()
     const ids = addBundleLines(component, 2)
     component.selectProduct(0)
 
-    expect(ids).toEqual(['p-menu', 'p-menu'])
-    expect(component.canApplyLineDiscount()).toBe(false)
+    expect(component.lineItems).toHaveLength(2)
+    expect(ids[0]).not.toBe(ids[1])
+    expect(ids).not.toContain('p-menu')
+    expect(component.canApplyLineDiscount()).toBe(true)
+  })
+
+  it('ein Rabatt auf das erste Menue laesst das zweite unberuehrt', () => {
+    const { component } = setup()
+    const ids = addBundleLines(component, 2)
+
+    discountLine(component, 0)
+
+    expect(component.lineDiscountOf(component.lineItems[0])).toBeDefined()
+    expect(component.lineDiscountOf(component.lineItems[1])).toBeUndefined()
+    expect(Object.keys(component.lineDiscounts())).toEqual([ids[0]])
   })
 
   it('canApplyLineDiscount() erlaubt den Normalfall', () => {
@@ -331,13 +434,12 @@ describe('OrderDialog — Gate-Verdrahtung der Rabatt-Picker', () => {
 
   it('openLineDiscountPicker() oeffnet nichts und meldet, wenn das Gate sperrt', () => {
     const { component, openedDialogs } = setup()
-    addBundleLines(component, 2)
-    component.selectProduct(0)
+    component.increaseLineItem(product('p-1')) // Zeile da, aber nicht markiert
 
     component.openLineDiscountPicker()
 
     expect(openedDialogs).toHaveLength(0)
-    expect(component.infoBoxText).toBe('Position mehrfach im Warenkorb — bitte Menge nutzen statt zweiter Zeile')
+    expect(component.infoBoxText).toBe('Erst eine Position im Warenkorb antippen')
   })
 
   it('openLineDiscountPicker() legt die Auswahl unter der Zeilen-ID ab', () => {
@@ -349,7 +451,7 @@ describe('OrderDialog — Gate-Verdrahtung der Rabatt-Picker', () => {
     component.openLineDiscountPicker()
 
     expect(openedDialogs[0].data).toEqual({ scope: 'line', lineItemName: 'Artikel p-1' })
-    expect(component.lineDiscounts()['p-1']).toBeDefined()
+    expect(component.lineDiscounts()[component.lineItems[0]._id]).toBeDefined()
   })
 
   it('openDiscountPicker() oeffnet bei Personalessen nicht', () => {
@@ -392,7 +494,7 @@ describe('OrderDialog — Snapshot-Bau in placeOrder', () => {
       activeDiscounts: [staffMealDiscount],
     })
     component.increaseLineItem(product('p-1'))
-    component.lineDiscounts.set({ 'p-1': managedDiscount() })
+    discountLine(component, 0)
     component.setAsStaffMealOrder()
 
     await component.placeOrder()
@@ -463,7 +565,7 @@ describe('OrderDialog — Snapshot-Bau in placeOrder', () => {
       },
     })
     component.increaseLineItem(product('p-1'))
-    component.lineDiscounts.set({ 'p-1': managedDiscount() })
+    const lineId = discountLine(component, 0)
     // Der Kundenrabatt kommt aus den Stammdaten; der Setter zieht Firmenkunden-Logik
     // nach, die hier nichts beitraegt — deshalb direkt das Feld.
     component['_customer'] = {
@@ -485,7 +587,7 @@ describe('OrderDialog — Snapshot-Bau in placeOrder', () => {
       ['order', 'manual', 'Kulanz'],
       ['order', 'code', 'Sommer'],
     ])
-    expect(applied[0].lineItemId).toBe('p-1')
+    expect(applied[0].lineItemId).toBe(lineId)
     expect(applied[1].discountId).toBeNull()
     expect(redeemCalls[0]).toMatchObject({ code: 'SOMMER', customerId: 'cust-1' })
   })
@@ -493,7 +595,7 @@ describe('OrderDialog — Snapshot-Bau in placeOrder', () => {
   it('die Betraege bleiben 0 — gerechnet wird ausschliesslich in der Engine', async () => {
     const { component, createdOrders } = setup()
     component.increaseLineItem(product('p-1'))
-    component.lineDiscounts.set({ 'p-1': managedDiscount() })
+    discountLine(component, 0)
     component.selectedManualDiscount.set(managedDiscount({ _id: 'disc-manual' }))
 
     await component.placeOrder()
@@ -508,13 +610,14 @@ describe('OrderDialog — Snapshot-Bau in placeOrder', () => {
     component.increaseLineItem(product('p-2'))
     // Beide Zeilen rabattiert, danach faellt p-2 weg — ohne Filterung druckte der
     // Bon eine Rabattzeile ueber 0,00 € (die Engine faende keine Atome mehr).
-    component.lineDiscounts.set({ 'p-1': managedDiscount(), 'p-2': managedDiscount() })
+    const bleibt = discountLine(component, 0)
+    discountLine(component, 1)
     component.lineItems.splice(1, 1)
 
     await component.placeOrder()
 
     const applied = createdOrders[0]['appliedDiscounts'] as AppliedDiscount[]
-    expect(applied.map(a => a.lineItemId)).toEqual(['p-1'])
+    expect(applied.map(a => a.lineItemId)).toEqual([bleibt])
   })
 
   it('eine eingeloeste Code-Bestellung traegt die ID der Einloesung', async () => {
@@ -559,7 +662,7 @@ describe('OrderDialog — Snapshot-Bau in placeOrder', () => {
   it('nach dem Abschicken ist der Rabattzustand leer', async () => {
     const { component } = setup()
     component.increaseLineItem(product('p-1'))
-    component.lineDiscounts.set({ 'p-1': managedDiscount() })
+    discountLine(component, 0)
     component.selectedManualDiscount.set(managedDiscount({ _id: 'disc-manual' }))
 
     await component.placeOrder()

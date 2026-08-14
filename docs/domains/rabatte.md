@@ -284,15 +284,18 @@ wie `promo-code.ts` nebenan.
   Zeilen werden beim Löschen aufgeräumt (`pruneLineDiscounts`), Reset bei
   `deleteOrder()`.
 
-> 🚨 **Mehrdeutige Zeilen-ID sperrt den Positionsrabatt.** `lineItem._id` ist die
-> **Produkt-ID** (`increaseLineItem`: `_id: product._id`), nicht je Zeile vergeben.
-> Für gewöhnliche Artikel bleibt sie eindeutig, weil der Duplikat-Check dort die
-> Menge erhöht statt eine zweite Zeile anzulegen — für Bundles ist dieser Check
-> ausgesetzt, zwei gleiche Menüs ergeben also zwei Zeilen mit derselben `_id`.
-> `computeOrderTax` matcht Positionsrabatte über genau diese `lineItemId`, der
-> Rabatt träfe die Steuer-Atome **beider** Zeilen: eine Position rabattiert,
-> zwei abgezogen — still, weil die Summe plausibel aussieht. `evaluateLineDiscountGate`
-> lehnt diesen Fall deshalb ab. Die Ursache (Zeilen-ID = Produkt-ID) bleibt offen.
+> ✅ **Zwei gleiche Menüs sind seit panary/panary-core#230 zwei unterscheidbare Zeilen.**
+> `lineItem._id` war die **Produkt-ID** und damit bei ausgesetztem Duplikat-Check (Bundles)
+> doppelt; `computeOrderTax` matcht Positionsrabatte über genau diese `lineItemId`, ein
+> Rabatt hätte also die Steuer-Atome **beider** Zeilen getroffen — eine Position
+> rabattiert, zwei abgezogen, und die Summe sieht plausibel aus. `increaseLineItem`
+> vergibt jetzt je Zeile eine `uuidv7`; die Produktidentität steht in `externalId`, auf
+> der auch der Duplikat-Check läuft ([ADR 0033](../adr/0033-bestellzeilen-tragen-eine-eigene-id.md)).
+>
+> 🛡️ Die Sperre in `evaluateLineDiscountGate` **bleibt** — als Rückfallsicherung, nicht
+> als Einschränkung. Sie deckt weiterhin die im Dialog bearbeitete **Bestands-Order** ab
+> (nicht migriert, trägt die alte ID) und jede künftige Änderung, die die ID-Vergabe
+> zurückdreht. Dass sie im Normalbetrieb nicht mehr feuert, ist durch Spec belegt.
 
 **Die Picker-Auswahl ist in beiden Modi dieselbe** und bewusst **nicht** auf
 `discount.target` gefiltert: Die Cloud-Admin-UI schreibt das Feld hart auf
@@ -413,13 +416,14 @@ Die ausgelagerte Rabatt-Logik ist seit je durchgetestet (`line-discount.spec.ts`
 `promo-code.spec.ts` 14). Ungetestet blieb, was die Extrakte **verbindet** — ob die
 Dialog-Komponente sie an jeder Stelle aufruft, an der sie es muss. Genau dort fällt
 ein Fehler erst am Bon auf. `order-dialog.component.spec.ts` deckt diese Strecke mit
-25 Charakterisierungs-Specs ab:
+31 Specs ab (25 aus #231, dazu die Identitäts-Suite aus #230):
 
 | Bereich          | Was festgehalten wird                                                                                                  |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | Reset-Pfade      | `deleteOrder()` leert alle drei Rabattarten; alle drei Löschwege räumen den Positionsrabatt weg; der neu angelegte Artikel bringt ihn nicht zurück |
 | Gate-Verdrahtung | Personalessen, fehlende Auswahl und mehrdeutige Zeilen-ID sperren; der gesperrte Fall öffnet **keinen** Picker und meldet den Grund |
 | `placeOrder`     | Reihenfolge Positions- → Kunden- → manueller → Code-Rabatt; Personalessen trägt genau einen; `computedAmountCents` bleibt 0; die Order-ID der Einlösung landet an der Bestellung |
+| Zeilen-Identität | jede Zeile bekommt eine eigene `uuidv7`; derselbe Nicht-Bundle-Artikel erhöht weiterhin die Menge; Artikel ohne `externalId` fallen **nicht** zusammen; die #179-Sperre feuert nicht mehr |
 
 Aufbau ohne TestBed (`environment: 'node'`, eigener `Injector`) — Muster und die
 `effect()`-Falle stehen im [Vitest-Guide](../guides/lib-vitest-test-target.md#3-angular-klassen-ohne-testbed-instanziieren).
@@ -507,11 +511,12 @@ Lauf von Hand gerechnet:
 - Positionsrabatte (`target: 'line'`) sind gebaut (panary/panary-core#179).
   **Offen:** (a) Live-Stack-UAT — insbesondere Bon und Z-Bon einer Bestellung mit
   Positions- **und** Order-Rabatt; die Verifikation oben deckt ausschließlich
-  **Order**-Rabatte ab; (b) die **mehrdeutige Zeilen-ID** (siehe
-  POS-Anwendung oben): Solange `lineItem._id` die Produkt-ID ist, bleibt der
-  Rabatt auf einer von zwei gleichen Menü-Zeilen gesperrt statt möglich; (c) ein
-  `target`-Feld im Cloud-Rabatt-Formular, falls Definitionen künftig auf ein Ziel
-  festgelegt werden sollen — heute schreibt die Admin-UI hart `'order'`.
+  **Order**-Rabatte ab; (b) ✅ erledigt — die **mehrdeutige Zeilen-ID** ist mit
+  panary/panary-core#230 behoben ([ADR 0033](../adr/0033-bestellzeilen-tragen-eine-eigene-id.md)),
+  der Rabatt auf einer von zwei gleichen Menü-Zeilen ist möglich; der Sichttest am
+  laufenden POS steht noch aus; (c) ein `target`-Feld im Cloud-Rabatt-Formular, falls
+  Definitionen künftig auf ein Ziel festgelegt werden sollen — heute schreibt die
+  Admin-UI hart `'order'`.
 - Promo-Code: Verwaltung (Admin), Einlöse-Backend (append-only
   `discount-code-redemptions`) und die **POS-Strecke** (Edge-Proxy + Kassendialog,
   [ADR 0032](../adr/0032-promo-codes-am-pos-strikt-online.md), Cloud-Endpunkt

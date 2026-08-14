@@ -4,7 +4,7 @@ title: 'Rabatte — Datenmodell, Anwendungslogik & Sync'
 description: 'Rabattsystem für POS und Storefront: Domänen-Lib @panary/discounts/domain, Anwendung ausschließlich über order.appliedDiscounts mit MwSt-Extraktion, Automatik-Hook, Order- und Positionsrabatten am POS, Personalessen, Rabatt-KPI und Edge-Sync.'
 tags: [discounts, orders, sync, pos]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-08-14T23:10:00Z }
+generated: { by: claude-code/opus-5, at: 2026-08-14T23:40:00Z }
 ---
 
 # Rabatte (Discounts)
@@ -360,13 +360,15 @@ Weitere Regeln:
   (`evaluatePromoCodeGate` in `promo-code.ts`, dort auch getestet).
 - Reset bei `deleteOrder()` wie beim manuellen Rabatt.
 
-## Nachlass auf dem Beleg (seit panary/panary-core#228)
+## Nachlass auf Beleg und Bon (seit panary/panary-core#228 und #235)
 
 Der persistente Beleg (`@panary/receipts/domain`, §146a AO) trägt den gewährten
 Nachlass als eigenes Snapshot-Feld `discounts`. Vorher fehlte er vollständig, und der
 Beleg rechnete sich für den Gast nicht auf: die Positionen tragen ihre
 **unrabattierten** `lineTotal`, `totalGross` ist rabattiert — die Differenz stand
 unerklärt da (an der Test-Order oben gemessen: Positionen 11,90 €, „Gesamt" 9,52 €).
+Der **POS-Bon** — das Papier, das der Gast an der Kasse bekommt — hatte dieselbe
+Lücke und trägt die Zeile seit #235.
 
 | Stelle | Verhalten |
 |---|---|
@@ -374,6 +376,7 @@ unerklärt da (an der Test-Order oben gemessen: Positionen 11,90 €, „Gesamt"
 | `receipt-builder.ts` | `buildReceiptSnapshot` liest `order.appliedDiscounts` und übernimmt `computedAmountCents` — den von `computeOrderTax` zurückgeschriebenen, tatsächlich abgezogenen Betrag. **Nicht** die Definition (`valuePercent`/`valueCents`): die überzeichnet den Abzug, sobald die Engine auf die Basis klemmt. |
 | `receipt-escpos.renderer.ts` | Zeile `Nachlass: <Name>` + negativer Betrag je Rabatt, direkt unter den Positionen (sie ist eine Minderung genau dieses Blocks). |
 | `buildReceiptHtml` | dieselbe Zeile im Abrufpfad `receipts.panary.io/r/<token>`. |
+| `order-receipt.renderer.ts` (POS-Bon, #235) | dieselbe Zeile aus `order.appliedDiscounts`, zwischen Positionen und „Gesamt". ⚠️ `calcTotalWithDiscount` läuft **vor** den Nachlasszeilen: `computeOrderTax` füllt `computedAmountCents` als Seiteneffekt, sonst druckte der Bon 0 ct und unterdrückte die Zeile als wirkungslos. |
 
 Drei Entscheidungen, die im Code als Kommentar stehen und hier ihren Grund tragen:
 
@@ -393,11 +396,17 @@ Drei Entscheidungen, die im Code als Kommentar stehen und hier ihren Grund trage
 
 ⚠️ **Was das nicht heilt.** `receipt.lineItems[].lineTotal` ist `amount × price` und
 lässt Modifier, Menü-Komponenten und `FIXED_PROPORTIONAL` außen vor — bei solchen
-Zeilen weicht die Positionssumme des Belegs unabhängig vom Rabatt von der Engine ab.
+Zeilen weicht die Positionssumme des **Belegs** unabhängig vom Rabatt von der Engine ab.
 Kanonisch wäre `lineItemGrossCents` (`@panary/orders/domain`), die der POS-Bon bereits
-nutzt. Ebenfalls unberührt: der **POS-Bon** (`order-receipt.renderer.ts`) weist den
-Nachlass weiterhin nicht aus, obwohl sein „Gesamt" über `computeOrderTax` rabattiert
-ist — dort besteht dieselbe Lücke wie vor #228 auf dem Beleg.
+nutzt. Der Bon ist davon also nicht betroffen; die Nachlasszeile rechnet dort gegen
+Positionssummen aus derselben Quelle wie das „Gesamt".
+
+Ebenfalls unberührt: Beide Renderer-Testnetze prüfen den **Encoder-Stream**, nicht das
+Papier. Auf **58 mm** (32 Spalten) bricht die Nachlasszeile voraussichtlich um — beim
+Beleg gemessen: `Nachlass: 20 %` / `Rabatt`, der Betrag bleibt in der ersten Zeile. Das
+ist dort bestehendes Verhalten (MwSt-Zeilen und „Gesamt" brechen genauso), sieht aber
+nur ein Ausdruck.
+
 ## Testnetz der POS-Verdrahtung (#231)
 
 Die ausgelagerte Rabatt-Logik ist seit je durchgetestet (`line-discount.spec.ts` 18,
@@ -482,11 +491,9 @@ Lauf von Hand gerechnet:
 
 - ✅ **Der Beleg weist den Nachlass aus** (panary/panary-core#228) — siehe „Nachlass auf dem
   Beleg" oben. Der Sichttest am laufenden Stack steht noch aus.
-- 🚨 **Der POS-Bon weist den Nachlass weiterhin nicht aus.** `order-receipt.renderer.ts`
-  druckt unrabattierte Positionspreise und ein über `computeOrderTax` rabattiertes
-  „Gesamt" — exakt die Lücke, die #228 auf dem Beleg geschlossen hat, nur auf dem Papier,
-  das der Gast an der Kasse bekommt. Bei #228 bewusst nicht mitgefixt (anderes Artefakt,
-  nicht in den betroffenen Pfaden des Issues).
+- ✅ **Der POS-Bon weist den Nachlass aus** (panary/panary-core#235) — siehe „Nachlass auf
+  Beleg und Bon" oben. Der Sichttest am laufenden Stack steht noch aus, ebenso der
+  Umbruch-Test auf 58 mm.
 - ⚠️ **`receipt.lineItems[].lineTotal` ist `amount × price`** und ignoriert Modifier,
   Menü-Komponenten und `FIXED_PROPORTIONAL`. Bei solchen Zeilen rechnet sich der Beleg
   auch mit Nachlasszeile nicht auf; kanonisch wäre `lineItemGrossCents`

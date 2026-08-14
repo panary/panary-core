@@ -4,10 +4,5 @@
   "sourceRoot": "libs/domains/orders/feature-pos-active/src",
   "prefix": "lib",
   "projectType": "library",
-  "tags": ["type:feature", "domain:orders", "platform:pos"],
-  "targets": {
-    "lint": {
-      "executor": "@nx/eslint:lint"
-    }
-  }
+  "tags": ["type:feature", "domain:orders", "platform:pos"]
 }

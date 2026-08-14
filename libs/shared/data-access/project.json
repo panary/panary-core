@@ -25,9 +25,6 @@
         "tsConfig": "libs/shared/data-access/tsconfig.server.json",
         "assets": []
       }
-    },
-    "lint": {
-      "executor": "@nx/eslint:lint"
     }
   },
   "implicitDependencies": [

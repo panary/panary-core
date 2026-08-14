@@ -382,7 +382,8 @@ function calcComboPrice(combo: any[]): number {
 // Kanonische Gesamtsumme über `computeOrderTax` (@panary/orders/domain) — dieselbe
 // Engine, die taxSnapshot + payment.totalAmount erzeugt. Damit stimmt der Bon-Betrag
 // garantiert mit dem fakturierten Betrag überein und behandelt FIXED-Menüs, das
-// Komponenten-Modell, Legacy-Shape sowie order.discount/appliedDiscounts korrekt.
+// Komponenten-Modell sowie `appliedDiscounts` korrekt. (Das früher hier genannte
+// `order.discount` ist seit ADR 0030 abgeschafft — es gibt nur noch eine Rabattquelle.)
 function calcTotalWithDiscount(order: any): number {
   return round(computeOrderTax(order).brutto)
 }

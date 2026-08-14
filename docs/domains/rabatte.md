@@ -128,8 +128,29 @@ einander und wird sonst rot.
 Die Engine **extrahiert** die enthaltene MwSt aus dem Brutto-Preis
 (`netFromGross`) statt sie aufzuschlagen. Der Brutto-Betrag bleibt unverändert,
 nur der Netto-/Steuer-Ausweis ist korrekt (konsistent zum Reporting-Aggregator).
-Beispiel 1,19 € @19 %: netto 1,00 € / steuer 0,19 €. **KassenSichV-relevant** —
-vor Produktivgang gegen echte Bons / mit dem Steuerberater validieren.
+Beispiel 1,19 € @19 %: netto 1,00 € / steuer 0,19 €. **KassenSichV-relevant.**
+
+**Gegenprobe gefahren (2026-08-14, panary/panary-core#182).** Die Formel ist gegen die
+gesetzliche Divisor-Methode geprüft — nicht gegen sich selbst:
+`compute-order-tax.ustg-gegenprobe.spec.ts` hält von Hand nach § 10 Abs. 1 Satz 2 UStG
+gerechnete Werte dagegen (netto = brutto / (1 + p/100)), Rechenweg je Fall im Kommentar.
+15 Fälle: Einzelsätze 19 %/7 %, gemischter Bon, Prozent- und Festbetrag-Rabatt inklusive
+Largest-Remainder-Rest.
+
+🔎 **Warum eine zweite Spec-Datei, obwohl 22 Engine-Tests grün waren:** Deren Erwartungen
+stammen aus derselben Herleitung wie die Implementierung — ein Methodenfehler wäre darin
+unsichtbar geblieben. Die Mutationsprobe belegt den Unterschied: `netFromGross` auf
+Abschlag-vom-Brutto umgestellt, 14 der 15 Gegenprobe-Fälle werden rot (11,90 € liefert dann
+netto 964 / steuer 226 statt 1000 / 190 — 36 ct Steuer zu viel auf einem Zwölf-Euro-Bon).
+
+⚠️ **Grün blieb ausgerechnet „Σ netto + Σ steuer === brutto".** Die Aufrechnungs-Invariante
+hält auch bei falscher Methode, weil `steuer` als `brutto − netto` definiert ist. Sie ist
+also **kein** Nachweis der Methode — ein Bon kann sich sauber aufrechnen und trotzdem den
+falschen Steuerbetrag ausweisen. Wer die Extraktion künftig anfasst, prüft gegen die
+Gegenprobe, nicht gegen die Summenzeile.
+
+Ein Spot-Check gegen einen physisch gedruckten Bon steht weiterhin aus; er prüft die
+Druckstrecke, nicht mehr die Formel.
 
 ## Automatische Rabatte (Phase 2)
 
@@ -321,10 +342,36 @@ Weitere Regeln:
   `DISCOUNT_CODES` (MANAGE für OWNER/MANAGER/TECHNICIAN) +
   `DISCOUNT_CODE_REDEMPTIONS` (CREATE+READ für OWNER/MANAGER/STAFF, append-only).
 
+## Live-Verifikation am Stack (2026-08-14)
+
+Durchstich gegen einen laufenden lokalen Stack gefahren (api-cloud + api-edge + SQLite,
+panary/panary-core#182). Gemessen, nicht abgeleitet — die Erwartungswerte waren **vor** dem
+Lauf von Hand gerechnet:
+
+| Prüfpunkt | Ergebnis |
+|---|---|
+| Rabatt in der Cloud anlegen → Edge | kommt an; `isStaffMeal` als echtes `boolean` (nicht SQLite-0/1), `channels` als Array (nicht JSON-String) |
+| Picker-Query (`status=ACTIVE&method=manual`) | liefert die POS-Rabatte mit korrekten JS-Typen |
+| Rabatt anwenden (20 % auf 11,90 € take-out) | `taxSnapshot` = 7 %: netto 6,73/steuer 0,47 · 19 %: netto 1,95/steuer 0,37 · brutto 9,52 — cent-genau wie handgerechnet |
+| `computedAmountCents` | serverseitig auf 238 gefüllt |
+| Legacy-`discount` bei create | `400` mit Klartext — auch bei `discount: null` |
+| Personalessen (50 %) | brutto 5,95, `staffPaymentInfo` gestempelt, `computedAmountCents` 595 |
+| Exklusivität | zweiter Rabatt → `400` „Personalessen-Bestellungen erlauben keine zusätzlichen Rabatte" |
+| Rabatt-KPI (`aggregateFinancials`) | `discountsCount` 2 (pro Order), `discountsCents` 833 = 238 + 595 |
+| Rabattcode-Ausfallpfad | Cloud antwortet `401` → Edge meldet `cloud_unreachable` (technisch/amber), **nicht** „Code ungültig" |
+
 ## Offen / Folgeschritte
 
-- POS-Rabatt-Picker: Live-Stack-UAT (Rabatt in Cloud anlegen → Edge-Sync →
-  am POS anwenden) gegen eine gepairte Edge ausstehend; Build/Typecheck grün.
+- 🚨 **Der Beleg weist den Nachlass nicht aus** (panary/panary-core#228). Der MwSt-Split ist
+  korrekt (`receipt-escpos.renderer.ts` druckt `MwSt <satz>% (Netto …)` je Satz), aber der
+  Rabatt erscheint nirgends: `receipt.schema.ts` hat kein Rabattfeld, `buildReceiptSnapshot`
+  liest `appliedDiscounts` nicht, und die Positionen tragen ihre **unrabattierten**
+  `lineTotal`. Auf dem Bon der Test-Order stehen damit Positionen über 11,90 € und ein
+  „Gesamt" von 9,52 € — die Differenz von 2,38 € ist für den Gast unerklärt.
+- POS-Rabatt-Picker: der **UI-Klickpfad** (Dialog öffnen, Rabatt wählen, durchgestrichener
+  Originalpreis) ist weiterhin ungeprüft — der Durchstich oben lief auf API-Ebene. Ebenso der
+  `patch`-Pfad von `calculateTaxDetailsOnPatch`: Patchen auf `orders` verlangt die Rolle
+  `DEVICE_POS`, die nur über eine Socket-Verbindung mit API-Key erreichbar ist.
 - Positionsrabatte (`target: 'line'`) im POS-Picker (Phase 2).
 - Promo-Code: Verwaltung (Admin), Einlöse-Backend (append-only
   `discount-code-redemptions`) und die **POS-Strecke** (Edge-Proxy + Kassendialog,
@@ -335,9 +382,11 @@ Weitere Regeln:
   nicht-authentifizierte Requests); (b) **Storefront-Checkout**
   (`orders.channel=ONLINE` + Mollie), der die Einlösung dort aufruft. Beide mit
   der Storefront-Roadmap Phase 5 (panary/panary-cloud#203).
-- POS-Rabattcode: Live-Stack-UAT gegen eine gepairte Edge ausstehend — insbesondere
-  der Ausfallpfad (Cloud abschalten → amber statt rot) und die Kollision zweier
-  Kassen auf demselben `usageLimit: 1`.
+- POS-Rabattcode: **Ausfallpfad live bestätigt** (2026-08-14) — die Cloud antwortete `401`,
+  der Edge meldete `cloud_unreachable`, also technisch/amber statt „Code ungültig". Weiterhin
+  offen, weil dafür ein gültiges Edge↔Cloud-Pairing nötig ist: der **Gutfall**
+  (Prüfen ohne Verbrauch → Einlösen beim `placeOrder`) und die **Kollision** zweier Kassen
+  auf demselben `usageLimit: 1`.
 - MwSt-Extraktion (Phase 0): Probeberechnung dokumentiert + 22 Engine-Tests grün
   (siehe `0004-order-bundle-pricing-modell.md` → „MwSt-Extraktion — Korrektur &
   Probeberechnung"); Spot-Check gegen einen physischen Bon optional.

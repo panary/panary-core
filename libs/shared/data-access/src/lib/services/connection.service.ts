@@ -165,6 +165,15 @@ export class ConnectionService {
     return this.#app.service('discount-codes')
   }
 
+  /**
+   * Edge-Proxy auf den Cloud-Rabattcode-Endpunkt (ADR 0032). Am Edge gibt es
+   * KEINE Code-Tabelle — `discountCodesService` ist deshalb nur cloud-seitig
+   * bedienbar, der POS geht ausschliesslich hierueber.
+   */
+  get discountCodeRedeemService(): Service {
+    return this.#app.service('discount-code-redeem')
+  }
+
   get productService(): Service {
     return this.#app.service('products')
   }

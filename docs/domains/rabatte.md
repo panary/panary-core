@@ -235,6 +235,44 @@ die Auswahl zurück.
   Order-Level. Mehrfach-/Automatik-Kombination folgt der Engine-Reihenfolge
   (LINE vor ORDER).
 
+## POS-Anwendung (Rabattcode)
+
+Neben dem Rabatt-Picker sitzt der Code-Knopf (`confirmation_number`), der den
+`PromoCodeDialogComponent` öffnet: Touch-Tastatur, Eingabe, „Prüfen".
+
+**Codes sind strikt online** ([ADR 0032](../adr/0032-promo-codes-am-pos-strikt-online.md)).
+Sie werden nicht an den Edge gesynct — ein lokaler Zähler erzeugte bei mehreren
+Kassen Lost Updates. Der Edge reicht stattdessen durch:
+
+| Schritt   | Wann                | Aufruf                                             |
+| --------- | ------------------- | -------------------------------------------------- |
+| Prüfen    | beim „Prüfen"-Tipp  | `discount-code-redeem.find` → Cloud, kein Verbrauch |
+| Einlösen  | beim `placeOrder`   | `discount-code-redeem.create` → Cloud, atomar       |
+
+Die Trennung ist der Kern: Würde schon die Prüfung einlösen, verbrauchte ein
+Abbruch nach der Eingabe den Code — bei `usageLimit: 1` unwiederbringlich.
+
+**Zwei Ablehnungsklassen, im Dialog verschieden gefärbt:**
+
+- **fachlich** (rot) — `not_found`, `expired`, `limit_reached`, `wrong_customer`,
+  `discount_inactive`. Kommt von der Cloud als `200` mit `ok: false`.
+- **technisch** (amber) — `not_paired`, `cloud_unreachable`. Entsteht am Edge; ein
+  `401`/`429`/`5xx` der Cloud zählt hier hinein und **nie** als „Code ungültig".
+
+Weitere Regeln:
+
+- Beim Abschluss wird erneut eingelöst und damit erneut geprüft: Zwischen Eingabe
+  und Kassiervorgang kann eine andere Kasse dasselbe Limit aufgebraucht haben.
+  Schlägt das fehl, läuft die Bestellung **ohne** Code weiter (mit Hinweis) —
+  der Gast steht an der Kasse, die Ware ist erfasst.
+- Der Snapshot trägt `method: 'code'`, `code`, `discountCodeId` und `discountId`;
+  `computedAmountCents` füllt wie überall die kanonische Engine.
+- Ein per Code gewährter Rabatt ist **nie** `isStaffMeal` — sonst stempelte die
+  Bestellung `staffPaymentInfo` und liefe in die Exklusivitätsprüfung.
+- Gesperrt bei Personalessen und bei bereits gewähltem manuellem Rabatt
+  (`evaluatePromoCodeGate` in `promo-code.ts`, dort auch getestet).
+- Reset bei `deleteOrder()` wie beim manuellen Rabatt.
+
 ## Services & Sync
 
 - **Edge** (`apps/api-edge/src/services/discounts/`): read-only Spiegel,
@@ -273,15 +311,18 @@ die Auswahl zurück.
 - POS-Rabatt-Picker: Live-Stack-UAT (Rabatt in Cloud anlegen → Edge-Sync →
   am POS anwenden) gegen eine gepairte Edge ausstehend; Build/Typecheck grün.
 - Positionsrabatte (`target: 'line'`) im POS-Picker (Phase 2).
-- Promo-Code: Verwaltung (Admin) **und** Einlöse-Backend (append-only
-  `discount-code-redemptions`, atomare Validierung) sind gebaut. **Noch offen,
-  weil Client/Infrastruktur fehlt:** (a) **öffentlicher Storefront-Validate-
-  Endpoint** für anonymen Cart-Preview — braucht die Tenant-Auflösung der
-  Storefront (Subdomain/Tenant-Kontext für nicht-authentifizierte Requests);
-  (b) **POS-Code-Eingabe** — der POS spricht den Edge, Codes sind aber Cloud-only;
-  erfordert die Offline-Entscheidung (R1) + einen Edge→Cloud-Online-Proxy;
-  (c) **Storefront-Checkout** (`orders.channel=ONLINE` + Mollie), der die
-  Einlösung tatsächlich aufruft. Alle drei mit der Storefront-Roadmap Phase 5.
+- Promo-Code: Verwaltung (Admin), Einlöse-Backend (append-only
+  `discount-code-redemptions`) und die **POS-Strecke** (Edge-Proxy + Kassendialog,
+  [ADR 0032](../adr/0032-promo-codes-am-pos-strikt-online.md), Cloud-Endpunkt
+  panary/panary-cloud#271) sind gebaut. **Noch offen:** (a) **öffentlicher
+  Storefront-Validate-Endpoint** für anonymen Cart-Preview — braucht die
+  Tenant-Auflösung der Storefront (Subdomain/Tenant-Kontext für
+  nicht-authentifizierte Requests); (b) **Storefront-Checkout**
+  (`orders.channel=ONLINE` + Mollie), der die Einlösung dort aufruft. Beide mit
+  der Storefront-Roadmap Phase 5 (panary/panary-cloud#203).
+- POS-Rabattcode: Live-Stack-UAT gegen eine gepairte Edge ausstehend — insbesondere
+  der Ausfallpfad (Cloud abschalten → amber statt rot) und die Kollision zweier
+  Kassen auf demselben `usageLimit: 1`.
 - MwSt-Extraktion (Phase 0): Probeberechnung dokumentiert + 22 Engine-Tests grün
   (siehe `0004-order-bundle-pricing-modell.md` → „MwSt-Extraktion — Korrektur &
   Probeberechnung"); Spot-Check gegen einen physischen Bon optional.

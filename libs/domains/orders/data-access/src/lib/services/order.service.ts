@@ -9,7 +9,6 @@ import {
   CreationContext,
   CustomerPaymentInfo,
   DineLocation,
-  Discount,
   Order,
   OrderLineItem,
   OrderStatus,
@@ -31,10 +30,19 @@ import {
 
 /** Benanntes Input-Objekt für `OrderService.createOrder` — ersetzt die frühere 13-Parameter-Signatur. */
 export interface CreateOrderInput {
+  /**
+   * Vorab vergebene Order-ID (uuidv7). Nur setzen, wenn der Aufrufer die ID
+   * **vor** dem Anlegen braucht — heute der Rabattcode-Pfad, der die Einlösung
+   * mit `orderId` bucht, bevor die Order existiert (ADR 0032).
+   *
+   * Der Edge-Resolver akzeptiert eine mitgegebene `_id` ausdrücklich (derselbe
+   * Weg, den der Offline-Pfad seit jeher nutzt) und generiert nur ohne sie
+   * selbst. Ohne dieses Feld bleibt die Vergabe wie bisher beim Server.
+   */
+  _id?: string
   lineItems: Array<OrderLineItem>
   orderChannel: (typeof OrderChannel)[keyof typeof OrderChannel]
   customerDetails?: CustomerPaymentInfo
-  discountDetails?: Discount
   pager?: number
   productionTime: number
   staffMealDetails?: StaffPaymentInfo
@@ -362,7 +370,9 @@ export class OrderService extends BaseService<Order> {
     const provisional = this.#nextProvisionalSequence()
     const order: Order = {
       ...(newOrder as Order),
-      _id: uuidv7(),
+      // Eine vom Aufrufer vorab vergebene ID gewinnt — sonst zeigte im
+      // Rabattcode-Pfad die Einloesung auf eine andere ID als die Order.
+      _id: (newOrder as Partial<Order>)._id ?? uuidv7(),
       tenantId: location?.tenantId ?? '',
       locationId: location?._id ?? '',
       dailySequenceNumber: provisional,
@@ -445,10 +455,10 @@ export class OrderService extends BaseService<Order> {
   /** PUBLIC PROPERTIES */
   async createOrder(input: CreateOrderInput): Promise<number | number[] | null | undefined> {
     const {
+      _id,
       lineItems,
       orderChannel,
       customerDetails,
-      discountDetails,
       pager,
       productionTime,
       staffMealDetails,
@@ -480,13 +490,17 @@ export class OrderService extends BaseService<Order> {
       updatedAt: new Date().toISOString(),
     }
 
+    // Vorab vergebene ID durchreichen. Sie steht bewusst NICHT im Objekt-Literal
+    // oben: dessen Typ schliesst `_id` aus (der Server vergibt sie im Regelfall),
+    // und das soll der Default bleiben.
+    if (_id) (order as Order)._id = _id
+
     if (pager) order.pager = pager
     if (table) order.table = table
     if (customerDetails) order.customerPaymentInfo = customerDetails
     if (staffMealDetails) order.staffPaymentInfo = staffMealDetails
-    if (discountDetails) order.discount = discountDetails
-    // appliedDiscounts ist führend für die Tax-Engine; order.discount bleibt als
-    // Legacy-Spiegel für Alt-Reader (Aggregator/Bon) gesetzt (Rückwärtskompatibilität).
+    // Einzige Rabattquelle (ADR 0030). Der frühere Legacy-Spiegel `order.discount`
+    // entfällt — der Server lehnt ihn ab, statt ihn still zu verwerfen.
     if (appliedDiscounts && appliedDiscounts.length > 0) order.appliedDiscounts = appliedDiscounts
     if (orderInteractions.length > 0)
       (order as Order & { orderInteractions?: OrderInteraction[] }).orderInteractions = orderInteractions

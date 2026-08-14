@@ -13,7 +13,7 @@ import {
 // damit die Engine ihn berücksichtigt.
 //
 // Kombinationsregel (Phase 2, konservativ):
-//   - Greift nur, wenn KEIN manueller Rabatt gesetzt ist (appliedDiscounts/discount leer).
+//   - Greift nur, wenn KEIN manueller Rabatt gesetzt ist (appliedDiscounts leer).
 //   - Es wird höchstens EIN Automatik-Rabatt angewandt (der für den Kunden günstigste) —
 //     kein Stacking.
 //
@@ -60,7 +60,7 @@ export const applyAutomaticDiscounts = async (context: HookContext) => {
   if (!order || !Array.isArray(order.lineItems) || order.lineItems.length === 0) return context
 
   // Kombinationsregel: Automatik nur ohne bestehenden (manuellen) Rabatt.
-  if ((order.appliedDiscounts && order.appliedDiscounts.length > 0) || order.discount) return context
+  if (order.appliedDiscounts && order.appliedDiscounts.length > 0) return context
 
   // Personalessen ist rabatt-exklusiv (staff-meal-exclusivity.ts). Ohne diesen Guard
   // wuerde eine Personalessen-Bestellung, deren zugewiesener Rabatt ins Leere lief

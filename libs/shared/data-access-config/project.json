@@ -14,9 +14,6 @@
         "project": "libs/shared/data-access-config/ng-package.json",
         "tsConfig": "libs/shared/data-access-config/tsconfig.lib.json"
       }
-    },
-    "lint": {
-      "executor": "@nx/eslint:lint"
     }
   }
 }

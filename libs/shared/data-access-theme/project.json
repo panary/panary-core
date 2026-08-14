@@ -4,10 +4,5 @@
   "sourceRoot": "libs/shared/data-access-theme/src",
   "prefix": "lib",
   "projectType": "library",
-  "tags": ["type:data-access", "scope:shared"],
-  "targets": {
-    "lint": {
-      "executor": "@nx/eslint:lint"
-    }
-  }
+  "tags": ["type:data-access", "scope:shared"]
 }

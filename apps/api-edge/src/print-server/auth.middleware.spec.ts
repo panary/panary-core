@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { sha256 } from '../utils/crypto.utils'
 
 // Domain-/Backend-Module mocken, damit Vitest keine Domain-Source kompilieren muss.
@@ -27,20 +27,22 @@ function makeCtx(headers: Record<string, string>): FakeCtx {
   return { headers, state: {}, status: 0, body: undefined }
 }
 
+// Aufzeichnung je Test, nicht im `describe`-Scope: `findMock.mock.calls` IST ein
+// Aufzeichnungsarray. Eine geteilte `let`-Bindung, die `beforeEach` neu zuweist, liesse einen
+// Nachzuegler aus einem abgebrochenen Test in das Handle des naechsten schreiben — dessen
+// `mock.calls[0]` waere dann fremd. Siehe `.claude/rules/code-style.md` §10.
+function makeApp(apiKeyRecords: unknown[]) {
+  const findMock = vi.fn().mockResolvedValue(apiKeyRecords)
+  return { app: { service: vi.fn().mockReturnValue({ find: findMock }) } as any, findMock }
+}
+
 describe('printServerAuth – API-Key-Flow', () => {
   // Test-Fixture, kein echtes Credential — gitleaks-Inline-Allow gegen den
   // generic-api-key-False-Positive.
   const RAW_KEY = 'test-print-key-abcd1234' // gitleaks:allow
-  let findMock: ReturnType<typeof vi.fn>
-  let app: any
-
-  beforeEach(() => {
-    findMock = vi.fn()
-    app = { service: vi.fn().mockReturnValue({ find: findMock }) }
-  })
 
   it('hasht den eingehenden Key und sucht über apikeyPrefix statt Klartext', async () => {
-    findMock.mockResolvedValue([
+    const { app, findMock } = makeApp([
       { active: true, apikey: sha256(RAW_KEY), tenantId: 't1', locationId: 'l1', deviceRole: 'device:pos-client' },
     ])
     const ctx = makeCtx({ 'x-api-key': RAW_KEY, 'x-device-id': 'dev1' })
@@ -60,7 +62,7 @@ describe('printServerAuth – API-Key-Flow', () => {
   })
 
   it('lehnt ab, wenn kein Hash-Kandidat matcht (falscher Key)', async () => {
-    findMock.mockResolvedValue([{ active: true, apikey: sha256('anderer-key'), tenantId: 't1', locationId: 'l1' }])
+    const { app } = makeApp([{ active: true, apikey: sha256('anderer-key'), tenantId: 't1', locationId: 'l1' }])
     const ctx = makeCtx({ 'x-api-key': RAW_KEY, 'x-device-id': 'dev1' })
     const next = vi.fn()
 
@@ -71,7 +73,7 @@ describe('printServerAuth – API-Key-Flow', () => {
   })
 
   it('lehnt einen inaktiven Key trotz korrektem Hash ab', async () => {
-    findMock.mockResolvedValue([{ active: false, apikey: sha256(RAW_KEY), tenantId: 't1', locationId: 'l1' }])
+    const { app } = makeApp([{ active: false, apikey: sha256(RAW_KEY), tenantId: 't1', locationId: 'l1' }])
     const ctx = makeCtx({ 'x-api-key': RAW_KEY, 'x-device-id': 'dev1' })
     const next = vi.fn()
 

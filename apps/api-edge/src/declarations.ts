@@ -8,6 +8,7 @@ import { ProductService } from './services/products/products.class'
 import { CorporateCustomerService } from './services/corporate-customers/corporate-customers.class'
 import { CustomerService } from './services/customers/customers.class'
 import { DiscountService } from './services/discounts/discounts.class'
+import type { CodeCheckResult } from './services/discount-code-redeem/discount-code-redeem'
 import { DeviceService } from './services/devices/devices.class'
 import { BusinessDayService } from './services/business-days/business-days.class'
 import { CashSessionService } from './services/cash-sessions/cash-sessions.class'
@@ -63,6 +64,11 @@ export interface ServiceTypes {
   'corporate-customers': CorporateCustomerService
   customers: CustomerService
   discounts: DiscountService
+  // Proxy ohne DB: reicht Rabattcodes an die Cloud durch (ADR 0032).
+  'discount-code-redeem': {
+    find(params?: { query?: Record<string, unknown> }): Promise<CodeCheckResult>
+    create(data: Record<string, unknown>): Promise<CodeCheckResult>
+  }
   devices: DeviceService
   'product-groups': ProductGroupService
   locations: LocationService

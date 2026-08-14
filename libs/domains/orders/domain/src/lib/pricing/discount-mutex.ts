@@ -1,35 +1,52 @@
-import { AppliedDiscount, Discount } from '../order.schema'
+import { Discount } from '../order.schema'
 
-// Einweg-Migrations-Invariante „discount-mutex".
+// Nachhut der abgeschafften Rabatt-Doppelung (ADR 0030).
 //
-// Eine Order kennt zwei Rabattquellen (siehe compute-order-tax.ts):
-//   1. `appliedDiscounts[]` — neues Modell; ist es nicht-leer, ist es fuer
-//      Tax-Engine UND Bon-Renderer FUEHREND (`order.discount` wird ignoriert).
-//   2. `discount` — Legacy-Einzel-Order-Rabatt (Fallback, nur wenn appliedDiscounts leer).
+// Eine Order kannte zwei Rabattquellen: `appliedDiscounts[]` (führend) und `discount`
+// (Legacy-Einzelrabatt, Fallback). Der frühere „discount-mutex" leerte `discount`,
+// sobald `appliedDiscounts` geschrieben wurden — entschied das aber allein am
+// eingehenden Payload und sah deshalb nicht, wenn ein Flow nur `{ discount }` auf eine
+// Order patchte, die den gespeicherten Vorzustand bereits trug. Ergebnis war ein
+// persistierter Rabatt ohne Wirkung auf Preis, `taxSnapshot` und Bon
+// (panary/panary-core#181).
 //
-// Der Frontend-Data-Access-Layer (order.service.ts) setzt beim Anlegen einer
-// rabattierten Order BEIDE Felder — `discount` als „Legacy-Spiegel". Damit bleibt
-// nach dem Persistieren ein stale, fachlich unwirksamer `discount` in DB/Sync/Audit
-// zurueck und erzeugt Mehrdeutigkeit („welcher Rabatt gilt?"). Diese Invariante
-// loest das serverseitig: sobald (nicht-leere) `appliedDiscounts` geschrieben werden,
-// gewinnt das neue Feld und der Legacy-`discount` wird aktiv geleert.
+// `discount` ist inzwischen aus `orderSchema`, der Engine, der Sync-Feldliste und der
+// SQLite-Tabelle entfernt; `clearLegacyDiscountIfApplied` ist damit gegenstandslos und
+// entfallen. Übrig bleibt der Guard.
 //
-// Rueckgabe `null` (nicht `undefined`), damit ein PATCH einen bereits gespeicherten
-// Legacy-`discount` tatsaechlich ueberschreibt — ein `undefined`-Resolver-Ergebnis
-// wuerde das Feld nur weglassen und den Alt-Wert in der DB stehen lassen.
+// Der Guard ist bewusst NICHT durch `additionalProperties: false` ersetzt worden,
+// obwohl `validateData` das Feld ohnehin abwiese: Er läuft als erster Hook — vor
+// Sequenznummer und TSE-Start — und nennt beim Namen, was zu tun ist, statt eine
+// generische Schema-Verletzung zu melden.
 //
-// Ist `appliedDiscounts` leer/ungesetzt, bleibt der Legacy-Rabatt als aktiver
-// Fallback unveraendert erhalten.
+// Er feuert auf die ANWESENHEIT des Schlüssels, nicht auf einen Wert. Solange das Feld
+// noch existierte, war `discount: null` erlaubt (Migrationspfad: Alt-Wert leeren) —
+// seit der Entfernung lehnt das Schema auch `null` ab, und ein Guard, der ausgerechnet
+// diesen Fall durchwinkt, würde die eine unklare Fehlermeldung übrig lassen, die er
+// verhindern soll.
+
+export interface LegacyDiscountWriteInput {
+  discount?: Discount | null
+}
 
 /**
- * Liefert den fuer den `discount`-Data-Resolver (create/patch) aufzuloesenden Wert:
- * `null`, sobald die Order eine nicht-leere `appliedDiscounts`-Liste traegt, sonst
- * der unveraenderte Eingangswert.
+ * Liefert eine Fehlerbeschreibung, wenn ein Schreibzugriff das abgeschaffte
+ * Legacy-Feld `discount` überhaupt mitschickt — sonst `null`. Nicht-werfend, damit
+ * UI-Code den Zustand abfragen kann, ohne try/catch zu bauen.
+ *
+ * Ausschlaggebend ist die ANWESENHEIT des Schlüssels — auch `discount: null` wird
+ * abgelehnt, weil das Feld nicht mehr existiert.
  */
-export function clearLegacyDiscountIfApplied(
-  value: Discount | null | undefined,
-  data: { appliedDiscounts?: AppliedDiscount[] | null },
-): Discount | null | undefined {
-  const hasApplied = Array.isArray(data.appliedDiscounts) && data.appliedDiscounts.length > 0
-  return hasApplied ? null : value
+export function findLegacyDiscountWrite(data: LegacyDiscountWriteInput | null | undefined): string | null {
+  if (!data || typeof data !== 'object' || !('discount' in data)) return null
+  return (
+    'Das Feld `discount` ist abgeschafft und wird nicht mehr angenommen. ' +
+    'Rabatte gehoeren als Snapshot nach `appliedDiscounts`.'
+  )
+}
+
+/** Werfende Variante fuer Server-Hooks. Wirft `Error` mit sprechender Meldung. */
+export function assertNoLegacyDiscountWrite(data: LegacyDiscountWriteInput | null | undefined): void {
+  const conflict = findLegacyDiscountWrite(data)
+  if (conflict) throw new Error(conflict)
 }

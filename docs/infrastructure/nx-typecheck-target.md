@@ -1,10 +1,10 @@
 ---
 type: Guide
 title: Nx-Typecheck-Target — warum es jahrelang ins Leere lief und was es jetzt hält
-description: Das typecheck-Target starb workspace-weit an der Konfiguration, bevor eine Datei geprüft wurde; seit der Reparatur ist es grün und läuft als hartes CI-Gate mit.
-tags: [ci, infra, typescript]
+description: Das typecheck-Target starb workspace-weit an der Konfiguration, bevor eine Datei geprüft wurde; seit der Reparatur ist es grün und läuft als hartes CI-Gate mit — api-edge fehlte bis 2026-08-14 ganz.
+tags: [ci, infra, typescript, api-edge]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-08-06T20:45:00.000Z }
+generated: { by: claude-code/opus-5, at: 2026-08-14T09:40:00.000Z }
 ---
 
 # Nx-Typecheck-Target
@@ -13,8 +13,28 @@ generated: { by: claude-code/opus-5, at: 2026-08-06T20:45:00.000Z }
 `tsc --build tsconfig.json --emitDeclarationOnly` — ein Target, das das
 `@nx/js/typescript`-Plugin für jedes Projekt ableitet.
 
-**Stand:** grün, 83 Projekte, 0 Fehler. Seit 2026-08-06 hart in der CI
+**Stand:** grün, 84 Projekte, 0 Fehler. Seit 2026-08-06 hart in der CI
 (`nx affected -t lint,test,typecheck,build`).
+
+> ⚠️ **84 von 122 Projekten — die Zahl ist die Abdeckung, nicht der Workspace.**
+> Das Target wird abgeleitet, nicht deklariert: Wo keine `tsconfig.json` liegt,
+> entsteht keins, und `nx affected` überspringt das Projekt wortlos. Die
+> Differenz sind überwiegend Aggregat-Projekte ohne eigenen Code (`libs/domains/orders`
+> als Ganzes — der Code liegt in `orders-domain` etc.). Wer die Abdeckung prüft,
+> vergleicht die beiden Listen:
+>
+> ```bash
+> diff <(pnpm exec nx show projects | tr ',' '\n' | sort) \
+>      <(pnpm exec nx show projects --with-target typecheck | tr ',' '\n' | sort)
+> ```
+>
+> **Dieselbe Prüfung lohnt für jedes CI-Target, nicht nur für `typecheck`.** Auf
+> `lint` angewandt fand sie am selben Tag die nächste Lücke: Der
+> `@nx/eslint/plugin` war auf `targetName: "eslint:lint"` konfiguriert, die CI
+> rief aber `lint` — **40 Projekte** wurden nie gelintet, und darin lagen zwei
+> echte Fehler ([panary/panary-core#204](https://github.com/panary/panary-core/issues/204)).
+> Ein Target-Name, den nur die halbe Toolchain kennt, ist dieselbe Klasse wie ein
+> Target, das gar nicht existiert.
 
 ## Warum es vorher nichts geprüft hat
 
@@ -38,6 +58,52 @@ auflief:
 | Konfigurationsdefekt selbst | 52 tsconfigs, 32 vite-Configs, 5 `paths` | [#110](https://github.com/panary/panary-core/pull/110) |
 | Zwei `@sinclair/typebox`-Instanzen | 96 × TS2345 in fünf Domain-Libs | [#111](https://github.com/panary/panary-core/pull/111), [ADR 0020](../adr/0020-sinclair-typebox-an-feathers-koppeln.md) |
 | TS-Projekt-Referenzen ohne Solution-Setup | 5 × TS6306 | [#112](https://github.com/panary/panary-core/pull/112), [ADR 0021](../adr/0021-keine-ts-projekt-referenzen-ohne-solution-setup.md) |
+
+## Der blinde Fleck darunter: api-edge (2026-08-14)
+
+Die Reparatur von 2026-08-06 hat alles grün gemacht, **was ein Target hatte**.
+`api-edge` hatte keins — und fiel deshalb nicht als roter Lauf auf, sondern
+gar nicht. `nx run api-edge:typecheck` antwortete „Cannot find configuration for
+task", die CI überging das Projekt in der affected-Zeile schweigend. Acht Tage
+lang las sich „83 Projekte, 0 Fehler" wie eine Zusage über den Workspace,
+während die 208 TS-Dateien der Edge-App nicht darin vorkamen.
+
+Ursache war eine einzige fehlende Datei. Das `@nx/js/typescript`-Plugin leitet
+`typecheck` aus der **`tsconfig.json`** eines Projekts ab; `apps/api-edge/` besaß
+nur `tsconfig.app.json`, `tsconfig.spec.json` und `tsconfig.migrations.json`.
+Kein Solution-File, kein Target, keine Meldung.
+
+Darunter lag ein zweiter Defekt, der auch nach dem Anlegen der Datei zugeschlagen
+hätte: `tsconfig.spec.json` erbte von `tsconfig.app.json` mit `rootDir: ./src`,
+ihre `include` zieht aber `vitest.config.mts` aus dem Projekt-Root herein →
+`TS6059`. Dieselbe Klasse wie das `TS5069` von #110: ein Konfigurationsfehler, der
+zuschlägt, **bevor eine Datei geprüft wird**. Behoben an der Wurzel statt am
+Symptom — `tsconfig.spec.json` erbt jetzt von der neuen `tsconfig.json`, womit
+`rootDir` wie bei allen anderen Projekten der Workspace-Root ist. Das ist auch
+nötig, weil die Specs `@panary/*` aus `libs/` importieren; ein auf `apps/api-edge`
+verengtes `rootDir` bricht daran erneut.
+
+Aus demselben Grund verliert `tsconfig.app.json` ihr `rootDir: ./src` (146×
+`TS6059` unter `tsc --build`). **Auf die Build-Ausgabe wirkt das nicht** —
+`@nx/esbuild` bestimmt die Struktur über `outputPath`/`outbase`. Nachgemessen
+statt angenommen: alle 738 Artefakte unter `dist/apps/api-edge` sind vorher wie
+nachher byte-identisch (`shasum -a 256`), die Ausgabe liegt in beiden Fällen unter
+`apps/api-edge/src/`.
+
+Die `include` der spec-Config kannte außerdem nur `src/**`, während
+`vitest.config.mts` `{src,test,tests}/**` lädt: **25 Dateien** unter `test/` liefen
+in jedem Testlauf mit, ohne je typgeprüft zu werden. Sie sind jetzt erfasst —
+drei der vier gefundenen Bestandsfehler saßen genau dort.
+
+Ausbeute: vier echte Typfehler, alle in Testdateien, alle behoben. Der
+Produktivcode war bereits sauber (0 Fehler) — der blinde Fleck hat also keine
+Schuld verdeckt, sondern nur nicht verhindert, dass sie entsteht.
+
+**Die Lehre ist nicht „api-edge war kaputt", sondern:** Ein Target, das für ein
+Projekt nicht existiert, ist unsichtbarer als eines, das rot ist. Ein rotes Target
+meldet sich; ein fehlendes lässt die Gesamtzahl einfach kleiner aussehen, und
+niemand vergleicht sie mit der Projektliste. Deshalb steht die Abdeckungsprüfung
+oben — sie ist der einzige Weg, diese Klasse zu sehen.
 
 ## Warum das Gate hart ist
 

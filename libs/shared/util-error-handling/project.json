@@ -19,9 +19,6 @@
       "options": {
         "packageRoot": "libs/shared/util-error-handling"
       }
-    },
-    "lint": {
-      "executor": "@nx/eslint:lint"
     }
   }
 }

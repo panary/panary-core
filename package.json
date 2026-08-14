@@ -1,6 +1,6 @@
 {
   "name": "panary-core",
-  "version": "26.8.18",
+  "version": "26.8.19",
   "license": "BSL-1.1",
   "packageManager": "pnpm@10.34.3",
   "keywords": [
@@ -38,6 +38,9 @@
     "docs:adr:next": "node scripts/docs-adr-index.mjs --next",
     "empty-targets:gate": "node scripts/empty-test-targets.mjs",
     "empty-targets:gate:update": "node scripts/empty-test-targets.mjs --update",
+    "targets:overrides:gate": "node scripts/inferred-target-overrides.mjs",
+    "targets:uncached:gate": "node scripts/uncached-targets.mjs",
+    "targets:uncached:gate:update": "node scripts/uncached-targets.mjs --update",
     "security:install": "bash scripts/install-security-tools.sh",
     "security:scan": "node scripts/security-scan.mjs --mode=local",
     "security:report": "node scripts/security-scan.mjs --mode=all --report",

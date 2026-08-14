@@ -4,10 +4,5 @@
   "sourceRoot": "libs/domains/ingredients/data-access/src",
   "prefix": "lib",
   "projectType": "library",
-  "tags": ["type:data-access", "domain:ingredients"],
-  "targets": {
-    "lint": {
-      "executor": "@nx/eslint:lint"
-    }
-  }
+  "tags": ["type:data-access", "domain:ingredients"]
 }

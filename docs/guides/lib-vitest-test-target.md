@@ -4,7 +4,7 @@ title: Test-Target an einer Nx-Lib nachrüsten
 description: Anleitung, wie eine Lib ohne `test`-Target eines per Plugin-Inferenz bekommt — inklusive der drei Fallen (Config-Drift, TS5069, fehlender JIT-Compiler) und des TestBed-freien Musters für Angular-Klassen.
 tags: [nx, vitest, testing, ci]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-08-10T21:00:00Z }
+generated: { by: claude-code/opus-5, at: 2026-08-14T11:35:00Z }
 ---
 
 # Test-Target an einer Nx-Lib nachrüsten
@@ -60,6 +60,50 @@ export default defineConfig(() => ({
 > Projekten weg, die es per Inferenz haben, und Änderungen an den Plugin-Optionen in
 > `nx.json` gehen an ihr vorbei. Vorlagen mit korrektem Aufbau:
 > `libs/domains/devices/domain`, `libs/domains/products/data-access`.
+>
+> **Dasselbe gilt für `lint`.** Generatoren schreiben gern
+> `"lint": { "executor": "@nx/eslint:lint" }`; 46 Projekte trugen das, bis
+> [panary/panary-core#206](https://github.com/panary/panary-core/issues/206) es entfernt hat.
+> Ein solches Target überschreibt das inferierte und erbt dessen Cache-Inputs nicht — es
+> bekommt stattdessen die aus `targetDefaults`. Wer nach `nx g …` ein `lint`- oder
+> `test`-Target in der frischen `project.json` findet, löscht es — bleibt danach
+> `"targets": {}` übrig, kommt der Schlüssel gleich mit weg.
+>
+> ⚠️ **Bis 2026-08-14 stand hier, die projektlokale `eslint.config.mjs` habe damit nicht
+> in den Inputs gestanden und eine Änderung daran den Cache nicht invalidiert.** Das ist
+> falsch: Die Inputs des expliziten Targets begannen mit `default`, und `default` ist in
+> `nx.json` als `{projectRoot}/**/*` definiert — die Datei liegt im projectRoot und war
+> damit erfasst. Gemessen am expliziten Target (`libs/shared/ui-notifications`, alter
+> Stand wiederhergestellt): Änderung an der lokalen `eslint.config.mjs` → **echter Lauf**,
+> unverändert → Cache-Treffer, zweite Änderung → wieder echter Lauf.
+>
+> Gefehlt haben zwei **andere** Inputs, die nur das inferierte Target mitbringt:
+> `^default` (eine Änderung in einer Abhängigkeit invalidierte den Lint-Cache nicht) und
+> `externalDependencies: ["eslint"]` (ein eslint-Versionswechsel ebenso wenig). Der
+> Aufräum-Grund bleibt derselbe, nur der belegte Schaden ist ein anderer — und er lag
+> nie bei der Datei, die man zuerst verdächtigt.
+>
+> ✅ **Seit [#210](https://github.com/panary/panary-core/issues/210) hängt daran ein Gate**
+> (`pnpm targets:overrides:gate`, in der CI neben dem Leerstands-Gate). Es bricht ab, sobald
+> eine `project.json` ein `lint`, `typecheck`, `test`, `test-ci`, `build-deps` oder
+> `watch-deps` selbst deklariert — die Namen liest es aus `nx.json`, nicht hartkodiert, damit
+> eine Umbenennung wie in #204 es mitzieht.
+>
+> **`test` kam mit [#213](https://github.com/panary/panary-core/issues/213) dazu**, und der
+> Anlass korrigiert die vorherige Einschätzung: #210 hatte `test` mit „5 legitime Fälle, null
+> echte Funde" ausgenommen. Zwei der fünf waren jedoch echte Drift, und zwar teure —
+> `businessdays-aggregator` und `orders-feature-pos-order-dialog` deklarierten `test` mit
+> `@nx/vite:test`, für den es **kein `targetDefaults`** gibt. Ohne `cache` und `inputs` liefen
+> ihre Tests bei **jedem** CI-Lauf neu (gemessen: unveränderter zweiter Lauf → 162 Tests
+> erneut ausgeführt; nach dem Entfernen → „Nx read the output from the cache").
+>
+> Die drei Angular-Apps bleiben erlaubt, aber nicht über eine Projektliste: Das Gate führt
+> eine **Executor-Allowlist** (`test` → `@angular/build:unit-test`). Eine vierte Angular-App
+> muss deshalb nichts quittieren, ein `@nx/vite:test` schlägt weiterhin an.
+>
+> ⚠️ **`build` bleibt ungeprüft** — 98 legitime Fälle, viele davon generisches
+> `nx:run-commands`, an dem eine Executor-Allowlist nichts unterscheiden könnte. Das Gate
+> druckt seine Lücken bei jedem Lauf mit aus, damit die Abdeckung nicht überschätzt wird.
 
 Gegenprobe nach dem Anlegen — das Delta im Projektgraphen muss **genau `test`** sein,
 sonst hat man nebenbei etwas anderes verändert:
@@ -172,13 +216,17 @@ Referenz-Implementierungen:
 ## 4. Verifikation
 
 ```bash
-pnpm nx run-many -t eslint:lint,lint,typecheck,build,test -p <projekt> --skip-nx-cache
+pnpm nx run-many -t lint,typecheck,build,test -p <projekt> --skip-nx-cache
 pnpm nx format:check --files <neue-dateien-kommasepariert>
 ```
 
-`eslint:lint` **und** `lint` laufen lassen: Das inferierte Target heißt `eslint:lint`,
-nur wenige Projekte haben zusätzlich ein explizites `lint`. `nx lint <projekt>` allein
-läuft bei den meisten Libs still ins Leere und meldet trotzdem Exit 0.
+> **Bis 2026-08-14 stand hier `eslint:lint,lint`** — mit dem Hinweis, `nx lint <projekt>`
+> allein laufe „bei den meisten Libs still ins Leere und melde trotzdem Exit 0". Das war
+> korrekt beobachtet und als Workaround dokumentiert; die Ursache lag eine Ebene tiefer
+> (`@nx/eslint/plugin` hieß `targetName: "eslint:lint"`, während CI und Gewohnheit `lint`
+> riefen) und traf die CI genauso — 40 Projekte wurden dort nie gelintet.
+> Seit [panary/panary-core#204](https://github.com/panary/panary-core/issues/204) heißt das
+> inferierte Target überall `lint`; ein zweiter Target-Name ist nicht mehr nötig.
 
 Ist eine `project.json`- oder tsconfig-Pfad-Änderung im Spiel, vorher `pnpm nx reset` —
 der Projektgraph liefert dem Executor sonst weiter den alten Wert, auch mit

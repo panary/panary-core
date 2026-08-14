@@ -78,7 +78,7 @@ describe('orders service — taxSnapshot bei preisrelevanten Patches', () => {
       // params.user aktiviert das multiTenancy-WRITE-Stamping auch intern —
       // tenantId/locationId muessen daher am User-Objekt haengen (Memory-Regel:
       // Stamp kommt aus params.user, nie aus dem Quell-Datensatz).
-      { provider: undefined, user: { _id: userId, tenantId, locationId } as never },
+      { provider: undefined, user: { _id: userId, tenantId, locationId } } as never,
     )) as Order
     orderId = createdOrder._id
   })
@@ -105,15 +105,33 @@ describe('orders service — taxSnapshot bei preisrelevanten Patches', () => {
     assert.strictEqual(Math.round(createdOrder.taxSnapshot!.brutto * 100), 4000)
   })
 
-  it('patch mit discount → taxSnapshot wird serverseitig neu berechnet (cent-korrekt gegen computeOrderTax)', async () => {
-    const discount = { discountType: 'percent', discount: 50 } as const
+  it('patch mit appliedDiscounts → taxSnapshot wird serverseitig neu berechnet (cent-korrekt gegen computeOrderTax)', async () => {
+    const appliedDiscounts = [
+      {
+        _id: uuidv7(),
+        discountId: null,
+        name: 'Integrationstest-Rabatt',
+        method: 'manual',
+        target: 'order',
+        valueType: 'percent',
+        valuePercent: 50,
+        valueCents: 0,
+        computedAmountCents: 0,
+        appliedAt: new Date().toISOString(),
+      },
+    ]
 
     const patched = (await app
       .service('orders')
-      .patch(orderId, { discount } as never, { provider: undefined })) as Order
+      .patch(orderId, { appliedDiscounts } as never, { provider: undefined })) as Order
 
     // Referenz: kanonische Engine auf dem Zielzustand (Order + neuer Rabatt).
-    const expected = computeOrderTax({ ...createdOrder, discount } as Order)
+    // Eigene Kopie, weil die Engine `computedAmountCents` in die Eintraege
+    // zurueckschreibt — geteilte Objekte wuerden den Vergleich verfaelschen.
+    const expected = computeOrderTax({
+      ...createdOrder,
+      appliedDiscounts: appliedDiscounts.map(d => ({ ...d })),
+    } as Order)
     assert.deepStrictEqual(patched.taxSnapshot, expected, 'Patch-Result muss den neu berechneten Snapshot tragen')
 
     // 4000 Cents − 50% = 2000 Cents Brutto; Netto round(2000·100/119) = 1681.
@@ -126,10 +144,10 @@ describe('orders service — taxSnapshot bei preisrelevanten Patches', () => {
     assert.deepStrictEqual(stored.taxSnapshot, expected)
   })
 
-  it('patch, der den discount entfernt (null) → Snapshot zurueck auf den vollen Preis', async () => {
+  it('patch, der alle Rabatte entfernt (appliedDiscounts: []) → Snapshot zurueck auf den vollen Preis', async () => {
     const patched = (await app
       .service('orders')
-      .patch(orderId, { discount: null } as never, { provider: undefined })) as Order
+      .patch(orderId, { appliedDiscounts: [] } as never, { provider: undefined })) as Order
 
     assert.strictEqual(Math.round(patched.taxSnapshot!.brutto * 100), 4000)
     assert.strictEqual(Math.round(patched.taxSnapshot!.netto * 100), 3361)
@@ -143,5 +161,43 @@ describe('orders service — taxSnapshot bei preisrelevanten Patches', () => {
       .patch(orderId, { table: 'T5' } as never, { provider: undefined })) as Order
 
     assert.deepStrictEqual(patched.taxSnapshot, before.taxSnapshot)
+  })
+
+  // Verankert die REGISTRIERUNG von `rejectLegacyDiscount` in before.create/patch
+  // (ADR 0030). Die Regel selbst ist per Unit-Spec gelockt; ein nicht registrierter
+  // Hook faellt nur hier auf. Seit das Feld auch aus `orderSchema` entfernt ist, wuerde
+  // `validateData` es ebenfalls abweisen — der Hook liefert aber die sprechende
+  // Meldung und laeuft, bevor Sequenznummer und TSE-Start Nebenwirkungen erzeugen.
+  describe('Legacy-Rabattfeld ist abgeschafft', () => {
+    const legacyDiscount = { discountType: 'percent', discount: 50 } as const
+
+    // `device:pos-client` traegt `orders: MANAGE` — die Rolle, unter der der POS
+    // patcht. tenantId/locationId am User, sonst filtert `multiTenancy` die Order weg
+    // und der Test misst einen 404 statt der Regel.
+    const posParams = () =>
+      ({
+        provider: 'rest',
+        authenticated: true,
+        user: { _id: userId, role: 'device:pos-client', tenantId, locationId, activeLocationId: locationId },
+      }) as never
+
+    it('externer Patch mit discount → 400', async () => {
+      await assert.rejects(
+        () => app.service('orders').patch(orderId, { discount: legacyDiscount } as never, posParams()),
+        (err: { code?: number }) => err.code === 400,
+      )
+    })
+
+    it('auch discount: null wird abgelehnt — das Feld existiert nicht mehr', async () => {
+      await assert.rejects(
+        () => app.service('orders').patch(orderId, { discount: null } as never, posParams()),
+        (err: { code?: number }) => err.code === 400,
+      )
+    })
+
+    it('der Snapshot der Order bleibt dabei unveraendert', async () => {
+      const stored = (await app.service('orders').get(orderId, { provider: undefined })) as Order
+      assert.strictEqual(Math.round(stored.taxSnapshot!.brutto * 100), 4000)
+    })
   })
 })

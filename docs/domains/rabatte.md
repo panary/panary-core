@@ -1,7 +1,7 @@
 ---
 type: Domain Concept
 title: 'Rabatte — Datenmodell, Anwendungslogik & Sync'
-description: 'Rabattsystem für POS und Storefront: Domänen-Lib @panary/discounts/domain, Anwendung über order.appliedDiscounts mit MwSt-Extraktion, Automatik-Hook, Personalessen, discount-mutex und Edge-Sync.'
+description: 'Rabattsystem für POS und Storefront: Domänen-Lib @panary/discounts/domain, Anwendung ausschließlich über order.appliedDiscounts mit MwSt-Extraktion, Automatik-Hook, Personalessen, Rabatt-KPI und Edge-Sync.'
 tags: [discounts, orders, sync, pos]
 status: stable
 generated: { by: claude-code/historic, at: 2026-05-25T00:00:00Z }
@@ -31,39 +31,97 @@ Aktiv-Zeitraum abgeleitet (`deriveDiscountDisplayStatus`).
 
 - `order.appliedDiscounts[]` (Snapshot je angewandtem Rabatt: `discountId?`,
   `code?`, `valueType`, `valuePercent`/`valueCents`, `computedAmountCents`,
-  `target`, `lineItemId?`, `isStaffMeal?`). Löst das Legacy-Feld `order.discount`
-  ab: ist `appliedDiscounts` nicht-leer, ist es führend und `order.discount` wird
-  server-seitig geleert (siehe „discount-mutex" unten).
+  `target`, `lineItemId?`, `isStaffMeal?`) ist die **einzige** Rabattquelle der Order.
+  Das frühere Legacy-Feld `order.discount` ist entfernt (siehe unten).
 - Die kanonische Engine `computeOrderTax` (`@panary/orders/domain`, siehe
-  [0004-order-bundle-pricing-modell.md](../adr/0004-order-bundle-pricing-modell.md)) ist führend:
-  ist `appliedDiscounts` gesetzt, nutzt sie diese; sonst Fallback `order.discount`.
+  [0004-order-bundle-pricing-modell.md](../adr/0004-order-bundle-pricing-modell.md)) rechnet
+  ausschließlich auf `appliedDiscounts`.
 
-### discount-mutex — Einweg-Migration (Fix 2026-07-04)
+### Legacy-Feld `order.discount` — entfernt ([ADR 0030](../adr/0030-legacy-rabattfeld-abgeschafft.md))
 
-Der Frontend-Data-Access (`order.service.ts`) setzt beim Anlegen einer
-rabattierten Order **beide** Felder — `appliedDiscounts` (führend) und
-`order.discount` als „Legacy-Spiegel". Damit ohne diese Regel ein fachlich
-unwirksamer `discount` als stale „Karteileiche" in DB/Sync/Audit zurückbliebe
-(Mehrdeutigkeit „welcher Rabatt gilt?"), wird die Invariante serverseitig
-erzwungen: sobald ein Create/Patch (nicht-leere) `appliedDiscounts` schreibt,
-gewinnt das neue Feld und `order.discount` wird **aktiv auf `null` geleert**.
+`order.discount` existiert nicht mehr. Es gibt genau **eine** Rabattquelle je Order:
+`appliedDiscounts`.
 
-- **Helper (Single Source of Truth):** `clearLegacyDiscountIfApplied`
-  (`@panary/orders/domain → pricing/discount-mutex.ts`).
-- **Verdrahtung:** `discount`-Data-Resolver in Edge
-  (`apps/api-edge/src/services/orders/orders.schema.ts`) **und** Cloud
-  (`apps/api-cloud/src/services/orders/orders.schema.ts`), je für create + patch.
-- **`null` statt `undefined`:** damit ein PATCH einen bereits gespeicherten
-  Legacy-`discount` tatsächlich überschreibt statt ihn nur wegzulassen. Cloud
-  greift auch für Sync-Push-Creates (Alt-Edge-Daten werden mitbereinigt).
-- Ist `appliedDiscounts` leer/ungesetzt, bleibt `order.discount` als aktiver
-  Fallback unverändert. Sicher, weil alle Reader (Tax-Engine + Bon-Renderer via
-  `computeOrderTax`) `appliedDiscounts` bevorzugen und `null`/`undefined`
-  discount identisch behandeln.
+Die frühere Einweg-Migration („discount-mutex", 2026-07-04) leerte `order.discount`,
+sobald ein Create/Patch nicht-leere `appliedDiscounts` schrieb. Sie entschied das allein
+am **eingehenden Payload** und sah deshalb nicht, wenn ein Flow nur `{ discount }` auf
+eine Order patchte, die in der DB bereits `appliedDiscounts` trug: Der Legacy-Rabatt
+wurde gespeichert und von der Engine ignoriert — ein Rabatt ohne Wirkung auf Preis,
+`taxSnapshot` und Bon (panary/panary-core#181). Statt einer Kombinationsregel fiel das
+Feld weg.
+
+Entfernt wurden: `orderSchema.discount` samt `orderDataSchema`-Pick, der Fallback-Zweig
+in `computeOrderTax`, `ORDER_JSON_FIELDS`, die `discount`-Data-Resolver am Edge, der
+Legacy-Zweig der Rabatt-KPI und die SQLite-Spalte
+(`20260813210000_orders_drop_legacy_discount.ts`).
+
+- **Guard bleibt:** `rejectLegacyDiscount`
+  (`apps/api-edge/src/hooks/reject-legacy-discount.hook.ts`) lehnt einen Patch/Create ab,
+  der den Schlüssel `discount` überhaupt mitschickt — **inklusive `discount: null`**.
+  Regel als reine Funktion: `findLegacyDiscountWrite` / `assertNoLegacyDiscountWrite`
+  (`@panary/orders/domain → pricing/discount-mutex.ts`). `additionalProperties: false`
+  würde ebenfalls greifen; der Hook läuft aber als **erster** in der Kette — vor
+  Sequenznummer und TSE-Start — und nennt beim Namen, was zu tun ist.
+- **POS:** `applyCorporateCustomer` schreibt den Vertragsrabatt des Firmenkunden als
+  `AppliedDiscount` (`discountId: null`, Name = Kundenname) und **ersetzt** die
+  bestehende Liste — konsistent zu `applyDiscount`/`applyStaffMeal`.
+- **`discountSchema` / `Discount` bleiben** in `@panary/orders/domain`: Sie beschreiben
+  das Konditionen-Shape der **Stammdaten** (`discountDetails` an Kunde, Firmenkunde,
+  User, Filiale), aus dem der POS den Snapshot baut — nicht mehr ein Feld der Order.
 - **Reihenfolge:** erst LINE-Rabatte (auf der jeweiligen Position, summen-exakt
   über die Steuer-Atome verteilt), dann ORDER-Rabatte auf die Restsumme.
   Festbeträge via Largest-Remainder. `computedAmountCents` wird von der Engine
   zurückgeschrieben. Tax-Integrität (netto + steuer = brutto) bleibt pro Satz.
+
+#### Erkennung von Bestands-Orders
+
+🚨 **Kein automatischer Repair.** Abgeschlossene bzw. TSE-signierte Vorgänge werden nach
+KassenSichV nicht stillschweigend umgeschrieben — Treffer werden **berichtet**, nicht
+korrigiert. Am Edge ist die Spalte mit der Migration weg; die Erkennung läuft deshalb auf
+der Cloud-MongoDB, wo die gepushten Orders liegen (Zugang: ephemerer SSH-Tunnel, siehe
+Betriebsdoku):
+
+```js
+// Bestand mit gesetztem Legacy-Rabatt (wirkungslos, sobald appliedDiscounts existiert)
+db.orders.countDocuments({ discount: { $ne: null, $exists: true } })
+
+db.orders
+  .find(
+    { discount: { $ne: null, $exists: true } },
+    { _id: 1, tenantId: 1, locationId: 1, createdAt: 1, discount: 1, appliedDiscounts: 1, 'taxSnapshot.brutto': 1 },
+  )
+  .sort({ createdAt: 1 })
+  .limit(50)
+```
+
+Ein Treffer mit **nicht-leerem** `appliedDiscounts` ist der Fall aus #181: Der
+gespeicherte `discount` war schon vor der Entfernung wirkungslos, der `taxSnapshot`
+stimmt also weiterhin. Ein Treffer **ohne** `appliedDiscounts` hatte einen wirksamen
+Legacy-Rabatt — dort ist der `taxSnapshot` korrekt, aber die Rabattherkunft ist nach der
+Feld-Entfernung nicht mehr auslesbar.
+
+### Rabatt-KPI im Tagesabschluss
+
+`aggregateFinancials` (`@panary/businessdays/aggregator → financials.ts`) zählt
+`appliedDiscounts` und summiert deren `computedAmountCents` — den von
+`computeOrderTax` zurückgeschriebenen, tatsächlich abgezogenen Brutto-Betrag. Eine
+Eine Rückrechnung ist damit nicht nötig.
+
+- **`discountsCount` ist PRO ORDER**, nicht pro Rabatt-Eintrag: Der Wert speist die
+  Quote rabattierter Bestellungen. Eine Order mit zwei Rabatten ist eine rabattierte
+  Order, nicht zwei.
+- Bestands-Orders ohne Engine-Durchlauf tragen `computedAmountCents: 0` und zählen als
+  rabattiert mit 0 € — statt mit einer geratenen Summe.
+
+Bis 2026-08-13 las die Aggregation **ausschließlich** das inzwischen entfernte
+`order.discount`. Da der Mutex genau dieses Feld leerte, sobald `appliedDiscounts`
+gesetzt waren, zählte jeder über den POS gewährte Rabatt als **0 Rabatte / 0,00 €** —
+im Z-Bon, in der Rabatt-Quote und in der Cloud-Karte „Finanzen".
+
+⚠️ **Cloud-Seite offen** (panary/panary-cloud#253): `LIVE_KPI_ORDER_PROJECTION`
+schneidet `appliedDiscounts` noch weg. Beim nächsten Pin-Bump muss das Feld in die
+Projektion — `live-kpis.spec.ts` rechnet Fixtures projiziert und unprojiziert gegen
+einander und wird sonst rot.
 
 ### MwSt-Extraktion (Phase 0)
 
@@ -111,10 +169,12 @@ blockt der `orderPatchResolver` — Positionen sind nur beim create formbar.
   abgeschlossene/signierte Vorgänge werden nicht stillschweigend umgeschrieben
   (KassenSichV-Unveränderbarkeit); Erkennung: `discount`/`appliedDiscounts`
   gesetzt UND `taxSnapshot.brutto ≠ computeOrderTax(order).brutto`.
-- Offene Klärung: Patcht ein Flow einen Legacy-`discount` auf eine Order mit
-  bestehenden `appliedDiscounts` (z. B. Automatik-Rabatt), bleibt
-  `appliedDiscounts` engine-seitig führend — der gepatchte Legacy-Rabatt wirkt
-  dann nicht auf den Snapshot. Kombinationsregel dafür ist fachlich zu klären.
+- ~~Offene Klärung: Kombinationsregel für einen Legacy-`discount`-Patch auf eine
+  Order mit bestehenden `appliedDiscounts`.~~ **Erledigt 2026-08-13** — es gibt keine
+  Kombinationsregel, das Legacy-Feld ist abgeschafft
+  ([ADR 0030](../adr/0030-legacy-rabattfeld-abgeschafft.md)). Ein externer
+  `discount`-Schreibzugriff wird mit `400` abgelehnt, statt wirkungslos gespeichert zu
+  werden.
 
 Specs: `calculate-tax-details.spec.ts` (Hook-Verhalten) +
 `test/services/orders/orders.test.ts` (Integration: Registrierung in der
@@ -175,6 +235,59 @@ die Auswahl zurück.
   Order-Level. Mehrfach-/Automatik-Kombination folgt der Engine-Reihenfolge
   (LINE vor ORDER).
 
+## POS-Anwendung (Rabattcode)
+
+Neben dem Rabatt-Picker sitzt der Code-Knopf (`confirmation_number`), der den
+`PromoCodeDialogComponent` öffnet: Touch-Tastatur, Eingabe, „Prüfen".
+
+**Codes sind strikt online** ([ADR 0032](../adr/0032-promo-codes-am-pos-strikt-online.md)).
+Sie werden nicht an den Edge gesynct — ein lokaler Zähler erzeugte bei mehreren
+Kassen Lost Updates. Der Edge reicht stattdessen durch:
+
+| Schritt   | Wann                | Aufruf                                             |
+| --------- | ------------------- | -------------------------------------------------- |
+| Prüfen    | beim „Prüfen"-Tipp  | `discount-code-redeem.find` → Cloud, kein Verbrauch |
+| Einlösen  | beim `placeOrder`   | `discount-code-redeem.create` → Cloud, atomar       |
+
+Die Trennung ist der Kern: Würde schon die Prüfung einlösen, verbrauchte ein
+Abbruch nach der Eingabe den Code — bei `usageLimit: 1` unwiederbringlich.
+
+**Zwei Ablehnungsklassen, im Dialog verschieden gefärbt:**
+
+- **fachlich** (rot) — `not_found`, `expired`, `limit_reached`, `wrong_customer`,
+  `discount_inactive`. Kommt von der Cloud als `200` mit `ok: false`.
+- **technisch** (amber) — `not_paired`, `cloud_unreachable`. Entsteht am Edge; ein
+  `401`/`429`/`5xx` der Cloud zählt hier hinein und **nie** als „Code ungültig".
+
+Weitere Regeln:
+
+- Beim Abschluss wird erneut eingelöst und damit erneut geprüft: Zwischen Eingabe
+  und Kassiervorgang kann eine andere Kasse dasselbe Limit aufgebraucht haben.
+  Schlägt das fehl, läuft die Bestellung **ohne** Code weiter (mit Hinweis) —
+  der Gast steht an der Kasse, die Ware ist erfasst.
+- Der Snapshot trägt `method: 'code'`, `code`, `discountCodeId` und `discountId`;
+  `computedAmountCents` füllt wie überall die kanonische Engine.
+- **Die Einlösung kennt ihre Bestellung.** Der POS vergibt die Order-`_id` (uuidv7)
+  **vor** der Einlösung und reicht sie an beide Aufrufe: an `redeem({ orderId })` und
+  als `_id` an `createOrder`. Der Edge-Resolver übernimmt eine mitgegebene `_id` —
+  derselbe Weg, den der Offline-Pfad seit jeher nutzt.
+
+  Die Reihenfolge ist erzwungen: Die Einlösung braucht die ID, die Bestellung darf
+  aber erst *nach* erfolgreicher Einlösung entstehen (sonst bekäme der Gast bei einem
+  aufgebrauchten Code den Rabatt ungezählt). Schlägt die Einlösung fehl, fällt die
+  vorab vergebene ID weg und die Bestellung bekommt ihre wie gewohnt vom Server.
+  Gekapselt in `redeemCodeForOrder` (`promo-code.ts`), dort auch getestet.
+
+  ⚠️ **Bewusst in Kauf genommen:** Scheitert das *Anlegen* der Bestellung nach einer
+  erfolgreichen Einlösung, zeigt die Einlösung auf eine Order, die es nicht gibt. Das
+  ist ein auffindbarer Zustand — der Vorgänger (`orderId: null` bei jeder Einlösung)
+  war es nicht.
+- Ein per Code gewährter Rabatt ist **nie** `isStaffMeal` — sonst stempelte die
+  Bestellung `staffPaymentInfo` und liefe in die Exklusivitätsprüfung.
+- Gesperrt bei Personalessen und bei bereits gewähltem manuellem Rabatt
+  (`evaluatePromoCodeGate` in `promo-code.ts`, dort auch getestet).
+- Reset bei `deleteOrder()` wie beim manuellen Rabatt.
+
 ## Services & Sync
 
 - **Edge** (`apps/api-edge/src/services/discounts/`): read-only Spiegel,
@@ -213,15 +326,18 @@ die Auswahl zurück.
 - POS-Rabatt-Picker: Live-Stack-UAT (Rabatt in Cloud anlegen → Edge-Sync →
   am POS anwenden) gegen eine gepairte Edge ausstehend; Build/Typecheck grün.
 - Positionsrabatte (`target: 'line'`) im POS-Picker (Phase 2).
-- Promo-Code: Verwaltung (Admin) **und** Einlöse-Backend (append-only
-  `discount-code-redemptions`, atomare Validierung) sind gebaut. **Noch offen,
-  weil Client/Infrastruktur fehlt:** (a) **öffentlicher Storefront-Validate-
-  Endpoint** für anonymen Cart-Preview — braucht die Tenant-Auflösung der
-  Storefront (Subdomain/Tenant-Kontext für nicht-authentifizierte Requests);
-  (b) **POS-Code-Eingabe** — der POS spricht den Edge, Codes sind aber Cloud-only;
-  erfordert die Offline-Entscheidung (R1) + einen Edge→Cloud-Online-Proxy;
-  (c) **Storefront-Checkout** (`orders.channel=ONLINE` + Mollie), der die
-  Einlösung tatsächlich aufruft. Alle drei mit der Storefront-Roadmap Phase 5.
+- Promo-Code: Verwaltung (Admin), Einlöse-Backend (append-only
+  `discount-code-redemptions`) und die **POS-Strecke** (Edge-Proxy + Kassendialog,
+  [ADR 0032](../adr/0032-promo-codes-am-pos-strikt-online.md), Cloud-Endpunkt
+  panary/panary-cloud#271) sind gebaut. **Noch offen:** (a) **öffentlicher
+  Storefront-Validate-Endpoint** für anonymen Cart-Preview — braucht die
+  Tenant-Auflösung der Storefront (Subdomain/Tenant-Kontext für
+  nicht-authentifizierte Requests); (b) **Storefront-Checkout**
+  (`orders.channel=ONLINE` + Mollie), der die Einlösung dort aufruft. Beide mit
+  der Storefront-Roadmap Phase 5 (panary/panary-cloud#203).
+- POS-Rabattcode: Live-Stack-UAT gegen eine gepairte Edge ausstehend — insbesondere
+  der Ausfallpfad (Cloud abschalten → amber statt rot) und die Kollision zweier
+  Kassen auf demselben `usageLimit: 1`.
 - MwSt-Extraktion (Phase 0): Probeberechnung dokumentiert + 22 Engine-Tests grün
   (siehe `0004-order-bundle-pricing-modell.md` → „MwSt-Extraktion — Korrektur &
   Probeberechnung"); Spot-Check gegen einen physischen Bon optional.

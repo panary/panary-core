@@ -44,7 +44,12 @@ import {
 } from '@panary/orders/data-access'
 import { AppliedDiscount, Discount, computeOrderTax } from '@panary/orders/domain'
 import { Discount as ManagedDiscount } from '@panary/discounts/domain'
-import { DiscountService } from '@panary/discounts/data-access'
+import {
+  DiscountCodeService,
+  DiscountService,
+  codeResultMessage,
+  type CodeCheckResult,
+} from '@panary/discounts/data-access'
 import { uuidv7 } from 'uuidv7'
 import { PreOrderService } from '@panary/pre-orders/data-access'
 import { LocationService } from '@panary/locations/data-access'
@@ -56,6 +61,8 @@ import { DeviceConfigService } from '@panary/shared/data-access-config'
 import { CorporateCustomer } from '@panary/corporate-customers/domain'
 import { PreOrderQuickDialogComponent } from './pre-order-quick-dialog.component'
 import { DiscountPickerDialogComponent } from './discount-picker-dialog.component'
+import { PromoCodeDialogComponent } from './promo-code-dialog.component'
+import { buildCodeAppliedDiscount, evaluatePromoCodeGate, redeemCodeForOrder } from './promo-code'
 import { PosButton, PosButtonUiState, PosProductButton, toPosButton } from './pos-button.model'
 import { BundleFlow } from './bundle-flow'
 import {
@@ -121,6 +128,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   // TODO: @ViewChild durch viewChild()-Signal ersetzen, sobald AfterViewInit-Logik migriert ist
   @ViewChild('productGroupContainer') productGroupContainer!: ElementRef
   #cdr = inject(ChangeDetectorRef)
+  readonly discountCodeService = inject(DiscountCodeService)
 
   /** PRIVATE PROPERTIES */
   private _timer: ReturnType<typeof setInterval> | undefined
@@ -150,6 +158,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   // Manuell am POS gewählter Order-Rabatt (Cloud-gepflegte Definition). Wird beim
   // placeOrder zu einem appliedDiscount-Snapshot; Personalessen-Rabatt stempelt zusätzlich staffPaymentInfo.
   readonly selectedManualDiscount = signal<ManagedDiscount | null>(null)
+
+  // Geprüfter, noch NICHT eingelöster Rabattcode. Die Einlösung passiert erst in
+  // placeOrder — ein Abbruch nach der Eingabe darf den Code nicht verbrauchen
+  // (bei usageLimit: 1 wäre er unwiederbringlich weg). ADR 0032.
+  readonly appliedCodeDiscount = signal<CodeCheckResult | null>(null)
 
   /**
    * Vertriebskanal der Bestellung.
@@ -544,6 +557,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.#orderOpenedAt = new Date()
     this.#orderInteractions = []
     this.selectedManualDiscount.set(null)
+    this.appliedCodeDiscount.set(null)
   }
 
   unselectProduct() {
@@ -675,7 +689,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         isFunctionButton: true,
         callback: () => {
           this._productionTime = value
-          this.placeOrder()
+          void this.placeOrder()
         },
       })
     })
@@ -2136,8 +2150,10 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this._selectedCombinationIndex = [null, null]
   }
 
-  placeOrder() {
+  async placeOrder() {
     let staffMealDetails: StaffPaymentInfo | undefined = undefined
+    // Wird nur gesetzt, wenn ein Rabattcode eingelöst wurde — siehe unten.
+    let preAssignedOrderId: string | undefined = undefined
     let discountDetails: Discount | undefined = undefined
     let customerDetails: CustomerPaymentInfo | undefined = undefined
 
@@ -2175,9 +2191,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     }
 
-    // appliedDiscounts ist für die Tax-Engine führend; `order.discount` bleibt nur als
-    // Legacy-Spiegel für den Kundenrabatt erhalten (serverseitig geleert, sobald
-    // appliedDiscounts nicht leer ist — siehe discount-mutex.ts).
+    // Einzige Rabattquelle (ADR 0030). `discountDetails` ist ab hier nur noch die
+    // Zwischenstufe aus den Kunden-Stammdaten, aus der der Snapshot gebaut wird — an
+    // die Order geht ausschließlich `appliedDiscounts`.
     const appliedDiscounts: AppliedDiscount[] = []
 
     if (staffMealDetails) {
@@ -2200,13 +2216,42 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         )
       }
       if (manual) appliedDiscounts.push(this.#managedToApplied(manual))
+
+      // Erst HIER wird der Code verbraucht — nicht beim Eintippen. Die Cloud
+      // prüft dabei erneut gegen den autoritativen Log: Zwischen Eingabe und
+      // Abschluss kann eine andere Kasse dasselbe Limit aufgebraucht haben.
+      const checked = this.appliedCodeDiscount()
+      const outcome = await redeemCodeForOrder(checked, {
+        redeem: ({ code, orderId }) =>
+          this.discountCodeService.redeem({
+            code,
+            orderId,
+            customerId: this._customer?._id ?? null,
+            amountCents: Math.round(this.calculateSumPrice() * 100),
+          }),
+        newOrderId: () => uuidv7(),
+      })
+
+      if (outcome.status === 'redeemed' && checked) {
+        // Dieselbe ID geht gleich an createOrder — Einlösung und Bestellung
+        // tragen damit denselben Bezug (siehe redeemCodeForOrder).
+        preAssignedOrderId = outcome.orderId
+        appliedDiscounts.push(this.#codeToApplied({ ...checked, ...outcome.redeemed }))
+      } else if (outcome.status === 'failed') {
+        // Die Bestellung darf daran nicht scheitern: Der Gast steht an der
+        // Kasse, die Ware ist erfasst. Sie läuft ohne Code weiter, und der
+        // Kassierer erfährt den Grund.
+        this.setInfoBoxText(`Rabattcode nicht eingelöst — ${codeResultMessage(outcome.reason)}`, 'red')
+        this.appliedCodeDiscount.set(null)
+      }
     }
 
     const orderIndex = this.orderService.createOrder({
+      // Nur im Rabattcode-Fall gesetzt — sonst vergibt der Server (Regelfall).
+      _id: preAssignedOrderId,
       lineItems: this.#lineItems,
       orderChannel: this.orderChannel(),
       customerDetails,
-      discountDetails,
       pager: this._pager,
       productionTime: this._productionTime,
       staffMealDetails,
@@ -2347,19 +2392,68 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
-   * Vorschau-Gesamtbetrag inkl. manuell gewähltem Rabatt (kanonische Engine).
-   * Ohne Rabatt identisch zu calculateSumPrice (Brutto-Summe).
+   * Öffnet die Touch-Eingabe für Rabattcodes.
+   *
+   * Codes sind strikt online (ADR 0032) — der Dialog prüft gegen die Cloud und
+   * meldet eine fehlende Verbindung als solche, statt sie als „Code ungültig"
+   * auszugeben.
+   */
+  openPromoCodeDialog(): void {
+    const gate = evaluatePromoCodeGate({
+      isStaffMealOrder: this.isStaffMealOrder,
+      hasManualDiscount: !!this.selectedManualDiscount(),
+    })
+    if (!gate.allowed) {
+      this.setInfoBoxText(gate.message ?? '')
+      return
+    }
+    const ref = this.matDialog.open(PromoCodeDialogComponent, {
+      width: '40rem',
+      maxWidth: '92vw',
+      panelClass: ['!rounded-2xl', 'overflow-hidden'],
+    })
+    ref.afterClosed().subscribe((checked: CodeCheckResult | undefined) => {
+      if (!checked?.ok) return
+      this.appliedCodeDiscount.set(checked)
+      this.setInfoBoxText(`Rabattcode ${checked.code} übernommen`)
+      this.#cdr.markForCheck()
+    })
+  }
+
+  /** Nimmt den geprüften Code wieder zurück (noch nicht eingelöst — nichts zu stornieren). */
+  clearCodeDiscount(): void {
+    this.appliedCodeDiscount.set(null)
+    this.#cdr.markForCheck()
+  }
+
+  /** Snapshot-Eintrag für einen per Code gewährten Rabatt (Logik in promo-code.ts). */
+  #codeToApplied(checked: CodeCheckResult): AppliedDiscount {
+    return buildCodeAppliedDiscount(checked, { id: uuidv7(), appliedBy: this._currentUser?._id ?? null })
+  }
+
+  /**
+   * Vorschau-Gesamtbetrag inkl. manuell gewähltem Rabatt bzw. Rabattcode
+   * (kanonische Engine). Ohne Rabatt identisch zu calculateSumPrice.
    */
   discountedTotal(): number {
     const manual = this.selectedManualDiscount()
-    if (!manual) return this.calculateSumPrice()
+    const code = this.appliedCodeDiscount()
+    if (!manual && !code) return this.calculateSumPrice()
+    const applied: AppliedDiscount[] = []
+    if (manual) applied.push(this.#managedToApplied(manual))
+    if (code) applied.push(this.#codeToApplied(code))
     const order = {
       lineItems: this.#lineItems,
       dineLocation: !this._dineLocation ? DineLocation.DINE_IN : this._dineLocation,
-      appliedDiscounts: [this.#managedToApplied(manual)],
+      appliedDiscounts: applied,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any
     return computeOrderTax(order).brutto
+  }
+
+  /** Ist ein Rabatt (manuell ODER per Code) aktiv? Steuert die Streichpreis-Anzeige. */
+  hasDiscountPreview(): boolean {
+    return !!this.selectedManualDiscount() || !!this.appliedCodeDiscount()
   }
 
   togglePriceVisibility() {

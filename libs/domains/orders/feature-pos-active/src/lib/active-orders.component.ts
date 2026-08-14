@@ -413,12 +413,9 @@ export class ActiveOrdersComponent {
     }
     // Personalessen ist rabatt-exklusiv (assertStaffMealDiscountExclusivity): der
     // zugewiesene Rabatt ersetzt alles, was vorher auf der Bestellung lag — sonst
-    // lehnt der Exklusivitäts-Hook den Patch mit 400 ab. Der Legacy-Spiegel
-    // `discount` wird mitgeleert, weil er sonst als Tax-Fallback weiterwirkt,
-    // sobald appliedDiscounts leer bleibt.
+    // lehnt der Exklusivitäts-Hook den Patch mit 400 ab.
     const assigned = this.#resolveAssignedStaffMealDiscount(user)
     patch.appliedDiscounts = assigned ? [assigned] : []
-    patch.discount = null
     try {
       await this.#orderService.patch(order._id, patch)
       this.selectedOrderId.set(null)
@@ -519,8 +516,7 @@ export class ActiveOrdersComponent {
    * Wendet einen gepflegten Rabatt auf die Bestellung an.
    *
    * Schreibt einen `appliedDiscounts`-Snapshot mit `discountId` (nachvollziehbar,
-   * auswertbar) statt des früheren Legacy-`discount` mit freiem Prozentwert. Der
-   * Legacy-Spiegel wird mitgeleert, sonst wirkte er als Tax-Fallback weiter.
+   * auswertbar) statt des früheren Legacy-`discount` mit freiem Prozentwert.
    */
   async applyDiscount(order: Order, discount: ManagedDiscount) {
     try {
@@ -541,7 +537,6 @@ export class ActiveOrdersComponent {
             isStaffMeal: false,
           },
         ],
-        discount: null,
       } as never)
       this.resetOverlay()
       this.#snackBar.open(
@@ -584,8 +579,16 @@ export class ActiveOrdersComponent {
         isPaid: false,
       },
     }
-    if (customer.discountDetails) {
-      patch.discount = customer.discountDetails
+    // Vertragsrabatt des Firmenkunden als `appliedDiscounts`-Snapshot (ADR 0030).
+    // Das frühere `patch.discount` war der letzte Legacy-Schreibzugriff im POS: Auf
+    // einer Bestellung, die bereits `appliedDiscounts` trug (Automatik- oder
+    // Picker-Rabatt), wurde er gespeichert, aber von der Tax-Engine ignoriert —
+    // ein Rabatt ohne Wirkung auf Preis, taxSnapshot und Bon (#181).
+    // Ersetzend wie `applyDiscount`/`applyStaffMeal`: ein Vertragsrabatt trägt kein
+    // `combinable`-Metadatum, Stapeln wäre also nicht validierbar.
+    const contractDiscount = this.#toCorporateAppliedDiscount(customer)
+    if (contractDiscount) {
+      patch.appliedDiscounts = [contractDiscount]
     }
     try {
       await this.#orderService.patch(order._id, patch)
@@ -598,6 +601,35 @@ export class ActiveOrdersComponent {
     } catch (e) {
       console.error(e)
       this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.COMPANY_ERROR'), 'OK', { duration: 3000 })
+    }
+  }
+
+  /**
+   * Snapshot des Firmenkunden-Vertragsrabatts für den Order-Patch. `null`, wenn der
+   * Kunde keine Konditionen hinterlegt hat — dann bleibt die Rabattlage der
+   * Bestellung unberührt (Zuweisen eines Firmenkunden ist keine Rabatt-Aktion).
+   *
+   * `discountId: null`, weil die Konditionen aus den Kunden-Stammdaten stammen und
+   * nicht aus einer verwalteten Rabatt-Definition; der Kundenname macht den Eintrag
+   * im Audit trotzdem zuordenbar.
+   */
+  #toCorporateAppliedDiscount(customer: CorporateCustomer): AppliedDiscount | null {
+    const d = customer.discountDetails
+    if (!d) return null
+    return {
+      _id: uuidv7(),
+      discountId: null,
+      name: customer.name1,
+      method: 'manual',
+      target: 'order',
+      valueType: d.discountType,
+      valuePercent: d.discountType === 'percent' ? d.discount : 0,
+      // Die Konditionen der Stammdaten stehen in Euro, `valueCents` ist Integer-Cent.
+      valueCents: d.discountType === 'amount' ? Math.round(d.discount * 100) : 0,
+      computedAmountCents: 0,
+      appliedBy: this.#authService.user()?._id ?? null,
+      appliedAt: new Date().toISOString(),
+      isStaffMeal: false,
     }
   }
 

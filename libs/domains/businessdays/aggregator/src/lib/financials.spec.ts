@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { OrderChannel, OrderStatus, DineLocation, PaymentState, TransactionMethod } from '@panary/orders/domain'
 import { aggregateFinancials, sumChannels, sumPayments } from './financials'
-import { makeOrder, resetIds } from './fixtures/orders.fixtures'
+import { makeAppliedDiscount, makeOrder, resetIds } from './fixtures/orders.fixtures'
 
 describe('financials', () => {
   beforeEach(() => resetIds())
@@ -95,5 +95,44 @@ describe('financials', () => {
     const r1 = aggregateFinancials([a, b])
     const r2 = aggregateFinancials([b, a])
     expect(r1).toEqual(r2)
+  })
+
+  // `appliedDiscounts` ist die einzige Rabattquelle (ADR 0030). Vorher las die
+  // Aggregation ausschliesslich das inzwischen entfernte `order.discount` und zaehlte
+  // deshalb jeden ueber den POS gewaehrten Rabatt als 0 Rabatte / 0,00 €.
+  describe('Rabatt-KPI', () => {
+    it('zaehlt appliedDiscounts ueber computedAmountCents', () => {
+      const orders = [makeOrder({ grossAmount: 9, appliedDiscounts: [makeAppliedDiscount(100)] })]
+      const r = aggregateFinancials(orders)
+      expect(r.discountsCount).toBe(1)
+      expect(r.discountsCents).toBe(100)
+    })
+
+    it('summiert mehrere Rabatte einer Order, zaehlt sie aber als EINE rabattierte Order', () => {
+      const orders = [
+        makeOrder({ grossAmount: 8.5, appliedDiscounts: [makeAppliedDiscount(100), makeAppliedDiscount(50)] }),
+      ]
+      const r = aggregateFinancials(orders)
+      expect(r.discountsCount).toBe(1)
+      expect(r.discountsCents).toBe(150)
+    })
+
+    it('zaehlt Orders ohne Rabatt nicht', () => {
+      const r = aggregateFinancials([makeOrder({ grossAmount: 10 })])
+      expect(r.discountsCount).toBe(0)
+      expect(r.discountsCents).toBe(0)
+    })
+
+    it('leeres appliedDiscounts-Array zaehlt nicht', () => {
+      const r = aggregateFinancials([makeOrder({ grossAmount: 10, appliedDiscounts: [] })])
+      expect(r.discountsCount).toBe(0)
+      expect(r.discountsCents).toBe(0)
+    })
+
+    it('Bestands-Order ohne Engine-Durchlauf zaehlt als rabattiert mit 0 €', () => {
+      const r = aggregateFinancials([makeOrder({ grossAmount: 10, appliedDiscounts: [makeAppliedDiscount(0)] })])
+      expect(r.discountsCount).toBe(1)
+      expect(r.discountsCents).toBe(0)
+    })
   })
 })

@@ -255,20 +255,19 @@ export function aggregateFinancials(
       payments.otherCents += orderGross - orderTip
     }
 
-    // Rabatt-Zählung
-    if (order.discount) {
+    // Rabatt-Zählung über `appliedDiscounts` — die einzige Rabattquelle (ADR 0030).
+    //
+    // `discountsCount` ist bewusst PRO ORDER (nicht pro Rabatt-Eintrag): Der Wert
+    // speist die Rabatt-Quote der Cloud-Auswertung, also den Anteil rabattierter
+    // Bestellungen. Eine Order mit zwei Rabatten ist eine rabattierte Order, nicht zwei.
+    const applied = Array.isArray(order.appliedDiscounts) ? order.appliedDiscounts : []
+    if (applied.length > 0) {
       discountsCount++
-      // Konservative Schätzung: discount.discount ist der Wert (bei AMOUNT)
-      // bzw. der Prozentsatz (bei PERCENT). Wir aggregieren nur den
-      // tatsächlich abgezogenen Betrag, der im POS bereits in
-      // payment.totalAmount eingerechnet ist; für reine Statistik:
-      // bei AMOUNT direkt summieren, bei PERCENT mit grossTotal berechnen
-      if (order.discount.discountType === 'amount') {
-        discountsCents += toCents(order.discount.discount)
-      } else {
-        // PERCENT: rabattierter Bruttoanteil
-        discountsCents += Math.round((orderGross * order.discount.discount) / (100 - order.discount.discount))
-      }
+      // `computedAmountCents` ist der von `computeOrderTax` zurückgeschriebene,
+      // tatsächlich abgezogene Brutto-Betrag — keine Rückrechnung nötig. Bei
+      // Bestands-Orders ohne Engine-Durchlauf steht dort 0; dann zählt die Order
+      // als rabattiert mit 0 € statt mit einer geratenen Summe.
+      for (const ad of applied) discountsCents += Math.max(0, Math.round(ad.computedAmountCents ?? 0))
     }
 
     // Personalessen / Firmenkundenessen bleiben hier IM grossTotal —

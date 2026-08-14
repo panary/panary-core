@@ -122,7 +122,21 @@ describe('calculateTaxDetailsOnPatch', () => {
     const stored = makeOrder({ lineItems: [makeLineItem({ price: 20, amount: 2 })] })
     const { ctx, get } = makePatchContext({
       id: 'order-1',
-      data: { discount: { discountType: 'percent', discount: 50 } },
+      data: {
+        appliedDiscounts: [
+          {
+            _id: 'ad-1',
+            name: 'Aktion',
+            method: 'manual',
+            target: 'order',
+            valueType: 'percent',
+            valuePercent: 50,
+            valueCents: 0,
+            computedAmountCents: 0,
+            appliedAt: '2026-07-03T12:00:00.000Z',
+          },
+        ],
+      },
       storedOrder: stored,
     })
 
@@ -135,11 +149,25 @@ describe('calculateTaxDetailsOnPatch', () => {
     expect(snap.taxes[0].tax).toBeCloseTo(3.19, 5)
   })
 
-  it('interpretiert den Legacy-Festbetrag in EURO (discount 5 → 5,00€ Abzug)', async () => {
+  it('interpretiert einen Festbetrags-Rabatt in CENTS (valueCents 500 → 5,00€ Abzug)', async () => {
     const stored = makeOrder({ lineItems: [makeLineItem({ price: 20, amount: 2 })] })
     const { ctx } = makePatchContext({
       id: 'order-1',
-      data: { discount: { discountType: 'amount', discount: 5 } },
+      data: {
+        appliedDiscounts: [
+          {
+            _id: 'ad-1',
+            name: 'Aktion',
+            method: 'manual',
+            target: 'order',
+            valueType: 'amount',
+            valuePercent: 0,
+            valueCents: 500,
+            computedAmountCents: 0,
+            appliedAt: '2026-07-03T12:00:00.000Z',
+          },
+        ],
+      },
       storedOrder: stored,
     })
 
@@ -149,14 +177,26 @@ describe('calculateTaxDetailsOnPatch', () => {
     expect(ctx.data.taxSnapshot.netto).toBeCloseTo(29.41, 5)
   })
 
-  it('berechnet den Snapshot auch beim ENTFERNEN eines Rabatts neu (discount: null)', async () => {
+  it('berechnet den Snapshot auch beim ENTFERNEN aller Rabatte neu (appliedDiscounts: [])', async () => {
     // Gespeicherte Order: 40€ @19% mit gesetztem 50%-Rabatt. Patch entfernt ihn
     // → Snapshot muss zurück auf den vollen Preis (fiskalischer Zielzustand).
     const stored = makeOrder({
       lineItems: [makeLineItem({ price: 20, amount: 2 })],
-      discount: { discountType: 'percent', discount: 50 },
+      appliedDiscounts: [
+        {
+          _id: 'ad-0',
+          name: 'Aktion',
+          method: 'manual',
+          target: 'order',
+          valueType: 'percent',
+          valuePercent: 50,
+          valueCents: 0,
+          computedAmountCents: 2000,
+          appliedAt: '2026-07-03T12:00:00.000Z',
+        },
+      ],
     })
-    const { ctx } = makePatchContext({ id: 'order-1', data: { discount: null }, storedOrder: stored })
+    const { ctx } = makePatchContext({ id: 'order-1', data: { appliedDiscounts: [] }, storedOrder: stored })
 
     await calculateTaxDetailsOnPatch(ctx)
 
@@ -164,7 +204,7 @@ describe('calculateTaxDetailsOnPatch', () => {
     expect(ctx.data.taxSnapshot.netto).toBeCloseTo(33.61, 5)
   })
 
-  it('berechnet den Snapshot bei einem appliedDiscounts-Patch (führend vor Legacy-discount)', async () => {
+  it('berechnet den Snapshot bei einem appliedDiscounts-Patch', async () => {
     const stored = makeOrder({ lineItems: [makeLineItem({ price: 20, amount: 2 })] })
     const applied = {
       _id: 'ad-1',
@@ -210,7 +250,10 @@ describe('calculateTaxDetailsOnPatch', () => {
   })
 
   it('ist ohne id (Multi-Patch) ein No-Op und liest keine Order', async () => {
-    const { ctx, get } = makePatchContext({ id: null, data: { discount: { discountType: 'percent', discount: 50 } } })
+    const { ctx, get } = makePatchContext({
+      id: null,
+      data: { appliedDiscounts: [] },
+    })
 
     await calculateTaxDetailsOnPatch(ctx)
 

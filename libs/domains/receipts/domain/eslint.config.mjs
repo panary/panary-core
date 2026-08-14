@@ -5,8 +5,12 @@ export default [
   {
     files: ['**/*.json'],
     rules: {
+      // 'off' wie in den uebrigen 36 Domain-Libs — siehe
+      // libs/domains/opening-hour-exceptions/domain/eslint.config.mjs fuer die
+      // Begruendung (privates -internal-Manifest, `--fix` schreibt Build-Tools
+      // in die Laufzeit-Deps).
       '@nx/dependency-checks': [
-        'error',
+        'off',
         {
           ignoredFiles: [
             '{projectRoot}/eslint.config.{js,cjs,mjs,ts,cts,mts}',

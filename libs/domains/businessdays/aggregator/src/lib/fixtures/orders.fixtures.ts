@@ -29,6 +29,25 @@ export interface MakeOrderOptions {
   recordingDate?: string
   createdBy?: string
   lineItems?: Order['lineItems']
+  /** Einzige Rabattquelle. `computedAmountCents` ist der abgezogene Brutto-Betrag. */
+  appliedDiscounts?: Order['appliedDiscounts']
+}
+
+/** Minimaler AppliedDiscount-Snapshot fuer Aggregator-Tests. */
+export function makeAppliedDiscount(computedAmountCents: number, overrides: Record<string, unknown> = {}) {
+  return {
+    _id: id(),
+    discountId: null,
+    name: 'Testrabatt',
+    method: 'manual',
+    target: 'order',
+    valueType: 'percent',
+    valuePercent: 10,
+    valueCents: 0,
+    computedAmountCents,
+    appliedAt: '2026-05-15T10:00:00.000Z',
+    ...overrides,
+  } as NonNullable<Order['appliedDiscounts']>[number]
 }
 
 export function makeOrder(opts: MakeOrderOptions = {}): Order {
@@ -59,7 +78,7 @@ export function makeOrder(opts: MakeOrderOptions = {}): Order {
           ? { customerId: id(), customerName: 'Corp Inc', isPaid: opts.customerPaymentInfo.paid }
           : null
         : null,
-    discount: null,
+    ...(opts.appliedDiscounts ? { appliedDiscounts: opts.appliedDiscounts } : {}),
     staffPaymentInfo:
       opts.staffPaymentInfo !== undefined
         ? opts.staffPaymentInfo

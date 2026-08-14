@@ -22,6 +22,10 @@ export const AppResource = {
   DISCOUNTS: 'discounts',
   DISCOUNT_CODES: 'discount-codes',
   DISCOUNT_CODE_REDEMPTIONS: 'discount-code-redemptions',
+  /** Edge-Proxy auf den Cloud-Rabattcode-Endpunkt: find = pruefen, create =
+   *  einloesen. Am Edge gibt es KEINE Code-Tabelle — Codes bleiben Cloud-only
+   *  (ein lokaler Zaehler erzeugte bei mehreren Kassen Doppel-Einloesungen). */
+  DISCOUNT_CODE_REDEEM: 'discount-code-redeem',
   INVENTORY: 'inventory',
   LOCATIONS: 'locations',
   SYSTEM: 'system',

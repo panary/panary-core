@@ -7,6 +7,7 @@ import { products } from './products/products'
 import { corporateCustomers } from './corporate-customers/corporate-customers'
 import { customers } from './customers/customers'
 import { discounts } from './discounts/discounts'
+import { discountCodeRedeem } from './discount-code-redeem/discount-code-redeem'
 import { devices } from './devices/devices'
 import { deviceConnections } from './device-connections/device-connections'
 import { productGroups } from './product-groups/product-groups'
@@ -39,6 +40,9 @@ export const services = (app: Application) => {
   app.configure(corporateCustomers)
   app.configure(customers)
   app.configure(discounts)
+  // Reicht Rabattcodes an die Cloud durch — Codes liegen bewusst nicht am
+  // Edge (Offline-Zaehler-Problem, ADR 0032).
+  app.configure(discountCodeRedeem)
   app.configure(devices)
   // Live-Verbindungszählung der Geräte (Channel-Registry). NACH `devices`
   // registriert, weil der Service intern app.service('devices').find aufruft.

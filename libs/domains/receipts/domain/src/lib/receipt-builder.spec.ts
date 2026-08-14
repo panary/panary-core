@@ -178,6 +178,112 @@ describe('buildReceiptSnapshot — Nachlass (#228)', () => {
   })
 })
 
+describe('buildReceiptSnapshot — Positionssumme aus grossCents (#236)', () => {
+  it('bevorzugt das vorberechnete Brutto gegenüber amount × price', () => {
+    const input = baseInput()
+    // 3 × 1,00 Basispreis + 0,50 Modifier — nur der Aufrufer kennt den Aufpreis.
+    input.order.lineItems[0].grossCents = 350
+    const core = buildReceiptSnapshot(input)
+    expect(core.lineItems[0].lineTotal).toBe(3.5)
+    // unitPrice bleibt der Artikel-Basispreis: unitPrice × quantity ≠ lineTotal ist gewollt.
+    expect(core.lineItems[0].unitPrice).toBe(1)
+  })
+
+  it('fällt ohne grossCents auf amount × price zurück (Bestands-Aufrufer)', () => {
+    const core = buildReceiptSnapshot(baseInput())
+    expect(core.lineItems.map(l => l.lineTotal)).toEqual([3, 2.5])
+  })
+
+  it('rundet ein krummes grossCents auf ganze Cents', () => {
+    const input = baseInput()
+    input.order.lineItems[0].grossCents = 333.4
+    expect(buildReceiptSnapshot(input).lineItems[0].lineTotal).toBe(3.33)
+  })
+})
+
+describe('buildReceiptSnapshot — Steuer-Fallback ohne taxSnapshot (#236)', () => {
+  // Der Fallback greift nur, wenn die Order GAR KEINEN taxSnapshot trägt.
+  const fallbackInput = (): BuildReceiptSnapshotInput => {
+    const input = baseInput()
+    input.order.taxSnapshot = null
+    input.order.payment = null
+    return input
+  }
+
+  it('rechnet cent-genau statt in Float (netto + steuer === brutto je Satz)', () => {
+    const input = fallbackInput()
+    input.order.lineItems = [
+      { name: 'A', amount: 3, price: 0.1, taxInside: 19, taxOutside: 19 },
+      { name: 'B', amount: 3, price: 0.2, taxInside: 19, taxOutside: 19 },
+    ]
+    const core = buildReceiptSnapshot(input)
+    expect(core.taxSummary.brutto).toBe(0.9)
+    for (const t of core.taxSummary.taxes) {
+      expect(Math.round((t.amount + t.tax) * 100)).toBe(Math.round(core.taxSummary.brutto * 100))
+    }
+    expect(core.totalGross).toBe(0.9)
+  })
+
+  it('zieht die Nachlässe ab, statt sie zu ignorieren', () => {
+    const input = fallbackInput()
+    input.order.appliedDiscounts = [{ name: '20 % Rabatt', computedAmountCents: 110 }]
+    const core = buildReceiptSnapshot(input)
+    // Positionen 5,50 − 1,10 Nachlass = 4,40
+    expect(core.taxSummary.brutto).toBe(4.4)
+    expect(core.totalGross).toBe(4.4)
+    expect(core.lineItems.reduce((s, l) => s + l.lineTotal, 0)).toBe(5.5)
+  })
+
+  it('verteilt einen Nachlass summen-exakt über mehrere Sätze (Largest Remainder)', () => {
+    const input = fallbackInput()
+    input.order.lineItems = [
+      { name: '7 %', amount: 1, price: 3.33, taxInside: 7, taxOutside: 7 },
+      { name: '19 %', amount: 1, price: 3.34, taxInside: 19, taxOutside: 19 },
+    ]
+    input.order.appliedDiscounts = [{ name: 'Nachlass', computedAmountCents: 1 }]
+    const core = buildReceiptSnapshot(input)
+    // 6,67 − 0,01 = 6,66 — kein erfundener/verlorener Cent durch Einzelrundung.
+    expect(core.taxSummary.brutto).toBe(6.66)
+    const summe = core.taxSummary.taxes.reduce((s, t) => s + t.amount + t.tax, 0)
+    expect(Math.round(summe * 100) / 100).toBe(6.66)
+  })
+
+  it('klemmt einen Nachlass über der Positionssumme auf 0', () => {
+    const input = fallbackInput()
+    input.order.appliedDiscounts = [{ name: 'Zu viel', computedAmountCents: 99_999 }]
+    const core = buildReceiptSnapshot(input)
+    expect(core.taxSummary.brutto).toBe(0)
+    expect(core.taxSummary.taxes).toEqual([])
+    expect(core.totalGross).toBe(0)
+  })
+})
+
+describe('buildReceiptSnapshot — leerer taxSnapshot ist autoritativ (#236)', () => {
+  it('übernimmt taxes: [] bei brutto 0, statt Steuer aus den Positionen zu erfinden', () => {
+    const input = baseInput()
+    // Genau das liefert computeOrderTax bei 100 % Nachlass: Eimer <= 0 verworfen.
+    input.order.taxSnapshot = { taxes: [], netto: 0, brutto: 0 }
+    input.order.appliedDiscounts = [{ name: 'Personalessen', computedAmountCents: 550 }]
+    input.order.payment = null
+    const core = buildReceiptSnapshot(input)
+    expect(core.taxSummary).toEqual({ taxes: [], netto: 0, brutto: 0 })
+    expect(core.totalGross).toBe(0)
+    expect(core.lineItems.reduce((s, l) => s + l.lineTotal, 0)).toBe(5.5)
+  })
+
+  it('vertraut dem Snapshot auch ohne computedAmountCents am Rabatt', () => {
+    const input = baseInput()
+    input.order.taxSnapshot = { taxes: [], netto: 0, brutto: 0 }
+    // Rabatt ohne zurückgeschriebenen Betrag (Bestands-Order, gestripptes Feld):
+    // der Fallback käme hier auf 5,50 und wiese eine Steuer aus, die es nicht gibt.
+    input.order.appliedDiscounts = [{ name: 'Personalessen' }]
+    input.order.payment = null
+    const core = buildReceiptSnapshot(input)
+    expect(core.taxSummary.brutto).toBe(0)
+    expect(core.totalGross).toBe(0)
+  })
+})
+
 describe('formatInternalReceiptNumber', () => {
   it('leitet eine deterministische Nummer aus Datum + Location + Sequenz ab', () => {
     expect(

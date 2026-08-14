@@ -14,6 +14,19 @@ export interface ReceiptOrderLineInput {
   price: number
   taxInside: number
   taxOutside: number
+  /**
+   * Vorberechnetes Zeilen-BRUTTO in Cents (unrabattiert) — die kanonische
+   * Positionssumme aus `lineItemGrossCents` (`@panary/orders/domain`), die auch
+   * `computeOrderTax`, POS-Anzeige und POS-Bon verwenden.
+   *
+   * Muss vom Aufrufer hereingereicht werden: `amount × price` ist nur der
+   * Basispreis und lässt Modifier, Bundle-Komponenten und Festpreis-Menüs
+   * (`FIXED_PROPORTIONAL`) vollständig weg. Selbst rechnen kann diese Domain es
+   * nicht — sie ist bewusst frei von `orders/domain` (isomorph, auch vom
+   * Frontend konsumiert). Fehlt der Wert, bleibt es beim alten `amount × price`
+   * (Bestands-Aufrufer, Legacy-Zeilen).
+   */
+  grossCents?: number
 }
 
 // Reduzierter Ausschnitt eines `order.appliedDiscounts`-Eintrags: nur was der
@@ -85,11 +98,40 @@ type ReceiptSnapshotCoreKind = (typeof ReceiptKind)[keyof typeof ReceiptKind]
 
 const round2 = (n: number): number => Math.round(n * 100) / 100
 
+// Minimale Cent-Arithmetik für den Steuer-Fallback unten. Bewusst lokal statt aus
+// `@panary/orders/domain` (pricing/money) importiert: diese Domain bleibt frei von
+// orders/domain (isomorph, browser-safe). Semantik identisch — bei einer Änderung
+// dort gehört sie hier nachgezogen.
+const toCents = (euro: number): number => Math.round(euro * 100)
+const fromCents = (cents: number): number => cents / 100
+/** Fiskalisch korrekte Extraktion der eingebetteten MwSt (NICHT `gross × (1 − rate/100)`). */
+const netFromGross = (grossCents: number, taxRatePercent: number): number =>
+  Math.round((grossCents * 100) / (100 + taxRatePercent))
+
+/** Verteilt einen Cent-Betrag summen-exakt proportional zu den Gewichten (Largest Remainder). */
+const distributeByLargestRemainder = (totalCents: number, weights: readonly number[]): number[] => {
+  const weightSum = weights.reduce((s, w) => s + w, 0)
+  if (weightSum <= 0 || totalCents <= 0) return weights.map(() => 0)
+  const exact = weights.map(w => (totalCents * w) / weightSum)
+  const result = exact.map(v => Math.floor(v))
+  let remainder = totalCents - result.reduce((s, v) => s + v, 0)
+  const order = exact.map((v, i) => ({ i, frac: v - Math.floor(v) })).sort((a, b) => b.frac - a.frac)
+  for (let k = 0; k < order.length && remainder > 0; k++) {
+    result[order[k].i] += 1
+    remainder -= 1
+  }
+  return result
+}
+
 // Der anzuwendende Steuersatz hängt vom Verzehrort ab: im Haus → taxInside,
 // außer Haus → taxOutside (Gastro 19 % vs. 7 %). Default: im Haus.
 const lineTaxRate = (line: ReceiptOrderLineInput, dineLocation: 'dine-in' | 'take-out' | undefined): number =>
   dineLocation === 'take-out' ? line.taxOutside : line.taxInside
 
+// `unitPrice` bleibt bewusst der Basispreis des Artikels, `lineTotal` ist die
+// vollständige Positionssumme (inkl. Modifier/Menü-Komponenten) — bei einer Zeile
+// mit Aufpreis ist `unitPrice × quantity` daher NICHT `lineTotal`. Der Beleg-Render
+// zeigt nur Menge und Summe; die Aufschlüsselung der Aufpreise leistet der POS-Bon.
 const toReceiptLine = (
   line: ReceiptOrderLineInput,
   dineLocation: 'dine-in' | 'take-out' | undefined,
@@ -98,25 +140,39 @@ const toReceiptLine = (
   name: line.name,
   quantity: line.amount,
   unitPrice: line.price,
-  lineTotal: round2(line.amount * line.price),
+  lineTotal: line.grossCents != null ? round2(fromCents(Math.round(line.grossCents))) : round2(line.amount * line.price),
   taxRate: lineTaxRate(line, dineLocation),
 })
 
-// Fallback-Steuer-Aufschlüsselung aus den Positionen, falls die Order keinen
-// (autoritativen) taxSnapshot trägt. Gruppiert nach Satz, rechnet Netto/Steuer
-// aus dem Brutto heraus (inklusive Steuer).
-const taxSummaryFromLines = (lines: ReceiptLineItem[]) => {
+// Fallback-Steuer-Aufschlüsselung aus den Positionen, falls die Order gar keinen
+// taxSnapshot trägt. Gruppiert nach Satz, zieht die Nachlässe summen-exakt ab und
+// extrahiert Netto/Steuer aus dem Brutto — alles in Cent-Integern, damit der
+// Beleg sich cent-genau aufrechnet (KassenSichV; Float akkumuliert Drift).
+const taxSummaryFromLines = (lines: ReceiptLineItem[], discountCents: number) => {
   const byRate = new Map<number, number>()
-  for (const l of lines) byRate.set(l.taxRate, (byRate.get(l.taxRate) ?? 0) + l.lineTotal)
-  const taxes = [...byRate.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([taxRate, brutto]) => {
-      const netto = taxRate > 0 ? brutto / (1 + taxRate / 100) : brutto
-      return { taxRate, amount: round2(netto), tax: round2(brutto - netto) }
+  for (const l of lines) byRate.set(l.taxRate, (byRate.get(l.taxRate) ?? 0) + toCents(l.lineTotal))
+  const buckets = [...byRate.entries()].sort((a, b) => a[0] - b[0]).filter(([, gross]) => gross > 0)
+
+  // Nachlässe wirken auf BRUTTO und werden proportional über die Sätze verteilt —
+  // Netto/Steuer danach je Eimer neu extrahiert, damit die Tax-Integrität hält
+  // (gleiche Reihenfolge wie `computeOrderTax`).
+  const grossValues = buckets.map(([, gross]) => gross)
+  const totalGross = grossValues.reduce((s, g) => s + g, 0)
+  const allocations = distributeByLargestRemainder(Math.min(Math.max(0, discountCents), totalGross), grossValues)
+
+  const taxes = buckets
+    .map(([taxRate, gross], i) => ({ taxRate, grossCents: gross - allocations[i] }))
+    .filter(b => b.grossCents > 0)
+    .map(({ taxRate, grossCents }) => {
+      const nettoCents = netFromGross(grossCents, taxRate)
+      return { taxRate, amount: fromCents(nettoCents), tax: fromCents(grossCents - nettoCents) }
     })
-  const brutto = round2(taxes.reduce((s, t) => s + t.amount + t.tax, 0))
-  const netto = round2(taxes.reduce((s, t) => s + t.amount, 0))
-  return { taxes, netto, brutto }
+  const nettoCents = buckets.reduce((s, [taxRate, gross], i) => {
+    const net = gross - allocations[i]
+    return net > 0 ? s + netFromGross(net, taxRate) : s
+  }, 0)
+  const bruttoCents = grossValues.reduce((s, g, i) => s + Math.max(0, g - allocations[i]), 0)
+  return { taxes, netto: fromCents(nettoCents), brutto: fromCents(bruttoCents) }
 }
 
 // Nachlässe aus `order.appliedDiscounts`. Cents → Währungseinheiten (wie alle
@@ -153,24 +209,32 @@ export const buildReceiptSnapshot = (input: BuildReceiptSnapshotInput): ReceiptS
   const currency = order.currency ?? location.defaultCurrency ?? 'EUR'
 
   const lineItems = order.lineItems.map(l => toReceiptLine(l, order.dineLocation))
-
-  const taxSummary =
-    order.taxSnapshot && order.taxSnapshot.taxes.length > 0
-      ? {
-          taxes: order.taxSnapshot.taxes.map(t => ({ taxRate: t.taxRate, amount: t.amount, tax: t.tax })),
-          netto: order.taxSnapshot.netto,
-          brutto: order.taxSnapshot.brutto,
-        }
-      : taxSummaryFromLines(lineItems)
-
-  const totalGross =
-    order.payment?.totalAmount != null
-      ? order.payment.totalAmount
-      : taxSummary.brutto > 0
-        ? taxSummary.brutto
-        : round2(lineItems.reduce((s, l) => s + l.lineTotal, 0))
-
   const discounts = toReceiptDiscounts(order.appliedDiscounts)
+  const discountCents = (order.appliedDiscounts ?? []).reduce(
+    (s, d) => s + Math.max(0, Math.round(d.computedAmountCents ?? 0)),
+    0,
+  )
+
+  // Ein vorhandener taxSnapshot ist autoritativ — auch mit LEERER `taxes`-Liste.
+  // Die frühere Bedingung `taxes.length > 0` fiel bei jeder auf 0 rabattierten
+  // Order (100 % Nachlass, z. B. Personalessen) auf den Fallback zurück:
+  // `computeOrderTax` verwirft Eimer <= 0, liefert dort also `taxes: []` bei
+  // `brutto: 0`. Der Fallback ist nur eine Nachbildung — er kennt weder die
+  // Reihenfolge LINE→ORDER noch die zeilengenaue Verteilung und verteilt jeden
+  // Nachlass proportional über alle Sätze.
+  const taxSummary = order.taxSnapshot
+    ? {
+        taxes: order.taxSnapshot.taxes.map(t => ({ taxRate: t.taxRate, amount: t.amount, tax: t.tax })),
+        netto: order.taxSnapshot.netto,
+        brutto: order.taxSnapshot.brutto,
+      }
+    : taxSummaryFromLines(lineItems, discountCents)
+
+  // `taxSummary.brutto` ist in beiden Zweigen der rabattierte Gesamtbetrag —
+  // ein früherer dritter Zweig auf Σ Positionen entfällt: er hätte „0, weil voll
+  // rabattiert" mit „0, weil nichts gerechnet" verwechselt und den Nachlass wieder
+  // aufaddiert.
+  const totalGross = order.payment?.totalAmount ?? taxSummary.brutto
 
   const lastMethod = order.payment?.transactions?.at(-1)?.method
   const paymentMethod = PAYMENT_METHODS.find(m => m === lastMethod)

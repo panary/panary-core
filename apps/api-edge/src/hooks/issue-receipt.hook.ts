@@ -1,6 +1,7 @@
 import { createHash, createHmac } from 'node:crypto'
 import { uuidv7 } from 'uuidv7'
 
+import { lineItemGrossCents, type OrderLineItem } from '@panary/orders/domain'
 import { logger } from '@panary/shared-backend'
 import {
   buildReceiptSnapshot,
@@ -66,21 +67,17 @@ interface CompletedOrder {
   recordingDate?: string
   dineLocation?: 'dine-in' | 'take-out'
   currency?: string
-  lineItems?: Array<{
-    externalId?: string
-    name?: string
-    amount?: number
-    price?: number
-    taxInside?: number
-    taxOutside?: number
-  }>
+  // Laufzeit-Ergebnis des orders-Service: strukturell ein OrderLineItem, aber
+  // ungeprüft — deshalb durchgehend optional gelesen. Die Bundle-/Modifier-Felder
+  // (`modifiers`, `components`, `menuSideDish`, …) braucht `lineItemGrossCents`.
+  lineItems?: Array<Partial<OrderLineItem>>
   appliedDiscounts?: ReceiptOrderInput['appliedDiscounts']
   taxSnapshot?: ReceiptOrderInput['taxSnapshot']
   payment?: ReceiptOrderInput['payment']
   tse?: unknown
 }
 
-const orderToInput = (order: CompletedOrder): ReceiptOrderInput => ({
+export const orderToInput = (order: CompletedOrder): ReceiptOrderInput => ({
   _id: order._id,
   dailySequenceNumber: order.dailySequenceNumber ?? 0,
   recordingDate: order.recordingDate,
@@ -93,6 +90,10 @@ const orderToInput = (order: CompletedOrder): ReceiptOrderInput => ({
     price: l.price ?? 0,
     taxInside: l.taxInside ?? 0,
     taxOutside: l.taxOutside ?? 0,
+    // Kanonische Positionssumme (unrabattiert) aus derselben Quelle wie Engine,
+    // POS-Anzeige und POS-Bon — `amount × price` ließe Modifier, Menü-Komponenten
+    // und Festpreis-Menüs weg (panary/panary-core#236).
+    grossCents: lineItemGrossCents(l as OrderLineItem),
   })),
   appliedDiscounts: order.appliedDiscounts ?? null,
   taxSnapshot: order.taxSnapshot ?? null,

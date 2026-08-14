@@ -62,6 +62,19 @@ export function renderReceiptEscPos(receipt: Receipt, options: EscposOptions = {
     )
   }
 
+  // Nachlässe — direkt unter den Positionen, weil sie eine Minderung DIESES
+  // Blocks sind: die Positionen tragen unrabattierte Summen, `totalGross` ist
+  // rabattiert. Ohne die Zeile bliebe die Differenz auf dem Bon unerklärt (#228).
+  for (const d of receipt.discounts ?? []) {
+    enc.table(
+      [
+        { width: nameW, align: 'left' },
+        { width: priceW, align: 'right' },
+      ],
+      [[`Nachlass: ${d.name}`, fmtMoney(-d.amount, currency)]],
+    )
+  }
+
   // Gesamtsumme
   enc.newline().rule({ style: 'single' })
   enc.table(

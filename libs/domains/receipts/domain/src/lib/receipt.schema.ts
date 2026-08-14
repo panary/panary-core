@@ -97,6 +97,21 @@ export const receiptLineItemSchema = Type.Object(
 )
 export type ReceiptLineItem = Static<typeof receiptLineItemSchema>
 
+// Gewährter Nachlass als Beleg-Snapshot. Ohne ihn rechnet sich der Beleg für den
+// Gast nicht auf: die Positionen tragen unrabattierte `lineTotal`, `totalGross`
+// ist rabattiert — die Differenz stünde sonst unerklärt da (#228).
+// `amount` ist der tatsächlich abgezogene BRUTTO-Betrag (`appliedDiscounts
+// .computedAmountCents` der Tax-Engine), positiv; das Vorzeichen setzt die
+// Darstellung. Währungseinheiten wie alle Beträge des Belegs.
+export const receiptDiscountSchema = Type.Object(
+  {
+    name: Type.String({ minLength: 1, maxLength: 200 }),
+    amount: Type.Number({ minimum: 0 }),
+  },
+  { additionalProperties: false },
+)
+export type ReceiptDiscount = Static<typeof receiptDiscountSchema>
+
 // Verkäufer-Snapshot (Pflichtangabe „Name + Anschrift des Unternehmers",
 // §6 KassenSichV). Aus der Location + invoiceSettings zum Ausstellzeitpunkt
 // eingefroren — spätere Stammdaten-Änderungen verändern ausgestellte Belege nicht.
@@ -160,6 +175,11 @@ export const receiptSchema = Type.Object(
     lineItems: Type.Array(receiptLineItemSchema, { maxItems: 500 }),
     taxSummary: receiptTaxSummarySchema,
     totalGross: Type.Number({ minimum: 0 }),
+    // Nachlässe (Order- + Positionsrabatte). Fehlend/`null` = Beleg ohne Rabatt
+    // oder vor #228 ausgestellt — Bestand wird NICHT nachgerechnet
+    // (KassenSichV-Unveränderbarkeit). `Null` toleriert wie bei `tse`: der Edge
+    // serialisiert ungesetzte nullable SQLite-Spalten als null.
+    discounts: Type.Optional(Type.Union([Type.Array(receiptDiscountSchema, { maxItems: 50 }), Type.Null()])),
     paymentMethod: Type.Optional(StringEnum(Object.values(ReceiptPaymentMethod))),
     paymentState: Type.Optional(StringEnum(Object.values(ReceiptPaymentState))),
     seller: receiptSellerSchema,
@@ -210,6 +230,7 @@ export const receiptDataSchema = Type.Intersect(
       'lineItems',
       'taxSummary',
       'totalGross',
+      'discounts',
       'paymentMethod',
       'paymentState',
       'seller',

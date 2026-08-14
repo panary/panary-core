@@ -78,7 +78,7 @@ describe('orders service — taxSnapshot bei preisrelevanten Patches', () => {
       // params.user aktiviert das multiTenancy-WRITE-Stamping auch intern —
       // tenantId/locationId muessen daher am User-Objekt haengen (Memory-Regel:
       // Stamp kommt aus params.user, nie aus dem Quell-Datensatz).
-      { provider: undefined, user: { _id: userId, tenantId, locationId } as never },
+      { provider: undefined, user: { _id: userId, tenantId, locationId } } as never,
     )) as Order
     orderId = createdOrder._id
   })

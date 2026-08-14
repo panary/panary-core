@@ -1,3 +1,4 @@
+import { Value } from '@sinclair/typebox/value'
 import { describe, expect, it } from 'vitest'
 import {
   buildReceiptHtml,
@@ -6,7 +7,7 @@ import {
   type BuildReceiptSnapshotInput,
 } from './receipt-builder'
 import { formatInternalReceiptNumber } from './receipt-number'
-import { ReceiptKind, type Receipt } from './receipt.schema'
+import { receiptDiscountSchema, ReceiptKind, type Receipt } from './receipt.schema'
 import { getReceiptDeliveryArtifact } from './receipt-provider'
 
 const baseInput = (): BuildReceiptSnapshotInput => ({
@@ -88,6 +89,92 @@ describe('buildReceiptSnapshot', () => {
     const a = canonicalReceiptJson(buildReceiptSnapshot(baseInput()))
     const b = canonicalReceiptJson(buildReceiptSnapshot(baseInput()))
     expect(a).toBe(b)
+  })
+})
+
+// Zahlenbasis ist die Test-Order aus panary/panary-core#228, an der der fehlende
+// Nachlass gemessen wurde: 2× Nuggets à 4,50 (7 %) + 1× Apfelschorle 2,90 (19 %),
+// 20 % Order-Rabatt. Positionen 11,90 − Nachlass 2,38 = Gesamt 9,52.
+const discountedInput = (): BuildReceiptSnapshotInput => {
+  const input = baseInput()
+  input.order.lineItems = [
+    { name: 'Nuggets', amount: 2, price: 4.5, taxInside: 7, taxOutside: 7 },
+    { name: 'Apfelschorle', amount: 1, price: 2.9, taxInside: 19, taxOutside: 19 },
+  ]
+  input.order.appliedDiscounts = [{ name: '20 % Rabatt', computedAmountCents: 238 }]
+  input.order.taxSnapshot = {
+    taxes: [
+      { taxRate: 7, amount: 6.73, tax: 0.47 },
+      { taxRate: 19, amount: 1.95, tax: 0.37 },
+    ],
+    netto: 8.68,
+    brutto: 9.52,
+  }
+  input.order.payment = { state: 'paid', totalAmount: 9.52, transactions: [{ method: 'card' }] }
+  return input
+}
+
+describe('buildReceiptSnapshot — Nachlass (#228)', () => {
+  it('weist den Order-Rabatt mit Namen und abgezogenem Betrag aus', () => {
+    const core = buildReceiptSnapshot(discountedInput())
+    expect(core.discounts).toEqual([{ name: '20 % Rabatt', amount: 2.38 }])
+  })
+
+  it('der Beleg rechnet sich auf: Σ Positionen − Σ Nachlass === Gesamt', () => {
+    const core = buildReceiptSnapshot(discountedInput())
+    const positions = core.lineItems.reduce((s, l) => s + l.lineTotal, 0)
+    const nachlass = (core.discounts ?? []).reduce((s, d) => s + d.amount, 0)
+    expect(positions).toBeCloseTo(11.9, 2)
+    expect(positions - nachlass).toBeCloseTo(core.totalGross, 2)
+  })
+
+  it('übernimmt den Rabattnamen des Personalessens', () => {
+    const input = discountedInput()
+    input.order.appliedDiscounts = [{ name: 'Personalessen', computedAmountCents: 1190 }]
+    expect(buildReceiptSnapshot(input).discounts).toEqual([{ name: 'Personalessen', amount: 11.9 }])
+  })
+
+  it('führt mehrere Rabatte einzeln auf (Positions- + Order-Rabatt)', () => {
+    const input = discountedInput()
+    input.order.appliedDiscounts = [
+      { name: 'Nuggets −1,00', computedAmountCents: 100 },
+      { name: '20 % Rabatt', computedAmountCents: 218 },
+    ]
+    expect(buildReceiptSnapshot(input).discounts).toEqual([
+      { name: 'Nuggets −1,00', amount: 1 },
+      { name: '20 % Rabatt', amount: 2.18 },
+    ])
+  })
+
+  it('lässt das Feld ohne Rabatt komplett weg — kanonische JSON unverändert', () => {
+    const core = buildReceiptSnapshot(baseInput())
+    expect(core.discounts).toBeUndefined()
+    // Der renderHash haengt an genau diesem String: ein Beleg ohne Rabatt muss
+    // nach #228 denselben Hash bekommen wie davor.
+    expect(canonicalReceiptJson(core)).not.toContain('discounts')
+  })
+
+  it('unterdrückt wirkungslose Rabatte (0 ct) statt eine Nullzeile zu drucken', () => {
+    const input = discountedInput()
+    input.order.appliedDiscounts = [{ name: 'Ohne Wirkung', computedAmountCents: 0 }]
+    expect(buildReceiptSnapshot(input).discounts).toBeUndefined()
+  })
+
+  it('fängt einen leeren Rabattnamen ab — der Snapshot bleibt schema-valide', () => {
+    const input = discountedInput()
+    input.order.appliedDiscounts = [{ name: '   ', computedAmountCents: 238 }]
+    const discounts = buildReceiptSnapshot(input).discounts ?? []
+    expect(discounts).toEqual([{ name: 'Nachlass', amount: 2.38 }])
+    // Ohne Fallback riss `minLength: 1` die Beleg-Validierung — und der
+    // issue-receipt-Hook schluckt Fehler, der Beleg fiele also ganz aus.
+    expect(discounts.every(d => Value.Check(receiptDiscountSchema, d))).toBe(true)
+  })
+
+  it('buildReceiptHtml zeigt die Nachlasszeile', () => {
+    const core = buildReceiptSnapshot(discountedInput())
+    const html = buildReceiptHtml({ ...core, tse: null } as unknown as Parameters<typeof buildReceiptHtml>[0])
+    expect(html).toContain('Nachlass: 20 % Rabatt')
+    expect(html).toContain('−2.38 EUR')
   })
 })
 

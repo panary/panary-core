@@ -1,4 +1,4 @@
-import type { Receipt, ReceiptLineItem, ReceiptSeller, ReceiptTse } from './receipt.schema'
+import type { Receipt, ReceiptDiscount, ReceiptLineItem, ReceiptSeller, ReceiptTse } from './receipt.schema'
 import { ReceiptKind } from './receipt.schema'
 
 // Reine, deterministische Beleg-Erzeugung (ADR D3/D7). KEINE node-Abhängigkeit
@@ -16,6 +16,15 @@ export interface ReceiptOrderLineInput {
   taxOutside: number
 }
 
+// Reduzierter Ausschnitt eines `order.appliedDiscounts`-Eintrags: nur was der
+// Beleg ausweist. `computedAmountCents` ist der von `computeOrderTax`
+// zurückgeschriebene, tatsächlich abgezogene Brutto-Betrag — nicht die
+// Definition (valuePercent/valueCents), die den Abzug bei Klemmung überzeichnet.
+export interface ReceiptOrderDiscountInput {
+  name?: string
+  computedAmountCents?: number
+}
+
 export interface ReceiptOrderInput {
   _id: string
   dailySequenceNumber: number
@@ -23,6 +32,7 @@ export interface ReceiptOrderInput {
   currency?: string
   dineLocation?: 'dine-in' | 'take-out'
   lineItems: ReceiptOrderLineInput[]
+  appliedDiscounts?: ReceiptOrderDiscountInput[] | null
   taxSnapshot?: {
     taxes: Array<{ taxRate: number; amount: number; tax: number }>
     netto: number
@@ -64,6 +74,7 @@ export interface ReceiptSnapshotCore {
   lineItems: ReceiptLineItem[]
   taxSummary: { taxes: Array<{ taxRate: number; amount: number; tax: number }>; netto: number; brutto: number }
   totalGross: number
+  discounts?: ReceiptDiscount[]
   paymentMethod?: 'cash' | 'card' | 'online' | 'other'
   paymentState?: 'pending' | 'partially_paid' | 'paid' | 'refunded'
   seller: ReceiptSeller
@@ -108,6 +119,21 @@ const taxSummaryFromLines = (lines: ReceiptLineItem[]) => {
   return { taxes, netto, brutto }
 }
 
+// Nachlässe aus `order.appliedDiscounts`. Cents → Währungseinheiten (wie alle
+// Beträge des Snapshots). Wirkungslose Einträge (0 ct — z. B. ein Rabatt auf eine
+// bereits auf 0 geklemmte Basis) erscheinen nicht: eine Nachlasszeile über
+// 0,00 € erklärt keine Differenz und stünde nur im Weg. Ein Rabatt ohne Namen
+// fällt auf „Nachlass" zurück — ein leerer Name würde die Beleg-Validierung
+// reißen, und der Beleg fiele dann ganz aus (der issue-receipt-Hook schluckt
+// Fehler bewusst).
+const toReceiptDiscounts = (applied: ReceiptOrderInput['appliedDiscounts']): ReceiptDiscount[] =>
+  (applied ?? [])
+    .map(d => ({
+      name: d.name?.trim() || 'Nachlass',
+      amount: round2(Math.max(0, Math.round(d.computedAmountCents ?? 0)) / 100),
+    }))
+    .filter(d => d.amount > 0)
+
 const formatSellerAddress = (address: ReceiptLocationInput['address']): string | undefined => {
   if (!address) return undefined
   const parts = [address.street, [address.postalCode, address.city].filter(Boolean).join(' '), address.country]
@@ -144,6 +170,8 @@ export const buildReceiptSnapshot = (input: BuildReceiptSnapshotInput): ReceiptS
         ? taxSummary.brutto
         : round2(lineItems.reduce((s, l) => s + l.lineTotal, 0))
 
+  const discounts = toReceiptDiscounts(order.appliedDiscounts)
+
   const lastMethod = order.payment?.transactions?.at(-1)?.method
   const paymentMethod = PAYMENT_METHODS.find(m => m === lastMethod)
   const paymentState = PAYMENT_STATES.find(s => s === order.payment?.state)
@@ -168,6 +196,10 @@ export const buildReceiptSnapshot = (input: BuildReceiptSnapshotInput): ReceiptS
     lineItems,
     taxSummary,
     totalGross: round2(totalGross),
+    // Bewusst weggelassen statt als leeres Array geführt: ein Beleg ohne Rabatt
+    // behält damit exakt dieselbe kanonische JSON — und denselben renderHash —
+    // wie vor #228. Nur rabattierte Belege ändern ihren Hash.
+    ...(discounts.length > 0 ? { discounts } : {}),
     ...(paymentMethod ? { paymentMethod } : {}),
     ...(paymentState ? { paymentState } : {}),
     seller,
@@ -231,6 +263,7 @@ export const buildReceiptHtml = (
     | 'lineItems'
     | 'taxSummary'
     | 'totalGross'
+    | 'discounts'
     | 'seller'
     | 'tse'
     | 'receiptNumber'
@@ -243,6 +276,12 @@ export const buildReceiptHtml = (
     .map(
       l =>
         `<tr><td>${esc(l.name)}</td><td>${l.quantity}</td><td>${money(l.lineTotal, receipt.currency)}</td><td>${l.taxRate}%</td></tr>`,
+    )
+    .join('')
+  const discountRows = (receipt.discounts ?? [])
+    .map(
+      d =>
+        `<div class="discount"><span>Nachlass: ${esc(d.name)}</span><span>−${money(d.amount, receipt.currency)}</span></div>`,
     )
     .join('')
   const taxRows = receipt.taxSummary.taxes
@@ -265,6 +304,7 @@ h1{color:${primary};font-size:1.25rem;margin:0 0 4px}
 table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.9rem}
 th,td{text-align:left;padding:4px 6px;border-bottom:1px solid #eee}
 td:last-child,th:last-child{text-align:right}
+.discount{display:flex;justify-content:space-between;gap:12px;font-size:.9rem;padding:4px 6px}
 .total{font-size:1.1rem;font-weight:700;color:${primary};text-align:right;margin:12px 0}
 .tse{margin-top:16px;font-size:.72rem;color:#555;word-break:break-all}
 footer{margin-top:24px;text-align:center;font-size:.8rem;color:#777}
@@ -287,6 +327,7 @@ footer{margin-top:24px;text-align:center;font-size:.8rem;color:#777}
       ? '<div class="meta"><em>Bestellbestätigung — kein steuerlicher Beleg</em></div>'
       : '',
     `<table><thead><tr><th>Position</th><th>Menge</th><th>Summe</th><th>MwSt</th></tr></thead><tbody>${rows}</tbody></table>`,
+    discountRows,
     `<div class="total">Gesamt: ${money(receipt.totalGross, receipt.currency)}</div>`,
     `<table class="tax"><thead><tr><th>Satz</th><th>Netto</th><th>Steuer</th></tr></thead><tbody>${taxRows}</tbody></table>`,
     tseBlock,

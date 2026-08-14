@@ -14,9 +14,6 @@
         "project": "libs/domains/product-groups/data-access/ng-package.json",
         "tsConfig": "libs/domains/product-groups/data-access/tsconfig.lib.json"
       }
-    },
-    "lint": {
-      "executor": "@nx/eslint:lint"
     }
   },
   "implicitDependencies": ["data-access", "product-groups-domain"]

@@ -4,10 +4,5 @@
   "sourceRoot": "libs/domains/pre-orders/data-access/src",
   "prefix": "lib",
   "projectType": "library",
-  "tags": ["type:data-access", "domain:pre-orders"],
-  "targets": {
-    "lint": {
-      "executor": "@nx/eslint:lint"
-    }
-  }
+  "tags": ["type:data-access", "domain:pre-orders"]
 }

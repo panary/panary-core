@@ -14,9 +14,6 @@
         "project": "libs/domains/auth/data-access/ng-package.json",
         "tsConfig": "libs/domains/auth/data-access/tsconfig.lib.json"
       }
-    },
-    "lint": {
-      "executor": "@nx/eslint:lint"
     }
   },
   "implicitDependencies": [

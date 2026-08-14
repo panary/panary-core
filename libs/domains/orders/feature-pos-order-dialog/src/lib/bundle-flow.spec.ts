@@ -32,6 +32,53 @@ describe('BundleFlow.isBundleProduct', () => {
   })
 })
 
+describe('BundleFlow.findOptionGroupByTopic', () => {
+  // Die Aufloesung Zeile→Produkt haengt seit #230 an `externalId`: `lineItem._id` ist
+  // die Zeilen-Identitaet (uuidv7) und findet im Katalog nichts mehr. Der `_id`-Zweig
+  // bleibt fuer BESTANDS-Zeilen, die noch die Produkt-ID tragen.
+  const burger = product({
+    _id: 'prod-burger',
+    externalId: 'ext-burger',
+    optionGroups: [{ id: 'g1', name: 'Dips', pricingMode: 'HIGHEST', freeQuantity: 1 }],
+  })
+  const pommes = product({
+    _id: 'prod-pommes',
+    externalId: 'ext-pommes',
+    optionGroups: [{ id: 'g2', name: 'Dips', pricingMode: 'SUM', freeQuantity: 0 }],
+  })
+
+  it('loest ueber externalId auf, wenn `_id` eine Zeilen-uuid ist', () => {
+    const flow = new BundleFlow(catalog([burger, pommes]))
+    const zeile = lineItem({ _id: '019853a0-0000-7000-8000-000000000001', externalId: 'ext-burger', modifiers: [] })
+
+    expect(flow.findOptionGroupByTopic(zeile, 'Dips')).toMatchObject({ pricingMode: 'HIGHEST', freeQuantity: 1 })
+  })
+
+  it('faellt auf `_id` zurueck, wenn die Zeile keine externalId traegt (Bestand)', () => {
+    const flow = new BundleFlow(catalog([burger, pommes]))
+    const bestandszeile = lineItem({ _id: 'prod-pommes', externalId: '', modifiers: [] })
+
+    expect(flow.findOptionGroupByTopic(bestandszeile, 'Dips')).toMatchObject({ pricingMode: 'SUM' })
+  })
+
+  it('externalId gewinnt, wenn `_id` auf ein ANDERES Produkt zeigt', () => {
+    // Der Fall, den die Reihenfolge entscheidet: Eine Zeilen-uuid kann theoretisch die
+    // `_id` eines fremden Produkts treffen. Massgeblich ist die Produkt-Identitaet
+    // der Zeile, nicht ein Zufallstreffer.
+    const flow = new BundleFlow(catalog([burger, pommes]))
+    const zeile = lineItem({ _id: 'prod-pommes', externalId: 'ext-burger', modifiers: [] })
+
+    expect(flow.findOptionGroupByTopic(zeile, 'Dips')).toMatchObject({ pricingMode: 'HIGHEST' })
+  })
+
+  it('liefert undefined, wenn weder externalId noch `_id` ein Produkt treffen', () => {
+    const flow = new BundleFlow(catalog([burger]))
+    const zeile = lineItem({ _id: 'unbekannt', externalId: 'auch-unbekannt', modifiers: [] })
+
+    expect(flow.findOptionGroupByTopic(zeile, 'Dips')).toBeUndefined()
+  })
+})
+
 describe('BundleFlow.getNextMandatoryGroup / pendingGroups / reset', () => {
   const bundle = product({
     productType: 'BUNDLE',

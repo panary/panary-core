@@ -478,7 +478,15 @@
 
                 <div class="font-mono text-sm" [ngClass]="vm.itemsPaddingClass">
                   <div class="flex flex-col" [ngClass]="vm.itemsGapClass">
-                    @for (line of vm.unbundledLines; track line.item._id) {
+                    <!--
+                      track $index statt line.item._id: BESTANDS-Orders tragen als
+                      Zeilen-`_id` weiterhin die Produkt-ID (vor #230 angelegt, bewusst
+                      nicht migriert). Zwei gleiche Menues ergeben dort zwei Zeilen mit
+                      derselben ID — Angular ordnet die DOM-Knoten dann nicht mehr
+                      eindeutig zu (NG0955 warnt nur im Dev-Build). Die Liste wird nicht
+                      umsortiert, $index ist hier also stabil genug.
+                    -->
+                    @for (line of vm.unbundledLines; track $index) {
                       @let item = line.item;
                       <div class="flex justify-between items-start">
                         <div class="flex gap-2">
@@ -554,7 +562,7 @@
                               class="absolute -left-1 top-3 bottom-3 w-1 bg-indigo-200 dark:bg-indigo-800 rounded-full"
                             ></div>
                             <div class="flex flex-col gap-2 pl-2">
-                              @for (line of combo; track line.item._id) {
+                              @for (line of combo; track $index) {
                                 @let item = line.item;
                                 <div class="flex justify-between items-start">
                                   <div class="flex gap-2">

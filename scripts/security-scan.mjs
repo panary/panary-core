@@ -13,6 +13,11 @@
 //   --report                    write Markdown to .security/report-YYYY-MM-DD.md
 //   --max-severity=<level>      exit 1 if any finding >= critical|high|medium|low
 //   --quiet                     reduce progress output
+//
+// Exit codes:
+//   0  every requested scanner delivered a result, nothing above --max-severity
+//   1  findings >= --max-severity
+//   2  usage error, or a requested scanner delivered no result at all
 
 import { execSync, spawnSync } from 'node:child_process'
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs'
@@ -57,6 +62,22 @@ const log = msg => {
   if (!QUIET) process.stderr.write(msg + '\n')
 }
 
+// ---------- Failure accounting ----------
+//
+// A scanner that did not run must never look like a scanner that found nothing.
+// Until 2026-08-14 every failure path ended in `return []`, so a broken run was
+// reported as "Total findings: 0" with exit 0 — the local gate had been blind
+// since osv-scanner moved to v2. Failures are collected here, surfaced in every
+// output format and turned into a non-zero exit by main().
+const scanErrors = []
+const failScan = (scanner, reason) => {
+  scanErrors.push({ scanner, reason })
+  // Deliberately bypasses log(): the lefthook pre-push hook runs with --quiet,
+  // and a reason swallowed there would trade a silent gap for a silent block.
+  process.stderr.write(`${color.red}✗ ${scanner}: ${reason}${color.reset}\n`)
+  return []
+}
+
 // ---------- Helpers ----------
 
 const hasTool = cmd => {
@@ -82,33 +103,43 @@ const detectRepo = () => {
 
 const runOsvScanner = () => {
   if (!hasTool('osv-scanner')) {
-    log(`${color.yellow}⚠ osv-scanner nicht installiert — bash scripts/install-security-tools.sh${color.reset}`)
-    return []
+    return failScan('osv-scanner', 'nicht installiert — bash scripts/install-security-tools.sh')
   }
   // Lockfile-Discovery: prefer repo-local, fall back to workspace-root parent.
   // panary-core and panary-cloud share a single pnpm-lock.yaml in _WORKBENCH_PANARY/.
   const candidates = [resolve(repoRoot, 'pnpm-lock.yaml'), resolve(repoRoot, '..', 'pnpm-lock.yaml')]
   const lockfile = candidates.find(p => existsSync(p))
   if (!lockfile) {
-    log(`${color.yellow}⚠ pnpm-lock.yaml nicht gefunden (gesucht: ${candidates.join(', ')})${color.reset}`)
-    return []
+    return failScan('osv-scanner', `pnpm-lock.yaml nicht gefunden (gesucht: ${candidates.join(', ')})`)
   }
   log(
     `${color.cyan}► osv-scanner (lockfile: ${lockfile.replace(repoRoot + '/', './').replace(repoRoot, '.')}) …${color.reset}`,
   )
-  const result = spawnSync('osv-scanner', [`--lockfile=${lockfile}`, '--format=json', repoRoot], {
+  // osv-scanner v2 syntax: `scan source` subcommand, space-separated flags.
+  // The v1 form (`--lockfile=<path> --format=json <dir>`) exits 127 on v2 with
+  // "could not determine extractor suitable to this file". Passing repoRoot
+  // positionally is not the fix and must not come back: combined with
+  // --lockfile it reproduces the very same 127, and on its own it exits 128
+  // ("No package sources found") because v2 skips the git root unless
+  // --include-git-root is set. The lockfile alone is the working invocation —
+  // osv-scanner.toml is still picked up, it is resolved next to the lockfile.
+  const result = spawnSync('osv-scanner', ['scan', 'source', '--lockfile', lockfile, '--format', 'json'], {
     encoding: 'utf8',
     maxBuffer: 1024 * 1024 * 64,
   })
-  // Exit codes: 0=no vulns, 1=vulns found (expected), others=actual failure.
+  if (result.error) {
+    return failScan('osv-scanner', `nicht startbar: ${result.error.message}`)
+  }
+  // Exit codes: 0=no vulns, 1=vulns found (expected), 127=general error,
+  // 128=no packages found. Anything but 0/1 means we have no result, not zero
+  // findings — 128 included, a scan over zero packages proves nothing.
   if (result.status !== 0 && result.status !== 1) {
     const errMsg = (result.stderr || '')
       .split('\n')
-      .filter(l => l && !/^Scanning /.test(l))
+      .filter(l => l && !/^(Scanning |Starting filesystem walk|End status:)/.test(l))
       .join(' | ')
       .slice(0, 220)
-    log(`${color.red}osv-scanner exit ${result.status}: ${errMsg}${color.reset}`)
-    return []
+    return failScan('osv-scanner', `Exit ${result.status}: ${errMsg || '(keine Fehlerausgabe)'}`)
   }
   try {
     const data = JSON.parse(result.stdout || '{}')
@@ -141,15 +172,13 @@ const runOsvScanner = () => {
     }
     return findings
   } catch (e) {
-    log(`${color.red}osv-scanner JSON parse failed: ${e.message}${color.reset}`)
-    return []
+    return failScan('osv-scanner', `JSON nicht lesbar: ${e.message}`)
   }
 }
 
 const runGitleaks = () => {
   if (!hasTool('gitleaks')) {
-    log(`${color.yellow}⚠ gitleaks nicht installiert — bash scripts/install-security-tools.sh${color.reset}`)
-    return []
+    return failScan('gitleaks', 'nicht installiert — bash scripts/install-security-tools.sh')
   }
   log(`${color.cyan}► gitleaks …${color.reset}`)
   const result = spawnSync(
@@ -157,16 +186,25 @@ const runGitleaks = () => {
     ['detect', '--no-banner', '--redact', '--report-format=json', '--report-path=/dev/stdout', '--source', repoRoot],
     { encoding: 'utf8', maxBuffer: 1024 * 1024 * 32 },
   )
+  if (result.error) {
+    return failScan('gitleaks', `nicht startbar: ${result.error.message}`)
+  }
+  // Exit codes: 0=clean, 1=leaks found (expected), others=actual failure.
   if (result.status !== 0 && result.status !== 1) {
-    log(`${color.red}gitleaks failed: ${(result.stderr || '').split('\n')[0]}${color.reset}`)
-    return []
+    const errMsg = (result.stderr || '').split('\n')[0]
+    return failScan('gitleaks', `Exit ${result.status}: ${errMsg || '(keine Fehlerausgabe)'}`)
   }
   try {
     // gitleaks may print a status line + JSON; isolate the JSON array.
     const out = result.stdout || ''
     const start = out.indexOf('[')
     const end = out.lastIndexOf(']')
-    if (start === -1 || end === -1) return []
+    // No array at all means no report was written — that is a failed run, not
+    // a clean one. Exit 0 with an empty report is what gitleaks emits when it
+    // has nothing to say, so only a missing array is treated as an error.
+    if (start === -1 || end === -1) {
+      return failScan('gitleaks', 'kein JSON-Report in der Ausgabe')
+    }
     const data = JSON.parse(out.slice(start, end + 1))
     return data.map(l => ({
       source: 'gitleaks',
@@ -184,9 +222,9 @@ const runGitleaks = () => {
 
 // ---------- Remote (GitHub API via gh) ----------
 
-const ghApiPaginated = path => {
+const ghApiPaginated = (path, label) => {
   if (!hasTool('gh')) {
-    log(`${color.yellow}⚠ gh CLI nicht installiert — bash scripts/install-security-tools.sh${color.reset}`)
+    failScan(label, 'gh CLI nicht installiert — bash scripts/install-security-tools.sh')
     return null
   }
   // Use --jq '.[]' to emit one object per line (NDJSON). This avoids fragile
@@ -199,9 +237,9 @@ const ghApiPaginated = path => {
   })
   if (result.status !== 0) {
     const err = (result.stderr || '').split('\n')[0]
-    log(`${color.red}gh api ${path} failed: ${err}${color.reset}`)
+    failScan(label, `gh api ${path}: ${err}`)
     if (/HTTP 401|authentication/i.test(err)) {
-      log(`${color.yellow}  → gh auth login -s repo${color.reset}`)
+      process.stderr.write(`${color.yellow}  → gh auth login -s repo${color.reset}\n`)
     }
     return null
   }
@@ -214,14 +252,14 @@ const ghApiPaginated = path => {
     }
     return merged
   } catch (e) {
-    log(`${color.red}gh JSON parse failed: ${e.message}${color.reset}`)
+    failScan(label, `JSON nicht lesbar: ${e.message}`)
     return null
   }
 }
 
 const fetchCodeScanning = (owner, repo) => {
   log(`${color.cyan}► code-scanning alerts …${color.reset}`)
-  const alerts = ghApiPaginated(`/repos/${owner}/${repo}/code-scanning/alerts?state=open&per_page=100`)
+  const alerts = ghApiPaginated(`/repos/${owner}/${repo}/code-scanning/alerts?state=open&per_page=100`, 'code-scanning')
   if (!alerts) return []
   return alerts.map(a => ({
     source: 'gh-code-scanning',
@@ -236,7 +274,7 @@ const fetchCodeScanning = (owner, repo) => {
 
 const fetchDependabot = (owner, repo) => {
   log(`${color.cyan}► dependabot alerts …${color.reset}`)
-  const alerts = ghApiPaginated(`/repos/${owner}/${repo}/dependabot/alerts?state=open&per_page=100`)
+  const alerts = ghApiPaginated(`/repos/${owner}/${repo}/dependabot/alerts?state=open&per_page=100`, 'dependabot')
   if (!alerts) return []
   return alerts.map(a => ({
     source: 'gh-dependabot',
@@ -266,6 +304,11 @@ const renderConsole = findings => {
   const sevColor = { critical: color.red, high: color.red, medium: color.yellow, low: color.cyan, unknown: color.dim }
   let out = `\n${color.bold}Security Scan Report — ${new Date().toISOString()}${color.reset}\n`
   out += `Total findings: ${findings.length}\n`
+  if (scanErrors.length > 0) {
+    out += `${color.red}${color.bold}⚠ UNVOLLSTAENDIGER LAUF${color.reset}${color.red} — ${scanErrors.length} Scanner `
+    out += `ohne Ergebnis. Die Zahl oben ist eine Untergrenze, kein Freibrief.${color.reset}\n`
+    for (const e of scanErrors) out += `  ${color.red}✗ ${e.scanner}: ${e.reason}${color.reset}\n`
+  }
   for (const sev of ['critical', 'high', 'medium', 'low', 'unknown']) {
     if (groups[sev].length === 0) continue
     out += `\n${sevColor[sev]}${color.bold}${sev.toUpperCase()}${color.reset} (${groups[sev].length})\n`
@@ -290,6 +333,12 @@ const renderMarkdown = (findings, meta) => {
   out += `- **Generated:** ${new Date().toISOString()}\n`
   out += `- **Mode:** ${MODE}\n`
   out += `- **Total findings:** ${findings.length}\n\n`
+  if (scanErrors.length > 0) {
+    out += `> ⚠️ **Unvollstaendiger Lauf** — ${scanErrors.length} Scanner ohne Ergebnis.\n`
+    out += `> Die Fundzahl ist eine **Untergrenze**; dieser Report belegt keine Freiheit von Befunden.\n>\n`
+    for (const e of scanErrors) out += `> - \`${e.scanner}\`: ${e.reason}\n`
+    out += `\n`
+  }
   out += `| Severity | Count |\n|---|---:|\n`
   for (const sev of ['critical', 'high', 'medium', 'low', 'unknown']) {
     out += `| ${sev} | ${groups[sev].length} |\n`
@@ -337,7 +386,14 @@ const main = () => {
   findings.sort((a, b) => sevIndex(b.severity) - sevIndex(a.severity))
 
   if (FORMAT === 'json') {
-    process.stdout.write(JSON.stringify({ generatedAt: new Date().toISOString(), repo: repoMeta, findings }, null, 2))
+    const payload = {
+      generatedAt: new Date().toISOString(),
+      repo: repoMeta,
+      complete: scanErrors.length === 0,
+      scanErrors,
+      findings,
+    }
+    process.stdout.write(JSON.stringify(payload, null, 2))
   } else if (FORMAT === 'md') {
     process.stdout.write(renderMarkdown(findings, repoMeta || { owner: '?', repo: '?' }))
   } else {
@@ -353,18 +409,39 @@ const main = () => {
     log(`${color.green}✓ Report geschrieben: ${file}${color.reset}`)
   }
 
+  // Everything below writes to stderr directly rather than through log():
+  // a non-zero exit must always carry its reason, and the pre-push hook runs
+  // this script with --quiet.
+  let exitCode = 0
+
   if (MAX_SEV) {
     const threshold = sevIndex(MAX_SEV)
     if (threshold === -1) {
-      log(`${color.red}Unbekannter --max-severity-Wert: ${MAX_SEV}${color.reset}`)
+      process.stderr.write(`${color.red}Unbekannter --max-severity-Wert: ${MAX_SEV}${color.reset}\n`)
       process.exit(2)
     }
     const blocking = findings.filter(f => sevIndex(f.severity) >= threshold)
     if (blocking.length > 0) {
-      log(`${color.red}${color.bold}✗ ${blocking.length} finding(s) >= '${MAX_SEV}' — blocking.${color.reset}`)
-      process.exit(1)
+      process.stderr.write(
+        `${color.red}${color.bold}✗ ${blocking.length} finding(s) >= '${MAX_SEV}' — blocking.${color.reset}\n`,
+      )
+      exitCode = 1
     }
   }
+
+  // Reported last and outranking the severity gate: if a scanner never ran,
+  // the finding list is a lower bound and "nothing above the threshold" is not
+  // a statement anyone should act on.
+  if (scanErrors.length > 0) {
+    const names = scanErrors.map(e => e.scanner).join(', ')
+    process.stderr.write(
+      `${color.red}${color.bold}✗ Lauf unvollstaendig — ohne Ergebnis: ${names}. ` +
+        `Die Fundzahl ist eine Untergrenze.${color.reset}\n`,
+    )
+    exitCode = 2
+  }
+
+  if (exitCode !== 0) process.exit(exitCode)
 }
 
 main()

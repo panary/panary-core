@@ -62,7 +62,7 @@ import { CorporateCustomer } from '@panary/corporate-customers/domain'
 import { PreOrderQuickDialogComponent } from './pre-order-quick-dialog.component'
 import { DiscountPickerDialogComponent } from './discount-picker-dialog.component'
 import { PromoCodeDialogComponent } from './promo-code-dialog.component'
-import { buildCodeAppliedDiscount, evaluatePromoCodeGate } from './promo-code'
+import { buildCodeAppliedDiscount, evaluatePromoCodeGate, redeemCodeForOrder } from './promo-code'
 import { PosButton, PosButtonUiState, PosProductButton, toPosButton } from './pos-button.model'
 import { BundleFlow } from './bundle-flow'
 import {
@@ -2152,6 +2152,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   async placeOrder() {
     let staffMealDetails: StaffPaymentInfo | undefined = undefined
+    // Wird nur gesetzt, wenn ein Rabattcode eingelöst wurde — siehe unten.
+    let preAssignedOrderId: string | undefined = undefined
     let discountDetails: Discount | undefined = undefined
     let customerDetails: CustomerPaymentInfo | undefined = undefined
 
@@ -2219,25 +2221,34 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       // prüft dabei erneut gegen den autoritativen Log: Zwischen Eingabe und
       // Abschluss kann eine andere Kasse dasselbe Limit aufgebraucht haben.
       const checked = this.appliedCodeDiscount()
-      if (checked?.ok) {
-        const redeemed = await this.discountCodeService.redeem({
-          code: checked.code ?? '',
-          customerId: this._customer?._id ?? null,
-          amountCents: Math.round(this.calculateSumPrice() * 100),
-        })
-        if (redeemed.ok) {
-          appliedDiscounts.push(this.#codeToApplied({ ...checked, ...redeemed }))
-        } else {
-          // Die Bestellung darf daran nicht scheitern: Der Gast steht an der
-          // Kasse, die Ware ist erfasst. Sie läuft ohne Code weiter, und der
-          // Kassierer erfährt den Grund.
-          this.setInfoBoxText(`Rabattcode nicht eingelöst — ${codeResultMessage(redeemed.reason)}`, 'red')
-          this.appliedCodeDiscount.set(null)
-        }
+      const outcome = await redeemCodeForOrder(checked, {
+        redeem: ({ code, orderId }) =>
+          this.discountCodeService.redeem({
+            code,
+            orderId,
+            customerId: this._customer?._id ?? null,
+            amountCents: Math.round(this.calculateSumPrice() * 100),
+          }),
+        newOrderId: () => uuidv7(),
+      })
+
+      if (outcome.status === 'redeemed' && checked) {
+        // Dieselbe ID geht gleich an createOrder — Einlösung und Bestellung
+        // tragen damit denselben Bezug (siehe redeemCodeForOrder).
+        preAssignedOrderId = outcome.orderId
+        appliedDiscounts.push(this.#codeToApplied({ ...checked, ...outcome.redeemed }))
+      } else if (outcome.status === 'failed') {
+        // Die Bestellung darf daran nicht scheitern: Der Gast steht an der
+        // Kasse, die Ware ist erfasst. Sie läuft ohne Code weiter, und der
+        // Kassierer erfährt den Grund.
+        this.setInfoBoxText(`Rabattcode nicht eingelöst — ${codeResultMessage(outcome.reason)}`, 'red')
+        this.appliedCodeDiscount.set(null)
       }
     }
 
     const orderIndex = this.orderService.createOrder({
+      // Nur im Rabattcode-Fall gesetzt — sonst vergibt der Server (Regelfall).
+      _id: preAssignedOrderId,
       lineItems: this.#lineItems,
       orderChannel: this.orderChannel(),
       customerDetails,

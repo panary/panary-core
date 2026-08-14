@@ -76,3 +76,13 @@ Alternative zur Offline-Frage, sondern eine Alternative zur Cloud-only-Entscheid
 - Angewandte Codes landen als `appliedDiscounts`-Eintrag mit `method: 'code'` in der
   Bestellung; die kanonische Engine füllt `computedAmountCents`. Siehe
   [Rabatte](../domains/rabatte.md).
+- **Die Order-ID wird vorab vergeben.** Aus „erst einlösen, dann bestellen" folgt, dass
+  die Einlösung eine Bestellung referenzieren muss, die es noch nicht gibt. Der POS
+  erzeugt die `_id` deshalb selbst (uuidv7) und reicht sie an beide Aufrufe; der
+  Edge-Resolver akzeptiert eine mitgegebene `_id` ohnehin (Offline-First-Pfad).
+  Verbleibendes Restrisiko: Scheitert das Anlegen der Bestellung nach erfolgreicher
+  Einlösung, verweist die Einlösung ins Leere. Das ist auffindbar; die zunächst
+  ausgelieferte Variante (`orderId: null`) war es nicht. Der umgekehrte Weg — erst
+  bestellen, dann einlösen — wurde verworfen: Dort bekäme der Gast bei einem
+  aufgebrauchten Code den Rabatt ungezählt, und eine nachträgliche Korrektur träfe
+  eine bereits TSE-signierte, ggf. gedruckte Bestellung.

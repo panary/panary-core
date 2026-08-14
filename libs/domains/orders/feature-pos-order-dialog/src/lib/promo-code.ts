@@ -30,6 +30,49 @@ export function evaluatePromoCodeGate(input: PromoCodeGateInput): { allowed: boo
   return { allowed: true }
 }
 
+export interface RedeemForOrderDeps {
+  /** Bucht die Einlösung in der Cloud (über den Edge-Proxy). */
+  redeem: (input: { code: string; orderId: string }) => Promise<CodeCheckResult>
+  /** Erzeugt die Order-ID (uuidv7) — injiziert, damit die Funktion rein bleibt. */
+  newOrderId: () => string
+}
+
+export type RedeemForOrderResult =
+  | { status: 'skipped' }
+  | { status: 'redeemed'; orderId: string; redeemed: CodeCheckResult }
+  | { status: 'failed'; reason: CodeCheckResult['reason'] }
+
+/**
+ * Löst einen geprüften Code für eine noch nicht existierende Bestellung ein.
+ *
+ * **Die Invariante, um die es hier geht:** Order-ID und Einlösung gehören
+ * zusammen — entweder beides oder keines. Die Einlösung braucht die `orderId`,
+ * damit sie später einer Bestellung zuzuordnen ist; die Bestellung darf aber
+ * erst *nach* erfolgreicher Einlösung entstehen, sonst bekäme der Gast bei
+ * einem aufgebrauchten Code den Rabatt ungezählt.
+ *
+ * Deshalb wird die ID hier vergeben und nur bei Erfolg weitergereicht. Schlägt
+ * die Einlösung fehl, fällt sie weg und die Bestellung bekommt ihre ID wie
+ * gewohnt vom Server.
+ *
+ * **Bewusst in Kauf genommen:** Scheitert das Anlegen der Bestellung *nach* einer
+ * erfolgreichen Einlösung, zeigt die Einlösung auf eine Order, die es nicht gibt.
+ * Das ist ein auditierbarer Zustand — die Alternative (`orderId: null`) war ein
+ * unauffindbarer.
+ */
+export async function redeemCodeForOrder(
+  checked: CodeCheckResult | null,
+  deps: RedeemForOrderDeps,
+): Promise<RedeemForOrderResult> {
+  if (!checked?.ok) return { status: 'skipped' }
+
+  const orderId = deps.newOrderId()
+  const redeemed = await deps.redeem({ code: checked.code ?? '', orderId })
+  if (!redeemed.ok) return { status: 'failed', reason: redeemed.reason }
+
+  return { status: 'redeemed', orderId, redeemed }
+}
+
 export interface CodeSnapshotContext {
   /** uuidv7 des Snapshots — der Aufrufer erzeugt sie, damit die Funktion rein bleibt. */
   id: string

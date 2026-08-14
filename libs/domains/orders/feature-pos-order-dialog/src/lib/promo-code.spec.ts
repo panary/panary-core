@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
+import type { CodeCheckResult } from '@panary/discounts/data-access'
+
 import {
   PROMO_CODE_BLOCKED_MANUAL,
   PROMO_CODE_BLOCKED_STAFF_MEAL,
   buildCodeAppliedDiscount,
   evaluatePromoCodeGate,
+  redeemCodeForOrder,
 } from './promo-code'
 
 describe('evaluatePromoCodeGate', () => {
@@ -27,6 +30,74 @@ describe('evaluatePromoCodeGate', () => {
   it('Personalessen gewinnt gegen den manuellen Rabatt (praezisere Meldung)', () => {
     const gate = evaluatePromoCodeGate({ isStaffMealOrder: true, hasManualDiscount: true })
     expect(gate.message).toBe(PROMO_CODE_BLOCKED_STAFF_MEAL)
+  })
+})
+
+describe('redeemCodeForOrder', () => {
+  /** Zeichnet auf, was die Einloesung zu sehen bekam — je Test eine eigene Instanz. */
+  const makeDeps = (result: CodeCheckResult) => {
+    const seen: Array<{ code: string; orderId: string }> = []
+    const issued: string[] = []
+    let seq = 0
+    return {
+      seen,
+      issued,
+      deps: {
+        redeem: async (input: { code: string; orderId: string }) => {
+          seen.push(input)
+          return result
+        },
+        newOrderId: () => {
+          const id = `order-${++seq}`
+          issued.push(id)
+          return id
+        },
+      },
+    }
+  }
+
+  it('ohne Code passiert nichts — keine ID, kein Aufruf', async () => {
+    const { deps, seen, issued } = makeDeps({ ok: true, reason: 'ok' })
+    expect(await redeemCodeForOrder(null, deps)).toEqual({ status: 'skipped' })
+    expect(seen).toHaveLength(0)
+    expect(issued).toHaveLength(0)
+  })
+
+  it('ein nur geprüfter, aber abgelehnter Code loest nichts aus', async () => {
+    const { deps, seen } = makeDeps({ ok: true, reason: 'ok' })
+    const out = await redeemCodeForOrder({ ok: false, reason: 'expired' }, deps)
+    expect(out).toEqual({ status: 'skipped' })
+    expect(seen).toHaveLength(0)
+  })
+
+  it('die Einloesung bekommt GENAU die ID, die zurueckgegeben wird', async () => {
+    // Das ist die Invariante des Fixes: Waeren es zwei verschiedene IDs, zeigte
+    // die Einloesung ins Leere — genau der Zustand vor diesem Fix (orderId: null).
+    const { deps, seen } = makeDeps({ ok: true, reason: 'ok', redemptionId: 'r-1' })
+    const out = await redeemCodeForOrder({ ok: true, reason: 'ok', code: 'WILLKOMMEN10' }, deps)
+
+    expect(out.status).toBe('redeemed')
+    if (out.status !== 'redeemed') return
+    expect(seen).toHaveLength(1)
+    expect(seen[0]).toEqual({ code: 'WILLKOMMEN10', orderId: out.orderId })
+    expect(out.orderId).toBeTruthy()
+    expect(out.redeemed.redemptionId).toBe('r-1')
+  })
+
+  it('scheitert die Einloesung, faellt die ID weg — die Order bekommt ihre vom Server', async () => {
+    const { deps, seen } = makeDeps({ ok: false, reason: 'limit_reached' })
+    const out = await redeemCodeForOrder({ ok: true, reason: 'ok', code: 'AUSGESCHOEPFT' }, deps)
+
+    expect(out).toEqual({ status: 'failed', reason: 'limit_reached' })
+    // Eine ID wurde erzeugt und mitgeschickt — sie darf aber nirgends ankommen.
+    expect(seen).toHaveLength(1)
+    expect(out).not.toHaveProperty('orderId')
+  })
+
+  it('vergibt genau EINE ID je Einloesung (keine Doppelvergabe)', async () => {
+    const { deps, issued } = makeDeps({ ok: true, reason: 'ok' })
+    await redeemCodeForOrder({ ok: true, reason: 'ok', code: 'X' }, deps)
+    expect(issued).toHaveLength(1)
   })
 })
 

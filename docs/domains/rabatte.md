@@ -267,6 +267,21 @@ Weitere Regeln:
   der Gast steht an der Kasse, die Ware ist erfasst.
 - Der Snapshot trägt `method: 'code'`, `code`, `discountCodeId` und `discountId`;
   `computedAmountCents` füllt wie überall die kanonische Engine.
+- **Die Einlösung kennt ihre Bestellung.** Der POS vergibt die Order-`_id` (uuidv7)
+  **vor** der Einlösung und reicht sie an beide Aufrufe: an `redeem({ orderId })` und
+  als `_id` an `createOrder`. Der Edge-Resolver übernimmt eine mitgegebene `_id` —
+  derselbe Weg, den der Offline-Pfad seit jeher nutzt.
+
+  Die Reihenfolge ist erzwungen: Die Einlösung braucht die ID, die Bestellung darf
+  aber erst *nach* erfolgreicher Einlösung entstehen (sonst bekäme der Gast bei einem
+  aufgebrauchten Code den Rabatt ungezählt). Schlägt die Einlösung fehl, fällt die
+  vorab vergebene ID weg und die Bestellung bekommt ihre wie gewohnt vom Server.
+  Gekapselt in `redeemCodeForOrder` (`promo-code.ts`), dort auch getestet.
+
+  ⚠️ **Bewusst in Kauf genommen:** Scheitert das *Anlegen* der Bestellung nach einer
+  erfolgreichen Einlösung, zeigt die Einlösung auf eine Order, die es nicht gibt. Das
+  ist ein auffindbarer Zustand — der Vorgänger (`orderId: null` bei jeder Einlösung)
+  war es nicht.
 - Ein per Code gewährter Rabatt ist **nie** `isStaffMeal` — sonst stempelte die
   Bestellung `staffPaymentInfo` und liefe in die Exklusivitätsprüfung.
 - Gesperrt bei Personalessen und bei bereits gewähltem manuellem Rabatt

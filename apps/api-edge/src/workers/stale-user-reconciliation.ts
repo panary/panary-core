@@ -29,12 +29,18 @@ export interface StaleUserDecision {
  * Visibility-Snapshot der Cloud tatsaechlich „existiert dort nicht mehr"
  * bedeutet.
  *
- * 🚨 **Rollen der Push-Blockliste sind ausgenommen.** `SYNC_PUSH_BLOCKED_USER_ROLES`
- * (u. a. `tenant:owner`) wird per Design nie zur Cloud gepusht — ein solches
- * Konto kann dort kein Pendant haben und steht deshalb **nie** im Snapshot.
- * Seine Abwesenheit ist eine Tautologie, kein Signal. Ohne diese Ausnahme
- * archiviert der erste Initial-Pull nach dem Pairing garantiert den
+ * 🚨 **Rollen der Push-Blockliste sind ausgenommen.** Ein Konto mit einer Rolle
+ * aus `SYNC_PUSH_BLOCKED_USER_ROLES` (u. a. `tenant:owner`) kann vom Edge aus
+ * **nicht in der Cloud entstehen** und steht deshalb nie allein deswegen im
+ * Snapshot. Seine Abwesenheit ist eine Tautologie, kein Signal. Ohne diese
+ * Ausnahme archiviert der erste Initial-Pull nach dem Pairing garantiert den
  * Edge-Owner — und seit #187 sperrt `ARCHIVED` auch wirklich aus.
+ *
+ * ⚠️ Seit #220 pusht der Outbox-Recorder für diese Rollen **Patches** (die Cloud
+ * verengt sie auf `posPin`/`mustChangePosPin`). Das ändert an der Ausnahme
+ * nichts: Ein Patch legt cloudseitig nichts an — fehlt der Record dort, ist die
+ * Op ein No-op. „Wird nie gepusht" wäre als Begründung aber ab hier falsch;
+ * tragend ist „kann dort nicht entstehen".
  *
  * Das ist kein theoretischer Fall: Nach ADR 0027 bleiben verwaiste
  * Owner-Konten nach einem Merge-Bootstrap bewusst stehen, weil sie der einzige

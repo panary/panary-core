@@ -24,6 +24,8 @@ vi.mock('@panary/shared-backend', () => ({
   logger: { warn: vi.fn(), info: vi.fn(), error: vi.fn() },
 }))
 
+import { SYNC_PUSH_BLOCKED_USER_ROLES } from '@panary/users/domain'
+
 import { recordSyncOutbox } from './sync-outbox-recorder.hook'
 
 const noopNext = (async () => undefined) as any
@@ -120,7 +122,7 @@ describe('recordSyncOutbox', () => {
     expect(outboxCreate).not.toHaveBeenCalled()
   })
 
-  it('überspringt Users mit sync-blockierter Rolle (Defense-in-Depth, echte Domain-Funktion)', async () => {
+  it('überspringt das ANLEGEN von Users mit sync-blockierter Rolle (Defense-in-Depth, echte Domain-Funktion)', async () => {
     const { ctx, outboxCreate } = makeContext({
       path: 'users',
       method: 'create',
@@ -130,6 +132,101 @@ describe('recordSyncOutbox', () => {
     await recordSyncOutbox(ctx as any, noopNext)
 
     expect(outboxCreate).not.toHaveBeenCalled()
+  })
+
+  // --- #220: die Pull/Push-Asymmetrie ---------------------------------------
+  //
+  // `tenant:owner` wird zum Edge GEPULLT (der Inhaber steht selbst an der
+  // Kasse), stand aber im selben Skip wie `create`. Sein PIN-Wechsel am POS
+  // landete deshalb nie in der Outbox — und der naechste Pull holte den alten
+  // Hash samt `mustChangePosPin` zurueck.
+  it('pusht einen PATCH auf tenant:owner — sonst erreicht der PIN-Wechsel die Cloud nie', async () => {
+    const { ctx, outboxCreate } = makeContext({
+      path: 'users',
+      method: 'patch',
+      result: {
+        _id: 'owner-1',
+        role: 'tenant:owner',
+        loginname: 'inhaber',
+        posPin: 'edge-bcrypt-hash',
+        mustChangePosPin: false,
+      },
+    })
+
+    await recordSyncOutbox(ctx as any, noopNext)
+
+    expect(outboxCreate).toHaveBeenCalledTimes(1)
+    const [entry] = outboxCreate.mock.calls[0]
+    expect(entry.entityId).toBe('owner-1')
+    // Der Edge schickt bewusst den VOLLEN Record — die Verengung auf
+    // posPin/mustChangePosPin macht der Cloud-Receiver (panary-cloud#284,
+    // ADR 0055). Eine zweite Feldliste hier waere eine Driftquelle.
+    expect(entry.payload).toMatchObject({
+      _id: 'owner-1',
+      role: 'tenant:owner',
+      posPin: 'edge-bcrypt-hash',
+      mustChangePosPin: false,
+    })
+  })
+
+  it('strippt USER_EDGE_LOCAL_FIELDS auch im Owner-Patch', async () => {
+    const { ctx, outboxCreate } = makeContext({
+      path: 'users',
+      method: 'patch',
+      result: {
+        _id: 'owner-1',
+        role: 'tenant:owner',
+        posPin: 'h',
+        stampingId: 'wt-7',
+        startBreakAt: '2026-08-14T09:00:00.000Z',
+      },
+    })
+
+    await recordSyncOutbox(ctx as any, noopNext)
+
+    const [entry] = outboxCreate.mock.calls[0]
+    expect(entry.payload).not.toHaveProperty('stampingId')
+    expect(entry.payload).not.toHaveProperty('startBreakAt')
+  })
+
+  // Der eigentliche Regressionsschutz: Nicht „Owner geht durch", sondern
+  // „was gepullt wird, kann zurueckschreiben". Der Cloud-Pull-Filter
+  // (`sync-pull-strategies.ts`, users → `role: { $nin: [...] }`) schliesst
+  // ausschliesslich `platform:*` aus. Jede Rolle der Push-Blockliste OHNE
+  // dieses Praefix landet also am Edge und muss ihre Aenderungen zurueckbringen
+  // koennen. Waechst die Blockliste um eine weitere tenant-Rolle und wandert
+  // der Skip wieder auf alle Ops, faellt das hier auf — nicht erst, wenn ein
+  // Kunde meldet, dass sein PIN „nicht bleibt".
+  it.each([...SYNC_PUSH_BLOCKED_USER_ROLES].filter(role => !role.startsWith('platform:')).map(role => [role] as const))(
+    'gepullte, aber push-gesperrte Rolle %s kann patchen (Asymmetrie-Guard)',
+    async role => {
+      const { ctx, outboxCreate } = makeContext({
+        path: 'users',
+        method: 'patch',
+        result: { _id: 'u-x', role, posPin: 'h', mustChangePosPin: false },
+      })
+
+      await recordSyncOutbox(ctx as any, noopNext)
+
+      expect(outboxCreate).toHaveBeenCalledTimes(1)
+    },
+  )
+
+  it('remove bleibt unveraendert — der Rollen-Skip hat es nie erfasst', async () => {
+    // Bei `remove` traegt `context.result` keine Rolle; der Filter griff hier
+    // noch nie. Festgehalten, damit der Umbau von `op !== REMOVE` auf
+    // `op === CREATE` nicht unbemerkt etwas an diesem Pfad verschiebt.
+    const { ctx, outboxCreate } = makeContext({
+      path: 'users',
+      method: 'remove',
+      id: 'owner-1',
+      result: { _id: 'owner-1', role: 'tenant:owner' },
+    })
+
+    await recordSyncOutbox(ctx as any, noopNext)
+
+    expect(outboxCreate).toHaveBeenCalledTimes(1)
+    expect(outboxCreate.mock.calls[0][0].payload).toBeNull()
   })
 
   it('pusht Users mit erlaubter Rolle und stript USER_EDGE_LOCAL_FIELDS (echte Domain-Funktion)', async () => {

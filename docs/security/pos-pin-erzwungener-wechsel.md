@@ -142,6 +142,33 @@ Patch aus `changePin` erzeugt also einen Outbox-Eintrag mit dem neuen Hash.
 > überspringen (**Klartext-PIN in der Datenbank**) *und* den Outbox-Eintrag
 > unterdrücken. Der Integrationstest pinnt beides.
 
+**…seit #220 auch für `tenant:owner`.** Bis dahin galt der Satz oben für ihn
+nicht: `SYNC_PUSH_BLOCKED_USER_ROLES` enthält `tenant:owner`, der Cloud-Pull-Filter
+schließt aber nur `platform:*` aus. Der Inhaber wurde also zum Edge **gepullt**
+(er steht selbst an der Kasse), sein PIN-Wechsel aber nie zurückgepusht — Badge
+blieb stehen, und beim nächsten cloudseitigen Anfassen des Records holte der Pull
+den alten Hash samt Flag zurück. Der neu gesetzte PIN war tot.
+
+Der Skip greift jetzt nur noch bei `create`. Ein `patch` geht mit dem **vollen**
+Record raus; die Cloud verengt ihn auf `posPin` + `mustChangePosPin` und patcht
+ausschließlich einen bereits existierenden Record — kein `create` aus zwei
+Feldern. Die Feldliste lebt bewusst in `panary-cloud`
+(`sync-allowlist.ts` → `USER_SELF_SERVICE_SYNC_FIELDS`), nicht in der geteilten
+Domain: Eine Prüfung auf dem Edge schützt niemanden vor einem kompromittierten
+Edge und wäre eine zweite Definition derselben Sache. Entscheidung und Alternativen:
+`panary-cloud/docs/adr/0055-selbstbedienungsfelder-push-gesperrter-rollen.md`.
+
+> ⚠️ **Die Reihenfolge zwischen den Repos ist nicht beliebig.** Ein Edge, der
+> gegen eine Cloud **ohne** diesen Pfad pusht, bekommt `TERMINAL` zurück — kein
+> Retry, die Op ist weg. panary-cloud#284 muss vor diesem Stand deployt sein, und
+> core hat keinen Staging-Kanal, der das abfangen würde.
+
+> **Bestandsdaten heilt der Fix nicht.** Owner, die seit dem Release (2026-07-29)
+> einen PIN gesetzt haben, der nie ankam, tragen in der Cloud weiterhin den alten
+> Hash — ohne erneuten Patch entsteht kein Outbox-Eintrag. Entschieden am
+> 2026-08-14: kein automatischer Backfill, die betroffenen Owner setzen den PIN
+> einmal neu. Ein Backfill müsste raten, welche Seite die neuere ist.
+
 **Kein Last-Write-Wins beim Pull.** Push läuft vor Pull, und `changePin`
 triggert zusätzlich einen Sofort-Zyklus (`triggerImmediateCycle`) — das deckt
 den Normalfall. Verbleibendes Fenster: schlägt der Push fehl **und** wird der

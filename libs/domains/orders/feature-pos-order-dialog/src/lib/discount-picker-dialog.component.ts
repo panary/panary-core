@@ -1,14 +1,27 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject, signal } from '@angular/core'
-import { MatDialogRef } from '@angular/material/dialog'
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { Discount } from '@panary/discounts/domain'
 import { DiscountService } from '@panary/discounts/data-access'
 import { TranslateModule } from '@ngx-translate/core'
 
+/** Beschriftungs-Variante: dieselbe Auswahl, anderes Ziel. */
+export interface DiscountPickerData {
+  scope: 'order' | 'line'
+  /** Name der markierten Position — nur im `line`-Modus gesetzt. */
+  lineItemName?: string
+}
+
 /**
  * Touch-Picker für manuelle POS-Rabatte. Lädt die aktiven, manuellen Rabatte
  * des POS-Kanals (Cloud-gepflegt, per Sync am Edge) und gibt den gewählten
- * `Discount` an den Order-Dialog zurück. Order-Level (target=order) — Positions-
- * rabatte sind Phase 2.
+ * `Discount` an den Order-Dialog zurück.
+ *
+ * Die Auswahl ist in beiden Modi **dieselbe** — bewusst nicht auf
+ * `discount.target` gefiltert: Das Feld schreibt die Cloud-Admin-UI hart auf
+ * `'order'` (kein Formularfeld), ein Filter auf `'line'` liesse den Picker also
+ * immer leer. Fachlich ist „Kulanz 20 %" ohnehin derselbe Rabatt, ob er auf eine
+ * Position oder die Bestellung wirkt; das Ziel entsteht durch die Verwendung
+ * (`appliedDiscount.target`), nicht durch die Definition.
  */
 @Component({
   selector: 'app-discount-picker-dialog',
@@ -25,8 +38,16 @@ import { TranslateModule } from '@ngx-translate/core'
       <!-- HEADER -->
       <div class="h-20 shrink-0 px-6 py-5 flex justify-between items-start">
         <div>
-          <h2 id="discount-picker-title" class="text-lg font-bold text-gray-900 dark:text-white">Rabatt wählen</h2>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manuelle Rabatte für diese Bestellung</p>
+          <h2 id="discount-picker-title" class="text-lg font-bold text-gray-900 dark:text-white">
+            {{ isLineScope ? 'Positionsrabatt wählen' : 'Rabatt wählen' }}
+          </h2>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+            @if (isLineScope) {
+              Nachlass auf <span class="font-semibold">{{ data.lineItemName || 'die markierte Position' }}</span>
+            } @else {
+              Manuelle Rabatte für diese Bestellung
+            }
+          </p>
         </div>
         <button
           (click)="close()"
@@ -85,6 +106,12 @@ export class DiscountPickerDialogComponent implements OnInit {
   #dialogRef = inject(MatDialogRef<DiscountPickerDialogComponent, Discount>)
   #discountService = inject(DiscountService)
   #cdr = inject(ChangeDetectorRef)
+
+  // Fallback für Aufrufer ohne `data` — MatDialog liefert dort `null`.
+  protected readonly data: DiscountPickerData = inject(MAT_DIALOG_DATA, { optional: true }) ?? { scope: 'order' }
+  protected get isLineScope(): boolean {
+    return this.data.scope === 'line'
+  }
 
   protected readonly discounts = signal<Discount[]>([])
   protected readonly loading = signal(true)

@@ -1,10 +1,10 @@
 ---
 type: Domain Concept
 title: 'Rabatte — Datenmodell, Anwendungslogik & Sync'
-description: 'Rabattsystem für POS und Storefront: Domänen-Lib @panary/discounts/domain, Anwendung ausschließlich über order.appliedDiscounts mit MwSt-Extraktion, Automatik-Hook, Personalessen, Rabatt-KPI und Edge-Sync.'
+description: 'Rabattsystem für POS und Storefront: Domänen-Lib @panary/discounts/domain, Anwendung ausschließlich über order.appliedDiscounts mit MwSt-Extraktion, Automatik-Hook, Order- und Positionsrabatten am POS, Personalessen, Rabatt-KPI und Edge-Sync.'
 tags: [discounts, orders, sync, pos]
 status: stable
-generated: { by: claude-code/historic, at: 2026-05-25T00:00:00Z }
+generated: { by: claude-code/opus-5, at: 2026-08-14T21:40:00Z }
 ---
 
 # Rabatte (Discounts)
@@ -252,9 +252,54 @@ die Auswahl zurück.
   `order.staffPaymentInfo` (siehe Personalessen).
 - Der Dialog zeigt den rabattierten Gesamtbetrag live über `computeOrderTax`
   (durchgestrichener Originalpreis + neuer Betrag). Reset bei `deleteOrder()`.
-- **Positionsrabatte** (`target: 'line'`) sind bewusst Phase 2 — der Picker ist
-  Order-Level. Mehrfach-/Automatik-Kombination folgt der Engine-Reihenfolge
-  (LINE vor ORDER).
+## POS-Anwendung (Positionsrabatt)
+
+Ein Nachlass auf **eine** Bestellzeile — Kulanz für einen reklamierten Artikel,
+ohne die ganze Bestellung zu rabattieren (panary/panary-core#179). Bedienung:
+Zeile im Warenkorb antippen, dann den `percent`-Knopf in der unteren Leiste. Er
+ist deaktiviert, solange keine Zeile markiert ist.
+
+Die reine Logik liegt in `line-discount.ts` (`evaluateLineDiscountGate`,
+`buildLineAppliedDiscount`, `setLineDiscount`/`removeLineDiscount`/
+`pruneLineDiscounts`) — außerhalb des Dialog-Monolithen
+([ADR 0011](../adr/0011-order-dialog-monolith.md)) und ohne TestBed prüfbar,
+wie `promo-code.ts` nebenan.
+
+- Snapshot mit `target: 'line'` + `lineItemId`; `computedAmountCents` füllt
+  ausschließlich `computeOrderTax`. Auch die Vorschau ruft die Engine — eine
+  eigene Prozentrechnung an der Zeile wäre eine zweite Wahrheit neben dem
+  fiskalischen Snapshot.
+- **Einer je Zeile.** Ein zweiter Rabatt auf dieselbe Position ersetzt den
+  ersten. Die Engine könnte stapeln (jeder wirkt auf das bereits reduzierte
+  Brutto), aber am Bon wäre nicht mehr erkennbar, worauf sich welcher Satz bezog.
+- **Kombinierbar mit Order-Rabatt und Code.** Reihenfolge ist die der Engine:
+  LINE zuerst, ORDER danach auf die **verbleibende** Summe. 20 % auf eine
+  10-€-Zeile plus 10 % auf die Bestellung (Rest 8 €) ergibt 14,40 € — nicht
+  14,20 €, wie die Lesart „beide Rabatte auf die Ausgangssumme" nahelegt.
+- **Personalessen sperrt.** Trägt die Bestellung `staffPaymentInfo`, ist genau
+  der zugewiesene Rabatt erlaubt (`assertStaffMealDiscountExclusivity`); der
+  Knopf meldet das statt einen 400er zu provozieren. Der Snapshot trägt deshalb
+  hart `isStaffMeal: false`.
+- Entfernen über das ×-Zeichen am Rabatt-Badge der Zeile. Rabatte verwaister
+  Zeilen werden beim Löschen aufgeräumt (`pruneLineDiscounts`), Reset bei
+  `deleteOrder()`.
+
+> 🚨 **Mehrdeutige Zeilen-ID sperrt den Positionsrabatt.** `lineItem._id` ist die
+> **Produkt-ID** (`increaseLineItem`: `_id: product._id`), nicht je Zeile vergeben.
+> Für gewöhnliche Artikel bleibt sie eindeutig, weil der Duplikat-Check dort die
+> Menge erhöht statt eine zweite Zeile anzulegen — für Bundles ist dieser Check
+> ausgesetzt, zwei gleiche Menüs ergeben also zwei Zeilen mit derselben `_id`.
+> `computeOrderTax` matcht Positionsrabatte über genau diese `lineItemId`, der
+> Rabatt träfe die Steuer-Atome **beider** Zeilen: eine Position rabattiert,
+> zwei abgezogen — still, weil die Summe plausibel aussieht. `evaluateLineDiscountGate`
+> lehnt diesen Fall deshalb ab. Die Ursache (Zeilen-ID = Produkt-ID) bleibt offen.
+
+**Die Picker-Auswahl ist in beiden Modi dieselbe** und bewusst **nicht** auf
+`discount.target` gefiltert: Die Cloud-Admin-UI schreibt das Feld hart auf
+`'order'` (kein Formularfeld), ein Filter auf `'line'` liesse den Picker also
+immer leer. Fachlich ist „Kulanz 20 %" ohnehin derselbe Rabatt, ob er auf eine
+Position oder die Bestellung wirkt — das Ziel entsteht durch die Verwendung
+(`appliedDiscount.target`), nicht durch die Definition.
 
 ## POS-Anwendung (Rabattcode)
 
@@ -372,7 +417,14 @@ Lauf von Hand gerechnet:
   Originalpreis) ist weiterhin ungeprüft — der Durchstich oben lief auf API-Ebene. Ebenso der
   `patch`-Pfad von `calculateTaxDetailsOnPatch`: Patchen auf `orders` verlangt die Rolle
   `DEVICE_POS`, die nur über eine Socket-Verbindung mit API-Key erreichbar ist.
-- Positionsrabatte (`target: 'line'`) im POS-Picker (Phase 2).
+- Positionsrabatte (`target: 'line'`) sind gebaut (panary/panary-core#179).
+  **Offen:** (a) Live-Stack-UAT — insbesondere Bon und Z-Bon einer Bestellung mit
+  Positions- **und** Order-Rabatt; die Verifikation oben deckt ausschließlich
+  **Order**-Rabatte ab; (b) die **mehrdeutige Zeilen-ID** (siehe
+  POS-Anwendung oben): Solange `lineItem._id` die Produkt-ID ist, bleibt der
+  Rabatt auf einer von zwei gleichen Menü-Zeilen gesperrt statt möglich; (c) ein
+  `target`-Feld im Cloud-Rabatt-Formular, falls Definitionen künftig auf ein Ziel
+  festgelegt werden sollen — heute schreibt die Admin-UI hart `'order'`.
 - Promo-Code: Verwaltung (Admin), Einlöse-Backend (append-only
   `discount-code-redemptions`) und die **POS-Strecke** (Edge-Proxy + Kassendialog,
   [ADR 0032](../adr/0032-promo-codes-am-pos-strikt-online.md), Cloud-Endpunkt

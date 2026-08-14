@@ -20,6 +20,12 @@ Schritte, die eine echte Kasse brauchen und deshalb offen sind.
 > ausrechnen und aufschreiben**, dann messen. Wer erst misst und danach beurteilt, ob die
 > Zahl plausibel aussieht, prüft nichts.
 
+**Geltungsbereich:** Dieses Blatt deckt **Order**-Rabatte ab (`target: 'order'`).
+Positionsrabatte (`target: 'line'`, panary/panary-core#179) brauchen einen eigenen Durchlauf —
+insbesondere eine Bestellung mit Positions- **und** Order-Rabatt, weil die Engine zuerst die
+LINE- und danach die ORDER-Rabatte anwendet und ein Fehler in dieser Reihenfolge nur dort
+sichtbar wird.
+
 ## 1. Stack starten
 
 Drei Prozesse, in dieser Reihenfolge (die Edge verbindet sich gegen die Cloud):

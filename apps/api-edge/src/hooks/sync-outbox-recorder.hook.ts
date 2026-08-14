@@ -51,13 +51,34 @@ export const recordSyncOutbox = async (context: HookContext, _next: NextHook) =>
   const entityId = (op === SyncOp.REMOVE ? context.id : result?._id) as string | undefined
   if (!entityId) return context
 
-  // Cloud-Sync-Receiver lehnt Users mit privilegierten Rollen
+  // Cloud-Sync-Receiver lehnt das ANLEGEN von Users mit privilegierten Rollen
   // (`platform:*`, `tenant:owner`) explizit ab — diese werden in der Cloud
   // eigenstaendig verwaltet (Owner-Konflikt-Risiko, Platform-Bypass-Risiko).
   // Ohne Edge-Filter wuerden die Records dauerhaft im `rejected`-Zustand
   // landen und Operator-Telemetrie verrauschen. Defense-in-Depth: Cloud bleibt
   // die zweite Verteidigungslinie.
-  if (context.path === 'users' && op !== SyncOp.REMOVE && isSyncPushBlockedRole(result?.role)) {
+  //
+  // 🚨 **Ein PATCH ist ausgenommen — und zwar seit panary/panary-core#220.**
+  // `tenant:owner` wird zum Edge GEPULLT (der Inhaber steht selbst an der
+  // Kasse), stand hier aber im selben Filter wie `create`. Sein PIN-Wechsel am
+  // POS landete deshalb nie in der Outbox: Das Badge "PIN-Wechsel ausstehend"
+  // blieb in der Cloud stehen, und der naechste Pull holte den alten Hash samt
+  // Flag zurueck (bedingungsloser Apply, kein Last-Write-Wins) — die neu
+  // gesetzte PIN war tot. Die Sperre war richtig, nur ihre Koernung falsch:
+  // ganze Rolle statt der Felder, um die es geht.
+  //
+  // Wir schicken weiterhin den VOLLEN Record; die Cloud verengt ihn auf ihre
+  // `USER_SELF_SERVICE_SYNC_FIELDS` (posPin, mustChangePosPin) und patcht nur
+  // einen bereits existierenden Record. Die Feldliste bewusst dort, nicht hier:
+  // Eine Pruefung auf dem Edge schuetzt niemanden vor einem kompromittierten
+  // Edge, und sie waere eine zweite Definition derselben Sache.
+  // Entscheidung: panary-cloud/docs/adr/0055-selbstbedienungsfelder-push-gesperrter-rollen.md
+  //
+  // ⚠️ **Setzt eine Cloud voraus, die den reduzierten Pfad kennt**
+  // (panary/panary-cloud#284). Eine aeltere Cloud lehnt den Patch TERMINAL ab —
+  // kein Retry, die Op ist weg. Deshalb muss die Cloud-Haelfte zuerst deployt
+  // sein; core hat keinen Staging-Kanal, der das abfangen wuerde.
+  if (context.path === 'users' && op === SyncOp.CREATE && isSyncPushBlockedRole(result?.role)) {
     return context
   }
 

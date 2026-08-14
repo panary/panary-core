@@ -61,14 +61,27 @@ export default defineConfig(() => ({
 > `nx.json` gehen an ihr vorbei. Vorlagen mit korrektem Aufbau:
 > `libs/domains/devices/domain`, `libs/domains/products/data-access`.
 >
-> **Dasselbe gilt für `lint`** — und dort ist der Schaden belegt. Generatoren schreiben
-> gern `"lint": { "executor": "@nx/eslint:lint" }`; 46 Projekte trugen das, bis
+> **Dasselbe gilt für `lint`.** Generatoren schreiben gern
+> `"lint": { "executor": "@nx/eslint:lint" }`; 46 Projekte trugen das, bis
 > [panary/panary-core#206](https://github.com/panary/panary-core/issues/206) es entfernt hat.
-> Ein solches Target überschreibt das inferierte und erbt dessen Cache-Inputs **nicht**:
-> Die projektlokale `eslint.config.mjs` stand damit nicht in den Inputs, eine Änderung
-> daran invalidierte den Cache also nicht. Wer nach `nx g …` ein `lint`- oder
+> Ein solches Target überschreibt das inferierte und erbt dessen Cache-Inputs nicht — es
+> bekommt stattdessen die aus `targetDefaults`. Wer nach `nx g …` ein `lint`- oder
 > `test`-Target in der frischen `project.json` findet, löscht es — bleibt danach
 > `"targets": {}` übrig, kommt der Schlüssel gleich mit weg.
+>
+> ⚠️ **Bis 2026-08-14 stand hier, die projektlokale `eslint.config.mjs` habe damit nicht
+> in den Inputs gestanden und eine Änderung daran den Cache nicht invalidiert.** Das ist
+> falsch: Die Inputs des expliziten Targets begannen mit `default`, und `default` ist in
+> `nx.json` als `{projectRoot}/**/*` definiert — die Datei liegt im projectRoot und war
+> damit erfasst. Gemessen am expliziten Target (`libs/shared/ui-notifications`, alter
+> Stand wiederhergestellt): Änderung an der lokalen `eslint.config.mjs` → **echter Lauf**,
+> unverändert → Cache-Treffer, zweite Änderung → wieder echter Lauf.
+>
+> Gefehlt haben zwei **andere** Inputs, die nur das inferierte Target mitbringt:
+> `^default` (eine Änderung in einer Abhängigkeit invalidierte den Lint-Cache nicht) und
+> `externalDependencies: ["eslint"]` (ein eslint-Versionswechsel ebenso wenig). Der
+> Aufräum-Grund bleibt derselbe, nur der belegte Schaden ist ein anderer — und er lag
+> nie bei der Datei, die man zuerst verdächtigt.
 
 Gegenprobe nach dem Anlegen — das Delta im Projektgraphen muss **genau `test`** sein,
 sonst hat man nebenbei etwas anderes verändert:

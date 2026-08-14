@@ -101,7 +101,7 @@ describe('orders service — JSON-Array-Felder (appliedDiscounts/stockMovementId
         recordingDate: new Date().toISOString(),
       } as never,
       // Stamp kommt aus params.user (multiTenancy-WRITE) — nie aus dem Datensatz.
-      { provider: undefined, user: { _id: userId, tenantId, locationId } as never },
+      { provider: undefined, user: { _id: userId, tenantId, locationId } } as never,
     )) as Order
     orderId = createdOrder._id
   })

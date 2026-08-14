@@ -31,7 +31,12 @@ const removeBackups = (sqliteFile: string): void => {
 
 describe('applyCloudTenantId — Restamp gegen die migrierte Test-SQLite', () => {
   const knex = app.get('sqliteClient') as Knex
-  const sqliteFile = path.resolve((app.get('sqlite') as { connection: { filename: string } }).connection.filename)
+  // Ueber `unknown`, weil `app.get('sqlite')` als generische Knex-Config typisiert ist
+  // (`connection: string | Partial<{ host, port, … }>`) und sich mit der SQLite-Auspraegung
+  // nicht ueberlappt — auf der Edge ist es immer die Datei-Variante.
+  const sqliteFile = path.resolve(
+    (app.get('sqlite') as unknown as { connection: { filename: string } }).connection.filename,
+  )
 
   const oldTenantId = uuidv7()
   const newTenantId = uuidv7()

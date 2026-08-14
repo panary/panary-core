@@ -1,5 +1,11 @@
 {
-  "extends": "./tsconfig.app.json",
+  // Erbt bewusst von tsconfig.json und NICHT von tsconfig.app.json: letztere
+  // setzt `rootDir: ./src`, die `include` unten zieht aber `vitest.config.mts`
+  // aus dem Projekt-Root herein → TS6059, bevor eine einzige Spec geprueft wird.
+  // Ueber tsconfig.json gilt `rootDir: .` aus tsconfig.base.json (Workspace-Root),
+  // was zusaetzlich noetig ist, weil die Specs `@panary/*` aus libs/ importieren.
+  // Damit steht api-edge auf demselben Muster wie die uebrigen Projekte.
+  "extends": "./tsconfig.json",
   "compilerOptions": {
     // `tsc --build --emitDeclarationOnly` (das typecheck-Target des
     // @nx/js/typescript-Plugins) laeuft ueber ALLE referenzierten Projekte,
@@ -8,8 +14,6 @@
     // Typecheck mit TS5069, bevor eine einzige Datei geprueft wurde.
     "declaration": true,
     "outDir": "../../dist/out-tsc",
-    "module": "commonjs",
-    "moduleResolution": "node",
     "types": ["vitest/globals", "vitest/importMeta", "vite/client", "node", "vitest"]
   },
   "files": [],
@@ -20,7 +24,12 @@
     "vitest.config.mts",
     "src/**/*.test.ts",
     "src/**/*.spec.ts",
-    "src/**/*.d.ts"
+    "src/**/*.d.ts",
+    // Die Integrationstests liegen neben src/ — vitest.config.mts laedt
+    // `{src,test,tests}/**/*.{test,spec}.*`. Ohne diesen Eintrag blieben 25
+    // Dateien ungeprueft, obwohl sie in jedem Testlauf ausgefuehrt werden
+    // (24 *.test.ts plus das global-setup.ts, das vitest davor ausfuehrt).
+    "test/**/*.ts"
   ],
   "exclude": []
 }

@@ -119,7 +119,10 @@ describe('assertStampFields() — Sweep ueber registrierte Services', () => {
       } as never,
     )
     if (mtOptions !== null) {
-      app.service('widgets').hooks({ around: { all: [multiTenancy(mtOptions)] } })
+      // `as never` wie bei den uebrigen Stellen dieser Datei: der lokale `feathers()`
+      // ist generisch typisiert, `multiTenancy` erwartet die Application aus den
+      // shared-backend-declarations.
+      app.service('widgets').hooks({ around: { all: [multiTenancy(mtOptions)] } } as never)
     }
     return app
   }

@@ -321,6 +321,29 @@
                       </div>
                     </div>
 
+                    <!-- Positionsrabatt: Der Betrag steht bewusst NICHT hier, sondern nur
+                         im Gesamtbetrag unten — den rechnet computeOrderTax. Eine eigene
+                         Prozentrechnung an der Zeile wäre eine zweite Wahrheit neben der
+                         Engine (ADR 0004). -->
+                    @if (lineDiscountOf(lineItem); as lineDiscount) {
+                      <div class="mt-1 flex items-center gap-1.5">
+                        <span
+                          class="inline-flex items-center gap-1 text-[0.625rem] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300"
+                        >
+                          <span class="material-symbols-outlined !text-[0.75rem]">percent</span>
+                          {{ lineDiscount.name }} · {{ lineDiscountLabel(lineItem) }}
+                        </span>
+                        <button
+                          type="button"
+                          class="w-5 h-5 rounded flex items-center justify-center text-amber-600 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 active:scale-90 transition-all"
+                          (click)="clearLineDiscount(lineItem._id, $event)"
+                          aria-label="Positionsrabatt entfernen"
+                        >
+                          <span class="material-symbols-outlined !text-[0.875rem]">close</span>
+                        </button>
+                      </div>
+                    }
+
                     @if (lineItem.isMenu) {
                       <div
                         class="mt-1 flex flex-col gap-0.5 text-xs text-gray-500"
@@ -615,6 +638,24 @@
         aria-label="Rabatt wählen"
       >
         <span class="material-symbols-outlined !text-[1.375rem]">sell</span>
+      </button>
+      <!-- Positionsrabatt: wirkt auf die im Warenkorb markierte Zeile. Bewusst ein
+           eigener Knopf statt kontextabhängigem Verhalten des Rabatt-Pickers —
+           die Zeilenauswahl dient auch dem Hinzufügen von Extras, ein dort noch
+           markierter Artikel dürfte den Rabatt nicht still auf die Position lenken.
+           Ohne Auswahl deaktiviert. -->
+      <button
+        class="pnry-touch h-14 w-14 shrink-0 rounded-xl border active:scale-95 flex items-center justify-center transition-colors disabled:opacity-40 disabled:active:scale-100"
+        [disabled]="!canApplyLineDiscount()"
+        [ngClass]="
+          hasLineDiscounts()
+            ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-300'
+            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+        "
+        (click)="openLineDiscountPicker()"
+        aria-label="Rabatt auf markierte Position"
+      >
+        <span class="material-symbols-outlined !text-[1.375rem]">percent</span>
       </button>
       <!-- Rabattcode: eigener Knopf neben dem Rabatt-Picker. Getönt, sobald ein
            geprüfter Code anliegt — eingelöst wird er erst beim Abschluss. -->

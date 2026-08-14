@@ -63,6 +63,14 @@ import { PreOrderQuickDialogComponent } from './pre-order-quick-dialog.component
 import { DiscountPickerDialogComponent } from './discount-picker-dialog.component'
 import { PromoCodeDialogComponent } from './promo-code-dialog.component'
 import { buildCodeAppliedDiscount, evaluatePromoCodeGate, redeemCodeForOrder } from './promo-code'
+import {
+  type LineDiscountMap,
+  buildLineAppliedDiscounts,
+  evaluateLineDiscountGate,
+  pruneLineDiscounts,
+  removeLineDiscount,
+  setLineDiscount,
+} from './line-discount'
 import { PosButton, PosButtonUiState, PosProductButton, toPosButton } from './pos-button.model'
 import { BundleFlow } from './bundle-flow'
 import {
@@ -163,6 +171,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   // placeOrder — ein Abbruch nach der Eingabe darf den Code nicht verbrauchen
   // (bei usageLimit: 1 wäre er unwiederbringlich weg). ADR 0032.
   readonly appliedCodeDiscount = signal<CodeCheckResult | null>(null)
+
+  // Positionsrabatte, je Zeile höchstens einer (Schlüssel: lineItem._id).
+  // Werden beim placeOrder zu `target: 'line'`-Snapshots; den Betrag rechnet
+  // ausschliesslich computeOrderTax.
+  readonly lineDiscounts = signal<LineDiscountMap>({})
 
   /**
    * Vertriebskanal der Bestellung.
@@ -558,6 +571,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.#orderInteractions = []
     this.selectedManualDiscount.set(null)
     this.appliedCodeDiscount.set(null)
+    this.lineDiscounts.set({})
   }
 
   unselectProduct() {
@@ -1633,6 +1647,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       orderLineItem.amount--
     } else {
       this.#lineItems.splice(this.#lineItems.indexOf(orderLineItem), 1)
+      this.#pruneOrphanedLineDiscounts()
     }
     this.#orderInteractions.push({
       type: 'item-delete',
@@ -2020,6 +2035,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       const deletedItem = this.#lineItems[this._selectedProductIndex]
       this.#lineItems.splice(this._selectedProductIndex, 1)
       this._selectedProductIndex = null
+      this.#pruneOrphanedLineDiscounts()
 
       this.#orderInteractions.push({
         type: 'item-delete',
@@ -2122,6 +2138,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const bundleId = deletedCombination[0].bundleNumber
     this.#lineItems = this.#lineItems.filter(item => item.bundleNumber !== bundleId)
+    this.#pruneOrphanedLineDiscounts()
 
     this._selectedCombinationIndex = [null, null]
   }
@@ -2206,6 +2223,10 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       if (staffMealDiscount) appliedDiscounts.push(staffMealDiscount)
       discountDetails = undefined
     } else {
+      // Positionsrabatte zuerst — die Engine wendet LINE ohnehin vor ORDER an,
+      // aber so steht der Snapshot in derselben Reihenfolge, in der er wirkt.
+      appliedDiscounts.push(...this.#buildLineDiscountSnapshots())
+
       if (discountDetails) {
         appliedDiscounts.push(
           this.#toAppliedDiscount(discountDetails, {
@@ -2377,6 +2398,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       width: '40rem',
       maxWidth: '92vw',
       panelClass: ['!rounded-2xl', 'overflow-hidden'],
+      data: { scope: 'order' },
     })
     ref.afterClosed().subscribe((selected: ManagedDiscount | undefined) => {
       if (!selected) return
@@ -2389,6 +2411,72 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   clearManualDiscount(): void {
     this.selectedManualDiscount.set(null)
     this.#cdr.markForCheck()
+  }
+
+  /** Die aktuell im Warenkorb markierte Zeile — Ziel des Positionsrabatts. */
+  private get selectedLineItem(): OrderLineItem | null {
+    const index = this._selectedProductIndex
+    if (index === null) return null
+    return this.#lineItems[index] ?? null
+  }
+
+  /** Kann jetzt ein Positionsrabatt gesetzt werden? Steuert den Knopf-Zustand. */
+  canApplyLineDiscount(): boolean {
+    return evaluateLineDiscountGate({
+      isStaffMealOrder: this.isStaffMealOrder,
+      selectedLineItemId: this.selectedLineItem?._id ?? null,
+      lineItemIds: this.#lineItems.map(l => l._id),
+    }).allowed
+  }
+
+  /** Öffnet den Picker für einen Rabatt auf die markierte Position. */
+  openLineDiscountPicker(): void {
+    const line = this.selectedLineItem
+    const gate = evaluateLineDiscountGate({
+      isStaffMealOrder: this.isStaffMealOrder,
+      selectedLineItemId: line?._id ?? null,
+      lineItemIds: this.#lineItems.map(l => l._id),
+    })
+    if (!gate.allowed || !line) {
+      this.setInfoBoxText(gate.message ?? '')
+      return
+    }
+    const ref = this.matDialog.open(DiscountPickerDialogComponent, {
+      width: '40rem',
+      maxWidth: '92vw',
+      panelClass: ['!rounded-2xl', 'overflow-hidden'],
+      data: { scope: 'line', lineItemName: line.name },
+    })
+    ref.afterClosed().subscribe((selected: ManagedDiscount | undefined) => {
+      if (!selected) return
+      this.lineDiscounts.update(current => setLineDiscount(current, line._id, selected))
+      this.setInfoBoxText(`${selected.name} auf ${line.name}`)
+      this.#cdr.markForCheck()
+    })
+  }
+
+  /** Nimmt den Positionsrabatt einer Zeile zurück. */
+  clearLineDiscount(lineItemId: string, event?: Event): void {
+    event?.stopPropagation()
+    this.lineDiscounts.update(current => removeLineDiscount(current, lineItemId))
+    this.#cdr.markForCheck()
+  }
+
+  /** Trägt mindestens eine Position einen Rabatt? Steuert die Tönung des Knopfes. */
+  hasLineDiscounts(): boolean {
+    return Object.keys(this.lineDiscounts()).length > 0
+  }
+
+  /** Rabatt-Definition einer Zeile — für die Kennzeichnung im Warenkorb. */
+  lineDiscountOf(lineItem: OrderLineItem): ManagedDiscount | undefined {
+    return this.lineDiscounts()[lineItem._id]
+  }
+
+  /** Kurzlabel des Positionsrabatts („20 %" / „1,50 €"). */
+  lineDiscountLabel(lineItem: OrderLineItem): string {
+    const d = this.lineDiscountOf(lineItem)
+    if (!d) return ''
+    return d.valueType === 'percent' ? `${d.valuePercent} %` : `${(d.valueCents / 100).toFixed(2)} €`
   }
 
   /**
@@ -2438,8 +2526,10 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   discountedTotal(): number {
     const manual = this.selectedManualDiscount()
     const code = this.appliedCodeDiscount()
-    if (!manual && !code) return this.calculateSumPrice()
-    const applied: AppliedDiscount[] = []
+    const lines = this.#buildLineDiscountSnapshots()
+    if (!manual && !code && lines.length === 0) return this.calculateSumPrice()
+    // Reihenfolge egal — die Engine sortiert selbst nach target (LINE vor ORDER).
+    const applied: AppliedDiscount[] = [...lines]
     if (manual) applied.push(this.#managedToApplied(manual))
     if (code) applied.push(this.#codeToApplied(code))
     const order = {
@@ -2451,9 +2541,39 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     return computeOrderTax(order).brutto
   }
 
-  /** Ist ein Rabatt (manuell ODER per Code) aktiv? Steuert die Streichpreis-Anzeige. */
+  /** Ist ein Rabatt (manuell, per Code ODER auf einer Position) aktiv? Steuert die Streichpreis-Anzeige. */
   hasDiscountPreview(): boolean {
-    return !!this.selectedManualDiscount() || !!this.appliedCodeDiscount()
+    return (
+      !!this.selectedManualDiscount() || !!this.appliedCodeDiscount() || Object.keys(this.lineDiscounts()).length > 0
+    )
+  }
+
+  /**
+   * Snapshots aller Positionsrabatte, gefiltert auf Zeilen, die es noch gibt.
+   *
+   * Die Filterung passiert hier statt nur beim Löschen, weil eine Zeile auch über
+   * `decreaseQuantity` oder das Auflösen einer Kombination verschwinden kann —
+   * ein Rabatt ohne Zeile brächte eine 0,00-€-Rabattzeile auf den Bon.
+   */
+  #buildLineDiscountSnapshots(): AppliedDiscount[] {
+    const ids = this.#lineItems.map(l => l._id)
+    return buildLineAppliedDiscounts(this.lineDiscounts(), ids, {
+      newId: () => uuidv7(),
+      appliedBy: this._currentUser?._id ?? null,
+    })
+  }
+
+  /**
+   * Wirft Positionsrabatte weg, deren Zeile nicht mehr im Warenkorb steht.
+   *
+   * Nötig, obwohl `#buildLineDiscountSnapshots` verwaiste Einträge ohnehin
+   * überspringt: Die Zeilen-`_id` ist die Produkt-ID. Legt der Kassierer den
+   * gelöschten Artikel erneut an, bekäme er dieselbe `_id` — und mit ihr still
+   * den alten Rabatt zurück, den niemand gesetzt hat.
+   */
+  #pruneOrphanedLineDiscounts(): void {
+    const ids = this.#lineItems.map(l => l._id)
+    this.lineDiscounts.update(current => pruneLineDiscounts(current, ids))
   }
 
   togglePriceVisibility() {

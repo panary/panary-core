@@ -4,7 +4,7 @@ title: 'Rabatte — Datenmodell, Anwendungslogik & Sync'
 description: 'Rabattsystem für POS und Storefront: Domänen-Lib @panary/discounts/domain, Anwendung ausschließlich über order.appliedDiscounts mit MwSt-Extraktion, Automatik-Hook, Order- und Positionsrabatten am POS, Personalessen, Rabatt-KPI und Edge-Sync.'
 tags: [discounts, orders, sync, pos]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-08-14T23:10:00Z }
+generated: { by: claude-code/opus-5, at: 2026-08-14T23:45:00Z }
 ---
 
 # Rabatte (Discounts)
@@ -391,13 +391,51 @@ Drei Entscheidungen, die im Code als Kommentar stehen und hier ihren Grund trage
   Fehler bewusst schluckt (der Order-Flow darf nie brechen), fiele der Beleg dann
   still komplett aus.
 
-⚠️ **Was das nicht heilt.** `receipt.lineItems[].lineTotal` ist `amount × price` und
-lässt Modifier, Menü-Komponenten und `FIXED_PROPORTIONAL` außen vor — bei solchen
-Zeilen weicht die Positionssumme des Belegs unabhängig vom Rabatt von der Engine ab.
-Kanonisch wäre `lineItemGrossCents` (`@panary/orders/domain`), die der POS-Bon bereits
-nutzt. Ebenfalls unberührt: der **POS-Bon** (`order-receipt.renderer.ts`) weist den
+⚠️ **Was das nicht heilt.** Der **POS-Bon** (`order-receipt.renderer.ts`) weist den
 Nachlass weiterhin nicht aus, obwohl sein „Gesamt" über `computeOrderTax` rabattiert
-ist — dort besteht dieselbe Lücke wie vor #228 auf dem Beleg.
+ist — dort besteht dieselbe Lücke wie vor #228 auf dem Beleg (panary/panary-core#235).
+Die zweite hier notierte Lücke — `lineTotal` als `amount × price` — ist mit #236
+geschlossen, siehe nächster Abschnitt.
+
+## Positionssummen des Belegs (seit panary/panary-core#236)
+
+`receipt.lineItems[].lineTotal` war `amount × price`, also der **Basispreis mal Menge**.
+Modifier, Bundle-Komponenten (`components[]`, `menuSideDish`/`menuDrink`) und
+Festpreis-Menüs (`bundlePricingMode: 'FIXED_PROPORTIONAL'`) fehlten darin vollständig:
+bei einer Bestellung mit Extra-Käse wies der Beleg 8,50 € aus, während „Gesamt" 9,00 €
+sagte — **unabhängig vom Rabatt**. Die Nachlasszeile aus #228 erklärte diese Differenz
+nicht; gemessen wurde sie damals an einer Order ohne Modifier, die den Fall nicht trifft.
+
+Kanonisch ist `lineItemGrossCents` (`@panary/orders/domain`) — dieselbe Cents-Quelle, aus
+der `computeOrderTax` seine Brutto-Atome bildet und die POS-Anzeige und POS-Bon bereits
+nutzen (Entscheidung 2026-07-04).
+
+| Stelle | Verhalten |
+|---|---|
+| `receipt-builder.ts` | `ReceiptOrderLineInput.grossCents?: number` — vorberechnetes, **unrabattiertes** Zeilen-Brutto in Cents. `buildReceiptSnapshot` bevorzugt es und fällt ohne den Wert auf `amount × price` zurück (Bestands-Aufrufer). |
+| `issue-receipt.hook.ts` | füllt es je Zeile über `lineItemGrossCents(line)`. |
+| `taxSummaryFromLines` | Fallback-Steuer, greift nur **ohne** `taxSnapshot`: rechnet in Cent-Integern und zieht die Nachlässe summen-exakt (Largest Remainder) über die Sätze ab, statt sie zu ignorieren. |
+
+Warum der Wert hereingereicht wird, statt ihn im Builder zu rechnen: `@panary/receipts/domain`
+ist bewusst frei von `orders/domain` und von node-Abhängigkeiten (isomorph, auch vom Frontend
+konsumiert) — die Eingabe-Typen sind rein strukturell. `api-edge` hängt ohnehin an
+`@panary/orders/domain`.
+
+`unitPrice` bleibt dabei der Artikel-Basispreis. Bei einer Zeile mit Aufpreis ist
+`unitPrice × quantity` deshalb **nicht** `lineTotal`; der Beleg-Render zeigt nur Menge und
+Summe, die Aufschlüsselung der Aufpreise leistet der POS-Bon.
+
+**Ein vorhandener `taxSnapshot` ist jetzt autoritativ — auch mit leerer `taxes`-Liste.**
+Die frühere Bedingung `taxes.length > 0` fiel bei **jeder auf 0 rabattierten Order** auf den
+Positions-Fallback zurück: `computeOrderTax` verwirft Eimer ≤ 0 und liefert dort `taxes: []`
+bei `brutto: 0`. Der Beleg wies dann die volle Steuer auf das unrabattierte Brutto aus,
+während „Gesamt" 0,00 € zeigte. Das trifft den Regelfall **Personalessen** (100 % Nachlass) —
+die Plan-Annahme, der Fallback greife nur bei fehlendem `taxSnapshot`, war falsch.
+
+🚨 **Bestand wird auch hier nicht nachgerechnet.** Wie bei #228 gilt: kein Backfill, kein
+Repair. Ob in Produktion Belege mit Modifiern existieren, die eine falsche Positionssumme
+auswiesen, lässt sich nicht mehr feststellen — der Snapshot ist unveränderbar (KassenSichV).
+Nur neu ausgestellte Belege betroffener Orders bekommen einen anderen `renderHash`.
 ## Testnetz der POS-Verdrahtung (#231)
 
 Die ausgelagerte Rabatt-Logik ist seit je durchgetestet (`line-discount.spec.ts` 18,

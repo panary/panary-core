@@ -140,7 +140,8 @@ const toReceiptLine = (
   name: line.name,
   quantity: line.amount,
   unitPrice: line.price,
-  lineTotal: line.grossCents != null ? round2(fromCents(Math.round(line.grossCents))) : round2(line.amount * line.price),
+  lineTotal:
+    line.grossCents != null ? round2(fromCents(Math.round(line.grossCents))) : round2(line.amount * line.price),
   taxRate: lineTaxRate(line, dineLocation),
 })
 

@@ -34,7 +34,9 @@ function makeLineItem(overrides: Record<string, unknown> = {}): any {
  * Zahl statt gegen die Engine.
  */
 function withSnapshot(lineItems: any[], overrides: Record<string, unknown> = {}): any {
-  const order = {
+  // `any` wie in der Nachbar-Spec `calculate-tax-details.spec.ts`: die Fixtures
+  // sind bewusst Teil-Orders, und `taxSnapshot` wird nachträglich gesetzt.
+  const order: any = {
     _id: 'order-1',
     tenantId: 't-1',
     locationId: 'loc-1',
@@ -183,10 +185,9 @@ describe('issueReceipt — Positionssummen aus der kanonischen Cents-Quelle (#23
   })
 
   it('100 % Nachlass: Gesamt 0,00 € ohne erfundene Steuerzeile', () => {
-    const order = withSnapshot(
-      [makeLineItem({ price: 4.5, amount: 2, taxInside: 7 })],
-      { appliedDiscounts: [{ name: 'Personalessen', target: 'order', valueType: 'percent', valuePercent: 100 }] },
-    )
+    const order = withSnapshot([makeLineItem({ price: 4.5, amount: 2, taxInside: 7 })], {
+      appliedDiscounts: [{ name: 'Personalessen', target: 'order', valueType: 'percent', valuePercent: 100 }],
+    })
     const core = snapshotOf(order)
 
     // computeOrderTax verwirft Eimer <= 0 → taxes: [] bei brutto 0. Der Beleg muss

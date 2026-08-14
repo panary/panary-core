@@ -210,7 +210,18 @@ describe('buildReceiptSnapshot — Steuer-Fallback ohne taxSnapshot (#236)', () 
     return input
   }
 
-  it('rechnet cent-genau statt in Float (netto + steuer === brutto je Satz)', () => {
+  it('extrahiert die MwSt aus dem Brutto, statt sie draufzurechnen', () => {
+    const core = buildReceiptSnapshot(fallbackInput())
+    // 5,50 brutto bei 19 % → 4,62 netto + 0,88 Steuer. Die falsche Formel
+    // `brutto × (1 − 19/100)` ergaebe 4,46 und ueberschaetzte die Steuer — die
+    // Invariante „netto + steuer === brutto" haelt dabei trotzdem, sie taugt
+    // also NICHT als Beleg fuer die Methode.
+    expect(core.taxSummary.taxes).toEqual([{ taxRate: 19, amount: 4.62, tax: 0.88 }])
+    expect(core.taxSummary.netto).toBe(4.62)
+    expect(core.taxSummary.brutto).toBe(5.5)
+  })
+
+  it('rechnet cent-genau statt in Float (kein akkumulierter Drift)', () => {
     const input = fallbackInput()
     input.order.lineItems = [
       { name: 'A', amount: 3, price: 0.1, taxInside: 19, taxOutside: 19 },
@@ -218,9 +229,6 @@ describe('buildReceiptSnapshot — Steuer-Fallback ohne taxSnapshot (#236)', () 
     ]
     const core = buildReceiptSnapshot(input)
     expect(core.taxSummary.brutto).toBe(0.9)
-    for (const t of core.taxSummary.taxes) {
-      expect(Math.round((t.amount + t.tax) * 100)).toBe(Math.round(core.taxSummary.brutto * 100))
-    }
     expect(core.totalGross).toBe(0.9)
   })
 
@@ -236,16 +244,17 @@ describe('buildReceiptSnapshot — Steuer-Fallback ohne taxSnapshot (#236)', () 
 
   it('verteilt einen Nachlass summen-exakt über mehrere Sätze (Largest Remainder)', () => {
     const input = fallbackInput()
+    // Zwei GLEICH grosse Eimer und 1 ct Nachlass: unabhaengiges Runden je Eimer
+    // gibt beiden Math.round(0.5) = 1 und zieht damit 0,02 ab statt 0,01.
     input.order.lineItems = [
-      { name: '7 %', amount: 1, price: 3.33, taxInside: 7, taxOutside: 7 },
-      { name: '19 %', amount: 1, price: 3.34, taxInside: 19, taxOutside: 19 },
+      { name: '7 %', amount: 1, price: 5, taxInside: 7, taxOutside: 7 },
+      { name: '19 %', amount: 1, price: 5, taxInside: 19, taxOutside: 19 },
     ]
     input.order.appliedDiscounts = [{ name: 'Nachlass', computedAmountCents: 1 }]
     const core = buildReceiptSnapshot(input)
-    // 6,67 − 0,01 = 6,66 — kein erfundener/verlorener Cent durch Einzelrundung.
-    expect(core.taxSummary.brutto).toBe(6.66)
+    expect(core.taxSummary.brutto).toBe(9.99)
     const summe = core.taxSummary.taxes.reduce((s, t) => s + t.amount + t.tax, 0)
-    expect(Math.round(summe * 100) / 100).toBe(6.66)
+    expect(Math.round(summe * 100) / 100).toBe(9.99)
   })
 
   it('klemmt einen Nachlass über der Positionssumme auf 0', () => {

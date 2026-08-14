@@ -18,6 +18,8 @@ const SERVICES_DIR = join(__dirname, '..', 'src', 'services')
 // - device-connections: liest die Feathers-Channel-Registry (keine Persistenz)
 // - log-export: liest lokale Logdateien (keine Persistenz)
 // - tse: nur Port-Factory (tse-port.factory.ts), kein Service-Setup `tse.ts`
+// - discount-code-redeem: Proxy auf die Cloud; Rabattcodes werden bewusst NICHT
+//   am Edge gespeichert (ADR 0032) — es gibt keine Tabelle zu adressieren
 const SERVICES_WITHOUT_ADAPTER = new Set<string>([
   'organizations',
   'cloud-connection',
@@ -25,6 +27,7 @@ const SERVICES_WITHOUT_ADAPTER = new Set<string>([
   'device-connections',
   'log-export',
   'tse',
+  'discount-code-redeem',
 ])
 
 const readServiceSetup = (serviceName: string): string => {

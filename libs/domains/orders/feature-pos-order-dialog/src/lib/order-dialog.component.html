@@ -416,11 +416,39 @@
               </button>
             </div>
           }
+          @if (appliedCodeDiscount(); as cd) {
+            <div class="flex items-center gap-2 px-4 pt-2">
+              <span class="material-symbols-outlined text-[1rem] text-amber-600 dark:text-amber-400"
+                >confirmation_number</span
+              >
+              <span class="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate flex-1">
+                {{ cd.code }}
+                @if (cd.discount; as d) {
+                  <span class="text-gray-400 dark:text-gray-500"
+                    >· {{ d.name }} ·
+                    {{
+                      d.valueType === 'percent' || d.valueType === 'PERCENT'
+                        ? d.valuePercent + ' %'
+                        : (d.valueCents / 100).toFixed(2) + ' €'
+                    }}</span
+                  >
+                }
+              </span>
+              <button
+                type="button"
+                (click)="clearCodeDiscount()"
+                aria-label="Rabattcode entfernen"
+                class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95"
+              >
+                <span class="material-symbols-outlined text-[1rem]">close</span>
+              </button>
+            </div>
+          }
           <div class="flex justify-between items-center px-4 py-2.5">
             <span class="text-[0.625rem] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{
               'COMMON.TOTAL' | translate
             }}</span>
-            @if (selectedManualDiscount()) {
+            @if (hasDiscountPreview()) {
               <span class="flex items-baseline gap-2">
                 <span class="text-xs font-medium text-gray-400 dark:text-gray-500 line-through">{{
                   calculateSumPrice() | currency: 'EUR'
@@ -587,6 +615,20 @@
         aria-label="Rabatt wählen"
       >
         <span class="material-symbols-outlined !text-[1.375rem]">sell</span>
+      </button>
+      <!-- Rabattcode: eigener Knopf neben dem Rabatt-Picker. Getönt, sobald ein
+           geprüfter Code anliegt — eingelöst wird er erst beim Abschluss. -->
+      <button
+        class="pnry-touch h-14 w-14 shrink-0 rounded-xl border active:scale-95 flex items-center justify-center transition-colors"
+        [ngClass]="
+          appliedCodeDiscount()
+            ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-300'
+            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+        "
+        (click)="openPromoCodeDialog()"
+        aria-label="Rabattcode eingeben"
+      >
+        <span class="material-symbols-outlined !text-[1.375rem]">confirmation_number</span>
       </button>
       <!-- Vertriebskanal: getönt = Kasse, neutral = Telefon. Der Zustand muss
            ohne Antippen ablesbar sein — er landet unverändert im Z-Bon. -->

@@ -269,6 +269,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.MANAGE },
     { resource: AppResource.ORDERS, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.DISCOUNTS, action: AppAction.MANAGE },
+    { resource: AppResource.DISCOUNT_CODE_REDEEM, action: [AppAction.READ, AppAction.CREATE] },
     { resource: AppResource.DISCOUNT_CODES, action: AppAction.MANAGE },
     { resource: AppResource.DISCOUNT_CODE_REDEMPTIONS, action: [AppAction.CREATE, AppAction.READ] },
     { resource: AppResource.WORKING_TIMES, action: AppAction.MANAGE },
@@ -484,6 +485,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.MANAGE },
     { resource: AppResource.ORDERS, action: AppAction.MANAGE },
     { resource: AppResource.DISCOUNTS, action: AppAction.MANAGE },
+    { resource: AppResource.DISCOUNT_CODE_REDEEM, action: [AppAction.READ, AppAction.CREATE] },
     { resource: AppResource.DISCOUNT_CODES, action: AppAction.MANAGE },
     { resource: AppResource.DISCOUNT_CODE_REDEMPTIONS, action: [AppAction.CREATE, AppAction.READ] },
     { resource: AppResource.WORKING_TIMES, action: AppAction.MANAGE },
@@ -636,6 +638,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.READ },
     { resource: AppResource.ORDERS, action: [AppAction.CREATE, AppAction.READ, AppAction.UPDATE, AppAction.DELETE] },
     { resource: AppResource.DISCOUNTS, action: AppAction.MANAGE },
+    { resource: AppResource.DISCOUNT_CODE_REDEEM, action: [AppAction.READ, AppAction.CREATE] },
     { resource: AppResource.DISCOUNT_CODES, action: AppAction.MANAGE },
     { resource: AppResource.DISCOUNT_CODE_REDEMPTIONS, action: [AppAction.CREATE, AppAction.READ] },
     { resource: AppResource.WORKING_TIMES, action: [AppAction.READ, AppAction.UPDATE] },
@@ -805,6 +808,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.READ },
     { resource: AppResource.ORDERS, action: [AppAction.CREATE, AppAction.READ] },
     { resource: AppResource.DISCOUNTS, action: AppAction.READ },
+    { resource: AppResource.DISCOUNT_CODE_REDEEM, action: [AppAction.READ, AppAction.CREATE] },
     { resource: AppResource.WORKING_TIMES, action: AppAction.READ },
     { resource: AppResource.PRE_ORDERS, action: [AppAction.CREATE, AppAction.READ, AppAction.UPDATE] },
     // Cloud-spezifische Ressourcen (Lese-/Erfassungs-Rechte)
@@ -916,6 +920,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Rabatte lesen, um sie am POS auswählen/anwenden zu können (Anwendung
     // selbst läuft über Order-Write + CAN_DISCOUNT-Ability).
     { resource: AppResource.DISCOUNTS, action: AppAction.READ },
+    { resource: AppResource.DISCOUNT_CODE_REDEEM, action: [AppAction.READ, AppAction.CREATE] },
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.READ },
     { resource: AppResource.LOCATIONS, action: AppAction.READ },
 
@@ -993,6 +998,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PRODUCTS, action: AppAction.READ },
     { resource: AppResource.PRODUCT_GROUPS, action: AppAction.READ },
     { resource: AppResource.DISCOUNTS, action: AppAction.READ },
+    { resource: AppResource.DISCOUNT_CODE_REDEEM, action: [AppAction.READ, AppAction.CREATE] },
     { resource: AppResource.LOCATIONS, action: AppAction.READ },
     { resource: AppResource.USERS, action: AppAction.READ }, // Für Login
 

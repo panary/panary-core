@@ -219,12 +219,22 @@ durchläuft, hat keine Nachzügler — dort ist die geteilte Bindung folgenlos, 
 billiger. Bei **neuen** Specs deshalb ausnahmslos je Test anlegen.
 
 **Bestand (gemessen am 2026-08-14, 159 Spec-Dateien in `apps/` + `libs/`):** Das klassische
-Recorder-Array gibt es in core **nicht** — 0 Treffer. Sechs Specs weisen eine
-`describe`-Scope-Bindung in `beforeEach` neu zu, überwiegend die Instanz des Systems under Test
-(`libs/shared/offline-cache/*.spec.ts` mit `port`/`store`/`outbox`/`adapter`,
-`libs/domains/tse/domain/src/lib/simulator.adapter.spec.ts` mit `tse`). Der einzige Treffer mit
-Aufzeichnungscharakter ist `apps/api-edge/src/print-server/auth.middleware.spec.ts` (`findMock`,
-drei async-Tests). Keiner davon ist mit dieser Regel umgebaut worden — sie greift für Neues.
+Recorder-Array gibt es in core **nicht** — 0 Treffer. **Fünf** Specs weisen eine
+`describe`-Scope-Bindung in `beforeEach` neu zu, dabei ausschließlich die Instanz des Systems
+under Test (`libs/shared/offline-cache/*.spec.ts` mit `port`/`store`/`outbox`/`adapter`,
+`libs/domains/tse/domain/src/lib/simulator.adapter.spec.ts` mit `tse`). Eine verfälschte
+Aufrufliste kann dort nicht entstehen — ein Nachzügler schreibt aber weiterhin in die **neue**
+Instanz, bei den IndexedDB-Specs also in die frisch geöffnete DB. Beim nächsten Anfassen dieser
+Dateien mitziehen.
+
+**Präzedenzfall:** `apps/api-edge/src/print-server/auth.middleware.spec.ts` war der einzige
+Treffer mit Aufzeichnungscharakter (`findMock` als `let`, von `beforeEach` neu zugewiesen) und ist
+mit panary/panary-core#199 umgebaut — dort steht die `makeApp()`-Factory, die App und Mock je Test
+liefert. Dass der Umbau die drei Tests nicht entkernt hat, ist per Mutationsprobe belegt (Lookup
+auf Klartext umgestellt → Test 1 rot; Kandidaten-Filter aufgeweicht → Tests 2+3 rot). Diese
+Gegenprobe gehört zu jedem solchen Umbau: Ein Test, der nach dem Umstellen noch grün ist, kann
+grün sein, weil er nichts mehr prüft.
+
 Reproduzierbar:
 
 ```bash

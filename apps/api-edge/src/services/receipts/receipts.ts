@@ -30,7 +30,7 @@ import type { Application, HookContext } from '../../declarations'
 export const receiptsPath = 'receipts'
 export const receiptsMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
 
-const RECEIPT_JSON_FIELDS = ['lineItems', 'taxSummary', 'seller', 'tse', 'channelsUsed']
+const RECEIPT_JSON_FIELDS = ['lineItems', 'taxSummary', 'discounts', 'seller', 'tse', 'channelsUsed']
 
 const receiptDataValidator = getValidator(receiptDataSchema, dataValidator)
 const receiptPatchValidator = getValidator(receiptPatchSchema, dataValidator)
@@ -62,6 +62,7 @@ const receiptPatchResolver = resolve<Receipt, HookContext>({
   lineItems: async () => undefined,
   taxSummary: async () => undefined,
   totalGross: async () => undefined,
+  discounts: async () => undefined,
   seller: async () => undefined,
   tse: async () => undefined,
   token: async () => undefined,

@@ -74,6 +74,7 @@ interface CompletedOrder {
     taxInside?: number
     taxOutside?: number
   }>
+  appliedDiscounts?: ReceiptOrderInput['appliedDiscounts']
   taxSnapshot?: ReceiptOrderInput['taxSnapshot']
   payment?: ReceiptOrderInput['payment']
   tse?: unknown
@@ -93,6 +94,7 @@ const orderToInput = (order: CompletedOrder): ReceiptOrderInput => ({
     taxInside: l.taxInside ?? 0,
     taxOutside: l.taxOutside ?? 0,
   })),
+  appliedDiscounts: order.appliedDiscounts ?? null,
   taxSnapshot: order.taxSnapshot ?? null,
   payment: order.payment ?? null,
   tse: toReceiptTse(order.tse),

@@ -81,9 +81,13 @@ export class BundleFlow {
     lineItem: OrderLineItem,
     topic: string,
   ): { pricingMode?: 'SUM' | 'HIGHEST'; freeQuantity?: number } | undefined {
+    // `externalId` zuerst: Seit #230 ist `lineItem._id` die Zeilen-Identität (uuidv7)
+    // und findet im Katalog nichts mehr. Der `_id`-Zweig bleibt als Fallback für
+    // BESTANDS-Zeilen — gespeicherte Orders tragen dort weiterhin die Produkt-ID,
+    // weil sie bewusst nicht migriert wurden.
     const product =
-      this.catalog.findProductById(lineItem._id) ??
-      (lineItem.externalId ? this.catalog.findProductByExternalId(lineItem.externalId) : undefined)
+      (lineItem.externalId ? this.catalog.findProductByExternalId(lineItem.externalId) : undefined) ??
+      this.catalog.findProductById(lineItem._id)
     return product?.optionGroups?.find(g => g.name === topic)
   }
 

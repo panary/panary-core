@@ -186,11 +186,17 @@ export function renderOrderReceipt(
   }
 
   // ─────────────────────────────────────────
-  // GESAMTSUMME
+  // NACHLÄSSE + GESAMTSUMME
   // ─────────────────────────────────────────
+  // Reihenfolge ist bewusst: `calcTotalWithDiscount` läuft VOR den Nachlasszeilen,
+  // weil `computeOrderTax` `computedAmountCents` je appliedDiscount als Seiteneffekt
+  // schreibt. So drucken Nachlasszeile und „Gesamt" garantiert aus demselben Lauf —
+  // auch bei einer Order, deren persistierte Beträge noch fehlen.
+  const totalPrice = calcTotalWithDiscount(order)
+  appendDiscountLines(enc, order, nameW, priceW)
+
   enc.newline()
   enc.rule({ style: 'single' })
-  const totalPrice = calcTotalWithDiscount(order)
   enc.table(
     [
       { width: Math.floor(cols * 0.55), align: 'left' },
@@ -217,6 +223,31 @@ export function renderOrderReceipt(
   enc.cut()
 
   return enc.encode()
+}
+
+// Nachlasszeilen zwischen Positionen und „Gesamt" — sie sind eine Minderung genau
+// dieses Blocks: die Positionen tragen unrabattierte Summen (`lineItemGrossCents`),
+// „Gesamt" ist rabattiert (`computeOrderTax`). Ohne die Zeile bliebe die Differenz
+// auf dem Bon unerklärt (#235 — derselbe Befund wie #228 auf dem Beleg).
+//
+// Betrag aus `computedAmountCents`, dem von der Engine tatsächlich abgezogenen
+// Wert — nicht aus `valuePercent`/`valueCents`: Die Definition überzeichnet den
+// Abzug, sobald die Engine klemmt (z. B. Deckelung auf die Positionssumme), und
+// der Bon rechnete sich dann nicht mehr gegen sein eigenes „Gesamt" auf.
+function appendDiscountLines(enc: any, order: any, nameW: number, priceW: number): void {
+  for (const d of order?.appliedDiscounts ?? []) {
+    const cents = Math.max(0, Math.round(d?.computedAmountCents ?? 0))
+    // Wirkungslose Einträge unterdrücken — eine Zeile über 0,00 EUR erklärt keine Differenz.
+    if (cents === 0) continue
+    const name = d?.name?.trim() || 'Nachlass'
+    enc.table(
+      [
+        { width: nameW, align: 'left' },
+        { width: priceW, align: 'right' },
+      ],
+      [[`Nachlass: ${name}`, fmtEur(-fromCents(cents))]],
+    )
+  }
 }
 
 // Rendert den TSE-Signaturblock aus `order.tse` (signiert → Signatur + QR;

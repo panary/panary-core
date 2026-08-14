@@ -284,15 +284,18 @@ wie `promo-code.ts` nebenan.
   Zeilen werden beim Löschen aufgeräumt (`pruneLineDiscounts`), Reset bei
   `deleteOrder()`.
 
-> 🚨 **Mehrdeutige Zeilen-ID sperrt den Positionsrabatt.** `lineItem._id` ist die
-> **Produkt-ID** (`increaseLineItem`: `_id: product._id`), nicht je Zeile vergeben.
-> Für gewöhnliche Artikel bleibt sie eindeutig, weil der Duplikat-Check dort die
-> Menge erhöht statt eine zweite Zeile anzulegen — für Bundles ist dieser Check
-> ausgesetzt, zwei gleiche Menüs ergeben also zwei Zeilen mit derselben `_id`.
-> `computeOrderTax` matcht Positionsrabatte über genau diese `lineItemId`, der
-> Rabatt träfe die Steuer-Atome **beider** Zeilen: eine Position rabattiert,
-> zwei abgezogen — still, weil die Summe plausibel aussieht. `evaluateLineDiscountGate`
-> lehnt diesen Fall deshalb ab. Die Ursache (Zeilen-ID = Produkt-ID) bleibt offen.
+> ✅ **Zwei gleiche Menüs sind seit panary/panary-core#230 zwei unterscheidbare Zeilen.**
+> `lineItem._id` war die **Produkt-ID** und damit bei ausgesetztem Duplikat-Check (Bundles)
+> doppelt; `computeOrderTax` matcht Positionsrabatte über genau diese `lineItemId`, ein
+> Rabatt hätte also die Steuer-Atome **beider** Zeilen getroffen — eine Position
+> rabattiert, zwei abgezogen, und die Summe sieht plausibel aus. `increaseLineItem`
+> vergibt jetzt je Zeile eine `uuidv7`; die Produktidentität steht in `externalId`, auf
+> der auch der Duplikat-Check läuft ([ADR 0033](../adr/0033-bestellzeilen-tragen-eine-eigene-id.md)).
+>
+> 🛡️ Die Sperre in `evaluateLineDiscountGate` **bleibt** — als Rückfallsicherung, nicht
+> als Einschränkung. Sie deckt weiterhin die im Dialog bearbeitete **Bestands-Order** ab
+> (nicht migriert, trägt die alte ID) und jede künftige Änderung, die die ID-Vergabe
+> zurückdreht. Dass sie im Normalbetrieb nicht mehr feuert, ist durch Spec belegt.
 
 **Die Picker-Auswahl ist in beiden Modi dieselbe** und bewusst **nicht** auf
 `discount.target` gefiltert: Die Cloud-Admin-UI schreibt das Feld hart auf
@@ -360,13 +363,15 @@ Weitere Regeln:
   (`evaluatePromoCodeGate` in `promo-code.ts`, dort auch getestet).
 - Reset bei `deleteOrder()` wie beim manuellen Rabatt.
 
-## Nachlass auf dem Beleg (seit panary/panary-core#228)
+## Nachlass auf Beleg und Bon (seit panary/panary-core#228 und #235)
 
 Der persistente Beleg (`@panary/receipts/domain`, §146a AO) trägt den gewährten
 Nachlass als eigenes Snapshot-Feld `discounts`. Vorher fehlte er vollständig, und der
 Beleg rechnete sich für den Gast nicht auf: die Positionen tragen ihre
 **unrabattierten** `lineTotal`, `totalGross` ist rabattiert — die Differenz stand
 unerklärt da (an der Test-Order oben gemessen: Positionen 11,90 €, „Gesamt" 9,52 €).
+Der **POS-Bon** — das Papier, das der Gast an der Kasse bekommt — hatte dieselbe
+Lücke und trägt die Zeile seit #235.
 
 | Stelle | Verhalten |
 |---|---|
@@ -374,6 +379,7 @@ unerklärt da (an der Test-Order oben gemessen: Positionen 11,90 €, „Gesamt"
 | `receipt-builder.ts` | `buildReceiptSnapshot` liest `order.appliedDiscounts` und übernimmt `computedAmountCents` — den von `computeOrderTax` zurückgeschriebenen, tatsächlich abgezogenen Betrag. **Nicht** die Definition (`valuePercent`/`valueCents`): die überzeichnet den Abzug, sobald die Engine auf die Basis klemmt. |
 | `receipt-escpos.renderer.ts` | Zeile `Nachlass: <Name>` + negativer Betrag je Rabatt, direkt unter den Positionen (sie ist eine Minderung genau dieses Blocks). |
 | `buildReceiptHtml` | dieselbe Zeile im Abrufpfad `receipts.panary.io/r/<token>`. |
+| `order-receipt.renderer.ts` (POS-Bon, #235) | dieselbe Zeile aus `order.appliedDiscounts`, zwischen Positionen und „Gesamt". ⚠️ `calcTotalWithDiscount` läuft **vor** den Nachlasszeilen: `computeOrderTax` füllt `computedAmountCents` als Seiteneffekt, sonst druckte der Bon 0 ct und unterdrückte die Zeile als wirkungslos. |
 
 Drei Entscheidungen, die im Code als Kommentar stehen und hier ihren Grund tragen:
 
@@ -391,11 +397,16 @@ Drei Entscheidungen, die im Code als Kommentar stehen und hier ihren Grund trage
   Fehler bewusst schluckt (der Order-Flow darf nie brechen), fiele der Beleg dann
   still komplett aus.
 
-⚠️ **Was das nicht heilt.** Der **POS-Bon** (`order-receipt.renderer.ts`) weist den
-Nachlass weiterhin nicht aus, obwohl sein „Gesamt" über `computeOrderTax` rabattiert
-ist — dort besteht dieselbe Lücke wie vor #228 auf dem Beleg (panary/panary-core#235).
-Die zweite hier notierte Lücke — `lineTotal` als `amount × price` — ist mit #236
-geschlossen, siehe nächster Abschnitt.
+⚠️ **Was das nicht heilt.** Beide Renderer-Testnetze prüfen den **Encoder-Stream**, nicht
+das Papier. Auf **58 mm** (32 Spalten) bricht die Nachlasszeile voraussichtlich um — beim
+Beleg gemessen: `Nachlass: 20 %` / `Rabatt`, der Betrag bleibt in der ersten Zeile. Das
+ist dort bestehendes Verhalten (MwSt-Zeilen und „Gesamt" brechen genauso), sieht aber
+nur ein Ausdruck.
+
+Die hier zuvor notierte zweite Lücke — `receipt.lineItems[].lineTotal` als `amount × price`
+— ist mit panary/panary-core#236 geschlossen, siehe nächster Abschnitt. Der **POS-Bon** war
+davon ohnehin nicht betroffen: er rechnet seine Positionssummen längst über
+`lineItemGrossCents`.
 
 ## Positionssummen des Belegs (seit panary/panary-core#236)
 
@@ -442,13 +453,14 @@ Die ausgelagerte Rabatt-Logik ist seit je durchgetestet (`line-discount.spec.ts`
 `promo-code.spec.ts` 14). Ungetestet blieb, was die Extrakte **verbindet** — ob die
 Dialog-Komponente sie an jeder Stelle aufruft, an der sie es muss. Genau dort fällt
 ein Fehler erst am Bon auf. `order-dialog.component.spec.ts` deckt diese Strecke mit
-25 Charakterisierungs-Specs ab:
+31 Specs ab (25 aus #231, dazu die Identitäts-Suite aus #230):
 
 | Bereich          | Was festgehalten wird                                                                                                  |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | Reset-Pfade      | `deleteOrder()` leert alle drei Rabattarten; alle drei Löschwege räumen den Positionsrabatt weg; der neu angelegte Artikel bringt ihn nicht zurück |
 | Gate-Verdrahtung | Personalessen, fehlende Auswahl und mehrdeutige Zeilen-ID sperren; der gesperrte Fall öffnet **keinen** Picker und meldet den Grund |
 | `placeOrder`     | Reihenfolge Positions- → Kunden- → manueller → Code-Rabatt; Personalessen trägt genau einen; `computedAmountCents` bleibt 0; die Order-ID der Einlösung landet an der Bestellung |
+| Zeilen-Identität | jede Zeile bekommt eine eigene `uuidv7`; derselbe Nicht-Bundle-Artikel erhöht weiterhin die Menge; Artikel ohne `externalId` fallen **nicht** zusammen; die #179-Sperre feuert nicht mehr |
 
 Aufbau ohne TestBed (`environment: 'node'`, eigener `Injector`) — Muster und die
 `effect()`-Falle stehen im [Vitest-Guide](../guides/lib-vitest-test-target.md#3-angular-klassen-ohne-testbed-instanziieren).
@@ -520,17 +532,14 @@ Lauf von Hand gerechnet:
 
 - ✅ **Der Beleg weist den Nachlass aus** (panary/panary-core#228) — siehe „Nachlass auf dem
   Beleg" oben. Der Sichttest am laufenden Stack steht noch aus.
-- 🚨 **Der POS-Bon weist den Nachlass weiterhin nicht aus.** `order-receipt.renderer.ts`
-  druckt unrabattierte Positionspreise und ein über `computeOrderTax` rabattiertes
-  „Gesamt" — exakt die Lücke, die #228 auf dem Beleg geschlossen hat, nur auf dem Papier,
-  das der Gast an der Kasse bekommt. Bei #228 bewusst nicht mitgefixt (anderes Artefakt,
-  nicht in den betroffenen Pfaden des Issues).
-- ⚠️ **`receipt.lineItems[].lineTotal` ist `amount × price`** und ignoriert Modifier,
-  Menü-Komponenten und `FIXED_PROPORTIONAL`. Bei solchen Zeilen rechnet sich der Beleg
-  auch mit Nachlasszeile nicht auf; kanonisch wäre `lineItemGrossCents`
-  (`@panary/orders/domain`). Derselbe Nebenbefund gilt für `taxSummaryFromLines` (der
-  Fallback in `receipt-builder.ts`, greift nur ohne `taxSnapshot`): er rechnet aus den
-  unrabattierten `lineTotal` und in Float statt Cent-Integern.
+- ✅ **Der POS-Bon weist den Nachlass aus** (panary/panary-core#235) — siehe „Nachlass auf
+  Beleg und Bon" oben. Der Sichttest am laufenden Stack steht noch aus, ebenso der
+  Umbruch-Test auf 58 mm.
+- ✅ **Die Positionssummen des Belegs kommen aus der kanonischen Cents-Quelle**
+  (panary/panary-core#236) — siehe „Positionssummen des Belegs" oben. `lineTotal` war
+  `amount × price` und ignorierte Modifier, Menü-Komponenten und `FIXED_PROPORTIONAL`;
+  der Fallback `taxSummaryFromLines` rechnet jetzt in Cent-Integern und zieht die
+  Nachlässe ab. Der Sichttest am laufenden Stack steht noch aus.
 - POS-Rabatt-Picker: der **UI-Klickpfad** (Dialog öffnen, Rabatt wählen, durchgestrichener
   Originalpreis) ist weiterhin ungeprüft — der Durchstich oben lief auf API-Ebene. Ebenso der
   `patch`-Pfad von `calculateTaxDetailsOnPatch`: Patchen auf `orders` verlangt die Rolle
@@ -538,11 +547,12 @@ Lauf von Hand gerechnet:
 - Positionsrabatte (`target: 'line'`) sind gebaut (panary/panary-core#179).
   **Offen:** (a) Live-Stack-UAT — insbesondere Bon und Z-Bon einer Bestellung mit
   Positions- **und** Order-Rabatt; die Verifikation oben deckt ausschließlich
-  **Order**-Rabatte ab; (b) die **mehrdeutige Zeilen-ID** (siehe
-  POS-Anwendung oben): Solange `lineItem._id` die Produkt-ID ist, bleibt der
-  Rabatt auf einer von zwei gleichen Menü-Zeilen gesperrt statt möglich; (c) ein
-  `target`-Feld im Cloud-Rabatt-Formular, falls Definitionen künftig auf ein Ziel
-  festgelegt werden sollen — heute schreibt die Admin-UI hart `'order'`.
+  **Order**-Rabatte ab; (b) ✅ erledigt — die **mehrdeutige Zeilen-ID** ist mit
+  panary/panary-core#230 behoben ([ADR 0033](../adr/0033-bestellzeilen-tragen-eine-eigene-id.md)),
+  der Rabatt auf einer von zwei gleichen Menü-Zeilen ist möglich; der Sichttest am
+  laufenden POS steht noch aus; (c) ein `target`-Feld im Cloud-Rabatt-Formular, falls
+  Definitionen künftig auf ein Ziel festgelegt werden sollen — heute schreibt die
+  Admin-UI hart `'order'`.
 - Promo-Code: Verwaltung (Admin), Einlöse-Backend (append-only
   `discount-code-redemptions`) und die **POS-Strecke** (Edge-Proxy + Kassendialog,
   [ADR 0032](../adr/0032-promo-codes-am-pos-strikt-online.md), Cloud-Endpunkt

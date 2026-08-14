@@ -34,18 +34,19 @@ export interface LineDiscountGateInput {
  * - **Personalessen** ist rabatt-exklusiv (`assertStaffMealDiscountExclusivity`);
  *   ein zweiter Rabatt liesse die Bestellung serverseitig mit 400 scheitern.
  * - **Keine Zeile markiert** — ohne Ziel gibt es keinen Positionsrabatt.
- * - 🚨 **Mehrdeutige Zeilen-ID.** Die `_id` einer Bestellzeile ist die
- *   **Produkt-ID** (`increaseLineItem`: `_id: product._id`), nicht pro Zeile
- *   vergeben. Für gewöhnliche Artikel bleibt sie eindeutig, weil der
- *   Duplikat-Check dort die Menge erhöht statt eine zweite Zeile anzulegen —
- *   für Bundles ist dieser Check bewusst ausgesetzt, zwei gleiche Menüs
- *   ergeben also zwei Zeilen mit derselben `_id`.
+ * - 🛡️ **Mehrdeutige Zeilen-ID — seit #230 eine Rückfallsicherung, keine
+ *   Einschränkung mehr.** `increaseLineItem` vergibt seither je Zeile eine eigene
+ *   `uuidv7`; zwei gleiche Menüs sind damit unterscheidbar, und diese Sperre feuert
+ *   im Normalbetrieb nicht mehr (belegt in `order-dialog.component.spec.ts`).
  *
+ *   Sie bleibt trotzdem stehen, weil die Folge einer doppelten ID still wäre:
  *   `computeOrderTax` matcht Positionsrabatte über genau diese `lineItemId`
- *   (`lines.filter(l => l.lineItemId === ad.lineItemId)`). Bei einer doppelten
- *   ID träfe der Rabatt die Steuer-Atome **beider** Zeilen: Der Kassierer
- *   rabattiert eine Position, abgezogen wird auf zwei — still, weil die
- *   Summe plausibel aussieht. Deshalb hier gesperrt statt falsch gerechnet.
+ *   (`lines.filter(l => l.lineItemId === ad.lineItemId)`), ein Rabatt träfe also
+ *   die Steuer-Atome **beider** Zeilen — eine Position rabattiert, zwei abgezogen,
+ *   und die Summe sieht plausibel aus. Zwei Wege führen weiterhin dorthin: eine
+ *   **Bestands-Order** (vor #230 angelegt, bewusst nicht migriert), die im Dialog
+ *   bearbeitet wird, und jede künftige Änderung, die die ID-Vergabe zurückdreht.
+ *   Eine Sperre, die nie feuert, kostet nichts; ihr Wegfall kostet stillen Umsatz.
  */
 export function evaluateLineDiscountGate(input: LineDiscountGateInput): { allowed: boolean; message?: string } {
   if (input.isStaffMealOrder) return { allowed: false, message: LINE_DISCOUNT_BLOCKED_STAFF_MEAL }

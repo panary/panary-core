@@ -1961,7 +1961,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     const orderLineItem: OrderLineItem = {
-      _id: product._id,
+      // Eigene Identität je Zeile, nicht die des Produkts: Zwei gleiche Menüs sind zwei
+      // Zeilen, und `computeOrderTax` ordnet Positionsrabatte über genau diese ID einer
+      // Zeile zu. Mit der Produkt-ID traf ein Rabatt die Steuer-Atome beider Zeilen.
+      // Die Produktidentität steht weiterhin in `externalId` (Duplikat-Check unten).
+      _id: uuidv7(),
       externalId: product.externalId ?? '',
       acronym: product.acronym,
       productGroupExternalId: product.categoryIds?.[0] ?? '',
@@ -2009,9 +2013,19 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     } else {
       // Normaler Modus
-      // Duplikat-Check (nur bei nicht-Bundle-Produkten)
-      if (!isBundle && this.#lineItems.find(item => item._id === orderLineItem._id)) {
-        return this.increaseQuantity(this.#lineItems.find(item => item._id === orderLineItem._id)!)
+      // Duplikat-Check (nur bei nicht-Bundle-Produkten) — auf der PRODUKT-Identität.
+      // `_id` ist seit #230 die Zeilen-Identität und je Zeile verschieden; der Vergleich
+      // läuft deshalb über `externalId`.
+      //
+      // ⚠️ Leere `externalId` ist bewusst kein Treffer: Das Feld wird zwar serverseitig
+      // vergeben (`value || uuidv7()`), erlaubt im Schema aber `null` — und die Zeile
+      // oben macht daraus `''`. Ohne diese Bedingung fielen alle Alt-Produkte ohne
+      // `externalId` zu einer einzigen Warenkorbzeile zusammen. Eine zweite Zeile ist
+      // hier der harmlosere Ausgang.
+      const productKey = orderLineItem.externalId
+      const existing = productKey ? this.#lineItems.find(item => item.externalId === productKey) : undefined
+      if (!isBundle && existing) {
+        return this.increaseQuantity(existing)
       }
 
       const index = this.#lineItems.push(orderLineItem) - 1
@@ -2567,9 +2581,14 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    * Wirft Positionsrabatte weg, deren Zeile nicht mehr im Warenkorb steht.
    *
    * Nötig, obwohl `#buildLineDiscountSnapshots` verwaiste Einträge ohnehin
-   * überspringt: Die Zeilen-`_id` ist die Produkt-ID. Legt der Kassierer den
-   * gelöschten Artikel erneut an, bekäme er dieselbe `_id` — und mit ihr still
-   * den alten Rabatt zurück, den niemand gesetzt hat.
+   * überspringt: Sonst wüchse die Map über die Lebensdauer des Dialogs mit
+   * Einträgen zu Zeilen, die es nicht mehr gibt, und `hasLineDiscounts()`
+   * meldete einen Rabatt, den der Warenkorb nicht zeigt.
+   *
+   * Bis #230 kam ein zweiter, schwerwiegenderer Grund dazu: Die Zeilen-`_id` war
+   * die Produkt-ID, ein neu angelegter gleicher Artikel erbte damit still den
+   * Rabatt der gelöschten Zeile. Seit der Umstellung auf `uuidv7` je Zeile kann
+   * das nicht mehr passieren — der Aufräumschritt bleibt aus dem ersten Grund.
    */
   #pruneOrphanedLineDiscounts(): void {
     const ids = this.#lineItems.map(l => l._id)
@@ -2648,7 +2667,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   isMenuComplete(orderArticle: OrderLineItem): boolean {
     if (!orderArticle.isMenu) return true
-    const article: ProductSchema | undefined = this.productService.findProductById(orderArticle._id)
+    // Produkt über `externalId` auflösen — `_id` ist seit #230 die Zeilen-Identität
+    // und findet im Katalog nichts mehr (`_id` bleibt Fallback für Bestands-Zeilen).
+    const article: ProductSchema | undefined =
+      (orderArticle.externalId ? this.productService.findProductByExternalId(orderArticle.externalId) : undefined) ??
+      this.productService.findProductById(orderArticle._id)
     if (!article) return true
     if (
       ((article as any).isMenuSideDish && !orderArticle.menuSideDish) ||

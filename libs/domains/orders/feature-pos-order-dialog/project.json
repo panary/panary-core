@@ -6,9 +6,6 @@
   "projectType": "library",
   "tags": ["type:feature", "domain:orders", "platform:pos"],
   "targets": {
-    "lint": {
-      "executor": "@nx/eslint:lint"
-    },
     "test": {
       "executor": "@nx/vite:test",
       "outputs": ["{workspaceRoot}/coverage/libs/domains/orders/feature-pos-order-dialog"],

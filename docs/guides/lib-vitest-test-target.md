@@ -60,6 +60,15 @@ export default defineConfig(() => ({
 > Projekten weg, die es per Inferenz haben, und Änderungen an den Plugin-Optionen in
 > `nx.json` gehen an ihr vorbei. Vorlagen mit korrektem Aufbau:
 > `libs/domains/devices/domain`, `libs/domains/products/data-access`.
+>
+> **Dasselbe gilt für `lint`** — und dort ist der Schaden belegt. Generatoren schreiben
+> gern `"lint": { "executor": "@nx/eslint:lint" }`; 46 Projekte trugen das, bis
+> [panary/panary-core#206](https://github.com/panary/panary-core/issues/206) es entfernt hat.
+> Ein solches Target überschreibt das inferierte und erbt dessen Cache-Inputs **nicht**:
+> Die projektlokale `eslint.config.mjs` stand damit nicht in den Inputs, eine Änderung
+> daran invalidierte den Cache also nicht. Wer nach `nx g …` ein `lint`- oder
+> `test`-Target in der frischen `project.json` findet, löscht es — bleibt danach
+> `"targets": {}` übrig, kommt der Schlüssel gleich mit weg.
 
 Gegenprobe nach dem Anlegen — das Delta im Projektgraphen muss **genau `test`** sein,
 sonst hat man nebenbei etwas anderes verändert:

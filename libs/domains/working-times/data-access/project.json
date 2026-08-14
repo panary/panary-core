@@ -14,9 +14,6 @@
         "project": "libs/domains/working-times/data-access/ng-package.json",
         "tsConfig": "libs/domains/working-times/data-access/tsconfig.lib.json"
       }
-    },
-    "lint": {
-      "executor": "@nx/eslint:lint"
     }
   },
   "implicitDependencies": ["data-access", "users-data-access", "working-times-domain"]

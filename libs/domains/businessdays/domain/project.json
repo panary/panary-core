@@ -19,9 +19,6 @@
         "generatePackageJson": false,
         "compiler": "tsc"
       }
-    },
-    "lint": {
-      "executor": "@nx/eslint:lint"
     }
   }
 }

@@ -140,6 +140,20 @@ jobs:
           node scripts/empty-test-targets.spec.mjs
           pnpm empty-targets:gate
 
+      # Gegenstueck zum Leerstands-Gate: dort fehlt ein Target, hier ueberschreibt
+      # eines die Plugin-Inferenz. Beide Male laeuft die CI gruen und misst etwas
+      # anderes als gedacht — in #206 waren es 46 Projekte, deren explizites
+      # `lint` die Cache-Inputs des inferierten verdraengte.
+      #
+      # Hart, ohne Baseline: der Bestand ist 0 (ADR 0022). Der Spec laeuft auch
+      # hier davor — er hat beim Bau des Gates gefunden, dass `testTargetName`
+      # und `ciTargetName` ein grosses T tragen und `test-ci` sonst still
+      # unbewacht geblieben waere.
+      - name: Ueberschriebene Plugin-Targets pruefen
+        run: |
+          node scripts/inferred-target-overrides.spec.mjs
+          pnpm targets:overrides:gate
+
       # nx affected liest NX_BASE/NX_HEAD aus der Umgebung (nx-set-shas oben).
       #
       # `typecheck` ist seit 2026-08-06 dabei und bewusst HART, ohne Baseline: der

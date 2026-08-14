@@ -4,7 +4,7 @@ title: Test-Target an einer Nx-Lib nachrüsten
 description: Anleitung, wie eine Lib ohne `test`-Target eines per Plugin-Inferenz bekommt — inklusive der drei Fallen (Config-Drift, TS5069, fehlender JIT-Compiler) und des TestBed-freien Musters für Angular-Klassen.
 tags: [nx, vitest, testing, ci]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-08-10T21:00:00Z }
+generated: { by: claude-code/opus-5, at: 2026-08-14T11:35:00Z }
 ---
 
 # Test-Target an einer Nx-Lib nachrüsten
@@ -82,6 +82,15 @@ export default defineConfig(() => ({
 > `externalDependencies: ["eslint"]` (ein eslint-Versionswechsel ebenso wenig). Der
 > Aufräum-Grund bleibt derselbe, nur der belegte Schaden ist ein anderer — und er lag
 > nie bei der Datei, die man zuerst verdächtigt.
+>
+> ✅ **Seit [#210](https://github.com/panary/panary-core/issues/210) hängt daran ein Gate**
+> (`pnpm targets:overrides:gate`, in der CI neben dem Leerstands-Gate). Es bricht ab, sobald
+> eine `project.json` ein `lint`, `typecheck`, `test-ci`, `build-deps` oder `watch-deps`
+> selbst deklariert — die Namen liest es aus `nx.json`, nicht hartkodiert, damit eine
+> Umbenennung wie in #204 es mitzieht. **`build` und `test` bewacht es bewusst nicht:**
+> Dort gibt es legitime explizite Targets (98 bzw. 5 im Bestand), ein Gate darauf hätte fast
+> nur Fehlalarme. Ein handgeschriebenes `test`-Target fängt also weiterhin niemand außer
+> dem Leser dieser Zeilen.
 
 Gegenprobe nach dem Anlegen — das Delta im Projektgraphen muss **genau `test`** sein,
 sonst hat man nebenbei etwas anderes verändert:

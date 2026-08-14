@@ -27,6 +27,14 @@ generated: { by: claude-code/opus-5, at: 2026-08-14T09:40:00.000Z }
 > diff <(pnpm exec nx show projects | tr ',' '\n' | sort) \
 >      <(pnpm exec nx show projects --with-target typecheck | tr ',' '\n' | sort)
 > ```
+>
+> **Dieselbe Prüfung lohnt für jedes CI-Target, nicht nur für `typecheck`.** Auf
+> `lint` angewandt fand sie am selben Tag die nächste Lücke: Der
+> `@nx/eslint/plugin` war auf `targetName: "eslint:lint"` konfiguriert, die CI
+> rief aber `lint` — **40 Projekte** wurden nie gelintet, und darin lagen zwei
+> echte Fehler ([panary/panary-core#204](https://github.com/panary/panary-core/issues/204)).
+> Ein Target-Name, den nur die halbe Toolchain kennt, ist dieselbe Klasse wie ein
+> Target, das gar nicht existiert.
 
 ## Warum es vorher nichts geprüft hat
 

@@ -172,13 +172,17 @@ Referenz-Implementierungen:
 ## 4. Verifikation
 
 ```bash
-pnpm nx run-many -t eslint:lint,lint,typecheck,build,test -p <projekt> --skip-nx-cache
+pnpm nx run-many -t lint,typecheck,build,test -p <projekt> --skip-nx-cache
 pnpm nx format:check --files <neue-dateien-kommasepariert>
 ```
 
-`eslint:lint` **und** `lint` laufen lassen: Das inferierte Target heißt `eslint:lint`,
-nur wenige Projekte haben zusätzlich ein explizites `lint`. `nx lint <projekt>` allein
-läuft bei den meisten Libs still ins Leere und meldet trotzdem Exit 0.
+> **Bis 2026-08-14 stand hier `eslint:lint,lint`** — mit dem Hinweis, `nx lint <projekt>`
+> allein laufe „bei den meisten Libs still ins Leere und melde trotzdem Exit 0". Das war
+> korrekt beobachtet und als Workaround dokumentiert; die Ursache lag eine Ebene tiefer
+> (`@nx/eslint/plugin` hieß `targetName: "eslint:lint"`, während CI und Gewohnheit `lint`
+> riefen) und traf die CI genauso — 40 Projekte wurden dort nie gelintet.
+> Seit [panary/panary-core#204](https://github.com/panary/panary-core/issues/204) heißt das
+> inferierte Target überall `lint`; ein zweiter Target-Name ist nicht mehr nötig.
 
 Ist eine `project.json`- oder tsconfig-Pfad-Änderung im Spiel, vorher `pnpm nx reset` —
 der Projektgraph liefert dem Executor sonst weiter den alten Wert, auch mit

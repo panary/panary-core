@@ -403,6 +403,45 @@ describe('OrderDialog — Snapshot-Bau in placeOrder', () => {
     expect(createdOrders[0]['staffMealDetails']).toMatchObject({ userId: CURRENT_USER_ID, isPaid: false })
   })
 
+  it('Personalessen verwirft einen zuvor gewaehlten Order-Rabatt', async () => {
+    // Erreichbar, weil `setAsStaffMealOrder()` die Auswahl nicht zuruecksetzt: erst
+    // Rabatt waehlen, dann Personalessen druecken. Ein zweiter Rabatt liesse die
+    // Bestellung serverseitig mit 400 scheitern (assertStaffMealDiscountExclusivity).
+    const { component, createdOrders } = setup({
+      staffMealDiscountId: 'disc-staff',
+      activeDiscounts: [staffMealDiscount],
+    })
+    component.increaseLineItem(product('p-1'))
+    component.selectedManualDiscount.set(managedDiscount({ _id: 'disc-manual', name: 'Kulanz' }))
+    component.setAsStaffMealOrder()
+
+    await component.placeOrder()
+
+    const applied = createdOrders[0]['appliedDiscounts'] as AppliedDiscount[]
+    expect(applied).toHaveLength(1)
+    expect(applied[0].discountId).toBe('disc-staff')
+  })
+
+  it('ein manuell gewaehlter Personalessen-Rabatt hat Vorrang vor dem zugewiesenen', async () => {
+    const { component, createdOrders } = setup({
+      staffMealDiscountId: 'disc-staff',
+      activeDiscounts: [staffMealDiscount],
+    })
+    component.increaseLineItem(product('p-1'))
+    component.selectedManualDiscount.set(
+      managedDiscount({ _id: 'disc-staff-manuell', name: 'Personalessen 50 %', isStaffMeal: true }),
+    )
+
+    await component.placeOrder()
+
+    const applied = createdOrders[0]['appliedDiscounts'] as AppliedDiscount[]
+    expect(applied).toHaveLength(1)
+    expect(applied[0].discountId).toBe('disc-staff-manuell')
+    // Der manuell gewaehlte Personalessen-Rabatt macht die Bestellung selbst zum
+    // Personalessen — auch ohne Druck auf die Personalessen-Taste.
+    expect(createdOrders[0]['staffMealDetails']).toMatchObject({ userId: CURRENT_USER_ID })
+  })
+
   it('Personalessen ohne aufloesbaren Rabatt laeuft ohne Nachlass durch statt zu scheitern', async () => {
     const { component, createdOrders } = setup({ staffMealDiscountId: 'gibt-es-nicht', activeDiscounts: [] })
     component.increaseLineItem(product('p-1'))

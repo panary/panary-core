@@ -1,10 +1,10 @@
 ---
 type: Guide
 title: Test-Target an einer Nx-Lib nachrüsten
-description: Anleitung, wie eine Lib ohne `test`-Target eines per Plugin-Inferenz bekommt — inklusive der drei Fallen (Config-Drift, TS5069, fehlender JIT-Compiler) und des TestBed-freien Musters für Angular-Klassen.
+description: Anleitung, wie eine Lib ohne `test`-Target eines per Plugin-Inferenz bekommt — inklusive der vier Fallen (Config-Drift, TS5069, fehlender JIT-Compiler, `effect()` ohne Scheduler) und des TestBed-freien Musters für Angular-Klassen.
 tags: [nx, vitest, testing, ci]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-08-14T11:35:00Z }
+generated: { by: claude-code/opus-5, at: 2026-08-14T21:00:00Z }
 ---
 
 # Test-Target an einer Nx-Lib nachrüsten
@@ -205,11 +205,31 @@ Drei Punkte, die sonst Zeit kosten:
   `Object.defineProperty(globalThis, 'localStorage', …)` ist hier kein Notbehelf: Er
   ist der einzige Weg, einen kaputten Cache-Rohwert herzustellen, den ein echtes
   Storage-API so nie schreiben würde.
+- 🚨 **Ein `effect()` im Konstruktor braucht drei zusätzliche Provider.**
+  `Injector.create()` baut einen Static-Injector; die Scheduler des Framework-Injectors
+  fehlen darin. Die Instanziierung stirbt dann nicht im Test, sondern im `new` —
+  `NG0201: No provider found for ChangeDetectionScheduler`, und nach dessen Ergänzung
+  `TypeError: node.scheduler.add is not a function`. Beide Symbole sind unter ihrem
+  `ɵ`-Namen exportiert:
+
+  ```ts
+  import { DestroyRef, ɵChangeDetectionScheduler, ɵEffectScheduler } from '@angular/core'
+
+  { provide: ɵChangeDetectionScheduler, useValue: { notify: () => undefined } },
+  { provide: ɵEffectScheduler, useValue: { add: () => undefined, schedule: () => undefined, remove: () => undefined } },
+  { provide: DestroyRef, useValue: { onDestroy: () => () => undefined } },
+  ```
+
+  Der Effect wird damit **angelegt, aber nie ausgeführt** — für Specs, die Methoden
+  prüfen statt Reaktivität, ist das die gewünschte Ruhe. Wer den Effect selbst testen
+  will, ist im falschen Aufbau und braucht `@angular/build:unit-test`.
 
 Referenz-Implementierungen:
 `libs/domains/products/data-access/src/lib/services/product.service.spec.ts`,
 `libs/domains/devices/data-access/src/lib/services/device-assignment.service.spec.ts`,
-`libs/domains/users/feature-pos-login/src/lib/login.component.spec.ts`.
+`libs/domains/users/feature-pos-login/src/lib/login.component.spec.ts`,
+`libs/domains/orders/feature-pos-order-dialog/src/lib/order-dialog.component.spec.ts`
+(15 injizierte Services + `effect()` im Konstruktor — die bislang größte Ausbaustufe).
 
 ---
 

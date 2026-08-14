@@ -4,7 +4,7 @@ title: 'Rabatte — Datenmodell, Anwendungslogik & Sync'
 description: 'Rabattsystem für POS und Storefront: Domänen-Lib @panary/discounts/domain, Anwendung ausschließlich über order.appliedDiscounts mit MwSt-Extraktion, Automatik-Hook, Order- und Positionsrabatten am POS, Personalessen, Rabatt-KPI und Edge-Sync.'
 tags: [discounts, orders, sync, pos]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-08-14T21:40:00Z }
+generated: { by: claude-code/opus-5, at: 2026-08-14T21:00:00Z }
 ---
 
 # Rabatte (Discounts)
@@ -329,8 +329,14 @@ Weitere Regeln:
 
 - Beim Abschluss wird erneut eingelöst und damit erneut geprüft: Zwischen Eingabe
   und Kassiervorgang kann eine andere Kasse dasselbe Limit aufgebraucht haben.
-  Schlägt das fehl, läuft die Bestellung **ohne** Code weiter (mit Hinweis) —
-  der Gast steht an der Kasse, die Ware ist erfasst.
+  Schlägt das fehl, läuft die Bestellung **ohne** Code weiter — der Gast steht an
+  der Kasse, die Ware ist erfasst.
+
+  ⚠️ **Der vorgesehene Hinweis erreicht den Kassierer nicht.** `placeOrder` setzt
+  „Rabattcode nicht eingelöst — …" in die Infobox, überschreibt sie unmittelbar
+  danach über `unselectProduct()` und schließt den Dialog. Beim Bau des Testnetzes
+  (#231) gemessen und dort als Bestandsverhalten festgehalten; die Bestellung
+  läuft also **still** ohne den Nachlass durch, mit dem der Gast gerechnet hat.
 - Der Snapshot trägt `method: 'code'`, `code`, `discountCodeId` und `discountId`;
   `computedAmountCents` füllt wie überall die kanonische Engine.
 - **Die Einlösung kennt ihre Bestellung.** Der POS vergibt die Order-`_id` (uuidv7)
@@ -353,6 +359,35 @@ Weitere Regeln:
 - Gesperrt bei Personalessen und bei bereits gewähltem manuellem Rabatt
   (`evaluatePromoCodeGate` in `promo-code.ts`, dort auch getestet).
 - Reset bei `deleteOrder()` wie beim manuellen Rabatt.
+
+## Testnetz der POS-Verdrahtung (#231)
+
+Die ausgelagerte Rabatt-Logik ist seit je durchgetestet (`line-discount.spec.ts` 18,
+`promo-code.spec.ts` 14). Ungetestet blieb, was die Extrakte **verbindet** — ob die
+Dialog-Komponente sie an jeder Stelle aufruft, an der sie es muss. Genau dort fällt
+ein Fehler erst am Bon auf. `order-dialog.component.spec.ts` deckt diese Strecke mit
+25 Charakterisierungs-Specs ab:
+
+| Bereich          | Was festgehalten wird                                                                                                  |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Reset-Pfade      | `deleteOrder()` leert alle drei Rabattarten; alle drei Löschwege räumen den Positionsrabatt weg; der neu angelegte Artikel bringt ihn nicht zurück |
+| Gate-Verdrahtung | Personalessen, fehlende Auswahl und mehrdeutige Zeilen-ID sperren; der gesperrte Fall öffnet **keinen** Picker und meldet den Grund |
+| `placeOrder`     | Reihenfolge Positions- → Kunden- → manueller → Code-Rabatt; Personalessen trägt genau einen; `computedAmountCents` bleibt 0; die Order-ID der Einlösung landet an der Bestellung |
+
+Aufbau ohne TestBed (`environment: 'node'`, eigener `Injector`) — Muster und die
+`effect()`-Falle stehen im [Vitest-Guide](../guides/lib-vitest-test-target.md#3-angular-klassen-ohne-testbed-instanziieren).
+
+🚨 **Charakterisierung heißt: festgehalten wird, was ist — nicht, was sein soll.**
+Zwei Befunde sind dabei aufgefallen und bewusst **nicht** nebenbei behoben worden
+(ein Test, der korrigiertes Verhalten festhält, verliert seinen Wert als Netz für
+den Bestand): der verschluckte Rabattcode-Hinweis (oben) und der still verworfene
+Order-Rabatt, wenn nach der Auswahl die Personalessen-Taste gedrückt wird.
+
+⚠️ **Die Mutationsprobe hat eine Lücke im ersten Entwurf gefunden**, nicht bestätigt:
+Ein zusätzlicher `push` des manuellen Rabatts im Personalessen-Zweig blieb grün, weil
+kein Testfall beide Zustände gleichzeitig herstellte. Der Fall existiert in der
+Bedienung (erst Rabatt wählen, dann Personalessen) und hätte serverseitig einen 400er
+ergeben. Zehn Eingriffe gefahren, jeder fängt seitdem genau seinen Test.
 
 ## Services & Sync
 

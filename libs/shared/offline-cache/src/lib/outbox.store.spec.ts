@@ -1,12 +1,10 @@
 import 'fake-indexeddb/auto'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it, onTestFinished } from 'vitest'
 
 import { openCacheDatabase } from './cache-bootstrap'
 import { IdbStorageAdapter } from './idb-storage.adapter'
 import { classifyOutboxError, OUTBOX_BACKOFF_MS, outboxBackoffMs } from './outbox'
 import { OutboxEnqueueInput, OutboxStore } from './outbox.store'
-
-const DB = 'outbox-test-db'
 
 const input = (id: string, occurredAt: string): OutboxEnqueueInput => ({
   _id: id,
@@ -17,28 +15,30 @@ const input = (id: string, occurredAt: string): OutboxEnqueueInput => ({
   occurredAt,
 })
 
+// Outbox, Port UND Datenbankname je Test — siehe `.claude/rules/code-style.md` §10 und den
+// Kommentar in `cache-bootstrap.spec.ts`. `onTestFinished` schliesst die Verbindung, sonst
+// blockiert ein spaeteres deleteDB auf der noch offenen Connection.
+let dbSeq = 0
+
+async function createOutbox() {
+  const port = new IdbStorageAdapter()
+  const dbName = `outbox-test-db-${++dbSeq}`
+  await openCacheDatabase(port, dbName, { version: 1, stores: [] }, 'build-1')
+  const outbox = new OutboxStore()
+  outbox.attach(port)
+  onTestFinished(() => port.close())
+  return { outbox, port, dbName }
+}
+
 describe('OutboxStore', () => {
-  let port: IdbStorageAdapter
-  let outbox: OutboxStore
-
-  beforeEach(async () => {
-    port = new IdbStorageAdapter()
-    await port.destroy(DB)
-    await openCacheDatabase(port, DB, { version: 1, stores: [] }, 'build-1')
-    outbox = new OutboxStore()
-    outbox.attach(port)
-  })
-
-  afterEach(() => {
-    port.close()
-  })
-
   it('wirft, wenn vor attach() zugegriffen wird', async () => {
     const fresh = new OutboxStore()
     await expect(fresh.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))).rejects.toThrow(/attach/)
   })
 
   it('enqueue legt einen pending-Eintrag an', async () => {
+    const { outbox } = await createOutbox()
+
     await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
     expect(await outbox.pendingCount()).toBe(1)
     const [entry] = await outbox.claimDue('2026-01-01T01:00:00.000Z')
@@ -47,6 +47,8 @@ describe('OutboxStore', () => {
   })
 
   it('claimDue liefert FIFO nach occurredAt', async () => {
+    const { outbox } = await createOutbox()
+
     await outbox.enqueue(input('o2', '2026-01-01T00:02:00.000Z'))
     await outbox.enqueue(input('o1', '2026-01-01T00:01:00.000Z'))
     const due = await outbox.claimDue('2026-01-01T01:00:00.000Z')
@@ -54,6 +56,8 @@ describe('OutboxStore', () => {
   })
 
   it('claimDue respektiert nextAttemptAt (Backoff)', async () => {
+    const { outbox } = await createOutbox()
+
     await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
     await outbox.markRetry('o1', '2026-01-01T00:05:00.000Z', 'net')
     expect(await outbox.claimDue('2026-01-01T00:01:00.000Z')).toHaveLength(0)
@@ -61,6 +65,8 @@ describe('OutboxStore', () => {
   })
 
   it('markRetry erhöht attempts und hält pending', async () => {
+    const { outbox } = await createOutbox()
+
     await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
     await outbox.markRetry('o1', '2026-01-01T00:05:00.000Z')
     const due = await outbox.claimDue('2026-01-01T01:00:00.000Z')
@@ -68,12 +74,16 @@ describe('OutboxStore', () => {
   })
 
   it('markAcked entfernt den Eintrag', async () => {
+    const { outbox } = await createOutbox()
+
     await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
     await outbox.markAcked('o1')
     expect(await outbox.pendingCount()).toBe(0)
   })
 
   it('markRejected setzt den Eintrag terminal rejected', async () => {
+    const { outbox } = await createOutbox()
+
     await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
     await outbox.markRejected('o1', 'terminal')
     expect(await outbox.pendingCount()).toBe(0)
@@ -81,12 +91,16 @@ describe('OutboxStore', () => {
   })
 
   it('clear leert die Outbox', async () => {
+    const { outbox } = await createOutbox()
+
     await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
     await outbox.clear()
     expect(await outbox.pendingCount()).toBe(0)
   })
 
   it('pendingCount/rejectedCount sind synchrone, reaktive Zähler', async () => {
+    const { outbox } = await createOutbox()
+
     expect(outbox.pendingCount()).toBe(0)
     expect(outbox.rejectedCount()).toBe(0)
     await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
@@ -98,6 +112,8 @@ describe('OutboxStore', () => {
   })
 
   it('attach zieht die Zähler aus dem persistierten Store nach', async () => {
+    const { outbox, port } = await createOutbox()
+
     await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
     const reattached = new OutboxStore()
     reattached.attach(port)
@@ -106,6 +122,8 @@ describe('OutboxStore', () => {
   })
 
   it('detach setzt die Zähler zurück', async () => {
+    const { outbox } = await createOutbox()
+
     await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
     outbox.detach()
     expect(outbox.pendingCount()).toBe(0)
@@ -113,6 +131,8 @@ describe('OutboxStore', () => {
   })
 
   it('requeueRejected setzt rejected → pending zurück', async () => {
+    const { outbox } = await createOutbox()
+
     await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
     await outbox.markRejected('o1', 'terminal')
     expect(outbox.rejectedCount()).toBe(1)
@@ -126,6 +146,8 @@ describe('OutboxStore', () => {
   })
 
   it('resetPendingBackoff macht backed-off pending-Einträge sofort fällig', async () => {
+    const { outbox } = await createOutbox()
+
     await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
     await outbox.markRetry('o1', '2026-01-01T05:00:00.000Z', 'transient') // Backoff weit in der Zukunft
     expect(await outbox.claimDue('2026-01-01T00:10:00.000Z')).toHaveLength(0)
@@ -137,6 +159,8 @@ describe('OutboxStore', () => {
   })
 
   it('pendingEntityIds liefert nur entityIds von pending-Einträgen', async () => {
+    const { outbox } = await createOutbox()
+
     await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
     await outbox.enqueue(input('o2', '2026-01-01T00:01:00.000Z'))
     await outbox.markRejected('o2', 'terminal')
@@ -144,6 +168,8 @@ describe('OutboxStore', () => {
   })
 
   it('clearRejected löscht abgelehnte Einträge, lässt pending unberührt', async () => {
+    const { outbox } = await createOutbox()
+
     await outbox.enqueue(input('o1', '2026-01-01T00:00:00.000Z'))
     await outbox.enqueue(input('o2', '2026-01-01T00:01:00.000Z'))
     await outbox.markRejected('o1', 'terminal')

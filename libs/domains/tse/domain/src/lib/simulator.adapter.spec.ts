@@ -1,16 +1,11 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { SimulatorTseAdapter } from './simulator.adapter'
 import { TseUnavailableError } from './tse.errors'
 
 describe('SimulatorTseAdapter', () => {
-  let tse: SimulatorTseAdapter
-
-  beforeEach(() => {
-    tse = new SimulatorTseAdapter()
-  })
-
   it('signiert und markiert jeden Vorgang als simuliert (nicht-fiskalisch)', async () => {
+    const tse = new SimulatorTseAdapter()
     const ref = await tse.startTransaction({ clientId: 'pos-1', transactionNumber: 42 })
     expect(ref.simulated).toBe(true)
     expect(ref.provider).toBe('SIMULATOR')
@@ -22,6 +17,7 @@ describe('SimulatorTseAdapter', () => {
   })
 
   it('signatureCounter steigt monoton über Vorgänge (start + finish)', async () => {
+    const tse = new SimulatorTseAdapter()
     expect((await tse.getStatus()).signatureCounter).toBe(0)
     const ref = await tse.startTransaction({ clientId: 'pos-1', transactionNumber: 1 })
     await tse.finishTransaction(ref, { amountCents: 100 })
@@ -29,6 +25,7 @@ describe('SimulatorTseAdapter', () => {
   })
 
   it('Lifecycle start → cancel erhöht den Counter und referenziert den Vorgang', async () => {
+    const tse = new SimulatorTseAdapter()
     const ref = await tse.startTransaction({ clientId: 'pos-1', transactionNumber: 7 })
     const sig = await tse.cancelTransaction(ref)
     expect(sig.transactionNumber).toBe(7)
@@ -36,6 +33,7 @@ describe('SimulatorTseAdapter', () => {
   })
 
   it('signDayClose liefert eine Tagessignatur', async () => {
+    const tse = new SimulatorTseAdapter()
     const day = await tse.signDayClose({ businessDayId: 'bd-1', closedAt: '2026-05-16T20:00:00.000Z' })
     expect(day.businessDayId).toBe('bd-1')
     expect(day.simulated).toBe(true)
@@ -43,12 +41,14 @@ describe('SimulatorTseAdapter', () => {
   })
 
   it('export liefert eine simulierte Export-Referenz (DSFinV-K)', async () => {
+    const tse = new SimulatorTseAdapter()
     const exp = await tse.export({ from: '2026-05-01', to: '2026-05-16' })
     expect(exp.simulated).toBe(true)
     expect(exp.format).toBe('DSFINV_K')
   })
 
   it('Fault-Injection: Ausfall wirft TseUnavailableError und meldet unhealthy (§146a)', async () => {
+    const tse = new SimulatorTseAdapter()
     tse.setFault({ outage: true })
     await expect(tse.startTransaction({ clientId: 'pos-1', transactionNumber: 1 })).rejects.toBeInstanceOf(
       TseUnavailableError,
@@ -58,12 +58,14 @@ describe('SimulatorTseAdapter', () => {
   })
 
   it('Fault-Injection: Latenz verzögert, signiert aber weiterhin', async () => {
+    const tse = new SimulatorTseAdapter()
     tse.setFault({ latencyMs: 5 })
     const ref = await tse.startTransaction({ clientId: 'pos-1', transactionNumber: 1 })
     expect(ref.simulated).toBe(true)
   })
 
   it('Ausfall lässt sich zurücksetzen', async () => {
+    const tse = new SimulatorTseAdapter()
     tse.setFault({ outage: true })
     await expect(tse.export({ from: 'a', to: 'b' })).rejects.toBeInstanceOf(TseUnavailableError)
     tse.setFault({ outage: false })

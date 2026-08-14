@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it, onTestFinished } from 'vitest'
 
 import { IdbStorageAdapter } from './idb-storage.adapter'
 import { CacheStorageSchema } from './cache-storage.port'
@@ -34,37 +34,44 @@ const product = (id: string, overrides: Partial<TestProduct> = {}): TestProduct 
   ...overrides,
 })
 
+// Adapter UND Datenbankname je Test — siehe `.claude/rules/code-style.md` §10 und den
+// Kommentar in `cache-bootstrap.spec.ts`. `onTestFinished` schliesst die Verbindung, sonst
+// blockiert ein spaeteres deleteDB auf der noch offenen Connection.
+let dbSeq = 0
+
+async function openAdapter() {
+  const adapter = new IdbStorageAdapter()
+  const dbName = `adapter-test-db-${++dbSeq}`
+  await adapter.open(dbName, SCHEMA)
+  onTestFinished(() => adapter.close())
+  return { adapter, dbName }
+}
+
 describe('IdbStorageAdapter', () => {
-  let adapter: IdbStorageAdapter
-  const dbName = 'adapter-test-db'
-
-  beforeEach(async () => {
-    adapter = new IdbStorageAdapter()
-    await adapter.destroy(dbName)
-    await adapter.open(dbName, SCHEMA)
-  })
-
-  // Verbindung schließen, sonst blockiert das destroy() des nächsten beforeEach (deleteDB wartet auf offene Connection)
-  afterEach(() => {
-    adapter.close()
-  })
-
   it('persistiert und liest einen Datensatz über _id', async () => {
+    const { adapter } = await openAdapter()
+
     await adapter.put('products', product('p1'))
     const loaded = await adapter.get<TestProduct>('products', 'p1')
     expect(loaded?.name).toBe('Produkt p1')
   })
 
   it('liefert undefined für eine unbekannte ID', async () => {
+    const { adapter } = await openAdapter()
+
     expect(await adapter.get('products', 'missing')).toBeUndefined()
   })
 
   it('bulkPut schreibt mehrere Datensätze in einer Transaktion', async () => {
+    const { adapter } = await openAdapter()
+
     await adapter.bulkPut('products', [product('p1'), product('p2'), product('p3')])
     expect(await adapter.count('products')).toBe(3)
   })
 
   it('getAllByIndex filtert über die updatedAt-Range (Delta-Cursor)', async () => {
+    const { adapter } = await openAdapter()
+
     await adapter.bulkPut('products', [
       product('p1', { updatedAt: '2026-05-30T09:00:00.000Z' }),
       product('p2', { updatedAt: '2026-05-30T11:00:00.000Z' }),
@@ -76,6 +83,8 @@ describe('IdbStorageAdapter', () => {
   })
 
   it('delete und clear entfernen Datensätze', async () => {
+    const { adapter } = await openAdapter()
+
     await adapter.bulkPut('products', [product('p1'), product('p2')])
     await adapter.delete('products', 'p1')
     expect(await adapter.count('products')).toBe(1)
@@ -89,6 +98,8 @@ describe('IdbStorageAdapter', () => {
   })
 
   it('destroy löscht die gesamte Datenbank', async () => {
+    const { adapter, dbName } = await openAdapter()
+
     await adapter.put('products', product('p1'))
     await adapter.destroy(dbName)
     await adapter.open(dbName, SCHEMA)

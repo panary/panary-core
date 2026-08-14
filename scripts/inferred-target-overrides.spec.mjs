@@ -19,7 +19,13 @@
 
 import assert from 'node:assert/strict'
 
-import { findOverrides, inferredTargetNames, protectedTargetNames, UNGESCHUETZT } from './inferred-target-overrides.mjs'
+import {
+  ERLAUBTE_EXECUTOREN,
+  findOverrides,
+  inferredTargetNames,
+  protectedTargetNames,
+  UNGESCHUETZT,
+} from './inferred-target-overrides.mjs'
 
 let failures = 0
 const test = (name, fn) => {
@@ -85,10 +91,11 @@ test('liefert leer, wenn der plugins-Block fehlt — die Plausibilitaetssperre g
 
 console.log('protectedTargetNames()')
 
-test('nimmt build und test aus, behaelt den Rest', () => {
+test('nimmt nur build aus, behaelt den Rest inklusive test', () => {
   assert.deepEqual([...protectedTargetNames(NX_JSON)].sort(), [
     'build-deps',
     'lint',
+    'test',
     'test-ci',
     'typecheck',
     'watch-deps',
@@ -96,7 +103,11 @@ test('nimmt build und test aus, behaelt den Rest', () => {
 })
 
 test('UNGESCHUETZT bleibt klein — jeder Eintrag ist aufgegebene Abdeckung', () => {
-  assert.deepEqual([...UNGESCHUETZT].sort(), ['build', 'test'])
+  assert.deepEqual([...UNGESCHUETZT].sort(), ['build'])
+})
+
+test('ERLAUBTE_EXECUTOREN ist festgenagelt — Wachstum ist stille Abdeckungsaufgabe', () => {
+  assert.deepEqual(ERLAUBTE_EXECUTOREN, { test: ['@angular/build:unit-test'] })
 })
 
 console.log('findOverrides()')
@@ -127,7 +138,7 @@ test('laesst ein konfiguriertes build-Target durch (rollup, angular:package …)
   assert.deepEqual(treffer, [])
 })
 
-test('laesst das Angular-test-Target der Apps durch', () => {
+test('laesst das Angular-test-Target der Apps durch (Executor-Allowlist)', () => {
   const treffer = findOverrides(
     [
       {
@@ -138,6 +149,40 @@ test('laesst das Angular-test-Target der Apps durch', () => {
     geschuetzt,
   )
   assert.deepEqual(treffer, [])
+})
+
+test('faengt das @nx/vite:test-Target — die teure Drift aus #213', () => {
+  const treffer = findOverrides(
+    [
+      {
+        datei: 'libs/domains/businessdays/aggregator/project.json',
+        inhalt: {
+          name: 'businessdays-aggregator',
+          targets: { test: { executor: '@nx/vite:test', options: { configFile: 'vitest.config.ts' } } },
+        },
+      },
+    ],
+    geschuetzt,
+  )
+  assert.equal(treffer.length, 1)
+  assert.equal(treffer[0].target, 'test')
+  assert.equal(treffer[0].executor, '@nx/vite:test')
+})
+
+test('die Allowlist gilt je Target-Name, nicht global', () => {
+  // Derselbe Executor unter einem anderen geschuetzten Namen bleibt ein Treffer —
+  // sonst wuerde eine Ausnahme fuer `test` versehentlich `lint` mitoeffnen.
+  const treffer = findOverrides(
+    [{ datei: 'a/project.json', inhalt: { name: 'a', targets: { lint: { executor: '@angular/build:unit-test' } } } }],
+    geschuetzt,
+  )
+  assert.equal(treffer.length, 1, 'Allowlist von test darf lint nicht freigeben')
+})
+
+test('ein Target ohne executor faellt nicht versehentlich unter die Allowlist', () => {
+  const treffer = findOverrides([{ datei: 'a/project.json', inhalt: { name: 'a', targets: { test: {} } } }], geschuetzt)
+  assert.equal(treffer.length, 1)
+  assert.equal(treffer[0].executor, '(ohne executor)')
 })
 
 test('greift unabhaengig von den Optionen — auch ein konfiguriertes lint faellt auf', () => {

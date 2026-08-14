@@ -4,14 +4,5 @@
   "sourceRoot": "libs/domains/orders/feature-pos-order-dialog/src",
   "prefix": "lib",
   "projectType": "library",
-  "tags": ["type:feature", "domain:orders", "platform:pos"],
-  "targets": {
-    "test": {
-      "executor": "@nx/vite:test",
-      "outputs": ["{workspaceRoot}/coverage/libs/domains/orders/feature-pos-order-dialog"],
-      "options": {
-        "configFile": "libs/domains/orders/feature-pos-order-dialog/vitest.config.ts"
-      }
-    }
-  }
+  "tags": ["type:feature", "domain:orders", "platform:pos"]
 }

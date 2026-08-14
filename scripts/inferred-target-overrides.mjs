@@ -38,18 +38,29 @@
 // `targetName` umbenannt (wie `eslint:lint` -> `lint` in #204), zieht das Gate
 // automatisch mit, statt still den falschen Namen zu bewachen.
 //
-// Ausgenommen sind `build` und `test` — dort gibt es legitime explizite
-// Targets, und ein Gate darauf haette fast nur Fehlalarme:
-//   build: 98 Faelle im Bestand (@nx/rollup:rollup, @nx/angular:package,
-//          @nx/esbuild:esbuild, @nx/js:tsc, @angular/build:application) —
-//          echte Build-Konfigurationen mit eigenen Optionen.
-//   test:  5 Faelle — admin-/pos-/setup-client fahren bewusst
-//          `@angular/build:unit-test` statt Vitest, zwei Libs tragen ein
-//          `configFile`. Null echte Funde, fuenf Fehlalarme.
-// Die Folge ist eine bekannte Luecke: Ein handgeschriebenes `test`-Target faengt
-// dieses Gate NICHT, obwohl `docs/guides/lib-vitest-test-target.md` davor warnt.
-// Bewusst so — ein Gate, das bei jeder neuen buildbaren Lib feuert, wird
-// weggeklickt und schuetzt dann auch dort nicht mehr, wo es zaehlt.
+// Ausgenommen ist nur noch `build`: 98 Faelle im Bestand (@nx/rollup:rollup,
+// @nx/angular:package, @nx/esbuild:esbuild, @nx/js:tsc,
+// @angular/build:application) — echte Build-Konfigurationen mit eigenen
+// Optionen. Eine Executor-Allowlist waere dort wirkungslos, weil viele davon
+// generisches `nx:run-commands` fahren; ein Gate haette fast nur Fehlalarme und
+// wuerde weggeklickt.
+//
+// `test` war bis #213 ebenfalls ausgenommen — mit der Begruendung "5 Faelle,
+// null echte Funde". Diese Einschaetzung war zu grob: Zwei der fuenf waren
+// echte Drift, und zwar teure. `businessdays-aggregator` und
+// `orders-feature-pos-order-dialog` deklarierten `test` mit `@nx/vite:test`,
+// demselben Executor, den das Plugin ohnehin nutzt — und fuer den es KEIN
+// `targetDefaults` gibt. Das Target erbte damit weder `cache: true` noch
+// `inputs`: Gemessen am Aggregator (162 Tests) lief der unveraenderte zweite
+// Lauf jedes Mal neu durch, waehrend das inferierte Target meldet "Nx read the
+// output from the cache". Die beiden Projekte haben ihre Tests also bei jedem
+// CI-Lauf neu ausgefuehrt.
+//
+// Statt `test` pauschal freizugeben, steht dort jetzt eine Executor-Allowlist
+// (ERLAUBTE_EXECUTOREN): Die drei Angular-Apps fahren bewusst
+// `@angular/build:unit-test` — dafuer existiert ein targetDefaults-Eintrag, sie
+// cachen korrekt. Eine vierte Angular-App muss deshalb nichts quittieren,
+// waehrend ein `@nx/vite:test` weiterhin anschlaegt.
 //
 // Aufruf:
 //   pnpm targets:overrides:gate
@@ -62,11 +73,27 @@ import { fileURLToPath } from 'node:url'
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 /**
- * Target-Namen, die `build` und `test` heissen, bleiben ungeschuetzt — Begruendung
- * im Kopfkommentar. Die Liste ist bewusst kurz und soll es bleiben: Jeder weitere
- * Eintrag ist ein Stueck Abdeckung, das aufgegeben wird.
+ * Target-Namen, die gar nicht geprueft werden — Begruendung im Kopfkommentar.
+ * Die Liste ist bewusst kurz und soll es bleiben: Jeder Eintrag ist ein Stueck
+ * Abdeckung, das aufgegeben wird. `test` stand hier bis #213 und ist raus,
+ * seit die Executor-Allowlist unten den legitimen Fall genauer trifft.
  */
-export const UNGESCHUETZT = new Set(['build', 'test'])
+export const UNGESCHUETZT = new Set(['build'])
+
+/**
+ * Executoren, die fuer einen geschuetzten Target-Namen erlaubt bleiben.
+ *
+ * Genauer als ein pauschales Freigeben des Namens: `test` wird bewacht, aber die
+ * drei Angular-Apps duerfen ihren eigenen Test-Builder behalten. Sie fahren
+ * `@angular/build:unit-test` statt Vitest, und dafuer existiert ein
+ * `targetDefaults`-Eintrag — sie cachen also korrekt, anders als die beiden
+ * `@nx/vite:test`-Faelle aus #213.
+ *
+ * Ein Eintrag hier ist eine Ausnahme mit Namen und Grund, kein Freibrief fuer den
+ * ganzen Target-Namen. Wer einen hinzufuegt, sollte belegen koennen, dass der
+ * Executor etwas tut, was die Inferenz nicht kann.
+ */
+export const ERLAUBTE_EXECUTOREN = { test: ['@angular/build:unit-test'] }
 
 /**
  * Sammelt aus den Plugin-Optionen einer nx.json alle Namen, unter denen Targets
@@ -106,22 +133,20 @@ export const protectedTargetNames = nxJson =>
 
 /**
  * Findet in den gelesenen project.json-Inhalten alle Targets, die einen
- * geschuetzten Namen selbst deklarieren.
+ * geschuetzten Namen selbst deklarieren — ohne die, deren Executor fuer diesen
+ * Namen ausdruecklich erlaubt ist (ERLAUBTE_EXECUTOREN).
  *
  * `projekte` ist eine Liste aus `{ datei, inhalt }`, damit der Spec ohne
  * Dateisystem auskommt.
  */
-export const findOverrides = (projekte, geschuetzt) => {
+export const findOverrides = (projekte, geschuetzt, erlaubt = ERLAUBTE_EXECUTOREN) => {
   const treffer = []
   for (const { datei, inhalt } of projekte) {
     for (const [target, definition] of Object.entries(inhalt.targets ?? {})) {
       if (!geschuetzt.has(target)) continue
-      treffer.push({
-        projekt: inhalt.name ?? '(ohne name)',
-        target,
-        executor: definition?.executor ?? '(ohne executor)',
-        datei,
-      })
+      const executor = definition?.executor ?? '(ohne executor)'
+      if (erlaubt[target]?.includes(executor)) continue
+      treffer.push({ projekt: inhalt.name ?? '(ohne name)', target, executor, datei })
     }
   }
   return treffer.sort((a, b) => a.projekt.localeCompare(b.projekt) || a.target.localeCompare(b.target))
@@ -171,13 +196,21 @@ const main = () => {
         'Beim lint-Target fehlten dadurch `^default` (Aenderung in einer Abhaengigkeit)\n' +
         'und `externalDependencies: ["eslint"]` (Versionswechsel) — der Cache galt\n' +
         'weiter, obwohl sich etwas Relevantes geaendert hatte (panary/panary-core#206,\n' +
-        'Messung in #209).\n' +
+        'Messung in #209). Beim test-Target fehlte `cache` ganz: die Tests liefen bei\n' +
+        'jedem CI-Lauf neu (#213).\n' +
         'Loeschen — bleibt danach "targets": {} uebrig, den Schluessel gleich mit.',
     )
     process.exit(1)
   }
 
   console.log(`Kein explizites Target ueberschreibt eine Plugin-Inferenz (bewacht: ${bewacht}).`)
+  // Die Ausnahmen mitdrucken: Eine Abdeckung, die man nur im Quelltext nachlesen
+  // kann, wird ueberschaetzt. `build` fehlt in "bewacht" — ohne diese Zeile faellt
+  // das niemandem auf, der nur die gruene Ausgabe sieht.
+  const erlaubtText = Object.entries(ERLAUBTE_EXECUTOREN)
+    .map(([target, executoren]) => `${target}: ${executoren.join(', ')}`)
+    .join(' | ')
+  console.log(`Ungeprueft: ${[...UNGESCHUETZT].sort().join(', ')}. Erlaubte Ausnahmen — ${erlaubtText}.`)
   console.log(`${projekte.length} project.json geprueft.`)
 }
 

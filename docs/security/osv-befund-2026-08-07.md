@@ -26,9 +26,16 @@ Lockfile. Dieselbe Klasse von Ereignis wie der OSV-Sweep vom 2026-08-03, nur
 
 | Advisory | Paket | CVSS | Fix |
 | --- | --- | --- | --- |
-| [GHSA-2v37-7h3g-55p8](https://osv.dev/GHSA-2v37-7h3g-55p8) | `nanoid@3.3.16` | 8.2 | 3.3.17 |
+| [GHSA-2v37-7h3g-55p8](https://osv.dev/GHSA-2v37-7h3g-55p8) | `nanoid@3.3.16` | 8.2 | ~~3.3.17~~ → 3.3.18 |
 | [GHSA-5p2g-fcmc-qvqq](https://osv.dev/GHSA-5p2g-fcmc-qvqq) | `image-size@0.5.5` | 8.7 | — |
 | [GHSA-w3rx-r6r6-pgpr](https://osv.dev/GHSA-w3rx-r6r6-pgpr) | `image-size@0.5.5` | 8.7 | — |
+
+> ⚠️ **Der nanoid-Teil dieses Dokuments ist seit dem 2026-08-13 überholt.**
+> Dasselbe Advisory wurde an diesem Tag um 16:00 UTC erneut geändert, `fixed`
+> sprang von `3.3.17` auf `3.3.18` — der hier beschriebene Fix war unvollständig
+> und ist selbst betroffen. Aktueller Stand und die Lehren daraus:
+> [OSV-Befund 2026-08-13](osv-befund-2026-08-13.md). Der image-size-Teil unten
+> gilt unverändert weiter.
 
 ## nanoid — gefixt, mit exaktem Pin
 
@@ -51,6 +58,13 @@ die Version, die geprüft wurde und zum Zeitpunkt der Entscheidung vier Tage
 > `^3.3.17` löst weiterhin auf **3.3.17** auf, weil `3.3.18` erst am 2026-08-14
 > reif wird. Das Lockfile bewegt sich dadurch um genau eine Zeile (der
 > `overrides:`-Kopf), die Resolution bleibt unverändert.
+>
+> **Nachtrag 2026-08-13.** Die Lockerung auf Caret war rückblickend die
+> entscheidend richtige Entscheidung: Als das Advisory zwei Tage später auf
+> `< 3.3.18` erweitert wurde, war der Override bereits durchlässig, und der Fix
+> kostete keinen Konfigurationseingriff mehr — nur das Abwarten der Karenz. Ein
+> stehengebliebener Exakt-Pin `'3.3.17'` hätte hier zusätzlich entfernt werden
+> müssen. Siehe [OSV-Befund 2026-08-13](osv-befund-2026-08-13.md).
 
 ### Angriffsvorbedingung
 

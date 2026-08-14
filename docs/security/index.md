@@ -2,6 +2,7 @@
 
 Sicherheitskonzepte, RBAC, Härtungen und Security-Reviews (`type: Architecture` oder `Report`).
 
+* [OSV-Befund 2026-08-13 — nanoid 3.3.17 nachträglich in die Advisory-Range gerutscht](osv-befund-2026-08-13.md) - Eine Range-Erweiterung an GHSA-2v37-7h3g-55p8 machte den bisherigen Fix 3.3.17 selbst verwundbar; der Nachfolger 3.3.18 wurde ohne Karenz-Ausnahme abgewartet, und dabei zeigte sich, dass weder pnpm install noch ein zu früher pnpm update die Version hebt — beide laufen still mit Exit 0 durch.
 * [E-Mail-Identität — Edge- & Shared-Schema-Impact](email-identity-edge-impact.md) - Auswirkungen der E-Mail-Login-Umstellung auf Edge und geteiltes Users-Schema: optionale loginname/password-Felder, accountId und Cloud-zu-Edge-Sync-Projektion.
 * [Edge-authorize — Hybrid-RBAC (hasEffectivePermission) + explizites Method-Mapping](edge-authorize-hybrid-rbac.md) - Edge-authorize()-Hook setzt Hybrid-RBAC via hasEffectivePermission durch — explizites Method-Mapping, MANAGE-only-Fallback und Wegfall der SYSTEM-Wildcard.
 * [Effektive Berechtigungen — hasEffectivePermission + Capability-Bundles](granulare-berechtigungen-helper.md) - Geteilte RBAC-Bausteine in @panary/users/domain mit hasEffectivePermission als einziger Match-Wahrheit, grant-Format und Capability-Bundles für additive Pro-User-Berechtigungen.

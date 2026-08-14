@@ -2667,7 +2667,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   isMenuComplete(orderArticle: OrderLineItem): boolean {
     if (!orderArticle.isMenu) return true
-    const article: ProductSchema | undefined = this.productService.findProductById(orderArticle._id)
+    // Produkt über `externalId` auflösen — `_id` ist seit #230 die Zeilen-Identität
+    // und findet im Katalog nichts mehr (`_id` bleibt Fallback für Bestands-Zeilen).
+    const article: ProductSchema | undefined =
+      (orderArticle.externalId ? this.productService.findProductByExternalId(orderArticle.externalId) : undefined) ??
+      this.productService.findProductById(orderArticle._id)
     if (!article) return true
     if (
       ((article as any).isMenuSideDish && !orderArticle.menuSideDish) ||

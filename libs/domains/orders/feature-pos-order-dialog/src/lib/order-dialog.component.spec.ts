@@ -351,6 +351,23 @@ describe('OrderDialog — Zeilen-Identitaet (#230)', () => {
     expect(component.lineItems[0]._id).not.toBe(component.lineItems[1]._id)
   })
 
+  it('isMenuComplete() loest das Produkt weiterhin auf — ueber externalId', () => {
+    // Die Menue-Vollstaendigkeit faerbt die Zeile im Warenkorb rot. Sie loeste das
+    // Produkt ueber `lineItem._id` auf; nach #230 findet der Katalog darunter nichts
+    // mehr. Hier zaehlt, DASS der Lookup die Zeile trifft — die Legacy-Flags dahinter
+    // (`isMenuSideDish`/`isMenuDrink`) stehen nicht mehr im ProductSchema, siehe PR.
+    const gefunden: string[] = []
+    const { component } = setup()
+    component['productService'].findProductByExternalId = (ext: string) => {
+      gefunden.push(ext)
+      return { isMenuSideDish: true } as never
+    }
+    component.increaseLineItem(product('p-menu', { isMenu: true } as never))
+
+    expect(component.isMenuComplete(component.lineItems[0])).toBe(false)
+    expect(gefunden).toEqual(['ext-p-menu'])
+  })
+
   it('die Mehrdeutigkeits-Sperre aus #179 feuert im Normalbetrieb nicht mehr', () => {
     // Sie bleibt als Rueckfallsicherung stehen (Bestands-Orders, kuenftige Regressionen),
     // darf aber keinen regulaeren Vorgang mehr blockieren.

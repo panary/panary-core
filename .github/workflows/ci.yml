@@ -154,6 +154,19 @@ jobs:
           node scripts/inferred-target-overrides.spec.mjs
           pnpm targets:overrides:gate
 
+      # Dritter Fall derselben Familie: Das Target ist da und heisst richtig,
+      # laeuft aber bei jedem Lauf neu, weil sein Executor keinen
+      # targetDefaults-Eintrag hat. Bis #216 traf das 52 build-Targets
+      # (@nx/rollup:rollup, @nx/angular:package) und vorher zwei test-Targets
+      # (#213) — man sieht es der Ausgabe nicht an, nur der Uhr.
+      #
+      # Mit Baseline, anders als die beiden Gates darueber: 36 Domain-Aggregate
+      # sind bewusst ungecacht (ihr build fuehrt nur ein echo aus).
+      - name: Ungecachte Targets mit Ausgaben pruefen
+        run: |
+          node scripts/uncached-targets.spec.mjs
+          pnpm targets:uncached:gate
+
       # nx affected liest NX_BASE/NX_HEAD aus der Umgebung (nx-set-shas oben).
       #
       # `typecheck` ist seit 2026-08-06 dabei und bewusst HART, ohne Baseline: der

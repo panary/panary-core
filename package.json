@@ -39,6 +39,8 @@
     "empty-targets:gate": "node scripts/empty-test-targets.mjs",
     "empty-targets:gate:update": "node scripts/empty-test-targets.mjs --update",
     "targets:overrides:gate": "node scripts/inferred-target-overrides.mjs",
+    "targets:uncached:gate": "node scripts/uncached-targets.mjs",
+    "targets:uncached:gate:update": "node scripts/uncached-targets.mjs --update",
     "security:install": "bash scripts/install-security-tools.sh",
     "security:scan": "node scripts/security-scan.mjs --mode=local",
     "security:report": "node scripts/security-scan.mjs --mode=all --report",

@@ -542,17 +542,21 @@ describe('OrderDialog — Snapshot-Bau in placeOrder', () => {
     expect(component.infoBoxText).not.toBe('Personalessen: gewählter Rabatt wurde entfernt')
   })
 
-  it('Personalessen wieder abwaehlen meldet nichts', () => {
-    // Der Toggle darf beim Ausschalten nicht erneut melden — geraeumt wird nur beim
-    // Einschalten, und dort ist die Auswahl danach leer.
+  it('Personalessen abwaehlen raeumt keinen Rabatt weg', () => {
+    // Geraeumt wird nur beim EINschalten. Der hier hergestellte Zustand
+    // („Personalessen aktiv UND Rabatt gesetzt") ist ueber die UI nicht erreichbar,
+    // weil `openDiscountPicker()` dann sperrt — die Richtungspruefung im Code haelt
+    // aber fest, dass das Abwaehlen nichts wegnimmt. Ohne diesen Test faellt sie beim
+    // naechsten Aufraeumen weg, und dann loescht ein Abwaehlen fremde Auswahl.
     const { component } = setup({ staffMealDiscountId: 'disc-staff', activeDiscounts: [staffMealDiscount] })
     component.increaseLineItem(product('p-1'))
-    component.selectedManualDiscount.set(managedDiscount({ _id: 'disc-manual', name: 'Kulanz' }))
     component.setAsStaffMealOrder()
+    component.selectedManualDiscount.set(managedDiscount({ _id: 'disc-manual', name: 'Kulanz' }))
     component.setInfoBoxText('Bitte wählen Sie eine Produktkategorie')
 
     component.setAsStaffMealOrder()
 
+    expect(component.selectedManualDiscount()).not.toBeNull()
     expect(component.infoBoxText).toBe('Bitte wählen Sie eine Produktkategorie')
   })
 

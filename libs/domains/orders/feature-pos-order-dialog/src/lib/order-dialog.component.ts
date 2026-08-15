@@ -17,6 +17,7 @@ import {
 } from '@angular/core'
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
 import { MatMenuModule } from '@angular/material/menu'
+import { MatSnackBar } from '@angular/material/snack-bar'
 import { FormsModule } from '@angular/forms'
 import { CommonModule } from '@angular/common'
 import { animate, style, transition, trigger } from '@angular/animations'
@@ -127,6 +128,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly userService: UserService = inject(UserService)
   protected readonly matDialogRef: MatDialogRef<OrderDialogComponent> = inject(MatDialogRef<OrderDialogComponent>)
   protected readonly matDialog: MatDialog = inject(MatDialog)
+  // Meldeweg für alles, was den Dialogschluss überleben muss — die Infobox lebt im
+  // Dialog und ist mit ihm weg (siehe #placeOrder, Rabattcode-Fehlschlag).
+  protected readonly matSnackBar: MatSnackBar = inject(MatSnackBar)
   protected readonly orderInteractionService: OrderInteractionService = inject(OrderInteractionService)
   protected readonly deviceConfigService: DeviceConfigService = inject(DeviceConfigService)
   protected readonly preOrderService: PreOrderService = inject(PreOrderService)
@@ -2274,9 +2278,17 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         appliedDiscounts.push(this.#codeToApplied({ ...checked, ...outcome.redeemed }))
       } else if (outcome.status === 'failed') {
         // Die Bestellung darf daran nicht scheitern: Der Gast steht an der
-        // Kasse, die Ware ist erfasst. Sie läuft ohne Code weiter, und der
-        // Kassierer erfährt den Grund.
-        this.setInfoBoxText(`Rabattcode nicht eingelöst — ${codeResultMessage(outcome.reason)}`, 'red')
+        // Kasse, die Ware ist erfasst. Sie läuft ohne Code weiter — der Grund
+        // muss den Kassierer aber erreichen: Er hat dem Gast einen Nachlass
+        // zugesagt, den die Bestellung nicht trägt.
+        //
+        // Bewusst KEINE Infobox: die überschreibt `unselectProduct()` rund 25
+        // Zeilen weiter unten, und `matDialogRef.close()` nimmt sie ohnehin mit
+        // (#234, belegt in der Spec). Die Snackbar ist ein globales Overlay und
+        // überlebt beides. Ohne `duration` bleibt sie bis zur Quittierung stehen
+        // — eine Meldung, die von selbst verschwindet, ist im Kassenbetrieb
+        // genauso übersehbar wie gar keine.
+        this.matSnackBar.open(`Rabattcode nicht eingelöst — ${codeResultMessage(outcome.reason)}`, 'OK')
         this.appliedCodeDiscount.set(null)
       }
     }
@@ -2745,6 +2757,17 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // TODO: ConfirmActionDialog nach Migration aktivieren
     // Derzeit direkte Aktivierung ohne Bestätigungsdialog
     this._staffMealOrder = !this._staffMealOrder
+
+    // Personalessen ist rabatt-exklusiv (assertStaffMealDiscountExclusivity) — ein
+    // zuvor gewählter Order-Rabatt entfällt beim Abschluss ohnehin. Ihn hier
+    // wegzuräumen macht das sichtbar, statt ihn bis zum Abschluss im Dialog stehen
+    // zu lassen und dann stumm zu verwerfen (#234). Gegenrichtung sperrt bereits
+    // `openDiscountPicker()`.
+    if (this._staffMealOrder && this.selectedManualDiscount()) {
+      this.selectedManualDiscount.set(null)
+      this.setInfoBoxText('Personalessen: gewählter Rabatt wurde entfernt', 'red')
+      this.#cdr.markForCheck()
+    }
   }
 
   numpadAction(number: number): void {

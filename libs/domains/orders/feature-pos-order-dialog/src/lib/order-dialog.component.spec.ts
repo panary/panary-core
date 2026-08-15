@@ -12,6 +12,7 @@ import {
   ɵEffectScheduler,
 } from '@angular/core'
 import { MatDialog, MatDialogRef } from '@angular/material/dialog'
+import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'
 import { of } from 'rxjs'
 
@@ -95,6 +96,8 @@ function setup(options: SetupOptions = {}) {
   const redeemCalls: Array<Record<string, unknown>> = []
   const openedDialogs: Array<{ data?: unknown }> = []
   const closeCalls: unknown[] = []
+  /** Was ueber `MatSnackBar` gemeldet wurde — der einzige Meldeweg, der den Dialogschluss ueberlebt. */
+  const snackBarCalls: Array<{ message: string; action?: string }> = []
   /** Was `matDialog.open()` als Auswahl zurueckgibt — pro Test gesetzt. */
   const dialogResult = { value: undefined as unknown }
 
@@ -177,6 +180,15 @@ function setup(options: SetupOptions = {}) {
         },
       },
       { provide: MatDialogRef, useValue: { close: (result?: unknown) => closeCalls.push(result) } },
+      {
+        provide: MatSnackBar,
+        useValue: {
+          open: (message: string, action?: string) => {
+            snackBarCalls.push({ message, action })
+            return { afterDismissed: () => of(undefined) }
+          },
+        },
+      },
       { provide: OrderInteractionService, useValue: {} },
       { provide: PreOrderService, useValue: {} },
       { provide: DeviceConfigService, useValue: {} },
@@ -204,7 +216,7 @@ function setup(options: SetupOptions = {}) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const component = runInInjectionContext(injector, () => new OrderDialogComponent()) as any
 
-  return { component, createdOrders, redeemCalls, openedDialogs, closeCalls, dialogResult }
+  return { component, createdOrders, redeemCalls, openedDialogs, closeCalls, snackBarCalls, dialogResult }
 }
 
 /** Legt `count` Zeilen desselben Bundle-Produkts an und gibt die `_id`s zurueck. */
@@ -505,10 +517,50 @@ describe('OrderDialog — Snapshot-Bau in placeOrder', () => {
     expect(createdOrders[0]['staffMealDetails']).toMatchObject({ userId: CURRENT_USER_ID, isPaid: false })
   })
 
-  it('Personalessen verwirft einen zuvor gewaehlten Order-Rabatt', async () => {
-    // Erreichbar, weil `setAsStaffMealOrder()` die Auswahl nicht zuruecksetzt: erst
-    // Rabatt waehlen, dann Personalessen druecken. Ein zweiter Rabatt liesse die
-    // Bestellung serverseitig mit 400 scheitern (assertStaffMealDiscountExclusivity).
+  it('Personalessen raeumt einen zuvor gewaehlten Order-Rabatt sichtbar weg', () => {
+    // Reihenfolge erst Rabatt, dann Personalessen. Fachlich entfaellt der Rabatt
+    // ohnehin (assertStaffMealDiscountExclusivity) — er darf aber nicht bis zum
+    // Abschluss im Dialog stehenbleiben und dann stumm verschwinden (#234).
+    const { component } = setup({ staffMealDiscountId: 'disc-staff', activeDiscounts: [staffMealDiscount] })
+    component.increaseLineItem(product('p-1'))
+    component.selectedManualDiscount.set(managedDiscount({ _id: 'disc-manual', name: 'Kulanz' }))
+
+    component.setAsStaffMealOrder()
+
+    expect(component.selectedManualDiscount()).toBeNull()
+    expect(component.infoBoxText).toBe('Personalessen: gewählter Rabatt wurde entfernt')
+  })
+
+  it('Personalessen ohne gewaehlten Rabatt meldet nichts', () => {
+    // Sonst stuende die Meldung bei jedem Druck auf die Taste da und waere in genau
+    // dem Fall, der sie braucht, nicht mehr zu unterscheiden.
+    const { component } = setup({ staffMealDiscountId: 'disc-staff', activeDiscounts: [staffMealDiscount] })
+    component.increaseLineItem(product('p-1'))
+
+    component.setAsStaffMealOrder()
+
+    expect(component.infoBoxText).not.toBe('Personalessen: gewählter Rabatt wurde entfernt')
+  })
+
+  it('Personalessen abwaehlen raeumt keinen Rabatt weg', () => {
+    // Geraeumt wird nur beim EINschalten. Der hier hergestellte Zustand
+    // („Personalessen aktiv UND Rabatt gesetzt") ist ueber die UI nicht erreichbar,
+    // weil `openDiscountPicker()` dann sperrt — die Richtungspruefung im Code haelt
+    // aber fest, dass das Abwaehlen nichts wegnimmt. Ohne diesen Test faellt sie beim
+    // naechsten Aufraeumen weg, und dann loescht ein Abwaehlen fremde Auswahl.
+    const { component } = setup({ staffMealDiscountId: 'disc-staff', activeDiscounts: [staffMealDiscount] })
+    component.increaseLineItem(product('p-1'))
+    component.setAsStaffMealOrder()
+    component.selectedManualDiscount.set(managedDiscount({ _id: 'disc-manual', name: 'Kulanz' }))
+    component.setInfoBoxText('Bitte wählen Sie eine Produktkategorie')
+
+    component.setAsStaffMealOrder()
+
+    expect(component.selectedManualDiscount()).not.toBeNull()
+    expect(component.infoBoxText).toBe('Bitte wählen Sie eine Produktkategorie')
+  })
+
+  it('Personalessen traegt auch nach einer verworfenen Rabattwahl genau den Personalessen-Rabatt', async () => {
     const { component, createdOrders } = setup({
       staffMealDiscountId: 'disc-staff',
       activeDiscounts: [staffMealDiscount],
@@ -649,14 +701,46 @@ describe('OrderDialog — Snapshot-Bau in placeOrder', () => {
     // Ohne Einloesung vergibt der Server die ID wie gewohnt.
     expect(createdOrders[0]['_id']).toBeUndefined()
     expect(component.appliedCodeDiscount()).toBeNull()
+    expect(closeCalls).toHaveLength(1)
+  })
 
-    // 🚨 BESTANDSVERHALTEN, nicht Sollverhalten: `placeOrder` setzt zwar
-    // „Rabattcode nicht eingelöst — …" in die Infobox, ueberschreibt sie aber
-    // unmittelbar danach ueber `unselectProduct()` und schliesst den Dialog. Der
-    // Kassierer erfaehrt den Grund also nicht — entgegen dem Kommentar an der
-    // Fundstelle. Als eigener Befund gemeldet (#231 haelt hier nur fest, was ist).
+  it('eine gescheiterte Einloesung meldet den Grund ueber den Dialogschluss hinaus', async () => {
+    // Der Kern von #234: Die Meldung muss den Dialogschluss ueberleben. Die Infobox
+    // tut das nicht — `unselectProduct()` ueberschreibt sie noch in `placeOrder`,
+    // und `close()` nimmt sie mit. Beides wird hier mitgeprueft, damit ein Rueckbau
+    // auf `setInfoBoxText` auffaellt statt still zu passieren.
+    const { component, closeCalls, snackBarCalls } = setup({ redeemResult: { ok: false, reason: 'exhausted' } })
+    component.increaseLineItem(product('p-1'))
+    component.appliedCodeDiscount.set({ ok: true, code: 'AUFGEBRAUCHT' })
+
+    await component.placeOrder()
+
+    expect(snackBarCalls).toHaveLength(1)
+    expect(snackBarCalls[0].message).toMatch(/^Rabattcode nicht eingelöst — /)
+    // Ohne `duration` bleibt die Snackbar bis zur Quittierung stehen; die Aktion ist
+    // der einzige Weg, sie zu schliessen.
+    expect(snackBarCalls[0].action).toBe('OK')
+
+    // Gegenprobe: Die Infobox traegt die Meldung nicht (mehr) — sie waere unsichtbar.
     expect(component.infoBoxText).toBe('Bitte wählen Sie eine Produktkategorie')
     expect(closeCalls).toHaveLength(1)
+  })
+
+  it('eine geglueckte Einloesung meldet nichts', async () => {
+    const { component, snackBarCalls } = setup({
+      redeemResult: {
+        ok: true,
+        code: 'SOMMER',
+        discountCodeId: 'dc-1',
+        discount: { valueType: 'amount', valueCents: 200 },
+      },
+    })
+    component.increaseLineItem(product('p-1'))
+    component.appliedCodeDiscount.set({ ok: true, code: 'SOMMER' })
+
+    await component.placeOrder()
+
+    expect(snackBarCalls).toHaveLength(0)
   })
 
   it('nach dem Abschicken ist der Rabattzustand leer', async () => {

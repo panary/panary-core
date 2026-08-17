@@ -77,7 +77,7 @@ importers:
         version: 5.0.46
       '@feathersjs/knex':
         specifier: ^5.0.46
-        version: 5.0.46(knex@3.2.10(better-sqlite3@11.10.0))
+        version: 5.0.46(knex@3.3.0(better-sqlite3@11.10.0))
       '@feathersjs/koa':
         specifier: ^5.0.46
         version: 5.0.46(typescript@6.0.3)
@@ -127,8 +127,8 @@ importers:
         specifier: ^8.0.3
         version: 8.0.3
       knex:
-        specifier: ^3.1.0
-        version: 3.2.10(better-sqlite3@11.10.0)
+        specifier: ^3.3.0
+        version: 3.3.0(better-sqlite3@11.10.0)
       koa-mount:
         specifier: ^4.2.0
         version: 4.2.0
@@ -6836,12 +6836,13 @@ packages:
     resolution: {integrity: sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==}
     engines: {node: '>=0.10.0'}
 
-  knex@3.2.10:
-    resolution: {integrity: sha512-oypTHfrc9i72iyxaUQBKHOxhcr0xM65MPf6FpN02nimsftXwzXprIkLjfXdubvhbu4PMWLp023q8o8CYvHSuZw==}
+  knex@3.3.0:
+    resolution: {integrity: sha512-LgWl031hNuLv9Lhxdd9093zULa2aNcoP04Bk29e5NidgRcEr/T0rAr2WYi4BhjTiCDoQiRU56meUE5rppLKZzQ==}
     engines: {node: '>=16'}
     hasBin: true
     peerDependencies:
       better-sqlite3: '*'
+      mariadb: '*'
       mysql: '*'
       mysql2: '*'
       pg: '*'
@@ -6851,6 +6852,8 @@ packages:
       tedious: '*'
     peerDependenciesMeta:
       better-sqlite3:
+        optional: true
+      mariadb:
         optional: true
       mysql:
         optional: true
@@ -9024,8 +9027,8 @@ packages:
     resolution: {integrity: sha512-MFO/QzvtAOmJbkhOaCTvbGcFN9L9b+JunIsDwaKljSOdcLMea3NJ1k9Usz/rjdfSXTq4dfzfeS7W4p4YOAAHeA==}
     engines: {node: '>=18'}
 
-  tarn@3.0.2:
-    resolution: {integrity: sha512-51LAVKUSZSVfI05vjPESNc5vwqqZpbXCsU+/+wxlOrUjk2SnFTt97v9ZgQrD4YmxYW1Px6w2KjaDitCfkvgxMQ==}
+  tarn@3.1.2:
+    resolution: {integrity: sha512-3RTvqKZcK/17jnJ8rMKFXbyNogywTs1z0gVPPwFsJGX46rkmUHOdIaSQ/aVO1rS7nH+soiXiWk7rvUXxndm8Dg==}
     engines: {node: '>=8.0.0'}
 
   tcp-port-used@1.0.3:
@@ -11307,13 +11310,13 @@ snapshots:
 
   '@feathersjs/hooks@0.9.0': {}
 
-  '@feathersjs/knex@5.0.46(knex@3.2.10(better-sqlite3@11.10.0))':
+  '@feathersjs/knex@5.0.46(knex@3.3.0(better-sqlite3@11.10.0))':
     dependencies:
       '@feathersjs/adapter-commons': 5.0.46
       '@feathersjs/commons': 5.0.46
       '@feathersjs/errors': 5.0.46
       '@feathersjs/feathers': 5.0.46
-      knex: 3.2.10(better-sqlite3@11.10.0)
+      knex: 3.3.0(better-sqlite3@11.10.0)
 
   '@feathersjs/koa@5.0.46(typescript@6.0.3)':
     dependencies:
@@ -17171,7 +17174,7 @@ snapshots:
 
   kind-of@6.0.3: {}
 
-  knex@3.2.10(better-sqlite3@11.10.0):
+  knex@3.3.0(better-sqlite3@11.10.0):
     dependencies:
       colorette: 2.0.19
       commander: 10.0.1
@@ -17185,7 +17188,7 @@ snapshots:
       pg-connection-string: 2.6.2
       rechoir: 0.8.0
       resolve-from: 5.0.0
-      tarn: 3.0.2
+      tarn: 3.1.2
       tildify: 2.0.0
     optionalDependencies:
       better-sqlite3: 11.10.0
@@ -19686,7 +19689,7 @@ snapshots:
       minizlib: 3.1.0
       yallist: 5.0.0
 
-  tarn@3.0.2: {}
+  tarn@3.1.2: {}
 
   tcp-port-used@1.0.3:
     dependencies:

@@ -47,7 +47,13 @@ minimumReleaseAgeExclude:
   # das Lockfile still auf die vorige Version zurueck.
   - '@panary/*'
   #
-  # --- Befristete Ausnahmen: aktuell KEINE ------------------------------------
+  # --- Befristete Ausnahmen -----------------------------------------------------
+  # qs: Override ^6.16.0 (GHSA-4mjr-xmp4-gh2g, GHSA-x5fp-wj9c-mxmx). 6.16.0 ist
+  # am 2026-08-29 23:50 UTC publiziert und wird am 2026-09-05 23:50 UTC reif —
+  # bis dahin laege im Range keine reife Version. Abwaegung gegen das Warten:
+  # docs/security/osv-befund-2026-09-04.md. DANACH ENTFERNEN (auch in
+  # panary-cloud und am Workbench-Root).
+  - 'qs' # reif ab 2026-09-05 23:50 UTC
   # Ein Paket gehoert nur so lange hierher, wie sein package.json-Override auf
   # eine Version zeigt, die die Karenz noch blockiert — sonst scheitert jede
   # vollstaendige Neuaufloesung (Edge-Docker, POS-Windows-Release) mit

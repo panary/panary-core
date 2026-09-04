@@ -47,7 +47,7 @@ jobs:
       NX_SELF_HOSTED_REMOTE_CACHE_SERVER: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || secrets.NX_CACHE_RO_TOKEN != '') && secrets.NX_CACHE_SERVER_URL || '' }}
       NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && secrets.NX_CACHE_RW_TOKEN || secrets.NX_CACHE_RO_TOKEN }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           filter: tree:0
           fetch-depth: 0

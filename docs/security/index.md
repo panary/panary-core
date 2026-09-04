@@ -2,6 +2,7 @@
 
 Sicherheitskonzepte, RBAC, Härtungen und Security-Reviews (`type: Architecture` oder `Report`).
 
+* [OSV-Befund 2026-09-04 — browserslist, fast-uri und qs per Override-Floor geschlossen](osv-befund-2026-09-04.md) - Neun am 01./02.09. veröffentlichte Advisories (browserslist 2×, fast-uri 4×, qs 2×) ließen den nächtlichen OSV-Scan ab dem 2026-09-02 rot werden; alle drei Pakete sind rein transitiv und über Override-Floors geschlossen — qs 6.16.0 nur mit befristeter Karenz-Ausnahme, weil die Version erst am 2026-09-05 23:50 UTC reif wird.
 * [OSV-Befund 2026-08-13 — nanoid 3.3.17 nachträglich in die Advisory-Range gerutscht](osv-befund-2026-08-13.md) - Eine Range-Erweiterung an GHSA-2v37-7h3g-55p8 machte den bisherigen Fix 3.3.17 selbst verwundbar; der Nachfolger 3.3.18 wurde ohne Karenz-Ausnahme abgewartet, und dabei zeigte sich, dass weder pnpm install noch ein zu früher pnpm update die Version hebt — beide laufen still mit Exit 0 durch.
 * [E-Mail-Identität — Edge- & Shared-Schema-Impact](email-identity-edge-impact.md) - Auswirkungen der E-Mail-Login-Umstellung auf Edge und geteiltes Users-Schema: optionale loginname/password-Felder, accountId und Cloud-zu-Edge-Sync-Projektion.
 * [Edge-authorize — Hybrid-RBAC (hasEffectivePermission) + explizites Method-Mapping](edge-authorize-hybrid-rbac.md) - Edge-authorize()-Hook setzt Hybrid-RBAC via hasEffectivePermission durch — explizites Method-Mapping, MANAGE-only-Fallback und Wegfall der SYSTEM-Wildcard.

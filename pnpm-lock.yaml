@@ -143,8 +143,8 @@ importers:
         specifier: ^7.1.0
         version: 7.3.0(socks@2.8.9)
       mqtt:
-        specifier: ^5.15.1
-        version: 5.15.1
+        specifier: ^5.15.2
+        version: 5.15.2
       socket.io-client:
         specifier: ^4.8.3
         version: 4.8.3
@@ -4309,8 +4309,8 @@ packages:
   '@types/range-parser@1.2.7':
     resolution: {integrity: sha512-hKormJbkJqzQGhziax5PItDUTMAM9uE2XXQmM37dyd4hVM+5aVl7oVxMVUiVQn2oCQFN/LKCZdvSM0pFRqbSmQ==}
 
-  '@types/readable-stream@4.0.23':
-    resolution: {integrity: sha512-wwXrtQvbMHxCbBgjHaMGEmImFTQxxpfMOR/ZoQnXxB1woqkUbdLGFDgauo00Py9IudiaqSeiBiulSV9i6XIPig==}
+  '@types/readable-stream@4.0.24':
+    resolution: {integrity: sha512-NRvUNC/JFGPJvqdAfEve8oginbM6V08u5NzLWpG8MwA2kTPOLnqk+wpwuPT+mp3aUsxyuT6m2gnrPuHYCruzEg==}
 
   '@types/resolve@1.20.2':
     resolution: {integrity: sha512-60BCwRFOZCQhDncwQdxxeOEEkbc5dIMccYLwbxsS4TUNeVECQ/pBJ0j09mrHOl/JJvpRPGwO9SvE4nR2Nb/a4Q==}
@@ -6529,10 +6529,6 @@ packages:
     resolution: {integrity: sha512-Ju0Bz/cEia55xDwUWEa8+olFpCiQoypjnQySseKtmjNrnps3P+xfpUmGr90T7yjlVJmOtybRvPXhKMbHr+fWnw==}
     engines: {node: '>= 0.10'}
 
-  ip-address@10.3.1:
-    resolution: {integrity: sha512-1e9d3kb97NHJTIJDZW9rKqW2h6+dFa50Dy0fpPSMQp2ADje5gvKsXmdiK6dwY5t76TaTt5+P5N1Y/LoToIxP6g==}
-    engines: {node: '>= 12'}
-
   ip-address@10.7.0:
     resolution: {integrity: sha512-BGFsyJd5mpXp3rK6jIdADLNgpJUK1jnjzvYF8lK+VyDab9JAmqN0YOKDdP17HlgKb2+ehPgDc8EtnRLbGCAMhA==}
     engines: {node: '>= 12'}
@@ -7267,10 +7263,6 @@ packages:
   lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
 
-  lru-cache@11.5.1:
-    resolution: {integrity: sha512-RPimw/7aMdv2oqRrxKwvZXcPfwBrn/JZ2xYcY9Hus/6LaS3VOAKVWKWgNLCFSiOm1ESXinjsDlidVU7JlnCN2A==}
-    engines: {node: 20 || >=22}
-
   lru-cache@11.5.2:
     resolution: {integrity: sha512-4pfM1Ff0x50o0tQwb5ucw/RzNyD0/YJME6IVcStalZuMWxdt3sR3huStTtxz4PUmvZfRguvDejasvQ2kifR11g==}
     engines: {node: 20 || >=22}
@@ -7546,8 +7538,8 @@ packages:
   mqtt-packet@9.0.2:
     resolution: {integrity: sha512-MvIY0B8/qjq7bKxdN1eD+nrljoeaai+qjLJgfRn3TiMuz0pamsIWY2bFODPZMSNmabsLANXsLl4EMoWvlaTZWA==}
 
-  mqtt@5.15.1:
-    resolution: {integrity: sha512-V1WnkGuJh3ec9QXzy5Iylw8OOBK+Xu1WhxcQ9mMpLThG+/JZIMV1PgLNRgIiqXhZnvnVLsuyxHl5A/3bHHbcAA==}
+  mqtt@5.15.2:
+    resolution: {integrity: sha512-VWZU2CSUY3U3oN0PSBRDE5SNsFi4zqqNeQ/uv3pZWqY3CrBXD/dhd0ZLjlsk5YnebGlrapi4lRVNJPUNQ5aZ3w==}
     engines: {node: '>=16.0.0'}
     hasBin: true
 
@@ -9742,14 +9734,14 @@ packages:
   worker-factory@7.0.50:
     resolution: {integrity: sha512-hhwc0G+sFwM4qBuhJIUBn2p1Jf8v/FwmLUANBf/Q+Lt2uI8mfIZQhXaZQACodQD4R7Zp6cn/6702bIvNn2puJQ==}
 
-  worker-timers-broker@8.0.16:
-    resolution: {integrity: sha512-JyP3AvUGyPGbBGW7XiUewm2+0pN/aYo1QpVf5kdXAfkDZcN3p7NbWrG6XnyDEpDIvfHk/+LCnOW/NsuiU9riYA==}
+  worker-timers-broker@8.0.18:
+    resolution: {integrity: sha512-FrjzDVX1wKfZN0gRbCFqv8VHuTncG4sbI/WGEg4tSSQeIsnwqg4YBYWMAHYLJtUDEYYmiK65UKFrVMVk2irDSg==}
 
-  worker-timers-worker@9.0.14:
-    resolution: {integrity: sha512-/qF06C60sXmSLfUl7WglvrDIbspmPOM8UrG63Dnn4bi2x4/DfqHS/+dxF5B+MdHnYO5tVuZYLHdAodrKdabTIg==}
+  worker-timers-worker@9.0.15:
+    resolution: {integrity: sha512-KKUe7lZ/Aignr51H6hOUik8LwTnIgojH/1lwhli8A8qIEIyewogZTpNpMW5B6BF7nmwBOkUoTYgf1H3QShcjSA==}
 
-  worker-timers@8.0.31:
-    resolution: {integrity: sha512-ngkq5S6JuZyztom8tDgBzorLo9byhBMko/sXfgiUD945AuzKGg1GCgDMCC3NaYkicLpGKXutONM36wEX8UbBCA==}
+  worker-timers@8.0.34:
+    resolution: {integrity: sha512-WXL+Dqsm0G6dnC66rQsvM3tPT2adhbqSirWUCZGglkALOr8ocS0KlpU0iuKbjflJOlu3ydZikMEVrYnHOM9suw==}
 
   workerpool@9.3.4:
     resolution: {integrity: sha512-TmPRQYYSAnnDiEB0P/Ytip7bFGvqnSU6I2BcuSw7Hx+JSg/DsUi5ebYfc8GYaSdpuvOcEs6dXxPurOYpe9QFwg==}
@@ -9789,8 +9781,8 @@ packages:
       utf-8-validate:
         optional: true
 
-  ws@8.21.1:
-    resolution: {integrity: sha512-+0NTnW77fFN/DjQi6k/Sq/Yvk4Sgajw7urW8V+asjXnRgDs9gyGkdb7EzgfhA4goXsRIZKE28fzIXBHEzhuiWw==}
+  ws@8.21.3:
+    resolution: {integrity: sha512-201TZ/kPWxoPr/OKWjquZR1SWKXcvxdH+e1xrx89b3YbmzLMFCLfnaG1HFIgWzJOEWZ7MvpK++odZufgYR50Rw==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -10265,7 +10257,7 @@ snapshots:
       '@csstools/css-color-parser': 4.1.3(@csstools/css-parser-algorithms@4.0.0(@csstools/css-tokenizer@4.0.0))(@csstools/css-tokenizer@4.0.0)
       '@csstools/css-parser-algorithms': 4.0.0(@csstools/css-tokenizer@4.0.0)
       '@csstools/css-tokenizer': 4.0.0
-      lru-cache: 11.5.1
+      lru-cache: 11.5.2
 
   '@asamuzakjp/dom-selector@6.8.1':
     dependencies:
@@ -10273,7 +10265,7 @@ snapshots:
       bidi-js: 1.0.3
       css-tree: 3.2.1
       is-potential-custom-element-name: 1.0.1
-      lru-cache: 11.5.1
+      lru-cache: 11.5.2
 
   '@asamuzakjp/nwsapi@2.3.9': {}
 
@@ -12064,10 +12056,10 @@ snapshots:
       '@module-federation/sdk': 2.8.1
       '@module-federation/third-party-dts-extractor': 2.8.1
       adm-zip: 0.6.0
-      isomorphic-ws: 5.0.0(ws@8.21.1)
+      isomorphic-ws: 5.0.0(ws@8.21.3)
       typescript: 6.0.3
       undici: 7.29.0
-      ws: 8.21.1
+      ws: 8.21.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -13779,7 +13771,7 @@ snapshots:
       sockjs: 0.3.24
       spdy: 4.0.2
       webpack-dev-middleware: 7.4.5(tslib@2.8.1)(webpack@5.109.2(@swc/core@1.15.41(@swc/helpers@0.5.23))(esbuild@0.28.1)(lightningcss@1.32.0)(postcss@8.5.23))
-      ws: 8.21.1
+      ws: 8.21.3
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -14305,7 +14297,7 @@ snapshots:
 
   '@types/range-parser@1.2.7': {}
 
-  '@types/readable-stream@4.0.23':
+  '@types/readable-stream@4.0.24':
     dependencies:
       '@types/node': 25.9.5
 
@@ -15176,7 +15168,7 @@ snapshots:
 
   bl@6.1.6:
     dependencies:
-      '@types/readable-stream': 4.0.23
+      '@types/readable-stream': 4.0.24
       buffer: 6.0.3
       inherits: 2.0.4
       readable-stream: 4.7.0
@@ -15725,7 +15717,7 @@ snapshots:
       '@asamuzakjp/css-color': 4.1.2
       '@csstools/css-syntax-patches-for-csstree': 1.1.5(css-tree@3.2.1)
       css-tree: 3.2.1
-      lru-cache: 11.5.1
+      lru-cache: 11.5.2
 
   data-urls@6.0.1:
     dependencies:
@@ -15916,7 +15908,7 @@ snapshots:
       '@socket.io/component-emitter': 3.1.2
       debug: 4.4.3
       engine.io-parser: 5.2.3
-      ws: 8.21.0
+      ws: 8.21.3
       xmlhttprequest-ssl: 2.1.2
     transitivePeerDependencies:
       - bufferutil
@@ -15936,7 +15928,7 @@ snapshots:
       cors: 2.8.6
       debug: 4.4.3
       engine.io-parser: 5.2.3
-      ws: 8.21.0
+      ws: 8.21.3
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -16834,8 +16826,6 @@ snapshots:
 
   interpret@2.2.0: {}
 
-  ip-address@10.3.1: {}
-
   ip-address@10.7.0: {}
 
   ip-regex@2.1.0: {}
@@ -16940,9 +16930,9 @@ snapshots:
 
   isobject@3.0.1: {}
 
-  isomorphic-ws@5.0.0(ws@8.21.1):
+  isomorphic-ws@5.0.0(ws@8.21.3):
     dependencies:
-      ws: 8.21.1
+      ws: 8.21.3
 
   istanbul-lib-coverage@3.2.2: {}
 
@@ -17723,8 +17713,6 @@ snapshots:
 
   lru-cache@10.4.3: {}
 
-  lru-cache@11.5.1: {}
-
   lru-cache@11.5.2: {}
 
   lru-cache@5.1.1:
@@ -17973,9 +17961,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  mqtt@5.15.1:
+  mqtt@5.15.2:
     dependencies:
-      '@types/readable-stream': 4.0.23
+      '@types/readable-stream': 4.0.24
       '@types/ws': 8.18.1
       commist: 3.2.0
       concat-stream: 2.0.0
@@ -17989,8 +17977,8 @@ snapshots:
       rfdc: 1.4.1
       socks: 2.8.9
       split2: 4.2.0
-      worker-timers: 8.0.31
-      ws: 8.21.0
+      worker-timers: 8.0.34
+      ws: 8.21.3
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -19621,7 +19609,7 @@ snapshots:
   socket.io-adapter@2.5.8:
     dependencies:
       debug: 4.4.3
-      ws: 8.21.0
+      ws: 8.21.3
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -19675,7 +19663,7 @@ snapshots:
 
   socks@2.8.9:
     dependencies:
-      ip-address: 10.3.1
+      ip-address: 10.7.0
       smart-buffer: 4.2.0
 
   source-map-js@1.2.1: {}
@@ -20365,7 +20353,7 @@ snapshots:
       sockjs: 0.3.24
       spdy: 4.0.2
       webpack-dev-middleware: 7.4.5(tslib@2.8.1)(webpack@5.109.2(@swc/core@1.15.41(@swc/helpers@0.5.23))(esbuild@0.28.1)(lightningcss@1.32.0)(postcss@8.5.23))
-      ws: 8.21.1
+      ws: 8.21.3
     optionalDependencies:
       webpack: 5.109.2(@swc/core@1.15.41(@swc/helpers@0.5.23))(esbuild@0.28.1)(lightningcss@1.32.0)(postcss@8.5.23)
     transitivePeerDependencies:
@@ -20513,26 +20501,26 @@ snapshots:
       fast-unique-numbers: 9.0.27
       tslib: 2.8.1
 
-  worker-timers-broker@8.0.16:
+  worker-timers-broker@8.0.18:
     dependencies:
       '@babel/runtime': 7.29.7
       broker-factory: 3.1.15
       fast-unique-numbers: 9.0.27
       tslib: 2.8.1
-      worker-timers-worker: 9.0.14
+      worker-timers-worker: 9.0.15
 
-  worker-timers-worker@9.0.14:
+  worker-timers-worker@9.0.15:
     dependencies:
       '@babel/runtime': 7.29.7
       tslib: 2.8.1
       worker-factory: 7.0.50
 
-  worker-timers@8.0.31:
+  worker-timers@8.0.34:
     dependencies:
       '@babel/runtime': 7.29.7
       tslib: 2.8.1
-      worker-timers-broker: 8.0.16
-      worker-timers-worker: 9.0.14
+      worker-timers-broker: 8.0.18
+      worker-timers-worker: 9.0.15
 
   workerpool@9.3.4: {}
 
@@ -20569,7 +20557,7 @@ snapshots:
 
   ws@8.21.0: {}
 
-  ws@8.21.1: {}
+  ws@8.21.3: {}
 
   wsl-utils@0.1.0:
     dependencies:

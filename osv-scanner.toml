@@ -39,3 +39,26 @@ reason = "Kein Fix verfuegbar (alle Versionen <= 2.0.2 betroffen, latest ist 2.0
 id = "GHSA-w3rx-r6r6-pgpr"  # image-size: ICNS-Parser, DoS durch Endlosschleife (CVSS 8.7)
 ignoreUntil = 2026-11-07
 reason = "Kein Fix verfuegbar (alle Versionen <= 2.0.2 betroffen, latest ist 2.0.2). Build-Zeit-Abhaengigkeit: optionalDependency von less, das ueber less-loader an @nx/rspack/@nx/webpack haengt. Vorbedingung ist ein angreifergelieferter ICNS-Bildpuffer; less erreicht image-size nur ueber image-size()/image-width()/image-height() und im Repo gibt es 0 .less-Dateien und 0 Aufrufe dieser Funktionen. Re-Evaluation bei Fix oder sobald .less-Dateien einziehen."
+
+# --- adm-zip: kein Fix verfuegbar ------------------------------------------
+# GHSA-vwc7-r8mq-g2x9 (CVSS 6.8): Utils.sanitize vergleicht nur den String des
+# Eintragsnamens gegen das Zielverzeichnis, writeFileTo oeffnet den Zielpfad
+# ohne O_NOFOLLOW/lstat — liegt am Ziel bereits ein Symlink nach aussen,
+# schreibt extractAllTo/extractEntryTo durch ihn hindurch. Betroffen 0.5.9 bis
+# 0.6.0; 0.6.0 IST die neueste Version (npm `latest`, 2026-07-10), kein Patch.
+#
+# Herkunft: rein transitiv und dev-only — @nx/angular > @nx/module-federation >
+# @module-federation/dts-plugin (entpackt Remote-Typ-Archive waehrend eines
+# Module-Federation-Builds). Module Federation wird nicht genutzt: 0 Vorkommen
+# von module-federation/withModuleFederation in apps/ und libs/ (gemessen
+# 2026-09-10). Vorbedingung — ein angreifergeliefertes Archiv, entpackt in ein
+# Ziel mit vorhandenen Symlinks — ist auf keinem Pfad erreichbar; adm-zip ist in
+# keinem Laufzeit-Image enthalten.
+#
+# Re-Evaluation spaetestens zum ignoreUntil-Datum, frueher bei einem Fix (dann
+# Override-Floor statt Ignore) oder sobald Module Federation eingefuehrt wird.
+# Pendant in panary-cloud/osv-scanner.toml + auditConfig.ignoreGhsas.
+[[IgnoredVulns]]
+id = "GHSA-vwc7-r8mq-g2x9"  # adm-zip: Symlink-Follow beim Entpacken (CVSS 6.8)
+ignoreUntil = 2026-12-10
+reason = "Kein Fix verfuegbar (0.5.9-0.6.0 betroffen, 0.6.0 ist latest). Dev-only transitiv via @nx/angular > @nx/module-federation > @module-federation/dts-plugin; Module Federation wird nicht genutzt (0 Vorkommen in apps/ und libs/), adm-zip ist in keinem Laufzeit-Image. Vorbedingung ist ein angreifergeliefertes Archiv, entpackt in ein Ziel mit vorhandenen Symlinks. Re-Evaluation bei Fix oder sobald Module Federation einzieht."

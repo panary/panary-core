@@ -5,7 +5,7 @@ description: 'Nx-Release-basiertes Publishing der publishable @panary-Libs nach 
 tags: [infra, publishing, registry, nx]
 status: stable
 decision: accepted
-generated: { by: claude-code/historic, at: 2026-05-20T00:00:00Z }
+generated: { by: claude-code/opus-5, at: 2026-09-11T19:40:00Z }
 ---
 
 # Library-Publishing — `@panary/*` via GitHub Packages
@@ -50,10 +50,21 @@ Source.
 ## Was wird publiziert (publishable-Menge)
 
 Publiziert wird jedes Nx-Projekt mit `tag: publishable`. Seit Option A
-(Registry-Autarkie für panary-cloud, 2026-06-12) **38 Projekte**: 35
+(Registry-Autarkie für panary-cloud, 2026-06-12) **39 Projekte**: 35
 Domain-Parents (alle `libs/domains/*` mit Parent-`package.json`) +
 `@panary/shared` + `@panary/shared-common` + `@panary/shared-backend` +
 `@panary/util-error-handling`.
+
+> Die Zahl stand hier bis 2026-09-11 als „38", während die Aufzählung daneben
+> schon immer 35 + 4 ergab. Sie ist nicht abzuschreiben, sondern zu messen:
+>
+> ```bash
+> pnpm nx show projects --projects="tag:publishable" --json | node -p "JSON.parse(require('fs').readFileSync(0)).length"
+> node tools/scripts/publishable-manifests.mjs --list | wc -l   # muss dieselbe Zahl liefern
+> ```
+>
+> Laufen die beiden auseinander, ist ein publishable Projekt für den Release-Bump
+> unsichtbar — genau der Fall, den das Gate unten abfängt.
 
 Publishable wird ein Domain-Paket durch:
 1. **Eltern-`package.json`** (`libs/domains/<name>/package.json`):
@@ -133,36 +144,74 @@ Das 5-Datei-Muster pro Domain-`data-access` (Referenz: `user-preferences`):
 
 ```bash
 cd panary-core
-
-# 1. Version aller publishable Libs setzen (bumpt package.json + peer-Ranges).
-#    Specifier: konkrete Version oder patch/minor/major.
-pnpm nx release version 26.5.0
-
-# 2. Geänderte package.json committen.
-git add libs/domains/*/package.json libs/shared/*/package.json
-git commit -m "chore(release): @panary/* auf 26.5.0"
-
-# 3. Tag setzen + pushen → triggert publish-libraries.yml.
-git tag v26.5.0
-git push --follow-tags
+pnpm release          # Edge + POS + Libs: bumpt, committet, taggt, pusht
 ```
 
-Der Workflow `.github/workflows/publish-libraries.yml` baut bei Tag-Push alle
-`tag:publishable`-Libs und führt `pnpm nx release publish` aus
-(`currentVersionResolver: "disk"` → publiziert die in den package.json stehende
-Version). Auth via `GITHUB_TOKEN` (`packages: write`).
+`pnpm release` (→ `tools/scripts/release-tag.sh` → `tools/scripts/bump-version.mjs`)
+hebt in **einem** Schritt alles auf dieselbe Nummer: Root-`package.json`,
+`apps/api-edge/package.json`, `tauri.conf.json`, die `LICENSE` (BSL Change Date)
+und die **39 publishable Lib-Manifeste**. Der Release-Commit umfasst damit
+**43 Dateien**; eine kleinere Zahl ist ein Befund, kein Glück.
 
-**Sicheres Testen ohne Veröffentlichung:** Workflow manuell via
-`workflow_dispatch` mit Default `dry-run='true'` starten — oder lokal:
+Gegenprobe nach dem Lauf — außer der `Change Date`-Zeile der LICENSE darf nichts
+Nicht-Versioniertes im Commit stehen:
+
 ```bash
-pnpm nx run-many -t build --projects="tag:publishable"
-pnpm nx release publish --dry-run
+git show HEAD -U0 | grep -E '^[+-]' | grep -v '^[+-][+-]' | grep -v '"version"'
 ```
 
-> **Versionsschema:** `YY.MM.INDEX` (konsistent mit `bump-version.mjs`).
-> `bump-version.mjs` bleibt für die **App**-Version (Edge/POS/Tauri) zuständig;
-> die **Lib**-Version läuft über `nx release version`. Beide dürfen, müssen aber
-> nicht dieselbe Nummer tragen.
+### Lib-Release ohne Edge-/POS-Rollout
+
+Wirkt eine Core-Änderung nur cloud-seitig (neuer Enum-Wert, Schema-Feld ohne
+Edge-Konsument), ist ein `v*`-Tag zu teuer: Er triggert neben
+`publish-libraries.yml` auch `build-edge-docker.yml` und `release-pos.yml`, also
+einen Prod-Rollout auf alle Kunden binnen ~1 h — panary-core hat **keinen**
+Staging-Kanal. Stattdessen:
+
+```bash
+node tools/scripts/bump-version.mjs            # schreibt sofort, kein Dry-Run
+git add -A && git commit -m "chore(release): Versionen auf <X> anheben"
+gh workflow run publish-libraries.yml --ref main -f dry-run=false
+```
+
+Kein Tag — der Release-Commit ist der einzige Marker. Der Dispatch-Pfad nutzt
+`currentVersionResolver: "disk"`, publiziert also genau den committeten Stand.
+
+### Das Gate gegen den stillen Fehlschlag
+
+Bis 2026-09-11 pflegte die Lib-Version ein **zweiter**, eigenständig
+auszulösender Pfad (`pnpm nx release version <X>`), während `pnpm release` nur
+die App-Dateien anfasste. Wurde er vergessen, lief `publish-libraries.yml`
+trotzdem: `nx release publish` versuchte die bereits veröffentlichte Vorversion
+erneut hochzuladen und meldete dabei **success**. Gemessen an den `v26.8.*`-Tags
+traf das `26.8.1`, `26.8.6`, `26.8.15` und `26.8.21`; im Repo stehen sieben
+nachträgliche Heilungs-Commits.
+
+Der Schaden war nicht kosmetisch: Zwischen Release und Heilung liefen Edge und
+Cloud auf verschiedenen Schema-Ständen. Bei `26.8.21` ging es um das Feld
+`discounts` im geteilten `receiptSchema` — geschlossen mit
+`additionalProperties: false`. Ein Edge auf 26.8.21 schickte rabattierte Belege
+mit dem Feld, eine Cloud auf 26.8.20-Libs wies sie bei der Validierung ab: Sync
+TERMINAL, kein Retry, Operation weg.
+
+Zwei Gegenmaßnahmen, beide in `publish-libraries.yml`:
+
+| Schritt | Trigger | Prüft |
+|---|---|---|
+| `Lib-Versionen gegen Tag-Version pruefen` | nur Tag-Push | Jedes publishable Manifest trägt die Version aus `github.ref_name`. |
+| `Publishable-Menge gegen nx abgleichen` | jeder Trigger | Scan-Menge (`publishable`-Tag der `project.json`) == `nx show projects --projects="tag:publishable"`. |
+
+Der Versions-Check greift **nur** bei Tag-Push, weil der `workflow_dispatch`-Pfad
+absichtlich den Stand aus den `package.json` publiziert (so wurde `26.8.21`
+geheilt) — dort gibt es keine Tag-Version zum Vergleichen. Der Mengenabgleich
+läuft dagegen immer: Ohne ihn wäre das Gate selbstbezüglich, weil Bump und
+Prüfung dieselbe Scan-Logik benutzen und ein Projekt, das der Scan nicht kennt,
+in beiden fehlte.
+
+> **Versionsschema:** `YY.MM.INDEX`. App- und Lib-Version laufen seit
+> 2026-09-11 zwangsläufig synchron — `bump-version.mjs` schreibt beide. Ein
+> auseinanderlaufender Stand ist seither kein zulässiger Zwischenzustand mehr,
+> sondern ein Befund.
 >
 > **Vermerk (2026-06-12):** Die Releases v26.7.0–v26.7.6 wurden bereits im
 > **Juni** getaggt — das `MM`-Präfix lief dem Kalender einen Monat voraus

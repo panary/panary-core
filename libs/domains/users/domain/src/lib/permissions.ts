@@ -371,6 +371,13 @@ export const AppResource = {
    *  liest fuer Ticket-Diagnose. */
   STOREFRONT_THEME_REQUESTS: 'storefront-theme-requests',
 
+  /** Cloud-only: Tagesaggregate der Storefront-Aufrufe (panary-cloud#330, ADR 0060
+   *  in cloud). Find-only; die Dokumente schreibt ausschliesslich der oeffentliche
+   *  Zaehler. Jede Tenant-Rolle liest die Zahlen des eigenen Tenants (multiTenancy),
+   *  PLATFORM_ADMIN/SUPPORT lesen fuer Diagnose. Bis cloud diesen Core-Stand pinnt,
+   *  laeuft der Pfad dort ueber PUBLIC_AUTHENTICATED_PATHS (authorize.hook). */
+  STOREFRONT_PAGE_VIEW_STATS: 'storefront-page-view-stats',
+
   // Plattform-Verwaltungs-Ressourcen (nur Cloud)
   PLATFORM_TENANTS: 'platform-tenants',
   /** Cloud-only: Anlage-Service fuer Plattform-Personal (platform:owner/admin/

@@ -159,6 +159,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.STOREFRONT_PRESET_LIBRARY, action: AppAction.MANAGE },
     // Custom-Theme-Anfragen: Admin verwaltet den Status-Workflow (nativ, keine E-Mail).
     { resource: AppResource.STOREFRONT_THEME_REQUESTS, action: AppAction.MANAGE },
+    // Storefront-Aufrufe (panary-cloud#330): Diagnose-Lesezugriff.
+    { resource: AppResource.STOREFRONT_PAGE_VIEW_STATS, action: AppAction.READ },
     // Storefront-Publish: Admin darf manuell publizieren (Operator-Eingriff) und Status lesen.
     { resource: AppResource.STOREFRONT_PUBLISH, action: [AppAction.CREATE, AppAction.READ] },
     // Brand-Publish + Rollback (PUBW-03): eigene AppResources, weil der globale
@@ -248,6 +250,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.STOREFRONT_PUBLISH, action: AppAction.READ },
     // Custom-Theme-Anfragen: Support liest mit (Ticket-Diagnose), kein Status-Workflow.
     { resource: AppResource.STOREFRONT_THEME_REQUESTS, action: AppAction.READ },
+    // Storefront-Aufrufe (panary-cloud#330): Support liest mit (Ticket-Diagnose).
+    { resource: AppResource.STOREFRONT_PAGE_VIEW_STATS, action: AppAction.READ },
     // Phase 6 — Brand- und Reservierungs-Schicht. Support liest mit (Ticket-
     // Diagnose), kein Schreibzugriff.
     { resource: AppResource.BRANDS, action: AppAction.READ },
@@ -418,6 +422,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Custom-Theme-Anfragen („Individuell"-Flow): Owner erstellt + liest die eigenen
     // Anfragen (multiTenancy-scoped); Verwaltung bleibt Plattform-Rollen vorbehalten.
     { resource: AppResource.STOREFRONT_THEME_REQUESTS, action: [AppAction.CREATE, AppAction.READ] },
+    // Storefront-Aufrufe (panary-cloud#330): Tagesaggregate des eigenen Tenants, find-only.
+    { resource: AppResource.STOREFRONT_PAGE_VIEW_STATS, action: AppAction.READ },
     // Tenant-Settings: TENANT_OWNER darf eigene Settings READ + CREATE + UPDATE.
     // CREATE ist noetig, weil neue Tenants vor dem ersten Toggle kein Settings-
     // Dokument haben — beim Aktivieren via UI legt das Frontend einen Datensatz
@@ -757,6 +763,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.STOREFRONT_SCAFFOLD, action: AppAction.CREATE },
     // Custom-Theme-Anfragen: Manager erstellt + liest die eigenen Anfragen.
     { resource: AppResource.STOREFRONT_THEME_REQUESTS, action: [AppAction.CREATE, AppAction.READ] },
+    // Storefront-Aufrufe (panary-cloud#330): find-only.
+    { resource: AppResource.STOREFRONT_PAGE_VIEW_STATS, action: AppAction.READ },
     // Tenant-Settings: nur lesend; Aktivierung bleibt PLATFORM_OWNER vorbehalten.
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     // KI-Wareneingang: Foto hochladen + Audit lesen.
@@ -868,6 +876,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.STOREFRONT_THEME_CATALOG, action: AppAction.READ },
     // Preset-Bibliothek (PNRY-FEAT-THEME-002): nur lesend (Anzeige, konsistent zum Theme-Katalog).
     { resource: AppResource.STOREFRONT_PRESET_LIBRARY, action: AppAction.READ },
+    // Storefront-Aufrufe (panary-cloud#330): find-only, wie fuer Owner/Manager.
+    { resource: AppResource.STOREFRONT_PAGE_VIEW_STATS, action: AppAction.READ },
     // Tenant-Settings: lesen (z.B. um zu wissen, ob KI-Funktion aktiviert ist).
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     // KI-Wareneingang: Mitarbeitende duerfen Foto hochladen.

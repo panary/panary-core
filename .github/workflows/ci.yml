@@ -123,6 +123,20 @@ jobs:
       - name: Release-Werkzeug pruefen
         run: pnpm release:verify
 
+      # Der Bump (bump-version.mjs) und das Gate in publish-libraries.yml finden die
+      # publishable Manifeste ueber den `publishable`-Tag der project.json. Ein Projekt,
+      # das nx unter diesem Tag fuehrt, der Scan aber nicht findet — kein eigenes
+      # project.json, Manifest nicht daneben —, faellt durch beide Raster: Es wird beim
+      # Release nicht gebumpt und beim Pruefen nicht vermisst.
+      #
+      # Der Abgleich steht auch in publish-libraries.yml, aber der Workflow laeuft nur
+      # bei Tag-Push und workflow_dispatch. Hier faellt die Abweichung in dem PR auf,
+      # der sie einbaut, statt erst beim Release.
+      - name: Publishable-Menge gegen nx abgleichen
+        run: |
+          pnpm nx show projects --projects="tag:publishable" --json > /tmp/nx-publishable.json
+          node tools/scripts/publishable-manifests.mjs --expect-projects-file /tmp/nx-publishable.json
+
       # Seit #159 hat jedes Projekt mit eigenem Code ein `test`-Target — 45 der 86
       # davon ohne eine einzige Spec. Das war Absicht (ohne Target laeuft eine
       # spaeter angelegte Spec still ins Leere, #155), erzeugt aber genau die

@@ -7,6 +7,14 @@
 // ist es nur, weil die Gegenprobe „der Release-Commit enthält ausschließlich
 // Versionszeilen" tatsächlich gefahren wurde.
 //
+// Zweiter Anlass (#242): Das Skript bumpte die 39 publishable Lib-Manifeste
+// nicht — die pflegte ein zweiter, eigenstaendig auszuloesender Release-Pfad
+// (`nx release version`, ADR 0002). Wurde der vergessen, lief
+// `publish-libraries.yml` trotzdem und meldete SUCCESS, ohne etwas zu
+// publizieren. Vier der v26.8.*-Releases sind so durchgelaufen. Der Fall ist
+// hier festgehalten, weil er im Release-Pfad sitzt: Er faellt sonst erst auf,
+// wenn ein Konsument die fehlende Version anfordert.
+//
 // Ausführen: node --test tools/scripts/bump-version.spec.mjs
 
 import { test, describe, before, after } from 'node:test'
@@ -18,6 +26,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), 'bump-version.mjs')
+const MANIFESTS = join(dirname(fileURLToPath(import.meta.url)), 'publishable-manifests.mjs')
 
 // Ein Ausschnitt der echten tauri.conf.json — die kompakten Arrays sind der
 // Punkt: An ihnen zeigte sich der Formatierungsschaden.
@@ -51,6 +60,13 @@ Change License:       Apache License, Version 2.0
 Copyright (c) 2024-2025 Panary
 `
 
+// Die publishable Libs des Fixtures. `nicht-publishable` ist die Gegenprobe:
+// Ein Projekt ohne den Tag darf der Bump NICHT anfassen — sonst wuerde ein Test,
+// der nur „alle Manifeste tragen die neue Version" prueft, auch ein Skript
+// durchwinken, das stur jede package.json im Baum ueberschreibt.
+const PUBLISHABLE_LIBS = ['domains/orders', 'domains/users', 'shared/common']
+const UNPUBLISHABLE_LIB = 'domains/interna'
+
 /** Legt ein Wegwerf-Repo an, dessen Layout das Skript erwartet. */
 function makeFixture(rootVersion) {
   const dir = mkdtempSync(join(tmpdir(), 'bump-version-'))
@@ -62,13 +78,40 @@ function makeFixture(rootVersion) {
   writeFileSync(join(dir, 'apps/api-edge/package.json'), `{\n  "name": "api-edge",\n  "version": "${rootVersion}"\n}\n`)
   writeFileSync(join(dir, 'apps/pos-client/src-tauri/tauri.conf.json'), TAURI_CONF)
   writeFileSync(join(dir, 'LICENSE'), LICENSE)
+
+  for (const lib of PUBLISHABLE_LIBS) {
+    writeLib(dir, lib, rootVersion, ['type:domain-package', 'publishable'])
+  }
+  writeLib(dir, UNPUBLISHABLE_LIB, rootVersion, ['type:domain'])
+
   // Das Skript leitet ROOT aus seinem eigenen Pfad ab (../..).
   writeFileSync(join(dir, 'tools/scripts/bump-version.mjs'), readFileSync(SCRIPT, 'utf8'))
+  writeFileSync(join(dir, 'tools/scripts/publishable-manifests.mjs'), readFileSync(MANIFESTS, 'utf8'))
   return dir
 }
 
+/** Schreibt ein Lib-Paar aus project.json (Tags) + package.json (Manifest). */
+function writeLib(dir, lib, version, tags) {
+  const name = `@panary/${lib.split('/').pop()}`
+  mkdirSync(join(dir, 'libs', lib), { recursive: true })
+  writeFileSync(
+    join(dir, 'libs', lib, 'project.json'),
+    `{\n  "name": "${lib.split('/').pop()}",\n  "tags": ${JSON.stringify(tags)}\n}\n`,
+  )
+  writeFileSync(
+    join(dir, 'libs', lib, 'package.json'),
+    `{\n  "name": "${name}",\n  "version": "${version}",\n  "peerDependencies": {\n    "@panary/shared-common": "^26.4.20"\n  }\n}\n`,
+  )
+}
+
 const read = (dir, rel) => readFileSync(join(dir, rel), 'utf8')
-const run = dir => execFileSync('node', [join(dir, 'tools/scripts/bump-version.mjs')], { encoding: 'utf8' }).trim()
+const run = dir =>
+  execFileSync('node', [join(dir, 'tools/scripts/bump-version.mjs')], {
+    encoding: 'utf8',
+    // stderr abfangen statt durchreichen: Das Skript meldet dort den Lib-Bump,
+    // und bei den Abbruch-Tests ist der Stacktrace erwartetes Verhalten.
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }).trim()
 
 describe('bump-version — Versionsberechnung', () => {
   let dir
@@ -170,6 +213,73 @@ describe('bump-version — Absicherung', () => {
     )
     run(dir)
     assert.match(read(dir, 'package.json'), /"version": "1\.0\.0"/)
+    rmSync(dir, { recursive: true, force: true })
+  })
+})
+
+describe('bump-version — publishable Lib-Manifeste (#242)', () => {
+  test('hebt ALLE publishable Manifeste auf die neue Version', () => {
+    // Der eigentliche Regressionstest. Vorher bumpte das Skript nur root,
+    // api-edge und tauri — die Libs blieben auf der Vorversion zurueck, und
+    // `nx release publish` lud sie erneut hoch, ohne zu scheitern.
+    const dir = makeFixture('26.8.9')
+    const out = run(dir)
+    for (const lib of PUBLISHABLE_LIBS) {
+      assert.ok(
+        read(dir, `libs/${lib}/package.json`).includes(`"version": "${out}"`),
+        `libs/${lib}/package.json traegt nicht ${out}`,
+      )
+    }
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  test('laesst ein Projekt ohne publishable-Tag unberuehrt', () => {
+    // Gegenprobe zum Test darueber: Ohne sie wuerde auch ein Skript bestehen,
+    // das stur jede package.json im Baum ueberschreibt — und damit private
+    // Subpackages (`*-domain-internal`) mitbumpen, die nie publiziert werden.
+    const dir = makeFixture('26.8.9')
+    run(dir)
+    assert.match(read(dir, `libs/${UNPUBLISHABLE_LIB}/package.json`), /"version": "26\.8\.9"/)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  test('aendert je Lib-Manifest GENAU eine Zeile — peerDependencies bleiben stehen', () => {
+    // `nx release version` laesst die Caret-Ranges der Peers unberuehrt
+    // (`^26.4.20` erfuellt jede spaetere Version). Wer sie mitbumpte, erzwaenge
+    // bei jedem Konsumenten einen Lockstep-Update und braeche Option A.
+    const dir = makeFixture('26.8.9')
+    const before_ = read(dir, 'libs/domains/orders/package.json')
+    run(dir)
+    const after_ = read(dir, 'libs/domains/orders/package.json')
+    const a = before_.split('\n')
+    const b = after_.split('\n')
+    assert.equal(a.length, b.length, 'Zeilenzahl darf sich nicht aendern')
+    const changed = a.map((line, i) => [line, b[i]]).filter(([x, y]) => x !== y)
+    assert.equal(changed.length, 1, `erwartet 1 geaenderte Zeile, waren ${changed.length}`)
+    assert.match(changed[0][0], /"version"/)
+    assert.match(after_, /"@panary\/shared-common": "\^26\.4\.20"/)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  test('bricht ab, wenn gar kein publishable Projekt gefunden wird', () => {
+    // Der stille Fall: Tag umbenannt, Libs verschoben, Scan ins Leere gelaufen.
+    // Ein Release, das daraufhin nur die Apps bumpt, ist genau der Defekt aus
+    // #242 — deshalb Abbruch statt „nichts zu tun gefunden".
+    const dir = makeFixture('26.8.9')
+    for (const lib of PUBLISHABLE_LIBS) {
+      writeFileSync(join(dir, 'libs', lib, 'project.json'), `{\n  "tags": ["type:domain"]\n}\n`)
+    }
+    assert.throws(() => run(dir), /kein publishable Lib-Manifest gefunden/)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  test('bricht ab, wenn ein publishable Projekt keine package.json daneben hat', () => {
+    // Ein Projekt, das publiziert werden soll, aber kein Manifest hat, ist
+    // entweder falsch getaggt oder halb angelegt. Beides still zu uebergehen
+    // hiesse, es beim naechsten Release zu vergessen.
+    const dir = makeFixture('26.8.9')
+    rmSync(join(dir, 'libs/domains/orders/package.json'))
+    assert.throws(() => run(dir), /keine package\.json/)
     rmSync(dir, { recursive: true, force: true })
   })
 })

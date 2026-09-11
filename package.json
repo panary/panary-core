@@ -91,7 +91,7 @@
     "@tailwindcss/postcss": "^4.3.1",
     "@tauri-apps/cli": "^2.11.4",
     "@tauri-apps/plugin-process": "^2.3.1",
-    "@tauri-apps/plugin-updater": "^2.10.0",
+    "@tauri-apps/plugin-updater": "^2.11.0",
     "@types/bcryptjs": "^3.0.0",
     "@types/lodash": "^4.17.25",
     "@types/mocha": "^10.0.10",

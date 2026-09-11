@@ -89,3 +89,32 @@ trustPolicy: no-downgrade
 # noch fuer Versionen geprueft, die juenger als 30 Tage sind — genau das
 # Zeitfenster, in dem eine Paketuebernahme relevant ist.
 trustPolicyIgnoreAfter: 43200
+
+# --- Befristete Trust-Ausnahmen -------------------------------------------
+# Reife-Datum im Zeilenkommentar, analog zu minimumReleaseAgeExclude oben. Ein
+# Eintrag gehoert nur so lange hierher, wie trustPolicyIgnoreAfter (30 Tage) die
+# Zielversion noch prueft — danach ist er ein stiller Verzicht auf den Check.
+trustPolicyExclude:
+  # webpack-dev-middleware 7.4.6 (publiziert 2026-09-03 13:23 UTC → aus der
+  # 30-Tage-Pruefung ab 2026-10-03 13:23 UTC; dann ENTFERNEN).
+  #
+  # 7.4.6 ist ein Path-Traversal-Fix ("reject requests that resolve outside the
+  # output directory", Containment-Pruefung in getFilenameFromUrl.js) — eine
+  # Variante, die den Fix von GHSA-wr3j-pwj9-hqq6 umgeht: Ohne Trailing-Slash am
+  # publicPath teilt ein Geschwisterpfad wie `/assets../secret` den Prefix, und
+  # der abgeschnittene Rest enthaelt `..`, das aus dem Output-Root ausbricht.
+  # Noch keine CVE/GHSA-ID (Stand 2026-09-11), OSV kennt sie nicht.
+  #
+  # Die trustPolicy blockiert ausgerechnet diesen Fix: Der Maintainer pflegt die
+  # 7.4.x-Linie unveraendert ohne Trusted Publishing (7.4.0-7.4.6, alle von
+  # `evilebottnawi`), waehrend die parallele 8.x-Linie seit 2026-03 ueber GitHub
+  # Actions mit OIDC publiziert. Da trustPolicy nach Publikationsdatum statt nach
+  # semver prueft, gilt 7.4.6 als Downgrade gegenueber 8.3.0 vom selben Tag —
+  # dasselbe Muster wie chokidar@4.0.3, nur mit Sicherheitsrelevanz.
+  #
+  # Ohne diesen Eintrag scheitert jede vollstaendige Neuaufloesung mit
+  # ERR_PNPM_TRUST_DOWNGRADE (so am 2026-09-11 der POS-Release pos-v26.9.1).
+  # Der zugehoerige Override `webpack-dev-middleware: ^7.4.6` in der
+  # package.json ist ZWINGEND: Ohne ihn weicht pnpm still auf 7.4.5 aus — die
+  # verwundbare Version. Beide Teile gehoeren zusammen.
+  - 'webpack-dev-middleware'

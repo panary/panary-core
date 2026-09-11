@@ -150,8 +150,24 @@ pnpm release          # Edge + POS + Libs: bumpt, committet, taggt, pusht
 `pnpm release` (→ `tools/scripts/release-tag.sh` → `tools/scripts/bump-version.mjs`)
 hebt in **einem** Schritt alles auf dieselbe Nummer: Root-`package.json`,
 `apps/api-edge/package.json`, `tauri.conf.json`, die `LICENSE` (BSL Change Date)
-und die **39 publishable Lib-Manifeste**. Der Release-Commit umfasst damit
-**43 Dateien**; eine kleinere Zahl ist ein Befund, kein Glück.
+und die **39 publishable Lib-Manifeste**.
+
+Der Release-Commit umfasst damit **43 Dateien** — oder **42**, wenn am selben Tag
+schon einmal released wurde: Das BSL Change Date ist `heute + 4 Jahre`, bleibt
+innerhalb eines Tages also gleich, und eine unveränderte Datei landet nicht im
+Commit. Beides ist richtig; **41 oder weniger ist ein Befund**, denn dann fehlen
+Lib-Manifeste. Zu zählen sind nicht die Dateien, sondern die Bestandteile:
+
+```bash
+git show --name-only HEAD --format='' | grep -c '^libs/'   # muss 39 sein
+git show --name-only HEAD --format='' | grep -v '^libs/'   # root, api-edge, tauri, ggf. LICENSE
+```
+
+> Die Zahl stand hier zunächst als striktes „43, eine kleinere Zahl ist ein
+> Befund". Das Release `v26.9.2` vom 2026-09-11 hatte 42 — korrekt, weil
+> `v26.9.1` wenige Stunden zuvor lag. Eine Kontrollzahl, die im Normalbetrieb
+> falsch anschlägt, wird nach dem zweiten Mal ignoriert; deshalb zählt die
+> Regel jetzt die 39 Manifeste, die tatsächlich die Aussage tragen.
 
 Gegenprobe nach dem Lauf — außer der `Change Date`-Zeile der LICENSE darf nichts
 Nicht-Versioniertes im Commit stehen:

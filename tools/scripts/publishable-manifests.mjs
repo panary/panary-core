@@ -195,7 +195,14 @@ function main() {
   let failed = false
 
   if (args.expectProjectsFile) {
-    const { missingInScan, missingInNx } = diffAgainstNxProjects(manifests, readNxProjects(args.expectProjectsFile))
+    const nxProjects = readNxProjects(args.expectProjectsFile)
+    const { missingInScan, missingInNx } = diffAgainstNxProjects(manifests, nxProjects)
+    if (missingInScan.length === 0 && missingInNx.length === 0) {
+      // Bei Erfolg melden, WAS geprueft wurde. Ein stiller gruener Schritt ist im
+      // CI-Log nicht davon zu unterscheiden, dass gar nichts gemessen wurde — und
+      // ein Gate, dessen Erfolg man nicht nachlesen kann, ist kein Nachweis.
+      process.stdout.write(`publishable-manifests: ${manifests.length} Projekt(e) — Scan und nx deckungsgleich\n`)
+    }
     if (missingInScan.length > 0) {
       failed = true
       process.stderr.write(

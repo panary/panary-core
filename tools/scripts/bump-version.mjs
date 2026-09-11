@@ -12,6 +12,7 @@
  *   - apps/api-edge/package.json (Quelle für APP_VERSION im /health-Endpoint)
  *   - apps/pos-client/src-tauri/tauri.conf.json (nur wenn vorhanden)
  *   - LICENSE (BSL Change Date = heute + 4 Jahre, Copyright-Jahr)
+ *   - die publishable Lib-Manifeste (libs/**, `publishable`-Tag) — siehe unten
  *
  * Gibt die neue Version auf stdout aus (für Shell-Subshells verwendbar).
  *
@@ -21,8 +22,10 @@
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'fs'
-import { resolve, dirname } from 'path'
+import { resolve, dirname, relative } from 'path'
 import { fileURLToPath } from 'url'
+
+import { findPublishableManifests } from './publishable-manifests.mjs'
 
 /**
  * Ersetzt die Top-Level-`version`-Zeile per Textersetzung statt über
@@ -105,6 +108,37 @@ if (existsSync(LICENSE_PATH)) {
     .replace(/\(c\) (\d{4})-\d{4}/, `(c) $1-${now.getFullYear()}`)
   writeFileSync(LICENSE_PATH, license)
 }
+
+// Die publishable Lib-Manifeste mitziehen.
+//
+// Bis #242 tat das ausschliesslich `nx release version` — ein zweiter,
+// eigenstaendig auszuloesender Release-Pfad (ADR 0002). Wurde er vergessen, lief
+// `publish-libraries.yml` trotzdem, versuchte die bereits veroeffentlichte
+// Vorversion erneut hochzuladen und meldete dabei SUCCESS. Vier der
+// v26.8.*-Releases sind so durchgelaufen und mussten nachtraeglich geheilt
+// werden; in den Fenstern dazwischen liefen Edge und Cloud auf verschiedenen
+// Schema-Staenden (bei 26.8.21 das `discounts`-Feld im geteilten receiptSchema
+// mit `additionalProperties: false` — die Cloud wies rabattierte Belege bei der
+// Validierung ab, Sync TERMINAL, kein Retry).
+//
+// Hier statt in `release-tag.sh`, weil dieses Skript auch allein aufgerufen wird
+// (`pnpm version:bump`, Lib-Release-Ablauf) — laege der Bump in der Shell,
+// bestuende der Defekt fuer jeden Direktaufruf fort. Dupliziert wird dabei kaum
+// etwas: `nx release version` aendert an jedem Manifest genau die version-Zeile,
+// die peerDependencies-Ranges bleiben unberuehrt.
+const publishable = findPublishableManifests(ROOT)
+if (publishable.length === 0) {
+  throw new Error(
+    'bump-version: kein publishable Lib-Manifest gefunden. Ein Release ohne Lib-Bump laesst ' +
+      'publish-libraries.yml gruen durchlaufen, ohne etwas zu publizieren — deshalb Abbruch statt Weitermachen.',
+  )
+}
+for (const { manifestPath } of publishable) {
+  writeVersionInPlace(manifestPath, newVersion)
+}
+// Auf stderr, weil stdout die Version traegt: `release-tag.sh` liest sie als
+// `VERSION=$(node .../bump-version.mjs)`.
+process.stderr.write(`bump-version: ${publishable.length} publishable Lib-Manifest(e) auf ${newVersion} gesetzt\n`)
 
 // Neue Version auf stdout ausgeben (für Shell-Subshells)
 process.stdout.write(newVersion + '\n')

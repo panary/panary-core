@@ -71,10 +71,9 @@ echo "  Change Date:   $CHANGE_DATE (4 Jahre)"
 echo ""
 
 # Die LICENSE pflegt bump-version.mjs mit (Change Date + Copyright-Jahr) — hier
-# bewusst kein zweites sed. Es gibt zwei Release-Pfade: dieses Skript und den
-# Lib-Release-Ablauf (`nx release version` + bump-version.mjs), der dieses
-# Skript umgeht, weil es die publishable Libs nicht bumpt. Solange die Pflege
-# nur hier lag, verlor der zweite Pfad sie stillschweigend.
+# bewusst kein zweites sed. Seit #242 bumpt bump-version.mjs auch die
+# publishable Lib-Manifeste; der frueher noetige zweite Release-Pfad
+# (`nx release version` von Hand) entfaellt damit.
 # $CHANGE_DATE/$CURRENT_YEAR bleiben fuer die Anzeige und die Commit-Message.
 
 # Geaenderte Dateien committen
@@ -86,6 +85,31 @@ fi
 if ! git diff --quiet "$LICENSE"; then
   git add "$LICENSE"
 fi
+
+# Die publishable Lib-Manifeste mitnehmen. Ohne diesen Schritt haette der Bump
+# oben keine Wirkung: Der Release-Commit enthielte die Libs nicht, der Tag zeigte
+# auf einen Stand mit alten Lib-Versionen, und `publish-libraries.yml` liefe in
+# genau das Gate, das #242 eingezogen hat.
+#
+# Die Liste kommt aus dem Skript statt aus einem Glob: `libs/*/package.json`
+# wuerde die privaten Subpackages (`*-domain-internal`) mitnehmen und ein
+# kuenftiges publishable Paket ausserhalb von `libs/` uebersehen.
+PUBLISHABLE_MANIFESTS=$(node "$REPO_ROOT/tools/scripts/publishable-manifests.mjs" --list)
+if [ -z "$PUBLISHABLE_MANIFESTS" ]; then
+  echo "Fehler: kein publishable Lib-Manifest gefunden — Release abgebrochen." >&2
+  exit 1
+fi
+while IFS= read -r MANIFEST; do
+  if [ -n "$MANIFEST" ]; then
+    git -C "$REPO_ROOT" add "$MANIFEST"
+  fi
+done <<< "$PUBLISHABLE_MANIFESTS"
+
+# Gegenprobe vor dem Commit: Tragen wirklich alle publishable Manifeste die neue
+# Version? Billiger als der CI-Gate-Lauf und faengt den Fall, in dem der Bump
+# teilweise durchlief (z. B. weil eine Manifest-Datei kein Top-Level-"version"
+# hatte und der Schreibvorgang mittendrin abbrach).
+node "$REPO_ROOT/tools/scripts/publishable-manifests.mjs" --check "$VERSION"
 
 if git diff --cached --quiet; then
   echo "Keine Aenderungen zu committen."

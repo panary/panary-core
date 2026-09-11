@@ -50,6 +50,26 @@ jobs:
           registry-url: 'https://npm.pkg.github.com'
           scope: '@panary'
 
+      # Gate gegen die stille Klasse (#242): Ein Release-Commit, der die publishable
+      # Manifeste nicht mitbumpt, laesst `nx release publish` unten die bereits
+      # veroeffentlichte Vorversion erneut hochladen — der Schritt meldet dabei
+      # SUCCESS und hat nichts publiziert. Vier der v26.8.*-Releases sind so
+      # durchgelaufen (26.8.{1,6,15,21}) und mussten von Hand geheilt werden;
+      # aufgefallen ist es jedes Mal zufaellig, bei 26.8.21 erst beim Cloud-Pin-Bump,
+      # nachdem Edge-Image und POS-Release bereits gebaut waren.
+      #
+      # Nur bei Tag-Push: Der workflow_dispatch-Pfad publiziert bewusst "die aktuell
+      # in den package.json stehende Version" (so wurde 26.8.21 geheilt) — dort gibt
+      # es keine Tag-Version zum Vergleichen.
+      #
+      # Steht vor `Install`, weil der Check nichts ausser node braucht: Der Fehlerfall
+      # kostet damit Sekunden statt der vollen Installation.
+      - name: Lib-Versionen gegen Tag-Version pruefen
+        if: ${{ github.event_name == 'push' }}
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: node tools/scripts/publishable-manifests.mjs --check "$TAG_NAME"
+
       # `--no-frozen-lockfile`: das committete pnpm-lock.yaml ist im Workbench-Setup
       # ein Snapshot des geteilten Root-Lockfiles (Symlink + skip-worktree). Dessen
       # `overrides` sind die Vereinigung beider Repos und matchen die Standalone-
@@ -63,6 +83,15 @@ jobs:
       # Das Skript repliziert die Workspace-Links, damit Cross-Lib-Builds auflösen.
       - name: Link @panary/* packages (Standalone-Resolution)
         run: bash tools/scripts/link-core-packages.sh
+
+      # Das Gate oben prueft die Manifeste, die der Scan findet — es waere also blind
+      # fuer ein publishable Projekt, das er gar nicht kennt (kein eigenes project.json,
+      # Manifest nicht daneben). Dieser Abgleich gegen die nx-Menge bricht die
+      # Selbstbezueglichkeit auf und laeuft deshalb bei JEDEM Trigger, auch im Dry-Run.
+      - name: Publishable-Menge gegen nx abgleichen
+        run: |
+          pnpm nx show projects --projects="tag:publishable" --json > /tmp/nx-publishable.json
+          node tools/scripts/publishable-manifests.mjs --expect-projects-file /tmp/nx-publishable.json
 
       - name: Build publishable libraries
         run: pnpm nx run-many -t build --projects="tag:publishable"

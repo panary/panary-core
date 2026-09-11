@@ -1,6 +1,6 @@
 {
   "name": "@panary/cloud-edges",
-  "version": "26.8.21",
+  "version": "26.9.1",
   "license": "BSL-1.1",
   "type": "commonjs",
   "exports": {

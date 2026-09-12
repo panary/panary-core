@@ -37,6 +37,18 @@ describe('Feathers application tests', () => {
     assert.ok('emergencyOverrideSince' in data === false || data['emergencyOverrideSince'] === undefined)
   })
 
+  // #275: Das Admin-Zugang-Flag muss RBAC-frei auf der Leitung liegen — es
+  // meldet genau den Zustand, in dem sich niemand mehr anmelden kann. Geprueft
+  // wird der Typ, nicht der Wert: Die Test-DB wird von mehreren Dateien geteilt
+  // und kann Verwaltungskonten tragen (Semantik deckt
+  // src/utils/admin-access-health.spec.ts ab).
+  it('liefert das Admin-Zugang-Flag ohne Authentifizierung', async () => {
+    const { data } = await axios.get<Record<string, unknown>>(`${appUrl}/health`)
+
+    assert.strictEqual(typeof data['adminAccessHealthy'], 'boolean')
+    assert.strictEqual(typeof data['blockedAdminCount'], 'number')
+  })
+
   it('shows a 404 JSON error', async () => {
     try {
       await axios.get(`${appUrl}/path/to/nowhere`, {

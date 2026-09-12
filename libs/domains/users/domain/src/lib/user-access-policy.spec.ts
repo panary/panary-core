@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest'
 
 import { AppAction, AppResource } from './permissions'
 import { RolePermissions } from './roles.matrix'
-import { canPatchAnyUser, canSeeAllUsers, PRIVILEGED_ROLES, USER_VISIBILITY_ALL_ROLES } from './user-access-policy'
+import {
+  canManageUsers,
+  canPatchAnyUser,
+  canSeeAllUsers,
+  PRIVILEGED_ROLES,
+  USER_MANAGE_ROLES,
+  USER_VISIBILITY_ALL_ROLES,
+} from './user-access-policy'
 import { UserSystemRole } from './user.schema'
 
 /** Rollen, denen die RolePermissions-Matrix `users: <action>` gibt. */
@@ -70,6 +77,15 @@ describe('Invarianten (Regressionsanker #275)', () => {
     expect(rolesWithUsersAction(AppAction.MANAGE).sort()).toEqual(
       [UserSystemRole.PLATFORM_OWNER, UserSystemRole.TENANT_OWNER, UserSystemRole.TENANT_TECHNICIAN].sort(),
     )
+  })
+
+  it('USER_MANAGE_ROLES ist aus der Matrix abgeleitet, nicht gelistet', () => {
+    expect([...USER_MANAGE_ROLES].sort()).toEqual(rolesWithUsersAction(AppAction.MANAGE).sort())
+    expect(canManageUsers(UserSystemRole.TENANT_TECHNICIAN)).toBe(true)
+    expect(canManageUsers(UserSystemRole.TENANT_MANAGER)).toBe(false)
+    expect(canManageUsers(UserSystemRole.TENANT_STAFF)).toBe(false)
+    expect(canManageUsers(undefined)).toBe(false)
+    expect(canManageUsers(null)).toBe(false)
   })
 
   // Umgekehrte Richtung: keine Rolle rutscht in eine Liste, die laut Matrix

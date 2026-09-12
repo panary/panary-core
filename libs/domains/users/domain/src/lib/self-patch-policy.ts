@@ -15,16 +15,9 @@
 // auf Forbidden. Der Bypass fuer interne Aufrufe (`provider: undefined`) ist
 // Hook-Mechanik und lebt bewusst NICHT hier, sondern im Adapter.
 
-import { UserSystemRole } from './user.schema'
-
-// Rollen mit MANAGE auf users — duerfen alle User patchen, alle Felder.
-export const PRIVILEGED_ROLES: ReadonlySet<string> = new Set<string>([
-  UserSystemRole.PLATFORM_OWNER,
-  UserSystemRole.PLATFORM_ADMIN,
-  UserSystemRole.PLATFORM_SUPPORT,
-  UserSystemRole.TENANT_OWNER,
-  UserSystemRole.TENANT_TECHNICIAN,
-])
+// Die Rollen-Wahrheit (wer sehen/patchen darf) lebt in user-access-policy.ts —
+// hier bewusst nur importiert, damit es keine zweite Kopie gibt (#275).
+import { PRIVILEGED_ROLES } from './user-access-policy'
 
 // Erlaubte Self-Patch-Felder fuer non-privilegierte Rollen. Strikt — niemals
 // `role`, `permissions`, `tenantId`, `*LocationId*` aufnehmen (Eskalations-

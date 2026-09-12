@@ -17,7 +17,7 @@ import {
   User,
   UserQuery,
   UserStatus,
-  UserSystemRole,
+  canSeeAllUsers,
 } from '@panary/users/domain'
 import { intersectAllowedIds } from '@panary/devices/domain'
 import { UserService } from './users.class'
@@ -170,17 +170,11 @@ export const userPatchResolver = resolve<User, HookContext<UserService>>({
 //#region 4. Query-User-Resolver (Suche / GET)
 export const userQueryValidator = getValidator(userQuerySchema, queryValidator)
 
-// Privilegierte Rollen, die alle User sehen dürfen
-const privilegedRoles: string[] = [
-  UserSystemRole.PLATFORM_OWNER,
-  UserSystemRole.PLATFORM_ADMIN,
-  UserSystemRole.PLATFORM_SUPPORT,
-  UserSystemRole.TENANT_OWNER,
-  UserSystemRole.TENANT_MANAGER,
-]
-
 export const userQueryResolver = resolve<UserQuery, HookContext>({
-  // Sicherheit: Nicht-privilegierte User sehen nur sich selbst.
+  // Sicherheit: Nicht-privilegierte User sehen nur sich selbst. Welche Rollen
+  // privilegiert sind, entscheidet `canSeeAllUsers` in @panary/users/domain
+  // (user-access-policy.ts) — bis #275 stand hier eine eigene Kopie der Liste,
+  // die von der Patch-Liste abwich und `tenant:technician` aussperrte.
   //
   // Device-Rollen (device:pos-client, device:tablet etc.) brauchen fuer den
   // Login-Screen mehr als sich selbst — aber nicht mehr zwingend die VOLLE
@@ -193,7 +187,7 @@ export const userQueryResolver = resolve<UserQuery, HookContext>({
   _id: async (value, query, context) => {
     const actor = context.params.user
     if (!actor) return value
-    if (privilegedRoles.includes(actor.role)) return value
+    if (canSeeAllUsers(actor.role)) return value
 
     if (actor.role?.startsWith('device:')) {
       // Aufgeloest hat das der resolveDeviceAccessScope-Hook (before.all) —

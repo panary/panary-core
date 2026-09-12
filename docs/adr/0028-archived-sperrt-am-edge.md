@@ -5,7 +5,7 @@ description: Der Status ARCHIVED verhindert am Edge Passwort- und PIN-Login und 
 tags: [security, authentication, sync, users]
 status: stable
 decision: accepted
-generated: { by: claude-code/opus-5, at: 2026-08-12T16:10:00Z }
+generated: { by: claude-code/opus-5, at: 2026-09-12T00:00:00Z }
 ---
 
 # `ARCHIVED` sperrt den Edge-Login — mit Ausnahme für nie gepushte Rollen
@@ -89,3 +89,63 @@ archivierten, aber weiterhin zugewiesenen Mitarbeiter durchließe.
   gepusht werden, sein Fehlen im Snapshot ist also ein echtes Signal.
 - Die Reconciliation liest jetzt `role` mit und filtert explizit auf `tenantId`: Der interne
   Aufruf trägt keinen User, `multiTenancy` stempelt dort nicht.
+
+## Nachtrag (2026-09-12, [#275](https://github.com/panary/panary-core/issues/275)): der Bestandsfall trat ein — und der Notzugang war blind
+
+Die erste Konsequenz oben ist am 2026-09-12 real geworden, und ihr letzter Satz war falsch.
+
+Am Edge eines Testkunden stand das **einzige** `tenant:owner`-Konto seit dem
+Merge-Bootstrap vom 2026-07-27 auf `ARCHIVED` — `updatedAt == createdAt`, also vom
+Initial-Pull gesetzt, nicht von einem Menschen. Folgenlos, solange das Gerät auf `v26.8.6`
+lief. Mit dem Update auf `26.9.2` (erster Watchtower-Lauf nach [#268](https://github.com/panary/panary-core/issues/268))
+wurde der Guard scharf: jeder Anmeldeversuch `401 — „Dieses Benutzerkonto ist nicht aktiv."`.
+Die laufende Sitzung starb erst mit dem `jwt expired`, weshalb das Fehlerbild „ging bis eben
+noch" lautete und die Ursache drei Wochen alt war.
+
+**Die Ausnahme aus Entscheidung 1 heilt Bestand nicht.** `selectStaleUsersToArchive` steigt bei
+`status === ARCHIVED` in der ersten Zeile aus (Idempotenz), und `isLoginBlockedByStatus` wertet
+sein `role`-Feld gar nicht aus. Die Ausnahme verhindert **neues** Archivieren, nicht die Wirkung
+eines bereits gesetzten Status.
+
+🚨 **Korrektur zur Konsequenz oben:** „Reaktivieren geht über die Admin-User-Liste" traf nicht
+zu. Die Liste *zeigt* archivierte Konten — aber `apps/admin-client/.../users/user-form.ts` hatte
+kein `status`-Feld. Sichtbarkeit ohne Schaltfläche ist keine Reaktivierbarkeit; die Begründung
+für Entscheidung 3 stimmt erst mit dem nachgezogenen Formularfeld.
+
+### Glied 4: „privilegierte Rolle" war dreimal definiert
+
+Der gedachte Notzugang — ein zweites Konto mit `users: MANAGE` — war wirkungslos. Der Betreiber
+kam über `tenant:technician` wieder ins Panel und sah dort **1 von 9** Konten:
+
+| Liste | Ort (vorher) | Enthielt |
+|---|---|---|
+| wer darf patchen | `libs/domains/users/domain/src/lib/self-patch-policy.ts` | …, `tenant:owner`, **`tenant:technician`** |
+| wer sieht alle | `apps/api-edge/src/services/users/users.schema.ts` | …, `tenant:owner`, **`tenant:manager`** |
+| dieselbe, dritte Kopie | `panary-cloud` → `apps/api-cloud/src/services/users/users.schema.ts` | wie die zweite |
+
+Die Abweichung ging in **beide** Richtungen: `tenant:technician` durfte laut Matrix und
+Patch-Policy jeden Nutzer ändern, wurde vom Query-Resolver aber auf die eigene `_id` gezwungen;
+`tenant:manager` sah umgekehrt alle, durfte aber nur sich selbst patchen.
+
+🚨 **Weil das Scoping auf der Query sitzt, wirkt es auch bei `get` und `patch` by id.** Ein
+`PATCH /users/<fremde-id>` endete daher in **404**, nicht in 403 — `restrictUserSelfPatch` ließ
+den Techniker durch, der Blocker war allein der Datenausschnitt. Ein 404 liest sich wie „gibt es
+nicht" und schickt die Diagnose in die falsche Richtung.
+
+**Entscheidung:** Beide Dimensionen leben als eine Quelle in
+`libs/domains/users/domain/src/lib/user-access-policy.ts` — `PRIVILEGED_ROLES` (ändern) und
+`USER_VISIBILITY_ALL_ROLES` (sehen), mit dokumentierter Entscheidung je Rolle.
+`tenant:technician` sieht ab jetzt alle Konten; `tenant:manager` sieht weiter alle und patcht
+weiter nur sich selbst (Entscheidung zu [#189](https://github.com/panary/panary-core/issues/189),
+`time-clock-scope.ts`). Die Invariante, deren Verletzung der Defekt war — **wer ändern darf, muss
+sehen dürfen** — ist als Test in `user-access-policy.spec.ts` gelockt, zusammen mit der Ableitung
+aus der `RolePermissions`-Matrix. Die Cloud-Hälfte (dritte Kopie) läuft als
+`panary/panary-cloud#354`.
+
+Zwei Dinge bleiben bewusst **draußen**:
+
+- **Keine Rollen-Ausnahme im Login-Guard.** `isLoginBlockedByStatus` lässt `tenant:owner`
+  weiterhin nicht durch — das würde `ARCHIVED` für die mächtigste Rolle dauerhaft wirkungslos
+  machen, auch bei bewusster Archivierung.
+- **Keine Selbstheilung beim Start.** Der Boot-Check meldet den Zustand, er vergibt keinen
+  Zugang von selbst.

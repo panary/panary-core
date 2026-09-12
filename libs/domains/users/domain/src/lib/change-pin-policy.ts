@@ -16,7 +16,7 @@
 // Framework-agnostisch: Verletzungen werden strukturiert zurueckgegeben statt
 // geworfen; der Feathers-Adapter im Backend mappt sie auf die HTTP-Fehler.
 
-import { PRIVILEGED_ROLES } from './self-patch-policy'
+import { PRIVILEGED_ROLES } from './user-access-policy'
 
 /**
  * Zulaessige Laenge einer POS-PIN bei der Eingabe.

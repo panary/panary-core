@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { checkUserSelfPatch, PRIVILEGED_ROLES, SELF_PATCHABLE_FIELDS } from './self-patch-policy'
+import { checkUserSelfPatch, SELF_PATCHABLE_FIELDS } from './self-patch-policy'
+import { PRIVILEGED_ROLES } from './user-access-policy'
 import { UserSystemRole } from './user.schema'
 
 const staff = { _id: 'user-1', role: UserSystemRole.TENANT_STAFF }
@@ -70,18 +71,6 @@ describe('checkUserSelfPatch', () => {
 })
 
 describe('Invarianten (Regressionsanker)', () => {
-  it('PRIVILEGED_ROLES = exakt die MANAGE-users-Rollen', () => {
-    expect([...PRIVILEGED_ROLES].sort()).toEqual(
-      [
-        UserSystemRole.PLATFORM_OWNER,
-        UserSystemRole.PLATFORM_ADMIN,
-        UserSystemRole.PLATFORM_SUPPORT,
-        UserSystemRole.TENANT_OWNER,
-        UserSystemRole.TENANT_TECHNICIAN,
-      ].sort(),
-    )
-  })
-
   it('SELF_PATCHABLE_FIELDS enthaelt keine Eskalations-Felder', () => {
     for (const field of ['permissions', 'role', 'tenantId', 'locationId', 'activeLocationId', 'allowedLocationIds']) {
       expect(SELF_PATCHABLE_FIELDS.has(field), field).toBe(false)

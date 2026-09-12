@@ -94,6 +94,12 @@ Beide Wege bauen ihre Broker-URL mit derselben Funktion (`buildBrokerUrl` in
 `mqtt-publish.ts`); Protokoll, Host und Port kommen unveraendert aus den
 Settings. Begruendung: [ADR 0036](../adr/0036-mqtt-publish-im-rust-prozess.md).
 
+> ⚠️ **Der Rust-Weg spricht nur `ws`, nicht `wss`.** rumqttcs rustls-Kette ist
+> abgeschaltet, weil sie eine verwundbare Version festhaelt (Begruendung in
+> ADR 0036); der mitgelieferte Broker faehrt ohnehin Klartext im Filialnetz.
+> Ein auf `wss` gestellter Broker wird im gepackten POS **mit Meldung
+> abgewiesen** — der Druckdialog zeigt sie, es faellt nichts still aus.
+
 Grund fuer die Verlagerung: Ein Publish aus dem Webview unterliegt der
 `connect-src`-Direktive aus `apps/pos-client/src-tauri/tauri.conf.json`. Die ist
 statisch, die Broker-Adresse dagegen Betreiber-Konfiguration (Port 1–65535) —

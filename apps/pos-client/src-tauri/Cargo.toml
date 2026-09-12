@@ -31,11 +31,20 @@ mdns-sd = "0.21"
 # MQTT-Publish fuer Drucker vom Typ `mqtt` (ADR 0036). Laeuft im Rust-Prozess,
 # nicht im Webview — dort unterlaegt jede Verbindung der statischen CSP, und die
 # Broker-Adresse ist Betreiber-Konfiguration (#296).
-# `websocket` ist noetig, weil die Settings ws/wss sprechen; `url` NICHT: dessen
-# `parse_url` verwirft den Pfad, `Transport::Ws` braucht aber die volle URL in
-# `broker_addr` (rumqttc `eventloop.rs`, "domain and port are taken directly
-# from broker_addr (which is a url)").
-rumqttc = { version = "0.25.1", features = ["websocket"] }
+# `websocket`, weil die Settings ws sprechen; `url` NICHT: dessen `parse_url`
+# verwirft den Pfad, `Transport::Ws` braucht aber die volle URL in `broker_addr`
+# (rumqttc `eventloop.rs`, "domain and port are taken directly from broker_addr
+# (which is a url)").
+#
+# 🚨 `default-features = false` schaltet rumqttcs rustls-Kette ab — und damit
+# `wss`. rumqttc 0.25.1 haengt DIREKT an `rustls-webpki ^0.102` und
+# `rustls-pemfile ^2`; die Fixes fuer RUSTSEC-2026-0049/-0098 und -2025-0134
+# liegen erst in 0.103.x und sind ueber diese Constraint nicht erreichbar. Der
+# ausgelieferte Broker faehrt ohnehin Klartext (`allow_anonymous`, kein TLS,
+# ADR 0018), also stuende hier eine verwundbare Krypto-Crate im POS-Binary fuer
+# eine Konfiguration, die nirgends laeuft. `wss` weist der Command stattdessen
+# mit Meldung ab (ADR 0036). Zurueckzunehmen, sobald rumqttc rustls 0.103 zulaesst.
+rumqttc = { version = "0.25.1", default-features = false, features = ["websocket"] }
 # Nur fuer den Gesamt-Timeout um den Publish (tokio ist ueber tauri/rumqttc
 # ohnehin im Baum, die Deklaration macht den direkten Gebrauch sichtbar).
 tokio = { version = "1.53.1", features = ["time"] }

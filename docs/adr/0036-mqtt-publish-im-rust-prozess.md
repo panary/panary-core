@@ -80,12 +80,23 @@ Broker-Port darf **nicht** wieder gedeckt sein.
 - **Der Broker braucht weiterhin seinen WebSocket-Listener auf 9001.** Der
   ursprüngliche Nebengedanke, ihn mit dem Umzug entbehrlich zu machen, ist
   bewusst nicht eingelöst — er wäre nur mit der Schema-Änderung oben zu haben.
-- **Neue Abhängigkeit `rumqttc`** (Feature `websocket`, ohne `url`). Netto
-  **+30 Crates** im POS-Baum (295 → 325, `cargo tree` am 2026-09-12): Der
-  WebSocket- und TLS-Unterbau kommt fast vollständig aus dem, was Tauri über
-  `reqwest`/`rustls`/`tokio` ohnehin mitbringt. Isoliert gemessen wäre `rumqttc`
-  mit `websocket` bei 108–122 Crates gelandet — diese Zahl beschreibt den
-  POS-Fall nicht.
+- **Neue Abhängigkeit `rumqttc`** (`default-features = false`, Feature
+  `websocket`). Netto **+22 Crates** im POS-Baum (295 → 317, `cargo tree` am
+  2026-09-12): Der WebSocket-Unterbau kommt fast vollständig aus dem, was Tauri
+  über `reqwest`/`rustls`/`tokio` ohnehin mitbringt. Isoliert gemessen wäre
+  `rumqttc` mit `websocket` bei 108–122 Crates gelandet — diese Zahl beschreibt
+  den POS-Fall nicht.
+- 🚨 **`wss` unterstützt dieser Weg nicht.** rumqttc 0.25.1 hängt **direkt** an
+  `rustls-webpki ^0.102` und `rustls-pemfile ^2`; die Fixes für
+  RUSTSEC-2026-0049, RUSTSEC-2026-0098 und RUSTSEC-2025-0134 liegen erst in
+  `0.103.x` und sind über diese Constraint nicht erreichbar — `osv-scanner` hat
+  das im PR gefangen. Statt die Befunde per Ignore zu dulden, ist rumqttcs
+  rustls-Kette abgeschaltet: Der ausgelieferte Broker fährt Klartext im
+  Filialnetz (`allow_anonymous`, kein TLS, ADR 0018), es stünde also eine
+  verwundbare Krypto-Crate im POS-Binary für eine Konfiguration, die nirgends
+  läuft. Ein auf `wss` gestellter Broker wird vom Command **mit Meldung
+  abgewiesen**, nicht still übergangen; der Browser-Rückfall kann `wss`
+  weiterhin. Zurückzunehmen, sobald rumqttc rustls 0.103 zulässt.
 - **`MqttOptions::parse_url` ist hier die falsche API** und wird nicht benutzt:
   `TryFrom<Url>` übernimmt nur Host, Port und Query und **verwirft den Pfad**,
   während `Transport::Ws` die vollständige URL in `broker_addr` erwartet

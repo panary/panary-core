@@ -154,7 +154,16 @@ async fn mqtt_publish(
     // Command beliebige Ziele anzusprechen, die ihm die CSP gerade verbietet.
     let transport = match url.split("://").next() {
         Some("ws") => Transport::Ws,
-        Some("wss") => Transport::wss_with_default_config(),
+        // `wss` kann dieser Weg nicht: rumqttcs rustls-Kette ist abgeschaltet,
+        // weil sie eine verwundbare Version festhaelt (Begruendung in
+        // Cargo.toml). Der ausgelieferte Broker faehrt Klartext im Filialnetz.
+        // Abgewiesen statt still uebergangen — der Druckdialog zeigt die Meldung.
+        Some("wss") => {
+            return Err(
+                "MQTT ueber wss wird vom POS derzeit nicht unterstuetzt — Broker-Protokoll auf ws stellen."
+                    .to_string(),
+            )
+        }
         _ => return Err(format!("Nicht unterstuetztes Broker-Protokoll: {url}")),
     };
 

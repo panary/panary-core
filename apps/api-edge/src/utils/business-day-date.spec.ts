@@ -4,9 +4,15 @@ import { businessDateForLocation, businessDateForTimezone, DEFAULT_BUSINESS_TIME
 
 /**
  * Pure-Function-Tests: der Zeitpunkt UND die Zone werden uebergeben, nichts wird
- * aus der Prozess-Umgebung gelesen. `process.env.TZ` waere hier ohnehin wirkungslos
- * — Node bindet die Zone beim Prozessstart, ein Setzen zur Laufzeit aendert sie
- * nicht mehr.
+ * aus der Prozess-Umgebung gelesen. Die Zone des Prozesses ist hier deshalb egal
+ * — anders als in `services/pre-orders/validate-opening-hours.hook.spec.ts`, wo
+ * sie gepinnt wird, weil der dort abgeloeste Roundtrip nur unter einer Serverzone
+ * mit Sommerzeit danebenliegt.
+ *
+ * ⚠️ Frueher stand hier, ein Setzen von `process.env.TZ` zur Laufzeit sei
+ * wirkungslos, Node binde die Zone beim Prozessstart. Das stimmt nicht: mit
+ * Node 22.17 gemessen wirkt die Aenderung sofort. Die Begruendung war falsch,
+ * die Schlussfolgerung (hier unnoetig) nicht.
  */
 describe('businessDateForTimezone', () => {
   // 30.07.2026 00:30 CEST == 29.07.2026 22:30 UTC — die Stunde, in der der

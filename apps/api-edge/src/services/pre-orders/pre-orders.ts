@@ -2,7 +2,6 @@ import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
 import { BadRequest } from '@feathersjs/errors'
 import { getJsonFieldHooks } from '@panary/shared-backend'
-import { formatDateISO, getOpeningHoursForDate } from '@panary/locations/domain'
 
 const PRE_ORDER_JSON_FIELDS = ['lineItems', 'customerContact', 'metadata']
 
@@ -31,6 +30,7 @@ import {
 } from '@panary/pre-orders/domain'
 import { DineLocation, OrderChannel, OrderStatus, PaymentState } from '@panary/orders/domain'
 import type { PreOrder, PreOrderService } from './pre-orders.class'
+import { validatePreOrderOpeningHours } from './validate-opening-hours.hook'
 import { ensureIndexes, logger } from '@panary/shared-backend'
 
 export const preOrdersPath = 'pre-orders'
@@ -161,51 +161,7 @@ export const preOrders = (app: Application) => {
       create: [
         schemaHooks.validateData(preOrderDataValidator),
         schemaHooks.resolveData(preOrderDataResolver),
-        // Öffnungszeiten-Validierung
-        async (context: any) => {
-          const data = context.data
-          if (!data?.scheduledFor) return context
-
-          const locationId = data.locationId || context.params?.user?.locationId
-          if (!locationId) return context
-
-          const location = await app.service('locations').get(locationId, { provider: undefined })
-          const ohs = (location as any)?.settings?.openingHoursSettings
-          if (!ohs?.enabled) return context
-
-          // Öffnungszeiten sind Location-lokale Wandzeiten; scheduledFor ist ein
-          // UTC-Instant. In einem UTC-Container läge scheduledDate.getHours()
-          // daneben (11:00 Berlin = 09:00 UTC). Instant in die Location-Zeitzone
-          // projizieren (DST-sicher, server-TZ-unabhängig) — Parität zur Cloud.
-          const tz = (location as any)?.settings?.generalSettings?.timezone || 'Europe/Berlin'
-          const scheduledDate = new Date(new Date(data.scheduledFor).toLocaleString('en-US', { timeZone: tz }))
-
-          // Ausnahmen laden
-          const dateStr = formatDateISO(scheduledDate)
-          const excResult = (await app.service('opening-hour-exceptions').find({
-            query: { date: dateStr, tenantId: data.tenantId },
-            provider: undefined,
-          })) as any
-          const exceptions = Array.isArray(excResult) ? excResult : excResult.data || []
-
-          const hours = getOpeningHoursForDate(scheduledDate, ohs.regular || [], exceptions)
-          if (hours.closed) {
-            throw new BadRequest('Vorbestellung nicht möglich — der Betrieb ist an diesem Tag geschlossen.')
-          }
-
-          if (hours.open && hours.close) {
-            const h = scheduledDate.getHours()
-            const m = scheduledDate.getMinutes()
-            const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
-            if (timeStr < hours.open || timeStr > hours.close) {
-              throw new BadRequest(
-                `Vorbestellung nicht möglich — die Öffnungszeiten sind ${hours.open} bis ${hours.close} Uhr.`,
-              )
-            }
-          }
-
-          return context
-        },
+        validatePreOrderOpeningHours,
         ...jsonHooks.before,
       ],
       patch: [

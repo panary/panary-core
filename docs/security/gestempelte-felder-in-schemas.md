@@ -228,19 +228,26 @@ trifft, hängt am Aufrufpfad […] das ist eine Vermutung, keine Messung". Nachg
   **ohne `user`** — `multiTenancy()` steigt dann im Early-Return aus (`if (!user) return
   next()`). Entscheidend ist nicht der fehlende `provider`, sondern der fehlende `user`:
   Ein interner Aufruf, der `params.user` mitgibt, WIRD gestempelt.
-* **Ein Treffer blieb übrig — und er ist mit dem Schema-Fix NICHT erledigt:**
-  `applyResolutionAfterPatch` in `sync-conflicts.ts` patcht bei „Cloud übernehmen" den
+* **Ein Treffer blieb übrig, und er war mit dem Schema-Fix NICHT erledigt:**
+  `applyResolutionAfterPatch` in `sync-conflicts.ts` patchte bei „Cloud übernehmen" den
   vollständigen Cloud-Record in den Zielservice. `tenantId` war dabei nur das **erste von
   sechs** blockierenden Feldern; am laufenden Edge einzeln nachgemessen (2026-09-12)
-  lehnt das `working-times`-Patch-Schema weiterhin `_id`, `locationId`, `userId`,
-  `businessDay` und `checkinDate` ab. Der Apply scheitert also nach wie vor still im
-  `catch` als `sync.conflict.apply_failed` — während der Konflikt auf `resolved` geht und
-  die UI Erfolg meldet. Eigener Befund: panary/panary-core#293.
+  lehnt das `working-times`-Patch-Schema auch `_id`, `locationId`, `userId`,
+  `businessDay` und `checkinDate` ab. Eigener Befund: panary/panary-core#293.
 
   ⚠️ Die frühere Fassung dieses Punktes las sich, als hätte der `tenantId`-Fix den Pfad
   repariert. Das war eine Schlussfolgerung aus der Feldliste, keine Messung — der Fix ist
   notwendig, aber nicht hinreichend. Merke für diese ganze Klasse: Ein Schema, das **ein**
   gestempeltes Feld akzeptiert, akzeptiert damit noch keinen **vollen Record**.
+
+  ✅ **Behoben in #293** — und zwar nicht am Schema. Der Apply reduziert den Cloud-Record
+  jetzt auf die Felder des Ziel-Patch-Schemas, läuft **vor** dem Statuswechsel und
+  kontrolliert das Ergebnis nach; das Patch-Schema bleibt eng.
+  [ADR 0037](../adr/0037-konflikt-aufloesung-wendet-an-bevor-sie-als-geloest-gilt.md).
+  Nebenbefund derselben Messung: Die eigentliche Fehlermeldung im Sichttest kam gar nicht
+  von der Feldliste, sondern davon, dass `cloudPayload` mangels `getJsonFieldHooks` als
+  JSON-**String** zurückkam. Zwei Ursachen, die dieselbe 400-Meldung erzeugen — auch das
+  ist ein Argument fürs Messen statt Schließen.
 * **Kein Client patcht `working-times` extern** (gemessen über `admin-client`/`pos-client`:
   nur Label-Maps in der Sync-Historie nennen den Pfad). Der Defekt war also latent — wie
   die elf Cloud-Services aus panary/panary-cloud#199, die „seit jeher" scheiterten.

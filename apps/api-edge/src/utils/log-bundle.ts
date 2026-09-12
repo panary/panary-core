@@ -10,10 +10,31 @@ import { gzipSync } from 'node:zlib'
 // `validationErrors` (AJV-`params` kann Eingabewerte spiegeln). Reicht zur
 // Fehler-Identifikation (service/method/statusCode/error). Ein spaeterer
 // „verbose"-Export kann eine kuratierte businessContext-Sub-Allowlist ergaenzen.
+//
+// 🚨 Eine Auslassung hier ist nicht nur „Feld fehlt", sondern eine FALSCHE
+// ANTWORT auf eine Suche. Am 2026-09-12 (panary/panary-core#293) fehlte `event`,
+// und ein `grep 'sync.conflict.apply_failed'` ueber den Export lieferte 0
+// Treffer — gelesen als „die Zeile wurde nie geschrieben". Sie stand da, nur
+// ohne ihren Namen. Wer die Liste kuerzt, nimmt also nicht Information weg,
+// sondern erzeugt einen plausiblen Fehlschluss. Neue Eintraege deshalb mit
+// Begruendung, Streichungen erst recht.
 export const SAFE_LOG_FIELDS = [
   'timestamp',
   'level',
   'message',
+  // Der Event-Name ist die Kennung, ueber die Runbooks, Doku und Issues eine
+  // Logzeile adressieren („`sync.conflict.apply_failed` darf nur auftreten,
+  // wenn …"). Ohne ihn ist jede Verifikation dieser Form ueber den Export
+  // unbeantwortbar.
+  //
+  // Unbedenklich ist er, weil er aus dem Code stammt und nicht aus den Daten:
+  // gemessen ueber `apps/` + `libs/` (2026-09-12) 220 verschiedene Namen, alle
+  // feste Zeichenketten. Die einzige Interpolation ist
+  // `sync.run.${outcome.toLowerCase()}` (record-sync-run.helper.ts) und setzt
+  // einen Enum-Wert ein (`success`/`partial`/`failure`/`throttled`) — kein
+  // Nutzdatum. Kaeme je ein Event-Name mit interpolierten Nutzdaten dazu, waere
+  // das schon fuer die Log-Kardinalitaet falsch, nicht erst fuer den Export.
+  'event',
   'requestId',
   'service',
   'method',

@@ -27,7 +27,12 @@
  * Entscheidung schon getroffen (dort mit Uhrzeiten, wo der Roundtrip zusaetzlich an
  * DST-Uebergaengen danebenlag) — der Edge kennt also nicht erst seit hier eine
  * Zeitzone, er hatte sie nur im Rotationspfad noch nicht.
+ *
+ * Die Projektion selbst liegt seit panary/panary-core#279 in `zoned-parts.ts` und
+ * wird von allen Edge-Pfaden geteilt, die eine Ortszeit brauchen.
  */
+
+import { zonedParts } from './zoned-parts'
 
 /** Fallback, wenn die Filiale keine oder eine unbrauchbare Zeitzone traegt. */
 export const DEFAULT_BUSINESS_TIMEZONE = 'Europe/Berlin'
@@ -41,19 +46,11 @@ export interface LocationTimezoneSource {
   settings?: { generalSettings?: { timezone?: string } } | null
 }
 
-const zonedCalendarDate = (instant: Date, timeZone: string): string => {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(instant)
+const pad2 = (n: number): string => String(n).padStart(2, '0')
 
-  const out: Record<string, string> = {}
-  for (const { type, value } of parts) {
-    if (type !== 'literal') out[type] = value
-  }
-  return `${out.year}-${out.month}-${out.day}`
+const zonedCalendarDate = (instant: Date, timeZone: string): string => {
+  const { year, month, day } = zonedParts(instant, timeZone)
+  return `${year}-${pad2(month)}-${pad2(day)}`
 }
 
 /** Kalendertag von `now` in `timezone`, als `YYYY-MM-DD`. */

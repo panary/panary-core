@@ -24,6 +24,8 @@
  * mehr als Voraussetzung fuers Feuern.
  */
 
+import { zonedParts } from '../utils/zoned-parts'
+
 /**
  * Wie weit ein bereits vergangener Slot noch nachgeholt wird.
  *
@@ -55,43 +57,6 @@ export interface ScheduledSlotDecision {
   dueSlotAt?: string
   /** Millisekunden bis zum naechsten kuenftigen Slot. */
   waitMs: number
-}
-
-interface ZonedParts {
-  year: number
-  month: number
-  day: number
-  hour: number
-  minute: number
-  second: number
-}
-
-const zonedParts = (instant: Date, timeZone: string): ZonedParts => {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    // `hourCycle: 'h23'` statt `hour12: false`: letzteres liefert je nach
-    // ICU-Version „24" fuer Mitternacht.
-    hourCycle: 'h23',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  }).formatToParts(instant)
-
-  const out: Record<string, number> = {}
-  for (const { type, value } of parts) {
-    if (type !== 'literal') out[type] = Number(value)
-  }
-  return {
-    year: out.year,
-    month: out.month,
-    day: out.day,
-    hour: out.hour === 24 ? 0 : out.hour,
-    minute: out.minute,
-    second: out.second,
-  }
 }
 
 /** Offset der Zone zum Zeitpunkt `instant` in Millisekunden (oestlich von UTC positiv). */

@@ -237,3 +237,48 @@ jobs:
             exit $?
           fi
           exit 1
+
+      # Reihenfolge-Gate (#301): derselbe api-edge-Lauf, aber mit gemischter
+      # Datei- UND Testreihenfolge. Alle Suiten unter apps/api-edge/test/ teilen
+      # sich EINE SQLite-Datei (vitest.config.mts) — wer seinen Datensatz im
+      # beforeAll aufbaut und ueber mehrere Tests patcht, macht die Reihenfolge
+      # zum Teil der Annahme. Am 2026-09-13 traf das vier Suiten gleichzeitig,
+      # und der Bestands-Suchbefehl aus code-style.md §10.1 sah keine davon: Er
+      # filtert auf *.spec.ts (die Integrationstests heissen *.test.ts) und auf
+      # Zuweisungen in beforeEach (dort steht eine DB-Zeile). Ohne Gate waechst
+      # das still nach.
+      #
+      # Zwei Eigenschaften, ohne die der Schritt gruen meldet, ohne zu messen —
+      # Begruendung in docs/adr/0038-shuffle-gate-mit-commit-seed.md:
+      #
+      #   --skip-nx-cache  Der Befehl ist bei gleichem Seed identisch; ein
+      #                    Re-Run desselben Commits bekaeme sonst den
+      #                    Cache-Treffer statt eines Laufs.
+      #   Seed aus der SHA Ein Schritt, der beim Re-Run anders ausgeht, wird
+      #                    nach dem dritten Mal weggeklickt (dieselbe
+      #                    Gewoehnung wie --force bei wt.sh done). Der Seed ist
+      #                    je Commit fest und wandert ueber Commits hinweg —
+      #                    damit ist das Gate eine Stichprobe, die driftet,
+      #                    statt einer Zufallsquelle.
+      #
+      # Bewusst NUR api-edge und nur, wenn es betroffen ist: Es ist das einzige
+      # Projekt mit einer geteilten, ueber den Lauf hinaus lebenden Ressource,
+      # und eine neue Kopplung kann nur aus einer Aenderung kommen, die api-edge
+      # betrifft. Gemessene Kosten: ~1,5 min ohne Cache.
+      - name: Reihenfolge-Gate (api-edge, --sequence.shuffle)
+        shell: bash
+        run: |
+          set -o pipefail
+          # Kein `| grep -q` unter pipefail: grep beendet sich beim ersten
+          # Treffer, der Schreiber bekommt SIGPIPE und der Status waere 141.
+          affected="$(pnpm nx show projects --affected --json)"
+          case "$affected" in
+            *'"api-edge"'*) ;;
+            *)
+              echo "api-edge nicht betroffen — Reihenfolge-Gate uebersprungen."
+              exit 0
+              ;;
+          esac
+          seed=$((16#${GITHUB_SHA:0:8}))
+          echo "::notice title=Reihenfolge-Gate::Seed ${seed} (aus ${GITHUB_SHA:0:8}). Lokal nachstellen: pnpm nx test api-edge --skip-nx-cache -- --sequence.shuffle --sequence.seed=${seed}"
+          pnpm nx test api-edge --skip-nx-cache -- --sequence.shuffle --sequence.seed="${seed}"

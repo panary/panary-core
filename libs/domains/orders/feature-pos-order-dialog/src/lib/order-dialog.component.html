@@ -133,26 +133,19 @@
             <div
               class="rounded-xl mt-2 border border-gray-200 dark:border-gray-700 mx-1 overflow-hidden transition-colors duration-200"
             >
-              <!-- Kombinations-Header mit +/- Buttons -->
+              <!-- Kombinations-Header: reines Klickziel für die ganze Kombination. Die
+                   früheren 24-px-Tasten für +/− sind in Spalte 2 umgezogen (ADR 0034) und
+                   wirken dort auf die markierte Kombination. -->
               <div
-                class="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-[0.625rem] font-bold uppercase tracking-wider px-3 py-1 flex items-center gap-1.5"
+                class="text-[0.625rem] font-bold uppercase tracking-wider px-3 py-1.5 flex items-center gap-1.5 cursor-pointer transition-colors duration-200"
+                [ngClass]="
+                  selectedCombinationIndex[0] === i && selectedCombinationIndex[1] === null
+                    ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-200'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                "
+                (click)="toggleCombinationSelection(i)"
               >
                 <span>{{ 'ACTIVE_ORDERS.COMBINATIONS' | translate }} {{ i + 1 }}</span>
-                <span class="w-px h-4 bg-gray-400"></span>
-                <button
-                  type="button"
-                  class="w-6 h-6 rounded-md flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 active:scale-90 transition-all text-gray-600 dark:text-gray-300"
-                  (click)="decreaseCombinationQuantity(i, $event)"
-                >
-                  <span class="material-symbols-outlined !text-[1rem]">remove</span>
-                </button>
-                <button
-                  type="button"
-                  class="w-6 h-6 rounded-md flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 active:scale-90 transition-all text-gray-600 dark:text-gray-300"
-                  (click)="increaseCombinationQuantity(i, $event)"
-                >
-                  <span class="material-symbols-outlined !text-[1rem]">add</span>
-                </button>
                 <span class="flex-1"></span>
                 <span class="font-bold text-gray-700 dark:text-gray-200 text-base">{{
                   calculateCombinationPrice(combination) | currency: 'EUR'
@@ -175,32 +168,10 @@
                       class="flex items-center gap-2 w-full"
                       [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'"
                     >
-                      <!-- Einzelne Position +/- -->
-                      <div class="flex items-center gap-1 shrink-0">
-                        <button
-                          type="button"
-                          class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-90 transition-all"
-                          [class.text-red-500]="lineItem.amount === 1"
-                          [class.text-gray-500]="lineItem.amount > 1"
-                          (click)="decreaseQuantity(lineItem, $event)"
-                        >
-                          @if (lineItem.amount === 1) {
-                            <span class="material-symbols-outlined !text-[1.125rem]">delete</span>
-                          } @else {
-                            <span class="material-symbols-outlined !text-[1.125rem]">remove</span>
-                          }
-                        </button>
-                        <span class="font-bold text-gray-700 dark:text-gray-300 min-w-[1rem] text-center text-sm">{{
-                          lineItem.amount
-                        }}</span>
-                        <button
-                          type="button"
-                          class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-90 transition-all text-gray-500"
-                          (click)="increaseQuantity(lineItem, $event)"
-                        >
-                          <span class="material-symbols-outlined !text-[1.125rem]">add</span>
-                        </button>
-                      </div>
+                      <!-- Menge nur als Text — die Zeile ist ein einziges Klickziel (ADR 0034) -->
+                      <span class="font-bold text-gray-700 dark:text-gray-300 min-w-[2rem] text-right text-sm shrink-0"
+                        >{{ lineItem.amount }}×</span
+                      >
 
                       <span
                         class="text-[0.9375rem] font-medium text-gray-800 dark:text-gray-200 flex-1 truncate leading-tight"
@@ -220,7 +191,7 @@
 
                     @if (lineItem.isMenu) {
                       <div
-                        class="flex flex-col gap-0.5 text-xs text-gray-500 ml-[5.5rem] mt-0.5"
+                        class="flex flex-col gap-0.5 text-xs text-gray-500 ml-[2.5rem] mt-0.5"
                         [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'"
                       >
                         <div class="flex justify-between">
@@ -243,7 +214,7 @@
 
                     @for (extra of lineItem.modifiers; track extra._id) {
                       <div
-                        class="flex justify-between text-xs text-gray-500 ml-[5.5rem]"
+                        class="flex justify-between text-xs text-gray-500 ml-[2.5rem]"
                         [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'"
                       >
                         <span>
@@ -276,34 +247,14 @@
                 (click)="toggleProductSelection(i)"
               >
                 <div class="flex items-start gap-3">
-                  <!-- Quantity Controls -->
-                  <div class="flex flex-row gap-1 shrink-0 items-center">
-                    <button
-                      type="button"
-                      class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-90 transition-all"
-                      [class.text-red-500]="lineItem.amount === 1"
-                      [class.text-gray-500]="lineItem.amount > 1"
-                      (click)="decreaseQuantity(lineItem, $event)"
-                    >
-                      @if (lineItem.amount === 1) {
-                        <span class="material-symbols-outlined !text-[1.125rem]">delete</span>
-                      } @else {
-                        <span class="material-symbols-outlined !text-[1.125rem]">remove</span>
-                      }
-                    </button>
-
-                    <span class="font-bold text-gray-700 dark:text-gray-300 min-w-[1rem] text-center text-sm">{{
-                      lineItem.amount
-                    }}</span>
-
-                    <button
-                      type="button"
-                      class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-90 transition-all text-gray-500"
-                      (click)="increaseQuantity(lineItem, $event)"
-                    >
-                      <span class="material-symbols-outlined !text-[1.125rem]">add</span>
-                    </button>
-                  </div>
+                  <!-- Menge nur als Text. Die Zeile ist ein einziges Klickziel: Antippen wählt
+                       aus, mehr nicht. Löschen, − und + sitzen als 56-px-Tasten in Spalte 2 und
+                       wirken auf die Markierung — ein Fehlklick beim Auswählen kann die Menge
+                       nicht mehr verändern (ADR 0034). -->
+                  <span
+                    class="font-bold text-gray-700 dark:text-gray-300 min-w-[2rem] text-right text-[0.9375rem] shrink-0 leading-tight"
+                    >{{ lineItem.amount }}×</span
+                  >
 
                   <!-- Item Details -->
                   <div class="flex-1 min-w-0">
@@ -494,8 +445,40 @@
         <button
           (click)="unselectProduct()"
           class="pnry-touch h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          aria-label="Auswahl aufheben"
         >
           <span class="material-symbols-outlined text-[1.375rem]" style="font-size: inherit">remove_done</span>
+        </button>
+        <!-- Mengensteuerung + Löschen: wirken auf die Markierung im Warenkorb (Zeile,
+             Position in einer Kombination oder ganze Kombination). Ohne Markierung
+             deaktiviert, kein stiller No-Op. Immer `h-14 w-14` UND `pnry-touch`:
+             Letzteres greift nur bei aktivem Fluid-Flag. -->
+        <button
+          type="button"
+          class="pnry-touch h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:active:scale-100 disabled:hover:bg-transparent"
+          [disabled]="!canMutateSelection()"
+          (click)="increaseSelectedQuantity()"
+          aria-label="Menge der Markierung erhöhen"
+        >
+          <span class="material-symbols-outlined text-[1.375rem]" style="font-size: inherit">add</span>
+        </button>
+        <button
+          type="button"
+          class="pnry-touch h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:active:scale-100 disabled:hover:bg-transparent"
+          [disabled]="!canDecreaseSelection()"
+          (click)="decreaseSelectedQuantity()"
+          aria-label="Menge der Markierung verringern"
+        >
+          <span class="material-symbols-outlined text-[1.375rem]" style="font-size: inherit">remove</span>
+        </button>
+        <button
+          type="button"
+          class="pnry-touch h-14 w-14 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-900/50 text-red-500 dark:text-red-400 active:scale-95 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/50 disabled:opacity-40 disabled:active:scale-100 disabled:hover:bg-red-50 dark:disabled:hover:bg-red-900/30"
+          [disabled]="!canMutateSelection()"
+          (click)="deleteSelection()"
+          aria-label="Markierung löschen"
+        >
+          <span class="material-symbols-outlined text-[1.375rem]" style="font-size: inherit">delete</span>
         </button>
         <button
           (click)="togglePriceVisibility()"
@@ -507,12 +490,14 @@
         <button
           class="pnry-touch h-14 w-14 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-900/50 text-red-500 dark:text-red-400 active:scale-95 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/50"
           (click)="setDeleteSubbuttons()"
+          aria-label="Löschen-Menü"
         >
           <span class="material-symbols-outlined text-[1.375rem]" style="font-size: inherit">delete_forever</span>
         </button>
         <button
           class="pnry-touch h-14 w-14 rounded-xl bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-900/50 text-purple-600 dark:text-purple-300 active:scale-95 flex items-center justify-center hover:bg-purple-100 dark:hover:bg-purple-900/50"
           (click)="setCombiSubButtons()"
+          aria-label="Kombination"
         >
           <span class="material-symbols-outlined rotate-90 text-[1.375rem]" style="font-size: inherit">merge_type</span>
         </button>

@@ -150,6 +150,13 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   #lineItems: Array<OrderLineItem> = []
   #orderOpenedAt: Date = new Date()
   #orderInteractions: Array<OrderInteraction> = []
+  /**
+   * Laufende Nummer des zuletzt angebotenen „Rückgängig". Die Snackbar trägt die
+   * Nummer, unter der sie geöffnet wurde; stimmt sie beim Klick nicht mehr mit
+   * dieser überein, ist das Angebot verfallen (Bestellung abgeschickt, Warenkorb
+   * geleert, neueres Angebot) und der Klick tut nichts.
+   */
+  #undoSerial = 0
   private _articlesToCombine: Array<number> = []
   private _isBlocked = false
   private _customer: CorporateCustomer | undefined = undefined
@@ -570,6 +577,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   deleteOrder() {
+    this.#invalidateUndo()
     this.#lineItems = []
     this.#orderOpenedAt = new Date()
     this.#orderInteractions = []
@@ -609,6 +617,20 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this._isBlocked) return
 
     this.applyBoardSelection(toggleCombinationSelection(this.boardSelection(), combinationIndex, articleIndex))
+  }
+
+  /**
+   * Markiert die ganze Kombination (Header-Tap) oder hebt die Markierung auf, wenn
+   * sie — ganz oder eine ihrer Positionen — bereits markiert war. Bewusst nicht
+   * über `toggleCombinationSelection(…, null)`: das ließe beim Abwählen den
+   * Positionsindex stehen (`[null, j]`).
+   */
+  toggleCombinationSelection(combinationIndex: number) {
+    if (this._isBlocked) return
+
+    this._selectedProductIndex = null
+    this._selectedCombinationIndex =
+      this._selectedCombinationIndex[0] === combinationIndex ? [null, null] : [combinationIndex, null]
   }
 
   increaseSelectedIndex() {
@@ -1639,63 +1661,200 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  increaseQuantity(orderLineItem: OrderLineItem, event: Event | null = null): void {
-    if (event) event.stopPropagation()
+  increaseQuantity(orderLineItem: OrderLineItem): void {
     orderLineItem.amount++
   }
 
-  decreaseQuantity(orderLineItem: OrderLineItem, event: Event | null = null): void {
-    if (event) event.stopPropagation()
-
-    if (orderLineItem.amount > 1) {
-      orderLineItem.amount--
-    } else {
-      this.#lineItems.splice(this.#lineItems.indexOf(orderLineItem), 1)
-      this.#pruneOrphanedLineDiscounts()
-    }
-    this.#orderInteractions.push({
-      type: 'item-delete',
-      orderOpenedAt: this.#orderOpenedAt.toISOString(),
-      eventAt: new Date().toISOString(),
-      eventOffsetMs: new Date().getTime() - this.#orderOpenedAt.getTime(),
-      productId: orderLineItem.externalId || undefined,
-      lineItemId: this.#lineItems.indexOf(orderLineItem) || -1,
-      deletedQuantity: 1,
-      businessDayId: this.locationService.currentBusinessDay?.businessDayId?.toString(),
-      businessDate: this.locationService.currentBusinessDay?.date,
-      userId: this._currentUser?._id?.toString() || '',
-    } as any)
+  /**
+   * Verringert **nur noch**. Bis #269 löschte die Methode bei Menge 1 die Zeile —
+   * Löschen und Verringern teilten sich damit ein 28-px-Ziel in der Auswahlfläche.
+   * Löschen läuft jetzt ausschließlich über `deleteSelection()` (ADR 0034); bei
+   * Menge 1 ist Minus in der Leiste deaktiviert, hier bleibt es ein No-Op.
+   */
+  decreaseQuantity(orderLineItem: OrderLineItem): void {
+    if (orderLineItem.amount > 1) orderLineItem.amount--
   }
 
-  increaseCombinationQuantity(index: number, event: Event): void {
-    event.stopPropagation()
+  /**
+   * Die Zeilen, auf die Löschen/−/+ in Spalte 2 wirken: die markierte Zeile, die
+   * markierte Position einer Kombination — oder alle Positionen der Kombination,
+   * wenn ihr Header markiert ist. Leer ohne Markierung.
+   */
+  private selectedTargets(): OrderLineItem[] {
+    const [combination, article] = this._selectedCombinationIndex
+    if (combination !== null) {
+      const bundle = this.combinations[combination] ?? []
+      if (article === null) return bundle
+      const item = bundle[article]
+      return item ? [item] : []
+    }
+    if (this._selectedProductIndex !== null) {
+      const item = this.#lineItems[this._selectedProductIndex]
+      return item ? [item] : []
+    }
+    return []
+  }
 
-    for (const lineItem of this.combinations[index]) {
-      lineItem.amount++
+  /** Ist eine Markierung da, auf die Löschen und + wirken können? Steuert `[disabled]`. */
+  canMutateSelection(): boolean {
+    return !this._isBlocked && this.selectedTargets().length > 0
+  }
+
+  /**
+   * Minus nur, wenn **jede** Zielzeile über 1 steht — sonst müsste es eine davon
+   * löschen, und genau diese Doppelwirkung ist mit #269 abgeschafft. Bei einer
+   * Kombination mit gemischten Mengen bleibt die Position einzeln markierbar.
+   */
+  canDecreaseSelection(): boolean {
+    const targets = this.selectedTargets()
+    return !this._isBlocked && targets.length > 0 && targets.every(item => item.amount > 1)
+  }
+
+  increaseSelectedQuantity(): void {
+    const targets = this.selectedTargets()
+    if (this._isBlocked || targets.length === 0) return
+
+    const before = targets.map(item => ({ item, amount: item.amount }))
+    for (const item of targets) this.increaseQuantity(item)
+    this.#offerUndo(this.#quantityMessage(targets), () => this.#restoreAmounts(before))
+  }
+
+  decreaseSelectedQuantity(): void {
+    const targets = this.selectedTargets()
+    if (this._isBlocked || targets.length === 0 || !targets.every(item => item.amount > 1)) return
+
+    const before = targets.map(item => ({ item, amount: item.amount }))
+    for (const item of targets) this.decreaseQuantity(item)
+    this.#offerUndo(this.#quantityMessage(targets), () => this.#restoreAmounts(before))
+  }
+
+  /**
+   * Löscht die Markierung: eine Zeile, eine Position der Kombination oder die
+   * ganze Kombination. Der Lösch-Pfad (Interaction-Event, Rabatt-Aufräumen,
+   * Auflösen einer auf eine Position geschrumpften Kombination) liegt in
+   * `#removeLineItems`; das Undo nimmt genau diese drei Wirkungen zurück.
+   */
+  deleteSelection(): void {
+    const targets = this.selectedTargets()
+    if (this._isBlocked || targets.length === 0) return
+
+    const wholeCombination = this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] === null
+    const restore = this.#removeLineItems(targets)
+    this._selectedProductIndex = null
+    this._selectedCombinationIndex = [null, null]
+
+    const message = wholeCombination ? 'Kombination gelöscht' : `Gelöscht: ${targets[0].amount}× ${targets[0].name}`
+    this.#offerUndo(message, restore)
+  }
+
+  #quantityMessage(targets: OrderLineItem[]): string {
+    if (targets.length === 1) return `Menge: ${targets[0].amount}× ${targets[0].name}`
+    return `Kombination: Menge ${targets.map(item => `${item.amount}× ${item.name}`).join(', ')}`
+  }
+
+  #restoreAmounts(before: Array<{ item: OrderLineItem; amount: number }>): void {
+    for (const { item, amount } of before) {
+      // Nur Zeilen, die es noch gibt — eine inzwischen gelöschte bleibt gelöscht.
+      if (this.#lineItems.includes(item)) item.amount = amount
     }
   }
 
-  decreaseCombinationQuantity(index: number, event: Event): void {
-    event.stopPropagation()
+  /**
+   * Entfernt Zeilen aus dem Warenkorb und gibt die Umkehrung zurück.
+   *
+   * Drei Wirkungen, alle im Undo abgedeckt:
+   * 1. `item-delete`-Interaction je Zeile — das Undo nimmt genau diese Objekte
+   *    wieder heraus, sonst zählte die Auswertung ein Storno, das nie stattfand.
+   * 2. Verwaiste Positionsrabatte werden geprunt — das Undo legt die Einträge der
+   *    entfernten Zeilen zurück, sonst käme die Zeile ohne ihren Rabatt wieder
+   *    (Geldfrage, cent-genau verifiziert in #182).
+   * 3. Eine Kombination, die auf eine Position schrumpft, wird aufgelöst — das
+   *    Undo stellt die `bundleNumber` der Nachbarzeile wieder her.
+   *
+   * Entfernt wird über die Objektidentität in `#lineItems`. Der frühere Weg über
+   * `this.combinations[i].splice(j, 1)` griff ins Leere: `getCombinations` baut
+   * die Gruppen bei jedem Aufruf neu, der Splice traf eine Wegwerf-Kopie.
+   */
+  #removeLineItems(items: readonly OrderLineItem[]): () => void {
+    const removed = items
+      .map(item => ({ item, index: this.#lineItems.indexOf(item) }))
+      .filter(entry => entry.index >= 0)
+      .sort((a, b) => a.index - b.index)
+    if (removed.length === 0) return () => undefined
 
-    const bundleItems = this.combinations[index]
-    if (!bundleItems || bundleItems.length === 0) return
+    const discountsBefore = this.lineDiscounts()
+    const bundleNumbersBefore = this.#lineItems.map(item => ({ item, bundleNumber: item.bundleNumber }))
 
-    // Jede Position einzeln verringern, bei 0 entfernen
-    const toRemove: any[] = []
-    for (const lineItem of bundleItems) {
-      if (lineItem.amount > 1) {
-        lineItem.amount--
-      } else {
-        toRemove.push(lineItem)
+    const interactions: OrderInteraction[] = removed.map(
+      ({ item }) =>
+        ({
+          type: 'item-delete',
+          orderOpenedAt: this.#orderOpenedAt.toISOString(),
+          eventAt: new Date().toISOString(),
+          eventOffsetMs: new Date().getTime() - this.#orderOpenedAt.getTime(),
+          productId: item.externalId || undefined,
+          lineItemId: this.#lineItems.indexOf(item),
+          deletedQuantity: item.amount,
+          businessDayId: this.locationService.currentBusinessDay?.businessDayId?.toString(),
+          businessDate: this.locationService.currentBusinessDay?.date,
+          userId: this._currentUser?._id?.toString() || '',
+        }) as unknown as OrderInteraction,
+    )
+    this.#orderInteractions.push(...interactions)
+
+    const removedSet = new Set(removed.map(entry => entry.item))
+    this.#lineItems = this.#lineItems.filter(item => !removedSet.has(item))
+    this.#pruneOrphanedLineDiscounts()
+    this.#resolveSingletonBundles()
+
+    return () => {
+      for (const { item, index } of removed) {
+        this.#lineItems.splice(Math.min(index, this.#lineItems.length), 0, item)
       }
+      for (const { item, bundleNumber } of bundleNumbersBefore) item.bundleNumber = bundleNumber
+      this.lineDiscounts.update(current => {
+        const restored = { ...current }
+        for (const { item } of removed) {
+          if (discountsBefore[item._id]) restored[item._id] = discountsBefore[item._id]
+        }
+        return restored
+      })
+      const undone = new Set(interactions)
+      this.#orderInteractions = this.#orderInteractions.filter(event => !undone.has(event))
     }
+  }
 
-    // Positionen mit amount 0 aus lineItems entfernen
-    if (toRemove.length > 0) {
-      const removeIds = new Set(toRemove.map(i => i._id))
-      this.#lineItems = this.#lineItems.filter(i => !removeIds.has(i._id))
+  /** Löst Kombinationen auf, die nur noch eine Position haben — eine Kombination aus einem Artikel ist keine. */
+  #resolveSingletonBundles(): void {
+    for (const bundle of this.combinations) {
+      if (bundle.length === 1) bundle[0].bundleNumber = null
     }
+  }
+
+  /**
+   * Bietet „Rückgängig" für die letzte Mengenänderung bzw. das letzte Löschen an.
+   *
+   * Snackbar statt Infobox: Die Infobox überschreibt jeder nächste Schritt
+   * (siehe `placeOrder`, #234). Mit `duration`, anders als die Rabattcode-Meldung
+   * dort — das ist keine Fehlermeldung, die quittiert werden muss, sondern ein
+   * Angebot, das nach kurzer Zeit verfallen darf.
+   */
+  #offerUndo(message: string, restore: () => void): void {
+    const serial = ++this.#undoSerial
+    const ref = this.matSnackBar.open(message, 'Rückgängig', { duration: 6000 })
+    ref.onAction().subscribe(() => {
+      if (serial !== this.#undoSerial) return
+      this.#undoSerial++
+      restore()
+      // Kommt von außerhalb des Templates (Overlay) — OnPush erfährt sonst nichts davon.
+      this.#cdr.markForCheck()
+    })
+  }
+
+  /** Lässt ein offenes „Rückgängig" verfallen — die Bestellung ist weg oder abgeschickt. */
+  #invalidateUndo(): void {
+    this.#undoSerial++
+    this.matSnackBar.dismiss()
   }
 
   increaseExtra(article: PosProductButton, topic: string | undefined = undefined) {
@@ -2048,48 +2207,33 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  /**
+   * Entfernt die markierte Zeile ohne Undo-Angebot — der Pfad für den ABBRUCH
+   * eines angefangenen Bundle-Flows. Der Benutzer-Löschweg ist `deleteSelection()`.
+   */
   decreaseLineItem() {
-    if (this._selectedProductIndex !== null) {
-      const deletedItem = this.#lineItems[this._selectedProductIndex]
-      this.#lineItems.splice(this._selectedProductIndex, 1)
-      this._selectedProductIndex = null
-      this.#pruneOrphanedLineDiscounts()
-
-      this.#orderInteractions.push({
-        type: 'item-delete',
-        orderOpenedAt: this.#orderOpenedAt.toISOString(),
-        eventAt: new Date().toISOString(),
-        eventOffsetMs: new Date().getTime() - this.#orderOpenedAt.getTime(),
-        productId: deletedItem.externalId || undefined,
-        lineItemId: this._selectedProductIndex || -1,
-        deletedQuantity: deletedItem.amount,
-        businessDayId: this.locationService.currentBusinessDay?.businessDayId?.toString(),
-        businessDate: this.locationService.currentBusinessDay?.date,
-        userId: this._currentUser?._id?.toString() || '',
-      } as any)
-    } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
-      const deletedItem = this.combinations[this._selectedCombinationIndex[0]][this._selectedCombinationIndex[1]]
-      this.combinations[this._selectedCombinationIndex[0]].splice(this._selectedCombinationIndex[1], 1)
-      this._selectedCombinationIndex[1] = null
-
-      this.#orderInteractions.push({
-        type: 'item-delete',
-        orderOpenedAt: this.#orderOpenedAt.toISOString(),
-        eventAt: new Date().toISOString(),
-        eventOffsetMs: new Date().getTime() - this.#orderOpenedAt.getTime(),
-        productId: deletedItem.externalId || undefined,
-        deletedQuantity: deletedItem.amount,
-        businessDayId: this.locationService.currentBusinessDay?.businessDayId?.toString(),
-        businessDate: this.locationService.currentBusinessDay?.date,
-        userId: this._currentUser?._id?.toString() || '',
-      } as any)
-
-      if (this.combinations[this._selectedCombinationIndex[0]].length === 1) {
-        this.resolveCombination()
-      }
-    } else {
+    const [combination, article] = this._selectedCombinationIndex
+    const item =
+      this._selectedProductIndex !== null
+        ? this.#lineItems[this._selectedProductIndex]
+        : combination !== null && article !== null
+          ? this.combinations[combination]?.[article]
+          : undefined
+    if (!item) {
       this.setInfoBoxText('Bitte wählen Sie zunächst einen Artikel aus.', 'red')
+      return
     }
+
+    const bundleNumber = item.bundleNumber
+    this.#removeLineItems([item])
+    if (this._selectedProductIndex !== null) {
+      this._selectedProductIndex = null
+      return
+    }
+    // Die Kombination bleibt markiert, solange es sie noch gibt — ist sie auf eine
+    // Position geschrumpft, wurde sie aufgelöst und die Markierung geht mit.
+    const bundleRemains = this.combinations.some(bundle => bundle[0]?.bundleNumber === bundleNumber)
+    this._selectedCombinationIndex = bundleRemains ? [combination, null] : [null, null]
   }
 
   combineAllArticles() {
@@ -2137,26 +2281,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       return
     }
 
-    const deletedCombination = this.combinations[this._selectedCombinationIndex[0]]
-
-    deletedCombination.forEach((item, i) => {
-      this.#orderInteractions.push({
-        type: 'item-delete',
-        orderOpenedAt: this.#orderOpenedAt.toISOString(),
-        eventAt: new Date().toISOString(),
-        eventOffsetMs: new Date().getTime() - this.#orderOpenedAt.getTime(),
-        productId: item.externalId || undefined,
-        lineItemId: i,
-        deletedQuantity: item.amount,
-        businessDayId: this.locationService.currentBusinessDay?.businessDayId?.toString(),
-        businessDate: this.locationService.currentBusinessDay?.date,
-        userId: this._currentUser?._id?.toString() || '',
-      } as any)
-    })
-
-    const bundleId = deletedCombination[0].bundleNumber
-    this.#lineItems = this.#lineItems.filter(item => item.bundleNumber !== bundleId)
-    this.#pruneOrphanedLineDiscounts()
+    this.#removeLineItems(this.combinations[this._selectedCombinationIndex[0]] ?? [])
 
     this._selectedCombinationIndex = [null, null]
   }
@@ -2716,6 +2841,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       })
       .then()
 
+    this.#invalidateUndo()
     this.matDialogRef.close(false)
   }
 

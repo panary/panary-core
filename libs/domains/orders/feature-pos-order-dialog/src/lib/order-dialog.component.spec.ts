@@ -14,7 +14,7 @@ import {
 import { MatDialog, MatDialogRef } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'
-import { of } from 'rxjs'
+import { Subject, of } from 'rxjs'
 
 import { OrderInteractionService, OrderService } from '@panary/orders/data-access'
 import type { AppliedDiscount } from '@panary/orders/domain'
@@ -98,6 +98,8 @@ function setup(options: SetupOptions = {}) {
   const closeCalls: unknown[] = []
   /** Was ueber `MatSnackBar` gemeldet wurde — der einzige Meldeweg, der den Dialogschluss ueberlebt. */
   const snackBarCalls: Array<{ message: string; action?: string }> = []
+  /** Die geoeffneten Snackbars — `triggerAction()` spielt den Klick auf „Rueckgaengig" nach. */
+  const snackBarRefs: Array<{ triggerAction: () => void }> = []
   /** Was `matDialog.open()` als Auswahl zurueckgibt — pro Test gesetzt. */
   const dialogResult = { value: undefined as unknown }
 
@@ -185,8 +187,17 @@ function setup(options: SetupOptions = {}) {
         useValue: {
           open: (message: string, action?: string) => {
             snackBarCalls.push({ message, action })
-            return { afterDismissed: () => of(undefined) }
+            const actions = new Subject<void>()
+            const ref = {
+              afterDismissed: () => of(undefined),
+              onAction: () => actions.asObservable(),
+              dismiss: () => undefined,
+              triggerAction: () => actions.next(),
+            }
+            snackBarRefs.push(ref)
+            return ref
           },
+          dismiss: () => undefined,
         },
       },
       { provide: OrderInteractionService, useValue: {} },
@@ -216,7 +227,16 @@ function setup(options: SetupOptions = {}) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const component = runInInjectionContext(injector, () => new OrderDialogComponent()) as any
 
-  return { component, createdOrders, redeemCalls, openedDialogs, closeCalls, snackBarCalls, dialogResult }
+  return {
+    component,
+    createdOrders,
+    redeemCalls,
+    openedDialogs,
+    closeCalls,
+    snackBarCalls,
+    snackBarRefs,
+    dialogResult,
+  }
 }
 
 /** Legt `count` Zeilen desselben Bundle-Produkts an und gibt die `_id`s zurueck. */
@@ -254,26 +274,31 @@ describe('OrderDialog — Reset-Pfade der Positionsrabatte', () => {
     expect(component.lineDiscounts()).toEqual({})
   })
 
-  it('decreaseQuantity() nimmt bei Menge 1 die Zeile UND ihren Rabatt mit', () => {
+  it('deleteSelection() nimmt die Zeile UND ihren Rabatt mit', () => {
+    // Bis #269 tat das `decreaseQuantity()` bei Menge 1 — Loeschen und Verringern
+    // teilten sich ein Ziel. Der Loesch-Pfad liegt jetzt allein hier (ADR 0034).
     const { component } = setup()
     component.increaseLineItem(product('p-1'))
     discountLine(component, 0)
+    component.selectProduct(0)
 
-    component.decreaseQuantity(component.lineItems[0], null)
+    component.deleteSelection()
 
     expect(component.lineItems).toHaveLength(0)
     expect(component.lineDiscounts()).toEqual({})
   })
 
-  it('decreaseQuantity() laesst den Rabatt stehen, solange die Zeile bleibt', () => {
+  it('decreaseSelectedQuantity() laesst den Rabatt stehen, solange die Zeile bleibt', () => {
     const { component } = setup()
     component.increaseLineItem(product('p-1'))
     component.increaseLineItem(product('p-1')) // Duplikat-Check erhoeht die Menge
     const id = discountLine(component, 0)
+    component.selectProduct(0)
 
-    component.decreaseQuantity(component.lineItems[0], null)
+    component.decreaseSelectedQuantity()
 
     expect(component.lineItems).toHaveLength(1)
+    expect(component.lineItems[0].amount).toBe(1)
     expect(component.lineDiscounts()[id]).toBeDefined()
   })
 
@@ -311,12 +336,224 @@ describe('OrderDialog — Reset-Pfade der Positionsrabatte', () => {
     const { component } = setup()
     component.increaseLineItem(product('p-1'))
     discountLine(component, 0)
-    component.decreaseQuantity(component.lineItems[0], null)
+    component.selectProduct(0)
+    component.deleteSelection()
 
     component.increaseLineItem(product('p-1'))
 
     expect(component.lineDiscounts()).toEqual({})
     expect(component.lineDiscountOf(component.lineItems[0])).toBeUndefined()
+  })
+})
+
+/**
+ * Mengensteuerung und Loeschen laufen seit #269 ueber die Funktionsleiste (Spalte 2)
+ * und wirken auf die Markierung (ADR 0034). Geprueft wird die Verdrahtung: was die
+ * Tasten bei welcher Markierung tun, wann sie deaktiviert sind, und dass „Rueckgaengig"
+ * alle drei Wirkungen des Loeschens zuruecknimmt — Zeile, Positionsrabatt UND das
+ * `item-delete`-Ereignis. Letzteres ist nur ueber `placeOrder` sichtbar (`#`-Feld).
+ */
+describe('OrderDialog — Funktionsleiste: Menge und Loeschen auf die Markierung (#269)', () => {
+  it('ohne Markierung sind alle drei Tasten deaktiviert und die Methoden No-Ops', () => {
+    const { component, snackBarCalls } = setup()
+    component.increaseLineItem(product('p-1'))
+
+    expect(component.canMutateSelection()).toBe(false)
+    expect(component.canDecreaseSelection()).toBe(false)
+
+    component.increaseSelectedQuantity()
+    component.decreaseSelectedQuantity()
+    component.deleteSelection()
+
+    expect(component.lineItems).toHaveLength(1)
+    expect(component.lineItems[0].amount).toBe(1)
+    expect(snackBarCalls).toHaveLength(0)
+  })
+
+  it('+ auf die markierte Zeile erhoeht die Menge und bietet „Rueckgaengig" an', () => {
+    const { component, snackBarCalls, snackBarRefs } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.selectProduct(0)
+
+    component.increaseSelectedQuantity()
+
+    expect(component.lineItems[0].amount).toBe(2)
+    expect(snackBarCalls).toEqual([{ message: 'Menge: 2× Artikel p-1', action: 'Rückgängig' }])
+
+    snackBarRefs[0].triggerAction()
+
+    expect(component.lineItems[0].amount).toBe(1)
+  })
+
+  it('ein verfallenes „Rueckgaengig" tut nichts mehr', () => {
+    // Zwei Faelle: ein neueres Angebot loest das aeltere ab, und nach dem Leeren
+    // des Warenkorbs (placeOrder ruft deleteOrder) darf nichts zurueckkommen.
+    const { component, snackBarRefs } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.selectProduct(0)
+    component.increaseSelectedQuantity() // -> 2
+    component.increaseSelectedQuantity() // -> 3
+
+    snackBarRefs[0].triggerAction() // das aeltere Angebot
+
+    expect(component.lineItems[0].amount).toBe(3)
+
+    component.deleteOrder()
+    snackBarRefs[1].triggerAction()
+
+    expect(component.lineItems).toHaveLength(0)
+  })
+
+  it('Minus bei Menge 1 ist deaktiviert und loescht NICHT', () => {
+    const { component, snackBarCalls } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.selectProduct(0)
+
+    expect(component.canMutateSelection()).toBe(true)
+    expect(component.canDecreaseSelection()).toBe(false)
+
+    component.decreaseSelectedQuantity()
+
+    expect(component.lineItems).toHaveLength(1)
+    expect(component.lineItems[0].amount).toBe(1)
+    expect(snackBarCalls).toHaveLength(0)
+  })
+
+  it('„Rueckgaengig" nach dem Loeschen bringt die Zeile MIT Rabatt zurueck und nimmt das item-delete mit', async () => {
+    const { component, createdOrders, snackBarRefs } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.increaseLineItem(product('p-2'))
+    const id = discountLine(component, 0)
+    component.selectProduct(0)
+
+    component.deleteSelection()
+
+    expect(component.lineItems.map((l: { name: string }) => l.name)).toEqual(['Artikel p-2'])
+    expect(component.lineDiscounts()).toEqual({})
+
+    snackBarRefs[0].triggerAction()
+
+    // An der alten Stelle, nicht hinten angehaengt.
+    expect(component.lineItems.map((l: { name: string }) => l.name)).toEqual(['Artikel p-1', 'Artikel p-2'])
+    expect(component.lineItems[0]._id).toBe(id)
+    expect(component.lineDiscounts()[id]).toBeDefined()
+
+    await component.placeOrder()
+
+    // Sonst zaehlte die Auswertung ein Storno, das nie stattfand.
+    expect(createdOrders[0]['orderInteractions']).toEqual([])
+  })
+
+  it('ein NICHT zurueckgenommenes Loeschen hinterlaesst genau ein item-delete', async () => {
+    const { component, createdOrders } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.increaseLineItem(product('p-1')) // Menge 2
+    component.selectProduct(0)
+
+    component.deleteSelection()
+    await component.placeOrder()
+
+    const interactions = createdOrders[0]['orderInteractions'] as Array<Record<string, unknown>>
+    expect(interactions.map(i => [i['type'], i['productId'], i['deletedQuantity']])).toEqual([
+      ['item-delete', 'ext-p-1', 2],
+    ])
+  })
+
+  it('markierte Kombination: + wirkt auf alle Positionen, Loeschen entfernt sie ganz', () => {
+    const { component, snackBarRefs } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.increaseLineItem(product('p-2'))
+    component.combineAllArticles()
+    component.toggleCombinationSelection(0)
+
+    component.increaseSelectedQuantity()
+
+    expect(component.lineItems.map((l: { amount: number }) => l.amount)).toEqual([2, 2])
+
+    component.deleteSelection()
+
+    expect(component.lineItems).toHaveLength(0)
+
+    snackBarRefs[1].triggerAction()
+
+    expect(component.lineItems).toHaveLength(2)
+    expect(component.combinations).toHaveLength(1)
+  })
+
+  it('Kombination mit gemischten Mengen: Minus ist gesperrt, statt eine Position zu loeschen', () => {
+    const { component } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.increaseLineItem(product('p-1')) // Menge 2
+    component.increaseLineItem(product('p-2')) // Menge 1
+    component.combineAllArticles()
+    component.toggleCombinationSelection(0)
+
+    expect(component.canDecreaseSelection()).toBe(false)
+
+    component.decreaseSelectedQuantity()
+
+    expect(component.lineItems.map((l: { amount: number }) => l.amount)).toEqual([2, 1])
+  })
+
+  it('markierte Position IN der Kombination: Tasten wirken nur auf sie', () => {
+    const { component, snackBarRefs } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.increaseLineItem(product('p-2'))
+    component.combineAllArticles()
+    component['_selectedCombinationIndex'] = [0, 1]
+
+    component.increaseSelectedQuantity()
+
+    expect(component.lineItems.map((l: { amount: number }) => l.amount)).toEqual([1, 2])
+
+    component.deleteSelection()
+
+    // Die auf eine Position geschrumpfte Kombination ist aufgeloest …
+    expect(component.lineItems.map((l: { name: string }) => l.name)).toEqual(['Artikel p-1'])
+    expect(component.combinations).toHaveLength(0)
+    expect(component.lineItems[0].bundleNumber).toBeNull()
+
+    snackBarRefs[1].triggerAction()
+
+    // … und nach „Rueckgaengig" wieder da, mit beiden Positionen.
+    expect(component.combinations).toHaveLength(1)
+    expect(component.combinations[0].map((l: { name: string }) => l.name)).toEqual(['Artikel p-1', 'Artikel p-2'])
+  })
+
+  it('der Header-Tap markiert die ganze Kombination und hebt sie beim zweiten Tap auf', () => {
+    const { component } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.increaseLineItem(product('p-2'))
+    component.combineAllArticles()
+    component['_selectedCombinationIndex'] = [0, 1]
+
+    component.toggleCombinationSelection(0)
+
+    // War eine Position markiert, gilt der Tap als Abwaehlen — nicht als Umschalten
+    // auf die ganze Kombination.
+    expect(component.selectedCombinationIndex).toEqual([null, null])
+
+    component.toggleCombinationSelection(0)
+
+    expect(component.selectedCombinationIndex).toEqual([0, null])
+    expect(component.canMutateSelection()).toBe(true)
+  })
+
+  it('decreaseLineItem() (ABBRUCH im Bundle-Flow) entfernt auch eine Position in der Kombination', () => {
+    // Bis #269 spleisste der Pfad in eine Wegwerf-Kopie von `getCombinations` — die
+    // Zeile blieb still im Warenkorb, nur das item-delete wurde geschrieben.
+    const { component } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.increaseLineItem(product('p-2'))
+    component.increaseLineItem(product('p-3'))
+    component.combineAllArticles()
+    component['_selectedCombinationIndex'] = [0, 1]
+
+    component.decreaseLineItem()
+
+    expect(component.lineItems.map((l: { name: string }) => l.name)).toEqual(['Artikel p-1', 'Artikel p-3'])
+    expect(component.combinations).toHaveLength(1)
+    expect(component.selectedCombinationIndex).toEqual([0, null])
   })
 })
 

@@ -58,9 +58,18 @@ export type WorkingTimeData = Static<typeof workingTimeDataSchema>
 // `patch` — und zwar BEVOR `validateData` in `before.patch` greift. Da
 // `Type.Pick` das `additionalProperties: false` von `workingTimeSchema` erbt,
 // scheiterte jeder EXTERNE Patch mit 400 „validation failed" („Mandant: must
-// NOT have additional properties"). Betroffen war zuletzt die
-// Konflikt-Auflösung „Cloud übernehmen": Sie patcht den vollständigen
-// Cloud-Record, der `tenantId` trägt.
+// NOT have additional properties"). Am laufenden Edge nachgemessen
+// (2026-09-12): ohne dieses Feld antwortet `PATCH /working-times/<id>` mit
+// `additionalProperty: "tenantId"`, mit ihm mit 200.
+//
+// 🚨 KORREKTUR zur ersten Fassung dieses Kommentars: Dort stand, betroffen sei
+// „zuletzt die Konflikt-Auflösung ‚Cloud übernehmen'". Das ist zu viel
+// Gutschrift. Jener Pfad patcht den VOLLSTÄNDIGEN Cloud-Record, und dieses
+// Schema lässt nur fünf Felder zu — `tenantId` war das erste von sechs
+// blockierenden, fünf bleiben (`_id`, `locationId`, `userId`, `businessDay`,
+// `checkinDate`, je einzeln als 400 gemessen). Der Fix hier ist notwendig, aber
+// nicht hinreichend; „Online-Version uebernehmen" wendet weiterhin nichts an und
+// meldet trotzdem Erfolg — panary/panary-core#293.
 //
 // `Type.Partial` macht das Feld optional — eine Erlaubnis ist es nicht: der
 // Hook überschreibt jeden mitgesendeten Wert und `workingTimePatchResolver`

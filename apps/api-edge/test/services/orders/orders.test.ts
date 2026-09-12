@@ -216,34 +216,42 @@ describe('orders service — taxSnapshot bei preisrelevanten Patches', () => {
   describe('Legacy-Rabattfeld ist abgeschafft', () => {
     const legacyDiscount = { discountType: 'percent', discount: 50 } as const
 
-    it('externer Patch mit discount → 400', async () => {
+    // Die MELDUNG ist das Oracle, nicht der Status: Gemessen am 2026-09-13 (#301)
+    // bleibt diese Suite vollstaendig gruen, wenn man `rejectLegacyDiscount` aus
+    // `before.patch` entfernt — `validateData` weist denselben Patch ebenfalls mit
+    // 400 ab, seit `discount` aus `orderSchema` raus ist. Die urspruengliche
+    // Begruendung „ein nicht registrierter Hook faellt nur hier auf" traf also
+    // nicht zu. Nur der Meldungstext trennt die beiden Schichten — und er ist
+    // fachlich das, was den Client zum richtigen Feld schickt.
+    const expectLegacyDiscountRejected = (orderId: string, payload: Record<string, unknown>) =>
+      assert.rejects(
+        () => app.service('orders').patch(orderId, payload as never, posParams()),
+        (err: { code?: number; message?: string }) => {
+          assert.strictEqual(err.code, 400, 'Legacy-Schreibzugriff muss 400 liefern')
+          assert.match(err.message ?? '', /Das Feld `discount` ist abgeschafft/)
+          return true
+        },
+      )
+
+    it('externer Patch mit discount \u2192 400 mit der Meldung des Hooks', async () => {
       const createdOrder = await createOrder()
 
-      await assert.rejects(
-        () => app.service('orders').patch(createdOrder._id, { discount: legacyDiscount } as never, posParams()),
-        (err: { code?: number }) => err.code === 400,
-      )
+      await expectLegacyDiscountRejected(createdOrder._id, { discount: legacyDiscount })
     })
 
-    it('auch discount: null wird abgelehnt — das Feld existiert nicht mehr', async () => {
+    it('auch discount: null wird abgelehnt \u2014 ausschlaggebend ist die Anwesenheit des Schluessels', async () => {
       const createdOrder = await createOrder()
 
-      await assert.rejects(
-        () => app.service('orders').patch(createdOrder._id, { discount: null } as never, posParams()),
-        (err: { code?: number }) => err.code === 400,
-      )
+      await expectLegacyDiscountRejected(createdOrder._id, { discount: null })
     })
 
     it('der abgelehnte Patch laesst den Snapshot der Order unveraendert', async () => {
       // Die Ablehnung wird hier selbst ausgeloest: Frueher verliess sich dieser Test
-      // darauf, dass die beiden Tests davor gelaufen waren — und mass den Snapshot
+      // darauf, dass die beiden Tests davor gelaufen waren \u2014 und mass den Snapshot
       // einer Order, deren Zustand aus vier fremden Patches stammte.
       const createdOrder = await createOrder()
 
-      await assert.rejects(
-        () => app.service('orders').patch(createdOrder._id, { discount: legacyDiscount } as never, posParams()),
-        (err: { code?: number }) => err.code === 400,
-      )
+      await expectLegacyDiscountRejected(createdOrder._id, { discount: legacyDiscount })
 
       const stored = (await app.service('orders').get(createdOrder._id, internal)) as Order
       assert.strictEqual(Math.round(stored.taxSnapshot!.brutto * 100), 4000)

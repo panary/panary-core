@@ -91,6 +91,48 @@ Fehlalarm an dieser Stelle ist teurer als eine Lücke in der Meldung.
 einem Edge, der 38 Tage zurückhing; bei defektem Watchtower (vor
 [#268](https://github.com/panary/panary-core/issues/268)) auf unbestimmte Zeit.
 
+## Einmalige Heilung von Bestandsdaten
+
+`apps/api-edge/migrations/20260912160000_reactivate_locked_out_owner.ts` schaltet ein
+archiviertes Owner-Konto wieder auf `ACTIVE` — **nur** unter einer Bedingung:
+
+> Es existiert **kein** anmeldefähiges Konto mit `users: MANAGE` mehr.
+
+🚨 **Die Bedingung ist der Kern, nicht die Aktion.** Ein bewusst stillgelegter Owner bleibt
+stillgelegt, solange irgendein anderer Zugang besteht — sonst wäre `ARCHIVED` für die mächtigste
+Rolle wertlos.
+
+Geheilt werden nur Rollen der Push-Blockliste (`SYNC_PUSH_BLOCKED_USER_ROLES` ∩
+`USER_MANAGE_ROLES`), also `tenant:owner` und `platform:owner`. Ein archivierter
+`tenant:technician` bleibt archiviert: Die Rolle **kann** gepusht werden, ihr Fehlen im
+Visibility-Snapshot ist ein echtes Signal (ADR 0028, Konsequenzen). Beim Owner ist es eine
+Tautologie — er wird nie gepusht, kann also nie im Snapshot stehen.
+
+Ebenfalls unberührt: `REJECTED` (eine menschliche Entscheidung, kein Reconciliation-Artefakt)
+und jedes Konto ohne Verwaltungsrolle.
+
+Drei Eigenschaften, die im Code festgehalten sind:
+
+- **`updatedAt` wird mitgesetzt** — das ist eine echte Änderung und soll im Datensatz stehen.
+  Sync-neutral, weil ausschließlich Konten der Push-Blockliste betroffen sind.
+- **`down()` ist ein No-op.** Ein Rollback müsste wissen, *welche* Konten diese Migration
+  reaktiviert hat; `status` trägt keine Herkunft. Pauschales Zurück-Archivieren würde genau den
+  Totalausschluss wiederherstellen.
+- **Sie schreibt eine Zeile ins Boot-Log** (`console.warn`, kein `logger` — siehe unten). Ein
+  stillschweigend wieder freigeschalteter Zugang ist eine sicherheitsrelevante Änderung.
+
+⚠️ **Warum Rollen-Literale statt Import.** Migrationen werden als Assets kopiert und einzeln mit
+`--bundle=false` transpiliert (`tools/docker/Dockerfile.edge`). Keine Migration in diesem Repo
+importiert einen Laufzeitwert aus einer Domain-Lib, und ein Auflösungsfehler würde in
+`sqlite.ts` nur geloggt, nicht geworfen — die Migration fiele **still** aus. Die Literale sind
+deshalb per Test gegen `USER_MANAGE_ROLES` und `SYNC_PUSH_BLOCKED_USER_ROLES` gelockt
+(`apps/api-edge/test/migrations/reactivate-locked-out-owner.spec.ts`), dasselbe Muster wie bei
+`DEVICE_PRIVILEGED_ROLES`.
+
+⚠️ **Eine Migration läuft genau einmal pro Datenbank.** Wird das letzte Verwaltungskonto *später*
+archiviert, heilt nichts mehr — dann greift der Boot-Check als Meldung, und die Reparatur läuft
+über das Status-Feld im Benutzerformular.
+
 ## Rollenlisten: sehen vs. ändern
 
 „Privilegierte Rolle" war dreimal definiert und lief auseinander —

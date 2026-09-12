@@ -28,3 +28,14 @@ serde_json = "1"
 # mDNS-Discovery (_panary._tcp) für den Setup-Wizard. Pure-Rust, ohne Avahi —
 # läuft auf Windows + Linux/Ubuntu gleichermaßen.
 mdns-sd = "0.21"
+# MQTT-Publish fuer Drucker vom Typ `mqtt` (ADR 0036). Laeuft im Rust-Prozess,
+# nicht im Webview — dort unterlaegt jede Verbindung der statischen CSP, und die
+# Broker-Adresse ist Betreiber-Konfiguration (#296).
+# `websocket` ist noetig, weil die Settings ws/wss sprechen; `url` NICHT: dessen
+# `parse_url` verwirft den Pfad, `Transport::Ws` braucht aber die volle URL in
+# `broker_addr` (rumqttc `eventloop.rs`, "domain and port are taken directly
+# from broker_addr (which is a url)").
+rumqttc = { version = "0.25.1", features = ["websocket"] }
+# Nur fuer den Gesamt-Timeout um den Publish (tokio ist ueber tauri/rumqttc
+# ohnehin im Baum, die Deklaration macht den direkten Gebrauch sichtbar).
+tokio = { version = "1.53.1", features = ["time"] }

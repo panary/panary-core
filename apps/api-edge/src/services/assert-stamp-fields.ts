@@ -64,20 +64,16 @@
 // Verstoss, der es an der CI vorbei nach Produktion schafft, bleibt hier ein
 // stiller `logger.error` in einem Boot-Log, das niemand liest.
 
-import { getServiceOptions } from '@feathersjs/feathers'
 import { MULTI_TENANCY_OPTIONS, logger, type MultiTenancyOptions } from '@panary/shared-backend'
 
-import { readMarkedSchema } from '../hooks/validate-data.hook'
-
-/** JSON-Schema-Ausschnitt, den der Check braucht. TypeBox liefert genau das. */
-type JsonSchemaLike = {
-  properties?: Record<string, unknown>
-  required?: string[]
-  additionalProperties?: boolean
-  allOf?: JsonSchemaLike[]
-  anyOf?: JsonSchemaLike[]
-  oneOf?: JsonSchemaLike[]
-}
+import {
+  METHOD_BY_KIND,
+  collectSchemaShape,
+  readServiceMethods,
+  readServiceSchema,
+  type SchemaKind,
+  type SchemaSource,
+} from './schema-shape'
 
 /**
  * Services, deren DATA-Schema ein gestempeltes Feld BEWUSST als Pflicht fuehrt.
@@ -181,7 +177,7 @@ export const REQUIRED_STAMP_EXCEPTIONS: Record<string, string> = {
  * `patch` (`['create', 'update', 'patch'].includes(context.method)` in
  * multi-tenancy.hook.ts), also muessen beide Schemas die Felder kennen.
  */
-export type StampFieldKind = 'data' | 'patch'
+export type StampFieldKind = SchemaKind
 
 export type StampFieldViolation = {
   path: string
@@ -191,27 +187,6 @@ export type StampFieldViolation = {
   /** Feld ist Pflicht, obwohl der Server es stempelt → irrefuehrender 400. Nur `data`. */
   required: string[]
   message: string
-}
-
-/**
- * Sammelt Felder, Pflichtfelder und „ist irgendwo geschlossen?" ueber
- * Intersect-Zweige hinweg. `Type.Intersect` flacht in dieser TypeBox-Version
- * meist zu einem Objekt ab, aeltere Schemas liefern aber `allOf` — beides muss
- * der Walker abdecken.
- */
-function collect(schema: JsonSchemaLike): { fields: Set<string>; required: Set<string>; closed: boolean } {
-  const fields = new Set<string>()
-  const required = new Set<string>()
-  let closed = false
-  const walk = (node: JsonSchemaLike | undefined) => {
-    if (!node || typeof node !== 'object') return
-    for (const key of Object.keys(node.properties ?? {})) fields.add(key)
-    for (const key of node.required ?? []) required.add(key)
-    if (node.additionalProperties === false) closed = true
-    for (const branch of [...(node.allOf ?? []), ...(node.anyOf ?? []), ...(node.oneOf ?? [])]) walk(branch)
-  }
-  walk(schema)
-  return { fields, required, closed }
 }
 
 /**
@@ -233,7 +208,7 @@ export function checkStampFields(params: {
   if (!mtOptions) return null
   if (!dataSchema || typeof dataSchema !== 'object') return null
 
-  const { fields, required, closed } = collect(dataSchema as JsonSchemaLike)
+  const { fields, required, closed } = collectSchemaShape(dataSchema)
 
   const stamped = ['tenantId', ...(mtOptions.isolateLocation ? ['locationId'] : [])]
 
@@ -291,46 +266,7 @@ function readMultiTenancyOptions(service: unknown): MultiTenancyOptions | null {
 }
 
 /** Woher das gepruefte Schema kam — `none` heisst: es wurde nichts geprueft. */
-export type StampSchemaSource = 'hook' | 'docs' | 'none'
-
-const METHOD_BY_KIND: Record<StampFieldKind, 'create' | 'patch'> = { data: 'create', patch: 'patch' }
-
-/**
- * Das Schema aus dem markierten Validierungs-Hook der jeweiligen Methode.
- * Primaerquelle, weil sie an der Registrierung selbst haengt und damit jeden
- * Service erreicht — auch die sechs ohne `docs.schemas` (#267).
- */
-function readHookSchema(service: unknown, kind: StampFieldKind): unknown {
-  const before = (service as ServiceWithHooks)?.__hooks?.before?.[METHOD_BY_KIND[kind]]
-  if (!Array.isArray(before)) return undefined
-  for (const hook of before) {
-    const schema = readMarkedSchema(hook)
-    if (schema) return schema
-  }
-  return undefined
-}
-
-/**
- * Rueckfall: das Schema aus den Swagger-Schemas der Service-Registrierung
- * (`docs.schemas.<name>Data` / `<name>Patch`). Deckt Services ab, die den
- * Validierungs-Hook nicht ueber `hooks/validate-data.hook.ts` registrieren —
- * etwa weil ein Feathers-Update das Marker-Muster gebrochen hat.
- */
-function readDocsSchema(service: unknown, kind: StampFieldKind): unknown {
-  const options = getServiceOptions(service as Parameters<typeof getServiceOptions>[0]) as
-    { docs?: { schemas?: Record<string, unknown> } } | undefined
-  const schemas = options?.docs?.schemas
-  if (!schemas) return undefined
-  const key = Object.keys(schemas).find(k => k.toLowerCase().endsWith(kind))
-  return key ? schemas[key] : undefined
-}
-
-/** Die Methoden, die der Service bei `app.use()` registriert hat. */
-function readServiceMethods(service: unknown): string[] {
-  const options = getServiceOptions(service as Parameters<typeof getServiceOptions>[0]) as
-    { methods?: string[] } | undefined
-  return options?.methods ?? []
-}
+export type StampSchemaSource = SchemaSource
 
 /**
  * Ein Pruefziel: Service × Schema-Art, mit der Quelle des Schemas. Die Quelle
@@ -364,14 +300,13 @@ export function collectStampTargets(app: AppLike): StampCheckTarget[] {
     const methods = readServiceMethods(service)
 
     for (const kind of ['data', 'patch'] as const) {
-      const hookSchema = readHookSchema(service, kind)
-      const schema = hookSchema ?? readDocsSchema(service, kind)
+      const { schema, source } = readServiceSchema(service, kind)
       targets.push({
         path,
         kind,
         method: METHOD_BY_KIND[kind],
         methodRegistered: methods.includes(METHOD_BY_KIND[kind]),
-        source: hookSchema ? 'hook' : schema ? 'docs' : 'none',
+        source,
         schema,
         mtOptions,
       })

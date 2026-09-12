@@ -40,6 +40,7 @@
     "empty-targets:gate:update": "node scripts/empty-test-targets.mjs --update",
     "targets:overrides:gate": "node scripts/inferred-target-overrides.mjs",
     "targets:uncached:gate": "node scripts/uncached-targets.mjs",
+    "csp:gate": "node scripts/csp-connect-src.mjs",
     "targets:uncached:gate:update": "node scripts/uncached-targets.mjs --update",
     "security:install": "bash scripts/install-security-tools.sh",
     "security:scan": "node scripts/security-scan.mjs --mode=local",

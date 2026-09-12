@@ -49,7 +49,8 @@ export async function autoStartPrintServer(app: Application): Promise<void> {
     }
 
     const printers = (printSettings?.printers as Array<Record<string, unknown>>) ?? []
-    await printServerManager.start(printers as any)
+    const generalSettings = settings?.generalSettings as Record<string, unknown> | undefined
+    await printServerManager.start(printers as any, generalSettings?.timezone as string | undefined)
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
     logger.error({ message: `Print-Server Auto-Start fehlgeschlagen: ${message}`, event: 'print-server.auto_error' })

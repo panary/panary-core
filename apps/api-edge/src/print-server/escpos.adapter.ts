@@ -16,6 +16,13 @@ const COLUMNS_MAP: Record<PaperWidth, number> = {
 export interface EscposOptions {
   paperWidth?: PaperWidth
   encoding?: string
+  /**
+   * Zeitzone der Filiale (`settings.generalSettings.timezone`) fuer alle
+   * Datums-/Uhrzeitangaben der Vorlage. Leer = `DEFAULT_BUSINESS_TIMEZONE`.
+   * Ohne sie formatiert der Renderer in der Prozess-Zeitzone — im Container
+   * UTC (#274).
+   */
+  timeZone?: string
 }
 
 /**

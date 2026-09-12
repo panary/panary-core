@@ -1,5 +1,6 @@
 import type { PrintElement, PrintJob, TextLine } from '@panary/locations/domain'
 import { buildEscposBuffer, sendToNetworkPrinter, type EscposOptions } from './escpos.adapter'
+import { formatPrintDateTime } from './print-date-format'
 import { logger } from '@panary/shared-backend'
 
 export interface PrinterConfig {
@@ -89,14 +90,19 @@ export async function executePrintJob(job: PrintJob, allPrinters: PrinterConfig[
 
 /**
  * Generiert ein Testdruck-Dokument für einen einzelnen Drucker.
+ *
+ * `timeZone` kommt aus den Location-Settings und wird vom Print-Server-Manager
+ * durchgereicht (beim Start aus der Filiale gelesen). Fehlt sie, greift
+ * `DEFAULT_BUSINESS_TIMEZONE` — der Testdruck prüft die Hardware, nicht die
+ * Uhrzeit, und darf daran nicht scheitern.
  */
-export function buildTestPrintDocument(printerName: string): PrintElement[] {
+export function buildTestPrintDocument(printerName: string, timeZone?: string): PrintElement[] {
   return [
     { type: 'text', text: 'PANARY TESTDRUCK', bold: true, align: 'center', width: 2, height: 2 },
     { type: 'feed', lines: 1 },
     { type: 'rule', character: '=', count: 48 },
     { type: 'text', text: `Drucker: ${printerName}`, align: 'center' },
-    { type: 'text', text: `Datum: ${new Date().toLocaleString('de-DE')}`, align: 'center' },
+    { type: 'text', text: `Datum: ${formatPrintDateTime(new Date(), timeZone)}`, align: 'center' },
     { type: 'rule', character: '=', count: 48 },
     { type: 'feed', lines: 1 },
     { type: 'badge', text: 'BADGE TEST', style: 'inverted', align: 'center' },

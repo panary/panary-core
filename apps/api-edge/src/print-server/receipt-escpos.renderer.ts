@@ -3,6 +3,7 @@ import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder'
 import { buildTseReceiptBlock } from '@panary/tse/domain'
 import type { Receipt } from '@panary/receipts/domain'
 import type { EscposOptions } from './escpos.adapter'
+import { formatPrintDate, formatPrintTime } from './print-date-format'
 
 const COLUMNS_MAP: Record<string, number> = { '58mm': 32, '80mm': 48 }
 
@@ -20,7 +21,7 @@ const fmtMoney = (n: number, currency: string): string => `${n.toFixed(2).replac
  * und hängt an der Drucker-Konfiguration (Hardware/Laufzeit).
  */
 export function renderReceiptEscPos(receipt: Receipt, options: EscposOptions = {}): Uint8Array {
-  const { paperWidth = '80mm' } = options
+  const { paperWidth = '80mm', timeZone } = options
   const cols = COLUMNS_MAP[paperWidth] || 48
   const priceW = 12
   const nameW = cols - priceW
@@ -45,9 +46,9 @@ export function renderReceiptEscPos(receipt: Receipt, options: EscposOptions = {
   enc.font('B')
   enc.line(`Beleg-Nr: ${receipt.receiptNumber ?? receipt.dailySequenceNumber}`)
   const issued = new Date(receipt.issuedAt)
-  enc.line(
-    `Datum: ${issued.toLocaleDateString('de-DE')} ${issued.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`,
-  )
+  // Filialzeit, nicht Prozesszeit — der Aufrufer reicht `timeZone` aus den
+  // Location-Settings durch (#274).
+  enc.line(`Datum: ${formatPrintDate(issued, timeZone)} ${formatPrintTime(issued, timeZone)}`)
   if (receipt.kind === 'order-confirmation') enc.line('(Bestellbestaetigung — kein steuerlicher Beleg)')
   enc.font('A').newline()
 

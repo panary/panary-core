@@ -34,8 +34,8 @@ const routes: Route[] = [
     requiredAction: AppAction.MANAGE,
     handler: async (ctx, app) => {
       try {
-        const printers = await loadPrintersFromLocation(app, ctx.state.user)
-        await printServerManager.start(printers)
+        const { printers, timeZone } = await loadPrintServerConfig(app, ctx.state.user)
+        await printServerManager.start(printers, timeZone)
         ctx.body = { success: true, status: printServerManager.getStatus() }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err)
@@ -60,8 +60,8 @@ const routes: Route[] = [
     requiredAction: AppAction.MANAGE,
     handler: async (ctx, app) => {
       try {
-        const printers = await loadPrintersFromLocation(app, ctx.state.user)
-        await printServerManager.restart(printers)
+        const { printers, timeZone } = await loadPrintServerConfig(app, ctx.state.user)
+        await printServerManager.restart(printers, timeZone)
         ctx.body = { success: true, status: printServerManager.getStatus() }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err)
@@ -262,9 +262,20 @@ async function loadLocationForUser(app: Application, user: Record<string, unknow
   return location
 }
 
-async function loadPrintersFromLocation(app: Application, user: Record<string, unknown>): Promise<PrinterConfig[]> {
+/**
+ * Drucker **und** Filial-Zeitzone in einem Zug — beides haengt an derselben
+ * Location, und der Manager braucht die Zone fuer den Testdruck (#274).
+ */
+async function loadPrintServerConfig(
+  app: Application,
+  user: Record<string, unknown>,
+): Promise<{ printers: PrinterConfig[]; timeZone?: string }> {
   const location = await loadLocationForUser(app, user)
   const settings = location.settings as Record<string, unknown> | undefined
   const printSettings = settings?.printSettings as Record<string, unknown> | undefined
-  return (printSettings?.printers as PrinterConfig[]) ?? []
+  const generalSettings = settings?.generalSettings as Record<string, unknown> | undefined
+  return {
+    printers: (printSettings?.printers as PrinterConfig[]) ?? [],
+    timeZone: generalSettings?.timezone as string | undefined,
+  }
 }

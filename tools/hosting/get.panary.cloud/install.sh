@@ -352,8 +352,36 @@ services:
           memory: 128M
           cpus: "0.5"
 
+  # ============================================================
+  # Watchtower — Auto-Update der Panary-Container.
+  #
+  # Version FEST auf 1.7.1: `latest` und `1.7.1` tragen denselben Digest
+  # (sha256:f9086bfd…, Image erstellt 2023-11-11) — das Projekt ist eingestellt,
+  # `latest` waechst nicht mehr. Ein unangepinntes `latest` auf einem toten
+  # Upstream ist kein Update-Kanal, sondern eine offene Flanke.
+  #
+  # DOCKER_API_VERSION ist PFLICHT, nicht Feinschliff: Der in 1.7.1
+  # einkompilierte Docker-Client spricht API 1.25, Engines ab Docker 25
+  # verlangen mindestens 1.40. Ohne die Variable beendet sich Watchtower schon
+  # beim START — nicht erst beim ersten Poll — mit
+  #   "client version 1.25 is too old. Minimum supported API version is 1.40"
+  # und laeuft als `Restarting (1)` in einer Schleife. Deshalb erscheint der
+  # Fehler im MINUTEN-Takt (Restart-Backoff) und nicht im Poll-Takt; wer nach
+  # stuendlichen Eintraegen sucht, sucht falsch. Der Edge bekommt nie
+  # wieder ein Update, ohne dass es irgendwo auffaellt. Genau so am 2026-09-12
+  # auf zwei Installationen gefunden: eine stand 38 Tage auf v26.8.6, die
+  # andere 31 Tage auf v26.8.17, waehrend rund 30 Releases erschienen.
+  #
+  # 🚨 Ein `docker compose pull` heilt das NICHT — `latest` ist bereits die
+  # letzte Version. Das Image sieht aktuell aus und ist trotzdem tot.
+  #
+  # 1.41 statt hoeher: Watchtower braucht keine neuen API-Features, und der
+  # Wert traegt damit auch auf aelteren Hosts (Docker 20.10+). Gemessen —
+  # mit 1.99 meldet der Daemon "is too new", mit 1.41 laeuft der Lauf sauber
+  # durch ("Session done, Failed=0").
+  # ============================================================
   watchtower:
-    image: containrrr/watchtower
+    image: containrrr/watchtower:1.7.1
     container_name: panary-watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -361,6 +389,7 @@ services:
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_POLL_INTERVAL=3600
       - WATCHTOWER_SCOPE=panary
+      - DOCKER_API_VERSION=1.41
     restart: unless-stopped
     labels:
       - "com.centurylinklabs.watchtower.scope=panary"
@@ -471,6 +500,44 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
+# ============================================================
+# 7b. Watchtower-Verifikation
+#
+# Der Edge-Healthcheck oben sagt nichts ueber den Update-Kanal. Faellt
+# Watchtower aus, laeuft der Edge munter weiter — nur eben fuer immer auf der
+# installierten Version. Genau dieser Zustand blieb bis 2026-09-12 auf zwei
+# Installationen ueber Wochen unbemerkt (38 bzw. 31 Tage, ~30 verpasste
+# Releases): Watchtower crasht beim START, nicht beim ersten Poll, und ein
+# Container in `Restarting` faellt niemandem auf, der nur die Anwendung prueft.
+#
+# Gemessen wird der RESTART-ZUWACHS ueber ein Beobachtungsfenster, nicht der
+# Momentzustand. Grund: Ein crashender Watchtower steht in den ersten Sekunden
+# selbst auf `running` — Dockers Restart-Backoff beginnt bei 100 ms, der
+# Container laeuft zwischen zwei Abstuerzen also staendig kurz. Erst nach rund
+# zehn Sekunden, wenn der Backoff auf Sekunden gewachsen ist, steht dauerhaft
+# `restarting` da. Eine Momentaufnahme meldet in diesem Fenster GRUEN auf einen
+# toten Watchtower — beim Bau dieser Pruefung genau so passiert.
+#
+# Der Zuwachs ist ausserdem unabhaengig vom Startwert: Ein Bestandscontainer,
+# den `docker compose up -d` unveraendert stehen laesst, bringt seinen alten
+# `RestartCount` mit. Absolut geprueft waere das ein Fehlalarm.
+# ============================================================
+wt_field() { docker inspect -f "$1" panary-watchtower 2>/dev/null || echo ""; }
+
+WATCHTOWER_OK=false
+WT_RESTARTS_VORHER=$(wt_field '{{.RestartCount}}')
+sleep 8
+WT_STATE=$(wt_field '{{.State.Status}}:{{.State.Restarting}}')
+WT_RESTARTS_NACHHER=$(wt_field '{{.RestartCount}}')
+
+if [ -z "$WT_STATE" ]; then
+  WT_STATE="nicht vorhanden"
+elif [ "$WT_STATE" = "running:false" ] && [ "$WT_RESTARTS_VORHER" = "$WT_RESTARTS_NACHHER" ]; then
+  WATCHTOWER_OK=true
+elif [ "$WT_RESTARTS_VORHER" != "$WT_RESTARTS_NACHHER" ]; then
+  WT_STATE="${WT_STATE}, Neustarts im Pruefzeitraum: $((WT_RESTARTS_NACHHER - WT_RESTARTS_VORHER))"
+fi
+
 echo ""
 echo -e "${BOLD}============================================${NC}"
 
@@ -478,6 +545,17 @@ if [ "$HEALTHY" = true ]; then
   echo -e "${GREEN}✓ Panary Edge Server laeuft!${NC}"
 else
   echo -e "${YELLOW}⚠ Server startet noch — Setup-Wizard wird beim ersten Aufruf geladen.${NC}"
+fi
+
+if [ "$WATCHTOWER_OK" = true ]; then
+  echo -e "${GREEN}✓ Auto-Update aktiv (Watchtower, stuendlich).${NC}"
+else
+  echo -e "${YELLOW}⚠ Watchtower laeuft NICHT (Status: ${WT_STATE}).${NC}"
+  echo -e "${YELLOW}  Der Edge bleibt damit dauerhaft auf der jetzt installierten Version.${NC}"
+  echo -e "  Ursache pruefen:  ${BOLD}docker logs --tail 20 panary-watchtower${NC}"
+  echo -e "  Bekannter Fall:   \"client version ... is too old\" → DOCKER_API_VERSION"
+  echo -e "                    in ${INSTALL_DIR}/docker-compose.yml passt nicht zur Engine."
+  echo -e "                    Spielraum zeigen: ${BOLD}docker version --format '{{.Server.APIVersion}} (min {{.Server.MinAPIVersion}})'${NC}"
 fi
 
 # IP ermitteln

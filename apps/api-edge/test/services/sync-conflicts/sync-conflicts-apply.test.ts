@@ -128,6 +128,29 @@ describe('sync-conflicts service — Aufloesung wird tatsaechlich angewandt (#29
   const readConflict = (id: string) =>
     app.service('sync-conflicts').get(id, { provider: undefined }) as Promise<SyncConflict>
 
+  it('liefert die Payloads als Objekt zurueck, nicht als JSON-String', async () => {
+    // Direkt die Registrierung der `getJsonFieldHooks`. Sie ohne diesen Test zu
+    // entfernen faellt nirgends auf: `coerceCloudRecord` parst den String als
+    // zweite Linie, der Apply liefe weiter. Jeder ANDERE Leser bekaeme aber
+    // wieder einen String — genau die Form, in der der Defekt entstanden ist,
+    // und die das Admin-Panel heute mit einem `typeof === 'string'`-Zweig
+    // ausgleicht.
+    const edge = await seedWorkingTime()
+    const conflictId = await seedConflict(edge, cloudVariant(edge))
+
+    const stored = await readConflict(conflictId)
+    assert.strictEqual(typeof stored.cloudPayload, 'object')
+    assert.strictEqual(typeof stored.edgePayload, 'object')
+    assert.strictEqual((stored.cloudPayload as { checkoutDate: string }).checkoutDate, '2026-09-12T18:45:00.000Z')
+
+    // Auch aus der Liste, nicht nur aus dem Einzelabruf — `parseJsonFields`
+    // haengt in `after.all` und muss beide Formen treffen.
+    const rows = (await app
+      .service('sync-conflicts')
+      .find({ provider: undefined, paginate: false, query: { _id: conflictId } })) as SyncConflict[]
+    assert.strictEqual(typeof rows[0].cloudPayload, 'object')
+  })
+
   it('„Online-Version uebernehmen" schreibt den Cloud-Stand in den Zieldatensatz', async () => {
     const edge = await seedWorkingTime()
     const conflictId = await seedConflict(edge, cloudVariant(edge))

@@ -110,7 +110,10 @@ eines bereits gesetzten Status.
 🚨 **Korrektur zur Konsequenz oben:** „Reaktivieren geht über die Admin-User-Liste" traf nicht
 zu. Die Liste *zeigt* archivierte Konten — aber `apps/admin-client/.../users/user-form.ts` hatte
 kein `status`-Feld. Sichtbarkeit ohne Schaltfläche ist keine Reaktivierbarkeit; die Begründung
-für Entscheidung 3 stimmt erst mit dem nachgezogenen Formularfeld.
+für Entscheidung 3 stimmt erst mit dem nachgezogenen Formularfeld — das ist mit #275
+geschehen: Das Formular hat ein Feld „Kontostatus", sichtbar nur an **fremden** Konten (wer
+sich selbst archiviert, sperrt sich im Speichern-Klick aus, weil die JWT-Strategy das Entity
+pro Request frisch lädt).
 
 ### Glied 4: „privilegierte Rolle" war dreimal definiert
 

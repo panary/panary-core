@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  computed,
   inject,
   signal,
   input,
@@ -14,6 +15,7 @@ import { FormsModule, NgForm } from '@angular/forms'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
+import { AuthService } from '../../core/auth.service'
 import { formatApiError } from '../../core/error-helper'
 import { objectHash } from '../../core/dirty-check'
 
@@ -177,6 +179,36 @@ import { objectHash } from '../../core/dirty-check'
             />
           </div>
         </div>
+
+        <!-- Kontostatus (#275): nur an fremden Konten, siehe canEditStatus() -->
+        @if (canEditStatus()) {
+          <div class="space-y-1">
+            <label
+              for="userStatus"
+              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+              >{{ 'USERS.STATUS' | translate }}</label
+            >
+            <select
+              id="userStatus"
+              [(ngModel)]="form.status"
+              name="status"
+              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
+                     text-slate-900 dark:text-white outline-none"
+            >
+              <option value="ACTIVE">{{ 'USERS.STATUS_ACTIVE' | translate }}</option>
+              <option value="ARCHIVED">{{ 'USERS.STATUS_ARCHIVED' | translate }}</option>
+              @if (form.status === 'REJECTED') {
+                <!-- Nur sichtbar, wenn das Konto diesen Status TRAEGT: Ein select
+                     ohne passende option wuerde das Modell still leerraeumen.
+                     REJECTED wird nicht aktiv angeboten (Registrierungs-Ablehnung). -->
+                <option value="REJECTED">{{ 'USERS.STATUS_REJECTED' | translate }}</option>
+              }
+            </select>
+            <p class="text-xs text-slate-500 dark:text-gray-500">
+              {{ (form.status === 'ACTIVE' ? 'USERS.STATUS_HINT_ACTIVE' : 'USERS.STATUS_HINT_BLOCKED') | translate }}
+            </p>
+          </div>
+        }
 
         <!-- POS-Benutzer -->
         <div class="flex items-center gap-6 pt-2">
@@ -375,6 +407,7 @@ export class UserFormComponent {
   private router = inject(Router)
   private cdr = inject(ChangeDetectorRef)
   private t = inject(TranslateService)
+  private auth = inject(AuthService)
 
   id = input<string>()
   panelMode = input(false)
@@ -389,6 +422,22 @@ export class UserFormComponent {
   editingPin = signal(false)
   private formRef = viewChild<NgForm>('f')
   private originalHash = ''
+
+  /**
+   * Das Status-Feld erscheint nur beim Bearbeiten eines FREMDEN Kontos (#275).
+   *
+   * Nicht beim Anlegen: Ein neuer Nutzer ist immer `ACTIVE`, ein Auswahlfeld
+   * dafuer waere eine Falle. Nicht am eigenen Datensatz: Wer sich selbst
+   * archiviert, sperrt sich sofort aus — der Login-Guard prueft bei jedem
+   * Request frisch (ADR 0028), die eigene Sitzung stirbt also noch im
+   * Speichern-Klick.
+   *
+   * Bewusst KEINE Rollen-Pruefung hier: Wer fremde Datensaetze nicht patchen
+   * darf, scheitert serverseitig ohnehin an `restrictUserSelfPatch` — und zwar
+   * an JEDEM Feld, nicht nur an `status`. Eine Rollenliste im Client waere die
+   * vierte Kopie derselben Wahrheit, und genau die hat #275 verursacht.
+   */
+  canEditStatus = computed(() => !this.isNew() && !!this.id() && this.id() !== this.auth.user()?._id)
 
   isDirty(): boolean {
     if (this.isNew()) return !!this.form.loginname
@@ -413,6 +462,7 @@ export class UserFormComponent {
     password: '',
     role: 'tenant:staff',
     staffRole: '',
+    status: 'ACTIVE',
     isPosUser: true,
     posPin: '',
     employeeNumber: '',
@@ -452,6 +502,7 @@ export class UserFormComponent {
       password: '',
       role: 'tenant:staff',
       staffRole: '',
+      status: 'ACTIVE',
       isPosUser: true,
       posPin: '',
       employeeNumber: '',
@@ -478,6 +529,7 @@ export class UserFormComponent {
         password: '',
         role: user.role || 'tenant:staff',
         staffRole: user.staffRole || '',
+        status: user.status || 'ACTIVE',
         isPosUser: user.isPosUser ?? true,
         posPin: '',
         employeeNumber: user.employeeNumber || '',
@@ -510,6 +562,12 @@ export class UserFormComponent {
       if (!data.posPin) delete data.posPin
       if (!data.staffRole) delete data.staffRole
       if (!data.employeeNumber) delete data.employeeNumber
+      // `status` nur senden, wenn das Feld angeboten wurde. Sonst wuerde der
+      // Self-Service-Fall (Mitarbeiter aendert sein eigenes Passwort) an
+      // `restrictUserSelfPatch` scheitern: `status` steht nicht in
+      // SELF_PATCHABLE_FIELDS, der Patch endet in 403 — ohne dass der Nutzer
+      // etwas am Status geaendert haette.
+      if (!this.canEditStatus()) delete data.status
 
       // discountDetails als verschachteltes Objekt senden
       if (data.allowStaffMealOrders) {

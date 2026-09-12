@@ -51,25 +51,30 @@ export const validatePreOrderOpeningHours = async (context: HookContext): Promis
   const wall = wallClockInZone(new Date(data.scheduledFor), tz, locationId)
 
   // Tagesgenaue Ausnahmen laden (Feiertage, Sonderöffnungszeiten) — Datum in
-  // Filialzeit, sonst kippt der Tag am UTC-Mitternachtsrand.
+  // Filialzeit, sonst kippt der Tag am UTC-Mitternachtsrand, UND filialgenau:
+  // Ausnahmen werden pro Filiale materialisiert (Cloud: `materializeForLocation`),
+  // an einem Datum trägt also jede Filiale ihre eigene Zeile. Ohne `locationId` in
+  // der Query griffe die zuerst gelieferte davon — `getOpeningHoursForDate` nimmt
+  // die ERSTE Zeile mit passendem Datum, und ohne `$sort` ist die Reihenfolge nicht
+  // zugesichert (panary/panary-core#286).
+  //
+  // Hart gefiltert, nicht `{ $in: [locationId, null] }`: Tenant-weite Ausnahmen kann
+  // es nicht geben. `baseSchema.locationId` ist ein Pflicht-`uuid` (über die ganze
+  // Historie der Datei), jeder Schreibpfad läuft durch `validateData` — auch der
+  // Sync-Pull-Apply mit `provider: undefined` —, und erzeugt werden die Zeilen
+  // ausschließlich pro Filiale.
   //
   // `paginate: false`, weil die vollständige Tagesmenge gebraucht wird: Der Service
   // reicht `paginate` aus `config/default.json` an den Adapter durch (Edge:
   // `default` 50), und ohne das Flag schneidet Feathers still bei diesem Wert ab.
   // Gleiche Fassung wie der Cloud-Hook (panary/panary-core#282).
-  //
-  // ⚠️ Das Flag macht die Menge vollständig, nicht die Auswahl filialgenau: Die
-  // Query filtert nach Datum und Mandant, und `getOpeningHoursForDate` nimmt die
-  // ERSTE Ausnahme mit passendem Datum. Hat ein Mandant an einem Tag Ausnahmen
-  // mehrerer Filialen, greift eine beliebige davon — auch mit vollständiger Liste.
-  // Ein Filial-Filter kann nicht einfach nachgezogen werden, weil `locationId: null`
-  // die tenant-weit gültige Ausnahme ist; eigener Befund, hier nicht behoben.
   const excResult = (await (context.app.service('opening-hour-exceptions') as any).find({
-    query: { date: wall.dateStr, tenantId: data.tenantId },
+    query: { date: wall.dateStr, tenantId: data.tenantId, locationId },
     paginate: false,
     provider: undefined,
   })) as any
-  const exceptions = Array.isArray(excResult) ? excResult : excResult.data || []
+  const loaded = Array.isArray(excResult) ? excResult : excResult.data || []
+  const exceptions = ownLocationExceptions(loaded, locationId)
 
   const hours = getOpeningHoursForDate(wall.calendarDate, ohs.regular || [], exceptions)
   if (hours.closed) {
@@ -88,6 +93,33 @@ export const validatePreOrderOpeningHours = async (context: HookContext): Promis
 }
 
 const pad2 = (n: number): string => String(n).padStart(2, '0')
+
+/**
+ * Verwirft Ausnahmen, die nicht zur Filiale gehören.
+ *
+ * Redundant zum `locationId`-Filter der Query — und bewusst so: Die Auswahl trifft
+ * `getOpeningHoursForDate` über `exceptions.find(e => e.date === dateStr)`, hing also
+ * an der Reihenfolge der DB-Rückgabe. Der Nachfilter macht die Entscheidung von
+ * beidem unabhängig: von der Reihenfolge und davon, dass der Query-Filter erhalten
+ * bleibt. Fällt er künftig weg, bleibt die Prüfung korrekt statt still beliebig.
+ *
+ * Er ist deshalb auch der Kanarienvogel: Musste er etwas verwerfen, hat die Query
+ * nicht gegriffen — das gehört ins Log, nicht stillschweigend behoben.
+ */
+const ownLocationExceptions = <T extends { locationId?: string | null }>(exceptions: T[], locationId: string): T[] => {
+  const own = exceptions.filter(e => e.locationId === locationId)
+  if (own.length === exceptions.length) return own
+
+  logger.warn({
+    message: 'Öffnungszeiten-Ausnahmen fremder Filialen verworfen — der Filial-Filter der Query hat nicht gegriffen',
+    event: 'pre-orders.opening-hours.foreign-exceptions-skipped',
+    locationId,
+    loaded: exceptions.length,
+    kept: own.length,
+  })
+
+  return own
+}
 
 interface WallClock {
   /** Kalendertag in Filialzeit als `YYYY-MM-DD` (Query-Schlüssel der Ausnahmen). */

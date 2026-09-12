@@ -138,7 +138,7 @@ describe('validatePreOrderOpeningHours — Serverzone UTC (wie der Edge-Containe
     // Auch die Ausnahmen werden für den Filial-Kalendertag geladen — mit dem
     // UTC-Tag (15.07.) griffe eine Feiertagsausnahme des 16.07. nicht.
     expect(findExceptions).toHaveBeenCalledWith(
-      expect.objectContaining({ query: { date: '2026-07-16', tenantId: 't1' } }),
+      expect.objectContaining({ query: { date: '2026-07-16', tenantId: 't1', locationId: 'loc1' } }),
     )
   })
 
@@ -155,7 +155,7 @@ describe('validatePreOrderOpeningHours — Serverzone UTC (wie der Edge-Containe
     const { ctx } = buildContext('2026-07-15T21:30:00.000Z', {
       tz: 'Pacific/Auckland',
       regular: [{ day: 4, open: '09:00', close: '17:00', closed: false }],
-      exceptions: [{ date: '2026-07-16', closed: true }],
+      exceptions: [{ date: '2026-07-16', closed: true, locationId: 'loc1' }],
     })
     await expect(validatePreOrderOpeningHours(ctx)).rejects.toThrow(/an diesem Tag geschlossen/)
   })
@@ -215,7 +215,7 @@ describe('validatePreOrderOpeningHours — Serverzone UTC+14', () => {
     await validatePreOrderOpeningHours(ctx)
     // Serverzone: bereits der 21.06. Filialzeit: der 20.06.
     expect(findExceptions).toHaveBeenCalledWith(
-      expect.objectContaining({ query: { date: '2026-06-20', tenantId: 't1' } }),
+      expect.objectContaining({ query: { date: '2026-06-20', tenantId: 't1', locationId: 'loc1' } }),
     )
   })
 })
@@ -252,14 +252,17 @@ describe('validatePreOrderOpeningHours — vollständige Ausnahmen-Menge', () =>
    * die erste Seite. Die Tests halten das Flag und den Antwort-Typ fest, den es
    * auslöst.
    *
-   * ⚠️ Was hier bewusst NICHT steht, ist ein Test der Bauart „mehr als 50 Ausnahmen
-   * am selben Datum, die passende greift trotzdem". Er ließe sich nicht ehrlich
-   * bauen: Die Query filtert bereits exakt nach `date`, alle Treffer tragen also
-   * dieses Datum, und `getOpeningHoursForDate` nimmt die ERSTE davon
-   * (`exceptions.find(e => e.date === dateStr)`). Eine abgeschnittene Seite liefert
-   * damit dieselbe Entscheidung wie die vollständige Liste. Gemessen zu
-   * panary/panary-core#282: derselbe Testaufbau ist mit und ohne Flag rot — was er
-   * trifft, ist der fehlende Filial-Filter, nicht die Paginierung.
+   * Der zu panary/panary-core#282 verworfene Mengen-Test („mehr als 50 Ausnahmen am
+   * selben Datum, die passende greift trotzdem") steht seit #286 in der Gruppe
+   * „filialgenaue Auswahl" — er ließ sich erst bauen, als die Auswahl überhaupt ein
+   * Kriterium hatte: Solange nur nach `date` gefiltert wurde, trugen alle Treffer
+   * dieses Datum und `getOpeningHoursForDate` nahm die erste, eine abgeschnittene
+   * Seite lieferte also dieselbe Entscheidung wie die vollständige Liste (derselbe
+   * Aufbau war mit und ohne Flag rot).
+   *
+   * ⚠️ Auch der neue Test paginiert nicht selbst — der Mock liefert, was er soll. Was
+   * er belegt, ist die Unabhängigkeit der Auswahl von der Position in der Liste; dass
+   * die Liste vollständig angefordert wird, belegt die Flag-Assertion hier.
    */
   it('fordert die Ausnahmen ohne Paginierung an', async () => {
     const { ctx, findExceptions } = buildContext('2026-06-20T09:00:00.000Z')
@@ -274,10 +277,157 @@ describe('validatePreOrderOpeningHours — vollständige Ausnahmen-Menge', () =>
     // skip }`. Alle übrigen Tests mocken den Umschlag — ohne diesen Fall bliebe der
     // produktive Zweig ungetestet.
     const { ctx } = buildContext('2026-06-20T09:00:00.000Z', {
-      findExceptionsImpl: async () => [{ date: '2026-06-20', closed: true }],
+      findExceptionsImpl: async () => [{ date: '2026-06-20', closed: true, locationId: 'loc1' }],
     })
 
     await expect(validatePreOrderOpeningHours(ctx)).rejects.toThrow(/an diesem Tag geschlossen/)
+  })
+})
+
+describe('validatePreOrderOpeningHours — filialgenaue Auswahl', () => {
+  pinServerTimeZone('UTC', { instant: '2026-06-20T09:00:00.000Z', localHour: 9 })
+
+  // Der Termin: Samstag, 20.06.2026, 11:00 Berlin. Regulär (BERLIN_10_22) ist
+  // geöffnet — jede Ablehnung kommt also aus einer Ausnahme, jede Annahme daraus,
+  // dass keine für DIESE Filiale gilt.
+  const SA_1100_BERLIN = '2026-06-20T09:00:00.000Z'
+
+  /** Ausnahme einer anderen Filiale desselben Mandanten. */
+  const foreign = (over: Record<string, unknown> = {}) => ({
+    date: '2026-06-20',
+    closed: true,
+    locationId: 'loc2',
+    ...over,
+  })
+
+  /** Ausnahme der Filiale, für die vorbestellt wird. */
+  const own = (over: Record<string, unknown> = {}) => ({
+    date: '2026-06-20',
+    closed: true,
+    locationId: 'loc1',
+    ...over,
+  })
+
+  it('fragt die Ausnahmen der aufgelösten Filiale ab', async () => {
+    const { ctx, findExceptions } = buildContext(SA_1100_BERLIN)
+
+    await validatePreOrderOpeningHours(ctx)
+
+    expect(findExceptions).toHaveBeenCalledWith(
+      expect.objectContaining({ query: { date: '2026-06-20', tenantId: 't1', locationId: 'loc1' } }),
+    )
+  })
+
+  it('nimmt die Filiale aus dem User, wenn die Bestellung keine trägt', async () => {
+    // `locationId` im Data ist der Normalfall (multiTenancy stempelt), der
+    // User-Fallback des Hooks darf aber nicht die alte, filialblinde Query bauen.
+    const { ctx, findExceptions } = buildContext(SA_1100_BERLIN, { locationId: null, userLocationId: 'loc9' })
+
+    await validatePreOrderOpeningHours(ctx)
+
+    expect(findExceptions).toHaveBeenCalledWith(
+      expect.objectContaining({ query: { date: '2026-06-20', tenantId: 't1', locationId: 'loc9' } }),
+    )
+  })
+
+  it('lässt die „geschlossen"-Ausnahme einer fremden Filiale nicht greifen', async () => {
+    const { ctx } = buildContext(SA_1100_BERLIN, { exceptions: [foreign()] })
+    await expect(validatePreOrderOpeningHours(ctx)).resolves.toBe(ctx)
+  })
+
+  it('lässt die eigene „geschlossen"-Ausnahme greifen', async () => {
+    // Gegenprobe zum Test davor: Ohne sie wäre er auch mit einer Fassung grün,
+    // die Ausnahmen gar nicht mehr auswertet.
+    const { ctx } = buildContext(SA_1100_BERLIN, { exceptions: [own()] })
+    await expect(validatePreOrderOpeningHours(ctx)).rejects.toThrow(/an diesem Tag geschlossen/)
+  })
+
+  it('entscheidet über den Inhalt, nicht über die Position in der Liste', async () => {
+    // Beide Zeilen tragen dasselbe Datum, die fremde steht zuerst — genau die
+    // Reihenfolge, in der `getOpeningHoursForDate` vorher die falsche nahm. Die
+    // eigene Zeile öffnet 10:00–22:00, die fremde nur 06:00–07:00.
+    const { ctx } = buildContext(SA_1100_BERLIN, {
+      exceptions: [
+        foreign({ closed: false, open: '06:00', close: '07:00' }),
+        own({ closed: false, open: '10:00', close: '22:00' }),
+      ],
+    })
+
+    await expect(validatePreOrderOpeningHours(ctx)).resolves.toBe(ctx)
+  })
+
+  it('entscheidet auch bei vertauschten Rollen über den Inhalt', async () => {
+    // Spiegelbild: Jetzt öffnet die FREMDE Zeile weit und die eigene nur früh
+    // morgens. Ein Test, der bloß „nimm die zweite" belegte, wäre hier grün — die
+    // Meldung muss die Zeiten der eigenen Filiale nennen.
+    const { ctx } = buildContext(SA_1100_BERLIN, {
+      exceptions: [
+        foreign({ closed: false, open: '10:00', close: '22:00' }),
+        own({ closed: false, open: '06:00', close: '07:00' }),
+      ],
+    })
+
+    await expect(validatePreOrderOpeningHours(ctx)).rejects.toThrow(/06:00 bis 07:00/)
+  })
+
+  it('protokolliert verworfene Fremd-Zeilen — die Query hätte sie nicht liefern dürfen', async () => {
+    vi.mocked(logger.warn).mockClear()
+
+    const { ctx } = buildContext(SA_1100_BERLIN, { exceptions: [foreign(), own({ closed: false })] })
+    await validatePreOrderOpeningHours(ctx)
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'pre-orders.opening-hours.foreign-exceptions-skipped',
+        locationId: 'loc1',
+        loaded: 2,
+        kept: 1,
+      }),
+    )
+  })
+
+  it('schweigt, wenn nichts zu verwerfen war', async () => {
+    vi.mocked(logger.warn).mockClear()
+
+    const { ctx } = buildContext(SA_1100_BERLIN, { exceptions: [own({ closed: false })] })
+    await validatePreOrderOpeningHours(ctx)
+
+    expect(logger.warn).not.toHaveBeenCalled()
+  })
+
+  it('verwirft eine Zeile ohne Filiale statt sie tenant-weit gelten zu lassen', async () => {
+    // Bewusste Entscheidung (panary/panary-core#286): Tenant-weite Ausnahmen kann
+    // es nicht geben — `baseSchema.locationId` ist ein Pflicht-`uuid`, und erzeugt
+    // werden die Zeilen ausschließlich pro Filiale. Eine solche Zeile wäre also ein
+    // Fund und kein gültiger Feiertag; sie darf nicht still durchgreifen.
+    //
+    // ⚠️ Wer das ändert, ändert Fachverhalten: Der Termin ist dann geschlossen statt
+    // offen. `.claude/rules/data-models.md` §1 beschreibt `locationId: null` als
+    // „globale Daten" — für DIESEN Service trifft das nicht zu.
+    const { ctx } = buildContext(SA_1100_BERLIN, { exceptions: [{ date: '2026-06-20', closed: true }] })
+
+    await expect(validatePreOrderOpeningHours(ctx)).resolves.toBe(ctx)
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'pre-orders.opening-hours.foreign-exceptions-skipped' }),
+    )
+  })
+
+  it('findet die eigene Zeile auch jenseits der Seitengrenze von 50', async () => {
+    // Der zu #282 verworfene Mengen-Test, jetzt mit Aussage: 60 fremde Zeilen vor
+    // der eigenen. Ohne `paginate: false` käme die eigene nie an, ohne Filial-Filter
+    // griffe die erste fremde.
+    const many = [...Array.from({ length: 60 }, () => foreign({ closed: false, open: '06:00', close: '07:00' })), own()]
+    const { ctx } = buildContext(SA_1100_BERLIN, { exceptions: many })
+
+    await expect(validatePreOrderOpeningHours(ctx)).rejects.toThrow(/an diesem Tag geschlossen/)
+  })
+
+  it('bleibt bei 60 reinen Fremd-Zeilen auf den regulären Zeiten', async () => {
+    // Gegenprobe: Dieselbe Menge ohne eigene Zeile darf den Termin nicht kippen.
+    const many = Array.from({ length: 60 }, () => foreign())
+    const { ctx } = buildContext(SA_1100_BERLIN, { exceptions: many })
+
+    await expect(validatePreOrderOpeningHours(ctx)).resolves.toBe(ctx)
   })
 })
 

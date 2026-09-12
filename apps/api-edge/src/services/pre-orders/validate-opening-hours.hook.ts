@@ -52,8 +52,21 @@ export const validatePreOrderOpeningHours = async (context: HookContext): Promis
 
   // Tagesgenaue Ausnahmen laden (Feiertage, Sonderöffnungszeiten) — Datum in
   // Filialzeit, sonst kippt der Tag am UTC-Mitternachtsrand.
+  //
+  // `paginate: false`, weil die vollständige Tagesmenge gebraucht wird: Der Service
+  // reicht `paginate` aus `config/default.json` an den Adapter durch (Edge:
+  // `default` 50), und ohne das Flag schneidet Feathers still bei diesem Wert ab.
+  // Gleiche Fassung wie der Cloud-Hook (panary/panary-core#282).
+  //
+  // ⚠️ Das Flag macht die Menge vollständig, nicht die Auswahl filialgenau: Die
+  // Query filtert nach Datum und Mandant, und `getOpeningHoursForDate` nimmt die
+  // ERSTE Ausnahme mit passendem Datum. Hat ein Mandant an einem Tag Ausnahmen
+  // mehrerer Filialen, greift eine beliebige davon — auch mit vollständiger Liste.
+  // Ein Filial-Filter kann nicht einfach nachgezogen werden, weil `locationId: null`
+  // die tenant-weit gültige Ausnahme ist; eigener Befund, hier nicht behoben.
   const excResult = (await (context.app.service('opening-hour-exceptions') as any).find({
     query: { date: wall.dateStr, tenantId: data.tenantId },
+    paginate: false,
     provider: undefined,
   })) as any
   const exceptions = Array.isArray(excResult) ? excResult : excResult.data || []

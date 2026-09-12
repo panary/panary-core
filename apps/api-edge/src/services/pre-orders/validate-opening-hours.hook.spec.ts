@@ -36,6 +36,8 @@ interface ContextOptions {
   exceptions?: unknown[]
   locationId?: string | null
   userLocationId?: string | null
+  /** Ersetzt den Standard-Mock (Seiten-Umschlag `{ data }`) durch eine eigene Antwort. */
+  findExceptionsImpl?: () => Promise<unknown>
 }
 
 const buildContext = (scheduledFor: string | undefined, opts: ContextOptions = {}) => {
@@ -46,6 +48,7 @@ const buildContext = (scheduledFor: string | undefined, opts: ContextOptions = {
     exceptions = [],
     locationId = 'loc1',
     userLocationId = null,
+    findExceptionsImpl,
   } = opts
 
   const location = {
@@ -54,7 +57,9 @@ const buildContext = (scheduledFor: string | undefined, opts: ContextOptions = {
       openingHoursSettings: { enabled, regular },
     },
   }
-  const findExceptions = vi.fn().mockResolvedValue({ data: exceptions })
+  const findExceptions = findExceptionsImpl
+    ? vi.fn().mockImplementation(findExceptionsImpl)
+    : vi.fn().mockResolvedValue({ data: exceptions })
   const app = {
     service: (path: string) => {
       if (path === 'locations') return { get: vi.fn().mockResolvedValue(location) }
@@ -235,6 +240,44 @@ describe('validatePreOrderOpeningHours — mehrdeutige Wandzeit (Rückstellung)'
       const { ctx } = buildContext(instant, { regular: allDays('00:00', '02:00') })
       await expect(validatePreOrderOpeningHours(ctx)).rejects.toBeInstanceOf(BadRequest)
     }
+  })
+})
+
+describe('validatePreOrderOpeningHours — vollständige Ausnahmen-Menge', () => {
+  pinServerTimeZone('UTC', { instant: '2026-06-20T09:00:00.000Z', localHour: 9 })
+
+  /**
+   * Der Service reicht `paginate` aus `apps/api-edge/config/default.json` an den
+   * Adapter durch (`default` 50) — ohne `paginate: false` liefert Feathers still
+   * die erste Seite. Die Tests halten das Flag und den Antwort-Typ fest, den es
+   * auslöst.
+   *
+   * ⚠️ Was hier bewusst NICHT steht, ist ein Test der Bauart „mehr als 50 Ausnahmen
+   * am selben Datum, die passende greift trotzdem". Er ließe sich nicht ehrlich
+   * bauen: Die Query filtert bereits exakt nach `date`, alle Treffer tragen also
+   * dieses Datum, und `getOpeningHoursForDate` nimmt die ERSTE davon
+   * (`exceptions.find(e => e.date === dateStr)`). Eine abgeschnittene Seite liefert
+   * damit dieselbe Entscheidung wie die vollständige Liste. Gemessen zu
+   * panary/panary-core#282: derselbe Testaufbau ist mit und ohne Flag rot — was er
+   * trifft, ist der fehlende Filial-Filter, nicht die Paginierung.
+   */
+  it('fordert die Ausnahmen ohne Paginierung an', async () => {
+    const { ctx, findExceptions } = buildContext('2026-06-20T09:00:00.000Z')
+
+    await validatePreOrderOpeningHours(ctx)
+
+    expect(findExceptions).toHaveBeenCalledWith(expect.objectContaining({ paginate: false }))
+  })
+
+  it('verarbeitet die Array-Antwort, die `paginate: false` auslöst', async () => {
+    // Mit dem Flag liefert Feathers ein nacktes Array statt `{ data, total, limit,
+    // skip }`. Alle übrigen Tests mocken den Umschlag — ohne diesen Fall bliebe der
+    // produktive Zweig ungetestet.
+    const { ctx } = buildContext('2026-06-20T09:00:00.000Z', {
+      findExceptionsImpl: async () => [{ date: '2026-06-20', closed: true }],
+    })
+
+    await expect(validatePreOrderOpeningHours(ctx)).rejects.toThrow(/an diesem Tag geschlossen/)
   })
 })
 

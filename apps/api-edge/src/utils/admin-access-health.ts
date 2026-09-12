@@ -79,13 +79,17 @@ export const readAdminAccessState = async (app: Application): Promise<AdminAcces
     // Interner Aufruf: kein `provider`, damit Query-Scoping und Auth nicht
     // greifen (es gibt hier keinen Akteur). Ueber die Adapter-API statt roh —
     // CLAUDE.md, kein Knex im Request-Pfad.
-    const result = await app.service('users').find({
+    const result = (await app.service('users').find({
       provider: undefined,
       paginate: false,
       query: { $select: ['_id', 'loginname', 'role', 'status'], $limit: 500 },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any)
-    const list = (Array.isArray(result) ? result : (result?.data ?? [])) as AdminAccessCandidate[]
+    } as any)) as unknown
+    // `paginate: false` liefert ein Array; der Typ des Service deckt beide
+    // Formen ab, deshalb hier bewusst breit gelesen statt eng getypt.
+    const list = (
+      Array.isArray(result) ? result : ((result as { data?: unknown[] } | undefined)?.data ?? [])
+    ) as AdminAccessCandidate[]
     return evaluateAdminAccess(list)
   } catch (err) {
     logger.warn({

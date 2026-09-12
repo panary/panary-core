@@ -4,7 +4,7 @@ title: Gestempelte Felder gehören ins Schema — auch ins PATCH-Schema
 description: Hooks stempeln tenantId und userId vor der Validierung; ein geschlossenes Schema ohne diese Felder lehnt jeden externen Aufruf mit 400 ab — viermal aufgetreten, zuletzt war der Befund der blinde Boot-Check selbst.
 tags: [security, notifications, users, sync, working-times]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-09-12T17:05:00Z }
+generated: { by: claude-code/opus-5, at: 2026-09-12T20:45:00Z }
 ---
 
 # Gestempelte Felder gehören ins Schema — auch ins PATCH-Schema
@@ -64,7 +64,8 @@ Gefangen wird die Klasse deshalb an zwei Stellen:
   begründungspflichtiger Ausnahmeliste. In panary-cloud hängt es an der
   `service-factory`, in diesem Repo am Boot-Check
   [`assert-stamp-fields.ts`](../../apps/api-edge/src/services/assert-stamp-fields.ts)
-  (seit panary/panary-core#267 inklusive PATCH-Seite, siehe unten).
+  (seit panary/panary-core#267 inklusive PATCH-Seite, seit #289 inklusive
+  REQUIRED-Regel, beides siehe unten).
 * **Abdeckungs-Test neben dem Befund-Test** (dieses Repo) — die zweite Hälfte von
   [`stamp-fields-invariant.spec.ts`](../../apps/api-edge/src/services/stamp-fields-invariant.spec.ts)
   stellt die Menge der geprüften Pfade gegen die Menge der Services mit
@@ -72,6 +73,71 @@ Gefangen wird die Klasse deshalb an zwei Stellen:
   wurde — nicht, dass gesucht wurde. Genau das war der Defekt bei #183: `sync-conflicts`
   deklariert kein `docs.schemas`, der Check lief still daran vorbei, und das Boot-Log sah
   gesund aus.
+
+## Die zweite Regel: `REQUIRED`
+
+Alles bisher Gesagte betrifft **MISSING** — das Feld fehlt im geschlossenen Schema, jeder
+externe Aufruf scheitert. Der Check kennt eine zweite, mildere Klasse:
+
+> **REQUIRED** — das gestempelte Feld steht in `required`. Greift der Stempel nicht (User
+> ohne Standort, kein Location-Fallback), meldet AJV `must have required property
+> '<feld>'` und zeigt damit **auf den Client**, obwohl die Ursache serverseitig liegt.
+
+MISSING ist ein sicherer Totalausfall (`logger.error`), REQUIRED eine latente Falle: Es
+funktioniert, solange der Stempel greift. Deshalb eine **gesammelte** Warnzeile
+(`service.stamp_field_required`) statt einer Zeile je Service.
+
+### Die Prüffrage ist nicht „ist das Feld Pflicht?"
+
+Sondern: **Kann ein externer Create überhaupt bis `validateData` kommen?** Stirbt der
+Aufruf vorher — in `authorize()`, in einem `blockExternalWrites` —, kann der gemeldete
+Fehlerfall nicht eintreten, und `Type.Optional` wäre kein Fix, sondern der Verlust der
+einzigen Instanz, die einen internen Schreiber mit fehlendem `tenantId` bemerkt. Interne
+Aufrufe laufen ohne `user`; `multiTenancy()` steigt dort im Early-Return aus
+(`if (!user) return next()`) und stempelt gar nicht.
+
+Genau so wurden 2026-09-12 die fünf Fälle geklärt, die panary/panary-core#267 erstmals
+sichtbar machte — sie deklarieren kein `docs.schemas`, der alte Check kam nicht an ihr
+Schema (panary/panary-core#289):
+
+| Service | Warum extern unerreichbar | Spalte |
+| --- | --- | --- |
+| `sync-runs` | `blockExternalWrites` → `Forbidden` vor `validateData` | notNullable |
+| `audit-events` | dito (zugleich Manipulationsschutz) | notNullable |
+| `bootstrap-reports` | dito, auch für `patch`/`update` | **nullable** |
+| `fiscal-counters` | kein `MANAGE` in `roles.matrix.ts` → `authorize()` 403 | notNullable |
+| `sync-conflicts` | erreichbar, aber `multiTenancy()` stempelt für jeden Tenant-User unbedingt | notNullable |
+
+Alle fünf sind Einträge in `REQUIRED_STAMP_EXCEPTIONS`, kein Schema wurde geändert — und
+damit entfiel auch die Pin-Bump-Folge für panary-cloud, das dieselben Libs konsumiert.
+
+🚨 **`bootstrap-reports` ist der lehrreiche Fall.** Dort trägt das übliche Argument
+*nicht*: Die Spalte erlaubt NULL, ein `Type.Optional` würde also keinen klaren 400 in
+einen `NOT NULL constraint failed`-500 verwandeln. Richtig bleibt `required` trotzdem, aus
+dem umgekehrten Grund — das Schema führt `tenantId` als `Type.Union([String, Null])`, und
+`required` ist das, was `createReport` zwingt, sein `tenantId: null` **auszusprechen**,
+statt das Feld wegzulassen und still NULL zu schreiben. Wer nur auf die Migration schaut,
+kommt hier zur falschen Antwort.
+
+### Warum die Liste im Gate steht und nicht nur im Check
+
+Seit panary/panary-core#289 prüft `stamp-fields-invariant.spec.ts` **beide** Regeln. Den
+Ausschlag gab nicht die Schärfe — REQUIRED bleibt eine latente Falle, kein Ausfall —,
+sondern die **Gegenrichtung**: Als reine Boot-Check-Konstante hatte
+`REQUIRED_STAMP_EXCEPTIONS` keine Obsoleszenz-Prüfung. Wird ein Schema später
+`Type.Optional`, bliebe der Eintrag still stehen; eine Begründung, die nichts mehr
+begründet, ist genau die Ablage, gegen die der Kopfkommentar der Liste argumentiert. Das
+Gate prüft beide Richtungen, so wie es MISSING schon tat.
+
+Die beiden Listen rechtfertigen Verschiedenes und bleiben deshalb getrennt:
+
+| Liste | Aussage eines Eintrags | Zielzustand |
+| --- | --- | --- |
+| `BEKANNTE_AUSNAHMEN` (Spec) | „Fix hängt am Pin-Zyklus" — temporär | **leer** |
+| `REQUIRED_STAMP_EXCEPTIONS` (Check) | „Pflicht ist fachlich richtig" — dauerhaft | nicht leer |
+
+⚠️ **Was daran kein Test prüft:** ob eine Ausnahme *fachlich* richtig ist. Das Gate prüft
+nur, dass jede vorhanden und jede noch nötig ist — die Begründung selbst liest ein Mensch.
 
 ## Vorgeschichte
 

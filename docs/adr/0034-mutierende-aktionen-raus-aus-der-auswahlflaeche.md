@@ -77,5 +77,13 @@ Eintrag.
   Fehlklick verschwindet, kommt nur aus dem Betrieb. Das Undo des `item-delete` ist nur über
   `placeOrder` beobachtbar, weil `#orderInteractions` ein echtes Private-Feld ist.
 
+**Nachtrag (#271):** Dieselbe Wegwerf-Kopie traf auch das **Hinzufügen**: Der
+Kombinations-Zweig von `increaseLineItem` pushte in `this.combinations[i]`, die Zeile war
+danach nirgends — ein Kacheltap bei markierter Kombination war ein stiller No-Op, gemessen am
+2026-09-12. Seit #271 schreibt auch dieser Zweig nur in `#lineItems` und setzt die
+`bundleNumber`; der Positionsindex für den Bundle-Flow kommt aus der neu berechneten
+Kombination. Die Regel lautet damit für beide Richtungen: **`this.combinations[…]` wird nie
+als Array mutiert** — Elemente ja, das Array nie.
+
 Umsetzung: [#269](https://github.com/panary/panary-core/issues/269) —
 `libs/domains/orders/feature-pos-order-dialog/src/lib/order-dialog.component.{html,ts,spec.ts}`.

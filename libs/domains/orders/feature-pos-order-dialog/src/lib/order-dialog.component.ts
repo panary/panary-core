@@ -2158,13 +2158,45 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.resetMultiplier()
     this.resetProductSearch()
 
-    if (this._selectedCombinationIndex[0] !== null) {
-      // Kombinations-Modus
-      const index = this.combinations[this._selectedCombinationIndex[0]].push(orderLineItem) - 1
+    // Duplikat-Check (nur bei nicht-Bundle-Produkten) — auf der PRODUKT-Identität.
+    // `_id` ist seit #230 die Zeilen-Identität und je Zeile verschieden; der Vergleich
+    // läuft deshalb über `externalId`.
+    //
+    // ⚠️ Leere `externalId` ist bewusst kein Treffer: Das Feld wird zwar serverseitig
+    // vergeben (`value || uuidv7()`), erlaubt im Schema aber `null` — und die Zeile
+    // oben macht daraus `''`. Ohne diese Bedingung fielen alle Alt-Produkte ohne
+    // `externalId` zu einer einzigen Warenkorbzeile zusammen. Eine zweite Zeile ist
+    // hier der harmlosere Ausgang.
+    const productKey = orderLineItem.externalId
+
+    const selectedCombination = this._selectedCombinationIndex[0]
+    const bundleNumber = selectedCombination !== null ? this.#bundleNumberOfCombination(selectedCombination) : null
+
+    if (selectedCombination !== null && bundleNumber !== null) {
+      // Kombinations-Modus: Der Artikel wird Position der markierten Kombination.
+      //
+      // Bis #271 pushte dieser Zweig in `this.combinations[i]` — eine Wegwerf-Kopie,
+      // `getCombinations` baut die Gruppen je Aufruf neu. Die Zeile war danach nirgends,
+      // der Kacheltap ein stiller No-Op. Geschrieben wird deshalb nur noch in
+      // `#lineItems`; die Zugehörigkeit trägt die `bundleNumber`, der Positionsindex
+      // wird aus der NEU berechneten Kombination gelesen, nicht aus dem `push`.
+      //
+      // Duplikat-Check nur innerhalb der Kombination — gleiches Verhalten wie im
+      // Normalmodus (Menge hoch statt zweiter Zeile). Eine gleiche Zeile außerhalb der
+      // Kombination bleibt unberührt: Sie gehört nicht zum Menü.
+      const bundle = this.combinations[selectedCombination]
+      const existingInBundle = productKey ? bundle.find(item => item.externalId === productKey) : undefined
+      if (!isBundle && existingInBundle) {
+        return this.increaseQuantity(existingInBundle)
+      }
+
+      orderLineItem.bundleNumber = bundleNumber
+      this.#lineItems.push(orderLineItem)
+      const index = this.combinations[selectedCombination].indexOf(orderLineItem)
 
       if (isBundle && product.optionGroups?.length) {
         this._isBlocked = true
-        this._selectedCombinationIndex[1] = index
+        this._selectedCombinationIndex = [selectedCombination, index]
         this.#bundleFlow.reset()
         // Bundle-Flow gestartet für: product.name
         const firstGroup = this.#bundleFlow.getNextMandatoryGroup(product)
@@ -2175,17 +2207,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         this.setSuccessorSubButtons(product)
       }
     } else {
-      // Normaler Modus
-      // Duplikat-Check (nur bei nicht-Bundle-Produkten) — auf der PRODUKT-Identität.
-      // `_id` ist seit #230 die Zeilen-Identität und je Zeile verschieden; der Vergleich
-      // läuft deshalb über `externalId`.
-      //
-      // ⚠️ Leere `externalId` ist bewusst kein Treffer: Das Feld wird zwar serverseitig
-      // vergeben (`value || uuidv7()`), erlaubt im Schema aber `null` — und die Zeile
-      // oben macht daraus `''`. Ohne diese Bedingung fielen alle Alt-Produkte ohne
-      // `externalId` zu einer einzigen Warenkorbzeile zusammen. Eine zweite Zeile ist
-      // hier der harmlosere Ausgang.
-      const productKey = orderLineItem.externalId
+      // Normaler Modus. Zeigt die Markierung auf eine Kombination, die es nicht mehr
+      // gibt (aufgelöst, gelöscht), fällt der Tap hierher — und räumt die Markierung ab,
+      // statt still auf sie zu bauen.
+      if (selectedCombination !== null) this._selectedCombinationIndex = [null, null]
+
       const existing = productKey ? this.#lineItems.find(item => item.externalId === productKey) : undefined
       if (!isBundle && existing) {
         return this.increaseQuantity(existing)
@@ -2205,6 +2231,12 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       }
     }
+  }
+
+  /** `bundleNumber` der i-ten Kombination — `null`, wenn es sie (nicht mehr) gibt. */
+  #bundleNumberOfCombination(index: number): number | null {
+    const bundleNumber = this.combinations[index]?.[0]?.bundleNumber
+    return bundleNumber === undefined ? null : bundleNumber
   }
 
   /**

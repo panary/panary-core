@@ -75,8 +75,10 @@ strenger, sondern schlicht rot.
 
 ## Konsequenzen
 
-- **Kosten:** ~1,5 min je PR, der api-edge betrifft; 0 sonst. Der Lauf kann den Cache
-  nicht nutzen — das ist der Preis dafür, dass er misst.
+- **Kosten:** **2:27 min** je PR, der api-edge betrifft; 0 sonst. Gemessen im ersten
+  CI-Lauf des Gates (panary/panary-core#302, Seed 4169387127 aus `f883cc77`) — lokal sind es
+  ~1,5 min, der Runner ist langsamer. Der Lauf kann den Cache nicht nutzen; das ist der Preis
+  dafür, dass er misst.
 - **Das Gate beweist keine Isolation.** Es prüft je Lauf **eine** Permutation. Grün heisst
   „unter diesem Seed keine Kopplung". Die Aussage aus `code-style.md` §10.1 bleibt
   unverändert: Isolation kommt aus der Struktur, nicht aus dem Shuffle. Das Gate fängt den

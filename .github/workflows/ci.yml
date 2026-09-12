@@ -264,7 +264,8 @@ jobs:
       # Bewusst NUR api-edge und nur, wenn es betroffen ist: Es ist das einzige
       # Projekt mit einer geteilten, ueber den Lauf hinaus lebenden Ressource,
       # und eine neue Kopplung kann nur aus einer Aenderung kommen, die api-edge
-      # betrifft. Gemessene Kosten: ~1,5 min ohne Cache.
+      # betrifft. Gemessene Kosten: 2:27 min auf dem Runner (erster Lauf in PR
+      # #302), lokal ~1,5 min — ohne Cache, das ist der Preis fuers Messen.
       - name: Reihenfolge-Gate (api-edge, --sequence.shuffle)
         shell: bash
         run: |

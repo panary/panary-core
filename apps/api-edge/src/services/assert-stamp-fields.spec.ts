@@ -1,16 +1,20 @@
 // Tests fuer den Boot-Check aus assert-stamp-fields.ts.
 //
-// Zwei Bloecke tragen den Wert: Der `apikeyDataSchema`-Block fuettert das ECHTE
+// Drei Bloecke tragen den Wert: Der `apikeyDataSchema`-Block fuettert das ECHTE
 // Schema ein und friert den Befund ein, der am 2026-08-01 `POST /apikeys`
 // blockiert hat. Der Block „Service ohne docs.schemas" ist der Regressionstest
 // fuer #183 — dort lief der Check an `sync-conflicts` vorbei, weil der Service
-// keine `docs.schemas` deklariert, und das Boot-Log sah gesund aus.
+// keine `docs.schemas` deklariert, und das Boot-Log sah gesund aus. Der dritte
+// prueft die aggregierte REQUIRED-Warnzeile selbst — sie ist das, woran man
+// einen gesunden Boot erkennt (panary/panary-core#289), und bis dahin war nur
+// der Befund getestet, nicht die Zeile, die ihn sichtbar macht.
 
 import { describe, expect, it, vi } from 'vitest'
 import { feathers } from '@feathersjs/feathers'
 import { multiTenancy } from '@panary/shared-backend'
 import { apikeyDataSchema } from '@panary/apikeys/domain'
 import { validateData } from '../hooks/validate-data.hook'
+import { logger } from '@panary/shared-backend'
 import { assertStampFields, checkStampFields, collectStampTargets } from './assert-stamp-fields'
 
 vi.mock('@panary/shared-backend', async importOriginal => {
@@ -248,5 +252,64 @@ describe('assertStampFields() — Service OHNE docs.schemas wird trotzdem geprue
     const targets = collectStampTargets(buildApp(closedSchema({ resolution: {} })) as never)
     expect(targets.find(t => t.kind === 'patch')?.source).toBe('hook')
     expect(targets.find(t => t.kind === 'data')?.source).toBe('none')
+  })
+})
+
+// Die aggregierte Warnzeile (panary/panary-core#289). Getestet wird hier nicht
+// der Befund — das tut der erste Block —, sondern die Stelle, an der
+// `REQUIRED_STAMP_EXCEPTIONS` wirkt: Sie ist das einzige, was zwischen
+// „gesundes Boot-Log" und „Zeile, die jeden neuen Fall verdeckt" steht. Ohne
+// diesen Block war sie ungetestet, und ein Filterfehler haette wie Gesundheit
+// ausgesehen.
+describe('assertStampFields() — REQUIRED-Warnzeile und Ausnahmeliste', () => {
+  const buildApp = (path: string) => {
+    const app = feathers()
+    app.use(
+      path,
+      {
+        async create(d: unknown) {
+          return d
+        },
+      } as never,
+      { methods: ['create'], events: [] } as never,
+    )
+    app.service(path as never).hooks({
+      around: { all: [multiTenancy({ isolateLocation: false })] },
+      before: {
+        create: [
+          validateData(
+            Object.assign(async (d: unknown) => d, {
+              // tenantId vorhanden UND Pflicht → genau der REQUIRED-Fall.
+              schema: closedSchema({ tenantId: {}, name: {} }, ['tenantId', 'name']),
+            }),
+          ),
+        ],
+      },
+    } as never)
+    return app
+  }
+
+  const warnCalls = () =>
+    vi
+      .mocked(logger.warn)
+      .mock.calls.filter(([arg]) => (arg as { event?: string })?.event === 'service.stamp_field_required')
+
+  it('meldet den Service namentlich, wenn er NICHT in der Ausnahmeliste steht', () => {
+    vi.mocked(logger.warn).mockClear()
+    assertStampFields(buildApp('widgets') as never)
+
+    const [[arg]] = warnCalls()
+    expect((arg as { services: string[] }).services).toEqual(['widgets:tenantId'])
+  })
+
+  it('schweigt fuer einen Service aus REQUIRED_STAMP_EXCEPTIONS', () => {
+    vi.mocked(logger.warn).mockClear()
+    // `sync-runs` steht mit Begruendung in der Liste (blockExternalWrites).
+    const violations = assertStampFields(buildApp('sync-runs') as never)
+
+    // Der Befund existiert weiter — unterdrueckt wird nur die Log-Zeile. Sonst
+    // saehe das Gate, das denselben Befund auswertet, gar nichts mehr.
+    expect(violations.map(v => `${v.path}:${v.required.join()}`)).toContain('sync-runs:tenantId')
+    expect(warnCalls()).toEqual([])
   })
 })

@@ -12,6 +12,14 @@
 // panary/panary-cloud#199), wo die PATCH-Haelfte beim ersten Lauf sofort 11
 // Services fand, deren externer Patch seit jeher scheiterte.
 //
+// Seit panary/panary-core#289 deckt das Gate BEIDE Regeln ab — auch REQUIRED,
+// mit `REQUIRED_STAMP_EXCEPTIONS` aus dem Check als Ausnahmeliste. Der Grund
+// ist nicht die Schaerfe (REQUIRED bleibt eine latente Falle, kein Ausfall),
+// sondern die Gegenrichtung: Die Liste hatte als reine Boot-Check-Konstante
+// keine Obsoleszenz-Pruefung. Wird ein Schema spaeter `Type.Optional`, blieb
+// der Eintrag still stehen — also genau die Verrottung, gegen die es die Liste
+// gibt. Beide Richtungen stehen hier jetzt nebeneinander, wie bei MISSING.
+//
 // Der zweite Test ist der wichtigere: Er prueft die ABDECKUNG statt der
 // Befunde. Ein leeres Befund-Ergebnis beweist ohne ihn nur, dass nichts
 // gefunden wurde — nicht, dass gesucht wurde. Genau dieser Unterschied war der
@@ -23,7 +31,12 @@ import { feathers } from '@feathersjs/feathers'
 import { DatabaseType } from '@panary/shared-common'
 import { describe, expect, it, vi } from 'vitest'
 
-import { checkStampFields, collectStampTargets } from './assert-stamp-fields'
+import {
+  REQUIRED_STAMP_EXCEPTIONS,
+  checkStampFields,
+  collectStampTargets,
+  unexcusedRequiredViolations,
+} from './assert-stamp-fields'
 import { services } from './index'
 
 vi.mock('@panary/shared-backend', async importOriginal => {
@@ -43,8 +56,11 @@ vi.mock('@panary/shared-backend', async importOriginal => {
  * Servicenamen geschlossen — zwei Eintraege warteten dort unnoetig auf einen
  * Core-Release, obwohl das Schema in der Service-Datei selbst stand.
  *
- * Die REQUIRED-Regel hat eine eigene, fachlich begruendete Liste im Check
- * (`REQUIRED_STAMP_EXCEPTIONS`) und ist hier deshalb nicht Gegenstand.
+ * NUR fuer MISSING. Die REQUIRED-Regel hat ihre eigene, fachlich begruendete
+ * Liste im Check (`REQUIRED_STAMP_EXCEPTIONS`) — sie wird im zweiten Test
+ * geprueft, nicht hier. Zwei Listen, weil die Eintraege Verschiedenes
+ * rechtfertigen: hier „Fix haengt am Pin-Zyklus" (temporaer, Zielzustand leer),
+ * dort „Pflicht ist fachlich richtig" (dauerhaft, Zielzustand nicht leer).
  */
 const BEKANNTE_AUSNAHMEN: Record<string, string> = {}
 
@@ -106,24 +122,32 @@ const makeApp = () => {
   return app
 }
 
+/**
+ * Alle Befunde einer frisch registrierten App. Beide Befund-Tests teilen sich
+ * diese Quelle — zwei eigene Sweeps waeren zwei Gelegenheiten, unterschiedlich
+ * zu sammeln.
+ */
+const befunde = () => {
+  const app = makeApp()
+  services(app as never)
+  return collectStampTargets(app as never)
+    .map(target =>
+      checkStampFields({
+        path: target.path,
+        dataSchema: target.schema,
+        mtOptions: target.mtOptions,
+        kind: target.kind,
+      }),
+    )
+    .filter((v): v is NonNullable<typeof v> => v !== null)
+}
+
 describe('Invariante: DATA- und PATCH-Schema kennen die multiTenancy-Stempelfelder', () => {
   it('kein Service verletzt sie (ausser dokumentierten Ausnahmen)', () => {
-    const app = makeApp()
-    services(app as never)
-
-    const verstoesse = collectStampTargets(app as never)
-      .map(target =>
-        checkStampFields({
-          path: target.path,
-          dataSchema: target.schema,
-          mtOptions: target.mtOptions,
-          kind: target.kind,
-        }),
-      )
-      .filter((v): v is NonNullable<typeof v> => v !== null)
-      // Die REQUIRED-Regel hat ihre eigene begruendete Liste im Check und ist
-      // eine latente Falle, kein Totalausfall — Gate ist MISSING.
-      .filter(v => v.missing.length > 0)
+    // Dieser Test ist die MISSING-Haelfte; REQUIRED hat einen eigenen unten,
+    // weil es eine andere Ausnahmeliste und eine andere Schluesselform hat
+    // (`<pfad>` statt `<pfad>:<kind>` — REQUIRED gilt nur fuer DATA).
+    const verstoesse = befunde().filter(v => v.missing.length > 0)
 
     // Der Ausnahme-Schluessel ist `<pfad>:<kind>` — eine Ausnahme fuer das
     // DATA-Schema darf die PATCH-Seite desselben Services nicht mitentschuldigen.
@@ -137,6 +161,32 @@ describe('Invariante: DATA- und PATCH-Schema kennen die multiTenancy-Stempelfeld
     // damit die Liste nicht stillschweigend veraltet (z. B. nach einem Pin-Bump).
     const obsolet = Object.keys(BEKANNTE_AUSNAHMEN).filter(key => !verstoesse.some(v => `${v.path}:${v.kind}` === key))
     expect(obsolet, 'Ausnahme nicht mehr noetig — Eintrag aus BEKANNTE_AUSNAHMEN entfernen').toEqual([])
+  })
+
+  // REQUIRED-Haelfte (panary/panary-core#289). Bewusst ein eigener Test: Die
+  // Ausnahmeliste liegt im Check (nicht hier), ihr Schluessel ist der blosse
+  // Service-Pfad, und ihr Zielzustand ist — anders als bei BEKANNTE_AUSNAHMEN —
+  // NICHT die leere Liste. Ein Eintrag dort sagt „Pflicht ist fachlich richtig",
+  // kein „Fix steht noch aus".
+  it('kein Service fuehrt ein gestempeltes Feld unbegruendet als Pflicht', () => {
+    const alle = befunde()
+
+    expect(
+      unexcusedRequiredViolations(alle).map(v => v.message),
+      'Gestempeltes Feld als Pflicht im DATA-Schema — entweder Type.Optional oder ' +
+        'Eintrag in REQUIRED_STAMP_EXCEPTIONS mit Begruendung (assert-stamp-fields.ts)',
+    ).toEqual([])
+
+    // Die Gegenrichtung ist der eigentliche Grund, warum REQUIRED ueberhaupt
+    // ins Gate gehoert: Als reine Boot-Check-Konstante konnte die Liste still
+    // veralten — ein Schema wird `Type.Optional`, der Eintrag bleibt, und eine
+    // Begruendung, die nichts mehr begruendet, ist genau die Ablage, gegen die
+    // der Kopfkommentar der Liste argumentiert.
+    const mitRequired = new Set(alle.filter(v => v.required.length > 0).map(v => v.path))
+    expect(
+      Object.keys(REQUIRED_STAMP_EXCEPTIONS).filter(path => !mitRequired.has(path)),
+      'Ausnahme nicht mehr noetig — Eintrag aus REQUIRED_STAMP_EXCEPTIONS entfernen',
+    ).toEqual([])
   })
 
   // ABDECKUNG statt Befund. Dieser Test ist der eigentliche Regressionsschutz

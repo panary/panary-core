@@ -29,6 +29,15 @@
 // → gesammelter `logger.warn`, damit 13 betroffene Services nicht 13 Zeilen
 // Rauschen erzeugen.
 //
+// BEIDE Regeln sind seit panary/panary-core#289 auch im harten Gate
+// (`stamp-fields-invariant.spec.ts`), REQUIRED mit `REQUIRED_STAMP_EXCEPTIONS`
+// als Ausnahmeliste. Ausschlaggebend war nicht die Schaerfe, sondern die
+// GEGENRICHTUNG: Die Liste hatte keine Obsoleszenz-Pruefung. Wird ein Schema
+// spaeter `Type.Optional`, bleibt der Eintrag still stehen — also genau die
+// Verrottung, gegen die es die Liste ueberhaupt gibt. Das Gate prueft beide
+// Richtungen und nutzt dafuer `unexcusedRequiredViolations()` statt eines
+// zweiten, driftenden Filters.
+//
 // ABDECKUNG (panary/panary-core#267). Der Check hatte zwei gemessene blinde
 // Flecken, beide aus derselben Ursache — er kam nur ueber `docs.schemas` und
 // nur an das DATA-Schema:
@@ -82,7 +91,7 @@ type JsonSchemaLike = {
  * Wer einen Service hier eintraegt, entscheidet sich fuer eine potenziell
  * irrefuehrende 400-Meldung; das muss die Alternative aufwiegen.
  */
-const REQUIRED_STAMP_EXCEPTIONS: Record<string, string> = {
+export const REQUIRED_STAMP_EXCEPTIONS: Record<string, string> = {
   // SQLite hat auf BEIDEN Spalten `notNullable` (20260328000004_pre_orders).
   // Optional zu machen verwandelt einen klaren 400 in einen
   // `NOT NULL constraint failed`-500 — eine Verschlechterung.
@@ -114,6 +123,57 @@ const REQUIRED_STAMP_EXCEPTIONS: Record<string, string> = {
   'corporate-customers': 'Pull-Apply ohne user — required ist der einzige Schutz',
   'opening-hour-exceptions': 'Pull-Apply ohne user — required ist der einzige Schutz',
   discounts: 'Pull-Apply ohne user — required ist der einzige Schutz',
+
+  // ─── Mit panary/panary-core#267 erstmals sichtbar, geklaert in #289 ──────────
+  //
+  // Keiner der folgenden fuenf deklariert `docs.schemas`; der alte Check kam
+  // gar nicht an ihr Schema. Die Warnzeile ist also neu, ihr Inhalt ist alt —
+  // `tenantId` steht dort seit der jeweils ersten Migration als Pflicht.
+  //
+  // Geprueft wurde je Service die EINE Frage, auf die die REQUIRED-Regel zielt:
+  // Kann ein EXTERNER Create bis `validateData` kommen und dort die
+  // irrefuehrende Meldung „must have required property 'tenantId'" ausloesen?
+  // Bei allen fuenf lautet die Antwort nein, und zwar aus einem Grund, der im
+  // Code steht und nicht aus Gewohnheit — deshalb Ausnahme statt
+  // `Type.Optional`. Gemeinsam ist ihnen ausserdem: geschrieben wird nur
+  // intern und ohne `user`, wo `multiTenancy()` im Early-Return aussteigt
+  // (`if (!user) return next()`) und gar nicht stempelt. `required` ist dort
+  // nicht der Konstruktionsfehler, sondern die einzige Stelle, die einen
+  // internen Schreiber bemerkt, der das Feld vergisst.
+
+  // `blockExternalWrites` ist der AEUSSERSTE around-Hook (sync-runs.ts) und
+  // wirft `Forbidden` fuer jeden `create` mit `provider` — extern erreicht
+  // niemand die Validierung. Intern legt nur `recordSyncRun` an, mit eigener
+  // tenantId; die Spalte ist notNullable (20260507000001_sync_runs).
+  'sync-runs': 'blockExternalWrites wirft Forbidden vor validateData; Spalte notNullable (20260507000001)',
+  // Gleiche Sperre fuer create/patch/update (audit-events.ts) — hier zusaetzlich
+  // als Manipulationsschutz gedacht. Schreiber sind die Audit-Hooks und
+  // `cloud-realtime.worker.ts`, alle mit explizitem tenantId; Spalte notNullable
+  // (20260506000001_audit_events).
+  'audit-events': 'blockExternalWrites wirft Forbidden vor validateData; Spalte notNullable (20260506000001)',
+  // Gleiche Sperre (bootstrap-reports.ts). Sonderfall gegenueber den anderen
+  // vier: Die Spalte ist NULLABLE (20260507100001_bootstrap_reports) und das
+  // Schema fuehrt `tenantId` als `Type.Union([String, Null])` — ein explizites
+  // `null` ist ein gueltiger Wert („noch nicht gepairt"). Genau deshalb waere
+  // `Type.Optional` hier die schlechtere Wahl: `required` ist das, was
+  // `createReport` zwingt, dieses `null` AUSZUSPRECHEN (bootstrap-report.helper.ts),
+  // statt das Feld wegzulassen und still NULL zu schreiben. Das 500-Argument der
+  // notNullable-Eintraege traegt hier nicht — dieses tut es.
+  'bootstrap-reports': 'blockExternalWrites + nullable by design: required erzwingt das explizite tenantId: null',
+  // Keine `blockExternalWrites`, aber auch kein externer Create: Die
+  // Rollenmatrix kennt fuer `fiscal-counters` ausschliesslich READ
+  // (roles.matrix.ts), `authorize()` liefert externen Aufrufern 403. Vergeben
+  // wird der Zaehler intern in `allocateFiscalCounter` mit explizitem tenantId;
+  // Spalte notNullable (20260527140000_fiscal_counters).
+  'fiscal-counters': 'authorize() 403 mangels MANAGE in der Rollenmatrix; Spalte notNullable (20260527140000)',
+  // Der einzige der fuenf, den ein externer Create erreichen KANN
+  // (SYNC_CONFLICTS: MANAGE fuer OWNER/TECHNICIAN/MANAGER). Der gemeldete
+  // Fehlerfall tritt trotzdem nicht ein: Fuer einen Tenant-User stempelt
+  // `multiTenancy()` `tenantId` unbedingt (multi-tenancy.hook.ts, `item.tenantId
+  // = user.tenantId`) — die Meldung kann nur einen User ohne tenantId treffen,
+  // den es am Edge nicht gibt. Angelegt werden Konflikte ohnehin nur von den
+  // Sync-Workern; Spalte notNullable (20260502000002_sync_conflicts).
+  'sync-conflicts': 'Stempel greift fuer jeden Tenant-User unbedingt; Spalte notNullable (20260502000002)',
 }
 
 /**
@@ -332,6 +392,19 @@ type AppLike = {
 }
 
 /**
+ * Die REQUIRED-Befunde, die noch KEINE begruendete Ausnahme haben.
+ *
+ * Eine exportierte Funktion statt zweier Filter-Ausdruecke, aus demselben Grund,
+ * aus dem `collectStampTargets` exportiert ist: Boot-Check und hartes Gate
+ * sollen dieselbe Frage stellen. Zwei handgeschriebene Filter waeren zwei
+ * Gelegenheiten, auseinanderzulaufen — und die Abweichung faellt niemandem auf,
+ * weil beide Seiten weiterhin gruen bzw. still sind.
+ */
+export function unexcusedRequiredViolations(violations: StampFieldViolation[]): StampFieldViolation[] {
+  return violations.filter(v => v.required.length > 0 && !REQUIRED_STAMP_EXCEPTIONS[v.path])
+}
+
+/**
  * Boot-Sweep ueber alle registrierten Services. Gibt die Befunde zurueck
  * (fuer Tests) und loggt sie nach Schweregrad.
  */
@@ -358,9 +431,9 @@ export function assertStampFields(app: AppLike): StampFieldViolation[] {
   }
 
   // Aggregiert: eine Zeile fuer alle Services, sonst ertraenkt der Befund das Boot-Log.
-  const requiredOnly = violations.filter(
-    v => !v.missing.length && v.required.length && !REQUIRED_STAMP_EXCEPTIONS[v.path],
-  )
+  // `!v.missing.length` nur hier: Ein Service mit BEIDEN Befunden soll nicht
+  // zweimal im Boot-Log stehen — der `logger.error` oben ist der lautere.
+  const requiredOnly = unexcusedRequiredViolations(violations).filter(v => !v.missing.length)
   if (requiredOnly.length) {
     logger.warn({
       message:

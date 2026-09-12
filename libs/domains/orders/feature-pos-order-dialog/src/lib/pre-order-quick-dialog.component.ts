@@ -384,10 +384,22 @@ export class PreOrderQuickDialogComponent implements OnInit {
         this.openingHoursEnabled.set(true)
         this.regularHours.set(ohs.regular ?? [])
 
-        // Ausnahmen über Feathers-Client laden (nur zukünftige)
+        // Ausnahmen über Feathers-Client laden (nur zukünftige) — und nur die der
+        // aktiven Filiale: Ausnahmen werden pro Filiale materialisiert, und
+        // `getOpeningHoursForDate` nimmt die ERSTE Zeile mit passendem Datum. Auf den
+        // Server-Scope ist dabei kein Verlass — `multiTenancy` setzt für
+        // TENANT_OWNER/TENANT_MANAGER keinen Location-Filter
+        // (`.claude/rules/security.md` §4), ein so angemeldeter POS-Nutzer bekäme also
+        // die Zeilen aller Filialen und der Kalender sperrte fremde Feiertage.
+        //
+        // Am Edge liegen heute nur eigene Zeilen (der Cloud-Pull scopet
+        // `opening-hour-exceptions` auf die Filiale der Edge), nach einem Re-Pairing
+        // auf eine andere Filiale bleibt der Altbestand aber liegen — der Sync löscht
+        // ihn nicht (panary/panary-core#286).
         const today = formatDateISO(new Date())
+        const locationId = (location as any)?._id
         const excResult = await this.#connectionService.openingHourExceptionsService.find({
-          query: { date: { $gte: today }, $limit: 200, $sort: { date: 1 } },
+          query: { date: { $gte: today }, locationId, $limit: 200, $sort: { date: 1 } },
         })
         const excData = Array.isArray(excResult) ? excResult : (excResult as any).data
         this.hourExceptions.set(excData)

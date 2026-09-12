@@ -5,6 +5,7 @@
 
 import { BadRequest } from '@feathersjs/errors'
 import { getOpeningHoursForDate } from '@panary/locations/domain'
+import type { HourException } from '@panary/locations/domain'
 import { logger } from '@panary/shared-backend'
 
 import { DEFAULT_BUSINESS_TIMEZONE } from '../../utils/business-day-date'
@@ -73,7 +74,7 @@ export const validatePreOrderOpeningHours = async (context: HookContext): Promis
     paginate: false,
     provider: undefined,
   })) as any
-  const loaded = Array.isArray(excResult) ? excResult : excResult.data || []
+  const loaded = (Array.isArray(excResult) ? excResult : excResult.data || []) as LocationScopedException[]
   const exceptions = ownLocationExceptions(loaded, locationId)
 
   const hours = getOpeningHoursForDate(wall.calendarDate, ohs.regular || [], exceptions)
@@ -106,7 +107,13 @@ const pad2 = (n: number): string => String(n).padStart(2, '0')
  * Er ist deshalb auch der Kanarienvogel: Musste er etwas verwerfen, hat die Query
  * nicht gegriffen — das gehört ins Log, nicht stillschweigend behoben.
  */
-const ownLocationExceptions = <T extends { locationId?: string | null }>(exceptions: T[], locationId: string): T[] => {
+/**
+ * Der Domain-Typ kennt die Filiale nicht — `getOpeningHoursForDate` braucht sie auch
+ * nicht, die Auswahl davor schon.
+ */
+type LocationScopedException = HourException & { locationId?: string | null }
+
+const ownLocationExceptions = (exceptions: LocationScopedException[], locationId: string): HourException[] => {
   const own = exceptions.filter(e => e.locationId === locationId)
   if (own.length === exceptions.length) return own
 

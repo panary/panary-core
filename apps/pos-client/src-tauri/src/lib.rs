@@ -122,6 +122,96 @@ fn open_log_dir(app: tauri::AppHandle) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
+/// Publiziert einen Druckauftrag per MQTT-over-WebSocket — im Rust-Prozess statt
+/// im Webview (ADR 0036).
+///
+/// Der Webview-Weg (`mqtt.js`) unterliegt der statischen `connect-src`-Direktive
+/// aus `tauri.conf.json`, waehrend Protokoll, Host und Port der
+/// Betreiber-Konfiguration entstammen (`printSettings.mqttServer*`, Port 1-65535).
+/// Beides ist nicht in Deckung zu bringen: Genau daran ist der Pfad in #296
+/// gescheitert, wo `connect-src` nur Port 3030 kannte und der Broker auf 9001
+/// lauscht. Hier gilt keine CSP.
+///
+/// Die URL baut bewusst der **Aufrufer** (`mqtt-publish.ts`) — dieselbe Funktion,
+/// die sie auch fuer den Browser-Rueckfall bildet. Zwei Bauorte waeren zwei
+/// Gelegenheiten zum Auseinanderlaufen.
+///
+/// Fire-and-forget wie der Webview-Weg: QoS 0, `clean_session`, ein Publish, dann
+/// Disconnect. Es wird nichts abonniert, die Verbindung nicht gehalten.
+#[tauri::command]
+async fn mqtt_publish(
+    url: String,
+    topic: String,
+    payload: String,
+    client_id: String,
+    timeout_ms: Option<u64>,
+) -> Result<(), String> {
+    use rumqttc::{AsyncClient, Event, MqttOptions, Outgoing, QoS, Transport};
+
+    // Der Command ist die Fahigkeit, die der Webview durch das Umgehen der CSP
+    // gewinnt — deshalb ist sie hier auf MQTT-over-WebSocket begrenzt. Ohne
+    // diese Pruefung waere ein kompromittierter Webview in der Lage, ueber den
+    // Command beliebige Ziele anzusprechen, die ihm die CSP gerade verbietet.
+    let transport = match url.split("://").next() {
+        Some("ws") => Transport::Ws,
+        // `wss` kann dieser Weg nicht: rumqttcs rustls-Kette ist abgeschaltet,
+        // weil sie eine verwundbare Version festhaelt (Begruendung in
+        // Cargo.toml). Der ausgelieferte Broker faehrt Klartext im Filialnetz.
+        // Abgewiesen statt still uebergangen — der Druckdialog zeigt die Meldung.
+        Some("wss") => {
+            return Err(
+                "MQTT ueber wss wird vom POS derzeit nicht unterstuetzt — Broker-Protokoll auf ws stellen."
+                    .to_string(),
+            )
+        }
+        _ => return Err(format!("Nicht unterstuetztes Broker-Protokoll: {url}")),
+    };
+
+    // `broker_addr` MUSS bei Ws/Wss die vollstaendige URL sein — rumqttc zieht
+    // Host und Port daraus (`eventloop.rs`: "For websockets domain and port are
+    // taken directly from broker_addr (which is a url)"). Der hier uebergebene
+    // Port ist fuer diesen Transport unbenutzt, das Argument aber Pflicht.
+    // `MqttOptions::parse_url` waere die naheliegende Alternative und die falsche:
+    // es verwirft den Pfad, womit `/mqtt` still verloren ginge.
+    let mut options = MqttOptions::new(client_id, url.clone(), 0);
+    options.set_transport(transport);
+    options.set_clean_session(true);
+
+    let timeout = Duration::from_millis(timeout_ms.unwrap_or(5000));
+    let (client, mut eventloop) = AsyncClient::new(options, 10);
+
+    let publish = async {
+        client
+            .publish(&topic, QoS::AtMostOnce, false, payload.into_bytes())
+            .await
+            .map_err(|e| e.to_string())?;
+
+        // Bei QoS 0 ist der Auftrag raus, sobald der Eventloop das Paket
+        // geschrieben hat — ein Broker-Ack gibt es nicht. Danach sauber trennen,
+        // damit der Broker keine halboffene Sitzung behaelt.
+        let mut sent = false;
+        loop {
+            match eventloop.poll().await {
+                Ok(Event::Outgoing(Outgoing::Publish(_))) => {
+                    sent = true;
+                    client.disconnect().await.map_err(|e| e.to_string())?;
+                }
+                Ok(Event::Outgoing(Outgoing::Disconnect)) => return Ok(()),
+                Ok(_) => {}
+                // Nach dem Disconnect meldet der Eventloop das Ende der
+                // Verbindung als Fehler — das ist der Normalfall, nicht das
+                // Scheitern des Publish.
+                Err(e) => return if sent { Ok(()) } else { Err(e.to_string()) },
+            }
+        }
+    };
+
+    match tokio::time::timeout(timeout, publish).await {
+        Ok(result) => result,
+        Err(_) => Err("MQTT-Verbindung Timeout".to_string()),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -149,7 +239,8 @@ pub fn run() {
             discover_panary_hubs,
             js_log,
             read_logs,
-            open_log_dir
+            open_log_dir,
+            mqtt_publish
         ])
         .run(tauri::generate_context!())
         .expect("Fehler beim Starten der Panary POS Anwendung");

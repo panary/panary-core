@@ -181,6 +181,23 @@ jobs:
           node scripts/uncached-targets.spec.mjs
           pnpm targets:uncached:gate
 
+      # Die CSP des gepackten POS ist der eine Ort, den kein Test und kein
+      # anderes Gate anfasst: Tauri setzt den Header nur im tauri://-Handler,
+      # unter cfg(dev) navigiert der Webview direkt auf die devUrl und es gibt
+      # gar keine CSP. `tauri:dev` und Browser beweisen fuer sie also nichts.
+      # In genau dieser Luecke stand der MQTT-Druck seit pos-v26.4.10 (#296):
+      # connect-src kannte an WebSockets nur Port 3030, der Broker lauscht auf
+      # 9001. Geprueft wird in BEIDE Richtungen — ein gebrauchtes Ziel darf
+      # nicht herausfallen, und ein verbotenes nicht zurueckkehren (ADR 0036).
+      #
+      # Der Spec laeuft davor: Ein zu grosszuegiger Matcher haelt das verbotene
+      # Ziel faelschlich fuer ungedeckt und bleibt gruen, waehrend die Direktive
+      # es laengst wieder erlaubt.
+      - name: connect-src des POS pruefen
+        run: |
+          node scripts/csp-connect-src.spec.mjs
+          pnpm csp:gate
+
       # nx affected liest NX_BASE/NX_HEAD aus der Umgebung (nx-set-shas oben).
       #
       # `typecheck` ist seit 2026-08-06 dabei und bewusst HART, ohne Baseline: der

@@ -155,6 +155,32 @@ ein `PATCH /users/<fremde-id>` endete in **404**, nicht in 403. Ein 404 liest si
 nicht" und schickt die Diagnose in die falsche Richtung. Die Invariante *wer ändern darf, muss
 sehen dürfen* ist als Test in `user-access-policy.spec.ts` gelockt.
 
+## Reparatur über die Oberfläche
+
+`apps/admin-client/.../users/user-form.ts` hat ein Feld **Kontostatus** (`ACTIVE` /
+`ARCHIVED`). Erst damit stimmt die Begründung aus ADR 0028, die den sichtbaren
+`ARCHIVED`-Eintrag in der Nutzerliste genau mit der Reaktivierbarkeit rechtfertigt — vorher
+zeigte die Liste archivierte Konten, und es gab keine Schaltfläche, sie zurückzuholen.
+
+Drei Regeln, alle mit Grund:
+
+- **Nur an fremden Konten.** Wer sich selbst archiviert, sperrt sich im Speichern-Klick aus:
+  Die JWT-Strategy lädt das Entity pro Request frisch (ADR 0028), die eigene Sitzung stirbt
+  sofort. Das Feld erscheint deshalb nicht am eigenen Datensatz.
+- **Nicht beim Anlegen.** Ein neuer Nutzer ist immer `ACTIVE`; ein Auswahlfeld dafür wäre eine
+  Falle.
+- 🚨 **`status` wird nur mitgesendet, wenn das Feld angeboten wurde.** `status` steht nicht in
+  `SELF_PATCHABLE_FIELDS` — ein blind mitgeschicktes Feld quittiert der Server mit 403, und zwar
+  im Self-Service-Fall (Mitarbeiter ändert sein eigenes Passwort), der mit dem Status nichts zu
+  tun hat.
+
+`REJECTED` wird **nicht** aktiv angeboten (das ist eine Registrierungs-Ablehnung, keine
+Betriebsentscheidung), erscheint aber als Option, wenn das Konto den Status trägt: Ein `select`
+ohne passende `option` würde das Modell still leerräumen.
+
+Eine Statusänderung läuft über `PATCH /users/<id>` und erzeugt damit ein Audit-Event
+(`users.patch` ist in `AUDIT_RESOURCE_MAP` als `CONFIGURATION`/`WARNING` geführt, mit Diff).
+
 ## Diagnose-Reihenfolge, die getragen hat
 
 1. `/health` abrufen — auf `adminAccessHealthy` und die Version schauen. ⚠️ Content-Type prüfen:

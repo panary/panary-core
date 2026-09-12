@@ -87,6 +87,29 @@ Entscheidung und Begründung:
 | Persistenz | aus (`persistence false`, kein Volume) |
 | Konfiguration | Inline-`configs`-Eintrag im Compose, braucht Compose 2.23.1+ |
 
+**Die CSP des POS muss den Broker erlauben.** Der Publish laeuft im Webview,
+also gegen die `connect-src`-Direktive aus
+`apps/pos-client/src-tauri/tauri.conf.json`. Sie fuehrt seit
+[#296](https://github.com/panary/panary-core/issues/296) die Schema-Quellen
+`ws:` und `wss:` statt einzelner Host-Port-Eintraege — `mqttServerPort` erlaubt
+laut `location.schema.ts` 1–65535 und `mqttServerProtocol` `ws`/`wss`, die CSP
+ist dagegen statisch. Eine port-gepinnte Liste deckt nur den Default und
+blockiert jede abweichende Broker-Konfiguration still.
+
+> 🚨 **Eine CSP-Luecke faellt im Dev-Modus NICHT auf.** Tauri setzt den
+> CSP-Header ausschliesslich im `tauri://`-Asset-Handler (`protocol/tauri.rs`).
+> Unter `#[cfg(dev)]` liefert `AppManager::get_app_url()` die `devUrl`, der
+> Webview navigiert direkt auf `http://localhost:4200` — der Handler ist nicht
+> beteiligt, es gibt gar keine CSP. `pnpm tauri:dev` und der Browser sind
+> deshalb **kein** Beleg fuer den gepackten Build. Bis #296 war Port 9001 nie in
+> der `connect-src` (`git log --all -S"9001"` → leer), MQTT-Druck aus einem
+> gepackten POS hat also seit Einfuehrung des Pfads (`pos-v26.4.10`) nie
+> funktioniert, waehrend er lokal jedes Mal ging.
+
+Die Tauri-*Capabilities* (`capabilities/default.json`) sind hier unbeteiligt:
+MQTT laeuft nicht ueber eine Tauri-API, sondern ueber die WebSocket-API des
+Webviews. Eine Permission aendert daran nichts.
+
 **Ziel-Host:** Dieselbe Falle wie beim HTTP-Pfad, nur eine Ebene tiefer.
 `printSettings.mqttServerUrl` steht per Default auf `localhost`
 (`generateDefaultLocationSettings`) — auf einem Tablet zeigt das auf das Tablet.
@@ -113,6 +136,14 @@ mosquitto_sub -h <edge-ip> -p 1883 -t '#' -v
 Kommt beim `-t '#'`-Mitschnitt beim Auslösen eines Drucks nichts an, ist der
 Publish nie rausgegangen (Client-Seite). Kommt etwas an, aber der Drucker
 reagiert nicht, liegt es am Subscriber oder am Topic.
+
+Auf der Client-Seite gibt es genau zwei Sorten Befund. Eine
+`Refused to connect to 'ws://…' … violates … connect-src`-Meldung in den
+Devtools ist die CSP (siehe oben). Bleibt die Konsole still und meldet der
+Dialog trotzdem Erfolg, war es einer der drei stummen Abbrueche in
+`OrderPrintService.printViaMqtt`: kein `mqttServerPort`, kein aufloesbarer Host,
+oder der Drucker traegt kein `mqttTopic` — alle drei enden in einem `return`
+bzw. einem leeren `Promise.all([])` ohne Fehler.
 
 ## Library: `@point-of-sale/receipt-printer-encoder` v3
 

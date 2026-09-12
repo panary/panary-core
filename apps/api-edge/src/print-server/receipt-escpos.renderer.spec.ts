@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest'
 
 import type { Receipt } from '@panary/receipts/domain'
 
+import type { EscposOptions } from './escpos.adapter'
 import { renderReceiptEscPos } from './receipt-escpos.renderer'
 
 // Die Encoder-Ausgabe ist ESC/POS-Binaerstrom — der Zellentext liegt darin als
 // Klartext. Fuer die Assertions reicht dekodieren + Steuerzeichen verwerfen
 // (gleiches Vorgehen wie order-receipt.renderer.spec.ts).
-const renderToText = (receipt: Receipt): string => {
-  const bytes = renderReceiptEscPos(receipt)
+const renderToText = (receipt: Receipt, options: EscposOptions = {}): string => {
+  const bytes = renderReceiptEscPos(receipt, options)
   // eslint-disable-next-line no-control-regex
   return new TextDecoder('latin1').decode(bytes).replace(/[\x00-\x1f]/g, ' ')
 }
@@ -80,5 +81,20 @@ describe('receipt-escpos.renderer — Nachlass (#228)', () => {
     const text = renderToText(buildReceipt({ discounts: null }))
     expect(text).not.toContain('Nachlass')
     expect(text).toContain('9,52 EUR')
+  })
+})
+
+// #274: Der Beleg-Kopf formatierte ohne `timeZone` und folgte damit der
+// Prozess-Zeitzone (im Container UTC). Der Aufrufer reicht die Zone der Filiale
+// durch; fehlt sie, greift der Geschaeftstag-Default.
+describe('receipt-escpos.renderer — Zeitzone (#274)', () => {
+  // `issuedAt` = 2026-08-14T10:00:00Z, also Sommerzeit (Berlin = UTC+2).
+  it('druckt Datum und Uhrzeit in der uebergebenen Zone', () => {
+    expect(renderToText(buildReceipt(), { timeZone: 'America/New_York' })).toContain('Datum: 14.8.2026 06:00')
+    expect(renderToText(buildReceipt(), { timeZone: 'UTC' })).toContain('Datum: 14.8.2026 10:00')
+  })
+
+  it('nutzt ohne Zone den Geschaeftstag-Default (Europe/Berlin)', () => {
+    expect(renderToText(buildReceipt())).toContain('Datum: 14.8.2026 12:00')
   })
 })

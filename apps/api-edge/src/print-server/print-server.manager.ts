@@ -18,9 +18,17 @@ class PrintServerManager {
   private _startedAt?: string
   private _error?: string
   private _printers: PrinterConfig[] = []
+  /**
+   * Zeitzone der Filiale, beim Start aus den Location-Settings mitgegeben. Der
+   * Manager ist ein Singleton ohne App-Zugriff, und `testPrint` wird auch vom
+   * Cloud-Befehls-Worker aufgerufen, der keine Location in der Hand hat — die
+   * Zone wandert deshalb beim Start einmal herein statt bei jedem Druck.
+   */
+  private _timeZone?: string
 
-  async start(printers: PrinterConfig[]): Promise<void> {
+  async start(printers: PrinterConfig[], timeZone?: string): Promise<void> {
     this._printers = printers
+    this._timeZone = timeZone
     this._status = 'running'
     this._startedAt = new Date().toISOString()
     this._error = undefined
@@ -36,6 +44,7 @@ class PrintServerManager {
     this._status = 'stopped'
     this._startedAt = undefined
     this._printers = []
+    this._timeZone = undefined
 
     logger.info({
       message: 'Print-Server gestoppt',
@@ -43,9 +52,9 @@ class PrintServerManager {
     })
   }
 
-  async restart(printers: PrinterConfig[]): Promise<void> {
+  async restart(printers: PrinterConfig[], timeZone?: string): Promise<void> {
     await this.stop()
-    await this.start(printers)
+    await this.start(printers, timeZone)
   }
 
   updatePrinters(printers: PrinterConfig[]): void {
@@ -101,7 +110,7 @@ class PrintServerManager {
       }
     }
 
-    const testDocument = buildTestPrintDocument(printer.name)
+    const testDocument = buildTestPrintDocument(printer.name, this._timeZone)
     const testJob: PrintJob = { document: testDocument }
 
     return executePrintJob(testJob, [printer])

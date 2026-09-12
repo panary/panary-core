@@ -187,3 +187,45 @@ describe('order-receipt.renderer — Nachlass', () => {
     expect(text).toContain('11,90 EUR')
   })
 })
+
+// #274: Der Bon druckte die Uhrzeit in der Zeitzone des Node-Prozesses. Im
+// Container (kein `TZ`) ist das UTC — im Sommer zwei Stunden zu frueh. Alle
+// Erwartungswerte hier sind deshalb bewusst an Zonen geknuepft, die weder mit der
+// Entwicklungs- (Europe/Berlin) noch mit der CI-Zone (UTC) zusammenfallen: faellt
+// die Formatierung auf die Prozesszeit zurueck, wird die Spec rot.
+describe('order-receipt.renderer — Zeitzone der Filiale (#274)', () => {
+  const zeitOrder = (overrides: Record<string, unknown> = {}) => ({
+    ...buildMenuOrder(1),
+    recordingDate: '2026-07-06T10:00:00.000Z',
+    ...overrides,
+  })
+
+  const locationInZone = (timezone: string) => ({
+    settings: { ...location.settings, generalSettings: { timezone } },
+  })
+
+  it('druckt die Uhrzeit in der Zone der Filiale', () => {
+    expect(renderToText(zeitOrder(), locationInZone('America/New_York'))).toContain('Uhrzeit: 06:00 Uhr')
+    expect(renderToText(zeitOrder(), locationInZone('UTC'))).toContain('Uhrzeit: 10:00 Uhr')
+    expect(renderToText(zeitOrder(), locationInZone('Europe/Berlin'))).toContain('Uhrzeit: 12:00 Uhr')
+  })
+
+  it('nutzt ohne gepflegte Zone den Geschaeftstag-Default (Europe/Berlin)', () => {
+    // `location` traegt keine `generalSettings` — derselbe Fallback wie Rotation,
+    // Slots und Vorbestellungen, keine zweite Konstante.
+    expect(renderToText(zeitOrder(), location)).toContain('Uhrzeit: 12:00 Uhr')
+  })
+
+  it('rechnet das Bon-Datum ueber die Tagesgrenze in Filialzeit', () => {
+    const spaet = zeitOrder({ recordingDate: '2026-07-06T23:30:00.000Z' })
+    expect(renderToText(spaet, locationInZone('Europe/Berlin'))).toContain('Datum: 7.7.2026')
+    expect(renderToText(spaet, locationInZone('UTC'))).toContain('Datum: 6.7.2026')
+  })
+
+  it('druckt auch die Storno-Zeile in Filialzeit', () => {
+    const storniert = zeitOrder({
+      cancellation: { reason: 'Falsch gebucht', canceledAt: '2026-07-06T10:00:00.000Z' },
+    })
+    expect(renderToText(storniert, locationInZone('America/New_York'))).toContain('Storniert am: 6.7.2026, 06:00:00')
+  })
+})

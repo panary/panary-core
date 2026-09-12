@@ -10,6 +10,7 @@ import {
 } from '@panary/orders/domain'
 import { buildTseReceiptBlock } from '@panary/tse/domain'
 import type { EscposOptions } from './escpos.adapter'
+import { formatPrintDate, formatPrintDateTime, formatPrintTime, printTimeZoneForLocation } from './print-date-format'
 
 const COLUMNS_MAP: Record<string, number> = { '58mm': 32, '80mm': 48 }
 
@@ -32,6 +33,9 @@ export function renderOrderReceipt(
   const subNameW = cols - priceW - 4 // 4 Zeichen Einrückung
 
   const settings = location?.settings || {}
+  // Alle Zeitangaben auf dem Bon laufen ueber die Zeitzone der Filiale — der
+  // Prozess steht im Container auf UTC (#274).
+  const timeZone = printTimeZoneForLocation(location)
   const drinkPrice = settings?.genericProductSettings?.generalDrinkPrice ?? 0
   const sideDishPrice = settings?.genericProductSettings?.generalSideDishPrice ?? 0
 
@@ -88,8 +92,8 @@ export function renderOrderReceipt(
 
   enc.font('B')
   if (deviceName) enc.line(`Kasse: ${deviceName}`)
-  enc.line(`Datum: ${creationDate.toLocaleDateString('de-DE')}`)
-  enc.line(`Uhrzeit: ${creationDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`)
+  enc.line(`Datum: ${formatPrintDate(creationDate, timeZone)}`)
+  enc.line(`Uhrzeit: ${formatPrintTime(creationDate, timeZone)} Uhr`)
   enc.font('A')
 
   // Personalessen / Firmenkunde / Storno — hervorgehoben
@@ -123,7 +127,7 @@ export function renderOrderReceipt(
       if (order.cancellation.reason) enc.line(`Grund: ${order.cancellation.reason}`)
       if (order.cancellation.canceledAt) {
         const cancelDate = new Date(order.cancellation.canceledAt)
-        enc.line(`Storniert am: ${cancelDate.toLocaleString('de-DE')}`)
+        enc.line(`Storniert am: ${formatPrintDateTime(cancelDate, timeZone)}`)
       }
       enc.font('A')
     }

@@ -65,6 +65,7 @@ import { DiscountPickerDialogComponent } from './discount-picker-dialog.componen
 import { PromoCodeDialogComponent } from './promo-code-dialog.component'
 import { buildCodeAppliedDiscount, evaluatePromoCodeGate, redeemCodeForOrder } from './promo-code'
 import {
+  LINE_DISCOUNT_BLOCKED_NO_SELECTION,
   type LineDiscountMap,
   buildLineAppliedDiscounts,
   evaluateLineDiscountGate,
@@ -72,7 +73,14 @@ import {
   removeLineDiscount,
   setLineDiscount,
 } from './line-discount'
-import { PosButton, PosButtonUiState, PosProductButton, toPosButton } from './pos-button.model'
+import {
+  PosButton,
+  PosButtonUiState,
+  PosProductButton,
+  extraNotModifierMessage,
+  isModifierButton,
+  toPosButton,
+} from './pos-button.model'
 import { BundleFlow } from './bundle-flow'
 import {
   BoardSelection,
@@ -1249,7 +1257,12 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         for (const opt of productOptions) {
           const product = this.productService.findProductById(opt.productId)
           if (!product) continue
+          // Die Optionsgruppe zeigt ihre Mitglieder unabhängig vom `productType`;
+          // `increaseExtra` bucht aber nur Modifier. Ein Warnzeichen auf der Kachel
+          // macht die Fehlkonfiguration sichtbar, BEVOR jemand tippt (#273). Kein
+          // `variant` — das wirkt nur auf Funktionstasten, nicht auf Produktkacheln.
           const extra = toPosButton(product)
+          if (!isModifierButton(extra)) extra.icon = 'warning'
           extra.callback = () => {
             if (this._isBlocked && !unblock) return
             if (this._withoutExtra) {
@@ -1858,13 +1871,13 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   increaseExtra(article: PosProductButton, topic: string | undefined = undefined) {
-    // Prüfen ob das Produkt ein Modifier/Extra ist (neues + altes Schema)
-    const isModifier =
-      article.productType === 'MODIFIER' ||
-      article.isExtra ||
-      article.isMenuSideDishSauce ||
-      (article.itemType && (article.itemType === ItemType.sauce || article.itemType === ItemType.extra))
-    if (!isModifier) return
+    // Beide Rückwege melden seit #273, statt still zu enden: Ein Tap auf eine
+    // Kachel, der nichts tut und nichts sagt, liest sich in der Filiale als
+    // „die Kasse hängt" (dieselbe Regel wie ADR 0034, vgl. #269/#271).
+    if (!isModifierButton(article)) {
+      this.setInfoBoxText(extraNotModifierMessage(article), 'red')
+      return
+    }
 
     let selectedArticle: OrderLineItem
     if (this._selectedProductIndex !== null) {
@@ -1872,6 +1885,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
       selectedArticle = this.combinations[this._selectedCombinationIndex[0]][this._selectedCombinationIndex[1]]
     } else {
+      // Das Extras-Raster kann noch stehen, obwohl die Markierung abgeräumt wurde.
+      this.setInfoBoxText(LINE_DISCOUNT_BLOCKED_NO_SELECTION, 'red')
       return
     }
     const extraTopic = topic !== undefined ? topic : this._extraTopic
@@ -1909,9 +1924,12 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   decreaseExtra(article: PosProductButton) {
-    const isModifier =
-      article.productType === 'MODIFIER' || article.itemType === ItemType.extra || article.itemType === ItemType.sauce
-    if (!isModifier) return
+    // Seit #273 dieselbe Erkennung wie im PLUS-Modus (vorher ohne die
+    // Legacy-Flags) und dieselbe Meldung statt des stillen Rückwegs.
+    if (!isModifierButton(article)) {
+      this.setInfoBoxText(extraNotModifierMessage(article), 'red')
+      return
+    }
 
     let selectedArticle: OrderLineItem
     if (this._selectedProductIndex !== null) {
@@ -1919,6 +1937,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
       selectedArticle = this.combinations[this._selectedCombinationIndex[0]][this._selectedCombinationIndex[1]]
     } else {
+      this.setInfoBoxText(LINE_DISCOUNT_BLOCKED_NO_SELECTION, 'red')
       return
     }
     const extraTopic = this._extraTopic

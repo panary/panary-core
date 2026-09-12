@@ -87,5 +87,10 @@ Die Zeitzone gehört an die Filiale, nicht an den Host.
   Geschäftstag waren **nicht** betroffen. Es war reine Darstellung.
 - Die drei `en-US`-Roundtrips in `pre-orders.ts` und `scheduled-slot.ts` bleiben unberührt —
   sie tragen eine `timeZone` und sind damit nicht Teil des Befunds.
+- **Nachtrag 2026-09-12 ([#279](https://github.com/panary/panary-core/issues/279)):** Der
+  Roundtrip in `pre-orders.ts` ist inzwischen ersetzt — nicht als Teil dieses Befunds, sondern
+  weil er an der Zone des Server-Prozesses hängt und in deren Sommerzeit-Lücke eine Stunde
+  daneben liegt. Die Projektion „Instant → Filialzeit" liegt seither einmal im Edge
+  (`utils/zoned-parts.ts`); `toLocaleString`-Roundtrips gibt es dort keine mehr.
 
 Siehe [#274](https://github.com/panary/panary-core/issues/274).

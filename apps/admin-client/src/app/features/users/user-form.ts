@@ -562,6 +562,16 @@ export class UserFormComponent {
       if (!data.posPin) delete data.posPin
       if (!data.staffRole) delete data.staffRole
       if (!data.employeeNumber) delete data.employeeNumber
+      // `email` ebenso strippen (#288): `loadUser` macht aus einem leeren Feld
+      // den Leerstring, und AJV prueft `format: 'email'` auf jedem nicht-
+      // undefined-Wert. Ein POS-Mitarbeiter ohne E-Mail (Personalnummer + PIN)
+      // war dadurch ueberhaupt nicht speicherbar — jeder Patch endete in 400
+      // `must match format "email"` auf einem Feld, das der Bediener nie
+      // angefasst hatte. Bewusste Folge: eine gesetzte E-Mail laesst sich hier
+      // nur ueberschreiben, nicht entfernen. Leeren erforderte `''` oder `null`
+      // in `userSchema` (@panary/users/domain) — geteilt mit panary-cloud und
+      // damit eine Release-/Pin-Bump-Kette fuer einen Randfall.
+      if (!data.email) delete data.email
       // `status` nur senden, wenn das Feld angeboten wurde. Sonst wuerde der
       // Self-Service-Fall (Mitarbeiter aendert sein eigenes Passwort) an
       // `restrictUserSelfPatch` scheitern: `status` steht nicht in

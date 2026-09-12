@@ -62,8 +62,12 @@ es aber nicht", gegen die die vier Target-Gates stehen
 **Nur `api-edge`, und nur wenn es betroffen ist.** Es ist das einzige Projekt mit einer
 Ressource, die über den einzelnen Test hinaus lebt; eine neue Kopplung kann nur aus einer
 Änderung kommen, die api-edge betrifft. Der Rest des Workspace wurde am 2026-09-13 einmal
-mitgemessen und war shuffle-grün; er bleibt ungegated, weil dort die `beforeEach`-Form
-vorliegt, die der Suchbefehl aus §10.1 sehr wohl findet.
+mitgemessen (`nx run-many -t test --skip-nx-cache -- --sequence.shuffle --sequence.seed=4242`,
+1:26 min): **83 von 86 Projekten shuffle-grün.** Die drei übrigen — `pos-client`,
+`admin-client`, `setup-client` — laufen gar nicht erst an, sie fahren
+`@angular/build:unit-test` und lehnen die Option mit
+`'sequence' is not found in schema` ab. Ein workspace-weites Gate wäre dort also nicht
+strenger, sondern schlicht rot.
 
 ## Konsequenzen
 
@@ -82,6 +86,9 @@ vorliegt, die der Suchbefehl aus §10.1 sehr wohl findet.
   dieselbe Permutation — eine Kopplung, die unter diesem Seed nicht auffällt, ist dauerhaft
   unsichtbar. Gemessen: Von 12 Seeds fielen bei der orders-Kopplung 4 auf; ein fester Seed
   hätte sie mit 2/3 Wahrscheinlichkeit nie gefunden.
-- **Verworfen: Shuffle über alle betroffenen Projekte.** Auf einem PR, der eine geteilte Lib
-  anfasst, wären das bis zu ~80 Projekte ohne Cache. Der Nutzen ist dort geringer: Die
-  Unit-Specs tragen die `beforeEach`-Form, die §10.1 bereits abdeckt.
+- **Verworfen: Shuffle über alle betroffenen Projekte.** Zwei Gründe, der erste hart: Die drei
+  Angular-Clients nehmen die Option nicht an (`@angular/build:unit-test`, Fehler oben) — ein
+  `nx affected -t test -- --sequence.shuffle` wäre auf jedem PR rot, der einen von ihnen
+  berührt. Der zweite ist Kosten gegen Nutzen: Auf einem PR, der eine geteilte Lib anfasst,
+  wären es bis zu ~80 Projekte ohne Cache, und die Unit-Specs tragen die `beforeEach`-Form, die
+  §10.1 bereits abdeckt.

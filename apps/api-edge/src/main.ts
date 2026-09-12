@@ -250,6 +250,19 @@ async function main() {
     }
     // -----------------------------------------------------------------------
 
+    // --- Boot-Check: existiert noch ein administrationsfaehiger Zugang? ---
+    // Meldet den Fall aus #275 (einziges Owner-Konto archiviert → Edge ohne
+    // Zugang). Nach dem Admin-/Location-Bootstrap, damit ein frisch
+    // eingerichteter Edge nicht seinen eigenen, gerade angelegten Admin
+    // vermisst. Meldet nur — die Heilung von Bestandsdaten laeuft als Migration.
+    try {
+      const { assertAdminAccessAvailable } = await import('./utils/admin-access-health.js')
+      await assertAdminAccessAvailable(app)
+    } catch (err) {
+      logger.error('Admin-Zugang-Boot-Check fehlgeschlagen.', err)
+    }
+    // -----------------------------------------------------------------------
+
     // --- Bootstrapping: Auto-Geschäftstag für Edge-Server ---
     try {
       const { autoEnsureBusinessDay } = await import('./bootstrap-business-day.js')

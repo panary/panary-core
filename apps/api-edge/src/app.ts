@@ -14,6 +14,7 @@ import { logError } from '@panary/shared-backend'
 import { sqlite } from './sqlite'
 import { services } from './services/index'
 import { assertStampFields } from './services/assert-stamp-fields'
+import { readAdminAccessState } from './utils/admin-access-health'
 import { channels } from './channels'
 import { configureLoggerLevel } from '@panary/shared-backend'
 import { ensureTenantIsolation } from '@panary/shared-backend'
@@ -184,6 +185,19 @@ app.use(async (ctx, next) => {
     // noch nicht eingerichtet.
     let organizationName: string | undefined
     let setupComplete = false
+    // #275: Existiert noch ein anmeldefaehiges Konto mit Nutzer-Verwaltungsrecht?
+    // RBAC-frei, weil genau der Fall gemeldet werden muss, in dem sich niemand
+    // mehr anmelden kann — ein Flag hinter Login waere unerreichbar. Bewusst
+    // nur Zahlen, keine Loginnamen: /health ist oeffentlich.
+    //
+    // Live statt beim Boot gemerkt: Nach dem Reaktivieren eines Kontos soll das
+    // Flag ohne Neustart wieder gruen sein. Kosten sind ein SELECT auf `users`
+    // pro Aufruf — dieselbe Groessenordnung wie der `locations`-Read unten.
+    //
+    // `undefined` heisst „nicht ermittelbar" (Lesefehler), NICHT „in Ordnung" —
+    // Konsumenten muessen die drei Zustaende unterscheiden.
+    let adminAccessHealthy: boolean | undefined
+    let blockedAdminCount: number | undefined
     try {
       const locResult = await (app.service('locations') as any).find({
         provider: undefined,
@@ -194,6 +208,15 @@ app.use(async (ctx, next) => {
       if (loc) {
         organizationName = loc.organizationName || loc.name
         setupComplete = true
+      }
+    } catch {
+      // ignore — health darf nicht failen
+    }
+    try {
+      const adminAccess = await readAdminAccessState(app)
+      if (adminAccess) {
+        adminAccessHealthy = adminAccess.healthy
+        blockedAdminCount = adminAccess.blocked.length
       }
     } catch {
       // ignore — health darf nicht failen
@@ -222,6 +245,8 @@ app.use(async (ctx, next) => {
       },
       organizationName,
       setupComplete,
+      adminAccessHealthy,
+      blockedAdminCount,
       cloudPairingStatus,
       cloudTokenErrorReason,
       lastSyncAt,

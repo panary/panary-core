@@ -44,6 +44,8 @@
 // RolePermissions-Matrix — insbesondere, dass „aendern" eine Teilmenge von
 // „sehen" bleibt. Genau diese Invariante war der Defekt aus #275.
 
+import { AppAction, AppResource } from './permissions'
+import { RolePermissions, type PermissionRule } from './roles.matrix'
 import { UserSystemRole } from './user.schema'
 
 /**
@@ -80,3 +82,31 @@ export const canSeeAllUsers = (role: string | undefined): boolean => !!role && U
 
 /** Darf die Rolle fremde Nutzer-Datensaetze aendern? */
 export const canPatchAnyUser = (role: string | undefined): boolean => !!role && PRIVILEGED_ROLES.has(role)
+
+const hasUsersManage = (rules: readonly PermissionRule[]): boolean =>
+  rules.some(
+    rule =>
+      typeof rule === 'object' &&
+      'resource' in rule &&
+      rule.resource === AppResource.USERS &&
+      (Array.isArray(rule.action) ? rule.action : [rule.action]).includes(AppAction.MANAGE),
+  )
+
+/**
+ * Rollen, denen die RolePermissions-Matrix `users: MANAGE` gibt — also die
+ * Rollen, mit denen ein Konto andere Nutzer verwalten (und damit ein
+ * faelschlich archiviertes reaktivieren) kann.
+ *
+ * Bewusst ABGELEITET statt gelistet: Eine vierte handgepflegte Kopie waere
+ * genau der Fehler, den #275 behoben hat. Der Boot-Check in api-edge
+ * (`utils/admin-access-health.ts`) prueft damit, ob ueberhaupt noch ein
+ * administrationsfaehiges Konto anmeldefaehig ist.
+ */
+export const USER_MANAGE_ROLES: ReadonlySet<string> = new Set<string>(
+  Object.entries(RolePermissions)
+    .filter(([, rules]) => hasUsersManage(rules))
+    .map(([role]) => role),
+)
+
+/** Darf die Rolle andere Nutzer verwalten (`users: MANAGE` laut Matrix)? */
+export const canManageUsers = (role: string | undefined | null): boolean => !!role && USER_MANAGE_ROLES.has(role)

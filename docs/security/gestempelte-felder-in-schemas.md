@@ -162,10 +162,19 @@ trifft, hängt am Aufrufpfad […] das ist eine Vermutung, keine Messung". Nachg
   **ohne `user`** — `multiTenancy()` steigt dann im Early-Return aus (`if (!user) return
   next()`). Entscheidend ist nicht der fehlende `provider`, sondern der fehlende `user`:
   Ein interner Aufruf, der `params.user` mitgibt, WIRD gestempelt.
-* **Ein echter Treffer blieb übrig:** `applyResolutionAfterPatch` in `sync-conflicts.ts`
-  patcht bei „Cloud übernehmen" den vollständigen Cloud-Record in den Zielservice — der
-  trägt `tenantId` im Payload. Für `working-times` scheiterte das am Patch-Schema, still
-  im `catch` als `sync.conflict.apply_failed`.
+* **Ein Treffer blieb übrig — und er ist mit dem Schema-Fix NICHT erledigt:**
+  `applyResolutionAfterPatch` in `sync-conflicts.ts` patcht bei „Cloud übernehmen" den
+  vollständigen Cloud-Record in den Zielservice. `tenantId` war dabei nur das **erste von
+  sechs** blockierenden Feldern; am laufenden Edge einzeln nachgemessen (2026-09-12)
+  lehnt das `working-times`-Patch-Schema weiterhin `_id`, `locationId`, `userId`,
+  `businessDay` und `checkinDate` ab. Der Apply scheitert also nach wie vor still im
+  `catch` als `sync.conflict.apply_failed` — während der Konflikt auf `resolved` geht und
+  die UI Erfolg meldet. Eigener Befund: panary/panary-core#293.
+
+  ⚠️ Die frühere Fassung dieses Punktes las sich, als hätte der `tenantId`-Fix den Pfad
+  repariert. Das war eine Schlussfolgerung aus der Feldliste, keine Messung — der Fix ist
+  notwendig, aber nicht hinreichend. Merke für diese ganze Klasse: Ein Schema, das **ein**
+  gestempeltes Feld akzeptiert, akzeptiert damit noch keinen **vollen Record**.
 * **Kein Client patcht `working-times` extern** (gemessen über `admin-client`/`pos-client`:
   nur Label-Maps in der Sync-Historie nennen den Pfad). Der Defekt war also latent — wie
   die elf Cloud-Services aus panary/panary-cloud#199, die „seit jeher" scheiterten.

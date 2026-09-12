@@ -133,6 +133,17 @@ deshalb per Test gegen `USER_MANAGE_ROLES` und `SYNC_PUSH_BLOCKED_USER_ROLES` ge
 archiviert, heilt nichts mehr — dann greift der Boot-Check als Meldung, und die Reparatur läuft
 über das Status-Feld im Benutzerformular.
 
+🚨 **Bis einschließlich `v26.9.3` war dieser Reparaturweg für Konten ohne E-Mail versperrt**
+([#288](https://github.com/panary/panary-core/issues/288)). Das Formular lud `email: NULL` als
+Leerstring und schickte ihn ungefiltert mit; AJV prüft `format: 'email'` auf jedem
+nicht-undefined-Wert, also endete *jeder* Patch in `400 — must match format "email"`. Getroffen
+hat es genau den typischen POS-Mitarbeiter (Personalnummer + PIN, keine E-Mail) — in der Dev-DB
+zwei von fünf Konten. Die Meldung zeigte dabei auf ein Feld, das der Bediener nie angefasst
+hatte. Behoben, indem der Save-Block ein leeres `email` strippt wie `password`, `posPin`,
+`staffRole` und `employeeNumber`; bewusste Folge ist, dass eine gesetzte E-Mail sich hier nur
+überschreiben, nicht entfernen lässt. **Auf einem Gerät, das noch `v26.9.3` oder älter fährt,
+besteht die Sperre fort** — dort bleibt nur der Weg über die Cloud oder ein Konto mit E-Mail.
+
 ## Rollenlisten: sehen vs. ändern
 
 „Privilegierte Rolle" war dreimal definiert und lief auseinander —

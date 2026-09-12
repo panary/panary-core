@@ -557,6 +557,115 @@ describe('OrderDialog — Funktionsleiste: Menge und Loeschen auf die Markierung
   })
 })
 
+/**
+ * Kacheltap bei markierter Kombination (#271). Bis dahin pushte `increaseLineItem`
+ * in die Wegwerf-Kopie aus `getCombinations` — der Artikel war danach nirgends,
+ * gemessen am 2026-09-12: drei Taps, zwei Zeilen. Geprueft wird, dass die Zeile in
+ * `#lineItems` landet, die `bundleNumber` der Kombination traegt, und dass der
+ * Bundle-Flow in der Kombination auf der tatsaechlich angelegten Zeile arbeitet.
+ */
+describe('OrderDialog — Kacheltap bei markierter Kombination (#271)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function combinedPair(component: any): void {
+    component.increaseLineItem(product('p-1'))
+    component.increaseLineItem(product('p-2'))
+    component.combineAllArticles()
+    component.toggleCombinationSelection(0)
+  }
+
+  it('der Artikel wird Position der markierten Kombination', () => {
+    const { component } = setup()
+    combinedPair(component)
+
+    component.increaseLineItem(product('p-3'))
+
+    expect(component.lineItems.map((l: { name: string }) => l.name)).toEqual([
+      'Artikel p-1',
+      'Artikel p-2',
+      'Artikel p-3',
+    ])
+    expect(component.combinations[0].map((l: { name: string }) => l.name)).toEqual([
+      'Artikel p-1',
+      'Artikel p-2',
+      'Artikel p-3',
+    ])
+    expect(component.lineItems[2].bundleNumber).toBe(component.lineItems[0].bundleNumber)
+    // Die Kombination bleibt markiert — der naechste Tap legt dort weiter ab.
+    expect(component.selectedCombinationIndex).toEqual([0, null])
+  })
+
+  it('derselbe Artikel nochmal erhoeht die Menge IN der Kombination statt eine zweite Zeile anzulegen', () => {
+    const { component } = setup()
+    combinedPair(component)
+
+    component.increaseLineItem(product('p-1'))
+
+    expect(component.lineItems).toHaveLength(2)
+    expect(component.lineItems[0].amount).toBe(2)
+  })
+
+  it('eine gleiche Zeile AUSSERHALB der Kombination zaehlt nicht als Duplikat', () => {
+    // Die Pommes neben dem Menue sind nicht die Pommes im Menue.
+    const { component } = setup()
+    component.increaseLineItem(product('p-3'))
+    combinedPair(component) // kombiniert ALLE drei — deshalb erst p-3 wieder herausloesen:
+    component['_selectedCombinationIndex'] = [0, 0]
+    component.deleteSelection()
+    component.increaseLineItem(product('p-3')) // ohne Markierung: normale Zeile
+    component.toggleCombinationSelection(0)
+
+    component.increaseLineItem(product('p-3'))
+
+    const rows = component.lineItems.map((l: { name: string; amount: number; bundleNumber: unknown }) => [
+      l.name,
+      l.amount,
+      l.bundleNumber !== null,
+    ])
+    expect(rows).toEqual([
+      ['Artikel p-1', 1, true],
+      ['Artikel p-2', 1, true],
+      ['Artikel p-3', 1, false],
+      ['Artikel p-3', 1, true],
+    ])
+  })
+
+  it('ein Bundle-Produkt in der Kombination startet den Flow auf der angelegten Zeile', () => {
+    const { component } = setup()
+    combinedPair(component)
+    const menu = product('p-menu', {
+      productType: 'BUNDLE',
+      optionGroups: [{ id: 'og-1', name: 'Beilage', minSelections: 1, maxSelections: 1, options: [] }],
+    } as never)
+
+    component.increaseLineItem(menu)
+
+    expect(component['_isBlocked']).toBe(true)
+    expect(component.selectedCombinationIndex).toEqual([0, 2])
+    expect(component['getCurrentSelectedLineItem']()?.name).toBe('Artikel p-menu')
+    expect(component.lineItems[2].bundleNumber).toBe(component.lineItems[0].bundleNumber)
+
+    // ABBRUCH-Pfad: die Zeile geht wieder, die Kombination bleibt.
+    component.decreaseLineItem()
+
+    expect(component.lineItems.map((l: { name: string }) => l.name)).toEqual(['Artikel p-1', 'Artikel p-2'])
+    expect(component.combinations).toHaveLength(1)
+  })
+
+  it('eine Markierung auf eine Kombination, die es nicht mehr gibt, faellt auf den Normalmodus zurueck', () => {
+    const { component } = setup()
+    component.increaseLineItem(product('p-1'))
+    component['_selectedCombinationIndex'] = [4, null]
+
+    component.increaseLineItem(product('p-2'))
+
+    expect(component.lineItems.map((l: { name: string; bundleNumber: unknown }) => [l.name, l.bundleNumber])).toEqual([
+      ['Artikel p-1', null],
+      ['Artikel p-2', null],
+    ])
+    expect(component.selectedCombinationIndex).toEqual([null, null])
+  })
+})
+
 describe('OrderDialog — Zeilen-Identitaet (#230)', () => {
   it('jede Zeile bekommt eine eigene ID, nicht die des Produkts', () => {
     const { component } = setup()

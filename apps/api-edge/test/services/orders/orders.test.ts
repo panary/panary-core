@@ -1,5 +1,6 @@
 import assert from 'assert'
 import { uuidv7 } from 'uuidv7'
+import { onTestFinished } from 'vitest'
 import { computeOrderTax, Order } from '@panary/orders/domain'
 import { app } from '../../../src/app'
 
@@ -9,16 +10,26 @@ import { app } from '../../../src/app'
 // `calculateTaxDetailsOnPatch` in before.patch — die Hook-Logik selbst ist
 // bereits per Unit-Spec (calculate-tax-details.spec.ts) gelockt, aber ein
 // nicht registrierter Hook faellt nur hier auf.
+//
+// **Jeder Test legt seine eigene Order an** (Code-Style §10.1, #301): Vorher lag
+// EINE Order im `beforeAll`, die alle Tests nacheinander patchten — der
+// Snapshot war damit eine Funktion der Testreihenfolge. Unter
+// `--sequence.shuffle` (mischt auch die Tests INNERHALB einer Datei) rot,
+// gemessen 2026-09-13 unter den Seeds 11/12/17/20: `2000 !== 4000`, weil der
+// 50%-Rabatt-Test lief und der ihn zuruecknehmende Test noch nicht.
+//
+// Filiale und User bleiben im `beforeAll` — sie sind Aufbau, den kein Test
+// veraendert; geteilt ist hier die Ressource, nicht der Zustand. Dieselbe
+// Aufteilung wie in `test/services/pre-orders/opening-hours-location-scope.test.ts`.
 describe('orders service — taxSnapshot bei preisrelevanten Patches', () => {
   const tenantId = uuidv7()
+  const internal = { provider: undefined } as const
 
   let locationId: string
   let userId: string
-  let orderId: string
-  let createdOrder: Order
 
   // 2 × 20,00€ @19% (dine-in) → Brutto 40,00€.
-  const lineItem = {
+  const lineItem = () => ({
     _id: uuidv7(),
     externalId: uuidv7(),
     productGroupExternalId: uuidv7(),
@@ -32,7 +43,63 @@ describe('orders service — taxSnapshot bei preisrelevanten Patches', () => {
     taxOutside: 7,
     topic: 'kitchen',
     bundleNumber: null,
+  })
+
+  const manualHalfOffDiscount = () => [
+    {
+      _id: uuidv7(),
+      discountId: null,
+      name: 'Integrationstest-Rabatt',
+      method: 'manual',
+      target: 'order',
+      valueType: 'percent',
+      valuePercent: 50,
+      valueCents: 0,
+      computedAmountCents: 0,
+      appliedAt: new Date().toISOString(),
+    },
+  ]
+
+  /** Legt eine unrabattierte Order (4000 Cents brutto) an und raeumt sie am Ende DIESES Tests ab. */
+  const createOrder = async () => {
+    const created = (await app.service('orders').create(
+      {
+        tenantId,
+        locationId,
+        status: 'active',
+        orderChannel: 'pos',
+        dineLocation: 'dine-in',
+        lineItems: [lineItem()],
+        isFinished: false,
+        estimatedDuration: 0,
+        remainingTime: 0,
+        recordingDate: new Date().toISOString(),
+      } as never,
+      // params.user aktiviert das multiTenancy-WRITE-Stamping auch intern —
+      // tenantId/locationId muessen daher am User-Objekt haengen (Memory-Regel:
+      // Stamp kommt aus params.user, nie aus dem Quell-Datensatz).
+      { ...internal, user: { _id: userId, tenantId, locationId } } as never,
+    )) as Order
+
+    onTestFinished(async () => {
+      await app
+        .service('orders')
+        .remove(created._id, internal)
+        .catch(() => undefined)
+    })
+
+    return created
   }
+
+  // `device:pos-client` traegt `orders: MANAGE` — die Rolle, unter der der POS
+  // patcht. tenantId/locationId am User, sonst filtert `multiTenancy` die Order weg
+  // und der Test misst einen 404 statt der Regel.
+  const posParams = () =>
+    ({
+      provider: 'rest',
+      authenticated: true,
+      user: { _id: userId, role: 'device:pos-client', tenantId, locationId, activeLocationId: locationId },
+    }) as never
 
   beforeAll(async () => {
     await app.setup()
@@ -43,7 +110,7 @@ describe('orders service — taxSnapshot bei preisrelevanten Patches', () => {
         tenantId,
         address: { street: 'Teststr. 1', city: 'Teststadt', postalCode: '12345', country: 'DE' },
       } as never,
-      { provider: undefined },
+      internal,
     )) as { _id: string }
     locationId = location._id
 
@@ -58,72 +125,41 @@ describe('orders service — taxSnapshot bei preisrelevanten Patches', () => {
         tenantId,
         activeLocationId: locationId,
       } as never,
-      { provider: undefined },
+      internal,
     )) as { _id: string }
     userId = user._id
-
-    createdOrder = (await app.service('orders').create(
-      {
-        tenantId,
-        locationId,
-        status: 'active',
-        orderChannel: 'pos',
-        dineLocation: 'dine-in',
-        lineItems: [lineItem],
-        isFinished: false,
-        estimatedDuration: 0,
-        remainingTime: 0,
-        recordingDate: new Date().toISOString(),
-      } as never,
-      // params.user aktiviert das multiTenancy-WRITE-Stamping auch intern —
-      // tenantId/locationId muessen daher am User-Objekt haengen (Memory-Regel:
-      // Stamp kommt aus params.user, nie aus dem Quell-Datensatz).
-      { provider: undefined, user: { _id: userId, tenantId, locationId } } as never,
-    )) as Order
-    orderId = createdOrder._id
   })
 
   afterAll(async () => {
-    if (orderId) await app.service('orders').remove(orderId, { provider: undefined })
     if (locationId) {
       const days = (await app.service('businessdays').find({
-        provider: undefined,
+        ...internal,
         paginate: false,
         query: { locationId },
       })) as Array<{ _id: string }>
       for (const day of days) {
-        await app.service('businessdays').remove(day._id, { provider: undefined, isEmergencyOverride: true } as never)
+        await app.service('businessdays').remove(day._id, { ...internal, isEmergencyOverride: true } as never)
       }
-      await app.service('locations').remove(locationId, { provider: undefined })
+      await app.service('locations').remove(locationId, internal)
     }
-    if (userId) await app.service('users').remove(userId, { provider: undefined })
+    if (userId) await app.service('users').remove(userId, internal)
     await app.teardown()
   })
 
-  it('create setzt den Server-Snapshot (Basis fuer die Patch-Faelle)', () => {
+  it('create setzt den Server-Snapshot (Basis fuer die Patch-Faelle)', async () => {
+    const createdOrder = await createOrder()
+
     assert.ok(createdOrder.taxSnapshot, 'create muss einen taxSnapshot setzen')
     assert.strictEqual(Math.round(createdOrder.taxSnapshot!.brutto * 100), 4000)
   })
 
   it('patch mit appliedDiscounts → taxSnapshot wird serverseitig neu berechnet (cent-korrekt gegen computeOrderTax)', async () => {
-    const appliedDiscounts = [
-      {
-        _id: uuidv7(),
-        discountId: null,
-        name: 'Integrationstest-Rabatt',
-        method: 'manual',
-        target: 'order',
-        valueType: 'percent',
-        valuePercent: 50,
-        valueCents: 0,
-        computedAmountCents: 0,
-        appliedAt: new Date().toISOString(),
-      },
-    ]
+    const createdOrder = await createOrder()
+    const appliedDiscounts = manualHalfOffDiscount()
 
     const patched = (await app
       .service('orders')
-      .patch(orderId, { appliedDiscounts } as never, { provider: undefined })) as Order
+      .patch(createdOrder._id, { appliedDiscounts } as never, internal)) as Order
 
     // Referenz: kanonische Engine auf dem Zielzustand (Order + neuer Rabatt).
     // Eigene Kopie, weil die Engine `computedAmountCents` in die Eintraege
@@ -140,25 +176,34 @@ describe('orders service — taxSnapshot bei preisrelevanten Patches', () => {
     assert.strictEqual(Math.round(patched.taxSnapshot!.taxes[0].tax * 100), 319)
 
     // Persistenz-Check: auch der gespeicherte Datensatz traegt den neuen Snapshot.
-    const stored = (await app.service('orders').get(orderId, { provider: undefined })) as Order
+    const stored = (await app.service('orders').get(createdOrder._id, internal)) as Order
     assert.deepStrictEqual(stored.taxSnapshot, expected)
   })
 
   it('patch, der alle Rabatte entfernt (appliedDiscounts: []) → Snapshot zurueck auf den vollen Preis', async () => {
+    const createdOrder = await createOrder()
+
+    // Der Rabatt gehoert seit #301 in DIESEN Test: Frueher kam er aus dem Test
+    // davor. Ohne ihn misst der Fall nichts — auf einer nie rabattierten Order
+    // waere „zurueck auf den vollen Preis" trivial erfuellt.
+    const discounted = (await app
+      .service('orders')
+      .patch(createdOrder._id, { appliedDiscounts: manualHalfOffDiscount() } as never, internal)) as Order
+    assert.strictEqual(Math.round(discounted.taxSnapshot!.brutto * 100), 2000, 'Vorbedingung: Order ist rabattiert')
+
     const patched = (await app
       .service('orders')
-      .patch(orderId, { appliedDiscounts: [] } as never, { provider: undefined })) as Order
+      .patch(createdOrder._id, { appliedDiscounts: [] } as never, internal)) as Order
 
     assert.strictEqual(Math.round(patched.taxSnapshot!.brutto * 100), 4000)
     assert.strictEqual(Math.round(patched.taxSnapshot!.netto * 100), 3361)
   })
 
   it('preis-irrelevanter Patch laesst den Snapshot unveraendert', async () => {
-    const before = (await app.service('orders').get(orderId, { provider: undefined })) as Order
+    const createdOrder = await createOrder()
+    const before = (await app.service('orders').get(createdOrder._id, internal)) as Order
 
-    const patched = (await app
-      .service('orders')
-      .patch(orderId, { table: 'T5' } as never, { provider: undefined })) as Order
+    const patched = (await app.service('orders').patch(createdOrder._id, { table: 'T5' } as never, internal)) as Order
 
     assert.deepStrictEqual(patched.taxSnapshot, before.taxSnapshot)
   })
@@ -171,32 +216,36 @@ describe('orders service — taxSnapshot bei preisrelevanten Patches', () => {
   describe('Legacy-Rabattfeld ist abgeschafft', () => {
     const legacyDiscount = { discountType: 'percent', discount: 50 } as const
 
-    // `device:pos-client` traegt `orders: MANAGE` — die Rolle, unter der der POS
-    // patcht. tenantId/locationId am User, sonst filtert `multiTenancy` die Order weg
-    // und der Test misst einen 404 statt der Regel.
-    const posParams = () =>
-      ({
-        provider: 'rest',
-        authenticated: true,
-        user: { _id: userId, role: 'device:pos-client', tenantId, locationId, activeLocationId: locationId },
-      }) as never
-
     it('externer Patch mit discount → 400', async () => {
+      const createdOrder = await createOrder()
+
       await assert.rejects(
-        () => app.service('orders').patch(orderId, { discount: legacyDiscount } as never, posParams()),
+        () => app.service('orders').patch(createdOrder._id, { discount: legacyDiscount } as never, posParams()),
         (err: { code?: number }) => err.code === 400,
       )
     })
 
     it('auch discount: null wird abgelehnt — das Feld existiert nicht mehr', async () => {
+      const createdOrder = await createOrder()
+
       await assert.rejects(
-        () => app.service('orders').patch(orderId, { discount: null } as never, posParams()),
+        () => app.service('orders').patch(createdOrder._id, { discount: null } as never, posParams()),
         (err: { code?: number }) => err.code === 400,
       )
     })
 
-    it('der Snapshot der Order bleibt dabei unveraendert', async () => {
-      const stored = (await app.service('orders').get(orderId, { provider: undefined })) as Order
+    it('der abgelehnte Patch laesst den Snapshot der Order unveraendert', async () => {
+      // Die Ablehnung wird hier selbst ausgeloest: Frueher verliess sich dieser Test
+      // darauf, dass die beiden Tests davor gelaufen waren — und mass den Snapshot
+      // einer Order, deren Zustand aus vier fremden Patches stammte.
+      const createdOrder = await createOrder()
+
+      await assert.rejects(
+        () => app.service('orders').patch(createdOrder._id, { discount: legacyDiscount } as never, posParams()),
+        (err: { code?: number }) => err.code === 400,
+      )
+
+      const stored = (await app.service('orders').get(createdOrder._id, internal)) as Order
       assert.strictEqual(Math.round(stored.taxSnapshot!.brutto * 100), 4000)
     })
   })

@@ -1,5 +1,6 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 import { BadRequest, Forbidden } from '@feathersjs/errors'
 import { authorize, ensureIndexes, getJsonFieldHooks, logger, multiTenancy } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
@@ -204,7 +205,7 @@ export const cashSessions = (app: Application) => {
         // STAFF/POS müssen über openAuthorized (Manager-PIN) gehen. Auto-Open +
         // Sync-Apply (intern/fromSync) bleiben erlaubt.
         requireAuthorizedCreate,
-        schemaHooks.validateData(cashSessionDataValidator),
+        validateData(cashSessionDataValidator),
         schemaHooks.resolveData(cashSessionDataResolver),
         // recompute VOR jsonHooks (liest denominationCounts noch als Objekt).
         recomputeCashSessionTotals,
@@ -212,7 +213,7 @@ export const cashSessions = (app: Application) => {
       ],
       patch: [
         restrictCashSessionToOwner,
-        schemaHooks.validateData(cashSessionPatchValidator),
+        validateData(cashSessionPatchValidator),
         schemaHooks.resolveData(cashSessionPatchResolver),
         recomputeCashSessionTotals,
         ...jsonHooks.before,

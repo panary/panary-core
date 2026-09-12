@@ -1,5 +1,6 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 import { getJsonFieldHooks } from '@panary/shared-backend'
 
 const LOCATION_JSON_FIELDS = ['address', 'currentBusinessDay', 'settings']
@@ -115,13 +116,9 @@ export const locations = (app: Application) => {
       all: [schemaHooks.validateQuery(locationQueryValidator), schemaHooks.resolveQuery(locationQueryResolver)],
       find: [],
       get: [],
-      create: [
-        schemaHooks.validateData(locationDataValidator),
-        schemaHooks.resolveData(locationDataResolver),
-        ...jsonHooks.before,
-      ],
+      create: [validateData(locationDataValidator), schemaHooks.resolveData(locationDataResolver), ...jsonHooks.before],
       patch: [
-        schemaHooks.validateData(locationPatchValidator),
+        validateData(locationPatchValidator),
         schemaHooks.resolveData(locationPatchResolver),
         ...jsonHooks.before,
       ],

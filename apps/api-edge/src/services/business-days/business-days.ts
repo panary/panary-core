@@ -15,6 +15,7 @@
 
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { markValidateData, validateData } from '../../hooks/validate-data.hook'
 import { BadRequest, Forbidden, NotFound } from '@feathersjs/errors'
 import { uuidv7 } from 'uuidv7'
 
@@ -378,14 +379,21 @@ const cloudManagedHook =
 // Lifecycle-Record (auch geschlossene Tage). Bei `fromSync` validieren wir daher
 // gegen das volle `businessDaySchema` und übernehmen den Record UNVERÄNDERT
 // (kein Resolver) — konsistent mit dem `fromSync`-Prinzip (Cloud = Source-of-Truth).
-const validateInputData = schemaHooks.validateData(businessDayDataValidator)
-const validateFullData = schemaHooks.validateData(businessDayValidator)
+const validateInputData = validateData(businessDayDataValidator)
+const validateFullData = validateData(businessDayValidator)
 const resolveCreateData = schemaHooks.resolveData(businessDayDataResolver)
 
-const syncAwareValidateCreate = (context: HookContext): Promise<HookContext> =>
-  (context.params as { fromSync?: boolean })?.fromSync
-    ? (validateFullData(context) as Promise<HookContext>)
-    : (validateInputData(context) as Promise<HookContext>)
+// Der Marker traegt den Validator des EXTERNEN Pfades (`businessDayDataValidator`):
+// Der `fromSync`-Zweig laeuft ohne `user` und damit ohne Stempel, sein Schema ist
+// fuer den Boot-Check irrelevant. Ohne `markValidateData` saehe der Check hier nur
+// diese Weiche und haette `business-days:data` fuer ungeprueft gehalten.
+const syncAwareValidateCreate = markValidateData(
+  (context: HookContext): Promise<HookContext> =>
+    (context.params as { fromSync?: boolean })?.fromSync
+      ? (validateFullData(context) as Promise<HookContext>)
+      : (validateInputData(context) as Promise<HookContext>),
+  businessDayDataValidator,
+)
 
 // Exportiert, damit die Sync-Weiche testbar ist, ohne die App zu booten —
 // dieselbe Begruendung wie bei `discardOrphanDay`/`evaluateOutboxGuard`. Sie
@@ -903,7 +911,7 @@ export const businessDays = (app: Application) => {
       ],
       patch: [
         cloudManagedHook('Patch'),
-        schemaHooks.validateData(businessDayPatchValidator),
+        validateData(businessDayPatchValidator),
         schemaHooks.resolveData(businessDayPatchResolver),
       ],
       remove: [cloudManagedHook('Loeschen')],

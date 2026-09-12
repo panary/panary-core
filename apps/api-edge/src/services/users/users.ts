@@ -2,6 +2,7 @@
 import { authenticate } from '@feathersjs/authentication'
 
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 
 import {
   userDataResolver,
@@ -342,14 +343,14 @@ export const users = (app: Application) => {
       get: [],
       create: [
         restrictPermissionGrants,
-        schemaHooks.validateData(userDataValidator),
+        validateData(userDataValidator),
         schemaHooks.resolveData(userDataResolver),
         ...jsonHooks.before,
       ],
       patch: [
         restrictUserSelfPatch,
         restrictPermissionGrants,
-        schemaHooks.validateData(userPatchValidator),
+        validateData(userPatchValidator),
         schemaHooks.resolveData(userPatchResolver),
         ...jsonHooks.before,
       ],

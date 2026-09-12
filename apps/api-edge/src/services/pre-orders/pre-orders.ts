@@ -1,5 +1,6 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 import { BadRequest } from '@feathersjs/errors'
 import { getJsonFieldHooks } from '@panary/shared-backend'
 
@@ -159,13 +160,13 @@ export const preOrders = (app: Application) => {
       find: [],
       get: [],
       create: [
-        schemaHooks.validateData(preOrderDataValidator),
+        validateData(preOrderDataValidator),
         schemaHooks.resolveData(preOrderDataResolver),
         validatePreOrderOpeningHours,
         ...jsonHooks.before,
       ],
       patch: [
-        schemaHooks.validateData(preOrderPatchValidator),
+        validateData(preOrderPatchValidator),
         schemaHooks.resolveData(preOrderPatchResolver),
         ...jsonHooks.before,
       ],

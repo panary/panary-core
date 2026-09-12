@@ -1,5 +1,6 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 
 import {
   workingTimeDataResolver,
@@ -90,12 +91,12 @@ export const workingTimes = (app: Application) => {
       find: [],
       get: [],
       create: [
-        schemaHooks.validateData(workingTimeDataValidator),
+        validateData(workingTimeDataValidator),
         schemaHooks.resolveData(workingTimeDataResolver),
         ...jsonHooks.before,
       ],
       patch: [
-        schemaHooks.validateData(workingTimePatchValidator),
+        validateData(workingTimePatchValidator),
         schemaHooks.resolveData(workingTimePatchResolver),
         ...jsonHooks.before,
       ],

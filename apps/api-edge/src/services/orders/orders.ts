@@ -1,5 +1,6 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 import { getJsonFieldHooks } from '@panary/shared-backend'
 
 const ORDER_JSON_FIELDS = [
@@ -150,7 +151,7 @@ export const orders = (app: Application) => {
         // damit keine Steuer auf eine ungültige Zusammenstellung gerechnet wird.
         validateStaffMealExclusivity,
         calculateTaxDetails,
-        schemaHooks.validateData(orderDataValidator),
+        validateData(orderDataValidator),
         schemaHooks.resolveData(orderDataResolver),
         ...jsonHooks.before,
       ],
@@ -186,7 +187,7 @@ export const orders = (app: Application) => {
         // TSE-Storno: signiert beim Übergang auf 'aborted' den Storno/Refund
         // (eigener fiskalischer Vorgang). No-Op ohne signierte Ausgangs-Transaktion.
         signOrderTseCancel,
-        schemaHooks.validateData(orderPatchValidator),
+        validateData(orderPatchValidator),
         schemaHooks.resolveData(orderPatchResolver),
         ...jsonHooks.before,
       ],

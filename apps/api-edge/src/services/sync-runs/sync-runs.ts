@@ -14,6 +14,7 @@
 import { authenticate } from '@feathersjs/authentication'
 import { Forbidden } from '@feathersjs/errors'
 import { hooks as schemaHooks, resolve } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 import { getValidator } from '@feathersjs/typebox'
 import { uuidv7 } from 'uuidv7'
 
@@ -96,11 +97,7 @@ export const syncRuns = (app: Application) => {
     },
     before: {
       all: [schemaHooks.validateQuery(syncRunQueryValidator), schemaHooks.resolveQuery(syncRunQueryResolver)],
-      create: [
-        schemaHooks.validateData(syncRunDataValidator),
-        schemaHooks.resolveData(syncRunDataResolver),
-        ...jsonHooks.before,
-      ],
+      create: [validateData(syncRunDataValidator), schemaHooks.resolveData(syncRunDataResolver), ...jsonHooks.before],
     },
     after: { all: [...jsonHooks.after] },
     error: { all: [] },

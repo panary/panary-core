@@ -1,6 +1,7 @@
 import { authenticate } from '@feathersjs/authentication'
 import type { NextFunction } from '@feathersjs/feathers'
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 import { authorize, getJsonFieldHooks } from '@panary/shared-backend'
 
 const TENANT_JSON_FIELDS = ['branding', 'localization', 'legalEntity', 'tse']
@@ -101,16 +102,8 @@ export const tenants = (app: Application) => {
       all: [schemaHooks.validateQuery(tenantQueryValidator), schemaHooks.resolveQuery(tenantQueryResolver)],
       find: [],
       get: [],
-      create: [
-        schemaHooks.validateData(tenantDataValidator),
-        schemaHooks.resolveData(tenantDataResolver),
-        ...jsonHooks.before,
-      ],
-      patch: [
-        schemaHooks.validateData(tenantPatchValidator),
-        schemaHooks.resolveData(tenantPatchResolver),
-        ...jsonHooks.before,
-      ],
+      create: [validateData(tenantDataValidator), schemaHooks.resolveData(tenantDataResolver), ...jsonHooks.before],
+      patch: [validateData(tenantPatchValidator), schemaHooks.resolveData(tenantPatchResolver), ...jsonHooks.before],
       remove: [],
     },
     after: {

@@ -11,6 +11,7 @@
 import { authenticate } from '@feathersjs/authentication'
 import { Forbidden } from '@feathersjs/errors'
 import { hooks as schemaHooks, resolve } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 import { getValidator } from '@feathersjs/typebox'
 import { uuidv7 } from 'uuidv7'
 
@@ -98,7 +99,7 @@ export const bootstrapReports = (app: Application) => {
         schemaHooks.resolveQuery(bootstrapReportQueryResolver),
       ],
       create: [
-        schemaHooks.validateData(bootstrapReportDataValidator),
+        validateData(bootstrapReportDataValidator),
         schemaHooks.resolveData(bootstrapReportDataResolver),
         ...jsonHooks.before,
       ],

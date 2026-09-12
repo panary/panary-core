@@ -1,5 +1,6 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 
 import {
   customerDataResolver,
@@ -100,8 +101,8 @@ export const customers = (app: Application) => {
       all: [schemaHooks.validateQuery(customerQueryValidator), schemaHooks.resolveQuery(customerQueryResolver)],
       find: [],
       get: [],
-      create: [schemaHooks.validateData(customerDataValidator), schemaHooks.resolveData(customerDataResolver)],
-      patch: [schemaHooks.validateData(customerPatchValidator), schemaHooks.resolveData(customerPatchResolver)],
+      create: [validateData(customerDataValidator), schemaHooks.resolveData(customerDataResolver)],
+      patch: [validateData(customerPatchValidator), schemaHooks.resolveData(customerPatchResolver)],
       remove: [],
     },
     after: {

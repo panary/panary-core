@@ -1,14 +1,17 @@
 // Tests fuer den Boot-Check aus assert-stamp-fields.ts.
 //
-// Der letzte Block ist der eigentliche Wert: er fuettert das ECHTE
-// `apikeyDataSchema` ein und friert damit den Befund ein, der am 2026-08-01
-// `POST /apikeys` blockiert hat.
+// Zwei Bloecke tragen den Wert: Der `apikeyDataSchema`-Block fuettert das ECHTE
+// Schema ein und friert den Befund ein, der am 2026-08-01 `POST /apikeys`
+// blockiert hat. Der Block „Service ohne docs.schemas" ist der Regressionstest
+// fuer #183 — dort lief der Check an `sync-conflicts` vorbei, weil der Service
+// keine `docs.schemas` deklariert, und das Boot-Log sah gesund aus.
 
 import { describe, expect, it, vi } from 'vitest'
 import { feathers } from '@feathersjs/feathers'
 import { multiTenancy } from '@panary/shared-backend'
 import { apikeyDataSchema } from '@panary/apikeys/domain'
-import { assertStampFields, checkStampFields } from './assert-stamp-fields'
+import { validateData } from '../hooks/validate-data.hook'
+import { assertStampFields, checkStampFields, collectStampTargets } from './assert-stamp-fields'
 
 vi.mock('@panary/shared-backend', async importOriginal => {
   const actual = await importOriginal<typeof import('@panary/shared-backend')>()
@@ -172,5 +175,78 @@ describe('apikeyDataSchema — Schema-Falle aus dem Bug vom 2026-08-01', () => {
     // Falle prueft die MISSING-Regel.
     const props = (apikeyDataSchema as { properties?: Record<string, unknown> }).properties ?? {}
     expect(Object.keys(props)).toEqual(expect.arrayContaining(['tenantId', 'locationId']))
+  })
+})
+
+describe('checkStampFields() — PATCH-Schema (kind: patch)', () => {
+  it('meldet fehlendes tenantId auch im Patch-Schema', () => {
+    const violation = checkStampFields({
+      path: 'sync-conflicts',
+      dataSchema: closedSchema({ resolution: {} }),
+      mtOptions: { isolateLocation: false, allowGlobalData: true },
+      kind: 'patch',
+    })
+    expect(violation?.missing).toEqual(['tenantId'])
+    expect(violation?.kind).toBe('patch')
+    // Die Meldung muss die Seite nennen, sonst sucht man im Data-Schema.
+    expect(violation?.message).toContain('PATCH-Schema')
+    expect(violation?.message).toContain('externe Patch')
+  })
+
+  // Die REQUIRED-Regel ist eine DATA-Regel. In Patch-Schemas ist praktisch
+  // alles optional; sie dort mitzupruefen erzeugte in der Cloud beim ersten
+  // Lauf 13 Falschmeldungen.
+  it('REQUIRED wird im Patch-Schema NICHT gemeldet', () => {
+    const schema = closedSchema({ tenantId: {}, resolution: {} }, ['tenantId'])
+    expect(checkStampFields({ path: 'w', dataSchema: schema, mtOptions: {}, kind: 'data' })?.required).toEqual([
+      'tenantId',
+    ])
+    expect(checkStampFields({ path: 'w', dataSchema: schema, mtOptions: {}, kind: 'patch' })).toBeNull()
+  })
+})
+
+// REGRESSION #183 (2026-09-12): `sync-conflicts` deklariert kein
+// `docs.schemas`. Solange der Check ausschliesslich dort nachsah, war der
+// Service unsichtbar — „Verwerfen" auf einem offenen Sync-Konflikt antwortete
+// mit „Mandant: must NOT have additional properties", und kein Gate schlug an.
+// Das Schema kommt jetzt aus dem markierten Validierungs-Hook.
+describe('assertStampFields() — Service OHNE docs.schemas wird trotzdem geprueft', () => {
+  const buildApp = (patchSchema: Record<string, unknown>) => {
+    const app = feathers()
+    app.use(
+      'widgets',
+      {
+        async patch(_id: unknown, d: unknown) {
+          return d
+        },
+      } as never,
+      // Bewusst KEINE docs.schemas — genau die Lage von sync-conflicts.
+      { methods: ['patch'], events: [] } as never,
+    )
+    app.service('widgets').hooks({
+      around: { all: [multiTenancy({ isolateLocation: false })] },
+      // Der Validator ist hier eine Attrappe: Der Check liest nur `.schema`,
+      // die AJV-ValidateFunction wird nie aufgerufen.
+      before: { patch: [validateData(Object.assign(async (d: unknown) => d, { schema: patchSchema }))] },
+    } as never)
+    return app
+  }
+
+  it('findet den PATCH-Verstoss allein aus dem markierten Hook', () => {
+    const [violation, ...rest] = assertStampFields(buildApp(closedSchema({ resolution: {} })) as never)
+    expect(rest).toEqual([])
+    expect(violation.path).toBe('widgets')
+    expect(violation.kind).toBe('patch')
+    expect(violation.missing).toEqual(['tenantId'])
+  })
+
+  it('das reparierte Schema (tenantId optional) erzeugt keinen Befund', () => {
+    expect(assertStampFields(buildApp(closedSchema({ resolution: {}, tenantId: {} })) as never)).toEqual([])
+  })
+
+  it('die Quelle ist der Hook, nicht docs.schemas — sonst waere die Luecke zurueck', () => {
+    const targets = collectStampTargets(buildApp(closedSchema({ resolution: {} })) as never)
+    expect(targets.find(t => t.kind === 'patch')?.source).toBe('hook')
+    expect(targets.find(t => t.kind === 'data')?.source).toBe('none')
   })
 })

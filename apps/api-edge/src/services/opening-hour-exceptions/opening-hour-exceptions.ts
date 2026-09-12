@@ -1,5 +1,6 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 
 import {
   openingHourExceptionDataResolver,
@@ -99,11 +100,11 @@ export const openingHourExceptions = (app: Application) => {
       find: [],
       get: [],
       create: [
-        schemaHooks.validateData(openingHourExceptionDataValidator),
+        validateData(openingHourExceptionDataValidator),
         schemaHooks.resolveData(openingHourExceptionDataResolver),
       ],
       patch: [
-        schemaHooks.validateData(openingHourExceptionPatchValidator),
+        validateData(openingHourExceptionPatchValidator),
         schemaHooks.resolveData(openingHourExceptionPatchResolver),
       ],
       remove: [],

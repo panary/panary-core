@@ -1,5 +1,6 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 
 import { authorize, multiTenancy } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
@@ -89,8 +90,8 @@ export const syncConflicts = (app: Application) => {
     },
     before: {
       all: [schemaHooks.validateQuery(syncConflictQueryValidator), schemaHooks.resolveQuery(syncConflictQueryResolver)],
-      create: [schemaHooks.validateData(syncConflictDataValidator), schemaHooks.resolveData(syncConflictDataResolver)],
-      patch: [schemaHooks.validateData(syncConflictPatchValidator), schemaHooks.resolveData(syncConflictPatchResolver)],
+      create: [validateData(syncConflictDataValidator), schemaHooks.resolveData(syncConflictDataResolver)],
+      patch: [validateData(syncConflictPatchValidator), schemaHooks.resolveData(syncConflictPatchResolver)],
     },
     after: {
       patch: [applyResolutionAfterPatch],

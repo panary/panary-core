@@ -2,6 +2,7 @@
 import { authenticate } from '@feathersjs/authentication'
 
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 
 import {
   apikeyDataResolver,
@@ -110,8 +111,8 @@ export const apikeys = (app: Application) => {
       all: [schemaHooks.validateQuery(apikeyQueryValidator), schemaHooks.resolveQuery(apikeyQueryResolver)],
       find: [],
       get: [],
-      create: [schemaHooks.validateData(apikeyDataValidator), schemaHooks.resolveData(apikeyDataResolver)],
-      patch: [schemaHooks.validateData(apikeyPatchValidator), schemaHooks.resolveData(apikeyPatchResolver)],
+      create: [validateData(apikeyDataValidator), schemaHooks.resolveData(apikeyDataResolver)],
+      patch: [validateData(apikeyPatchValidator), schemaHooks.resolveData(apikeyPatchResolver)],
       remove: [],
     },
     after: {

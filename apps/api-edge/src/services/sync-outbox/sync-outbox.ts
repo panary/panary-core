@@ -1,6 +1,7 @@
 import { authenticate } from '@feathersjs/authentication'
 import { BadRequest } from '@feathersjs/errors'
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 import { resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 import { uuidv7 } from 'uuidv7'
@@ -176,8 +177,8 @@ export const syncOutbox = (app: Application) => {
     },
     before: {
       all: [schemaHooks.validateQuery(syncOutboxQueryValidator), schemaHooks.resolveQuery(syncOutboxQueryResolver)],
-      create: [schemaHooks.validateData(syncOutboxDataValidator), schemaHooks.resolveData(syncOutboxDataResolver)],
-      patch: [schemaHooks.validateData(syncOutboxPatchValidator), schemaHooks.resolveData(syncOutboxPatchResolver)],
+      create: [validateData(syncOutboxDataValidator), schemaHooks.resolveData(syncOutboxDataResolver)],
+      patch: [validateData(syncOutboxPatchValidator), schemaHooks.resolveData(syncOutboxPatchResolver)],
     },
     error: { all: [] },
   })

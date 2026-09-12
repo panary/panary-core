@@ -1,5 +1,6 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 
 import {
   orderInteractionDataResolver,
@@ -107,14 +108,8 @@ export const orderInteractions = (app: Application) => {
       ],
       find: [],
       get: [],
-      create: [
-        schemaHooks.validateData(orderInteractionDataValidator),
-        schemaHooks.resolveData(orderInteractionDataResolver),
-      ],
-      patch: [
-        schemaHooks.validateData(orderInteractionPatchValidator),
-        schemaHooks.resolveData(orderInteractionPatchResolver),
-      ],
+      create: [validateData(orderInteractionDataValidator), schemaHooks.resolveData(orderInteractionDataResolver)],
+      patch: [validateData(orderInteractionPatchValidator), schemaHooks.resolveData(orderInteractionPatchResolver)],
       remove: [],
     },
     after: {

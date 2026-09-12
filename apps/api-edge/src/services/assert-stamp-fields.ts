@@ -1,10 +1,11 @@
-// Boot-Check: Passt das DATA-Schema zu dem, was `multiTenancy()` stempelt?
+// Boot-Check: Passen DATA- und PATCH-Schema zu dem, was `multiTenancy()` stempelt?
 //
 // Der Hook laeuft in `around.all` und schreibt `data.tenantId` (und bei
 // `isolateLocation` auch `data.locationId`), BEVOR `validateData` in
-// `before.create` greift. Zwischen Hook und Schema gibt es zwei Widersprueche,
-// die zur Bauzeit unsichtbar sind — Typecheck, Lint und Unit-Tests sind gruen,
-// der Fehler entsteht erst zur Laufzeit als 400 auf einem Endpunkt:
+// `before.create` bzw. `before.patch` greift. Zwischen Hook und Schema gibt es
+// zwei Widersprueche, die zur Bauzeit unsichtbar sind — Typecheck, Lint und
+// Unit-Tests sind gruen, der Fehler entsteht erst zur Laufzeit als 400 auf
+// einem Endpunkt:
 //
 //   MISSING  Das Feld fehlt in `properties` und das Schema ist geschlossen
 //            (`additionalProperties: false`). AJV lehnt den gestempelten Wert
@@ -18,19 +19,46 @@
 //            `must have required property '<feld>'` und zeigt damit auf den
 //            Client, obwohl die Ursache serverseitig liegt. Genau dieser Fall
 //            hat am 2026-08-01 `POST /apikeys` auf jedem cloud-gebootstrappten
-//            Edge blockiert. Diese Regel gibt es in der Cloud nicht.
+//            Edge blockiert. Diese Regel gibt es in der Cloud nicht — und sie
+//            gilt NUR fuer das DATA-Schema: In einem Patch-Schema ist fast
+//            alles optional, ein Pflichtfeld dort ist ein anderer Fall und
+//            wuerde nur falsch alarmieren.
 //
 // MISSING ist ein sicherer Totalausfall des Endpunkts → `logger.error`.
 // REQUIRED ist eine latente Falle (funktioniert, solange der Stempel greift)
 // → gesammelter `logger.warn`, damit 13 betroffene Services nicht 13 Zeilen
 // Rauschen erzeugen.
 //
+// ABDECKUNG (panary/panary-core#267). Der Check hatte zwei gemessene blinde
+// Flecken, beide aus derselben Ursache — er kam nur ueber `docs.schemas` und
+// nur an das DATA-Schema:
+//
+//   1. `patch` ist fuer `multiTenancy()` genauso WRITE wie `create`. Die
+//      PATCH-Seite blieb ungeprueft, obwohl die Klasse dort bereits dreimal
+//      zuschlug: #174 (Notifications), #183 (sync-conflicts),
+//      panary/panary-cloud#200 (fiscal-counters, reservations).
+//   2. `docs.schemas` ist freiwillig. Sechs Services deklarieren keine und
+//      waren damit unsichtbar — darunter `sync-conflicts` und
+//      `fiscal-counters`, also genau die beiden zuletzt betroffenen.
+//
+// `sync-conflicts` lag in beiden Flecken gleichzeitig: Am 2026-09-12 antwortete
+// „Verwerfen" auf einen offenen Sync-Konflikt mit „Mandant: must NOT have
+// additional properties" — ein Fall, den dieser Check nie haette melden
+// koennen. Das Schema kommt deshalb jetzt aus dem markierten
+// Validierungs-Hook (`hooks/validate-data.hook.ts`), `docs.schemas` ist nur
+// noch Rueckfall.
+//
 // Bewusst nur loggen, NIE werfen: liegt das Schema in einer Domain-Lib, haengt
 // der Fix am Release-/Pin-Zyklus — ein Boot-Abbruch wuerde bis dahin die
-// gesamte Edge-API blockieren statt nur den einen kaputten Endpunkt.
+// gesamte Edge-API blockieren statt nur den einen kaputten Endpunkt. Das harte
+// Gate ist `stamp-fields-invariant.spec.ts`, nicht dieser Boot-Check: Ein
+// Verstoss, der es an der CI vorbei nach Produktion schafft, bleibt hier ein
+// stiller `logger.error` in einem Boot-Log, das niemand liest.
 
 import { getServiceOptions } from '@feathersjs/feathers'
 import { MULTI_TENANCY_OPTIONS, logger, type MultiTenancyOptions } from '@panary/shared-backend'
+
+import { readMarkedSchema } from '../hooks/validate-data.hook'
 
 /** JSON-Schema-Ausschnitt, den der Check braucht. TypeBox liefert genau das. */
 type JsonSchemaLike = {
@@ -46,6 +74,9 @@ type JsonSchemaLike = {
  * Services, deren DATA-Schema ein gestempeltes Feld BEWUSST als Pflicht fuehrt.
  * Ohne diese Liste meldete der Check dieselben bekannten Faelle bei jedem Boot
  * und die Warnung waere nach der dritten Woche unsichtbar.
+ *
+ * Betrifft ausschliesslich die REQUIRED-Regel und damit ausschliesslich das
+ * DATA-Schema — die PATCH-Seite kennt diese Regel nicht.
  *
  * Jeder Eintrag braucht eine Begruendung — „schon immer so" zaehlt nicht.
  * Wer einen Service hier eintraegt, entscheidet sich fuer eine potenziell
@@ -85,11 +116,19 @@ const REQUIRED_STAMP_EXCEPTIONS: Record<string, string> = {
   discounts: 'Pull-Apply ohne user — required ist der einzige Schutz',
 }
 
+/**
+ * Welches Schema geprueft wurde. `multiTenancy()` stempelt bei `create` UND bei
+ * `patch` (`['create', 'update', 'patch'].includes(context.method)` in
+ * multi-tenancy.hook.ts), also muessen beide Schemas die Felder kennen.
+ */
+export type StampFieldKind = 'data' | 'patch'
+
 export type StampFieldViolation = {
   path: string
-  /** Feld fehlt im geschlossenen Schema → jeder externe Create scheitert. */
+  kind: StampFieldKind
+  /** Feld fehlt im geschlossenen Schema → jeder externe Create/Patch scheitert. */
   missing: string[]
-  /** Feld ist Pflicht, obwohl der Server es stempelt → irrefuehrender 400. */
+  /** Feld ist Pflicht, obwohl der Server es stempelt → irrefuehrender 400. Nur `data`. */
   required: string[]
   message: string
 }
@@ -116,15 +155,19 @@ function collect(schema: JsonSchemaLike): { fields: Set<string>; required: Set<s
 }
 
 /**
- * Liefert einen Befund, wenn das Data-Schema nicht zu den gestempelten Feldern
- * passt, sonst `null`. Rein lesend — der Aufrufer entscheidet ueber die Konsequenz.
+ * Liefert einen Befund, wenn das gepruefte Schema nicht zu den gestempelten
+ * Feldern passt, sonst `null`. Rein lesend — der Aufrufer entscheidet ueber die
+ * Konsequenz und ruft je Service einmal mit `kind: 'data'` und einmal mit
+ * `kind: 'patch'` auf.
  */
 export function checkStampFields(params: {
   path: string
   dataSchema?: unknown
   mtOptions: MultiTenancyOptions | null
+  /** Welches Schema in `dataSchema` steckt. Default `data` (Bestandsaufrufer). */
+  kind?: StampFieldKind
 }): StampFieldViolation | null {
-  const { path, dataSchema, mtOptions } = params
+  const { path, dataSchema, mtOptions, kind = 'data' } = params
 
   // Kein multiTenancy am Service (z. B. sync-interne Pfade) → nichts gestempelt.
   if (!mtOptions) return null
@@ -136,32 +179,40 @@ export function checkStampFields(params: {
 
   // Ein offenes Schema akzeptiert Zusatzfelder ohnehin — MISSING kann dort nicht auftreten.
   const missing = closed ? stamped.filter(f => !fields.has(f)) : []
-  const requiredStamps = stamped.filter(f => fields.has(f) && required.has(f))
+  // REQUIRED gilt nur fuer DATA: Patch-Schemas fuehren praktisch nichts als
+  // Pflicht, ein Pflichtfeld dort ist ein anderer Fall (und war beim ersten
+  // Lauf in der Cloud die Quelle von 13 Falschmeldungen).
+  const requiredStamps = kind === 'data' ? stamped.filter(f => fields.has(f) && required.has(f)) : []
 
   if (!missing.length && !requiredStamps.length) return null
 
+  const label = kind === 'patch' ? 'PATCH' : 'DATA'
+  const methode = kind === 'patch' ? 'Patch' : 'Create'
   const parts: string[] = []
   if (missing.length) {
     parts.push(
-      `multiTenancy() stempelt ${missing.join(', ')}, das DATA-Schema kennt das Feld aber nicht ` +
-        `(additionalProperties: false) — jeder externe Create scheitert mit 400 "validation failed". ` +
-        `Feld als Type.Optional(...) ins Data-Schema aufnehmen.`,
+      `multiTenancy() stempelt ${missing.join(', ')}, das ${label}-Schema kennt das Feld aber nicht ` +
+        `(additionalProperties: false) — jeder externe ${methode} scheitert mit 400 "validation failed". ` +
+        `Feld als Type.Optional(...) ins ${label}-Schema aufnehmen.`,
     )
   }
   if (requiredStamps.length) {
     parts.push(
-      `${requiredStamps.join(', ')} ist im DATA-Schema Pflicht, wird aber serverseitig gestempelt — ` +
+      `${requiredStamps.join(', ')} ist im ${label}-Schema Pflicht, wird aber serverseitig gestempelt — ` +
         `greift der Stempel nicht (User ohne Standort, kein Location-Fallback), meldet die API ` +
         `"must have required property" und zeigt faelschlich auf den Client. Type.Optional(...) erwaegen.`,
     )
   }
 
-  return { path, missing, required: requiredStamps, message: `Service '${path}': ${parts.join(' | ')}` }
+  return { path, kind, missing, required: requiredStamps, message: `Service '${path}': ${parts.join(' | ')}` }
 }
 
 /** Feathers legt die registrierten Hooks als schlichtes `__hooks`-Objekt am Service ab. */
 type ServiceWithHooks = {
-  __hooks?: { around?: Record<string, Array<(...args: unknown[]) => unknown> | undefined> }
+  __hooks?: {
+    around?: Record<string, Array<(...args: unknown[]) => unknown> | undefined>
+    before?: Record<string, Array<(...args: unknown[]) => unknown> | undefined>
+  }
 }
 
 /**
@@ -179,18 +230,95 @@ function readMultiTenancyOptions(service: unknown): MultiTenancyOptions | null {
   return null
 }
 
+/** Woher das gepruefte Schema kam — `none` heisst: es wurde nichts geprueft. */
+export type StampSchemaSource = 'hook' | 'docs' | 'none'
+
+const METHOD_BY_KIND: Record<StampFieldKind, 'create' | 'patch'> = { data: 'create', patch: 'patch' }
+
 /**
- * Sucht das Data-Schema in den Swagger-Schemas der Service-Registrierung.
- * Jeder Edge-Service deklariert es dort bereits (`docs.schemas.<name>Data`) —
- * der Check nutzt diese vorhandene Deklaration, statt eine eigene zu verlangen.
+ * Das Schema aus dem markierten Validierungs-Hook der jeweiligen Methode.
+ * Primaerquelle, weil sie an der Registrierung selbst haengt und damit jeden
+ * Service erreicht — auch die sechs ohne `docs.schemas` (#267).
  */
-function readDataSchema(service: unknown): unknown {
+function readHookSchema(service: unknown, kind: StampFieldKind): unknown {
+  const before = (service as ServiceWithHooks)?.__hooks?.before?.[METHOD_BY_KIND[kind]]
+  if (!Array.isArray(before)) return undefined
+  for (const hook of before) {
+    const schema = readMarkedSchema(hook)
+    if (schema) return schema
+  }
+  return undefined
+}
+
+/**
+ * Rueckfall: das Schema aus den Swagger-Schemas der Service-Registrierung
+ * (`docs.schemas.<name>Data` / `<name>Patch`). Deckt Services ab, die den
+ * Validierungs-Hook nicht ueber `hooks/validate-data.hook.ts` registrieren —
+ * etwa weil ein Feathers-Update das Marker-Muster gebrochen hat.
+ */
+function readDocsSchema(service: unknown, kind: StampFieldKind): unknown {
   const options = getServiceOptions(service as Parameters<typeof getServiceOptions>[0]) as
     { docs?: { schemas?: Record<string, unknown> } } | undefined
   const schemas = options?.docs?.schemas
   if (!schemas) return undefined
-  const key = Object.keys(schemas).find(k => k.toLowerCase().endsWith('data'))
+  const key = Object.keys(schemas).find(k => k.toLowerCase().endsWith(kind))
   return key ? schemas[key] : undefined
+}
+
+/** Die Methoden, die der Service bei `app.use()` registriert hat. */
+function readServiceMethods(service: unknown): string[] {
+  const options = getServiceOptions(service as Parameters<typeof getServiceOptions>[0]) as
+    { methods?: string[] } | undefined
+  return options?.methods ?? []
+}
+
+/**
+ * Ein Pruefziel: Service × Schema-Art, mit der Quelle des Schemas. Die Quelle
+ * ist der Grund, warum es diesen Typ ueberhaupt gibt: Ein leeres Befund-Ergebnis
+ * beweist ohne sie nur, dass nichts gefunden wurde — nicht, dass gesucht wurde.
+ * `stamp-fields-invariant.spec.ts` prueft beides getrennt.
+ */
+export type StampCheckTarget = {
+  path: string
+  kind: StampFieldKind
+  /** Methode, deren Payload gegen dieses Schema validiert wird. */
+  method: 'create' | 'patch'
+  /** Bietet der Service diese Methode ueberhaupt an? */
+  methodRegistered: boolean
+  source: StampSchemaSource
+  schema?: unknown
+  mtOptions: MultiTenancyOptions | null
+}
+
+/**
+ * Sammelt alle Pruefziele der App — ohne zu bewerten. Exportiert, damit das
+ * harte Gate dieselbe Quelle nutzt wie der Boot-Check und nicht eine zweite,
+ * driftende Registrierung nachbaut.
+ */
+export function collectStampTargets(app: AppLike): StampCheckTarget[] {
+  const targets: StampCheckTarget[] = []
+
+  for (const path of Object.keys(app.services ?? {})) {
+    const service = app.service(path as never)
+    const mtOptions = readMultiTenancyOptions(service)
+    const methods = readServiceMethods(service)
+
+    for (const kind of ['data', 'patch'] as const) {
+      const hookSchema = readHookSchema(service, kind)
+      const schema = hookSchema ?? readDocsSchema(service, kind)
+      targets.push({
+        path,
+        kind,
+        method: METHOD_BY_KIND[kind],
+        methodRegistered: methods.includes(METHOD_BY_KIND[kind]),
+        source: hookSchema ? 'hook' : schema ? 'docs' : 'none',
+        schema,
+        mtOptions,
+      })
+    }
+  }
+
+  return targets
 }
 
 /**
@@ -208,23 +336,23 @@ type AppLike = {
  * (fuer Tests) und loggt sie nach Schweregrad.
  */
 export function assertStampFields(app: AppLike): StampFieldViolation[] {
-  const violations: StampFieldViolation[] = []
-
-  for (const path of Object.keys(app.services ?? {})) {
-    const service = app.service(path as never)
-    const violation = checkStampFields({
-      path,
-      dataSchema: readDataSchema(service),
-      mtOptions: readMultiTenancyOptions(service),
-    })
-    if (violation) violations.push(violation)
-  }
+  const violations = collectStampTargets(app)
+    .map(target =>
+      checkStampFields({
+        path: target.path,
+        dataSchema: target.schema,
+        mtOptions: target.mtOptions,
+        kind: target.kind,
+      }),
+    )
+    .filter((v): v is StampFieldViolation => v !== null)
 
   for (const violation of violations.filter(v => v.missing.length)) {
     logger.error({
       message: violation.message,
       event: 'service.stamp_field_missing',
       path: violation.path,
+      kind: violation.kind,
       missing: violation.missing,
     })
   }

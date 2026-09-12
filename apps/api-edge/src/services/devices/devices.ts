@@ -1,5 +1,6 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 
 import {
   deviceDataResolver,
@@ -125,7 +126,7 @@ export const devices = (app: Application) => {
       // Schema-Meldung.
       create: [
         validateDeviceAssignment,
-        schemaHooks.validateData(deviceDataValidator),
+        validateData(deviceDataValidator),
         schemaHooks.resolveData(deviceDataResolver),
         ...jsonHooks.before,
       ],
@@ -135,7 +136,7 @@ export const devices = (app: Application) => {
       patch: [
         restrictDeviceSelfPatch,
         validateDeviceAssignment,
-        schemaHooks.validateData(devicePatchValidator),
+        validateData(devicePatchValidator),
         schemaHooks.resolveData(devicePatchResolver),
         ...jsonHooks.before,
       ],

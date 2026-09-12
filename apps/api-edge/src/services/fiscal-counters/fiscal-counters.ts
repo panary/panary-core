@@ -6,6 +6,7 @@
 // Persistenz ausschließlich über die Feathers-Adapter-API (kein Knex-Raw-Write).
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 import { resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 import { Mutex } from 'async-mutex'
@@ -116,14 +117,8 @@ export const fiscalCounters = (app: Application) => {
         schemaHooks.validateQuery(fiscalCounterQueryValidator),
         schemaHooks.resolveQuery(fiscalCounterQueryResolver),
       ],
-      create: [
-        schemaHooks.validateData(fiscalCounterDataValidator),
-        schemaHooks.resolveData(fiscalCounterDataResolver),
-      ],
-      patch: [
-        schemaHooks.validateData(fiscalCounterPatchValidator),
-        schemaHooks.resolveData(fiscalCounterPatchResolver),
-      ],
+      create: [validateData(fiscalCounterDataValidator), schemaHooks.resolveData(fiscalCounterDataResolver)],
+      patch: [validateData(fiscalCounterPatchValidator), schemaHooks.resolveData(fiscalCounterPatchResolver)],
     },
     error: { all: [] },
   })

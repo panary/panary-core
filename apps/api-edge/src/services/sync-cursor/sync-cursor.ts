@@ -1,9 +1,10 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 import { resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 
-import { authorize, multiTenancy, dataValidator, queryValidator } from '@panary/shared-backend'
+import { authorize, dataValidator, queryValidator } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { DatabaseType } from '@panary/shared-common'
 import {
@@ -65,15 +66,28 @@ export const syncCursor = (app: Application) => {
       all: [
         authenticate('jwt'),
         authorize(),
-        multiTenancy({ isolateLocation: false, allowGlobalData: true }),
+        // KEIN multiTenancy() — wie bei `sync-outbox`: sync-cursor ist
+        // edge-internaler Sync-Zustand, die Tabelle hat keine `tenantId`-Spalte
+        // (Migration 20260502000004_sync_cursor) und das Domain-Schema kennt das
+        // Feld nicht. Der Hook machte den Service extern vollstaendig unbenutzbar,
+        // in BEIDE Richtungen: Er stempelte `data.tenantId` (→ 400 „must NOT have
+        // additional properties" am geschlossenen Data-/Patch-Schema) und setzte
+        // `query.tenantId` (→ 400 am geschlossenen Query-Schema). Beides ist nie
+        // aufgefallen, weil der Cursor ausschliesslich intern geschrieben wird
+        // (`cloud-sync-scheduler.worker.ts`, `repair-location-restamp.worker.ts`
+        // mit `provider: undefined` und ohne `user`) — der Hook laeuft dort ins
+        // Early-Return. Gefunden vom erweiterten Boot-Check (#267).
+        //
+        // Sicherheit kommt durch authenticate('jwt') + RBAC; ein Edge bedient
+        // genau einen Tenant, Cross-Tenant-Leckage ist strukturell ausgeschlossen.
         schemaHooks.resolveExternal(syncCursorExternalResolver),
         schemaHooks.resolveResult(syncCursorResolver),
       ],
     },
     before: {
       all: [schemaHooks.validateQuery(syncCursorQueryValidator), schemaHooks.resolveQuery(syncCursorQueryResolver)],
-      create: [schemaHooks.validateData(syncCursorDataValidator), schemaHooks.resolveData(syncCursorDataResolver)],
-      patch: [schemaHooks.validateData(syncCursorPatchValidator), schemaHooks.resolveData(syncCursorPatchResolver)],
+      create: [validateData(syncCursorDataValidator), schemaHooks.resolveData(syncCursorDataResolver)],
+      patch: [validateData(syncCursorPatchValidator), schemaHooks.resolveData(syncCursorPatchResolver)],
     },
     error: { all: [] },
   })

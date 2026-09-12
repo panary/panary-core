@@ -1,5 +1,6 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 import { BadRequest } from '@feathersjs/errors'
 
 import { decryptCloudToken } from '../../utils/cloud-token-cipher'
@@ -698,12 +699,12 @@ export const cloudConnection = (app: Application) => {
       find: [],
       get: [],
       create: [
-        schemaHooks.validateData(cloudConnectionDataValidator),
+        validateData(cloudConnectionDataValidator),
         schemaHooks.resolveData(cloudConnectionDataResolver),
         ...jsonHooks.before,
       ],
       patch: [
-        schemaHooks.validateData(cloudConnectionPatchValidator),
+        validateData(cloudConnectionPatchValidator),
         schemaHooks.resolveData(cloudConnectionPatchResolver),
         ...jsonHooks.before,
       ],

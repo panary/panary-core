@@ -3,6 +3,7 @@
 // completed). Persistenz ausschließlich über die Feathers-Adapter-API.
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 import { resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 import { uuidv7 } from 'uuidv7'
@@ -130,16 +131,8 @@ export const receipts = (app: Application) => {
     },
     before: {
       all: [schemaHooks.validateQuery(receiptQueryValidator), schemaHooks.resolveQuery(receiptQueryResolver)],
-      create: [
-        schemaHooks.validateData(receiptDataValidator),
-        schemaHooks.resolveData(receiptDataResolver),
-        ...jsonHooks.before,
-      ],
-      patch: [
-        schemaHooks.validateData(receiptPatchValidator),
-        schemaHooks.resolveData(receiptPatchResolver),
-        ...jsonHooks.before,
-      ],
+      create: [validateData(receiptDataValidator), schemaHooks.resolveData(receiptDataResolver), ...jsonHooks.before],
+      patch: [validateData(receiptPatchValidator), schemaHooks.resolveData(receiptPatchResolver), ...jsonHooks.before],
     },
     after: {
       all: [...jsonHooks.after],

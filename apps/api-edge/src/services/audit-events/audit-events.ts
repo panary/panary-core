@@ -10,6 +10,7 @@
 import { authenticate } from '@feathersjs/authentication'
 import { Forbidden } from '@feathersjs/errors'
 import { hooks as schemaHooks, resolve } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 import { getValidator } from '@feathersjs/typebox'
 import { uuidv7 } from 'uuidv7'
 
@@ -121,7 +122,7 @@ export const auditEvents = (app: Application) => {
     before: {
       all: [schemaHooks.validateQuery(auditEventQueryValidator), schemaHooks.resolveQuery(auditEventQueryResolver)],
       create: [
-        schemaHooks.validateData(auditEventDataValidator),
+        validateData(auditEventDataValidator),
         schemaHooks.resolveData(auditEventDataResolver),
         // JSON-Felder vor dem SQLite-Insert in Strings konvertieren
         ...jsonHooks.before,

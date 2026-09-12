@@ -1,5 +1,6 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
+import { validateData } from '../../hooks/validate-data.hook'
 
 import {
   userPreferenceDataResolver,
@@ -107,14 +108,8 @@ export const userPreferences = (app: Application) => {
       ],
       find: [],
       get: [],
-      create: [
-        schemaHooks.validateData(userPreferenceDataValidator),
-        schemaHooks.resolveData(userPreferenceDataResolver),
-      ],
-      patch: [
-        schemaHooks.validateData(userPreferencePatchValidator),
-        schemaHooks.resolveData(userPreferencePatchResolver),
-      ],
+      create: [validateData(userPreferenceDataValidator), schemaHooks.resolveData(userPreferenceDataResolver)],
+      patch: [validateData(userPreferencePatchValidator), schemaHooks.resolveData(userPreferencePatchResolver)],
       remove: [],
     },
     after: {

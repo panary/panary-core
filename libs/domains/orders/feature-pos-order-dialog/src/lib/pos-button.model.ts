@@ -1,4 +1,4 @@
-import type { ProductSchema } from '@panary/products/domain'
+import { ItemType, type ProductSchema } from '@panary/products/domain'
 
 /**
  * UI-Zustand und Legacy-Flags, die der Bestelldialog an POS-Tasten hängt.
@@ -40,4 +40,40 @@ export type PosButton = Partial<ProductSchema> & PosButtonUiState & Pick<Product
  */
 export function toPosButton(product: ProductSchema, ui: PosButtonUiState = {}): PosProductButton {
   return { ...product, ...ui }
+}
+
+/**
+ * Darf diese Taste als Zusatz auf eine Bestellzeile gebucht werden?
+ *
+ * Vier Erkennungswege, weil Alt-Kataloge das heutige `productType` nicht kennen:
+ * der Typ selbst und die Legacy-Flags `isExtra`, `isMenuSideDishSauce` sowie
+ * `itemType` (sauce/extra). Die Flags bleiben bewusst stehen — Bestandsdaten
+ * hängen daran (#273).
+ *
+ * `increaseExtra` und `decreaseExtra` prüften das bis #273 mit **verschiedenen**
+ * Listen: Der OHNE-Modus kannte `isExtra`/`isMenuSideDishSauce` nicht. Solange
+ * beide Pfade still zurückkehrten, fiel das nicht auf; sobald sie es melden,
+ * behauptete der OHNE-Modus „ist kein Extra" über eine Kachel, die im
+ * PLUS-Modus funktioniert. Deshalb eine Quelle für beide.
+ */
+export function isModifierButton(article: Partial<ProductSchema> & PosButtonUiState): boolean {
+  return (
+    article.productType === 'MODIFIER' ||
+    article.isExtra === true ||
+    article.isMenuSideDishSauce === true ||
+    article.itemType === ItemType.sauce ||
+    article.itemType === ItemType.extra
+  )
+}
+
+/**
+ * Meldung für den Tap auf eine Extras-Kachel, deren Produkt kein Modifier ist.
+ *
+ * Nennt den Produkttyp, weil genau der die Ursache ist: Der Cloud-CSV-Import
+ * setzt ein fehlendes Feld auf `PRODUCT`, und die Optionsgruppe zeigt die
+ * Kachel trotzdem an. Der Text adressiert den Katalogpfleger, nicht die Kasse.
+ */
+export function extraNotModifierMessage(article: Partial<ProductSchema> & PosButtonUiState): string {
+  const name = article.name ?? 'Dieses Produkt'
+  return `„${name}" ist kein Extra (Produkttyp: ${article.productType ?? 'fehlt'}) — im Admin auf Modifier stellen`
 }

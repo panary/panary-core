@@ -58,6 +58,8 @@ interface SetupOptions {
   staffMealDiscountId?: string
   /** Antwort auf `discountCodeService.redeem()` — Standard: Einloesung gelingt. */
   redeemResult?: Record<string, unknown>
+  /** Produkte, aus denen `findProductById`/`findProductByExternalId` aufloesen (#273). */
+  catalog?: ProductSchema[]
 }
 
 const CURRENT_USER_ID = '018f0000-0000-7000-8000-000000000001'
@@ -168,8 +170,9 @@ function setup(options: SetupOptions = {}) {
         provide: ProductService,
         useValue: {
           extras: signal([]),
-          findProductById: () => undefined,
-          findProductByExternalId: () => undefined,
+          findProductById: (id: string) => (options.catalog ?? []).find(p => p._id === id),
+          findProductByExternalId: (externalId: string) =>
+            (options.catalog ?? []).find(p => p.externalId === externalId),
         },
       },
       {
@@ -663,6 +666,118 @@ describe('OrderDialog — Kacheltap bei markierter Kombination (#271)', () => {
       ['Artikel p-2', null],
     ])
     expect(component.selectedCombinationIndex).toEqual([null, null])
+  })
+})
+
+/**
+ * Extras-Tap ohne stillen Rueckweg (#273). Kundenmeldung 2026-09-12: Tap auf „Mayo"
+ * tat nichts und sagte nichts — `increaseExtra` kehrte bei einem Produkt ohne
+ * `productType: MODIFIER` wortlos zurueck, obwohl die Optionsgruppe die Kachel
+ * zeigt. Geprueft wird, dass jeder Tap ein sichtbares Ergebnis hat: Buchung oder
+ * Begruendung (dieselbe Regel wie ADR 0034, vgl. #269/#271).
+ */
+describe('OrderDialog — Extras-Tap meldet statt still zurueckzukehren (#273)', () => {
+  /** Produkt einer Optionsgruppe — `productType` steuert, ob es als Extra buchbar ist. */
+  const extraProduct = (id: string, over: Partial<ProductSchema> = {}): ProductSchema =>
+    product(id, { productType: 'MODIFIER', price: 0.5, ...over } as Partial<ProductSchema>)
+
+  it('Tap auf ein Produkt, das kein Modifier ist, bucht nichts und nennt den Produkttyp', () => {
+    const { component } = setup()
+    component.increaseLineItem(product('pommes'))
+    component.selectProduct(0)
+
+    component.increaseExtra(extraProduct('mayo', { name: 'Mayo', productType: 'PRODUCT' }))
+
+    expect(component.lineItems[0].modifiers).toEqual([])
+    expect(component.infoBoxText).toBe('„Mayo" ist kein Extra (Produkttyp: PRODUCT) — im Admin auf Modifier stellen')
+    expect(component.infoBoxBackgroundColor).toBe('red')
+  })
+
+  it('ein fehlendes `productType` steht als „fehlt" in der Meldung', () => {
+    // Genau der Fall aus der Kundenmeldung: Der Cloud-CSV-Import ohne Typ-Spalte
+    // laesst das Feld leer bzw. setzt PRODUCT — beides ist am Geraet unbedienbar.
+    const { component } = setup()
+    component.increaseLineItem(product('pommes'))
+    component.selectProduct(0)
+
+    component.increaseExtra(extraProduct('mayo', { name: 'Mayo', productType: undefined }))
+
+    expect(component.infoBoxText).toBe('„Mayo" ist kein Extra (Produkttyp: fehlt) — im Admin auf Modifier stellen')
+  })
+
+  it('ohne markierte Zeile meldet der Tap die fehlende Markierung', () => {
+    // Das Extras-Raster kann stehenbleiben, waehrend die Markierung schon weg ist.
+    const { component } = setup()
+    component.increaseLineItem(product('pommes'))
+
+    component.increaseExtra(extraProduct('mayo', { name: 'Mayo' }))
+
+    expect(component.lineItems[0].modifiers).toEqual([])
+    expect(component.infoBoxText).toBe('Erst eine Position im Warenkorb antippen')
+    expect(component.infoBoxBackgroundColor).toBe('red')
+  })
+
+  it('der Gutfall bucht unveraendert unter die markierte Zeile', () => {
+    const { component } = setup()
+    component.increaseLineItem(product('pommes'))
+    component.selectProduct(0)
+
+    component.increaseExtra(extraProduct('mayo', { name: 'Mayo' }))
+
+    expect(component.lineItems[0].modifiers).toHaveLength(1)
+    expect(component.lineItems[0].modifiers[0]).toMatchObject({ name: 'Mayo', amount: 1 })
+  })
+
+  it('OHNE-Modus: derselbe Tap meldet dasselbe und legt keine „ohne"-Zeile an', () => {
+    const { component } = setup()
+    component.increaseLineItem(product('pommes'))
+    component.selectProduct(0)
+
+    component.decreaseExtra(extraProduct('mayo', { name: 'Mayo', productType: 'PRODUCT' }))
+
+    expect(component.lineItems[0].modifiers).toEqual([])
+    expect(component.infoBoxText).toBe('„Mayo" ist kein Extra (Produkttyp: PRODUCT) — im Admin auf Modifier stellen')
+  })
+
+  it('OHNE-Modus akzeptiert Legacy-Extras genauso wie der PLUS-Modus', () => {
+    // Vor #273 pruefte `decreaseExtra` ohne die Legacy-Flags: Ein Alt-Katalog-Extra
+    // liess sich hinzufuegen, aber nicht abwaehlen — und haette jetzt faelschlich
+    // „ist kein Extra" gemeldet ueber eine Kachel, die im PLUS-Modus funktioniert.
+    const { component } = setup()
+    component.increaseLineItem(product('pommes'))
+    component.selectProduct(0)
+
+    component.decreaseExtra(
+      extraProduct('mayo', { name: 'Mayo', productType: undefined, isExtra: true } as Partial<ProductSchema>),
+    )
+
+    expect(component.lineItems[0].modifiers).toHaveLength(1)
+    expect(component.lineItems[0].modifiers[0]).toMatchObject({ name: 'Mayo', amount: -1 })
+  })
+
+  it('das Extras-Raster kennzeichnet falsch typisierte Kacheln, bevor jemand tippt', () => {
+    const mayo = product('mayo', { name: 'Mayo', productType: 'PRODUCT' } as Partial<ProductSchema>)
+    const ketchup = product('ketchup', { name: 'Ketchup', productType: 'MODIFIER' } as Partial<ProductSchema>)
+    const pommes = product('pommes', {
+      optionGroups: [
+        {
+          id: 'group-1',
+          name: 'Dips',
+          minSelections: 0,
+          maxSelections: 2,
+          freeQuantity: 0,
+          options: [{ productId: 'mayo' }, { productId: 'ketchup' }],
+        },
+      ],
+    } as unknown as Partial<ProductSchema>)
+    const { component } = setup({ catalog: [pommes, mayo, ketchup] })
+    component.increaseLineItem(pommes)
+
+    component.selectProduct(0) // ruft setExtraSubButtons()
+
+    const tiles: Array<{ name: string; icon?: string }> = component.productButtons
+    expect(tiles.find(t => t.name === 'Mayo')?.icon).toBe('warning')
+    expect(tiles.find(t => t.name === 'Ketchup')?.icon).toBeUndefined()
   })
 })
 

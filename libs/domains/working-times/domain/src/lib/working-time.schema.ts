@@ -53,8 +53,24 @@ export type WorkingTimeData = Static<typeof workingTimeDataSchema>
 //#endregion
 
 //#region Schema für Updates (PATCH)
+// `tenantId` gehört in die Auswahl, obwohl es nie ein Client schickt:
+// `multiTenancy()` stempelt es in `around.all` auf JEDEN Write — auch auf
+// `patch` — und zwar BEVOR `validateData` in `before.patch` greift. Da
+// `Type.Pick` das `additionalProperties: false` von `workingTimeSchema` erbt,
+// scheiterte jeder EXTERNE Patch mit 400 „validation failed" („Mandant: must
+// NOT have additional properties"). Betroffen war zuletzt die
+// Konflikt-Auflösung „Cloud übernehmen": Sie patcht den vollständigen
+// Cloud-Record, der `tenantId` trägt.
+//
+// `Type.Partial` macht das Feld optional — eine Erlaubnis ist es nicht: der
+// Hook überschreibt jeden mitgesendeten Wert und `workingTimePatchResolver`
+// verwirft ihn zusätzlich (`tenantId: async () => undefined`).
+//
+// Gleiche Klasse wie panary/panary-core#183 (sync-conflicts) und
+// panary/panary-cloud#200 (fiscal-counter, reservation); gefunden vom
+// erweiterten Boot-Check aus panary/panary-core#267.
 export const workingTimePatchSchema = Type.Partial(
-  Type.Pick(workingTimeSchema, ['checkoutDate', 'originCheckoutDate', 'breaks', 'updatedBy']),
+  Type.Pick(workingTimeSchema, ['checkoutDate', 'originCheckoutDate', 'breaks', 'updatedBy', 'tenantId']),
   { $id: 'WorkingTimePatch' },
 )
 export type WorkingTimePatch = Static<typeof workingTimePatchSchema>

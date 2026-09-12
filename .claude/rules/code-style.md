@@ -248,14 +248,29 @@ Rückfall ist eine Liste offener Ressourcen im `describe`-Scope, die `afterEach`
 genau die geteilte Bindung von oben, nur mit einem anderen Inhalt. `onTestFinished` registriert
 den Abbau am laufenden Test und läuft auch, wenn der Test wirft.
 
-**Bestand (gemessen am 2026-08-14, 159 Spec-Dateien in `apps/` + `libs/`): 0 Treffer.** Der
-Bestand ist vollständig umgebaut, der Suchbefehl unten liefert nichts mehr. Präzedenzfälle:
+**Bestand der `beforeEach`-Form (gemessen am 2026-08-14, 159 Spec-Dateien in `apps/` + `libs/`):
+0 Treffer** — der Suchbefehl unten liefert nichts mehr.
 
-| Spec                                                                                                               | Geteilt war                               | Umbau                              | PR   |
-| ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- | ---------------------------------- | ---- |
-| `apps/api-edge/src/print-server/auth.middleware.spec.ts`                                                           | `findMock` (`vi.fn()`, also `mock.calls`) | `makeApp()` je Test                | #199 |
-| `libs/shared/offline-cache/src/lib/{cache-bootstrap,idb-storage.adapter,offline-cache.store,outbox.store}.spec.ts` | Instanz **und** DB-Name                   | Factory je Test + `onTestFinished` | #201 |
-| `libs/domains/tse/domain/src/lib/simulator.adapter.spec.ts`                                                        | `tse`-Instanz                             | `new` im Test                      | #201 |
+🚨 **„0 Treffer" heisst nicht „isoliert".** Am 2026-09-13 lagen in `apps/api-edge/test/` **vier**
+reihenfolgeabhängige Suiten (#301), und der Befehl sah **keine einzige** davon. Zwei Gründe, beide
+strukturell:
+
+- Er filtert auf `--include='*.spec.ts'`. Die Integrationstests heissen `*.test.ts` (die
+  vitest-`include` deckt `{test,spec}` ab, der Suchbefehl nicht) — sie liegen komplett ausserhalb
+  seines Blickfelds.
+- Er sucht **Zuweisungen in `beforeEach`**. Die vier Fälle bauen ihren Zustand in `beforeAll` als
+  **Datenbankzeile** auf; im Testkörper steht keine Zuweisung, die er finden könnte. Geteilt ist
+  dort nicht die Bindung und auch nicht der Name, sondern die Zeile selbst.
+
+Der Befehl bleibt nützlich für die Form, die er kennt. Als Entwarnung taugt er nicht — wogegen
+die zweite Form steht, sagt §10.2. Präzedenzfälle:
+
+| Spec                                                                                                               | Geteilt war                               | Umbau                                | PR   |
+| ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- | ------------------------------------ | ---- |
+| `apps/api-edge/src/print-server/auth.middleware.spec.ts`                                                           | `findMock` (`vi.fn()`, also `mock.calls`) | `makeApp()` je Test                  | #199 |
+| `libs/shared/offline-cache/src/lib/{cache-bootstrap,idb-storage.adapter,offline-cache.store,outbox.store}.spec.ts` | Instanz **und** DB-Name                   | Factory je Test + `onTestFinished`   | #201 |
+| `libs/domains/tse/domain/src/lib/simulator.adapter.spec.ts`                                                        | `tse`-Instanz                             | `new` im Test                        | #201 |
+| `apps/api-edge/test/services/{orders/orders,users/users,users/admin-access-health,tenants/tenants}.test.ts`        | die **DB-Zeile** aus `beforeAll`          | Datensatz je Test + `onTestFinished` | #301 |
 
 **Die Mutationsprobe gehört zu jedem solchen Umbau.** Ein Test, der nach dem Umstellen noch grün
 ist, kann grün sein, weil er nichts mehr prüft — grün war er vorher ja auch. Also den
@@ -272,6 +287,13 @@ prüfen (`vitest run --sequence.shuffle`) und war auch vor dem Umbau gegeben, we
 nichts zerbrochen hat — nicht als Nachweis der Isolation. Die kommt aus der Struktur: Was der
 nächste Test nicht kennt, kann ein Nachzügler nicht verfälschen.
 
+**Er mischt auch INNERHALB einer Datei.** Vitest dokumentiert `sequence.shuffle: true` als
+„Should files **and tests** run in random order" — beide Unterschalter (`shuffle.files`,
+`shuffle.tests`) gehen damit an. Wer ihn für einen reinen Datei-Schalter hält, sucht die Ursache
+eines roten Laufs in der falschen Ebene: Alle vier Fälle aus #301 liegen innerhalb je einer
+Datei, und `fileParallelism: false` schützt gegen sie nicht (es serialisiert nur, es sortiert
+nicht).
+
 Reproduzierbar:
 
 ```bash
@@ -284,3 +306,56 @@ done | sort -u
 Das Muster in der inneren Schleife ist bewusst weiter als das cloud-Gegenstück (`= []|false|{}`):
 Es findet auch `vi.fn()`- und SUT-Zuweisungen. Enger gefasst meldet es in core null Treffer und
 sieht wie Entwarnung aus.
+
+### 10.2 Integrationstests gegen die geteilte Edge-SQLite
+
+Alle Suiten unter `apps/api-edge/test/` laufen gegen **eine** Datenbankdatei
+(`vitest.config.mts`, `test.env.SQLITE_PATH`) — Vitest kann `env` nicht je Datei setzen, deshalb
+`fileParallelism: false`. Das ist die dritte Stufe von §10/§10.1: Geteilt ist weder die Bindung
+noch der Name, sondern **die Zeile**.
+
+**Die Regel lautet hier: jeder Test legt seine Zeilen selbst an und räumt sie per
+`onTestFinished` ab.** Ein `beforeAll`, das den Datensatz erzeugt, den mehrere Tests nacheinander
+patchen, macht die Testreihenfolge zum Teil der Annahme. Gemessen am 2026-09-13 (#301) betraf das
+vier Suiten mit zusammen fünf roten Tests — alle aus demselben Muster:
+
+| Suite                               | geteilte Zeile  | was kippte                                                                           |
+| ----------------------------------- | --------------- | ------------------------------------------------------------------------------------ |
+| `orders/orders.test.ts`             | eine Order      | „Snapshot unverändert" erwartet 4000 Cents — der Rabatt-Test hatte 2000 hinterlassen |
+| `users/users.test.ts`               | ein POS-User    | der Erfolgsfall löscht `mustChangePosPin`, das der Fehlversuch-Test gesetzt erwartet |
+| `users/admin-access-health.test.ts` | ein Owner-Konto | Test 2 archiviert genau das Konto, dessen Aktivsein Test 1 zählt                     |
+| `tenants/tenants.test.ts`           | ein Tenant      | `get`/`patch` setzen den `create` des Nachbartests voraus                            |
+
+**Was im `beforeAll` bleiben darf: Aufbau, den kein Test verändert.** In `orders.test.ts` sind das
+Filiale und User — sie werden gelesen, nie gepatcht. Die Trennlinie ist nicht „vor dem Test
+angelegt", sondern „wird im Test verändert".
+
+**Die ID ist der Ressourcenname (§10.1) — und hier gehört `uuidv7()` hin, nicht der dort
+empfohlene Zähler.** Die Test-DB ist eine Datei und überlebt den Lauf. Ein reproduzierbarer Name
+kollidiert nach einem Abbruch mit dem Rest des vorherigen Laufs, und dieser Fehlschlag sieht aus
+wie ein Produktionsbug. `uuidv7` ist zugleich das ID-Format des Produktivcodes.
+
+**Baselines gehören in den Test.** Wo eine Suite relativ misst („ein Konto mehr als vorher"),
+muss die Ausgangszahl **im** Test genommen werden. Eine im `beforeAll` gemessene Baseline gilt nur
+so lange, wie kein Test davor an der Zählung dreht — genau die Annahme, die der Shuffle bricht.
+
+**Das Gate.** Seit #301 läuft in der CI ein zusätzlicher Schritt
+(`.github/workflows/ci.yml`, „Reihenfolge-Gate"): derselbe api-edge-Lauf mit
+`--sequence.shuffle` und einem aus `github.sha` abgeleiteten Seed. Zwei Eigenschaften, ohne die
+er still blind wäre — beide in [ADR 0038](../../docs/adr/0038-shuffle-gate-mit-commit-seed.md)
+begründet:
+
+- **`--skip-nx-cache`**, sonst beantwortet Nx den identischen Befehl beim Re-Run aus dem Cache.
+- **Seed aus dem Commit**, nicht `Date.now()`: Ein Schritt, der beim Re-Run desselben Commits
+  anders ausgeht, wird nach dem dritten Mal weggeklickt — dieselbe Gewöhnung wie `--force` bei
+  `wt.sh done`.
+
+Lokal vor dem PR:
+
+```bash
+pnpm nx test api-edge --skip-nx-cache -- --sequence.shuffle --sequence.seed=42
+```
+
+⚠️ Das Gate bleibt eine **Stichprobe**: Es prüft je Lauf eine Permutation. Grün heisst „unter
+diesem Seed keine Kopplung", nicht „isoliert" — die Aussage aus §10.1 gilt unverändert. Es fängt
+den Rückfall, nicht die Abwesenheit.

@@ -1,6 +1,7 @@
 import assert from 'assert'
 
 import { UserStatus, UserSystemRole } from '@panary/users/domain'
+import { onTestFinished } from 'vitest'
 
 import { app } from '../../../src/app'
 import { readAdminAccessState } from '../../../src/utils/admin-access-health'
@@ -15,17 +16,25 @@ import { readAdminAccessState } from '../../../src/utils/admin-access-health'
 // Bewusst relativ zum Ausgangszustand gemessen: Die Test-DB wird von mehreren
 // Test-Dateien geteilt und kann bereits Verwaltungskonten aus dem Bootstrap
 // tragen. Absolute Zahlen waeren reihenfolgeabhaengig.
+//
+// **Baseline UND Konto gehoeren in den Test** (Code-Style §10.1, #301): Vorher
+// lagen beide im `beforeAll`, und der zweite Test archivierte genau das Konto,
+// dessen Aktivsein der erste zaehlte. Unter `--sequence.shuffle` — der mischt
+// auch die Tests INNERHALB einer Datei — war das rot, sobald die beiden die
+// Plaetze tauschten (gemessen 2026-09-13, Seed 3: `4 !== 5`). Eine im
+// `beforeAll` gemessene Baseline ist ausserdem nur so lange gueltig, wie kein
+// Test davor etwas an der Zaehlung aendert.
 describe('readAdminAccessState — gegen die echte Edge-DB', () => {
-  let userId: string
-  let baselineUsable = 0
-
-  beforeAll(async () => {
-    await app.setup()
+  /** Misst den Ausgangszustand und belegt zugleich, dass die Abfrage die Hook-Kette passiert. */
+  const readBaseline = async () => {
     const baseline = await readAdminAccessState(app)
     assert.ok(baseline, 'Ausgangszustand muss ermittelbar sein (Abfrage passiert die Hook-Kette)')
-    baselineUsable = baseline.usableCount
+    return baseline
+  }
 
-    const created = await app.service('users').create(
+  /** Legt einen aktiven Owner an und raeumt ihn am Ende DIESES Tests ab. */
+  const createActiveOwner = async () => {
+    const created = (await app.service('users').create(
       {
         firstName: 'Access',
         lastName: 'Owner',
@@ -33,21 +42,33 @@ describe('readAdminAccessState — gegen die echte Edge-DB', () => {
         status: UserStatus.ACTIVE,
       } as never,
       { provider: undefined },
-    )
-    userId = (created as { _id: string })._id
+    )) as { _id: string }
+
+    onTestFinished(async () => {
+      await app
+        .service('users')
+        .remove(created._id, { provider: undefined })
+        .catch(() => undefined)
+    })
+
+    return created._id
+  }
+
+  beforeAll(async () => {
+    await app.setup()
   })
 
   afterAll(async () => {
-    if (userId) {
-      await app.service('users').remove(userId, { provider: undefined })
-    }
     await app.teardown()
   })
 
   it('aktiver tenant:owner zaehlt als administrationsfaehiger Zugang', async () => {
+    const baseline = await readBaseline()
+    const userId = await createActiveOwner()
+
     const state = await readAdminAccessState(app)
     assert.ok(state)
-    assert.strictEqual(state.usableCount, baselineUsable + 1)
+    assert.strictEqual(state.usableCount, baseline.usableCount + 1)
     assert.strictEqual(state.healthy, true)
     assert.ok(
       !state.blocked.some(account => account._id === userId),
@@ -56,11 +77,14 @@ describe('readAdminAccessState — gegen die echte Edge-DB', () => {
   })
 
   it('archivierter Owner faellt aus der Zaehlung und wird als gesperrt gemeldet (#275)', async () => {
+    const baseline = await readBaseline()
+    const userId = await createActiveOwner()
+
     await app.service('users').patch(userId, { status: UserStatus.ARCHIVED } as never, { provider: undefined })
 
     const state = await readAdminAccessState(app)
     assert.ok(state)
-    assert.strictEqual(state.usableCount, baselineUsable)
+    assert.strictEqual(state.usableCount, baseline.usableCount)
     const blocked = state.blocked.find(account => account._id === userId)
     assert.ok(blocked, 'das archivierte Owner-Konto muss im blocked-Block stehen')
     assert.strictEqual(blocked.role, UserSystemRole.TENANT_OWNER)

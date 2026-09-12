@@ -8,17 +8,34 @@
 // locations-Befunds v26.7.35: Data-Schema lehnte Sync-CREATEs terminal ab) und
 // dass die JSON-Feld-Serialisierung (branding/localization/legalEntity/tse)
 // verlustfrei durch SQLite roundtrippt.
+//
+// **Jeder Test legt seinen eigenen Tenant an** (Code-Style §10.1, #301): Vorher
+// erzeugte Test 2 die Zeile, die Test 3 las und Test 4 patchte — unter
+// `--sequence.shuffle` (mischt auch die Tests INNERHALB einer Datei) war das
+// reihenfolgeabhaengig und rot. Gemessen am 2026-09-13: Seed 3 liess den
+// PATCH vor dem CREATE laufen (NotFound), Seed 1 den Roundtrip nach dem PATCH
+// (`receiptFooter` bereits 'Bis bald!').
 import assert from 'assert'
 import { uuidv7 } from 'uuidv7'
+import { onTestFinished } from 'vitest'
 import { app } from '../../../src/app'
 
 describe('tenants service (Edge-Replica)', () => {
-  const tenantId = uuidv7()
   const tenants = () => app.service('tenants') as any
+  const internal = { provider: undefined } as const
 
-  // Reprаesentativer projizierter Cloud-Record (Shape von projectTenantForEdge).
-  const projectedRecord = {
-    _id: tenantId,
+  // Repraesentativer projizierter Cloud-Record (Shape von projectTenantForEdge).
+  // Factory statt Konstante: Die `_id` ist der Ressourcenname im Sinne von §10.1 —
+  // bliebe sie fix, teilten sich alle Tests weiterhin dieselbe Zeile in der
+  // gemeinsamen Test-SQLite, auch wenn jeder seinen eigenen `create` faehrt.
+  //
+  // uuidv7 statt des in §10.1 empfohlenen Zaehlers: Die Test-DB ist eine Datei und
+  // ueberlebt den Lauf (`apps/api-edge/data/api-edge.test.sqlite`). Ein
+  // reproduzierbarer Name kollidiert nach einem Abbruch mit dem Rest des
+  // vorherigen Laufs — genau die Sorte Fehlschlag, die wie ein Produktionsbug
+  // aussieht. uuidv7 ist ausserdem das ID-Format des Produktivcodes.
+  const makeProjectedRecord = () => ({
+    _id: uuidv7(),
     name: 'Köttersfritte GmbH',
     status: 'ACTIVE',
     region: 'EU',
@@ -42,16 +59,24 @@ describe('tenants service (Edge-Replica)', () => {
     tse: { provider: 'FISKALY', status: 'ACTIVE', jurisdiction: 'DE', apiKeyRef: 'bws-key-ref' },
     updatedAt: '2026-07-28T12:00:00.000Z',
     syncVersion: 3,
+  })
+
+  /** Legt einen Tenant per Sync-CREATE an und raeumt ihn am Ende DIESES Tests ab. */
+  const createTenant = async () => {
+    const record = makeProjectedRecord()
+    const created = await tenants().create(record, { ...internal, fromSync: true })
+
+    onTestFinished(async () => {
+      await tenants()
+        .remove(record._id, internal)
+        .catch(() => undefined)
+    })
+
+    return { record, created }
   }
 
   beforeAll(async () => {
     await app.setup()
-  })
-
-  afterAll(async () => {
-    await tenants()
-      .remove(tenantId, { provider: undefined })
-      .catch(() => undefined)
   })
 
   it('registered the service', () => {
@@ -59,26 +84,31 @@ describe('tenants service (Edge-Replica)', () => {
   })
 
   it('akzeptiert den kompletten projizierten Cloud-Record im Sync-CREATE', async () => {
-    const created = await tenants().create(projectedRecord, { provider: undefined, fromSync: true })
-    assert.strictEqual(created._id, tenantId)
+    const { record, created } = await createTenant()
+
+    assert.strictEqual(created._id, record._id)
     // Replica-Semantik: Cloud-updatedAt wertschonend uebernommen, nicht ueberstempelt.
-    assert.strictEqual(created.updatedAt, projectedRecord.updatedAt)
+    assert.strictEqual(created.updatedAt, record.updatedAt)
     assert.ok(created.createdAt, 'createdAt wird serverseitig gestempelt')
   })
 
   it('roundtrippt die JSON-Bloecke verlustfrei durch SQLite', async () => {
-    const fetched = await tenants().get(tenantId, { provider: undefined })
-    assert.deepStrictEqual(fetched.branding, projectedRecord.branding)
-    assert.deepStrictEqual(fetched.localization, projectedRecord.localization)
-    assert.deepStrictEqual(fetched.legalEntity, projectedRecord.legalEntity)
-    assert.deepStrictEqual(fetched.tse, projectedRecord.tse)
+    const { record } = await createTenant()
+
+    const fetched = await tenants().get(record._id, internal)
+    assert.deepStrictEqual(fetched.branding, record.branding)
+    assert.deepStrictEqual(fetched.localization, record.localization)
+    assert.deepStrictEqual(fetched.legalEntity, record.legalEntity)
+    assert.deepStrictEqual(fetched.tse, record.tse)
   })
 
   it('wendet Sync-PATCHes mit Cloud-updatedAt wertschonend an', async () => {
+    const { record } = await createTenant()
+
     const patched = await tenants().patch(
-      tenantId,
+      record._id,
       { branding: { receiptFooter: 'Bis bald!' }, updatedAt: '2026-07-28T13:00:00.000Z', syncVersion: 4 },
-      { provider: undefined, fromSync: true },
+      { ...internal, fromSync: true },
     )
     assert.strictEqual(patched.updatedAt, '2026-07-28T13:00:00.000Z')
     assert.strictEqual(patched.syncVersion, 4)

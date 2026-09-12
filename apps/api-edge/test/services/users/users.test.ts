@@ -1,5 +1,6 @@
 // For more information about this file see https://dove.feathersjs.com/guides/cli/service.test.html
 import assert from 'assert'
+import { onTestFinished } from 'vitest'
 import { app } from '../../../src/app'
 
 describe('users service', () => {
@@ -123,7 +124,15 @@ describe('users service — verifyPin Rate-Limit', () => {
 // am Terminal). Der wichtigste Fall ist der Klartext-Schutz: der interne Patch
 // darf NIEMALS `fromSync: true` setzen, sonst ueberspringt der Resolver das
 // bcrypt-Hashing und der PIN landet im Klartext in der DB.
-describe('users service — changePin', () => {
+//
+// **Jeder Test legt seinen eigenen POS-User an** (Code-Style \u00a710.1, #301): Der
+// Erfolgsfall wechselt die PIN von '1234' auf '5678' und loescht
+// `mustChangePosPin` \u2014 lief er vor dem Fehlversuch-Test, fand der ein
+// geloeschtes Flag vor (`Flag muss gesetzt bleiben`, Received `0`). Gemessen am
+// 2026-09-13 unter den Seeds 8\u201314 des vollen api-edge-Laufs. Nebenwirkung des
+// eigenen Users: Auch der Fehlversuchs-Zaehler des PIN-Limiters
+// (`PIN_MAX_FAILURES`, pro userId) ist damit je Test eigener Zustand.
+describe('users service \u2014 changePin', () => {
   type ChangePinService = {
     changePin: (
       data: { userId?: string; currentPin?: string; newPin?: string },
@@ -132,12 +141,11 @@ describe('users service — changePin', () => {
   }
 
   const devicePos = { _id: 'device:test', role: 'device:pos-client' }
+  const service = () => app.service('users') as unknown as ChangePinService
 
-  let userId: string
-
-  beforeAll(async () => {
-    await app.setup()
-    const created = await app.service('users').create(
+  /** Legt einen POS-User mit PIN '1234' und gesetztem Wechsel-Flag an; raeumt am Ende DIESES Tests ab. */
+  const createPinUser = async () => {
+    const created = (await app.service('users').create(
       {
         firstName: 'Change',
         lastName: 'Pin',
@@ -147,26 +155,35 @@ describe('users service — changePin', () => {
         mustChangePosPin: true,
       } as never,
       { provider: undefined },
-    )
-    userId = (created as { _id: string })._id
+    )) as { _id: string }
+
+    onTestFinished(async () => {
+      await app
+        .service('users')
+        .remove(created._id, { provider: undefined })
+        .catch(() => undefined)
+    })
+
+    return created._id
+  }
+
+  beforeAll(async () => {
+    await app.setup()
   })
 
   afterAll(async () => {
-    if (userId) {
-      await app.service('users').remove(userId, { provider: undefined })
-    }
     await app.teardown()
   })
 
-  it('falscher currentPin → NotAuthenticated, PIN und Flag bleiben unveraendert', async () => {
-    const service = app.service('users') as unknown as ChangePinService
+  it('falscher currentPin \u2192 NotAuthenticated, PIN und Flag bleiben unveraendert', async () => {
+    const userId = await createPinUser()
     const before = (await app.service('users').get(userId, { provider: undefined })) as {
       posPin?: string
       mustChangePosPin?: unknown
     }
 
     await assert.rejects(
-      service.changePin({ userId, currentPin: '0000', newPin: '5678' }, { user: devicePos }),
+      service().changePin({ userId, currentPin: '0000', newPin: '5678' }, { user: devicePos }),
       (error: { code?: number }) => error.code === 401,
     )
 
@@ -178,28 +195,31 @@ describe('users service — changePin', () => {
     assert.ok(after.mustChangePosPin, 'Flag muss gesetzt bleiben')
   })
 
-  it('newPin === currentPin → BadRequest (400)', async () => {
-    const service = app.service('users') as unknown as ChangePinService
+  it('newPin === currentPin \u2192 BadRequest (400)', async () => {
+    const userId = await createPinUser()
+
     await assert.rejects(
-      service.changePin({ userId, currentPin: '1234', newPin: '1234' }, { user: devicePos }),
+      service().changePin({ userId, currentPin: '1234', newPin: '1234' }, { user: devicePos }),
       (error: { code?: number }) => error.code === 400,
     )
   })
 
-  it('newPin mit falscher Laenge → BadRequest (400)', async () => {
-    const service = app.service('users') as unknown as ChangePinService
+  it('newPin mit falscher Laenge \u2192 BadRequest (400)', async () => {
+    const userId = await createPinUser()
+
     for (const bad of ['123', '12345', 'abcd']) {
       await assert.rejects(
-        service.changePin({ userId, currentPin: '1234', newPin: bad }, { user: devicePos }),
+        service().changePin({ userId, currentPin: '1234', newPin: bad }, { user: devicePos }),
         (error: { code?: number }) => error.code === 400,
       )
     }
   })
 
-  it('fremder Mandant → Forbidden (403)', async () => {
-    const service = app.service('users') as unknown as ChangePinService
+  it('fremder Mandant \u2192 Forbidden (403)', async () => {
+    const userId = await createPinUser()
+
     await assert.rejects(
-      service.changePin(
+      service().changePin(
         { userId, currentPin: '1234', newPin: '5678' },
         { user: { ...devicePos, tenantId: 'fremder-tenant' } },
       ),
@@ -207,9 +227,9 @@ describe('users service — changePin', () => {
     )
   })
 
-  it('korrekter currentPin → neuer PIN als bcrypt-Hash, Flag geloescht, Result ohne Secrets', async () => {
-    const service = app.service('users') as unknown as ChangePinService
-    const result = await service.changePin({ userId, currentPin: '1234', newPin: '5678' }, { user: devicePos })
+  it('korrekter currentPin \u2192 neuer PIN als bcrypt-Hash, Flag geloescht, Result ohne Secrets', async () => {
+    const userId = await createPinUser()
+    const result = await service().changePin({ userId, currentPin: '1234', newPin: '5678' }, { user: devicePos })
 
     assert.strictEqual(result['posPin'], undefined, 'posPin darf nicht im Result stehen')
     assert.strictEqual(result['password'], undefined, 'password darf nicht im Result stehen')

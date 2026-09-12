@@ -20,11 +20,15 @@ Tests hinweg patcht, macht die Testreihenfolge zum stillen Teil seiner Annahme.
 
 Am 2026-09-13 traf das **vier** Suiten gleichzeitig
 ([#301](https://github.com/panary/panary-core/issues/301)). Ohne Shuffle waren alle
-831 Tests grün; mit `--sequence.shuffle` fiel je nach Seed ein bis zwei Tests aus, und die
+831 Tests grün; mit `--sequence.shuffle` fielen je nach Seed einer bis fünf, und die
 Meldungen zeigten in die falsche Richtung — `2000 !== 4000` in einer Order, die ein
 Nachbartest rabattiert hatte, `NotFound` auf einen Tenant, den ein Nachbartest anlegt.
-Von 16 gemessenen Seeds waren 10 rot (1–3, 8–14); die Ausgangsmeldung hatte über vier
-Läufe mit zufälligem Seed drei bis fünf rote Tests gesehen.
+
+Gemessen in zwei Etappen, weil die vierte Kopplung erst nach der ersten Runde Umbauten
+heraussprang: von den Seeds 1–6 gegen den Ausgangsstand fielen 1, 2 und 3; von den Seeds
+7–16 gegen den halb umgebauten Stand fielen 8 bis 14. Gegen den Ausgangsstand mit dem Seed
+dieses Commits sind es **fünf rote Tests in vier Suiten** — das deckt sich mit der
+Ausgangsmeldung (drei bis fünf über vier Läufe mit zufälligem Seed).
 
 Zwei Eigenschaften machten den Befund unsichtbar:
 
@@ -77,6 +81,9 @@ strenger, sondern schlicht rot.
   „unter diesem Seed keine Kopplung". Die Aussage aus `code-style.md` §10.1 bleibt
   unverändert: Isolation kommt aus der Struktur, nicht aus dem Shuffle. Das Gate fängt den
   Rückfall, nicht die Abwesenheit.
+- **Die Schärfe ist gemessen, nicht angenommen.** Holt man die vier Suiten in ihren
+  Ausgangszustand zurück und fährt das Gate mit dem Seed dieses Commits, fallen genau die
+  fünf Tests. Nach dem Umbau sind 20 von 20 Seeds grün.
 - **Ein Treffer kann aus einem fremden PR stammen.** Weil der Seed wandert, kann eine
   Kopplung erst zwei Commits später auffallen. Gemessen an #301 lagen die Trefferquoten je
   Kopplung zwischen ~30 % und ~70 % der Seeds — über drei api-edge-PRs liegt die

@@ -202,6 +202,41 @@ export interface ApplyPulledRecordsResult {
  * ein kaputter Record blockiert nie den Rest der Seite. Idempotent: dieselbe
  * Seite doppelt angewandt (upsert) ergibt beim zweiten Lauf nur Patches.
  */
+/**
+ * Entfernt das mit ADR 0030 abgeschaffte Legacy-Rabattfeld `order.discount` aus einem
+ * eingehenden Sync-Record — dieselbe Klasse wie der `_deletedAt`-Strip unten (#308/#310).
+ *
+ * Bestands-Orders aus der Zeit vor ADR 0030 tragen das Feld weiter; `orderDataSchema`
+ * und `orderPatchSchema` sind `additionalProperties: false` und kennen es nicht. Ohne
+ * Strip lehnt `validateData` den Record ab — und weil `upsertCursor` im Scheduler
+ * unabhaengig vom Ergebnis vorrueckt, liefert der naechste Pull nur noch Neueres: Die
+ * Bestellung kaeme NIE wieder an. Ein stiller Totalverlust, kein verzoegerter Retry.
+ *
+ * 🚫 Bewusst NUR fuer `orders`. `discountSchema` (Stammdaten-Konditionen an Kunde,
+ * Firmenkunde, User, Filiale) fuehrt ein gleichnamiges Feld voellig legitim — ein
+ * pauschaler Strip ueber alle Services wuerde Stammdaten beschaedigen.
+ *
+ * Die Log-Zeile ist Teil des Zwecks: Sie beantwortet, ob es solche Bestands-Orders
+ * ueberhaupt gibt. Taucht `sync.pull.legacy_discount_stripped` nie auf, gibt es den Fall
+ * nicht — das ersetzt eine einmalige Prod-Zaehlung und deckt zusaetzlich Edges ab, die
+ * erst spaeter wieder online kommen, sowie Restores aus Backups.
+ */
+const stripLegacyOrderDiscount = (
+  service: string,
+  record: Record<string, unknown>,
+  entityId: string,
+): Record<string, unknown> => {
+  if (service !== 'orders' || !('discount' in record)) return record
+  const { discount: _legacyDiscount, ...rest } = record
+  logger.warn({
+    message: 'Pull-Apply: abgeschafftes Legacy-Feld `discount` aus Bestands-Order entfernt',
+    event: 'sync.pull.legacy_discount_stripped',
+    service,
+    entityId,
+  })
+  return rest
+}
+
 export const applyPulledRecords = async (
   app: Application,
   service: string,
@@ -264,7 +299,8 @@ export const applyPulledRecords = async (
       // Defensiv hier UND in der Cloud-Projektion (sync.ts) gestrippt, damit der
       // Edge nicht von der Cloud-Deploy-Reihenfolge abhaengt.
       const { _deletedAt: _cloudSoftDelete, ...cleanRecord } = (item.record ?? {}) as Record<string, unknown>
-      const incoming = service === 'users' ? stripUserEdgeLocalFields(cleanRecord) : cleanRecord
+      const withoutLegacyDiscount = stripLegacyOrderDiscount(service, cleanRecord, item._id)
+      const incoming = service === 'users' ? stripUserEdgeLocalFields(withoutLegacyDiscount) : withoutLegacyDiscount
       if (existingIds.has(item._id)) {
         op = SyncOp.PATCH
         await app

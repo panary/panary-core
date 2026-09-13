@@ -10,7 +10,10 @@ import assert from 'assert'
 
 import { SyncOp, SyncRunRecordStatus, type SyncPullResponse } from '@panary/sync/domain'
 
+import { vi } from 'vitest'
+
 import type { Application } from '../../src/declarations'
+import { logger } from '@panary/shared-backend'
 import { applyPulledRecords } from '../../src/workers/sync-apply'
 
 type PullRecord = SyncPullResponse['records'][number]
@@ -69,7 +72,9 @@ describe('sync-apply — applyPulledRecords', () => {
 
   const app = {
     service: (path: string) => {
-      if (path === 'products') return service
+      // `orders`/`discounts` fuer den Legacy-`discount`-Strip (#310): Der Strip greift
+      // nur bei `orders`, `discounts` ist die Gegenprobe.
+      if (path === 'products' || path === 'orders' || path === 'discounts') return service
       throw new Error(`Unerwarteter Service-Zugriff im Test: ${path}`)
     },
   } as unknown as Application
@@ -182,5 +187,56 @@ describe('sync-apply — applyPulledRecords', () => {
 
     assert.deepStrictEqual(result, { applied: 0, rejected: 0, details: [] })
     assert.strictEqual(calls.find.length + calls.create.length + calls.patch.length, 0)
+  })
+
+  // --- Legacy-`discount`-Strip (#310) ----------------------------------------------
+  //
+  // Bestands-Orders von vor ADR 0030 tragen `order.discount`. Ohne Strip lehnt
+  // `validateData` sie ab (`additionalProperties: false`) — und weil der Pull-Cursor
+  // unabhaengig vom Ergebnis vorrueckt, kaeme die Bestellung NIE wieder an. Der Strip
+  // ist deshalb kein Aufraeumen, sondern Verlustschutz.
+
+  it('strippt `discount` aus Bestands-Orders und laesst sie ankommen', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined as never)
+    const page = [pullRecord('o-1', { record: { _id: 'o-1', tenantId: 't-1', discount: 5, total: 100 } })]
+
+    const result = await applyPulledRecords(app, 'orders', page)
+
+    assert.strictEqual(result.applied, 1)
+    assert.strictEqual(result.rejected, 0)
+    // Das Feld erreicht den Service nicht — sonst schluege validateData zu.
+    assert.ok(!('discount' in calls.create[0]), '`discount` darf nicht am Service ankommen')
+    // Der Rest der Order bleibt unangetastet.
+    assert.strictEqual(calls.create[0]['total'], 100)
+    // Die Log-Zeile ist der Zweck der Uebung: Sie beantwortet, ob es den Fall gibt.
+    const events = warn.mock.calls.map(([arg]) => (arg as { event?: string })?.event)
+    assert.ok(events.includes('sync.pull.legacy_discount_stripped'), 'Strip muss geloggt werden')
+    warn.mockRestore()
+  })
+
+  it('laesst `discount` bei ANDEREN Services unangetastet (Gegenprobe)', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined as never)
+    // `discountSchema` fuehrt `discount` voellig legitim — ein pauschaler Strip ueber
+    // alle Services wuerde Stammdaten beschaedigen.
+    const page = [pullRecord('d-1', { record: { _id: 'd-1', tenantId: 't-1', discount: 10 } })]
+
+    await applyPulledRecords(app, 'discounts', page)
+
+    assert.strictEqual(calls.create[0]['discount'], 10)
+    const events = warn.mock.calls.map(([arg]) => (arg as { event?: string })?.event)
+    assert.ok(!events.includes('sync.pull.legacy_discount_stripped'), 'kein Strip ausserhalb von orders')
+    warn.mockRestore()
+  })
+
+  it('loggt nichts, wenn eine Order das Feld gar nicht traegt', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined as never)
+    const page = [pullRecord('o-2', { record: { _id: 'o-2', tenantId: 't-1', total: 42 } })]
+
+    const result = await applyPulledRecords(app, 'orders', page)
+
+    assert.strictEqual(result.applied, 1)
+    const events = warn.mock.calls.map(([arg]) => (arg as { event?: string })?.event)
+    assert.ok(!events.includes('sync.pull.legacy_discount_stripped'), 'kein Log ohne Strip')
+    warn.mockRestore()
   })
 })

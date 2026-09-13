@@ -1,6 +1,7 @@
 import assert from 'assert'
 import { BadRequest } from '@feathersjs/errors'
 import { onTestFinished } from 'vitest'
+import { uuidv7 } from 'uuidv7'
 
 import { app } from '../../../src/app'
 
@@ -43,9 +44,11 @@ import { app } from '../../../src/app'
  * scheiterte schon `validateQuery` — gemessen wurde ein 400er, nicht der Filter.
  */
 describe('pre-orders — Öffnungszeiten-Ausnahmen filialgenau (Integration)', () => {
-  const TENANT = '019fffff-2860-7000-8000-000000000001'
-  const OWN_LOCATION = '019fffff-2860-7000-8000-0000000000a1'
-  const OTHER_LOCATION = '019fffff-2860-7000-8000-0000000000a2'
+  // IDs je Lauf neu (Code-Style §10.2): Die Test-SQLite ist eine Datei und überlebt
+  // einen Abbruch — feste IDs kollidierten dann mit den Resten des vorherigen Laufs.
+  const TENANT = uuidv7()
+  const OWN_LOCATION = uuidv7()
+  const OTHER_LOCATION = uuidv7()
 
   const internal = { provider: undefined } as const
 

@@ -8,9 +8,21 @@ import { DiscountService } from '@panary/discounts/data-access'
 import { LocationService } from '@panary/locations/data-access'
 import { OrderService } from '@panary/orders/data-access'
 
+/**
+ * Die Quellen, die der POS-Cache abgleicht. Exportiert und als Literal-Typ geführt, damit
+ * die Liste nicht still auseinanderläuft: `#sources` ist auf `PosCacheSyncStore` typisiert
+ * (ein neuer Eintrag kompiliert also nur, wenn er hier steht), und
+ * `pos-cache-sync.service.spec.ts` belegt für jeden Namen, dass das zugehörige
+ * Query-Schema `updatedAt` fuehrt. Ohne diese Kette fällt eine delta-unfähige Quelle erst
+ * zur Laufzeit auf — als 400 des Query-Validators, den `#syncSource()` still abfängt.
+ */
+export const POS_CACHE_SYNC_STORES = ['products', 'product-groups', 'discounts', 'locations', 'orders'] as const
+
+export type PosCacheSyncStore = (typeof POS_CACHE_SYNC_STORES)[number]
+
 /** Eine cachebare Quelle: Store-Name + ein `find()`, das per BaseService write-through cached. */
 interface CacheSyncSource {
-  readonly store: string
+  readonly store: PosCacheSyncStore
   readonly find: (query: Record<string, unknown>) => Promise<unknown>
 }
 
@@ -22,9 +34,11 @@ const SYNC_PAGE_LIMIT = 200
  * `find()`-Aufrufe cachen über den `BaseService` bereits write-through — dieser
  * Service verwaltet nur Cursor, Pagination und den Connect-Trigger.
  *
- * Delta setzt voraus, dass der Service `updatedAt` als Query-Property zulässt
- * (products, orders). Wo nicht (product-groups, discounts, locations), fällt der
- * Pull bei einem Fehler auf einen Voll-Refresh zurück.
+ * Delta setzt voraus, dass der Service `updatedAt` als Query-Property zulässt — das tun
+ * **alle** Quellen in `POS_CACHE_SYNC_STORES`, und die Edge-Services hängen genau diese
+ * Domain-Schemas in ihren Query-Validator. Festgehalten wird das von
+ * `pos-cache-sync.service.spec.ts`; fällt `updatedAt` aus einem Schema, lehnt der
+ * Validator die Delta-Query mit 400 „additional property updatedAt" ab.
  */
 @Injectable()
 export class PosCacheSyncService {
@@ -70,15 +84,17 @@ export class PosCacheSyncService {
 
   async #syncSource(source: CacheSyncSource): Promise<void> {
     const cursor = await this.#store.getCursor(source.store)
+    if (!cursor) {
+      await this.#pull(source, undefined)
+      return
+    }
     try {
       await this.#pull(source, cursor)
     } catch (error) {
-      // Delta evtl. nicht unterstützt (updatedAt nicht queryable) → Voll-Refresh-Fallback.
-      if (cursor) {
-        await this.#pull(source, undefined)
-      } else {
-        throw error
-      }
+      if (!isRejectedDeltaQuery(error)) throw error
+      // Der Server hat die Delta-Query selbst verworfen → einmalig ohne `updatedAt`-Filter
+      // nachziehen, damit die Quelle nicht dauerhaft auf einem unbrauchbaren Cursor steht.
+      await this.#pull(source, undefined)
     }
   }
 
@@ -104,8 +120,21 @@ export class PosCacheSyncService {
   }
 }
 
+/**
+ * Heilt ein Voll-Pull diesen Fehler? Nur bei einem Bad Request des Query-Validators
+ * (400/422) liegt es an der Delta-Query — dann kommt ein Pull ohne `updatedAt`-Filter
+ * durch. Netz-, Auth- und Server-Fehler (offline, 401, 5xx) heilt er nicht: Dort wäre
+ * der Voll-Pull nur der teurere zweite Fehlschlag, und zwar genau dann, wenn die
+ * Leitung ohnehin klemmt. Solche Fehler protokolliert der Aufrufer; der
+ * nächste Connect löst `syncAll()` erneut aus.
+ */
+function isRejectedDeltaQuery(error: unknown): boolean {
+  const code = (error as { code?: number } | null)?.code
+  return code === 400 || code === 422
+}
+
 function sourceOf(
-  store: string,
+  store: PosCacheSyncStore,
   service: { find: (params: { query: Record<string, unknown> }) => Promise<unknown> },
 ): CacheSyncSource {
   return { store, find: query => service.find({ query }) }

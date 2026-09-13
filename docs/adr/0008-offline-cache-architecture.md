@@ -44,6 +44,11 @@ FeathersJS-Service-Schnittstelle funktionieren.
   in einem Meta-Store; Mismatch beim Öffnen ⇒ **Wipe + Voll-Bootstrap** (`openCacheDatabase`).
 - **Freshness (Folgephasen):** Hybrid — einmaliger Voll-Bootstrap, danach inkrementeller Delta-Sync
   über `updatedAt`-Cursor (`getAllByIndex` auf dem `updatedAt`-Index), Voll-Refresh als Fallback.
+  > **Präzisierung 2026-09-13 ([#306](https://github.com/panary/panary-core/issues/306)):** Der
+  > Voll-Refresh greift nur noch, wenn der Query-Validator die Delta-Query selbst ablehnt
+  > (400/422) — der einzige Fehler, den ein Cursor-Reset heilt. Bei Netz-, Auth- und
+  > Server-Fehlern zog er vorher den teuersten aller Pulls nach, und zwar genau dann, wenn die
+  > Leitung ohnehin klemmte; dort heilt jetzt der nächste Connect, der `syncAll()` erneut auslöst.
 - **Persistenz härten:** `requestPersistentStorage()` (`navigator.storage.persist()`) verhindert
   Eviction unter Storage-Druck.
 

@@ -68,10 +68,22 @@ Ressource, die über den einzelnen Test hinaus lebt; eine neue Kopplung kann nur
 Änderung kommen, die api-edge betrifft. Der Rest des Workspace wurde am 2026-09-13 einmal
 mitgemessen (`nx run-many -t test --skip-nx-cache -- --sequence.shuffle --sequence.seed=4242`,
 1:26 min): **83 von 86 Projekten shuffle-grün.** Die drei übrigen — `pos-client`,
-`admin-client`, `setup-client` — laufen gar nicht erst an, sie fahren
-`@angular/build:unit-test` und lehnen die Option mit
-`'sequence' is not found in schema` ab. Ein workspace-weites Gate wäre dort also nicht
-strenger, sondern schlicht rot.
+`admin-client`, `setup-client` — fahren `@angular/build:unit-test` und lehnen das
+CLI-Flag mit `'sequence' is not found in schema` ab.
+
+⚠️ **Korrektur vom 2026-09-13 (dieselbe Session, nach dem Merge):** Daraus wurde hier
+zunächst „geht dort gar nicht" — das stimmt nicht. Der Builder fährt vitest
+(`runner`-Default) und nimmt über `--runnerConfig` eine eigene vitest-Config entgegen.
+Damit läuft Shuffle sehr wohl:
+
+```bash
+printf 'export default { test: { sequence: { shuffle: true, seed: 4242 } } }\n' > /tmp/shuffle.config.ts
+pnpm nx run-many -t test -p admin-client,pos-client,setup-client \
+  --skip-nx-cache --runnerConfig=/tmp/shuffle.config.ts
+```
+
+Gemessen über die Seeds 1, 7, 13, 4242 und 99999: **70 von 70 Tests grün** (admin-client 68,
+pos-client 1, setup-client 1). Blockiert ist also nur die **Flag-Form**, nicht das Verfahren.
 
 ## Konsequenzen
 
@@ -95,9 +107,16 @@ strenger, sondern schlicht rot.
   dieselbe Permutation — eine Kopplung, die unter diesem Seed nicht auffällt, ist dauerhaft
   unsichtbar. Gemessen: Von 12 Seeds fielen bei der orders-Kopplung 4 auf; ein fester Seed
   hätte sie mit 2/3 Wahrscheinlichkeit nie gefunden.
-- **Verworfen: Shuffle über alle betroffenen Projekte.** Zwei Gründe, der erste hart: Die drei
-  Angular-Clients nehmen die Option nicht an (`@angular/build:unit-test`, Fehler oben) — ein
-  `nx affected -t test -- --sequence.shuffle` wäre auf jedem PR rot, der einen von ihnen
-  berührt. Der zweite ist Kosten gegen Nutzen: Auf einem PR, der eine geteilte Lib anfasst,
-  wären es bis zu ~80 Projekte ohne Cache, und die Unit-Specs tragen die `beforeEach`-Form, die
-  §10.1 bereits abdeckt.
+- **Verworfen: Shuffle über alle betroffenen Projekte.** Ein `nx affected -t test --
+  --sequence.shuffle` wäre auf jedem PR rot, der einen der drei Angular-Clients berührt — das
+  ist aber eine Eigenschaft des Flags, nicht des Verfahrens (Korrektur oben). Tragend ist
+  deshalb Kosten gegen Nutzen: Auf einem PR, der eine geteilte Lib anfasst, wären es bis zu
+  ~80 Projekte ohne Cache; die Unit-Specs tragen die `beforeEach`-Form, die §10.1 abdeckt; und
+  keines dieser Projekte hat eine Ressource, die über den einzelnen Test hinaus lebt. Sobald
+  eines eine bekommt — ein Client mit echtem Storage, ein Lib-Spec gegen eine Datei —, ist das
+  Rezept oben der Weg, es nachzuziehen.
+- **Gegenprobe in `panary-cloud` (2026-09-13):** dort gibt es die Kopplungsklasse nicht. Keine
+  geteilte Test-Ressource (kein `globalSetup`, kein `fileParallelism: false`, kein
+  `mongodb-memory-server`), und die `beforeEach`-Form fängt dort seit #264 eine **Lint-Regel**
+  (`panary/no-shared-spec-recorder`) statt eines Suchbefehls. Gemessen: `api-cloud` über acht
+  Seeds je 4057 Tests grün, alle übrigen Projekte unter Seed 1 grün. Kein Gate nötig.

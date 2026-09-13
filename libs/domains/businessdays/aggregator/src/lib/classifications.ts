@@ -77,7 +77,7 @@ export interface OrderAggregationOptions {
    * Zahlungen ist eine Nullaussage im Gewand eines Datums.
    *
    * Fehlt die Option, gilt Kassenbetrieb — Bestandsaufrufer bleiben unveraendert.
-   * Siehe panary-cloud `docs/adr/0036-bestellbetrieb-und-kassenmeldung.md`.
+   * Siehe panary-cloud `docs/adr/0037-bestellbetrieb-und-kassenmeldung.md`.
    */
   operationMode?: 'orders-only' | 'pos-cashier'
 }

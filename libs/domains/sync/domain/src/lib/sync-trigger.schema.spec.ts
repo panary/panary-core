@@ -18,7 +18,7 @@ import {
 //
 // `Format` und nicht `FormatRegistry`: @feathersjs/typebox pinnt
 // @sinclair/typebox auf ^0.25, dort heisst die Registry noch `Format`.
-// Siehe docs/adr/0019-sinclair-typebox-an-feathers-koppeln.md.
+// Siehe docs/adr/0020-sinclair-typebox-an-feathers-koppeln.md.
 beforeAll(() => {
   if (!Format.Has('uuid')) {
     Format.Set('uuid', value => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value))

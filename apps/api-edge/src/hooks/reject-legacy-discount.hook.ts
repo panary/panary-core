@@ -27,10 +27,16 @@
  * der unklaren Meldung, zu deren Vermeidung dieser Guard laut
  * `discount-mutex.ts` existiert.
  *
- * Nicht laxer, sondern strenger als der Kommentar behauptete — aber ob der
- * Sync-Apply-Pfad das braucht (strippen statt 400?), ist offen und
- * abstimmungspflichtig. Belastbar waere dafuer nur eine Prod-Messung, ob
- * Bestands-Orders das Feld ueberhaupt noch mitschicken.
+ * Entschieden mit #310: Der Sync-Apply-Pfad strippt `discount` jetzt selbst
+ * (`workers/sync-apply.ts`, nur fuer `orders`) und protokolliert das als
+ * `sync.pull.legacy_discount_stripped`. Damit geht keine Bestands-Order mehr
+ * verloren — was hier drohte, war kein verzoegerter Retry, sondern ein stiller
+ * Totalverlust: `upsertCursor` im Scheduler rueckt unabhaengig vom Ergebnis vor,
+ * der abgelehnte Record wird also nie wieder geliefert.
+ *
+ * Dieser Guard bleibt trotzdem: Er faengt den EXTERNEN Schreibzugriff mit einer
+ * sprechenden Meldung ab, bevor TSE- und Kassen-Hooks Nebenwirkungen erzeugen.
+ * Der Strip drueben heilt Bestandsdaten, dieser Hook erzieht Clients.
  *
  * Anders als `validateStaffMealExclusivity` braucht dieser Hook KEINEN
  * Vorzustand: Verboten ist der Schreibzugriff selbst, nicht eine Kombination.

@@ -36,9 +36,11 @@ import { POS_CACHE_SYNC_STORES, PosCacheSyncService, type PosCacheSyncStore } fr
 
 /**
  * Store-Name → die Query-Properties, aus denen `querySyntax()` das Query-Schema des
- * Service baut. `Record<PosCacheSyncStore, …>` macht eine fehlende Zeile bereits zum
- * Typfehler; der erste Test prüft dieselbe Vollständigkeit noch einmal zur Laufzeit,
- * weil `nx test` allein keine Spec-Typen prüft.
+ * Service baut. `Record<PosCacheSyncStore, …>` macht eine fehlende Zeile schon zum
+ * Build-Fehler: Der Angular-Unit-Test-Builder kompiliert diese Spec mit, `nx test
+ * pos-client` bricht also bereits mit TS2741 ab (gemessen 2026-09-13). Der erste Test
+ * prüft dieselbe Vollständigkeit trotzdem zur Laufzeit — er hält die Invariante als
+ * Aussage fest und greift auch dann noch, wenn der Typ hier je aufgeweicht wird.
  */
 const QUERY_PROPERTIES_BY_STORE: Record<PosCacheSyncStore, TObject> = {
   products: productQueryProperties,

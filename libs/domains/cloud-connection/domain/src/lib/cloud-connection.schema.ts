@@ -149,7 +149,7 @@ export const cloudConnectionSchema = Type.Object(
     // Wenn gesetzt: nur Users mit diesen IDs werden aus dem Edge-Snapshot in
     // die Cloud gepusht. Wenn `undefined`/leer: kein Allowlist-Filter (Default
     // — alle nicht von der Cloud serverseitig blockierten Users werden gepusht).
-    // Server-seitiger Filter (Cloud-side `PUSH_BLOCKED_USER_ROLES`) bleibt
+    // Server-seitiger Filter (Cloud-side `SYNC_PUSH_BLOCKED_USER_ROLES`) bleibt
     // unabhaengig aktiv (Defense in Depth).
     bootstrapUserAllowlist: Type.Optional(Type.Array(Type.String({ format: 'uuid' }), { maxItems: 1000 })),
 

@@ -427,7 +427,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Tenant-Settings: TENANT_OWNER darf eigene Settings READ + CREATE + UPDATE.
     // CREATE ist noetig, weil neue Tenants vor dem ersten Toggle kein Settings-
     // Dokument haben — beim Aktivieren via UI legt das Frontend einen Datensatz
-    // an. Field-Allowlist im `restrictTenantPatch`-Hook (tenant-settings.ts)
+    // an. Field-Allowlist im `restrictTenantWrite`-Hook (tenant-settings.ts)
     // beschraenkt die mutierbaren Felder auf `aiExtraction.enabled`,
     // `aiExtraction.autoMatchThreshold` und `aiExtraction.consentedAt` —
     // Kosten-/Quotenfelder bleiben PLATFORM_OWNER-only.

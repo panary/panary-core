@@ -93,6 +93,15 @@ describe('sync-apply — applyPulledRecords', () => {
     calls = { find: [], get: [], create: [], patch: [], remove: [] }
   })
 
+  // Spies zentral zuruecknehmen, NICHT am Ende des jeweiligen Tests: Ein dort
+  // stehendes `mockRestore()` wird bei einem fehlgeschlagenen assert nie erreicht,
+  // der Spy leckt in den Folgetest und macht ihn aus fremder Ursache rot. Genau so
+  // gemessen bei der Mutationsprobe zu #310 — eine Mutation kippte zwei Tests, von
+  // denen nur einer etwas mit ihr zu tun hatte.
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('wendet create + patch gemischt an und entfernt deletedAt-Records', async () => {
     store.set('p-1', { _id: 'p-1', name: 'Alt' })
     store.set('p-0', { _id: 'p-0', name: 'Wird geloescht' })
@@ -211,7 +220,6 @@ describe('sync-apply — applyPulledRecords', () => {
     // Die Log-Zeile ist der Zweck der Uebung: Sie beantwortet, ob es den Fall gibt.
     const events = warn.mock.calls.map(([arg]) => (arg as { event?: string })?.event)
     assert.ok(events.includes('sync.pull.legacy_discount_stripped'), 'Strip muss geloggt werden')
-    warn.mockRestore()
   })
 
   it('laesst `discount` bei ANDEREN Services unangetastet (Gegenprobe)', async () => {
@@ -225,7 +233,6 @@ describe('sync-apply — applyPulledRecords', () => {
     assert.strictEqual(calls.create[0]['discount'], 10)
     const events = warn.mock.calls.map(([arg]) => (arg as { event?: string })?.event)
     assert.ok(!events.includes('sync.pull.legacy_discount_stripped'), 'kein Strip ausserhalb von orders')
-    warn.mockRestore()
   })
 
   it('loggt nichts, wenn eine Order das Feld gar nicht traegt', async () => {
@@ -237,6 +244,5 @@ describe('sync-apply — applyPulledRecords', () => {
     assert.strictEqual(result.applied, 1)
     const events = warn.mock.calls.map(([arg]) => (arg as { event?: string })?.event)
     assert.ok(!events.includes('sync.pull.legacy_discount_stripped'), 'kein Log ohne Strip')
-    warn.mockRestore()
   })
 })

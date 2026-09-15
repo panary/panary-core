@@ -2,6 +2,7 @@
 paths:
   - '**/*.spec.ts'
   - '**/vitest.config.*'
+  - '**/vite.config.*'
   - '**/project.json'
 ---
 

@@ -1,3 +1,8 @@
+---
+paths:
+  - 'docs/**'
+---
+
 # Dokumentation — OKF-Wiki (`/docs`) – Panary Core
 
 Projektdoku lebt im Wiki `/docs`: ein OKF-v0.2-Bundle (Open Knowledge Format — Markdown +

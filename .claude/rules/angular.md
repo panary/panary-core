@@ -6,6 +6,7 @@ paths:
   - 'libs/**/feature-*/**'
   - 'libs/shared/ui-*/**'
   - 'libs/**/data-access*/**'
+  - 'libs/apps/**'
 ---
 
 # Angular-Regeln – Panary Core

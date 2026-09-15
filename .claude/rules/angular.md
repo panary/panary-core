@@ -1,3 +1,13 @@
+---
+paths:
+  - 'apps/pos-client/**'
+  - 'apps/setup-client/**'
+  - 'apps/admin-client/**'
+  - 'libs/**/feature-*/**'
+  - 'libs/shared/ui-*/**'
+  - 'libs/**/data-access*/**'
+---
+
 # Angular-Regeln – Panary Core
 
 Angular 21+, ausschließlich Standalone-Architektur. Alle Regeln sind verbindlich.

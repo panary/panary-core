@@ -1,3 +1,9 @@
+---
+paths:
+  - 'apps/api-edge/**'
+  - 'libs/shared/backend/**'
+---
+
 # Logging-Regeln – Panary Core
 
 ## 1. Architektur: Wide Events / Canonical Log Lines

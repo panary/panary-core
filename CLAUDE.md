@@ -9,7 +9,8 @@ Vor dem Arbeiten die relevanten Rules lesen:
 | Datei                            | Inhalt                                                                                                            |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `.claude/rules/security.md`      | Multi-Tenancy, Hooks (`authorize`, `multiTenancy`, `ensureTenantIsolation`), Rollen, Permissions-Matrix, Resolver |
-| `.claude/rules/code-style.md`    | Prettier, TypeScript-Konventionen, Benennung, Tailwind v4, Design-System, Spec-Isolation/Test-Timeouts            |
+| `.claude/rules/code-style.md`    | Prettier, TypeScript-Konventionen, Benennung, Tailwind v4, Design-System — lädt immer                             |
+| `.claude/rules/testing.md`       | §10 Spec-Isolation, Test-Timeouts, Runner-Konfiguration — lädt bei `*.spec.ts`, vitest-Configs, `project.json`    |
 | `.claude/rules/angular.md`       | Control Flow, Signals, Signal-Inputs/Outputs, DI via `inject()`, Standalone-Architektur                           |
 | `.claude/rules/data-models.md`   | IDs (uuidv7), Datumsformat, TypeBox-Schemas, „Product First"-Prinzip, Domain-Struktur                             |
 | `.claude/rules/logging.md`       | Wide Events, Canonical Log Lines, Business-Kontext, Dev-Format, Sensitive-Daten-Regeln                            |

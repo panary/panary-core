@@ -1,7 +1,7 @@
 ---
 type: Report
 title: OSV-Befund 2026-09-10 — js-yaml, svgo, smol-toml per Override-Floor, adm-zip ohne Fix befristet akzeptiert
-description: Fünf Advisories (js-yaml, svgo 2×, smol-toml, adm-zip) ließen den nächtlichen OSV-Scan ab dem 2026-09-09 rot werden; drei Pakete sind über Override-Floors geschlossen, für adm-zip gibt es keinen Fix und der Befund ist bis 2026-12-10 als akzeptiertes Risiko dokumentiert (dev-only, Module Federation ungenutzt).
+description: Fünf Advisories (js-yaml, svgo 2×, smol-toml, adm-zip) ließen den nächtlichen OSV-Scan ab dem 2026-09-09 rot werden; drei Pakete sind über Override-Floors geschlossen, für adm-zip gab es zunächst keinen Fix (bis 2026-12-10 als akzeptiertes Risiko dokumentiert, dev-only, Module Federation ungenutzt) — Nachtrag 2026-09-15: 0.6.1 enthält den Fix, Ignore durch Override-Floor ^0.6.1 mit Karenz-Ausnahme bis 2026-09-18 ersetzt.
 tags: [security, supply-chain, dependencies, ci]
 status: stable
 generated: { by: claude-code/fable-5.1, at: 2026-09-10T10:00:00.000Z }
@@ -80,3 +80,35 @@ osv-scanner scan --config osv-scanner.toml -L pnpm-lock.yaml
 ```
 
 Den nächtlichen Lauf nach dem Merge einmal abwarten.
+
+## Nachtrag 2026-09-15 — adm-zip 0.6.1 schließt den Befund
+
+Am 2026-09-11 10:24 UTC erschien `adm-zip` **0.6.1** — die erste Version außerhalb der
+Advisory-Range `0.5.9`–`0.6.0`. Das Advisory selbst nennt weiterhin keine
+`first_patched_version` (Stand 2026-09-15); der Fix ist trotzdem belegt: der Vergleich
+`v0.6.0...v0.6.1` enthält den Commit `eaa35fa7` „Blocked extraction from writing through
+symlinks inside the target" mit dem neuen `Utils.assertPathSafe`, das jede Pfadkomponente
+unterhalb des Zielverzeichnisses per `lstatSync` auf Symlinks prüft — genau die im Advisory
+beschriebene Lücke. Dazu kommen weitere Härtungen derselben Version (Dekompressions-Cap
+auch im Async-Pfad, Ablehnung doppelter Eintragsnamen, setuid/setgid-Bits werden
+gestrippt).
+
+Damit greift der oben vorgesehene Weg „bei einem Fix: Override-Floor statt Ignore":
+
+| Datei | Änderung |
+| --- | --- |
+| `package.json` → `pnpm.overrides` | `adm-zip: ^0.6.0` → `^0.6.1` |
+| `pnpm-workspace.yaml` | `minimumReleaseAgeExclude` befristet um `adm-zip` ergänzt — 0.6.1 ist erst am **2026-09-18 10:24 UTC** karenzreif; danach den Eintrag entfernen |
+| `osv-scanner.toml` | `[[IgnoredVulns]]`-Block zu `GHSA-vwc7-r8mq-g2x9` entfernt |
+
+Pendant in panary-cloud (dort Override, Exclude und `auditConfig.ignoreGhsas` in der
+`pnpm-workspace.yaml`).
+
+Verifikation:
+
+```bash
+grep -oE "^  '?adm-zip@[0-9.]+" pnpm-lock.yaml | sort -u      # Erwartung: adm-zip@0.6.1
+osv-scanner scan --config osv-scanner.toml -L pnpm-lock.yaml # Erwartung: No issues found, kein „filtered out" mehr
+```
+
+Der Dependabot-Alert #316 schließt sich, sobald das Lockfile auf `main` 0.6.1 trägt.

@@ -100,10 +100,7 @@ describe('openCacheDatabase', () => {
 
     const nextSchema: CacheStorageSchema = {
       version: 2,
-      stores: [
-        { name: 'products', indexes: [{ name: 'updatedAt', keyPath: 'updatedAt' }] },
-        { name: 'discounts' },
-      ],
+      stores: [{ name: 'products', indexes: [{ name: 'updatedAt', keyPath: 'updatedAt' }] }, { name: 'discounts' }],
     }
     const result = await openCacheDatabase(adapter, dbName, nextSchema, 'app-1.0.0#2')
 

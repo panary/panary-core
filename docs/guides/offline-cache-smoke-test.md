@@ -1,7 +1,7 @@
 ---
 type: Guide
 title: Offline-Cache (Connect-Tier) — Smoke-Test-Anleitung
-description: 'Penible manuelle Smoke-Test-Anleitung für Offline-Cache und Outbox des POS-Clients: Bootstrap, Offline-Bestellung, Reconnect-Replay, Delta-Sync und Reload-Persistenz.'
+description: 'Penible manuelle Smoke-Test-Anleitung für Offline-Cache und Outbox des POS-Clients: Bootstrap, Offline-Bestellung, Reconnect-Replay, Delta-Sync, Reload-Persistenz und das Überleben von App-Update und Entkoppeln.'
 tags: [sync, orders, products, devices, offline-cache, pos]
 status: stable
 generated: { by: claude-code/historic, at: 2026-06-15T00:00:00Z }
@@ -213,7 +213,61 @@ serverseitig; das Abmelden löscht zudem das Device-JWT). Daher ist Abmelden off
 
 ---
 
-## 11. Aufräumen / Reset
+## 11. Test: App-Update mit gefüllter Outbox (#322)
+
+🚨 **Der wichtigste Test dieser Anleitung — und der einzige, den keine CI ersetzt.** Bis
+[#322](https://github.com/panary/panary-core/issues/322) löschte **jedes** App-Update die
+gesamte Cache-Datenbank inklusive Outbox: Die `buildId` ist `appVersion#schemaVersion`, und der
+Tauri-Auto-Updater stößt das Update ohne Zutun des Personals an. Auf leerer Datenbank zeigt sich
+davon nichts — der Test braucht eine **gefüllte** Outbox, die nur offline entsteht.
+Begründung: [ADR 0039](../adr/0039-outbox-ueberlebt-den-cache-wipe.md).
+
+**Schritte**
+1. Offline **zwei** Bar-Bestellungen anlegen (Test 3) → Settings → Verbindung zeigt
+   „Ausstehend: 2".
+2. Die `buildId` ändern, ohne die Outbox anzufassen — eines von beiden:
+   - `appVersion` in `APP_CONFIG` erhöhen (entspricht dem echten App-Update), **oder**
+   - `POS_CACHE_SCHEMA.version` in `apps/pos-client/src/app/offline-cache.provider.ts`
+     erhöhen (deckt zusätzlich den `upgrade`-Pfad des IndexedDB-Adapters ab).
+3. App neu starten, **offline bleiben**.
+
+**Erwartet**
+- „Ausstehend" steht weiterhin auf **2**. *(Vor dem Fix stünde hier 0 — ohne Meldung.)*
+- Die Stammdaten-Stores sind leer und werden beim nächsten Online-Bootstrap neu geladen
+  (Test 1) — der Wipe des regenerierbaren Teils ist gewollt.
+- In der Konsole / im Log-Export steht
+  `[offline-cache] Build-Wechsel auf <buildId>: Cache geleert, 2 ausstehende Outbox-Einträge übernommen.`
+- Verbindung herstellen → beide Bestellungen laufen durch, Zähler geht auf 0, die Bestellungen
+  erscheinen in der Cloud.
+
+⚠️ **Prüfen, nicht annehmen:** Ein Eintrag aus einem älteren Schema kann beim Replay vom Server
+abgelehnt werden (400/422). Das ist das gewollte Verhalten — er landet **sichtbar** unter
+„Abgelehnt" (Test 9) und ist über „Erneut versuchen" heilbar, statt still zu verschwinden.
+
+---
+
+## 12. Test: Entkoppeln mit ausstehenden Einträgen (#322)
+
+**Schritte**
+1. Offline **eine** Bestellung anlegen → „Ausstehend: 1".
+2. Settings → Verbindung → Danger-Zone → „Gerät entkoppeln", Benutzer wählen, PIN eingeben,
+   „Endgültig entkoppeln" antippen.
+
+**Erwartet**
+- Es erscheint ein **zweiter** Bestätigungsschritt mit der Anzahl („1 Bestellung(en) warten noch
+  auf die Übertragung …") und der großen Ziffer.
+- „Zurück" lässt das Gerät **unverändert** — Konfiguration, Anmeldung und Outbox bleiben.
+- Erst „Trotzdem entkoppeln und verwerfen" führt den Reset aus; im Log steht dann
+  `[unpair] 1 nicht übertragene Outbox-Einträge werden mit dem lokalen Reset verworfen.`
+
+**Gegenprobe (genauso wichtig)**
+3. Mit **leerer** Outbox erneut entkoppeln.
+- Der Ablauf ist **unverändert**: keine zusätzliche Rückfrage. Eine Warnung, die immer kommt,
+  wird weggeklickt wie jede andere.
+
+---
+
+## 13. Aufräumen / Reset
 
 - **Outbox/Cache leeren:** Gerät entkoppeln (Settings → Verbindung → Danger-Zone → „Gerät entkoppeln")
   ODER in DevTools die `panary-cache::…`-DB löschen (Application → IndexedDB → Delete database).

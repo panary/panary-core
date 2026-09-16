@@ -114,6 +114,10 @@ stattdessen entgegen und protokolliert sie.
   sauber ablehnen (Punkt 5). Für `OutboxEntry` heißt das konkret: Felder ergänzen ja, Felder
   umdeuten nein.
 - **Bereits verlorene Einträge sind nicht rekonstruierbar.** Der Fix wirkt nur nach vorn.
+- **Der manuelle Testfall gehört dazu.** Die
+  [Smoke-Test-Anleitung](../guides/offline-cache-smoke-test.md) führt ihn als Abschnitt 11
+  (App-Update mit gefüllter Outbox) und 12 (Entkoppeln mit ausstehenden Einträgen) — beide
+  brauchen eine offline entstandene Outbox und sind deshalb von keiner CI zu ersetzen.
 - **Nicht abgedeckt:** Ein Geräte-Wipe durch das Betriebssystem (Neuinstallation, gelöschtes
   Nutzerprofil, Eviction unter Storage-Druck trotz `requestPersistentStorage()`) bleibt
   außerhalb unserer Kontrolle. Und der Test auf leerer Datenbank zeigt den Fehler gar nicht — er

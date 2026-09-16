@@ -10,7 +10,7 @@ import {
 } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ConnectionService } from '@panary/shared/data-access'
+import { ConnectionService, OFFLINE_OUTBOX } from '@panary/shared/data-access'
 import { DeviceConfigService } from '@panary/shared/data-access-config'
 import { UNPAIR_ALLOWED_ROLES } from '@panary/users/domain'
 
@@ -30,7 +30,7 @@ interface EligibleUser {
   role: string
 }
 
-type DialogStep = 'loading' | 'select-user' | 'enter-pin' | 'confirm' | 'unpairing' | 'error'
+type DialogStep = 'loading' | 'select-user' | 'enter-pin' | 'confirm' | 'confirm-pending' | 'unpairing' | 'error'
 
 @Component({
   selector: 'lib-unpair-device-dialog',
@@ -45,6 +45,8 @@ export class UnpairDeviceDialogComponent implements OnInit {
   readonly #connectionService = inject(ConnectionService)
   readonly #deviceConfigService = inject(DeviceConfigService)
   readonly #translate = inject(TranslateService)
+  // Connect-Tier: nur in der POS-App belegt (sonst null → Zähler 0, unveränderter Ablauf).
+  readonly #outbox = inject(OFFLINE_OUTBOX, { optional: true })
 
   readonly step = signal<DialogStep>('loading')
   readonly eligibleUsers = signal<EligibleUser[]>([])
@@ -59,6 +61,14 @@ export class UnpairDeviceDialogComponent implements OnInit {
 
   readonly hasEligibleUsers = computed(() => this.eligibleUsers().length > 0)
   readonly deviceName = computed(() => this.#deviceConfigService.getDeviceName() ?? '–')
+
+  /**
+   * Noch nicht übertragene Offline-Bestellungen. `unpair()` löscht alle lokalen
+   * IndexedDB-Datenbanken — diese Einträge sind danach unwiederbringlich weg (#322).
+   * Der Zähler wird im Moment der Anzeige gelesen; die Anzahl, die der zweite
+   * Bestätigungsschritt nennt, ist damit die zuletzt gemessene.
+   */
+  readonly pendingOutboxCount = computed(() => this.#outbox?.pendingCount() ?? 0)
 
   ngOnInit(): void {
     void this.#loadEligibleUsers()
@@ -88,6 +98,11 @@ export class UnpairDeviceDialogComponent implements OnInit {
     this.pinInput.set('')
     this.pinError.set(false)
     this.step.set('enter-pin')
+  }
+
+  /** Zurück aus der Datenverlust-Warnung zur regulären Bestätigung. */
+  backToConfirm(): void {
+    this.step.set('confirm')
   }
 
   backToUserList(): void {
@@ -146,7 +161,23 @@ export class UnpairDeviceDialogComponent implements OnInit {
     }
   }
 
+  /**
+   * Schritt zwischen „Endgültig entkoppeln" und dem tatsächlichen Reset: Stehen noch
+   * Bestellungen in der Outbox, wird deren Anzahl genannt und ein zweites Mal gefragt.
+   * Bei leerer Outbox bleibt der Ablauf unverändert — eine Rückfrage, die immer kommt,
+   * wird weggeklickt wie jede andere.
+   */
+  requestUnpair(): void {
+    if (this.pendingOutboxCount() > 0) {
+      this.step.set('confirm-pending')
+      return
+    }
+    void this.performUnpair()
+  }
+
   async performUnpair(): Promise<void> {
+    // VOR dem Socket-Trennen lesen: danach ist der Zähler nicht mehr aussagekräftig.
+    const discarded = this.pendingOutboxCount()
     this.step.set('unpairing')
     this.errorMessage.set(null)
 
@@ -154,7 +185,7 @@ export class UnpairDeviceDialogComponent implements OnInit {
       // Socket trennen, damit nach dem Reset kein Reconnect-Loop entsteht.
       this.#connectionService.socketDisconnect()
 
-      const result = await this.#deviceConfigService.unpair()
+      const result = await this.#deviceConfigService.unpair({ discardedOutboxCount: discarded })
 
       if (!result.backendDeleted) {
         // Backend-Cleanup fehlgeschlagen — lokal trotzdem entkoppelt.

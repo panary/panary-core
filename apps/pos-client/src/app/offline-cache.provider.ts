@@ -104,9 +104,19 @@ async function initPosOfflineCache(
       schemaVersion: POS_CACHE_SCHEMA.version,
     })
     await requestPersistentStorage()
-    await store.init(port, databaseName, POS_CACHE_SCHEMA, buildId)
+    const result = await store.init(port, databaseName, POS_CACHE_SCHEMA, buildId)
     // Outbox teilt sich die Verbindung des Stores (gleicher Port, __outbox-Store).
     outbox.attach(port)
+    if (result.wiped) {
+      // Der Wipe ist der Normalfall nach jedem App-Update. Interessant ist allein, ob
+      // er unsynchronisierte Bestellungen vorgefunden hat — bis #322 verschwanden die
+      // hier spurlos. Die Zeile ist der einzige Beleg, dass sie den Wipe überlebt
+      // haben, und landet im Log-Export (ADR 0039).
+      console.warn(
+        `[offline-cache] Build-Wechsel auf ${buildId}: Cache geleert, ` +
+          `${result.preservedOutboxCount} ausstehende Outbox-Einträge übernommen.`,
+      )
+    }
   } catch (error) {
     // Cache-Init darf den App-Start nie verhindern — ohne Cache läuft der POS
     // online normal weiter (BaseService fällt auf den Netzpfad zurück).

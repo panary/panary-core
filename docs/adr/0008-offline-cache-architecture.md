@@ -42,6 +42,13 @@ FeathersJS-Service-Schnittstelle funktionieren.
 - **Versionierung/Migration:** `CacheStorageSchema.version`-Bump ⇒ Stores verwerfen + neu anlegen
   (Recreate statt feingranularer Migration). Zusätzlich `cacheBuildId` (App-Version + Schema-Version)
   in einem Meta-Store; Mismatch beim Öffnen ⇒ **Wipe + Voll-Bootstrap** (`openCacheDatabase`).
+  > **Präzisierung 2026-09-16 ([#322](https://github.com/panary/panary-core/issues/322)):** Der
+  > Wipe trifft nur noch die **regenerierbaren** Stores. Die Offline-Outbox liegt in derselben
+  > Datenbank, ihr Inhalt kommt aber von keinem Server zurück — und weil die `buildId` die
+  > App-Version trägt, löschte der Voll-Destroy sie bei *jedem* Auto-Update, spurlos. Geleert
+  > wird jetzt selektiv; `__outbox` überlebt auch den Schema-Versionssprung
+  > (`preserveOnUpgrade`). Begründung und Grenzen:
+  > [ADR 0039](0039-outbox-ueberlebt-den-cache-wipe.md).
 - **Freshness (Folgephasen):** Hybrid — einmaliger Voll-Bootstrap, danach inkrementeller Delta-Sync
   über `updatedAt`-Cursor (`getAllByIndex` auf dem `updatedAt`-Index), Voll-Refresh als Fallback.
   > **Präzisierung 2026-09-13 ([#306](https://github.com/panary/panary-core/issues/306)):** Der

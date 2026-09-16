@@ -15,6 +15,24 @@ import io, { Socket } from 'socket.io-client'
 export interface UnpairResult {
   backendDeleted: boolean
   backendError?: string
+  /**
+   * Anzahl der IndexedDB-Datenbanken, deren Löschung angefordert wurde (Diagnose).
+   * Bewusst nicht „gelöscht": Der Reset blockiert nie, also wird auch bei `onerror`
+   * und `onblocked` weitergemacht — wie viele davon wirklich weg sind, weiß niemand.
+   * `0`, wenn `indexedDB.databases()` fehlt.
+   */
+  databasesDeleted: number
+}
+
+export interface UnpairOptions {
+  /**
+   * Anzahl noch nicht übertragener Outbox-Einträge, die der Aufrufer bewusst
+   * verwirft. Wird nur protokolliert: Der Service kann den Zähler nicht selbst
+   * lesen (`OFFLINE_OUTBOX` lebt in `data-access`, das seinerseits von dieser Lib
+   * abhängt — die Gegenrichtung wäre ein Zyklus). Die Rückfrage stellt deshalb der
+   * Unpair-Dialog, siehe #322 / ADR 0039.
+   */
+  readonly discardedOutboxCount?: number
 }
 
 export type RegistrationStatus =
@@ -517,12 +535,23 @@ export class DeviceConfigService {
    * 4. sessionStorage komplett leeren.
    * 5. Alle IndexedDB-Datenbanken löschen (Caches, Feathers-Sync-Daten).
    *
+   * ⚠️ Schritt 5 löscht auch die **Offline-Outbox** — noch nicht übertragene
+   * Bestellungen sind danach unwiederbringlich weg. Der Aufrufer MUSS vorher
+   * warnen, wenn `pendingCount() > 0`, und die Anzahl über
+   * `options.discardedOutboxCount` durchreichen: Sie ist die einzige Spur, die
+   * der Verlust hinterlässt (#322).
+   *
    * Der Caller sollte nach erfolgreichem Return `window.location.reload()` aufrufen,
    * damit der setupGuard die App zum Setup-Wizard leitet.
    */
-  async unpair(): Promise<UnpairResult> {
+  async unpair(options: UnpairOptions = {}): Promise<UnpairResult> {
     const config = this.getConfig()
-    const result: UnpairResult = { backendDeleted: false }
+    const result: UnpairResult = { backendDeleted: false, databasesDeleted: 0 }
+
+    const discarded = options.discardedOutboxCount ?? 0
+    if (discarded > 0) {
+      console.warn(`[unpair] ${discarded} nicht übertragene Outbox-Einträge werden mit dem lokalen Reset verworfen.`)
+    }
 
     // 1. Backend-Cleanup (best-effort)
     if (config?.deviceId && config?.serverUrl) {
@@ -555,6 +584,7 @@ export class DeviceConfigService {
       try {
         const dbs = await indexedDB.databases()
         const dbNames: string[] = dbs.map(db => db.name).filter((n): n is string => !!n)
+        result.databasesDeleted = dbNames.length
         await Promise.all(
           dbNames.map(
             name =>

@@ -105,4 +105,50 @@ describe('IdbStorageAdapter', () => {
     await adapter.open(dbName, SCHEMA)
     expect(await adapter.count('products')).toBe(0)
   })
+
+  it('storeNames listet die physisch vorhandenen Stores', async () => {
+    const { adapter } = await openAdapter()
+
+    expect(adapter.storeNames()).toEqual(['products'])
+  })
+
+  // #322: `preserveOnUpgrade` traegt einen Store samt Inhalt ueber den Versionssprung.
+  it('übernimmt preserveOnUpgrade-Stores beim Versionssprung samt Inhalt', async () => {
+    const { adapter, dbName } = await openAdapter()
+
+    const keepSchema = (version: number): CacheStorageSchema => ({
+      version,
+      stores: [...SCHEMA.stores, { name: 'keep', preserveOnUpgrade: true }],
+    })
+    await adapter.open(dbName, keepSchema(2))
+    await adapter.put('keep', { _id: 'k1' })
+    await adapter.put('products', product('p1'))
+
+    await adapter.open(dbName, keepSchema(3))
+
+    expect(await adapter.count('keep')).toBe(1)
+    expect(await adapter.count('products')).toBe(0)
+  })
+
+  // Ohne Index-Abgleich bekaeme ein uebernommener Store einen spaeter ergaenzten Index
+  // nie, und getAllByIndex schluege zur Laufzeit fehl — im POS still gefangen.
+  it('zieht fehlende Indizes eines übernommenen Stores nach', async () => {
+    const { adapter, dbName } = await openAdapter()
+
+    await adapter.open(dbName, {
+      version: 2,
+      stores: [...SCHEMA.stores, { name: 'keep', preserveOnUpgrade: true }],
+    })
+    await adapter.put('keep', { _id: 'k1', updatedAt: '2026-09-16T08:00:00.000Z' })
+
+    await adapter.open(dbName, {
+      version: 3,
+      stores: [
+        ...SCHEMA.stores,
+        { name: 'keep', preserveOnUpgrade: true, indexes: [{ name: 'updatedAt', keyPath: 'updatedAt' }] },
+      ],
+    })
+
+    expect(await adapter.getAllByIndex('keep', 'updatedAt')).toHaveLength(1)
+  })
 })

@@ -24,6 +24,13 @@ export interface CacheIndexDefinition {
 export interface CacheStoreDefinition {
   readonly name: string
   readonly indexes?: readonly CacheIndexDefinition[]
+  /**
+   * Store beim Schema-Upgrade übernehmen statt verwerfen (fehlende Indizes werden
+   * nachgezogen). Nur für Stores, deren Inhalt **nicht regenerierbar** ist — heute
+   * allein die Offline-Outbox und der Meta-Store. Fachliche Stores bleiben beim
+   * Recreate: ihr Inhalt kommt beim Voll-Bootstrap vom Server zurück.
+   */
+  readonly preserveOnUpgrade?: boolean
 }
 
 /** Versioniertes Schema der Cache-Datenbank. Ein Version-Bump erzwingt Recreate (siehe Adapter). */
@@ -50,6 +57,12 @@ export interface CacheStoragePort {
   delete(store: string, id: string): Promise<void>
   clear(store: string): Promise<void>
   count(store: string): Promise<number>
+  /**
+   * Namen aller physisch vorhandenen Stores der offenen Datenbank. Nötig für das
+   * selektive Leeren beim Build-Mismatch (`openCacheDatabase`): Es muss auch Stores
+   * treffen, die aus dem Schema entfernt wurden, aber noch in der Datenbank liegen.
+   */
+  storeNames(): readonly string[]
   /** Schließt das DB-Handle (ohne zu löschen). */
   close(): void
   /** Löscht die gesamte Datenbank (Re-Pairing / Tenant-/Location-Wechsel / Version-Reset). */

@@ -15,7 +15,12 @@ import io, { Socket } from 'socket.io-client'
 export interface UnpairResult {
   backendDeleted: boolean
   backendError?: string
-  /** Anzahl gelöschter IndexedDB-Datenbanken (Diagnose — 0, wenn die API fehlt). */
+  /**
+   * Anzahl der IndexedDB-Datenbanken, deren Löschung angefordert wurde (Diagnose).
+   * Bewusst nicht „gelöscht": Der Reset blockiert nie, also wird auch bei `onerror`
+   * und `onblocked` weitergemacht — wie viele davon wirklich weg sind, weiß niemand.
+   * `0`, wenn `indexedDB.databases()` fehlt.
+   */
   databasesDeleted: number
 }
 

@@ -228,8 +228,21 @@ if [ -f "$ENV_FILE" ]; then
   source "$ENV_FILE"
   # Nur ueberschreiben wenn explizit per Argument gesetzt
   FEATHERS_SECRET="${FEATHERS_SECRET}"
-else
-  echo -e "${BLUE}→ Generiere neues JWT-Secret...${NC}"
+fi
+
+# Seit panary/panary-core#323 bricht der Edge ohne ausreichendes Secret beim Boot
+# ab, statt JWTs mit dem Platzhalter aus dem oeffentlichen Repo zu signieren.
+# Deshalb hier nicht nur "fehlt die .env?" pruefen, sondern den Wert selbst:
+# eine .env aus aelteren Installer-Laeufen kann die Zeile leer oder mit dem
+# Platzhalter tragen — dann waere der Container nach dem naechsten Watchtower-
+# Update tot, und niemand stuende davor.
+if [ -z "${FEATHERS_SECRET}" ] || [ "${FEATHERS_SECRET}" = "CHANGE_ME_IN_PRODUCTION" ] || [ ${#FEATHERS_SECRET} -lt 32 ]; then
+  if [ -f "$ENV_FILE" ]; then
+    echo -e "${YELLOW}→ Secret in der bestehenden .env fehlt oder ist zu kurz — es wird neu erzeugt.${NC}"
+    echo -e "${YELLOW}  Angemeldete Sitzungen am Edge enden dadurch einmalig.${NC}"
+  else
+    echo -e "${BLUE}→ Generiere neues JWT-Secret...${NC}"
+  fi
   FEATHERS_SECRET=$(openssl rand -base64 32)
 fi
 

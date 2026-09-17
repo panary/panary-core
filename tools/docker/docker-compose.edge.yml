@@ -33,6 +33,11 @@ services:
       - panary-edge-data:/app/data
     environment:
       - NODE_ENV=production
+      # Pflicht seit #323: Ohne gesetztes Secret bricht der Boot ab, statt JWTs
+      # mit einem Platzhalter aus dem oeffentlichen Repo zu signieren. Wert aus
+      # der Shell oder einer .env neben dieser Datei, erzeugt z. B. mit
+      # `openssl rand -base64 32` — genau wie install.sh es beim Kunden tut.
+      - FEATHERS_SECRET=${FEATHERS_SECRET:?FEATHERS_SECRET muss gesetzt sein (openssl rand -base64 32)}
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:3030/health']

@@ -3,7 +3,13 @@ import fs from 'fs/promises'
 import os from 'os'
 import { koa, bodyParser, serveStatic } from '@feathersjs/koa'
 import { logger } from '@panary/shared-backend'
-import { generateSetupToken, SETUP_REJECTION_STATUS, SETUP_TOKEN_TTL_MS, SetupTokenGuard } from './utils/setup-token'
+import {
+  buildSetupTokenBanner,
+  buildSetupTokenLogEntry,
+  generateSetupToken,
+  SETUP_REJECTION_STATUS,
+  SetupTokenGuard,
+} from './utils/setup-token'
 
 // Path to configuration file
 // Default to ./data/panary.config.json relative to CWD, or use env var
@@ -37,32 +43,28 @@ function getLocalIpAddress(): string {
 }
 
 /**
- * Schreibt das Token dorthin, wo nur der Betreiber es findet: ins
- * Container-Log und in eine Datei mit Modus 0600 im Datenverzeichnis.
+ * Gibt das Token dort aus, wo nur der Betreiber es findet: auf stdout (also im
+ * `docker logs`) und in einer Datei mit Modus 0600 im Datenverzeichnis.
+ *
+ * 🚨 **Der Klartext geht bewusst ueber `process.stdout` am `logger` vorbei.**
+ * Der geteilte Logger schreibt zusaetzlich nach `data/logs/api-edge-*.log`, und
+ * genau diese Dateien packt `buildLogBundle()` in den `log-export` — ein
+ * Archiv, das TENANT_OWNER/TENANT_MANAGER ziehen koennen und das laut eigener
+ * Doku an den externen Support geht. `SAFE_LOG_FIELDS` laesst `message`
+ * unveraendert durch (bewusst, siehe log-bundle.ts), das Token stuende also im
+ * Klartext darin — und damit ausserhalb der Grenze, die ADR 0041 zieht.
+ * `logger.ts:371` nutzt aus demselben Grund `process.stderr`.
+ *
+ * Ins strukturierte Log geht nur die Tatsache, dass ein Setup-Modus lief.
  *
  * Der Schreibfehler ist bewusst nicht toedlich — laeuft das Datenverzeichnis
- * nur lesbar, bleibt das Log als Weg. Ein Setup-Modus, der wegen einer
+ * nur lesbar, bleibt stdout als Weg. Ein Setup-Modus, der wegen einer
  * Dateirechte-Frage gar nicht erst startet, waere schlimmer als einer mit nur
  * einem Ausgabekanal.
  */
 async function announceSetupToken(token: string, expiresAtIso: string): Promise<void> {
-  const banner = [
-    '',
-    '='.repeat(64),
-    '  PANARY EDGE — SETUP-MODUS',
-    '',
-    `  Setup-Token:  ${token}`,
-    `  Gueltig bis:  ${expiresAtIso} (${Math.round(SETUP_TOKEN_TTL_MS / 60000)} Minuten)`,
-    '',
-    '  Das Token wird im Einrichtungs-Assistenten abgefragt. Ein abgelaufenes',
-    '  Token wird durch einen Neustart des Containers erneuert.',
-    '='.repeat(64),
-    '',
-  ].join('\n')
-
-  // Absichtlich ueber die Banner-Zeilen und nicht als strukturiertes Feld: Das
-  // hier liest ein Mensch im `docker logs`, kein Log-Aggregator.
-  logger.info(banner)
+  process.stdout.write(buildSetupTokenBanner(token, expiresAtIso))
+  logger.info(buildSetupTokenLogEntry(expiresAtIso))
 
   try {
     await fs.mkdir(path.dirname(SETUP_TOKEN_PATH), { recursive: true })
@@ -73,7 +75,7 @@ async function announceSetupToken(token: string, expiresAtIso: string): Promise<
     logger.info(`Setup-Token auch abgelegt unter ${SETUP_TOKEN_PATH}`)
   } catch (err) {
     logger.warn({
-      message: `Setup-Token konnte nicht nach ${SETUP_TOKEN_PATH} geschrieben werden — es steht nur im Log.`,
+      message: `Setup-Token konnte nicht nach ${SETUP_TOKEN_PATH} geschrieben werden — es steht nur auf stdout.`,
       event: 'setup.token_file_failed',
       error: err,
     })

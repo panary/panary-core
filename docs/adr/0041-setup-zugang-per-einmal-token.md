@@ -86,6 +86,17 @@ es).
 - **Gegen einen Angreifer mit Host-Zugriff schützt nichts davon.** Wer das Log lesen oder
   `data/` betreten kann, hat das Token. Das ist die bewusste Grenze; wer so weit ist, kann
   ohnehin den Container ersetzen.
+- 🚨 **Der Klartext darf nicht durch den geteilten `logger` laufen.** Der schreibt zusätzlich
+  nach `data/logs/api-edge-*.log`, und genau diese Dateien sammelt `buildLogBundle()` für den
+  `log-export`-Service ein — ein Archiv, das `TENANT_OWNER`/`TENANT_MANAGER` per JWT ziehen
+  können und das an den externen Support geht. Die `SAFE_LOG_FIELDS`-Allowlist lässt `message`
+  bewusst unverändert durch, das Token stünde also im Klartext darin und damit **außerhalb**
+  der oben gezogenen Grenze. Der Banner geht deshalb über `process.stdout` (Container-Log,
+  nicht persistiert vom Logger), ins strukturierte Log geht nur `setup.token_issued` mit der
+  Frist. `apps/api-edge/src/utils/setup-token.spec.ts` sichert das als Regressionstest ab.
+  Praktisch ist ein exportiertes Token wertlos — der Guard lebt nur im Prozess des
+  Setup-Modus, jeder Neustart würfelt neu —, aber die Argumentation dafür ist länger als die
+  Regel, und sie bricht still, sobald jemand das Token persistiert.
 - **Der Edge läuft weiterhin ohne TLS im LAN** ([ADR 0023](0023-zugewiesene-pos-geraete.md) §5).
   Das Token geht im Klartext über das Netz und ist gegen jemanden, der mitliest, wertlos. Es
   hebt die Latte von „jeder, der die IP kennt" auf „jeder, der mitschneiden kann" — kein

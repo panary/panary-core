@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
+import { SAFE_LOG_FIELDS } from './log-bundle'
 import {
+  buildSetupTokenBanner,
+  buildSetupTokenLogEntry,
   generateSetupToken,
   TOKEN_ALPHABET,
   TOKEN_EXCLUDED_LETTERS,
@@ -183,5 +186,57 @@ describe('SETUP_REJECTION_STATUS', () => {
       expired: 401,
       already_used: 409,
     })
+  })
+})
+
+describe('Token-Ausgabe: zwei Kanaele, nur einer traegt den Klartext', () => {
+  const EXPIRES = '2026-09-17T13:15:00.000Z'
+
+  it('nennt das Token im Banner fuer den Menschen im docker logs', () => {
+    const banner = buildSetupTokenBanner(TOKEN, EXPIRES)
+
+    expect(banner).toContain(TOKEN)
+    expect(banner).toContain(EXPIRES)
+    expect(banner).toContain('SETUP-MODUS')
+  })
+
+  it('nennt die Frist in Minuten statt in Millisekunden', () => {
+    expect(buildSetupTokenBanner(TOKEN, EXPIRES)).toContain(`(${SETUP_TOKEN_TTL_MS / 60000} Minuten)`)
+  })
+
+  // 🚨 Der eigentliche Regressionstest. Der Banner geht ueber process.stdout;
+  // der Logger schreibt zusaetzlich nach data/logs/, und genau diese Dateien
+  // sammelt buildLogBundle() fuer den log-export ein — ein Archiv, das der
+  // Mandant ziehen kann und das an den externen Support geht. Wer den Klartext
+  // hier hineinreicht, hebelt die Grenze aus, die ADR 0041 zieht.
+  it('haelt das Token aus dem strukturierten Log-Eintrag heraus', () => {
+    const eintrag = buildSetupTokenLogEntry(EXPIRES)
+    const serialisiert = JSON.stringify(eintrag)
+
+    expect(serialisiert).not.toContain(TOKEN)
+    // Auch nicht in Teilen — das Alphabet ist klein, die Haelfte genuegt zum Raten.
+    expect(serialisiert).not.toContain(TOKEN.split('-')[0])
+  })
+
+  it('haelt fest, DASS ein Setup-Modus lief, und bis wann', () => {
+    const eintrag = buildSetupTokenLogEntry(EXPIRES)
+
+    expect(eintrag['event']).toBe('setup.token_issued')
+    expect(eintrag['expiresAt']).toBe(EXPIRES)
+  })
+
+  // Der Log-Eintrag nuetzt nur, wenn seine Felder den Export ueberleben.
+  // `event` faellt sonst still raus (panary/panary-core#293).
+  it('nutzt ausschliesslich Felder, die der log-export durchlaesst', () => {
+    const eintrag = buildSetupTokenLogEntry(EXPIRES)
+    const erlaubt = new Set<string>(SAFE_LOG_FIELDS)
+    const verworfen = Object.keys(eintrag).filter(k => !erlaubt.has(k))
+
+    // `expiresAt` steht bewusst nicht auf der Allowlist — es ist Zusatzkontext
+    // fuer die Konsole, kein Bestandteil des Exports. `message` und `event`
+    // muessen aber durchkommen, sonst ist der Eintrag im Export unsichtbar.
+    expect(erlaubt.has('message')).toBe(true)
+    expect(erlaubt.has('event')).toBe(true)
+    expect(verworfen).toEqual(['expiresAt'])
   })
 })

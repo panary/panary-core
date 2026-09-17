@@ -194,3 +194,45 @@ export const SETUP_REJECTION_STATUS: Record<SetupTokenRejection, number> = {
   expired: 401,
   already_used: 409,
 }
+
+/**
+ * Baut den Banner, den ein Mensch im `docker logs` liest.
+ *
+ * 🚨 Diese Zeichenkette enthaelt das Token im Klartext und darf **nicht** durch
+ * den geteilten `logger` laufen. Der haengt am `DailyRotateFile`-Transport
+ * (`libs/shared/backend/src/logger.ts`), und genau diese Dateien sammelt
+ * `buildLogBundle()` fuer den `log-export`-Service ein — dessen
+ * `SAFE_LOG_FIELDS`-Allowlist laesst `message` unveraendert durch, und das
+ * Bundle geht laut eigener Doku an den externen Support. Das Token gehoert auf
+ * stdout und in die 0600-Datei, nicht in ein exportierbares Archiv.
+ */
+export function buildSetupTokenBanner(token: string, expiresAtIso: string): string {
+  const minuten = Math.round(SETUP_TOKEN_TTL_MS / 60000)
+  return [
+    '',
+    '='.repeat(64),
+    '  PANARY EDGE — SETUP-MODUS',
+    '',
+    `  Setup-Token:  ${token}`,
+    `  Gueltig bis:  ${expiresAtIso} (${minuten} Minuten)`,
+    '',
+    '  Das Token wird im Einrichtungs-Assistenten abgefragt. Ein abgelaufenes',
+    '  Token wird durch einen Neustart des Containers erneuert.',
+    '='.repeat(64),
+    '',
+  ].join('\n')
+}
+
+/**
+ * Der Gegenpart fuers strukturierte Log: haelt fest, **dass** ein Setup-Modus
+ * lief und bis wann er offen war — ohne das Token selbst. Ohne diesen Eintrag
+ * bliebe der Setup-Modus im persistierten Log unsichtbar, und eine spaetere
+ * Frage („stand dieser Edge am 12. offen?") waere nicht mehr beantwortbar.
+ */
+export function buildSetupTokenLogEntry(expiresAtIso: string): Record<string, unknown> {
+  return {
+    message: 'Setup-Modus aktiv — Token auf stdout und in data/setup-token.txt ausgegeben.',
+    event: 'setup.token_issued',
+    expiresAt: expiresAtIso,
+  }
+}

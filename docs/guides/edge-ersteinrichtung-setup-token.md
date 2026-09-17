@@ -47,6 +47,10 @@ sudo cat /opt/panary-edge/data/setup-token.txt
 
 Nach erfolgreicher Einrichtung wird die Datei entfernt und das Token entwertet.
 
+ℹ️ **Das Token steht nur auf stdout, nicht in `data/logs/`.** Die rotierenden Log-Dateien des
+Edge landen über den `log-export` in einem Archiv, das auch an den externen Support geht —
+dort taucht lediglich `setup.token_issued` mit der Frist auf, nie das Token selbst.
+
 ## Eingabe
 
 Groß-/Kleinschreibung und der Bindestrich spielen keine Rolle — `k7m29xqf` wird genauso

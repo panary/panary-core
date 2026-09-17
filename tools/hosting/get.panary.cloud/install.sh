@@ -222,12 +222,20 @@ REAL_GROUP="$(id -gn "$REAL_USER")"
 # ============================================================
 ENV_FILE="${INSTALL_DIR}/.env"
 
+# Das Skript laeuft unter `set -u` (oben): Jeder Zugriff auf eine ungebundene
+# Variable bricht es ab. Bei einer Erstinstallation gibt es weder ein Argument
+# noch eine .env, aus der `source` FEATHERS_SECRET setzen koennte — ohne diesen
+# Default staerbe der Installer, bevor er das Secret erzeugt. Seit
+# panary/panary-core#323 waere der Edge danach gar nicht mehr startfaehig.
+FEATHERS_SECRET="${FEATHERS_SECRET:-}"
+
 if [ -f "$ENV_FILE" ]; then
   echo -e "${GREEN}✓${NC} Bestehende .env gefunden — Secret wird beibehalten."
   # Port und Tag aktualisieren, Secret beibehalten
   source "$ENV_FILE"
-  # Nur ueberschreiben wenn explizit per Argument gesetzt
-  FEATHERS_SECRET="${FEATHERS_SECRET}"
+  # Nur ueberschreiben wenn explizit per Argument gesetzt. Der Default wiederholt
+  # sich, weil eine aeltere .env die Zeile gar nicht enthalten kann.
+  FEATHERS_SECRET="${FEATHERS_SECRET:-}"
 fi
 
 # Seit panary/panary-core#323 bricht der Edge ohne ausreichendes Secret beim Boot

@@ -4,8 +4,8 @@ import type { AuthenticationResult } from '@feathersjs/authentication'
 import '@feathersjs/transport-commons'
 import type { Application, HookContext } from './declarations'
 import { logger } from '@panary/shared-backend'
-import { sha256, timingSafeCompare } from './utils/crypto.utils'
 import { stampApiKeyLastUsed } from './utils/apikey-last-used'
+import { authenticateDeviceApiKey } from './utils/device-apikey-auth'
 
 /**
  * Stempelt `lastSeen` eines Geräts auf jetzt — Connect-/Disconnect-Tracking für
@@ -53,20 +53,21 @@ export const channels = (app: Application) => {
     if (handshakeAuth?.apiKey && handshakeAuth?.deviceId) {
       // --- DEVICE AUTH FLOW ---
       try {
-        // Lookup direkt via Knex (umgeht Service-Hooks/Validierung/Auth)
-        const inputKey = handshakeAuth.apiKey as string
-        const inputHash = sha256(inputKey)
-        const inputPrefix = inputKey.slice(0, 8)
-        const knex = app.get('sqliteClient')
+        // Lookup, Karenz, Promotion und Ausstellung liegen gemeinsam mit dem
+        // Print-Server-Pfad in `authenticateDeviceApiKey` (ADR 0042) — zwei
+        // Pruefstellen mit getrennten Regeln waeren zwei Gelegenheiten, ein
+        // Geraet mitten in der Schicht auszusperren.
+        const auth = await authenticateDeviceApiKey(app, {
+          rawKey: handshakeAuth.apiKey as string,
+          deviceId: handshakeAuth.deviceId as string,
+          transport: 'websocket',
+          // Der Handshake ist die einzige Stelle, an der ein neuer Schluessel
+          // beim Client ankommt (`device:key-rotated`).
+          canIssue: true,
+        })
 
-        const candidates = await knex('apikeys')
-          .where({ apikeyPrefix: inputPrefix, deviceId: handshakeAuth.deviceId })
-          .limit(5)
-
-        // Timing-Safe Hash-Vergleich gegen alle Kandidaten
-        const apiKeyRecord = candidates.find((entry: any) => entry.active && timingSafeCompare(inputHash, entry.apikey))
-
-        if (apiKeyRecord) {
+        if (auth.ok) {
+          const apiKeyRecord = auth.record
           logger.info({
             message: 'Device authenticated via API key',
             event: 'device.auth',
@@ -75,6 +76,7 @@ export const channels = (app: Application) => {
             tenantId: apiKeyRecord.tenantId,
             locationId: apiKeyRecord.locationId,
             deviceRole: apiKeyRecord.role,
+            keyState: auth.state,
             transport: 'websocket',
           })
 
@@ -96,15 +98,44 @@ export const channels = (app: Application) => {
           // „wird dieser Schluessel noch benutzt" (Revocation-Hygiene im Admin).
           stampApiKeyLastUsed(app, apiKeyRecord._id)
           socket.emit('device:authenticated', { success: true, deviceId: handshakeAuth.deviceId })
+
+          // NACH `device:authenticated`: Der Client soll den neuen Schluessel
+          // erst uebernehmen, wenn die Verbindung steht. Er ersetzt damit ein
+          // Feld in seiner DeviceConfig — kein Reload, kein Logout. Der alte
+          // Schluessel bleibt gueltig, bis der neue zum ersten Mal ankommt.
+          if (auth.rotatedKey) {
+            socket.emit('device:key-rotated', {
+              deviceId: apiKeyRecord.deviceId,
+              apiKey: auth.rotatedKey,
+              validUntil: auth.rotatedValidUntil,
+            })
+            logger.info({
+              message: 'Neuer Geraete-Schluessel ausgestellt und zugestellt',
+              event: 'device.key_rotated',
+              status: 'issued',
+              deviceId: apiKeyRecord.deviceId,
+              tenantId: apiKeyRecord.tenantId,
+              apiKeyId: apiKeyRecord._id,
+              keyState: auth.state,
+              transport: 'websocket',
+            })
+          }
         } else {
           logger.warn({
             message: 'Invalid or inactive API key',
             event: 'device.auth',
             status: 'rejected',
+            reason: auth.reason,
             deviceId: handshakeAuth.deviceId,
             transport: 'websocket',
           })
-          socket.emit('device:authenticated', { success: false, error: 'Invalid or inactive API key' })
+          // Stabiler Code statt Fliesstext: Der POS-Client unterscheidet daran,
+          // ob er „im Admin pruefen, ob das Geraet noch aktiv ist" oder „neu
+          // koppeln" anzeigt — zwei grundverschiedene Wege zurueck.
+          socket.emit('device:authenticated', {
+            success: false,
+            error: auth.reason === 'expired' ? 'DEVICE_KEY_EXPIRED' : 'DEVICE_REJECTED',
+          })
         }
       } catch (err: any) {
         logger.error({

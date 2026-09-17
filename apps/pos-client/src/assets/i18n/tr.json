@@ -117,6 +117,7 @@
     "CONNECTION_FAILED": "Bağlantı başarısız",
     "CONNECTION_TIMEOUT": "Sunucuya ulaşılamıyor. Lütfen ağı ve hub bağlantısını kontrol edin.",
     "DEVICE_REJECTED": "Bu cihaz sunucu tarafından reddedildi. Lütfen yönetim alanında hâlâ etkin olup olmadığını kontrol edin.",
+    "DEVICE_KEY_EXPIRED": "Bu cihazın anahtarının süresi doldu. Cihazın yeniden eşleştirilmesi gerekiyor: yönetim alanında bir eşleştirme kodu oluşturun ve buraya girin.",
     "ASSIGNMENT_ERROR_TITLE": "Atanmış çalışan yok",
     "ASSIGNMENT_ERROR_HINT": "Bu cihaz belirli çalışanlara atanmış, ancak şu anda hiçbiri giriş yapamıyor — büyük olasılıkla arşivlendiler. Bir yöneticinin atamayı yönetim panelinden düzeltmesi gerekiyor.",
     "ASSIGNED_DEVICE_LABEL": "Bu cihaz şuna ait",

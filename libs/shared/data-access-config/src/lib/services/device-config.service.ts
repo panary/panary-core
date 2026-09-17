@@ -120,6 +120,25 @@ export class DeviceConfigService {
   }
 
   /**
+   * Uebernimmt einen serverseitig rotierten Geraete-Schluessel (ADR 0042).
+   *
+   * Bewusst ein Feld-Update auf der bestehenden Config und KEIN Neuaufsetzen:
+   * Der Edge stellt den neuen Schluessel im laufenden Betrieb zu, waehrend die
+   * Kassenkraft arbeitet. Alles andere — deviceId, Standort, offene Sitzung,
+   * IndexedDB, Outbox — bleibt unangetastet. Kein Reload, kein Logout.
+   *
+   * Ohne bestehende Config passiert nichts: Ein Schluessel ohne Geraete-Identitaet
+   * waere unbrauchbar, und eine halbe Config waere schlimmer als keine.
+   */
+  updateApiKey(apiKey: string): boolean {
+    const config = this.getConfig()
+    if (!config?.deviceId || !apiKey) return false
+
+    this.saveConfig({ ...config, apiKey })
+    return true
+  }
+
+  /**
    * Speichert die Konfiguration (inkl. apiKey).
    *
    * Begruendung fuer localStorage-Storage ohne Verschluesselung:

@@ -2,8 +2,8 @@ import type { Middleware } from '@feathersjs/koa'
 import { AppAction, AppResource, hasEffectivePermission, UserSystemRole } from '@panary/users/domain'
 import type { Application } from '../declarations'
 import { logger } from '@panary/shared-backend'
-import { sha256, timingSafeCompare } from '../utils/crypto.utils'
 import { stampApiKeyLastUsed } from '../utils/apikey-last-used'
+import { authenticateDeviceApiKey } from '../utils/device-apikey-auth'
 
 /**
  * Koa-Middleware für Authentifizierung auf Print-Server-Endpoints.
@@ -20,34 +20,52 @@ export function printServerAuth(app: Application): Middleware {
     // --- Variante 1: API-Key Auth (POS-Geräte) ---
     if (apiKey && deviceId) {
       try {
-        // API-Keys werden als SHA-256-Hash gespeichert (apikeyDataResolver) — der
-        // eingehende Klartext-Key muss vor dem Lookup gehasht werden. Lookup über den
-        // apikeyPrefix-Index (erste 8 Zeichen), danach timing-safe Hash-Vergleich gegen
-        // die Kandidaten. Identisches Muster wie der WebSocket-Handshake in channels.ts.
-        const inputHash = sha256(apiKey)
-        const inputPrefix = apiKey.slice(0, 8)
-        const apiKeyResult: any = await app.service('apikeys').find({
-          query: { apikeyPrefix: inputPrefix, deviceId, $limit: 5 },
-          provider: undefined,
-          paginate: false,
+        // Dieselbe Pruefung wie der WebSocket-Handshake — buchstaeblich dieselbe
+        // Funktion (ADR 0042). Entscheidend ist hier die pending-Annahme: Nach
+        // einer Rotation im Handshake schickt der Client sofort den NEUEN
+        // Schluessel. Eine Pruefstelle, die nur den gespeicherten Hash kennt,
+        // antwortete ab diesem Moment 401 — die Kasse laeuft weiter, die Bons
+        // brechen ab. Karenz und Promotion greifen deshalb identisch.
+        //
+        // `canIssue: false`: Ausgestellt wird nur dort, wo der Client den neuen
+        // Schluessel auch entgegennimmt (Socket-Event). Ueber HTTP entstuende
+        // ein Schluessel, den niemand abholt.
+        const auth = await authenticateDeviceApiKey(app, {
+          rawKey: apiKey,
+          deviceId,
+          transport: 'http',
+          canIssue: false,
         })
 
-        const candidates: any[] = Array.isArray(apiKeyResult) ? apiKeyResult : (apiKeyResult?.data ?? [])
-        const keyRecord = candidates.find(entry => entry.active && timingSafeCompare(inputHash, entry.apikey))
-
-        if (!keyRecord) {
+        if (!auth.ok) {
           ctx.status = 401
-          ctx.body = { error: 'Ungültiger oder deaktivierter API-Key' }
+          ctx.body = {
+            error:
+              auth.reason === 'expired'
+                ? 'API-Key abgelaufen — Gerät neu koppeln'
+                : 'Ungültiger oder deaktivierter API-Key',
+          }
           return
         }
+
+        const keyRecord = auth.record
 
         // Nutzung stempeln — gedrosselt, weil dieser Pfad pro HTTP-Request laeuft.
         stampApiKeyLastUsed(app, keyRecord._id)
 
         // Virtuellen User erstellen (wie allowApiKey-Hook)
+        //
+        // ⚠️ `deviceRole` existiert auf einem apikeys-Record NICHT — das Feld
+        // heisst `role` (channels.ts liest `.role` und legt es erst auf der
+        // Connection als `deviceRole` ab). Dieser Pfad faellt damit seit jeher
+        // IMMER auf DEVICE_POS zurueck. Bewusst unveraendert gelassen: Ein
+        // Wechsel auf `keyRecord.role` wuerde KDS-/Tablet-Schluesseln hier
+        // schlagartig andere Rechte geben und koennte den Bondruck dieser
+        // Geraete kippen — eine eigene Entscheidung mit eigenem Test, nicht ein
+        // Nebeneffekt der Schluessel-Rotation.
         ctx.state.user = {
           _id: `device:${deviceId}`,
-          role: keyRecord.deviceRole || UserSystemRole.DEVICE_POS,
+          role: (keyRecord as { deviceRole?: UserSystemRole }).deviceRole || UserSystemRole.DEVICE_POS,
           tenantId: keyRecord.tenantId,
           locationId: keyRecord.locationId,
           activeLocationId: keyRecord.locationId,

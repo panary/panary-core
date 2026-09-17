@@ -117,6 +117,7 @@
     "CONNECTION_FAILED": "Connection failed",
     "CONNECTION_TIMEOUT": "Server unreachable. Please check the network and hub.",
     "DEVICE_REJECTED": "This device was rejected by the server. Please check in the admin area whether it is still active.",
+    "DEVICE_KEY_EXPIRED": "This device's key has expired. The device must be paired again: create a pairing code in the admin area and enter it here.",
     "ASSIGNMENT_ERROR_TITLE": "No assigned employee available",
     "ASSIGNMENT_ERROR_HINT": "This device is assigned to specific employees, but none of them can sign in right now — most likely they were archived. An administrator has to adjust the assignment in the admin panel.",
     "ASSIGNED_DEVICE_LABEL": "This device belongs to",

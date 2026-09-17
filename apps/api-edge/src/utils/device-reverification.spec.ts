@@ -13,9 +13,11 @@ const ago = (ms: number): string => new Date(NOW - ms).toISOString()
  * abbrechbaren Promise-Kette — ein Nachzuegler wuerde in das Handle des
  * naechsten Tests schreiben, wenn es im describe-Scope lebte.
  */
-function makeApp(options: { locationSettings?: unknown; findThrows?: boolean; createThrows?: boolean } = {}) {
+function makeApp(
+  options: { locationSettings?: unknown; findThrows?: boolean; createThrows?: boolean; patchThrows?: boolean } = {},
+) {
   const created: unknown[] = []
-  const patched: Array<{ id: unknown; data: unknown }> = []
+  const patched: Array<{ id: unknown; data: unknown; params?: unknown }> = []
 
   const app = {
     service: (path: string) => {
@@ -35,10 +37,13 @@ function makeApp(options: { locationSettings?: unknown; findThrows?: boolean; cr
           }),
         }
       }
-      // apikeys — von stampApiKeyLastUsed benutzt (fire-and-forget)
+      // apikeys — benutzt von stampApiKeyLastUsed (fire-and-forget) und vom
+      // persistenten Re-Verifikations-Zustand. Der Marker wird mitaufgezeichnet:
+      // ohne ihn verwirft der Patch-Resolver das Feld stillschweigend.
       return {
-        patch: vi.fn(async (id: unknown, data: unknown) => {
-          patched.push({ id, data })
+        patch: vi.fn(async (id: unknown, data: unknown, params: unknown) => {
+          if (options.patchThrows) throw new Error('apikeys nicht schreibbar')
+          patched.push({ id, data, params })
           return data
         }),
       }
@@ -129,7 +134,13 @@ describe('releaseDeviceReverification', () => {
     await flush()
 
     expect(connection.requiresReverification).toBe(false)
-    expect(patched).toEqual([{ id: 'key-1', data: expect.objectContaining({ lastUsedAt: expect.any(String) }) }])
+    // Zwei Patches, und die Reihenfolge traegt: erst der persistente Zustand
+    // (das IST die Freigabe), dann der Stempel.
+    expect(patched.map(entry => entry.data)).toEqual([
+      { reverifyOfflineSince: null },
+      expect.objectContaining({ lastUsedAt: expect.any(String) }),
+    ])
+    expect(patched[0].params).toMatchObject({ provider: undefined, _deviceReverification: true })
     expect(created).toHaveLength(1)
     expect(created[0]).toMatchObject({
       action: 'PIN_VERIFY',
@@ -219,5 +230,102 @@ describe('releaseDeviceReverification', () => {
     ).resolves.toBeUndefined()
     // Das Merkmal ist trotzdem geloest — die harmlosere Richtung.
     expect(connection.requiresReverification).toBe(false)
+  })
+})
+
+// 🚨 Regressionsblock zum Befund aus dem Regel-Review von core#325.
+//
+// Der erste Entwurf leitete die Faelligkeit allein aus `apikeys.lastUsedAt` ab —
+// und `channels.ts` stempelt genau dieses Feld zwei Zeilen nach der Auswertung.
+// Ein automatischer Socket-Reconnect (der POS-Client reconnected unbegrenzt) las
+// damit ein frisches `lastUsedAt`, bekam `due=false` und war ohne jede
+// PIN-Eingabe wieder schreibberechtigt. Derselbe Weg stand ueber den
+// Print-Server-Pfad offen, der `lastUsedAt` unabhaengig vom Socket stempelt.
+describe('evaluateDeviceReverification — Reconnect darf die Sperre nicht aufheben', () => {
+  it('bleibt faellig, wenn der Zustand persistiert ist — auch bei brandfrischem lastUsedAt', async () => {
+    const { app } = makeApp()
+
+    const verdict = await evaluateDeviceReverification(
+      app,
+      {
+        _id: 'key-1',
+        locationId: 'loc-1',
+        // Der Stempel des ausloesenden Handshakes, Sekunden alt.
+        lastUsedAt: ago(30_000),
+        reverifyOfflineSince: ago(9 * DAY_MS),
+      },
+      NOW,
+    )
+
+    expect(verdict.due).toBe(true)
+    expect(verdict.alreadyPending).toBe(true)
+    // Die Dauer zaehlt ab dem gemerkten Kontakt, nicht ab dem frischen Stempel —
+    // sonst zeigte der Bildschirm nach einem Reconnect „1 Tag" statt neun.
+    expect(verdict.offlineForMs).toBe(9 * DAY_MS)
+  })
+
+  it('persistiert den Zustand beim ausloesenden Handshake, mit dem Marker', async () => {
+    const { app, patched } = makeApp()
+    const lastUsedAt = ago(9 * DAY_MS)
+
+    const verdict = await evaluateDeviceReverification(app, { _id: 'key-1', locationId: 'loc-1', lastUsedAt }, NOW, {
+      persist: true,
+    })
+    await flush()
+
+    expect(verdict.alreadyPending).toBe(false)
+    expect(patched).toEqual([
+      {
+        id: 'key-1',
+        data: { reverifyOfflineSince: lastUsedAt },
+        params: { provider: undefined, _deviceReverification: true },
+      },
+    ])
+  })
+
+  it('persistiert NICHT, wenn nichts faellig ist', async () => {
+    const { app, patched } = makeApp()
+
+    await evaluateDeviceReverification(
+      app,
+      { _id: 'key-1', locationId: 'loc-1', lastUsedAt: ago(60 * 3_600_000) },
+      NOW,
+      { persist: true },
+    )
+    await flush()
+
+    expect(patched).toHaveLength(0)
+  })
+
+  it('kippt den Handshake nicht, wenn der Persist fehlschlaegt', async () => {
+    const { app } = makeApp({ patchThrows: true })
+
+    const verdict = await evaluateDeviceReverification(
+      app,
+      { _id: 'key-1', locationId: 'loc-1', lastUsedAt: ago(9 * DAY_MS) },
+      NOW,
+      { persist: true },
+    )
+    await flush()
+
+    // Faellig bleibt faellig; der naechste Handshake versucht es erneut, weil die
+    // Pause dann ja noch messbar ist.
+    expect(verdict.due).toBe(true)
+  })
+})
+
+describe('releaseDeviceReverification — der persistente Zustand entscheidet', () => {
+  it('laesst die Sperre stehen, wenn der Zustand nicht geloescht werden kann', async () => {
+    // Lieber sichtbar nicht freigegeben als scheinbar freigegeben: Eine Freigabe,
+    // die nur die Connection erreicht, waere nach dem naechsten Reconnect weg.
+    const { app, created } = makeApp({ patchThrows: true })
+    const connection = makeConnection()
+
+    await expect(
+      releaseDeviceReverification(app, { _id: 'user-1', role: 'tenant:owner', tenantId: 'tenant-1' }, { connection }),
+    ).resolves.toBeUndefined()
+
+    expect(connection.requiresReverification).toBe(true)
+    expect(created).toHaveLength(0)
   })
 })

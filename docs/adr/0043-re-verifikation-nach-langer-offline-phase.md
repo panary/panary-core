@@ -1,7 +1,7 @@
 ---
 type: ADR
 title: Re-Verifikation nach langer Offline-Phase — getrennt vom Schlüsselablauf
-description: Ein Gerät, das länger als die Schwelle des Standorts (Default 7 Tage) nicht gesprochen hat, wird beim Handshake nicht abgewiesen, sondern markiert; Schreibzugriffe sperrt der Server, bis eine Person per PIN freigibt — Leitung regulär, jede andere PIN als protokollierte Notfreigabe.
+description: Ein Gerät, das länger als die Schwelle des Standorts (Default 7 Tage) nicht gesprochen hat, wird beim Handshake nicht abgewiesen, sondern in `apikeys.reverifyOfflineSince` persistent markiert; Schreibzugriffe sperrt der Server, bis eine Person per PIN freigibt — Leitung regulär, jede andere PIN als protokollierte Notfreigabe.
 tags: [api-edge, devices, apikeys, security, pos-client, audit-events, locations]
 status: stable
 decision: accepted
@@ -34,10 +34,10 @@ Wochenende (~84 h).
 
 Ein eigener, leichter Mechanismus **neben** dem Schlüsselablauf. Beide fassen dieselbe
 Tabelle an und dürfen sich nicht gegenseitig zurücksetzen; sie sind deshalb an getrennten
-Feldern aufgehängt — Rotation an `validUntil`/`pendingApikey`, Re-Verifikation an
-`lastUsedAt`. Keine der Rotations-Patches schreibt `lastUsedAt`, und der Handshake bewertet
-die Pause **vor** dem Stempel. Eine Rotation im selben Handshake ändert das Urteil deshalb
-nicht.
+Feldern aufgehängt — Rotation an `validUntil`/`pendingApikey*`, Re-Verifikation an
+`reverifyOfflineSince`. Kein Rotations-Patch schreibt eines der beiden anderen Felder, und
+der Handshake bewertet die Pause **vor** dem `lastUsedAt`-Stempel. Eine Rotation im selben
+Handshake ändert das Urteil deshalb nicht.
 
 ### Der Handshake markiert, er weist nicht ab
 
@@ -48,8 +48,52 @@ Feld in `device:authenticated` (`success: true`) — die Verbindung steht, Lesen
 funktioniert. Das ist der ganze Unterschied zu ADR 0042: dort ein `success: false` mit
 Fehlercode, hier ein Merkmal auf einer lebenden Verbindung.
 
-**Fail-open ohne Stempel.** Ein Schlüssel ohne `lastUsedAt` hat nie behauptet, lange weg
-gewesen zu sein. Ihn auf Verdacht zu sperren hieße, beim Deploy die halbe Flotte
+### 🚨 Der Zustand ist persistent — abgeleitet war er offen wie ein Scheunentor
+
+`apikeys.reverifyOfflineSince` hält den Zeitpunkt des letzten Kontakts **vor** der Pause,
+solange eine Bestätigung aussteht; `NULL` heißt „nichts offen". Steht das Feld, ist die
+Bewertung erledigt: fällig, bis jemand freigibt.
+
+Der erste Entwurf leitete die Fälligkeit **allein** aus `lastUsedAt` ab und hatte damit
+keine Wirkung. Beide Auth-Pfade stempeln `lastUsedAt` bei jedem erfolgreichen Kontakt —
+`channels.ts` zwei Zeilen nach der Auswertung, die Print-Server-Middleware unabhängig vom
+Socket pro HTTP-Request. Der auslösende Handshake setzte also selbst den Wert, aus dem die
+nächste Auswertung „nicht fällig" ablas. Ein automatischer Socket-Reconnect — der POS-Client
+läuft mit `reconnectionAttempts: Infinity` und 1–5 s Delay, ein WLAN-Aussetzer genügt, und
+erzwingen lässt er sich absichtlich — hob die Sperre binnen Sekunden auf, **ohne dass je
+eine PIN geprüft wurde**. Genau im Fall, für den sie gebaut ist: dem entwendeten Terminal.
+
+Der Kommentar im Code behauptete dabei sogar das Gegenteil („der Schutz endet erst mit der
+Freigabe oder dem Verbindungsende") — richtig war nur die erste Hälfte, und „Verbindungsende"
+war die Lücke, nicht die Grenze. Gefunden hat es der Regel-Review vor dem PR, nicht ein
+Test; der Regressionsblock in `utils/device-reverification.spec.ts` deckt die
+Zwei-Handshake-Kette jetzt ab.
+
+Konsequenzen der persistenten Variante:
+
+- **Der Print-Server-Pfad ist entschärft.** Er stempelt weiter `lastUsedAt`, aber das ist
+  nicht mehr der Zustand.
+- **Die Dauer bleibt über Reconnects hinweg richtig.** Gezählt wird ab dem gemerkten
+  Kontakt, nicht ab dem inzwischen frischen Stempel — sonst zeigte der Bildschirm nach einem
+  Reconnect „1 Tag offline" statt neun.
+- **Nur der auslösende Handshake schreibt das Audit-Event** (`alreadyPending`). Ein wartendes
+  Terminal reconnected beliebig oft; je Reconnect ein Eintrag machte die eine Meldung, wegen
+  der der Trail existiert, im Rauschen unfindbar.
+- **Die Freigabe leert das Feld awaited**, vor der Connection. Fire-and-forget ließe einen
+  Reconnect in derselben Sekunde noch den alten Stempel lesen. Schlägt der Write fehl, bleibt
+  die Sperre stehen — lieber sichtbar nicht erteilt als scheinbar erteilt.
+- **Eigene Resolver-Weiche** `_deviceReverification`, enger als die `provider`-Weiche von
+  `lastUsedAt` und nach demselben Muster wie `_apikeyRotation`: Das Feld auf `NULL` zu setzen
+  **ist** die Freigabe, „irgendein interner Aufrufer" wäre dafür zu weit. Der
+  Invarianten-Test in `apikeys.schema.spec.ts` hält zusätzlich fest, dass sich die beiden
+  Marker nicht gegenseitig öffnen.
+- **Kein Backfill** in der Migration. `NULL` ist der richtige Startwert; ein Backfill aus
+  `lastUsedAt` schickte beim Deploy jedes länger ungenutzte Zweitgerät gleichzeitig vor den
+  Bildschirm.
+
+**Fail-open ohne Stempel.** Ein Schlüssel ohne `lastUsedAt` und ohne
+`reverifyOfflineSince` hat nie behauptet, lange weg gewesen zu sein. Ihn auf Verdacht zu
+sperren hieße, beim Deploy die halbe Flotte
 gleichzeitig vor den Bestätigungsbildschirm zu schicken, ohne dass irgendetwas vorgefallen
 wäre. Derselbe Handshake stempelt; ab dann misst die Regel echte Daten. Dieselbe Richtung
 wie `stampInitialValidUntil` in ADR 0042.
@@ -101,10 +145,11 @@ Zwei Dinge, die die Freigabe zusätzlich tut und `verifyPin` selbst nicht kennt:
 - **Mandanten-Prüfung.** `verifyPin` lädt den User mit `provider: undefined` und prüft den
   Tenant **nicht** (anders als `changePin`). Für eine Freigabe wäre das die falsche Stelle,
   darüber hinwegzusehen.
+- **Löschen des persistenten Zustands**, awaited (siehe oben) — das ist die eigentliche
+  Freigabe.
 - **Erzwungener Stempel.** `stampApiKeyLastUsed(..., { force: true })` umgeht die
-  5-Minuten-Drossel. Ohne das träfe ein Reconnect in den nächsten fünf Minuten noch auf den
-  alten `lastUsedAt`, und der Bediener stünde wieder vor dem Bildschirm, den er gerade
-  quittiert hat.
+  5-Minuten-Drossel, damit `lastUsedAt` nach der Freigabe auf jetzt steht und die Schwelle
+  nicht sofort wieder greift.
 
 ### Wer freigeben darf: Leitung regulär, jede andere PIN als Notfreigabe
 
@@ -210,10 +255,11 @@ bestehende Offline-Modus gilt unverändert. Ein Terminal darf nicht zwischen „
 - **Cloud-Tier („cloud-direct", `panary-cloud/apps/api-cloud/src/channels.ts`)** hat dieselbe
   Ausgangslage. Ob der Mechanismus dort gespiegelt wird, ist eine eigene Entscheidung und
   bewusst nicht Teil dieses ADR.
-- **Print-Server-Pfad** ist nicht erfasst: Er authentifiziert pro HTTP-Request über eine
-  Middleware, nicht über die Feathers-Hook-Kette. Ein wartendes Terminal kann also weiter
-  drucken. Bewusst so — ein Bon ist kein Umsatz, und der Pfad hat keinen Kanal, über den eine
-  Bestätigung erteilt werden könnte.
+- **Print-Server-Pfad** ist von der Durchsetzung nicht erfasst: Er authentifiziert pro
+  HTTP-Request über eine Middleware, nicht über die Feathers-Hook-Kette. Ein wartendes
+  Terminal kann also weiter drucken. Bewusst so — ein Bon ist kein Umsatz, und der Pfad hat
+  keinen Kanal, über den eine Bestätigung erteilt werden könnte. Den **Zustand** kann er
+  dagegen nicht mehr löschen; das war im ersten Entwurf anders (siehe oben).
 
 ## Verwandt
 

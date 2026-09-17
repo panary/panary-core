@@ -115,6 +115,22 @@ const rotationOnly = <T>(value: T, _data: unknown, context: HookContext): T | un
     ? value
     : undefined
 
+/**
+ * Feld-Weiche fuer die Re-Verifikation nach langer Offline-Phase (ADR 0043).
+ *
+ * Eigener Marker statt der `provider`-Weiche von `lastUsedAt`, und zwar aus dem
+ * gleichen Grund wie bei `rotationOnly`: `reverifyOfflineSince` auf `null` zu
+ * setzen IST die Freigabe. „Irgendein interner Aufrufer" waere dafuer zu weit —
+ * jeder serverseitige Patch-Pfad auf `apikeys` waere sonst ein Weg, die Sperre
+ * ohne PIN aufzuheben. Gesetzt wird `_deviceReverification` ausschliesslich in
+ * `utils/device-reverification.ts`.
+ */
+const reverificationOnly = <T>(value: T, _data: unknown, context: HookContext): T | undefined =>
+  context.params.provider === undefined &&
+  (context.params as { _deviceReverification?: boolean })._deviceReverification === true
+    ? value
+    : undefined
+
 export const apikeyPatchResolver = resolve<Apikey, HookContext>({
   // API-Keys sind nach Erstellung unveränderlich — extern darf nur der
   // active-Status getoggelt werden. Alle anderen Felder werden beim PATCH
@@ -144,6 +160,8 @@ export const apikeyPatchResolver = resolve<Apikey, HookContext>({
   // WS-Handshake (channels.ts) und Print-Server-Middleware, jeweils ueber
   // `stampApiKeyLastUsed` in utils/apikey-last-used.ts.
   lastUsedAt: async (value, _data, context) => (context.params.provider ? undefined : value),
+  // Re-Verifikations-Zustand: nur ueber den Re-Verifikations-Pfad (ADR 0043).
+  reverifyOfflineSince: reverificationOnly,
   active: async value => value,
   createdAt: async () => undefined,
   updatedAt: async (): Promise<string> => new Date().toISOString(),

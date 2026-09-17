@@ -11,12 +11,14 @@ import type { HookContext } from '../../declarations'
 //   `lastUsedAt`           nur serverseitige Telemetrie (utils/apikey-last-used.ts)
 //   Rotations-Felder       nur der Rotations-Pfad (utils/device-apikey-auth.ts,
 //                          `provider: undefined` UND `_apikeyRotation: true`)
+//   reverifyOfflineSince   nur der Re-Verifikations-Pfad (ADR 0043,
+//                          `provider: undefined` UND `_deviceReverification: true`)
 // Dieser Test ist der Anker gegen eine spaetere Aufweichung: Weder die
 // Provider-Weiche bei `lastUsedAt` noch der Rotations-Marker duerfen als
 // Praezedenzfall fuer `role`, `deviceId`, `name` oder `tenantId` gelesen werden.
-const makeContext = (provider?: string, rotation = false): HookContext =>
+const makeContext = (provider?: string, rotation = false, reverification = false): HookContext =>
   ({
-    params: { provider, _apikeyRotation: rotation },
+    params: { provider, _apikeyRotation: rotation, _deviceReverification: reverification },
   }) as unknown as HookContext
 
 /** Ein PATCH, der jedes Feld des Schemas zu setzen versucht. */
@@ -36,6 +38,7 @@ const fullPatch = {
   deviceId: 'fremdes-geraet',
   createdBy: 'jemand-anderes',
   lastUsedAt: '2026-07-31T12:00:00.000Z',
+  reverifyOfflineSince: null,
   active: false,
   createdAt: '2000-01-01T00:00:00.000Z',
 }
@@ -180,5 +183,73 @@ describe('apikeyDataResolver — validUntil beim Anlegen', () => {
       createContext(),
     )
     expect(resolved.validUntil).toBe('2030-01-01T00:00:00.000Z')
+  })
+})
+
+// 🚨 Eigener Block statt einer Zeile in ROTATION_ONLY: `reverifyOfflineSince`
+// auf `null` zu setzen IST die Freigabe eines lange offline gewesenen Geraets
+// (ADR 0043). Waere es nur „intern setzbar", waere jeder serverseitige
+// Patch-Pfad auf `apikeys` ein Weg, die Sperre ohne PIN aufzuheben.
+describe('apikeyPatchResolver — Re-Verifikations-Zustand (ADR 0043)', () => {
+  const patch = { ...fullPatch, reverifyOfflineSince: '2026-09-08T06:00:00.000Z' }
+
+  it.each(['rest', 'socketio'])('verwirft reverifyOfflineSince bei einem externen PATCH (%s)', async provider => {
+    const resolved = (await apikeyPatchResolver.resolve(patch as never, makeContext(provider))) as Record<
+      string,
+      unknown
+    >
+    expect(resolved['reverifyOfflineSince']).toBeUndefined()
+  })
+
+  it('verwirft reverifyOfflineSince bei einem internen PATCH OHNE Marker', async () => {
+    const resolved = (await apikeyPatchResolver.resolve(patch as never, makeContext(undefined))) as Record<
+      string,
+      unknown
+    >
+    expect(resolved['reverifyOfflineSince']).toBeUndefined()
+  })
+
+  it('verwirft reverifyOfflineSince auch im ROTATIONS-Pfad — die Marker oeffnen sich nicht gegenseitig', async () => {
+    const resolved = (await apikeyPatchResolver.resolve(patch as never, makeContext(undefined, true))) as Record<
+      string,
+      unknown
+    >
+    expect(resolved['reverifyOfflineSince']).toBeUndefined()
+  })
+
+  it('laesst reverifyOfflineSince im Re-Verifikations-Pfad durch', async () => {
+    const resolved = (await apikeyPatchResolver.resolve(patch as never, makeContext(undefined, false, true))) as Record<
+      string,
+      unknown
+    >
+    expect(resolved['reverifyOfflineSince']).toBe('2026-09-08T06:00:00.000Z')
+  })
+
+  it('laesst die Leerung (null) im Re-Verifikations-Pfad durch — sonst waere die Freigabe unmoeglich', async () => {
+    const resolved = (await apikeyPatchResolver.resolve(
+      fullPatch as never,
+      makeContext(undefined, false, true),
+    )) as Record<string, unknown>
+    expect(resolved['reverifyOfflineSince']).toBeNull()
+  })
+
+  it('oeffnet der Re-Verifikations-Marker KEIN Credential-Material', async () => {
+    const resolved = (await apikeyPatchResolver.resolve(
+      fullPatch as never,
+      makeContext(undefined, false, true),
+    )) as Record<string, unknown>
+    for (const field of ROTATION_ONLY) {
+      expect(resolved[field], `${field} darf der Re-Verifikations-Marker nicht oeffnen`).toBeUndefined()
+    }
+  })
+
+  it('sperrt die unveraenderlichen Felder auch im Re-Verifikations-Pfad', async () => {
+    const resolved = (await apikeyPatchResolver.resolve(
+      fullPatch as never,
+      makeContext(undefined, false, true),
+    )) as Record<string, unknown>
+    for (const field of ALWAYS_LOCKED) {
+      expect(resolved[field], `${field} darf auch bei der Re-Verifikation nicht setzbar sein`).toBeUndefined()
+    }
   })
 })

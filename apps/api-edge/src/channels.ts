@@ -90,7 +90,12 @@ export const channels = (app: Application) => {
           // waere die Pause nicht mehr messbar. Eine gleichzeitige
           // Schluessel-Rotation (ADR 0042) faellt nicht ins Gewicht — sie fasst
           // `lastUsedAt` nicht an.
-          const reverification = await evaluateDeviceReverification(app, apiKeyRecord)
+          //
+          // Der Faelligkeits-Zustand selbst liegt persistent auf dem Schluessel
+          // (`reverifyOfflineSince`), nicht in dieser Auswertung: Sonst haette ihn
+          // der Stempel drei Zeilen weiter unten beim naechsten Reconnect
+          // stillschweigend geloescht (ADR 0043).
+          const reverification = await evaluateDeviceReverification(app, apiKeyRecord, Date.now(), { persist: true })
 
           // Device-Auth-Daten auf der Connection speichern,
           // damit der allowApiKey-Hook sie in params kopieren kann
@@ -120,11 +125,13 @@ export const channels = (app: Application) => {
           // beantwortet „wann war das Geraet zuletzt da", `apikeys.lastUsedAt`
           // „wird dieser Schluessel noch benutzt" (Revocation-Hygiene im Admin).
           //
-          // 🚨 Auch bei faelliger Re-Verifikation wird gestempelt: `lastUsedAt`
+          // Auch bei faelliger Re-Verifikation wird gestempelt: `lastUsedAt`
           // beantwortet „wird dieser Schluessel noch benutzt" und ist keine
-          // Buchung auf die Bestaetigung. Die Faelligkeit steht bereits auf der
-          // Connection und ueberlebt den Stempel; der Schutz endet erst mit der
-          // Freigabe oder dem Verbindungsende.
+          // Buchung auf die Bestaetigung. Ungefaehrlich ist das nur, weil die
+          // Faelligkeit an `reverifyOfflineSince` haengt und nicht an diesem
+          // Feld — der Print-Server-Pfad stempelt `lastUsedAt` ohnehin
+          // unabhaengig vom Socket und koennte einen abgeleiteten Zustand
+          // jederzeit loeschen.
           stampApiKeyLastUsed(app, apiKeyRecord._id)
           socket.emit('device:authenticated', {
             success: true,
@@ -137,7 +144,11 @@ export const channels = (app: Application) => {
             offlineSince: reverification.due ? (apiKeyRecord.lastUsedAt ?? null) : null,
           })
 
-          if (reverification.due) {
+          // Nur der AUSLOESENDE Handshake schreibt das Audit-Event. Ein
+          // wartendes Terminal reconnected beliebig oft (WLAN, Neustart); je
+          // Reconnect einen Eintrag zu schreiben machte die eine Meldung, wegen
+          // der der Trail existiert, im Rauschen unfindbar.
+          if (reverification.due && !reverification.alreadyPending) {
             // Nach dem Emit: Der Bildschirm soll nicht auf einem DB-Write warten.
             void recordReverificationRequired(app, apiKeyRecord, reverification)
           }

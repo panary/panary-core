@@ -79,6 +79,13 @@ export interface DeviceApiKeyRecord {
    * an, die Messung bleibt also auch bei gleichzeitiger Rotation gueltig.
    */
   lastUsedAt?: string | null
+  /**
+   * Re-Verifikation nach langer Offline-Phase (ADR 0043): Zeitpunkt des letzten
+   * Kontakts vor der Pause, solange eine Bestaetigung aussteht. Persistent und
+   * bewusst NICHT aus `lastUsedAt` abgeleitet — diese Datei stempelt es nicht
+   * an, die Rotation fasst es nicht an.
+   */
+  reverifyOfflineSince?: string | null
   apikey: string
   pendingApikey?: string | null
   pendingApikeyCreatedAt?: string | null

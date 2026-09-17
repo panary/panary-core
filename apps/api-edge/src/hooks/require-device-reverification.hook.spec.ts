@@ -1,8 +1,15 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { requireDeviceReverification } from './require-device-reverification.hook'
 
-const next = vi.fn(() => Promise.resolve())
+/**
+ * `next` je Test anlegen, nicht modulweit (testing.md §10): `next.mock.calls`
+ * ist ein Aufzeichnungsarray, und ein geteiltes Handle laesst einen Nachzuegler
+ * aus Test 1 in die Zaehlung von Test 2 schreiben. Ein `vi.clearAllMocks()` im
+ * `beforeEach` ist genau die Form, die §10 fuer neue Specs ausschliesst.
+ * Praezedenzfall im Repo: `print-server/auth.middleware.spec.ts` (#199).
+ */
+const makeNext = () => vi.fn(() => Promise.resolve())
 
 function makeContext(opts: {
   method?: string
@@ -26,21 +33,22 @@ function makeContext(opts: {
   }
 }
 
-beforeEach(() => vi.clearAllMocks())
-
 describe('requireDeviceReverification()', () => {
   it('sperrt orders.create, solange die Bestaetigung aussteht — der Kern der Durchsetzung', async () => {
+    const next = makeNext()
     await expect(requireDeviceReverification()(makeContext({}), next)).rejects.toMatchObject({ code: 503 })
     expect(next).not.toHaveBeenCalled()
   })
 
   it('sperrt auch orders.patch', async () => {
+    const next = makeNext()
     await expect(requireDeviceReverification()(makeContext({ method: 'patch' }), next)).rejects.toMatchObject({
       code: 503,
     })
   })
 
   it('sperrt fail-closed: eine unbekannte Custom-Method ist ohne Zutun gesperrt', async () => {
+    const next = makeNext()
     // Genau dafuer ist die Allowlist da — eine Verbotsliste muesste bei jeder
     // neuen Methode nachgezogen werden, und die vergessene Zeile faellt erst
     // auf, wenn sie jemand ausnutzt.
@@ -50,12 +58,14 @@ describe('requireDeviceReverification()', () => {
   })
 
   it('traegt den stabilen Fehlercode fuer den Client', async () => {
+    const next = makeNext()
     await expect(requireDeviceReverification()(makeContext({}), next)).rejects.toMatchObject({
       data: { code: 'DEVICE_REVERIFICATION_REQUIRED' },
     })
   })
 
   it('🚨 wirft KEINEN Code, den die Outbox als terminal einstuft', async () => {
+    const next = makeNext()
     // `classifyOutboxError` (libs/shared/offline-cache/src/lib/outbox.ts) stuft
     // 400/401/403/422 als `terminal` ein und `markRejected` loescht den Eintrag
     // unwiederbringlich — die offline erfasste Bestellung waere weg. Die
@@ -69,11 +79,13 @@ describe('requireDeviceReverification()', () => {
   })
 
   it.each(['find', 'get'])('laesst Lesen durch (%s) — sonst bliebe der Bildschirm leer', async method => {
+    const next = makeNext()
     await expect(requireDeviceReverification()(makeContext({ method }), next)).resolves.toBeUndefined()
     expect(next).toHaveBeenCalledOnce()
   })
 
   it('laesst verifyPin durch — es IST der Freigabe-Pfad', async () => {
+    const next = makeNext()
     await expect(
       requireDeviceReverification()(makeContext({ method: 'verifyPin', path: 'users' }), next),
     ).resolves.toBeUndefined()
@@ -81,6 +93,7 @@ describe('requireDeviceReverification()', () => {
   })
 
   it('laesst ein Geraet ohne ausstehende Bestaetigung unveraendert arbeiten', async () => {
+    const next = makeNext()
     await expect(
       requireDeviceReverification()(makeContext({ requiresReverification: false }), next),
     ).resolves.toBeUndefined()
@@ -88,11 +101,13 @@ describe('requireDeviceReverification()', () => {
   })
 
   it('laesst interne Aufrufe durch (kein provider) — Sync-Apply und Worker duerfen nie blockieren', async () => {
+    const next = makeNext()
     await expect(requireDeviceReverification()(makeContext({ provider: undefined }), next)).resolves.toBeUndefined()
     expect(next).toHaveBeenCalledOnce()
   })
 
   it('laesst Verbindungen ohne Connection durch (REST/JWT-Admin)', async () => {
+    const next = makeNext()
     const ctx: any = { method: 'create', path: 'orders', params: { provider: 'rest' } }
 
     await expect(requireDeviceReverification()(ctx, next)).resolves.toBeUndefined()

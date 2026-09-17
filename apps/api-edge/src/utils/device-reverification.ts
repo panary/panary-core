@@ -39,6 +39,13 @@ export interface DeviceReverificationVerdict {
   /** Dauer der Pause in Millisekunden, soweit messbar. */
   offlineForMs: number | null
   thresholdMs: number
+  /**
+   * War der Zustand schon persistiert? Nur der ausloesende Handshake schreibt
+   * das Audit-Event — sonst produzierte jeder Reconnect eines wartenden
+   * Terminals einen weiteren Eintrag und die Meldung, wegen der der Trail
+   * existiert, verschwaende im Rauschen.
+   */
+  alreadyPending: boolean
 }
 
 const asArray = <T>(result: unknown): T[] =>
@@ -75,24 +82,89 @@ const loadThresholdMs = async (app: Application, locationId: string | undefined)
 /**
  * Beurteilt einen frisch authentifizierten Schluessel.
  *
- * 🚨 `lastUsedAt` MUSS der Wert VOR `stampApiKeyLastUsed` sein — sonst misst
- * die Regel ihren eigenen Stempel und loest nie aus. Der Aufrufer reicht den
- * Datensatz durch, wie `authenticateDeviceApiKey` ihn geladen hat; die
- * Schluessel-Rotation (ADR 0042) fasst `lastUsedAt` nicht an und kann das
- * Ergebnis daher auch dann nicht zuruecksetzen, wenn sie im selben Handshake
- * laeuft.
+ * 🚨 Der Zustand ist PERSISTENT (`apikeys.reverifyOfflineSince`) und wird nicht
+ * aus `lastUsedAt` abgeleitet. Das war der erste Entwurf und er war offen wie
+ * ein Scheunentor: Beide Auth-Pfade stempeln `lastUsedAt` bei jedem
+ * erfolgreichen Kontakt, also war der Zustand direkt nach dem ausloesenden
+ * Handshake wieder „nicht faellig" — ein automatischer Socket-Reconnect
+ * (`reconnectionAttempts: Infinity` am POS, Sekunden nach einem WLAN-Aussetzer
+ * oder absichtlich erzwungen) hob die Sperre ohne jede PIN-Eingabe auf. Genau im
+ * Fall, fuer den sie gebaut ist.
+ *
+ * Steht das Feld, ist die Bewertung damit erledigt: faellig, bis jemand
+ * freigibt. Sonst entscheidet `now - lastUsedAt` — und dieser Wert MUSS der
+ * Stand VOR `stampApiKeyLastUsed` sein, sonst misst die Regel ihren eigenen
+ * Stempel. Der Aufrufer reicht den Datensatz durch, wie
+ * `authenticateDeviceApiKey` ihn geladen hat; die Schluessel-Rotation (ADR 0042)
+ * fasst weder `lastUsedAt` noch `reverifyOfflineSince` an.
+ *
+ * `persist` schreibt den Stempel beim ausloesenden Handshake — fire-and-forget,
+ * weil der Bestaetigungsbildschirm nicht auf einen DB-Write warten soll. Faellt
+ * der Write aus, loest der naechste Handshake erneut aus (die Pause ist dann ja
+ * noch messbar): dieselbe Richtung wie `stampInitialValidUntil`.
  */
 export const evaluateDeviceReverification = async (
   app: Application,
-  record: { locationId?: string; lastUsedAt?: string | null },
+  record: { _id?: string; locationId?: string; lastUsedAt?: string | null; reverifyOfflineSince?: string | null },
   now: number = Date.now(),
+  options: { persist?: boolean } = {},
 ): Promise<DeviceReverificationVerdict> => {
   const thresholdMs = await loadThresholdMs(app, record.locationId)
-  return {
-    due: isDeviceReverificationDue(record.lastUsedAt, now, thresholdMs),
+
+  // Bereits offen: Dauer ab dem gemerkten letzten Kontakt, nicht ab dem
+  // inzwischen frischen `lastUsedAt` — sonst zeigte der Bildschirm nach einem
+  // Reconnect „1 Tag offline" statt der echten Pause.
+  if (typeof record.reverifyOfflineSince === 'string' && record.reverifyOfflineSince) {
+    return {
+      due: true,
+      offlineForMs: resolveDeviceOfflineForMs(record.reverifyOfflineSince, now),
+      thresholdMs,
+      alreadyPending: true,
+    }
+  }
+
+  const due = isDeviceReverificationDue(record.lastUsedAt, now, thresholdMs)
+  const verdict: DeviceReverificationVerdict = {
+    due,
     offlineForMs: resolveDeviceOfflineForMs(record.lastUsedAt, now),
     thresholdMs,
+    alreadyPending: false,
   }
+
+  if (due && options.persist !== false && record._id && typeof record.lastUsedAt === 'string') {
+    persistPendingStamp(app, record._id, record.lastUsedAt)
+  }
+
+  return verdict
+}
+
+/**
+ * Merkt den letzten Kontakt vor der Pause auf dem Schluessel.
+ *
+ * Fire-and-forget mit eigener Fehlerbehandlung: Der Handshake ist an dieser
+ * Stelle schon erfolgreich, ein fehlgeschlagener Buchhaltungs-Schritt darf ihn
+ * nicht kippen. Muster wie `stampDeviceLastSeen` in `channels.ts`.
+ */
+const persistPendingStamp = (app: Application, apiKeyId: string, offlineSince: string): void => {
+  void (async () => {
+    try {
+      await app.service('apikeys').patch(
+        apiKeyId,
+        { reverifyOfflineSince: offlineSince } as never,
+        {
+          provider: undefined,
+          _deviceReverification: true,
+        } as never,
+      )
+    } catch (err) {
+      logger.warn({
+        message: 'Re-Verifikations-Zustand konnte nicht persistiert werden — naechster Handshake loest erneut aus',
+        event: 'device.reverification_persist_failed',
+        apiKeyId,
+        error: String(err),
+      })
+    }
+  })()
 }
 
 const hours = (ms: number | null): number | null => (ms === null ? null : Math.round(ms / 3_600_000))
@@ -299,15 +371,30 @@ export const releaseDeviceReverification = async (
       thresholdMs: conn.reverificationThresholdMs ?? resolveDeviceReverifyThresholdMs(undefined),
     }
 
-    // Erst das Merkmal loesen, dann stempeln: Faellt der Stempel aus, ist das
-    // Terminal trotzdem bedienbar, und der naechste Handshake loest hoechstens
-    // ein zweites Mal aus — das ist die harmlosere Richtung.
+    // 🚨 Der persistente Zustand MUSS geloescht sein, bevor die Connection
+    // freigegeben wird — er, nicht das In-Memory-Merkmal, entscheidet ueber
+    // jeden kuenftigen Handshake. Und er wird AWAITET: Ein fire-and-forget
+    // liesse einen Reconnect in derselben Sekunde noch den alten Stempel lesen,
+    // und der Bediener stuende wieder vor dem Bildschirm, den er gerade
+    // quittiert hat. Schlaegt der Write fehl, bleibt die Sperre stehen — die
+    // sichere Richtung, und die Meldung sagt es.
+    if (conn.apiKeyId) {
+      await app.service('apikeys').patch(
+        conn.apiKeyId,
+        { reverifyOfflineSince: null } as never,
+        {
+          provider: undefined,
+          _deviceReverification: true,
+        } as never,
+      )
+    }
+
     conn.requiresReverification = false
     conn.reverificationOfflineSince = null
     conn.reverificationOfflineForMs = null
 
-    // Erzwungen, nicht gedrosselt: Ein Reconnect innerhalb der naechsten fuenf
-    // Minuten darf nicht erneut auf den alten `lastUsedAt` treffen.
+    // Erzwungen, nicht gedrosselt: `lastUsedAt` soll nach der Freigabe auf jetzt
+    // stehen, damit die Schwelle nicht sofort wieder greift.
     if (conn.apiKeyId) stampApiKeyLastUsed(app, conn.apiKeyId, { force: true })
 
     await recordReverificationGranted(
@@ -318,8 +405,12 @@ export const releaseDeviceReverification = async (
       emergency,
     )
   } catch (err) {
+    // Die Sperre bleibt in diesem Fall stehen (der persistente Zustand wurde
+    // nicht geloescht). Das ist gewollt: Eine Freigabe, die nur die Connection
+    // erreicht, waere nach dem naechsten Reconnect ohnehin weg — dann lieber
+    // sichtbar nicht erteilt als scheinbar erteilt.
     logger.warn({
-      message: 'Freigabe der Geraete-Re-Verifikation fehlgeschlagen',
+      message: 'Freigabe der Geraete-Re-Verifikation fehlgeschlagen — Sperre bleibt bestehen',
       event: 'device.reverification_release_failed',
       deviceId: conn.deviceId,
       error: String(err),

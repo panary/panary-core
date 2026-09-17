@@ -42,6 +42,26 @@ export const apikeySchema = Type.Object(
     description: Type.Optional(Type.String({ maxLength: 500 })), // Optional description of the API key's purpose
     active: Type.Boolean({ default: true }), // Whether this API key is active. Inactive keys cannot authenticate.
     lastUsedAt: Type.Optional(Type.String({ format: 'date-time' })), // Last time this API key was used
+
+    /**
+     * Re-Verifikation nach langer Offline-Phase (ADR 0043).
+     *
+     * Traegt den Zeitpunkt des letzten Kontakts VOR der Pause, solange eine
+     * Bestaetigung aussteht; `null`/fehlend heisst „nichts offen". Das Feld ist
+     * damit gleichzeitig der Zustand und die Grundlage der Dauer-Anzeige.
+     *
+     * 🚨 Es MUSS persistent sein und darf NICHT aus `lastUsedAt` abgeleitet
+     * werden. Beide Auth-Pfade stempeln `lastUsedAt` bei jedem erfolgreichen
+     * Kontakt; ein aus ihm abgeleiteter Zustand waere nach dem ersten
+     * ausloesenden Handshake sofort wieder „nicht faellig", und ein simpler
+     * Socket-Reconnect (`reconnectionAttempts: Infinity` am POS) haette die
+     * Sperre ohne jede PIN-Eingabe aufgehoben.
+     *
+     * `Type.Null()` ist Pflicht, nicht Kosmetik — aus demselben Grund wie bei
+     * `pendingApikey`: Die Freigabe muss das Feld LEEREN, und ein `undefined`
+     * im PATCH laesst die Spalte unveraendert stehen (Adapter-Semantik).
+     */
+    reverifyOfflineSince: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
   },
   { $id: 'Apikey', additionalProperties: false },
 )

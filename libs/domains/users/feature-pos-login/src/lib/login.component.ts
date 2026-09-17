@@ -8,6 +8,7 @@ import { ConnectionService } from '@panary/shared/data-access'
 import { POS_PIN_LENGTH, requiresPosPinChange } from '@panary/users/domain'
 import { TimeClockEvent, TimeClockPanelComponent } from './time-clock-panel/time-clock-panel.component'
 import { PinPadComponent } from './pin-pad/pin-pad.component'
+import { DeviceReverifyComponent } from './device-reverify/device-reverify.component'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { UpdateService } from '@panary/shared/data-access-updater'
 import { LanguageService, LANGUAGES } from '@panary/shared/data-access'
@@ -27,7 +28,7 @@ interface PosUser {
   staffRole?: string
 }
 
-type LoginStep = 'loading' | 'select-user' | 'enter-pin' | 'change-pin' | 'error' | 'assignment-error'
+type LoginStep = 'loading' | 'reverify' | 'select-user' | 'enter-pin' | 'change-pin' | 'error' | 'assignment-error'
 
 /** Wie lange auf eine authentifizierte Verbindung gewartet wird, bevor die Fehlermaske erscheint. */
 const CONNECTION_TIMEOUT_MS = 15_000
@@ -40,7 +41,7 @@ type ChangePinPhase = 'new' | 'confirm'
 
 @Component({
   selector: 'lib-login',
-  imports: [CommonModule, TimeClockPanelComponent, TranslateModule, PinPadComponent],
+  imports: [CommonModule, TimeClockPanelComponent, TranslateModule, PinPadComponent, DeviceReverifyComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
@@ -370,6 +371,18 @@ export class LoginComponent implements OnInit {
    * Rueckfall auf die volle Liste, denn genau die soll hier ja nicht erscheinen.
    */
   #resolveEntryStep(): LoginStep {
+    // Vor allem anderen: Schuldet das Geraet eine Bestaetigung nach langer
+    // Offline-Phase (panary/panary-core#325), gibt es keinen Login-Screen.
+    // Der Server laesst Schreibzugriffe ohnehin nicht durch — ohne diesen
+    // Zweig koennte sich jemand anmelden und erst beim ersten Bon auf eine
+    // unerklaerliche Fehlermeldung laufen.
+    //
+    // Nur wenn das Geraet VERBUNDEN ist: Das Merkmal stammt aus dem Handshake.
+    // Offline steht es nie, der reguläre Offline-Modus bleibt unberuehrt — ein
+    // Terminal darf nicht zwischen „offline" und „muss sich verifizieren"
+    // eingeklemmt werden.
+    if (this.connectionService.deviceReverificationRequired()) return 'reverify'
+
     if (!this.deviceAssignment.isAssigned()) return 'select-user'
 
     const users = this.posUsers()
@@ -381,6 +394,16 @@ export class LoginComponent implements OnInit {
       return 'enter-pin'
     }
     return 'select-user'
+  }
+
+  /**
+   * Die Bestaetigung wurde erteilt — zurueck in den regulaeren Ablauf.
+   *
+   * Die Benutzerliste steht bereits (Lesen war waehrend der Sperre erlaubt),
+   * es braucht also keinen zweiten Roundtrip.
+   */
+  protected onReverified(): void {
+    this.currentStep.set(this.#resolveEntryStep())
   }
 
   //#endregion

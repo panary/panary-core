@@ -32,6 +32,11 @@
           </div>
         }
 
+        <!-- ==================== RE-VERIFIKATION NACH LANGER OFFLINE-PHASE ==================== -->
+        @if (currentStep() === 'reverify') {
+          <lib-device-reverify (released)="onReverified()" />
+        }
+
         <!-- ==================== USER SELECTION ==================== -->
         @if (currentStep() === 'select-user') {
           <div class="animate-[fadeIn_0.3s_ease-out]">

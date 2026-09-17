@@ -1,7 +1,7 @@
 ---
 type: Architecture
 title: Geräte-Credential-Lifecycle — Befristung, Rotation, Kaskade und Nutzungs-Telemetrie
-description: Ein Geräte-Schlüssel ist 180 Tage gültig und wird im Handshake still rotiert; beim Löschen eines Geräts wird er serverseitig mitwiderrufen, und apikeys.lastUsedAt wird an beiden Auth-Pfaden gedrosselt gestempelt.
+description: Ein Geräte-Schlüssel ist 180 Tage gültig und wird im Handshake still rotiert; beim Löschen eines Geräts wird er serverseitig mitwiderrufen, und apikeys.lastUsedAt wird an beiden Auth-Pfaden gedrosselt gestempelt und trägt zusätzlich die Re-Verifikations-Frist.
 tags: [devices, apikeys, security]
 status: stable
 generated: { by: claude-code/opus-5, at: 2026-07-31T20:20:00Z }
@@ -74,14 +74,25 @@ wäre ein Schreib-Amplifikator für beliebige Aufrufer.
 
 **Drosselung: ein Write je Schlüssel und 5 Minuten.** SQLite hat genau einen
 Writer, und der Print-Server-Pfad authentifiziert pro HTTP-Request. Die Frage,
-die das Feld beantwortet, ist „wird dieses Credential überhaupt noch benutzt" —
-nicht „ist das Gerät gerade online". Letzteres liefern `devices.lastSeen`
+die das Feld ursprünglich beantwortete, ist „wird dieses Credential überhaupt noch
+benutzt" — nicht „ist das Gerät gerade online". Letzteres liefern `devices.lastSeen`
 (Connect/Disconnect) und der `device-connections`-Service (Live-Registry) bereits
 exakt.
+
+⚠️ **Seit [ADR 0043](../adr/0043-re-verifikation-nach-langer-offline-phase.md) hat das
+Feld einen zweiten Leser, und der wertet es als Frist aus.** Es ist damit nicht mehr
+nur Telemetrie: `now - lastUsedAt` entscheidet, ob ein Terminal beim nächsten
+Handshake eine Bestätigung schuldet. Wer es künftig anders stempelt — häufiger,
+seltener, an einer dritten Stelle —, verschiebt damit eine Sicherheitsschwelle.
 
 Der Map-Eintrag wird **vor** dem `await` gesetzt (parallele Handshakes) und bei
 einem Fehler zurückgenommen, damit ein Fehlversuch die Drossel nicht 5 Minuten
 blockiert.
+
+**`{ force: true }` umgeht die Drossel** — genau ein Aufrufer nutzt das, die
+Re-Verifikations-Freigabe. Ohne den erzwungenen Stempel träfe ein Reconnect in den
+nächsten fünf Minuten noch auf den alten Wert, und der Bediener stünde wieder vor
+dem Bildschirm, den er gerade quittiert hat.
 
 ### Resolver-Weiche
 
@@ -125,11 +136,38 @@ Lebenszyklus-Bewertung selbst ist framework-frei und liegt in
 `@panary/apikeys/domain` (`apikey-lifecycle.ts`), damit das Cloud-Pendant
 dieselbe Semantik bekommt, ohne den Datensatz zu teilen.
 
+## Re-Verifikation nach langer Offline-Phase
+
+[ADR 0043](../adr/0043-re-verifikation-nach-langer-offline-phase.md) baut auf
+`lastUsedAt` einen zweiten, vom Schlüsselablauf **getrennten** Mechanismus: Ein Gerät,
+das länger als die Schwelle des Standorts (Default 7 Tage,
+`location.settings.deviceSecuritySettings.offlineReverifyDays`) geschwiegen hat, wird
+im Handshake nicht abgewiesen, sondern markiert (`requiresReverification` auf der
+Socket-Connection). Solange das Merkmal steht, lässt
+`hooks/require-device-reverification.hook.ts` nur `find`, `get` und `users.verifyPin`
+durch; alles andere endet mit `503` und `data.code = 'DEVICE_REVERIFICATION_REQUIRED'`.
+
+Die beiden Mechanismen dürfen sich nicht gegenseitig zurücksetzen, und sie tun es
+nicht: Rotation und Promotion patchen `validUntil`/`pendingApikey*` und fassen
+`lastUsedAt` nicht an, und der Handshake bewertet die Pause **vor** dem Stempel.
+
+🚨 **Der Ablehnungscode ist 503 und nicht 403.** `classifyOutboxError`
+(`libs/shared/offline-cache/src/lib/outbox.ts`) stuft 400/401/403/422 als `terminal`
+ein und verwirft den Outbox-Eintrag — eine offline erfasste Bestellung wäre nicht
+verzögert, sondern gelöscht.
+
+Freigegeben wird per PIN über den bestehenden `users.verifyPin`; eine Leitungsrolle
+(`DEVICE_REVERIFY_AUTHORIZING_ROLES`) gibt regulär frei, jedes andere gültige Konto als
+Notfreigabe mit `AuditSeverity.ALERT`. Begründung beider Entscheidungen im ADR.
+
 ## Beteiligte Dateien
 
 - `apps/api-edge/src/hooks/cascade-device-apikeys.hook.ts`
 - `apps/api-edge/src/utils/apikey-last-used.ts`
 - `apps/api-edge/src/utils/device-apikey-auth.ts` — gemeinsame Prüfstelle beider Auth-Pfade
+- `apps/api-edge/src/utils/device-reverification.ts` — Schwelle, Audit, Freigabe (ADR 0043)
+- `apps/api-edge/src/hooks/require-device-reverification.hook.ts` — Durchsetzung
+- `libs/domains/devices/domain/src/lib/device-reverification.ts` — Schwellen-Auflösung, framework-frei
 - `libs/domains/apikeys/domain/src/lib/apikey-lifecycle.ts` — Schwellen und Bewertung
 - `apps/api-edge/src/services/apikeys/apikeys.schema.ts` — Patch-Resolver
 - `apps/api-edge/src/channels.ts`, `apps/api-edge/src/print-server/auth.middleware.ts`

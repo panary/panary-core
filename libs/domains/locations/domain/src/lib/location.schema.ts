@@ -141,6 +141,23 @@ export const settingsSchema = Type.Object({
     generalSideDishPrice: Type.Number({ default: 0 }),
     generalDrinkPrice: Type.Number({ default: 0 }),
   }),
+  // Geraete-Sicherheit am Terminal (panary/panary-core#325). `offlineReverifyDays`
+  // ist die Frist, nach der ein Geraet beim naechsten Handshake einmalig durch
+  // eine Person bestaetigt werden muss — NICHT der Schluessel-Ablauf (ADR 0042),
+  // der weiter unsichtbar und ohne Abweisung rotiert.
+  //
+  // Optional und ohne Eintrag in `defaultSettings`: „nicht gesetzt" ist der
+  // Regelfall und bedeutet `DEVICE_REVERIFY_DEFAULT_DAYS` (7). Auflösung,
+  // Unter- und Obergrenze liegen in `resolveDeviceReverifyThresholdMs`
+  // (@panary/devices/domain) — bewusst dort und nicht als Inline-Constraint:
+  // Eine Verschaerfung im geteilten Schema wuerde einen Bestands-Standort beim
+  // Cloud→Edge-Sync terminal ablehnen und den ganzen Datensatz verlieren
+  // (Muster und Begruendung wie bei `autoLogOffTimeUnit`).
+  deviceSecuritySettings: Type.Optional(
+    Type.Object({
+      offlineReverifyDays: Type.Optional(Type.Number()),
+    }),
+  ),
   taxSettings: Type.Object({
     A: taxSchema,
     B: Type.Optional(taxSchema),

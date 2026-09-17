@@ -6,6 +6,11 @@ import type { Application, HookContext } from './declarations'
 import { logger } from '@panary/shared-backend'
 import { stampApiKeyLastUsed } from './utils/apikey-last-used'
 import { authenticateDeviceApiKey } from './utils/device-apikey-auth'
+import {
+  evaluateDeviceReverification,
+  recordReverificationRequired,
+  type DeviceReverificationConnectionState,
+} from './utils/device-reverification'
 
 /**
  * Stempelt `lastSeen` eines Geräts auf jetzt — Connect-/Disconnect-Tracking für
@@ -80,6 +85,18 @@ export const channels = (app: Application) => {
             transport: 'websocket',
           })
 
+          // Re-Verifikation VOR dem Stempel bewerten (panary/panary-core#325):
+          // `stampApiKeyLastUsed` setzt `lastUsedAt` gleich auf jetzt, danach
+          // waere die Pause nicht mehr messbar. Eine gleichzeitige
+          // Schluessel-Rotation (ADR 0042) faellt nicht ins Gewicht — sie fasst
+          // `lastUsedAt` nicht an.
+          //
+          // Der Faelligkeits-Zustand selbst liegt persistent auf dem Schluessel
+          // (`reverifyOfflineSince`), nicht in dieser Auswertung: Sonst haette ihn
+          // der Stempel drei Zeilen weiter unten beim naechsten Reconnect
+          // stillschweigend geloescht (ADR 0043).
+          const reverification = await evaluateDeviceReverification(app, apiKeyRecord, Date.now(), { persist: true })
+
           // Device-Auth-Daten auf der Connection speichern,
           // damit der allowApiKey-Hook sie in params kopieren kann
           ;(connection as any).apiKey = true
@@ -87,6 +104,17 @@ export const channels = (app: Application) => {
           ;(connection as any).locationId = apiKeyRecord.locationId
           ;(connection as any).deviceId = apiKeyRecord.deviceId
           ;(connection as any).deviceRole = apiKeyRecord.role
+          // Die Freigabe muss `lastUsedAt` genau dieses Schluessels stempeln;
+          // ohne die Id haette sie nur die deviceId und muesste erneut suchen.
+          ;(connection as DeviceReverificationConnectionState).apiKeyId = apiKeyRecord._id
+          ;(connection as DeviceReverificationConnectionState).requiresReverification = reverification.due
+          ;(connection as DeviceReverificationConnectionState).reverificationOfflineSince = reverification.due
+            ? (apiKeyRecord.lastUsedAt ?? null)
+            : null
+          ;(connection as DeviceReverificationConnectionState).reverificationOfflineForMs = reverification.due
+            ? reverification.offlineForMs
+            : null
+          ;(connection as DeviceReverificationConnectionState).reverificationThresholdMs = reverification.thresholdMs
 
           app.channel('authenticated').join(connection)
           // Live-Verbindungs-Tracking: lastSeen bei Connect stempeln (Disconnect
@@ -96,8 +124,34 @@ export const channels = (app: Application) => {
           // Credential-Nutzung getrennt vom Geraet stempeln: `devices.lastSeen`
           // beantwortet „wann war das Geraet zuletzt da", `apikeys.lastUsedAt`
           // „wird dieser Schluessel noch benutzt" (Revocation-Hygiene im Admin).
+          //
+          // Auch bei faelliger Re-Verifikation wird gestempelt: `lastUsedAt`
+          // beantwortet „wird dieser Schluessel noch benutzt" und ist keine
+          // Buchung auf die Bestaetigung. Ungefaehrlich ist das nur, weil die
+          // Faelligkeit an `reverifyOfflineSince` haengt und nicht an diesem
+          // Feld — der Print-Server-Pfad stempelt `lastUsedAt` ohnehin
+          // unabhaengig vom Socket und koennte einen abgeleiteten Zustand
+          // jederzeit loeschen.
           stampApiKeyLastUsed(app, apiKeyRecord._id)
-          socket.emit('device:authenticated', { success: true, deviceId: handshakeAuth.deviceId })
+          socket.emit('device:authenticated', {
+            success: true,
+            deviceId: handshakeAuth.deviceId,
+            // Der Client zeigt daraufhin den Bestaetigungsbildschirm. Die
+            // Durchsetzung haengt NICHT daran — sie sitzt serverseitig im
+            // requireDeviceReverification-Hook. Wer den Schluessel hat, spricht
+            // ohnehin direkt mit dem Socket.
+            requiresReverification: reverification.due,
+            offlineSince: reverification.due ? (apiKeyRecord.lastUsedAt ?? null) : null,
+          })
+
+          // Nur der AUSLOESENDE Handshake schreibt das Audit-Event. Ein
+          // wartendes Terminal reconnected beliebig oft (WLAN, Neustart); je
+          // Reconnect einen Eintrag zu schreiben machte die eine Meldung, wegen
+          // der der Trail existiert, im Rauschen unfindbar.
+          if (reverification.due && !reverification.alreadyPending) {
+            // Nach dem Emit: Der Bildschirm soll nicht auf einem DB-Write warten.
+            void recordReverificationRequired(app, apiKeyRecord, reverification)
+          }
 
           // NACH `device:authenticated`: Der Client soll den neuen Schluessel
           // erst uebernehmen, wenn die Verbindung steht. Er ersetzt damit ein

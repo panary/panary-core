@@ -54,14 +54,41 @@ interface SetupOptions {
   /** Was `users.find` liefert — serverseitig bereits auf den erlaubten Kreis verengt. */
   users?: UserFixture[]
   assignedUserIds?: string[]
+  /** Das Geraet schuldet eine Bestaetigung nach langer Offline-Phase (#325). */
+  reverificationRequired?: boolean
 }
 
 function setup(options: SetupOptions = {}) {
-  const { mode = DeviceAccessMode.SHARED, users = USERS, assignedUserIds = users.map(u => u._id) } = options
+  const {
+    mode = DeviceAccessMode.SHARED,
+    users = USERS,
+    assignedUserIds = users.map(u => u._id),
+    reverificationRequired = false,
+  } = options
 
   const assignment = fakeAssignment(mode, assignedUserIds)
   const find = vi.fn().mockResolvedValue({ data: users })
   const navigate = vi.fn()
+
+  // Je Test angelegt (testing.md §10): Die Signals sind Aufzeichnungs- UND
+  // Steuerzustand; im describe-Scope wuerde ein Nachzuegler in den Mock des
+  // naechsten Tests schreiben.
+  const connection = {
+    connect: vi.fn(),
+    // Sofort 'authenticated' → waitForConnection() loest im ersten Poll auf,
+    // ohne Timer und ohne Fake-Clock.
+    connectionState: signal({ status: 'authenticated' }),
+    deviceAuthRejection: signal<string | null>(null),
+    // Standardfall: keine Bestaetigung ausstehend (panary/panary-core#325).
+    // Ueber `options.reverificationRequired` schaltbar — der Zweig gehoert in
+    // `#resolveEntryStep` VOR die Zuweisungs-Logik und muss deshalb hier belegt
+    // sein, sonst kippt jeder Einstiegsschritt in 'error'.
+    deviceReverificationRequired: signal(reverificationRequired),
+    deviceOfflineSince: signal<string | null>(reverificationRequired ? '2026-09-08T06:00:00.000Z' : null),
+    markDeviceReverified: vi.fn(),
+    usersService: { find },
+    isConfiguredFor: () => true,
+  }
 
   const injector = Injector.create({
     providers: [
@@ -70,18 +97,7 @@ function setup(options: SetupOptions = {}) {
         provide: DeviceConfigService,
         useValue: { getConfig: () => ({ deviceId: 'terminal-1', deviceName: 'Kasse 1' }), clearConfig: vi.fn() },
       },
-      {
-        provide: ConnectionService,
-        useValue: {
-          connect: vi.fn(),
-          // Sofort 'authenticated' → waitForConnection() loest im ersten Poll auf,
-          // ohne Timer und ohne Fake-Clock.
-          connectionState: signal({ status: 'authenticated' }),
-          deviceAuthRejection: signal(null),
-          usersService: { find },
-          isConfiguredFor: () => true,
-        },
-      },
+      { provide: ConnectionService, useValue: connection },
       { provide: DeviceAssignmentService, useValue: assignment },
       { provide: ThemeServiceService, useValue: { theme: 'light', setTheme: vi.fn() } },
       { provide: LanguageService, useValue: { currentLanguage: signal('de'), setLanguage: vi.fn() } },
@@ -95,6 +111,7 @@ function setup(options: SetupOptions = {}) {
 
   return {
     component,
+    connection,
     find,
     navigate,
     /**
@@ -261,5 +278,55 @@ describe('LoginComponent — Ladepfad', () => {
     expect(query.$select).not.toContain('employeeNumber')
     expect(query.$select).toContain('tenantId')
     expect(query.isPosUser).toBe(true)
+  })
+})
+
+describe('LoginComponent — Re-Verifikation nach langer Offline-Phase (#325)', () => {
+  it('schickt ein wartendes Geraet in den Bestaetigungsschritt statt in den Login', async () => {
+    // Bewusst ein geteiltes Geraet mit mehreren Mitarbeitern: Ohne den neuen
+    // Zweig waere das Ergebnis 'select-user' — der Bediener koennte sich
+    // anmelden und erst beim ersten Bon auf eine unerklaerliche 503 laufen.
+    const { component } = setup({ mode: DeviceAccessMode.SHARED, reverificationRequired: true })
+
+    await component['connectAndLoadUsers']()
+
+    expect(component.currentStep()).toBe('reverify')
+  })
+
+  it('schlaegt die Zuweisungs-Logik: auch ein Ein-Personen-Geraet wartet erst', async () => {
+    const { component } = setup({
+      mode: DeviceAccessMode.ASSIGNED,
+      users: USERS.slice(0, 1),
+      reverificationRequired: true,
+    })
+
+    await component['connectAndLoadUsers']()
+
+    expect(component.currentStep()).toBe('reverify')
+  })
+
+  it('nimmt nach der Freigabe den regulaeren Einstiegsschritt auf', async () => {
+    // Nach der Freigabe steht das Signal auf false (der ConnectionService
+    // quittiert sie in `markDeviceReverified`); der Login laeuft dann normal an.
+    const { component, connection } = setup({
+      mode: DeviceAccessMode.SHARED,
+      users: USERS.slice(0, 2),
+      reverificationRequired: true,
+    })
+    await component['connectAndLoadUsers']()
+    expect(component.currentStep()).toBe('reverify')
+
+    connection.deviceReverificationRequired.set(false)
+    component['onReverified']()
+
+    expect(component.currentStep()).toBe('select-user')
+  })
+
+  it('laesst den Alltagsbetrieb unberuehrt', async () => {
+    const { component } = setup({ mode: DeviceAccessMode.SHARED, users: USERS.slice(0, 2) })
+
+    await component['connectAndLoadUsers']()
+
+    expect(component.currentStep()).toBe('select-user')
   })
 })

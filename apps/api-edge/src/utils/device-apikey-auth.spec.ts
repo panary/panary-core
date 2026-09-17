@@ -1,8 +1,7 @@
-import { createHash } from 'node:crypto'
-
 import { APIKEY_GRACE_DAYS, APIKEY_PENDING_STALE_DAYS, APIKEY_ROTATION_LEAD_DAYS } from '@panary/apikeys/domain'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { sha256 } from './crypto.utils'
 import { __resetDeviceApiKeyAuthState, authenticateDeviceApiKey } from './device-apikey-auth'
 
 import type { Application } from '../declarations'
@@ -19,7 +18,6 @@ import type { Application } from '../declarations'
 const DAY_MS = 24 * 60 * 60 * 1000
 const NOW = Date.parse('2026-09-17T12:00:00.000Z')
 const inDays = (days: number): string => new Date(NOW + days * DAY_MS).toISOString()
-const sha256 = (input: string): string => createHash('sha256').update(input).digest('hex')
 
 const RAW_KEY = 'aaaaaaaa-1111-2222-3333-444444444444'
 const DEVICE_ID = 'dddddddd-1111-2222-3333-444444444444'

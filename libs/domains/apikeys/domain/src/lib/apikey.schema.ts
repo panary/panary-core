@@ -16,6 +16,22 @@ export const apikeySchema = Type.Object(
     name: Type.String({ maxLength: 100 }),
     deviceId: Type.Optional(Type.String({ format: 'uuid' })), // Associated device ID (optional)
     validUntil: Type.Optional(Type.String({ format: 'date-time' })),
+
+    /**
+     * Stille Schluessel-Rotation (ADR 0042): Beim Handshake wird ein neuer
+     * Schluessel ausgestellt und hier als Hash geparkt, WAEHREND `apikey` weiter
+     * gilt. Erst der erste erfolgreiche Handshake mit dem neuen Schluessel
+     * promotet ihn auf `apikey`. Ein abgebrochener Rotationsversuch kann ein
+     * Geraet damit nie aussperren.
+     *
+     * `Type.Null()` ist Pflicht und kein Schoenheitsfehler: Beim Promoten muss
+     * das Feld GELEERT werden, und ein `undefined` im PATCH laesst die Spalte
+     * unveraendert stehen (Adapter-Semantik) — der alte pending-Hash bliebe
+     * gueltig.
+     */
+    pendingApikey: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    pendingApikeyPrefix: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    pendingApikeyCreatedAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
     createdBy: Type.String({ maxLength: 100 }),
 
     /**

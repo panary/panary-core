@@ -893,6 +893,34 @@ export class ConnectionService {
           this.#deviceAuthRejection.set(typeof data.error === 'string' && data.error ? data.error : 'DEVICE_REJECTED')
         }
       })
+      .on('device:key-rotated', (data: any) => {
+        // Stille Schluessel-Rotation (ADR 0042). Der Edge hat einen neuen
+        // Schluessel ausgestellt; der alte bleibt gueltig, bis dieser hier zum
+        // ersten Mal benutzt wird. Deshalb ist ein Fehlschlag hier harmlos —
+        // aber er muss sichtbar sein, sonst rotiert das Geraet nie und faellt
+        // irgendwann in die Karenz.
+        if (typeof data?.apiKey !== 'string' || !data.apiKey) {
+          console.warn('[POS-WS] device:key-rotated ohne Schluessel erhalten — ignoriert')
+          return
+        }
+
+        const stored = this.deviceConfigService.updateApiKey(data.apiKey)
+        if (!stored) {
+          console.warn('[POS-WS] Rotierter Schluessel konnte nicht gespeichert werden — alter Schluessel bleibt aktiv')
+          return
+        }
+
+        // Auch den Handshake der LAUFENDEN Socket-Instanz nachziehen: Ohne das
+        // ginge ein Reconnect noch mit dem alten Schluessel raus, und die
+        // Rotation bliebe bis zum naechsten App-Start unbestaetigt.
+        try {
+          ;(socket as any).auth = { ...((socket as any).auth ?? {}), apiKey: data.apiKey }
+        } catch {
+          // socket.io haelt `auth` als einfaches Objekt — schlaegt das fehl,
+          // genuegt der persistierte Schluessel beim naechsten Start.
+        }
+        console.log('[POS-WS] ✓ Geraete-Schluessel rotiert')
+      })
       .on('device:deactivated', () => {
         console.warn(`[POS-WS] Device has been deactivated!`)
         this.socketDisconnect()

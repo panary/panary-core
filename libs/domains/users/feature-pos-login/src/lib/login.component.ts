@@ -265,9 +265,16 @@ export class LoginComponent implements OnInit {
       }
 
       const poll = (): void => {
-        if (this.connectionService.deviceAuthRejection()) {
-          console.error('[POS-Login] Geraet vom Server abgelehnt:', this.connectionService.deviceAuthRejection())
-          fail('LOGIN.DEVICE_REJECTED')
+        const rejection = this.connectionService.deviceAuthRejection()
+        if (rejection) {
+          console.error('[POS-Login] Geraet vom Server abgelehnt:', rejection)
+          // Zwei grundverschiedene Wege zurueck: Ein deaktiviertes Geraet wird
+          // im Admin wieder aktiviert, ein abgelaufener Schluessel (jenseits der
+          // 90-Tage-Karenz, ADR 0042) braucht ein neues Pairing. Die generische
+          // Meldung schickte den Bediener bisher in beiden Faellen an dieselbe
+          // Stelle — bei abgelaufenem Schluessel steht das Geraet dort aber auf
+          // „aktiv", und die Suche geht von vorn los.
+          fail(rejection === 'DEVICE_KEY_EXPIRED' ? 'LOGIN.DEVICE_KEY_EXPIRED' : 'LOGIN.DEVICE_REJECTED')
           return
         }
 

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { DeviceConfigService } from './device-config.service'
 
@@ -46,16 +46,22 @@ const baseConfig = (): DeviceConfig =>
     registeredAt: new Date('2026-01-01T00:00:00.000Z'),
   }) as unknown as DeviceConfig
 
+/**
+ * Instanz UND Storage je Test — `.claude/rules/testing.md` §10/§10.1.
+ *
+ * `localStorage` ist hier die geteilte Ressource: Eine `beforeEach`-Zuweisung an
+ * eine `describe`-Bindung waere genau die Form, die die Regel als falsch zeigt.
+ * Dass alle Tests hier synchron laufen und deshalb keine Nachzuegler haben,
+ * macht sie nicht billiger — nur folgenlos.
+ */
+const createService = (): DeviceConfigService => {
+  ;(globalThis as { localStorage?: unknown }).localStorage = new MemoryStorage()
+  return new DeviceConfigService()
+}
+
 describe('DeviceConfigService.updateApiKey', () => {
-  let service: DeviceConfigService
-
-  beforeEach(() => {
-    // Instanz und Storage je Test — `.claude/rules/testing.md` §10.
-    ;(globalThis as { localStorage?: unknown }).localStorage = new MemoryStorage()
-    service = new DeviceConfigService()
-  })
-
   it('ersetzt ausschliesslich den Schluessel und laesst die Identitaet stehen', () => {
+    const service = createService()
     service.saveConfig(baseConfig())
 
     expect(service.updateApiKey('neuer-schluessel')).toBe(true)
@@ -70,6 +76,7 @@ describe('DeviceConfigService.updateApiKey', () => {
   })
 
   it('bleibt registriert — die Rotation darf das Terminal nie in die Kopplung zurueckwerfen', () => {
+    const service = createService()
     service.saveConfig(baseConfig())
     service.updateApiKey('neuer-schluessel')
 
@@ -77,11 +84,14 @@ describe('DeviceConfigService.updateApiKey', () => {
   })
 
   it('schreibt ohne bestehende Config nichts', () => {
+    const service = createService()
+
     expect(service.updateApiKey('neuer-schluessel')).toBe(false)
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
   })
 
   it('schreibt bei leerem Schluessel nichts', () => {
+    const service = createService()
     service.saveConfig(baseConfig())
 
     expect(service.updateApiKey('')).toBe(false)

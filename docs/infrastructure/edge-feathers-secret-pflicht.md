@@ -96,3 +96,7 @@ Der Edge startet NICHT.
 Wer vor Ort früher den Setup-Bildschirm zur Diagnose benutzt hat, findet die Ursache jetzt
 im Container-Log. Das ist beabsichtigt: Ein kaputter Edge soll stehenbleiben, nicht sich
 anbieten.
+
+Der Setup-Modus selbst ist inzwischen ebenfalls nicht mehr offen: Er verlangt ein Token aus
+dem Container-Log — siehe
+[Edge einrichten — das Setup-Token](../guides/edge-ersteinrichtung-setup-token.md).

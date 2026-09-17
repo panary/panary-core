@@ -3,6 +3,7 @@
 Anleitungen, Runbooks, Setup- und Smoke-Test-Beschreibungen (`type: Guide`).
 
 * [Cargo-Advisories triagieren — vom osv-scanner-Befund zur Entscheidung](cargo-advisory-triage.md) - Reihenfolge für osv-scanner-Befunde auf apps/pos-client/src-tauri/Cargo.lock — zuerst prüfen, ob die Crate überhaupt kompiliert wird, dann Bump über den Parent, Ignore erst zuletzt.
+* [Edge einrichten — das Setup-Token finden und verwenden](edge-ersteinrichtung-setup-token.md) - Der Einrichtungs-Assistent verlangt seit der Härtung ein Token, das der Edge beim Start des Setup-Modus ausgibt; diese Anleitung zeigt, wo es steht, wie lange es gilt und was die Ablehnungen bedeuten.
 * [ensureIndexes — Entwicklungs-Guide](ensure-indexes-guide.md) - Entwicklungs-Guide zur ensureIndexes()-Factory als einzige zulässige Methode, DB-Indexe in Service-Modulen idempotent für SQLite und MongoDB zu deklarieren.
 * [Nx-Generator-Nutzungsanleitung](generator-usage-guide.md) - Anleitung zur Ausführung des FeathersJS-Service-Generators mit Optionen, Beispielen und Übersicht der erzeugten Artefakte.
 * [Offline-Cache (Connect-Tier) — Smoke-Test-Anleitung](offline-cache-smoke-test.md) - Penible manuelle Smoke-Test-Anleitung für Offline-Cache und Outbox des POS-Clients: Bootstrap, Offline-Bestellung, Reconnect-Replay, Delta-Sync, Reload-Persistenz und das Überleben von App-Update und Entkoppeln.

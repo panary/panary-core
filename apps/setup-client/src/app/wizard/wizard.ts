@@ -23,11 +23,16 @@ export class Wizard {
   step = signal<number>(1)
   loading = signal<boolean>(false)
   restarting = signal<boolean>(false)
+  /** i18n-Key der letzten Fehlermeldung, im Formular angezeigt. */
+  submitError = signal<string | null>(null)
   mode = signal<'standalone' | 'cloud' | null>(null)
   currentLang = signal<string>(this.translate.currentLang || 'en')
 
   form = this.fb.group(
     {
+      // Besitznachweis (#323) — steht bewusst als erstes Feld: Wer es nicht hat,
+      // soll das vor dem Ausfuellen merken und nicht erst beim Absenden.
+      setupToken: ['', Validators.required],
       shopName: ['', Validators.required],
       locationName: ['', Validators.required],
       businessType: ['', Validators.required],
@@ -75,8 +80,11 @@ export class Wizard {
     if (this.form.invalid || !this.mode()) return
 
     this.loading.set(true)
+    this.submitError.set(null)
     const formValue = this.form.getRawValue()
 
+    // setupToken gehoert bewusst NICHT in den Payload — der Edge schreibt ihn
+    // 1:1 in seine Konfigurationsdatei. Er reist als Header (setup.service.ts).
     const payload: SetupPayload = {
       mode: this.mode()!,
       shopName: formValue.shopName || '',
@@ -86,16 +94,15 @@ export class Wizard {
       adminPassword: formValue.adminPassword || undefined,
     }
 
-    this.setupService.setup(payload).subscribe({
+    this.setupService.setup(payload, formValue.setupToken || '').subscribe({
       next: () => {
         this.loading.set(false)
         this.restarting.set(true)
         this.pollUntilReady()
       },
       error: err => {
-        console.error(err)
         this.loading.set(false)
-        alert('Setup failed: ' + err.message)
+        this.submitError.set(setupErrorKey(err))
       },
     })
   }
@@ -125,4 +132,24 @@ export class Wizard {
     // Wait one interval before first attempt (server needs time to restart)
     setTimeout(poll, intervalMs)
   }
+}
+
+/**
+ * Uebersetzt die Absagen des Setup-Endpunkts in i18n-Keys.
+ *
+ * Vorher stand hier `alert('Setup failed: ' + err.message)` — bei einem
+ * abgelehnten Token las der Betreiber "Http failure response for /api/setup:
+ * 401 Unauthorized" und hatte keinen Hinweis, dass er ein Token aus dem
+ * Container-Log braucht. Die Fehlerklasse ist seit #323 der Normalfall, nicht
+ * mehr die Ausnahme.
+ */
+function setupErrorKey(err: unknown): string {
+  const status = (err as { status?: number })?.status
+  const reason = (err as { error?: { error?: string } })?.error?.error
+
+  if (status === 429 || reason === 'rate_limited') return 'WIZARD.ERRORS.RATE_LIMITED'
+  if (reason === 'expired') return 'WIZARD.ERRORS.TOKEN_EXPIRED'
+  if (reason === 'already_used') return 'WIZARD.ERRORS.TOKEN_USED'
+  if (status === 401) return 'WIZARD.ERRORS.TOKEN_INVALID'
+  return 'WIZARD.ERRORS.GENERIC'
 }

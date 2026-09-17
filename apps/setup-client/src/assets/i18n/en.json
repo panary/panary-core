@@ -26,6 +26,9 @@
     },
     "CONFIG": {
       "TITLE": "Configuration",
+      "SETUP_TOKEN": "Setup token",
+      "SETUP_TOKEN_PLACEHOLDER": "XXXX-XXXX",
+      "SETUP_TOKEN_HINT": "Shown in the edge container log and in data/setup-token.txt. Case and the dash don't matter.",
       "SHOP_NAME": "Business Name",
       "SHOP_NAME_PLACEHOLDER": "e.g. Acme Inc.",
       "SHOP_NAME_HINT": "Your company name. Used as the organization in the cloud.",
@@ -52,7 +55,14 @@
     },
     "LOADING": "Saving configuration...",
     "RESTARTING": "Server restarting...",
-    "RESTARTING_HINT": "Waiting for the server to come back online."
+    "RESTARTING_HINT": "Waiting for the server to come back online.",
+    "ERRORS": {
+      "TOKEN_INVALID": "That setup token is not correct. Copy it from the edge container log (docker logs panary-edge).",
+      "TOKEN_EXPIRED": "The setup token has expired. Restart the container — a new token is printed on start.",
+      "TOKEN_USED": "This setup token has already been used. The edge is being set up, or already is.",
+      "RATE_LIMITED": "Too many failed attempts. Please wait a minute and try again.",
+      "GENERIC": "Setup failed. Details are in the edge container log."
+    }
   },
   "LANG": {
     "SELECT": "Select Language",

@@ -88,9 +88,7 @@ describe('requireDeviceReverification()', () => {
   })
 
   it('laesst interne Aufrufe durch (kein provider) — Sync-Apply und Worker duerfen nie blockieren', async () => {
-    await expect(
-      requireDeviceReverification()(makeContext({ provider: undefined }), next),
-    ).resolves.toBeUndefined()
+    await expect(requireDeviceReverification()(makeContext({ provider: undefined }), next)).resolves.toBeUndefined()
     expect(next).toHaveBeenCalledOnce()
   })
 

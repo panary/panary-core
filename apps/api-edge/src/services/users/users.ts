@@ -32,7 +32,6 @@ import { releaseDeviceReverification } from '../../utils/device-reverification'
 /** Params-Ausschnitt der Stempel-Methoden — siehe assertTimeClockScope unten. */
 type TimeClockParams = UserParams & { user?: TimeClockActor; deviceAccessScope?: string[] | null }
 
-
 const USER_JSON_FIELDS = ['discountDetails', 'allowedLocationIds', 'permissions']
 import { DatabaseType } from '@panary/shared-common'
 import { BadRequest, Conflict, Forbidden, NotAuthenticated, TooManyRequests } from '@feathersjs/errors'

@@ -79,7 +79,11 @@ describe('evaluateDeviceReverification', () => {
   it('laesst ein Wochenende in Ruhe', async () => {
     const { app } = makeApp()
 
-    const verdict = await evaluateDeviceReverification(app, { locationId: 'loc-1', lastUsedAt: ago(60 * 3_600_000) }, NOW)
+    const verdict = await evaluateDeviceReverification(
+      app,
+      { locationId: 'loc-1', lastUsedAt: ago(60 * 3_600_000) },
+      NOW,
+    )
 
     expect(verdict.due).toBe(false)
   })
@@ -142,7 +146,11 @@ describe('releaseDeviceReverification', () => {
     const { app, created } = makeApp()
     const connection = makeConnection()
 
-    await releaseDeviceReverification(app, { _id: 'user-2', role: 'tenant:staff', tenantId: 'tenant-1' }, { connection })
+    await releaseDeviceReverification(
+      app,
+      { _id: 'user-2', role: 'tenant:staff', tenantId: 'tenant-1' },
+      { connection },
+    )
 
     expect(connection.requiresReverification).toBe(false)
     expect(created[0]).toMatchObject({

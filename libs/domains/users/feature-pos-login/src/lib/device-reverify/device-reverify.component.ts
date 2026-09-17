@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, HostListener, OnInit, computed, inject, output, signal } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  HostListener,
+  OnInit,
+  computed,
+  inject,
+  output,
+  signal,
+} from '@angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 import { ConnectionService } from '@panary/shared/data-access'

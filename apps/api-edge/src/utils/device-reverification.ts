@@ -59,8 +59,7 @@ const loadThresholdMs = async (app: Application, locationId: string | undefined)
     } as never)
     const settings = asArray<{ settings?: { deviceSecuritySettings?: unknown } }>(result)[0]?.settings
     return resolveDeviceReverifyThresholdMs(
-      (settings as { deviceSecuritySettings?: { offlineReverifyDays?: unknown } } | undefined)
-        ?.deviceSecuritySettings,
+      (settings as { deviceSecuritySettings?: { offlineReverifyDays?: unknown } } | undefined)?.deviceSecuritySettings,
     )
   } catch (err) {
     logger.warn({
@@ -274,8 +273,7 @@ export const releaseDeviceReverification = async (
   params?: { connection?: unknown },
 ): Promise<void> => {
   const conn = params?.connection as
-    | (DeviceReverificationConnectionState & { deviceId?: string; tenantId?: string; locationId?: string })
-    | undefined
+    (DeviceReverificationConnectionState & { deviceId?: string; tenantId?: string; locationId?: string }) | undefined
   if (!conn || conn.requiresReverification !== true) return
 
   try {

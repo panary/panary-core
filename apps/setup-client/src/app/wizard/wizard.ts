@@ -143,7 +143,7 @@ export class Wizard {
  * Container-Log braucht. Die Fehlerklasse ist seit #323 der Normalfall, nicht
  * mehr die Ausnahme.
  */
-function setupErrorKey(err: unknown): string {
+export function setupErrorKey(err: unknown): string {
   const status = (err as { status?: number })?.status
   const reason = (err as { error?: { error?: string } })?.error?.error
 

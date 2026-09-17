@@ -1,7 +1,7 @@
 ---
 type: Architecture
-title: Geräte-Credential-Lifecycle — API-Key-Kaskade und Nutzungs-Telemetrie
-description: Beim Löschen eines Geräts wird sein API-Schlüssel serverseitig mitwiderrufen, und apikeys.lastUsedAt wird an beiden Auth-Pfaden gedrosselt gestempelt.
+title: Geräte-Credential-Lifecycle — Befristung, Rotation, Kaskade und Nutzungs-Telemetrie
+description: Ein Geräte-Schlüssel ist 180 Tage gültig und wird im Handshake still rotiert; beim Löschen eines Geräts wird er serverseitig mitwiderrufen, und apikeys.lastUsedAt wird an beiden Auth-Pfaden gedrosselt gestempelt.
 tags: [devices, apikeys, security]
 status: stable
 generated: { by: claude-code/opus-5, at: 2026-07-31T20:20:00Z }
@@ -93,19 +93,44 @@ lastUsedAt: async (value, _data, context) => (context.params.provider ? undefine
 
 Extern bleibt es gesperrt, damit sich Nutzung weder vortäuschen noch verschleiern
 lässt. Bewusst diese Variante statt `service._patch()`: die Regel bleibt im
-Resolver sichtbar und testbar. **Alle übrigen Felder bleiben auch intern
-gesperrt** — ein Invarianten-Test (`apikeys.schema.spec.ts`) hält das fest, damit
-die Weiche nicht als Präzedenzfall für `role`, `deviceId` oder `apikey` gelesen
-wird.
+Resolver sichtbar und testbar.
+
+**Seit der Schlüssel-Rotation ([ADR 0042](../adr/0042-geraete-schluessel-rotation-mit-karenz.md))
+gibt es eine zweite Weiche** — und sie ist absichtlich enger als diese hier:
+`apikey`, `apikeyPrefix`, `pendingApikey*` und `validUntil` verlangen
+`provider === undefined` **und** `params._apikeyRotation === true`. Der Marker
+wird ausschließlich in `utils/device-apikey-auth.ts` gesetzt. „Irgendein interner
+Aufrufer" wäre für Credential-Material zu weit: `apikey` überschreiben heißt, ein
+Gerät auszutauschen.
+
+**Alle übrigen Felder bleiben auch intern gesperrt** — `_id`, `tenantId`,
+`locationId`, `name`, `description`, `role`, `deviceId`, `createdBy`, `createdAt`.
+Ein Invarianten-Test (`apikeys.schema.spec.ts`) hält beides fest: die Liste der
+gesperrten Felder **und** dass der Rotations-Marker sie nicht mitöffnet. Damit
+wird keine der beiden Weichen als Präzedenzfall für die nächste gelesen.
 
 **Merkposten:** Der Patch bumpt `updatedAt`. Heute folgenlos, weil `apikeys` in
 keiner Sync-Allowlist steht. Käme der Service je in `SyncableMasterDataService`,
 erzeugt der Throttle-Takt Sync-Rauschen → dann auf `_patch` umstellen.
 
+## Befristung und Rotation
+
+Seit [ADR 0042](../adr/0042-geraete-schluessel-rotation-mit-karenz.md) ist ein
+Geräte-Schlüssel nicht mehr unbefristet: TTL 180 Tage, stille Rotation ab 60 Tagen
+Restlaufzeit, Karenz 90 Tage nach Ablauf. `validUntil` weist dabei **nie** ab — es
+löst die Rotation aus. Das Sperrmittel bleibt `active: false`.
+
+Beide Auth-Pfade teilen sich dafür `utils/device-apikey-auth.ts`; die
+Lebenszyklus-Bewertung selbst ist framework-frei und liegt in
+`@panary/apikeys/domain` (`apikey-lifecycle.ts`), damit das Cloud-Pendant
+dieselbe Semantik bekommt, ohne den Datensatz zu teilen.
+
 ## Beteiligte Dateien
 
 - `apps/api-edge/src/hooks/cascade-device-apikeys.hook.ts`
 - `apps/api-edge/src/utils/apikey-last-used.ts`
+- `apps/api-edge/src/utils/device-apikey-auth.ts` — gemeinsame Prüfstelle beider Auth-Pfade
+- `libs/domains/apikeys/domain/src/lib/apikey-lifecycle.ts` — Schwellen und Bewertung
 - `apps/api-edge/src/services/apikeys/apikeys.schema.ts` — Patch-Resolver
 - `apps/api-edge/src/channels.ts`, `apps/api-edge/src/print-server/auth.middleware.ts`
 - `apps/admin-client/src/app/features/apikeys/apikey-form.ts` — Verwaist-Anzeige

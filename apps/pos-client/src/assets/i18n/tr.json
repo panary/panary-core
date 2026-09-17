@@ -121,7 +121,19 @@
     "ASSIGNMENT_ERROR_TITLE": "Atanmış çalışan yok",
     "ASSIGNMENT_ERROR_HINT": "Bu cihaz belirli çalışanlara atanmış, ancak şu anda hiçbiri giriş yapamıyor — büyük olasılıkla arşivlendiler. Bir yöneticinin atamayı yönetim panelinden düzeltmesi gerekiyor.",
     "ASSIGNED_DEVICE_LABEL": "Bu cihaz şuna ait",
-    "ASSIGNED_DEVICE_HINT": "Buraya yalnızca atanmış çalışanlar ve onay yetkilileri giriş yapabilir."
+    "ASSIGNED_DEVICE_HINT": "Buraya yalnızca atanmış çalışanlar ve onay yetkilileri giriş yapabilir.",
+    "REVERIFY_TITLE": "Cihazı onayla",
+    "REVERIFY_SUBTITLE": "Bu cihaz uzun süredir çevrimdışıydı. Lütfen yetkili bir kişi tarafından bir kez onaylatın.",
+    "REVERIFY_SUBTITLE_DAYS": "Bu cihaz {{days}} gündür çevrimdışıydı. Lütfen yetkili bir kişi tarafından bir kez onaylatın.",
+    "REVERIFY_AUTHORIZING_LABEL": "Yönetim",
+    "REVERIFY_NO_AUTHORIZING_USERS": "Bu cihazda şu anda kayıtlı bir yönetici yok.",
+    "REVERIFY_ENTER_PIN": "Cihazı serbest bırakmak için PIN girin",
+    "REVERIFY_PIN_INVALID": "PIN geçersiz.",
+    "REVERIFY_TOO_MANY_ATTEMPTS": "Çok fazla hatalı deneme. Lütfen biraz bekleyip tekrar deneyin.",
+    "REVERIFY_EMERGENCY_TOGGLE": "Sahada yönetici yok mu?",
+    "REVERIFY_EMERGENCY_LABEL": "Acil serbest bırakma",
+    "REVERIFY_EMERGENCY_HINT": "Bir personel PIN kodu da cihazı serbest bırakır. Bu işlem kaydedilir ve yönetime gösterilir.",
+    "REVERIFY_EMERGENCY_NOTICE": "Acil serbest bırakma — kaydedilir."
   },
   "TIME_CLOCK": {
     "TITLE": "Çalışma saati kaydı",

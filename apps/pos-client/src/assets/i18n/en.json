@@ -121,7 +121,19 @@
     "ASSIGNMENT_ERROR_TITLE": "No assigned employee available",
     "ASSIGNMENT_ERROR_HINT": "This device is assigned to specific employees, but none of them can sign in right now — most likely they were archived. An administrator has to adjust the assignment in the admin panel.",
     "ASSIGNED_DEVICE_LABEL": "This device belongs to",
-    "ASSIGNED_DEVICE_HINT": "Only assigned employees and approvers can sign in here."
+    "ASSIGNED_DEVICE_HINT": "Only assigned employees and approvers can sign in here.",
+    "REVERIFY_TITLE": "Confirm device",
+    "REVERIFY_SUBTITLE": "This device has been offline for a while. Please have an authorised person confirm it once.",
+    "REVERIFY_SUBTITLE_DAYS": "This device has been offline for {{days}} days. Please have an authorised person confirm it once.",
+    "REVERIFY_AUTHORIZING_LABEL": "Management",
+    "REVERIFY_NO_AUTHORIZING_USERS": "No manager is currently available on this device.",
+    "REVERIFY_ENTER_PIN": "Enter PIN to release the device",
+    "REVERIFY_PIN_INVALID": "Invalid PIN.",
+    "REVERIFY_TOO_MANY_ATTEMPTS": "Too many failed attempts. Please wait a moment and try again.",
+    "REVERIFY_EMERGENCY_TOGGLE": "No manager on site?",
+    "REVERIFY_EMERGENCY_LABEL": "Emergency release",
+    "REVERIFY_EMERGENCY_HINT": "A staff PIN also releases the device. The release is logged and shown to management.",
+    "REVERIFY_EMERGENCY_NOTICE": "Emergency release — this is logged."
   },
   "TIME_CLOCK": {
     "TITLE": "Time tracking",

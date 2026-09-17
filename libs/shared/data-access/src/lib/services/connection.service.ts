@@ -114,6 +114,16 @@ export class ConnectionService {
   // ausloesen — der Client ist ja verbunden, nur nicht autorisiert.
   readonly #deviceAuthRejection: WritableSignal<string | null> = signal(null)
 
+  // Das Geraet ist authentifiziert, war aber laenger offline als die Schwelle
+  // des Standorts (panary/panary-core#325) und muss einmal durch eine Person
+  // bestaetigt werden. Bewusst KEINE Ablehnung: der Socket steht, Lesen
+  // funktioniert, nur Schreibzugriffe weist der Server ab
+  // (require-device-reverification.hook.ts). Der Bildschirm am Terminal ist
+  // Bedienerfuehrung — die Durchsetzung liegt serverseitig.
+  readonly #deviceReverificationRequired: WritableSignal<boolean> = signal(false)
+  /** `apikeys.lastUsedAt` des Geraets — Grundlage der Dauer-Anzeige. */
+  readonly #deviceOfflineSince: WritableSignal<string | null> = signal(null)
+
   readonly connectionState = computed(() => {
     const linked = this.#serverLink().isConnected
     const auth = this.#isAuthenticated()
@@ -653,6 +663,33 @@ export class ConnectionService {
   }
 
   /**
+   * Das Geraet schuldet eine einmalige Bestaetigung nach langer Offline-Phase
+   * (panary/panary-core#325). Anders als `deviceAuthRejection` ist das KEIN
+   * Verbindungsfehler — der Socket steht.
+   */
+  get deviceReverificationRequired(): Signal<boolean> {
+    return this.#deviceReverificationRequired.asReadonly()
+  }
+
+  /** Zeitpunkt des letzten Serverkontakts vor der Pause (ISO 8601), falls bekannt. */
+  get deviceOfflineSince(): Signal<string | null> {
+    return this.#deviceOfflineSince.asReadonly()
+  }
+
+  /**
+   * Quittiert die erteilte Freigabe clientseitig.
+   *
+   * Der Server hat das Merkmal bereits an der Connection geloescht
+   * (`users.verifyPin` → `releaseDeviceReverification`); ein zweites
+   * `device:authenticated` kommt dafuer nicht. Ohne diesen Aufruf bliebe der
+   * Bestaetigungsbildschirm stehen, obwohl das Terminal wieder schreiben darf.
+   */
+  markDeviceReverified(): void {
+    this.#deviceReverificationRequired.set(false)
+    this.#deviceOfflineSince.set(null)
+  }
+
+  /**
    * Passt der laufende Socket noch zur uebergebenen DeviceConfig?
    *
    * Der Socket wird genau einmal im Konstruktor gebaut — und der laeuft im
@@ -882,6 +919,13 @@ export class ConnectionService {
           this.#isAuthenticated.set(true)
           this.#connectionError.set(null)
           this.#deviceAuthRejection.set(null)
+          // Jeder Handshake setzt den Zustand neu — auch auf `false`. Nach der
+          // Freigabe stempelt der Server `lastUsedAt` auf jetzt, ein Reconnect
+          // kommt also ohne Merkmal zurueck und raeumt den Bildschirm ab.
+          this.#deviceReverificationRequired.set(data.requiresReverification === true)
+          this.#deviceOfflineSince.set(
+            data.requiresReverification === true && typeof data.offlineSince === 'string' ? data.offlineSince : null,
+          )
           this.deviceConfigService.updateLastSync()
         } else {
           console.error(`[POS-WS] ✗ Authentication failed:`, data.error)

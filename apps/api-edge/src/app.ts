@@ -18,6 +18,7 @@ import { readAdminAccessState } from './utils/admin-access-health'
 import { channels } from './channels'
 import { configureLoggerLevel } from '@panary/shared-backend'
 import { ensureTenantIsolation } from '@panary/shared-backend'
+import { requireDeviceReverification } from './hooks/require-device-reverification.hook'
 import { recordSyncOutbox } from './hooks/sync-outbox-recorder.hook'
 import { captureAuditBefore } from './hooks/capture-audit-before.hook'
 import { recordAuditEvent } from './hooks/record-audit-event.hook'
@@ -358,6 +359,9 @@ assertStampFields(app)
 // 1. canonicalLog       — umschließt alles, misst Dauer, loggt Wide Event
 // 2. logError           — fängt interne Fehler (kein Provider)
 // 3. allowApiKey        — API-Key-Auth → virtueller User (vor Security-Checks)
+// 3a. requireDeviceReverification — sperrt Geraete, die nach langer Offline-Phase
+//     noch bestaetigt werden muessen (#325). Direkt hinter allowApiKey, damit ein
+//     gesperrtes Terminal gar nicht erst in RBAC/Service-Logik laeuft.
 // 4. secureByDefault    — authenticate('jwt') + authorize() (erwartet next)
 // 5. captureAuditBefore — vor Service-Exec: Vor-Zustand für Diff laden
 // 6. tenantIsolation    — prüft nach Service-Ausführung die Tenant-Zugehörigkeit
@@ -368,6 +372,7 @@ app.hooks({
     canonicalLog,
     logError,
     allowApiKey(),
+    requireDeviceReverification(),
     secureByDefault({ publicServices: ['authentication'] }),
     async (context: HookContext, next: NextFunction) => {
       await captureAuditBefore(context)

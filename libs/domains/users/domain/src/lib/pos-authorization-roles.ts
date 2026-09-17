@@ -47,6 +47,29 @@ export const CASH_SESSION_AUTHORIZING_ROLES: ReadonlySet<string> = new Set<strin
 ])
 
 /**
+ * Rollen, deren PIN ein lange offline gewesenes Geraet regulaer wieder
+ * freigibt (panary/panary-core#325).
+ *
+ * Deckungsgleich mit `UNPAIR_ALLOWED_ROLES`, aber bewusst ein eigener Name:
+ * Die beiden Kreise beantworten verschiedene Fragen und duerfen sich spaeter
+ * unabhaengig bewegen. Eine Kopie ist hier billiger als eine Kopplung, die
+ * niemand bemerkt, wenn einer der beiden Kreise wandert.
+ *
+ * 🚨 Der Kreis ist NICHT die einzige Tuer. Faellt die Freigabe auf einen
+ * Mitarbeiter ohne Leitungsrolle zurueck, gibt dessen PIN das Geraet trotzdem
+ * frei — als Notfreigabe, mit `AuditSeverity.ALERT` im Audit-Trail. Grund:
+ * Nach Betriebsferien steht morgens um sechs jemand vor dem Terminal, der
+ * keine Leitungs-PIN hat. Ein Terminal, das dann stehen bleibt, kostet einen
+ * Betriebstag — und die Abfrage schuetzt ohnehin nicht gegen jemanden, der
+ * Geraet UND eine gueltige PIN hat. Dafuer ist `active: false` der Weg.
+ */
+export const DEVICE_REVERIFY_AUTHORIZING_ROLES: ReadonlySet<string> = new Set<string>([
+  UserSystemRole.TENANT_OWNER,
+  UserSystemRole.TENANT_MANAGER,
+  UserSystemRole.TENANT_TECHNICIAN,
+])
+
+/**
  * Vereinigung aller Freigabe-Kreise: jeder Personenkreis, der an einem POS
  * per PIN etwas autorisieren koennen muss — unabhaengig davon, ob das Geraet
  * einem Mitarbeiter zugewiesen ist.
@@ -55,4 +78,5 @@ export const POS_AUTHORIZING_ROLES: ReadonlySet<string> = new Set<string>([
   ...UNPAIR_ALLOWED_ROLES,
   ...ORDER_CANCEL_AUTHORIZING_ROLES,
   ...CASH_SESSION_AUTHORIZING_ROLES,
+  ...DEVICE_REVERIFY_AUTHORIZING_ROLES,
 ])

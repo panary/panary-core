@@ -27,9 +27,11 @@ import { restrictDeviceAccessMode } from '../../hooks/restrict-device-access-mod
 import { readDeviceAccessScope, resolveDeviceAccessScope } from '../../hooks/device-access-mode.util'
 import { isLoginBlockedByStatus } from '../../utils/user-login-status'
 import { assertTimeClockAccess, type TimeClockActor } from './time-clock-scope'
+import { releaseDeviceReverification } from '../../utils/device-reverification'
 
 /** Params-Ausschnitt der Stempel-Methoden — siehe assertTimeClockScope unten. */
 type TimeClockParams = UserParams & { user?: TimeClockActor; deviceAccessScope?: string[] | null }
+
 
 const USER_JSON_FIELDS = ['discountDetails', 'allowedLocationIds', 'permissions']
 import { DatabaseType } from '@panary/shared-common'
@@ -176,7 +178,15 @@ export const users = (app: Application) => {
 
   // Custom method: verifyPin — serverseitige POS-PIN-Verifizierung
   // Gibt den User (ohne sensible Felder) zurück, wenn der PIN korrekt ist.
-  service.verifyPin = async (data: { userId: string; pin: string }) => {
+  //
+  // Zweite Aufgabe seit panary/panary-core#325: Schuldet die aufrufende
+  // Geraete-Verbindung eine Bestaetigung nach langer Offline-Phase, hebt ein
+  // erfolgreicher PIN sie auf (siehe `releaseDeviceReverification` unten).
+  // Bewusst HIER und nicht als eigene Methode: Der Brute-Force-Schutz, der
+  // Konto-Status-Check und der Geraete-Zuweisungs-Hook gelten damit
+  // unveraendert — ein zweiter PIN-Endpunkt waere ein zweiter Ort, an dem
+  // genau das vergessen werden kann.
+  service.verifyPin = async (data: { userId: string; pin: string }, params?: UserParams) => {
     const { userId, pin } = data
     if (!userId || !pin) throw new NotAuthenticated('userId und pin sind erforderlich')
 
@@ -219,6 +229,12 @@ export const users = (app: Application) => {
       throw new NotAuthenticated('PIN ungueltig')
     }
     clearPinFailures(userId)
+
+    // Nach dem erfolgreichen PIN, vor der Rueckgabe: Wartet dieses Terminal auf
+    // eine Bestaetigung, ist sie hiermit erteilt. Fehlschlaege werden dort
+    // geschluckt — eine misslungene Freigabe darf keine gueltige
+    // PIN-Verifikation zu einem Fehler machen.
+    await releaseDeviceReverification(app, user, params)
 
     // Sensible Felder entfernen
     const { posPin: _pin, password: _pw, ...safeUser } = user as any

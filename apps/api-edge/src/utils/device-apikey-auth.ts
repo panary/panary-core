@@ -72,6 +72,13 @@ export interface DeviceApiKeyRecord {
   role: string
   active: boolean
   validUntil?: string | null
+  /**
+   * Letzter Kontakt dieses Schluessels — Grundlage der Re-Verifikations-Schwelle
+   * (panary/panary-core#325). Der Wert stammt aus `loadCandidates` und ist damit
+   * der Stand VOR `stampApiKeyLastUsed`; Rotation und Promotion fassen ihn nicht
+   * an, die Messung bleibt also auch bei gleichzeitiger Rotation gueltig.
+   */
+  lastUsedAt?: string | null
   apikey: string
   pendingApikey?: string | null
   pendingApikeyCreatedAt?: string | null

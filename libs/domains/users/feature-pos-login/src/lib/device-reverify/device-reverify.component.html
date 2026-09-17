@@ -1,0 +1,160 @@
+<div class="w-full max-w-md">
+  <!-- ==================== LOADING ==================== -->
+  @if (step() === 'loading') {
+    <div class="flex flex-col items-center justify-center animate-pulse">
+      <div class="w-12 h-12 border-4 border-[#00B8D4] border-t-transparent rounded-full animate-spin mb-6"></div>
+      <h2 class="text-xl font-semibold text-[#0F172A] dark:text-white">{{ 'LOGIN.REVERIFY_TITLE' | translate }}</h2>
+    </div>
+  }
+
+  <!-- ==================== USER SELECTION ==================== -->
+  @if (step() === 'select-user') {
+    <div class="animate-[fadeIn_0.3s_ease-out]">
+      <div class="text-center mb-6">
+        <div
+          class="w-14 h-14 mx-auto mb-4 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center"
+        >
+          <span class="material-symbols-outlined text-[1.75rem] text-amber-600 dark:text-amber-400">
+            shield_person
+          </span>
+        </div>
+        <h1 class="text-2xl font-bold text-[#0F172A] dark:text-white mb-2">{{ 'LOGIN.REVERIFY_TITLE' | translate }}</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          @if (offlineDays(); as days) {
+            {{ 'LOGIN.REVERIFY_SUBTITLE_DAYS' | translate: { days: days } }}
+          } @else {
+            {{ 'LOGIN.REVERIFY_SUBTITLE' | translate }}
+          }
+        </p>
+      </div>
+
+      @if (hasAuthorizingUsers()) {
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
+          {{ 'LOGIN.REVERIFY_AUTHORIZING_LABEL' | translate }}
+        </p>
+        <div class="flex flex-col gap-2">
+          @for (user of authorizingUsers(); track user._id) {
+            <button
+              class="pnry-touch flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-[0.99] transition-all text-left"
+              (click)="selectUser(user)"
+            >
+              <div
+                class="w-11 h-11 shrink-0 rounded-full bg-[#00B8D4] flex items-center justify-center text-white font-bold shadow-md"
+              >
+                {{ user.initials }}
+              </div>
+              <p class="text-sm font-semibold text-[#0F172A] dark:text-white truncate">
+                {{ user.firstName }} {{ user.lastName }}
+              </p>
+            </button>
+          }
+        </div>
+      } @else {
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          {{ 'LOGIN.REVERIFY_NO_AUTHORIZING_USERS' | translate }}
+        </p>
+      }
+
+      <!-- Notweg. Bewusst eingeklappt und unter der regulaeren Liste: Er soll
+           erreichbar sein, wenn morgens niemand mit Leitungs-PIN da ist, aber
+           nicht der bequemste Knopf auf dem Bildschirm. Jede Freigabe hierueber
+           steht als ALERT im Audit-Trail. -->
+      @if (otherUsers().length > 0) {
+        @if (!showEmergency()) {
+          <button
+            class="pnry-touch w-full mt-6 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+            (click)="revealEmergency()"
+          >
+            {{ 'LOGIN.REVERIFY_EMERGENCY_TOGGLE' | translate }}
+          </button>
+        } @else {
+          <div class="mt-6">
+            <p class="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 mb-1">
+              {{ 'LOGIN.REVERIFY_EMERGENCY_LABEL' | translate }}
+            </p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+              {{ 'LOGIN.REVERIFY_EMERGENCY_HINT' | translate }}
+            </p>
+            <div class="flex flex-col gap-2">
+              @for (user of otherUsers(); track user._id) {
+                <button
+                  class="pnry-touch flex items-center gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/40 active:scale-[0.99] transition-all text-left"
+                  (click)="selectUser(user)"
+                >
+                  <div
+                    class="w-11 h-11 shrink-0 rounded-full bg-amber-500 flex items-center justify-center text-white font-bold shadow-md"
+                  >
+                    {{ user.initials }}
+                  </div>
+                  <p class="text-sm font-semibold text-[#0F172A] dark:text-white truncate">
+                    {{ user.firstName }} {{ user.lastName }}
+                  </p>
+                </button>
+              }
+            </div>
+          </div>
+        }
+      }
+    </div>
+  }
+
+  <!-- ==================== PIN ==================== -->
+  @if (step() === 'enter-pin') {
+    <div class="animate-[fadeIn_0.3s_ease-out]">
+      <div class="text-center mb-6">
+        <div
+          class="w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-md"
+          [class.bg-[#00B8D4]]="selectedUser()?.authorizing"
+          [class.bg-amber-500]="!selectedUser()?.authorizing"
+        >
+          {{ selectedUser()?.initials }}
+        </div>
+        <h2 class="text-xl font-bold text-[#0F172A] dark:text-white">
+          {{ selectedUser()?.firstName }} {{ selectedUser()?.lastName }}
+        </h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">{{ 'LOGIN.REVERIFY_ENTER_PIN' | translate }}</p>
+        @if (!selectedUser()?.authorizing) {
+          <p class="mt-2 text-xs font-semibold text-amber-600 dark:text-amber-400">
+            {{ 'LOGIN.REVERIFY_EMERGENCY_NOTICE' | translate }}
+          </p>
+        }
+      </div>
+
+      <lib-pin-pad
+        [value]="pinInput()"
+        [error]="pinError()"
+        [disabled]="isVerifying()"
+        (digit)="addDigit($event)"
+        (backspace)="deleteDigit()"
+      />
+
+      @if (errorMessage()) {
+        <p class="mt-4 text-center text-sm font-semibold text-red-600 dark:text-red-400">{{ errorMessage() }}</p>
+      }
+
+      <button
+        class="pnry-touch w-full mt-6 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+        (click)="backToUserList()"
+      >
+        {{ 'COMMON.BACK' | translate }}
+      </button>
+    </div>
+  }
+
+  <!-- ==================== ERROR ==================== -->
+  @if (step() === 'error') {
+    <div class="text-center animate-[fadeIn_0.3s_ease-out]">
+      <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center">
+        <span class="material-symbols-outlined text-[1.75rem] text-red-600 dark:text-red-400">error</span>
+      </div>
+      <h2 class="text-xl font-bold text-[#0F172A] dark:text-white mb-2">{{ 'LOGIN.REVERIFY_TITLE' | translate }}</h2>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">{{ errorMessage() }}</p>
+      <button
+        class="pnry-touch px-6 py-3 rounded-xl bg-[#00B8D4] text-white text-sm font-semibold active:scale-95 transition-transform"
+        (click)="retry()"
+      >
+        {{ 'COMMON.RETRY' | translate }}
+      </button>
+    </div>
+  }
+</div>

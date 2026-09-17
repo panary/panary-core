@@ -23,7 +23,8 @@ const STAMP_INTERVAL_MS = 5 * 60 * 1000
 const lastStampedAt = new Map<string, number>()
 
 /**
- * Stempelt `apikeys.lastUsedAt` auf jetzt — gedrosselt, fire-and-forget.
+ * Stempelt `apikeys.lastUsedAt` auf jetzt — gedrosselt (`force` umgeht das),
+ * fire-and-forget.
  *
  * Nur bei ERFOLGREICHER Authentifizierung aufrufen: ein Stempel auf Fehlversuche
  * waere ein Schreib-Amplifikator fuer beliebige Aufrufer.
@@ -38,12 +39,17 @@ const lastStampedAt = new Map<string, number>()
  * Sync-Rauschen im Throttle-Takt; dann auf `_patch` umstellen (umgeht die
  * Hook-Kette inkl. `updatedAt`-Resolver).
  */
-export const stampApiKeyLastUsed = (app: Application, apiKeyId: string): void => {
+export const stampApiKeyLastUsed = (app: Application, apiKeyId: string, options?: { force?: boolean }): void => {
   if (!apiKeyId) return
 
   const now = Date.now()
   const previous = lastStampedAt.get(apiKeyId)
-  if (previous !== undefined && now - previous < STAMP_INTERVAL_MS) return
+  // `force` umgeht die Drossel — gebraucht von der Re-Verifikations-Freigabe
+  // (panary/panary-core#325): Dort MUSS `lastUsedAt` sofort auf jetzt stehen,
+  // sonst loest ein Reconnect innerhalb der naechsten fuenf Minuten dieselbe
+  // Abfrage erneut aus und der Bediener steht wieder vor dem Bildschirm, den
+  // er gerade quittiert hat.
+  if (!options?.force && previous !== undefined && now - previous < STAMP_INTERVAL_MS) return
 
   // Vor dem await setzen: zwei parallele Handshakes duerfen nicht beide schreiben.
   lastStampedAt.set(apiKeyId, now)

@@ -93,6 +93,27 @@
       <div class="flex-1 flex flex-col animate-fade-in py-2 md:py-4 md:justify-center">
         <h2 class="text-3xl font-bold mb-4 md:mb-6 tracking-tight">{{ 'WIZARD.CONFIG.TITLE' | translate }}</h2>
         <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4 md:space-y-5">
+          <!-- Setup-Token (#323): steht vor allen anderen Feldern, damit fehlender
+               Besitznachweis vor dem Ausfuellen auffaellt, nicht erst beim Absenden. -->
+          <div class="space-y-1">
+            <label
+              for="setupToken"
+              class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+            >
+              {{ 'WIZARD.CONFIG.SETUP_TOKEN' | translate }}
+            </label>
+            <input
+              id="setupToken"
+              formControlName="setupToken"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              [placeholder]="'WIZARD.CONFIG.SETUP_TOKEN_PLACEHOLDER' | translate"
+              class="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-lg p-3 text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-white focus:ring-1 focus:ring-gray-900 dark:focus:ring-white transition outline-none placeholder-gray-400 dark:placeholder-gray-600"
+            />
+            <p class="text-xs text-gray-400 dark:text-gray-500">{{ 'WIZARD.CONFIG.SETUP_TOKEN_HINT' | translate }}</p>
+          </div>
+
           <!-- Geschäft & Standort: nebeneinander auf Desktop -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div class="space-y-1">
@@ -201,6 +222,17 @@
               />
             </div>
           </div>
+
+          <!-- Fehlermeldung (#323): ersetzt das fruehere alert('Setup failed: ' +
+               err.message), das bei abgelehntem Token nur den HTTP-Status zeigte. -->
+          @if (submitError(); as errorKey) {
+            <div
+              role="alert"
+              class="rounded-lg border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950 p-3 text-sm text-red-800 dark:text-red-200"
+            >
+              {{ errorKey | translate }}
+            </div>
+          }
 
           <!-- Actions -->
           <div class="flex items-center justify-between pt-4 md:pt-2">

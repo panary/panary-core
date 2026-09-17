@@ -26,6 +26,9 @@
     },
     "CONFIG": {
       "TITLE": "Konfiguration",
+      "SETUP_TOKEN": "Setup-Token",
+      "SETUP_TOKEN_PLACEHOLDER": "XXXX-XXXX",
+      "SETUP_TOKEN_HINT": "Steht im Container-Log des Edge und in der Datei data/setup-token.txt. Groß-/Kleinschreibung und Bindestrich sind egal.",
       "SHOP_NAME": "Geschäftsname",
       "SHOP_NAME_PLACEHOLDER": "z.B. Mustermann GmbH",
       "SHOP_NAME_HINT": "Der Name Ihres Unternehmens. Wird als Organisation in der Cloud verwendet.",
@@ -52,7 +55,14 @@
     },
     "LOADING": "Konfiguration wird gespeichert...",
     "RESTARTING": "Server startet neu...",
-    "RESTARTING_HINT": "Warte bis der Server wieder erreichbar ist."
+    "RESTARTING_HINT": "Warte bis der Server wieder erreichbar ist.",
+    "ERRORS": {
+      "TOKEN_INVALID": "Das Setup-Token stimmt nicht. Bitte aus dem Container-Log des Edge abtippen (docker logs panary-edge).",
+      "TOKEN_EXPIRED": "Das Setup-Token ist abgelaufen. Starten Sie den Container neu — beim Start wird ein neues Token ausgegeben.",
+      "TOKEN_USED": "Dieses Setup-Token wurde bereits verwendet. Der Edge wird gerade eingerichtet oder ist es schon.",
+      "RATE_LIMITED": "Zu viele Fehlversuche. Bitte eine Minute warten und erneut versuchen.",
+      "GENERIC": "Die Einrichtung ist fehlgeschlagen. Details stehen im Container-Log des Edge."
+    }
   },
   "LANG": {
     "SELECT": "Sprache wählen",

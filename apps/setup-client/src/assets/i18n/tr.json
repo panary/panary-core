@@ -26,6 +26,9 @@
     },
     "CONFIG": {
       "TITLE": "Yapılandırma",
+      "SETUP_TOKEN": "Kurulum anahtarı",
+      "SETUP_TOKEN_PLACEHOLDER": "XXXX-XXXX",
+      "SETUP_TOKEN_HINT": "Edge kapsayıcı günlüğünde ve data/setup-token.txt dosyasında bulunur. Büyük/küçük harf ve tire önemli değildir.",
       "SHOP_NAME": "İşletme Adı",
       "SHOP_NAME_PLACEHOLDER": "ör. Müller Fırını",
       "SHOP_NAME_HINT": "İşletmenizin adı. Bulutta organizasyon olarak kullanılır.",
@@ -52,7 +55,14 @@
     },
     "LOADING": "Yapılandırma kaydediliyor...",
     "RESTARTING": "Sunucu yeniden başlatılıyor...",
-    "RESTARTING_HINT": "Sunucunun yeniden çevrimiçi olması bekleniyor."
+    "RESTARTING_HINT": "Sunucunun yeniden çevrimiçi olması bekleniyor.",
+    "ERRORS": {
+      "TOKEN_INVALID": "Kurulum anahtarı doğru değil. Edge kapsayıcı günlüğünden kopyalayın (docker logs panary-edge).",
+      "TOKEN_EXPIRED": "Kurulum anahtarının süresi doldu. Kapsayıcıyı yeniden başlatın — açılışta yeni bir anahtar yazdırılır.",
+      "TOKEN_USED": "Bu kurulum anahtarı zaten kullanıldı. Edge kuruluyor veya kurulmuş durumda.",
+      "RATE_LIMITED": "Çok fazla başarısız deneme. Lütfen bir dakika bekleyip tekrar deneyin.",
+      "GENERIC": "Kurulum başarısız oldu. Ayrıntılar Edge kapsayıcı günlüğünde."
+    }
   },
   "LANG": {
     "SELECT": "Dil Seçin",

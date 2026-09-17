@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core'
-import { HttpClient } from '@angular/common/http'
+import { HttpClient, HttpHeaders } from '@angular/common/http'
 import { Observable } from 'rxjs'
 
 export interface SetupPayload {
@@ -26,7 +26,13 @@ export class SetupService {
     return this.http.get(`${this.apiUrl}/system-info`)
   }
 
-  setup(data: SetupPayload): Observable<any> {
-    return this.http.post(`${this.apiUrl}/setup`, data)
+  /**
+   * Das Setup-Token reist im Header, nicht im Body (panary/panary-core#323):
+   * Der Edge schreibt den Body 1:1 nach `panary.config.json`, ein Token im
+   * Body laege danach dauerhaft im Klartext auf der Platte.
+   */
+  setup(data: SetupPayload, setupToken: string): Observable<any> {
+    const headers = new HttpHeaders({ 'X-Setup-Token': setupToken })
+    return this.http.post(`${this.apiUrl}/setup`, data, { headers })
   }
 }

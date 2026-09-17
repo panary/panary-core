@@ -444,7 +444,8 @@ async function main() {
     // Fehler im Container-Log auffaellt, statt hinter einem offenen
     // Setup-Endpunkt zu verschwinden.
     logger.error({
-      message: `Boot fehlgeschlagen bei vorhandener Konfiguration (${CONFIG_PATH}). Der Edge startet NICHT. ` +
+      message:
+        `Boot fehlgeschlagen bei vorhandener Konfiguration (${CONFIG_PATH}). Der Edge startet NICHT. ` +
         `Ursache im Stacktrace; Konfiguration pruefen oder Container-Log an den Support geben.`,
       event: 'bootstrap.failed',
       error,

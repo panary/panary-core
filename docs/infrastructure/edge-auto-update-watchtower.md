@@ -126,3 +126,10 @@ korrigierte Watchtower-Definition also weder über einen Release-Tag noch über 
 Auto-Update-Kanal — und im Fehlerfall ohnehin nicht, weil genau dieser Kanal ja tot ist.
 Nötig ist ein erneuter Lauf des `install.sh`-Einzeilers (idempotent, behält `.env` samt
 `FEATHERS_SECRET`) oder das Nachtragen der Zeile von Hand.
+
+⚠️ **Der Auto-Update-Kanal verteilt seit der Boot-Härtung auch eine Startbedingung.** Ein
+Edge, dessen `.env` kein ausreichendes `FEATHERS_SECRET` trägt, startet nach dem nächsten
+Watchtower-Update nicht mehr — unbeaufsichtigt und ohne dass jemand davorsteht. Der
+Installer erzeugt den Wert deshalb auch bei einer **bestehenden** `.env` nach, wenn er leer,
+der Platzhalter oder zu kurz ist; Symptom und Behebung stehen in
+[FEATHERS_SECRET-Pflicht](edge-feathers-secret-pflicht.md).

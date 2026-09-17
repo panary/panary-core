@@ -32,6 +32,17 @@ export default defineConfig(() => ({
     env: {
       NODE_CONFIG_DIR: join(__dirname, 'config'),
       SQLITE_PATH: join(__dirname, 'data', 'api-edge.test.sqlite'),
+      // Seit #323 traegt `config/default.json` keinen Secret-Platzhalter mehr:
+      // Das JWT-Secret hat genau eine Quelle, die Umgebung. Die Tests setzen
+      // es deshalb hier statt in einer Config-Datei — sonst gaebe es doch
+      // wieder einen zweiten Weg, und der Guard in main.ts prueft den falschen.
+      //
+      // Bewusst ein lesbarer Satz statt Zufallszeichen: Der Wert muss nur lang
+      // genug sein, und ein hochentropischer String an dieser Stelle waere fuer
+      // gitleaks (und fuer jeden Leser) von einem echten Secret nicht zu
+      // unterscheiden. Kein `randomBytes` — die Worker muessen alle denselben
+      // Schluessel benutzen, sonst gilt ein in Worker A signiertes JWT in B nicht.
+      FEATHERS_SECRET: 'vitest-api-edge-jwt-signing-key-not-a-secret',
     },
     reporters: ['default'],
     coverage: {

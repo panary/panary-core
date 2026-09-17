@@ -8,6 +8,7 @@ import { APP_VERSION } from './version'
 import { constants } from 'fs'
 import { UserSystemRole } from '@panary/users/domain'
 import { uuidv7 } from 'uuidv7'
+import { assertFeathersSecret, filterConfigEnv } from './utils/boot-guards'
 
 const CONFIG_PATH = process.env['PANARY_CONFIG_PATH'] || path.join(process.cwd(), 'data', 'panary.config.json')
 
@@ -70,10 +71,33 @@ async function attemptRecovery(reason: string): Promise<void> {
 }
 
 async function main() {
-  try {
-    // Check if config file exists
-    await fs.access(CONFIG_PATH, constants.F_OK)
+  // Vor jeder Modus-Entscheidung (#323): Ohne gueltigen JWT-Signaturschluessel
+  // startet der Edge gar nicht — auch nicht in den Setup-Modus. Sonst liefe der
+  // Betreiber durch die komplette Einrichtung und der Edge staerbe erst beim
+  // Neustart danach. Geprueft wird ausschliesslich die Umgebungsvariable: Das
+  // Secret hat genau eine Quelle (.env des Containers), damit nicht eine
+  // Config-Datei still eine zweite aufmacht.
+  assertFeathersSecret(process.env['FEATHERS_SECRET'])
 
+  // Nur eine FEHLENDE Konfiguration fuehrt in den Setup-Modus (#323). Frueher
+  // war der Setup-Modus der catch-Zweig des gesamten Boots: Jeder Fehler bei
+  // Migration, DB oder Service-Start oeffnete einen unauthentifizierten
+  // Setup-Endpunkt im LAN. Ein kaputter Edge soll stehenbleiben, nicht sich
+  // anbieten.
+  let configExists = true
+  try {
+    await fs.access(CONFIG_PATH, constants.F_OK)
+  } catch {
+    configExists = false
+  }
+
+  if (!configExists) {
+    logger.info(`No configuration at ${CONFIG_PATH}. Starting in SETUP MODE.`)
+    await startSetupApp(3030)
+    return
+  }
+
+  try {
     logger.info(`Configuration found at ${CONFIG_PATH}. Starting in PRODUCTION MODE.`)
 
     // Load configuration
@@ -82,10 +106,27 @@ async function main() {
       const configRaw = await fs.readFile(CONFIG_PATH, 'utf-8')
       config = JSON.parse(configRaw)
 
-      for (const [key, value] of Object.entries(config)) {
-        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-          process.env[key] = String(value)
-        }
+      // Allowlist statt Blanko-Uebertragung (#323): Die Datei wird vom
+      // Setup-Endpunkt geschrieben — ohne Filter waere jede Umgebungsvariable
+      // des Prozesses durch dessen Aufrufer bestimmbar.
+      const envFilter = filterConfigEnv(config)
+      for (const [key, value] of Object.entries(envFilter.applied)) {
+        process.env[key] = value
+      }
+      // Werte nie mitloggen — ein verworfener Schluessel kann ein Secret tragen.
+      if (envFilter.denied.length > 0) {
+        logger.warn({
+          message: `Konfiguration: ${envFilter.denied.length} gesperrte Schluessel verworfen.`,
+          event: 'bootstrap.config_env_denied',
+          keys: envFilter.denied,
+        })
+      }
+      if (envFilter.rejected.length > 0) {
+        logger.warn({
+          message: `Konfiguration: ${envFilter.rejected.length} unbekannte Schluessel verworfen.`,
+          event: 'bootstrap.config_env_rejected',
+          keys: envFilter.rejected,
+        })
       }
     } catch (e) {
       logger.error('Error reading configuration file', e)
@@ -399,12 +440,28 @@ async function main() {
     }
     // -----------------------------------------------------------------------
   } catch (error) {
-    logger.error(`Configuration check failed or file missing at ${CONFIG_PATH}. Starting in SETUP MODE.`, error)
-    await startSetupApp(3030)
+    // Kein Setup-Modus als Auffangnetz mehr (#323): laut scheitern, damit der
+    // Fehler im Container-Log auffaellt, statt hinter einem offenen
+    // Setup-Endpunkt zu verschwinden.
+    logger.error({
+      message:
+        `Boot fehlgeschlagen bei vorhandener Konfiguration (${CONFIG_PATH}). Der Edge startet NICHT. ` +
+        `Ursache im Stacktrace; Konfiguration pruefen oder Container-Log an den Support geben.`,
+      event: 'bootstrap.failed',
+      error,
+    })
+    process.exit(1)
   }
 }
 
 main().catch(err => {
-  logger.error('Fatal error during startup', err)
+  // Meldung ausdruecklich in `message`, nicht nur als Zweitargument: Der
+  // Secret-Guard (#323) begruendet den Abbruch dort, und genau diese Zeile
+  // muss im Container-Log stehen — davor sitzt niemand mit einem Debugger.
+  logger.error({
+    message: `Fatal error during startup: ${err instanceof Error ? err.message : String(err)}`,
+    event: 'bootstrap.fatal',
+    error: err,
+  })
   process.exit(1)
 })

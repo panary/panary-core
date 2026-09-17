@@ -53,7 +53,10 @@ sudo docker logout ghcr.io   # zusätzlich als root
 ```
 
 Danach `install.sh` erneut ausführen — das Skript ist idempotent und behält die bestehende
-`.env` samt `FEATHERS_SECRET`.
+`.env` samt `FEATHERS_SECRET`. Eine Ausnahme seit der Boot-Härtung: Trägt die `.env` das
+Secret leer, als Platzhalter oder zu kurz, erzeugt der Installer es neu — sonst startete
+der Edge nach dem Update gar nicht mehr
+([FEATHERS_SECRET-Pflicht](edge-feathers-secret-pflicht.md)).
 
 ## Registry-Vorabprüfung im Installer
 

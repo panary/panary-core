@@ -112,3 +112,11 @@ osv-scanner scan --config osv-scanner.toml -L pnpm-lock.yaml # Erwartung: No iss
 ```
 
 Der Dependabot-Alert #316 schließt sich, sobald das Lockfile auf `main` 0.6.1 trägt.
+
+**Nachtrag 2026-09-18:** Der `minimumReleaseAgeExclude`-Eintrag für `adm-zip` ist entfernt —
+0.6.1 ist seit 10:24 UTC karenzreif, damit war die Ausnahme ab sofort ein stiller Verzicht auf
+die Karenz für genau das Paket, das gerade erst gepatcht wurde. Der Override-Floor `^0.6.1` in
+`package.json` **bleibt**; er ist die eigentliche Absicherung, der Exclude war nur die Brücke
+über die Karenzfrist. Gemessen nach dem Entfernen: `pnpm install --lockfile-only` löst
+unverändert `adm-zip@0.6.1` auf, das Lockfile bewegt sich nicht (der Exclude ist
+lockfile-neutral). Pendant in panary-cloud.

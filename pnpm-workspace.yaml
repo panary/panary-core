@@ -58,15 +58,12 @@ minimumReleaseAgeExclude:
   # Verzicht auf die Karenz fuer genau das Paket, das gerade erst gepatcht wurde.
   # Jeder Eintrag traegt deshalb sein Reife-Datum im Zeilenkommentar.
   #
-  # adm-zip 0.6.1 (publiziert 2026-09-11 10:24 UTC → reif ab 2026-09-18 10:24 UTC;
-  # dann ENTFERNEN). Erste Version ausserhalb der Advisory-Range von
-  # GHSA-vwc7-r8mq-g2x9 (0.5.9-0.6.0) und enthaelt den Symlink-Guard
-  # `assertPathSafe` in util/utils.js (Commit eaa35fa7 „Blocked extraction from
-  # writing through symlinks inside the target"). Der Override in package.json
-  # zeigt auf ^0.6.1; ohne diesen Eintrag scheitert jede Neuaufloesung bis zum
-  # Reife-Datum mit ERR_PNPM_NO_MATURE_MATCHING_VERSION. Nachtrag in
-  # docs/security/osv-befund-2026-09-10.md. Pendant in panary-cloud.
-  - 'adm-zip'
+  # Entfernt am 2026-09-18, weil reif geworden: 'adm-zip' (0.6.1, publiziert
+  # 2026-09-11 10:24 UTC → reif seit 2026-09-18 10:24 UTC). Erste Version
+  # ausserhalb der Advisory-Range von GHSA-vwc7-r8mq-g2x9 (0.5.9-0.6.0), mit dem
+  # Symlink-Guard `assertPathSafe` in util/utils.js. Der Override `^0.6.1` in
+  # package.json BLEIBT — er ist der Floor, der Eintrag hier war nur die Karenz.
+  # Nachtrag in docs/security/osv-befund-2026-09-10.md. Pendant in panary-cloud.
   #
   # Entfernt am 2026-08-11, weil reif geworden: 'fast-uri' (3.1.5, publiziert
   # 2026-07-31 09:16 UTC → reif seit 2026-08-07), 'js-yaml' (4.3.1, 2026-07-31

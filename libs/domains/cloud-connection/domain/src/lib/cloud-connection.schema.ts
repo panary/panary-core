@@ -201,6 +201,32 @@ export const cloudConnectionSchema = Type.Object(
     // sonst faelschlich „stale" wirken, obwohl die Cloud via Socket erreichbar
     // ist. NICHT als Cursor verwenden (kein incremental-since).
     lastCloudContactAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
+
+    // Fremd-Mandanten-Sichtung beim Pull-Apply (#337) — eine RASTE, kein Zaehlerstand
+    // des letzten Ticks.
+    //
+    // Der Pull-Apply schreibt einen Record mit fremder `tenantId` bewusst trotzdem
+    // (siehe `applyPulledRecords`): der Cursor rueckt unabhaengig vom Ergebnis vor, ein
+    // abgelehnter Record kaeme NIE wieder. Die Sichtung darf deshalb nicht am Record
+    // haengen, sondern muss hier ueberdauern — auch ueber Prozess-Neustarts hinweg.
+    // Ein reines In-Memory-Flag waere genau der Fehler, der die AlertEngine der Cloud
+    // schon einmal blind gemacht hat (Breach-State nur im RAM, ADR 0057).
+    //
+    // Gelesen vom Heartbeat (`runHeartbeat`), der die Werte an die Cloud meldet — das
+    // ist der einzige Weg, auf dem dieser Befund je einen Menschen erreicht: der Edge
+    // hat kein externes Fehler-Reporting, `sync-runs` und `bootstrap-reports` bleiben
+    // lokal.
+    //
+    // Beim Re-Pairing auf einen anderen Mandanten wird die Raste geleert (Restamp im
+    // Bootstrap-Runner) — sonst meldete ein Edge nach einem voellig legitimen
+    // Mandantenwechsel dauerhaft einen Fehlalarm.
+    foreignTenantRecordsAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
+    // Kumulativ seit der letzten Leerung, nicht pro Pull-Seite.
+    foreignTenantRecordsCount: Type.Optional(Type.Integer({ minimum: 0, default: 0 })),
+    // Zuletzt gesehener fremder Mandant — die eine Angabe, die der Support braucht, um
+    // von „irgendwas stimmt nicht" zur Ursache zu kommen (Cloud-Filterung oder
+    // Edge-Token). Nullable, weil die Leerung sie mitnimmt.
+    foreignTenantRecordsLastTenantId: Type.Optional(Type.Union([Type.String({ maxLength: 80 }), Type.Null()])),
   },
   { $id: 'CloudConnection', additionalProperties: false },
 )
@@ -308,6 +334,10 @@ export const cloudConnectionPatchSchema = Type.Partial(
     'lastBusinessDaysPullAt',
     'offlineOverrideActiveUntil',
     'lastCloudContactAt',
+    // Fremd-Mandanten-Raste (#337) — nur vom Pull-Apply und vom Restamp gesetzt
+    'foreignTenantRecordsAt',
+    'foreignTenantRecordsCount',
+    'foreignTenantRecordsLastTenantId',
     // tenantId/locationId fuer den Re-Stamp-Flow im Bootstrap-Worker
     'tenantId',
     'locationId',

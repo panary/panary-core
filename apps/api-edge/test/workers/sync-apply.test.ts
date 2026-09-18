@@ -14,7 +14,7 @@ import { vi } from 'vitest'
 
 import type { Application } from '../../src/declarations'
 import { logger } from '@panary/shared-backend'
-import { applyPulledRecords } from '../../src/workers/sync-apply'
+import { applyPulledRecords, detectForeignTenantId } from '../../src/workers/sync-apply'
 
 type PullRecord = SyncPullResponse['records'][number]
 
@@ -31,6 +31,9 @@ describe('sync-apply — applyPulledRecords', () => {
   let calls: ServiceCalls
   // Optional: create fuer bestimmte IDs fehlschlagen lassen (AJV-Simulation).
   let failCreateIds: Set<string>
+  // Fremd-Mandanten-Raste (#337).
+  let connectionRows: Array<{ _id: string; foreignTenantRecordsCount?: number | null }>
+  let connectionPatches: Array<{ id: string; data: Record<string, unknown> }>
 
   const service = {
     find: async (params: { query: { _id: { $in: string[] } } }) => {
@@ -70,11 +73,32 @@ describe('sync-apply — applyPulledRecords', () => {
     },
   }
 
+  // `cloud-connection` traegt die Fremd-Mandanten-Raste (#337). Der Stub bildet nur
+  // ab, was `stampForeignTenantLatch` braucht: ein `find` auf die eine Zeile und ein
+  // `_patch` darauf.
+  const connectionService = {
+    // `find` ohne Query-Auswertung — der Stub bildet damit genau die Lage ab, gegen die
+    // `cloud-connection-lookup.ts` warnt: mehrere Zeilen, erste gewinnt.
+    find: async () => connectionRows,
+    get: async (id: string) => {
+      const row = connectionRows.find(r => r._id === id)
+      if (!row) throw new Error(`NotFound: ${id}`)
+      return row
+    },
+    _patch: async (id: string, data: Record<string, unknown>) => {
+      connectionPatches.push({ id, data })
+      const row = connectionRows.find(r => r._id === id)
+      if (row) Object.assign(row, data)
+      return row
+    },
+  }
+
   const app = {
     service: (path: string) => {
       // `orders`/`discounts` fuer den Legacy-`discount`-Strip (#310): Der Strip greift
       // nur bei `orders`, `discounts` ist die Gegenprobe.
       if (path === 'products' || path === 'orders' || path === 'discounts') return service
+      if (path === 'cloud-connection') return connectionService
       throw new Error(`Unerwarteter Service-Zugriff im Test: ${path}`)
     },
   } as unknown as Application
@@ -91,6 +115,8 @@ describe('sync-apply — applyPulledRecords', () => {
     store = new Map()
     failCreateIds = new Set()
     calls = { find: [], get: [], create: [], patch: [], remove: [] }
+    connectionRows = [{ _id: 'conn-1', foreignTenantRecordsCount: 0 }]
+    connectionPatches = []
   })
 
   // Spies zentral zuruecknehmen, NICHT am Ende des jeweiligen Tests: Ein dort
@@ -194,7 +220,7 @@ describe('sync-apply — applyPulledRecords', () => {
   it('liefert bei leerer Seite ein leeres Ergebnis ohne Service-Calls', async () => {
     const result = await applyPulledRecords(app, 'products', [])
 
-    assert.deepStrictEqual(result, { applied: 0, rejected: 0, details: [] })
+    assert.deepStrictEqual(result, { applied: 0, rejected: 0, details: [], foreignTenant: 0 })
     assert.strictEqual(calls.find.length + calls.create.length + calls.patch.length, 0)
   })
 
@@ -244,5 +270,168 @@ describe('sync-apply — applyPulledRecords', () => {
     assert.strictEqual(result.applied, 1)
     const events = warn.mock.calls.map(([arg]) => (arg as { event?: string })?.event)
     assert.ok(!events.includes('sync.pull.legacy_discount_stripped'), 'kein Log ohne Strip')
+  })
+  // --- Fremd-Mandanten-Guard (#337) ------------------------------------------------
+  //
+  // Cloud-seitig ist der Pull hart auf `{ tenantId: user.tenantId }` gescopet. Der
+  // Guard ist die ZWEITE Linie: Ein Fehler in der Cloud-Filterung, ein falsch
+  // ausgestelltes Edge-Token oder ein Bug in einer kuenftigen `applyScope`-Strategie
+  // landete sonst ungebremst als Fremdzeile in der Edge-DB.
+  //
+  // 🚫 Der Guard LEHNT NICHT AB. `upsertCursor` rueckt unabhaengig vom Apply-Ergebnis
+  // vor — ein hier verworfener Record kaeme nie wieder. Erkennen und melden ist das
+  // Maximum, das ohne Verlustrisiko zu haben ist.
+
+  it('erkennt einen fremden Mandanten, schreibt den Record aber TROTZDEM', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined as never)
+    const page = [pullRecord('p-9', { record: { _id: 'p-9', name: 'Fremd', tenantId: 't-FREMD' } })]
+
+    const result = await applyPulledRecords(app, 'products', page, { expectedTenantId: 't-1', connectionId: 'conn-1' })
+
+    // Der Befund …
+    assert.strictEqual(result.foreignTenant, 1)
+    const warnCall = warn.mock.calls.find(
+      ([arg]) => (arg as { event?: string })?.event === 'sync.pull.foreign_tenant_record',
+    )
+    assert.ok(warnCall, 'Fremd-Mandant muss geloggt werden')
+    assert.strictEqual((warnCall?.[0] as { foreignTenantId?: string }).foreignTenantId, 't-FREMD')
+
+    // … aendert nichts daran, dass der Record ankommt. Das ist der Kern des Designs.
+    assert.strictEqual(result.applied, 1)
+    assert.strictEqual(result.rejected, 0)
+    assert.strictEqual(calls.create.length, 1)
+    assert.strictEqual(calls.create[0]['tenantId'], 't-FREMD')
+    assert.ok(store.has('p-9'), 'der Record muss geschrieben sein')
+  })
+
+  it('stempelt die Raste auf cloud-connection — kumulativ, nicht ueberschreibend', async () => {
+    vi.spyOn(logger, 'warn').mockImplementation(() => undefined as never)
+    connectionRows = [{ _id: 'conn-1', foreignTenantRecordsCount: 4 }]
+    const page = [
+      pullRecord('p-9', { record: { _id: 'p-9', tenantId: 't-FREMD' } }),
+      pullRecord('p-8', { record: { _id: 'p-8', tenantId: 't-ANDERS' } }),
+    ]
+
+    await applyPulledRecords(app, 'products', page, { expectedTenantId: 't-1', connectionId: 'conn-1' })
+
+    assert.strictEqual(connectionPatches.length, 1, 'genau EIN Patch pro Seite, nicht einer je Record')
+    const patched = connectionPatches[0].data
+    assert.strictEqual(patched['foreignTenantRecordsCount'], 6, '4 vorher + 2 dieser Seite')
+    assert.strictEqual(patched['foreignTenantRecordsLastTenantId'], 't-ANDERS')
+    assert.ok(typeof patched['foreignTenantRecordsAt'] === 'string')
+  })
+
+  it('trifft die durchgereichte Verbindung, nicht die erstbeste Zeile', async () => {
+    vi.spyOn(logger, 'warn').mockImplementation(() => undefined as never)
+    // Die Tabelle kann mehrere Zeilen fuehren — Altlasten aus abgebrochenen Pairings
+    // werden nirgends aufgeraeumt, es gibt keinen Unique-Constraint
+    // (`utils/cloud-connection-lookup.ts`). Landete die Raste auf der Altlast, waere sie
+    // fuer den Heartbeat unsichtbar: Der liest aus der aktiven Verbindung. Der Melder
+    // waere still wirkungslos — genau der Fehler, den dieser Guard verhindern soll.
+    connectionRows = [
+      { _id: 'conn-ALTLAST', foreignTenantRecordsCount: 0 },
+      { _id: 'conn-AKTIV', foreignTenantRecordsCount: 0 },
+    ]
+    const page = [pullRecord('p-9', { record: { _id: 'p-9', tenantId: 't-FREMD' } })]
+
+    await applyPulledRecords(app, 'products', page, { expectedTenantId: 't-1', connectionId: 'conn-AKTIV' })
+
+    assert.strictEqual(connectionPatches.length, 1)
+    assert.strictEqual(connectionPatches[0].id, 'conn-AKTIV', 'die Altlast-Zeile darf nicht getroffen werden')
+  })
+
+  it('verdichtet: viele Fremdrecords ergeben EINE Logzeile und EINEN Patch', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined as never)
+    // Eine gebrochene Cloud-Filterung liefert nicht einen Fremdrecord, sondern eine
+    // ganze Seite. 20 Logzeilen und 20 Patches je Seite waeren die Kosten, die die
+    // Cloud-AlertEngine schon einmal in eine Mailflut getrieben haben (ADR 0058).
+    const page = Array.from({ length: 20 }, (_, i) =>
+      pullRecord(`f-${i}`, { record: { _id: `f-${i}`, tenantId: 't-FREMD' } }),
+    )
+
+    const result = await applyPulledRecords(app, 'products', page, { expectedTenantId: 't-1', connectionId: 'conn-1' })
+
+    assert.strictEqual(result.foreignTenant, 20)
+    assert.strictEqual(result.applied, 20, 'alle 20 werden angewandt')
+    const foreignWarns = warn.mock.calls.filter(
+      ([arg]) => (arg as { event?: string })?.event === 'sync.pull.foreign_tenant_record',
+    )
+    assert.strictEqual(foreignWarns.length, 1, 'genau eine Logzeile je Seite')
+    assert.strictEqual((foreignWarns[0][0] as { count?: number }).count, 20)
+    // Die Stichprobe ist gedeckelt — sonst waere die Logzeile bei 500er-Seiten selbst
+    // das Problem.
+    assert.strictEqual((foreignWarns[0][0] as { sampleEntityIds?: string[] }).sampleEntityIds?.length, 5)
+    assert.strictEqual(connectionPatches.length, 1)
+  })
+
+  it('laesst den eigenen Mandanten unberuehrt', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined as never)
+    const page = [pullRecord('p-1'), pullRecord('p-2')]
+
+    const result = await applyPulledRecords(app, 'products', page, { expectedTenantId: 't-1', connectionId: 'conn-1' })
+
+    assert.strictEqual(result.foreignTenant, 0)
+    assert.strictEqual(result.applied, 2)
+    assert.strictEqual(connectionPatches.length, 0, 'kein Patch ohne Befund')
+    const events = warn.mock.calls.map(([arg]) => (arg as { event?: string })?.event)
+    assert.ok(!events.includes('sync.pull.foreign_tenant_record'))
+  })
+
+  it('laesst Records OHNE tenantId durch (z. B. `tenants` — Identitaet steckt in `_id`)', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined as never)
+    // Ein Guard, der bei `undefined` anschlaegt, sperrt harmlose Services aus. Die
+    // Edge-Replica von `tenants` hat nicht einmal eine `tenantId`-Spalte.
+    const page = [pullRecord('p-3', { record: { _id: 'p-3', name: 'Ohne Mandant' } })]
+
+    const result = await applyPulledRecords(app, 'products', page, { expectedTenantId: 't-1', connectionId: 'conn-1' })
+
+    assert.strictEqual(result.foreignTenant, 0)
+    assert.strictEqual(result.applied, 1)
+    assert.strictEqual(connectionPatches.length, 0)
+    const events = warn.mock.calls.map(([arg]) => (arg as { event?: string })?.event)
+    assert.ok(!events.includes('sync.pull.foreign_tenant_record'))
+  })
+
+  it('ist AUS, solange kein erwarteter Mandant bekannt ist (fail-open)', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined as never)
+    const page = [pullRecord('p-9', { record: { _id: 'p-9', tenantId: 't-FREMD' } })]
+
+    // Erstinstallation / Pairing vor dem Restamp: Ein Guard, der hier anschlaegt,
+    // meldete jeden regulaeren Bootstrap als Vorfall.
+    const undef = await applyPulledRecords(app, 'products', page, { expectedTenantId: undefined })
+    assert.strictEqual(undef.foreignTenant, 0)
+
+    store.clear()
+    const nul = await applyPulledRecords(app, 'products', page, { expectedTenantId: null })
+    assert.strictEqual(nul.foreignTenant, 0)
+
+    assert.strictEqual(connectionPatches.length, 0)
+    const events = warn.mock.calls.map(([arg]) => (arg as { event?: string })?.event)
+    assert.ok(!events.includes('sync.pull.foreign_tenant_record'))
+  })
+
+  it('laesst den Pull-Apply nicht scheitern, wenn die Raste nicht schreibbar ist', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined as never)
+    // Die Diagnose darf nie die Daten kosten, die sie schuetzen soll.
+    connectionRows = []
+    const page = [pullRecord('p-9', { record: { _id: 'p-9', tenantId: 't-FREMD' } })]
+
+    const result = await applyPulledRecords(app, 'products', page, { expectedTenantId: 't-1', connectionId: 'conn-1' })
+
+    assert.strictEqual(result.applied, 1)
+    assert.strictEqual(result.foreignTenant, 1)
+    const events = warn.mock.calls.map(([arg]) => (arg as { event?: string })?.event)
+    assert.ok(events.includes('sync.pull.foreign_tenant_record'), 'der Befund bleibt im Log')
+  })
+
+  it('detectForeignTenantId: die Fallunterscheidung isoliert', () => {
+    assert.strictEqual(detectForeignTenantId('t-1', { tenantId: 't-2' }), 't-2')
+    assert.strictEqual(detectForeignTenantId('t-1', { tenantId: 't-1' }), null)
+    assert.strictEqual(detectForeignTenantId('t-1', {}), null, 'Service ohne tenantId')
+    assert.strictEqual(detectForeignTenantId('t-1', { tenantId: '' }), null, 'Leerstring ist kein Mismatch')
+    assert.strictEqual(detectForeignTenantId('t-1', { tenantId: 42 }), null, 'Nicht-String ist kein Mismatch')
+    assert.strictEqual(detectForeignTenantId(undefined, { tenantId: 't-2' }), null)
+    assert.strictEqual(detectForeignTenantId(null, { tenantId: 't-2' }), null)
+    assert.strictEqual(detectForeignTenantId('', { tenantId: 't-2' }), null)
   })
 })

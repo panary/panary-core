@@ -1015,6 +1015,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.WORKING_TIMES, action: [AppAction.CREATE, AppAction.READ, AppAction.UPDATE] },
     AppAbility.CAN_CLOCK_IN,
     AppAbility.CAN_CHANGE_POS_PIN,
+
+    // Drucken erlauben (der mobile Kellner druckt die Rechnung am Tisch)
+    { resource: AppResource.PRINT_SERVER, action: AppAction.CREATE },
   ],
 
   // 4. KIOSK (Selbstbedienung)
@@ -1032,5 +1035,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
 
     // Darf bezahlen (Discount/Refund verboten!)
     // Evtl. braucht er Payment-Rechte, aber das regelt meist der Payment-Provider direkt.
+
+    // Drucken erlauben (der Kiosk druckt den Abholbon mit der Nummer)
+    { resource: AppResource.PRINT_SERVER, action: AppAction.CREATE },
   ],
 }

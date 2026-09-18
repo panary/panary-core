@@ -55,17 +55,22 @@ export function printServerAuth(app: Application): Middleware {
 
         // Virtuellen User erstellen (wie allowApiKey-Hook)
         //
-        // ⚠️ `deviceRole` existiert auf einem apikeys-Record NICHT — das Feld
-        // heisst `role` (channels.ts liest `.role` und legt es erst auf der
-        // Connection als `deviceRole` ab). Dieser Pfad faellt damit seit jeher
-        // IMMER auf DEVICE_POS zurueck. Bewusst unveraendert gelassen: Ein
-        // Wechsel auf `keyRecord.role` wuerde KDS-/Tablet-Schluesseln hier
-        // schlagartig andere Rechte geben und koennte den Bondruck dieser
-        // Geraete kippen — eine eigene Entscheidung mit eigenem Test, nicht ein
-        // Nebeneffekt der Schluessel-Rotation.
+        // 🚨 Hier stand bis #329 `keyRecord.deviceRole` — ein Feld, das es auf
+        // einem apikeys-Record NIE gab (`apikeySchema` kennt nur `role` und ist
+        // `additionalProperties: false`; `deviceRole` entsteht erst auf der
+        // Socket-Connection, siehe channels.ts). Der Ausdruck war damit immer
+        // `undefined` und der `|| DEVICE_POS`-Fallback deckelte JEDEN Schluessel
+        // auf POS-Rechte — unabhaengig von seiner echten Rolle.
+        //
+        // Kein Fallback mehr: Fehlt die Rolle, bleibt `role` undefined und
+        // `printServerAuthorize` antwortet 403 samt `print-server.forbidden` —
+        // sichtbar statt lautlos. Das ist Defense-in-Depth, kein erwarteter
+        // Bestandsfall: `apikeys.role` ist in SQLite `NOT NULL`. Ein Fallback
+        // hier waere trotzdem falsch, weil er ausgerechnet den Datenfehler
+        // zudeckte, der ihn ausloest.
         ctx.state.user = {
           _id: `device:${deviceId}`,
-          role: (keyRecord as { deviceRole?: UserSystemRole }).deviceRole || UserSystemRole.DEVICE_POS,
+          role: keyRecord.role,
           tenantId: keyRecord.tenantId,
           locationId: keyRecord.locationId,
           activeLocationId: keyRecord.locationId,
@@ -166,7 +171,10 @@ export function printServerAuthorize(requiredAction: AppAction): Middleware {
         event: 'print-server.forbidden',
         path: ctx.path,
         method: ctx.method,
-        role: user.role,
+        // `?? null` statt `user.role`: Ein Schluessel ohne Rolle laesst das Feld
+        // sonst ganz aus dem Wide-Event fallen — und genau dieser Fall ist der,
+        // den man im Log sehen will (seit #329 gibt es keinen POS-Fallback mehr).
+        role: user.role ?? null,
         requiredAction,
       })
       ctx.status = 403

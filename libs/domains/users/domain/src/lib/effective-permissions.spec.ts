@@ -142,3 +142,43 @@ describe('CapabilityBundles / expandBundles', () => {
     expect(stock).toHaveLength(1)
   })
 })
+
+// panary/panary-core#329: Der Print-Server-HTTP-Pfad behandelt ein Geraet ab jetzt nach der
+// Rolle, die sein Schluessel wirklich traegt. Damit dabei kein heute druckendes Geraet den
+// Bondruck verliert, brauchen ALLE vier DEVICE_*-Rollen das Recht — TABLET und KIOSK hatten
+// es bis dahin nicht, sie druckten nur ueber den Fallback-Bug.
+describe('PRINT_SERVER — Druckrecht der Geraeterollen', () => {
+  const canPrint = (role: UserSystemRole | undefined): boolean =>
+    hasEffectivePermission(role, undefined, AppResource.PRINT_SERVER, AppAction.CREATE)
+
+  it.each([
+    UserSystemRole.DEVICE_POS,
+    UserSystemRole.DEVICE_KDS,
+    UserSystemRole.DEVICE_TABLET,
+    UserSystemRole.DEVICE_KIOSK,
+  ])('%s darf drucken', role => {
+    expect(canPrint(role)).toBe(true)
+  })
+
+  it('TENANT_STAFF darf NICHT drucken — der Negativfall, an dem der Sichttest die echte Rolle nachweist', () => {
+    expect(canPrint(UserSystemRole.TENANT_STAFF)).toBe(false)
+  })
+
+  it('ohne Rolle kein Druckrecht (Schluessel ohne role erbt nichts)', () => {
+    expect(canPrint(undefined)).toBe(false)
+  })
+
+  it('das Druckrecht bleibt CREATE — Start/Stop (MANAGE) gehoert keiner Geraeterolle', () => {
+    // `roleRuleMatches` akzeptiert nur die exakte Aktion oder MANAGE. Ein versehentliches
+    // MANAGE in der Matrix gaebe jedem Geraet auch /start, /stop und /restart.
+    for (const role of [
+      UserSystemRole.DEVICE_POS,
+      UserSystemRole.DEVICE_KDS,
+      UserSystemRole.DEVICE_TABLET,
+      UserSystemRole.DEVICE_KIOSK,
+    ]) {
+      expect(hasEffectivePermission(role, undefined, AppResource.PRINT_SERVER, AppAction.MANAGE)).toBe(false)
+      expect(hasEffectivePermission(role, undefined, AppResource.PRINT_SERVER, AppAction.UPDATE)).toBe(false)
+    }
+  })
+})

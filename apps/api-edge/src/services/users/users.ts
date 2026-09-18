@@ -32,6 +32,13 @@ import { releaseDeviceReverification } from '../../utils/device-reverification'
 /** Params-Ausschnitt der Stempel-Methoden — siehe assertTimeClockScope unten. */
 type TimeClockParams = UserParams & { user?: TimeClockActor; deviceAccessScope?: string[] | null }
 
+/**
+ * Params-Ausschnitt von `verifyPin`. Eigener Typ aus demselben Grund wie oben:
+ * `UserParams` kennt `user` nicht — `changePin` gleicht das mit einem Inline-Typ
+ * aus, hier braucht ihn zusaetzlich `releaseDeviceReverification` (`connection`).
+ */
+type VerifyPinParams = UserParams & { user?: { _id?: string; role?: string; tenantId?: string } }
+
 const USER_JSON_FIELDS = ['discountDetails', 'allowedLocationIds', 'permissions']
 import { DatabaseType } from '@panary/shared-common'
 import { BadRequest, Conflict, Forbidden, NotAuthenticated, TooManyRequests } from '@feathersjs/errors'
@@ -185,7 +192,7 @@ export const users = (app: Application) => {
   // Konto-Status-Check und der Geraete-Zuweisungs-Hook gelten damit
   // unveraendert — ein zweiter PIN-Endpunkt waere ein zweiter Ort, an dem
   // genau das vergessen werden kann.
-  service.verifyPin = async (data: { userId: string; pin: string }, params?: UserParams) => {
+  service.verifyPin = async (data: { userId: string; pin: string }, params?: VerifyPinParams) => {
     const { userId, pin } = data
     if (!userId || !pin) throw new NotAuthenticated('userId und pin sind erforderlich')
 
@@ -200,6 +207,41 @@ export const users = (app: Application) => {
 
     // Interner Aufruf — umgeht resolveExternal, damit posPin-Hash geladen wird
     const user = await app.service('users').get(userId, { provider: undefined })
+
+    // #332: multiTenancy() ist bei Custom-Methods ein No-Op (stempelt/filtert
+    // nur create/update/patch bzw. find/get/remove) — der Tenant-Scope muss hier
+    // explizit geprueft werden, sonst koennte ein Terminal einen fremden
+    // Mandanten adressieren. Wortgleich zu `changePin` unten.
+    //
+    // Steht VOR dem Status-Check und vor `bcrypt.compare`: Eine Ablehnung
+    // danach waere ueber Antwortzeit und Fehlversuchs-Zaehler unterscheidbar —
+    // dieselbe Reihenfolge-Begruendung wie bei `assertTimeClockScope` oben.
+    //
+    // 🚨 Bewusst ein klares 403 statt der PIN-Tarnung, die zwei Absaetze tiefer
+    // den Kontostatus verdeckt. Die Tarnung schuetzt dort eine Auskunft ueber
+    // den EIGENEN Betrieb („ist Kollege X noch aktiv?", „wem ist dieses Geraet
+    // zugewiesen?"), die jemand am Terminal sonst nicht bekaeme. Eine fremde
+    // `userId` gehoert dagegen zu niemandem, den der Bediener hier sehen kann,
+    // und die Tarnung haette hier einen Preis, den sie anderswo nicht hat: Sie
+    // verlangte `recordPinFailure` auf eine fremde `userId` und spannte damit
+    // den PIN-Lockout einer Person eines anderen Mandanten. Das Existenz-Oracle
+    // besteht an dieser Stelle ohnehin — der `get` oben beantwortet eine
+    // unbekannte `userId` mit 404, eine bekannte mit falschem PIN mit 401.
+    //
+    // Erreichbar ist der Fall nur, wenn fremde Zeilen in der Edge-DB liegen:
+    // Sync-Pull und Re-Pairing schliessen das aus (`applyCloudTenantId`
+    // stempelt `users` mit um), ein unvollstaendiger Restamp nicht — genau das
+    // meldet `runConsistencyCheck` als ERROR. Also Defense-in-Depth.
+    const actorTenantId = params?.user?.tenantId
+    if (actorTenantId && user.tenantId !== actorTenantId) {
+      logger.warn({
+        message: 'PIN-Anmeldung abgelehnt: Konto gehoert nicht zum eigenen Mandanten',
+        event: 'security.pin_login_foreign_tenant',
+        entityId: userId,
+        tenantId: actorTenantId,
+      })
+      throw new Forbidden('Benutzer gehoert nicht zum eigenen Mandanten')
+    }
 
     // #187: Nicht aktive Konten kommen auch per PIN nicht durch. Der
     // Listen-Filter (userQueryResolver) blendet sie im Login-Screen zwar aus,

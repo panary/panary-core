@@ -351,9 +351,19 @@ export const releaseDeviceReverification = async (
   try {
     if (!conn.deviceId || !conn.tenantId) return
 
-    // `verifyPin` laedt den User mit `provider: undefined` und prueft den
-    // Mandanten NICHT (anders als `changePin`). Fuer eine Freigabe waere das
-    // die falsche Stelle, das zu ignorieren.
+    // Mandant des Kontos gegen den des Geraets. Seit #332 prueft `verifyPin`
+    // das selbst, und weil `allowApiKey` `params.user.tenantId` aus genau
+    // dieser `conn.tenantId` bildet, ist die Pruefung fuer den heutigen — und
+    // einzigen — Aufrufer redundant. Sie bleibt trotzdem:
+    //
+    //  - Die Fallback-Bedingungen sind nicht dieselben. Der Guard dort lautet
+    //    `if (actorTenantId && …)` und faellt aus, wenn `params.user` fehlt;
+    //    hier steht die `tenantId` der Connection, die den Fall traegt.
+    //  - Diese Funktion ist exportiert. Ob sie sicher ist, soll nicht davon
+    //    abhaengen, dass ihr jeweiliger Aufrufer vorher geprueft hat.
+    //
+    // Abgedeckt vom Test „verweigert einem fremden Mandanten die Freigabe"
+    // unten — er laeuft direkt gegen diese Funktion, nicht ueber `verifyPin`.
     if (user.tenantId && user.tenantId !== conn.tenantId) {
       logger.warn({
         message: 'Freigabe abgelehnt: Konto gehoert nicht zum Mandanten des Geraets',

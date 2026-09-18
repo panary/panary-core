@@ -1,7 +1,9 @@
-import { APIKEY_TTL_DAYS } from '@panary/apikeys/domain'
+import { APIKEY_DEVICE_ROLES, APIKEY_TTL_DAYS } from '@panary/apikeys/domain'
+import { UserSystemRole } from '@panary/users/domain'
 import { describe, expect, it } from 'vitest'
 
-import { apikeyDataResolver, apikeyPatchResolver } from './apikeys.schema'
+import { validateData } from '../../hooks/validate-data.hook'
+import { apikeyDataResolver, apikeyDataValidator, apikeyPatchResolver } from './apikeys.schema'
 
 import type { HookContext } from '../../declarations'
 
@@ -251,5 +253,61 @@ describe('apikeyPatchResolver — Re-Verifikations-Zustand (ADR 0043)', () => {
     for (const field of ALWAYS_LOCKED) {
       expect(resolved[field], `${field} darf auch bei der Re-Verifikation nicht setzbar sein`).toBeUndefined()
     }
+  })
+})
+
+// 🚨 Der Deckel bei der ANLAGE (panary/panary-core#334).
+//
+// Geprueft wird der Hook, den `apikeys.ts` tatsaechlich registriert
+// (`validateData(apikeyDataValidator)`), nicht der nackte Validator: Der wirft
+// die rohe AJV-`ValidationError`, den 400 macht erst der Hook daraus
+// (`@feathersjs/schema/lib/hooks/validate.js` → `new BadRequest(message, errors)`).
+// Ein Test gegen den Validator allein belegt die Zusage des Issues („HTTP 400 mit
+// Validierungsfehler auf /role") also NICHT.
+//
+// Und er gehoert an den Validator, nicht an den Resolver: Bis #334 war `role` im
+// Data-Schema `StringEnum(Object.values(UserSystemRole))`, waehrend der Resolver
+// die Geraeterolle nur als DEFAULT setzte (`if (value) return value`). Ein Client
+// mit explizitem `role: 'platform:owner'` gewann — und `channels.ts` liest die
+// Rolle seit jeher korrekt, der Schluessel haette ueber die Feathers-Services
+// also weitreichende Rechte gehabt. Der Resolver haette das nie bemerkt.
+describe('apikeys create — Rollen-Deckel bei der Anlage', () => {
+  const hook = validateData(apikeyDataValidator)
+
+  /** Faehrt den Create-Pfad so, wie `apikeys.ts` ihn registriert. */
+  const runCreate = async (role?: string) => {
+    const context = {
+      method: 'create',
+      data: { name: 'Kassen-Schluessel', ...(role ? { role } : {}) },
+    } as unknown as HookContext
+    await hook(context as never, undefined as never)
+    return context.data as Record<string, unknown>
+  }
+
+  it.each([...APIKEY_DEVICE_ROLES])('laesst die Geraeterolle %s durch', async role => {
+    await expect(runCreate(role)).resolves.toMatchObject({ role })
+  })
+
+  it.each([
+    UserSystemRole.PLATFORM_OWNER,
+    UserSystemRole.PLATFORM_ADMIN,
+    UserSystemRole.PLATFORM_SUPPORT,
+    UserSystemRole.TENANT_OWNER,
+    UserSystemRole.TENANT_MANAGER,
+    UserSystemRole.TENANT_TECHNICIAN,
+    UserSystemRole.TENANT_STAFF,
+  ])('weist %s mit 400 ab', async role => {
+    await expect(runCreate(role)).rejects.toMatchObject({ code: 400 })
+  })
+
+  it('nennt im Fehler das Feld /role — sonst sucht der Aufrufer an der falschen Stelle', async () => {
+    const error = (await runCreate(UserSystemRole.PLATFORM_OWNER).catch((e: unknown) => e)) as {
+      data?: Array<{ instancePath?: string; keyword?: string }>
+    }
+    expect(error.data?.some(entry => entry.instancePath === '/role' && entry.keyword === 'enum')).toBe(true)
+  })
+
+  it('akzeptiert eine Anlage ganz ohne role — der Resolver leitet sie aus device.type ab', async () => {
+    await expect(runCreate()).resolves.toMatchObject({ name: 'Kassen-Schluessel' })
   })
 })

@@ -206,7 +206,9 @@ nicht mehr erreichbar. Der Deckel sitzt an der **Anlage**, nicht am Lesen.
 Schlüssel behält seine Rolle und bleibt wirksam; der PATCH-Resolver verwirft
 `role` ohnehin auf jedem Weg, sie ist also auch nicht korrigierbar. Wer einen
 solchen Schlüssel loswerden will, setzt `active: false` und stellt einen neuen
-aus. Gemessen am 2026-09-18 in der lokalen Edge-SQLite: nur `device:pos-client`.
+aus. In der lokalen Entwicklungs-DB lag am 2026-09-18 nur `device:pos-client` —
+das ist eine Momentaufnahme **einer Entwicklungsmaschine** und keine Aussage über
+Kundeninstallationen; die misst man dort, wo sie stehen.
 
 ⚠️ **`DEVICE_KIOSK` hat keinen Gegenwert in `DeviceType`** (`pos-counter`/`kds`/
 `tablet`/`other`) — Kiosk-Schlüssel entstehen ausschließlich über das

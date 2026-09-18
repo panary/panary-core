@@ -48,6 +48,9 @@ describe('apikeyDataSchema.role — der Deckel bei der Anlage', () => {
   })
 
   it('kennt platform:owner nicht mehr', () => {
+    // Vorbedingung, sonst waere der Test auch gruen, wenn `enumValues` gar nichts
+    // findet (`enum ?? []`) — also gerade dann, wenn der Knoten weggerutscht ist.
+    expect(enumValues(dataRoleNode)).not.toHaveLength(0)
     expect(enumValues(dataRoleNode)).not.toContain(UserSystemRole.PLATFORM_OWNER)
     expect(enumValues(dataRoleNode)).not.toContain(UserSystemRole.TENANT_OWNER)
   })

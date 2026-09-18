@@ -83,4 +83,40 @@ describe('printServerAuthorize', () => {
     expect(next).not.toHaveBeenCalled()
     expect(ctx.status).toBe(401)
   })
+
+  // panary/panary-core#329: Seit der Print-Pfad die ECHTE Schluessel-Rolle liest, entscheidet
+  // hier die Matrix statt eines Fallbacks. Diese Faelle laufen bewusst gegen die echte
+  // `RolePermissions` — mit gemocktem `hasEffectivePermission` waere nur gemessen, dass die
+  // Middleware irgendetwas fragt, nicht was dabei herauskommt.
+  it.each([UserSystemRole.DEVICE_KDS, UserSystemRole.DEVICE_TABLET, UserSystemRole.DEVICE_KIOSK])(
+    'laesst %s den Bon drucken',
+    async role => {
+      const { next, ctx } = await run({ role })
+      expect(next).toHaveBeenCalledOnce()
+      expect(ctx.status).toBe(0)
+    },
+  )
+
+  it.each([
+    UserSystemRole.DEVICE_POS,
+    UserSystemRole.DEVICE_KDS,
+    UserSystemRole.DEVICE_TABLET,
+    UserSystemRole.DEVICE_KIOSK,
+  ])('laesst %s den Print-Server NICHT starten/stoppen (MANAGE)', async role => {
+    // Das Druckrecht ist CREATE, nicht MANAGE. `/start`, `/stop` und `/restart` bleiben
+    // dem Admin-Panel vorbehalten, das ueber den JWT-Zweig kommt.
+    const { ctx, next } = await run({ role }, AppAction.MANAGE)
+    expect(next).not.toHaveBeenCalled()
+    expect(ctx.status).toBe(403)
+  })
+
+  it('weist einen Schluessel ohne Rolle ab und nennt ihn im Log als null', async () => {
+    // Bestandsdaten-Fall: apikeys-Zeile ohne `role`. Frueher machte der Fallback daraus
+    // lautlos ein druckendes POS-Geraet. Ohne das `?? null` fiele `role` ganz aus dem
+    // Wide-Event — ausgerechnet in dem Fall, den man darin sehen will.
+    const { ctx, next } = await run({ role: undefined })
+    expect(next).not.toHaveBeenCalled()
+    expect(ctx.status).toBe(403)
+    expect(warn).toHaveBeenCalledWith(expect.objectContaining({ event: 'print-server.forbidden', role: null }))
+  })
 })

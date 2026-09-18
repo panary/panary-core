@@ -124,6 +124,64 @@ Verschärfend war, dass beide Abweisungen (401/403) nichts loggten und
 unsichtbar. Ergänzt als `print-server.unauthenticated` und
 `print-server.forbidden`.
 
+## Nachtrag 2026-09-18 — der Print-Pfad fragte die Matrix mit der falschen Rolle
+
+Der Umbau von 2026-08-04 stellte `printServerAuthorize` auf
+`hasEffectivePermission` um — richtig ausgewertet wurde damit aber eine Rolle,
+die nie die des Schlüssels war. `printServerAuth` baute den virtuellen
+Geräte-User aus `keyRecord.deviceRole`, und dieses Feld existiert auf einem
+`apikeys`-Record **nicht**: `apikeySchema` kennt nur `role` und ist
+`additionalProperties: false`. `deviceRole` entsteht erst eine Ebene weiter, auf
+der Socket-Connection (`channels.ts:83` setzt `deviceRole: apiKeyRecord.role`) —
+der Name war von dort übernommen, der Zugriff ging ins Leere.
+
+Der Ausdruck war deshalb ausnahmslos `undefined`, und der anschließende
+`|| DEVICE_POS`-Fallback machte aus **jedem** Schlüssel ein POS-Gerät. Die
+Rechteprüfung lief, sie beantwortete nur immer dieselbe Frage.
+
+### Was das praktisch hieß
+
+| Schlüssel-Rolle | vorher | jetzt |
+| --- | --- | --- |
+| `DEVICE_POS`, `DEVICE_KDS` | druckt (Fallback) | druckt (Matrix, `PRINT_SERVER: CREATE`) |
+| `DEVICE_TABLET`, `DEVICE_KIOSK` | druckt (Fallback) | druckt — die Matrix-Einträge kamen mit diesem Fix dazu |
+| `TENANT_*`, `PLATFORM_OWNER` als Schlüssel-Rolle | nur POS-Rechte | ihre echten Rechte, inkl. `PLATFORM_OWNER`-Bypass |
+
+Die Rollen sind nicht theoretisch: `apps/api-edge/src/services/apikeys/apikeys.schema.ts`
+leitet `role` aus `device.type` ab (`kds` → `DEVICE_KDS`, `tablet` →
+`DEVICE_TABLET`), und der Gerätetyp kommt beim Pairing aus dem Client-Request.
+`DEVICE_TABLET` und `DEVICE_KIOSK` hatten keinen `PRINT_SERVER`-Eintrag in der
+Matrix — ohne die Erweiterung hätte ausgerechnet die Korrektur diesen Geräten
+den Bondruck genommen. Beide haben ihn jetzt als `CREATE` (mobiler Kellner:
+Rechnung am Tisch; Kiosk: Abholbon), und `CREATE` bleibt es: `/start`, `/stop`
+und `/restart` verlangen `MANAGE` und gehören weiter dem Admin-Panel über den
+JWT-Zweig.
+
+### Zwei Dinge, die dabei bewusst so entschieden sind
+
+**Kein Fallback mehr.** Ein Record ohne `role` erbte vorher lautlos Druckrechte.
+Jetzt bleibt die Rolle `undefined`, `hasEffectivePermission` liefert `false`, und
+der Aufruf endet mit 403 — sichtbar statt lautlos. Das Wide-Event trägt die
+Rolle als `user.role ?? null`, weil ein fehlendes Feld im JSON sonst gerade den
+Fall verschwinden ließe, den man darin sehen will.
+
+**Der Print-Pfad war die Inkonsistenz, nicht der Schutz.** `apikeyDataSchema`
+erlaubt `role` aus allen `UserSystemRole`-Werten, `PLATFORM_OWNER` eingeschlossen,
+und `printServerAuthorize` hat für diese Rolle einen Bypass. Das ist keine neue
+Lücke: `channels.ts` liest die Rolle seit jeher korrekt, ein solcher Schlüssel
+hat über die Feathers-Services längst weitreichende Rechte. Die Allowlist gehört
+an die Ausstellung (`apikeyDataSchema`, in **beiden** Repos — panary-cloud hat
+denselben Resolver) und ist als eigenes Folge-Issue vorgesehen, nicht als
+stiller Deckel im Print-Pfad.
+
+**Merksatz, Fortsetzung des Nachtrags von 2026-08-04:** Dort war die Lehre, nach
+Konsumenten außerhalb der Hook-Chain zu suchen. Hier kommt die zweite dazu —
+**ein Feldname, der eine Ebene weiter richtig ist, ist hier noch lange nicht
+richtig.** Der Zugriff war typseitig durch einen Cast abgesichert
+(`as { deviceRole?: UserSystemRole }`) und damit für den Compiler unsichtbar;
+gefunden hat ihn erst der Vergleich mit dem Schema. Der Test-Fixture zementierte
+ihn zusätzlich, weil er denselben falschen Feldnamen setzte wie die Middleware.
+
 ## Tests
 
 - `apps/api-edge/src/print-server/authorize.middleware.spec.ts`: Matrix-Fälle
@@ -138,3 +196,16 @@ unsichtbar. Ergänzt als `print-server.unauthenticated` und
   `hasEffectiveAbility` (Matrix-Ability, permissions-Ability, Negativfälle).
 - `apps/api-edge`-Integrationstests (197 Tests) decken die echten Flows
   (verifyPin, sync-outbox, Bootstrap) unverändert grün ab.
+
+- `apps/api-edge/src/print-server/authorize.middleware.spec.ts` (Nachtrag
+  2026-09-18): alle vier `DEVICE_*`-Rollen dürfen `CREATE`, keine davon `MANAGE`,
+  und ein Benutzer ohne Rolle wird mit 403 abgewiesen und im Wide-Event als
+  `role: null` benannt. Die Datei läuft bewusst **ohne** `vi.mock` der
+  users-Domain — mit gemocktem `hasEffectivePermission` wäre nur gemessen, dass
+  die Middleware etwas fragt, nicht was dabei herauskommt.
+- `apps/api-edge/src/print-server/auth.middleware.spec.ts`: die Rolle stammt aus
+  `role`, ein zusätzlich am Record hängendes `deviceRole` bleibt folgenlos, und
+  ein Record ohne `role` erbt keinen POS-Fallback.
+- `libs/domains/users/domain/src/lib/effective-permissions.spec.ts` (Nachtrag
+  2026-09-18): `PRINT_SERVER: CREATE` für alle vier Geräterollen, `false` für
+  `TENANT_STAFF` und für `undefined`.

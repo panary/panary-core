@@ -3,13 +3,23 @@ import { sha256 } from '../utils/crypto.utils'
 import { __resetDeviceApiKeyAuthState } from '../utils/device-apikey-auth'
 
 // Domain-/Backend-Module mocken, damit Vitest keine Domain-Source kompilieren muss.
-// `printServerAuthorize` (nutzt hasEffectivePermission/AppAction/AppResource) wird hier
-// nicht getestet — für den API-Key-Flow genügt UserSystemRole als Fallback-Wert.
+// Die Enum-Werte sind die echten (user.schema.ts / permissions.ts) — ein Mock mit
+// Platzhalter-Strings haette den `deviceRole`-Bug nicht zeigen koennen, weil dort jeder
+// Wert wie jeder andere aussieht. `printServerAuthorize` gehoert nicht hierher, sondern
+// in authorize.middleware.spec.ts: die laeuft ohne diesen Mock gegen die echte Matrix.
 vi.mock('@panary/users/domain', () => ({
-  UserSystemRole: { DEVICE_POS: 'device:pos-client', PLATFORM_OWNER: 'platform:owner' },
+  UserSystemRole: {
+    PLATFORM_OWNER: 'platform:owner',
+    TENANT_OWNER: 'tenant:owner',
+    TENANT_STAFF: 'tenant:staff',
+    DEVICE_POS: 'device:pos-client',
+    DEVICE_KDS: 'device:kds',
+    DEVICE_TABLET: 'device:tablet',
+    DEVICE_KIOSK: 'device:kiosk',
+  },
   hasEffectivePermission: vi.fn(() => false),
-  AppAction: {},
-  AppResource: {},
+  AppAction: { READ: 'read', CREATE: 'create', UPDATE: 'update', DELETE: 'delete', MANAGE: 'manage' },
+  AppResource: { PRINT_SERVER: 'print-server' },
 }))
 vi.mock('@panary/shared-backend', () => ({
   logger: { warn: vi.fn(), info: vi.fn(), error: vi.fn() },
@@ -62,7 +72,10 @@ describe('printServerAuth – API-Key-Flow', () => {
     tenantId: 't1',
     locationId: 'l1',
     deviceId: 'dev1',
-    deviceRole: 'device:pos-client',
+    // `role` — das ist der Feldname auf dem apikeys-Record. Bis #329 stand hier
+    // `deviceRole`, und weil die Middleware denselben falschen Namen las, bestaetigte
+    // das Fixture den Bug, statt ihn zu finden.
+    role: 'device:pos-client',
     validUntil: inDays(120),
     ...overrides,
   })
@@ -178,5 +191,68 @@ describe('printServerAuth – API-Key-Flow', () => {
     expect(ctx.status).toBe(401)
     expect(String((ctx.body as { error: string }).error)).toContain('abgelaufen')
     expect(next).not.toHaveBeenCalled()
+  })
+})
+
+// Der Kern von panary/panary-core#329: Welche Rolle traegt der virtuelle Geraete-User?
+// Bis dahin las die Middleware `keyRecord.deviceRole` — ein Feld, das auf einem
+// apikeys-Record nie existiert (`apikeySchema` kennt nur `role`, additionalProperties:
+// false) — und fiel deshalb ausnahmslos auf DEVICE_POS zurueck.
+describe('printServerAuth – Rolle des Schluessels', () => {
+  const RAW_KEY = 'test-print-key-abcd1234' // gitleaks:allow
+
+  const record = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
+    _id: 'key-1',
+    active: true,
+    apikey: sha256(RAW_KEY),
+    tenantId: 't1',
+    locationId: 'l1',
+    deviceId: 'dev1',
+    role: 'device:pos-client',
+    validUntil: inDays(120),
+    ...overrides,
+  })
+
+  beforeEach(() => {
+    __resetDeviceApiKeyAuthState()
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(NOW)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('uebernimmt die echte Rolle des Records (KDS bleibt KDS)', async () => {
+    const { app } = makeApp([record({ role: 'device:kds' })])
+    const ctx = makeCtx({ 'x-api-key': RAW_KEY, 'x-device-id': 'dev1' })
+
+    await printServerAuth(app)(ctx as any, vi.fn())
+
+    expect(ctx.state.user.role).toBe('device:kds')
+  })
+
+  it('liest NICHT mehr das alte deviceRole-Feld, auch wenn es am Record haengt', async () => {
+    // Der Regressionskern: Ein Record, der beide Felder traegt, unterscheidet die
+    // korrigierte Fassung von der alten. Waere `deviceRole` noch die Quelle, kaeme hier
+    // `tenant:owner` heraus — eine Rechte-Ausweitung statt der Geraeterolle.
+    const { app } = makeApp([record({ role: 'device:kds', deviceRole: 'tenant:owner' })])
+    const ctx = makeCtx({ 'x-api-key': RAW_KEY, 'x-device-id': 'dev1' })
+
+    await printServerAuth(app)(ctx as any, vi.fn())
+
+    expect(ctx.state.user.role).toBe('device:kds')
+  })
+
+  it('erbt ohne Rolle keine Druckrechte (kein stiller DEVICE_POS-Fallback)', async () => {
+    // Bestandsdaten-Fall: eine apikeys-Zeile ohne `role`. Frueher wurde daraus
+    // lautlos ein POS-Geraet mit Druckrecht.
+    const { app } = makeApp([record({ role: undefined })])
+    const ctx = makeCtx({ 'x-api-key': RAW_KEY, 'x-device-id': 'dev1' })
+
+    await printServerAuth(app)(ctx as any, vi.fn())
+
+    expect(ctx.state.user.role).toBeUndefined()
+    expect(ctx.state.user.role).not.toBe('device:pos-client')
   })
 })

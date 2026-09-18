@@ -1,10 +1,10 @@
 ---
 type: Architecture
 title: Geräte-Credential-Lifecycle — Befristung, Rotation, Kaskade und Nutzungs-Telemetrie
-description: Ein Geräte-Schlüssel ist 180 Tage gültig und wird im Handshake still rotiert; beim Löschen eines Geräts wird er serverseitig mitwiderrufen, und apikeys.lastUsedAt wird an beiden Auth-Pfaden gedrosselt gestempelt und trägt zusätzlich die Re-Verifikations-Frist.
+description: Ein Geräte-Schlüssel darf nur mit einer der vier DEVICE_*-Rollen ausgestellt werden, ist 180 Tage gültig und wird im Handshake still rotiert; beim Löschen eines Geräts wird er serverseitig mitwiderrufen, und apikeys.lastUsedAt wird an beiden Auth-Pfaden gedrosselt gestempelt und trägt zusätzlich die Re-Verifikations-Frist.
 tags: [devices, apikeys, security]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-07-31T20:20:00Z }
+generated: { by: claude-code/opus-5, at: 2026-09-18T11:40:00Z }
 ---
 
 # Geräte-Credential-Lifecycle
@@ -160,6 +160,82 @@ Freigegeben wird per PIN über den bestehenden `users.verifyPin`; eine Leitungsr
 (`DEVICE_REVERIFY_AUTHORIZING_ROLES`) gibt regulär frei, jedes andere gültige Konto als
 Notfreigabe mit `AuditSeverity.ALERT`. Begründung beider Entscheidungen im ADR.
 
+## Rollen-Allowlist bei der Ausstellung
+
+Ein API-Schlüssel ist ein **Maschinen**-Credential. Welche Rolle er tragen darf,
+entscheidet seit panary/panary-core#334 eine Allowlist an der Ausstellung:
+`APIKEY_DEVICE_ROLES` in `libs/domains/apikeys/domain/src/lib/apikey.schema.ts`
+— genau `DEVICE_POS`, `DEVICE_KDS`, `DEVICE_TABLET`, `DEVICE_KIOSK`.
+
+Vorher stand im Data-Schema `StringEnum(Object.values(UserSystemRole))`, also
+auch `platform:owner`. Der Resolver leitete die Rolle zwar aus `device.type` ab,
+aber nur als **Default**:
+
+```ts
+role: async (value, data, context) => {
+  if (value) return value   // ← ein explizit gesendetes `role` gewann
+  …
+}
+```
+
+Ein Client, der `role` mitschickte, bestimmte sie also selbst. Das war **keine
+neue Lücke**, die #329 aufgerissen hätte: `channels.ts` liest die Schlüsselrolle
+seit jeher korrekt und setzt sie als `deviceRole` auf die Connection — ein so
+angelegter Schlüssel hatte über die Feathers-Services längst weitreichende
+Rechte. #329 machte lediglich den Print-Pfad konsistent, der die Rolle bis dahin
+gar nicht las und alles auf `DEVICE_POS` deckelte
+([Nachtrag dort](edge-authorize-hybrid-rbac.md)). Die Einschränkung wurde in
+#329 bewusst **nicht** mitgenommen: Ein Deckel im Print-Pfad hätte den offenen
+Weg über die Services verdeckt, statt ihn zu schließen.
+
+Durchgesetzt wird sie vom Validator, nicht vom Resolver — `validateData(apikeyDataValidator)`
+im `before.create` von `apps/api-edge/src/services/apikeys/apikeys.ts`. Eine Anlage
+mit einer Tenant- oder Plattform-Rolle endet mit `400` und einem AJV-Eintrag auf
+`/role`. Ohne `role` bleibt alles wie gehabt: Der Resolver leitet aus `device.type`
+ab und fällt sonst auf `DEVICE_POS`.
+
+🚨 **Das Lese-Schema `apikeySchema.role` bleibt bewusst weit.** Die Versuchung,
+die Einschränkung „konsequenterweise" auch dort nachzuziehen, ist der eigentliche
+Fallstrick: Bestandszeilen mit Tenant- oder Plattform-Rolle würden dann jeden
+`find` werfen, der sie berührt — die Schlüssel-Liste wäre für den Mandanten
+komplett tot, und ausgerechnet der Schlüssel, den man zurückziehen will, wäre
+nicht mehr erreichbar. Der Deckel sitzt an der **Anlage**, nicht am Lesen.
+`apikey.schema.spec.ts` hält beide Richtungen fest.
+
+⚠️ **Die Allowlist wirkt nur auf neue Schlüssel.** Ein bereits ausgestellter
+Schlüssel behält seine Rolle und bleibt wirksam; der PATCH-Resolver verwirft
+`role` ohnehin auf jedem Weg, sie ist also auch nicht korrigierbar. Wer einen
+solchen Schlüssel loswerden will, setzt `active: false` und stellt einen neuen
+aus. Gemessen am 2026-09-18 in der lokalen Edge-SQLite: nur `device:pos-client`.
+
+⚠️ **`DEVICE_KIOSK` hat keinen Gegenwert in `DeviceType`** (`pos-counter`/`kds`/
+`tablet`/`other`) — Kiosk-Schlüssel entstehen ausschließlich über das
+Rollen-Dropdown im Admin, nie über den Resolver-Zweig. Die Rolle bleibt deshalb
+in der Allowlist.
+
+**Das Dropdown liest dieselbe Konstante.** `apps/admin-client/.../apikey-form.ts`
+baut seine `<option>`-Liste aus `APIKEY_DEVICE_ROLES` statt aus vier festen
+Template-Zeilen — sonst könnte die UI eine Rolle anbieten, die die API mit 400
+abweist. Die Übersetzungsschlüssel liegen weiter lokal (`ROLE_LABEL_KEYS`), und
+`formatRole` fällt für unbekannte Werte auf den Rohwert zurück: Ein
+Bestandsschlüssel mit weiter Rolle soll in der Liste **sichtbar** sein, nicht
+verschwiegen.
+
+### Gilt in beiden Repos
+
+Das Schema liegt in `@panary/apikeys/domain`, und **panary-cloud zieht es aus der
+Registry** statt ein eigenes zu definieren
+(`apps/api-cloud/src/services/apikeys/apikeys.schema.ts`). Dort wirkt die
+Einschränkung erst nach einem Pin-Bump von `@panary/apikeys` — abgelegt als
+panary/panary-cloud#470, zusammen mit dem zweiten, identischen Rollen-Resolver.
+Reihenfolge: erst core released, dann dort pinnen.
+
+`apikeys` ist **kein** Sync-Service (die Allowlists entstehen aus
+`SyncableMasterDataService`/`SyncableTransactionService` in
+`libs/domains/edge-pairing/domain/src/lib/edge-pairing-request.schema.ts`). Es gibt
+also keinen Pfad, auf dem eine Bestandszeile mit weiter Rolle neu angelegt und
+dabei gegen das Data-Schema validiert würde.
+
 ## Beteiligte Dateien
 
 - `apps/api-edge/src/hooks/cascade-device-apikeys.hook.ts`
@@ -169,6 +245,7 @@ Notfreigabe mit `AuditSeverity.ALERT`. Begründung beider Entscheidungen im ADR.
 - `apps/api-edge/src/hooks/require-device-reverification.hook.ts` — Durchsetzung
 - `libs/domains/devices/domain/src/lib/device-reverification.ts` — Schwellen-Auflösung, framework-frei
 - `libs/domains/apikeys/domain/src/lib/apikey-lifecycle.ts` — Schwellen und Bewertung
-- `apps/api-edge/src/services/apikeys/apikeys.schema.ts` — Patch-Resolver
+- `libs/domains/apikeys/domain/src/lib/apikey.schema.ts` — `APIKEY_DEVICE_ROLES`, Data- vs. Lese-Schema
+- `apps/api-edge/src/services/apikeys/apikeys.schema.ts` — Patch-Resolver, Rollen-Default aus `device.type`
 - `apps/api-edge/src/channels.ts`, `apps/api-edge/src/print-server/auth.middleware.ts`
-- `apps/admin-client/src/app/features/apikeys/apikey-form.ts` — Verwaist-Anzeige
+- `apps/admin-client/src/app/features/apikeys/apikey-form.ts` — Verwaist-Anzeige, Rollen-Dropdown

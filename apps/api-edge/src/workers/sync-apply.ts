@@ -171,6 +171,17 @@ export interface ApplyPulledRecordsOptions {
    *   pro Seite ein sinnloser Leer-Roundtrip.
    */
   mode?: 'upsert' | 'insert'
+  /**
+   * Mandant, auf den dieser Edge gepairt ist — Referenz fuer den
+   * Fremd-Mandanten-Guard (#337).
+   *
+   * 🚫 Fehlt der Wert (undefined/null), ist der Guard AUS und kein Record wird
+   * beanstandet. Das ist Absicht: Ein Guard, der ohne Referenz anschlaegt, wuerde
+   * genau in den Lagen Laerm machen, in denen der Edge legitim noch keinen
+   * Mandanten kennt (Erstinstallation, Pairing vor dem Restamp). Fail-open, weil
+   * der Guard eine ZWEITE Linie hinter der Cloud-Filterung ist, nicht die erste.
+   */
+  expectedTenantId?: string | null
 }
 
 export interface ApplyPulledRecordsResult {
@@ -180,6 +191,12 @@ export interface ApplyPulledRecordsResult {
   rejected: number
   /** Per-Record-Details fuer sync-run-Eintraege (ungekappt — Caller kappt). */
   details: SyncRunRecordDetail[]
+  /**
+   * Records dieser Seite mit fremder `tenantId` (#337). Sie wurden TROTZDEM
+   * angewandt und zaehlen deshalb auch in `applied` — der Wert ist ein Befund,
+   * keine Fehlerzahl.
+   */
+  foreignTenant: number
 }
 
 /**
@@ -237,6 +254,77 @@ const stripLegacyOrderDiscount = (
   return rest
 }
 
+/**
+ * Prueft, ob ein eingehender Cloud-Record zu einem FREMDEN Mandanten gehoert (#337).
+ *
+ * Liefert die fremde `tenantId` oder `null`. Drei Faelle geben bewusst `null`:
+ *
+ *  1. **Kein erwarteter Mandant** — siehe `expectedTenantId` in den Options: ohne
+ *     Referenz gibt es keinen Befund, nur Rauschen.
+ *  2. **Record ohne `tenantId`** — nicht jeder gesyncte Service fuehrt das Feld.
+ *     `tenants` traegt seine Identitaet in `_id`; cloud-seitig ist das dieselbe
+ *     Fallunterscheidung (`sync-pull-strategies.ts`: Basisfilter `{ _id: user.tenantId }`
+ *     statt `{ tenantId: … }`), und die Edge-Replica hat gar keine `tenantId`-Spalte.
+ *     Ein Guard, der hier anschlaegt, sperrt harmlose Services aus.
+ *  3. **Leerstring** — behandeln wir wie „Feld nicht gefuehrt", nicht wie einen
+ *     Mismatch: ein leerer Wert ist ein Datenfehler, kein Mandantenwechsel.
+ */
+export const detectForeignTenantId = (
+  expectedTenantId: string | null | undefined,
+  record: Record<string, unknown>,
+): string | null => {
+  if (typeof expectedTenantId !== 'string' || expectedTenantId.length === 0) return null
+  const actual = record['tenantId']
+  if (typeof actual !== 'string' || actual.length === 0) return null
+  return actual === expectedTenantId ? null : actual
+}
+
+/**
+ * Stempelt die Fremd-Mandanten-Raste auf `cloud-connection` (#337).
+ *
+ * Diese Raste ist der einzige Weg, auf dem der Befund je einen Menschen erreicht:
+ * Der `api-edge` hat kein externes Fehler-Reporting, `sync-runs` und
+ * `bootstrap-reports` bleiben lokal, und das Alarmsystem der Cloud nimmt keine
+ * Edge-Schreibzugriffe an. Der Heartbeat liest die Raste und meldet sie weiter.
+ *
+ * Deshalb PERSISTENT und nicht im RAM: Der Record ist nach dem Apply geschrieben und
+ * der Cursor vorgerueckt — er kommt nie wieder. Ginge die Sichtung beim naechsten
+ * Neustart verloren, waere sie fuer immer weg (dieselbe Klasse wie der
+ * RAM-Breach-State, der die Cloud-AlertEngine schon einmal blind gemacht hat).
+ *
+ * Vollstaendig fehler-isoliert: Ein Problem beim Stempeln darf den Pull-Apply nie
+ * scheitern lassen — sonst wuerde ausgerechnet die Diagnose die Daten kosten, die sie
+ * schuetzen soll.
+ */
+const stampForeignTenantLatch = async (
+  app: Application,
+  params: { count: number; lastForeignTenantId: string },
+): Promise<void> => {
+  try {
+    const service = app.service('cloud-connection' as any) as any
+    const rows = (await service.find({ provider: undefined, paginate: false, query: { $limit: 1 } })) as Array<{
+      _id: string
+      foreignTenantRecordsCount?: number | null
+    }>
+    const connection = Array.isArray(rows) ? rows[0] : undefined
+    if (!connection) return
+    const previous = typeof connection.foreignTenantRecordsCount === 'number' ? connection.foreignTenantRecordsCount : 0
+    // `_patch` (Adapter-Ebene) wie im Sync-Scheduler: Die Raste ist serverseitiger
+    // Zustand, der Patch-Resolver filtert sie fuer externe Aufrufer ohnehin heraus.
+    await service._patch(connection._id, {
+      foreignTenantRecordsAt: new Date().toISOString(),
+      foreignTenantRecordsCount: previous + params.count,
+      foreignTenantRecordsLastTenantId: params.lastForeignTenantId,
+    })
+  } catch (err) {
+    logger.warn({
+      message: 'Pull-Apply: Fremd-Mandanten-Raste konnte nicht gestempelt werden',
+      event: 'sync.pull.foreign_tenant_latch_failed',
+      errorMessage: err instanceof Error ? err.message : String(err),
+    })
+  }
+}
+
 export const applyPulledRecords = async (
   app: Application,
   service: string,
@@ -247,7 +335,15 @@ export const applyPulledRecords = async (
   const details: SyncRunRecordDetail[] = []
   let applied = 0
   let rejected = 0
-  if (records.length === 0) return { applied, rejected, details }
+  // Fremd-Mandanten-Guard (#337): pro Seite VERDICHTET, nicht pro Record. Eine
+  // gebrochene Cloud-Filterung liefert nicht einen Fremdrecord, sondern eine ganze
+  // Seite — eine Logzeile je Record waere dann 500 Zeilen fuer einen Befund, und ein
+  // Rasten-Patch je Record 500 Schreibvorgaenge. Dieselbe Lehre wie bei der
+  // Alarm-Verdichtung der Cloud (ADR 0058): N Vorfaelle sind eine Meldung, nicht N.
+  let foreignTenant = 0
+  let lastForeignTenantId: string | null = null
+  const foreignSampleIds: string[] = []
+  if (records.length === 0) return { applied, rejected, details, foreignTenant }
 
   // Existenz-Check gebatcht: EIN find pro Pull-Seite statt get pro Record.
   // Ohne User im Params-Kontext bypassed multiTenancy den Filter — die _ids
@@ -301,6 +397,25 @@ export const applyPulledRecords = async (
       const { _deletedAt: _cloudSoftDelete, ...cleanRecord } = (item.record ?? {}) as Record<string, unknown>
       const withoutLegacyDiscount = stripLegacyOrderDiscount(service, cleanRecord, item._id)
       const incoming = service === 'users' ? stripUserEdgeLocalFields(withoutLegacyDiscount) : withoutLegacyDiscount
+      // 🚫 ERKENNEN, NICHT ABLEHNEN. Der Record wird unten geschrieben wie jeder
+      // andere. Das ist keine Nachlaessigkeit, sondern die Bedingung dafuer, dass der
+      // Guard ueberhaupt gebaut werden durfte: `upsertCursor` im Scheduler rueckt
+      // unabhaengig vom Apply-Ergebnis vor, ein hier abgelehnter Record kaeme NIE
+      // wieder — stiller Totalverlust statt verzoegertem Retry. Ein Guard, der in
+      // jeder Fehlalarm-Lage (Re-Pairing vor Restamp, Bootstrap-Reihenfolge, Edge ohne
+      // gesetzte `connection.tenantId`) eine ganze Pull-Seite dauerhaft verschwinden
+      // laesst, waere gefaehrlicher als die Luecke, die er schliesst.
+      //
+      // Ob schaerfer abgelehnt werden darf, entscheidet die Messung: Taucht
+      // `sync.pull.foreign_tenant_record` im Betrieb nie auf, ist der Fall
+      // ausgeschlossen — dieselbe Logik, mit der `sync.pull.legacy_discount_stripped`
+      // eingefuehrt wurde.
+      const foreignTenantId = detectForeignTenantId(options.expectedTenantId, incoming)
+      if (foreignTenantId) {
+        foreignTenant++
+        lastForeignTenantId = foreignTenantId
+        if (foreignSampleIds.length < 5) foreignSampleIds.push(item._id)
+      }
       if (existingIds.has(item._id)) {
         op = SyncOp.PATCH
         await app
@@ -331,5 +446,20 @@ export const applyPulledRecords = async (
       })
     }
   }
-  return { applied, rejected, details }
+  if (foreignTenant > 0 && lastForeignTenantId) {
+    // 🚨 Ein Treffer ist KEIN Sync-Problem. Er bedeutet, dass die Cloud-Filterung,
+    // das ausgestellte Edge-Token oder eine `applyScope`-Strategie einen fremden
+    // Mandanten durchgelassen hat — der Edge ist hier nur der Zeuge.
+    logger.warn({
+      message: `Pull-Apply: ${foreignTenant} von ${records.length} Records tragen eine fremde tenantId — angewandt, aber gemeldet`,
+      event: 'sync.pull.foreign_tenant_record',
+      service,
+      expectedTenantId: options.expectedTenantId,
+      foreignTenantId: lastForeignTenantId,
+      count: foreignTenant,
+      sampleEntityIds: foreignSampleIds,
+    })
+    await stampForeignTenantLatch(app, { count: foreignTenant, lastForeignTenantId })
+  }
+  return { applied, rejected, details, foreignTenant }
 }

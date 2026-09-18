@@ -58,6 +58,38 @@ export const syncHeartbeatRequestSchema = Type.Object(
         { additionalProperties: false },
       ),
     ),
+    // Fremd-Mandanten-Raste des Pull-Apply (#337). Der Edge meldet hier, dass er
+    // mindestens einmal einen gepullten Record mit fremder `tenantId` gesehen hat.
+    //
+    // Der Heartbeat ist fuer diesen Befund der einzige verfuegbare Traeger: Der
+    // `api-edge` hat kein externes Fehler-Reporting (reines Winston mit lokaler
+    // Rotationsdatei), `sync-runs` und `bootstrap-reports` werden nie zur Cloud
+    // gepusht, und `platform-alerts` kann ein Edge nicht beschreiben
+    // (`platformOnlyHook`). Ein `logger.warn` allein waere ein Alarm in einer Datei,
+    // die niemand oeffnet — der Mandant hat keine technischen Kenntnisse.
+    //
+    // Verschachtelt wie `deviceConnections` und aus demselben Grund: Die drei Angaben
+    // sind nur GEMEINSAM interpretierbar. Ein Zeitpunkt ohne Zahl oder eine Zahl ohne
+    // Mandanten waere ein halber Report.
+    //
+    // ⚠️ Auch hier gilt: KEIN Laufzeit-Gate. Die Cloud liest den Wert per Coercion aus
+    // dem rohen Body (Muster: `services/sync/edge-device-counts.ts`) und NICHT ueber
+    // einen `validateData`-Hook — ein 400 auf diesem Pfad kippt die Kundenflotte binnen
+    // fuenf Minuten in den Notfall-Modus. Genau deshalb braucht dieses Feld auch keinen
+    // Cloud-Release vorweg: eine Cloud, die es noch nicht kennt, ignoriert es.
+    foreignTenantRecords: Type.Optional(
+      Type.Object(
+        {
+          /** Zeitpunkt der juengsten Sichtung. */
+          at: Type.String({ format: 'date-time' }),
+          /** Kumulativ seit der letzten Leerung (Re-Pairing), nicht pro Pull-Seite. */
+          count: Type.Integer({ minimum: 0 }),
+          /** Zuletzt gesehener fremder Mandant — der Einstieg in die Ursachensuche. */
+          tenantId: Type.Optional(Type.String({ maxLength: 80 })),
+        },
+        { additionalProperties: false },
+      ),
+    ),
   },
   { $id: 'SyncHeartbeatRequest', additionalProperties: false },
 )

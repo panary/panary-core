@@ -95,6 +95,13 @@ export const cloudConnectionPatchResolver = resolve<CloudConnection, HookContext
   emergencyOverrideSuppressedUntil: filterFromExternal,
   lastHeartbeatOk: filterFromExternal,
   consecutiveHeartbeatFailures: filterFromExternal,
+  // Fremd-Mandanten-Raste (#337): Sie ist ein Befund ueber die Cloud-Filterung bzw.
+  // das Edge-Token. Extern setzbar waere sie in beide Richtungen wertlos — ein
+  // Angreifer koennte die eigene Spur loeschen, ein Fehlbedienender einen Alarm
+  // erfinden. Gesetzt wird sie ausschliesslich vom Pull-Apply, geleert vom Restamp.
+  foreignTenantRecordsAt: filterFromExternal,
+  foreignTenantRecordsCount: filterFromExternal,
+  foreignTenantRecordsLastTenantId: filterFromExternal,
   // `offlineOverrideActiveUntil` bleibt bewusst ausgenommen: der
   // OfflineOverrideService im Admin patcht es extern (Banner-Aktion
   // „Offline-Modus aktivieren"). Migration auf eine eigene Custom-Method ist

@@ -94,7 +94,11 @@ export const pullBusinessDaysOnce = async (app: Application): Promise<BusinessDa
     const nextSince = response.serverTimestamp ?? tickStart
 
     if (response.records.length > 0) {
-      await applyPulledRecords(app, BUSINESS_DAYS_SERVICE, response.records)
+      await applyPulledRecords(app, BUSINESS_DAYS_SERVICE, response.records, {
+        // Fremd-Mandanten-Guard (#337). `connection.tenantId` ist hier schon die
+        // Referenz fuer `reconcileLocationBusinessDay` vier Zeilen tiefer.
+        expectedTenantId: connection.tenantId,
+      })
       // Nach jedem nicht-leeren Pull: `location.currentBusinessDay`
       // synchronisieren — Cloud hat moeglicherweise einen neuen Tag
       // geoeffnet oder den aktuellen geschlossen.

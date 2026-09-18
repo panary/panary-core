@@ -1011,7 +1011,13 @@ export const runPullForService = async (
     }
     // Apply via geteiltem Modul (Batch-Existenz-Check, fromSync-Upsert,
     // Per-Record-Fehlerbehandlung) — Details gekappt aggregieren.
-    const pageResult = await applyPulledRecords(app, service, body.records)
+    // `expectedTenantId`: der Mandant, auf den dieser Edge gepairt ist (#337). Steht
+    // dreizehn Zeilen tiefer schon einmal als `connection.tenantId!` fuer
+    // `reconcileStaleUsers`; hier bewusst OHNE `!`, weil der Guard bei fehlendem Wert
+    // aus sein soll statt zu raten.
+    const pageResult = await applyPulledRecords(app, service, body.records, {
+      expectedTenantId: connection.tenantId,
+    })
     for (const detail of pageResult.details) {
       if (details.length >= MAX_SYNC_RUN_DETAILS) break
       details.push(detail)
@@ -1128,6 +1134,36 @@ const reconcileStaleUsers = async (app: Application, cloudVisibleIds: string[], 
   }
 }
 
+/**
+ * Baut den Fremd-Mandanten-Block des Heartbeat-Bodys aus der Raste auf der
+ * Connection (#337) — oder `undefined`, wenn nie etwas gesehen wurde (der Normalfall).
+ *
+ * Bewusst eine REINE Funktion ueber bereits geladene Felder: kein Query, kein await,
+ * nichts, was werfen kann. Der Heartbeat darf an einer Telemetrie-Nebensache niemals
+ * scheitern — drei Fehlversuche bzw. fuenf Minuten ohne OK aktivieren den
+ * Notfall-Modus der Edge. `collectDeviceCountsForHeartbeat` loest dasselbe Problem mit
+ * try/catch, weil es abfragen muss; hier ist die schaerfere Loesung gratis zu haben.
+ *
+ * Die Raste ist absichtlich klebrig: Sie wird nur beim Re-Pairing geleert (Restamp im
+ * Bootstrap-Runner). Ein Edge, der die Sichtung nur einmal meldete, koennte sie an
+ * einen Tick verlieren, in dem die Cloud gerade nicht erreichbar war — und dann ist der
+ * Befund fuer immer weg.
+ */
+const buildForeignTenantHeartbeatBlock = (
+  connection: CloudConnection,
+): { at: string; count: number; tenantId?: string } | undefined => {
+  const at = connection.foreignTenantRecordsAt
+  if (typeof at !== 'string' || at.length === 0) return undefined
+  const rawCount = connection.foreignTenantRecordsCount
+  const count = typeof rawCount === 'number' && Number.isFinite(rawCount) && rawCount > 0 ? Math.floor(rawCount) : 1
+  const tenantId = connection.foreignTenantRecordsLastTenantId
+  return {
+    at,
+    count,
+    ...(typeof tenantId === 'string' && tenantId.length > 0 ? { tenantId } : {}),
+  }
+}
+
 const runHeartbeat = async (app: Application, connection: CloudConnection): Promise<SyncHeartbeatResponse | null> => {
   const cloudToken = decryptCloudToken(connection.cloudToken)
   if (!cloudToken) return null
@@ -1136,6 +1172,9 @@ const runHeartbeat = async (app: Application, connection: CloudConnection): Prom
   // Zweifel null): ein Fehler hier duerfte niemals den Heartbeat scheitern
   // lassen — drei Fehlschlaege aktivieren den Notfall-Modus der Edge.
   const deviceConnections = await collectDeviceCountsForHeartbeat(app, connection.tenantId)
+  // Fremd-Mandanten-Raste (#337) — rein aus der bereits geladenen Connection, kein
+  // Query. Ein Tick Verzug ist belanglos: Die Raste ist klebrig, nicht momentan.
+  const foreignTenantRecords = buildForeignTenantHeartbeatBlock(connection)
   const response = await cloudFetch(connection.cloudUrl, cloudToken, '/sync-heartbeat', {
     method: 'POST',
     body: JSON.stringify({
@@ -1143,6 +1182,7 @@ const runHeartbeat = async (app: Application, connection: CloudConnection): Prom
       edgeClockMonotonicMs: Math.round(startMonotonic),
       edgeVersion: APP_VERSION,
       ...(deviceConnections ? { deviceConnections } : {}),
+      ...(foreignTenantRecords ? { foreignTenantRecords } : {}),
     }),
     timeoutMs: HEARTBEAT_TIMEOUT_MS,
   })

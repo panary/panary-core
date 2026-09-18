@@ -282,7 +282,9 @@ describe('sync-apply — applyPulledRecords', () => {
 
     // Der Befund …
     assert.strictEqual(result.foreignTenant, 1)
-    const warnCall = warn.mock.calls.find(([arg]) => (arg as { event?: string })?.event === 'sync.pull.foreign_tenant_record')
+    const warnCall = warn.mock.calls.find(
+      ([arg]) => (arg as { event?: string })?.event === 'sync.pull.foreign_tenant_record',
+    )
     assert.ok(warnCall, 'Fremd-Mandant muss geloggt werden')
     assert.strictEqual((warnCall?.[0] as { foreignTenantId?: string }).foreignTenantId, 't-FREMD')
 

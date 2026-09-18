@@ -4,6 +4,28 @@ import { baseSchema } from '@panary/shared-common'
 import { UserSystemRole } from '@panary/users/domain'
 
 //#region Enums & Konstanten (Wiederverwendbar)
+/**
+ * Die einzigen Rollen, mit denen ein API-Key ANGELEGT werden darf.
+ *
+ * Ein API-Key ist ein Maschinen-Credential — er gehoert einem Geraet, nie einem
+ * Menschen. Bis panary/panary-core#334 stand im Data-Schema `StringEnum(Object.values(
+ * UserSystemRole))`: Der Resolver leitete die Rolle zwar aus `device.type` ab, aber
+ * nur als *Default* (`if (value) return value`), ein Client mit explizitem
+ * `role: 'platform:owner'` gewann. `channels.ts` liest die Rolle seit jeher korrekt,
+ * ein so angelegter Schluessel haette ueber die Feathers-Services also weitreichende
+ * Rechte gehabt.
+ *
+ * 🚨 Diese Liste gilt NUR fuer die Anlage. `apikeySchema.role` (Lesen) bleibt
+ * bewusst weit — siehe die Begruendung dort.
+ */
+export const APIKEY_DEVICE_ROLES = [
+  UserSystemRole.DEVICE_POS,
+  UserSystemRole.DEVICE_KDS,
+  UserSystemRole.DEVICE_TABLET,
+  UserSystemRole.DEVICE_KIOSK,
+] as const
+
+export type ApikeyDeviceRole = (typeof APIKEY_DEVICE_ROLES)[number]
 //#endregion
 
 //#region Das Haupt-Datenmodell (Schema)
@@ -37,6 +59,16 @@ export const apikeySchema = Type.Object(
     /**
      * Role assigned to this API key.
      * Determines permissions for the device.
+     *
+     * 🚨 Bewusst WEITER als `APIKEY_DEVICE_ROLES`, und das ist kein Versehen:
+     * Bestandszeilen, die vor panary/panary-core#334 mit einer Tenant- oder
+     * Plattform-Rolle angelegt wurden, muessen lesbar bleiben. Wuerde hier
+     * dieselbe Einschraenkung stehen, wuerfe jeder `find`, der eine solche Zeile
+     * beruehrt, einen Validierungsfehler — die Liste im Admin waere fuer den
+     * Mandanten komplett tot, und ausgerechnet der Schluessel, den man
+     * zurueckziehen will, waere nicht mehr erreichbar.
+     *
+     * Der Deckel sitzt darum im Data-Schema (Anlage), nicht hier (Lesen).
      */
     role: StringEnum(Object.values(UserSystemRole)),
     description: Type.Optional(Type.String({ maxLength: 500 })), // Optional description of the API key's purpose
@@ -84,7 +116,11 @@ export const apikeyDataSchema = Type.Intersect(
     Type.Pick(apikeySchema, ['description', 'deviceId', 'name', 'validUntil']),
     Type.Partial(Type.Pick(apikeySchema, ['locationId', 'tenantId'])),
     Type.Object({
-      role: Type.Optional(StringEnum(Object.values(UserSystemRole))),
+      // Optional bleibt es: Ohne Angabe leitet der Resolver die Rolle aus
+      // `device.type` ab (api-edge/api-cloud `apikeys.schema.ts`). Gesetzt wird
+      // sie nur noch aus `APIKEY_DEVICE_ROLES` akzeptiert — alles andere ist ein
+      // 400 auf `/role` statt einer stillen Rechte-Ausweitung.
+      role: Type.Optional(StringEnum([...APIKEY_DEVICE_ROLES])),
     }),
   ],
   {

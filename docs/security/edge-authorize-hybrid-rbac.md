@@ -174,14 +174,19 @@ Rolle als `user.role ?? null`, weil ein fehlendes Feld im JSON sonst gerade den
 Fall verschwinden ließe, den man darin sehen will.
 
 **Der Print-Pfad war die Inkonsistenz, nicht der Schutz.** `apikeyDataSchema`
-erlaubt `role` aus allen `UserSystemRole`-Werten, `PLATFORM_OWNER` eingeschlossen,
-und `printServerAuthorize` hat für diese Rolle einen Bypass. Das ist keine neue
+erlaubte `role` aus allen `UserSystemRole`-Werten, `PLATFORM_OWNER` eingeschlossen,
+und `printServerAuthorize` hat für diese Rolle einen Bypass. Das war keine neue
 Lücke: `channels.ts` liest die Rolle seit jeher korrekt, ein solcher Schlüssel
-hat über die Feathers-Services längst weitreichende Rechte. Die Allowlist gehört
+hatte über die Feathers-Services längst weitreichende Rechte. Die Allowlist gehört
 an die Ausstellung (`apikeyDataSchema`), nicht als stiller Deckel in den
 Print-Pfad — ein Deckel dort hätte den offenen Weg über die Services verdeckt,
-statt ihn zu schließen. Nachgezogen als panary/panary-core#334 und, für den
-zweiten Resolver im Nachbar-Repo, panary/panary-cloud#470.
+statt ihn zu schließen.
+
+**Erledigt mit panary/panary-core#334:** Die Anlage akzeptiert nur noch die vier
+`DEVICE_*`-Rollen — Details in
+[Rollen-Allowlist bei der Ausstellung](geraete-credential-lifecycle.md#rollen-allowlist-bei-der-ausstellung).
+Der zweite Resolver im Nachbar-Repo ist als panary/panary-cloud#470 offen; dort
+wirkt die Einschränkung erst nach einem Pin-Bump von `@panary/apikeys`.
 
 **Merksatz, Fortsetzung des Nachtrags von 2026-08-04:** Dort war die Lehre, nach
 Konsumenten außerhalb der Hook-Chain zu suchen. Hier kommt die zweite dazu —

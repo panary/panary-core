@@ -17,6 +17,27 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { formatApiError } from '../../core/error-helper'
 import { ConfirmDialogComponent } from '../../core/confirm-dialog'
+import { APIKEY_DEVICE_ROLES, type ApikeyDeviceRole } from '@panary/apikeys/domain'
+
+// Uebersetzungsschluessel je Geraeterolle. Die LISTE selbst kommt aus
+// `APIKEY_DEVICE_ROLES` (@panary/apikeys/domain) — derselben Konstante, die das
+// Data-Schema als `StringEnum` verwendet. Bis panary/panary-core#334 stand die
+// Auswahl als vier feste `<option>`-Zeilen im Template: Wer die Schema-Liste
+// aendert, aendert damit auch das Dropdown, statt dass beide auseinanderlaufen
+// und die UI eine Rolle anbietet, die die API mit 400 abweist.
+// `Record<ApikeyDeviceRole, …>` und nicht `Record<string, …>`: Kommt eine fuenfte
+// Geraeterolle in `APIKEY_DEVICE_ROLES`, soll der Compiler den fehlenden Schluessel
+// melden. Mit dem weiten Typ waere `labelKey` still `undefined` und das Dropdown
+// zeigte eine leere Zeile — genau die Drift, die diese Datei gerade loswird.
+const ROLE_LABEL_KEYS: Record<ApikeyDeviceRole, string> = {
+  'device:pos-client': 'ROLES.DEVICE_POS',
+  'device:kds': 'ROLES.DEVICE_KDS',
+  'device:tablet': 'ROLES.DEVICE_TABLET',
+  'device:kiosk': 'ROLES.DEVICE_KIOSK',
+}
+
+/** Vorauswahl im Neu-Formular — aus der Konstante, damit kein weiteres Literal entsteht. */
+const DEFAULT_ROLE: ApikeyDeviceRole = APIKEY_DEVICE_ROLES[0]
 
 interface ApikeyDetail {
   _id: string
@@ -130,10 +151,9 @@ type DeviceLookup =
                 class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                        text-slate-900 dark:text-white outline-none"
               >
-                <option value="device:pos-client">{{ 'ROLES.DEVICE_POS' | translate }}</option>
-                <option value="device:kds">{{ 'ROLES.DEVICE_KDS' | translate }}</option>
-                <option value="device:tablet">{{ 'ROLES.DEVICE_TABLET' | translate }}</option>
-                <option value="device:kiosk">{{ 'ROLES.DEVICE_KIOSK' | translate }}</option>
+                @for (option of roleOptions; track option.value) {
+                  <option [value]="option.value">{{ option.labelKey | translate }}</option>
+                }
               </select>
             </div>
             <div class="space-y-1">
@@ -397,6 +417,12 @@ type DeviceLookup =
   `,
 })
 export class ApikeyFormComponent {
+  /** Die vier Geraeterollen aus dem Data-Schema — siehe `ROLE_LABEL_KEYS` oben. */
+  protected readonly roleOptions = APIKEY_DEVICE_ROLES.map(role => ({
+    value: role,
+    labelKey: ROLE_LABEL_KEYS[role],
+  }))
+
   private api = inject(ApiService)
   private router = inject(Router)
   private cdr = inject(ChangeDetectorRef)
@@ -445,7 +471,7 @@ export class ApikeyFormComponent {
   form = {
     name: '',
     description: '',
-    role: 'device:pos-client',
+    role: DEFAULT_ROLE as string,
     validUntil: '',
   }
 
@@ -466,13 +492,13 @@ export class ApikeyFormComponent {
   }
 
   formatRole(role: string): string {
-    const map: Record<string, string> = {
-      'device:pos-client': 'ROLES.DEVICE_POS',
-      'device:kds': 'ROLES.DEVICE_KDS',
-      'device:tablet': 'ROLES.DEVICE_TABLET',
-      'device:kiosk': 'ROLES.DEVICE_KIOSK',
-    }
-    return map[role] ? this.t.instant(map[role]) : role
+    // Rueckfall auf den Rohwert ist Absicht: Bestandsschluessel koennen eine
+    // Rolle ausserhalb von `APIKEY_DEVICE_ROLES` tragen (vor #334 angelegt).
+    // Die Liste soll sie anzeigen, nicht verschweigen.
+    // Bewusst weiter Lookup: `role` kann ein Bestandswert ausserhalb von
+    // `APIKEY_DEVICE_ROLES` sein, den die Liste anzeigen soll.
+    const key = (ROLE_LABEL_KEYS as Record<string, string | undefined>)[role]
+    return key ? this.t.instant(key) : role
   }
 
   // Locale einmal beim Konstruieren aufgeloest: ein Sprachwechsel baut die Route
@@ -539,7 +565,7 @@ export class ApikeyFormComponent {
     this.detail.set(null)
     this.deviceLookup.set({ state: 'none' })
     this.orphanPromptFor.set(null)
-    this.form = { name: '', description: '', role: 'device:pos-client', validUntil: '' }
+    this.form = { name: '', description: '', role: DEFAULT_ROLE, validUntil: '' }
 
     if (!keyId || keyId === 'new') {
       this.isNew.set(true)

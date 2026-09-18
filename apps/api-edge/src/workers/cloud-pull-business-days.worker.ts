@@ -98,6 +98,7 @@ export const pullBusinessDaysOnce = async (app: Application): Promise<BusinessDa
         // Fremd-Mandanten-Guard (#337). `connection.tenantId` ist hier schon die
         // Referenz fuer `reconcileLocationBusinessDay` vier Zeilen tiefer.
         expectedTenantId: connection.tenantId,
+        connectionId: connection._id,
       })
       // Nach jedem nicht-leeren Pull: `location.currentBusinessDay`
       // synchronisieren — Cloud hat moeglicherweise einen neuen Tag

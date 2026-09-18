@@ -32,7 +32,7 @@ describe('sync-apply — applyPulledRecords', () => {
   // Optional: create fuer bestimmte IDs fehlschlagen lassen (AJV-Simulation).
   let failCreateIds: Set<string>
   // Fremd-Mandanten-Raste (#337).
-  let connectionRow: { _id: string; foreignTenantRecordsCount?: number | null } | undefined
+  let connectionRows: Array<{ _id: string; foreignTenantRecordsCount?: number | null }>
   let connectionPatches: Array<{ id: string; data: Record<string, unknown> }>
 
   const service = {
@@ -77,11 +77,19 @@ describe('sync-apply — applyPulledRecords', () => {
   // ab, was `stampForeignTenantLatch` braucht: ein `find` auf die eine Zeile und ein
   // `_patch` darauf.
   const connectionService = {
-    find: async () => (connectionRow ? [connectionRow] : []),
+    // `find` ohne Query-Auswertung — der Stub bildet damit genau die Lage ab, gegen die
+    // `cloud-connection-lookup.ts` warnt: mehrere Zeilen, erste gewinnt.
+    find: async () => connectionRows,
+    get: async (id: string) => {
+      const row = connectionRows.find(r => r._id === id)
+      if (!row) throw new Error(`NotFound: ${id}`)
+      return row
+    },
     _patch: async (id: string, data: Record<string, unknown>) => {
       connectionPatches.push({ id, data })
-      connectionRow = { ...(connectionRow as Record<string, unknown>), ...data } as typeof connectionRow
-      return connectionRow
+      const row = connectionRows.find(r => r._id === id)
+      if (row) Object.assign(row, data)
+      return row
     },
   }
 
@@ -107,7 +115,7 @@ describe('sync-apply — applyPulledRecords', () => {
     store = new Map()
     failCreateIds = new Set()
     calls = { find: [], get: [], create: [], patch: [], remove: [] }
-    connectionRow = { _id: 'conn-1', foreignTenantRecordsCount: 0 }
+    connectionRows = [{ _id: 'conn-1', foreignTenantRecordsCount: 0 }]
     connectionPatches = []
   })
 
@@ -278,7 +286,7 @@ describe('sync-apply — applyPulledRecords', () => {
     const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined as never)
     const page = [pullRecord('p-9', { record: { _id: 'p-9', name: 'Fremd', tenantId: 't-FREMD' } })]
 
-    const result = await applyPulledRecords(app, 'products', page, { expectedTenantId: 't-1' })
+    const result = await applyPulledRecords(app, 'products', page, { expectedTenantId: 't-1', connectionId: 'conn-1' })
 
     // Der Befund …
     assert.strictEqual(result.foreignTenant, 1)
@@ -298,19 +306,38 @@ describe('sync-apply — applyPulledRecords', () => {
 
   it('stempelt die Raste auf cloud-connection — kumulativ, nicht ueberschreibend', async () => {
     vi.spyOn(logger, 'warn').mockImplementation(() => undefined as never)
-    connectionRow = { _id: 'conn-1', foreignTenantRecordsCount: 4 }
+    connectionRows = [{ _id: 'conn-1', foreignTenantRecordsCount: 4 }]
     const page = [
       pullRecord('p-9', { record: { _id: 'p-9', tenantId: 't-FREMD' } }),
       pullRecord('p-8', { record: { _id: 'p-8', tenantId: 't-ANDERS' } }),
     ]
 
-    await applyPulledRecords(app, 'products', page, { expectedTenantId: 't-1' })
+    await applyPulledRecords(app, 'products', page, { expectedTenantId: 't-1', connectionId: 'conn-1' })
 
     assert.strictEqual(connectionPatches.length, 1, 'genau EIN Patch pro Seite, nicht einer je Record')
     const patched = connectionPatches[0].data
     assert.strictEqual(patched['foreignTenantRecordsCount'], 6, '4 vorher + 2 dieser Seite')
     assert.strictEqual(patched['foreignTenantRecordsLastTenantId'], 't-ANDERS')
     assert.ok(typeof patched['foreignTenantRecordsAt'] === 'string')
+  })
+
+  it('trifft die durchgereichte Verbindung, nicht die erstbeste Zeile', async () => {
+    vi.spyOn(logger, 'warn').mockImplementation(() => undefined as never)
+    // Die Tabelle kann mehrere Zeilen fuehren — Altlasten aus abgebrochenen Pairings
+    // werden nirgends aufgeraeumt, es gibt keinen Unique-Constraint
+    // (`utils/cloud-connection-lookup.ts`). Landete die Raste auf der Altlast, waere sie
+    // fuer den Heartbeat unsichtbar: Der liest aus der aktiven Verbindung. Der Melder
+    // waere still wirkungslos — genau der Fehler, den dieser Guard verhindern soll.
+    connectionRows = [
+      { _id: 'conn-ALTLAST', foreignTenantRecordsCount: 0 },
+      { _id: 'conn-AKTIV', foreignTenantRecordsCount: 0 },
+    ]
+    const page = [pullRecord('p-9', { record: { _id: 'p-9', tenantId: 't-FREMD' } })]
+
+    await applyPulledRecords(app, 'products', page, { expectedTenantId: 't-1', connectionId: 'conn-AKTIV' })
+
+    assert.strictEqual(connectionPatches.length, 1)
+    assert.strictEqual(connectionPatches[0].id, 'conn-AKTIV', 'die Altlast-Zeile darf nicht getroffen werden')
   })
 
   it('verdichtet: viele Fremdrecords ergeben EINE Logzeile und EINEN Patch', async () => {
@@ -322,7 +349,7 @@ describe('sync-apply — applyPulledRecords', () => {
       pullRecord(`f-${i}`, { record: { _id: `f-${i}`, tenantId: 't-FREMD' } }),
     )
 
-    const result = await applyPulledRecords(app, 'products', page, { expectedTenantId: 't-1' })
+    const result = await applyPulledRecords(app, 'products', page, { expectedTenantId: 't-1', connectionId: 'conn-1' })
 
     assert.strictEqual(result.foreignTenant, 20)
     assert.strictEqual(result.applied, 20, 'alle 20 werden angewandt')
@@ -341,7 +368,7 @@ describe('sync-apply — applyPulledRecords', () => {
     const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined as never)
     const page = [pullRecord('p-1'), pullRecord('p-2')]
 
-    const result = await applyPulledRecords(app, 'products', page, { expectedTenantId: 't-1' })
+    const result = await applyPulledRecords(app, 'products', page, { expectedTenantId: 't-1', connectionId: 'conn-1' })
 
     assert.strictEqual(result.foreignTenant, 0)
     assert.strictEqual(result.applied, 2)
@@ -356,7 +383,7 @@ describe('sync-apply — applyPulledRecords', () => {
     // Edge-Replica von `tenants` hat nicht einmal eine `tenantId`-Spalte.
     const page = [pullRecord('p-3', { record: { _id: 'p-3', name: 'Ohne Mandant' } })]
 
-    const result = await applyPulledRecords(app, 'products', page, { expectedTenantId: 't-1' })
+    const result = await applyPulledRecords(app, 'products', page, { expectedTenantId: 't-1', connectionId: 'conn-1' })
 
     assert.strictEqual(result.foreignTenant, 0)
     assert.strictEqual(result.applied, 1)
@@ -386,10 +413,10 @@ describe('sync-apply — applyPulledRecords', () => {
   it('laesst den Pull-Apply nicht scheitern, wenn die Raste nicht schreibbar ist', async () => {
     const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined as never)
     // Die Diagnose darf nie die Daten kosten, die sie schuetzen soll.
-    connectionRow = undefined
+    connectionRows = []
     const page = [pullRecord('p-9', { record: { _id: 'p-9', tenantId: 't-FREMD' } })]
 
-    const result = await applyPulledRecords(app, 'products', page, { expectedTenantId: 't-1' })
+    const result = await applyPulledRecords(app, 'products', page, { expectedTenantId: 't-1', connectionId: 'conn-1' })
 
     assert.strictEqual(result.applied, 1)
     assert.strictEqual(result.foreignTenant, 1)

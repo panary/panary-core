@@ -38,12 +38,31 @@ Neues Modul `apps/api-edge/src/workers/sync-apply.ts` als Single Source für:
 | `cloudFetch` | EIN authentifizierter Cloud-HTTP-Call (`X-Edge-Token`), Default-Timeout 10 s; Bootstrap-Call-Sites geben 60 s explizit mit |
 | `extractAjvValidationErrors` | EINE AJV-Fehler-Extraktion (Feathers `BadRequest`: `.data`, alte Builds `.errors`) |
 | `pullMasterDataPage` | eine Seite `/sync-pull` (cursor-basiert, `PULL_PAGE_SIZE` 500) |
-| `applyPulledRecords` | gepullte Records via Service-API anwenden (`fromSync: true`), Rückgabe `{ applied, rejected, details }` |
+| `applyPulledRecords` | gepullte Records via Service-API anwenden (`fromSync: true`), Rückgabe `{ applied, rejected, details, foreignTenant }`; Optionen `mode`, `expectedTenantId`, `connectionId` |
+| `detectForeignTenantId` | reine Fallunterscheidung des Fremd-Mandanten-Guards — liefert die fremde `tenantId` oder `null` (siehe unten) |
 | `throwIfRateLimited` | EINE 429-Erkennung inkl. `Retry-After`-Auswertung und der einzigen `sync.rate_limited`-Logzeile; an jeder Call-Site **vor** `!response.ok` aufzurufen |
 | `CloudRateLimitedError` | Marker-Error, an dem die Phasen-Wrapper Cloud-Rückstau von echten Fehlern trennen (trägt `phase` und ausgewertete `retryAfterMs`) |
 
 Konsumenten: `cloud-sync-scheduler.worker.ts`,
 `cloud-bootstrap-runner.worker.ts`, `cloud-pull-business-days.worker.ts`.
+
+### Fremd-Mandanten-Guard (#337)
+
+`applyPulledRecords` vergleicht seit [ADR 0044](../adr/0044-fremd-mandanten-guard-im-pull-apply.md)
+die `tenantId` eingehender Records gegen `expectedTenantId` — den Mandanten, auf den der Edge
+gepairt ist. Alle drei Konsumenten reichen ihn durch; im Bootstrap ist es die **neue**
+`cloudTenantId`, weil der Restamp vor dem Pull läuft.
+
+🚫 **Der Guard lehnt nicht ab.** Der Record wird geschrieben und zählt in `applied`. Grund ist
+der Cursor: `upsertCursor` rückt unabhängig vom Apply-Ergebnis vor, ein hier verworfener Record
+käme nie wieder. Dieselbe Mechanik trägt bereits den `_deletedAt`- und den
+Legacy-`discount`-Strip.
+
+Gemeldet wird über eine persistente Raste auf `cloud-connection`
+(`foreignTenantRecordsAt`/`Count`/`LastTenantId`), die der Heartbeat an die Cloud trägt.
+`connectionId` ist dafür Pflicht-Durchreichung und kein Komfort: Die Tabelle kann mehrere Zeilen
+führen (`utils/cloud-connection-lookup.ts`), und eine Raste auf einer Altlast-Zeile wäre für den
+Heartbeat unsichtbar.
 
 ### 429-Erkennung an einer Stelle
 
@@ -91,7 +110,11 @@ Source in `backoff-schedule.ts` (dort hermetisch getestet).
   (`PULL_TIMEOUT_MS`) — für einen 5-s-Kadenz-Worker angemessen.
 - Tests: `test/workers/sync-apply.test.ts` (Apply happy/gemischt,
   Batch-Existenz-Spy, Idempotenz doppelter Seite, insert-Modus,
-  Reject-Isolation) und `test/workers/cloud-sync-push-reject.test.ts`
+  Reject-Isolation, Legacy-`discount`-Strip sowie die acht Fälle des
+  Fremd-Mandanten-Guards: Erkennung ohne Ablehnung, Rasten-Stempel kumulativ,
+  Verdichtung, eigener Mandant, Record ohne `tenantId`, fail-open ohne
+  erwarteten Mandanten, nicht schreibbare Raste, Treffer der durchgereichten
+  Verbindung statt der erstbesten Zeile) und `test/workers/cloud-sync-push-reject.test.ts`
   (Retry/Backoff, Eskalation an der Grenze, conflict-/terminal-Klassifikation)
   — in-memory, ohne App-Boot, nach dem Muster von
   `cloud-sync-push-drain.test.ts`.

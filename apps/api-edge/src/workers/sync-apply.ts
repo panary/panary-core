@@ -25,6 +25,8 @@ import {
 } from '@panary/sync/domain'
 import { stripUserEdgeLocalFields } from '@panary/users/domain'
 
+import { findReportableCloudConnection } from '../utils/cloud-connection-lookup'
+
 import type { Application } from '../declarations'
 
 /** Seitengroesse fuer `/sync-pull` — muss <= SYNC_PULL_MAX_LIMIT der Cloud sein. */
@@ -182,6 +184,18 @@ export interface ApplyPulledRecordsOptions {
    * der Guard eine ZWEITE Linie hinter der Cloud-Filterung ist, nicht die erste.
    */
   expectedTenantId?: string | null
+  /**
+   * `_id` der `cloud-connection`-Zeile, auf der die Fremd-Mandanten-Raste landen soll.
+   *
+   * Muss durchgereicht werden, weil die Tabelle mehr als eine Zeile enthalten kann —
+   * Altlasten aus abgebrochenen Pairings werden nirgends aufgeraeumt, und es gibt
+   * keinen Unique-Constraint (`utils/cloud-connection-lookup.ts`). Ein blindes
+   * `find({ $limit: 1 })` traefe eine beliebige davon; landete die Raste auf einer
+   * Altlast-Zeile, waere der Befund fuer den Heartbeat unsichtbar — der liest aus der
+   * aktiven Verbindung. Der Melder waere still wirkungslos, also genau das, was dieser
+   * Guard verhindern soll.
+   */
+  connectionId?: string
 }
 
 export interface ApplyPulledRecordsResult {
@@ -298,19 +312,42 @@ export const detectForeignTenantId = (
  */
 const stampForeignTenantLatch = async (
   app: Application,
-  params: { count: number; lastForeignTenantId: string },
+  params: { count: number; lastForeignTenantId: string; connectionId?: string },
 ): Promise<void> => {
   try {
     const service = app.service('cloud-connection' as any) as any
-    const rows = (await service.find({ provider: undefined, paginate: false, query: { $limit: 1 } })) as Array<{
-      _id: string
-      foreignTenantRecordsCount?: number | null
-    }>
-    const connection = Array.isArray(rows) ? rows[0] : undefined
-    if (!connection) return
+    // `.get()` statt `._get()`: Der Service haengt JSON-Hooks in die Pipeline, die
+    // verschachtelte Felder deserialisieren (gleiche Begruendung wie beim
+    // `refreshed`-Reload im Bootstrap-Runner).
+    //
+    // Der Rueckfall auf `findReportableCloudConnection` greift nur, wenn ein Aufrufer
+    // keine `connectionId` mitgibt — er waehlt dann nach dokumentierter Regel
+    // (CONNECTED bevorzugt) statt blind. Beides bewusst statt eines stillen Abbruchs:
+    // Ein Melder, der lieber nichts meldet, als die Zeile zu raten, waere kein Melder.
+    const connection = params.connectionId
+      ? ((await service.get(params.connectionId, { provider: undefined }).catch(() => null)) as {
+          _id: string
+          foreignTenantRecordsCount?: number | null
+        } | null)
+      : ((await findReportableCloudConnection(app)) as unknown as {
+          _id: string
+          foreignTenantRecordsCount?: number | null
+        } | null)
+    if (!connection) {
+      logger.warn({
+        message: 'Pull-Apply: keine cloud-connection-Zeile fuer die Fremd-Mandanten-Raste gefunden',
+        event: 'sync.pull.foreign_tenant_latch_failed',
+        connectionId: params.connectionId,
+      })
+      return
+    }
     const previous = typeof connection.foreignTenantRecordsCount === 'number' ? connection.foreignTenantRecordsCount : 0
-    // `_patch` (Adapter-Ebene) wie im Sync-Scheduler: Die Raste ist serverseitiger
-    // Zustand, der Patch-Resolver filtert sie fuer externe Aufrufer ohnehin heraus.
+    // `_patch` (Adapter-Ebene) wie JEDER andere Schreibzugriff auf `cloud-connection`
+    // aus einem Worker (`persistStatus` im Bootstrap-Runner, die acht Stellen im
+    // Sync-Scheduler) — es gibt im `api-edge` keinen einzigen internen `.patch` auf
+    // diesen Service. Grund ist der Kontext, nicht Bequemlichkeit: Der Aufruf kommt
+    // aus einem Hintergrundprozess ohne `params.user`, und `around.all` beginnt mit
+    // `authenticate`/`authorize`.
     await service._patch(connection._id, {
       foreignTenantRecordsAt: new Date().toISOString(),
       foreignTenantRecordsCount: previous + params.count,
@@ -459,7 +496,11 @@ export const applyPulledRecords = async (
       count: foreignTenant,
       sampleEntityIds: foreignSampleIds,
     })
-    await stampForeignTenantLatch(app, { count: foreignTenant, lastForeignTenantId })
+    await stampForeignTenantLatch(app, {
+      count: foreignTenant,
+      lastForeignTenantId,
+      connectionId: options.connectionId,
+    })
   }
   return { applied, rejected, details, foreignTenant }
 }

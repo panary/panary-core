@@ -25,7 +25,13 @@ import {
   updateReport,
 } from '../services/bootstrap-reports/bootstrap-report.helper'
 import { type BootstrapReportDirection, BootstrapReportStatus } from '@panary/cloud-connection/domain'
-import { applyPulledRecords, cloudFetch, pullMasterDataPage, throwIfRateLimited } from './sync-apply'
+import {
+  applyPulledRecords,
+  cloudFetch,
+  pullMasterDataPage,
+  throwIfRateLimited,
+  type ApplyPulledRecordsOptions,
+} from './sync-apply'
 import { MERGE_BY_EXTERNAL_ID_SERVICES } from './merge-services'
 import { truncateMasterTables } from './truncate-master-tables'
 import { SyncRunDirection, SyncRunOutcome, SyncRunPhase, SyncRunTrigger } from '@panary/sync/domain'
@@ -240,16 +246,16 @@ const pullAllPagesForService = async (
   service: string,
   mode: 'insert' | 'upsert',
   /**
-   * Mandant, auf den dieser Edge gepairt ist — fuer den Fremd-Mandanten-Guard (#337).
+   * Fremd-Mandanten-Guard (#337) — als Buendel, weil im Scope dieser Funktion keine
+   * Connection liegt und beide Angaben von derselben Quelle stammen.
    *
-   * Muss durchgereicht werden, weil im Scope dieser Funktion keine Connection liegt.
-   * ⚠️ Erwartet ist die **neue** `cloudTenantId`: Der Restamp (`applyCloudTenantId`,
-   * Zeile ~744, gefolgt vom Connection-`_patch` ~756) laeuft VOR diesem Pull — der
-   * Aufrufer arbeitet ab Zeile ~807 mit der frisch nachgeladenen `refreshed`-Connection,
-   * die den Cloud-Mandanten bereits traegt. Wuerde hier der alte Edge-Mandant stehen,
-   * meldete ein voellig regulaerer Bootstrap jeden einzelnen Record als fremd.
+   * ⚠️ `expectedTenantId` ist die **neue** `cloudTenantId`: Der Restamp
+   * (`applyCloudTenantId`, Zeile ~744, gefolgt vom Connection-`_patch` ~756) laeuft VOR
+   * diesem Pull — der Aufrufer arbeitet ab Zeile ~807 mit der frisch nachgeladenen
+   * `refreshed`-Connection, die den Cloud-Mandanten bereits traegt. Wuerde hier der alte
+   * Edge-Mandant stehen, meldete ein voellig regulaerer Bootstrap jeden Record als fremd.
    */
-  expectedTenantId: string | null | undefined,
+  guard: Pick<ApplyPulledRecordsOptions, 'expectedTenantId' | 'connectionId'>,
 ): Promise<number> => {
   let cursor: string | undefined
   let total = 0
@@ -261,7 +267,7 @@ const pullAllPagesForService = async (
     // gebatchte Existenz-Check des Upsert-Modus waere pro Seite ein
     // Leer-Roundtrip. Wird eine Tabelle nicht leer, kommt der Loop gar nicht
     // erst zustande (truncateMasterTables wirft, siehe dort).
-    const result = await applyPulledRecords(app, service, response.records, { mode, expectedTenantId })
+    const result = await applyPulledRecords(app, service, response.records, { mode, ...guard })
     rejectedTotal += result.rejected
     total += response.records.length
     if (!response.hasMore || !response.nextCursor) break
@@ -523,7 +529,7 @@ const runPullCloudToEdge = async (
         PULL_ONLY_MASTER_SERVICES.includes(service) ? 'upsert' : 'insert',
         // Nach dem Restamp — `connection` ist hier die `refreshed`-Instanz des
         // Aufrufers und traegt bereits die Cloud-tenantId (#337).
-        connection.tenantId,
+        { expectedTenantId: connection.tenantId, connectionId: connection._id },
       )
       await recordSyncRun(app, {
         tenantId: connection.tenantId!,

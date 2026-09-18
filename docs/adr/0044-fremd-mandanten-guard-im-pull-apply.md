@@ -111,6 +111,15 @@ Geleert wird sie an genau einer Stelle: beim Restamp im Bootstrap-Runner, also b
 Re-Pairing auf einen anderen Mandanten. Ohne das meldete ein Edge nach einem völlig
 legitimen Mandantenwechsel dauerhaft einen Fehlalarm.
 
+Auf **welche** Zeile die Raste gestempelt wird, ist dabei keine Nebensache: Die
+`cloud-connection`-Tabelle kann mehrere Zeilen führen — Altlasten aus abgebrochenen
+Pairings werden nirgends aufgeräumt, und es gibt keinen Unique-Constraint
+(`utils/cloud-connection-lookup.ts`). Alle drei Aufrufer reichen deshalb die
+`connectionId` durch. Ein blindes `find({ $limit: 1 })` träfe eine beliebige Zeile; landete
+die Raste auf einer Altlast, wäre sie für den Heartbeat unsichtbar, denn der liest aus der
+aktiven Verbindung — der Melder wäre still wirkungslos, also genau der Fehler, den dieser
+Guard verhindern soll.
+
 ## Konsequenzen
 
 * Der Guard ist eine **zweite Linie**, keine Sperre. Er verhindert nichts; er macht sichtbar.

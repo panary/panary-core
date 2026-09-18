@@ -1017,6 +1017,7 @@ export const runPullForService = async (
     // aus sein soll statt zu raten.
     const pageResult = await applyPulledRecords(app, service, body.records, {
       expectedTenantId: connection.tenantId,
+      connectionId: connection._id,
     })
     for (const detail of pageResult.details) {
       if (details.length >= MAX_SYNC_RUN_DETAILS) break

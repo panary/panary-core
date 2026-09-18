@@ -147,12 +147,17 @@ Rechteprüfung lief, sie beantwortete nur immer dieselbe Frage.
 | `DEVICE_TABLET`, `DEVICE_KIOSK` | druckt (Fallback) | druckt — die Matrix-Einträge kamen mit diesem Fix dazu |
 | `TENANT_*`, `PLATFORM_OWNER` als Schlüssel-Rolle | nur POS-Rechte | ihre echten Rechte, inkl. `PLATFORM_OWNER`-Bypass |
 
-Die Rollen sind nicht theoretisch: `apps/api-edge/src/services/apikeys/apikeys.schema.ts`
+`DEVICE_TABLET` entsteht auf dem Standardweg: `apps/api-edge/src/services/apikeys/apikeys.schema.ts`
 leitet `role` aus `device.type` ab (`kds` → `DEVICE_KDS`, `tablet` →
-`DEVICE_TABLET`), und der Gerätetyp kommt beim Pairing aus dem Client-Request.
-`DEVICE_TABLET` und `DEVICE_KIOSK` hatten keinen `PRINT_SERVER`-Eintrag in der
-Matrix — ohne die Erweiterung hätte ausgerechnet die Korrektur diesen Geräten
-den Bondruck genommen. Beide haben ihn jetzt als `CREATE` (mobiler Kellner:
+`DEVICE_TABLET`, alles andere → `DEVICE_POS`), und der Gerätetyp kommt beim
+Pairing aus dem Client-Request. **`DEVICE_KIOSK` entsteht so nicht** — der
+Resolver kennt keinen `kiosk`-Zweig, und `DeviceType` kennt den Wert gar nicht
+(`pos-counter`/`kds`/`tablet`/`other`). Solche Schlüssel gibt es nur über das
+Rollen-Dropdown in `apps/admin-client/.../apikey-form.ts`; der Matrix-Eintrag
+ist dort Vorsorge, und ein Kiosk-Client existiert im Repo noch nicht.
+
+Beide hatten keinen `PRINT_SERVER`-Eintrag in der Matrix — ohne die Erweiterung
+hätte ausgerechnet die Korrektur einem Tablet den Bondruck genommen. Beide haben ihn jetzt als `CREATE` (mobiler Kellner:
 Rechnung am Tisch; Kiosk: Abholbon), und `CREATE` bleibt es: `/start`, `/stop`
 und `/restart` verlangen `MANAGE` und gehören weiter dem Admin-Panel über den
 JWT-Zweig.
@@ -161,7 +166,10 @@ JWT-Zweig.
 
 **Kein Fallback mehr.** Ein Record ohne `role` erbte vorher lautlos Druckrechte.
 Jetzt bleibt die Rolle `undefined`, `hasEffectivePermission` liefert `false`, und
-der Aufruf endet mit 403 — sichtbar statt lautlos. Das Wide-Event trägt die
+der Aufruf endet mit 403 — sichtbar statt lautlos. Das ist Defense-in-Depth und
+kein erwarteter Bestandsfall: Die SQLite-Spalte `apikeys.role` ist `NOT NULL`,
+in einer migrierten Edge-DB kann der Fall nicht auftreten. Der Test dafür misst
+deshalb die **Abwesenheit des Fallbacks**, nicht den Umgang mit realen Daten. Das Wide-Event trägt die
 Rolle als `user.role ?? null`, weil ein fehlendes Feld im JSON sonst gerade den
 Fall verschwinden ließe, den man darin sehen will.
 
@@ -170,9 +178,10 @@ erlaubt `role` aus allen `UserSystemRole`-Werten, `PLATFORM_OWNER` eingeschlosse
 und `printServerAuthorize` hat für diese Rolle einen Bypass. Das ist keine neue
 Lücke: `channels.ts` liest die Rolle seit jeher korrekt, ein solcher Schlüssel
 hat über die Feathers-Services längst weitreichende Rechte. Die Allowlist gehört
-an die Ausstellung (`apikeyDataSchema`, in **beiden** Repos — panary-cloud hat
-denselben Resolver) und ist als eigenes Folge-Issue vorgesehen, nicht als
-stiller Deckel im Print-Pfad.
+an die Ausstellung (`apikeyDataSchema`), nicht als stiller Deckel in den
+Print-Pfad — ein Deckel dort hätte den offenen Weg über die Services verdeckt,
+statt ihn zu schließen. Nachgezogen als panary/panary-core#334 und, für den
+zweiten Resolver im Nachbar-Repo, panary/panary-cloud#470.
 
 **Merksatz, Fortsetzung des Nachtrags von 2026-08-04:** Dort war die Lehre, nach
 Konsumenten außerhalb der Hook-Chain zu suchen. Hier kommt die zweite dazu —

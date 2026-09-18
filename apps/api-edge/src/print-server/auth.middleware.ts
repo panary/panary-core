@@ -62,10 +62,12 @@ export function printServerAuth(app: Application): Middleware {
         // `undefined` und der `|| DEVICE_POS`-Fallback deckelte JEDEN Schluessel
         // auf POS-Rechte — unabhaengig von seiner echten Rolle.
         //
-        // Kein Fallback mehr: Ein Record ohne `role` erbt sonst still
-        // Druckrechte. Fehlt sie, bleibt `role` undefined und
+        // Kein Fallback mehr: Fehlt die Rolle, bleibt `role` undefined und
         // `printServerAuthorize` antwortet 403 samt `print-server.forbidden` —
-        // sichtbar statt lautlos.
+        // sichtbar statt lautlos. Das ist Defense-in-Depth, kein erwarteter
+        // Bestandsfall: `apikeys.role` ist in SQLite `NOT NULL`. Ein Fallback
+        // hier waere trotzdem falsch, weil er ausgerechnet den Datenfehler
+        // zudeckte, der ihn ausloest.
         ctx.state.user = {
           _id: `device:${deviceId}`,
           role: keyRecord.role,

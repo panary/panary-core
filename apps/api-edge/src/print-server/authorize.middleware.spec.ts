@@ -111,9 +111,9 @@ describe('printServerAuthorize', () => {
   })
 
   it('weist einen Schluessel ohne Rolle ab und nennt ihn im Log als null', async () => {
-    // Bestandsdaten-Fall: apikeys-Zeile ohne `role`. Frueher machte der Fallback daraus
-    // lautlos ein druckendes POS-Geraet. Ohne das `?? null` fiele `role` ganz aus dem
-    // Wide-Event — ausgerechnet in dem Fall, den man darin sehen will.
+    // Defense-in-Depth: `apikeys.role` ist in SQLite NOT NULL, der Fall kommt aus einer
+    // migrierten Edge-DB nicht. Ohne das `?? null` fiele `role` ganz aus dem Wide-Event —
+    // ausgerechnet in dem Fall, in dem man wissen will, warum abgewiesen wurde.
     const { ctx, next } = await run({ role: undefined })
     expect(next).not.toHaveBeenCalled()
     expect(ctx.status).toBe(403)

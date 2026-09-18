@@ -245,8 +245,10 @@ describe('printServerAuth – Rolle des Schluessels', () => {
   })
 
   it('erbt ohne Rolle keine Druckrechte (kein stiller DEVICE_POS-Fallback)', async () => {
-    // Bestandsdaten-Fall: eine apikeys-Zeile ohne `role`. Frueher wurde daraus
-    // lautlos ein POS-Geraet mit Druckrecht.
+    // Gemessen wird die Abwesenheit des Fallbacks, nicht ein realer Datenstand:
+    // `apikeys.role` ist in SQLite NOT NULL. Frueher machte `|| DEVICE_POS` aus
+    // jedem Record ohne lesbare Rolle lautlos ein druckendes POS-Geraet — und
+    // genau deshalb fiel jahrelang nicht auf, dass NIE eine gelesen wurde.
     const { app } = makeApp([record({ role: undefined })])
     const ctx = makeCtx({ 'x-api-key': RAW_KEY, 'x-device-id': 'dev1' })
 

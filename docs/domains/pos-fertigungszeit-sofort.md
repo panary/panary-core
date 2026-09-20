@@ -1,8 +1,8 @@
 ---
 type: Domain Concept
 title: Fertigungszeit am POS — „Sofort", die Abschlusskette und die Kodierung der Null
-description: Wie der Bestelldialog die Fertigungszeit erfragt, warum Innen sie überspringt und Außen eine Sofort-Kachel im Funktionsblock bekommt, und was estimatedDuration = 0 bedeutet.
-tags: [orders, pos-client, locations]
+description: Wie der Bestelldialog die Fertigungszeit erfragt, warum Innen sie überspringt und Außen eine Sofort-Kachel im Funktionsblock bekommt, was estimatedDuration = 0 bedeutet und wie die Abholzeit einer Vorbestellung die Konvertierung überlebt.
+tags: [orders, pre-orders, pos-client, locations]
 status: stable
 generated: { by: claude-code/opus-5, at: 2026-09-20T00:00:00.000Z }
 ---
@@ -96,10 +96,57 @@ sonst `Abholung <hh:mm>`
   keinen Template-Treffer. Heute folgenlos; sobald eine Restzeit- oder KDS-Ansicht
   daran hängt, erscheint **jede** Innen-Bestellung sofort als überfällig. Kein Test
   fängt das, weil nichts davon gerendert wird.
-- **Konvertierte Vorbestellungen tragen bereits `estimatedDuration: 0`**
-  (`apps/api-edge/src/services/pre-orders/pre-orders.ts`) und drucken deshalb
-  `SOFORT`, obwohl eine Abholzeit vereinbart war. Das ist der Gegenstand von
-  [core#344](https://github.com/panary/panary-core/issues/344), nicht dieser Seite.
+- ✅ **Konvertierte Vorbestellungen sind versorgt** — siehe den eigenen Abschnitt
+  unten. Bis [core#344](https://github.com/panary/panary-core/issues/344) trugen sie
+  fest `estimatedDuration: 0` und druckten `SOFORT`, obwohl eine Abholzeit
+  vereinbart war.
+
+## Konvertierte Vorbestellungen: die Abholzeit wird zur Vorlaufzeit
+
+Eine Vorbestellung traegt ihre vereinbarte Abholzeit in `scheduledFor`
+(Pflichtfeld). Beim Konvertieren entsteht daraus eine Order, deren `recordingDate`
+der **Konvertierungszeitpunkt** ist — konvertiert wird ausschliesslich manuell aus
+der POS-Liste, die Vorlaufzeit kann also Minuten oder Stunden betragen.
+
+Seit [core#344](https://github.com/panary/panary-core/issues/344) rechnet
+`apps/api-edge/src/services/pre-orders/scheduled-lead-time.ts` daraus die
+Vorlaufzeit:
+
+```
+estimatedDuration = Minuten(scheduledFor − recordingDate), geklemmt auf >= 0
+```
+
+Damit trifft `recordingDate + estimatedDuration` wieder `scheduledFor`, und der Bon
+druckt die vereinbarte Zeit statt `SOFORT` — **ohne** dass die Leseseite eine
+zweite Quelle braucht (das war die Entscheidung gegen das Wiederbeleben von
+`targetCompletionAt`, Variante B des Issues).
+
+🚨 **Gerechnet wird auf Minutenanfaengen, nicht auf der rohen Differenz.** Eine
+Konvertierung um 17:45:40 fuer 18:00:00 ergibt roh 14,33 Minuten — gerundet 14, und
+der Bon druckte `17:59`. Ueber die Minutenanfaenge sind es 15 und damit `18:00`.
+Die Sekunden von `recordingDate` tragen sich mit und heben sich in der Darstellung
+weg. Wer die Rechnung „vereinfacht", verschiebt jeden Bon um bis zu eine Minute.
+
+| Fall | Ergebnis |
+|---|---|
+| Abholzeit in der Zukunft | Vorlaufzeit in Minuten |
+| Abholzeit bereits verstrichen | `0` → Bon druckt `SOFORT` (faellig, nicht „in −20 Minuten") |
+| `scheduledFor` fehlt oder unbrauchbar | `0` — ein Bon darf an einem Bestandsdatensatz nicht scheitern |
+
+🚫 **Der Preis der Entscheidung:** `estimatedDuration` heisst „geschaetzte Dauer"
+und traegt hier eine Vorlaufzeit. Eine um 10:00 konvertierte Bestellung fuer 18:00
+steht mit 480 Minuten in der Datenbank. Das ist keine Produktionszeit, und jede
+kuenftige Auswertung ueber Kuechenzeiten oder Durchsatz laese es falsch. Heute
+liest es nichts als Dauer aus (gemessen in beiden Repos) — der Tag, an dem das
+nicht mehr stimmt, ist der Tag, an dem Variante B faellig wird.
+
+⚠️ **Der Cloud hat eine zweite, unabhaengige `convert()`-Implementierung**
+(`apps/api-cloud/src/services/pre-orders/pre-orders.class.ts`, laut Kommentar dort
+„identisch zum Edge") fuer Storefront-Vorbestellungen. Sie ist von #344 **nicht**
+mitgefixt und verliert die Abholzeit weiterhin — die beiden Fassungen sind damit
+auseinandergelaufen, und der Kommentar „identisch zum Edge" stimmt nicht mehr.
+Nachgezogen wird das in
+[panary-cloud#489](https://github.com/panary/panary-cloud/issues/489).
 
 ## Wirkung
 

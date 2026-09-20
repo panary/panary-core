@@ -31,14 +31,43 @@ export function renderReceiptEscPos(receipt: Receipt, options: EscposOptions = {
   enc.initialize()
 
   // Verkäufer-Kopf (Pflichtangabe Name + Anschrift)
+  //
+  // Der führende `newline()` ist Pflicht, nicht Kosmetik: Ohne ihn stellt der
+  // Composer die Zentrier-Polsterung der Namenszeile VOR das `ESC @` aus
+  // `initialize()` — die Leerzeichen liefen dann noch im Zustand des
+  // vorangegangenen Druckauftrags.
   enc
     .newline()
     .align('center')
     .bold(true)
     .line(receipt.seller?.name ?? '')
     .bold(false)
-  if (receipt.seller?.address) enc.font('B').line(receipt.seller.address).font('A')
-  if (receipt.seller?.taxNumber) enc.font('B').line(`St-Nr: ${receipt.seller.taxNumber}`).font('A')
+
+  // 🚨 Der Font-Wechsel muss mit dem Umbruch der VORZEILE abgeschlossen sein —
+  // sonst sitzt die zentrierte Zeile nicht mittig.
+  //
+  // Gemessen an @point-of-sale/receipt-printer-encoder@3.0.3 (#342): Der Composer
+  // reiht eine zentrierte Zeile als `[space(n), ...style, ...inhalt]` — die
+  // Polsterung steht VOR der Font-Umschaltung derselben Zeile. `n` rechnet er in
+  // den Spalten des NEUEN Fonts (Font B: 48 → 64 Spalten), gedruckt werden die
+  // Leerzeichen aber noch in der Zelle des alten Fonts (12 statt 9 Dots). Die
+  // Zeile rutscht dadurch um ein Drittel der Polsterung nach rechts: am 80-mm-Beleg
+  // 17 Leerzeichen à 12 statt à 9 Dots = 51 Dots ≈ 4 Zeichen zu weit rechts.
+  // Die zweite Font-B-Zeile in Folge sass nur deshalb richtig, weil Font B beim
+  // Umbruch der ersten bereits aktiv war.
+  //
+  // `font()` wirft mitten in einer Zeile („Changing fonts is not supported in the
+  // middle of a line"), und `align()` erzeugt in dieser Version ausschliesslich
+  // Software-Polsterung — der `ESC a`-Befehl der Sprachklasse ist ueber die
+  // oeffentliche API nicht erreichbar. Der Wechsel braucht daher einen eigenen
+  // Umbruch; die Leerzeile darunter ist der Preis dafuer.
+  const hasSellerDetails = Boolean(receipt.seller?.address || receipt.seller?.taxNumber)
+  if (hasSellerDetails) {
+    enc.font('B').newline()
+    if (receipt.seller?.address) enc.line(receipt.seller.address)
+    if (receipt.seller?.taxNumber) enc.line(`St-Nr: ${receipt.seller.taxNumber}`)
+    enc.font('A')
+  }
   enc.align('left')
 
   // Beleg-Meta

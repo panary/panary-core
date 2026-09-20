@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: Print-Server-API
-description: Referenz der Print-Server-Schnittstelle am Edge — Aufrufer, Ziel-Host und Fehler-Events, der mitgelieferte MQTT-Broker sowie die ESC/POS-Encoder-Library mit Fonts, Größen, Stilen, Befehlen und Konfiguration.
+description: Referenz der Print-Server-Schnittstelle am Edge — Aufrufer, Ziel-Host und Fehler-Events, der mitgelieferte MQTT-Broker, die ESC/POS-Encoder-Library samt der in Dots gemessenen Zentrierungsfalle bei Font B und der Kopfbereich des Bestellbons.
 tags: [locations, print-server, esc-pos, mqtt]
 status: stable
 generated: { by: claude-code/historic, at: 2025-03-28T00:00:00Z }
@@ -504,3 +504,145 @@ encoder.table(
 - **Schriftstärke**: Nur `bold()` (ein/aus). Keine Abstufungen wie `font-weight: 300/400/700`.
 - **Italic**: Wird nicht von allen Druckern unterstuetzt.
 - **Bilder**: Immer Schwarz-Weiss, Dithering fuer Graustufen.
+
+---
+
+## 10. Zentrierung: Font-B-Zeilen rutschen nach rechts
+
+`align('center')` ist in `@point-of-sale/receipt-printer-encoder` v3.0.3 **keine
+Hardware-Ausrichtung**. Die Sprachklasse kennt zwar den ESC/POS-Befehl `ESC a n`,
+über die öffentliche API ist er aber nicht erreichbar: Der Composer polstert mit
+Leerzeichen. Das ist die Grundlage der folgenden Falle.
+
+### Der Fehler
+
+Eine zentrierte Zeile wird als `[space(n), ...style, ...inhalt]` in den Bytestrom
+geschrieben — **die Polsterung steht vor der Font-Umschaltung derselben Zeile**.
+`n` rechnet der Composer aber in den Spalten des Fonts, der für den *Text* gilt:
+Font B hat bei 80 mm 64 statt 48 Spalten. Gedruckt werden die Leerzeichen dann
+noch in der Zelle des *alten* Fonts — 12 statt 9 Dots.
+
+Gemessen an der Verkäufer-Anschrift des fiskalischen Belegs (80 mm, 30 Zeichen):
+
+| | Leerzeichen | Zellenbreite | Einzug | Versatz zur Papiermitte |
+|---|---|---|---|---|
+| vorher | 17 | 12 Dots (Font A) | 204 Dots | **+51 Dots ≈ 4 Zeichen** |
+| nachher | 17 | 9 Dots (Font B) | 153 Dots | 0 |
+
+Auf 58 mm sind es +15 Dots. Die Anzahl der Leerzeichen war in beiden Fällen
+identisch — **falsch war ihre Breite**. Eine Assertion auf `'   Text'` hätte den
+Fehler durchgewunken; deshalb misst `apps/api-edge/test/escpos-layout.ts` in Dots.
+
+Die *zweite* Font-B-Zeile in Folge sitzt richtig: Beim Umbruch der ersten ist
+Font B bereits aktiv, ihre Polsterung wird also in der richtigen Zelle gedruckt.
+Genau daran war der Fehler am Papier zu erkennen — eine von drei Kopfzeilen stand
+versetzt, die beiden darunter fluchteten.
+
+### Die Regel
+
+> **Ein Font-Wechsel muss mit dem Umbruch der VORZEILE abgeschlossen sein.**
+
+`font()` innerhalb einer Zeile wirft (`Changing fonts is not supported in the
+middle of a line`), der Wechsel braucht also einen eigenen Umbruch:
+
+```ts
+// falsch — Polsterung in Font A, Textbreite in Font-B-Spalten
+enc.align('center').font('B').line(adresse)
+
+// richtig — Font B ist aktiv, wenn die Polsterung ausgestellt wird
+enc.font('B').newline()
+enc.line(adresse)
+enc.font('A')
+```
+
+Die Leerzeile ist der Preis dafür; sie lohnt sich nur, wenn tatsächlich ein
+Font-B-Block folgt (`receipt-escpos.renderer.ts` schaltet deshalb bedingt).
+
+### Was nicht betroffen ist
+
+`size(2, 2)` und `size(4, 4)` sind es **nicht** — gemessen. Der Composer stellt
+dort die Polsterung in einfacher Breite aus und verdoppelt die Anzahl passend
+(18 einfache Leerzeichen vor einem doppelt breiten `AUSSEN`, nicht 9 doppelte).
+Bestellnummer, Bestellart-Badge und Abholzeit auf dem Bestellbon standen deshalb
+immer mittig.
+
+### Selbst nachmessen
+
+`apps/api-edge/test/escpos-layout.ts` zerlegt einen gerenderten Strom in Zeilen
+und gibt je Zeile Einzug und Textbreite **in Dots** zurück; `centerOffsetDots()`
+liefert den Abstand zur Papiermitte. Unbekannte Steuersequenzen lässt der Decoder
+auflaufen, statt sie still als Text zu zählen — ein Layout-Test, der sich selbst
+verrechnet, meldet „mittig", ohne hingesehen zu haben.
+
+---
+
+## 11. Bestellbon: Kopfbereich ohne Filialangaben
+
+Seit [panary/panary-core#342](https://github.com/panary/panary-core/issues/342)
+beginnt `order-receipt.renderer.ts` direkt mit der Bestellnummer. Straße, PLZ/Ort
+und Telefonnummer der Filiale werden **nicht mehr gedruckt**.
+
+Grund ist nicht Ästhetik, sondern die fehlende Vorlagen-Trennung: `/print-order`
+rendert **einen** Buffer und schickt ihn an **alle** konfigurierten Drucker
+(§0). Es gibt keine Druckerrolle, also auch keine Möglichkeit, den Kopf nur auf
+dem Thekendrucker zu setzen. Der Bon geht überwiegend in die Küche — dort ist die
+Filialadresse sinnlos.
+
+🚨 **Das ist eine Zwischenlösung mit rechtlicher Kante.** Der Bon druckt Preise,
+Nachlässe, Gesamtsumme und — sobald `order.tse` gesetzt ist — einen TSE-Block.
+Wo er als Kundenbeleg dient, sind Name und Anschrift des leistenden Unternehmers
+Pflichtangaben. Bis zur Vorlagen-Trennung fehlen sie auf **jedem** Ausdruck
+dieses Bons:
+
+1. [core#346](https://github.com/panary/panary-core/issues/346) — Bon je
+   Zieldrucker rendern (behebt nebenbei falsches Layout bei gemischten
+   Papierbreiten)
+2. [core#347](https://github.com/panary/panary-core/issues/347) — Druckerrolle +
+   zwei Rendervarianten; **holt den Filialkopf für die Quittung zurück**
+3. [cloud#487](https://github.com/panary/panary-cloud/issues/487) — Rolle im
+   Cloud-Admin pflegbar
+
+Der fiskalische Beleg (`receipt-escpos.renderer.ts`) ist davon **nicht** betroffen
+— er behält seinen Verkäufer-Kopf. Er wird derzeit allerdings vom Edge aus gar
+nicht aufgerufen (nur exportiert), siehe
+[ADR 0007](../adr/0007-beleg-bon-system.md).
+
+### Abholzeit statt Registrierungszeit
+
+Unter dem `INNEN`/`AUSSEN`-Badge steht die **Abholzeit** — nach der Bestellnummer
+die größte Zeile des Bons:
+
+| `estimatedDuration` | Ausgabe |
+|---|---|
+| > 0 | `Abholung <hh:mm>` aus `recordingDate + estimatedDuration`, formatiert über `formatPrintTime` |
+| 0 oder fehlend | `SOFORT` — ohne Präfix; „Abholung SOFORT" wäre eine Zeitangabe, die keine ist |
+
+**Die Schriftbreite richtet sich danach, was noch in eine Zeile passt** (`pickupWidth()`).
+Die Höhe ist immer dreifach — sie macht den Bon aus zwei Metern lesbar und kostet
+keine Spalten. Gemessen:
+
+| Papier | Spalten | `Abholung 12:15` (14 Zeichen) | gewählt |
+|---|---|---|---|
+| 80 mm | 48 | dreifach = 16 Spalten, passt | `size(3, 3)` |
+| 58 mm | 32 | dreifach = 10 Spalten, bräche um | `size(2, 3)` |
+
+Ohne diese Fallunterscheidung stünde auf 58 mm „Abholung" über „12:15" — ein
+Umbruch, der wie ein Versehen aussieht.
+
+Die Fertigungszeit ist `estimatedDuration` (Minuten, aus der Kachelauswahl des
+Bestelldialogs) — **nicht** `Order.targetCompletionAt`. Das Feld steht im Schema
+und in der Migration, wird aber nirgends im Produktivcode geschrieben oder
+gelesen. Dieselbe Rechnung liegt in `order.service.ts` für die Restzeit-Anzeige.
+
+⚠️ Auf **Bestandsdaten** ist `estimatedDuration = 0` nicht von „nie gefragt" zu
+unterscheiden — dort kann `SOFORT` stehen, wo nie eine Zeit gewählt wurde.
+
+Der Metablock behält den Registrierungszeitpunkt, jetzt als **`Bestellzeit:`**
+statt `Uhrzeit:` — der Bon trägt seit #342 zwei Zeitangaben.
+
+🚨 Beide Zeitangaben laufen über `print-date-format.ts`. `toLocale*` ohne
+`timeZone` druckt im Container UTC
+([ADR 0035](../adr/0035-druckvorlagen-formatieren-in-der-filialzeitzone.md)).
+
+⚠️ **Nur der IP-Druckpfad rendert serverseitig.** MQTT-Drucker bekommen ihre
+Nutzlast vom POS-Client (`order-print.service.ts`) und sehen von alledem nichts.

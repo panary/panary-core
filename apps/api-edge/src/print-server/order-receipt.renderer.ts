@@ -43,26 +43,18 @@ export function renderOrderReceipt(
   enc.initialize()
 
   // ─────────────────────────────────────────
-  // FILIAL-ANGABEN (ohne Name — wird über die Location konfiguriert)
-  // ─────────────────────────────────────────
-  enc.newline()
-  if (location?.address) {
-    enc
-      .align('center')
-      .font('B')
-      .line(location.address.street)
-      .line(`${location.address.postalCode} ${location.address.city}`)
-    enc.font('A')
-  }
-  if (location?.phone) {
-    enc.align('center').font('B').line(`Tel. ${location.phone}`).font('A')
-  }
-  enc.align('left')
-
-  // ─────────────────────────────────────────
   // BESTELLNUMMER + BESTELLART (Badge)
   // ─────────────────────────────────────────
-  enc.newline(2)
+  // Kein Filialkopf: Straße, PLZ/Ort und Telefonnummer standen hier bis #342 —
+  // auf einem Bon, der in die Küche geht. Er bedient heute beide Zwecke mit
+  // EINER Vorlage (`print-server.router.ts` rendert einmal und schickt denselben
+  // Buffer an alle Drucker), deshalb entfällt der Kopf vorerst ersatzlos statt
+  // fallweise geschaltet zu werden. #347 holt ihn für die Quittung zurück, sobald
+  // Küchen- und Kassendruck getrennte Vorlagen haben — bis dahin fehlt er bewusst
+  // auf JEDEM Ausdruck dieses Bons. Der fiskalische Beleg
+  // (`receipt-escpos.renderer.ts`) behält seinen Kopf: dort ist die Anschrift
+  // Pflichtangabe (§146a AO).
+  enc.newline()
   enc.align('center').line('Bestellnummer')
   enc.align('center').bold(true).size(4, 4).line(`${order.dailySequenceNumber}`).size(1, 1).bold(false)
 
@@ -70,6 +62,14 @@ export function renderOrderReceipt(
   const dineLabel = order.dineLocation === 'dine-in' ? 'INNEN' : 'AUSSEN'
   enc.align('center').size(2, 2).invert(true).text(dineLabel).invert(false).size(1, 1)
   enc.newline()
+
+  // Abholzeit direkt unter dem Badge — das ist die Angabe, die die Küche braucht,
+  // und deshalb die groesste Zeile nach der Bestellnummer. Quelle ist
+  // `estimatedDuration` (Minuten) auf `recordingDate`; `targetCompletionAt` steht
+  // zwar im Schema, wird aber nirgends geschrieben (#342). Dieselbe Rechnung wie
+  // `order.service.ts:302`.
+  const pickup = pickupLabel(order, timeZone)
+  enc.align('center').bold(true).size(pickupWidth(pickup, cols), 3).line(pickup).size(1, 1).bold(false)
 
   enc.align('left')
   enc.newline()
@@ -93,7 +93,11 @@ export function renderOrderReceipt(
   enc.font('B')
   if (deviceName) enc.line(`Kasse: ${deviceName}`)
   enc.line(`Datum: ${formatPrintDate(creationDate, timeZone)}`)
-  enc.line(`Uhrzeit: ${formatPrintTime(creationDate, timeZone)} Uhr`)
+  // „Bestellzeit" statt „Uhrzeit": Seit #342 trägt der Bon ZWEI Zeitangaben —
+  // die Abholzeit gross unter dem Badge und hier den Registrierungszeitpunkt als
+  // Beleg-Metadatum. Ein unspezifisches „Uhrzeit" waere zwischen beiden nicht
+  // unterscheidbar.
+  enc.line(`Bestellzeit: ${formatPrintTime(creationDate, timeZone)} Uhr`)
   enc.font('A')
 
   // Personalessen / Firmenkunde / Storno — hervorgehoben
@@ -275,6 +279,40 @@ function appendTseBlock(enc: any, order: any): void {
     enc.bold(true).line(block.note).bold(false)
   }
   enc.font('A')
+}
+
+// Abholzeit fuer die grosse Zeile unter dem Bestellart-Badge (#342).
+//
+// Quelle ist `estimatedDuration` — Minuten, gesetzt aus der Kachelauswahl des
+// Bestelldialogs. `Order.targetCompletionAt` steht zwar im Schema und in der
+// Migration, wird aber nirgends im Produktivcode geschrieben oder gelesen; wer
+// die Abholzeit dort sucht, liest ein totes Feld.
+//
+// `estimatedDuration === 0` bedeutet „sofort" — abgestimmt, statt ein weiteres
+// Feld einzufuehren. Auf BESTANDSDATEN ist das nicht unterscheidbar von „nie
+// gefragt": dort kann `SOFORT` stehen, wo nie eine Zeit gewaehlt wurde.
+//
+// Formatierung ausschliesslich ueber `formatPrintTime` — `toLocale*` ohne Zone
+// druckt im Container UTC (ADR 0035, Vorfall #274).
+function pickupLabel(order: any, timeZone: string): string {
+  const minutes = Number(order?.estimatedDuration)
+  if (!Number.isFinite(minutes) || minutes <= 0) return 'SOFORT'
+
+  const recorded = new Date(order.recordingDate)
+  if (Number.isNaN(recorded.getTime())) return 'SOFORT'
+
+  return `Abholung ${formatPrintTime(new Date(recorded.getTime() + minutes * 60_000), timeZone)}`
+}
+
+// Groesste Zeichenbreite, bei der die Zeile noch in EINE Zeile passt.
+//
+// Gemessen: `Abholung 12:15` sind 14 Zeichen. Auf 80 mm (48 Spalten) traegt
+// dreifache Breite 16 Spalten — passt. Auf 58 mm (32 Spalten) waeren es 10, die
+// Zeile braeche in „Abholung" / „12:15" um. Die Hoehe bleibt davon unberuehrt:
+// Sie ist es, die den Bon aus zwei Metern lesbar macht, und sie kostet keine
+// Spalten. `SOFORT` passt in beiden Breiten dreifach.
+function pickupWidth(label: string, cols: number): number {
+  return label.length * 3 <= cols ? 3 : 2
 }
 
 // ─── Artikel-Rendering mit voller Encoder-Kontrolle ───

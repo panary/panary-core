@@ -6,7 +6,7 @@ import { logger } from '@panary/shared-backend'
 
 const TCP_TIMEOUT = 5000
 
-type PaperWidth = '58mm' | '80mm'
+export type PaperWidth = '58mm' | '80mm'
 
 const COLUMNS_MAP: Record<PaperWidth, number> = {
   '58mm': 32,

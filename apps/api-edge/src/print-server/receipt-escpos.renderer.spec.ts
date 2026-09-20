@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import type { Receipt } from '@panary/receipts/domain'
 
-import type { EscposOptions } from './escpos.adapter'
+import type { EscposOptions, PaperWidth } from './escpos.adapter'
+import { centerOffsetDots, decodeEscPosLines } from '../../test/escpos-layout'
 import { renderReceiptEscPos } from './receipt-escpos.renderer'
 
 // Die Encoder-Ausgabe ist ESC/POS-Binaerstrom — der Zellentext liegt darin als
@@ -96,5 +97,78 @@ describe('receipt-escpos.renderer — Zeitzone (#274)', () => {
 
   it('nutzt ohne Zone den Geschaeftstag-Default (Europe/Berlin)', () => {
     expect(renderToText(buildReceipt())).toContain('Datum: 14.8.2026 12:00')
+  })
+})
+
+// #342: Der Verkaeufer-Kopf ist Pflichtangabe (§146a AO) und bleibt auf diesem
+// Beleg — er war aber, wie der Bon-Kopf, ohne jede Assertion. Der
+// Zentrierungsfehler steckte in beiden.
+describe('receipt-escpos.renderer — Verkaeufer-Kopf (#342)', () => {
+  const mitKopf = (overrides: Record<string, unknown> = {}) =>
+    buildReceipt({
+      seller: {
+        name: 'Baeckerei Beispiel',
+        address: 'Dahler Strasse 35, 58091 Hagen',
+        taxNumber: '123/456/789',
+        ...overrides,
+      },
+    } as Partial<Receipt>)
+
+  const kopfZeilen = (receipt: Receipt, paperWidth: PaperWidth = '80mm') =>
+    decodeEscPosLines(renderReceiptEscPos(receipt, { paperWidth }), 8)
+
+  it('druckt Name, Anschrift und Steuernummer weiterhin', () => {
+    const text = renderToText(mitKopf())
+
+    expect(text).toContain('Baeckerei Beispiel')
+    expect(text).toContain('Dahler Strasse 35, 58091 Hagen')
+    expect(text).toContain('St-Nr: 123/456/789')
+  })
+
+  it.each([
+    ['80mm', 48],
+    ['58mm', 32],
+  ] as const)('setzt jede Kopfzeile auf %s mittig', (paperWidth, columns) => {
+    const zeilen = kopfZeilen(mitKopf(), paperWidth)
+
+    for (const suche of ['Baeckerei Beispiel', 'Dahler Strasse 35', 'St-Nr: 123/456/789']) {
+      const zeile = zeilen.find(z => z.text.includes(suche))
+      expect(zeile, `Zeile „${suche}" nicht gefunden`).toBeDefined()
+      // Toleranz: eine Zellenbreite (Rundung des Encoders). Der Fehler aus #342
+      // lag bei rund vier Zellen — er faellt hier durch.
+      expect(Math.abs(centerOffsetDots(zeile!, columns)), `Zeile „${suche}" nicht mittig`).toBeLessThanOrEqual(
+        zeile!.charDots,
+      )
+    }
+  })
+
+  it('setzt die Anschrift auch ohne Steuernummer mittig', () => {
+    const ohneStNr = buildReceipt({
+      seller: { name: 'Baeckerei Beispiel', address: 'Dahler Strasse 35, 58091 Hagen' },
+    } as Partial<Receipt>)
+    const zeile = kopfZeilen(ohneStNr).find(z => z.text.includes('Dahler Strasse 35'))
+
+    expect(zeile).toBeDefined()
+    expect(Math.abs(centerOffsetDots(zeile!, 48))).toBeLessThanOrEqual(zeile!.charDots)
+  })
+
+  it('stellt den Font-Umbruch nur aus, wenn ein Font-B-Block folgt', () => {
+    // Der zusaetzliche Umbruch existiert einzig, um den Font-Wechsel vor die
+    // Polsterung der naechsten zentrierten Zeile zu bringen. Ohne Anschrift und
+    // Steuernummer gibt es nichts umzuschalten — dann darf er auch nicht kosten.
+    const ohne = kopfZeilen(buildReceipt({ seller: { name: 'Baeckerei Beispiel' } } as Partial<Receipt>))
+    const nameOhne = ohne.findIndex(z => z.text.includes('Baeckerei Beispiel'))
+
+    // Nach dem Namen genau eine Leerzeile (die des Metablocks), dann die Trennlinie.
+    expect(ohne[nameOhne + 1].text.trim()).toBe('')
+    expect(ohne[nameOhne + 2].text).toMatch(/^Ä+$/)
+
+    // Mit Details liegt an derselben Stelle die Leerzeile des Font-Wechsels,
+    // direkt gefolgt von der Anschrift.
+    const mit = kopfZeilen(mitKopf())
+    const nameMit = mit.findIndex(z => z.text.includes('Baeckerei Beispiel'))
+
+    expect(mit[nameMit + 1].text.trim()).toBe('')
+    expect(mit[nameMit + 2].text).toContain('Dahler Strasse 35')
   })
 })

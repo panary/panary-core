@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import type { PaperWidth } from './escpos.adapter'
+import { centerOffsetDots, decodeEscPosLines } from '../../test/escpos-layout'
 import { renderOrderReceipt } from './order-receipt.renderer'
 
 // Die Encoder-Ausgabe ist ESC/POS-Binärstrom — der Zellentext liegt darin als
@@ -205,15 +207,15 @@ describe('order-receipt.renderer — Zeitzone der Filiale (#274)', () => {
   })
 
   it('druckt die Uhrzeit in der Zone der Filiale', () => {
-    expect(renderToText(zeitOrder(), locationInZone('America/New_York'))).toContain('Uhrzeit: 06:00 Uhr')
-    expect(renderToText(zeitOrder(), locationInZone('UTC'))).toContain('Uhrzeit: 10:00 Uhr')
-    expect(renderToText(zeitOrder(), locationInZone('Europe/Berlin'))).toContain('Uhrzeit: 12:00 Uhr')
+    expect(renderToText(zeitOrder(), locationInZone('America/New_York'))).toContain('Bestellzeit: 06:00 Uhr')
+    expect(renderToText(zeitOrder(), locationInZone('UTC'))).toContain('Bestellzeit: 10:00 Uhr')
+    expect(renderToText(zeitOrder(), locationInZone('Europe/Berlin'))).toContain('Bestellzeit: 12:00 Uhr')
   })
 
   it('nutzt ohne gepflegte Zone den Geschaeftstag-Default (Europe/Berlin)', () => {
     // `location` traegt keine `generalSettings` — derselbe Fallback wie Rotation,
     // Slots und Vorbestellungen, keine zweite Konstante.
-    expect(renderToText(zeitOrder(), location)).toContain('Uhrzeit: 12:00 Uhr')
+    expect(renderToText(zeitOrder(), location)).toContain('Bestellzeit: 12:00 Uhr')
   })
 
   it('rechnet das Bon-Datum ueber die Tagesgrenze in Filialzeit', () => {
@@ -227,5 +229,173 @@ describe('order-receipt.renderer — Zeitzone der Filiale (#274)', () => {
       cancellation: { reason: 'Falsch gebucht', canceledAt: '2026-07-06T10:00:00.000Z' },
     })
     expect(renderToText(storniert, locationInZone('America/New_York'))).toContain('Storniert am: 6.7.2026, 06:00:00')
+  })
+})
+
+// #342: Der Kopfbereich war bis hierher komplett ungetestet — weder Filialkopf
+// noch Badge noch Zentrierung hatten eine Assertion. Genau deshalb ist der
+// Zentrierungsfehler aus der Kundenmeldung nie aufgefallen.
+describe('order-receipt.renderer — Kopfbereich (#342)', () => {
+  const locationMitKopf = {
+    address: { street: 'Dahler Strasse 35', postalCode: '58091', city: 'Hagen' },
+    phone: '02331 1234567',
+    settings: { ...location.settings, generalSettings: { timezone: 'Europe/Berlin' } },
+  }
+
+  const kopfOrder = (overrides: Record<string, unknown> = {}) => ({
+    dailySequenceNumber: 1458,
+    dineLocation: 'take-out',
+    recordingDate: '2026-09-20T10:00:00.000Z',
+    estimatedDuration: 15,
+    lineItems: [
+      { _id: 'li-k1', name: 'Nuggets', topic: 'Speisen', amount: 1, price: 3.5, taxInside: 7, taxOutside: 7 },
+    ],
+    ...overrides,
+  })
+
+  const kopfZeilen = (order: Record<string, unknown>, loc: Record<string, unknown>, paperWidth: PaperWidth = '80mm') =>
+    decodeEscPosLines(renderOrderReceipt(order, loc, { paperWidth }), 10)
+
+  describe('Filialkopf entfaellt', () => {
+    it('druckt weder Strasse noch PLZ/Ort noch Telefonnummer', () => {
+      const text = renderToText(kopfOrder(), locationMitKopf)
+
+      expect(text).not.toContain('Dahler Strasse')
+      expect(text).not.toContain('58091')
+      expect(text).not.toContain('Hagen')
+      expect(text).not.toContain('Tel.')
+    })
+
+    it('beginnt mit der Bestellnummer statt mit einer Leerflaeche', () => {
+      const zeilen = kopfZeilen(kopfOrder(), locationMitKopf)
+      const erste = zeilen.findIndex(z => z.text.trim().length > 0)
+
+      // Genau eine Leerzeile Vorlauf: Sie flusht die `initialize()`-Bytes, bevor
+      // die erste zentrierte Zeile ihre Polsterung ausstellt. Ohne sie liefen die
+      // Leerzeichen noch im Zustand des vorherigen Druckauftrags.
+      expect(erste).toBe(1)
+      expect(zeilen[erste].text.trim()).toBe('Bestellnummer')
+    })
+  })
+
+  describe('Abholzeit unter dem Badge', () => {
+    it('druckt bei Fertigungszeit die Uhrzeit in Filialzeit, mit Praefix', () => {
+      // 12:00 Ortszeit (10:00 UTC) + 15 min
+      expect(renderToText(kopfOrder(), locationMitKopf)).toContain('Abholung 12:15')
+    })
+
+    it('rechnet die Abholzeit in der Zone der Filiale, nicht der des Prozesses', () => {
+      const inZone = (timezone: string) => ({
+        ...locationMitKopf,
+        settings: { ...location.settings, generalSettings: { timezone } },
+      })
+
+      expect(renderToText(kopfOrder(), inZone('America/New_York'))).toContain('Abholung 06:15')
+      expect(renderToText(kopfOrder(), inZone('UTC'))).toContain('Abholung 10:15')
+    })
+
+    // Die Zeile ist die groesste nach der Bestellnummer; ihre Breite richtet sich
+    // danach, was noch in EINE Zeile passt. Bei dreifacher Breite braeche
+    // `Abholung 12:15` auf 58 mm in zwei Zeilen um — dann stuende „Abholung" ueber
+    // „12:15" und saehe aus wie ein Versehen.
+    it.each([
+      ['80mm', 48],
+      ['58mm', 32],
+    ] as const)('legt die Abholzeit auf %s in genau eine Zeile', (paperWidth, columns) => {
+      const zeilen = kopfZeilen(kopfOrder(), locationMitKopf, paperWidth)
+      const treffer = zeilen.filter(z => z.text.includes('Abholung') || z.text.includes('12:15'))
+
+      expect(treffer).toHaveLength(1)
+      expect(treffer[0].text.trim()).toBe('Abholung 12:15')
+      expect(Math.abs(centerOffsetDots(treffer[0], columns))).toBeLessThanOrEqual(treffer[0].charDots)
+    })
+
+    it('druckt die Abholzeit groesser als das Badge darueber', () => {
+      const zeilen = kopfZeilen(kopfOrder(), locationMitKopf)
+      const badge = zeilen.find(z => z.text.includes('AUSSEN'))
+      const abholzeit = zeilen.find(z => z.text.includes('Abholung'))
+
+      // charDots ist die Zellenbreite — bei gleicher Breite entscheidet die Hoehe,
+      // die der Decoder nicht misst. Auf 80 mm ist die Abholzeit dreifach breit,
+      // das Badge doppelt, der Vergleich traegt also.
+      expect(abholzeit!.charDots).toBeGreaterThan(badge!.charDots)
+    })
+
+    it('druckt SOFORT bei Fertigungszeit 0 — und keine Uhrzeit an dessen Stelle', () => {
+      const zeilen = kopfZeilen(kopfOrder({ estimatedDuration: 0 }), locationMitKopf)
+      const badge = zeilen.findIndex(z => z.text.includes('AUSSEN'))
+
+      expect(badge).toBeGreaterThan(-1)
+      // Die Zeile unter dem Badge traegt SOFORT und nichts Uhrzeitfoermiges. Die
+      // Bestellzeit im Metablock bleibt davon unberuehrt — sie ist ein anderes
+      // Datum und steht weiter unten.
+      // Ohne Fertigungszeit gibt es nichts zu praefixieren — „Abholung SOFORT"
+      // waere eine Zeitangabe, die keine ist.
+      expect(zeilen[badge + 1].text.trim()).toBe('SOFORT')
+      expect(zeilen[badge + 1].text).not.toMatch(/\d{1,2}:\d{2}/)
+      expect(renderToText(kopfOrder({ estimatedDuration: 0 }), locationMitKopf)).toContain('Bestellzeit: 12:00 Uhr')
+    })
+
+    it('druckt SOFORT, wenn die Fertigungszeit ganz fehlt', () => {
+      const ohne = kopfOrder()
+      delete (ohne as Record<string, unknown>).estimatedDuration
+
+      expect(renderToText(ohne, locationMitKopf)).toContain('SOFORT')
+    })
+
+    it('steht unter dem Bestellart-Badge, nicht darueber', () => {
+      const text = renderToText(kopfOrder(), locationMitKopf)
+
+      expect(text.indexOf('AUSSEN')).toBeGreaterThan(-1)
+      expect(text.indexOf('AUSSEN')).toBeLessThan(text.indexOf('12:15'))
+    })
+
+    it('druckt INNEN fuer dine-in', () => {
+      expect(renderToText(kopfOrder({ dineLocation: 'dine-in' }), locationMitKopf)).toContain('INNEN')
+    })
+  })
+
+  describe('Metablock', () => {
+    it('weist die Registrierungszeit als „Bestellzeit" aus', () => {
+      const text = renderToText(kopfOrder(), locationMitKopf)
+
+      expect(text).toContain('Bestellzeit: 12:00 Uhr')
+      expect(text).not.toContain('Uhrzeit:')
+      expect(text).toContain('Datum: 20.9.2026')
+    })
+  })
+
+  // Die eigentliche Messung: sitzt die Zeile auf dem PAPIER mittig? Die Anzahl
+  // der Leerzeichen allein beweist das nicht — sie wird in den Spalten des Fonts
+  // gezaehlt, der fuer den Text gilt, und die Polsterung selbst kann in einer
+  // anderen Zellenbreite gedruckt werden (das war der Fehler in #342).
+  describe('Zentrierung, in Dots gemessen', () => {
+    it.each([
+      ['80mm', 48],
+      ['58mm', 32],
+    ] as const)('setzt die Abholzeit auf %s mittig', (paperWidth, columns) => {
+      const zeilen = kopfZeilen(kopfOrder(), locationMitKopf, paperWidth)
+      const abholzeit = zeilen.find(z => z.text.includes('12:15'))
+
+      expect(abholzeit).toBeDefined()
+      // Toleranz: eine Zellenbreite. Der Encoder rundet die halbe Restbreite ab
+      // (`>> 1`), mehr als eine Zelle Versatz ist deshalb nie Rundung.
+      expect(Math.abs(centerOffsetDots(abholzeit!, columns))).toBeLessThanOrEqual(abholzeit!.charDots)
+    })
+
+    it.each([
+      ['80mm', 48],
+      ['58mm', 32],
+    ] as const)('setzt SOFORT, Badge und Bestellnummer auf %s mittig', (paperWidth, columns) => {
+      const zeilen = kopfZeilen(kopfOrder({ estimatedDuration: 0 }), locationMitKopf, paperWidth)
+
+      for (const suche of ['Bestellnummer', '1458', 'AUSSEN', 'SOFORT']) {
+        const zeile = zeilen.find(z => z.text.includes(suche))
+        expect(zeile, `Zeile „${suche}" nicht gefunden`).toBeDefined()
+        expect(Math.abs(centerOffsetDots(zeile!, columns)), `Zeile „${suche}" nicht mittig`).toBeLessThanOrEqual(
+          zeile!.charDots,
+        )
+      }
+    })
   })
 })

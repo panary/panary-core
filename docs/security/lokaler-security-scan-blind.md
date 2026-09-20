@@ -74,7 +74,10 @@ genannten Datei zum Scheitern — die naheliegende 1:1-Übersetzung reproduziert
 exakt den Fehler, den sie beheben soll. Zweitens findet das Verzeichnis allein gar
 nichts, weil v2 den Git-Root überspringt, solange `--include-git-root` nicht gesetzt
 ist. Der Lockfile-Pfad allein ist die funktionierende Form; `osv-scanner.toml` wird
-weiterhin gefunden, es wird neben dem Lockfile aufgelöst.
+weiterhin gefunden, es wird neben dem Lockfile aufgelöst. ⚠️ **Genau deshalb braucht der
+Umweg über eine Kopie `--config`** — seit dem Nachtrag oben wird im Haupt-Checkout ein
+Lockfile aus `git show` in einem Temp-Verzeichnis gescannt, und dorthin folgt die
+Konfiguration nicht von selbst.
 
 Die JSON-Struktur ist unverändert (`results[].packages[].vulnerabilities[]`,
 `groups[].max_severity`) — die Parse-Hälfte des Skripts blieb unangetastet.
@@ -121,6 +124,10 @@ nach stderr — sie lief vorher durch `log()` und wäre im Hook unsichtbar gebli
   Workflow-Konvention gearbeitet wird — greift das eigene, standalone Lockfile mit
   0 Criticals. Ein Push aus dem Haupt-Checkout wird also ab jetzt blockiert. Die beiden
   Befunde sind ein eigener, offener Punkt und in diesem Zug nicht behandelt.
+  **Nachtrag 2026-09-20:** Dieser Punkt ist gelöst — der Scan verwirft einen Symlink,
+  der aus dem Repo herausführt, und misst den committeten Stand. Damit war die Aussage
+  hier nur halb richtig: Es ging nicht um eine andere *Scan-Fläche*, sondern um das
+  falsche *Repo*. Siehe [Lockfile-Auflösung über einen Symlink](security-scan-lockfile-aufloesung.md).
 
 ## Verwandt
 

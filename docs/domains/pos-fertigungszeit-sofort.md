@@ -143,7 +143,10 @@ nicht mehr stimmt, ist der Tag, an dem Variante B faellig wird.
 ⚠️ **Der Cloud hat eine zweite, unabhaengige `convert()`-Implementierung**
 (`apps/api-cloud/src/services/pre-orders/pre-orders.class.ts`, laut Kommentar dort
 „identisch zum Edge") fuer Storefront-Vorbestellungen. Sie ist von #344 **nicht**
-mitgefixt und verliert die Abholzeit weiterhin.
+mitgefixt und verliert die Abholzeit weiterhin — die beiden Fassungen sind damit
+auseinandergelaufen, und der Kommentar „identisch zum Edge" stimmt nicht mehr.
+Nachgezogen wird das in
+[panary-cloud#489](https://github.com/panary/panary-cloud/issues/489).
 
 ## Wirkung
 

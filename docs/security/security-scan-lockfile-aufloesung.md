@@ -126,6 +126,56 @@ Sie schreibt jetzt direkt nach stderr, aus demselben Grund, aus dem `failScan` u
 (`Arbeitsbaum` oder `committeter Stand HEAD@<sha>`). Ein Scan, der nicht sagt, was er
 gemessen hat, meldet grün, ohne hingesehen zu haben.
 
+## Nachtrag 2026-09-20: Die Menge kommt aus dem Git-Index
+
+Der Fix oben ersetzte den falschen Kandidaten durch den richtigen — geraten wurde
+weiterhin. [#360](https://github.com/panary/panary-core/issues/360) hat das abgestellt:
+Die Lockfiles kommen jetzt aus `git ls-files '*pnpm-lock.yaml'`.
+
+Der Anlass kam aus panary-cloud. Dort zog
+[cloud#490](https://github.com/panary/panary-cloud/issues/490) den Symlink-Fix nach und
+fand dabei ein **zweites committetes Lockfile** (`apps/storefront/runtime/`), das der
+lokale Scan nie gemessen hatte, während die CI es mit `--recursive ./` erfasste — der
+lokale Gate war dort systematisch schwächer als die CI. core hat dieses zweite Lockfile
+nicht. Der Gewinn ist trotzdem real:
+
+| Verfahren | Treffer in core |
+| --- | --- |
+| `git ls-files '*pnpm-lock.yaml'` | **1** — `pnpm-lock.yaml` |
+| naiver `find`/Glob | **21** — davon 18 veraltete Kopien in `.nx/cache/`, 2 in `dist/` |
+
+Der Index kennt genau die committeten Dateien und schließt `node_modules/`,
+Build-Artefakte und die Ephemeral-Worktrees unter `.claude/worktrees/` von selbst aus.
+Ein künftiges zweites Lockfile in core würde damit automatisch erfasst, statt still
+unbemerkt zu bleiben — genau die Lücke, die cloud schließen musste.
+
+**Der Symlink-Schutz bleibt tragend.** In cloud ist er Vorsorge (beide Lockfiles sind
+echte Dateien), hier ist er der Normalfall des Haupt-Checkouts. Gemessen nach dem Umbau,
+mit einem *lebenden* Symlink aus dem Repo heraus: Der Scan verwirft den Kandidaten und
+meldet weiterhin `committeter Stand HEAD@<sha>`.
+
+Zwei Annahmen, die der Umbau neu einführt, sind geprüft statt unterstellt:
+
+| Lage | Ergebnis |
+| --- | --- |
+| kein Git-Index (Tarball-Export), Lockfile vorhanden | Rückfall auf `./pnpm-lock.yaml`, gescannt |
+| kein Git-Index **und** kein Lockfile | `failScan`, `complete: false`, Exit 2 |
+
+Der Rückfall geht nie aufs Elternverzeichnis — der Nachbarbaum war der ursprüngliche
+Fehler und bleibt es.
+
+**Die Ausgabezeile hat dabei ihr Format geändert** — wer danach greppt, sucht seit #360
+nicht mehr nach `(lockfile: …)`, sondern nach der Anzahl davor:
+
+```
+► osv-scanner (1 Lockfile: ./pnpm-lock.yaml — Arbeitsbaum) …
+► osv-scanner (1 Lockfile: ./pnpm-lock.yaml — committeter Stand HEAD@9a4baadd, Arbeitsbaum-Datei zeigt aus dem Repo heraus) …
+```
+
+Bei mehreren Lockfiles wird jedes mit seiner Herkunft genannt, durch Komma getrennt:
+Dann ist „welche wurden gemessen“ die eigentliche Information. Aus demselben Grund legt
+`lockfileFromHead` sein Temp-Verzeichnis **je Lockfile** an, statt eines für alle.
+
 ## Was das nicht löst
 
 - **Eine uncommittete Lockfile-Änderung bleibt im Haupt-Checkout unsichtbar.** Gemessen
@@ -138,10 +188,15 @@ gemessen hat, meldet grün, ohne hingesehen zu haben.
   eine eigene Manifest-Auflösung; ob dort dieselbe Verwechslung steckt, wurde nicht
   gemessen.
 - **Kein Test deckt das Skript ab.** Die Mutationsprobe ist ein Handgriff, kein Gate —
-  eine grüne CI beweist über diesen Pfad weiterhin nichts.
+  eine grüne CI beweist über diesen Pfad weiterhin nichts. `security-scan.mjs` ist das
+  einzige Skript in `scripts/` ohne `.spec.mjs`; [#362](https://github.com/panary/panary-core/issues/362)
+  holt das nach.
 - **Gemessen wurde nur macOS mit osv-scanner 2.3.8.**
-- **panary-cloud ist nicht betroffen** (echtes, committetes Lockfile), aber das dortige
-  Skript wurde nicht abgeglichen, obwohl die Dateien historisch byte-identisch waren.
+- **core und cloud teilen die Auflösung wieder, sind aber nicht byte-identisch** und
+  sollen es nicht sein: Die Kommentare nennen repo-eigene Fakten — in cloud das zweite
+  Lockfile, hier den Symlink des Haupt-Checkouts. Gleichheit wäre nur um den Preis
+  falscher Kommentare zu haben. Wer eine Seite ändert, prüft die andere von Hand;
+  ein Gate dafür gibt es nicht.
 
 ## Verwandt
 

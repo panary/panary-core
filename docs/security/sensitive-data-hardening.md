@@ -5,6 +5,7 @@ description: 'Härtung sensibler Datenbankfelder in Phase 1: POS-PIN als bcrypt-
 tags: [security, users, apikeys, cloud-connection, customers, corporate-customers]
 status: stable
 generated: { by: claude-code/historic, at: 2026-04-07T00:00:00Z }
+updated: { by: claude-code/opus-5, at: 2026-09-20T08:20:00Z }
 ---
 
 # Sicherheitshärtung: Sensible Daten (Phase 1)
@@ -42,7 +43,7 @@ Mehrere sensible Felder wurden im Klartext in SQLite gespeichert. Vor der geplan
 
 ## Offene Punkte (Phase 2 & 3)
 
-- **Cloud-Token AES-Encryption** bei Cloud-Sync-Implementierung
+- ~~**Cloud-Token AES-Encryption** bei Cloud-Sync-Implementierung~~ — ✅ erledigt (siehe unten)
 - **vatId/taxNumber** AES-Encryption vor Cloud-Übertragung (DSGVO)
 - **resolveExternal** für Kunden- und Firmenkunden-PII
 - **Rate-Limiting** auf `verifyPin` gegen Brute-Force
@@ -55,6 +56,19 @@ Mehrere sensible Felder wurden im Klartext in SQLite gespeichert. Vor der geplan
 | `users.password` | Bcrypt-Hash (unverändert) |
 | `users.posPin` | **Bcrypt-Hash** (NEU) |
 | `apikeys.apikey` | **SHA-256-Hash** (NEU) |
-| `cloud-connection.cloudToken` | Klartext (Phase 2) |
+| `cloud-connection.cloudToken` | **AES-256-GCM** at-rest (Nachtrag 2026-05-10) — siehe Hinweis unten |
 | `corporate-customers.vatId/taxNumber` | Klartext (Phase 2) |
 | `customers.email/phone` | Klartext (Phase 2) |
+
+> 🚨 **Nachtrag 2026-09-20: Die Zeile zu `cloudToken` stand über vier Monate falsch hier.**
+> `apps/api-edge/src/utils/cloud-token-cipher.ts` verschlüsselt den Token seit dem
+> 2026-05-10 mit **AES-256-GCM** at-rest (Format `enc:v1:<iv>:<ciphertext>:<tag>`); alle
+> Cloud-Worker lesen ihn über `decryptCloudToken`. Klartext-Bestand wird beim Lesen am
+> fehlenden `enc:`-Prefix erkannt und durchgereicht, damit die Migration ohne Force-Re-Pair
+> läuft — die Token verschlüsseln sich beim nächsten Rotationszyklus selbst nach.
+>
+> ⚠️ **Mit einer Bedingung, die zur Aussage gehört:** Der Master-Key kommt aus
+> `EDGE_TOKEN_ENCRYPTION_KEY`. **Fehlt er, ist der Cipher ein No-op** — er loggt eine Warnung
+> und speichert weiter Klartext, damit Dev-Setups nicht hart brechen. „Verschlüsselt" gilt
+> also genau für Installationen, in denen diese Variable gesetzt ist; ob sie es auf einem
+> konkreten Edge ist, beweist dieses Dokument nicht.

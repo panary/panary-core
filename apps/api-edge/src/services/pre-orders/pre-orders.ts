@@ -32,6 +32,7 @@ import {
 import { DineLocation, OrderChannel, OrderStatus, PaymentState } from '@panary/orders/domain'
 import type { PreOrder, PreOrderService } from './pre-orders.class'
 import { validatePreOrderOpeningHours } from './validate-opening-hours.hook'
+import { leadMinutesUntil } from './scheduled-lead-time'
 import { ensureIndexes, logger } from '@panary/shared-backend'
 
 export const preOrdersPath = 'pre-orders'
@@ -87,6 +88,17 @@ export const preOrders = (app: Application) => {
       throw new BadRequest('Eine stornierte Vorbestellung kann nicht konvertiert werden.')
     }
 
+    // Konvertierungszeitpunkt EINMAL bestimmen: `recordingDate` und die daraus
+    // abgeleitete Vorlaufzeit müssen denselben Instant benutzen. Zwei getrennte
+    // `new Date()` lägen Millisekunden auseinander, und der Bon rechnet
+    // `recordingDate + estimatedDuration` — die Differenz landete auf dem Papier.
+    const convertedAt = new Date()
+
+    // Die vereinbarte Abholzeit überlebt die Konvertierung als Vorlaufzeit (#344).
+    // Vorher stand hier fest 0, und der Bon druckte seit #342 `SOFORT`, obwohl eine
+    // Zeit vereinbart war.
+    const leadMinutes = leadMinutesUntil(preOrder.scheduledFor, convertedAt)
+
     // 3. Order anlegen — hooks (restrictOrderToBusinessDay, assignDailySequenceNumber,
     //    calculateTaxDetails) laufen automatisch über den orders-Service
     const createdOrder = await app.service('orders').create(
@@ -99,10 +111,12 @@ export const preOrders = (app: Application) => {
         lineItems: preOrder.lineItems,
         preOrderId: preOrder._id,
         isFinished: false,
-        estimatedDuration: 0,
-        remainingTime: 0,
+        estimatedDuration: leadMinutes,
+        // Spiegelt `order.service.ts`, das beim Anlegen beide Felder auf dieselbe
+        // Zahl setzt; die laufende Fortschreibung macht der POS-Client selbst.
+        remainingTime: leadMinutes,
         dailySequenceNumber: 0, // Wird von assignDailySequenceNumber überschrieben
-        recordingDate: new Date().toISOString(),
+        recordingDate: convertedAt.toISOString(),
         payment: {
           state: PaymentState.PENDING,
           totalAmount: 0,

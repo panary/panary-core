@@ -140,8 +140,50 @@ gemessen hat, meldet grün, ohne hingesehen zu haben.
 - **Kein Test deckt das Skript ab.** Die Mutationsprobe ist ein Handgriff, kein Gate —
   eine grüne CI beweist über diesen Pfad weiterhin nichts.
 - **Gemessen wurde nur macOS mit osv-scanner 2.3.8.**
-- **panary-cloud ist nicht betroffen** (echtes, committetes Lockfile), aber das dortige
-  Skript wurde nicht abgeglichen, obwohl die Dateien historisch byte-identisch waren.
+- ~~**panary-cloud ist nicht betroffen**, aber das dortige Skript wurde nicht
+  abgeglichen.~~ **Erledigt am 2026-09-20** — siehe [Nachtrag](#nachtrag-2026-09-20--wieder-deckungsgleich-mit-panary-cloud).
+- **Die Deckungsgleichheit ist ein Zustand, kein Gate.** Nichts hindert den nächsten
+  einseitigen Edit, und keine der beiden CIs prüft die Dateien gegeneinander. Wer eine
+  aktuelle Aussage braucht, misst sie:
+  `diff <(git -C panary-core show origin/main:scripts/security-scan.mjs) <(git -C panary-cloud show origin/main:scripts/security-scan.mjs)`
+
+## Nachtrag 2026-09-20 — wieder deckungsgleich mit panary-cloud
+
+panary-cloud hat diesen Stand aufgegriffen und dabei einen eigenen Befund mitgenommen:
+Dort gibt es **zwei** committete Lockfiles, und der lokale Scan maß nur eines
+([panary/panary-cloud#490](https://github.com/panary/panary-cloud/issues/490)). Die dortige
+Fassung löst die Lockfiles deshalb über `git ls-files '*pnpm-lock.yaml'` auf — eine echte
+**Obermenge**: Hier liefert sie genau ein Lockfile, und der Symlink-Schutz oben greift
+unverändert.
+
+Übernommen wurde sie **nicht wörtlich**. Die cloud-Fassung trug in ihren Kommentaren bare
+Issue-Nummern und cloud-eigene Tatsachen; `#274` ist in diesem Repo „Kassenbon druckt
+Uhrzeit in UTC statt Filialzeit", also ein völlig anderes Ticket, und Sätze wie „this repo
+has TWO committed ones" wären hier schlicht falsch. Eine Kopie hätte falsche Verweise und
+falsche Aussagen in den Code gebracht. Stattdessen ist der Kommentarteil **repo-neutral**
+formuliert: Wo repo-spezifische Tatsachen nötig sind, werden beide Repos benannt (in beiden
+wahr), und Issue-Verweise sind vollqualifiziert. Dieselbe Fassung steht jetzt in beiden
+Repos.
+
+**Gemessen, dass sich hier nichts ändert** — ein Verhaltens-Delta war nicht erwartet, und
+genau deshalb ausdrücklich nachgewiesen statt behauptet (`origin/main` @ `9a4baadd`,
+osv-scanner 2.3.8):
+
+| Lage | alter Stand | neuer Stand |
+| --- | --- | --- |
+| Arbeitsbaum (echte Datei) | `./pnpm-lock.yaml — Arbeitsbaum`, 0 Befunde | `1 Lockfile: ./pnpm-lock.yaml — Arbeitsbaum`, 0 Befunde |
+| Symlink aus dem Repo heraus | `committeter Stand HEAD@9a4baadd`, 0 Befunde | `committeter Stand HEAD@9a4baadd`, 0 Befunde |
+| `adm-zip@0.6.0` eingeschleust | — | **2 Befunde** (GHSA-7q85-xj36-vmfc high, GHSA-vwc7-r8mq-g2x9 medium) |
+
+Einziger sichtbarer Unterschied ist die Wortwahl der Lockfile-Zeile (`lockfile:` →
+`1 Lockfile:`). Befunde tragen ihre Quelldatei erst, wenn **mehr als eine** gemessen wird —
+in diesem Repo also nie, solange es ein Lockfile gibt.
+
+⚠️ **Die Symlink-Probe zeigte bewusst nicht aufs Workbench-Root-Lockfile.** Ein
+`git checkout -- pnpm-lock.yaml` schreibt durch einen solchen Symlink hindurch und
+überschreibt die **ungetrackte** Datei am Workbench-Root — per git nicht wiederherstellbar.
+Das Probenziel lag deshalb in einem Wegwerf-Verzeichnis, und zurückgesetzt wurde mit
+`rm` **vor** `git checkout`.
 
 ## Verwandt
 
@@ -151,3 +193,6 @@ gemessen hat, meldet grün, ohne hingesehen zu haben.
   löst".
 - [OSV-Befund 2026-09-15](osv-befund-2026-09-15.md) — der Override-Floor `adm-zip ^0.6.1`,
   der im core-Lockfile greift und im Workbench-Root fehlt.
+- Schwester-Befund in panary-cloud: `docs/security/lokaler-security-scan-zwei-lockfiles.md`
+  ([panary/panary-cloud#490](https://github.com/panary/panary-cloud/issues/490)) — dort war
+  es nicht der falsche Baum, sondern nur die halbe Fläche.

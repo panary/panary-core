@@ -21,7 +21,7 @@
 
 import { execSync, spawnSync } from 'node:child_process'
 import { writeFileSync, mkdirSync, existsSync, lstatSync, realpathSync, mkdtempSync, rmSync } from 'node:fs'
-import { resolve, dirname, join, sep } from 'node:path'
+import { resolve, dirname, join, sep, relative } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 
@@ -102,27 +102,48 @@ const detectRepo = () => {
 
 // ---------- Local scanners ----------
 
-// Which lockfile describes THIS repo? In a worktree the answer is trivial: a
-// real, committed pnpm-lock.yaml. In the _WORKBENCH_PANARY main checkout it is
-// a SYMLINK to ../pnpm-lock.yaml (the workbench root, held on skip-worktree).
-// The symlink is deliberate and must stay — see
+// WHICH lockfiles describe this repo? Not a fixed name, and not the same count
+// in both: panary-cloud has TWO committed ones (the workspace root plus
+// apps/storefront/runtime/pnpm-lock.yaml, the closure shipped as the storefront
+// production image), panary-core has ONE. This file is maintained as a PAIR
+// across both repos — like the osv-scanner.toml beside it — so it must not
+// hard-wire either shape.
+//
+// Until panary/panary-cloud#490 the scan took the first of two guessed
+// candidates, which in cloud meant the second lockfile was never measured while
+// the CI job `osv-scanner (SCA)` covers everything through `--recursive ./`.
+// The local gate was therefore systematically weaker than CI: it could report
+// green on a commit where CI goes red. Measured there with adm-zip@0.6.0
+// injected into a throwaway copy of that second lockfile — old 0 findings, new
+// 2, one of them high.
+//
+// The set is taken from the git index rather than a glob: `git ls-files` yields
+// exactly the committed lockfiles and excludes node_modules/, build artefacts
+// (cloud ships one at dist/apps/receipt-portal/pnpm-lock.yaml) and the ephemeral
+// worktrees under .claude/worktrees/ — a find/glob excludes none of those. An
+// additional lockfile in either repo is picked up on its own.
+const trackedLockfiles = () => {
+  const ls = spawnSync('git', ['-C', repoRoot, 'ls-files', '*pnpm-lock.yaml'], { encoding: 'utf8' })
+  if (ls.status !== 0) return []
+  return (ls.stdout || '')
+    .split('\n')
+    .map(l => l.trim())
+    .filter(Boolean)
+}
+
+// A candidate that is a symlink pointing OUT of the repo is rejected and the
+// committed state measured instead. This is live in panary-core's main checkout,
+// where pnpm-lock.yaml is a symlink to the workbench root lockfile held on
+// skip-worktree — deliberate and staying, see
 // .claude/rules/workflow-plan-issue-worktree.md §3. existsSync() follows it, so
-// the repo-local candidate always hit and the scan measured the WORKBENCH
-// dependency tree, never panary-core's.
-//
-// Measured 2026-09-20 with osv-scanner 2.3.8: the workbench root resolves
-// adm-zip@0.6.0 (GHSA-7q85-xj36-vmfc, high) and postcss-selector-parser@7.1.1,
-// while core's own lockfile pins 0.6.1 / 7.1.6 through pnpm.overrides — three
-// findings in the main checkout against zero in a worktree of the same commit.
-// The high finding at release v26.9.7 came from the workbench's
-// @module-federation/dts-plugin and is not in the shipped edge image. The
-// inverse is the worse half: an advisory sitting ONLY in core's lockfile stayed
-// invisible locally, so "locally green" proved nothing about core.
-//
-// A candidate that is a symlink out of the repo is therefore rejected and the
-// committed state is measured instead. The parent-directory fall-back is gone
-// for good — that candidate WAS the bug, and a neighbouring tree is never an
-// answer to "what does this repo depend on".
+// the scan measured the WORKBENCH dependency tree instead of the repo's own:
+// three findings in the main checkout against zero in a worktree of the same
+// commit, one of them high and not in the shipped edge image
+// (panary/panary-core#354). panary-cloud is not affected — real committed files
+// (Option A) — where the guard costs one lstat per lockfile and keeps the two
+// copies identical. The parent-directory fall-back is gone for good — that
+// candidate WAS the bug, and a neighbouring tree is never an answer to "what
+// does this repo depend on".
 const escapesRepo = p => {
   try {
     if (!lstatSync(p).isSymbolicLink()) return false
@@ -133,75 +154,96 @@ const escapesRepo = p => {
   }
 }
 
-const lockfileFromHead = () => {
-  const show = spawnSync('git', ['-C', repoRoot, 'show', 'HEAD:pnpm-lock.yaml'], {
+const lockfileFromHead = relPath => {
+  const show = spawnSync('git', ['-C', repoRoot, 'show', `HEAD:${relPath}`], {
     encoding: 'utf8',
     maxBuffer: 1024 * 1024 * 64,
   })
   if (show.status !== 0 || !show.stdout) return null
   // osv-scanner v2 picks its extractor by FILE NAME, so the copy has to be
-  // called pnpm-lock.yaml — a temp directory, not a temp file. Naming it
-  // anything else reproduces the v2 error "could not determine extractor
-  // suitable to this file" documented below.
+  // called pnpm-lock.yaml — a temp directory per lockfile, not a temp file.
+  // Naming it anything else reproduces the v2 error "could not determine
+  // extractor suitable to this file" documented below.
   const dir = mkdtempSync(join(tmpdir(), 'panary-osv-'))
   writeFileSync(join(dir, 'pnpm-lock.yaml'), show.stdout)
   const sha = spawnSync('git', ['-C', repoRoot, 'rev-parse', '--short', 'HEAD'], { encoding: 'utf8' })
   return {
+    rel: relPath,
     path: join(dir, 'pnpm-lock.yaml'),
     tmpDir: dir,
     origin: `committeter Stand HEAD@${(sha.stdout || '?').trim()}, Arbeitsbaum-Datei zeigt aus dem Repo heraus`,
   }
 }
 
-const resolveLockfile = () => {
-  const local = resolve(repoRoot, 'pnpm-lock.yaml')
-  if (existsSync(local) && !escapesRepo(local)) {
-    return { path: local, tmpDir: null, origin: 'Arbeitsbaum' }
+const resolveLockfiles = () => {
+  // Without a readable index (no git, tarball export) fall back to the repo-local
+  // lockfile only — never to the parent directory.
+  const tracked = trackedLockfiles()
+  const paths = tracked.length > 0 ? tracked : ['pnpm-lock.yaml']
+  const resolved = []
+  for (const rel of paths) {
+    const local = resolve(repoRoot, rel)
+    if (existsSync(local) && !escapesRepo(local)) {
+      resolved.push({ rel, path: local, tmpDir: null, origin: 'Arbeitsbaum' })
+      continue
+    }
+    const fromHead = lockfileFromHead(rel)
+    if (fromHead) resolved.push(fromHead)
   }
-  return lockfileFromHead()
+  return resolved
 }
 
 const runOsvScanner = () => {
   if (!hasTool('osv-scanner')) {
     return failScan('osv-scanner', 'nicht installiert — bash scripts/install-security-tools.sh')
   }
-  const lock = resolveLockfile()
-  if (!lock) {
+  const locks = resolveLockfiles()
+  if (locks.length === 0) {
     return failScan(
       'osv-scanner',
-      'kein Lockfile messbar — weder eine repo-eigene pnpm-lock.yaml noch `git show HEAD:pnpm-lock.yaml`. ' +
+      'kein Lockfile messbar — weder eine committete pnpm-lock.yaml im Arbeitsbaum noch `git show HEAD:…`. ' +
         'Kein Rückfall auf das Elternverzeichnis: dessen Abhängigkeitsbaum ist nicht der dieses Repos.',
     )
   }
   // Deliberately bypasses log(): the lefthook pre-push hook runs this with
   // --quiet, and a scan that does not say what it measured reports "green"
   // without having looked — the same reasoning that keeps failScan() out of
-  // log(). Under --quiet this line was invisible, which is exactly how the
-  // wrong tree went unnoticed until release v26.9.7.
-  process.stderr.write(`${color.cyan}► osv-scanner (lockfile: ./pnpm-lock.yaml — ${lock.origin}) …${color.reset}\n`)
+  // log(). With more than one lockfile "which ones were measured" IS the
+  // information, so every one of them is named with its origin.
+  const measured = locks.map(l => `./${l.rel} — ${l.origin}`).join(', ')
+  process.stderr.write(
+    `${color.cyan}► osv-scanner (${locks.length} Lockfile${locks.length === 1 ? '' : 's'}: ${measured}) …${color.reset}\n`,
+  )
   // osv-scanner v2 syntax: `scan source` subcommand, space-separated flags.
   // The v1 form (`--lockfile=<path> --format=json <dir>`) exits 127 on v2 with
   // "could not determine extractor suitable to this file". Passing repoRoot
   // positionally is not the fix and must not come back: combined with
   // --lockfile it reproduces the very same 127, and on its own it exits 128
   // ("No package sources found") because v2 skips the git root unless
-  // --include-git-root is set. The lockfile alone is the working invocation.
+  // --include-git-root is set. The lockfiles alone are the working invocation;
+  // --lockfile is repeatable and yields one `results` entry per source.
   //
   // --config is NOT optional, even though osv-scanner.toml sits next to the
-  // repo-local lockfile: the tool resolves that config only in the directory of
-  // the scanned manifest, so the temp copy above would silently drop every
-  // IgnoredVuln. Measured on this tree: without the flag two deliberately
-  // ignored image-size advisories (GHSA-5p2g-fcmc-qvqq, GHSA-w3rx-r6r6-pgpr,
-  // CVSS 8.7 each) come back as fresh findings.
-  const osvArgs = ['scan', 'source', '--lockfile', lock.path, '--format', 'json']
+  // repo-root lockfile: the tool resolves that config only in the directory of
+  // the scanned manifest. A lockfile in a subdirectory has none (cloud's
+  // apps/storefront/runtime/), and neither does a temp copy taken from HEAD.
+  // Measured 2026-09-20 with osv-scanner 2.3.8, image-size@0.5.5 injected into a
+  // throwaway copy of cloud's second lockfile: without the flag the two
+  // deliberately ignored advisories (GHSA-5p2g-fcmc-qvqq, GHSA-w3rx-r6r6-pgpr,
+  // CVSS 8.7 each, ignored in BOTH repos' osv-scanner.toml) come back as fresh
+  // findings for that source while the root lockfile stays clean — which is
+  // exactly why the omission goes unnoticed. With the flag the root config
+  // covers every scanned lockfile.
+  const osvArgs = ['scan', 'source', '--format', 'json']
+  for (const l of locks) osvArgs.push('--lockfile', l.path)
   const osvConfig = resolve(repoRoot, 'osv-scanner.toml')
   if (existsSync(osvConfig)) osvArgs.push('--config', osvConfig)
   const result = spawnSync('osv-scanner', osvArgs, {
     encoding: 'utf8',
     maxBuffer: 1024 * 1024 * 64,
   })
-  // The copy has served its purpose; every path below reads only `result`.
-  if (lock.tmpDir) rmSync(lock.tmpDir, { recursive: true, force: true })
+  // The copies have served their purpose; every path below reads only `result`.
+  for (const l of locks) if (l.tmpDir) rmSync(l.tmpDir, { recursive: true, force: true })
   if (result.error) {
     return failScan('osv-scanner', `nicht startbar: ${result.error.message}`)
   }
@@ -219,7 +261,15 @@ const runOsvScanner = () => {
   try {
     const data = JSON.parse(result.stdout || '{}')
     const findings = []
+    // osv-scanner echoes back the path it was handed, which for a HEAD copy is
+    // the temp directory — map it to the repo-relative name the reader knows.
+    // Only attached when more than one lockfile was measured: with a single one
+    // the path is on the header line anyway and would just be noise per finding.
+    const sourceName = new Map(locks.map(l => [l.path, l.rel]))
+    const attribute = src =>
+      locks.length > 1 ? (sourceName.get(src) ?? (src ? relative(repoRoot, src) : undefined)) : undefined
     for (const r of data.results || []) {
+      const lockfile = attribute(r.source?.path)
       for (const pkg of r.packages || []) {
         for (const v of pkg.vulnerabilities || []) {
           const groupSev = pkg.groups?.find(g => g.ids?.includes(v.id))?.max_severity
@@ -236,6 +286,7 @@ const runOsvScanner = () => {
             source: 'osv',
             severity,
             id: v.id,
+            lockfile,
             package: pkg.package?.name,
             version: pkg.package?.version,
             fix: v.affected?.[0]?.ranges?.[0]?.events?.find(e => e.fixed)?.fixed,
@@ -391,7 +442,7 @@ const renderConsole = findings => {
       const loc = f.file
         ? `${f.file}${f.line ? `:${f.line}` : ''}`
         : f.package
-          ? `${f.package}@${f.version || '?'}`
+          ? `${f.package}@${f.version || '?'}${f.lockfile ? ` (./${f.lockfile})` : ''}`
           : ''
       out += `  [${f.source}] ${f.id} ${color.dim}${loc}${color.reset}\n`
       if (f.summary) out += `    ${String(f.summary).split('\n')[0].slice(0, 110)}\n`
@@ -426,7 +477,7 @@ const renderMarkdown = (findings, meta) => {
       const loc = f.file
         ? `\`${f.file}${f.line ? `:${f.line}` : ''}\``
         : f.package
-          ? `\`${f.package}@${f.version || '?'}\``
+          ? `\`${f.package}@${f.version || '?'}\`${f.lockfile ? ` (\`./${f.lockfile}\`)` : ''}`
           : ''
       out += `- **[${f.source}]** ${f.id} ${loc}\n`
       if (f.summary) out += `  - ${String(f.summary).split('\n')[0]}\n`

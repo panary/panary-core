@@ -194,6 +194,33 @@ ESC/POS-Renderer `apps/api-edge/src/print-server/receipt-escpos.renderer.ts`
 - Token-Secret-Provisionierung (O1) für vor-Sync-stabile Edge-lokale Verifikation
   (Cloud-Abruf benötigt sie nicht — Capability-Lookup per gespeichertem Token).
 
+## Nachtrag 2026-09-20 — der Bestellbon trägt keine Verkäufer-Anschrift mehr
+
+Entscheidung 5 dieses ADR macht `print` Edge-only und lässt sie
+`print-server/order-receipt.renderer.ts` wiederverwenden. Dieser Renderer druckt
+seit [core#342](https://github.com/panary/panary-core/issues/342) **keinen
+Filialkopf** mehr — Straße, PLZ/Ort und Telefonnummer entfallen.
+
+Das ist eine bewusste Zwischenlösung, keine Entscheidung gegen die Pflichtangabe:
+`/print-order` rendert **einen** Buffer für **alle** Drucker, eine Druckerrolle
+gibt es nicht. Der Bon geht überwiegend in die Küche, wo die Adresse sinnlos ist;
+wo er als Kundenbeleg dient, fehlt sie jetzt. Er druckt weiterhin Preise, Summe
+und — bei gesetztem `order.tse` — einen TSE-Block.
+
+**Konsequenz:** Solange dieser Zustand gilt, ist der Bestellbon **kein**
+vollständiger Beleg im Sinne von §146a AO. Vollständig wird er wieder mit
+[core#346](https://github.com/panary/panary-core/issues/346) →
+[core#347](https://github.com/panary/panary-core/issues/347) (Druckerrolle + zwei
+Rendervarianten, holt den Kopf für die Quittung zurück) →
+[cloud#487](https://github.com/panary/panary-cloud/issues/487).
+
+Der in Phase 3 genannte `receipt-escpos.renderer.ts` behält seinen Verkäufer-Kopf
+und ist von der Änderung nicht betroffen — er wird allerdings vom Edge aus
+weiterhin **gar nicht aufgerufen** (nur exportiert). Die Belegausgabe am Edge
+hängt damit faktisch am Bestellbon. Details und die Messung des zugehörigen
+Zentrierungsfehlers:
+[Print-Server-API §10–11](../integrations/print-server-api.md).
+
 ## Status
 
 Entschieden 2026-05-29 (Recherche Recht + Wettbewerb + zwei Architektur-

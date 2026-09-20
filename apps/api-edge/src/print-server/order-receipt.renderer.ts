@@ -63,11 +63,19 @@ export function renderOrderReceipt(
   enc.align('center').size(2, 2).invert(true).text(dineLabel).invert(false).size(1, 1)
   enc.newline()
 
-  // Abholzeit direkt unter dem Badge — das ist die Angabe, die die Küche braucht.
-  // Quelle ist `estimatedDuration` (Minuten) auf `recordingDate`; `targetCompletionAt`
-  // steht zwar im Schema, wird aber nirgends geschrieben (#342). Dieselbe Rechnung
-  // wie `order.service.ts:302`.
-  enc.align('center').bold(true).size(2, 2).line(pickupLabel(order, timeZone)).size(1, 1).bold(false)
+  // Abholzeit direkt unter dem Badge — das ist die Angabe, die die Küche braucht,
+  // und deshalb die groesste Zeile nach der Bestellnummer. Quelle ist
+  // `estimatedDuration` (Minuten) auf `recordingDate`; `targetCompletionAt` steht
+  // zwar im Schema, wird aber nirgends geschrieben (#342). Dieselbe Rechnung wie
+  // `order.service.ts:302`.
+  const pickup = pickupLabel(order, timeZone)
+  enc
+    .align('center')
+    .bold(true)
+    .size(pickupWidth(pickup, cols), 3)
+    .line(pickup)
+    .size(1, 1)
+    .bold(false)
 
   enc.align('left')
   enc.newline()
@@ -299,7 +307,18 @@ function pickupLabel(order: any, timeZone: string): string {
   const recorded = new Date(order.recordingDate)
   if (Number.isNaN(recorded.getTime())) return 'SOFORT'
 
-  return formatPrintTime(new Date(recorded.getTime() + minutes * 60_000), timeZone)
+  return `Abholung ${formatPrintTime(new Date(recorded.getTime() + minutes * 60_000), timeZone)}`
+}
+
+// Groesste Zeichenbreite, bei der die Zeile noch in EINE Zeile passt.
+//
+// Gemessen: `Abholung 12:15` sind 14 Zeichen. Auf 80 mm (48 Spalten) traegt
+// dreifache Breite 16 Spalten — passt. Auf 58 mm (32 Spalten) waeren es 10, die
+// Zeile braeche in „Abholung" / „12:15" um. Die Hoehe bleibt davon unberuehrt:
+// Sie ist es, die den Bon aus zwei Metern lesbar macht, und sie kostet keine
+// Spalten. `SOFORT` passt in beiden Breiten dreifach.
+function pickupWidth(label: string, cols: number): number {
+  return label.length * 3 <= cols ? 3 : 2
 }
 
 // ─── Artikel-Rendering mit voller Encoder-Kontrolle ───

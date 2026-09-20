@@ -609,12 +609,25 @@ nicht aufgerufen (nur exportiert), siehe
 
 ### Abholzeit statt Registrierungszeit
 
-Unter dem `INNEN`/`AUSSEN`-Badge steht in doppelter Größe die **Abholzeit**:
+Unter dem `INNEN`/`AUSSEN`-Badge steht die **Abholzeit** — nach der Bestellnummer
+die größte Zeile des Bons:
 
 | `estimatedDuration` | Ausgabe |
 |---|---|
-| > 0 | `recordingDate + estimatedDuration`, formatiert über `formatPrintTime` |
-| 0 oder fehlend | `SOFORT` |
+| > 0 | `Abholung <hh:mm>` aus `recordingDate + estimatedDuration`, formatiert über `formatPrintTime` |
+| 0 oder fehlend | `SOFORT` — ohne Präfix; „Abholung SOFORT" wäre eine Zeitangabe, die keine ist |
+
+**Die Schriftbreite richtet sich danach, was noch in eine Zeile passt** (`pickupWidth()`).
+Die Höhe ist immer dreifach — sie macht den Bon aus zwei Metern lesbar und kostet
+keine Spalten. Gemessen:
+
+| Papier | Spalten | `Abholung 12:15` (14 Zeichen) | gewählt |
+|---|---|---|---|
+| 80 mm | 48 | dreifach = 16 Spalten, passt | `size(3, 3)` |
+| 58 mm | 32 | dreifach = 10 Spalten, bräche um | `size(2, 3)` |
+
+Ohne diese Fallunterscheidung stünde auf 58 mm „Abholung" über „12:15" — ein
+Umbruch, der wie ein Versehen aussieht.
 
 Die Fertigungszeit ist `estimatedDuration` (Minuten, aus der Kachelauswahl des
 Bestelldialogs) — **nicht** `Order.targetCompletionAt`. Das Feld steht im Schema

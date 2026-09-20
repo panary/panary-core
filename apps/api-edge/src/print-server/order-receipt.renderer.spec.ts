@@ -278,9 +278,9 @@ describe('order-receipt.renderer — Kopfbereich (#342)', () => {
   })
 
   describe('Abholzeit unter dem Badge', () => {
-    it('druckt bei Fertigungszeit die Uhrzeit in Filialzeit', () => {
+    it('druckt bei Fertigungszeit die Uhrzeit in Filialzeit, mit Praefix', () => {
       // 12:00 Ortszeit (10:00 UTC) + 15 min
-      expect(renderToText(kopfOrder(), locationMitKopf)).toContain('12:15')
+      expect(renderToText(kopfOrder(), locationMitKopf)).toContain('Abholung 12:15')
     })
 
     it('rechnet die Abholzeit in der Zone der Filiale, nicht der des Prozesses', () => {
@@ -289,8 +289,35 @@ describe('order-receipt.renderer — Kopfbereich (#342)', () => {
         settings: { ...location.settings, generalSettings: { timezone } },
       })
 
-      expect(renderToText(kopfOrder(), inZone('America/New_York'))).toContain('06:15')
-      expect(renderToText(kopfOrder(), inZone('UTC'))).toContain('10:15')
+      expect(renderToText(kopfOrder(), inZone('America/New_York'))).toContain('Abholung 06:15')
+      expect(renderToText(kopfOrder(), inZone('UTC'))).toContain('Abholung 10:15')
+    })
+
+    // Die Zeile ist die groesste nach der Bestellnummer; ihre Breite richtet sich
+    // danach, was noch in EINE Zeile passt. Bei dreifacher Breite braeche
+    // `Abholung 12:15` auf 58 mm in zwei Zeilen um — dann stuende „Abholung" ueber
+    // „12:15" und saehe aus wie ein Versehen.
+    it.each([
+      ['80mm', 48],
+      ['58mm', 32],
+    ])('legt die Abholzeit auf %s in genau eine Zeile', (paperWidth, columns) => {
+      const zeilen = kopfZeilen(kopfOrder(), locationMitKopf, paperWidth)
+      const treffer = zeilen.filter((z) => z.text.includes('Abholung') || z.text.includes('12:15'))
+
+      expect(treffer).toHaveLength(1)
+      expect(treffer[0].text.trim()).toBe('Abholung 12:15')
+      expect(Math.abs(centerOffsetDots(treffer[0], columns))).toBeLessThanOrEqual(treffer[0].charDots)
+    })
+
+    it('druckt die Abholzeit groesser als das Badge darueber', () => {
+      const zeilen = kopfZeilen(kopfOrder(), locationMitKopf)
+      const badge = zeilen.find((z) => z.text.includes('AUSSEN'))
+      const abholzeit = zeilen.find((z) => z.text.includes('Abholung'))
+
+      // charDots ist die Zellenbreite — bei gleicher Breite entscheidet die Hoehe,
+      // die der Decoder nicht misst. Auf 80 mm ist die Abholzeit dreifach breit,
+      // das Badge doppelt, der Vergleich traegt also.
+      expect(abholzeit!.charDots).toBeGreaterThan(badge!.charDots)
     })
 
     it('druckt SOFORT bei Fertigungszeit 0 — und keine Uhrzeit an dessen Stelle', () => {
@@ -301,6 +328,8 @@ describe('order-receipt.renderer — Kopfbereich (#342)', () => {
       // Die Zeile unter dem Badge traegt SOFORT und nichts Uhrzeitfoermiges. Die
       // Bestellzeit im Metablock bleibt davon unberuehrt — sie ist ein anderes
       // Datum und steht weiter unten.
+      // Ohne Fertigungszeit gibt es nichts zu praefixieren — „Abholung SOFORT"
+      // waere eine Zeitangabe, die keine ist.
       expect(zeilen[badge + 1].text.trim()).toBe('SOFORT')
       expect(zeilen[badge + 1].text).not.toMatch(/\d{1,2}:\d{2}/)
       expect(renderToText(kopfOrder({ estimatedDuration: 0 }), locationMitKopf)).toContain('Bestellzeit: 12:00 Uhr')

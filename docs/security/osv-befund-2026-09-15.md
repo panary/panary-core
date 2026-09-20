@@ -61,3 +61,13 @@ für GHSA-vwc7-r8mq-g2x9.
 
 Die Dependabot-Alerts (#316 adm-zip) schließen sich, sobald `main` die neuen Versionen trägt;
 für rustls hat GitHub keinen Alert angelegt.
+
+**Nachtrag 2026-09-20 — diese Verifikation führt im Haupt-Checkout in die Irre.**
+Beide Befehle oben lesen `pnpm-lock.yaml` relativ zum Arbeitsverzeichnis, und in
+`_WORKBENCH_PANARY/panary-core/` ist das ein Symlink aufs Workbench-Root-Lockfile.
+Dort greift der Override-Floor `adm-zip ^0.6.1` nicht: Der `grep` liefert am
+2026-09-20 `adm-zip@0.6.0`, meldet den korrekt gesetzten Floor also als
+gescheitert. Im Worktree — wo laut Konvention gearbeitet wird — liefert er
+`0.6.1`. Beide Prüfungen gehören deshalb in einen Worktree, nicht in den
+Haupt-Checkout. Hintergrund und Korrektur des Scan-Skripts:
+[Lockfile-Auflösung über einen Symlink](security-scan-lockfile-aufloesung.md).

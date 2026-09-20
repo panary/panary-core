@@ -21,7 +21,7 @@
 
 import { execSync, spawnSync } from 'node:child_process'
 import { writeFileSync, mkdirSync, existsSync, lstatSync, realpathSync, mkdtempSync, rmSync } from 'node:fs'
-import { resolve, dirname, join, sep } from 'node:path'
+import { resolve, dirname, join, sep, relative } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 
@@ -102,15 +102,25 @@ const detectRepo = () => {
 
 // ---------- Local scanners ----------
 
-// WHICH lockfiles describe this repo? The set is taken from the git index, not
-// from guessed candidates: `git ls-files` yields exactly the committed ones and
-// excludes node_modules/, build artefacts under dist/ and the ephemeral
-// worktrees under .claude/worktrees/ — a find/glob excludes none of those.
-// Measured 2026-09-20: one tracked lockfile here against 21 hits for a naive
-// glob, 18 of them stale copies in .nx/cache/. A future second lockfile is
-// picked up on its own instead of staying silently unmeasured — the very gap
-// panary-cloud had to close in panary/panary-cloud#490, where a second
-// committed lockfile had never been scanned locally while CI covered it.
+// WHICH lockfiles describe this repo? Not a fixed name and not the same count
+// in both: panary-cloud has TWO committed ones (the workspace root plus
+// apps/storefront/runtime/pnpm-lock.yaml, the closure shipped as the storefront
+// production image), panary-core has ONE. This file is kept byte-identical
+// across both repos, so it must not hard-wire either shape.
+//
+// The set is taken from the git index, not from guessed candidates:
+// `git ls-files` yields exactly the committed ones and excludes node_modules/,
+// build artefacts under dist/ and the ephemeral worktrees under
+// .claude/worktrees/ — a find/glob excludes none of those. Measured 2026-09-20
+// in panary-core: one tracked lockfile against 21 hits for a naive glob, 18 of
+// them stale copies in .nx/cache/.
+//
+// An additional lockfile is picked up on its own instead of staying silently
+// unmeasured — the very gap panary-cloud had to close in
+// panary/panary-cloud#490, where a second committed lockfile had never been
+// scanned locally while CI covered it through `--recursive ./`. Measured there
+// with adm-zip@0.6.0 injected into a throwaway copy of that second lockfile:
+// old 0 findings, new 2, one of them high.
 const trackedLockfiles = () => {
   const ls = spawnSync('git', ['-C', repoRoot, 'ls-files', '*pnpm-lock.yaml'], { encoding: 'utf8' })
   if (ls.status !== 0) return []
@@ -121,13 +131,15 @@ const trackedLockfiles = () => {
 }
 
 // A candidate that is a symlink pointing OUT of the repo is rejected and the
-// committed state measured instead. This is not a precaution here, it is the
-// normal state of the main checkout: _WORKBENCH_PANARY/panary-core/pnpm-lock.yaml
+// committed state measured instead. In panary-core this is not a precaution but
+// the normal state of the main checkout: _WORKBENCH_PANARY/panary-core/pnpm-lock.yaml
 // is a SYMLINK to ../pnpm-lock.yaml (the workbench root, held on skip-worktree).
 // The symlink is deliberate and must stay — see
 // .claude/rules/workflow-plan-issue-worktree.md §3. existsSync() follows it, so
 // the repo-local candidate always hit and the scan measured the WORKBENCH
-// dependency tree, never panary-core's (#354).
+// dependency tree, never panary-core's (panary/panary-core#354). panary-cloud is
+// not affected — real committed files (Option A) — where the guard costs one
+// lstat per lockfile and keeps the two copies identical.
 //
 // Measured 2026-09-20 with osv-scanner 2.3.8: the workbench root resolved
 // adm-zip@0.6.0 (GHSA-7q85-xj36-vmfc, high) and postcss-selector-parser@7.1.1,
@@ -205,7 +217,8 @@ const runOsvScanner = () => {
   // --quiet, and a scan that does not say what it measured reports "green"
   // without having looked — the same reasoning that keeps failScan() out of
   // log(). Under --quiet this line was invisible, which is exactly how the
-  // wrong tree went unnoticed until release v26.9.7. With more than one
+  // wrong tree went unnoticed in panary-core until release v26.9.7. With more
+  // than one
   // lockfile "which ones were measured" IS the information, so every one of
   // them is named with its origin.
   const measured = locks.map(l => `./${l.rel} — ${l.origin}`).join(', ')
@@ -222,14 +235,22 @@ const runOsvScanner = () => {
   // --lockfile is repeatable and yields one `results` entry per source.
   //
   // --config is NOT optional, even though osv-scanner.toml sits next to the
-  // repo-local lockfile: the tool resolves that config only in the directory of
-  // the scanned manifest, and a temp copy from HEAD has none next to it — which
-  // is the normal path in the main checkout. Measured 2026-09-20 on this tree:
-  // scanning the committed lockfile from a temp directory without the flag
-  // brings back the two deliberately ignored image-size advisories
-  // (GHSA-5p2g-fcmc-qvqq, GHSA-w3rx-r6r6-pgpr, CVSS 8.7 each); with the flag
-  // they stay filtered. The config covers every scanned lockfile — but only
-  // when passed explicitly.
+  // repo-root lockfile: the tool resolves that config only in the directory of
+  // the scanned manifest. Two ways to leave that directory, one per repo, and
+  // both were measured on 2026-09-20 with osv-scanner 2.3.8 — each time the two
+  // deliberately ignored image-size advisories (GHSA-5p2g-fcmc-qvqq,
+  // GHSA-w3rx-r6r6-pgpr, CVSS 8.7 each, ignored in BOTH repos' osv-scanner.toml)
+  // came back without the flag and stayed filtered with it:
+  //
+  //   - a temp copy from HEAD has no config next to it — the normal path in
+  //     panary-core's main checkout, where the worktree file is a symlink;
+  //   - a lockfile in a subdirectory has none either — panary-cloud's
+  //     apps/storefront/runtime/. There the root lockfile stays clean while only
+  //     the second one lights up, which is exactly why the omission goes
+  //     unnoticed.
+  //
+  // The root config covers every scanned lockfile — but only when passed
+  // explicitly.
   const osvArgs = ['scan', 'source', '--format', 'json']
   for (const l of locks) osvArgs.push('--lockfile', l.path)
   const osvConfig = resolve(repoRoot, 'osv-scanner.toml')
@@ -257,7 +278,16 @@ const runOsvScanner = () => {
   try {
     const data = JSON.parse(result.stdout || '{}')
     const findings = []
+    // osv-scanner echoes back the path it was handed, which for a HEAD copy is
+    // the temp directory — map it to the repo-relative name the reader knows.
+    // Only attached when more than one lockfile was measured: with a single one
+    // the path is on the header line anyway and would just be noise per finding.
+    // Inert in panary-core today, load-bearing in panary-cloud.
+    const sourceName = new Map(locks.map(l => [l.path, l.rel]))
+    const attribute = src =>
+      locks.length > 1 ? (sourceName.get(src) ?? (src ? relative(repoRoot, src) : undefined)) : undefined
     for (const r of data.results || []) {
+      const lockfile = attribute(r.source?.path)
       for (const pkg of r.packages || []) {
         for (const v of pkg.vulnerabilities || []) {
           const groupSev = pkg.groups?.find(g => g.ids?.includes(v.id))?.max_severity
@@ -274,6 +304,7 @@ const runOsvScanner = () => {
             source: 'osv',
             severity,
             id: v.id,
+            lockfile,
             package: pkg.package?.name,
             version: pkg.package?.version,
             fix: v.affected?.[0]?.ranges?.[0]?.events?.find(e => e.fixed)?.fixed,
@@ -429,7 +460,7 @@ const renderConsole = findings => {
       const loc = f.file
         ? `${f.file}${f.line ? `:${f.line}` : ''}`
         : f.package
-          ? `${f.package}@${f.version || '?'}`
+          ? `${f.package}@${f.version || '?'}${f.lockfile ? ` (./${f.lockfile})` : ''}`
           : ''
       out += `  [${f.source}] ${f.id} ${color.dim}${loc}${color.reset}\n`
       if (f.summary) out += `    ${String(f.summary).split('\n')[0].slice(0, 110)}\n`
@@ -464,7 +495,7 @@ const renderMarkdown = (findings, meta) => {
       const loc = f.file
         ? `\`${f.file}${f.line ? `:${f.line}` : ''}\``
         : f.package
-          ? `\`${f.package}@${f.version || '?'}\``
+          ? `\`${f.package}@${f.version || '?'}\`${f.lockfile ? ` (\`./${f.lockfile}\`)` : ''}`
           : ''
       out += `- **[${f.source}]** ${f.id} ${loc}\n`
       if (f.summary) out += `  - ${String(f.summary).split('\n')[0]}\n`

@@ -20,8 +20,9 @@
 //   2  usage error, or a requested scanner delivered no result at all
 
 import { execSync, spawnSync } from 'node:child_process'
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs'
-import { resolve, dirname } from 'node:path'
+import { writeFileSync, mkdirSync, existsSync, lstatSync, realpathSync, mkdtempSync, rmSync } from 'node:fs'
+import { resolve, dirname, join, sep } from 'node:path'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -101,32 +102,106 @@ const detectRepo = () => {
 
 // ---------- Local scanners ----------
 
+// Which lockfile describes THIS repo? In a worktree the answer is trivial: a
+// real, committed pnpm-lock.yaml. In the _WORKBENCH_PANARY main checkout it is
+// a SYMLINK to ../pnpm-lock.yaml (the workbench root, held on skip-worktree).
+// The symlink is deliberate and must stay — see
+// .claude/rules/workflow-plan-issue-worktree.md §3. existsSync() follows it, so
+// the repo-local candidate always hit and the scan measured the WORKBENCH
+// dependency tree, never panary-core's.
+//
+// Measured 2026-09-20 with osv-scanner 2.3.8: the workbench root resolves
+// adm-zip@0.6.0 (GHSA-7q85-xj36-vmfc, high) and postcss-selector-parser@7.1.1,
+// while core's own lockfile pins 0.6.1 / 7.1.6 through pnpm.overrides — three
+// findings in the main checkout against zero in a worktree of the same commit.
+// The high finding at release v26.9.7 came from the workbench's
+// @module-federation/dts-plugin and is not in the shipped edge image. The
+// inverse is the worse half: an advisory sitting ONLY in core's lockfile stayed
+// invisible locally, so "locally green" proved nothing about core.
+//
+// A candidate that is a symlink out of the repo is therefore rejected and the
+// committed state is measured instead. The parent-directory fall-back is gone
+// for good — that candidate WAS the bug, and a neighbouring tree is never an
+// answer to "what does this repo depend on".
+const escapesRepo = p => {
+  try {
+    if (!lstatSync(p).isSymbolicLink()) return false
+    return !realpathSync(p).startsWith(realpathSync(repoRoot) + sep)
+  } catch {
+    // Broken link or unreadable target — nothing measurable either way.
+    return true
+  }
+}
+
+const lockfileFromHead = () => {
+  const show = spawnSync('git', ['-C', repoRoot, 'show', 'HEAD:pnpm-lock.yaml'], {
+    encoding: 'utf8',
+    maxBuffer: 1024 * 1024 * 64,
+  })
+  if (show.status !== 0 || !show.stdout) return null
+  // osv-scanner v2 picks its extractor by FILE NAME, so the copy has to be
+  // called pnpm-lock.yaml — a temp directory, not a temp file. Naming it
+  // anything else reproduces the v2 error "could not determine extractor
+  // suitable to this file" documented below.
+  const dir = mkdtempSync(join(tmpdir(), 'panary-osv-'))
+  writeFileSync(join(dir, 'pnpm-lock.yaml'), show.stdout)
+  const sha = spawnSync('git', ['-C', repoRoot, 'rev-parse', '--short', 'HEAD'], { encoding: 'utf8' })
+  return {
+    path: join(dir, 'pnpm-lock.yaml'),
+    tmpDir: dir,
+    origin: `committeter Stand HEAD@${(sha.stdout || '?').trim()}, Arbeitsbaum-Datei zeigt aus dem Repo heraus`,
+  }
+}
+
+const resolveLockfile = () => {
+  const local = resolve(repoRoot, 'pnpm-lock.yaml')
+  if (existsSync(local) && !escapesRepo(local)) {
+    return { path: local, tmpDir: null, origin: 'Arbeitsbaum' }
+  }
+  return lockfileFromHead()
+}
+
 const runOsvScanner = () => {
   if (!hasTool('osv-scanner')) {
     return failScan('osv-scanner', 'nicht installiert — bash scripts/install-security-tools.sh')
   }
-  // Lockfile-Discovery: prefer repo-local, fall back to workspace-root parent.
-  // panary-core and panary-cloud share a single pnpm-lock.yaml in _WORKBENCH_PANARY/.
-  const candidates = [resolve(repoRoot, 'pnpm-lock.yaml'), resolve(repoRoot, '..', 'pnpm-lock.yaml')]
-  const lockfile = candidates.find(p => existsSync(p))
-  if (!lockfile) {
-    return failScan('osv-scanner', `pnpm-lock.yaml nicht gefunden (gesucht: ${candidates.join(', ')})`)
+  const lock = resolveLockfile()
+  if (!lock) {
+    return failScan(
+      'osv-scanner',
+      'kein Lockfile messbar — weder eine repo-eigene pnpm-lock.yaml noch `git show HEAD:pnpm-lock.yaml`. ' +
+        'Kein Rückfall auf das Elternverzeichnis: dessen Abhängigkeitsbaum ist nicht der dieses Repos.',
+    )
   }
-  log(
-    `${color.cyan}► osv-scanner (lockfile: ${lockfile.replace(repoRoot + '/', './').replace(repoRoot, '.')}) …${color.reset}`,
-  )
+  // Deliberately bypasses log(): the lefthook pre-push hook runs this with
+  // --quiet, and a scan that does not say what it measured reports "green"
+  // without having looked — the same reasoning that keeps failScan() out of
+  // log(). Under --quiet this line was invisible, which is exactly how the
+  // wrong tree went unnoticed until release v26.9.7.
+  process.stderr.write(`${color.cyan}► osv-scanner (lockfile: ./pnpm-lock.yaml — ${lock.origin}) …${color.reset}\n`)
   // osv-scanner v2 syntax: `scan source` subcommand, space-separated flags.
   // The v1 form (`--lockfile=<path> --format=json <dir>`) exits 127 on v2 with
   // "could not determine extractor suitable to this file". Passing repoRoot
   // positionally is not the fix and must not come back: combined with
   // --lockfile it reproduces the very same 127, and on its own it exits 128
   // ("No package sources found") because v2 skips the git root unless
-  // --include-git-root is set. The lockfile alone is the working invocation —
-  // osv-scanner.toml is still picked up, it is resolved next to the lockfile.
-  const result = spawnSync('osv-scanner', ['scan', 'source', '--lockfile', lockfile, '--format', 'json'], {
+  // --include-git-root is set. The lockfile alone is the working invocation.
+  //
+  // --config is NOT optional, even though osv-scanner.toml sits next to the
+  // repo-local lockfile: the tool resolves that config only in the directory of
+  // the scanned manifest, so the temp copy above would silently drop every
+  // IgnoredVuln. Measured on this tree: without the flag two deliberately
+  // ignored image-size advisories (GHSA-5p2g-fcmc-qvqq, GHSA-w3rx-r6r6-pgpr,
+  // CVSS 8.7 each) come back as fresh findings.
+  const osvArgs = ['scan', 'source', '--lockfile', lock.path, '--format', 'json']
+  const osvConfig = resolve(repoRoot, 'osv-scanner.toml')
+  if (existsSync(osvConfig)) osvArgs.push('--config', osvConfig)
+  const result = spawnSync('osv-scanner', osvArgs, {
     encoding: 'utf8',
     maxBuffer: 1024 * 1024 * 64,
   })
+  // The copy has served its purpose; every path below reads only `result`.
+  if (lock.tmpDir) rmSync(lock.tmpDir, { recursive: true, force: true })
   if (result.error) {
     return failScan('osv-scanner', `nicht startbar: ${result.error.message}`)
   }

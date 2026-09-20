@@ -176,6 +176,49 @@ Bei mehreren Lockfiles wird jedes mit seiner Herkunft genannt, durch Komma getre
 Dann ist „welche wurden gemessen“ die eigentliche Information. Aus demselben Grund legt
 `lockfileFromHead` sein Temp-Verzeichnis **je Lockfile** an, statt eines für alle.
 
+## Nachtrag 2026-09-20: Wieder byte-identisch mit panary-cloud
+
+Der Nachtrag oben hielt fest, die beiden Dateien seien nicht byte-identisch und
+**sollten** es nicht sein — Gleichheit wäre nur um den Preis falscher Kommentare zu
+haben. Das ist ein falsches Dilemma, und der Grund ist banal: Ein Kommentar muss nicht
+„dieses Repo" sagen. Nennt er beide Repos, ist er in beiden wahr.
+
+```
+// panary-cloud has TWO committed ones …, panary-core has ONE. This file is kept
+// byte-identical across both repos, so it must not hard-wire either shape.
+```
+
+**Der Preis des Nicht-Gleichseins war höher als gedacht** — und er ist an diesem Tag
+zweimal fast fällig geworden. Beide Fassungen trugen **bare Issue-Nummern**, die im
+jeweils anderen Repo auf etwas völlig anderes zeigen:
+
+| Nummer | in panary-core | in panary-cloud |
+| --- | --- | --- |
+| `#354` | Lockfile-Auflösung (dieser Befund) | Rollenlisten-Drift |
+| `#274` | Kassenbon druckt Uhrzeit in UTC | osv-scanner v2, Scans hart fehlschlagen |
+| `#490` | *(existiert noch nicht)* | zwei Lockfiles |
+
+Genau deshalb konnte keine Seite die andere wörtlich übernehmen, obwohl beide dasselbe
+Werkzeug pflegen — und genau deshalb passiert beim nächsten Kopierversuch dasselbe
+wieder. Issue-Verweise sind in dieser Datei jetzt **vollqualifiziert**
+(`panary/panary-core#354`), repo-spezifische Tatsachen benennen ihr Repo.
+
+**Mitgenommen wurde die eine Stelle, an der core wirklich zurücklag:** die
+Quellenzuordnung je Befund (`lockfile`-Feld plus Suffix in beiden Renderern). Sie ist
+hier heute **inert** — angehängt wird sie erst ab dem zweiten gemessenen Lockfile, und
+davon gibt es eines. Sie fehlte aber genau für den Fall, für den der Umbau oben gebaut
+wurde: ein künftiges zweites Lockfile.
+
+Gemessen, dass sich am Verhalten nichts ändert (`origin/main` @ `be5ff333`,
+osv-scanner 2.3.8) — die Ausgabezeile ist in beiden Lagen **zeichengleich** zum
+Vorzustand:
+
+| Lage | alter Stand | neuer Stand |
+| --- | --- | --- |
+| Arbeitsbaum | `1 Lockfile: ./pnpm-lock.yaml — Arbeitsbaum` | identisch |
+| lebender Symlink aus dem Repo heraus | `… — committeter Stand HEAD@be5ff333, …` | identisch |
+| `adm-zip@0.6.0` eingeschleust | — | 2 Befunde, **ohne** Quellenangabe (korrekt inert) |
+
 ## Was das nicht löst
 
 - **Eine uncommittete Lockfile-Änderung bleibt im Haupt-Checkout unsichtbar.** Gemessen
@@ -192,11 +235,18 @@ Dann ist „welche wurden gemessen“ die eigentliche Information. Aus demselben
   einzige Skript in `scripts/` ohne `.spec.mjs`; [#362](https://github.com/panary/panary-core/issues/362)
   holt das nach.
 - **Gemessen wurde nur macOS mit osv-scanner 2.3.8.**
-- **core und cloud teilen die Auflösung wieder, sind aber nicht byte-identisch** und
-  sollen es nicht sein: Die Kommentare nennen repo-eigene Fakten — in cloud das zweite
-  Lockfile, hier den Symlink des Haupt-Checkouts. Gleichheit wäre nur um den Preis
-  falscher Kommentare zu haben. Wer eine Seite ändert, prüft die andere von Hand;
-  ein Gate dafür gibt es nicht.
+- ~~**core und cloud teilen die Auflösung wieder, sind aber nicht byte-identisch** und
+  sollen es nicht sein.~~ **Überholt am 2026-09-20** — siehe
+  [Nachtrag](#nachtrag-2026-09-20-wieder-byte-identisch-mit-panary-cloud): Der Preis
+  falscher Kommentare fällt nicht an, wenn die Kommentare **beide** Repos benennen.
+- **Byte-Identität ist ein Zustand, kein Gate.** Nichts hindert den nächsten
+  einseitigen Edit, und keine der beiden CIs prüft die Dateien gegeneinander. Wer eine
+  Seite ändert, prüft die andere von Hand:
+
+  ```bash
+  diff <(git -C panary-core show origin/main:scripts/security-scan.mjs) \
+       <(git -C panary-cloud show origin/main:scripts/security-scan.mjs)
+  ```
 
 ## Verwandt
 

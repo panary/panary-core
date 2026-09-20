@@ -723,7 +723,51 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       this.setInfoBoxText('Bitte fügen Sie zunächst mindestens ein Artikel der Bestellung hinzu!', 'red')
       return
     }
+    // INNEN fragt nicht mehr nach einer Fertigungszeit (#343): Was am Tisch bleibt,
+    // geht sofort raus. `estimatedDuration === 0` ist die abgestimmte Kodierung fuer
+    // „sofort" — es gibt bewusst kein eigenes Feld dafuer.
+    //
+    // Die Abzweigung sitzt HIER und nicht in `selectDineLocation`, weil fuenf
+    // Aufrufstellen in diese Methode muenden: `selectDineLocation` ohne Pager, beide
+    // Ausgaenge der Tischwahl (`setTableSubbuttons`) und beide der Pagerwahl
+    // (`setPagerSubbuttons`). Nur am gemeinsamen Endpunkt bleibt die Pager-/Tisch-
+    // Kette vollstaendig erhalten — eine Abzweigung weiter vorn haette sie gekappt.
+    //
+    // Eine FEHLENDE Auswahl zaehlt mit: `placeOrder` bucht sie ohnehin als DINE_IN
+    // (`dineLocation: !this._dineLocation ? DineLocation.DINE_IN : …`). Ohne diesen
+    // Zweig zeigte der Dialog ein Minutenraster fuer eine Bestellung, die als INNEN
+    // in der Datenbank landet.
+    if (!this._dineLocation || this._dineLocation === DineLocation.DINE_IN) {
+      this._productionTime = 0
+      void this.placeOrder()
+      return
+    }
+
     this.setInfoBoxText('Wie lange beträgt die Produktions-ZEIT?')
+
+    // SOFORT steht im Funktionsblock, NICHT als erste Kachel im Minutenraster.
+    // Das Raster ist Touch-Bedienung unter Zeitdruck: Eine vorangestellte Kachel
+    // wuerde jeden Minutenwert um eine Position verschieben, und der Griff nach
+    // „15 min" landete auf „10 min". Im Funktionsblock sitzt SOFORT gut erreichbar
+    // oben links, waehrend die Minutenkacheln exakt dort bleiben, wo sie waren.
+    this._functionButtons.push({
+      _id: 'productionTimeImmediate',
+      externalId: this.#functionButtonExternalId,
+      locationId: this.userService.currentUser()?.activeLocationId || '',
+      tenantId: this.authService.tenantId()?.toString() || '',
+      index: 0,
+      name: 'Sofort',
+      isFunctionButton: true,
+      productionTime: 0,
+      variant: 'confirm',
+      icon: 'bolt',
+      callback: () => {
+        this._productionTime = 0
+        void this.placeOrder()
+      },
+    })
+    this._functionBlockLabel = 'Fertigungszeit'
+
     this._productionTimes.forEach((value, index) => {
       this._productButtons.push({
         _id: value.toString() + ' min',
@@ -747,6 +791,14 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this._isBlocked) return
 
     this.clearButtons()
+
+    // Fertigungszeit auf den Anfangswert zuruecksetzen. Heute kann hier nichts
+    // stehenbleiben — jeder Dialogaufruf ist eine frische Instanz (`MatDialog.open`
+    // ohne `data`), und `_productionTime` wird sonst nur im Minuten-Callback gesetzt.
+    // Der Reset ist trotzdem gesetzt, weil dies der Einstieg in den Abschluss ist:
+    // Sobald es einen Weg zurueck in diese Auswahl gibt, entscheidet genau diese
+    // Zeile, ob eine verworfene Minutenwahl an der naechsten Bestellung klebt.
+    this._productionTime = 0
 
     if (this.lineItems.length === 0 && this.combinations.length === 0) {
       this.setInfoBoxText('Bitte fügen Sie zunächst mindestens ein Artikel der Bestellung hinzu!', 'red')

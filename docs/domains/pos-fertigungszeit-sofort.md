@@ -2,7 +2,7 @@
 type: Domain Concept
 title: Fertigungszeit am POS — „Sofort", die Abschlusskette und die Kodierung der Null
 description: Wie der Bestelldialog die Fertigungszeit erfragt, warum Innen sie überspringt und Außen eine Sofort-Kachel im Funktionsblock bekommt, was estimatedDuration = 0 bedeutet und wie die Abholzeit einer Vorbestellung die Konvertierung überlebt.
-tags: [orders, pos-client, locations]
+tags: [orders, pre-orders, pos-client, locations]
 status: stable
 generated: { by: claude-code/opus-5, at: 2026-09-20T00:00:00.000Z }
 ---

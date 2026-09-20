@@ -1,6 +1,18 @@
 /**
  * Vorlaufzeit einer konvertierten Vorbestellung in Minuten (#344).
  *
+ * 👯 **Zwilling in panary-cloud:**
+ * `apps/api-cloud/src/services/pre-orders/scheduled-lead-time.ts` (cloud#489).
+ * Beide Repos tragen eine eigene, vollstaendige `convert()`-Implementierung — diese
+ * hier fuer Telefon-Vorbestellungen am POS, die Cloud-Fassung fuer
+ * Storefront-Bestellungen. Die Rechnung ist **bewusst dupliziert** statt geteilt:
+ * Eine gemeinsame Lib laege in `libs/domains/pre-orders` und zoege fuer fuenf Zeilen
+ * Core-Release + Cloud-Pin-Bump nach sich. 🚨 **Wer eine der beiden Fassungen
+ * aendert, aendert die andere mit.** Genau das ist hier schon einmal unterblieben:
+ * #344 reparierte diese Haelfte, die Cloud verwarf die Abholzeit weiter, und der
+ * Kommentar „identisch zum Edge" dort stimmte ab dem Merge nicht mehr — nachgezogen
+ * erst mit cloud#489. Es gibt kein Gate, das die beiden vergleicht.
+ *
  * Eine Vorbestellung traegt ihre vereinbarte Abholzeit in `scheduledFor`. Beim
  * Konvertieren entsteht daraus eine Order, deren `recordingDate` der
  * **Konvertierungszeitpunkt** ist — nicht die Abholzeit. Bis #344 stand dort fest

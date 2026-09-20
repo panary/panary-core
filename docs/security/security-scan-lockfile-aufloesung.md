@@ -164,6 +164,18 @@ Zwei Annahmen, die der Umbau neu einführt, sind geprüft statt unterstellt:
 Der Rückfall geht nie aufs Elternverzeichnis — der Nachbarbaum war der ursprüngliche
 Fehler und bleibt es.
 
+**Die Ausgabezeile hat dabei ihr Format geändert** — wer danach greppt, sucht seit #360
+nicht mehr nach `(lockfile: …)`, sondern nach der Anzahl davor:
+
+```
+► osv-scanner (1 Lockfile: ./pnpm-lock.yaml — Arbeitsbaum) …
+► osv-scanner (1 Lockfile: ./pnpm-lock.yaml — committeter Stand HEAD@9a4baadd, Arbeitsbaum-Datei zeigt aus dem Repo heraus) …
+```
+
+Bei mehreren Lockfiles wird jedes mit seiner Herkunft genannt, durch Komma getrennt:
+Dann ist „welche wurden gemessen“ die eigentliche Information. Aus demselben Grund legt
+`lockfileFromHead` sein Temp-Verzeichnis **je Lockfile** an, statt eines für alle.
+
 ## Was das nicht löst
 
 - **Eine uncommittete Lockfile-Änderung bleibt im Haupt-Checkout unsichtbar.** Gemessen

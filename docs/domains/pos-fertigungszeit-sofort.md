@@ -4,7 +4,7 @@ title: Fertigungszeit am POS — „Sofort", die Abschlusskette und die Kodierun
 description: Wie der Bestelldialog die Fertigungszeit erfragt, warum Innen sie überspringt und Außen eine Sofort-Kachel im Funktionsblock bekommt, was estimatedDuration = 0 bedeutet und wie die Abholzeit einer Vorbestellung die Konvertierung überlebt.
 tags: [orders, pre-orders, pos-client, locations]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-09-20T00:00:00.000Z }
+generated: { by: claude-code/opus-5, at: 2026-09-21T00:00:00.000Z }
 ---
 
 Die Fertigungszeit ist die Minutenzahl, die der Kassierer am Ende einer Bestellung
@@ -140,13 +140,29 @@ kuenftige Auswertung ueber Kuechenzeiten oder Durchsatz laese es falsch. Heute
 liest es nichts als Dauer aus (gemessen in beiden Repos) — der Tag, an dem das
 nicht mehr stimmt, ist der Tag, an dem Variante B faellig wird.
 
-⚠️ **Der Cloud hat eine zweite, unabhaengige `convert()`-Implementierung**
-(`apps/api-cloud/src/services/pre-orders/pre-orders.class.ts`, laut Kommentar dort
-„identisch zum Edge") fuer Storefront-Vorbestellungen. Sie ist von #344 **nicht**
-mitgefixt und verliert die Abholzeit weiterhin — die beiden Fassungen sind damit
-auseinandergelaufen, und der Kommentar „identisch zum Edge" stimmt nicht mehr.
-Nachgezogen wird das in
-[panary-cloud#489](https://github.com/panary/panary-cloud/issues/489).
+## 👯 Die Cloud hat dieselbe Rechnung ein zweites Mal
+
+`apps/api-cloud/src/services/pre-orders/pre-orders.class.ts` traegt eine eigene,
+vollstaendige `convert()`-Implementierung fuer **Storefront**-Vorbestellungen, mit
+`scheduled-lead-time.ts` unter demselben Namen daneben. #344 hat nur diese Haelfte
+hier repariert; die Cloud verwarf die Abholzeit weiter, und der Kommentar „identisch
+zum Edge" dort stimmte ab dem Merge nicht mehr. Nachgezogen mit
+[panary-cloud#489](https://github.com/panary/panary-cloud/issues/489) (gemergt
+2026-09-20).
+
+**Bewusst dupliziert, nicht geteilt:** Eine gemeinsame Lib laege in
+`libs/domains/pre-orders` und zoege fuer fuenf Zeilen Core-Release + Cloud-Pin-Bump
+nach sich. 🚨 **Kein Test und kein Gate vergleicht die beiden Fassungen** — die
+Absicherung sind die gegenseitigen Verweise in den Kopfkommentaren, sonst nichts. Wer
+eine aendert, aendert die andere mit.
+
+⚠️ **Die Cloud-Haelfte ist heute wirkungslos** — bei cloud#489 gemessen: `orders` ist
+ein Push-Service (Edge→Cloud) und steht nicht in der Master-Data-Pull-Allowlist,
+`pre-orders` in keiner der beiden Listen. Eine cloud-seitig angenommene
+Storefront-Bestellung erreicht die Edge-SQLite also nie, und der Bon wird hier aus der
+**lokalen** Order gerendert. Cloud-seitig liest `estimatedDuration` niemand. Die
+grossere Luecke ist
+[panary-cloud#494](https://github.com/panary/panary-cloud/issues/494).
 
 ## Wirkung
 

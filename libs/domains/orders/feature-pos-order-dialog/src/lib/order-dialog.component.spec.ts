@@ -1217,3 +1217,160 @@ describe('OrderDialog — Snapshot-Bau in placeOrder', () => {
     expect(component.selectedManualDiscount()).toBeNull()
   })
 })
+
+/**
+ * Fertigungszeit „Sofort" (#343).
+ *
+ * Geprueft wird die Verdrahtung des Abschluss-Pfades, nicht das Rendering: Fuehrt
+ * `INNEN` am Minutenraster vorbei, traegt `AUSSEN` eine Sofort-Kachel, und landet in
+ * beiden Faellen die richtige Zahl in `productionTime`? Die Bon-Seite (`SOFORT` unter
+ * dem Badge) liegt in #342 und hat dort eigene Specs.
+ *
+ * `placeOrder()` wird aus `setProductionTimeSubbuttons` per `void` gestartet — die
+ * Tests warten deshalb einen Makrotask ab, bevor sie `createdOrders` lesen.
+ */
+const flush = () => new Promise(resolve => setTimeout(resolve, 0))
+
+describe('OrderDialog — Fertigungszeit „Sofort" (#343)', () => {
+  /** Kachel aus dem Minutenraster bzw. dem Funktionsblock holen. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tile = (buttons: any[], name: string) => buttons.find(b => b.name === name)
+
+  describe('INNEN fragt nicht nach einer Fertigungszeit', () => {
+    it('schliesst direkt ab und bucht productionTime 0 — ohne Minutenklick', async () => {
+      const { component, createdOrders } = setup()
+      component.increaseLineItem(product('p-1'))
+
+      component.selectDineLocation('INSIDE')
+      await flush()
+
+      expect(createdOrders).toHaveLength(1)
+      expect(createdOrders[0]['productionTime']).toBe(0)
+      expect(createdOrders[0]['dineLocation']).toBe('dine-in')
+    })
+
+    it('baut gar kein Minutenraster auf', async () => {
+      const { component } = setup()
+      component.increaseLineItem(product('p-1'))
+
+      component.selectDineLocation('INSIDE')
+      await flush()
+
+      expect(component.productButtons).toHaveLength(0)
+      expect(tile(component.functionButtons, 'Sofort')).toBeUndefined()
+    })
+
+    it('ueberspringt das Raster auch ohne gewaehlte Bestellart', async () => {
+      // `placeOrder` bucht eine fehlende Auswahl als DINE_IN. Zeigte der Dialog hier
+      // ein Minutenraster, waehlte der Kassierer eine Zeit fuer eine Bestellung, die
+      // als INNEN in der Datenbank landet.
+      const { component, createdOrders } = setup()
+      component.increaseLineItem(product('p-1'))
+
+      component.setProductionTimeSubbuttons()
+      await flush()
+
+      expect(component.productButtons).toHaveLength(0)
+      expect(createdOrders[0]['productionTime']).toBe(0)
+      expect(createdOrders[0]['dineLocation']).toBe('dine-in')
+    })
+
+    it('laesst Pager- und Tischabfrage unberuehrt', async () => {
+      // Die Abzweigung sitzt am gemeinsamen Endpunkt, nicht in `selectDineLocation` —
+      // sonst faehrt INNEN an Pager und Tisch vorbei.
+      const { component, createdOrders } = setup()
+      component.increaseLineItem(product('p-1'))
+      component.locationService.showPagers = true
+      component.locationService.showTables = false
+      component.locationService.pagers = [7, 8]
+
+      component.selectDineLocation('INSIDE')
+
+      // Erst die Pagerwahl, noch keine Bestellung.
+      expect(createdOrders).toHaveLength(0)
+      expect(tile(component.productButtons, '7')).toBeDefined()
+
+      tile(component.productButtons, '7').callback()
+      await flush()
+
+      expect(createdOrders).toHaveLength(1)
+      expect(createdOrders[0]['pager']).toBe(7)
+      expect(createdOrders[0]['productionTime']).toBe(0)
+    })
+  })
+
+  describe('AUSSEN behaelt das Raster und bekommt „Sofort" dazu', () => {
+    it('zeigt Sofort im Funktionsblock, nicht im Minutenraster', () => {
+      // Der Ort ist die eigentliche Aussage: Eine vorangestellte Kachel IM Raster
+      // wuerde jeden Minutenwert um eine Position verschieben, und der Griff nach
+      // „15 min" landete auf „10 min". Wandert Sofort spaeter doch ins Raster, faellt
+      // dieser Test — das ist Absicht.
+      const { component } = setup()
+      component.increaseLineItem(product('p-1'))
+
+      component.selectDineLocation('OUTSIDE')
+
+      expect(tile(component.functionButtons, 'Sofort')).toBeDefined()
+      expect(tile(component.productButtons, 'Sofort')).toBeUndefined()
+    })
+
+    it('laesst die Minutenkacheln an ihren Positionen', () => {
+      // `productionTimes` des Harness ist [0, 5, 10]; entscheidend ist, dass Reihenfolge
+      // und Index unveraendert aus der Quelle kommen.
+      const { component } = setup()
+      component.increaseLineItem(product('p-1'))
+
+      component.selectDineLocation('OUTSIDE')
+
+      expect(component.productButtons.map((b: { name: string }) => b.name)).toEqual(['0 min', '5 min', '10 min'])
+      expect(component.productButtons.map((b: { index: number }) => b.index)).toEqual([0, 1, 2])
+    })
+
+    it('bucht bei Sofort die Fertigungszeit 0', async () => {
+      const { component, createdOrders } = setup()
+      component.increaseLineItem(product('p-1'))
+      component.selectDineLocation('OUTSIDE')
+
+      tile(component.functionButtons, 'Sofort').callback()
+      await flush()
+
+      expect(createdOrders).toHaveLength(1)
+      expect(createdOrders[0]['productionTime']).toBe(0)
+      expect(createdOrders[0]['dineLocation']).toBe('take-out')
+    })
+
+    it('bucht bei einer Minutenkachel deren Wert', async () => {
+      const { component, createdOrders } = setup()
+      component.increaseLineItem(product('p-1'))
+      component.selectDineLocation('OUTSIDE')
+
+      tile(component.productButtons, '10 min').callback()
+      await flush()
+
+      expect(createdOrders).toHaveLength(1)
+      expect(createdOrders[0]['productionTime']).toBe(10)
+    })
+  })
+
+  describe('Zuruecksetzen', () => {
+    it('stellt die Fertigungszeit beim Einstieg in den Abschluss auf 0', async () => {
+      // Heute kann nichts stehenbleiben (jeder Dialogaufruf ist eine frische Instanz).
+      // Der Test haelt die Eigenschaft fest, damit ein kuenftiger Weg zurueck in die
+      // Bestellart-Auswahl keine verworfene Minutenwahl mitschleppt.
+      const { component, createdOrders } = setup()
+      component.increaseLineItem(product('p-1'))
+      component.selectDineLocation('OUTSIDE')
+      tile(component.productButtons, '10 min').callback()
+      await flush()
+
+      component.increaseLineItem(product('p-2'))
+      component.setTaxRateSubbuttons()
+      component.selectDineLocation('OUTSIDE')
+      tile(component.functionButtons, 'Sofort').callback()
+      await flush()
+
+      expect(createdOrders).toHaveLength(2)
+      expect(createdOrders[1]['productionTime']).toBe(0)
+    })
+  })
+})

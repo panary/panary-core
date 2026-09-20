@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import type { PaperWidth } from './escpos.adapter'
 import { centerOffsetDots, decodeEscPosLines } from '../../test/escpos-layout'
 import { renderOrderReceipt } from './order-receipt.renderer'
 
@@ -252,7 +253,7 @@ describe('order-receipt.renderer — Kopfbereich (#342)', () => {
     ...overrides,
   })
 
-  const kopfZeilen = (order: Record<string, unknown>, loc: Record<string, unknown>, paperWidth = '80mm') =>
+  const kopfZeilen = (order: Record<string, unknown>, loc: Record<string, unknown>, paperWidth: PaperWidth = '80mm') =>
     decodeEscPosLines(renderOrderReceipt(order, loc, { paperWidth }), 10)
 
   describe('Filialkopf entfaellt', () => {
@@ -267,7 +268,7 @@ describe('order-receipt.renderer — Kopfbereich (#342)', () => {
 
     it('beginnt mit der Bestellnummer statt mit einer Leerflaeche', () => {
       const zeilen = kopfZeilen(kopfOrder(), locationMitKopf)
-      const erste = zeilen.findIndex((z) => z.text.trim().length > 0)
+      const erste = zeilen.findIndex(z => z.text.trim().length > 0)
 
       // Genau eine Leerzeile Vorlauf: Sie flusht die `initialize()`-Bytes, bevor
       // die erste zentrierte Zeile ihre Polsterung ausstellt. Ohne sie liefen die
@@ -300,9 +301,9 @@ describe('order-receipt.renderer — Kopfbereich (#342)', () => {
     it.each([
       ['80mm', 48],
       ['58mm', 32],
-    ])('legt die Abholzeit auf %s in genau eine Zeile', (paperWidth, columns) => {
+    ] as const)('legt die Abholzeit auf %s in genau eine Zeile', (paperWidth, columns) => {
       const zeilen = kopfZeilen(kopfOrder(), locationMitKopf, paperWidth)
-      const treffer = zeilen.filter((z) => z.text.includes('Abholung') || z.text.includes('12:15'))
+      const treffer = zeilen.filter(z => z.text.includes('Abholung') || z.text.includes('12:15'))
 
       expect(treffer).toHaveLength(1)
       expect(treffer[0].text.trim()).toBe('Abholung 12:15')
@@ -311,8 +312,8 @@ describe('order-receipt.renderer — Kopfbereich (#342)', () => {
 
     it('druckt die Abholzeit groesser als das Badge darueber', () => {
       const zeilen = kopfZeilen(kopfOrder(), locationMitKopf)
-      const badge = zeilen.find((z) => z.text.includes('AUSSEN'))
-      const abholzeit = zeilen.find((z) => z.text.includes('Abholung'))
+      const badge = zeilen.find(z => z.text.includes('AUSSEN'))
+      const abholzeit = zeilen.find(z => z.text.includes('Abholung'))
 
       // charDots ist die Zellenbreite — bei gleicher Breite entscheidet die Hoehe,
       // die der Decoder nicht misst. Auf 80 mm ist die Abholzeit dreifach breit,
@@ -322,7 +323,7 @@ describe('order-receipt.renderer — Kopfbereich (#342)', () => {
 
     it('druckt SOFORT bei Fertigungszeit 0 — und keine Uhrzeit an dessen Stelle', () => {
       const zeilen = kopfZeilen(kopfOrder({ estimatedDuration: 0 }), locationMitKopf)
-      const badge = zeilen.findIndex((z) => z.text.includes('AUSSEN'))
+      const badge = zeilen.findIndex(z => z.text.includes('AUSSEN'))
 
       expect(badge).toBeGreaterThan(-1)
       // Die Zeile unter dem Badge traegt SOFORT und nichts Uhrzeitfoermiges. Die
@@ -372,9 +373,9 @@ describe('order-receipt.renderer — Kopfbereich (#342)', () => {
     it.each([
       ['80mm', 48],
       ['58mm', 32],
-    ])('setzt die Abholzeit auf %s mittig', (paperWidth, columns) => {
+    ] as const)('setzt die Abholzeit auf %s mittig', (paperWidth, columns) => {
       const zeilen = kopfZeilen(kopfOrder(), locationMitKopf, paperWidth)
-      const abholzeit = zeilen.find((z) => z.text.includes('12:15'))
+      const abholzeit = zeilen.find(z => z.text.includes('12:15'))
 
       expect(abholzeit).toBeDefined()
       // Toleranz: eine Zellenbreite. Der Encoder rundet die halbe Restbreite ab
@@ -385,11 +386,11 @@ describe('order-receipt.renderer — Kopfbereich (#342)', () => {
     it.each([
       ['80mm', 48],
       ['58mm', 32],
-    ])('setzt SOFORT, Badge und Bestellnummer auf %s mittig', (paperWidth, columns) => {
+    ] as const)('setzt SOFORT, Badge und Bestellnummer auf %s mittig', (paperWidth, columns) => {
       const zeilen = kopfZeilen(kopfOrder({ estimatedDuration: 0 }), locationMitKopf, paperWidth)
 
       for (const suche of ['Bestellnummer', '1458', 'AUSSEN', 'SOFORT']) {
-        const zeile = zeilen.find((z) => z.text.includes(suche))
+        const zeile = zeilen.find(z => z.text.includes(suche))
         expect(zeile, `Zeile „${suche}" nicht gefunden`).toBeDefined()
         expect(Math.abs(centerOffsetDots(zeile!, columns)), `Zeile „${suche}" nicht mittig`).toBeLessThanOrEqual(
           zeile!.charDots,

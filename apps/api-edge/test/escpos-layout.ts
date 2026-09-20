@@ -76,7 +76,7 @@ export function decodeEscPosLines(bytes: Uint8Array, maxLines: number): DecodedL
     seenVisible = false
   }
 
-  for (let i = 0; i < bytes.length && lines.length < maxLines; ) {
+  for (let i = 0; i < bytes.length && lines.length < maxLines;) {
     const byte = bytes[i]
 
     if (byte === 0x0a) {
@@ -122,7 +122,7 @@ export function decodeEscPosLines(bytes: Uint8Array, maxLines: number): DecodedL
 
   // Rechtsbuendige Polsterung ist keine Zentrierung — nachlaufende Leerzeichen
   // gehoeren nicht in `contentDots`, sonst waere jede Zeile „mittig".
-  return lines.map((line) => {
+  return lines.map(line => {
     const trimmed = line.text.replace(/ +$/, '')
     const removed = line.text.length - trimmed.length
     return { ...line, text: trimmed, contentDots: line.contentDots - removed * (line.charDots || 0) }

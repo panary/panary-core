@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { Receipt } from '@panary/receipts/domain'
 
-import type { EscposOptions } from './escpos.adapter'
+import type { EscposOptions, PaperWidth } from './escpos.adapter'
 import { centerOffsetDots, decodeEscPosLines } from '../../test/escpos-layout'
 import { renderReceiptEscPos } from './receipt-escpos.renderer'
 
@@ -114,8 +114,8 @@ describe('receipt-escpos.renderer — Verkaeufer-Kopf (#342)', () => {
       },
     } as Partial<Receipt>)
 
-  const kopfZeilen = (receipt: Receipt, paperWidth = '80mm') =>
-    decodeEscPosLines(renderReceiptEscPos(receipt, { paperWidth } as EscposOptions), 8)
+  const kopfZeilen = (receipt: Receipt, paperWidth: PaperWidth = '80mm') =>
+    decodeEscPosLines(renderReceiptEscPos(receipt, { paperWidth }), 8)
 
   it('druckt Name, Anschrift und Steuernummer weiterhin', () => {
     const text = renderToText(mitKopf())
@@ -128,11 +128,11 @@ describe('receipt-escpos.renderer — Verkaeufer-Kopf (#342)', () => {
   it.each([
     ['80mm', 48],
     ['58mm', 32],
-  ])('setzt jede Kopfzeile auf %s mittig', (paperWidth, columns) => {
+  ] as const)('setzt jede Kopfzeile auf %s mittig', (paperWidth, columns) => {
     const zeilen = kopfZeilen(mitKopf(), paperWidth)
 
     for (const suche of ['Baeckerei Beispiel', 'Dahler Strasse 35', 'St-Nr: 123/456/789']) {
-      const zeile = zeilen.find((z) => z.text.includes(suche))
+      const zeile = zeilen.find(z => z.text.includes(suche))
       expect(zeile, `Zeile „${suche}" nicht gefunden`).toBeDefined()
       // Toleranz: eine Zellenbreite (Rundung des Encoders). Der Fehler aus #342
       // lag bei rund vier Zellen — er faellt hier durch.
@@ -146,7 +146,7 @@ describe('receipt-escpos.renderer — Verkaeufer-Kopf (#342)', () => {
     const ohneStNr = buildReceipt({
       seller: { name: 'Baeckerei Beispiel', address: 'Dahler Strasse 35, 58091 Hagen' },
     } as Partial<Receipt>)
-    const zeile = kopfZeilen(ohneStNr).find((z) => z.text.includes('Dahler Strasse 35'))
+    const zeile = kopfZeilen(ohneStNr).find(z => z.text.includes('Dahler Strasse 35'))
 
     expect(zeile).toBeDefined()
     expect(Math.abs(centerOffsetDots(zeile!, 48))).toBeLessThanOrEqual(zeile!.charDots)
@@ -157,7 +157,7 @@ describe('receipt-escpos.renderer — Verkaeufer-Kopf (#342)', () => {
     // Polsterung der naechsten zentrierten Zeile zu bringen. Ohne Anschrift und
     // Steuernummer gibt es nichts umzuschalten — dann darf er auch nicht kosten.
     const ohne = kopfZeilen(buildReceipt({ seller: { name: 'Baeckerei Beispiel' } } as Partial<Receipt>))
-    const nameOhne = ohne.findIndex((z) => z.text.includes('Baeckerei Beispiel'))
+    const nameOhne = ohne.findIndex(z => z.text.includes('Baeckerei Beispiel'))
 
     // Nach dem Namen genau eine Leerzeile (die des Metablocks), dann die Trennlinie.
     expect(ohne[nameOhne + 1].text.trim()).toBe('')
@@ -166,7 +166,7 @@ describe('receipt-escpos.renderer — Verkaeufer-Kopf (#342)', () => {
     // Mit Details liegt an derselben Stelle die Leerzeile des Font-Wechsels,
     // direkt gefolgt von der Anschrift.
     const mit = kopfZeilen(mitKopf())
-    const nameMit = mit.findIndex((z) => z.text.includes('Baeckerei Beispiel'))
+    const nameMit = mit.findIndex(z => z.text.includes('Baeckerei Beispiel'))
 
     expect(mit[nameMit + 1].text.trim()).toBe('')
     expect(mit[nameMit + 2].text).toContain('Dahler Strasse 35')

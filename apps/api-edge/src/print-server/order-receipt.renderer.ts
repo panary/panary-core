@@ -69,13 +69,7 @@ export function renderOrderReceipt(
   // zwar im Schema, wird aber nirgends geschrieben (#342). Dieselbe Rechnung wie
   // `order.service.ts:302`.
   const pickup = pickupLabel(order, timeZone)
-  enc
-    .align('center')
-    .bold(true)
-    .size(pickupWidth(pickup, cols), 3)
-    .line(pickup)
-    .size(1, 1)
-    .bold(false)
+  enc.align('center').bold(true).size(pickupWidth(pickup, cols), 3).line(pickup).size(1, 1).bold(false)
 
   enc.align('left')
   enc.newline()

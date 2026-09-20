@@ -36,7 +36,12 @@ export function renderReceiptEscPos(receipt: Receipt, options: EscposOptions = {
   // Composer die Zentrier-Polsterung der Namenszeile VOR das `ESC @` aus
   // `initialize()` — die Leerzeichen liefen dann noch im Zustand des
   // vorangegangenen Druckauftrags.
-  enc.newline().align('center').bold(true).line(receipt.seller?.name ?? '').bold(false)
+  enc
+    .newline()
+    .align('center')
+    .bold(true)
+    .line(receipt.seller?.name ?? '')
+    .bold(false)
 
   // 🚨 Der Font-Wechsel muss mit dem Umbruch der VORZEILE abgeschlossen sein —
   // sonst sitzt die zentrierte Zeile nicht mittig.

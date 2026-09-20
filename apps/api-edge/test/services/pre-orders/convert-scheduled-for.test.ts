@@ -31,7 +31,12 @@ describe('pre-orders convert() — Abholzeit als Vorlaufzeit (#344)', () => {
   // `openingHoursSettings` (der Vorbestell-Hook prüft sie beim Anlegen) und
   // `generalSettings.timezone`.
   const minimalSettings = {
-    generalSettings: { systemOfUnits: 'metric', defaultWeightUnit: 'kg', defaultVolumeUnit: 'L', timezone: 'Europe/Berlin' },
+    generalSettings: {
+      systemOfUnits: 'metric',
+      defaultWeightUnit: 'kg',
+      defaultVolumeUnit: 'L',
+      timezone: 'Europe/Berlin',
+    },
     printSettings: {
       maxNameCharacters: 30,
       mqttServerProtocol: 'ws',
@@ -82,12 +87,13 @@ describe('pre-orders convert() — Abholzeit als Vorlaufzeit (#344)', () => {
 
   /** Konvertiert und räumt die erzeugte Order wieder ab. */
   const convert = async (preOrderId: string) => {
-    const order = (await (app.service('pre-orders') as never as { convert: (id: string, p: unknown) => Promise<unknown> })
-      .convert(preOrderId, {
-        provider: 'rest',
-        authenticated: true,
-        user: { _id: userId, role: 'tenant:staff', tenantId: TENANT, locationId: LOCATION, activeLocationId: LOCATION },
-      })) as { _id: string; estimatedDuration: number; remainingTime: number; recordingDate: string }
+    const order = (await (
+      app.service('pre-orders') as never as { convert: (id: string, p: unknown) => Promise<unknown> }
+    ).convert(preOrderId, {
+      provider: 'rest',
+      authenticated: true,
+      user: { _id: userId, role: 'tenant:staff', tenantId: TENANT, locationId: LOCATION, activeLocationId: LOCATION },
+    })) as { _id: string; estimatedDuration: number; remainingTime: number; recordingDate: string }
 
     onTestFinished(async () => {
       try {
@@ -118,7 +124,13 @@ describe('pre-orders convert() — Abholzeit als Vorlaufzeit (#344)', () => {
     )
 
     const user = (await app.service('users').create(
-      { firstName: 'Vor', lastName: 'Besteller', role: 'tenant:staff', tenantId: TENANT, activeLocationId: LOCATION } as never,
+      {
+        firstName: 'Vor',
+        lastName: 'Besteller',
+        role: 'tenant:staff',
+        tenantId: TENANT,
+        activeLocationId: LOCATION,
+      } as never,
       internal,
     )) as { _id: string }
     userId = user._id

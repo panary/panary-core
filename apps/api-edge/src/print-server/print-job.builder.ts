@@ -135,8 +135,9 @@ export async function executeOrderReceiptJob(
       // Bewusst KEIN Cache ueber gleiche Papierbreiten: Ein geteilter Buffer ist
       // genau die Form des Fehlers, den #346 behebt, und #347 laesst die Vorlage
       // zusaetzlich von der Druckerrolle abhaengen — ein Cache-Schluessel aus der
-      // Breite allein waere ab da still falsch. Korrektheit vor Mikro-Optimierung
-      // (Messung im PR: das Rendern kostet Bruchteile der TCP-Zustellung).
+      // Breite allein waere ab da still falsch. Der zweite Render kostet gemessen
+      // ~1,5 ms (Bon mit 12 Positionen, 80 mm, n=500); das ist der Preis, und er
+      // ist kleiner als das Risiko.
       const buffer = renderOrderReceipt(
         job.order,
         job.location,

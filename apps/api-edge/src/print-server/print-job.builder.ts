@@ -1,6 +1,6 @@
 import type { PrintElement, PrintJob, TextLine } from '@panary/locations/domain'
 import { buildEscposBuffer, sendToNetworkPrinter, type EscposOptions } from './escpos.adapter'
-import { renderOrderReceipt } from './order-receipt.renderer'
+import { receiptVariantForRole, renderOrderReceipt } from './order-receipt.renderer'
 import { formatPrintDateTime } from './print-date-format'
 import { logger } from '@panary/shared-backend'
 
@@ -13,7 +13,11 @@ export interface PrinterConfig {
   port?: number
   paperWidth?: '58mm' | '80mm'
   encoding?: string
-  primaryTopics?: string[]
+  /**
+   * Was dieser Drucker druckt (#347). Fehlt das Feld — jeder Bestandsdrucker —,
+   * gilt `both`; die Ableitung sitzt in `receiptVariantForRole`.
+   */
+  role?: 'kitchen' | 'receipt' | 'both'
   mqttTopic?: string
 }
 
@@ -130,6 +134,9 @@ export async function executeOrderReceiptJob(
 
   for (const printer of targetPrinters) {
     const paperWidth = printer.paperWidth ?? '80mm'
+    // Kuechendrucker bekommen den Bon ohne Filialkopf und ohne TSE-Block (#347).
+    // Ohne gepflegte Rolle ist das der Vollbon — siehe `receiptVariantForRole`.
+    const variant = receiptVariantForRole(printer.role)
     // Welche Haelfte des `try` gescheitert ist, steht sonst nirgends: Die
     // Trennung Rendern/Senden entsteht hier erst, und `/print-server/*` laeuft
     // nicht durch `canonicalLog`. Ohne das Feld sieht ein kaputter Bon im
@@ -138,11 +145,12 @@ export async function executeOrderReceiptJob(
 
     try {
       // Bewusst KEIN Cache ueber gleiche Papierbreiten: Ein geteilter Buffer ist
-      // genau die Form des Fehlers, den #346 behebt, und #347 laesst die Vorlage
-      // zusaetzlich von der Druckerrolle abhaengen — ein Cache-Schluessel aus der
-      // Breite allein waere ab da still falsch. Der zweite Render kostet gemessen
-      // ~1,5 ms (Bon mit 12 Positionen, 80 mm, n=500); das ist der Preis, und er
-      // ist kleiner als das Risiko.
+      // genau die Form des Fehlers, den #346 behebt, und seit #347 haengt die
+      // Vorlage zusaetzlich an der Druckerrolle — ein Cache-Schluessel aus der
+      // Breite allein waere still falsch, er wuerde dem Kuechendrucker den Bon
+      // des Kassendruckers geben. Der zweite Render kostet gemessen ~1,5 ms (Bon
+      // mit 12 Positionen, 80 mm, n=500); das ist der Preis, und er ist kleiner
+      // als das Risiko.
       const buffer = renderOrderReceipt(
         job.order,
         job.location,
@@ -153,6 +161,7 @@ export async function executeOrderReceiptJob(
           // Mitgegeben, damit beide Druckpfade dieselben Optionen tragen und das
           // Auswerten spaeter EINE Stelle ist, nicht zwei.
           encoding: printer.encoding ?? 'cp437',
+          variant,
         },
         job.deviceName,
       )
@@ -167,6 +176,7 @@ export async function executeOrderReceiptJob(
         printer: printer.name,
         orderId: job.orderId,
         paperWidth,
+        variant,
       })
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -177,6 +187,7 @@ export async function executeOrderReceiptJob(
         printer: printer.name,
         orderId: job.orderId,
         paperWidth,
+        variant,
         phase,
       })
     }

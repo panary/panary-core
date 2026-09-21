@@ -194,32 +194,48 @@ ESC/POS-Renderer `apps/api-edge/src/print-server/receipt-escpos.renderer.ts`
 - Token-Secret-Provisionierung (O1) für vor-Sync-stabile Edge-lokale Verifikation
   (Cloud-Abruf benötigt sie nicht — Capability-Lookup per gespeichertem Token).
 
-## Nachtrag 2026-09-20 — der Bestellbon trägt keine Verkäufer-Anschrift mehr
+## Nachtrag 2026-09-21 — die Quittung hat ihren Verkäufer-Kopf zurück
+
+> Ersetzt den Nachtrag vom 2026-09-20 („der Bestellbon trägt keine
+> Verkäufer-Anschrift mehr"). Der dort beschriebene Zustand galt genau einen Tag.
 
 Entscheidung 5 dieses ADR macht `print` Edge-only und lässt sie
-`print-server/order-receipt.renderer.ts` wiederverwenden. Dieser Renderer druckt
-seit [core#342](https://github.com/panary/panary-core/issues/342) **keinen
-Filialkopf** mehr — Straße, PLZ/Ort und Telefonnummer entfallen.
+`print-server/order-receipt.renderer.ts` wiederverwenden. Dieser Renderer druckte
+zwischen [core#342](https://github.com/panary/panary-core/issues/342) und
+[core#347](https://github.com/panary/panary-core/issues/347) **keinen
+Filialkopf** — eine bewusste Zwischenlösung, weil eine Vorlage Küchenzettel und
+Kundenbeleg zugleich war und die Adresse in der Küche sinnlos ist.
 
-Das ist eine bewusste Zwischenlösung, keine Entscheidung gegen die Pflichtangabe:
-`/print-order` rendert **einen** Buffer für **alle** Drucker, eine Druckerrolle
-gibt es nicht. Der Bon geht überwiegend in die Küche, wo die Adresse sinnlos ist;
-wo er als Kundenbeleg dient, fehlt sie jetzt. Er druckt weiterhin Preise, Summe
-und — bei gesetztem `order.tse` — einen TSE-Block.
+Seit core#347 trägt jeder Drucker eine **Rolle**, und der Renderer kennt zwei
+Varianten:
 
-**Konsequenz:** Solange dieser Zustand gilt, ist der Bestellbon **kein**
-vollständiger Beleg im Sinne von §146a AO. Vollständig wird er wieder mit
-[core#346](https://github.com/panary/panary-core/issues/346) →
-[core#347](https://github.com/panary/panary-core/issues/347) (Druckerrolle + zwei
-Rendervarianten, holt den Kopf für die Quittung zurück) →
-[cloud#487](https://github.com/panary/panary-cloud/issues/487).
+| Variante | Rolle | Filialkopf | TSE-Block | Positionen, Nachlässe, Summe |
+|---|---|---|---|---|
+| `full` | `receipt`, `both`, **fehlend** | ja (Name, Straße, PLZ/Ort, Tel.) | ja, bei gesetztem `order.tse` | ja |
+| `kitchen` | `kitchen` | nein | nein | ja — **byte-gleich** |
+
+**Konsequenz:** Der Bestellbon ist auf einem `receipt`/`both`-Drucker wieder ein
+vollständiger Beleg im Sinne von §146a AO. Bestandsinstallationen sind es
+automatisch, weil ein fehlendes `role` als `both` gilt. Ein Betrieb, der **alle**
+Drucker auf `kitchen` stellt, hat danach keinen Beleg mehr — erzwungen wird das
+nicht, siehe „Was bewusst offen bleibt" in
+[ADR 0045](0045-druckerrollen-statt-stations-routing.md).
+
+Die Rolle ist erst mit
+[cloud#487](https://github.com/panary/panary-cloud/issues/487) pflegbar: Drucker
+stehen unter Cloud-Hoheit ([ADR 0001](0001-emergency-override.md)), im Edge-Admin
+ist das Feld außerhalb des Notfall-Modus gesperrt. Bis dahin läuft jede
+Installation auf `both`, und der praktische Nutzen ist null — der
+**Belegcharakter** ist aber wiederhergestellt, und das war die offene Frage
+dieses ADR.
 
 Der in Phase 3 genannte `receipt-escpos.renderer.ts` behält seinen Verkäufer-Kopf
 und ist von der Änderung nicht betroffen — er wird allerdings vom Edge aus
 weiterhin **gar nicht aufgerufen** (nur exportiert). Die Belegausgabe am Edge
-hängt damit faktisch am Bestellbon. Details und die Messung des zugehörigen
-Zentrierungsfehlers:
-[Print-Server-API §10–11](../integrations/print-server-api.md).
+hängt damit faktisch am Bestellbon. Der Filialkopf der `full`-Variante ist nach
+seiner gemessenen Font-Sequenz gebaut, nicht nach dem alten Block von vor #342.
+Details und die Messung des zugehörigen Zentrierungsfehlers:
+[Print-Server-API §10–13](../integrations/print-server-api.md).
 
 ## Status
 

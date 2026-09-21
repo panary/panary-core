@@ -61,6 +61,11 @@ import { PrinterService } from './printer.service'
                   Papier
                 </th>
                 <th
+                  class="text-left p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+                >
+                  Rolle
+                </th>
+                <th
                   class="text-center p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
                 >
                   Aktiv
@@ -103,6 +108,40 @@ import { PrinterService } from './printer.service'
                     }
                   </td>
                   <td class="p-4 text-sm text-slate-600 dark:text-gray-400">{{ printer.paperWidth ?? '80mm' }}</td>
+                  <td class="p-4">
+                    <!--
+                      Ein Bestandsdrucker traegt kein Rollenfeld und druckt den
+                      Vollbon (#347) — die Spalte zeigt deshalb "Kueche &amp;
+                      Quittung" statt einer Luecke. Eine leere Zelle liesse
+                      offen, ob die Rolle fehlt oder nicht greift.
+                    -->
+                    @switch (printer.role ?? 'both') {
+                      @case ('kitchen') {
+                        <span
+                          class="inline-flex px-2 py-0.5 rounded text-xs font-medium
+                                 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
+                        >
+                          Küche
+                        </span>
+                      }
+                      @case ('receipt') {
+                        <span
+                          class="inline-flex px-2 py-0.5 rounded text-xs font-medium
+                                 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                        >
+                          Quittung
+                        </span>
+                      }
+                      @default {
+                        <span
+                          class="inline-flex px-2 py-0.5 rounded text-xs font-medium
+                                 bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-400"
+                        >
+                          Küche &amp; Quittung
+                        </span>
+                      }
+                    }
+                  </td>
                   <td class="p-4 text-center">
                     @if (printer.active) {
                       <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>

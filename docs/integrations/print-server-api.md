@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: Print-Server-API
-description: Referenz der Print-Server-Schnittstelle am Edge — Aufrufer, Ziel-Host und Fehler-Events, der mitgelieferte MQTT-Broker, die ESC/POS-Encoder-Library samt der in Dots gemessenen Zentrierungsfalle bei Font B, der Kopfbereich des Bestellbons und das Rendern je Zieldrucker statt eines Buffers für alle.
+description: Referenz der Print-Server-Schnittstelle am Edge — Aufrufer, Ziel-Host und Fehler-Events, der mitgelieferte MQTT-Broker, die ESC/POS-Encoder-Library samt der in Dots gemessenen Zentrierungsfalle bei Font B, das Rendern je Zieldrucker und die Druckerrolle, die über Küchenbon oder vollständige Quittung entscheidet.
 tags: [locations, print-server, esc-pos, mqtt]
 status: stable
 generated: { by: claude-code/historic, at: 2025-03-28T00:00:00Z }
@@ -576,38 +576,46 @@ verrechnet, meldet „mittig", ohne hingesehen zu haben.
 
 ---
 
-## 11. Bestellbon: Kopfbereich ohne Filialangaben
+## 11. Bestellbon: Kopfbereich
 
-Seit [panary/panary-core#342](https://github.com/panary/panary-core/issues/342)
-beginnt `order-receipt.renderer.ts` direkt mit der Bestellnummer. Straße, PLZ/Ort
-und Telefonnummer der Filiale werden **nicht mehr gedruckt**.
+Der Kopf hängt seit [panary/panary-core#347](https://github.com/panary/panary-core/issues/347)
+an der **Bon-Variante** (§13):
 
-Grund ist nicht Ästhetik, sondern die fehlende Vorlagen-Trennung: Es gibt keine
-Druckerrolle, also auch keine Möglichkeit, den Kopf nur auf dem Thekendrucker zu
-setzen. Der Bon geht überwiegend in die Küche — dort ist die Filialadresse
-sinnlos.
+| Variante | Kopfbereich |
+|---|---|
+| `full` | Filialname (fett, Font A), Straße, PLZ/Ort, `Tel. …` (Font B), alle zentriert |
+| `kitchen` | kein Kopf — der Bon beginnt mit der Bestellnummer |
 
-⚠️ **Die technische Sperre ist seit #346 weg, die Vorlagen-Trennung nicht.** Bis
-dahin ging ein einziger Buffer an alle Drucker; heute rendert der Edge je
-Zieldrucker einzeln (§12). Es gibt trotzdem weiterhin **eine** Vorlage — was
-fehlt, ist die Rolle, an der sich eine zweite entscheiden ließe (#347).
-
-🚨 **Das ist eine Zwischenlösung mit rechtlicher Kante.** Der Bon druckt Preise,
-Nachlässe, Gesamtsumme und — sobald `order.tse` gesetzt ist — einen TSE-Block.
-Wo er als Kundenbeleg dient, sind Name und Anschrift des leistenden Unternehmers
-Pflichtangaben. Bis zur Vorlagen-Trennung fehlen sie auf **jedem** Ausdruck
-dieses Bons:
+Zwischen [#342](https://github.com/panary/panary-core/issues/342) und #347 gab es
+den Kopf auf **keinem** Ausdruck. Das war eine Zwischenlösung mit rechtlicher
+Kante: Der Bon druckt Preise, Nachlässe, Gesamtsumme und — bei gesetztem
+`order.tse` — einen TSE-Block, und wo er als Kundenbeleg dient, sind Name und
+Anschrift des leistenden Unternehmers Pflichtangaben. Die Kette ist damit
+abgearbeitet, bis auf den Cloud-Teil:
 
 1. ✅ [core#346](https://github.com/panary/panary-core/issues/346) — Bon je
-   Zieldrucker rendern (behebt nebenbei falsches Layout bei gemischten
-   Papierbreiten) — **erledigt**, siehe §12
-2. [core#347](https://github.com/panary/panary-core/issues/347) — Druckerrolle +
-   zwei Rendervarianten; **holt den Filialkopf für die Quittung zurück**
-3. [cloud#487](https://github.com/panary/panary-cloud/issues/487) — Rolle im
-   Cloud-Admin pflegbar
+   Zieldrucker rendern (§12)
+2. ✅ [core#347](https://github.com/panary/panary-core/issues/347) — Druckerrolle
+   + zwei Rendervarianten (§13)
+3. ⏳ [cloud#487](https://github.com/panary/panary-cloud/issues/487) — Rolle im
+   Cloud-Admin pflegbar. **Bis dahin läuft jede Filiale auf `both`**, weil
+   Drucker unter Cloud-Hoheit stehen ([ADR 0001](../adr/0001-emergency-override.md)).
+
+🚨 **Der Kopf ist neu gebaut, nicht wiederhergestellt.** Der alte Block von vor
+#342 lautete `enc.align('center').font('B').line(strasse)` und lief damit genau
+in die Falle aus §10: Polsterung vor der Font-Umschaltung, Straßenzeile 51 Dots
+zu weit rechts. Die neue Fassung folgt der Sequenz des fiskalischen Belegs
+(`font('B').newline()` **vor** den Zeilen) und wird im Spec in **Dots** gemessen,
+nicht am Text — eine Text-Assertion hätte den alten Fehler durchgewunken, weil
+die Anzahl der Leerzeichen stimmte und nur ihre Breite falsch war.
+
+Neu gegenüber dem alten Kopf ist die **Namenszeile** (`location.name`, dieselbe
+Quelle wie `ReceiptSeller.name` im fiskalischen Beleg). Fehlende Bestandteile
+fallen weg statt eine Leerzeile oder ein nacktes `Tel.` zu erzeugen; eine Filiale
+ganz ohne Stammdaten bekommt gar keinen Kopf statt eines leeren.
 
 Der fiskalische Beleg (`receipt-escpos.renderer.ts`) ist davon **nicht** betroffen
-— er behält seinen Verkäufer-Kopf. Er wird derzeit allerdings vom Edge aus gar
+— er behält seinen eigenen Verkäufer-Kopf. Er wird vom Edge aus weiterhin gar
 nicht aufgerufen (nur exportiert), siehe
 [ADR 0007](../adr/0007-beleg-bon-system.md).
 
@@ -709,9 +717,10 @@ heute gibt es keinen, künftige gibt es vielleicht.
 
 Zwei Drucker gleicher Breite ergeben denselben Buffer — gecacht wird er trotzdem
 nicht. Ein geteilter Buffer ist genau die Form des Fehlers, den #346 behebt, und
-#347 lässt die Vorlage zusätzlich von der Druckerrolle abhängen: Ein
-Cache-Schlüssel aus der Breite allein wäre ab da still falsch. Gemessener Preis
-des zweiten Renders: **~1,5 ms** (Bon mit 12 Positionen, 80 mm, n=500).
+seit #347 hängt die Vorlage **zusätzlich an der Druckerrolle** (§13): Ein
+Cache-Schlüssel aus der Breite allein wäre still falsch und gäbe dem
+Küchendrucker den Bon des Kassendruckers. Gemessener Preis des zweiten Renders:
+**~1,5 ms** (Bon mit 12 Positionen, 80 mm, n=500).
 
 ### `encoding` ist in beiden Pfaden tot
 
@@ -734,3 +743,81 @@ Tests fallen.
 
 ⚠️ **Nur der IP-Pfad ist betroffen.** MQTT-Drucker bekommen ihre Nutzlast vom
 POS-Client (`order-print.service.ts`); dort rendert das Backend gar nicht.
+
+---
+
+## 13. Druckerrolle: welcher Bon an welches Ziel
+
+Seit [panary/panary-core#347](https://github.com/panary/panary-core/issues/347)
+trägt jeder Drucker eine Rolle, und `renderOrderReceipt` kennt dazu zwei
+Varianten. Die Ableitung steht in
+[`order-receipt.renderer.ts`](../../apps/api-edge/src/print-server/order-receipt.renderer.ts)
+als `receiptVariantForRole`, die Auswertung in
+[`print-job.builder.ts`](../../apps/api-edge/src/print-server/print-job.builder.ts)
+innerhalb der Drucker-Schleife aus §12.
+
+| `printer.role` | Variante | Filialkopf | TSE-Block | Positionen, Nachlässe, Gesamt |
+|---|---|---|---|---|
+| `kitchen` | `kitchen` | — | — | ✅ |
+| `receipt` | `full` | ✅ | ✅ (bei `order.tse`) | ✅ |
+| `both` | `full` | ✅ | ✅ (bei `order.tse`) | ✅ |
+| **fehlend** | `full` | ✅ | ✅ (bei `order.tse`) | ✅ |
+
+**Der Küchenbon behält Preise und Summen.** Das ist eine Entscheidung, keine
+Auslassung: Die Küche soll sehen, was der Gast zahlt. Unterschied sind
+ausschließlich die beiden Blöcke oben — bei einer Filiale ohne Stammdaten und
+einer Order ohne TSE sind beide Varianten **byte-identisch**, und genau das
+prüft ein Test.
+
+### Der Bestands-Default entscheidet über den Schaden
+
+🚨 **Ein Drucker ohne `role` ist `both`, nie `kitchen`.** Würde es umgekehrt
+gewertet, verlöre jede Bestandsinstallation beim Update still Filialkopf und
+TSE-Block vom Kundenbeleg — ohne Fehler, ohne Log, sichtbar erst auf Papier.
+
+`receiptVariantForRole` liefert `kitchen` deshalb **nur** für exakt `'kitchen'`.
+`undefined`, `null`, `''`, `'KITCHEN'`, ein Tippfehler und jede künftige Rolle
+fallen auf den Vollbon. Der `default: 'both'` im TypeBox-Schema ist
+**dokumentierend, nicht wirksam** — der geteilte `dataValidator` läuft ohne
+`useDefaults`, AJV füllt nichts nach (dieselbe Lage wie bei `port` und
+`encoding`).
+
+### `primaryTopics` war tot, nicht ungenutzt
+
+Das Feld stand bis #347 im Schema, im Edge-`PrinterConfig` und im
+Admin-Formulartyp — mit **keinem** Eingabefeld und **keiner** Leseposition. Der
+Name passt zu `lineItem.topic`; gedacht war eine Zuordnung Warengruppe→Drucker,
+gebaut wurde sie nie. Es ist entfernt, nicht verdrahtet: Der Unterschied
+zwischen Küchenzettel und Quittung liegt nicht im Sortiment, sondern im
+Belegcharakter (Begründung und verworfene Alternative:
+[ADR 0045](../adr/0045-druckerrollen-statt-stations-routing.md)).
+
+Bestandsdaten dürfen den Schlüssel behalten — das Schema setzt kein
+`additionalProperties: false`, eine Migration gibt es deshalb nicht.
+
+### Was das Log zeigt
+
+`print.order_success` und `print.order_error` tragen neben `paperWidth` jetzt
+`variant`. `/print-server/*` sind rohe Koa-Routen und laufen nicht durch
+`canonicalLog` (§0) — ohne das Feld sähe ein falsch gerollter Drucker im
+Edge-Log aus wie ein richtig gerollter.
+
+### Wo die Rolle gepflegt wird
+
+Im Edge-Admin: Auswahlfeld im Drucker-Dialog, Spalte in der Liste. Beides erbt
+die Cloud-Hoheit-Sperre der Druckerverwaltung über `readOnly` — in einer
+gepairten Filiale ist das Feld sichtbar, aber nur im Notfall-Modus editierbar
+([ADR 0001](../adr/0001-emergency-override.md)). Der reguläre Pflegeort ist die
+Cloud, und dort fehlt das Feld bis
+[cloud#487](https://github.com/panary/panary-cloud/issues/487) — **ohne den
+Cloud-Teil kann ein Kunde die Rolle faktisch nicht setzen**.
+
+Der Notfall-Override-Pfad im Sync
+(`panary-cloud/apps/api-cloud/src/services/sync/sync.ts`, Zweig
+`printSettings.printers/<pid>`) zieht das Feld ohne Änderung mit: Er ersetzt den
+Drucker-Datensatz als Ganzes und kennt außer `pid` kein Feld namentlich.
+Geprüft 2026-09-21.
+
+⚠️ **Nur der IP-Pfad kennt die Rolle.** MQTT-Drucker bekommen ihre Nutzlast vom
+POS-Client (`order-print.service.ts`); dort rendert das Backend nicht und die
+Variante existiert nicht. Wer die Trennung dort erwartet, irrt.

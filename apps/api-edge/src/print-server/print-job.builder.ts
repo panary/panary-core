@@ -1,5 +1,6 @@
 import type { PrintElement, PrintJob, TextLine } from '@panary/locations/domain'
 import { buildEscposBuffer, sendToNetworkPrinter, type EscposOptions } from './escpos.adapter'
+import { renderOrderReceipt } from './order-receipt.renderer'
 import { formatPrintDateTime } from './print-date-format'
 import { logger } from '@panary/shared-backend'
 
@@ -78,6 +79,105 @@ export async function executePrintJob(job: PrintJob, allPrinters: PrinterConfig[
         message: `Druckfehler an ${printer.name}: ${errorMessage}`,
         event: 'print.error',
         printer: printer.name,
+      })
+    }
+  }
+
+  return {
+    success: results.every(r => r.success),
+    results,
+  }
+}
+
+export interface OrderReceiptJob {
+  /** Bestellung aus der Edge-DB. Die Vorlage liest sie ungetypt — wie `renderOrderReceipt`. */
+  order: unknown
+  /** Filiale samt `settings` — liefert Zeitzone, General-Preise und Steuerangaben. */
+  location: unknown
+  /**
+   * Nur fuer die Log-Events je Drucker. `/print-server/*` sind rohe Koa-Routen und
+   * laufen nicht durch `canonicalLog`: Sichtbar ist allein, was der Handler selbst
+   * loggt (#346).
+   */
+  orderId: string
+  deviceName?: string
+}
+
+/**
+ * Rendert und sendet einen Bestellbon — **je Zieldrucker einzeln gerendert**.
+ *
+ * Bis #346 nahm `/print-order` die Papierbreite vom ERSTEN Drucker, renderte einen
+ * Buffer und schickte genau diesen an alle Ziele. Standen 80 mm und 58 mm
+ * nebeneinander, bekam der zweite Drucker ein Layout fuer die falsche Spaltenzahl
+ * (`COLUMNS_MAP`: 58mm=32, 80mm=48) — Tabellen brachen um, Betraege rutschten aus
+ * der Spalte. Der generische Druckpfad (`executePrintJob` oben) machte es von
+ * Anfang an richtig; die beiden Pfade stehen seitdem bewusst in DERSELBEN Datei,
+ * damit sie nicht erneut auseinanderlaufen.
+ *
+ * Abweichung zu `executePrintJob`: Diese Funktion filtert **nicht**. Sie erwartet
+ * bereits ausgewaehlte Ziele, weil der Router bei leerer Liste ein eigenes
+ * Wide-Event schreibt (`print.order_no_printers`), das `settings` und
+ * `requestedPrinterIds` braucht — Angaben, die hier nicht vorliegen.
+ *
+ * Fehler bleiben **pro Drucker**: Der `try` umschliesst Rendern UND Senden, ein
+ * Fehlschlag fuer ein Ziel reisst die uebrigen nicht mit.
+ */
+export async function executeOrderReceiptJob(
+  job: OrderReceiptJob,
+  targetPrinters: PrinterConfig[],
+): Promise<PrintResult> {
+  const results: PrintResult['results'] = []
+
+  for (const printer of targetPrinters) {
+    const paperWidth = printer.paperWidth ?? '80mm'
+    // Welche Haelfte des `try` gescheitert ist, steht sonst nirgends: Die
+    // Trennung Rendern/Senden entsteht hier erst, und `/print-server/*` laeuft
+    // nicht durch `canonicalLog`. Ohne das Feld sieht ein kaputter Bon im
+    // Edge-Log aus wie ein abgezogenes Kabel.
+    let phase: 'render' | 'send' = 'render'
+
+    try {
+      // Bewusst KEIN Cache ueber gleiche Papierbreiten: Ein geteilter Buffer ist
+      // genau die Form des Fehlers, den #346 behebt, und #347 laesst die Vorlage
+      // zusaetzlich von der Druckerrolle abhaengen — ein Cache-Schluessel aus der
+      // Breite allein waere ab da still falsch. Der zweite Render kostet gemessen
+      // ~1,5 ms (Bon mit 12 Positionen, 80 mm, n=500); das ist der Preis, und er
+      // ist kleiner als das Risiko.
+      const buffer = renderOrderReceipt(
+        job.order,
+        job.location,
+        {
+          paperWidth,
+          // `encoding` erreicht heute WEDER `renderOrderReceipt` NOCH
+          // `buildEscposBuffer` — beide erzeugen den Encoder ohne Codepage-Option.
+          // Mitgegeben, damit beide Druckpfade dieselben Optionen tragen und das
+          // Auswerten spaeter EINE Stelle ist, nicht zwei.
+          encoding: printer.encoding ?? 'cp437',
+        },
+        job.deviceName,
+      )
+
+      phase = 'send'
+      await sendToNetworkPrinter(printer.ip!, printer.port ?? 9100, buffer)
+
+      results.push({ printerId: printer.pid, printerName: printer.name, success: true })
+      logger.info({
+        message: `Bestellbon an ${printer.name} gesendet`,
+        event: 'print.order_success',
+        printer: printer.name,
+        orderId: job.orderId,
+        paperWidth,
+      })
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      results.push({ printerId: printer.pid, printerName: printer.name, success: false, error: msg })
+      logger.error({
+        message: `Bestellbon-Fehler an ${printer.name}: ${msg}`,
+        event: 'print.order_error',
+        printer: printer.name,
+        orderId: job.orderId,
+        paperWidth,
+        phase,
       })
     }
   }

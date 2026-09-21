@@ -46,10 +46,12 @@ export function renderOrderReceipt(
   // BESTELLNUMMER + BESTELLART (Badge)
   // ─────────────────────────────────────────
   // Kein Filialkopf: Straße, PLZ/Ort und Telefonnummer standen hier bis #342 —
-  // auf einem Bon, der in die Küche geht. Er bedient heute beide Zwecke mit
-  // EINER Vorlage (`print-server.router.ts` rendert einmal und schickt denselben
-  // Buffer an alle Drucker), deshalb entfällt der Kopf vorerst ersatzlos statt
-  // fallweise geschaltet zu werden. #347 holt ihn für die Quittung zurück, sobald
+  // auf einem Bon, der in die Küche geht. Er bedient beide Zwecke mit EINER
+  // Vorlage, deshalb entfällt der Kopf vorerst ersatzlos statt fallweise
+  // geschaltet zu werden. Seit #346 rendert `executeOrderReceiptJob` zwar je
+  // Zieldrucker einzeln — ein Buffer für alle ist also nicht mehr die Sperre —,
+  // aber es gibt weiterhin keine Druckerrolle, an der sich eine zweite Vorlage
+  // entscheiden ließe. #347 holt den Kopf für die Quittung zurück, sobald
   // Küchen- und Kassendruck getrennte Vorlagen haben — bis dahin fehlt er bewusst
   // auf JEDEM Ausdruck dieses Bons. Der fiskalische Beleg
   // (`receipt-escpos.renderer.ts`) behält seinen Kopf: dort ist die Anschrift

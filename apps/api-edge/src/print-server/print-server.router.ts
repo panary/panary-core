@@ -3,9 +3,7 @@ import { AppAction } from '@panary/users/domain'
 import type { Application } from '../declarations'
 import { printServerAuth, printServerAuthorize } from './auth.middleware'
 import { printServerManager } from './print-server.manager'
-import type { PrinterConfig } from './print-job.builder'
-import { renderOrderReceipt } from './order-receipt.renderer'
-import { sendToNetworkPrinter } from './escpos.adapter'
+import { executeOrderReceiptJob, type PrinterConfig } from './print-job.builder'
 import { logger } from '@panary/shared-backend'
 
 const PREFIX = '/print-server'
@@ -160,37 +158,11 @@ const routes: Route[] = [
           return
         }
 
-        // Papierbreite vom ersten Drucker
-        const paperWidth = (printers[0] as any).paperWidth || '80mm'
-
-        // Backend-Rendering: Order → ESC/POS Buffer
-        const buffer = renderOrderReceipt(order, location, { paperWidth }, deviceName)
-
-        // An alle Ziel-Drucker senden
-        const results: any[] = []
-        for (const printer of printers) {
-          try {
-            await sendToNetworkPrinter(printer.ip!, printer.port ?? 9100, buffer)
-            results.push({ printerId: printer.pid, printerName: printer.name, success: true })
-            logger.info({
-              message: `Bestellbon an ${printer.name} gesendet`,
-              event: 'print.order_success',
-              printer: printer.name,
-              orderId,
-            })
-          } catch (err: unknown) {
-            const msg = err instanceof Error ? err.message : String(err)
-            results.push({ printerId: printer.pid, printerName: printer.name, success: false, error: msg })
-            logger.error({
-              message: `Bestellbon-Fehler an ${printer.name}: ${msg}`,
-              event: 'print.order_error',
-              printer: printer.name,
-              orderId,
-            })
-          }
-        }
-
-        ctx.body = { success: results.every(r => r.success), results }
+        // Rendern je Zieldrucker — mit SEINER Papierbreite, nicht der des ersten
+        // (#346). Die Schleife samt Fehlerbehandlung liegt in `print-job.builder.ts`
+        // neben dem generischen Druckpfad, damit die beiden nicht wieder
+        // auseinanderlaufen.
+        ctx.body = await executeOrderReceiptJob({ order, location, orderId, deviceName }, printers)
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err)
         logger.error({

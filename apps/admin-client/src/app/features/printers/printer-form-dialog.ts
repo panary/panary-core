@@ -12,7 +12,8 @@ export interface PrinterFormData {
   port?: number
   paperWidth?: '58mm' | '80mm'
   encoding?: string
-  primaryTopics?: string[]
+  /** #347 — fehlt das Feld (Bestandsdrucker), druckt der Drucker den Vollbon. */
+  role?: 'kitchen' | 'receipt' | 'both'
   mqttTopic?: string
 }
 
@@ -168,6 +169,30 @@ export interface PrinterFormData {
           </div>
         </div>
 
+        <!-- Rolle -->
+        <div class="space-y-1">
+          <label
+            for="printerRole"
+            class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+            >Rolle</label
+          >
+          <select
+            id="printerRole"
+            [(ngModel)]="form.role"
+            name="role"
+            class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
+                   text-slate-900 dark:text-white outline-none"
+          >
+            <option value="both">Küche & Quittung (Standard)</option>
+            <option value="kitchen">Nur Küche — ohne Filialkopf und TSE-Block</option>
+            <option value="receipt">Nur Quittung — vollständiger Beleg</option>
+          </select>
+          <p class="text-xs text-slate-400 dark:text-gray-500">
+            Küchenbons lassen Filialkopf und TSE-Signatur weg. Positionen, Nachlässe und Gesamtsumme sind auf beiden
+            Varianten gleich.
+          </p>
+        </div>
+
         <!-- Aktiv -->
         <label class="flex items-center gap-3 cursor-pointer">
           <input
@@ -208,7 +233,11 @@ export class PrinterFormDialogComponent {
 
   isEdit = !!this.data?.pid
   form: PrinterFormData = this.data
-    ? { ...this.data }
+    ? // Ein Bestandsdrucker traegt `role` nicht. Ohne das Auffuellen stuende das
+      // Auswahlfeld leer und der erste Speichervorgang schriebe `undefined` —
+      // auf dem Papier zwar weiterhin der Vollbon, in der Maske aber ein
+      // Zustand, den der Nutzer nicht gewaehlt hat (#347).
+      { ...this.data, role: this.data.role ?? 'both' }
     : {
         pid: uuidv7(),
         active: true,
@@ -218,6 +247,7 @@ export class PrinterFormDialogComponent {
         port: 9100,
         paperWidth: '80mm',
         encoding: 'CP437',
+        role: 'both',
         mqttTopic: '/rospos/orders/print',
       }
 

@@ -253,3 +253,122 @@ describe('executeOrderReceiptJob — ein Bon je Zieldrucker (#346)', () => {
     }
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// #347: Druckerrolle entscheidet ueber die Bon-Variante
+// ─────────────────────────────────────────────────────────────────────────────
+
+const filialeMitKopf = {
+  name: 'Koetters Fritte',
+  address: { street: 'Dahler Strasse 35', postalCode: '58091', city: 'Hagen' },
+  phone: '02331 1234567',
+  settings: bonLocation.settings,
+}
+
+const auftragMitKopf = { ...auftrag, location: filialeMitKopf, orderId: 'order-347' }
+
+const alsText = (bytes: Uint8Array): string =>
+  // eslint-disable-next-line no-control-regex
+  new TextDecoder('latin1').decode(bytes).replace(/[\x00-\x1f]/g, ' ')
+
+describe('executeOrderReceiptJob — Bon-Variante je Druckerrolle (#347)', () => {
+  it.each([
+    ['kitchen', false],
+    ['receipt', true],
+    ['both', true],
+  ] as const)('Rolle `%s` → Filialkopf gedruckt: %s', async (role, mitKopf) => {
+    const ziel = createFakePrinter()
+
+    try {
+      await executeOrderReceiptJob(auftragMitKopf, [
+        drucker({ pid: 'p1', name: `Drucker ${role}`, port: await ziel.listen(), role }),
+      ])
+      await ziel.warteAufZustellung()
+
+      const text = alsText(ziel.empfangen())
+      expect(text.includes('Dahler Strasse 35')).toBe(mitKopf)
+      expect(text.includes('Koetters Fritte')).toBe(mitKopf)
+      // Was der Kuechenbon behaelt — die Variante darf nur Kopf und TSE schalten.
+      expect(text).toContain('Pommes gross')
+      expect(text).toContain('Gesamt')
+    } finally {
+      await ziel.close()
+    }
+  })
+
+  it('druckt fuer einen Bestandsdrucker OHNE `role` den Vollbon', async () => {
+    // 🚨 Der Kern der Bestands-Sicherheit: Nach dem Update darf kein einziger
+    // bestehender Drucker still zum Kuechendrucker werden. `drucker()` setzt
+    // `role` bewusst nicht — genau der Zustand jeder Installation vor #347.
+    const ziel = createFakePrinter()
+
+    try {
+      await executeOrderReceiptJob(auftragMitKopf, [
+        drucker({ pid: 'p-alt', name: 'Bestandsdrucker', port: await ziel.listen() }),
+      ])
+      await ziel.warteAufZustellung()
+
+      expect(alsText(ziel.empfangen())).toContain('Dahler Strasse 35')
+    } finally {
+      await ziel.close()
+    }
+  })
+
+  it('gibt Kueche und Kasse in EINEM Auftrag zwei verschiedene Bons', async () => {
+    // Das ist der beobachtbare Zweck des Features: eine Bestellung, zwei
+    // unterschiedliche Ausdrucke. Vor #346 war es derselbe Buffer, vor #347
+    // dieselbe Vorlage.
+    const kueche = createFakePrinter()
+    const kasse = createFakePrinter()
+
+    try {
+      const ergebnis = await executeOrderReceiptJob(auftragMitKopf, [
+        drucker({ pid: 'p-k', name: 'Kueche', port: await kueche.listen(), role: 'kitchen' }),
+        drucker({ pid: 'p-r', name: 'Theke', port: await kasse.listen(), role: 'receipt' }),
+      ])
+      await kueche.warteAufZustellung()
+      await kasse.warteAufZustellung()
+
+      expect(ergebnis.success).toBe(true)
+
+      const bonKueche = kueche.empfangen()
+      const bonKasse = kasse.empfangen()
+
+      expect(bonKueche).not.toEqual(bonKasse)
+      expect(bonKueche).toEqual(
+        renderOrderReceipt(bonOrder, filialeMitKopf, { paperWidth: '80mm', variant: 'kitchen' }, 'Kasse 1'),
+      )
+      expect(bonKasse).toEqual(
+        renderOrderReceipt(bonOrder, filialeMitKopf, { paperWidth: '80mm', variant: 'full' }, 'Kasse 1'),
+      )
+
+      // Beide auf 80 mm — der Unterschied kommt von der Rolle, nicht von der
+      // Papierbreite. Ohne diese Zeile belegte der Test auch #346 noch einmal.
+      expect(trennlinienBreite(bonKueche)).toBe(48)
+      expect(trennlinienBreite(bonKasse)).toBe(48)
+    } finally {
+      await Promise.all([kueche.close(), kasse.close()])
+    }
+  })
+
+  it('nennt die Variante im Erfolgs-Event', async () => {
+    // `/print-server/*` laeuft nicht durch `canonicalLog` — welche Vorlage ein
+    // Drucker bekam, steht sonst nirgends. Ohne das Feld sieht ein falsch
+    // gerollter Drucker im Log aus wie ein richtig gerollter.
+    const ziel = createFakePrinter()
+
+    try {
+      vi.mocked(logger.info).mockClear()
+      await executeOrderReceiptJob(auftragMitKopf, [
+        drucker({ pid: 'p-log', name: 'Kueche', port: await ziel.listen(), role: 'kitchen' }),
+      ])
+      await ziel.warteAufZustellung()
+
+      expect(vi.mocked(logger.info)).toHaveBeenCalledWith(
+        expect.objectContaining({ event: 'print.order_success', variant: 'kitchen', paperWidth: '80mm' }),
+      )
+    } finally {
+      await ziel.close()
+    }
+  })
+})

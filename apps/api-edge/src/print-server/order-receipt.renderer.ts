@@ -15,16 +15,49 @@ import { formatPrintDate, formatPrintDateTime, formatPrintTime, printTimeZoneFor
 const COLUMNS_MAP: Record<string, number> = { '58mm': 32, '80mm': 48 }
 
 /**
+ * Welche Bon-Variante gedruckt wird (#347).
+ *
+ * `kitchen` laesst **nur** Filialkopf und TSE-Block weg — Positionen, Nachlaesse
+ * und Gesamtsumme sind in beiden Varianten byte-gleich. Die Kueche soll sehen,
+ * was der Gast zahlt; der Unterschied ist der Belegcharakter, nicht der Inhalt.
+ *
+ * Bewusst zwei Varianten und kein zweiter Renderer: Eine zweite Vorlage waere
+ * eine Layout-Dopplung, die beim naechsten Positions-Umbau zur Haelfte
+ * nachgezogen wird.
+ */
+export type ReceiptVariant = 'kitchen' | 'full'
+
+/**
+ * Bon-Variante fuer eine Druckerrolle — die **einzige** Stelle, an der der
+ * Bestands-Default sitzt.
+ *
+ * 🚨 Ein Drucker ohne `role` ist `both`, nie `kitchen`. Bestandsinstallationen
+ * haben das Feld nicht; wuerde es hier als `kitchen` durchfallen, verloeren sie
+ * beim Update still Filialkopf und TSE-Block vom Kundenbeleg — ohne Fehler, ohne
+ * Log, sichtbar erst auf Papier. Deshalb ist `kitchen` der einzige Wert, der die
+ * Kuechenvariante ausloest, und jeder andere (inkl. `undefined`, Tippfehler und
+ * kuenftiger Rollen) faellt auf den Vollbon zurueck.
+ */
+export function receiptVariantForRole(role: string | undefined | null): ReceiptVariant {
+  return role === 'kitchen' ? 'kitchen' : 'full'
+}
+
+export interface OrderReceiptOptions extends EscposOptions {
+  /** Default `full` — siehe `receiptVariantForRole`. */
+  variant?: ReceiptVariant
+}
+
+/**
  * Rendert einen Bestellbon direkt mit der Encoder-API.
  * Volle Kontrolle: table() mit Callbacks, font-Wechsel in Zellen, box(), etc.
  */
 export function renderOrderReceipt(
   order: any,
   location: any,
-  options: EscposOptions = {},
+  options: OrderReceiptOptions = {},
   deviceName?: string,
 ): Uint8Array {
-  const { paperWidth = '80mm' } = options
+  const { paperWidth = '80mm', variant = 'full' } = options
   const cols = COLUMNS_MAP[paperWidth] || 48
 
   // Spaltenbreiten
@@ -43,20 +76,22 @@ export function renderOrderReceipt(
   enc.initialize()
 
   // ─────────────────────────────────────────
+  // FILIALKOPF (nur Vollbon)
+  // ─────────────────────────────────────────
+  // Zurück seit #347: Name und Anschrift des leistenden Unternehmers sind auf
+  // einem Kundenbeleg Pflichtangabe (§146a AO, ADR 0007). Zwischen #342 und #347
+  // fehlten sie auf JEDEM Ausdruck, weil eine Vorlage beide Zwecke bediente —
+  // erst #346 (Render je Zieldrucker) und die Druckerrolle machen die
+  // Fallunterscheidung möglich. Auf dem Küchenbon bleibt der Kopf weg: dort ist
+  // die eigene Adresse sinnlos und kostet nur Papier.
+  //
+  // Nicht der alte Block von vor #342 — der stellte die Polsterung vor die
+  // Font-Umschaltung und druckte die Straßenzeile 51 Dots zu weit rechts.
+  appendLocationHeader(enc, location, variant)
+
+  // ─────────────────────────────────────────
   // BESTELLNUMMER + BESTELLART (Badge)
   // ─────────────────────────────────────────
-  // Kein Filialkopf: Straße, PLZ/Ort und Telefonnummer standen hier bis #342 —
-  // auf einem Bon, der in die Küche geht. Er bedient beide Zwecke mit EINER
-  // Vorlage, deshalb entfällt der Kopf vorerst ersatzlos statt fallweise
-  // geschaltet zu werden. Seit #346 rendert `executeOrderReceiptJob` zwar je
-  // Zieldrucker einzeln — ein Buffer für alle ist also nicht mehr die Sperre —,
-  // aber es gibt weiterhin keine Druckerrolle, an der sich eine zweite Vorlage
-  // entscheiden ließe. #347 holt den Kopf für die Quittung zurück, sobald
-  // Küchen- und Kassendruck getrennte Vorlagen haben — bis dahin fehlt er bewusst
-  // auf JEDEM Ausdruck dieses Bons. Der fiskalische Beleg
-  // (`receipt-escpos.renderer.ts`) behält seinen Kopf: dort ist die Anschrift
-  // Pflichtangabe (§146a AO).
-  enc.newline()
   enc.align('center').line('Bestellnummer')
   enc.align('center').bold(true).size(4, 4).line(`${order.dailySequenceNumber}`).size(1, 1).bold(false)
 
@@ -224,7 +259,9 @@ export function renderOrderReceipt(
   // ─────────────────────────────────────────
   // TSE-SIGNATUR (KassenSichV Belegausgabepflicht)
   // ─────────────────────────────────────────
-  appendTseBlock(enc, order)
+  // Nur auf dem Vollbon: Die Signatur gehört zum Beleg, den der Gast bekommt.
+  // In der Küche ist sie eine halbe Bonlänge QR-Code ohne Adressat.
+  if (variant === 'full') appendTseBlock(enc, order)
 
   // ─────────────────────────────────────────
   // FUSSBEREICH
@@ -233,6 +270,68 @@ export function renderOrderReceipt(
   enc.cut()
 
   return enc.encode()
+}
+
+// Filialkopf des Vollbons: Name, Anschrift, Telefon — zentriert, klein gesetzt.
+// No-Op ausser dem fuehrenden Umbruch, wenn die Variante `kitchen` ist.
+//
+// Der fuehrende `newline()` ist Pflicht, nicht Kosmetik, und steht deshalb VOR
+// der Variantenpruefung: Ohne ihn stellt der Composer die Zentrier-Polsterung der
+// ersten Zeile VOR das `ESC @` aus `initialize()` — die Leerzeichen liefen dann
+// noch im Zustand des vorangegangenen Druckauftrags. Der Kuechenbon beginnt
+// dadurch unveraendert mit genau einer Leerzeile vor „Bestellnummer".
+function appendLocationHeader(enc: any, location: any, variant: ReceiptVariant): void {
+  enc.newline()
+  if (variant !== 'full') return
+
+  const name = typeof location?.name === 'string' ? location.name.trim() : ''
+  const zeilen = headerDetailLines(location)
+  // Eine Filiale ganz ohne Stammdaten bekommt keinen leeren Kopf, sondern gar
+  // keinen — und damit denselben Vorlauf wie der Kuechenbon.
+  if (!name && zeilen.length === 0) return
+
+  if (name) enc.align('center').bold(true).line(name).bold(false)
+
+  // 🚨 Der Font-Wechsel muss mit dem Umbruch der VORZEILE abgeschlossen sein —
+  // sonst sitzt die zentrierte Zeile nicht mittig. Gemessen an
+  // @point-of-sale/receipt-printer-encoder@3.0.3 (#342): Der Composer reiht eine
+  // zentrierte Zeile als `[space(n), ...style, ...inhalt]`, die Polsterung steht
+  // also VOR der Font-Umschaltung derselben Zeile. `n` rechnet er in den Spalten
+  // des NEUEN Fonts (Font B: 48 → 64), gedruckt werden die Leerzeichen aber noch
+  // in der Zelle des alten (12 statt 9 Dots) — die Zeile rutscht um ein Drittel
+  // der Polsterung nach rechts. Genau daran krankte der alte Kopf vor #342: seine
+  // Strassenzeile stand 51 Dots zu weit rechts, die beiden darunter fluchteten,
+  // weil Font B dort schon aktiv war. `font()` wirft mitten in einer Zeile, der
+  // Wechsel braucht also einen eigenen Umbruch; die Leerzeile ist der Preis.
+  // Dieselbe Sequenz wie im fiskalischen Beleg (`receipt-escpos.renderer.ts`).
+  if (zeilen.length > 0) {
+    enc.align('center').font('B').newline()
+    for (const zeile of zeilen) enc.line(zeile)
+    enc.font('A')
+  }
+
+  enc.align('left')
+  enc.newline()
+}
+
+// Anschrift und Telefon als druckfertige Zeilen. Leere Bestandteile fallen weg,
+// statt eine Zeile aus Leerzeichen oder ein nacktes „Tel." zu erzeugen.
+function headerDetailLines(location: any): string[] {
+  const zeilen: string[] = []
+  const addr = location?.address
+  const str = typeof addr?.street === 'string' ? addr.street.trim() : ''
+  if (str) zeilen.push(str)
+
+  const ort = [addr?.postalCode, addr?.city]
+    .map(v => (typeof v === 'string' ? v.trim() : ''))
+    .filter(Boolean)
+    .join(' ')
+  if (ort) zeilen.push(ort)
+
+  const tel = typeof location?.phone === 'string' ? location.phone.trim() : ''
+  if (tel) zeilen.push(`Tel. ${tel}`)
+
+  return zeilen
 }
 
 // Nachlasszeilen zwischen Positionen und „Gesamt" — sie sind eine Minderung genau

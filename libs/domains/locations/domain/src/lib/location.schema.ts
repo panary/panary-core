@@ -7,6 +7,21 @@ export const MqttProtocolType = {
 } as const
 export const mqttProtocol = StringEnum(Object.values(MqttProtocolType))
 
+/**
+ * Rolle eines Druckers (#347) — entscheidet, welche Bon-Variante er bekommt.
+ *
+ * Bewusst zwei Rollen statt Stationen: Eine Zuordnung Warengruppe→Drucker
+ * (das nie verdrahtete `primaryTopics`) wurde verworfen, weil der Unterschied
+ * zwischen Kuechenzettel und Quittung nicht im Sortiment liegt, sondern in
+ * Filialkopf und TSE-Block. `both` ist der Bestands-Default.
+ */
+export const PrinterRole = {
+  KITCHEN: 'kitchen',
+  RECEIPT: 'receipt',
+  BOTH: 'both',
+} as const
+export type PrinterRoleValue = (typeof PrinterRole)[keyof typeof PrinterRole]
+
 export const UnitSystem = {
   METRIC: 'metric',
   IMPERIAL: 'imperial',
@@ -87,7 +102,25 @@ export const settingsSchema = Type.Object({
         name: Type.String({ minLength: 1, maxLength: 60 }),
         ip: Type.Optional(Type.String()),
         port: Type.Optional(Type.Number({ minimum: 1, maximum: 65535, default: 9100 })),
-        primaryTopics: Type.Optional(Type.Array(Type.String())),
+        // Was dieser Drucker druckt (#347). `kitchen` laesst Filialkopf und
+        // TSE-Block weg, `receipt`/`both` drucken den Vollbeleg.
+        //
+        // 🚨 Bestandsdrucker tragen das Feld NICHT — fehlendes `role` bedeutet
+        // `both`, nie `kitchen`. Wuerde es als `kitchen` gewertet, verloeren alle
+        // Bestandsinstallationen still Kopf und TSE-Block vom Kundenbeleg.
+        //
+        // Der `default` hier ist dokumentierend, NICHT wirksam: Der geteilte
+        // `dataValidator` laeuft ohne `useDefaults`, AJV fuellt also nichts nach
+        // (dieselbe Lage wie bei `port` und `encoding` daneben). Wirksam ist
+        // allein der Fallback an der Leseposition — `receiptVariantForRole` in
+        // `order-receipt.renderer.ts`. Wer das Feld hier zur Pflicht macht, muss
+        // vorher eine Migration schreiben.
+        //
+        // `primaryTopics` stand bis #347 an dieser Stelle: deklariert, nie
+        // gelesen, kein Formularfeld. Bestandsdaten tragen den Schluessel
+        // moeglicherweise weiter — unkritisch, das Schema setzt kein
+        // `additionalProperties: false`.
+        role: Type.Optional(StringEnum(['kitchen', 'receipt', 'both'], { default: 'both' })),
         mqttTopic: Type.Optional(Type.String()),
         paperWidth: Type.Optional(StringEnum(['58mm', '80mm'])),
         encoding: Type.Optional(Type.String({ default: 'CP437' })),

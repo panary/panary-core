@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: Print-Server-API
-description: Referenz der Print-Server-Schnittstelle am Edge — Aufrufer, Ziel-Host und Fehler-Events, der mitgelieferte MQTT-Broker, die ESC/POS-Encoder-Library samt der in Dots gemessenen Zentrierungsfalle bei Font B und der Kopfbereich des Bestellbons.
+description: Referenz der Print-Server-Schnittstelle am Edge — Aufrufer, Ziel-Host und Fehler-Events, der mitgelieferte MQTT-Broker, die ESC/POS-Encoder-Library samt der in Dots gemessenen Zentrierungsfalle bei Font B, der Kopfbereich des Bestellbons und das Rendern je Zieldrucker statt eines Buffers für alle.
 tags: [locations, print-server, esc-pos, mqtt]
 status: stable
 generated: { by: claude-code/historic, at: 2025-03-28T00:00:00Z }
@@ -582,11 +582,15 @@ Seit [panary/panary-core#342](https://github.com/panary/panary-core/issues/342)
 beginnt `order-receipt.renderer.ts` direkt mit der Bestellnummer. Straße, PLZ/Ort
 und Telefonnummer der Filiale werden **nicht mehr gedruckt**.
 
-Grund ist nicht Ästhetik, sondern die fehlende Vorlagen-Trennung: `/print-order`
-rendert **einen** Buffer und schickt ihn an **alle** konfigurierten Drucker
-(§0). Es gibt keine Druckerrolle, also auch keine Möglichkeit, den Kopf nur auf
-dem Thekendrucker zu setzen. Der Bon geht überwiegend in die Küche — dort ist die
-Filialadresse sinnlos.
+Grund ist nicht Ästhetik, sondern die fehlende Vorlagen-Trennung: Es gibt keine
+Druckerrolle, also auch keine Möglichkeit, den Kopf nur auf dem Thekendrucker zu
+setzen. Der Bon geht überwiegend in die Küche — dort ist die Filialadresse
+sinnlos.
+
+⚠️ **Die technische Sperre ist seit #346 weg, die Vorlagen-Trennung nicht.** Bis
+dahin ging ein einziger Buffer an alle Drucker; heute rendert der Edge je
+Zieldrucker einzeln (§12). Es gibt trotzdem weiterhin **eine** Vorlage — was
+fehlt, ist die Rolle, an der sich eine zweite entscheiden ließe (#347).
 
 🚨 **Das ist eine Zwischenlösung mit rechtlicher Kante.** Der Bon druckt Preise,
 Nachlässe, Gesamtsumme und — sobald `order.tse` gesetzt ist — einen TSE-Block.
@@ -594,9 +598,9 @@ Wo er als Kundenbeleg dient, sind Name und Anschrift des leistenden Unternehmers
 Pflichtangaben. Bis zur Vorlagen-Trennung fehlen sie auf **jedem** Ausdruck
 dieses Bons:
 
-1. [core#346](https://github.com/panary/panary-core/issues/346) — Bon je
+1. ✅ [core#346](https://github.com/panary/panary-core/issues/346) — Bon je
    Zieldrucker rendern (behebt nebenbei falsches Layout bei gemischten
-   Papierbreiten)
+   Papierbreiten) — **erledigt**, siehe §12
 2. [core#347](https://github.com/panary/panary-core/issues/347) — Druckerrolle +
    zwei Rendervarianten; **holt den Filialkopf für die Quittung zurück**
 3. [cloud#487](https://github.com/panary/panary-cloud/issues/487) — Rolle im
@@ -646,3 +650,79 @@ statt `Uhrzeit:` — der Bon trägt seit #342 zwei Zeitangaben.
 
 ⚠️ **Nur der IP-Druckpfad rendert serverseitig.** MQTT-Drucker bekommen ihre
 Nutzlast vom POS-Client (`order-print.service.ts`) und sehen von alledem nichts.
+
+---
+
+## 12. Ein Render je Zieldrucker — nicht ein Buffer für alle
+
+Seit [panary/panary-core#346](https://github.com/panary/panary-core/issues/346)
+rendert der Bestellbon-Pfad **für jeden Zieldrucker einzeln**, mit dessen eigener
+Papierbreite. Die Schleife liegt in
+[`print-job.builder.ts`](../../apps/api-edge/src/print-server/print-job.builder.ts)
+als `executeOrderReceiptJob` — direkt neben `executePrintJob`, dem generischen
+Druckpfad.
+
+### Was vorher falsch war
+
+`/print-order` nahm die Papierbreite vom **ersten** aktiven IP-Drucker, rendert
+einmal und schickte genau diesen Buffer an alle Ziele:
+
+| Konfiguration | vor #346 | seit #346 |
+|---|---|---|
+| ein Drucker | korrekt | unverändert |
+| zwei × 80 mm | korrekt | unverändert (byte-identische Bons) |
+| 80 mm **und** 58 mm | der zweite bekam das Layout des ersten — Tabellen brachen um, Beträge rutschten aus der Spalte | jeder bekommt seine Spaltenzahl (`COLUMNS_MAP`: 58mm=32, 80mm=48) |
+
+Die Reihenfolge entschied also über das Layout: Derselbe 58-mm-Drucker druckte
+richtig oder falsch, je nachdem, wer in `printSettings.printers[]` vor ihm stand.
+
+### Warum die beiden Druckpfade in einer Datei liegen
+
+`executePrintJob` (generischer Druck, `/print`) machte es von Anfang an richtig —
+es baute den Buffer innerhalb der Drucker-Schleife. Der Bestellbon-Pfad tat es
+nicht, und der Unterschied fiel über Monate niemandem auf, weil die beiden
+Schleifen in verschiedenen Dateien standen. Sie stehen jetzt bewusst
+nebeneinander.
+
+### Fehler bleiben pro Drucker
+
+Der `try` umschließt **Rendern und Senden**. Ein Fehlschlag für ein Ziel reißt die
+übrigen nicht mit; `results` trägt weiterhin einen Eintrag je Drucker, und die
+Events `print.order_success` / `print.order_error` feuern je Drucker — ergänzt um
+`paperWidth`, damit im Edge-Log nachweisbar ist, mit welcher Breite tatsächlich
+gerendert wurde.
+
+🚨 **Verhaltensänderung:** Ein **Render**fehler beantwortete den Auftrag früher mit
+HTTP 500; jetzt antwortet er mit HTTP 200 und `success: false` am betroffenen
+Drucker — dieselbe Form, die der „keine Drucker"-Zweig schon nutzt. Ein Client,
+der nur auf den Statuscode sieht, hält einen fehlgeschlagenen Bon für erfolgreich.
+
+### Kein Buffer-Cache über gleiche Papierbreiten
+
+Zwei Drucker gleicher Breite ergeben denselben Buffer — gecacht wird er trotzdem
+nicht. Ein geteilter Buffer ist genau die Form des Fehlers, den #346 behebt, und
+#347 lässt die Vorlage zusätzlich von der Druckerrolle abhängen: Ein
+Cache-Schlüssel aus der Breite allein wäre ab da still falsch. Gemessener Preis
+des zweiten Renders: **~1,5 ms** (Bon mit 12 Positionen, 80 mm, n=500).
+
+### `encoding` ist in beiden Pfaden tot
+
+`PrinterConfig.encoding` wird gelesen und in `EscposOptions` weitergereicht —
+ausgewertet wird es **nirgends**: Weder `renderOrderReceipt` noch
+`buildEscposBuffer` erzeugen den Encoder mit einer Codepage-Option. Das galt vor
+#346 für den generischen Pfad und gilt seitdem für beide gleichermaßen. Die Option
+wird mitgegeben, damit ihr Auswerten später **eine** Stelle ist statt zwei — nicht,
+weil sie heute etwas bewirkt.
+
+### Nachweis
+
+[`print-job.builder.spec.ts`](../../apps/api-edge/src/print-server/print-job.builder.spec.ts)
+fährt echte TCP-Listener auf `127.0.0.1` statt eines Modul-Mocks von
+`sendToNetworkPrinter` — gemessen wird, was auf der Leitung landet. Geprüft:
+zwei Breiten ergeben zwei verschiedene Buffer mit je 48 bzw. 32 Spalten, zwei
+gleiche Breiten ergeben identische, und ein unerreichbares Ziel lässt das andere
+drucken. Die Mutationsprobe (alter Fehler wieder eingesetzt) lässt zwei der vier
+Tests fallen.
+
+⚠️ **Nur der IP-Pfad ist betroffen.** MQTT-Drucker bekommen ihre Nutzlast vom
+POS-Client (`order-print.service.ts`); dort rendert das Backend gar nicht.

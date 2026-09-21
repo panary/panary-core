@@ -664,7 +664,7 @@ Druckpfad.
 
 ### Was vorher falsch war
 
-`/print-order` nahm die Papierbreite vom **ersten** aktiven IP-Drucker, rendert
+`/print-order` nahm die Papierbreite vom **ersten** aktiven IP-Drucker, renderte
 einmal und schickte genau diesen Buffer an alle Ziele:
 
 | Konfiguration | vor #346 | seit #346 |
@@ -690,12 +690,20 @@ Der `try` umschließt **Rendern und Senden**. Ein Fehlschlag für ein Ziel reiß
 übrigen nicht mit; `results` trägt weiterhin einen Eintrag je Drucker, und die
 Events `print.order_success` / `print.order_error` feuern je Drucker — ergänzt um
 `paperWidth`, damit im Edge-Log nachweisbar ist, mit welcher Breite tatsächlich
-gerendert wurde.
+gerendert wurde, und beim Fehler-Event um `phase: 'render' | 'send'`. Die Trennung
+der beiden Hälften entsteht mit #346 überhaupt erst; ohne das Feld sähe ein
+Renderfehler im Log aus wie ein abgezogenes Kabel.
 
 🚨 **Verhaltensänderung:** Ein **Render**fehler beantwortete den Auftrag früher mit
 HTTP 500; jetzt antwortet er mit HTTP 200 und `success: false` am betroffenen
-Drucker — dieselbe Form, die der „keine Drucker"-Zweig schon nutzt. Ein Client,
-der nur auf den Statuscode sieht, hält einen fehlgeschlagenen Bon für erfolgreich.
+Drucker — dieselbe Form, die der „keine Drucker"-Zweig schon nutzt und die §0 als
+Vertrag nennt.
+
+Der einzige bekannte Aufrufer ist davon **nicht** betroffen: `OrderPrintService`
+prüft `response.success === false` und wirft
+(`libs/domains/orders/data-access/src/lib/services/order-print.service.ts:86`).
+Die Änderung trifft nur einen Aufrufer, der allein auf den Statuscode sieht —
+heute gibt es keinen, künftige gibt es vielleicht.
 
 ### Kein Buffer-Cache über gleiche Papierbreiten
 

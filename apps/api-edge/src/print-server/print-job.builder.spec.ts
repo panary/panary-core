@@ -5,6 +5,7 @@ vi.mock('@panary/shared-backend', () => ({
   logger: { warn: vi.fn(), info: vi.fn(), error: vi.fn() },
 }))
 
+import { logger } from '@panary/shared-backend'
 import { buildTestPrintDocument, executeOrderReceiptJob, type PrinterConfig } from './print-job.builder'
 import { renderOrderReceipt } from './order-receipt.renderer'
 
@@ -57,7 +58,11 @@ function createFakePrinter() {
   })
 
   const server = net.createServer(socket => {
-    socket.on('data', chunk => chunks.push(chunk))
+    // Ohne `setEncoding` liefert der Socket zur Laufzeit immer Buffer; die
+    // Node-Typen deklarieren `string | Buffer`, weil eine Kodierung gesetzt sein
+    // KOENNTE. Der Parameter wird deshalb hier festgelegt statt das Ergebnis
+    // umzudeuten.
+    socket.on('data', (chunk: Buffer) => chunks.push(chunk))
     socket.on('close', () => verbindungGeschlossen())
   })
 
@@ -210,6 +215,10 @@ describe('executeOrderReceiptJob — ein Bon je Zieldrucker (#346)', () => {
 
   it('reisst bei einem unerreichbaren Ziel die uebrigen nicht mit', async () => {
     const erreichbar = createFakePrinter()
+    // Handle im TEST leeren, nicht in `beforeEach` (§10). In dieser Spec kann
+    // ohnehin kein Nachzuegler entstehen — jeder async-Pfad wird awaited —, aber
+    // die Stelle ist die, an der das Muster sonst einzieht.
+    vi.mocked(logger.error).mockClear()
 
     try {
       const ergebnis = await executeOrderReceiptJob(auftrag, [
@@ -228,6 +237,17 @@ describe('executeOrderReceiptJob — ein Bon je Zieldrucker (#346)', () => {
 
       // Und das erreichbare Ziel hat seinen vollstaendigen Bon bekommen.
       expect(trennlinienBreite(erreichbar.empfangen())).toBe(48)
+
+      // Das Fehler-Event benennt die gescheiterte HAELFTE: Hier ist das Rendern
+      // durchgelaufen und das Senden gescheitert. Ohne `phase` sieht ein
+      // Renderfehler im Edge-Log aus wie ein abgezogenes Kabel.
+      expect(vi.mocked(logger.error)).toHaveBeenCalledTimes(1)
+      expect(vi.mocked(logger.error).mock.calls[0][0]).toMatchObject({
+        event: 'print.order_error',
+        printer: 'Abgezogen',
+        paperWidth: '58mm',
+        phase: 'send',
+      })
     } finally {
       await erreichbar.close()
     }

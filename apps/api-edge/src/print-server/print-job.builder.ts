@@ -130,6 +130,11 @@ export async function executeOrderReceiptJob(
 
   for (const printer of targetPrinters) {
     const paperWidth = printer.paperWidth ?? '80mm'
+    // Welche Haelfte des `try` gescheitert ist, steht sonst nirgends: Die
+    // Trennung Rendern/Senden entsteht hier erst, und `/print-server/*` laeuft
+    // nicht durch `canonicalLog`. Ohne das Feld sieht ein kaputter Bon im
+    // Edge-Log aus wie ein abgezogenes Kabel.
+    let phase: 'render' | 'send' = 'render'
 
     try {
       // Bewusst KEIN Cache ueber gleiche Papierbreiten: Ein geteilter Buffer ist
@@ -152,6 +157,7 @@ export async function executeOrderReceiptJob(
         job.deviceName,
       )
 
+      phase = 'send'
       await sendToNetworkPrinter(printer.ip!, printer.port ?? 9100, buffer)
 
       results.push({ printerId: printer.pid, printerName: printer.name, success: true })
@@ -171,6 +177,7 @@ export async function executeOrderReceiptJob(
         printer: printer.name,
         orderId: job.orderId,
         paperWidth,
+        phase,
       })
     }
   }

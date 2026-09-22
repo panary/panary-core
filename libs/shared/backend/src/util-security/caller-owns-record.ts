@@ -58,6 +58,24 @@ export type OwnershipViolation = {
   message: string
 }
 
+export type OwnershipOptions = {
+  /**
+   * Einen authentifizierten Aufrufer OHNE `tenantId` durchlassen, statt ihn
+   * abzuweisen. Default `false`.
+   *
+   * 🚨 Nur setzen, wenn eine **benannte** legitime Konstellation existiert — und
+   * sie an der Aufrufstelle hinschreiben. Es gibt genau eine bekannte: der
+   * virtuelle Geraete-User **vor dem Pairing** (`device:*` ohne Mandant), der am
+   * POS stempeln koennen muss, bevor der Edge einem Mandanten zugeordnet ist.
+   * Das ist keine Nachlaessigkeit der alten Fassung gewesen, sondern Absicht —
+   * gemessen an `time-clock-scope.spec.ts`.
+   *
+   * Ueberall sonst ist ein Aufrufer ohne Mandant der unklarste Fall und gehoert
+   * abgewiesen. Wer diese Option „zur Sicherheit" setzt, dreht den Schutz ab.
+   */
+  allowMissingTenantContext?: boolean
+}
+
 /**
  * Darf `actor` auf `target` arbeiten? `null` = ja.
  *
@@ -80,15 +98,23 @@ export type OwnershipViolation = {
  * — und prueften damit genau dann nicht, wenn der Mandantenkontext fehlte, also
  * im unklarsten Fall. Wer den Helfer wieder auf die bedingte Form zurueckdreht,
  * baut diese stille Luecke erneut ein.
+ *
+ * ⚠️ Eine benannte Ausnahme gibt es: `allowMissingTenantContext` — siehe dort.
+ * Der virtuelle Geraete-User vor dem Pairing traegt legitim keinen Mandanten.
+ * Die alte bedingte Form war an dieser einen Stelle also Absicht, nicht
+ * Nachlaessigkeit; neu ist nur, dass die Ausnahme jetzt dasteht statt sich aus
+ * einem `&&` zu ergeben.
  */
 export const checkCallerOwnsRecord = (
   actor: OwnershipActor | null | undefined,
   target: OwnershipTarget | null | undefined,
+  options: OwnershipOptions = {},
 ): OwnershipViolation | null => {
   if (!actor) return null
   if (actor.role && actor.role.startsWith('platform:')) return null
 
   if (!actor.tenantId) {
+    if (options.allowMissingTenantContext) return null
     return {
       reason: 'NO_TENANT_CONTEXT',
       message: 'Mandantenkontext fehlt — der Aufruf kann nicht zugeordnet werden.',
@@ -115,7 +141,8 @@ export const checkCallerOwnsRecord = (
 export function assertCallerOwnsRecord(
   actor: OwnershipActor | null | undefined,
   target: OwnershipTarget | null | undefined,
+  options: OwnershipOptions = {},
 ): void {
-  const violation = checkCallerOwnsRecord(actor, target)
+  const violation = checkCallerOwnsRecord(actor, target, options)
   if (violation) throw new Forbidden(violation.message, { reason: violation.reason })
 }

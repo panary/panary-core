@@ -127,7 +127,10 @@ describe('discardOrphanDay — Guards', () => {
 
   it('4 — lehnt einen fremden Tenant ab', async () => {
     const { app } = makeApp({ businessDay: { ...OPEN_DAY, tenantId: 't-fremd' } })
-    await expect(callDiscard(app, { businessDayId: 'bd-verwaist' }, params)).rejects.toThrow(/Tenant-Mismatch/)
+    // #357: Der Wurf kommt jetzt aus `assertCallerOwnsRecord` — 403 statt 400,
+    // und mit der gemeinsamen Meldung. „Gehoert dir nicht" ist keine fehlerhafte
+    // Anfrage. Geprueft wird deshalb der Statuscode, nicht der Wortlaut.
+    await expect(callDiscard(app, { businessDayId: 'bd-verwaist' }, params)).rejects.toMatchObject({ code: 403 })
   })
 
   it.each(['closed', 'closing-requested', 'audited', 'failed'])('5 — lehnt Status %s ab', async status => {

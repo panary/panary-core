@@ -17,7 +17,7 @@ import {
 
 import type { Application } from '../../declarations'
 import type { User, UserParams } from './users.class'
-import { authorize } from '@panary/shared-backend'
+import { authorize, checkCallerOwnsRecord, type OwnershipActor } from '@panary/shared-backend'
 import { multiTenancy } from '@panary/shared-backend'
 import { getJsonFieldHooks } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
@@ -232,8 +232,10 @@ export const users = (app: Application) => {
     // Sync-Pull und Re-Pairing schliessen das aus (`applyCloudTenantId`
     // stempelt `users` mit um), ein unvollstaendiger Restamp nicht — genau das
     // meldet `runConsistencyCheck` als ERROR. Also Defense-in-Depth.
+    // Seit #357 ueber den geteilten Helfer. `allowMissingTenantContext: true`
+    // haelt das bisherige Verhalten bei — siehe die Begruendung an `changePin`.
     const actorTenantId = params?.user?.tenantId
-    if (actorTenantId && user.tenantId !== actorTenantId) {
+    if (checkCallerOwnsRecord(params?.user as OwnershipActor | undefined, user, { allowMissingTenantContext: true })) {
       logger.warn({
         message: 'PIN-Anmeldung abgelehnt: Konto gehoert nicht zum eigenen Mandanten',
         event: 'security.pin_login_foreign_tenant',
@@ -316,8 +318,15 @@ export const users = (app: Application) => {
     // create/update/patch bzw. find/get/remove) — der Tenant-Scope muss hier
     // explizit geprueft werden, sonst koennte ein Terminal einen fremden
     // Mandanten adressieren.
-    const actorTenantId = (params?.user as { tenantId?: string } | undefined)?.tenantId
-    if (actorTenantId && user.tenantId !== actorTenantId) {
+    // Seit #357 ueber den geteilten Helfer statt in eigener Handschrift.
+    //
+    // ⚠️ `allowMissingTenantContext: true` haelt das bisherige Verhalten
+    // BEI — es verschaerft hier bewusst NICHTS. Ob ein Aufrufer ohne Mandant
+    // (virtueller Geraete-User vor dem Pairing) `changePin` erreichen kann, ist
+    // ungemessen, und kein Test deckt den Fall ab. Ihn hier blind zu schliessen
+    // hiesse, den PIN-Login am POS gegen eine Vermutung zu tauschen.
+    // Nachzumessen in einem eigenen Schritt.
+    if (checkCallerOwnsRecord(params?.user as OwnershipActor | undefined, user, { allowMissingTenantContext: true })) {
       throw new Forbidden('Benutzer gehoert nicht zum eigenen Mandanten')
     }
 

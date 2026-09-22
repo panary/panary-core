@@ -48,6 +48,27 @@ describe('checkCallerOwnsRecord (#357)', () => {
       }
     })
 
+    it('laesst einen Aufrufer ohne tenantId NUR mit der benannten Ausnahme durch', () => {
+      // Der virtuelle Geraete-User vor dem Pairing — die einzige bekannte
+      // legitime Konstellation ohne Mandant (time-clock-scope.spec.ts).
+      const vorPairing = { _id: 'device:dev-1', role: 'device:pos-client' }
+
+      expect(checkCallerOwnsRecord(vorPairing, { tenantId: TENANT_B })?.reason).toBe('NO_TENANT_CONTEXT')
+      expect(checkCallerOwnsRecord(vorPairing, { tenantId: TENANT_B }, { allowMissingTenantContext: true })).toBeNull()
+    })
+
+    it('die Ausnahme hebelt den Mandanten-Vergleich NICHT aus', () => {
+      // `allowMissingTenantContext` erlaubt einen FEHLENDEN Mandanten, nicht
+      // einen falschen. Sonst waere die Option ein Generalschluessel.
+      const v = checkCallerOwnsRecord(
+        { role: 'device:pos-client', tenantId: TENANT_A },
+        { tenantId: TENANT_B },
+        { allowMissingTenantContext: true },
+      )
+
+      expect(v?.reason).toBe('FOREIGN_TENANT')
+    })
+
     it('weist ab, wenn der Datensatz gar keinen Mandanten traegt', () => {
       // Ein Ziel ohne `tenantId` ist nicht „gehoert allen", sondern unbestimmt.
       for (const target of [undefined, null, {}, { tenantId: null }]) {

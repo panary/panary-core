@@ -30,6 +30,7 @@
 // ohnehin aus der Domain, geteilt ist damit das, was sich aendern koennte.
 import { Forbidden } from '@feathersjs/errors'
 
+import { checkCallerOwnsRecord } from '@panary/shared-backend'
 import { PRIVILEGED_ROLES } from '@panary/users/domain'
 
 import { isLoginBlockedByStatus } from '../../utils/user-login-status'
@@ -92,12 +93,26 @@ export const checkTimeClockRequest = (
   if (!actor) return null
 
   // 1. Mandanten-Grenze. `multiTenancy` greift bei Custom-Methods nicht —
-  // Tenant-Scope deshalb explizit, wortgleich zu changePin.
-  if (actor.tenantId && target.tenantId !== actor.tenantId) {
-    return {
-      reason: 'FOREIGN_TENANT',
-      message: 'Benutzer gehoert nicht zum eigenen Mandanten',
-    }
+  // Tenant-Scope deshalb explizit, seit #357 ueber den geteilten Helfer statt
+  // in eigener Handschrift.
+  //
+  // 🚨 Dabei ist eine stille Luecke zugegangen: Hier stand
+  // `if (actor.tenantId && target.tenantId !== actor.tenantId)` — geprueft wurde
+  // also genau dann NICHT, wenn der Mandantenkontext fehlte, im unklarsten Fall.
+  // `checkCallerOwnsRecord` ist fail-closed und weist das jetzt als
+  // `NO_TENANT_CONTEXT` ab.
+  // `allowMissingTenantContext`: Der virtuelle Geraete-User VOR dem Pairing
+  // (`device:*` ohne Mandant) muss am POS stempeln koennen, bevor der Edge einem
+  // Mandanten zugeordnet ist. Genau dafuer stand hier die bedingte Form — sie war
+  // an dieser Stelle Absicht, nicht Nachlaessigkeit (belegt in
+  // `time-clock-scope.spec.ts`). Neu ist nur, dass die Ausnahme benannt dasteht,
+  // statt sich aus einem `&&` zu ergeben.
+  const ownership = checkCallerOwnsRecord(actor, target, { allowMissingTenantContext: true })
+  if (ownership) {
+    // Mit `allowMissingTenantContext` bleibt nur `FOREIGN_TENANT` uebrig.
+    // Client-stabile Meldung beibehalten — sie ist seit #189 unveraendert und
+    // der Adapter wirft sie woertlich als Forbidden.
+    return { reason: 'FOREIGN_TENANT', message: 'Benutzer gehoert nicht zum eigenen Mandanten' }
   }
 
   // 2. Fremder Datensatz. Geraete-Rollen duerfen fuer jeden Mitarbeiter

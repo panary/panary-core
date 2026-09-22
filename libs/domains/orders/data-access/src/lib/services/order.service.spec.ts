@@ -9,6 +9,7 @@ import { TranslateService } from '@ngx-translate/core'
 import { of } from 'rxjs'
 import {
   DineLocation,
+  isSyntheticSettlementScope,
   OrderChannel,
   OrderStatus,
   type AppliedDiscount,
@@ -185,6 +186,50 @@ describe('OrderService.createOrder — vorab vergebene _id', () => {
 
     expect(enqueued).toHaveLength(1)
     expect(enqueued[0]['entityId']).toBeTruthy()
+  })
+})
+
+describe('OrderService.createOrder — Abrechnungskreis', () => {
+  it('schickt online KEINEN settlementScope — den stempelt der Server', async () => {
+    // Erst am Edge stehen Geschaeftstag und endgueltige Belegnummer fest. Ein
+    // Client-Wert waere hier bestenfalls redundant und schlimmstenfalls ein
+    // zweiter, abweichender Abrechnungskreis.
+    const { service, createCalls } = setup()
+
+    await service.createOrder({ ...baseInput, table: '3' })
+
+    expect('settlementScope' in createCalls[0].payload).toBe(false)
+  })
+
+  it('setzt offline den Tisch als Abrechnungskreis — in Cache UND Outbox', async () => {
+    // Offline gibt es keinen Server, der stempeln koennte, und die Order wird
+    // bis zum Replay lokal angezeigt.
+    const { service, enqueued, upserted } = setup({ offline: true })
+
+    await service.createOrder({ ...baseInput, table: '3' })
+
+    expect((upserted[0].rows[0] as { settlementScope: string }).settlementScope).toBe('3')
+    expect((enqueued[0]['payload'] as { settlementScope: string }).settlementScope).toBe('3')
+  })
+
+  it('setzt offline ohne Tisch einen erkennbar synthetischen Wert', async () => {
+    const { service, enqueued } = setup({ offline: true })
+
+    await service.createOrder(baseInput)
+
+    const scope = (enqueued[0]['payload'] as { settlementScope: string }).settlementScope
+    expect(isSyntheticSettlementScope(scope)).toBe(true)
+  })
+
+  it('gibt zwei offline aufgenommenen Bestellungen desselben Tisches denselben Kreis', async () => {
+    const first = setup({ offline: true })
+    await first.service.createOrder({ ...baseInput, table: '3' })
+    const second = setup({ offline: true })
+    await second.service.createOrder({ ...baseInput, table: '3' })
+
+    expect((second.enqueued[0]['payload'] as { settlementScope: string }).settlementScope).toBe(
+      (first.enqueued[0]['payload'] as { settlementScope: string }).settlementScope,
+    )
   })
 })
 

@@ -371,6 +371,7 @@
     "COMPANY_ASSIGNED": "\"{{name}}\" firması atandı",
     "COMPANY_ERROR": "Firma atama hatası",
     "PAGER": "Çağrı cihazı",
+    "SETTLEMENT_SCOPE": "Hesap grubu",
     "DISCOUNT_LABEL": "İndirim"
   },
   "PRE_ORDERS": {

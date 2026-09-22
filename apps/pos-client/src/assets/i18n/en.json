@@ -371,6 +371,7 @@
     "COMPANY_ASSIGNED": "Company \"{{name}}\" assigned",
     "COMPANY_ERROR": "Error assigning company",
     "PAGER": "Pager",
+    "SETTLEMENT_SCOPE": "Settlement scope",
     "DISCOUNT_LABEL": "Discount"
   },
   "PRE_ORDERS": {

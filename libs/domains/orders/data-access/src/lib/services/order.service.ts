@@ -8,6 +8,7 @@ import {
   AppliedDiscount,
   CreationContext,
   CustomerPaymentInfo,
+  deriveSettlementScope,
   DineLocation,
   Order,
   OrderLineItem,
@@ -312,7 +313,7 @@ export class OrderService extends BaseService<Order> {
   }
 
   private async createOrderAndOpenPrintDialog(
-    newOrder: Omit<Order, '_id' | 'locationId' | 'tenantId' | 'createdAt' | 'updatedAt'>,
+    newOrder: Omit<Order, '_id' | 'locationId' | 'tenantId' | 'createdAt' | 'updatedAt' | 'settlementScope'>,
   ): Promise<number | number[] | undefined | null> {
     return this.#createOrderRecord(newOrder).then(
       (createdOrder: Order | Order[]): number | number[] | undefined | null => {
@@ -344,11 +345,18 @@ export class OrderService extends BaseService<Order> {
   }
 
   /** Online → Server; offline → optimistisch in Cache + Outbox (Connect-Tier). */
-  async #createOrderRecord(newOrder: Omit<Order, '_id' | 'locationId' | 'tenantId'>): Promise<Order | Order[]> {
+  async #createOrderRecord(
+    newOrder: Omit<Order, '_id' | 'locationId' | 'tenantId' | 'settlementScope'>,
+  ): Promise<Order | Order[]> {
     if (this.#shouldQueueOffline()) {
       return this.#enqueueOfflineOrder(newOrder)
     }
-    return this.create(newOrder)
+    // `BaseService.create` laesst genau drei serverseitig gestempelte Felder
+    // weg (`_id`, `locationId`, `tenantId`). `settlementScope` ist das vierte
+    // dieser Sorte, steht aber nicht in der generischen Signatur — die zu
+    // erweitern traefe jeden Service im Workspace. Der Cast sagt dasselbe wie
+    // die drei anderen Auslassungen: Das Feld setzt der Server.
+    return this.create(newOrder as Omit<Order, '_id' | 'locationId' | 'tenantId'>)
   }
 
   #shouldQueueOffline(): boolean {
@@ -365,7 +373,9 @@ export class OrderService extends BaseService<Order> {
    * KassenSichV §146a), optimistisch in Cache + Outbox. Der Server re-stampt die finale
    * `dailySequenceNumber` beim Sync.
    */
-  async #enqueueOfflineOrder(newOrder: Omit<Order, '_id' | 'locationId' | 'tenantId'>): Promise<Order> {
+  async #enqueueOfflineOrder(
+    newOrder: Omit<Order, '_id' | 'locationId' | 'tenantId' | 'settlementScope'>,
+  ): Promise<Order> {
     const location = this.#locationService.activeLocation()
     const provisional = this.#nextProvisionalSequence()
     const order: Order = {
@@ -380,6 +390,22 @@ export class OrderService extends BaseService<Order> {
       offlineCreated: true,
       updatedAt: new Date().toISOString(),
     }
+
+    // Abrechnungskreis schon hier setzen, nicht erst beim Replay: Die Order
+    // liegt bis dahin im lokalen Cache und wird angezeigt — ohne Wert fehlte
+    // der offline aufgenommenen Bestellung genau die Klammer, wegen der es das
+    // Feld gibt. `assignSettlementScope()` am Edge uebernimmt einen
+    // mitgeschickten Wert, der Wert bleibt ueber den Replay also stabil.
+    //
+    // Dieselbe Funktion wie am Edge (`@panary/orders/domain`) — eine zweite
+    // Ableitung waere Drift, die niemandem auffiele.
+    order.settlementScope = deriveSettlementScope({
+      table: order.table,
+      locationId: order.locationId,
+      // Offline steht weder der Geschaeftstag noch die endgueltige Belegnummer
+      // fest. Die Order-ID ist der Anker, der beides ueberdauert.
+      orderId: order._id,
+    })
 
     await this.cacheStore?.upsertMany('orders', [order as unknown as CacheEntity])
     await this.#outbox?.enqueue({
@@ -472,7 +498,12 @@ export class OrderService extends BaseService<Order> {
     // businessDayId wird vom Backend automatisch verwaltet (standalone: Auto-Rotate)
     const businessDayId = this.#locationService.activeLocation()?.currentBusinessDay?.businessDayId
 
-    const order: Omit<Order, '_id' | 'locationId' | 'tenantId'> = {
+    // `settlementScope` steht hier bewusst NICHT drin: Den Abrechnungskreis
+    // stempelt der Server (`assignSettlementScope()`), weil erst dort der
+    // endgueltige Geschaeftstag und die endgueltige Belegnummer feststehen.
+    // Nur der Offline-Pfad setzt ihn selbst — dort gibt es keinen Server, der
+    // es koennte, und die Order wird bis zum Replay lokal angezeigt.
+    const order: Omit<Order, '_id' | 'locationId' | 'tenantId' | 'settlementScope'> = {
       status: OrderStatus.ACTIVE,
       businessDayId: businessDayId,
       orderChannel: orderChannel,

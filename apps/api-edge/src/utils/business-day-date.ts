@@ -11,7 +11,7 @@
  * nur an der **Rotation** statt am Gate.
  *
  * Die Rotation bleibt bewusst kalendertagsbasiert — „ein neuer Tag bekommt einen
- * neuen Geschaeftstag" ist ein Kalenderbegriff, und ADR 0047 hat das ausdruecklich
+ * neuen Geschaeftstag" ist ein Kalenderbegriff, und panary-cloud ADR 0047 hat das ausdruecklich
  * so stehen lassen. Geaendert hat sich nur, **wessen** Kalender gilt: der der
  * Filiale statt der von UTC.
  *

@@ -38,6 +38,7 @@ import { extractOrderInteractions } from '../../hooks/extract-order-interactions
 import { restrictOrderToBusinessDay } from '../../hooks/restrict-order-to-business-day'
 import { restrictOrderToCashSession } from '../../hooks/restrict-order-to-cash-session'
 import { assignDailySequenceNumber } from '../../hooks/assign-daily-sequence-number'
+import { assignSettlementScope } from '../../hooks/assign-settlement-scope.hook'
 import { calculateTaxDetails, calculateTaxDetailsOnPatch } from '../../hooks/calculate-tax-details'
 import { applyAutomaticDiscounts } from '../../hooks/apply-automatic-discounts'
 import { checkMultiOperation } from '../../hooks/check-multi-operation'
@@ -93,6 +94,11 @@ export const orders = (app: Application) => {
         { name: 'idx_orders_tenant', columns: ['tenantId'] },
         { name: 'idx_orders_tenant_location', columns: ['tenantId', 'locationId'] },
         { name: 'idx_orders_status', columns: ['status'] },
+        // Abrechnungskreis-Lookup („alle Vorgaenge dieses Tisches"). Der
+        // Mandanten-/Standort-Filter steht vorne, weil `multiTenancy()` ihn
+        // jeder Abfrage voranstellt — ein Index nur auf `settlementScope`
+        // wuerde davon nicht genutzt.
+        { name: 'idx_orders_settlement_scope', columns: ['tenantId', 'locationId', 'settlementScope'] },
       ],
       service,
     )
@@ -139,6 +145,11 @@ export const orders = (app: Application) => {
         // Bestellung AUFNEHMEN ist immer erlaubt — der Kassen-Guard läuft jetzt
         // beim KASSIEREN (before.patch, Status→completed), nicht mehr hier.
         assignDailySequenceNumber(),
+        // Abrechnungskreis (DSFinV-K `ABRECHNUNGSKREIS`) stempeln — NACH
+        // Geschaeftstag und Vorgangsnummer, weil der synthetische Wert fuer
+        // Bestellungen ohne Tisch aus genau diesem Tripel gebaut wird. Wirft
+        // nie: das Feld ist Pflicht, ein Fehler hier wuerde die Kasse sperren.
+        assignSettlementScope(),
         // TSE-Start: signiert den Vorgangsbeginn (KassenSichV) nachdem die
         // lückenlose Z-Bon-Nummer steht. No-Op ohne aktive TSE; nie blockierend (§146a).
         signOrderTseStart,

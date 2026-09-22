@@ -371,6 +371,7 @@
     "COMPANY_ASSIGNED": "Firma \"{{name}}\" zugeordnet",
     "COMPANY_ERROR": "Fehler beim Zuordnen der Firma",
     "PAGER": "Pager",
+    "SETTLEMENT_SCOPE": "Abrechnungskreis",
     "DISCOUNT_LABEL": "Rabatt"
   },
   "PRE_ORDERS": {

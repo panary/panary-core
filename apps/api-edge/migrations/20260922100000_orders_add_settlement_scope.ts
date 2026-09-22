@@ -39,6 +39,20 @@ export const MAX_LENGTH = 50
 export const PLACEHOLDER = `${SYNTHETIC_PREFIX}unset`
 export const BACKFILL_PREFIX = `${SYNTHETIC_PREFIX}backfill-`
 
+// 🚨 SQLites einstelliges `trim(X)` entfernt AUSSCHLIESSLICH das ASCII-Leerzeichen.
+// `settlementScopeFromTable()` im Domain-Paket trimmt dagegen mit JS `.trim()`, also
+// auch Tab, Zeilenumbruch und geschuetztes Leerzeichen. Die Differenz ist genau der
+// Schaden, den das Feld verhindern soll: Ein Bestandswert `"\t3\t"` behielte hier
+// seine Tabs, eine neue Bestellung am selben Tisch bekaeme `"3"` — zwei
+// Abrechnungskreise fuer einen Tisch. Deshalb die zweistellige Form mit explizitem
+// Zeichensatz.
+//
+// ⚠️ Deckungsgleich ist das nicht: JS `.trim()` kennt zusaetzlich U+2028/U+2029,
+// U+FEFF und weitere Unicode-Leerzeichen. Abgedeckt sind die Zeichen, die
+// realistisch in einen Tischnamen geraten (Tastatur, Copy-Paste); der Rest ist
+// bewusst offen und per Test festgehalten.
+const TRIM_CHARS = `' ' || char(9) || char(10) || char(11) || char(12) || char(13) || char(160)`
+
 export async function up(knex: Knex): Promise<void> {
   if (!(await knex.schema.hasTable('orders'))) return
   if (await knex.schema.hasColumn('orders', 'settlementScope')) return
@@ -50,9 +64,9 @@ export async function up(knex: Knex): Promise<void> {
   // `table` ist ein SQL-Schluesselwort und muss ueberall gequotet werden.
   const withTable = await knex('orders')
     .whereNotNull('table')
-    .whereRaw(`trim("table") <> ''`)
+    .whereRaw(`trim("table", ${TRIM_CHARS}) <> ''`)
     .update({
-      settlementScope: knex.raw(`substr(trim("table"), 1, ?)`, [MAX_LENGTH]),
+      settlementScope: knex.raw(`substr(trim("table", ${TRIM_CHARS}), 1, ?)`, [MAX_LENGTH]),
     })
 
   const withoutTable = await knex('orders')

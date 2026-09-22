@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   isSyntheticSettlementScope,
   SETTLEMENT_SCOPE_MAX_LENGTH,
+  settlementScopeFromTable,
   SYNTHETIC_SETTLEMENT_SCOPE_PREFIX,
 } from '@panary/orders/domain'
 
@@ -85,6 +86,31 @@ describe('Migration orders_add_settlement_scope — Backfill', () => {
     expect(result['order-aaaaaaaaaaaa']).toBe('3')
     expect(result['order-bbbbbbbbbbbb']).toBe('3')
     expect(result['order-cccccccccccc']).toBe('Terrasse')
+  })
+
+  // 🚨 Der eigentliche Gegenstand dieser Migration: Bestandszeilen und neue
+  // Bestellungen muessen fuer denselben Tischwert denselben Abrechnungskreis
+  // ergeben. Die Migration rechnet in SQL, der Laufzeitpfad in JS — zwei
+  // Implementierungen derselben Regel, und genau dort driftet es.
+  //
+  // SQLites einstelliges `trim(X)` entfernt nur das ASCII-Leerzeichen; `"\t3\t"`
+  // behielte damit seine Tabs, waehrend eine neue Bestellung `"3"` bekaeme.
+  it.each([
+    ['3', 'schlicht'],
+    ['  3  ', 'Leerzeichen'],
+    ['\t3\t', 'Tabulator'],
+    ['\n3\n', 'Zeilenumbruch'],
+    ['\r3\r', 'Wagenruecklauf'],
+    ['\u00a03\u00a0', 'geschuetztes Leerzeichen'],
+    [' \tTerrasse links\t ', 'gemischt'],
+    ['x'.repeat(120), 'ueberlang'],
+  ])('deckt sich mit settlementScopeFromTable: %j (%s)', async (raw: string) => {
+    await db('orders').insert([{ _id: 'order-1', table: raw }])
+
+    await up(db)
+
+    const [row] = await rows(db)
+    expect(row.settlementScope).toBe(settlementScopeFromTable(raw))
   })
 
   it('trimmt den Tischwert — „3" und „3 " duerfen nicht auseinanderfallen', async () => {

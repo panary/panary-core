@@ -67,6 +67,10 @@ export function makeOrder(opts: MakeOrderOptions = {}): Order {
     businessDayId: '00000000-0000-7000-8000-000000000003',
     orderChannel: opts.channel ?? OrderChannel.POS,
     dailySequenceNumber: 1,
+    // Abrechnungskreis (DSFinV-K `ABRECHNUNGSKREIS`) — im Schema Pflicht. Die
+    // Aggregation gruppiert nicht danach, ein fester Wert je Fixture-Order
+    // reicht also; entscheidend ist, dass der Wert ueberhaupt da ist.
+    settlementScope: `auto:${orderId.slice(-8)}`,
     dineLocation: opts.dineLocation ?? DineLocation.DINE_IN,
     lineItems: opts.lineItems ?? [],
     cancellation: opts.cancellation

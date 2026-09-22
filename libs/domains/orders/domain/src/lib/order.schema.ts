@@ -346,6 +346,25 @@ export const orderSchema = Type.Object(
     remainingTime: Type.Number({ minimum: 0 }),
     targetCompletionAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
     table: Type.Optional(Type.Union([Type.String({ maxLength: 50 }), Type.Null()])),
+
+    // === Abrechnungskreis (DSFinV-K `ABRECHNUNGSKREIS`) ===
+    // Die Klammer, ueber die ein Pruefer zusammengehoerende Vorgaenge eines
+    // Tisches nachvollzieht — Bestellungen, Split-Belege, Umbuchungen, Stornos
+    // tragen denselben Wert (DSFinV-K Tz. 2.7.1/3.1.2.2; in Oesterreich der
+    // RKSV-Verrechnungskreis). Deshalb PFLICHT und nicht `Type.Optional`: ein
+    // Vorgang ohne Abrechnungskreis ist nicht zuordenbar, und ein optionales
+    // Feld waere genau der Zustand, den `table` heute schon hat.
+    //
+    // Nach dem Create unveraenderlich (`orderPatchResolver` strippt es still,
+    // wie `dailySequenceNumber`). Gesetzt wird es serverseitig von
+    // `assignSettlementScope()` — aus `table`, sonst synthetisch mit dem
+    // Praefix `SYNTHETIC_SETTLEMENT_SCOPE_PREFIX`.
+    //
+    // `maxLength: 50` ist keine Hausnummer, sondern die Feldlaenge des
+    // DSFinV-K-Feldes `ABRECHNUNGSKREIS` (Zeichen, 50). `table` traegt
+    // dieselbe Grenze, der Tischwert passt also immer unveraendert hinein.
+    settlementScope: Type.String({ minLength: 1, maxLength: 50 }),
+
     recordingDate: Type.String({ format: 'date-time' }),
 
     // === Verkaufsverbrauch-Buchung (Variante A) ===
@@ -412,6 +431,21 @@ export const orderDataSchema = Type.Intersect(
     // gestempelt. Als Pflichtfelder waere die 400-Meldung bei fehlgeschlagenem
     // Stempel irrefuehrend (ADR 0031 in panary-cloud).
     Type.Partial(Type.Pick(orderSchema, ['locationId', 'tenantId'])),
+    // `settlementScope` ist in `orderSchema` Pflicht, im CREATE-Schema aber
+    // bewusst optional — aus demselben Grund wie `tenantId`/`locationId` eine
+    // Zeile darueber: Das Feld wird serverseitig gestempelt
+    // (`assignSettlementScope()` im `before create`), ein Client sendet es nie.
+    // Als Pflichtfeld waere die 400-Meldung „must have required property
+    // 'settlementScope'" irrefuehrend und zeigte auf den Client statt auf den
+    // Stempel-Pfad — genau die Fehlkonstruktion, die `assert-stamp-fields.ts`
+    // im Boot meldet.
+    //
+    // Zweiter, schwerer wiegender Grund: Dieses Schema validiert auch den
+    // Sync-Push Edge -> Cloud. Waere das Feld hier Pflicht, verwuerfe eine
+    // bereits gebumpte Cloud jeden Push eines noch nicht aktualisierten Edge
+    // mit `BadRequest` — und `classifyAcceptError` stuft das als TERMINAL ein:
+    // Outbox `rejected`, kein Retry, kein `sync-conflicts`-Eintrag, kein Alarm.
+    Type.Partial(Type.Pick(orderSchema, ['settlementScope'])),
     Type.Pick(orderSchema, [
       'createdAt',
       'updatedAt',
@@ -479,6 +513,10 @@ export const orderQueryProperties = Type.Pick(orderSchema, [
   'pager',
   'status',
   'table',
+  // Ohne diesen Eintrag liefert `find({ settlementScope })` 400 statt 200:
+  // `orderQuerySchema` (unten) traegt `additionalProperties: false`, und was
+  // hier nicht gepickt ist, existiert fuer den Query-Validator nicht.
+  'settlementScope',
   'dineLocation',
   'updatedAt',
   'locationId',

@@ -438,6 +438,20 @@
                       >
                         T{{ order.table }}
                       </span>
+                    } @else if (order.settlementScope) {
+                      <!--
+                        Abrechnungskreis (DSFinV-K `ABRECHNUNGSKREIS`) nur OHNE Tisch zeigen:
+                        mit Tisch ist der Wert identisch mit dem Tischwert, und zwei Chips mit
+                        derselben Aussage sind auf einer Kassenkachel nur Rauschen. Ohne Tisch
+                        ist er die einzige sichtbare Vorgangsklammer — und der Nachweis, dass
+                        auch eine Thekenbestellung einen Wert traegt.
+                      -->
+                      <span
+                        class="max-w-[9rem] truncate bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded text-xs font-mono"
+                        [title]="('ACTIVE_ORDERS.SETTLEMENT_SCOPE' | translate) + ': ' + order.settlementScope"
+                      >
+                        {{ order.settlementScope }}
+                      </span>
                     }
                     @if (order.pager) {
                       <span

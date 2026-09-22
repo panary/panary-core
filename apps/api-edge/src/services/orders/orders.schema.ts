@@ -70,6 +70,14 @@ export const orderPatchResolver = resolve<Order, HookContext<OrderService>>({
   createdAt: async () => undefined,
   recordingDate: async () => undefined,
   dailySequenceNumber: async () => undefined,
+  // Der Abrechnungskreis ist die Klammer ueber Bestellungen, Split-Belege,
+  // Umbuchungen und Stornos — er muss ueber alle hinweg identisch bleiben
+  // (DSFinV-K Tz. 2.7.1). Ein Patch, der ihn verschoebe, loeste genau die
+  // Zuordnung auf, wegen der es das Feld gibt.
+  //
+  // ⚠️ Der Strip ist STILL: Der Client bekommt HTTP 200, und nichts passiert.
+  // Ein Test darauf muss den Wert NACHLESEN, nicht den Statuscode pruefen.
+  settlementScope: async () => undefined,
   lineItems: async () => undefined,
   updatedAt: async () => new Date().toISOString(),
 })

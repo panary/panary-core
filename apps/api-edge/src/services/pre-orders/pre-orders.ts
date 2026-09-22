@@ -86,7 +86,8 @@ export const preOrders = (app: Application) => {
     // nach `orders.create` liesse die Zeile in der Datenbank stehen, und genau
     // daran ist `ensureTenantIsolation` als App-Level-*after*-Hook wirkungslos.
     //
-    // Keine der Schichten aus `around.all` (:163-166) leistet das hier.
+    // Keine der Schichten aus der `around.all`-Kette weiter unten in dieser
+    // Datei leistet das hier.
     // `authenticate` und `authorize` greifen zwar auch für `convert`, aber
     // `multiTenancy` schaltet nur auf CRUD-Methodennamen und ist für eine
     // Custom Method ein No-Op — und der `get` darüber läuft ohnehin mit

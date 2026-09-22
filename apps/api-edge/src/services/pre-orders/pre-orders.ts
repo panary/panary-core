@@ -33,7 +33,7 @@ import { DineLocation, OrderChannel, OrderStatus, PaymentState } from '@panary/o
 import type { PreOrder, PreOrderService } from './pre-orders.class'
 import { validatePreOrderOpeningHours } from './validate-opening-hours.hook'
 import { leadMinutesUntil } from './scheduled-lead-time'
-import { ensureIndexes, logger } from '@panary/shared-backend'
+import { assertCallerOwnsRecord, ensureIndexes, logger } from '@panary/shared-backend'
 
 export const preOrdersPath = 'pre-orders'
 export const preOrdersMethods = ['find', 'get', 'create', 'patch', 'remove', 'convert'] as const
@@ -79,6 +79,25 @@ export const preOrders = (app: Application) => {
   ;(service as any).convert = async (id: string, params?: any) => {
     // 1. Vorbestellung laden (intern, kein doppelter Auth-Check)
     const preOrder: PreOrder = await app.service('pre-orders').get(id, { provider: undefined })
+
+    // 1a. Gehört sie dem Aufrufer? (#357)
+    //
+    // 🚨 Muss VOR jedem Write stehen. Feathers rollt nichts zurück: Ein Check
+    // nach `orders.create` liesse die Zeile in der Datenbank stehen, und genau
+    // daran ist `ensureTenantIsolation` als App-Level-*after*-Hook wirkungslos.
+    //
+    // Keine der Schichten aus der `around.all`-Kette weiter unten in dieser
+    // Datei leistet das hier.
+    // `authenticate` und `authorize` greifen zwar auch für `convert`, aber
+    // `multiTenancy` schaltet nur auf CRUD-Methodennamen und ist für eine
+    // Custom Method ein No-Op — und der `get` darüber läuft ohnehin mit
+    // `{ provider: undefined }`, also ungescoped.
+    //
+    // Gemessen vor dem Fix (2026-09-22, `tenant:staff`): Eine fremde ID
+    // antwortete mit HTTP 200, legte eine Order mit den FREMDEN `lineItems` an —
+    // auf den EIGENEN Mandanten gestempelt und damit für den Aufrufer lesbar —
+    // und markierte die fremde Vorbestellung als CONVERTED.
+    assertCallerOwnsRecord(params?.user, preOrder)
 
     // 2. Statusprüfung
     if (preOrder.status === PreOrderStatus.CONVERTED) {

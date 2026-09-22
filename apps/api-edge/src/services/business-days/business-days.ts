@@ -23,7 +23,7 @@ import { AuditAction, AuditCategory, AuditOutcome, AuditSeverity } from '@panary
 import { BusinessDayStatus, BusinessDayOperationMode } from '@panary/businessdays/domain'
 import { PairingStatus } from '@panary/cloud-connection/domain'
 import { SyncOutboxStatus } from '@panary/sync/domain'
-import { authorize, multiTenancy, resolveUserLocationId } from '@panary/shared-backend'
+import { assertCallerOwnsRecord, authorize, multiTenancy, resolveUserLocationId } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { DatabaseType } from '@panary/shared-common'
 import { ensureIndexes, logger } from '@panary/shared-backend'
@@ -196,7 +196,12 @@ export async function discardOrphanDay(
     provider: undefined,
   })) as BusinessDay | undefined
   if (!businessDay) throw new NotFound('Geschaeftstag nicht gefunden')
-  if (businessDay.tenantId !== user.tenantId) throw new BadRequest('Tenant-Mismatch')
+  // Seit #357 ueber den geteilten Helfer. Diese Fassung war die einzige der drei
+  // Bestandsstellen, die schon fail-closed war (der `!user?.tenantId`-Wurf
+  // darueber deckt den fehlenden Kontext ab) — hier aendert sich deshalb nur der
+  // Statuscode: 403 statt 400. „Gehoert dir nicht" ist keine fehlerhafte
+  // Anfrage. Einziger Konsument der alten Meldung war `discard-orphan-day.spec.ts`.
+  assertCallerOwnsRecord(user, businessDay)
 
   if (businessDay.status !== BusinessDayStatus.OPEN) {
     throw new BadRequest(
@@ -495,7 +500,12 @@ async function closeDay(app: Application, data: CloseDayData, params: OpenDayPar
     provider: undefined,
   })) as BusinessDay | undefined
   if (!businessDay) throw new NotFound('Geschaeftstag nicht gefunden')
-  if (businessDay.tenantId !== user.tenantId) throw new BadRequest('Tenant-Mismatch')
+  // Seit #357 ueber den geteilten Helfer. Diese Fassung war die einzige der drei
+  // Bestandsstellen, die schon fail-closed war (der `!user?.tenantId`-Wurf
+  // darueber deckt den fehlenden Kontext ab) — hier aendert sich deshalb nur der
+  // Statuscode: 403 statt 400. „Gehoert dir nicht" ist keine fehlerhafte
+  // Anfrage. Einziger Konsument der alten Meldung war `discard-orphan-day.spec.ts`.
+  assertCallerOwnsRecord(user, businessDay)
   if (businessDay.status !== BusinessDayStatus.OPEN) {
     throw new BadRequest(`Tag ist nicht offen (Status: ${businessDay.status})`)
   }
@@ -649,7 +659,12 @@ async function refreshClosingStatus(
     provider: undefined,
   })) as BusinessDay | undefined
   if (!businessDay) throw new NotFound('Geschaeftstag nicht gefunden')
-  if (businessDay.tenantId !== user.tenantId) throw new BadRequest('Tenant-Mismatch')
+  // Seit #357 ueber den geteilten Helfer. Diese Fassung war die einzige der drei
+  // Bestandsstellen, die schon fail-closed war (der `!user?.tenantId`-Wurf
+  // darueber deckt den fehlenden Kontext ab) — hier aendert sich deshalb nur der
+  // Statuscode: 403 statt 400. „Gehoert dir nicht" ist keine fehlerhafte
+  // Anfrage. Einziger Konsument der alten Meldung war `discard-orphan-day.spec.ts`.
+  assertCallerOwnsRecord(user, businessDay)
 
   // Nur sinnvoll im Zwischen-Status — bereits final-Status nicht erneut pullen
   if (

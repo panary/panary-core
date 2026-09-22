@@ -27,6 +27,8 @@ export { secureByDefault } from './hooks/secure-by-default.hook'
 export { stringifyJsonFields } from './hooks/stringify-json-fields.hook'
 
 // --- Util Security ---
+export { assertCallerOwnsRecord, checkCallerOwnsRecord } from './util-security/caller-owns-record'
+export type { OwnershipActor, OwnershipTarget, OwnershipViolation } from './util-security/caller-owns-record'
 export {
   clearPinFailures,
   getPinLockoutSeconds,

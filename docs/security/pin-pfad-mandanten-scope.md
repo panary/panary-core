@@ -108,3 +108,25 @@ Geprüft werden Ablehnung, **Reihenfolge** (fremder Mandant *und* archiviert →
 legitime Terminal-Pfad, die unveränderte PIN-Tarnung im eigenen Mandanten und der interne
 Aufruf ohne `params`. Per Mutationsprobe gegengeprüft: Ohne den Guard fallen genau die drei
 Guard-Tests, die vier Gegenproben bleiben grün.
+
+---
+
+## Nachtrag 2026-09-22 — die Prüfung liegt jetzt zentral
+
+Seit [#357](https://github.com/panary/panary-core/issues/357) steht die
+Mandanten-Eigentumsprüfung **nicht mehr in dieser Datei**, sondern als
+`checkCallerOwnsRecord` in `@panary/shared-backend`
+(`util-security/caller-owns-record.ts`). Anlass war das vierte Auftreten
+derselben Lücke — in `pre-orders.convert()`, wo sie ganz fehlte, während es hier
+und an zwei weiteren Stellen drei verschiedene Fassungen derselben vier Zeilen
+gab.
+
+Begründung, gemessene Erreichbarkeit und die Regel für neue Custom Methods:
+[ADR 0046](../adr/0046-eigentums-check-fuer-custom-methods.md).
+
+⚠️ **Hier wurde mit #357 bewusst NICHTS verschärft.** `verifyPin` und `changePin`
+rufen jetzt den geteilten Helfer auf, setzen aber `allowMissingTenantContext` und
+verhalten sich damit exakt wie vorher. Ob ein Aufrufer **ohne** Mandantenkontext
+diese Methoden überhaupt erreichen kann, ist **ungemessen** — kein Test deckt den
+Fall ab. Ihn blind zu schließen hieße, den PIN-Login am POS gegen eine Vermutung
+zu tauschen; er gehört gemessen, bevor er verschärft wird.

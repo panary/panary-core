@@ -127,3 +127,27 @@ Richtungen gestrippt — ein Fehlstempel blieb also lokal. Die fachliche Histori
 `working-times` dagegen nicht: Sie synchronisiert in die Cloud. Wer prüfen will, ob der Pfad
 in Bestandsdaten getroffen wurde, sucht dort nach Einträgen ohne passenden Schichtplan, nicht
 in `users`.
+
+---
+
+## Nachtrag 2026-09-22 — die Prüfung liegt jetzt zentral
+
+Seit [#357](https://github.com/panary/panary-core/issues/357) steht die
+Mandanten-Eigentumsprüfung **nicht mehr in dieser Datei**, sondern als
+`checkCallerOwnsRecord` in `@panary/shared-backend`
+(`util-security/caller-owns-record.ts`). Anlass war das vierte Auftreten
+derselben Lücke — in `pre-orders.convert()`, wo sie ganz fehlte, während es hier
+und an zwei weiteren Stellen drei verschiedene Fassungen derselben vier Zeilen
+gab.
+
+Begründung, gemessene Erreichbarkeit und die Regel für neue Custom Methods:
+[ADR 0046](../adr/0046-eigentums-check-fuer-custom-methods.md).
+
+🚨 **Ein Befund aus #357 gehört hierher:** Die bedingte Form
+`if (actor.tenantId && …)`, die hier stand, war **Absicht** — der virtuelle
+Geräte-User vor dem Pairing trägt legitim keinen Mandanten und muss stempeln
+können. Beim Umbau auf den geteilten Helfer fiel genau dieser Test um, und die
+Annahme „das war überall Nachlässigkeit" damit ebenfalls. Der Helfer ist deshalb
+fail-closed mit einer **benannten** Ausnahme (`allowMissingTenantContext`), die
+diese Stelle setzt — und sonst keine im Edge außer `verifyPin`/`changePin`, wo
+sie das Verhalten unverändert lässt.

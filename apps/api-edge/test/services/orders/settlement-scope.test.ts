@@ -72,12 +72,14 @@ describe('orders service — Abrechnungskreis (settlementScope)', () => {
     return created
   }
 
-  const posParams = () =>
-    ({
-      provider: 'rest',
-      authenticated: true,
-      user: { _id: userId, role: 'device:pos-client', tenantId, locationId, activeLocationId: locationId },
-    }) as never
+  // Bewusst OHNE `as never` (anders als in `orders.test.ts`): Der `find`-Test
+  // spreadet die Params, und aus `never` laesst sich nicht spreaden (TS2698).
+  // Der Cast sitzt stattdessen an der Aufrufstelle.
+  const posParams = () => ({
+    provider: 'rest',
+    authenticated: true,
+    user: { _id: userId, role: 'device:pos-client', tenantId, locationId, activeLocationId: locationId },
+  })
 
   beforeAll(async () => {
     await app.setup()
@@ -162,7 +164,7 @@ describe('orders service — Abrechnungskreis (settlementScope)', () => {
     const result = (await app.service('orders').find({
       ...posParams(),
       query: { settlementScope: table },
-    } as never)) as { total: number; data: Order[] }
+    } as never)) as unknown as { total: number; data: Order[] }
 
     expect(result.total).toBe(2)
     expect(result.data.every(o => o.settlementScope === table)).toBe(true)
@@ -174,7 +176,7 @@ describe('orders service — Abrechnungskreis (settlementScope)', () => {
     // Kein `rejects.toThrow()`: Der Resolver strippt das Feld, er lehnt nicht ab.
     const patched = (await app
       .service('orders')
-      .patch(order._id, { settlementScope: 'gekapert' } as never, posParams())) as Order
+      .patch(order._id, { settlementScope: 'gekapert' } as never, posParams() as never)) as Order
 
     expect(patched.settlementScope).toBe('9')
 
@@ -186,7 +188,7 @@ describe('orders service — Abrechnungskreis (settlementScope)', () => {
   it('haelt den Abrechnungskreis auch fest, wenn derselbe Patch den Tisch aendert', async () => {
     const order = await createOrder({ table: '9' })
 
-    await app.service('orders').patch(order._id, { table: '10', settlementScope: '10' } as never, posParams())
+    await app.service('orders').patch(order._id, { table: '10', settlementScope: '10' } as never, posParams() as never)
 
     const reread = (await app.service('orders').get(order._id, internal)) as Order
     expect(reread.table).toBe('10')

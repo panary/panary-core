@@ -13,10 +13,10 @@
  *
  * 🚨 Der Hook wirft nie. Ein Pflichtfeld mit serverseitigem Default ist ein
  * Fiskal-Gate: Schluege die Ableitung fehl, waere keine Bestellung mehr
- * aufgebbar. Die Risiko-Asymmetrie ist eindeutig (ADR 0032, wie bei
- * `business_day.max_open_hours_fallback`) — ein unscharfer Abrechnungskreis
- * ist ein Auswertungsproblem, eine blockierte Kasse ein Betriebsausfall.
- * Der Ausfall wird geloggt, nicht verschwiegen.
+ * aufgebbar. Dasselbe Muster wie `business_day.age_check_skipped` in
+ * `restrict-order-to-business-day.ts` — ein unscharfer Abrechnungskreis ist
+ * ein Auswertungsproblem, eine blockierte Kasse ein Betriebsausfall. Der
+ * Ausfall wird geloggt, nicht verschwiegen (ADR 0047).
  */
 import type { HookContext, NextFunction } from '@feathersjs/feathers'
 import { logger } from '@panary/shared-backend'

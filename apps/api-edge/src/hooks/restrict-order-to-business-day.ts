@@ -20,7 +20,7 @@ import {
  * damit ein Nachtbetrieb 18:00 → 04:00 nicht allein durch den
  * Kalendertagswechsel auffaellt. Muss mit dem Cloud-Default identisch bleiben:
  * zwei verschieden frueh sperrende Gates waeren genau die Drift, die
- * ADR 0047 beendet.
+ * panary-cloud ADR 0047 beendet.
  */
 const DEFAULT_MAX_OPEN_HOURS = 26
 
@@ -224,7 +224,7 @@ export function restrictOrderToBusinessDay() {
 
     // `today` steuert ausschliesslich die **Rotation** — dort ist der
     // Kalendertag die richtige Groesse (ein neuer Tag bekommt einen neuen
-    // Geschaeftstag). Die **Sperre** haengt seit ADR 0047 nicht mehr daran,
+    // Geschaeftstag). Die **Sperre** haengt seit panary-cloud ADR 0047 nicht mehr daran,
     // sondern an der Laufzeit seit `openedAt`.
     //
     // Der Kalendertag ist der der **Filiale**, nicht der von UTC: mit
@@ -300,7 +300,7 @@ export function restrictOrderToBusinessDay() {
     // — also sobald `currentBusinessDay.date !== today`. Das war die
     // eigentliche Sperre im gepairten Betrieb, ohne jede Toleranz und in UTC
     // gerechnet. Sie faellt ersatzlos weg: Ein veraltetes **Datum** ist kein
-    // Grund mehr, ein zu langer **Betrieb** schon (ADR 0047).
+    // Grund mehr, ein zu langer **Betrieb** schon (panary-cloud ADR 0047).
     if (!activeLocation.currentBusinessDay) {
       throw new BadRequest(
         cloudConnection && !overrideActive

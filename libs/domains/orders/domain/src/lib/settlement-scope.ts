@@ -106,9 +106,9 @@ export function syntheticSettlementScope(input: SettlementScopeInput): string {
  * Der Abrechnungskreis einer Bestellung: Tisch, sonst synthetisch.
  *
  * Wirft nie. Ein Fehler in dieser Ableitung wuerde sonst zum Fiskal-Gate — das
- * Feld ist Pflicht, also waere ohne Wert keine Bestellung mehr aufgebbar. Die
- * Risiko-Asymmetrie ist eindeutig (ADR 0032): ein unscharfer Abrechnungskreis
- * ist ein Auswertungsproblem, eine blockierte Kasse ein Betriebsausfall.
+ * Feld ist Pflicht, also waere ohne Wert keine Bestellung mehr aufgebbar. Ein
+ * unscharfer Abrechnungskreis ist ein Auswertungsproblem, eine blockierte
+ * Kasse ein Betriebsausfall (ADR 0047).
  */
 export function deriveSettlementScope(input: SettlementScopeInput): string {
   return settlementScopeFromTable(input.table) ?? syntheticSettlementScope(input)

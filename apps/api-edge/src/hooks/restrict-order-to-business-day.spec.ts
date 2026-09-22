@@ -104,7 +104,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   // `clearAllMocks` loescht Aufrufe, NICHT Implementierungen — ohne diesen
   // Default schleppt ein `mockReturnValue(48)` aus einem Test die Altersgrenze
-  // in alle folgenden. Seit die Grenze in JEDEM Pfad geprueft wird (ADR 0047,
+  // in alle folgenden. Seit die Grenze in JEDEM Pfad geprueft wird (panary-cloud ADR 0047,
   // vorher nur im Aktive-Orders-Zweig), waere das ein stiller Fehlschlag.
   getHoursSince.mockReturnValue(1)
 

@@ -4,6 +4,7 @@ import { OrderInteractionType } from '@panary/order-interactions/domain'
 import {
   OrderSplitError,
   OrderSplitErrorCode,
+  PaymentState,
   type Order,
   type OrderSplitSelectionItem,
   planOrderSplit,
@@ -132,7 +133,7 @@ export function createOrderSplitMethod(app: Application) {
         remainingTime: 0,
         // A10: eigene Vorgangs-Startzeit.
         recordingDate: splitAt,
-        payment: { state: 'pending', totalAmount: 0, tipAmount: 0, transactions: [] },
+        payment: { state: PaymentState.PENDING, totalAmount: 0, tipAmount: 0, transactions: [] },
       } as any,
       params,
     )) as Order

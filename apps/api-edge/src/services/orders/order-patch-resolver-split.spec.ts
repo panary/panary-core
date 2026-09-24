@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { orderPatchResolver } from './orders.schema'
+import { orderDataResolver, orderPatchResolver } from './orders.schema'
 
 /**
  * `splitOff` senkt ueber `effectiveLineItems()` das ausgewiesene Brutto UND die
@@ -47,5 +47,37 @@ describe('orderPatchResolver — splitOff (panary/panary-core#349)', () => {
     const result = await resolvePatch({ provider: undefined, orderSplit: true })
     expect(result.splitOff).toEqual([ENTRY])
     expect(result.splitRoundingRemainderCents).toBe(7)
+  })
+
+  it('laesst splitOff fuer den Sync-Apply durch — ein Restore verloere es sonst STILL', async () => {
+    // Die Bestellung kaeme ohne Gegenbuchung zurueck und wiese damit wieder die
+    // volle Steuer aus, ohne dass irgendwo ein Fehler erschiene.
+    const result = await resolvePatch({ provider: undefined, fromSync: true })
+    expect(result.splitOff).toEqual([ENTRY])
+  })
+})
+
+const resolveCreate = (params: Record<string, unknown>) =>
+  orderDataResolver.resolve({ splitOff: [ENTRY], splitRoundingRemainderCents: 7 } as never, { params } as never)
+
+describe('orderDataResolver — splitOff auf dem CREATE-Pfad', () => {
+  // 🚨 Das war die Luecke: Der Patch-Pfad war gesperrt, der Create-Pfad nicht.
+  // `orderDataSchema` pickt die Felder (noetig fuer den Sync-Push), also kam ein
+  // selbst gesetztes `splitOff` beim Anlegen durch — und die Bestellung wies von
+  // Geburt an weniger Steuer aus, als ihre eigenen `lineItems` hergeben.
+  it('strippt splitOff fuer einen externen Aufrufer', async () => {
+    const result = await resolveCreate({ provider: 'rest', user: { _id: 'u-1' } })
+    expect(result.splitOff).toBeUndefined()
+    expect(result.splitRoundingRemainderCents).toBeUndefined()
+  })
+
+  it('strippt splitOff auch fuer einen unmarkierten internen Aufruf', async () => {
+    const result = await resolveCreate({ provider: undefined })
+    expect(result.splitOff).toBeUndefined()
+  })
+
+  it('laesst splitOff fuer den Sync-Apply durch', async () => {
+    const result = await resolveCreate({ provider: undefined, fromSync: true })
+    expect(result.splitOff).toEqual([ENTRY])
   })
 })

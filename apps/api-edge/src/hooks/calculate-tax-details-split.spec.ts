@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { calculateTaxDetailsOnPatch } from './calculate-tax-details'
+import { calculateTaxDetails, calculateTaxDetailsOnPatch } from './calculate-tax-details'
 
 /**
  * 🚨 Der stille Fehlschlag, gegen den diese Spec steht: Faende
@@ -25,7 +25,10 @@ function line(id: string, price: number, amount: number, taxRate: number) {
   }
 }
 
-function makeContext(data: Record<string, unknown>) {
+function makeContext(
+  data: Record<string, unknown>,
+  params: Record<string, unknown> = { provider: undefined, orderSplit: true },
+) {
   const stored = {
     _id: 'o-1',
     dineLocation: 'dine-in',
@@ -36,6 +39,7 @@ function makeContext(data: Record<string, unknown>) {
   return {
     id: 'o-1',
     data,
+    params,
     app: { service: () => ({ get }) },
   } as never
 }
@@ -64,5 +68,45 @@ describe('calculateTaxDetailsOnPatch — Split-Gegenbuchung', () => {
     const context = makeContext({ pager: 3 }) as any
     await calculateTaxDetailsOnPatch(context)
     expect(context.data.taxSnapshot).toBeUndefined()
+  })
+
+  it('rechnet ein erfundenes splitOff eines externen Aufrufers NICHT ein', async () => {
+    // 🚨 Der Seitenkanal: Der Resolver strippt `splitOff` — aber erst NACH
+    // diesem Hook. Ohne die Berechtigungspruefung fiele das Feld weg und der
+    // daraus gerechnete taxSnapshot bliebe stehen und wuerde persistiert.
+    const context = makeContext({ splitOff: [ENTRY] }, { provider: 'rest', user: { _id: 'u-1' } }) as any
+    await calculateTaxDetailsOnPatch(context)
+    expect(context.data.taxSnapshot).toBeUndefined()
+  })
+
+  it('ignoriert ein erfundenes splitOff auch neben einem echten Rabatt-Patch', async () => {
+    const context = makeContext({ appliedDiscounts: [], splitOff: [ENTRY] }, { provider: 'rest' }) as any
+    await calculateTaxDetailsOnPatch(context)
+    // Voller Bestand: 5 x 10,00 — die Gegenbuchung zaehlt nicht.
+    expect(context.data.taxSnapshot.brutto).toBeCloseTo(50.0, 5)
+  })
+})
+
+describe('calculateTaxDetails (create) — erfundene Gegenbuchung', () => {
+  it('rechnet ein vom Client mitgeschicktes splitOff NICHT ein', async () => {
+    const data: Record<string, unknown> = {
+      dineLocation: 'dine-in',
+      lineItems: [line('l1', 10.0, 5, 19)],
+      splitOff: [ENTRY],
+    }
+    const context = { data, params: { provider: 'rest', user: { _id: 'u-1' } } } as never
+    await calculateTaxDetails(context)
+    expect((data['taxSnapshot'] as any).brutto).toBeCloseTo(50.0, 5)
+  })
+
+  it('rechnet die Gegenbuchung eines Sync-Apply sehr wohl ein', async () => {
+    const data: Record<string, unknown> = {
+      dineLocation: 'dine-in',
+      lineItems: [line('l1', 10.0, 5, 19)],
+      splitOff: [ENTRY],
+    }
+    const context = { data, params: { provider: undefined, fromSync: true } } as never
+    await calculateTaxDetails(context)
+    expect((data['taxSnapshot'] as any).brutto).toBeCloseTo(20.0, 5)
   })
 })

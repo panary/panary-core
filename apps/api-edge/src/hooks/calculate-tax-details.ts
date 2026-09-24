@@ -1,5 +1,6 @@
 import { HookContext } from '@feathersjs/feathers'
 import { computeOrderTax, Order } from '@panary/orders/domain'
+import { mayWriteOrderSplitFields } from './order-split-params'
 
 // Steuer-/Rabatt-Berechnung delegiert vollständig an die kanonische Engine
 // `computeOrderTax` in `@panary/orders/domain` (Single Source of Truth, cents-intern,
@@ -7,7 +8,15 @@ import { computeOrderTax, Order } from '@panary/orders/domain'
 
 export const calculateTaxDetails = async (context: HookContext) => {
   const order = context.data as Order
-  context.data.taxSnapshot = computeOrderTax(order)
+
+  // 🚨 Dieser Hook laeuft VOR `validateData`/`resolveData` — der Strip des
+  // Patch-/Data-Resolvers ist hier also noch nicht passiert. Wer `splitOff`
+  // nicht schreiben darf, darf es auch nicht in die Steuer einrechnen: Sonst
+  // bliebe das Feld zwar draussen, der daraus berechnete `taxSnapshot` aber
+  // stehen — ein Seitenkanal um den Feldschutz herum, und er persistiert.
+  const trusted: Order = mayWriteOrderSplitFields(context.params) ? order : { ...order, splitOff: [] }
+
+  context.data.taxSnapshot = computeOrderTax(trusted)
 }
 
 export const calculateTaxDetailsOnPatch = async (context: HookContext) => {
@@ -29,8 +38,13 @@ export const calculateTaxDetailsOnPatch = async (context: HookContext) => {
   // Gegenbuchung nicht, rechnete er auf dem Stand VOR dem Split und schriebe
   // der Quelle die volle Steuer zurueck — still, ohne Fehler, auf einem
   // steuerrelevanten Dokument.
-  const priceRelevant =
-    data.appliedDiscounts !== undefined || data.dineLocation !== undefined || data.splitOff !== undefined
+  // 🚨 `splitOff` zaehlt nur, wenn der Aufrufer es ueberhaupt schreiben darf.
+  // Der Resolver strippt es sonst — aber erst NACH diesem Hook. Ohne diese
+  // Bedingung schickte ein externer Patch ein erfundenes `splitOff` mit, das
+  // Feld fiele hinterher weg, und der daraus gerechnete `taxSnapshot` wuerde
+  // trotzdem gespeichert.
+  const splitOffAllowed = data.splitOff !== undefined && mayWriteOrderSplitFields(context.params)
+  const priceRelevant = data.appliedDiscounts !== undefined || data.dineLocation !== undefined || splitOffAllowed
   if (!priceRelevant) {
     return
   }
@@ -44,7 +58,7 @@ export const calculateTaxDetailsOnPatch = async (context: HookContext) => {
   // Zielzustand.
   if (data.appliedDiscounts !== undefined) order.appliedDiscounts = data.appliedDiscounts
   if (data.dineLocation !== undefined) order.dineLocation = data.dineLocation
-  if (data.splitOff !== undefined) order.splitOff = data.splitOff
+  if (splitOffAllowed) order.splitOff = data.splitOff
 
   context.data.taxSnapshot = computeOrderTax(order)
 }

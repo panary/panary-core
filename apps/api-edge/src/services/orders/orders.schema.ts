@@ -14,6 +14,7 @@ import {
   OrderStatus,
 } from '@panary/orders/domain'
 import { OrderService } from './orders.class'
+import { mayWriteOrderSplitFields } from '../../hooks/order-split-params'
 
 //#region 1. Main Resolver (Output)
 export const orderResolver = resolve<Order, HookContext<OrderService>>({
@@ -42,6 +43,19 @@ export const orderDataResolver = resolve<Order, HookContext<OrderService>>({
   status: async (value, data, context) => {
     return value || OrderStatus.ACTIVE
   },
+  // 🚨 Dieselbe Sperre wie im Patch-Resolver — der CREATE-Pfad war die Luecke.
+  // `orderDataSchema` PICKT die Split-Felder (noetig fuer den Sync-Push, weil
+  // `additionalProperties: false` sonst den ganzen Record verwuerfe), und
+  // `calculateTaxDetails` laeuft VOR `validateData`/`resolveData`. Ein Client mit
+  // `orders:CREATE` konnte damit beim Anlegen ein eigenes `splitOff` mitschicken
+  // und bekam eine Bestellung, die von Geburt an weniger Steuer auswies, als ihre
+  // eigenen `lineItems` hergeben — ohne dass je ein Split gelaufen waere.
+  //
+  // Der Strip allein reicht nicht: Er liefe zu spaet. Der Steuer-Hook prueft
+  // deshalb dieselbe Bedingung (`calculate-tax-details.ts`).
+  splitOff: async (value, _data, context) => (mayWriteOrderSplitFields(context.params) ? value : undefined),
+  splitRoundingRemainderCents: async (value, _data, context) =>
+    mayWriteOrderSplitFields(context.params) ? value : undefined,
   creationContext: async (value, data, context) => {
     const rawUserId: string | undefined = (context.params as any)?.user?._id || value?.createdBy
     const rawDeviceId: string | undefined = (context.params as any)?.device?._id || value?.createdVia
@@ -62,11 +76,6 @@ export const orderDataResolver = resolve<Order, HookContext<OrderService>>({
 //#endregion
 
 //#region 3. Patch User Resolver (Update / PATCH)
-/** Kommt dieser Patch aus `orders.split`? Siehe Kommentar an `splitOff` unten. */
-function isOrderSplitCall(context: HookContext<OrderService>): boolean {
-  const params = context.params as { provider?: string; orderSplit?: boolean }
-  return params?.provider === undefined && params?.orderSplit === true
-}
 
 export const orderPatchValidator = getValidator(orderPatchSchema, dataValidator)
 export const orderPatchResolver = resolve<Order, HookContext<OrderService>>({
@@ -98,8 +107,9 @@ export const orderPatchResolver = resolve<Order, HookContext<OrderService>>({
   //
   // ⚠️ Der Strip ist STILL: Der Client bekommt HTTP 200, und nichts passiert.
   // Ein Test darauf muss den Wert NACHLESEN, nicht den Statuscode pruefen.
-  splitOff: async (value, _data, context) => (isOrderSplitCall(context) ? value : undefined),
-  splitRoundingRemainderCents: async (value, _data, context) => (isOrderSplitCall(context) ? value : undefined),
+  splitOff: async (value, _data, context) => (mayWriteOrderSplitFields(context.params) ? value : undefined),
+  splitRoundingRemainderCents: async (value, _data, context) =>
+    mayWriteOrderSplitFields(context.params) ? value : undefined,
   updatedAt: async () => new Date().toISOString(),
 })
 //#endregion

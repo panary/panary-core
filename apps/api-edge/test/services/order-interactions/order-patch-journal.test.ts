@@ -6,6 +6,13 @@ import { app } from '../../../src/app'
 // Schritt 2). Bis dahin erfasste `order-interactions` nur, was VOR dem
 // Absenden passierte — die Interaktionen reisen im `create` mit. Ein Storno
 // per Patch hinterliess KEIN Ereignis.
+//
+// ⚠️ Zur Messkraft dieser Suite, gemessen statt behauptet: Nimmt man den Hook
+// aus der orders-Kette, wird **genau ein** Test rot — der erste. Die drei
+// „schreibt KEIN Ereignis"-Tests bleiben gruen, denn ohne Hook entsteht erst
+// recht nichts. Sie pruefen die Bedingungen (kein Bediener, kein
+// Statuswechsel), nicht die Existenz des Pfades. Wer diese Suite erweitert,
+// sollte das wissen: Die Absicherung des Hooks haengt am ersten Test.
 describe('order-interactions — Journal nach der Bestellannahme', () => {
   const tenantId = uuidv7()
   const internal = { provider: undefined } as const
@@ -75,22 +82,32 @@ describe('order-interactions — Journal nach der Bestellannahme', () => {
     )) as { _id: string }
     locationId = location._id
 
-    const user = (await app.service('users').create(
-      { firstName: 'Journal', lastName: 'Bediener', role: 'tenant:staff', tenantId, activeLocationId: locationId } as never,
-      internal,
-    )) as { _id: string }
+    const user = (await app
+      .service('users')
+      .create(
+        {
+          firstName: 'Journal',
+          lastName: 'Bediener',
+          role: 'tenant:staff',
+          tenantId,
+          activeLocationId: locationId,
+        } as never,
+        internal,
+      )) as { _id: string }
     userId = user._id
   })
 
   it('schreibt beim Storno ein Ereignis mit Bediener und Zeitpunkt', async () => {
     const order = await createOrder([lineItem(2), lineItem(3)])
 
-    await app
-      .service('orders')
-      .patch(order._id, { status: 'aborted' } as never, {
+    await app.service('orders').patch(
+      order._id,
+      { status: 'aborted' } as never,
+      {
         ...internal,
         user: { _id: userId, tenantId, locationId },
-      } as never)
+      } as never,
+    )
 
     const journal = await journalFor(order._id)
 
@@ -123,12 +140,14 @@ describe('order-interactions — Journal nach der Bestellannahme', () => {
   it('schreibt KEIN Ereignis bei einem Patch ohne Statuswechsel', async () => {
     const order = await createOrder()
 
-    await app
-      .service('orders')
-      .patch(order._id, { remainingTime: 5 } as never, {
+    await app.service('orders').patch(
+      order._id,
+      { remainingTime: 5 } as never,
+      {
         ...internal,
         user: { _id: userId, tenantId, locationId },
-      } as never)
+      } as never,
+    )
 
     const journal = await journalFor(order._id)
 
@@ -141,12 +160,14 @@ describe('order-interactions — Journal nach der Bestellannahme', () => {
     // gibt: Der Journal-Create scheitert an der Validierung, der Storno steht.
     const order = await createOrder()
 
-    await app
-      .service('orders')
-      .patch(order._id, { status: 'aborted' } as never, {
+    await app.service('orders').patch(
+      order._id,
+      { status: 'aborted' } as never,
+      {
         ...internal,
         user: { _id: 'kein-uuid', tenantId, locationId },
-      } as never)
+      } as never,
+    )
 
     const stored = (await app.service('orders').get(order._id, internal)) as { status: string }
     expect(stored.status).toBe('aborted')

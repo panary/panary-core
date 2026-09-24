@@ -67,9 +67,7 @@ export interface ServiceTypes {
   discounts: DiscountService
   // Proxy ohne DB: reicht Rabattcodes an die Cloud durch (ADR 0032).
   'discount-code-redeem': {
-    find(params?: {
-      query?: Record<string, unknown>
-    }): Promise<CodeCheckResult>
+    find(params?: { query?: Record<string, unknown> }): Promise<CodeCheckResult>
     create(data: Record<string, unknown>): Promise<CodeCheckResult>
   }
   devices: DeviceService

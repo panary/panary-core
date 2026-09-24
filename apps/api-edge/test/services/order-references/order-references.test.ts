@@ -108,11 +108,14 @@ describe('order-references — Vorgangs-Referenzen', () => {
       // bleibt die zweite Schicht, falls der Pfad je fuer eine Rolle
       // freigegeben wird.
       await expect(
-        app.service('order-references').create(referenceData() as never, {
-          provider: 'rest',
-          authenticated: true,
-          user: { _id: uuidv7(), role: 'tenant:owner', tenantId, locationId },
-        } as never),
+        app.service('order-references').create(
+          referenceData() as never,
+          {
+            provider: 'rest',
+            authenticated: true,
+            user: { _id: uuidv7(), role: 'tenant:owner', tenantId, locationId },
+          } as never,
+        ),
       ).rejects.toThrow()
     })
   })

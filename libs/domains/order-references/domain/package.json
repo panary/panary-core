@@ -1,5 +1,5 @@
 {
-  "name": "@panary/order-references/domain",
+  "name": "order-references-domain-internal",
   "version": "0.0.1",
   "private": true,
   "type": "commonjs",

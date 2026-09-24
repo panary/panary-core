@@ -10,7 +10,8 @@ export default defineConfig(() => ({
     name: 'order-references-domain',
     watch: false,
     globals: true,
-    environment: 'jsdom',
+    environment: 'node',
+    passWithNoTests: true,
     include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
     coverage: {

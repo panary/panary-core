@@ -117,29 +117,39 @@ describe('order-references — Vorgangs-Referenzen', () => {
     })
   })
 
-  describe('Append-only — App-Layer', () => {
-    it('lehnt patch ab (Methode nicht registriert)', async () => {
+  // 🚨 Die Arbeitsteilung der beiden Schichten ist NICHT die naheliegende.
+  // Am 2026-09-24 gemessen, nachdem eine Mutationsprobe (patch/remove in
+  // `methods` ergaenzt) gruen blieb:
+  //
+  //   `methods: ['find','get','create']` schuetzt nur den EXTERNEN Weg.
+  //   Ein interner Aufruf — `{ provider: undefined }`, also genau das, was
+  //   Hooks, Seeds und Worker benutzen — laeuft durch und wird einzig vom
+  //   SQLite-Trigger gestoppt (`patch` wirft SqliteError, `remove` einen
+  //   GeneralError, beide mit „append-only" im Text).
+  //
+  // Der DB-Trigger ist damit nicht die „zusaetzliche" Absicherung, sondern die
+  // einzige, die intern greift. Wer ihn beim Aufraeumen droppt, oeffnet den
+  // Service fuer jeden internen Schreibzugriff, ohne dass eine Methodenliste
+  // etwas davon merkt.
+  describe('Append-only — interner Weg (nur der DB-Trigger greift)', () => {
+    it('blockt einen internen patch am Trigger', async () => {
       const created = await createReference()
 
       await expect(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (app.service('order-references') as any).patch(created._id, { refType: 'Split' }, internal),
-      ).rejects.toThrow()
+      ).rejects.toThrow(/append-only/i)
     })
 
-    it('lehnt remove ab (Methode nicht registriert)', async () => {
+    it('blockt ein internes remove am Trigger', async () => {
       const created = await createReference()
 
       await expect(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (app.service('order-references') as any).remove(created._id, internal),
-      ).rejects.toThrow()
+      ).rejects.toThrow(/append-only/i)
     })
-  })
 
-  describe('Append-only — DB-Layer (SQLite-Trigger)', () => {
-    // Diese beiden Tests umgehen Feathers absichtlich und greifen direkt per
-    // Knex zu — genau der Weg, den Schicht 1 NICHT abdeckt.
     it('blockt ein direktes UPDATE per Knex', async () => {
       const created = await createReference()
       const knex = app.get('sqliteClient')
@@ -154,6 +164,33 @@ describe('order-references — Vorgangs-Referenzen', () => {
       const knex = app.get('sqliteClient')
 
       await expect(knex('order-references').where({ _id: created._id }).del()).rejects.toThrow(/append-only/i)
+    })
+  })
+
+  describe('Append-only — externer Weg', () => {
+    const external = () =>
+      ({
+        provider: 'rest',
+        authenticated: true,
+        user: { _id: userId, role: 'tenant:owner', tenantId, locationId },
+      }) as never
+
+    it('laesst patch von aussen nicht zu', async () => {
+      const created = await createReference()
+
+      await expect(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (app.service('order-references') as any).patch(created._id, { refType: 'Split' }, external()),
+      ).rejects.toThrow()
+    })
+
+    it('laesst remove von aussen nicht zu', async () => {
+      const created = await createReference()
+
+      await expect(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (app.service('order-references') as any).remove(created._id, external()),
+      ).rejects.toThrow()
     })
   })
 

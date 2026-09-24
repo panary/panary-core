@@ -28,7 +28,14 @@ describe('orderInteractionSchema (Phase 4 — Wide Events)', () => {
   })
 
   describe('Enum-Erweiterung', () => {
-    it('OrderInteractionType enthaelt alle 8 Event-Typen', () => {
+    // 🚨 Diese Spec ist ein ZAUN, kein Formalismus: Die Lib ist publishable und
+    // wird von panary-cloud konsumiert. Ein neuer Enum-Wert, den eine Cloud mit
+    // altem `@panary/*`-Pin nicht kennt, laesst den Sync-Push des Edge an
+    // `StringEnum` scheitern — BadRequest, und `classifyAcceptError` stuft das
+    // als TERMINAL ein: Outbox `rejected`, kein Retry, kein Alarm. Wer hier
+    // erweitert, muss den Cloud-Pin-Bump einplanen (Reihenfolge: Core-Release
+    // -> Cloud-Pin -> api-cloud deployen -> DANN Edges).
+    it('OrderInteractionType enthaelt alle 11 Event-Typen', () => {
       const values = Object.values(OrderInteractionType)
       expect(values).toEqual([
         'item-delete',
@@ -39,6 +46,10 @@ describe('orderInteractionSchema (Phase 4 — Wide Events)', () => {
         'void-after-payment',
         'no-sale-drawer-open',
         'receipt-reprint',
+        // Phase 5 — Vorgangsaenderungen nach der Annahme (#348)
+        'order-split',
+        'order-split-target',
+        'item-moved',
       ])
     })
 

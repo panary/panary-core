@@ -63,11 +63,15 @@ describe('order-interactions — Journal nach der Bestellannahme', () => {
     return created
   }
 
+  // Doppel-Cast ueber `unknown`: Der Typ von `find()` ist hier als Array
+  // inferiert, zur Laufzeit liefert der paginierte Service aber `{ total, data }`.
+  // TS lehnt die direkte Konvertierung deshalb mit TS2352 ab (gefangen vom
+  // typecheck-Gate, nicht vom Testlauf — vitest fuehrt kein tsc aus).
   const journalFor = async (orderId: string) =>
     (await app.service('order-interactions').find({
       ...internal,
       query: { orderId, type: 'order-cancel' },
-    } as never)) as { total: number; data: Record<string, unknown>[] }
+    } as never)) as unknown as { total: number; data: Record<string, unknown>[] }
 
   beforeAll(async () => {
     await app.setup()
@@ -82,18 +86,16 @@ describe('order-interactions — Journal nach der Bestellannahme', () => {
     )) as { _id: string }
     locationId = location._id
 
-    const user = (await app
-      .service('users')
-      .create(
-        {
-          firstName: 'Journal',
-          lastName: 'Bediener',
-          role: 'tenant:staff',
-          tenantId,
-          activeLocationId: locationId,
-        } as never,
-        internal,
-      )) as { _id: string }
+    const user = (await app.service('users').create(
+      {
+        firstName: 'Journal',
+        lastName: 'Bediener',
+        role: 'tenant:staff',
+        tenantId,
+        activeLocationId: locationId,
+      } as never,
+      internal,
+    )) as { _id: string }
     userId = user._id
   })
 

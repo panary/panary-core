@@ -44,6 +44,7 @@ import { applyAutomaticDiscounts } from '../../hooks/apply-automatic-discounts'
 import { checkMultiOperation } from '../../hooks/check-multi-operation'
 import { createOrderInteractions } from '../../hooks/create-order-interactions'
 import { recordCancellationReference } from '../../hooks/record-cancellation-reference'
+import { recordOrderPatchInteraction } from '../../hooks/record-order-patch-interaction'
 import { signOrderTseCancel, signOrderTseFinish, signOrderTseStart } from '../../hooks/sign-order-tse.hook'
 import { validateOrderStatusTransition } from '../../hooks/validate-order-status-transition.hook'
 import { validateStaffMealExclusivity } from '../../hooks/validate-staff-meal-exclusivity.hook'
@@ -217,7 +218,13 @@ export const orders = (app: Application) => {
       // Vorgangs-Referenz beim Storno (DSFinV-K Bon_Referenzen, Tz. 4.2.2).
       // NACH jsonHooks.after in `all`, damit der Hook die Order mit geparsten
       // Feldern sieht. Nie blockierend — siehe Hook-Kopf.
-      patch: [recordCancellationReference()],
+      patch: [
+        recordCancellationReference(),
+        // Journal-Ereignis mit Bediener und Zeitpunkt — vorher entstand nach
+        // dem `create` keins. Reihenfolge egal, beide sind unabhaengig und
+        // nicht blockierend.
+        recordOrderPatchInteraction(),
+      ],
     },
     error: {
       all: [],

@@ -14,6 +14,13 @@ export const OrderInteractionType = {
   VOID_AFTER_PAYMENT: 'void-after-payment',
   NO_SALE_DRAWER_OPEN: 'no-sale-drawer-open',
   RECEIPT_REPRINT: 'receipt-reprint',
+  // Phase 5 — Vorgangsaenderungen NACH der Annahme (panary/panary-core#348).
+  // Bis hierher erfasste das Journal nur, was VOR dem Absenden passierte:
+  // Die Interaktionen reisen im `create` mit. Split und Umbuchung passieren
+  // definitionsgemaess danach, und dafuer gab es keinen Pfad.
+  ORDER_SPLIT: 'order-split',
+  ORDER_SPLIT_TARGET: 'order-split-target',
+  ITEM_MOVED: 'item-moved',
 } as const
 
 export const PaymentStatusAtEvent = {
@@ -59,7 +66,21 @@ export const orderInteractionSchema = Type.Object(
 
     // Data for position deletion
     productId: Type.Optional(Type.String({ format: 'uuid' })),
+    // 🚨 `lineItemId` ist trotz des Namens ein ARRAY-INDEX, keine stabile
+    // Referenz (ADR 0033). Das Feld bleibt genau so — es wird NICHT umgedeutet,
+    // weil der Bestand nicht migriert ist und eine stille Bedeutungsaenderung
+    // jede Auswertung ueber Altdaten falsch machte.
     lineItemId: Type.Optional(Type.Number({ minimum: 0 })),
+    /**
+     * Echte Zeilen-ID (`lineItem._id`) — die stabile Referenz auf eine
+     * Bestellzeile, fuer die Typen ab Phase 5 (Split, Umbuchung).
+     *
+     * Bewusst ein NEUES Feld neben `lineItemId`: Wer eine Zeile ueber mehrere
+     * Vorgaenge hinweg verfolgen will, braucht eine ID, die einen Split
+     * ueberlebt — ein Array-Index tut das nicht. Die Produktidentitaet steht
+     * weiterhin in `lineItem.externalId`, nicht hier (ADR 0033).
+     */
+    lineItemRowId: Type.Optional(Type.Union([Type.String({ format: 'uuid' }), Type.Null()])),
     deletedQuantity: Type.Optional(Type.Number({ minimum: 0 })),
 
     // Data for complete cancellation
@@ -127,6 +148,7 @@ const orderInteractionPickedDataSchema = Type.Pick(orderInteractionSchema, [
   'eventOffsetMs',
   'productId',
   'lineItemId',
+  'lineItemRowId',
   'deletedQuantity',
   'hadLineItems',
   'lineItemCountAtCancel',

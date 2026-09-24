@@ -71,7 +71,7 @@ describe('orderReferenceDataSchema (create)', () => {
     // Create an validateData gescheitert — hinter einem best-effort-Hook also
     // lautlos.
     const ohneTag = validData()
-    delete (ohneTag as Record<string, unknown>).refBusinessDayId
+    delete (ohneTag as Record<string, unknown>)['refBusinessDayId']
     expect(validate(ohneTag)).toBe(true)
   })
 

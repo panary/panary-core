@@ -31,6 +31,7 @@ export const AppResource = {
   SYSTEM: 'system',
   CUSTOMERS: 'customers',
   ORDER_INTERACTIONS: 'order-interactions',
+  ORDER_REFERENCES: 'order-references',
   WORKING_TIMES: 'working-times',
   PRE_ORDERS: 'pre-orders',
   PRINT_SERVER: 'print-server',

@@ -67,6 +67,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // (siehe authorize-Hook). PLATFORM_SUPPORT bekommt KEINEN Direktzugriff —
     // Support liest Tenant-Audits nur via Cloud-Impersonation.
     { resource: AppResource.AUDIT_EVENTS, action: AppAction.READ },
+    { resource: AppResource.ORDER_REFERENCES, action: AppAction.READ },
     { resource: AppResource.AUDIT_EVENT_REDACTIONS, action: AppAction.READ },
     // Globaler Lieferanten-Katalog (Phase 2): Plattform-Owner pflegt master.
     { resource: AppResource.GLOBAL_SUPPLIERS, action: AppAction.MANAGE },
@@ -455,6 +456,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.ACCOUNT_INVITATIONS, action: AppAction.MANAGE },
     // Tenant-Audit-Trail (append-only)
     { resource: AppResource.AUDIT_EVENTS, action: AppAction.READ },
+    { resource: AppResource.ORDER_REFERENCES, action: AppAction.READ },
     // Audit-Redactions (Phase 2 — DSGVO-Loeschungen / Fehleintraege markieren)
     { resource: AppResource.AUDIT_EVENT_REDACTIONS, action: [AppAction.READ, AppAction.CREATE] },
     // Benachrichtigungen: eigene In-App-Records lesen / als gelesen
@@ -604,6 +606,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
     // Tenant-Audit-Trail (append-only)
     { resource: AppResource.AUDIT_EVENTS, action: AppAction.READ },
+    { resource: AppResource.ORDER_REFERENCES, action: AppAction.READ },
     // Audit-Redactions (Phase 2 — DSGVO-Loeschungen / Fehleintraege markieren)
     { resource: AppResource.AUDIT_EVENT_REDACTIONS, action: [AppAction.READ, AppAction.CREATE] },
     // Benachrichtigungen — wie TENANT_OWNER
@@ -783,6 +786,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.WEBAUTHN_REGISTRATION, action: AppAction.CREATE },
     // Tenant-Audit-Trail (append-only)
     { resource: AppResource.AUDIT_EVENTS, action: AppAction.READ },
+    { resource: AppResource.ORDER_REFERENCES, action: AppAction.READ },
     // Manager darf Redactions sehen, aber NICHT selbst durchfuehren — nur
     // OWNER/TECHNICIAN haben CREATE. Daher hier nur READ.
     { resource: AppResource.AUDIT_EVENT_REDACTIONS, action: AppAction.READ },

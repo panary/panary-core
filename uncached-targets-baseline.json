@@ -17,6 +17,7 @@
   "notifications:build",
   "opening-hour-exceptions:build",
   "order-interactions:build",
+  "order-references:build",
   "orders:build",
   "pre-orders:build",
   "pricelists:build",

@@ -1,0 +1,32 @@
+{
+  "name": "@panary/order-references",
+  "version": "26.9.10",
+  "license": "BSL-1.1",
+  "type": "commonjs",
+  "exports": {
+    "./domain": {
+      "types": "./domain/dist/index.d.ts",
+      "default": "./domain/dist/index.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "domain/dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/panary/panary-core.git",
+    "directory": "libs/domains/order-references"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "peerDependencies": {
+    "@feathersjs/feathers": "^5.0.40",
+    "@feathersjs/typebox": "^5.0.40",
+    "@panary/shared-common": "^26.4.20"
+  }
+}

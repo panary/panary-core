@@ -70,6 +70,15 @@ export const SyncableTransactionService = {
   // Allowlist-Eintrag in apps/api-cloud/src/services/sync/sync-allowlist.ts.
   RECEIPTS: 'receipts',
   ORDER_INTERACTIONS: 'order-interactions',
+  // Vorgangs-Referenzen (DSFinV-K Bon_Referenzen, Tz. 4.2.2): edge-originated,
+  // append-only. Edge→Cloud-Push — dieselbe Richtung wie orders. Ein Pull
+  // zurueck wuerde beim Bootstrap/Restore Referenzen ueberschreiben, die am
+  // Edge bereits stehen (sync-apply.ts).
+  // 🚨 Der Cloud-Empfang braucht einen eigenen Allowlist-Eintrag in
+  // apps/api-cloud/src/services/sync/sync-allowlist.ts — ohne ihn lehnt die
+  // Cloud den Push ab, und classifyAcceptError stuft das als TERMINAL ein
+  // (Outbox `rejected`, kein Retry, kein Alarm). Folgt mit panary/panary-cloud#488.
+  ORDER_REFERENCES: 'order-references',
   WORKING_TIMES: 'working-times',
   // Kassen-Sessions (Multi-Kassen-Tagesabschluss): EDGE ist Schreiber (Kassierer
   // eröffnet/zählt/schließt seine Lade offline am POS), Cloud aggregiert sie beim

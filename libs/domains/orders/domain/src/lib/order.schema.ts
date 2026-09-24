@@ -301,6 +301,46 @@ export const orderTseSchema = Type.Object({
 })
 //#endregion
 
+/**
+ * Ein Umbuchungs-Eintrag: Diese Menge dieser Zeile ist in einen anderen Vorgang
+ * gewandert (Split, DSFinV-K Tz. 3.1.2.2 „Splittbuchungen").
+ *
+ * 🚨 Der Split aendert die Quellzeile NICHT. Anforderung A5 des Rechtsgutachtens
+ * zu panary/panary-core#345 verlangt woertlich, dass die Quellzeile bestehen
+ * bleibt — kein `UPDATE` auf Menge, Preis, Steuersatz oder Zuordnung. `lineItems`
+ * ist dafuer im `orderPatchResolver` still gesperrt, und diese Sperre bleibt.
+ * Was der Vorgang noch traegt, ist deshalb eine ABLEITUNG aus `lineItems` minus
+ * `splitOff` — `effectiveLineItems()` in `order-split.ts` ist ihre einzige
+ * Fassung, und die Preis-Engine liest sie.
+ *
+ * Gleichzeitig verlangt A13 (§ 14c UStG), dass ueber denselben Umsatz keine zwei
+ * nicht-stornierten Belege stehen: Die Quelle darf nach dem Split nicht mehr den
+ * vollen Betrag tragen. Beides zusammen geht nur als Gegenbuchung, nicht als
+ * Aenderung — das ist der Grund fuer dieses Feld.
+ */
+export const orderSplitOffSchema = Type.Object({
+  _id: Type.String({ format: 'uuid' }),
+  /** Vorgang, in den die Menge gewandert ist. */
+  targetOrderId: Type.String({ format: 'uuid' }),
+  /**
+   * `lineItem._id` der QUELLZEILE — die Zeilenidentitaet, nicht die des
+   * Artikels (ADR 0033). Die Zielbestellung traegt eine neue Zeile mit eigener
+   * `_id`; die Artikelidentitaet reist ueber `externalId` mit.
+   */
+  lineItemRowId: Type.String({ format: 'uuid' }),
+  /** Abgegebene Menge. Immer > 0 — eine Umbuchung ueber 0 Stueck ist kein Vorgang. */
+  amount: Type.Number({ exclusiveMinimum: 0 }),
+  /**
+   * Brutto-Anteil in Cents, der mit dieser Menge gegangen ist (nach Rabatt),
+   * festgehalten im Moment des Splits. Bewusst eine KOPIE und keine Ableitung:
+   * Sie ist die Gegenprobe „Quelle + Ziel === Ursprung" und muss den Stand von
+   * damals zeigen, nicht den von heute (GoBD Rz. 111).
+   */
+  grossCents: Type.Integer(),
+  splitAt: Type.String({ format: 'date-time' }),
+})
+export type OrderSplitOff = Static<typeof orderSplitOffSchema>
+
 //#region The main data model (schema)
 export const orderSchema = Type.Object(
   {
@@ -405,6 +445,26 @@ export const orderSchema = Type.Object(
     // Ausfall-Bon + Audit). Bleibt erhalten, auch wenn der Server `dailySequenceNumber`
     // re-stampt.
     provisionalSequenceNumber: Type.Optional(Type.Union([Type.Number({ minimum: 0 }), Type.Null()])),
+
+    // === Split (panary/panary-core#349) ===
+    // Append-only Gegenbuchungen. Siehe `orderSplitOffSchema` oben fuer das
+    // Warum; `effectiveLineItems()` fuer die Ableitung. `Null` toleriert, weil
+    // der Edge ungesetzte nullable SQLite-Spalten als `null` serialisiert und
+    // der Cloud-Sync-Push den Record unveraendert weiterreicht (gleiches Muster
+    // wie `stockMovementIds`).
+    splitOff: Type.Optional(Type.Union([Type.Array(orderSplitOffSchema, { maxItems: 500 }), Type.Null()])),
+    /**
+     * Rundungsrest in Cents: Ursprungs-Brutto minus (Rest-Brutto + Σ Ziel-Brutto).
+     *
+     * 🚨 Anforderung A14 verlangt, dass diese Differenz STEHEN BLEIBT und nicht
+     * auf eine Teilbestellung geschoben wird. Deshalb ein eigenes Feld statt
+     * einer stillen Korrektur: Ein geglaetteter Cent ist im Nachhinein nicht
+     * mehr von einem Rechenfehler zu unterscheiden. Der Wert darf negativ sein.
+     * Im Regelfall ist er 0 — die Verteilungen laufen ueber
+     * `distributeByLargestRemainder` und sind summen-exakt; er entsteht dort, wo
+     * ein Prozentrabatt je Seite gerundet wird.
+     */
+    splitRoundingRemainderCents: Type.Optional(Type.Union([Type.Integer(), Type.Null()])),
   },
   { $id: 'Order', additionalProperties: false },
 )
@@ -484,6 +544,13 @@ export const orderDataSchema = Type.Intersect(
       // gesetzt; steuert den TSE-Skip im create-Hook + bewahrt die Ausfall-Belegnummer.
       'offlineCreated',
       'provisionalSequenceNumber',
+      // Split-Felder: serverseitig von der `orders.split`-Methode gesetzt. Hier
+      // erlaubt, weil dieses Schema auch den Sync-Push Edge→Cloud validiert —
+      // der schickt den ganzen Record, und ein nicht gepicktes Feld fiele dort
+      // als `additionalProperties` durch. Das ist TERMINAL (Outbox `rejected`,
+      // kein Retry, kein Alarm), nicht bloss ein 400.
+      'splitOff',
+      'splitRoundingRemainderCents',
     ]),
   ],
   {

@@ -1,5 +1,7 @@
 export * from './lib/order.schema'
 export * from './lib/order-state-machine'
+export * from './lib/effective-line-items'
+export * from './lib/order-split'
 export * from './lib/settlement-scope'
 export * from './lib/pricing/money'
 export * from './lib/pricing/compute-order-tax'

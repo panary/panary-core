@@ -62,6 +62,12 @@ export const orderDataResolver = resolve<Order, HookContext<OrderService>>({
 //#endregion
 
 //#region 3. Patch User Resolver (Update / PATCH)
+/** Kommt dieser Patch aus `orders.split`? Siehe Kommentar an `splitOff` unten. */
+function isOrderSplitCall(context: HookContext<OrderService>): boolean {
+  const params = context.params as { provider?: string; orderSplit?: boolean }
+  return params?.provider === undefined && params?.orderSplit === true
+}
+
 export const orderPatchValidator = getValidator(orderPatchSchema, dataValidator)
 export const orderPatchResolver = resolve<Order, HookContext<OrderService>>({
   _id: async () => undefined,
@@ -79,6 +85,21 @@ export const orderPatchResolver = resolve<Order, HookContext<OrderService>>({
   // Ein Test darauf muss den Wert NACHLESEN, nicht den Statuscode pruefen.
   settlementScope: async () => undefined,
   lineItems: async () => undefined,
+  // Gegenbuchungen des Splits (panary/panary-core#349). Fuer jeden anderen
+  // Aufrufer gestrippt — und das ist kein Formalismus: `splitOff` senkt ueber
+  // `effectiveLineItems()` das ausgewiesene Brutto UND die Steuer. Ein Client,
+  // der es selbst setzen koennte, rabattierte seine eigene Bestellung an der
+  // Rabattlogik vorbei.
+  //
+  // Freigegeben nur fuer `orders.split`: `provider === undefined` (interner
+  // Aufruf) UND `params.orderSplit === true`. `params` baut der Server —
+  // Feathers uebergibt einem externen Aufrufer Query und Route, nie `params`
+  // selbst; beide Bedingungen sind von aussen unerreichbar.
+  //
+  // ⚠️ Der Strip ist STILL: Der Client bekommt HTTP 200, und nichts passiert.
+  // Ein Test darauf muss den Wert NACHLESEN, nicht den Statuscode pruefen.
+  splitOff: async (value, _data, context) => (isOrderSplitCall(context) ? value : undefined),
+  splitRoundingRemainderCents: async (value, _data, context) => (isOrderSplitCall(context) ? value : undefined),
   updatedAt: async () => new Date().toISOString(),
 })
 //#endregion

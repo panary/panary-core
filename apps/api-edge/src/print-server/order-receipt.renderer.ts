@@ -2,6 +2,7 @@
 import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder'
 import {
   computeOrderTax,
+  effectiveLineItems,
   fromCents,
   lineItemGrossCents,
   multiplyCents,
@@ -562,10 +563,15 @@ function calcTotalWithDiscount(order: any): number {
   return round(computeOrderTax(order).brutto)
 }
 
+// 🚨 Beide Leser gehen ueber `effectiveLineItems` und NICHT ueber
+// `order.lineItems`: Nach einem Split (panary/panary-core#349) stehen die
+// abgegebenen Mengen weiter im Array — die Quellzeile bleibt per A5
+// unveraendert —, gehoeren aber nicht mehr auf diesen Bon. Ohne die Ableitung
+// druckte die Quelle 5 Stueck und `computeOrderTax` berechnete 2: Positionen
+// und Summe stuenden auf demselben Beleg im Widerspruch, ohne Fehlermeldung.
 function getCombinations(order: any): any[][] {
-  if (!order.lineItems) return []
   const bundles = new Map<number, any[]>()
-  for (const item of order.lineItems) {
+  for (const item of effectiveLineItems(order)) {
     if (item.bundleNumber !== undefined && item.bundleNumber !== null) {
       if (!bundles.has(item.bundleNumber)) bundles.set(item.bundleNumber, [])
       bundles.get(item.bundleNumber)!.push(item)
@@ -575,6 +581,5 @@ function getCombinations(order: any): any[][] {
 }
 
 function getUnbundledLineItems(order: any): any[] {
-  if (!order.lineItems) return []
-  return order.lineItems.filter((item: any) => item.bundleNumber === undefined || item.bundleNumber === null)
+  return effectiveLineItems(order).filter((item: any) => item.bundleNumber === undefined || item.bundleNumber === null)
 }

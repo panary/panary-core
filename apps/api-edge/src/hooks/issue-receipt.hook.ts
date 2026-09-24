@@ -1,7 +1,7 @@
 import { createHash, createHmac } from 'node:crypto'
 import { uuidv7 } from 'uuidv7'
 
-import { lineItemGrossCents, type OrderLineItem } from '@panary/orders/domain'
+import { effectiveLineItems, lineItemGrossCents, type OrderLineItem } from '@panary/orders/domain'
 import { logger } from '@panary/shared-backend'
 import {
   buildReceiptSnapshot,
@@ -83,7 +83,14 @@ export const orderToInput = (order: CompletedOrder): ReceiptOrderInput => ({
   recordingDate: order.recordingDate,
   currency: order.currency,
   dineLocation: order.dineLocation,
-  lineItems: (order.lineItems ?? []).map(l => ({
+  // 🚨 `effectiveLineItems` statt `order.lineItems`: Der Beleg ist das
+  // steuerrelevante Dokument. Nach einem Split (panary/panary-core#349) stehen
+  // die abgegebenen Mengen weiter im Array — die Quellzeile bleibt per A5
+  // unveraendert —, aber ueber sie wird ein ANDERER Beleg ausgestellt. Wer sie
+  // hier mitdruckt, erzeugt zwei nicht-stornierte Belege ueber denselben
+  // Umsatz (A13, § 14c UStG). `taxSummary` kommt bereits aus `taxSnapshot`, das
+  // waere also auch gleich der Widerspruch zwischen Positionen und Summe.
+  lineItems: effectiveLineItems(order as never).map(l => ({
     ...(l.externalId ? { externalId: l.externalId } : {}),
     name: l.name ?? '',
     amount: l.amount ?? 0,

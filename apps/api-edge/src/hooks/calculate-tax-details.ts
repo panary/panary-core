@@ -19,10 +19,18 @@ export const calculateTaxDetailsOnPatch = async (context: HookContext) => {
   }
 
   // Preisrelevante Engine-Inputs, die per Patch erreichbar sind (`lineItems`
-  // blockt der orderPatchResolver): Rabatte + dine-in/take-out (19 % vs. 7 %).
+  // blockt der orderPatchResolver): Rabatte + dine-in/take-out (19 % vs. 7 %)
+  // + die Split-Gegenbuchungen (panary/panary-core#349).
   // `undefined`-Check statt Truthiness — auch das ENTFERNEN aller Rabatte
   // (`appliedDiscounts: []`) muss den fiskalischen Snapshot neu berechnen.
-  const priceRelevant = data.appliedDiscounts !== undefined || data.dineLocation !== undefined
+  //
+  // 🚨 `splitOff` MUSS hier stehen. Die Engine liest ueber `effectiveLineItems()`
+  // nur noch, was der Vorgang wirklich traegt; faende der Hook die neue
+  // Gegenbuchung nicht, rechnete er auf dem Stand VOR dem Split und schriebe
+  // der Quelle die volle Steuer zurueck — still, ohne Fehler, auf einem
+  // steuerrelevanten Dokument.
+  const priceRelevant =
+    data.appliedDiscounts !== undefined || data.dineLocation !== undefined || data.splitOff !== undefined
   if (!priceRelevant) {
     return
   }
@@ -36,6 +44,7 @@ export const calculateTaxDetailsOnPatch = async (context: HookContext) => {
   // Zielzustand.
   if (data.appliedDiscounts !== undefined) order.appliedDiscounts = data.appliedDiscounts
   if (data.dineLocation !== undefined) order.dineLocation = data.dineLocation
+  if (data.splitOff !== undefined) order.splitOff = data.splitOff
 
   context.data.taxSnapshot = computeOrderTax(order)
 }

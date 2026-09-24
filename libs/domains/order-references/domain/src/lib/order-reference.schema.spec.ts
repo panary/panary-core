@@ -70,7 +70,8 @@ describe('orderReferenceDataSchema (create)', () => {
     // `order.businessDayId` ist ebenfalls optional. Als Pflichtfeld waere der
     // Create an validateData gescheitert — hinter einem best-effort-Hook also
     // lautlos.
-    const { refBusinessDayId: _ignored, ...ohneTag } = validData()
+    const ohneTag = validData()
+    delete (ohneTag as Record<string, unknown>).refBusinessDayId
     expect(validate(ohneTag)).toBe(true)
   })
 

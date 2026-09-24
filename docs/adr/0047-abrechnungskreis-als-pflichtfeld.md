@@ -26,7 +26,7 @@ nachvollziehen kann — auch die, die schon erfüllt sind.
 
 Reihenfolge des Vorhabens: dieses Issue → [#348](https://github.com/panary/panary-core/issues/348)
 (Referenzen + Journal) → [#349](https://github.com/panary/panary-core/issues/349)
-(Split-Backend) → [#350](https://github.com/panary/panary-core/issues/350) (POS-UI) →
+(Split-Backend, [ADR 0049](0049-split-als-gegenbuchung.md)) → [#350](https://github.com/panary/panary-core/issues/350) (POS-UI) →
 [panary/panary-cloud#488](https://github.com/panary/panary-cloud/issues/488). Vertagt:
 [#352](https://github.com/panary/panary-core/issues/352) (Nachbuchung, Entscheidungsvorlage),
 [#351](https://github.com/panary/panary-core/issues/351) (TSE-Pflichtlage).
@@ -114,6 +114,13 @@ positionsgenauer Zuordnung. **Eine Lücke bleibt und gehört nach #349:**
 `taxSnapshot`. Solange Stammdaten und Steuersätze stillstehen, fällt das nicht auf; bei
 einem Steuersatzwechsel druckt es rückwirkend andere Zahlen als der Snapshot trägt
 (GoBD Rz. 111).
+
+> ⚠️ **Nachtrag (#349):** Die Lücke ist **nicht** geschlossen worden.
+> [ADR 0049](0049-split-als-gegenbuchung.md) Nr. 1 begründet die Vertagung: `computeOrderTax`
+> liefert `computedAmountCents` je `appliedDiscount` als **Seiteneffekt**, und der Renderer
+> hängt daran — wer die Quelle umstellt, ohne den Seiteneffekt zu ersetzen, bricht die
+> Nachlasszeile, und zwar still. Der Split selbst ist davon unberührt: Bon und Datensatz
+> stimmen überein, weil beide dieselbe Funktion auf denselben Eingaben rechnen.
 
 ### 1., 2., 4. und 7. — entschieden, noch nicht gebaut
 

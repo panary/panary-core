@@ -14,6 +14,11 @@ const ORDER_JSON_FIELDS = [
   'payment',
   'tse',
   'stockMovementIds',
+  // Split-Gegenbuchungen (panary/panary-core#349). Ohne diesen Eintrag legte
+  // SQLite das Array als `[object Object]` ab, und `effectiveLineItems()` saehe
+  // beim Lesen nichts — der Split waere spurlos, die volle Steuer stuende
+  // wieder da.
+  'splitOff',
 ]
 
 import {
@@ -51,9 +56,10 @@ import { validateStaffMealExclusivity } from '../../hooks/validate-staff-meal-ex
 import { rejectLegacyDiscount } from '../../hooks/reject-legacy-discount.hook'
 import { issueReceipt } from '../../hooks/issue-receipt.hook'
 import { ensureIndexes } from '@panary/shared-backend'
+import { createOrderSplitMethod } from './order-split.method'
 
 export const ordersPath = 'orders'
-export const ordersMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
+export const ordersMethods = ['find', 'get', 'create', 'patch', 'remove', 'split'] as const
 
 export * from './orders.schema'
 
@@ -104,6 +110,13 @@ export const orders = (app: Application) => {
       ],
       service,
     )
+
+  // Split („getrennt zahlen", panary/panary-core#349). Eine Custom Method, kein
+  // aufgeweichter Patch: `lineItems` bleibt per `orderPatchResolver` gesperrt
+  // (A5), und der Split bucht um statt zu aendern. Schutzschichten prueft die
+  // Methode selbst — `multiTenancy()` ist fuer Custom Methods ein No-Op
+  // (ADR 0046).
+  ;(service as any).split = createOrderSplitMethod(app)
 
   // 4. Register the service - as any, since the Factory returns KnexService OR MongoDBService
   app.use(ordersPath, service as any, {
@@ -205,6 +218,9 @@ export const orders = (app: Application) => {
         ...jsonHooks.before,
       ],
       remove: [],
+      // split: keine Schema-Validierung — die Methode nimmt kein Order-Schema
+      // entgegen, sondern eine Auswahl. Ihre Vorbedingungen prueft
+      // `planOrderSplit()` mit sprechenden Fehlercodes.
     },
     after: {
       all: [

@@ -39,6 +39,17 @@ const METHOD_TO_ACTION: Record<string, AppAction> = {
   // Order an (Order-CREATE wird separat über orders autorisiert) — identisch
   // zum Cloud-Hook.
   convert: AppAction.UPDATE,
+  // orders: `split` teilt eine offene Bestellung auf („getrennt zahlen",
+  // panary/panary-core#349). CREATE und nicht UPDATE, obwohl beide Seiten
+  // geschrieben werden: Der fachliche Kern ist die neue Teilbestellung, und nur
+  // die CREATE-Menge enthaelt `TENANT_STAFF` — die Rolle, die am Tisch splittet.
+  // Mit UPDATE bekaeme ausgerechnet der Kellner 403 (`orders: CREATE+READ`).
+  // ⚠️ Preis der Wahl: `DEVICE_KIOSK` traegt `orders: CREATE` und darf damit
+  // ebenfalls splitten. Fachlich unplausibel, aber folgenlos — der Kiosk hat
+  // keine Oberflaeche dafuer, und die Vorbedingungen der Methode (offener
+  // Vorgang, eigener Mandant) gelten unveraendert. Wer das enger will, braucht
+  // eine eigene Ability, keine andere Action.
+  split: AppAction.CREATE,
   // businessdays: Tagesabschluss-Custom-Methods am Edge.
   openDay: AppAction.CREATE,
   closeDay: AppAction.UPDATE,

@@ -1,3 +1,4 @@
+import { effectiveLineItems } from '../effective-line-items'
 import { AppliedDiscount, GenericOrderLineItem, Order, OrderLineItem, TaxInfo } from '../order.schema'
 import { distributeByLargestRemainder, fromCents, multiplyCents, netFromGross, sumCents, toCents } from './money'
 
@@ -182,7 +183,13 @@ function collectLineAtoms(line: OrderLineItem, dineIn: boolean): LineGross[] {
 function collectLineGrosses(order: Order): LineGross[] {
   const dineIn = order.dineLocation === 'dine-in'
   const out: LineGross[] = []
-  for (const line of order.lineItems) {
+  // 🚨 `effectiveLineItems` statt `order.lineItems`: Nach einem Split (#349)
+  // stehen die abgegebenen Mengen weiter in `lineItems` — die Quellzeile bleibt
+  // per A5 unveraendert —, gehoeren aber nicht mehr zum Umsatz dieses Vorgangs
+  // (A13, § 14c UStG). Ohne diese Zeile wiese die Quelle nach dem Split die
+  // volle Steuer aus, und zwar still. Ohne `splitOff` gibt die Ableitung das
+  // Array unveraendert zurueck — der Regelfall laeuft wie vorher.
+  for (const line of effectiveLineItems(order)) {
     out.push(...collectLineAtoms(line, dineIn))
   }
   return out
@@ -211,8 +218,15 @@ function bucketize(lines: LineGross[]): RateBucket[] {
   return buckets
 }
 
-/** Rabattbetrag in Cents für eine Brutto-Basis, geklemmt auf [0, base]. */
-function discountAmountCents(
+/**
+ * Rabattbetrag in Cents für eine Brutto-Basis, geklemmt auf [0, base].
+ *
+ * Exportiert seit #349: Der Split-Planer muss die Aufteilung auf DERSELBEN
+ * Klemm-/Rundungsregel rechnen wie die Engine. Eine zweite Formel daneben wäre
+ * genau die Abweichung, die später als „Bon stimmt nicht mit der API überein"
+ * auftaucht.
+ */
+export function discountAmountCents(
   valueType: string,
   valuePercent: number,
   valueCents: number,

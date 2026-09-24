@@ -11,4 +11,9 @@ export type { Order, OrderData, OrderPatch, OrderQuery }
 export type OrderParams = KnexAdapterParams<OrderQuery> & MongoDBAdapterParams & Params
 
 // Service Interface - can be either KnexService or MongoDBService
-export interface OrderService extends ServiceInterface<Order, OrderData, OrderParams, OrderPatch> {}
+import type { OrderSplitRequest, OrderSplitResult } from './order-split.method'
+
+export interface OrderService extends ServiceInterface<Order, OrderData, OrderParams, OrderPatch> {
+  /** Split („getrennt zahlen", panary/panary-core#349) — siehe `order-split.method.ts`. */
+  split(data: OrderSplitRequest, params?: OrderParams): Promise<OrderSplitResult>
+}

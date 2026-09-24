@@ -3,6 +3,7 @@
 Domain-Konzepte & Business-Logik — fachliche Modelle, Berechnungsregeln, Randfälle
 (`type: Domain Concept`).
 
+* [Bon-Split — „getrennt zahlen" als Umbuchung](bon-split.md) - Fachliches Modell des Bon-Splits am Edge: order.splitOff als append-only Gegenbuchung, effectiveLineItems als einzige Ableitung der Restmenge, Rabatt- und Steueraufteilung, Vorbedingungen und die bewusst abgelehnte Teilung von Modifier-Zeilen.
 * [Admin-Bestellungen — Geschäftstag-Filter + Status-Änderung](admin-bestellungen-geschaeftstag-filter.md) - Edge-Admin-Bestellliste filtert standardmäßig nach dem aktuellen Geschäftstag und erlaubt Status-Änderungen samt RBAC-Erweiterung, um hängengebliebene Orders aufzuräumen.
 * [Geräte-Online-Tracking (Edge) — Echtzeit-Verbindungszählung + Admin-Panel](geraete-online-tracking.md) - Read-only Service device-connections zählt live verbundene Geräte am Edge und speist Dashboard-KPI, Sidebar-Badge und read-only Geräteliste im Admin-Panel.
 * [Geschäftstag — Automatische Rotation (Standalone) + Zeit-Guard](geschaeftstag-auto-rotation.md) - Der Geschäftstag rotiert am Kalendertagswechsel der Filiale und erst nach 10 Stunden Laufzeit, ein Zeit-Guard verweigert neue Bestellungen jenseits der Schwelle — beides gemessen ab openedAt, pro Standort konfigurierbar.

@@ -132,7 +132,7 @@ describe('planOrderSplit — Vorbedingungen (A6)', () => {
   it.each([
     [OrderStatus.COMPLETED, 'abgeschlossene'],
     [OrderStatus.ABORTED, 'stornierte'],
-  ])('lehnt %s Bestellungen mit sprechendem Code ab', status => {
+  ])('lehnt %s Bestellungen mit sprechendem Code ab (%s)', (status, _bezeichnung) => {
     const line = makeLine(1.19, 2, 19)
     const order = makeOrder([line, makeLine(1.19, 1, 19)], { status })
     expect(() => planOrderSplit(order, [{ lineItemRowId: line._id }], PLAN)).toThrow(OrderSplitError)
@@ -315,7 +315,7 @@ describe('planOrderSplit — Rabatte (A12)', () => {
     const a = makeLine(10.0, 1, 19)
     const b = makeLine(5.0, 1, 7)
     const order = makeOrder([a, b], {
-      appliedDiscounts: [makeOrderDiscount({ valueType: 'fixed', valueCents: 301 })],
+      appliedDiscounts: [makeOrderDiscount({ valueType: 'amount', valueCents: 301 })],
     })
     const before = computeOrderTax(structuredClone(order))
 

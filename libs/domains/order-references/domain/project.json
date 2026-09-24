@@ -1,0 +1,24 @@
+{
+  "name": "order-references-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/order-references/domain/src",
+  "projectType": "library",
+  "tags": ["type:domain", "domain:order-references"],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{workspaceRoot}/libs/domains/order-references/domain/dist"],
+      "dependsOn": ["^build"],
+      "options": {
+        "outputPath": "libs/domains/order-references/domain/dist",
+        "project": "libs/domains/order-references/package.json",
+        "tsConfig": "libs/domains/order-references/domain/tsconfig.lib.json",
+        "main": "libs/domains/order-references/domain/src/index.ts",
+        "format": ["cjs"],
+        "external": ["@feathersjs/feathers", "@feathersjs/typebox", "@sinclair/typebox", "@panary/shared-common"],
+        "generatePackageJson": false,
+        "compiler": "tsc"
+      }
+    }
+  }
+}

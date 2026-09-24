@@ -25,6 +25,7 @@ import { OpeningHourExceptionService } from './services/opening-hour-exceptions/
 import type { SyncConflict, SyncCursor, SyncOutboxEntry, SyncRun } from '@panary/sync/domain'
 import type { BootstrapReport } from '@panary/cloud-connection/domain'
 import type { AuditEvent } from '@panary/audit-events/domain'
+import type { OrderReference } from '@panary/order-references/domain'
 import type { FiscalCounter, TsePort } from '@panary/tse/domain'
 import type { Receipt } from '@panary/receipts/domain'
 
@@ -66,7 +67,9 @@ export interface ServiceTypes {
   discounts: DiscountService
   // Proxy ohne DB: reicht Rabattcodes an die Cloud durch (ADR 0032).
   'discount-code-redeem': {
-    find(params?: { query?: Record<string, unknown> }): Promise<CodeCheckResult>
+    find(params?: {
+      query?: Record<string, unknown>
+    }): Promise<CodeCheckResult>
     create(data: Record<string, unknown>): Promise<CodeCheckResult>
   }
   devices: DeviceService
@@ -89,6 +92,7 @@ export interface ServiceTypes {
   'sync-runs': GenericService<SyncRun>
   'bootstrap-reports': GenericService<BootstrapReport>
   'audit-events': GenericService<AuditEvent>
+  'order-references': GenericService<OrderReference>
   businessdays: BusinessDayService
   'cash-sessions': CashSessionService
   'fiscal-counters': GenericService<FiscalCounter>

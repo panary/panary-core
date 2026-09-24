@@ -43,6 +43,7 @@ import { calculateTaxDetails, calculateTaxDetailsOnPatch } from '../../hooks/cal
 import { applyAutomaticDiscounts } from '../../hooks/apply-automatic-discounts'
 import { checkMultiOperation } from '../../hooks/check-multi-operation'
 import { createOrderInteractions } from '../../hooks/create-order-interactions'
+import { recordCancellationReference } from '../../hooks/record-cancellation-reference'
 import { signOrderTseCancel, signOrderTseFinish, signOrderTseStart } from '../../hooks/sign-order-tse.hook'
 import { validateOrderStatusTransition } from '../../hooks/validate-order-status-transition.hook'
 import { validateStaffMealExclusivity } from '../../hooks/validate-staff-meal-exclusivity.hook'
@@ -213,6 +214,10 @@ export const orders = (app: Application) => {
         issueReceipt,
       ],
       create: [createOrderInteractions()],
+      // Vorgangs-Referenz beim Storno (DSFinV-K Bon_Referenzen, Tz. 4.2.2).
+      // NACH jsonHooks.after in `all`, damit der Hook die Order mit geparsten
+      // Feldern sieht. Nie blockierend — siehe Hook-Kopf.
+      patch: [recordCancellationReference()],
     },
     error: {
       all: [],

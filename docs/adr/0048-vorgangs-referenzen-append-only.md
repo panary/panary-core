@@ -5,7 +5,7 @@ description: 'ADR zur Einführung von order-references nach DSFinV-K Bon_Referen
 tags: [orders, order-references, fiskalisierung, sync, append-only, dsfinv-k]
 status: stable
 decision: accepted
-implementation: 'Umgesetzt 2026-09-24 (#348, Edge). Cloud-Empfang folgt mit panary/panary-cloud#488.'
+implementation: 'Umgesetzt 2026-09-24 (#348, Edge) in zwei Schritten: Referenzen (PR #385), Journal-Pfad (Schritt 2). Cloud-Empfang folgt mit panary/panary-cloud#488.'
 generated: { by: claude-code/opus-5, at: 2026-09-24T06:20:00Z }
 ---
 
@@ -94,6 +94,34 @@ für jeden internen Schreibzugriff, ohne dass eine Methodenliste etwas davon mer
 `ORDER_REFERENCES` steht im `SyncableTransactionService`, dieselbe Richtung wie `orders`.
 Ein Pull zurück würde beim Bootstrap/Restore Referenzen überschreiben, die am Edge bereits
 stehen (`sync-apply.ts`).
+
+### 7. Das Journal bekommt einen `after.patch`-Pfad — ohne Bediener kein Eintrag
+
+`order-interactions` erfasste nur, was **vor** dem Absenden passierte: Der POS sammelt
+Interaktionen im Dialog, sie reisen als `orderInteractions` im `create` mit. Split und
+Nachbuchung passieren definitionsgemäß danach — dafür gab es keinen Pfad.
+
+`recordOrderPatchInteraction()` schließt ihn, erster Nutzer ist wieder der Storno.
+
+🚨 **Ohne `params.user` schreibt der Hook nichts.** `orderInteractionSchema.userId` ist
+Pflicht, und das zu Recht: Ein Journal-Ereignis ohne „wer" beantwortet die einzige Frage
+nicht, für die es existiert. Interne Aufrufe (Worker, Seeds, Sync-Apply) tragen keinen
+Bediener — dort ist das Auslassen die richtige Antwort, nicht ein Eintrag mit leerem Feld.
+
+Der Hook ist **nicht blockierend**, wie `createOrderInteractions` und die TSE-Hooks. Der
+Audit-Pfad nimmt Verlust bewusst in Kauf, statt den Geschäftspfad zu blockieren — ein
+fehlendes Ereignis fällt im Betrieb **nicht** auf.
+
+### 8. `lineItemId` bleibt ein Array-Index — die echte Zeilen-ID ist ein neues Feld
+
+`orderInteractions.lineItemId` heißt so, ist aber ein **Array-Index** (`Type.Number`,
+ADR 0033). Für Split und Umbuchung braucht es eine Referenz, die einen Split überlebt;
+ein Index tut das nicht.
+
+🚫 **Das Altfeld wird NICHT umgedeutet.** Der Bestand ist nicht migriert, und eine stille
+Bedeutungsänderung machte jede Auswertung über Altdaten falsch, ohne dass irgendwo ein
+Fehler erschiene. Stattdessen ein neues, optionales `lineItemRowId`, das `lineItem._id`
+trägt. Die Produktidentität steht weiterhin in `lineItem.externalId`, nicht hier.
 
 ## Konsequenzen
 

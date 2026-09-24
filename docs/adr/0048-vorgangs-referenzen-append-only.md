@@ -2,7 +2,7 @@
 type: ADR
 title: 'Vorgangs-Referenzen als append-only Entität — und warum die Methodenliste sie nicht schützt'
 description: 'ADR zur Einführung von order-references nach DSFinV-K Bon_Referenzen (Tz. 4.2.2): append-only auf zwei Schichten, Storno als erster Nutzer, und die gemessene Erkenntnis, dass die Feathers-Methodenliste nur den externen Weg absichert.'
-tags: [orders, fiskalisierung, sync, append-only, dsfinv-k]
+tags: [orders, order-references, fiskalisierung, sync, append-only, dsfinv-k]
 status: stable
 decision: accepted
 implementation: 'Umgesetzt 2026-09-24 (#348, Edge). Cloud-Empfang folgt mit panary/panary-cloud#488.'

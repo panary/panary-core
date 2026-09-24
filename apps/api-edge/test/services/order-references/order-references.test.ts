@@ -219,6 +219,26 @@ describe('order-references — Vorgangs-Referenzen', () => {
     })
   })
 
+  describe('Externer Lesezugriff (RBAC)', () => {
+    // Ohne Eintrag in `AppResource` + Rollen-Matrix antwortet `authorize()` fuer
+    // JEDE Tenant-Rolle mit 403 — der Service waere registriert, aber fuer
+    // niemanden lesbar, und das faellt erst auf, wenn jemand die UI baut.
+    // READ wie bei `audit-events`: Referenzen sind Pruefungsmaterial.
+    it('laesst tenant:owner die Referenzen lesen', async () => {
+      const sourceOrderId = uuidv7()
+      await createReference({ sourceOrderId })
+
+      const found = (await app.service('order-references').find({
+        provider: 'rest',
+        authenticated: true,
+        user: { _id: userId, role: 'tenant:owner', tenantId, locationId, activeLocationId: locationId },
+        query: { sourceOrderId },
+      } as never)) as { total: number }
+
+      expect(found.total).toBe(1)
+    })
+  })
+
   describe('Storno schreibt eine Referenz', () => {
     const lineItem = () => ({
       _id: uuidv7(),

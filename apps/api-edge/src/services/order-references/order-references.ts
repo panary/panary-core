@@ -85,7 +85,11 @@ export const orderReferences = (app: Application) => {
         blockExternalWrites,
         authenticate('jwt'),
         authorize(),
-        multiTenancy(),
+        // Optionen wie orders/order-interactions, NICHT wie audit-events:
+        // `locationId` ist an der Referenz notNullable, und der Schema-Kommentar
+        // verlaesst sich darauf, dass der Hook auch danach filtert. Ohne
+        // `isolateLocation: true` waere das eine falsche Aussage im Code.
+        multiTenancy({ isolateLocation: true, allowGlobalData: false }),
         schemaHooks.resolveExternal(orderReferenceExternalResolver),
         schemaHooks.resolveResult(orderReferenceResolver),
       ],

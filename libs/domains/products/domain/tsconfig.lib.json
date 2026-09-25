@@ -5,7 +5,11 @@
     "declaration": true,
     "types": ["node"],
     "moduleResolution": "node",
-    "module": "commonjs"
+    "module": "commonjs",
+    "paths": {
+      "@panary/shared-common": ["../../../shared/common/src/index.ts"],
+      "@panary/allergens/domain": ["../../allergens/domain/dist/index.d.ts"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": [

@@ -1,4 +1,5 @@
 import { querySyntax, Static, StringEnum, Type } from '@feathersjs/typebox'
+import { additiveSchema, allergenSchema } from '@panary/allergens/domain'
 import { baseSchema, ingredientReferenceSchema, recipeReferenceSchema } from '@panary/shared-common'
 
 //#region Enums & Konstanten (Wiederverwendbar)
@@ -61,6 +62,23 @@ const availabilitySchema = Type.Object({
     ),
   ),
 })
+
+// Allergen- und Zusatzstoff-Deklaration (#393, ADR 0050). Die Aussage bestätigt der Betrieb;
+// sie wird bewusst NICHT aus ingredientReferences/recipeReferences abgeleitet — die sind für
+// den Wareneinsatz geführt und oft unvollständig, eine abgeleitete Liste wäre falsch-negativ.
+// Beide Listen sind Pflicht: Eine Deklaration sagt immer etwas über beide aus, leere Listen
+// heißen „deklariert, nichts Kennzeichnungspflichtiges". declaredAt/declaredBy stempelt der
+// Server, deshalb optional — validateData läuft vor dem stempelnden Hook.
+export const productLabelingSchema = Type.Object(
+  {
+    allergens: Type.Array(allergenSchema, { uniqueItems: true, maxItems: 30 }),
+    additives: Type.Array(additiveSchema, { uniqueItems: true, maxItems: 30 }),
+    declaredAt: Type.Optional(Type.String({ format: 'date-time' })),
+    declaredBy: Type.Optional(Type.String({ format: 'uuid' })),
+  },
+  { additionalProperties: false },
+)
+export type ProductLabeling = Static<typeof productLabelingSchema>
 //#endregion
 
 //#region Das Haupt-Datenmodell (Schema)
@@ -143,6 +161,13 @@ export const productSchema = Type.Object(
     productionTime: Type.Optional(Type.Number({ minimum: 0 })),
     ingredientReferences: Type.Optional(Type.Array(ingredientReferenceSchema, { maxItems: 200 })),
     recipeReferences: Type.Optional(Type.Array(recipeReferenceSchema, { maxItems: 200 })),
+
+    // 8. Lebensmittelinformation (#393, ADR 0050)
+    // Fehlt oder `null` = nicht deklariert (getProductLabelingState). `null` ist der Widerruf
+    // per Patch: `$set` kann ein Feld nicht entfernen, und `$unset` lehnt das geschlossene
+    // Schema ab. Der Edge hat bewusst KEINE Spalte dafür — bis es dort einen Konsumenten gibt,
+    // hält die Cloud-Sync-Projektion das Feld vom Edge fern.
+    labeling: Type.Optional(Type.Union([productLabelingSchema, Type.Null()])),
   },
   { $id: 'Product', additionalProperties: false },
 )
@@ -171,6 +196,7 @@ export const productDataSchema = Type.Intersect(
         'productionTime',
         'ingredientReferences',
         'recipeReferences',
+        'labeling',
       ]),
     ),
     // Pflicht fuer Sync-Bootstrap (Edge→Cloud): Edge-Records bringen `_id`,

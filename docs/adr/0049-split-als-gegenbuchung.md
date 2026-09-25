@@ -222,7 +222,7 @@ Familie, die nur in der Cloud läuft und deshalb in keinem Edge-Test auftaucht:
 
 | Stelle | Wofür | Was nach einem Split passierte |
 |---|---|---|
-| `explodeOrderConsumption` | Bestandsbuchung der Cloud, Wareneinsatz (`computeCogs`) | gewanderte Menge bei Quelle **und** Ziel verbraucht |
+| `explodeOrderConsumption` ([Verbrauchs-Explosion](../domains/verbrauchs-explosion.md)) | Bestandsbuchung der Cloud, Wareneinsatz (`computeCogs`) | gewanderte Menge bei Quelle **und** Ziel verbraucht |
 | `computeStats` | Top-Produkte, Warengruppen | gewanderte Menge doppelt gezählt |
 | `getOrderGrossCents` (Positions-Fallback) | Brutto ohne Payment und Snapshot | Quelle mit vollem Ursprungsbetrag |
 

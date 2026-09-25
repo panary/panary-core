@@ -4,7 +4,7 @@ title: 'Bon-Split — „getrennt zahlen" als Umbuchung'
 description: 'Fachliches Modell des Bon-Splits am Edge: order.splitOff als append-only Gegenbuchung, effectiveLineItems als einzige Ableitung der Restmenge, Rabatt- und Steueraufteilung, Vorbedingungen und die bewusst abgelehnte Teilung von Modifier-Zeilen.'
 tags: [orders, fiskalisierung, dsfinv-k, pricing]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-09-24T14:50:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-09-25T15:00:00Z }
 ---
 
 # Bon-Split — „getrennt zahlen" als Umbuchung
@@ -45,9 +45,18 @@ nur eines von beidem möglich.
 🚨 **`effectiveLineItems` ist die einzige Fassung dieser Ableitung.** Wer die
 Restmenge anderswo selbst zusammenrechnet, druckt nach einem Split eine andere
 Zahl, als die API ausweist — still, ohne Fehler, auf einem steuerrelevanten
-Dokument. Vier Stellen lesen sie: die Preis-Engine `computeOrderTax`, der
+Dokument. Am Edge lesen sie vier Stellen: die Preis-Engine `computeOrderTax`, der
 Patch-Hook `calculateTaxDetailsOnPatch`, der Beleg (`issueReceipt`) und der
-Bon-Renderer.
+Bon-Renderer. Dazu kommt die Aggregator-Familie, die nur in der Cloud läuft —
+`explodeOrderConsumption` (Bestandsbuchung, Wareneinsatz), `computeStats`
+(Top-Produkte, Warengruppen) und der Positions-Fallback von `getOrderGrossCents`
+([#391](https://github.com/panary/panary-core/issues/391), Nachtrag in
+[ADR 0049](../adr/0049-split-als-gegenbuchung.md)).
+
+Das Gegenstück „was ist gewandert" liefert `splitOffLineItems(order, entryIds?)`
+aus derselben Datei; je Zeile gilt `effektiv + abgegeben = lineItems`. Die Cloud
+bucht damit eine vor dem Split schon gebuchte Quelle um genau den gewanderten
+Anteil gegen ([Verbrauchs-Explosion](verbrauchs-explosion.md)).
 
 ## Schnittstelle
 

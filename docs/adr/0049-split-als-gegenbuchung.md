@@ -213,3 +213,28 @@ nicht. Umbau: [#351](https://github.com/panary/panary-core/issues/351).
 Rabatt-Aufteilungsmethode; ob die Summe der Teilbelege dem Ursprungsbetrag exakt
 entsprechen **muss** (keine Norm regelt das, Confidence mittel); ob eine
 Zwischenrechnung Belegcharakter hat.
+
+## Nachtrag (2026-09-25, [#391](https://github.com/panary/panary-core/issues/391)): der Aggregator ist die fünfte Stelle
+
+Die Tabelle unter Entscheidung 1 nennt vier Leser der Ableitung. Es gibt eine fünfte
+Familie, die nur in der Cloud läuft und deshalb in keinem Edge-Test auftaucht:
+`@panary/businessdays/aggregator`. Drei Funktionen iterierten `order.lineItems`:
+
+| Stelle | Wofür | Was nach einem Split passierte |
+|---|---|---|
+| `explodeOrderConsumption` ([Verbrauchs-Explosion](../domains/verbrauchs-explosion.md)) | Bestandsbuchung der Cloud, Wareneinsatz (`computeCogs`) | gewanderte Menge bei Quelle **und** Ziel verbraucht |
+| `computeStats` | Top-Produkte, Warengruppen | gewanderte Menge doppelt gezählt |
+| `getOrderGrossCents` (Positions-Fallback) | Brutto ohne Payment und Snapshot | Quelle mit vollem Ursprungsbetrag |
+
+Seither lesen alle drei `effectiveLineItems(order)`. Die Invariante „Quelle + Ziel =
+Ursprung" steht als Spec mit echtem `planOrderSplit` (`split-consistency.spec.ts`).
+
+⚠️ **Die Doppelbuchung des Bestands ist damit nicht vollständig geschlossen.** Ein Split
+ist bis `COMPLETED` erlaubt, also auch in `PRODUCED` — und dort hat die Cloud die Quelle
+bereits über die volle Menge gebucht. Die Gegenbuchung für diesen Fall ist Cloud-Sache
+([panary/panary-cloud#488](https://github.com/panary/panary-cloud/issues/488)): Die Quelle
+storniert genau den gewanderten Anteil (Nutzerentscheidung 2026-09-25 — Teil-Storno statt
+kompletter Neubuchung). Die Menge dafür liefert `splitOffLineItems(order, entryIds?)` neben
+`effectiveLineItems` in derselben Datei — das Gegenstück „was ist gewandert", damit die
+Cloud keine zweite Ableitung aus `splitOff` baut. Je Zeile gilt
+`effektiv + abgegeben = lineItems`, als Spec über zwei echte Splits hintereinander.

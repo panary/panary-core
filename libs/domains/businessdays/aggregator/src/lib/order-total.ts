@@ -1,4 +1,4 @@
-import { Order, OrderLineItem, GenericOrderLineItem } from '@panary/orders/domain'
+import { effectiveLineItems, Order, OrderLineItem, GenericOrderLineItem } from '@panary/orders/domain'
 import { toCents, multiplyCents, sumCents } from './money'
 
 // Kanonische Order-Total-Berechnung.
@@ -65,8 +65,9 @@ export function getOrderGrossCents(order: Order): number {
     return toCents(order.taxSnapshot.brutto)
   }
 
-  // Fallback: aus Line-Items rekonstruieren, inklusive Modifier und Menu-Items
-  return computeGrossFromLineItems(order.lineItems ?? [])
+  // Fallback: aus Line-Items rekonstruieren, inklusive Modifier und Menu-Items —
+  // nach einem Split nur das, was der Vorgang noch traegt (#391).
+  return computeGrossFromLineItems(effectiveLineItems(order))
 }
 
 /** Netto-Cents einer Order — bevorzugt taxSnapshot, sonst aus Brutto rückgerechnet. */

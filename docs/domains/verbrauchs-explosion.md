@@ -30,6 +30,14 @@ gemeinsame Primitive für:
 
 Liefert `{ lines, unresolvedRecipes }`.
 
+🚨 **Gezählt wird, was der Vorgang noch trägt — `effectiveLineItems(order)`, nicht
+`order.lineItems`.** Nach einem Split ([ADR 0049](../adr/0049-split-als-gegenbuchung.md))
+behält die Quelle ihre `lineItems` unverändert; das Abgegebene steht in `splitOff` und
+verbraucht die Zielbestellung. Mit `lineItems` zählte die gewanderte Menge doppelt — in
+der Bestandsbuchung der Cloud wie im Wareneinsatz. Dieselbe Regel gilt für `computeStats`
+(Top-Produkte, Warengruppen) und den Positions-Fallback von `getOrderGrossCents`
+([#391](https://github.com/panary/panary-core/issues/391)).
+
 ### `computeCogs(orders, pricing, recipeMap)`
 
 Filtert via `isRegularSale` (schließt Personal-/Firmenessen, Stornos, Refunds
@@ -96,3 +104,7 @@ Fälle ab: Modifier, Menü, Extras, Rezept mit Faktor, direkte Zutat, Storno-/
 Staff-/Refund-Ausschluss, Embedded-vs-Map-Vorrang, `onlyOutsideConsumption`,
 `unresolvedRecipes`, Determinismus. Konsumenten-Details (Cloud) siehe
 `panary-cloud/docs/domains/warenbewegung-bestandslogik.md`.
+
+`split-consistency.spec.ts` sperrt die Invariante „Quelle + Ziel = Ursprung" für
+Verbrauch, Top-Produkte, Warengruppen und Brutto-Fallback. Quelle und Ziel entstehen dort
+mit dem echten `planOrderSplit`, nicht mit einem von Hand gesetzten `splitOff`.

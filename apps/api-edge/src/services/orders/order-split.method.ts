@@ -55,6 +55,8 @@ function toFeathersError(error: OrderSplitError): Error {
   const data = { code: error.code }
   switch (error.code) {
     case OrderSplitErrorCode.SOURCE_NOT_SPLITTABLE:
+    // Zustand der Quelle, nicht Form der Anfrage — wie ein abgeschlossener Vorgang (#394).
+    case OrderSplitErrorCode.SOURCE_ALREADY_PAID:
     case OrderSplitErrorCode.NOTHING_REMAINS:
       return new Conflict(error.message, data)
     default:

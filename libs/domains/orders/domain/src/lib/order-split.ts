@@ -1,6 +1,7 @@
 import type { AppliedDiscount, Order, OrderLineItem, OrderSplitOff, TaxInfo } from './order.schema'
 import { OrderStatus } from './order.schema'
 import { effectiveLineItems } from './effective-line-items'
+import { hasStampedPayment } from './payment-stamp'
 import { computeOrderTax, discountAmountCents, lineItemGrossCents } from './pricing/compute-order-tax'
 import { distributeByLargestRemainder, sumCents, toCents } from './pricing/money'
 
@@ -30,6 +31,8 @@ import { distributeByLargestRemainder, sumCents, toCents } from './pricing/money
 export const OrderSplitErrorCode = {
   /** Quelle ist abgeschlossen oder storniert (A6). */
   SOURCE_NOT_SPLITTABLE: 'order-split/source-not-splittable',
+  /** Quelle traegt schon ein Zahlungsergebnis, auch eine Anzahlung — siehe `assertOrderIsSplittable`. */
+  SOURCE_ALREADY_PAID: 'order-split/source-already-paid',
   /** Auswahl ist leer. */
   EMPTY_SELECTION: 'order-split/empty-selection',
   /** Referenzierte Zeile gibt es in der Quelle nicht. */
@@ -130,8 +133,19 @@ export function isPartiallySplittable(line: OrderLineItem): boolean {
  * verlangt woertlich, dass es keinen Code-Pfad gibt, der einen abgeschlossenen
  * Vorgang wieder oeffnet. Der Status-Guard ist also KEIN Ersatz fuer diese
  * Pruefung.
+ *
+ * 🚨 Bezahlt ist nicht teilbar — auch OHNE Statuswechsel (#394). Der Split
+ * laesst `payment` der Quelle stehen, und `getOrderGrossCents` liest
+ * `payment.totalAmount` VOR dem `taxSnapshot`: Die Quelle zaehlte danach mit
+ * dem vollen Vor-Split-Betrag, das Ziel mit seinem Anteil noch einmal. Bisher
+ * schuetzte nur eine Kopplung — `finalizeOrder()` stempelt den Betrag im selben
+ * Patch wie `COMPLETED`. `payment` ist per Patch aber nicht gesperrt, und
+ * `PARTIALLY_PAID` wartet auf seinen ersten Schreiber. Was „Zahlungsergebnis"
+ * heisst, entscheidet `hasStampedPayment` — dieselbe Definition, die der
+ * Aggregator liest. Die Statuspruefung steht davor: Eine abgeschlossene
+ * Bestellung meldet weiter `source-not-splittable`.
  */
-export function assertOrderIsSplittable(order: Pick<Order, 'status'>): void {
+export function assertOrderIsSplittable(order: Pick<Order, 'status' | 'payment'>): void {
   if (order.status === OrderStatus.COMPLETED) {
     throw new OrderSplitError(
       OrderSplitErrorCode.SOURCE_NOT_SPLITTABLE,
@@ -142,6 +156,12 @@ export function assertOrderIsSplittable(order: Pick<Order, 'status'>): void {
     throw new OrderSplitError(
       OrderSplitErrorCode.SOURCE_NOT_SPLITTABLE,
       'Eine stornierte Bestellung kann nicht gesplittet werden.',
+    )
+  }
+  if (hasStampedPayment(order)) {
+    throw new OrderSplitError(
+      OrderSplitErrorCode.SOURCE_ALREADY_PAID,
+      'Fuer diese Bestellung ist bereits eine Zahlung erfasst — sie kann nicht mehr gesplittet werden.',
     )
   }
 }

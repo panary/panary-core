@@ -129,6 +129,34 @@ describe('orders.split — Schutzschichten', () => {
       expect((error as any).data?.code).toBe(OrderSplitErrorCode.SOURCE_NOT_SPLITTABLE)
     }
   })
+
+  it('lehnt eine offene Bestellung mit erfasster Zahlung ab — 409, eigener Code, KEIN Write (#394)', async () => {
+    // Eine Anzahlung ohne Statuswechsel. Der Split liesse `payment` an der Quelle
+    // stehen, und der Aggregator zaehlte die Quelle danach mit dem vollen
+    // Vor-Split-Betrag — das Ziel mit seinem Anteil noch einmal.
+    const h = makeApp({
+      order: makeOrder({
+        payment: {
+          state: 'partially_paid',
+          totalAmount: 27.95,
+          tipAmount: 0,
+          transactions: [
+            { _id: 'tx-1', method: 'cash', amount: 10, currency: 'EUR', timestamp: '2026-09-24T10:30:00.000Z' },
+          ],
+        },
+      }),
+    })
+    const error = await call(h.app, { orderId: 'order-quelle', lineItems: [{ lineItemRowId: 'l2' }] }).catch(e => e)
+
+    // 409 wie beim abgeschlossenen Vorgang: Es ist der Zustand der Quelle, nicht
+    // die Form der Anfrage. Ein 400 hiesse dem Client „Anfrage korrigieren".
+    expect(error?.code).toBe(409)
+    expect(error?.data?.code).toBe(OrderSplitErrorCode.SOURCE_ALREADY_PAID)
+    expect(h.orderCreate).not.toHaveBeenCalled()
+    expect(h.orderPatch).not.toHaveBeenCalled()
+    expect(h.referenceCreate).not.toHaveBeenCalled()
+    expect(h.interactionCreate).not.toHaveBeenCalled()
+  })
 })
 
 describe('orders.split — Schreibpfad', () => {

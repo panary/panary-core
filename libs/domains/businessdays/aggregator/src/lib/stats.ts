@@ -1,4 +1,4 @@
-import { Order, OrderLineItem } from '@panary/orders/domain'
+import { effectiveLineItems, Order, OrderLineItem } from '@panary/orders/domain'
 import { isRegularSale } from './classifications'
 import { getOrderGrossCents } from './order-total'
 import { toCents, multiplyCents } from './money'
@@ -83,8 +83,10 @@ export function computeStats(orders: ReadonlyArray<Order>): StatsAggregate {
       userMap.set(userId, entry)
     }
 
-    // Produkt- und Warengruppen-Aggregation
-    for (const item of order.lineItems ?? []) {
+    // Produkt- und Warengruppen-Aggregation — über die Positionen, die der
+    // Vorgang nach einem Split NOCH traegt (#391). Mit `lineItems` zaehlte die
+    // gewanderte Menge bei Quelle und Ziel.
+    for (const item of effectiveLineItems(order)) {
       accumulateProduct(productMap, item)
       accumulateProductGroup(groupMap, item)
     }

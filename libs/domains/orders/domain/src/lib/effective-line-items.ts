@@ -49,6 +49,49 @@ export function effectiveLineItems(order: Pick<Order, 'lineItems' | 'splitOff'>)
   return out
 }
 
+/**
+ * Was dieser Vorgang per Split ABGEGEBEN hat — das Gegenstueck zu
+ * `effectiveLineItems`: je Zeile gilt `effektiv + abgegeben = lineItems`.
+ *
+ * Wofuer: Die Cloud bucht den Verbrauch, sobald die Kueche fertig ist
+ * (`PRODUCED`). Ein Split danach — erlaubt bis `COMPLETED` — verschiebt schon
+ * gebuchte Ware in einen anderen Vorgang, und die Quelle muss genau diesen
+ * Anteil gegenbuchen (panary/panary-cloud#488). Wer die Menge dafuer selbst aus
+ * `splitOff` zusammenrechnet, baut eine zweite Ableitung neben dieser Datei.
+ *
+ * `entryIds` schraenkt auf bestimmte Umbuchungen ein (z. B. die noch nicht
+ * gegengebuchten); ohne Angabe zaehlt alles, was je gegangen ist.
+ *
+ * Eine Zeile mit Modifiern wandert nur ganz (`isPartiallySplittable`) und
+ * erscheint hier mit voller Menge samt Modifiern — deren Verbrauch skaliert
+ * so richtig mit.
+ */
+export function splitOffLineItems(
+  order: Pick<Order, 'lineItems' | 'splitOff'>,
+  entryIds?: ReadonlySet<string>,
+): OrderLineItem[] {
+  const lineItems = Array.isArray(order.lineItems) ? order.lineItems : []
+  const splitOff = Array.isArray(order.splitOff) ? order.splitOff : []
+  if (splitOff.length === 0) return []
+
+  const movedByRow = new Map<string, number>()
+  for (const entry of splitOff) {
+    if (entryIds && !entryIds.has(entry._id)) continue
+    movedByRow.set(entry.lineItemRowId, (movedByRow.get(entry.lineItemRowId) ?? 0) + entry.amount)
+  }
+
+  const out: OrderLineItem[] = []
+  for (const line of lineItems) {
+    const moved = movedByRow.get(line._id) ?? 0
+    if (moved <= 0) continue
+    // Mehr als die Zeile trug, kann nicht gegangen sein (der Planer lehnt das
+    // mit `amount-exceeds-remainder` ab) — die Klemme haelt die Summe auch bei
+    // kaputten Bestandsdaten auf der Zeilenmenge.
+    out.push({ ...line, amount: Math.min(moved, line.amount) })
+  }
+  return out
+}
+
 /** Restmenge einer Zeile nach bereits erfolgten Umbuchungen. */
 export function remainingLineAmount(order: Pick<Order, 'lineItems' | 'splitOff'>, lineItemRowId: string): number {
   const line = (order.lineItems ?? []).find(l => l._id === lineItemRowId)

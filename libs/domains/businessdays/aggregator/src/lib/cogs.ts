@@ -1,4 +1,4 @@
-import { Order, OrderLineItem } from '@panary/orders/domain'
+import { effectiveLineItems, Order, OrderLineItem } from '@panary/orders/domain'
 import { isRegularSale } from './classifications'
 import { multiplyCents } from './money'
 
@@ -136,6 +136,13 @@ interface EmbeddedRecipeIngredient {
  *
  * `onlyOutsideConsumption` wird honoriert: solche Zutaten zählen bei DINE_IN
  * nicht.
+ *
+ * 🚨 Gezählt werden die Positionen, die der Vorgang NOCH trägt — nach einem
+ * Split (#349, ADR 0049) also `effectiveLineItems(order)`, nicht `lineItems`.
+ * Die Quelle behält ihre `lineItems` unverändert; was gewandert ist, steht in
+ * `splitOff` und wird von der Zielbestellung verbraucht. Mit `lineItems` zählte
+ * die gewanderte Menge zweimal — in der Bestandsbuchung der Cloud ebenso wie im
+ * Wareneinsatz des Tagesabschlusses (#391).
  */
 export function explodeOrderConsumption(
   order: Order,
@@ -145,7 +152,7 @@ export function explodeOrderConsumption(
   const unresolved: UnresolvedRecipe[] = []
   const dineLocation = (order as { dineLocation?: string }).dineLocation
 
-  for (const item of order.lineItems ?? []) {
+  for (const item of effectiveLineItems(order)) {
     // Material-Verbrauch läuft bewusst über die Legacy-Slots (menuDrink/
     // menuSideDish/modifiers) + die Zeilen-Rezepte. Der POS-Writer füllt diese
     // Slots auch bei FIXED_PROPORTIONAL-Bundles weiter (das neue `components[]`

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { effectiveLineItems, remainingLineAmount } from './effective-line-items'
+import { effectiveLineItems, remainingLineAmount, splitOffLineItems } from './effective-line-items'
 import { OrderSplitError, OrderSplitErrorCode, isPartiallySplittable, planOrderSplit } from './order-split'
 import type { AppliedDiscount, GenericOrderLineItem, Order, OrderLineItem, OrderSplitOff } from './order.schema'
 import { OrderStatus } from './order.schema'
@@ -108,6 +108,58 @@ describe('effectiveLineItems — die einzige Fassung von „was traegt der Vorga
     const order = makeOrder([line], { splitOff })
     expect(effectiveLineItems(order)[0].amount).toBe(2)
     expect(remainingLineAmount(order, line._id)).toBe(2)
+  })
+})
+
+describe('splitOffLineItems — „was ist gewandert", das Gegenstueck zu effectiveLineItems', () => {
+  /** Menge je Zeilen-ID, damit sich zwei Ableitungen vergleichen lassen. */
+  const amountByRow = (lines: OrderLineItem[]) => Object.fromEntries(lines.map(l => [l._id, l.amount]))
+
+  it('liefert ohne splitOff nichts — Bestand hat nichts abgegeben', () => {
+    expect(splitOffLineItems(makeOrder([makeLine(1.0, 3, 19)]))).toEqual([])
+  })
+
+  it('effektiv + abgegeben = lineItems, je Zeile — ueber zwei echte Splits hintereinander', () => {
+    const roll = makeLine(1.0, 5, 7)
+    const cheese = makeGeneric(0.5, 1, { taxInside: 7, taxOutside: 7 })
+    const pizza = makeLine(9.0, 1, 7, { modifiers: [cheese] as OrderLineItem['modifiers'] })
+    const original = makeOrder([roll, pizza])
+
+    // Erster Gast: 2 Broetchen. Zweiter Gast: die ganze Pizza samt Modifier.
+    const first = planOrderSplit(original, [{ lineItemRowId: roll._id, amount: 2 }], { ...PLAN, targetOrderId: 't1' })
+    const afterFirst = makeOrder([roll, pizza], { splitOff: first.splitOffEntries })
+    const second = planOrderSplit(afterFirst, [{ lineItemRowId: pizza._id }], { ...PLAN, targetOrderId: 't2' })
+    const source = makeOrder([roll, pizza], { splitOff: [...first.splitOffEntries, ...second.splitOffEntries] })
+
+    const effective = amountByRow(effectiveLineItems(source))
+    const gone = amountByRow(splitOffLineItems(source))
+    expect(gone).toEqual({ [roll._id]: 2, [pizza._id]: 1 })
+    for (const line of source.lineItems) {
+      expect((effective[line._id] ?? 0) + (gone[line._id] ?? 0)).toBe(line.amount)
+    }
+    // Die ganze Zeile wandert MIT ihren Modifiern — sonst fehlte deren Verbrauch.
+    expect(splitOffLineItems(source).find(l => l._id === pizza._id)?.modifiers).toHaveLength(1)
+  })
+
+  it('schraenkt auf bestimmte Umbuchungen ein — die noch nicht gegengebuchten', () => {
+    const line = makeLine(1.0, 5, 19)
+    const splitOff: OrderSplitOff[] = [
+      { _id: 's1', targetOrderId: 't1', lineItemRowId: line._id, amount: 1, grossCents: 100, splitAt: 'x' },
+      { _id: 's2', targetOrderId: 't2', lineItemRowId: line._id, amount: 2, grossCents: 200, splitAt: 'x' },
+    ]
+    const order = makeOrder([line], { splitOff })
+    expect(splitOffLineItems(order, new Set(['s2']))[0].amount).toBe(2)
+    expect(splitOffLineItems(order)[0].amount).toBe(3)
+    expect(splitOffLineItems(order, new Set())).toEqual([])
+  })
+
+  it('aendert die Quellzeile nicht (A5) — die Ableitung ist eine Kopie', () => {
+    const line = makeLine(1.0, 5, 19)
+    const order = makeOrder([line], {
+      splitOff: [{ _id: 's1', targetOrderId: 't', lineItemRowId: line._id, amount: 2, grossCents: 200, splitAt: 'x' }],
+    })
+    splitOffLineItems(order)[0].amount = 99
+    expect(order.lineItems[0].amount).toBe(5)
   })
 })
 

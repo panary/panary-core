@@ -1,5 +1,3 @@
-// Probe für #409: macht api-edge im PR-Lauf betroffen (api-edge:test-Gruppe über 64 KiB),
-// damit die CI den neuen Log-Weg belegt. Wird vor dem Merge zurückgenommen.
 import { defineConfig } from 'vitest/config'
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin'
 import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin'

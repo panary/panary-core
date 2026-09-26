@@ -14,11 +14,12 @@ import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin'
  * ist zur Laufzeit `undefined` und `apikey.schema.ts` stirbt beim Laden mit
  * „Cannot read properties of undefined (reading 'DEVICE_POS')".
  *
- * 🚨 **`resolve.alias` reicht nicht.** `nxViteTsPaths()` laeuft mit `enforce: 'pre'`,
- * findet den Pfad und gibt ihn zurueck, bevor Vites Alias-Aufloesung greift — eine
- * Gegenprobe mit absichtlich falschem Alias-Ziel aenderte die Fehlermeldung nicht.
  * Deshalb ein eigener Resolver VOR `nxViteTsPaths()`: Innerhalb von `enforce: 'pre'`
- * gilt die Reihenfolge des Arrays.
+ * gilt die Reihenfolge des Arrays. `resolve.alias` in dieser Datei wirkt ebenso — Vites
+ * Alias-Plugin laeuft vor allen `enforce: 'pre'`-Plugins —, trifft aber auch Unterpfade
+ * (`@panary/x` faengt `@panary/x/y`); der Resolver vergleicht exakt. (Die fruehere
+ * Aussage hier, der Alias reiche nicht, hielt einer Nachmessung mit identischer
+ * Toolchain nicht stand: panary/panary-core#398.)
  *
  * 🚨 **Und er gehoert in DIESE Datei, nicht in `vite.config.ts`.** Vitest sucht seine
  * Config in der Reihenfolge `vitest.config` vor `vite.config`; solange hier eine
@@ -29,9 +30,11 @@ import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin'
  * 🚨 **Der Fehler taucht erst auf, wenn `users/domain/dist` existiert.** Das Plugin
  * prueft `existsSync`; ohne dist faellt es auf `tsconfig.base.json` und damit auf die
  * Quelle zurueck. Ein frisches `nx test apikeys-domain` ist deshalb gruen, derselbe
- * Test im `nx affected`-Lauf (der die dists baut) rot — lokal unzuverlaessig, in der
- * CI zuverlaessig. Vor dem PR daher in dieser Reihenfolge fahren:
- * `nx run-many -t typecheck,test --projects=apikeys-domain --skip-nx-cache`.
+ * Test im `nx affected`-Lauf rot, sobald dort vorher gebaut wurde. Vor dem PR daher in
+ * ZWEI Laeufen fahren — erst `nx run-many -t typecheck --projects=apikeys-domain
+ * --skip-nx-cache` (baut die dists), dann dasselbe mit `-t test`. Ein gemeinsamer Lauf
+ * `-t typecheck,test` ordnet nichts: `test` hat kein `dependsOn` und startet parallel
+ * zu den Builds (panary/panary-core#398).
  */
 const domainSourcesForVitest = (): Plugin => {
   const sources: Record<string, string> = {

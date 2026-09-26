@@ -1,10 +1,10 @@
 ---
 type: Guide
 title: Test-Target an einer Nx-Lib nachrüsten
-description: Anleitung, wie eine Lib ohne `test`-Target eines per Plugin-Inferenz bekommt — inklusive der vier Fallen (Config-Drift, TS5069, fehlender JIT-Compiler, `effect()` ohne Scheduler) und des TestBed-freien Musters für Angular-Klassen.
+description: Anleitung, wie eine Lib ohne `test`-Target eines per Plugin-Inferenz bekommt — inklusive der fünf Fallen (Config-Drift, TS5069, fehlender JIT-Compiler, `effect()` ohne Scheduler, Cross-Lib-Import lädt dist-`.d.ts`) und des TestBed-freien Musters für Angular-Klassen.
 tags: [nx, vitest, testing, ci]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-08-14T21:00:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-09-26T09:30:00Z }
 ---
 
 # Test-Target an einer Nx-Lib nachrüsten
@@ -54,6 +54,27 @@ export default defineConfig(() => ({
   },
 }))
 ```
+
+> 🚨 **Lib mit `paths`-Override auf ein fremdes dist?** Das ist das Cross-Lib-Import-Muster
+> aus [CLAUDE.md §2.1](../../CLAUDE.md). Ein schlichtes `grep '/dist/'` trifft auch
+> `outDir`; umbruchfest listet die Overrides
+> `tr -d '\n' < <lib>/tsconfig.lib.json | grep -oE '"@panary/[^"]+": *\[ *"\.\./[^"]*/dist/'`
+> (leer = nicht betroffen). Dann reicht die Vorlage oben nicht: `nxViteTsPaths()` liest den Override aus
+> `tsconfig.lib.json` und lädt, sobald das dist der Ziel-Lib liegt, die `.d.ts` statt Code.
+> Die Datei braucht zusätzlich einen Resolver **vor** `nxViteTsPaths()` — Regel, Vorlage
+> (`libs/domains/apikeys/domain/vitest.config.mts`) und Prüfung stehen in CLAUDE.md §2.1.
+>
+> **Warum der Fehler meist still bleibt**, gemessen an
+> [#398](https://github.com/panary/panary-core/issues/398): Ein rollup-dist besteht aus
+> `export * from "./src/index"`. Diesen **relativen** Pfad findet Vite neben der `.d.ts`
+> nicht (dort liegt nur `src/index.d.ts`, Vite probiert `index.ts`, `index.js` …); aufgelöst wird er
+> stattdessen gegen das Root des Testlaufs — im Sondenprotokoll mit dem Importer
+> `<root>/index.html` —, und das Root ist die **importierende** Lib. In `products/domain`
+> lud `@panary/allergens/domain` so `products/domain/src/index.ts`, also die eigenen
+> Exporte. Eine ng-packagr-Typdatei (`dist/types/*-internal.d.ts`)
+> ist nach dem Transpilieren schlicht leer. In beiden Fällen ist der gesuchte Export
+> `undefined`, und ein Fehler entsteht nur, wo der Code ihn beim Laden benutzt. Am
+> 2026-09-26 luden drei Libs so fremde `.d.ts` und waren trotzdem grün (#398).
 
 > ⚠️ **Kein handgeschriebenes `test`-Target in `project.json`.** Es funktioniert zwar,
 > weicht aber von der Inferenz ab und überschreibt sie. Damit driftet die Lib von den
@@ -236,9 +257,19 @@ Referenz-Implementierungen:
 ## 4. Verifikation
 
 ```bash
-pnpm nx run-many -t lint,typecheck,build,test -p <projekt> --skip-nx-cache
+pnpm nx run-many -t lint,typecheck,build -p <projekt> --skip-nx-cache
+pnpm nx run-many -t test -p <projekt> --skip-nx-cache
 pnpm nx format:check --files <neue-dateien-kommasepariert>
 ```
+
+> 🚨 **`test` in einem eigenen, zweiten Lauf.** Das Target hat kein `dependsOn`; in einem
+> gemeinsamen Lauf startet nx es parallel zu den Builds. Bei einer Lib mit
+> Cross-Lib-Override (Falle in §1) prüft der Test dann womöglich ohne dist — genau in dem
+> Zustand, in dem der Fehler unsichtbar ist. Gemessen an
+> [#398](https://github.com/panary/panary-core/issues/398): Im frischen Worktree lief
+> `products-domain:test` vor `allergens-domain:build`; mit entferntem Resolver 26/26 grün,
+> nach dem Build 3/26 rot. Bis 2026-09-26 stand hier ein gemeinsamer Lauf
+> `-t lint,typecheck,build,test`.
 
 > **Bis 2026-08-14 stand hier `eslint:lint,lint`** — mit dem Hinweis, `nx lint <projekt>`
 > allein laufe „bei den meisten Libs still ins Leere und melde trotzdem Exit 0". Das war
@@ -316,4 +347,5 @@ genau dafür existiert das Gate.
 ## Verwandt
 
 - [Nx-Generator-Nutzungsanleitung](generator-usage-guide.md) — Scaffolding neuer Libs und Services
+- [CLAUDE.md §2.1](../../CLAUDE.md) — Cross-Lib-Imports zwischen Domain-Libs, fünfter Schritt: Resolver in `vitest.config.mts`
 - [ADR 0022 — Format-Gate ohne Base](../adr/0022-format-gate-ohne-base.md) — das zweite harte CI-Gate, das neue Dateien betrifft

@@ -37,7 +37,7 @@ jobs:
       # --- Nx Self-Hosted Remote Cache (P6, 2026-06-18) ---
       # Aktiviert sich automatisch, sobald die Repo-Secrets gesetzt sind; vorher
       # leer → Nx ignoriert den Remote-Cache (No-op, kein CI-Bruch). Server-Deploy
-      # + Runbook: docs/infrastructure/nx-remote-cache.md
+      # + Runbook: panary-cloud/docs/infrastructure/nx-remote-cache.md (seit #192)
       #
       # Poisoning-Schutz (CVE-2025-36852/CREEP): nur vertrauenswuerdige main-Pushes
       # bekommen den Read-Write-Token (befuellen den Cache). PRs bekommen hoechstens
@@ -210,6 +210,18 @@ jobs:
       # panary-cloud fährt dieselbe Absicht mit einem Baseline-Gate, weil dort 334
       # vorbestehende Fehler liegen. Hier wäre eine Baseline nur Maschinerie ohne
       # Inhalt — und ein hartes Gate ist das stärkere Versprechen.
+      #
+      # Die Ausgabe geht in eine DATEI, nicht durch `| tee`: `nx affected` ruft
+      # direkt nach dem letzten Task `process.exit()` auf, ohne stdout zu leeren
+      # (nx 22.7.12, command-line/affected/affected.js; erst nx 23.2 wartet
+      # vorher auf `output.drain()`). An einer Pipe schreibt Node asynchron —
+      # was der Kernel beim Exit noch nicht angenommen hat, ist weg. Die Gruppe
+      # des zuletzt fertigen Tasks schreibt Nx unmittelbar davor in einem Stück;
+      # durch kamen ganze Pipe-Füllungen zu 64 KiB. Gemessen über 84 Läufe vom
+      # 2026-09-15 bis -26 (#409): 71 endeten mitten in api-edge:test, ohne
+      # Vitest-Fazit und ohne Nx-Schlusszeile — jeder PR-Lauf mit api-edge:test
+      # als letztem Task und jeder main-Push nach dem Remote-Cache-Retry.
+      # Herleitung und Prüfkommando: docs/infrastructure/ci-log-nx-exit-an-der-pipe.md
       - name: Lint, Test, Typecheck & Build (affected)
         shell: bash
         run: |
@@ -217,9 +229,9 @@ jobs:
           # Fehlers ab (Server 5xx/unreachable/Token), wird EINMAL ohne Remote-
           # Cache wiederholt (Fallback auf lokalen Cache), statt die CI hart
           # fehlschlagen zu lassen — Runbook-Absicht "Cache ist optionaler
-          # Beschleuniger" (docs/infrastructure/nx-remote-cache.md). Echte Lint/Test/
-          # Build-Fehler (kein Cache-Bezug) brechen weiterhin sofort ab.
-          set -o pipefail
+          # Beschleuniger" (panary-cloud/docs/infrastructure/nx-remote-cache.md).
+          # Echte Lint/Test/Build-Fehler (kein Cache-Bezug) brechen weiterhin
+          # sofort ab.
           run_affected() {
             if [ "${{ github.event_name }}" = 'workflow_dispatch' ]; then
               pnpm nx run-many -t lint   # Cache-Test: alle Projekte → Remote-Cache
@@ -227,13 +239,26 @@ jobs:
               pnpm nx affected -t lint,test,typecheck,build
             fi
           }
+          # Nx schreibt in eine Datei, nicht in eine Pipe (Begründung über dem
+          # Schritt): In Dateien schreibt Node synchron, beim `process.exit()`
+          # geht nichts verloren. `tail --pid` streamt sie live ins Log und
+          # endet mit dem Lauf (GNU und uutils geprüft, #409), den Exit-Code
+          # liefert `wait`. `: >` leert die Datei, damit der Retry den ersten
+          # Lauf nicht noch einmal ausgibt.
+          run_logged() {
+            : > "$log"
+            "$@" > "$log" 2>&1 &
+            local pid=$!
+            tail --pid="$pid" -n +1 -f "$log"
+            wait "$pid"
+          }
           log="$(mktemp)"
-          if run_affected 2>&1 | tee "$log"; then
+          if run_logged run_affected; then
             exit 0
           fi
           if [ -n "${NX_SELF_HOSTED_REMOTE_CACHE_SERVER:-}" ] && grep -qiE 'remote cache' "$log"; then
             echo "::warning title=Nx Remote-Cache::Remote-Cache nicht nutzbar — Retry ohne Remote-Cache (Fallback auf lokalen Cache)."
-            NX_SELF_HOSTED_REMOTE_CACHE_SERVER='' NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN='' run_affected
+            NX_SELF_HOSTED_REMOTE_CACHE_SERVER='' NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN='' run_logged run_affected
             exit $?
           fi
           exit 1

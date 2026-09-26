@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { effectiveLineItems, remainingLineAmount, splitOffLineItems } from './effective-line-items'
 import { OrderSplitError, OrderSplitErrorCode, isPartiallySplittable, planOrderSplit } from './order-split'
 import type { AppliedDiscount, GenericOrderLineItem, Order, OrderLineItem, OrderSplitOff } from './order.schema'
-import { OrderStatus } from './order.schema'
+import { OrderStatus, PaymentState, TransactionMethod } from './order.schema'
 import { computeOrderTax } from './pricing/compute-order-tax'
 import { toCents } from './pricing/money'
 
@@ -248,6 +248,69 @@ describe('planOrderSplit — Vorbedingungen (A6)', () => {
     } catch (error) {
       expect((error as OrderSplitError).code).toBe(OrderSplitErrorCode.DUPLICATE_LINE)
     }
+  })
+})
+
+describe('planOrderSplit — Zahlungsergebnis an der Quelle (#394)', () => {
+  // Der Split laesst `payment` der Quelle stehen, und `getOrderGrossCents` liest
+  // `payment.totalAmount` VOR dem `taxSnapshot`. Eine Quelle mit
+  // Zahlungsergebnis zaehlte nach dem Split mit dem vollen Vor-Split-Betrag, das
+  // Ziel mit seinem Anteil noch einmal. Die Faelle unten sind die Grenze von
+  // `isUnstampedPaymentPlaceholder` von beiden Seiten — jede Form, die der
+  // Aggregator als autoritativ liest, muss scheitern; jede andere durchgehen.
+  const TX = {
+    _id: 'tx-1',
+    method: TransactionMethod.CASH,
+    amount: 1,
+    currency: 'EUR',
+    timestamp: '2026-09-24T11:00:00.000Z',
+  }
+  const PLACEHOLDER = { state: PaymentState.PENDING, totalAmount: 0, tipAmount: 0, transactions: [] }
+
+  /** Fehlercode eines Split-Versuchs — `undefined`, wenn der Split durchlaeuft. */
+  function splitErrorCode(payment: Order['payment'], status: Order['status'] = OrderStatus.ACTIVE): string | undefined {
+    const line = makeLine(1.19, 2, 19)
+    const order = makeOrder([line, makeLine(1.07, 1, 7)], { status, payment })
+    try {
+      planOrderSplit(order, [{ lineItemRowId: line._id }], PLAN)
+      return undefined
+    } catch (error) {
+      // Nur der Split-Fehler zaehlt — ein anderer Wurf darf nicht als Code
+      // `undefined` durchrutschen und wie „durchgelaufen" aussehen.
+      if (error instanceof OrderSplitError) return error.code
+      throw error
+    }
+  }
+
+  it.each<[string, Order['payment']]>([
+    [
+      'bezahlt, noch nicht abgeschlossen',
+      { state: PaymentState.PAID, totalAmount: 3.45, tipAmount: 0, transactions: [TX] },
+    ],
+    ['Anzahlung', { state: PaymentState.PARTIALLY_PAID, totalAmount: 3.45, tipAmount: 0, transactions: [TX] }],
+    ['erstattet', { state: PaymentState.REFUNDED, totalAmount: 3.45, tipAmount: 0, transactions: [TX] }],
+    ['Betrag ohne Transaktion, Status pending', { ...PLACEHOLDER, totalAmount: 3.45 }],
+    ['Transaktion ohne Betrag, Status pending', { ...PLACEHOLDER, transactions: [TX] }],
+    ['mit 0 EUR bezahlt (100 % Rabatt)', { ...PLACEHOLDER, state: PaymentState.PAID }],
+  ])('lehnt ab: %s', (_label, payment) => {
+    expect(splitErrorCode(payment)).toBe(OrderSplitErrorCode.SOURCE_ALREADY_PAID)
+  })
+
+  it.each<[string, Order['payment']]>([
+    ['ohne payment (POS legt offene Bestellungen so an)', undefined],
+    ['payment null (leere SQLite-Spalte)', null],
+    ['Platzhalter (pre-orders.convert, Split-Ziel)', PLACEHOLDER],
+    [
+      'Platzhalter ohne state (Bestand)',
+      { totalAmount: 0, tipAmount: 0, transactions: [] } as unknown as Order['payment'],
+    ],
+  ])('laesst durch: %s', (_label, payment) => {
+    expect(splitErrorCode(payment)).toBeUndefined()
+  })
+
+  it('meldet bei einer abgeschlossenen, bezahlten Bestellung den Status — die Statuspruefung steht vorn', () => {
+    const paid = { state: PaymentState.PAID, totalAmount: 3.45, tipAmount: 0, transactions: [TX] }
+    expect(splitErrorCode(paid, OrderStatus.COMPLETED)).toBe(OrderSplitErrorCode.SOURCE_NOT_SPLITTABLE)
   })
 })
 

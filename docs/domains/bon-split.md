@@ -4,7 +4,7 @@ title: 'Bon-Split — „getrennt zahlen" als Umbuchung'
 description: 'Fachliches Modell des Bon-Splits am Edge: order.splitOff als append-only Gegenbuchung, effectiveLineItems als einzige Ableitung der Restmenge, Rabatt- und Steueraufteilung, Vorbedingungen und die bewusst abgelehnte Teilung von Modifier-Zeilen.'
 tags: [orders, fiskalisierung, dsfinv-k, pricing]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-09-25T15:00:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-09-26T00:03:00Z }
 ---
 
 # Bon-Split — „getrennt zahlen" als Umbuchung
@@ -76,6 +76,7 @@ POST /orders   →  Methode `split`
 | Code | Wann |
 |---|---|
 | `order-split/source-not-splittable` | Quelle ist `COMPLETED` oder `ABORTED`, oder es wurde bereits ein Beleg ausgestellt (A6) |
+| `order-split/source-already-paid` | Quelle trägt schon ein Zahlungsergebnis — auch eine Anzahlung, auch ohne Statuswechsel (siehe unten) |
 | `order-split/empty-selection` | keine Auswahl |
 | `order-split/unknown-line` | Zeile gibt es nicht — auch bei Bestandsdaten **ohne** `lineItem._id` |
 | `order-split/duplicate-line` | dieselbe Zeile zweimal in einer Auswahl |
@@ -87,6 +88,62 @@ POST /orders   →  Methode `split`
 UNCLAIMED`/`→ ABORTED` sind erlaubt). Der Split lehnt trotzdem hart ab: A6
 verlangt, dass es keinen Code-Pfad gibt, der einen abgeschlossenen Vorgang wieder
 öffnet. Der Status-Guard ist hier **kein** Ersatz für die eigene Prüfung.
+
+### Bezahlt ist nicht teilbar
+
+Der Split lässt `payment` der Quelle stehen — anders als für die Positionen gibt
+es dafür keine Ableitung. `getOrderGrossCents` liest aber `payment.totalAmount`
+**vor** dem `taxSnapshot`. Trüge die Quelle beim Split ein Zahlungsergebnis,
+zählte der Aggregator sie danach mit dem vollen Vor-Split-Betrag und das Ziel
+mit seinem Anteil noch einmal:
+
+```
+Ursprung 14,50 €; es wandern 2 von 5 Brötchen und die Pizza mit Käse (11,50 €)
+
+                 Quelle ohne payment    Quelle mit gestempeltem payment
+Quelle                  3,00 €                14,50 €   ← Vor-Split-Betrag
+Ziel                   11,50 €                11,50 €
+Summe                  14,50 €                26,00 €
+```
+
+Gemessen auf `origin/main` @ `83ef248a` mit echtem `planOrderSplit`, bevor die
+Sperre existierte — gleich für `paid`, `partially_paid` und einen gestempelten
+Betrag bei `pending`. Im Kassenbetrieb scheitert der
+[Tagesabschluss](tagesabschluss-architektur.md) daran mit
+`financials.tax_split_mismatch` (Brutto 26,00 € gegen 14,50 € aus den
+Steuereimern). Im Bestellbetrieb prüft `validateFinancials` weder Steuer noch
+Zahlungen — 26,00 € ohne jede Meldung. Die Kennzahlen aus `computeStats`
+(Ø-Bon 13,00 € statt 7,25 €, Stundenumsatz) sind in beiden Betriebsarten still
+falsch.
+
+Deshalb lehnt `assertOrderIsSplittable` eine Bestellung ab, sobald
+`hasStampedPayment(order)` gilt — Code `order-split/source-already-paid`, HTTP
+409, **nach** der Statusprüfung (eine abgeschlossene Bestellung meldet weiter
+`source-not-splittable`). Was als Zahlungsergebnis zählt, entscheidet dieselbe
+Funktion, die der Aggregator liest: `isUnstampedPaymentPlaceholder` liegt dafür
+in `@panary/orders/domain` (`payment-stamp.ts`), nicht mehr im Aggregator. Zwei
+Fassungen ließen einen Zustand splittbar, den der Aggregator als autoritativ
+liest. Entscheidung und verworfene Alternative: Nachtrag vom 2026-09-26 in
+[ADR 0049](../adr/0049-split-als-gegenbuchung.md).
+
+Durch geht nur, was kein Zahlungsergebnis ist: kein `payment`, `null`, oder der
+Platzhalter `{ state: 'pending', totalAmount: 0, transactions: [] }`, den
+`pre-orders.convert` und jede Split-Zielbestellung bekommen. Ein Ziel lässt sich
+also weiter splitten. Ein mit 0 € bezahlter Vorgang (`state: 'paid'`), eine
+Erstattung oder eine Transaktion ohne Betrag sind dagegen Ergebnisse.
+
+Heute stempelt nur `finalizeOrder()` einen Betrag, im selben Patch wie
+`COMPLETED` — die Sperre schützt vor dem, was kommt: `payment` ist per Patch
+nicht gesperrt, und `PARTIALLY_PAID` hat noch keinen Schreiber. Ein
+Anzahlungs-Flow scheitert an ihr laut statt still. Er muss festlegen, auf welchen
+Teilbeleg die Anzahlung fällt — und was `totalAmount` bei `partially_paid`
+bedeutet; der Aggregator liest es als Summe des Vorgangs.
+
+⚠️ **Der umgekehrte Weg ist nicht gesperrt:** erst Split, danach ein `payment`,
+dessen Betrag ein Client **vor** dem Split berechnet hat — etwa eine POS-Liste vor
+dem `patched`-Event oder ein Kassiervorgang aus der Offline-Outbox. Der Server
+rechnet `payment.totalAmount` nicht gegen den Snapshot nach. Relevant wird das mit
+der POS-Oberfläche ([#350](https://github.com/panary/panary-core/issues/350)).
 
 ## Was die Zielbestellung erbt
 
@@ -182,3 +239,6 @@ Ohne `params.user` schreibt das Journal **nichts**: Ein Journal-Ereignis ohne
   weiterhin zum Druckzeitpunkt (ADR 0047, Begründung für die Vertagung in
   ADR 0049 Nr. 1).
 - **Bestandsdaten ohne `lineItem._id`** lassen sich nicht splitten.
+- **Zahlungsbetrag gegen den Snapshot prüfen** — der umgekehrte Weg (erst Split,
+  dann ein vorher berechneter Betrag) ist offen, siehe
+  [Bezahlt ist nicht teilbar](#bezahlt-ist-nicht-teilbar).

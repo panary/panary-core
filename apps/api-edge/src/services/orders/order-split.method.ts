@@ -54,7 +54,9 @@ export interface OrderSplitResult {
 function toFeathersError(error: OrderSplitError): Error {
   const data = { code: error.code }
   switch (error.code) {
+    // Zustand der Quelle, nicht Form der Anfrage — eine bezahlte Quelle gehoert dazu (#394).
     case OrderSplitErrorCode.SOURCE_NOT_SPLITTABLE:
+    case OrderSplitErrorCode.SOURCE_ALREADY_PAID:
     case OrderSplitErrorCode.NOTHING_REMAINS:
       return new Conflict(error.message, data)
     default:

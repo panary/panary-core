@@ -12,10 +12,25 @@
 // Mutationsprobe (2026-09-25, gemessen): In `explodeOrderConsumption`,
 // `computeStats` und `getOrderGrossCents` je `effectiveLineItems(order)` zurueck
 // auf `order.lineItems` gedreht -> jeweils die zugehoerigen Tests rot.
+//
+// Das Brutto hat neben den Positionen eine zweite Quelle, die der Split NICHT
+// ableitet: `payment.totalAmount`, gelesen VOR dem `taxSnapshot`. Der letzte
+// Block prueft deshalb, dass eine Quelle mit Zahlungsergebnis gar nicht erst
+// gesplittet wird (#394).
 
 import { describe, expect, it } from 'vitest'
 
-import { OrderStatus, planOrderSplit, type Order, type OrderLineItem } from '@panary/orders/domain'
+import {
+  OrderSplitError,
+  OrderSplitErrorCode,
+  OrderStatus,
+  PaymentState,
+  TransactionMethod,
+  computeOrderTax,
+  planOrderSplit,
+  type Order,
+  type OrderLineItem,
+} from '@panary/orders/domain'
 
 import { explodeOrderConsumption, type ConsumptionLine } from './cogs'
 import { makeOrder } from './fixtures/orders.fixtures'
@@ -69,12 +84,31 @@ function makeLine(
   } as OrderLineItem
 }
 
+/** Platzhalter, den `orders.split` dem Ziel und `pre-orders.convert` jeder Bestellung mitgibt. */
+const PAYMENT_PLACEHOLDER: Order['payment'] = {
+  state: PaymentState.PENDING,
+  totalAmount: 0,
+  tipAmount: 0,
+  transactions: [],
+}
+
 /**
  * Ursprung: 5 Broetchen (je 50 g Mehl) + 1 Pizza (200 g Mehl) mit Extra-Kaese
  * (30 g). Gesplittet werden 2 der 5 Broetchen (Teilmenge) und die ganze Pizza
  * samt Modifier — eine Zeile mit Modifier darf nur ganz wandern.
+ *
+ * `payment` ist per Default `null`: So steht eine offene POS-Bestellung vor dem
+ * Kassieren in der Datenbank — gestempelt wird erst in `finalizeOrder()`,
+ * zusammen mit `COMPLETED`. Der Fixture-Default (`paid` mit vollem Betrag) waere
+ * bei `PRODUCED` genau der Zustand, den der Split seit #394 ablehnt. Der
+ * Snapshot kommt aus der Engine, wie `calculateTaxDetails` ihn beim Anlegen
+ * schreibt — nicht der synthetische Fixture-Wert.
+ *
+ * Quelle und Ziel sind nachgebaut wie `orders.split` sie hinterlaesst: Die Quelle
+ * bekommt `splitOff`, die aufgeteilten Rabatte und den neu gerechneten Snapshot,
+ * ihr `payment` bleibt, wie es war. Das Ziel entsteht mit dem Platzhalter.
  */
-function splitScenario() {
+function splitScenario(payment: Order['payment'] = null) {
   idCounter = 0
   const roll = makeLine(PRODUCT_ROLL, 'Broetchen', 1, 5, { ingredientReferences: [ingredientRef(ING_FLOUR, 50)] })
   const cheese = {
@@ -85,7 +119,8 @@ function splitScenario() {
     modifiers: [cheese] as OrderLineItem['modifiers'],
   })
 
-  const original = makeOrder({ status: OrderStatus.PRODUCED, lineItems: [roll, pizza] })
+  const draft: Order = { ...makeOrder({ status: OrderStatus.PRODUCED, lineItems: [roll, pizza] }), payment }
+  const original: Order = { ...draft, taxSnapshot: computeOrderTax(structuredClone(draft)) }
   const plan = planOrderSplit(original, [{ lineItemRowId: roll._id, amount: 2 }, { lineItemRowId: pizza._id }], {
     targetOrderId: newId(),
     splitAt: '2026-09-25T12:00:00.000Z',
@@ -104,6 +139,7 @@ function splitScenario() {
     lineItems: plan.targetLineItems,
     appliedDiscounts: plan.targetAppliedDiscounts,
     taxSnapshot: plan.targetTaxSnapshot,
+    payment: PAYMENT_PLACEHOLDER,
   }
   return { original, source, target }
 }
@@ -164,5 +200,83 @@ describe('Split-Konsistenz — Quelle + Ziel = Ursprung (#391)', () => {
       [ING_FLOUR]: 450,
       [ING_CHEESE]: 30,
     })
+  })
+})
+
+describe('Split-Konsistenz — Brutto mit Zahlungsergebnis an der Quelle (#394)', () => {
+  // `getOrderGrossCents` liest `payment.totalAmount` VOR dem `taxSnapshot`, und
+  // der Split laesst `payment` der Quelle stehen. Eine Quelle mit
+  // Zahlungsergebnis zaehlte nach dem Split mit dem vollen Vor-Split-Betrag, das
+  // Ziel mit seinem Anteil noch einmal.
+  //
+  // Gemessen auf `origin/main` @ 83ef248a, bevor die Sperre existierte — die
+  // Faelle unten liefen dort durch den Split und lieferten:
+  //   bezahlt / Anzahlung / Betrag bei pending:  Quelle 1450 + Ziel 1150 = 2600 ct, Ursprung 1450
+  //   Transaktion ohne Betrag:                   Quelle    0 + Ziel 1150 = 1150 ct, Ursprung    0
+  // Im Kassenbetrieb scheitert der Tagesabschluss daran (`financials.tax_split_mismatch`,
+  // Diff 1150 ct); im Bestellbetrieb und in `computeStats` bleibt es still.
+  //
+  // Die Erwartung ist deshalb fuer jede Form ausdruecklich — kein „entweder
+  // lehnt er ab oder die Summe stimmt": Ein Split, der ALLES ablehnte, bestuende
+  // so einen Test ebenfalls.
+
+  const TX_ID = '00000000-0000-7000-8000-0000000000c1'
+  const cash = (amount: number) => ({
+    _id: TX_ID,
+    method: TransactionMethod.CASH,
+    amount,
+    currency: 'EUR',
+    timestamp: '2026-09-25T11:00:00.000Z',
+  })
+
+  /** Was der Aggregator nach einem Split wie am Edge zaehlt — oder der Code, mit dem der Split ablehnt. */
+  function grossAfterSplit(payment: Order['payment']) {
+    let scenario: ReturnType<typeof splitScenario>
+    try {
+      scenario = splitScenario(payment)
+    } catch (error) {
+      if (error instanceof OrderSplitError) return { rejected: error.code }
+      throw error
+    }
+    const { original, source, target } = scenario
+    const sourceCents = getOrderGrossCents(source)
+    const targetCents = getOrderGrossCents(target)
+    return {
+      grossCents: {
+        original: getOrderGrossCents(original),
+        source: sourceCents,
+        target: targetCents,
+        sum: sourceCents + targetCents,
+      },
+    }
+  }
+
+  it.each<[string, Order['payment']]>([
+    ['ohne payment (offene POS-Bestellung)', null],
+    ['Platzhalter (pre-orders.convert, Split-Ziel)', PAYMENT_PLACEHOLDER],
+  ])('%s: der Split laeuft, Quelle + Ziel = Ursprung', (_label, payment) => {
+    // 3 Broetchen bleiben (3,00 €); 2 Broetchen + Pizza mit Kaese wandern (11,50 €).
+    expect(grossAfterSplit(payment)).toEqual({ grossCents: { original: 1450, source: 300, target: 1150, sum: 1450 } })
+  })
+
+  it.each<[string, Order['payment']]>([
+    [
+      'bezahlt, noch nicht abgeschlossen',
+      { state: PaymentState.PAID, totalAmount: 14.5, tipAmount: 0, transactions: [cash(14.5)] },
+    ],
+    [
+      'Anzahlung (partially_paid)',
+      { state: PaymentState.PARTIALLY_PAID, totalAmount: 14.5, tipAmount: 0, transactions: [cash(5)] },
+    ],
+    [
+      'Betrag gestempelt, Status pending',
+      { state: PaymentState.PENDING, totalAmount: 14.5, tipAmount: 0, transactions: [] },
+    ],
+    [
+      'Transaktion erfasst, Betrag 0',
+      { state: PaymentState.PENDING, totalAmount: 0, tipAmount: 0, transactions: [cash(5)] },
+    ],
+  ])('%s: der Split lehnt ab, bevor der Aggregator doppelt zaehlen kann', (_label, payment) => {
+    expect(grossAfterSplit(payment)).toEqual({ rejected: OrderSplitErrorCode.SOURCE_ALREADY_PAID })
   })
 })

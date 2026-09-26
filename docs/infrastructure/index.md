@@ -2,6 +2,7 @@
 
 CI, Docker, Deployment und Infra-Betrieb (`type: Guide` oder `Architecture`).
 
+* [CI-Log — der Exit von Nx schnitt die letzte Task-Gruppe ab](ci-log-nx-exit-an-der-pipe.md) - Warum die Gruppe von api-edge:test im CI-Log in ganzen 64-KiB-Stücken abbrach — `process.exit()` an einer Pipe, keine Nx-Grenze —, wie oft das über 100 Läufe passierte, warum main-Pushes ohne Remote-Cache-Retry verschont blieben und wie der CI-Schritt es über eine Datei löst.
 * [Docker-Build-Fix — Native Module für Cross-Platform-Deployment](docker-native-module-fix.md) - Docker-Build von api-edge nutzt durchgängig glibc-basierte bookworm-slim-Stages, damit native Module wie sqlite3 plattformübergreifend lauffähig sind.
 * [Edge-Auto-Update — Watchtower spricht eine zu alte Docker-API](edge-auto-update-watchtower.md) - Watchtower crasht auf Docker-Engines ab Version 25 beim Start und aktualisiert den Edge nie wieder; DOCKER_API_VERSION=1.41 behebt es, ein Image-Pull nicht.
 * [Edge-Installation — GHCR-Pull-Fehler „denied: denied"](edge-installation-ghcr-pull.md) - Der Installer bricht mit „denied: denied" ab, obwohl das Edge-Image öffentlich ist — Ursache sind abgelaufene lokale ghcr.io-Credentials, erkannt durch die Registry-Vorabprüfung in install.sh.

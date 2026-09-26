@@ -50,6 +50,17 @@ defekten `vitest.workspace.ts` am Alphabet-Ende → Exit 1, Datei benannt), und
 dann, wenn man einen Massenbefund **misst** — und damit in dem Moment, in dem die Zahl über
 alles Weitere entscheidet.
 
+_Korrektur (2026-09-26, [#409](https://github.com/panary/panary-core/issues/409)):_ Die 64 KiB
+sind keine Grenze von `nx format:check`, sondern eine Pipe-Füllung. `format.js` schreibt die
+Dateiliste per `console.log` und ruft direkt danach `process.exit(1)` auf (nx 22.7.12,
+`command-line/format/format.js`). An einer Pipe schreibt Node asynchron, der Exit verwirft, was
+der Kernel noch nicht angenommen hat. Derselbe Mechanismus kappte im CI-Log die Gruppe von
+api-edge:test in 71 von 84 Läufen ([Herleitung und Messung](../infrastructure/ci-log-nx-exit-an-der-pipe.md)).
+Die Messregel unten bleibt richtig. Aus dem Mechanismus folgt eine einfachere Gegenprüfung — die
+Ausgabe in eine Datei umleiten statt in eine Pipe —, für `format:check` selbst ist sie aber nicht
+nachgemessen. In der CI schreibt das Format-Gate weiterhin direkt in die Runner-Pipe; eine Liste
+über 64 KiB käme dort gekappt an, der Exit-Code nicht.
+
 **Zweitens scannt Prettier die verschachtelten Agent-Worktrees mit.**
 `.claude/worktrees/` enthält lokale Checkouts dieses Repos selbst; sie stehen nur in
 `.git/info/exclude`, sind also nicht eingecheckt. In panary-cloud sind das 2319 Dateien —

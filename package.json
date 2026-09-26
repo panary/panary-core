@@ -54,7 +54,7 @@
   "devDependencies": {
     "@angular-devkit/core": "21.2.24",
     "@angular-devkit/schematics": "21.2.24",
-    "@angular/animations": "21.2.22",
+    "@angular/animations": "21.2.23",
     "@angular/build": "21.2.24",
     "@angular/cdk": "21.2.14",
     "@angular/cli": "21.2.24",

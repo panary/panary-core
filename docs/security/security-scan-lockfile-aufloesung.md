@@ -88,6 +88,13 @@ Gemessen: ohne `--config` kehren zwei bewusst akzeptierte image-size-Advisories 
 Fix gibt und deren Einordnung im Kopf von `osv-scanner.toml` steht. Der Aufruf gibt
 `--config <repoRoot>/osv-scanner.toml` deshalb **explizit** mit.
 
+> **Nachtrag 2026-09-26:** Die beiden image-size-Einträge sind entfernt — die
+> Advisories erfassen `image-size@0.5.5` seit dem 2026-09-24 nicht mehr
+> ([OSV-Befund 2026-09-26](osv-befund-2026-09-26.md)). Die Messung oben und die Zeile
+> „ohne `--config`" in der Tabelle sind damit nicht mehr reproduzierbar, und
+> `osv-scanner.toml` trägt derzeit keinen Eintrag. Das Flag bleibt trotzdem Pflicht:
+> Es entscheidet, ob der **nächste** akzeptierte Befund auch für die Temp-Kopie gilt.
+
 Das ist die eigentliche Kante dieser Änderung: Die Korrektur verschiebt das Manifest,
 und ein verschobenes Manifest nimmt seine Konfiguration nicht mit. Wer den Temp-Umweg
 später anfasst, muss das Flag mitdenken.

@@ -238,9 +238,9 @@ const runOsvScanner = () => {
   // repo-root lockfile: the tool resolves that config only in the directory of
   // the scanned manifest. Two ways to leave that directory, one per repo, and
   // both were measured on 2026-09-20 with osv-scanner 2.3.8 — each time the two
-  // deliberately ignored image-size advisories (GHSA-5p2g-fcmc-qvqq,
-  // GHSA-w3rx-r6r6-pgpr, CVSS 8.7 each, ignored in BOTH repos' osv-scanner.toml)
-  // came back without the flag and stayed filtered with it:
+  // image-size advisories then ignored in BOTH repos' osv-scanner.toml
+  // (GHSA-5p2g-fcmc-qvqq, GHSA-w3rx-r6r6-pgpr, CVSS 8.7 each) came back without
+  // the flag and stayed filtered with it:
   //
   //   - a temp copy from HEAD has no config next to it — the normal path in
   //     panary-core's main checkout, where the worktree file is a symlink;
@@ -250,7 +250,9 @@ const runOsvScanner = () => {
   //     unnoticed.
   //
   // The root config covers every scanned lockfile — but only when passed
-  // explicitly.
+  // explicitly. Since 2026-09-26 neither repo's file carries an entry (the
+  // advisories stopped covering image-size@0.5.5 on 2026-09-24); the flag
+  // stays for the next accepted finding.
   const osvArgs = ['scan', 'source', '--format', 'json']
   for (const l of locks) osvArgs.push('--lockfile', l.path)
   const osvConfig = resolve(repoRoot, 'osv-scanner.toml')

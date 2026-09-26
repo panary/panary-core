@@ -263,7 +263,8 @@ Code `order-split/source-already-paid`, HTTP 409, **nach** der Statusprüfung. �
 ist die Umkehrung des nie befüllten Platzhalters. Die Erkennung (`isUnstampedPaymentPlaceholder`,
 neu daneben `hasStampedPayment`) liegt dafür jetzt in `@panary/orders/domain` und wird von
 Sperre **und** Aggregator geteilt: Zwei Fassungen ließen einen Zustand splittbar, den der
-Aggregator als autoritativ liest — derselbe stille Fehler in neuer Form.
+Aggregator als autoritativ liest — derselbe stille Fehler in neuer Form. Zahlenbeispiel und
+Grenzfälle: [Bon-Split → Bezahlt ist nicht teilbar](../domains/bon-split.md#bezahlt-ist-nicht-teilbar).
 
 **Verworfen: `getOrderGrossCents` bevorzugt bei gesetztem `splitOff` den Snapshot.** Der
 Vorteil wäre gewesen, dass es Bestandsdaten heilt. Es gibt keine:

@@ -123,7 +123,8 @@ Deshalb lehnt `assertOrderIsSplittable` eine Bestellung ab, sobald
 Funktion, die der Aggregator liest: `isUnstampedPaymentPlaceholder` liegt dafür
 in `@panary/orders/domain` (`payment-stamp.ts`), nicht mehr im Aggregator. Zwei
 Fassungen ließen einen Zustand splittbar, den der Aggregator als autoritativ
-liest.
+liest. Entscheidung und verworfene Alternative: Nachtrag vom 2026-09-26 in
+[ADR 0049](../adr/0049-split-als-gegenbuchung.md).
 
 Durch geht nur, was kein Zahlungsergebnis ist: kein `payment`, `null`, oder der
 Platzhalter `{ state: 'pending', totalAmount: 0, transactions: [] }`, den

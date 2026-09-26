@@ -1,11 +1,10 @@
 ---
 type: Report
 title: OSV-Befund 2026-08-07 — nanoid gefixt, image-size als akzeptiertes Risiko
-description: Zwei Advisory-Änderungen legten den nächtlichen OSV-Scan lahm; nanoid ist über einen exakt gepinnten Override geschlossen, für image-size existiert kein Fix und der Befund ist befristet als akzeptiertes Risiko dokumentiert.
+description: Zwei Advisory-Änderungen legten den nächtlichen OSV-Scan lahm; nanoid ist über einen exakt gepinnten Override geschlossen, für image-size existiert kein Fix und der Befund ist befristet als akzeptiertes Risiko dokumentiert — Nachtrag 2026-09-26: Die Advisories erfassen image-size 0.5.5 nicht mehr, der Ignore ist entfernt.
 tags: [security, supply-chain, dependencies, ci]
 status: stable
 generated: { by: claude-code/opus-5, at: 2026-08-11T11:20:00.000Z }
-stale_after: 2026-11-07
 ---
 
 # OSV-Befund 2026-08-07 — nanoid gefixt, image-size als akzeptiertes Risiko
@@ -83,6 +82,14 @@ Ausnutzbarkeit ist nicht belegt und wird hier bewusst nicht getroffen.
 
 ## image-size — kein Fix, befristet akzeptiert
 
+> **Nachtrag 2026-09-26 — erledigt:** Beide Advisories wurden am 2026-09-24
+> eingegrenzt (ICNS ab 0.6.3, JXL/HEIF ab 1.2.0, Fix 2.0.3) und erfassen
+> `image-size@0.5.5` nicht mehr; 0.5.5 enthält keinen der drei Parser. Der Ignore
+> ist entfernt, ein Override-Floor entfällt (er hätte `less` auf eine
+> API-inkompatible Major-Version gezwungen). Einordnung und Messungen:
+> [OSV-Befund 2026-09-26](osv-befund-2026-09-26.md). Dieser Abschnitt beschreibt
+> den Stand bis dahin.
+
 Beide Advisories melden `first_patched_version: null` bei
 `vulnerable_version_range: <= 2.0.2`. Die neueste veröffentlichte Version **ist**
 2.0.2 (npm-`latest`, 2025-04-02) — es gibt keine unbetroffene Version. Ein
@@ -120,9 +127,11 @@ statt den Eintrag stillschweigend altern zu lassen.
   **Erledigt am 2026-08-11** — zusammen mit den drei übrigen abgelaufenen
   Befristungen (`fast-uri`, `js-yaml`, `hono`). `minimumReleaseAgeExclude` trägt
   damit wieder nur den dauerhaften `'@panary/*'`-Eintrag.
-- **Bis 2026-11-07:** image-size neu bewerten. Früher handeln, sobald ein Fix
+- ~~**Bis 2026-11-07:** image-size neu bewerten. Früher handeln, sobald ein Fix
   erscheint oder `.less`-Dateien in den Workspace einziehen — dann wird der
-  Parser real erreichbar und die Einordnung oben fällt.
+  Parser real erreichbar und die Einordnung oben fällt.~~
+  **Erledigt am 2026-09-26** — die Advisories wurden eingegrenzt, der Ignore ist
+  ohne Ersatz entfernt ([OSV-Befund 2026-09-26](osv-befund-2026-09-26.md)).
 
 ## Verifikation
 
@@ -139,6 +148,11 @@ image-size-IDs als `filtered out` — **kein** `has unused ignores`. Ein toter
 Ignore ist nicht bloß Kosmetik: Er unterdrückt das Advisory auch dann, wenn
 dasselbe Paket später über einen anderen Pfad zurückkommt. osv-scanner quittiert
 unbenutzte Ignores mit Exit-Code 0, das Gate bliebe also fälschlich grün.
+
+> **Stand bis 2026-09-26.** Nach der Eingrenzung vom 2026-09-24 meldete genau
+> dieser Lauf `has unused ignores` für beide IDs — bei Exit 0. Das war der Anlass,
+> die Einträge zu entfernen; seither erscheint image-size in der Ausgabe gar nicht
+> mehr.
 
 Verwandt: [Cargo-Advisories triagieren](../guides/cargo-advisory-triage.md),
 [ADR 0012 — pnpm-Supply-Chain-Härtung](../adr/0012-pnpm-supply-chain-haertung.md).

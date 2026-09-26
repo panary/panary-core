@@ -238,3 +238,47 @@ kompletter Neubuchung). Die Menge dafür liefert `splitOffLineItems(order, entry
 `effectiveLineItems` in derselben Datei — das Gegenstück „was ist gewandert", damit die
 Cloud keine zweite Ableitung aus `splitOff` baut. Je Zeile gilt
 `effektiv + abgegeben = lineItems`, als Spec über zwei echte Splits hintereinander.
+
+## Nachtrag (2026-09-26, [#394](https://github.com/panary/panary-core/issues/394)): bezahlt ist nicht teilbar
+
+Entscheidung 1 lässt `lineItems` stehen und leitet ab, was der Vorgang noch trägt. `payment`
+bleibt beim Split ebenfalls stehen — dafür gibt es aber **keine** Ableitung, und
+`getOrderGrossCents` liest `payment.totalAmount` **vor** dem Snapshot. Eine Quelle mit
+Zahlungsergebnis zählte nach dem Split mit dem vollen Vor-Split-Betrag, das Ziel mit seinem
+Anteil noch einmal. Gemessen auf `origin/main` @ `83ef248a` mit echtem `planOrderSplit`
+(Ursprung 14,50 €, davon wandern 11,50 €): Quelle 1450 + Ziel 1150 = **2600 ct** statt 1450 —
+gleich für `paid`, `partially_paid` und einen gestempelten Betrag bei `pending`. Im
+Kassenbetrieb scheitert der Tagesabschluss daran mit `financials.tax_split_mismatch` (Diff
+1150 ct). Im Bestellbetrieb prüft `validateFinancials` keine Steuer- und Zahlungsinvarianten —
+dort und in den Kennzahlen aus `computeStats` bleibt es still.
+
+Geschützt war das bisher nur durch eine Kopplung: `finalizeOrder()` stempelt den Betrag im
+selben Patch wie `COMPLETED`, und `COMPLETED` ist nicht splittbar. `payment` selbst prüfte
+keine Stelle. Per Patch ist es nicht gesperrt (`orderPatchSchema` ist `Type.Partial`, der
+Resolver strippt es nicht; `orders:UPDATE` tragen u. a. `DEVICE_POS` und `DEVICE_TABLET`),
+und `PARTIALLY_PAID` wartet auf seinen ersten Schreiber.
+
+**Entscheidung:** `assertOrderIsSplittable` lehnt eine Bestellung mit Zahlungsergebnis ab —
+Code `order-split/source-already-paid`, HTTP 409, **nach** der Statusprüfung. „Zahlungsergebnis"
+ist die Umkehrung des nie befüllten Platzhalters. Die Erkennung (`isUnstampedPaymentPlaceholder`,
+neu daneben `hasStampedPayment`) liegt dafür jetzt in `@panary/orders/domain` und wird von
+Sperre **und** Aggregator geteilt: Zwei Fassungen ließen einen Zustand splittbar, den der
+Aggregator als autoritativ liest — derselbe stille Fehler in neuer Form.
+
+**Verworfen: `getOrderGrossCents` bevorzugt bei gesetztem `splitOff` den Snapshot.** Der
+Vorteil wäre gewesen, dass es Bestandsdaten heilt. Es gibt keine:
+`git tag --contains 9c74d5c3` (Squash-Merge von PR #389) ist leer, der letzte Edge-Build ist
+`v26.9.10` vom 2026-09-23, der einzige Staging-Dispatch lief am 2026-09-12 — kein Edge-Image
+enthält den Split. Und die Variante korrigierte nur **einen** Leser. Der Beleg nimmt `payment.totalAmount`
+ebenfalls vor dem Snapshot (`receipt-builder.ts`), dazu der TSE-Abschluss
+(`resolveOrderTseAmountCents`, wenn der Abschluss-Patch kein eigenes `payment` mitbringt) und
+die Audit-Metadaten. Sie sähen den veralteten Betrag weiter; der Beleg der Quelle trüge eine
+Summe über Positionen, die er nicht mehr listet. Die Sperre verhindert den Zustand für alle
+Leser. Ein künftiger Anzahlungs-Flow scheitert an ihr laut statt still; er muss ohnehin
+festlegen, auf welchen Teilbeleg die Anzahlung fällt.
+
+⚠️ **Offen bleibt der umgekehrte Weg:** erst Split, danach ein `payment`, dessen Betrag ein
+Client vor dem Split berechnet hat (POS-Liste vor dem `patched`-Event, Offline-Outbox). Der
+Server rechnet `payment.totalAmount` nicht gegen den Snapshot nach. Das gehört zur
+POS-Oberfläche ([#350](https://github.com/panary/panary-core/issues/350)), nicht zu dieser
+Sperre.

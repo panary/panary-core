@@ -16,9 +16,10 @@ import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin'
  *
  * Deshalb ein eigener Resolver VOR `nxViteTsPaths()`: Innerhalb von `enforce: 'pre'`
  * gilt die Reihenfolge des Arrays. `resolve.alias` in dieser Datei wirkt ebenso — Vites
- * Alias-Plugin laeuft vor allen `enforce: 'pre'`-Plugins. (Die fruehere Aussage hier,
- * der Alias reiche nicht, hielt einer Nachmessung mit identischer Toolchain nicht
- * stand: panary/panary-core#398.)
+ * Alias-Plugin laeuft vor allen `enforce: 'pre'`-Plugins —, trifft aber auch Unterpfade
+ * (`@panary/x` faengt `@panary/x/y`); der Resolver vergleicht exakt. (Die fruehere
+ * Aussage hier, der Alias reiche nicht, hielt einer Nachmessung mit identischer
+ * Toolchain nicht stand: panary/panary-core#398.)
  *
  * 🚨 **Und er gehoert in DIESE Datei, nicht in `vite.config.ts`.** Vitest sucht seine
  * Config in der Reihenfolge `vitest.config` vor `vite.config`; solange hier eine

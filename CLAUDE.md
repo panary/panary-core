@@ -62,6 +62,16 @@ Dasselbe Pattern gilt für `libs/shared/[name]` ohne Eltern: `name: "shared-[nam
   }
   ```
 - `dependsOn: ["^build"]` im rollup-Build-Target sichert die Build-Reihenfolge.
+- **Sobald die Lib Specs hat oder bekommt:** `vitest.config.mts` biegt jeden überschriebenen Import für die Vitest-**Laufzeit** auf die TS-Quelle um — per eigenem Resolver **vor** `nxViteTsPaths()` im `plugins`-Array. Vorlage samt Begründung: `libs/domains/apikeys/domain/vitest.config.mts`. Grund: `nxViteTsPaths()` liest den `paths`-Override aus `tsconfig.lib.json`; liegt das dist der Ziel-Lib, lädt Vitest die `.d.ts` statt Code (ohne dist fällt das Plugin auf `tsconfig.base.json` und damit auf die Quelle zurück — lokal fehlt das dist oft). Eine ng-packagr-Typdatei ist dann leer; ein rollup-dist re-exportiert `./src/index`, und das landet — gegen das Root des Testlaufs aufgelöst — in der **importierenden** Lib. Der gesuchte Export ist `undefined`: Wird er beim Laden benutzt, stirbt das Modul (#225 „Class extends value undefined", #334 „Cannot read properties of undefined"); wird er nur weitergereicht, bleibt es **still** (#393: `Type.Array(undefined)` nahm jeden Code an, nur die Ablehnungs-Tests wurden rot).
+  - ⚠️ **`vitest.config.mts`, nicht `vite.config.ts`.** Vitest sucht `vitest.config.*` zuerst; liegen beide in der Lib (Normalfall), wirkt ein Fix in `vite.config.ts` nicht — und nichts meldet es.
+  - **Vollständig** heißt: jeder Override-Schlüssel, den die Specs **transitiv** laden. Der Override gilt für alle Module im Testlauf, auch für Quellen fremder Libs, die über einen umgebogenen Import hereinkommen (#225: drei Einträge deckten nur die util-Specs).
+  - `resolve.alias` in derselben Datei wirkt ebenso — Vites Alias-Plugin läuft vor allen `enforce: 'pre'`-Plugins. `products/data-access` leitet ihn generisch aus `tsconfig.base.json` ab und braucht damit keine gepflegte Liste. Die gegenteilige Aussage aus #334 hielt einer Nachmessung mit identischer Toolchain nicht stand (#398).
+  - **Prüfen mit dist, in zwei Läufen und mit Ablehnungs-Tests** — eine Spec nur mit Positivfällen bleibt auch mit kaputtem Import grün:
+    ```bash
+    nx run-many -t typecheck --projects=<lib> --skip-nx-cache   # baut die dists (build → ^build)
+    nx run-many -t test --projects=<lib> --skip-nx-cache
+    ```
+    🚨 **Nicht als ein Lauf `-t typecheck,test`:** `test` hat kein `dependsOn`, nx startet es parallel zu den Builds. Im frischen Worktree lief so `products-domain:test` vor `allergens-domain:build` — ohne Resolver 26/26 grün, nach dem Build 3/26 rot (#398). Die CI (`nx affected -t lint,test,typecheck,build`) ordnet genauso wenig: Ob dort ein dist liegt, wenn der Test startet, entscheidet die Reihenfolge, keine Abhängigkeit.
 
 ---
 

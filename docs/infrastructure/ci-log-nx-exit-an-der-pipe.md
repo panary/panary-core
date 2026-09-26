@@ -118,6 +118,11 @@ Identisch unter Ubuntu 24.04 (GNU coreutils 9.4, die Basis des Runner-Images) un
 beiden Varianten in 10 von 10 Retry-Läufen. Im alten Schritt endete die Gruppe beim Fehlschlag
 mitten in einer Zeile, direkt gefolgt vom Nx-Fehlerbanner — dasselbe Bild wie im CI-Log.
 
+Auf dem Runner belegt im PR-Lauf [36234912620](https://github.com/panary/panary-core/actions/runs/36234912620)
+(`ubuntu-24.04`, ohne Retry — vorher 41 von 41 solcher PR-Läufe gekappt): api-edge:test war der letzte
+Task, die Gruppe umfasst 278 116 B, gut vier Pipe-Füllungen, und endet mit `Test Files 103 passed`,
+`Duration`, `##[endgroup]` und „Successfully ran targets …".
+
 Gegenprobe mit einem `tail`, das `--pid` nicht kennt: Dessen Fehlermeldung steht im Log, der
 Exit-Code bleibt der von Nx (0 bzw. 1), der Retry greift weiter. Dann fehlt die Ausgabe, der
 Gate-Befund nicht.

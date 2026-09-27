@@ -230,8 +230,22 @@ jobs:
           # Cache wiederholt (Fallback auf lokalen Cache), statt die CI hart
           # fehlschlagen zu lassen — Runbook-Absicht "Cache ist optionaler
           # Beschleuniger" (panary-cloud/docs/infrastructure/nx-remote-cache.md).
-          # Echte Lint/Test/Build-Fehler (kein Cache-Bezug) brechen weiterhin
-          # sofort ab.
+          # Echte Lint/Test/Build-Fehler brechen sofort ab, auch wenn der Lauf
+          # Treffer aus dem Remote-Cache hatte.
+          #
+          # Erkannt wird nur die Fehlerzeile von Nx selbst, nie das Wort
+          # "remote cache": Die Kennung `[remote cache]` eines normalen Treffers
+          # enthält es auch, und bis #411 lief deshalb jeder rote Lauf mit
+          # einem Treffer ein zweites Mal ohne Cache. Gemessen mit nx 22.7.12
+          # gegen einen Wegwerf-Server (#411):
+          #   GET/PUT 5xx  → "Misconfigured remote cache endpoint: Unexpected response status: …"
+          #   GET/PUT 401  → "Unauthorized: <Antworttext des Servers>"
+          #   unerreichbar → "Failed to send request: error sending request for url (…)"
+          # Beim GET steht die Zeile hinter dem farbigen "NX"-Banner, beim PUT
+          # am Zeilenanfang. "Unauthorized" und "Failed to send request" sind
+          # deshalb an eine der beiden Stellen gebunden; sonst träfe sie auch
+          # die Ausgabe eines Tests.
+          remote_cache_fehler='Misconfigured remote cache endpoint: |(^|NX.*)(Unauthorized|Failed to send request): '
           run_affected() {
             if [ "${{ github.event_name }}" = 'workflow_dispatch' ]; then
               pnpm nx run-many -t lint   # Cache-Test: alle Projekte → Remote-Cache
@@ -256,7 +270,7 @@ jobs:
           if run_logged run_affected; then
             exit 0
           fi
-          if [ -n "${NX_SELF_HOSTED_REMOTE_CACHE_SERVER:-}" ] && grep -qiE 'remote cache' "$log"; then
+          if [ -n "${NX_SELF_HOSTED_REMOTE_CACHE_SERVER:-}" ] && grep -qE "$remote_cache_fehler" "$log"; then
             echo "::warning title=Nx Remote-Cache::Remote-Cache nicht nutzbar — Retry ohne Remote-Cache (Fallback auf lokalen Cache)."
             NX_SELF_HOSTED_REMOTE_CACHE_SERVER='' NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN='' run_logged run_affected
             exit $?

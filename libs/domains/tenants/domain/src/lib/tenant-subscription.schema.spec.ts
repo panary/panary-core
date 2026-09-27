@@ -44,7 +44,9 @@ describe('tenantPatchSchema — subscription.cancelAtPeriodEnd / pendingPlanCode
   })
 
   it('nimmt einen vorgemerkten Downgrade an (pendingPlanCode)', async () => {
-    await expect(validate({ subscription: { ...BASE, planCode: 'pro', pendingPlanCode: 'starter' } })).resolves.toBeTruthy()
+    await expect(
+      validate({ subscription: { ...BASE, planCode: 'pro', pendingPlanCode: 'starter' } }),
+    ).resolves.toBeTruthy()
   })
 
   it('nimmt eine subscription ohne beide Felder weiterhin an (Entfernen durch Weglassen)', async () => {

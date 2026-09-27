@@ -78,6 +78,21 @@ export const subscriptionSchema = Type.Object(
     currentPeriodStart: Type.Optional(Type.String({ format: 'date-time' })),
     currentPeriodEnd: Type.Optional(Type.String({ format: 'date-time' })),
     cancelAt: Type.Optional(Type.String({ format: 'date-time' })),
+    // Kündigungs-ABSICHT des Mandanten (Self-Service-Kündigung zum Periodenende).
+    // Schreibt panary-cloud `tenant-subscription-actions` (cancelSelfService); der
+    // Status bleibt bis `currentPeriodEnd` unverändert. Bewusst getrennt von
+    // `cancelAt`: das ist das vom PSP-Webhook bzw. der Plattform BESTÄTIGTE Ende.
+    // Stand panary/panary-cloud#618 liest und entfernt es noch kein Pfad; wer es
+    // zurücknimmt, entfernt es durch Weglassen (kein `false`-/`null`-Zwischenzustand
+    // nötig, `subscription` wird als Ganzes ersetzt).
+    cancelAtPeriodEnd: Type.Optional(Type.Boolean()),
+    // Vorgemerkter Ziel-Plan eines Downgrades zum Periodenende (FK auf
+    // `subscription-plans._id`, Länge wie `planCode`). Schreibt panary-cloud
+    // `tenant-subscription-actions` (Plan-Wechsel PERIOD_END); der Plan-Renewal-
+    // Scheduler setzt am Periodenende `planCode` darauf und ENTFERNT das Feld durch
+    // Weglassen — kein `null`: `subscription` wird als Ganzes ersetzt, eine zweite
+    // Löschsemantik (wie bei `pastDueSince`) gibt es nicht.
+    pendingPlanCode: Type.Optional(Type.String({ minLength: 1, maxLength: 80 })),
     // Provider-neutrale Subscription-Referenz (Mollie/Stripe). `billing.billingProvider`
     // bestimmt den Anbieter.
     externalSubscriptionId: Type.Optional(Type.String({ maxLength: 255 })),

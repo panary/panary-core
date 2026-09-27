@@ -14,6 +14,11 @@ jobs:
     # nach Beobachtung realer amd64-Zeiten ggf. senken.
     timeout-minutes: 45
 
+    # Fuer den Release-Job (Stueckliste als Asset am v*-Release).
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      is_release: ${{ steps.version.outputs.is_release }}
+
     permissions:
       contents: read
       packages: write
@@ -201,3 +206,127 @@ jobs:
           subject-name: ghcr.io/${{ github.repository_owner }}/panary-edge
           subject-digest: ${{ steps.docker_build.outputs.digest }}
           push-to-registry: true
+
+      # --- Stueckliste (SBOM) des fertigen Images — ADR 0051 ---
+      # Signatur und Provenance oben belegen die HERKUNFT, die Stueckliste den
+      # INHALT: Welche Pakete stecken in v26.x.y? Erzeugt wird sie aus dem Image
+      # per Digest, NICHT aus dem Lockfile — nur so sind die Debian-Pakete des
+      # Base-Images drin und node_modules so, wie es wirklich im Image liegt.
+      # Kein continue-on-error auf diesen Schritten: Fehlt die Stueckliste,
+      # wird der Lauf rot (core#420).
+      # syft-version explizit = Default der gepinnten Action. Ein Bump der Action
+      # zieht syft so nicht still mit, und die Version steht im Diff.
+      - name: Stueckliste erzeugen (syft, CycloneDX)
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        with:
+          image: ghcr.io/${{ github.repository_owner }}/panary-edge@${{ steps.docker_build.outputs.digest }}
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ secrets.GITHUB_TOKEN }}
+          format: cyclonedx-json
+          output-file: panary-edge-${{ steps.version.outputs.tag }}.cdx.json
+          syft-version: v1.51.1
+          # Ablage steuern wir selbst: Artefakt unten, Release-Asset im
+          # Release-Job (mit --latest=false). Die Action wuerde sonst an ein
+          # vorhandenes Release anhaengen.
+          upload-artifact: false
+          upload-release-assets: false
+
+      # Plausibilitaet statt blindem Vertrauen: Eine leere oder nur halbe
+      # Stueckliste (z.B. nur OS-Pakete, weil syft node_modules nicht fand) waere
+      # sonst ein gruener Lauf mit wertlosem Inhalt. Die 16-MB-Grenze ist die
+      # von actions/attest — hier mit Klartext statt kryptischem Abbruch.
+      - name: Stueckliste pruefen
+        env:
+          SBOM: panary-edge-${{ steps.version.outputs.tag }}.cdx.json
+        run: |
+          set -euo pipefail
+          size=$(stat -c %s "$SBOM")
+          total=$(jq '.components | length' "$SBOM")
+          npm=$(jq '[.components[] | select((.purl // "") | startswith("pkg:npm/"))] | length' "$SBOM")
+          deb=$(jq '[.components[] | select((.purl // "") | startswith("pkg:deb/"))] | length' "$SBOM")
+          sqlite=$(jq -r '[.components[] | select(.name == "better-sqlite3") | .version] | unique | join(", ")' "$SBOM")
+          {
+            echo "### Stueckliste ${SBOM}"
+            echo "| Groesse | Komponenten | npm | deb | better-sqlite3 |"
+            echo "|---|---|---|---|---|"
+            echo "| ${size} B | ${total} | ${npm} | ${deb} | ${sqlite:-–} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          fail=0
+          if [ "$size" -ge 16000000 ]; then echo "::error::Stueckliste ${size} B >= 16 MB — actions/attest lehnt sie ab"; fail=1; fi
+          if [ "$npm" -eq 0 ]; then echo "::error::Stueckliste ohne npm-Komponenten — node_modules im Image nicht erfasst"; fail=1; fi
+          if [ "$deb" -eq 0 ]; then echo "::error::Stueckliste ohne deb-Komponenten — Base-Image nicht erfasst"; fail=1; fi
+          if [ -z "$sqlite" ]; then echo "::error::better-sqlite3 fehlt in der Stueckliste"; fail=1; fi
+          exit "$fail"
+
+      # actions/attest statt cosign attest: dieselbe Mechanik wie die Provenance
+      # oben (Sigstore public-good, GitHub-Attestation-API + Registry), also
+      # pruefbar mit `gh attestation verify … --predicate-type
+      # https://cyclonedx.org/bom`. actions/attest-sbom ist seit v4 nur noch ein
+      # als deprecated markierter Wrapper hierauf. Storage-Record aus: braeuchte
+      # zusaetzlich `artifact-metadata: write` und traegt fuer die Stueckliste
+      # nichts bei.
+      - name: Stueckliste an den Image-Digest attestieren
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ghcr.io/${{ github.repository_owner }}/panary-edge
+          subject-digest: ${{ steps.docker_build.outputs.digest }}
+          sbom-path: panary-edge-${{ steps.version.outputs.tag }}.cdx.json
+          push-to-registry: true
+          create-storage-record: false
+
+      # Auch bei workflow_dispatch (staging-<sha>) — dort ist das die einzige Ablage
+      # neben der Attestation; der Release-Job laeuft nur fuer v*-Tags.
+      - name: Stueckliste als Workflow-Artefakt ablegen
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: edge-sbom
+          path: panary-edge-${{ steps.version.outputs.tag }}.cdx.json
+          if-no-files-found: error
+
+  # Eigener Job, damit NUR er `contents: write` bekommt — der Build-Job fuehrt
+  # Fremd-Actions aus und soll das Repo nicht beschreiben koennen.
+  release-sbom:
+    needs: build-docker
+    if: needs.build-docker.outputs.is_release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Stueckliste holen
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: edge-sbom
+
+      # 🚨 Das Edge-Release darf NIE "Latest" werden. Der POS-Updater fragt
+      # releases/latest/download/latest.json (apps/pos-client/src-tauri/
+      # tauri.conf.json), und latest.json haengt nur an pos-v*-Releases. Ein
+      # Edge-Release als Latest = 404 auf jedem POS, still im UpdateService-catch
+      # verschluckt (release-pos.yml). Die Markierung entscheidet, nicht das
+      # Datum — deshalb --latest=false bei JEDEM Lauf, auch beim Wiederholen.
+      - name: Release zum Tag anlegen und Stueckliste anhaengen (--latest=false)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: v${{ needs.build-docker.outputs.tag }}
+          SBOM: panary-edge-${{ needs.build-docker.outputs.tag }}.cdx.json
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$SBOM" --clobber --repo "$GITHUB_REPOSITORY"
+            gh release edit "$TAG" --latest=false --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$SBOM" --repo "$GITHUB_REPOSITORY" \
+              --verify-tag --latest=false \
+              --title "Panary Edge ${TAG}" \
+              --notes "Edge-Image \`ghcr.io/${GITHUB_REPOSITORY_OWNER}/panary-edge:${TAG#v}\`. Angehaengt: CycloneDX-Stueckliste des Images (ADR 0051). Kein POS-Release — das POS-Paket kommt ueber die pos-v*-Tags."
+          fi
+          # Gegenprobe: Ist das Edge-Release trotzdem Latest, faellt der
+          # POS-Updater aus. Dann lieber rot als still.
+          latest=$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name 2>/dev/null || echo "")
+          if [ "$latest" = "$TAG" ]; then
+            echo "::error::${TAG} ist als Latest markiert — der POS-Updater (releases/latest/download/latest.json) liefe in einen 404. Latest von Hand auf das juengste pos-v*-Release setzen."
+            exit 1
+          fi
+          echo "Latest bleibt: ${latest:-<keins>}"

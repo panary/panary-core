@@ -76,8 +76,11 @@ describe('tenantAuditTrailDataSchema — action CANCEL_WITHDRAWN_SELF_SERVICE', 
     }
   }
 
+  // Das String-Literal, nicht die Konstante: Fehlt der Enum-Eintrag, wäre die Konstante
+  // `undefined`, und der Test prüfte ein fehlendes Feld (`required`) statt des Enums.
   it('nimmt die Rücknahme der Kündigung an', async () => {
-    expect(await rejectionKeywords(TenantAuditAction.CANCEL_WITHDRAWN_SELF_SERVICE)).toEqual([])
+    expect(TenantAuditAction.CANCEL_WITHDRAWN_SELF_SERVICE).toBe('CANCEL_WITHDRAWN_SELF_SERVICE')
+    expect(await rejectionKeywords('CANCEL_WITHDRAWN_SELF_SERVICE')).toEqual([])
   })
 
   it('lehnt eine unbekannte Aktion am enum-Keyword ab (Gegenprobe)', async () => {

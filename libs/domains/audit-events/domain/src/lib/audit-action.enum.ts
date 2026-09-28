@@ -47,6 +47,12 @@ export const AuditAction = {
   // Edge schreibt es beim Empfang — beide mit derselben correlationId, sodass
   // der Admin im Audit-Trail die Reise nachvollziehen kann.
   SYNC_TRIGGER: 'SYNC_TRIGGER',
+
+  // Datenabfluss
+  // EXPORT: Ein Nutzer hat Daten exportiert (Katalog, Belege, DSFinV-K, DSGVO).
+  // Kategorie ACCESS — Datenabfluss, keine Mutation. Geschrieben von der Cloud
+  // (panary/panary-cloud#695); die Edge exportiert heute nichts selbst.
+  EXPORT: 'EXPORT',
 } as const
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction]

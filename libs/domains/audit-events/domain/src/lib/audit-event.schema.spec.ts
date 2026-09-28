@@ -2,7 +2,13 @@ import { Format } from '@sinclair/typebox/format'
 import { Value } from '@sinclair/typebox/value'
 import { beforeAll, describe, expect, it } from 'vitest'
 
-import { auditActorSchema } from './audit-event.schema'
+import { Ajv, addFormats } from '@feathersjs/schema'
+import type { FormatsPluginOptions } from '@feathersjs/schema'
+import { getValidator } from '@feathersjs/typebox'
+
+import { AuditAction } from './audit-action.enum'
+import { AuditCategory, AuditOutcome, AuditSeverity } from './audit-category.enum'
+import { auditActorSchema, auditEventDataSchema } from './audit-event.schema'
 
 // TypeBox liefert keine eingebauten Format-Validatoren — in der Feathers-App
 // uebernimmt AJV das. Fuer Value.Check registrieren wir die verwendeten
@@ -42,5 +48,51 @@ describe('auditActorSchema.userId', () => {
 
   it('bleibt laengenbegrenzt', () => {
     expect(Value.Check(auditActorSchema, actor('x'.repeat(81)))).toBe(false)
+  })
+})
+
+/**
+ * panary/panary-core#435: Die Cloud protokolliert Datenexporte mit `action: 'EXPORT'`
+ * (panary/panary-cloud#695). Fehlt der Wert im Enum, scheitert `validateData` am
+ * `enum`-Keyword und das Export-Event geht verloren. Geprüft wird am String-Literal —
+ * mit der Konstante wäre nach Streichen des Werts `undefined` validiert worden, und
+ * der Test fiele am `required`-Keyword statt am Enum.
+ */
+describe('auditEventDataSchema — action EXPORT', () => {
+  const formats: FormatsPluginOptions = ['date-time', 'uuid']
+  const validate = getValidator(auditEventDataSchema, addFormats(new Ajv({}), formats))
+
+  const exportEvent = (action: string) => ({
+    _id: '019fa4bc-3ce4-7908-9eb7-0350d192bd01',
+    tenantId: '019fa4bc-3ce4-7908-9eb7-0350d192bd02',
+    locationId: null,
+    occurredAt: '2026-09-28T12:00:00.000Z',
+    actor: actor('019f2dfe-0b10-79ce-be36-7b9e8593c25a', { role: 'OWNER' }),
+    target: { resource: 'catalog-export', entityType: 'catalog', entityId: '019fa4bc-3ce4-7908-9eb7-0350d192bd02' },
+    action,
+    category: AuditCategory.ACCESS,
+    outcome: AuditOutcome.SUCCESS,
+    severity: AuditSeverity.NOTICE,
+    correlationId: REQUEST_ID,
+  })
+
+  // Leere Liste = angenommen. Als Liste statt `resolves`, damit ein Fehlschlag das
+  // AJV-Keyword nennt — `enum` statt eines anonymen „validation failed".
+  async function rejectionKeywords(action: string): Promise<string[]> {
+    try {
+      await validate(exportEvent(action) as never)
+      return []
+    } catch (error) {
+      return ((error as { errors?: { keyword: string }[] }).errors ?? []).map(e => e.keyword)
+    }
+  }
+
+  it('nimmt ein Export-Event an', async () => {
+    expect(await rejectionKeywords('EXPORT')).toEqual([])
+    expect(AuditAction.EXPORT).toBe('EXPORT')
+  })
+
+  it('lehnt eine unbekannte Aktion am enum-Keyword ab (Gegenprobe)', async () => {
+    expect(await rejectionKeywords('READ')).toContain('enum')
   })
 })

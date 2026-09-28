@@ -65,19 +65,22 @@ describe('tenantAuditTrailDataSchema — action CANCEL_WITHDRAWN_SELF_SERVICE', 
     createdAt: '2026-09-28T08:00:00.000Z',
   })
 
+  // Leere Liste = angenommen. Als Liste statt `resolves`, damit ein Fehlschlag das
+  // AJV-Keyword nennt — `enum` statt eines anonymen „validation failed".
+  async function rejectionKeywords(action: string): Promise<string[]> {
+    try {
+      await validate(auditDoc(action) as never)
+      return []
+    } catch (error) {
+      return ((error as { errors?: { keyword: string }[] }).errors ?? []).map(e => e.keyword)
+    }
+  }
+
   it('nimmt die Rücknahme der Kündigung an', async () => {
-    await expect(validate(auditDoc(TenantAuditAction.CANCEL_WITHDRAWN_SELF_SERVICE) as never)).resolves.toMatchObject({
-      action: 'CANCEL_WITHDRAWN_SELF_SERVICE',
-    })
+    expect(await rejectionKeywords(TenantAuditAction.CANCEL_WITHDRAWN_SELF_SERVICE)).toEqual([])
   })
 
   it('lehnt eine unbekannte Aktion am enum-Keyword ab (Gegenprobe)', async () => {
-    let keywords: string[] = []
-    try {
-      await validate(auditDoc('CANCEL_UNKNOWN_SELF_SERVICE') as never)
-    } catch (error) {
-      keywords = ((error as { errors?: { keyword: string }[] }).errors ?? []).map(e => e.keyword)
-    }
-    expect(keywords).toContain('enum')
+    expect(await rejectionKeywords('CANCEL_UNKNOWN_SELF_SERVICE')).toContain('enum')
   })
 })

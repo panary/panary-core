@@ -121,6 +121,9 @@ export const TenantAuditAction = {
   // Schicht 1 (Tenant-OWNER Self-Service):
   PLAN_SWITCHED_SELF_SERVICE: 'PLAN_SWITCHED_SELF_SERVICE',
   CANCEL_REQUESTED_SELF_SERVICE: 'CANCEL_REQUESTED_SELF_SERVICE',
+  // Rücknahme einer vorgemerkten Kündigung (cancelAtPeriodEnd → false) vor Periodenende
+  // (panary/panary-cloud#680):
+  CANCEL_WITHDRAWN_SELF_SERVICE: 'CANCEL_WITHDRAWN_SELF_SERVICE',
   // Schicht 2 (Plattform Single-Sign — SUPPORT/ADMIN/OWNER):
   TRIAL_EXTENDED: 'TRIAL_EXTENDED',
   GRACE_EXTENDED: 'GRACE_EXTENDED',

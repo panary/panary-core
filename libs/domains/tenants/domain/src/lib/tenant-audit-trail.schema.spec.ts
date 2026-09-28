@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
+import { Ajv, addFormats } from '@feathersjs/schema'
+import type { FormatsPluginOptions } from '@feathersjs/schema'
+import { getValidator } from '@feathersjs/typebox'
+
 import { tenantAuditTrailDataSchema } from './tenant-audit-trail.schema'
+import { TenantAuditAction, TenantAuditSource } from './tenant.enums'
 
 // Regression: Das Data-Schema war zuvor `Type.Omit([_id, createdAt])` +
 // additionalProperties:false. Der Backend-Hook
@@ -35,5 +40,44 @@ describe('tenantAuditTrailDataSchema', () => {
     for (const field of ['tenantId', 'action', 'source', 'changedPaths']) {
       expect(props[field]).toBeDefined()
     }
+  })
+})
+
+/**
+ * panary/panary-core#422: Die Cloud schreibt bei der Self-Service-Rücknahme einer
+ * Kündigung `CANCEL_WITHDRAWN_SELF_SERVICE`. Fehlt der Wert im Enum, scheitert
+ * `validateData` am `enum`-Keyword — und der Audit-Hook schluckt den Fehler still.
+ */
+describe('tenantAuditTrailDataSchema — action CANCEL_WITHDRAWN_SELF_SERVICE', () => {
+  const formats: FormatsPluginOptions = ['date-time', 'date', 'email', 'uri', 'uuid']
+  const validate = getValidator(tenantAuditTrailDataSchema, addFormats(new Ajv({}), formats))
+
+  const auditDoc = (action: string) => ({
+    _id: '01920000-0000-7000-8000-000000000001',
+    tenantId: '01920000-0000-7000-8000-000000000002',
+    actorUserId: '01920000-0000-7000-8000-000000000003',
+    actorRole: 'OWNER',
+    source: TenantAuditSource.TENANT_OWNER,
+    action,
+    changedPaths: ['subscription.cancelAtPeriodEnd'],
+    beforeDiff: { 'subscription.cancelAtPeriodEnd': true },
+    afterDiff: { 'subscription.cancelAtPeriodEnd': false },
+    createdAt: '2026-09-28T08:00:00.000Z',
+  })
+
+  it('nimmt die Rücknahme der Kündigung an', async () => {
+    await expect(validate(auditDoc(TenantAuditAction.CANCEL_WITHDRAWN_SELF_SERVICE) as never)).resolves.toMatchObject({
+      action: 'CANCEL_WITHDRAWN_SELF_SERVICE',
+    })
+  })
+
+  it('lehnt eine unbekannte Aktion am enum-Keyword ab (Gegenprobe)', async () => {
+    let keywords: string[] = []
+    try {
+      await validate(auditDoc('CANCEL_UNKNOWN_SELF_SERVICE') as never)
+    } catch (error) {
+      keywords = ((error as { errors?: { keyword: string }[] }).errors ?? []).map(e => e.keyword)
+    }
+    expect(keywords).toContain('enum')
   })
 })

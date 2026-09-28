@@ -132,6 +132,7 @@ Der Push des Tags `pos-v2026.4.0` löst den Workflow `.github/workflows/release-
 2. Tauri baut den NSIS-Installer und signiert ihn
 3. `latest.json` wird automatisch generiert
 4. Ein GitHub Release wird erstellt mit allen Artefakten
+5. Der Job `release-sbom` hängt die Stückliste an dasselbe Release
 
 ### Release prüfen
 
@@ -140,6 +141,7 @@ Unter https://github.com/panary/panary-core/releases sollte das neue Release ers
 - `Panary POS_2026.4.0_x64-setup.nsis.zip` — das Update-Paket
 - `Panary POS_2026.4.0_x64-setup.nsis.zip.sig` — die Signatur
 - `latest.json` — das Update-Manifest
+- `panary-pos-2026.4.0.cdx.json` — die CycloneDX-Stückliste (npm und Cargo), angehängt vom Job `release-sbom` ([ADR 0051](../adr/0051-stueckliste-je-release-cyclonedx.md#pos-paket-pos-v-core421))
 
 ---
 

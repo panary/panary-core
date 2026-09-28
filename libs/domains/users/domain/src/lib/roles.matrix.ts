@@ -168,6 +168,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // secureByDefault→authorize() den rohen Service-Pfad prueft (Service-Override wirkungslos).
     { resource: AppResource.STOREFRONT_PUBLISH_BRAND, action: AppAction.CREATE },
     { resource: AppResource.STOREFRONT_PUBLISH_ROLLBACK, action: AppAction.CREATE },
+    // Publish-Historie (panary/panary-core#437): nur lesen, Meta-Records schreibt nur der Publish-Service.
+    { resource: AppResource.STOREFRONT_PUBLISH_META, action: AppAction.READ },
     // Storefront-Preview-Token (Phase 4 PUBW-05): Admin darf signierte Preview-Links
     // fuer Tenants erzeugen (Support-/Operator-Eingriff).
     { resource: AppResource.STOREFRONT_PREVIEW_TOKEN, action: AppAction.CREATE },
@@ -249,6 +251,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.GLOBAL_SUPPLIER_SUBMISSIONS, action: AppAction.READ },
     // Storefront-Publish: Support sieht Publish-Status fuer Ticket-Diagnose (kein CREATE).
     { resource: AppResource.STOREFRONT_PUBLISH, action: AppAction.READ },
+    // Publish-Historie (panary/panary-core#437): Support liest den Versionsverlauf mit.
+    { resource: AppResource.STOREFRONT_PUBLISH_META, action: AppAction.READ },
     // Custom-Theme-Anfragen: Support liest mit (Ticket-Diagnose), kein Status-Workflow.
     { resource: AppResource.STOREFRONT_THEME_REQUESTS, action: AppAction.READ },
     // Storefront-Aufrufe (panary-cloud#330): Support liest mit (Ticket-Diagnose).
@@ -410,6 +414,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Brand-Publish + Rollback (PUBW-03): eigene AppResources (roher Pfad-Check, s.o.).
     { resource: AppResource.STOREFRONT_PUBLISH_BRAND, action: AppAction.CREATE },
     { resource: AppResource.STOREFRONT_PUBLISH_ROLLBACK, action: AppAction.CREATE },
+    // Publish-Historie (panary/panary-core#437): nur lesen, Meta-Records schreibt nur der Publish-Service.
+    { resource: AppResource.STOREFRONT_PUBLISH_META, action: AppAction.READ },
     // Storefront-Preview-Token (Phase 4 PUBW-05, D-11..D-15): Owner darf signierte
     // Preview-Links fuer den Draft-Render erzeugen (HMAC-Token, TTL 1h). STAFF hat
     // bewusst KEINEN Eintrag (Staff erzeugen keine Preview-Links).
@@ -757,6 +763,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Brand-Publish + Rollback (PUBW-03): eigene AppResources (roher Pfad-Check, s.o.).
     { resource: AppResource.STOREFRONT_PUBLISH_BRAND, action: AppAction.CREATE },
     { resource: AppResource.STOREFRONT_PUBLISH_ROLLBACK, action: AppAction.CREATE },
+    // Publish-Historie (panary/panary-core#437): nur lesen, Meta-Records schreibt nur der Publish-Service.
+    { resource: AppResource.STOREFRONT_PUBLISH_META, action: AppAction.READ },
     // Storefront-Preview-Token (Phase 4 PUBW-05): Manager darf — wie Owner — signierte
     // Preview-Links fuer den Draft-Render erzeugen. STAFF hat bewusst KEINEN Eintrag.
     { resource: AppResource.STOREFRONT_PREVIEW_TOKEN, action: AppAction.CREATE },

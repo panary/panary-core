@@ -339,6 +339,14 @@ export const AppResource = {
    *  Grund wie STOREFRONT_PUBLISH_BRAND. */
   STOREFRONT_PUBLISH_ROLLBACK: 'storefront-publish-rollback',
 
+  /** Cloud-only: Publish-Historie (GET /storefront-publish-meta) — Versionsverlauf im
+   *  Storefront-Editor. Eigener AppResource aus demselben Grund wie
+   *  STOREFRONT_PUBLISH_BRAND: authorize() prueft den rohen Service-Pfad; ohne Eintrag
+   *  bekam jede Tenant-Rolle 403 und der Drawer blieb leer (panary/panary-core#437).
+   *  Nur READ fuer die Rollen, die STOREFRONT_PUBLISH lesen: Meta-Records entstehen
+   *  ausschliesslich intern im Publish-Service, extern wird nie geschrieben. */
+  STOREFRONT_PUBLISH_META: 'storefront-publish-meta',
+
   /** Cloud-only: Preview-Token-Service fuer den Draft-Render der Storefront
    *  (Phase 4 PUBW-05, D-11..D-15). Custom-Method-Service
    *  `apps/api-cloud/src/services/storefront-preview-token/`. CREATE erzeugt

@@ -151,6 +151,38 @@ describe('RolePermissions — Phase 6 (BRAND + RESERVATION)', () => {
         false,
       )
     })
+
+    // panary/panary-core#437: ohne Eintrag lieferte authorize() jeder Tenant-Rolle 403,
+    // der Versionsverlauf im Storefront-Editor blieb still leer.
+    it('STOREFRONT_PUBLISH_META: READ fuer OWNER/MANAGER/ADMIN/SUPPORT, sonst niemand', () => {
+      for (const role of [
+        UserSystemRole.PLATFORM_ADMIN,
+        UserSystemRole.PLATFORM_SUPPORT,
+        UserSystemRole.TENANT_OWNER,
+        UserSystemRole.TENANT_MANAGER,
+      ]) {
+        expect(roleCan(role, AppResource.STOREFRONT_PUBLISH_META, AppAction.READ)).toBe(true)
+      }
+      for (const role of [
+        UserSystemRole.TENANT_STAFF,
+        UserSystemRole.TENANT_TECHNICIAN,
+        UserSystemRole.DEVICE_POS,
+        UserSystemRole.DEVICE_KDS,
+        UserSystemRole.DEVICE_TABLET,
+        UserSystemRole.DEVICE_KIOSK,
+      ]) {
+        expect(roleCan(role, AppResource.STOREFRONT_PUBLISH_META, AppAction.READ)).toBe(false)
+      }
+    })
+
+    it('STOREFRONT_PUBLISH_META: kein Schreibrecht fuer Tenant- und Plattform-Rollen (ausser OWNER-Bypass)', () => {
+      const writers = Object.values(UserSystemRole).filter(role => role !== UserSystemRole.PLATFORM_OWNER)
+      for (const role of writers) {
+        for (const action of [AppAction.CREATE, AppAction.UPDATE, AppAction.DELETE]) {
+          expect(roleCan(role, AppResource.STOREFRONT_PUBLISH_META, action)).toBe(false)
+        }
+      }
+    })
   })
 
   describe('PLATFORM_USERS — Plattform-Personal-Anlage', () => {

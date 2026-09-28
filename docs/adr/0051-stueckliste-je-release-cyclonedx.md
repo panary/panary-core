@@ -1,11 +1,11 @@
 ---
 type: ADR
 title: 'Stückliste je Release: CycloneDX aus dem Image-Scan, als Attestation und Release-Asset'
-description: 'ADR zur Stückliste (SBOM) des Edge-Images: Format CycloneDX-JSON, erzeugt per syft aus dem Image-Digest statt aus dem Lockfile, attestiert per actions/attest an denselben Digest wie die cosign-Signatur, dazu als Asset an einem GitHub-Release zum v*-Tag, das nie „Latest“ werden darf. Gilt auch für die weiteren Teile von panary/panary-workbench#47.'
-tags: [edge, ci, docker, supply-chain, security]
+description: 'ADR zur Stückliste (SBOM) des Edge-Images: Format CycloneDX-JSON, erzeugt per syft aus dem Image-Digest statt aus dem Lockfile, attestiert per actions/attest an denselben Digest wie die cosign-Signatur, dazu als Asset an einem GitHub-Release zum v*-Tag, das nie „Latest“ werden darf. Für das POS-Paket (pos-v*) aus den beim Build benutzten Lockfiles, npm und Cargo in einer Datei. Gilt auch für die weiteren Teile von panary/panary-workbench#47.'
+tags: [edge, pos, ci, docker, tauri, supply-chain, security]
 status: stable
 decision: accepted
-implementation: 'Workflow umgesetzt 2026-09-27 (#420) in .github/workflows/build-edge-docker.yml; wirksam ab dem ersten v*-Tag nach dem Merge.'
+implementation: 'Edge umgesetzt 2026-09-27 (#420) in .github/workflows/build-edge-docker.yml, wirksam ab dem ersten v*-Tag nach dem Merge. POS umgesetzt 2026-09-28 (#421) in .github/workflows/release-pos.yml, wirksam ab dem ersten pos-v*-Tag nach dem Merge.'
 generated: { by: claude-code/opus-5.5, at: 2026-09-27T21:30:00Z }
 sources:
   - { id: cra, resource: 'https://eur-lex.europa.eu/eli/reg/2024/2847/oj', title: 'Verordnung (EU) 2024/2847 — Cyber Resilience Act' }
@@ -88,3 +88,46 @@ seit 2026-09-11, und ohne Stückliste sind sie praktisch nicht zu erfüllen.
 - Die übrigen Teile von panary/panary-workbench#47 (u. a. panary/panary-core#421 und
   panary/panary-cloud#677) bauen auf dieser Entscheidung auf; cloud verweist auf dieses ADR,
   statt eine eigene zu führen.
+
+## POS-Paket (`pos-v*`, core#421)
+
+Das POS-Paket ist kein Image, sondern ein Tauri-Installer mit **zwei** Abhängigkeitsgraphen:
+npm (Angular-Frontend, gebündelt) und Cargo (`apps/pos-client/src-tauri`). Punkt 1 (Format),
+Punkt 3 (Plausibilitätsprüfung, kein `continue-on-error`) und Punkt 5 (öffentliches
+Release-Asset) gelten unverändert. Abweichend gilt:
+
+1. **Quelle sind die Lockfiles, mit denen der Windows-Job gebaut hat.** Einen Image-Scan gibt
+   es nicht: Im Installer steckt ein kompiliertes Rust-Binary und ein Angular-Bundle, beide ohne
+   Paket-Metadaten. Maßgeblich ist aber **nicht** das committete `pnpm-lock.yaml`:
+   `release-pos.yml` löscht es und löst neu auf. Der Job `release-windows` legt deshalb nach dem
+   Build `pnpm-lock.yaml` und `Cargo.lock` als Artefakt `pos-lockfiles` ab.
+2. **Ein Werkzeug, eine Datei:** syft (`anchore/sbom-action/download-syft`, dieselbe Version wie
+   beim Edge) liest beide Lockfiles in einem Lauf, beschränkt auf `javascript-lock-cataloger` und
+   `rust-cargo-lock-cataloger`. Der Plan sah `cargo-cyclonedx` plus `cyclonedx-cli merge` vor.
+   Verworfen, weil das zwei zusätzliche Werkzeuge und einen eigenen Fehlerpunkt (den Merge)
+   bedeutet hätte, für dasselbe Ergebnis. Dateiname `panary-pos-<version>.cdx.json`.
+3. **Eigener Job `release-sbom`** (`needs: release-windows`, nur `contents: write`). Er prüft auf
+   `pkg:npm/`- und `pkg:cargo/`-Komponenten sowie namentlich auf `tauri`, `rumqttc`, `mdns-sd`
+   und `@angular/core`, dann hängt er die Datei per `gh release upload` an. Genau ein Upload je
+   Release: kein Wettlauf mit `release-macos`, und der Windows-Pfad bekommt nur einen letzten
+   Schritt dazu. `--latest` bleibt unberührt, das `pos-v*`-Release **soll** Latest sein.
+4. **Keine Attestation.** Es gibt keinen Digest, an den sie sich binden ließe; die
+   Installer-Dateien sind selbst per minisign signiert.
+
+Konsequenzen:
+
+- 🚨 **Die npm-Seite ist eine Obermenge.** core ist ein Single-Package-Repo, das Lockfile kennt
+  keinen POS-Ausschnitt. Die Stückliste listet deshalb auch Edge- und Build-Abhängigkeiten
+  (gemessen am Stand von 2026-09-28: 2012 npm-Komponenten, darunter `better-sqlite3`, das nie ins
+  POS-Bundle kommt; dazu 553 Cargo-Komponenten). Für „steckt X drin?“ ist das sicher, erzeugt aber
+  Fehlalarme. Genauer wäre, was der Bundler einbindet (Angular-Build mit `--stats-json`);
+  das ist nicht Teil dieser Entscheidung.
+- Auch `Cargo.lock` listet Crates aller Zielplattformen, nicht nur Windows.
+- Die Stückliste belegt den **Windows**-Build. `release-macos` löst sein Lockfile eigenständig
+  neu auf und kann auf andere reife Versionen treffen; für das `.dmg` ist sie eine Näherung.
+- Prüfen im Advisory-Fall wie beim Edge, nur mit `pos-v`-Tag:
+
+  ```bash
+  gh release download pos-v26.x.y --repo panary/panary-core --pattern '*.cdx.json'
+  jq -r '.components[] | select(.name=="<paket>") | "\(.name) \(.version) \(.purl)"' panary-pos-26.x.y.cdx.json
+  ```

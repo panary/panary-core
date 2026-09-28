@@ -211,6 +211,96 @@ jobs:
           echo "--- latest.json ---"; cat latest.json
           gh release upload "$TAG" latest.json --repo "$GITHUB_REPOSITORY" --clobber
 
+      # Grundlage der Stueckliste (Job release-sbom, ADR 0051): die Lockfiles, mit
+      # denen DIESER Job gebaut hat. Nicht das committete pnpm-lock.yaml — das wird
+      # oben geloescht und neu aufgeloest, es beschreibt das Paket also nicht.
+      # Bewusst als letzter Schritt: Faellt er aus, stehen Release und latest.json
+      # schon, und der Updater ist nicht betroffen.
+      - name: Lockfiles fuer die Stueckliste ablegen
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pos-lockfiles
+          path: |
+            pnpm-lock.yaml
+            apps/pos-client/src-tauri/Cargo.lock
+          if-no-files-found: error
+
+  # CycloneDX-Stueckliste des POS-Pakets (ADR 0051, core#421): npm- und Cargo-Graph
+  # in EINER Datei. syft liest beide Lockfiles in einem Lauf — kein Merge-Schritt.
+  # Eigener Job statt im Windows-Job: genau ein Upload je Release, kein Wettlauf
+  # mit release-macos, und der historisch fragile Windows-Pfad bleibt unberuehrt.
+  # Kein continue-on-error: Fehlt die Stueckliste, wird der Lauf rot.
+  release-sbom:
+    needs: release-windows
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Lockfiles holen
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: pos-lockfiles
+          path: sbom-src
+
+      # Dieselbe Action und dieselbe syft-Version wie build-edge-docker.yml. Nur
+      # das Herunterladen, der Aufruf steht unten im Klartext: sbom-action selbst
+      # kennt keine Cataloger-Auswahl.
+      - name: syft installieren
+        id: syft
+        uses: anchore/sbom-action/download-syft@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        with:
+          syft-version: v1.51.1
+
+      # Nur die beiden Lockfile-Cataloger: sbom-src enthaelt nichts anderes, und
+      # ein spaeter dazugelegter Fund soll nicht still in die Stueckliste wandern.
+      # '-file' laesst Datei-Eintraege (Pfade, Hashes der Lockfiles) weg.
+      - name: Stueckliste erzeugen (syft, CycloneDX)
+        env:
+          SYFT: ${{ steps.syft.outputs.cmd }}
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#pos-v}"
+          "$SYFT" dir:sbom-src \
+            --override-default-catalogers javascript-lock-cataloger,rust-cargo-lock-cataloger \
+            --select-catalogers=-file \
+            --source-name panary-pos --source-version "$VERSION" \
+            -o "cyclonedx-json=panary-pos-${VERSION}.cdx.json"
+          echo "SBOM=panary-pos-${VERSION}.cdx.json" >> "$GITHUB_ENV"
+
+      # Plausibilitaet statt blindem Vertrauen: npm-Werkzeuge sehen den Cargo-Teil
+      # nicht. Eine Stueckliste ohne tauri/rumqttc/mdns-sd saehe vollstaendig aus
+      # und misst trotzdem nur das Frontend — deshalb beide Seiten namentlich.
+      - name: Stueckliste pruefen
+        run: |
+          set -euo pipefail
+          total=$(jq '.components | length' "$SBOM")
+          npm=$(jq '[.components[] | select((.purl // "") | startswith("pkg:npm/"))] | length' "$SBOM")
+          cargo=$(jq '[.components[] | select((.purl // "") | startswith("pkg:cargo/"))] | length' "$SBOM")
+          ver() { jq -r --arg n "$1" '[.components[] | select(.name == $n) | .version] | unique | join(", ")' "$SBOM"; }
+          {
+            echo "### Stueckliste ${SBOM}"
+            echo "| Komponenten | npm | cargo | tauri | rumqttc | mdns-sd | @angular/core |"
+            echo "|---|---|---|---|---|---|---|"
+            echo "| ${total} | ${npm} | ${cargo} | $(ver tauri) | $(ver rumqttc) | $(ver mdns-sd) | $(ver @angular/core) |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          fail=0
+          if [ "$npm" -eq 0 ]; then echo "::error::Stueckliste ohne npm-Komponenten — pnpm-lock.yaml nicht erfasst"; fail=1; fi
+          if [ "$cargo" -eq 0 ]; then echo "::error::Stueckliste ohne Cargo-Komponenten — Cargo.lock nicht erfasst"; fail=1; fi
+          for n in tauri rumqttc mdns-sd @angular/core; do
+            if [ -z "$(ver "$n")" ]; then echo "::error::${n} fehlt in der Stueckliste"; fail=1; fi
+          done
+          exit "$fail"
+
+      # An das Release, das tauri-action im Windows-Job angelegt hat. Kein
+      # --latest-Eingriff: Das pos-v*-Release SOLL Latest sein (Updater).
+      - name: Stueckliste an das Release haengen
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$GITHUB_REF_NAME" "$SBOM" --repo "$GITHUB_REPOSITORY" --clobber
+
   # macOS-Bundle (Apple Silicon) an dasselbe Release haengen.
   #
   # `needs: release-windows` ist bewusst gesetzt und nicht nur Reihenfolge-

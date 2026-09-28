@@ -40,6 +40,10 @@ describe('AppResource — Phase 6 (BRAND + RESERVATION)', () => {
       expect(AppResource.STOREFRONT_PUBLISH_ROLLBACK).toBe('storefront-publish-rollback')
     })
 
+    it('STOREFRONT_PUBLISH_META bleibt "storefront-publish-meta" (roher Cloud-Service-Pfad)', () => {
+      expect(AppResource.STOREFRONT_PUBLISH_META).toBe('storefront-publish-meta')
+    })
+
     it('STOREFRONT_PREVIEW_TOKEN bleibt "storefront-preview-token"', () => {
       expect(AppResource.STOREFRONT_PREVIEW_TOKEN).toBe('storefront-preview-token')
     })

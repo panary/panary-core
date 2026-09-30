@@ -245,6 +245,9 @@ jobs:
           npm=$(jq '[.components[] | select((.purl // "") | startswith("pkg:npm/"))] | length' "$SBOM")
           deb=$(jq '[.components[] | select((.purl // "") | startswith("pkg:deb/"))] | length' "$SBOM")
           sqlite=$(jq -r '[.components[] | select(.name == "better-sqlite3") | .version] | unique | join(", ")' "$SBOM")
+          # Das Runtime-Image fuehrt kein npm-CLI (core#446): dessen node_modules liegen
+          # ausserhalb des Lockfiles und damit ausserhalb von osv-scanner und Overrides.
+          npmcli=$(jq '[.components[] | select(any((.properties // [])[]; (.name | startswith("syft:location:")) and (.value | test("^/usr/local/lib/node_modules/(npm|corepack)/"))))] | length' "$SBOM")
           {
             echo "### Stueckliste ${SBOM}"
             echo "| Groesse | Komponenten | npm | deb | better-sqlite3 |"
@@ -256,6 +259,7 @@ jobs:
           if [ "$npm" -eq 0 ]; then echo "::error::Stueckliste ohne npm-Komponenten — node_modules im Image nicht erfasst"; fail=1; fi
           if [ "$deb" -eq 0 ]; then echo "::error::Stueckliste ohne deb-Komponenten — Base-Image nicht erfasst"; fail=1; fi
           if [ -z "$sqlite" ]; then echo "::error::better-sqlite3 fehlt in der Stueckliste"; fail=1; fi
+          if [ "$npmcli" -ne 0 ]; then echo "::error::${npmcli} Komponenten unter /usr/local/lib/node_modules/npm|corepack — npm-CLI steckt wieder im Runtime-Image (core#446)"; fail=1; fi
           exit "$fail"
 
       # actions/attest statt cosign attest: dieselbe Mechanik wie die Provenance

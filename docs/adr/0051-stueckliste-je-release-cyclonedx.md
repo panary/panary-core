@@ -37,6 +37,9 @@ seit 2026-09-11, und ohne Stückliste sind sie praktisch nicht zu erfüllen.
    `pkg:npm/`- oder keine `pkg:deb/`-Komponenten enthält, `better-sqlite3` fehlt oder die Datei
    16 MB erreicht (Grenze von `actions/attest`). Eine halbe Stückliste wäre sonst ein grüner
    Lauf mit wertlosem Inhalt. Kein `continue-on-error` auf den Stückliste-Schritten.
+   Seit #446 wird er außerdem rot, wenn eine Komponente unter
+   `/usr/local/lib/node_modules/npm` oder `…/corepack` liegt — das npm-CLI des Base-Images
+   ist aus dem Runtime-Stage entfernt ([Bericht](../security/edge-image-ohne-npm-cli.md)).
 4. **Attestation per `actions/attest`** (`sbom-path`, `push-to-registry: true`) an **denselben
    Digest** wie cosign-Signatur und Provenance. Gewählt statt `cosign attest --type cyclonedx`,
    weil es dieselbe Mechanik wie die vorhandene Provenance ist: Sigstore public-good, Ablage in

@@ -18,10 +18,10 @@ overrides:
   esbuild: ^0.28.1
   serialize-javascript: ^7.0.5
   diff: ^8.0.4
-  fast-uri: ^3.1.6
-  ip-address: ^10.2.1
+  fast-uri: ^3.1.7
+  ip-address: ^10.7.1
   '@babel/plugin-transform-modules-systemjs': ^7.29.4
-  brace-expansion: ^5.0.9
+  brace-expansion: ^5.0.12
   yaml: ^2.8.3
   follow-redirects: ^1.16.0
   uuid: ^14.0.0
@@ -46,7 +46,7 @@ overrides:
   webpack-dev-middleware: ^7.4.6
   webpack-dev-server: ^5.2.6
   http-proxy-middleware: ^3.0.7
-  undici: ^7.29.0
+  undici: ^7.29.1
   '@babel/core': ^7.29.6
   form-data: ^4.0.6
   piscina: ^5.2.0
@@ -55,7 +55,9 @@ overrides:
   smol-toml: ^1.7.1
   immutable: ^5.1.8
   '@hono/node-server': ^2.0.10
-  hono: ^4.12.34
+  hono: ^4.13.5
+  engine.io: ^6.6.10
+  moment: ^2.31.0
 
 importers:
 
@@ -1723,7 +1725,7 @@ packages:
     resolution: {integrity: sha512-ELuehkj5VCBdgEw9zs+ivkKwyzzUCSQuE96YmiPvn1ECBoZCczbFXJLeEGMTYjphP6gydh4pHMqEYPVMYUVgQg==}
     engines: {node: '>=20'}
     peerDependencies:
-      hono: ^4.12.34
+      hono: ^4.13.5
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -6493,10 +6495,6 @@ packages:
     resolution: {integrity: sha512-Ju0Bz/cEia55xDwUWEa8+olFpCiQoypjnQySseKtmjNrnps3P+xfpUmGr90T7yjlVJmOtybRvPXhKMbHr+fWnw==}
     engines: {node: '>= 0.10'}
 
-  ip-address@10.7.0:
-    resolution: {integrity: sha512-BGFsyJd5mpXp3rK6jIdADLNgpJUK1jnjzvYF8lK+VyDab9JAmqN0YOKDdP17HlgKb2+ehPgDc8EtnRLbGCAMhA==}
-    engines: {node: '>= 12'}
-
   ip-address@10.7.2:
     resolution: {integrity: sha512-7H/2gFSIitxc0hG3nOI1glS8QLo/EHBFFLk8vEUjXY/xu0AdL8jZ9U1IzO2PUm0d2D/ofQcAifb0g6OBkt8U7w==}
     engines: {node: '>= 12'}
@@ -7471,8 +7469,8 @@ packages:
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     hasBin: true
 
-  moment@2.30.1:
-    resolution: {integrity: sha512-uEmtNhbDOrWPFS+hdjFCBfy9f2YoyzRpwcl+DqpC6taX21FzsTLQVbMV/W7PzNSX6x/bhC1zA3c2UQ5NzH6how==}
+  moment@2.31.0:
+    resolution: {integrity: sha512-0acOTfMiWOheYS4eoWb80yYMb/JLvVv9SHbs2PehaDzfUG0Bw855SKyk0IKTnPGa5+U2bmi3W68l1+sGLX/pvw==}
 
   mongodb-connection-string-url@7.0.1:
     resolution: {integrity: sha512-h0AZ9A7IDVwwHyMxmdMXKy+9oNlF0zFoahHiX3vQ8e3KFcSP3VmsmfvtRSuLPxmyv2vjIDxqty8smTgie/SNRQ==}
@@ -16241,7 +16239,7 @@ snapshots:
 
   file-stream-rotator@0.6.1:
     dependencies:
-      moment: 2.30.1
+      moment: 2.31.0
 
   file-uri-to-path@1.0.0: {}
 
@@ -16729,8 +16727,6 @@ snapshots:
   interpret@1.4.0: {}
 
   interpret@2.2.0: {}
-
-  ip-address@10.7.0: {}
 
   ip-address@10.7.2: {}
 
@@ -17839,7 +17835,7 @@ snapshots:
       yargs-parser: 21.1.1
       yargs-unparser: 2.0.0
 
-  moment@2.30.1: {}
+  moment@2.31.0: {}
 
   mongodb-connection-string-url@7.0.1:
     dependencies:
@@ -19555,7 +19551,7 @@ snapshots:
 
   socks@2.8.9:
     dependencies:
-      ip-address: 10.7.0
+      ip-address: 10.7.2
       smart-buffer: 4.2.0
 
   source-map-js@1.2.1: {}

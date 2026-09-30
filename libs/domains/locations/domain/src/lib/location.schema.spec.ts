@@ -162,7 +162,9 @@ describe('locationQuerySchema (Filter nach status)', () => {
   })
 
   it('akzeptiert status mit $in', async () => {
-    await expect(queryValidator({ status: { $in: ['ARCHIVED', 'DRAFT'] } })).resolves.toBeTruthy()
+    await expect(queryValidator({ status: { $in: ['ARCHIVED', 'DRAFT'] } })).resolves.toEqual({
+      status: { $in: ['ARCHIVED', 'DRAFT'] },
+    })
   })
 
   it('lehnt einen unbekannten status-Wert ab', async () => {

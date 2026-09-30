@@ -102,6 +102,14 @@ RUN node -e " \
   console.log('Workspace path symlinks created.'); \
 " && rm /tmp/tsconfig.base.json
 
+# npm, npx und corepack aus dem Base-Image entfernen (core#446). Die Runtime startet
+# per `node`, der Healthcheck per `curl` — das CLI hat hier keinen Zweck, bringt aber
+# eigene node_modules mit (ip-address, brace-expansion, pacote …), die die
+# Override-Floors im Lockfile nicht erreichen. Muss nach dem letzten RUN stehen, der
+# npm bräuchte; die Stücklisten-Prüfung in build-edge-docker.yml sichert den Stand.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+
 # Admin-Client SPA
 COPY --from=build /build/dist/apps/admin-client/browser/ ./dist/apps/admin-client/browser/
 

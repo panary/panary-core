@@ -499,6 +499,9 @@ export const locationQueryProperties = Type.Pick(locationSchema, [
   'currentBusinessDay',
   // Theme-Store-Empfehlungen + Wizard-Vorauswahl filtern nach Betriebstyp.
   'businessType',
+  // Filter „Aktiv“/„Inaktiv“ der Filialliste in panary-cloud (panary/panary-cloud#785) —
+  // ohne `status` lehnt der Query-Validator den Filter mit „validation failed“ ab.
+  'status',
   // Pflicht für den Offline-Cache-Delta-Sync (`updatedAt > cursor`) — sonst lehnt der
   // Query-Validator die Delta-Query mit 400 „additional property updatedAt" ab.
   'updatedAt',

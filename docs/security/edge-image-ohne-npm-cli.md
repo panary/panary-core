@@ -44,7 +44,10 @@ Ignore-Liste) und ist nicht Teil dieser Änderung.
 | Messung | Ergebnis |
 | --- | --- |
 | Filter der Prüfung gegen die Stückliste von `v26.9.16` | 197 Treffer (196 npm, 1 corepack) — die Sperre hätte angeschlagen |
-| Lokaler Image-Build (arm64) | siehe PR |
+| Lokaler Image-Build (arm64, CI-Vorbereitung des Workflows nachgestellt) | Exit 0 |
+| `command -v npm npx corepack` im Image | leer |
+| `ls /usr/local/lib/node_modules` im Image | leer |
+| Container mit `FEATHERS_SECRET` | läuft, 0 Log-Zeilen mit `level: error`; `/health` → HTTP 200 (unpaired: Setup-Modus) |
 
 ## Folgen
 

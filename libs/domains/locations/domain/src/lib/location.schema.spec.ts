@@ -176,6 +176,11 @@ describe('locationQuerySchema (Filter und Sortierung der Filialliste)', () => {
     await expect(queryValidator(query)).resolves.toEqual(query)
   })
 
+  it('akzeptiert den operationMode-Filter des Trial-Ablauf-Schedulers', async () => {
+    const query = { tenantId: '01890a5d-ac96-774b-bcce-b302099a8058', operationMode: 'pos-cashier', $limit: 0 }
+    await expect(queryValidator(query)).resolves.toEqual(query)
+  })
+
   it('lehnt weiterhin unbekannte Query-Felder ab', async () => {
     await expect(queryValidator({ gibtEsNicht: 'x' })).rejects.toThrow()
   })

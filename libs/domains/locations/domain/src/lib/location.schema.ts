@@ -505,6 +505,10 @@ export const locationQueryProperties = Type.Pick(locationSchema, [
   // Sortierung „Erstellt am“ der Filialliste in panary-cloud: `$sort` akzeptiert nur Felder
   // aus diesem Pick, ohne `createdAt` scheitert sie mit „validation failed“.
   'createdAt',
+  // Interner Aufruf im Trial-Ablauf-Scheduler von panary-cloud (Kassen-Standorte nach
+  // Downgrade zählen). `validateQuery` läuft auch ohne Provider; ohne `operationMode`
+  // scheiterte die Zählung still im catch.
+  'operationMode',
   // Pflicht für den Offline-Cache-Delta-Sync (`updatedAt > cursor`) — sonst lehnt der
   // Query-Validator die Delta-Query mit 400 „additional property updatedAt" ab.
   'updatedAt',

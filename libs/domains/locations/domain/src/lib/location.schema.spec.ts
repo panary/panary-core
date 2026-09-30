@@ -154,7 +154,7 @@ describe('settings.businessDaySettings', () => {
 // Query-Schema ist strikt (additionalProperties: false) — fehlte `status` im Pick,
 // scheiterte jeder Filter außer „Alle“ mit „validation failed“. AJV-Konfiguration
 // wie der Feathers-`queryValidator` (@panary/shared-backend, coerceTypes).
-describe('locationQuerySchema (Filter nach status)', () => {
+describe('locationQuerySchema (Filter und Sortierung der Filialliste)', () => {
   const queryValidator = getValidator(locationQuerySchema, addFormats(new Ajv({ coerceTypes: true }), formats))
 
   it('akzeptiert status als Gleichheitsfilter', async () => {
@@ -169,6 +169,16 @@ describe('locationQuerySchema (Filter nach status)', () => {
 
   it('lehnt einen unbekannten status-Wert ab', async () => {
     await expect(queryValidator({ status: 'DELETED' })).rejects.toThrow()
+  })
+
+  it('akzeptiert die Sortierung „Erstellt am“ der Filialliste', async () => {
+    const query = { $sort: { createdAt: -1, _id: 1 }, $limit: 25, $skip: 0 }
+    await expect(queryValidator(query)).resolves.toEqual(query)
+  })
+
+  it('akzeptiert den operationMode-Filter des Trial-Ablauf-Schedulers', async () => {
+    const query = { tenantId: '01890a5d-ac96-774b-bcce-b302099a8058', operationMode: 'pos-cashier', $limit: 0 }
+    await expect(queryValidator(query)).resolves.toEqual(query)
   })
 
   it('lehnt weiterhin unbekannte Query-Felder ab', async () => {

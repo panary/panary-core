@@ -5,7 +5,7 @@ import type { FormatsPluginOptions } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 
 import { generateDefaultLocationSettings } from './default-settings'
-import { locationDataSchema } from './location.schema'
+import { locationDataSchema, locationQuerySchema } from './location.schema'
 
 // Regression Standort-Settings-Sync (2026-07-28): Das Data-Schema war ein
 // strikter Pick OHNE `_id`/`createdAt`/`updatedAt` (additionalProperties:
@@ -147,5 +147,29 @@ describe('settings.businessDaySettings', () => {
   it('lehnt nicht-boolesche autoRotate-Werte ab', async () => {
     await expect(validator(withBusinessDaySettings({ autoRotate: 'true' }))).rejects.toThrow()
     await expect(validator(withBusinessDaySettings({ autoRotate: 1 }))).rejects.toThrow()
+  })
+})
+
+// Regression panary/panary-cloud#785: Die Filialliste filtert nach `status`. Das
+// Query-Schema ist strikt (additionalProperties: false) — fehlte `status` im Pick,
+// scheiterte jeder Filter außer „Alle“ mit „validation failed“. AJV-Konfiguration
+// wie der Feathers-`queryValidator` (@panary/shared-backend, coerceTypes).
+describe('locationQuerySchema (Filter nach status)', () => {
+  const queryValidator = getValidator(locationQuerySchema, addFormats(new Ajv({ coerceTypes: true }), formats))
+
+  it('akzeptiert status als Gleichheitsfilter', async () => {
+    await expect(queryValidator({ status: 'ACTIVE' })).resolves.toEqual({ status: 'ACTIVE' })
+  })
+
+  it('akzeptiert status mit $in', async () => {
+    await expect(queryValidator({ status: { $in: ['ARCHIVED', 'DRAFT'] } })).resolves.toBeTruthy()
+  })
+
+  it('lehnt einen unbekannten status-Wert ab', async () => {
+    await expect(queryValidator({ status: 'DELETED' })).rejects.toThrow()
+  })
+
+  it('lehnt weiterhin unbekannte Query-Felder ab', async () => {
+    await expect(queryValidator({ gibtEsNicht: 'x' })).rejects.toThrow()
   })
 })

@@ -1,7 +1,7 @@
 ---
 type: Report
 title: OSV-Befund 2026-09-30 (Nachmittag) — @angular/* auf 21.2.24, Floors axios ^1.20.0 und serialize-javascript ^7.1.2
-description: Am 2026-09-30 zwischen 15:01 und 15:41 UTC erschienen Advisories auf @angular/router, axios und serialize-javascript; osv-scanner wurde auf jedem core-PR rot. Geschlossen durch den Angular-Lockstep mit panary-cloud auf 21.2.24 und die Override-Floors axios ^1.20.0 und serialize-javascript ^7.1.2, alle Fixes karenzreif.
+description: Am 2026-09-30 zwischen 15:01 und 15:41 UTC erschienen Advisories auf @angular/router, axios und serialize-javascript; osv-scanner wurde auf jedem core-PR rot; geschlossen ist er durch den Angular-Lockstep mit panary-cloud auf 21.2.24 und die Override-Floors axios ^1.20.0 und serialize-javascript ^7.1.2, alle Fixes karenzreif.
 tags: [security, supply-chain, dependencies, angular]
 status: stable
 generated: { by: claude-code/opus-5.5, at: 2026-09-30T21:30:00.000Z }

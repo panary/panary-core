@@ -5,7 +5,7 @@ description: 'ADR zur Stückliste (SBOM) des Edge-Images: Format CycloneDX-JSON,
 tags: [edge, pos, ci, docker, tauri, supply-chain, security]
 status: stable
 decision: accepted
-implementation: 'Edge umgesetzt 2026-09-27 (#420) in .github/workflows/build-edge-docker.yml, wirksam ab dem ersten v*-Tag nach dem Merge. POS umgesetzt 2026-09-28 (#421) in .github/workflows/release-pos.yml, wirksam ab dem ersten pos-v*-Tag nach dem Merge.'
+implementation: 'Edge umgesetzt 2026-09-27 (#420) in .github/workflows/build-edge-docker.yml, wirksam ab dem ersten v*-Tag nach dem Merge. POS umgesetzt 2026-09-28 (#421) in .github/workflows/release-pos.yml, wirksam ab dem ersten pos-v*-Tag nach dem Merge. Advisory-Prüfung (Punkt 8) umgesetzt 2026-10-01 (#448), Job scan-advisories in build-edge-docker.yml.'
 generated: { by: claude-code/opus-5.5, at: 2026-09-27T21:30:00Z }
 sources:
   - { id: cra, resource: 'https://eur-lex.europa.eu/eli/reg/2024/2847/oj', title: 'Verordnung (EU) 2024/2847 — Cyber Resilience Act' }
@@ -60,6 +60,32 @@ seit 2026-09-11, und ohne Stückliste sind sie praktisch nicht zu erfüllen.
    nicht die Reihenfolge der Tags.
 7. **`workflow_dispatch`-Builds** (`staging-<sha>`) bekommen Stückliste und Attestation, aber
    kein Release. Die Stückliste liegt dort nur als Workflow-Artefakt `edge-sbom`.
+8. **Advisories des fertigen Images** (core#448), eigener Job `scan-advisories` nach dem Build,
+   Regel festgelegt von Michael am 2026-10-01. Skript und Messung:
+   [`tools/scripts/osv-edge-advisories.sh`](../../tools/scripts/osv-edge-advisories.sh).
+   - **Zwei Scans, weil keiner allein beide Paketwelten richtig sieht** (osv-scanner 2.6.0,
+     gemessen an `v26.9.16` und `v26.10.1`): npm aus der Stückliste (`scan --sbom`), Debian aus
+     dem Image (`scan image`, per Digest). Der Image-Scan sah an `v26.9.16` **keine**
+     npm-Befunde, die Stückliste die neun Pakete des npm-CLI aus #446. Umgekehrt ordnet der
+     Stücklisten-Scan Debian-Pakete keinem Release zu („Debian“ statt „Debian:12“). Dann zählen
+     Fix-Stände aus trixie mit, und Quellpakete wie glibc, krb5 und openldap fehlen.
+   - **Regel:** Jeder npm-Befund färbt den Job rot. Debian steht immer im Bericht und färbt nur
+     rot, wenn bookworm einen Fix führt, der neuer ist als das installierte Paket
+     (`dpkg --compare-versions`). Ohne Fix hinge jedes Release an Debian fest: `v26.10.1`
+     hatte 157 Befunde, keiner davon mit bookworm-Fix.
+   - **Ausnahmen** stehen in `osv-scanner.toml` am Repo-Root, derselben Datei wie für den
+     Lockfile-Scan. Sie wirken in beiden Scans (gemessen mit je einer Test-ID: Image-Scan 14 → 0,
+     Stücklisten-Scan 5 → 0 Treffer).
+   - **Fail-closed:** Erkennt der Image-Scan kein Debian-Release, erkennt osv-scanner in der
+     Stückliste kein Paket oder kann `dpkg` eine Version nicht vergleichen, endet der Job mit
+     Exit 2 statt grün. Sonst stünde im Bericht still „0 Befunde“.
+   - npm-Komponenten **ohne Version** werden nicht gescannt. syft führt verschachtelte
+     `package.json` ohne Versionsfeld als eigene Komponente (z. B.
+     `engine.io-client/build/cjs/package.json`). osv-scanner nähme sie als `UNKNOWN` und meldete
+     jedes Advisory des Pakets.
+   - **Signal, keine Sperre:** Der Job läuft nach dem Push, und `:latest` ist dann schon
+     bewegt. Er ist eigenständig, damit ein Befund weder Attestation noch Release-Asset
+     verhindert.
 
 ## Konsequenzen
 
@@ -88,6 +114,18 @@ seit 2026-09-11, und ohne Stückliste sind sie praktisch nicht zu erfüllen.
   dazu `actions/download-artifact`), alle auf SHA gepinnt und älter als die 7-Tage-Karenz.
 - Die Stückliste belegt den Inhalt des **gebauten** Images, nicht dass ein Edge es ausrollt;
   dafür bleibt `/health` → `version`. Ob ein gefundenes Paket ausnutzbar ist (VEX), bleibt offen.
+- **Advisory-Bericht (Punkt 8):** Das Step-Summary von `scan-advisories` ist die Stelle, an der
+  ein Release seine bekannten Lücken nennt. Ein roter npm-Befund wird per Override/Bump behoben
+  oder mit Begründung in `osv-scanner.toml` ausgenommen. Ein roter Debian-Befund heißt, dass das
+  Node-Base-Image hinter bookworm zurückliegt. Der Base-Image-Tag ist nicht per Digest gepinnt,
+  ein späterer Build kann das also schon beheben, sonst hilft ein `apt-get upgrade` im
+  Runtime-Stage. Vor dem Rollout schützt der Job nicht. Eine echte Sperre müsste scannen, bevor
+  `:latest` bewegt wird.
+- **osv-scanner als Binary** (v2.6.0, per SHA-256 gepinnt) ist eine weitere
+  Lieferketten-Abhängigkeit, die Dependabot nicht hebt. Der Pin wird von Hand gepflegt, mit
+  derselben 7-Tage-Karenz (v2.6.0 erschien am 2026-09-14). `security.yml` fährt über
+  `osv-scanner-action` noch v2.5.1. Die Abweichung ist bewusst: Erst ab 2.6.0 liest osv-scanner
+  die CycloneDX-1.7-Stückliste von syft.
 - Die übrigen Teile von panary/panary-workbench#47 (u. a. panary/panary-core#421 und
   panary/panary-cloud#677) bauen auf dieser Entscheidung auf; cloud verweist auf dieses ADR,
   statt eine eigene zu führen.

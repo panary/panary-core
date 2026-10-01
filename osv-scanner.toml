@@ -7,6 +7,11 @@
 # Verlauf: docs/security/osv-befund-2026-08-07.md (image-size eingetragen),
 # docs/security/osv-befund-2026-09-26.md (image-size entfernt).
 # Pendant in panary-cloud/osv-scanner.toml — synchron halten.
+#
+# Gilt seit core#448 auch fuer die Advisory-Pruefung des Edge-Images
+# (tools/scripts/osv-edge-advisories.sh: npm aus der Stueckliste, Debian aus dem
+# Image). Ein Eintrag hier nimmt den Befund dort ebenfalls aus — Debian-IDs
+# (DEBIAN-CVE-…) betreffen nur das Image.
 
 # --- Derzeit keine akzeptierten Befunde --------------------------------------
 # Die Datei bleibt trotzdem stehen: scripts/security-scan.mjs reicht sie per

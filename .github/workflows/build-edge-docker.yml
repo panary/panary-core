@@ -18,6 +18,8 @@ jobs:
     outputs:
       tag: ${{ steps.version.outputs.tag }}
       is_release: ${{ steps.version.outputs.is_release }}
+      # Fuer den Advisory-Job: scannt genau das gepushte Image, nicht einen Tag.
+      digest: ${{ steps.docker_build.outputs.digest }}
 
     permissions:
       contents: read
@@ -286,6 +288,67 @@ jobs:
           name: edge-sbom
           path: panary-edge-${{ steps.version.outputs.tag }}.cdx.json
           if-no-files-found: error
+
+  # --- Advisories des fertigen Images — core#448, ADR 0051 Punkt 8 ---
+  # Eigener Job, damit ein Befund weder Attestation noch Release-Asset der
+  # Stueckliste verhindert: Die Stueckliste beschreibt das Image auch dann, wenn
+  # es ein Advisory traegt. Er laeuft NACH dem Push, und `:latest` ist dann schon
+  # bewegt (Watchtower). Rot ist hier ein Signal, keine Sperre vor dem Rollout.
+  # Regel und Messung: tools/scripts/osv-edge-advisories.sh.
+  scan-advisories:
+    needs: build-docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Stueckliste holen
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: edge-sbom
+
+      - name: Login to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Binary statt osv-scanner-action: Die Action faehrt ihr eigenes
+      # Ergebnis-Handling und kennt keinen Zwei-Scan-Bericht. Version und
+      # Pruefsumme stehen im Diff; ab 2.6.0 liest osv-scanner die CycloneDX-1.7-
+      # Stueckliste von syft (2.3.8 lehnte sie ab: "invalid specification version").
+      - name: osv-scanner installieren (v2.6.0, Pruefsumme gepinnt)
+        env:
+          OSV_VERSION: v2.6.0
+          OSV_SHA256: ca69b3d3cd08f889a49dc0a383122f71cc528b83803671df5fd874d97485b108
+        run: |
+          set -euo pipefail
+          curl -fsSL -o "$RUNNER_TEMP/osv-scanner" \
+            "https://github.com/google/osv-scanner/releases/download/${OSV_VERSION}/osv-scanner_linux_amd64"
+          echo "${OSV_SHA256}  $RUNNER_TEMP/osv-scanner" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/osv-scanner"
+          "$RUNNER_TEMP/osv-scanner" --version
+
+      - name: Advisories pruefen (npm aus der Stueckliste, Debian aus dem Image)
+        env:
+          SBOM: panary-edge-${{ needs.build-docker.outputs.tag }}.cdx.json
+          IMAGE: ghcr.io/${{ github.repository_owner }}/panary-edge@${{ needs.build-docker.outputs.digest }}
+        run: |
+          set -uo pipefail
+          rc=0
+          bash tools/scripts/osv-edge-advisories.sh --sbom "$SBOM" --image "$IMAGE" \
+            --config osv-scanner.toml --osv "$RUNNER_TEMP/osv-scanner" > report.md || rc=$?
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
+          exit "$rc"
 
   # Eigener Job, damit NUR er `contents: write` bekommt — der Build-Job fuehrt
   # Fremd-Actions aus und soll das Repo nicht beschreiben koennen.

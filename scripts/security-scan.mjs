@@ -18,6 +18,12 @@
 //   0  every requested scanner delivered a result, nothing above --max-severity
 //   1  findings >= --max-severity
 //   2  usage error, or a requested scanner delivered no result at all
+//
+// Tested by scripts/security-scan.spec.mjs (panary/panary-core#362). The script
+// broke silently twice — panary/panary-core#219 (scanner v2 syntax, "0 findings"
+// with exit 0) and panary/panary-core#354 (lockfile symlink, wrong tree
+// measured) — so the pieces both incidents went through are exported and the
+// scan only runs when the file is invoked directly, never on import.
 
 import { execSync, spawnSync } from 'node:child_process'
 import { writeFileSync, mkdirSync, existsSync, lstatSync, realpathSync, mkdtempSync, rmSync } from 'node:fs'
@@ -47,7 +53,7 @@ const QUIET = has('quiet')
 const MAX_SEV = flag('max-severity', null)
 
 const SEVERITY_ORDER = ['low', 'medium', 'high', 'critical']
-const sevIndex = s => SEVERITY_ORDER.indexOf(String(s || '').toLowerCase())
+export const sevIndex = s => SEVERITY_ORDER.indexOf(String(s || '').toLowerCase())
 
 const color = {
   reset: '\x1b[0m',
@@ -70,7 +76,7 @@ const log = msg => {
 // reported as "Total findings: 0" with exit 0 — the local gate had been blind
 // since osv-scanner moved to v2. Failures are collected here, surfaced in every
 // output format and turned into a non-zero exit by main().
-const scanErrors = []
+export const scanErrors = []
 const failScan = (scanner, reason) => {
   scanErrors.push({ scanner, reason })
   // Deliberately bypasses log(): the lefthook pre-push hook runs with --quiet,
@@ -121,8 +127,8 @@ const detectRepo = () => {
 // scanned locally while CI covered it through `--recursive ./`. Measured there
 // with adm-zip@0.6.0 injected into a throwaway copy of that second lockfile:
 // old 0 findings, new 2, one of them high.
-const trackedLockfiles = () => {
-  const ls = spawnSync('git', ['-C', repoRoot, 'ls-files', '*pnpm-lock.yaml'], { encoding: 'utf8' })
+const trackedLockfiles = root => {
+  const ls = spawnSync('git', ['-C', root, 'ls-files', '*pnpm-lock.yaml'], { encoding: 'utf8' })
   if (ls.status !== 0) return []
   return (ls.stdout || '')
     .split('\n')
@@ -152,18 +158,18 @@ const trackedLockfiles = () => {
 //
 // The parent-directory fall-back is gone for good — that candidate WAS the bug,
 // and a neighbouring tree is never an answer to "what does this repo depend on".
-const escapesRepo = p => {
+export const escapesRepo = (p, root = repoRoot) => {
   try {
     if (!lstatSync(p).isSymbolicLink()) return false
-    return !realpathSync(p).startsWith(realpathSync(repoRoot) + sep)
+    return !realpathSync(p).startsWith(realpathSync(root) + sep)
   } catch {
     // Broken link or unreadable target — nothing measurable either way.
     return true
   }
 }
 
-const lockfileFromHead = relPath => {
-  const show = spawnSync('git', ['-C', repoRoot, 'show', `HEAD:${relPath}`], {
+const lockfileFromHead = (relPath, root) => {
+  const show = spawnSync('git', ['-C', root, 'show', `HEAD:${relPath}`], {
     encoding: 'utf8',
     maxBuffer: 1024 * 1024 * 64,
   })
@@ -174,7 +180,7 @@ const lockfileFromHead = relPath => {
   // extractor suitable to this file" documented below.
   const dir = mkdtempSync(join(tmpdir(), 'panary-osv-'))
   writeFileSync(join(dir, 'pnpm-lock.yaml'), show.stdout)
-  const sha = spawnSync('git', ['-C', repoRoot, 'rev-parse', '--short', 'HEAD'], { encoding: 'utf8' })
+  const sha = spawnSync('git', ['-C', root, 'rev-parse', '--short', 'HEAD'], { encoding: 'utf8' })
   return {
     rel: relPath,
     path: join(dir, 'pnpm-lock.yaml'),
@@ -183,29 +189,44 @@ const lockfileFromHead = relPath => {
   }
 }
 
-const resolveLockfiles = () => {
+export const resolveLockfiles = (root = repoRoot) => {
   // Without a readable index (no git, tarball export) fall back to the repo-local
   // lockfile only — never to the parent directory.
-  const tracked = trackedLockfiles()
+  const tracked = trackedLockfiles(root)
   const paths = tracked.length > 0 ? tracked : ['pnpm-lock.yaml']
   const resolved = []
   for (const rel of paths) {
-    const local = resolve(repoRoot, rel)
-    if (existsSync(local) && !escapesRepo(local)) {
+    const local = resolve(root, rel)
+    if (existsSync(local) && !escapesRepo(local, root)) {
       resolved.push({ rel, path: local, tmpDir: null, origin: 'Arbeitsbaum' })
       continue
     }
-    const fromHead = lockfileFromHead(rel)
+    const fromHead = lockfileFromHead(rel, root)
     if (fromHead) resolved.push(fromHead)
   }
   return resolved
 }
 
-const runOsvScanner = () => {
-  if (!hasTool('osv-scanner')) {
+// osv-scanner reports a CVSS score per vulnerability group; without one the
+// advisory's own label is taken as is.
+export const osvSeverity = (groupSev, databaseSeverity) =>
+  groupSev
+    ? Number(groupSev) >= 9
+      ? 'critical'
+      : Number(groupSev) >= 7
+        ? 'high'
+        : Number(groupSev) >= 4
+          ? 'medium'
+          : 'low'
+    : (databaseSeverity || 'unknown').toLowerCase()
+
+// `root`, `runScanner` and `toolAvailable` exist for the spec: it runs this
+// against throwaway repositories and a recorded fake instead of the real tool.
+export const runOsvScanner = ({ root = repoRoot, runScanner = spawnSync, toolAvailable = hasTool } = {}) => {
+  if (!toolAvailable('osv-scanner')) {
     return failScan('osv-scanner', 'nicht installiert — bash scripts/install-security-tools.sh')
   }
-  const locks = resolveLockfiles()
+  const locks = resolveLockfiles(root)
   if (locks.length === 0) {
     return failScan(
       'osv-scanner',
@@ -255,9 +276,9 @@ const runOsvScanner = () => {
   // stays for the next accepted finding.
   const osvArgs = ['scan', 'source', '--format', 'json']
   for (const l of locks) osvArgs.push('--lockfile', l.path)
-  const osvConfig = resolve(repoRoot, 'osv-scanner.toml')
+  const osvConfig = resolve(root, 'osv-scanner.toml')
   if (existsSync(osvConfig)) osvArgs.push('--config', osvConfig)
-  const result = spawnSync('osv-scanner', osvArgs, {
+  const result = runScanner('osv-scanner', osvArgs, {
     encoding: 'utf8',
     maxBuffer: 1024 * 1024 * 64,
   })
@@ -287,21 +308,13 @@ const runOsvScanner = () => {
     // Inert in panary-core today, load-bearing in panary-cloud.
     const sourceName = new Map(locks.map(l => [l.path, l.rel]))
     const attribute = src =>
-      locks.length > 1 ? (sourceName.get(src) ?? (src ? relative(repoRoot, src) : undefined)) : undefined
+      locks.length > 1 ? (sourceName.get(src) ?? (src ? relative(root, src) : undefined)) : undefined
     for (const r of data.results || []) {
       const lockfile = attribute(r.source?.path)
       for (const pkg of r.packages || []) {
         for (const v of pkg.vulnerabilities || []) {
           const groupSev = pkg.groups?.find(g => g.ids?.includes(v.id))?.max_severity
-          const severity = groupSev
-            ? Number(groupSev) >= 9
-              ? 'critical'
-              : Number(groupSev) >= 7
-                ? 'high'
-                : Number(groupSev) >= 4
-                  ? 'medium'
-                  : 'low'
-            : (v.database_specific?.severity || 'unknown').toLowerCase()
+          const severity = osvSeverity(groupSev, v.database_specific?.severity)
           findings.push({
             source: 'osv',
             severity,
@@ -509,9 +522,22 @@ const renderMarkdown = (findings, meta) => {
   return out
 }
 
+// ---------- Exit contract ----------
+
+export const blockingFindings = (findings, maxSeverity) =>
+  maxSeverity ? findings.filter(f => sevIndex(f.severity) >= sevIndex(maxSeverity)) : []
+
+// 2 outranks 1: if a scanner never ran, the finding list is a lower bound and
+// "nothing above the threshold" is not a statement anyone should act on.
+export const exitCodeFor = ({ findings, scanErrors, maxSeverity }) => {
+  if (maxSeverity && sevIndex(maxSeverity) === -1) return 2
+  if (scanErrors.length > 0) return 2
+  return blockingFindings(findings, maxSeverity).length > 0 ? 1 : 0
+}
+
 // ---------- Main ----------
 
-const main = () => {
+export const main = () => {
   const repoMeta = detectRepo()
   if (!repoMeta && MODE !== 'local') {
     log(
@@ -558,36 +584,43 @@ const main = () => {
   // Everything below writes to stderr directly rather than through log():
   // a non-zero exit must always carry its reason, and the pre-push hook runs
   // this script with --quiet.
-  let exitCode = 0
-
   if (MAX_SEV) {
-    const threshold = sevIndex(MAX_SEV)
-    if (threshold === -1) {
+    if (sevIndex(MAX_SEV) === -1) {
       process.stderr.write(`${color.red}Unbekannter --max-severity-Wert: ${MAX_SEV}${color.reset}\n`)
       process.exit(2)
     }
-    const blocking = findings.filter(f => sevIndex(f.severity) >= threshold)
+    const blocking = blockingFindings(findings, MAX_SEV)
     if (blocking.length > 0) {
       process.stderr.write(
         `${color.red}${color.bold}✗ ${blocking.length} finding(s) >= '${MAX_SEV}' — blocking.${color.reset}\n`,
       )
-      exitCode = 1
     }
   }
 
-  // Reported last and outranking the severity gate: if a scanner never ran,
-  // the finding list is a lower bound and "nothing above the threshold" is not
-  // a statement anyone should act on.
+  // Reported last, matching exitCodeFor(): the incomplete run outranks the
+  // severity gate.
   if (scanErrors.length > 0) {
     const names = scanErrors.map(e => e.scanner).join(', ')
     process.stderr.write(
       `${color.red}${color.bold}✗ Lauf unvollstaendig — ohne Ergebnis: ${names}. ` +
         `Die Fundzahl ist eine Untergrenze.${color.reset}\n`,
     )
-    exitCode = 2
   }
 
+  const exitCode = exitCodeFor({ findings, scanErrors, maxSeverity: MAX_SEV })
   if (exitCode !== 0) process.exit(exitCode)
 }
 
-main()
+// Run only when invoked directly (`node scripts/security-scan.mjs`, the pnpm
+// scripts, the lefthook pre-push hook) — never when the spec imports this file.
+// Compared via realpath: a symlinked checkout path or a space in it would make
+// the string comparison against import.meta.url miss, and the scan would then
+// silently not run at all.
+const invokedDirectly = () => {
+  try {
+    return Boolean(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
+  } catch {
+    return false
+  }
+}
+if (invokedDirectly()) main()

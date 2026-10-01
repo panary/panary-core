@@ -113,8 +113,14 @@ nach stderr — sie lief vorher durch `log()` und wäre im Hook unsichtbar gebli
 
 - **Ein künftiger v3-Syntaxbruch fällt genauso aus.** Der Fix macht den Ausfall
   sichtbar, verhindert ihn nicht; eine Versionsprüfung gibt es nicht.
-- **Kein Test deckt das Skript ab**, und es läuft in keiner Pipeline. Eine grüne CI
-  beweist über diesen Pfad nichts.
+- **Es läuft in keiner Pipeline.** Die CI scannt über `google/osv-scanner-action`,
+  nicht über dieses Skript. Seit 2026-10-02 ([#362](https://github.com/panary/panary-core/issues/362))
+  prüft `scripts/security-scan.spec.mjs` in der CI den Exit-Vertrag dieses Befunds:
+  Scanner-Exit außerhalb 0/1 füllt `scanErrors`, ein Lauf ohne Lockfile endet mit
+  `complete: false` und Exit 2. Den echten Aufruf ersetzt der Spec durch eine
+  Aufzeichnung. Ein Syntaxbruch einer künftigen osv-scanner-Version bliebe deshalb so
+  unbemerkt wie der Wechsel auf v2. Diese Hälfte, ein Integrationstest gegen das echte
+  Werkzeug, ist offen.
 - **Der Rückstand ist nicht rekonstruierbar** — wie viele Befunde der Gate in seiner
   blinden Zeit durchgelassen hat, lässt sich nachträglich nicht bestimmen.
 - **Gemessen wurde nur macOS/Homebrew mit 2.3.8.** Linux-Installationen sind ungetestet.

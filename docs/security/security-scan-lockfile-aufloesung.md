@@ -226,6 +226,55 @@ Vorzustand:
 | lebender Symlink aus dem Repo heraus | `… — committeter Stand HEAD@be5ff333, …` | identisch |
 | `adm-zip@0.6.0` eingeschleust | — | 2 Befunde, **ohne** Quellenangabe (korrekt inert) |
 
+## Nachtrag 2026-10-02: Der Spec ersetzt den Handgriff
+
+Die Mutationsprobe oben war ein Handgriff: Man musste wissen, dass es sie gibt, und
+sie mit einem **lebenden** Symlink machen. Seit [#362](https://github.com/panary/panary-core/issues/362)
+ist sie ein Spec, [`scripts/security-scan.spec.mjs`](../../scripts/security-scan.spec.mjs),
+und läuft in der CI (Schritt „security-scan-Logik pruefen").
+
+**Umbau:** Das Skript exportiert `escapesRepo`, `resolveLockfiles`, `runOsvScanner`,
+`osvSeverity`, `exitCodeFor` und `scanErrors`. `main()` läuft nur noch bei
+Direktaufruf. Der Vergleich geht über `realpath`, nicht über den String
+`file://${argv[1]}` der Nachbarskripte, weil ein Leerzeichen oder ein Symlink im Pfad
+den Scan sonst **still nicht starten** ließe. `resolveLockfiles` und `runOsvScanner`
+nehmen das Repo-Verzeichnis als Parameter. Der Scanner selbst ist injizierbar, damit
+der Spec ihn aufzeichnen kann.
+
+**Unverändertes Verhalten, gemessen** am 2026-10-02 mit osv-scanner 2.3.8 gegen
+`origin/main` @ `fd44f544`, alte und neue Fassung nebeneinander im selben Worktree:
+
+| Lauf | alt | neu |
+| --- | --- | --- |
+| `--format=json`, stdout und stderr (ohne Zeitstempel) | — | identisch |
+| `--format=console`, stdout und stderr | — | identisch |
+| `--max-severity=high` / `critical` / `bogus` | Exit 1 / 0 / 2 | Exit 1 / 0 / 2 |
+| Aufruf über einen Symlink aufs Skript | — | Scan läuft |
+
+**Mutationsprobe am Spec.** Jede Bruchstelle wurde einzeln eingebaut, und jedes Mal
+wurde der Spec rot, und zwar in der dafür gedachten Prüfung:
+
+| Mutation | rot in |
+| --- | --- |
+| `!escapesRepo(…)` entfernt (der Fix aus #354 zurückgedreht) | Symlink-Auflösung, Scanner bekommt HEAD |
+| Arbeitsbaum nie gewählt | echtes Lockfile im Arbeitsbaum |
+| leere Lockfile-Menge gibt still `[]` zurück | `failScan`, Direktaufruf Exit 2 |
+| Scanner-Exit außerhalb 0/1 ignoriert (#219) | `scanErrors` gefüllt |
+| `--config` entfernt bzw. immer gesetzt | `--config`-Prüfung |
+| `rmSync` des Temp-Verzeichnisses entfernt | beide Temp-Prüfungen |
+| `scanErrors` führen nicht zu Exit 2 | Direktaufruf, `exitCodeFor` |
+| CVSS-Grenze `>= 9` → `> 9` | `osvSeverity` |
+| `main()` startet bei Direktaufruf nicht | Direktaufruf |
+
+Der Spec baut seine Repos in `mkdtemp`-Verzeichnissen mit eigener git-Identität und
+ohne Hooks. Den Symlink des Haupt-Checkouts fasst er nicht an. Er prüft selbst, dass
+der Symlink der Vorrichtung **lebt**. Mit einem toten Symlink hätte die Prüfung
+bestanden, ohne den Fall zu berühren.
+
+**Byte-Gleichheit mit panary-cloud:** Skript und Spec sind repo-neutral geschrieben, und
+cloud übernimmt beide wörtlich mit eigenem CI-Schritt. Bis zu diesem Merge weichen die
+beiden Dateien ab. Prüfen lässt sich das mit dem `diff` unten.
+
 ## Was das nicht löst
 
 - **Eine uncommittete Lockfile-Änderung bleibt im Haupt-Checkout unsichtbar.** Gemessen
@@ -237,10 +286,12 @@ Vorzustand:
 - **Die Cargo-Seite ist ungeprüft.** `apps/pos-client/src-tauri/osv-scanner.toml` hat
   eine eigene Manifest-Auflösung; ob dort dieselbe Verwechslung steckt, wurde nicht
   gemessen.
-- **Kein Test deckt das Skript ab.** Die Mutationsprobe ist ein Handgriff, kein Gate —
-  eine grüne CI beweist über diesen Pfad weiterhin nichts. `security-scan.mjs` ist das
-  einzige Skript in `scripts/` ohne `.spec.mjs`; [#362](https://github.com/panary/panary-core/issues/362)
-  holt das nach.
+- ~~**Kein Test deckt das Skript ab.**~~ **Erledigt am 2026-10-02** durch
+  [#362](https://github.com/panary/panary-core/issues/362), siehe
+  [Nachtrag](#nachtrag-2026-10-02-der-spec-ersetzt-den-handgriff). Weiterhin offen:
+  Der Spec ersetzt osv-scanner durch eine Aufzeichnung. Er sichert die **eigene
+  Logik**, nicht den echten Lauf gegen das Werkzeug. Ein Syntaxbruch einer künftigen
+  osv-scanner-Version fiele wie bei #219 erst lokal auf.
 - **Gemessen wurde nur macOS mit osv-scanner 2.3.8.**
 - ~~**core und cloud teilen die Auflösung wieder, sind aber nicht byte-identisch** und
   sollen es nicht sein.~~ **Überholt am 2026-09-20** — siehe

@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: Print-Server-API
-description: Referenz der Print-Server-Schnittstelle am Edge — Aufrufer, Ziel-Host und Fehler-Events, der mitgelieferte MQTT-Broker, die ESC/POS-Encoder-Library samt der in Dots gemessenen Zentrierungsfalle bei Font B, das Rendern je Zieldrucker und die Druckerrolle, die über Küchenbon oder vollständige Quittung entscheidet.
+description: Referenz der Print-Server-Schnittstelle am Edge — Aufrufer, Ziel-Host und Fehler-Events, der mitgelieferte MQTT-Broker, die ESC/POS-Encoder-Library samt der in Dots gemessenen Zentrierungsfalle bei Font B, das Rendern je Zieldrucker, die Druckerrolle, die über Küchenbon oder vollständige Quittung entscheidet, und der Zeichensatz je Drucker.
 tags: [locations, print-server, esc-pos, mqtt]
 status: stable
 generated: { by: claude-code/historic, at: 2025-03-28T00:00:00Z }
@@ -722,14 +722,13 @@ Cache-Schlüssel aus der Breite allein wäre still falsch und gäbe dem
 Küchendrucker den Bon des Kassendruckers. Gemessener Preis des zweiten Renders:
 **~1,5 ms** (Bon mit 12 Positionen, 80 mm, n=500).
 
-### `encoding` ist in beiden Pfaden tot
+### `encoding` wirkt seit #376
 
-`PrinterConfig.encoding` wird gelesen und in `EscposOptions` weitergereicht —
-ausgewertet wird es **nirgends**: Weder `renderOrderReceipt` noch
-`buildEscposBuffer` erzeugen den Encoder mit einer Codepage-Option. Das galt vor
-#346 für den generischen Pfad und gilt seitdem für beide gleichermaßen. Die Option
-wird mitgegeben, damit ihr Auswerten später **eine** Stelle ist statt zwei — nicht,
-weil sie heute etwas bewirkt.
+Bis [panary/panary-core#376](https://github.com/panary/panary-core/issues/376)
+wurde `PrinterConfig.encoding` gelesen und weitergereicht, aber nirgends
+ausgewertet. Es wird jetzt **in der Drucker-Schleife** aufgelöst, wie die
+Papierbreite — zwei Drucker mit verschiedenem Zeichensatz bekommen zwei
+verschiedene Bons. Details in §14.
 
 ### Nachweis
 
@@ -821,3 +820,86 @@ Geprüft 2026-09-21.
 ⚠️ **Nur der IP-Pfad kennt die Rolle.** MQTT-Drucker bekommen ihre Nutzlast vom
 POS-Client (`order-print.service.ts`); dort rendert das Backend nicht und die
 Variante existiert nicht. Wer die Trennung dort erwartet, irrt.
+
+---
+
+## 14. Zeichensatz je Drucker
+
+Seit [panary/panary-core#376](https://github.com/panary/panary-core/issues/376)
+wirkt `printSettings.printers[].encoding`. Vorher gab es das Feld als Freitext in
+beiden Admin-Oberflächen, und kein Wert änderte den Bon.
+
+### Ein Ort für den Encoder
+
+Alle drei Renderpfade (Vorlage `buildEscposBuffer`, Bestellbon
+`renderOrderReceipt`, fiskalischer Beleg `renderReceiptEscPos`) erzeugen den
+Encoder über `createEscposEncoder(columns, encoding)` in
+[`escpos.adapter.ts`](../../apps/api-edge/src/print-server/escpos.adapter.ts).
+Dort wird der Wert auf eine Codepage der Library abgebildet und per `codepage()`
+gesetzt.
+
+| Gepflegter Wert | Codepage | `ESC t` (Epson) | Zusätzlich gegenüber CP437 |
+|---|---|---|---|
+| leer, `CP437` | `cp437` | 0 | — |
+| `CP850` | `cp850` | 2 | weitere westeuropäische Akzente |
+| `CP858` | `cp858` | 19 | **€** |
+| `WINDOWS-1252` | `windows1252` | 16 | **€, „ " ' und – —** |
+
+Die Liste steht als `PRINTER_ENCODINGS` in `@panary/locations/domain`
+([`printer-encoding.ts`](../../libs/domains/locations/domain/src/lib/printer-encoding.ts)).
+Angeboten wird nur, was die voreingestellte Zuordnung `epson` der Library kennt.
+Ein Wert außerhalb davon ließe `codepage()` werfen („Codepage not supported by
+printer"), und der Drucker bekäme gar keinen Bon.
+
+### Byte-Gleichheit ist die Regressionsgrenze
+
+🚨 **Ein Drucker ohne Angabe oder mit `CP437` druckt byte-identisch zum Stand vor
+#376.** Gemessen an Encoder 3.0.3: `codepage('cp437')` und kein Aufruf schreiben
+beide genau ein `ESC t 0` vor den ersten Text. Ein Default, der auf eine andere
+Codepage zöge, änderte jeden Bon der Flotte auf einmal.
+[`escpos.adapter.spec.ts`](../../apps/api-edge/src/print-server/escpos.adapter.spec.ts)
+vergleicht dafür gegen einen Encoder, der **direkt aus der Library** ohne
+Codepage gebaut ist. Ein Vergleich über `createEscposEncoder` prüfte den neuen
+Code nur gegen sich selbst.
+
+### Unbekannte Werte drucken trotzdem
+
+Bestandswerte stammen aus dem Freitextfeld. Die Auflösung
+(`resolvePrinterCodepage`) ignoriert Groß-/Kleinschreibung und Trennzeichen
+(`cp858`, `CP-858`, `Windows 1252`). Was danach nicht passt (`CP9999`, `UTF-8`),
+druckt in CP437 und schreibt ein Event:
+
+```
+event: print.encoding_unknown   printer: <Name>   encoding: <gepflegter Wert>   codepage: cp437
+```
+
+Das Event ist nötig, weil `/print-server/*` nicht durch `canonicalLog` läuft (§0).
+Ohne es sähe ein Tippfehler im Log aus wie ein bewusst gewähltes CP437.
+`print.order_success` trägt zusätzlich `codepage`.
+
+Das Schema bleibt `Type.String` und wird **nicht** auf die vier Werte verengt:
+Ein engeres Schema wiese die Filiale mit einem alten Freitextwert beim nächsten
+Speichern oder Sync ab. Eine Migration gibt es deshalb nicht.
+
+### Wo das Encoding gepflegt wird
+
+Im Edge-Admin ist es eine Auswahlliste neben der Papierbreite. Ein unbekannter
+Bestandswert erscheint dort als eigene Option („… — unbekannt, druckt als
+CP437") und wird beim Öffnen und Speichern nicht still ersetzt. Bekannte
+Schreibweisen (`cp858`) werden auf die kanonische Option (`CP858`) gezogen
+(`canonicalPrinterEncoding`).
+
+Wie die Rolle (§13) erbt das Feld die Cloud-Hoheit-Sperre. Der reguläre
+Pflegeort ist die Cloud, und dort ist das Feld bis
+[cloud#840](https://github.com/panary/panary-cloud/issues/840) weiter Freitext. Der Edge wertet beide Formen gleich aus.
+
+### Was kein Encoding repariert
+
+Halbgeviertstrich und typografische Anführungszeichen gibt es in **keiner** der
+DOS-Codepages (437/850/858). Sie werden dort weiter zu `?`. Nur
+`WINDOWS-1252` enthält sie, setzt aber einen Drucker voraus, der `ESC t 16`
+befolgt. Ob ein konkretes Gerät eine Codepage befolgt, zeigt sich erst auf dem
+Papier: Die Tests messen den Bytestrom.
+
+⚠️ **Nur der IP-Pfad wertet das Feld aus.** MQTT-Drucker bekommen ihre Nutzlast
+vom POS-Client; dort rendert das Backend nicht.

@@ -1,8 +1,6 @@
-// @ts-expect-error — keine Typdeklarationen vorhanden
-import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder'
 import { buildTseReceiptBlock } from '@panary/tse/domain'
 import type { Receipt } from '@panary/receipts/domain'
-import type { EscposOptions } from './escpos.adapter'
+import { createEscposEncoder, type EscposOptions } from './escpos.adapter'
 import { formatPrintDate, formatPrintTime } from './print-date-format'
 
 const COLUMNS_MAP: Record<string, number> = { '58mm': 32, '80mm': 48 }
@@ -21,13 +19,13 @@ const fmtMoney = (n: number, currency: string): string => `${n.toFixed(2).replac
  * und hängt an der Drucker-Konfiguration (Hardware/Laufzeit).
  */
 export function renderReceiptEscPos(receipt: Receipt, options: EscposOptions = {}): Uint8Array {
-  const { paperWidth = '80mm', timeZone } = options
+  const { paperWidth = '80mm', timeZone, encoding } = options
   const cols = COLUMNS_MAP[paperWidth] || 48
   const priceW = 12
   const nameW = cols - priceW
   const currency = receipt.currency || 'EUR'
 
-  const enc = new ReceiptPrinterEncoder({ columns: cols, language: 'esc-pos' })
+  const enc = createEscposEncoder(cols, encoding)
   enc.initialize()
 
   // Verkäufer-Kopf (Pflichtangabe Name + Anschrift)

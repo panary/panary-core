@@ -1,5 +1,3 @@
-// @ts-expect-error — keine Typdeklarationen vorhanden
-import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder'
 import {
   computeOrderTax,
   effectiveLineItems,
@@ -10,7 +8,7 @@ import {
   type OrderLineItem,
 } from '@panary/orders/domain'
 import { buildTseReceiptBlock } from '@panary/tse/domain'
-import type { EscposOptions } from './escpos.adapter'
+import { createEscposEncoder, type EscposOptions } from './escpos.adapter'
 import { formatPrintDate, formatPrintDateTime, formatPrintTime, printTimeZoneForLocation } from './print-date-format'
 
 const COLUMNS_MAP: Record<string, number> = { '58mm': 32, '80mm': 48 }
@@ -58,7 +56,7 @@ export function renderOrderReceipt(
   options: OrderReceiptOptions = {},
   deviceName?: string,
 ): Uint8Array {
-  const { paperWidth = '80mm', variant = 'full' } = options
+  const { paperWidth = '80mm', variant = 'full', encoding } = options
   const cols = COLUMNS_MAP[paperWidth] || 48
 
   // Spaltenbreiten
@@ -73,7 +71,7 @@ export function renderOrderReceipt(
   const drinkPrice = settings?.genericProductSettings?.generalDrinkPrice ?? 0
   const sideDishPrice = settings?.genericProductSettings?.generalSideDishPrice ?? 0
 
-  const enc = new ReceiptPrinterEncoder({ columns: cols, language: 'esc-pos' })
+  const enc = createEscposEncoder(cols, encoding)
   enc.initialize()
 
   // ─────────────────────────────────────────

@@ -41,7 +41,10 @@ export function resolvePrinterCodepage(encoding: string | null | undefined): Res
   if (encoding == null || encoding.trim() === '') return { codepage: DEFAULT_PRINTER_CODEPAGE, known: true }
 
   const wanted = normalize(encoding)
-  const match = PRINTER_ENCODINGS.find(e => normalize(e.value) === wanted)
+  // Auch der Encoder-Bezeichner selbst („windows1252") wird erkannt: Der Edge
+  // loest einmal je Drucker auf und reicht das Ergebnis an den Renderer weiter,
+  // der es erneut durch diese Funktion schickt.
+  const match = PRINTER_ENCODINGS.find(e => normalize(e.value) === wanted || e.codepage === wanted)
   return match ? { codepage: match.codepage, known: true } : { codepage: DEFAULT_PRINTER_CODEPAGE, known: false }
 }
 

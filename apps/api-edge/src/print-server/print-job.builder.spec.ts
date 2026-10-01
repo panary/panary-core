@@ -393,6 +393,20 @@ const angesagteCodepages = (bytes: Uint8Array): number[] => {
 
 const enthaeltByte = (bytes: Uint8Array, wert: number): boolean => bytes.includes(wert)
 
+/**
+ * Codepage, die an Position `index` gilt — die zuletzt davor angesagte. Nicht
+ * die Menge aller Ansagen: `rule()`/`box()` der Library kodieren ihre
+ * Linienzeichen fest in cp437 und schalten danach zurueck. Ein cp858-Bon traegt
+ * deshalb auch `ESC t 0`, und das ist richtig.
+ */
+const codepageAn = (bytes: Uint8Array, index: number): number | undefined => {
+  let aktuell: number | undefined
+  for (let i = 0; i + 2 < index; i++) {
+    if (bytes[i] === 0x1b && bytes[i + 1] === 0x74) aktuell = bytes[i + 2]
+  }
+  return aktuell
+}
+
 const euroAuftrag = {
   ...auftrag,
   order: {
@@ -419,32 +433,39 @@ describe('executeOrderReceiptJob — Zeichensatz je Drucker (#376)', () => {
       const bon858 = euro.empfangen()
       expect(bon858).not.toEqual(bon437)
 
-      // Angesagt wird je Drucker genau SEINE Codepage (Epson-Tabelle: 0 bzw. 19).
+      // Angesagt wird je Drucker SEINE Codepage (Epson-Tabelle: 0 bzw. 19). Der
+      // cp858-Bon kennt daneben 0 — fuer die Trennlinien, siehe `codepageAn`.
       expect(new Set(angesagteCodepages(bon437))).toEqual(new Set([0]))
-      expect(new Set(angesagteCodepages(bon858))).toEqual(new Set([19]))
+      expect(new Set(angesagteCodepages(bon858))).toEqual(new Set([0, 19]))
 
-      // Der sichtbare Beweis: € ist in cp858 0xD5, in cp437 gibt es ihn nicht.
-      expect(enthaeltByte(bon858, 0xd5)).toBe(true)
+      // Der sichtbare Beweis: € ist in cp858 0xD5, in cp437 gibt es ihn nicht —
+      // und das Byte steht in einem Abschnitt, fuer den cp858 angesagt ist.
       expect(enthaeltByte(bon437, 0xd5)).toBe(false)
+      expect(codepageAn(bon858, bon858.indexOf(0xd5))).toBe(19)
     } finally {
       await Promise.all([standard.close(), euro.close()])
     }
   })
 
-  it.each([undefined, 'CP437', 'cp437'])('druckt mit Encoding %j byte-identisch zum Bon ohne Angabe', async encoding => {
-    // 🚨 Die Regressionsgefahr dieses Issues: Ein Default, der auf eine andere
-    // Codepage zieht, aendert jeden Bon der Flotte auf einmal.
-    const ziel = createFakePrinter()
+  it.each([undefined, 'CP437', 'cp437'])(
+    'druckt mit Encoding %j byte-identisch zum Bon ohne Angabe',
+    async encoding => {
+      // 🚨 Die Regressionsgefahr dieses Issues: Ein Default, der auf eine andere
+      // Codepage zieht, aendert jeden Bon der Flotte auf einmal.
+      const ziel = createFakePrinter()
 
-    try {
-      await executeOrderReceiptJob(auftrag, [drucker({ pid: 'p', name: 'Theke', port: await ziel.listen(), encoding })])
-      await ziel.warteAufZustellung()
+      try {
+        await executeOrderReceiptJob(auftrag, [
+          drucker({ pid: 'p', name: 'Theke', port: await ziel.listen(), encoding }),
+        ])
+        await ziel.warteAufZustellung()
 
-      expect(ziel.empfangen()).toEqual(renderOrderReceipt(bonOrder, bonLocation, { paperWidth: '80mm' }, 'Kasse 1'))
-    } finally {
-      await ziel.close()
-    }
-  })
+        expect(ziel.empfangen()).toEqual(renderOrderReceipt(bonOrder, bonLocation, { paperWidth: '80mm' }, 'Kasse 1'))
+      } finally {
+        await ziel.close()
+      }
+    },
+  )
 
   it('druckt bei unbekanntem Encoding trotzdem — in CP437 und mit Event', async () => {
     const ziel = createFakePrinter()

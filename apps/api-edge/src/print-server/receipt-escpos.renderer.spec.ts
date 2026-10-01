@@ -172,3 +172,17 @@ describe('receipt-escpos.renderer — Verkaeufer-Kopf (#342)', () => {
     expect(mit[nameMit + 2].text).toContain('Dahler Strasse 35')
   })
 })
+
+describe('receipt-escpos.renderer — Zeichensatz (#376)', () => {
+  const mitEuro = () => buildReceipt({ seller: { name: 'Café 3,50 €' } } as Partial<Receipt>)
+
+  it('druckt das € mit CP858 als 0xD5', () => {
+    expect(renderReceiptEscPos(mitEuro(), { encoding: 'CP858' }).includes(0xd5)).toBe(true)
+  })
+
+  it('bleibt ohne Encoding byte-identisch zu CP437', () => {
+    const ohne = renderReceiptEscPos(mitEuro())
+    expect(ohne.includes(0xd5)).toBe(false)
+    expect(renderReceiptEscPos(mitEuro(), { encoding: 'CP437' })).toEqual(ohne)
+  })
+})

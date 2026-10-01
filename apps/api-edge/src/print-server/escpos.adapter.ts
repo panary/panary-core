@@ -57,10 +57,7 @@ export function resolveEscposCodepage(encoding: string | undefined, printerName?
  * `codepage('cp437')` ist byte-identisch zum Encoder ohne Angabe (gemessen an
  * 3.0.3: beide schreiben `ESC t 0` vor den ersten Text).
  */
-export function createEscposEncoder(
-  columns: number,
-  encoding?: string,
-): InstanceType<typeof ReceiptPrinterEncoder> {
+export function createEscposEncoder(columns: number, encoding?: string): InstanceType<typeof ReceiptPrinterEncoder> {
   const encoder = new ReceiptPrinterEncoder({ columns, language: 'esc-pos' })
   encoder.codepage(resolveEscposCodepage(encoding))
   return encoder

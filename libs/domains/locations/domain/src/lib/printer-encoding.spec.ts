@@ -28,6 +28,12 @@ describe('resolvePrinterCodepage (#376)', () => {
     expect(resolvePrinterCodepage(value)).toEqual({ codepage, known: true })
   })
 
+  it('erkennt jeden Encoder-Bezeichner als bekannt — der Edge loest zweimal auf', () => {
+    for (const e of PRINTER_ENCODINGS) {
+      expect(resolvePrinterCodepage(e.codepage)).toEqual({ codepage: e.codepage, known: true })
+    }
+  })
+
   it.each(['CP9999', 'UTF-8', 'latin1'])('faellt fuer den unbekannten Wert %j auf CP437 zurueck', value => {
     expect(resolvePrinterCodepage(value)).toEqual({ codepage: DEFAULT_PRINTER_CODEPAGE, known: false })
   })

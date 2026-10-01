@@ -13,12 +13,18 @@
 # Image). Ein Eintrag hier nimmt den Befund dort ebenfalls aus — Debian-IDs
 # (DEBIAN-CVE-…) betreffen nur das Image.
 
-# --- Derzeit keine akzeptierten Befunde --------------------------------------
-# Die Datei bleibt trotzdem stehen: scripts/security-scan.mjs reicht sie per
-# --config an osv-scanner weiter, damit ein kuenftiger Eintrag fuer jedes
-# gescannte Lockfile gilt — auch fuer die Temp-Kopie aus HEAD, die im
-# Haupt-Checkout gescannt wird.
-#
+# --- Befristet akzeptiert -----------------------------------------------------
+# scripts/security-scan.mjs reicht diese Datei per --config an osv-scanner
+# weiter, damit ein Eintrag fuer jedes gescannte Lockfile gilt — auch fuer die
+# Temp-Kopie aus HEAD, die im Haupt-Checkout gescannt wird. `pnpm audit` kennt
+# das Advisory unten nicht, ein Gegenstueck dort entfaellt.
+# Verlauf: docs/security/osv-befund-2026-10-02-node-forge.md.
+
+[[IgnoredVulns]]
+id = "GHSA-86w9-cpqp-85rv"  # node-forge: RSA-PKCS#1-v1.5-Signaturpruefung akzeptiert verschachtelte DigestAlgorithm-Elemente (CVSS 8.7)
+ignoreUntil = 2026-11-02
+reason = "Kein Fix: betroffen ist <= 1.4.0, und 1.4.0 ist die neueste node-forge-Version. Nur Dev-Abhaengigkeit (@nx/angular -> @nx/rspack -> @rspack/dev-server@1.2.1 -> selfsigned@2.4.1), nicht im Edge-Image (pnpm prune --prod; pnpm why node-forge --prod ist leer). selfsigned erzeugt nur ein lokales Dev-Server-Zertifikat; die einzige Signaturpruefung (verifyCertificateChain) gilt dem eben selbst erzeugten Zertifikat, nie fremdem Input. Override selfsigned ^5 scheidet aus: v5 ist async-only, @rspack/dev-server ruft generate() synchron. Eingetragen 2026-10-02 (panary/panary-core#475, Pendant panary/panary-cloud#835); bei Fix-Version per Override heben und Eintrag entfernen."
+
 # Zuletzt entfernt am 2026-09-26: GHSA-5p2g-fcmc-qvqq (JXL/HEIF) und
 # GHSA-w3rx-r6r6-pgpr (ICNS) zu image-size. Seit dem 2026-09-24 erfassen beide
 # image-size@0.5.5 nicht mehr (ICNS erst ab 0.6.3, JXL/HEIF ab 1.2.0, Fix

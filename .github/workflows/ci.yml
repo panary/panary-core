@@ -198,6 +198,16 @@ jobs:
           node scripts/csp-connect-src.spec.mjs
           pnpm csp:gate
 
+      # security-scan.mjs laeuft in keiner Pipeline — die CI scannt ueber
+      # google/osv-scanner-action, das Skript nur lokal im pre-push-Hook. Es ist
+      # trotzdem zweimal still gebrochen, beide Male mit einer Entwarnung ohne
+      # Grundlage: #219 meldete "0 findings" mit Exit 0, #354 mass ueber einen
+      # Symlink den Workbench-Baum statt core. Der Spec prueft die eigene Logik
+      # (Lockfile-Aufloesung, Exit-Vertrag) mit einem aufgezeichneten Scanner,
+      # nicht den echten Lauf gegen osv-scanner (#362).
+      - name: security-scan-Logik pruefen
+        run: node scripts/security-scan.spec.mjs
+
       # nx affected liest NX_BASE/NX_HEAD aus der Umgebung (nx-set-shas oben).
       #
       # `typecheck` ist seit 2026-08-06 dabei und bewusst HART, ohne Baseline: der

@@ -145,9 +145,10 @@ enum UserSystemRole {
   PLATFORM_SUPPORT = 'platform:support' // Support-Mitarbeiter
 
   // Tenant-Ebene (Kunden)
-  TENANT_OWNER   = 'tenant:owner'   // Inhaber
-  TENANT_MANAGER = 'tenant:manager' // Filialleiter
-  TENANT_STAFF   = 'tenant:staff'   // Kellner/Kassierer
+  TENANT_OWNER      = 'tenant:owner'      // Inhaber
+  TENANT_MANAGER    = 'tenant:manager'    // Filialleiter
+  TENANT_TECHNICIAN = 'tenant:technician' // Techniker (Admin-ähnliche Rechte)
+  TENANT_STAFF      = 'tenant:staff'      // Kellner/Kassierer
 
   // Geräte-Rollen (Maschinen-User)
   DEVICE_POS    = 'device:pos-client'    // Stationäre Kasse
@@ -168,18 +169,20 @@ Rollen mit Prefix `platform:` erhalten in `multiTenancy()` automatisch Bypass.
 
 Die Matrix ist die einzige Quelle der Wahrheit für RBAC-Berechtigungen.
 
-| Rolle              | Ressourcen & Aktionen                                                                                              |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `PLATFORM_OWNER`   | `system: MANAGE`, `users: MANAGE`                                                                                  |
-| `PLATFORM_ADMIN`   | `users: READ`                                                                                                      |
-| `PLATFORM_SUPPORT` | `users/orders/products/system: READ`                                                                               |
-| `TENANT_OWNER`     | `users/products: MANAGE`, `orders: READ`, + Abilities: Reports, Refund                                             |
-| `TENANT_MANAGER`   | `products: MANAGE`, `orders: CREATE+READ`                                                                          |
-| `TENANT_STAFF`     | `products: READ`, `orders: CREATE+READ`                                                                            |
-| `DEVICE_POS`       | `orders: MANAGE`, `products/users: READ`, `customers: READ+CREATE+UPDATE`, + Abilities: Clock-In, Discount, Refund |
-| `DEVICE_KDS`       | `orders: READ+UPDATE`, `products: READ`                                                                            |
-| `DEVICE_TABLET`    | `orders: READ+CREATE+UPDATE`, `products/users: READ`, + Ability: Clock-In                                          |
-| `DEVICE_KIOSK`     | `products: READ`, `orders: CREATE+READ`                                                                            |
+**Welche Rolle was darf:** [`docs/security/rollen-matrix.md`](../../docs/security/rollen-matrix.md),
+eine Zeile je Ressource, eine Spalte je Rolle, dazu die Abilities. Die Tabelle ist ein
+**Generat** aus der Matrix. Der Spec `roles.matrix-doc.spec.ts` in `users-domain` schlägt an,
+sobald sie abweicht. Nach einer Matrix-Änderung neu erzeugen:
+
+```bash
+ROLLEN_MATRIX_SCHREIBEN=1 pnpm nx test users-domain --skip-nx-cache
+```
+
+🚫 **Hier keine Kurzfassung der Matrix mehr pflegen.** Die frühere Tabelle an dieser Stelle war
+gedriftet: `tenant:manager` auf `orders` stand dort als `CREATE+READ`, die Matrix gibt CRUD.
+`tenant:technician` fehlte ganz. Sichttests wurden gegen sie geschrieben und erwarteten ein 403,
+wo der Code korrekt 200 liefert (panary/panary-core#384). Die Tabelle zeigt nur Rollen-Rechte. Grants am Konto
+kommen hinzu, und `multiTenancy()` schränkt danach weiter ein.
 
 ### AppAction-Mapping
 
@@ -255,4 +258,5 @@ Vor dem Implementieren eines neuen Services prüfen:
 - [ ] `resolveExternal` schützt alle sensitiven Felder?
 - [ ] `resolveData` (PATCH) verhindert Überschreiben von `_id`, `tenantId`, `createdAt`?
 - [ ] Neue Ressource in `AppResource` definiert und in `RolePermissions`-Matrix eingetragen?
+- [ ] `docs/security/rollen-matrix.md` neu erzeugt (§7)? Sonst wird `users-domain:test` rot.
 - [ ] Kein roher SQL/Mongo-Query im Service (nur Feathers Adapter API)?

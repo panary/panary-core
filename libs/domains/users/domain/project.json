@@ -19,6 +19,18 @@
         "generatePackageJson": false,
         "compiler": "tsc"
       }
+    },
+    "test": {
+      "inputs": [
+        "default",
+        "^production",
+        { "json": "{workspaceRoot}/tsconfig.json", "fields": ["compilerOptions"] },
+        { "externalDependencies": ["vitest"] },
+        { "env": "CI" },
+        { "dependentTasksOutputFiles": "**/*.js", "transitive": true },
+        "{workspaceRoot}/docs/security/rollen-matrix.md",
+        { "env": "ROLLEN_MATRIX_SCHREIBEN" }
+      ]
     }
   }
 }

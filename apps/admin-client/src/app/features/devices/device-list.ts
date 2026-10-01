@@ -13,6 +13,7 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
 import { DeviceStatusService } from '../../core/device-status.service'
 import { formatApiError } from '../../core/error-helper'
 import { DeviceAssignmentPickerComponent, type PosUser } from './device-assignment-picker'
+import { API_BASE_URL } from '../../core/api-base-url'
 
 interface Device {
   _id: string
@@ -644,14 +645,14 @@ export class DeviceListComponent implements OnInit {
       this.pairingSupportsAssignment.set(res.deviceAccessMode !== undefined)
       this.pairingAssignmentDirty.set(false)
       this.pairingCode.set(res.code)
-      let url = window.location.origin
+      let url = API_BASE_URL
       try {
         const health = await this.api.getResource<{ localIp?: string; port?: number }>('health')
         if (health?.localIp && health?.port) {
           url = `http://${health.localIp}:${health.port}`
         }
       } catch {
-        // Fallback bleibt window.location.origin
+        // Fallback bleibt die Edge-Basis (API_BASE_URL)
       }
       this.qrPayload.set(JSON.stringify({ url, code: res.code }))
     } catch {

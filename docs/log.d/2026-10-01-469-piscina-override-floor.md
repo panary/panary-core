@@ -1,0 +1,1 @@
+* **Creation**: [OSV-Befund 2026-10-01 — piscina per Override-Floor ^5.3.2](../security/osv-befund-2026-10-01-piscina.md) ([#469](https://github.com/panary/panary-core/issues/469)). Der Override-Floor `piscina ^5.3.2` schließt GHSA-67c8-pqhq-4rmx (critical). Aufgelöst war 5.2.0 nur noch über `ng-packagr`, ein reiner Build-Pfad; `@angular/build` stand schon auf 5.3.2.

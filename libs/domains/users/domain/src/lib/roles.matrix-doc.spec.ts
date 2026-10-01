@@ -97,6 +97,7 @@ describe('rollen-matrix.md (Generat aus RolePermissions)', () => {
     const block = extractBlock(doc)
     expect(block, `Marker fehlen in ${DOC_PATH}`).not.toBeNull()
     if (process.env['ROLLEN_MATRIX_SCHREIBEN'] === '1') {
+      // Absichtlich ohne Assertion: Der Schreiblauf ist grün, die Prüfung macht der nächste Lauf.
       writeFileSync(DOC_PATH, doc.replace(block as string, generated))
       return
     }

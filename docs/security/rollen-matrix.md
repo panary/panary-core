@@ -1,10 +1,10 @@
 ---
 type: Reference
 title: Rollen-Matrix — Generat aus roles.matrix.ts
-description: 'Welche Rolle welche Aktion auf welcher Ressource darf, eine Zeile je Ressource. Die Tabelle wird aus RolePermissions erzeugt, und ein Spec in users-domain schlägt an, sobald sie vom Code abweicht.'
+description: 'Welche Rolle welche Aktion auf welcher Ressource darf, als aus RolePermissions erzeugte Tabelle, die ein Spec in users-domain bei jeder Abweichung vom Code rot werden lässt.'
 tags: [users, rbac, permissions, generat]
 status: stable
-generated: { by: claude-code, at: 2026-10-02T00:00:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-02T00:00:00Z }
 ---
 
 # Rollen-Matrix

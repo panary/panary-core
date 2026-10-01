@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core'
 import { HttpClient } from '@angular/common/http'
 import { lastValueFrom } from 'rxjs'
+import { API_BASE_URL } from '../../core/api-base-url'
 
-const API_URL = window.location.origin
+const API_URL = API_BASE_URL
 
 export interface PrintServerStatus {
   status: 'stopped' | 'running' | 'error'

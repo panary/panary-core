@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
+import { canonicalPrinterEncoding, PRINTER_ENCODINGS } from '@panary/locations/domain'
 import { uuidv7 } from 'uuidv7'
 
 export interface PrinterFormData {
@@ -156,16 +157,20 @@ export interface PrinterFormData {
               class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
               >Encoding</label
             >
-            <input
+            <select
               id="printerEncoding"
               [(ngModel)]="form.encoding"
               name="encoding"
-              type="text"
-              placeholder="CP437"
               class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none"
-            />
+                     text-slate-900 dark:text-white outline-none"
+            >
+              @for (e of encodings; track e.value) {
+                <option [value]="e.value">{{ e.label }}</option>
+              }
+              @if (unknownEncoding) {
+                <option [value]="unknownEncoding">{{ unknownEncoding }} — unbekannt, druckt als CP437</option>
+              }
+            </select>
           </div>
         </div>
 
@@ -231,13 +236,29 @@ export class PrinterFormDialogComponent {
   private dialogRef = inject(MatDialogRef<PrinterFormDialogComponent>)
   private data: PrinterFormData | null = inject(MAT_DIALOG_DATA, { optional: true })
 
+  readonly encodings = PRINTER_ENCODINGS
+
   isEdit = !!this.data?.pid
+  /**
+   * Ein Bestandswert aus der Freitext-Zeit, den der Edge nicht kennt (#376). Er
+   * bleibt als eigene Option waehlbar, damit Oeffnen und Speichern ihn nicht still
+   * ersetzen — der Betreiber sieht, dass er als CP437 druckt, und waehlt selbst.
+   */
+  readonly unknownEncoding: string | null =
+    this.data?.encoding && !canonicalPrinterEncoding(this.data.encoding) ? this.data.encoding : null
+
   form: PrinterFormData = this.data
     ? // Ein Bestandsdrucker traegt `role` nicht. Ohne das Auffuellen stuende das
       // Auswahlfeld leer und der erste Speichervorgang schriebe `undefined` —
       // auf dem Papier zwar weiterhin der Vollbon, in der Maske aber ein
       // Zustand, den der Nutzer nicht gewaehlt hat (#347).
-      { ...this.data, role: this.data.role ?? 'both' }
+      // Dasselbe fuer `encoding`: „cp858" aus der Freitext-Zeit trifft keine
+      // Option der Auswahl und stuende sonst leer da (#376).
+      {
+        ...this.data,
+        role: this.data.role ?? 'both',
+        encoding: canonicalPrinterEncoding(this.data.encoding) ?? this.data.encoding,
+      }
     : {
         pid: uuidv7(),
         active: true,

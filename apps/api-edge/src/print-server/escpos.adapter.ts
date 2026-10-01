@@ -1,7 +1,7 @@
 import net from 'net'
 // @ts-expect-error — keine Typdeklarationen vorhanden
 import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder'
-import type { PrintElement } from '@panary/locations/domain'
+import { resolvePrinterCodepage, type PrintElement } from '@panary/locations/domain'
 import { logger } from '@panary/shared-backend'
 
 const TCP_TIMEOUT = 5000
@@ -15,6 +15,11 @@ const COLUMNS_MAP: Record<PaperWidth, number> = {
 
 export interface EscposOptions {
   paperWidth?: PaperWidth
+  /**
+   * Gepflegter Zeichensatz des Druckers (`printers[].encoding`, #376). Leer =
+   * CP437, byte-identisch zum Stand davor. Unbekannte Werte fallen auf CP437
+   * zurueck, siehe `resolveEscposCodepage`.
+   */
   encoding?: string
   /**
    * Zeitzone der Filiale (`settings.generalSettings.timezone`) fuer alle
@@ -26,16 +31,49 @@ export interface EscposOptions {
 }
 
 /**
+ * Gepflegtes Encoding → Encoder-Codepage. Ein unbekannter Wert druckt in CP437
+ * und hinterlaesst ein Event: `/print-server/*` laeuft nicht durch
+ * `canonicalLog`, ohne das Event waere der Fehlgriff unsichtbar (#376).
+ */
+export function resolveEscposCodepage(encoding: string | undefined, printerName?: string): string {
+  const { codepage, known } = resolvePrinterCodepage(encoding)
+  if (!known) {
+    logger.warn({
+      message: `Unbekanntes Drucker-Encoding "${encoding}" — Bon wird in ${codepage} gedruckt`,
+      event: 'print.encoding_unknown',
+      printer: printerName,
+      encoding,
+      codepage,
+    })
+  }
+  return codepage
+}
+
+/**
+ * Der eine Ort, an dem ein ESC/POS-Encoder entsteht — fuer alle drei
+ * Renderpfade (Vorlage, Bestellbon, fiskalischer Beleg). Bis #376 erzeugte jeder
+ * seinen eigenen ohne Codepage, und das gepflegte Encoding kam nirgends an.
+ *
+ * `codepage('cp437')` ist byte-identisch zum Encoder ohne Angabe (gemessen an
+ * 3.0.3: beide schreiben `ESC t 0` vor den ersten Text).
+ */
+export function createEscposEncoder(
+  columns: number,
+  encoding?: string,
+): InstanceType<typeof ReceiptPrinterEncoder> {
+  const encoder = new ReceiptPrinterEncoder({ columns, language: 'esc-pos' })
+  encoder.codepage(resolveEscposCodepage(encoding))
+  return encoder
+}
+
+/**
  * Wandelt ein PrintElement[]-Array in einen ESC/POS-Buffer um.
  */
 export function buildEscposBuffer(elements: PrintElement[], options: EscposOptions = {}): Uint8Array {
-  const { paperWidth = '80mm' } = options
+  const { paperWidth = '80mm', encoding } = options
   const columns = COLUMNS_MAP[paperWidth] || 48
 
-  const encoder = new ReceiptPrinterEncoder({
-    columns,
-    language: 'esc-pos',
-  })
+  const encoder = createEscposEncoder(columns, encoding)
 
   encoder.initialize()
 

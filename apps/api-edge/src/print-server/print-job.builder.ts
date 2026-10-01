@@ -1,5 +1,5 @@
 import type { PrintElement, PrintJob, TextLine } from '@panary/locations/domain'
-import { buildEscposBuffer, sendToNetworkPrinter, type EscposOptions } from './escpos.adapter'
+import { buildEscposBuffer, resolveEscposCodepage, sendToNetworkPrinter, type EscposOptions } from './escpos.adapter'
 import { receiptVariantForRole, renderOrderReceipt } from './order-receipt.renderer'
 import { formatPrintDateTime } from './print-date-format'
 import { logger } from '@panary/shared-backend'
@@ -57,7 +57,9 @@ export async function executePrintJob(job: PrintJob, allPrinters: PrinterConfig[
   for (const printer of targetPrinters) {
     const options: EscposOptions = {
       paperWidth: (printer.paperWidth as '58mm' | '80mm') ?? '80mm',
-      encoding: printer.encoding ?? 'cp437',
+      // Hier aufgeloest statt im Adapter, damit ein unbekannter Wert im Event
+      // den Drucker nennt (#376). Der Adapter sieht danach nur noch Gueltiges.
+      encoding: resolveEscposCodepage(printer.encoding, printer.name),
     }
 
     try {
@@ -134,6 +136,9 @@ export async function executeOrderReceiptJob(
 
   for (const printer of targetPrinters) {
     const paperWidth = printer.paperWidth ?? '80mm'
+    // Je Drucker, wie die Papierbreite — zwei Drucker mit verschiedenem
+    // Zeichensatz bekommen zwei verschiedene Bons (#376).
+    const codepage = resolveEscposCodepage(printer.encoding, printer.name)
     // Kuechendrucker bekommen den Bon ohne Filialkopf und ohne TSE-Block (#347).
     // Ohne gepflegte Rolle ist das der Vollbon — siehe `receiptVariantForRole`.
     const variant = receiptVariantForRole(printer.role)
@@ -156,11 +161,7 @@ export async function executeOrderReceiptJob(
         job.location,
         {
           paperWidth,
-          // `encoding` erreicht heute WEDER `renderOrderReceipt` NOCH
-          // `buildEscposBuffer` — beide erzeugen den Encoder ohne Codepage-Option.
-          // Mitgegeben, damit beide Druckpfade dieselben Optionen tragen und das
-          // Auswerten spaeter EINE Stelle ist, nicht zwei.
-          encoding: printer.encoding ?? 'cp437',
+          encoding: codepage,
           variant,
         },
         job.deviceName,
@@ -176,6 +177,7 @@ export async function executeOrderReceiptJob(
         printer: printer.name,
         orderId: job.orderId,
         paperWidth,
+        codepage,
         variant,
       })
     } catch (err: unknown) {

@@ -6,7 +6,12 @@ vi.mock('@panary/shared-backend', () => ({
 }))
 
 import { logger } from '@panary/shared-backend'
-import { buildTestPrintDocument, executeOrderReceiptJob, type PrinterConfig } from './print-job.builder'
+import {
+  buildTestPrintDocument,
+  executeOrderReceiptJob,
+  executePrintJob,
+  type PrinterConfig,
+} from './print-job.builder'
 import { renderOrderReceipt } from './order-receipt.renderer'
 
 const datumsZeile = (elements: ReturnType<typeof buildTestPrintDocument>): string => {
@@ -366,6 +371,161 @@ describe('executeOrderReceiptJob — Bon-Variante je Druckerrolle (#347)', () =>
 
       expect(vi.mocked(logger.info)).toHaveBeenCalledWith(
         expect.objectContaining({ event: 'print.order_success', variant: 'kitchen', paperWidth: '80mm' }),
+      )
+    } finally {
+      await ziel.close()
+    }
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// #376: Gepflegtes Encoding je Drucker auswerten
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Alle `ESC t n` im Strom — die Codepage, die dem Drucker angesagt wird. */
+const angesagteCodepages = (bytes: Uint8Array): number[] => {
+  const werte: number[] = []
+  for (let i = 0; i + 2 < bytes.length; i++) {
+    if (bytes[i] === 0x1b && bytes[i + 1] === 0x74) werte.push(bytes[i + 2])
+  }
+  return werte
+}
+
+const enthaeltByte = (bytes: Uint8Array, wert: number): boolean => bytes.includes(wert)
+
+const euroAuftrag = {
+  ...auftrag,
+  order: {
+    ...bonOrder,
+    lineItems: [{ ...bonOrder.lineItems[0], name: 'Preis 3,50 €' }],
+  },
+}
+
+describe('executeOrderReceiptJob — Zeichensatz je Drucker (#376)', () => {
+  it('gibt zwei Druckern mit verschiedenem Encoding zwei verschiedene Bons', async () => {
+    const standard = createFakePrinter()
+    const euro = createFakePrinter()
+
+    try {
+      const ergebnis = await executeOrderReceiptJob(euroAuftrag, [
+        drucker({ pid: 'p437', name: 'Theke', port: await standard.listen(), encoding: 'CP437' }),
+        drucker({ pid: 'p858', name: 'Kasse', port: await euro.listen(), encoding: 'CP858' }),
+      ])
+      await standard.warteAufZustellung()
+      await euro.warteAufZustellung()
+      expect(ergebnis.success).toBe(true)
+
+      const bon437 = standard.empfangen()
+      const bon858 = euro.empfangen()
+      expect(bon858).not.toEqual(bon437)
+
+      // Angesagt wird je Drucker genau SEINE Codepage (Epson-Tabelle: 0 bzw. 19).
+      expect(new Set(angesagteCodepages(bon437))).toEqual(new Set([0]))
+      expect(new Set(angesagteCodepages(bon858))).toEqual(new Set([19]))
+
+      // Der sichtbare Beweis: € ist in cp858 0xD5, in cp437 gibt es ihn nicht.
+      expect(enthaeltByte(bon858, 0xd5)).toBe(true)
+      expect(enthaeltByte(bon437, 0xd5)).toBe(false)
+    } finally {
+      await Promise.all([standard.close(), euro.close()])
+    }
+  })
+
+  it.each([undefined, 'CP437', 'cp437'])('druckt mit Encoding %j byte-identisch zum Bon ohne Angabe', async encoding => {
+    // 🚨 Die Regressionsgefahr dieses Issues: Ein Default, der auf eine andere
+    // Codepage zieht, aendert jeden Bon der Flotte auf einmal.
+    const ziel = createFakePrinter()
+
+    try {
+      await executeOrderReceiptJob(auftrag, [drucker({ pid: 'p', name: 'Theke', port: await ziel.listen(), encoding })])
+      await ziel.warteAufZustellung()
+
+      expect(ziel.empfangen()).toEqual(renderOrderReceipt(bonOrder, bonLocation, { paperWidth: '80mm' }, 'Kasse 1'))
+    } finally {
+      await ziel.close()
+    }
+  })
+
+  it('druckt bei unbekanntem Encoding trotzdem — in CP437 und mit Event', async () => {
+    const ziel = createFakePrinter()
+
+    try {
+      vi.mocked(logger.warn).mockClear()
+      const ergebnis = await executeOrderReceiptJob(auftrag, [
+        drucker({ pid: 'px', name: 'Tippfehler', port: await ziel.listen(), encoding: 'CP9999' }),
+      ])
+      await ziel.warteAufZustellung()
+
+      expect(ergebnis.success).toBe(true)
+      expect(ziel.empfangen()).toEqual(renderOrderReceipt(bonOrder, bonLocation, { paperWidth: '80mm' }, 'Kasse 1'))
+      expect(vi.mocked(logger.warn)).toHaveBeenCalledTimes(1)
+      expect(vi.mocked(logger.warn).mock.calls[0][0]).toMatchObject({
+        event: 'print.encoding_unknown',
+        printer: 'Tippfehler',
+        encoding: 'CP9999',
+        codepage: 'cp437',
+      })
+    } finally {
+      await ziel.close()
+    }
+  })
+
+  it('nennt die Codepage im Erfolgs-Event', async () => {
+    const ziel = createFakePrinter()
+
+    try {
+      vi.mocked(logger.info).mockClear()
+      await executeOrderReceiptJob(auftrag, [
+        drucker({ pid: 'p-log', name: 'Kasse', port: await ziel.listen(), encoding: 'Windows-1252' }),
+      ])
+      await ziel.warteAufZustellung()
+
+      expect(vi.mocked(logger.info)).toHaveBeenCalledWith(
+        expect.objectContaining({ event: 'print.order_success', codepage: 'windows1252' }),
+      )
+    } finally {
+      await ziel.close()
+    }
+  })
+})
+
+describe('executePrintJob — Zeichensatz je Drucker (#376)', () => {
+  const dokument = { document: [{ type: 'text' as const, text: 'Crème brûlée 3,50 €' }] }
+
+  it('wertet das Encoding im Vorlagen-Pfad aus', async () => {
+    const standard = createFakePrinter()
+    const euro = createFakePrinter()
+
+    try {
+      await executePrintJob(dokument, [
+        drucker({ pid: 'a', name: 'A', port: await standard.listen() }),
+        drucker({ pid: 'b', name: 'B', port: await euro.listen(), encoding: 'CP858' }),
+      ])
+      await standard.warteAufZustellung()
+      await euro.warteAufZustellung()
+
+      expect(new Set(angesagteCodepages(standard.empfangen()))).toEqual(new Set([0]))
+      expect(new Set(angesagteCodepages(euro.empfangen()))).toEqual(new Set([19]))
+      expect(enthaeltByte(euro.empfangen(), 0xd5)).toBe(true)
+    } finally {
+      await Promise.all([standard.close(), euro.close()])
+    }
+  })
+
+  it('faellt bei unbekanntem Encoding auf CP437 zurueck und nennt den Drucker', async () => {
+    const ziel = createFakePrinter()
+
+    try {
+      vi.mocked(logger.warn).mockClear()
+      const ergebnis = await executePrintJob(dokument, [
+        drucker({ pid: 'x', name: 'Bar', port: await ziel.listen(), encoding: 'UTF-8' }),
+      ])
+      await ziel.warteAufZustellung()
+
+      expect(ergebnis.success).toBe(true)
+      expect(new Set(angesagteCodepages(ziel.empfangen()))).toEqual(new Set([0]))
+      expect(vi.mocked(logger.warn)).toHaveBeenCalledWith(
+        expect.objectContaining({ event: 'print.encoding_unknown', printer: 'Bar', encoding: 'UTF-8' }),
       )
     } finally {
       await ziel.close()

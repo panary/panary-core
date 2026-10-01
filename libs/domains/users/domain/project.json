@@ -4,6 +4,9 @@
   "sourceRoot": "libs/domains/users/domain/src",
   "projectType": "library",
   "tags": ["type:domain", "domain:users"],
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals", "{workspaceRoot}/docs/security/rollen-matrix.md"]
+  },
   "targets": {
     "build": {
       "executor": "@nx/rollup:rollup",

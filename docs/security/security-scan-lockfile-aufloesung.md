@@ -252,7 +252,8 @@ der Spec ihn aufzeichnen kann.
 | Aufruf über einen Symlink aufs Skript | — | Scan läuft |
 
 **Mutationsprobe am Spec.** Jede Bruchstelle wurde einzeln eingebaut, und jedes Mal
-wurde der Spec rot, und zwar in der dafür gedachten Prüfung:
+wurde der Spec rot, und zwar in der dafür gedachten Prüfung. Es waren 12 Mutationen,
+alle wurden rot. Die beiden letzten Zeilen decken die Lage von panary-cloud mit zwei Lockfiles ab:
 
 | Mutation | rot in |
 | --- | --- |
@@ -265,6 +266,8 @@ wurde der Spec rot, und zwar in der dafür gedachten Prüfung:
 | `scanErrors` führen nicht zu Exit 2 | Direktaufruf, `exitCodeFor` |
 | CVSS-Grenze `>= 9` → `> 9` | `osvSeverity` |
 | `main()` startet bei Direktaufruf nicht | Direktaufruf |
+| Lockfile-Erkennung nur `pnpm-lock.yaml` statt `*pnpm-lock.yaml` | zwei getrackte Lockfiles |
+| Quellenangabe je Befund bei mehreren Lockfiles abgeschaltet | zwei getrackte Lockfiles |
 
 Der Spec baut seine Repos in `mkdtemp`-Verzeichnissen mit eigener git-Identität und
 ohne Hooks. Den Symlink des Haupt-Checkouts fasst er nicht an. Er prüft selbst, dass

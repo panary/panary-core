@@ -21,7 +21,7 @@
  *
  * Was hier NICHT geprueft wird: der echte Lauf gegen osv-scanner. Der Scanner ist
  * durch eine Aufzeichnung ersetzt — ein kuenftiger Syntaxbruch des Werkzeugs (wie bei
- * #219) faellt weiterhin erst lokal auf.
+ * panary/panary-core#219) faellt weiterhin erst lokal auf.
  */
 
 import assert from 'node:assert/strict'
@@ -135,7 +135,7 @@ test('lebender Symlink aus dem Repo heraus → committeter Stand, nicht das Syml
   const { repo } = repoWithEscapingSymlink()
   // Der Symlink MUSS leben. Bei einem toten liefert existsSync false, der Rueckfall
   // auf HEAD greift ohnehin, und die Pruefung bestuende, ohne den Fall zu beruehren —
-  // genau so ist die Handprobe zu #354 einmal danebengegangen.
+  // genau so ist die Handprobe zu panary/panary-core#354 einmal danebengegangen.
   assert.ok(existsSync(join(repo, 'pnpm-lock.yaml')), 'Vorbedingung: Symlink lebt')
   assert.equal(readFileSync(join(repo, 'pnpm-lock.yaml'), 'utf8'), ELSEWHERE, 'Vorbedingung: Ziel ist fremd')
 
@@ -249,6 +249,40 @@ test('Scanner-Exit 1 ist ein Befund, kein Fehler', () => {
     findings.map(f => [f.id, f.severity, f.package]),
     [['GHSA-7q85-xj36-vmfc', 'high', 'adm-zip']],
   )
+  assert.equal(findings[0].lockfile, undefined, 'bei einem Lockfile keine Quellenangabe je Befund')
+})
+
+test('zwei getrackte Lockfiles → beide gescannt, jeder Befund nennt sein Lockfile', () => {
+  // Die Lage von panary-cloud (Workspace-Root plus apps/storefront/runtime/,
+  // panary/panary-cloud#490): Das zweite Lockfile liegt im Unterverzeichnis, ist hier
+  // zusaetzlich ein Symlink nach draussen und muss trotzdem aus HEAD kommen.
+  const { root, repo } = repoWithCommittedLockfile()
+  const sub = join(repo, 'apps', 'runtime')
+  mkdirSync(sub, { recursive: true })
+  writeFileSync(join(sub, 'pnpm-lock.yaml'), 'lockfileVersion: runtime\n')
+  git(repo, 'add', 'apps/runtime/pnpm-lock.yaml')
+  git(repo, 'commit', '-q', '-m', 'second lockfile')
+  writeFileSync(join(root, 'runtime-elsewhere.yaml'), ELSEWHERE)
+  unlinkSync(join(sub, 'pnpm-lock.yaml'))
+  symlinkSync(join(root, 'runtime-elsewhere.yaml'), join(sub, 'pnpm-lock.yaml'))
+  assert.ok(existsSync(join(sub, 'pnpm-lock.yaml')), 'Vorbedingung: Symlink lebt')
+
+  const scanner = recordingScanner()
+  scanner.run = (cmd, args) => {
+    const paths = args.flatMap((a, i) => (args[i - 1] === '--lockfile' ? [a] : []))
+    scanner.calls.push({ paths, contents: paths.map(p => readFileSync(p, 'utf8')) })
+    const vuln = id => ({ package: { name: 'pkg', version: '1.0.0' }, vulnerabilities: [{ id }] })
+    return {
+      status: 1,
+      stderr: '',
+      stdout: JSON.stringify({ results: paths.map(p => ({ source: { path: p }, packages: [vuln(`ID-${p}`)] })) }),
+    }
+  }
+  const findings = scan(repo, scanner)
+
+  assert.equal(scanErrors.length, 0)
+  assert.deepEqual([...scanner.calls[0].contents].sort(), [COMMITTED, 'lockfileVersion: runtime\n'])
+  assert.deepEqual(findings.map(f => f.lockfile).sort(), ['apps/runtime/pnpm-lock.yaml', 'pnpm-lock.yaml'])
 })
 
 console.log('Scanner-Aufruf')
@@ -308,7 +342,7 @@ test('exitCodeFor: 0 ohne Befund ueber der Schwelle, 1 bei Befund, 2 bei unvolls
   assert.equal(exitCodeFor({ findings: high, scanErrors: [], maxSeverity: 'critical' }), 0)
   assert.equal(exitCodeFor({ findings: high, scanErrors: [], maxSeverity: 'high' }), 1)
   assert.equal(exitCodeFor({ findings: high, scanErrors: [], maxSeverity: null }), 0)
-  // #219: Ein Scanner ohne Ergebnis darf nie wie "nichts gefunden" aussehen — auch
+  // panary/panary-core#219: Ein Scanner ohne Ergebnis darf nie wie "nichts gefunden" aussehen — auch
   // nicht, wenn die (unvollstaendige) Liste leer ist.
   assert.equal(exitCodeFor({ findings: [], scanErrors: error, maxSeverity: 'critical' }), 2)
   assert.equal(exitCodeFor({ findings: [], scanErrors: error, maxSeverity: null }), 2)

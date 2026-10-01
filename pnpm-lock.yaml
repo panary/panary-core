@@ -49,7 +49,7 @@ overrides:
   undici: ^7.29.1
   '@babel/core': ^7.29.6
   form-data: ^4.0.6
-  piscina: ^5.2.0
+  piscina: ^5.3.2
   adm-zip: ^0.6.1
   svgo: ^4.1.0
   smol-toml: ^1.7.1
@@ -7947,10 +7947,6 @@ packages:
   pirates@4.0.7:
     resolution: {integrity: sha512-TfySrs/5nm8fQJDcBDuUng3VOUKsd7S+zqvbOTiGXHfxX4wK31ard+hoNuvkicM/2YFzlpDgABOevKSsB4G/FA==}
     engines: {node: '>= 6'}
-
-  piscina@5.2.0:
-    resolution: {integrity: sha512-DszUCKeVN/5G5QKo6jAVHL8fmKnkJvQ0ACiVgY7YGCq3TUB2oznAOayvZPIAdEThvhczkXR+qm3IHsNXpFCYfA==}
-    engines: {node: '>=20.x'}
 
   piscina@5.3.2:
     resolution: {integrity: sha512-vv7l/mM7B9WgrhDaudIqv1x6v4LOBRYYmpWGdWushhpbCmVHp11sUB2v4hj1CAeTGXVxuZFz6xOU1RalAiPKfQ==}
@@ -17959,7 +17955,7 @@ snapshots:
       jsonc-parser: 3.3.1
       less: 4.6.4
       ora: 9.4.0
-      piscina: 5.2.0
+      piscina: 5.3.2
       postcss: 8.5.28
       rollup-plugin-dts: 6.4.1(rollup@4.61.1)(typescript@6.0.3)
       rxjs: 7.8.2
@@ -18495,10 +18491,6 @@ snapshots:
     optional: true
 
   pirates@4.0.7: {}
-
-  piscina@5.2.0:
-    optionalDependencies:
-      '@napi-rs/nice': 1.1.1
 
   piscina@5.3.2:
     optionalDependencies:

@@ -74,7 +74,11 @@ seit 2026-09-11, und ohne Stückliste sind sie praktisch nicht zu erfüllen.
      (`dpkg --compare-versions`). Ohne Fix hinge jedes Release an Debian fest: `v26.10.1`
      hatte 157 Befunde, keiner davon mit bookworm-Fix.
    - **Ausnahmen** stehen in `osv-scanner.toml` am Repo-Root, derselben Datei wie für den
-     Lockfile-Scan.
+     Lockfile-Scan. Sie wirken in beiden Scans (gemessen mit je einer Test-ID: Image-Scan 14 → 0,
+     Stücklisten-Scan 5 → 0 Treffer).
+   - **Fail-closed:** Erkennt der Image-Scan kein Debian-Release, erkennt osv-scanner in der
+     Stückliste kein Paket oder kann `dpkg` eine Version nicht vergleichen, endet der Job mit
+     Exit 2 statt grün. Sonst stünde im Bericht still „0 Befunde“.
    - npm-Komponenten **ohne Version** werden nicht gescannt. syft führt verschachtelte
      `package.json` ohne Versionsfeld als eigene Komponente (z. B.
      `engine.io-client/build/cjs/package.json`). osv-scanner nähme sie als `UNKNOWN` und meldete
@@ -117,6 +121,11 @@ seit 2026-09-11, und ohne Stückliste sind sie praktisch nicht zu erfüllen.
   ein späterer Build kann das also schon beheben, sonst hilft ein `apt-get upgrade` im
   Runtime-Stage. Vor dem Rollout schützt der Job nicht. Eine echte Sperre müsste scannen, bevor
   `:latest` bewegt wird.
+- **osv-scanner als Binary** (v2.6.0, per SHA-256 gepinnt) ist eine weitere
+  Lieferketten-Abhängigkeit, die Dependabot nicht hebt. Der Pin wird von Hand gepflegt, mit
+  derselben 7-Tage-Karenz (v2.6.0 erschien am 2026-09-14). `security.yml` fährt über
+  `osv-scanner-action` noch v2.5.1. Die Abweichung ist bewusst: Erst ab 2.6.0 liest osv-scanner
+  die CycloneDX-1.7-Stückliste von syft.
 - Die übrigen Teile von panary/panary-workbench#47 (u. a. panary/panary-core#421 und
   panary/panary-cloud#677) bauen auf dieser Entscheidung auf; cloud verweist auf dieses ADR,
   statt eine eigene zu führen.

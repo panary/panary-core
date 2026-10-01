@@ -19,8 +19,10 @@
 # Aufruf: osv-edge-advisories.sh --sbom <cdx.json> (--image <ref> | --archive <tar>)
 #                                [--config <osv-scanner.toml>] [--osv <binary>]
 # Bericht als Markdown auf stdout. Exit 0 = gruen, 1 = Befund nach Regel,
-# 2 = Scan nicht gelaufen (fail-closed: ein Fehler ist nie gruen).
+# 2 = Scan nicht gelaufen oder Ergebnis unplausibel (fail-closed: ein Fehler ist
+# nie gruen; auch ein abbrechendes jq endet ueber den ERR-Trap auf 2).
 set -euo pipefail
+trap 'exit 2' ERR
 
 sbom='' image='' archive='' config='' osv='osv-scanner'
 while [ $# -gt 0 ]; do
@@ -46,7 +48,7 @@ cfg=()
 run_osv() {
   local out="$1"; shift
   local rc=0
-  "$osv" "$@" "${cfg[@]}" --format json --output-file "$out" 2>"$out.err" || rc=$?
+  "$osv" "$@" ${cfg[@]+"${cfg[@]}"} --format json --output-file "$out" 2>"$out.err" || rc=$?
   if [ "$rc" -gt 1 ]; then
     echo "::error::osv-scanner $1 brach mit Exit ${rc} ab:" >&2
     tail -5 "$out.err" >&2
@@ -80,6 +82,13 @@ jq -r 'def semver: [scan("[0-9]+") | tonumber][0:3];
                  | sort_by(semver) | first // "–")}]
        | unique_by(.n + "@" + .v)' "$work/npm.json" > "$work/npm-rows.json"
 npm_hits=$(jq 'length' "$work/npm-rows.json")
+# Ein Ergebnis ohne jedes gescannte Paket heisst: osv-scanner hat die Datei nicht
+# verstanden, nicht "keine Befunde". Ohne Befunde fehlt .results ganz, deshalb
+# zaehlt hier die Fehlerausgabe ("found N packages").
+npm_scanned=$(grep -oE 'found [0-9]+ packages' "$work/npm.json.err" | grep -oE '[0-9]+' | head -1 || true)
+if [ -z "$npm_scanned" ] || [ "$npm_scanned" -eq 0 ]; then
+  echo "::error::osv-scanner hat in der npm-Stueckliste keine Pakete erkannt (${npm_total} uebergeben)" >&2; exit 2
+fi
 
 # --- Debian aus dem Image ----------------------------------------------------
 if [ -n "$archive" ]; then
@@ -88,6 +97,13 @@ else
   run_osv "$work/img.json" scan image "$image"
 fi
 os=$(jq -r '.image_metadata.os // "unbekannt"' "$work/img.json")
+# Ohne erkanntes Debian-Release faellt jeder Debian-Befund aus dem Filter unten
+# heraus, und der Bericht zeigte still 0. Genau das ist dem Stuecklisten-Scan
+# passiert ("Debian" statt "Debian:12") — hier ist es ein Abbruch, kein Gruen.
+case "$os" in
+  *Debian*) ;;
+  *) echo "::error::Image-Scan erkennt kein Debian-Release (os: ${os}) — Debian-Regel nicht auswertbar" >&2; exit 2 ;;
+esac
 
 # Je (Paket, Advisory) die Fix-Staende des eigenen Releases. Das Release kommt
 # aus dem Ergebnis selbst (Debian:12), nicht aus einer Annahme.
@@ -101,7 +117,12 @@ jq -r '.results[]?.packages[]? | select(.package.ecosystem | startswith("Debian:
 : > "$work/deb-fix.tsv"
 while IFS=$'\t' read -r name version id fixes; do
   for f in $fixes; do
-    if dpkg --compare-versions "$version" lt "$f"; then
+    # dpkg: 0 = kleiner, 1 = nicht kleiner, sonst unlesbare Version → Abbruch statt "kein Fix"
+    rc=0; dpkg --compare-versions "$version" lt "$f" || rc=$?
+    if [ "$rc" -gt 1 ]; then
+      echo "::error::dpkg kann ${name} ${version} nicht mit ${f} vergleichen (Exit ${rc})" >&2; exit 2
+    fi
+    if [ "$rc" -eq 0 ]; then
       printf '%s\t%s\t%s\t%s\n' "$name" "$version" "$id" "$f" >> "$work/deb-fix.tsv"
       break
     fi

@@ -1,0 +1,1 @@
+* **Update**: [Bon und Stempeln bei Kontosperre deaktiviert](../architecture/cloud-status-banner-priorisierung.md) ([#489](https://github.com/panary/panary-core/issues/489)). Solange der Mandant in der Cloud gesperrt ist (`TENANT_SUSPENDED`), sind am POS Stempeln/Pausen und „Neue Bestellung" deaktiviert und `placeOrder()` bucht nicht. Der Tagesabschluss bleibt bedienbar.

@@ -15,7 +15,7 @@ import { CommonModule } from '@angular/common'
 import { Router } from '@angular/router'
 import { NGX_ECHARTS_CONFIG, NgxEchartsModule } from 'ngx-echarts'
 import type { EChartsOption } from 'echarts'
-import { ConnectionService } from '@panary/shared/data-access'
+import { ConnectionService, TenantSuspensionService } from '@panary/shared/data-access'
 import { Order, OrderService, OrderStatus } from '@panary/orders/data-access'
 import { UserService } from '@panary/users/data-access'
 import { UserSystemRole, type User } from '@panary/users/domain'
@@ -67,6 +67,8 @@ interface QuickAction {
    * Bestellung, Offene Bestellungen, Einstellungen).
    */
   requiresOnline?: boolean
+  /** Aktion bucht in der Cloud; bei Mandantensperre (`TENANT_SUSPENDED`) deaktiviert (core#489). */
+  requiresBooking?: boolean
 }
 
 @Component({
@@ -88,6 +90,7 @@ export class DashboardComponent implements OnInit {
   #workingTimeService = inject(WorkingTimeService)
   #locationService = inject(LocationService)
   #connectionService = inject(ConnectionService)
+  #tenantSuspension = inject(TenantSuspensionService)
   #businessDayService = inject(BusinessDayService)
   #cashSessionService = inject(CashSessionService)
   #cdr = inject(ChangeDetectorRef)
@@ -103,6 +106,8 @@ export class DashboardComponent implements OnInit {
    * dieselbe Sperre teilen.
    */
   readonly isOffline = this.#posSessionService.isOffline
+  /** Mandant in der Cloud gesperrt: Bon und Stempeln sind deaktiviert, Tagesabschluss bleibt (SUSPENDED). */
+  readonly bookingSuspended = this.#tenantSuspension.suspended
 
   // Vorbestellungen für heute
   todayPreOrders = signal<PreOrder[]>([])
@@ -159,6 +164,7 @@ export class DashboardComponent implements OnInit {
   quickActions: QuickAction[] = [
     {
       label: 'DASHBOARD.NEW_ORDER',
+      requiresBooking: true,
       icon: 'add_shopping_cart',
       action: () => {
         this.#dialog.open(OrderDialogComponent, {
@@ -414,6 +420,10 @@ export class DashboardComponent implements OnInit {
    * Offline würde der Call still hängen → sperren (analog Logout-Sperre).
    */
   #timeTrackingBlockedOffline(): boolean {
+    if (this.bookingSuspended()) {
+      this.#snackBar.open(this.#translate.instant('CLOUD_STATUS.TENANT_SUSPENDED'), undefined, { duration: 4000 })
+      return true
+    }
     if (!this.isOffline()) return false
     this.#snackBar.open(this.#translate.instant('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED'), undefined, {
       duration: 4000,

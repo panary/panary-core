@@ -129,6 +129,11 @@ ab: Geräte haben keinen Statusendpunkt, der nächste schreibende Request ist di
 Sperre sofort neu. Nur Tier `cloud-direct`; Edge-Tiers kennen die Sperre am POS nicht (eigene Frage). Bei ARCHIVED nennt die
 Subline keinen Ausweg über den Tagesabschluss (auch der ist dort gesperrt).
 
+**Sperre der Auslöser (core#489):** Solange `TenantSuspensionService.suspended()` gilt, sind am POS die Stempel-/Pausen-Buttons
+und die Dashboard-Aktion „Neue Bestellung" deaktiviert, `placeOrder()` im Bestelldialog bucht nicht und meldet per Snackbar.
+Der Warenkorb bleibt stehen. Der Tagesabschluss bleibt bedienbar. Nach Ablauf der 60 s ist alles wieder aktiv, der nächste
+Versuch läuft ggf. erneut in den 403.
+
 ## Sekundär-Fix: Token-Fehler beim Re-Pairing zurücksetzen
 
 `tokenErrorReason` + `lastTokenErrorAt` im Hauptschema von `cloud-connection`

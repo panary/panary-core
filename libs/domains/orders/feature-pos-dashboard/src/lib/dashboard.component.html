@@ -83,7 +83,7 @@
             @if (!isStampedIn()) {
               <button
                 (click)="clockIn(); statusMenuOpen = false"
-                [disabled]="isOffline()"
+                [disabled]="isOffline() || bookingSuspended()"
                 [title]="isOffline() ? ('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED' | translate) : ''"
                 class="pnry-touch flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed"
               >
@@ -105,7 +105,7 @@
             @if (isStampedIn() && !isOnBreak()) {
               <button
                 (click)="startBreak(); statusMenuOpen = false"
-                [disabled]="isOffline()"
+                [disabled]="isOffline() || bookingSuspended()"
                 [title]="isOffline() ? ('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED' | translate) : ''"
                 class="pnry-touch flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed"
               >
@@ -126,7 +126,7 @@
               <div class="h-px bg-gray-100 dark:bg-gray-700 mx-2 my-1"></div>
               <button
                 (click)="clockOut(); statusMenuOpen = false"
-                [disabled]="isOffline()"
+                [disabled]="isOffline() || bookingSuspended()"
                 [title]="isOffline() ? ('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED' | translate) : ''"
                 class="pnry-touch flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed"
               >
@@ -148,7 +148,7 @@
             @if (isOnBreak()) {
               <button
                 (click)="endBreak(); statusMenuOpen = false"
-                [disabled]="isOffline()"
+                [disabled]="isOffline() || bookingSuspended()"
                 [title]="isOffline() ? ('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED' | translate) : ''"
                 class="pnry-touch flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed"
               >
@@ -169,7 +169,7 @@
               <div class="h-px bg-gray-100 dark:bg-gray-700 mx-2 my-1"></div>
               <button
                 (click)="clockOut(); statusMenuOpen = false"
-                [disabled]="isOffline()"
+                [disabled]="isOffline() || bookingSuspended()"
                 [title]="isOffline() ? ('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED' | translate) : ''"
                 class="pnry-touch flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed"
               >
@@ -356,8 +356,14 @@
         @for (action of visibleQuickActions(); track action.label) {
           <button
             (click)="action.action()"
-            [disabled]="action.requiresOnline && isOffline()"
-            [title]="action.requiresOnline && isOffline() ? ('DASHBOARD.ACTION_OFFLINE_BLOCKED' | translate) : ''"
+            [disabled]="(action.requiresOnline && isOffline()) || (action.requiresBooking && bookingSuspended())"
+            [title]="
+              action.requiresBooking && bookingSuspended()
+                ? ('CLOUD_STATUS.TENANT_SUSPENDED' | translate)
+                : action.requiresOnline && isOffline()
+                  ? ('DASHBOARD.ACTION_OFFLINE_BLOCKED' | translate)
+                  : ''
+            "
             class="pnry-touch group relative flex flex-col items-center justify-center gap-1 p-1.5 md:p-3 lg:p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 transition-all duration-200 hover:bg-white dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 active:scale-95 w-20 h-20 md:w-28 md:h-28 lg:w-full lg:h-auto lg:aspect-square disabled:opacity-40 disabled:pointer-events-none"
           >
             <div

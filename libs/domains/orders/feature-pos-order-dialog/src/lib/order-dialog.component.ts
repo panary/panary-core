@@ -57,7 +57,7 @@ import { LocationService } from '@panary/locations/data-access'
 import { defaultOrderChannel, toggledOrderChannel, type PosOrderChannel } from './order-channel'
 import { AuthService } from '@panary/auth/data-access'
 import { User, UserService } from '@panary/users/data-access'
-import { ConnectionService } from '@panary/shared/data-access'
+import { ConnectionService, TenantSuspensionService } from '@panary/shared/data-access'
 import { DeviceConfigService } from '@panary/shared/data-access-config'
 import { CorporateCustomer } from '@panary/corporate-customers/domain'
 import { PreOrderQuickDialogComponent } from './pre-order-quick-dialog.component'
@@ -359,6 +359,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** Standalone-Modus: Kein Cloud-Sync, keine Firmenkunden */
   #connectionService = inject(ConnectionService)
+  #tenantSuspension = inject(TenantSuspensionService)
   isStandaloneMode = computed(() => this.#connectionService.systemMode() === 'standalone')
 
   /** Numpad-Popup für kleine Screens */
@@ -2414,6 +2415,12 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   async placeOrder() {
+    // Mandant in der Cloud gesperrt: der Bon liefe sicher in den 403. Der Warenkorb bleibt
+    // stehen, die Meldung ist ein globales Overlay (core#489).
+    if (this.#tenantSuspension.suspended()) {
+      this.matSnackBar.open('Konto gesperrt — bitte den Inhaber kontaktieren', 'OK', { duration: 6000 })
+      return
+    }
     let staffMealDetails: StaffPaymentInfo | undefined = undefined
     // Wird nur gesetzt, wenn ein Rabattcode eingelöst wurde — siehe unten.
     let preAssignedOrderId: string | undefined = undefined

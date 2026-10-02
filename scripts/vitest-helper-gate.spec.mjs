@@ -22,12 +22,14 @@ const test = (name, fn) => {
   }
 }
 
-const OVERRIDE = '{\n "compilerOptions": { "paths": {\n  "@panary/users/domain":\n   [\n    "../../users/domain/dist/index.d.ts"\n   ]\n } }\n}'
-const SOURCE_PATH = '{ "compilerOptions": { "paths": { "@panary/users/domain": ["../../users/domain/src/index.ts"] } } }'
+const OVERRIDE =
+  '{\n "compilerOptions": { "paths": {\n  "@panary/users/domain":\n   [\n    "../../users/domain/dist/index.d.ts"\n   ]\n } }\n}'
+const SOURCE_PATH =
+  '{ "compilerOptions": { "paths": { "@panary/users/domain": ["../../users/domain/src/index.ts"] } } }'
 const OUT_DIR = '{ "compilerOptions": { "outDir": "../../../dist/out-tsc" } }'
 const WITH_HELPER = "plugins: [...panaryVitestPlugins(), nxViteTsPaths(), nxCopyAssetsPlugin(['*.md'])],"
 const WITHOUT_HELPER = "plugins: [nxViteTsPaths(), nxCopyAssetsPlugin(['*.md'])],"
-const WRONG_ORDER = "plugins: [nxViteTsPaths(), ...panaryVitestPlugins()],"
+const WRONG_ORDER = 'plugins: [nxViteTsPaths(), ...panaryVitestPlugins()],'
 
 test('hasDistOverride erkennt den Override auch bei Zeilenumbruechen', () => {
   assert.equal(hasDistOverride(OVERRIDE), true)

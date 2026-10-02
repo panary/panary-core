@@ -68,8 +68,9 @@ export default defineConfig(() => ({
 > zeigt umbruchfest
 > `tr -d '\n' < <lib>/tsconfig.lib.json | grep -oE '"@panary/[^"]+": *\[ *"\.\./[^"]*/dist/'`
 > (leer = nicht betroffen). Der Helfer ist bei allen 20 Libs mit Override eingebaut. Der
-> `feathers-service`-Generator übernimmt die von `@nx/js` erzeugte `vitest.config.mts` unverändert —
-> bei einer neuen Domain-Lib mit Cross-Lib-Override den Helfer von Hand einhängen.
+> `feathers-service`-Generator übernimmt die von `@nx/js` erzeugte `vitest.config.mts` unverändert;
+> statt ihn zu ändern, schlägt `pnpm vitest-helper:gate` (CI) an, sobald eine Lib mit Override den
+> Helfer nicht einhängt — auch bei Overrides, die erst nachträglich dazukommen (#486).
 >
 > **Warum der Fehler meist still bleibt**, gemessen an
 > [#398](https://github.com/panary/panary-core/issues/398): Ein rollup-dist besteht aus

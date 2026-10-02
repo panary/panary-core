@@ -38,7 +38,9 @@ export const usesHelperBeforeTsPaths = configText => {
 export function findViolations(root = ROOT, trackedFiles) {
   const files =
     trackedFiles ??
-    execFileSync('git', ['ls-files', '*tsconfig.lib.json'], { cwd: root, encoding: 'utf-8' }).split('\n').filter(Boolean)
+    execFileSync('git', ['ls-files', '*tsconfig.lib.json'], { cwd: root, encoding: 'utf-8' })
+      .split('\n')
+      .filter(Boolean)
   const violations = []
   let checked = 0
   for (const file of files) {

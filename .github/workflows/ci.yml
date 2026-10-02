@@ -198,6 +198,17 @@ jobs:
           node scripts/csp-connect-src.spec.mjs
           pnpm csp:gate
 
+      # Libs mit `paths`-Override auf ein fremdes dist muessen `panaryVitestPlugins()` in ihre
+      # vitest.config.mts einhaengen (CLAUDE.md §2.1, #404): sonst laedt Vitest je nach
+      # Task-Reihenfolge eine .d.ts statt Code — mal rot, meist still gruen. Das Gate faengt
+      # neue Libs und nachtraegliche Overrides; die Specs pruefen Gate und Helfer selbst und
+      # laufen davor.
+      - name: Vitest-Helfer in Libs mit dist-Override pruefen
+        run: |
+          node scripts/vitest-helper-gate.spec.mjs
+          node tools/vitest/panary-vitest.spec.mjs
+          pnpm vitest-helper:gate
+
       # security-scan.mjs laeuft in keiner Pipeline — die CI scannt ueber
       # google/osv-scanner-action, das Skript nur lokal im pre-push-Hook. Es ist
       # trotzdem zweimal still gebrochen, beide Male mit einer Entwarnung ohne

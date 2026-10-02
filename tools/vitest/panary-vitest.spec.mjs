@@ -69,7 +69,10 @@ await test('Waechter: .d.ts, .d.mts und .d.cts brechen ab, mit Datei, Importeur 
   await guard.resolveId.call(ctx, '@panary/users/domain', '/w/libs/x/src/a.spec.ts', {})
   assert.throws(
     () => guard.load(id),
-    error => error.message.includes(id) && error.message.includes('/w/libs/x/src/a.spec.ts') && error.message.includes('CLAUDE.md §2.1'),
+    error =>
+      error.message.includes(id) &&
+      error.message.includes('/w/libs/x/src/a.spec.ts') &&
+      error.message.includes('CLAUDE.md §2.1'),
   )
   for (const ext of ['d.mts', 'd.cts']) assert.throws(() => guard.load(`/w/dist/index.${ext}`), /Typdatei/)
 })

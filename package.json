@@ -112,7 +112,7 @@
     "jsonc-eslint-parser": "^2.1.0",
     "lefthook": "^2.1.10",
     "mocha": "^11.8.0",
-    "ng-packagr": "~21.2.5",
+    "ng-packagr": "~21.2.7",
     "ngx-echarts": "^21.0.0",
     "nodemon": "^3.1.11",
     "nx": "22.7.12",

@@ -1,11 +1,13 @@
 import { defineConfig } from 'vitest/config'
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin'
 import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin'
+import { panaryVitestPlugins } from '../../../../tools/vitest/panary-vitest'
 
 export default defineConfig(() => ({
   root: __dirname,
   cacheDir: '../../../../node_modules/.vite/libs/domains/customers/data-access',
-  plugins: [nxViteTsPaths(), nxCopyAssetsPlugin(['*.md'])],
+  // Reihenfolge traegt: Resolver + Waechter MUESSEN vor `nxViteTsPaths()` stehen (tools/vitest/panary-vitest.ts).
+  plugins: [...panaryVitestPlugins(), nxViteTsPaths(), nxCopyAssetsPlugin(['*.md'])],
   test: {
     name: 'customers-data-access',
     watch: false,

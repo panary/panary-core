@@ -34,11 +34,13 @@ Vitest-Konfiguration** ab. Es genügt also eine Datei:
 import { defineConfig } from 'vitest/config'
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin'
 import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin'
+import { panaryVitestPlugins } from '../../../../tools/vitest/panary-vitest'
 
 export default defineConfig(() => ({
   root: __dirname,
   cacheDir: '../../../../node_modules/.vite/libs/domains/<domain>/<lib>',
-  plugins: [nxViteTsPaths(), nxCopyAssetsPlugin(['*.md'])],
+  // Reihenfolge traegt: Resolver + Waechter MUESSEN vor `nxViteTsPaths()` stehen.
+  plugins: [...panaryVitestPlugins(), nxViteTsPaths(), nxCopyAssetsPlugin(['*.md'])],
   test: {
     name: '<projektname>',
     watch: false,
@@ -55,14 +57,19 @@ export default defineConfig(() => ({
 }))
 ```
 
-> 🚨 **Lib mit `paths`-Override auf ein fremdes dist?** Das ist das Cross-Lib-Import-Muster
-> aus [CLAUDE.md §2.1](../../CLAUDE.md). Ein schlichtes `grep '/dist/'` trifft auch
-> `outDir`; umbruchfest listet die Overrides
+> 🚨 **`panaryVitestPlugins()` gehört in jede neue `vitest.config.mts`** (`tools/vitest/panary-vitest.ts`,
+> seit [#404](https://github.com/panary/panary-core/issues/404)). Der Helfer enthält zwei Plugins:
+> einen **Resolver**, der jeden `@panary/*`-Import auf die Quelle aus `tsconfig.base.json` biegt,
+> und einen **Wächter**, der den Lauf mit eindeutiger Meldung (Datei, Importeur, Verweis auf
+> CLAUDE.md §2.1) abbricht, sobald zur Laufzeit eine `.d.ts` geladen wird. Beides MUSS **vor**
+> `nxViteTsPaths()` stehen. Grund: Hat die Lib einen `paths`-Override auf ein fremdes dist
+> ([CLAUDE.md §2.1](../../CLAUDE.md)), liest `nxViteTsPaths()` ihn aus `tsconfig.lib.json` und
+> lädt, sobald das dist der Ziel-Lib liegt, die `.d.ts` statt Code. Ob ein Override vorliegt,
+> zeigt umbruchfest
 > `tr -d '\n' < <lib>/tsconfig.lib.json | grep -oE '"@panary/[^"]+": *\[ *"\.\./[^"]*/dist/'`
-> (leer = nicht betroffen). Dann reicht die Vorlage oben nicht: `nxViteTsPaths()` liest den Override aus
-> `tsconfig.lib.json` und lädt, sobald das dist der Ziel-Lib liegt, die `.d.ts` statt Code.
-> Die Datei braucht zusätzlich einen Resolver **vor** `nxViteTsPaths()` — Regel, Vorlage
-> (`libs/domains/apikeys/domain/vitest.config.mts`) und Prüfung stehen in CLAUDE.md §2.1.
+> (leer = nicht betroffen). Der Helfer ist bei allen 20 Libs mit Override eingebaut. Der
+> `feathers-service`-Generator übernimmt die von `@nx/js` erzeugte `vitest.config.mts` unverändert —
+> bei einer neuen Domain-Lib mit Cross-Lib-Override den Helfer von Hand einhängen.
 >
 > **Warum der Fehler meist still bleibt**, gemessen an
 > [#398](https://github.com/panary/panary-core/issues/398): Ein rollup-dist besteht aus

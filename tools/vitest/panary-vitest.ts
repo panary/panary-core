@@ -64,23 +64,32 @@ export const panarySourcesForVitest = (): Plugin => {
  * nicht in `resolveId`: Vites Alias laeuft vor allen `enforce: 'pre'`-Plugins und schreibt
  * Schluessel um, bevor ein Plugin sie sieht; `load` sieht jede geladene Datei.
  */
-export const forbidDeclarationLoads = (): Plugin => ({
-  name: 'panary-forbid-declaration-loads',
-  enforce: 'pre',
-  load(id: string) {
-    const file = id.split('?')[0]
-    if (!/\.d\.[cm]?ts$/.test(file)) return null
-    const importers = this.getModuleInfo(id)?.importers ?? []
-    throw new Error(
-      `Vitest laedt zur Laufzeit eine Typdatei: ${file}\n` +
-        `  Importeur: ${importers.length ? importers.join(', ') : '(unbekannt)'}\n` +
-        '  Eine .d.ts enthaelt keinen Code — jeder Export daraus ist undefined. Ursache ist ein\n' +
-        '  paths-Override auf ein fremdes dist in der tsconfig.lib.json der Lib, den die\n' +
-        '  vitest.config.mts nicht auf die Quelle umbiegt. Einbau: tools/vitest/panary-vitest.ts,\n' +
-        '  Regel: CLAUDE.md §2.1 (Cross-Lib-Imports).',
-    )
-  },
-})
+export const forbidDeclarationLoads = (): Plugin => {
+  // Vites ModuleInfo kennt `importers` nicht — den Importeur merkt sich deshalb der Resolver-Hook.
+  const importerOf = new Map<string, string>()
+  return {
+    name: 'panary-forbid-declaration-loads',
+    enforce: 'pre',
+    async resolveId(source, importer, options) {
+      if (!importer) return null
+      const resolved = await this.resolve(source, importer, { ...options, skipSelf: true })
+      if (resolved && !importerOf.has(resolved.id)) importerOf.set(resolved.id, importer)
+      return resolved
+    },
+    load(id: string) {
+      const file = id.split('?')[0]
+      if (!/\.d\.[cm]?ts$/.test(file)) return null
+      throw new Error(
+        `Vitest laedt zur Laufzeit eine Typdatei: ${file}\n` +
+          `  Importeur: ${importerOf.get(id) ?? '(unbekannt)'}\n` +
+          '  Eine .d.ts enthaelt keinen Code — jeder Export daraus ist undefined. Ursache ist ein\n' +
+          '  paths-Override auf ein fremdes dist in der tsconfig.lib.json der Lib, den die\n' +
+          '  vitest.config.mts nicht auf die Quelle umbiegt. Einbau: tools/vitest/panary-vitest.ts,\n' +
+          '  Regel: CLAUDE.md §2.1 (Cross-Lib-Imports).',
+      )
+    },
+  }
+}
 
 /** Resolver + Waechter in der Reihenfolge, die traegt (Resolver zuerst). */
 export const panaryVitestPlugins = (): Plugin[] => [panarySourcesForVitest(), forbidDeclarationLoads()]

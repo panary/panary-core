@@ -57,7 +57,10 @@
     "OFFLINE_MODE_ACTIVE_SUBLINE": "Edge generates business days locally. Auto-reset on the next successful cloud pull. Active for {{minutes}} more minutes.",
     "EMERGENCY_OVERRIDE_ACTIVE": "Emergency mode active",
     "EMERGENCY_OVERRIDE_SUBLINE": "Local printer changes for {{minutes}} minutes — reconciled once the cloud returns.",
-    "END_EMERGENCY_MODE": "End"
+    "END_EMERGENCY_MODE": "End",
+    "TENANT_SUSPENDED": "Account suspended — please contact the owner",
+    "TENANT_SUSPENDED_SUBLINE": "Orders, clocking in and other bookings are blocked. Signing in and viewing still work.",
+    "TENANT_SUSPENDED_SUBLINE_ARCHIVED": "The account is archived — please contact the owner. Bookings are blocked."
   },
   "COMMON": {
     "OFFLINE": "Offline",

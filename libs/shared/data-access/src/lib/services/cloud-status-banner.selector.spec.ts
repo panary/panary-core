@@ -264,3 +264,20 @@ describe('selectActiveBanner — Notfall-Modus (w35)', () => {
     expect(banner?.sublineParams).toBeUndefined()
   })
 })
+
+describe('selectActiveBanner — Mandant gesperrt', () => {
+  it('schlägt jede Verbindungsmeldung (höchste Gewichtung)', () => {
+    const banner = selectActiveBanner({ ...healthy(), tenantSuspended: true, cloudUnreachable: true })
+    expect(banner?.id).toBe('tenant-suspended')
+  })
+
+  it('ARCHIVED nennt den Abschluss nicht als Ausweg', () => {
+    const banner = selectActiveBanner({ ...healthy(), tenantSuspended: true, tenantStatus: 'ARCHIVED' })
+    expect(banner?.sublineKey).toBe('CLOUD_STATUS.TENANT_SUSPENDED_SUBLINE_ARCHIVED')
+  })
+
+  it('weicht bei abgelaufener Session dem Auth-Flow', () => {
+    const banner = selectActiveBanner({ ...healthy(), tenantSuspended: true, userSessionExpired: true })
+    expect(banner?.id).not.toBe('tenant-suspended')
+  })
+})

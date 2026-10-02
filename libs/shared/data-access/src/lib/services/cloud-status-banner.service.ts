@@ -1,6 +1,7 @@
 import { computed, inject, Injectable } from '@angular/core'
 
 import { ConnectionService } from './connection.service'
+import { TenantSuspensionService } from './tenant-suspension.service'
 import { type CloudBanner, selectActiveBanner } from './cloud-status-banner.selector'
 import { CLOUD_STATUS_BANNER_OPTIONS, OFFLINE_CACHE, OFFLINE_OUTBOX } from './offline-cache.token'
 
@@ -20,6 +21,7 @@ export class CloudStatusBannerService {
   // Nicht belegt (POS) → Defaults; nur der Admin-Client schaltet den
   // Notfall-Banner frei.
   #options = inject(CLOUD_STATUS_BANNER_OPTIONS, { optional: true })
+  #suspension = inject(TenantSuspensionService)
 
   readonly activeBanner = computed<CloudBanner | null>(() => {
     const conn = this.#conn
@@ -46,6 +48,9 @@ export class CloudStatusBannerService {
       emergencyOverrideActive: conn.emergencyOverrideActive(),
       emergencyOverrideSinceMin: conn.emergencyOverrideSinceMin(),
       showEmergencyOverride: this.#options?.showEmergencyOverride ?? false,
+      // Nur Tier 1: Edge-Tiers kennen die Cloud-Sperre am POS nicht (eigene Frage, core#434).
+      tenantSuspended: conn.tier() === 'cloud-direct' && this.#suspension.suspended(),
+      tenantStatus: this.#suspension.tenantStatus(),
     })
   })
 }

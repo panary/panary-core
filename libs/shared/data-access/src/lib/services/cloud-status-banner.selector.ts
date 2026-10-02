@@ -70,6 +70,9 @@ export interface CloudStatusState {
    * Handlungsmoeglichkeit und wuerde dort `sync-stale` verdraengen.
    */
   showEmergencyOverride?: boolean
+  /** Cloud-direkt: Mandant gesperrt (`TENANT_SUSPENDED`). */
+  tenantSuspended?: boolean
+  tenantStatus?: string | null
 }
 
 /**
@@ -78,6 +81,21 @@ export interface CloudStatusState {
  * Treffer → `null` (kein Banner).
  */
 export function selectActiveBanner(s: CloudStatusState): CloudBanner | null {
+  // -1. (w120) Mandant gesperrt — eine Verbindungsstörung erklärt den 403 nicht, und nur der
+  //     Inhaber kann es lösen. Höchste Gewichtung, aber nicht bei abgelaufener Session.
+  if (s.tenantSuspended && !s.userSessionExpired) {
+    return {
+      id: 'tenant-suspended',
+      level: 'crit',
+      icon: 'lock',
+      messageKey: 'CLOUD_STATUS.TENANT_SUSPENDED',
+      sublineKey:
+        s.tenantStatus === 'ARCHIVED'
+          ? 'CLOUD_STATUS.TENANT_SUSPENDED_SUBLINE_ARCHIVED'
+          : 'CLOUD_STATUS.TENANT_SUSPENDED_SUBLINE',
+    }
+  }
+
   // 0. (w110) Connect-Tier offline MIT aktivem Offline-Cache — der POS arbeitet
   //    weiter (Cache + Outbox). Andere Botschaft als das generische client-offline:
   //    kein Reload, sondern Bargeld-/Nachreich-Hinweis. NICHT bei abgelaufener Session.

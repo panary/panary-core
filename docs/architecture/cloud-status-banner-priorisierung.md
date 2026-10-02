@@ -36,7 +36,7 @@ Funktion wählt den höchstpriorisierten aktiven Zustand. Die Leiter bildet die
 
 | # | id | Bedingung | Gewicht | level | Action |
 |---|----|-----------|---------|-------|--------|
-| 0 | `tenant-suspended` | Tier `cloud-direct` + Cloud lehnte mit `TENANT_SUSPENDED` ab, **und nicht** `userSessionExpired` | 120 | crit | – |
+| – | `tenant-suspended` | Tier `cloud-direct` + Cloud lehnte mit `TENANT_SUSPENDED` ab, **und nicht** `userSessionExpired` | 120 | crit | – |
 | 1 | `client-offline` | WS `disconnected`/`error` **und nicht** `userSessionExpired` | 100 | crit | `reload` |
 | 2 | `re-pairing-required` | `cloudNeedsRePairing` (Tier 3 + `cloudPairingStatus==='disconnected'`) | 90 | crit | – |
 | 3 | `offline-mode-active` | Override aktiv (`offlineOverrideActiveUntil` in Zukunft) | 80 | warn | – (Restminuten) |

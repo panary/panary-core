@@ -81,7 +81,7 @@ export interface CloudStatusState {
  * Treffer → `null` (kein Banner).
  */
 export function selectActiveBanner(s: CloudStatusState): CloudBanner | null {
-  // -1. (w120) Mandant gesperrt — eine Verbindungsstörung erklärt den 403 nicht, und nur der
+  // (w120) Mandant gesperrt — eine Verbindungsstörung erklärt den 403 nicht, und nur der
   //     Inhaber kann es lösen. Höchste Gewichtung, aber nicht bei abgelaufener Session.
   if (s.tenantSuspended && !s.userSessionExpired) {
     return {

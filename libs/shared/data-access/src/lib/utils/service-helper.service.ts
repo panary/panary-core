@@ -4,6 +4,7 @@ import { FeathersError } from '@feathersjs/errors'
 import { httpErrorCodesDE } from '@panary/util-error-handling'
 import { NotificationService } from '@panary/shared/ui-notifications'
 import { Router } from '@angular/router'
+import { readTenantSuspension, TenantSuspensionService } from '../services/tenant-suspension.service'
 
 @Injectable({
   providedIn: 'root',
@@ -15,6 +16,7 @@ export class ServiceHelper {
   protected readonly notificationService: NotificationService = inject(NotificationService)
   protected readonly router: Router = inject(Router)
   protected readonly matSnackBar: MatSnackBar = inject(MatSnackBar)
+  protected readonly tenantSuspension: TenantSuspensionService = inject(TenantSuspensionService)
 
   handleError(serviceName: string, error: FeathersError | unknown): void {
     const ERROR_DUPLICATE_KEY_MSG = 'Ein Eintrag mit diesem Schlüssel existiert bereits.'
@@ -39,6 +41,15 @@ export class ServiceHelper {
       : (errorMessage ?? 'Unbekannter Fehler')
 
     const code = errorCode ?? 500
+
+    // Mandantensperre der Cloud: dauerhafter Banner statt Toast je Aktion. Nur der
+    // Code `TENANT_SUSPENDED` zählt — ein generischer 403 sperrt nicht die ganze Kasse.
+    const suspension = code === 403 ? readTenantSuspension(error) : null
+    if (suspension) {
+      console.warn(`Service "${serviceName}": Mandant gesperrt (${suspension.tenantStatus ?? 'unbekannt'})`)
+      this.tenantSuspension.markSuspended(suspension.tenantStatus)
+      return
+    }
 
     // Erwartbare Kontext-403: Ein Plattform-User ohne aktive Impersonation trifft
     // einen tenant-scoped Service ("Tenant-Kontext fehlt" / "… aktiven Tenant-

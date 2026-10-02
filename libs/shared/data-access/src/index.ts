@@ -8,6 +8,7 @@ export * from './lib/services/connection.service'
 export * from './lib/services/socket-identity'
 export * from './lib/services/cloud-status-banner.selector'
 export * from './lib/services/cloud-status-banner.service'
+export * from './lib/services/tenant-suspension.service'
 // export * from './lib/services/mqtt.service' // Noch nicht migriert – LocationService-Abhängigkeit würde Zirkulärdependenz erzeugen
 
 export * from './lib/services/language.service'

@@ -57,7 +57,10 @@
     "OFFLINE_MODE_ACTIVE_SUBLINE": "Edge generiert Geschäftstage lokal. Auto-Reset beim nächsten erfolgreichen Cloud-Pull. Aktiv noch {{minutes}} Minuten.",
     "EMERGENCY_OVERRIDE_ACTIVE": "Notfall-Modus aktiv",
     "EMERGENCY_OVERRIDE_SUBLINE": "Lokale Drucker-Änderungen seit {{minutes}} Minuten — werden bei Cloud-Rückkehr abgeglichen.",
-    "END_EMERGENCY_MODE": "Beenden"
+    "END_EMERGENCY_MODE": "Beenden",
+    "TENANT_SUSPENDED": "Konto gesperrt — bitte den Inhaber kontaktieren",
+    "TENANT_SUSPENDED_SUBLINE": "Bestellungen, Stempeln und weitere Buchungen sind gesperrt. Anmelden und Ansehen funktionieren weiter.",
+    "TENANT_SUSPENDED_SUBLINE_ARCHIVED": "Das Konto ist archiviert — bitte den Inhaber kontaktieren. Buchungen sind gesperrt."
   },
   "COMMON": {
     "OFFLINE": "Offline",

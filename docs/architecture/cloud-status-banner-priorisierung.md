@@ -36,6 +36,7 @@ Funktion wählt den höchstpriorisierten aktiven Zustand. Die Leiter bildet die
 
 | # | id | Bedingung | Gewicht | level | Action |
 |---|----|-----------|---------|-------|--------|
+| – | `tenant-suspended` | Tier `cloud-direct` + Cloud lehnte mit `TENANT_SUSPENDED` ab, **und nicht** `userSessionExpired` | 120 | crit | – |
 | 1 | `client-offline` | WS `disconnected`/`error` **und nicht** `userSessionExpired` | 100 | crit | `reload` |
 | 2 | `re-pairing-required` | `cloudNeedsRePairing` (Tier 3 + `cloudPairingStatus==='disconnected'`) | 90 | crit | – |
 | 3 | `offline-mode-active` | Override aktiv (`offlineOverrideActiveUntil` in Zukunft) | 80 | warn | – (Restminuten) |
@@ -118,6 +119,15 @@ verfügbar.
 HTTP-`ApiService` (RBAC `CLOUD_CONNECTION: MANAGE` → TENANT_OWNER/TENANT_TECHNICIAN);
 setzt `offlineOverrideActiveUntil = now + 2h`. Auto-Reset auf `null` weiterhin beim
 nächsten erfolgreichen Cloud-Pull (`cloud-pull-business-days.worker.ts`).
+
+### Mandant gesperrt (`tenant-suspended`, core#434)
+
+Der Cloud-Guard `assertTenantStatus` antwortet bei SUSPENDED/ARCHIVED mit `403`, `data.code = 'TENANT_SUSPENDED'`.
+`ServiceHelper.handleError` erkennt den Code (Rückfall: Message-Präfix), zeigt **keinen Toast** und setzt den Zustand im
+`TenantSuspensionService`. Ein generischer 403 setzt ihn nie. Der Zustand läuft nach 60 s ohne weiteren 403 von selbst
+ab: Geräte haben keinen Statusendpunkt, der nächste schreibende Request ist die Nachprüfung und setzt ihn bei fortbestehender
+Sperre sofort neu. Nur Tier `cloud-direct`; Edge-Tiers kennen die Sperre am POS nicht (eigene Frage). Bei ARCHIVED nennt die
+Subline keinen Ausweg über den Tagesabschluss (auch der ist dort gesperrt).
 
 ## Sekundär-Fix: Token-Fehler beim Re-Pairing zurücksetzen
 

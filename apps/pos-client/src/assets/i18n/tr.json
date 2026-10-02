@@ -57,7 +57,10 @@
     "OFFLINE_MODE_ACTIVE_SUBLINE": "Edge, iş günlerini yerel olarak oluşturur. Bir sonraki başarılı bulut çekiminde otomatik sıfırlama. {{minutes}} dakika daha etkin.",
     "EMERGENCY_OVERRIDE_ACTIVE": "Acil durum modu etkin",
     "EMERGENCY_OVERRIDE_SUBLINE": "{{minutes}} dakikadır yerel yazıcı değişiklikleri — bulut döndüğünde eşitlenir.",
-    "END_EMERGENCY_MODE": "Sonlandır"
+    "END_EMERGENCY_MODE": "Sonlandır",
+    "TENANT_SUSPENDED": "Hesap askıya alındı — lütfen işletme sahibiyle iletişime geçin",
+    "TENANT_SUSPENDED_SUBLINE": "Siparişler, mesai kaydı ve diğer işlemler engellendi. Giriş ve görüntüleme çalışmaya devam eder.",
+    "TENANT_SUSPENDED_SUBLINE_ARCHIVED": "Hesap arşivlendi — lütfen işletme sahibiyle iletişime geçin. İşlemler engellendi."
   },
   "COMMON": {
     "OFFLINE": "Çevrimdışı",

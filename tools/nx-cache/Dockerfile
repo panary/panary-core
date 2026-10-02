@@ -14,7 +14,7 @@
 # ../../documentation/nx-remote-cache.md
 #
 # Build (amd64 — eure Coolify-Hosts):
-#   docker build -t panary-nx-cache:v1.3.0 tools/nx-cache
+#   docker build -t panary-nx-cache:v1.4.3 tools/nx-cache
 # ============================================================
 # --platform=linux/amd64: das Binary ist linux-x86_64 — die Base MUSS dieselbe
 # Arch sein. Erzwingt ein amd64-Image auch beim Build auf einem arm64-Rechner
@@ -26,10 +26,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl \
  && rm -rf /var/lib/apt/lists/*
 
-# Supply-Chain: Version + SHA-256 gepinnt (verifiziert am 2026-06-18 gegen die
+# Supply-Chain: Version + SHA-256 gepinnt (verifiziert am 2026-10-02 gegen die
 # Release-checksums.txt). Neue Version: beide ARGs bumpen + SHA neu verifizieren.
-ARG NX_CACHE_VERSION=v1.3.0
-ARG NX_CACHE_SHA256=65c8b504ede5ebe99d07311ab217545875c9d452c4ad1edbe90a8d3296ba080c
+ARG NX_CACHE_VERSION=v1.4.3
+ARG NX_CACHE_SHA256=b4df4eea57b31f855b0bd803c208bb6c93b609a56dace724a0763afc0c6838f0
 
 RUN curl -fsSL -o /usr/local/bin/nx-cache-aws \
       "https://github.com/nxcite/nx-cache-server/releases/download/${NX_CACHE_VERSION}/nx-cache-aws-${NX_CACHE_VERSION}-linux-x86_64" \

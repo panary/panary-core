@@ -5,6 +5,9 @@ import { Router } from '@angular/router'
 import { NotificationService } from '@panary/shared/ui-notifications'
 import { describe, expect, it, vi } from 'vitest'
 
+// Der Token kommt sonst je nach Auflösung (Quelle oder dist) als `undefined` an.
+vi.mock('@panary/shared/ui-notifications', () => ({ NotificationService: class NotificationService {} }))
+
 import { TenantSuspensionService } from '../services/tenant-suspension.service'
 import { ServiceHelper } from './service-helper.service'
 

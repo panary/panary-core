@@ -47,7 +47,8 @@ test('usesHelperBeforeTsPaths: mit Helfer davor ok, ohne und in falscher Reihenf
 })
 
 test('usesHelperBeforeTsPaths: ein Kommentar mit dem Namen genuegt nicht', () => {
-  assert.equal(usesHelperBeforeTsPaths(`// panaryVitestPlugins() fehlt\n${WITHOUT_HELPER}`), false)
+  assert.equal(usesHelperBeforeTsPaths(`// ...panaryVitestPlugins() fehlt\n${WITHOUT_HELPER}`), false)
+  assert.equal(usesHelperBeforeTsPaths(`/* ...panaryVitestPlugins() */\n${WITHOUT_HELPER}`), false)
 })
 
 test('findViolations: meldet nur Libs mit Override, Config und fehlendem Helfer', () => {

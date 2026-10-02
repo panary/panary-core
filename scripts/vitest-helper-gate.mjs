@@ -18,7 +18,7 @@
 //   pnpm vitest-helper:gate
 
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, realpathSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -29,7 +29,8 @@ export const hasDistOverride = tsconfigText =>
   /"@panary\/[^"]+": *\[ *"\.\.\/[^"]*\/dist\//.test(tsconfigText.replace(/\n/g, ''))
 
 /** Steht `panaryVitestPlugins(` im `plugins`-Array vor `nxViteTsPaths(`? */
-export const usesHelperBeforeTsPaths = configText => {
+export const usesHelperBeforeTsPaths = rawConfigText => {
+  const configText = rawConfigText.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
   const helper = configText.indexOf('...panaryVitestPlugins()')
   const tsPaths = configText.indexOf('nxViteTsPaths()', configText.indexOf('plugins:'))
   return helper !== -1 && tsPaths !== -1 && helper < tsPaths
@@ -54,8 +55,12 @@ export function findViolations(root = ROOT, trackedFiles) {
   return { checked, violations }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const { checked, violations } = findViolations()
+  if (checked === 0) {
+    console.error('vitest-helper-gate: 0 Libs mit dist-Override gefunden — Suche zu eng, das Gate misst nichts.')
+    process.exit(1)
+  }
   if (violations.length === 0) {
     console.log(`vitest-helper-gate: ${checked} Libs mit dist-Override, alle binden panaryVitestPlugins() ein.`)
     process.exit(0)

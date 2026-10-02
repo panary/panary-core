@@ -19,8 +19,6 @@ function makeWriteOff(
     quantity: 1,
     unit: 'kg',
     costPerUnit: opts.totalCost,
-    totalCost: opts.totalCost,
-    reason: opts.reason,
     wasteType: opts.wasteType,
     userId: 'u1',
     ...opts,

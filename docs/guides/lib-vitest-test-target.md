@@ -72,6 +72,13 @@ export default defineConfig(() => ({
 > statt ihn zu ändern, schlägt `pnpm vitest-helper:gate` (CI) an, sobald eine Lib mit Override den
 > Helfer nicht einhängt — auch bei Overrides, die erst nachträglich dazukommen (#486).
 >
+> ⚠️ **`tools/vitest/` muss überall liegen, wo nx läuft — auch dort, wo gar nicht getestet wird.**
+> Das `@nx/vitest`-Plugin lädt jede `vitest.config.mts` schon beim Aufbau des Projektgraphen. Fehlt
+> der Helfer, bricht damit auch ein reines `nx build` ab. Genau so scheiterte der Edge-Image-Build
+> nach #404, bis `tools/docker/Dockerfile.edge` den Ordner mitkopierte
+> ([#488](https://github.com/panary/panary-core/issues/488)). Wer einen neuen Docker- oder CI-Kontext
+> mit nx anlegt, kopiert `tools/vitest/` mit.
+>
 > **Warum der Fehler meist still bleibt**, gemessen an
 > [#398](https://github.com/panary/panary-core/issues/398): Ein rollup-dist besteht aus
 > `export * from "./src/index"`. Diesen **relativen** Pfad findet Vite neben der `.d.ts`

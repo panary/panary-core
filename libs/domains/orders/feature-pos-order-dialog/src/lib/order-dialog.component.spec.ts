@@ -27,7 +27,7 @@ import { AuthService } from '@panary/auth/data-access'
 import { UserService } from '@panary/users/data-access'
 import { LocationService } from '@panary/locations/data-access'
 import { PreOrderService } from '@panary/pre-orders/data-access'
-import { ConnectionService } from '@panary/shared/data-access'
+import { ConnectionService, TenantSuspensionService } from '@panary/shared/data-access'
 import { DeviceConfigService } from '@panary/shared/data-access-config'
 
 import { OrderDialogComponent } from './order-dialog.component'
@@ -104,6 +104,9 @@ function setup(options: SetupOptions = {}) {
   const snackBarRefs: Array<{ triggerAction: () => void }> = []
   /** Was `matDialog.open()` als Auswahl zurueckgibt — pro Test gesetzt. */
   const dialogResult = { value: undefined as unknown }
+
+  /** Mandantensperre der Cloud (core#489) — pro Test per `suspended.set(true)` gesetzt. */
+  const suspended = signal(false)
 
   const currentUser = {
     _id: CURRENT_USER_ID,
@@ -207,6 +210,7 @@ function setup(options: SetupOptions = {}) {
       { provide: PreOrderService, useValue: {} },
       { provide: DeviceConfigService, useValue: {} },
       { provide: ConnectionService, useValue: { systemMode: () => 'connected' } },
+      { provide: TenantSuspensionService, useValue: { suspended } },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
       // Ausserhalb einer gerenderten Komponente gibt es keinen echten
       // ChangeDetectorRef — markForCheck ist hier ohne Wirkung und ohne Belang.
@@ -239,6 +243,7 @@ function setup(options: SetupOptions = {}) {
     snackBarCalls,
     snackBarRefs,
     dialogResult,
+    suspended,
   }
 }
 
@@ -1372,5 +1377,29 @@ describe('OrderDialog — Fertigungszeit „Sofort" (#343)', () => {
       expect(createdOrders).toHaveLength(2)
       expect(createdOrders[1]['productionTime']).toBe(0)
     })
+  })
+})
+
+describe('OrderDialog — Mandantensperre (#489)', () => {
+  it('placeOrder bucht bei gesperrtem Mandanten nichts und meldet es', async () => {
+    const { component, createdOrders, snackBarCalls, suspended } = setup()
+    component.increaseLineItem(product('p-1'))
+    suspended.set(true)
+
+    await component.placeOrder()
+
+    expect(createdOrders).toHaveLength(0)
+    expect(snackBarCalls.map(c => c.message)).toEqual(['Konto gesperrt — bitte den Inhaber kontaktieren'])
+    // Der Warenkorb bleibt stehen: Nach dem Ende der Sperre geht derselbe Bon durch.
+    expect(component.lineItems).toHaveLength(1)
+  })
+
+  it('ohne Sperre bucht placeOrder wie bisher', async () => {
+    const { component, createdOrders } = setup()
+    component.increaseLineItem(product('p-1'))
+
+    await component.placeOrder()
+
+    expect(createdOrders).toHaveLength(1)
   })
 })

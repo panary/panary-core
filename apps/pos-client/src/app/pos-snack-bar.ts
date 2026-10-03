@@ -35,6 +35,8 @@ interface StickyNotice {
  *   ersten Anzeige `onAction()` abonniert, sieht den Tipp auf eine zurückgekehrte nicht.
  *   Heute abonniert kein Aufrufer einer quittierpflichtigen Meldung ihr Ref.
  * - Nur `open()` wird gezählt; `openFromComponent`/`openFromTemplate` nutzt der POS nicht.
+ * - Ein Benutzerwechsel am Terminal beendet sie nicht. Sie gilt dem Gerät, nicht dem
+ *   Kassierer — wer übernimmt, sieht sie und quittiert sie.
  */
 @Injectable()
 export class PosSnackBar extends MatSnackBar {
@@ -44,7 +46,8 @@ export class PosSnackBar extends MatSnackBar {
   #current: MatSnackBarRef<TextOnlySnackBar> | null = null
 
   override open(message: string, action = '', config?: MatSnackBarConfig): MatSnackBarRef<TextOnlySnackBar> {
-    const duration = config?.duration ?? this.#defaults.duration ?? 0
+    // Wie Material zusammenführen (Spread): Ein explizites `duration: undefined` ersetzt den Default.
+    const duration = { ...this.#defaults, ...config }.duration ?? 0
     const notice = action !== '' && !(duration > 0) ? { message, action, config } : null
     if (notice) this.#sticky = notice
     return this.#show(message, action, config, notice)

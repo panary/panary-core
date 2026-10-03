@@ -53,12 +53,13 @@ describe('PosSnackBar', () => {
 
   it('kehrt auch nach echtem Ablauf einer duration zurueck', async () => {
     snackBar.open('Rabattcode nicht eingelöst', 'OK')
-    snackBar.open('Bestellungen aktualisiert', 'OK', { duration: 20 })
+    snackBar.open('Bestellungen aktualisiert', 'OK', { duration: 50 })
     await settle()
 
     expect(shown()).toBe('Bestellungen aktualisiert')
 
-    await new Promise(resolve => setTimeout(resolve, 60))
+    // Grosszuegig ueber der duration, damit ein langsamer CI-Runner nicht flackert.
+    await new Promise(resolve => setTimeout(resolve, 400))
     await settle()
 
     expect(shown()).toBe('Rabattcode nicht eingelöst')
@@ -142,6 +143,15 @@ describe('PosSnackBar', () => {
     await settle()
 
     expect(shown()).toBeNull()
+  })
+
+  it('ein explizites duration: undefined zaehlt wie in Material als ohne Ablaufzeit', async () => {
+    snackBar.open('Rabattcode nicht eingelöst', 'OK', { duration: undefined })
+    await settle()
+    snackBar.dismiss()
+    await settle()
+
+    expect(shown()).toBe('Rabattcode nicht eingelöst')
   })
 
   it('ohne Aktion ist eine Meldung nicht quittierpflichtig', async () => {

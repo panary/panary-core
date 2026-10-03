@@ -40,6 +40,8 @@ Meldung dieser Art baut, braucht nichts weiter zu tun.
   Kein heutiger Aufrufer tut das.
 - Zwischen Verdrängung und Rückkehr liegen Ein- und Ausblend-Animation: Die Meldung
   flackert kurz, statt durchgehend zu stehen.
+- Ein Benutzerwechsel am Terminal beendet sie nicht. Sie gilt dem Gerät, nicht dem
+  Kassierer: Wer übernimmt, sieht sie und quittiert sie.
 - Gezählt wird nur `open()`. `openFromComponent`/`openFromTemplate` nutzt der POS nicht.
 - Wer eine **eigene** Snackbar schließen will, schließt ihr Ref, nicht den Dienst.
   `matSnackBar.dismiss()` trifft, was gerade offen ist. Genau so hat das Undo-Aufräumen

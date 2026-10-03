@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: Print-Server-API
-description: Referenz der Print-Server-Schnittstelle am Edge — Aufrufer, Ziel-Host und Fehler-Events, der mitgelieferte MQTT-Broker, die ESC/POS-Encoder-Library samt der in Dots gemessenen Zentrierungsfalle bei Font B, das Rendern je Zieldrucker, die Druckerrolle, die über Küchenbon oder vollständige Quittung entscheidet, und der Zeichensatz je Drucker.
+description: Referenz der Print-Server-Schnittstelle am Edge — Aufrufer, Ziel-Host und Fehler-Events, der mitgelieferte MQTT-Broker, die ESC/POS-Encoder-Library samt der in Dots gemessenen Zentrierungsfalle bei Font B, das Rendern je Zieldrucker, die Druckerrolle, die über Küchenbon oder vollständige Quittung entscheidet, und der Zeichensatz je Drucker samt Transliteration typografischer Zeichen.
 tags: [locations, print-server, esc-pos, mqtt]
 status: stable
 generated: { by: claude-code/historic, at: 2025-03-28T00:00:00Z }
@@ -893,13 +893,65 @@ Wie die Rolle (§13) erbt das Feld die Cloud-Hoheit-Sperre. Der reguläre
 Pflegeort ist die Cloud, und dort ist das Feld bis
 [cloud#840](https://github.com/panary/panary-cloud/issues/840) weiter Freitext. Der Edge wertet beide Formen gleich aus.
 
-### Was kein Encoding repariert
+### Was kein Encoding repariert: Transliteration seit #517
 
 Halbgeviertstrich und typografische Anführungszeichen gibt es in **keiner** der
-DOS-Codepages (437/850/858). Sie werden dort weiter zu `?`. Nur
-`WINDOWS-1252` enthält sie, setzt aber einen Drucker voraus, der `ESC t 16`
-befolgt. Ob ein konkretes Gerät eine Codepage befolgt, zeigt sich erst auf dem
-Papier: Die Tests messen den Bytestrom.
+DOS-Codepages (437/850/858). Nur `WINDOWS-1252` enthält sie, setzt aber einen
+Drucker voraus, der `ESC t 16` befolgt. Bis
+[panary/panary-core#517](https://github.com/panary/panary-core/issues/517) wurden
+sie deshalb zu `?` — in Produkt-, Modifier- und Rabattnamen, in die sie per
+Copy-Paste geraten.
+
+Seit #517 hängt `createEscposEncoder` eine Ersetzung an den Encoder
+([`escpos-transliteration.ts`](../../apps/api-edge/src/print-server/escpos-transliteration.ts)),
+also an dieselbe eine Stelle wie die Codepage. Sie greift für `text()` und damit
+`line()`, für Text-Zellen von `table()` und für Callback-Zellen, die einen
+eigenen Zellen-Encoder bekommen.
+
+| Zeichen | Ersatz |
+|---|---|
+| `–` `—` `‒` `‐` `−` | `-` |
+| `„` `“` `”` `«` `»` `″` | `"` |
+| `‚` `‘` `’` `‹` `›` `′` | `'` |
+| `…` | `...` |
+| `€` | `EUR` |
+| `→` `←` `×` `·` `•` | `->` `<-` `x` `.` `*` |
+| `™` `©` `®` | `(TM)` `(C)` `(R)` |
+| schmale / geschützte Leerzeichen | Leerzeichen |
+| weiches Trennzeichen, Nullbreite-Zeichen | entfällt |
+
+🚨 **Ersetzt wird nur, was die Codepage des Druckers nicht darstellen kann.**
+Gemessen wird das an der Library selbst, nicht an einer eigenen Liste: `€`
+bleibt unter `CP858` das Eurozeichen (0xD5), `–` und `„` bleiben unter
+`WINDOWS-1252` stehen, `·` und `«` unter CP437. Eine pauschale Ersetzung nähme
+#376 sein Ergebnis wieder weg. `€` → `EUR` unter CP437/CP850 ist eine
+inhaltliche Entscheidung (Michael, 2026-10-03): lesbar statt `?`, auch wenn der
+Name dadurch anders auf dem Bon steht.
+
+**Steuerbytes zählen als nicht darstellbar.** CP437 bildet in der Library `♥`
+auf 0x03 und `→` auf 0x1A ab — am Bildschirm Glyphen, im ESC/POS-Strom
+Steuerzeichen. Vor #517 gingen solche Bytes unverändert an den Drucker; jetzt
+wird `→` zu `->` und `♥` zu `?`.
+
+**Byte-Gleichheit bleibt die Regressionsgrenze.** Reines ASCII kehrt ohne
+Prüfung unverändert zurück; Umlaute und Akzente stehen in jeder angebotenen
+Codepage und bleiben. Ein Bon ohne typografische Zeichen ist byte-identisch zu
+einem Encoder direkt aus der Library — der Test vergleicht Text, `line()` und
+eine Tabelle mit Text- und Callback-Zelle unter CP437, CP858 und Windows-1252.
+Vorher zerlegte Umlaute (`u` + U+0308, macOS-Copy-Paste) werden per NFC
+zusammengesetzt.
+
+Was weder Codepage noch Tabelle trägt, wird `?` und meldet sich **einmal je
+Bon** beim `encode()`:
+
+```
+event: print.unmappable_chars   codepage: cp437   chars: [{ char: ♥, codepoint: U+2665, count: 1 }]
+```
+
+Die Tabelle ist eine Annahme über Copy-Paste-Quellen (Word, Web), kein Auszug
+aus Katalogdaten. Statt eines einmaligen Bestands-Scans zeigt das Event laufend,
+welche Zeichen in der Praxis fehlen. Ob ein Drucker das Ersetzte auch druckt,
+zeigt erst das Papier: Die Tests messen den Bytestrom.
 
 ⚠️ **Nur der IP-Pfad wertet das Feld aus.** MQTT-Drucker bekommen ihre Nutzlast
 vom POS-Client; dort rendert das Backend nicht.

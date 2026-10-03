@@ -5,7 +5,7 @@ description: 'ADR zur Umsetzung des Bon-Splits als append-only Gegenbuchung (ord
 tags: [orders, fiskalisierung, dsfinv-k, pricing, sync]
 status: stable
 decision: accepted
-implementation: 'Umgesetzt 2026-09-24 (#349, Edge). POS-Oberfläche folgt mit #350, Bestandsbuchung mit panary/panary-cloud#488.'
+implementation: 'Umgesetzt 2026-09-24 (#349, Edge). POS-Oberfläche mit #350 (2026-10-03), zunächst nur im Bestellbetrieb. Bestandsbuchung folgt mit panary/panary-cloud#488.'
 generated: { by: claude-code/opus-5, at: 2026-09-24T14:45:00Z }
 ---
 
@@ -283,3 +283,30 @@ Client vor dem Split berechnet hat (POS-Liste vor dem `patched`-Event, Offline-O
 Server rechnet `payment.totalAmount` nicht gegen den Snapshot nach. Das gehört zur
 POS-Oberfläche ([#350](https://github.com/panary/panary-core/issues/350)), nicht zu dieser
 Sperre.
+
+## Nachtrag (2026-10-03, [#350](https://github.com/panary/panary-core/issues/350)): Freigabe zunächst nur im Bestellbetrieb
+
+**Problem.** Der Plan zu #350 ging davon aus, dass `orders.split` den Betriebsmodus
+selbst prüft, und wollte im Kassenbetrieb nur den Einstieg im POS ausblenden. Die
+Prüfung gab es nicht: Der Split lief in beiden Modi. Im Kassenbetrieb startet
+`signOrderTseStart` für das Ziel einen eigenen TSE-Vorgang. Dieser Pfad ist gegen
+keine echte TSE verifiziert (#351). Ausblenden allein hätte ihn nicht geschlossen.
+
+**Entscheidung.** `orders.split` lehnt ab, solange der Geschäftstag der Quelle
+nicht definitiv `orders-only` ist: HTTP 409, Code
+`order-split/fiscal-mode-unsupported`. Gelesen wird der `operationMode`-Snapshot
+des Geschäftstags über `resolveFiscalSignContext` aus `@panary/tse/domain`,
+**nicht** die aktuelle Filiale. Damit entscheiden Sperre und TSE-Start aus
+derselben Quelle mit derselben fail-safe-Richtung: Ein fehlender oder nicht
+lesbarer Tag zählt als signierpflichtig und wird abgelehnt. Die Prüfung steht
+nach `assertCallerOwnsRecord` (ADR 0046) und vor der Beleg-Abfrage.
+
+Verworfen: die aktuelle `operationMode` der Filiale. Nach einer Umstellung am
+laufenden Tag wären Sperre und Signierung auseinandergelaufen, ein Split wäre
+durchgegangen und sein Ziel trotzdem signiert worden.
+
+**Konsequenzen.** Eine Bestellung ohne `businessDayId` lässt sich nicht teilen,
+auch im Bestellbetrieb nicht. `restrictOrderToBusinessDay()` stempelt jede neue
+Bestellung, betroffen wären nur Altbestände. Die Sperre fällt mit #351, dann muss
+auch der offene Rückweg über ein vorher berechnetes `payment` beantwortet sein
+(`docs/domains/bon-split.md`, Abschnitt „Bezahlt ist nicht teilbar").

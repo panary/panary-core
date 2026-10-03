@@ -1,0 +1,200 @@
+name: POS-Build-Pruefung
+
+# Kompiliert den Tauri-Teil des POS im PR, wenn er beruehrt ist, und auf main
+# (panary/panary-core#509). Anlass: Die PR-CI baut weder Rust noch das Tauri-Paket.
+# build-pos.yml laeuft nur per Dispatch, release-pos.yml nur beim pos-v*-Tag — ein
+# Bruch fiel bisher erst beim Release auf (pos-v26.9.1/.2: npm-Paket und Crate auf
+# verschiedenem major.minor, #266).
+#
+# Zwei Stufen:
+# - Linux (jeder Treffer): fmt, `tauri build --debug --no-bundle`, clippy. Der
+#   Tauri-CLI-Lauf macht den Abgleich npm <-> Crate, den `cargo check` nicht kennt,
+#   und kompiliert und linkt die App.
+# - Windows (nur Cargo-/Config-/Workflow-Aenderung): NSIS-Bundle im Release-Profil.
+#   Faengt, was nur unter Windows bricht (windows-sys, webview2, NSIS-Config).
+#
+# Eigener Workflow statt Job in ci.yml: Nur so traegt der native `paths:`-Filter
+# (Vorbild edge-image-check.yml). Kein Required Check im Ruleset.
+on:
+  # main mit demselben Filter: faengt Direkt-Pushes auf die Pfade und schreibt den
+  # Rust-Cache, den die PR-Laeufe lesen.
+  push:
+    branches: [main]
+    paths: &pos-paths
+      - 'apps/pos-client/src-tauri/**'
+      - 'apps/pos-client/project.json'
+      # Tauri-CLI und -Plugins auf npm-Seite: Ihr major.minor muss zur Crate passen.
+      # Gemessen an 80 gemergten PRs (#328-#510) trifft der Filter 22, davon 3
+      # Cargo-Bumps und 2 Tauri-npm-Bumps; der Rest sind andere npm-Bumps.
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/build-pos.yml'
+      - '.github/workflows/release-pos.yml'
+      - '.github/workflows/pos-build-check.yml'
+  pull_request:
+    paths: *pos-paths
+
+# PR: ein neuer Push bricht den alten Lauf ab. main: jeder Stand laeuft durch.
+concurrency:
+  group: pos-build-check-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Nur lesen: kein Release, kein Upload, kein Signing-Key.
+permissions:
+  contents: read
+
+jobs:
+  # Entscheidet, ob der Windows-Build laeuft. Diff der Baeume statt Fremd-Action:
+  # Basis ist im PR der Base-Stand, auf main der Stand vor dem Push.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      windows: ${{ steps.diff.outputs.windows }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Windows-relevante Pfade bestimmen
+        id: diff
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            echo "Keine Basis — Windows-Build laeuft."
+            echo "windows=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git fetch --no-tags --depth=1 origin "$BASE"
+          files=$(git diff --name-only "$BASE" HEAD)
+          echo "$files"
+          if grep -qE '^apps/pos-client/src-tauri/(Cargo\.(lock|toml)|tauri(\.[a-z]+)?\.conf\.json|build\.rs)$|^\.github/workflows/(build-pos|release-pos|pos-build-check)\.yml$' <<<"$files"; then
+            echo "windows=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "windows=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-linux:
+    runs-on: ubuntu-latest
+    # Lokal (12 Kerne) kalt 31 s fuer den Tauri-Lauf; der Deckel faengt einen
+    # haengenden Build, nicht den Normalfall.
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Tauri-Voraussetzungen fuer Linux (WebKitGTK 4.1). Ohne Bundle kein patchelf.
+      - name: System-Pakete (WebKitGTK)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+        with:
+          components: rustfmt, clippy
+
+      # Nur main schreibt den Cache: Ein PR-Eintrag waere nur fuer denselben PR
+      # lesbar und belegte das 10-GB-Kontingent.
+      - name: Rust Cache
+        uses: swatinem/rust-cache@f0d9c3887740aee45f6153b24b3a6b815192ec16 # v2
+        with:
+          workspaces: apps/pos-client/src-tauri -> target
+          save-if: ${{ github.event_name == 'push' }}
+
+      # Wie ci.yml: Das committete Lockfile ist ein Snapshot des Workbench-Lockfiles.
+      - name: Install Dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      # Das Angular-Frontend baut ci.yml (`nx affected -t build`). Hier reicht ein
+      # Platzhalter: tauri-build verlangt nur, dass `frontendDist` existiert.
+      - name: Frontend-Platzhalter
+        run: |
+          mkdir -p dist/apps/pos-client/browser
+          echo '<html></html>' > dist/apps/pos-client/browser/index.html
+
+      - name: cargo fmt --check
+        working-directory: apps/pos-client/src-tauri
+        run: cargo fmt --check
+
+      # Vor clippy: Der Abgleich npm <-> Crate war die einzige Fehlerklasse, die ein
+      # POS-Release tatsaechlich rot gemacht hat (#266). Updater-Artefakte aus wie in
+      # build-pos.yml (kein Signing-Key hier).
+      - name: tauri build (debug, ohne Bundle)
+        run: pnpm tauri build --debug --no-bundle --config '{"bundle":{"createUpdaterArtifacts":false}}' -- --locked
+
+      - name: cargo clippy
+        working-directory: apps/pos-client/src-tauri
+        run: cargo clippy --locked --all-targets -- -D warnings
+
+  build-windows:
+    needs: changes
+    if: needs.changes.outputs.windows == 'true'
+    runs-on: windows-latest
+    # build-pos.yml braucht mit Angular-Build 7-15 min, hier entfaellt der Angular-Teil.
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@f0d9c3887740aee45f6153b24b3a6b815192ec16 # v2
+        with:
+          workspaces: apps/pos-client/src-tauri -> target
+          save-if: ${{ github.event_name == 'push' }}
+
+      - name: Install Dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Frontend-Platzhalter
+        shell: bash
+        run: |
+          mkdir -p dist/apps/pos-client/browser
+          echo '<html></html>' > dist/apps/pos-client/browser/index.html
+
+      # Config-Override als Datei wie in build-pos.yml. Release-Profil und NSIS wie
+      # im Release, nur ohne Updater-Artefakte und ohne Upload.
+      - name: Tauri-Config-Override (Updater-Artefakte deaktivieren)
+        shell: bash
+        run: printf '%s' '{"bundle":{"createUpdaterArtifacts":false}}' > apps/pos-client/src-tauri/ci-no-updater.conf.json
+
+      - name: tauri build (NSIS)
+        shell: bash
+        run: pnpm tauri build --bundles nsis --config "$GITHUB_WORKSPACE/apps/pos-client/src-tauri/ci-no-updater.conf.json" -- --locked
+
+      - name: Installer vorhanden
+        shell: bash
+        run: ls apps/pos-client/src-tauri/target/release/bundle/nsis/*.exe

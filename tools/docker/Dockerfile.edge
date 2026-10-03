@@ -47,7 +47,6 @@ COPY apps/setup-client/ ./apps/setup-client/
 # Vitest-Helfer: Die vitest.config.mts der Libs importieren ihn. Das @nx/vitest-Plugin
 # lädt diese Configs beim Aufbau des Projektgraphen — fehlt er, bricht jeder nx-Aufruf
 # ab, auch der reine Build (panary/panary-core#488).
-COPY tools/vitest/ ./tools/vitest/
 
 # Bauen
 RUN npx nx build api-edge --configuration=production

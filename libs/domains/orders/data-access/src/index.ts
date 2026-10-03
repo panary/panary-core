@@ -6,6 +6,7 @@ export * from './lib/services/order-interaction.service'
 export * from './lib/services/order-print.service'
 export * from './lib/components/print-dialog.component'
 export * from './lib/components/cancel-order-dialog.component'
+export * from './lib/components/split-order-dialog.component'
 
 export {
   OrderStatus,

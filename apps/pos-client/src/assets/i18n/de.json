@@ -375,7 +375,8 @@
     "COMPANY_ERROR": "Fehler beim Zuordnen der Firma",
     "PAGER": "Pager",
     "SETTLEMENT_SCOPE": "Abrechnungskreis",
-    "DISCOUNT_LABEL": "Rabatt"
+    "DISCOUNT_LABEL": "Rabatt",
+    "SPLIT": "Aufteilen"
   },
   "PRE_ORDERS": {
     "TITLE": "Vorbestellungen",
@@ -631,6 +632,33 @@
     "REASON_WRONG_INPUT": "Fehlerhafte Eingabe",
     "REASON_DUPLICATE": "Doppelte Bestellung",
     "REASON_OTHER": "Sonstiges"
+  },
+  "SPLIT_ORDER": {
+    "TITLE": "Bestellung aufteilen",
+    "HINT": "Wähle die Positionen, die auf eine neue Bestellung wandern. Der Rest bleibt hier.",
+    "COMBINATION": "Kombination – nur als Ganzes",
+    "WHOLE_ONLY": "Mit Extras – nur vollständig",
+    "LESS": "Weniger",
+    "MORE": "Mehr",
+    "TOGGLE": "Position auswählen",
+    "REMAINS": "Bleibt",
+    "NEW_ORDER": "Neue Bestellung",
+    "CONFIRM": "Aufteilen",
+    "SUBMITTING": "Wird aufgeteilt …",
+    "SUCCESS": "Bestellung #{{source}} aufgeteilt – neu: #{{target}}",
+    "ERROR": {
+      "EMPTY_SELECTION": "Bitte mindestens eine Position auswählen.",
+      "NOTHING_REMAINS": "Es muss mindestens eine Position in der Bestellung bleiben.",
+      "SOURCE_NOT_SPLITTABLE": "Diese Bestellung ist abgeschlossen oder storniert und kann nicht aufgeteilt werden.",
+      "SOURCE_ALREADY_PAID": "Für diese Bestellung ist bereits eine Zahlung erfasst – sie kann nicht aufgeteilt werden.",
+      "PARTIAL_SPLIT_UNSUPPORTED": "Positionen mit Extras oder Menü-Bestandteilen können nur vollständig verschoben werden.",
+      "AMOUNT_EXCEEDS_REMAINDER": "Die gewählte Menge ist größer als die offene Menge. Bitte Auswahl prüfen.",
+      "UNKNOWN_LINE": "Die Bestellung wurde inzwischen geändert. Bitte Dialog schließen und neu öffnen.",
+      "DUPLICATE_LINE": "Eine Position steht doppelt in der Auswahl.",
+      "FISCAL_MODE_UNSUPPORTED": "Aufteilen ist derzeit nur im Bestellbetrieb möglich, nicht im Kassenbetrieb.",
+      "OFFLINE": "Aufteilen ist nur mit Verbindung zum Server möglich.",
+      "GENERIC": "Die Bestellung konnte nicht aufgeteilt werden."
+    }
   },
   "PRINT": {
     "TITLE": "Drucken",

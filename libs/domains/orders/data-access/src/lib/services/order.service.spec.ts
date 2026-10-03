@@ -24,7 +24,7 @@ import {
 } from '@panary/shared/data-access'
 
 import { LocationService } from '@panary/locations/data-access'
-import { OrderService } from './order.service'
+import { OrderService, OrderSplitOfflineError } from './order.service'
 
 // Geprueft wird `createOrder` — also die Payload, die den Server erreicht.
 // Der Schwerpunkt liegt auf der vorab vergebenen `_id`: Sie ist der einzige Weg,
@@ -62,8 +62,13 @@ function setup(options: SetupOptions = {}) {
   const createCalls: Array<{ payload: Record<string, unknown>; params: unknown }> = []
   const enqueued: Array<Record<string, unknown>> = []
   const upserted: Array<{ store: string; rows: unknown[] }> = []
+  const splitCalls: unknown[] = []
 
   const feathersOrderService = {
+    split: (data: unknown) => {
+      splitCalls.push(data)
+      return Promise.resolve({ sourceOrder: { _id: 'quelle' }, targetOrder: { _id: 'ziel' } })
+    },
     create: (payload: Record<string, unknown>, params: unknown) => {
       createCalls.push({ payload, params })
       return Promise.resolve({ ...payload, _id: payload['_id'] ?? 'server-vergeben', dailySequenceNumber: 42 })
@@ -133,7 +138,7 @@ function setup(options: SetupOptions = {}) {
   })
 
   const service = runInInjectionContext(injector, () => new OrderService())
-  return { service, createCalls, enqueued, upserted }
+  return { service, createCalls, enqueued, upserted, splitCalls }
 }
 
 const baseInput = {
@@ -287,5 +292,23 @@ describe('OrderService.createOrder — Payload', () => {
     for (const key of ['pager', 'table', 'customerPaymentInfo', 'staffPaymentInfo', 'creationContext']) {
       expect(key in createCalls[0].payload, key).toBe(false)
     }
+  })
+})
+
+describe('OrderService.split (#350)', () => {
+  it('ruft die Edge-Custom-Method mit orderId und Auswahl auf', async () => {
+    const { service, splitCalls } = setup()
+    const result = await service.split('quelle', [{ lineItemRowId: 'li-1', amount: 2 }])
+
+    expect(splitCalls).toEqual([{ orderId: 'quelle', lineItems: [{ lineItemRowId: 'li-1', amount: 2 }] }])
+    expect(result.targetOrder._id).toBe('ziel')
+  })
+
+  it('splittet offline NICHT — kein Outbox-Eintrag, eigener Fehler für die Meldung im Dialog', async () => {
+    const { service, splitCalls, enqueued } = setup({ offline: true })
+
+    await expect(service.split('quelle', [{ lineItemRowId: 'li-1' }])).rejects.toBeInstanceOf(OrderSplitOfflineError)
+    expect(splitCalls).toEqual([])
+    expect(enqueued).toEqual([])
   })
 })

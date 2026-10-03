@@ -42,7 +42,7 @@ on:
       - '.github/workflows/edge-image-check.yml'
 
 concurrency:
-  group: edge-image-check-${{ github.head_ref }}
+  group: edge-image-check-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 # Nur lesen: kein Push, keine Signatur, kein Registry-Login.
@@ -52,9 +52,9 @@ permissions:
 jobs:
   build-edge-image:
     runs-on: ubuntu-latest
-    # Release-Lauf (inkl. Signatur + Stueckliste) braucht gemessen 6-8 min;
-    # derselbe Cap wie build-edge-docker.yml.
-    timeout-minutes: 45
+    # Release-Lauf (inkl. Signatur + Stueckliste) braucht gemessen 6-8 min. Ein
+    # haengender Build soll den PR nicht 45 min (Release-Cap) aufhalten.
+    timeout-minutes: 20
 
     steps:
       - name: Checkout

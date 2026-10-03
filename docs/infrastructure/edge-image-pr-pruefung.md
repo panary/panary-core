@@ -45,14 +45,14 @@ wäre nur für denselben PR lesbar und verdrängte die Einträge der Releases au
 ## Wann er läuft
 
 Der native `paths:`-Filter des Workflows. Das Ruleset von `main` kennt keine Pflicht-Checks,
-ein PR ohne passende Pfade wartet also auf nichts. Würde der Check je Pflicht, braucht er
-einen Ersatzlauf für ungefilterte PRs, sonst bleibt er dort auf „erwartet“ stehen.
+ein PR ohne passende Pfade wartet also auf nichts. Wird der Check später zur Pflicht, braucht
+er einen Ersatzlauf für ungefilterte PRs, sonst bleibt er dort auf „erwartet“ stehen.
 
 Im Filter stehen die Dateien, die das Image anders auflöst als der Checkout: `tools/docker/**`,
 `tools/vitest/**`, jede `vitest.config.*`, die Root-Konfiguration, die das Dockerfile kopiert
 (`package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `nx.json`, `tsconfig*.json`,
 `postcss.config.json`, `.gitignore`), `package.json`/`project.json` der Libs und der drei
-gebauten Apps sowie die beiden Workflows selbst.
+gebauten Apps, `packages/**/package.json` sowie die beiden Workflows selbst.
 
 **Gemessen** an den 80 gemergten PRs vor #497: Der Filter hätte **34** getroffen. Fast alle
 sind Dependency-Bumps (`package.json` + Lockfile). Die wurden bewusst nicht ausgenommen:

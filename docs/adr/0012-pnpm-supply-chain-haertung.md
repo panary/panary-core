@@ -121,7 +121,7 @@ alle drei wären wirkungslos gewesen. Der Pin ist deshalb Teil dieser Änderung
 | ---------------------------------------------------------- | --------------------------------------- | -------------------------- | --------------------- |
 | Workbench (lokal)                                          | Workbench-Root                          | geteilt (Symlink)          | Root-Settings         |
 | `ci.yml`, `publish-libraries.yml`, `build-pos.yml` | committete Datei                        | committet, unverändert     | aktiv                 |
-| `build-edge-docker.yml`                                    | committete Datei **+ angehängte Globs** | committet, wird erweitert  | **ausgehängt** (s.u.) |
+| `build-edge-docker.yml`, `edge-image-check.yml` (über `tools/docker/prepare-edge-context.sh`, seit [#497](https://github.com/panary/panary-core/issues/497)) | committete Datei **+ angehängte Globs** | committet, wird erweitert  | **ausgehängt** (s.u.) |
 | `release-pos.yml`                                  | committete Datei **+ angehängte Globs** | gelöscht, frisch aufgelöst | aktiv                 |
 
 Die beiden Release-Workflows schrieben die Datei bisher inline **neu**. Das

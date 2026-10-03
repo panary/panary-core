@@ -10,6 +10,11 @@ import {
   planOrderSplit,
 } from '@panary/orders/domain'
 import { assertCallerOwnsRecord, logger } from '@panary/shared-backend'
+import {
+  FISCAL_GATE_BUSINESS_DAY_SELECT,
+  resolveFiscalSignContext,
+  type BusinessDayFiscalSnapshot,
+} from '@panary/tse/domain'
 import { uuidv7 } from 'uuidv7'
 import type { Application } from '../../declarations'
 
@@ -58,6 +63,7 @@ function toFeathersError(error: OrderSplitError): Error {
     case OrderSplitErrorCode.SOURCE_NOT_SPLITTABLE:
     case OrderSplitErrorCode.SOURCE_ALREADY_PAID:
     case OrderSplitErrorCode.NOTHING_REMAINS:
+    case OrderSplitErrorCode.FISCAL_MODE_UNSUPPORTED:
       return new Conflict(error.message, data)
     default:
       return new BadRequest(error.message, data)
@@ -76,6 +82,8 @@ export function createOrderSplitMethod(app: Application) {
     // rollt nichts zurueck: Ein Check nach `orders.create` liesse die
     // Zielbestellung in der Datenbank stehen.
     assertCallerOwnsRecord(params?.user, source as unknown as { tenantId?: string })
+
+    await assertOrdersOnlyBusinessDay(app, source)
 
     // A6 — ein ausgestellter Beleg schliesst den Vorgang. `issueReceipt` fuehrt
     // genau einen Beleg je Order; existiert er, ist der Vorgang fiskalisch
@@ -170,6 +178,63 @@ export function createOrderSplitMethod(app: Application) {
     })
 
     return { sourceOrder, targetOrder }
+  }
+}
+
+/**
+ * Freigabe nur im Bestellbetrieb (panary/panary-core#350).
+ *
+ * Im Kassenbetrieb startet `signOrderTseStart` fuer die Zielbestellung einen
+ * eigenen TSE-Vorgang. Dieser Pfad ist gegen keine echte TSE verifiziert
+ * (panary/panary-core#351) — bis dahin lehnt der Edge ab. Das Ausblenden des
+ * Einstiegs im POS ist KEINE Zugangskontrolle: Diese Pruefung ist es.
+ *
+ * 🚨 Die Zielbestellung landet NICHT auf dem Geschaeftstag der Quelle:
+ * `restrictOrderToBusinessDay()` gibt ihr den AKTUELLEN Tag der Filiale und
+ * eroeffnet beim Anlegen notfalls einen neuen (Auto-Rotation), dessen Modus aus
+ * der aktuellen `operationMode` der Filiale kommt. Nach dem Modus genau dieses
+ * Tages entscheidet `signOrderTseStart`. Weil vor dem `create` nicht feststeht,
+ * welcher der Faelle eintritt, muessen ALLE Kandidaten definitiv `orders-only`
+ * sein: der Tag der Quelle, der aktuelle Tag der Filiale und die Filiale selbst.
+ * Die Tage gehen ueber `resolveFiscalSignContext` — dieselbe Entscheidung samt
+ * fail-safe-Richtung wie der Hook: Fehlt ein Tag oder ist er nicht lesbar, gilt
+ * er als signierpflichtig, und es wird abgelehnt. Ebenso eine nicht ladbare
+ * Filiale.
+ *
+ * Steht VOR der Beleg-Abfrage und vor jedem Write, aber NACH dem Eigentums-Check:
+ * Die Ablehnung verraet sonst den Modus fremder Filialen.
+ */
+async function assertOrdersOnlyBusinessDay(app: Application, source: Order): Promise<void> {
+  const reject = (): never => {
+    throw toFeathersError(
+      new OrderSplitError(
+        OrderSplitErrorCode.FISCAL_MODE_UNSUPPORTED,
+        'Bestellungen aufteilen ist derzeit nur im Bestellbetrieb moeglich, nicht im Kassenbetrieb.',
+      ),
+    )
+  }
+
+  let location: { operationMode?: string; currentBusinessDay?: { businessDayId?: string } | null } | undefined
+  try {
+    location = source.locationId
+      ? ((await app.service('locations').get(source.locationId, { provider: undefined })) as typeof location)
+      : undefined
+  } catch {
+    location = undefined
+  }
+  if (location?.operationMode !== 'orders-only') reject()
+
+  const loadBusinessDay = async (businessDayId: string) =>
+    (await app.service('businessdays').get(businessDayId, {
+      query: { $select: [...FISCAL_GATE_BUSINESS_DAY_SELECT] },
+      provider: undefined,
+    })) as BusinessDayFiscalSnapshot | undefined
+
+  const candidates = new Set<string | undefined>([source.businessDayId])
+  const currentDayId = location?.currentBusinessDay?.businessDayId
+  if (currentDayId) candidates.add(currentDayId)
+  for (const businessDayId of candidates) {
+    if ((await resolveFiscalSignContext(businessDayId, loadBusinessDay)).sign) reject()
   }
 }
 

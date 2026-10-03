@@ -45,6 +45,13 @@ export const OrderSplitErrorCode = {
   PARTIAL_SPLIT_UNSUPPORTED: 'order-split/partial-split-unsupported',
   /** Es bliebe nichts zurueck — das waere eine Umbuchung, kein Split. */
   NOTHING_REMAINS: 'order-split/nothing-remains',
+  /**
+   * Geschaeftstag laeuft im Kassenbetrieb (`pos-cashier`) oder sein Modus ist
+   * nicht lesbar. Der Split ist zunaechst nur im Bestellbetrieb freigegeben,
+   * bis der TSE-Pfad verifiziert ist (panary/panary-core#350, #351). Die
+   * Pruefung liegt im Edge, nicht hier: Sie braucht den Geschaeftstag.
+   */
+  FISCAL_MODE_UNSUPPORTED: 'order-split/fiscal-mode-unsupported',
 } as const
 export type OrderSplitErrorCode = (typeof OrderSplitErrorCode)[keyof typeof OrderSplitErrorCode]
 

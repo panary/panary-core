@@ -1,10 +1,10 @@
 ---
 type: Domain Concept
 title: 'Bon-Split — „getrennt zahlen" als Umbuchung'
-description: 'Fachliches Modell des Bon-Splits am Edge: order.splitOff als append-only Gegenbuchung, effectiveLineItems als einzige Ableitung der Restmenge, Rabatt- und Steueraufteilung, Vorbedingungen und die bewusst abgelehnte Teilung von Modifier-Zeilen.'
+description: 'Fachliches Modell des Bon-Splits: order.splitOff als append-only Gegenbuchung, effectiveLineItems als einzige Ableitung der Restmenge, Rabatt- und Steueraufteilung, Vorbedingungen, die bewusst abgelehnte Teilung von Modifier-Zeilen und die POS-Oberfläche, die zunächst nur im Bestellbetrieb freigegeben ist.'
 tags: [orders, fiskalisierung, dsfinv-k, pricing]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-09-26T00:03:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-03T21:10:00Z }
 ---
 
 # Bon-Split — „getrennt zahlen" als Umbuchung
@@ -83,6 +83,7 @@ POST /orders   →  Methode `split`
 | `order-split/amount-exceeds-remainder` | mehr verlangt, als die Zeile noch trägt |
 | `order-split/partial-split-unsupported` | Teilmenge einer Zeile mit Modifiern/Komponenten (siehe unten) |
 | `order-split/nothing-remains` | die Quelle bliebe leer — das wäre eine Umbuchung, kein Split |
+| `order-split/fiscal-mode-unsupported` | der Geschäftstag der Quelle läuft im Kassenbetrieb oder ist nicht lesbar (siehe [POS-Oberfläche](#pos-oberfläche-und-die-sperre-im-kassenbetrieb)) |
 
 ⚠️ `COMPLETED` ist in der Status-FSM **nicht** hart terminal (`COMPLETED →
 UNCLAIMED`/`→ ABORTED` sind erlaubt). Der Split lehnt trotzdem hart ab: A6
@@ -227,9 +228,83 @@ will, prüft das Log auf diese Events, nicht die Tabelle auf Lücken.
 Ohne `params.user` schreibt das Journal **nichts**: Ein Journal-Ereignis ohne
 „wer" beantwortet die einzige Frage nicht, für die es existiert.
 
+## POS-Oberfläche und die Sperre im Kassenbetrieb
+
+Seit [#350](https://github.com/panary/panary-core/issues/350) lässt sich eine
+Bestellung am POS aufteilen: Liste „offene Bestellungen" → Karte antippen →
+**Aufteilen** (`SplitOrderDialogComponent` in `@panary/orders/data-access`).
+Der Einstieg liegt bewusst dort und nicht im Bestelldialog
+([ADR 0011](../adr/0011-order-dialog-monolith.md)).
+
+**Zunächst nur im Bestellbetrieb.** Im Kassenbetrieb startet `signOrderTseStart`
+für die Zielbestellung einen eigenen TSE-Vorgang. Dieser Pfad ist gegen keine
+echte TSE geprüft ([#351](https://github.com/panary/panary-core/issues/351)).
+Gesperrt wird an zwei Stellen, und nur eine davon ist die Sperre:
+
+| Wo | Was | Rolle |
+|---|---|---|
+| POS | Button nur bei `operationMode: orders-only` der aktiven Filiale | Bedienung, **keine** Zugangskontrolle |
+| Edge (`orders.split`) | 409 `order-split/fiscal-mode-unsupported` | die eigentliche Sperre |
+
+Die Zielbestellung landet **nicht** auf dem Geschäftstag der Quelle:
+`restrictOrderToBusinessDay()` gibt ihr den **aktuellen** Tag der Filiale und
+eröffnet beim Anlegen notfalls einen neuen (Auto-Rotation), dessen Modus aus der
+aktuellen `operationMode` der Filiale kommt. Nach dem Modus genau dieses Tages
+signiert `signOrderTseStart`. Vor dem `create` steht nicht fest, welcher Fall
+eintritt, deshalb muss **jeder Kandidat** definitiv `orders-only` sein:
+
+- der Geschäftstag der Quelle,
+- der aktuelle Geschäftstag der Filiale,
+- die `operationMode` der Filiale selbst.
+
+Die Tage laufen über `resolveFiscalSignContext`, dieselbe Entscheidung wie der
+TSE-Start, mit derselben fail-safe-Richtung: Ein fehlender oder nicht lesbarer
+Tag gilt als signierpflichtig und wird **abgelehnt**, ebenso eine nicht ladbare
+Filiale. Die Prüfung steht nach dem Eigentums-Check (sonst verriete die
+Ablehnung den Modus fremder Filialen) und vor jedem Write.
+
+**Was der Dialog anbietet:**
+
+- **Einheiten** aus `effectiveLineItems` — nach einem früheren Split nur die
+  Restmenge.
+- **Einfache Zeilen** mit Mengenwähler (Teilmengen).
+- **Zeilen mit Extras oder Menü-Bestandteilen** nur ganz (siehe
+  [oben](#warum-modifier-zeilen-nur-ganz-wandern)).
+- **Kombinationen** (gemeinsame `bundleNumber`) nur **als Ganzes**: Alle Zeilen
+  wandern vollständig, sonst bliebe ein halbes Menü auf dem Bon. Das ist eine
+  fachliche Entscheidung (Michael, 2026-10-03), der Edge selbst würde
+  Komponenten einzeln annehmen.
+
+**Die Vorschau rechnet nicht selbst.** Sie ruft `planOrderSplit`, dieselbe reine
+Funktion, die der Edge ausführt. Die Summen stimmen damit cent-genau mit den
+entstehenden Bestellungen, und Ablehnungen wie `nothing-remains` erscheinen
+schon vor dem Bestätigen. Die Bestellung wird live aus dem `OrderService`
+gelesen: Wird sie im offenen Dialog abgeschlossen, sperrt er sofort.
+
+**Melden statt schweigen.** Leere Auswahl, gesperrte Quelle (abgeschlossen,
+storniert, bezahlt), Server-Ablehnung (Code aus `error.data.code`) und fehlende
+Verbindung setzen je eine Meldung; der Dialog bleibt offen. Offline gibt es
+keinen Split: Belegnummer, Geschäftstag und Gegenbuchung braucht der Server,
+eine Outbox-Variante würde zwei Vorgänge optimistisch erfinden.
+
+Nach dem Split schließt der Dialog, und Quelle und Ziel sind in der Liste acht
+Sekunden lang markiert. Die Liste aktualisiert sich über die Realtime-Events
+(`created` fürs Ziel, `patched` für die Quelle).
+
+🚨 **Die Karten der Liste lesen `effectiveLineItems`, nicht `lineItems`.** Vorher
+zeigten sie die volle Ursprungsliste, während Summe und Bon schon den Rest
+auswiesen. Wer eine weitere Positionsanzeige baut, muss dieselbe Ableitung lesen.
+
+Zum oben genannten offenen Rückweg (erst Split, dann ein vorher berechnetes
+`payment`): Im Bestellbetrieb schreibt `finalizeOrder()` **kein** `payment`,
+der Weg bleibt also verschlossen, solange der Split nur dort freigegeben ist.
+Mit der Freigabe im Kassenbetrieb wird er wieder relevant.
+
 ## Was noch fehlt
 
-- **POS-Oberfläche** — [#350](https://github.com/panary/panary-core/issues/350).
+- **Split im Kassenbetrieb** — erst nach der TSE-Verifikation
+  ([#351](https://github.com/panary/panary-core/issues/351)); dann fällt die Sperre
+  `fiscal-mode-unsupported`, und der Rückweg über `payment` braucht eine Antwort.
 - **Bestandsbuchung in der Cloud** —
   [panary/panary-cloud#488](https://github.com/panary/panary-cloud/issues/488).
   Bis dahin ist eine **Doppelbuchung** möglich: Die Idempotenz über

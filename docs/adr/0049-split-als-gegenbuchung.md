@@ -5,7 +5,7 @@ description: 'ADR zur Umsetzung des Bon-Splits als append-only Gegenbuchung (ord
 tags: [orders, fiskalisierung, dsfinv-k, pricing, sync]
 status: stable
 decision: accepted
-implementation: 'Umgesetzt 2026-09-24 (#349, Edge). POS-Oberfläche folgt mit #350, Bestandsbuchung mit panary/panary-cloud#488.'
+implementation: 'Umgesetzt 2026-09-24 (#349, Edge). POS-Oberfläche mit #350 (2026-10-03), zunächst nur im Bestellbetrieb. Bestandsbuchung folgt mit panary/panary-cloud#488.'
 generated: { by: claude-code/opus-5, at: 2026-09-24T14:45:00Z }
 ---
 
@@ -283,3 +283,40 @@ Client vor dem Split berechnet hat (POS-Liste vor dem `patched`-Event, Offline-O
 Server rechnet `payment.totalAmount` nicht gegen den Snapshot nach. Das gehört zur
 POS-Oberfläche ([#350](https://github.com/panary/panary-core/issues/350)), nicht zu dieser
 Sperre.
+
+## Nachtrag (2026-10-03, [#350](https://github.com/panary/panary-core/issues/350)): Freigabe zunächst nur im Bestellbetrieb
+
+**Problem.** Der Plan zu #350 ging davon aus, dass `orders.split` den Betriebsmodus
+selbst prüft, und wollte im Kassenbetrieb nur den Einstieg im POS ausblenden. Die
+Prüfung gab es nicht: Der Split lief in beiden Modi. Im Kassenbetrieb startet
+`signOrderTseStart` für das Ziel einen eigenen TSE-Vorgang. Dieser Pfad ist gegen
+keine echte TSE verifiziert (#351). Ausblenden allein hätte ihn nicht geschlossen.
+
+**Entscheidung.** `orders.split` lehnt mit HTTP 409 und Code
+`order-split/fiscal-mode-unsupported` ab, solange nicht jeder mögliche Tag des
+Ziels definitiv `orders-only` ist. Die Zielbestellung erbt den Tag der Quelle
+nicht: `restrictOrderToBusinessDay()` gibt ihr den aktuellen Tag der Filiale
+und eröffnet notfalls einen neuen mit dem Modus der Filiale. Geprüft werden
+deshalb der Geschäftstag der Quelle, der aktuelle Geschäftstag der Filiale
+(beide als Snapshot über `resolveFiscalSignContext` aus `@panary/tse/domain`)
+und die `operationMode` der Filiale. Die Tage entscheiden damit wie der
+TSE-Start, mit derselben fail-safe-Richtung: Ein fehlender oder nicht lesbarer
+Tag zählt als signierpflichtig, eine nicht ladbare Filiale ebenso. Die Prüfung
+steht nach `assertCallerOwnsRecord` (ADR 0046) und vor der Beleg-Abfrage.
+
+Verworfen:
+- **Nur der Tag der Quelle.** Das war der erste Stand dieses PRs; das Review
+  fand den Fall „Quelle auf einem Bestell-Tag, inzwischen läuft ein Kassen-Tag".
+  Das Ziel wäre durchgegangen und vom Hook signiert worden.
+- **Nur die aktuelle `operationMode` der Filiale.** Ein laufender Tag behält seinen
+  Snapshot über eine Umstellung hinweg, Sperre und Signierung wären
+  auseinandergelaufen.
+- **Das Ziel fest auf den Tag der Quelle legen.** Das hätte den Geschäftstag-Hook
+  für einen einzelnen Aufrufer aufgebohrt und Bestellungen auf bereits rotierte
+  Tage gebucht.
+
+**Konsequenzen.** Eine Bestellung ohne `businessDayId` lässt sich nicht teilen,
+auch im Bestellbetrieb nicht. `restrictOrderToBusinessDay()` stempelt jede neue
+Bestellung, betroffen wären nur Altbestände. Die Sperre fällt mit #351, dann muss
+auch der offene Rückweg über ein vorher berechnetes `payment` beantwortet sein
+(`docs/domains/bon-split.md`, Abschnitt „Bezahlt ist nicht teilbar").

@@ -12,6 +12,7 @@ import {
   DineLocation,
   Order,
   OrderLineItem,
+  OrderSplitSelectionItem,
   OrderStatus,
   StaffPaymentInfo,
   TransactionMethod,
@@ -53,6 +54,20 @@ export interface CreateOrderInput {
   orderInteractions?: Array<OrderInteraction>
   creationContext?: CreationContext
   appliedDiscounts?: AppliedDiscount[]
+}
+
+/** Antwort der Edge-Custom-Method `orders.split`. */
+export interface OrderSplitResponse {
+  sourceOrder: Order
+  targetOrder: Order
+}
+
+/** Split ohne Serververbindung — der Dialog meldet das statt eines generischen Fehlers. */
+export class OrderSplitOfflineError extends Error {
+  constructor() {
+    super('Bestellungen aufteilen ist nur mit Verbindung zum Server möglich.')
+    this.name = 'OrderSplitOfflineError'
+  }
 }
 
 @Injectable({
@@ -460,6 +475,26 @@ export class OrderService extends BaseService<Order> {
     // damit der Statuswechsel (z. B. Abschluss) sofort sichtbar wird.
     this.loadDocuments()
     return merged
+  }
+
+  /**
+   * Bon-Split (panary/panary-core#350): ruft die Edge-Custom-Method `orders.split`.
+   *
+   * Läuft bewusst NICHT über `BaseService.handleError` — der Split-Dialog zeigt
+   * die Ablehnung inline mit dem Fehlercode aus `error.data.code` (Muster
+   * `CashSessionService.openAuthorized`). Offline gibt es keinen Split: Die
+   * Aufteilung braucht den Server (Belegnummer, Geschäftstag, Gegenbuchung), eine
+   * Outbox-Variante würde zwei Vorgänge optimistisch erfinden.
+   *
+   * Die Liste aktualisiert sich über die Realtime-Events (`created` fürs Ziel,
+   * `patched` für die Quelle); die Antwort trägt beide Bestellungen für den Aufrufer.
+   */
+  async split(orderId: string, lineItems: OrderSplitSelectionItem[]): Promise<OrderSplitResponse> {
+    if (this.connectionService.connectionState().status !== 'authenticated') {
+      throw new OrderSplitOfflineError()
+    }
+    const service = this.service as { split: (data: unknown) => Promise<OrderSplitResponse> }
+    return service.split({ orderId, lineItems })
   }
 
   private markOrdersAsCompleted(): void {

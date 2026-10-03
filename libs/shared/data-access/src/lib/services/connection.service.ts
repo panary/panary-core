@@ -606,8 +606,9 @@ export class ConnectionService {
     this.#app.use('locations', socketClient.service('locations'), {
       methods: ['find', 'get', 'create', 'update', 'patch', 'remove', 'openBusinessDay', 'performDailyClosing'],
     })
+    // `split` (Bon-Split, #349/#350) — ohne Registrierung ist die Custom-Method clientseitig unsichtbar.
     this.#app.use('orders', socketClient.service('orders'), {
-      methods: ['find', 'get', 'create', 'update', 'patch', 'remove', 'multiPatchStatus'],
+      methods: ['find', 'get', 'create', 'update', 'patch', 'remove', 'multiPatchStatus', 'split'],
     })
     this.#app.use('businessdays', socketClient.service('businessdays'), {
       methods: ['find', 'get', 'create', 'update', 'patch', 'remove', 'open', 'close'],

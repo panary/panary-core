@@ -375,7 +375,8 @@
     "COMPANY_ERROR": "Firma atama hatası",
     "PAGER": "Çağrı cihazı",
     "SETTLEMENT_SCOPE": "Hesap grubu",
-    "DISCOUNT_LABEL": "İndirim"
+    "DISCOUNT_LABEL": "İndirim",
+    "SPLIT": "Böl"
   },
   "PRE_ORDERS": {
     "TITLE": "Ön siparişler",
@@ -631,6 +632,33 @@
     "REASON_WRONG_INPUT": "Yanlış giriş",
     "REASON_DUPLICATE": "Mükerrer sipariş",
     "REASON_OTHER": "Diğer"
+  },
+  "SPLIT_ORDER": {
+    "TITLE": "Siparişi böl",
+    "HINT": "Yeni siparişe taşınacak ürünleri seçin. Geri kalanı burada kalır.",
+    "COMBINATION": "Kombinasyon – yalnızca bütün olarak",
+    "WHOLE_ONLY": "Ekstralı – yalnızca tamamı",
+    "LESS": "Azalt",
+    "MORE": "Artır",
+    "TOGGLE": "Ürünü seç",
+    "REMAINS": "Kalan",
+    "NEW_ORDER": "Yeni sipariş",
+    "CONFIRM": "Böl",
+    "SUBMITTING": "Bölünüyor …",
+    "SUCCESS": "#{{source}} numaralı sipariş bölündü – yeni: #{{target}}",
+    "ERROR": {
+      "EMPTY_SELECTION": "Lütfen en az bir ürün seçin.",
+      "NOTHING_REMAINS": "Siparişte en az bir ürün kalmalıdır.",
+      "SOURCE_NOT_SPLITTABLE": "Bu sipariş tamamlanmış veya iptal edilmiş, bölünemez.",
+      "SOURCE_ALREADY_PAID": "Bu sipariş için zaten bir ödeme kaydedilmiş – bölünemez.",
+      "PARTIAL_SPLIT_UNSUPPORTED": "Ekstralı veya menü bileşenli ürünler yalnızca tamamen taşınabilir.",
+      "AMOUNT_EXCEEDS_REMAINDER": "Seçilen miktar açık miktardan fazla. Lütfen seçimi kontrol edin.",
+      "UNKNOWN_LINE": "Sipariş bu arada değişti. Lütfen pencereyi kapatıp yeniden açın.",
+      "DUPLICATE_LINE": "Bir ürün seçimde iki kez yer alıyor.",
+      "FISCAL_MODE_UNSUPPORTED": "Bölme şu anda yalnızca sipariş modunda mümkündür, kasa modunda değil.",
+      "OFFLINE": "Bölme için sunucu bağlantısı gereklidir.",
+      "GENERIC": "Sipariş bölünemedi."
+    }
   },
   "PRINT": {
     "TITLE": "Yazdır",

@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   inject,
   signal,
@@ -31,8 +32,14 @@ import {
   Transaction,
   TransactionMethod,
 } from '@panary/orders/data-access'
-import { PrintDialogComponent, CancelOrderDialogComponent } from '@panary/orders/data-access'
-import type { AppliedDiscount } from '@panary/orders/domain'
+import {
+  PrintDialogComponent,
+  CancelOrderDialogComponent,
+  SplitOrderDialogComponent,
+  type SplitOrderDialogData,
+  type SplitOrderDialogResult,
+} from '@panary/orders/data-access'
+import { effectiveLineItems, type AppliedDiscount } from '@panary/orders/domain'
 import { DiscountService } from '@panary/discounts/data-access'
 import type { Discount as ManagedDiscount } from '@panary/discounts/domain'
 import { AuthService } from '@panary/auth/data-access'
@@ -149,10 +156,26 @@ export class ActiveOrdersComponent {
   corporateCustomers = signal<CorporateCustomer[]>([])
   corporateCustomersLoading = signal(false)
 
+  /**
+   * Bon-Split (#350): zunächst nur im Bestellbetrieb freigegeben. Das Ausblenden ist
+   * KEINE Zugangskontrolle — der Edge lehnt im Kassenbetrieb selbst ab
+   * (`order-split/fiscal-mode-unsupported`, Geschäftstag-Snapshot).
+   */
+  protected readonly splitEnabled = computed(() => !this.#isCashierMode())
+
+  /** Nach einem Split kurz hervorgehobene Bestellungen (Quelle + Ziel). */
+  readonly #highlightedOrderIds = signal<ReadonlySet<string>>(new Set())
+  #highlightTimer: ReturnType<typeof setTimeout> | null = null
+  protected static readonly SPLIT_HIGHLIGHT_MS = 8000
+
   // Scroll-State pro Bestellung: trackt ob oben/unten noch Inhalt existiert
   #itemsScrollState = signal<Record<string, { atTop: boolean; atBottom: boolean }>>({})
 
   constructor() {
+    inject(DestroyRef).onDestroy(() => {
+      if (this.#highlightTimer !== null) clearTimeout(this.#highlightTimer)
+    })
+
     // Nach jedem Render-Zyklus (orders-Änderung) Scroll-States neu prüfen.
     // sortedOrders() bewusst getrackt; Aktion via untracked() entkoppelt (angular.md §2.1).
     effect(() => {
@@ -498,6 +521,43 @@ export class ActiveOrdersComponent {
     })
   }
 
+  // --- Split-Flow (#350) ---
+
+  openSplit(order: Order) {
+    const data: SplitOrderDialogData = { order }
+    const ref = this.#matDialog.open<SplitOrderDialogComponent, SplitOrderDialogData, SplitOrderDialogResult>(
+      SplitOrderDialogComponent,
+      { data, panelClass: 'rounded-dialog', maxWidth: '96vw' },
+    )
+
+    ref.afterClosed().subscribe(result => {
+      if (!result) return
+      this.resetOverlay()
+      this.#highlight([result.sourceOrderId, result.targetOrderId])
+      this.#snackBar.open(
+        this.#translate.instant('SPLIT_ORDER.SUCCESS', {
+          source: order.dailySequenceNumber,
+          target: result.targetSequenceNumber ?? '',
+        }),
+        undefined,
+        { duration: 3000 },
+      )
+    })
+  }
+
+  isHighlighted(orderId: string): boolean {
+    return this.#highlightedOrderIds().has(orderId)
+  }
+
+  #highlight(orderIds: string[]) {
+    if (this.#highlightTimer !== null) clearTimeout(this.#highlightTimer)
+    this.#highlightedOrderIds.set(new Set(orderIds))
+    this.#highlightTimer = setTimeout(() => {
+      this.#highlightTimer = null
+      this.#highlightedOrderIds.set(new Set())
+    }, ActiveOrdersComponent.SPLIT_HIGHLIGHT_MS)
+  }
+
   // --- Rabatt-Flow ---
 
   enterDiscount() {
@@ -681,10 +741,14 @@ export class ActiveOrdersComponent {
     return `-${(seed % 2000) / 1000}s`
   }
 
+  // 🚨 Beide Ableitungen lesen `effectiveLineItems`, nicht `order.lineItems`: Nach
+  // einem Split (#349) stehen die abgegebenen Mengen weiter in `lineItems` (A5).
+  // Die Karte zeigte sonst die volle Ursprungsliste, während Summe und Bon schon
+  // den Rest ausweisen.
   getCombinations(order: Order): OrderLineItem[][] {
     if (!order.lineItems) return []
     const bundles = new Map<number, OrderLineItem[]>()
-    order.lineItems.forEach((item: OrderLineItem) => {
+    effectiveLineItems(order).forEach((item: OrderLineItem) => {
       if (item.bundleNumber !== undefined && item.bundleNumber !== null) {
         if (!bundles.has(item.bundleNumber)) {
           bundles.set(item.bundleNumber, [])
@@ -697,7 +761,9 @@ export class ActiveOrdersComponent {
 
   getUnbundledLineItems(order: Order): OrderLineItem[] {
     if (!order.lineItems) return []
-    return order.lineItems.filter((item: any) => item.bundleNumber === undefined || item.bundleNumber === null)
+    return effectiveLineItems(order).filter(
+      (item: any) => item.bundleNumber === undefined || item.bundleNumber === null,
+    )
   }
 
   // --- Pro-Order-Viewmodel (memoisiert via orderVms-computed) ---

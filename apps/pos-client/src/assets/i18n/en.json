@@ -375,7 +375,8 @@
     "COMPANY_ERROR": "Error assigning company",
     "PAGER": "Pager",
     "SETTLEMENT_SCOPE": "Settlement scope",
-    "DISCOUNT_LABEL": "Discount"
+    "DISCOUNT_LABEL": "Discount",
+    "SPLIT": "Split"
   },
   "PRE_ORDERS": {
     "TITLE": "Pre-orders",
@@ -631,6 +632,33 @@
     "REASON_WRONG_INPUT": "Incorrect entry",
     "REASON_DUPLICATE": "Duplicate order",
     "REASON_OTHER": "Other"
+  },
+  "SPLIT_ORDER": {
+    "TITLE": "Split order",
+    "HINT": "Select the items that move to a new order. Everything else stays here.",
+    "COMBINATION": "Combination – whole only",
+    "WHOLE_ONLY": "With extras – whole only",
+    "LESS": "Less",
+    "MORE": "More",
+    "TOGGLE": "Select item",
+    "REMAINS": "Remains",
+    "NEW_ORDER": "New order",
+    "CONFIRM": "Split",
+    "SUBMITTING": "Splitting …",
+    "SUCCESS": "Order #{{source}} split – new: #{{target}}",
+    "ERROR": {
+      "EMPTY_SELECTION": "Please select at least one item.",
+      "NOTHING_REMAINS": "At least one item must remain in the order.",
+      "SOURCE_NOT_SPLITTABLE": "This order is completed or canceled and cannot be split.",
+      "SOURCE_ALREADY_PAID": "A payment has already been recorded for this order – it cannot be split.",
+      "PARTIAL_SPLIT_UNSUPPORTED": "Items with extras or menu components can only be moved as a whole.",
+      "AMOUNT_EXCEEDS_REMAINDER": "The selected quantity exceeds the open quantity. Please check the selection.",
+      "UNKNOWN_LINE": "The order has changed in the meantime. Please close and reopen the dialog.",
+      "DUPLICATE_LINE": "An item appears twice in the selection.",
+      "FISCAL_MODE_UNSUPPORTED": "Splitting is currently only available in order mode, not in cashier mode.",
+      "OFFLINE": "Splitting requires a connection to the server.",
+      "GENERIC": "The order could not be split."
+    }
   },
   "PRINT": {
     "TITLE": "Print",

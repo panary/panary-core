@@ -92,8 +92,8 @@ jobs:
       # Ganzes Image (Build- UND Runtime-Stage), nicht nur `--target build`:
       # Die Runtime-Stage ist ein paar COPY --from und ein apt-get, kostet also
       # Sekunden, faengt aber einen fehlenden dist-Pfad ab.
-      # Nur cache-from: Ein PR-Lauf schreibt keinen GHA-Cache (der waere nur fuer
-      # denselben PR lesbar und verdraengte die Release-Eintraege aus dem 10-GB-Kontingent).
+      # Nur cache-from: PR- und main-Laeufe schreiben keinen GHA-Cache (ein PR-Eintrag
+      # waere nur fuer denselben PR lesbar und belegte das 10-GB-Kontingent).
       - name: Edge-Image bauen (ohne Push)
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:

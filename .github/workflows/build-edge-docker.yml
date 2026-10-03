@@ -86,7 +86,8 @@ jobs:
       # Stand erst gebaut, in den lokalen Docker geladen und gestartet. Der
       # Push-Schritt danach baut aus demselben Builder-Cache (keine zweite
       # Kompilierung) und pusht per Buildx, weil Signatur und Provenance an
-      # dessen Digest haengen. Dieselbe Pruefung wie im PR (edge-image-check.yml).
+      # dessen Digest haengen; der Digest kann deshalb abweichen, die Layer nicht.
+      # Dieselbe Pruefung wie im PR (edge-image-check.yml).
       - name: Build fuer Smoke-Test (laden, ohne Push)
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:

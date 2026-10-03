@@ -1,13 +1,13 @@
 ---
 type: Guide
-title: Edge-Image-Prüfung im PR — was sie baut, wann sie läuft, was sie nicht sieht
-description: Der Workflow edge-image-check.yml baut das Edge-Image ohne Push und startet es per Smoke-Test, sobald ein PR den Docker-Build-Kontext berührt; dieselbe Kontext-Vorbereitung wie der Release, Pfadfilter mit gemessener Trefferquote, und die Lücken, die ein grüner Lauf offen lässt.
+title: Edge-Image-Prüfung — PR, main-Push und Release: was sie baut, wann sie läuft, was sie nicht sieht
+description: Das Edge-Image wird gebaut und per Smoke-Test gestartet: im PR, sobald er den Docker-Build-Kontext berührt, auf jedem main-Push ohne Filter und im Release vor dem Push; dieselbe Kontext-Vorbereitung überall, Pfadfilter mit gemessener Trefferquote, und die Lücken, die ein grüner Lauf offen lässt.
 tags: [ci, docker, edge, gates]
 status: stable
 generated: { by: claude-code/opus-5.5, at: 2026-10-03T08:00:00Z }
 ---
 
-# Edge-Image-Prüfung im PR
+# Edge-Image-Prüfung — PR, main-Push und Release
 
 ## Problem
 
@@ -25,8 +25,8 @@ sonst erst beim nächsten `v*`-Release, mit Lib-Publish ohne Image.
 ## Was läuft
 
 `.github/workflows/edge-image-check.yml`
-([#497](https://github.com/panary/panary-core/issues/497)) baut bei `pull_request` das
-**ganze** Image (Build- und Runtime-Stage) für `linux/amd64`, mit `push: false`. Keine
+([#497](https://github.com/panary/panary-core/issues/497)) baut bei `pull_request` und
+bei jedem Push nach `main` das **ganze** Image (Build- und Runtime-Stage) für `linux/amd64`, mit `push: false`. Keine
 Registry-Anmeldung, keine Signatur, keine Stückliste, nur `contents: read`.
 
 Die Kontext-Vorbereitung (Workspace-Globs, `.npmrc`, echte Lockfile, `.dockerignore`)
@@ -38,9 +38,11 @@ Die Runtime-Stage ist mitgebaut statt nur `--target build`: Sie besteht aus ein 
 `COPY --from` und einem `apt-get`, kostet also Sekunden und fängt einen fehlenden
 `dist`-Pfad ab.
 
-Der GHA-Layer-Cache wird nur gelesen (`cache-from`), nicht geschrieben. Ein PR-Eintrag
-wäre nur für denselben PR lesbar und verdrängte die Einträge der Releases aus dem
-10-GB-Kontingent.
+Der GHA-Layer-Cache wird nur gelesen (`cache-from`), nicht geschrieben, im PR wie auf
+`main`. Ein PR-Eintrag wäre nur für denselben PR lesbar und belegte das 10-GB-Kontingent.
+Was der Release schreibt, liegt unter dem Tag-Ref und ist für PR- und `main`-Läufe nach den
+Scoping-Regeln von GitHub vermutlich nicht lesbar. Diese Läufe bauen dann weitgehend kalt
+(gemessen 4:20 bis 4:50 min).
 
 ## Smoke-Test
 
@@ -120,7 +122,8 @@ Ablauf: bauen und in den Docker des Runners laden (`panary-edge:release-check`),
 `smoke-edge-image.sh` mit der Release-Version als Erwartung, erst dann der bestehende
 „Build and Push“. Der baut aus demselben Builder-Cache, kompiliert also nicht noch einmal,
 und pusht per Buildx, weil Signatur und Provenance an dessen Digest hängen. Gepusht wird
-damit ein Neubau aus denselben Layern, nicht das geladene Image selbst. Schlägt der
+damit ein Neubau aus denselben Layern, nicht das geladene Image selbst. Der Digest kann
+sich deshalb vom geladenen Image unterscheiden (Attestations, Index), der Inhalt nicht. Schlägt der
 Smoke-Test fehl, bricht der Job vor dem Push ab: Kein Tag, kein `:latest`, kein Rollout.
 `publish-libraries.yml` hängt nicht an diesem Job und publiziert trotzdem.
 

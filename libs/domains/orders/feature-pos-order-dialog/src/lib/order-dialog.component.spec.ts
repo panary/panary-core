@@ -101,7 +101,9 @@ function setup(options: SetupOptions = {}) {
   /** Was ueber `MatSnackBar` gemeldet wurde — der einzige Meldeweg, der den Dialogschluss ueberlebt. */
   const snackBarCalls: Array<{ message: string; action?: string }> = []
   /** Die geoeffneten Snackbars — `triggerAction()` spielt den Klick auf „Rueckgaengig" nach. */
-  const snackBarRefs: Array<{ triggerAction: () => void }> = []
+  const snackBarRefs: Array<{ triggerAction: () => void; dismissed: boolean }> = []
+  /** Aufrufe von `matSnackBar.dismiss()` — schliesst „die gerade offene", wer immer das ist (core#531). */
+  const snackBarDismissAll = { count: 0 }
   /** Was `matDialog.open()` als Auswahl zurueckgibt — pro Test gesetzt. */
   const dialogResult = { value: undefined as unknown }
 
@@ -197,13 +199,18 @@ function setup(options: SetupOptions = {}) {
             const ref = {
               afterDismissed: () => of(undefined),
               onAction: () => actions.asObservable(),
-              dismiss: () => undefined,
+              dismissed: false,
+              dismiss: () => {
+                ref.dismissed = true
+              },
               triggerAction: () => actions.next(),
             }
             snackBarRefs.push(ref)
             return ref
           },
-          dismiss: () => undefined,
+          dismiss: () => {
+            snackBarDismissAll.count++
+          },
         },
       },
       { provide: OrderInteractionService, useValue: {} },
@@ -242,6 +249,7 @@ function setup(options: SetupOptions = {}) {
     closeCalls,
     snackBarCalls,
     snackBarRefs,
+    snackBarDismissAll,
     dialogResult,
     suspended,
   }
@@ -1190,6 +1198,27 @@ describe('OrderDialog — Snapshot-Bau in placeOrder', () => {
     // Gegenprobe: Die Infobox traegt die Meldung nicht (mehr) — sie waere unsichtbar.
     expect(component.infoBoxText).toBe('Bitte wählen Sie eine Produktkategorie')
     expect(closeCalls).toHaveLength(1)
+  })
+
+  it('das Undo-Aufraeumen beim Abschluss schliesst die Rabattcode-Meldung nicht (core#531)', async () => {
+    // `placeOrder` meldet den gescheiterten Code und ruft danach `deleteOrder()`, das ein
+    // offenes „Rueckgaengig" verfallen laesst. Bis core#531 tat es das per
+    // `matSnackBar.dismiss()` — und das schliesst die gerade offene Snackbar, also genau
+    // die Rabattcode-Meldung. Sie war damit in JEDEM Fall sofort weg.
+    const { component, snackBarCalls, snackBarRefs, snackBarDismissAll } = setup({
+      redeemResult: { ok: false, reason: 'exhausted' },
+    })
+    component.increaseLineItem(product('p-1'))
+    component.selectProduct(0)
+    component.increaseSelectedQuantity() // bietet „Rueckgaengig" an
+    component.appliedCodeDiscount.set({ ok: true, code: 'AUFGEBRAUCHT' })
+
+    await component.placeOrder()
+
+    expect(snackBarCalls.map(c => c.action)).toEqual(['Rückgängig', 'OK'])
+    expect(snackBarDismissAll.count).toBe(0)
+    expect(snackBarRefs[0].dismissed).toBe(true) // das Undo-Angebot verfaellt
+    expect(snackBarRefs[1].dismissed).toBe(false) // die Rabattcode-Meldung bleibt
   })
 
   it('eine geglueckte Einloesung meldet nichts', async () => {

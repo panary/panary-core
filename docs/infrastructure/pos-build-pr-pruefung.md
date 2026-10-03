@@ -31,7 +31,7 @@ Signing-Key. Drei Jobs:
 
 | Job | Wann | Was |
 | --- | --- | --- |
-| `changes` | immer | Diff gegen die Basis (PR: Base-Stand, main: Stand vor dem Push). Entscheidet über den Windows-Job |
+| `changes` | immer | Diff gegen die Basis (PR: Base-Stand, main: Stand vor dem Push). Entscheidet über den Windows-Job; ist die Basis nicht abrufbar (Force-Push), läuft Windows |
 | `build-linux` | jeder Treffer des Filters | `cargo fmt --check`, `pnpm tauri build --debug --no-bundle -- --locked`, `cargo clippy --locked --all-targets -- -D warnings` |
 | `build-windows` | nur bei `Cargo.lock`, `Cargo.toml`, `tauri*.conf.json`, `build.rs` oder einem der drei POS-Workflows | `pnpm tauri build --bundles nsis -- --locked` im Release-Profil, Installer muss entstehen |
 
@@ -107,7 +107,8 @@ nur Wartezeit.
 - **macOS.** Kein macOS-Job. `tauri.macos.conf.json` löst den Windows-Job zwar aus, gebaut
   wird sie aber nur von `build-pos.yml` und `release-pos.yml`.
 - **Die Neuauflösung im Release.** `release-pos.yml` löscht das Lockfile und löst neu auf
-  (`pnpm install --lockfile-only`). Die Prüfung baut gegen das committete Lockfile. Seit
+  (`pnpm install --lockfile-only`). Die Prüfung installiert dagegen vom committeten Lockfile
+  aus (`--no-frozen-lockfile` wie `ci.yml`, nur `Cargo.lock` ist per `--locked` fixiert). Seit
   #433 halten Tilde-Ranges die Tauri-Plugins auf der Minor-Version der Crate. Eine neue
   Tauri-Abhängigkeit mit Caret-Range öffnet die Lücke wieder.
 - **Signierung, Updater-`latest.json`, Stückliste, Installation auf dem Gerät.** Das bleibt

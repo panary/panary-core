@@ -68,7 +68,12 @@ jobs:
             echo "windows=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          git fetch --no-tags --depth=1 origin "$BASE"
+          # Nach einem Force-Push ist die alte Basis weg: dann lieber bauen als still auslassen.
+          if ! git fetch --no-tags --depth=1 origin "$BASE"; then
+            echo "Basis $BASE nicht abrufbar — Windows-Build laeuft."
+            echo "windows=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           files=$(git diff --name-only "$BASE" HEAD)
           echo "$files"
           if grep -qE '^apps/pos-client/src-tauri/(Cargo\.(lock|toml)|tauri(\.[a-z]+)?\.conf\.json|build\.rs)$|^\.github/workflows/(build-pos|release-pos|pos-build-check)\.yml$' <<<"$files"; then
@@ -136,7 +141,9 @@ jobs:
       # Vor clippy: Der Abgleich npm <-> Crate war die einzige Fehlerklasse, die ein
       # POS-Release tatsaechlich rot gemacht hat (#266). Updater-Artefakte aus wie in
       # build-pos.yml (kein Signing-Key hier).
+      # CWD wie in release-pos.yml: das Tauri-CLI sucht src-tauri relativ zum CWD.
       - name: tauri build (debug, ohne Bundle)
+        working-directory: apps/pos-client
         run: pnpm tauri build --debug --no-bundle --config '{"bundle":{"createUpdaterArtifacts":false}}' -- --locked
 
       - name: cargo clippy
@@ -193,6 +200,7 @@ jobs:
 
       - name: tauri build (NSIS)
         shell: bash
+        working-directory: apps/pos-client
         run: pnpm tauri build --bundles nsis --config "$GITHUB_WORKSPACE/apps/pos-client/src-tauri/ci-no-updater.conf.json" -- --locked
 
       - name: Installer vorhanden

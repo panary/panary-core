@@ -10,6 +10,11 @@ import {
   planOrderSplit,
 } from '@panary/orders/domain'
 import { assertCallerOwnsRecord, logger } from '@panary/shared-backend'
+import {
+  FISCAL_GATE_BUSINESS_DAY_SELECT,
+  resolveFiscalSignContext,
+  type BusinessDayFiscalSnapshot,
+} from '@panary/tse/domain'
 import { uuidv7 } from 'uuidv7'
 import type { Application } from '../../declarations'
 
@@ -58,6 +63,7 @@ function toFeathersError(error: OrderSplitError): Error {
     case OrderSplitErrorCode.SOURCE_NOT_SPLITTABLE:
     case OrderSplitErrorCode.SOURCE_ALREADY_PAID:
     case OrderSplitErrorCode.NOTHING_REMAINS:
+    case OrderSplitErrorCode.FISCAL_MODE_UNSUPPORTED:
       return new Conflict(error.message, data)
     default:
       return new BadRequest(error.message, data)
@@ -76,6 +82,8 @@ export function createOrderSplitMethod(app: Application) {
     // rollt nichts zurueck: Ein Check nach `orders.create` liesse die
     // Zielbestellung in der Datenbank stehen.
     assertCallerOwnsRecord(params?.user, source as unknown as { tenantId?: string })
+
+    await assertOrdersOnlyBusinessDay(app, source)
 
     // A6 — ein ausgestellter Beleg schliesst den Vorgang. `issueReceipt` fuehrt
     // genau einen Beleg je Order; existiert er, ist der Vorgang fiskalisch
@@ -170,6 +178,43 @@ export function createOrderSplitMethod(app: Application) {
     })
 
     return { sourceOrder, targetOrder }
+  }
+}
+
+/**
+ * Freigabe nur im Bestellbetrieb (panary/panary-core#350).
+ *
+ * Im Kassenbetrieb startet `signOrderTseStart` fuer die Zielbestellung einen
+ * eigenen TSE-Vorgang. Dieser Pfad ist gegen keine echte TSE verifiziert
+ * (panary/panary-core#351) — bis dahin lehnt der Edge ab. Das Ausblenden des
+ * Einstiegs im POS ist KEINE Zugangskontrolle: Diese Pruefung ist es.
+ *
+ * 🚨 Dieselbe Quelle und dieselbe Entscheidung wie der TSE-Start: der
+ * `operationMode`-Snapshot des Geschaeftstags der QUELLE ueber
+ * `resolveFiscalSignContext`. Wuerde hier die aktuelle Location gelesen, liefe
+ * nach einer Umstellung um 10:00 ein Split durch, dessen Ziel der Hook dann doch
+ * signiert. Die fail-safe-Richtung erbt die Pruefung mit: Fehlt der Tag oder ist
+ * er nicht lesbar, gilt der Vorgang als signierpflichtig — und wird abgelehnt.
+ *
+ * Steht VOR der Beleg-Abfrage und vor jedem Write, aber NACH dem Eigentums-Check:
+ * Die Ablehnung verraet sonst den Modus fremder Filialen.
+ */
+async function assertOrdersOnlyBusinessDay(app: Application, source: Order): Promise<void> {
+  const fiscal = await resolveFiscalSignContext(
+    source.businessDayId,
+    async businessDayId =>
+      (await app.service('businessdays').get(businessDayId, {
+        query: { $select: [...FISCAL_GATE_BUSINESS_DAY_SELECT] },
+        provider: undefined,
+      })) as BusinessDayFiscalSnapshot | undefined,
+  )
+  if (fiscal.sign) {
+    throw toFeathersError(
+      new OrderSplitError(
+        OrderSplitErrorCode.FISCAL_MODE_UNSUPPORTED,
+        'Bestellungen aufteilen ist derzeit nur im Bestellbetrieb moeglich, nicht im Kassenbetrieb.',
+      ),
+    )
   }
 }
 

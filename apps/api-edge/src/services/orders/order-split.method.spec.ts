@@ -63,8 +63,21 @@ function makeOrder(overrides: Record<string, unknown> = {}) {
 // Jede App-Instanz wird IM Test angelegt, nie im describe-Scope: Ein Nachzuegler
 // aus einem abgebrochenen Test schriebe sonst in die Aufzeichnung des naechsten
 // (Regel testing.md §10).
-function makeApp(opts: { order?: Record<string, unknown>; receiptCount?: number } = {}) {
+function makeApp(
+  opts: {
+    order?: Record<string, unknown>
+    receiptCount?: number
+    /** Geschaeftstag-Snapshot; `null` = Lookup schlaegt fehl. Default: Bestellbetrieb. */
+    businessDay?: Record<string, unknown> | null
+  } = {},
+) {
   const stored = opts.order ?? makeOrder()
+  const businessDayGet =
+    opts.businessDay === null
+      ? vi.fn().mockRejectedValue(new Error('not found'))
+      : vi.fn().mockResolvedValue(
+          opts.businessDay ?? { operationMode: 'orders-only', tenantId: TENANT, locationId: 'loc-1' },
+        )
   const orderGet = vi.fn().mockResolvedValue(stored)
   const orderCreate = vi.fn().mockImplementation(async (data: any) => ({ ...data }))
   const orderPatch = vi.fn().mockImplementation(async (id: string, data: any) => ({ ...stored, ...data }))
@@ -75,6 +88,7 @@ function makeApp(opts: { order?: Record<string, unknown>; receiptCount?: number 
   const services: Record<string, Record<string, unknown>> = {
     orders: { get: orderGet, create: orderCreate, patch: orderPatch },
     receipts: { find: receiptFind },
+    businessdays: { get: businessDayGet },
     'order-references': { create: referenceCreate },
     'order-interactions': { create: interactionCreate },
   }
@@ -87,7 +101,17 @@ function makeApp(opts: { order?: Record<string, unknown>; receiptCount?: number 
     },
   }
 
-  return { app, stored, orderGet, orderCreate, orderPatch, receiptFind, referenceCreate, interactionCreate }
+  return {
+    app,
+    stored,
+    orderGet,
+    orderCreate,
+    orderPatch,
+    receiptFind,
+    referenceCreate,
+    interactionCreate,
+    businessDayGet,
+  }
 }
 
 const call = (app: unknown, data: unknown, params: unknown = { user: USER }) =>
@@ -156,6 +180,56 @@ describe('orders.split — Schutzschichten', () => {
     expect(h.orderPatch).not.toHaveBeenCalled()
     expect(h.referenceCreate).not.toHaveBeenCalled()
     expect(h.interactionCreate).not.toHaveBeenCalled()
+  })
+})
+
+describe('orders.split — nur im Bestellbetrieb (#350)', () => {
+  const split = { orderId: 'order-quelle', lineItems: [{ lineItemRowId: 'l2' }] }
+
+  it('lehnt im Kassenbetrieb ab — 409 mit eigenem Code, KEIN Write', async () => {
+    const h = makeApp({ businessDay: { operationMode: 'pos-cashier', tenantId: TENANT, locationId: 'loc-1' } })
+    const error = await call(h.app, split).catch((e: unknown) => e)
+
+    expect(error).toMatchObject({ code: 409, data: { code: OrderSplitErrorCode.FISCAL_MODE_UNSUPPORTED } })
+    // Nachweis ist der Datenbankzustand: keine Zielbestellung, keine Gegenbuchung.
+    expect(h.orderCreate).not.toHaveBeenCalled()
+    expect(h.orderPatch).not.toHaveBeenCalled()
+  })
+
+  it('liest den Modus aus dem Geschaeftstag der QUELLE — dieselbe Quelle wie der TSE-Start', async () => {
+    const h = makeApp()
+    await call(h.app, split)
+
+    expect(h.businessDayGet).toHaveBeenCalledTimes(1)
+    expect(h.businessDayGet.mock.calls[0][0]).toBe('bd-1')
+  })
+
+  it('lehnt fail-safe ab, wenn der Geschaeftstag nicht lesbar ist', async () => {
+    const h = makeApp({ businessDay: null })
+    await expect(call(h.app, split)).rejects.toMatchObject({
+      data: { code: OrderSplitErrorCode.FISCAL_MODE_UNSUPPORTED },
+    })
+    expect(h.orderCreate).not.toHaveBeenCalled()
+  })
+
+  it('lehnt fail-safe ab, wenn die Bestellung keinen Geschaeftstag traegt', async () => {
+    const h = makeApp({ order: makeOrder({ businessDayId: undefined }) })
+    await expect(call(h.app, split)).rejects.toMatchObject({
+      data: { code: OrderSplitErrorCode.FISCAL_MODE_UNSUPPORTED },
+    })
+    expect(h.businessDayGet).not.toHaveBeenCalled()
+    expect(h.orderCreate).not.toHaveBeenCalled()
+  })
+
+  it('verraet den Modus fremder Filialen nicht — der Eigentums-Check steht davor', async () => {
+    const h = makeApp({
+      order: makeOrder({ tenantId: FREMD }),
+      businessDay: { operationMode: 'pos-cashier', tenantId: FREMD, locationId: 'loc-1' },
+    })
+    await expect(call(h.app, split)).rejects.not.toMatchObject({
+      data: { code: OrderSplitErrorCode.FISCAL_MODE_UNSUPPORTED },
+    })
+    expect(h.businessDayGet).not.toHaveBeenCalled()
   })
 })
 

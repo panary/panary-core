@@ -45,7 +45,8 @@ concurrency:
   group: edge-image-check-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
-# Nur lesen: kein Push, keine Signatur, kein Registry-Login.
+# Nur lesen: kein Push, keine Signatur, kein Registry-Login. Das Image landet
+# nur im Docker des Runners (Smoke-Test, #505).
 permissions:
   contents: read
 
@@ -90,6 +91,15 @@ jobs:
           file: tools/docker/Dockerfile.edge
           platforms: linux/amd64
           push: false
+          # In den lokalen Docker laden, damit der Smoke-Test es starten kann.
+          load: true
+          tags: panary-edge:pr-check
           build-args: |
             PANARY_VERSION=pr-check
           cache-from: type=gha
+
+      # Gebaut ist nicht gestartet (#505): Produktions- und Setup-Modus booten,
+      # /health meldet die gebaute Version, /admin/ liefert die SPA. Bei
+      # Fehlschlag stehen die Container-Logs im Schritt-Log.
+      - name: Smoke-Test (Container starten, /health pruefen)
+        run: bash tools/docker/smoke-edge-image.sh panary-edge:pr-check pr-check

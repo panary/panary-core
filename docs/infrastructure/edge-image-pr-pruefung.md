@@ -1,7 +1,7 @@
 ---
 type: Guide
 title: Edge-Image-Prüfung im PR — was sie baut, wann sie läuft, was sie nicht sieht
-description: Der Workflow edge-image-check.yml baut das Edge-Image ohne Push, sobald ein PR den Docker-Build-Kontext berührt; dieselbe Kontext-Vorbereitung wie der Release, Pfadfilter mit gemessener Trefferquote, und die Lücken, die ein grüner Lauf offen lässt.
+description: Der Workflow edge-image-check.yml baut das Edge-Image ohne Push und startet es per Smoke-Test, sobald ein PR den Docker-Build-Kontext berührt; dieselbe Kontext-Vorbereitung wie der Release, Pfadfilter mit gemessener Trefferquote, und die Lücken, die ein grüner Lauf offen lässt.
 tags: [ci, docker, edge, gates]
 status: stable
 generated: { by: claude-code/opus-5.5, at: 2026-10-03T08:00:00Z }
@@ -42,6 +42,35 @@ Der GHA-Layer-Cache wird nur gelesen (`cache-from`), nicht geschrieben. Ein PR-E
 wäre nur für denselben PR lesbar und verdrängte die Einträge der Releases aus dem
 10-GB-Kontingent.
 
+## Smoke-Test
+
+Seit [#505](https://github.com/panary/panary-core/issues/505) lädt der Job das Image in den
+Docker des Runners und startet es per `tools/docker/smoke-edge-image.sh` zweimal:
+
+| Lauf | Aufbau | Erwartung |
+| --- | --- | --- |
+| Produktionsmodus | `panary.config.json` mit `{}` im Datenverzeichnis, zufälliges `FEATHERS_SECRET` | `/health`: `status: ok`, `version` = Build-Argument (`pr-check`), Feld `systemMode` vorhanden (gibt es nur im Produktionsmodus). `/admin/`: 200, HTML mit `<app-root`. Nach 8 s keine Log-Zeile mit `MODULE_NOT_FOUND`/`Cannot find module` |
+| Setup-Modus | leeres Datenverzeichnis | `/api/system-info`: `status: unconfigured`, keine Log-Zeile mit fehlendem Modul |
+
+Schon die Existenz der Config wählt den Produktionsmodus (`apps/api-edge/src/main.ts`).
+Damit laufen Migrationen und Service-Registrierung. Fehlt dort ein Modul, stirbt der
+Container. Was `main.ts` erst **nach** dem ersten `/health` per `import()` nachlädt
+(Admin-Check, Geschäftstag, Print-Server, mDNS), fängt es selbst ab, ohne Exit. Deshalb
+wartet das Skript danach 8 s und sucht in den Logs gezielt nach fehlenden Modulen. Ein
+pauschaler Scan auf `"level":"error"` ginge nicht: Ein frischer Edge ohne Admin meldet
+`bootstrap.admin_access_missing` zu Recht.
+
+Jede verfehlte Erwartung wird als `::error::` gemeldet. Beide Läufe laufen trotzdem durch,
+am Ende steht Exit 1, und von jedem fehlgeschlagenen Container stehen die letzten 80 Zeilen
+`docker logs` im Schritt-Log. Lokal läuft das Skript gegen jedes gebaute Image, der Aufruf
+steht in seinem Kopf.
+
+Mutationsproben am lokal gebauten Image (2026-10-03, alle Exit 1 mit der genannten
+Meldung, die Gegenprobe Exit 0 in 7,8 s): Admin-SPA entfernt (`/admin/` → 404), falsche
+erwartete Version, `knex` entfernt (Container stirbt beim Boot, `MODULE_NOT_FOUND` im Log),
+`bonjour-service` entfernt (Boot und `/health` grün, gefunden nur über den Log-Scan),
+nicht vorhandenes Image.
+
 ## Wann er läuft
 
 Der native `paths:`-Filter des Workflows. Das Ruleset von `main` kennt keine Pflicht-Checks,
@@ -71,8 +100,9 @@ und die Pfade gegen die `paths:`-Liste halten.
 
 ## Was ein grüner Lauf nicht zeigt
 
-- **Dass der Container startet.** Gebaut ist nicht gestartet. Ein Smoke-Test gegen `/health`
-  fehlt; ein Fehler beim Laden eines Moduls zur Laufzeit bleibt unentdeckt.
+- **Fachliches Verhalten.** Der Smoke-Test (oben) belegt den Boot, nicht Pairing,
+  Cloud-Verbindung, Login oder Hardware (Drucker, TSE). Ein Fehler, den `main.ts` nach dem
+  Boot abfängt und der kein fehlendes Modul ist, bleibt ebenfalls grün.
 - **Signatur, Provenance, Stückliste und Advisory-Scan.** Die laufen nur im Release-Workflow.
 - **Brüche über Pfade außerhalb des Filters.** Kopiert das Dockerfile künftig etwas Neues
   (wie damals `tools/vitest/`), muss der Pfad hier nachgetragen werden. Dasselbe gilt für

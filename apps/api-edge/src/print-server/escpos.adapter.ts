@@ -3,6 +3,7 @@ import net from 'net'
 import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder'
 import { resolvePrinterCodepage, type PrintElement } from '@panary/locations/domain'
 import { logger } from '@panary/shared-backend'
+import { transliterateForCodepage } from './escpos-transliteration'
 
 const TCP_TIMEOUT = 5000
 
@@ -59,8 +60,63 @@ export function resolveEscposCodepage(encoding: string | undefined, printerName?
  */
 export function createEscposEncoder(columns: number, encoding?: string): InstanceType<typeof ReceiptPrinterEncoder> {
   const encoder = new ReceiptPrinterEncoder({ columns, language: 'esc-pos' })
-  encoder.codepage(resolveEscposCodepage(encoding))
+  const codepage = resolveEscposCodepage(encoding)
+  encoder.codepage(codepage)
+  installTransliteration(encoder, codepage)
   return encoder
+}
+
+/**
+ * Haengt die Transliteration (#517) an den Encoder — hier und nicht je
+ * Renderer, damit die drei Pfade nicht wieder auseinanderlaufen.
+ *
+ * `line()` ruft intern `this.text()` und ist damit mit abgedeckt. `table()`
+ * dagegen baut je Zelle einen eigenen Encoder: Text-Zellen werden vorab
+ * ersetzt, Callback-Zellen bekommen einen Zellen-Encoder mit derselben Ersetzung.
+ *
+ * Was am Ende `?` bleibt, meldet `encode()` einmal je Bon als
+ * `print.unmappable_chars` — `/print-server/*` laeuft nicht durch
+ * `canonicalLog`, ohne das Event waere es stumm.
+ */
+function installTransliteration(encoder: any, codepage: string): void {
+  const unmappable = new Map<string, number>()
+  const ersetze = (value: unknown) =>
+    typeof value === 'string' ? transliterateForCodepage(value, codepage, unmappable) : value
+
+  const patchText = (enc: any) => {
+    const text = enc.text
+    enc.text = (value: unknown) => text.call(enc, ersetze(value))
+    return enc
+  }
+  patchText(encoder)
+
+  const table = encoder.table
+  encoder.table = (columnDefs: unknown, rows: unknown[][]) =>
+    table.call(
+      encoder,
+      columnDefs,
+      rows.map(row =>
+        row.map(cell => (typeof cell === 'function' ? (enc: any) => cell(patchText(enc)) : ersetze(cell))),
+      ),
+    )
+
+  const encode = encoder.encode
+  encoder.encode = (format?: string) => {
+    if (unmappable.size > 0) {
+      logger.warn({
+        message: `Bon enthaelt Zeichen, die ${codepage} nicht darstellen kann — als "?" gedruckt`,
+        event: 'print.unmappable_chars',
+        codepage,
+        chars: [...unmappable].map(([char, count]) => ({
+          char,
+          codepoint: `U+${char.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}`,
+          count,
+        })),
+      })
+      unmappable.clear()
+    }
+    return encode.call(encoder, format)
+  }
 }
 
 /**

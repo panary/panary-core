@@ -353,6 +353,14 @@ Weitere Regeln:
   **nicht** von selbst verschwindet, ist Absicht: Eine Meldung mit Ablaufzeit ist im
   Kassenbetrieb so übersehbar wie gar keine. Ein Rückbau auf `setInfoBoxText` fällt
   in der Spec auf („meldet den Grund über den Dialogschluss hinaus").
+
+  🚨 **„Bleibt bis zur Quittierung stehen" galt bis #531 nicht.** Von `pos-v26.9.3`
+  (#270) an schloss `placeOrder` die Meldung selbst wieder: `deleteOrder()` →
+  `#invalidateUndo()` → `matSnackBar.dismiss()` schließt die gerade offene Snackbar.
+  Ohne diesen Fehler hätte „Bestellungen aktualisiert" nach dem Anlegen sie verdrängt.
+  Seit #531 schließt das Undo-Aufräumen nur sein eigenes Angebot, und die
+  [POS-Snackbar-Rangfolge](../architecture/pos-snackbar-rangfolge.md) holt eine
+  quittierpflichtige Meldung zurück, sobald eine Kurzmeldung abgelaufen ist.
 - Der Snapshot trägt `method: 'code'`, `code`, `discountCodeId` und `discountId`;
   `computedAmountCents` füllt wie überall die kanonische Engine.
 - **Die Einlösung kennt ihre Bestellung.** Der POS vergibt die Order-`_id` (uuidv7)

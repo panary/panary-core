@@ -1,7 +1,7 @@
 ---
 type: Guide
 title: Edge-Image-Prüfung im PR — was sie baut, wann sie läuft, was sie nicht sieht
-description: Der Workflow edge-image-check.yml baut das Edge-Image ohne Push, sobald ein PR den Docker-Build-Kontext berührt; dieselbe Kontext-Vorbereitung wie der Release, Pfadfilter mit gemessener Trefferquote, und die Lücken, die ein grüner Lauf offen lässt.
+description: Der Workflow edge-image-check.yml baut das Edge-Image ohne Push und startet es per Smoke-Test, sobald ein PR den Docker-Build-Kontext berührt; dieselbe Kontext-Vorbereitung wie der Release, Pfadfilter mit gemessener Trefferquote, und die Lücken, die ein grüner Lauf offen lässt.
 tags: [ci, docker, edge, gates]
 status: stable
 generated: { by: claude-code/opus-5.5, at: 2026-10-03T08:00:00Z }
@@ -42,6 +42,22 @@ Der GHA-Layer-Cache wird nur gelesen (`cache-from`), nicht geschrieben. Ein PR-E
 wäre nur für denselben PR lesbar und verdrängte die Einträge der Releases aus dem
 10-GB-Kontingent.
 
+## Smoke-Test
+
+Seit [#505](https://github.com/panary/panary-core/issues/505) lädt der Job das Image in den
+Docker des Runners und startet es per `tools/docker/smoke-edge-image.sh` zweimal:
+
+| Lauf | Aufbau | Erwartung |
+| --- | --- | --- |
+| Produktionsmodus | `panary.config.json` mit `{}` im Datenverzeichnis, zufälliges `FEATHERS_SECRET` | `/health`: `status: ok`, `version` = Build-Argument (`pr-check`), `database.type: sqlite`. `/admin/`: 200, HTML mit `<app-root` |
+| Setup-Modus | leeres Datenverzeichnis | `/api/system-info`: `status: unconfigured` |
+
+Schon die Existenz der Config wählt den Produktionsmodus (`apps/api-edge/src/main.ts`).
+Damit laufen Migrationen und Service-Registrierung, also genau der Pfad, an dem ein zur
+Laufzeit fehlendes Modul auffällt. Stirbt der Container oder antwortet er nicht innerhalb
+von 90 s, bricht das Skript ab und gibt die letzten 80 Zeilen `docker logs` aus. Lokal
+läuft es gegen jedes gebaute Image; der Aufruf steht im Kopf des Skripts.
+
 ## Wann er läuft
 
 Der native `paths:`-Filter des Workflows. Das Ruleset von `main` kennt keine Pflicht-Checks,
@@ -71,8 +87,8 @@ und die Pfade gegen die `paths:`-Liste halten.
 
 ## Was ein grüner Lauf nicht zeigt
 
-- **Dass der Container startet.** Gebaut ist nicht gestartet. Ein Smoke-Test gegen `/health`
-  fehlt; ein Fehler beim Laden eines Moduls zur Laufzeit bleibt unentdeckt.
+- **Fachliches Verhalten.** Der Smoke-Test (unten) belegt den Boot, nicht Pairing,
+  Cloud-Verbindung, Login oder Hardware (Drucker, TSE).
 - **Signatur, Provenance, Stückliste und Advisory-Scan.** Die laufen nur im Release-Workflow.
 - **Brüche über Pfade außerhalb des Filters.** Kopiert das Dockerfile künftig etwas Neues
   (wie damals `tools/vitest/`), muss der Pfad hier nachgetragen werden. Dasselbe gilt für

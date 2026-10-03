@@ -54,6 +54,10 @@ PR-Eintrag wäre nur für denselben PR lesbar und belegte das 10-GB-Kontingent.
 | Bruch, der nur unter Windows auftritt (windows-sys, webview2, NSIS-Config) | in der Historie keiner | nein | ja |
 | Angular-Build des POS | — | nein, macht `ci.yml` | nein |
 
+**Im PR zählt der Diff des ganzen PRs** gegen die Basis, nicht der des letzten Pushes.
+Hat ein PR einmal eine Datei der Windows-Teilmenge berührt, läuft Windows bei jedem
+weiteren Push mit. Auf `main` zählt der einzelne Push.
+
 Die App selbst hat keinen `cfg(windows)`-Code (nur `windows_subsystem` in `main.rs`),
 Linux kompiliert also denselben App-Code. Plattformabhängig sind nur Abhängigkeiten.
 
@@ -98,7 +102,11 @@ gh pr list --repo panary/panary-core --state merged --limit 80 --json number,fil
 | `build-pos.yml` Windows: Angular / Tauri | 3,5–5 min / 1,5–4,5 min | letzte 3 Läufe |
 | `release-pos.yml` Windows: Tauri (Cache leer) | 6–7 min | letzte 3 Läufe |
 
-Die Läufe von `pos-build-check.yml` selbst stehen im PR #509 bzw. in dessen Actions-Läufen.
+| `pos-build-check.yml` Linux, Cache leer (erster PR-Lauf) | 4:00 min: apt 34 s, `tauri build` 109 s, clippy 69 s | Lauf 37118601587, 2026-10-03 |
+| `pos-build-check.yml` Windows (NSIS, ohne Angular) | 3:52 min, davon `tauri build` 101 s | Lauf 37118601587, 2026-10-03 |
+
+Ein warmer Linux-Lauf fehlt noch: Den Cache schreibt erst der erste `main`-Push nach dem
+Merge. Die Deckel (25 bzw. 40 min) liegen weit über den gemessenen Zeiten.
 `panary-core` ist öffentlich, Standard-Runner kosten also auch für Windows kein Geld, sondern
 nur Wartezeit.
 
@@ -117,3 +125,14 @@ nur Wartezeit.
   sieht erst ein Smoke-Test am Gerät.
 - **Windows-Brüche über Pfade außerhalb der Teilmenge.** Ein neuer `cfg(windows)`-Block in
   `src-tauri/src/` löst nur den Linux-Job aus. Der kompiliert diesen Block nicht.
+
+## Mutationsprobe
+
+Im PR [#512](https://github.com/panary/panary-core/pull/512) am 2026-10-03: ein Commit mit
+Syntaxfehler in `src-tauri/src/lib.rs` (`fn mutationsprobe_509( {`). Beide Jobs wurden
+rot, jeweils mit `this file contains an unclosed delimiter` an `lib.rs:249`. Linux brach
+schon bei `cargo fmt --check` ab (1:07 min), Windows im `tauri build` (2:09 min). Windows
+lief mit, weil der PR die Workflow-Datei enthält (siehe oben). Der Revert-Commit macht den
+Diff unter `apps/` gegen `main` wieder leer. Den Versionsabgleich npm ↔ Crate zeigt das
+Log beider Jobs („Looking up installed tauri packages to check mismatched versions“); eine
+eigene Mutationsprobe dafür gab es nicht, der Beleg ist der Release-Abbruch aus #266.

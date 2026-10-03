@@ -71,6 +71,11 @@ Neustart.
 
 - **Über `get.panary.cloud` installierte Edges: in aller Regel nicht.** Der Installer erzeugt
   das Secret seit jeher bei der Erstinstallation und behält es bei jedem weiteren Lauf.
+  Er braucht dafür `openssl`. Fehlt es, bricht er seit
+  [#519](https://github.com/panary/panary-core/issues/519) im Pre-Flight ab, noch bevor er das
+  Installationsverzeichnis anlegt. Er nennt dann `apt-get install -y openssl`. Einen Rückfall
+  auf `/dev/urandom` gibt es bewusst nicht, weil ein zweiter Erzeugungsweg ein weiterer
+  ungeprüfter Zweig wäre.
 - **Von Hand aufgesetzte Container** (`docker run` ohne `-e FEATHERS_SECRET`, eigenes Compose)
   liefen bis hierher auf dem Platzhalter und starten nach dem Update nicht mehr.
 - **`tools/docker/docker-compose.edge.yml`** (Prod-Test im Repo) reichte das Secret früher

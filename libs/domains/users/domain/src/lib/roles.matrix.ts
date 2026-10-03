@@ -840,10 +840,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.SUPPLIER_PRODUCTS, action: AppAction.READ },
     { resource: AppResource.STOCK_LEVELS, action: AppAction.READ },
     { resource: AppResource.BUSINESS_DAYS, action: AppAction.READ },
-    // Tagesabschluss: Staff darf nur lesen (z.B. eigene Tageskennzahlen sehen).
-    // CREATE/UPDATE bleibt MANAGER+.
-    { resource: AppResource.BUSINESS_DAY_REPORTS, action: AppAction.READ },
-    { resource: AppResource.BUSINESS_DAY_REPORT_EVENTS, action: AppAction.READ },
+    // BEWUSST KEIN BUSINESS_DAY_REPORTS / BUSINESS_DAY_REPORT_EVENTS (core#501):
+    // Tagesumsatz, Netto, Personalquote und Wareneinsatz sind Leitungsinformation,
+    // kein Betriebsdatum des Personals. Geschaeftstag-Status (BUSINESS_DAYS) und
+    // Kassen-Sessions bleiben, die braucht der Kassenbetrieb.
     // BEWUSST KEIN BUSINESS_DAY_OVERDUE_NOTICES: Der Marker sagt aus, ob und
     // wann die Filialleitung eskaliert wurde — eine Aufsichts-Information ueber
     // die Leitung, kein Betriebsdatum des Personals. Empfaenger der Eskalation

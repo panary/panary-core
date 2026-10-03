@@ -126,3 +126,5 @@ trustPolicyExclude:
   # package.json ist ZWINGEND: Ohne ihn weicht pnpm still auf 7.4.5 aus — die
   # verwundbare Version. Beide Teile gehoeren zusammen.
   - 'webpack-dev-middleware'
+
+# Sichttest panary/panary-core#500 (Positivfall) — Wegwerf-Draft, wird nie gemergt.

@@ -32,9 +32,11 @@ export const corporateCustomerDataResolver = resolve<CorporateCustomer, HookCont
   // Set timestamp
   createdAt: async () => new Date().toISOString(),
   updatedAt: async () => new Date().toISOString(),
-  status: async (value, data, context) => {
-    return value || 'DRAFT'
-  },
+  // Gleiches Vokabular wie die Cloud (`active | disabled | blocked | archived`, Default `active`
+  // seit panary/panary-cloud#932). `DRAFT` kannte dort niemand — ein an der Edge angelegter
+  // Firmenkunde stand in der Cloud als „Ohne Status“ und fiel durch jeden Filter (#511).
+  // Ein mitgeschickter Status (Sync aus der Cloud, POS) bleibt unverändert.
+  status: async value => value || 'active',
   ordersCount: async () => 0,
   // `invoices` ist eine SQLite-TEXT-Spalte (JSON-Array, defaultTo '[]'). Der
   // geteilte `dataValidator` hat KEIN `useDefaults`, daher greift der

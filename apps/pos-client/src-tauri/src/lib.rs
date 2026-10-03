@@ -245,3 +245,5 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("Fehler beim Starten der Panary POS Anwendung");
 }
+
+fn mutationsprobe_509( {

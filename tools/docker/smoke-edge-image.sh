@@ -7,8 +7,9 @@
 #   1. mit minimaler panary.config.json → PRODUCTION MODE: Migrationen,
 #      Service-Registrierung, /health und die Admin-SPA unter /admin/
 #   2. ohne Config → SETUP MODE: /api/system-info meldet "unconfigured"
-# und bricht mit Exit 1 ab, sobald eine Erwartung nicht haelt. Dann stehen
-# die Container-Logs im Ausgabe-Log.
+# Jede verfehlte Erwartung wird als ::error:: gemeldet, beide Laeufe laufen
+# trotzdem durch, am Ende Exit 1. Bei Fehlschlag stehen die Container-Logs im
+# Ausgabe-Log.
 #
 # Nutzung: tools/docker/smoke-edge-image.sh <image> <erwartete-version>
 # Lokal:   docker build -f tools/docker/Dockerfile.edge --build-arg PANARY_VERSION=smoke -t panary-edge:smoke .
@@ -23,6 +24,11 @@ EXPECTED_VERSION="${2:?erwartete Version fehlt}"
 # Gemessen bootet der Edge in wenigen Sekunden; der Deckel faengt einen
 # langsamen Runner ab, ohne einen haengenden Boot ewig laufen zu lassen.
 BOOT_TIMEOUT_S="${BOOT_TIMEOUT_S:-90}"
+# Nach dem ersten /health laedt main.ts weitere Teile per import() nach
+# (Admin-Check, Geschaeftstag, Print-Server, mDNS) und faengt deren Fehler
+# selbst ab. So lange wird gewartet, bevor die Logs auf fehlende Module
+# geprueft werden.
+SETTLE_S="${SETTLE_S:-8}"
 
 PREFIX="edge-smoke-$$"
 DATA_DIR="$(mktemp -d)"
@@ -32,7 +38,10 @@ cleanup() {
   for c in "$PREFIX-prod" "$PREFIX-setup"; do
     docker rm -f "$c" >/dev/null 2>&1 || true
   done
-  rm -rf "$DATA_DIR"
+  # Der Container schreibt als root (u. a. logs/ mit 755) — auf einem Runner
+  # ohne root raeumt nur ein Container das wieder weg.
+  docker run --rm -v "$DATA_DIR:/d" --entrypoint sh "$IMAGE" -c 'rm -rf /d/* /d/.[!.]*' >/dev/null 2>&1 || true
+  rm -rf "$DATA_DIR" 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -41,25 +50,45 @@ fail() {
   FAILED=1
 }
 
+# jq ohne Abbruch: Liefert der Endpunkt kein JSON, wird das ein Befund, kein
+# stiller Abbruch durch set -e.
+jget() {
+  jq -r "$1" <<<"$2" 2>/dev/null || echo '<kein JSON>'
+}
+
+# Ein zur Laufzeit fehlendes Modul, das main.ts nach dem Boot abfaengt, laesst
+# /health gruen. Gezielt danach suchen, nicht nach "level":"error": Ein
+# frischer Edge ohne Admin meldet bootstrap.admin_access_missing zu Recht.
+check_modules() {
+  local name="$1" hits
+  hits="$(docker logs "$name" 2>&1 | grep -cE 'MODULE_NOT_FOUND|ERR_MODULE_NOT_FOUND|Cannot find module' || true)"
+  [ "$hits" = 0 ] || fail "$name: $hits Log-Zeile(n) mit fehlendem Modul"
+}
+
 show_logs() {
   echo "----- docker logs $1 -----"
   docker logs "$1" 2>&1 | tail -80 || true
   echo "----- Ende docker logs $1 -----"
 }
 
-# Startet einen Container und gibt den Host-Port aus. Der Port wird von
+# Startet einen Container und setzt PORT auf den Host-Port. Der Port wird von
 # Docker frei gewaehlt, damit parallele Laeufe und ein lokaler Edge auf 3030
-# nicht kollidieren.
+# nicht kollidieren. Ohne Kommandosubstitution, damit ein gescheitertes
+# `docker run` beim Aufrufer als Rueckgabewert ankommt.
+PORT=""
 start() {
-  local name="$1" data="$2"
+  local name="$1" data="$2" mapping
   # Secret je Lauf neu: assertFeathersSecret verlangt >= 32 Zeichen und lehnt
   # den Platzhalter aus dem Repo ab.
   docker run -d --name "$name" \
     -e FEATHERS_SECRET="$(openssl rand -base64 32)" \
     -v "$data:/app/data" \
     -p 127.0.0.1::3030 \
-    "$IMAGE" >/dev/null
-  docker port "$name" 3030/tcp | head -1 | sed 's/.*://'
+    "$IMAGE" >/dev/null || return 1
+  mapping="$(docker port "$name" 3030/tcp 2>/dev/null)" || return 1
+  PORT="${mapping##*:}"
+  PORT="${PORT%%$'\n'*}"
+  [ -n "$PORT" ]
 }
 
 # Wartet, bis $url mit 200 antwortet, und gibt die Antwort aus. Stirbt der
@@ -93,22 +122,27 @@ echo '{}' > "$PROD_DATA/panary.config.json"
 # beschreibbar sein, falls sich das kuenftig aendert.
 chmod -R a+rwX "$DATA_DIR"
 
-port="$(start "$PREFIX-prod" "$PROD_DATA")"
-echo "Produktionsmodus: $PREFIX-prod auf 127.0.0.1:$port"
-if health="$(wait_for "$PREFIX-prod" "http://127.0.0.1:$port/health" 2>"$DATA_DIR/wait.txt")"; then
-  echo "/health nach $(cat "$DATA_DIR/wait.txt") s: $(jq -c '{status,version,systemMode,database}' <<<"$health")"
-  [ "$(jq -r .status <<<"$health")" = ok ] || fail "/health.status ist nicht 'ok'"
-  got="$(jq -r .version <<<"$health")"
+if ! start "$PREFIX-prod" "$PROD_DATA"; then
+  fail "Container $PREFIX-prod startet nicht (Image '$IMAGE' geladen?)"
+elif health="$(wait_for "$PREFIX-prod" "http://127.0.0.1:$PORT/health" 2>"$DATA_DIR/wait.txt")"; then
+  echo "Produktionsmodus: $PREFIX-prod auf 127.0.0.1:$PORT"
+  echo "/health nach $(cat "$DATA_DIR/wait.txt") s: $(jq -c '{status,version,systemMode,database}' <<<"$health" 2>/dev/null || echo '<kein JSON>')"
+  [ "$(jget .status "$health")" = ok ] || fail "/health.status ist nicht 'ok'"
+  got="$(jget .version "$health")"
   [ "$got" = "$EXPECTED_VERSION" ] || fail "/health.version ist '$got', erwartet '$EXPECTED_VERSION' (PANARY_VERSION-Build-Argument)"
-  [ "$(jq -r '.database.type' <<<"$health")" = sqlite ] || fail "/health.database.type ist nicht 'sqlite' — laeuft der Produktionsmodus?"
+  # systemMode gibt es nur in der /health-Antwort des Produktionsmodus.
+  [ "$(jget 'has("systemMode")' "$health")" = true ] || fail "/health hat kein systemMode — antwortet der Produktionsmodus?"
 
   # Admin-SPA: faellt sie in der Runtime-Stage weg, antwortet /admin/ nicht mit HTML.
-  admin_type="$(curl -sS -o "$DATA_DIR/admin.html" -w '%{http_code} %{content_type}' "http://127.0.0.1:$port/admin/")"
+  admin_type="$(curl -sS --max-time 10 -o "$DATA_DIR/admin.html" -w '%{http_code} %{content_type}' "http://127.0.0.1:$PORT/admin/")" ||
+    admin_type="curl-Fehler $?"
   case "$admin_type" in
     200\ text/html*) grep -q '<app-root' "$DATA_DIR/admin.html" || fail "/admin/ liefert HTML ohne <app-root>" ;;
     *) fail "/admin/ antwortet '$admin_type', erwartet 200 text/html" ;;
   esac
   echo "/admin/: $admin_type"
+  sleep "$SETTLE_S"
+  check_modules "$PREFIX-prod"
 else
   fail "Produktionsmodus bootet nicht: $(tail -1 "$DATA_DIR/wait.txt")"
 fi
@@ -119,11 +153,13 @@ SETUP_DATA="$DATA_DIR/setup"
 mkdir -p "$SETUP_DATA"
 chmod a+rwX "$SETUP_DATA"
 before="$FAILED"
-port="$(start "$PREFIX-setup" "$SETUP_DATA")"
-echo "Setup-Modus: $PREFIX-setup auf 127.0.0.1:$port"
-if info="$(wait_for "$PREFIX-setup" "http://127.0.0.1:$port/api/system-info" 2>"$DATA_DIR/wait.txt")"; then
-  echo "/api/system-info nach $(cat "$DATA_DIR/wait.txt") s: $(jq -c '{status}' <<<"$info")"
-  [ "$(jq -r .status <<<"$info")" = unconfigured ] || fail "/api/system-info.status ist nicht 'unconfigured'"
+if ! start "$PREFIX-setup" "$SETUP_DATA"; then
+  fail "Container $PREFIX-setup startet nicht (Image '$IMAGE' geladen?)"
+elif info="$(wait_for "$PREFIX-setup" "http://127.0.0.1:$PORT/api/system-info" 2>"$DATA_DIR/wait.txt")"; then
+  echo "Setup-Modus: $PREFIX-setup auf 127.0.0.1:$PORT"
+  echo "/api/system-info nach $(cat "$DATA_DIR/wait.txt") s: $(jget .status "$info")"
+  [ "$(jget .status "$info")" = unconfigured ] || fail "/api/system-info.status ist nicht 'unconfigured'"
+  check_modules "$PREFIX-setup"
 else
   fail "Setup-Modus bootet nicht: $(tail -1 "$DATA_DIR/wait.txt")"
 fi

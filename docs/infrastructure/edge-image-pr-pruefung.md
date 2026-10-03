@@ -49,14 +49,27 @@ Docker des Runners und startet es per `tools/docker/smoke-edge-image.sh` zweimal
 
 | Lauf | Aufbau | Erwartung |
 | --- | --- | --- |
-| Produktionsmodus | `panary.config.json` mit `{}` im Datenverzeichnis, zufälliges `FEATHERS_SECRET` | `/health`: `status: ok`, `version` = Build-Argument (`pr-check`), `database.type: sqlite`. `/admin/`: 200, HTML mit `<app-root` |
-| Setup-Modus | leeres Datenverzeichnis | `/api/system-info`: `status: unconfigured` |
+| Produktionsmodus | `panary.config.json` mit `{}` im Datenverzeichnis, zufälliges `FEATHERS_SECRET` | `/health`: `status: ok`, `version` = Build-Argument (`pr-check`), Feld `systemMode` vorhanden (gibt es nur im Produktionsmodus). `/admin/`: 200, HTML mit `<app-root`. Nach 8 s keine Log-Zeile mit `MODULE_NOT_FOUND`/`Cannot find module` |
+| Setup-Modus | leeres Datenverzeichnis | `/api/system-info`: `status: unconfigured`, keine Log-Zeile mit fehlendem Modul |
 
 Schon die Existenz der Config wählt den Produktionsmodus (`apps/api-edge/src/main.ts`).
-Damit laufen Migrationen und Service-Registrierung, also genau der Pfad, an dem ein zur
-Laufzeit fehlendes Modul auffällt. Stirbt der Container oder antwortet er nicht innerhalb
-von 90 s, bricht das Skript ab und gibt die letzten 80 Zeilen `docker logs` aus. Lokal
-läuft es gegen jedes gebaute Image; der Aufruf steht im Kopf des Skripts.
+Damit laufen Migrationen und Service-Registrierung. Fehlt dort ein Modul, stirbt der
+Container. Was `main.ts` erst **nach** dem ersten `/health` per `import()` nachlädt
+(Admin-Check, Geschäftstag, Print-Server, mDNS), fängt es selbst ab, ohne Exit. Deshalb
+wartet das Skript danach 8 s und sucht in den Logs gezielt nach fehlenden Modulen. Ein
+pauschaler Scan auf `"level":"error"` ginge nicht: Ein frischer Edge ohne Admin meldet
+`bootstrap.admin_access_missing` zu Recht.
+
+Jede verfehlte Erwartung wird als `::error::` gemeldet. Beide Läufe laufen trotzdem durch,
+am Ende steht Exit 1, und von jedem fehlgeschlagenen Container stehen die letzten 80 Zeilen
+`docker logs` im Schritt-Log. Lokal läuft das Skript gegen jedes gebaute Image, der Aufruf
+steht in seinem Kopf.
+
+Mutationsproben am lokal gebauten Image (2026-10-03, alle Exit 1 mit der genannten
+Meldung, die Gegenprobe Exit 0 in 7,8 s): Admin-SPA entfernt (`/admin/` → 404), falsche
+erwartete Version, `knex` entfernt (Container stirbt beim Boot, `MODULE_NOT_FOUND` im Log),
+`bonjour-service` entfernt (Boot und `/health` grün, gefunden nur über den Log-Scan),
+nicht vorhandenes Image.
 
 ## Wann er läuft
 
@@ -87,8 +100,9 @@ und die Pfade gegen die `paths:`-Liste halten.
 
 ## Was ein grüner Lauf nicht zeigt
 
-- **Fachliches Verhalten.** Der Smoke-Test (unten) belegt den Boot, nicht Pairing,
-  Cloud-Verbindung, Login oder Hardware (Drucker, TSE).
+- **Fachliches Verhalten.** Der Smoke-Test (oben) belegt den Boot, nicht Pairing,
+  Cloud-Verbindung, Login oder Hardware (Drucker, TSE). Ein Fehler, den `main.ts` nach dem
+  Boot abfängt und der kein fehlendes Modul ist, bleibt ebenfalls grün.
 - **Signatur, Provenance, Stückliste und Advisory-Scan.** Die laufen nur im Release-Workflow.
 - **Brüche über Pfade außerhalb des Filters.** Kopiert das Dockerfile künftig etwas Neues
   (wie damals `tools/vitest/`), muss der Pfad hier nachgetragen werden. Dasselbe gilt für

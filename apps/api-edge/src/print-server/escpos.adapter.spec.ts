@@ -144,7 +144,13 @@ describe('Transliteration (#517)', () => {
     vi.mocked(logger.warn).mockClear()
     const enc = createEscposEncoder(48, 'CP437')
     enc.line('Herz \u2665 \u2665')
-    enc.table([{ width: 24, align: 'left' }, { width: 24, align: 'left' }], [['Stern \u2605', (e: any) => e.bold(true).text('\u2665').bold(false)]])
+    enc.table(
+      [
+        { width: 24, align: 'left' },
+        { width: 24, align: 'left' },
+      ],
+      [['Stern \u2605', (e: any) => e.bold(true).text('\u2665').bold(false)]],
+    )
     enc.encode()
 
     const events = vi.mocked(logger.warn).mock.calls.filter(([arg]: any[]) => arg.event === 'print.unmappable_chars')
@@ -171,7 +177,10 @@ describe('Transliteration (#517)', () => {
   it('ersetzt auch in Tabellenzellen (Text und Callback)', () => {
     const enc = createEscposEncoder(48, 'CP437')
     enc.table(
-      [{ width: 24, align: 'left' }, { width: 24, align: 'left' }],
+      [
+        { width: 24, align: 'left' },
+        { width: 24, align: 'left' },
+      ],
       [['Sandwich \u2013 klein', (e: any) => e.bold(true).text('3,50 \u20ac').bold(false)]],
     )
     const bytes: number[] = enc
@@ -192,7 +201,10 @@ describe('Transliteration (#517)', () => {
         enc.initialize()
         enc.line(name)
         enc.table(
-          [{ width: 30, align: 'left' }, { width: 18, align: 'right' }],
+          [
+            { width: 30, align: 'left' },
+            { width: 18, align: 'right' },
+          ],
           [[name, (e: any) => e.bold(true).text('2,10 EUR').bold(false)]],
         )
         enc.text(name).newline()

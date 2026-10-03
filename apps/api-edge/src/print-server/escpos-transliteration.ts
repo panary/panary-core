@@ -60,7 +60,7 @@ export const ESCPOS_TRANSLITERATION: Readonly<Record<string, string>> = {
 /** Zeichen, das keine Codepage und keine Tabelle traegt, nach #517 als `?` gedruckt. */
 export const ESCPOS_UNMAPPABLE = '?'
 
-const NON_ASCII = /[^\x00-\x7f]/
+const NON_ASCII = /[\u0080-\uffff]/
 const darstellbarCache = new Map<string, boolean>()
 
 /**

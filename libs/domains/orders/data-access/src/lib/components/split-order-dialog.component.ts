@@ -194,7 +194,10 @@ function errorKey(code: unknown): string {
           </div>
           <div>
             <p class="text-xs text-gray-500 dark:text-gray-400">{{ 'SPLIT_ORDER.NEW_ORDER' | translate }}</p>
-            <p class="text-lg font-bold tabular-nums text-emerald-700 dark:text-emerald-300" data-testid="split-target-total">
+            <p
+              class="text-lg font-bold tabular-nums text-emerald-700 dark:text-emerald-300"
+              data-testid="split-target-total"
+            >
               {{ p.state === 'ok' ? p.targetFormatted : '–' }}
             </p>
           </div>

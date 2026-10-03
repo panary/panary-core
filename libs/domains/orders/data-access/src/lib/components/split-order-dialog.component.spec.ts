@@ -73,7 +73,9 @@ function makeOrder(overrides: Record<string, unknown> = {}): Order {
   } as unknown as Order
 }
 
-function setup(opts: { order?: Order; split?: (orderId: string, items: OrderSplitSelectionItem[]) => Promise<unknown> } = {}) {
+function setup(
+  opts: { order?: Order; split?: (orderId: string, items: OrderSplitSelectionItem[]) => Promise<unknown> } = {},
+) {
   const order = opts.order ?? makeOrder()
   const orders = signal<Order[]>([order])
   const split = vi.fn(
@@ -102,10 +104,12 @@ describe('SplitOrderDialogComponent — Einheiten', () => {
   it('bietet Kombinationen als EINE Einheit an, nie ihre Zeilen einzeln', () => {
     const { dialog } = setup()
     expect(dialog.units().map(u => u.key)).toEqual(['line:kaffee', 'line:broetchen', 'bundle:1'])
-    expect(dialog.units().find(u => u.key === 'bundle:1')?.lines.map(l => l._id)).toEqual([
-      'menue-burger',
-      'menue-pommes',
-    ])
+    expect(
+      dialog
+        .units()
+        .find(u => u.key === 'bundle:1')
+        ?.lines.map(l => l._id),
+    ).toEqual(['menue-burger', 'menue-pommes'])
   })
 
   it('erlaubt Teilmengen nur ohne Extras — eine Zeile mit Modifier wandert nur ganz', () => {

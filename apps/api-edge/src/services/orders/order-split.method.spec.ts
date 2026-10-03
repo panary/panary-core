@@ -86,7 +86,11 @@ function makeApp(
     opts.location === null
       ? vi.fn().mockRejectedValue(new Error('not found'))
       : vi.fn().mockResolvedValue(
-          opts.location ?? { _id: 'loc-1', operationMode: 'orders-only', currentBusinessDay: { businessDayId: 'bd-1' } },
+          opts.location ?? {
+            _id: 'loc-1',
+            operationMode: 'orders-only',
+            currentBusinessDay: { businessDayId: 'bd-1' },
+          },
         )
   const orderGet = vi.fn().mockResolvedValue(stored)
   const orderCreate = vi.fn().mockImplementation(async (data: any) => ({ ...data }))

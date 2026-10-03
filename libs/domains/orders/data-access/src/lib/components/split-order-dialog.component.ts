@@ -124,7 +124,7 @@ function errorKey(code: unknown): string {
                   <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">
                     {{ line.amount }} × {{ line.name }}
                   </p>
-                  @for (mod of line.modifiers ?? []; track mod._id) {
+                  @for (mod of line.modifiers ?? []; track $index) {
                     <p class="text-xs text-gray-500 dark:text-gray-400 truncate">+ {{ mod.name }}</p>
                   }
                 }
@@ -212,7 +212,7 @@ function errorKey(code: unknown): string {
           type="button"
           (click)="close()"
           [disabled]="submitting()"
-          class="text-sm font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition disabled:opacity-40"
+          class="pnry-touch min-h-12 text-sm font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition disabled:opacity-40"
         >
           {{ 'COMMON.CANCEL' | translate }}
         </button>
@@ -221,7 +221,7 @@ function errorKey(code: unknown): string {
             type="button"
             (click)="confirm()"
             [disabled]="!canConfirm()"
-            class="pnry-touch text-sm font-bold px-5 py-3 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition disabled:opacity-40"
+            class="pnry-touch min-h-12 text-sm font-bold px-5 py-3 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition disabled:opacity-40"
             data-testid="split-confirm"
           >
             {{ (submitting() ? 'SPLIT_ORDER.SUBMITTING' : 'SPLIT_ORDER.CONFIRM') | translate }}

@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   inject,
   signal,
@@ -171,6 +172,10 @@ export class ActiveOrdersComponent {
   #itemsScrollState = signal<Record<string, { atTop: boolean; atBottom: boolean }>>({})
 
   constructor() {
+    inject(DestroyRef).onDestroy(() => {
+      if (this.#highlightTimer !== null) clearTimeout(this.#highlightTimer)
+    })
+
     // Nach jedem Render-Zyklus (orders-Änderung) Scroll-States neu prüfen.
     // sortedOrders() bewusst getrackt; Aktion via untracked() entkoppelt (angular.md §2.1).
     effect(() => {

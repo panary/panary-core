@@ -189,32 +189,52 @@ export function createOrderSplitMethod(app: Application) {
  * (panary/panary-core#351) — bis dahin lehnt der Edge ab. Das Ausblenden des
  * Einstiegs im POS ist KEINE Zugangskontrolle: Diese Pruefung ist es.
  *
- * 🚨 Dieselbe Quelle und dieselbe Entscheidung wie der TSE-Start: der
- * `operationMode`-Snapshot des Geschaeftstags der QUELLE ueber
- * `resolveFiscalSignContext`. Wuerde hier die aktuelle Location gelesen, liefe
- * nach einer Umstellung um 10:00 ein Split durch, dessen Ziel der Hook dann doch
- * signiert. Die fail-safe-Richtung erbt die Pruefung mit: Fehlt der Tag oder ist
- * er nicht lesbar, gilt der Vorgang als signierpflichtig — und wird abgelehnt.
+ * 🚨 Die Zielbestellung landet NICHT auf dem Geschaeftstag der Quelle:
+ * `restrictOrderToBusinessDay()` gibt ihr den AKTUELLEN Tag der Filiale und
+ * eroeffnet beim Anlegen notfalls einen neuen (Auto-Rotation), dessen Modus aus
+ * der aktuellen `operationMode` der Filiale kommt. Nach dem Modus genau dieses
+ * Tages entscheidet `signOrderTseStart`. Weil vor dem `create` nicht feststeht,
+ * welcher der Faelle eintritt, muessen ALLE Kandidaten definitiv `orders-only`
+ * sein: der Tag der Quelle, der aktuelle Tag der Filiale und die Filiale selbst.
+ * Die Tage gehen ueber `resolveFiscalSignContext` — dieselbe Entscheidung samt
+ * fail-safe-Richtung wie der Hook: Fehlt ein Tag oder ist er nicht lesbar, gilt
+ * er als signierpflichtig, und es wird abgelehnt. Ebenso eine nicht ladbare
+ * Filiale.
  *
  * Steht VOR der Beleg-Abfrage und vor jedem Write, aber NACH dem Eigentums-Check:
  * Die Ablehnung verraet sonst den Modus fremder Filialen.
  */
 async function assertOrdersOnlyBusinessDay(app: Application, source: Order): Promise<void> {
-  const fiscal = await resolveFiscalSignContext(
-    source.businessDayId,
-    async businessDayId =>
-      (await app.service('businessdays').get(businessDayId, {
-        query: { $select: [...FISCAL_GATE_BUSINESS_DAY_SELECT] },
-        provider: undefined,
-      })) as BusinessDayFiscalSnapshot | undefined,
-  )
-  if (fiscal.sign) {
+  const reject = (): never => {
     throw toFeathersError(
       new OrderSplitError(
         OrderSplitErrorCode.FISCAL_MODE_UNSUPPORTED,
         'Bestellungen aufteilen ist derzeit nur im Bestellbetrieb moeglich, nicht im Kassenbetrieb.',
       ),
     )
+  }
+
+  let location: { operationMode?: string; currentBusinessDay?: { businessDayId?: string } | null } | undefined
+  try {
+    location = source.locationId
+      ? ((await app.service('locations').get(source.locationId, { provider: undefined })) as typeof location)
+      : undefined
+  } catch {
+    location = undefined
+  }
+  if (location?.operationMode !== 'orders-only') reject()
+
+  const loadBusinessDay = async (businessDayId: string) =>
+    (await app.service('businessdays').get(businessDayId, {
+      query: { $select: [...FISCAL_GATE_BUSINESS_DAY_SELECT] },
+      provider: undefined,
+    })) as BusinessDayFiscalSnapshot | undefined
+
+  const candidates = new Set<string | undefined>([source.businessDayId])
+  const currentDayId = location?.currentBusinessDay?.businessDayId
+  if (currentDayId) candidates.add(currentDayId)
+  for (const businessDayId of candidates) {
+    if ((await resolveFiscalSignContext(businessDayId, loadBusinessDay)).sign) reject()
   }
 }
 

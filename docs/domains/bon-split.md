@@ -246,14 +246,22 @@ Gesperrt wird an zwei Stellen, und nur eine davon ist die Sperre:
 | POS | Button nur bei `operationMode: orders-only` der aktiven Filiale | Bedienung, **keine** Zugangskontrolle |
 | Edge (`orders.split`) | 409 `order-split/fiscal-mode-unsupported` | die eigentliche Sperre |
 
-Der Edge liest dafür den `operationMode`-**Snapshot des Geschäftstags** der
-Quelle über `resolveFiscalSignContext` — dieselbe Quelle und dieselbe
-Entscheidung wie der TSE-Start. Läse er die aktuelle Filiale, liefe nach einer
-Umstellung am laufenden Tag ein Split durch, dessen Ziel der Hook dann doch
-signiert. Die fail-safe-Richtung wird mitgeerbt: Fehlt der Geschäftstag oder ist
-er nicht lesbar, gilt der Vorgang als signierpflichtig und wird **abgelehnt**.
-Die Prüfung steht nach dem Eigentums-Check (sonst verriete die Ablehnung den
-Modus fremder Filialen) und vor jedem Write.
+Die Zielbestellung landet **nicht** auf dem Geschäftstag der Quelle:
+`restrictOrderToBusinessDay()` gibt ihr den **aktuellen** Tag der Filiale und
+eröffnet beim Anlegen notfalls einen neuen (Auto-Rotation), dessen Modus aus der
+aktuellen `operationMode` der Filiale kommt. Nach dem Modus genau dieses Tages
+signiert `signOrderTseStart`. Vor dem `create` steht nicht fest, welcher Fall
+eintritt, deshalb muss **jeder Kandidat** definitiv `orders-only` sein:
+
+- der Geschäftstag der Quelle,
+- der aktuelle Geschäftstag der Filiale,
+- die `operationMode` der Filiale selbst.
+
+Die Tage laufen über `resolveFiscalSignContext`, dieselbe Entscheidung wie der
+TSE-Start, mit derselben fail-safe-Richtung: Ein fehlender oder nicht lesbarer
+Tag gilt als signierpflichtig und wird **abgelehnt**, ebenso eine nicht ladbare
+Filiale. Die Prüfung steht nach dem Eigentums-Check (sonst verriete die
+Ablehnung den Modus fremder Filialen) und vor jedem Write.
 
 **Was der Dialog anbietet:**
 

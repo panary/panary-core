@@ -292,18 +292,28 @@ Prüfung gab es nicht: Der Split lief in beiden Modi. Im Kassenbetrieb startet
 `signOrderTseStart` für das Ziel einen eigenen TSE-Vorgang. Dieser Pfad ist gegen
 keine echte TSE verifiziert (#351). Ausblenden allein hätte ihn nicht geschlossen.
 
-**Entscheidung.** `orders.split` lehnt ab, solange der Geschäftstag der Quelle
-nicht definitiv `orders-only` ist: HTTP 409, Code
-`order-split/fiscal-mode-unsupported`. Gelesen wird der `operationMode`-Snapshot
-des Geschäftstags über `resolveFiscalSignContext` aus `@panary/tse/domain`,
-**nicht** die aktuelle Filiale. Damit entscheiden Sperre und TSE-Start aus
-derselben Quelle mit derselben fail-safe-Richtung: Ein fehlender oder nicht
-lesbarer Tag zählt als signierpflichtig und wird abgelehnt. Die Prüfung steht
-nach `assertCallerOwnsRecord` (ADR 0046) und vor der Beleg-Abfrage.
+**Entscheidung.** `orders.split` lehnt mit HTTP 409 und Code
+`order-split/fiscal-mode-unsupported` ab, solange nicht jeder mögliche Tag des
+Ziels definitiv `orders-only` ist. Die Zielbestellung erbt den Tag der Quelle
+nicht: `restrictOrderToBusinessDay()` gibt ihr den aktuellen Tag der Filiale
+und eröffnet notfalls einen neuen mit dem Modus der Filiale. Geprüft werden
+deshalb der Geschäftstag der Quelle, der aktuelle Geschäftstag der Filiale
+(beide als Snapshot über `resolveFiscalSignContext` aus `@panary/tse/domain`)
+und die `operationMode` der Filiale. Die Tage entscheiden damit wie der
+TSE-Start, mit derselben fail-safe-Richtung: Ein fehlender oder nicht lesbarer
+Tag zählt als signierpflichtig, eine nicht ladbare Filiale ebenso. Die Prüfung
+steht nach `assertCallerOwnsRecord` (ADR 0046) und vor der Beleg-Abfrage.
 
-Verworfen: die aktuelle `operationMode` der Filiale. Nach einer Umstellung am
-laufenden Tag wären Sperre und Signierung auseinandergelaufen, ein Split wäre
-durchgegangen und sein Ziel trotzdem signiert worden.
+Verworfen:
+- **Nur der Tag der Quelle.** Das war der erste Stand dieses PRs; das Review
+  fand den Fall „Quelle auf einem Bestell-Tag, inzwischen läuft ein Kassen-Tag".
+  Das Ziel wäre durchgegangen und vom Hook signiert worden.
+- **Nur die aktuelle `operationMode` der Filiale.** Ein laufender Tag behält seinen
+  Snapshot über eine Umstellung hinweg, Sperre und Signierung wären
+  auseinandergelaufen.
+- **Das Ziel fest auf den Tag der Quelle legen.** Das hätte den Geschäftstag-Hook
+  für einen einzelnen Aufrufer aufgebohrt und Bestellungen auf bereits rotierte
+  Tage gebucht.
 
 **Konsequenzen.** Eine Bestellung ohne `businessDayId` lässt sich nicht teilen,
 auch im Bestellbetrieb nicht. `restrictOrderToBusinessDay()` stempelt jede neue

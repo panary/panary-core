@@ -1,13 +1,13 @@
 ---
 type: Guide
-title: Edge-Image-Prüfung im PR — was sie baut, wann sie läuft, was sie nicht sieht
-description: Der Workflow edge-image-check.yml baut das Edge-Image ohne Push und startet es per Smoke-Test, sobald ein PR den Docker-Build-Kontext berührt; dieselbe Kontext-Vorbereitung wie der Release, Pfadfilter mit gemessener Trefferquote, und die Lücken, die ein grüner Lauf offen lässt.
+title: Edge-Image-Prüfung — PR, main-Push und Release: was sie baut, wann sie läuft, was sie nicht sieht
+description: Das Edge-Image wird gebaut und per Smoke-Test gestartet: im PR, sobald er den Docker-Build-Kontext berührt, auf jedem main-Push ohne Filter und im Release vor dem Push; dieselbe Kontext-Vorbereitung überall, Pfadfilter mit gemessener Trefferquote, und die Lücken, die ein grüner Lauf offen lässt.
 tags: [ci, docker, edge, gates]
 status: stable
 generated: { by: claude-code/opus-5.5, at: 2026-10-03T08:00:00Z }
 ---
 
-# Edge-Image-Prüfung im PR
+# Edge-Image-Prüfung — PR, main-Push und Release
 
 ## Problem
 
@@ -25,8 +25,8 @@ sonst erst beim nächsten `v*`-Release, mit Lib-Publish ohne Image.
 ## Was läuft
 
 `.github/workflows/edge-image-check.yml`
-([#497](https://github.com/panary/panary-core/issues/497)) baut bei `pull_request` das
-**ganze** Image (Build- und Runtime-Stage) für `linux/amd64`, mit `push: false`. Keine
+([#497](https://github.com/panary/panary-core/issues/497)) baut bei `pull_request` und
+bei jedem Push nach `main` das **ganze** Image (Build- und Runtime-Stage) für `linux/amd64`, mit `push: false`. Keine
 Registry-Anmeldung, keine Signatur, keine Stückliste, nur `contents: read`.
 
 Die Kontext-Vorbereitung (Workspace-Globs, `.npmrc`, echte Lockfile, `.dockerignore`)
@@ -38,9 +38,11 @@ Die Runtime-Stage ist mitgebaut statt nur `--target build`: Sie besteht aus ein 
 `COPY --from` und einem `apt-get`, kostet also Sekunden und fängt einen fehlenden
 `dist`-Pfad ab.
 
-Der GHA-Layer-Cache wird nur gelesen (`cache-from`), nicht geschrieben. Ein PR-Eintrag
-wäre nur für denselben PR lesbar und verdrängte die Einträge der Releases aus dem
-10-GB-Kontingent.
+Der GHA-Layer-Cache wird nur gelesen (`cache-from`), nicht geschrieben, im PR wie auf
+`main`. Ein PR-Eintrag wäre nur für denselben PR lesbar und belegte das 10-GB-Kontingent.
+Was der Release schreibt, liegt unter dem Tag-Ref und ist für PR- und `main`-Läufe nach den
+Scoping-Regeln von GitHub vermutlich nicht lesbar. Diese Läufe bauen dann weitgehend kalt
+(gemessen 4:20 bis 4:50 min).
 
 ## Smoke-Test
 
@@ -73,7 +75,18 @@ nicht vorhandenes Image.
 
 ## Wann er läuft
 
-Der native `paths:`-Filter des Workflows. Das Ruleset von `main` kennt keine Pflicht-Checks,
+**Auf jedem Push nach `main`, ohne Filter** (seit
+[#508](https://github.com/panary/panary-core/issues/508)). Grund: Eine reine
+Code-Änderung kann das Image brechen, ohne eine Filterdatei zu berühren. Alle
+Abhängigkeiten stehen in der Root-`package.json`, und das Image entfernt per
+`pnpm prune --prod` die `devDependencies`. Importiert ein PR in `apps/api-edge/src/` oder
+einer Lib ein Paket, das nur dort steht, sind Lint, Tests und Build grün (im Checkout ist
+es da), im Image fehlt es. Der `main`-Lauf meldet das nach dem Merge, spätestens aber vor
+dem nächsten `v*`-Release. Er wird nie abgebrochen, auch nicht von einem neueren Push: Der
+Lauf, der einen Bruch als erster zeigt, soll stehen bleiben. Den Filter stattdessen auf
+`apps/api-edge/src/**` und `libs/**` zu erweitern, träfe fast jeden PR.
+
+**Im PR** gilt der native `paths:`-Filter des Workflows. Das Ruleset von `main` kennt keine Pflicht-Checks,
 ein PR ohne passende Pfade wartet also auf nichts. Wird der Check später zur Pflicht, braucht
 er einen Ersatzlauf für ungefilterte PRs, sonst bleibt er dort auf „erwartet“ stehen.
 
@@ -98,12 +111,31 @@ gh pr list --repo panary/panary-core --state merged --limit 80 --json number,fil
 
 und die Pfade gegen die `paths:`-Liste halten.
 
+## Im Release vor dem Push
+
+`build-edge-docker.yml` startet seit #508 genau das Release-Image, **bevor** es die Registry
+erreicht. Bei einem `v*`-Tag bewegt der Push `:latest`, und Watchtower rollt das binnen
+einer Stunde auf jeden Kunden-Edge aus. Der grüne PR-Lauf deckt das nicht ab: Er hat einen
+anderen Stand gestartet, ohne das, was danach nach `main` kam.
+
+Ablauf: bauen und in den Docker des Runners laden (`panary-edge:release-check`),
+`smoke-edge-image.sh` mit der Release-Version als Erwartung, erst dann der bestehende
+„Build and Push“. Der baut aus demselben Builder-Cache, kompiliert also nicht noch einmal,
+und pusht per Buildx, weil Signatur und Provenance an dessen Digest hängen. Gepusht wird
+damit ein Neubau aus denselben Layern, nicht das geladene Image selbst. Der Digest kann
+sich deshalb vom geladenen Image unterscheiden (Attestations, Index), der Inhalt nicht. Schlägt der
+Smoke-Test fehl, bricht der Job vor dem Push ab: Kein Tag, kein `:latest`, kein Rollout.
+`publish-libraries.yml` hängt nicht an diesem Job und publiziert trotzdem.
+
 ## Was ein grüner Lauf nicht zeigt
 
 - **Fachliches Verhalten.** Der Smoke-Test (oben) belegt den Boot, nicht Pairing,
   Cloud-Verbindung, Login oder Hardware (Drucker, TSE). Ein Fehler, den `main.ts` nach dem
   Boot abfängt und der kein fehlendes Modul ist, bleibt ebenfalls grün.
 - **Signatur, Provenance, Stückliste und Advisory-Scan.** Die laufen nur im Release-Workflow.
-- **Brüche über Pfade außerhalb des Filters.** Kopiert das Dockerfile künftig etwas Neues
-  (wie damals `tools/vitest/`), muss der Pfad hier nachgetragen werden. Dasselbe gilt für
-  eine neue Root-Konfiguration, die das `@nx`-Plugin beim Graph-Aufbau liest.
+- **Im PR: Brüche über Pfade außerhalb des Filters.** Die fängt erst der `main`-Lauf, also
+  nach dem Merge. Kopiert das Dockerfile künftig etwas Neues (wie damals `tools/vitest/`),
+  gehört der Pfad in den Filter, damit es schon der PR sieht. Dasselbe gilt für eine neue
+  Root-Konfiguration, die das `@nx`-Plugin beim Graph-Aufbau liest.
+- **Den Rollout.** Ob die Kunden-Edges das neue Image tatsächlich ziehen und melden, prüft
+  keiner dieser Läufe.

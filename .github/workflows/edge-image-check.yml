@@ -1,7 +1,8 @@
 name: Edge-Image-Pruefung
 
-# Baut das Edge-Image im PR, wenn der Docker-Build-Kontext beruehrt ist —
-# gebaut, nicht gepusht (panary/panary-core#497). Anlass: #485 entfernte eine
+# Baut und startet das Edge-Image im PR, wenn der Docker-Build-Kontext beruehrt
+# ist, und auf jedem main-Push — gebaut, nicht gepusht (panary/panary-core#497,
+# Smoke-Test #505, main-Push #508). Anlass: #485 entfernte eine
 # Datei, die Dockerfile.edge braucht; die PR-CI war gruen, weil sie das Image nie
 # baut. Aufgefallen ist es nur durch einen zufaelligen Dispatch, sonst erst beim
 # naechsten v*-Release, mit Lib-Publish ohne Image.
@@ -10,6 +11,13 @@ name: Edge-Image-Pruefung
 # ohne Fremd-Action fuer die Pfadauswahl. Kein Required Check im Ruleset — ein
 # PR ohne passende Pfade wartet deshalb auf nichts.
 on:
+  # Jeder main-Push, OHNE Pfadfilter (#508): Eine reine Code-Aenderung kann das
+  # Image brechen, ohne eine Filterdatei zu beruehren — etwa ein Import eines
+  # Pakets, das nur in devDependencies steht. Im Checkout ist es da, `pnpm prune
+  # --prod` im Image entfernt es. Der Lauf meldet den Bruch nach dem Merge,
+  # spaetestens aber vor dem naechsten v*-Release statt erst dort.
+  push:
+    branches: [main]
   pull_request:
     # Was der normale CI-Lauf NICHT sieht: Dateien, die das Image anders
     # aufloest als der Checkout (eigener Workspace-Nachbau, neu generierte
@@ -41,9 +49,11 @@ on:
       - '.github/workflows/build-edge-docker.yml'
       - '.github/workflows/edge-image-check.yml'
 
+# PR: ein neuer Push bricht den alten Lauf ab. main: jeder Stand laeuft durch,
+# sonst ginge der Lauf verloren, der einen Bruch als erster zeigt.
 concurrency:
-  group: edge-image-check-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: edge-image-check-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Nur lesen: kein Push, keine Signatur, kein Registry-Login. Das Image landet
 # nur im Docker des Runners (Smoke-Test, #505).
@@ -82,8 +92,8 @@ jobs:
       # Ganzes Image (Build- UND Runtime-Stage), nicht nur `--target build`:
       # Die Runtime-Stage ist ein paar COPY --from und ein apt-get, kostet also
       # Sekunden, faengt aber einen fehlenden dist-Pfad ab.
-      # Nur cache-from: Ein PR-Lauf schreibt keinen GHA-Cache (der waere nur fuer
-      # denselben PR lesbar und verdraengte die Release-Eintraege aus dem 10-GB-Kontingent).
+      # Nur cache-from: PR- und main-Laeufe schreiben keinen GHA-Cache (ein PR-Eintrag
+      # waere nur fuer denselben PR lesbar und belegte das 10-GB-Kontingent).
       - name: Edge-Image bauen (ohne Push)
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:

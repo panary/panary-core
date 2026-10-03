@@ -80,6 +80,31 @@ jobs:
       - name: Workspace-Files fuer Docker-Kontext materialisieren
         run: bash tools/docker/prepare-edge-context.sh
 
+      # --- Smoke-Test VOR dem Push (#508) ---
+      # Der Push bewegt bei einem v*-Tag `:latest`, und Watchtower rollt das
+      # binnen einer Stunde auf jeden Kunden-Edge aus. Deshalb wird genau dieser
+      # Stand erst gebaut, in den lokalen Docker geladen und gestartet. Der
+      # Push-Schritt danach baut aus demselben Builder-Cache (keine zweite
+      # Kompilierung) und pusht per Buildx, weil Signatur und Provenance an
+      # dessen Digest haengen; der Digest kann deshalb abweichen, die Layer nicht.
+      # Dieselbe Pruefung wie im PR (edge-image-check.yml).
+      - name: Build fuer Smoke-Test (laden, ohne Push)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          file: tools/docker/Dockerfile.edge
+          platforms: linux/amd64
+          load: true
+          tags: panary-edge:release-check
+          build-args: |
+            PANARY_VERSION=${{ steps.version.outputs.tag }}
+          cache-from: type=gha
+
+      - name: Smoke-Test (Container starten, /health pruefen)
+        env:
+          EXPECTED_VERSION: ${{ steps.version.outputs.tag }}
+        run: bash tools/docker/smoke-edge-image.sh panary-edge:release-check "$EXPECTED_VERSION"
+
       - name: Build and Push
         id: docker_build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7

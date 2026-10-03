@@ -316,7 +316,7 @@ describe('RolePermissions — BUSINESS_DAY_OVERDUE_NOTICES', () => {
 /**
  * Tagesabschluss-Kennzahlen (core#501): Tagesumsatz, Netto, Personalquote und
  * Wareneinsatz sind Leitungsinformation. STAFF liest sie nicht mehr ueber die
- * Matrix, nur noch ueber einen ausdruecklichen Grant (Bundle `zeit-auswertung`).
+ * Matrix, nur noch ueber einen ausdruecklichen Grant (Bundle `tagesabschluss-kennzahlen`, core#516).
  * Der Geschaeftstag-Status und die Kassen-Sessions bleiben, der Kassenbetrieb
  * am Edge braucht sie.
  */

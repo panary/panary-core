@@ -136,6 +136,36 @@ describe('CapabilityBundles / expandBundles', () => {
     expect(hasEffectivePermission(UserSystemRole.TENANT_STAFF, grants, IG, AppAction.READ)).toBe(true)
   })
 
+  // core#516: Der Dialog bietet nur Pakete an, deren Grants der Admin selbst besitzt, und der
+  // Escalation-Guard prüft dasselbe. Ein Grant, den nicht einmal der Owner hat, macht das ganze
+  // Paket für jeden unvergebbar — so lag `zeit-auswertung` monatelang unbemerkt brach.
+  it('ein Owner besitzt jeden Grant jedes Bundles selbst', () => {
+    for (const bundle of CapabilityBundles) {
+      for (const grant of bundle.grants) {
+        const parsed = parseGrant(grant)
+        expect(parsed, `${bundle.id}: ${grant}`).not.toBeNull()
+        if (!parsed) continue
+        expect(
+          hasEffectivePermission(UserSystemRole.TENANT_OWNER, [], parsed.resource, parsed.action),
+          `${bundle.id}: ${grant}`,
+        ).toBe(true)
+      }
+    }
+  })
+
+  it('tagesabschluss-kennzahlen gibt STAFF die Berichte zurück, die Ereignisse nicht', () => {
+    const grants = expandBundles(['tagesabschluss-kennzahlen'])
+    expect(grants).toEqual(['grant:business-day-reports:read'])
+    const can = (resource: AppResource) =>
+      hasEffectivePermission(UserSystemRole.TENANT_STAFF, grants, resource, AppAction.READ)
+    expect(can(AppResource.BUSINESS_DAY_REPORTS)).toBe(true)
+    expect(can(AppResource.BUSINESS_DAY_REPORT_EVENTS)).toBe(false)
+  })
+
+  it('zeiterfassung vergibt nur die Korrektur der Arbeitszeiten, keine Kennzahlen', () => {
+    expect(expandBundles(['zeiterfassung'])).toEqual(['grant:working-times:update'])
+  })
+
   it('expandBundles dedupliziert über Bundles hinweg + ignoriert Unbekanntes', () => {
     const grants = expandBundles(['wareneingang', 'inventur-bestand', 'gibt-es-nicht'])
     const stock = grants.filter(x => x === 'grant:stock-levels:read')

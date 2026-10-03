@@ -83,6 +83,12 @@ bleiben „dumm", Bundles sind reine UI-/Seed-Sache.
 
 `expandBundles(ids)` → deduplizierte Grant-Strings (unbekannte IDs ignoriert).
 
+Seit panary/panary-core#501 hat `tenant:staff` aus der Rolle **kein** Leserecht mehr auf
+`business-day-reports` und `business-day-report-events` (Tagesumsatz, Netto, Personalquote und
+Wareneinsatz sind Leitungsinformation). Der Grant `business-day-reports:read` aus
+`zeit-auswertung` ist damit für Mitarbeiter der einzige Weg zu den Tagesabschluss-Berichten,
+vorher war er für sie wirkungslos. `business-day-report-events` enthält das Paket nicht.
+
 ## 4. Grant-Assignment-Policy (Escalation-Guard, geteilt)
 
 **Datei:** `libs/domains/users/domain/src/lib/grant-assignment-policy.ts` (seit 2026-07-03)

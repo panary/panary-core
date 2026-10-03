@@ -104,7 +104,7 @@ describe('Transliteration (#517)', () => {
     expect(transliterateForCodepage(name, 'cp437')).toBe(erwartet)
   })
 
-  it('ersetzt jeden Tabelleneintrag unter CP437, wenn CP437 ihn nicht traegt, durch reines ASCII', () => {
+  it('ersetzt nur durch reines ASCII — jeder Ersatz ist in jeder Codepage darstellbar', () => {
     for (const ersatz of Object.values(ESCPOS_TRANSLITERATION)) expect(ersatz).toMatch(/^[\x20-\x7e]*$/)
   })
 

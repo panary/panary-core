@@ -9,7 +9,7 @@ import type { HookContext } from '../../declarations'
 // Ein an der Edge angelegter Kunde stand dort als „Ohne Status“ und fiel durch jeden Filter.
 const context = { method: 'create', params: {} } as unknown as HookContext
 
-const resolveStatus = async (status?: string) => {
+const resolveStatus = async (status?: string | null) => {
   const data = { name1: 'Edge GmbH', ...(status === undefined ? {} : { status }) }
   const resolved = (await corporateCustomerDataResolver.resolve(data as never, context as never)) as { status?: string }
   return resolved.status
@@ -22,6 +22,10 @@ describe('corporateCustomerDataResolver (Edge) — status (#511)', () => {
 
   it('leerer status → active', async () => {
     expect(await resolveStatus('')).toBe('active')
+  })
+
+  it('status null (SQLite-NULL aus dem Sync) → active', async () => {
+    expect(await resolveStatus(null)).toBe('active')
   })
 
   it.each(['disabled', 'blocked', 'archived', 'DRAFT'])('mitgeschicktes %s bleibt erhalten (Sync, POS)', async s => {

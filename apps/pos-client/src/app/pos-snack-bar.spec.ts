@@ -4,7 +4,7 @@
 // nicht nachbildet. Die Dialog-Spec zaehlte nur `open`-Aufrufe und blieb deshalb gruen,
 // waehrend die Rabattcode-Meldung in jedem Fall sofort wieder verschwand.
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it, onTestFinished } from 'vitest'
 import { TestBed } from '@angular/core/testing'
 import { MATERIAL_ANIMATIONS } from '@angular/material/core'
 import { MatSnackBar } from '@angular/material/snack-bar'
@@ -15,29 +15,29 @@ const settle = async (): Promise<void> => {
   for (let i = 0; i < 3; i++) await new Promise(resolve => setTimeout(resolve, 0))
 }
 
-describe('PosSnackBar', () => {
-  let snackBar: MatSnackBar
-
-  /** Was gerade angezeigt wird — `null`, wenn keine Snackbar offen ist. */
-  const shown = (): string | null => snackBar._openedSnackBarRef?.instance?.data?.message ?? null
-
-  beforeEach(() => {
-    TestBed.configureTestingModule({
-      providers: [providePosSnackBar(), { provide: MATERIAL_ANIMATIONS, useValue: { animationsDisabled: true } }],
-    })
-    snackBar = TestBed.inject(MatSnackBar)
+/** Instanz je Test (testing.md §10): Ein Nachzuegler-Microtask erreicht so nie den naechsten Test. */
+function setup() {
+  TestBed.configureTestingModule({
+    providers: [providePosSnackBar(), { provide: MATERIAL_ANIMATIONS, useValue: { animationsDisabled: true } }],
   })
-
-  afterEach(async () => {
+  const snackBar = TestBed.inject(MatSnackBar)
+  onTestFinished(async () => {
     snackBar.ngOnDestroy()
     await settle()
   })
+  /** Was gerade angezeigt wird — `null`, wenn keine Snackbar offen ist. */
+  const shown = (): string | null => snackBar._openedSnackBarRef?.instance?.data?.message ?? null
+  return { snackBar, shown }
+}
 
+describe('PosSnackBar', () => {
   it('ist app-weit unter dem MatSnackBar-Token bereitgestellt', () => {
+    const { snackBar } = setup()
     expect(snackBar).toBeInstanceOf(PosSnackBar)
   })
 
   it('eine Kurzmeldung verdraengt die quittierpflichtige, danach kehrt diese zurueck', async () => {
+    const { snackBar, shown } = setup()
     snackBar.open('Rabattcode nicht eingelöst', 'OK')
     await settle()
     const transient = snackBar.open('Bestellungen aktualisiert', 'OK', { duration: 5000 })
@@ -52,6 +52,7 @@ describe('PosSnackBar', () => {
   })
 
   it('kehrt auch nach echtem Ablauf einer duration zurueck', async () => {
+    const { snackBar, shown } = setup()
     snackBar.open('Rabattcode nicht eingelöst', 'OK')
     snackBar.open('Bestellungen aktualisiert', 'OK', { duration: 50 })
     await settle()
@@ -66,6 +67,7 @@ describe('PosSnackBar', () => {
   })
 
   it('dismiss() schliesst sie nicht endgueltig', async () => {
+    const { snackBar, shown } = setup()
     // Genau der Weg aus #270: `#invalidateUndo` rief `matSnackBar.dismiss()`.
     snackBar.open('Rabattcode nicht eingelöst', 'OK')
     await settle()
@@ -77,6 +79,7 @@ describe('PosSnackBar', () => {
   })
 
   it('erst der Tipp auf ihre Aktion beendet sie', async () => {
+    const { snackBar, shown } = setup()
     const sticky = snackBar.open('Rabattcode nicht eingelöst', 'OK')
     await settle()
 
@@ -93,6 +96,7 @@ describe('PosSnackBar', () => {
   })
 
   it('auch eine zurueckgekehrte endet mit dem Tipp auf ihre Aktion', async () => {
+    const { snackBar, shown } = setup()
     snackBar.open('Rabattcode nicht eingelöst', 'OK')
     snackBar.dismiss()
     await settle()
@@ -106,6 +110,7 @@ describe('PosSnackBar', () => {
   })
 
   it('ein „Rueckgaengig" funktioniert, waehrend sie wartet', async () => {
+    const { snackBar, shown } = setup()
     snackBar.open('Rabattcode nicht eingelöst', 'OK')
     await settle()
     const undo = snackBar.open('Menge: 2× Brötchen', 'Rückgängig', { duration: 6000 })
@@ -121,6 +126,7 @@ describe('PosSnackBar', () => {
   })
 
   it('mehrere Kurzmeldungen hintereinander: sie kehrt erst nach der letzten zurueck', async () => {
+    const { snackBar, shown } = setup()
     snackBar.open('Rabattcode nicht eingelöst', 'OK')
     const first = snackBar.open('Menge: 2× Brötchen', 'Rückgängig', { duration: 6000 })
     await settle()
@@ -137,6 +143,7 @@ describe('PosSnackBar', () => {
   })
 
   it('ohne quittierpflichtige Meldung bleibt nach einer Kurzmeldung nichts stehen', async () => {
+    const { snackBar, shown } = setup()
     const transient = snackBar.open('Bestellungen aktualisiert', 'OK', { duration: 5000 })
     await settle()
     transient.dismiss()
@@ -146,6 +153,7 @@ describe('PosSnackBar', () => {
   })
 
   it('ein explizites duration: undefined zaehlt wie in Material als ohne Ablaufzeit', async () => {
+    const { snackBar, shown } = setup()
     snackBar.open('Rabattcode nicht eingelöst', 'OK', { duration: undefined })
     await settle()
     snackBar.dismiss()
@@ -155,6 +163,7 @@ describe('PosSnackBar', () => {
   })
 
   it('ohne Aktion ist eine Meldung nicht quittierpflichtig', async () => {
+    const { snackBar, shown } = setup()
     // Ohne Aktion gaebe es keinen Weg, sie je zu beenden.
     snackBar.open('Hinweis ohne Knopf')
     await settle()
@@ -165,6 +174,7 @@ describe('PosSnackBar', () => {
   })
 
   it('eine neue quittierpflichtige ersetzt eine aeltere offene', async () => {
+    const { snackBar, shown } = setup()
     snackBar.open('Rabattcode nicht eingelöst', 'OK')
     snackBar.open('Zweite Meldung', 'OK')
     await settle()

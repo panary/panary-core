@@ -17,7 +17,7 @@ import {
 } from '@angular/core'
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
 import { MatMenuModule } from '@angular/material/menu'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { MatSnackBar, MatSnackBarRef, TextOnlySnackBar } from '@angular/material/snack-bar'
 import { FormsModule } from '@angular/forms'
 import { CommonModule } from '@angular/common'
 import { animate, style, transition, trigger } from '@angular/animations'
@@ -165,6 +165,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    * geleert, neueres Angebot) und der Klick tut nichts.
    */
   #undoSerial = 0
+  /** Die Snackbar des letzten „Rückgängig"-Angebots — `#invalidateUndo` schließt nur sie. */
+  #undoRef: MatSnackBarRef<TextOnlySnackBar> | null = null
   private _articlesToCombine: Array<number> = []
   private _isBlocked = false
   private _customer: CorporateCustomer | undefined = undefined
@@ -1908,6 +1910,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   #offerUndo(message: string, restore: () => void): void {
     const serial = ++this.#undoSerial
     const ref = this.matSnackBar.open(message, 'Rückgängig', { duration: 6000 })
+    this.#undoRef = ref
     ref.onAction().subscribe(() => {
       if (serial !== this.#undoSerial) return
       this.#undoSerial++
@@ -1917,10 +1920,17 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     })
   }
 
-  /** Lässt ein offenes „Rückgängig" verfallen — die Bestellung ist weg oder abgeschickt. */
+  /**
+   * Lässt ein offenes „Rückgängig" verfallen — die Bestellung ist weg oder abgeschickt.
+   *
+   * Schließt nur die eigene Undo-Snackbar, nie „die gerade offene": `placeOrder` meldet
+   * einen gescheiterten Rabattcode unmittelbar vor `deleteOrder()`, und ein
+   * `matSnackBar.dismiss()` hier schloss genau diese Meldung wieder (core#531).
+   */
   #invalidateUndo(): void {
     this.#undoSerial++
-    this.matSnackBar.dismiss()
+    this.#undoRef?.dismiss()
+    this.#undoRef = null
   }
 
   increaseExtra(article: PosProductButton, topic: string | undefined = undefined) {

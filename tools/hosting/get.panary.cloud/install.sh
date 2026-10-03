@@ -74,6 +74,20 @@ if ! docker compose version &> /dev/null; then
 fi
 echo -e "${GREEN}✓${NC} Docker Compose gefunden: $(docker compose version --short)"
 
+# openssl erzeugt weiter unten das FEATHERS_SECRET, ohne das der Edge seit
+# panary/panary-core#323 nicht mehr startet. Fehlt es, stuerbe das Skript dort
+# unter `set -e` mit einem nackten "command not found" — nach dem Anlegen des
+# Installationsverzeichnisses. Bewusst kein Rueckfall auf /dev/urandom: ein
+# zweiter Erzeugungsweg waere ein weiterer, nie praktisch gepruefter Zweig
+# (panary/panary-core#519).
+if ! command -v openssl &> /dev/null; then
+  echo -e "${RED}openssl ist nicht installiert.${NC}"
+  echo "Es wird fuer das JWT-Secret des Edge benoetigt."
+  echo "Installation: apt-get install -y openssl"
+  exit 1
+fi
+echo -e "${GREEN}✓${NC} openssl gefunden: $(openssl version)"
+
 # --- Inline-`configs`-Faehigkeit -----------------------------------------------
 # Die mosquitto.conf wird als Inline-Config in die docker-compose.yml geschrieben
 # (`configs: content:`), damit die Installation ohne zweites File auskommt. Das

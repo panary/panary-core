@@ -25,9 +25,10 @@
 #   3. Edge-Docker / POS-Windows-Release — die Workflows haengen ihre
 #      `packages:`/`onlyBuiltDependencies:`-Bloecke an DIESE Datei an
 #      (frueher: ueberschrieben, wodurch die Haertung still verloren ging).
-#      Beim Anpassen synchron halten. build-edge-docker.yml haengt die Karenz
-#      fuer seinen Lockfile-Schritt zusaetzlich per
-#      `--config.minimumReleaseAge=0` aus — Begruendung dort im Kommentar.
+#      Beim Anpassen synchron halten. Fuer das Edge-Image haengt
+#      tools/docker/prepare-edge-context.sh an (genutzt von build-edge-docker.yml
+#      und edge-image-check.yml) und setzt die Karenz fuer seinen Lockfile-Schritt
+#      zusaetzlich per `--config.minimumReleaseAge=0` aus — Begruendung dort.
 #
 # `pnpm.overrides` und `pnpm.onlyBuiltDependencies` bleiben bewusst in der
 # package.json: Dependabot pflegt die Override-Liste dort, und ein Umzug

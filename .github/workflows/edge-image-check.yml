@@ -1,0 +1,95 @@
+name: Edge-Image-Pruefung
+
+# Baut das Edge-Image im PR, wenn der Docker-Build-Kontext beruehrt ist —
+# gebaut, nicht gepusht (panary/panary-core#497). Anlass: #485 entfernte eine
+# Datei, die Dockerfile.edge braucht; die PR-CI war gruen, weil sie das Image nie
+# baut. Aufgefallen ist es nur durch einen zufaelligen Dispatch, sonst erst beim
+# naechsten v*-Release, mit Lib-Publish ohne Image.
+#
+# Eigener Workflow statt Job in ci.yml: Nur so traegt der native `paths:`-Filter,
+# ohne Fremd-Action fuer die Pfadauswahl. Kein Required Check im Ruleset — ein
+# PR ohne passende Pfade wartet deshalb auf nichts.
+on:
+  pull_request:
+    # Was der normale CI-Lauf NICHT sieht: Dateien, die das Image anders
+    # aufloest als der Checkout (eigener Workspace-Nachbau, neu generierte
+    # Lockfile, Teil-COPY im Dockerfile). Gemessen an 80 gemergten PRs vor
+    # #497 traf der Filter 34, fast alle Dependency-Bumps — genau die, bei
+    # denen Lockfile-Nachbau und native Module im Image brechen koennen.
+    paths:
+      - 'tools/docker/**'
+      - 'tools/vitest/**'
+      - '**/vitest.config.*'
+      - 'nx.json'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'tsconfig.json'
+      - 'tsconfig.base.json'
+      - 'postcss.config.json'
+      - '.gitignore'
+      - 'apps/api-edge/package.json'
+      - 'apps/api-edge/project.json'
+      - 'apps/api-edge/tsconfig*.json'
+      - 'apps/admin-client/project.json'
+      - 'apps/admin-client/tsconfig*.json'
+      - 'apps/setup-client/project.json'
+      - 'apps/setup-client/tsconfig*.json'
+      - 'libs/**/package.json'
+      - 'libs/**/project.json'
+      - 'packages/**/package.json'
+      - '.github/workflows/build-edge-docker.yml'
+      - '.github/workflows/edge-image-check.yml'
+
+concurrency:
+  group: edge-image-check-${{ github.head_ref }}
+  cancel-in-progress: true
+
+# Nur lesen: kein Push, keine Signatur, kein Registry-Login.
+permissions:
+  contents: read
+
+jobs:
+  build-edge-image:
+    runs-on: ubuntu-latest
+    # Release-Lauf (inkl. Signatur + Stueckliste) braucht gemessen 6-8 min;
+    # derselbe Cap wie build-edge-docker.yml.
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - name: Setup Node.js (fuer pnpm install --lockfile-only)
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      # Derselbe Nachbau wie im Release — sonst prueft der PR einen Kontext,
+      # den es dort nicht gibt.
+      - name: Workspace-Files fuer Docker-Kontext materialisieren
+        run: bash tools/docker/prepare-edge-context.sh
+
+      # Ganzes Image (Build- UND Runtime-Stage), nicht nur `--target build`:
+      # Die Runtime-Stage ist ein paar COPY --from und ein apt-get, kostet also
+      # Sekunden, faengt aber einen fehlenden dist-Pfad ab.
+      # Nur cache-from: Ein PR-Lauf schreibt keinen GHA-Cache (der waere nur fuer
+      # denselben PR lesbar und verdraengte die Release-Eintraege aus dem 10-GB-Kontingent).
+      - name: Edge-Image bauen (ohne Push)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          file: tools/docker/Dockerfile.edge
+          platforms: linux/amd64
+          push: false
+          build-args: |
+            PANARY_VERSION=pr-check
+          cache-from: type=gha

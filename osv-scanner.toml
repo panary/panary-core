@@ -18,12 +18,23 @@
 # weiter, damit ein Eintrag fuer jedes gescannte Lockfile gilt — auch fuer die
 # Temp-Kopie aus HEAD, die im Haupt-Checkout gescannt wird. `pnpm audit` kennt
 # das Advisory unten nicht, ein Gegenstueck dort entfaellt.
-# Verlauf: docs/security/osv-befund-2026-10-02-node-forge.md.
+# Verlauf: docs/security/osv-befund-2026-10-02-node-forge.md,
+# docs/security/osv-befund-2026-10-03-braces-http-cache-semantics.md.
 
 [[IgnoredVulns]]
 id = "GHSA-86w9-cpqp-85rv"  # node-forge: RSA-PKCS#1-v1.5-Signaturpruefung akzeptiert verschachtelte DigestAlgorithm-Elemente (CVSS 8.7)
 ignoreUntil = 2026-11-02
 reason = "Kein Fix: betroffen ist <= 1.4.0, und 1.4.0 ist die neueste node-forge-Version. Nur Dev-Abhaengigkeit (@nx/angular -> @nx/rspack -> @rspack/dev-server@1.2.1 -> selfsigned@2.4.1), nicht im Edge-Image (pnpm prune --prod; pnpm why node-forge --prod ist leer). selfsigned erzeugt nur ein lokales Dev-Server-Zertifikat; die einzige Signaturpruefung (verifyCertificateChain) gilt dem eben selbst erzeugten Zertifikat, nie fremdem Input. Override selfsigned ^5 scheidet aus: v5 ist async-only, @rspack/dev-server ruft generate() synchron. Eingetragen 2026-10-02 (panary/panary-core#475, Pendant panary/panary-cloud#835); bei Fix-Version per Override heben und Eintrag entfernen."
+
+[[IgnoredVulns]]
+id = "GHSA-vfj7-8cjw-p6xm"  # braces: Stack-Exhaustion-DoS durch tief verschachtelte Muster (CVSS 8.7)
+ignoreUntil = 2026-11-03
+reason = "Kein Fix: betroffen ist <= 3.0.3, und 3.0.3 ist die neueste braces-Version. Nur Dev-Abhaengigkeit (chokidar/micromatch unter @nx/rspack, @nx/webpack, nodemon, shelljs), nicht im Edge-Image (pnpm why braces --prod ist leer, scan-advisories im Dispatch 37107902781 gruen). Die Muster stammen aus der eigenen Werkzeug-Konfiguration (Watcher, Globs), nie aus fremdem Input. Eingetragen 2026-10-03 (panary/panary-core#499, Pendant panary/panary-cloud#912); bei Fix-Version per Override heben und Eintrag entfernen."
+
+[[IgnoredVulns]]
+id = "GHSA-ch52-4w7c-c8xp"  # http-cache-semantics: max-stale gibt gecachte Antworten anderer Nutzer preis (CVSS 8.7)
+ignoreUntil = 2026-11-03
+reason = "Kein Fix: betroffen ist <= 4.2.0, und 4.2.0 ist die neueste http-cache-semantics-Version. Nur Dev-Abhaengigkeit (make-fetch-happen unter pacote/@sigstore/sign/tuf-js, also Angular-CLI- und Sigstore-Paketabruf), nicht im Edge-Image (pnpm why http-cache-semantics --prod ist leer, scan-advisories im Dispatch 37107902781 gruen). make-fetch-happen cacht lokal fuer einen Nutzer; ein von mehreren Nutzern geteilter HTTP-Cache, den das Advisory voraussetzt, kommt nicht vor. Eingetragen 2026-10-03 (panary/panary-core#499, Pendant panary/panary-cloud#912); bei Fix-Version per Override heben und Eintrag entfernen."
 
 # Zuletzt entfernt am 2026-09-26: GHSA-5p2g-fcmc-qvqq (JXL/HEIF) und
 # GHSA-w3rx-r6r6-pgpr (ICNS) zu image-size. Seit dem 2026-09-24 erfassen beide

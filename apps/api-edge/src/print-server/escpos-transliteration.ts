@@ -44,17 +44,17 @@ export const ESCPOS_TRANSLITERATION: Readonly<Record<string, string>> = {
   '©': '(C)', // ©
   '®': '(R)', // ®
   // Leerraum
-  ' ': ' ', // geschuetztes Leerzeichen
-  ' ': ' ', // schmales geschuetztes Leerzeichen
-  ' ': ' ', // schmales Leerzeichen
-  ' ': ' ', // Halbgeviert-Leerzeichen
-  ' ': ' ', // Geviert-Leerzeichen
+  '\u00a0': ' ', // geschuetztes Leerzeichen
+  '\u202f': ' ', // schmales geschuetztes Leerzeichen
+  '\u2009': ' ', // schmales Leerzeichen
+  '\u2002': ' ', // Halbgeviert-Leerzeichen
+  '\u2003': ' ', // Geviert-Leerzeichen
   // Unsichtbares
-  '­': '', // weiches Trennzeichen
-  '​': '', // Nullbreite-Leerzeichen
-  '‌': '',
-  '‍': '',
-  '﻿': '',
+  '\u00ad': '', // weiches Trennzeichen
+  '\u200b': '', // Nullbreite-Leerzeichen
+  '\u200c': '',
+  '\u200d': '',
+  '\ufeff': '',
 }
 
 /** Zeichen, das keine Codepage und keine Tabelle traegt, nach #517 als `?` gedruckt. */

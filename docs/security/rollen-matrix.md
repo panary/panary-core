@@ -130,8 +130,8 @@ Grenzen der Tabelle:
 | `stock-levels` | – | – | – | R | R | R | R | – | – | – | – |
 | `invoices` | – | – | – | M | RU | M | – | – | – | – | – |
 | `businessdays` | – | – | – | M | M | M | R | M | – | – | – |
-| `business-day-reports` | – | – | – | M | M | M | R | – | – | – | – |
-| `business-day-report-events` | – | – | – | R | R | R | R | – | – | – | – |
+| `business-day-reports` | – | – | – | M | M | M | – | – | – | – | – |
+| `business-day-report-events` | – | – | – | R | R | R | – | – | – | – | – |
 | `business-day-overdue-notice` | – | – | – | R | R | R | – | – | – | – | – |
 | `cash-sessions` | – | – | – | M | M | M | CRU | CRU | – | – | – |
 | `meal-settlements` | – | – | – | CR | CR | CR | – | – | – | – | – |

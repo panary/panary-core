@@ -312,3 +312,34 @@ describe('RolePermissions — BUSINESS_DAY_OVERDUE_NOTICES', () => {
     expect(roleActions(UserSystemRole.TENANT_STAFF, AppResource.BUSINESS_DAY_OVERDUE_NOTICES)).toEqual([])
   })
 })
+
+/**
+ * Tagesabschluss-Kennzahlen (core#501): Tagesumsatz, Netto, Personalquote und
+ * Wareneinsatz sind Leitungsinformation. STAFF liest sie nicht mehr ueber die
+ * Matrix, nur noch ueber einen ausdruecklichen Grant (Bundle `zeit-auswertung`).
+ * Der Geschaeftstag-Status und die Kassen-Sessions bleiben, der Kassenbetrieb
+ * am Edge braucht sie.
+ */
+describe('RolePermissions — BUSINESS_DAY_REPORTS fuer TENANT_STAFF', () => {
+  it('TENANT_STAFF hat keinerlei Zugriff auf Tagesabschluss-Berichte und deren Ereignisse', () => {
+    expect(roleActions(UserSystemRole.TENANT_STAFF, AppResource.BUSINESS_DAY_REPORTS)).toEqual([])
+    expect(roleActions(UserSystemRole.TENANT_STAFF, AppResource.BUSINESS_DAY_REPORT_EVENTS)).toEqual([])
+  })
+
+  it('Owner, Manager und Techniker lesen die Berichte weiterhin', () => {
+    for (const role of [UserSystemRole.TENANT_OWNER, UserSystemRole.TENANT_MANAGER, UserSystemRole.TENANT_TECHNICIAN]) {
+      expect(roleCan(role, AppResource.BUSINESS_DAY_REPORTS, AppAction.READ), role).toBe(true)
+      expect(roleCan(role, AppResource.BUSINESS_DAY_REPORT_EVENTS, AppAction.READ), role).toBe(true)
+    }
+  })
+
+  it('TENANT_STAFF behaelt Geschaeftstag-Status, Kassen-Sessions und Bestellungen', () => {
+    expect(roleActions(UserSystemRole.TENANT_STAFF, AppResource.BUSINESS_DAYS)).toEqual([AppAction.READ])
+    expect(roleActions(UserSystemRole.TENANT_STAFF, AppResource.CASH_SESSIONS).sort()).toEqual(
+      [AppAction.CREATE, AppAction.READ, AppAction.UPDATE].sort(),
+    )
+    expect(roleActions(UserSystemRole.TENANT_STAFF, AppResource.ORDERS).sort()).toEqual(
+      [AppAction.CREATE, AppAction.READ].sort(),
+    )
+  })
+})

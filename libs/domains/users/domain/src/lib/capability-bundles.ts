@@ -61,15 +61,21 @@ export const CapabilityBundles: readonly CapabilityBundle[] = [
     ],
   },
   {
-    id: 'zeit-auswertung',
+    id: 'zeiterfassung',
     group: 'personal',
-    label: 'Zeiterfassung & Auswertung',
-    description: 'Arbeitszeiten korrigieren und Tages-/Zeitauswertungen einsehen (Backoffice).',
-    grants: [
-      g(AppResource.WORKING_TIMES, AppAction.UPDATE),
-      g(AppResource.WORKING_TIME_REPORTS, AppAction.READ),
-      g(AppResource.BUSINESS_DAY_REPORTS, AppAction.READ),
-    ],
+    label: 'Zeiterfassung korrigieren',
+    description: 'Erfasste Arbeitszeiten nachträglich korrigieren (Backoffice).',
+    grants: [g(AppResource.WORKING_TIMES, AppAction.UPDATE)],
+  },
+  // Ersetzt mit `zeiterfassung` das frühere Paket `zeit-auswertung` (core#516). Dessen Grant
+  // `working-time-reports:read` besaß keine Rolle, deshalb bot der Dialog das Paket niemandem an.
+  // Seit core#501 ist dies für STAFF der einzige Weg zu den Tagesabschluss-Berichten.
+  {
+    id: 'tagesabschluss-kennzahlen',
+    group: 'controlling',
+    label: 'Tagesabschluss-Kennzahlen lesen',
+    description: 'Tagesabschluss-Berichte mit Umsatz, Netto, Personalquote und Wareneinsatz einsehen.',
+    grants: [g(AppResource.BUSINESS_DAY_REPORTS, AppAction.READ)],
   },
 ]
 

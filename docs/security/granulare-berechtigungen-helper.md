@@ -79,15 +79,26 @@ bleiben „dumm", Bundles sind reine UI-/Seed-Sache.
 | `wareneingang` | lager | `incoming-goods:manage`, `incoming-goods-extract:create`, `stock-levels:read`, `suppliers:read` |
 | `inventur-bestand` | lager | `inventories:manage`, `inventory-movements:manage`, `write-offs:manage`, `stock-levels:read` |
 | `katalog` | katalog | `products:manage`, `product-groups:manage`, `recipes:manage`, `ingredients:manage`, `pricelists:manage` |
-| `zeit-auswertung` | personal | `working-times:update`, `working-time-reports:read`, `business-day-reports:read` |
+| `zeiterfassung` | personal | `working-times:update` |
+| `tagesabschluss-kennzahlen` | controlling | `business-day-reports:read` |
 
 `expandBundles(ids)` → deduplizierte Grant-Strings (unbekannte IDs ignoriert).
 
 Seit panary/panary-core#501 hat `tenant:staff` aus der Rolle **kein** Leserecht mehr auf
 `business-day-reports` und `business-day-report-events` (Tagesumsatz, Netto, Personalquote und
-Wareneinsatz sind Leitungsinformation). Der Grant `business-day-reports:read` aus
-`zeit-auswertung` ist damit für Mitarbeiter der einzige Weg zu den Tagesabschluss-Berichten,
-vorher war er für sie wirkungslos. `business-day-report-events` enthält das Paket nicht.
+Wareneinsatz sind Leitungsinformation). Das Paket
+`tagesabschluss-kennzahlen` ist damit für Mitarbeiter der einzige Weg zu den
+Tagesabschluss-Berichten. `business-day-report-events` enthält es bewusst nicht.
+
+**Jeder Grant eines Pakets muss einer Rolle gehören, mindestens dem Owner.** Der Dialog in der
+Cloud bietet nur Pakete an, deren Grants der eingeloggte Admin selbst besitzt
+(`grantableBundles`), und der Escalation-Guard (§4) lehnt aus demselben Grund ab. Ein Grant, den
+keine Rolle hat, macht das ganze Paket für jeden unvergebbar. Genau so lag bis panary/panary-core#516
+das frühere Paket `zeit-auswertung` brach: Es enthielt `working-time-reports:read`, die Matrix
+kennt dort aber nur `CREATE` (PDF-Export, den `denyStaffRole` STAFF ohnehin sperrt). Es wurde in
+`zeiterfassung` und `tagesabschluss-kennzahlen` geteilt, der Report-Grant entfiel. Die Spec
+„ein Owner besitzt jeden Grant jedes Bundles selbst“ in `effective-permissions.spec.ts` hält das
+fest. Auf User-Docs liegen expandierte Grants, keine Paket-IDs; eine Migration ist nicht nötig.
 
 ## 4. Grant-Assignment-Policy (Escalation-Guard, geteilt)
 

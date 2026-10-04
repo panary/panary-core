@@ -118,7 +118,12 @@ nur Wartezeit.
   (`pnpm install --lockfile-only`). Die Prüfung installiert dagegen vom committeten Lockfile
   aus (`--no-frozen-lockfile` wie `ci.yml`, nur `Cargo.lock` ist per `--locked` fixiert). Seit
   #433 halten Tilde-Ranges die Tauri-Plugins auf der Minor-Version der Crate. Eine neue
-  Tauri-Abhängigkeit mit Caret-Range öffnet die Lücke wieder.
+  Tauri-Abhängigkeit mit Caret-Range öffnet die Lücke wieder. Seit #561 gilt das auch für das
+  transitive `@tauri-apps/api`: Es kommt über `@tauri-apps/plugin-updater` ohne Obergrenze und
+  löste bei der Neuauflösung auf 2.12 auf, während `Cargo.lock` `tauri` 2.11 hält. Ein Override
+  `~2.11.1` in `pnpm.overrides` hält es auf der Minor-Version der Crate. Ein Tauri-Minor-Upgrade
+  hebt Crate, Plugins und diesen Override im selben PR. Die lokale Neuauflösungs-Probe vor jedem
+  `pos-v*` bleibt Pflicht, sie hat beide Fälle gefunden.
 - **Signierung, Updater-`latest.json`, Stückliste, Installation auf dem Gerät.** Das bleibt
   Sache von `release-pos.yml` und des Geräts.
 - **Verhalten.** Kompiliert ist nicht geprüft: LAN-Discovery (mDNS), MQTT-Druck und Updater

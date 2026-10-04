@@ -158,7 +158,8 @@ export class DashboardComponent implements OnInit {
 
   // KPIs
   productivity = '0' // Orders/Hour
-  avgWaitingTime = '0 min'
+  // Nur die Zahl: Die Einheit steht im Label, "119 min" brach ab lg in der schmalen Kachel um (core#577)
+  avgWaitingMinutes = 0
 
   // Configuration
   quickActions: QuickAction[] = [
@@ -294,7 +295,7 @@ export class DashboardComponent implements OnInit {
     // React to Order Changes — buildOccupancyChartData()/updateKPIs() lesen
     // this.orders(), daher re-läuft der Effect bei jeder Order-Änderung.
     // Beide schreiben aber nur Plain-Properties (chartOptions, productivity,
-    // avgWaitingTime); ohne markForCheck rendert die View die neuen Daten nicht
+    // avgWaitingMinutes); ohne markForCheck rendert die View die neuen Daten nicht
     // (zoneless) — das Diagramm bliebe bis zum Full-Reload eingefroren.
     effect(() => {
       this.buildOccupancyChartData()
@@ -615,7 +616,7 @@ export class DashboardComponent implements OnInit {
     const orders = this.orders()
     if (!orders.length) {
       this.productivity = '0'
-      this.avgWaitingTime = '0 min'
+      this.avgWaitingMinutes = 0
       return
     }
 
@@ -632,7 +633,7 @@ export class DashboardComponent implements OnInit {
     // Avg Waiting Time (for Active Orders)
     const activeOrders = orders.filter(o => o.status !== OrderStatus.COMPLETED && o.status !== OrderStatus.ABORTED)
     if (activeOrders.length === 0) {
-      this.avgWaitingTime = '0 min'
+      this.avgWaitingMinutes = 0
     } else {
       let totalWait = 0
       activeOrders.forEach(o => {
@@ -640,7 +641,7 @@ export class DashboardComponent implements OnInit {
         totalWait += new Date().getTime() - created
       })
       const avgMs = totalWait / activeOrders.length
-      this.avgWaitingTime = Math.round(avgMs / 60000) + ' min'
+      this.avgWaitingMinutes = Math.round(avgMs / 60000)
     }
   }
 

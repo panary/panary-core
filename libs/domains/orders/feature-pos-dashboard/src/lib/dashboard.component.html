@@ -204,11 +204,13 @@
   </header>
 
   <!-- Main Content -->
-  <!-- min-h-0 erst ab lg: Darunter stapeln sich die Spalten. Mit min-h-0 quetschte das Grid
-       sie auf die Resthöhe, und das Diagramm lief unter den Schnellzugriff (core#565). -->
-  <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:min-h-0">
+  <!-- Bewusst ohne min-h-0: Grid und linke Spalte dürfen nicht unter KPI-Reihe + Diagramm-Mindesthöhe
+       schrumpfen, sonst läuft das Diagramm aus der Spalte (core#565 gestapelt, core#575 ab lg bei
+       wenig Höhe). Der Schnellzugriff hat overflow-hidden und scrollt intern; bei zu wenig Höhe
+       scrollt die Seite. -->
+  <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4">
     <!-- Left Column: KPIs & Charts -->
-    <div class="lg:col-span-8 flex flex-col gap-4 h-full lg:min-h-0">
+    <div class="lg:col-span-8 flex flex-col gap-4 h-full">
       <!-- 4 KPIs Grid -->
       <div class="grid grid-cols-2 md:grid-cols-5 gap-4 flex-none">
         <!-- KPI 1 -->

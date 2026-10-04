@@ -382,3 +382,79 @@ describe('orders.split — Summenprobe ueber den ganzen Pfad', () => {
     expect(rest.taxes.map(t => t.taxRate)).toEqual([7])
   })
 })
+
+describe('orders.split — Teilerfolg (#544)', () => {
+  const SPLIT = { orderId: 'order-quelle', lineItems: [{ lineItemRowId: 'l2' }] }
+
+  it('storniert das Ziel, wenn die Gegenbuchung der Quelle scheitert — eigener Code, keine Referenz, kein Journal', async () => {
+    const h = makeApp()
+    h.orderPatch.mockRejectedValueOnce(new Error('SQLITE_BUSY'))
+
+    const error = await call(h.app, SPLIT).catch(e => e)
+
+    expect(error.data).toEqual(expect.objectContaining({ code: OrderSplitErrorCode.ROLLED_BACK }))
+    const targetId = h.orderCreate.mock.calls[0][0]._id
+    expect(error.data.targetOrderId).toBe(targetId)
+    // Zweiter Patch = Storno des ZIELS, nicht der Quelle; intern, ohne Split-Freigabe.
+    expect(h.orderPatch).toHaveBeenCalledTimes(2)
+    const [abortId, abortData, abortParams] = h.orderPatch.mock.calls[1]
+    expect(abortId).toBe(targetId)
+    expect(abortData).toEqual({ status: OrderStatus.ABORTED })
+    expect(abortParams.provider).toBeUndefined()
+    expect(abortParams.orderSplit).toBeUndefined()
+    // Kein Erfolg melden, wo keiner war.
+    expect(h.referenceCreate).not.toHaveBeenCalled()
+    expect(h.interactionCreate).not.toHaveBeenCalled()
+  })
+
+  it('meldet target-left-open mit der Ziel-ID, wenn auch der Storno scheitert — nie als wiederholbaren Fehler', async () => {
+    const h = makeApp()
+    h.orderPatch.mockRejectedValueOnce(new Error('SQLITE_BUSY')).mockRejectedValueOnce(new Error('SQLITE_BUSY'))
+
+    const error = await call(h.app, SPLIT).catch(e => e)
+
+    expect(error.data).toEqual(
+      expect.objectContaining({
+        code: OrderSplitErrorCode.TARGET_LEFT_OPEN,
+        targetOrderId: h.orderCreate.mock.calls[0][0]._id,
+      }),
+    )
+    expect(h.referenceCreate).not.toHaveBeenCalled()
+  })
+
+  it('storniert NICHT, wenn die Quelle die Gegenbuchung trotz Fehler schon traegt — sonst verschwaenden die Positionen', async () => {
+    const h = makeApp()
+    h.orderPatch.mockRejectedValueOnce(new Error('after-Hook wirft nach dem Write'))
+    // Gegenprobe: die zweite Lesung sieht die geschriebene Gegenbuchung auf das Ziel.
+    h.orderGet.mockResolvedValueOnce(h.stored).mockImplementationOnce(async () => ({
+      ...h.stored,
+      splitOff: [{ _id: 's', targetOrderId: h.orderCreate.mock.calls[0][0]._id, lineItemRowId: 'l2', amount: 1 }],
+    }))
+
+    const result = await call(h.app, SPLIT)
+
+    expect(h.orderPatch).toHaveBeenCalledTimes(1)
+    expect(result.sourceOrder.splitOff).toHaveLength(1)
+    expect(result.targetOrder._id).toBe(h.orderCreate.mock.calls[0][0]._id)
+    expect(h.referenceCreate).toHaveBeenCalledTimes(1)
+  })
+
+  it('storniert trotzdem, wenn die Gegenprobe selbst nicht lesen kann', async () => {
+    const h = makeApp()
+    h.orderPatch.mockRejectedValueOnce(new Error('SQLITE_BUSY'))
+    h.orderGet.mockResolvedValueOnce(h.stored).mockRejectedValueOnce(new Error('SQLITE_BUSY'))
+
+    const error = await call(h.app, SPLIT).catch(e => e)
+
+    expect(error.data.code).toBe(OrderSplitErrorCode.ROLLED_BACK)
+    expect(h.orderPatch.mock.calls[1][1]).toEqual({ status: OrderStatus.ABORTED })
+  })
+
+  it('schreibt nichts nach, wenn schon das Anlegen des Ziels scheitert', async () => {
+    const h = makeApp()
+    h.orderCreate.mockRejectedValueOnce(new Error('validation'))
+
+    await expect(call(h.app, SPLIT)).rejects.toThrow('validation')
+    expect(h.orderPatch).not.toHaveBeenCalled()
+  })
+})

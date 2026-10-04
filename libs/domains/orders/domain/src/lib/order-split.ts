@@ -52,6 +52,19 @@ export const OrderSplitErrorCode = {
    * Pruefung liegt im Edge, nicht hier: Sie braucht den Geschaeftstag.
    */
   FISCAL_MODE_UNSUPPORTED: 'order-split/fiscal-mode-unsupported',
+  /**
+   * Die Zielbestellung war angelegt, die Gegenbuchung der Quelle schlug fehl,
+   * und das Ziel wurde wieder storniert (panary/panary-core#544). Es ist nichts
+   * umgebucht; die Quelle traegt ihre Positionen unveraendert.
+   */
+  ROLLED_BACK: 'order-split/rolled-back',
+  /**
+   * Teilerfolg, den der Edge NICHT bereinigen konnte: Ziel angelegt, Quelle nicht
+   * gegengebucht, Storno des Ziels ebenfalls gescheitert. Dieselben Positionen
+   * stehen auf zwei offenen Vorgaengen. Nie wiederholen — ein zweiter Versuch
+   * bucht ein drittes Mal (panary/panary-core#544).
+   */
+  TARGET_LEFT_OPEN: 'order-split/target-left-open',
 } as const
 export type OrderSplitErrorCode = (typeof OrderSplitErrorCode)[keyof typeof OrderSplitErrorCode]
 

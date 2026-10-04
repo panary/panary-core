@@ -1,9 +1,10 @@
-import { BadRequest, Conflict } from '@feathersjs/errors'
+import { BadRequest, Conflict, GeneralError } from '@feathersjs/errors'
 import { OrderReferenceType } from '@panary/order-references/domain'
 import { OrderInteractionType } from '@panary/order-interactions/domain'
 import {
   OrderSplitError,
   OrderSplitErrorCode,
+  OrderStatus,
   PaymentState,
   type Order,
   type OrderSplitSelectionItem,
@@ -152,17 +153,27 @@ export function createOrderSplitMethod(app: Application) {
     // 🚫 KEIN Schreibzugriff auf `lineItems` — die Sperre im `orderPatchResolver`
     // bleibt unangetastet (A5). Was der Vorgang noch traegt, ergibt sich aus
     // `splitOff`; `calculateTaxDetailsOnPatch` rechnet den Snapshot daraufhin neu.
-    const sourceOrder = (await app.service('orders').patch(
-      source._id,
-      {
-        splitOff: [...(source.splitOff ?? []), ...plan.splitOffEntries],
-        appliedDiscounts: plan.sourceAppliedDiscounts,
-        // A14 — der Rest wird aufsummiert, nicht ueberschrieben: Ein zweiter
-        // Split traegt seinen eigenen bei.
-        splitRoundingRemainderCents: (source.splitRoundingRemainderCents ?? 0) + plan.roundingRemainderCents,
-      } as any,
-      { ...params, provider: undefined, orderSplit: true },
-    )) as Order
+    //
+    // 🚨 Feathers rollt nichts zurueck (panary/panary-core#544): Scheitert dieser
+    // Patch, steht das Ziel schon in der Datenbank, und dieselben Positionen
+    // laegen auf zwei offenen Vorgaengen (A13, § 14c UStG). Deshalb faengt
+    // `compensateFailedSourcePatch` den Fehler und storniert das Ziel.
+    let sourceOrder: Order
+    try {
+      sourceOrder = (await app.service('orders').patch(
+        source._id,
+        {
+          splitOff: [...(source.splitOff ?? []), ...plan.splitOffEntries],
+          appliedDiscounts: plan.sourceAppliedDiscounts,
+          // A14 — der Rest wird aufsummiert, nicht ueberschrieben: Ein zweiter
+          // Split traegt seinen eigenen bei.
+          splitRoundingRemainderCents: (source.splitRoundingRemainderCents ?? 0) + plan.roundingRemainderCents,
+        } as any,
+        { ...params, provider: undefined, orderSplit: true },
+      )) as Order
+    } catch (patchError) {
+      sourceOrder = await compensateFailedSourcePatch(app, source, targetOrder, patchError, params)
+    }
 
     await recordSplitReference(app, source, targetOrder)
     await recordSplitJournal(app, source, targetOrder, plan.splitOffEntries, params)
@@ -179,6 +190,93 @@ export function createOrderSplitMethod(app: Application) {
 
     return { sourceOrder, targetOrder }
   }
+}
+
+/**
+ * Kompensation, wenn nach angelegtem Ziel die Gegenbuchung der Quelle scheitert
+ * (panary/panary-core#544). Ein Split ist danach entweder ganz oder gar nicht
+ * passiert — oder, wenn auch das scheitert, als Teilerfolg ERKENNBAR.
+ *
+ * 1. **Gegenprobe:** Ein Fehler aus dem Patch heisst nicht, dass nichts
+ *    geschrieben wurde — ein after-Hook kann nach dem Write werfen. Traegt die
+ *    frisch gelesene Quelle schon die Gegenbuchung auf DIESES Ziel, ist der
+ *    Split vollstaendig, und das Ziel zu stornieren liesse die Positionen von
+ *    beiden Vorgaengen verschwinden. Dann zaehlt er als Erfolg.
+ * 2. **Storno des Ziels** (`ABORTED`), nicht `remove`: Ein Kassenvorgang wird
+ *    nicht geloescht (GoBD), seine Vorgangsnummer bleibt belegt statt einer
+ *    Luecke, und die Outbox schickt einen gewoehnlichen Patch statt eines
+ *    REMOVE an die Cloud. Der Storno legt ueber `recordCancellationReference`
+ *    die Vorgangs-Referenz an. → `order-split/rolled-back`, nichts ist umgebucht.
+ * 3. **Storno scheitert auch:** Teilerfolg, den der Edge nicht aufloesen kann.
+ *    → `order-split/target-left-open` mit der Ziel-ID und ein eigenes Log-Event,
+ *    damit der POS nicht zum Wiederholen einlaedt (ein zweiter Versuch buchte ein
+ *    drittes Mal) und eine Auswertung den Fall findet.
+ *
+ * ⚠️ Der TSE-Start des Ziels wird hier nicht storniert: Der Split ist nur im
+ * Bestellbetrieb freigegeben (`assertOrdersOnlyBusinessDay`), dort gibt es keinen.
+ * Wer den Kassenbetrieb freischaltet (#351), muss diesen Pfad mitpruefen.
+ */
+async function compensateFailedSourcePatch(
+  app: Application,
+  source: Order,
+  target: Order,
+  patchError: unknown,
+  params?: any,
+): Promise<Order> {
+  const internal = { ...params, provider: undefined }
+
+  try {
+    const current = (await app.service('orders').get(source._id, { provider: undefined })) as Order
+    if ((current.splitOff ?? []).some(entry => entry.targetOrderId === target._id)) {
+      logger.warn({
+        message: 'Gegenbuchung zum Split meldete einen Fehler, ist aber geschrieben',
+        event: 'order.split_source_patch_error_after_write',
+        orderId: source._id,
+        targetOrderId: target._id,
+        tenantId: source.tenantId,
+        error: patchError,
+      })
+      return current
+    }
+  } catch {
+    // Nicht lesbar: weiter mit dem Storno. Die Gegenprobe ist eine Absicherung,
+    // ihr Ausfall darf die Kompensation nicht verhindern.
+  }
+
+  const failure = {
+    orderId: source._id,
+    targetOrderId: target._id,
+    targetSequenceNumber: target.dailySequenceNumber,
+    tenantId: source.tenantId,
+  }
+
+  try {
+    await app.service('orders').patch(target._id, { status: OrderStatus.ABORTED } as any, internal)
+  } catch (abortError) {
+    logger.error({
+      message: 'Split-Teilerfolg: Zielbestellung angelegt, Quelle nicht gegengebucht, Storno des Ziels gescheitert',
+      event: 'order.split_target_left_open',
+      ...failure,
+      error: patchError,
+      abortError,
+    })
+    throw new GeneralError(
+      'Die Teilbestellung wurde angelegt, die Ursprungsbestellung aber nicht angepasst. Nicht erneut aufteilen.',
+      { code: OrderSplitErrorCode.TARGET_LEFT_OPEN, targetOrderId: target._id, targetSequenceNumber: target.dailySequenceNumber },
+    )
+  }
+
+  logger.error({
+    message: 'Split zurueckgenommen: Quelle nicht gegengebucht, Zielbestellung storniert',
+    event: 'order.split_rolled_back',
+    ...failure,
+    error: patchError,
+  })
+  throw new GeneralError('Die Bestellung wurde nicht aufgeteilt; die angelegte Teilbestellung ist storniert.', {
+    code: OrderSplitErrorCode.ROLLED_BACK,
+    targetOrderId: target._id,
+    targetSequenceNumber: target.dailySequenceNumber,
+  })
 }
 
 /**

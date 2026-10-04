@@ -246,6 +246,7 @@
     "DELETE_CONFIRM": "Gerät „{{device}}\" wird gelöscht. Der zugehörige API-Schlüssel wird mit entfernt — das Gerät muss danach neu gekoppelt werden.",
     "PAIRING_COPY": "Code kopieren",
     "PAIRING_COPIED": "Kopiert",
+    "PAIRING_COPY_FAILED": "Kopieren nicht möglich — bitte den Code abtippen oder markieren.",
     "ACTION_ERROR": "Aktion fehlgeschlagen.",
     "ASSIGNMENT": "Zuweisung",
     "ASSIGNMENT_TITLE": "Gerät zuweisen",

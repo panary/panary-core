@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core'
+import { Clipboard } from '@angular/cdk/clipboard'
+import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core'
 
 @Component({
   selector: 'app-apikey-created-dialog',
@@ -28,6 +29,12 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
           <code class="text-slate-900 dark:text-white text-sm font-mono break-all select-all">{{ apikey() }}</code>
         </div>
 
+        @if (copyFailed()) {
+          <p class="text-red-600 dark:text-red-400 text-xs mb-3" role="alert">
+            Kopieren nicht möglich — bitte den Schlüssel markieren und manuell kopieren.
+          </p>
+        }
+
         <p class="text-amber-600 dark:text-amber-400 text-xs mb-4 flex items-start gap-1.5">
           <span class="shrink-0 mt-0.5">⚠</span>
           <span>Dieser Schlüssel wird nicht erneut angezeigt. Speichern Sie ihn an einem sicheren Ort.</span>
@@ -35,6 +42,7 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
 
         <div class="flex gap-2">
           <button
+            type="button"
             (click)="copyToClipboard()"
             [class]="
               copied()
@@ -76,14 +84,19 @@ export class ApikeyCreatedDialogComponent {
   apikey = input.required<string>()
   closed = output<void>()
   copied = signal(false)
+  copyFailed = signal(false)
 
-  async copyToClipboard() {
-    try {
-      await navigator.clipboard.writeText(this.apikey())
-      this.copied.set(true)
-      setTimeout(() => this.copied.set(false), 3000)
-    } catch {
-      // Fallback: Selektiere den Text manuell
-    }
+  private clipboard = inject(Clipboard)
+
+  /**
+   * CDK statt `navigator.clipboard`: Auf der Edge (HTTP, LAN-IP) gibt es keinen
+   * Secure Context und damit kein `navigator.clipboard` (panary/panary-core#550).
+   * Scheitert auch der Fallback, bleibt `select-all` am Schluessel als Rueckweg.
+   */
+  copyToClipboard() {
+    const ok = this.clipboard.copy(this.apikey())
+    this.copied.set(ok)
+    this.copyFailed.set(!ok)
+    if (ok) setTimeout(() => this.copied.set(false), 3000)
   }
 }

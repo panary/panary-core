@@ -246,6 +246,7 @@
     "DELETE_CONFIRM": "\"{{device}}\" cihazı silinecek. İlgili API anahtarı da kaldırılır — cihazın sonrasında yeniden eşleştirilmesi gerekir.",
     "PAIRING_COPY": "Kodu kopyala",
     "PAIRING_COPIED": "Kopyalandı",
+    "PAIRING_COPY_FAILED": "Kopyalanamadı — lütfen kodu elle girin veya seçin.",
     "ACTION_ERROR": "İşlem başarısız oldu.",
     "ASSIGNMENT": "Atama",
     "ASSIGNMENT_TITLE": "Cihazı ata",

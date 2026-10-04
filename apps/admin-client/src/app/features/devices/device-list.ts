@@ -1,3 +1,4 @@
+import { Clipboard } from '@angular/cdk/clipboard'
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, inject, OnInit, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { QRCodeComponent } from 'angularx-qrcode'
@@ -231,6 +232,11 @@ interface Device {
                   }
                 </button>
               </div>
+              @if (codeCopyFailed()) {
+                <p class="text-xs text-red-500 -mt-3 mb-5" role="alert">
+                  {{ 'DEVICES.PAIRING_COPY_FAILED' | translate }}
+                </p>
+              }
               @if (qrPayload()) {
                 <div class="flex justify-center mb-5">
                   <div class="bg-white p-3 rounded-lg">
@@ -359,6 +365,7 @@ interface Device {
 })
 export class DeviceListComponent implements OnInit {
   private api = inject(ApiService)
+  private clipboard = inject(Clipboard)
   private cdr = inject(ChangeDetectorRef)
   protected deviceStatus = inject(DeviceStatusService)
 
@@ -374,6 +381,7 @@ export class DeviceListComponent implements OnInit {
   protected pairingCode = signal('')
   protected qrPayload = signal('')
   protected codeCopied = signal(false)
+  protected codeCopyFailed = signal(false)
 
   // Geraete-Zuweisung (PNRY-FEAT-DEVICE-ASSIGNMENT-001). Dieser Admin ist der
   // wichtigere der beiden: Gepairte POS-Geraete leben in der Edge-SQLite und
@@ -595,6 +603,7 @@ export class DeviceListComponent implements OnInit {
     this.qrPayload.set('')
     this.pairingError.set(false)
     this.codeCopied.set(false)
+    this.codeCopyFailed.set(false)
     this.pairingAssignmentDirty.set(false)
     // Waehrend der Dialog offen war, hat sich moeglicherweise ein Geraet
     // gekoppelt. Ohne diesen Refresh musste die Seite manuell neu geladen werden,
@@ -602,14 +611,18 @@ export class DeviceListComponent implements OnInit {
     void this.refreshAll()
   }
 
-  protected async copyCode() {
-    try {
-      await navigator.clipboard.writeText(this.pairingCode())
-      this.codeCopied.set(true)
-      setTimeout(() => this.codeCopied.set(false), 3000)
-    } catch {
-      // Kein Fehler-Banner fuer einen Komfort-Button — der Code ist markierbar.
-    }
+  /**
+   * Kopiert ueber das CDK statt `navigator.clipboard`: Die Edge liefert den
+   * admin-client per HTTP auf der LAN-IP aus, dort ist `navigator.clipboard`
+   * kein Secure Context und `undefined`. `Clipboard.copy()` geht ueber ein
+   * Hilfs-Textarea mit `execCommand('copy')` und meldet das Ergebnis als
+   * boolean (panary/panary-core#550).
+   */
+  protected copyCode() {
+    const ok = this.clipboard.copy(this.pairingCode())
+    this.codeCopied.set(ok)
+    this.codeCopyFailed.set(!ok)
+    if (ok) setTimeout(() => this.codeCopied.set(false), 3000)
   }
 
   protected regeneratePairing() {
@@ -631,6 +644,7 @@ export class DeviceListComponent implements OnInit {
     this.pairingCode.set('')
     this.qrPayload.set('')
     this.codeCopied.set(false)
+    this.codeCopyFailed.set(false)
     try {
       const assigned = this.pairingMode() === DeviceAccessMode.ASSIGNED
       const body: Record<string, unknown> = assigned

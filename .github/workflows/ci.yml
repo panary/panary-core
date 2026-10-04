@@ -309,7 +309,7 @@ jobs:
       # sich EINE SQLite-Datei (vitest.config.mts) — wer seinen Datensatz im
       # beforeAll aufbaut und ueber mehrere Tests patcht, macht die Reihenfolge
       # zum Teil der Annahme. Am 2026-09-13 traf das vier Suiten gleichzeitig,
-      # und der Bestands-Suchbefehl aus code-style.md §10.1 sah keine davon: Er
+      # und der Bestands-Suchbefehl aus testing.md §10.1 sah keine davon: Er
       # filtert auf *.spec.ts (die Integrationstests heissen *.test.ts) und auf
       # Zuweisungen in beforeEach (dort steht eine DB-Zeile). Ohne Gate waechst
       # das still nach.

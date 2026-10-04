@@ -1,6 +1,6 @@
 # Code-Style-Regeln – Panary Core
 
-> §10 (Spec-Isolation, Test-Timeouts, Runner-Konfiguration) ist nach `testing.md` ausgelagert und lädt bei `*.spec.ts`, vitest-Configs und `project.json`; die Abschnittsnummer gilt weiter.
+> §10 (Spec-Isolation, Rot-Nachweis je neuem Test §10.3, Test-Timeouts, Runner-Konfiguration) ist nach `testing.md` ausgelagert und lädt bei `*.spec.ts`, vitest-Configs und `project.json`; die Abschnittsnummer gilt weiter.
 
 ## 1. Formatter (Prettier)
 

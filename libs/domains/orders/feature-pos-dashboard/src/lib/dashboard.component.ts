@@ -16,7 +16,7 @@ import { Router } from '@angular/router'
 import { NGX_ECHARTS_CONFIG, NgxEchartsModule } from 'ngx-echarts'
 import type { EChartsOption } from 'echarts'
 import { ConnectionService, TenantSuspensionService } from '@panary/shared/data-access'
-import { isOrderOpen, Order, OrderService, OrderStatus } from '@panary/orders/data-access'
+import { isOrderOpen, Order, OrderService } from '@panary/orders/data-access'
 import { UserService } from '@panary/users/data-access'
 import { UserSystemRole, type User } from '@panary/users/domain'
 import { AuthService, PosSessionService } from '@panary/auth/data-access'
@@ -629,7 +629,8 @@ export class DashboardComponent implements OnInit {
     this.productivity = (this.todayOrdersCount() / hoursOpen).toFixed(1)
 
     // Avg Waiting Time (for Active Orders)
-    const activeOrders = orders.filter(o => o.status !== OrderStatus.COMPLETED && o.status !== OrderStatus.ABORTED)
+    // Nicht abgeholte (`unclaimed`) warten nicht mehr — sie trieben den Schnitt sonst endlos hoch (#589).
+    const activeOrders = orders.filter(o => isOrderOpen(o.status))
     if (activeOrders.length === 0) {
       this.avgWaitingMinutes = 0
     } else {

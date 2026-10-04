@@ -101,6 +101,9 @@ Kurzübersicht:
 - **Niemals:** `@tailwind base`, `@tailwind components`, `@tailwind utilities`.
 - **Theme:** Konfiguration ausschließlich im `@theme`-Block via CSS-Variablen.
 - **Custom Utilities:** `@utility`-Block verwenden.
+- **🚫 Kein Punkt im Namen einer `[class.…]`-Bindung.** Angular trennt den Namen am Punkt:
+  `[class.translate-y-[calc(100%-4.5rem)]]` bindet `translate-y-[calc(100%-4` — eine Klasse ohne
+  CSS, still wirkungslos (core#572). Arbitrary Values mit Punkt per `[class]="cond ? 'a' : 'b'"`.
 
 ```css
 /* styles.css */

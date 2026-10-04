@@ -29,14 +29,7 @@ interface PosUser {
 }
 
 type LoginStep =
-  | 'loading'
-  | 'reverify'
-  | 'select-user'
-  | 'enter-pin'
-  | 'change-pin'
-  | 'error'
-  | 'assignment-error'
-  | 'repair-confirm'
+  'loading' | 'reverify' | 'select-user' | 'enter-pin' | 'change-pin' | 'error' | 'assignment-error' | 'repair-confirm'
 
 /**
  * Warum die Fehlermaske steht — er entscheidet, welcher Weg zurueck angeboten
@@ -765,17 +758,6 @@ export class LoginComponent implements OnInit {
 
   closeSettings(): void {
     this.showSettings.set(false)
-  }
-
-  resetDevice(): void {
-    if (
-      confirm(
-        'Möchten Sie das Gerät wirklich zurücksetzen? Alle Einstellungen gehen verloren und die Verbindung zum Server wird getrennt.',
-      )
-    ) {
-      this.configService.clearConfig()
-      this.refreshPage()
-    }
   }
 
   private refreshPage(): void {

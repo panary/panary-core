@@ -196,6 +196,12 @@ in `login.component.ts`):
   Gerät liegen. Kein Code löscht sie, und kein Bildschirm zeigt sie.
 - Der alte Geräte-Datensatz bleibt im Admin stehen, mit abgelaufenem Schlüssel. Die
   Neukopplung legt ein neues Gerät an. Aufräumen ist Handarbeit.
+- Ein im laufenden Betrieb deaktiviertes Gerät landet weiterhin im Assistenten: Das Event
+  `device:deactivated` ruft `clearConfig()` serverseitig getrieben auf. Das ist kein Weg am
+  Gerät vorbei, denn ohne Kopplungscode kommt es dort nicht weiter. „Kein Knopf“ heißt
+  also nur, dass die Login-Maske keinen anbietet.
+- Der ungenutzte `resetDevice()` im Login (Kopplung lösen nach einem `confirm()`, nirgends
+  verdrahtet) ist entfernt. Er hätte, später verdrahtet, die Unterscheidung nach Grund umgangen.
 - Bei einem Transportfehler bleibt „Neu einrichten“ ohne Rückfrage. Auch dort bleibt die
   Outbox erhalten, und ein Serverwechsel ist ohne den Knopf nicht machbar.
 

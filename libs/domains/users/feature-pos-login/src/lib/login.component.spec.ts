@@ -123,7 +123,9 @@ function setup(options: SetupOptions = {}) {
 
   const component = runInInjectionContext(injector, () => new LoginComponent())
   // `window.location.reload()` gibt es in der node-Umgebung nicht.
-  const reload = vi.spyOn(component as unknown as { refreshPage: () => void }, 'refreshPage').mockImplementation(() => {})
+  const reload = vi
+    .spyOn(component as unknown as { refreshPage: () => void }, 'refreshPage')
+    .mockImplementation(() => undefined)
 
   return {
     component,

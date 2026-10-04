@@ -209,6 +209,7 @@ Grenzen der Tabelle:
 | `table-links` | M | M | – | M | M | M | R | – | – | – | – |
 | `merch-products` | M | M | – | R | R | R | R | – | – | – | – |
 | `shop-orders` | M | R | – | M | M | R | R | – | – | – | – |
+| `announcements` | M | M | R | R | R | R | R | – | – | – | – |
 
 ### Abilities
 

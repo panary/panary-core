@@ -44,6 +44,10 @@ describe('AppResource — Phase 6 (BRAND + RESERVATION)', () => {
       expect(AppResource.STOREFRONT_PUBLISH_META).toBe('storefront-publish-meta')
     })
 
+    it('ANNOUNCEMENTS bleibt "announcements" (roher Cloud-Service-Pfad, panary/panary-core#601)', () => {
+      expect(AppResource.ANNOUNCEMENTS).toBe('announcements')
+    })
+
     it('STOREFRONT_PREVIEW_TOKEN bleibt "storefront-preview-token"', () => {
       expect(AppResource.STOREFRONT_PREVIEW_TOKEN).toBe('storefront-preview-token')
     })

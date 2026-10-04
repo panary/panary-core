@@ -530,6 +530,12 @@ export const AppResource = {
    *  POS-/Fiskal-Order-Strom getrennt. MANAGE: TENANT_OWNER/MANAGER (eigene
    *  Bestellungen) + PLATFORM_OWNER. READ: TENANT_STAFF + PLATFORM_ADMIN/SUPPORT. */
   SHOP_ORDERS: 'shop-orders',
+  /** Cloud-only: Ankuendigungen der Startseite (panary/panary-cloud#1053), plattformweit
+   *  ohne tenantId. Eigener AppResource, weil authorize() den rohen Service-Pfad prueft;
+   *  ohne Eintrag bekaeme jede Tenant-Rolle 403 (panary/panary-core#601). MANAGE:
+   *  PLATFORM_OWNER/ADMIN. READ: alle Tenant-Rollen + PLATFORM_SUPPORT, die Zielgruppe
+   *  (Rolle, Recht, Flag, Tenant) filtert der Cloud-Service. Geraete: kein Eintrag. */
+  ANNOUNCEMENTS: 'announcements',
 } as const
 
 export type AppResource = (typeof AppResource)[keyof typeof AppResource]

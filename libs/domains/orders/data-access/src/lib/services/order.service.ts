@@ -488,13 +488,20 @@ export class OrderService extends BaseService<Order> {
    *
    * Die Liste aktualisiert sich über die Realtime-Events (`created` fürs Ziel,
    * `patched` für die Quelle); die Antwort trägt beide Bestellungen für den Aufrufer.
+   *
+   * `performedBy` ist der per PIN angemeldete Bediener fürs Journal (#590) — die
+   * Verbindung selbst läuft über Geräte-Auth und kennt keinen Menschen.
    */
-  async split(orderId: string, lineItems: OrderSplitSelectionItem[]): Promise<OrderSplitResponse> {
+  async split(
+    orderId: string,
+    lineItems: OrderSplitSelectionItem[],
+    performedBy?: string | null,
+  ): Promise<OrderSplitResponse> {
     if (this.connectionService.connectionState().status !== 'authenticated') {
       throw new OrderSplitOfflineError()
     }
     const service = this.service as { split: (data: unknown) => Promise<OrderSplitResponse> }
-    return service.split({ orderId, lineItems })
+    return service.split({ orderId, lineItems, ...(performedBy ? { performedBy } : {}) })
   }
 
   private markOrdersAsCompleted(): void {

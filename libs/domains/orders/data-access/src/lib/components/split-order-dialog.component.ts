@@ -21,6 +21,8 @@ import { OrderService, OrderSplitOfflineError } from '../services/order.service'
 /** Dialog-Daten: die zu teilende Bestellung (Stand beim Öffnen). */
 export interface SplitOrderDialogData {
   order: Order
+  /** Per PIN angemeldeter Bediener — landet als `userId` im Split-Journal (#590). */
+  performedBy?: string | null
 }
 
 /** Ergebnis beim erfolgreichen Split — `null`/`undefined` heißt abgebrochen. */
@@ -388,7 +390,7 @@ export class SplitOrderDialogComponent {
     this.submitting.set(true)
     this.#serverErrorKey.set(null)
     try {
-      const result = await this.#orderService.split(order._id, selection)
+      const result = await this.#orderService.split(order._id, selection, this.#data.performedBy)
       this.#dialogRef.close({
         sourceOrderId: result.sourceOrder?._id ?? order._id,
         targetOrderId: result.targetOrder._id,

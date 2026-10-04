@@ -138,10 +138,8 @@ unverändert.
   geschoben und benannt: Das Terminal zeigt `LOGIN.DEVICE_KEY_EXPIRED` statt der generischen
   Ablehnung und nennt den Weg zurück (Kopplungscode im Admin erzeugen,
   `POST /device-pairing/redeem` am Terminal einlösen — dieser Endpunkt braucht keinen gültigen
-  Schlüssel). ⚠️ **Der Weg ist vorhanden, aber vom abgelehnten Login-Screen aus nicht
-  erreichbar**: Solange eine DeviceConfig im localStorage liegt, meldet `isRegistered()` true
-  und der Kopplungs-Assistent erscheint nicht. Das ist eine offene Lücke und ein eigenes Issue
-  wert.
+  Schlüssel). Wie das Terminal dorthin kommt, steht im Nachtrag unten
+  (panary/panary-core#524).
 - **Ein manuell gesetztes `validUntil` auf einem Geräte-Schlüssel gehört ab jetzt der
   Automatik.** Ein verkürztes Datum wird beim nächsten Handshake rotiert und verlängert. Wer
   einen Schlüssel stilllegen will, setzt `active: false` — das ist eindeutig, sofort wirksam und
@@ -160,3 +158,50 @@ sollte". Das ist ein eigener Mechanismus und ein eigenes Issue
 (panary/panary-core#325) — bewusst nicht über den Schlüssel-Ablauf gelöst, weil beide
 Fragen unterschiedliche Antworten brauchen: Der Ablauf schützt gegen ein altes Credential, die
 Re-Verifikation gegen ein entwendetes Gerät.
+
+## Nachtrag 2026-10-04: Neukopplung am abgelehnten Terminal (panary/panary-core#524)
+
+**Korrektur.** Die ursprüngliche Fassung nannte `isRegistered()` als Riegel vor dem
+Kopplungs-Assistenten. Das war die falsche Funktion: `isRegistered()` liest nur
+`location.service.ts`. Den Weg nach `/setup` sperrt der `setupGuard` über `hasConfig()`.
+
+**Auch die Lücke war anders als beschrieben.** Die Fehlermaske des Logins trug seit jeher
+„Neu einrichten" (`goToSetup()`: `clearConfig()` und Neustart). Danach ist `hasConfig()`
+falsch, und der Guard lässt `/setup` durch. Der Weg war also erreichbar, aber ungeschützt. Der
+Knopf erschien bei jedem Fehler, auch bei `DEVICE_REJECTED`, und er fragte nicht nach.
+
+**Entscheidung.** Welchen Weg die Fehlermaske anbietet, hängt am Ablehnungsgrund (`errorKind`
+in `login.component.ts`):
+
+| Grund                          | Angebot                                                    |
+| ------------------------------ | ---------------------------------------------------------- |
+| `DEVICE_KEY_EXPIRED`           | „Gerät neu koppeln“, erst nach einer Rückfrage             |
+| `DEVICE_REJECTED` (`active: false`) | kein Knopf, nur der Hinweis auf den Admin              |
+| Transportfehler / Timeout      | „Neu einrichten“ wie bisher, etwa für einen Serverwechsel   |
+
+- **Autorisiert wird die Neukopplung durch den Kopplungscode.** Eine PIN-Prüfung ist am
+  abgelehnten Terminal unmöglich, weil sie den Server braucht. Der Knopf löst nur die lokale
+  Kopplung. Wer keinen Code aus dem Admin hat, steht danach im Assistenten und kommt nicht
+  weiter.
+- **Die Outbox bleibt erhalten** (`clearConfig()`, nicht `unpair()`). Die Cache-Datenbank ist
+  über Tenant, Filiale und Server-URL benannt (`buildCacheDatabaseName`). Koppelt das Gerät
+  an dieselbe Filiale, öffnet es dieselbe Outbox, und der Replay überträgt sie mit dem neuen
+  Schlüssel. Bei einer anderen Filiale öffnet es eine andere Datenbank, und die alten Einträge
+  wandern nicht in einen fremden Bestand. Die Rückfrage nennt die Zahl offener Einträge und
+  sagt genau das.
+
+**Erkauft.**
+
+- Nach einer Kopplung an eine **andere** Filiale bleibt die alte Outbox unerreichbar auf dem
+  Gerät liegen. Kein Code löscht sie, und kein Bildschirm zeigt sie.
+- Der alte Geräte-Datensatz bleibt im Admin stehen, mit abgelaufenem Schlüssel. Die
+  Neukopplung legt ein neues Gerät an. Aufräumen ist Handarbeit.
+- Ein im laufenden Betrieb deaktiviertes Gerät landet weiterhin im Assistenten: Das Event
+  `device:deactivated` ruft `clearConfig()` serverseitig getrieben auf. Das ist kein Weg am
+  Gerät vorbei, denn ohne Kopplungscode kommt es dort nicht weiter. „Kein Knopf“ heißt
+  also nur, dass die Login-Maske keinen anbietet.
+- Der ungenutzte `resetDevice()` im Login (Kopplung lösen nach einem `confirm()`, nirgends
+  verdrahtet) ist entfernt. Er hätte, später verdrahtet, die Unterscheidung nach Grund umgangen.
+- Bei einem Transportfehler bleibt „Neu einrichten“ ohne Rückfrage. Auch dort bleibt die
+  Outbox erhalten, und ein Serverwechsel ist ohne den Knopf nicht machbar.
+

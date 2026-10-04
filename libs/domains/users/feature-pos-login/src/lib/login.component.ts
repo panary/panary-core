@@ -4,7 +4,7 @@ import { Router } from '@angular/router'
 import { DeviceAssignmentService } from '@panary/devices/data-access'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 // Direct import to avoid circular dependency with Admin's ConnectionService
-import { ConnectionService } from '@panary/shared/data-access'
+import { ConnectionService, OFFLINE_OUTBOX } from '@panary/shared/data-access'
 import { POS_PIN_LENGTH, requiresPosPinChange } from '@panary/users/domain'
 import { TimeClockEvent, TimeClockPanelComponent } from './time-clock-panel/time-clock-panel.component'
 import { PinPadComponent } from './pin-pad/pin-pad.component'
@@ -28,7 +28,20 @@ interface PosUser {
   staffRole?: string
 }
 
-type LoginStep = 'loading' | 'reverify' | 'select-user' | 'enter-pin' | 'change-pin' | 'error' | 'assignment-error'
+type LoginStep =
+  'loading' | 'reverify' | 'select-user' | 'enter-pin' | 'change-pin' | 'error' | 'assignment-error' | 'repair-confirm'
+
+/**
+ * Warum die Fehlermaske steht — er entscheidet, welcher Weg zurueck angeboten
+ * wird (panary/panary-core#524):
+ * - `connection`: Transportfehler/Timeout. „Neu einrichten" bleibt, etwa fuer
+ *   einen Serverwechsel.
+ * - `device-key-expired`: Schluessel jenseits der Karenz (ADR 0042). Einziger
+ *   Weg ist eine neue Kopplung, mit Rueckfrage.
+ * - `device-rejected`: im Admin deaktiviert. Bewusst KEIN Knopf — sonst wird aus
+ *   der Sperre eine Einladung, sie am Geraet zu umgehen.
+ */
+type LoginErrorKind = 'connection' | 'device-key-expired' | 'device-rejected'
 
 /** Wie lange auf eine authentifizierte Verbindung gewartet wird, bevor die Fehlermaske erscheint. */
 const CONNECTION_TIMEOUT_MS = 15_000
@@ -56,6 +69,7 @@ export class LoginComponent implements OnInit {
   readonly updateService = inject(UpdateService)
   readonly appVersion = inject(APP_CONFIG).appVersion
   readonly #translateService = inject(TranslateService)
+  readonly #outbox = inject(OFFLINE_OUTBOX, { optional: true })
   readonly languages = LANGUAGES
   //#endregion
 
@@ -67,6 +81,7 @@ export class LoginComponent implements OnInit {
   readonly pinError: WritableSignal<boolean> = signal(false)
   readonly isLoading: WritableSignal<boolean> = signal(false)
   readonly errorMessage: WritableSignal<string | null> = signal(null)
+  readonly errorKind: WritableSignal<LoginErrorKind> = signal('connection')
 
   // Erzwungener PIN-Wechsel (mustChangePosPin)
   readonly changePinPhase: WritableSignal<ChangePinPhase> = signal('new')
@@ -91,6 +106,13 @@ export class LoginComponent implements OnInit {
 
   // Connection status exposed for template
   readonly connectionState = this.connectionService.connectionState
+
+  /**
+   * Noch nicht uebertragene Offline-Bestellungen — fuer die Rueckfrage vor der
+   * Neukopplung. Lesbar ohne Verbindung: Die Outbox oeffnet beim App-Start aus
+   * der DeviceConfig, nicht beim Handshake.
+   */
+  readonly pendingOutboxCount = computed(() => this.#outbox?.pendingCount() ?? 0)
 
   //#region Geraete-Zuweisung (PNRY-FEAT-DEVICE-ASSIGNMENT-001)
   /**
@@ -202,6 +224,7 @@ export class LoginComponent implements OnInit {
   private async connectAndLoadUsers(): Promise<void> {
     this.currentStep.set('loading')
     this.errorMessage.set(null)
+    this.errorKind.set('connection')
 
     try {
       // Connect to backend with device credentials
@@ -275,7 +298,13 @@ export class LoginComponent implements OnInit {
           // Meldung schickte den Bediener bisher in beiden Faellen an dieselbe
           // Stelle — bei abgelaufenem Schluessel steht das Geraet dort aber auf
           // „aktiv", und die Suche geht von vorn los.
-          fail(rejection === 'DEVICE_KEY_EXPIRED' ? 'LOGIN.DEVICE_KEY_EXPIRED' : 'LOGIN.DEVICE_REJECTED')
+          //
+          // Der Grund wird hier festgehalten und nicht erst in der Fehlermaske
+          // aus dem Signal gelesen: Ein Reconnect setzt `deviceAuthRejection`
+          // beim `connect`-Event auf null, die Maske zeigte dann den falschen Weg.
+          const expired = rejection === 'DEVICE_KEY_EXPIRED'
+          this.errorKind.set(expired ? 'device-key-expired' : 'device-rejected')
+          fail(expired ? 'LOGIN.DEVICE_KEY_EXPIRED' : 'LOGIN.DEVICE_REJECTED')
           return
         }
 
@@ -677,6 +706,47 @@ export class LoginComponent implements OnInit {
     this.refreshPage()
   }
 
+  /**
+   * Neukopplung nach endgueltig abgelehntem Schluessel (panary/panary-core#524).
+   *
+   * Erst die Rueckfrage, nie direkt: Der Knopf ist am Geraet fuer jeden
+   * erreichbar, der davorsteht, und loest die Kopplung. Angeboten wird er nur bei
+   * `device-key-expired` — bei `device-rejected` waere er ein Umweg um die
+   * Sperre im Admin.
+   */
+  requestRepair(): void {
+    if (this.errorKind() !== 'device-key-expired') return
+    this.currentStep.set('repair-confirm')
+  }
+
+  cancelRepair(): void {
+    this.currentStep.set('error')
+  }
+
+  /**
+   * Loest die Kopplung und startet in den Setup-Wizard. Autorisiert wird der
+   * Vorgang dort durch den Kopplungscode aus dem Admin — eine PIN-Pruefung ist
+   * hier unmoeglich, sie braucht den Server, den der Schluessel nicht mehr
+   * erreicht.
+   *
+   * Die Outbox wird bewusst NICHT geloescht (`clearConfig`, nicht `unpair`):
+   * Die Cache-Datenbank ist ueber Tenant, Filiale und Server benannt. Koppelt das
+   * Geraet an dieselbe Filiale, oeffnet es dieselbe Outbox, und der Replay
+   * uebertraegt sie mit dem neuen Schluessel. Bei einer anderen Filiale bleibt sie
+   * unangetastet liegen und wandert nicht in einen fremden Bestand.
+   */
+  confirmRepair(): void {
+    if (this.errorKind() !== 'device-key-expired') return
+    const pending = this.pendingOutboxCount()
+    if (pending > 0) {
+      console.warn(
+        `[POS-Login] Neukopplung mit ${pending} nicht uebertragenen Outbox-Eintraegen — ` +
+          'sie bleiben erhalten und werden bei Kopplung an dieselbe Filiale uebertragen.',
+      )
+    }
+    this.goToSetup()
+  }
+
   //#endregion
 
   //#region Settings
@@ -688,17 +758,6 @@ export class LoginComponent implements OnInit {
 
   closeSettings(): void {
     this.showSettings.set(false)
-  }
-
-  resetDevice(): void {
-    if (
-      confirm(
-        'Möchten Sie das Gerät wirklich zurücksetzen? Alle Einstellungen gehen verloren und die Verbindung zum Server wird getrennt.',
-      )
-    ) {
-      this.configService.clearConfig()
-      this.refreshPage()
-    }
   }
 
   private refreshPage(): void {

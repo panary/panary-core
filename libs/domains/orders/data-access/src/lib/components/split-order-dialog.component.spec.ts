@@ -77,7 +77,7 @@ function setup(
   opts: {
     order?: Order
     performedBy?: string | null
-    split?: (orderId: string, items: OrderSplitSelectionItem[]) => Promise<unknown>
+    split?: (orderId: string, items: OrderSplitSelectionItem[], performedBy?: string | null) => Promise<unknown>
   } = {},
 ) {
   const order = opts.order ?? makeOrder()

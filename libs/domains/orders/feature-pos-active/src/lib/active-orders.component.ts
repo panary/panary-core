@@ -524,7 +524,7 @@ export class ActiveOrdersComponent {
   // --- Split-Flow (#350) ---
 
   openSplit(order: Order) {
-    const data: SplitOrderDialogData = { order }
+    const data: SplitOrderDialogData = { order, performedBy: this.#resolveCashierId() }
     const ref = this.#matDialog.open<SplitOrderDialogComponent, SplitOrderDialogData, SplitOrderDialogResult>(
       SplitOrderDialogComponent,
       { data, panelClass: 'rounded-dialog', maxWidth: '96vw' },

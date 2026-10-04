@@ -49,6 +49,13 @@ export interface OrderSplitRequest {
   orderId: string
   /** Welche Zeilen in welcher Menge wandern. Menge weglassen = ganze Zeile. */
   lineItems: OrderSplitSelectionItem[]
+  /**
+   * Der am POS per PIN angemeldete Bediener — nur fuers Journal
+   * (panary/panary-core#590). Am POS ist `params.user` der virtuelle
+   * Geraete-User `device:<uuid>`, kein Mensch; Muster wie `performedBy` der
+   * Bar-Transaktion (`restrictOrderToCashSession`).
+   */
+  performedBy?: string
 }
 
 export interface OrderSplitResult {
@@ -176,7 +183,7 @@ export function createOrderSplitMethod(app: Application) {
     }
 
     await recordSplitReference(app, source, targetOrder)
-    await recordSplitJournal(app, source, targetOrder, plan.splitOffEntries, params)
+    await recordSplitJournal(app, source, targetOrder, plan.splitOffEntries, data.performedBy, params)
 
     logger.info({
       message: 'Bestellung gesplittet',
@@ -378,13 +385,70 @@ async function recordSplitReference(app: Application, source: Order, target: Ord
   }
 }
 
+/** Praefix des virtuellen Geraete-Users aus `allow-apikey.hook.ts`. */
+const DEVICE_USER_ID_PREFIX = 'device:'
+
+/**
+ * Wer hat gesplittet? (panary/panary-core#590)
+ *
+ * 🚨 Am POS ist `params.user._id` NICHT der Bediener, sondern `device:<uuid>`:
+ * Die Kasse verbindet sich per Geraete-API-Key, `allowApiKey` setzt einen
+ * virtuellen User. Ins Journal geschrieben, scheiterte jedes Ereignis an
+ * `format: uuid` — still, weil das Journal nicht blockiert. Der Mensch an der
+ * Kasse ist nur dem POS bekannt (PIN-Login) und reist deshalb als
+ * `performedBy` mit.
+ *
+ * - JWT-User (Admin-Client, Tests): `params.user._id` — der Server kennt den
+ *   Menschen selbst, ein mitgeschicktes `performedBy` zaehlt nicht.
+ * - Geraete-Session: `performedBy`, aber nur, wenn es ein User DESSELBEN
+ *   Mandanten ist. Sonst schriebe ein Geraet beliebige IDs ins Journal.
+ * - Sonst: keiner.
+ */
+async function resolveSplitOperator(
+  app: Application,
+  source: Order,
+  performedBy: unknown,
+  params?: any,
+): Promise<string | undefined> {
+  const sessionUserId = params?.user?._id
+  if (typeof sessionUserId !== 'string' || !sessionUserId) return undefined
+  if (!sessionUserId.startsWith(DEVICE_USER_ID_PREFIX)) return sessionUserId
+
+  if (typeof performedBy !== 'string' || !performedBy) {
+    logger.warn({
+      message: 'Split von einem Geraet ohne Bediener — kein Journal-Ereignis',
+      event: 'order.split_journal_no_operator',
+      orderId: source._id,
+      tenantId: source.tenantId,
+    })
+    return undefined
+  }
+
+  try {
+    const operator = (await app.service('users').get(performedBy, { provider: undefined })) as {
+      tenantId?: string | null
+    }
+    if (operator?.tenantId === source.tenantId) return performedBy
+  } catch {
+    // Unbekannte ID — wie ein fremder Mandant behandeln, Meldung unten.
+  }
+  logger.warn({
+    message: 'Bediener des Splits gehoert nicht zum Mandanten der Bestellung — kein Journal-Ereignis',
+    event: 'order.split_journal_operator_rejected',
+    orderId: source._id,
+    tenantId: source.tenantId,
+  })
+  return undefined
+}
+
 /**
  * Journal-Ereignisse (panary/panary-core#348, Phase 5).
  *
  * 🚨 Ohne Bediener KEIN Eintrag: `orderInteractionSchema.userId` ist Pflicht,
  * und ein Journal-Ereignis ohne „wer" beantwortet die einzige Frage nicht, fuer
  * die es existiert. Interne Aufrufe ohne `params.user` schreiben deshalb
- * nichts — das ist Absicht, kein Verlust.
+ * nichts — das ist Absicht, kein Verlust. Wer als Bediener gilt, entscheidet
+ * `resolveSplitOperator`.
  *
  * Nicht blockierend, aus demselben Grund wie die Referenz oben.
  */
@@ -393,9 +457,10 @@ async function recordSplitJournal(
   source: Order,
   target: Order,
   entries: ReadonlyArray<{ lineItemRowId: string; amount: number }>,
+  performedBy: unknown,
   params?: any,
 ): Promise<void> {
-  const userId = params?.user?._id as string | undefined
+  const userId = await resolveSplitOperator(app, source, performedBy, params)
   if (!userId) return
 
   const eventAt = new Date().toISOString()

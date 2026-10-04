@@ -304,6 +304,15 @@ describe('OrderService.split (#350)', () => {
     expect(result.targetOrder._id).toBe('ziel')
   })
 
+  it('schickt den Bediener als performedBy mit (#590)', async () => {
+    const { service, splitCalls } = setup()
+    await service.split('quelle', [{ lineItemRowId: 'li-1' }], 'bediener-1')
+
+    expect(splitCalls).toEqual([
+      { orderId: 'quelle', lineItems: [{ lineItemRowId: 'li-1' }], performedBy: 'bediener-1' },
+    ])
+  })
+
   it('splittet offline NICHT — kein Outbox-Eintrag, eigener Fehler für die Meldung im Dialog', async () => {
     const { service, splitCalls, enqueued } = setup({ offline: true })
 

@@ -74,7 +74,11 @@ function makeOrder(overrides: Record<string, unknown> = {}): Order {
 }
 
 function setup(
-  opts: { order?: Order; split?: (orderId: string, items: OrderSplitSelectionItem[]) => Promise<unknown> } = {},
+  opts: {
+    order?: Order
+    performedBy?: string | null
+    split?: (orderId: string, items: OrderSplitSelectionItem[]) => Promise<unknown>
+  } = {},
 ) {
   const order = opts.order ?? makeOrder()
   const orders = signal<Order[]>([order])
@@ -86,7 +90,7 @@ function setup(
 
   const injector = Injector.create({
     providers: [
-      { provide: MAT_DIALOG_DATA, useValue: { order } },
+      { provide: MAT_DIALOG_DATA, useValue: { order, performedBy: opts.performedBy } },
       { provide: MatDialogRef, useValue: { close } },
       { provide: OrderService, useValue: { orders, split } },
     ],
@@ -225,6 +229,15 @@ describe('SplitOrderDialogComponent — Melden statt schweigen', () => {
     expect(dialog.blockedKey()).toBe('SPLIT_ORDER.ERROR.SOURCE_NOT_SPLITTABLE')
   })
 
+  it('reicht den angemeldeten Bediener an den Split weiter — sonst fehlt das Journal (#590)', async () => {
+    const { dialog, unit, split } = setup({ performedBy: 'bediener-1' })
+    dialog.setQuantity(unit('line:kaffee'), 1)
+    await dialog.confirm()
+
+    expect(split).toHaveBeenCalledTimes(1)
+    expect(split.mock.calls[0][2]).toBe('bediener-1')
+  })
+
   it('Ablehnung vom Server: Meldung aus dem Fehlercode, Dialog bleibt offen', async () => {
     const { dialog, unit, close } = setup({
       split: async () => {
@@ -313,11 +326,11 @@ describe('SplitOrderDialogComponent — Erfolg', () => {
     dialog.setQuantity(unit('bundle:1'), 1)
     await dialog.confirm()
 
-    expect(split).toHaveBeenCalledWith('quelle', [
-      { lineItemRowId: 'kaffee', amount: 2 },
-      { lineItemRowId: 'menue-burger' },
-      { lineItemRowId: 'menue-pommes' },
-    ])
+    expect(split).toHaveBeenCalledWith(
+      'quelle',
+      [{ lineItemRowId: 'kaffee', amount: 2 }, { lineItemRowId: 'menue-burger' }, { lineItemRowId: 'menue-pommes' }],
+      undefined,
+    )
     expect(close).toHaveBeenCalledWith({ sourceOrderId: 'quelle', targetOrderId: 'ziel', targetSequenceNumber: 13 })
   })
 })

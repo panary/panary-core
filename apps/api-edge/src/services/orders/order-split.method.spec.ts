@@ -21,7 +21,20 @@ import { createOrderSplitMethod } from './order-split.method'
  */
 const TENANT = '11111111-1111-1111-1111-111111111111'
 const FREMD = '22222222-2222-2222-2222-222222222222'
-const USER = { _id: 'u-1', tenantId: TENANT, role: 'tenant:staff', locationId: 'loc-1' }
+const USER = {
+  _id: '019dfd04-b9c2-70ed-94f8-849bb611d00d',
+  tenantId: TENANT,
+  role: 'tenant:staff',
+  locationId: 'loc-1',
+}
+// Am POS ist `params.user` der virtuelle Geraete-User aus `allow-apikey.hook.ts` (#590).
+const DEVICE_USER = {
+  _id: 'device:019dfd05-0000-7000-8000-000000000001',
+  role: 'device:pos-client',
+  tenantId: TENANT,
+  locationId: 'loc-1',
+}
+const OPERATOR_ID = '019dfd04-b9c2-70ed-94f8-849bb611d00d'
 
 function line(id: string, price: number, amount: number, taxRate: number) {
   return {
@@ -71,6 +84,8 @@ function makeApp(
     businessDays?: Record<string, Record<string, unknown> | null>
     /** Filiale; `null` = Lookup schlaegt fehl. Default: Bestellbetrieb, aktueller Tag bd-1. */
     location?: Record<string, unknown> | null
+    /** User-Datensaetze je ID fuer die Bediener-Pruefung (#590). Default: OPERATOR_ID im eigenen Mandanten. */
+    users?: Record<string, Record<string, unknown>>
   } = {},
 ) {
   const stored = opts.order ?? makeOrder()
@@ -98,6 +113,12 @@ function makeApp(
   const receiptFind = vi.fn().mockResolvedValue({ total: opts.receiptCount ?? 0 })
   const referenceCreate = vi.fn().mockResolvedValue({})
   const interactionCreate = vi.fn().mockResolvedValue({})
+  const users = opts.users ?? { [OPERATOR_ID]: { _id: OPERATOR_ID, tenantId: TENANT } }
+  const userGet = vi.fn().mockImplementation(async (id: string) => {
+    const user = users[id]
+    if (!user) throw new Error(`not found: ${id}`)
+    return user
+  })
 
   const services: Record<string, Record<string, unknown>> = {
     orders: { get: orderGet, create: orderCreate, patch: orderPatch },
@@ -106,6 +127,7 @@ function makeApp(
     locations: { get: locationGet },
     'order-references': { create: referenceCreate },
     'order-interactions': { create: interactionCreate },
+    users: { get: userGet },
   }
 
   const app = {
@@ -125,6 +147,7 @@ function makeApp(
     receiptFind,
     referenceCreate,
     interactionCreate,
+    userGet,
     businessDayGet,
     locationGet,
   }
@@ -353,6 +376,53 @@ describe('orders.split — Schreibpfad', () => {
     expect(h.interactionCreate).not.toHaveBeenCalled()
     // Der Geschaeftspfad laeuft trotzdem durch.
     expect(h.orderCreate).toHaveBeenCalledTimes(1)
+  })
+
+  it('schreibt die User-ID des JWT-Users ins Journal und ignoriert ein mitgeschicktes performedBy', async () => {
+    const h = makeApp()
+    await call(h.app, { orderId: 'order-quelle', lineItems: [{ lineItemRowId: 'l2' }], performedBy: 'jemand-anders' })
+
+    const userIds = h.interactionCreate.mock.calls.map(c => c[0].userId)
+    expect(userIds).toEqual([USER._id, USER._id, USER._id])
+    expect(h.userGet).not.toHaveBeenCalled()
+  })
+
+  describe('Geraete-Session am POS (#590)', () => {
+    const SPLIT = { orderId: 'order-quelle', lineItems: [{ lineItemRowId: 'l2' }] }
+
+    it('schreibt NIE den virtuellen Geraete-User ins Journal — `device:<uuid>` verletzt format: uuid', async () => {
+      const h = makeApp()
+      await call(h.app, SPLIT, { provider: 'socketio', user: DEVICE_USER })
+
+      expect(h.interactionCreate).not.toHaveBeenCalled()
+      expect(h.orderCreate).toHaveBeenCalledTimes(1)
+    })
+
+    it('schreibt den per PIN angemeldeten Bediener aus performedBy', async () => {
+      const h = makeApp()
+      await call(h.app, { ...SPLIT, performedBy: OPERATOR_ID }, { provider: 'socketio', user: DEVICE_USER })
+
+      const userIds = h.interactionCreate.mock.calls.map(c => c[0].userId)
+      expect(userIds).toEqual([OPERATOR_ID, OPERATOR_ID, OPERATOR_ID])
+      expect(h.userGet).toHaveBeenCalledWith(OPERATOR_ID, { provider: undefined })
+    })
+
+    it('verwirft einen Bediener aus fremdem Mandanten — ein Geraet schreibt keine beliebigen IDs', async () => {
+      const h = makeApp({ users: { [OPERATOR_ID]: { _id: OPERATOR_ID, tenantId: FREMD } } })
+      await call(h.app, { ...SPLIT, performedBy: OPERATOR_ID }, { provider: 'socketio', user: DEVICE_USER })
+
+      expect(h.interactionCreate).not.toHaveBeenCalled()
+      expect(h.orderCreate).toHaveBeenCalledTimes(1)
+    })
+
+    it('verwirft einen unbekannten Bediener, ohne den Split scheitern zu lassen', async () => {
+      const h = makeApp({ users: {} })
+      await expect(
+        call(h.app, { ...SPLIT, performedBy: OPERATOR_ID }, { provider: 'socketio', user: DEVICE_USER }),
+      ).resolves.toBeTruthy()
+
+      expect(h.interactionCreate).not.toHaveBeenCalled()
+    })
   })
 
   it('laesst den Split nicht an einer fehlgeschlagenen Referenz scheitern (nicht blockierend, §146a)', async () => {

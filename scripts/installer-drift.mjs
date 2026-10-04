@@ -155,8 +155,18 @@ async function main() {
       ])
       const args = ['issue', 'create', '--title', 'get.panary.cloud liefert nicht den Stand von main aus']
       args.push('--label', LABEL, '--body', issueBody(eintraege, sha))
-      if (process.env.INSTALLER_DRIFT_ASSIGNEE) args.push('--assignee', process.env.INSTALLER_DRIFT_ASSIGNEE)
-      gewaehlt = `oeffnen → ${gh(args)}`
+      let url
+      try {
+        const zuweisung = process.env.INSTALLER_DRIFT_ASSIGNEE
+        url = gh(zuweisung ? [...args, '--assignee', zuweisung] : args)
+      } catch (error) {
+        // Eine gescheiterte Zuweisung (Konto weg, kein Collaborator mehr) darf die Meldung nicht
+        // verschlucken — dann eben ohne Zuweisung. Scheitert auch das, ist das Werkzeug kaputt.
+        if (!process.env.INSTALLER_DRIFT_ASSIGNEE) throw error
+        console.warn(`Zuweisung gescheitert, Issue ohne Zuweisung: ${error.message}`)
+        url = gh(args)
+      }
+      gewaehlt = `oeffnen → ${url}`
     } else if (gewaehlt === 'schliessen') {
       for (const nr of offen) {
         const kommentar = `Stimmt wieder ueberein (\`main\` @ \`${sha.slice(0, 8)}\`):\n\n${tabelle(eintraege)}`

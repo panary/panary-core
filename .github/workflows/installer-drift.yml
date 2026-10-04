@@ -34,6 +34,9 @@ concurrency:
 jobs:
   drift:
     name: get.panary.cloud gegen main
+    # Ein workflow_dispatch auf einem Feature-Branch verglich DESSEN Dateien mit live und meldete
+    # das als Abweichung gegenueber main. Geprueft wird deshalb nur main.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

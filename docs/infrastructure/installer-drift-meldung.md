@@ -44,6 +44,10 @@ Verglichen werden Bytes: Eine reine Umformatierung im Repo meldet sich auch.
 | Eine Datei weicht ab, Issue schon offen | nichts, also kein zweites Issue |
 | Eine Datei nicht erreichbar, sonst nichts abweichend | nur ein Vermerk in der Job-Summary, kein Issue |
 
+Der Job läuft nur auf `main`: Ein `workflow_dispatch` auf einem anderen Branch wird übersprungen,
+sonst verglich er dessen Dateien und meldete das als Abweichung gegenüber `main`. Scheitert die
+Zuweisung (Konto weg, kein Collaborator mehr), entsteht das Issue ohne Zuweisung.
+
 Der Lauf bleibt bei einer Abweichung **grün**. Rot wird er nur, wenn das Werkzeug selbst scheitert,
 etwa `gh` oder der Checkout.
 

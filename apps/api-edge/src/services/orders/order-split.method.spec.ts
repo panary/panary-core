@@ -439,6 +439,35 @@ describe('orders.split — Teilerfolg (#544)', () => {
     expect(h.referenceCreate).toHaveBeenCalledTimes(1)
   })
 
+  it('Gegenprobe erkennt die eigene Gegenbuchung, nicht eine fruehere — sonst gaelte ein gescheiterter Split als Erfolg', async () => {
+    const earlier = { _id: 'alt', targetOrderId: 'frueheres-ziel', lineItemRowId: 'l1', amount: 1 }
+    const h = makeApp({ order: makeOrder({ splitOff: [earlier] }) })
+    h.orderPatch.mockRejectedValueOnce(new Error('SQLITE_BUSY'))
+    // Die Gegenprobe liest die Quelle unveraendert: nur die FRUEHERE Gegenbuchung steht drin.
+    const error = await call(h.app, SPLIT).catch(e => e)
+
+    expect(error.data.code).toBe(OrderSplitErrorCode.ROLLED_BACK)
+    expect(h.orderPatch.mock.calls[1][0]).toBe(h.orderCreate.mock.calls[0][0]._id)
+  })
+
+  it('Gegenprobe findet die eigene Gegenbuchung auch neben frueheren', async () => {
+    const earlier = { _id: 'alt', targetOrderId: 'frueheres-ziel', lineItemRowId: 'l1', amount: 1 }
+    const h = makeApp({ order: makeOrder({ splitOff: [earlier] }) })
+    h.orderPatch.mockRejectedValueOnce(new Error('after-Hook wirft nach dem Write'))
+    h.orderGet.mockResolvedValueOnce(h.stored).mockImplementationOnce(async () => ({
+      ...h.stored,
+      splitOff: [
+        earlier,
+        { _id: 's', targetOrderId: h.orderCreate.mock.calls[0][0]._id, lineItemRowId: 'l2', amount: 1 },
+      ],
+    }))
+
+    const result = await call(h.app, SPLIT)
+
+    expect(h.orderPatch).toHaveBeenCalledTimes(1)
+    expect(result.sourceOrder.splitOff).toHaveLength(2)
+  })
+
   it('storniert trotzdem, wenn die Gegenprobe selbst nicht lesen kann', async () => {
     const h = makeApp()
     h.orderPatch.mockRejectedValueOnce(new Error('SQLITE_BUSY'))

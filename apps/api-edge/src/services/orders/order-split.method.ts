@@ -262,7 +262,11 @@ async function compensateFailedSourcePatch(
     })
     throw new GeneralError(
       'Die Teilbestellung wurde angelegt, die Ursprungsbestellung aber nicht angepasst. Nicht erneut aufteilen.',
-      { code: OrderSplitErrorCode.TARGET_LEFT_OPEN, targetOrderId: target._id, targetSequenceNumber: target.dailySequenceNumber },
+      {
+        code: OrderSplitErrorCode.TARGET_LEFT_OPEN,
+        targetOrderId: target._id,
+        targetSequenceNumber: target.dailySequenceNumber,
+      },
     )
   }
 

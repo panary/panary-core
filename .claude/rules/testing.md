@@ -125,8 +125,9 @@ die zweite Form steht, sagt §10.2. Präzedenzfälle:
 | `libs/domains/tse/domain/src/lib/simulator.adapter.spec.ts`                                                        | `tse`-Instanz                             | `new` im Test                        | #201 |
 | `apps/api-edge/test/services/{orders/orders,users/users,users/admin-access-health,tenants/tenants}.test.ts`        | die **DB-Zeile** aus `beforeAll`          | Datensatz je Test + `onTestFinished` | #301 |
 
-**Die Mutationsprobe gehört zu jedem solchen Umbau.** Ein Test, der nach dem Umstellen noch grün
-ist, kann grün sein, weil er nichts mehr prüft — grün war er vorher ja auch. Also den
+**Die Mutationsprobe gehört zu jedem solchen Umbau** (der allgemeine Fall, jeder neue Test, steht
+in §10.3). Ein Test, der nach dem Umstellen noch grün ist, kann grün sein, weil er nichts mehr
+prüft — grün war er vorher ja auch. Also den
 Produktionscode gezielt brechen und nachsehen, ob der zugehörige Test rot wird; danach
 zurücksetzen und mit `git diff --exit-code` belegen, dass keine Spur bleibt. Gefahren wurde je
 umgebauter Datei mindestens eine (#199: Lookup auf Klartext → Test 1 rot, Kandidaten-Filter
@@ -212,3 +213,76 @@ pnpm nx test api-edge --skip-nx-cache -- --sequence.shuffle --sequence.seed=42
 ⚠️ Das Gate bleibt eine **Stichprobe**: Es prüft je Lauf eine Permutation. Grün heisst „unter
 diesem Seed keine Kopplung", nicht „isoliert" — die Aussage aus §10.1 gilt unverändert. Es fängt
 den Rückfall, nicht die Abwesenheit.
+
+### 10.3 Jeder neue Test braucht einen Rot-Nachweis
+
+> 🚨 **Ein Test, der nie rot war, ist eine Behauptung, kein Netz.** Grün sagt nur, dass er heute
+> nicht scheitert — nicht, dass er scheitern _kann_.
+
+**Geltung: jeder neu geschriebene Test** — neue Spec-Datei oder neuer `it` in einer bestehenden,
+egal aus welchem Anlass. Die anlassgebundenen Pflichten bleiben stehen und sind Spezialfälle dieser
+Regel: der Spec-Umbau (§10.1), das neue Gate und in panary-cloud die Abnahmeregel für Mongo-Fakes
+(cloud-ADR 0042, dort schärfer: Tenant-Filter weg → rot).
+
+Warum die Lücke real ist: In panary-cloud blieben zwei von fünf Mutationen grün, weil die
+Zusicherungen `recorded[0]` prüften und damit die falsche Funktion trafen (cloud-ADR 0042); eine
+Zeitzonen-Spec blieb mit dem Defekt **vollständig** grün, weil `process.env.TZ` zur Laufzeit nichts
+bewirkt. Beide Male sah die Suite wie ein Netz aus. Für einen frischen Feature-Test forderte bis
+panary/panary-core#359 keine Regel den Nachweis — gemessen am 2026-09-20 entstanden in 50 Commits
+34 neue Spec-Dateien.
+
+**Zwei zulässige Formen, die Wahl hat der Autor:**
+
+| Form           | Rot, weil …                                   | beweist                                |
+| -------------- | --------------------------------------------- | -------------------------------------- |
+| Test-First     | das Feature noch fehlt (Test vor dem Code)    | der Test war **irgendwann** rot        |
+| Mutationsprobe | eine Produktionszeile gezielt gebrochen wurde | der Test schützt **genau diese** Zeile |
+
+**Die Formen sind nicht gleich stark — sonst wird die schwächere zur Standardwahl.** Test-First-Rot
+kann auch ein fehlender Import, ein `is not a function` oder ein Kompilierfehler gewesen sein; das
+beweist nichts über die Zusicherung. Es zählt deshalb nur mit der **richtigen Meldung**: Die
+Zusicherung selbst schlägt fehl (`expected … to be …`), nicht der Aufbau davor.
+
+🚨 **Für sicherheitsrelevante Zusicherungen ist die Mutationsprobe Pflicht**, Test-First reicht dort
+nicht: Mandanten-Scope und Tenant-Filter, Guards (`authorize`, `multiTenancy`, Rollen- und
+Rechteprüfung, Eigentums-Checks), Resolver-Strips sensitiver Felder. Dort ist die Frage nicht „war
+der Test je rot", sondern „wird er rot, wenn **dieser** Filter fehlt".
+
+**Ausnahmen — kein Nachweis nötig:**
+
+- reine Typ- oder Schema-Snapshots (der Compiler bzw. das Schema ist das Netz),
+- Tests, die ausschließlich einen Konstantenwert festschreiben, einschließlich eines reinen Getters
+  ohne Logik,
+- generierte Specs (`should create` eines Nx-Generators), solange sie unverändert sind.
+
+Die Ausnahme gilt **je Test, nicht je Datei**: Sobald ein Test eine Verzweigung, Rechnung oder
+Filterung prüft, gilt die Pflicht. Ein Negativfall („kein Rabatt → kein Feld") braucht keinen eigenen
+Rot-Nachweis, er soll unter der Mutation grün bleiben — das ist im Gegenteil ein nützlicher
+Nebenbefund der Probe.
+
+**Nachweisform: die ROT-Liste im Log-Fragment** (`docs/log.d/`, gleicher Commit wie der Test). Ohne
+Spur ist die Regel unprüfbar. Je Variante eine Angabe `<was gebrochen> → <n> rot`, danach der
+Kontrolllauf nach dem Zurücksetzen:
+
+```md
+- **Update**: Mutationsprobe zu den neuen Specs: `toReceiptDiscounts` auf leer → 6 rot,
+  Nachlass-Schleife im Renderer entfernt → 4 rot; Kontrolllauf 10/10 grün.
+- **Update**: Test-First: 3 rot vor der Implementierung (`expected undefined to be 'PICKUP'`).
+```
+
+Vorlagen aus dem Bestand: [#228](../../docs/log.d/2026-08-14-228-beleg-nachlass.md) (zwei
+Varianten, Negativfälle grün) und [#337](../../docs/log.d/2026-09-18-337-pull-apply-tenant-guard.md)
+(fünf Varianten mit je eigener Rot-Zahl). **Eine Variante mit 0 rot ist ein Befund, kein
+Streichkandidat:** Entweder trifft die Mutation nichts, oder der Test prüft nicht, was er vorgibt —
+genau der `recorded[0]`-Fall. Sie bleibt in der Liste stehen, bis geklärt ist, welches von beiden.
+
+**Ausführung — erst committen, dann brechen.** Die Probe läuft auf einem committeten Stand: Ein
+`git checkout -- <datei>` zum Zurücksetzen löscht sonst den eigenen, noch uncommitteten Fix, und die
+Folgeproben messen gegen den alten Code und sehen trotzdem vollständig aus (viermal passiert).
+Zurücksetzen per `git checkout -- <datei>`, danach `git diff --exit-code` als Beleg, dass keine Spur
+bleibt. Kein `git stash` dafür (Workbench-CLAUDE.md, Git-Disziplin).
+
+⚠️ **Kein Gate kann das prüfen.** Ob ein Test je rot war, existiert nur im Moment des Laufs; kein
+`*:gate`-Skript und kein Mutation-Testing-Werkzeug (Stryker o. ä.) ist konfiguriert (gemessen am
+2026-09-20). Die Regel lebt vom Review und von der Spur im Log-Fragment, und sie gilt **ab
+panary/panary-core#359 nach vorn** — der Bestand wird nicht nachträglich belegt.

@@ -136,6 +136,18 @@ Lebenszyklus-Bewertung selbst ist framework-frei und liegt in
 `@panary/apikeys/domain` (`apikey-lifecycle.ts`), damit das Cloud-Pendant
 dieselbe Semantik bekommt, ohne den Datensatz zu teilen.
 
+### Jenseits der Karenz: Neukopplung am Gerät
+
+Lehnt der Edge den Schlüssel mit `DEVICE_KEY_EXPIRED` ab, bietet die Fehlermaske des Logins
+„Gerät neu koppeln“ an (panary/panary-core#524). Vorher kommt eine Rückfrage, die die Zahl
+nicht übertragener Outbox-Einträge nennt. Danach wird nur die lokale Kopplung gelöst, und das
+Terminal startet in den Assistenten. Den Vorgang autorisiert der Kopplungscode aus dem Admin.
+Die Outbox bleibt erhalten und überträgt nach einer Kopplung an dieselbe Filiale.
+
+Bei `DEVICE_REJECTED` (`active: false`) gibt es diesen Knopf **nicht**: Die Sperre im Admin
+wäre sonst am Gerät zu umgehen. Begründung und Grenzen stehen im Nachtrag zu
+[ADR 0042](../adr/0042-geraete-schluessel-rotation-mit-karenz.md).
+
 ## Re-Verifikation nach langer Offline-Phase
 
 [ADR 0043](../adr/0043-re-verifikation-nach-langer-offline-phase.md) baut auf

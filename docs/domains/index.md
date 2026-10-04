@@ -3,7 +3,7 @@
 Domain-Konzepte & Business-Logik — fachliche Modelle, Berechnungsregeln, Randfälle
 (`type: Domain Concept`).
 
-* [Bon-Split — „getrennt zahlen" als Umbuchung](bon-split.md) - Fachliches Modell des Bon-Splits: order.splitOff als append-only Gegenbuchung, effectiveLineItems als einzige Ableitung der Restmenge, Rabatt- und Steueraufteilung, Vorbedingungen, die bewusst abgelehnte Teilung von Modifier-Zeilen und die POS-Oberfläche, die zunächst nur im Bestellbetrieb freigegeben ist.
+* [Bon-Split — „getrennt zahlen" als Umbuchung](bon-split.md) - Fachliches Modell des Bon-Splits: order.splitOff als append-only Gegenbuchung, effectiveLineItems als einzige Ableitung der Restmenge, Rabatt- und Steueraufteilung, Vorbedingungen, die bewusst abgelehnte Teilung von Modifier-Zeilen, die Kompensation bei Teilerfolg und die POS-Oberfläche, die zunächst nur im Bestellbetrieb freigegeben ist.
 * [Admin-Bestellungen — Geschäftstag-Filter + Status-Änderung](admin-bestellungen-geschaeftstag-filter.md) - Edge-Admin-Bestellliste filtert standardmäßig nach dem aktuellen Geschäftstag und erlaubt Status-Änderungen samt RBAC-Erweiterung, um hängengebliebene Orders aufzuräumen.
 * [Allergen- und Zusatzstoff-Deklaration am Produkt](produkt-deklaration.md) - Wie ein Produkt seine Allergene und Zusatzstoffe trägt: das Feld labeling mit drei Zuständen, der Zusatzstoff-Katalog nach § 5 LMZDV, Widerruf und Server-Stempel, warum der Edge das Feld vorerst nicht bekommt und was rechtlich offen bleibt.
 * [Geräte-Online-Tracking (Edge) — Echtzeit-Verbindungszählung + Admin-Panel](geraete-online-tracking.md) - Read-only Service device-connections zählt live verbundene Geräte am Edge und speist Dashboard-KPI, Sidebar-Badge und read-only Geräteliste im Admin-Panel.

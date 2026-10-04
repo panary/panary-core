@@ -656,6 +656,8 @@
       "UNKNOWN_LINE": "Die Bestellung wurde inzwischen geändert. Bitte Dialog schließen und neu öffnen.",
       "DUPLICATE_LINE": "Eine Position steht doppelt in der Auswahl.",
       "FISCAL_MODE_UNSUPPORTED": "Aufteilen ist derzeit nur im Bestellbetrieb möglich, nicht im Kassenbetrieb.",
+      "ROLLED_BACK": "Die Bestellung wurde nicht aufgeteilt. Die dabei angelegte Teilbestellung wurde storniert – die Bestellung ist unverändert.",
+      "TARGET_LEFT_OPEN": "Die Teilbestellung wurde angelegt, die Ursprungsbestellung aber nicht angepasst. Bitte NICHT erneut aufteilen – Dialog schließen und beide Bestellungen in der Liste prüfen.",
       "OFFLINE": "Aufteilen ist nur mit Verbindung zum Server möglich.",
       "GENERIC": "Die Bestellung konnte nicht aufgeteilt werden."
     }

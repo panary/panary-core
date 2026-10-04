@@ -239,6 +239,38 @@ describe('SplitOrderDialogComponent — Melden statt schweigen', () => {
     expect(close).not.toHaveBeenCalled()
   })
 
+  it('zurückgenommener Split (#544): eigene Meldung, ein neuer Versuch bleibt möglich', async () => {
+    const { dialog, unit, close } = setup({
+      split: async () => {
+        throw { code: 500, data: { code: OrderSplitErrorCode.ROLLED_BACK, targetOrderId: 't-1' } }
+      },
+    })
+    dialog.setQuantity(unit('line:kaffee'), 1)
+    await dialog.confirm()
+
+    expect(dialog.messageKey()).toBe('SPLIT_ORDER.ERROR.ROLLED_BACK')
+    expect(dialog.canConfirm()).toBe(true)
+    expect(close).not.toHaveBeenCalled()
+  })
+
+  it('ungelöster Teilerfolg (#544): sperrt Bestätigen, auch nach neuer Auswahl', async () => {
+    const split = vi.fn(async () => {
+      throw { code: 500, data: { code: OrderSplitErrorCode.TARGET_LEFT_OPEN, targetOrderId: 't-1' } }
+    })
+    const { dialog, unit } = setup({ split })
+    dialog.setQuantity(unit('line:kaffee'), 1)
+    await dialog.confirm()
+
+    expect(dialog.messageKey()).toBe('SPLIT_ORDER.ERROR.TARGET_LEFT_OPEN')
+    expect(dialog.canConfirm()).toBe(false)
+
+    dialog.setQuantity(unit('line:kaffee'), 2)
+    await dialog.confirm()
+    expect(dialog.messageKey()).toBe('SPLIT_ORDER.ERROR.TARGET_LEFT_OPEN')
+    expect(dialog.canConfirm()).toBe(false)
+    expect(split).toHaveBeenCalledTimes(1)
+  })
+
   it('unbekannter Fehler fällt auf eine allgemeine Meldung zurück, nie auf nichts', async () => {
     const { dialog, unit } = setup({
       split: async () => {

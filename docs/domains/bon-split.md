@@ -1,10 +1,10 @@
 ---
 type: Domain Concept
 title: 'Bon-Split — „getrennt zahlen" als Umbuchung'
-description: 'Fachliches Modell des Bon-Splits: order.splitOff als append-only Gegenbuchung, effectiveLineItems als einzige Ableitung der Restmenge, Rabatt- und Steueraufteilung, Vorbedingungen, die bewusst abgelehnte Teilung von Modifier-Zeilen und die POS-Oberfläche, die zunächst nur im Bestellbetrieb freigegeben ist.'
+description: 'Fachliches Modell des Bon-Splits: order.splitOff als append-only Gegenbuchung, effectiveLineItems als einzige Ableitung der Restmenge, Rabatt- und Steueraufteilung, Vorbedingungen, die bewusst abgelehnte Teilung von Modifier-Zeilen, die Kompensation bei Teilerfolg und die POS-Oberfläche, die zunächst nur im Bestellbetrieb freigegeben ist.'
 tags: [orders, fiskalisierung, dsfinv-k, pricing]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-03T21:10:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-04T13:45:00Z }
 ---
 
 # Bon-Split — „getrennt zahlen" als Umbuchung
@@ -84,6 +84,8 @@ POST /orders   →  Methode `split`
 | `order-split/partial-split-unsupported` | Teilmenge einer Zeile mit Modifiern/Komponenten (siehe unten) |
 | `order-split/nothing-remains` | die Quelle bliebe leer — das wäre eine Umbuchung, kein Split |
 | `order-split/fiscal-mode-unsupported` | der Geschäftstag der Quelle läuft im Kassenbetrieb oder ist nicht lesbar (siehe [POS-Oberfläche](#pos-oberfläche-und-die-sperre-im-kassenbetrieb)) |
+| `order-split/rolled-back` | Ziel war angelegt, die Gegenbuchung der Quelle schlug fehl, das Ziel ist storniert — nichts umgebucht (siehe [Ganz oder gar nicht](#ganz-oder-gar-nicht)) |
+| `order-split/target-left-open` | wie oben, aber auch der Storno scheiterte: **Teilerfolg**, nicht wiederholen |
 
 ⚠️ `COMPLETED` ist in der Status-FSM **nicht** hart terminal (`COMPLETED →
 UNCLAIMED`/`→ ABORTED` sind erlaubt). Der Split lehnt trotzdem hart ab: A6
@@ -211,13 +213,49 @@ Es gibt keine Norm, die sagt, wie ein Aufpreis auf Teilmengen fällt. Eine
 Hausregel wäre eine Behauptung an einer prüfungsrelevanten Stelle — deshalb die
 Ablehnung mit eigenem Code statt einer erfundenen Aufteilung.
 
+## Ganz oder gar nicht
+
+Der Split schreibt zweimal: erst `orders.create` (Ziel), dann `orders.patch`
+(Gegenbuchung der Quelle). Feathers rollt nichts zurück. Scheitert der Patch,
+lägen dieselben Positionen auf zwei offenen Vorgängen — genau das, was A13
+(§ 14c UStG) ausschließt. Seit
+[#544](https://github.com/panary/panary-core/issues/544) fängt
+`compensateFailedSourcePatch` das ab:
+
+1. **Gegenprobe.** Die Quelle wird neu gelesen. Trägt sie die Gegenbuchung auf
+   **dieses** Ziel schon (ein after-Hook kann nach dem Write werfen), war der
+   Split vollständig und zählt als Erfolg. Ein Storno hier ließe die Positionen
+   von beiden Vorgängen verschwinden.
+2. **Storno des Ziels** (`ABORTED`), nicht `remove`: Ein Kassenvorgang wird nicht
+   gelöscht (GoBD), die Vorgangsnummer bleibt belegt statt einer Lücke, und die
+   Outbox schickt der Cloud einen gewöhnlichen Patch statt eines `REMOVE`. Der
+   Storno legt über `recordCancellationReference` die Vorgangs-Referenz an.
+   Antwort: `order-split/rolled-back`. Der POS meldet das, ein neuer Versuch
+   bleibt möglich.
+3. **Storno scheitert auch:** `order-split/target-left-open` mit `targetOrderId`
+   und `targetSequenceNumber` in `data`. Der POS-Dialog sperrt dann Bestätigen
+   bis zum Schließen, auch nach neuer Auswahl — ein zweiter Versuch buchte
+   dieselben Positionen ein drittes Mal.
+
+Verworfen
+([Entscheidung im Issue](https://github.com/panary/panary-core/issues/544)): die
+Reihenfolge umzudrehen (scheitert dann das `create`, fehlen die Positionen ganz —
+dieselbe Kompensation, am anderen Datensatz) und eine Knex-Transaktion (Rohzugriff;
+die create-Hooks schreiben über andere Services ohne `trx`, bei `better-sqlite3`
+mit einer Verbindung droht ein Deadlock).
+
+⚠️ Einen TSE-Start des Ziels storniert die Kompensation **nicht**: Der Split ist
+nur im Bestellbetrieb freigegeben, dort gibt es keinen. Wer den Kassenbetrieb
+freischaltet ([#351](https://github.com/panary/panary-core/issues/351)), muss
+diesen Pfad mitprüfen.
+
 ## Spuren, die der Split hinterlässt
 
 | Wo | Was |
 |---|---|
 | `order-references` | ein Datensatz `refType: 'Split'`, `sourceOrderId` = Quelle, `targetOrderId` = Ziel (DSFinV-K `Bon_Referenzen`, Tz. 4.2.2) |
 | `order-interactions` | `order-split` (Quelle), `order-split-target` (Ziel), je bewegter Zeile ein `item-moved` mit `lineItemRowId` |
-| Log | `order.split`; Fehlschläge als `order.split_reference_failed` / `order.split_interaction_failed` |
+| Log | `order.split`; Fehlschläge als `order.split_reference_failed` / `order.split_interaction_failed`; Kompensation als `order.split_rolled_back`, `order.split_target_left_open` (Error) und `order.split_source_patch_error_after_write` (Warnung) |
 
 🚨 **Referenz und Journal sind nicht blockierend** — wie beim Storno und den
 TSE-Hooks (§ 146a): Ein fehlgeschlagener Schreibvorgang darf die Kasse nicht
@@ -304,7 +342,11 @@ Mit der Freigabe im Kassenbetrieb wird er wieder relevant.
 
 - **Split im Kassenbetrieb** — erst nach der TSE-Verifikation
   ([#351](https://github.com/panary/panary-core/issues/351)); dann fällt die Sperre
-  `fiscal-mode-unsupported`, und der Rückweg über `payment` braucht eine Antwort.
+  `fiscal-mode-unsupported`, der Rückweg über `payment` braucht eine Antwort, und
+  die Kompensation aus [Ganz oder gar nicht](#ganz-oder-gar-nicht) muss den
+  TSE-Start des Ziels mit stornieren.
+- **Absturz zwischen `create` und `patch`** — ein beendeter Prozess kompensiert
+  nichts. Das Ziel bleibt dann offen stehen, ohne Log-Event.
 - **Bestandsbuchung in der Cloud** —
   [panary/panary-cloud#488](https://github.com/panary/panary-cloud/issues/488).
   Bis dahin ist eine **Doppelbuchung** möglich: Die Idempotenz über

@@ -4,7 +4,7 @@ title: 'Bon-Split — „getrennt zahlen" als Umbuchung'
 description: 'Fachliches Modell des Bon-Splits: order.splitOff als append-only Gegenbuchung, effectiveLineItems als einzige Ableitung der Restmenge, Rabatt- und Steueraufteilung, Vorbedingungen, die bewusst abgelehnte Teilung von Modifier-Zeilen, die Kompensation bei Teilerfolg und die POS-Oberfläche, die zunächst nur im Bestellbetrieb freigegeben ist.'
 tags: [orders, fiskalisierung, dsfinv-k, pricing]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-04T13:45:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-04T14:45:00Z }
 ---
 
 # Bon-Split — „getrennt zahlen" als Umbuchung
@@ -263,8 +263,23 @@ sperren. Der Preis ist bekannt: Ein Fehler steht nur im Log, und eine fehlende
 Referenz sieht in der Tabelle aus wie „gab es nicht". Wer Vollständigkeit prüfen
 will, prüft das Log auf diese Events, nicht die Tabelle auf Lücken.
 
-Ohne `params.user` schreibt das Journal **nichts**: Ein Journal-Ereignis ohne
+Ohne Bediener schreibt das Journal **nichts**: Ein Journal-Ereignis ohne
 „wer" beantwortet die einzige Frage nicht, für die es existiert.
+
+🚨 **Bediener ist nicht `params.user`.** Am POS läuft die Verbindung über
+Geräte-Auth, `allowApiKey` setzt den virtuellen User `device:<uuid>` — kein
+Mensch und kein UUID. Bis [#590](https://github.com/panary/panary-core/issues/590)
+scheiterte daran jedes Split-Ereignis still an `format: uuid`. Seitdem gilt
+(`resolveSplitOperator` in `order-split.method.ts`):
+
+| Session | `userId` im Journal |
+|---|---|
+| JWT-User (Admin-Client) | `params.user._id`; ein mitgeschicktes `performedBy` zählt nicht |
+| Geräte-Session (POS) | `performedBy` aus dem Request = per PIN angemeldeter Bediener, nur wenn er zum Mandanten der Bestellung gehört |
+| ohne `performedBy`, unbekannter oder fremder User, interner Aufruf | kein Ereignis; Log `order.split_journal_no_operator` bzw. `order.split_journal_operator_rejected` |
+
+Dasselbe Muster wie `performedBy` der Bar-Transaktion. Der Storno-Hook hat
+denselben Fehler noch: [#591](https://github.com/panary/panary-core/issues/591).
 
 ## POS-Oberfläche und die Sperre im Kassenbetrieb
 

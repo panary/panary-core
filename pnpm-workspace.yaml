@@ -103,26 +103,17 @@ trustPolicyIgnoreAfter: 43200
 # Eintrag gehoert nur so lange hierher, wie trustPolicyIgnoreAfter (30 Tage) die
 # Zielversion noch prueft — danach ist er ein stiller Verzicht auf den Check.
 trustPolicyExclude:
-  # webpack-dev-middleware 7.4.6 (publiziert 2026-09-03 13:23 UTC → aus der
-  # 30-Tage-Pruefung ab 2026-10-03 13:23 UTC; dann ENTFERNEN).
-  #
-  # 7.4.6 ist ein Path-Traversal-Fix ("reject requests that resolve outside the
-  # output directory", Containment-Pruefung in getFilenameFromUrl.js) — eine
-  # Variante, die den Fix von GHSA-wr3j-pwj9-hqq6 umgeht: Ohne Trailing-Slash am
-  # publicPath teilt ein Geschwisterpfad wie `/assets../secret` den Prefix, und
-  # der abgeschnittene Rest enthaelt `..`, das aus dem Output-Root ausbricht.
-  # Noch keine CVE/GHSA-ID (Stand 2026-09-11), OSV kennt sie nicht.
-  #
-  # Die trustPolicy blockiert ausgerechnet diesen Fix: Der Maintainer pflegt die
-  # 7.4.x-Linie unveraendert ohne Trusted Publishing (7.4.0-7.4.6, alle von
-  # `evilebottnawi`), waehrend die parallele 8.x-Linie seit 2026-03 ueber GitHub
-  # Actions mit OIDC publiziert. Da trustPolicy nach Publikationsdatum statt nach
-  # semver prueft, gilt 7.4.6 als Downgrade gegenueber 8.3.0 vom selben Tag —
-  # dasselbe Muster wie chokidar@4.0.3, nur mit Sicherheitsrelevanz.
-  #
-  # Ohne diesen Eintrag scheitert jede vollstaendige Neuaufloesung mit
-  # ERR_PNPM_TRUST_DOWNGRADE (so am 2026-09-11 der POS-Release pos-v26.9.1).
-  # Der zugehoerige Override `webpack-dev-middleware: ^7.4.6` in der
-  # package.json ist ZWINGEND: Ohne ihn weicht pnpm still auf 7.4.5 aus — die
-  # verwundbare Version. Beide Teile gehoeren zusammen.
-  - 'webpack-dev-middleware'
+  # --- Befristete Ausnahmen: aktuell KEINE ------------------------------------
+  # Entfernt am 2026-10-04 nach Fristablauf (panary/panary-core#450):
+  # 'webpack-dev-middleware' (7.4.6, publiziert 2026-09-03 13:23 UTC, seit
+  # 2026-10-03 13:23 UTC ausserhalb von trustPolicyIgnoreAfter). Die 7.4.x-Linie
+  # publiziert ohne Trusted Publishing, die 8.x-Linie per OIDC — 7.4.6 galt so
+  # 30 Tage lang als Downgrade gegenueber 8.3.0 (ERR_PNPM_TRUST_DOWNGRADE,
+  # pos-v26.9.1 am 2026-09-11). Ein kuenftiger 7.4.x-Patch loest dasselbe fuer
+  # seine ersten 30 Tage wieder aus.
+  # 🚫 Der Override `webpack-dev-middleware: ^7.4.6` in der package.json BLEIBT —
+  # ohne ihn weicht pnpm still auf die verwundbare 7.4.5 aus. 7.4.6 ist ein
+  # Path-Traversal-Fix (Containment-Pruefung in getFilenameFromUrl.js, Variante
+  # von GHSA-wr3j-pwj9-hqq6: `/assets../secret` bricht ohne Trailing-Slash am
+  # publicPath aus dem Output-Root aus). Ohne CVE/GHSA-ID, kein Scanner meldet
+  # 7.4.5 — der Override ist das einzige Werkzeug, das sie wegschliesst.

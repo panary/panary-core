@@ -57,6 +57,27 @@ export function assertValidOrderStatusTransition(from: string, to: string): void
   throw new Error(`Ungültiger Order-Status-Übergang: ${from} → ${to}`)
 }
 
+/**
+ * Status, mit denen eine Bestellung NICHT mehr offen ist: abgeschlossen,
+ * storniert oder nach Abschluss nicht abgeholt (panary/panary-core#589).
+ */
+const CLOSED_ORDER_STATUSES: ReadonlySet<string> = new Set([
+  OrderStatus.COMPLETED,
+  OrderStatus.ABORTED,
+  OrderStatus.UNCLAIMED,
+])
+
+/**
+ * Ist die Bestellung noch offen, gehoert sie also unter „Offene Bestellungen"?
+ *
+ * 🚨 Die eine Definition fuer POS-Liste und Dashboard-Zaehler. Vorher filterte die
+ * Liste nur `COMPLETED` heraus, der Zaehler dagegen alle drei — eine stornierte
+ * Bestellung stand deshalb als offene Karte da, waehrend der Zaehler 0 zeigte.
+ */
+export function isOrderOpen(status: string | undefined | null): boolean {
+  return !CLOSED_ORDER_STATUSES.has(status ?? '')
+}
+
 /** Boolean-Variante für UI-Checks (Button enable/disable) — wirft nicht. */
 export function isValidOrderStatusTransition(from: string, to: string): boolean {
   if (from === to) return true

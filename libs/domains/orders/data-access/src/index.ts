@@ -10,6 +10,7 @@ export * from './lib/components/split-order-dialog.component'
 
 export {
   OrderStatus,
+  isOrderOpen,
   DineLocation,
   DiscountType,
   TransactionMethod,

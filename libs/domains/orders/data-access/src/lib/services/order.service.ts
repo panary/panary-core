@@ -10,6 +10,7 @@ import {
   CustomerPaymentInfo,
   deriveSettlementScope,
   DineLocation,
+  isOrderOpen,
   Order,
   OrderLineItem,
   OrderSplitSelectionItem,
@@ -112,9 +113,8 @@ export class OrderService extends BaseService<Order> {
 
   // Einmalige computed-Klassenfelder — als Getter würde jeder Zugriff ein frisches
   // computed() anlegen (Memoisierung wirkungslos, neuer Reactive-Node pro Read).
-  readonly ordersActive: Signal<Order[]> = computed(() =>
-    this.#orders().filter((order: Order): boolean => order.status !== OrderStatus.COMPLETED),
-  )
+  // Offen = nicht abgeschlossen, nicht storniert, nicht „nicht abgeholt" (#589).
+  readonly ordersActive: Signal<Order[]> = computed(() => this.#orders().filter(order => isOrderOpen(order.status)))
   readonly ordersCompleted: Signal<Order[]> = computed(() =>
     this.#orders().filter((order: Order): boolean => order.status !== OrderStatus.ACTIVE),
   )

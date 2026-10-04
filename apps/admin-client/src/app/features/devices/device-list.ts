@@ -233,7 +233,9 @@ interface Device {
                 </button>
               </div>
               @if (codeCopyFailed()) {
-                <p class="text-xs text-red-500 -mt-3 mb-5" role="alert">{{ 'DEVICES.PAIRING_COPY_FAILED' | translate }}</p>
+                <p class="text-xs text-red-500 -mt-3 mb-5" role="alert">
+                  {{ 'DEVICES.PAIRING_COPY_FAILED' | translate }}
+                </p>
               }
               @if (qrPayload()) {
                 <div class="flex justify-center mb-5">

@@ -48,6 +48,11 @@ Der Job läuft nur auf `main`: Ein `workflow_dispatch` auf einem anderen Branch 
 sonst verglich er dessen Dateien und meldete das als Abweichung gegenüber `main`. Scheitert die
 Zuweisung (Konto weg, kein Collaborator mehr), entsteht das Issue ohne Zuweisung.
 
+Bevor ein Lauf ein Issue anlegt, wartet er 30 Sekunden und fragt die Liste offener
+`installer-drift`-Issues erneut ab. Jede Liste nach Label (Such-Index wie REST) kennt ein gerade
+angelegtes Issue erst einige Sekunden später, gemessen bis ~12 s. Ohne die Nachprüfung legten zwei
+Läufe direkt hintereinander zwei Issues an ([#554](https://github.com/panary/panary-core/issues/554)).
+
 Der Lauf bleibt bei einer Abweichung **grün**. Rot wird er nur, wenn das Werkzeug selbst scheitert,
 etwa `gh` oder der Checkout.
 

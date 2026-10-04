@@ -37,6 +37,7 @@ export const BASIS_URL = 'https://get.panary.cloud'
 export const HOSTING_DIR = 'tools/hosting/get.panary.cloud'
 export const DATEIEN = ['install.sh', 'index.html']
 export const LABEL = 'installer-drift'
+const NACHPRUEFUNG_MS = Number(process.env.INSTALLER_DRIFT_NACHPRUEFUNG_MS ?? 30_000)
 
 /** Hash wie `git hash-object`: SHA-1 ueber `blob <laenge>\0<inhalt>`. */
 export function blobHash(inhalt) {
@@ -138,10 +139,21 @@ async function main() {
 
   let gewaehlt = 'nichts (ohne --anwenden)'
   if (anwenden) {
-    const offen = JSON.parse(
-      gh(['issue', 'list', '--label', LABEL, '--state', 'open', '--json', 'number', '--limit', '20']),
-    ).map(i => i.number)
+    const offeneIssues = () =>
+      JSON.parse(gh(['issue', 'list', '--label', LABEL, '--state', 'open', '--json', 'number', '--limit', '20'])).map(
+        i => i.number,
+      )
+    let offen = offeneIssues()
     gewaehlt = aktion(ergebnis.zustand, offen)
+    if (gewaehlt === 'oeffnen') {
+      // Jede Liste nach Label (Such-Index wie REST) kennt ein gerade angelegtes Issue erst Sekunden
+      // spaeter — gemessen bis ~12 s. Ein Lauf direkt nach einem anderen legte so ein zweites an
+      // (#554). Deshalb vor dem Anlegen warten und neu fragen; das kostet nur im seltenen Fall
+      // einer Abweichung Zeit.
+      await new Promise(r => setTimeout(r, NACHPRUEFUNG_MS))
+      offen = offeneIssues()
+      gewaehlt = aktion(ergebnis.zustand, offen)
+    }
     if (gewaehlt === 'oeffnen') {
       gh([
         'label',

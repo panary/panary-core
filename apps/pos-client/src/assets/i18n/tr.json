@@ -656,6 +656,8 @@
       "UNKNOWN_LINE": "Sipariş bu arada değişti. Lütfen pencereyi kapatıp yeniden açın.",
       "DUPLICATE_LINE": "Bir ürün seçimde iki kez yer alıyor.",
       "FISCAL_MODE_UNSUPPORTED": "Bölme şu anda yalnızca sipariş modunda mümkündür, kasa modunda değil.",
+      "ROLLED_BACK": "Sipariş bölünmedi. Bu sırada oluşturulan kısmi sipariş iptal edildi – sipariş değişmedi.",
+      "TARGET_LEFT_OPEN": "Kısmi sipariş oluşturuldu, ancak asıl sipariş güncellenmedi. Lütfen TEKRAR bölmeyin – pencereyi kapatın ve listedeki her iki siparişi kontrol edin.",
       "OFFLINE": "Bölme için sunucu bağlantısı gereklidir.",
       "GENERIC": "Sipariş bölünemedi."
     }

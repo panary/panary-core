@@ -656,6 +656,8 @@
       "UNKNOWN_LINE": "The order has changed in the meantime. Please close and reopen the dialog.",
       "DUPLICATE_LINE": "An item appears twice in the selection.",
       "FISCAL_MODE_UNSUPPORTED": "Splitting is currently only available in order mode, not in cashier mode.",
+      "ROLLED_BACK": "The order was not split. The partial order created in the process was cancelled – the order is unchanged.",
+      "TARGET_LEFT_OPEN": "The partial order was created, but the original order was not adjusted. Do NOT split again – close the dialog and check both orders in the list.",
       "OFFLINE": "Splitting requires a connection to the server.",
       "GENERIC": "The order could not be split."
     }

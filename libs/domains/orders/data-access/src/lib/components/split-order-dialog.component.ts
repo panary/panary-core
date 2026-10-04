@@ -11,6 +11,7 @@ import {
   Order,
   OrderLineItem,
   OrderSplitError,
+  OrderSplitErrorCode,
   OrderSplitSelectionItem,
   planOrderSplit,
   sumCents,
@@ -251,6 +252,13 @@ export class SplitOrderDialogComponent {
   readonly submitting = signal(false)
   /** Ablehnung vom Server bzw. Offline — bleibt stehen, bis die Auswahl sich ändert. */
   readonly #serverErrorKey = signal<string | null>(null)
+  /**
+   * Der Edge meldet einen Teilerfolg, den er nicht aufloesen konnte (#544): Ziel
+   * angelegt, Quelle nicht gegengebucht. Ein zweiter Versuch buchte dieselben
+   * Positionen ein drittes Mal — deshalb sperrt das den Dialog bis zum Schliessen,
+   * und anders als `#serverErrorKey` raeumt eine neue Auswahl es NICHT ab.
+   */
+  readonly #unresolvedSplit = signal(false)
   /** Hat der Nutzer bei leerer Auswahl bestätigt? Dann wird die Leere gemeldet statt still nichts zu tun. */
   readonly #triedEmpty = signal(false)
 
@@ -339,6 +347,7 @@ export class SplitOrderDialogComponent {
   })
 
   readonly messageKey = computed<string | null>(() => {
+    if (this.#unresolvedSplit()) return 'SPLIT_ORDER.ERROR.TARGET_LEFT_OPEN'
     const server = this.#serverErrorKey()
     if (server) return server
     const p = this.preview()
@@ -353,7 +362,9 @@ export class SplitOrderDialogComponent {
    * ausschließt. Gesperrt ist er nur, wenn die Vorschau schon weiß, dass der
    * Server ablehnen wird (Meldung steht dann darunter), und während des Aufrufs.
    */
-  readonly canConfirm = computed(() => !this.submitting() && this.preview().state !== 'error')
+  readonly canConfirm = computed(
+    () => !this.submitting() && !this.#unresolvedSplit() && this.preview().state !== 'error',
+  )
 
   quantityOf(key: string): number {
     return this.#quantities()[key] ?? 0
@@ -389,6 +400,7 @@ export class SplitOrderDialogComponent {
         this.#serverErrorKey.set('SPLIT_ORDER.ERROR.OFFLINE')
       } else {
         const err = e as { data?: { code?: unknown }; code?: unknown } | undefined
+        if (err?.data?.code === OrderSplitErrorCode.TARGET_LEFT_OPEN) this.#unresolvedSplit.set(true)
         this.#serverErrorKey.set(errorKey(err?.data?.code))
       }
     } finally {

@@ -43,8 +43,9 @@ Migration `20261004100000_orders_daily_sequence_unique` legt
 - Bestandsdaten können Duplikate tragen (genau das war der Fehler). Ein voller Index
   scheiterte beim Anlegen, der Edge käme nicht hoch. Umschreiben scheidet aus: Die Nummer
   steht auf ausgegebenen Belegen.
-- Orders, die ein Bootstrap/Restore später aus der Cloud zurückspielt, tragen ihr altes
-  `createdAt` und fallen ebenfalls nicht unter den Index.
+- Auch ein Bootstrap/Restore aus der Cloud legt Orders über `create` an: Der Data-Resolver
+  setzt `createdAt` neu und der Hook vergibt eine neue Nummer. Eine zurückgespielte Order
+  trägt deshalb nicht ihre alte Nummer — das war vor dem Fix ebenso.
 - Nicht das Vierer-Tupel mit `tenantId`/`locationId`: SQLite wertet NULL im Unique-Index
   als verschieden, eine Bestellung ohne gestempelte `tenantId` fiele still heraus.
 

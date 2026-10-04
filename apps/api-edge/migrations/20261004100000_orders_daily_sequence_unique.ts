@@ -14,10 +14,12 @@
 // (genau das war der Fehler). Ein voller Unique-Index scheiterte dann beim Anlegen,
 // und der Edge kaeme nicht mehr hoch. Umschreiben ist keine Option: Die Nummer steht
 // auf ausgegebenen Belegen (KassenSichV, Beleg-Snapshot unveraenderbar). Deshalb gilt
-// der Index nur fuer Zeilen mit `createdAt` NACH dem Lauf. Das trifft auch
-// Bestandsorders, die ein Bootstrap/Restore spaeter aus der Cloud zurueckspielt —
-// deren `createdAt` liegt vor dem Stichtag. Neue Nummern kollidieren mit Altbestand
-// nicht, weil der Hook ueber dem Maximum des Tages weiterzaehlt.
+// der Index nur fuer Zeilen mit `createdAt` NACH dem Lauf. Neue Nummern kollidieren
+// mit Altbestand nicht, weil der Hook ueber dem Maximum des Tages weiterzaehlt.
+//
+// Jeder Create laeuft durch denselben Hook und denselben Data-Resolver, auch ein
+// Bootstrap/Restore (`fromSync`): `createdAt` wird dort neu gesetzt (also nach dem
+// Stichtag), die Nummer neu vergeben — der Index sieht nur frisch gezaehlte Werte.
 //
 // Gefundene Duplikate werden gezaehlt und gemeldet, nicht veraendert.
 //

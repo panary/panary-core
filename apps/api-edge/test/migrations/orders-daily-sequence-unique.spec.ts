@@ -91,7 +91,7 @@ describe('Migration orders_daily_sequence_unique', () => {
     await expect(db('orders').insert(order('bd-2', 1, AFTER))).resolves.toBeDefined()
   })
 
-  it('laesst zurueckgespielte Bestandsorders (createdAt vor dem Stichtag) durch', async () => {
+  it('laesst Zeilen mit createdAt vor dem Stichtag durch (Altbestand)', async () => {
     await up(db, CUTOFF)
     await db('orders').insert(order('bd-1', 7, BEFORE))
 

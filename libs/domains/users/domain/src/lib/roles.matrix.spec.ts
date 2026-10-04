@@ -343,3 +343,43 @@ describe('RolePermissions — BUSINESS_DAY_REPORTS fuer TENANT_STAFF', () => {
     )
   })
 })
+
+/**
+ * Ankuendigungen der Startseite (panary/panary-core#601, panary/panary-cloud#1053).
+ *
+ * Plattformweiter Cloud-Service ohne tenantId. Ohne Matrix-Eintrag lieferte
+ * authorize() jeder Tenant-Rolle 403, und die Startseite bliebe still leer.
+ * Die Zielgruppe filtert der Cloud-Service; die Matrix gibt nur das Tor frei.
+ */
+describe('RolePermissions — ANNOUNCEMENTS', () => {
+  it('alle Tenant-Rollen und PLATFORM_SUPPORT duerfen lesen', () => {
+    for (const role of [
+      UserSystemRole.TENANT_OWNER,
+      UserSystemRole.TENANT_MANAGER,
+      UserSystemRole.TENANT_STAFF,
+      UserSystemRole.TENANT_TECHNICIAN,
+      UserSystemRole.PLATFORM_SUPPORT,
+    ]) {
+      expect(roleActions(role, AppResource.ANNOUNCEMENTS), role).toEqual([AppAction.READ])
+    }
+  })
+
+  it('PLATFORM_OWNER und PLATFORM_ADMIN pflegen', () => {
+    for (const role of [UserSystemRole.PLATFORM_OWNER, UserSystemRole.PLATFORM_ADMIN]) {
+      for (const action of [AppAction.READ, AppAction.CREATE, AppAction.UPDATE, AppAction.DELETE]) {
+        expect(roleCan(role, AppResource.ANNOUNCEMENTS, action), `${role} ${action}`).toBe(true)
+      }
+    }
+  })
+
+  it('Geraete-Rollen haben keinerlei Zugriff', () => {
+    for (const role of [
+      UserSystemRole.DEVICE_POS,
+      UserSystemRole.DEVICE_KDS,
+      UserSystemRole.DEVICE_TABLET,
+      UserSystemRole.DEVICE_KIOSK,
+    ]) {
+      expect(roleActions(role, AppResource.ANNOUNCEMENTS), role).toEqual([])
+    }
+  })
+})

@@ -41,7 +41,9 @@ function setup(opts: {
   verifyPin?: () => Promise<unknown>
 }) {
   const patch = vi.fn(opts.patch ?? (async () => ({})))
-  const createInteraction = vi.fn(opts.createInteraction ?? (async () => ({})))
+  const createInteraction = vi.fn<(data: Record<string, unknown>) => Promise<unknown>>(
+    opts.createInteraction ?? (async () => ({})),
+  )
   const verifyPin = vi.fn(opts.verifyPin ?? (async () => ({ _id: MANAGER_ID, role: 'tenant:manager' })))
   const close = vi.fn()
 
@@ -107,7 +109,7 @@ describe('CancelOrderDialogComponent — Journal-Ereignis zum Storno (#591)', ()
 
     expect(verifyPin).toHaveBeenCalledTimes(1)
     expect(createInteraction).toHaveBeenCalledTimes(1)
-    expect(createInteraction.mock.calls[0][0].userId).toBe(MANAGER_ID)
+    expect(createInteraction.mock.calls[0][0]['userId']).toBe(MANAGER_ID)
   })
 
   it('Doppel-Tipp im Manager-Pfad: ein Storno, ein Journal-Ereignis', async () => {

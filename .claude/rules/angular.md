@@ -204,6 +204,18 @@ export class MyComponent {
 - [ ] Block-Control-Flow statt Strukturdirektiven
 - [ ] Keine NgModules erstellen
 
+### 6.1 Edge-Oberflächen sind kein Secure Context
+
+`admin-client` und `setup-client` kommen von api-edge per **HTTP auf der LAN-IP**. Dort fehlen alle
+Browser-APIs, die einen Secure Context verlangen — `navigator.clipboard` ist `undefined`, ebenso
+`crypto.subtle` und WebAuthn. Lokal über `localhost` fällt das nicht auf, denn `localhost` gilt als sicher.
+
+- **Kopieren:** `Clipboard` aus `@angular/cdk/clipboard` (`clipboard.copy(text)` → `boolean`, mit
+  `execCommand`-Fallback), nie `navigator.clipboard`. Das Ergebnis steuert „Kopiert" bzw. eine sichtbare
+  Fehlermeldung — kein leerer `catch` (panary/panary-core#550).
+- Jede andere Secure-Context-API vor Benutzung prüfen (`window.isSecureContext`) und einen Rückweg anbieten.
+- Der `pos-client` läuft in Tauri und ist nicht betroffen.
+
 ---
 
 ## 7. Formulare

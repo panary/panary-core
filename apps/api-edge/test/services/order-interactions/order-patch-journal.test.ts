@@ -1,5 +1,6 @@
 import { uuidv7 } from 'uuidv7'
-import { onTestFinished } from 'vitest'
+import { onTestFinished, vi } from 'vitest'
+import { logger } from '@panary/shared-backend'
 import { app } from '../../../src/app'
 
 // Integrationstest fuer den `after.patch`-Journalpfad (panary/panary-core#348,
@@ -137,6 +138,35 @@ describe('order-interactions — Journal nach der Bestellannahme', () => {
     const journal = await journalFor(order._id)
 
     expect(journal.total).toBe(0)
+  })
+
+  it('schreibt fuer eine Geraete-Session KEIN Ereignis und scheitert nicht still daran (#591)', async () => {
+    // Am POS ist `params.user` der virtuelle Geraete-User aus `allowApiKey`. Vorher
+    // landete `device:<uuid>` als `userId` im Create und scheiterte an `format: uuid`
+    // — nur im Log sichtbar. Das Ereignis schreibt seit #591 der Storno-Dialog.
+    // Gemessen wird deshalb das Ausbleiben des Fehlschlags, nicht nur die leere
+    // Tabelle: Die bliebe auch mit dem alten Verhalten leer.
+    const order = await createOrder()
+    const errorSpy = vi.spyOn(logger, 'error')
+    onTestFinished(() => errorSpy.mockRestore())
+
+    await app.service('orders').patch(
+      order._id,
+      { status: 'aborted' } as never,
+      {
+        ...internal,
+        user: { _id: `device:${uuidv7()}`, role: 'device:pos-client', tenantId, locationId },
+      } as never,
+    )
+
+    const journal = await journalFor(order._id)
+    expect(journal.total).toBe(0)
+    const journalFailures = errorSpy.mock.calls.filter(
+      ([entry]) => (entry as { event?: string } | undefined)?.event === 'order.patch_interaction_failed',
+    )
+    expect(journalFailures).toEqual([])
+    const stored = (await app.service('orders').get(order._id, internal)) as { status: string }
+    expect(stored.status).toBe('aborted')
   })
 
   it('schreibt KEIN Ereignis bei einem Patch ohne Statuswechsel', async () => {

@@ -278,8 +278,10 @@ scheiterte daran jedes Split-Ereignis still an `format: uuid`. Seitdem gilt
 | Geräte-Session (POS) | `performedBy` aus dem Request = per PIN angemeldeter Bediener, nur wenn er zum Mandanten der Bestellung gehört |
 | ohne `performedBy`, unbekannter oder fremder User, interner Aufruf | kein Ereignis; Log `order.split_journal_no_operator` bzw. `order.split_journal_operator_rejected` |
 
-Dasselbe Muster wie `performedBy` der Bar-Transaktion. Der Storno-Hook hat
-denselben Fehler noch: [#591](https://github.com/panary/panary-core/issues/591).
+Dasselbe Muster wie `performedBy` der Bar-Transaktion. Beim Storno, einem
+gewöhnlichen Patch, schreibt stattdessen der POS das Ereignis
+([#591](https://github.com/panary/panary-core/issues/591),
+[ADR 0052](../adr/0052-journal-ereignisse-nach-annahme-schreibt-der-pos.md)).
 
 ## POS-Oberfläche und die Sperre im Kassenbetrieb
 

@@ -112,6 +112,10 @@ Der Hook ist **nicht blockierend**, wie `createOrderInteractions` und die TSE-Ho
 Audit-Pfad nimmt Verlust bewusst in Kauf, statt den Geschäftspfad zu blockieren — ein
 fehlendes Ereignis fällt im Betrieb **nicht** auf.
 
+⚠️ **Nachtrag 2026-10-04:** Am POS erreicht dieser Hook keinen Bediener, `params.user` ist dort
+der Geräte-User `device:<uuid>`. Bei Geräte-Sessions schreibt seitdem der POS das Ereignis:
+[ADR 0052](0052-journal-ereignisse-nach-annahme-schreibt-der-pos.md).
+
 ### 8. `lineItemId` bleibt ein Array-Index — die echte Zeilen-ID ist ein neues Feld
 
 `orderInteractions.lineItemId` heißt so, ist aber ein **Array-Index** (`Type.Number`,

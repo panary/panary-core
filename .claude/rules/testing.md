@@ -1,12 +1,13 @@
 ---
 paths:
   - '**/*.spec.ts'
+  - '**/*.test.ts'
   - '**/vitest.config.*'
   - '**/vite.config.*'
   - '**/project.json'
 ---
 
-# Tests und Spec-Isolation – Panary Core (Code-Style §10)
+# Tests, Spec-Isolation und Rot-Nachweis – Panary Core (Code-Style §10)
 
 > Ausgelagert aus `code-style.md` (panary/panary-core#318, 2026-09-15). Abschnittsnummer unverändert, damit Verweise wie `§10.1` weiter gelten.
 
@@ -256,18 +257,20 @@ der Test je rot", sondern „wird er rot, wenn **dieser** Filter fehlt".
 - generierte Specs (`should create` eines Nx-Generators), solange sie unverändert sind.
 
 Die Ausnahme gilt **je Test, nicht je Datei**: Sobald ein Test eine Verzweigung, Rechnung oder
-Filterung prüft, gilt die Pflicht. Ein Negativfall („kein Rabatt → kein Feld") braucht keinen eigenen
-Rot-Nachweis, er soll unter der Mutation grün bleiben — das ist im Gegenteil ein nützlicher
-Nebenbefund der Probe.
+Filterung prüft, gilt die Pflicht. Ein fachlicher Negativfall („kein Rabatt → kein Feld") braucht
+keine eigene Variante: Die ROT-Liste vermerkt, dass er unter der Mutation grün blieb, wie er soll.
+🚫 **Das gilt nicht für sicherheitsrelevante Negativfälle** — „fremder Tenant sieht nichts" ist genau
+der Test, der rot werden muss, wenn der Filter fehlt, und fällt unter die Pflicht oben.
 
-**Nachweisform: die ROT-Liste im Log-Fragment** (`docs/log.d/`, gleicher Commit wie der Test). Ohne
-Spur ist die Regel unprüfbar. Je Variante eine Angabe `<was gebrochen> → <n> rot`, danach der
+**Nachweisform: die ROT-Liste im Log-Fragment** (`docs/log.d/`, gleicher PR wie der Test). Ohne
+Spur ist die Regel unprüfbar. Reihenfolge bei der Mutationsprobe: Test committen, Probe fahren, die
+ROT-Liste als Folge-Commit ins Fragment — das Ergebnis gibt es erst nach dem Commit (unten). Je Variante eine Angabe `<was gebrochen> → <n> rot`, danach der
 Kontrolllauf nach dem Zurücksetzen:
 
-```md
-- **Update**: Mutationsprobe zu den neuen Specs: `toReceiptDiscounts` auf leer → 6 rot,
+```text
+* **Update**: Mutationsprobe zu den neuen Specs: `toReceiptDiscounts` auf leer → 6 rot,
   Nachlass-Schleife im Renderer entfernt → 4 rot; Kontrolllauf 10/10 grün.
-- **Update**: Test-First: 3 rot vor der Implementierung (`expected undefined to be 'PICKUP'`).
+* **Update**: Test-First: 3 rot vor der Implementierung (`expected undefined to be 'PICKUP'`).
 ```
 
 Vorlagen aus dem Bestand: [#228](../../docs/log.d/2026-08-14-228-beleg-nachlass.md) (zwei

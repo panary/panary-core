@@ -364,9 +364,11 @@ describe('RolePermissions — ANNOUNCEMENTS', () => {
     }
   })
 
-  it('PLATFORM_ADMIN pflegt', () => {
-    for (const action of [AppAction.READ, AppAction.CREATE, AppAction.UPDATE, AppAction.DELETE]) {
-      expect(roleCan(UserSystemRole.PLATFORM_ADMIN, AppResource.ANNOUNCEMENTS, action), action).toBe(true)
+  it('PLATFORM_OWNER und PLATFORM_ADMIN pflegen', () => {
+    for (const role of [UserSystemRole.PLATFORM_OWNER, UserSystemRole.PLATFORM_ADMIN]) {
+      for (const action of [AppAction.READ, AppAction.CREATE, AppAction.UPDATE, AppAction.DELETE]) {
+        expect(roleCan(role, AppResource.ANNOUNCEMENTS, action), `${role} ${action}`).toBe(true)
+      }
     }
   })
 

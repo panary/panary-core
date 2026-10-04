@@ -207,10 +207,11 @@
     <div class="lg:hidden fixed inset-0 z-40" (click)="closePanel()" aria-hidden="true"></div>
   }
 
+  <!-- Einklappen per [class]-Ausdruck, nicht per [class.translate-y-[…4.5rem)]]:
+       Angular trennt den Bindungsnamen am Punkt und bindet sonst „translate-y-[calc(100%-4“ (core#572). -->
   <div
     class="lg:hidden fixed inset-x-0 bottom-0 z-50 px-4 transition-transform duration-300 ease-out"
-    [class.translate-y-[calc(100%-4.5rem)]]="!isExpanded()"
-    [class.translate-y-0]="isExpanded()"
+    [class]="isExpanded() ? 'translate-y-0' : 'translate-y-[calc(100%-4.5rem)]'"
     (touchstart)="onTouchStart($event)"
     (touchmove)="onTouchMove($event)"
     (touchend)="onTouchEnd()"

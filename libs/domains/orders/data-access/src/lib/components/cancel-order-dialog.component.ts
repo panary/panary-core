@@ -239,6 +239,8 @@ export class CancelOrderDialogComponent {
 
   order: Order = inject(MAT_DIALOG_DATA)
 
+  #cancelling = false
+
   readonly reasons = CANCEL_REASONS
   readonly digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
   readonly pinSlots = Array.from({ length: PIN_LENGTH }, (_, i) => i)
@@ -353,6 +355,10 @@ export class CancelOrderDialogComponent {
   }
 
   private async executeCancel(authorizer: User | AuthorizingManager): Promise<void> {
+    // Ein Doppel-Tipp im Manager-Pfad (`selectReason` ohne PIN-Schritt) startete
+    // sonst zwei Stornos und damit zwei `order-cancel`-Ereignisse (#591).
+    if (this.#cancelling) return
+    this.#cancelling = true
     const name = this.#authorizerName(authorizer)
     try {
       await this.#orderService.patch(this.order._id, {
@@ -368,6 +374,8 @@ export class CancelOrderDialogComponent {
       this.#dialogRef.close({ success: true, canceledBy: name })
     } catch {
       this.#snackBar.open(this.#translate.instant('CANCEL_ORDER.ERROR'), 'OK', { duration: 3000 })
+    } finally {
+      this.#cancelling = false
     }
   }
 

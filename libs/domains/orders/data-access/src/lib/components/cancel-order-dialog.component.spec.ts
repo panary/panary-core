@@ -110,6 +110,19 @@ describe('CancelOrderDialogComponent — Journal-Ereignis zum Storno (#591)', ()
     expect(createInteraction.mock.calls[0][0].userId).toBe(MANAGER_ID)
   })
 
+  it('Doppel-Tipp im Manager-Pfad: ein Storno, ein Journal-Ereignis', async () => {
+    const { dialog, patch, createInteraction } = setup({
+      currentUser: { _id: MANAGER_ID, role: 'tenant:manager' },
+    })
+
+    dialog.selectReason('CANCEL_ORDER.REASON_COMPLAINT')
+    dialog.selectReason('CANCEL_ORDER.REASON_COMPLAINT')
+    await flush()
+
+    expect(patch).toHaveBeenCalledTimes(1)
+    expect(createInteraction).toHaveBeenCalledTimes(1)
+  })
+
   it('ein scheiterndes Journal laesst den Storno gelten — Dialog schliesst mit Erfolg', async () => {
     const { dialog, close } = setup({
       currentUser: { _id: MANAGER_ID, role: 'tenant:manager' },

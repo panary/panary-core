@@ -7,7 +7,7 @@ import { Router } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
 import { DeviceAssignmentService } from '@panary/devices/data-access'
 import { DeviceAccessMode, type DeviceAccessModeValue } from '@panary/devices/domain'
-import { ConnectionService, LanguageService } from '@panary/shared/data-access'
+import { ConnectionService, LanguageService, OFFLINE_OUTBOX } from '@panary/shared/data-access'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { UpdateService } from '@panary/shared/data-access-updater'
@@ -56,6 +56,10 @@ interface SetupOptions {
   assignedUserIds?: string[]
   /** Das Geraet schuldet eine Bestaetigung nach langer Offline-Phase (#325). */
   reverificationRequired?: boolean
+  /** Ablehnungsgrund des Servers beim Handshake (`device:authenticated` mit `success: false`). */
+  rejection?: string | null
+  /** Noch nicht uebertragene Outbox-Eintraege; `undefined` = kein Outbox-Provider. */
+  pendingOutbox?: number
 }
 
 function setup(options: SetupOptions = {}) {
@@ -64,6 +68,8 @@ function setup(options: SetupOptions = {}) {
     users = USERS,
     assignedUserIds = users.map(u => u._id),
     reverificationRequired = false,
+    rejection = null,
+    pendingOutbox,
   } = options
 
   const assignment = fakeAssignment(mode, assignedUserIds)
@@ -78,7 +84,7 @@ function setup(options: SetupOptions = {}) {
     // Sofort 'authenticated' → waitForConnection() loest im ersten Poll auf,
     // ohne Timer und ohne Fake-Clock.
     connectionState: signal({ status: 'authenticated' }),
-    deviceAuthRejection: signal<string | null>(null),
+    deviceAuthRejection: signal<string | null>(rejection),
     // Standardfall: keine Bestaetigung ausstehend (panary/panary-core#325).
     // Ueber `options.reverificationRequired` schaltbar — der Zweig gehoert in
     // `#resolveEntryStep` VOR die Zuweisungs-Logik und muss deshalb hier belegt
@@ -90,12 +96,20 @@ function setup(options: SetupOptions = {}) {
     isConfiguredFor: () => true,
   }
 
+  const clearConfig = vi.fn()
+  const outboxPending = signal(pendingOutbox ?? 0)
+
   const injector = Injector.create({
     providers: [
+      ...(pendingOutbox === undefined
+        ? []
+        : [{ provide: OFFLINE_OUTBOX, useValue: { pendingCount: () => outboxPending() } }]),
       { provide: Router, useValue: { navigate } },
       {
         provide: DeviceConfigService,
-        useValue: { getConfig: () => ({ deviceId: 'terminal-1', deviceName: 'Kasse 1' }), clearConfig: vi.fn() },
+        // Bewusst ohne `unpair`: Die Neukopplung darf die Outbox nicht loeschen.
+        // Ein Aufruf liefe hier auf einen TypeError und machte den Test rot.
+        useValue: { getConfig: () => ({ deviceId: 'terminal-1', deviceName: 'Kasse 1' }), clearConfig },
       },
       { provide: ConnectionService, useValue: connection },
       { provide: DeviceAssignmentService, useValue: assignment },
@@ -108,10 +122,15 @@ function setup(options: SetupOptions = {}) {
   })
 
   const component = runInInjectionContext(injector, () => new LoginComponent())
+  // `window.location.reload()` gibt es in der node-Umgebung nicht.
+  const reload = vi.spyOn(component as unknown as { refreshPage: () => void }, 'refreshPage').mockImplementation(() => {})
 
   return {
     component,
     connection,
+    clearConfig,
+    reload,
+    outboxPending,
     find,
     navigate,
     /**
@@ -327,6 +346,87 @@ describe('LoginComponent — Re-Verifikation nach langer Offline-Phase (#325)', 
 
     await component['connectAndLoadUsers']()
 
+    expect(component.currentStep()).toBe('select-user')
+  })
+})
+
+describe('LoginComponent — Neukopplung nach abgelaufenem Schluessel (#524)', () => {
+  it('fuehrt einen abgelaufenen Schluessel in die Fehlermaske mit Neukopplungs-Weg', async () => {
+    const { component } = setup({ rejection: 'DEVICE_KEY_EXPIRED' })
+
+    await component['connectAndLoadUsers']()
+
+    expect(component.currentStep()).toBe('error')
+    expect(component.errorKind()).toBe('device-key-expired')
+    expect(component.errorMessage()).toBe('LOGIN.DEVICE_KEY_EXPIRED')
+  })
+
+  it('bietet einem deaktivierten Geraet keinen Weg am Geraet an', async () => {
+    // Sonst wird aus der Sperre im Admin eine Einladung, sie am Geraet zu umgehen.
+    const { component, clearConfig } = setup({ rejection: 'DEVICE_REJECTED' })
+    await component['connectAndLoadUsers']()
+    expect(component.errorKind()).toBe('device-rejected')
+
+    component.requestRepair()
+    component.confirmRepair()
+
+    expect(component.currentStep()).toBe('error')
+    expect(clearConfig).not.toHaveBeenCalled()
+  })
+
+  it('fragt vor dem Loesen der Kopplung nach und nennt die offene Outbox', async () => {
+    const { component, clearConfig } = setup({ rejection: 'DEVICE_KEY_EXPIRED', pendingOutbox: 2 })
+    await component['connectAndLoadUsers']()
+
+    component.requestRepair()
+
+    expect(component.currentStep()).toBe('repair-confirm')
+    expect(component.pendingOutboxCount()).toBe(2)
+    expect(clearConfig).not.toHaveBeenCalled()
+  })
+
+  it('verwirft beim Abbruch nichts', async () => {
+    const { component, clearConfig, reload } = setup({ rejection: 'DEVICE_KEY_EXPIRED', pendingOutbox: 2 })
+    await component['connectAndLoadUsers']()
+    component.requestRepair()
+
+    component.cancelRepair()
+
+    expect(component.currentStep()).toBe('error')
+    expect(clearConfig).not.toHaveBeenCalled()
+    expect(reload).not.toHaveBeenCalled()
+  })
+
+  it('loest nach Bestaetigung nur die Kopplung und startet in den Setup-Wizard', async () => {
+    const { component, clearConfig, reload } = setup({ rejection: 'DEVICE_KEY_EXPIRED', pendingOutbox: 2 })
+    await component['connectAndLoadUsers']()
+    component.requestRepair()
+
+    component.confirmRepair()
+
+    // `clearConfig` statt `unpair`: Die Outbox bleibt fuer eine Kopplung an
+    // dieselbe Filiale erhalten (der Fake-Service hat kein `unpair`).
+    expect(clearConfig).toHaveBeenCalledOnce()
+    expect(reload).toHaveBeenCalledOnce()
+  })
+
+  it('zeigt ohne Outbox-Provider null offene Eintraege', async () => {
+    const { component } = setup({ rejection: 'DEVICE_KEY_EXPIRED' })
+    await component['connectAndLoadUsers']()
+
+    expect(component.pendingOutboxCount()).toBe(0)
+  })
+
+  it('vergisst den Ablehnungsgrund beim naechsten Versuch', async () => {
+    // Ein spaeterer Transportfehler darf nicht den Neukopplungs-Knopf erben.
+    const { component, connection } = setup({ rejection: 'DEVICE_KEY_EXPIRED' })
+    await component['connectAndLoadUsers']()
+    expect(component.errorKind()).toBe('device-key-expired')
+
+    connection.deviceAuthRejection.set(null)
+    await component['connectAndLoadUsers']()
+
+    expect(component.errorKind()).toBe('connection')
     expect(component.currentStep()).toBe('select-user')
   })
 })

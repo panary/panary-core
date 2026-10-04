@@ -1,0 +1,48 @@
+name: Installer-Drift
+
+# Meldet, wenn https://get.panary.cloud nicht den Stand von tools/hosting/get.panary.cloud/ auf
+# main ausliefert. Der Upload in die Bunny-Storage-Zone bleibt Handarbeit (Entscheidung Michael,
+# 2026-10-04) — dieser Workflow laedt NICHTS hoch und braucht keinen Bunny-Schluessel.
+#
+# Benachrichtigung statt Gate: Eine Abweichung oeffnet genau EIN Issue (Label installer-drift)
+# und laesst den Lauf gruen. Stimmt alles wieder, schliesst der naechste Lauf es selbst. Rot wird
+# der Lauf nur, wenn das Werkzeug selbst scheitert (gh, Checkout) — nie wegen der Abweichung.
+# Begruendung und Ablauf: scripts/installer-drift.mjs, panary/panary-core#540.
+#
+# Der Push-Trigger ist Absicht: Nach einem Merge, der install.sh aendert, IST die Datei live
+# veraltet. Das Issue erscheint dann sofort als Erinnerung zum Hochladen.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/hosting/get.panary.cloud/**'
+      - 'scripts/installer-drift.mjs'
+      - '.github/workflows/installer-drift.yml'
+  schedule:
+    - cron: '23 6 * * *' # taeglich 06:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: installer-drift
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    name: get.panary.cloud gegen main
+    # Ein workflow_dispatch auf einem Feature-Branch verglich DESSEN Dateien mit live und meldete
+    # das als Abweichung gegenueber main. Geprueft wird deshalb nur main.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Abgleich und Benachrichtigung
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INSTALLER_DRIFT_ASSIGNEE: michaelratke
+        run: node scripts/installer-drift.mjs --anwenden

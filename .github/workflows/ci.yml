@@ -219,6 +219,12 @@ jobs:
       - name: security-scan-Logik pruefen
         run: node scripts/security-scan.spec.mjs
 
+      # installer-drift.mjs laeuft nur im eigenen Workflow (installer-drift.yml) gegen das Netz.
+      # Hier wird seine Entscheidung geprueft: Ein Netzwerk-Wackler darf kein Issue oeffnen oder
+      # schliessen, und eine Abweichung darf nicht je Lauf ein weiteres anlegen (#540).
+      - name: installer-drift-Logik pruefen
+        run: node scripts/installer-drift.spec.mjs
+
       # nx affected liest NX_BASE/NX_HEAD aus der Umgebung (nx-set-shas oben).
       #
       # `typecheck` ist seit 2026-08-06 dabei und bewusst HART, ohne Baseline: der

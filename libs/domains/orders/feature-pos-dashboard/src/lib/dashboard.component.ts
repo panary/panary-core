@@ -16,7 +16,7 @@ import { Router } from '@angular/router'
 import { NGX_ECHARTS_CONFIG, NgxEchartsModule } from 'ngx-echarts'
 import type { EChartsOption } from 'echarts'
 import { ConnectionService, TenantSuspensionService } from '@panary/shared/data-access'
-import { Order, OrderService, OrderStatus } from '@panary/orders/data-access'
+import { isOrderOpen, Order, OrderService, OrderStatus } from '@panary/orders/data-access'
 import { UserService } from '@panary/users/data-access'
 import { UserSystemRole, type User } from '@panary/users/domain'
 import { AuthService, PosSessionService } from '@panary/auth/data-access'
@@ -390,9 +390,7 @@ export class DashboardComponent implements OnInit {
   readonly isStampedIn = computed(() => !!this.currentUser()?.stampingId)
 
   readonly activeOrdersCount = computed(() => {
-    return this.orders().filter(
-      o => o.status !== OrderStatus.COMPLETED && o.status !== OrderStatus.ABORTED && o.status !== OrderStatus.UNCLAIMED,
-    ).length
+    return this.orders().filter(o => isOrderOpen(o.status)).length
   })
 
   readonly todayOrdersCount = computed(() => this.orders().length)

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { OrderStatus } from './order.schema'
-import { assertValidOrderStatusTransition, isValidOrderStatusTransition } from './order-state-machine'
+import { assertValidOrderStatusTransition, isOrderOpen, isValidOrderStatusTransition } from './order-state-machine'
 
 describe('order state-machine — assertValidOrderStatusTransition (Security „order-status-fsm")', () => {
   describe('erlaubte Vorwärts-Übergänge (bewusst permissiv — kein Kassenausfall)', () => {
@@ -89,5 +89,21 @@ describe('isValidOrderStatusTransition — Boolean-Variante', () => {
 
   it('true für Same-Status COMPLETED → COMPLETED', () => {
     expect(isValidOrderStatusTransition(OrderStatus.COMPLETED, OrderStatus.COMPLETED)).toBe(true)
+  })
+})
+
+describe('isOrderOpen — was unter „Offene Bestellungen" gehoert (#589)', () => {
+  // Gegen die VOLLE Statusliste: Ein neuer Status faellt sonst still in eine der Gruppen.
+  it('deckt jeden OrderStatus ab', () => {
+    const open = Object.values(OrderStatus).filter(status => isOrderOpen(status))
+    expect(open).toEqual([OrderStatus.ACTIVE, OrderStatus.PRODUCTION, OrderStatus.PRODUCED])
+  })
+
+  it('storniert ist nicht offen', () => {
+    expect(isOrderOpen(OrderStatus.ABORTED)).toBe(false)
+  })
+
+  it('ohne Status gilt die Bestellung als offen — Bestandsdaten verschwinden nicht still', () => {
+    expect(isOrderOpen(undefined)).toBe(true)
   })
 })

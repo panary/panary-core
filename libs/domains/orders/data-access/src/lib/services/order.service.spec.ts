@@ -39,6 +39,8 @@ import { OrderService, OrderSplitOfflineError } from './order.service'
 interface SetupOptions {
   /** true = Offline-Pfad (Outbox + Cache bereit, Verbindung nicht authentifiziert). */
   offline?: boolean
+  /** Antwort von `find` beim Laden der Liste; setzt dazu einen Geschaeftstag, sonst ist loadDocuments() ein No-op. */
+  orders?: Array<Record<string, unknown>>
 }
 
 const makeLineItem = (topic: string): OrderLineItem =>
@@ -73,7 +75,10 @@ function setup(options: SetupOptions = {}) {
       createCalls.push({ payload, params })
       return Promise.resolve({ ...payload, _id: payload['_id'] ?? 'server-vergeben', dailySequenceNumber: 42 })
     },
-    find: () => Promise.resolve({ total: 0, data: [], limit: 0, skip: 0 }),
+    find: () => {
+      const data = options.orders ?? []
+      return Promise.resolve({ total: data.length, data, limit: 0, skip: 0 })
+    },
   }
 
   const connectionState = signal({ status: options.offline ? 'disconnected' : 'authenticated' })
@@ -97,6 +102,7 @@ function setup(options: SetupOptions = {}) {
             // Ohne currentBusinessDay ist loadDocuments() ein No-op — der Test
             // interessiert sich fuer die Payload, nicht fuer den Nachlade-Pfad.
             settings: { printSettings: { showDialogAfterOrder: false } },
+            ...(options.orders ? { currentBusinessDay: { businessDayId: 'bd-1' } } : {}),
           }),
         },
       },
@@ -310,5 +316,20 @@ describe('OrderService.split (#350)', () => {
     await expect(service.split('quelle', [{ lineItemRowId: 'li-1' }])).rejects.toBeInstanceOf(OrderSplitOfflineError)
     expect(splitCalls).toEqual([])
     expect(enqueued).toEqual([])
+  })
+})
+
+describe('OrderService.ordersActive — nur offene Bestellungen (#589)', () => {
+  it('blendet stornierte, abgeschlossene und nicht abgeholte Bestellungen aus', async () => {
+    const statuses = Object.values(OrderStatus)
+    const { service } = setup({ orders: statuses.map(status => ({ _id: `o-${status}`, status, lineItems: [] })) })
+
+    await (service as unknown as { loadDocuments: (o?: unknown) => Promise<void> }).loadDocuments({ silent: true })
+
+    expect(service.ordersActive().map(order => order.status)).toEqual([
+      OrderStatus.ACTIVE,
+      OrderStatus.PRODUCTION,
+      OrderStatus.PRODUCED,
+    ])
   })
 })

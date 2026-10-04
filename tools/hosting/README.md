@@ -32,6 +32,15 @@ Bunny-Pull-Zone konfiguriert sein:
 den fängt der Storefront-Wildcard `*.panary.cloud` den Namen ab und liefert
 einen 404 aus der Storefront-Zone.
 
+### Upload und Drift-Meldung
+
+Der Upload in die Storage-Zone ist **Handarbeit**, danach den **Pull-Zone-Cache leeren**. Ob
+ausgeliefert wird, was auf `main` liegt, prüft der Workflow `installer-drift.yml` täglich und
+nach jedem Push hierher. Bei Abweichung öffnet er genau ein Issue mit Label `installer-drift`, das
+sich nach dem Upload selbst schließt. Er lädt nichts hoch und blockiert nichts. Eine neue Datei in
+diesem Ordner gehört in `DATEIEN` in `scripts/installer-drift.mjs`. Details:
+[Installer-Drift](../../docs/infrastructure/installer-drift-meldung.md).
+
 ## Alte Adresse
 
 `get.panary.io` (Strato) ist seit 2026-07-28 **abgeschaltet — ohne Redirect**.

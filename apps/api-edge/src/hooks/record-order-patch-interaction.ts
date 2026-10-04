@@ -3,6 +3,9 @@ import { OrderInteractionType } from '@panary/order-interactions/domain'
 import { OrderStatus } from '@panary/orders/domain'
 import { logger } from '@panary/shared-backend'
 
+/** Praefix des virtuellen Geraete-Users aus `allow-apikey.hook.ts`. */
+const DEVICE_USER_ID_PREFIX = 'device:'
+
 /**
  * After-Patch-Hook: schreibt ein Journal-Ereignis fuer Aenderungen NACH der
  * Bestellannahme (panary/panary-core#348).
@@ -22,6 +25,11 @@ import { logger } from '@panary/shared-backend'
  * (Worker, Seeds, Sync-Apply) schreiben deshalb nichts — das ist Absicht und
  * kein Verlust, denn dort gibt es keinen Bediener zu protokollieren.
  *
+ * 🚨 Geraete-Sessions (POS) schreiben hier ebenfalls nichts: `params.user._id`
+ * ist dort `device:<uuid>`. Das Ereignis entsteht im Storno-Dialog des POS
+ * (`cancel-order-dialog.component.ts`, panary/panary-core#591). Dieser Hook
+ * deckt nur JWT-Sessions ab.
+ *
  * 🚨 Nicht blockierend, wie `createOrderInteractions` und die TSE-Hooks
  * (§146a): Ein fehlgeschlagener Journal-Schreibvorgang darf den Storno nicht
  * scheitern lassen. Der Audit-Pfad nimmt Verlust bewusst in Kauf, statt den
@@ -37,6 +45,11 @@ export function recordOrderPatchInteraction() {
 
     const userId = (params.user as { _id?: string } | undefined)?._id
     if (!userId) return context
+    // Am POS ist `params.user` der virtuelle Geraete-User aus `allowApiKey`, kein
+    // Mensch und kein UUID — ein Eintrag scheiterte still an `format: uuid`
+    // (panary/panary-core#591). Den Bediener kennt nur der POS; der Storno-Dialog
+    // schreibt das Ereignis deshalb selbst, mit dem autorisierenden Manager.
+    if (userId.startsWith(DEVICE_USER_ID_PREFIX)) return context
 
     const orders = Array.isArray(result) ? result : [result]
 

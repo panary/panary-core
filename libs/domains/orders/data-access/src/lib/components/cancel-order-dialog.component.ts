@@ -6,6 +6,8 @@ import { ConnectionService } from '@panary/shared/data-access'
 import { UserService } from '@panary/users/data-access'
 import { ORDER_CANCEL_AUTHORIZING_ROLES, User, UserStatus } from '@panary/users/domain'
 import { OrderService } from '../services/order.service'
+import { OrderInteractionService } from '../services/order-interaction.service'
+import { OrderInteractionType } from '@panary/order-interactions/domain'
 import { Order, OrderStatus } from '@panary/orders/domain'
 
 const CANCEL_REASONS = [
@@ -229,6 +231,7 @@ interface AuthorizingManager {
 export class CancelOrderDialogComponent {
   #dialogRef = inject(MatDialogRef<CancelOrderDialogComponent>)
   #orderService = inject(OrderService)
+  #orderInteractionService = inject(OrderInteractionService)
   #userService = inject(UserService)
   #connectionService = inject(ConnectionService)
   #snackBar = inject(MatSnackBar)
@@ -360,11 +363,43 @@ export class CancelOrderDialogComponent {
         },
         status: OrderStatus.ABORTED,
       })
+      this.#recordCancelJournal(authorizer._id)
       this.#snackBar.open(this.#translate.instant('CANCEL_ORDER.SUCCESS'), undefined, { duration: 2500 })
       this.#dialogRef.close({ success: true, canceledBy: name })
     } catch {
       this.#snackBar.open(this.#translate.instant('CANCEL_ORDER.ERROR'), 'OK', { duration: 3000 })
     }
+  }
+
+  /**
+   * Journal-Ereignis zum Storno (panary/panary-core#591). Der POS schreibt es selbst:
+   * Am Edge ist `params.user` der Geräte-User `device:<uuid>`, kein Mensch, und der
+   * Storno-Patch kann den Bediener nicht mittragen — `orderPatchSchema` ist geschlossen,
+   * ein älterer Edge lehnte jeden Storno mit Zusatzfeld ab. `userId` ist der
+   * autorisierende Manager: per `verifyPin` serverseitig bestätigt, ohne PIN-Schritt
+   * der angemeldete Manager selbst.
+   *
+   * Nicht awaited und nie blockierend: Der Storno ist schon gebucht, ein fehlendes
+   * Journal-Ereignis darf ihn nicht als gescheitert erscheinen lassen.
+   */
+  #recordCancelJournal(userId: string): void {
+    const order = this.order
+    const lineItems = Array.isArray(order.lineItems) ? order.lineItems : []
+    this.#orderInteractionService
+      .create({
+        type: OrderInteractionType.ORDER_CANCEL,
+        orderId: order._id,
+        userId,
+        businessDayId: order.businessDayId,
+        eventAt: new Date().toISOString(),
+        orderOpenedAt: order.recordingDate || order.createdAt,
+        hadLineItems: lineItems.length > 0,
+        lineItemCountAtCancel: lineItems.length,
+        totalQuantityAtCancel: lineItems.reduce((sum, item) => sum + (item.amount ?? 0), 0),
+      })
+      .catch(() => {
+        /* BaseService meldet den Fehler bereits; der Storno bleibt gültig. */
+      })
   }
 
   #authorizerName(authorizer: User | AuthorizingManager): string {

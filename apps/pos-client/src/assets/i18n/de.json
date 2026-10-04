@@ -329,9 +329,9 @@
     "CLOSE_BUSINESS_DAY": "Tagesabschluss",
     "SETTINGS": "Einstellungen",
     "EMPLOYEE": "Mitarbeiter",
-    "PRE_ORDERS_TODAY": "Vorbestellungen heute",
+    "PRE_ORDERS_TODAY": "Heute vorbestellt",
     "ITEMS": "Artikel",
-    "NEXT_PRE_ORDER": "Nächste Vorbestellung für"
+    "NEXT_PRE_ORDER": "Nächste:"
   },
   "ACTIVE_ORDERS": {
     "TITLE": "Offene Bestellungen",

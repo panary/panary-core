@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal, computed } from '@angular/core'
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -255,25 +255,66 @@ export class CancelOrderDialogComponent {
   managersLoading = signal(true)
   selectedManager = signal<AuthorizingManager | null>(null)
 
-  // Prüft ob der aktuelle User ein Manager/Owner ist (kein PIN nötig)
-  #isManagerOrOwner = computed(() => {
-    const user = this.#userService.currentUser()
-    if (!user) return false
-    return !!user.role && AUTHORIZING_ROLES.has(user.role)
-  })
+  /**
+   * Freigabeberechtigte, aktive Nutzer laut Server — Quelle der Rolle für den
+   * Direkt-Pfad. `pos_current_user` trägt keine `role` und ist clientseitig
+   * beschreibbar, deshalb wird dort nur die ID gelesen (core#608).
+   */
+  #authorizingUsers: User[] = []
+  #managersLoaded: Promise<void>
 
   constructor() {
-    void this.#loadManagers()
+    this.#managersLoaded = this.#loadManagers()
   }
 
   selectReason(reason: string): void {
     this.selectedReason.set(reason)
+    void this.#proceedAfterReason()
+  }
 
-    if (this.#isManagerOrOwner()) {
+  /**
+   * Ein angemeldeter Manager/Inhaber storniert direkt, alle anderen wählen eine
+   * freigebende Person. Wartet auf die Managerliste, weil die Rolle des
+   * PIN-angemeldeten Mitarbeiters nur dort steht.
+   */
+  async #proceedAfterReason(): Promise<void> {
+    await this.#managersLoaded
+    const authorizer = this.#currentAuthorizer()
+    if (authorizer) {
       // Manager/Owner können direkt stornieren — kein PIN nötig
-      void this.executeCancel(this.#userService.currentUser()!)
+      await this.executeCancel(authorizer)
     } else {
       this.step.set('select-user')
+    }
+  }
+
+  /**
+   * Der angemeldete Bediener, sofern er einen Storno freigeben darf. Am POS
+   * läuft die Verbindung über Geräte-Auth: `UserService.currentUser()` ist dort
+   * leer, der per PIN angemeldete Mitarbeiter steht in `pos_current_user`
+   * (Reihenfolge wie `#resolveCashierId` in `active-orders`).
+   *
+   * Restannahme: Die ID aus `pos_current_user` wird vertraut wie überall am POS
+   * (Kassierer, `performedBy`); geprüft wird nur, dass der Server sie als aktiven
+   * Manager/Inhaber führt.
+   */
+  #currentAuthorizer(): User | null {
+    const current = this.#userService.currentUser()
+    if (current?.role && AUTHORIZING_ROLES.has(current.role)) return current
+    const userId = current?._id ?? this.#posUserId()
+    if (!userId) return null
+    return this.#authorizingUsers.find(u => String(u._id) === String(userId)) ?? null
+  }
+
+  #posUserId(): string | null {
+    try {
+      const stored = localStorage.getItem('pos_current_user')
+      if (!stored) return null
+      const parsed = JSON.parse(stored) as { _id?: string }
+      return parsed?._id ? String(parsed._id) : null
+    } catch {
+      /* defekter pos_current_user-Eintrag → wie kein User behandeln */
+      return null
     }
   }
 
@@ -427,6 +468,9 @@ export class CancelOrderDialogComponent {
         query: { role: { $in: [...AUTHORIZING_ROLES] }, $sort: { firstName: 1 }, $limit: 100 },
       })
       const users = (Array.isArray(response) ? response : (response?.data ?? [])) as User[]
+      this.#authorizingUsers = users.filter(
+        u => u.status === UserStatus.ACTIVE && !!u.role && AUTHORIZING_ROLES.has(u.role),
+      )
 
       // `hasPosPin` ist ein virtuelles Feld des externen Resolvers (der PIN-Hash
       // selbst wird nie ausgeliefert) und daher nicht query-fähig — es spiegelt

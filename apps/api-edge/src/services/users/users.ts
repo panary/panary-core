@@ -28,6 +28,7 @@ import { readDeviceAccessScope, resolveDeviceAccessScope } from '../../hooks/dev
 import { isLoginBlockedByStatus } from '../../utils/user-login-status'
 import { assertTimeClockAccess, type TimeClockActor } from './time-clock-scope'
 import { releaseDeviceReverification } from '../../utils/device-reverification'
+import { issuePosOperatorToken } from '../../utils/pos-operator-token'
 
 /** Params-Ausschnitt der Stempel-Methoden — siehe assertTimeClockScope unten. */
 type TimeClockParams = UserParams & { user?: TimeClockActor; deviceAccessScope?: string[] | null }
@@ -281,7 +282,12 @@ export const users = (app: Application) => {
 
     // Sensible Felder entfernen
     const { posPin: _pin, password: _pw, ...safeUser } = user as any
-    return safeUser
+
+    // #619: Am Geraet zusaetzlich das Bediener-Token — der einzige Beleg, dass
+    // dieser Mensch gerade an diesem Terminal seinen PIN eingegeben hat. Wer
+    // `pos_current_user` im Browser ueberschreibt, hat keines (ADR 0053).
+    const operatorToken = await issuePosOperatorToken(app, user, params?.connection)
+    return operatorToken ? { ...safeUser, ...operatorToken } : safeUser
   }
 
   // Custom method: changePin — POS-PIN-Selbstwechsel am Terminal.

@@ -19,6 +19,7 @@ import { channels } from './channels'
 import { configureLoggerLevel } from '@panary/shared-backend'
 import { ensureTenantIsolation } from '@panary/shared-backend'
 import { requireDeviceReverification } from './hooks/require-device-reverification.hook'
+import { resolvePosOperator } from './hooks/resolve-pos-operator.hook'
 import { recordSyncOutbox } from './hooks/sync-outbox-recorder.hook'
 import { captureAuditBefore } from './hooks/capture-audit-before.hook'
 import { recordAuditEvent } from './hooks/record-audit-event.hook'
@@ -362,6 +363,8 @@ assertStampFields(app)
 // 3a. requireDeviceReverification — sperrt Geraete, die nach langer Offline-Phase
 //     noch bestaetigt werden muessen (#325). Direkt hinter allowApiKey, damit ein
 //     gesperrtes Terminal gar nicht erst in RBAC/Service-Logik laeuft.
+// 3b. resolvePosOperator — wertet ein mitgeschicktes Bediener-Token aus (#619,
+//     ADR 0053) und entfernt es aus der Query, bevor ein Validator es sieht.
 // 4. secureByDefault    — authenticate('jwt') + authorize() (erwartet next)
 // 5. captureAuditBefore — vor Service-Exec: Vor-Zustand für Diff laden
 // 6. tenantIsolation    — prüft nach Service-Ausführung die Tenant-Zugehörigkeit
@@ -373,6 +376,7 @@ app.hooks({
     logError,
     allowApiKey(),
     requireDeviceReverification(),
+    resolvePosOperator(),
     secureByDefault({ publicServices: ['authentication'] }),
     async (context: HookContext, next: NextFunction) => {
       await captureAuditBefore(context)

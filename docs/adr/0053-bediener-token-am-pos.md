@@ -5,7 +5,7 @@ description: 'ADR zum angemeldeten POS-Bediener: Bisher stand er nur in localSto
 tags: [users, orders, pos, edge, security, devices]
 status: stable
 decision: accepted
-implementation: 'Schritte 1–3 und 4a umgesetzt 2026-10-05 (#619): Ausstellung in verifyPin, Prüfung und Kennzeichnung in resolvePosOperator, POS speichert und sendet das Token, Edge verlangt für Stornos von Geräten ein Manager-Token (requireOrderCancelAuthorization). Schritt 4b (Zurechnung aus dem Token) offen.'
+implementation: 'Umgesetzt 2026-10-05 (#619) in fünf PRs: Ausstellung in verifyPin, Prüfung und Kennzeichnung in resolvePosOperator, POS speichert und sendet das Token, Storno von Geräten nur mit Manager-Token, Zurechnung von createdBy, neuen Zahlungen, Journal und Split aus dem Token. Weitere Felder (Kasse, Zeiterfassung, Rabatte, Abschreibungen): panary/panary-core#631.'
 generated: { by: claude-code/opus-5.5, at: 2026-10-05T16:00:00Z }
 ---
 
@@ -137,6 +137,24 @@ Eine Bindung je Storno (Einmal-Token) wäre die nächste Stufe; sie ist hier bew
 ⚠️ Ein offline erfasster Storno, der erst nach Ablauf des Tokens nachgesendet wird, wird
 abgelehnt (403, im Nachversand terminal) und erscheint unter den abgelehnten Übertragungen. Das
 ist Absicht: Eine Berechtigung, die sich durch Warten erschleichen ließe, wäre keine.
+
+### Zurechnung am Edge (Schritt 4b)
+
+`attributedOperatorId` (`apps/api-edge/src/utils/pos-operator-attribution.ts`) ist die eine
+Regel: Bei Geräten gewinnt `params.posOperator.userId`, sonst bleibt der Body-Wert und
+`security.pos_operator_unverified` steht im Log (mit Feld, Grund und der behaupteten ID). Nie
+abgelehnt. Angewandt auf:
+
+| Feld | Stelle |
+| --- | --- |
+| `creationContext.createdBy` | `orders.schema.ts` (Resolver). Vorher stand bei Geräten die Geräte-UUID dort |
+| `payment.transactions[].performedBy` | `attribute-order-transactions.hook.ts` an `create` und `patch`, vor `restrictOrderToCashSession`. Neue Transaktionen aus dem Token; bekannte (gleiche `_id` im gespeicherten Stand) bekommen ihr **gespeichertes** `performedBy` zurück — eine gebuchte Zahlung lässt sich nicht umschreiben |
+| `order-interactions.userId` | Before-Hook am `create`, vor der Validierung |
+| `split.performedBy` | `resolveSplitOperator` in `order-split.method.ts` |
+
+Bewusst noch nicht erfasst und in panary/panary-core#631 geplant: `cash-sessions.closedBy`/
+`openedBy`, `working-times.updatedBy`, `appliedDiscounts[].appliedBy`, Abschreibungen sowie die
+Custom Methods am rohen Service des POS.
 
 POS und Edge werden getrennt ausgerollt. 🚨 Schritt 3 darf erst auf Geräte, wenn ein Edge-Release
 mit Schritt 2 läuft — gegen einen Edge aus Schritt 1 ginge ein Outbox-Eintrag mit abgelaufenem

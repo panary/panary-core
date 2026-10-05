@@ -407,6 +407,23 @@ describe('orders.split — Schreibpfad', () => {
       expect(h.userGet).toHaveBeenCalledWith(OPERATOR_ID, { provider: undefined })
     })
 
+    it('Bediener-Token schlaegt performedBy (#619): das Journal traegt den per Token belegten Bediener', async () => {
+      const TOKEN_OPERATOR = '01920000-0000-7000-8000-00000000beef'
+      const h = makeApp()
+      await call(
+        h.app,
+        { ...SPLIT, performedBy: OPERATOR_ID },
+        {
+          provider: 'socketio',
+          user: DEVICE_USER,
+          posOperator: { userId: TOKEN_OPERATOR, role: 'tenant:staff', tenantId: null },
+        },
+      )
+
+      const userIds = h.interactionCreate.mock.calls.map(c => c[0].userId)
+      expect(userIds).toEqual([TOKEN_OPERATOR, TOKEN_OPERATOR, TOKEN_OPERATOR])
+    })
+
     it('verwirft einen Bediener aus fremdem Mandanten — ein Geraet schreibt keine beliebigen IDs', async () => {
       const h = makeApp({ users: { [OPERATOR_ID]: { _id: OPERATOR_ID, tenantId: FREMD } } })
       await call(h.app, { ...SPLIT, performedBy: OPERATOR_ID }, { provider: 'socketio', user: DEVICE_USER })

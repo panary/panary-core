@@ -13,7 +13,8 @@ import {
   orderInteractionResolver,
 } from './order-interactions.schema'
 
-import type { Application } from '../../declarations'
+import type { Application, HookContext } from '../../declarations'
+import { attributedOperatorId } from '../../utils/pos-operator-attribution'
 import { authorize } from '@panary/shared-backend'
 import { multiTenancy } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
@@ -108,7 +109,22 @@ export const orderInteractions = (app: Application) => {
       ],
       find: [],
       get: [],
-      create: [validateData(orderInteractionDataValidator), schemaHooks.resolveData(orderInteractionDataResolver)],
+      create: [
+        // Journal-`userId` bei Geraeten aus dem Bediener-Token (#619, ADR 0053). Vor
+        // der Validierung: Das Schema verlangt eine uuid, der Wert muss stehen.
+        async (context: HookContext) => {
+          const data = context.data as { userId?: string } | undefined
+          if (context.params.provider && data && !Array.isArray(data)) {
+            data.userId = attributedOperatorId(context.params, data.userId, {
+              service: 'order-interactions',
+              field: 'userId',
+            })
+          }
+          return context
+        },
+        validateData(orderInteractionDataValidator),
+        schemaHooks.resolveData(orderInteractionDataResolver),
+      ],
       patch: [validateData(orderInteractionPatchValidator), schemaHooks.resolveData(orderInteractionPatchResolver)],
       remove: [],
     },

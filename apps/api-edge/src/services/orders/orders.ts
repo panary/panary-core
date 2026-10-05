@@ -53,6 +53,7 @@ import { recordOrderPatchInteraction } from '../../hooks/record-order-patch-inte
 import { signOrderTseCancel, signOrderTseFinish, signOrderTseStart } from '../../hooks/sign-order-tse.hook'
 import { validateOrderStatusTransition } from '../../hooks/validate-order-status-transition.hook'
 import { requireOrderCancelAuthorization } from '../../hooks/require-order-cancel-authorization.hook'
+import { attributeOrderTransactions } from '../../hooks/attribute-order-transactions.hook'
 import { validateStaffMealExclusivity } from '../../hooks/validate-staff-meal-exclusivity.hook'
 import { rejectLegacyDiscount } from '../../hooks/reject-legacy-discount.hook'
 import { issueReceipt } from '../../hooks/issue-receipt.hook'
@@ -156,6 +157,8 @@ export const orders = (app: Application) => {
         // Eine gleich als ABORTED angelegte Bestellung ist ein Storno — dieselbe
         // Freigabe wie am Patch (#619, ADR 0053), vor jeder Nebenwirkung.
         requireOrderCancelAuthorization,
+        // Zahlungen, die schon beim Anlegen mitkommen, ebenso zurechnen (#619).
+        attributeOrderTransactions,
         // Legacy-Rabattfeld ist abgeschafft (ADR 0030) — GANZ vorne, damit der 400
         // faellt, bevor Sequenznummer und TSE-Start Nebenwirkungen erzeugen.
         rejectLegacyDiscount,
@@ -204,6 +207,9 @@ export const orders = (app: Application) => {
         // eintragen" bzw. nachträgliches Rabattieren). Merged Vorzustand + Body,
         // damit die Regel nicht über zwei getrennte Patches umgangen werden kann.
         validateStaffMealExclusivity,
+        // `performedBy` neuer Zahlungen aus dem Bediener-Token (#619, ADR 0053) —
+        // VOR der Kassenprüfung, die die Lade anhand dieses Felds sucht.
+        attributeOrderTransactions,
         // Kassen-Guard beim Kassieren: greift nur, wenn der Patch auf 'completed'
         // wechselt und eine Bar-Transaktion enthält → verlangt offene Kasse für
         // den Kassierer (performedBy). VOR validate/resolve, damit cashSessionId

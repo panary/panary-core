@@ -1,11 +1,11 @@
 ---
 type: ADR
 title: 'Bediener-Token am POS: Der Edge belegt, wer an der Kasse per PIN angemeldet ist'
-description: 'ADR zum angemeldeten POS-Bediener: Bisher stand er nur in localStorage.pos_current_user und ließ sich am Gerät überschreiben; verifyPin stellt deshalb an Geräte-Verbindungen ein vom Edge signiertes, gerätegebundenes, 12 h gültiges Token mit eigener Audience aus, das der App-Hook resolvePosOperator als params.posOperator auswertet. Eingeführt in vier Schritten, Schritt 1 additiv.'
+description: 'ADR zum angemeldeten POS-Bediener: Bisher stand er nur in localStorage.pos_current_user und ließ sich am Gerät überschreiben; verifyPin stellt deshalb an Geräte-Verbindungen ein vom Edge signiertes, gerätegebundenes, 12 h gültiges Token mit eigener Audience aus, das der App-Hook resolvePosOperator als params.posOperator auswertet. Ungültige Token werden nur gekennzeichnet, nie abgelehnt; erzwingen muss die Berechtigung (Storno), die Zurechnung fällt auf „unbelegt“ zurück.'
 tags: [users, orders, pos, edge, security, devices]
 status: stable
 decision: accepted
-implementation: 'Schritt 1 von 4 umgesetzt 2026-10-05 (#619): Ausstellung in verifyPin, Prüfung in resolvePosOperator. Schritte 2–4 (POS sendet mit, Edge erzwingt bei Storno und Zurechnung, Pflicht) offen.'
+implementation: 'Schritte 1–2 von 4 umgesetzt 2026-10-05 (#619): Ausstellung in verifyPin, Prüfung und Kennzeichnung in resolvePosOperator. Schritte 3–4 (POS sendet mit, Edge erzwingt bei Storno und Zurechnung) offen.'
 generated: { by: claude-code/opus-5.5, at: 2026-10-05T16:00:00Z }
 ---
 
@@ -59,21 +59,44 @@ Ein App-Hook wertet es aus. Gewählt von Michael am 2026-10-05 unter drei Wegen 
   Mandant wie die Connection. Dazu liest der Hook das Konto frisch: Es muss existieren, aktiv
   sein und zum Mandanten passen, aus demselben Grund wie bei `EdgeJWTStrategy` (#187). Gültig
   → `params.posOperator = { userId, role, tenantId }`, mit `role` aus der DB, nicht aus dem
-  Token. Ungültig → `NotAuthenticated` mit einheitlicher Meldung, der Grund steht als
-  `security.pos_operator_token_rejected` im Log. Das Token selbst wird nie geloggt.
-- **Kein Token → keine Wirkung.** In Schritt 1 läuft jeder Aufruf ohne Token wie bisher.
+  Token. Ungültig → `params.posOperatorRejected = true`, und der Aufruf läuft **weiter**
+  (Nachtrag unten). Der Grund steht als `security.pos_operator_token_rejected` im Log. Das
+  Token selbst wird nie geloggt.
+- **Kein Token → keine Wirkung.** Der Hook belegt nur; was ohne Beleg geschieht, entscheidet die
+  jeweilige Stelle.
+
+### Nachtrag 2026-10-05: Berechtigung und Zurechnung getrennt
+
+Entschieden von Michael nach Schritt 1 (Issue-Kommentar). Anlass war die Outbox:
+`classifyOutboxError` stuft 401 als `terminal` ein und verwirft den Eintrag. Ein offline
+erfasster Auftrag, der erst nach Ablauf des Tokens nachgesendet wird, ginge an einer Ablehnung
+verloren. Ein verlorener Bon wiegt schwerer als ein nicht belegter Bediener.
+
+| Art | Beispiele | Ohne gültiges Token |
+| --- | --- | --- |
+| **Berechtigung** | Storno ohne PIN, Storno überhaupt | abgelehnt. Läuft nur online, es geht nichts verloren |
+| **Zurechnung** | `performedBy`, `createdBy`, Journal-`userId` | nie abgelehnt. Gültig → Bediener aus dem Token statt aus dem Body. Fehlt oder ungültig → Body-Wert bleibt, geloggt als `security.pos_operator_unverified` |
+
+- Der POS schreibt das bei der Erfassung gültige Token mit in den Outbox-Eintrag. Nachgesendet
+  wird meist nach Minuten, das Token ist dann fast immer noch gültig.
+- Eine gefälschte ID verschafft damit keine Berechtigung mehr und fällt bei der Zurechnung auf.
+  Unmöglich wird sie dort nicht — der Kompromiss mit Offline-First.
+- „Unbelegt“ steht zunächst nur im Log. Ein Feld an Order, Abschreibung und Journal (Migration
+  am Edge, Sync in der Cloud) kommt erst, wenn jemand die Auswertung braucht.
+- Deshalb lehnt `resolvePosOperator` seit Schritt 2 nicht mehr ab, sondern kennzeichnet.
 
 ### Schnitt
 
 | Schritt | Inhalt |
 | --- | --- |
-| 1 | Edge stellt aus und prüft, wenn mitgeschickt (dieser ADR, additiv) |
-| 2 | POS speichert das Token beim PIN-Login an einer zentralen Stelle und sendet es bei zurechnenden Aufrufen mit |
-| 3 | Edge erzwingt: Storno-Direktpfad nur mit Manager-Token, `performedBy`/`userId` aus `params.posOperator` statt aus dem Body |
-| 4 | Übergangsphase endet: fehlendes Token wird abgewiesen |
+| 1 | Edge stellt aus und prüft, wenn mitgeschickt (additiv, PR #626) |
+| 2 | Edge kennzeichnet ein ungültiges Token, statt abzulehnen (Nachtrag oben) |
+| 3 | POS speichert das Token beim PIN-Login zentral und sendet es bei zurechnenden Aufrufen und in Outbox-Einträgen mit |
+| 4 | Edge erzwingt: Storno von Geräten nur mit Token eines Managers oder Inhabers; `performedBy`/`userId` aus `params.posOperator`, sonst „unbelegt“ |
 
-POS und Edge werden getrennt ausgerollt. Deshalb kommt die Pflicht erst, wenn beide Seiten das
-Token kennen.
+POS und Edge werden getrennt ausgerollt. 🚨 Schritt 3 darf erst auf Geräte, wenn ein Edge-Release
+mit Schritt 2 läuft — gegen einen Edge aus Schritt 1 ginge ein Outbox-Eintrag mit abgelaufenem
+Token an der Ablehnung verloren.
 
 ### Verworfen
 
@@ -87,21 +110,13 @@ Token kennen.
 ## Konsequenzen
 
 - Ein Token belegt „dieser Mensch hat an diesem Terminal seinen PIN eingegeben“. Wer
-  `pos_current_user` überschreibt, hat keines, und nach Schritt 3 hilft ihm die gefälschte ID
-  nicht mehr.
+  `pos_current_user` überschreibt, hat keines, und nach Schritt 4 verschafft ihm die gefälschte ID
+  keine Berechtigung mehr und fällt bei der Zurechnung auf.
 - **Offline-First bleibt erhalten:** Ausstellung und Prüfung laufen nur am Edge, die Cloud ist
   nicht beteiligt.
-- 🚨 **Für Schritt 2: Outbox.** `NotAuthenticated` (401) stuft `classifyOutboxError` als
-  `terminal` ein und verwirft den Eintrag. Ein offline erfasster Auftrag, der beim Nachsenden ein
-  abgelaufenes Token trägt, ginge verloren. Schritt 2 darf das Token deshalb nicht ungeprüft in
-  Outbox-Einträge schreiben, oder Schritt 3 muss diesen Fall anders behandeln als den
-  interaktiven Aufruf. Das muss vor Schritt 2 entschieden sein.
 - **Geräte-Zuweisung (#131) und PIN-Wechsel:** `verifyPin` prüft die Zuweisung bei der
   Ausstellung. Wird sie danach entzogen oder der PIN gewechselt, gilt das Token bis zum Ablauf
   weiter. Archivieren wirkt sofort, Umzuweisen und PIN-Wechsel nicht.
-- **Ein ungültiges Token blockiert den ganzen Aufruf**, auch Lesen. Schritt 2 schickt es deshalb
-  nur bei zurechnenden Aufrufen mit, nie bei `verifyPin` oder der Mitarbeiterliste. Über diese
-  holt sich der POS nach Ablauf ein neues.
 - **Mandant strikt:** Konto und Gerät müssen denselben Mandanten tragen, auch wenn eine Seite
   leer ist. Nach dem Pairing stempelt `applyCloudTenantId` jedes Konto um.
 - **Laufzeit 12 h:** Sie entspricht einer Schicht mit Reserve. Der Inaktivitäts-Logout am POS

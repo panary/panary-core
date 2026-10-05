@@ -256,20 +256,30 @@ describe('resolvePosOperator — Hook', () => {
     expect(context.params.posOperator).toEqual({ userId: user._id, role: 'tenant:manager', tenantId: user.tenantId })
   })
 
-  it('mit ungueltigem Token: bricht ab, ruft next nicht auf, Token trotzdem aus der Query', async () => {
+  it('mit ungueltigem Token: laeuft weiter ohne Bediener, kennzeichnet die Ablehnung, Token aus der Query', async () => {
+    // Nicht abbrechen (ADR 0053, Nachtrag): Ein nachgesendeter Outbox-Eintrag mit
+    // abgelaufenem Token ginge sonst verloren — 401 gilt dort als endgueltig.
     const { conn } = await issueFor(deviceConnection(null))
     const { context, next, error } = await runHook({ status: 'OPEN', operatorToken: 'kein.gueltiges.token' }, conn)
 
-    expect(error).toBeInstanceOf(NotAuthenticated)
-    expect(next).not.toHaveBeenCalled()
+    expect(error).toBeUndefined()
+    expect(next).toHaveBeenCalledOnce()
     expect(context.params.query).toEqual({ status: 'OPEN' })
     expect(context.params.posOperator).toBeUndefined()
+    expect(context.params.posOperatorRejected).toBe(true)
+  })
+
+  it('mit gueltigem Token: keine Ablehnungs-Kennzeichnung', async () => {
+    const { conn, token } = await issueFor(deviceConnection(null))
+    const { context } = await runHook({ operatorToken: token }, conn)
+
+    expect(context.params.posOperatorRejected).toBeUndefined()
   })
 })
 
 describe('resolvePosOperator — Verdrahtung in app.ts', () => {
   // Ueber die echte Hook-Kette: Ohne den App-Hook erreichte `operatorToken`
-  // den Query-Validator von `users`, und ein ungueltiges Token bliebe folgenlos.
+  // den Query-Validator und der Aufruf scheiterte mit 400.
   const findAsDevice = (connection: ReturnType<typeof deviceConnection>, operatorToken: string) =>
     app.service('product-groups').find({
       provider: 'socketio',
@@ -284,9 +294,9 @@ describe('resolvePosOperator — Verdrahtung in app.ts', () => {
     await expect(findAsDevice(conn, token)).resolves.toBeDefined()
   })
 
-  it('ein ungueltiges Token bricht den Aufruf ab', async () => {
+  it('ein ungueltiges Token bricht den Aufruf nicht ab', async () => {
     const { conn } = await issueFor(deviceConnection(uuidv7()))
 
-    await expectRejected(findAsDevice(conn, 'kein.gueltiges.token'))
+    await expect(findAsDevice(conn, 'kein.gueltiges.token')).resolves.toBeDefined()
   })
 })

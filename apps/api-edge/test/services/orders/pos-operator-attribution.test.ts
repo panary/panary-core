@@ -201,6 +201,49 @@ describe('Zurechnung von Geraete-Aufrufen aus dem Bediener-Token', () => {
       expect(patched.payment?.transactions?.map(t => t.performedBy)).toEqual([otherUserId, cashierId])
     })
 
+    it('eine schon gebuchte Zahlung laesst sich nicht umschreiben — der gespeicherte Kassierer bleibt', async () => {
+      const booked = transaction(cashierId)
+      const order = (await app.service('orders').create(
+        orderBody(cashierId, {
+          payment: { state: 'partially_paid', totalAmount: 0, tipAmount: 0, transactions: [booked] },
+        }) as never,
+        internalAs(),
+      )) as Order
+      removeAfterTest(order._id)
+      const connection = deviceConnection()
+      const token = await tokenFor(otherUserId, connection)
+
+      const patched = (await app.service('orders').patch(
+        order._id,
+        {
+          payment: {
+            state: 'partially_paid',
+            totalAmount: 0,
+            tipAmount: 0,
+            transactions: [{ ...booked, performedBy: otherUserId }],
+          },
+        } as never,
+        deviceParams(connection, token),
+      )) as Order
+
+      expect(patched.payment?.transactions?.[0]?.performedBy).toBe(cashierId)
+    })
+
+    it('Zahlungen beim Anlegen werden ebenfalls dem Bediener aus dem Token zugerechnet', async () => {
+      const connection = deviceConnection()
+      const token = await tokenFor(cashierId, connection)
+
+      const created = (await app.service('orders').create(
+        orderBody(cashierId, {
+          payment: { state: 'paid', totalAmount: 0, tipAmount: 0, transactions: [transaction(otherUserId)] },
+        }) as never,
+        deviceParams(connection, token),
+      )) as Order
+      removeAfterTest(created._id)
+
+      expect(created.payment?.transactions?.[0]?.performedBy).toBe(cashierId)
+    })
+
     it('ohne Token: der Body-Wert bleibt, der Patch geht durch', async () => {
       const order = (await app.service('orders').create(orderBody(cashierId) as never, internalAs())) as Order
       removeAfterTest(order._id)

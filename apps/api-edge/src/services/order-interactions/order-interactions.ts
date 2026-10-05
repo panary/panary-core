@@ -13,8 +13,7 @@ import {
   orderInteractionResolver,
 } from './order-interactions.schema'
 
-import type { Application } from '../../declarations'
-import type { HookContext } from '../../declarations'
+import type { Application, HookContext } from '../../declarations'
 import { attributedOperatorId } from '../../utils/pos-operator-attribution'
 import { authorize } from '@panary/shared-backend'
 import { multiTenancy } from '@panary/shared-backend'

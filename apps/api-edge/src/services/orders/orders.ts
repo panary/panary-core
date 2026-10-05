@@ -157,6 +157,8 @@ export const orders = (app: Application) => {
         // Eine gleich als ABORTED angelegte Bestellung ist ein Storno — dieselbe
         // Freigabe wie am Patch (#619, ADR 0053), vor jeder Nebenwirkung.
         requireOrderCancelAuthorization,
+        // Zahlungen, die schon beim Anlegen mitkommen, ebenso zurechnen (#619).
+        attributeOrderTransactions,
         // Legacy-Rabattfeld ist abgeschafft (ADR 0030) — GANZ vorne, damit der 400
         // faellt, bevor Sequenznummer und TSE-Start Nebenwirkungen erzeugen.
         rejectLegacyDiscount,
@@ -205,13 +207,13 @@ export const orders = (app: Application) => {
         // eintragen" bzw. nachträgliches Rabattieren). Merged Vorzustand + Body,
         // damit die Regel nicht über zwei getrennte Patches umgangen werden kann.
         validateStaffMealExclusivity,
+        // `performedBy` neuer Zahlungen aus dem Bediener-Token (#619, ADR 0053) —
+        // VOR der Kassenprüfung, die die Lade anhand dieses Felds sucht.
+        attributeOrderTransactions,
         // Kassen-Guard beim Kassieren: greift nur, wenn der Patch auf 'completed'
         // wechselt und eine Bar-Transaktion enthält → verlangt offene Kasse für
         // den Kassierer (performedBy). VOR validate/resolve, damit cashSessionId
         // gestempelt + früh abgelehnt wird. Standalone/orders-only/Karte → No-Op.
-        // `performedBy` neuer Zahlungen aus dem Bediener-Token (#619, ADR 0053) —
-        // VOR der Kassenprüfung, die die Lade anhand dieses Felds sucht.
-        attributeOrderTransactions,
         restrictOrderToCashSession(),
         // Fiskalischen taxSnapshot bei preisrelevanten Patches (discount /
         // appliedDiscounts / dineLocation) serverseitig neu berechnen — VOR der

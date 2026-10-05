@@ -14,34 +14,43 @@ interface TransactionLite {
 }
 
 /**
- * Before-Patch-Hook am `orders`-Service, **vor** `restrictOrderToCashSession`:
- * Die Kassenpruefung sucht die offene Lade des Kassierers anhand von
- * `performedBy` und muss deshalb schon den belegten Bediener sehen.
+ * Before-Hook am `orders`-Service fuer `patch` (**vor** `restrictOrderToCashSession`:
+ * die Kassenpruefung sucht die offene Lade des Kassierers anhand von
+ * `performedBy` und muss schon den belegten Bediener sehen) und `create`
+ * (Zahlungen, die beim Anlegen mitkommen, sind alle neu).
+ *
+ * Bekannte Transaktionen bekommen ihr **gespeichertes** `performedBy` zurueck —
+ * sonst koennte ein Geraet den Kassierer einer schon gebuchten Zahlung
+ * umschreiben, indem es sie mit anderem Wert erneut mitschickt.
  */
 export const attributeOrderTransactions = async (context: HookContext): Promise<HookContext> => {
-  if (context.method !== 'patch' || !context.params.provider) return context
+  if ((context.method !== 'patch' && context.method !== 'create') || !context.params.provider) return context
   if (!isDeviceSession(context.params.user)) return context
-  if (context.id === null || context.id === undefined) return context
 
   const data = context.data as { payment?: { transactions?: TransactionLite[] } } | undefined
-  const transactions = data?.payment?.transactions
+  if (!data || Array.isArray(data)) return context
+  const transactions = data.payment?.transactions
   if (!Array.isArray(transactions) || transactions.length === 0) return context
 
-  let known = new Set<string>()
-  try {
-    const original = (await context.service.get(context.id, { provider: undefined } as never)) as {
-      payment?: { transactions?: TransactionLite[] }
+  const known = new Map<string, TransactionLite>()
+  if (context.method === 'patch') {
+    if (context.id === null || context.id === undefined) return context
+    try {
+      const original = (await context.service.get(context.id, { provider: undefined } as never)) as {
+        payment?: { transactions?: TransactionLite[] }
+      }
+      for (const stored of original?.payment?.transactions ?? []) {
+        if (typeof stored._id === 'string') known.set(stored._id, stored)
+      }
+    } catch {
+      // Unbekannte Order: Der Patch scheitert ohnehin spaeter; hier nichts umschreiben.
+      return context
     }
-    known = new Set(
-      (original?.payment?.transactions ?? []).map(t => t._id).filter((id): id is string => typeof id === 'string'),
-    )
-  } catch {
-    // Unbekannte Order: Der Patch scheitert ohnehin spaeter; hier nichts umschreiben.
-    return context
   }
 
-  data!.payment!.transactions = transactions.map(transaction => {
-    if (typeof transaction._id === 'string' && known.has(transaction._id)) return transaction
+  data.payment!.transactions = transactions.map(transaction => {
+    const stored = typeof transaction._id === 'string' ? known.get(transaction._id) : undefined
+    if (stored) return { ...transaction, performedBy: stored.performedBy ?? undefined }
     return {
       ...transaction,
       performedBy: attributedOperatorId(context.params, transaction.performedBy, {

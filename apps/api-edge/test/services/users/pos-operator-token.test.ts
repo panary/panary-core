@@ -10,7 +10,7 @@ import { NotAuthenticated } from '@feathersjs/errors'
 import { uuidv7 } from 'uuidv7'
 import { afterAll, beforeAll, describe, expect, it, onTestFinished, vi } from 'vitest'
 
-import { UserStatus } from '@panary/users/domain'
+import { UserStatus, UserSystemRole } from '@panary/users/domain'
 
 import { app } from '../../../src/app'
 import { resolvePosOperator } from '../../../src/hooks/resolve-pos-operator.hook'
@@ -30,13 +30,18 @@ type VerifyPinService = {
 
 const PIN = '4711'
 
-const createPosUser = async (): Promise<{ _id: string; tenantId: string | null }> => {
-  const created = (await app
-    .service('users')
-    .create(
-      { firstName: 'Bediener', lastName: uuidv7(), role: 'tenant:manager', isPosUser: true, posPin: PIN } as never,
-      { provider: undefined },
-    )) as unknown as { _id: string; tenantId?: string | null }
+const createPosUser = async (tenantId?: string): Promise<{ _id: string; tenantId: string | null }> => {
+  const created = (await app.service('users').create(
+    {
+      firstName: 'Bediener',
+      lastName: uuidv7(),
+      role: 'tenant:manager',
+      isPosUser: true,
+      posPin: PIN,
+      ...(tenantId ? { tenantId } : {}),
+    } as never,
+    { provider: undefined },
+  )) as unknown as { _id: string; tenantId?: string | null }
   onTestFinished(async () => {
     await app.service('users').remove(created._id, { provider: undefined })
   })
@@ -47,7 +52,8 @@ const createPosUser = async (): Promise<{ _id: string; tenantId: string | null }
 const deviceConnection = (tenantId: string | null, deviceId = uuidv7()) => ({
   apiKey: true,
   deviceId,
-  deviceRole: 'device:pos',
+  deviceRole: UserSystemRole.DEVICE_POS,
+  locationId: null,
   tenantId,
 })
 
@@ -55,7 +61,7 @@ const verifyPin = (userId: string, params?: Record<string, unknown>) =>
   (app.service('users') as unknown as VerifyPinService).verifyPin({ userId, pin: PIN }, params)
 
 const issueFor = async (connection: ReturnType<typeof deviceConnection>) => {
-  const user = await createPosUser()
+  const user = await createPosUser(connection.tenantId ?? undefined)
   const conn = { ...connection, tenantId: user.tenantId }
   const result = await verifyPin(user._id, { connection: conn })
   return { user, conn, token: result.operatorToken as string }
@@ -168,23 +174,18 @@ describe('verifyPosOperatorToken — Bindung an Geraet, Mandant, Konto und Zeit'
   it('lehnt das Token ab, wenn das Konto einem anderen Mandanten gehoert als das Geraet', async () => {
     // Erreichbar nur bei fremden Zeilen in der Edge-DB (unvollstaendiger Restamp,
     // siehe verifyPin) — intern ausgestellt, damit der Guard dort nicht vorher greift.
-    const created = (await app.service('users').create(
-      {
-        firstName: 'Bediener',
-        lastName: uuidv7(),
-        role: 'tenant:manager',
-        isPosUser: true,
-        posPin: PIN,
-        tenantId: uuidv7(),
-      } as never,
-      { provider: undefined },
-    )) as unknown as { _id: string; tenantId?: string | null }
-    onTestFinished(async () => {
-      await app.service('users').remove(created._id, { provider: undefined })
-    })
+    const created = await createPosUser(uuidv7())
     expect(created.tenantId).toBeTruthy()
     const conn = deviceConnection(uuidv7())
     const token = (await verifyPin(created._id, { connection: conn })).operatorToken as string
+
+    await expectRejected(verifyPosOperatorToken(app, token, conn))
+  })
+
+  it('lehnt das Token ab, wenn das Konto keinen Mandanten hat, das Geraet aber einen', async () => {
+    const user = await createPosUser()
+    const conn = deviceConnection(uuidv7())
+    const token = (await verifyPin(user._id, { connection: conn })).operatorToken as string
 
     await expectRejected(verifyPosOperatorToken(app, token, conn))
   })
@@ -249,5 +250,29 @@ describe('resolvePosOperator — Hook', () => {
     expect(next).not.toHaveBeenCalled()
     expect(context.params.query).toEqual({ status: 'OPEN' })
     expect(context.params.posOperator).toBeUndefined()
+  })
+})
+
+describe('resolvePosOperator — Verdrahtung in app.ts', () => {
+  // Ueber die echte Hook-Kette: Ohne den App-Hook erreichte `operatorToken`
+  // den Query-Validator von `users`, und ein ungueltiges Token bliebe folgenlos.
+  const findAsDevice = (connection: ReturnType<typeof deviceConnection>, operatorToken: string) =>
+    app.service('product-groups').find({
+      provider: 'socketio',
+      connection,
+      query: { operatorToken, $limit: 1 },
+    } as never)
+
+  it('ein gueltiges Token passiert die Kette, ohne dass ein Validator den Schluessel sieht', async () => {
+    // Mit Mandant: multiTenancy stempelt ihn in die Query, und der Validator verlangt eine uuid.
+    const { conn, token } = await issueFor(deviceConnection(uuidv7()))
+
+    await expect(findAsDevice(conn, token)).resolves.toBeDefined()
+  })
+
+  it('ein ungueltiges Token bricht den Aufruf ab', async () => {
+    const { conn } = await issueFor(deviceConnection(uuidv7()))
+
+    await expectRejected(findAsDevice(conn, 'kein.gueltiges.token'))
   })
 })

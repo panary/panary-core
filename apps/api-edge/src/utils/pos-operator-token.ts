@@ -160,7 +160,10 @@ export const verifyPosOperatorToken = async (
   if (isLoginBlockedByStatus(user)) {
     return reject('Konto ist nicht aktiv', { deviceId: conn.deviceId, entityId: userId })
   }
-  if (user.tenantId && conn.tenantId && user.tenantId !== conn.tenantId) {
+  // Strikt auch bei `null` auf einer Seite: Nach dem Pairing stempelt
+  // `applyCloudTenantId` jedes Konto um, ein Konto ohne Mandant an einem
+  // Geraet mit Mandant ist also ein unvollstaendiger Restamp, kein Normalfall.
+  if ((user.tenantId ?? null) !== (conn.tenantId ?? null)) {
     return reject('Konto gehoert nicht zum Mandanten des Geraets', { deviceId: conn.deviceId, entityId: userId })
   }
 

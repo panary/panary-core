@@ -2,9 +2,9 @@
 type: Domain Concept
 title: 'Cloud-verwaltete Stammdaten am Edge — welche Services nach dem Pairing read-only sind'
 description: 'Übersicht der Edge-Services, deren Source of Truth nach dem Pairing die Cloud ist: der cloudManaged()-Hook sperrt externe Writes, der Sync-Pull bleibt offen, der Edge-Admin zeigt den Zustand an. Dazu die Regel, wann ein Service hierher gehört, und die einzige Ausnahme (Notfall-Modus für Drucker).'
-tags: [sync, edge, cloud-connection, products, security]
+tags: [sync, edge, cloud-connection, products, customers, security]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-05T15:30:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-05T15:50:00Z }
 ---
 
 # Cloud-verwaltete Stammdaten am Edge
@@ -28,6 +28,8 @@ Verhindert wird das an einer einzigen Stelle: dem `cloudManaged()`-Hook
 | `tenants` | `cloudManaged()` | Projektion, siehe [Tenant-Edge-Replica](tenant-edge-replica.md) |
 | `products` | `cloudManaged()` | seit [#607](https://github.com/panary/panary-core/issues/607) |
 | `product-groups` | `cloudManaged()` | seit [#607](https://github.com/panary/panary-core/issues/607) |
+| `customers` | `cloudManaged()` | seit [#620](https://github.com/panary/panary-core/issues/620) |
+| `corporate-customers` | `cloudManaged()` | seit [#620](https://github.com/panary/panary-core/issues/620) |
 | `businessdays` | eigener `cloudManagedHook` | Lebenszyklus, siehe [Verwaiste Geschäftstage](verwaiste-geschaeftstage.md) |
 
 `products` und `product-groups` fehlten bis #607: Der Edge-Admin ließ Produkte nach dem Pairing
@@ -52,9 +54,11 @@ Write ohne Rechte scheitert also weiter mit dem Rechte-Fehler, nicht mit `CLOUD_
 Ein Edge-Service braucht `cloudManaged()`, wenn er in `SyncableMasterDataService`
 (`libs/domains/edge-pairing/domain/src/lib/edge-pairing-request.schema.ts`) steht und **nicht** in
 `SyncableTransactionService`. Dann gibt es keinen Weg Edge → Cloud außer dem Bootstrap.
-`users` steht in beiden Listen (PIN-Wechsel am POS wird live gepusht) und ist deshalb nicht gesperrt;
-`customers` und `corporate-customers` haben noch keinen Hook — offen in
-[#620](https://github.com/panary/panary-core/issues/620).
+`users` steht in beiden Listen (PIN-Wechsel am POS wird live gepusht) und ist deshalb nicht gesperrt.
+`customers` und `corporate-customers` bekamen den Hook mit
+[#620](https://github.com/panary/panary-core/issues/620): Kein Edge-UI schreibt auf sie, offen war der
+REST-/Socket-Write mit gültigem Token. Soll die Kasse später Kunden anlegen, gehören sie als
+Edge→Cloud-Push modelliert (Transaction-Service plus Cloud-Allowlist), nicht durch Entfernen des Hooks.
 
 Ein neuer Master-Data-Service ohne Hook wiederholt #607. Der Integrationstest
 `apps/api-edge/test/services/products/cloud-managed-products.test.ts` ist die Vorlage für den Nachweis

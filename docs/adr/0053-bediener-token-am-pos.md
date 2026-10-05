@@ -96,9 +96,14 @@ Token kennen.
   abgelaufenes Token trägt, ginge verloren. Schritt 2 darf das Token deshalb nicht ungeprüft in
   Outbox-Einträge schreiben, oder Schritt 3 muss diesen Fall anders behandeln als den
   interaktiven Aufruf. Das muss vor Schritt 2 entschieden sein.
-- **Geräte-Zuweisung (#131):** `verifyPin` prüft die Zuweisung bei der Ausstellung. Wird sie
-  danach entzogen, gilt das Token bis zum Ablauf weiter. Archivieren wirkt sofort, Umzuweisen
-  nicht.
+- **Geräte-Zuweisung (#131) und PIN-Wechsel:** `verifyPin` prüft die Zuweisung bei der
+  Ausstellung. Wird sie danach entzogen oder der PIN gewechselt, gilt das Token bis zum Ablauf
+  weiter. Archivieren wirkt sofort, Umzuweisen und PIN-Wechsel nicht.
+- **Ein ungültiges Token blockiert den ganzen Aufruf**, auch Lesen. Schritt 2 schickt es deshalb
+  nur bei zurechnenden Aufrufen mit, nie bei `verifyPin` oder der Mitarbeiterliste. Über diese
+  holt sich der POS nach Ablauf ein neues.
+- **Mandant strikt:** Konto und Gerät müssen denselben Mandanten tragen, auch wenn eine Seite
+  leer ist. Nach dem Pairing stempelt `applyCloudTenantId` jedes Konto um.
 - **Laufzeit 12 h:** Sie entspricht einer Schicht mit Reserve. Der Inaktivitäts-Logout am POS
   beendet die Sitzung meist früher. Eine längere Schicht verlangt eine neue PIN-Eingabe.
 - **Restannahme:** Wer das Gerät und dessen Geräte-Schlüssel vollständig kontrolliert, bleibt

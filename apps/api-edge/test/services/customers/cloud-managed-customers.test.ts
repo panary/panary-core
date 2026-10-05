@@ -10,6 +10,7 @@
 // Jede Sperre hat eine Gegenprobe (ohne Pairing, interner Pull-Pfad), sonst ginge ein Test gruen,
 // der aus einem anderen Grund ablehnt (Rechte, Validierung).
 import assert from 'assert'
+import { onTestFinished } from 'vitest'
 import { uuidv7 } from 'uuidv7'
 import { PairingStatus } from '@panary/cloud-connection/domain'
 import { app } from '../../../src/app'
@@ -88,15 +89,18 @@ describe('Kunden und Firmenkunden am gepairten Edge — cloudManaged (#620)', ()
       updatedAt: now,
     }
     await knex().table('customers').insert(row)
+    onTestFinished(() => knex().table('customers').where({ _id: row._id }).del())
     return row
   }
 
   /** Interner Create — der Weg, auf dem der Sync-Pull Cloud-Datensaetze anlegt. */
-
-  const seedCorporate = async (name1: string): Promise<StoredRecord> =>
-    (await app
+  const seedCorporate = async (name1: string): Promise<StoredRecord> => {
+    const corporate = (await app
       .service('corporate-customers')
       .create({ ...corporateData(name1), tenantId, locationId } as never, { provider: undefined })) as StoredRecord
+    onTestFinished(() => knex().table('corporate-customers').where({ _id: corporate._id }).del())
+    return corporate
+  }
 
   const storedName = async (table: string, id: string): Promise<string | undefined> =>
     ((await knex().table(table).where({ _id: id }).first()) as StoredRecord | undefined)?.name1

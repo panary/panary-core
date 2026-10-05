@@ -65,10 +65,8 @@ describe('Zurechnung von Geraete-Aufrufen aus dem Bediener-Token', () => {
 
   const removeAfterTest = (id: string, service: 'orders' | 'order-interactions' = 'orders') => {
     onTestFinished(async () => {
-      await app
-        .service(service)
-        .remove(id, internal)
-        .catch(() => undefined)
+      const target = app.service(service) as unknown as { remove: (id: string, params: unknown) => Promise<unknown> }
+      await target.remove(id, internal).catch(() => undefined)
     })
   }
 

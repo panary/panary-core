@@ -42,17 +42,15 @@ describe('Produkte und Produktgruppen am gepairten Edge — cloudManaged (#607)'
   const knex = () => app.get('sqliteClient') as any
 
   const pair = async (): Promise<void> => {
-    await knex()
-      .table('cloud-connection')
-      .insert({
-        _id: uuidv7(),
-        tenantId,
-        cloudUrl: 'https://cloud.example.test',
-        pairingStatus: PairingStatus.CONNECTED,
-        syncEnabled: 1,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
+    await knex().table('cloud-connection').insert({
+      _id: uuidv7(),
+      tenantId,
+      cloudUrl: 'https://cloud.example.test',
+      pairingStatus: PairingStatus.CONNECTED,
+      syncEnabled: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
   }
 
   const unpair = async (): Promise<void> => {
@@ -69,11 +67,9 @@ describe('Produkte und Produktgruppen am gepairten Edge — cloudManaged (#607)'
       )) as StoredRecord
 
   const seedGroup = async (name: string): Promise<StoredRecord> =>
-    (await app
-      .service('product-groups')
-      .create({ name, color: '#336699', index: 0, tenantId, locationId } as never, {
-        provider: undefined,
-      })) as StoredRecord
+    (await app.service('product-groups').create({ name, color: '#336699', index: 0, tenantId, locationId } as never, {
+      provider: undefined,
+    })) as StoredRecord
 
   const storedName = async (table: string, id: string): Promise<string | undefined> =>
     ((await knex().table(table).where({ _id: id }).first()) as StoredRecord | undefined)?.name
@@ -188,9 +184,7 @@ describe('Produkte und Produktgruppen am gepairten Edge — cloudManaged (#607)'
       const group = await seedGroup('Vor dem Pull')
       await pair()
 
-      await app
-        .service('product-groups')
-        .patch(group._id, { name: 'Aus der Cloud' } as never, { provider: undefined })
+      await app.service('product-groups').patch(group._id, { name: 'Aus der Cloud' } as never, { provider: undefined })
 
       assert.strictEqual(await storedName('product-groups', group._id), 'Aus der Cloud')
     })

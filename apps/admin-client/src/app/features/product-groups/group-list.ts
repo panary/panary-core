@@ -11,6 +11,7 @@ import {
 import { FormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
+import { getApiErrorCode } from '../../core/error-helper'
 import { CloudManagedBannerComponent } from '../../core/cloud-managed-banner'
 import { CloudManagedService } from '../../core/cloud-managed.service'
 import { GroupFormComponent } from './group-form'
@@ -431,7 +432,8 @@ interface ProductGroup {
                             <input
                               type="checkbox"
                               [checked]="!group.excluded"
-                              (change)="toggleExcluded(group)"
+                              [disabled]="readOnly()"
+                              (change)="toggleExcluded(group, $event)"
                               class="w-5 h-5 accent-slate-900 dark:accent-white cursor-pointer"
                             />
                           </label>
@@ -623,13 +625,16 @@ export class GroupListComponent implements OnInit {
     return this.filteredGroups().findIndex(g => g._id === id)
   })
 
-  async toggleExcluded(group: any) {
+  async toggleExcluded(group: any, event: Event) {
     const newValue = !group.excluded
     try {
       await this.api.patch('product-groups', group._id, { excluded: newValue })
       // Lokale Liste aktualisieren
       this.groups.update(list => list.map(g => (g._id === group._id ? { ...g, excluded: newValue } : g)))
     } catch (e) {
+      // Die native Checkbox hat schon umgeschaltet, das Signal nicht — sonst zeigt sie einen Stand, den es nicht gibt.
+      ;(event.target as HTMLInputElement).checked = !group.excluded
+      if (getApiErrorCode(e) === 'CLOUD_MANAGED') void this.cloudManaged.refresh()
       console.error('Fehler beim Aktualisieren der Sichtbarkeit:', e)
     }
   }

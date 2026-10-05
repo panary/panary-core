@@ -15,14 +15,16 @@ import { FormsModule, NgForm } from '@angular/forms'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
-import { formatApiError } from '../../core/error-helper'
+import { formatApiError, getApiErrorCode } from '../../core/error-helper'
+import { CloudManagedBannerComponent } from '../../core/cloud-managed-banner'
+import { CloudManagedService } from '../../core/cloud-managed.service'
 import { objectHash } from '../../core/dirty-check'
 import { ConfirmDialogComponent } from '../../core/confirm-dialog'
 
 @Component({
   selector: 'app-group-form',
   standalone: true,
-  imports: [FormsModule, ConfirmDialogComponent, TranslateModule],
+  imports: [FormsModule, ConfirmDialogComponent, TranslateModule, CloudManagedBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div [class]="panelMode() ? 'p-5 space-y-5' : 'p-8 max-w-2xl space-y-6'">
@@ -30,7 +32,7 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
         <h1 class="text-2xl font-bold tracking-tight">
           {{ (isNew() ? 'PRODUCT_GROUPS.NEW_GROUP' : 'PRODUCT_GROUPS.EDIT_GROUP') | translate }}
         </h1>
-        @if (!isNew()) {
+        @if (!isNew() && !readOnly()) {
           <button
             type="button"
             (click)="showDeleteConfirm.set(true)"
@@ -68,229 +70,235 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
         </app-confirm-dialog>
       }
 
+      @if (readOnly()) {
+        <app-cloud-managed-banner sublineKey="CLOUD_MANAGED.SUBLINE_PRODUCT_GROUPS" />
+      }
+
       <form #f="ngForm" (ngSubmit)="onSave(f)" class="space-y-5">
-        <!-- Status-Pille -->
-        <div
-          class="relative flex bg-slate-100 dark:bg-gray-950 rounded-2xl p-1.5 border border-slate-200 dark:border-gray-800"
-        >
+        <fieldset [disabled]="readOnly()" class="min-w-0 m-0 p-0 border-0 space-y-5" [class.opacity-60]="readOnly()">
+          <!-- Status-Pille -->
           <div
-            class="absolute top-1.5 bottom-1.5 rounded-xl shadow-lg transition-all duration-300 ease-out"
-            [class]="statusPillBg()"
-            [style.left]="'calc(' + statusIndex * (100 / 3) + '% + 6px)'"
-            [style.width]="'calc(' + 100 / 3 + '% - 4px)'"
-          ></div>
-          @for (s of statuses; track s.value) {
-            <button
-              type="button"
-              (click)="form.status = s.value"
-              [class]="
-                form.status === s.value
-                  ? 'text-slate-900 dark:text-white font-semibold'
-                  : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
-              "
-              class="relative z-10 flex-1 py-2 text-center text-sm rounded-xl transition-colors duration-200"
-            >
-              {{ s.label | translate }}
-            </button>
-          }
-          <input type="hidden" [(ngModel)]="form.status" name="status" />
-        </div>
-
-        @if (!isNew()) {
-          <div
-            class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
-                      grid grid-cols-2 gap-x-6 gap-y-2 text-xs"
+            class="relative flex bg-slate-100 dark:bg-gray-950 rounded-2xl p-1.5 border border-slate-200 dark:border-gray-800"
           >
-            <div>
-              <span class="text-slate-400 dark:text-gray-500">ID</span>
-              <p class="text-slate-600 dark:text-gray-300 font-mono mt-0.5 select-all">{{ entityId() }}</p>
-            </div>
-            <div>
-              <span class="text-slate-400 dark:text-gray-500">External ID</span>
-              <p class="text-slate-600 dark:text-gray-300 font-mono mt-0.5 select-all">{{ externalId() || '—' }}</p>
-            </div>
-          </div>
-        }
-
-        <div class="grid grid-cols-3 gap-4">
-          <!-- Name -->
-          <div class="col-span-2 space-y-1">
-            <label
-              for="groupName"
-              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-              >{{ 'COMMON.NAME' | translate }} *</label
-            >
-            <input
-              id="groupName"
-              [(ngModel)]="form.name"
-              name="name"
-              #name="ngModel"
-              type="text"
-              required
-              minlength="1"
-              maxlength="120"
-              (ngModelChange)="autoAssignColor($event)"
-              [class]="inputClass(name)"
-            />
-            @if (name.invalid && name.touched) {
-              <p class="text-red-500 dark:text-red-400 text-xs mt-1">
-                {{ 'PRODUCT_GROUPS.NAME_REQUIRED' | translate }}
-              </p>
-            }
-          </div>
-          <!-- Kürzel -->
-          <div class="space-y-1">
-            <label
-              for="groupAcronym"
-              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-              >{{ 'PRODUCTS.ACRONYM' | translate }}</label
-            >
-            <input
-              id="groupAcronym"
-              [(ngModel)]="form.acronym"
-              name="acronym"
-              type="text"
-              maxlength="10"
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono"
-            />
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <!-- Farbe -->
-          <div class="space-y-1">
-            <label
-              for="groupColor"
-              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-              >{{ 'PRODUCT_GROUPS.COLOR' | translate }}</label
-            >
-            <div class="relative">
-              <div
-                class="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-slate-200
-                          dark:border-gray-800 rounded-lg"
+            <div
+              class="absolute top-1.5 bottom-1.5 rounded-xl shadow-lg transition-all duration-300 ease-out"
+              [class]="statusPillBg()"
+              [style.left]="'calc(' + statusIndex * (100 / 3) + '% + 6px)'"
+              [style.width]="'calc(' + 100 / 3 + '% - 4px)'"
+            ></div>
+            @for (s of statuses; track s.value) {
+              <button
+                type="button"
+                (click)="form.status = s.value"
+                [class]="
+                  form.status === s.value
+                    ? 'text-slate-900 dark:text-white font-semibold'
+                    : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
+                "
+                class="relative z-10 flex-1 py-2 text-center text-sm rounded-xl transition-colors duration-200"
               >
-                <span
-                  class="w-8 h-8 rounded-full shrink-0 border border-slate-300 dark:border-gray-700"
-                  [style.background-color]="form.color"
-                ></span>
-                <span class="text-sm text-slate-600 dark:text-gray-300 font-mono">{{ form.color }}</span>
-                <button
-                  type="button"
-                  (click)="showColorPicker = !showColorPicker"
-                  class="ml-auto text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white
-                         transition text-xs"
-                >
-                  {{ showColorPicker ? '▲' : '▼' }}
-                </button>
+                {{ s.label | translate }}
+              </button>
+            }
+            <input type="hidden" [(ngModel)]="form.status" name="status" />
+          </div>
+
+          @if (!isNew()) {
+            <div
+              class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
+                      grid grid-cols-2 gap-x-6 gap-y-2 text-xs"
+            >
+              <div>
+                <span class="text-slate-400 dark:text-gray-500">ID</span>
+                <p class="text-slate-600 dark:text-gray-300 font-mono mt-0.5 select-all">{{ entityId() }}</p>
               </div>
-              @if (showColorPicker) {
-                <div
-                  class="absolute z-10 mt-1 p-3 bg-white dark:bg-gray-900 border border-slate-300
-                            dark:border-gray-700 rounded-lg shadow-xl flex flex-wrap gap-2 w-full"
-                >
-                  @for (c of colorPalette; track c) {
-                    <button
-                      type="button"
-                      (click)="form.color = c; showColorPicker = false"
-                      [class]="
-                        form.color === c
-                          ? 'w-7 h-7 rounded-full ring-2 ring-slate-900 dark:ring-white ring-offset-1 ring-offset-white dark:ring-offset-gray-900 scale-110'
-                          : 'w-7 h-7 rounded-full hover:scale-110 hover:ring-1 hover:ring-slate-400 dark:hover:ring-gray-500'
-                      "
-                      [style.background-color]="c"
-                      [attr.aria-label]="'Farbe ' + c"
-                      class="transition-all"
-                    ></button>
-                  }
-                </div>
+              <div>
+                <span class="text-slate-400 dark:text-gray-500">External ID</span>
+                <p class="text-slate-600 dark:text-gray-300 font-mono mt-0.5 select-all">{{ externalId() || '—' }}</p>
+              </div>
+            </div>
+          }
+
+          <div class="grid grid-cols-3 gap-4">
+            <!-- Name -->
+            <div class="col-span-2 space-y-1">
+              <label
+                for="groupName"
+                class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+                >{{ 'COMMON.NAME' | translate }} *</label
+              >
+              <input
+                id="groupName"
+                [(ngModel)]="form.name"
+                name="name"
+                #name="ngModel"
+                type="text"
+                required
+                minlength="1"
+                maxlength="120"
+                (ngModelChange)="autoAssignColor($event)"
+                [class]="inputClass(name)"
+              />
+              @if (name.invalid && name.touched) {
+                <p class="text-red-500 dark:text-red-400 text-xs mt-1">
+                  {{ 'PRODUCT_GROUPS.NAME_REQUIRED' | translate }}
+                </p>
               }
             </div>
-            <input id="groupColor" [(ngModel)]="form.color" name="color" type="hidden" />
-          </div>
-          <!-- Reihenfolge -->
-          <div class="space-y-1">
-            <label
-              for="groupSortOrder"
-              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-              >{{ 'PRODUCT_GROUPS.SORT_ORDER' | translate }} *</label
-            >
-            <input
-              id="groupSortOrder"
-              [(ngModel)]="form.index"
-              name="index"
-              #indexCtrl="ngModel"
-              type="number"
-              required
-              min="0"
-              step="1"
-              [class]="inputClass(indexCtrl)"
-            />
-            @if (indexCtrl.invalid && indexCtrl.touched) {
-              <p class="text-red-500 dark:text-red-400 text-xs mt-1">
-                {{ 'PRODUCT_GROUPS.SORT_ORDER_REQUIRED' | translate }}
-              </p>
-            }
-          </div>
-        </div>
-
-        <!-- MwSt. -->
-        <div class="grid grid-cols-2 gap-4">
-          <div class="space-y-1">
-            <label
-              for="groupVatIn"
-              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-              >{{ 'PRODUCTS.TAX_INSIDE' | translate }}</label
-            >
-            <input
-              id="groupVatIn"
-              [(ngModel)]="form.taxInside"
-              name="taxInside"
-              type="number"
-              step="0.1"
-              min="0"
-              max="100"
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
+            <!-- Kürzel -->
+            <div class="space-y-1">
+              <label
+                for="groupAcronym"
+                class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+                >{{ 'PRODUCTS.ACRONYM' | translate }}</label
+              >
+              <input
+                id="groupAcronym"
+                [(ngModel)]="form.acronym"
+                name="acronym"
+                type="text"
+                maxlength="10"
+                class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
                      focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono"
-            />
+              />
+            </div>
           </div>
-          <div class="space-y-1">
-            <label
-              for="groupVatOut"
-              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-              >{{ 'PRODUCTS.TAX_OUTSIDE' | translate }}</label
-            >
-            <input
-              id="groupVatOut"
-              [(ngModel)]="form.taxOutside"
-              name="taxOutside"
-              type="number"
-              step="0.1"
-              min="0"
-              max="100"
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
+
+          <div class="grid grid-cols-2 gap-4">
+            <!-- Farbe -->
+            <div class="space-y-1">
+              <label
+                for="groupColor"
+                class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+                >{{ 'PRODUCT_GROUPS.COLOR' | translate }}</label
+              >
+              <div class="relative">
+                <div
+                  class="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-slate-200
+                          dark:border-gray-800 rounded-lg"
+                >
+                  <span
+                    class="w-8 h-8 rounded-full shrink-0 border border-slate-300 dark:border-gray-700"
+                    [style.background-color]="form.color"
+                  ></span>
+                  <span class="text-sm text-slate-600 dark:text-gray-300 font-mono">{{ form.color }}</span>
+                  <button
+                    type="button"
+                    (click)="showColorPicker = !showColorPicker"
+                    class="ml-auto text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white
+                         transition text-xs"
+                  >
+                    {{ showColorPicker ? '▲' : '▼' }}
+                  </button>
+                </div>
+                @if (showColorPicker) {
+                  <div
+                    class="absolute z-10 mt-1 p-3 bg-white dark:bg-gray-900 border border-slate-300
+                            dark:border-gray-700 rounded-lg shadow-xl flex flex-wrap gap-2 w-full"
+                  >
+                    @for (c of colorPalette; track c) {
+                      <button
+                        type="button"
+                        (click)="form.color = c; showColorPicker = false"
+                        [class]="
+                          form.color === c
+                            ? 'w-7 h-7 rounded-full ring-2 ring-slate-900 dark:ring-white ring-offset-1 ring-offset-white dark:ring-offset-gray-900 scale-110'
+                            : 'w-7 h-7 rounded-full hover:scale-110 hover:ring-1 hover:ring-slate-400 dark:hover:ring-gray-500'
+                        "
+                        [style.background-color]="c"
+                        [attr.aria-label]="'Farbe ' + c"
+                        class="transition-all"
+                      ></button>
+                    }
+                  </div>
+                }
+              </div>
+              <input id="groupColor" [(ngModel)]="form.color" name="color" type="hidden" />
+            </div>
+            <!-- Reihenfolge -->
+            <div class="space-y-1">
+              <label
+                for="groupSortOrder"
+                class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+                >{{ 'PRODUCT_GROUPS.SORT_ORDER' | translate }} *</label
+              >
+              <input
+                id="groupSortOrder"
+                [(ngModel)]="form.index"
+                name="index"
+                #indexCtrl="ngModel"
+                type="number"
+                required
+                min="0"
+                step="1"
+                [class]="inputClass(indexCtrl)"
+              />
+              @if (indexCtrl.invalid && indexCtrl.touched) {
+                <p class="text-red-500 dark:text-red-400 text-xs mt-1">
+                  {{ 'PRODUCT_GROUPS.SORT_ORDER_REQUIRED' | translate }}
+                </p>
+              }
+            </div>
+          </div>
+
+          <!-- MwSt. -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <label
+                for="groupVatIn"
+                class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+                >{{ 'PRODUCTS.TAX_INSIDE' | translate }}</label
+              >
+              <input
+                id="groupVatIn"
+                [(ngModel)]="form.taxInside"
+                name="taxInside"
+                type="number"
+                step="0.1"
+                min="0"
+                max="100"
+                class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
                      text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
                      focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono"
-            />
+              />
+            </div>
+            <div class="space-y-1">
+              <label
+                for="groupVatOut"
+                class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+                >{{ 'PRODUCTS.TAX_OUTSIDE' | translate }}</label
+              >
+              <input
+                id="groupVatOut"
+                [(ngModel)]="form.taxOutside"
+                name="taxOutside"
+                type="number"
+                step="0.1"
+                min="0"
+                max="100"
+                class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
+                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
+                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono"
+              />
+            </div>
           </div>
-        </div>
 
-        <!-- Sichtbarkeit -->
-        <div class="flex items-center gap-6 pt-2">
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input
-              [(ngModel)]="form.excluded"
-              name="excluded"
-              type="checkbox"
-              class="w-4 h-4 accent-slate-900 dark:accent-white"
-            />
-            <span class="text-sm text-slate-600 dark:text-gray-300">{{
-              'PRODUCT_GROUPS.HIDE_IN_ORDER' | translate
-            }}</span>
-          </label>
-        </div>
+          <!-- Sichtbarkeit -->
+          <div class="flex items-center gap-6 pt-2">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                [(ngModel)]="form.excluded"
+                name="excluded"
+                type="checkbox"
+                class="w-4 h-4 accent-slate-900 dark:accent-white"
+              />
+              <span class="text-sm text-slate-600 dark:text-gray-300">{{
+                'PRODUCT_GROUPS.HIDE_IN_ORDER' | translate
+              }}</span>
+            </label>
+          </div>
+        </fieldset>
 
         <!-- Fehleranzeige -->
         @if (errors().length > 0) {
@@ -309,7 +317,7 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
         <div class="flex gap-3 pt-4">
           <button
             type="submit"
-            [disabled]="saving() || savedSuccess() || f.invalid"
+            [disabled]="saving() || savedSuccess() || f.invalid || readOnly()"
             [class]="
               'save-btn ' + (savedSuccess() ? 'save-btn--success' : saving() ? 'save-btn--saving' : 'save-btn--default')
             "
@@ -347,6 +355,7 @@ export class GroupFormComponent implements OnInit {
   private router = inject(Router)
   private cdr = inject(ChangeDetectorRef)
   private t = inject(TranslateService)
+  private cloudManaged = inject(CloudManagedService)
 
   id = input<string>()
   panelMode = input(false)
@@ -389,6 +398,8 @@ export class GroupFormComponent implements OnInit {
   showColorPicker = false
   savedSuccess = signal(false)
   showDeleteConfirm = signal(false)
+  /** Gepairter Edge: Produktgruppen pflegt die Cloud, der Edge lehnt Writes mit CLOUD_MANAGED ab (#607). */
+  protected readOnly = this.cloudManaged.readOnly
 
   statuses = [
     { value: 'DRAFT', label: 'COMMON.STATUS_DRAFT' },
@@ -416,6 +427,8 @@ export class GroupFormComponent implements OnInit {
   private originalHash = ''
 
   isDirty(): boolean {
+    // Gesperrt gibt es nichts zu speichern — sonst böte der Dirty-Dialog ein Speichern an, das scheitert.
+    if (this.readOnly()) return false
     if (this.isNew()) return !!this.form.name
     return objectHash(this.form) !== this.originalHash
   }
@@ -463,6 +476,7 @@ export class GroupFormComponent implements OnInit {
   }
 
   async ngOnInit() {
+    void this.cloudManaged.refresh()
     await this.loadUsedColors()
   }
 
@@ -555,6 +569,10 @@ export class GroupFormComponent implements OnInit {
   }
 
   async onSave(f: NgForm) {
+    if (this.readOnly()) {
+      this.errors.set([this.t.instant('CLOUD_MANAGED.SAVE_BLOCKED')])
+      return
+    }
     if (f.invalid) {
       Object.values(f.controls).forEach(c => c.markAsTouched())
       return
@@ -587,6 +605,7 @@ export class GroupFormComponent implements OnInit {
     } catch (e: any) {
       const msg = formatApiError(e)
       this.errors.set(msg.split('\n'))
+      if (getApiErrorCode(e) === 'CLOUD_MANAGED') void this.cloudManaged.refresh()
     }
     this.saving.set(false)
   }
@@ -609,6 +628,7 @@ export class GroupFormComponent implements OnInit {
     } catch (e: any) {
       const msg = formatApiError(e)
       this.errors.set(msg.split('\n'))
+      if (getApiErrorCode(e) === 'CLOUD_MANAGED') void this.cloudManaged.refresh()
     }
   }
 }

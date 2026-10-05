@@ -7,8 +7,9 @@ import { ConnectionService } from '@panary/shared/data-access'
  *
  * Spiegelt den `cloudManaged()`-Hook des Backends
  * (`apps/api-edge/src/hooks/cloud-managed.hook.ts`): sobald der Edge gepairt
- * ist, sind externe Writes auf `locations` gesperrt — mit genau einer Ausnahme,
- * dem Notfall-Modus fuer `settings.printSettings` (ADR 0001).
+ * ist, sind externe Writes auf die Cloud-Stammdaten gesperrt — Standort,
+ * Rabatte, Produkte und Produktgruppen (#607) — mit genau einer Ausnahme, dem
+ * Notfall-Modus fuer `settings.printSettings` an `locations` (ADR 0001).
  *
  * Datenquelle ist bewusst `/health` ueber den `ConnectionService`, nicht ein
  * eigener `cloud-connection`-Find: letzterer braucht `CLOUD_CONNECTION: MANAGE`

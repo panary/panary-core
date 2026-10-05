@@ -1,6 +1,7 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
 import { validateData } from '../../hooks/validate-data.hook'
+import { cloudManaged } from '../../hooks/cloud-managed.hook'
 
 import {
   productsDataResolver,
@@ -114,6 +115,10 @@ export const products = (app: Application) => {
       all: [
         authenticate('jwt'),
         authorize(),
+        // Source of Truth ist die Cloud — externe Writes am Edge nach Pairing blocken. Produkte
+        // reisen Edge→Cloud nur im Bootstrap, nie live: Eine Änderung am gepairten Edge erreichte
+        // die Cloud nie und wurde beim nächsten Pull still überschrieben (panary/panary-core#607).
+        cloudManaged(),
         // `allowGlobalData: true`: Produkte mit `locationId: null` sind tenant-weit geteilte
         // Stammdaten und für JEDE Filiale des Mandanten sichtbar (Scope-`$or` statt hartem
         // `query.locationId`). Erzeugt werden sie ausschliesslich in der Cloud (Katalog-Rollout,

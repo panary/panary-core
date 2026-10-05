@@ -118,7 +118,9 @@
     "EMERGENCY_START": "Acil durum modunu etkinleştir",
     "SAVE_BLOCKED": "Değişiklik kaydedilmedi — bu veriler bulutta yönetiliyor.",
     "EMERGENCY_END_CONFIRM": "Bundan sonra uç birim yerel yazıcı değişikliklerini kabul etmez. Yapılmış değişiklikler etkin kalır ve bir sonraki bulut temasında eşitlenir.",
-    "SUBLINE_BUSINESS_DAYS": "İş günleri merkezi olarak açılır ve kapatılır."
+    "SUBLINE_BUSINESS_DAYS": "İş günleri merkezi olarak açılır ve kapatılır.",
+    "SUBLINE_PRODUCTS": "Ürünler, seçenekler ve fiyatlar merkezi olarak yönetilir.",
+    "SUBLINE_PRODUCT_GROUPS": "Ürün grupları merkezi olarak yönetilir."
   },
   "CLOUD_STATUS": {
     "SYNC_AGE_MIN": "Son veri eşitlemesi {{minutes}} dk önce",

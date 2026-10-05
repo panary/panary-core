@@ -2,7 +2,6 @@
   "_hinweis": "Projekte mit test-Target, aber ohne eine einzige Spec-Datei. Neu schreiben mit `pnpm empty-targets:gate:update`. Hintergrund: scripts/empty-test-targets.mjs",
   "emptyTestTargets": [
     "apikeys-data-access",
-    "auth-data-access",
     "auth-domain",
     "businessdays-data-access",
     "businessdays-domain",

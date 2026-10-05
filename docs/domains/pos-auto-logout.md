@@ -123,4 +123,25 @@ entscheidet, war nach einem Token-Ablauf jede geschützte Route weiter
 erreichbar — nur ohne gültiges Geräte-JWT, also mit leerem Bildschirm statt
 Login-Aufforderung.
 
+### Hinweis am Login nach Inaktivität
+
+`closeAll()` schließt beim Inaktivitäts-Logout auch eine **halb fertige
+Manager-Freigabe**, etwa den PIN-Schritt eines Stornos. Der Login-Screen sieht
+mit Personenwahl und Ziffernfeld genauso aus. Ohne Hinweis tippte der Manager
+seine PIN in den Login, landete auf dem Dashboard und hielt den Storno für
+gescheitert ([#604](https://github.com/panary/panary-core/issues/604); im
+Edge-Log nur als `verifyPin` gefolgt von `pre-orders/find`, ohne `PATCH`).
+
+`endSession()` merkt sich deshalb den Grund **vor** `logout()`, denn der
+Login-Screen entsteht während dieser Navigation. `LoginComponent.ngOnInit` holt
+ihn einmalig über `consumeEndReason()` ab. Bei `idle` steht über Benutzerauswahl
+und PIN-Feld der Hinweis „Wegen Inaktivität abgemeldet“. Der Grund liegt als
+Signal im Root-Service, nicht im `sessionStorage`, denn `logout()` leert den.
+Nach einem Reload fehlt er, und das ist gewollt: Dann gibt es auch keinen
+abgebrochenen Dialog mehr, auf den der Hinweis passen würde.
+
+Bewusst **nicht** eingefroren wird die Frist bei offenem Freigabe-Dialog. Ein
+vergessener Dialog hielte die Sitzung sonst offen, und der Bestelldialog ist nur
+deshalb die Ausnahme, weil dort ein ungespeicherter Entwurf verloren ginge.
+
 Siehe auch: [POS-Pairing-Wizard](pos-pairing-wizard.md).

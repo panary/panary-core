@@ -157,6 +157,20 @@ describe('verifyPosOperatorToken — Bindung an Geraet, Mandant, Konto und Zeit'
     await expectRejected(verifyPosOperatorToken(app, token, { ...conn, tenantId: 'fremder-tenant' }))
   })
 
+  it('lehnt ein Token ab, dessen Mandant nicht der des Geraets ist, auch wenn Konto und Geraet passen', async () => {
+    // Isoliert die Mandanten-Pruefung im Token: Konto und Verbindung tragen
+    // denselben Mandanten, nur der signierte Anspruch nennt einen anderen.
+    const tenantId = uuidv7()
+    const user = await createPosUser(tenantId)
+    const conn = deviceConnection(tenantId)
+    const otherTenantToken = await authService().createAccessToken(
+      { typ: POS_OPERATOR_TOKEN_TYPE, deviceId: conn.deviceId, tenantId: uuidv7() },
+      { subject: user._id, audience: POS_OPERATOR_TOKEN_AUDIENCE },
+    )
+
+    await expectRejected(verifyPosOperatorToken(app, otherTenantToken, conn))
+  })
+
   it('lehnt das Token ohne Geraete-Verbindung ab (JWT-Session, interner Aufruf)', async () => {
     const { conn, token } = await issueFor(deviceConnection(null))
 

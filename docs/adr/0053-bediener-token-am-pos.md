@@ -124,6 +124,16 @@ Der Storno-Dialog bietet den Direktweg nur noch an, wenn ein eigenes Token vorli
 genau dieser Ablehnung auf die Personenauswahl mit PIN zurück — statt einer Fehlermeldung. So
 endet eine gefälschte `pos_current_user._id` im PIN-Schritt.
 
+Der Hook greift auch beim `create`: Eine gleich als `ABORTED` angelegte Bestellung wäre derselbe
+Storno ohne Freigabe. Ein wiederholter Storno einer schon stornierten Bestellung geht ohne Token
+durch — er bucht nichts Neues, und abgelehnt läge ein verlorener Nachversand-Ack sonst als
+„terminal“ unter den gescheiterten Übertragungen.
+
+**Grenze:** Ein Manager-Token ist an Gerät und Mensch gebunden, nicht an eine Bestellung. Wer
+nach einer echten Freigabe per PIN am selben Terminal weiterarbeitet, kann bis zum Ablauf (12 h)
+weitere Stornos mit diesem Token auslösen — sofern er an das Token im Speicher des Geräts kommt.
+Eine Bindung je Storno (Einmal-Token) wäre die nächste Stufe; sie ist hier bewusst nicht gebaut.
+
 ⚠️ Ein offline erfasster Storno, der erst nach Ablauf des Tokens nachgesendet wird, wird
 abgelehnt (403, im Nachversand terminal) und erscheint unter den abgelehnten Übertragungen. Das
 ist Absicht: Eine Berechtigung, die sich durch Warten erschleichen ließe, wäre keine.

@@ -153,6 +153,9 @@ export const orders = (app: Application) => {
       find: [],
       get: [],
       create: [
+        // Eine gleich als ABORTED angelegte Bestellung ist ein Storno — dieselbe
+        // Freigabe wie am Patch (#619, ADR 0053), vor jeder Nebenwirkung.
+        requireOrderCancelAuthorization,
         // Legacy-Rabattfeld ist abgeschafft (ADR 0030) — GANZ vorne, damit der 400
         // faellt, bevor Sequenznummer und TSE-Start Nebenwirkungen erzeugen.
         rejectLegacyDiscount,

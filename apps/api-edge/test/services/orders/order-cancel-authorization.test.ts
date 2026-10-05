@@ -160,6 +160,55 @@ describe('orders.patch — Storno von Geraeten verlangt ein Manager-Token', () =
     )
   })
 
+  it('ein Geraet darf keine Bestellung gleich als storniert anlegen', async () => {
+    await expect(
+      app.service('orders').create(
+        {
+          tenantId,
+          locationId,
+          status: 'aborted',
+          orderChannel: 'pos',
+          dineLocation: 'dine-in',
+          lineItems: [],
+          isFinished: false,
+          estimatedDuration: 0,
+          remainingTime: 0,
+          recordingDate: new Date().toISOString(),
+        } as never,
+        { provider: 'socketio', connection: deviceConnection() } as never,
+      ),
+    ).rejects.toBeInstanceOf(Forbidden)
+  })
+
+  it('ein wiederholter Storno einer schon stornierten Bestellung geht ohne Token durch (Nachversand)', async () => {
+    const order = await createOrder()
+    const connection = deviceConnection()
+    await cancelAsDevice(order._id, connection, await tokenFor(managerId, connection))
+
+    const again = (await cancelAsDevice(order._id, deviceConnection())) as Order
+
+    expect(again.status).toBe('aborted')
+  })
+
+  it('ein Storno aus einer Admin-Sitzung (Mensch, kein Geraet) braucht kein Bediener-Token', async () => {
+    const order = await createOrder()
+
+    const patched = (await app.service('orders').patch(
+      order._id,
+      {
+        status: 'aborted',
+        cancellation: { canceledBy: 'Admin', reason: 'Test', canceledAt: new Date().toISOString() },
+      } as never,
+      {
+        provider: 'rest',
+        authenticated: true,
+        user: { _id: managerId, role: 'tenant:manager', tenantId, locationId, activeLocationId: locationId },
+      } as never,
+    )) as Order
+
+    expect(patched.status).toBe('aborted')
+  })
+
   it('andere Patches eines Geraets brauchen kein Token', async () => {
     const order = await createOrder()
 

@@ -321,7 +321,7 @@ describe('CancelOrderDialogComponent — Direktweg nur mit Bediener-Token (#619)
     expect(patch).not.toHaveBeenCalled()
   })
 
-  it('lehnt der Edge den Direktweg ab, fuehrt der Dialog zur Personenauswahl — ohne Journal, ohne Fehlermeldung', async () => {
+  it('lehnt der Edge den Direktweg ab, fuehrt der Dialog zur Personenauswahl — ohne Journal, ohne eigene Fehlermeldung', async () => {
     stubPosCurrentUser({ _id: MANAGER_ID })
     const { dialog, patch, createInteraction, close } = setup({
       authorizingUsers: async () => [OWNER],

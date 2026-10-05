@@ -433,7 +433,8 @@ export class CancelOrderDialogComponent {
     } catch (error) {
       // Der Edge verlangt seit #619 die belegte Freigabe eines Managers. Lehnt er
       // ab — etwa weil `pos_current_user` gefaelscht oder das Token abgelaufen
-      // ist —, fuehrt der Dialog auf die Personenauswahl mit PIN zurueck.
+      // ist —, fuehrt der Dialog auf die Personenauswahl mit PIN zurueck. Die
+      // Server-Meldung zeigt `BaseService` schon an; der Dialog legt keine eigene nach.
       if (isOrderCancelNotAuthorized(error)) {
         this.selectedManager.set(null)
         this.pin.set('')

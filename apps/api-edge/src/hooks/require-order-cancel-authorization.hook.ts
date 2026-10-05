@@ -28,11 +28,13 @@ const isDeviceSession = (user: unknown): boolean => {
 }
 
 /**
- * Before-Patch-Hook am `orders`-Service, direkt hinter `validateOrderStatusTransition`
- * und vor allen Kassen- und TSE-Hooks — ein abgelehnter Storno darf keine
- * fiskalische Nebenwirkung hinterlassen.
+ * Before-Hook am `orders`-Service fuer `patch` (direkt hinter
+ * `validateOrderStatusTransition`) und `create` (ganz vorne) — jeweils vor allen
+ * Kassen- und TSE-Hooks, ein abgelehnter Storno darf keine fiskalische
+ * Nebenwirkung hinterlassen. `create` deshalb, weil eine gleich als `ABORTED`
+ * angelegte Bestellung sonst denselben Storno ohne Freigabe waere.
  *
- * Greift nur bei externen Patches von **Geraeten** auf `ABORTED`. Interne Aufrufe
+ * Greift nur bei externen Aufrufen von **Geraeten** mit Zielstatus `ABORTED`. Interne Aufrufe
  * (Sync, Worker) und JWT-Sessions im Admin pruefen `authorize()` und die Rolle
  * des angemeldeten Menschen; dort gibt es kein Geraet, an das ein Token gebunden waere.
  *
@@ -42,12 +44,20 @@ const isDeviceSession = (user: unknown): boolean => {
  * keine. Der Eintrag erscheint in der Liste der abgelehnten Uebertragungen.
  */
 export const requireOrderCancelAuthorization = async (context: HookContext): Promise<HookContext> => {
-  if (context.method !== 'patch' || !context.params.provider) return context
+  if ((context.method !== 'patch' && context.method !== 'create') || !context.params.provider) return context
   if ((context.data as { status?: unknown } | undefined)?.status !== OrderStatus.ABORTED) return context
   if (!isDeviceSession(context.params.user)) return context
 
   const operator = context.params.posOperator
   if (operator?.role && ORDER_CANCEL_AUTHORIZING_ROLES.has(operator.role)) return context
+
+  // Schon storniert: ein wiederholter Patch (Nachversand nach verlorener
+  // Bestaetigung) bucht nichts Neues. Abgelehnt landete er als „terminal“ unter
+  // den gescheiterten Uebertragungen, obwohl der Storno laengst gilt.
+  if (context.method === 'patch' && context.id !== null && context.id !== undefined) {
+    const previous = (await context.service.get(context.id, { provider: undefined } as never)) as { status?: string }
+    if (previous?.status === OrderStatus.ABORTED) return context
+  }
 
   logger.warn({
     message: 'Storno abgelehnt: keine belegte Freigabe eines Managers oder Inhabers',

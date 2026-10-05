@@ -3,7 +3,7 @@ import type { Params } from '@feathersjs/feathers'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ConnectionService, posOperatorParams } from '@panary/shared/data-access'
+import { ConnectionService, currentPosOperatorToken, posOperatorParams } from '@panary/shared/data-access'
 import { UserService } from '@panary/users/data-access'
 import { ORDER_CANCEL_AUTHORIZING_ROLES, User, UserStatus } from '@panary/users/domain'
 import { OrderService } from '../services/order.service'
@@ -37,6 +37,12 @@ interface AuthorizingManager {
   staffRole?: string
   role: string
 }
+
+/** Gegenstueck zu `ORDER_CANCEL_NOT_AUTHORIZED` in `apps/api-edge/src/hooks/require-order-cancel-authorization.hook.ts`. */
+const ORDER_CANCEL_NOT_AUTHORIZED = 'ORDER_CANCEL_NOT_AUTHORIZED'
+
+const isOrderCancelNotAuthorized = (error: unknown): boolean =>
+  (error as { data?: { code?: unknown } } | null)?.data?.code === ORDER_CANCEL_NOT_AUTHORIZED
 
 @Component({
   selector: 'lib-cancel-order-dialog',
@@ -303,6 +309,9 @@ export class CancelOrderDialogComponent {
   #currentAuthorizer(): User | null {
     const current = this.#userService.currentUser()
     if (current?.role && AUTHORIZING_ROLES.has(current.role)) return current
+    // Ohne eigenes Bediener-Token lehnt der Edge den Direktweg ab (#619, ADR 0053) —
+    // dann gleich die Personenauswahl statt eines Fehlers nach dem Tipp.
+    if (!current && !currentPosOperatorToken()) return null
     const userId = current?._id ?? this.#posUserId()
     if (!userId) return null
     return this.#authorizingUsers.find(u => String(u._id) === String(userId)) ?? null
@@ -421,7 +430,17 @@ export class CancelOrderDialogComponent {
       this.#recordCancelJournal(authorizer._id, params)
       this.#snackBar.open(this.#translate.instant('CANCEL_ORDER.SUCCESS'), undefined, { duration: 2500 })
       this.#dialogRef.close({ success: true, canceledBy: name })
-    } catch {
+    } catch (error) {
+      // Der Edge verlangt seit #619 die belegte Freigabe eines Managers. Lehnt er
+      // ab — etwa weil `pos_current_user` gefaelscht oder das Token abgelaufen
+      // ist —, fuehrt der Dialog auf die Personenauswahl mit PIN zurueck. Die
+      // Server-Meldung zeigt `BaseService` schon an; der Dialog legt keine eigene nach.
+      if (isOrderCancelNotAuthorized(error)) {
+        this.selectedManager.set(null)
+        this.pin.set('')
+        this.step.set('select-user')
+        return
+      }
       this.#snackBar.open(this.#translate.instant('CANCEL_ORDER.ERROR'), 'OK', { duration: 3000 })
     } finally {
       this.#cancelling = false

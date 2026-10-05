@@ -52,6 +52,7 @@ import { recordCancellationReference } from '../../hooks/record-cancellation-ref
 import { recordOrderPatchInteraction } from '../../hooks/record-order-patch-interaction'
 import { signOrderTseCancel, signOrderTseFinish, signOrderTseStart } from '../../hooks/sign-order-tse.hook'
 import { validateOrderStatusTransition } from '../../hooks/validate-order-status-transition.hook'
+import { requireOrderCancelAuthorization } from '../../hooks/require-order-cancel-authorization.hook'
 import { validateStaffMealExclusivity } from '../../hooks/validate-staff-meal-exclusivity.hook'
 import { rejectLegacyDiscount } from '../../hooks/reject-legacy-discount.hook'
 import { issueReceipt } from '../../hooks/issue-receipt.hook'
@@ -152,6 +153,9 @@ export const orders = (app: Application) => {
       find: [],
       get: [],
       create: [
+        // Eine gleich als ABORTED angelegte Bestellung ist ein Storno — dieselbe
+        // Freigabe wie am Patch (#619, ADR 0053), vor jeder Nebenwirkung.
+        requireOrderCancelAuthorization,
         // Legacy-Rabattfeld ist abgeschafft (ADR 0030) — GANZ vorne, damit der 400
         // faellt, bevor Sequenznummer und TSE-Start Nebenwirkungen erzeugen.
         rejectLegacyDiscount,
@@ -192,6 +196,10 @@ export const orders = (app: Application) => {
         // Vorwärts-Übergänge (inkl. COMPLETED → UNCLAIMED/ABORTED), interne
         // (kein provider) und Same-Status-Patches passieren.
         validateOrderStatusTransition,
+        // Storno von Geräten nur mit Bediener-Token eines Managers/Inhabers
+        // (#619, ADR 0053). Vor Kassen- und TSE-Hooks: Ein abgelehnter Storno
+        // hinterlässt keine fiskalische Nebenwirkung.
+        requireOrderCancelAuthorization,
         // Personalessen-Exklusivität auch beim Patch (nachträgliches „Personalessen
         // eintragen" bzw. nachträgliches Rabattieren). Merged Vorzustand + Body,
         // damit die Regel nicht über zwei getrennte Patches umgangen werden kann.

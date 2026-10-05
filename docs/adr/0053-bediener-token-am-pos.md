@@ -92,7 +92,7 @@ verloren. Ein verlorener Bon wiegt schwerer als ein nicht belegter Bediener.
 | 1 | Edge stellt aus und prüft, wenn mitgeschickt (additiv, PR #626) |
 | 2 | Edge kennzeichnet ein ungültiges Token, statt abzulehnen (Nachtrag oben) |
 | 3 | POS speichert das Token beim PIN-Login zentral und sendet es bei zurechnenden Aufrufen und in Outbox-Einträgen mit |
-| 4 | Edge erzwingt: Storno von Geräten nur mit Token eines Managers oder Inhabers; `performedBy`/`userId` aus `params.posOperator`, sonst „unbelegt“ |
+| 4 | Edge erzwingt: Storno von Geräten nur mit Token eines Managers oder Inhabers; `performedBy`/`userId` aus `params.posOperator`, sonst „unbelegt“. Dazu gehören die Custom Methods am rohen Service, die Schritt 3 noch nicht mitsenden lässt (`cash-sessions`, Zeiterfassung) — nur `orders.split` reicht das Token schon durch |
 
 ### Am POS (Schritt 3)
 

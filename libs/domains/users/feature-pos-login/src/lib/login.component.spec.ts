@@ -517,6 +517,29 @@ describe('LoginComponent — Bediener-Token', () => {
     expect(store.get('pos_current_user')).not.toContain('tok-anna')
   })
 
+  it('behaelt das Token aus verifyPin ueber den erzwungenen PIN-Wechsel', async () => {
+    // `changePin` liefert kein Token — es stammt aus dem verifyPin davor.
+    const { component, connection, store } = loginWith({
+      _id: 'u-anna',
+      mustChangePosPin: true,
+      operatorToken: 'tok-anna',
+      operatorTokenExpiresAt: '2099-01-01T00:00:00.000Z',
+    })
+    ;(connection.usersService as Record<string, unknown>)['changePin'] = vi
+      .fn()
+      .mockResolvedValue({ _id: 'u-anna', mustChangePosPin: false })
+
+    await component.verifyPin()
+    expect(component.currentStep()).toBe('change-pin')
+    expect(store.has('pos_operator_token')).toBe(false)
+
+    component.newPin.set('5678')
+    component.confirmPin.set('5678')
+    await component.submitNewPin()
+
+    expect(JSON.parse(store.get('pos_operator_token') as string)['operatorToken']).toBe('tok-anna')
+  })
+
   it('entfernt das Token des vorigen Bedieners, wenn verifyPin keines liefert', async () => {
     const { component, store } = loginWith(
       { _id: 'u-anna' },

@@ -93,6 +93,12 @@ export class LoginComponent implements OnInit {
    */
   readonly idleLogoutNotice: WritableSignal<boolean> = signal(false)
 
+  /** Nur dort, wo der Login mit dem Freigabe-Schritt verwechselt werden kann. */
+  readonly showIdleLogoutNotice = computed(() => {
+    const step = this.currentStep()
+    return this.idleLogoutNotice() && (step === 'select-user' || step === 'enter-pin')
+  })
+
   // Erzwungener PIN-Wechsel (mustChangePosPin)
   readonly changePinPhase: WritableSignal<ChangePinPhase> = signal('new')
   readonly newPin: WritableSignal<string> = signal('')

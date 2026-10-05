@@ -457,4 +457,25 @@ describe('LoginComponent — Hinweis nach Inaktivitaets-Logout (#604)', () => {
 
     expect(component.idleLogoutNotice()).toBe(false)
   })
+
+  it.each(['select-user', 'enter-pin'] as const)('blendet ihn im Schritt %s ein', step => {
+    const { component } = setup({ endReason: 'idle' })
+    component.ngOnInit()
+
+    component.currentStep.set(step)
+
+    expect(component.showIdleLogoutNotice()).toBe(true)
+  })
+
+  it.each(['loading', 'reverify', 'change-pin', 'error', 'assignment-error', 'repair-confirm'] as const)(
+    'blendet ihn im Schritt %s aus',
+    step => {
+      const { component } = setup({ endReason: 'idle' })
+      component.ngOnInit()
+
+      component.currentStep.set(step)
+
+      expect(component.showIdleLogoutNotice()).toBe(false)
+    },
+  )
 })

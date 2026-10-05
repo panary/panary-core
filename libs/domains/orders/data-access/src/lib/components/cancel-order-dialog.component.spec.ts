@@ -35,7 +35,9 @@ function makeOrder(): Order {
 }
 
 function setup(opts: {
-  currentUser: { _id: string; role: string }
+  currentUser?: { _id: string; role: string }
+  /** Antwort von `users.find` — die freigabeberechtigten Nutzer laut Server. */
+  authorizingUsers?: () => Promise<unknown>
   patch?: () => Promise<unknown>
   createInteraction?: () => Promise<unknown>
   verifyPin?: () => Promise<unknown>
@@ -56,7 +58,7 @@ function setup(opts: {
       { provide: UserService, useValue: { currentUser: signal(opts.currentUser) } },
       {
         provide: ConnectionService,
-        useValue: { usersService: { find: async () => [], verifyPin } },
+        useValue: { usersService: { find: opts.authorizingUsers ?? (async () => []), verifyPin } },
       },
       { provide: MatSnackBar, useValue: { open: vi.fn() } },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
@@ -70,7 +72,24 @@ const flush = () => new Promise(resolve => setTimeout(resolve, 0))
 
 afterEach(() => {
   vi.useRealTimers()
+  vi.unstubAllGlobals()
 })
+
+/** Am POS: Geraete-Auth, `currentUser()` leer, der PIN-Login steht nur in `pos_current_user` — ohne `role`. */
+function stubPosCurrentUser(user: Record<string, unknown> | null) {
+  const store = new Map<string, string>()
+  if (user) store.set('pos_current_user', JSON.stringify(user))
+  vi.stubGlobal('localStorage', { getItem: (key: string) => store.get(key) ?? null })
+}
+
+const OWNER = {
+  _id: MANAGER_ID,
+  firstName: 'Vilma',
+  lastName: 'Koetter',
+  role: 'tenant:owner',
+  status: 'ACTIVE',
+  hasPosPin: true,
+}
 
 describe('CancelOrderDialogComponent — Journal-Ereignis zum Storno (#591)', () => {
   it('Manager storniert selbst: order-cancel mit seiner ID und den Zaehlern der Bestellung', async () => {
@@ -103,6 +122,8 @@ describe('CancelOrderDialogComponent — Journal-Ereignis zum Storno (#591)', ()
     })
 
     dialog.selectReason('CANCEL_ORDER.REASON_COMPLAINT')
+    await vi.advanceTimersByTimeAsync(0)
+    expect(dialog.step()).toBe('select-user')
     dialog.selectManager({ _id: MANAGER_ID, fullName: 'Mia Manager', initials: 'MM', role: 'tenant:manager' })
     for (const digit of ['1', '2', '3', '4']) dialog.appendDigit(digit)
     await vi.advanceTimersByTimeAsync(150)
@@ -152,5 +173,60 @@ describe('CancelOrderDialogComponent — Journal-Ereignis zum Storno (#591)', ()
 
     expect(createInteraction).not.toHaveBeenCalled()
     expect(close).not.toHaveBeenCalled()
+  })
+})
+
+describe('CancelOrderDialogComponent — angemeldeter Manager am POS (#608)', () => {
+  it('PIN-angemeldete Inhaberin ohne role in pos_current_user storniert direkt, ohne PIN-Schritt', async () => {
+    stubPosCurrentUser({ _id: MANAGER_ID, firstName: 'Vilma', lastName: 'Koetter' })
+    const { dialog, patch, createInteraction, verifyPin, close } = setup({
+      authorizingUsers: async () => [OWNER],
+    })
+
+    dialog.selectReason('CANCEL_ORDER.REASON_COMPLAINT')
+    await flush()
+
+    expect(dialog.step()).toBe('reason')
+    expect(verifyPin).not.toHaveBeenCalled()
+    expect(patch).toHaveBeenCalledTimes(1)
+    expect(createInteraction.mock.calls[0][0]['userId']).toBe(MANAGER_ID)
+    expect(close).toHaveBeenCalledWith({ success: true, canceledBy: 'Vilma Koetter' })
+  })
+
+  it('PIN-angemeldeter Bediener, den der Server nicht als Manager fuehrt: Freigabe per PIN', async () => {
+    stubPosCurrentUser({ _id: STAFF_ID, firstName: 'Sam', lastName: 'Staff' })
+    const { dialog, patch } = setup({ authorizingUsers: async () => [OWNER] })
+
+    dialog.selectReason('CANCEL_ORDER.REASON_COMPLAINT')
+    await flush()
+
+    expect(dialog.step()).toBe('select-user')
+    expect(patch).not.toHaveBeenCalled()
+  })
+
+  it('inaktiver Manager in pos_current_user storniert nicht direkt', async () => {
+    stubPosCurrentUser({ _id: MANAGER_ID })
+    const { dialog, patch } = setup({ authorizingUsers: async () => [{ ...OWNER, status: 'INACTIVE' }] })
+
+    dialog.selectReason('CANCEL_ORDER.REASON_COMPLAINT')
+    await flush()
+
+    expect(dialog.step()).toBe('select-user')
+    expect(patch).not.toHaveBeenCalled()
+  })
+
+  it('scheitert das Laden der Managerliste, bleibt nur der PIN-Weg', async () => {
+    stubPosCurrentUser({ _id: MANAGER_ID })
+    const { dialog, patch } = setup({
+      authorizingUsers: async () => {
+        throw new Error('offline')
+      },
+    })
+
+    dialog.selectReason('CANCEL_ORDER.REASON_COMPLAINT')
+    await flush()
+
+    expect(dialog.step()).toBe('select-user')
+    expect(patch).not.toHaveBeenCalled()
   })
 })

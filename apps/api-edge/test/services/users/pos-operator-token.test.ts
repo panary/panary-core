@@ -165,6 +165,30 @@ describe('verifyPosOperatorToken — Bindung an Geraet, Mandant, Konto und Zeit'
     await expectRejected(verifyPosOperatorToken(app, token, conn))
   })
 
+  it('lehnt das Token ab, wenn das Konto einem anderen Mandanten gehoert als das Geraet', async () => {
+    // Erreichbar nur bei fremden Zeilen in der Edge-DB (unvollstaendiger Restamp,
+    // siehe verifyPin) — intern ausgestellt, damit der Guard dort nicht vorher greift.
+    const created = (await app.service('users').create(
+      {
+        firstName: 'Bediener',
+        lastName: uuidv7(),
+        role: 'tenant:manager',
+        isPosUser: true,
+        posPin: PIN,
+        tenantId: uuidv7(),
+      } as never,
+      { provider: undefined },
+    )) as unknown as { _id: string; tenantId?: string | null }
+    onTestFinished(async () => {
+      await app.service('users').remove(created._id, { provider: undefined })
+    })
+    expect(created.tenantId).toBeTruthy()
+    const conn = deviceConnection(uuidv7())
+    const token = (await verifyPin(created._id, { connection: conn })).operatorToken as string
+
+    await expectRejected(verifyPosOperatorToken(app, token, conn))
+  })
+
   it('lehnt das Token nach Ablauf ab', async () => {
     const { conn, token } = await issueFor(deviceConnection(null))
     vi.useFakeTimers({ toFake: ['Date'] })

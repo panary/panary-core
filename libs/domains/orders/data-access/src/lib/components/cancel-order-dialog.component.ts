@@ -293,6 +293,10 @@ export class CancelOrderDialogComponent {
    * läuft die Verbindung über Geräte-Auth: `UserService.currentUser()` ist dort
    * leer, der per PIN angemeldete Mitarbeiter steht in `pos_current_user`
    * (Reihenfolge wie `#resolveCashierId` in `active-orders`).
+   *
+   * Restannahme: Die ID aus `pos_current_user` wird vertraut wie überall am POS
+   * (Kassierer, `performedBy`); geprüft wird nur, dass der Server sie als aktiven
+   * Manager/Inhaber führt.
    */
   #currentAuthorizer(): User | null {
     const current = this.#userService.currentUser()

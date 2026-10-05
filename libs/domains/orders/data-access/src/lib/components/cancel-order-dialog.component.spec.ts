@@ -204,6 +204,20 @@ describe('CancelOrderDialogComponent — angemeldeter Manager am POS (#608)', ()
     expect(patch).not.toHaveBeenCalled()
   })
 
+  it('liefert der Server einen Bediener ohne Freigaberolle mit, storniert er trotzdem nicht direkt', async () => {
+    // Die Abfrage filtert nach `role $in`; der Dialog darf sich darauf nicht allein verlassen.
+    stubPosCurrentUser({ _id: STAFF_ID })
+    const { dialog, patch } = setup({
+      authorizingUsers: async () => [OWNER, { ...OWNER, _id: STAFF_ID, role: 'tenant:staff' }],
+    })
+
+    dialog.selectReason('CANCEL_ORDER.REASON_COMPLAINT')
+    await flush()
+
+    expect(dialog.step()).toBe('select-user')
+    expect(patch).not.toHaveBeenCalled()
+  })
+
   it('inaktiver Manager in pos_current_user storniert nicht direkt', async () => {
     stubPosCurrentUser({ _id: MANAGER_ID })
     const { dialog, patch } = setup({ authorizingUsers: async () => [{ ...OWNER, status: 'INACTIVE' }] })

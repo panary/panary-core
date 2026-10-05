@@ -1,6 +1,7 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
 import { validateData } from '../../hooks/validate-data.hook'
+import { cloudManaged } from '../../hooks/cloud-managed.hook'
 
 import {
   corporateCustomerDataResolver,
@@ -96,6 +97,9 @@ export const corporateCustomers = (app: Application) => {
       all: [
         authenticate('jwt'),
         authorize(),
+        // Source of Truth ist die Cloud: Firmenkunden reisen Edge→Cloud nur im Bootstrap, ein externer Write am
+        // gepairten Edge erreichte die Cloud nie und würde beim nächsten Pull überschrieben (#620).
+        cloudManaged(),
         multiTenancy({ isolateLocation: true, allowGlobalData: false }),
 
         schemaHooks.resolveExternal(corporateCustomerExternalResolver),

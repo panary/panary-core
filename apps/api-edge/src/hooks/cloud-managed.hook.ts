@@ -1,10 +1,11 @@
 // cloudManaged()-Hook: blockiert externe Schreibzugriffe auf einen Service,
 // sobald die Edge mit der Cloud gepaart ist. Registriert auf allen Master-Daten,
 // deren Source of Truth die Cloud ist: `locations` (Öffnungszeiten, Tische,
-// Pager), `opening-hour-exceptions`, `discounts`, `tenants`, `products` und
-// `product-groups` — nach Pairing werden sie ausschließlich in der Cloud
-// bearbeitet. Ein Edge-Write dort ginge nie zur Cloud und würde beim nächsten
-// Pull überschrieben (panary/panary-core#607). Interne Aufrufe
+// Pager), `opening-hour-exceptions`, `discounts`, `tenants`, `products`,
+// `product-groups`, `customers` und `corporate-customers` — nach Pairing werden
+// sie ausschließlich in der Cloud bearbeitet. Ein Edge-Write dort ginge nie zur
+// Cloud und würde beim nächsten Pull überschrieben (panary/panary-core#607,
+// #620). Interne Aufrufe
 // (Sync-Pull/Bootstrap mit `provider: undefined`) sowie reine Read-Methoden
 // bleiben erlaubt — sonst würde der Cloud→Edge-Pull selbst geblockt.
 //

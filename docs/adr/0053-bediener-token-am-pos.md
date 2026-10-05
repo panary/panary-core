@@ -148,7 +148,7 @@ abgelehnt. Angewandt auf:
 | Feld | Stelle |
 | --- | --- |
 | `creationContext.createdBy` | `orders.schema.ts` (Resolver). Vorher stand bei Geräten die Geräte-UUID dort |
-| `payment.transactions[].performedBy` | `attribute-order-transactions.hook.ts`, **nur neue** Transaktionen (Abgleich der `_id` mit dem gespeicherten Stand), vor `restrictOrderToCashSession` |
+| `payment.transactions[].performedBy` | `attribute-order-transactions.hook.ts` an `create` und `patch`, vor `restrictOrderToCashSession`. Neue Transaktionen aus dem Token; bekannte (gleiche `_id` im gespeicherten Stand) bekommen ihr **gespeichertes** `performedBy` zurück — eine gebuchte Zahlung lässt sich nicht umschreiben |
 | `order-interactions.userId` | Before-Hook am `create`, vor der Validierung |
 | `split.performedBy` | `resolveSplitOperator` in `order-split.method.ts` |
 

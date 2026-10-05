@@ -5,7 +5,7 @@ description: 'ADR zum angemeldeten POS-Bediener: Bisher stand er nur in localSto
 tags: [users, orders, pos, edge, security, devices]
 status: stable
 decision: accepted
-implementation: 'Schritte 1–2 von 4 umgesetzt 2026-10-05 (#619): Ausstellung in verifyPin, Prüfung und Kennzeichnung in resolvePosOperator. Schritte 3–4 (POS sendet mit, Edge erzwingt bei Storno und Zurechnung) offen.'
+implementation: 'Schritte 1–3 von 4 umgesetzt 2026-10-05 (#619): Ausstellung in verifyPin, Prüfung und Kennzeichnung in resolvePosOperator, POS speichert das Token und sendet es bei schreibenden Aufrufen und aus der Outbox mit. Schritt 4 (Edge erzwingt bei Storno und Zurechnung) offen.'
 generated: { by: claude-code/opus-5.5, at: 2026-10-05T16:00:00Z }
 ---
 
@@ -92,7 +92,24 @@ verloren. Ein verlorener Bon wiegt schwerer als ein nicht belegter Bediener.
 | 1 | Edge stellt aus und prüft, wenn mitgeschickt (additiv, PR #626) |
 | 2 | Edge kennzeichnet ein ungültiges Token, statt abzulehnen (Nachtrag oben) |
 | 3 | POS speichert das Token beim PIN-Login zentral und sendet es bei zurechnenden Aufrufen und in Outbox-Einträgen mit |
-| 4 | Edge erzwingt: Storno von Geräten nur mit Token eines Managers oder Inhabers; `performedBy`/`userId` aus `params.posOperator`, sonst „unbelegt“ |
+| 4 | Edge erzwingt: Storno von Geräten nur mit Token eines Managers oder Inhabers; `performedBy`/`userId` aus `params.posOperator`, sonst „unbelegt“. Dazu gehören die Custom Methods am rohen Service, die Schritt 3 noch nicht mitsenden lässt (`cash-sessions`, Zeiterfassung) — nur `orders.split` reicht das Token schon durch |
+
+### Am POS (Schritt 3)
+
+- **Speicher:** `libs/shared/data-access/src/lib/utils/pos-operator-token.ts`, Schlüssel
+  `pos_operator_token` neben `pos_current_user`. Den lesen sieben Stellen per `JSON.parse`, das
+  Token gehört in keine davon. Der PIN-Login legt es ab und entfernt ein vorhandenes, wenn
+  `verifyPin` keines liefert — sonst trüge die neue Sitzung das Token des vorigen Bedieners.
+  Logout und Geräte-Reset löschen es mit `pos_current_user`.
+- **Mitsenden:** `BaseService` hängt das Token an `create`, `patch`, `update` und `remove`, nicht an
+  Lesezugriffe. Ein abgelaufenes wird nicht mitgeschickt. `orders.split` läuft am rohen Service und
+  reicht es selbst durch.
+- **Vorrang und Unterdrückung:** Ein vom Aufrufer gesetztes Token gewinnt. `operatorToken: null`
+  heißt „ausdrücklich keines“. Der Storno nach Manager-PIN schickt so das Token des Managers, oder
+  — liefert dessen `verifyPin` keines — ausdrücklich keines statt des Kassierer-Tokens.
+- **Outbox:** Der Eintrag trägt das Token der Erfassung (`operatorToken`), der Nachversand schickt
+  genau dieses, nicht das des gerade angemeldeten Bedieners. Ohne Token geht kein Schlüssel mit,
+  weil der rohe Service kein `null` entfernt.
 
 POS und Edge werden getrennt ausgerollt. 🚨 Schritt 3 darf erst auf Geräte, wenn ein Edge-Release
 mit Schritt 2 läuft — gegen einen Edge aus Schritt 1 ginge ein Outbox-Eintrag mit abgelaufenem

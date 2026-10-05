@@ -19,7 +19,15 @@ import {
   TransactionMethod,
 } from '@panary/orders/domain'
 import { OrderInteraction } from '@panary/order-interactions/domain'
-import { BaseService, ConnectionService, createEnsureLoaded, OFFLINE_OUTBOX } from '@panary/shared/data-access'
+import {
+  BaseService,
+  ConnectionService,
+  createEnsureLoaded,
+  currentPosOperatorToken,
+  OFFLINE_OUTBOX,
+  posOperatorTokenOf,
+  withPosOperatorToken,
+} from '@panary/shared/data-access'
 import { CacheEntity, ExtendedParams, OfflineOutboxPort } from '@panary/shared-common'
 import { Observer } from 'rxjs'
 import { LocationService } from '@panary/locations/data-access'
@@ -423,6 +431,7 @@ export class OrderService extends BaseService<Order> {
     })
 
     await this.cacheStore?.upsertMany('orders', [order as unknown as CacheEntity])
+    const operatorToken = currentPosOperatorToken()
     await this.#outbox?.enqueue({
       _id: uuidv7(),
       service: 'orders',
@@ -430,6 +439,7 @@ export class OrderService extends BaseService<Order> {
       entityId: order._id,
       payload: order,
       occurredAt: order.recordingDate,
+      ...(operatorToken ? { operatorToken } : {}),
     })
     return order
   }
@@ -448,12 +458,12 @@ export class OrderService extends BaseService<Order> {
    */
   override async patch(id: Id | Id[] | null, data: Partial<Order>, params: Params = {}): Promise<Order | Order[]> {
     if (this.#shouldQueueOffline() && typeof id === 'string') {
-      return this.#patchOffline(id, data)
+      return this.#patchOffline(id, data, posOperatorTokenOf(withPosOperatorToken(params)))
     }
     return super.patch(id, data, params)
   }
 
-  async #patchOffline(id: string, data: Partial<Order>): Promise<Order> {
+  async #patchOffline(id: string, data: Partial<Order>, operatorToken: string | null): Promise<Order> {
     if (data.payment?.transactions?.some(t => t.method !== TransactionMethod.CASH)) {
       this.#matSnackBar.open('Offline ist nur Barzahlung möglich.', 'OK', { duration: 3000 })
       throw new Error('OFFLINE_CASH_ONLY')
@@ -470,6 +480,7 @@ export class OrderService extends BaseService<Order> {
       entityId: id,
       payload: data,
       occurredAt: new Date().toISOString(),
+      ...(operatorToken ? { operatorToken } : {}),
     })
     // Kein Realtime-`patched`-Echo offline → Liste/Dashboard aus dem Cache nachladen,
     // damit der Statuswechsel (z. B. Abschluss) sofort sichtbar wird.
@@ -500,8 +511,9 @@ export class OrderService extends BaseService<Order> {
     if (this.connectionService.connectionState().status !== 'authenticated') {
       throw new OrderSplitOfflineError()
     }
-    const service = this.service as { split: (data: unknown) => Promise<OrderSplitResponse> }
-    return service.split({ orderId, lineItems, ...(performedBy ? { performedBy } : {}) })
+    // Custom Method am rohen Service — `BaseService` haengt das Token hier nicht an.
+    const service = this.service as { split: (data: unknown, params?: Params) => Promise<OrderSplitResponse> }
+    return service.split({ orderId, lineItems, ...(performedBy ? { performedBy } : {}) }, withPosOperatorToken())
   }
 
   private markOrdersAsCompleted(): void {

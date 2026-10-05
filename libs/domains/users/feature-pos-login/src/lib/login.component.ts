@@ -5,7 +5,7 @@ import { PosSessionService } from '@panary/auth/data-access'
 import { DeviceAssignmentService } from '@panary/devices/data-access'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 // Direct import to avoid circular dependency with Admin's ConnectionService
-import { ConnectionService, OFFLINE_OUTBOX } from '@panary/shared/data-access'
+import { ConnectionService, OFFLINE_OUTBOX, storePosOperatorToken } from '@panary/shared/data-access'
 import { POS_PIN_LENGTH, requiresPosPinChange } from '@panary/users/domain'
 import { TimeClockEvent, TimeClockPanelComponent } from './time-clock-panel/time-clock-panel.component'
 import { PinPadComponent } from './pin-pad/pin-pad.component'
@@ -563,6 +563,10 @@ export class LoginComponent implements OnInit {
         autoLogOff: user['autoLogOff'],
       }),
     )
+
+    // Bediener-Token aus `verifyPin` (#619, ADR 0053) — auch nach dem
+    // erzwungenen PIN-Wechsel, denn `#pendingUser` traegt es aus demselben Aufruf.
+    storePosOperatorToken(user)
 
     this.#verifiedPin = null
     this.#pendingUser = null

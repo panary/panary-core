@@ -20,6 +20,8 @@ import {
   DATA_ACCESS_AUTO_LOAD,
   OFFLINE_CACHE,
   OFFLINE_OUTBOX,
+  POS_OPERATOR_TOKEN_STORAGE_KEY,
+  posOperatorParams,
   ServiceHelper,
 } from '@panary/shared/data-access'
 
@@ -65,15 +67,22 @@ function setup(options: SetupOptions = {}) {
   const enqueued: Array<Record<string, unknown>> = []
   const upserted: Array<{ store: string; rows: unknown[] }> = []
   const splitCalls: unknown[] = []
+  const splitParams: unknown[] = []
+  const patchCalls: Array<{ id: unknown; data: unknown; params: unknown }> = []
 
   const feathersOrderService = {
-    split: (data: unknown) => {
+    split: (data: unknown, params?: unknown) => {
       splitCalls.push(data)
+      splitParams.push(params)
       return Promise.resolve({ sourceOrder: { _id: 'quelle' }, targetOrder: { _id: 'ziel' } })
     },
     create: (payload: Record<string, unknown>, params: unknown) => {
       createCalls.push({ payload, params })
       return Promise.resolve({ ...payload, _id: payload['_id'] ?? 'server-vergeben', dailySequenceNumber: 42 })
+    },
+    patch: (id: unknown, data: Record<string, unknown>, params: unknown) => {
+      patchCalls.push({ id, data, params })
+      return Promise.resolve({ ...data, _id: id })
     },
     find: () => {
       const data = options.orders ?? []
@@ -144,7 +153,7 @@ function setup(options: SetupOptions = {}) {
   })
 
   const service = runInInjectionContext(injector, () => new OrderService())
-  return { service, createCalls, enqueued, upserted, splitCalls }
+  return { service, createCalls, enqueued, upserted, splitCalls, splitParams, patchCalls }
 }
 
 const baseInput = {
@@ -340,5 +349,94 @@ describe('OrderService.ordersActive — nur offene Bestellungen (#589)', () => {
       OrderStatus.PRODUCTION,
       OrderStatus.PRODUCED,
     ])
+  })
+})
+
+// Bediener-Token (panary/panary-core#619, ADR 0053, Schritt 3): Jeder schreibende
+// Weg traegt das Token des angemeldeten Bedieners — online in der Query, offline
+// im Outbox-Eintrag, damit der Nachversand es mitschicken kann.
+describe('OrderService — Bediener-Token', () => {
+  const VALID_UNTIL = '2099-01-01T00:00:00.000Z'
+
+  function stubOperatorToken(token: string | null) {
+    const store = new Map<string, string>()
+    if (token) {
+      store.set(
+        POS_OPERATOR_TOKEN_STORAGE_KEY,
+        JSON.stringify({ operatorToken: token, operatorTokenExpiresAt: VALID_UNTIL }),
+      )
+    }
+    vi.stubGlobal('localStorage', { getItem: (key: string) => store.get(key) ?? null })
+    onTestFinished(() => {
+      vi.unstubAllGlobals()
+    })
+  }
+
+  const queryOf = (params: unknown) => (params as { query?: Record<string, unknown> } | undefined)?.query
+
+  it('online: createOrder schickt das Token in der Query', async () => {
+    stubOperatorToken('tok-kassierer')
+    const { service, createCalls } = setup()
+
+    await service.createOrder(baseInput)
+
+    expect(queryOf(createCalls[0].params)).toEqual({ operatorToken: 'tok-kassierer' })
+  })
+
+  it('online: patch schickt das Token in der Query', async () => {
+    stubOperatorToken('tok-kassierer')
+    const { service, patchCalls } = setup()
+
+    await service.patch('order-1', { status: OrderStatus.COMPLETED })
+
+    expect(queryOf(patchCalls[0].params)).toEqual({ operatorToken: 'tok-kassierer' })
+  })
+
+  it('offline: createOrder legt das Token der Erfassung in den Outbox-Eintrag', async () => {
+    stubOperatorToken('tok-kassierer')
+    const { service, enqueued } = setup({ offline: true })
+
+    await service.createOrder(baseInput)
+
+    expect(enqueued[0]['operatorToken']).toBe('tok-kassierer')
+  })
+
+  it('offline ohne angemeldeten Bediener: kein Token-Feld im Outbox-Eintrag', async () => {
+    stubOperatorToken(null)
+    const { service, enqueued } = setup({ offline: true })
+
+    await service.createOrder(baseInput)
+
+    expect('operatorToken' in enqueued[0]).toBe(false)
+  })
+
+  it('offline: patch legt das Token in den Outbox-Eintrag, ein mitgegebenes gewinnt', async () => {
+    stubOperatorToken('tok-kassierer')
+    const { service, enqueued } = setup({ offline: true })
+
+    await service.patch('order-1', { status: OrderStatus.COMPLETED })
+    await service.patch('order-2', { status: OrderStatus.ABORTED }, posOperatorParams('tok-manager'))
+
+    expect(enqueued.map(entry => entry['operatorToken'])).toEqual(['tok-kassierer', 'tok-manager'])
+  })
+
+  it('offline: ausdruecklich ohne Token bleibt ohne — auch wenn ein Kassierer angemeldet ist', async () => {
+    // Storno nach Manager-PIN, dessen Edge kein Token lieferte: Das Token des
+    // Kassierers darf den Storno nicht tragen.
+    stubOperatorToken('tok-kassierer')
+    const { service, enqueued } = setup({ offline: true })
+
+    await service.patch('order-1', { status: OrderStatus.ABORTED }, posOperatorParams(null))
+
+    expect('operatorToken' in enqueued[0]).toBe(false)
+  })
+
+  it('split: die Custom Method traegt das Token', async () => {
+    stubOperatorToken('tok-kassierer')
+    const { service, splitParams } = setup()
+
+    await service.split('order-1', [], 'u-kassierer')
+
+    expect(queryOf(splitParams[0])).toEqual({ operatorToken: 'tok-kassierer' })
   })
 })

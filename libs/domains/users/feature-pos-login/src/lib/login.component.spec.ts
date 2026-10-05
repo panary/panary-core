@@ -12,7 +12,7 @@ import { ConnectionService, LanguageService, OFFLINE_OUTBOX } from '@panary/shar
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { UpdateService } from '@panary/shared/data-access-updater'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, onTestFinished, vi } from 'vitest'
 
 import { LoginComponent } from './login.component'
 
@@ -478,4 +478,81 @@ describe('LoginComponent — Hinweis nach Inaktivitaets-Logout (#604)', () => {
       expect(component.showIdleLogoutNotice()).toBe(false)
     },
   )
+})
+
+// Bediener-Token (panary/panary-core#619, ADR 0053, Schritt 3): Der PIN-Login legt
+// das Token aus `verifyPin` ab — und raeumt das eines vorigen Bedieners weg.
+describe('LoginComponent — Bediener-Token', () => {
+  function loginWith(verifyPinResult: Record<string, unknown>, initial: Record<string, string> = {}) {
+    const store = new Map(Object.entries(initial))
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => void store.set(key, value),
+      removeItem: (key: string) => void store.delete(key),
+    })
+    onTestFinished(() => {
+      vi.unstubAllGlobals()
+    })
+    const ctx = setup()
+    ;(ctx.connection.usersService as Record<string, unknown>)['verifyPin'] = vi.fn().mockResolvedValue(verifyPinResult)
+    ctx.component.selectedUser.set({ _id: 'u-anna', firstName: 'Anna', lastName: 'Alt', initials: 'AA' } as never)
+    ctx.component.pinInput.set('1234')
+    return { ...ctx, store }
+  }
+
+  it('legt das Token aus verifyPin unter pos_operator_token ab', async () => {
+    const { component, store } = loginWith({
+      _id: 'u-anna',
+      operatorToken: 'tok-anna',
+      operatorTokenExpiresAt: '2099-01-01T00:00:00.000Z',
+    })
+
+    await component.verifyPin()
+
+    expect(JSON.parse(store.get('pos_operator_token') as string)).toEqual({
+      operatorToken: 'tok-anna',
+      operatorTokenExpiresAt: '2099-01-01T00:00:00.000Z',
+    })
+    // Das Token gehoert nicht in pos_current_user — den lesen sieben Stellen.
+    expect(store.get('pos_current_user')).not.toContain('tok-anna')
+  })
+
+  it('behaelt das Token aus verifyPin ueber den erzwungenen PIN-Wechsel', async () => {
+    // `changePin` liefert kein Token — es stammt aus dem verifyPin davor.
+    const { component, connection, store } = loginWith({
+      _id: 'u-anna',
+      mustChangePosPin: true,
+      operatorToken: 'tok-anna',
+      operatorTokenExpiresAt: '2099-01-01T00:00:00.000Z',
+    })
+    ;(connection.usersService as Record<string, unknown>)['changePin'] = vi
+      .fn()
+      .mockResolvedValue({ _id: 'u-anna', mustChangePosPin: false })
+
+    await component.verifyPin()
+    expect(component.currentStep()).toBe('change-pin')
+    expect(store.has('pos_operator_token')).toBe(false)
+
+    component.newPin.set('5678')
+    component.confirmPin.set('5678')
+    await component.submitNewPin()
+
+    expect(JSON.parse(store.get('pos_operator_token') as string)['operatorToken']).toBe('tok-anna')
+  })
+
+  it('entfernt das Token des vorigen Bedieners, wenn verifyPin keines liefert', async () => {
+    const { component, store } = loginWith(
+      { _id: 'u-anna' },
+      {
+        pos_operator_token: JSON.stringify({
+          operatorToken: 'tok-bruno',
+          operatorTokenExpiresAt: '2099-01-01T00:00:00.000Z',
+        }),
+      },
+    )
+
+    await component.verifyPin()
+
+    expect(store.has('pos_operator_token')).toBe(false)
+  })
 })

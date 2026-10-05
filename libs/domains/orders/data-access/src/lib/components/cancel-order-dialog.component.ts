@@ -1,8 +1,9 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
+import type { Params } from '@feathersjs/feathers'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ConnectionService } from '@panary/shared/data-access'
+import { ConnectionService, posOperatorParams } from '@panary/shared/data-access'
 import { UserService } from '@panary/users/data-access'
 import { ORDER_CANCEL_AUTHORIZING_ROLES, User, UserStatus } from '@panary/users/domain'
 import { OrderService } from '../services/order.service'
@@ -281,7 +282,8 @@ export class CancelOrderDialogComponent {
     await this.#managersLoaded
     const authorizer = this.#currentAuthorizer()
     if (authorizer) {
-      // Manager/Owner können direkt stornieren — kein PIN nötig
+      // Manager/Owner können direkt stornieren — kein PIN nötig. Ohne eigenes
+      // Token haengt `BaseService` das des angemeldeten Bedieners an (#619).
       await this.executeCancel(authorizer)
     } else {
       this.step.set('select-user')
@@ -368,7 +370,7 @@ export class CancelOrderDialogComponent {
     this.verifying.set(true)
     try {
       const usersService = this.#connectionService.usersService as unknown as {
-        verifyPin: (data: { userId: string; pin: string }) => Promise<User>
+        verifyPin: (data: { userId: string; pin: string }) => Promise<User & { operatorToken?: string }>
       }
       const verified = await usersService.verifyPin({ userId: manager._id, pin: this.pin() })
 
@@ -379,7 +381,9 @@ export class CancelOrderDialogComponent {
         return
       }
 
-      await this.executeCancel(verified)
+      // Das Token des freigebenden Managers, nicht das des Kassierers (#619).
+      // Liefert der Edge keines, geht der Storno ausdruecklich ohne raus.
+      await this.executeCancel(verified, posOperatorParams(verified.operatorToken))
     } catch {
       // Server-Message ist hartkodiert deutsch — eigener übersetzter Text.
       this.#failPin('CANCEL_ORDER.INVALID_PIN')
@@ -395,22 +399,26 @@ export class CancelOrderDialogComponent {
     navigator.vibrate?.([100, 50, 100])
   }
 
-  private async executeCancel(authorizer: User | AuthorizingManager): Promise<void> {
+  private async executeCancel(authorizer: User | AuthorizingManager, params?: Params): Promise<void> {
     // Ein Doppel-Tipp im Manager-Pfad (`selectReason` ohne PIN-Schritt) startete
     // sonst zwei Stornos und damit zwei `order-cancel`-Ereignisse (#591).
     if (this.#cancelling) return
     this.#cancelling = true
     const name = this.#authorizerName(authorizer)
     try {
-      await this.#orderService.patch(this.order._id, {
-        cancellation: {
-          canceledBy: name,
-          reason: this.#translate.instant(this.selectedReason()),
-          canceledAt: new Date().toISOString(),
+      await this.#orderService.patch(
+        this.order._id,
+        {
+          cancellation: {
+            canceledBy: name,
+            reason: this.#translate.instant(this.selectedReason()),
+            canceledAt: new Date().toISOString(),
+          },
+          status: OrderStatus.ABORTED,
         },
-        status: OrderStatus.ABORTED,
-      })
-      this.#recordCancelJournal(authorizer._id)
+        params,
+      )
+      this.#recordCancelJournal(authorizer._id, params)
       this.#snackBar.open(this.#translate.instant('CANCEL_ORDER.SUCCESS'), undefined, { duration: 2500 })
       this.#dialogRef.close({ success: true, canceledBy: name })
     } catch {
@@ -431,21 +439,24 @@ export class CancelOrderDialogComponent {
    * Nicht awaited und nie blockierend: Der Storno ist schon gebucht, ein fehlendes
    * Journal-Ereignis darf ihn nicht als gescheitert erscheinen lassen.
    */
-  #recordCancelJournal(userId: string): void {
+  #recordCancelJournal(userId: string, params?: Params): void {
     const order = this.order
     const lineItems = Array.isArray(order.lineItems) ? order.lineItems : []
     this.#orderInteractionService
-      .create({
-        type: OrderInteractionType.ORDER_CANCEL,
-        orderId: order._id,
-        userId,
-        businessDayId: order.businessDayId,
-        eventAt: new Date().toISOString(),
-        orderOpenedAt: order.recordingDate || order.createdAt,
-        hadLineItems: lineItems.length > 0,
-        lineItemCountAtCancel: lineItems.length,
-        totalQuantityAtCancel: lineItems.reduce((sum, item) => sum + (item.amount ?? 0), 0),
-      })
+      .create(
+        {
+          type: OrderInteractionType.ORDER_CANCEL,
+          orderId: order._id,
+          userId,
+          businessDayId: order.businessDayId,
+          eventAt: new Date().toISOString(),
+          orderOpenedAt: order.recordingDate || order.createdAt,
+          hadLineItems: lineItems.length > 0,
+          lineItemCountAtCancel: lineItems.length,
+          totalQuantityAtCancel: lineItems.reduce((sum, item) => sum + (item.amount ?? 0), 0),
+        },
+        params,
+      )
       .catch(() => {
         /* BaseService meldet den Fehler bereits; der Storno bleibt gültig. */
       })

@@ -53,6 +53,7 @@ import { recordOrderPatchInteraction } from '../../hooks/record-order-patch-inte
 import { signOrderTseCancel, signOrderTseFinish, signOrderTseStart } from '../../hooks/sign-order-tse.hook'
 import { validateOrderStatusTransition } from '../../hooks/validate-order-status-transition.hook'
 import { requireOrderCancelAuthorization } from '../../hooks/require-order-cancel-authorization.hook'
+import { attributeOrderTransactions } from '../../hooks/attribute-order-transactions.hook'
 import { validateStaffMealExclusivity } from '../../hooks/validate-staff-meal-exclusivity.hook'
 import { rejectLegacyDiscount } from '../../hooks/reject-legacy-discount.hook'
 import { issueReceipt } from '../../hooks/issue-receipt.hook'
@@ -208,6 +209,9 @@ export const orders = (app: Application) => {
         // wechselt und eine Bar-Transaktion enthält → verlangt offene Kasse für
         // den Kassierer (performedBy). VOR validate/resolve, damit cashSessionId
         // gestempelt + früh abgelehnt wird. Standalone/orders-only/Karte → No-Op.
+        // `performedBy` neuer Zahlungen aus dem Bediener-Token (#619, ADR 0053) —
+        // VOR der Kassenprüfung, die die Lade anhand dieses Felds sucht.
+        attributeOrderTransactions,
         restrictOrderToCashSession(),
         // Fiskalischen taxSnapshot bei preisrelevanten Patches (discount /
         // appliedDiscounts / dineLocation) serverseitig neu berechnen — VOR der

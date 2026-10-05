@@ -15,6 +15,7 @@ import {
 } from '@panary/orders/domain'
 import { OrderService } from './orders.class'
 import { mayWriteOrderSplitFields } from '../../hooks/order-split-params'
+import { attributedOperatorId, isDeviceSession } from '../../utils/pos-operator-attribution'
 
 //#region 1. Main Resolver (Output)
 export const orderResolver = resolve<Order, HookContext<OrderService>>({
@@ -57,7 +58,15 @@ export const orderDataResolver = resolve<Order, HookContext<OrderService>>({
   splitRoundingRemainderCents: async (value, _data, context) =>
     mayWriteOrderSplitFields(context.params) ? value : undefined,
   creationContext: async (value, data, context) => {
-    const rawUserId: string | undefined = (context.params as any)?.user?._id || value?.createdBy
+    // Geraet (#619, ADR 0053): Bediener aus dem Token, sonst der Body-Wert als
+    // „unbelegt“. Vorher stand hier die Geraete-UUID — kein Mensch.
+    const deviceOperator = isDeviceSession((context.params as any)?.user)
+      ? attributedOperatorId(context.params, value?.createdBy, {
+          service: 'orders',
+          field: 'creationContext.createdBy',
+        })
+      : undefined
+    const rawUserId: string | undefined = deviceOperator || (context.params as any)?.user?._id || value?.createdBy
     const rawDeviceId: string | undefined = (context.params as any)?.device?._id || value?.createdVia
 
     if (!rawUserId && !rawDeviceId) {

@@ -18,6 +18,7 @@ import {
 } from '@panary/tse/domain'
 import { uuidv7 } from 'uuidv7'
 import type { Application } from '../../declarations'
+import { attributedOperatorId } from '../../utils/pos-operator-attribution'
 
 /**
  * `orders.split` — eine offene Bestellung in eine Teilbestellung aufteilen
@@ -413,6 +414,16 @@ async function resolveSplitOperator(
   const sessionUserId = params?.user?._id
   if (typeof sessionUserId !== 'string' || !sessionUserId) return undefined
   if (!sessionUserId.startsWith(DEVICE_USER_ID_PREFIX)) return sessionUserId
+
+  // Bediener-Token schlaegt den Body (#619, ADR 0053). Sein Mandant ist schon
+  // gegen das Geraet geprueft; der Abgleich unten gilt dem Body-Wert.
+  const operatorId = attributedOperatorId(params, performedBy, {
+    service: 'orders',
+    field: 'split.performedBy',
+    entityId: source._id,
+  })
+  if (params?.posOperator?.userId && operatorId === params.posOperator.userId)
+    return params.posOperator.userId as string
 
   if (typeof performedBy !== 'string' || !performedBy) {
     logger.warn({

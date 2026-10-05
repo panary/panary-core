@@ -75,10 +75,20 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-/** Am POS: Geraete-Auth, `currentUser()` leer, der PIN-Login steht nur in `pos_current_user` — ohne `role`. */
-function stubPosCurrentUser(user: Record<string, unknown> | null) {
+/**
+ * Am POS: Geraete-Auth, `currentUser()` leer, der PIN-Login steht nur in `pos_current_user` — ohne `role`.
+ * Seit #619 gehoert zum PIN-Login ein Bediener-Token; `withToken: false` bildet einen Login ohne
+ * (abgelaufen oder aelterer Edge) bzw. einen gefaelschten `pos_current_user` ab.
+ */
+function stubPosCurrentUser(user: Record<string, unknown> | null, options: { withToken?: boolean } = {}) {
   const store = new Map<string, string>()
   if (user) store.set('pos_current_user', JSON.stringify(user))
+  if (user && options.withToken !== false) {
+    store.set(
+      'pos_operator_token',
+      JSON.stringify({ operatorToken: 'tok-angemeldet', operatorTokenExpiresAt: '2099-01-01T00:00:00.000Z' }),
+    )
+  }
   vi.stubGlobal('localStorage', { getItem: (key: string) => store.get(key) ?? null })
 }
 
@@ -293,5 +303,39 @@ describe('CancelOrderDialogComponent — Bediener-Token (#619)', () => {
 
     expect((patch.mock.calls[0] as unknown[])[2]).toBeUndefined()
     expect((createInteraction.mock.calls[0] as unknown[])[1]).toBeUndefined()
+  })
+})
+
+// Schritt 4 von #619: Der Edge lehnt einen Storno ohne belegte Manager-Freigabe ab.
+// Der Dialog fuehrt dann auf die Personenauswahl zurueck, statt einen Fehler zu zeigen —
+// genau der Pruefschritt „gefaelschte ID → Freigebende Person waehlen“ im Issue.
+describe('CancelOrderDialogComponent — Direktweg nur mit Bediener-Token (#619)', () => {
+  it('ohne Token keine Direkt-Stornierung, auch wenn pos_current_user ein Manager ist', async () => {
+    stubPosCurrentUser({ _id: MANAGER_ID }, { withToken: false })
+    const { dialog, patch } = setup({ authorizingUsers: async () => [OWNER] })
+
+    dialog.selectReason('CANCEL_ORDER.REASON_COMPLAINT')
+    await flush()
+
+    expect(dialog.step()).toBe('select-user')
+    expect(patch).not.toHaveBeenCalled()
+  })
+
+  it('lehnt der Edge den Direktweg ab, fuehrt der Dialog zur Personenauswahl — ohne Journal, ohne Fehlermeldung', async () => {
+    stubPosCurrentUser({ _id: MANAGER_ID })
+    const { dialog, patch, createInteraction, close } = setup({
+      authorizingUsers: async () => [OWNER],
+      patch: async () => {
+        throw Object.assign(new Error('Forbidden'), { code: 403, data: { code: 'ORDER_CANCEL_NOT_AUTHORIZED' } })
+      },
+    })
+
+    dialog.selectReason('CANCEL_ORDER.REASON_COMPLAINT')
+    await flush()
+
+    expect(patch).toHaveBeenCalledTimes(1)
+    expect(dialog.step()).toBe('select-user')
+    expect(createInteraction).not.toHaveBeenCalled()
+    expect(close).not.toHaveBeenCalled()
   })
 })

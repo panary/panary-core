@@ -5,7 +5,7 @@ description: 'ADR zum angemeldeten POS-Bediener: Bisher stand er nur in localSto
 tags: [users, orders, pos, edge, security, devices]
 status: stable
 decision: accepted
-implementation: 'Schritte 1–3 von 4 umgesetzt 2026-10-05 (#619): Ausstellung in verifyPin, Prüfung und Kennzeichnung in resolvePosOperator, POS speichert das Token und sendet es bei schreibenden Aufrufen und aus der Outbox mit. Schritt 4 (Edge erzwingt bei Storno und Zurechnung) offen.'
+implementation: 'Schritte 1–3 und 4a umgesetzt 2026-10-05 (#619): Ausstellung in verifyPin, Prüfung und Kennzeichnung in resolvePosOperator, POS speichert und sendet das Token, Edge verlangt für Stornos von Geräten ein Manager-Token (requireOrderCancelAuthorization). Schritt 4b (Zurechnung aus dem Token) offen.'
 generated: { by: claude-code/opus-5.5, at: 2026-10-05T16:00:00Z }
 ---
 
@@ -111,9 +111,30 @@ verloren. Ein verlorener Bon wiegt schwerer als ein nicht belegter Bediener.
   genau dieses, nicht das des gerade angemeldeten Bedieners. Ohne Token geht kein Schlüssel mit,
   weil der rohe Service kein `null` entfernt.
 
+### Storno am Edge (Schritt 4a)
+
+`requireOrderCancelAuthorization` sitzt am `orders`-Patch hinter `validateOrderStatusTransition`
+und vor allen Kassen- und TSE-Hooks. Ein externer Patch eines **Geräts** auf `ABORTED` braucht
+`params.posOperator` mit der Rolle Manager oder Inhaber (`ORDER_CANCEL_AUTHORIZING_ROLES`, frisch
+aus der DB). Sonst `403` mit `data.code: 'ORDER_CANCEL_NOT_AUTHORIZED'` und
+`security.order_cancel_unauthorized` im Log. JWT-Sessions im Admin und interne Aufrufe sind nicht
+betroffen.
+
+Der Storno-Dialog bietet den Direktweg nur noch an, wenn ein eigenes Token vorliegt, und führt nach
+genau dieser Ablehnung auf die Personenauswahl mit PIN zurück — statt einer Fehlermeldung. So
+endet eine gefälschte `pos_current_user._id` im PIN-Schritt.
+
+⚠️ Ein offline erfasster Storno, der erst nach Ablauf des Tokens nachgesendet wird, wird
+abgelehnt (403, im Nachversand terminal) und erscheint unter den abgelehnten Übertragungen. Das
+ist Absicht: Eine Berechtigung, die sich durch Warten erschleichen ließe, wäre keine.
+
 POS und Edge werden getrennt ausgerollt. 🚨 Schritt 3 darf erst auf Geräte, wenn ein Edge-Release
 mit Schritt 2 läuft — gegen einen Edge aus Schritt 1 ginge ein Outbox-Eintrag mit abgelaufenem
 Token an der Ablehnung verloren.
+
+🚨 **Und Schritt 4a erst auf den Edge, wenn auf allen Geräten ein POS mit Schritt 3 läuft.** Ein
+älterer POS schickt kein Token; gegen einen Edge mit 4a scheitert dort jeder Storno, auch der mit
+Manager-PIN. Reihenfolge also: `v*` mit Schritt 2 → `pos-v*` mit Schritt 3 → `v*` mit Schritt 4a.
 
 ### Verworfen
 

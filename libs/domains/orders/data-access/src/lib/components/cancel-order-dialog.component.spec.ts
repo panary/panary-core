@@ -244,3 +244,54 @@ describe('CancelOrderDialogComponent — angemeldeter Manager am POS (#608)', ()
     expect(patch).not.toHaveBeenCalled()
   })
 })
+
+// Bediener-Token (panary/panary-core#619, ADR 0053, Schritt 3): Der Storno traegt
+// das Token dessen, der ihn freigibt. Nach Manager-PIN ist das der Manager,
+// nicht der angemeldete Kassierer — ab Schritt 4 entscheidet der Edge daran.
+describe('CancelOrderDialogComponent — Bediener-Token (#619)', () => {
+  async function cancelWithManagerPin(verifyPinResult: Record<string, unknown>) {
+    vi.useFakeTimers()
+    const ctx = setup({
+      currentUser: { _id: STAFF_ID, role: 'tenant:staff' },
+      verifyPin: async () => verifyPinResult,
+    })
+    ctx.dialog.selectReason('CANCEL_ORDER.REASON_COMPLAINT')
+    await vi.advanceTimersByTimeAsync(0)
+    ctx.dialog.selectManager({ _id: MANAGER_ID, fullName: 'Mia Manager', initials: 'MM', role: 'tenant:manager' })
+    for (const digit of ['1', '2', '3', '4']) ctx.dialog.appendDigit(digit)
+    await vi.advanceTimersByTimeAsync(150)
+    return ctx
+  }
+
+  it('nach Manager-PIN tragen Storno-Patch und Journal das Token des Managers', async () => {
+    const { patch, createInteraction } = await cancelWithManagerPin({
+      _id: MANAGER_ID,
+      role: 'tenant:manager',
+      operatorToken: 'tok-manager',
+    })
+
+    expect(patch.mock.calls[0]).toHaveLength(3)
+    expect((patch.mock.calls[0] as unknown[])[2]).toEqual({ query: { operatorToken: 'tok-manager' } })
+    expect((createInteraction.mock.calls[0] as unknown[])[1]).toEqual({ query: { operatorToken: 'tok-manager' } })
+  })
+
+  it('liefert der Manager-PIN kein Token, geht der Storno ausdruecklich ohne raus', async () => {
+    // `operatorToken: null` verhindert, dass `BaseService` das Token des Kassierers anhaengt.
+    const { patch, createInteraction } = await cancelWithManagerPin({ _id: MANAGER_ID, role: 'tenant:manager' })
+
+    expect((patch.mock.calls[0] as unknown[])[2]).toEqual({ query: { operatorToken: null } })
+    expect((createInteraction.mock.calls[0] as unknown[])[1]).toEqual({ query: { operatorToken: null } })
+  })
+
+  it('Manager storniert selbst: kein eigenes Token — `BaseService` haengt das des angemeldeten Bedieners an', async () => {
+    const { dialog, patch, createInteraction } = setup({
+      currentUser: { _id: MANAGER_ID, role: 'tenant:manager' },
+    })
+
+    dialog.selectReason('CANCEL_ORDER.REASON_COMPLAINT')
+    await flush()
+
+    expect((patch.mock.calls[0] as unknown[])[2]).toBeUndefined()
+    expect((createInteraction.mock.calls[0] as unknown[])[1]).toBeUndefined()
+  })
+})

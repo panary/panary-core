@@ -589,6 +589,7 @@ export class DeviceConfigService {
     const keysToRemove = [
       this.STORAGE_KEY, // panary_device_config
       'pos_current_user',
+      'pos_operator_token', // POS_OPERATOR_TOKEN_STORAGE_KEY in @panary/shared/data-access (#619)
       'panary_users',
       'panary_usernames',
       'panary_company',

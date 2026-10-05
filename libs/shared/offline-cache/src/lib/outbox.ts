@@ -18,6 +18,8 @@ export interface OutboxEntry extends CacheEntity {
   readonly attempts: number
   readonly nextAttemptAt?: string
   readonly lastError?: string
+  /** Siehe `OfflineOutboxInput.operatorToken`. */
+  readonly operatorToken?: string
 }
 
 /** Backoff-Plan (ms) je Versuch — 30 s, 1 m, 5 m, 30 m, 2 h, danach 6 h (gedeckelt). */

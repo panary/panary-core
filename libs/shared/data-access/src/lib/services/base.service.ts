@@ -12,6 +12,7 @@ import { REALTIME_SCOPE_GUARD, RealtimeScopeGuard } from './realtime-scope-guard
 import { CachePolicy, normalizeToRecords, OfflineCachePort } from '@panary/shared-common'
 import { DATA_ACCESS_AUTO_LOAD } from './auto-load.token'
 import { OFFLINE_CACHE } from './offline-cache.token'
+import { withPosOperatorToken } from '../utils/pos-operator-token'
 import { ConnectionService } from './connection.service'
 
 // Optional: Reusable type
@@ -344,7 +345,8 @@ export abstract class BaseService<T> {
    * @return {Promise<T | T[]>} A promise that resolves with the updated resource(s) or rejects with an error.
    */
   async update(id: Id | null, data: T, params: Params = {}): Promise<T | T[]> {
-    const result = await this.service.update(id, data, params).catch((error: unknown) => {
+    // Schreibende Aufrufe tragen am POS das Bediener-Token (#619, ADR 0053).
+    const result = await this.service.update(id, data, withPosOperatorToken(params)).catch((error: unknown) => {
       this.helper.handleError(this.serviceName, error)
       throw error
     })
@@ -361,7 +363,7 @@ export abstract class BaseService<T> {
    * @return {Promise<T | T[]>} A promise that resolves to the patched resource(s).
    */
   async patch(id: Id | Id[] | null, data: Partial<T>, params: Params = {}): Promise<T | T[]> {
-    const result = await this.service.patch(id, data, params).catch((error: unknown) => {
+    const result = await this.service.patch(id, data, withPosOperatorToken(params)).catch((error: unknown) => {
       this.helper.handleError(this.serviceName, error)
       throw error
     })
@@ -380,7 +382,7 @@ export abstract class BaseService<T> {
     data: Omit<T, '_id' | 'locationId' | 'tenantId'> | Omit<T, '_id' | 'locationId' | 'tenantId'>[],
     params: Params = {},
   ): Promise<T | T[]> {
-    const result = await this.service.create(data, params).catch((error: unknown) => {
+    const result = await this.service.create(data, withPosOperatorToken(params)).catch((error: unknown) => {
       this.helper.handleError(this.serviceName, error)
       throw error
     })
@@ -396,7 +398,7 @@ export abstract class BaseService<T> {
    * @return {Promise<T|T[]>} A promise that resolves to the removed resource(s). The return type could be a single resource or an array of resources depending on the operation.
    */
   async remove(id: Id | null, params: Params = {}): Promise<T | T[]> {
-    const result = await this.service.remove(id, params).catch((error: unknown) => {
+    const result = await this.service.remove(id, withPosOperatorToken(params)).catch((error: unknown) => {
       this.helper.handleError(this.serviceName, error)
       throw error
     })

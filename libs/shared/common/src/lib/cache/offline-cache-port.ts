@@ -62,6 +62,12 @@ export interface OfflineOutboxInput {
   readonly entityId: string
   readonly payload: unknown
   readonly occurredAt: string
+  /**
+   * Bediener-Token zum Zeitpunkt der Erfassung (#619, ADR 0053). Der Nachversand
+   * schickt es mit; ist es bis dahin abgelaufen, gilt die Zurechnung am Edge als
+   * unbelegt — der Eintrag selbst geht nicht verloren.
+   */
+  readonly operatorToken?: string
 }
 
 /**

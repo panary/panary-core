@@ -1,7 +1,8 @@
 import { effect, inject, Injectable, OnDestroy, untracked } from '@angular/core'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'
-import { ConnectionService } from '@panary/shared/data-access'
+import type { Params } from '@feathersjs/feathers'
+import { ConnectionService, withPosOperatorToken } from '@panary/shared/data-access'
 import type { OfflineReplayPort } from '@panary/shared-common'
 import {
   classifyOutboxError,
@@ -13,8 +14,8 @@ import {
 
 /** Minimaler Feathers-Service-Ausschnitt für das Replay (create/patch mit voller Payload). */
 interface ReplayTarget {
-  create(data: unknown): Promise<unknown>
-  patch(id: string, data: unknown): Promise<unknown>
+  create(data: unknown, params?: Params): Promise<unknown>
+  patch(id: string, data: unknown, params?: Params): Promise<unknown>
 }
 
 /** Poll-Intervall für fällige Retries (am kürzesten Backoff = 30 s ausgerichtet). */
@@ -115,10 +116,15 @@ export class PosOutboxReplayService implements OnDestroy, OfflineReplayPort {
       return
     }
     try {
+      // Das Token der Erfassung, nicht das des jetzt angemeldeten Bedieners —
+      // sonst rechnete der Edge die Bestellung dem falschen Menschen zu. Ohne
+      // Token gar kein Schluessel: Der rohe Service entfernt kein `null`, der
+      // Edge werte es als abgelehntes Token.
+      const params = withPosOperatorToken({}, entry.operatorToken ?? null)
       if (entry.op === 'create') {
-        await target.create(entry.payload)
+        await target.create(entry.payload, params)
       } else {
-        await target.patch(entry.entityId, entry.payload)
+        await target.patch(entry.entityId, entry.payload, params)
       }
       await this.#outbox.markAcked(entry._id)
     } catch (error) {

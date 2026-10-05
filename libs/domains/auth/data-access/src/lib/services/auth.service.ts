@@ -9,7 +9,7 @@ import { httpErrorCodesDE } from '@panary/util-error-handling'
 import { NotificationService } from '@panary/shared/ui-notifications'
 import { Id } from '@feathersjs/feathers'
 import { APP_CONFIG, AppConfigService } from '@panary/shared/data-access-config'
-import { ConnectionService } from '@panary/shared/data-access'
+import { clearPosOperatorToken, ConnectionService } from '@panary/shared/data-access'
 
 type LoginBody = {
   loginname?: string
@@ -309,6 +309,8 @@ export class AuthService {
     // Geraete-JWT im leeren Bildschirm samt WS-Reconnect-Schleife.
     // Im Admin-Client existiert der Schluessel nicht — dort ist die Zeile ein No-Op.
     localStorage.removeItem('pos_current_user')
+    // Das Bediener-Token gehoert zu derselben Sitzungsebene (#619).
+    clearPosOperatorToken()
 
     const snackBarMessage = 'Benutzer erfolgreich abgemeldet'
     this.#matSnackBar.open(snackBarMessage, AuthService.SNACKBAR_ACTION, { duration: AuthService.SNACKBAR_DURATION })

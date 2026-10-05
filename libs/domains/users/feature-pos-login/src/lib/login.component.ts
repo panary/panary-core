@@ -1,6 +1,7 @@
 import { Component, computed, HostListener, inject, OnInit, signal, WritableSignal } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { Router } from '@angular/router'
+import { PosSessionService } from '@panary/auth/data-access'
 import { DeviceAssignmentService } from '@panary/devices/data-access'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 // Direct import to avoid circular dependency with Admin's ConnectionService
@@ -70,6 +71,7 @@ export class LoginComponent implements OnInit {
   readonly appVersion = inject(APP_CONFIG).appVersion
   readonly #translateService = inject(TranslateService)
   readonly #outbox = inject(OFFLINE_OUTBOX, { optional: true })
+  readonly #posSession = inject(PosSessionService)
   readonly languages = LANGUAGES
   //#endregion
 
@@ -82,6 +84,14 @@ export class LoginComponent implements OnInit {
   readonly isLoading: WritableSignal<boolean> = signal(false)
   readonly errorMessage: WritableSignal<string | null> = signal(null)
   readonly errorKind: WritableSignal<LoginErrorKind> = signal('connection')
+
+  /**
+   * Die vorige Sitzung endete durch den Inaktivitaets-Logout (panary/panary-core#604).
+   * Der hat offene Dialoge geschlossen, etwa die Manager-Freigabe eines Stornos. Ohne
+   * Hinweis haelt der Manager diesen Screen fuer den Freigabe-Schritt und meldet sich
+   * mit seiner PIN an, statt zu stornieren.
+   */
+  readonly idleLogoutNotice: WritableSignal<boolean> = signal(false)
 
   // Erzwungener PIN-Wechsel (mustChangePosPin)
   readonly changePinPhase: WritableSignal<ChangePinPhase> = signal('new')
@@ -165,6 +175,7 @@ export class LoginComponent implements OnInit {
 
   //#region Lifecycle
   ngOnInit(): void {
+    this.idleLogoutNotice.set(this.#posSession.consumeEndReason() === 'idle')
     this.loadDeviceInfo()
     this.connectAndLoadUsers().then(r => {
       /* empty */

@@ -1,4 +1,4 @@
-import { computed, inject, Injectable, Signal } from '@angular/core'
+import { computed, inject, Injectable, Signal, signal } from '@angular/core'
 import { MatDialog } from '@angular/material/dialog'
 import { ConnectionService } from '@panary/shared/data-access'
 import { AuthService } from './auth.service'
@@ -40,6 +40,20 @@ export class PosSessionService {
   #inFlight = false
 
   /**
+   * Grund des letzten Sitzungsendes, bis der Login-Screen ihn abholt
+   * (panary/panary-core#604). Der Inaktivitaets-Logout schliesst offene Dialoge
+   * ohne Rueckmeldung; der Login sieht mit Personenwahl und Ziffernfeld aber aus
+   * wie der Freigabe-Schritt eines Stornos. Ohne Hinweis tippt der Manager seine
+   * PIN in den Login, landet auf dem Dashboard und haelt den Storno fuer
+   * gescheitert.
+   *
+   * Ein Signal im Root-Service statt `sessionStorage`: `AuthService.logout()`
+   * leert den sessionStorage, und nach einem Reload gibt es ohnehin keinen
+   * abgebrochenen Dialog mehr, auf den der Hinweis passen wuerde.
+   */
+  readonly #lastEndReason = signal<PosLogoutReason | null>(null)
+
+  /**
    * Beendet die Sitzung. Liefert `false`, wenn nichts passiert ist (offline
    * oder bereits laufender Logout) — der Aufrufer entscheidet, ob er das dem
    * Nutzer meldet.
@@ -60,9 +74,22 @@ export class PosSessionService {
       // Backdrop und ESC gilt; genau das ist hier erwuenscht.
       this.#dialog.closeAll()
       console.info('[PosSessionService] Mitarbeiter-Sitzung beendet. Grund:', reason)
+      // Vor `logout()`: Das navigiert auf /login, und der Login liest den Grund in `ngOnInit`.
+      this.#lastEndReason.set(reason)
       return await this.#auth.logout()
     } finally {
       this.#inFlight = false
     }
+  }
+
+  /**
+   * Liefert den Grund des letzten Sitzungsendes genau einmal und vergisst ihn
+   * dann. Ein zweiter Login-Screen in derselben App-Laufzeit (naechster
+   * Button-Logout) soll keinen veralteten Inaktivitaets-Hinweis zeigen.
+   */
+  consumeEndReason(): PosLogoutReason | null {
+    const reason = this.#lastEndReason()
+    this.#lastEndReason.set(null)
+    return reason
   }
 }

@@ -95,6 +95,8 @@
     "SELECT_ACCOUNT": "Select your account",
     "ENTER_PIN": "Enter PIN",
     "WRONG_PIN": "Wrong PIN. Please try again.",
+    "IDLE_LOGOUT_TITLE": "Signed out due to inactivity",
+    "IDLE_LOGOUT_HINT": "An open action, such as a cancellation approval, was aborted. Please start it again after signing in.",
     "CHANGE_PIN_TITLE": "Change PIN",
     "CHANGE_PIN_HINT": "Before you start, please set your own PIN. Only you will know it.",
     "ENTER_NEW_PIN": "Enter new PIN",

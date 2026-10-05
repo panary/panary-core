@@ -95,6 +95,8 @@
     "SELECT_ACCOUNT": "Hesabınızı seçin",
     "ENTER_PIN": "PIN girin",
     "WRONG_PIN": "Yanlış PIN. Lütfen tekrar deneyin.",
+    "IDLE_LOGOUT_TITLE": "Hareketsizlik nedeniyle oturum kapatıldı",
+    "IDLE_LOGOUT_HINT": "Açık bir işlem, örneğin bir iptal onayı, iptal edildi. Lütfen giriş yaptıktan sonra yeniden başlatın.",
     "CHANGE_PIN_TITLE": "PIN değiştir",
     "CHANGE_PIN_HINT": "Başlamadan önce lütfen kendi PIN'inizi belirleyin. Yalnızca siz bileceksiniz.",
     "ENTER_NEW_PIN": "Yeni PIN girin",

@@ -95,6 +95,8 @@
     "SELECT_ACCOUNT": "Wählen Sie Ihren Account",
     "ENTER_PIN": "PIN eingeben",
     "WRONG_PIN": "Falsche PIN. Bitte erneut versuchen.",
+    "IDLE_LOGOUT_TITLE": "Wegen Inaktivität abgemeldet",
+    "IDLE_LOGOUT_HINT": "Eine offene Aktion, etwa eine Storno-Freigabe, wurde abgebrochen. Nach der Anmeldung bitte erneut starten.",
     "CHANGE_PIN_TITLE": "PIN ändern",
     "CHANGE_PIN_HINT": "Bevor du loslegst, vergib bitte eine eigene PIN. Sie ist nur dir bekannt.",
     "ENTER_NEW_PIN": "Neue PIN eingeben",

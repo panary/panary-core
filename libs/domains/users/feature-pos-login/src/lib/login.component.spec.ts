@@ -4,6 +4,7 @@
 import '@angular/compiler'
 import { computed, Injector, runInInjectionContext, signal } from '@angular/core'
 import { Router } from '@angular/router'
+import { PosSessionService, type PosLogoutReason } from '@panary/auth/data-access'
 import { TranslateService } from '@ngx-translate/core'
 import { DeviceAssignmentService } from '@panary/devices/data-access'
 import { DeviceAccessMode, type DeviceAccessModeValue } from '@panary/devices/domain'
@@ -60,6 +61,8 @@ interface SetupOptions {
   rejection?: string | null
   /** Noch nicht uebertragene Outbox-Eintraege; `undefined` = kein Outbox-Provider. */
   pendingOutbox?: number
+  /** Grund des vorigen Sitzungsendes, den `PosSessionService` einmalig herausgibt (#604). */
+  endReason?: PosLogoutReason | null
 }
 
 function setup(options: SetupOptions = {}) {
@@ -70,6 +73,7 @@ function setup(options: SetupOptions = {}) {
     reverificationRequired = false,
     rejection = null,
     pendingOutbox,
+    endReason = null,
   } = options
 
   const assignment = fakeAssignment(mode, assignedUserIds)
@@ -118,6 +122,7 @@ function setup(options: SetupOptions = {}) {
       { provide: UpdateService, useValue: {} },
       { provide: APP_CONFIG, useValue: { appVersion: '0.0.0-test' } },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
+      { provide: PosSessionService, useValue: { consumeEndReason: vi.fn().mockReturnValue(endReason) } },
     ],
   })
 
@@ -430,5 +435,26 @@ describe('LoginComponent — Neukopplung nach abgelaufenem Schluessel (#524)', (
 
     expect(component.errorKind()).toBe('connection')
     expect(component.currentStep()).toBe('select-user')
+  })
+})
+
+describe('LoginComponent — Hinweis nach Inaktivitaets-Logout (#604)', () => {
+  // Der Auto-Logout schliesst eine offene Storno-Freigabe ohne Rueckmeldung. Der
+  // Login sieht mit Personenwahl und Ziffernfeld aus wie deren PIN-Schritt — ohne
+  // Hinweis meldete sich der Manager an, statt zu stornieren.
+  it('zeigt den Hinweis, wenn die vorige Sitzung durch Inaktivitaet endete', () => {
+    const { component } = setup({ endReason: 'idle' })
+
+    component.ngOnInit()
+
+    expect(component.idleLogoutNotice()).toBe(true)
+  })
+
+  it.each(['button', 'clock-out', null] as const)('zeigt ihn nicht bei Grund %s', reason => {
+    const { component } = setup({ endReason: reason })
+
+    component.ngOnInit()
+
+    expect(component.idleLogoutNotice()).toBe(false)
   })
 })

@@ -1,6 +1,7 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
 import { validateData } from '../../hooks/validate-data.hook'
+import { cloudManaged } from '../../hooks/cloud-managed.hook'
 
 import {
   productGroupDataResolver,
@@ -102,6 +103,8 @@ export const productGroups = (app: Application) => {
       all: [
         authenticate('jwt'),
         authorize(),
+        // Wie products.ts: Cloud ist Source of Truth, externe Writes nach Pairing blocken (#607).
+        cloudManaged(),
         // Siehe products.ts: `locationId: null` = tenant-weit geteilte Stammdaten, für jede
         // Filiale sichtbar. Angelegt werden sie nur in der Cloud (Katalog-Rollout), der
         // Edge-WRITE-Stempel bleibt filialgebunden.

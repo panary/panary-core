@@ -11,6 +11,8 @@ import {
 import { FormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
+import { CloudManagedBannerComponent } from '../../core/cloud-managed-banner'
+import { CloudManagedService } from '../../core/cloud-managed.service'
 import { GroupFormComponent } from './group-form'
 import { ConfirmDialogComponent } from '../../core/confirm-dialog'
 import { GroupWizardComponent } from './group-wizard'
@@ -43,7 +45,14 @@ interface ProductGroup {
 @Component({
   selector: 'app-group-list',
   standalone: true,
-  imports: [GroupFormComponent, ConfirmDialogComponent, FormsModule, GroupWizardComponent, TranslateModule],
+  imports: [
+    GroupFormComponent,
+    ConfirmDialogComponent,
+    FormsModule,
+    GroupWizardComponent,
+    TranslateModule,
+    CloudManagedBannerComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex h-full overflow-hidden">
@@ -67,36 +76,38 @@ interface ProductGroup {
                 >
                   {{ exporting() ? ('COMMON.EXPORTING' | translate) : ('COMMON.EXPORT' | translate) }}
                 </button>
-                <button
-                  (click)="fileInput()?.nativeElement?.click()"
-                  [disabled]="importing()"
-                  class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
+                @if (!readOnly()) {
+                  <button
+                    (click)="fileInput()?.nativeElement?.click()"
+                    [disabled]="importing()"
+                    class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
                          px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
                          hover:bg-slate-50 dark:hover:bg-gray-800 transition"
-                >
-                  {{ importing() ? ('COMMON.IMPORTING' | translate) : ('COMMON.IMPORT' | translate) }}
-                </button>
-                <button
-                  (click)="showWizard.set(true)"
-                  class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
+                  >
+                    {{ importing() ? ('COMMON.IMPORTING' | translate) : ('COMMON.IMPORT' | translate) }}
+                  </button>
+                  <button
+                    (click)="showWizard.set(true)"
+                    class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
                          px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
                          hover:bg-slate-50 dark:hover:bg-gray-800 transition flex items-center gap-1.5"
-                >
-                  <svg
-                    class="w-3.5 h-3.5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
                   >
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                    <path d="M2 17l10 5 10-5"></path>
-                    <path d="M2 12l10 5 10-5"></path>
-                  </svg>
-                  {{ 'COMMON.WIZARD' | translate }}
-                </button>
+                    <svg
+                      class="w-3.5 h-3.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                      <path d="M2 17l10 5 10-5"></path>
+                      <path d="M2 12l10 5 10-5"></path>
+                    </svg>
+                    {{ 'COMMON.WIZARD' | translate }}
+                  </button>
+                }
               } @else {
                 <!-- Kebab-Menü wenn Panel geöffnet -->
                 <div class="relative">
@@ -132,50 +143,58 @@ interface ProductGroup {
                       >
                         {{ exporting() ? ('COMMON.EXPORTING' | translate) : ('COMMON.EXPORT' | translate) }}
                       </button>
-                      <button
-                        (click)="fileInput()?.nativeElement?.click(); actionsMenuOpen.set(false)"
-                        [disabled]="importing()"
-                        class="w-full text-left text-xs px-3 py-2 rounded-lg
+                      @if (!readOnly()) {
+                        <button
+                          (click)="fileInput()?.nativeElement?.click(); actionsMenuOpen.set(false)"
+                          [disabled]="importing()"
+                          class="w-full text-left text-xs px-3 py-2 rounded-lg
                                text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition
                                disabled:opacity-50"
-                      >
-                        {{ importing() ? ('COMMON.IMPORTING' | translate) : ('COMMON.IMPORT' | translate) }}
-                      </button>
-                      <div class="h-px bg-slate-100 dark:bg-gray-800 my-0.5"></div>
-                      <button
-                        (click)="showWizard.set(true); actionsMenuOpen.set(false)"
-                        class="w-full text-left text-xs px-3 py-2 rounded-lg flex items-center gap-2
-                               text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition"
-                      >
-                        <svg
-                          class="w-3.5 h-3.5"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
                         >
-                          <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                          <path d="M2 17l10 5 10-5"></path>
-                          <path d="M2 12l10 5 10-5"></path>
-                        </svg>
-                        {{ 'COMMON.WIZARD' | translate }}
-                      </button>
+                          {{ importing() ? ('COMMON.IMPORTING' | translate) : ('COMMON.IMPORT' | translate) }}
+                        </button>
+                        <div class="h-px bg-slate-100 dark:bg-gray-800 my-0.5"></div>
+                        <button
+                          (click)="showWizard.set(true); actionsMenuOpen.set(false)"
+                          class="w-full text-left text-xs px-3 py-2 rounded-lg flex items-center gap-2
+                               text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition"
+                        >
+                          <svg
+                            class="w-3.5 h-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                            <path d="M2 17l10 5 10-5"></path>
+                            <path d="M2 12l10 5 10-5"></path>
+                          </svg>
+                          {{ 'COMMON.WIZARD' | translate }}
+                        </button>
+                      }
                     </div>
                   }
                 </div>
               }
               <input #fileInputRef type="file" accept=".json" class="hidden" (change)="onFileSelected($event)" />
-              <button
-                (click)="selectItem('new')"
-                class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-4 py-2 rounded-xl text-xs
+              @if (!readOnly()) {
+                <button
+                  (click)="selectItem('new')"
+                  class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-4 py-2 rounded-xl text-xs
                        hover:bg-slate-800 dark:hover:bg-gray-200 transition"
-              >
-                + {{ 'COMMON.NEW' | translate }}
-              </button>
+                >
+                  + {{ 'COMMON.NEW' | translate }}
+                </button>
+              }
             </div>
           </div>
+
+          @if (readOnly()) {
+            <app-cloud-managed-banner sublineKey="CLOUD_MANAGED.SUBLINE_PRODUCT_GROUPS" />
+          }
 
           <!-- Import-Ergebnis -->
           @if (importResult()) {
@@ -529,6 +548,9 @@ interface ProductGroup {
 export class GroupListComponent implements OnInit {
   private api = inject(ApiService)
   private t = inject(TranslateService)
+  private cloudManaged = inject(CloudManagedService)
+  /** Gepairter Edge: Anlegen und Import sind gesperrt, die Cloud pflegt den Katalog (#607). */
+  protected readOnly = this.cloudManaged.readOnly
   groups = signal<ProductGroup[]>([])
   loading = signal(true)
   loadingMore = signal(false)
@@ -695,6 +717,7 @@ export class GroupListComponent implements OnInit {
   }
 
   async ngOnInit() {
+    void this.cloudManaged.refresh()
     await this.loadGroups()
   }
 

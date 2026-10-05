@@ -118,7 +118,9 @@
     "EMERGENCY_START": "Activate emergency mode",
     "SAVE_BLOCKED": "Change not saved — this data is managed in the cloud.",
     "EMERGENCY_END_CONFIRM": "After this the edge no longer accepts local printer changes. Changes already made stay active and are reconciled on the next cloud contact.",
-    "SUBLINE_BUSINESS_DAYS": "Business days are opened and closed centrally."
+    "SUBLINE_BUSINESS_DAYS": "Business days are opened and closed centrally.",
+    "SUBLINE_PRODUCTS": "Products, options and prices are maintained centrally.",
+    "SUBLINE_PRODUCT_GROUPS": "Product groups are maintained centrally."
   },
   "CLOUD_STATUS": {
     "SYNC_AGE_MIN": "Last data sync {{minutes}} min ago",

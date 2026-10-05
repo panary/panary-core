@@ -118,7 +118,9 @@
     "EMERGENCY_START": "Notfall-Modus aktivieren",
     "SAVE_BLOCKED": "Änderung nicht gespeichert — diese Daten werden in der Cloud verwaltet.",
     "EMERGENCY_END_CONFIRM": "Danach nimmt der Edge keine lokalen Drucker-Änderungen mehr an. Bereits vorgenommene Änderungen bleiben aktiv und werden beim nächsten Cloud-Kontakt abgeglichen.",
-    "SUBLINE_BUSINESS_DAYS": "Geschäftstage werden zentral eröffnet und abgeschlossen."
+    "SUBLINE_BUSINESS_DAYS": "Geschäftstage werden zentral eröffnet und abgeschlossen.",
+    "SUBLINE_PRODUCTS": "Produkte, Optionen und Preise werden zentral gepflegt.",
+    "SUBLINE_PRODUCT_GROUPS": "Produktgruppen werden zentral gepflegt."
   },
   "CLOUD_STATUS": {
     "SYNC_AGE_MIN": "Letzter Datenabgleich vor {{minutes}} min",

@@ -2,7 +2,7 @@ import { computed, effect, inject, Injectable, Signal, signal, untracked, Writab
 import { ItemType, Pricelist, ProductSchema } from '@panary/products/domain'
 import { Id } from '@feathersjs/feathers'
 import { Observer } from 'rxjs'
-import { BaseService, ConnectionService, createEnsureLoaded } from '@panary/shared/data-access'
+import { BaseService, ConnectionService, createEnsureLoaded, shouldAutoLoad } from '@panary/shared/data-access'
 import { AuthService } from '@panary/auth/data-access'
 
 // TODO: Migration – Status-Enum aus @panary/products/domain oder shared/common übernehmen
@@ -61,6 +61,8 @@ export class ProductService extends BaseService<ProductSchema> {
   #documents: WritableSignal<ProductSchema[]> = signal([])
   #isLoading: WritableSignal<boolean> = signal(false)
   #isLoaded: WritableSignal<boolean> = signal(false)
+  /** Letzter Load kam aus dem Offline-Cache → nach dem Reconnect neu vom Server laden (core#649). */
+  #loadedFromCache: WritableSignal<boolean> = signal(false)
 
   /** PUBLIC PROPERTIES */
   products: Signal<ProductSchema[]> = this.#documents.asReadonly()
@@ -87,10 +89,14 @@ export class ProductService extends BaseService<ProductSchema> {
     if (this.autoLoadEnabled) {
       effect((): void => {
         // Getrackte Reads explizit; Lade-Aufruf via untracked() entkoppelt (angular.md §2.1)
-        const isAuthenticated = this.connectionService.isAuthenticated()
-        const isLoaded = this.#isLoaded()
+        const state = {
+          isAuthenticated: this.connectionService.isAuthenticated(),
+          isLoaded: this.#isLoaded(),
+          loadedFromCache: this.#loadedFromCache(),
+          cacheReady: this.cacheStore?.isReady() ?? false,
+        }
 
-        if (isAuthenticated && !isLoaded) {
+        if (shouldAutoLoad(state)) {
           untracked(() => void this.loadDocuments())
         }
       })
@@ -102,6 +108,8 @@ export class ProductService extends BaseService<ProductSchema> {
     if (this.#isLoading()) return // Verhindert doppeltes Laden
 
     this.#isLoading.set(true)
+    // Ohne authentifizierte Verbindung beantwortet der BaseService aus dem Cache.
+    this.#loadedFromCache.set(!this.connectionService.isAuthenticated())
 
     try {
       const limit = 250

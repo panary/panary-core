@@ -156,9 +156,9 @@ Erweitert mit panary/panary-core#631:
 
 | Feld | Stelle |
 | --- | --- |
-| `appliedDiscounts[].appliedBy` | `attribute-order-operators.hook.ts` (vormals `attribute-order-transactions`), gleiche Regel wie Zahlungen. Nur wenn der Body einen Menschen nennt — ein automatischer Rabatt (`appliedBy: null`) bleibt ohne Bediener |
+| `appliedDiscounts[].appliedBy` | `attribute-order-operators.hook.ts` (vormals `attribute-order-transactions`), gleiche Regel wie Zahlungen. Nur für Rabatte, die ein Mensch auslöst (`method` `manual` oder `code`) — ein automatischer bleibt ohne Bediener, egal was der Body nennt |
 | `cash-sessions.openedBy` über `openAuthorized` | Custom Method; der POS schickt das Token dort selbst mit. Der Manager-PIN bleibt die Freigabe, der Kassierer kommt aus dem Token |
-| `cash-sessions.closedBy` | Patch-Resolver beim Schließen |
+| `cash-sessions.closedBy` | Patch-Resolver beim Schließen (`CLOSED`). In jedem anderen Patch eines Geräts wird ein mitgeschicktes `closedBy` verworfen |
 | `working-times.updatedBy` | Patch-Resolver; `userId` (wessen Arbeitszeit) bleibt die fachliche Person |
 
 **Besitzer-Prüfung der Kassenlade:** `restrictCashSessionToOwner` verglich bei Geräten mit

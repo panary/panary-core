@@ -197,6 +197,27 @@ Tests: 17 Specs grün (`fake-indexeddb`, node-Environment). `nx lint`/`nx test o
 - **Unverändert:** explizite `loadDocuments()`-Pfade (Initial-Load, nach `createOrder`, Offline-PATCH,
   „alle erledigt", manueller Refresh) inkl. Snackbar; ebenso die generischen `BaseService`-Event-Snackbars.
 
+## Nachtrag (2026-10-07, core#649): Offline-Reads werten die Query aus, `count()` kennt den Cache
+
+- **Problem:** Nach einem Offline-Start zeigte der POS keine Produktgruppen. Eine Offline-Bestellung war
+  deshalb nicht erfassbar (gefunden im Sichttest core#648). `count()` hatte als einziger Read keinen
+  Cache-Kurzschluss und hing am gepufferten Socket-Emit, und mit ihm jeder Lader, der zuerst die Seitenzahl
+  ermittelt. `find()` filterte offline nur `businessDayId` und lieferte je Seite den ganzen Store.
+  Produkte und Produktgruppen luden zudem nur mit authentifizierter Verbindung.
+- **Fix:** `applyCachedQuery`/`filterCachedRecords` (`libs/shared/data-access/src/lib/utils/cached-query.ts`)
+  werten die Query gegen die Cache-Liste aus: Gleichheit, `$in`/`$nin`/`$ne`, Bereiche, `$regex`/`$options`,
+  `$sort`. Unbekannte Operatoren filtern bewusst nicht. `$skip`/`$limit` schneiden nur ein exaktes **und**
+  sortiertes Ergebnis — ohne `$sort` ist die Cache-Reihenfolge nicht die des Servers, mit einem nicht
+  ausgewerteten Filter wäre die Seite ein Ausschnitt einer zu weiten Liste. `$limit: 0` schneidet nie ab
+  (`OrderService` liest offline die Summe aus der Länge). `count()` antwortet offline aus dem Cache und
+  fällt bei einem Fehler online darauf zurück, wie `find()`. `shouldAutoLoad`
+  (`utils/offline-auto-load.ts`) entscheidet für Produkte und Produktgruppen anhand von
+  `BaseService.readsFromCache()`: offline aus dem Cache, nach dem Reconnect neu vom Server, dazwischen
+  (Socket verbunden, Gerät nicht authentifiziert) warten. Ohne Cache (Cloud-/Admin-Frontends) bleibt alles
+  wie vorher.
+- **Grenze:** Die Auswertung bildet die Feathers-Query nach, nicht den Server. Was der Server zusätzlich
+  einschränkt (`multiTenancy`, Resolver), steckt schon im Cache-Inhalt, weil der aus Online-Antworten stammt.
+
 ## Roadmap (Folgephasen)
 
 2. ✅ **Read-Pfad + POS-Aktivierung** (siehe oben) — erledigt.

@@ -13,6 +13,7 @@ import { CachePolicy, normalizeToRecords, OfflineCachePort } from '@panary/share
 import { DATA_ACCESS_AUTO_LOAD } from './auto-load.token'
 import { OFFLINE_CACHE } from './offline-cache.token'
 import { withPosOperatorToken } from '../utils/pos-operator-token'
+import { applyCachedQuery, filterCachedRecords } from '../utils/cached-query'
 import { ConnectionService } from './connection.service'
 
 // Optional: Reusable type
@@ -162,14 +163,26 @@ export abstract class BaseService<T> {
     return status !== 'authenticated' && status !== 'connected'
   }
 
-  /** Cache-Liste lesen, optional auf `query.businessDayId` gefiltert (Parität zum Online-Read). */
+  /**
+   * Beantwortet dieser Service Reads gerade aus dem Cache (Cache bereit **und** offline)?
+   * Liest nur Signale, ist in einem `effect()` also reaktiv. Stammdaten-Services richten
+   * daran ihren Auto-Load aus, statt an `isAuthenticated()` — ein Socket mit
+   * Verbindungsfehler kann noch authentifiziert gelten und liest trotzdem aus dem Cache.
+   */
+  protected readsFromCache(): boolean {
+    return this.#cacheKey() !== null && this.#isOffline()
+  }
+
+  /** Cache-Liste lesen und die Query darauf anwenden (Parität zum Online-Read, core#649). */
   async #readCachedList(cacheKey: string, params: ExtendedParams): Promise<T[]> {
     const cached = ((await this.cacheStore?.readAll(cacheKey)) ?? []) as unknown as T[]
-    const businessDayId = (params?.query as Record<string, unknown> | undefined)?.['businessDayId']
-    if (typeof businessDayId === 'string') {
-      return cached.filter(record => (record as Record<string, unknown>)['businessDayId'] === businessDayId)
-    }
-    return cached
+    return applyCachedQuery(cached, params?.query as Record<string, unknown> | undefined)
+  }
+
+  /** Anzahl der Cache-Einträge, die die Filter der Query erfüllen (ohne Paginierung). */
+  async #countCached(cacheKey: string, query: Params['query']): Promise<number> {
+    const cached = ((await this.cacheStore?.readAll(cacheKey)) ?? []) as unknown as T[]
+    return filterCachedRecords(cached, query as Record<string, unknown> | undefined).length
   }
 
   /** Schreibt ein Ergebnis/Event in den Cache (Upsert, fire-and-forget). Scope ist bereits geprüft. */
@@ -414,7 +427,23 @@ export abstract class BaseService<T> {
    * @return {Promise<number>} A promise that resolves with the total count of items.
    */
   async count(query: Params['query'] = {}): Promise<number> {
-    return this.service.find({ query: { ...query, $limit: 0 } }).then((result: Paginated<T>) => result.total)
+    const cacheKey = this.#cacheKey()
+    // Offline-Kurzschluss (siehe find): Der Socket puffert den Emit, ohne ihn hing
+    // `count` bis zum Reconnect — und mit ihm jeder Lader, der zuerst die Seitenzahl
+    // ermittelt (core#649: offline keine Produktgruppen im Bestelldialog).
+    if (cacheKey && this.#isOffline()) {
+      return this.#countCached(cacheKey, query)
+    }
+    try {
+      const result: Paginated<T> = await this.service.find({ query: { ...query, $limit: 0 } })
+      return result.total
+    } catch (error: unknown) {
+      if (cacheKey) {
+        const cached = await this.#countCached(cacheKey, query)
+        if (cached > 0) return cached
+      }
+      throw error
+    }
   }
 
   /**

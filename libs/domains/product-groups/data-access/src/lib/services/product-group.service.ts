@@ -1,7 +1,7 @@
-import { effect, Injectable, Signal, signal, WritableSignal, inject } from '@angular/core'
+import { effect, Injectable, Signal, signal, untracked, WritableSignal, inject } from '@angular/core'
 import { ProductGroup } from '@panary/product-groups/domain'
 import { Id, Paginated } from '@feathersjs/feathers'
-import { BaseService, ConnectionService } from '@panary/shared/data-access'
+import { BaseService, ConnectionService, shouldAutoLoad } from '@panary/shared/data-access'
 
 const Status = {
   active: 'ACTIVE',
@@ -22,6 +22,8 @@ export class ProductGroupService extends BaseService<ProductGroup> {
   #documents: WritableSignal<ProductGroup[]> = signal([])
   #isLoading: WritableSignal<boolean> = signal(false)
   #isLoaded: WritableSignal<boolean> = signal(false)
+  /** Letzter Load kam aus dem Offline-Cache → nach dem Reconnect neu vom Server laden (core#649). */
+  #loadedFromCache: WritableSignal<boolean> = signal(false)
 
   /** PUBLIC PROPERTIES */
   productGroups: Signal<ProductGroup[]> = this.#documents.asReadonly()
@@ -34,9 +36,14 @@ export class ProductGroupService extends BaseService<ProductGroup> {
     super(inject(ConnectionService).productGroupService, 'productGroupService')
 
     effect((): void => {
-      if (this.connectionService.isAuthenticated() && !this.#isLoaded()) {
-        this.loadDocuments().then()
+      const state = {
+        isAuthenticated: this.connectionService.isAuthenticated(),
+        isLoaded: this.#isLoaded(),
+        loadedFromCache: this.#loadedFromCache(),
+        readsFromCache: this.readsFromCache(),
       }
+      // untracked: loadDocuments() liest #isLoading vor dem ersten await (angular.md §2.1)
+      if (shouldAutoLoad(state)) untracked(() => void this.loadDocuments())
     })
   }
 
@@ -73,6 +80,7 @@ export class ProductGroupService extends BaseService<ProductGroup> {
     if (this.#isLoading()) return // Verhindert doppeltes Laden
 
     this.#isLoading.set(true)
+    this.#loadedFromCache.set(this.readsFromCache())
 
     try {
       const limit = 250

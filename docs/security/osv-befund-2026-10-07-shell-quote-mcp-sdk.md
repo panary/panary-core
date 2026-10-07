@@ -4,7 +4,6 @@ title: OSV-Befund 2026-10-07 — shell-quote, MCP-SDK, source-map-js und smol-to
 description: GHSA-pqg4-j6r4-53mv (shell-quote, kritisch) blockierte im pre-push-Scan jeden core-Push, dazu drei weitere Advisories mit Fix; alle vier nur dev-seitig im Baum, per package.json-Override auf die Fix-Versionen gehoben, source-map-js 1.2.2 bis zur Reife am 2026-10-07 14:08 UTC aus der Karenz genommen.
 tags: [security, supply-chain, dependencies]
 status: stable
-stale_after: 2026-10-08
 generated: { by: claude-code/opus-5.5, at: 2026-10-07T08:30:00.000Z }
 ---
 
@@ -38,9 +37,8 @@ Angular-CLI oder Build-Werkzeugen.
   veröffentlicht und wird erst am **2026-10-07 14:08 UTC** reif. Bis dahin steht es mit
   Reife-Datum unter `minimumReleaseAgeExclude` in `pnpm-workspace.yaml`.
 
-## Offen
+## Erledigt
 
-🚨 **Der Karenz-Eintrag für `source-map-js` muss ab dem 2026-10-07 14:08 UTC wieder raus** —
-danach ist er ein stiller Verzicht auf die Karenz genau für das frisch gepatchte Paket (Regel im
-Kommentar über `minimumReleaseAgeExclude`). `stale_after` dieser Seite steht deshalb auf den
-Folgetag.
+Der Karenz-Eintrag für `source-map-js` ist am 2026-10-07 nach 14:08 UTC wieder entfernt
+(Nachtrag-PR zu #631). Am Workbench-Root sind die vier Floors gespiegelt
+(panary/panary-workbench, Root-`pnpm-workspace.yaml`), sonst wirkten sie im Haupt-Checkout nicht.

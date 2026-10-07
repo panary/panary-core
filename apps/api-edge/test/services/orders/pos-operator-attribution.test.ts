@@ -258,6 +258,89 @@ describe('Zurechnung von Geraete-Aufrufen aus dem Bediener-Token', () => {
     })
   })
 
+  describe('orders.patch — appliedBy neuer Rabatte (#631)', () => {
+    const discount = (appliedBy: string | null, method: 'manual' | 'automatic' = 'manual') => ({
+      _id: uuidv7(),
+      discountId: null,
+      name: 'Testrabatt',
+      method,
+      target: 'order',
+      valueType: 'percent',
+      valuePercent: 10,
+      valueCents: 0,
+      computedAmountCents: 0,
+      appliedBy,
+      appliedAt: new Date().toISOString(),
+    })
+
+    it('mit Token: ein neuer Rabatt wird dem Bediener aus dem Token zugerechnet', async () => {
+      const order = (await app.service('orders').create(orderBody(cashierId) as never, internalAs())) as Order
+      removeAfterTest(order._id)
+      const connection = deviceConnection()
+      const token = await tokenFor(cashierId, connection)
+
+      const patched = (await app
+        .service('orders')
+        .patch(
+          order._id,
+          { appliedDiscounts: [discount(otherUserId)] } as never,
+          deviceParams(connection, token),
+        )) as Order
+
+      expect(patched.appliedDiscounts?.[0]?.appliedBy).toBe(cashierId)
+    })
+
+    it('ein schon vergebener Rabatt behaelt seinen Urheber', async () => {
+      const given = discount(cashierId)
+      const order = (await app
+        .service('orders')
+        .create(orderBody(cashierId, { appliedDiscounts: [given] }) as never, internalAs())) as Order
+      removeAfterTest(order._id)
+      const connection = deviceConnection()
+      const token = await tokenFor(otherUserId, connection)
+
+      const patched = (await app
+        .service('orders')
+        .patch(
+          order._id,
+          { appliedDiscounts: [{ ...given, appliedBy: otherUserId }] } as never,
+          deviceParams(connection, token),
+        )) as Order
+
+      expect(patched.appliedDiscounts?.[0]?.appliedBy).toBe(cashierId)
+    })
+
+    it('ein manueller Rabatt ohne appliedBy im Body bekommt den Bediener aus dem Token', async () => {
+      const order = (await app.service('orders').create(orderBody(cashierId) as never, internalAs())) as Order
+      removeAfterTest(order._id)
+      const connection = deviceConnection()
+      const token = await tokenFor(cashierId, connection)
+
+      const patched = (await app
+        .service('orders')
+        .patch(order._id, { appliedDiscounts: [discount(null)] } as never, deviceParams(connection, token))) as Order
+
+      expect(patched.appliedDiscounts?.[0]?.appliedBy).toBe(cashierId)
+    })
+
+    it('ein automatischer Rabatt bekommt keinen Bediener zugerechnet', async () => {
+      const order = (await app.service('orders').create(orderBody(cashierId) as never, internalAs())) as Order
+      removeAfterTest(order._id)
+      const connection = deviceConnection()
+      const token = await tokenFor(cashierId, connection)
+
+      const patched = (await app
+        .service('orders')
+        .patch(
+          order._id,
+          { appliedDiscounts: [discount(null, 'automatic')] } as never,
+          deviceParams(connection, token),
+        )) as Order
+
+      expect(patched.appliedDiscounts?.[0]?.appliedBy ?? null).toBeNull()
+    })
+  })
+
   describe('order-interactions.create — userId im Journal', () => {
     const interaction = (userId: string, orderId: string) => ({
       type: 'order-cancel',

@@ -3,6 +3,7 @@ import { Forbidden } from '@feathersjs/errors'
 import { CASH_SESSION_AUTHORIZING_ROLES } from '@panary/users/domain'
 
 import type { HookContext } from '../declarations'
+import { isDeviceSession } from '../utils/pos-operator-attribution'
 
 /**
  * Rollen mit MANAGE auf cash-sessions — sehen/aendern alle Laden des Tenants
@@ -41,9 +42,14 @@ export const restrictCashSessionToOwner = async (context: HookContext): Promise<
   }
   if (PRIVILEGED_CASH_SESSION_ROLES.has(user.role)) return context
 
+  // Am Geraet ist „ich“ der per Bediener-Token belegte Mensch (#631, ADR 0053):
+  // `openAuthorized` eroeffnet die Lade auf den Kassierer, nicht auf das Geraet.
+  // Ohne gueltiges Token bleibt es bei `device:<uuid>` — keine Lade passt, wie bisher.
+  const self = (isDeviceSession(user) && context.params.posOperator?.userId) || user._id
+
   // FIND: harter Filter auf eigene Laden.
   if (context.method === 'find') {
-    context.params.query = { ...(context.params.query ?? {}), openedBy: user._id }
+    context.params.query = { ...(context.params.query ?? {}), openedBy: self }
     return context
   }
 
@@ -58,7 +64,7 @@ export const restrictCashSessionToOwner = async (context: HookContext): Promise<
       // Not-Found u.ae. vom Adapter klaeren lassen.
       return context
     }
-    if (record?.openedBy !== user._id) {
+    if (record?.openedBy !== self) {
       throw new Forbidden('Kassenlade gehoert einem anderen Mitarbeiter.')
     }
   }

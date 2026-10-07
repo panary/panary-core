@@ -15,6 +15,7 @@ import {
 import type { HookContext } from '../../declarations'
 import { CashSessionService } from './cash-sessions.class'
 import { PRIVILEGED_CASH_SESSION_ROLES } from '../../hooks/restrict-cash-session-to-owner.hook'
+import { attributedOperatorId, isDeviceSession } from '../../utils/pos-operator-attribution'
 
 type Ctx = HookContext<CashSessionService>
 
@@ -99,7 +100,16 @@ export const cashSessionPatchResolver = resolve<CashSession, Ctx>({
   closedBy: async (value, _data, ctx) => {
     if (isFromSync(ctx)) return value
     const status = (ctx.data as { status?: string } | undefined)?.status
-    if ((status === CashSessionStatus.CLOSED || status === CashSessionStatus.AUDITED) && !value) {
+    const closing = status === CashSessionStatus.CLOSED || status === CashSessionStatus.AUDITED
+    if (isDeviceSession(ctxUser(ctx))) {
+      // Geraet (#631, ADR 0053): `closedBy` entsteht nur beim Schliessen, und dann
+      // aus dem Bediener-Token. In jedem anderen Patch wird ein mitgeschickter Wert
+      // verworfen — sonst liesse sich der Schliesser nachtraeglich umschreiben.
+      if (status !== CashSessionStatus.CLOSED) return undefined
+      const operatorId = attributedOperatorId(ctx.params, value, { service: 'cash-sessions', field: 'closedBy' })
+      if (operatorId) return operatorId
+    }
+    if (closing && !value) {
       return ctxUser(ctx)?._id ?? 'unknown'
     }
     return value

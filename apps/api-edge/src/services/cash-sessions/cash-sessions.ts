@@ -21,6 +21,7 @@ import {
   restrictCashSessionToOwner,
 } from '../../hooks/restrict-cash-session-to-owner.hook'
 import type { CashSessionAuthorizedOpenData, CashSessionService } from './cash-sessions.class'
+import { attributedOperatorId } from '../../utils/pos-operator-attribution'
 import {
   cashSessionDataResolver,
   cashSessionDataValidator,
@@ -97,7 +98,13 @@ export const cashSessions = (app: Application) => {
   // PIN des berechtigten Mitarbeiters server-seitig (offline-fähig, Edge-lokal),
   // prüft dessen Rolle und legt die Kasse intern an (openedBy = Kassierer).
   service.openAuthorized = async (data: CashSessionAuthorizedOpenData, params: any = {}) => {
-    const { businessDayId, openedBy, openingFloatCents, label, authorizedByUserId, pin } = data
+    const { businessDayId, openingFloatCents, label, authorizedByUserId, pin } = data
+    // Der Kassierer, fuer den die Lade eroeffnet wird, ist am Geraet der per Token
+    // belegte Bediener (#631, ADR 0053). Der Manager-PIN bleibt die Freigabe.
+    const openedBy = attributedOperatorId(params, data.openedBy, {
+      service: 'cash-sessions',
+      field: 'openAuthorized.openedBy',
+    })
     if (!authorizedByUserId || !pin) {
       throw new BadRequest('authorizedByUserId und pin sind erforderlich')
     }

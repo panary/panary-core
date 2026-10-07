@@ -13,6 +13,7 @@ import {
   workingTimeQuerySchema,
 } from '@panary/working-times/domain'
 import { WorkingTimeService } from './working-times.class'
+import { attributedOperatorId } from '../../utils/pos-operator-attribution'
 
 //#region 1. Main Resolver (Output)
 export const workingTimeResolver = resolve<WorkingTime, HookContext<WorkingTimeService>>({})
@@ -44,7 +45,13 @@ export const workingTimePatchResolver = resolve<WorkingTime, HookContext<Working
   checkinDate: async () => undefined,
   userId: async () => undefined,
   updatedAt: async () => new Date().toISOString(),
-  updatedBy: async (_value, _data, context) => (context.params as any).user?._id,
+  // Geraet (#631, ADR 0053): der per Token belegte Bediener statt `device:<uuid>`.
+  updatedBy: async (_value, _data, context) =>
+    attributedOperatorId(context.params, (context.params as any).user?._id, {
+      service: 'working-times',
+      field: 'updatedBy',
+      entityId: context.id,
+    }),
 })
 //#endregion
 

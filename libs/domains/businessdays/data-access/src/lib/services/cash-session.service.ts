@@ -1,6 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core'
 import { Observer } from 'rxjs'
-import { BaseService, ConnectionService } from '@panary/shared/data-access'
+import type { Params } from '@feathersjs/feathers'
+import { BaseService, ConnectionService, withPosOperatorToken } from '@panary/shared/data-access'
 import {
   CashSession,
   CashSessionStatus,
@@ -83,9 +84,11 @@ export class CashSessionService extends BaseService<CashSession> {
     pin: string
   }): Promise<CashSession> {
     const service = this.connectionService.cashSessionService as unknown as {
-      openAuthorized: (data: unknown) => Promise<CashSession>
+      openAuthorized: (data: unknown, params?: Params) => Promise<CashSession>
     }
-    return service.openAuthorized(input)
+    // Custom Method am rohen Service — `BaseService` haengt das Bediener-Token
+    // hier nicht an (#631, ADR 0053).
+    return service.openAuthorized(input, withPosOperatorToken())
   }
 
   /** Kasse zählen + schließen — Stückelungen + optionale Entnahmen/Auszahlungen. */

@@ -625,17 +625,46 @@ export class GroupListComponent implements OnInit {
     return this.filteredGroups().findIndex(g => g._id === id)
   })
 
-  async toggleExcluded(group: any, event: Event) {
-    const newValue = !group.excluded
+  /** Je Gruppe die Kette der laufenden Sichtbarkeits-PATCHes — sie gehen nacheinander raus, nie parallel. */
+  private excludedQueue = new Map<string, Promise<void>>()
+
+  /**
+   * Der Zielwert kommt aus der Checkbox, nicht aus dem Listen-Signal: Das zog früher erst nach dem
+   * PATCH nach, und ein zweiter schneller Klick schickte denselben Wert noch einmal (#636). Die
+   * PATCHes einer Gruppe laufen in Klick-Reihenfolge, damit der Server zuletzt die letzte Absicht sieht.
+   */
+  toggleExcluded(group: ProductGroup, event: Event): Promise<void> {
+    const excluded = !(event.target as HTMLInputElement).checked
+    this.setExcluded(group._id, excluded)
+
+    const previous = this.excludedQueue.get(group._id) ?? Promise.resolve()
+    const run = previous.then(async () => {
+      try {
+        await this.api.patch('product-groups', group._id, { excluded })
+      } catch (e) {
+        if (getApiErrorCode(e) === 'CLOUD_MANAGED') void this.cloudManaged.refresh()
+        console.error('Fehler beim Aktualisieren der Sichtbarkeit:', e)
+        await this.reloadExcluded(group._id, !excluded)
+      }
+    })
+    this.excludedQueue.set(group._id, run)
+    void run.then(() => {
+      if (this.excludedQueue.get(group._id) === run) this.excludedQueue.delete(group._id)
+    })
+    return run
+  }
+
+  private setExcluded(id: string, excluded: boolean) {
+    this.groups.update(list => list.map(g => (g._id === id ? { ...g, excluded } : g)))
+  }
+
+  /** Nach einem Fehler zählt der Stand des Servers; ist der nicht lesbar, der Stand vor dem Klick. */
+  private async reloadExcluded(id: string, fallback: boolean) {
     try {
-      await this.api.patch('product-groups', group._id, { excluded: newValue })
-      // Lokale Liste aktualisieren
-      this.groups.update(list => list.map(g => (g._id === group._id ? { ...g, excluded: newValue } : g)))
-    } catch (e) {
-      // Die native Checkbox hat schon umgeschaltet, das Signal nicht — sonst zeigt sie einen Stand, den es nicht gibt.
-      ;(event.target as HTMLInputElement).checked = !group.excluded
-      if (getApiErrorCode(e) === 'CLOUD_MANAGED') void this.cloudManaged.refresh()
-      console.error('Fehler beim Aktualisieren der Sichtbarkeit:', e)
+      const fresh = await this.api.get<ProductGroup>('product-groups', id)
+      this.setExcluded(id, !!fresh.excluded)
+    } catch {
+      this.setExcluded(id, fallback)
     }
   }
 

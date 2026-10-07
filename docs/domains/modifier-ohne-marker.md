@@ -107,17 +107,16 @@ könnte er einen einzelnen Steuer-Eimer ins Negative ziehen. Er wirkt dadurch
 proportional auf alle Sätze des Menüs (Marktwertmethode). Aufpreise liegen
 weiterhin on top am Zeilensatz.
 
-Die Regeln sind in **beiden** Brutto-Pfaden implementiert, die konsistent bleiben
-müssen:
-
-* `computeOrderTax` / `lineItemGrossCents` (`libs/domains/orders/domain/src/lib/pricing/compute-order-tax.ts`)
-  — die kanonische Engine für `order.taxSnapshot` und die POS-Anzeige; Helper
-  `modifierGrossCents()`.
-* `computeGrossFromLineItems` (`libs/domains/businessdays/aggregator/src/lib/order-total.ts`)
-  — der Reporting-Fallback, wenn `payment` und `taxSnapshot` fehlen.
-
-Driftet einer der beiden ab, weichen Tagesabschluss und Order-Snapshot
-voneinander ab (siehe [Tagesabschluss-Architektur](tagesabschluss-architektur.md)).
+Die Regeln sind an **einer** Stelle implementiert:
+`computeOrderTax` / `lineItemGrossCents` (`libs/domains/orders/domain/src/lib/pricing/compute-order-tax.ts`),
+die kanonische Engine für `order.taxSnapshot` und die POS-Anzeige, Helper
+`modifierGrossCents()`. Der Reporting-Fallback `computeGrossFromLineItems`
+(`libs/domains/businessdays/aggregator/src/lib/order-total.ts`, greift, wenn
+`payment` und `taxSnapshot` fehlen) summiert seit core#634 nur noch
+`lineItemGrossCents` und rechnet keine eigene Formel mehr. Vorher führte er die
+Regeln doppelt und skalierte Modifier mit der Positionsmenge, deshalb wichen
+Tagesumsatz und Zwischensumme bei offenen Bons ab (siehe
+[Tagesabschluss-Architektur](tagesabschluss-architektur.md)).
 
 ## Bon
 

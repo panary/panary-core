@@ -1,4 +1,4 @@
-import { effect, inject, Injectable, Signal, signal, WritableSignal } from '@angular/core'
+import { effect, inject, Injectable, Signal, signal, untracked, WritableSignal } from '@angular/core'
 import { Id, Paginated } from '@feathersjs/feathers'
 import { Observer } from 'rxjs'
 import { BaseService, ConnectionService } from '@panary/shared/data-access'
@@ -139,7 +139,15 @@ export class LocationService extends BaseService<Location> {
     super(inject(ConnectionService).locationService, 'locationService')
 
     effect((): void => {
-      if (!this.connectionService.isAuthenticated()) return
+      const isAuthenticated = this.connectionService.isAuthenticated()
+      // Offline-Weg (core#644): Ohne authentifizierte Verbindung bleibt nur der
+      // Cache. Startet der POS offline (Reload, Neustart ohne Edge), kommt die
+      // Verbindung nie zustande — ohne diesen Zweig blieb `activeLocation` leer
+      // und der Bestelldialog sperrte mit „Standort konnte nicht geladen werden".
+      if (!isAuthenticated) {
+        if (this.cacheStore?.isReady()) untracked(() => void this.restoreActiveLocationFromCache())
+        return
+      }
 
       // Nur ein vollständig registriertes POS-Device hat eine Location-Bindung
       // über die DeviceConfig (deviceId + apiKey vom Backend). Ohne diese Wäch-
@@ -227,6 +235,34 @@ export class LocationService extends BaseService<Location> {
   }
 
   /** PUBLIC METHODS */
+
+  /**
+   * Setzt die aktive Location des gekoppelten Geräts aus dem Offline-Cache, solange
+   * keine authentifizierte Verbindung besteht (core#644). Ein Online-Stand hat Vorrang:
+   * Ist `activeLocation` schon gesetzt oder die Verbindung inzwischen authentifiziert,
+   * bleibt er unberührt — der Cache ist höchstens so frisch wie der letzte Online-Load.
+   *
+   * Liest direkt aus dem Store statt über `get()`: Der Kurzschluss dort hängt am
+   * Socket-Status, und ein verbundener, aber noch nicht authentifizierter Socket
+   * schickte den Read an den Server.
+   */
+  async restoreActiveLocationFromCache(): Promise<void> {
+    if (this.#activeLocation()) return
+    if (!this.#deviceConfigService.isRegistered()) return
+    const locationId = this.#deviceConfigService.getConfig()?.locationId
+    if (!locationId || !this.cacheStore?.isReady()) return
+
+    const store = this.cacheStoreName ?? this.serviceName
+    const cached = (await this.cacheStore.get(store, String(locationId))) as unknown as Location | undefined
+    if (!cached) {
+      console.warn(`[LocationService] Location ${locationId} nicht im Offline-Cache`)
+      return
+    }
+    if (this.#activeLocation() || this.connectionService.isAuthenticated()) return
+
+    console.log(`[LocationService] Active location loaded from offline cache:`, cached.name)
+    this.#activeLocation.set(cached)
+  }
 
   getPrinterById(pid: string): Printer | undefined {
     return this.printers.find((printer: Printer): boolean => printer.pid === pid)

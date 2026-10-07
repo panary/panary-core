@@ -14,7 +14,6 @@
     "edge-pairing-domain",
     "feathers-service-generator",
     "ingredients-data-access",
-    "locations-data-access",
     "order-interactions-data-access",
     "orders-feature-pos-active",
     "orders-feature-pos-dashboard",

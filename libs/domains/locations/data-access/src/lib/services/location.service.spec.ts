@@ -79,7 +79,9 @@ function setup(options: SetupOptions = {}) {
         provide: DeviceConfigService,
         useValue: {
           isRegistered: () => registered,
-          getConfig: () => (registered ? { deviceId: 'd-1', apiKey: 'k', locationId: 'loc-1' } : null),
+          // Auch ungekoppelt kann eine alte `locationId` in der Config stehen (Legacy-Edge-Session):
+          // Sie darf ohne Kopplung keinen Cache-Read ausloesen.
+          getConfig: () => ({ ...(registered ? { deviceId: 'd-1', apiKey: 'k' } : {}), locationId: 'loc-1' }),
         },
       },
       { provide: ServiceHelper, useValue: { handleError: vi.fn() } },
@@ -183,6 +185,19 @@ describe('LocationService — Effect beim Start (core#644)', () => {
     await settle()
 
     expect(feathersGet).toHaveBeenCalledWith('loc-1', {})
+    expect(cacheGet).not.toHaveBeenCalled()
+    expect(service.activeLocation()).toEqual({ _id: 'loc-1', name: 'Online-Stand' })
+  })
+
+  it('bricht die Verbindung nach einem Online-Load ab, bleibt der Server-Stand stehen', async () => {
+    const { service, effects, authenticated, cacheGet } = setup({ authenticated: true })
+
+    effects.flush()
+    await settle()
+    authenticated.set(false)
+    effects.flush()
+    await settle()
+
     expect(cacheGet).not.toHaveBeenCalled()
     expect(service.activeLocation()).toEqual({ _id: 'loc-1', name: 'Online-Stand' })
   })

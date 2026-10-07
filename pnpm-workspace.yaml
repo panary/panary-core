@@ -58,6 +58,7 @@ minimumReleaseAgeExclude:
   # Sobald die Version reif ist, MUSS der Eintrag weg: danach ist er ein stiller
   # Verzicht auf die Karenz fuer genau das Paket, das gerade erst gepatcht wurde.
   # Jeder Eintrag traegt deshalb sein Reife-Datum im Zeilenkommentar.
+  - 'source-map-js' # 1.2.2 publiziert 2026-09-30 14:08 UTC → reif ab 2026-10-07 14:08 UTC; OSV-Befund 2026-10-07
   #
   # Entfernt am 2026-09-18, weil reif geworden: 'adm-zip' (0.6.1, publiziert
   # 2026-09-11 10:24 UTC → reif seit 2026-09-18 10:24 UTC). Erste Version

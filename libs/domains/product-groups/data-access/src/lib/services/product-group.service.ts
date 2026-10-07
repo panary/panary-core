@@ -40,7 +40,7 @@ export class ProductGroupService extends BaseService<ProductGroup> {
         isAuthenticated: this.connectionService.isAuthenticated(),
         isLoaded: this.#isLoaded(),
         loadedFromCache: this.#loadedFromCache(),
-        cacheReady: this.cacheStore?.isReady() ?? false,
+        readsFromCache: this.readsFromCache(),
       }
       // untracked: loadDocuments() liest #isLoading vor dem ersten await (angular.md §2.1)
       if (shouldAutoLoad(state)) untracked(() => void this.loadDocuments())
@@ -80,8 +80,7 @@ export class ProductGroupService extends BaseService<ProductGroup> {
     if (this.#isLoading()) return // Verhindert doppeltes Laden
 
     this.#isLoading.set(true)
-    // Ohne authentifizierte Verbindung beantwortet der BaseService aus dem Cache.
-    this.#loadedFromCache.set(!this.connectionService.isAuthenticated())
+    this.#loadedFromCache.set(this.readsFromCache())
 
     try {
       const limit = 250

@@ -6,22 +6,42 @@
  * (`count` → n Seiten `find` mit `$skip`/`$limit`) bekam dann n-mal dieselbe Liste,
  * inklusive inaktiver Einträge.
  *
- * Unterstützt: Gleichheit, `$in`, `$nin`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$sort`,
- * `$skip`, `$limit`. Unbekannte Operatoren filtern bewusst **nicht**: Offline lieber eine
- * Zeile zu viel als eine verschwiegene — vorher wurde gar nicht gefiltert.
+ * Unterstützt: Gleichheit, `$in`, `$nin`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$regex`
+ * (mit `$options`), `$sort`, `$skip`, `$limit`. Unbekannte Operatoren filtern bewusst
+ * **nicht**: Offline lieber eine Zeile zu viel als eine verschwiegene.
  */
 
 type CacheQuery = Record<string, unknown>
 type Row = Record<string, unknown>
 
-const COMPARATORS: Record<string, (value: unknown, operand: unknown) => boolean> = {
-  $in: (value, operand) => !Array.isArray(operand) || operand.includes(value),
-  $nin: (value, operand) => !Array.isArray(operand) || !operand.includes(value),
+/** `undefined` = Operator unbekannt bzw. nicht auswertbar → die Bedingung filtert nicht. */
+type Comparator = (value: unknown, operand: unknown, condition: Record<string, unknown>) => boolean | undefined
+
+const COMPARATORS: Record<string, Comparator> = {
+  $in: (value, operand) => (Array.isArray(operand) ? operand.includes(value) : undefined),
+  $nin: (value, operand) => (Array.isArray(operand) ? !operand.includes(value) : undefined),
   $ne: (value, operand) => value !== operand,
   $gt: (value, operand) => isPresent(value) && compare(value, operand) > 0,
   $gte: (value, operand) => isPresent(value) && compare(value, operand) >= 0,
   $lt: (value, operand) => isPresent(value) && compare(value, operand) < 0,
   $lte: (value, operand) => isPresent(value) && compare(value, operand) <= 0,
+  $regex: (value, operand, condition) => {
+    const pattern = toRegExp(operand, condition['$options'])
+    if (!pattern) return undefined
+    return typeof value === 'string' && pattern.test(value)
+  },
+  // Begleiter von `$regex`, keine eigene Bedingung.
+  $options: () => true,
+}
+
+function toRegExp(pattern: unknown, options: unknown): RegExp | null {
+  if (pattern instanceof RegExp) return pattern
+  if (typeof pattern !== 'string') return null
+  try {
+    return new RegExp(pattern, typeof options === 'string' ? options.replace(/[^imsu]/g, '') : '')
+  } catch {
+    return null
+  }
 }
 
 /** Ein fehlender Wert erfüllt keinen Bereich — wie `NULL` in SQL. */
@@ -47,29 +67,55 @@ function isOperatorObject(value: unknown): value is Record<string, unknown> {
   )
 }
 
-function matches(row: Row, field: string, condition: unknown): boolean {
-  const value = row[field]
-  if (!isOperatorObject(condition)) return value === condition
-  return Object.entries(condition).every(([operator, operand]) => COMPARATORS[operator]?.(value, operand) ?? true)
+interface Evaluation<TEntity> {
+  rows: TEntity[]
+  /** `false`, sobald eine Bedingung nicht ausgewertet werden konnte — das Ergebnis ist dann zu weit. */
+  exact: boolean
+}
+
+function evaluate<TEntity>(records: readonly TEntity[], query: CacheQuery | undefined): Evaluation<TEntity> {
+  const conditions = Object.entries(query ?? {}).filter(([field]) => !field.startsWith('$'))
+  let exact = true
+
+  const matches = (row: Row, field: string, condition: unknown): boolean => {
+    const value = row[field]
+    if (!isOperatorObject(condition)) return value === condition
+    return Object.entries(condition).every(([operator, operand]) => {
+      const result = COMPARATORS[operator]?.(value, operand, condition)
+      if (result === undefined) exact = false
+      return result ?? true
+    })
+  }
+
+  const rows =
+    conditions.length === 0
+      ? [...records]
+      : records.filter(record => conditions.every(([field, condition]) => matches(record as Row, field, condition)))
+  return { rows, exact }
 }
 
 /** Filterbedingungen der Query anwenden (ohne `$sort`/`$skip`/`$limit`/`$select`). */
 export function filterCachedRecords<TEntity>(records: readonly TEntity[], query: CacheQuery | undefined): TEntity[] {
-  const conditions = Object.entries(query ?? {}).filter(([field]) => !field.startsWith('$'))
-  if (conditions.length === 0) return [...records]
-  return records.filter(record => conditions.every(([field, condition]) => matches(record as Row, field, condition)))
+  return evaluate(records, query).rows
 }
 
 /**
- * Filtern, sortieren und die Seite schneiden. `$limit: 0` schneidet **nicht** ab: Online
- * liefert es ein `Paginated` mit `total` und leerem `data`, offline gibt es nur die Liste —
- * Aufrufer wie `OrderService` lesen die Summe dann aus deren Länge.
+ * Filtern, sortieren und die Seite schneiden.
+ *
+ * Geschnitten wird nur, wenn das Ergebnis exakt **und** sortiert ist. Ohne `$sort` ist die
+ * Cache-Reihenfolge nicht die des Servers, ein `$limit` träfe beliebige Zeilen (offline
+ * angelegte Bestellungen stehen hinten und fielen als erste heraus). Mit einem nicht
+ * ausgewerteten Filter wäre die Seite ein Ausschnitt einer zu weiten Liste und könnte den
+ * gesuchten Treffer abschneiden. `$limit: 0` schneidet ebenfalls nicht ab: Online liefert es
+ * ein `Paginated` mit leerem `data`, offline lesen Aufrufer wie `OrderService` die Summe aus
+ * der Länge der Liste.
  */
 export function applyCachedQuery<TEntity>(records: readonly TEntity[], query: CacheQuery | undefined): TEntity[] {
-  const result = filterCachedRecords(records, query)
+  const { rows: result, exact } = evaluate(records, query)
 
   const sort = query?.['$sort']
-  if (sort && typeof sort === 'object') {
+  const sorted = Boolean(sort && typeof sort === 'object' && Object.keys(sort).length > 0)
+  if (sorted) {
     const keys = Object.entries(sort as Record<string, unknown>)
     result.sort((a, b) => {
       for (const [field, direction] of keys) {
@@ -84,6 +130,8 @@ export function applyCachedQuery<TEntity>(records: readonly TEntity[], query: Ca
       return 0
     })
   }
+
+  if (!exact || !sorted) return result
 
   const skip = Number(query?.['$skip'] ?? 0) || 0
   const limit = Number(query?.['$limit'] ?? 0) || 0

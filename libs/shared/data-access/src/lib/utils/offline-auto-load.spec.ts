@@ -4,9 +4,9 @@ import { AutoLoadState, shouldAutoLoad } from './offline-auto-load'
 // core#649: Ein Stammdaten-Service laedt offline aus dem Cache und nach dem Reconnect neu.
 const state = (overrides: Partial<AutoLoadState>): AutoLoadState => ({
   isAuthenticated: false,
+  readsFromCache: false,
   isLoaded: false,
   loadedFromCache: false,
-  cacheReady: false,
   ...overrides,
 })
 
@@ -20,12 +20,18 @@ describe('shouldAutoLoad', () => {
     expect(shouldAutoLoad(state({ isAuthenticated: true, isLoaded: true, loadedFromCache: true }))).toBe(true)
   })
 
-  it('laedt offline aus dem bereiten Cache — genau einmal', () => {
-    expect(shouldAutoLoad(state({ cacheReady: true }))).toBe(true)
-    expect(shouldAutoLoad(state({ cacheReady: true, isLoaded: true, loadedFromCache: true }))).toBe(false)
+  it('laedt offline aus dem Cache — genau einmal', () => {
+    expect(shouldAutoLoad(state({ readsFromCache: true }))).toBe(true)
+    expect(shouldAutoLoad(state({ readsFromCache: true, isLoaded: true, loadedFromCache: true }))).toBe(false)
   })
 
-  it('laedt offline ohne bereiten Cache nicht (Cloud-/Admin-Frontends unveraendert)', () => {
+  it('liest der Cache trotz Authentifizierung (Verbindungsfehler), laedt es nicht wiederholt', () => {
+    expect(
+      shouldAutoLoad(state({ isAuthenticated: true, readsFromCache: true, isLoaded: true, loadedFromCache: true })),
+    ).toBe(false)
+  })
+
+  it('wartet, solange der Socket verbunden, das Geraet aber nicht authentifiziert ist', () => {
     expect(shouldAutoLoad(state({}))).toBe(false)
   })
 })

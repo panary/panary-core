@@ -34,6 +34,15 @@ describe('filterCachedRecords', () => {
     expect(ids(filterCachedRecords(rows(), { index: { $lte: 2 } }))).toEqual(['b', 'c'])
   })
 
+  it('wertet $regex mit $options aus (Produktsuche in pre-order-create)', () => {
+    expect(ids(filterCachedRecords(rows(), { name: { $regex: 'co', $options: 'i' } }))).toEqual(['a'])
+    expect(ids(filterCachedRecords(rows(), { name: { $regex: 'co' } }))).toEqual([])
+  })
+
+  it('filtert bei ungueltigem $regex nicht', () => {
+    expect(ids(filterCachedRecords(rows(), { name: { $regex: '(' } }))).toEqual(['a', 'b', 'c', 'd'])
+  })
+
   it('filtert bei unbekanntem Operator nicht (lieber eine Zeile zu viel als eine verschwiegene)', () => {
     expect(ids(filterCachedRecords(rows(), { name: { $like: 'C%' } }))).toEqual(['a', 'b', 'c', 'd'])
   })
@@ -50,6 +59,21 @@ describe('applyCachedQuery', () => {
 
   it('sortiert absteigend', () => {
     expect(ids(applyCachedQuery(rows(), { status: 'ACTIVE', $sort: { index: -1 } }))).toEqual(['a', 'c', 'd'])
+  })
+
+  it('ohne $sort schneidet $limit nicht ab — die Cache-Reihenfolge ist nicht die des Servers', () => {
+    // OrderService: Liste mit $limit, aber ohne $sort; offline angelegte Orders stehen hinten.
+    expect(ids(applyCachedQuery(rows(), { status: 'ACTIVE', $limit: 2 }))).toEqual(['a', 'c', 'd'])
+  })
+
+  it('mit nicht ausgewertetem Filter schneidet $limit nicht ab', () => {
+    const query = { name: { $like: 'D%' }, $sort: { name: 1 }, $limit: 1 }
+    expect(ids(applyCachedQuery(rows(), query))).toEqual(['c', 'b', 'a', 'd'])
+  })
+
+  it('$regex mit $limit liefert den Treffer, nicht die ersten Zeilen des Stores', () => {
+    const query = { name: { $regex: 'döner', $options: 'i' }, $sort: { name: 1 }, $limit: 1 }
+    expect(ids(applyCachedQuery(rows(), query))).toEqual(['d'])
   })
 
   it('$limit: 0 schneidet nicht ab — Aufrufer lesen offline die Summe aus der Laenge', () => {

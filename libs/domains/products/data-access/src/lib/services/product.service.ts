@@ -93,7 +93,7 @@ export class ProductService extends BaseService<ProductSchema> {
           isAuthenticated: this.connectionService.isAuthenticated(),
           isLoaded: this.#isLoaded(),
           loadedFromCache: this.#loadedFromCache(),
-          cacheReady: this.cacheStore?.isReady() ?? false,
+          readsFromCache: this.readsFromCache(),
         }
 
         if (shouldAutoLoad(state)) {
@@ -108,8 +108,7 @@ export class ProductService extends BaseService<ProductSchema> {
     if (this.#isLoading()) return // Verhindert doppeltes Laden
 
     this.#isLoading.set(true)
-    // Ohne authentifizierte Verbindung beantwortet der BaseService aus dem Cache.
-    this.#loadedFromCache.set(!this.connectionService.isAuthenticated())
+    this.#loadedFromCache.set(this.readsFromCache())
 
     try {
       const limit = 250

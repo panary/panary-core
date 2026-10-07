@@ -164,10 +164,16 @@ export abstract class BaseService<T> {
   }
 
   /**
-   * Cache-Liste lesen und die Query darauf anwenden — Filter, `$sort`, `$skip`/`$limit`
-   * (Parität zum Online-Read, core#649). Vorher filterte nur `businessDayId`, und ein
-   * paginierender Lader bekam je Seite den ganzen Store.
+   * Beantwortet dieser Service Reads gerade aus dem Cache (Cache bereit **und** offline)?
+   * Liest nur Signale, ist in einem `effect()` also reaktiv. Stammdaten-Services richten
+   * daran ihren Auto-Load aus, statt an `isAuthenticated()` — ein Socket mit
+   * Verbindungsfehler kann noch authentifiziert gelten und liest trotzdem aus dem Cache.
    */
+  protected readsFromCache(): boolean {
+    return this.#cacheKey() !== null && this.#isOffline()
+  }
+
+  /** Cache-Liste lesen und die Query darauf anwenden (Parität zum Online-Read, core#649). */
   async #readCachedList(cacheKey: string, params: ExtendedParams): Promise<T[]> {
     const cached = ((await this.cacheStore?.readAll(cacheKey)) ?? []) as unknown as T[]
     return applyCachedQuery(cached, params?.query as Record<string, unknown> | undefined)

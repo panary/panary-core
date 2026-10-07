@@ -137,7 +137,7 @@ ist ein frischer Zustellversuch billiger als eine persistierte Sperre.
 src/lib/
 ├── money.ts                    # toCents/fromCents/sumCents — Integer-Math
 ├── classifications.ts          # isStaffMeal/isCorporate/isCancelled/isRefunded/...
-├── order-total.ts              # getOrderGrossCents — kanonisch, mit Modifier-Auflösung
+├── order-total.ts              # getOrderGrossCents — payment → taxSnapshot → Σ lineItemGrossCents (Engine)
 ├── financials.ts               # aggregateFinancials → Steuersplit/Channels/Payments
 ├── meal-subsidies.ts           # aggregateMealSubsidies — Personal/Firmenkunden, paid/unpaid
 ├── cancellations.ts            # aggregateCancellations

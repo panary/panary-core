@@ -91,8 +91,9 @@ gegen Doppel-`main`) in `@panary/orders/domain`; der POS-Writer ruft sie nur noc
   Beilage/Getränk/Modifier bei FIXED ohne Aufschlag (im Festpreis enthalten);
   der Aufpreis-Ausweis (`menuSideDish.price − generalPrice`) bleibt rein optisch.
 - **Order-Total-Fallback** (`order-total.ts`, Prio 3 hinter payment → taxSnapshot):
-  FIXED nutzt `line.price`; `components[]` wird on top addiert (ROLLUP/à-la-carte);
-  sonst Legacy-Slots.
+  summiert seit core#634 `lineItemGrossCents` je Zeile und rechnet damit exakt wie
+  die Engine (Tabelle unten). Vorher hatte er eine eigene Formel, die Modifier im
+  Legacy-Pfad mit der Zeilen-Menge skalierte und HIGHEST-Gruppen selbst auswertete.
 - **COGS** (`cogs.ts`): Material-Verbrauch bleibt **bewusst** auf den Legacy-Slots
   (vom Writer weiter gefüllt). `components[]` dient nur der fiskalischen Preis-/
   Steuer-Verteilung, NICHT dem Verbrauch — sonst Doppel-/Fehlverbrauch. Umstieg

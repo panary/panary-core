@@ -5,7 +5,7 @@ description: 'ADR zum angemeldeten POS-Bediener: Bisher stand er nur in localSto
 tags: [users, orders, pos, edge, security, devices]
 status: stable
 decision: accepted
-implementation: 'Umgesetzt 2026-10-05 (#619) in fünf PRs: Ausstellung in verifyPin, Prüfung und Kennzeichnung in resolvePosOperator, POS speichert und sendet das Token, Storno von Geräten nur mit Manager-Token, Zurechnung von createdBy, neuen Zahlungen, Journal und Split aus dem Token. Weitere Felder (Kasse, Zeiterfassung, Rabatte, Abschreibungen): panary/panary-core#631.'
+implementation: 'Umgesetzt 2026-10-05 (#619) in fünf PRs; erweitert 2026-10-07 (#631) um Kasse (openAuthorized, closedBy, Besitzer-Prüfung), working-times.updatedBy und appliedDiscounts.appliedBy. Abschreibungen: panary/panary-core#635 (Edge-Service fehlt).'
 generated: { by: claude-code/opus-5.5, at: 2026-10-05T16:00:00Z }
 ---
 
@@ -152,9 +152,24 @@ abgelehnt. Angewandt auf:
 | `order-interactions.userId` | Before-Hook am `create`, vor der Validierung |
 | `split.performedBy` | `resolveSplitOperator` in `order-split.method.ts` |
 
-Bewusst noch nicht erfasst und in panary/panary-core#631 geplant: `cash-sessions.closedBy`/
-`openedBy`, `working-times.updatedBy`, `appliedDiscounts[].appliedBy`, Abschreibungen sowie die
-Custom Methods am rohen Service des POS.
+Erweitert mit panary/panary-core#631:
+
+| Feld | Stelle |
+| --- | --- |
+| `appliedDiscounts[].appliedBy` | `attribute-order-operators.hook.ts` (vormals `attribute-order-transactions`), gleiche Regel wie Zahlungen. Nur wenn der Body einen Menschen nennt — ein automatischer Rabatt (`appliedBy: null`) bleibt ohne Bediener |
+| `cash-sessions.openedBy` über `openAuthorized` | Custom Method; der POS schickt das Token dort selbst mit. Der Manager-PIN bleibt die Freigabe, der Kassierer kommt aus dem Token |
+| `cash-sessions.closedBy` | Patch-Resolver beim Schließen |
+| `working-times.updatedBy` | Patch-Resolver; `userId` (wessen Arbeitszeit) bleibt die fachliche Person |
+
+**Besitzer-Prüfung der Kassenlade:** `restrictCashSessionToOwner` verglich bei Geräten mit
+`device:<uuid>`, `openAuthorized` eröffnet die Lade aber auf den Kassierer. Ein POS fand die Lade
+seines Kassierers deshalb nie und konnte sie nicht schließen. Seit #631 ist am Gerät „ich“ der
+per Token belegte Bediener; ohne Token bleibt es bei der Geräte-Kennung, keine Lade passt — die
+Prüfung wird damit nicht lockerer, nur richtig.
+
+Ein direktes `cash-sessions.create` vom Gerät gibt es nicht (`requireAuthorizedCreate`), dort ist
+nichts zuzurechnen. Abschreibungen erreichen den Edge gar nicht, weil der Service fehlt:
+panary/panary-core#635.
 
 POS und Edge werden getrennt ausgerollt. 🚨 Schritt 3 darf erst auf Geräte, wenn ein Edge-Release
 mit Schritt 2 läuft — gegen einen Edge aus Schritt 1 ginge ein Outbox-Eintrag mit abgelaufenem

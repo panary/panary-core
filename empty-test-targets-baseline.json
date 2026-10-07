@@ -3,7 +3,6 @@
   "emptyTestTargets": [
     "apikeys-data-access",
     "auth-domain",
-    "businessdays-data-access",
     "businessdays-domain",
     "businessdays-feature-pos-closing-dialog",
     "common",

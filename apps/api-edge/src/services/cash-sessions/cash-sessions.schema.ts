@@ -101,8 +101,11 @@ export const cashSessionPatchResolver = resolve<CashSession, Ctx>({
     if (isFromSync(ctx)) return value
     const status = (ctx.data as { status?: string } | undefined)?.status
     const closing = status === CashSessionStatus.CLOSED || status === CashSessionStatus.AUDITED
-    // Geraet (#631, ADR 0053): wer schliesst, kommt aus dem Bediener-Token.
-    if (closing && isDeviceSession(ctxUser(ctx))) {
+    if (isDeviceSession(ctxUser(ctx))) {
+      // Geraet (#631, ADR 0053): `closedBy` entsteht nur beim Schliessen, und dann
+      // aus dem Bediener-Token. In jedem anderen Patch wird ein mitgeschickter Wert
+      // verworfen — sonst liesse sich der Schliesser nachtraeglich umschreiben.
+      if (status !== CashSessionStatus.CLOSED) return undefined
       const operatorId = attributedOperatorId(ctx.params, value, { service: 'cash-sessions', field: 'closedBy' })
       if (operatorId) return operatorId
     }

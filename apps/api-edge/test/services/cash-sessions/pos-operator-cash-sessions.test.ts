@@ -159,6 +159,18 @@ describe('cash-sessions — Bediener-Token am Geraet', () => {
     expect(closed.closedBy).toBe(cashierId)
   })
 
+  it('ausserhalb des Schliessens verwirft der Edge ein mitgeschicktes closedBy', async () => {
+    const { drawer, connection, token } = await openDrawerFor(cashierId)
+
+    const patched = await cashSessions().patch(
+      drawer._id,
+      { label: 'Umbenannt', closedBy: otherStaffId },
+      deviceParams(connection, token),
+    )
+
+    expect(patched.closedBy ?? null).toBeNull()
+  })
+
   it('das Token eines Kollegen oeffnet die Lade des Kassierers nicht', async () => {
     const { drawer } = await openDrawerFor(cashierId)
     const connection = deviceConnection()

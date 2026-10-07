@@ -22,9 +22,10 @@ interface OrderLite {
 
 /**
  * Eine Liste mit Bediener-Feld: Bekannte Eintraege bekommen ihren gespeicherten
- * Wert zurueck, neue den Bediener aus dem Token. `onlyClaimed`: nur umschreiben,
- * wenn der Body ueberhaupt einen Menschen nennt — ein automatischer Rabatt
- * (`appliedBy: null`) bleibt ohne Bediener.
+ * Wert zurueck (auch ein gespeichertes `null`), neue den Bediener aus dem Token.
+ * `isHumanAction` entscheidet am Eintrag selbst, ob ueberhaupt ein Mensch
+ * dahintersteht — ein automatischer Rabatt bleibt ohne Bediener, egal was der
+ * Body behauptet.
  */
 const attributeList = (
   context: HookContext,
@@ -32,7 +33,7 @@ const attributeList = (
   stored: ListEntry[] | undefined,
   field: string,
   logField: string,
-  onlyClaimed: boolean,
+  isHumanAction: (entry: ListEntry) => boolean,
 ): ListEntry[] => {
   const known = new Map<string, ListEntry>()
   for (const entry of stored ?? []) {
@@ -40,9 +41,9 @@ const attributeList = (
   }
   return entries.map(entry => {
     const previous = typeof entry._id === 'string' ? known.get(entry._id) : undefined
-    if (previous) return { ...entry, [field]: previous[field] ?? undefined }
+    if (previous) return { ...entry, [field]: previous[field] }
+    if (!isHumanAction(entry)) return entry
     const claimed = entry[field]
-    if (onlyClaimed && (typeof claimed !== 'string' || !claimed)) return entry
     return {
       ...entry,
       [field]: attributedOperatorId(context.params, claimed, {
@@ -93,7 +94,7 @@ export const attributeOrderOperators = async (context: HookContext): Promise<Hoo
       original.payment?.transactions,
       'performedBy',
       'payment.transactions.performedBy',
-      false,
+      () => true,
     )
   }
   if (hasDiscounts) {
@@ -103,7 +104,8 @@ export const attributeOrderOperators = async (context: HookContext): Promise<Hoo
       original.appliedDiscounts,
       'appliedBy',
       'appliedDiscounts.appliedBy',
-      true,
+      // `automatic` setzt der Server selbst; manuell und per Code loest ein Mensch aus.
+      entry => entry['method'] !== 'automatic',
     )
   }
   return context

@@ -1,0 +1,1 @@
+* **Update**: [OSV-Befund 2026-10-07](../security/osv-befund-2026-10-07-shell-quote-mcp-sdk.md): Karenz-Ausnahme für `source-map-js` entfernt — 1.2.2 ist seit 2026-10-07 14:08 UTC reif ([#631](https://github.com/panary/panary-core/issues/631)).

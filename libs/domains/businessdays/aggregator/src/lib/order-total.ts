@@ -1,11 +1,11 @@
 import {
   effectiveLineItems,
   isUnstampedPaymentPlaceholder,
+  lineItemGrossCents,
   Order,
   OrderLineItem,
-  GenericOrderLineItem,
 } from '@panary/orders/domain'
-import { toCents, multiplyCents, sumCents } from './money'
+import { toCents, sumCents } from './money'
 
 // Kanonische Order-Total-Berechnung.
 //
@@ -65,86 +65,21 @@ export function getOrderTipCents(order: Order): number {
 }
 
 /**
- * Berechnet die Brutto-Summe einer Line-Items-Liste inklusive Modifier
- * und Menü-Bestandteile (Drink + Side).
+ * Brutto-Summe einer Line-Items-Liste in Cents, inklusive Modifier und
+ * Menü-Bestandteile — Zeile für Zeile über `lineItemGrossCents` aus
+ * `@panary/orders/domain`.
  *
- * Wichtig:
- *   - `amount` ist die Stückzahl (typischerweise Integer, kann aber bei
- *     Gewichts-Produkten dezimal sein).
- *   - `price` ist der Einzelpreis pro Stück.
- *   - Modifier addieren sich on-top zum Hauptprodukt (`price` × `amount`).
- *   - Menu-Drink / Menu-Side sind separate Line-Items mit eigenem Preis.
+ * Single Source ist die Engine: Dieselbe Funktion speist POS-Anzeige, Bon,
+ * `taxSnapshot` (`computeOrderTax`) und den Storefront-Warenkorb. Bis #634 stand
+ * hier eine eigene Formel, die Modifier zusätzlich mit der Positionsmenge
+ * multiplizierte und HIGHEST-Gruppen selbst auswertete. Ein offener Bon zählte
+ * dadurch im Tagesumsatz mehr, als seine Zwischensumme zeigte (Staging-Bon #930:
+ * „Extra Gauda" bei Margherita × 2 zweimal). Keine eigene Rechnung mehr hier —
+ * jede Abweichung wäre wieder ein zweiter Betrag für dieselbe Bestellung.
+ *
+ * Auch der Personalessen-Nachweis in panary-cloud (`meal-settlements/proof.ts`)
+ * ruft diese Funktion und bekommt die Korrektur über den Pin-Bump.
  */
 export function computeGrossFromLineItems(lineItems: OrderLineItem[]): number {
-  const lineCents = lineItems.map(line => computeLineItemGrossCents(line))
-  return sumCents(lineCents)
-}
-
-/**
- * Modifier-Brutto einer Zeile in Cents.
- *
- * Modifier mit `pricingMode === 'HIGHEST'` werden nach `topic` gruppiert; je
- * HIGHEST-Gruppe zählt nur der HÖCHSTE Einzel-Aufpreis (`price × amount ×
- * parentAmount`), nicht die Summe (Pizzableche-Regel). Alle übrigen Modifier
- * (SUM/kein Modus) werden regulär summiert.
- *
- * Konsistenz-Hinweis: Der POS nullt bei HIGHEST-Gruppen die unterlegenen
- * Aufpreise bereits beim Erzeugen der Order (Snapshot). Diese Aggregation ist
- * der Fallback-Pfad und rechnet auch dann korrekt, wenn die Preise NICHT
- * genullt wurden (z.B. Fremd-erzeugte Orders) — der gestempelte `pricingMode`
- * macht das deterministisch.
- */
-function computeModifierGrossCents(modifiers: GenericOrderLineItem[], parentAmount: number): number {
-  const highestByTopic = new Map<string, number>()
-  const regularCents: number[] = []
-
-  for (const m of modifiers) {
-    // „OHNE"-Modifier (amount −1, POS-Marker aus `decreaseExtra()`) sind
-    // preisneutral: das Extra wurde nie berechnet, also gibt es beim Weglassen
-    // keine Gutschrift. Muss zur Engine `computeOrderTax` passen, sonst driftet
-    // der Reporting-Fallback vom `taxSnapshot` ab.
-    const cents = m.amount <= 0 ? 0 : computeGenericGrossCents(m, parentAmount)
-    if (m.pricingMode === 'HIGHEST') {
-      const key = m.topic ?? ''
-      const current = highestByTopic.get(key) ?? 0
-      if (cents > current) highestByTopic.set(key, cents)
-    } else {
-      regularCents.push(cents)
-    }
-  }
-
-  return sumCents([...regularCents, ...highestByTopic.values()])
-}
-
-function computeLineItemGrossCents(line: OrderLineItem): number {
-  const base = multiplyCents(toCents(line.price), line.amount)
-  const rawModifierGross = computeModifierGrossCents(line.modifiers ?? [], line.amount)
-  // Modifier dürfen abziehen (entfernbare Zutat mit negativem `priceAdjustment`),
-  // aber die Position nicht ins Negative ziehen — identische Klemme wie in der
-  // Engine `computeOrderTax`, sonst driftet der Reporting-Fallback.
-  const modifierGross = rawModifierGross < 0 ? Math.max(rawModifierGross, -base) : rawModifierGross
-
-  // FIXED_PROPORTIONAL: `line.price` IST der Festpreis (Komponenten sind darin
-  // eingerechnet) → Komponenten NICHT erneut addieren; nur Ad-hoc-Modifier on top.
-  if (line.bundlePricingMode === 'FIXED_PROPORTIONAL') {
-    return base + modifierGross
-  }
-
-  // Neues Komponenten-Modell (ROLLUP/à-la-carte): Komponenten addieren on top,
-  // am Parent-Amount skaliert — analog zur Engine `collectLineGrosses`.
-  if (Array.isArray(line.components) && line.components.length > 0) {
-    const componentCents = line.components.map(c => computeGenericGrossCents(c, line.amount))
-    return base + modifierGross + sumCents(componentCents)
-  }
-
-  // Legacy: separate menuDrink/menuSideDish-Slots.
-  const drink = line.menuDrink ? computeGenericGrossCents(line.menuDrink, line.amount) : 0
-  const side = line.menuSideDish ? computeGenericGrossCents(line.menuSideDish, line.amount) : 0
-  return base + modifierGross + drink + side
-}
-
-function computeGenericGrossCents(line: GenericOrderLineItem, parentAmount: number): number {
-  // Modifier-amount wird mit dem Parent-Amount skaliert (z. B. "2× Burger
-  // mit Extra-Käse" → Modifier 2× berechnet).
-  return multiplyCents(toCents(line.price), line.amount * parentAmount)
+  return sumCents(lineItems.map(lineItemGrossCents))
 }

@@ -1,7 +1,14 @@
 import { describe, it, expect } from 'vitest'
-import { Order, PaymentState } from '@panary/orders/domain'
+import { computeOrderTax, Order, PaymentState } from '@panary/orders/domain'
 import { getOrderGrossCents, getOrderNetCents, getOrderTipCents, computeGrossFromLineItems } from './order-total'
 import { makeOrder } from './fixtures/orders.fixtures'
+import { toCents } from './money'
+
+// Erwartungswert aus der Engine statt hart gerechnet (#634): Der Rückfall soll
+// genau das liefern, was `computeOrderTax` als `taxSnapshot.brutto` stempeln
+// würde — eine zweite, von Hand gerechnete Zahl wäre wieder eine eigene Formel.
+const engineGrossCents = (lineItems: unknown): number =>
+  toCents(computeOrderTax({ lineItems } as unknown as Order).brutto)
 
 describe('order-total', () => {
   it('verwendet payment.totalAmount als primäre Quelle', () => {
@@ -72,6 +79,53 @@ describe('order-total', () => {
     })
   })
 
+  // Form von Staging-Bon #930 (core#634): offen, Platzhalter-`payment`, kein
+  // `taxSnapshot` → der Positions-Rückfall entscheidet. Margherita 6,70 × 2 mit
+  // Extra Gauda 2,00 × 1 — der Rückfall zählte den Modifier doppelt.
+  it('offener Bon ohne taxSnapshot: Positions-Rückfall gleich der Engine (#634, Bon #930)', () => {
+    const order = makeOrder({
+      lineItems: [
+        {
+          _id: '00000000-0000-7000-8000-000000000930',
+          externalId: '00000000-0000-7000-8000-000000000931',
+          amount: 2,
+          name: 'Margherita',
+          price: 6.7,
+          recipeReferences: [],
+          ingredientReferences: [],
+          taxInside: 19,
+          taxOutside: 7,
+          topic: '',
+          productGroupExternalId: '00000000-0000-7000-8000-000000000932',
+          bundleNumber: null,
+          modifiers: [
+            {
+              _id: '00000000-0000-7000-8000-000000000933',
+              externalId: '00000000-0000-7000-8000-000000000934',
+              amount: 1,
+              name: 'Extra Gauda',
+              price: 2,
+              recipeReferences: [],
+              ingredientReferences: [],
+              taxInside: 19,
+              taxOutside: 7,
+              topic: '',
+            },
+          ],
+          isMenu: false,
+          menuDrink: null,
+          menuSideDish: null,
+        },
+      ],
+    })
+    const open = {
+      ...order,
+      taxSnapshot: null,
+      payment: { state: PaymentState.PENDING, totalAmount: 0, tipAmount: 0, transactions: [] },
+    } as unknown as Order
+    expect(getOrderGrossCents(open)).toBe(engineGrossCents(order.lineItems))
+  })
+
   it('fällt auf taxSnapshot.brutto zurück, wenn payment fehlt', () => {
     const order = makeOrder({ grossAmount: 9.99 })
     const noPayment: Order = { ...order, payment: null }
@@ -115,12 +169,12 @@ describe('order-total', () => {
       ],
     })
     const stripped: Order = { ...order, payment: null, taxSnapshot: null }
-    // Burger 2× 5.50€ = 11.00€ + 2× 0.50€ Käse = 12.00€
-    expect(getOrderGrossCents(stripped)).toBe(1200)
+    expect(getOrderGrossCents(stripped)).toBe(engineGrossCents(order.lineItems))
   })
 
-  it('rechnet Modifier mit Stückzahl skaliert', () => {
-    // 3× Burger mit Extra Käse à 0.50€ → Käse 3×0.50€ = 1.50€
+  it('Modifier zählt mit seiner eigenen Menge, nicht mit der Positionsmenge — wie die Engine (#634)', () => {
+    // Bis #634 multiplizierte der Rückfall den Modifier zusätzlich mit der
+    // Positionsmenge; Anzeige, Bon und taxSnapshot tun das nicht.
     const lineItems = [
       {
         _id: 'l1',
@@ -154,7 +208,7 @@ describe('order-total', () => {
         menuSideDish: null,
       },
     ]
-    expect(computeGrossFromLineItems(lineItems as unknown as Order['lineItems'])).toBe(3 * 500 + 3 * 50)
+    expect(computeGrossFromLineItems(lineItems as unknown as Order['lineItems'])).toBe(engineGrossCents(lineItems))
   })
 
   it('„OHNE"-Modifier (amount −1) bleibt preisneutral', () => {
@@ -345,9 +399,12 @@ describe('order-total', () => {
     expect(computeGrossFromLineItems(lineItems as unknown as Order['lineItems'])).toBe(1300)
   })
 
-  it('HIGHEST: pro topic zählt nur der höchste Aufpreis, nicht die Summe', () => {
-    // Pizzablech (10,00€) + Extras-Gruppe (HIGHEST): 3×4,30€ + 1×8,40€
-    // → nur +8,40€ statt +21,30€. Ergebnis: 10,00 + 8,40 = 18,40€.
+  // HIGHEST: Die Regel „höchster Aufpreis gewinnt“ wendet der POS beim Erzeugen
+  // der Order an, indem er die unterlegenen Aufpreise auf 0 setzt. Anzeige, Bon,
+  // taxSnapshot und Storefront-Warenkorb rechnen über die Engine und summieren
+  // die gestempelten Preise. Der Rückfall rechnet seit #634 genauso und nicht
+  // klüger als der Betrag, den der Kunde gesehen hat.
+  it('HIGHEST mit nicht genullten Aufpreisen: Rückfall rechnet wie die Engine (#634)', () => {
     const lineItems = [
       {
         _id: 'l1',
@@ -421,11 +478,10 @@ describe('order-total', () => {
         ],
       },
     ]
-    expect(computeGrossFromLineItems(lineItems as unknown as Order['lineItems'])).toBe(1840)
+    expect(computeGrossFromLineItems(lineItems as unknown as Order['lineItems'])).toBe(engineGrossCents(lineItems))
   })
 
-  it('HIGHEST: getrennte topics gewinnen jeweils ihren eigenen Höchstwert', () => {
-    // Zwei HIGHEST-Gruppen: 'Belag' (max 8,40€) + 'Sauce' (max 2,00€) → 10,00 + 8,40 + 2,00
+  it('HIGHEST mit mehreren topics: Rückfall rechnet wie die Engine (#634)', () => {
     const lineItems = [
       {
         _id: 'l1',
@@ -499,7 +555,7 @@ describe('order-total', () => {
         ],
       },
     ]
-    expect(computeGrossFromLineItems(lineItems as unknown as Order['lineItems'])).toBe(2040)
+    expect(computeGrossFromLineItems(lineItems as unknown as Order['lineItems'])).toBe(engineGrossCents(lineItems))
   })
 
   it('SUM (Default ohne pricingMode): alle Modifier werden summiert (Regression)', () => {

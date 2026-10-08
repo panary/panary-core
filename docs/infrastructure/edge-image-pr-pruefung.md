@@ -35,8 +35,10 @@ PR-Prüfung rufen beide dieses Skript auf. Zwei Kopien würden driften, und der 
 dann grün gegen einen Kontext, den es im Release nicht gibt.
 
 Die Runtime-Stage ist mitgebaut statt nur `--target build`: Sie besteht aus ein paar
-`COPY --from` und einem `apt-get`, kostet also Sekunden und fängt einen fehlenden
-`dist`-Pfad ab.
+`COPY --from` und einem `apt-get upgrade`, kostet also nur die apt-Zeit und fängt einen
+fehlenden `dist`-Pfad ab. Der Upgrade-Layer kommt nie aus dem Cache: Der ARG
+`DEBIAN_REFRESH` (`github.run_id`-`github.run_attempt`) erzwingt ihn je Lauf, wie im
+Release ([core#650](https://github.com/panary/panary-core/issues/650), [ADR 0051](../adr/0051-stueckliste-je-release-cyclonedx.md)).
 
 Der GHA-Layer-Cache wird nur gelesen (`cache-from`), nicht geschrieben, im PR wie auf
 `main`. Ein PR-Eintrag wäre nur für denselben PR lesbar und belegte das 10-GB-Kontingent.

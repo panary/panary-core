@@ -73,9 +73,22 @@ RUN CI=true pnpm prune --prod
 # dieselbe C-Library wie im Build-Stage. glibc-Binaries laufen nicht auf musl.
 FROM node:22-bookworm-slim AS runtime
 
-# curl für Healthcheck
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl && rm -rf /var/lib/apt/lists/*
+# Debian-Sicherheitsupdates + curl für Healthcheck.
+# Das offizielle node-Image hinkt den bookworm-Security-Fixes hinterher: Noch der
+# Build vom 2026-10-06 trug perl-base 5.36.0-7+deb12u3, der Fix deb12u4 kam nur
+# per `apt-get upgrade` (13 Advisories, panary/panary-core#650). Neu ziehen allein
+# reicht deshalb nicht.
+# DEBIAN_REFRESH ist der Cache-Schlüssel dieses Layers: Die Workflows übergeben
+# `github.run_id`-`github.run_attempt`, damit jeder Lauf (auch ein Re-run) das
+# Upgrade neu ausführt. Ohne ihn hielte der
+# GHA-Layer-Cache (mode=max) den alten Paketstand fest, solange sich der
+# Base-Digest nicht ändert. Lokal leer = normales Caching.
+ARG DEBIAN_REFRESH=""
+RUN echo "debian-refresh: ${DEBIAN_REFRESH}" \
+    && apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

@@ -117,9 +117,13 @@ seit 2026-09-11, und ohne Stückliste sind sie praktisch nicht zu erfüllen.
 - **Advisory-Bericht (Punkt 8):** Das Step-Summary von `scan-advisories` ist die Stelle, an der
   ein Release seine bekannten Lücken nennt. Ein roter npm-Befund wird per Override/Bump behoben
   oder mit Begründung in `osv-scanner.toml` ausgenommen. Ein roter Debian-Befund heißt, dass das
-  Node-Base-Image hinter bookworm zurückliegt. Der Base-Image-Tag ist nicht per Digest gepinnt,
-  ein späterer Build kann das also schon beheben, sonst hilft ein `apt-get upgrade` im
-  Runtime-Stage. Vor dem Rollout schützt der Job nicht. Eine echte Sperre müsste scannen, bevor
+  Node-Base-Image hinter bookworm zurückliegt. Seit core#650 führt der Runtime-Stage deshalb
+  selbst `apt-get upgrade` aus. Auf ein neues Base-Image zu warten reichte nicht: Auch das
+  `node:22-bookworm-slim` vom 2026-10-06 trug noch `perl-base deb12u3` (13 Advisories,
+  `v26.10.6` und `v26.10.7` rot). Der Upgrade-Layer hängt am ARG `DEBIAN_REFRESH`
+  (`github.run_id`-`github.run_attempt`), sonst hielte der GHA-Layer-Cache (`mode=max`) den alten Paketstand fest,
+  solange der Base-Digest gleich bleibt. Ein roter Debian-Befund danach heißt: Der Fix ist
+  jünger als der Lauf, ein neuer Build behebt ihn. Vor dem Rollout schützt der Job nicht. Eine echte Sperre müsste scannen, bevor
   `:latest` bewegt wird.
 - **osv-scanner als Binary** (v2.6.0, per SHA-256 gepinnt) ist eine weitere
   Lieferketten-Abhängigkeit, die Dependabot nicht hebt. Der Pin wird von Hand gepflegt, mit

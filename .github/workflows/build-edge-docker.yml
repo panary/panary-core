@@ -96,8 +96,12 @@ jobs:
           platforms: linux/amd64
           load: true
           tags: panary-edge:release-check
+          # DEBIAN_REFRESH: apt-Upgrade im Runtime-Stage je Lauf neu (core#650,
+          # Begruendung in Dockerfile.edge). Beide Builds dieses Jobs bekommen
+          # denselben Wert, der Push nimmt also die Layer des Smoke-Tests.
           build-args: |
             PANARY_VERSION=${{ steps.version.outputs.tag }}
+            DEBIAN_REFRESH=${{ github.run_id }}
           cache-from: type=gha
 
       - name: Smoke-Test (Container starten, /health pruefen)
@@ -130,8 +134,12 @@ jobs:
           platforms: linux/amd64
           push: true
           # App-Version ins Image injizieren — /health meldet damit den Image-Tag
+          # DEBIAN_REFRESH: apt-Upgrade im Runtime-Stage je Lauf neu (core#650,
+          # Begruendung in Dockerfile.edge). Beide Builds dieses Jobs bekommen
+          # denselben Wert, der Push nimmt also die Layer des Smoke-Tests.
           build-args: |
             PANARY_VERSION=${{ steps.version.outputs.tag }}
+            DEBIAN_REFRESH=${{ github.run_id }}
           # `:latest` NUR bei einem echten v*-Tag-Push. Jeder installierte Edge
           # laeuft auf `${PANARY_TAG:-latest}` mit Watchtower im Stundentakt
           # (tools/hosting/get.panary.cloud/install.sh) — dieser Tag zu bewegen

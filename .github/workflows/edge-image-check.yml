@@ -104,8 +104,10 @@ jobs:
           # In den lokalen Docker laden, damit der Smoke-Test es starten kann.
           load: true
           tags: panary-edge:pr-check
+          # DEBIAN_REFRESH: Der PR prueft den apt-Upgrade-Layer frisch, wie das Release (core#650).
           build-args: |
             PANARY_VERSION=pr-check
+            DEBIAN_REFRESH=${{ github.run_id }}
           cache-from: type=gha
 
       # Gebaut ist nicht gestartet (#505): Produktions- und Setup-Modus booten,

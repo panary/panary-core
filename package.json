@@ -98,7 +98,7 @@
     "@types/lodash": "^4.17.25",
     "@types/mocha": "^10.0.10",
     "@types/node": "^25.9.8",
-    "@typescript-eslint/utils": "^8.70.0",
+    "@typescript-eslint/utils": "^8.70.1",
     "@vitest/coverage-v8": "^4.1.11",
     "angular-eslint": "21.4.0",
     "angularx-qrcode": "^21.0.4",

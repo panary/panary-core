@@ -34,7 +34,7 @@ describe('filterCachedRecords', () => {
     expect(ids(filterCachedRecords(rows(), { index: { $lte: 2 } }))).toEqual(['b', 'c'])
   })
 
-  it('wertet $regex mit $options aus (Produktsuche in pre-order-create)', () => {
+  it('wertet $regex mit $options aus', () => {
     expect(ids(filterCachedRecords(rows(), { name: { $regex: 'co', $options: 'i' } }))).toEqual(['a'])
     expect(ids(filterCachedRecords(rows(), { name: { $regex: 'co' } }))).toEqual([])
   })

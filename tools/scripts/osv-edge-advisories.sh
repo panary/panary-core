@@ -170,6 +170,6 @@ if [ "$npm_hits" -gt 0 ]; then
   echo "::error::${npm_hits} npm-Pakete im Edge-Image mit bekanntem Advisory — Override/Bump oder begruendete Ausnahme in osv-scanner.toml" >&2
 fi
 if [ "$deb_fix" -gt 0 ]; then
-  echo "::error::${deb_fix} Debian-Advisories mit Fix im Release, das Image fuehrt die alte Version — Base-Image neu ziehen bzw. apt-Upgrade im Runtime-Stage" >&2
+  echo "::error::${deb_fix} Debian-Advisories mit Fix im Release, das Image fuehrt die alte Version — der Runtime-Stage zieht Updates per apt-get upgrade je Lauf (core#650): Fix juenger als der Build → neuen Build anstossen; bleibt es rot, das Upgrade im Runtime-Stage pruefen" >&2
 fi
 [ "$npm_hits" -eq 0 ] && [ "$deb_fix" -eq 0 ] || exit 1

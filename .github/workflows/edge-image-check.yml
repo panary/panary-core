@@ -90,8 +90,9 @@ jobs:
         run: bash tools/docker/prepare-edge-context.sh
 
       # Ganzes Image (Build- UND Runtime-Stage), nicht nur `--target build`:
-      # Die Runtime-Stage ist ein paar COPY --from und ein apt-get, kostet also
-      # Sekunden, faengt aber einen fehlenden dist-Pfad ab.
+      # Die Runtime-Stage ist ein paar COPY --from und ein apt-get upgrade, das
+      # ueber DEBIAN_REFRESH je Lauf frisch laeuft (core#650). Kostet die apt-Zeit,
+      # faengt aber einen fehlenden dist-Pfad ab.
       # Nur cache-from: PR- und main-Laeufe schreiben keinen GHA-Cache (ein PR-Eintrag
       # waere nur fuer denselben PR lesbar und belegte das 10-GB-Kontingent).
       - name: Edge-Image bauen (ohne Push)
@@ -107,7 +108,7 @@ jobs:
           # DEBIAN_REFRESH: Der PR prueft den apt-Upgrade-Layer frisch, wie das Release (core#650).
           build-args: |
             PANARY_VERSION=pr-check
-            DEBIAN_REFRESH=${{ github.run_id }}
+            DEBIAN_REFRESH=${{ github.run_id }}-${{ github.run_attempt }}
           cache-from: type=gha
 
       # Gebaut ist nicht gestartet (#505): Produktions- und Setup-Modus booten,

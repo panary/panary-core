@@ -121,7 +121,7 @@ seit 2026-09-11, und ohne Stückliste sind sie praktisch nicht zu erfüllen.
   selbst `apt-get upgrade` aus. Auf ein neues Base-Image zu warten reichte nicht: Auch das
   `node:22-bookworm-slim` vom 2026-10-06 trug noch `perl-base deb12u3` (13 Advisories,
   `v26.10.6` und `v26.10.7` rot). Der Upgrade-Layer hängt am ARG `DEBIAN_REFRESH`
-  (`github.run_id`), sonst hielte der GHA-Layer-Cache (`mode=max`) den alten Paketstand fest,
+  (`github.run_id`-`github.run_attempt`), sonst hielte der GHA-Layer-Cache (`mode=max`) den alten Paketstand fest,
   solange der Base-Digest gleich bleibt. Ein roter Debian-Befund danach heißt: Der Fix ist
   jünger als der Lauf, ein neuer Build behebt ihn. Vor dem Rollout schützt der Job nicht. Eine echte Sperre müsste scannen, bevor
   `:latest` bewegt wird.

@@ -79,7 +79,8 @@ FROM node:22-bookworm-slim AS runtime
 # per `apt-get upgrade` (13 Advisories, panary/panary-core#650). Neu ziehen allein
 # reicht deshalb nicht.
 # DEBIAN_REFRESH ist der Cache-Schlüssel dieses Layers: Die Workflows übergeben
-# `github.run_id`, damit jeder Lauf das Upgrade neu ausführt. Ohne ihn hielte der
+# `github.run_id`-`github.run_attempt`, damit jeder Lauf (auch ein Re-run) das
+# Upgrade neu ausführt. Ohne ihn hielte der
 # GHA-Layer-Cache (mode=max) den alten Paketstand fest, solange sich der
 # Base-Digest nicht ändert. Lokal leer = normales Caching.
 ARG DEBIAN_REFRESH=""

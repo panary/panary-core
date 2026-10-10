@@ -53,6 +53,16 @@ Warum das eine eigene Regel braucht: Der naheliegende Bulk-`remove(null, { query
 
 > ⚠️ `multi: ['remove']` auf den betroffenen Services waere der naheliegende, aber falsche Fix: Der Feathers-Adapter unterscheidet nicht zwischen internem und externem Aufruf — ein `DELETE /users` ohne id wuerde damit alle Tenant-User loeschen. Der Truncate faellt stattdessen auf Einzel-Removes zurueck und verifiziert das Ergebnis.
 
+### Bootstrap-Umbauten schreiben keine Outbox-Auftraege
+
+Truncate und Merge-Restamping (`remove` der Edge-ID + `create` des Cloud-Records im Modus `merge-by-external-id`) laufen ueber die Adapter-API und damit durch den globalen After-Hook [`recordSyncOutbox`](../../apps/api-edge/src/hooks/sync-outbox-recorder.hook.ts). Beide setzen deshalb `params.skipSyncOutbox = true`; der Recorder ueberspringt solche Aufrufe.
+
+Ohne den Marker schrieb der Truncate fuer jeden Bestands-User ein `REMOVE` in die Outbox (`users` ist ein `SyncableTransactionService`). Bei einer Neukopplung „alles aus der Cloud uebernehmen" standen so unter Sync-Status je Benutzer ein Auftrag „Personal geloescht" — und nur ein Fehler der Cloud (panary/panary-cloud#1112: `remove` verlangte einen Payload) verhinderte, dass der Bootstrap genau die Benutzer in der Cloud loeschte, die er uebernehmen sollte (#660). Das Merge-Restamping betrifft heute nur `product-groups` und `products`, keine Transaktions-Pfade; der Marker haelt es auch fuer kuenftige Eintraege der Allowlist dicht.
+
+> ⚠️ Bewusst **nicht** `fromSync`: Der Marker unterdrueckt zwar auch die Outbox, schaltet aber in den Create-/Patch-Resolvern (`users`, `business-days`) auf die Uebernahme der Rohwerte um — fuer das Restamping-`create` waere das eine zweite, ungewollte Wirkung. `skipSyncOutbox` wirkt ausschliesslich im Recorder.
+>
+> Bestands-Edges, die den Bootstrap vor dem Fix gefahren sind, tragen die Loesch-Auftraege weiter in der Outbox. Sie muessen am Edge unter Sync-Status verworfen werden, **bevor** panary/panary-cloud#1112 ausgerollt ist — danach fuehrte die Cloud sie aus.
+
 ### Push-Payloads: `null` aus leeren SQLite-Spalten
 
 Der Edge-Push liest Stammdaten-Rows roh (`collectAllRecords`) und reicht sie unveraendert an die Cloud-Validierung. Jede nie befuellte nullable Spalte kommt dabei als `null` an — nicht als `undefined`. Ein Domain-Feld, das nur `Type.Optional(Type.String())` deklariert, weist den kompletten Record ab und reisst den **gesamten** Bootstrap mit, weil `runBootstrapEdgeToCloud` beim ersten Service-Fehler wirft und `locations` an erster Stelle steht.

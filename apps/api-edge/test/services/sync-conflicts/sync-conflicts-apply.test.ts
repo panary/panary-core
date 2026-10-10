@@ -150,17 +150,15 @@ describe('sync-conflicts service — Aufloesung wird tatsaechlich angewandt (#29
       } as never,
       { provider: undefined },
     )
-    await app
-      .service('sync-outbox')
-      .patch(
-        id,
-        {
-          status: SyncOutboxStatus.REJECTED,
-          terminalAt: new Date().toISOString(),
-          linkedConflictId: conflictId,
-        } as never,
-        { provider: undefined },
-      )
+    await app.service('sync-outbox').patch(
+      id,
+      {
+        status: SyncOutboxStatus.REJECTED,
+        terminalAt: new Date().toISOString(),
+        linkedConflictId: conflictId,
+      } as never,
+      { provider: undefined },
+    )
     return id
   }
 

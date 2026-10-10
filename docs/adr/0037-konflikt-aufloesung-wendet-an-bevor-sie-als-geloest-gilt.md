@@ -97,6 +97,11 @@ zurück (Sync-Echo); `users` re-hasht sonst den bereits gehashten Cloud-Passwort
 „Verwerfen" läuft weiterhin **ohne** `fromSync` — es ist eine lokale Entscheidung des
 Operators, und die Push-Semantik dieses Pfades bleibt unverändert.
 
+> **Abgelöst für „Verwerfen“** durch [ADR 0054](0054-konflikt-verwerfen-nach-ursprung.md)
+> (panary/panary-core#663): Ohne Marker schrieb das lokale Löschen ein `REMOVE` in die Outbox,
+> und bei Konflikten aus abgelehnten Lösch-Ops löschte es neu geholte Datensätze. Der
+> USE_CLOUD-Teil dieses Punkts gilt unverändert.
+
 ## Konsequenzen
 
 * **Eine Auflösung kann jetzt scheitern, und das ist der Punkt.** Wo vorher still nichts

@@ -77,7 +77,7 @@ Bestätigung, die das Löschen an diesem Standort und die unveränderte Online-D
   mit Rückfrage. Die Kopplung steht in beiden Kommentaren. Die Integrationstests seeden die Outbox-Op
   wie der Recorder (`payload: null`).
 * **Bereits so gelöschte Datensätze holt das nicht zurück.** Dafür fehlt am Edge ein Reparaturweg
-  „Benutzer neu aus der Cloud laden“ (Ergänzung am Issue #663, eigenes Issue).
+  „Benutzer neu aus der Cloud laden“ (Ergänzung am Issue #663, ausgegliedert nach panary/panary-core#666).
 
 ## Verwandt
 

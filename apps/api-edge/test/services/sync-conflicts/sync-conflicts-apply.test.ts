@@ -1,6 +1,16 @@
 import assert from 'assert'
 import { uuidv7 } from 'uuidv7'
-import { SyncConflictReason, SyncConflictResolution, SyncConflictStatus, type SyncConflict } from '@panary/sync/domain'
+import {
+  SyncConflictOrigin,
+  SyncConflictReason,
+  SyncConflictResolution,
+  SyncConflictStatus,
+  SyncOp,
+  SyncOutboxStatus,
+  SyncSource,
+  type SyncConflict,
+  type SyncOutboxEntry,
+} from '@panary/sync/domain'
 import type { WorkingTime } from '@panary/working-times/domain'
 import { app } from '../../../src/app'
 
@@ -52,8 +62,21 @@ describe('sync-conflicts service — Aufloesung wird tatsaechlich angewandt (#29
         .service('working-times')
         .remove(id, { provider: undefined })
         .catch(() => undefined)
+      for (const entry of await outboxFor(id)) {
+        await app
+          .service('sync-outbox')
+          .remove(entry._id, { provider: undefined })
+          .catch(() => undefined)
+      }
     }
   })
+
+  const outboxFor = (entityId: string) =>
+    app.service('sync-outbox').find({
+      provider: undefined,
+      paginate: false,
+      query: { entityId },
+    } as never) as unknown as Promise<SyncOutboxEntry[]>
 
   /**
    * Legt eine echte Zeiterfassung an und stempelt sie aus. Ueber die Service-API,
@@ -83,7 +106,11 @@ describe('sync-conflicts service — Aufloesung wird tatsaechlich angewandt (#29
       )) as WorkingTime
   }
 
-  const seedConflict = async (edge: WorkingTime, cloudPayload: unknown): Promise<string> => {
+  const seedConflict = async (
+    edge: WorkingTime,
+    cloudPayload: unknown,
+    overrides: { reason?: SyncConflictReason; edgePayload?: unknown } = {},
+  ): Promise<string> => {
     const id = uuidv7()
     conflictIds.push(id)
     await app.service('sync-conflicts').create(
@@ -94,13 +121,42 @@ describe('sync-conflicts service — Aufloesung wird tatsaechlich angewandt (#29
         service: 'working-times',
         edgeRecordId: edge._id,
         cloudRecordId: edge._id,
-        reason: SyncConflictReason.PUSH_CONCURRENT_WRITE,
-        edgePayload: edge,
+        reason: overrides.reason ?? SyncConflictReason.PUSH_CONCURRENT_WRITE,
+        edgePayload: 'edgePayload' in overrides ? overrides.edgePayload : edge,
         cloudPayload,
         status: SyncConflictStatus.OPEN,
       } as never,
       { provider: undefined },
     )
+    return id
+  }
+
+  /**
+   * Die abgelehnte Outbox-Op, aus der `escalateToConflict` den Konflikt macht —
+   * so, wie der Push-Worker sie hinterlaesst: `rejected` mit `linkedConflictId`.
+   * `remove` traegt wie im Recorder `payload: null`.
+   */
+  const seedRejectedOp = async (edge: WorkingTime, op: SyncOp, conflictId: string): Promise<string> => {
+    const id = uuidv7()
+    await app.service('sync-outbox').create(
+      {
+        _id: id,
+        service: 'working-times',
+        op,
+        entityId: edge._id,
+        payload: op === SyncOp.REMOVE ? null : edge,
+        occurredAt: new Date().toISOString(),
+        syncSource: SyncSource.LIVE,
+      } as never,
+      { provider: undefined },
+    )
+    await app
+      .service('sync-outbox')
+      .patch(
+        id,
+        { status: SyncOutboxStatus.REJECTED, terminalAt: new Date().toISOString(), linkedConflictId: conflictId } as never,
+        { provider: undefined },
+      )
     return id
   }
 
@@ -245,5 +301,50 @@ describe('sync-conflicts service — Aufloesung wird tatsaechlich angewandt (#29
       'kein neu angelegter Ersatz-Eintrag',
     )
     assert.strictEqual((await readConflict(conflictId)).status, SyncConflictStatus.OPEN)
+  })
+
+  // #663: Am Kunden-Edge stammten elf Konflikte aus abgelehnten Loesch-Ops.
+  // „Verwerfen" loeschte die (neu geholten) Benutzer lokal und schrieb neue
+  // REMOVE-Ops in die Outbox. Geprueft wird am Datensatz und an der Outbox,
+  // nicht am Konflikt-Status.
+  it('„Verwerfen" eines Konflikts aus einer Loesch-Op laesst den Datensatz stehen', async () => {
+    const edge = await seedWorkingTime()
+    const conflictId = await seedConflict(edge, null, {
+      reason: SyncConflictReason.PUSH_REJECTED,
+      edgePayload: null,
+    })
+    const opId = await seedRejectedOp(edge, SyncOp.REMOVE, conflictId)
+    assert.strictEqual((await readConflict(conflictId)).origin, SyncConflictOrigin.PUSH_REMOVE)
+
+    await resolve(conflictId, SyncConflictResolution.DISCARD)
+
+    const row = (await app.service('working-times').get(edge._id, { provider: undefined })) as WorkingTime
+    assert.strictEqual(row._id, edge._id)
+    const outbox = await outboxFor(edge._id)
+    assert.deepStrictEqual(
+      outbox.filter(e => e.op === SyncOp.REMOVE).map(e => e._id),
+      [],
+      'weder die verworfene noch eine neue Loesch-Op in der Outbox',
+    )
+    assert.ok(!outbox.some(e => e._id === opId))
+    assert.strictEqual((await readConflict(conflictId)).status, SyncConflictStatus.RESOLVED)
+  })
+
+  it('„Verwerfen" eines Konflikts aus einem Patch loescht nur lokal, ohne Loesch-Auftrag', async () => {
+    const edge = await seedWorkingTime()
+    const conflictId = await seedConflict(edge, cloudVariant(edge), { reason: SyncConflictReason.PUSH_REJECTED })
+    const opId = await seedRejectedOp(edge, SyncOp.PATCH, conflictId)
+    assert.strictEqual((await readConflict(conflictId)).origin, SyncConflictOrigin.PUSH_WRITE)
+
+    await resolve(conflictId, SyncConflictResolution.DISCARD)
+
+    await assert.rejects(app.service('working-times').get(edge._id, { provider: undefined }))
+    const outbox = await outboxFor(edge._id)
+    assert.deepStrictEqual(
+      outbox.filter(e => e.op === SyncOp.REMOVE).map(e => e._id),
+      [],
+      'die Online-Datenbank erfaehrt von der lokalen Loeschung nichts',
+    )
+    assert.ok(!outbox.some(e => e._id === opId), 'die abgelehnte Patch-Op ist mit dem Konflikt erledigt')
   })
 })

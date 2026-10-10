@@ -37,7 +37,14 @@
 import { BadRequest } from '@feathersjs/errors'
 
 import { USER_EDGE_LOCAL_FIELDS, stripUserEdgeLocalFields } from '@panary/users/domain'
-import { SyncConflictResolution, type SyncConflict } from '@panary/sync/domain'
+import {
+  SyncConflictOrigin,
+  SyncConflictResolution,
+  SyncOutboxStatus,
+  syncConflictOrigin,
+  type SyncConflict,
+  type SyncOutboxEntry,
+} from '@panary/sync/domain'
 
 import type { Application } from '../../declarations'
 import { collectSchemaShape, readServiceSchema, type SchemaShape } from '../schema-shape'
@@ -180,6 +187,70 @@ const getOrNull = async (app: Application, service: string, id: string): Promise
 const isNotFound = (err: unknown): boolean => (err as { code?: number } | undefined)?.code === 404
 
 /**
+ * Die abgelehnten Outbox-Eintraege, aus denen dieser Konflikt entstand.
+ *
+ * Gefiltert ueber `service`/`entityId`/`status` (Query-Whitelist der Outbox)
+ * und erst danach ueber `linkedConflictId`, das dort nicht abfragbar ist. Die
+ * Treffermenge je Datensatz ist klein.
+ */
+const linkedOutboxEntries = async (app: Application, conflict: SyncConflict): Promise<SyncOutboxEntry[]> => {
+  const rows = (await app.service('sync-outbox' as any).find({
+    provider: undefined,
+    paginate: false,
+    query: { service: conflict.service, entityId: conflict.edgeRecordId, status: SyncOutboxStatus.REJECTED },
+  } as any)) as SyncOutboxEntry[]
+  return rows.filter(row => row.linkedConflictId === conflict._id)
+}
+
+/**
+ * „Verwerfen" (#663).
+ *
+ * Bis #663 rief dieser Zweig `remove(edgeRecordId)` ohne Marker auf. Am
+ * Kunden-Edge (2026-10-10) stammten elf Konflikte aus abgelehnten Loesch-Ops des
+ * Bootstrap-Truncates (#660); der Bootstrap hatte die Benutzer mit denselben IDs
+ * neu geholt. Verwerfen loeschte zehn davon lokal und legte zehn neue `REMOVE`
+ * in die Outbox — fuer den Betreiber kamen die verworfenen Loesch-Auftraege
+ * „wieder".
+ *
+ * Jetzt:
+ *  - Ursprung `remove`: kein `service.remove`. Verworfen wird der Auftrag, nicht
+ *    der Datensatz.
+ *  - sonst: lokal loeschen, mit `skipSyncOutbox`. Die Online-Datenbank bleibt
+ *    unveraendert; das Admin-Panel sagt das vor dem Klick. Ein gepushtes REMOVE
+ *    waere eine Loeschung in der Cloud, die niemand gewaehlt hat — und bei einer
+ *    abgelehnten `create`-Op gaebe es dort nichts zu loeschen, das REMOVE kaeme
+ *    als naechster Konflikt zurueck. `skipSyncOutbox` statt `fromSync`, weil
+ *    `fromSync` zusaetzlich den Audit-Eintrag unterdrueckt
+ *    (`capture-audit-before.hook.ts`); die Loeschung ist eine Operator-Aktion.
+ *  - in beiden Faellen: die verknuepfte abgelehnte Outbox-Op entfernen. Sie stand
+ *    sonst weiter unter „Nicht hochgeladen", obwohl ihr Konflikt erledigt ist.
+ *
+ * Reihenfolge: erst der Datensatz, dann die Outbox. Scheitert die Outbox, wirft
+ * der Aufruf und der Konflikt bleibt offen; ein zweiter Klick ist idempotent
+ * (404 beim Datensatz ist Erfolg).
+ */
+const discardConflict = async (app: Application, conflict: SyncConflict): Promise<void> => {
+  if (syncConflictOrigin(conflict) !== SyncConflictOrigin.PUSH_REMOVE) {
+    try {
+      await app
+        .service(conflict.service as any)
+        .remove(conflict.edgeRecordId, { provider: undefined, skipSyncOutbox: true } as any)
+    } catch (err) {
+      // Schon weg ist das gewuenschte Ergebnis, kein Fehlschlag.
+      if (!isNotFound(err)) throw err
+    }
+  }
+
+  for (const entry of await linkedOutboxEntries(app, conflict)) {
+    try {
+      await app.service('sync-outbox' as any).remove(entry._id, { provider: undefined } as any)
+    } catch (err) {
+      if (!isNotFound(err)) throw err
+    }
+  }
+}
+
+/**
  * Wendet die gewaehlte Aufloesung auf den Zieldatensatz an. Wirft, wenn das
  * nicht (vollstaendig) gelingt — der Aufrufer haelt den Konflikt dann offen.
  *
@@ -188,20 +259,13 @@ const isNotFound = (err: unknown): boolean => (err as { code?: number } | undefi
  * Outbox-Eintrag dorthin zurueckgepusht werden (Sync-Echo), und `users`
  * re-hasht sonst den bereits gehashten Cloud-Passwort-Hash.
  *
- * DISCARD laeuft bewusst OHNE `fromSync`: „Verwerfen" ist eine lokale
- * Entscheidung des Operators, kein Cloud-Applikat — die Push-Semantik dieses
- * Pfades bleibt unveraendert gegenueber dem Stand vor #293.
+ * DISCARD: siehe `discardConflict`.
  */
 export const applyConflictResolution = async (app: Application, conflict: SyncConflict): Promise<void> => {
   if (conflict.resolution === SyncConflictResolution.USE_EDGE) return
 
   if (conflict.resolution === SyncConflictResolution.DISCARD) {
-    try {
-      await app.service(conflict.service as any).remove(conflict.edgeRecordId, { provider: undefined } as any)
-    } catch (err) {
-      // Schon weg ist das gewuenschte Ergebnis, kein Fehlschlag.
-      if (!isNotFound(err)) throw err
-    }
+    await discardConflict(app, conflict)
     return
   }
 

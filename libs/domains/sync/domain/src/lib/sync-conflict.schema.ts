@@ -37,6 +37,52 @@ export const SyncConflictReason = {
 
 export type SyncConflictReason = (typeof SyncConflictReason)[keyof typeof SyncConflictReason]
 
+/**
+ * Woher ein Konflikt stammt — steuert, was „Verwerfen" bedeutet (#663).
+ *
+ * - `bootstrap`:    Merge-Konflikt aus dem Cloud-Pull. Verwerfen loescht den
+ *                   lokalen Datensatz (mit Rueckfrage im Admin-Panel).
+ * - `push-write`:   abgelehnte `create`-/`patch`-Op. Verwerfen loescht ebenfalls
+ *                   lokal (mit Rueckfrage).
+ * - `push-remove`:  abgelehnte `remove`-Op. Verwerfen laesst nur den
+ *                   Loesch-Auftrag fallen; der Datensatz bleibt. Ein `remove` hier
+ *                   haette keinen Sinn: Gemeint ist „nicht loeschen", und der
+ *                   Datensatz, den es noch gibt, ist meist ein neu geholter mit
+ *                   derselben ID.
+ */
+export const SyncConflictOrigin = {
+  BOOTSTRAP: 'bootstrap',
+  PUSH_WRITE: 'push-write',
+  PUSH_REMOVE: 'push-remove',
+} as const
+
+export type SyncConflictOrigin = (typeof SyncConflictOrigin)[keyof typeof SyncConflictOrigin]
+
+const PUSH_REASONS: ReadonlySet<string> = new Set([
+  SyncConflictReason.PUSH_REJECTED,
+  SyncConflictReason.PUSH_FORBIDDEN,
+  SyncConflictReason.PUSH_CONCURRENT_WRITE,
+])
+
+/**
+ * Leitet den Ursprung aus dem gespeicherten Konflikt ab, ohne eigene Spalte.
+ *
+ * Der Outbox-Recorder schreibt fuer `remove` als einzige Op `payload: null`
+ * (`sync-outbox-recorder.hook.ts`), `create`/`patch` tragen immer den vollen
+ * Record. `escalateToConflict` uebernimmt den Payload als `edgePayload`. Ein
+ * Push-Konflikt ohne `edgePayload` stammt damit aus einer Loesch-Op — auch bei
+ * Bestands-Konflikten, die vor #663 angelegt wurden. Eine Spalte am Konflikt
+ * haette genau die nicht erfasst.
+ *
+ * `'null'` als String deckt den Lesepfad ohne JSON-Hooks ab (text-Spalte, #293).
+ */
+export const syncConflictOrigin = (conflict: { reason: string; edgePayload?: unknown }): SyncConflictOrigin => {
+  if (!PUSH_REASONS.has(conflict.reason)) return SyncConflictOrigin.BOOTSTRAP
+  const payload = conflict.edgePayload
+  const empty = payload === null || payload === undefined || payload === '' || payload === 'null'
+  return empty ? SyncConflictOrigin.PUSH_REMOVE : SyncConflictOrigin.PUSH_WRITE
+}
+
 export const syncConflictSchema = Type.Object(
   {
     _id: Type.String({ format: 'uuid' }),
@@ -54,6 +100,9 @@ export const syncConflictSchema = Type.Object(
     resolution: Type.Optional(StringEnum(Object.values(SyncConflictResolution))),
     resolvedByUserId: Type.Optional(Type.String({ format: 'uuid' })),
     resolvedAt: Type.Optional(Type.String({ format: 'date-time' })),
+    // Virtuell, nicht gespeichert: setzt der Result-Resolver des Edge-Service aus
+    // `syncConflictOrigin()`, damit das Admin-Panel die Ableitung nicht nachbaut.
+    origin: Type.Optional(StringEnum(Object.values(SyncConflictOrigin))),
     createdAt: Type.String({ format: 'date-time' }),
     updatedAt: Type.String({ format: 'date-time' }),
   },
@@ -68,7 +117,8 @@ export type SyncConflict = Static<typeof syncConflictSchema>
 // (BadRequest), siehe fiscal-counters-Regression 2026-07-03. `_id`/`status`
 // bleiben Pflicht: beide Sync-Worker (Push-Eskalation + Bootstrap-Merge) geben
 // sie explizit mit.
-export const syncConflictDataSchema = Type.Omit(syncConflictSchema, ['createdAt', 'updatedAt'], {
+// `origin` ist virtuell (keine Spalte) und darf deshalb nie in einen Insert.
+export const syncConflictDataSchema = Type.Omit(syncConflictSchema, ['createdAt', 'updatedAt', 'origin'], {
   $id: 'SyncConflictData',
 })
 export type SyncConflictData = Static<typeof syncConflictDataSchema>

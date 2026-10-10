@@ -4,7 +4,13 @@ import { Ajv, addFormats } from '@feathersjs/schema'
 import type { FormatsPluginOptions } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 
-import { SyncConflictResolution, syncConflictPatchSchema } from './sync-conflict.schema'
+import {
+  SyncConflictOrigin,
+  SyncConflictReason,
+  SyncConflictResolution,
+  syncConflictOrigin,
+  syncConflictPatchSchema,
+} from './sync-conflict.schema'
 
 // Regression-Anker fuer die Konflikt-Aufloesung im Admin-Panel (#183).
 //
@@ -52,5 +58,40 @@ describe('syncConflictPatchSchema', () => {
       validator({ resolution: SyncConflictResolution.USE_EDGE, resolvedByUserId: 'user-1' }),
     ).rejects.toThrow()
     await expect(validator({ resolution: SyncConflictResolution.USE_EDGE, edgePayload: {} })).rejects.toThrow()
+  })
+})
+
+// Der Ursprung entscheidet, ob „Verwerfen" einen lokalen Datensatz loescht
+// (#663). Am Kunden-Edge loeschte Verwerfen bei elf Konflikten aus abgelehnten
+// Loesch-Ops zehn neu geholte Benutzer — die Ableitung muss die Loesch-Op also
+// sicher erkennen, auch an Bestands-Konflikten.
+describe('syncConflictOrigin', () => {
+  it('erkennt eine abgelehnte Loesch-Op am fehlenden edgePayload', () => {
+    expect(syncConflictOrigin({ reason: SyncConflictReason.PUSH_REJECTED, edgePayload: null })).toBe(
+      SyncConflictOrigin.PUSH_REMOVE,
+    )
+    expect(syncConflictOrigin({ reason: SyncConflictReason.PUSH_FORBIDDEN })).toBe(SyncConflictOrigin.PUSH_REMOVE)
+  })
+
+  it('erkennt sie auch am JSON-String aus der text-Spalte', () => {
+    expect(syncConflictOrigin({ reason: SyncConflictReason.PUSH_CONCURRENT_WRITE, edgePayload: 'null' })).toBe(
+      SyncConflictOrigin.PUSH_REMOVE,
+    )
+  })
+
+  it('wertet einen Push-Konflikt mit Payload als create/patch', () => {
+    expect(syncConflictOrigin({ reason: SyncConflictReason.PUSH_REJECTED, edgePayload: { _id: 'x' } })).toBe(
+      SyncConflictOrigin.PUSH_WRITE,
+    )
+  })
+
+  it('wertet Bootstrap-Konflikte unabhaengig vom Payload als Bootstrap', () => {
+    for (const reason of [
+      SyncConflictReason.EXTERNAL_ID_MISMATCH,
+      SyncConflictReason.EXTERNAL_ID_MISSING,
+      SyncConflictReason.AMBIGUOUS_NAME_MATCH,
+    ]) {
+      expect(syncConflictOrigin({ reason, edgePayload: null })).toBe(SyncConflictOrigin.BOOTSTRAP)
+    }
   })
 })

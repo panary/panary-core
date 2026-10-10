@@ -9,6 +9,7 @@ import {
   syncConflictPatchSchema,
   syncConflictQuerySchema,
   SyncConflictStatus,
+  syncConflictOrigin,
   type SyncConflictQuery,
 } from '@panary/sync/domain'
 
@@ -20,7 +21,12 @@ export const syncConflictDataValidator = getValidator(syncConflictDataSchema, da
 export const syncConflictPatchValidator = getValidator(syncConflictPatchSchema, dataValidator)
 export const syncConflictQueryValidator = getValidator(syncConflictQuerySchema, queryValidator)
 
-export const syncConflictResolver = resolve<SyncConflict, HookContext>({})
+// `origin` ist virtuell (#663): Das Admin-Panel waehlt danach Beschriftung und
+// Rueckfrage von „Verwerfen". Abgeleitet am Server, damit Panel und
+// `applyConflictResolution` dieselbe Quelle haben.
+export const syncConflictResolver = resolve<SyncConflict, HookContext>({
+  origin: async (_value, row) => syncConflictOrigin(row),
+})
 export const syncConflictExternalResolver = resolve<SyncConflict, HookContext>({})
 
 export const syncConflictDataResolver = resolve<SyncConflict, HookContext>({

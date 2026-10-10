@@ -154,7 +154,11 @@ describe('sync-conflicts service — Aufloesung wird tatsaechlich angewandt (#29
       .service('sync-outbox')
       .patch(
         id,
-        { status: SyncOutboxStatus.REJECTED, terminalAt: new Date().toISOString(), linkedConflictId: conflictId } as never,
+        {
+          status: SyncOutboxStatus.REJECTED,
+          terminalAt: new Date().toISOString(),
+          linkedConflictId: conflictId,
+        } as never,
         { provider: undefined },
       )
     return id
@@ -346,5 +350,48 @@ describe('sync-conflicts service — Aufloesung wird tatsaechlich angewandt (#29
       'die Online-Datenbank erfaehrt von der lokalen Loeschung nichts',
     )
     assert.ok(!outbox.some(e => e._id === opId), 'die abgelehnte Patch-Op ist mit dem Konflikt erledigt')
+  })
+
+  it('„Verwerfen" eines Bootstrap-Konflikts loescht lokal, ohne Loesch-Auftrag', async () => {
+    const edge = await seedWorkingTime()
+    const conflictId = await seedConflict(edge, null, { reason: SyncConflictReason.EXTERNAL_ID_MISMATCH })
+    assert.strictEqual((await readConflict(conflictId)).origin, SyncConflictOrigin.BOOTSTRAP)
+
+    await resolve(conflictId, SyncConflictResolution.DISCARD)
+
+    await assert.rejects(app.service('working-times').get(edge._id, { provider: undefined }))
+    const outbox = await outboxFor(edge._id)
+    assert.deepStrictEqual(
+      outbox.filter(e => e.op === SyncOp.REMOVE).map(e => e._id),
+      [],
+    )
+  })
+
+  it('„Verwerfen" entfernt nur die Outbox-Op DIESES Konflikts', async () => {
+    const edge = await seedWorkingTime()
+    const conflictId = await seedConflict(edge, null, {
+      reason: SyncConflictReason.PUSH_REJECTED,
+      edgePayload: null,
+    })
+    const ownOp = await seedRejectedOp(edge, SyncOp.REMOVE, conflictId)
+    // Abgelehnte Op desselben Datensatzes, aber zu einem anderen Konflikt.
+    const otherConflictId = await seedConflict(edge, cloudVariant(edge), { reason: SyncConflictReason.PUSH_REJECTED })
+    const foreignOp = await seedRejectedOp(edge, SyncOp.PATCH, otherConflictId)
+
+    await resolve(conflictId, SyncConflictResolution.DISCARD)
+
+    const ids = (await outboxFor(edge._id)).map(e => e._id)
+    assert.ok(!ids.includes(ownOp))
+    assert.ok(ids.includes(foreignOp), 'die Op des anderen Konflikts bleibt stehen')
+  })
+
+  it('„Verwerfen" bei schon geloeschtem Datensatz schliesst den Konflikt trotzdem', async () => {
+    const edge = await seedWorkingTime()
+    const conflictId = await seedConflict(edge, cloudVariant(edge), { reason: SyncConflictReason.PUSH_REJECTED })
+    await app.service('working-times').remove(edge._id, { provider: undefined, skipSyncOutbox: true } as never)
+
+    await resolve(conflictId, SyncConflictResolution.DISCARD)
+
+    assert.strictEqual((await readConflict(conflictId)).status, SyncConflictStatus.RESOLVED)
   })
 })

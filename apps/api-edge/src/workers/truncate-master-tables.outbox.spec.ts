@@ -33,7 +33,7 @@ interface Row {
 class RowService {
   constructor(
     private rows: Row[],
-    private readonly allowsBulkRemove: boolean,
+    private readonly allowsBulkRemove = false,
   ) {}
 
   async find(params: { query?: { tenantId?: string } }) {
@@ -83,11 +83,14 @@ class OutboxService {
 const makeApp = (outboxEntries: OutboxEntry[] = []) => {
   const app = feathers()
   const outbox = new OutboxService(outboxEntries)
-  app.use('users' as never, new RowService([
-    { _id: 'user-1', tenantId: TENANT },
-    { _id: 'user-2', tenantId: TENANT },
-    { _id: 'user-3', tenantId: TENANT },
-  ]) as never)
+  app.use(
+    'users' as never,
+    new RowService([
+      { _id: 'user-1', tenantId: TENANT },
+      { _id: 'user-2', tenantId: TENANT },
+      { _id: 'user-3', tenantId: TENANT },
+    ]) as never,
+  )
   app.use('products' as never, new RowService([{ _id: 'product-1', tenantId: TENANT }], true) as never)
   app.use('sync-outbox' as never, outbox as never)
   // Verdrahtung wie in `app.ts`: Recorder nach dem Service-Aufruf.

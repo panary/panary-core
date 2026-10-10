@@ -626,12 +626,10 @@ const runMergeByExternalId = async (
         // auch fuer kuenftige Eintraege fest.
         try {
           await app.service(service as any).remove(edge._id, { provider: undefined, skipSyncOutbox: true } as any)
-          await app
-            .service(service as any)
-            .create({ ...cloudRecord, tenantId: connection.tenantId! }, {
-              provider: undefined,
-              skipSyncOutbox: true,
-            } as any)
+          await app.service(service as any).create({ ...cloudRecord, tenantId: connection.tenantId! }, {
+            provider: undefined,
+            skipSyncOutbox: true,
+          } as any)
         } catch (err) {
           logger.warn({
             message: 'Merge-Restamping fehlgeschlagen',

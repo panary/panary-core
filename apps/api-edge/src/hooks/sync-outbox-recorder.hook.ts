@@ -47,6 +47,16 @@ export const recordSyncOutbox = async (context: HookContext, _next: NextHook) =>
   // (der Cloud-Receiver wendet create/patch als bedingungslosen Upsert an).
   if ((context.params as { fromSync?: boolean } | undefined)?.fromSync) return context
 
+  // Bootstrap-interne Umbauten (Truncate vor `pull-cloud-to-edge`,
+  // Merge-Restamping) sind keine Edge-Aenderung, die die Cloud erfahren darf:
+  // Der Truncate schrieb fuer jeden Bestands-User ein REMOVE in die Outbox, und
+  // nur ein Cloud-Fehler (panary/panary-cloud#1112) verhinderte, dass der
+  // Bootstrap „Cloud → Edge“ alle Benutzer in der Cloud loeschte (#660).
+  // Eigener Marker statt `fromSync`: der schaltet in den Create-/Patch-
+  // Resolvern (z. B. users, business-days) auf Uebernahme der Rohwerte um —
+  // fuer das Restamping-`create` waere das eine zweite, ungewollte Wirkung.
+  if ((context.params as { skipSyncOutbox?: boolean } | undefined)?.skipSyncOutbox) return context
+
   const result = context.result as { _id?: string; role?: string } | undefined
   const entityId = (op === SyncOp.REMOVE ? context.id : result?._id) as string | undefined
   if (!entityId) return context

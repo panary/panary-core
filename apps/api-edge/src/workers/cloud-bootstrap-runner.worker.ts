@@ -619,12 +619,17 @@ const runMergeByExternalId = async (
       }
       const cloudRecord = match.record as any
       if (cloudRecord._id !== edge._id) {
-        // ID-Restamping: Edge-Record-ID auf Cloud-ID umstellen.
+        // ID-Restamping: Edge-Record-ID auf Cloud-ID umstellen. Ohne
+        // `skipSyncOutbox` wuerde ein Transaktions-Pfad hier REMOVE (alte
+        // Edge-ID) + CREATE (Echo des Cloud-Records) in die Outbox schreiben
+        // (#660); die heutige Allowlist enthaelt keinen, der Marker haelt das
+        // auch fuer kuenftige Eintraege fest.
         try {
-          await app.service(service as any).remove(edge._id, { provider: undefined } as any)
-          await app
-            .service(service as any)
-            .create({ ...cloudRecord, tenantId: connection.tenantId! }, { provider: undefined } as any)
+          await app.service(service as any).remove(edge._id, { provider: undefined, skipSyncOutbox: true } as any)
+          await app.service(service as any).create({ ...cloudRecord, tenantId: connection.tenantId! }, {
+            provider: undefined,
+            skipSyncOutbox: true,
+          } as any)
         } catch (err) {
           logger.warn({
             message: 'Merge-Restamping fehlgeschlagen',

@@ -122,6 +122,25 @@ describe('recordSyncOutbox', () => {
     expect(outboxCreate).not.toHaveBeenCalled()
   })
 
+  it.each(['remove', 'create'])(
+    'überspringt Bootstrap-interne Umbauten (params.skipSyncOutbox) — %s',
+    async method => {
+      // Truncate vor `pull-cloud-to-edge` und Merge-Restamping (#660): ohne den
+      // Marker schrieb der Truncate je Bestands-User ein REMOVE in die Outbox.
+      const { ctx, outboxCreate } = makeContext({
+        path: 'users',
+        method,
+        id: 'u-bootstrap',
+        result: { _id: 'u-bootstrap', role: 'tenant:staff' },
+        params: { skipSyncOutbox: true },
+      })
+
+      await recordSyncOutbox(ctx as any, noopNext)
+
+      expect(outboxCreate).not.toHaveBeenCalled()
+    },
+  )
+
   it('überspringt das ANLEGEN von Users mit sync-blockierter Rolle (Defense-in-Depth, echte Domain-Funktion)', async () => {
     const { ctx, outboxCreate } = makeContext({
       path: 'users',

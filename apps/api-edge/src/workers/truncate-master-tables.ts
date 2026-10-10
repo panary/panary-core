@@ -34,6 +34,11 @@ const collectAllIds = async (app: Application, service: string, tenantId: string
  * Die Verifikation nach jedem Service ist der eigentliche Schutz — sie faengt
  * auch Loeschungen ab, die ein Service-Hook still verweigert.
  *
+ * `skipSyncOutbox`: Ohne den Marker nahm `recordSyncOutbox` jede Loeschung
+ * eines Transaktions-Pfads (`users`) als REMOVE in die Outbox auf — der
+ * Bootstrap „Cloud → Edge“ haette damit die Bestands-User in der Cloud
+ * geloescht, also genau die Daten, die er uebernehmen soll (#660).
+ *
  * Eigenes Modul statt Inline im Runner, damit es ohne dessen Service-Kette
  * (Validatoren, Report-Helper) testbar bleibt — analog `sync-allowlist.ts`.
  */
@@ -44,12 +49,14 @@ export const truncateMasterTables = async (
 ): Promise<void> => {
   for (const service of services) {
     try {
-      await app.service(service as any).remove(null as any, { provider: undefined, query: { tenantId } } as any)
+      await app
+        .service(service as any)
+        .remove(null as any, { provider: undefined, skipSyncOutbox: true, query: { tenantId } } as any)
     } catch {
       // Erwartet bei `multi: []` — der Einzel-Remove ist der Regelpfad, kein Notfall.
       const ids = await collectAllIds(app, service, tenantId)
       for (const id of ids) {
-        await app.service(service as any).remove(id, { provider: undefined } as any)
+        await app.service(service as any).remove(id, { provider: undefined, skipSyncOutbox: true } as any)
       }
     }
 

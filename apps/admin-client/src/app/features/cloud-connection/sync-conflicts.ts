@@ -5,6 +5,9 @@ import { SyncProblemCountService } from '../../core/sync-problem-count.service'
 
 type SyncConflictStatus = 'open' | 'resolved'
 type SyncConflictResolution = 'use-cloud' | 'use-edge' | 'discard'
+// Virtuelles Feld des Edge-Resolvers (`syncConflictOrigin`, #663). Fehlt es (aelterer
+// Edge), gilt der Konflikt als loeschend: lieber eine Rueckfrage zu viel.
+type SyncConflictOrigin = 'bootstrap' | 'push-write' | 'push-remove'
 
 interface SyncConflictRow {
   _id: string
@@ -22,6 +25,7 @@ interface SyncConflictRow {
   cloudPayload?: Record<string, unknown>
   status: SyncConflictStatus
   resolution?: SyncConflictResolution
+  origin?: SyncConflictOrigin
   createdAt: string
 }
 
@@ -356,7 +360,11 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                   <div class="grid grid-cols-2 gap-3">
                     <div class="bg-slate-50 dark:bg-gray-900/40 rounded-lg p-3">
                       <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Dieser Standort</p>
-                      @if (row.edgePayload) {
+                      @if (isRemoveConflict(row)) {
+                        <p class="text-xs text-slate-600 dark:text-gray-300">
+                          Löschung des Datensatzes — von der Online-Datenbank abgelehnt.
+                        </p>
+                      } @else if (row.edgePayload) {
                         <pre
                           class="text-[11px] font-mono text-slate-700 dark:text-gray-200 whitespace-pre-wrap break-all"
                           >{{ shortJson(row.edgePayload) }}</pre>
@@ -393,13 +401,25 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                     >
                       Diesen Standort behalten
                     </button>
-                    <button
-                      (click)="resolveConflict(row, 'discard')"
-                      [disabled]="rowBusy() === row._id"
-                      class="text-red-500 text-xs px-3 py-1.5 hover:underline disabled:opacity-50"
-                    >
-                      Verwerfen
-                    </button>
+                    @if (isRemoveConflict(row)) {
+                      <button
+                        (click)="resolveConflict(row, 'discard')"
+                        [disabled]="rowBusy() === row._id"
+                        title="Der Lösch-Auftrag wird verworfen. Der Datensatz bleibt an diesem Standort erhalten und wird nicht gelöscht."
+                        class="text-slate-600 dark:text-gray-300 text-xs px-3 py-1.5 hover:underline disabled:opacity-50"
+                      >
+                        Lösch-Auftrag verwerfen
+                      </button>
+                    } @else {
+                      <button
+                        (click)="resolveConflict(row, 'discard')"
+                        [disabled]="rowBusy() === row._id"
+                        title="Löscht den Datensatz an diesem Standort. Die Online-Datenbank bleibt unverändert."
+                        class="text-red-500 text-xs px-3 py-1.5 hover:underline disabled:opacity-50"
+                      >
+                        Verwerfen und hier löschen
+                      </button>
+                    }
                     @if (rowBusy() === row._id) {
                       <span class="text-xs text-slate-500">verarbeite …</span>
                     }
@@ -736,7 +756,22 @@ export class SyncConflictsComponent implements OnInit {
     }
   }
 
+  /** Konflikt aus einer abgelehnten Loesch-Op: Verwerfen loescht nichts (#663). */
+  protected isRemoveConflict(row: SyncConflictRow): boolean {
+    return row.origin === 'push-remove'
+  }
+
   async resolveConflict(row: SyncConflictRow, resolution: SyncConflictResolution) {
+    // Bis #663 loeschte „Verwerfen" ohne Rueckfrage und ohne Hinweis den lokalen
+    // Datensatz. Wo das weiterhin die Wirkung ist, sagt es die Rueckfrage vorher.
+    if (
+      resolution === 'discard' &&
+      !this.isRemoveConflict(row) &&
+      !confirm(
+        `Datensatz an diesem Standort löschen?\n\nDieser ${labelForService(row.service)}-Datensatz wird an diesem Standort gelöscht. Die Online-Datenbank bleibt unverändert; ihr Stand kommt erst mit der nächsten Änderung dort wieder hierher. Diese Aktion kann nicht rückgängig gemacht werden.`,
+      )
+    )
+      return
     this.rowBusy.set(row._id)
     try {
       await this.api.patch('sync-conflicts', row._id, { resolution } as Record<string, unknown>)

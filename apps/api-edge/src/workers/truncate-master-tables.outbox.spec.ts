@@ -53,18 +53,36 @@ class RowService {
   }
 }
 
-class OutboxService {
-  readonly entries: Array<{ service: string; op: string; entityId: string }> = []
+interface OutboxEntry {
+  _id?: string
+  service: string
+  op: string
+  entityId: string
+  status?: string
+  lastError?: string
+}
 
-  async create(data: { service: string; op: string; entityId: string }) {
+class OutboxService {
+  constructor(readonly entries: OutboxEntry[] = []) {}
+
+  async create(data: OutboxEntry) {
     this.entries.push(data)
     return data
   }
+
+  // Nachbau des Adapter-Bulk-Patch fuer die Query, die der Truncate stellt.
+  async patch(id: null, data: Partial<OutboxEntry>, params: { query: { service: string; status: { $in: string[] } } }) {
+    const hits = this.entries.filter(
+      entry => entry.service === params.query.service && params.query.status.$in.includes(entry.status ?? ''),
+    )
+    for (const entry of hits) Object.assign(entry, data)
+    return hits
+  }
 }
 
-const makeApp = () => {
+const makeApp = (outboxEntries: OutboxEntry[] = []) => {
   const app = feathers()
-  const outbox = new OutboxService()
+  const outbox = new OutboxService(outboxEntries)
   app.use('users' as never, new RowService([
     { _id: 'user-1', tenantId: TENANT },
     { _id: 'user-2', tenantId: TENANT },
@@ -92,6 +110,30 @@ describe('truncateMasterTables — Sync-Outbox (#660)', () => {
 
     expect(await app.service('users' as never).find({ query: { tenantId: TENANT } } as never)).toEqual([])
     expect(outbox.entries).toEqual([])
+  })
+
+  it('verwirft offene Alt-Auftraege der geleerten Services, laesst erledigte und fremde stehen', async () => {
+    // Ein lokal angelegter, noch nicht gepushter Kassierer: Ohne das Verwerfen
+    // ginge sein CREATE nach dem Bootstrap in die Cloud, obwohl der Operator ihn
+    // mit `confirmDataLoss` aufgegeben hat. Frueher verdraengte ihn das REMOVE
+    // des Truncate per Coalescing.
+    const { app, outbox } = makeApp([
+      { _id: 'o-1', service: 'users', op: 'create', entityId: 'user-1', status: 'pending' },
+      { _id: 'o-2', service: 'users', op: 'patch', entityId: 'user-2', status: 'rejected' },
+      { _id: 'o-3', service: 'users', op: 'patch', entityId: 'user-3', status: 'in-flight' },
+      { _id: 'o-4', service: 'users', op: 'patch', entityId: 'user-3', status: 'acked' },
+      { _id: 'o-5', service: 'orders', op: 'create', entityId: 'order-1', status: 'pending' },
+    ])
+
+    await truncateMasterTables(app as never, TENANT, ['users', 'products'])
+
+    expect(outbox.entries.map(entry => [entry._id, entry.status])).toEqual([
+      ['o-1', 'superseded'],
+      ['o-2', 'superseded'],
+      ['o-3', 'superseded'],
+      ['o-4', 'acked'],
+      ['o-5', 'pending'],
+    ])
   })
 
   it('Gegenprobe: ein normales internes users.remove landet weiterhin in der Outbox', async () => {

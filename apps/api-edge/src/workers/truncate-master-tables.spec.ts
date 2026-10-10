@@ -56,6 +56,8 @@ function makeApp(behaviours: Record<string, ServiceBehaviour> = {}) {
 
   const app = {
     service: (path: string) => {
+      // Offene Outbox-Auftraege prueft truncate-master-tables.outbox.spec.ts.
+      if (path === 'sync-outbox') return { patch: async () => [] }
       const behaviour = behaviours[path] ?? {}
       return {
         find: async () => (state.get(path) ?? []).map(_id => ({ _id })),

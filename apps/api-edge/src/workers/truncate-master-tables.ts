@@ -1,4 +1,5 @@
 import { logger } from '@panary/shared-backend'
+import { SyncOutboxStatus } from '@panary/sync/domain'
 
 import type { Application } from '../declarations'
 
@@ -10,6 +11,38 @@ const collectAllIds = async (app: Application, service: string, tenantId: string
   } as any)
   const list = Array.isArray(result) ? result : []
   return list.map(row => (row as { _id: string })._id)
+}
+
+// Nicht-terminale Outbox-Eintraege — alles, was noch gepusht werden koennte
+// (`rejected` per Operator-`reEnqueue`).
+const OPEN_OUTBOX_STATUSES = [SyncOutboxStatus.PENDING, SyncOutboxStatus.IN_FLIGHT, SyncOutboxStatus.REJECTED]
+
+/**
+ * Verwirft die offenen Outbox-Auftraege eines geleerten Service. Sie beschreiben
+ * Edge-Staende, die der Operator mit `confirmDataLoss` aufgegeben hat. Bisher
+ * verdraengte das REMOVE des Truncate sie per Coalescing — seit es entfaellt
+ * (#660), wuerden sie nach dem Bootstrap gepusht und den gerade uebernommenen
+ * Cloud-Stand per bedingungslosem Upsert ueberschreiben.
+ */
+const supersedeOpenOutboxEntries = async (app: Application, service: string): Promise<void> => {
+  const result = await app.service('sync-outbox' as any).patch(
+    null as any,
+    {
+      status: SyncOutboxStatus.SUPERSEDED,
+      terminalAt: new Date().toISOString(),
+      lastError: 'Verworfen: Bootstrap pull-cloud-to-edge hat die Edge-Daten dieses Service ersetzt',
+    },
+    { provider: undefined, query: { service, status: { $in: OPEN_OUTBOX_STATUSES } } } as any,
+  )
+  const count = Array.isArray(result) ? result.length : 0
+  if (count > 0) {
+    logger.info({
+      message: `TRUNCATE: ${count} offene Outbox-Auftraege verworfen`,
+      event: 'sync.bootstrap.outbox_superseded',
+      service,
+      count,
+    })
+  }
 }
 
 /**
@@ -74,5 +107,7 @@ export const truncateMasterTables = async (
           `damit kein gemischter Datenbestand als "erfolgreich" gilt. Das DB-Backup vor dem Bootstrap ist unberuehrt.`,
       )
     }
+
+    await supersedeOpenOutboxEntries(app, service)
   }
 }

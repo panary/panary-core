@@ -30,6 +30,7 @@ export type AuditResourceMethod =
   | 'startBreak'
   | 'endBreak'
   | 'changePin'
+  | 'reloadUsers'
 
 const r = (
   action: AuditActionType,
@@ -86,6 +87,11 @@ export const AUDIT_RESOURCE_MAP: Readonly<Record<string, Partial<Record<AuditRes
     },
     'write-offs': {
       create: r(AuditAction.WRITE_OFF, AuditCategory.CASH, AuditSeverity.NOTICE),
+    },
+    // Reparaturweg „Benutzer neu laden" (panary/panary-core#666): Voll-Pull samt
+    // Sichtbarkeits-Abgleich, der lokal Benutzer archivieren kann. Deshalb WARNING.
+    'cloud-connection': {
+      reloadUsers: r(AuditAction.CONFIG_CHANGE, AuditCategory.CONFIGURATION, AuditSeverity.WARNING),
     },
   }
 

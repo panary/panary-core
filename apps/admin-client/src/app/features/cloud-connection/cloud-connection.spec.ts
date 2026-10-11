@@ -2,7 +2,7 @@ import { ChangeDetectorRef, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { ActivatedRoute, Router } from '@angular/router'
 import { ConnectionService } from '@panary/shared/data-access'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiService } from '../../core/api.service'
 import { CloudConnectionComponent } from './cloud-connection'
@@ -139,5 +139,37 @@ describe('CloudConnectionComponent — Zeitplan', () => {
     expect(component.syncMode).toBe('auto')
     expect(component.syncScheduleTimes).toEqual(['03:00'])
     expect(component.errors().length).toBeGreaterThan(0)
+  })
+})
+
+// #666: „Benutzer neu laden" archiviert ueber den Sichtbarkeits-Abgleich womoeglich
+// Benutzer — ohne Bestaetigung darf die Methode nicht aufgerufen werden.
+describe('CloudConnectionComponent — Benutzer neu laden', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('ruft reloadUsers erst nach Bestaetigung auf und zeigt das Ergebnis', async () => {
+    const confirmSpy = vi.fn().mockReturnValue(true)
+    vi.stubGlobal('confirm', confirmSpy)
+    const { component, api } = setup()
+    api.customMethod.mockResolvedValue({ _id: 'conn-1', pushed: 0, pulled: 7, durationMs: 12 })
+
+    await component.onReloadUsers()
+
+    expect(String(confirmSpy.mock.calls[0][0])).toContain('archiviert')
+    expect(api.customMethod).toHaveBeenCalledWith('cloud-connection', 'reloadUsers', { cloudConnectionId: 'conn-1' })
+    expect(component.lastReloadUsersResult()).toEqual({ _id: 'conn-1', pushed: 0, pulled: 7, durationMs: 12 })
+    expect(component.reloadingUsers()).toBe(false)
+  })
+
+  it('bricht bei Nein ab, ohne die Methode aufzurufen', async () => {
+    vi.stubGlobal('confirm', vi.fn().mockReturnValue(false))
+    const { component, api } = setup()
+
+    await component.onReloadUsers()
+
+    expect(api.customMethod).not.toHaveBeenCalled()
+    expect(component.lastReloadUsersResult()).toBeNull()
   })
 })

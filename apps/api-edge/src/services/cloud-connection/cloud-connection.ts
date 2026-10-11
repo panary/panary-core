@@ -48,7 +48,14 @@ import {
   type EdgePairingResponse,
   type MasterDataInventory,
 } from '@panary/edge-pairing/domain'
+import { SyncRunTrigger } from '@panary/sync/domain'
 import type { CloudConnection } from './cloud-connection.class'
+
+/** Ergebnis von `reloadUsers`: das Sync-Ergebnis plus die Verbindung als Entity fuer den Audit-Eintrag. */
+export type CloudConnectionReloadUsersResult = CloudConnectionSyncNowResult & { _id: string }
+
+// Schluessel, unter dem `upsertCursor` im Sync-Scheduler den Pull-Stand fuer `users` fuehrt.
+const USERS_PULL_CURSOR_ID = 'cloud:users'
 
 export const cloudConnectionPath = 'cloud-connection'
 export const cloudConnectionMethods = [
@@ -61,6 +68,7 @@ export const cloudConnectionMethods = [
   'startBootstrap',
   'syncNow',
   'setEmergencyOverride',
+  'reloadUsers',
 ] as const
 
 export * from './cloud-connection.schema'
@@ -271,10 +279,14 @@ const triggerBootstrapWorker = async (app: Application, cloudConnectionId: strin
   }
 }
 
-const triggerSyncNow = async (app: Application, cloudConnectionId: string): Promise<CloudConnectionSyncNowResult> => {
+const triggerSyncNow = async (
+  app: Application,
+  cloudConnectionId: string,
+  triggeredBy?: SyncRunTrigger,
+): Promise<CloudConnectionSyncNowResult> => {
   const mod = await import('../../workers/cloud-sync-scheduler.worker.js').catch(() => null)
   if (mod && typeof (mod as any).runSyncOnce === 'function') {
-    return (mod as any).runSyncOnce(app, cloudConnectionId)
+    return (mod as any).runSyncOnce(app, cloudConnectionId, triggeredBy)
   }
   return { pushed: 0, pulled: 0, durationMs: 0, lastError: 'Sync-Scheduler nicht aktiv.' }
 }
@@ -326,6 +338,7 @@ export const cloudConnection = (app: Application) => {
     preflight: (data: CloudConnectionPreflightData, params?: any) => Promise<CloudConnectionPreflightResult>
     startBootstrap: (data: CloudConnectionStartBootstrapData, params?: any) => Promise<CloudConnection>
     syncNow: (data: { cloudConnectionId: string }, params?: any) => Promise<CloudConnectionSyncNowResult>
+    reloadUsers: (data: { cloudConnectionId: string }, params?: any) => Promise<CloudConnectionReloadUsersResult>
     setEmergencyOverride: (
       data: CloudConnectionSetEmergencyOverrideData,
       params?: any,
@@ -582,6 +595,51 @@ export const cloudConnection = (app: Application) => {
       lastManualSyncAt: new Date().toISOString(),
     } as any)
     return result
+  }
+
+  // Custom-Method: reloadUsers (panary/panary-core#666)
+  //
+  // Reparaturweg „Benutzer vollstaendig neu aus der Cloud laden". Lokal
+  // geloeschte Benutzer kamen vorher nicht zurueck: Der Pull ist inkrementell
+  // (`updatedAt > lastPullAt`), ein in der Cloud unveraenderter Benutzer wird nie
+  // wieder geliefert, und `DELETE /sync-cursor/cloud:users` ist fuer den Inhaber
+  // gesperrt (sync-cursor hat bewusst keine Tenant-Rechte).
+  //
+  // Die Methode setzt nur diesen einen Cursor zurueck und laesst dann den
+  // regulaeren Sync laufen. Der laeuft Push vor Pull: Ausstehende lokale
+  // Benutzer-Aenderungen (z. B. ein PIN-Wechsel) gehen also zuerst hoch, bevor der
+  // Voll-Pull den Cloud-Stand bedingungslos anwendet. Der Initial-Pull bringt den
+  // Sichtbarkeits-Snapshot mit; `reconcileStaleUsers` archiviert danach, was die
+  // Cloud fuer diesen Edge nicht mehr fuehrt. Das ist dieselbe Wirkung wie beim
+  // Erst-Sync und gewollt.
+  //
+  // Scheitert der Sync (offline, Rate-Limit), bleibt der Cursor geloescht: Der
+  // naechste regulaere Tick holt den Voll-Pull nach. `lastError` sagt das dem
+  // Panel.
+  baseService.reloadUsers = async data => {
+    const id = data?.cloudConnectionId
+    if (!id) throw new BadRequest('cloudConnectionId fehlt.')
+    const connection = await baseService._get(id)
+    if (connection.pairingStatus !== PairingStatus.CONNECTED) {
+      throw new BadRequest('Edge ist nicht verbunden — Benutzer koennen nicht neu geladen werden.')
+    }
+    try {
+      await (app.service('sync-cursor') as any).remove(USERS_PULL_CURSOR_ID, { provider: undefined })
+    } catch (err) {
+      // Kein Cursor heisst: Der naechste Pull ist ohnehin ein Voll-Pull.
+      if ((err as { code?: number } | undefined)?.code !== 404) throw err
+    }
+    const result = await triggerSyncNow(app, id, SyncRunTrigger.MANUAL)
+    logger.info({
+      message: 'Benutzer werden neu aus der Cloud geladen',
+      event: 'sync.users.reload_requested',
+      cloudConnectionId: id,
+      pulled: result.pulled,
+      lastError: result.lastError,
+    })
+    // `_id` traegt die Verbindung: `recordAuditEvent` braucht eine Entity-ID, und
+    // eine Custom-Method ohne `id` hat sonst keine.
+    return { _id: id, ...result }
   }
 
   // Custom-Method: setEmergencyOverride (ADR 0001, Kontroll-Switch im Edge-Admin)

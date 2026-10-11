@@ -289,4 +289,20 @@ describe('authorize() — Edge-Custom-Method-Tabelle (Rolle × Methode)', () => 
       await expectForbidden({ path: 'cloud-connection', method, user: devicePos })
     }
   })
+
+  // #666: Owner und Technician kaemen ueber MANAGE auch ohne Mapping durch. Das
+  // Mapping auf UPDATE ist erst an einem Grant sichtbar: ungemappt fiele die
+  // Methode auf ihren Namen als Action zurueck und `grant:…:update` griffe nicht.
+  it('cloud-connection.reloadUsers (UPDATE): Owner/Technician ja, Manager/Staff/POS nein, Grant update ja', async () => {
+    await expectAllowed({ path: 'cloud-connection', method: 'reloadUsers', user: owner })
+    await expectAllowed({ path: 'cloud-connection', method: 'reloadUsers', user: technician })
+    await expectForbidden({ path: 'cloud-connection', method: 'reloadUsers', user: manager })
+    await expectForbidden({ path: 'cloud-connection', method: 'reloadUsers', user: staff })
+    await expectForbidden({ path: 'cloud-connection', method: 'reloadUsers', user: devicePos })
+    await expectAllowed({
+      path: 'cloud-connection',
+      method: 'reloadUsers',
+      user: { ...staff, permissions: ['grant:cloud-connection:update'] },
+    })
+  })
 })

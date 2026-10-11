@@ -39,7 +39,7 @@ Der Edge-Hook nutzt jetzt dieselben Bausteine wie der Cloud-Hook:
 - **Explizites `METHOD_TO_ACTION`-Mapping** für alle Edge-Custom-Methods
   (`convert`, `openDay`/`closeDay`/`refreshClosingStatus`, `reEnqueue`,
   `verifyPin`→READ, `checkin`/`checkout`/`startBreak`/`endBreak`→UPDATE,
-  `openAuthorized`→CREATE, `preflight`→READ, `startBootstrap`/`syncNow`→UPDATE).
+  `openAuthorized`→CREATE, `preflight`→READ, `startBootstrap`/`syncNow`/`reloadUsers`→UPDATE).
 - **MANAGE-only-Fallback:** Unbekannte Methoden mappen auf den Methodennamen
   als Action (Cloud-Semantik) — das matcht nur `MANAGE`-Regeln. Jede neue
   Custom-Method MUSS explizit gemappt werden, sonst 403 für Nicht-MANAGE-Rollen.

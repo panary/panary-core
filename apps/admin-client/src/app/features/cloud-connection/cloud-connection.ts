@@ -913,7 +913,7 @@ const directionLabel = (dir: InitialDirection): string => {
                   <div class="flex items-center gap-3">
                     <button
                       (click)="onSyncNow()"
-                      [disabled]="syncing()"
+                      [disabled]="syncing() || reloadingUsers()"
                       class="bg-slate-900 dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg text-sm font-medium"
                     >
                       @if (syncing()) {
@@ -1722,6 +1722,8 @@ export class CloudConnectionComponent implements OnInit {
     )
       return
     this.reloadingUsers.set(true)
+    // Ein Ergebnis von vorhin daneben stehen zu lassen, laesst einen Fehler wie Erfolg aussehen.
+    this.lastReloadUsersResult.set(null)
     try {
       const result = await this.api.customMethod<{ pulled: number; lastError?: string }>(
         'cloud-connection',

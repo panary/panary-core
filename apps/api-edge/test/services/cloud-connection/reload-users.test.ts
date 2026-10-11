@@ -9,6 +9,7 @@
 // nachholt.
 import assert from 'assert'
 import { uuidv7 } from 'uuidv7'
+import { onTestFinished } from 'vitest'
 import { PairingStatus } from '@panary/cloud-connection/domain'
 import { app } from '../../../src/app'
 
@@ -98,6 +99,30 @@ describe('cloud-connection — reloadUsers (#666)', () => {
     await seedCursor('users')
 
     await assert.rejects(service().reloadUsers({ cloudConnectionId: id }, { provider: undefined }), /nicht verbunden/)
+
+    assert.strictEqual(await cursorExists('cloud:users'), true)
+  })
+
+  it('lehnt ab, solange Benutzer-Aenderungen auf den Push warten, und laesst den Cursor stehen', async () => {
+    const { id } = await seedConnection()
+    await seedCursor('users')
+    const opId = uuidv7()
+    const outbox = app.service('sync-outbox') as any
+    await outbox.create(
+      {
+        _id: opId,
+        service: 'users',
+        op: 'patch',
+        entityId: uuidv7(),
+        payload: {},
+        occurredAt: new Date().toISOString(),
+        syncSource: 'live',
+      },
+      { provider: undefined },
+    )
+    onTestFinished(() => outbox.remove(opId, { provider: undefined }).catch(() => undefined))
+
+    await assert.rejects(service().reloadUsers({ cloudConnectionId: id }, { provider: undefined }), /warten noch/)
 
     assert.strictEqual(await cursorExists('cloud:users'), true)
   })

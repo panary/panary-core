@@ -2080,24 +2080,72 @@ export const triggerImmediateCycle = async (
     try {
       return await runSyncOnce(app, connection._id, trigger)
     } finally {
-      cycleInFlight = null
-      if (cycleQueued) {
-        const next = cycleQueued
-        cycleQueued = null
-        // Drain — keine await-Kette, damit triggerImmediateCycle nicht zu
-        // einer Rekursionskette wird (Stack ist begrenzt; setImmediate
-        // entkoppelt).
-        setImmediate(() => {
-          void triggerImmediateCycle(app, next.trigger).catch(err =>
-            logger.warn({
-              message: 'Sync-Cycle (gequeued) fehlgeschlagen',
-              event: 'sync.trigger.cycle.failed',
-              trigger: next.trigger,
-              errorMessage: err instanceof Error ? err.message : String(err),
-            }),
-          )
-        })
+      releaseCycle(app)
+    }
+  }
+  cycleInFlight = run()
+  return await cycleInFlight
+}
+
+/** Gibt den Mutex frei und zieht einen gequeueten Trigger nach. */
+const releaseCycle = (app: Application): void => {
+  cycleInFlight = null
+  if (cycleQueued) {
+    const next = cycleQueued
+    cycleQueued = null
+    // Drain — keine await-Kette, damit triggerImmediateCycle nicht zu
+    // einer Rekursionskette wird (Stack ist begrenzt; setImmediate
+    // entkoppelt).
+    setImmediate(() => {
+      void triggerImmediateCycle(app, next.trigger).catch(err =>
+        logger.warn({
+          message: 'Sync-Cycle (gequeued) fehlgeschlagen',
+          event: 'sync.trigger.cycle.failed',
+          trigger: next.trigger,
+          errorMessage: err instanceof Error ? err.message : String(err),
+        }),
+      )
+    })
+  }
+}
+
+/** Schluessel, unter dem `upsertCursor` den Pull-Stand der Benutzer fuehrt. */
+export const USERS_PULL_CURSOR_ID = 'cloud:users'
+
+/**
+ * Voll-Pull der Benutzer: Cursor loeschen und Zyklus fahren, beides unter dem
+ * Single-Flight-Mutex (panary/panary-core#666, `cloud-connection.reloadUsers`).
+ *
+ * Ausserhalb des Mutex schriebe ein gerade laufender Tick den geloeschten Cursor
+ * am Ende von `runPullForService('users')` zurueck — der eigene Lauf pullte dann
+ * inkrementell, meldete „0 empfangen" ohne Fehler, und der fehlende Benutzer
+ * bliebe fehlend (Review-Befund).
+ *
+ * Anders als `triggerImmediateCycle` wird hier nicht gequeued, sondern
+ * gewartet: Der Aufrufer braucht das Ergebnis genau dieses Laufs. Ticks, die
+ * waehrenddessen kommen, landen wie gewohnt im Queue-Slot.
+ */
+export const runUsersReloadCycle = async (
+  app: Application,
+  trigger: SyncRunTrigger = SyncRunTrigger.MANUAL,
+): Promise<SyncRunStats | null> => {
+  const connection = await getActiveConnection(app).catch(() => null)
+  if (!connection) return null
+  // Pruefung und Belegung im selben synchronen Abschnitt nach dem letzten
+  // `await` — sonst koennte sich ein Tick dazwischen schieben.
+  while (cycleInFlight) await cycleInFlight.catch(() => undefined)
+
+  const run = async (): Promise<SyncRunStats> => {
+    try {
+      try {
+        await (app.service(syncCursorPath) as any).remove(USERS_PULL_CURSOR_ID, { provider: undefined } as any)
+      } catch (err) {
+        // Kein Cursor heisst: Der naechste Pull ist ohnehin ein Voll-Pull.
+        if ((err as { code?: number } | undefined)?.code !== 404) throw err
       }
+      return await runSyncOnce(app, connection._id, trigger)
+    } finally {
+      releaseCycle(app)
     }
   }
   cycleInFlight = run()

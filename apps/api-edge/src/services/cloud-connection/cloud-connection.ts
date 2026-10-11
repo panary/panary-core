@@ -48,14 +48,11 @@ import {
   type EdgePairingResponse,
   type MasterDataInventory,
 } from '@panary/edge-pairing/domain'
-import { SyncRunTrigger } from '@panary/sync/domain'
+import { SyncOutboxStatus } from '@panary/sync/domain'
 import type { CloudConnection } from './cloud-connection.class'
 
 /** Ergebnis von `reloadUsers`: das Sync-Ergebnis plus die Verbindung als Entity fuer den Audit-Eintrag. */
 export type CloudConnectionReloadUsersResult = CloudConnectionSyncNowResult & { _id: string }
-
-// Schluessel, unter dem `upsertCursor` im Sync-Scheduler den Pull-Stand fuer `users` fuehrt.
-const USERS_PULL_CURSOR_ID = 'cloud:users'
 
 export const cloudConnectionPath = 'cloud-connection'
 export const cloudConnectionMethods = [
@@ -279,14 +276,10 @@ const triggerBootstrapWorker = async (app: Application, cloudConnectionId: strin
   }
 }
 
-const triggerSyncNow = async (
-  app: Application,
-  cloudConnectionId: string,
-  triggeredBy?: SyncRunTrigger,
-): Promise<CloudConnectionSyncNowResult> => {
+const triggerSyncNow = async (app: Application, cloudConnectionId: string): Promise<CloudConnectionSyncNowResult> => {
   const mod = await import('../../workers/cloud-sync-scheduler.worker.js').catch(() => null)
   if (mod && typeof (mod as any).runSyncOnce === 'function') {
-    return (mod as any).runSyncOnce(app, cloudConnectionId, triggeredBy)
+    return (mod as any).runSyncOnce(app, cloudConnectionId)
   }
   return { pushed: 0, pulled: 0, durationMs: 0, lastError: 'Sync-Scheduler nicht aktiv.' }
 }
@@ -606,12 +599,15 @@ export const cloudConnection = (app: Application) => {
   // gesperrt (sync-cursor hat bewusst keine Tenant-Rechte).
   //
   // Die Methode setzt nur diesen einen Cursor zurueck und laesst dann den
-  // regulaeren Sync laufen. Der laeuft Push vor Pull: Ausstehende lokale
-  // Benutzer-Aenderungen (z. B. ein PIN-Wechsel) gehen also zuerst hoch, bevor der
-  // Voll-Pull den Cloud-Stand bedingungslos anwendet. Der Initial-Pull bringt den
-  // Sichtbarkeits-Snapshot mit; `reconcileStaleUsers` archiviert danach, was die
-  // Cloud fuer diesen Edge nicht mehr fuehrt. Das ist dieselbe Wirkung wie beim
-  // Erst-Sync und gewollt.
+  // regulaeren Sync laufen, beides unter dem Single-Flight-Mutex des Schedulers
+  // (`runUsersReloadCycle`). Der Initial-Pull bringt den Sichtbarkeits-Snapshot
+  // mit; `reconcileStaleUsers` archiviert danach, was die Cloud fuer diesen Edge
+  // nicht mehr fuehrt. Das ist dieselbe Wirkung wie beim Erst-Sync und gewollt.
+  //
+  // Warten noch Benutzer-Aenderungen auf den Push, wird abgelehnt. Der Zyklus
+  // laeuft zwar Push vor Pull, aber ein Push-Fehler haelt den Pull nicht auf —
+  // der Voll-Pull ueberschriebe die lokale Aenderung dann bedingungslos
+  // (Review-Befund). Erst hochladen, dann neu laden.
   //
   // Scheitert der Sync (offline, Rate-Limit), bleibt der Cursor geloescht: Der
   // naechste regulaere Tick holt den Voll-Pull nach. `lastError` sagt das dem
@@ -623,13 +619,27 @@ export const cloudConnection = (app: Application) => {
     if (connection.pairingStatus !== PairingStatus.CONNECTED) {
       throw new BadRequest('Edge ist nicht verbunden — Benutzer koennen nicht neu geladen werden.')
     }
-    try {
-      await (app.service('sync-cursor') as any).remove(USERS_PULL_CURSOR_ID, { provider: undefined })
-    } catch (err) {
-      // Kein Cursor heisst: Der naechste Pull ist ohnehin ein Voll-Pull.
-      if ((err as { code?: number } | undefined)?.code !== 404) throw err
+    const waiting = (await (app.service('sync-outbox') as any).find({
+      provider: undefined,
+      paginate: false,
+      query: { service: 'users', status: { $in: [SyncOutboxStatus.PENDING, SyncOutboxStatus.IN_FLIGHT] } },
+    })) as unknown[]
+    if (waiting.length > 0) {
+      throw new BadRequest(
+        `${waiting.length} Benutzer-Änderung(en) warten noch auf das Hochladen. Bitte zuerst synchronisieren ` +
+          '(Sync-Status), sonst würde das Neuladen sie überschreiben.',
+      )
     }
-    const result = await triggerSyncNow(app, id, SyncRunTrigger.MANUAL)
+    const mod = await import('../../workers/cloud-sync-scheduler.worker.js').catch(() => null)
+    if (!mod || typeof (mod as any).runUsersReloadCycle !== 'function') {
+      throw new BadRequest('Sync-Scheduler nicht aktiv — Benutzer koennen nicht neu geladen werden.')
+    }
+    const result = ((await (mod as any).runUsersReloadCycle(app)) as CloudConnectionSyncNowResult | null) ?? {
+      pushed: 0,
+      pulled: 0,
+      durationMs: 0,
+      lastError: 'Keine aktive Cloud-Connection.',
+    }
     logger.info({
       message: 'Benutzer werden neu aus der Cloud geladen',
       event: 'sync.users.reload_requested',

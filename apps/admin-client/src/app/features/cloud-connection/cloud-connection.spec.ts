@@ -163,6 +163,18 @@ describe('CloudConnectionComponent — Benutzer neu laden', () => {
     expect(component.reloadingUsers()).toBe(false)
   })
 
+  it('leert ein frueheres Ergebnis, wenn der naechste Versuch scheitert', async () => {
+    vi.stubGlobal('confirm', vi.fn().mockReturnValue(true))
+    const { component, api } = setup()
+    component.lastReloadUsersResult.set({ pulled: 7 })
+    api.customMethod.mockRejectedValue(new Error('3 Benutzer-Änderung(en) warten noch auf das Hochladen.'))
+
+    await component.onReloadUsers()
+
+    expect(component.lastReloadUsersResult()).toBeNull()
+    expect(component.errors().join(' ')).toContain('warten noch')
+  })
+
   it('bricht bei Nein ab, ohne die Methode aufzurufen', async () => {
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(false))
     const { component, api } = setup()

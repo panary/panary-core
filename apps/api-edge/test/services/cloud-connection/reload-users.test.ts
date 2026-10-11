@@ -27,9 +27,14 @@ describe('cloud-connection — reloadUsers (#666)', () => {
 
   // Die Methode und der Sync waehlen die CONNECTED-Verbindung. Reste aus anderen
   // Suiten (die Test-SQLite ist persistent) wuerden eine fremde Zeile treffen.
+  //
+  // Dasselbe gilt fuer wartende `users`-Ops: Andere Suiten legen Benutzer an, der
+  // Recorder schreibt dafuer `pending`-Eintraege (gemessen: 212), und `reloadUsers`
+  // lehnt dann zu Recht ab. Ohne Cloud-Token pusht sie hier niemand.
   beforeEach(async () => {
     const knex = app.get('sqliteClient') as any
     await knex.table('cloud-connection').del()
+    await knex.table('sync-outbox').where({ service: 'users' }).whereIn('status', ['pending', 'in-flight']).del()
   })
 
   afterAll(async () => {

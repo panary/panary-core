@@ -82,6 +82,9 @@ const METHOD_TO_ACTION: Record<string, AppAction> = {
   startBootstrap: AppAction.UPDATE,
   syncNow: AppAction.UPDATE,
   setEmergencyOverride: AppAction.UPDATE,
+  // Setzt den Pull-Cursor `cloud:users` zurueck und stoesst einen Sync an
+  // (panary/panary-core#666) — mutiert den Sync-State wie syncNow.
+  reloadUsers: AppAction.UPDATE,
 }
 
 // users-Zeiterfassung: DEVICE_POS/DEVICE_TABLET stempeln Mitarbeiter über das

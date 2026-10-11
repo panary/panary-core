@@ -18,6 +18,33 @@ Setzt M7.2 aus dem [Cloud-Edge-Sync-ADR](../../../panary-cloud/docs/adr/0001-syn
 | `preflight({ cloudUrl, pairingCode, edgeName })` | Sammelt lokale Inventur, ruft Cloud `POST /edge-pairing/preflight`, persistiert `preflightSnapshot`. Idempotent — kann beliebig oft aufgerufen werden, solange der Code gültig ist. | JWT |
 | `startBootstrap({ cloudConnectionId, initialDirection, confirmDataLoss })` | Konsumiert den Pairing-Code, mintet Token, persistiert `cloudToken`/`cloudEdgeId`/`bootstrapStatus=in-progress`, triggert `cloud-bootstrap-runner.worker`. | JWT |
 | `syncNow({ cloudConnectionId })` | Triggert einen einzelnen Push-Pull-Zyklus über den Sync-Scheduler. Antwort: `{ pushed, pulled, durationMs, lastError? }`. | JWT |
+| `reloadUsers({ cloudConnectionId })` | Reparaturweg „Benutzer neu laden“: löscht den Pull-Cursor `cloud:users` und triggert denselben Zyklus wie `syncNow`. Antwort wie dort, plus `_id` der Verbindung. Details unten. | JWT, Inhaber/Techniker |
+
+### Benutzer neu laden (`reloadUsers`)
+
+Der Pull ist inkrementell (`updatedAt > lastPullAt`). Ein Benutzer, der lokal fehlt, in der Cloud aber
+unverändert ist, kommt deshalb nie wieder an den Edge. Am Kunden-Edge geschah das nach dem Verwerfen von
+Datenkonflikten ([#663](https://github.com/panary/panary-core/issues/663)). Zurückholen ließ er sich nur, indem
+jemand ihn in der Cloud änderte, denn `DELETE /sync-cursor/cloud:users` ist für den Inhaber gesperrt (403).
+
+`reloadUsers` ([#666](https://github.com/panary/panary-core/issues/666)) löscht genau diesen einen Cursor und
+lässt danach den regulären Zyklus laufen:
+
+- **Unter dem Single-Flight-Mutex.** Cursor-Reset und Zyklus laufen in `runUsersReloadCycle`, das auf einen
+  laufenden Zyklus wartet. Außerhalb des Mutex schriebe ein gerade laufender Tick den gelöschten Cursor am Ende
+  seines Benutzer-Pulls zurück, und der Voll-Pull fände nicht statt.
+- **Nicht über wartende Änderungen.** Stehen `users`-Ops noch `pending`/`in-flight` in der Outbox, lehnt die
+  Methode ab. Der Zyklus läuft zwar Push vor Pull, aber ein Push-Fehler hält den Pull nicht auf, und der
+  Voll-Pull wendet den Cloud-Stand bedingungslos an.
+- **Sichtbarkeits-Abgleich.** Der Initial-Pull bringt den Snapshot mit, `reconcileStaleUsers` archiviert
+  danach Benutzer, die die Cloud diesem Edge nicht mehr zuordnet (`tenant:owner` ausgenommen). Das ist
+  dieselbe Wirkung wie beim Erst-Sync. Die Rückfrage im Admin-Panel nennt sie.
+- **Scheitert der Zyklus** (offline, Rate-Limit), bleibt der Cursor gelöscht. Der nächste reguläre Tick holt
+  den Voll-Pull nach, `lastError` meldet den Grund.
+- **Rechte:** auf `UPDATE` gemappt wie `syncNow`, also Inhaber und Techniker (beide `MANAGE` auf
+  `cloud-connection`). Der Filialleiter hat dort keine Rechte; Entscheidung Michael 2026-10-11, keine
+  Matrix-Änderung.
+- **Audit:** `CONFIG_CHANGE`, Kategorie `CONFIGURATION`, Schwere `WARNING`, Entity ist die Verbindung.
 
 Der alte `create`-Pfad (cloudUrl + pairingCode) bleibt fuer Rueckwaertskompatibilitaet erhalten und mappt auf `pull-cloud-to-edge` als Default-Direction (nicht empfohlen — der Wizard sollte verwendet werden).
 
@@ -79,7 +106,7 @@ Patch mit `resolution`-Feld triggert Anwendung:
 
 - `use-cloud`: Cloud-Variante wird auf den Edge-Service angewandt
 - `use-edge`: lokal nichts (Outbox-Push uebernimmt Edge-Variante)
-- `discard`: lokaler Edge-Record wird geloescht
+- `discard`: richtet sich nach dem Ursprung des Konflikts. Bei einer abgelehnten Lösch-Op wird nur der Auftrag verworfen, sonst lokal gelöscht, ohne Lösch-Auftrag an die Cloud ([ADR 0054](../adr/0054-konflikt-verwerfen-nach-ursprung.md)). Lokal so gelöschte Benutzer holt [`reloadUsers`](#benutzer-neu-laden-reloadusers) zurück.
 
 UI-Counter zeigt offene Konflikte im Connected-State an. Eine dedizierte Konflikt-Tabellen-Komponente mit Diff-Anzeige fehlt noch (TODO).
 

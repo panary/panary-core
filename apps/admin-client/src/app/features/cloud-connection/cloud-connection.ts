@@ -913,7 +913,7 @@ const directionLabel = (dir: InitialDirection): string => {
                   <div class="flex items-center gap-3">
                     <button
                       (click)="onSyncNow()"
-                      [disabled]="syncing()"
+                      [disabled]="syncing() || reloadingUsers()"
                       class="bg-slate-900 dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg text-sm font-medium"
                     >
                       @if (syncing()) {
@@ -926,6 +926,29 @@ const directionLabel = (dir: InitialDirection): string => {
                       <span class="text-xs text-slate-500 dark:text-gray-400">
                         ↑ {{ r.pushed }} gesendet, ↓ {{ r.pulled }} empfangen, {{ r.durationMs }} ms
                       </span>
+                    }
+                  </div>
+                  <div class="flex flex-wrap items-center gap-3">
+                    <button
+                      (click)="onReloadUsers()"
+                      [disabled]="reloadingUsers() || syncing()"
+                      title="Lädt alle Benutzer dieses Standorts vollständig neu aus der Online-Datenbank — auch solche, die hier fehlen."
+                      class="border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-200 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-gray-800 disabled:opacity-50"
+                    >
+                      @if (reloadingUsers()) {
+                        Lade Benutzer …
+                      } @else {
+                        Benutzer neu laden
+                      }
+                    </button>
+                    @if (lastReloadUsersResult(); as r) {
+                      @if (r.lastError) {
+                        <span class="text-xs text-amber-700 dark:text-amber-300">
+                          Noch nicht geladen: {{ r.lastError }} Der nächste Abgleich holt es nach.
+                        </span>
+                      } @else {
+                        <span class="text-xs text-slate-500 dark:text-gray-400">↓ {{ r.pulled }} empfangen</span>
+                      }
                     }
                   </div>
                 </div>
@@ -1231,6 +1254,8 @@ export class CloudConnectionComponent implements OnInit {
   preflighting = signal(false)
   bootstrapping = signal(false)
   syncing = signal(false)
+  reloadingUsers = signal(false)
+  lastReloadUsersResult = signal<{ pulled: number; lastError?: string } | null>(null)
   errors = signal<string[]>([])
   confirmingDisconnect = signal(false)
   confirmingHardDelete = signal(false)
@@ -1678,6 +1703,39 @@ export class CloudConnectionComponent implements OnInit {
       this.errors.set(formatApiError(e).split('\n'))
     }
     this.syncing.set(false)
+    this.cdr.markForCheck()
+  }
+
+  /**
+   * Reparaturweg „Benutzer neu laden" (#666): setzt am Edge den Pull-Cursor der
+   * Benutzer zurueck und stoesst einen Sync an. Die Rueckfrage nennt die
+   * Nebenwirkung des Sichtbarkeits-Abgleichs, denn der archiviert Benutzer, die
+   * die Online-Datenbank diesem Standort nicht mehr zuordnet.
+   */
+  async onReloadUsers() {
+    const conn = this.connectionInfo()
+    if (!conn) return
+    if (
+      !confirm(
+        'Benutzer neu aus der Online-Datenbank laden?\n\nAlle Benutzer dieses Standorts werden vollständig neu geholt, auch solche, die hier fehlen. Lokale Änderungen, die noch nicht hochgeladen sind, werden vorher gesendet. Benutzer, die die Online-Datenbank diesem Standort nicht mehr zuordnet, werden hier archiviert.',
+      )
+    )
+      return
+    this.reloadingUsers.set(true)
+    // Ein Ergebnis von vorhin daneben stehen zu lassen, laesst einen Fehler wie Erfolg aussehen.
+    this.lastReloadUsersResult.set(null)
+    try {
+      const result = await this.api.customMethod<{ pulled: number; lastError?: string }>(
+        'cloud-connection',
+        'reloadUsers',
+        { cloudConnectionId: conn._id },
+      )
+      this.lastReloadUsersResult.set(result)
+      await this.loadConnection()
+    } catch (e: any) {
+      this.errors.set(formatApiError(e).split('\n'))
+    }
+    this.reloadingUsers.set(false)
     this.cdr.markForCheck()
   }
 

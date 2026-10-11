@@ -30,8 +30,12 @@ jemand ihn in der Cloud änderte, denn `DELETE /sync-cursor/cloud:users` ist fü
 `reloadUsers` ([#666](https://github.com/panary/panary-core/issues/666)) löscht genau diesen einen Cursor und
 lässt danach den regulären Zyklus laufen:
 
-- **Push vor Pull.** Ausstehende lokale Benutzer-Änderungen gehen zuerst hoch, bevor der Voll-Pull den
-  Cloud-Stand bedingungslos anwendet.
+- **Unter dem Single-Flight-Mutex.** Cursor-Reset und Zyklus laufen in `runUsersReloadCycle`, das auf einen
+  laufenden Zyklus wartet. Außerhalb des Mutex schriebe ein gerade laufender Tick den gelöschten Cursor am Ende
+  seines Benutzer-Pulls zurück, und der Voll-Pull fände nicht statt.
+- **Nicht über wartende Änderungen.** Stehen `users`-Ops noch `pending`/`in-flight` in der Outbox, lehnt die
+  Methode ab. Der Zyklus läuft zwar Push vor Pull, aber ein Push-Fehler hält den Pull nicht auf, und der
+  Voll-Pull wendet den Cloud-Stand bedingungslos an.
 - **Sichtbarkeits-Abgleich.** Der Initial-Pull bringt den Snapshot mit, `reconcileStaleUsers` archiviert
   danach Benutzer, die die Cloud diesem Edge nicht mehr zuordnet (`tenant:owner` ausgenommen). Das ist
   dieselbe Wirkung wie beim Erst-Sync. Die Rückfrage im Admin-Panel nennt sie.

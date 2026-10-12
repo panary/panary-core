@@ -33,7 +33,13 @@ const INPUT = `w-full bg-white dark:bg-gray-900 border border-slate-200 dark:bor
       } @else if (!locationId()) {
         <div class="text-center py-16">
           <p class="text-slate-400 dark:text-gray-500 text-lg">{{ 'LOCATION.NO_LOCATION' | translate }}</p>
-          <p class="text-slate-400 dark:text-gray-500 text-sm mt-1">{{ 'LOCATION.AUTO_CREATED' | translate }}</p>
+          @if (cloudManaged.cloudPaired()) {
+            <!-- #664: Gepairt kommt der Standort aus der Cloud. Fehlt er, hat der Sync ihn verworfen —
+                 der Hinweis auf das Setup schickte den Betreiber in die falsche Richtung. -->
+            <p class="text-slate-400 dark:text-gray-500 text-sm mt-1">{{ 'LOCATION.MISSING_PAIRED' | translate }}</p>
+          } @else {
+            <p class="text-slate-400 dark:text-gray-500 text-sm mt-1">{{ 'LOCATION.AUTO_CREATED' | translate }}</p>
+          }
         </div>
       } @else {
         @if (readOnly()) {
@@ -100,7 +106,7 @@ export class LocationDetailComponent implements OnInit {
   private api = inject(ApiService)
   private locationState = inject(LocationStateService)
   private t = inject(TranslateService)
-  private cloudManaged = inject(CloudManagedService)
+  protected cloudManaged = inject(CloudManagedService)
 
   /** Cloud ist Source of Truth für Standort-Stammdaten, sobald gepairt. */
   protected readOnly = this.cloudManaged.readOnly

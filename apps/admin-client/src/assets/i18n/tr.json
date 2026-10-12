@@ -356,6 +356,7 @@
     "DESCRIPTION": "Bu Edge Sunucu için konum verileri ve iletişim bilgileri.",
     "NO_LOCATION": "Konum mevcut değil",
     "AUTO_CREATED": "Konum ilk kurulumda otomatik olarak oluşturulur.",
+    "MISSING_PAIRED": "Buluttaki konum aktarılamadı. Nedeni Bulut bağlantısı → Senkronizasyon geçmişi bölümünde görünür; destek kayıtları ilgili alanı belirtir.",
     "PHONE": "Telefon",
     "LOAD_ERROR": "Konum yüklenemedi.",
     "NAME_REQUIRED": "Ad gereklidir",

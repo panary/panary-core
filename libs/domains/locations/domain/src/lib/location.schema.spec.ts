@@ -5,7 +5,7 @@ import type { FormatsPluginOptions } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 
 import { generateDefaultLocationSettings } from './default-settings'
-import { locationDataSchema, locationQuerySchema } from './location.schema'
+import { locationDataSchema, locationQuerySchema, locationSchema } from './location.schema'
 
 // Regression Standort-Settings-Sync (2026-07-28): Das Data-Schema war ein
 // strikter Pick OHNE `_id`/`createdAt`/`updatedAt` (additionalProperties:
@@ -54,6 +54,37 @@ describe('locationDataSchema (Sync-Pull-Apply-CREATE)', () => {
 
   it('lehnt unbekannte Felder weiterhin ab (kein Wildcard-Passthrough)', async () => {
     await expect(validator({ ...syncedCloudLocation, evilField: 'x' })).rejects.toThrow()
+  })
+
+  // #664: Nach „Alles aus der Cloud übernehmen“ fehlt die Location am Edge, jeder
+  // Pull läuft über CREATE. Die Cloud trägt `currentBusinessDay` ab dem ersten
+  // Geschäftstag (offen: Objekt, nach Abschluss: null), Altbestand `organizationName`.
+  it('akzeptiert currentBusinessDay eines offenen Geschäftstags', async () => {
+    await expect(
+      validator({
+        ...syncedCloudLocation,
+        currentBusinessDay: { businessDayId: '01890a5d-ac96-774b-bcce-b302099a8060', date: '2026-10-08' },
+      }),
+    ).resolves.toBeTruthy()
+  })
+
+  it('akzeptiert currentBusinessDay: null nach dem Tagesabschluss', async () => {
+    await expect(validator({ ...syncedCloudLocation, currentBusinessDay: null })).resolves.toBeTruthy()
+  })
+
+  it('akzeptiert das Altfeld organizationName', async () => {
+    await expect(validator({ ...syncedCloudLocation, organizationName: 'Bäckerei Muster' })).resolves.toBeTruthy()
+  })
+
+  // Wächter gegen die Wiederholung (2026-07-28: _id/createdAt/updatedAt, #664:
+  // currentBusinessDay/organizationName): Jedes Feld, das ein gespeicherter Standort
+  // tragen kann, muss auch der Sync-CREATE annehmen. Wer ein Feld bewusst ausnimmt,
+  // trägt es hier mit Begründung ein.
+  it('nimmt jedes Feld von locationSchema an', () => {
+    const ausgenommen: string[] = []
+    const dataKeys = new Set(Object.keys(locationDataSchema.properties))
+    const fehlend = Object.keys(locationSchema.properties).filter(k => !dataKeys.has(k) && !ausgenommen.includes(k))
+    expect(fehlend).toEqual([])
   })
 })
 

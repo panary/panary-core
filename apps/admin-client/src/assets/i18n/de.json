@@ -356,6 +356,7 @@
     "DESCRIPTION": "Standortdaten und Kontaktinformationen dieses Edge-Servers.",
     "NO_LOCATION": "Kein Standort vorhanden",
     "AUTO_CREATED": "Der Standort wird beim ersten Setup automatisch erstellt.",
+    "MISSING_PAIRED": "Der Standort aus der Cloud wurde nicht übernommen. Unter Cloud-Kopplung → Sync-Historie steht, warum; die Support-Logs nennen das betroffene Feld.",
     "PHONE": "Telefon",
     "LOAD_ERROR": "Standort konnte nicht geladen werden.",
     "NAME_REQUIRED": "Name ist erforderlich",

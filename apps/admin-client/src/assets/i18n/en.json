@@ -356,6 +356,7 @@
     "DESCRIPTION": "Location data and contact information for this Edge Server.",
     "NO_LOCATION": "No location available",
     "AUTO_CREATED": "The location is automatically created during initial setup.",
+    "MISSING_PAIRED": "The location from the cloud was not applied. Cloud connection → sync history shows why; the support logs name the affected field.",
     "PHONE": "Phone",
     "LOAD_ERROR": "Failed to load location.",
     "NAME_REQUIRED": "Name is required",

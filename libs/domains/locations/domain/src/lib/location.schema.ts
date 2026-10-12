@@ -450,6 +450,13 @@ export const locationDataSchema = Type.Intersect(
       'operationMode',
       'businessType',
       'lastWorkdayOfWeek',
+      // Beide stehen in praktisch jedem Cloud-Location-Dokument (Tagesstart/-abschluss
+      // bzw. Altbestand). Fehlten sie hier, lehnte der Sync-CREATE den eigenen Standort
+      // ab, sobald der Edge ihn nicht mehr hatte — nach „Alles aus der Cloud
+      // übernehmen“ dauerhaft (#664). Die Spec `location.schema.spec.ts` hält die
+      // Pick-Liste deckungsgleich mit `locationSchema`.
+      'currentBusinessDay',
+      'organizationName',
     ]),
     // Pflicht fuer den Cloud→Edge-Sync-Pull-Apply: gepullte Cloud-Records
     // bringen `_id`, `createdAt`, `updatedAt` mit — ohne diese Felder lehnte

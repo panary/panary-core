@@ -4,7 +4,7 @@ title: Cloud-Pairing-Wizard — Edge-Seite (M7.2)
 description: Vierstufiger Cloud-Pairing-Wizard auf Edge-Seite mit Preflight, Bootstrap-Runner, drei Initial-Sync-Richtungen, Konflikt-Review und Sync-Scheduler-Modi.
 tags: [cloud-connection, sync]
 status: draft
-generated: { by: claude-code/historic, at: 2026-05-02T00:00:00Z }
+generated: { by: claude-code/opus-5-5, at: 2026-10-12T22:00:00Z }
 ---
 
 # Cloud-Pairing-Wizard (Edge-Seite)
@@ -91,6 +91,22 @@ Zusaetzlich verwirft der Truncate je geleertem Service dessen offene Outbox-Auft
 > ⚠️ Bewusst **nicht** `fromSync`: Der Marker unterdrueckt zwar auch die Outbox, schaltet aber in den Create-/Patch-Resolvern (`users`, `business-days`) auf die Uebernahme der Rohwerte um — fuer das Restamping-`create` waere das eine zweite, ungewollte Wirkung. `skipSyncOutbox` wirkt ausschliesslich im Recorder.
 >
 > Bestands-Edges, die den Bootstrap vor dem Fix gefahren sind, tragen die Loesch-Auftraege weiter in der Outbox. Sie muessen am Edge unter Sync-Status verworfen werden, **bevor** panary/panary-cloud#1112 ausgerollt ist — danach fuehrte die Cloud sie aus.
+
+### Der eigene Standort muss nach dem Pull existieren
+
+Nach dem Truncate gibt es am Edge keine Location mehr, und jeder Pull des eigenen Standorts laeuft ueber **CREATE**, im Bootstrap (`insert`) wie im spaeteren Live-Sync (`upsert` findet keine Zeile). Im Normalbetrieb ist es dagegen ein **PATCH**. Das Create-Schema `locationDataSchema` ist eine Pick-Liste mit `additionalProperties: false`; was dort fehlt, lehnt `validateData` ab, waehrend das Patch-Schema (`Type.Partial(locationSchema)`) es annimmt. Am 2026-10-08 fehlten `currentBusinessDay` (setzt die Cloud ab dem ersten Geschaeftstag) und `organizationName` (Altbestand). Der Edge verwarf den eigenen Standort, meldete `done` und haette ihn ohne Fix nie wieder angelegt: ohne Zeile kein PATCH, ohne erfolgreiches CREATE keine Zeile (#664).
+
+- [`assertOwnLocationPulled`](../../apps/api-edge/src/workers/assert-own-location-pulled.ts) prueft nach dem Pull-Loop, ob die Location aus `connection.locationId` (Rueckfall `preflightSnapshot.cloudLocationId`) existiert. Fehlt sie, endet der Bootstrap als `failed` mit Verweis auf das Backup.
+- Die Spec `location.schema.spec.ts` haelt die Pick-Liste deckungsgleich mit `locationSchema`. Ein neues Feld am Standort ohne Eintrag im Create-Schema wird rot; eine bewusste Ausnahme steht mit Begruendung in `ausgenommen`.
+- Migration `20261012230000_reset_location_pull_cursors_after_create_fix` setzt die Pull-Cursor von `locations` und `opening-hour-exceptions` einmalig zurueck. Betroffene Edges holen ihren Standort damit beim naechsten Sync ohne Handgriff.
+
+> ⚠️ Dieselbe Pick-Listen-Luecke besteht bei `productDataSchema` (`mainPrice`), `userDataSchema` (`hasPosPin`, `mfaEnrolledAt`) und `businessDayDataSchema`. Am betroffenen Edge liefen diese Pulls durch, deshalb sind sie hier nicht angepasst. Wer einen weiteren Service in den Truncate aufnimmt oder ein Cloud-Feld ergaenzt, prueft das Create-Schema mit.
+
+### Diagnose: verworfene Cloud-Records im Support-Log
+
+`sync.pull.apply_failed` loggt `entityId` und `validationErrors` (Pfad, Keyword, Parameter des AJV-Fehlers). Der Support-Log-Export ([`log-bundle.ts`](../../apps/api-edge/src/utils/log-bundle.ts)) hat beides bis #674 verworfen; der Export vom 2026-10-12 sagte deshalb nur „validation failed“. Fuer genau dieses Event exportiert `scrubLogEntry` jetzt `entityId` (nur als uuid) und eine Strukturform der Fehler: `path`, `keyword`, `additionalProperty`, `missingProperty`, `format`, `type`, `limit`. Jeder Wert, der kein Schema-Bezeichner ist, wird `*`; `message`, `data` und `params` als Ganzes bleiben draussen. Request-400 aus dem Wide Event bleiben ohne Validierungsdetails, dort sind die Schluessel Client-Eingabe. Dazu kommen die Zaehler `rejectedTotal`/`total` aus `sync.bootstrap.pull_records_rejected`.
+
+Im Edge-Admin zeigt die Standort-Seite im gepairten Betrieb ohne Standort nicht mehr „wird beim ersten Setup automatisch erstellt“, sondern verweist auf Cloud-Kopplung → Sync-Historie und die Support-Logs.
 
 ### Push-Payloads: `null` aus leeren SQLite-Spalten
 

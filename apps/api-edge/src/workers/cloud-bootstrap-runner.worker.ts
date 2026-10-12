@@ -34,6 +34,7 @@ import {
 } from './sync-apply'
 import { MERGE_BY_EXTERNAL_ID_SERVICES } from './merge-services'
 import { truncateMasterTables } from './truncate-master-tables'
+import { assertOwnLocationPulled } from './assert-own-location-pulled'
 import { SyncRunDirection, SyncRunOutcome, SyncRunPhase, SyncRunTrigger } from '@panary/sync/domain'
 
 const requireDecryptedToken = (connection: CloudConnection): string => {
@@ -560,6 +561,7 @@ const runPullCloudToEdge = async (
       throw err
     }
   }
+  await assertOwnLocationPulled(app, connection)
   // Nach Master-Pull-Loop: BusinessDay-Replica ist in SQLite, aber der
   // POS-Order-Hook liest `location.currentBusinessDay`. Reconcile setzt den
   // Pointer auf den offenen Tag — sonst blockt der naechste Order-Versuch.

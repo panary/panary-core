@@ -18,7 +18,11 @@ export const assertOwnLocationPulled = async (app: Application, connection: Clou
   const location = await app
     .service('locations' as any)
     .get(locationId, { provider: undefined } as any)
-    .catch(() => null)
+    // Nur „nicht gefunden“ heisst „fehlt“ — ein DB- oder Hook-Fehler bricht mit seiner eigenen Meldung ab.
+    .catch((err: unknown) => {
+      if ((err as { name?: string })?.name === 'NotFound') return null
+      throw err
+    })
   if (location) return
   logger.error({
     message: 'Bootstrap pull-cloud-to-edge: eigener Standort fehlt nach dem Pull',

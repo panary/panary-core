@@ -18,7 +18,7 @@ const LOCATION_ID = '019eb340-ce0a-7472-a6fe-99eb1db7f902'
 const makeApp = (existing: string[]) => {
   const get = vi.fn(async (id: string) => {
     if (existing.includes(id)) return { _id: id }
-    throw new Error(`No record found for id '${id}'`)
+    throw Object.assign(new Error(`No record found for id '${id}'`), { name: 'NotFound' })
   })
   const app = { service: vi.fn(() => ({ get })) } as unknown as Application
   return { app, get }
@@ -49,6 +49,16 @@ describe('assertOwnLocationPulled', () => {
     })
     await expect(assertOwnLocationPulled(app, connection)).rejects.toThrow(/eigene Standort/)
     expect(get).toHaveBeenCalledWith(LOCATION_ID, expect.anything())
+  })
+
+  it('reicht andere Lesefehler unveraendert durch', async () => {
+    const get = vi.fn(async () => {
+      throw Object.assign(new Error('SQLITE_BUSY: database is locked'), { name: 'GeneralError' })
+    })
+    const app = { service: vi.fn(() => ({ get })) } as unknown as Application
+    await expect(assertOwnLocationPulled(app, connectionWith({ locationId: LOCATION_ID }))).rejects.toThrow(
+      /SQLITE_BUSY/,
+    )
   })
 
   it('prueft nichts ohne bekannte LocationId', async () => {

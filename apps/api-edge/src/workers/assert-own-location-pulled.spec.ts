@@ -44,7 +44,7 @@ describe('assertOwnLocationPulled', () => {
   it('nimmt die Cloud-LocationId aus dem Preflight-Snapshot, wenn die Connection keine traegt', async () => {
     const { app, get } = makeApp([])
     const connection = connectionWith({
-      locationId: null,
+      locationId: undefined,
       preflightSnapshot: { cloudLocationId: LOCATION_ID } as CloudConnection['preflightSnapshot'],
     })
     await expect(assertOwnLocationPulled(app, connection)).rejects.toThrow(/eigene Standort/)
@@ -63,7 +63,7 @@ describe('assertOwnLocationPulled', () => {
 
   it('prueft nichts ohne bekannte LocationId', async () => {
     const { app, get } = makeApp([])
-    await expect(assertOwnLocationPulled(app, connectionWith({ locationId: null }))).resolves.toBeUndefined()
+    await expect(assertOwnLocationPulled(app, connectionWith({ locationId: undefined }))).resolves.toBeUndefined()
     expect(get).not.toHaveBeenCalled()
   })
 })

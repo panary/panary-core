@@ -7,7 +7,9 @@ import { gzipSync } from 'node:zlib'
 // Das Bundle wird an externen Support/Analyse weitergegeben — daher Allowlist
 // statt Denylist. Bewusst NICHT exportiert: `businessContext` (Betraege,
 // Kundendaten, Tisch), `requestData` (Request-Bodies), `errorStack`,
-// `validationErrors` (AJV-`params` kann Eingabewerte spiegeln). Reicht zur
+// `validationErrors` (AJV-`params` kann Eingabewerte spiegeln — einzige
+// Ausnahme: die Strukturform bei `sync.pull.apply_failed`, siehe
+// STRUCTURED_VALIDATION_EVENTS). Reicht zur
 // Fehler-Identifikation (service/method/statusCode/error). Ein spaeterer
 // „verbose"-Export kann eine kuratierte businessContext-Sub-Allowlist ergaenzen.
 //
@@ -50,12 +52,77 @@ export const SAFE_LOG_FIELDS = [
   'resultCount',
   'errorName',
   'errorMessage',
+  // Zaehler aus `sync.bootstrap.pull_records_rejected` — reine Zahlen. Ohne sie
+  // sagt die Zeile nur „verworfen", nicht wie viele von wie vielen (#674).
+  'rejectedTotal',
+  'total',
 ] as const
+
+// Zeilen, deren Validierungsfehler einen Cloud-Record betreffen (#674). Am
+// 2026-10-12 trug der Export fuenfmal `sync.pull.apply_failed service=locations
+// „validation failed"` — welches Feld und welcher Datensatz, verwarf der Scrub.
+// Die Ursache (`currentBusinessDay` fehlte im Create-Schema, #664) liess sich nur
+// aus dem Code erschliessen, nicht aus dem Log belegen.
+//
+// Bewusst NUR dieses Event: Hier stammen die Schluessel aus einem Cloud-Dokument,
+// das die Cloud selbst schema-validiert hat. Bei einem Request-400 (canonical
+// log) sind sie Client-Eingabe und koennen Werte tragen — dort bleibt es beim
+// Ausschluss aus dem Kopfkommentar.
+const STRUCTURED_VALIDATION_EVENTS = new Set(['sync.pull.apply_failed'])
+
+// Ein Schema-Bezeichner: Feldname, Keyword, Format, Typ. Alles andere (Leer-
+// zeichen, @, Punkte, ueberlange Ketten) koennte ein Wert sein und wird `*`.
+const SCHEMA_IDENT = /^[A-Za-z_$][A-Za-z0-9_$-]{0,63}$/
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const MAX_VALIDATION_ERRORS = 10
+
+const identOrStar = (v: unknown): string | undefined =>
+  typeof v === 'string' ? (SCHEMA_IDENT.test(v) ? v : '*') : undefined
+
+const scrubJsonPointer = (v: unknown): string | undefined => {
+  if (typeof v !== 'string') return undefined
+  // Platzhalter von `extractAjvValidationErrors` (sync-apply.ts) fuer einen Fehler am Wurzelobjekt.
+  if (v === '<root>') return v
+  return v
+    .split('/')
+    .map(seg => (seg === '' || /^\d{1,6}$/.test(seg) || SCHEMA_IDENT.test(seg) ? seg : '*'))
+    .join('/')
+}
+
+/**
+ * Strukturform der AJV-Fehler: Pfad, Keyword und die Parameter, die ein Schema
+ * beschreiben — nie `data`, nie `message` (koennte kuenftig Werte zitieren), nie
+ * `params` als Ganzes.
+ */
+export const scrubValidationErrors = (raw: unknown): Array<Record<string, unknown>> | undefined => {
+  if (!Array.isArray(raw)) return undefined
+  return raw.slice(0, MAX_VALIDATION_ERRORS).map(entry => {
+    const e = (entry ?? {}) as Record<string, unknown>
+    const params = (e['params'] ?? {}) as Record<string, unknown>
+    const out: Record<string, unknown> = {}
+    const path = scrubJsonPointer(e['path'] ?? e['instancePath'])
+    if (path !== undefined) out['path'] = path
+    const keyword = identOrStar(e['keyword'])
+    if (keyword !== undefined) out['keyword'] = keyword
+    for (const key of ['additionalProperty', 'missingProperty', 'format', 'type'] as const) {
+      const v = identOrStar(params[key])
+      if (v !== undefined) out[key] = v
+    }
+    if (typeof params['limit'] === 'number') out['limit'] = params['limit']
+    return out
+  })
+}
 
 export const scrubLogEntry = (raw: Record<string, unknown>): Record<string, unknown> => {
   const out: Record<string, unknown> = {}
   for (const key of SAFE_LOG_FIELDS) {
     if (raw[key] !== undefined) out[key] = raw[key]
+  }
+  if (typeof raw['event'] === 'string' && STRUCTURED_VALIDATION_EVENTS.has(raw['event'])) {
+    // Die `_id` des verworfenen Records — eine uuid, kein Nutzdatum.
+    if (typeof raw['entityId'] === 'string' && UUID.test(raw['entityId'])) out['entityId'] = raw['entityId']
+    const errors = scrubValidationErrors(raw['validationErrors'])
+    if (errors) out['validationErrors'] = errors
   }
   return out
 }

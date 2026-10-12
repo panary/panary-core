@@ -86,6 +86,72 @@ describe('scrubLogEntry', () => {
   })
 })
 
+// #674: Am 2026-10-12 nannte der Export fuenfmal „validation failed" am eigenen
+// Standort, aber weder Feld noch Datensatz. Fuer verworfene Cloud-Records kommt
+// beides jetzt mit — als Struktur, nie als Wert.
+describe('scrubLogEntry bei sync.pull.apply_failed', () => {
+  const pullZeile = {
+    timestamp: '2026-10-12T21:21:23.238Z',
+    level: 'warn',
+    message: 'Pull-Apply fehlgeschlagen',
+    event: 'sync.pull.apply_failed',
+    service: 'locations',
+    entityId: '019eb340-ce0a-7472-a6fe-99eb1db7f902',
+    errorMessage: 'validation failed',
+    validationErrors: [
+      {
+        path: '<root>',
+        message: 'must NOT have additional properties',
+        keyword: 'additionalProperties',
+        params: { additionalProperty: 'currentBusinessDay' },
+      },
+    ],
+  }
+
+  it('behaelt entityId und die Strukturform der Validierungsfehler', () => {
+    const out = scrubLogEntry(pullZeile)
+    expect(out.entityId).toBe('019eb340-ce0a-7472-a6fe-99eb1db7f902')
+    expect(out.validationErrors).toEqual([
+      { path: '<root>', keyword: 'additionalProperties', additionalProperty: 'currentBusinessDay' },
+    ])
+  })
+
+  it('ersetzt alles, was kein Schema-Bezeichner ist, und laesst message/data weg', () => {
+    const out = scrubLogEntry({
+      ...pullZeile,
+      entityId: 'max@example.com',
+      validationErrors: [
+        {
+          instancePath: '/address/max@example.com/0',
+          keyword: 'format',
+          message: 'zitiert vielleicht 0151 1234567',
+          params: { format: 'email', additionalProperty: 'Max Mustermann' },
+          data: 'max@example.com',
+        },
+      ],
+    })
+    expect(out).not.toHaveProperty('entityId')
+    expect(out.validationErrors).toEqual([
+      { path: '/address/*/0', keyword: 'format', format: 'email', additionalProperty: '*' },
+    ])
+    const json = JSON.stringify(out)
+    for (const wert of ['max@example.com', 'Mustermann', '0151']) {
+      expect(json, `Wert „${wert}" ist durchgesickert`).not.toContain(wert)
+    }
+  })
+
+  it('gilt nur fuer dieses Event — ein Request-400 bleibt ohne Validierungsdetails', () => {
+    const out = scrubLogEntry({ ...pullZeile, event: 'http.request' })
+    expect(out).not.toHaveProperty('validationErrors')
+    expect(out).not.toHaveProperty('entityId')
+  })
+
+  it('behaelt die Zaehler verworfener Bootstrap-Records', () => {
+    const out = scrubLogEntry({ event: 'sync.bootstrap.pull_records_rejected', rejectedTotal: 1, total: 1 })
+    expect(out).toEqual({ event: 'sync.bootstrap.pull_records_rejected', rejectedTotal: 1, total: 1 })
+  })
+})
+
 describe('SAFE_LOG_FIELDS', () => {
   it('enthaelt keine Dubletten', () => {
     expect(new Set(SAFE_LOG_FIELDS).size).toBe(SAFE_LOG_FIELDS.length)

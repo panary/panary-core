@@ -143,7 +143,7 @@ Klassen-Matrix in `functionButtonClasses()`:
 | Variante  | Farbe | Wirkung                     | Beispiele                                   |
 | --------- | ----- | --------------------------- | ------------------------------------------- |
 | `cancel`  | Rot   | verwirft / bricht ab        | ABBRUCH, Lösch-Tasten, Kombination auflösen |
-| `skip`    | Amber | lässt weg / überspringt     | OHNE, ÜBERSPRINGEN, KEIN TISCH, KEIN PAGER  |
+| `skip`    | Amber | lässt weg / überspringt     | ÜBERSPRINGEN, KEIN TISCH, KEIN PAGER        |
 | `confirm` | Teal  | übernimmt / bestätigt       | Alle Modifier anzeigen, Kombinieren         |
 | — (weiß)  | Weiß  | Produkte — **nie** Funktion | Produktkacheln                              |
 
@@ -156,8 +156,9 @@ Regeln:
   (86 px), Icon über Text, linksbündig **vor** dem Raster, außerhalb des Scroll-Containers
   (beim Scrollen immer sichtbar).
 - **Keine Nummern auf Funktionstasten** — Artikelnummern-Badges nur auf Produktkacheln.
-- **Pressed-Zustand** nur für echte Toggles (OHNE): kräftigere Tönung + dunklerer Rahmen +
+- **Pressed-Zustand** nur für echte Toggles: kräftigere Tönung + dunklerer Rahmen +
   `aria-pressed`. One-Shot-Tasten (ÜBERSPRINGEN etc.) bekommen nur momentanes
-  `active:`-Feedback.
+  `active:`-Feedback. Der einzige Toggle war OHNE; er ist mit dem Anpassen-Panel entfallen
+  (panary/panary-core#639, `docs/domains/pos-anpassen-panel.md`).
 
 ---

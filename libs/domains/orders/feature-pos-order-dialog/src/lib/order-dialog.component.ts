@@ -83,6 +83,15 @@ import {
 } from './pos-button.model'
 import { BundleFlow } from './bundle-flow'
 import {
+  type CustomizeModel,
+  REMOVED_INGREDIENT_PREFIX,
+  buildCustomizeModel,
+  hasCustomizableContent,
+  opensCustomizeAutomatically,
+  toggleIngredientRemoval,
+} from './product-customize'
+import { type CustomizeOptionEvent, ProductCustomizePanelComponent } from './product-customize-panel.component'
+import {
   BoardSelection,
   nextBoardSelection,
   previousBoardSelection,
@@ -107,7 +116,7 @@ export class AbsPipe implements PipeTransform {
   selector: 'app-order-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AbsPipe, CommonModule, FormsModule, MatMenuModule, TranslateModule],
+  imports: [AbsPipe, CommonModule, FormsModule, MatMenuModule, ProductCustomizePanelComponent, TranslateModule],
   templateUrl: './order-dialog.component.html',
   styleUrls: ['./order-dialog.component.scss'],
   animations: [
@@ -215,7 +224,16 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private _productButtons: PosButton[] = []
   private _table: string | undefined = undefined
   private _dineLocation: (typeof DineLocation)[keyof typeof DineLocation] | undefined = undefined
-  private _withoutExtra = false
+
+  /**
+   * Anpassen-Panel (#639): das Modell der gerade angepassten Zeile, `null` = Raster.
+   * `#customizeLine` hält die Zeile selbst, nicht ihren Index — die Kombinationen
+   * werden je Aufruf neu gebaut, ein Index könnte nach einer Änderung woanders zeigen.
+   * `#customizeSnapshot` sind die Modifier beim Öffnen, „Abbrechen" stellt sie wieder her.
+   */
+  readonly customizeModel = signal<CustomizeModel | null>(null)
+  #customizeLine: OrderLineItem | null = null
+  #customizeSnapshot: OrderLineItem['modifiers'] = []
 
   // Bundle/Menü-Flow-Logik (OptionGroup-Sequenz, HIGHEST, FIXED_PROPORTIONAL) — plain class, siehe bundle-flow.ts
   readonly #bundleFlow = new BundleFlow({
@@ -247,7 +265,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private _skipSuccessorId = 'skipSuccessor'
   private _skipSuccessorName = 'ÜBERSPRINGEN'
   private _tableTopic: UUID = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx04'
-  private _withoutExtraId = 'withoutExtra'
   private _numpadNumber: number | undefined = undefined
   private _numpadValue = ''
   private _resizeObserver: ResizeObserver | undefined
@@ -576,6 +593,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   clearButtons(): void {
+    // Jeder Ansichtswechsel läuft hier durch — damit schließt er auch das Panel,
+    // ohne dass jede der rund zwanzig Ansichten es selbst wissen muss.
+    this.customizeModel.set(null)
+    this.#customizeLine = null
+    this.#customizeSnapshot = []
     this._functionButtons = []
     this._productButtons = []
     this._functionBlockLabel = ''
@@ -599,7 +621,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   unselectProduct() {
     if (this._isBlocked) return
-    this.setWithoutExtra(false)
     this.clearButtons()
     this._selectedProductIndex = null
     this._selectedCombinationIndex = [null, null]
@@ -642,6 +663,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this._selectedProductIndex = null
     this._selectedCombinationIndex =
       this._selectedCombinationIndex[0] === combinationIndex ? [null, null] : [combinationIndex, null]
+    this.#followSelectionInPanel()
   }
 
   increaseSelectedIndex() {
@@ -676,6 +698,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private applyBoardSelection(selection: BoardSelection): void {
     this._selectedProductIndex = selection.productIndex
     this._selectedCombinationIndex = [selection.combinationIndex[0], selection.combinationIndex[1]]
+    this.#followSelectionInPanel()
   }
 
   createProductButtons(productGroup: ProductGroup) {
@@ -1183,6 +1206,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     ids: Array<UUID> | undefined = undefined,
     groupId: string | undefined = undefined,
     unblock = false,
+    grid = false,
   ) {
     if (this._isBlocked && !unblock) return
 
@@ -1207,8 +1231,17 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       return
     }
 
+    // Ohne Legacy-Extras-Liste und mit Anpassbarem am Produkt: das Panel statt des Rasters.
+    // `grid` erzwingt das Raster — der Weg „Alle Modifier" aus dem Panel heraus.
+    if (!grid && !(ids && ids.length > 0)) {
+      const line = this.getCurrentSelectedLineItem()
+      if (line && this.#canCustomize(line)) {
+        this.openCustomizePanel(line)
+        return
+      }
+    }
+
     this.clearButtons()
-    this.setWithoutExtra(false)
     this.setInfoBoxText('Welche Extras möchten Sie hinzufügen?')
     this._functionBlockLabel = 'Extras auswählen'
 
@@ -1241,24 +1274,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         this.setProductButtonsByGroupId(groupId)
       },
     })
-    this.functionButtons.push({
-      _id: this._withoutExtraId,
-      externalId: this.#functionButtonExternalId,
-      locationId: this.userService.currentUser()?.activeLocationId || '',
-      tenantId: this.authService.tenantId()?.toString() || '',
-      name: 'OHNE',
-      index: -1,
-      isFunctionButton: true,
-      isExtra: true,
-      variant: 'skip',
-      icon: 'block',
-      pressed: false,
-      callback: () => {
-        if (this._isBlocked) return
-        this.toggleWithoutExtra()
-      },
-    })
-
     if (ids && ids.length > 0) {
       const extras: Array<PosProductButton> = []
 
@@ -1271,11 +1286,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
           extra.callback = (): void => {
             if (this._isBlocked && !unblock) return
 
-            if (this._withoutExtra) {
-              this.decreaseExtra(extra)
-            } else {
-              this.increaseExtra(extra)
-            }
+            this.increaseExtra(extra)
           }
           extras.push(extra)
         }
@@ -1320,11 +1331,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
           if (!isModifierButton(extra)) extra.icon = 'warning'
           extra.callback = () => {
             if (this._isBlocked && !unblock) return
-            if (this._withoutExtra) {
-              this.decreaseExtra(extra)
-            } else {
-              this.increaseExtra(extra)
-            }
+            this.increaseExtra(extra)
           }
           this._productButtons.push(extra)
         }
@@ -1346,98 +1353,165 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         icon: 'check',
         callback: () => {
           if (this._isBlocked && !unblock) return
-          this._productButtons = []
-          this.setInfoBoxText('Welche Extras möchten Sie hinzufügen?')
-          this.productService.extras().forEach((product: ProductSchema): void => {
-            if ((product as any).excludedButtons && parentId && (product as any).excludedButtons.includes(parentId)) {
-              return
-            } else if (
-              (product as any).excludedSubButtons &&
-              externalId &&
-              (product as any).excludedSubButtons.includes(externalId)
-            ) {
-              return
-            } else {
-              // VM-Kopie statt Store-Referenz — der Dialog darf Cache-Objekte nicht mutieren
-              const extra = toPosButton(product)
-              extra.callback = () => {
-                if (this._isBlocked && !unblock) return
-                if (this._withoutExtra) {
-                  this.decreaseExtra(extra)
-                } else {
-                  this.increaseExtra(extra)
-                }
-              }
-              this._productButtons.push(extra)
-            }
-          })
+          this.#fillAllModifierButtons(parentId, externalId, unblock)
         },
       })
 
       this._lastParentId = parentId
     }
+  }
 
-    // Entfernbare Zutaten
-    let selectedArticleForIngredients: OrderLineItem | undefined
-    if (this._selectedProductIndex !== null) {
-      selectedArticleForIngredients = this.#lineItems[this._selectedProductIndex]
-    } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
-      selectedArticleForIngredients =
-        this.combinations[this._selectedCombinationIndex[0]][this._selectedCombinationIndex[1]]
-    }
-
-    if (selectedArticleForIngredients && selectedArticleForIngredients.ingredientReferences) {
-      const removableIngredients = selectedArticleForIngredients.ingredientReferences.filter(ing => ing.isRemovable)
-
-      removableIngredients.forEach(ing => {
-        const isRemoved = selectedArticleForIngredients!.modifiers.some(
-          e => e.externalId === ing.externalId && e.name.startsWith('Ohne '),
-        )
-
-        const button: PosButton = {
-          _id: (ing.externalId || '').toString(),
-          externalId: ing.externalId,
-          name: ing.ingredientName,
-          pressed: !isRemoved,
-          itemType: ItemType.extra,
-          price: ing.priceAdjustment || 0,
-          productGroupExternalId: this._extraTopic,
+  /** Alle Modifier des Katalogs als Raster — ohne die für diese Zeile ausgeschlossenen. */
+  #fillAllModifierButtons(parentId: UUID | null | undefined, externalId: UUID | null | undefined, unblock: boolean) {
+    this._productButtons = []
+    this.setInfoBoxText('Welche Extras möchten Sie hinzufügen?')
+    this.productService.extras().forEach((product: ProductSchema): void => {
+      if ((product as any).excludedButtons && parentId && (product as any).excludedButtons.includes(parentId)) {
+        return
+      } else if (
+        (product as any).excludedSubButtons &&
+        externalId &&
+        (product as any).excludedSubButtons.includes(externalId)
+      ) {
+        return
+      } else {
+        // VM-Kopie statt Store-Referenz — der Dialog darf Cache-Objekte nicht mutieren
+        const extra = toPosButton(product)
+        extra.callback = () => {
+          if (this._isBlocked && !unblock) return
+          this.increaseExtra(extra)
         }
+        this._productButtons.push(extra)
+      }
+    })
+  }
 
-        button.callback = () => {
-          this.toggleRemovableIngredient(ing, selectedArticleForIngredients!, button)
-        }
+  // ──────────────────────────────────────────────────────────────────────
+  // Anpassen-Panel (#639)
+  // ──────────────────────────────────────────────────────────────────────
 
-        this._productButtons.push(button)
-      })
+  /** Katalogprodukt einer Zeile — `externalId` zuerst, `_id` nur für Bestandszeilen (siehe BundleFlow). */
+  #productOfLine(line: OrderLineItem): ProductSchema | undefined {
+    return (
+      (line.externalId ? this.productService.findProductByExternalId(line.externalId) : undefined) ??
+      this.productService.findProductById(line._id)
+    )
+  }
+
+  /** Bundles laufen durch ihren eigenen Flow — ihre Optionsgruppen sind Menüschritte, keine Extras. */
+  #canCustomize(line: OrderLineItem): boolean {
+    const product = this.#productOfLine(line)
+    return !!product && hasCustomizableContent(product) && !this.#bundleFlow.isBundleProduct(product)
+  }
+
+  /**
+   * Die Auswahl hat gewechselt, während das Panel offen war (Kombinations-Position, Pfeile).
+   * Das Panel zieht mit, statt die alte Zeile zu zeigen — sonst landeten Zutaten und Extras
+   * auf zwei verschiedenen Zeilen. Ist die neue Auswahl nicht anpassbar, schließt es; die
+   * Auswahl selbst bleibt stehen.
+   */
+  #followSelectionInPanel(): void {
+    if (!this.#customizeLine) return
+    const line = this.getCurrentSelectedLineItem()
+    if (line === this.#customizeLine) return
+    if (line && this.#canCustomize(line)) {
+      this.openCustomizePanel(line)
+    } else {
+      this.clearButtons()
+      this.setInfoBoxText('Bitte wählen Sie eine Produktkategorie')
     }
   }
 
-  toggleRemovableIngredient(ingredient: any, lineItem: OrderLineItem, button: PosButton) {
-    if (button.pressed) {
-      button.pressed = false
-      lineItem.modifiers.push({
-        _id: (ingredient.externalId || 'temp_id_' + Date.now()).toString(),
-        externalId: ingredient.externalId,
-        name: 'Ohne ' + ingredient.ingredientName,
-        amount: 1,
-        price: ingredient.priceAdjustment || 0,
-        parentId: lineItem.externalId,
-        taxInside: lineItem.taxInside,
-        taxOutside: lineItem.taxOutside,
-        topic: this._extraTopic,
-        recipeReferences: [],
-        ingredientReferences: [],
-      })
-    } else {
-      button.pressed = true
-      const extraIndex = lineItem.modifiers.findIndex(
-        e => e.externalId === ingredient.externalId && e.name.startsWith('Ohne '),
-      )
-      if (extraIndex !== -1) {
-        lineItem.modifiers.splice(extraIndex, 1)
-      }
+  /** Zeigt statt des Rasters das Panel für die Zeile; merkt sich deren Modifier für „Abbrechen". */
+  openCustomizePanel(line: OrderLineItem): void {
+    this.clearButtons()
+    this.#customizeLine = line
+    this.#customizeSnapshot = line.modifiers.map(mod => ({ ...mod }))
+    this.setInfoBoxText(`${line.name} anpassen`)
+    this.#refreshCustomize()
+  }
+
+  /**
+   * Neues Modell für die angepasste Zeile — nach jeder Bedienung im Panel und nach jeder
+   * Änderung von außen (Menge in Spalte 2, Undo, Löschen). Gibt es die Zeile nicht mehr,
+   * schließt das Panel.
+   */
+  #refreshCustomize(): void {
+    const line = this.#customizeLine
+    if (!line) return
+    if (!this.#lineItems.includes(line)) {
+      this.#closeCustomize()
+      return
     }
+    this.customizeModel.set(
+      buildCustomizeModel(line, this.#productOfLine(line), {
+        findProductById: id => this.productService.findProductById(id),
+        isModifier: product => isModifierButton(product),
+      }),
+    )
+    this.#cdr.markForCheck()
+  }
+
+  onCustomizeIngredientToggled(ingredientExternalId: string): void {
+    const line = this.#customizeLine
+    const ingredient = line?.ingredientReferences.find(
+      ing => ing.externalId === ingredientExternalId && ing.isRemovable,
+    )
+    if (!line || !ingredient) return
+    toggleIngredientRemoval(line, ingredient, this._extraTopic)
+    this.#refreshCustomize()
+  }
+
+  onCustomizeOptionIncreased(event: CustomizeOptionEvent): void {
+    const line = this.#customizeLine
+    const product = this.productService.findProductById(event.productId)
+    const group = this.customizeModel()?.groups.find(g => g.name === event.groupName)
+    if (!line || !product || !group || group.full) return
+    this.increaseExtra(toPosButton(product), event.groupName, line)
+    this.#refreshCustomize()
+  }
+
+  onCustomizeOptionDecreased(event: CustomizeOptionEvent): void {
+    const line = this.#customizeLine
+    const product = this.productService.findProductById(event.productId)
+    if (!line || !product) return
+    this.decreaseExtra(toPosButton(product), event.groupName, line)
+    this.#refreshCustomize()
+  }
+
+  onCustomizeFinished(): void {
+    if (!this.customizeModel()?.canFinish) return
+    this.#closeCustomize()
+  }
+
+  onCustomizeCancelled(): void {
+    const line = this.#customizeLine
+    if (line) line.modifiers = this.#customizeSnapshot
+    this.#closeCustomize()
+  }
+
+  /** Das Raster mit allen Modifiern — für Extras, die nicht in den Optionsgruppen des Produkts stehen. */
+  onCustomizeShowAllModifiers(): void {
+    const line = this.#customizeLine
+    if (!line) return
+    this.setExtraSubButtons(undefined, line.parentId, false, true)
+    this.#fillAllModifierButtons(line.parentId, line.externalId, false)
+  }
+
+  /** Zurück zum Raster der Produktgruppe, aus der die Zeile stammt — wie ABBRUCH im Extras-Raster. */
+  #closeCustomize(): void {
+    const groupId = this.#customizeLine?.parentId
+    this.clearButtons()
+    this.setProductButtonsByGroupId(groupId)
+  }
+
+  /** Abgewählte Zutat („Ohne X") — der Warenkorb zeigt sie als „ohne", nicht als „1x Ohne X". */
+  isRemovedIngredient(extra: { name: string; amount: number }): boolean {
+    return extra.amount > 0 && extra.name.startsWith(REMOVED_INGREDIENT_PREFIX)
+  }
+
+  removedIngredientName(extra: { name: string }): string {
+    return extra.name.slice(REMOVED_INGREDIENT_PREFIX.length)
   }
 
   setSauceSubButtons(ids: Array<string> | undefined = undefined, isInclusive = false, currentIndex = 0) {
@@ -1731,6 +1805,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   increaseQuantity(orderLineItem: OrderLineItem): void {
     orderLineItem.amount++
+    this.#refreshCustomize()
   }
 
   /**
@@ -1741,6 +1816,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   decreaseQuantity(orderLineItem: OrderLineItem): void {
     if (orderLineItem.amount > 1) orderLineItem.amount--
+    this.#refreshCustomize()
   }
 
   /**
@@ -1810,6 +1886,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     const restore = this.#removeLineItems(targets)
     this._selectedProductIndex = null
     this._selectedCombinationIndex = [null, null]
+    this.#refreshCustomize()
 
     const message = wholeCombination ? 'Kombination gelöscht' : `Gelöscht: ${targets[0].amount}× ${targets[0].name}`
     this.#offerUndo(message, restore)
@@ -1825,6 +1902,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       // Nur Zeilen, die es noch gibt — eine inzwischen gelöschte bleibt gelöscht.
       if (this.#lineItems.includes(item)) item.amount = amount
     }
+    this.#refreshCustomize()
   }
 
   /**
@@ -1933,7 +2011,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.#undoRef = null
   }
 
-  increaseExtra(article: PosProductButton, topic: string | undefined = undefined) {
+  increaseExtra(article: PosProductButton, topic: string | undefined = undefined, target?: OrderLineItem) {
     // Beide Rückwege melden seit #273, statt still zu enden: Ein Tap auf eine
     // Kachel, der nichts tut und nichts sagt, liest sich in der Filiale als
     // „die Kasse hängt" (dieselbe Regel wie ADR 0034, vgl. #269/#271).
@@ -1942,8 +2020,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       return
     }
 
+    // `target`: das Panel bucht auf seine Zeile, nicht auf die Auswahl (#639).
     let selectedArticle: OrderLineItem
-    if (this._selectedProductIndex !== null) {
+    if (target) {
+      selectedArticle = target
+    } else if (this._selectedProductIndex !== null) {
       selectedArticle = this.#lineItems[this._selectedProductIndex]
     } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
       selectedArticle = this.combinations[this._selectedCombinationIndex[0]][this._selectedCombinationIndex[1]]
@@ -1986,16 +2067,23 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  decreaseExtra(article: PosProductButton) {
-    // Seit #273 dieselbe Erkennung wie im PLUS-Modus (vorher ohne die
-    // Legacy-Flags) und dieselbe Meldung statt des stillen Rückwegs.
+  /**
+   * Nimmt ein gebuchtes Extra um eins zurück. Ist es nicht gebucht, passiert nichts —
+   * den Marker „OHNE <Extra>" (`amount −1`) legt der Dialog seit #639 nicht mehr an.
+   * Bestandsbestellungen tragen ihn weiter, Schema und Bon lesen ihn deshalb noch.
+   */
+  decreaseExtra(article: PosProductButton, topic: string | undefined = undefined, target?: OrderLineItem) {
+    // Seit #273 dieselbe Erkennung wie im PLUS-Modus und dieselbe Meldung statt des stillen Rückwegs.
     if (!isModifierButton(article)) {
       this.setInfoBoxText(extraNotModifierMessage(article), 'red')
       return
     }
 
+    // `target`: das Panel bucht auf seine Zeile, nicht auf die Auswahl (#639).
     let selectedArticle: OrderLineItem
-    if (this._selectedProductIndex !== null) {
+    if (target) {
+      selectedArticle = target
+    } else if (this._selectedProductIndex !== null) {
       selectedArticle = this.#lineItems[this._selectedProductIndex]
     } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
       selectedArticle = this.combinations[this._selectedCombinationIndex[0]][this._selectedCombinationIndex[1]]
@@ -2003,36 +2091,19 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       this.setInfoBoxText(LINE_DISCOUNT_BLOCKED_NO_SELECTION, 'red')
       return
     }
-    const extraTopic = this._extraTopic
-    const extraIndex = selectedArticle.modifiers.findIndex(extra => extra._id === article._id)
-    if (extraIndex === -1) {
-      selectedArticle.modifiers.push({
-        _id: article._id,
-        externalId: article.externalId ?? '',
-        amount: -1,
-        name: article.name,
-        parentId: selectedArticle.externalId ?? undefined,
-        price: article.price || 0,
-        ingredientReferences: (article as any).ingredientReferences || [],
-        recipeReferences: article.recipeReferences || [],
-        taxInside: article.taxInside || 19,
-        taxOutside: article.taxOutside || 19,
-        topic: extraTopic,
-      })
+    const extraTopic = topic !== undefined ? topic : this._extraTopic
+    const extraIndex = selectedArticle.modifiers.findIndex(extra => extra._id === article._id && extra.amount > 0)
+    if (extraIndex === -1) return
+    if (selectedArticle.modifiers[extraIndex].amount > 1) {
+      selectedArticle.modifiers[extraIndex].amount -= 1
     } else {
-      if (selectedArticle.modifiers[extraIndex].amount > 1) {
-        selectedArticle.modifiers[extraIndex].amount -= 1
-      } else if (selectedArticle.modifiers[extraIndex].amount === 1) {
-        selectedArticle.modifiers.splice(extraIndex, 1)
-      }
+      selectedArticle.modifiers.splice(extraIndex, 1)
     }
     // HIGHEST: nach Entfernen/Reduzieren kann sich der Sieger verschieben → neu bewerten.
     const group = this.#bundleFlow.findOptionGroupByTopic(selectedArticle, extraTopic)
     if (group?.pricingMode === 'HIGHEST') {
       this.#bundleFlow.applyHighestPricingToGroup(selectedArticle, extraTopic, group.freeQuantity || 0)
     }
-    this.setWithoutExtra(false)
-    this.setInfoBoxText('Extras auswählen ...', 'lightgray')
   }
 
   // ──────────────────────────────────────────────────────────────────────
@@ -2250,6 +2321,10 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // `externalId` zu einer einzigen Warenkorbzeile zusammen. Eine zweite Zeile ist
     // hier der harmlosere Ausgang.
     const productKey = orderLineItem.externalId
+    // Öffnet das Produkt das Panel von selbst (#639), bekommt jeder Tap eine eigene Zeile:
+    // „ein Burger ohne Ketchup, einer normal" braucht zwei Zeilen, und eine Anpassung an einer
+    // zusammengelegten Zeile träfe alle Stück. Der Multiplikator bleibt eine Zeile mit Menge.
+    const autoCustomize = !isBundle && opensCustomizeAutomatically(product)
 
     const selectedCombination = this._selectedCombinationIndex[0]
     const bundleNumber = selectedCombination !== null ? this.#bundleNumberOfCombination(selectedCombination) : null
@@ -2268,7 +2343,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       // Kombination bleibt unberührt: Sie gehört nicht zum Menü.
       const bundle = this.combinations[selectedCombination]
       const existingInBundle = productKey ? bundle.find(item => item.externalId === productKey) : undefined
-      if (!isBundle && existingInBundle) {
+      if (!isBundle && !autoCustomize && existingInBundle) {
         return this.increaseQuantity(existingInBundle)
       }
 
@@ -2285,6 +2360,10 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         if (firstGroup) {
           this.showOptionGroupButtons(firstGroup, product)
         }
+      } else if (autoCustomize) {
+        this._selectedProductIndex = null
+        this._selectedCombinationIndex = [selectedCombination, index]
+        this.openCustomizePanel(orderLineItem)
       } else if ((product as any).nextProductGroupExternalId !== undefined) {
         this.setSuccessorSubButtons(product)
       }
@@ -2295,7 +2374,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       if (selectedCombination !== null) this._selectedCombinationIndex = [null, null]
 
       const existing = productKey ? this.#lineItems.find(item => item.externalId === productKey) : undefined
-      if (!isBundle && existing) {
+      if (!isBundle && !autoCustomize && existing) {
         return this.increaseQuantity(existing)
       }
 
@@ -2311,6 +2390,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         if (firstGroup) {
           this.showOptionGroupButtons(firstGroup, product)
         }
+      } else if (autoCustomize) {
+        this._selectedProductIndex = index
+        this.openCustomizePanel(orderLineItem)
       }
     }
   }
@@ -2856,31 +2938,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this._priceVisibility = !this._priceVisibility
   }
 
-  toggleWithoutExtra() {
-    if (this._withoutExtra) {
-      this.setWithoutExtra(false)
-      this.setInfoBoxText('Mit ausgewählt!')
-    } else {
-      this.setWithoutExtra(true)
-      this.setInfoBoxText('Ohne ausgewählt!')
-    }
-  }
-
-  /**
-   * Einzige Schreibstelle für den Ohne-Modus: hält den pressed-Zustand der
-   * OHNE-Funktionstaste synchron (auch beim Auto-Reset in decreaseExtra).
-   */
-  private setWithoutExtra(value: boolean): void {
-    this._withoutExtra = value
-    const withoutButton = this._functionButtons.find(button => button._id === this._withoutExtraId)
-    if (withoutButton) withoutButton.pressed = value
-    this.#cdr.markForCheck()
-  }
-
   /**
    * Farbcodierung der Funktionstasten nach Wirkung (code-style.md §9):
    * cancel=Rot (verwirft), skip=Amber (lässt weg), confirm=Teal (übernimmt).
-   * Getönte Fläche + farbiger Rahmen statt Vollton; pressed nur beim OHNE-Toggle.
+   * Getönte Fläche + farbiger Rahmen statt Vollton; pressed nur für echte Toggles
+   * (bis #639 die OHNE-Taste, derzeit keine — die Klasse bleibt für den nächsten).
    */
   functionButtonClasses(button: PosButton): string {
     switch (button.variant) {

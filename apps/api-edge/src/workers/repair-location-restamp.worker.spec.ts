@@ -165,4 +165,15 @@ describe('runLocationRestampRepair', () => {
       newLocationId: CLOUD_LOCATION,
     })
   })
+
+  it('ueberspringt ohne jeden Mandanten, statt bei jedem Start am Restamp zu scheitern', async () => {
+    vi.mocked(applyCloudTenantId).mockClear()
+    const { app, removedCursors } = makeApp({
+      connection: pairedConnection({ tenantId: null, preflightSnapshot: { cloudLocationId: CLOUD_LOCATION } }),
+      locations: [{ _id: GHOST_LOCATION, tenantId: null }],
+    })
+    await runLocationRestampRepair(app)
+    expect(applyCloudTenantId).not.toHaveBeenCalled()
+    expect(removedCursors).toEqual([])
+  })
 })

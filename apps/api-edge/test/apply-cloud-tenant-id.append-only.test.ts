@@ -408,6 +408,90 @@ describe('applyCloudTenantId — Fallmatrix gegen die migrierte SQLite', () => {
     })
   })
 
+  it('Erst-Pairing mit Standortwechsel: Zeilen eines fremden Mandanten wandern nicht mit', async () => {
+    const { knex, app } = openEdgeDb()
+    const cloudTenant = uuidv7()
+    const oldLocation = uuidv7()
+    const newLocation = uuidv7()
+    const s = await seedEdge(knex, uuidv7(), oldLocation)
+    const unowned = uuidv7()
+    await knex('products').insert({
+      _id: unowned,
+      tenantId: null,
+      locationId: oldLocation,
+      name: 'Ohne',
+      acronym: 'OH',
+    })
+
+    await applyCloudTenantId(app, {
+      oldTenantId: null,
+      newTenantId: cloudTenant,
+      oldLocationId: oldLocation,
+      newLocationId: newLocation,
+    })
+
+    expect(await knex('products').where({ _id: unowned }).first()).toMatchObject({
+      tenantId: cloudTenant,
+      locationId: newLocation,
+    })
+    // seedEdge legt Bestand unter einem bereits gesetzten Mandanten an — der gehoert nicht zum Restamp.
+    expect(await knex('products').where({ _id: s.productHome }).first()).toMatchObject({ locationId: oldLocation })
+    expect(await knex('products').where({ _id: s.foreignProduct }).first()).toMatchObject({ locationId: oldLocation })
+    expect(await knex('order-references').where({ _id: s.orderRef }).first()).toMatchObject({
+      locationId: oldLocation,
+    })
+  })
+
+  it('erkennt Waechter generisch: neue Journal-Tabelle folgt, andere Trigger und Array-Kopien bleiben', async () => {
+    const { knex, app } = openEdgeDb()
+    const edgeTenant = uuidv7()
+    const cloudTenant = uuidv7()
+    const oldLocation = uuidv7()
+    const newLocation = uuidv7()
+    await seedEdge(knex, edgeTenant, oldLocation)
+    // Eine kuenftige Journal-Tabelle, die keine Liste im Code kennt.
+    await knex.schema.raw(
+      `CREATE TABLE "zz-journal" (_id TEXT PRIMARY KEY, tenantId TEXT NOT NULL, locationId TEXT NOT NULL,
+        snapLocationId TEXT, snapLocationIds TEXT)`,
+    )
+    await knex.schema.raw(`CREATE TABLE "zz-journal-log" (n INTEGER)`)
+    await knex.schema.raw(
+      `CREATE TRIGGER zz_journal_no_update BEFORE UPDATE ON "zz-journal" BEGIN SELECT RAISE(FAIL, 'zz-journal ist append-only — UPDATE nicht erlaubt'); END;`,
+    )
+    // Kein Waechter: zaehlt nur mit. Er darf weder entfernt noch veraendert werden.
+    await knex.schema.raw(
+      `CREATE TRIGGER zz_journal_count AFTER INSERT ON "zz-journal" BEGIN INSERT INTO "zz-journal-log" (n) VALUES (1); END;`,
+    )
+    await knex('zz-journal').insert({
+      _id: 'j-1',
+      tenantId: edgeTenant,
+      locationId: oldLocation,
+      snapLocationId: oldLocation,
+      snapLocationIds: JSON.stringify([oldLocation]),
+    })
+    const triggersBefore = await triggerSql(knex)
+
+    const result = await applyCloudTenantId(app, {
+      oldTenantId: edgeTenant,
+      newTenantId: cloudTenant,
+      oldLocationId: oldLocation,
+      newLocationId: newLocation,
+    })
+
+    expect(result.affectedTables).toContain('zz-journal')
+    expect(await knex('zz-journal').where({ _id: 'j-1' }).first()).toEqual({
+      _id: 'j-1',
+      tenantId: cloudTenant,
+      locationId: newLocation,
+      snapLocationId: oldLocation,
+      snapLocationIds: JSON.stringify([oldLocation]),
+    })
+    expect(await triggerSql(knex)).toEqual(triggersBefore)
+    await expect(knex('zz-journal').where({ _id: 'j-1' }).update({ locationId: 'x' })).rejects.toThrow(
+      /zz-journal ist append-only/,
+    )
+  })
+
   it('verweigert einen leeren Ziel-Mandanten, statt mandantenlose Zeilen auf "" zu stempeln', async () => {
     const { knex, app } = openEdgeDb()
     const unowned = uuidv7()

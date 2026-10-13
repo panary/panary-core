@@ -92,7 +92,9 @@ Outbox-Replay müssen sie annehmen.
 
 ## Folgearbeiten
 
-- Verbrauch: Eine abgewählte Zutat wird heute noch voll verbucht
-  ([#640](https://github.com/panary/panary-core/issues/640)).
+- Verbrauch: Seit [#640](https://github.com/panary/panary-core/issues/640) verbucht der
+  Wareneinsatz eine abgewählte Zutat nicht mehr (Feld `removesIngredientExternalId`, siehe
+  [Verbrauchs-Explosion](verbrauchs-explosion.md)). In der Cloud wirkt das erst nach dem Pin-Bump
+  ([panary/panary-cloud#1103](https://github.com/panary/panary-cloud/issues/1103)).
 - Storefront: Zutaten-Abwahl bei der Online-Bestellung, hinter Feature-Flag
   ([panary/panary-cloud#1104](https://github.com/panary/panary-cloud/issues/1104)).

@@ -4,7 +4,7 @@ title: Verbrauchs-Explosion (computeCogs / explodeOrderConsumption)
 description: 'Single Source of Truth der Material-Verbrauchsrechnung: explodeOrderConsumption und computeCogs zerlegen Orders proportional in Zutatenverbrauch, bewusst ohne Einheiten-Umrechnung.'
 tags: [businessdays, orders, recipes, ingredients, inventory]
 status: stable
-generated: { by: claude-code/historic, at: 2026-05-22T00:00:00Z }
+generated: { by: claude-code/opus-5, at: 2026-10-13T21:00:00Z }
 ---
 
 # Verbrauchs-Explosion — `@panary/businessdays/aggregator`
@@ -81,6 +81,23 @@ Verbrauch je Rezept-Zutat
 
 Zutaten mit diesem Flag zählen nur bei `order.dineLocation !== 'dine-in'`
 (Außer-Haus, z. B. Tüten/Verpackung). Greift in allen drei Pfaden.
+
+### Abgewählte Zutaten (`removesIngredientExternalId`)
+
+Seit [#640](https://github.com/panary/panary-core/issues/640) verbucht `explodeOrderConsumption`
+eine am POS abgewählte Zutat nicht mehr. Der Modifier „Ohne X" (siehe
+[POS-Anpassen-Panel](pos-anpassen-panel.md)) trägt `removesIngredientExternalId`, also die
+`externalId` der `ingredientReference` der Position. Genau diese Referenz überspringt der Pfad
+der direkten Zutaten. Die übrigen Zutaten der Position zählen voll.
+
+- **Verglichen wird die `externalId` der Referenz**, nicht `ingredientId`. In echten Daten
+  unterscheiden sich beide, und der POS schreibt die `externalId` in den Modifier.
+- **Die Abwahl gilt für alle Stück der Zeile.** „3× Burger ohne Ketchup" verbucht null Ketchup.
+- **Nur direkte `ingredientReferences`** sind abwählbar. Rezept-Zutaten
+  (`recipeReferences[].recipeIngredients`) tragen kein `isRemovable`, das der POS auswertet.
+- **Bestandsbestellungen** mit einem „Ohne X"-Modifier ohne das Feld verbuchen weiter wie vorher.
+  Das Namenspräfix wird bewusst nicht ausgewertet, damit sich alte Tagesabschlüsse beim
+  Neuberechnen nicht verschieben.
 
 ### Ausschlüsse (`computeCogs`, via `isRegularSale`)
 

@@ -41,6 +41,7 @@ lässt danach den regulären Zyklus laufen:
   dieselbe Wirkung wie beim Erst-Sync. Die Rückfrage im Admin-Panel nennt sie.
 - **Scheitert der Zyklus** (offline, Rate-Limit), bleibt der Cursor gelöscht. Der nächste reguläre Tick holt
   den Voll-Pull nach, `lastError` meldet den Grund.
+- **Im Admin-Panel** steht die Aktion im ⋯-Menü neben „Jetzt synchronisieren“, nicht als gleichrangiger Knopf: Sie ist ein seltener Reparaturweg ([#673](https://github.com/panary/panary-core/issues/673)).
 - **Rechte:** auf `UPDATE` gemappt wie `syncNow`, also Inhaber und Techniker (beide `MANAGE` auf
   `cloud-connection`). Der Filialleiter hat dort keine Rechte; Entscheidung Michael 2026-10-11, keine
   Matrix-Änderung.

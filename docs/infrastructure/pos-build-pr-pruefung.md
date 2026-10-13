@@ -121,7 +121,8 @@ nur Wartezeit.
   Tauri-Abhängigkeit mit Caret-Range öffnet die Lücke wieder. Seit #561 gilt das auch für das
   transitive `@tauri-apps/api`: Es kommt über `@tauri-apps/plugin-updater` ohne Obergrenze und
   löste bei der Neuauflösung auf 2.12 auf, während `Cargo.lock` `tauri` 2.11 hält. Ein Override
-  `~2.11.1` in `pnpm.overrides` hält es auf der Minor-Version der Crate. Ein Tauri-Minor-Upgrade
+  in `pnpm.overrides` hält es auf der Minor-Version der Crate, seit dem Sammel-Bump vom
+  2026-10-13 `~2.12.1` zu `tauri` 2.12 (vorher `~2.11.1`). Ein Tauri-Minor-Upgrade
   hebt Crate, Plugins und diesen Override im selben PR. Die lokale Neuauflösungs-Probe vor jedem
   `pos-v*` bleibt Pflicht, sie hat beide Fälle gefunden.
 - **Signierung, Updater-`latest.json`, Stückliste, Installation auf dem Gerät.** Das bleibt

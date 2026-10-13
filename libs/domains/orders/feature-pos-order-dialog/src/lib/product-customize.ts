@@ -71,10 +71,24 @@ export function opensCustomizeAutomatically(product: ProductSchema): boolean {
   return product.ui?.showOptionsAuto === true && hasCustomizableContent(product)
 }
 
-export function isIngredientRemoved(lineItem: OrderLineItem, ingredientExternalId: string): boolean {
-  return lineItem.modifiers.some(
-    mod => mod.externalId === ingredientExternalId && mod.name.startsWith(REMOVED_INGREDIENT_PREFIX),
+/**
+ * Ist dieser Modifier die Abwahl einer Zutat? Seit #640 trägt er `removesIngredientExternalId`.
+ * Der Rückfall auf Präfix + `externalId` deckt Zeilen, die vor dem Feld angelegt wurden.
+ */
+export function isRemovalModifier(mod: OrderLineItem['modifiers'][number]): boolean {
+  return !!mod.removesIngredientExternalId || mod.name.startsWith(REMOVED_INGREDIENT_PREFIX)
+}
+
+function removalIndex(lineItem: OrderLineItem, ingredientExternalId: string): number {
+  return lineItem.modifiers.findIndex(
+    mod =>
+      mod.removesIngredientExternalId === ingredientExternalId ||
+      (mod.externalId === ingredientExternalId && mod.name.startsWith(REMOVED_INGREDIENT_PREFIX)),
   )
+}
+
+export function isIngredientRemoved(lineItem: OrderLineItem, ingredientExternalId: string): boolean {
+  return removalIndex(lineItem, ingredientExternalId) !== -1
 }
 
 /**
@@ -86,9 +100,7 @@ export function toggleIngredientRemoval(
   ingredient: Pick<IngredientReference, 'externalId' | 'ingredientName' | 'priceAdjustment'>,
   topic: string,
 ): boolean {
-  const index = lineItem.modifiers.findIndex(
-    mod => mod.externalId === ingredient.externalId && mod.name.startsWith(REMOVED_INGREDIENT_PREFIX),
-  )
+  const index = removalIndex(lineItem, ingredient.externalId)
   if (index !== -1) {
     lineItem.modifiers.splice(index, 1)
     return false
@@ -105,6 +117,7 @@ export function toggleIngredientRemoval(
     topic,
     recipeReferences: [],
     ingredientReferences: [],
+    removesIngredientExternalId: ingredient.externalId,
   })
   return true
 }
@@ -112,7 +125,7 @@ export function toggleIngredientRemoval(
 /** Gebuchte Menge eines Options-Produkts auf der Zeile — Bestands-Marker mit `amount −1` zählen nicht. */
 function amountOf(lineItem: OrderLineItem, productId: string): number {
   return lineItem.modifiers
-    .filter(mod => mod._id === productId && !mod.name.startsWith(REMOVED_INGREDIENT_PREFIX))
+    .filter(mod => mod._id === productId && !isRemovalModifier(mod))
     .reduce((sum, mod) => sum + Math.max(0, mod.amount), 0)
 }
 

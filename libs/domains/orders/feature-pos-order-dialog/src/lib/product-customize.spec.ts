@@ -121,6 +121,7 @@ describe('toggleIngredientRemoval', () => {
         topic: 'Extras',
         recipeReferences: [],
         ingredientReferences: [],
+        removesIngredientExternalId: KETCHUP,
       },
     ])
 
@@ -133,6 +134,27 @@ describe('toggleIngredientRemoval', () => {
     toggleIngredientRemoval(item, ingredient(KETCHUP, 'Ketchup'), 'Extras')
     toggleIngredientRemoval(item, ingredient(KETCHUP, 'Ketchup'), 'Extras')
     expect(item.modifiers.map(m => m.name)).toEqual(['Käse'])
+  })
+})
+
+describe('Abwahl-Modifier ohne Feld (vor #640 angelegt)', () => {
+  it('wird erkannt und lässt sich zurücknehmen', () => {
+    const item = line({
+      modifiers: [{ _id: KETCHUP, externalId: KETCHUP, name: 'Ohne Ketchup', amount: 1, price: 0 }] as never,
+    })
+    expect(buildCustomizeModel(item, product(), catalog).ingredients[0].removed).toBe(true)
+
+    expect(toggleIngredientRemoval(item, ingredient(KETCHUP, 'Ketchup'), 'Extras')).toBe(false)
+    expect(item.modifiers).toEqual([])
+  })
+
+  it('ein Modifier mit dem Feld wird auch ohne Präfix im Namen erkannt', () => {
+    const item = line({
+      modifiers: [
+        { _id: 'x', externalId: 'x', name: 'Kein Ketchup', amount: 1, price: 0, removesIngredientExternalId: KETCHUP },
+      ] as never,
+    })
+    expect(buildCustomizeModel(item, product(), catalog).ingredients[0].removed).toBe(true)
   })
 })
 

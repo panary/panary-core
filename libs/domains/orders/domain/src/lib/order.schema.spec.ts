@@ -97,6 +97,25 @@ describe('modifierLineItemSchema — Abzug via priceAdjustment', () => {
   })
 })
 
+describe('modifierLineItemSchema — Zutaten-Abwahl (removesIngredientExternalId, #640)', () => {
+  // Das Modifier-Schema ist offen (kein additionalProperties: false). Ein Positivfall allein
+  // bewiese also nichts — erst die Ablehnung eines Nicht-UUID-Werts zeigt, dass das Feld
+  // tatsächlich deklariert ist.
+  it('akzeptiert die externalId der abgewählten Zutat', () => {
+    expect(Value.Check(modifierLineItemSchema, { ...modifier(1), removesIngredientExternalId: UUID.product })).toBe(
+      true,
+    )
+  })
+
+  it('lehnt einen Wert ab, der keine UUID ist', () => {
+    expect(Value.Check(modifierLineItemSchema, { ...modifier(1), removesIngredientExternalId: 'Ketchup' })).toBe(false)
+  })
+
+  it('bleibt optional — Bestands-Modifier ohne das Feld sind gültig', () => {
+    expect(Value.Check(modifierLineItemSchema, modifier(1))).toBe(true)
+  })
+})
+
 describe('orderLineItemSchema', () => {
   it('akzeptiert eine Position mit „OHNE"-Modifier (amount −1)', () => {
     expect(Value.Check(orderLineItemSchema, lineItem({ modifiers: [modifier(-1)] }))).toBe(true)

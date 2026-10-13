@@ -132,6 +132,106 @@ describe('computeCogs — Verbrauchsmathematik', () => {
     })
   })
 
+  describe('Abgewählte Zutaten (removesIngredientExternalId, #640)', () => {
+    // Referenz wie im echten Katalog: `ingredientId` UND eine davon verschiedene
+    // `externalId` der Referenz. Der POS schreibt die `externalId` in den Modifier.
+    const REF_KETCHUP = '00000000-0000-7000-8000-ffffffffff01'
+    const REF_CHEESE = '00000000-0000-7000-8000-ffffffffff02'
+    const ketchupRef = () =>
+      ({
+        ingredientId: ING_SAUCE,
+        externalId: REF_KETCHUP,
+        quantity: 20,
+        unit: 'g',
+        ingredientName: 'Ketchup',
+      }) as never
+    const cheeseRef = () =>
+      ({ ingredientId: ING_CHEESE, externalId: REF_CHEESE, quantity: 30, unit: 'g', ingredientName: 'Käse' }) as never
+    const ohne = (refExternalId: string, over: Record<string, unknown> = {}) =>
+      ({
+        _id: refExternalId,
+        externalId: refExternalId,
+        name: 'Ohne Ketchup',
+        amount: 1,
+        price: 0,
+        ingredientReferences: [],
+        recipeReferences: [],
+        removesIngredientExternalId: refExternalId,
+        ...over,
+      }) as never
+
+    function usage(item: OrderLineItem): Map<string, number> {
+      const { lines } = explodeOrderConsumption(makeRegularOrder([item]), new Map())
+      return new Map(lines.map(l => [l.ingredientId, l.quantityUsed]))
+    }
+
+    it('verbucht die abgewählte Zutat nicht, die übrigen voll', () => {
+      const byId = usage(
+        makeLineItem({ amount: 1, ingredientReferences: [ketchupRef(), cheeseRef()], modifiers: [ohne(REF_KETCHUP)] }),
+      )
+      expect(byId.has(ING_SAUCE)).toBe(false)
+      expect(byId.get(ING_CHEESE)).toBeCloseTo(30, 9)
+    })
+
+    it('ohne Abwahl wird die Zutat verbucht (Vergleichsposition)', () => {
+      const byId = usage(makeLineItem({ amount: 1, ingredientReferences: [ketchupRef(), cheeseRef()] }))
+      expect(byId.get(ING_SAUCE)).toBeCloseTo(20, 9)
+    })
+
+    it('die Abwahl gilt für alle Stück der Zeile (Menge 3)', () => {
+      const byId = usage(
+        makeLineItem({ amount: 3, ingredientReferences: [ketchupRef(), cheeseRef()], modifiers: [ohne(REF_KETCHUP)] }),
+      )
+      expect(byId.has(ING_SAUCE)).toBe(false)
+      expect(byId.get(ING_CHEESE)).toBeCloseTo(90, 9)
+    })
+
+    it('eine Abwahl, die keine Referenz der Zeile trifft, ändert nichts', () => {
+      const byId = usage(
+        makeLineItem({
+          amount: 1,
+          ingredientReferences: [ketchupRef()],
+          modifiers: [ohne('00000000-0000-7000-8000-ffffffffff99')],
+        }),
+      )
+      expect(byId.get(ING_SAUCE)).toBeCloseTo(20, 9)
+    })
+
+    it('ein Bestands-Modifier „Ohne X" ohne das Feld verbucht wie bisher', () => {
+      const byId = usage(
+        makeLineItem({
+          amount: 1,
+          ingredientReferences: [ketchupRef()],
+          modifiers: [ohne(REF_KETCHUP, { removesIngredientExternalId: undefined })],
+        }),
+      )
+      expect(byId.get(ING_SAUCE)).toBeCloseTo(20, 9)
+    })
+
+    it('die Abwahl vergleicht die externalId der Referenz, nicht die ingredientId', () => {
+      const byId = usage(
+        makeLineItem({ amount: 1, ingredientReferences: [ketchupRef()], modifiers: [ohne(ING_SAUCE)] }),
+      )
+      expect(byId.get(ING_SAUCE)).toBeCloseTo(20, 9)
+    })
+
+    it('fließt in computeCogs ein (Wareneinsatz ohne die abgewählte Zutat)', () => {
+      const order = makeRegularOrder([
+        makeLineItem({ amount: 2, ingredientReferences: [ketchupRef(), cheeseRef()], modifiers: [ohne(REF_KETCHUP)] }),
+      ])
+      const cogs = computeCogs(
+        [order],
+        new Map([
+          [ING_SAUCE, 5],
+          [ING_CHEESE, 2],
+        ]),
+        new Map(),
+      )
+      expect(cogs.consumptionLines.map(l => l.ingredientId)).toEqual([ING_CHEESE])
+      expect(cogs.totalFoodCostCents).toBe(120)
+    })
+  })
+
   describe('Rezeptreferenzen (recipeReferences)', () => {
     function pizzaRecipeMap(quantityPerOutputUnit = 0.05): RecipeIngredientMap {
       const ings: RecipeIngredientResolution[] = [

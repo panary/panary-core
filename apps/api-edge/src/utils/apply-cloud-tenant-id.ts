@@ -114,7 +114,7 @@ const updateGuardTriggers = async (knex: Knex, table: string): Promise<Array<{ n
  * geschrieben (#681 — ein `locationId = X where locationId = X` loeste den Append-only-
  * Trigger von `order-references` aus und rollte den ganzen Repair zurueck).
  *
- * Append-only-Tabellen ausserhalb von RESTAMP_SKIP_TABLES (#682, ADR 0045): Nur die
+ * Append-only-Tabellen ausserhalb von RESTAMP_SKIP_TABLES (#682, ADR 0055): Nur die
  * Eigentuemer-Spalten `tenantId`/`locationId` folgen — sonst waeren die Zeilen nach dem
  * Pairing unter dem Mandantenfilter unsichtbar. Eingefrorene Kopien (`refLocationId`,
  * DSFinV-K „Stand zum Zeitpunkt des Bezugs") bleiben. Dafuer werden die UPDATE-Waechter

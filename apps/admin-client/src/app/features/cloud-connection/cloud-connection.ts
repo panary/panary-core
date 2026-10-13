@@ -167,6 +167,9 @@ const directionLabel = (dir: InitialDirection): string => {
     BootstrapReportsComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // Escape schliesst das ⋯-Menue der Sync-Aktionen unabhaengig davon, wo der Fokus liegt
+  // (Muster shared/language-picker.ts). Am Element gebunden griff es nur mit Fokus im Menue.
+  host: { '(document:keydown.escape)': 'syncMenuOpen.set(false)' },
   template: `
     <div class="p-6 max-w-3xl space-y-4 h-full overflow-y-auto">
       <div>
@@ -918,8 +921,7 @@ const directionLabel = (dir: InitialDirection): string => {
                     positionierte Liste, kein zusätzliches UI-Paket.
                   -->
                   <div class="space-y-2">
-                    <!-- Escape auf der ganzen Zeile: greift auch, wenn der Fokus noch auf dem ⋯-Knopf liegt. -->
-                    <div class="relative flex flex-wrap items-center gap-2" (keydown.escape)="syncMenuOpen.set(false)">
+                    <div class="relative flex flex-wrap items-center gap-2">
                       <button
                         (click)="onSyncNow()"
                         [disabled]="syncing() || reloadingUsers()"
@@ -943,7 +945,9 @@ const directionLabel = (dir: InitialDirection): string => {
                         title="Weitere Sync-Aktionen"
                         class="h-9 w-9 shrink-0 flex items-center justify-center rounded-lg border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 disabled:opacity-50"
                       >
-                        <span class="material-symbols-outlined" style="font-size: 20px; line-height: 1">more_horiz</span>
+                        <span class="material-symbols-outlined" style="font-size: 20px; line-height: 1"
+                          >more_horiz</span
+                        >
                       </button>
 
                       @if (syncMenuOpen()) {
@@ -967,10 +971,12 @@ const directionLabel = (dir: InitialDirection): string => {
                             (click)="onReloadUsers()"
                             class="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-gray-900"
                           >
-                            <span class="block text-sm font-medium text-slate-900 dark:text-white">Benutzer neu laden</span>
+                            <span class="block text-sm font-medium text-slate-900 dark:text-white"
+                              >Benutzer neu laden</span
+                            >
                             <span class="block text-xs text-slate-500 dark:text-gray-400 mt-0.5">
-                              Holt alle Benutzer dieses Standorts vollständig aus der Online-Datenbank — auch solche, die
-                              hier fehlen.
+                              Holt alle Benutzer dieses Standorts vollständig aus der Online-Datenbank — auch solche,
+                              die hier fehlen.
                             </span>
                           </button>
                         </div>
@@ -988,7 +994,9 @@ const directionLabel = (dir: InitialDirection): string => {
                           Benutzer noch nicht geladen ({{ r.lastError }}). Der nächste Abgleich holt es nach.
                         </p>
                       } @else {
-                        <p class="text-xs text-slate-500 dark:text-gray-400">Benutzer neu geladen: ↓ {{ r.pulled }} empfangen</p>
+                        <p class="text-xs text-slate-500 dark:text-gray-400">
+                          Benutzer neu geladen: ↓ {{ r.pulled }} empfangen
+                        </p>
                       }
                     }
                   </div>

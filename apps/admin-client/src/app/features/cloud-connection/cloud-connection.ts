@@ -914,7 +914,7 @@ const directionLabel = (dir: InitialDirection): string => {
                     Eine Aktionszeile: „Jetzt synchronisieren" ist die Hauptaktion. Der
                     Reparaturweg „Benutzer neu laden" (#666) ist selten und greift tiefer,
                     deshalb steht er im ⋯-Menü daneben statt gleichrangig darunter (#673).
-                    Menü-Muster wie `shared/language-picker.ts`: Backdrop-Button + absolut
+                    Menü-Muster wie shared/language-picker.ts: Backdrop-Button + absolut
                     positionierte Liste, kein zusätzliches UI-Paket.
                   -->
                   <div class="space-y-2">

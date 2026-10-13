@@ -76,7 +76,7 @@ interface NavItem {
       <aside
         id="admin-sidebar"
         class="flex flex-col shrink-0 bg-white dark:bg-gray-950
-                    border-r border-slate-200 dark:border-gray-800 transition-[width,transform] duration-200"
+                    border-r border-slate-200 dark:border-gray-800 transition-[width,translate] duration-200"
         [class.w-56]="!isNarrow() && sidebarOpen()"
         [class.w-16]="!isNarrow() && !sidebarOpen()"
         [class.fixed]="isNarrow()"

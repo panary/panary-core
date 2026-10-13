@@ -21,7 +21,8 @@ Folgen, am Kunden-Edge am 2026-10-13 gemessen:
 
 ## Entscheidung
 
-1. **Nur schreiben, was sich ändert.** Mandant und Standort werden getrennt betrachtet. Ändert sich keines von beiden, kehrt der Restamp ohne Backup und ohne Transaktion zurück. Ein leerer Ziel-Mandant wird verweigert.
+1. **Nur schreiben, was sich ändert.** Mandant und Standort werden getrennt betrachtet. Ändert sich keines von beiden, kehrt der Restamp ohne Backup und ohne Transaktion zurück. Ein leerer Ziel-Mandant wird verweigert. Location-Spalten werden nur bei zwei echten, verschiedenen IDs angefasst. Bei `oldLocationId: null` machte Knex aus `where locationId = null` ein `IS NULL` und schlug jede globale Zeile der neuen Filiale zu.
+   Die Location-Umstempelung ist immer auf den Ziel-Mandanten begrenzt, auch beim Erst-Pairing (`oldTenantId: null`). Zeilen eines fremden Mandanten mit zufällig gleicher LocationId wandern nicht mit.
 2. **Append-only-Tabellen werden umgestempelt, nicht übersprungen.** Bliebe `order-references` auf dem alten Mandanten, versteckte der Mandantenfilter die Storno-Bezüge nach dem Pairing vor Kasse und Sync.
 3. **Nur die Eigentümer-Spalten folgen**: `tenantId` und `locationId`. Eingefrorene Kopien wie `refLocationId` bleiben. Sie halten laut Migration den „Stand zum Zeitpunkt des Bezugs“ fest und sind kein Fremdschlüssel. JSON-Array-Spalten werden in solchen Tabellen nicht angefasst.
 4. **Wächter kurz entfernen, wortgleich wieder anlegen**, beides innerhalb derselben Transaktion. Scheitert der Restamp, rollt SQLite auch das DDL zurück, und die Wächter sind unverändert da.
@@ -36,5 +37,6 @@ Verworfen:
 ## Konsequenzen
 
 * Pairing und Repair laufen auf Edges mit Bestellreferenzen durch. Die Fallmatrix `test/apply-cloud-tenant-id.append-only.test.ts` und der Ende-zu-Ende-Test `test/workers/repair-location-restamp.integration.test.ts` laufen gegen die vollständig migrierte SQLite mit allen echten Triggern.
+* Der Repair-Hook überspringt einen Edge, an dem weder Location noch Connection einen Mandanten kennen (`sync.repair.no_tenant`), statt bei jedem Start am verweigerten Restamp zu scheitern.
 * Während des Restamps ist die Tabelle innerhalb der Transaktion ungeschützt. Andere Schreiber sind durch die SQLite-Schreibsperre ausgeschlossen.
 * Eine neue Tabelle mit eingefrorenen `*LocationId`-Kopien **ohne** Append-only-Trigger würde weiterhin mitgezogen. Bisher gibt es keine (gemessen 2026-10-13: einzige Kopie ist `order-references.refLocationId`).

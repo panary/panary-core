@@ -1581,6 +1581,79 @@ describe('OrderDialog — Anpassen-Panel (#639)', () => {
     expect(component.customizeModel()).toBeNull()
   })
 
+  it('ein Wechsel der Produktgruppe schließt das Panel', () => {
+    const p = burger(true)
+    const { component } = setup({ catalog: [p] })
+    component.increaseLineItem(p)
+
+    component.createProductButtons({ _id: 'cat-1', name: 'Speisen' })
+
+    expect(component.customizeModel()).toBeNull()
+  })
+
+  it('Plus bucht auf die Zeile des Panels, auch wenn die Auswahl inzwischen gewechselt hat', () => {
+    const p = burgerWithExtras()
+    const { component } = setup({ catalog: [p, cheese(), product('cola')] })
+    component.increaseLineItem(product('cola'))
+    component.increaseLineItem(p) // Zeile 1, Panel offen
+    component._selectedProductIndex = 0 // Auswahl wandert ohne Ansichtswechsel
+
+    component.onCustomizeOptionIncreased({ groupName: 'Extras', productId: 'cheese' })
+
+    expect(component.lineItems[0].modifiers).toEqual([])
+    expect(component.lineItems[1].modifiers.map((m: { name: string }) => m.name)).toEqual(['Käse'])
+  })
+
+  it('wechselt die Auswahl per Pfeil, zieht das Panel mit oder schließt', () => {
+    const a = burger(true)
+    const b = product('cola')
+    const { component } = setup({ catalog: [a, b] })
+    component.increaseLineItem(b)
+    component.increaseLineItem(a) // Zeile 1, Panel offen
+
+    component.decreaseSelectedIndex() // auf Zeile 0 — nicht anpassbar
+    expect(component.customizeModel()).toBeNull()
+    expect(component.selectedProductIndex).toBe(0)
+
+    component.selectProduct(1)
+    expect(component.customizeModel()?.name).toBe('Artikel burger')
+  })
+
+  it('Löschen der angepassten Zeile schließt das Panel', () => {
+    const p = burger(true)
+    const { component } = setup({ catalog: [p] })
+    component.increaseLineItem(p)
+
+    component.deleteSelection()
+
+    expect(component.lineItems).toHaveLength(0)
+    expect(component.customizeModel()).toBeNull()
+  })
+
+  it('die Menge aus Spalte 2 kommt im Panel an', () => {
+    const p = burger(true)
+    const { component } = setup({ catalog: [p] })
+    component.increaseLineItem(p)
+
+    component.increaseSelectedQuantity()
+
+    expect(component.customizeModel()?.amount).toBe(2)
+  })
+
+  it('ein Menü öffnet das Panel auch über den Warenkorb-Tipp nicht', () => {
+    const menu = product('menu', {
+      isMenu: true,
+      ingredientReferences: [ketchup()],
+    } as never)
+    const { component } = setup({ catalog: [menu] })
+    component.increaseLineItem(menu)
+    component._isBlocked = false
+
+    component.selectProduct(0)
+
+    expect(component.customizeModel()).toBeNull()
+  })
+
   it('das Extras-Raster hat keine OHNE-Funktionstaste mehr', () => {
     const { component } = setup({ catalog: [product('pommes')] })
     component.increaseLineItem(product('pommes'))

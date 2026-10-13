@@ -176,7 +176,7 @@ export interface CustomizeOptionEvent {
         </button>
         <button
           type="button"
-          class="pnry-touch ml-auto flex h-14 min-w-[10rem] items-center justify-center gap-2 rounded-xl border-2 border-teal-300 bg-teal-600 px-5 text-sm font-bold uppercase tracking-wide text-white active:scale-95 disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:border-gray-700 dark:disabled:bg-gray-800"
+          class="pnry-touch ml-auto flex h-14 min-w-[10rem] items-center justify-center gap-2 rounded-xl border-2 border-teal-400 bg-teal-100 px-5 text-sm font-bold uppercase tracking-wide text-teal-800 active:scale-95 disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 dark:border-teal-700 dark:bg-teal-900/50 dark:text-teal-200 dark:disabled:border-gray-700 dark:disabled:bg-gray-800"
           [disabled]="!m.canFinish"
           (click)="finished.emit()"
         >

@@ -663,6 +663,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this._selectedProductIndex = null
     this._selectedCombinationIndex =
       this._selectedCombinationIndex[0] === combinationIndex ? [null, null] : [combinationIndex, null]
+    this.#followSelectionInPanel()
   }
 
   increaseSelectedIndex() {
@@ -697,6 +698,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private applyBoardSelection(selection: BoardSelection): void {
     this._selectedProductIndex = selection.productIndex
     this._selectedCombinationIndex = [selection.combinationIndex[0], selection.combinationIndex[1]]
+    this.#followSelectionInPanel()
   }
 
   createProductButtons(productGroup: ProductGroup) {
@@ -1233,8 +1235,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // `grid` erzwingt das Raster — der Weg „Alle Modifier" aus dem Panel heraus.
     if (!grid && !(ids && ids.length > 0)) {
       const line = this.getCurrentSelectedLineItem()
-      const product = line ? this.#productOfLine(line) : undefined
-      if (line && product && hasCustomizableContent(product)) {
+      if (line && this.#canCustomize(line)) {
         this.openCustomizePanel(line)
         return
       }
@@ -1397,6 +1398,30 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     )
   }
 
+  /** Bundles laufen durch ihren eigenen Flow — ihre Optionsgruppen sind Menüschritte, keine Extras. */
+  #canCustomize(line: OrderLineItem): boolean {
+    const product = this.#productOfLine(line)
+    return !!product && hasCustomizableContent(product) && !this.#bundleFlow.isBundleProduct(product)
+  }
+
+  /**
+   * Die Auswahl hat gewechselt, während das Panel offen war (Kombinations-Position, Pfeile).
+   * Das Panel zieht mit, statt die alte Zeile zu zeigen — sonst landeten Zutaten und Extras
+   * auf zwei verschiedenen Zeilen. Ist die neue Auswahl nicht anpassbar, schließt es; die
+   * Auswahl selbst bleibt stehen.
+   */
+  #followSelectionInPanel(): void {
+    if (!this.#customizeLine) return
+    const line = this.getCurrentSelectedLineItem()
+    if (line === this.#customizeLine) return
+    if (line && this.#canCustomize(line)) {
+      this.openCustomizePanel(line)
+    } else {
+      this.clearButtons()
+      this.setInfoBoxText('Bitte wählen Sie eine Produktkategorie')
+    }
+  }
+
   /** Zeigt statt des Rasters das Panel für die Zeile; merkt sich deren Modifier für „Abbrechen". */
   openCustomizePanel(line: OrderLineItem): void {
     this.clearButtons()
@@ -1406,9 +1431,18 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.#refreshCustomize()
   }
 
+  /**
+   * Neues Modell für die angepasste Zeile — nach jeder Bedienung im Panel und nach jeder
+   * Änderung von außen (Menge in Spalte 2, Undo, Löschen). Gibt es die Zeile nicht mehr,
+   * schließt das Panel.
+   */
   #refreshCustomize(): void {
     const line = this.#customizeLine
     if (!line) return
+    if (!this.#lineItems.includes(line)) {
+      this.#closeCustomize()
+      return
+    }
     this.customizeModel.set(
       buildCustomizeModel(line, this.#productOfLine(line), {
         findProductById: id => this.productService.findProductById(id),
@@ -1429,17 +1463,19 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onCustomizeOptionIncreased(event: CustomizeOptionEvent): void {
+    const line = this.#customizeLine
     const product = this.productService.findProductById(event.productId)
     const group = this.customizeModel()?.groups.find(g => g.name === event.groupName)
-    if (!product || !group || group.full) return
-    this.increaseExtra(toPosButton(product), event.groupName)
+    if (!line || !product || !group || group.full) return
+    this.increaseExtra(toPosButton(product), event.groupName, line)
     this.#refreshCustomize()
   }
 
   onCustomizeOptionDecreased(event: CustomizeOptionEvent): void {
+    const line = this.#customizeLine
     const product = this.productService.findProductById(event.productId)
-    if (!product) return
-    this.decreaseExtra(toPosButton(product), event.groupName)
+    if (!line || !product) return
+    this.decreaseExtra(toPosButton(product), event.groupName, line)
     this.#refreshCustomize()
   }
 
@@ -1769,6 +1805,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   increaseQuantity(orderLineItem: OrderLineItem): void {
     orderLineItem.amount++
+    this.#refreshCustomize()
   }
 
   /**
@@ -1779,6 +1816,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   decreaseQuantity(orderLineItem: OrderLineItem): void {
     if (orderLineItem.amount > 1) orderLineItem.amount--
+    this.#refreshCustomize()
   }
 
   /**
@@ -1848,6 +1886,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     const restore = this.#removeLineItems(targets)
     this._selectedProductIndex = null
     this._selectedCombinationIndex = [null, null]
+    this.#refreshCustomize()
 
     const message = wholeCombination ? 'Kombination gelöscht' : `Gelöscht: ${targets[0].amount}× ${targets[0].name}`
     this.#offerUndo(message, restore)
@@ -1863,6 +1902,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       // Nur Zeilen, die es noch gibt — eine inzwischen gelöschte bleibt gelöscht.
       if (this.#lineItems.includes(item)) item.amount = amount
     }
+    this.#refreshCustomize()
   }
 
   /**
@@ -1971,7 +2011,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.#undoRef = null
   }
 
-  increaseExtra(article: PosProductButton, topic: string | undefined = undefined) {
+  increaseExtra(article: PosProductButton, topic: string | undefined = undefined, target?: OrderLineItem) {
     // Beide Rückwege melden seit #273, statt still zu enden: Ein Tap auf eine
     // Kachel, der nichts tut und nichts sagt, liest sich in der Filiale als
     // „die Kasse hängt" (dieselbe Regel wie ADR 0034, vgl. #269/#271).
@@ -1980,8 +2020,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       return
     }
 
+    // `target`: das Panel bucht auf seine Zeile, nicht auf die Auswahl (#639).
     let selectedArticle: OrderLineItem
-    if (this._selectedProductIndex !== null) {
+    if (target) {
+      selectedArticle = target
+    } else if (this._selectedProductIndex !== null) {
       selectedArticle = this.#lineItems[this._selectedProductIndex]
     } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
       selectedArticle = this.combinations[this._selectedCombinationIndex[0]][this._selectedCombinationIndex[1]]
@@ -2029,15 +2072,18 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    * den Marker „OHNE <Extra>" (`amount −1`) legt der Dialog seit #639 nicht mehr an.
    * Bestandsbestellungen tragen ihn weiter, Schema und Bon lesen ihn deshalb noch.
    */
-  decreaseExtra(article: PosProductButton, topic: string | undefined = undefined) {
+  decreaseExtra(article: PosProductButton, topic: string | undefined = undefined, target?: OrderLineItem) {
     // Seit #273 dieselbe Erkennung wie im PLUS-Modus und dieselbe Meldung statt des stillen Rückwegs.
     if (!isModifierButton(article)) {
       this.setInfoBoxText(extraNotModifierMessage(article), 'red')
       return
     }
 
+    // `target`: das Panel bucht auf seine Zeile, nicht auf die Auswahl (#639).
     let selectedArticle: OrderLineItem
-    if (this._selectedProductIndex !== null) {
+    if (target) {
+      selectedArticle = target
+    } else if (this._selectedProductIndex !== null) {
       selectedArticle = this.#lineItems[this._selectedProductIndex]
     } else if (this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] !== null) {
       selectedArticle = this.combinations[this._selectedCombinationIndex[0]][this._selectedCombinationIndex[1]]

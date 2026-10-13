@@ -56,6 +56,17 @@
           "optimization": false,
           "extractLicenses": false,
           "sourceMap": true
+        },
+        "sandbox": {
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true,
+          "fileReplacements": [
+            {
+              "replace": "apps/pos-client/src/app/edge-url.ts",
+              "with": "apps/pos-client/src/app/edge-url.sandbox.ts"
+            }
+          ]
         }
       },
       "defaultConfiguration": "production"
@@ -69,6 +80,10 @@
         },
         "development": {
           "buildTarget": "pos-client:build:development"
+        },
+        "sandbox": {
+          "buildTarget": "pos-client:build:sandbox",
+          "port": 14200
         }
       },
       "defaultConfiguration": "development"

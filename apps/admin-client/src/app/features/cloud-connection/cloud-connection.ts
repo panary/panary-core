@@ -910,44 +910,82 @@ const directionLabel = (dir: InitialDirection): string => {
                       Stunden ablaufen und ein erneutes Koppeln nötig machen.
                     </p>
                   }
-                  <div class="flex items-center gap-3">
-                    <button
-                      (click)="onSyncNow()"
-                      [disabled]="syncing() || reloadingUsers()"
-                      class="bg-slate-900 dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg text-sm font-medium"
-                    >
-                      @if (syncing()) {
-                        Synchronisiere …
-                      } @else {
-                        Jetzt synchronisieren
+                  <!--
+                    Eine Aktionszeile: „Jetzt synchronisieren" ist die Hauptaktion. Der
+                    Reparaturweg „Benutzer neu laden" (#666) ist selten und greift tiefer,
+                    deshalb steht er im ⋯-Menü daneben statt gleichrangig darunter (#673).
+                    Menü-Muster wie `shared/language-picker.ts`: Backdrop-Button + absolut
+                    positionierte Liste, kein zusätzliches UI-Paket.
+                  -->
+                  <div class="space-y-2">
+                    <div class="relative flex items-center gap-2">
+                      <button
+                        (click)="onSyncNow()"
+                        [disabled]="syncing() || reloadingUsers()"
+                        class="bg-slate-900 dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-60"
+                      >
+                        @if (syncing()) {
+                          Synchronisiere …
+                        } @else if (reloadingUsers()) {
+                          Lade Benutzer …
+                        } @else {
+                          Jetzt synchronisieren
+                        }
+                      </button>
+                      <button
+                        type="button"
+                        (click)="syncMenuOpen.set(!syncMenuOpen())"
+                        [disabled]="syncing() || reloadingUsers()"
+                        [attr.aria-expanded]="syncMenuOpen()"
+                        aria-haspopup="menu"
+                        aria-label="Weitere Sync-Aktionen"
+                        title="Weitere Sync-Aktionen"
+                        class="h-9 w-9 flex items-center justify-center rounded-lg border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 disabled:opacity-50"
+                      >
+                        <span class="material-symbols-outlined" style="font-size: 20px; line-height: 1">more_horiz</span>
+                      </button>
+
+                      @if (syncMenuOpen()) {
+                        <button
+                          type="button"
+                          (click)="syncMenuOpen.set(false)"
+                          aria-label="Menü schließen"
+                          class="fixed inset-0 z-40 cursor-default"
+                        ></button>
+                        <div
+                          role="menu"
+                          aria-label="Weitere Sync-Aktionen"
+                          (keydown.escape)="syncMenuOpen.set(false)"
+                          class="absolute top-full left-0 mt-2 z-50 w-72 max-w-[calc(100vw-3rem)] bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 rounded-xl shadow-2xl py-1"
+                        >
+                          <button
+                            type="button"
+                            role="menuitem"
+                            (click)="onReloadUsers()"
+                            class="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-gray-900"
+                          >
+                            <span class="block text-sm font-medium text-slate-900 dark:text-white">Benutzer neu laden</span>
+                            <span class="block text-xs text-slate-500 dark:text-gray-400 mt-0.5">
+                              Holt alle Benutzer dieses Standorts vollständig aus der Online-Datenbank — auch solche, die
+                              hier fehlen.
+                            </span>
+                          </button>
+                        </div>
                       }
-                    </button>
+                    </div>
+
                     @if (lastSyncResult(); as r) {
-                      <span class="text-xs text-slate-500 dark:text-gray-400">
-                        ↑ {{ r.pushed }} gesendet, ↓ {{ r.pulled }} empfangen, {{ r.durationMs }} ms
-                      </span>
+                      <p class="text-xs text-slate-500 dark:text-gray-400">
+                        Synchronisiert: ↑ {{ r.pushed }} gesendet, ↓ {{ r.pulled }} empfangen, {{ r.durationMs }} ms
+                      </p>
                     }
-                  </div>
-                  <div class="flex flex-wrap items-center gap-3">
-                    <button
-                      (click)="onReloadUsers()"
-                      [disabled]="reloadingUsers() || syncing()"
-                      title="Lädt alle Benutzer dieses Standorts vollständig neu aus der Online-Datenbank — auch solche, die hier fehlen."
-                      class="border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-200 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-gray-800 disabled:opacity-50"
-                    >
-                      @if (reloadingUsers()) {
-                        Lade Benutzer …
-                      } @else {
-                        Benutzer neu laden
-                      }
-                    </button>
                     @if (lastReloadUsersResult(); as r) {
                       @if (r.lastError) {
-                        <span class="text-xs text-amber-700 dark:text-amber-300">
-                          Noch nicht geladen: {{ r.lastError }} Der nächste Abgleich holt es nach.
-                        </span>
+                        <p class="text-xs text-amber-700 dark:text-amber-300">
+                          Benutzer noch nicht geladen ({{ r.lastError }}). Der nächste Abgleich holt es nach.
+                        </p>
                       } @else {
-                        <span class="text-xs text-slate-500 dark:text-gray-400">↓ {{ r.pulled }} empfangen</span>
+                        <p class="text-xs text-slate-500 dark:text-gray-400">Benutzer neu geladen: ↓ {{ r.pulled }} empfangen</p>
                       }
                     }
                   </div>
@@ -1255,6 +1293,7 @@ export class CloudConnectionComponent implements OnInit {
   bootstrapping = signal(false)
   syncing = signal(false)
   reloadingUsers = signal(false)
+  syncMenuOpen = signal(false)
   lastReloadUsersResult = signal<{ pulled: number; lastError?: string } | null>(null)
   errors = signal<string[]>([])
   confirmingDisconnect = signal(false)
@@ -1713,11 +1752,14 @@ export class CloudConnectionComponent implements OnInit {
    * die Online-Datenbank diesem Standort nicht mehr zuordnet.
    */
   async onReloadUsers() {
+    this.syncMenuOpen.set(false)
     const conn = this.connectionInfo()
     if (!conn) return
+    // Kein Versprechen, wartende Benutzer-Aenderungen vorher zu senden: Der Edge lehnt in
+    // dem Fall ab (#666), und die Meldung nennt den Weg ueber den Sync-Status (#673).
     if (
       !confirm(
-        'Benutzer neu aus der Online-Datenbank laden?\n\nAlle Benutzer dieses Standorts werden vollständig neu geholt, auch solche, die hier fehlen. Lokale Änderungen, die noch nicht hochgeladen sind, werden vorher gesendet. Benutzer, die die Online-Datenbank diesem Standort nicht mehr zuordnet, werden hier archiviert.',
+        'Benutzer neu aus der Online-Datenbank laden?\n\nAlle Benutzer dieses Standorts werden vollständig neu geholt, auch solche, die hier fehlen. Benutzer, die die Online-Datenbank diesem Standort nicht mehr zuordnet, werden hier archiviert.\n\nWarten hier noch Benutzer-Änderungen auf das Hochladen, wird nicht neu geladen.',
       )
     )
       return

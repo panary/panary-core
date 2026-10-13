@@ -175,6 +175,22 @@ describe('CloudConnectionComponent — Benutzer neu laden', () => {
     expect(component.errors().join(' ')).toContain('warten noch')
   })
 
+  // #673: Die Rueckfrage versprach, wartende Aenderungen vorher zu senden — der Edge
+  // lehnt dann aber ab (#666). Und das Menue muss zu sein, bevor der Dialog kommt.
+  it('schliesst das Menue und verspricht kein Senden wartender Benutzer-Aenderungen', async () => {
+    const confirmSpy = vi.fn().mockReturnValue(false)
+    vi.stubGlobal('confirm', confirmSpy)
+    const { component } = setup()
+    component.syncMenuOpen.set(true)
+
+    await component.onReloadUsers()
+
+    expect(component.syncMenuOpen()).toBe(false)
+    const text = String(confirmSpy.mock.calls[0][0])
+    expect(text).not.toContain('vorher gesendet')
+    expect(text).toContain('wird nicht neu geladen')
+  })
+
   it('bricht bei Nein ab, ohne die Methode aufzurufen', async () => {
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(false))
     const { component, api } = setup()

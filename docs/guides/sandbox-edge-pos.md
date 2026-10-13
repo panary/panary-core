@@ -62,6 +62,9 @@ den Setup-Modus und legt Admin, Tenant und Filiale selbst an.
    `deviceType`, `tenantId`, `locationId`, `language`, `registeredAt`), Seite neu laden — der POS steht
    gekoppelt am PIN-Bildschirm.
 
+🚫 Nicht das Setup-Formular des POS benutzen: Sein Server-Default (`setup.component.ts`) bleibt
+`http://localhost:3030` und koppelt an den eigenen Dev-Edge, nicht an die Sandbox.
+
 ## Was am Edge ankommt
 
 Gemessen nach `pull-cloud-to-edge` gegen den Sandbox-Tenant mit Demo-Profil:

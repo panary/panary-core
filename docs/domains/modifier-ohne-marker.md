@@ -4,28 +4,31 @@ title: „OHNE"-Modifier — Marker `amount −1`, entfernbare Zutaten und Preis
 description: 'Zwei OHNE-Mechanismen im POS: der Marker amount −1 (preisneutral) und entfernbare Zutaten mit negativem priceAdjustment (Abzug) — beide brauchen Modifier-eigene Schema-Regeln, eine Klemme bei 0 und einen Bon, der sich aufrechnet.'
 tags: [orders, pos, pricing, businessdays]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-07-27T20:45:00Z }
+generated: { by: claude-code/opus-5, at: 2026-10-13T20:30:00Z }
 ---
 
 # „OHNE"-Modifier
 
 ## Der Marker
 
-Im POS-Bestelldialog gibt es einen OHNE-Toggle (`toggleWithoutExtra()`). Ist er
-aktiv und der Bediener tippt auf einen Modifier, der noch **nicht** auf der
-Position liegt, legt `decreaseExtra()` einen Modifier mit **`amount: -1`** an
-(`libs/domains/orders/feature-pos-order-dialog/src/lib/order-dialog.component.ts`).
-Das ist der kanonische Marker für „OHNE `<Extra>`".
+Bis [#639](https://github.com/panary/panary-core/issues/639) gab es im POS-Bestelldialog
+einen OHNE-Toggle (`toggleWithoutExtra()`). War er aktiv und der Bediener tippte auf
+einen Modifier, der noch **nicht** auf der Position lag, legte `decreaseExtra()` einen
+Modifier mit **`amount: -1`** an. Das ist der kanonische Marker für „OHNE `<Extra>`".
 
-−1 ist der Boden: weiteres Dekrementieren ist ein No-Op, `increaseExtra()`
-springt von einem negativen Wert direkt auf 1.
+**Seit #639 erzeugt der Dialog den Marker nicht mehr.** Die Taste ist entfallen, Minus
+nimmt nur Gebuchtes zurück (siehe [POS-Anpassen-Panel](pos-anpassen-panel.md)).
+Bestandsbestellungen tragen ihn weiter. Schema, Preisregel und Bon unten gelten deshalb
+unverändert, ebenso `increaseExtra()`, das von einem negativen Wert direkt auf 1 springt.
 
 ## Der zweite Pfad: entfernbare Zutaten
 
-Daneben gibt es einen **unabhängigen** Mechanismus: `toggleRemovableIngredient()`
-blendet für jede `ingredientReference` mit `isRemovable: true` eine Taste ein und
-legt beim Antippen einen Modifier mit `amount: 1`, dem Namen `„Ohne <Zutat>"` und
-`price: ingredient.priceAdjustment` an. Der −1-Marker kommt hier **nicht** vor.
+Daneben gibt es einen **unabhängigen** Mechanismus: Für jede `ingredientReference` mit
+`isRemovable: true` zeigt das Anpassen-Panel einen Chip. Antippen legt per
+`toggleIngredientRemoval()` (`libs/domains/orders/feature-pos-order-dialog/src/lib/product-customize.ts`,
+bis #639 `toggleRemovableIngredient()` im Dialog) einen Modifier mit `amount: 1`, dem Namen
+`„Ohne <Zutat>"` und `price: ingredient.priceAdjustment` an. Der −1-Marker kommt hier **nicht** vor.
+Erkannt wird der Modifier am Präfix `Ohne ` zusammen mit der `externalId` der Zutat.
 
 Gepflegt wird das in panary-cloud im Dialog „Zutaten-Referenzen aktualisieren"
 (Toggle „Entfernbar", Tooltip „Kunde kann Zutat entfernen") plus einem Preisfeld,

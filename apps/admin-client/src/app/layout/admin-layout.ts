@@ -1,4 +1,16 @@
-import { ChangeDetectionStrategy, Component, inject, computed, effect, signal } from '@angular/core'
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  ElementRef,
+  inject,
+  Injector,
+  signal,
+  viewChild,
+} from '@angular/core'
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
 import { Title } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
@@ -54,14 +66,44 @@ interface NavItem {
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslateModule, LanguagePickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(document:keydown.escape)': 'closeMobileNav()' },
   template: `
     <div class="h-screen bg-slate-50 dark:bg-black flex">
+      <!--
+        Unterhalb von md (768 px) ist die Seitenleiste ein Drawer ueber dem Inhalt (#684):
+        Vorher blieb sie bei 375 px voll ausgeklappt und liess dem Inhalt rund 110 px.
+        Ab md bleibt alles wie zuvor, inklusive Einklappen auf die Icon-Spalte.
+      -->
+      @if (isNarrow() && mobileNavOpen()) {
+        <button
+          type="button"
+          tabindex="-1"
+          (click)="closeMobileNav()"
+          [attr.aria-label]="'COMMON.CLOSE' | translate"
+          class="fixed inset-0 z-40 bg-black/40 cursor-default"
+        ></button>
+      }
+
       <!-- Sidebar -->
       <aside
+        #sidebar
+        id="admin-sidebar"
+        [attr.role]="isNarrow() && mobileNavOpen() ? 'dialog' : null"
+        [attr.aria-modal]="isNarrow() && mobileNavOpen() ? 'true' : null"
+        [attr.aria-label]="isNarrow() && mobileNavOpen() ? ('NAV.ADMIN_PANEL' | translate) : null"
         class="flex flex-col shrink-0 bg-white dark:bg-gray-950
-                    border-r border-slate-200 dark:border-gray-800 transition-[width] duration-200"
-        [class.w-56]="sidebarOpen()"
-        [class.w-16]="!sidebarOpen()"
+                    border-r border-slate-200 dark:border-gray-800 transition-[width,translate] duration-200"
+        [class.w-56]="!isNarrow() && sidebarOpen()"
+        [class.w-16]="!isNarrow() && !sidebarOpen()"
+        [class.fixed]="isNarrow()"
+        [class.inset-y-0]="isNarrow()"
+        [class.left-0]="isNarrow()"
+        [class.z-50]="isNarrow()"
+        [class.w-64]="isNarrow()"
+        [class.shadow-2xl]="isNarrow()"
+        [class.-translate-x-full]="isNarrow() && !mobileNavOpen()"
+        [attr.aria-hidden]="isNarrow() && !mobileNavOpen() ? 'true' : null"
+        [attr.inert]="isNarrow() && !mobileNavOpen() ? '' : null"
       >
         <!--
           Logo-Kopfzeile — feste Höhe.
@@ -69,8 +111,9 @@ interface NavItem {
           exakt zentriert (justify-center auf einen einzigen Flex-Item ohne Margin/Gap).
         -->
         <div class="relative h-[68px] shrink-0 border-b border-slate-200 dark:border-gray-800 flex items-center px-3">
-          <!-- Toggle-Pill — dockt an der rechten Kante der Sidebar an -->
+          <!-- Toggle-Pill — dockt an der rechten Kante der Sidebar an. Im Drawer gibt es sie nicht. -->
           <button
+            [class.hidden]="isNarrow()"
             (click)="sidebarOpen.set(!sidebarOpen())"
             class="absolute left-full top-1/2 -translate-y-1/2 z-20
                          h-10 w-4 rounded-r-lg
@@ -102,9 +145,9 @@ interface NavItem {
           -->
           <div
             class="min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-150"
-            [class.max-w-0]="!sidebarOpen()"
-            [class.max-w-xs]="sidebarOpen()"
-            [class.opacity-0]="!sidebarOpen()"
+            [class.max-w-0]="!expanded()"
+            [class.max-w-xs]="expanded()"
+            [class.opacity-0]="!expanded()"
           >
             <p class="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-none">Panary</p>
             <p class="text-[10px] text-slate-400 dark:text-gray-600 mt-1 uppercase tracking-widest">
@@ -127,11 +170,11 @@ interface NavItem {
           -->
             <div
               class="flex items-end overflow-hidden"
-              [class.h-7]="sidebarOpen()"
-              [class.h-0]="!sidebarOpen() && firstGroup"
-              [class.h-4]="!sidebarOpen() && !firstGroup"
+              [class.h-7]="expanded()"
+              [class.h-0]="!expanded() && firstGroup"
+              [class.h-4]="!expanded() && !firstGroup"
             >
-              @if (sidebarOpen()) {
+              @if (expanded()) {
                 <span
                   class="px-3 pb-1 text-[10px] font-medium uppercase tracking-widest
                            text-slate-400 dark:text-gray-600 whitespace-nowrap"
@@ -153,11 +196,12 @@ interface NavItem {
             -->
                 <a
                   [routerLink]="item.path"
+                  (click)="closeMobileNav()"
                   routerLinkActive="bg-slate-100 dark:bg-gray-800 text-slate-900 dark:text-white"
                   class="flex items-center py-2 rounded-lg text-slate-500 dark:text-gray-400
                       hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-gray-900
                       transition-colors overflow-hidden"
-                  [title]="sidebarOpen() ? '' : (item.label | translate)"
+                  [title]="expanded() ? '' : (item.label | translate)"
                 >
                   <span class="shrink-0 flex items-center justify-center w-10 relative">
                     <span class="material-symbols-outlined" style="font-size: 20px; line-height: 1">{{
@@ -167,7 +211,7 @@ interface NavItem {
                      roter Dot oben rechts am Icon. Im aufgeklappten Modus
                      wird stattdessen die Zahl-Badge rechts neben dem Label
                      gezeigt (siehe unten). -->
-                    @if (item.problemCountKey && problemCounts()[item.problemCountKey] > 0 && !sidebarOpen()) {
+                    @if (item.problemCountKey && problemCounts()[item.problemCountKey] > 0 && !expanded()) {
                       <span
                         class="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500"
                         [title]="problemCounts()[item.problemCountKey] + ' offene Probleme'"
@@ -177,10 +221,10 @@ interface NavItem {
                   <span
                     class="overflow-hidden whitespace-nowrap text-sm pr-3 flex items-center
                            transition-[max-width,opacity,flex] duration-200"
-                    [class.max-w-0]="!sidebarOpen()"
-                    [class.flex-0]="!sidebarOpen()"
-                    [class.flex-1]="sidebarOpen()"
-                    [class.opacity-0]="!sidebarOpen()"
+                    [class.max-w-0]="!expanded()"
+                    [class.flex-0]="!expanded()"
+                    [class.flex-1]="expanded()"
+                    [class.opacity-0]="!expanded()"
                   >
                     <span>{{ item.label | translate }}</span>
                     @if (item.problemCountKey && problemCounts()[item.problemCountKey] > 0) {
@@ -217,10 +261,10 @@ interface NavItem {
         <!-- Footer: Theme-Toggle + User -->
         <div
           class="shrink-0 border-t border-slate-200 dark:border-gray-800"
-          [class.p-4]="sidebarOpen()"
-          [class.p-3]="!sidebarOpen()"
+          [class.p-4]="expanded()"
+          [class.p-3]="!expanded()"
         >
-          @if (sidebarOpen()) {
+          @if (expanded()) {
             <!-- Ausgeklappt: 3-Schaltflächen-Reihe + Benutzername + Abmelden-Link -->
             <div class="flex items-center gap-1 mb-3 bg-slate-100 dark:bg-gray-900 rounded-lg p-1">
               <button
@@ -289,7 +333,28 @@ interface NavItem {
       </aside>
 
       <!-- Main Content -->
-      <main class="flex-1 overflow-hidden flex flex-col">
+      <main
+        class="flex-1 min-w-0 overflow-hidden flex flex-col"
+        [attr.inert]="isNarrow() && mobileNavOpen() ? '' : null"
+      >
+        @if (isNarrow()) {
+          <div
+            class="h-14 shrink-0 flex items-center gap-3 px-4 bg-white dark:bg-gray-950 border-b border-slate-200 dark:border-gray-800"
+          >
+            <button
+              #menuButton
+              type="button"
+              (click)="openMobileNav()"
+              [attr.aria-label]="'NAV.OPEN_MENU' | translate"
+              [attr.aria-expanded]="mobileNavOpen()"
+              aria-controls="admin-sidebar"
+              class="h-10 w-10 -ml-2 flex items-center justify-center rounded-lg text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-900"
+            >
+              <span class="material-symbols-outlined" style="font-size: 24px; line-height: 1">menu</span>
+            </button>
+            <span class="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">Panary</span>
+          </div>
+        }
         <!-- Cloud-Status-Banner liegt global in app.ts (priorisiert, ein Banner). -->
         <div class="flex-1 overflow-hidden">
           <router-outlet />
@@ -308,6 +373,16 @@ export class AdminLayoutComponent {
   private title = inject(Title)
 
   sidebarOpen = signal(true)
+
+  // Schwelle wie Tailwind `md`. Ohne matchMedia (Tests, alte Umgebungen) gilt die Desktop-Ansicht.
+  private readonly narrowQuery =
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 767.98px)')
+      : null
+  readonly isNarrow = signal(this.narrowQuery?.matches ?? false)
+  readonly mobileNavOpen = signal(false)
+  /** Beschriftung sichtbar: im Drawer immer, sonst nach dem Einklapp-Schalter. */
+  readonly expanded = computed(() => this.isNarrow() || this.sidebarOpen())
 
   userName = computed(() => {
     const u = this.auth.user()
@@ -378,6 +453,16 @@ export class AdminLayoutComponent {
   }))
 
   constructor() {
+    if (this.narrowQuery) {
+      const query = this.narrowQuery
+      const onChange = (event: MediaQueryListEvent) => {
+        this.isNarrow.set(event.matches)
+        // Ein offener Drawer darf nicht als Zustand in die breite Ansicht mitwandern.
+        if (!event.matches) this.mobileNavOpen.set(false)
+      }
+      query.addEventListener('change', onChange)
+      inject(DestroyRef).onDestroy(() => query.removeEventListener('change', onChange))
+    }
     this.locationState.load()
     effect(() => {
       const name = this.locationState.locationName()
@@ -425,6 +510,30 @@ export class AdminLayoutComponent {
 
   // loadProblemCounts wurde in `SyncProblemCountService.refresh()`
   // ausgelagert — Operator-UI kann nach Aktionen direkt darauf zugreifen.
+
+  private readonly injector = inject(Injector)
+  private readonly menuButton = viewChild<ElementRef<HTMLButtonElement>>('menuButton')
+  private readonly sidebar = viewChild<ElementRef<HTMLElement>>('sidebar')
+
+  /**
+   * Fokus wandert in den Drawer und beim Schliessen zurueck auf den Menue-Knopf
+   * (Review #684). Erst nach dem Rendern: Vorher ist der Drawer noch `inert` bzw.
+   * beim Schliessen `main`, und ein Fokus dorthin liefe ins Leere.
+   */
+  openMobileNav() {
+    this.mobileNavOpen.set(true)
+    afterNextRender(() => this.sidebar()?.nativeElement.querySelector<HTMLElement>('nav a')?.focus(), {
+      injector: this.injector,
+    })
+  }
+
+  closeMobileNav() {
+    // Escape ist auf `document` gebunden und feuert auch ohne offenen Drawer —
+    // dann darf der Fokus nicht auf den Menue-Knopf springen.
+    if (!this.mobileNavOpen()) return
+    this.mobileNavOpen.set(false)
+    afterNextRender(() => this.menuButton()?.nativeElement.focus(), { injector: this.injector })
+  }
 
   setTheme(theme: string) {
     this.themeService.setTheme(theme)

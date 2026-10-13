@@ -55,6 +55,7 @@
   },
   "NAV": {
     "ADMIN_PANEL": "Admin Panel",
+    "OPEN_MENU": "Menü öffnen",
     "DASHBOARD": "Dashboard",
     "USERS": "Benutzer",
     "LOCATION": "Stammdaten",

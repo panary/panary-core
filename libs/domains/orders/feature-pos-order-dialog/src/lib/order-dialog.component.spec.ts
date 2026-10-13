@@ -175,6 +175,8 @@ function setup(options: SetupOptions = {}) {
         provide: ProductService,
         useValue: {
           extras: signal([]),
+          // Schließen des Anpassen-Panels führt zurück ins Raster der Produktgruppe (#639).
+          getProductsByGroupId: () => [],
           findProductById: (id: string) => (options.catalog ?? []).find(p => p._id === id),
           findProductByExternalId: (externalId: string) =>
             (options.catalog ?? []).find(p => p.externalId === externalId),
@@ -741,7 +743,7 @@ describe('OrderDialog — Extras-Tap meldet statt still zurueckzukehren (#273)',
     expect(component.lineItems[0].modifiers[0]).toMatchObject({ name: 'Mayo', amount: 1 })
   })
 
-  it('OHNE-Modus: derselbe Tap meldet dasselbe und legt keine „ohne"-Zeile an', () => {
+  it('Minus: derselbe Tap meldet dasselbe und legt keine „ohne"-Zeile an', () => {
     const { component } = setup()
     component.increaseLineItem(product('pommes'))
     component.selectProduct(0)
@@ -752,20 +754,22 @@ describe('OrderDialog — Extras-Tap meldet statt still zurueckzukehren (#273)',
     expect(component.infoBoxText).toBe('„Mayo" ist kein Extra (Produkttyp: PRODUCT) — im Admin auf Modifier stellen')
   })
 
-  it('OHNE-Modus akzeptiert Legacy-Extras genauso wie der PLUS-Modus', () => {
+  it('Minus akzeptiert Legacy-Extras genauso wie Plus', () => {
     // Vor #273 pruefte `decreaseExtra` ohne die Legacy-Flags: Ein Alt-Katalog-Extra
-    // liess sich hinzufuegen, aber nicht abwaehlen — und haette jetzt faelschlich
+    // liess sich hinzufuegen, aber nicht abwaehlen — und haette faelschlich
     // „ist kein Extra" gemeldet ueber eine Kachel, die im PLUS-Modus funktioniert.
+    // Seit #639 nimmt Minus nur Gebuchtes zurueck, einen OHNE-Marker legt es nicht mehr an.
     const { component } = setup()
     component.increaseLineItem(product('pommes'))
     component.selectProduct(0)
+    const mayo = () =>
+      extraProduct('mayo', { name: 'Mayo', productType: undefined, isExtra: true } as Partial<ProductSchema>)
 
-    component.decreaseExtra(
-      extraProduct('mayo', { name: 'Mayo', productType: undefined, isExtra: true } as Partial<ProductSchema>),
-    )
+    component.increaseExtra(mayo())
+    component.decreaseExtra(mayo())
 
-    expect(component.lineItems[0].modifiers).toHaveLength(1)
-    expect(component.lineItems[0].modifiers[0]).toMatchObject({ name: 'Mayo', amount: -1 })
+    expect(component.lineItems[0].modifiers).toEqual([])
+    expect(component.infoBoxText).not.toContain('ist kein Extra')
   })
 
   it('das Extras-Raster kennzeichnet falsch typisierte Kacheln, bevor jemand tippt', () => {
@@ -786,8 +790,19 @@ describe('OrderDialog — Extras-Tap meldet statt still zurueckzukehren (#273)',
     const { component } = setup({ catalog: [pommes, mayo, ketchup] })
     component.increaseLineItem(pommes)
 
-    component.selectProduct(0) // ruft setExtraSubButtons()
+    // Mit Optionsgruppen öffnet die Auswahl seit #639 das Panel; das Raster gibt es weiter
+    // über „Alle Modifier" (`grid = true`). Beide Wege müssen die Fehlkonfiguration zeigen.
+    component.selectProduct(0)
+    expect(
+      component
+        .customizeModel()
+        ?.groups[0].options.map((o: { name: string; isModifier: boolean }) => [o.name, o.isModifier]),
+    ).toEqual([
+      ['Mayo', false],
+      ['Ketchup', true],
+    ])
 
+    component.setExtraSubButtons(undefined, undefined, false, true)
     const tiles: Array<{ name: string; icon?: string }> = component.productButtons
     expect(tiles.find(t => t.name === 'Mayo')?.icon).toBe('warning')
     expect(tiles.find(t => t.name === 'Ketchup')?.icon).toBeUndefined()
@@ -1430,5 +1445,149 @@ describe('OrderDialog — Mandantensperre (#489)', () => {
     await component.placeOrder()
 
     expect(createdOrders).toHaveLength(1)
+  })
+})
+
+describe('OrderDialog — Anpassen-Panel (#639)', () => {
+  const KETCHUP = '018f0000-0000-7000-8000-00000000a001'
+  const ketchup = () => ({
+    externalId: KETCHUP,
+    version: 1,
+    ingredientName: 'Ketchup',
+    initialQuantity: 1,
+    quantity: 1,
+    onlyOutsideConsumption: false,
+    isRemovable: true,
+    priceAdjustment: -0.3,
+  })
+  const ui = (showOptionsAuto: boolean) => ({ index: 1, showOptionsAuto, hideOnMainScreen: false })
+  const burger = (showOptionsAuto: boolean) =>
+    product('burger', { ui: ui(showOptionsAuto), ingredientReferences: [ketchup()] } as never)
+  const cheese = () => product('cheese', { name: 'Käse', price: 0.5, productType: 'MODIFIER' } as never)
+  const burgerWithExtras = (minSelections = 0) =>
+    product('burger', {
+      ui: ui(true),
+      optionGroups: [
+        {
+          id: 'g-1',
+          name: 'Extras',
+          minSelections,
+          maxSelections: 2,
+          freeQuantity: 0,
+          options: [{ productId: 'cheese' }],
+        },
+      ],
+    } as never)
+
+  it('öffnet das Panel beim Antippen eines Produkts mit ui.showOptionsAuto', () => {
+    const p = burger(true)
+    const { component } = setup({ catalog: [p] })
+
+    component.increaseLineItem(p)
+
+    expect(component.customizeModel()?.ingredients).toEqual([
+      { externalId: KETCHUP, name: 'Ketchup', priceAdjustment: -0.3, removed: false },
+    ])
+    expect(component.selectedProductIndex).toBe(0)
+  })
+
+  it('ohne das Flag wird nur gebucht — das Panel öffnet erst der Tipp auf die Position', () => {
+    const p = burger(false)
+    const { component } = setup({ catalog: [p] })
+
+    component.increaseLineItem(p)
+    expect(component.customizeModel()).toBeNull()
+
+    component.selectProduct(0)
+    expect(component.customizeModel()?.name).toBe('Artikel burger')
+  })
+
+  it('legt bei auto-anpassbaren Produkten je Tipp eine eigene Zeile an', () => {
+    const p = burger(true)
+    const { component } = setup({ catalog: [p] })
+
+    component.increaseLineItem(p)
+    component.increaseLineItem(p)
+
+    expect(component.lineItems.map((l: { amount: number }) => l.amount)).toEqual([1, 1])
+  })
+
+  it('Zutat abwählen und wieder anwählen hinterlässt genau einen bzw. keinen „Ohne"-Modifier', () => {
+    const p = burger(true)
+    const { component } = setup({ catalog: [p] })
+    component.increaseLineItem(p)
+
+    component.onCustomizeIngredientToggled(KETCHUP)
+    expect(component.lineItems[0].modifiers.map((m: { name: string; price: number }) => [m.name, m.price])).toEqual([
+      ['Ohne Ketchup', -0.3],
+    ])
+    expect(component.customizeModel()?.summary).toBe('ohne Ketchup')
+
+    component.onCustomizeIngredientToggled(KETCHUP)
+    expect(component.lineItems[0].modifiers).toEqual([])
+  })
+
+  it('„Abbrechen" stellt die Modifier vom Öffnen wieder her, „Fertig" behält sie', () => {
+    const p = burger(true)
+    const { component } = setup({ catalog: [p] })
+    component.increaseLineItem(p)
+    component.onCustomizeIngredientToggled(KETCHUP)
+    component.onCustomizeCancelled()
+
+    expect(component.lineItems[0].modifiers).toEqual([])
+    expect(component.customizeModel()).toBeNull()
+
+    component.selectProduct(0)
+    component.onCustomizeIngredientToggled(KETCHUP)
+    component.onCustomizeFinished()
+
+    expect(component.lineItems[0].modifiers.map((m: { name: string }) => m.name)).toEqual(['Ohne Ketchup'])
+    expect(component.customizeModel()).toBeNull()
+  })
+
+  it('Extras per Plus und Minus; Minus auf ein ungebuchtes Extra legt keinen OHNE-Marker an', () => {
+    const p = burgerWithExtras()
+    const { component } = setup({ catalog: [p, cheese()] })
+    component.increaseLineItem(p)
+
+    component.onCustomizeOptionDecreased({ groupName: 'Extras', productId: 'cheese' })
+    expect(component.lineItems[0].modifiers).toEqual([])
+
+    component.onCustomizeOptionIncreased({ groupName: 'Extras', productId: 'cheese' })
+    component.onCustomizeOptionIncreased({ groupName: 'Extras', productId: 'cheese' })
+    expect(component.customizeModel()?.groups[0].selected).toBe(2)
+
+    // maxSelections 2 erreicht — ein drittes Plus bucht nichts
+    component.onCustomizeOptionIncreased({ groupName: 'Extras', productId: 'cheese' })
+    expect(component.lineItems[0].modifiers.map((m: { amount: number; topic: string }) => [m.amount, m.topic])).toEqual(
+      [[2, 'Extras']],
+    )
+
+    component.onCustomizeOptionDecreased({ groupName: 'Extras', productId: 'cheese' })
+    component.onCustomizeOptionDecreased({ groupName: 'Extras', productId: 'cheese' })
+    expect(component.lineItems[0].modifiers).toEqual([])
+  })
+
+  it('„Fertig" schließt nicht, solange eine Pflichtgruppe fehlt', () => {
+    const p = burgerWithExtras(1)
+    const { component } = setup({ catalog: [p, cheese()] })
+    component.increaseLineItem(p)
+
+    component.onCustomizeFinished()
+    expect(component.customizeModel()).not.toBeNull()
+
+    component.onCustomizeOptionIncreased({ groupName: 'Extras', productId: 'cheese' })
+    component.onCustomizeFinished()
+    expect(component.customizeModel()).toBeNull()
+  })
+
+  it('das Extras-Raster hat keine OHNE-Funktionstaste mehr', () => {
+    const { component } = setup({ catalog: [product('pommes')] })
+    component.increaseLineItem(product('pommes'))
+
+    component.selectProduct(0)
+
+    expect(component.functionButtons.map((b: { name: string }) => b.name)).not.toContain('OHNE')
+    expect(component.customizeModel()).toBeNull()
   })
 })

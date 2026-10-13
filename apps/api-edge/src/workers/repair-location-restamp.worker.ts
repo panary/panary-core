@@ -165,13 +165,26 @@ export const runLocationRestampRepair = async (app: Application): Promise<void> 
       targetLocationId = Array.from(ghostLocationIds)[0]
     }
 
+    const newTenantId = targetTenantId ?? knownTenantId
+    if (!newTenantId) {
+      // Weder die Location noch die Connection kennen einen Mandanten. Ein Restamp ohne Ziel
+      // waere ein Dauerfehler bei jedem Start; der Zustand gehoert vor Ort angesehen.
+      logger.warn({
+        message: 'Auto-Repair-Hook: kein Mandant bekannt — Restamp uebersprungen',
+        event: 'sync.repair.no_tenant',
+        oldLocationId: knownLocationId,
+        newLocationId: targetLocationId,
+      })
+      return
+    }
+
     logger.info({
       message: 'Auto-Repair-Hook: Geist-Location detected, starte Restamp',
       event: 'sync.repair.location_restamp_started',
       oldLocationId: knownLocationId,
       newLocationId: targetLocationId,
       oldTenantId: knownTenantId,
-      newTenantId: targetTenantId ?? knownTenantId,
+      newTenantId,
     })
 
     // 4. Restamp ausfuehren. Der Mandant wechselt nur bei Abweichung vom Cloud-Mandanten;
@@ -179,7 +192,7 @@ export const runLocationRestampRepair = async (app: Application): Promise<void> 
     //    tenantId — bei einer im Start-Bootstrap erfundenen ist das die Location selbst.
     const result = await applyCloudTenantId(app, {
       oldTenantId: knownTenantId,
-      newTenantId: targetTenantId ?? knownTenantId ?? '',
+      newTenantId,
       oldLocationId: knownLocationId,
       newLocationId: targetLocationId,
     })

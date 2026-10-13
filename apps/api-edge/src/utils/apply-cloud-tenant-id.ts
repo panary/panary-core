@@ -112,7 +112,9 @@ const updateGuardTriggers = async (knex: Knex, table: string): Promise<Array<{ n
  *
  * Mandant und Standort werden getrennt betrachtet: Was sich nicht aendert, wird nicht
  * geschrieben (#681 — ein `locationId = X where locationId = X` loeste den Append-only-
- * Trigger von `order-references` aus und rollte den ganzen Repair zurueck).
+ * Trigger von `order-references` aus und rollte den ganzen Repair zurueck). Location-Spalten
+ * werden nur bei zwei echten, verschiedenen IDs angefasst: `where locationId = null` fuehrt
+ * Knex als `IS NULL` aus und schluege jede globale Zeile der neuen Filiale zu.
  *
  * Append-only-Tabellen ausserhalb von RESTAMP_SKIP_TABLES (#682, ADR 0055): Nur die
  * Eigentuemer-Spalten `tenantId`/`locationId` folgen — sonst waeren die Zeilen nach dem
@@ -212,8 +214,9 @@ export const applyCloudTenantId = async (
 
       if (locationChanges) {
         // Nach Schritt 1 steht `tenantId` schon auf dem neuen Wert — darauf filtern, damit
-        // nur die gerade umgestempelten Rows wandern, nie die eines fremden Mandanten.
-        const scopeTenant = opts.oldTenantId !== null ? opts.newTenantId : null
+        // nur die gerade umgestempelten Rows wandern, nie die eines fremden Mandanten. Gilt auch
+        // beim Erst-Pairing (oldTenantId null): Die mandantenlosen Zeilen tragen jetzt den neuen.
+        const scopeTenant = opts.newTenantId
 
         // 2. Single-LocationId-Spalten. Append-only: nur die Eigentuemer-Spalte `locationId`.
         for (const col of columns) {
@@ -222,7 +225,7 @@ export const applyCloudTenantId = async (
           let locQuery = trx(table)
             .update({ [col]: opts.newLocationId })
             .where(col, opts.oldLocationId as string)
-          if (scopeTenant !== null) locQuery = locQuery.where('tenantId', scopeTenant)
+          locQuery = locQuery.where('tenantId', scopeTenant)
           const locCount = await locQuery
           if (locCount > 0) markAffected(table)
         }

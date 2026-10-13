@@ -55,6 +55,7 @@
   },
   "NAV": {
     "ADMIN_PANEL": "Yönetim Paneli",
+    "OPEN_MENU": "Menüyü aç",
     "DASHBOARD": "Gösterge Paneli",
     "USERS": "Kullanıcılar",
     "LOCATION": "Ana veriler",

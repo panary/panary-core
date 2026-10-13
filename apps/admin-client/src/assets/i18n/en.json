@@ -55,6 +55,7 @@
   },
   "NAV": {
     "ADMIN_PANEL": "Admin Panel",
+    "OPEN_MENU": "Open menu",
     "DASHBOARD": "Dashboard",
     "USERS": "Users",
     "LOCATION": "Master data",

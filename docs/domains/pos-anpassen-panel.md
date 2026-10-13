@@ -26,8 +26,8 @@ oder eine `optionGroups`-Gruppe mit Optionen (`hasCustomizableContent` in
 `libs/domains/orders/feature-pos-order-dialog/src/lib/product-customize.ts`). Ohne beides bleibt es
 beim bisherigen Extras-Raster mit „Alle Modifier anzeigen".
 
-Bundles (Menüs) öffnen das Panel **nicht**. Sie laufen weiter durch den Bundle-Flow mit seinen
-Pflichtschritten.
+Bundles (Menüs) öffnen das Panel **nicht**, auch nicht über den Warenkorb-Tipp. Ihre
+Optionsgruppen sind Menüschritte, die der Bundle-Flow mit seinen Pflichtschritten abarbeitet.
 
 `ui.showOptionsAuto` pflegt die Cloud-Produktdetailseite. Das Legacy-Feld `showExtrasAfterSelect`
 wird weiterhin nur im Soßen-Schritt gelesen und nicht migriert.
@@ -51,9 +51,15 @@ Zeilen, und eine Anpassung an einer zusammengelegten Zeile träfe jedes Stück. 
 - **`maxSelections: 0`** gilt als unbegrenzt.
 - Eine Option, deren Produkt kein Modifier ist, steht mit Warnhinweis da und lässt sich nicht
   buchen (dieselbe Regel wie im Raster, #273).
-- **Abbrechen** stellt die Modifier vom Öffnen des Panels wieder her. Jeder andere Ansichtswechsel
-  (Produktgruppe, andere Position, Auswahl aufheben) schließt das Panel und **behält** die
-  Änderungen — wie früher der Wechsel aus dem Extras-Raster.
+- **Abbrechen** stellt die Modifier vom Öffnen des Panels wieder her. Die Zeile selbst bleibt im
+  Warenkorb: Abbrechen verwirft die Anpassung, nicht das Produkt (dafür gibt es Löschen).
+- Jeder andere Ansichtswechsel (Produktgruppe, Auswahl aufheben) schließt das Panel und **behält**
+  die Änderungen, wie früher der Wechsel aus dem Extras-Raster.
+- **Wechselt die Auswahl** bei offenem Panel (Kombinations-Position, Pfeiltasten), zieht das Panel
+  zur neuen Zeile mit. Ist die nicht anpassbar, schließt es, und die Auswahl bleibt stehen. Plus und
+  Minus buchen ohnehin auf die Zeile des Panels, nie auf die gerade markierte.
+- **Änderungen von außen** kommen im Panel an: Menge per Spalte 2 oder Undo zieht „gilt für n×"
+  nach, und das Löschen der Zeile schließt das Panel.
 - **Alle Modifier** öffnet das Raster aller Katalog-Modifier für die Zeile, etwa für ein Extra, das
   in keiner Optionsgruppe des Produkts steht.
 

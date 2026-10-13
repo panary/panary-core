@@ -102,6 +102,13 @@ Nach dem Truncate gibt es am Edge keine Location mehr, und jeder Pull des eigene
 
 > ⚠️ Dieselbe Pick-Listen-Luecke besteht bei `productDataSchema` (`mainPrice`), `userDataSchema` (`hasPosPin`, `mfaEnrolledAt`) und `businessDayDataSchema`. Am betroffenen Edge liefen diese Pulls durch, deshalb sind sie hier nicht angepasst. Wer einen weiteren Service in den Truncate aufnimmt oder ein Cloud-Feld ergaenzt, prueft das Create-Schema mit.
 
+### Gepairter Edge ohne Standort: nicht lokal anlegen
+
+Der Start-Bootstrap in [`main.ts`](../../apps/api-edge/src/main.ts) legt bei leerer `locations`-Tabelle einen Standort mit frisch erzeugter tenantId an, gedacht fuer die Ersteinrichtung ohne Cloud. Am 2026-10-13 lief er an einem gepairten Edge, dessen Tabelle seit dem Bootstrap vom 2026-10-08 leer war. Der [Repair-Hook](../../apps/api-edge/src/workers/repair-location-restamp.worker.ts) stempelte danach nur die LocationId auf die Cloud-ID um. Die Zeile trug weiter den erfundenen Mandanten: Der Pull fand sie (intern, ohne Mandantenfilter) und patchte sie „OK“, Admin und Kasse sahen sie nie (#677).
+
+- Ist eine `cloud-connection` mit `pairingStatus` `pairing` oder `connected` vorhanden, ueberspringt der Start-Bootstrap die Location (`bootstrap.location_create_skipped_paired`). Der Standort kommt per Pull ([`isCloudPairedConnection`](../../apps/api-edge/src/utils/local-location-bootstrap.ts)).
+- Der Repair-Hook vergleicht zusaetzlich die tenantId der einzigen Location mit dem Cloud-Mandanten (`preflightSnapshot.cloudTenantId`, Rueckfall `connection.tenantId`) und stempelt sie bei Abweichung um, auch wenn die LocationId schon stimmt. `applyCloudTenantId` trifft dabei nur Zeilen mit exakt der alten tenantId. Danach setzt er die Pull-Cursor zurueck wie bisher. Ein betroffener Edge heilt sich so beim naechsten Start.
+
 ### Diagnose: verworfene Cloud-Records im Support-Log
 
 `sync.pull.apply_failed` loggt `entityId` und `validationErrors` (Pfad, Keyword, Parameter des AJV-Fehlers). Der Support-Log-Export ([`log-bundle.ts`](../../apps/api-edge/src/utils/log-bundle.ts)) hat beides bis #674 verworfen; der Export vom 2026-10-12 sagte deshalb nur „validation failed“. Fuer genau dieses Event exportiert `scrubLogEntry` jetzt `entityId` (nur als uuid) und eine Strukturform der Fehler: `path`, `keyword`, `additionalProperty`, `missingProperty`, `format`, `type`, `limit`. Jeder Wert, der kein Schema-Bezeichner ist, wird `*`; `message`, `data` und `params` als Ganzes bleiben draussen. Request-400 aus dem Wide Event bleiben ohne Validierungsdetails, dort sind die Schluessel Client-Eingabe. Dazu kommen die Zaehler `rejectedTotal`/`total` aus `sync.bootstrap.pull_records_rejected`.

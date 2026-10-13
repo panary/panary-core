@@ -215,6 +215,17 @@ describe('computeCogs — Verbrauchsmathematik', () => {
       expect(byId.get(ING_SAUCE)).toBeCloseTo(20, 9)
     })
 
+    it('ein Abwahl-Modifier ohne positive Menge wirkt nicht', () => {
+      const byId = usage(
+        makeLineItem({
+          amount: 1,
+          ingredientReferences: [ketchupRef()],
+          modifiers: [ohne(REF_KETCHUP, { amount: -1 })],
+        }),
+      )
+      expect(byId.get(ING_SAUCE)).toBeCloseTo(20, 9)
+    })
+
     it('fließt in computeCogs ein (Wareneinsatz ohne die abgewählte Zutat)', () => {
       const order = makeRegularOrder([
         makeLineItem({ amount: 2, ingredientReferences: [ketchupRef(), cheeseRef()], modifiers: [ohne(REF_KETCHUP)] }),

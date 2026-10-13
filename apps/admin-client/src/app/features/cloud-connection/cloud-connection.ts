@@ -918,11 +918,11 @@ const directionLabel = (dir: InitialDirection): string => {
                     positionierte Liste, kein zusätzliches UI-Paket.
                   -->
                   <div class="space-y-2">
-                    <div class="relative flex items-center gap-2">
+                    <div class="relative flex flex-wrap items-center gap-2">
                       <button
                         (click)="onSyncNow()"
                         [disabled]="syncing() || reloadingUsers()"
-                        class="bg-slate-900 dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-60"
+                        class="bg-slate-900 dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap disabled:opacity-60"
                       >
                         @if (syncing()) {
                           Synchronisiere …
@@ -940,7 +940,7 @@ const directionLabel = (dir: InitialDirection): string => {
                         aria-haspopup="menu"
                         aria-label="Weitere Sync-Aktionen"
                         title="Weitere Sync-Aktionen"
-                        class="h-9 w-9 flex items-center justify-center rounded-lg border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 disabled:opacity-50"
+                        class="h-9 w-9 shrink-0 flex items-center justify-center rounded-lg border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 disabled:opacity-50"
                       >
                         <span class="material-symbols-outlined" style="font-size: 20px; line-height: 1">more_horiz</span>
                       </button>
@@ -956,7 +956,7 @@ const directionLabel = (dir: InitialDirection): string => {
                           role="menu"
                           aria-label="Weitere Sync-Aktionen"
                           (keydown.escape)="syncMenuOpen.set(false)"
-                          class="absolute top-full left-0 mt-2 z-50 w-72 max-w-[calc(100vw-3rem)] bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 rounded-xl shadow-2xl py-1"
+                          class="absolute top-full left-0 mt-2 z-50 w-72 max-w-full bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 rounded-xl shadow-2xl py-1"
                         >
                           <button
                             type="button"

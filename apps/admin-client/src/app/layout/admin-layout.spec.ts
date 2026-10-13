@@ -113,11 +113,21 @@ describe('AdminLayoutComponent — Drawer unterhalb md (#684)', () => {
     expect(component.mobileNavOpen()).toBe(false)
   })
 
+  it('openMobileNav oeffnet den Drawer', () => {
+    const { component } = setup(true)
+
+    component.openMobileNav()
+
+    expect(component.mobileNavOpen()).toBe(true)
+  })
+
   it('meldet den Listener beim Zerstoeren wieder ab', () => {
     const { query } = setup(true)
 
     TestBed.resetTestingModule()
 
-    expect(query.removeEventListener).toHaveBeenCalledWith('change', expect.any(Function))
+    // Dieselbe Referenz wie bei der Anmeldung, sonst bliebe der Listener haengen.
+    const registered = query.addEventListener.mock.calls[0][1]
+    expect(query.removeEventListener).toHaveBeenCalledWith('change', registered)
   })
 })

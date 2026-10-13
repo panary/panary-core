@@ -1,4 +1,16 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, computed, effect, signal } from '@angular/core'
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  ElementRef,
+  inject,
+  Injector,
+  signal,
+  viewChild,
+} from '@angular/core'
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
 import { Title } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
@@ -74,7 +86,11 @@ interface NavItem {
 
       <!-- Sidebar -->
       <aside
+        #sidebar
         id="admin-sidebar"
+        [attr.role]="isNarrow() && mobileNavOpen() ? 'dialog' : null"
+        [attr.aria-modal]="isNarrow() && mobileNavOpen() ? 'true' : null"
+        [attr.aria-label]="isNarrow() && mobileNavOpen() ? ('NAV.ADMIN_PANEL' | translate) : null"
         class="flex flex-col shrink-0 bg-white dark:bg-gray-950
                     border-r border-slate-200 dark:border-gray-800 transition-[width,translate] duration-200"
         [class.w-56]="!isNarrow() && sidebarOpen()"
@@ -317,14 +333,18 @@ interface NavItem {
       </aside>
 
       <!-- Main Content -->
-      <main class="flex-1 min-w-0 overflow-hidden flex flex-col">
+      <main
+        class="flex-1 min-w-0 overflow-hidden flex flex-col"
+        [attr.inert]="isNarrow() && mobileNavOpen() ? '' : null"
+      >
         @if (isNarrow()) {
           <div
             class="h-14 shrink-0 flex items-center gap-3 px-4 bg-white dark:bg-gray-950 border-b border-slate-200 dark:border-gray-800"
           >
             <button
+              #menuButton
               type="button"
-              (click)="mobileNavOpen.set(true)"
+              (click)="openMobileNav()"
               [attr.aria-label]="'NAV.OPEN_MENU' | translate"
               [attr.aria-expanded]="mobileNavOpen()"
               aria-controls="admin-sidebar"
@@ -491,8 +511,28 @@ export class AdminLayoutComponent {
   // loadProblemCounts wurde in `SyncProblemCountService.refresh()`
   // ausgelagert — Operator-UI kann nach Aktionen direkt darauf zugreifen.
 
+  private readonly injector = inject(Injector)
+  private readonly menuButton = viewChild<ElementRef<HTMLButtonElement>>('menuButton')
+  private readonly sidebar = viewChild<ElementRef<HTMLElement>>('sidebar')
+
+  /**
+   * Fokus wandert in den Drawer und beim Schliessen zurueck auf den Menue-Knopf
+   * (Review #684). Erst nach dem Rendern: Vorher ist der Drawer noch `inert` bzw.
+   * beim Schliessen `main`, und ein Fokus dorthin liefe ins Leere.
+   */
+  openMobileNav() {
+    this.mobileNavOpen.set(true)
+    afterNextRender(() => this.sidebar()?.nativeElement.querySelector<HTMLElement>('nav a')?.focus(), {
+      injector: this.injector,
+    })
+  }
+
   closeMobileNav() {
+    // Escape ist auf `document` gebunden und feuert auch ohne offenen Drawer —
+    // dann darf der Fokus nicht auf den Menue-Knopf springen.
+    if (!this.mobileNavOpen()) return
     this.mobileNavOpen.set(false)
+    afterNextRender(() => this.menuButton()?.nativeElement.focus(), { injector: this.injector })
   }
 
   setTheme(theme: string) {

@@ -9,6 +9,7 @@ import { constants } from 'fs'
 import { UserSystemRole } from '@panary/users/domain'
 import { uuidv7 } from 'uuidv7'
 import { assertFeathersSecret, filterConfigEnv } from './utils/boot-guards'
+import { isCloudPairedConnection } from './utils/local-location-bootstrap'
 
 const CONFIG_PATH = process.env['PANARY_CONFIG_PATH'] || path.join(process.cwd(), 'data', 'panary.config.json')
 
@@ -227,7 +228,18 @@ async function main() {
     // --- Bootstrapping: Location + Tenant erstellen (falls noch keine existiert) ---
     try {
       const locationCount = await knex('locations').count('* as cnt').first()
-      if (!locationCount || Number(locationCount.cnt) === 0) {
+      const cloudConnection = (await knex('cloud-connection').select('pairingStatus').first()) as
+        { pairingStatus?: string | null } | undefined
+      if ((!locationCount || Number(locationCount.cnt) === 0) && isCloudPairedConnection(cloudConnection)) {
+        // Gepairt: Der Standort kommt per Sync aus der Cloud (#677). Eine lokal erfundene
+        // tenantId machte ihn fuer Admin und Kasse unsichtbar.
+        logger.warn({
+          message:
+            'Bootstrapping: keine Location vorhanden, Edge ist gepairt — warte auf den Cloud-Pull statt lokal anzulegen',
+          event: 'bootstrap.location_create_skipped_paired',
+          pairingStatus: cloudConnection?.pairingStatus,
+        })
+      } else if (!locationCount || Number(locationCount.cnt) === 0) {
         const tenantId = uuidv7()
         const locationId = uuidv7()
         const locationName = config.locationName || config.shopName || 'Hauptstandort'

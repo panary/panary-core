@@ -57,8 +57,9 @@ interface UserRow {
 interface CloudConnectionRow {
   bootstrapStatus?: string
   pairingStatus?: string
+  tenantId?: string | null
   locationId?: string | null
-  preflightSnapshot?: { cloudLocationId?: string } | null
+  preflightSnapshot?: { cloudLocationId?: string; cloudTenantId?: string } | null
 }
 
 export const runLocationRestampRepair = async (app: Application): Promise<void> => {
@@ -96,6 +97,18 @@ export const runLocationRestampRepair = async (app: Application): Promise<void> 
       return
     }
     const knownLocationId = locList[0]._id
+    const knownTenantId = locList[0].tenantId ?? null
+
+    // 2b. Mandant der Location gegen den Cloud-Mandanten (#677). Der Start-Bootstrap in
+    //     `main.ts` legte bei leerer Tabelle eine Location mit erfundener tenantId an; ein
+    //     reiner LocationId-Restamp liess sie stehen, und Admin wie Kasse sahen die Zeile
+    //     wegen des Mandantenfilters nie. Snapshot zuerst: `connection.tenantId` setzt erst
+    //     der Bootstrap auf den Cloud-Wert.
+    const cloudTenantId = active.preflightSnapshot?.cloudTenantId ?? active.tenantId ?? null
+    const targetTenantId =
+      typeof cloudTenantId === 'string' && cloudTenantId.length > 0 && cloudTenantId !== knownTenantId
+        ? cloudTenantId
+        : null
 
     // 3a. Primaere Detection: Cloud-LocationId aus dem Pairing-Snapshot.
     //     Deterministisch — braucht keine User-Heuristik und greift auch, wenn
@@ -105,8 +118,8 @@ export const runLocationRestampRepair = async (app: Application): Promise<void> 
 
     if (typeof cloudLocationId === 'string' && cloudLocationId.length > 0) {
       if (cloudLocationId === knownLocationId) {
-        // Konsistent — nichts zu tun.
-        return
+        // LocationId konsistent — nur noch der Mandant kann abweichen.
+        if (!targetTenantId) return
       }
       targetLocationId = cloudLocationId
     } else {
@@ -132,8 +145,9 @@ export const runLocationRestampRepair = async (app: Application): Promise<void> 
       }
 
       if (ghostLocationIds.size === 0) {
-        // Konsistent — nichts zu tun.
-        return
+        // LocationId konsistent — nur noch der Mandant kann abweichen.
+        if (!targetTenantId) return
+        ghostLocationIds.add(knownLocationId)
       }
 
       if (ghostLocationIds.size > 1) {
@@ -156,14 +170,16 @@ export const runLocationRestampRepair = async (app: Application): Promise<void> 
       event: 'sync.repair.location_restamp_started',
       oldLocationId: knownLocationId,
       newLocationId: targetLocationId,
+      oldTenantId: knownTenantId,
+      newTenantId: targetTenantId ?? knownTenantId,
     })
 
-    // 4. Restamp ausfuehren — nur Location, kein Tenant-Restamp (User hat
-    //    Tenant beim Pairing erfolgreich umgestempelt; nur die LocationId-Kette
-    //    ist gebrochen).
+    // 4. Restamp ausfuehren. Der Mandant wechselt nur bei Abweichung vom Cloud-Mandanten;
+    //    `applyCloudTenantId` trifft dann ausschliesslich Zeilen mit exakt der alten
+    //    tenantId — bei einer im Start-Bootstrap erfundenen ist das die Location selbst.
     const result = await applyCloudTenantId(app, {
-      oldTenantId: locList[0].tenantId ?? null,
-      newTenantId: locList[0].tenantId ?? '',
+      oldTenantId: knownTenantId,
+      newTenantId: targetTenantId ?? knownTenantId ?? '',
       oldLocationId: knownLocationId,
       newLocationId: targetLocationId,
     })

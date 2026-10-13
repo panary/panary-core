@@ -139,6 +139,12 @@ OHNE-Modifier **mit** `ingredientReferences` mindert den Materialverbrauch der
 Position (Netting). Der POS erzeugt in diesem Pfad allerdings leere
 `ingredientReferences`, der Effekt ist dort also 0.
 
+Für entfernte Zutaten gilt seit [#640](https://github.com/panary/panary-core/issues/640):
+Der Modifier trägt `removesIngredientExternalId`, und die abgewählte Referenz der Position wird
+nicht verbucht (Details in [Verbrauchs-Explosion](verbrauchs-explosion.md#abgewählte-zutaten-removesingredientexternalid)).
+Erkannt wird der Modifier seitdem über dieses Feld. Präfix `Ohne ` plus `externalId` bleibt
+nur als Rückfall für Zeilen, die vor dem Feld entstanden sind.
+
 ## Rollout-Reihenfolge
 
 `orderDataSchema` ist geteilter Code: `panary-cloud` validiert Sync-Pushes mit
@@ -150,5 +156,12 @@ Cloud-Receiver lehnt sie mit `BadRequest` ab und der Outbox-Eintrag geht
 1. `panary-core` releasen (`@panary/orders` publizieren)
 2. Pin in `panary-cloud/package.json` bumpen, `api-cloud` deployen
 3. POS-Client-Release
+
+`removesIngredientExternalId` (#640) ist ein **neues optionales Feld**, keine Lockerung. Die
+Modifier-Ebene trägt kein `additionalProperties: false` (das steht nur auf `Order` und
+`OrderData`). Ein Edge oder eine Cloud mit älterem Paket sollte den Modifier deshalb annehmen
+und das Feld nur beim Verbrauch nicht kennen. Bestätigt ist das für die Cloud nicht, dort
+prüft es [panary/panary-cloud#1103](https://github.com/panary/panary-cloud/issues/1103) vor dem
+Pin-Bump. Die Reihenfolge oben bleibt deshalb die sichere.
 
 Siehe auch [Rabatte](rabatte.md) für die übrige Preis-/Steuer-Arithmetik.

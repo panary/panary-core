@@ -153,6 +153,7 @@ export function explodeOrderConsumption(
   const dineLocation = (order as { dineLocation?: string }).dineLocation
 
   for (const item of effectiveLineItems(order)) {
+    const removed = removedIngredientIds(item)
     // Material-Verbrauch läuft bewusst über die Legacy-Slots (menuDrink/
     // menuSideDish/modifiers) + die Zeilen-Rezepte. Der POS-Writer füllt diese
     // Slots auch bei FIXED_PROPORTIONAL-Bundles weiter (das neue `components[]`
@@ -160,7 +161,7 @@ export function explodeOrderConsumption(
     // Daher hier KEIN components[]-Pfad — sonst entstünde Doppel-Verbrauch
     // (Slot + Komponente) bzw. fehlender Verbrauch von Ad-hoc-Modifiern. Der
     // Umstieg auf components[] erfolgt erst beim Sunset der Legacy-Slots.
-    accumulateLineItem(item, item.amount, dineLocation, usage, recipeIngredients, unresolved)
+    accumulateLineItem(item, item.amount, dineLocation, usage, recipeIngredients, unresolved, removed)
     for (const mod of item.modifiers ?? []) {
       accumulateLineItem(
         mod as OrderLineItem,
@@ -270,6 +271,24 @@ export function computeCogs(
   }
 }
 
+/**
+ * Zutaten, die am POS abgewählt wurden („Ohne X", #640): die `externalId` der
+ * `ingredientReference`, die der Modifier in `removesIngredientExternalId` trägt.
+ *
+ * Bewusst nur dieses Feld, nicht das Namenspräfix „Ohne ": Bestandsbestellungen ohne
+ * das Feld verbuchen weiter wie vorher, statt rückwirkend anders zu rechnen als der
+ * Bestand, der damals gebucht wurde. Die Abwahl gilt für alle Stück der Zeile — das
+ * Anpassen-Panel zeigt sie auch so an („gilt für n×").
+ */
+function removedIngredientIds(item: OrderLineItem): ReadonlySet<string> {
+  const ids = new Set<string>()
+  for (const mod of item.modifiers ?? []) {
+    const id = (mod as { removesIngredientExternalId?: string }).removesIngredientExternalId
+    if (id && mod.amount > 0) ids.add(id)
+  }
+  return ids
+}
+
 function accumulateLineItem(
   item: OrderLineItem | { ingredientReferences?: unknown; recipeReferences?: unknown; amount?: number },
   effectiveAmount: number,
@@ -277,12 +296,17 @@ function accumulateLineItem(
   ingredientUsage: Map<string, ConsumptionLine>,
   recipeIngredients: RecipeIngredientMap,
   unresolved: UnresolvedRecipe[],
+  removedIngredients: ReadonlySet<string> = new Set(),
 ): void {
-  // Direkte Zutatenreferenzen
+  // Direkte Zutatenreferenzen. Abwählbar sind nur diese — Rezept-Zutaten tragen kein
+  // `isRemovable`, das der POS auswertet.
   const ingredientRefs = (item as OrderLineItem).ingredientReferences ?? []
   for (const ref of ingredientRefs) {
     const r = ref as EmbeddedRecipeIngredient & { name?: string }
     if (isSkippedForDineLocation(r, dineLocation)) continue
+    // Verglichen wird die `externalId` der Referenz, nicht `ingredientId`: Genau die
+    // schreibt der POS in den Modifier, und beide unterscheiden sich in echten Daten.
+    if (r.externalId && removedIngredients.has(r.externalId)) continue
     const id = r.ingredientId ?? r.externalId
     const quantity = r.quantity ?? 0
     const unit = r.unit ?? ''

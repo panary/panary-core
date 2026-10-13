@@ -194,6 +194,10 @@ export const modifierLineItemSchema = Type.Object({
   ...genericLineItemSchema.properties,
   amount: Type.Number({ minimum: -1 }),
   price: Type.Number(),
+  // Kennzeichnet den Modifier „Ohne X" als Abwahl einer Zutat der Position: die
+  // `externalId` der `ingredientReference`, die `explodeOrderConsumption` dann nicht
+  // verbucht (#640). Optional — Bestandsbestellungen und andere Clients tragen es nicht.
+  removesIngredientExternalId: Type.Optional(Type.String({ format: 'uuid' })),
 })
 export type ModifierLineItem = Static<typeof modifierLineItemSchema>
 

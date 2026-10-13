@@ -492,6 +492,29 @@ describe('applyCloudTenantId — Fallmatrix gegen die migrierte SQLite', () => {
     )
   })
 
+  it('ohne Ziel-Location (newLocationId null): Standort-Verweise bleiben, nur der Mandant wechselt', async () => {
+    const { knex, app } = openEdgeDb()
+    const edgeTenant = uuidv7()
+    const cloudTenant = uuidv7()
+    const location = uuidv7()
+    const s = await seedEdge(knex, edgeTenant, location)
+
+    await applyCloudTenantId(app, {
+      oldTenantId: edgeTenant,
+      newTenantId: cloudTenant,
+      oldLocationId: location,
+      newLocationId: null,
+    })
+
+    // Vorher: `set locationId = null where locationId = X` — jeder Verweis auf die Filiale weg.
+    expect(await knex('locations').where({ _id: location }).first()).toMatchObject({ tenantId: cloudTenant })
+    expect(await knex('products').where({ _id: s.productHome }).first()).toMatchObject({
+      tenantId: cloudTenant,
+      locationId: location,
+    })
+    expect(await knex('users').where({ _id: s.user }).first()).toMatchObject({ activeLocationId: location })
+  })
+
   it('verweigert einen leeren Ziel-Mandanten, statt mandantenlose Zeilen auf "" zu stempeln', async () => {
     const { knex, app } = openEdgeDb()
     const unowned = uuidv7()

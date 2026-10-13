@@ -182,6 +182,18 @@ describe('applyCloudTenantId — Restamp gegen die migrierte Test-SQLite', () =>
     // Skip-Tabelle: historische tenantId bleibt stehen
     const syncRun = await knex('sync-runs').where({ _id: ids.syncRun }).first()
     assert.strictEqual(syncRun?.tenantId, oldTenantId)
+
+    // Append-only-Waechter nach dem Restamp wieder vorhanden (#682). Diese DB ueberdauert den
+    // Lauf: Ein verlorener Trigger faellt sonst erst einer anderen Suite im naechsten Lauf auf.
+    const triggers = (await knex('sqlite_master').select('name').where({ type: 'trigger' })).map(r => r.name)
+    for (const name of [
+      'audit_events_no_update',
+      'audit_events_no_delete',
+      'order_references_no_update',
+      'order_references_no_delete',
+    ]) {
+      assert.ok(triggers.includes(name), `Trigger ${name} fehlt nach dem Restamp`)
+    }
   })
 })
 

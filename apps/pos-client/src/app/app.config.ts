@@ -16,6 +16,7 @@ import { UiScaleService } from '@panary/shared/data-access-theme'
 import { providePosRealtimeScopeGuard } from './realtime-scope-guard.provider'
 import { providePosOfflineCache } from './offline-cache.provider'
 import { providePosSnackBar } from './pos-snack-bar'
+import { EDGE_URL } from './edge-url'
 import packageJson from '../../../../package.json'
 
 export const appConfig: ApplicationConfig = {
@@ -45,11 +46,11 @@ export const appConfig: ApplicationConfig = {
     {
       provide: APP_CONFIG,
       useValue: {
-        apiUrl: 'http://localhost:3030',
+        apiUrl: EDGE_URL,
         websocketPath: '/ws',
         production: false,
         appVersion: packageJson.version,
-        basicServerUrl: 'http://localhost:3030',
+        basicServerUrl: EDGE_URL,
         cloudUrl: 'https://api.panary.cloud',
         printOut: false,
         localStorageServerSettingsKey: 'panary_server_settings',

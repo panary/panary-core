@@ -4,6 +4,10 @@
     "__format": "number"
   },
   "host": "HOSTNAME",
+  "origins": {
+    "__name": "EDGE_ORIGINS",
+    "__format": "json"
+  },
   "system": {
     "mode": "SYSTEM_MODE"
   },

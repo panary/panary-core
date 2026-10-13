@@ -918,7 +918,8 @@ const directionLabel = (dir: InitialDirection): string => {
                     positionierte Liste, kein zusätzliches UI-Paket.
                   -->
                   <div class="space-y-2">
-                    <div class="relative flex flex-wrap items-center gap-2">
+                    <!-- Escape auf der ganzen Zeile: greift auch, wenn der Fokus noch auf dem ⋯-Knopf liegt. -->
+                    <div class="relative flex flex-wrap items-center gap-2" (keydown.escape)="syncMenuOpen.set(false)">
                       <button
                         (click)="onSyncNow()"
                         [disabled]="syncing() || reloadingUsers()"
@@ -937,7 +938,7 @@ const directionLabel = (dir: InitialDirection): string => {
                         (click)="syncMenuOpen.set(!syncMenuOpen())"
                         [disabled]="syncing() || reloadingUsers()"
                         [attr.aria-expanded]="syncMenuOpen()"
-                        aria-haspopup="menu"
+                        aria-controls="sync-more-actions"
                         aria-label="Weitere Sync-Aktionen"
                         title="Weitere Sync-Aktionen"
                         class="h-9 w-9 shrink-0 flex items-center justify-center rounded-lg border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 disabled:opacity-50"
@@ -949,18 +950,20 @@ const directionLabel = (dir: InitialDirection): string => {
                         <button
                           type="button"
                           (click)="syncMenuOpen.set(false)"
+                          tabindex="-1"
                           aria-label="Menü schließen"
                           class="fixed inset-0 z-40 cursor-default"
                         ></button>
+                        <!--
+                          Disclosure statt role="menu": Ein Menü-Role verspricht Pfeiltasten und
+                          Fokusverwaltung. Bei einem einzigen Eintrag reicht ein normaler Knopf.
+                        -->
                         <div
-                          role="menu"
-                          aria-label="Weitere Sync-Aktionen"
-                          (keydown.escape)="syncMenuOpen.set(false)"
+                          id="sync-more-actions"
                           class="absolute top-full left-0 mt-2 z-50 w-72 max-w-full bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 rounded-xl shadow-2xl py-1"
                         >
                           <button
                             type="button"
-                            role="menuitem"
                             (click)="onReloadUsers()"
                             class="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-gray-900"
                           >

@@ -10,3 +10,14 @@ const PAIRED_STATES = new Set(['pairing', 'connected'])
 /** `true`, solange ein Pairing laeuft oder steht — dann gehoert der Standort der Cloud. */
 export const isCloudPairedConnection = (row: { pairingStatus?: string | null } | null | undefined): boolean =>
   typeof row?.pairingStatus === 'string' && PAIRED_STATES.has(row.pairingStatus)
+
+export type LocalLocationBootstrap = 'create' | 'skip-paired' | 'exists'
+
+/** Entscheidung des Start-Bootstraps: lokal anlegen nur ohne Location UND ohne Pairing. */
+export const decideLocalLocationBootstrap = (
+  locationCount: number,
+  connection: { pairingStatus?: string | null } | null | undefined,
+): LocalLocationBootstrap => {
+  if (locationCount > 0) return 'exists'
+  return isCloudPairedConnection(connection) ? 'skip-paired' : 'create'
+}

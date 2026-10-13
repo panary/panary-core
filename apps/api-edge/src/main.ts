@@ -9,7 +9,7 @@ import { constants } from 'fs'
 import { UserSystemRole } from '@panary/users/domain'
 import { uuidv7 } from 'uuidv7'
 import { assertFeathersSecret, filterConfigEnv } from './utils/boot-guards'
-import { isCloudPairedConnection } from './utils/local-location-bootstrap'
+import { decideLocalLocationBootstrap } from './utils/local-location-bootstrap'
 
 const CONFIG_PATH = process.env['PANARY_CONFIG_PATH'] || path.join(process.cwd(), 'data', 'panary.config.json')
 
@@ -228,9 +228,14 @@ async function main() {
     // --- Bootstrapping: Location + Tenant erstellen (falls noch keine existiert) ---
     try {
       const locationCount = await knex('locations').count('* as cnt').first()
-      const cloudConnection = (await knex('cloud-connection').select('pairingStatus').first()) as
-        { pairingStatus?: string | null } | undefined
-      if ((!locationCount || Number(locationCount.cnt) === 0) && isCloudPairedConnection(cloudConnection)) {
+      // Ein Lesefehler zaehlt als „nicht gepairt" — sonst fiele der Bootstrap einer
+      // Ersteinrichtung komplett aus.
+      const cloudConnection = (await knex('cloud-connection')
+        .select('pairingStatus')
+        .first()
+        .catch(() => undefined)) as { pairingStatus?: string | null } | undefined
+      const decision = decideLocalLocationBootstrap(Number(locationCount?.cnt ?? 0), cloudConnection)
+      if (decision === 'skip-paired') {
         // Gepairt: Der Standort kommt per Sync aus der Cloud (#677). Eine lokal erfundene
         // tenantId machte ihn fuer Admin und Kasse unsichtbar.
         logger.warn({
@@ -239,7 +244,7 @@ async function main() {
           event: 'bootstrap.location_create_skipped_paired',
           pairingStatus: cloudConnection?.pairingStatus,
         })
-      } else if (!locationCount || Number(locationCount.cnt) === 0) {
+      } else if (decision === 'create') {
         const tenantId = uuidv7()
         const locationId = uuidv7()
         const locationName = config.locationName || config.shopName || 'Hauptstandort'

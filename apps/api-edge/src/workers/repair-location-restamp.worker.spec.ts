@@ -20,12 +20,16 @@ const GHOST_TENANT = '01a1343d-4222-7f03-a6ac-1f096bbf8995'
 const CLOUD_LOCATION = '019eb340-ce0a-7472-a6fe-99eb1db7f902'
 const GHOST_LOCATION = '01a1343d-4223-7b2f-99db-d51832f3ebce'
 
-const makeApp = (opts: { connection: Record<string, unknown>; locations: Array<Record<string, unknown>> }) => {
+const makeApp = (opts: {
+  connection: Record<string, unknown>
+  locations: Array<Record<string, unknown>>
+  users?: Array<Record<string, unknown>>
+}) => {
   const removedCursors: string[] = []
   const services: Record<string, unknown> = {
     'cloud-connection': { find: async () => [opts.connection] },
     locations: { find: async () => opts.locations },
-    users: { find: async () => [] },
+    users: { find: async () => opts.users ?? [] },
     'sync-cursor': {
       remove: async (id: string) => {
         removedCursors.push(id)
@@ -126,5 +130,39 @@ describe('runLocationRestampRepair', () => {
     })
     await runLocationRestampRepair(app)
     expect(applyCloudTenantId).not.toHaveBeenCalled()
+  })
+
+  // Zweig 3b: alte Connections ohne Cloud-LocationId (kein Snapshot, kein connection.locationId).
+  const legacyConnection = () => pairedConnection({ locationId: null, preflightSnapshot: null, tenantId: CLOUD_TENANT })
+
+  it('stempelt ohne Snapshot nur den Mandanten um, wenn kein Geist-User existiert', async () => {
+    vi.mocked(applyCloudTenantId).mockClear()
+    const { app } = makeApp({
+      connection: legacyConnection(),
+      locations: [{ _id: CLOUD_LOCATION, tenantId: GHOST_TENANT }],
+    })
+    await runLocationRestampRepair(app)
+    expect(lastRestamp()).toEqual({
+      oldTenantId: GHOST_TENANT,
+      newTenantId: CLOUD_TENANT,
+      oldLocationId: CLOUD_LOCATION,
+      newLocationId: CLOUD_LOCATION,
+    })
+  })
+
+  it('folgt ohne Snapshot dem Geist-User und korrigiert dabei den Mandanten', async () => {
+    vi.mocked(applyCloudTenantId).mockClear()
+    const { app } = makeApp({
+      connection: legacyConnection(),
+      locations: [{ _id: GHOST_LOCATION, tenantId: GHOST_TENANT }],
+      users: [{ _id: 'u-1', activeLocationId: CLOUD_LOCATION }],
+    })
+    await runLocationRestampRepair(app)
+    expect(lastRestamp()).toEqual({
+      oldTenantId: GHOST_TENANT,
+      newTenantId: CLOUD_TENANT,
+      oldLocationId: GHOST_LOCATION,
+      newLocationId: CLOUD_LOCATION,
+    })
   })
 })

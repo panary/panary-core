@@ -382,6 +382,32 @@ describe('applyCloudTenantId — Fallmatrix gegen die migrierte SQLite', () => {
     await expectGuardsIntact(knex, s.orderRef, s.auditEvent)
   })
 
+  it('Pairing ohne bisherige Edge-Location (oldLocationId null): globale Zeilen bleiben global', async () => {
+    const { knex, app } = openEdgeDb()
+    const edgeTenant = uuidv7()
+    const cloudTenant = uuidv7()
+    const location = uuidv7()
+    const s = await seedEdge(knex, edgeTenant, location)
+
+    await applyCloudTenantId(app, {
+      oldTenantId: edgeTenant,
+      newTenantId: cloudTenant,
+      oldLocationId: null,
+      newLocationId: uuidv7(),
+    })
+
+    // `where locationId = null` wuerde Knex als `IS NULL` ausfuehren und jede globale Zeile
+    // der neuen Filiale zuschlagen.
+    expect(await knex('products').where({ _id: s.productGlobal }).first()).toMatchObject({
+      tenantId: cloudTenant,
+      locationId: null,
+    })
+    expect(await knex('products').where({ _id: s.productHome }).first()).toMatchObject({
+      tenantId: cloudTenant,
+      locationId: location,
+    })
+  })
+
   it('verweigert einen leeren Ziel-Mandanten, statt mandantenlose Zeilen auf "" zu stempeln', async () => {
     const { knex, app } = openEdgeDb()
     const unowned = uuidv7()

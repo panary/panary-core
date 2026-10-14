@@ -81,7 +81,7 @@ POST /orders   →  Methode `split`
 | `order-split/unknown-line` | Zeile gibt es nicht — auch bei Bestandsdaten **ohne** `lineItem._id` |
 | `order-split/duplicate-line` | dieselbe Zeile zweimal in einer Auswahl |
 | `order-split/amount-exceeds-remainder` | mehr verlangt, als die Zeile noch trägt |
-| `order-split/partial-split-unsupported` | Teilmenge einer Zeile mit Modifiern/Komponenten (siehe unten) |
+| `order-split/partial-split-unsupported` | Teilmenge einer Bestandszeile mit Modifiern oder einer Zeile mit Komponenten (siehe unten) |
 | `order-split/nothing-remains` | die Quelle bliebe leer — das wäre eine Umbuchung, kein Split |
 | `order-split/fiscal-mode-unsupported` | der Geschäftstag der Quelle läuft im Kassenbetrieb oder ist nicht lesbar (siehe [POS-Oberfläche](#pos-oberfläche-und-die-sperre-im-kassenbetrieb)) |
 | `order-split/rolled-back` | Ziel war angelegt, die Gegenbuchung der Quelle schlug fehl, das Ziel ist storniert — nichts umgebucht (siehe [Ganz oder gar nicht](#ganz-oder-gar-nicht)) |

@@ -62,9 +62,10 @@ export function effectiveLineItems(order: Pick<Order, 'lineItems' | 'splitOff'>)
  * `entryIds` schraenkt auf bestimmte Umbuchungen ein (z. B. die noch nicht
  * gegengebuchten); ohne Angabe zaehlt alles, was je gegangen ist.
  *
- * Eine Zeile mit Modifiern wandert nur ganz (`isPartiallySplittable`) und
- * erscheint hier mit voller Menge samt Modifiern — deren Verbrauch skaliert
- * so richtig mit.
+ * Eine Bestandszeile mit Modifiern wandert nur ganz (`isPartiallySplittable`) und
+ * erscheint hier mit voller Menge samt Modifiern. Eine Zeile mit `modifierScope:
+ * 'unit'` darf auch in Teilmenge wandern (#700) — ihre Modifier gelten je Stueck, der
+ * Verbrauch skaliert mit der gewanderten Menge.
  */
 export function splitOffLineItems(
   order: Pick<Order, 'lineItems' | 'splitOff'>,

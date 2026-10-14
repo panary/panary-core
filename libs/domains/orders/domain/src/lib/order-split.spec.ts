@@ -367,6 +367,82 @@ describe('planOrderSplit — Modifier', () => {
     expect(plan.targetLineItems[0].modifiers).toHaveLength(1)
   })
 
+  it('erlaubt die TEILmenge einer Zeile mit modifierScope unit — Quelle + Ziel = Ursprung (#700)', () => {
+    const line = makeLine(4.0, 3, 19, { modifiers: [modifier()], modifierScope: 'unit' })
+    const order = makeOrder([line, makeLine(1.0, 1, 7)])
+    expect(isPartiallySplittable(line)).toBe(true)
+    const before = cents(computeOrderTax(structuredClone(order)).brutto)
+
+    const plan = planOrderSplit(order, [{ lineItemRowId: line._id, amount: 1 }], PLAN)
+
+    // Ziel: 1 × (4,00 + 0,50) = 4,50; Quelle: 2 × 4,50 + 1,00 = 10,00; zusammen 14,50.
+    expect(cents(plan.targetTaxSnapshot.brutto)).toBe(450)
+    expect(cents(plan.sourceTaxSnapshot.brutto)).toBe(1000)
+    expect(before).toBe(1450)
+    expect(plan.roundingRemainderCents).toBe(0)
+    expect(plan.targetLineItems[0]).toMatchObject({ amount: 1, modifierScope: 'unit' })
+    expect(plan.splitOffEntries[0]).toMatchObject({ amount: 1, grossCents: 450 })
+  })
+
+  it('verteilt die Modifier-Menge beim Teil-Split in den Verbrauch je Seite (splitOffLineItems)', () => {
+    const line = makeLine(4.0, 3, 19, { modifiers: [modifier()], modifierScope: 'unit' })
+    const order = makeOrder([line, makeLine(1.0, 1, 7)])
+    const plan = planOrderSplit(order, [{ lineItemRowId: line._id, amount: 1 }], PLAN)
+    const after = { ...order, splitOff: plan.splitOffEntries }
+
+    expect(splitOffLineItems(after).map(l => [l.amount, l.modifiers.length])).toEqual([[1, 1]])
+    expect(effectiveLineItems(after).map(l => l.amount)).toEqual([2, 1])
+  })
+
+  it('teilt einen Prozent-Positionsrabatt einer unit-Zeile — Quelle + Ziel + Rest = Ursprung', () => {
+    const line = makeLine(4.0, 3, 19, { modifiers: [modifier()], modifierScope: 'unit' })
+    const order = makeOrder([line, makeLine(1.0, 1, 7)], {
+      appliedDiscounts: [
+        makeOrderDiscount({ target: 'line', lineItemId: line._id, valueType: 'percent', valuePercent: 10 }),
+      ],
+    })
+    const before = cents(computeOrderTax(structuredClone(order)).brutto)
+
+    const plan = planOrderSplit(order, [{ lineItemRowId: line._id, amount: 1 }], PLAN)
+
+    expect(plan.targetAppliedDiscounts.map(d => [d.valuePercent, d.lineItemId])).toEqual([
+      [10, plan.targetLineItems[0]._id],
+    ])
+    // Ziel 4,50 − 10 % = 4,05; Quelle 9,00 − 10 % + 1,00 = 9,10; Ursprung 13,50 − 1,35 + 1,00 = 13,15
+    expect(cents(plan.targetTaxSnapshot.brutto)).toBe(405)
+    expect(cents(plan.sourceTaxSnapshot.brutto)).toBe(910)
+    expect(
+      cents(plan.targetTaxSnapshot.brutto) + cents(plan.sourceTaxSnapshot.brutto) + plan.roundingRemainderCents,
+    ).toBe(before)
+  })
+
+  it('teilt einen Festbetrag-Positionsrabatt einer unit-Zeile summen-exakt nach den skalierten Zeilenbeträgen', () => {
+    const line = makeLine(4.0, 3, 19, { modifiers: [modifier()], modifierScope: 'unit' })
+    const order = makeOrder([line, makeLine(1.0, 1, 7)], {
+      appliedDiscounts: [
+        makeOrderDiscount({ target: 'line', lineItemId: line._id, valueType: 'amount', valueCents: 301 }),
+      ],
+    })
+    const before = cents(computeOrderTax(structuredClone(order)).brutto)
+
+    const plan = planOrderSplit(order, [{ lineItemRowId: line._id, amount: 1 }], PLAN)
+
+    const sourceShare = plan.sourceAppliedDiscounts.find(d => d.lineItemId === line._id)?.valueCents
+    const targetShare = plan.targetAppliedDiscounts[0].valueCents
+    // Gewichte 9,00 (Quelle, 2 Stück inkl. Käse) zu 4,50 (Ziel) → 201 / 100 ct
+    expect([sourceShare, targetShare]).toEqual([201, 100])
+    expect(cents(plan.targetTaxSnapshot.brutto) + cents(plan.sourceTaxSnapshot.brutto)).toBe(before)
+    expect(plan.roundingRemainderCents).toBe(0)
+  })
+
+  it('lehnt die TEILmenge einer Komponenten-Zeile auch mit modifierScope unit ab', () => {
+    const line = makeLine(4.0, 2, 19, {
+      modifierScope: 'unit',
+      components: [makeGeneric(1, 1, { taxInside: 19, taxOutside: 7 })],
+    } as Partial<OrderLineItem>)
+    expect(isPartiallySplittable(line)).toBe(false)
+  })
+
   it('lehnt die TEILmenge einer Modifier-Zeile ab — sonst erfaende der Split Umsatz', () => {
     const line = makeLine(4.0, 2, 19, { modifiers: [modifier()] })
     const order = makeOrder([line, makeLine(1.0, 1, 7)])

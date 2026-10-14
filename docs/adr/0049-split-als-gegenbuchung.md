@@ -129,6 +129,12 @@ Aufpreis auf Teilmengen fällt; eine Hausregel wäre eine Behauptung an einer
 prüfungsrelevanten Stelle. Die Ablehnung trägt einen eigenen Fehlercode
 (`order-split/partial-split-unsupported`) und ist damit am Client unterscheidbar.
 
+**Nachtrag 2026-10-14 ([#700](https://github.com/panary/panary-core/issues/700)):** Zeilen mit
+`modifierScope: 'unit'` ([ADR 0056](0056-modifier-je-stueck-per-zeilenmerkmal.md)) dürfen mit
+Modifiern in Teilmenge gesplittet werden. Ihre Modifier gelten je Stück — die Aufteilung steht in
+der Zeile selbst, sie ist keine Hausregel. Komponenten- und Menü-Zeilen sowie Bestandszeilen mit
+Modifiern bleiben bei „nur ganz".
+
 ### 5. Rabatte: Prozent teilt sich selbst, Festbeträge über largest-remainder
 
 - **Prozent** (Order wie Position) wird auf beide Seiten kopiert und wirkt dort

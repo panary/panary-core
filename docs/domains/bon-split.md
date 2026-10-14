@@ -1,10 +1,10 @@
 ---
 type: Domain Concept
 title: 'Bon-Split — „getrennt zahlen" als Umbuchung'
-description: 'Fachliches Modell des Bon-Splits: order.splitOff als append-only Gegenbuchung, effectiveLineItems als einzige Ableitung der Restmenge, Rabatt- und Steueraufteilung, Vorbedingungen, die bewusst abgelehnte Teilung von Modifier-Zeilen, die Kompensation bei Teilerfolg und die POS-Oberfläche, die zunächst nur im Bestellbetrieb freigegeben ist.'
+description: 'Fachliches Modell des Bon-Splits: order.splitOff als append-only Gegenbuchung, effectiveLineItems als einzige Ableitung der Restmenge, Rabatt- und Steueraufteilung, Vorbedingungen, die bewusst abgelehnte Teilung von Modifier-Bestandszeilen (seit #700 erlaubt für modifierScope unit), die Kompensation bei Teilerfolg und die POS-Oberfläche, die zunächst nur im Bestellbetrieb freigegeben ist.'
 tags: [orders, fiskalisierung, dsfinv-k, pricing]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-04T14:45:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-14T15:00:00Z }
 ---
 
 # Bon-Split — „getrennt zahlen" als Umbuchung
@@ -213,6 +213,23 @@ Es gibt keine Norm, die sagt, wie ein Aufpreis auf Teilmengen fällt. Eine
 Hausregel wäre eine Behauptung an einer prüfungsrelevanten Stelle — deshalb die
 Ablehnung mit eigenem Code statt einer erfundenen Aufteilung.
 
+### Ausnahme: Zeilen mit `modifierScope: 'unit'` (#700)
+
+Seit [#699](https://github.com/panary/panary-core/issues/699) trägt eine POS-Zeile gleiche
+Stücke, und ihre Modifier gelten **je Stück** (`modifierScope: 'unit'`,
+[ADR 0056](../adr/0056-modifier-je-stueck-per-zeilenmerkmal.md)). Dann ist die Aufteilung
+keine Hausregel mehr, sondern steht in der Zeile selbst: Ziel und Quelle tragen dieselben
+Modifier, die Engine skaliert sie mit der jeweiligen Menge.
+
+```
+3 × Brötchen à 4,00 € + je „Extra Käse" à 0,50 €  =  13,50 €
+1 Stück gesplittet:  Ziel 1 × 4,50 = 4,50   Quelle 2 × 4,50 = 9,00   Summe 13,50
+```
+
+`isPartiallySplittable` gibt solche Zeilen frei, solange sie keine Menü-Bestandteile tragen.
+Der Verbrauch folgt über `splitOffLineItems` von selbst (Modifier × gewanderte Menge).
+Bestandszeilen ohne das Merkmal bleiben gesperrt.
+
 ## Ganz oder gar nicht
 
 Der Split schreibt zweimal: erst `orders.create` (Ziel), dann `orders.patch`
@@ -323,8 +340,9 @@ Ablehnung den Modus fremder Filialen) und vor jedem Write.
 - **Einheiten** aus `effectiveLineItems` — nach einem früheren Split nur die
   Restmenge.
 - **Einfache Zeilen** mit Mengenwähler (Teilmengen).
-- **Zeilen mit Extras oder Menü-Bestandteilen** nur ganz (siehe
-  [oben](#warum-modifier-zeilen-nur-ganz-wandern)).
+- **Zeilen mit Menü-Bestandteilen und Bestandszeilen mit Extras** nur ganz (siehe
+  [oben](#warum-modifier-zeilen-nur-ganz-wandern)). Zeilen mit Extras und
+  `modifierScope: 'unit'` bekommen seit #700 den Mengenwähler.
 - **Kombinationen** (gemeinsame `bundleNumber`) nur **als Ganzes**: Alle Zeilen
   wandern vollständig, sonst bliebe ein halbes Menü auf dem Bon. Das ist eine
   fachliche Entscheidung (Michael, 2026-10-03), der Edge selbst würde

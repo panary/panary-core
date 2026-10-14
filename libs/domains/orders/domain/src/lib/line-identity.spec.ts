@@ -67,6 +67,10 @@ describe('lineConfigKey', () => {
     )
   })
 
+  it('trennt Zeilen mit anderem Stückpreis (Fall 23)', () => {
+    expect(lineConfigKey(burger({ price: 8 }))).not.toBe(lineConfigKey(burger({ price: 9 })))
+  })
+
   it('unterscheidet Abwahl und Extra (Fall 4, 5)', () => {
     expect(lineConfigKey(burger({ modifiers: [oK()] }))).not.toBe(lineConfigKey(burger({ modifiers: [K()] })))
     expect(lineConfigKey(burger({ modifiers: [oK(), K()] }))).toBe(lineConfigKey(burger({ modifiers: [K(), oK()] })))

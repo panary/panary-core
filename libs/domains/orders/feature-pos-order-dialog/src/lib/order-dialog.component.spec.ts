@@ -1928,12 +1928,13 @@ describe('OrderDialog — Zeilen aufspalten und zusammenführen (#699)', () => {
     it('ein offenes „Rückgängig" der Menge verfällt, sobald ein Stück abgespalten wird', () => {
       const p = burger()
       const { component, snackBarRefs } = setup({ catalog: [p] })
+      component.multiplier = 3
       component.increaseLineItem(p)
-      component.selectProduct(0) // Panel offen, eine Zeile
-      component.increaseSelectedQuantity() // 2×, Undo angeboten
-      component.onCustomizeScopeChanged('one')
-      component.onCustomizeIngredientToggled(KETCHUP) // spaltet ab
+      component.selectProduct(0) // Panel offen, 3×, „1 Stück"
+      component.decreaseSelectedQuantity() // 2×, Undo „zurück auf 3" angeboten
+      component.onCustomizeIngredientToggled(KETCHUP) // spaltet ab: 1× + 1× ohne
 
+      // Ohne Verfall setzte das Undo die Restzeile auf 3 — vier Burger statt zwei.
       snackBarRefs[0].triggerAction()
       expect(shape(component)).toEqual([
         [1, ''],

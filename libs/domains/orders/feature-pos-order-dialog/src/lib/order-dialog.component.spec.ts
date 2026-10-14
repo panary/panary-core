@@ -1684,7 +1684,12 @@ describe('OrderDialog — Zeilen aufspalten und zusammenführen (#699)', () => {
   const ui = (showOptionsAuto: boolean) => ({ index: 1, showOptionsAuto, hideOnMainScreen: false })
   const burger = (showOptionsAuto = false) =>
     product('burger', { ui: ui(showOptionsAuto), ingredientReferences: [ketchup()] } as never)
-  type Line = { amount: number; modifiers: Array<{ name: string }>; modifierScope?: string; _id: string }
+  type Line = {
+    amount: number
+    modifiers: Array<{ name: string; amount: number }>
+    modifierScope?: string
+    _id: string
+  }
   const shape = (component: { lineItems: Line[] }) =>
     component.lineItems.map(l => [l.amount, l.modifiers.map(m => m.name).join(',')])
 
@@ -1898,9 +1903,7 @@ describe('OrderDialog — Zeilen aufspalten und zusammenführen (#699)', () => {
 
       tapRasterExtra(component)
       tapRasterExtra(component)
-      expect(
-        component.lineItems.map((l: Line) => [l.amount, l.modifiers.map((m: { amount: number }) => m.amount)]),
-      ).toEqual([[3, [2]]])
+      expect(component.lineItems.map((l: Line) => [l.amount, l.modifiers.map(m => m.amount)])).toEqual([[3, [2]]])
     })
 
     it('„Abbrechen" behält eine währenddessen hinzugefügte Zeile', () => {

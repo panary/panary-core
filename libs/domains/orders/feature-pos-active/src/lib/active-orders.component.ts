@@ -22,6 +22,7 @@ import {
 import type { CashSession } from '@panary/businessdays/domain'
 import { firstValueFrom } from 'rxjs'
 import {
+  calculateModifierPrice,
   calculateTaxSummary,
   Order,
   OrderLineItem,
@@ -791,7 +792,8 @@ export class ActiveOrdersComponent {
         id: extra._id,
         name: extra.name,
         icon: extra.icon,
-        priceFormatted: extra.price > 0 ? this.formatPrice(extra.price) : null,
+        // Betrag wie Engine und Bon (#698): bei `modifierScope: 'unit'` für alle Stück.
+        priceFormatted: extra.price > 0 ? this.formatPrice(calculateModifierPrice(item, extra)) : null,
       })),
       sideDishPriceFormatted:
         item.menuSideDish && item.menuSideDish.price > 0 ? this.formatPrice(item.menuSideDish.price) : null,

@@ -642,3 +642,34 @@ describe('order-receipt.renderer — Modifier je Stück (#698)', () => {
     expect(text).toContain('17,00 EUR')
   })
 })
+
+describe('order-receipt.renderer — Modifier auf Komponenten-Zeilen (#698)', () => {
+  it('weist den mit der Menge skalierten Betrag aus, den die Engine schon vorher rechnete', () => {
+    const order = {
+      dailySequenceNumber: 8,
+      dineLocation: 'take-out',
+      recordingDate: '2026-10-14T10:00:00.000Z',
+      lineItems: [
+        {
+          _id: 'li-1',
+          name: 'Burger-Menue',
+          topic: 'Menues',
+          amount: 2,
+          price: 8,
+          taxInside: 19,
+          taxOutside: 7,
+          components: [{ _id: 'c-1', name: 'Pommes', price: 2, amount: 1, taxInside: 19, taxOutside: 7 }],
+          modifiers: [
+            { _id: 'm-1', name: 'Kaese', price: 1, amount: 1, taxInside: 19, taxOutside: 7, topic: 'Extras' },
+          ],
+        },
+      ],
+    }
+    const text = renderToText(order, location)
+    // Vorher druckte die Modifier-Zeile 1,00, obwohl die Positionssumme 2 × 1,00 enthielt.
+    expect(text).toContain('je 1x Kaese')
+    expect(text).toContain('2,00 EUR')
+    // 2 × 8,00 + 2 × 1,00 + 2 × 2,00 Pommes
+    expect(text).toContain('22,00 EUR')
+  })
+})

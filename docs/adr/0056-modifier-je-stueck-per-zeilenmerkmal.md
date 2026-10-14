@@ -57,5 +57,12 @@ der signierte Bon, ein späterer Rabatt-Patch verschöbe den `taxSnapshot`.
   Gesamtaufpreis der Zeile, damit er sich gegen die Positionssumme aufrechnet.
 - Bon-Split-Teilmengen von Modifier-Zeilen werden mit dem Merkmal fachlich möglich
   ([#700](https://github.com/panary/panary-core/issues/700)). Bis dahin bleiben sie gesperrt.
+- **Nachdruck von Komponenten-Zeilen:** Deren Modifier-Zeile auf dem Bon zeigte bisher
+  `price × amount`, obwohl die Engine (und damit die Positionssumme) schon mit der Zeilenmenge
+  skalierte. Über `modifierLineGrossCents` druckt der Bon jetzt den skalierten Betrag mit „je“.
+  Positions- und Gesamtsumme bleiben bitgenau. Es ändert sich nur die Modifier-Zeile, die sich
+  vorher nicht aufrechnete.
+- **Verlauf und aktive Bestellungen** zeigen dieselbe Zahl. Ein alter OHNE-Marker
+  (`amount −1`) erscheint im Verlauf jetzt mit 0 € statt mit negativem Betrag, wie in der Engine.
 - Die TSE signiert nur Beträge. Gespeicherte Signaturen bleiben gültig, weil gespeicherte
   Bestellungen ohne Merkmal nicht anders rechnen.

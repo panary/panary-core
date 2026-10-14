@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { AppliedDiscount, GenericOrderLineItem, Order, OrderLineItem } from '../order.schema'
-import { computeOrderTax } from './compute-order-tax'
+import { computeOrderTax, lineItemGrossCents, modifierLineGrossCents, modifiersCountPerUnit } from './compute-order-tax'
 import { toCents } from './money'
 
 function makeGeneric(price: number, amount = 1, partial: Partial<GenericOrderLineItem> = {}): GenericOrderLineItem {
@@ -622,5 +622,69 @@ describe('computeOrderTax — entfernbare Zutat mit negativem priceAdjustment', 
       ),
     )
     expect(r.brutto).toBeCloseTo(7.6, 5)
+  })
+})
+
+describe('modifierScope (#698) — Modifier je Stück per Zeilenmerkmal', () => {
+  // Bestandsform aus Staging-Bon #930: 2× Margherita 6,70 + Gauda 2,00.
+  const gauda = () => makeGeneric(2.0, 1, { taxInside: 7, taxOutside: 7, topic: 'Extras', name: 'Gauda' })
+  const ohneKetchup = () => makeGeneric(-0.3, 1, { taxInside: 7, taxOutside: 7, topic: 'Extras', name: 'Ohne Ketchup' })
+
+  it('ohne Merkmal rechnet eine Bestandszeile bitgenau wie bisher (Modifier einmal je Zeile)', () => {
+    const line = makeLine(6.7, 2, 7, 7, { modifiers: [gauda()] })
+    expect(lineItemGrossCents(line)).toBe(1540)
+    expect(computeOrderTax(makeOrder([line], 'take-out')).brutto).toBeCloseTo(15.4, 5)
+  })
+
+  it("mit 'line' wie ohne Merkmal", () => {
+    expect(lineItemGrossCents(makeLine(6.7, 2, 7, 7, { modifiers: [gauda()], modifierScope: 'line' }))).toBe(1540)
+  })
+
+  it("mit 'unit' zählt der Modifier je Stück", () => {
+    const line = makeLine(6.7, 2, 7, 7, { modifiers: [gauda()], modifierScope: 'unit' })
+    expect(lineItemGrossCents(line)).toBe(1740)
+    expect(computeOrderTax(makeOrder([line], 'take-out')).brutto).toBeCloseTo(17.4, 5)
+  })
+
+  it("mit 'unit' zieht eine Abwahl je Stück ab: 3× 8,00 ohne Ketchup = 23,10", () => {
+    expect(lineItemGrossCents(makeLine(8, 3, 7, 7, { modifiers: [ohneKetchup()], modifierScope: 'unit' }))).toBe(2310)
+  })
+
+  it("mit 'unit' klemmt der Abzug weiterhin auf die Zeilenbasis", () => {
+    const line = makeLine(0.5, 2, 7, 7, {
+      modifiers: [makeGeneric(-0.8, 1, { taxInside: 7, taxOutside: 7 })],
+      modifierScope: 'unit',
+    })
+    // 2 × −0,80 = −1,60 > Basis 1,00 → 0, nicht negativ
+    expect(lineItemGrossCents(line)).toBe(0)
+  })
+
+  it('computeOrderTax summiert genau die Zeilenpreise aus lineItemGrossCents', () => {
+    const lines = [
+      makeLine(6.7, 2, 7, 7, { modifiers: [gauda()], modifierScope: 'unit' }),
+      makeLine(6.7, 2, 7, 7, { modifiers: [gauda()] }),
+      makeLine(8, 3, 19, 19, { modifiers: [ohneKetchup(), gauda()], modifierScope: 'unit' }),
+    ]
+    const sum = lines.reduce((acc, l) => acc + lineItemGrossCents(l), 0)
+    expect(toCents(computeOrderTax(makeOrder(lines, 'take-out')).brutto)).toBe(sum)
+  })
+
+  it('modifierLineGrossCents liefert den Betrag eines Modifiers so, wie ihn die Engine zählt', () => {
+    const legacy = makeLine(6.7, 2, 7, 7, { modifiers: [gauda()] })
+    const unit = makeLine(6.7, 2, 7, 7, { modifiers: [gauda()], modifierScope: 'unit' })
+    expect(modifierLineGrossCents(legacy, gauda())).toBe(200)
+    expect(modifierLineGrossCents(unit, gauda())).toBe(400)
+    expect(modifierLineGrossCents(unit, ohneKetchup())).toBe(-60)
+    // Der alte OHNE-Marker (amount −1) bleibt preisneutral, auch je Stück.
+    expect(modifierLineGrossCents(unit, makeGeneric(2.0, -1))).toBe(0)
+    // Komponenten-Zeilen skalierten schon vorher mit der Menge.
+    const comp = makeLine(6.7, 2, 7, 7, { modifiers: [gauda()], components: [makeGeneric(1, 1)] })
+    expect(modifierLineGrossCents(comp, gauda())).toBe(400)
+  })
+
+  it('modifiersCountPerUnit meldet „je" nur bei Stück-Skalierung und Menge > 1', () => {
+    expect(modifiersCountPerUnit(makeLine(6.7, 2, 7, 7, { modifierScope: 'unit' }))).toBe(true)
+    expect(modifiersCountPerUnit(makeLine(6.7, 1, 7, 7, { modifierScope: 'unit' }))).toBe(false)
+    expect(modifiersCountPerUnit(makeLine(6.7, 2, 7, 7))).toBe(false)
   })
 })

@@ -218,7 +218,7 @@
                 @for (extra of item.modifiers; track extra) {
                   <div class="flex justify-between items-start pl-6 text-gray-500 dark:text-gray-400 text-xs">
                     <span>{{ extra.amount }}x {{ extra.name }}</span>
-                    <span>{{ extra.price * extra.amount | currency: 'EUR' }}</span>
+                    <span>{{ modifierPrice(item, extra) | currency: 'EUR' }}</span>
                   </div>
                 }
               }

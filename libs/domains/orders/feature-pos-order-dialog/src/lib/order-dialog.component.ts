@@ -42,6 +42,7 @@ import {
   OrderLineItem,
   OrderService,
   StaffPaymentInfo,
+  calculateModifierPrice,
 } from '@panary/orders/data-access'
 import { AppliedDiscount, Discount, computeOrderTax } from '@panary/orders/domain'
 import { Discount as ManagedDiscount } from '@panary/discounts/domain'
@@ -1512,6 +1513,14 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   removedIngredientName(extra: { name: string }): string {
     return extra.name.slice(REMOVED_INGREDIENT_PREFIX.length)
+  }
+
+  /**
+   * Betrag eines Modifiers im Warenkorb — dieselbe Zahl wie Engine und Bon (#698): Gilt
+   * der Modifier je Stück (`modifierScope: 'unit'`), ist es der Aufpreis für alle Stück.
+   */
+  modifierAmount(line: OrderLineItem, extra: OrderLineItem['modifiers'][number]): number {
+    return calculateModifierPrice(line, extra)
   }
 
   setSauceSubButtons(ids: Array<string> | undefined = undefined, isInclusive = false, currentIndex = 0) {

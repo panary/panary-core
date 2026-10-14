@@ -226,6 +226,12 @@ export const orderLineItemSchema = Type.Intersect([
     productGroupExternalId: Type.String({ format: 'uuid' }),
     bundleNumber: Type.Union([Type.Number({ minimum: 0 }), Type.Null()]),
     modifiers: Type.Array(modifierLineItemSchema, { maxItems: 100 }),
+    // Wofür gilt ein Modifier dieser Zeile (#698)? 'unit' = je Stück: die Zeile hat gleiche
+    // Stücke, Preis und Verbrauch skalieren mit `amount`. Fehlt oder 'line' = Bestandsverhalten,
+    // der Modifier zählt im Legacy-Pfad einmal je Zeile. Optional und nie nachträglich gesetzt,
+    // weil Nachdruck, Rabatt-Patch und Berichte gespeicherte Bestellungen neu rechnen — ohne das
+    // Merkmal rechnen sie bitgenau wie zum Zeitpunkt der Bestellung (ADR 0004, kein Backfill).
+    modifierScope: Type.Optional(StringEnum(['line', 'unit'])),
     index: Type.Optional(Type.Number()),
     // Neues Modell: generische Bundle-Komponenten (optional/rückwärtskompatibel).
     // Reader bevorzugen components[], fallen sonst auf menuDrink/menuSideDish.

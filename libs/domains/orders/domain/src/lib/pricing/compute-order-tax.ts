@@ -30,7 +30,8 @@ import { distributeByLargestRemainder, fromCents, multiplyCents, netFromGross, s
 // wird dabei bei 0 geklemmt. Siehe `modifierGrossCents`/`modifiersGrossCents`.
 //
 // Positions-Arithmetik: Hauptartikel price×amount, Modifier price×modifier.amount
-// (nicht mit Parent-Menge skaliert — Bestandsverhalten), Menü-Beilage/-Getränk
+// (nicht mit Parent-Menge skaliert — Bestandsverhalten; mit `modifierScope: 'unit'`
+// je Stück, also ×amount, #698), Menü-Beilage/-Getränk
 // price×amount×Zeilen-Menge (PRO Menü; Entscheidung 2026-07-04 — vorher einmalig,
 // dadurch war der taxSnapshot bei Menü-Menge > 1 fiskal zu niedrig; jetzt identisch
 // zum Reporting-Fallback `order-total.ts`).
@@ -78,9 +79,36 @@ function modifiersGrossCents(line: OrderLineItem, baseCents: number, scale = 1):
   return sum < 0 ? Math.max(sum, -baseCents) : sum
 }
 
+/**
+ * Faktor, mit dem die Modifier einer Zeile zählen.
+ *
+ * Komponenten-Zeilen (ROLLUP, FIXED_PROPORTIONAL) skalieren seit jeher mit der
+ * Zeilenmenge. Legacy-Zeilen zählen einen Modifier einmal je Zeile — außer sie
+ * tragen `modifierScope: 'unit'` (#698): Dann hat die Zeile gleiche Stücke, und
+ * der Modifier gilt je Stück wie im Verbrauch (`computeCogs`).
+ */
+function modifierScale(line: OrderLineItem): number {
+  if (Array.isArray(line.components) && line.components.length > 0) return line.amount
+  return line.modifierScope === 'unit' ? line.amount : 1
+}
+
+/**
+ * Brutto-Betrag EINES Modifiers einer Zeile in Cents, so wie ihn die Engine zählt —
+ * die eine Quelle für Bon, POS-Warenkorb und Verlauf (#698). Ohne Klemme: die
+ * zieht erst die Zeilensumme auf −Basis, nicht der einzelne Abzug.
+ */
+export function modifierLineGrossCents(line: OrderLineItem, extra: GenericOrderLineItem): number {
+  return modifierGrossCents(extra, modifierScale(line))
+}
+
+/** Gilt ein Modifier dieser Zeile je Stück? Dann zeigt der Bon „je 1x …" (#698, D8). */
+export function modifiersCountPerUnit(line: OrderLineItem): boolean {
+  return modifierScale(line) === line.amount && line.amount > 1
+}
+
 function lineGrossCents(line: OrderLineItem): number {
   const base = line.price ? multiplyCents(toCents(line.price), line.amount) : 0
-  let cents = base + modifiersGrossCents(line, base)
+  let cents = base + modifiersGrossCents(line, base, modifierScale(line))
   // Beilage/Getränk zählen PRO Menü: 2 Menüs = 2 Aufpreise (Entscheidung 2026-07-04).
   if (line.menuSideDish && line.menuSideDish.price) {
     cents += multiplyCents(toCents(line.menuSideDish.price), line.menuSideDish.amount * line.amount)

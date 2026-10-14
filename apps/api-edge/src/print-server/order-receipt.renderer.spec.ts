@@ -605,3 +605,40 @@ describe('order-receipt.renderer — Druckerrolle und Bon-Variante (#347)', () =
     })
   })
 })
+
+describe('order-receipt.renderer — Modifier je Stück (#698)', () => {
+  const order = (extra: Record<string, unknown>) => ({
+    dailySequenceNumber: 7,
+    dineLocation: 'take-out',
+    recordingDate: '2026-10-14T10:00:00.000Z',
+    lineItems: [
+      {
+        _id: 'li-1',
+        name: 'Burger',
+        topic: 'Burger',
+        amount: 2,
+        price: 8,
+        taxInside: 19,
+        taxOutside: 7,
+        modifiers: [{ _id: 'm-1', name: 'Kaese', price: 1, amount: 1, taxInside: 19, taxOutside: 7, topic: 'Extras' }],
+        ...extra,
+      },
+    ],
+  })
+
+  it("weist bei modifierScope 'unit' den Aufpreis für alle Stück mit „je“ aus", () => {
+    const text = renderToText(order({ modifierScope: 'unit' }), location)
+    expect(text).toContain('je 1x Kaese')
+    expect(text).toContain('2,00 EUR')
+    // Positionssumme 2 × 8,00 + 2 × 1,00 — der Bon rechnet sich auf.
+    expect(text).toContain('18,00 EUR')
+  })
+
+  it('lässt eine Bestandszeile ohne Merkmal unverändert: einmal je Zeile, ohne „je“', () => {
+    const text = renderToText(order({}), location)
+    expect(text).toContain('1x Kaese')
+    expect(text).not.toContain('je 1x Kaese')
+    expect(text).toContain('1,00 EUR')
+    expect(text).toContain('17,00 EUR')
+  })
+})

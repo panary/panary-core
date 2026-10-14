@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import {
+  calculateModifierPrice,
   getCombinations,
   getUnbundledLineItems,
   Order,
@@ -226,5 +227,10 @@ export class OrderHistoryComponent {
 
   getUnbundledLineItems(order: Order): OrderLineItem[] {
     return getUnbundledLineItems(order)
+  }
+
+  /** Modifier-Betrag wie Engine und Bon (#698) — bei `modifierScope: 'unit'` für alle Stück. */
+  modifierPrice(line: OrderLineItem, extra: OrderLineItem['modifiers'][number]): number {
+    return calculateModifierPrice(line, extra)
   }
 }

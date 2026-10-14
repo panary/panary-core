@@ -397,23 +397,31 @@ describe('planOrderSplit — Modifier', () => {
   it('teilt einen Prozent-Positionsrabatt einer unit-Zeile — Quelle + Ziel + Rest = Ursprung', () => {
     const line = makeLine(4.0, 3, 19, { modifiers: [modifier()], modifierScope: 'unit' })
     const order = makeOrder([line, makeLine(1.0, 1, 7)], {
-      appliedDiscounts: [makeOrderDiscount({ target: 'line', lineItemId: line._id, valueType: 'percent', valuePercent: 10 })],
+      appliedDiscounts: [
+        makeOrderDiscount({ target: 'line', lineItemId: line._id, valueType: 'percent', valuePercent: 10 }),
+      ],
     })
     const before = cents(computeOrderTax(structuredClone(order)).brutto)
 
     const plan = planOrderSplit(order, [{ lineItemRowId: line._id, amount: 1 }], PLAN)
 
-    expect(plan.targetAppliedDiscounts.map(d => [d.valuePercent, d.lineItemId])).toEqual([[10, plan.targetLineItems[0]._id]])
+    expect(plan.targetAppliedDiscounts.map(d => [d.valuePercent, d.lineItemId])).toEqual([
+      [10, plan.targetLineItems[0]._id],
+    ])
     // Ziel 4,50 − 10 % = 4,05; Quelle 9,00 − 10 % + 1,00 = 9,10; Ursprung 13,50 − 1,35 + 1,00 = 13,15
     expect(cents(plan.targetTaxSnapshot.brutto)).toBe(405)
     expect(cents(plan.sourceTaxSnapshot.brutto)).toBe(910)
-    expect(cents(plan.targetTaxSnapshot.brutto) + cents(plan.sourceTaxSnapshot.brutto) + plan.roundingRemainderCents).toBe(before)
+    expect(
+      cents(plan.targetTaxSnapshot.brutto) + cents(plan.sourceTaxSnapshot.brutto) + plan.roundingRemainderCents,
+    ).toBe(before)
   })
 
   it('teilt einen Festbetrag-Positionsrabatt einer unit-Zeile summen-exakt nach den skalierten Zeilenbeträgen', () => {
     const line = makeLine(4.0, 3, 19, { modifiers: [modifier()], modifierScope: 'unit' })
     const order = makeOrder([line, makeLine(1.0, 1, 7)], {
-      appliedDiscounts: [makeOrderDiscount({ target: 'line', lineItemId: line._id, valueType: 'amount', valueCents: 301 })],
+      appliedDiscounts: [
+        makeOrderDiscount({ target: 'line', lineItemId: line._id, valueType: 'amount', valueCents: 301 }),
+      ],
     })
     const before = cents(computeOrderTax(structuredClone(order)).brutto)
 

@@ -1,6 +1,7 @@
 export * from './lib/order.schema'
 export * from './lib/order-state-machine'
 export * from './lib/effective-line-items'
+export * from './lib/line-identity'
 export * from './lib/order-split'
 export * from './lib/payment-stamp'
 export * from './lib/settlement-scope'

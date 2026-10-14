@@ -14,6 +14,9 @@ type IngredientReference = OrderLineItem['ingredientReferences'][number]
 /** Präfix des Modifiers, der eine abgewählte Zutat kennzeichnet (`docs/domains/modifier-ohne-marker.md`). */
 export const REMOVED_INGREDIENT_PREFIX = 'Ohne '
 
+/** Für wie viele Stück einer Zeile gilt eine Anpassung im Panel (#699)? */
+export type CustomizeScope = 'one' | 'all'
+
 export interface CustomizeIngredient {
   externalId: string
   name: string

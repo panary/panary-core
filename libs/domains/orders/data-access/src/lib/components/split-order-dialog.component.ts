@@ -35,8 +35,10 @@ export interface SplitOrderDialogResult {
 /**
  * Eine wählbare Einheit des Dialogs.
  *
- * - `line`: eine einzelne Position. Teilmengen nur, wenn `partial` — Zeilen mit
- *   Extras/Menü-Bestandteilen wandern nur ganz (`isPartiallySplittable`).
+ * - `line`: eine einzelne Position. Teilmengen nur, wenn `partial` — Menü-Bestandteile
+ *   und Extras einer Bestandszeile wandern nur ganz; Extras einer Zeile mit
+ *   `modifierScope: 'unit'` gelten je Stück und wandern anteilig mit (#700,
+ *   `isPartiallySplittable`).
  * - `bundle`: eine Kombination (gemeinsame `bundleNumber`). Wandert nur als
  *   Ganzes, sonst bliebe ein halbes Menü auf dem Bon (Entscheidung Michael,
  *   panary/panary-core#350).

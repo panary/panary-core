@@ -122,12 +122,15 @@ export interface OrderSplitPlan {
 /**
  * Darf diese Zeile in TEILmenge gesplittet werden?
  *
- * 🚫 Nein, sobald sie Modifier, Bundle-Komponenten oder die Legacy-Menue-Slots
- * traegt. Der Grund ist gemessen und nicht Vorsicht: Ein Modifier zaehlt in
- * Bestandszeilen mit SEINEM EIGENEN `amount` und skaliert NICHT mit der Menge der
- * Hauptzeile (`modifierScale` = 1). Zeilen mit `modifierScope: 'unit'` (#698)
- * skalieren — ihre Freigabe fuer Teilmengen ist panary/panary-core#700 und hier
- * bewusst noch nicht umgesetzt. Wuerde man bei einer Bestandszeile „3 von 5" abgeben,
+ * 🚫 Nein, sobald sie Bundle-Komponenten oder die Legacy-Menue-Slots traegt, und
+ * nein bei Modifiern einer Bestandszeile. Der Grund ist gemessen und nicht Vorsicht:
+ * Ein Modifier zaehlt in Bestandszeilen mit SEINEM EIGENEN `amount` und skaliert NICHT
+ * mit der Menge der Hauptzeile (`modifierScale` = 1).
+ *
+ * ✅ Zeilen mit `modifierScope: 'unit'` (#698) haben gleiche Stuecke, ihre Modifier
+ * zaehlen je Stueck. Quelle und Ziel tragen dieselben Modifier, die Engine skaliert sie
+ * mit der jeweiligen Menge — die Teilmengen ergeben zusammen genau den Ursprung, beim
+ * Preis wie beim Verbrauch (panary/panary-core#700). Wuerde man bei einer Bestandszeile „3 von 5" abgeben,
  * traegt die Quelle den Aufpreis weiter voll UND das Ziel bekaeme ihn noch
  * einmal — der Split erfaende Umsatz. Bundle-Komponenten haben die
  * spiegelbildliche Falle (`FIXED_PROPORTIONAL` verteilt einen Festpreis).
@@ -141,7 +144,7 @@ export function isPartiallySplittable(line: OrderLineItem): boolean {
     menuDrink?: unknown
     menuSideDish?: unknown
   }
-  if (Array.isArray(line.modifiers) && line.modifiers.length > 0) return false
+  if (Array.isArray(line.modifiers) && line.modifiers.length > 0 && line.modifierScope !== 'unit') return false
   if (Array.isArray(l.components) && l.components.length > 0) return false
   if (l.menuDrink || l.menuSideDish) return false
   return true

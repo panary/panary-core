@@ -24,6 +24,19 @@ import { animate, style, transition, trigger } from '@angular/animations'
 // UUID als String-Alias (node:crypto UUID ist ein branded type – für Migration vereinfacht)
 type UUID = string
 
+/** Warenkorb beim Öffnen des Anpassen-Panels — „Abbrechen" stellt ihn wieder her (#699). */
+interface CartSnapshot {
+  lines: OrderLineItem[]
+  states: Array<{
+    item: OrderLineItem
+    amount: number
+    modifiers: OrderLineItem['modifiers']
+    modifierScope: OrderLineItem['modifierScope']
+  }>
+  discounts: LineDiscountMap
+  selection: BoardSelection
+}
+
 import { ProductGroup, ProductGroupService } from '@panary/product-groups/data-access'
 import { ItemType, ProductSchema } from '@panary/products/domain'
 import { ProductService } from '@panary/products/data-access'
@@ -44,7 +57,15 @@ import {
   StaffPaymentInfo,
   calculateModifierPrice,
 } from '@panary/orders/data-access'
-import { AppliedDiscount, Discount, computeOrderTax } from '@panary/orders/domain'
+import {
+  AppliedDiscount,
+  Discount,
+  computeOrderTax,
+  isMergeableLine,
+  lineConfigKey,
+  mergeIdenticalLines,
+  splitOffPieces,
+} from '@panary/orders/domain'
 import { Discount as ManagedDiscount } from '@panary/discounts/domain'
 import {
   DiscountCodeService,
@@ -90,6 +111,7 @@ import {
   hasCustomizableContent,
   opensCustomizeAutomatically,
   toggleIngredientRemoval,
+  type CustomizeScope,
 } from './product-customize'
 import { type CustomizeOptionEvent, ProductCustomizePanelComponent } from './product-customize-panel.component'
 import {
@@ -234,7 +256,24 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   readonly customizeModel = signal<CustomizeModel | null>(null)
   #customizeLine: OrderLineItem | null = null
-  #customizeSnapshot: OrderLineItem['modifiers'] = []
+  /**
+   * Zustand des ganzen Warenkorbs beim Öffnen des Panels (#699). „Abbrechen" stellt ihn
+   * wieder her — seit eine Anpassung eine Zeile aufspalten kann, reichen die Modifier der
+   * einen Zeile nicht mehr.
+   */
+  #customizeCartSnapshot: CartSnapshot | null = null
+  /**
+   * Für wie viele Stück gilt die Anpassung (#699, D2)? Aus dem Warenkorb an einer Zeile mit
+   * mehreren Stück: eines (es wird abgespalten). Im Hinzufügen-Ablauf: alle.
+   */
+  readonly customizeScope = signal<CustomizeScope>('all')
+  /** Nach der ersten Änderung ist der Umschalter fest — sonst müsste ein Split zurückgenommen werden. */
+  readonly customizeScopeLocked = signal(false)
+  /**
+   * Die Zeile, die gerade im Hinzufügen-Ablauf entstanden ist. Ihre Anpassung gilt für alle
+   * Stück (D2), auch über das Extras-Raster; jede andere Auswahl beendet diesen Zustand.
+   */
+  #freshLine: OrderLineItem | null = null
 
   // Bundle/Menü-Flow-Logik (OptionGroup-Sequenz, HIGHEST, FIXED_PROPORTIONAL) — plain class, siehe bundle-flow.ts
   readonly #bundleFlow = new BundleFlow({
@@ -598,7 +637,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // ohne dass jede der rund zwanzig Ansichten es selbst wissen muss.
     this.customizeModel.set(null)
     this.#customizeLine = null
-    this.#customizeSnapshot = []
+    this.#customizeCartSnapshot = null
     this._functionButtons = []
     this._productButtons = []
     this._functionBlockLabel = ''
@@ -641,6 +680,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   selectProduct(index: number) {
     if (this._isBlocked) return
 
+    this.#freshLine = null
     this._selectedCombinationIndex = [null, null]
     this._selectedProductIndex = this._selectedProductIndex != index ? index : null
     this.setExtraSubButtons()
@@ -1287,7 +1327,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
           extra.callback = (): void => {
             if (this._isBlocked && !unblock) return
 
-            this.increaseExtra(extra)
+            this.#increaseExtraFromRaster(extra)
           }
           extras.push(extra)
         }
@@ -1332,7 +1372,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
           if (!isModifierButton(extra)) extra.icon = 'warning'
           extra.callback = () => {
             if (this._isBlocked && !unblock) return
-            this.increaseExtra(extra)
+            this.#increaseExtraFromRaster(extra)
           }
           this._productButtons.push(extra)
         }
@@ -1380,7 +1420,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         const extra = toPosButton(product)
         extra.callback = () => {
           if (this._isBlocked && !unblock) return
-          this.increaseExtra(extra)
+          this.#increaseExtraFromRaster(extra)
         }
         this._productButtons.push(extra)
       }
@@ -1413,6 +1453,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   #followSelectionInPanel(): void {
     if (!this.#customizeLine) return
+    this.#freshLine = null
     const line = this.getCurrentSelectedLineItem()
     if (line === this.#customizeLine) return
     if (line && this.#canCustomize(line)) {
@@ -1423,13 +1464,142 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  /** Zeigt statt des Rasters das Panel für die Zeile; merkt sich deren Modifier für „Abbrechen". */
+  /**
+   * Zeigt statt des Rasters das Panel für die Zeile; merkt sich den Warenkorb für „Abbrechen".
+   * Eine vorherige Sitzung an einer anderen Zeile endet hier — ihre Zeilen werden zusammengeführt,
+   * bevor die neue beginnt (#699, D3).
+   */
   openCustomizePanel(line: OrderLineItem): void {
+    const target = this.#customizeLine && this.#customizeLine !== line ? this.#mergeLines(line) : line
     this.clearButtons()
-    this.#customizeLine = line
-    this.#customizeSnapshot = line.modifiers.map(mod => ({ ...mod }))
-    this.setInfoBoxText(`${line.name} anpassen`)
+    this.#customizeLine = target
+    this.#customizeCartSnapshot = this.#snapshotCart()
+    const fresh = target === this.#freshLine
+    this.customizeScope.set(fresh || target.amount <= 1 ? 'all' : 'one')
+    this.customizeScopeLocked.set(false)
+    this.setInfoBoxText(`${target.name} anpassen`)
     this.#refreshCustomize()
+  }
+
+  /** Umschalter „1 Stück | alle n" im Panel — nur vor der ersten Änderung (#699, D2). */
+  onCustomizeScopeChanged(scope: CustomizeScope): void {
+    if (this.customizeScopeLocked()) return
+    this.customizeScope.set(scope)
+    this.#refreshCustomize()
+  }
+
+  /**
+   * Die Zeile, auf die eine Bedienung im Panel wirkt. Gilt die Anpassung für ein Stück einer
+   * Zeile mit mehreren, wird es beim ersten Griff abgespalten (#699): Danach trägt das Panel
+   * das neue Stück, weitere Griffe ändern nur noch dieses.
+   */
+  #customizeTarget(): OrderLineItem | null {
+    const line = this.#customizeLine
+    if (!line) return null
+    this.customizeScopeLocked.set(true)
+    if (this.customizeScope() !== 'one' || line.amount <= 1) return line
+    const piece = this.#splitOffOnePiece(line)
+    if (!piece) return line
+    this.#customizeLine = piece
+    return piece
+  }
+
+  /**
+   * Spaltet ein Stück von der Zeile ab, fügt es direkt dahinter ein und markiert es. Ein
+   * Prozent-Positionsrabatt geht mit, ein Festbetrag bleibt an der Restzeile (D5) — er gilt
+   * je Zeile, und zweimal abgezogen wäre er falsch.
+   */
+  #splitOffOnePiece(line: OrderLineItem): OrderLineItem | null {
+    if (!isMergeableLine(line)) return null
+    const piece = splitOffPieces(line, 1, uuidv7())
+    if (!piece) return null
+    this.#lineItems.splice(this.#lineItems.indexOf(line) + 1, 0, piece)
+    const discount = this.lineDiscounts()[line._id]
+    if (discount?.valueType === 'percent') {
+      this.lineDiscounts.update(current => ({ ...current, [piece._id]: discount }))
+    } else if (discount) {
+      this.setInfoBoxText(`Positionsrabatt „${discount.name}" bleibt an der Restzeile`)
+    }
+    this.#selectLine(piece)
+    return piece
+  }
+
+  /**
+   * Führt gleiche Konfigurationen zusammen (#699, D3) und gibt zurück, wo `follow` danach
+   * steht — die Zeile selbst oder die, in der sie aufgegangen ist. Die Markierung folgt
+   * derselben Zeile, statt an einem Index stehen zu bleiben, der jetzt woanders hinzeigt.
+   */
+  #mergeLines(follow: OrderLineItem | null = null): OrderLineItem {
+    const selected = this.getCurrentSelectedLineItem()
+    const { lines, mergedInto } = mergeIdenticalLines(this.#lineItems, line => this.#discountKey(line))
+    if (mergedInto.size > 0) {
+      this.#lineItems = lines
+      this.#pruneOrphanedLineDiscounts()
+      if (selected) this.#selectLine(mergedInto.get(selected) ?? selected)
+    }
+    return (follow ? (mergedInto.get(follow) ?? follow) : null) as OrderLineItem
+  }
+
+  /** Rabatt-Anteil der Zeilenidentität: nur gleiche Prozent-Rabatte führen zusammen (D5). */
+  #discountKey(line: OrderLineItem): string {
+    const discount = this.lineDiscounts()[line._id]
+    if (!discount) return ''
+    return discount.valueType === 'percent' ? `p:${discount._id}:${discount.valuePercent}` : `f:${line._id}`
+  }
+
+  /** Markiert genau diese Zeile — als Position einer Kombination oder als freie Zeile. */
+  #selectLine(line: OrderLineItem): void {
+    if (line.bundleNumber !== null && line.bundleNumber !== undefined) {
+      const combination = this.combinations.findIndex(bundle => bundle.includes(line))
+      if (combination !== -1) {
+        this._selectedProductIndex = null
+        this._selectedCombinationIndex = [combination, this.combinations[combination].indexOf(line)]
+        return
+      }
+    }
+    const index = this.#lineItems.indexOf(line)
+    this._selectedCombinationIndex = [null, null]
+    this._selectedProductIndex = index === -1 ? null : index
+  }
+
+  #snapshotCart(): CartSnapshot {
+    return {
+      lines: [...this.#lineItems],
+      states: this.#lineItems.map(item => ({
+        item,
+        amount: item.amount,
+        modifiers: item.modifiers.map(mod => ({ ...mod })),
+        modifierScope: item.modifierScope,
+      })),
+      discounts: this.lineDiscounts(),
+      selection: this.boardSelection(),
+    }
+  }
+
+  #restoreCart(snapshot: CartSnapshot): void {
+    this.#lineItems = [...snapshot.lines]
+    for (const state of snapshot.states) {
+      state.item.amount = state.amount
+      state.item.modifiers = state.modifiers
+      state.item.modifierScope = state.modifierScope
+    }
+    this.lineDiscounts.set(snapshot.discounts)
+    this.applyBoardSelection(snapshot.selection)
+  }
+
+  /**
+   * Extra aus dem Raster auf die markierte Zeile (#699). Trägt sie mehrere Stück und stammt
+   * sie nicht aus dem laufenden Hinzufügen-Ablauf, gilt das Extra für ein Stück: Es wird
+   * abgespalten, danach wird zusammengeführt — „2× Burger" + Käse auf eines wird
+   * „1× Burger" und „1× Burger + Käse", ein zweites Käse auf den anderen wieder eine Zeile.
+   */
+  #increaseExtraFromRaster(extra: PosProductButton): void {
+    const line = this.getCurrentSelectedLineItem()
+    if (line && line !== this.#freshLine && line.amount > 1 && isModifierButton(extra)) {
+      this.#splitOffOnePiece(line)
+    }
+    this.increaseExtra(extra)
+    this.#mergeLines()
   }
 
   /**
@@ -1454,40 +1624,46 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onCustomizeIngredientToggled(ingredientExternalId: string): void {
-    const line = this.#customizeLine
-    const ingredient = line?.ingredientReferences.find(
+    const ingredient = this.#customizeLine?.ingredientReferences.find(
       ing => ing.externalId === ingredientExternalId && ing.isRemovable,
     )
-    if (!line || !ingredient) return
+    if (!ingredient) return
+    const line = this.#customizeTarget()
+    if (!line) return
     toggleIngredientRemoval(line, ingredient, this._extraTopic)
     this.#refreshCustomize()
   }
 
   onCustomizeOptionIncreased(event: CustomizeOptionEvent): void {
-    const line = this.#customizeLine
     const product = this.productService.findProductById(event.productId)
     const group = this.customizeModel()?.groups.find(g => g.name === event.groupName)
-    if (!line || !product || !group || group.full) return
+    if (!this.#customizeLine || !product || !group || group.full) return
+    const line = this.#customizeTarget()
+    if (!line) return
     this.increaseExtra(toPosButton(product), event.groupName, line)
     this.#refreshCustomize()
   }
 
   onCustomizeOptionDecreased(event: CustomizeOptionEvent): void {
-    const line = this.#customizeLine
     const product = this.productService.findProductById(event.productId)
-    if (!line || !product) return
+    if (!this.#customizeLine || !product) return
+    const line = this.#customizeTarget()
+    if (!line) return
     this.decreaseExtra(toPosButton(product), event.groupName, line)
     this.#refreshCustomize()
   }
 
   onCustomizeFinished(): void {
     if (!this.customizeModel()?.canFinish) return
+    this.#freshLine = null
+    this.#mergeLines()
     this.#closeCustomize()
   }
 
+  /** Stellt den Warenkorb beim Öffnen wieder her — auch eine abgespaltene Zeile verschwindet (#699). */
   onCustomizeCancelled(): void {
-    const line = this.#customizeLine
-    if (line) line.modifiers = this.#customizeSnapshot
+    const snapshot = this.#customizeCartSnapshot
+    if (snapshot) this.#restoreCart(snapshot)
     this.#closeCustomize()
   }
 
@@ -1812,8 +1988,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  increaseQuantity(orderLineItem: OrderLineItem): void {
-    orderLineItem.amount++
+  increaseQuantity(orderLineItem: OrderLineItem, by = 1): void {
+    orderLineItem.amount += by
     this.#refreshCustomize()
   }
 
@@ -2315,6 +2491,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       taxInside: !product.taxInside ? 19 : product.taxInside,
       taxOutside: !product.taxOutside ? 7 : product.taxOutside,
       topic: topic,
+      // Eine Zeile trägt gleiche Stücke, ein Modifier gilt je Stück (#699, ADR 0056).
+      modifierScope: 'unit',
     }
 
     this.resetMultiplier()
@@ -2351,13 +2529,14 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       // Normalmodus (Menge hoch statt zweiter Zeile). Eine gleiche Zeile außerhalb der
       // Kombination bleibt unberührt: Sie gehört nicht zum Menü.
       const bundle = this.combinations[selectedCombination]
-      const existingInBundle = productKey ? bundle.find(item => item.externalId === productKey) : undefined
+      orderLineItem.bundleNumber = bundleNumber
+      const existingInBundle = productKey ? bundle.find(item => this.#sameConfig(item, orderLineItem)) : undefined
       if (!isBundle && !autoCustomize && existingInBundle) {
-        return this.increaseQuantity(existingInBundle)
+        return this.increaseQuantity(existingInBundle, amountToIncrease)
       }
 
-      orderLineItem.bundleNumber = bundleNumber
       this.#lineItems.push(orderLineItem)
+      this.#freshLine = orderLineItem
       const index = this.combinations[selectedCombination].indexOf(orderLineItem)
 
       if (isBundle && product.optionGroups?.length) {
@@ -2382,12 +2561,13 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       // statt still auf sie zu bauen.
       if (selectedCombination !== null) this._selectedCombinationIndex = [null, null]
 
-      const existing = productKey ? this.#lineItems.find(item => item.externalId === productKey) : undefined
+      const existing = productKey ? this.#lineItems.find(item => this.#sameConfig(item, orderLineItem)) : undefined
       if (!isBundle && !autoCustomize && existing) {
-        return this.increaseQuantity(existing)
+        return this.increaseQuantity(existing, amountToIncrease)
       }
 
       const index = this.#lineItems.push(orderLineItem) - 1
+      this.#freshLine = orderLineItem
 
       if (isBundle && product.optionGroups?.length) {
         // Neuer Bundle-Flow: OptionGroups sequentiell abarbeiten
@@ -2404,6 +2584,16 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         this.openCustomizePanel(orderLineItem)
       }
     }
+  }
+
+  /**
+   * Gleiche Konfiguration (#699): Ein neu angetipptes Produkt landet nur auf einer Zeile ohne
+   * Anpassung — „1× Burger + Käse" bekommt keinen zweiten Burger, sondern es entsteht
+   * „1× Burger". Die Reihenfolge im Warenkorb spielt dabei keine Rolle mehr.
+   */
+  #sameConfig(item: OrderLineItem, candidate: OrderLineItem): boolean {
+    const key = lineConfigKey(item, this.#discountKey(item))
+    return key !== null && key === lineConfigKey(candidate)
   }
 
   /** `bundleNumber` der i-ten Kombination — `null`, wenn es sie (nicht mehr) gibt. */
@@ -2516,6 +2706,10 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   async placeOrder() {
+    // Gleiche Konfigurationen als eine Zeile auf den Bon (#699) — falls das Panel über einen
+    // Ansichtswechsel statt über „Fertig" verlassen wurde.
+    this.#freshLine = null
+    this.#mergeLines()
     // Mandant in der Cloud gesperrt: der Bon liefe sicher in den 403. Der Warenkorb bleibt
     // stehen, die Meldung ist ein globales Overlay (core#489).
     if (this.#tenantSuspension.suspended()) {

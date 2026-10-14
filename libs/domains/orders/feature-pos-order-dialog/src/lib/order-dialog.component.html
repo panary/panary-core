@@ -533,6 +533,9 @@
           <lib-product-customize-panel
             class="flex min-h-0 flex-1 flex-col pb-2"
             [model]="model"
+            [scope]="customizeScope()"
+            [scopeLocked]="customizeScopeLocked()"
+            (scopeChanged)="onCustomizeScopeChanged($event)"
             (ingredientToggled)="onCustomizeIngredientToggled($event)"
             (optionIncreased)="onCustomizeOptionIncreased($event)"
             (optionDecreased)="onCustomizeOptionDecreased($event)"

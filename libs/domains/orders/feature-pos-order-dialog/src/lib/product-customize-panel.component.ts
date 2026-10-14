@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core'
 import { CurrencyPipe } from '@angular/common'
 
-import type { CustomizeGroup, CustomizeModel } from './product-customize'
+import type { CustomizeGroup, CustomizeModel, CustomizeScope } from './product-customize'
 
 export interface CustomizeOptionEvent {
   groupName: string
@@ -29,13 +29,54 @@ export interface CustomizeOptionEvent {
           <span class="text-[0.625rem] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500"
             >Anpassen</span
           >
-          @if (m.amount > 1) {
+          @if (m.amount > 1 && scopeLocked()) {
             <span
               class="rounded bg-gray-100 px-1.5 py-0.5 text-[0.625rem] font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300"
-              >gilt für {{ m.amount }}×</span
+              data-testid="customize-scope-applied"
+              >gilt für {{ scope() === 'one' ? 1 : m.amount }}×</span
             >
           }
         </div>
+        <!-- Umschalter (#699): Die Zeile hat mehrere Stück — gilt die Anpassung für eines (es wird
+             abgespalten) oder für alle? Nach der ersten Änderung fest. -->
+        @if (m.amount > 1 && !scopeLocked()) {
+          <div
+            class="mt-2 inline-flex overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700"
+            role="radiogroup"
+            aria-label="Anpassung gilt für"
+          >
+            <button
+              type="button"
+              role="radio"
+              data-testid="customize-scope-one"
+              class="pnry-touch min-h-12 px-4 text-sm font-semibold transition-colors"
+              [class]="
+                scope() === 'one'
+                  ? 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200'
+                  : 'bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-300'
+              "
+              [attr.aria-checked]="scope() === 'one'"
+              (click)="scopeChanged.emit('one')"
+            >
+              1 Stück
+            </button>
+            <button
+              type="button"
+              role="radio"
+              data-testid="customize-scope-all"
+              class="pnry-touch min-h-12 border-l border-gray-200 px-4 text-sm font-semibold transition-colors dark:border-gray-700"
+              [class]="
+                scope() === 'all'
+                  ? 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200'
+                  : 'bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-300'
+              "
+              [attr.aria-checked]="scope() === 'all'"
+              (click)="scopeChanged.emit('all')"
+            >
+              alle {{ m.amount }}
+            </button>
+          </div>
+        }
         <h2 class="mt-0.5 text-lg font-bold leading-tight text-gray-900 dark:text-white">{{ m.name }}</h2>
         <p class="mt-1 min-h-[1.25rem] text-sm text-gray-500 dark:text-gray-400" data-testid="customize-summary">
           {{ m.summary || 'Wie bestellt — nichts geändert' }}
@@ -189,6 +230,10 @@ export interface CustomizeOptionEvent {
 })
 export class ProductCustomizePanelComponent {
   readonly model = input.required<CustomizeModel>()
+  /** Gilt die Anpassung für ein Stück oder alle der Zeile (#699)? */
+  readonly scope = input<CustomizeScope>('all')
+  /** Nach der ersten Änderung fest — der Kopf zeigt dann nur noch, wofür sie gilt. */
+  readonly scopeLocked = input(false)
 
   readonly ingredientToggled = output<string>()
   readonly optionIncreased = output<CustomizeOptionEvent>()
@@ -196,6 +241,7 @@ export class ProductCustomizePanelComponent {
   readonly finished = output<void>()
   readonly cancelled = output<void>()
   readonly showAllModifiers = output<void>()
+  readonly scopeChanged = output<CustomizeScope>()
 
   groupHint(group: CustomizeGroup): string {
     if (group.missing > 0) return `Pflicht · noch ${group.missing}`

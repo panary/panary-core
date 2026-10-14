@@ -62,3 +62,12 @@ describe('OrderDialog-Template — Klassenbindungen (#573)', () => {
     )
   })
 })
+
+// Der Umschalter „1 Stück | alle n" (#699) lebt im Panel; ohne die Bindung bliebe er stumm auf „alle".
+describe('OrderDialog-Template — Umschalter im Anpassen-Panel (#699)', () => {
+  it('reicht Umfang und Sperre hinein und nimmt die Wahl entgegen', () => {
+    expect(template).toContain('[scope]="customizeScope()"')
+    expect(template).toContain('[scopeLocked]="customizeScopeLocked()"')
+    expect(template).toContain('(scopeChanged)="onCustomizeScopeChanged($event)"')
+  })
+})

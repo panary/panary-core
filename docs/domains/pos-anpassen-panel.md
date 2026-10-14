@@ -4,7 +4,7 @@ title: POS-Anpassen-Panel — Zutaten abwählen, Extras hinzufügen
 description: 'Beim Antippen eines Produkts mit ui.showOptionsAuto (oder einer Warenkorb-Position) zeigt der Bestelldialog rechts ein Panel mit abwählbaren Zutaten und Extras je Optionsgruppe; die OHNE-Funktionstaste ist entfallen.'
 tags: [orders, pos, products]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-10-13T20:30:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-14T14:00:00Z }
 ---
 
 # POS-Anpassen-Panel
@@ -32,18 +32,38 @@ Optionsgruppen sind Menüschritte, die der Bundle-Flow mit seinen Pflichtschritt
 `ui.showOptionsAuto` pflegt die Cloud-Produktdetailseite. Das Legacy-Feld `showExtrasAfterSelect`
 wird weiterhin nur im Soßen-Schritt gelesen und nicht migriert.
 
-### Eigene Zeile je Tipp
+### Zeilen aufspalten und zusammenführen (#699)
 
-Ein Produkt, das das Panel von selbst öffnet, bekommt **je Tipp eine eigene Warenkorbzeile**, statt
-die Menge einer vorhandenen Zeile zu erhöhen. „Ein Burger ohne Ketchup, einer normal" braucht zwei
-Zeilen, und eine Anpassung an einer zusammengelegten Zeile träfe jedes Stück. Der Multiplikator
-(`3 ×` vor dem Tipp) ergibt weiterhin eine Zeile mit Menge 3. Das Panel zeigt dann „gilt für 3×".
+Eine Warenkorbzeile trägt **gleiche Stücke**: „2× Burger + Käse" heißt zwei Burger, jeder mit Käse.
+Ein Modifier gilt deshalb je Stück, jede neue Zeile trägt `modifierScope: 'unit'`
+([ADR 0056](../adr/0056-modifier-je-stueck-per-zeilenmerkmal.md)). Die Zeilenidentität rechnet
+`lineConfigKey` (`@panary/orders/domain`, `line-identity.ts`): Produkt, Stückpreis, Kombination,
+Modifier sortiert und je Id/Preis/`topic`/`pricingMode`/Abwahl summiert, dazu der Positionsrabatt.
+
+| Lage | Verhalten |
+| --- | --- |
+| Panel aus dem Warenkorb an einer Zeile mit n > 1 | Kopf zeigt den Umschalter **„1 Stück \| alle n"**, Standard „1 Stück". Der erste Griff spaltet **ein** Stück ab (direkt hinter der Zeile, markiert); weitere Griffe ändern nur dieses. Nach dem ersten Griff ist der Umschalter fest. |
+| Panel im Hinzufügen-Ablauf (Multiplikator, Auto-Panel) | Standard „alle" — „3 ×" Burger ohne Ketchup bleibt eine Zeile mit 3 Stück. |
+| „Fertig", Wechsel zu einer anderen Zeile, Bestellen | Gleiche Konfigurationen werden **eine** Zeile. Die vordere bleibt und übernimmt die Menge; die Markierung folgt ihr. |
+| „Abbrechen" | Stellt den ganzen Warenkorb vom Öffnen wieder her — auch ein abgespaltenes Stück verschwindet. |
+| Extra über das Raster (ohne Panel) an einer Zeile mit n > 1 | Ein Stück wird abgespalten, das Extra gebucht, danach zusammengeführt. |
+| Produkt antippen | Landet nur auf einer Zeile **gleicher** Konfiguration, also ohne Anpassung. „1× Burger + Käse" bekommt keinen zweiten Burger, es entsteht „1× Burger". Der Multiplikator addiert die ganze Menge (bis #699 nur +1). |
+
+- **Auto-Panel:** Die frühere Regel „je Tipp eine eigene Zeile" ist entfallen. Zwei unveränderte
+  Tipps werden eine Zeile mit 2 Stück; das Panel bietet dann „1 Stück" an, und eine Anpassung trifft
+  das zuletzt hinzugefügte Stück nicht anders als jedes andere — es gibt nur noch gleiche Stücke.
+- **Positionsrabatt (D5):** Ein Prozent-Rabatt geht beim Abspalten mit, ein Festbetrag bleibt an der
+  Restzeile (die Infobox sagt es). Zusammengeführt wird nur ohne Rabatt oder bei gleichem
+  Prozent-Rabatt, nie bei Festbetrag.
+- **Nie zusammengeführt:** Menüs (`isMenu`, `components`, Legacy-Slots), Zeilen ohne `externalId`,
+  Zeilen über eine Kombinationsgrenze und bereits abgeschickte Bestellungen.
+- Zusammenführen ist **kein** Löschen: Es entsteht kein `item-delete`-Ereignis.
 
 ## Aufbau
 
 | Bereich | Inhalt | Bedienung |
 | --- | --- | --- |
-| Kopf | Produktname, „gilt für n×", Zusammenfassung („ohne Ketchup · 2× Käse") | — |
+| Kopf | Produktname, Umschalter „1 Stück \| alle n" bzw. „gilt für n×", Zusammenfassung („ohne Ketchup · 2× Käse") | Umschalter nur vor der ersten Änderung |
 | Zutaten | jede `isRemovable`-Zutat als Chip, Name aus `displayName` vor `ingredientName` | Tipp schaltet „drin" ↔ „ohne" (rot, durchgestrichen, Preis-Effekt) |
 | Extras | je Optionsgruppe eine Liste mit Name, Aufpreis, `−` Menge `+` | Plus gesperrt bei `maxSelections`, Minus bei Menge 0 |
 | Fuß | Abbrechen · Alle Modifier · Fertig | Fertig gesperrt („Noch n wählen"), solange `minSelections` fehlt |
@@ -51,8 +71,8 @@ Zeilen, und eine Anpassung an einer zusammengelegten Zeile träfe jedes Stück. 
 - **`maxSelections: 0`** gilt als unbegrenzt.
 - Eine Option, deren Produkt kein Modifier ist, steht mit Warnhinweis da und lässt sich nicht
   buchen (dieselbe Regel wie im Raster, #273).
-- **Abbrechen** stellt die Modifier vom Öffnen des Panels wieder her. Die Zeile selbst bleibt im
-  Warenkorb: Abbrechen verwirft die Anpassung, nicht das Produkt (dafür gibt es Löschen).
+- **Abbrechen** stellt den Warenkorb vom Öffnen des Panels wieder her (seit #699 inklusive
+  Aufspaltung). Die Zeile selbst bleibt: Abbrechen verwirft die Anpassung, nicht das Produkt.
 - Jeder andere Ansichtswechsel (Produktgruppe, Auswahl aufheben) schließt das Panel und **behält**
   die Änderungen, wie früher der Wechsel aus dem Extras-Raster.
 - **Wechselt die Auswahl** bei offenem Panel (Kombinations-Position, Pfeiltasten), zieht das Panel
@@ -73,6 +93,7 @@ und die Gruppenzählung des Bundle-Flows greifen.
 | Datei | Rolle |
 | --- | --- |
 | `product-customize.ts` | reine Funktionen: Modell bauen, Zutat umschalten, Auslöser prüfen |
+| `@panary/orders/domain` `line-identity.ts` | Zeilenschlüssel, Abspalten, Zusammenführen (#699) — rein, für die Cloud teilbar |
 | `product-customize-panel.component.ts` | Anzeige, Standalone + OnPush, nur `input()`/`output()`, kein eigener Zustand |
 | `order-dialog.component.ts` | hält die angepasste Zeile, mutiert sie und reicht nach jeder Änderung ein neues Modell herein |
 

@@ -93,6 +93,9 @@ der direkten Zutaten. Die übrigen Zutaten der Position zählen voll.
 - **Verglichen wird die `externalId` der Referenz**, nicht `ingredientId`. In echten Daten
   unterscheiden sich beide, und der POS schreibt die `externalId` in den Modifier.
 - **Die Abwahl gilt für alle Stück der Zeile.** „3× Burger ohne Ketchup" verbucht null Ketchup.
+  Der Preis zieht den Abzug dagegen nur bei `modifierScope: 'unit'` je Stück ab
+  ([ADR 0056](../adr/0056-modifier-je-stueck-per-zeilenmerkmal.md)). Bestandszeilen ohne das
+  Merkmal kosten weniger Abzug, als sie Verbrauch sparen; korrigiert wird das bewusst nicht.
 - **Nur direkte `ingredientReferences`** sind abwählbar. Rezept-Zutaten
   (`recipeReferences[].recipeIngredients`) tragen kein `isRemovable`, das der POS auswertet.
 - **Bestandsbestellungen** mit einem „Ohne X"-Modifier ohne das Feld verbuchen weiter wie vorher.

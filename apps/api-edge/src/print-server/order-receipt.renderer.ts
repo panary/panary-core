@@ -3,6 +3,8 @@ import {
   effectiveLineItems,
   fromCents,
   lineItemGrossCents,
+  modifierLineGrossCents,
+  modifiersCountPerUnit,
   multiplyCents,
   toCents,
   type OrderLineItem,
@@ -503,13 +505,19 @@ function appendModifierLines(enc: any, article: any, isFixed: boolean, subNameW:
       // spiegelt `modifierGrossCents` aus der Preis-Engine: `amount < 0` ist der
       // preisneutrale OHNE-Marker und bleibt ohne Betrag, sonst rechnete sich
       // der Bon nicht gegen die Summe auf.
-      const modPrice = !isFixed && mod.amount > 0 && mod.price !== 0 ? fmtEur(mod.price * mod.amount) : ''
+      // Betrag aus der Engine (`modifierLineGrossCents`, #698): Gilt der Modifier je Stück
+      // (`modifierScope: 'unit'` oder Komponenten-Zeile), ist es der Gesamtaufpreis der Zeile,
+      // und die Mengenangabe trägt „je" — „2x Burger / je 1x Käse 2,00". Sonst rechnete sich
+      // der Bon nicht gegen die Positionssumme auf.
+      const modCents = modifierLineGrossCents(article, mod)
+      const modPrice = !isFixed && modCents !== 0 ? fmtEur(fromCents(modCents)) : ''
+      const perUnit = mod.amount > 0 && modifiersCountPerUnit(article) ? 'je ' : ''
       enc.table(
         [
           { width: subNameW, marginLeft: 4, align: 'left' },
           { width: priceW, align: 'right' },
         ],
-        [[`${amount}x ${modName}`, modPrice]],
+        [[`${perUnit}${amount}x ${modName}`, modPrice]],
       )
     }
     enc.font('A')

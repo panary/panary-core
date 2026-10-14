@@ -123,9 +123,11 @@ export interface OrderSplitPlan {
  * Darf diese Zeile in TEILmenge gesplittet werden?
  *
  * 🚫 Nein, sobald sie Modifier, Bundle-Komponenten oder die Legacy-Menue-Slots
- * traegt. Der Grund ist gemessen und nicht Vorsicht: Ein Modifier zaehlt mit
- * SEINEM EIGENEN `amount` und skaliert NICHT mit der Menge der Hauptzeile
- * (`modifiersGrossCents` ohne `scale`-Argument). Wuerde man „3 von 5" abgeben,
+ * traegt. Der Grund ist gemessen und nicht Vorsicht: Ein Modifier zaehlt in
+ * Bestandszeilen mit SEINEM EIGENEN `amount` und skaliert NICHT mit der Menge der
+ * Hauptzeile (`modifierScale` = 1). Zeilen mit `modifierScope: 'unit'` (#698)
+ * skalieren — ihre Freigabe fuer Teilmengen ist panary/panary-core#700 und hier
+ * bewusst noch nicht umgesetzt. Wuerde man bei einer Bestandszeile „3 von 5" abgeben,
  * traegt die Quelle den Aufpreis weiter voll UND das Ziel bekaeme ihn noch
  * einmal — der Split erfaende Umsatz. Bundle-Komponenten haben die
  * spiegelbildliche Falle (`FIXED_PROPORTIONAL` verteilt einen Festpreis).

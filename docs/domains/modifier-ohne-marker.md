@@ -4,7 +4,7 @@ title: „OHNE"-Modifier — Marker `amount −1`, entfernbare Zutaten und Preis
 description: 'Zwei OHNE-Mechanismen im POS: der Marker amount −1 (preisneutral) und entfernbare Zutaten mit negativem priceAdjustment (Abzug) — beide brauchen Modifier-eigene Schema-Regeln, eine Klemme bei 0 und einen Bon, der sich aufrechnet.'
 tags: [orders, pos, pricing, businessdays]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-10-13T20:30:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-14T12:00:00Z }
 ---
 
 # „OHNE"-Modifier
@@ -96,6 +96,19 @@ Vorher zog „Margherita 6,70 € ohne Bacon (1,90 €)" den Bacon-Aufpreis ab u
 kostete 4,80 €, während der Bon die OHNE-Zeile **ohne Betrag** druckte — der
 Beleg rechnete sich nicht auf.
 
+### Je Zeile oder je Stück (`modifierScope`, #698)
+
+Ein Modifier zählt im Legacy-Pfad **einmal je Zeile**, außer die Zeile trägt
+`modifierScope: 'unit'`. Dann zählt er **je Stück** (`× line.amount`), wie im Verbrauch.
+Komponenten-Zeilen skalierten schon vorher mit der Menge. Bestandsbestellungen tragen das
+Feld nicht und rechnen unverändert, auch beim Nachdruck und beim Rabatt-Patch.
+Entscheidung und Rollout-Reihenfolge: [ADR 0056](../adr/0056-modifier-je-stueck-per-zeilenmerkmal.md).
+
+| Zeile | Beispiel 3× Burger 8,00 ohne Ketchup −0,30 |
+| --- | --- |
+| ohne Merkmal (Bestand) | 23,70 — Abzug einmal |
+| `modifierScope: 'unit'` | 23,10 — Abzug je Stück |
+
 ### Klemme bei 0
 
 Der summierte Modifier-Beitrag einer Zeile ist nach unten auf `−Basispreis`
@@ -128,6 +141,9 @@ Zeilenpreis bewegt — die Bedingung spiegelt `modifierGrossCents`:
 
 * `amount === -1` → `1x OHNE <Name>`, **kein** Betrag (preisneutral).
 * `amount > 0 && price !== 0` → Betrag, **auch negativ** (`-1,00 EUR`).
+* Der Betrag kommt seit #698 aus `modifierLineGrossCents` — bei `modifierScope: 'unit'` der
+  Aufpreis für alle Stück, und die Mengenangabe trägt bei Zeilenmenge > 1 ein „je“
+  („2x Burger / je 1x Käse 2,00 EUR“). POS-Warenkorb und Verlauf zeigen dieselbe Zahl.
 
 Vorher war die Bedingung `price > 0`, der Abzug wurde also verschwiegen. Damit
 rechnet sich der Bon jetzt in beiden Pfaden gegen die Summe auf.

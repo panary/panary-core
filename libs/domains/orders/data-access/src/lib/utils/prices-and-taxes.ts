@@ -1,7 +1,9 @@
 import {
   computeOrderTax,
   fromCents,
+  GenericOrderLineItem,
   lineItemGrossCents,
+  modifierLineGrossCents,
   Order,
   OrderLineItem,
   sumCents,
@@ -26,6 +28,14 @@ import {
 /** Zeilenpreis OHNE Ad-hoc-Modifier (Menü-Bestandteile inklusive). */
 export function calculateArticlePriceWithoutExtras(articleItem: OrderLineItem): number {
   return fromCents(lineItemGrossCents({ ...articleItem, modifiers: [] }))
+}
+
+/**
+ * Betrag eines Modifiers auf seiner Zeile — cent-identisch zur Engine (#698): bei
+ * `modifierScope: 'unit'` der Aufpreis für alle Stück, sonst einmal je Zeile.
+ */
+export function calculateModifierPrice(articleItem: OrderLineItem, modifier: GenericOrderLineItem): number {
+  return fromCents(modifierLineGrossCents(articleItem, modifier))
 }
 
 /** Voller Zeilenpreis inkl. Modifier — cent-identisch zur Engine. */

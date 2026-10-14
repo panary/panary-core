@@ -1792,6 +1792,19 @@ describe('OrderDialog — Zeilen aufspalten und zusammenführen (#699)', () => {
     ])
   })
 
+  it('Fall 10: steht nur eine angepasste Zeile im Warenkorb, entsteht für den neuen Tipp eine eigene', () => {
+    const { component, p } = twoBurgersInPanel()
+    component.onCustomizeScopeChanged('all')
+    component.onCustomizeIngredientToggled(KETCHUP)
+    component.onCustomizeFinished() // [2× ohne Ketchup]
+
+    component.increaseLineItem(p)
+    expect(shape(component)).toEqual([
+      [2, 'Ohne Ketchup'],
+      [1, ''],
+    ])
+  })
+
   it('Fall 13: der Multiplikator auf eine vorhandene Zeile addiert die ganze Menge', () => {
     const p = burger()
     const { component } = setup({ catalog: [p] })

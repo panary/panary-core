@@ -21,6 +21,17 @@ import type { OrderLineItem } from './order.schema'
  * Die Zeilen-`_id` gehört nicht dazu — sie ist die Identität der Zeile, nicht der Konfiguration.
  */
 
+/**
+ * Darf eine Zeile aufgespalten werden? Auch Menüs (D6): Ein Extra auf eines von zwei Menüs
+ * trifft sonst beide. Eine Zeile, deren Modifier noch je Zeile zählen (Bestand, ohne
+ * `modifierScope: 'unit'`), bleibt ganz — ein abgespaltenes Stück änderte sonst die Summe.
+ */
+export function isSplittableLine(line: OrderLineItem): boolean {
+  if (!line.externalId) return false
+  const hasModifiers = (line.modifiers ?? []).some(mod => mod.amount > 0)
+  return !hasModifiers || line.modifierScope === 'unit'
+}
+
 /** Zeilen, die nie zusammengeführt werden: Menüs mit Komponenten oder Legacy-Slots. */
 export function isMergeableLine(line: OrderLineItem): boolean {
   if (!line.externalId) return false
@@ -52,7 +63,10 @@ export function lineConfigKey(line: OrderLineItem, discountKey = ''): string | n
   const modifiers = [...amounts.entries()]
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([key, amount]) => `${key}×${amount}`)
-  return [line.externalId, line.price, line.bundleNumber ?? '', discountKey, modifiers.join(';')].join('#')
+  // Ohne Modifier ist der Umfang egal; mit Modifiern führt nur dieselbe Zählweise zusammen —
+  // eine Bestandszeile („je Zeile") und eine neue („je Stück") ergäben sonst einen anderen Preis.
+  const scope = modifiers.length > 0 ? (line.modifierScope ?? 'line') : ''
+  return [line.externalId, line.price, line.bundleNumber ?? '', discountKey, scope, modifiers.join(';')].join('#')
 }
 
 /**
@@ -62,13 +76,18 @@ export function lineConfigKey(line: OrderLineItem, discountKey = ''): string | n
  * Änderung am neuen Stück die alte Zeile nicht mitnimmt.
  */
 export function splitOffPieces(line: OrderLineItem, count: number, newId: string): OrderLineItem | null {
-  if (!(count > 0) || line.amount <= count) return null
+  if (!(count > 0) || line.amount <= count || !isSplittableLine(line)) return null
   line.amount -= count
   return {
     ...line,
     _id: newId,
     amount: count,
     modifiers: (line.modifiers ?? []).map(mod => ({ ...mod })),
+    // Menü-Bestandteile gehören je Stück zum Menü — tief kopiert, damit eine Änderung am
+    // abgespaltenen Menü das andere nicht mitnimmt.
+    ...(Array.isArray(line.components) ? { components: line.components.map(c => ({ ...c })) } : {}),
+    ...(line.menuSideDish ? { menuSideDish: { ...line.menuSideDish } } : {}),
+    ...(line.menuDrink ? { menuDrink: { ...line.menuDrink } } : {}),
     modifierScope: 'unit',
   }
 }

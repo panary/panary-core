@@ -1847,4 +1847,124 @@ describe('OrderDialog — Zeilen aufspalten und zusammenführen (#699)', () => {
       [1, ''],
     ])
   })
+
+  describe('Review-Nachträge', () => {
+    const cheese = () => product('cheese', { name: 'Käse', price: 0.5, productType: 'MODIFIER' } as never)
+    /** Tippt die Raster-Kachel des Extras an — derselbe Weg wie am Gerät. */
+    function tapRasterExtra(component: any, id = 'cheese') {
+      component.setExtraSubButtons([`ext-${id}`])
+      const button = component.productButtons.find((b: { _id: string }) => b._id === id)
+      button.callback()
+    }
+
+    it('Fall 40: ein Raster-Extra an einer Mehrstück-Zeile spaltet ab, ein zweites auf den Rest führt zusammen', () => {
+      const pommes = product('pommes')
+      const { component } = setup({ catalog: [pommes, cheese()] })
+      component.increaseLineItem(pommes)
+      component.increaseLineItem(pommes)
+      component.selectProduct(0)
+
+      tapRasterExtra(component)
+      expect(shape(component)).toEqual([
+        [1, ''],
+        [1, 'Käse'],
+      ])
+      expect(component.selectedProductIndex).toBe(1)
+
+      component.selectProduct(0)
+      tapRasterExtra(component)
+      expect(shape(component)).toEqual([[2, 'Käse']])
+    })
+
+    it('„Alle Modifier" nach „alle n" spaltet im Raster nicht ab', () => {
+      const p = product('burger', { ui: ui(false), ingredientReferences: [ketchup()] } as never)
+      const { component } = setup({ catalog: [p, cheese()] })
+      component.increaseLineItem(p)
+      component.increaseLineItem(p)
+      component.selectProduct(0)
+      component.onCustomizeScopeChanged('all')
+      component.onCustomizeShowAllModifiers()
+
+      tapRasterExtra(component)
+      expect(shape(component)).toEqual([[2, 'Käse']])
+    })
+
+    it('im Hinzufügen-Ablauf gilt ein Raster-Extra über „Alle Modifier" für alle Stück', () => {
+      const p = burger(true)
+      const { component } = setup({ catalog: [p, cheese()] })
+      component.multiplier = 3
+      component.increaseLineItem(p)
+      component.onCustomizeShowAllModifiers()
+
+      tapRasterExtra(component)
+      tapRasterExtra(component)
+      expect(
+        component.lineItems.map((l: Line) => [l.amount, l.modifiers.map((m: { amount: number }) => m.amount)]),
+      ).toEqual([[3, [2]]])
+    })
+
+    it('„Abbrechen" behält eine währenddessen hinzugefügte Zeile', () => {
+      const cola = product('cola')
+      const { component } = twoBurgersInPanel()
+      component.onCustomizeIngredientToggled(KETCHUP)
+      component.increaseLineItem(cola)
+      component.onCustomizeCancelled()
+
+      expect(component.lineItems.map((l: Line & { name: string }) => [l.amount, l.name])).toEqual([
+        [2, 'Artikel burger'],
+        [1, 'Artikel cola'],
+      ])
+    })
+
+    it('„Abbrechen" nimmt den kopierten Positionsrabatt des Stücks mit', () => {
+      const { component } = twoBurgersInPanel()
+      const id = discountLine(component, 0)
+      component.selectProduct(0)
+      component.onCustomizeIngredientToggled(KETCHUP)
+      component.onCustomizeCancelled()
+      expect(Object.keys(component.lineDiscounts())).toEqual([id])
+    })
+
+    it('ein offenes „Rückgängig" der Menge verfällt, sobald ein Stück abgespalten wird', () => {
+      const p = burger()
+      const { component, snackBarRefs } = setup({ catalog: [p] })
+      component.increaseLineItem(p)
+      component.selectProduct(0) // Panel offen, eine Zeile
+      component.increaseSelectedQuantity() // 2×, Undo angeboten
+      component.onCustomizeScopeChanged('one')
+      component.onCustomizeIngredientToggled(KETCHUP) // spaltet ab
+
+      snackBarRefs[0].triggerAction()
+      expect(shape(component)).toEqual([
+        [1, ''],
+        [1, 'Ohne Ketchup'],
+      ])
+    })
+
+    it('Bestellen führt gleiche Zeilen zusammen, auch wenn das Panel per Ansichtswechsel verlassen wurde', async () => {
+      const { component, createdOrders } = twoBurgersInPanel()
+      component.onCustomizeIngredientToggled(KETCHUP)
+      component.onCustomizeIngredientToggled(KETCHUP) // Stück wieder wie die Restzeile
+      component.createProductButtons({ _id: 'cat-1', name: 'Speisen' }) // Ansichtswechsel statt „Fertig"
+      expect(component.lineItems).toHaveLength(2)
+
+      await component.placeOrder()
+      const lines = createdOrders[0]['lineItems'] as Line[]
+      expect(lines.map(l => l.amount)).toEqual([2])
+    })
+
+    it('D6: ein Menü mit mehreren Stück wird für ein Raster-Extra aufgespalten, aber nie zusammengeführt', () => {
+      const menu = product('menu', { isMenu: true } as never)
+      const { component } = setup({ catalog: [menu, cheese()] })
+      component.increaseLineItem(menu)
+      component.selectProduct(0)
+      component.increaseSelectedQuantity() // 2× Menü
+
+      tapRasterExtra(component)
+      expect(shape(component)).toEqual([
+        [1, ''],
+        [1, 'Käse'],
+      ])
+    })
+  })
 })

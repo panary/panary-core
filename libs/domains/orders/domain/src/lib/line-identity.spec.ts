@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { isMergeableLine, lineConfigKey, mergeIdenticalLines, splitOffPieces } from './line-identity'
+import { isMergeableLine, isSplittableLine, lineConfigKey, mergeIdenticalLines, splitOffPieces } from './line-identity'
 import type { OrderLineItem } from './order.schema'
 
 /**
@@ -99,7 +99,7 @@ describe('splitOffPieces', () => {
   })
 
   it('kopiert die Modifier tief — eine Änderung am Stück trifft die Restzeile nicht', () => {
-    const line = burger({ amount: 3, modifiers: [K()] })
+    const line = burger({ amount: 3, modifiers: [K()], modifierScope: 'unit' })
     const piece = splitOffPieces(line, 1, 'neu') as OrderLineItem
     piece.modifiers[0].amount = 2
     piece.modifiers.push(oK())
@@ -143,5 +143,37 @@ describe('mergeIdenticalLines', () => {
     const { lines } = mergeIdenticalLines([a, b, m1, m2, r], line => discount.get(line) ?? '')
     expect(lines).toEqual([a, b, m1, m2, r])
     expect(b.amount).toBe(1)
+  })
+})
+
+describe('Zählweise und Menüs (Review #699)', () => {
+  it('führt eine Bestandszeile („je Zeile") nicht mit einer neuen („je Stück") zusammen, wenn Modifier dran sind', () => {
+    expect(lineConfigKey(burger({ modifiers: [K()] }))).not.toBe(
+      lineConfigKey(burger({ modifiers: [K()], modifierScope: 'unit' })),
+    )
+    // Ohne Modifier ist die Zählweise egal.
+    expect(lineConfigKey(burger())).toBe(lineConfigKey(burger({ modifierScope: 'unit' })))
+  })
+
+  it('spaltet eine Bestandszeile mit Modifiern nicht auf — die Summe änderte sich', () => {
+    const line = burger({ amount: 2, modifiers: [K()] })
+    expect(isSplittableLine(line)).toBe(false)
+    expect(splitOffPieces(line, 1, 'neu')).toBeNull()
+    expect(line.amount).toBe(2)
+  })
+
+  it('spaltet Menüs auf und kopiert ihre Bestandteile tief (D6)', () => {
+    const line = burger({
+      amount: 2,
+      isMenu: true,
+      components: [mod('pommes')] as never,
+      menuDrink: mod('cola') as never,
+    })
+    expect(isSplittableLine(line)).toBe(true)
+    const piece = splitOffPieces(line, 1, 'neu') as OrderLineItem
+    ;(piece.components as Array<{ amount: number }>)[0].amount = 5
+    ;(piece.menuDrink as { amount: number }).amount = 5
+    expect((line.components as Array<{ amount: number }>)[0].amount).toBe(1)
+    expect((line.menuDrink as { amount: number }).amount).toBe(1)
   })
 })

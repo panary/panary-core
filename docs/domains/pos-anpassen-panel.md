@@ -45,7 +45,7 @@ Modifier sortiert und je Id/Preis/`topic`/`pricingMode`/Abwahl summiert, dazu de
 | Panel aus dem Warenkorb an einer Zeile mit n > 1 | Kopf zeigt den Umschalter **„1 Stück \| alle n"**, Standard „1 Stück". Der erste Griff spaltet **ein** Stück ab (direkt hinter der Zeile, markiert); weitere Griffe ändern nur dieses. Nach dem ersten Griff ist der Umschalter fest. |
 | Panel im Hinzufügen-Ablauf (Multiplikator, Auto-Panel) | Standard „alle" — „3 ×" Burger ohne Ketchup bleibt eine Zeile mit 3 Stück. |
 | „Fertig", Wechsel zu einer anderen Zeile, Bestellen | Gleiche Konfigurationen werden **eine** Zeile. Die vordere bleibt und übernimmt die Menge; die Markierung folgt ihr. |
-| „Abbrechen" | Stellt den ganzen Warenkorb vom Öffnen wieder her — auch ein abgespaltenes Stück verschwindet. |
+| „Abbrechen" | Nimmt genau die Wirkung des Panels zurück: abgespaltene Stücke gehen an ihre Herkunft zurück (samt kopiertem Rabatt), Modifier der Zeilen vom Öffnen werden wiederhergestellt. Was währenddessen von außen geschah (Produkt per Numpad, Menge aus Spalte 2), bleibt. |
 | Extra über das Raster (ohne Panel) an einer Zeile mit n > 1 | Ein Stück wird abgespalten, das Extra gebucht, danach zusammengeführt. |
 | Produkt antippen | Landet nur auf einer Zeile **gleicher** Konfiguration, also ohne Anpassung. „1× Burger + Käse" bekommt keinen zweiten Burger, es entsteht „1× Burger". Der Multiplikator addiert die ganze Menge (bis #699 nur +1). |
 
@@ -55,8 +55,13 @@ Modifier sortiert und je Id/Preis/`topic`/`pricingMode`/Abwahl summiert, dazu de
 - **Positionsrabatt (D5):** Ein Prozent-Rabatt geht beim Abspalten mit, ein Festbetrag bleibt an der
   Restzeile (die Infobox sagt es). Zusammengeführt wird nur ohne Rabatt oder bei gleichem
   Prozent-Rabatt, nie bei Festbetrag.
-- **Nie zusammengeführt:** Menüs (`isMenu`, `components`, Legacy-Slots), Zeilen ohne `externalId`,
-  Zeilen über eine Kombinationsgrenze und bereits abgeschickte Bestellungen.
+- **Menüs (D6):** werden für ein Extra aus dem Raster aufgespalten (Bestandteile tief kopiert), aber
+  **nie zusammengeführt**. Ebenso nie zusammengeführt: Zeilen ohne `externalId`, Zeilen über eine
+  Kombinationsgrenze, bereits abgeschickte Bestellungen und eine Bestandszeile mit Modifiern ohne
+  `modifierScope: 'unit'` mit einer neuen (die Zählweise gehört zum Schlüssel). Eine solche
+  Bestandszeile wird auch nicht aufgespalten — das Stück änderte die Summe.
+- **„Rückgängig"** einer Mengenänderung verfällt, sobald ein Stück abgespalten oder zusammengeführt
+  wird; es bezöge sich auf einen Warenkorb, den es so nicht mehr gibt.
 - Zusammenführen ist **kein** Löschen: Es entsteht kein `item-delete`-Ereignis.
 
 ## Aufbau
@@ -71,8 +76,8 @@ Modifier sortiert und je Id/Preis/`topic`/`pricingMode`/Abwahl summiert, dazu de
 - **`maxSelections: 0`** gilt als unbegrenzt.
 - Eine Option, deren Produkt kein Modifier ist, steht mit Warnhinweis da und lässt sich nicht
   buchen (dieselbe Regel wie im Raster, #273).
-- **Abbrechen** stellt den Warenkorb vom Öffnen des Panels wieder her (seit #699 inklusive
-  Aufspaltung). Die Zeile selbst bleibt: Abbrechen verwirft die Anpassung, nicht das Produkt.
+- **Abbrechen** verwirft die Anpassung seit dem Öffnen des Panels, seit #699 inklusive Aufspaltung.
+  Die Zeile selbst bleibt: Abbrechen verwirft die Anpassung, nicht das Produkt.
 - Jeder andere Ansichtswechsel (Produktgruppe, Auswahl aufheben) schließt das Panel und **behält**
   die Änderungen, wie früher der Wechsel aus dem Extras-Raster.
 - **Wechselt die Auswahl** bei offenem Panel (Kombinations-Position, Pfeiltasten), zieht das Panel

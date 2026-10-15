@@ -181,6 +181,13 @@ Create-Pfad — `openAuthorized`, Auto-Open, Admin —, nur nicht für Sync-Appl
 - **Auto-Open** übernimmt bei diesem Fehler die Lade aus `cashSessionId`, die Bestellung scheitert nicht.
 - **POS:** Der Freigabe-Dialog zeigt `CASH_SESSION.AUTH_ERROR_ALREADY_OPEN`.
 - **Bestand:** Doppel-Laden aus der Zeit davor bleiben offen und müssen einzeln geschlossen werden.
+- **Kein Weg zurück:** Seit panary/panary-core#717 geht eine Lade nur vorwärts
+  (`open → counting → closed → audited`). `cash-sessions.patch` lehnt einen Rückschritt — etwa
+  `closed → open` — mit `400`, `data.code` `BD_6009` (`CASH_SESSION_STATUS_REGRESSION`) und
+  `from`/`to` ab; ausgenommen ist nur Sync-Apply. Sonst ließe sich die Sperre oben umgehen, und ein
+  abgerechneter Kassenstand änderte sich nachträglich. Die Rangfolge steht als
+  `isCashSessionStatusRegression` in `@panary/businessdays/domain`. Ein Wiederöffnen gibt es bewusst
+  nicht; ein Fehlschluss wird über eine neue Lade korrigiert.
 
 ---
 

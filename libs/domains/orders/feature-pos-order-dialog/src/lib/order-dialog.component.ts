@@ -749,15 +749,25 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.setInfoBoxText(productGroup.name, productGroup.color)
     this._selectedProductIndex = null
     // VM-Kopien statt Store-Referenzen — der Dialog darf Cache-Objekte nicht mutieren
-    this._productButtons = this.productService
-      .getProductsByGroupId(productGroup._id, productGroup.externalId)
-      .map(product => {
-        const button = toPosButton(product)
-        button.callback = () => {
-          this.increaseLineItem(button)
-        }
-        return button
-      })
+    this._productButtons = this.#gridProducts(productGroup._id, productGroup.externalId).map(product => {
+      const button = toPosButton(product)
+      button.callback = () => {
+        this.increaseLineItem(button)
+      }
+      return button
+    })
+  }
+
+  /**
+   * Produkte einer Gruppe für das Raster — ohne die mit `ui.hideOnMainScreen` (#697). Das Feld
+   * markiert Modifier, die nur innerhalb von Menüs und Optionsgruppen existieren; im Raster
+   * standen sie neben den Gerichten. Optionsgruppen, Anpassen-Panel und „Alle Modifier" lesen
+   * den Katalog direkt und zeigen sie weiter.
+   */
+  #gridProducts(groupId: string, groupExternalId?: string | null): ProductSchema[] {
+    return this.productService
+      .getProductsByGroupId(groupId, groupExternalId)
+      .filter(product => !product.ui?.hideOnMainScreen)
   }
 
   setProductButtonsByGroupId(groupId: string | undefined) {
@@ -774,7 +784,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this._selectedCombinationIndex = [null, null]
     this._lastParentId = undefined
     // VM-Kopien statt Store-Referenzen — der Dialog darf Cache-Objekte nicht mutieren
-    this._productButtons = this.productService.getProductsByGroupId(group._id, group.externalId).map(product => {
+    this._productButtons = this.#gridProducts(group._id, group.externalId).map(product => {
       const button = toPosButton(product)
       button.callback = () => {
         this.increaseLineItem(button)
@@ -1840,15 +1850,13 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.setInfoBoxText(byExternId.name)
     this._functionBlockLabel = byExternId.name
     // VM-Kopien statt Store-Referenzen — der Dialog darf Cache-Objekte nicht mutieren
-    this._productButtons = this.productService
-      .getProductsByGroupId(byExternId._id, byExternId.externalId)
-      .map(successor => {
-        const button = toPosButton(successor)
-        button.callback = () => {
-          this.increaseLineItem(button)
-        }
-        return button
-      })
+    this._productButtons = this.#gridProducts(byExternId._id, byExternId.externalId).map(successor => {
+      const button = toPosButton(successor)
+      button.callback = () => {
+        this.increaseLineItem(button)
+      }
+      return button
+    })
   }
 
   setCombiSubButtons() {

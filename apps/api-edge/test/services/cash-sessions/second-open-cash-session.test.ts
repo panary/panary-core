@@ -168,10 +168,17 @@ describe('cash-sessions — keine zweite offene Lade', () => {
 
   it('zwei gleichzeitige Eröffnungen ergeben genau eine Lade', async () => {
     const day = businessDay()
+    // Direkt am create, ohne die PIN-Prüfung davor: Deren bcrypt-Laufzeit staffelt
+    // zwei openAuthorized-Aufrufe zufällig, und das Rennen fände nie statt.
+    const open = () =>
+      cashSessions().create(
+        { tenantId, locationId, businessDayId: day, label: 'Lade', openedBy: cashierId, openingFloatCents: 0 },
+        internal,
+      )
 
-    const results = await Promise.allSettled([openFor(cashierId, day), openFor(cashierId, day)])
+    const results = await Promise.allSettled([open(), open(), open()])
 
-    expect(results.map(r => r.status).sort()).toEqual(['fulfilled', 'rejected'])
+    expect(results.map(r => r.status).sort()).toEqual(['fulfilled', 'rejected', 'rejected'])
     const rejected = results.find(r => r.status === 'rejected') as PromiseRejectedResult
     expect(rejected.reason).toBeInstanceOf(Conflict)
     expect(await openOf(day, cashierId)).toHaveLength(1)

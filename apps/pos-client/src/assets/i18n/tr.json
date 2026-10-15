@@ -387,6 +387,7 @@
   },
   "PRE_ORDERS": {
     "TITLE": "Ön siparişler",
+    "TIME_OCLOCK": "{{time}}",
     "CONVERT_OFFLINE_BLOCKED": "Dönüştürme çevrimdışı yapılamaz — bağlantı gerektirir.",
     "NEW_PRE_ORDER": "Yeni ön sipariş",
     "SEARCH_PLACEHOLDER": "Ad, telefon ile ara...",

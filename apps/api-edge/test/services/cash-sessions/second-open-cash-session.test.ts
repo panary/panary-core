@@ -12,6 +12,7 @@ import { afterAll, beforeAll, describe, expect, it, onTestFinished } from 'vites
 import { AppError } from '@panary/shared-common'
 
 import { app } from '../../../src/app'
+import { autoOpenCashSession } from '../../../src/hooks/restrict-order-to-cash-session'
 
 interface CashSessionLite {
   _id: string
@@ -181,6 +182,59 @@ describe('cash-sessions — keine zweite offene Lade', () => {
     expect(results.map(r => r.status).sort()).toEqual(['fulfilled', 'rejected', 'rejected'])
     const rejected = results.find(r => r.status === 'rejected') as PromiseRejectedResult
     expect(rejected.reason).toBeInstanceOf(Conflict)
+    expect(await openOf(day, cashierId)).toHaveLength(1)
+  })
+
+  it('eine Lade im Zählen (`counting`) gilt als offen', async () => {
+    const day = businessDay()
+    const first = await openFor(cashierId, day)
+    await cashSessions().patch(first._id, { status: 'counting' }, internal)
+
+    await expect(openFor(cashierId, day)).rejects.toBeInstanceOf(Conflict)
+  })
+
+  it('Sync-Apply bleibt ungesperrt — ein fertiger Stand wird nicht abgelehnt', async () => {
+    const day = businessDay()
+    await openFor(cashierId, day)
+    const now = new Date().toISOString()
+
+    const applied = await cashSessions().create(
+      {
+        _id: uuidv7(),
+        tenantId,
+        locationId,
+        businessDayId: day,
+        label: 'Aus der Cloud',
+        openedBy: cashierId,
+        openedAt: now,
+        status: 'open',
+        openingFloatCents: 0,
+        cashSalesCents: 0,
+        cashDropsCents: 0,
+        payoutsCents: 0,
+        createdAt: now,
+        updatedAt: now,
+      },
+      { ...internal, fromSync: true },
+    )
+
+    expect(applied.status).toBe('open')
+  })
+
+  it('Auto-Open übernimmt eine zeitgleich eröffnete Lade, statt die Bestellung scheitern zu lassen', async () => {
+    const day = businessDay()
+    const first = await openFor(cashierId, day)
+
+    const id = await autoOpenCashSession({ app } as never, {
+      tenantId,
+      locationId,
+      businessDayId: day,
+      label: 'Auto-Kasse',
+      openedBy: cashierId,
+      openingFloatCents: 1000,
+    })
+
+    expect(id).toBe(first._id)
     expect(await openOf(day, cashierId)).toHaveLength(1)
   })
 })

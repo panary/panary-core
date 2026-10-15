@@ -42,8 +42,7 @@ export const rejectSecondOpenCashSession = async (context: HookContext): Promise
   if (isFromSync(context)) return context
 
   const data = context.data as
-    | { businessDayId?: string; openedBy?: string; status?: string; tenantId?: string | null }
-    | undefined
+    { businessDayId?: string; openedBy?: string; status?: string; tenantId?: string | null } | undefined
   if (!data?.businessDayId || !data.openedBy) return context
   if (data.status && !OPEN_CASH_SESSION_STATUSES.includes(data.status as CashSessionStatusType)) return context
 

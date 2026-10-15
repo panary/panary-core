@@ -83,3 +83,29 @@ reason = "quick-xml 0.39.4 — Fix erst in 0.41.0, kein 0.39.x-Backport. Einzige
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0195"  # quick-xml (DoS: unbegrenzte Namespace-Allokation in NsReader)
 reason = "quick-xml 0.39.4 — Fix erst in 0.41.0, kein 0.39.x-Backport. Einziger Parent plist 1.9.0 (neueste Version, via tauri 2) verlangt strikt ^0.39.2 → nicht isoliert bumpbar. Exposure: plist parst nur eigene Bundle-Metadaten (Info.plist) zur Build-/Bundle-Zeit, kein Angreifer-kontrolliertes XML zur POS-Laufzeit. Re-evaluieren sobald plist quick-xml ≥0.41 erlaubt."
+
+# --- Befristet akzeptiert: rustls 0.23.45 (Karenz) ------------------------------
+# Fix 0.23.46 erschien 2026-10-14T09:54Z und liegt unter der 7-Tage-Karenz.
+# Entscheidung Michael 2026-10-15; Bump und Entfernen: panary/panary-core#710.
+# rustls ist hier echter TLS-Client (reqwest, tauri-plugin-updater, tokio-rustls,
+# tungstenite) — die Einträge laufen bewusst kurz ab.
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0346"  # rustls: Debug-Impls von Client-Sessions geben TLS-Geheimnisse preis
+ignoreUntil = 2026-10-22
+reason = "Fix rustls 0.23.46 unter 7-Tage-Karenz (veröffentlicht 2026-10-14). Der POS loggt keine rustls-Session-Objekte per Debug. Bump in panary/panary-core#710."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0347"  # rustls: gepufferte Anwendungsdaten gehen nach ECH-Ablehnung an den äußeren Server
+ignoreUntil = 2026-10-22
+reason = "Fix rustls 0.23.46 unter 7-Tage-Karenz (veröffentlicht 2026-10-14). Betrifft nur Encrypted Client Hello; Bump in panary/panary-core#710."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0348"  # rustls: Brotli-Zertifikatsdekompression alloziert bis 1 GiB vor der Authentifizierung
+ignoreUntil = 2026-10-22
+reason = "Fix rustls 0.23.46 unter 7-Tage-Karenz (veröffentlicht 2026-10-14). Speicher-DoS durch einen bösartigen Server; Bump in panary/panary-core#710."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0349"  # rustls: unauthentifiziertes ServerHello stuft spätere Verbindungen auf klassischen Schlüsseltausch herab
+ignoreUntil = 2026-10-22
+reason = "Fix rustls 0.23.46 unter 7-Tage-Karenz (veröffentlicht 2026-10-14). Herabstufung von Post-Quantum- auf klassischen Schlüsseltausch, keine Entschlüsselung; Bump in panary/panary-core#710."

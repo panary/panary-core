@@ -2000,4 +2000,14 @@ describe('OrderDialog — Raster ohne hideOnMainScreen (#697)', () => {
 
     expect(names(component)).toEqual(['Artikel burger', 'Artikel cola'])
   })
+
+  it('blendet sie im Nachfolger-Raster aus (setSuccessorSubButtons)', () => {
+    const { component } = setup()
+    component['productService'].getProductsByGroupId = () => catalog()
+    component['productGroupService'].getProductGroupByExternId = () => ({ _id: 'cat-2', name: 'Getränke dazu' })
+
+    component.setSuccessorSubButtons(product('menu', { nextProductGroupExternalId: 'grp-2' } as never))
+
+    expect(names(component)).toEqual(['Artikel burger', 'Artikel cola'])
+  })
 })

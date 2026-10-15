@@ -11,6 +11,7 @@ import {
   calculateArticlePrice,
   calculateArticlePriceWithoutExtras,
   calculateCombinationPrice,
+  calculateOrderTotal,
   calculateSumPrice,
   calculateSumPriceSeperated,
   calculateSumPriceWithDiscountDetails,
@@ -273,5 +274,72 @@ describe('Aufgelöste Drift-Fälle Anzeige ↔ Engine', () => {
     const display = calculateArticlePrice(line)
     expect(display).toBe(5.0)
     expect(cents(display)).toBe(cents(computeOrderTax(makeOrder([line])).brutto))
+  })
+})
+
+describe('calculateOrderTotal — Betrag einer gespeicherten Bestellung (#703)', () => {
+  // Bestellung #4 aus der Sandbox: 2× Schnitzel 17,90 + Extra Soße 0,80 = 36,60. Der Verlauf
+  // zeigte 35,80, weil er Modifier nicht kannte.
+  const schnitzel = () => makeLine(17.9, 2, { modifiers: [makeGeneric(0.8, 1)] })
+
+  it('nimmt ohne Zahlung und Snapshot die Engine — inklusive Modifier', () => {
+    expect(calculateOrderTotal(makeOrder([schnitzel()]))).toBeCloseTo(36.6, 9)
+  })
+
+  it('zieht Rabatte ab wie die Engine', () => {
+    const order = makeOrder([schnitzel()], [orderDiscount({ valueType: 'percent', valuePercent: 10 })])
+    expect(calculateOrderTotal(order)).toBeCloseTo(computeOrderTax(structuredClone(order)).brutto, 9)
+    expect(calculateOrderTotal(order)).toBeLessThan(36.6)
+  })
+
+  it('bevorzugt den taxSnapshot vor der Engine', () => {
+    const order = { ...makeOrder([schnitzel()]), taxSnapshot: { brutto: 30, netto: 25, taxes: [] } } as unknown as Order
+    expect(calculateOrderTotal(order)).toBe(30)
+  })
+
+  it('bevorzugt die gestempelte Zahlung, nicht aber den leeren Platzhalter', () => {
+    const paid = {
+      ...makeOrder([schnitzel()]),
+      taxSnapshot: { brutto: 30, netto: 25, taxes: [] },
+      payment: { state: 'paid', totalAmount: 31, tipAmount: 0, transactions: [] },
+    } as unknown as Order
+    expect(calculateOrderTotal(paid)).toBe(31)
+
+    const placeholder = {
+      ...makeOrder([schnitzel()]),
+      taxSnapshot: { brutto: 30, netto: 25, taxes: [] },
+      payment: { state: 'pending', totalAmount: 0, tipAmount: 0, transactions: [] },
+    } as unknown as Order
+    expect(calculateOrderTotal(placeholder)).toBe(30)
+  })
+
+  it('verändert die übergebene Bestellung nicht (computeOrderTax schreibt computedAmountCents)', () => {
+    const order = makeOrder([schnitzel()], [orderDiscount({ valueType: 'percent', valuePercent: 10 })])
+    const before = JSON.stringify(order)
+    calculateOrderTotal(order)
+    expect(JSON.stringify(order)).toBe(before)
+  })
+
+  it('rechnet nach einem Bon-Split nur, was der Vorgang noch trägt (splitOff)', () => {
+    const line = makeLine(5, 3, { _id: '00000000-0000-0000-0000-0000000000a1' })
+    const order = {
+      ...makeOrder([line, makeLine(2, 1, { _id: '00000000-0000-0000-0000-0000000000a2' })]),
+      splitOff: [{ _id: 's1', targetOrderId: 't', lineItemRowId: line._id, amount: 2, grossCents: 1000, splitAt: 'x' }],
+    } as unknown as Order
+    // 1 × 5,00 + 1 × 2,00 bleiben
+    expect(calculateOrderTotal(order)).toBeCloseTo(7, 9)
+  })
+
+  it('zeigt eine bezahlte Bestellung über 0 € als 0 — nicht den Snapshot', () => {
+    const order = {
+      ...makeOrder([schnitzel()]),
+      taxSnapshot: { brutto: 36.6, netto: 30, taxes: [] },
+      payment: { state: 'paid', totalAmount: 0, tipAmount: 0, transactions: [{ amount: 0 }] },
+    } as unknown as Order
+    expect(calculateOrderTotal(order)).toBe(0)
+  })
+
+  it('gibt für eine Bestellung ohne Positionen 0 zurück', () => {
+    expect(calculateOrderTotal({ lineItems: undefined } as unknown as Order)).toBe(0)
   })
 })

@@ -161,6 +161,29 @@ Bis panary/panary-core#133 rechnete [`cash-reconciliation.ts`](../../libs/domain
 
 ---
 
+## Kassenladen: höchstens eine offene je Kassierer und Tag
+
+Im `pos-cashier`-Modus bucht `restrictOrderToCashSession` jede Barzahlung auf die offene Lade
+des Kassierers (`cash-sessions`, `openedBy` + `businessDayId`) und fragt dafür mit `$limit: 1`.
+Zwei gleichzeitig offene Laden machten die Zuordnung zufällig und hielten den Tagesabschluss mit
+`open-cash-sessions` fest, bis beide geschlossen sind.
+
+Seit panary/panary-core#714 lehnt `cash-sessions.create` eine zweite **offene** Lade für
+denselben Kassierer und Geschäftstag ab: `409 Conflict`, `data.code` `BD_6008`
+(`CASH_SESSION_ALREADY_OPEN`), `data.cashSessionId` nennt die offene. Das gilt für jeden
+Create-Pfad — `openAuthorized`, Auto-Open, Admin —, nur nicht für Sync-Apply.
+
+- **Schließen und neu eröffnen bleibt erlaubt** (Ladenwechsel). Gesperrt ist nur die gleichzeitige.
+- **Rennen:** Ein Prozess-Mutex um den ganzen `create`
+  ([reject-second-open-cash-session.hook.ts](../../apps/api-edge/src/hooks/reject-second-open-cash-session.hook.ts))
+  serialisiert Prüfung und Insert. Der Edge ist single-process; ein Unique-Index wäre atomar,
+  scheitert aber beim Anlegen an Doppel-Laden im Bestand und hielte den Edge-Start an.
+- **Auto-Open** übernimmt bei diesem Fehler die Lade aus `cashSessionId`, die Bestellung scheitert nicht.
+- **POS:** Der Freigabe-Dialog zeigt `CASH_SESSION.AUTH_ERROR_ALREADY_OPEN`.
+- **Bestand:** Doppel-Laden aus der Zeit davor bleiben offen und müssen einzeln geschlossen werden.
+
+---
+
 ## Konsistenz-Garantie
 
 Vor diesem Refactor hatte der Dashboard-`BusinessDayInfoComponent` einen eigenen Aggregations-Pfad (`dashboard.store.ts:34-110`) mit Float-Arithmetik im Order-Total-Fallback. Risiko: divergierende Zahlen zwischen Dashboard-Live-Anzeige und finalem Z-Bon.

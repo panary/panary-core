@@ -1,0 +1,1 @@
+* **Update**: POS-Vorbestellungsliste — Status-Badge „Offen“ (`COMMON.OPEN`) und die Uhrzeit-Zeile (`PRE_ORDERS.TIME_OCLOCK`, „{{time}} Uhr“ nur in Deutsch) folgen der eingestellten Sprache (panary/panary-core#669). Vorher blieben beide in EN/TR deutsch.

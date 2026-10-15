@@ -1972,3 +1972,32 @@ describe('OrderDialog — Zeilen aufspalten und zusammenführen (#699)', () => {
     })
   })
 })
+
+describe('OrderDialog — Raster ohne hideOnMainScreen (#697)', () => {
+  const ui = (hideOnMainScreen: boolean) => ({ index: 1, showOptionsAuto: false, hideOnMainScreen })
+  const catalog = () => [
+    product('burger', { ui: ui(false) } as never),
+    product('sosse', { name: 'Extra Soße', productType: 'MODIFIER', ui: ui(true) } as never),
+    product('cola'),
+  ]
+  const names = (component: { productButtons: Array<{ name: string }> }) => component.productButtons.map(b => b.name)
+
+  it('blendet Menü-Modifier im Kategorie-Raster aus', () => {
+    const { component } = setup()
+    component['productService'].getProductsByGroupId = () => catalog()
+
+    component.createProductButtons({ _id: 'cat-1', name: 'Hauptgerichte' } as never)
+
+    expect(names(component)).toEqual(['Artikel burger', 'Artikel cola'])
+  })
+
+  it('blendet sie auch beim Zurück ins Raster der Gruppe aus (setProductButtonsByGroupId)', () => {
+    const { component } = setup()
+    component['productService'].getProductsByGroupId = () => catalog()
+    component['productGroupService'].getProductGroupById = () => ({ _id: 'cat-1', name: 'Hauptgerichte' })
+
+    component.setProductButtonsByGroupId('cat-1')
+
+    expect(names(component)).toEqual(['Artikel burger', 'Artikel cola'])
+  })
+})

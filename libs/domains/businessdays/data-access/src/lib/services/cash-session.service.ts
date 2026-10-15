@@ -19,6 +19,8 @@ import {
 @Injectable({ providedIn: 'root' })
 export class CashSessionService extends BaseService<CashSession> {
   protected override entityLabelKey = 'ENTITY.CASH_SESSION'
+  // Der Edge sieht am Gerät nur die Laden des per Token belegten Kassierers (#713).
+  protected override readsCarryPosOperatorToken = true
   protected connectionService = inject(ConnectionService)
 
   /** Kassen des aktuell betrachteten Geschäftstags (für UI-Listen). */

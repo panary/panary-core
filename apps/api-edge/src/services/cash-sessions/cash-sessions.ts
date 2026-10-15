@@ -20,6 +20,10 @@ import {
   PRIVILEGED_CASH_SESSION_ROLES,
   restrictCashSessionToOwner,
 } from '../../hooks/restrict-cash-session-to-owner.hook'
+import {
+  rejectSecondOpenCashSession,
+  serializeCashSessionCreate,
+} from '../../hooks/reject-second-open-cash-session.hook'
 import type { CashSessionAuthorizedOpenData, CashSessionService } from './cash-sessions.class'
 import { attributedOperatorId } from '../../utils/pos-operator-attribution'
 import {
@@ -201,6 +205,7 @@ export const cashSessions = (app: Application) => {
         schemaHooks.resolveExternal(cashSessionExternalResolver),
         schemaHooks.resolveResult(cashSessionResolver),
       ],
+      create: [serializeCashSessionCreate],
     },
     before: {
       all: [schemaHooks.validateQuery(cashSessionQueryValidator), schemaHooks.resolveQuery(cashSessionQueryResolver)],
@@ -214,6 +219,8 @@ export const cashSessions = (app: Application) => {
         requireAuthorizedCreate,
         validateData(cashSessionDataValidator),
         schemaHooks.resolveData(cashSessionDataResolver),
+        // Nach resolveData: erst dort stehen openedBy und status fest (#714).
+        rejectSecondOpenCashSession,
         // recompute VOR jsonHooks (liest denominationCounts noch als Objekt).
         recomputeCashSessionTotals,
         ...jsonHooks.before,

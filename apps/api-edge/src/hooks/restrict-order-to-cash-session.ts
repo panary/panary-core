@@ -14,6 +14,25 @@ import { logger } from '@panary/shared-backend'
  * Guard greift nicht. (Bewusst dieselbe Quelle wie guardCloudManagedLifecycle /
  * cloudManaged-Hook; lokal duplizierter Lookup wie in restrict-order-to-business-day.)
  */
+/**
+ * Auto-Open der Lade. Hat eine zeitgleiche Bestellung desselben Kassierers die
+ * Lade zwischen Suche und Anlage schon eröffnet, lehnt `cash-sessions.create`
+ * mit `CASH_SESSION_ALREADY_OPEN` ab (#714) — dann gilt deren Lade, die
+ * Bestellung scheitert nicht.
+ */
+async function autoOpenCashSession(context: HookContext, input: Record<string, unknown>): Promise<string> {
+  try {
+    const created = (await context.app.service('cash-sessions').create(input as never, { provider: undefined })) as {
+      _id: string
+    }
+    return created._id
+  } catch (error) {
+    const data = (error as { data?: { code?: string; cashSessionId?: string } }).data
+    if (data?.code === AppError.CASH_SESSION_ALREADY_OPEN && data.cashSessionId) return data.cashSessionId
+    throw error
+  }
+}
+
 async function isCloudPaired(context: HookContext): Promise<boolean> {
   try {
     const result = await context.app.service('cloud-connection').find({
@@ -163,18 +182,14 @@ export function restrictOrderToCashSession() {
     // sonst Ablehnung (Szenario A → POS-Manager-PIN-Dialog).
     const cashConfig = await loadCashConfig(context, businessDay.locationId ?? null)
     if (cashConfig.autoOpen && cashConfig.defaultFloatCents > 0) {
-      const created = (await context.app.service('cash-sessions').create(
-        {
-          tenantId: businessDay.tenantId,
-          locationId: businessDay.locationId ?? null,
-          businessDayId,
-          label: 'Auto-Kasse',
-          openedBy: cashierId,
-          openingFloatCents: cashConfig.defaultFloatCents,
-        },
-        { provider: undefined },
-      )) as { _id: string }
-      data.cashSessionId = created._id
+      data.cashSessionId = await autoOpenCashSession(context, {
+        tenantId: businessDay.tenantId,
+        locationId: businessDay.locationId ?? null,
+        businessDayId,
+        label: 'Auto-Kasse',
+        openedBy: cashierId,
+        openingFloatCents: cashConfig.defaultFloatCents,
+      })
       return context
     }
 

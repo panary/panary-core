@@ -492,6 +492,7 @@
     "AUTH_ERROR_ROLE_DENIED": "Dieser Mitarbeiter darf keine Kasse freigeben.",
     "AUTH_ERROR_NOT_AUTHORIZED": "Die Kassen-Eröffnung muss von einem berechtigten Mitarbeiter freigegeben werden.",
     "AUTH_ERROR_GENERIC": "Freigabe fehlgeschlagen. Bitte erneut versuchen.",
+    "AUTH_ERROR_ALREADY_OPEN": "Für diesen Mitarbeiter ist heute bereits eine Kasse offen. Bitte zuerst diese schließen.",
     "AUTH_LOAD_ERROR": "Mitarbeiterliste konnte nicht geladen werden.",
     "AUTH_IN_PROGRESS": "Kasse wird freigegeben...",
     "AUTH_SUCCESS": "Kasse eröffnet",

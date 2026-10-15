@@ -440,3 +440,32 @@ describe('OrderService — Bediener-Token', () => {
     expect(queryOf(splitParams[0])).toEqual({ operatorToken: 'tok-kassierer' })
   })
 })
+
+// core#657: Der Storno am POS zeigte „Bestellung wurde geändert“ neben der Erfolgsmeldung.
+describe('OrderService — Realtime-Snackbar (#657)', () => {
+  const spyOnOpen = (service: OrderService) => {
+    const matSnackBar = (service as unknown as { matSnackBar: MatSnackBar }).matSnackBar
+    return vi.spyOn(matSnackBar, 'open')
+  }
+  const show = (service: OrderService, key: string) =>
+    (service as unknown as { showSnackbar: (k: string) => void }).showSnackbar(key)
+
+  it('zeigt keine „geändert“-Meldung', () => {
+    const { service } = setup()
+    const open = spyOnOpen(service)
+
+    show(service, 'SNACKBAR.CHANGED')
+    show(service, 'SNACKBAR.CHANGED_PLURAL')
+
+    expect(open).not.toHaveBeenCalled()
+  })
+
+  it('zeigt weiterhin die übrigen Meldungen', () => {
+    const { service } = setup()
+    const open = spyOnOpen(service)
+
+    show(service, 'SNACKBAR.DELETED')
+
+    expect(open).toHaveBeenCalledTimes(1)
+  })
+})

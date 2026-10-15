@@ -35,6 +35,8 @@ export const AppError = {
   CASH_SESSION_AUTH_REQUIRED: 'BD_6007',
   // Zweite gleichzeitig offene Lade für denselben Kassierer und Tag (#714).
   CASH_SESSION_ALREADY_OPEN: 'BD_6008',
+  // Statusrückschritt einer Lade, z. B. closed → open (#717).
+  CASH_SESSION_STATUS_REGRESSION: 'BD_6009',
 
   // --- VALIDATION (4000-4999) ---
   VALIDATION_FAILED: 'VAL_4000',
@@ -78,6 +80,7 @@ export const AppErrorMessages: Record<AppError, string> = {
   [AppError.CASH_SESSION_AUTH_REQUIRED]:
     'Die Kassen-Eröffnung muss von einem berechtigten Mitarbeiter (Manager/Inhaber) autorisiert werden.',
   [AppError.CASH_SESSION_ALREADY_OPEN]: 'Für diesen Mitarbeiter ist an diesem Geschäftstag bereits eine Kasse offen.',
+  [AppError.CASH_SESSION_STATUS_REGRESSION]: 'Eine geschlossene Kasse lässt sich nicht wieder öffnen.',
 
   [AppError.VALIDATION_FAILED]: 'Validation failed.',
   [AppError.INVALID_INPUT]: 'Invalid input provided.',

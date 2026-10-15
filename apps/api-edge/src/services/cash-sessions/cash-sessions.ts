@@ -20,6 +20,7 @@ import {
   PRIVILEGED_CASH_SESSION_ROLES,
   restrictCashSessionToOwner,
 } from '../../hooks/restrict-cash-session-to-owner.hook'
+import { rejectCashSessionStatusRegression } from '../../hooks/reject-cash-session-status-regression.hook'
 import {
   rejectSecondOpenCashSession,
   serializeCashSessionCreate,
@@ -228,6 +229,9 @@ export const cashSessions = (app: Application) => {
       patch: [
         restrictCashSessionToOwner,
         validateData(cashSessionPatchValidator),
+        // Nach der Validierung, vor dem Resolver: der Resolver stempelt beim
+        // Schließen closedAt/closedBy und sieht so nur noch erlaubte Übergänge (#717).
+        rejectCashSessionStatusRegression,
         schemaHooks.resolveData(cashSessionPatchResolver),
         recomputeCashSessionTotals,
         ...jsonHooks.before,

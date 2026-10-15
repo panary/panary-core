@@ -60,6 +60,26 @@ export const CashSessionStatus = {
 } as const
 export type CashSessionStatusType = (typeof CashSessionStatus)[keyof typeof CashSessionStatus]
 
+/**
+ * Reihenfolge des Lebenszyklus. Eine Lade geht nur vorwärts: Eine geschlossene
+ * oder plombierte wieder zu öffnen, änderte einen abgerechneten Kassenstand und
+ * öffnete eine zweite Lade am create-Schutz vorbei (panary/panary-core#717).
+ */
+const CASH_SESSION_STATUS_RANK: Record<CashSessionStatusType, number> = {
+  [CashSessionStatus.OPEN]: 0,
+  [CashSessionStatus.COUNTING]: 1,
+  [CashSessionStatus.CLOSED]: 2,
+  [CashSessionStatus.AUDITED]: 3,
+}
+
+/** `true`, wenn `to` im Lebenszyklus vor `from` liegt. Unbekannte Werte gelten nicht als Rückschritt. */
+export function isCashSessionStatusRegression(from: string | null | undefined, to: string | null | undefined): boolean {
+  const fromRank = CASH_SESSION_STATUS_RANK[from as CashSessionStatusType]
+  const toRank = CASH_SESSION_STATUS_RANK[to as CashSessionStatusType]
+  if (fromRank === undefined || toRank === undefined) return false
+  return toRank < fromRank
+}
+
 /** Sessions, die als „offen" gelten (blockieren den Tagesabschluss). */
 export const OPEN_CASH_SESSION_STATUSES: ReadonlyArray<CashSessionStatusType> = [
   CashSessionStatus.OPEN,

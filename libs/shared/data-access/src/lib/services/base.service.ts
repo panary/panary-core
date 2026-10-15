@@ -73,6 +73,15 @@ export abstract class BaseService<T> {
   /** i18n-Key für den Entitätsnamen — Subklassen überschreiben diesen Wert */
   protected entityLabelKey = 'ENTITY.DOCUMENT'
 
+  /**
+   * `find`/`get`/`count` tragen das Bediener-Token mit (panary/panary-core#713). Nur für
+   * Dienste, deren Lese-Scope am Edge am belegten Bediener hängt
+   * (`restrictCashSessionToOwner`): Ohne Token filtert der Edge auf das Gerät und
+   * antwortet mit einer leeren Liste. Kein Default, weil der Edge jedes Token
+   * samt Konto-Lookup prüft — für jeden Lesezugriff wäre das Last ohne Wirkung.
+   */
+  protected readsCarryPosOperatorToken = false
+
   /** PRIVATE PROPERTIES */
   protected service: any
   protected serviceName: string
@@ -183,6 +192,10 @@ export abstract class BaseService<T> {
   async #countCached(cacheKey: string, query: Params['query']): Promise<number> {
     const cached = ((await this.cacheStore?.readAll(cacheKey)) ?? []) as unknown as T[]
     return filterCachedRecords(cached, query as Record<string, unknown> | undefined).length
+  }
+
+  #readParams<TParams extends Params>(params: TParams): TParams {
+    return this.readsCarryPosOperatorToken ? (withPosOperatorToken(params) as TParams) : params
   }
 
   /** Schreibt ein Ergebnis/Event in den Cache (Upsert, fire-and-forget). Scope ist bereits geprüft. */
@@ -306,7 +319,8 @@ export abstract class BaseService<T> {
       return this.#readCachedList(cacheKey, params)
     }
     try {
-      const result = await this.service.find(params)
+      // Das Token geht nur an den Server — der Cache-Filter oben und unten sieht die Query ohne.
+      const result = await this.service.find(this.#readParams(params))
       this.#cacheUpsert(result)
       return result
     } catch (error: unknown) {
@@ -336,7 +350,7 @@ export abstract class BaseService<T> {
       throw new Error('OFFLINE_NOT_CACHED')
     }
     try {
-      const result = await this.service.get(id, params)
+      const result = await this.service.get(id, this.#readParams(params))
       if (result) this.#cacheUpsert(result)
       return result
     } catch (error: unknown) {
@@ -435,7 +449,7 @@ export abstract class BaseService<T> {
       return this.#countCached(cacheKey, query)
     }
     try {
-      const result: Paginated<T> = await this.service.find({ query: { ...query, $limit: 0 } })
+      const result: Paginated<T> = await this.service.find(this.#readParams({ query: { ...query, $limit: 0 } }))
       return result.total
     } catch (error: unknown) {
       if (cacheKey) {

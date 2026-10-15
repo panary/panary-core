@@ -1,7 +1,7 @@
 // JIT-Compiler zuerst laden: @angular/material ist partial-compiled; ohne Linker
 // (kein analogjs-Plugin in dieser node-Vitest-Config) faellt Angular auf JIT zurueck.
 import '@angular/compiler'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { Injector, NgZone, runInInjectionContext, signal } from '@angular/core'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'
@@ -12,6 +12,7 @@ import { BaseService } from './base.service'
 import { ConnectionService } from './connection.service'
 import { DATA_ACCESS_AUTO_LOAD } from './auto-load.token'
 import { OFFLINE_CACHE } from './offline-cache.token'
+import { POS_OPERATOR_TOKEN_STORAGE_KEY } from '../utils/pos-operator-token'
 
 // core#649: Offline hing `count()` am gepufferten Socket-Emit, und jeder Lader, der
 // zuerst die Seitenzahl ermittelt, blieb leer (POS: keine Produktgruppen im Bestelldialog).
@@ -35,13 +36,22 @@ class TestService extends BaseService<Row> {
   }
 }
 
+/** Wie ein Dienst mit Self-Scope am Edge (`cash-sessions`, #713). */
+class TokenReadingService extends TestService {
+  protected override readsCarryPosOperatorToken = true
+}
+
 const CACHED: Row[] = [
   { _id: '1', status: 'ACTIVE', name: 'C' },
   { _id: '2', status: 'ARCHIVED', name: 'B' },
   { _id: '3', status: 'ACTIVE', name: 'A' },
 ]
 
-function setup(options: { offline: boolean; serverFind?: () => Promise<unknown> }) {
+function setup(options: {
+  offline: boolean
+  serverFind?: () => Promise<unknown>
+  serviceClass?: new (service: unknown) => TestService
+}) {
   // Wie offline der Socket: Der Emit wird gepuffert, das Promise loest nie auf.
   const serverFind = vi.fn(options.serverFind ?? (() => new Promise(() => undefined)))
   const injector = Injector.create({
@@ -66,7 +76,8 @@ function setup(options: { offline: boolean; serverFind?: () => Promise<unknown> 
     ],
   })
   // Kein `on` am Mock → BaseService ueberspringt die Socket-Listener.
-  const service = runInInjectionContext(injector, () => new TestService({ find: serverFind }))
+  const ServiceClass = options.serviceClass ?? TestService
+  const service = runInInjectionContext(injector, () => new ServiceClass({ find: serverFind }))
   return { service, serverFind }
 }
 
@@ -106,5 +117,38 @@ describe('BaseService offline — count und paginierter find aus dem Cache (core
     const { service } = setup({ offline: false, serverFind: () => Promise.reject(new Error('Timeout')) })
 
     await expect(service.count({ status: 'ACTIVE' })).resolves.toBe(2)
+  })
+})
+
+describe('BaseService — Bediener-Token an Lesezugriffen (#713)', () => {
+  function stubToken() {
+    const raw = JSON.stringify({ operatorToken: 'tok-1', operatorTokenExpiresAt: '2099-01-01T00:00:00.000Z' })
+    vi.stubGlobal('localStorage', { getItem: (key: string) => (key === POS_OPERATOR_TOKEN_STORAGE_KEY ? raw : null) })
+    onTestFinished(() => {
+      vi.unstubAllGlobals()
+    })
+  }
+
+  it('ohne Opt-in geht kein Token an find', async () => {
+    stubToken()
+    const { service, serverFind } = setup({ offline: false, serverFind: () => Promise.resolve([]) })
+
+    await service.find({ query: { status: 'ACTIVE' } })
+
+    expect(serverFind).toHaveBeenCalledWith({ query: { status: 'ACTIVE' } })
+  })
+
+  it('mit Opt-in geht das Token an den Server, der Cache-Rueckfall filtert ohne es', async () => {
+    stubToken()
+    const { service, serverFind } = setup({
+      offline: false,
+      serverFind: () => Promise.reject(new Error('Timeout')),
+      serviceClass: TokenReadingService,
+    })
+
+    const rows = await service.find({ query: { status: 'ACTIVE' } })
+
+    expect(serverFind).toHaveBeenCalledWith({ query: { status: 'ACTIVE', operatorToken: 'tok-1' } })
+    expect((Array.isArray(rows) ? rows : rows.data).map(row => row._id)).toEqual(['1', '3'])
   })
 })

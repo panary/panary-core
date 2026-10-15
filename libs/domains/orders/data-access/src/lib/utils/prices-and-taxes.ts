@@ -67,7 +67,6 @@ export function calculateSumPrice(orderItem: Order): number {
 export function calculateOrderTotal(order: Order): number {
   if (order.payment?.totalAmount != null && !isUnstampedPaymentPlaceholder(order)) return order.payment.totalAmount
   if (order.taxSnapshot?.brutto != null) return order.taxSnapshot.brutto
-  if (!order.lineItems) return 0
   return computeOrderTax(structuredClone(order)).brutto
 }
 

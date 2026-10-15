@@ -21,10 +21,15 @@ import { createServiceAdapter } from '@panary/shared/data-access/server'
 import { DatabaseType } from '@panary/shared-common'
 import { customerDataSchema, customerPatchSchema, customerQuerySchema, customerSchema } from '@panary/customers/domain'
 import type { Customer, CustomerService } from './customers.class'
-import { ensureIndexes } from '@panary/shared-backend'
+import { ensureIndexes, getJsonFieldHooks } from '@panary/shared-backend'
 
 export const customersPath = 'customers'
 export const customersMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
+
+// SQLite-TEXT-Spalten mit JSON-Inhalt. Ohne Serialisierung scheitert jeder Create mit `invoices: []`
+// — genau so legt der Sync-Pull Cloud-Kunden an (panary/panary-core#624). Beim Lesen kommen sie
+// wieder als Array/Objekt heraus, wie es das Domain-Schema verspricht.
+export const CUSTOMER_JSON_FIELDS = ['invoices', 'discountDetails']
 
 export * from './customers.schema'
 
@@ -86,6 +91,8 @@ export const customers = (app: Application) => {
     },
   })
 
+  const jsonHooks = getJsonFieldHooks(app, CUSTOMER_JSON_FIELDS)
+
   // 5. Register hooks
   app.service(customersPath).hooks({
     around: {
@@ -105,12 +112,16 @@ export const customers = (app: Application) => {
       all: [schemaHooks.validateQuery(customerQueryValidator), schemaHooks.resolveQuery(customerQueryResolver)],
       find: [],
       get: [],
-      create: [validateData(customerDataValidator), schemaHooks.resolveData(customerDataResolver)],
-      patch: [validateData(customerPatchValidator), schemaHooks.resolveData(customerPatchResolver)],
+      create: [validateData(customerDataValidator), schemaHooks.resolveData(customerDataResolver), ...jsonHooks.before],
+      patch: [
+        validateData(customerPatchValidator),
+        schemaHooks.resolveData(customerPatchResolver),
+        ...jsonHooks.before,
+      ],
       remove: [],
     },
     after: {
-      all: [],
+      all: [...jsonHooks.after],
     },
     error: {
       all: [],

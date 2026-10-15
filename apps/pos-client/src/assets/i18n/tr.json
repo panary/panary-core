@@ -492,6 +492,7 @@
     "AUTH_ERROR_ROLE_DENIED": "Bu çalışan kasa onayı veremez.",
     "AUTH_ERROR_NOT_AUTHORIZED": "Kasa açılışı yetkili bir çalışan tarafından onaylanmalıdır.",
     "AUTH_ERROR_GENERIC": "Onay başarısız. Lütfen tekrar deneyin.",
+    "AUTH_ERROR_ALREADY_OPEN": "Bu çalışan için bugün zaten açık bir kasa var. Lütfen önce onu kapatın.",
     "AUTH_LOAD_ERROR": "Çalışan listesi yüklenemedi.",
     "AUTH_IN_PROGRESS": "Kasa onaylanıyor...",
     "AUTH_SUCCESS": "Kasa açıldı",

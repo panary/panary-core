@@ -33,6 +33,8 @@ export const AppError = {
   CASH_SESSION_ROLE_DENIED: 'BD_6006',
   // Direkter externer `create` ohne Autorisierung (Härtung des CRUD-Pfads).
   CASH_SESSION_AUTH_REQUIRED: 'BD_6007',
+  // Zweite gleichzeitig offene Lade für denselben Kassierer und Tag (#714).
+  CASH_SESSION_ALREADY_OPEN: 'BD_6008',
 
   // --- VALIDATION (4000-4999) ---
   VALIDATION_FAILED: 'VAL_4000',
@@ -75,6 +77,7 @@ export const AppErrorMessages: Record<AppError, string> = {
   [AppError.CASH_SESSION_ROLE_DENIED]: 'Dieser Mitarbeiter darf keine Kasse freigeben.',
   [AppError.CASH_SESSION_AUTH_REQUIRED]:
     'Die Kassen-Eröffnung muss von einem berechtigten Mitarbeiter (Manager/Inhaber) autorisiert werden.',
+  [AppError.CASH_SESSION_ALREADY_OPEN]: 'Für diesen Mitarbeiter ist an diesem Geschäftstag bereits eine Kasse offen.',
 
   [AppError.VALIDATION_FAILED]: 'Validation failed.',
   [AppError.INVALID_INPUT]: 'Invalid input provided.',

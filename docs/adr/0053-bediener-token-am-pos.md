@@ -5,7 +5,7 @@ description: 'ADR zum angemeldeten POS-Bediener: Bisher stand er nur in localSto
 tags: [users, orders, pos, edge, security, devices]
 status: stable
 decision: accepted
-implementation: 'Umgesetzt 2026-10-05 (#619) in fünf PRs; erweitert 2026-10-07 (#631) um Kasse (openAuthorized, closedBy, Besitzer-Prüfung), working-times.updatedBy und appliedDiscounts.appliedBy. Abschreibungen: panary/panary-core#635 (Edge-Service fehlt).'
+implementation: 'Umgesetzt 2026-10-05 (#619) in fünf PRs; erweitert 2026-10-07 (#631) um Kasse (openAuthorized, closedBy, Besitzer-Prüfung), working-times.updatedBy und appliedDiscounts.appliedBy; erweitert 2026-10-15 (#713) um Lesezugriffe auf cash-sessions. Abschreibungen: panary/panary-core#635 (Edge-Service fehlt).'
 generated: { by: claude-code/opus-5.5, at: 2026-10-05T16:00:00Z }
 ---
 
@@ -102,7 +102,7 @@ verloren. Ein verlorener Bon wiegt schwerer als ein nicht belegter Bediener.
   `verifyPin` keines liefert — sonst trüge die neue Sitzung das Token des vorigen Bedieners.
   Logout und Geräte-Reset löschen es mit `pos_current_user`.
 - **Mitsenden:** `BaseService` hängt das Token an `create`, `patch`, `update` und `remove`. An
-  `find` und `get` nur bei Diensten mit `readsCarryPosOperatorToken = true` — derzeit allein
+  `find`, `get` und `count` nur bei Diensten mit `readsCarryPosOperatorToken = true` — derzeit allein
   `cash-sessions`, deren Lese-Scope am Edge am belegten Bediener hängt (panary/panary-core#713).
   Kein Default, weil der Edge jedes Token samt Konto-Lookup prüft. Der Offline-Cache filtert mit
   der Query ohne Token. Ein abgelaufenes wird nicht mitgeschickt. `orders.split` läuft am rohen

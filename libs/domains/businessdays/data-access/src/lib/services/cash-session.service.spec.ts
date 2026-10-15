@@ -111,6 +111,14 @@ describe('CashSessionService — Lesezugriffe mit Bediener-Token (#713)', () => 
     expect(get).toHaveBeenCalledWith('lade-1', { query: { operatorToken: 'tok-kassierer' } })
   })
 
+  it('count schickt das Token mit', async () => {
+    const { service, find } = setup('tok-kassierer')
+
+    await expect(service.count({ businessDayId: 'bd-1' })).resolves.toBe(1)
+
+    expect(find).toHaveBeenCalledWith({ query: { businessDayId: 'bd-1', $limit: 0, operatorToken: 'tok-kassierer' } })
+  })
+
   it('ohne angemeldeten Bediener bleibt die Query unveraendert', async () => {
     const { service, find } = setup(null)
 

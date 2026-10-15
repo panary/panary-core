@@ -74,7 +74,7 @@ export abstract class BaseService<T> {
   protected entityLabelKey = 'ENTITY.DOCUMENT'
 
   /**
-   * `find`/`get` tragen das Bediener-Token mit (panary/panary-core#713). Nur für
+   * `find`/`get`/`count` tragen das Bediener-Token mit (panary/panary-core#713). Nur für
    * Dienste, deren Lese-Scope am Edge am belegten Bediener hängt
    * (`restrictCashSessionToOwner`): Ohne Token filtert der Edge auf das Gerät und
    * antwortet mit einer leeren Liste. Kein Default, weil der Edge jedes Token
@@ -449,7 +449,7 @@ export abstract class BaseService<T> {
       return this.#countCached(cacheKey, query)
     }
     try {
-      const result: Paginated<T> = await this.service.find({ query: { ...query, $limit: 0 } })
+      const result: Paginated<T> = await this.service.find(this.#readParams({ query: { ...query, $limit: 0 } }))
       return result.total
     } catch (error: unknown) {
       if (cacheKey) {

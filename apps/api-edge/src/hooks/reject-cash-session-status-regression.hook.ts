@@ -1,4 +1,4 @@
-import { BadRequest } from '@feathersjs/errors'
+import { BadRequest, NotFound } from '@feathersjs/errors'
 
 import { isCashSessionStatusRegression } from '@panary/businessdays/domain'
 import { AppError, AppErrorMessages } from '@panary/shared-common'
@@ -24,13 +24,21 @@ export const rejectCashSessionStatusRegression = async (context: HookContext): P
   const nextStatus = (context.data as { status?: string } | undefined)?.status
   if (!nextStatus || context.id == null) return context
 
-  let stored: { status?: string } | undefined
+  let stored: { status?: string; tenantId?: string | null } | undefined
   try {
-    stored = (await context.service.get(context.id, { provider: undefined })) as { status?: string }
-  } catch {
-    // Not-Found u. ä. klärt der Adapter.
-    return context
+    stored = (await context.service.get(context.id, { provider: undefined })) as typeof stored
+  } catch (error) {
+    // Nur „gibt es nicht" klärt der Adapter selbst; jeder andere Lesefehler darf
+    // die Sperre nicht still aufheben.
+    if (error instanceof NotFound) return context
+    throw error
   }
+
+  // Der Lesezugriff oben ist intern und ungescoped. Eine Lade eines fremden
+  // Mandanten beantwortet der Adapter-Scope mit 404 — der Hook darf ihren Status
+  // vorher nicht in einer 400 verraten.
+  const userTenantId = (context.params.user as { tenantId?: string | null } | undefined)?.tenantId
+  if (context.params.provider && userTenantId && stored?.tenantId !== userTenantId) return context
 
   if (!isCashSessionStatusRegression(stored?.status, nextStatus)) return context
 

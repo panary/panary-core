@@ -153,4 +153,20 @@ describe('cash-sessions — kein Statusrückschritt', () => {
 
     expect(applied.status).toBe('open')
   })
+
+  it('die Lade eines fremden Mandanten verrät ihren Status nicht', async () => {
+    const id = await drawer('closed')
+    const outsider = {
+      provider: 'rest',
+      user: { _id: uuidv7(), role: 'tenant:owner', tenantId: uuidv7(), locationId: null },
+      authentication: { strategy: 'jwt' },
+    }
+
+    const error = await cashSessions()
+      .patch(id, { status: 'open' }, outsider)
+      .catch((e: unknown) => e)
+
+    expect((error as { data?: { code?: string } }).data?.code).not.toBe(AppError.CASH_SESSION_STATUS_REGRESSION)
+    expect((await cashSessions().get(id, internal)).status).toBe('closed')
+  })
 })

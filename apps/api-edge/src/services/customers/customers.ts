@@ -112,11 +112,7 @@ export const customers = (app: Application) => {
       all: [schemaHooks.validateQuery(customerQueryValidator), schemaHooks.resolveQuery(customerQueryResolver)],
       find: [],
       get: [],
-      create: [
-        validateData(customerDataValidator),
-        schemaHooks.resolveData(customerDataResolver),
-        ...jsonHooks.before,
-      ],
+      create: [validateData(customerDataValidator), schemaHooks.resolveData(customerDataResolver), ...jsonHooks.before],
       patch: [
         validateData(customerPatchValidator),
         schemaHooks.resolveData(customerPatchResolver),

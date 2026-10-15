@@ -38,12 +38,13 @@ describe('customers am Edge — JSON-Felder invoices/discountDetails (#624)', ()
 
   /** Interner Create mit `fromSync` — exakt der Aufruf aus `sync-apply.ts`. */
   const pullCreate = async (data: Record<string, unknown>): Promise<StoredCustomer> => {
-    const created = (await app
-      .service('customers')
-      .create({ _id: uuidv7(), tenantId, locationId, ...data } as never, {
+    const created = (await app.service('customers').create(
+      { _id: uuidv7(), tenantId, locationId, ...data } as never,
+      {
         provider: undefined,
         fromSync: true,
-      } as never)) as StoredCustomer
+      } as never,
+    )) as StoredCustomer
     onTestFinished(() => knex().table('customers').where({ _id: created._id }).del())
     return created
   }

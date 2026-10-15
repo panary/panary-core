@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import {
   calculateModifierPrice,
+  calculateOrderTotal,
   getCombinations,
   getUnbundledLineItems,
   Order,
@@ -209,16 +210,7 @@ export class OrderHistoryComponent {
   }
 
   calculateTotal(order: Order): number {
-    let total = 0
-    if (order.lineItems) {
-      total += order.lineItems.reduce((acc: number, item: any) => acc + item.price * item.amount, 0)
-      order.lineItems.forEach((item: any) => {
-        if (item.extras) {
-          total += item.extras.reduce((acc: number, extra: any) => acc + extra.price * Math.abs(extra.amount), 0)
-        }
-      })
-    }
-    return total
+    return calculateOrderTotal(order)
   }
 
   getCombinations(order: Order): OrderLineItem[][] {

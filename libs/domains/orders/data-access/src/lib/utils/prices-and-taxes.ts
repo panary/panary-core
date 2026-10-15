@@ -2,6 +2,7 @@ import {
   computeOrderTax,
   fromCents,
   GenericOrderLineItem,
+  isUnstampedPaymentPlaceholder,
   lineItemGrossCents,
   modifierLineGrossCents,
   Order,
@@ -54,6 +55,20 @@ export function calculateSumPriceSeperated(
 
 export function calculateSumPrice(orderItem: Order): number {
   return fromCents(sumCents(orderItem.lineItems.map(article => lineItemGrossCents(article))))
+}
+
+/**
+ * Betrag einer gespeicherten Bestellung, wie ihn Bon und Tagesabschluss führen (#703):
+ * gestempelte Zahlung, sonst `taxSnapshot.brutto`, sonst die Engine. Dieselbe Reihenfolge wie
+ * `getOrderGrossCents` im Aggregator — der Verlauf zeigt so keine dritte Zahl neben Bon und
+ * Bericht. Bis #703 summierte der Verlauf `price × amount` und das Altfeld `extras`; Modifier,
+ * Rabatte und Menü-Bestandteile fehlten.
+ */
+export function calculateOrderTotal(order: Order): number {
+  if (order.payment?.totalAmount != null && !isUnstampedPaymentPlaceholder(order)) return order.payment.totalAmount
+  if (order.taxSnapshot?.brutto != null) return order.taxSnapshot.brutto
+  if (!order.lineItems) return 0
+  return computeOrderTax(structuredClone(order)).brutto
 }
 
 /** Brutto-Summe inkl. Rabatt — identisch zu `computeOrderTax(order).brutto`. */

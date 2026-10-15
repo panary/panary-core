@@ -5,7 +5,7 @@
 // zurück auf `open` setzen — am create-Schutz aus #714 vorbei. Über die echte
 // Hook-Kette, vom Gerät mit Bediener-Token und intern; jeder Test legt seine
 // Lade an und räumt sie ab (testing.md §10.2).
-import { BadRequest } from '@feathersjs/errors'
+import { BadRequest, NotFound } from '@feathersjs/errors'
 import { uuidv7 } from 'uuidv7'
 import { afterAll, beforeAll, describe, expect, it, onTestFinished } from 'vitest'
 
@@ -159,14 +159,15 @@ describe('cash-sessions — kein Statusrückschritt', () => {
     const outsider = {
       provider: 'rest',
       user: { _id: uuidv7(), role: 'tenant:owner', tenantId: uuidv7(), locationId: null },
-      authentication: { strategy: 'jwt' },
+      authenticated: true,
     }
 
     const error = await cashSessions()
-      .patch(id, { status: 'open' }, outsider)
+      .patch(id, { status: 'open' }, outsider as never)
       .catch((e: unknown) => e)
 
-    expect((error as { data?: { code?: string } }).data?.code).not.toBe(AppError.CASH_SESSION_STATUS_REGRESSION)
+    // Der Adapter-Scope findet die Lade nicht (404); der Hook darf vorher nichts über sie sagen.
+    expect(error).toBeInstanceOf(NotFound)
     expect((await cashSessions().get(id, internal)).status).toBe('closed')
   })
 })

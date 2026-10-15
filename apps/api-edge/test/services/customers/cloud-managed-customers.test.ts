@@ -73,24 +73,13 @@ describe('Kunden und Firmenkunden am gepairten Edge — cloudManaged (#620)', ()
     invoices: [],
   })
 
-  /**
-   * Kunden direkt in die Tabelle: Der interne Create scheitert heute an `invoices` (Array in einer
-   * TEXT-Spalte, panary/panary-core#624). Die Zeile entspricht dem, was nach einem Pull dort stuende.
-   */
+  /** Interner Create — der Weg, auf dem der Sync-Pull Cloud-Datensaetze anlegt (seit #624 auch mit `invoices`). */
   const seedCustomer = async (name1: string): Promise<StoredRecord> => {
-    const now = new Date().toISOString()
-    const row = {
-      ...customerData(name1),
-      invoices: '[]',
-      _id: uuidv7(),
-      tenantId,
-      locationId,
-      createdAt: now,
-      updatedAt: now,
-    }
-    await knex().table('customers').insert(row)
-    onTestFinished(() => knex().table('customers').where({ _id: row._id }).del())
-    return row
+    const customer = (await app
+      .service('customers')
+      .create({ ...customerData(name1), tenantId, locationId } as never, { provider: undefined })) as StoredRecord
+    onTestFinished(() => knex().table('customers').where({ _id: customer._id }).del())
+    return customer
   }
 
   /** Interner Create — der Weg, auf dem der Sync-Pull Cloud-Datensaetze anlegt. */

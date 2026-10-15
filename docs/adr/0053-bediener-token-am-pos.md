@@ -101,9 +101,12 @@ verloren. Ein verlorener Bon wiegt schwerer als ein nicht belegter Bediener.
   Token gehört in keine davon. Der PIN-Login legt es ab und entfernt ein vorhandenes, wenn
   `verifyPin` keines liefert — sonst trüge die neue Sitzung das Token des vorigen Bedieners.
   Logout und Geräte-Reset löschen es mit `pos_current_user`.
-- **Mitsenden:** `BaseService` hängt das Token an `create`, `patch`, `update` und `remove`, nicht an
-  Lesezugriffe. Ein abgelaufenes wird nicht mitgeschickt. `orders.split` läuft am rohen Service und
-  reicht es selbst durch.
+- **Mitsenden:** `BaseService` hängt das Token an `create`, `patch`, `update` und `remove`. An
+  `find` und `get` nur bei Diensten mit `readsCarryPosOperatorToken = true` — derzeit allein
+  `cash-sessions`, deren Lese-Scope am Edge am belegten Bediener hängt (panary/panary-core#713).
+  Kein Default, weil der Edge jedes Token samt Konto-Lookup prüft. Der Offline-Cache filtert mit
+  der Query ohne Token. Ein abgelaufenes wird nicht mitgeschickt. `orders.split` läuft am rohen
+  Service und reicht es selbst durch.
 - **Vorrang und Unterdrückung:** Ein vom Aufrufer gesetztes Token gewinnt. `operatorToken: null`
   heißt „ausdrücklich keines“. Der Storno nach Manager-PIN schickt so das Token des Managers, oder
   — liefert dessen `verifyPin` keines — ausdrücklich keines statt des Kassierer-Tokens.
@@ -166,6 +169,11 @@ Erweitert mit panary/panary-core#631:
 seines Kassierers deshalb nie und konnte sie nicht schließen. Seit #631 ist am Gerät „ich“ der
 per Token belegte Bediener; ohne Token bleibt es bei der Geräte-Kennung, keine Lade passt — die
 Prüfung wird damit nicht lockerer, nur richtig.
+
+⚠️ Das galt bis panary/panary-core#713 nur für die schreibenden Wege. `find` und `get` gingen ohne
+Token, der Edge filterte deshalb weiter auf `device:<uuid>` und antwortete mit einer leeren Liste:
+Dashboard → „Kasse" bot dem Kassierer die Eröffnung statt des Schließens seiner offenen Lade an.
+Seit #713 tragen die Lesezugriffe auf `cash-sessions` das Token ebenfalls (Abschnitt „Am POS").
 
 Ein direktes `cash-sessions.create` vom Gerät gibt es nicht (`requireAuthorizedCreate`), dort ist
 nichts zuzurechnen. Abschreibungen erreichen den Edge gar nicht, weil der Service fehlt:

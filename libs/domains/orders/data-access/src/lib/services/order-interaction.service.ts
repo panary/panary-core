@@ -10,6 +10,11 @@ import { OrderInteraction } from '@panary/order-interactions/domain'
 export class OrderInteractionService extends BaseService<OrderInteraction> {
   protected override entityLabelKey = 'ENTITY.ORDER_INTERACTION'
 
+  /** Journal-Ereignisse entstehen still: „Bestellinteraktion wurde erstellt“ ist keine Bedienermeldung (core#657). */
+  protected override showSnackbar(): void {
+    /* bewusst leer */
+  }
+
   //region Constructor
   constructor() {
     super(inject(ConnectionService).orderInteractionService, 'orderInteractionService')

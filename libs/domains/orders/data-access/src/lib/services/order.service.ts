@@ -87,6 +87,16 @@ export class OrderService extends BaseService<Order> {
   protected override cachePolicy = 'transactional' as const
   protected override cacheStoreName = 'orders'
 
+  /**
+   * Die generische Realtime-Meldung „Bestellung wurde geändert“ sagt dem Bediener nichts:
+   * Jede Bestellung wird am POS laufend gepatcht (Warenkorb, Storno, Zahlung), und die
+   * Aktion zeigt ihre eigene Erfolgsmeldung (core#657).
+   */
+  protected override showSnackbar(messageKey: string): void {
+    if (messageKey === 'SNACKBAR.CHANGED' || messageKey === 'SNACKBAR.CHANGED_PLURAL') return
+    super.showSnackbar(messageKey)
+  }
+
   /** STATIC PROPERTIES */
   protected readonly QUERY_LIMIT: number = 200
   protected readonly SNACKBAR_ACTION: string = 'OK'

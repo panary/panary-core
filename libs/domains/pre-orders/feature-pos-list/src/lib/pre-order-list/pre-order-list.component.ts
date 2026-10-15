@@ -113,7 +113,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                         {{ order.scheduledFor | date: 'dd.MM' }}
                       </span>
                       <span class="text-xs font-bold text-indigo-600">
-                        {{ order.scheduledFor | date: 'HH:mm' }} Uhr
+                        {{ 'PRE_ORDERS.TIME_OCLOCK' | translate: { time: (order.scheduledFor | date: 'HH:mm') } }}
                       </span>
                     </div>
                     <span class="font-bold text-gray-800 dark:text-white">{{
@@ -165,7 +165,9 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                         {{ 'COMMON.CANCELED' | translate }}
                       </span>
                     } @else {
-                      <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full"> Offen </span>
+                      <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                        {{ 'COMMON.OPEN' | translate }}
+                      </span>
                     }
                   </div>
                 </div>

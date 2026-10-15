@@ -387,6 +387,7 @@
   },
   "PRE_ORDERS": {
     "TITLE": "Pre-orders",
+    "TIME_OCLOCK": "{{time}}",
     "CONVERT_OFFLINE_BLOCKED": "Converting is not possible offline — requires a connection.",
     "NEW_PRE_ORDER": "New pre-order",
     "SEARCH_PLACEHOLDER": "Search by name, phone...",

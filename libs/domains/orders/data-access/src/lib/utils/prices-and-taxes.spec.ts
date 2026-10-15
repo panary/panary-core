@@ -319,4 +319,27 @@ describe('calculateOrderTotal — Betrag einer gespeicherten Bestellung (#703)',
     calculateOrderTotal(order)
     expect(JSON.stringify(order)).toBe(before)
   })
+
+  it('rechnet nach einem Bon-Split nur, was der Vorgang noch trägt (splitOff)', () => {
+    const line = makeLine(5, 3, { _id: '00000000-0000-0000-0000-0000000000a1' })
+    const order = {
+      ...makeOrder([line, makeLine(2, 1, { _id: '00000000-0000-0000-0000-0000000000a2' })]),
+      splitOff: [{ _id: 's1', targetOrderId: 't', lineItemRowId: line._id, amount: 2, grossCents: 1000, splitAt: 'x' }],
+    } as unknown as Order
+    // 1 × 5,00 + 1 × 2,00 bleiben
+    expect(calculateOrderTotal(order)).toBeCloseTo(7, 9)
+  })
+
+  it('zeigt eine bezahlte Bestellung über 0 € als 0 — nicht den Snapshot', () => {
+    const order = {
+      ...makeOrder([schnitzel()]),
+      taxSnapshot: { brutto: 36.6, netto: 30, taxes: [] },
+      payment: { state: 'paid', totalAmount: 0, tipAmount: 0, transactions: [{ amount: 0 }] },
+    } as unknown as Order
+    expect(calculateOrderTotal(order)).toBe(0)
+  })
+
+  it('gibt für eine Bestellung ohne Positionen 0 zurück', () => {
+    expect(calculateOrderTotal({ lineItems: undefined } as unknown as Order)).toBe(0)
+  })
 })

@@ -1,0 +1,1 @@
+* **Update**: POS — der Storno zeigt nur noch „Bestellung storniert“. `OrderService` unterdrückt die generische Realtime-Meldung „Bestellung wurde geändert“ (`SNACKBAR.CHANGED`/`_PLURAL`), `OrderInteractionService` jede Realtime-Meldung („Bestellinteraktion wurde erstellt“ überdeckte die Erfolgsmeldung); das Journal-Ereignis `order-cancel` entsteht still (panary/panary-core#657).

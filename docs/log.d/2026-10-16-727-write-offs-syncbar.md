@@ -1,0 +1,2 @@
+* **Creation**: [Abschreibungen (write-offs) — Edge schreibt, Cloud bucht den Bestand einmal](../domains/abschreibungen-sync.md) — `write-offs` steht jetzt in `SyncableTransactionService` (`@panary/edge-pairing/domain`), Schritt 1 von 3 der Reihe zu panary/panary-core#635 (panary/panary-core#727).
+* **Update**: Test-First zu `edge-pairing-request.schema.spec.ts`: 1 rot vor der Änderung (`expected undefined to deeply equal 'write-offs'`), der Negativfall „nicht in Master-Data" blieb grün, wie er soll; danach 2/2 grün.

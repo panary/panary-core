@@ -48,7 +48,9 @@ describe('writeOffErrorMessage', () => {
 describe('withTimeout', () => {
   it('gibt nach Ablauf mit 408 auf, statt ewig zu warten', async () => {
     vi.useFakeTimers()
-    onTestFinished(() => vi.useRealTimers())
+    onTestFinished(() => {
+      vi.useRealTimers()
+    })
     const pending = withTimeout(new Promise(() => undefined), 1000)
     vi.advanceTimersByTime(1000)
 

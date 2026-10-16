@@ -50,7 +50,9 @@ eine sichere Ablehnung abzuschicken. Speicherfehler zeigt er mit Ursache (`write
 Recht, 400 → ungültig mit Server-Detail, „Service nicht gefunden“ → nicht verfügbar, sonst Server-Meldung); bei
 Mandantensperre und Kontext-403 schweigt er, weil `ServiceHelper.handleError` die selbst anzeigt. Der Dialog bleibt
 nach einem Fehler offen. Gegen Doppeltipps sperrt er den Button während des Speicherns und schickt eine `_id` je
-Dialog mit, sodass ein erneuter Versuch denselben Datensatz trifft.
+Dialog mit, sodass ein erneuter Versuch denselben Datensatz trifft. Bleibt die Antwort des Edge 15 s aus (der
+Socket-Client puffert Aufrufe bei getrennter Verbindung ohne eigenes Timeout), gibt der Dialog mit „Keine Antwort vom
+Server“ auf und gibt den Button frei.
 
 ## Umsetzungsschritte
 

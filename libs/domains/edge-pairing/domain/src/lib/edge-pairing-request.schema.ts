@@ -86,6 +86,12 @@ export const SyncableTransactionService = {
   // cashSalesCents/Varianz autoritativ aus den (gesyncten) Bestellungen.
   // FK: cash-session.businessDayId → businessdays (Master-Data, bereits in Cloud).
   CASH_SESSIONS: 'cash-sessions',
+  // Abschreibungen (POS-Dialog): EDGE ist Schreiber, auch offline. Edge→Cloud-Push;
+  // die Cloud bucht den Lagerbestand genau einmal beim Sync-Eingang (writeOffStockUpdate-
+  // Hook am cloud-write-offs-Service), der Edge bucht keinen Bestand (panary/panary-core#635).
+  // 🚨 Cloud-Empfang braucht den Allowlist-Eintrag in apps/api-cloud/src/services/sync/
+  // sync-allowlist.ts (panary/panary-cloud#1205) — sonst TERMINAL-Ablehnung.
+  WRITE_OFFS: 'write-offs',
   // Tenant-Audit-Trail: Edge ist Schreiber, Cloud ist Source-of-Truth
   // (10-Jahres-Aufbewahrung, GoBD). Append-only auf beiden Seiten.
   AUDIT_EVENTS: 'audit-events',

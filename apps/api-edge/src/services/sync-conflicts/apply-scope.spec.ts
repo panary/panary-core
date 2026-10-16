@@ -55,10 +55,20 @@ const makeApp = () => {
   return app
 }
 
+/**
+ * Push-faehige Pfade, fuer die am Edge noch kein Service registriert ist. Ohne
+ * Service kann es auch keinen Konflikt-Apply geben. Die Liste ist ausdruecklich,
+ * damit ein vergessener Service nicht still aus der Messung faellt:
+ * `write-offs` steht im Enum (panary/panary-core#727), der Edge-Service folgt
+ * mit panary/panary-core#635 — der dritte Test unten zwingt dann zum Austragen.
+ */
+const NOCH_OHNE_EDGE_SERVICE = new Set<string>(['write-offs'])
+
 /** Push-faehige Services mit registriertem Patch — nur die kann ein Apply treffen. */
 const patchbareZiele = () => {
   const app = makeApp()
   return Object.values(SyncableTransactionService)
+    .filter(path => !NOCH_OHNE_EDGE_SERVICE.has(path))
     .map(path => ({ path, service: app.service(path as never) }))
     .filter(({ service }) => readServiceMethods(service).includes('patch'))
 }
@@ -93,5 +103,12 @@ describe('Konflikt-Apply: Reichweite der Schema-Verengung', () => {
       .map(({ path }) => path)
 
     expect(blind, 'PATCH ohne markiertes Schema — validateData() aus hooks/validate-data.hook.ts benutzen').toEqual([])
+  })
+
+  it('fuehrt nur Pfade als „noch ohne Edge-Service", die wirklich keinen haben', () => {
+    const app = makeApp()
+    const registriert = [...NOCH_OHNE_EDGE_SERVICE].filter(path => path in app.services)
+
+    expect(registriert, 'Edge-Service existiert jetzt — Pfad aus NOCH_OHNE_EDGE_SERVICE austragen').toEqual([])
   })
 })

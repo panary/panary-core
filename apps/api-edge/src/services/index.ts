@@ -32,6 +32,7 @@ import { fiscalCounters } from './fiscal-counters/fiscal-counters'
 import { receipts } from './receipts/receipts'
 import { logExport } from './log-export/log-export'
 import { orderReferences } from './order-references/order-references'
+import { writeOffs } from './write-offs/write-offs'
 
 export const services = (app: Application) => {
   app.configure(organizations)
@@ -74,4 +75,5 @@ export const services = (app: Application) => {
   app.configure(cashSessions)
   app.configure(logExport)
   app.configure(orderReferences)
+  app.configure(writeOffs)
 }

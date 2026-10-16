@@ -62,7 +62,7 @@ const makeApp = () => {
  * `write-offs` steht im Enum (panary/panary-core#727), der Edge-Service folgt
  * mit panary/panary-core#635 — der dritte Test unten zwingt dann zum Austragen.
  */
-const NOCH_OHNE_EDGE_SERVICE = new Set<string>(['write-offs'])
+const NOCH_OHNE_EDGE_SERVICE = new Set<string>([])
 
 /** Push-faehige Services mit registriertem Patch — nur die kann ein Apply treffen. */
 const patchbareZiele = () => {

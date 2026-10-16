@@ -12,6 +12,7 @@ import type { CodeCheckResult } from './services/discount-code-redeem/discount-c
 import { DeviceService } from './services/devices/devices.class'
 import { BusinessDayService } from './services/business-days/business-days.class'
 import { CashSessionService } from './services/cash-sessions/cash-sessions.class'
+import type { WriteOffService } from './services/write-offs/write-offs.class'
 import { ProductGroupService } from './services/product-groups/product-groups.class'
 import { LocationService } from './services/locations/locations.class'
 import { TenantService } from './services/tenants/tenants.class'
@@ -93,6 +94,7 @@ export interface ServiceTypes {
   'order-references': GenericService<OrderReference>
   businessdays: BusinessDayService
   'cash-sessions': CashSessionService
+  'write-offs': WriteOffService
   'fiscal-counters': GenericService<FiscalCounter>
   receipts: GenericService<Receipt>
   'log-export': {

@@ -125,7 +125,7 @@ Grenzen der Tabelle:
 | `ai-usage-summary` | R | R | – | R | R | R | R | – | – | – | – |
 | `onboarding-state` | – | – | – | RU | RU | RU | R | – | – | – | – |
 | `tenant-settings` | M | R | – | CRU | R | R | R | – | – | – | – |
-| `write-offs` | – | – | – | M | M | M | – | – | – | – | – |
+| `write-offs` | – | – | – | M | M | M | – | C | – | – | – |
 | `inventory-movements` | – | – | – | M | R | M | – | – | – | – | – |
 | `stock-levels` | – | – | – | R | R | R | R | – | – | – | – |
 | `invoices` | – | – | – | M | RU | M | – | – | – | – | – |

@@ -92,6 +92,10 @@ export const REQUIRED_STAMP_EXCEPTIONS: Record<string, string> = {
   // Optional zu machen verwandelt einen klaren 400 in einen
   // `NOT NULL constraint failed`-500 — eine Verschlechterung.
   'pre-orders': 'DB-Constraint notNullable auf tenantId und locationId',
+  // Wie pre-orders: Beide Spalten sind notNullable (20261016100000_write_offs). Das Pflichtfeld steht
+  // im Domain-Schema, das auch die Cloud validiert (Pin); Optional hiesse dort Release plus Pin-Bump
+  // und machte am Edge aus einem klaren 400 einen NOT-NULL-500 (panary/panary-core#635).
+  'write-offs': 'DB-Constraint notNullable auf tenantId und locationId',
   // `locations.tenantId` ist ebenfalls notNullable (20260219000002). Zusaetzlich
   // ist der einzige externe Create-Pfad der Sync-Pull-Apply, der OHNE `user`
   // laeuft — dort ist `required` die einzige Instanz, die einen defekten

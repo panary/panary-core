@@ -35,7 +35,6 @@
     "users-data-access",
     "working-times-data-access",
     "working-times-feature-pos-history",
-    "write-offs-data-access",
-    "write-offs-feature-pos-dialog"
+    "write-offs-data-access"
   ]
 }

@@ -466,7 +466,11 @@
     "SELECT_ITEM_FIRST": "Please select an item first.",
     "NO_LOCATION": "No location found! Please check setup.",
     "USER_NOT_IDENTIFIED": "User not identified!",
-    "SAVED": "Write-off saved"
+    "SAVED": "Write-off saved",
+    "NO_BUSINESS_DAY": "No business day open — write-off not saved.",
+    "ERROR_FORBIDDEN": "This register may not save write-offs — write-off not saved.",
+    "ERROR_INVALID": "Write-off invalid, not saved",
+    "ERROR_UNAVAILABLE": "Write-offs are not available on the server — write-off not saved."
   },
   "CLOSING": {
     "TITLE": "Daily closing",

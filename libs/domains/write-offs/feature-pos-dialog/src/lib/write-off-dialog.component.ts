@@ -16,6 +16,7 @@ import { DeviceConfigService } from '@panary/shared/data-access-config'
 import { LocationService } from '@panary/locations/data-access'
 import { NumpadDialogComponent } from '@panary/shared/ui-common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { writeOffErrorMessage } from './write-off-error'
 
 @Component({
   selector: 'lib-write-off-dialog',
@@ -146,12 +147,6 @@ export class PosWriteOffDialogComponent {
 
     // For Ingredients / Recipes -> Checks multiple possible property names
 
-    // Debug Logging
-    console.group('Unit Debug')
-    console.log('Item:', item)
-    console.log('baseUnit:', (item as any).baseUnit)
-    console.groupEnd()
-
     const unit =
       (item as any).basicUnit ||
       (item as any).baseUnit ||
@@ -186,9 +181,10 @@ export class PosWriteOffDialogComponent {
       businessDayId = this.businessDayService.currentBusinessDay()?._id
     }
 
-    // If still undefined, we proceed anyway as requested, but warn
+    // Ohne Geschäftstag lehnt der Edge die Abschreibung ab (Pflichtfeld) — gleich sagen, warum.
     if (!businessDayId) {
-      console.warn('Proceeding with write-off without explicit businessDayId, relying on location context.')
+      this.matSnackBar.open(this.translate.instant('WRITE_OFF.NO_BUSINESS_DAY'), 'OK', { duration: 4000 })
+      return
     }
 
     // Attempt to find current user.
@@ -238,8 +234,13 @@ export class PosWriteOffDialogComponent {
       this.matSnackBar.open(this.translate.instant('WRITE_OFF.SAVED'), 'OK', { duration: 2000 })
       this.matDialogRef.close(true)
     } catch (error) {
+      // Dialog bleibt offen: Die Abschreibung ist NICHT gespeichert, der Bediener kann es erneut versuchen.
       console.error('Error saving write-off', error)
-      this.matSnackBar.open(this.translate.instant('COMMON.SAVE_ERROR'), 'OK', { duration: 3000 })
+      this.matSnackBar.open(
+        writeOffErrorMessage(error, key => this.translate.instant(key)),
+        'OK',
+        { duration: 6000 },
+      )
     }
   }
 

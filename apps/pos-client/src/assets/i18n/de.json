@@ -466,7 +466,11 @@
     "SELECT_ITEM_FIRST": "Bitte wähle einen Artikel aus.",
     "NO_LOCATION": "Kein Standort gefunden! Bitte Setup prüfen.",
     "USER_NOT_IDENTIFIED": "Benutzer nicht identifiziert!",
-    "SAVED": "Abschreibung gespeichert"
+    "SAVED": "Abschreibung gespeichert",
+    "NO_BUSINESS_DAY": "Kein Geschäftstag geöffnet — Abschreibung nicht gespeichert.",
+    "ERROR_FORBIDDEN": "Diese Kasse darf keine Abschreibungen speichern — Abschreibung nicht gespeichert.",
+    "ERROR_INVALID": "Abschreibung ungültig, nicht gespeichert",
+    "ERROR_UNAVAILABLE": "Abschreibungen sind am Server nicht verfügbar — Abschreibung nicht gespeichert."
   },
   "CLOSING": {
     "TITLE": "Tagesabschluss",

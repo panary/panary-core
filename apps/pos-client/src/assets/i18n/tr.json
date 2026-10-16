@@ -466,7 +466,11 @@
     "SELECT_ITEM_FIRST": "Lütfen önce bir ürün seçin.",
     "NO_LOCATION": "Konum bulunamadı! Lütfen kurulumu kontrol edin.",
     "USER_NOT_IDENTIFIED": "Kullanıcı tanımlanamadı!",
-    "SAVED": "Zarar kaydı kaydedildi"
+    "SAVED": "Zarar kaydı kaydedildi",
+    "NO_BUSINESS_DAY": "Açık iş günü yok — zarar kaydı kaydedilmedi.",
+    "ERROR_FORBIDDEN": "Bu kasa zarar kaydı kaydedemez — zarar kaydı kaydedilmedi.",
+    "ERROR_INVALID": "Zarar kaydı geçersiz, kaydedilmedi",
+    "ERROR_UNAVAILABLE": "Zarar kayıtları sunucuda kullanılamıyor — zarar kaydı kaydedilmedi."
   },
   "CLOSING": {
     "TITLE": "Gün sonu kapanış",

@@ -1,0 +1,1 @@
+* **Update**: POS-Einstellungen — die Überschrift des Bereichs „Allgemein“ nutzt `SETTINGS.GENERAL` und folgt der eingestellten Sprache (EN „General“, TR „Genel“; panary/panary-core#726). Vorher blieb sie in EN/TR deutsch. Weitere hart codierte deutsche Texte im Bereich gab es nicht.

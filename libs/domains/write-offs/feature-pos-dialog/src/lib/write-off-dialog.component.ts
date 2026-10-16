@@ -16,6 +16,7 @@ import { DeviceConfigService } from '@panary/shared/data-access-config'
 import { LocationService } from '@panary/locations/data-access'
 import { NumpadDialogComponent } from '@panary/shared/ui-common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { uuidv7 } from 'uuidv7'
 import { writeOffErrorMessage } from './write-off-error'
 
 @Component({
@@ -53,6 +54,12 @@ export class PosWriteOffDialogComponent {
   // Search
   searchControl = new FormControl('')
   searchTerm = signal('')
+  // Doppeltipp-Schutz: Ein zweiter Tipp während des Speicherns legte eine zweite Abschreibung an,
+  // und die Cloud buchte den Bestand doppelt.
+  readonly saving = signal(false)
+  // Eine ID je Dialog: Ein erneuter Versuch nach einem Fehler trifft denselben Datensatz, statt
+  // eine zweite Abschreibung zu erzeugen.
+  readonly #writeOffId = uuidv7()
   selectedItem = signal<ProductSchema | Ingredient | Recipe | null>(null)
 
   // Data Signals
@@ -158,6 +165,7 @@ export class PosWriteOffDialogComponent {
   }
 
   async save() {
+    if (this.saving()) return
     if (!this.selectedItem()) {
       this.matSnackBar.open(this.translate.instant('WRITE_OFF.SELECT_ITEM_FIRST'), 'OK', { duration: 3000 })
       return
@@ -207,6 +215,7 @@ export class PosWriteOffDialogComponent {
 
     const item = this.selectedItem()!
     const writeOff: Partial<WriteOff> = {
+      _id: this.#writeOffId,
       businessDayId: businessDayId?.toString(), // Ensure string
       userId: userId.toString(),
       itemType: this.selectedType(),
@@ -229,6 +238,7 @@ export class PosWriteOffDialogComponent {
       writeOff.totalCost = cost * this.quantity()
     }
 
+    this.saving.set(true)
     try {
       await this.writeOffService.create(writeOff as WriteOff)
       this.matSnackBar.open(this.translate.instant('WRITE_OFF.SAVED'), 'OK', { duration: 2000 })
@@ -236,11 +246,10 @@ export class PosWriteOffDialogComponent {
     } catch (error) {
       // Dialog bleibt offen: Die Abschreibung ist NICHT gespeichert, der Bediener kann es erneut versuchen.
       console.error('Error saving write-off', error)
-      this.matSnackBar.open(
-        writeOffErrorMessage(error, key => this.translate.instant(key)),
-        'OK',
-        { duration: 6000 },
-      )
+      const message = writeOffErrorMessage(error, key => this.translate.instant(key))
+      if (message) this.matSnackBar.open(message, 'OK', { duration: 6000 })
+    } finally {
+      this.saving.set(false)
     }
   }
 

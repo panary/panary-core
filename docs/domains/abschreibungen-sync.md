@@ -38,7 +38,7 @@ Tabelle `write-offs` (Migration `20261016100000_write_offs.ts`).
 | Punkt | Umsetzung |
 |---|---|
 | Methoden | `find`, `get`, `create` — **append-only**. Eine Korrektur ist eine neue Abschreibung; SQLite-Trigger lehnen `UPDATE`/`DELETE` zusätzlich ab. |
-| Hook-Kette | `authenticate('jwt')` → `authorize()` → `multiTenancy({ isolateLocation: true })` (stempelt `tenantId`/`locationId` aus dem Gerät) → markiertes `validateData` → `resolveData` (`_id`, `createdAt`, `updatedAt` serverseitig). |
+| Hook-Kette | `authenticate('jwt')` → `authorize()` → `multiTenancy({ isolateLocation: true })` (stempelt `tenantId`) → `locationId` der Session erzwungen (`multiTenancy` stempelt sie nur, wenn sie fehlt) → markiertes `validateData` → `resolveData` (`createdAt`, `updatedAt` serverseitig; `_id` darf der POS mitgeben). |
 | Bediener | Ein Before-Hook vor `validateData` setzt `userId` per `attributedOperatorId` aus dem Bediener-Token ([ADR 0053](../adr/0053-bediener-token-am-pos.md)). Der Body-Wert aus `pos_current_user` zählt bei Geräten nicht. |
 | Recht | `device:pos-client` hat `write-offs: CREATE` (nur das — der Dialog liest nichts). Tabelle: [Rollen-Matrix](../security/rollen-matrix.md). |
 | Push | Der app-weite Outbox-Recorder schreibt je `create` einen Eintrag mit dem vollen Datensatz, weil `write-offs` in `SyncableTransactionService` steht. Kein eigener Code am Service. |
@@ -47,7 +47,10 @@ Tabelle `write-offs` (Migration `20261016100000_write_offs.ts`).
 
 **POS-Dialog** (`libs/domains/write-offs/feature-pos-dialog`): Ohne Geschäftstag meldet er das sofort, statt
 eine sichere Ablehnung abzuschicken. Speicherfehler zeigt er mit Ursache (`writeOffErrorMessage`: 403 → fehlendes
-Recht, 400 → ungültig mit Server-Detail, 404 → nicht verfügbar, sonst Server-Meldung); der Dialog bleibt offen.
+Recht, 400 → ungültig mit Server-Detail, „Service nicht gefunden“ → nicht verfügbar, sonst Server-Meldung); bei
+Mandantensperre und Kontext-403 schweigt er, weil `ServiceHelper.handleError` die selbst anzeigt. Der Dialog bleibt
+nach einem Fehler offen. Gegen Doppeltipps sperrt er den Button während des Speicherns und schickt eine `_id` je
+Dialog mit, sodass ein erneuter Versuch denselben Datensatz trifft.
 
 ## Umsetzungsschritte
 

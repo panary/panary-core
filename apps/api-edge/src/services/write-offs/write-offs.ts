@@ -45,6 +45,16 @@ const attributeOperator = async (context: HookContext) => {
   return context
 }
 
+// `multiTenancy` stempelt `locationId` nur, wenn sie fehlt. Eine Abschreibung gehört aber der
+// Filiale des Geräts, nie einer im Body genannten — sonst bucht die Cloud den Bestand einer
+// fremden Filiale desselben Tenants ab.
+const stampSessionLocation = async (context: HookContext) => {
+  const data = context.data as { locationId?: string } | undefined
+  const locationId = (context.params.user as { locationId?: string } | undefined)?.locationId
+  if (context.params.provider && locationId && data && !Array.isArray(data)) data.locationId = locationId
+  return context
+}
+
 export const writeOffs = (app: Application) => {
   const paginate = app.get('paginate')
   const systemConfig = app.get('system') || {}
@@ -95,7 +105,12 @@ export const writeOffs = (app: Application) => {
     },
     before: {
       all: [schemaHooks.validateQuery(writeOffQueryValidator), schemaHooks.resolveQuery(writeOffQueryResolver)],
-      create: [attributeOperator, validateData(writeOffDataValidator), schemaHooks.resolveData(writeOffDataResolver)],
+      create: [
+        stampSessionLocation,
+        attributeOperator,
+        validateData(writeOffDataValidator),
+        schemaHooks.resolveData(writeOffDataResolver),
+      ],
     },
   })
 }

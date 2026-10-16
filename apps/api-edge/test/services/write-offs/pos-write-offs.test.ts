@@ -151,6 +151,33 @@ describe('write-offs — Edge-Service für den POS-Dialog', () => {
     expect(stored).toMatchObject({ tenantId, locationId, userId: cashierId })
   })
 
+  it('bucht auf die Filiale des Geräts, nicht auf eine im Body genannte', async () => {
+    const connection = deviceConnection()
+    const token = await tokenFor(cashierId, connection)
+
+    const created = await writeOffs().create(
+      dialogPayload(cashierId, { locationId: uuidv7() }),
+      deviceParams(connection, token),
+    )
+    await outboxFor(created._id)
+
+    expect((await writeOffs().get(created._id, internal)).locationId).toBe(locationId)
+  })
+
+  it('setzt den Erfassungszeitpunkt am Edge, nicht aus dem Body', async () => {
+    const connection = deviceConnection()
+    const token = await tokenFor(cashierId, connection)
+    const before = new Date().toISOString()
+
+    const created = await writeOffs().create(
+      dialogPayload(cashierId, { createdAt: '2020-01-01T00:00:00.000Z' }),
+      deviceParams(connection, token),
+    )
+    await outboxFor(created._id)
+
+    expect((await writeOffs().get(created._id, internal)).createdAt >= before).toBe(true)
+  })
+
   it('rechnet dem Bediener aus dem Token zu, nicht der ID im Body', async () => {
     const connection = deviceConnection()
     const token = await tokenFor(cashierId, connection)

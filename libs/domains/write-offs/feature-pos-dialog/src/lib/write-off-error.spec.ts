@@ -19,9 +19,18 @@ describe('writeOffErrorMessage', () => {
   })
 
   it('meldet einen unbekannten Service am Edge als nicht verfügbar statt als Speicherfehler', () => {
-    expect(writeOffErrorMessage({ code: 404, message: "Can not find service 'write-offs'" }, t)).toEqual(
+    expect(writeOffErrorMessage({ code: 404, message: "Service 'write-offs' not found" }, t)).toEqual(
       '<WRITE_OFF.ERROR_UNAVAILABLE>',
     )
+  })
+
+  it('meldet ein anderes 404 nicht als fehlenden Service', () => {
+    expect(writeOffErrorMessage({ code: 404, message: 'No record found' }, t)).toEqual('No record found')
+  })
+
+  it('schweigt bei Mandantensperre und Kontext-403 — die zeigt der ServiceHelper selbst an', () => {
+    expect(writeOffErrorMessage({ code: 403, message: 'TENANT_SUSPENDED: Mandant gesperrt' }, t)).toBeNull()
+    expect(writeOffErrorMessage({ code: 403, message: 'Tenant-Kontext fehlt' }, t)).toBeNull()
   })
 
   it('fällt auf die Server-Meldung zurück, sonst auf den generischen Text', () => {

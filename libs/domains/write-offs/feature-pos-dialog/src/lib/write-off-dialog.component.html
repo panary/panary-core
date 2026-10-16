@@ -292,7 +292,7 @@
   <div class="flex-none p-4 bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800 z-20">
     <button
       (click)="save()"
-      [disabled]="!selectedItem() || quantity() <= 0"
+      [disabled]="!selectedItem() || quantity() <= 0 || saving()"
       class="w-full h-14 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 relative overflow-hidden"
     >
       <span class="material-symbols-outlined text-[1.25rem]">save</span>

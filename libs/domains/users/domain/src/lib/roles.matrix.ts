@@ -1003,6 +1003,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Self-Scope (nur eigene Lade) erzwingt der restrictCashSessionToOwner-Hook.
     { resource: AppResource.CASH_SESSIONS, action: [AppAction.READ, AppAction.CREATE, AppAction.UPDATE] },
 
+    // Abschreibungen am POS erfassen (panary/panary-core#635). Nur CREATE: Der Dialog liest nichts,
+    // und der Edge-Service ist append-only. Zugerechnet wird dem Bediener aus dem Bediener-Token.
+    { resource: AppResource.WRITE_OFFS, action: AppAction.CREATE },
+
     // Kasse darf natürlich kassieren
     AppAbility.CAN_DISCOUNT,
     AppAbility.CAN_REFUND,

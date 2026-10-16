@@ -16,6 +16,8 @@ import { DeviceConfigService } from '@panary/shared/data-access-config'
 import { LocationService } from '@panary/locations/data-access'
 import { NumpadDialogComponent } from '@panary/shared/ui-common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { uuidv7 } from 'uuidv7'
+import { withTimeout, writeOffErrorMessage } from './write-off-error'
 
 @Component({
   selector: 'lib-write-off-dialog',
@@ -52,6 +54,12 @@ export class PosWriteOffDialogComponent {
   // Search
   searchControl = new FormControl('')
   searchTerm = signal('')
+  // Doppeltipp-Schutz: Ein zweiter Tipp während des Speicherns legte eine zweite Abschreibung an,
+  // und die Cloud buchte den Bestand doppelt.
+  readonly saving = signal(false)
+  // Eine ID je Dialog: Ein erneuter Versuch nach einem Fehler trifft denselben Datensatz, statt
+  // eine zweite Abschreibung zu erzeugen.
+  readonly #writeOffId = uuidv7()
   selectedItem = signal<ProductSchema | Ingredient | Recipe | null>(null)
 
   // Data Signals
@@ -146,12 +154,6 @@ export class PosWriteOffDialogComponent {
 
     // For Ingredients / Recipes -> Checks multiple possible property names
 
-    // Debug Logging
-    console.group('Unit Debug')
-    console.log('Item:', item)
-    console.log('baseUnit:', (item as any).baseUnit)
-    console.groupEnd()
-
     const unit =
       (item as any).basicUnit ||
       (item as any).baseUnit ||
@@ -163,6 +165,7 @@ export class PosWriteOffDialogComponent {
   }
 
   async save() {
+    if (this.saving()) return
     if (!this.selectedItem()) {
       this.matSnackBar.open(this.translate.instant('WRITE_OFF.SELECT_ITEM_FIRST'), 'OK', { duration: 3000 })
       return
@@ -186,9 +189,10 @@ export class PosWriteOffDialogComponent {
       businessDayId = this.businessDayService.currentBusinessDay()?._id
     }
 
-    // If still undefined, we proceed anyway as requested, but warn
+    // Ohne Geschäftstag lehnt der Edge die Abschreibung ab (Pflichtfeld) — gleich sagen, warum.
     if (!businessDayId) {
-      console.warn('Proceeding with write-off without explicit businessDayId, relying on location context.')
+      this.matSnackBar.open(this.translate.instant('WRITE_OFF.NO_BUSINESS_DAY'), 'OK', { duration: 4000 })
+      return
     }
 
     // Attempt to find current user.
@@ -211,6 +215,7 @@ export class PosWriteOffDialogComponent {
 
     const item = this.selectedItem()!
     const writeOff: Partial<WriteOff> = {
+      _id: this.#writeOffId,
       businessDayId: businessDayId?.toString(), // Ensure string
       userId: userId.toString(),
       itemType: this.selectedType(),
@@ -233,13 +238,18 @@ export class PosWriteOffDialogComponent {
       writeOff.totalCost = cost * this.quantity()
     }
 
+    this.saving.set(true)
     try {
-      await this.writeOffService.create(writeOff as WriteOff)
+      await withTimeout(this.writeOffService.create(writeOff as WriteOff))
       this.matSnackBar.open(this.translate.instant('WRITE_OFF.SAVED'), 'OK', { duration: 2000 })
       this.matDialogRef.close(true)
     } catch (error) {
+      // Dialog bleibt offen: Die Abschreibung ist NICHT gespeichert, der Bediener kann es erneut versuchen.
       console.error('Error saving write-off', error)
-      this.matSnackBar.open(this.translate.instant('COMMON.SAVE_ERROR'), 'OK', { duration: 3000 })
+      const message = writeOffErrorMessage(error, key => this.translate.instant(key))
+      if (message) this.matSnackBar.open(message, 'OK', { duration: 6000 })
+    } finally {
+      this.saving.set(false)
     }
   }
 

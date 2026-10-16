@@ -3,8 +3,8 @@ type: Domain Concept
 title: 'Abschreibungen (write-offs) — Edge schreibt, Cloud bucht den Bestand einmal'
 description: 'Wie eine am POS erfasste Abschreibung vom Edge per Edge→Cloud-Push in die Cloud gelangt und dort genau einmal als Warenbewegung gebucht wird; Stand und Reihenfolge der drei Umsetzungsschritte.'
 tags: [write-offs, edge-pairing, sync, inventory]
-status: draft
-generated: { by: claude-code/opus-5.5, at: 2026-10-16T08:00:00Z }
+status: stable
+generated: { by: claude-code/opus-5.5, at: 2026-10-16T08:30:00Z }
 ---
 
 # Abschreibungen (write-offs) — Edge schreibt, Cloud bucht einmal
@@ -12,7 +12,7 @@ generated: { by: claude-code/opus-5.5, at: 2026-10-16T08:00:00Z }
 Abschreibungen (Ausschuss, Personalessen, Diebstahl …) werden am POS im Abschreibungs-Dialog erfasst
 (`libs/domains/write-offs/feature-pos-dialog`). Bis [#635](https://github.com/panary/panary-core/issues/635)
 gingen sie still verloren: Der Dialog speichert über `app.service('write-offs')` am Edge, dort war kein
-Service registriert.
+Service registriert, und `device:pos-client` hatte in der Rollen-Matrix kein Recht auf die Ressource.
 
 ## Modell (Entscheidung Michael, 2026-10-16)
 
@@ -30,13 +30,33 @@ Die Pflichtfelder für den Sync (`_id` als uuid, `tenantId`, `locationId`, `crea
 Schema `writeOffSchema` (`libs/domains/write-offs/domain/src/lib/write-offs.schema.ts`) über `baseSchema`
 bereits.
 
+## Edge-Service `write-offs`
+
+[`apps/api-edge/src/services/write-offs/write-offs.ts`](../../apps/api-edge/src/services/write-offs/write-offs.ts),
+Tabelle `write-offs` (Migration `20261016100000_write_offs.ts`).
+
+| Punkt | Umsetzung |
+|---|---|
+| Methoden | `find`, `get`, `create` — **append-only**. Eine Korrektur ist eine neue Abschreibung; SQLite-Trigger lehnen `UPDATE`/`DELETE` zusätzlich ab. |
+| Hook-Kette | `authenticate('jwt')` → `authorize()` → `multiTenancy({ isolateLocation: true })` (stempelt `tenantId`/`locationId` aus dem Gerät) → markiertes `validateData` → `resolveData` (`_id`, `createdAt`, `updatedAt` serverseitig). |
+| Bediener | Ein Before-Hook vor `validateData` setzt `userId` per `attributedOperatorId` aus dem Bediener-Token ([ADR 0053](../adr/0053-bediener-token-am-pos.md)). Der Body-Wert aus `pos_current_user` zählt bei Geräten nicht. |
+| Recht | `device:pos-client` hat `write-offs: CREATE` (nur das — der Dialog liest nichts). Tabelle: [Rollen-Matrix](../security/rollen-matrix.md). |
+| Push | Der app-weite Outbox-Recorder schreibt je `create` einen Eintrag mit dem vollen Datensatz, weil `write-offs` in `SyncableTransactionService` steht. Kein eigener Code am Service. |
+| Bestand | Der Edge bucht **keinen** Bestand. |
+| Stempelfeld-Gate | `write-offs` steht in `REQUIRED_STAMP_EXCEPTIONS`: Beide Spalten sind `notNullable`, das Pflichtfeld liegt im Domain-Schema, das auch die Cloud validiert. |
+
+**POS-Dialog** (`libs/domains/write-offs/feature-pos-dialog`): Ohne Geschäftstag meldet er das sofort, statt
+eine sichere Ablehnung abzuschicken. Speicherfehler zeigt er mit Ursache (`writeOffErrorMessage`: 403 → fehlendes
+Recht, 400 → ungültig mit Server-Detail, 404 → nicht verfügbar, sonst Server-Meldung); der Dialog bleibt offen.
+
 ## Umsetzungsschritte
 
 1. [panary/panary-core#727](https://github.com/panary/panary-core/issues/727) — `WRITE_OFFS` in
    `SyncableTransactionService` (`libs/domains/edge-pairing/domain/src/lib/edge-pairing-request.schema.ts`),
-   Paket-Release. Am Edge ändert sich dadurch nichts, solange kein Service unter dem Pfad läuft.
+   Paket-Release `v26.10.14`. Am Edge änderte sich dadurch nichts, solange kein Service unter dem Pfad lief.
 2. [panary/panary-cloud#1205](https://github.com/panary/panary-cloud/issues/1205) — Cloud nimmt den Push an
-   (Allowlist, Idempotenz bei wiederholtem Push) und bucht einmal.
+   (Idempotenz bei wiederholtem Push, `null`-Strip, Erfassungszeitpunkt des Edge, Bediener-Tenant-Prüfung) und
+   bucht einmal.
 3. [panary/panary-core#635](https://github.com/panary/panary-core/issues/635) — Edge-Service, SQLite-Migration,
    Outbox-Push, `userId` aus dem Bediener-Token ([ADR 0053](../adr/0053-bediener-token-am-pos.md)), Fehleranzeige
    im POS-Dialog.

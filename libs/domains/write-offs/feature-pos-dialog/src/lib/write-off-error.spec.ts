@@ -1,4 +1,6 @@
-import { writeOffErrorMessage } from './write-off-error'
+import { onTestFinished, vi } from 'vitest'
+
+import { withTimeout, writeOffErrorMessage } from './write-off-error'
 
 // Der POS-Dialog meldete jeden Fehler als „Fehler beim Speichern" (panary/panary-core#635). Bis zum
 // Edge-Service lief jede Abschreibung ins Leere, und niemand sah, warum. Die Meldung nennt jetzt
@@ -36,5 +38,25 @@ describe('writeOffErrorMessage', () => {
   it('fällt auf die Server-Meldung zurück, sonst auf den generischen Text', () => {
     expect(writeOffErrorMessage({ code: 500, message: 'Timeout' }, t)).toEqual('Timeout')
     expect(writeOffErrorMessage(undefined, t)).toEqual('<COMMON.SAVE_ERROR>')
+  })
+
+  it('meldet eine ausbleibende Antwort als Zeitüberschreitung', () => {
+    expect(writeOffErrorMessage({ code: 408, message: 'timeout' }, t)).toEqual('<WRITE_OFF.ERROR_TIMEOUT>')
+  })
+})
+
+describe('withTimeout', () => {
+  it('gibt nach Ablauf mit 408 auf, statt ewig zu warten', async () => {
+    vi.useFakeTimers()
+    onTestFinished(() => vi.useRealTimers())
+    const pending = withTimeout(new Promise(() => undefined), 1000)
+    vi.advanceTimersByTime(1000)
+
+    await expect(pending).rejects.toMatchObject({ code: 408 })
+  })
+
+  it('reicht Ergebnis und Fehler unverändert durch', async () => {
+    await expect(withTimeout(Promise.resolve('ok'), 1000)).resolves.toEqual('ok')
+    await expect(withTimeout(Promise.reject({ code: 403 }), 1000)).rejects.toEqual({ code: 403 })
   })
 })

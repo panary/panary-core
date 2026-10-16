@@ -17,7 +17,7 @@ import { LocationService } from '@panary/locations/data-access'
 import { NumpadDialogComponent } from '@panary/shared/ui-common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { uuidv7 } from 'uuidv7'
-import { writeOffErrorMessage } from './write-off-error'
+import { withTimeout, writeOffErrorMessage } from './write-off-error'
 
 @Component({
   selector: 'lib-write-off-dialog',
@@ -240,7 +240,7 @@ export class PosWriteOffDialogComponent {
 
     this.saving.set(true)
     try {
-      await this.writeOffService.create(writeOff as WriteOff)
+      await withTimeout(this.writeOffService.create(writeOff as WriteOff))
       this.matSnackBar.open(this.translate.instant('WRITE_OFF.SAVED'), 'OK', { duration: 2000 })
       this.matDialogRef.close(true)
     } catch (error) {

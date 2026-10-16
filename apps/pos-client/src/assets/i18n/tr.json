@@ -470,7 +470,8 @@
     "NO_BUSINESS_DAY": "Açık iş günü yok — zarar kaydı kaydedilmedi.",
     "ERROR_FORBIDDEN": "Bu kasa zarar kaydı kaydedemez — zarar kaydı kaydedilmedi.",
     "ERROR_INVALID": "Zarar kaydı geçersiz, kaydedilmedi",
-    "ERROR_UNAVAILABLE": "Zarar kayıtları sunucuda kullanılamıyor — zarar kaydı kaydedilmedi."
+    "ERROR_UNAVAILABLE": "Zarar kayıtları sunucuda kullanılamıyor — zarar kaydı kaydedilmedi.",
+    "ERROR_TIMEOUT": "Sunucudan yanıt yok — zarar kaydı kaydedilmedi. Lütfen tekrar deneyin."
   },
   "CLOSING": {
     "TITLE": "Gün sonu kapanış",

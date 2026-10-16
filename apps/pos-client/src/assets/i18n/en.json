@@ -470,7 +470,8 @@
     "NO_BUSINESS_DAY": "No business day open — write-off not saved.",
     "ERROR_FORBIDDEN": "This register may not save write-offs — write-off not saved.",
     "ERROR_INVALID": "Write-off invalid, not saved",
-    "ERROR_UNAVAILABLE": "Write-offs are not available on the server — write-off not saved."
+    "ERROR_UNAVAILABLE": "Write-offs are not available on the server — write-off not saved.",
+    "ERROR_TIMEOUT": "No response from the server — write-off not saved. Please try again."
   },
   "CLOSING": {
     "TITLE": "Daily closing",

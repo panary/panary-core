@@ -40,6 +40,12 @@ export interface DeviceReverificationVerdict {
   offlineForMs: number | null
   thresholdMs: number
   /**
+   * Letzter Kontakt vor der Pause — Grundlage der Anzeige „offline seit".
+   * Bei bereits offener Bestaetigung `reverifyOfflineSince`, nie der inzwischen
+   * frische `lastUsedAt` (sonst „1 Tage" nach einem Reconnect, core#736).
+   */
+  offlineSince: string | null
+  /**
    * War der Zustand schon persistiert? Nur der ausloesende Handshake schreibt
    * das Audit-Event — sonst produzierte jeder Reconnect eines wartenden
    * Terminals einen weiteren Eintrag und die Meldung, wegen der der Trail
@@ -119,6 +125,7 @@ export const evaluateDeviceReverification = async (
       due: true,
       offlineForMs: resolveDeviceOfflineForMs(record.reverifyOfflineSince, now),
       thresholdMs,
+      offlineSince: record.reverifyOfflineSince,
       alreadyPending: true,
     }
   }
@@ -128,6 +135,7 @@ export const evaluateDeviceReverification = async (
     due,
     offlineForMs: resolveDeviceOfflineForMs(record.lastUsedAt, now),
     thresholdMs,
+    offlineSince: due ? (record.lastUsedAt ?? null) : null,
     alreadyPending: false,
   }
 

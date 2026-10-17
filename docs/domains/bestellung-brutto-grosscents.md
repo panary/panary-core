@@ -50,6 +50,12 @@ Edge-Service `orders`, auf `create` und `patch`, jeweils **nach** `resolveData` 
 Ein Lesefehler beim Patch (außer 404) bricht den Patch ab, statt still einen veralteten Betrag
 stehenzulassen.
 
+**Bekannte Grenze: parallele Patches.** Zwischen dem Lesen des Stands und dem Schreiben liegt ein
+`await`. Patchen zwei Aufrufe dieselbe Bestellung gleichzeitig, rechnet der zweite auf dem Stand vor dem
+ersten und kann ein veraltetes Brutto schreiben. Der nächste Patch korrigiert es. Dieselbe Lücke hat
+`calculateTaxDetailsOnPatch` für den `taxSnapshot` seit jeher; ein Nachschreiben im After-Hook wäre ein
+zweiter Write samt Outbox-Eintrag je Patch und wurde deshalb nicht gebaut.
+
 ## Wo die Funktion liegt
 
 `getOrderGrossCents` und `computeGrossFromLineItems` liegen seit #728 in

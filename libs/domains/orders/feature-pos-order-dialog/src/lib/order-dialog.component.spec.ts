@@ -292,6 +292,24 @@ describe('OrderDialog — Reset-Pfade der Positionsrabatte', () => {
     expect(component.lineDiscounts()).toEqual({})
   })
 
+  it('der Funktionsknopf „Bestellung löschen?" setzt Rabatt, Code und Positionsrabatte zurueck (core#734)', () => {
+    const { component } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.selectedManualDiscount.set(managedDiscount())
+    component.appliedCodeDiscount.set({ ok: true, code: 'SOMMER' })
+    discountLine(component, 0)
+
+    component.setDeleteSubbuttons()
+    const button = component.functionButtons.find((b: { _id?: string }) => b._id === 'deleteOrder') as
+      { callback?: () => unknown } | undefined
+    button?.callback?.()
+
+    expect(component.lineItems).toEqual([])
+    expect(component.selectedManualDiscount()).toBeNull()
+    expect(component.appliedCodeDiscount()).toBeNull()
+    expect(component.lineDiscounts()).toEqual({})
+  })
+
   it('deleteSelection() nimmt die Zeile UND ihren Rabatt mit', () => {
     // Bis #269 tat das `decreaseQuantity()` bei Menge 1 — Loeschen und Verringern
     // teilten sich ein Ziel. Der Loesch-Pfad liegt jetzt allein hier (ADR 0034).

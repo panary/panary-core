@@ -264,6 +264,30 @@ describe('evaluateDeviceReverification — Reconnect darf die Sperre nicht aufhe
     expect(verdict.offlineForMs).toBe(9 * DAY_MS)
   })
 
+  it('nennt nach dem Reconnect reverifyOfflineSince als offlineSince, nicht den frischen lastUsedAt (core#736)', async () => {
+    const { app } = makeApp()
+    const reverifyOfflineSince = ago(8 * DAY_MS)
+
+    const verdict = await evaluateDeviceReverification(
+      app,
+      { _id: 'key-1', locationId: 'loc-1', lastUsedAt: ago(1_000), reverifyOfflineSince },
+      NOW,
+    )
+
+    expect(verdict.offlineSince).toBe(reverifyOfflineSince)
+  })
+
+  it('der ausloesende Handshake nennt lastUsedAt als offlineSince, ein nicht faelliger null', async () => {
+    const { app } = makeApp()
+    const lastUsedAt = ago(8 * DAY_MS)
+
+    const due = await evaluateDeviceReverification(app, { locationId: 'loc-1', lastUsedAt }, NOW, { persist: false })
+    const fresh = await evaluateDeviceReverification(app, { locationId: 'loc-1', lastUsedAt: ago(60_000) }, NOW)
+
+    expect(due.offlineSince).toBe(lastUsedAt)
+    expect(fresh.offlineSince).toBeNull()
+  })
+
   it('persistiert den Zustand beim ausloesenden Handshake, mit dem Marker', async () => {
     const { app, patched } = makeApp()
     const lastUsedAt = ago(9 * DAY_MS)

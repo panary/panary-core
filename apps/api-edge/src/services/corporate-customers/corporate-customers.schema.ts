@@ -42,13 +42,8 @@ export const corporateCustomerDataResolver = resolve<CorporateCustomer, HookCont
   // geteilte `dataValidator` hat KEIN `useDefaults`, daher greift der
   // Schema-Default [] nicht — bei Sync-Records ohne invoices kommt `undefined`
   // an, und knex/better-sqlite3 kann undefined nicht binden (Insert bricht).
-  // corporate-customers registriert zudem keine getJsonFieldHooks, also
-  // serialisieren wir hier selbst zu einem gueltigen JSON-String. Cast, weil
-  // die Spalte zwar als unknown[] typisiert ist, in SQLite aber als Text liegt.
-  invoices: async value => {
-    if (value === undefined) return '[]' as unknown as unknown[]
-    return (typeof value === 'string' ? value : JSON.stringify(value)) as unknown as unknown[]
-  },
+  // Serialisiert wird danach von den getJsonFieldHooks (CORPORATE_CUSTOMER_JSON_FIELDS).
+  invoices: async value => value ?? [],
 })
 //#endregion
 
@@ -60,14 +55,8 @@ export const corporateCustomerPatchResolver = resolve<CorporateCustomer, HookCon
   locationId: async () => undefined,
   createdAt: async () => undefined,
   updatedAt: async () => new Date().toISOString(),
-  // Beim Sync-Patch (applyPulledRecords) wird der volle Cloud-Record gepatcht.
-  // Fehlt `invoices`, NICHT setzen (vorhandenen Wert behalten); ist es ein
-  // Array/Objekt, zu JSON-String serialisieren (TEXT-Spalte, keine
-  // getJsonFieldHooks — s. Data-Resolver).
-  invoices: async value => {
-    if (value === undefined) return undefined
-    return (typeof value === 'string' ? value : JSON.stringify(value)) as unknown as unknown[]
-  },
+  // `invoices`/`address`/`discountDetails` serialisieren die getJsonFieldHooks
+  // (core#735) — fehlt ein Feld im Patch, bleibt der gespeicherte Wert stehen.
 })
 //#endregion
 

@@ -26,12 +26,14 @@ import {
   corporateCustomerQuerySchema,
   corporateCustomerSchema,
 } from '@panary/corporate-customers/domain'
-import { ensureIndexes } from '@panary/shared-backend'
+import { ensureIndexes, getJsonFieldHooks } from '@panary/shared-backend'
 
 export const corporateCustomersPath = 'corporate-customers'
 export const corporateCustomersMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
 
 export * from './corporate-customers.schema'
+
+export const CORPORATE_CUSTOMER_JSON_FIELDS = ['address', 'invoices', 'discountDetails']
 
 export const corporateCustomers = (app: Application) => {
   const paginate = app.get('paginate')
@@ -91,6 +93,10 @@ export const corporateCustomers = (app: Application) => {
     },
   })
 
+  // SQLite-TEXT-Spalten: knex stringifiziert Objekte nur im Insert, nicht im Update — ohne diese Hooks
+  // scheiterte der Sync-Patch des vollen Cloud-Records, und Lesezugriffe lieferten Strings (core#735).
+  const jsonHooks = getJsonFieldHooks(app, CORPORATE_CUSTOMER_JSON_FIELDS)
+
   // 5. Register hooks
   app.service(corporateCustomersPath).hooks({
     around: {
@@ -113,12 +119,20 @@ export const corporateCustomers = (app: Application) => {
       ],
       find: [],
       get: [],
-      create: [validateData(corporateCustomerDataValidator), schemaHooks.resolveData(corporateCustomerDataResolver)],
-      patch: [validateData(corporateCustomerPatchValidator), schemaHooks.resolveData(corporateCustomerPatchResolver)],
+      create: [
+        validateData(corporateCustomerDataValidator),
+        schemaHooks.resolveData(corporateCustomerDataResolver),
+        ...jsonHooks.before,
+      ],
+      patch: [
+        validateData(corporateCustomerPatchValidator),
+        schemaHooks.resolveData(corporateCustomerPatchResolver),
+        ...jsonHooks.before,
+      ],
       remove: [],
     },
     after: {
-      all: [],
+      all: [...jsonHooks.after],
     },
     error: {
       all: [],

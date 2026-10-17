@@ -108,9 +108,7 @@ export const channels = (app: Application) => {
           // ohne die Id haette sie nur die deviceId und muesste erneut suchen.
           ;(connection as DeviceReverificationConnectionState).apiKeyId = apiKeyRecord._id
           ;(connection as DeviceReverificationConnectionState).requiresReverification = reverification.due
-          ;(connection as DeviceReverificationConnectionState).reverificationOfflineSince = reverification.due
-            ? (apiKeyRecord.lastUsedAt ?? null)
-            : null
+          ;(connection as DeviceReverificationConnectionState).reverificationOfflineSince = reverification.offlineSince
           ;(connection as DeviceReverificationConnectionState).reverificationOfflineForMs = reverification.due
             ? reverification.offlineForMs
             : null
@@ -141,7 +139,9 @@ export const channels = (app: Application) => {
             // requireDeviceReverification-Hook. Wer den Schluessel hat, spricht
             // ohnehin direkt mit dem Socket.
             requiresReverification: reverification.due,
-            offlineSince: reverification.due ? (apiKeyRecord.lastUsedAt ?? null) : null,
+            // Aus `reverifyOfflineSince`, sobald der Zustand persistiert ist — nach
+            // einem Reconnect ist `lastUsedAt` schon frisch gestempelt (core#736).
+            offlineSince: reverification.offlineSince,
           })
 
           // Nur der AUSLOESENDE Handshake schreibt das Audit-Event. Ein

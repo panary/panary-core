@@ -1088,7 +1088,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       variant: 'cancel',
       icon: 'delete_forever',
       callback: () => {
-        this.#lineItems = []
+        // Voller Reset wie beim X: Rabatte, Code, Positionsrabatte, Undo, Bestellbeginn (core#734)
+        this.deleteOrder()
         return this.unselectProduct()
       },
     })

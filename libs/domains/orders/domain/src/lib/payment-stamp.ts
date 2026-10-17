@@ -5,7 +5,7 @@ import { toCents } from './pricing/money'
 //
 // Zwei Stellen muessen diese Frage GLEICH beantworten:
 //
-//   - `getOrderGrossCents` (`@panary/businessdays/aggregator`) liest
+//   - `getOrderGrossCents` (`order-gross.ts`) liest
 //     `payment.totalAmount` als Brutto des Vorgangs — VOR dem `taxSnapshot`,
 //     ausser es ist der nie befuellte Platzhalter.
 //   - `assertOrderIsSplittable` lehnt eine Bestellung mit Zahlungsergebnis ab.

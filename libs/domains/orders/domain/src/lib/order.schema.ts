@@ -475,6 +475,24 @@ export const orderSchema = Type.Object(
      * ein Prozentrabatt je Seite gerundet wird.
      */
     splitRoundingRemainderCents: Type.Optional(Type.Union([Type.Integer(), Type.Null()])),
+
+    /**
+     * Brutto des Vorgangs in Cents, gespeichert beim Schreiben (panary/panary-core#728).
+     *
+     * Immer `getOrderGrossCents(order)` des gespeicherten Stands — der Betrag, den
+     * Bestellliste, Tagesabschluss und Dashboard zeigen. Er existiert, weil sich
+     * dessen Prioritaetskette (Zahlung ausser Platzhalter → `taxSnapshot` →
+     * Positionen) nicht als Datenbank-Bedingung ausdruecken laesst: Die
+     * Betragssuche der Bestellliste filterte deshalb nur `taxSnapshot.brutto` und
+     * fand Bestellungen nicht, deren Spalte einen anderen Betrag zeigte
+     * (panary/panary-cloud#1092).
+     *
+     * 🚫 Nie von einem Client gesetzt: Der Edge-Orders-Service ueberschreibt den
+     * Wert bei jedem create/patch NACH dem Resolver (`stampOrderGrossCents`).
+     * Optional mit `Null`-Zweig, weil Bestandsbons das Feld nicht tragen und der
+     * Edge ungesetzte SQLite-Spalten als `null` pusht.
+     */
+    grossCents: Type.Optional(Type.Union([Type.Integer(), Type.Null()])),
   },
   { $id: 'Order', additionalProperties: false },
 )
@@ -561,6 +579,9 @@ export const orderDataSchema = Type.Intersect(
       // kein Retry, kein Alarm), nicht bloss ein 400.
       'splitOff',
       'splitRoundingRemainderCents',
+      // Gespeichertes Brutto (#728): serverseitig vom Edge gestempelt, im
+      // Sync-Push aber Teil des Records — aus demselben TERMINAL-Grund hier.
+      'grossCents',
     ]),
   ],
   {
@@ -598,6 +619,9 @@ export const orderQueryProperties = Type.Pick(orderSchema, [
   'updatedAt',
   'locationId',
   'tenantId',
+  // Betragssuche der Bestellliste (panary/panary-cloud#1092) — Ganzzahl in Cents,
+  // die Spanne (`$gte`/`$lte`) liefert `querySyntax` mit.
+  'grossCents',
   // Flattened or specific properties could be added if needed
 ])
 // Dot-Notation-Filter fuer verschachtelte Felder (Admin-Bestellliste: „nur

@@ -246,7 +246,7 @@ export class BusinessDaysListComponent implements OnInit {
         this.api.find<BusinessDay>('businessdays', { $sort: { date: -1 }, $limit: 200 }),
         // Best effort: ohne Zeiger greift der Datums-/openedAt-Vergleich, die Liste bleibt sichtbar.
         this.api
-          .find<LocationPointer>('locations', { $select: ['_id', 'currentBusinessDay'] })
+          .find<LocationPointer>('locations', { $select: ['_id', 'currentBusinessDay'], $limit: 200 })
           .catch(() => ({ data: [] as LocationPointer[] })),
       ])
       this.currentDayIds.set(

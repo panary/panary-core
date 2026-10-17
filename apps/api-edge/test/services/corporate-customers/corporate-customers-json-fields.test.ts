@@ -38,10 +38,12 @@ describe('corporate-customers am Edge — JSON-Felder address/invoices/discountD
 
   /** Interner Create mit `fromSync` — exakt der Aufruf aus `sync-apply.ts`. */
   const pullCreate = async (data: Record<string, unknown>): Promise<StoredCorporateCustomer> => {
-    const created = (await app.service('corporate-customers').create(
-      { _id: uuidv7(), tenantId, locationId, ...data } as never,
-      { provider: undefined, fromSync: true } as never,
-    )) as StoredCorporateCustomer
+    const created = (await app
+      .service('corporate-customers')
+      .create(
+        { _id: uuidv7(), tenantId, locationId, ...data } as never,
+        { provider: undefined, fromSync: true } as never,
+      )) as StoredCorporateCustomer
     onTestFinished(() => knex().table('corporate-customers').where({ _id: created._id }).del())
     return created
   }
@@ -66,12 +68,14 @@ describe('corporate-customers am Edge — JSON-Felder address/invoices/discountD
   it('Sync-Patch des vollen Cloud-Records mit address und discountDetails ändert name1', async () => {
     const created = await pullCreate(record('Vor dem Patch'))
 
-    const patched = (await app
-      .service('corporate-customers')
-      .patch(created._id, record('Umbenannt') as never, {
+    const patched = (await app.service('corporate-customers').patch(
+      created._id,
+      record('Umbenannt') as never,
+      {
         provider: undefined,
         fromSync: true,
-      } as never)) as StoredCorporateCustomer
+      } as never,
+    )) as StoredCorporateCustomer
 
     assert.strictEqual(patched.name1, 'Umbenannt')
     const row = await knex().table('corporate-customers').where({ _id: created._id }).first()

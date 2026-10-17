@@ -300,7 +300,8 @@ describe('OrderDialog — Reset-Pfade der Positionsrabatte', () => {
     discountLine(component, 0)
 
     component.setDeleteSubbuttons()
-    const button = component.functionButtons.find(b => b._id === 'deleteOrder')
+    const button = component.functionButtons.find((b: { _id?: string }) => b._id === 'deleteOrder') as
+      { callback?: () => unknown } | undefined
     button?.callback?.()
 
     expect(component.lineItems).toEqual([])

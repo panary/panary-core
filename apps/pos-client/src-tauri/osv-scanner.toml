@@ -4,46 +4,6 @@
 # Tauri-GTK3-Stack gebundene Transitiv-Deps. Regelmäßig re-evaluieren.
 # Scope: nur diese Datei (Auto-Discovery neben Cargo.lock) — pnpm-Scan bleibt streng.
 
-[[IgnoredVulns]]
-id = "RUSTSEC-2024-0413"  # atk
-reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2024-0416"  # atk-sys
-reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2024-0412"  # gdk
-reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2024-0418"  # gdk-sys
-reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2024-0411"  # gdkwayland-sys
-reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2024-0417"  # gdkx11
-reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2024-0414"  # gdkx11-sys
-reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2024-0415"  # gtk
-reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2024-0420"  # gtk-sys
-reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2024-0419"  # gtk3-macros
-reason = "gtk-rs GTK3-Binding unmaintained (kein Fix verfügbar); transitiv über Tauri v2 (webkit2gtk/GTK3). Migration erst mit Tauri-GTK4-Stack."
-
 # glib: osv-scanner meldet den Befund unter der GHSA-ID und filtert den
 # RUSTSEC-Alias automatisch mit ("… and 1 alias have been filtered out").
 # Ein zusaetzlicher RUSTSEC-2024-0429-Eintrag bliebe ungenutzt und wuerde als
@@ -55,26 +15,6 @@ reason = "gtk-rs glib 0.18 (CVSS 6.9 Medium). Fix erst mit glib 0.20 — an den 
 [[IgnoredVulns]]
 id = "RUSTSEC-2024-0370"  # proc-macro-error
 reason = "unmaintained Proc-Macro-Helper (kein Fix); transitive Build-Abhängigkeit."
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2025-0081"  # unic-char-property
-reason = "unmaintained Unicode-Crate (kein Fix); transitive Build-Abhängigkeit im Tauri-Stack."
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2025-0075"  # unic-char-range
-reason = "unmaintained Unicode-Crate (kein Fix); transitive Build-Abhängigkeit im Tauri-Stack."
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2025-0080"  # unic-common
-reason = "unmaintained Unicode-Crate (kein Fix); transitive Build-Abhängigkeit im Tauri-Stack."
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2025-0100"  # unic-ucd-ident
-reason = "unmaintained Unicode-Crate (kein Fix); transitive Build-Abhängigkeit im Tauri-Stack."
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2025-0098"  # unic-ucd-version
-reason = "unmaintained Unicode-Crate (kein Fix); transitive Build-Abhängigkeit im Tauri-Stack."
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0194"  # quick-xml (DoS: quadratische Attribut-Duplikat-Prüfung)
@@ -109,3 +49,52 @@ reason = "Fix rustls 0.23.46 unter 7-Tage-Karenz (veröffentlicht 2026-10-14). S
 id = "RUSTSEC-2026-0349"  # rustls: unauthentifiziertes ServerHello stuft spätere Verbindungen auf klassischen Schlüsseltausch herab
 ignoreUntil = 2026-10-22
 reason = "Fix rustls 0.23.46 unter 7-Tage-Karenz (veröffentlicht 2026-10-14). Herabstufung von Post-Quantum- auf klassischen Schlüsseltausch, keine Entschlüsselung; Bump in panary/panary-core#710."
+
+# --- Befristet akzeptiert: zip 4.6.1 (panary/panary-core#740) -------------------
+# Fix erst in zip 9.0.0. Einziger Parent tauri-plugin-updater verlangt bis zur
+# neuesten 2.x (2.14.0) strikt zip ^4; die Plugin-3.0-Reihe ist Alpha.
+# Plattform: zip ist laut Plugin-Manifest nur für target_os = "windows" eingebunden
+# (macOS/Linux nutzen tar + flate2). build-pos.yml baut Windows (NSIS) und macOS.
+# Exposure: Der Updater prüft die Minisign-Signatur des Downloads vor jedem
+# Entpacken; ein manipuliertes Archiv braucht den privaten Signierschlüssel.
+# createUpdaterArtifacts = true (nicht "v1Compatible") liefert unter Windows die
+# NSIS-.exe selbst aus, der zip-Entpackpfad wird für unsere Artefakte nicht genommen.
+# Eingetragen 2026-10-18 (panary/panary-core#744), Ablauf höchstens 60 Tage.
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0367"  # zip: SUID/SGID-Bits bleiben beim Entpacken erhalten
+ignoreUntil = 2026-12-15
+reason = "Fix zip 9.0.0; tauri-plugin-updater 2.14.0 (neueste 2.x) verlangt zip ^4. Nur Windows-Pfad, Entpacken erst nach Signaturprüfung, unsere NSIS-Artefakte sind nicht gezippt. Re-evaluieren mit Updater-Plugin ≥ 3 stabil (panary/panary-core#740)."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0368"  # zip: extract legt Symlinks mit Zielen außerhalb des Zielordners an
+ignoreUntil = 2026-12-15
+reason = "Fix zip 9.0.0; tauri-plugin-updater 2.14.0 (neueste 2.x) verlangt zip ^4. Nur Windows-Pfad (Symlinks dort ohnehin Sonderrecht), Entpacken erst nach Signaturprüfung, unsere NSIS-Artefakte sind nicht gezippt (panary/panary-core#740)."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0369"  # zip: Unix-Rechte werden durch Symlinks hindurch gesetzt
+ignoreUntil = 2026-12-15
+reason = "Fix zip 9.0.0; tauri-plugin-updater 2.14.0 (neueste 2.x) verlangt zip ^4. Unix-Rechte-Pfad, zip ist nur unter Windows eingebunden; Entpacken erst nach Signaturprüfung (panary/panary-core#740)."
+
+# --- Befristet akzeptiert: zbus-Teilcrates unmaintained (panary/panary-core#744) --
+# Kein Fix-Release: zvariant, zvariant_derive und zbus_names sind seit zbus 6.0.0
+# (2026-10-16, unter 7-Tage-Karenz) in zbus aufgegangen. Einziger Parent zbus 5.x
+# über tauri-plugin-opener, das bis zur neuesten 2.x (2.7.2) zbus ^5.9 verlangt.
+# Plattform: zbus ist nur für Linux/BSD eingebunden (D-Bus); build-pos.yml baut
+# Windows und macOS, kein ausgeliefertes POS-Artefakt enthält den Pfad.
+# Reine Unmaintained-Meldungen, keine bekannte Schwachstelle.
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0370"  # zvariant unmaintained
+ignoreUntil = 2026-12-15
+reason = "In zbus 6 aufgegangen; tauri-plugin-opener 2.7.2 (neueste 2.x) verlangt zbus ^5.9. Nur Linux/BSD-Pfad, kein Linux-Build in build-pos.yml. Re-evaluieren, sobald opener zbus 6 erlaubt."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0371"  # zbus_names unmaintained
+ignoreUntil = 2026-12-15
+reason = "In zbus 6 aufgegangen; tauri-plugin-opener 2.7.2 (neueste 2.x) verlangt zbus ^5.9. Nur Linux/BSD-Pfad, kein Linux-Build in build-pos.yml. Re-evaluieren, sobald opener zbus 6 erlaubt."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0372"  # zvariant_derive unmaintained
+ignoreUntil = 2026-12-15
+reason = "In zbus 6 aufgegangen; tauri-plugin-opener 2.7.2 (neueste 2.x) verlangt zbus ^5.9. Nur Linux/BSD-Pfad, kein Linux-Build in build-pos.yml. Re-evaluieren, sobald opener zbus 6 erlaubt."

@@ -6,6 +6,7 @@ import { CloudManagedBannerComponent } from '../../core/cloud-managed-banner'
 import { CloudManagedService } from '../../core/cloud-managed.service'
 import { ConfirmDialogComponent } from '../../core/confirm-dialog'
 import { formatApiError } from '../../core/error-helper'
+import { findStaleOpenDayIds } from './stale-open-days'
 
 // Lokales Interface (Konvention im admin-client, vgl. user-list/order-list) —
 // Felder gemäß @panary/businessdays/domain business-day.schema.ts.
@@ -19,6 +20,11 @@ interface BusinessDay {
   openedBy?: string | null
   closedAt: string | null
   reportErrorMessage?: string | null
+}
+
+/** Ausschnitt einer Filiale: nur der Zeiger auf den aktuellen Geschaeftstag. */
+interface LocationPointer {
+  currentBusinessDay?: { businessDayId: string } | null
 }
 
 @Component({
@@ -203,38 +209,11 @@ export class BusinessDaysListComponent implements OnInit {
    */
   protected readOnly = this.cloudManaged.readOnly
 
-  /**
-   * Offene Tage, die es nicht mehr geben duerfte.
-   *
-   * Pro Filiale darf genau ein Tag offen sein (openDay-Guard). Mehrere offene
-   * Tage derselben Filiale sind eine Anomalie — typisch nach abgebrochenem
-   * Abschluss oder Zeiger-Drift. Der juengste gilt als der echte, alle aelteren
-   * als verwaist.
-   *
-   * BEWUSST nach locationId gruppiert: ein Tenant mit mehreren Filialen hat
-   * legitim mehrere offene Tage gleichzeitig, und TENANT_OWNER/-MANAGER sehen
-   * ueber multiTenancy alle Filialen. Ohne Gruppierung gaebe es Fehlalarme.
-   */
-  staleOpenIds = computed<ReadonlySet<string>>(() => {
-    const newestPerLocation = new Map<string, BusinessDay>()
-    const stale = new Set<string>()
+  /** `locations.currentBusinessDay.businessDayId` je Filiale — der Tag dort ist nie verwaist (core#737). */
+  private readonly currentDayIds = signal<ReadonlySet<string>>(new Set())
 
-    for (const bd of this.businessDays()) {
-      if (bd.status !== 'open') continue
-      const key = bd.locationId ?? '__global__'
-      const current = newestPerLocation.get(key)
-      if (!current) {
-        newestPerLocation.set(key, bd)
-        continue
-      }
-      // `date` ist YYYY-MM-DD → lexikografischer Vergleich == chronologisch.
-      const isNewer = bd.date > current.date
-      newestPerLocation.set(key, isNewer ? bd : current)
-      stale.add(isNewer ? current._id : bd._id)
-    }
-
-    return stale
-  })
+  /** Verwaiste offene Tage — Regeln in `findStaleOpenDayIds`. */
+  staleOpenIds = computed<ReadonlySet<string>>(() => findStaleOpenDayIds(this.businessDays(), this.currentDayIds()))
 
   hasStaleOpenDays = computed(() => this.staleOpenIds().size > 0)
 
@@ -263,7 +242,20 @@ export class BusinessDaysListComponent implements OnInit {
 
   private async load() {
     try {
-      const result = await this.api.find<BusinessDay>('businessdays', { $sort: { date: -1 }, $limit: 200 })
+      const [result, locations] = await Promise.all([
+        this.api.find<BusinessDay>('businessdays', { $sort: { date: -1 }, $limit: 200 }),
+        // Best effort: ohne Zeiger greift der Datums-/openedAt-Vergleich, die Liste bleibt sichtbar.
+        this.api
+          .find<LocationPointer>('locations', { $select: ['_id', 'currentBusinessDay'] })
+          .catch(() => ({ data: [] as LocationPointer[] })),
+      ])
+      this.currentDayIds.set(
+        new Set(
+          locations.data.flatMap(l =>
+            l.currentBusinessDay?.businessDayId ? [l.currentBusinessDay.businessDayId] : [],
+          ),
+        ),
+      )
       this.businessDays.set(result.data)
     } catch (e) {
       console.error('Fehler beim Laden der Geschäftstage:', e)

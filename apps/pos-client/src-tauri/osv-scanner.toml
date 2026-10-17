@@ -1,7 +1,7 @@
-# OSV-Scanner: bewusst akzeptierte Advisories für die Tauri-Linux-Build-Deps
-# (Cargo.lock in diesem Verzeichnis). osv-scanner v2.3.8 meldet strenger als
-# v2.0.2; die folgenden Findings sind unmaintained-Crates ohne Fix bzw. an den
-# Tauri-GTK3-Stack gebundene Transitiv-Deps. Regelmäßig re-evaluieren.
+# OSV-Scanner: bewusst akzeptierte Advisories für die Tauri-Rust-Deps des POS
+# (Cargo.lock in diesem Verzeichnis): unmaintained-Crates ohne Fix bzw.
+# Transitiv-Deps, die an Tauri-Plugins gebunden und nicht isoliert bumpbar sind.
+# Jeder Eintrag nennt Parent, Plattform und Exposure; neue Einträge mit ignoreUntil.
 # Scope: nur diese Datei (Auto-Discovery neben Cargo.lock) — pnpm-Scan bleibt streng.
 
 # glib: osv-scanner meldet den Befund unter der GHSA-ID und filtert den

@@ -5,7 +5,7 @@ import type { FormatsPluginOptions } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 
 import { generateDefaultLocationSettings } from './default-settings'
-import { locationDataSchema, locationQuerySchema, locationSchema } from './location.schema'
+import { locationDataSchema, locationPatchSchema, locationQuerySchema, locationSchema } from './location.schema'
 
 // Regression Standort-Settings-Sync (2026-07-28): Das Data-Schema war ein
 // strikter Pick OHNE `_id`/`createdAt`/`updatedAt` (additionalProperties:
@@ -116,6 +116,33 @@ describe('locationDataSchema (Bootstrap-Push mit leeren SQLite-Spalten)', () => 
     await expect(validator({ ...syncedCloudLocation, handle: 'Groß Buchstaben' })).rejects.toThrow()
     await expect(validator({ ...syncedCloudLocation, defaultCurrency: 'euro' })).rejects.toThrow()
     await expect(validator({ ...syncedCloudLocation, locale: 'de_DE' })).rejects.toThrow()
+  })
+})
+
+// Filiale ohne E-Mail/Telefon/Website (core#738): Die Spalten sind nullable,
+// `collectAllRecords` liest die Row roh — der Bootstrap-Push brach an `/email: must be string` ab.
+describe('locationDataSchema/locationPatchSchema — null in email, phone, website (core#738)', () => {
+  const patchValidator = getValidator(locationPatchSchema, addFormats(new Ajv({}), formats))
+
+  it('akzeptiert im Bootstrap-Push eine Filiale mit null in allen drei Kontaktfeldern', async () => {
+    await expect(validator({ ...syncedCloudLocation, email: null, phone: null, website: null })).resolves.toBeTruthy()
+  })
+
+  it.each(['email', 'phone', 'website'])('ein Patch darf %s auf null leeren', async field => {
+    await expect(patchValidator({ [field]: null })).resolves.toEqual({ [field]: null })
+  })
+
+  it('andere Felder lehnen null weiter ab', async () => {
+    await expect(validator({ ...syncedCloudLocation, name: null })).rejects.toThrow()
+    await expect(patchValidator({ name: null })).rejects.toThrow()
+    await expect(patchValidator({ organizationName: null })).rejects.toThrow()
+    await expect(patchValidator({ address: null })).rejects.toThrow()
+  })
+
+  it('gesetzte Werte prüfen weiter Format und Länge', async () => {
+    await expect(validator({ ...syncedCloudLocation, email: 'keine-mail' })).rejects.toThrow()
+    await expect(validator({ ...syncedCloudLocation, website: 'kein uri' })).rejects.toThrow()
+    await expect(validator({ ...syncedCloudLocation, phone: 'x'.repeat(33) })).rejects.toThrow()
   })
 })
 

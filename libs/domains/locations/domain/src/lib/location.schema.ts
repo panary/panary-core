@@ -372,7 +372,9 @@ export const locationSchema = Type.Object(
     // jedem nicht-undefined-Wert; ein leerer String aus einem Form-Reset wuerde
     // sonst gegen "format: email" / "format: uri" abgewiesen. `Type.Optional`
     // selbst erlaubt nur `undefined`, daher die Union mit `Literal('')`.
-    email: Type.Optional(Type.Union([Type.String({ format: 'email' }), Type.Literal('')])),
+    // `Type.Null()` bei email/phone/website: nullable SQLite-Spalten, der Bootstrap-Push
+    // liefert `null` (gleiche Falle wie `brandId`, #183; core#738). Bewusst nur diese drei.
+    email: Type.Optional(Type.Union([Type.String({ format: 'email' }), Type.Literal(''), Type.Null()])),
     name: Type.String({ minLength: 1, maxLength: 120 }),
     /**
      * @deprecated Phase 7 (Tenant-First-Class-Migration): Der Anzeige-Name
@@ -382,10 +384,10 @@ export const locationSchema = Type.Object(
      * entfernt, sobald alle Edge-Instanzen das neue Schema kennen.
      */
     organizationName: Type.Optional(Type.String({ maxLength: 200 })),
-    phone: Type.Optional(Type.String({ maxLength: 32 })),
+    phone: Type.Optional(Type.Union([Type.String({ maxLength: 32 }), Type.Null()])),
     settings: Type.Optional(settingsSchema),
     status: Type.Optional(StringEnum(Object.values(LocationStatus))),
-    website: Type.Optional(Type.Union([Type.String({ format: 'uri' }), Type.Literal('')])),
+    website: Type.Optional(Type.Union([Type.String({ format: 'uri' }), Type.Literal(''), Type.Null()])),
 
     // BCP-47-Locale-Tag (z.B. 'de-DE', 'de-AT', 'de-CH'). Steuert die
     // Prompt-Sprache der KI-Beleg-Extraktion. Bewusst getrennt von

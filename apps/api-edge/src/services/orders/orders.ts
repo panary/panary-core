@@ -59,6 +59,7 @@ import { rejectLegacyDiscount } from '../../hooks/reject-legacy-discount.hook'
 import { issueReceipt } from '../../hooks/issue-receipt.hook'
 import { ensureIndexes } from '@panary/shared-backend'
 import { createOrderSplitMethod } from './order-split.method'
+import { stampOrderGrossCents } from '../../hooks/stamp-order-gross-cents.hook'
 
 export const ordersPath = 'orders'
 export const ordersMethods = ['find', 'get', 'create', 'patch', 'remove', 'split'] as const
@@ -186,6 +187,8 @@ export const orders = (app: Application) => {
         calculateTaxDetails,
         validateData(orderDataValidator),
         schemaHooks.resolveData(orderDataResolver),
+        // Gespeichertes Brutto (#728) — nach dem Resolver, vor der JSON-Serialisierung.
+        stampOrderGrossCents,
         ...jsonHooks.before,
       ],
       patch: [
@@ -229,6 +232,8 @@ export const orders = (app: Application) => {
         signOrderTseCancel,
         validateData(orderPatchValidator),
         schemaHooks.resolveData(orderPatchResolver),
+        // Gespeichertes Brutto (#728) auf dem gemergten Zielstand — Begruendung im Hook.
+        stampOrderGrossCents,
         ...jsonHooks.before,
       ],
       remove: [],

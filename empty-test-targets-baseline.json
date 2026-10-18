@@ -33,7 +33,6 @@
     "user-preferences-domain",
     "users-data-access",
     "working-times-data-access",
-    "working-times-feature-pos-history",
-    "write-offs-data-access"
+    "working-times-feature-pos-history"
   ]
 }

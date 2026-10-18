@@ -464,10 +464,13 @@
       </div>
 
       <!-- SPALTE 2: Funktionstasten -->
-      <div class="flex flex-col gap-1.5 shrink-0 pt-0">
+      <!-- Die Tasten schrumpfen nie (`shrink-0`): ADR 0034 haelt das 56-px-Mass, code-style §9
+           die 48 px. Reicht die Hoehe nicht fuer alle sieben, scrollt die Spalte, statt dass
+           die Zeile (`overflow-hidden`) die unteren abschneidet (core#757). -->
+      <div class="flex flex-col gap-1.5 shrink-0 pt-0 min-h-0 overflow-y-auto overflow-x-hidden [scrollbar-width:none]">
         <button
           (click)="unselectProduct()"
-          class="pnry-touch h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          class="pnry-touch shrink-0 h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           aria-label="Auswahl aufheben"
         >
           <span class="material-symbols-outlined text-[1.375rem]" style="font-size: inherit">remove_done</span>
@@ -478,7 +481,7 @@
              Letzteres greift nur bei aktivem Fluid-Flag. -->
         <button
           type="button"
-          class="pnry-touch h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:active:scale-100 disabled:hover:bg-transparent"
+          class="pnry-touch shrink-0 h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:active:scale-100 disabled:hover:bg-transparent"
           [disabled]="!canMutateSelection()"
           (click)="increaseSelectedQuantity()"
           aria-label="Menge der Markierung erhöhen"
@@ -487,7 +490,7 @@
         </button>
         <button
           type="button"
-          class="pnry-touch h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:active:scale-100 disabled:hover:bg-transparent"
+          class="pnry-touch shrink-0 h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:active:scale-100 disabled:hover:bg-transparent"
           [disabled]="!canDecreaseSelection()"
           (click)="decreaseSelectedQuantity()"
           aria-label="Menge der Markierung verringern"
@@ -496,7 +499,7 @@
         </button>
         <button
           type="button"
-          class="pnry-touch h-14 w-14 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-900/50 text-red-500 dark:text-red-400 active:scale-95 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/50 disabled:opacity-40 disabled:active:scale-100 disabled:hover:bg-red-50 dark:disabled:hover:bg-red-900/30"
+          class="pnry-touch shrink-0 h-14 w-14 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-900/50 text-red-500 dark:text-red-400 active:scale-95 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/50 disabled:opacity-40 disabled:active:scale-100 disabled:hover:bg-red-50 dark:disabled:hover:bg-red-900/30"
           [disabled]="!canMutateSelection()"
           (click)="deleteSelection()"
           aria-label="Markierung löschen"
@@ -505,20 +508,20 @@
         </button>
         <button
           (click)="togglePriceVisibility()"
-          class="pnry-touch h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          class="pnry-touch shrink-0 h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           [class.text-blue-500]="priceVisibility"
         >
           <span class="material-symbols-outlined text-[1.375rem]" style="font-size: inherit">euro_symbol</span>
         </button>
         <button
-          class="pnry-touch h-14 w-14 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-900/50 text-red-500 dark:text-red-400 active:scale-95 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/50"
+          class="pnry-touch shrink-0 h-14 w-14 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-900/50 text-red-500 dark:text-red-400 active:scale-95 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/50"
           (click)="setDeleteSubbuttons()"
           aria-label="Löschen-Menü"
         >
           <span class="material-symbols-outlined text-[1.375rem]" style="font-size: inherit">delete_forever</span>
         </button>
         <button
-          class="pnry-touch h-14 w-14 rounded-xl bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-900/50 text-purple-600 dark:text-purple-300 active:scale-95 flex items-center justify-center hover:bg-purple-100 dark:hover:bg-purple-900/50"
+          class="pnry-touch shrink-0 h-14 w-14 rounded-xl bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-900/50 text-purple-600 dark:text-purple-300 active:scale-95 flex items-center justify-center hover:bg-purple-100 dark:hover:bg-purple-900/50"
           (click)="setCombiSubButtons()"
           aria-label="Kombination"
         >

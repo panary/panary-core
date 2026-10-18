@@ -71,3 +71,22 @@ describe('OrderDialog-Template — Umschalter im Anpassen-Panel (#699)', () => {
     expect(template).toContain('(scopeChanged)="onCustomizeScopeChanged($event)"')
   })
 })
+
+// Spalte 2 wurde bei niedriger Fensterhoehe gestaucht: Die Tasten hatten `flex-shrink: 1`,
+// bei 1024×600 ohne Fluid-Flag noch 45 px, bei 800×600 36 px (#757).
+describe('OrderDialog-Template — Funktionstasten in Spalte 2 (#757)', () => {
+  const start = template.indexOf('<!-- SPALTE 2: Funktionstasten -->')
+  const spalte = template.slice(start, template.indexOf('<!-- SPALTE 3: Produkte -->'))
+  const container = spalte.match(/<div class="([^"]*)">/)?.[1].split(/\s+/) ?? []
+  const tasten = [...spalte.matchAll(/<button[^>]*class="([^"]*)"/g)].map(m => m[1].split(/\s+/))
+
+  it('hat sieben Tasten, keine davon schrumpft', () => {
+    expect(start).toBeGreaterThan(-1)
+    expect(tasten).toHaveLength(7)
+    expect(tasten.filter(klassen => !klassen.includes('shrink-0') || !klassen.includes('h-14'))).toEqual([])
+  })
+
+  it('scrollt bei zu wenig Hoehe, statt abzuschneiden', () => {
+    expect(container).toEqual(expect.arrayContaining(['shrink-0', 'min-h-0', 'overflow-y-auto']))
+  })
+})

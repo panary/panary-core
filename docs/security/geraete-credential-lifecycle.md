@@ -203,8 +203,24 @@ Weg über die Services verdeckt, statt ihn zu schließen.
 Durchgesetzt wird sie vom Validator, nicht vom Resolver — `validateData(apikeyDataValidator)`
 im `before.create` von `apps/api-edge/src/services/apikeys/apikeys.ts`. Eine Anlage
 mit einer Tenant- oder Plattform-Rolle endet mit `400` und einem AJV-Eintrag auf
-`/role`. Ohne `role` bleibt alles wie gehabt: Der Resolver leitet aus `device.type`
-ab und fällt sonst auf `DEVICE_POS`.
+`/role`. Ohne `role` leitet der Resolver die Rolle aus `device.type` ab
+(`kds` → `device:kds`, `tablet` → `device:tablet`, `pos-counter`/`other` →
+`device:pos-client`); ohne `deviceId` (Integrations-Schlüssel) gilt `DEVICE_POS`.
+
+🚨 **Das Gerät wird über das FELD `deviceId` gesucht, nicht per `get`**
+(panary/panary-core#762). `apikeys.deviceId` ist `devices.deviceId`, der
+devices-Service ist aber mit `id: '_id'` registriert — eine andere UUID. Bis #762
+rief der Resolver `devices.get(deviceId)`; das scheiterte in **jedem**
+Produktionspfad (`POST /devices`, Pairing-Code-Redeem), ein leerer `catch`
+verschluckte es, und jedes KDS und Tablet bekam still `device:pos-client` mit allen
+POS-Rechten. Jetzt `find({ query: { deviceId, $limit: 1 } })` mit
+`provider: undefined`; ein nicht auffindbares Gerät wirft `BadRequest` und loggt
+`apikeys.device_role_unresolved`, statt die breiteste Geräterolle zu bekommen.
+Netz: `test/services/apikeys/apikey-device-role.test.ts` gegen den echten
+devices-Service auf der migrierten Test-SQLite, je Typ und je Weg (intern,
+`POST /devices`, Redeem). Bestandsschlüssel zieht die Migration
+`20261018120000_fix_device_apikey_roles` nach: nur `device:pos-client` an einem
+Gerät vom Typ `kds`/`tablet`, jede andere Rolle bleibt.
 
 🚨 **Das Lese-Schema `apikeySchema.role` bleibt bewusst weit.** Die Versuchung,
 die Einschränkung „konsequenterweise" auch dort nachzuziehen, ist der eigentliche
@@ -260,6 +276,7 @@ dabei gegen das Data-Schema validiert würde.
 - `libs/domains/devices/domain/src/lib/device-reverification.ts` — Schwellen-Auflösung, framework-frei
 - `libs/domains/apikeys/domain/src/lib/apikey-lifecycle.ts` — Schwellen und Bewertung
 - `libs/domains/apikeys/domain/src/lib/apikey.schema.ts` — `APIKEY_DEVICE_ROLES`, Data- vs. Lese-Schema
-- `apps/api-edge/src/services/apikeys/apikeys.schema.ts` — Patch-Resolver, Rollen-Default aus `device.type`
+- `apps/api-edge/src/services/apikeys/apikeys.schema.ts` — Patch-Resolver, Rollen-Default aus `device.type` (Suche über das Feld `deviceId`, #762)
+- `apps/api-edge/migrations/20261018120000_fix_device_apikey_roles.ts` — Backfill der KDS-/Tablet-Rollen (#762)
 - `apps/api-edge/src/channels.ts`, `apps/api-edge/src/print-server/auth.middleware.ts`
 - `apps/admin-client/src/app/features/apikeys/apikey-form.ts` — Verwaist-Anzeige, Rollen-Dropdown

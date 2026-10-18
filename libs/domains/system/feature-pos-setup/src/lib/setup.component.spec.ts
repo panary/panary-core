@@ -31,14 +31,21 @@ import { SetupComponent } from './setup.component'
  * `inject()`-Tokens als `useValue`-Mocks in einem eigenen Injector. Alles je Test angelegt
  * (`.claude/rules/testing.md` §10).
  */
-function setup(results: AdminLoginResult[] = [{ kind: 'ok' }]) {
+type Org = { _id: string; name: string }
+type Loc = { _id: string; name: string; tenantId: string }
+
+function setup(
+  results: AdminLoginResult[] = [{ kind: 'ok' }],
+  orgs: Org[] = [{ _id: 't1', name: 'Backstube' }],
+  locs: Loc[] = [{ _id: 'l1', name: 'Altstadt', tenantId: 't1' }],
+) {
   const calls: SetupCredentials[] = []
   const queue = [...results]
   const configService = {
     registrationStatus: signal('idle'),
     registrationError: signal<string | null>(null),
-    organizations: signal([{ _id: 't1', name: 'Backstube' }]),
-    locations: signal([{ _id: 'l1', name: 'Altstadt', tenantId: 't1' }]),
+    organizations: signal(orgs),
+    locations: signal(locs),
     getLanguage: () => 'de',
     resetStatus: () => undefined,
     adminLogin: vi.fn((credentials: SetupCredentials) => {
@@ -69,8 +76,8 @@ function setup(results: AdminLoginResult[] = [{ kind: 'ok' }]) {
 }
 
 const fillAdminForm = (component: SetupComponent) => {
-  component.email = 'owner@example.invalid'
-  component.password = 'geheim'
+  component.email.set('owner@example.invalid')
+  component.password.set('geheim')
 }
 
 describe('SetupComponent — Admin-Login im Cloud-Pfad', () => {
@@ -86,8 +93,8 @@ describe('SetupComponent — Admin-Login im Cloud-Pfad', () => {
       { serverUrl: 'https://api.panary.test', email: 'owner@example.invalid', password: 'geheim', target: 'cloud' },
     ])
     expect(component.currentStep()).toBe('select-org')
-    expect(component.selectedTenantId).toBe('t1')
-    expect(component.selectedLocationId).toBe('l1')
+    expect(component.selectedTenantId()).toBe('t1')
+    expect(component.selectedLocationId()).toBe('l1')
   })
 
   it('zeigt bei mehreren Mitgliedschaften die Auswahl und koppelt die gewählte', async () => {
@@ -135,7 +142,7 @@ describe('SetupComponent — Admin-Login im Cloud-Pfad', () => {
 
     expect(component.currentStep()).toBe('server-login')
     expect(component.serverLoginMode()).toBe('admin')
-    expect(component.password).toBe('')
+    expect(component.password()).toBe('')
     expect(component.loginRejectionMessage()?.key).toBe('SETUP.LOGIN_INVALID_CREDENTIALS')
   })
 
@@ -147,7 +154,7 @@ describe('SetupComponent — Admin-Login im Cloud-Pfad', () => {
 
     await component.submitStep1()
 
-    expect(component.password).toBe('geheim')
+    expect(component.password()).toBe('geheim')
     expect(component.loginRejectionMessage()).toEqual({ key: 'SETUP.LOGIN_RATE_LIMITED', params: { seconds: 42 } })
   })
 
@@ -178,12 +185,47 @@ describe('SetupComponent — Hub-Pfad', () => {
   it('meldet sich am Hub mit target hub an', async () => {
     const { component, calls } = setup()
     component.chooseLocalHub()
-    component.serverUrl = 'http://192.168.1.5:3030'
+    component.serverUrl.set('http://192.168.1.5:3030')
     component.goToServerLogin()
     fillAdminForm(component)
 
     await component.submitStep1()
 
     expect(calls[0]).toEqual(expect.objectContaining({ serverUrl: 'http://192.168.1.5:3030', target: 'hub' }))
+  })
+})
+
+describe('SetupComponent — Organisationswahl', () => {
+  it('zeigt nach dem Wechsel zwischen zwei Organisationen deren Filialen (core#765)', async () => {
+    const orgs = [
+      { _id: 't1', name: 'Backstube' },
+      { _id: 't2', name: 'Café Hafen' },
+    ]
+    const locs = [
+      { _id: 'l1', name: 'Altstadt', tenantId: 't1' },
+      { _id: 'l2', name: 'Hafen Nord', tenantId: 't2' },
+      { _id: 'l3', name: 'Hafen Süd', tenantId: 't2' },
+    ]
+    const { component } = setup([{ kind: 'ok' }], orgs, locs)
+    component.chooseLocalHub()
+    component.goToServerLogin()
+    fillAdminForm(component)
+    await component.submitStep1()
+
+    // Das Template liest die Liste schon bei leerer Auswahl — genau dann hing sie früher fest.
+    expect(component.currentStep()).toBe('select-org')
+    expect(component.filteredLocations()).toEqual([])
+
+    component.selectedTenantId.set('t2')
+    component.onOrganizationChange()
+
+    expect(component.filteredLocations().map(loc => loc._id)).toEqual(['l2', 'l3'])
+    expect(component.selectedLocationId()).toBe('')
+
+    component.selectedTenantId.set('t1')
+    component.onOrganizationChange()
+
+    expect(component.filteredLocations().map(loc => loc._id)).toEqual(['l1'])
+    expect(component.selectedLocationId()).toBe('l1')
   })
 })

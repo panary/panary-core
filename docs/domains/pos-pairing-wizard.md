@@ -4,7 +4,7 @@ title: POS-Pairing-Wizard — Cloud-Default + lokaler Hub (mDNS/QR/manuell)
 description: Geführte POS-Inbetriebnahme mit Panary-Cloud-Default und lokaler Hub-Erkennung via mDNS, QR oder manueller IP samt single-use Pairing-Code-Flow und Admin-Login-Fallback (Cloud über account-login).
 tags: [system, devices, data-access-config, pos, pairing]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-18T00:00:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-18T21:00:00Z }
 ---
 
 # POS-Pairing-Wizard
@@ -214,13 +214,11 @@ Code-Record** gestempelt (nie aus dem Request-Body — `multiTenancy` stempelt b
 - **`SetupComponent`**: verzweigter `SetupStep`-Flow, Signals, i18n (de/en/tr),
   flache CSS-/SVG-Animationen. QR-Scan dependency-frei via `BarcodeDetector`
   (degradiert auf WebKitGTK → manuelle Eingabe).
-  ⚠️ **Bekannte Abweichung von `angular.md` §6:** Die Komponente hat kein `OnPush`. Die
-  Formularfelder (`serverUrl`, `email`, `password`, `selectedTenantId`, …) sind einfache
-  Properties mit `ngModel`. Daran hängt ein Altfehler: `filteredLocations` ist ein `computed`,
-  das `selectedTenantId` liest, ohne es zu tracken. Wird es zuerst bei leerer Auswahl ausgewertet,
-  hat es keine Abhängigkeit und bleibt `[]`. Das trifft nur Logins mit mehreren Organisationen;
-  ein mandantengebundenes Token liefert eine, die sofort gewählt wird. Der Umbau auf Signals plus
-  `OnPush` ist offen.
+  Die Formularfelder (`serverUrl`, `email`, `password`, `selectedTenantId`, …) sind Signals mit
+  `[(ngModel)]`-Zweiwegebindung, die Komponente läuft mit `OnPush`. Vorher hing `filteredLocations`
+  als `computed` an einer einfachen Property und blieb nach der ersten Auswertung bei leerer
+  Auswahl dauerhaft `[]` — bei mehreren Organisationen blieb der Standort-Dropdown leer
+  ([#765](https://github.com/panary/panary-core/issues/765)).
 
 ## Invariante: DeviceConfig-Wechsel erfordert einen App-Neustart
 

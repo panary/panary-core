@@ -1,10 +1,10 @@
 ---
 type: Domain Concept
 title: POS-Pairing-Wizard — Cloud-Default + lokaler Hub (mDNS/QR/manuell)
-description: Geführte POS-Inbetriebnahme mit Panary-Cloud-Default und lokaler Hub-Erkennung via mDNS, QR oder manueller IP samt single-use Pairing-Code-Flow.
+description: Geführte POS-Inbetriebnahme mit Panary-Cloud-Default und lokaler Hub-Erkennung via mDNS, QR oder manueller IP samt single-use Pairing-Code-Flow und Admin-Login-Fallback (Cloud über account-login).
 tags: [system, devices, data-access-config, pos, pairing]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-08-02T00:00:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-18T00:00:00Z }
 ---
 
 # POS-Pairing-Wizard
@@ -41,6 +41,70 @@ welcome ──► [Cloud]  ─────────────────�
 
 Der nachgelagerte Teil (`select-org` → `device-info` → `registerDevice`) bleibt
 gegenüber dem alten Setup unverändert und wird wiederverwendet.
+
+### `server-login`: Code oder Admin-Login (`serverLoginMode`)
+
+Der Schritt hat zwei Formulare, umgeschaltet über das Signal `serverLoginMode`:
+
+| Modus | Einstieg | Ablauf |
+|---|---|---|
+| `code` | Cloud-Pfad (Default, `chooseCloud()`) | Kopplungscode → `redeemPairingCode()` → `success`, ohne `select-org` |
+| `admin` | Umschalter „Mit Admin-Login“; im Hub-Pfad direkt über `goToServerLogin()` | E-Mail + Passwort → `adminLogin()` → `select-org` |
+
+`switchServerLoginMode()` verwirft beim Wechsel eine angezeigte Abweisung und eine offene
+Mandantenauswahl. Der Hub-Button setzt seit panary/panary-core#754 `admin` selbst: Vorher landete man im
+Code-Formular, das `hub-auth` schon angeboten hatte.
+
+### Admin-Login: Cloud über `account-login`, Hub über `local` (panary/panary-core#754)
+
+Seit dem Account-Split liegt das Passwort eines Cloud-Kontos in `accounts`, nicht mehr am
+Mitglieds-User. Die rohe `local`-Strategie antwortet in der Cloud für Tenant-Konten deshalb
+mit 401. `DeviceConfigService.adminLogin()` unterscheidet die Gegenstelle über
+`SetupCredentials.target`:
+
+- **`cloud`:** `account-login.create({ email, password, membershipId? })` auf dem Setup-Socket
+  (`/ws`). Die Antwort sortiert `classifyAccountLoginResponse()` (`admin-login.logic.ts`):
+  - **Token:** `authenticate({ strategy: 'jwt', accessToken })` auf demselben Client, wie das
+    Dashboard. Danach laufen `organizations`/`locations`/`devices.create` wie bisher. Das
+    Token gilt für **eine** Mitgliedschaft, die Rechte sind die ihrer Rolle: Koppeln dürfen
+    `tenant:owner` und `tenant:technician` (`devices` M), `tenant:manager` nicht
+    ([Rollen-Matrix](../security/rollen-matrix.md)).
+  - **Auswahl** (`requiresSelection`): Das Formular zeigt die Betriebe, ein Klick wiederholt
+    den Aufruf mit `membershipId`. Die Cloud hält zwischen den Aufrufen keinen Zustand, E-Mail
+    und Passwort gehen erneut mit. Der Socket wird dazwischen geschlossen.
+  - **Zweiter Faktor** (`requiresMfa`, ebenso ein 401 mit `MFA_GRACE_EXPIRED`): kein
+    Passkey-Dialog, weil WebAuthn im Tauri-Webview je Plattform uneinheitlich ist. Der Wizard
+    wechselt mit der Meldung „Bitte mit Kopplungscode koppeln“ in den Code-Modus.
+- **`hub`:** `authenticate({ strategy: 'local', email, password })` am Edge, unverändert.
+  Der Edge kennt kein `account-login`.
+
+Die Typen `AdminLoginResult` und `AdminLoginRejection` stehen in `device-config.model.ts`.
+
+**Abweisungen erscheinen im Formular, nicht im Fehler-Schritt.** `classifyAdminLoginError()`
+ordnet den Feathers-Fehler zu:
+
+| Code | Art | Formular |
+|---|---|---|
+| 401 | `invalid-credentials` | Meldung, Passwortfeld geleert |
+| 429 (`data.retryAfter`) | `rate-limited` | Meldung mit Wartezeit, Passwort bleibt |
+| 503 | `unavailable` | Meldung (mit Wartezeit, wenn der Server sie nennt), Passwort bleibt |
+| 401 `MFA_*` / `requiresMfa` | `mfa-required` | Meldung über dem Code-Formular |
+
+Alles andere (Timeout, Verbindungsabbruch, Antwort ohne Token, Fehler beim Laden der
+Organisationen) setzt wie bisher `registrationStatus = 'error'` und zeigt den Fehler-Schritt.
+Ein 401 aus dem Ladeschritt ist kein falsches Passwort: `loadOrganizationsAndLocations()`
+verpackt Fehler ohne `code` neu.
+
+**Warum eine lokale Minimalfassung statt `classifyAccountLoginResponse` aus panary-cloud:**
+core darf cloud nicht importieren. Eine geteilte Lib hieße für drei Abfragen einen Core-Release
+plus Pin-Bump in cloud, und der Setup braucht weder die Passkey-Challenge noch die
+Recovery-Code-Felder. Eine Antwort ohne Token wird nie als Sitzung gelesen.
+
+**Zugangsdaten auf dem Gerät:** Passwort und JWT bleiben im Speicher von Komponente und
+Setup-Client. Persistiert wird wie bisher nur die `DeviceConfig` nach `devices.create`.
+
+Den Login-Nachweis (ALTCHA, 428 aus panary/panary-cloud#1299) löst der Wizard noch nicht. Ein
+428 fällt bis dahin in den Fehler-Schritt; das Lösen folgt in panary/panary-core#755.
 
 Der Abschluss ist bewusst **kein** SPA-Routenwechsel, sondern ein Neustart der App —
 siehe [Invariante](#invariante-deviceconfig-wechsel-erfordert-einen-app-neustart).
@@ -147,9 +211,16 @@ Code-Record** gestempelt (nie aus dem Request-Body — `multiTenancy` stempelt b
 - **`DeviceConfigService.redeemPairingCode(serverUrl, code, device)`**: ruft
   `POST /device-pairing/redeem`, speichert `DeviceConfig` (gleiche Shape wie `registerDevice`).
 - **`APP_CONFIG.cloudUrl`** (`https://api.panary.cloud`): Default-Ziel des Cloud-Pfads.
-- **`SetupComponent`**: verzweigter `SetupStep`-Flow, Signals + OnPush, i18n (de/en/tr),
+- **`SetupComponent`**: verzweigter `SetupStep`-Flow, Signals, i18n (de/en/tr),
   flache CSS-/SVG-Animationen. QR-Scan dependency-frei via `BarcodeDetector`
   (degradiert auf WebKitGTK → manuelle Eingabe).
+  ⚠️ **Bekannte Abweichung von `angular.md` §6:** Die Komponente hat kein `OnPush`. Die
+  Formularfelder (`serverUrl`, `email`, `password`, `selectedTenantId`, …) sind einfache
+  Properties mit `ngModel`. Daran hängt ein Altfehler: `filteredLocations` ist ein `computed`,
+  das `selectedTenantId` liest, ohne es zu tracken. Wird es zuerst bei leerer Auswahl ausgewertet,
+  hat es keine Abhängigkeit und bleibt `[]`. Das trifft nur Logins mit mehreren Organisationen;
+  ein mandantengebundenes Token liefert eine, die sofort gewählt wird. Der Umbau auf Signals plus
+  `OnPush` ist offen.
 
 ## Invariante: DeviceConfig-Wechsel erfordert einen App-Neustart
 

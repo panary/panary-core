@@ -539,6 +539,16 @@
             </p>
           }
 
+          @if (loginRejectionMessage(); as rejectionMsg) {
+            <p
+              role="alert"
+              data-testid="login-rejection"
+              class="w-full mb-5 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-600 dark:text-red-400"
+            >
+              {{ rejectionMsg.key | translate: rejectionMsg.params }}
+            </p>
+          }
+
           @if (serverLoginMode() === 'code') {
             <!-- Cloud-Kopplung per Code (bevorzugt): keine Admin-Credentials aufs Gerät. -->
             <form class="w-full flex flex-col gap-5" (ngSubmit)="submitPairingCode()">
@@ -629,7 +639,7 @@
 
             <button
               type="button"
-              (click)="serverLoginMode.set('admin')"
+              (click)="switchServerLoginMode('admin')"
               class="mt-6 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors underline underline-offset-4"
             >
               {{ 'SETUP.USE_ADMIN_LOGIN' | translate }}
@@ -672,6 +682,24 @@
                 />
               </div>
 
+              @if (loginMemberships().length > 0) {
+                <div class="flex flex-col gap-2" data-testid="membership-selection">
+                  <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    {{ 'SETUP.SELECT_MEMBERSHIP' | translate }}
+                  </p>
+                  @for (membership of loginMemberships(); track membership.membershipId) {
+                    <button
+                      type="button"
+                      (click)="submitStep1(membership.membershipId)"
+                      [disabled]="isLoading()"
+                      class="w-full min-h-12 text-left bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-lg px-4 py-3 font-semibold text-gray-900 dark:text-white hover:border-gray-900 dark:hover:border-white active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {{ membership.tenantName || membership.tenantId }}
+                    </button>
+                  }
+                </div>
+              }
+
               <div class="flex gap-3 mt-2">
                 <button
                   type="button"
@@ -702,7 +730,7 @@
 
             <button
               type="button"
-              (click)="serverLoginMode.set('code')"
+              (click)="switchServerLoginMode('code')"
               class="mt-6 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors underline underline-offset-4"
             >
               {{ 'SETUP.USE_PAIRING_CODE' | translate }}

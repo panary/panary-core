@@ -2,6 +2,8 @@ import { Component, inject, signal, WritableSignal, computed, effect, viewChild,
 import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
 import {
+  AdminLoginMembership,
+  AdminLoginRejection,
   DeviceConfigService,
   DeviceRegistrationRequest,
   RegistrationStatus,
@@ -91,6 +93,12 @@ export class SetupComponent {
   // nutzt denselben submitPairingCode()/redeemPairingCode() wie der lokale Hub —
   // URL-agnostisch, funktioniert gegen die Cloud (POST /device-pairing/redeem).
   readonly serverLoginMode = signal<'code' | 'admin'>('code')
+
+  // Abweisung des Admin-Logins, im Formular angezeigt statt im Fehler-Schritt (core#754).
+  // Bei `mfa-required` steht sie über dem Code-Formular, in das der Wizard dann wechselt.
+  readonly loginRejection: WritableSignal<AdminLoginRejection | null> = signal(null)
+  // Cloud-Konto mit mehreren Mitgliedschaften: Auswahl vor dem zweiten account-login-Aufruf.
+  readonly loginMemberships: WritableSignal<AdminLoginMembership[]> = signal([])
   //#endregion
 
   //#region Available Device Types
@@ -175,6 +183,22 @@ export class SetupComponent {
     }
   })
 
+  readonly loginRejectionMessage = computed(() => {
+    const rejection = this.loginRejection()
+    if (!rejection) return null
+    const params = { seconds: rejection.retryAfter }
+    switch (rejection.kind) {
+      case 'invalid-credentials':
+        return { key: 'SETUP.LOGIN_INVALID_CREDENTIALS', params }
+      case 'rate-limited':
+        return { key: rejection.retryAfter ? 'SETUP.LOGIN_RATE_LIMITED' : 'SETUP.LOGIN_RATE_LIMITED_NO_WAIT', params }
+      case 'unavailable':
+        return { key: rejection.retryAfter ? 'SETUP.LOGIN_UNAVAILABLE' : 'SETUP.LOGIN_UNAVAILABLE_NO_WAIT', params }
+      case 'mfa-required':
+        return { key: 'SETUP.LOGIN_MFA_REQUIRED', params }
+    }
+  })
+
   readonly stepDescriptionKey = computed(() => {
     const status = this.registrationStatus()
     switch (this.currentStep()) {
@@ -248,6 +272,7 @@ export class SetupComponent {
     this.serverUrl = this.appConfig.cloudUrl || 'https://api.panary.cloud'
     this.connectedHubName.set('Panary Cloud')
     this.configService.resetStatus()
+    this.switchServerLoginMode('code')
     this.currentStep.set('server-login')
   }
 
@@ -453,7 +478,16 @@ export class SetupComponent {
   /** Hub-Pfad: vom Pairing-Code auf den Admin-Login-Fallback wechseln. */
   goToServerLogin(): void {
     this.configService.resetStatus()
+    // Der Hub-Schritt bietet den Code schon selbst an; hier zählt nur noch das Admin-Formular.
+    this.switchServerLoginMode('admin')
     this.currentStep.set('server-login')
+  }
+
+  /** Wechsel zwischen Code- und Admin-Formular; eine alte Abweisung oder Auswahl gilt dann nicht mehr. */
+  switchServerLoginMode(mode: 'code' | 'admin'): void {
+    this.loginRejection.set(null)
+    this.loginMemberships.set([])
+    this.serverLoginMode.set(mode)
   }
 
   isStep1Valid(): boolean {
@@ -484,25 +518,53 @@ export class SetupComponent {
     return null
   }
 
-  /** Admin-Login (Cloud-URL oder lokaler Hub). */
-  async submitStep1(): Promise<void> {
+  /**
+   * Admin-Login (Cloud-URL oder lokaler Hub). Mit `membershipId` der zweite Aufruf nach der
+   * Mitgliedschaftsauswahl: Die Cloud hält zwischen den Aufrufen keinen Zustand, E-Mail und
+   * Passwort gehen erneut mit.
+   */
+  async submitStep1(membershipId?: string): Promise<void> {
     if (!this.isStep1Valid()) return
 
     const credentials: SetupCredentials = {
       serverUrl: this.serverUrl.trim(),
       email: this.email.trim(),
       password: this.password,
+      target: this.pairingMode() === 'cloud' ? 'cloud' : 'hub',
+      ...(membershipId ? { membershipId } : {}),
     }
 
-    const success = await this.configService.adminLogin(credentials)
-    if (success) {
-      this.currentStep.set('select-org')
-      const orgs = this.organizations()
-      if (orgs.length === 1) {
-        this.selectedTenantId = orgs[0]._id
-        this.onOrganizationChange()
+    this.loginRejection.set(null)
+    const result = await this.configService.adminLogin(credentials)
+    switch (result.kind) {
+      case 'ok': {
+        this.loginMemberships.set([])
+        this.currentStep.set('select-org')
+        const orgs = this.organizations()
+        if (orgs.length === 1) {
+          this.selectedTenantId = orgs[0]._id
+          this.onOrganizationChange()
+        }
+        break
       }
+      case 'selection':
+        this.loginMemberships.set(result.memberships)
+        break
+      case 'rejected':
+        this.#showLoginRejection(result.rejection)
+        break
+      case 'failed':
+        // Status steht auf 'error', der Effect wechselt in den Fehler-Schritt.
+        break
     }
+  }
+
+  #showLoginRejection(rejection: AdminLoginRejection): void {
+    this.loginMemberships.set([])
+    // Bei Drosselung und Überlast war das Passwort womöglich richtig, es bleibt stehen.
+    if (rejection.kind === 'invalid-credentials') this.password = ''
+    if (rejection.kind === 'mfa-required') this.serverLoginMode.set('code')
+    this.loginRejection.set(rejection)
   }
 
   onOrganizationChange(): void {
@@ -582,6 +644,8 @@ export class SetupComponent {
         this.currentStep.set('hub-discover')
         break
       case 'server-login':
+        this.loginRejection.set(null)
+        this.loginMemberships.set([])
         this.currentStep.set(this.pairingMode() === 'local' ? 'hub-auth' : 'welcome')
         break
       case 'select-org':
@@ -647,6 +711,8 @@ export class SetupComponent {
     this.password = ''
     this.pairingCode = ''
     this.hubError.set(null)
+    this.loginRejection.set(null)
+    this.loginMemberships.set([])
   }
 
   retryRegistration(): void {

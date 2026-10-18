@@ -28,7 +28,6 @@
     "shared-ui-notifications",
     "shared-util-error-handling",
     "shared-util-helpers",
-    "system-feature-pos-setup",
     "tse-gateway",
     "user-preferences-data-access",
     "user-preferences-domain",

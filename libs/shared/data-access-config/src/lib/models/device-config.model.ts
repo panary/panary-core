@@ -87,7 +87,44 @@ export interface SetupCredentials {
   serverUrl: string
   email: string
   password: string
+  /**
+   * Gegenstelle des Logins. Die Cloud prüft das Passwort am Konto (`account-login`),
+   * der lokale Hub weiter über die `local`-Strategie am Edge-User (core#754).
+   */
+  target: 'cloud' | 'hub'
+  /** Nur Cloud: gewählte Mitgliedschaft nach einer `selection`-Antwort. */
+  membershipId?: string
 }
+
+/** Eine Mitgliedschaft zur Auswahl, wenn ein Cloud-Konto mehreren Mandanten angehört. */
+export interface AdminLoginMembership {
+  membershipId: string
+  tenantId: string | null
+  tenantName: string | null
+  role: string
+}
+
+/**
+ * Abweisungen, die das Formular selbst anzeigt, statt in den Fehler-Schritt zu wechseln.
+ * `retryAfter` in Sekunden, nur bei `rate-limited`/`unavailable` und nur, wenn der Server ihn nennt.
+ */
+export interface AdminLoginRejection {
+  kind: 'invalid-credentials' | 'rate-limited' | 'unavailable' | 'mfa-required'
+  retryAfter?: number
+}
+
+/**
+ * Ergebnis von `DeviceConfigService.adminLogin`:
+ * - `ok`: angemeldet, Organisationen und Standorte geladen.
+ * - `selection`: Konto mit mehreren Mitgliedschaften, Aufruf mit `membershipId` wiederholen.
+ * - `rejected`: Abweisung fürs Formular.
+ * - `failed`: alles andere; `registrationError` ist gesetzt, der Status steht auf `error`.
+ */
+export type AdminLoginResult =
+  | { kind: 'ok' }
+  | { kind: 'selection'; memberships: AdminLoginMembership[] }
+  | { kind: 'rejected'; rejection: AdminLoginRejection }
+  | { kind: 'failed' }
 
 /**
  * Device Registration Request

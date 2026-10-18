@@ -97,6 +97,18 @@ export const NotificationEventType = {
    * „erledigt"-Marker verwenden.
    */
   FISCAL_REPORTING_DUE: 'fiscal.reporting_due',
+
+  /**
+   * Das Konto eines Mitglieds wurde nach zu vielen Fehlversuchen beim Login
+   * gesperrt (Auth-Limiter der Cloud, panary/panary-cloud#1280/#1294).
+   * Adressat: TENANT_OWNER des Mandanten — nicht das betroffene Konto selbst.
+   *
+   * Nur In-App default an: Das betroffene Konto bekommt von der Cloud eine
+   * eigene, nicht abschaltbare Mail (analog cloud-ADR 0027). Eine zweite Mail
+   * an den Owner für dasselbe Ereignis wäre Spam; die Glocke reicht ihm, um
+   * eine Häufung zu bemerken.
+   */
+  ACCOUNT_LOCKED: 'account.locked',
 } as const
 
 export type NotificationEventType = (typeof NotificationEventType)[keyof typeof NotificationEventType]
@@ -128,6 +140,17 @@ export const NotificationCategory = {
    * eine andere Dringlichkeit.
    */
   CLOSING: 'closing',
+  /**
+   * Kontosicherheit (gesperrte Konten). Eigene Kategorie, weil keine der
+   * anderen passt: Der Owner erfährt hier etwas über die Konten seiner
+   * Mitglieder, nicht über eigene Vorgänge, Bestellungen, Abo oder Abschluss —
+   * ein anderer Adressatenkreis mit eigenem Schalter.
+   *
+   * Die Stornoanalyse (`FRAUD_*`) bleibt bewusst bei ORDERS: Sie meldet
+   * Kassenvorgänge, keine Konten, und ein Umzug würde bestehende Toggles in
+   * der Cloud umgruppieren.
+   */
+  SECURITY: 'security',
 } as const
 
 export type NotificationCategory = (typeof NotificationCategory)[keyof typeof NotificationCategory]
@@ -206,8 +229,8 @@ export const NOTIFICATION_EVENT_META: Record<NotificationEventType, Notification
   },
   [NotificationEventType.FRAUD_ALERT_TRIGGERED]: {
     // Bewusst in der ORDERS-Kategorie — die Preferences-Page gruppiert
-    // tenant-weit, nicht filial-spezifisch. Spaeter ggf. eigene Kategorie
-    // 'security'. Default: nur In-App, weil Stornoanalyse-Alerts
+    // tenant-weit, nicht filial-spezifisch. Nicht SECURITY, die meint Konten
+    // (Begruendung dort). Default: nur In-App, weil Stornoanalyse-Alerts
     // chronisch sein koennen und E-Mail/Push spammig waeren.
     category: NotificationCategory.ORDERS,
     label: 'Storno-Schwellenwert ueberschritten',
@@ -253,5 +276,13 @@ export const NOTIFICATION_EVENT_META: Record<NotificationEventType, Notification
     category: NotificationCategory.CLOSING,
     label: 'Kassenmeldung ans Finanzamt fällig',
     defaults: { inApp: true, email: true, push: true },
+  },
+  [NotificationEventType.ACCOUNT_LOCKED]: {
+    // Nur In-App: Die Mail an das gesperrte Konto selbst verschickt die Cloud
+    // getrennt und nicht abschaltbar. Der Owner kann die Glocke hier abschalten,
+    // jene Mail nicht.
+    category: NotificationCategory.SECURITY,
+    label: 'Konto nach Fehlversuchen gesperrt',
+    defaults: { inApp: true, email: false, push: false },
   },
 }

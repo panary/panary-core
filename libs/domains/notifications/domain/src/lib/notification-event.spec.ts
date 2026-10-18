@@ -31,6 +31,27 @@ describe('NOTIFICATION_EVENT_META', () => {
   })
 })
 
+describe('ACCOUNT_LOCKED', () => {
+  it("haelt den gespeicherten String 'account.locked' fest", () => {
+    // Preferences speichern den String; eine Umbenennung wuerde sie still verlieren.
+    expect(NotificationEventType.ACCOUNT_LOCKED).toBe('account.locked')
+  })
+
+  it('liegt in der eigenen Kategorie Sicherheit', () => {
+    expect(NOTIFICATION_EVENT_META[NotificationEventType.ACCOUNT_LOCKED].category).toBe(NotificationCategory.SECURITY)
+    expect(NotificationCategory.SECURITY).toBe('security')
+  })
+
+  it('ist nur In-App vorbelegt — das gesperrte Konto bekommt seine eigene Mail', () => {
+    // Eine zweite Mail an den Owner fuer dasselbe Ereignis waere Spam.
+    expect(NOTIFICATION_EVENT_META[NotificationEventType.ACCOUNT_LOCKED].defaults).toEqual({
+      inApp: true,
+      email: false,
+      push: false,
+    })
+  })
+})
+
 describe('FISCAL_REPORTING_DUE', () => {
   it('liegt in der Fiskal-Kategorie, nicht bei Billing', () => {
     // Es geht um eine steuerliche Pflicht des Betriebs, nicht um sein Abo.

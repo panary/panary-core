@@ -119,7 +119,7 @@ export interface AdminLoginRejection {
  * `altcha-lib` weder importieren noch als Peer verlangen (core#755).
  */
 export interface LoginProofChallenge {
-  parameters: Record<string, unknown>
+  parameters: object
   signature?: string
 }
 

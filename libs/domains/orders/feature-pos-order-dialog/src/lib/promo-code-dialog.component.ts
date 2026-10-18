@@ -87,7 +87,7 @@ import { TouchKeyboardComponent } from './touch-keyboard.component'
 
         <!-- Tastatur -->
         <app-touch-keyboard
-          layout="qwertz"
+          layout="alphanumeric"
           (keyPress)="onKey($event)"
           (backspace)="onBackspace()"
           (confirm)="check()"

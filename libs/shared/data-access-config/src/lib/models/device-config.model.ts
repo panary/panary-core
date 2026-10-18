@@ -109,8 +109,35 @@ export interface AdminLoginMembership {
  * `retryAfter` in Sekunden, nur bei `rate-limited`/`unavailable` und nur, wenn der Server ihn nennt.
  */
 export interface AdminLoginRejection {
-  kind: 'invalid-credentials' | 'rate-limited' | 'unavailable' | 'mfa-required'
+  kind: 'invalid-credentials' | 'rate-limited' | 'unavailable' | 'mfa-required' | 'proof-failed'
   retryAfter?: number
+}
+
+/**
+ * Challenge des Login-Nachweises (ALTCHA, panary/panary-cloud#1299), wie sie im 428 von
+ * `account-login` mitkommt. Bewusst nur strukturell: Diese Lib wird publiziert und soll
+ * `altcha-lib` weder importieren noch als Peer verlangen (core#755).
+ */
+export interface LoginProofChallenge {
+  parameters: Record<string, unknown>
+  signature?: string
+}
+
+/** Was `account-login` als `loginProof` annimmt: die Challenge samt Lösung. */
+export interface LoginProofPayload {
+  challenge: LoginProofChallenge
+  solution: unknown
+}
+
+/**
+ * Löst eine Challenge. Wirft, wenn das Gerät sie nicht schafft (Zeit, kein WebCrypto). Der
+ * Aufrufer reicht den Löser herein, damit er sein Paket erst bei Bedarf lädt.
+ */
+export type LoginProofSolver = (challenge: LoginProofChallenge) => Promise<LoginProofPayload>
+
+export interface AdminLoginOptions {
+  /** Ohne Löser endet ein verlangter Nachweis als Abweisung `proof-failed`. */
+  solveLoginProof?: LoginProofSolver
 }
 
 /**

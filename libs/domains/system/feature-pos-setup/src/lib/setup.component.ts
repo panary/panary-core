@@ -11,6 +11,7 @@ import {
   DeviceType,
   APP_CONFIG,
   HubDiscoveryService,
+  LoginProofSolver,
 } from '@panary/shared/data-access-config'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { LanguageService, LANGUAGES } from '@panary/shared/data-access'
@@ -144,7 +145,11 @@ export class SetupComponent {
   readonly isLoading = computed(() => {
     const status = this.registrationStatus()
     return (
-      status === 'connecting' || status === 'authenticating' || status === 'loading-orgs' || status === 'registering'
+      status === 'connecting' ||
+      status === 'authenticating' ||
+      status === 'solving' ||
+      status === 'loading-orgs' ||
+      status === 'registering'
     )
   })
 
@@ -196,8 +201,15 @@ export class SetupComponent {
         return { key: rejection.retryAfter ? 'SETUP.LOGIN_UNAVAILABLE' : 'SETUP.LOGIN_UNAVAILABLE_NO_WAIT', params }
       case 'mfa-required':
         return { key: 'SETUP.LOGIN_MFA_REQUIRED', params }
+      case 'proof-failed':
+        return { key: 'SETUP.LOGIN_PROOF_FAILED', params }
     }
   })
+
+  /** Spinner-Text im Anmelde-Button; die Sicherheitsprüfung kann Sekunden dauern (core#755). */
+  readonly loginBusyKey = computed(() =>
+    this.registrationStatus() === 'solving' ? 'SETUP.STATUS_PROOF' : 'SETUP.STATUS_CONNECTING',
+  )
 
   readonly stepDescriptionKey = computed(() => {
     const status = this.registrationStatus()
@@ -221,6 +233,7 @@ export class SetupComponent {
       case 'registering':
         if (status === 'connecting') return 'SETUP.STATUS_CONNECTING'
         if (status === 'authenticating') return 'SETUP.STATUS_AUTH'
+        if (status === 'solving') return 'SETUP.STATUS_PROOF'
         if (status === 'loading-orgs') return 'SETUP.STATUS_LOADING'
         return 'SETUP.STATUS_REGISTERING'
       case 'success':
@@ -535,7 +548,7 @@ export class SetupComponent {
     }
 
     this.loginRejection.set(null)
-    const result = await this.configService.adminLogin(credentials)
+    const result = await this.configService.adminLogin(credentials, { solveLoginProof: this.#solveLoginProof })
     switch (result.kind) {
       case 'ok': {
         this.loginMemberships.set([])
@@ -558,6 +571,10 @@ export class SetupComponent {
         break
     }
   }
+
+  // Lädt `altcha-lib` erst, wenn die Cloud einen Nachweis verlangt (Bundle-Budget, core#755).
+  readonly #solveLoginProof: LoginProofSolver = challenge =>
+    import('./login-proof-solver').then(m => m.solveLoginProof(challenge))
 
   #showLoginRejection(rejection: AdminLoginRejection): void {
     this.loginMemberships.set([])

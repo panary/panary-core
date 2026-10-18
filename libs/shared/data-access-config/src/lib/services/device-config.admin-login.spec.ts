@@ -251,6 +251,135 @@ describe('DeviceConfigService.adminLogin — Cloud über account-login', () => {
   })
 })
 
+describe('DeviceConfigService.adminLogin — Login-Nachweis (core#755)', () => {
+  const challenge = { parameters: { algorithm: 'PBKDF2/SHA-256', nonce: 'ab', salt: 'cd', keyPrefix: '00' }, signature: 's' }
+  const proofRequired = (reason = 'required') =>
+    Object.assign(feathersError(428, 'Für diese Anmeldung ist ein Sicherheitsnachweis nötig.', { loginProof: reason, challenge }), {
+      className: 'login-proof-required',
+    })
+  const payload = { challenge, solution: { counter: 7, derivedKey: '00ff' } }
+
+  it('löst den verlangten Nachweis und wiederholt den Aufruf mit ihm', async () => {
+    const { service, harness } = createHarness()
+    const create = harness.services['account-login'].create
+    create.mockRejectedValueOnce(proofRequired())
+    const statusWhileSolving: string[] = []
+    const solveLoginProof = vi.fn(async (c: unknown) => {
+      statusWhileSolving.push(service.registrationStatus())
+      expect(c).toEqual(challenge)
+      return payload
+    })
+
+    const result = await service.adminLogin(cloud(), { solveLoginProof })
+
+    expect(result).toEqual({ kind: 'ok' })
+    expect(solveLoginProof).toHaveBeenCalledTimes(1)
+    expect(statusWhileSolving).toEqual(['solving'])
+    expect(create).toHaveBeenCalledTimes(2)
+    expect(create.mock.calls[1]).toEqual([
+      { email: 'owner@example.invalid', password: 'geheim', loginProof: payload },
+    ])
+    expect(harness.authenticate).toHaveBeenCalledWith({ strategy: 'jwt', accessToken: 'konto-jwt' })
+  })
+
+  it('wiederholt höchstens einmal und zeigt danach die Abweisung im Formular', async () => {
+    const { service, harness } = createHarness()
+    const create = harness.services['account-login'].create
+    create.mockRejectedValue(proofRequired('invalid'))
+    const solveLoginProof = vi.fn(async () => payload)
+
+    const result = await service.adminLogin(cloud(), { solveLoginProof })
+
+    expect(result).toEqual({ kind: 'rejected', rejection: { kind: 'proof-failed' } })
+    expect(solveLoginProof).toHaveBeenCalledTimes(1)
+    expect(create).toHaveBeenCalledTimes(2)
+    expect(service.registrationStatus()).toBe('idle')
+    expect(harness.disconnect).toHaveBeenCalledTimes(1)
+  })
+
+  it('bricht ab, wenn das Gerät den Nachweis nicht löst, und baut den Socket ab', async () => {
+    const { service, harness } = createHarness()
+    const create = harness.services['account-login'].create
+    create.mockRejectedValue(proofRequired())
+    const solveLoginProof = vi.fn(async () => {
+      throw new Error('Login-Nachweis nach 20000 ms nicht gelöst')
+    })
+
+    const result = await service.adminLogin(cloud(), { solveLoginProof })
+
+    expect(result).toEqual({ kind: 'rejected', rejection: { kind: 'proof-failed' } })
+    expect(create).toHaveBeenCalledTimes(1)
+    expect(service.registrationStatus()).toBe('idle')
+    expect(service.registrationError()).toBeNull()
+    expect(harness.disconnect).toHaveBeenCalledTimes(1)
+  })
+
+  it('weist ohne Löser ab, statt in den Fehler-Schritt zu wechseln', async () => {
+    const { service, harness } = createHarness()
+    harness.services['account-login'].create.mockRejectedValue(proofRequired())
+
+    const result = await service.adminLogin(cloud())
+
+    expect(result).toEqual({ kind: 'rejected', rejection: { kind: 'proof-failed' } })
+    expect(service.registrationStatus()).toBe('idle')
+  })
+
+  it('gibt den Nachweis beim Auswahl-Folgeaufruf mit, ohne neu zu rechnen', async () => {
+    const { service, harness } = createHarness()
+    const create = harness.services['account-login'].create
+    const memberships = [
+      { membershipId: 'm1', tenantId: 't1', tenantName: 'Backstube', role: 'tenant:owner' },
+      { membershipId: 'm2', tenantId: 't2', tenantName: 'Café Hafen', role: 'tenant:manager' },
+    ]
+    create.mockRejectedValueOnce(proofRequired()).mockResolvedValueOnce({ requiresSelection: true, memberships })
+    const solveLoginProof = vi.fn(async () => payload)
+
+    const first = await service.adminLogin(cloud(), { solveLoginProof })
+    const second = await service.adminLogin(cloud({ membershipId: 'm2' }), { solveLoginProof })
+
+    expect(first).toEqual({ kind: 'selection', memberships })
+    expect(second).toEqual({ kind: 'ok' })
+    expect(solveLoginProof).toHaveBeenCalledTimes(1)
+    expect(create).toHaveBeenCalledTimes(3)
+    expect(create.mock.calls[2]).toEqual([
+      { email: 'owner@example.invalid', password: 'geheim', membershipId: 'm2', loginProof: payload },
+    ])
+  })
+
+  it('rechnet neu, wenn die Cloud den mitgegebenen Nachweis nicht mehr annimmt', async () => {
+    const { service, harness } = createHarness()
+    const create = harness.services['account-login'].create
+    const memberships = [
+      { membershipId: 'm1', tenantId: 't1', tenantName: 'Backstube', role: 'tenant:owner' },
+      { membershipId: 'm2', tenantId: 't2', tenantName: 'Café Hafen', role: 'tenant:manager' },
+    ]
+    create
+      .mockRejectedValueOnce(proofRequired())
+      .mockResolvedValueOnce({ requiresSelection: true, memberships })
+      .mockRejectedValueOnce(proofRequired('expired'))
+    const solveLoginProof = vi.fn(async () => payload)
+
+    await service.adminLogin(cloud(), { solveLoginProof })
+    const second = await service.adminLogin(cloud({ membershipId: 'm2' }), { solveLoginProof })
+
+    expect(second).toEqual({ kind: 'ok' })
+    expect(solveLoginProof).toHaveBeenCalledTimes(2)
+    expect(create).toHaveBeenCalledTimes(4)
+  })
+
+  it('verlangt am Hub keinen Nachweis', async () => {
+    const { service, harness } = createHarness()
+    const solveLoginProof = vi.fn(async () => payload)
+
+    const result = await service.adminLogin(cloud({ serverUrl: 'http://192.168.1.5:3030', target: 'hub' }), {
+      solveLoginProof,
+    })
+
+    expect(result).toEqual({ kind: 'ok' })
+    expect(solveLoginProof).not.toHaveBeenCalled()
+  })
+})
+
 describe('DeviceConfigService.adminLogin — Hub bleibt bei local', () => {
   it('meldet sich am Edge mit der local-Strategie an und ruft kein account-login', async () => {
     const { service, harness } = createHarness()

@@ -15,6 +15,7 @@ import {
   APP_CONFIG,
   DeviceConfigService,
   HubDiscoveryService,
+  type AdminLoginOptions,
   type AdminLoginResult,
   type SetupCredentials,
 } from '@panary/shared/data-access-config'
@@ -33,6 +34,7 @@ import { SetupComponent } from './setup.component'
  */
 function setup(results: AdminLoginResult[] = [{ kind: 'ok' }]) {
   const calls: SetupCredentials[] = []
+  const options: (AdminLoginOptions | undefined)[] = []
   const queue = [...results]
   const configService = {
     registrationStatus: signal('idle'),
@@ -41,8 +43,9 @@ function setup(results: AdminLoginResult[] = [{ kind: 'ok' }]) {
     locations: signal([{ _id: 'l1', name: 'Altstadt', tenantId: 't1' }]),
     getLanguage: () => 'de',
     resetStatus: () => undefined,
-    adminLogin: vi.fn((credentials: SetupCredentials) => {
+    adminLogin: vi.fn((credentials: SetupCredentials, opts?: AdminLoginOptions) => {
       calls.push(credentials)
+      options.push(opts)
       return Promise.resolve(queue.shift() ?? { kind: 'ok' })
     }),
   }
@@ -65,7 +68,7 @@ function setup(results: AdminLoginResult[] = [{ kind: 'ok' }]) {
   })
   const component = runInInjectionContext(injector, () => new SetupComponent())
 
-  return { component, calls }
+  return { component, calls, options, configService }
 }
 
 const fillAdminForm = (component: SetupComponent) => {
@@ -161,6 +164,41 @@ describe('SetupComponent — Admin-Login im Cloud-Pfad', () => {
     component.switchServerLoginMode('code')
 
     expect(component.loginRejectionMessage()).toBeNull()
+  })
+})
+
+describe('SetupComponent — Login-Nachweis (core#755)', () => {
+  it('reicht einen Löser an adminLogin weiter', async () => {
+    const { component, options } = setup()
+    component.chooseCloud()
+    component.switchServerLoginMode('admin')
+    fillAdminForm(component)
+
+    await component.submitStep1()
+
+    expect(typeof options[0]?.solveLoginProof).toBe('function')
+  })
+
+  it('sagt die laufende Sicherheitsprüfung an und sperrt das Formular', () => {
+    const { component, configService } = setup()
+
+    configService.registrationStatus.set('solving')
+
+    expect(component.isLoading()).toBe(true)
+    expect(component.loginBusyKey()).toBe('SETUP.STATUS_PROOF')
+  })
+
+  it('zeigt einen gescheiterten Nachweis im Formular und lässt das Passwort stehen', async () => {
+    const { component } = setup([{ kind: 'rejected', rejection: { kind: 'proof-failed' } }])
+    component.chooseCloud()
+    component.switchServerLoginMode('admin')
+    fillAdminForm(component)
+
+    await component.submitStep1()
+
+    expect(component.currentStep()).toBe('server-login')
+    expect(component.password).toBe('geheim')
+    expect(component.loginRejectionMessage()?.key).toBe('SETUP.LOGIN_PROOF_FAILED')
   })
 })
 

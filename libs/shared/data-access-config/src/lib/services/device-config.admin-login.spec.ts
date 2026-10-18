@@ -194,14 +194,17 @@ describe('DeviceConfigService.adminLogin — Cloud über account-login', () => {
     expect(result).toEqual({ kind: 'rejected', rejection: { kind: 'unavailable' } })
   })
 
-  it('erkennt den gesperrten Login wegen fehlender MFA-Einrichtung als zweiten Faktor', async () => {
-    const { service, harness } = createHarness()
-    harness.services['account-login'].create.mockRejectedValue(feathersError(401, 'MFA_GRACE_EXPIRED'))
+  it.each(['MFA_GRACE_EXPIRED', 'PLATFORM_MFA_ENROLLMENT_REQUIRED'])(
+    'erkennt den gesperrten Login %s als zweiten Faktor',
+    async code => {
+      const { service, harness } = createHarness()
+      harness.services['account-login'].create.mockRejectedValue(feathersError(401, code))
 
-    const result = await service.adminLogin(cloud())
+      const result = await service.adminLogin(cloud())
 
-    expect(result).toEqual({ kind: 'rejected', rejection: { kind: 'mfa-required' } })
-  })
+      expect(result).toEqual({ kind: 'rejected', rejection: { kind: 'mfa-required' } })
+    },
+  )
 
   it('wechselt bei einem unbekannten Fehler wie bisher in den Fehler-Schritt', async () => {
     const { service, harness } = createHarness()

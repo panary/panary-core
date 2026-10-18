@@ -1,4 +1,14 @@
-import { Component, inject, signal, WritableSignal, computed, effect, viewChild, ElementRef } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+  WritableSignal,
+  computed,
+  effect,
+  viewChild,
+  ElementRef,
+} from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
 import {
@@ -61,6 +71,7 @@ type PairingMode = 'cloud' | 'local'
   templateUrl: './setup.component.html',
   styleUrl: './setup.component.scss',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SetupComponent {
   //#region Dependencies
@@ -74,19 +85,21 @@ export class SetupComponent {
   //#endregion
 
   //#region Form Data
-  serverUrl = 'http://localhost:3030'
-  email = ''
-  password = ''
-  selectedTenantId = ''
-  selectedLocationId = ''
-  deviceName = ''
-  deviceType: DeviceType = 'pos-counter'
+  // Signals statt Properties: `filteredLocations` und das OnPush-Template müssen Änderungen sehen,
+  // auch die nach einem `await` gesetzten (core#765).
+  readonly serverUrl = signal('http://localhost:3030')
+  readonly email = signal('')
+  readonly password = signal('')
+  readonly selectedTenantId = signal('')
+  readonly selectedLocationId = signal('')
+  readonly deviceName = signal('')
+  readonly deviceType = signal<DeviceType>('pos-counter')
 
   // Lokaler-Hub-Pfad
-  manualHubUrl = ''
+  readonly manualHubUrl = signal('')
   // 253 Zeichen ist die maximale DNS-Namenslaenge, plus Schema und Port.
   readonly manualHubMaxLength = 255
-  pairingCode = ''
+  readonly pairingCode = signal('')
 
   // Cloud-Login-Modus im `server-login`-Schritt: Pairing-Code (bevorzugt, keine
   // Credentials aufs Gerät) oder Admin-Zugangsdaten (Fallback). Der Code-Pfad
@@ -124,7 +137,7 @@ export class SetupComponent {
   // Cloud-URL-Override (versteckt: Klick auf den „Panary Cloud"-Namen im Login-Step)
   readonly urlOverrideOpen = signal(false)
   readonly cloudUrlCustomized = signal(false)
-  customUrlInput = ''
+  readonly customUrlInput = signal('')
 
   // Hub-Discovery (aus dem Service)
   readonly hubs = this.hubDiscovery.hubs
@@ -149,7 +162,7 @@ export class SetupComponent {
   })
 
   readonly filteredLocations = computed(() => {
-    const orgId = this.selectedTenantId
+    const orgId = this.selectedTenantId()
     if (!orgId) return []
     return this.locations().filter(loc => loc.tenantId === orgId)
   })
@@ -269,7 +282,7 @@ export class SetupComponent {
   /** Default: direkt gegen die fest hinterlegte Panary-Cloud koppeln. */
   chooseCloud(): void {
     this.pairingMode.set('cloud')
-    this.serverUrl = this.appConfig.cloudUrl || 'https://api.panary.cloud'
+    this.serverUrl.set(this.appConfig.cloudUrl || 'https://api.panary.cloud')
     this.connectedHubName.set('Panary Cloud')
     this.configService.resetStatus()
     this.switchServerLoginMode('code')
@@ -286,18 +299,18 @@ export class SetupComponent {
   //#region Cloud-URL-Override (versteckt)
   /** Öffnet den Dialog zum Überschreiben der Cloud-URL (Klick auf den „Panary Cloud"-Namen). */
   openUrlOverride(): void {
-    this.customUrlInput = this.serverUrl
+    this.customUrlInput.set(this.serverUrl())
     this.urlOverrideOpen.set(true)
   }
 
   /** Übernimmt eine eigene Server-URL (z. B. Test-/Staging-Cloud). */
   applyUrlOverride(): void {
-    const raw = this.customUrlInput.trim().replace(/\/$/, '')
+    const raw = this.customUrlInput().trim().replace(/\/$/, '')
     if (!raw) return
     // Cloud-Override: Standard-Schema ist https; KEIN Edge-Port (:3030) erzwingen
     // (anders als normalizeUrl im lokalen-Hub-Pfad — die Cloud lauscht auf 443).
     const url = /^https?:\/\//.test(raw) ? raw : `https://${raw}`
-    this.serverUrl = url
+    this.serverUrl.set(url)
     this.cloudUrlCustomized.set(true)
     this.connectedHubName.set(url.replace(/^https?:\/\//, ''))
     this.urlOverrideOpen.set(false)
@@ -309,7 +322,7 @@ export class SetupComponent {
 
   /** Zurück auf die fest hinterlegte Panary Cloud. */
   resetCloudUrl(): void {
-    this.serverUrl = this.appConfig.cloudUrl || 'https://api.panary.cloud'
+    this.serverUrl.set(this.appConfig.cloudUrl || 'https://api.panary.cloud')
     this.cloudUrlCustomized.set(false)
     this.connectedHubName.set('Panary Cloud')
     this.urlOverrideOpen.set(false)
@@ -330,22 +343,22 @@ export class SetupComponent {
 
   /** Hub aus der mDNS-Liste gewählt. */
   async selectHub(hubUrl: string, displayName?: string): Promise<void> {
-    this.serverUrl = hubUrl
+    this.serverUrl.set(hubUrl)
     await this.probeAndRoute(displayName)
   }
 
   /** Manuelle IP/URL-Eingabe als Fallback. */
   async submitManualHub(): Promise<void> {
     if (!this.isManualHubValid()) return
-    this.serverUrl = this.normalizeUrl(this.manualHubUrl)
+    this.serverUrl.set(this.normalizeUrl(this.manualHubUrl()))
     await this.probeAndRoute()
   }
 
   /** QR-Scan lieferte URL (+ optional Code) → wie Hub-Auswahl behandeln. */
   async onQrDecoded(payload: { url?: string; code?: string }): Promise<void> {
     if (!payload.url) return
-    this.serverUrl = this.normalizeUrl(payload.url)
-    if (payload.code) this.pairingCode = payload.code
+    this.serverUrl.set(this.normalizeUrl(payload.url))
+    if (payload.code) this.pairingCode.set(payload.code)
     await this.probeAndRoute()
   }
 
@@ -425,12 +438,12 @@ export class SetupComponent {
     this.probing.set(true)
     this.hubError.set(null)
     try {
-      const result = await this.hubDiscovery.probeHub(this.serverUrl)
+      const result = await this.hubDiscovery.probeHub(this.serverUrl())
       if (!result.reachable) {
         this.hubError.set('SETUP.HUB_UNREACHABLE')
         return
       }
-      this.connectedHubName.set(result.organizationName || displayName || this.serverUrl)
+      this.connectedHubName.set(result.organizationName || displayName || this.serverUrl())
       if (result.setupComplete === false) {
         this.currentStep.set('hub-setup-hint')
       } else {
@@ -455,16 +468,16 @@ export class SetupComponent {
 
   //#region Lokaler Hub: Pairing-Code
   isPairingCodeValid(): boolean {
-    return /^\d{6}$/.test(this.pairingCode.trim())
+    return /^\d{6}$/.test(this.pairingCode().trim())
   }
 
   async submitPairingCode(): Promise<void> {
     if (!this.isPairingCodeValid() || !this.isStep3Valid()) return
     this.currentStep.set('registering')
 
-    const config = await this.configService.redeemPairingCode(this.serverUrl, this.pairingCode, {
-      deviceName: this.deviceName.trim(),
-      deviceType: this.deviceType,
+    const config = await this.configService.redeemPairingCode(this.serverUrl(), this.pairingCode(), {
+      deviceName: this.deviceName().trim(),
+      deviceType: this.deviceType(),
     })
 
     if (config) {
@@ -491,23 +504,23 @@ export class SetupComponent {
   }
 
   isStep1Valid(): boolean {
-    return this.serverUrl.trim().length > 0 && this.email.trim().length > 0 && this.password.length > 0
+    return this.serverUrl().trim().length > 0 && this.email().trim().length > 0 && this.password().length > 0
   }
 
   isStep2Valid(): boolean {
-    return this.selectedTenantId.length > 0 && this.selectedLocationId.length > 0
+    return this.selectedTenantId().length > 0 && this.selectedLocationId().length > 0
   }
 
   readonly DEVICE_NAME_MAX_LENGTH = 50
   readonly DEVICE_NAME_PATTERN = /^[a-zA-Z0-9äöüÄÖÜß\s\-_]+$/
 
   isStep3Valid(): boolean {
-    const name = this.deviceName.trim()
+    const name = this.deviceName().trim()
     return name.length > 0 && name.length <= this.DEVICE_NAME_MAX_LENGTH && this.DEVICE_NAME_PATTERN.test(name)
   }
 
   getDeviceNameError(): string | null {
-    const name = this.deviceName.trim()
+    const name = this.deviceName().trim()
     if (name.length === 0) return null
     if (name.length > this.DEVICE_NAME_MAX_LENGTH) {
       return `Maximal ${this.DEVICE_NAME_MAX_LENGTH} Zeichen erlaubt`
@@ -527,9 +540,9 @@ export class SetupComponent {
     if (!this.isStep1Valid()) return
 
     const credentials: SetupCredentials = {
-      serverUrl: this.serverUrl.trim(),
-      email: this.email.trim(),
-      password: this.password,
+      serverUrl: this.serverUrl().trim(),
+      email: this.email().trim(),
+      password: this.password(),
       target: this.pairingMode() === 'cloud' ? 'cloud' : 'hub',
       ...(membershipId ? { membershipId } : {}),
     }
@@ -542,7 +555,7 @@ export class SetupComponent {
         this.currentStep.set('select-org')
         const orgs = this.organizations()
         if (orgs.length === 1) {
-          this.selectedTenantId = orgs[0]._id
+          this.selectedTenantId.set(orgs[0]._id)
           this.onOrganizationChange()
         }
         break
@@ -562,16 +575,16 @@ export class SetupComponent {
   #showLoginRejection(rejection: AdminLoginRejection): void {
     this.loginMemberships.set([])
     // Bei Drosselung und Überlast war das Passwort womöglich richtig, es bleibt stehen.
-    if (rejection.kind === 'invalid-credentials') this.password = ''
+    if (rejection.kind === 'invalid-credentials') this.password.set('')
     if (rejection.kind === 'mfa-required') this.serverLoginMode.set('code')
     this.loginRejection.set(rejection)
   }
 
   onOrganizationChange(): void {
-    this.selectedLocationId = ''
+    this.selectedLocationId.set('')
     const locs = this.filteredLocations()
     if (locs.length === 1) {
-      this.selectedLocationId = locs[0]._id
+      this.selectedLocationId.set(locs[0]._id)
     }
   }
 
@@ -585,13 +598,13 @@ export class SetupComponent {
     this.currentStep.set('registering')
 
     const request: DeviceRegistrationRequest = {
-      name: this.deviceName.trim(),
-      type: this.deviceType,
-      tenantId: this.selectedTenantId,
-      locationId: this.selectedLocationId,
+      name: this.deviceName().trim(),
+      type: this.deviceType(),
+      tenantId: this.selectedTenantId(),
+      locationId: this.selectedLocationId(),
     }
 
-    const config = await this.configService.registerDevice(this.serverUrl.trim(), request)
+    const config = await this.configService.registerDevice(this.serverUrl().trim(), request)
     if (config) {
       this.finishSuccess(config.deviceId)
     } else {
@@ -686,7 +699,7 @@ export class SetupComponent {
    * das sieht nach einem Netzwerkproblem aus statt nach einem Tippfehler.
    */
   isManualHubValid(): boolean {
-    const trimmed = this.manualHubUrl.trim()
+    const trimmed = this.manualHubUrl().trim()
     if (!trimmed || trimmed.length > this.manualHubMaxLength) return false
     try {
       const url = new URL(this.normalizeUrl(trimmed))
@@ -701,15 +714,15 @@ export class SetupComponent {
 
   /** Es wurde etwas eingegeben, das keine gueltige Adresse ergibt. */
   manualHubHasFormatError(): boolean {
-    return this.manualHubUrl.trim().length > 0 && !this.isManualHubValid()
+    return this.manualHubUrl().trim().length > 0 && !this.isManualHubValid()
   }
 
   resetForm(): void {
     this.currentStep.set('welcome')
     this.configService.resetStatus()
     this.registeredDeviceId.set(null)
-    this.password = ''
-    this.pairingCode = ''
+    this.password.set('')
+    this.pairingCode.set('')
     this.hubError.set(null)
     this.loginRejection.set(null)
     this.loginMemberships.set([])

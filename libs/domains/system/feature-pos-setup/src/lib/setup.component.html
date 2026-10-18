@@ -425,7 +425,7 @@
                   class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                   >{{ 'SETUP.DEVICE_NAME' | translate }}</label
                 >
-                <span class="text-xs text-gray-400">{{ deviceName.length }}/{{ DEVICE_NAME_MAX_LENGTH }}</span>
+                <span class="text-xs text-gray-400">{{ deviceName().length }}/{{ DEVICE_NAME_MAX_LENGTH }}</span>
               </div>
               <input
                 type="text"
@@ -581,7 +581,7 @@
                     class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                     >{{ 'SETUP.DEVICE_NAME' | translate }}</label
                   >
-                  <span class="text-xs text-gray-400">{{ deviceName.length }}/{{ DEVICE_NAME_MAX_LENGTH }}</span>
+                  <span class="text-xs text-gray-400">{{ deviceName().length }}/{{ DEVICE_NAME_MAX_LENGTH }}</span>
                 </div>
                 <input
                   type="text"
@@ -804,7 +804,7 @@
                 name="location"
                 [(ngModel)]="selectedLocationId"
                 class="w-full h-14 bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-lg px-4 text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-white focus:ring-1 focus:ring-gray-900 dark:focus:ring-white transition outline-none cursor-pointer appearance-none disabled:bg-gray-50 dark:disabled:bg-gray-950 disabled:cursor-not-allowed"
-                [disabled]="!selectedTenantId"
+                [disabled]="!selectedTenantId()"
                 required
               >
                 <option value="">{{ 'SETUP.SELECT_LOCATION' | translate }}</option>
@@ -812,7 +812,7 @@
                   <option [value]="loc._id">{{ loc.name }}</option>
                 }
               </select>
-              @if (!selectedTenantId) {
+              @if (!selectedTenantId()) {
                 <p class="text-xs text-gray-400 dark:text-gray-500">{{ 'SETUP.SELECT_ORG_FIRST' | translate }}</p>
               }
             </div>
@@ -887,7 +887,7 @@
                   class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                   >{{ 'SETUP.DEVICE_NAME' | translate }}</label
                 >
-                <span class="text-xs text-gray-400">{{ deviceName.length }}/{{ DEVICE_NAME_MAX_LENGTH }}</span>
+                <span class="text-xs text-gray-400">{{ deviceName().length }}/{{ DEVICE_NAME_MAX_LENGTH }}</span>
               </div>
               <input
                 type="text"
@@ -1113,7 +1113,7 @@
           <button
             type="button"
             (click)="applyUrlOverride()"
-            [disabled]="customUrlInput.trim().length === 0"
+            [disabled]="customUrlInput().trim().length === 0"
             class="flex-1 bg-gray-900 dark:bg-white text-white dark:text-black font-bold py-3 rounded-xl hover:bg-gray-700 dark:hover:bg-gray-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {{ 'SETUP.CLOUD_URL_OVERRIDE_APPLY' | translate }}

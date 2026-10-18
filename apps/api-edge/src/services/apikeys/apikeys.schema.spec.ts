@@ -155,7 +155,8 @@ describe('apikeyDataResolver — validUntil beim Anlegen', () => {
   const createContext = (): HookContext =>
     ({
       params: {},
-      app: { service: () => ({ get: async () => ({ type: 'pos-counter' }) }) },
+      // Der Resolver sucht das Geraet ueber das Feld `deviceId` (find), nicht per `get` (#762).
+      app: { service: () => ({ find: async () => [{ type: 'pos-counter' }] }) },
     }) as unknown as HookContext
 
   const DAY_MS = 24 * 60 * 60 * 1000

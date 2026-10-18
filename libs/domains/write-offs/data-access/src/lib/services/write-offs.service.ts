@@ -9,6 +9,15 @@ import { Observer } from 'rxjs'
 export class WriteOffService extends BaseService<WriteOff> {
   protected override entityLabelKey = 'ENTITY.WRITE_OFF'
 
+  /**
+   * „Abschreibung wurde erstellt“ aus dem Realtime-Event doppelt die Erfolgsmeldung des
+   * Dialogs (`WRITE_OFF.SAVED`) — gleiche Klasse wie core#657 (core#760).
+   */
+  protected override showSnackbar(messageKey: string): void {
+    if (messageKey === 'SNACKBAR.CREATED' || messageKey === 'SNACKBAR.CREATED_PLURAL') return
+    super.showSnackbar(messageKey)
+  }
+
   /** CONSTRUCTOR */
   constructor() {
     super(inject(ConnectionService).writeOffService, 'writeOffService')

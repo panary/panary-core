@@ -35,6 +35,7 @@ import {
 import { MERGE_BY_EXTERNAL_ID_SERVICES } from './merge-services'
 import { truncateMasterTables } from './truncate-master-tables'
 import { assertOwnLocationPulled } from './assert-own-location-pulled'
+import { stripNonNullableNulls } from './strip-non-nullable-nulls'
 import { SyncRunDirection, SyncRunOutcome, SyncRunPhase, SyncRunTrigger } from '@panary/sync/domain'
 
 const requireDecryptedToken = (connection: CloudConnection): string => {
@@ -108,14 +109,18 @@ const collectAllRecords = async (app: Application, service: string, tenantId: st
   return Array.isArray(result) ? result : []
 }
 
-const buildSyncOp = (record: any, service: string, source: SyncSource): SyncOpEntry => ({
+export const buildSyncOp = (record: any, service: string, source: SyncSource): SyncOpEntry => ({
   _id: uuidv7(),
   service,
   op: SyncOp.CREATE,
   entityId: record._id,
   // Geraetelokale Time-Clock-Felder (stampingId/startBreakAt) nie pushen —
   // sie sind reiner Edge-Runtime-Zustand. Siehe USER_EDGE_LOCAL_FIELDS.
-  payload: service === 'users' ? stripUserEdgeLocalFields(record as Record<string, unknown>) : record,
+  // SQLite-`null` an nicht nullbaren Feldern faellt weg (#748).
+  payload: stripNonNullableNulls(
+    service,
+    service === 'users' ? stripUserEdgeLocalFields(record as Record<string, unknown>) : record,
+  ),
   occurredAt: record.updatedAt ?? new Date().toISOString(),
   syncSource: source,
 })

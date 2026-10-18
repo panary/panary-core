@@ -42,7 +42,7 @@ export const apikeyExternalResolver = resolve<Apikey, HookContext>({
  * Rolle eines Geraete-Schluessels aus dem Geraetetyp (panary/panary-core#762).
  * `other` bleibt beim bisherigen Standard `device:pos-client`.
  */
-export const deviceRoleFor = (type: string | undefined): string => {
+export const deviceRoleFor = (type: string | undefined): UserSystemRole => {
   switch (type) {
     case 'kds':
       return UserSystemRole.DEVICE_KDS

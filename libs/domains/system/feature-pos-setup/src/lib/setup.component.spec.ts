@@ -204,7 +204,7 @@ describe('SetupComponent — Login-Nachweis (core#755)', () => {
     await component.submitStep1()
 
     expect(component.currentStep()).toBe('server-login')
-    expect(component.password).toBe('geheim')
+    expect(component.password()).toBe('geheim')
     expect(component.loginRejectionMessage()?.key).toBe('SETUP.LOGIN_PROOF_FAILED')
   })
 })

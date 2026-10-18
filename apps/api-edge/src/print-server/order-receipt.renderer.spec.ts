@@ -673,3 +673,37 @@ describe('order-receipt.renderer — Modifier auf Komponenten-Zeilen (#698)', ()
     expect(text).toContain('22,00 EUR')
   })
 })
+
+describe('Gesamtzeile in genau einer Zeile (#758)', () => {
+  // Bis #758 brach auf 58 mm JEDER Betrag um („Gesamt 35,91" / „EUR"), weil die
+  // Betragsspalte fest 45 % breit war. Die alten Specs prueften nur `toContain`
+  // und sahen das nicht — hier zaehlt deshalb die Zeilenzahl.
+  const gesamtZeilen = (price: number, paperWidth: PaperWidth) => {
+    const order = {
+      dailySequenceNumber: 7,
+      dineLocation: 'take-out',
+      recordingDate: '2026-09-20T10:00:00.000Z',
+      lineItems: [{ _id: 'li-g1', name: 'Platte', topic: 'Speisen', amount: 1, price, taxInside: 7, taxOutside: 7 }],
+    }
+    const bytes = renderOrderReceipt(order, location, { paperWidth, variant: 'kitchen' })
+    // Bis zum Schnittbefehl dekodieren — dessen Laenge kennt die Tabelle bewusst nicht.
+    const cut = bytes.findIndex((byte, i) => byte === 0x1d && bytes[i + 1] === 0x56)
+    const zeilen = decodeEscPosLines(bytes.subarray(0, cut === -1 ? bytes.length : cut), 500)
+    const start = zeilen.findIndex(z => z.text.startsWith('Gesamt'))
+    expect(start, 'Zeile „Gesamt" nicht gefunden').toBeGreaterThan(-1)
+    // Alles zwischen „Gesamt" und der abschliessenden Trennlinie gehoert zur Gesamtzeile.
+    // Die Trennlinie ist ein cp437-Rahmenzeichen, latin1 dekodiert als Wiederholung eines Zeichens.
+    const ende = zeilen.findIndex((z, i) => i > start && /^(.)\1{19,}$/.test(z.text))
+    expect(ende, 'Trennlinie nach „Gesamt" nicht gefunden').toBeGreaterThan(start)
+    return zeilen.slice(start, ende).map(z => z.text.replace(/ +/g, ' '))
+  }
+
+  it.each([
+    [35.91, '58mm', '35,91 EUR'],
+    [35.91, '80mm', '35,91 EUR'],
+    [1234.56, '58mm', '1234,56 EUR'],
+    [1234.56, '80mm', '1234,56 EUR'],
+  ] as const)('%s auf %s', (price, paperWidth, betrag) => {
+    expect(gesamtZeilen(price, paperWidth)).toEqual([`Gesamt ${betrag}`])
+  })
+})

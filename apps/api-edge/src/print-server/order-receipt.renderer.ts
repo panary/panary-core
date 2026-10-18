@@ -241,17 +241,21 @@ export function renderOrderReceipt(
   const totalPrice = calcTotalWithDiscount(order)
   appendDiscountLines(enc, order, nameW, priceW)
 
+  const totalLabel = 'Gesamt'
+  const totalText = fmtEur(totalPrice)
+  const totalW = totalWidth(totalLabel, totalText, cols)
+  const totalPriceW = totalText.length * totalW
   enc.newline()
   enc.rule({ style: 'single' })
   enc.table(
     [
-      { width: Math.floor(cols * 0.55), align: 'left' },
-      { width: Math.floor(cols * 0.45), align: 'right' },
+      { width: cols - totalPriceW, align: 'left' },
+      { width: totalPriceW, align: 'right' },
     ],
     [
       [
-        (e: any) => e.bold(true).size(2, 2).text('Gesamt').size(1, 1).bold(false),
-        (e: any) => e.bold(true).size(2, 2).text(fmtEur(totalPrice)).size(1, 1).bold(false),
+        (e: any) => e.bold(true).size(totalW, 2).text(totalLabel).size(1, 1).bold(false),
+        (e: any) => e.bold(true).size(totalW, 2).text(totalText).size(1, 1).bold(false),
       ],
     ],
   )
@@ -415,6 +419,17 @@ function pickupLabel(order: any, timeZone: string): string {
 // Spalten. `SOFORT` passt in beiden Breiten dreifach.
 function pickupWidth(label: string, cols: number): number {
   return label.length * 3 <= cols ? 3 : 2
+}
+
+// Zeichenbreite der Gesamtzeile — dasselbe Prinzip wie `pickupWidth`
+// (panary/panary-core#758). Das feste Spaltenverhaeltnis 55/45 liess auf 58 mm
+// (32 Spalten) nur 14 Zellen = 7 doppelt breite Zeichen fuer den Betrag, und
+// `x,xx EUR` hat schon 8: Jeder Betrag brach in „35,91" / „EUR" um. Jetzt
+// bekommt der Betrag genau seine Textbreite, und erst wenn Bezeichnung und
+// Betrag doppelt breit nicht mehr nebeneinander passen, wird die Breite
+// einfach. Die doppelte Hoehe bleibt — sie macht die Summe lesbar.
+function totalWidth(label: string, amount: string, cols: number): number {
+  return (label.length + amount.length) * 2 <= cols ? 2 : 1
 }
 
 // ─── Artikel-Rendering mit voller Encoder-Kontrolle ───

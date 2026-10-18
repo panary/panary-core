@@ -1,5 +1,6 @@
 import { Injectable, signal, WritableSignal } from '@angular/core'
 import {
+  AdminLoginResult,
   DeviceConfig,
   DeviceRegistrationRequest,
   DeviceRegistrationResponse,
@@ -10,6 +11,7 @@ import { feathers, Application } from '@feathersjs/feathers'
 import socketio from '@feathersjs/socketio-client'
 import authentication from '@feathersjs/authentication-client'
 import io, { Socket } from 'socket.io-client'
+import { classifyAccountLoginResponse, classifyAdminLoginError } from './admin-login.logic'
 
 /** Result einer Unpair-Operation. */
 export interface UnpairResult {
@@ -54,7 +56,9 @@ export interface Location {
 
 // Type-safe Feathers client
 type SetupClient = Application & {
-  authenticate(credentials: { strategy: string; email: string; password: string }): Promise<unknown>
+  authenticate(
+    credentials: { strategy: 'local'; email: string; password: string } | { strategy: 'jwt'; accessToken: string },
+  ): Promise<unknown>
   logout(): Promise<void>
   service(name: string): {
     find(params?: { query?: Record<string, unknown> }): Promise<{ data: unknown[] } | unknown[]>
@@ -233,75 +237,124 @@ export class DeviceConfigService {
    *
    * Flow:
    * 1. Verbinde via WebSocket
-   * 2. Authentifiziere mit local strategy (JWT)
+   * 2. Anmelden: Cloud über `account-login` (Konto-Passwort) plus Token per `jwt`-Strategie,
+   *    Hub über die `local`-Strategie am Edge-User (core#754)
    * 3. Lade Organizations und Locations
+   *
+   * Abweisungen der Anmeldung (falsches Passwort, Drosselung, Überlast, zweiter Faktor) und die
+   * Mitgliedschaftsauswahl kommen als Ergebnis zurück und lassen den Status auf `idle` — das
+   * Formular zeigt sie selbst. Nur alles andere setzt `error` und damit den Fehler-Schritt.
    */
-  async adminLogin(credentials: SetupCredentials): Promise<boolean> {
+  async adminLogin(credentials: SetupCredentials): Promise<AdminLoginResult> {
     this.registrationStatus.set('connecting')
     this.registrationError.set(null)
 
+    // Nur Fehler aus der Anmeldung selbst gehören ins Formular; ein 401 beim Laden der
+    // Organisationen ist kein falsches Passwort.
+    let loginPhase = false
     try {
       // 1. Test connection first
       const isConnected = await this.testConnection(credentials.serverUrl)
       if (!isConnected) {
-        return false
+        return { kind: 'failed' }
       }
 
       this.registrationStatus.set('authenticating')
+      const client = await this.#connectSetupClient(credentials.serverUrl)
 
-      // 2. Create WebSocket connection
-      this.#setupSocket = io(credentials.serverUrl, {
-        path: '/ws',
-        transports: ['websocket'],
-      })
-
-      // 3. Configure Feathers client with authentication
-      const client = feathers()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      client.configure(socketio(this.#setupSocket) as any)
-      client.configure(authentication())
-      this.#setupClient = client as SetupClient
-
-      // 4. Wait for connection
-      await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Connection timeout')), 10000)
-        if (this.#setupSocket) {
-          this.#setupSocket.on('connect', () => {
-            clearTimeout(timeout)
-            resolve()
-          })
-          this.#setupSocket.on('connect_error', err => {
-            clearTimeout(timeout)
-            reject(err)
-          })
-        } else {
-          reject(new Error('Socket not initialized'))
+      // 2. Anmelden
+      loginPhase = true
+      if (credentials.target === 'cloud') {
+        const outcome = classifyAccountLoginResponse(
+          await client.service('account-login').create({
+            email: credentials.email,
+            password: credentials.password,
+            ...(credentials.membershipId ? { membershipId: credentials.membershipId } : {}),
+          }),
+        )
+        if (outcome.kind === 'selection') {
+          this.#endLoginAttempt()
+          return { kind: 'selection', memberships: outcome.memberships }
         }
-      })
+        // Kein Passkey-Dialog im Tauri-Webview: WebAuthn verhält sich dort je Plattform
+        // uneinheitlich. Solche Konten koppeln per Code.
+        if (outcome.kind === 'mfa') {
+          this.#endLoginAttempt()
+          return { kind: 'rejected', rejection: { kind: 'mfa-required' } }
+        }
+        await client.authenticate({ strategy: 'jwt', accessToken: outcome.accessToken })
+      } else {
+        await client.authenticate({
+          strategy: 'local',
+          email: credentials.email,
+          password: credentials.password,
+        })
+      }
+      loginPhase = false
 
-      // 5. Authenticate with local strategy
-      await this.#setupClient.authenticate({
-        strategy: 'local',
-        email: credentials.email,
-        password: credentials.password,
-      })
-
-      // 6. Load organizations and locations
+      // 3. Load organizations and locations
       this.registrationStatus.set('loading-orgs')
       await this.loadOrganizationsAndLocations()
 
-      // 7. Reset status to idle (ready for step 2 and 3)
+      // 4. Reset status to idle (ready for step 2 and 3)
       this.registrationStatus.set('idle')
 
-      return true
+      return { kind: 'ok' }
     } catch (error: unknown) {
+      const rejection = loginPhase ? classifyAdminLoginError(error) : null
+      if (rejection) {
+        this.#endLoginAttempt()
+        return { kind: 'rejected', rejection }
+      }
       const message = error instanceof Error ? error.message : 'Admin-Login fehlgeschlagen'
       console.error('Admin login failed:', error)
       this.registrationError.set(message)
       this.registrationStatus.set('error')
       this.cleanupSetupClient()
-      return false
+      return { kind: 'failed' }
     }
+  }
+
+  /** Baut den Setup-Socket und den Feathers-Client darauf auf und wartet auf die Verbindung. */
+  async #connectSetupClient(serverUrl: string): Promise<SetupClient> {
+    this.#setupSocket = io(serverUrl, {
+      path: '/ws',
+      transports: ['websocket'],
+    })
+
+    const client = feathers()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    client.configure(socketio(this.#setupSocket) as any)
+    client.configure(authentication())
+    this.#setupClient = client as SetupClient
+
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Connection timeout')), 10000)
+      if (this.#setupSocket) {
+        this.#setupSocket.on('connect', () => {
+          clearTimeout(timeout)
+          resolve()
+        })
+        this.#setupSocket.on('connect_error', err => {
+          clearTimeout(timeout)
+          reject(err)
+        })
+      } else {
+        reject(new Error('Socket not initialized'))
+      }
+    })
+
+    return this.#setupClient
+  }
+
+  /**
+   * Beendet einen Anmeldeversuch, den das Formular weiterführt (Auswahl, Abweisung). Der
+   * Socket wird geschlossen: Der Folgeaufruf baut ihn neu auf, Passwort und Token bleiben
+   * nur im Speicher der Komponente bzw. des nächsten Setup-Clients.
+   */
+  #endLoginAttempt(): void {
+    this.cleanupSetupClient()
+    this.registrationStatus.set('idle')
   }
 
   /**

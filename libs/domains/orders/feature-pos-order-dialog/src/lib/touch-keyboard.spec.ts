@@ -24,7 +24,11 @@ describe('touchKeyboardRows', () => {
   })
 
   it('qwertz bleibt ohne Ziffern', () => {
-    expect(touchKeyboardRows('qwertz').flat().some(k => /\d/.test(k))).toBe(false)
+    expect(
+      touchKeyboardRows('qwertz')
+        .flat()
+        .some(k => /\d/.test(k)),
+    ).toBe(false)
   })
 })
 

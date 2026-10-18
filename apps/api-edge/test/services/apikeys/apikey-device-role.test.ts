@@ -8,6 +8,7 @@
 // Produktionspfad nimmt).
 import assert from 'assert'
 import axios from 'axios'
+import { onTestFinished } from 'vitest'
 import { uuidv7 } from 'uuidv7'
 import { app } from '../../../src/app'
 
@@ -50,6 +51,12 @@ describe('API-Schluessel-Rolle aus dem Geraetetyp (#762)', () => {
     return key.role
   }
 
+  /** Jeder Test raeumt sein Geraet selbst ab (testing.md §10.2); die Kaskade nimmt den Schluessel mit. */
+  const cleanupDevice = (deviceRecordId: string) =>
+    onTestFinished(async () => {
+      await app.service('devices').remove(deviceRecordId, { provider: undefined } as never)
+    })
+
   beforeAll(async () => {
     await app.listen(port)
 
@@ -82,6 +89,7 @@ describe('API-Schluessel-Rolle aus dem Geraetetyp (#762)', () => {
       .create({ name: `Geraet ${type}`, type, tenantId, locationId } as never, {
         provider: undefined,
       })) as DeviceRecord
+    cleanupDevice(device._id)
 
     assert.strictEqual(await roleOfDeviceKey(device._id), role)
   })
@@ -92,6 +100,7 @@ describe('API-Schluessel-Rolle aus dem Geraetetyp (#762)', () => {
       { name: `REST ${type}`, type, locationId },
       authHeader(),
     )
+    cleanupDevice(data._id)
     assert.ok(data.apiKey, 'Show-Once-Schluessel fehlt in der Antwort')
 
     assert.strictEqual(await roleOfDeviceKey(data._id), role)
@@ -113,6 +122,10 @@ describe('API-Schluessel-Rolle aus dem Geraetetyp (#762)', () => {
       deviceType,
     })
     assert.ok(data.apiKey)
+    const [paired] = (await app
+      .service('devices')
+      .find({ query: { deviceId: data.deviceId }, paginate: false, provider: undefined } as never)) as DeviceRecord[]
+    cleanupDevice(paired._id)
 
     const keys = (await app
       .service('apikeys')
@@ -140,6 +153,7 @@ describe('API-Schluessel-Rolle aus dem Geraetetyp (#762)', () => {
       .create({ name: 'Falsche ID', type: 'kds', tenantId, locationId } as never, {
         provider: undefined,
       })) as DeviceRecord
+    cleanupDevice(device._id)
 
     await assert.rejects(
       app
@@ -154,7 +168,10 @@ describe('API-Schluessel-Rolle aus dem Geraetetyp (#762)', () => {
       .service('apikeys')
       .create({ name: 'Integration', role: 'device:kds', tenantId, locationId } as never, {
         provider: undefined,
-      })) as { role: string }
+      })) as { _id: string; role: string }
+    onTestFinished(async () => {
+      await app.service('apikeys').remove(key._id, { provider: undefined } as never)
+    })
     assert.strictEqual(key.role, 'device:kds')
   })
 })

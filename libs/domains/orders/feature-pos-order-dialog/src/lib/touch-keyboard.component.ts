@@ -1,13 +1,29 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
+
+export type TouchKeyboardLayout = 'qwertz' | 'alphanumeric' | 'numpad'
+
+const QWERTZ_ROWS: readonly (readonly string[])[] = [
+  ['Q', 'W', 'E', 'R', 'T', 'Z', 'U', 'I', 'O', 'P'],
+  ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+  ['Y', 'X', 'C', 'V', 'B', 'N', 'M'],
+]
+
+/**
+ * Tastenreihen der Buchstaben-Layouts. `alphanumeric` setzt die Ziffernreihe darueber —
+ * fuer Eingaben wie Rabattcodes (`SOMMER25`, panary/panary-core#749). `qwertz` bleibt
+ * ohne Ziffern (Namensfelder).
+ */
+export const touchKeyboardRows = (layout: TouchKeyboardLayout): readonly (readonly string[])[] =>
+  layout === 'alphanumeric' ? [['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'], ...QWERTZ_ROWS] : QWERTZ_ROWS
 
 @Component({
   selector: 'app-touch-keyboard',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (layout() === 'qwertz') {
+    @if (layout() !== 'numpad') {
       <div class="flex flex-col items-center gap-1.5 max-w-xl mx-auto py-2">
-        @for (row of qwertzRows; track $index) {
+        @for (row of rows(); track $index) {
           <div class="flex justify-center gap-1.5">
             @for (key of row; track key) {
               <button
@@ -110,16 +126,12 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
   `,
 })
 export class TouchKeyboardComponent {
-  layout = input<'qwertz' | 'numpad'>('qwertz')
+  layout = input<TouchKeyboardLayout>('qwertz')
   keyPress = output<string>()
   backspace = output<void>()
   confirm = output<void>()
 
-  readonly qwertzRows = [
-    ['Q', 'W', 'E', 'R', 'T', 'Z', 'U', 'I', 'O', 'P'],
-    ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-    ['Y', 'X', 'C', 'V', 'B', 'N', 'M'],
-  ]
+  readonly rows = computed(() => touchKeyboardRows(this.layout()))
 
   readonly numpadKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
 }

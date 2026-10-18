@@ -1,8 +1,9 @@
 // // For more information about this file see https://dove.feathersjs.com/guides/cli/service.schemas.html
+import { BadRequest } from '@feathersjs/errors'
 import { resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 import type { HookContext } from '../../declarations'
-import { dataValidator, queryValidator } from '@panary/shared-backend'
+import { dataValidator, logger, queryValidator } from '@panary/shared-backend'
 import { randomUUID } from 'node:crypto'
 import { uuidv7 } from 'uuidv7'
 import { sha256 } from '../../utils/crypto.utils'
@@ -37,6 +38,48 @@ export const apikeyExternalResolver = resolve<Apikey, HookContext>({
 //#endregion
 
 //#region 2. Create Resolver (POST)
+/**
+ * Rolle eines Geraete-Schluessels aus dem Geraetetyp (panary/panary-core#762).
+ * `other` bleibt beim bisherigen Standard `device:pos-client`.
+ */
+export const deviceRoleFor = (type: string | undefined): string => {
+  switch (type) {
+    case 'kds':
+      return UserSystemRole.DEVICE_KDS
+    case 'tablet':
+      return UserSystemRole.DEVICE_TABLET
+    default:
+      return UserSystemRole.DEVICE_POS
+  }
+}
+
+/**
+ * Sucht das Geraet ueber das FELD `deviceId` — nicht per `get`: Der
+ * devices-Service ist mit `id: '_id'` registriert, und `apikeys.deviceId` ist
+ * `device.deviceId`, eine andere UUID als `device._id`. Der fruehere `get`
+ * scheiterte deshalb in jedem Produktionspfad, ein leerer `catch` verschluckte
+ * das, und jedes KDS/Tablet bekam still die breiteste Geraeterolle
+ * `device:pos-client`. Ein nicht auffindbares Geraet wirft jetzt, statt
+ * stillschweigend POS-Rechte zu bekommen.
+ */
+const findDeviceType = async (context: HookContext, deviceId: string): Promise<string | undefined> => {
+  const result = (await context.app
+    .service('devices')
+    .find({ query: { deviceId, $limit: 1 }, provider: undefined } as never)) as unknown
+  const devices = (Array.isArray(result) ? result : ((result as { data?: unknown[] })?.data ?? [])) as {
+    type?: string
+  }[]
+  if (!devices.length) {
+    logger.error({
+      message: 'API-Schluessel: Geraet zur deviceId nicht gefunden, Rolle nicht ableitbar',
+      event: 'apikeys.device_role_unresolved',
+      deviceId,
+    })
+    throw new BadRequest('Geraet zum API-Schluessel nicht gefunden — Rolle nicht ableitbar')
+  }
+  return devices[0].type
+}
+
 export const apikeyDataValidator = getValidator(apikeyDataSchema, dataValidator)
 export const apikeyDataResolver = resolve<Apikey, HookContext>({
   _id: async value => {
@@ -70,26 +113,8 @@ export const apikeyDataResolver = resolve<Apikey, HookContext>({
   createdBy: async (value: any, user: any, context: HookContext) => context.params?.user?._id || 'system',
   role: async (value, data, context) => {
     if (value) return value
-
-    if (data.deviceId) {
-      try {
-        const device = await context.app.service('devices').get(data.deviceId)
-        const type = device.type || 'other'
-        switch (type) {
-          case 'kds':
-            return UserSystemRole.DEVICE_KDS
-          case 'tablet':
-            return UserSystemRole.DEVICE_TABLET
-          case 'pos-counter':
-            return UserSystemRole.DEVICE_POS
-          default:
-            return UserSystemRole.DEVICE_POS
-        }
-      } catch (error) {
-        // Device not found or error
-      }
-    }
-    return UserSystemRole.DEVICE_POS
+    if (!data.deviceId) return UserSystemRole.DEVICE_POS
+    return deviceRoleFor(await findDeviceType(context, data.deviceId))
   },
 })
 //#endregion

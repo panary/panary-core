@@ -254,9 +254,12 @@ export class PrinterFormDialogComponent {
       // Zustand, den der Nutzer nicht gewaehlt hat (#347).
       // Dasselbe fuer `encoding`: „cp858" aus der Freitext-Zeit trifft keine
       // Option der Auswahl und stuende sonst leer da (#376).
+      // Und fuer `paperWidth`: gedruckt wird ohne Wert 80 mm (`print-job.builder`),
+      // die Maske zeigte aber ein leeres Feld (#759).
       {
         ...this.data,
         role: this.data.role ?? 'both',
+        paperWidth: this.data.paperWidth ?? '80mm',
         encoding: canonicalPrinterEncoding(this.data.encoding) ?? this.data.encoding,
       }
     : {

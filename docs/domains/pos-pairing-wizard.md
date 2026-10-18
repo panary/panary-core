@@ -89,6 +89,7 @@ ordnet den Feathers-Fehler zu:
 | 429 (`data.retryAfter`) | `rate-limited` | Meldung mit Wartezeit, Passwort bleibt |
 | 503 | `unavailable` | Meldung (mit Wartezeit, wenn der Server sie nennt), Passwort bleibt |
 | 401 `MFA_*` / `requiresMfa` | `mfa-required` | Meldung über dem Code-Formular |
+| 428 nach dem einen Lösungsversuch | `proof-failed` | Meldung mit Verweis auf den Kopplungscode, Passwort bleibt |
 
 Alles andere (Timeout, Verbindungsabbruch, Antwort ohne Token, Fehler beim Laden der
 Organisationen) setzt wie bisher `registrationStatus = 'error'` und zeigt den Fehler-Schritt.
@@ -103,8 +104,44 @@ Recovery-Code-Felder. Eine Antwort ohne Token wird nie als Sitzung gelesen.
 **Zugangsdaten auf dem Gerät:** Passwort und JWT bleiben im Speicher von Komponente und
 Setup-Client. Persistiert wird wie bisher nur die `DeviceConfig` nach `devices.create`.
 
-Den Login-Nachweis (ALTCHA, 428 aus panary/panary-cloud#1299) löst der Wizard noch nicht. Ein
-428 fällt bis dahin in den Fehler-Schritt; das Lösen folgt in panary/panary-core#755.
+### Login-Nachweis (ALTCHA) im Cloud-Pfad (panary/panary-core#755)
+
+Unter Druck, oder mit `LOGIN_PROOF_MODE=always`, verlangt `account-login` vor Limiter und
+bcrypt einen Proof-of-Work-Nachweis (panary/panary-cloud#1299). Die Antwort ist ein 428
+`LoginProofRequired` mit `data.loginProof` (Grund) und `data.challenge`. Der Wizard löst ihn
+mit demselben Verfahren wie das Dashboard (panary/panary-cloud#1300):
+
+1. `adminLogin(credentials, { solveLoginProof })` ruft `account-login`. Kommt ein 428 mit
+   Challenge (`loginProofChallengeOf()`, `admin-login.logic.ts`), wechselt der Status auf
+   `solving`. Der Button und die Statuszeile zeigen „Sicherheitsprüfung läuft …“.
+2. Der Löser rechnet die Challenge, danach geht **derselbe** Aufruf genau einmal mit
+   `loginProof: { challenge, solution }` erneut raus.
+3. Der Nachweis bleibt im `DeviceConfigService` für den Auswahl-Folgeaufruf mit
+   `membershipId` (die Cloud lässt ihn für drei Aufrufe eines Ablaufs gelten). Verbraucht oder
+   abgelaufen, kommt wieder ein 428 mit neuer Challenge und es wird neu gerechnet. Nach Token,
+   Zweitfaktor-Abweisung oder Fehler-Schritt wird er verworfen.
+4. Scheitert das Lösen (20 s, kein WebCrypto) oder auch die Wiederholung, zeigt das Formular
+   `proof-failed` mit dem Hinweis auf den Kopplungscode. Der Socket wird wie bei jeder
+   Abweisung geschlossen.
+
+**Löser** (`feature-pos-setup/src/lib/login-proof-solver.ts`): `altcha-lib` ohne Widget, die
+PBKDF2-Ableitung über WebCrypto (`altcha-lib/algorithms/web/pbkdf2`), kein Worker, kein Blob,
+kein WASM. Die Komponente lädt die Datei per dynamischem `import()`, `altcha-lib` landet damit
+in einem eigenen Chunk und nicht im Hauptbundle des POS.
+
+**Warum der Löser hereingereicht wird:** `data-access-config` wird publiziert. Ein Import von
+`altcha-lib` dort, auch ein dynamischer, verlangte einen Peer in zwei `package.json` und zöge
+das Paket in jeden Konsumenten. Die Lib kennt die Challenge deshalb nur strukturell
+(`LoginProofChallenge`, `LoginProofSolver` in `device-config.model.ts`). Ohne Löser endet ein
+428 als `proof-failed`, nicht im Fehler-Schritt.
+
+**Hub-Pfad:** Der Edge verlangt keinen Nachweis, `local` bleibt unverändert.
+
+**Gepackter Build:** `crypto.subtle` braucht einen Secure Context. Die App-Herkunft im
+Tauri-Webview (`tauri://localhost`, unter Windows `*.tauri.localhost`) gilt als solcher, der
+Wizard läuft nicht über die LAN-IP (`angular.md` §6.1). Die CSP (`tauri.conf.json`) braucht keine
+Ausnahme, der Nachweis reist über den vorhandenen Socket. Laufzeit auf WebView2, WKWebView und
+WebKitGTK und die Lösezeit auf der Zielhardware sind gemessen erst im Sichttest.
 
 Der Abschluss ist bewusst **kein** SPA-Routenwechsel, sondern ein Neustart der App —
 siehe [Invariante](#invariante-deviceconfig-wechsel-erfordert-einen-app-neustart).
@@ -293,6 +330,8 @@ Eingabe abgefedert.
 - **Edge:** `bonjour-service` (von transitiv → direkte Dependency in `package.json`).
 - **POS-/Admin-Client:** QR via nativem `BarcodeDetector` (Scan) bzw. `angularx-qrcode`
   (Anzeige, bereits vorhanden) — keine neue Scanner-Lib.
+- **POS-Client:** `altcha-lib` 2.6.0 (`devDependencies`, dieselbe Version wie panary-cloud) für
+  den Login-Nachweis (panary/panary-core#755). Nur bei Bedarf geladen, siehe oben.
 
 ## Verifikation
 

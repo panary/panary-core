@@ -1,4 +1,4 @@
-import type { AdminLoginMembership, AdminLoginRejection } from '../models/device-config.model'
+import type { AdminLoginMembership, AdminLoginRejection, LoginProofChallenge } from '../models/device-config.model'
 
 /**
  * Antwort von `account-login` (panary-cloud) in drei Fälle sortiert.
@@ -51,7 +51,7 @@ const readRetryAfter = (data: unknown): number | undefined => {
  *
  * Feathers-Fehler kommen über den Socket mit `code` (HTTP-Status), `message` und `data` an.
  * Die Cloud drosselt `account-login` mit 429 und `data.retryAfter` (lib/auth-attempt-limiter.ts),
- * das Hash-Gate antwortet unter Last mit 503.
+ * das Hash-Gate antwortet unter Last mit 503, der Login-Nachweis mit 428 (core#755).
  */
 export const classifyAdminLoginError = (error: unknown): AdminLoginRejection | null => {
   const e = (error ?? {}) as { code?: unknown; message?: unknown; data?: unknown }
@@ -60,6 +60,10 @@ export const classifyAdminLoginError = (error: unknown): AdminLoginRejection | n
       return typeof e.message === 'string' && MFA_BLOCKED_MESSAGES.has(e.message)
         ? { kind: 'mfa-required' }
         : { kind: 'invalid-credentials' }
+    // Ein Nachweis-Fehler erreicht diese Stelle nur, wenn der eine Lösungsversuch schon
+    // gelaufen ist oder kein Löser da war (`adminLogin`). Erneut rechnen hilft dann nicht.
+    case 428:
+      return { kind: 'proof-failed' }
     case 429:
     case 503: {
       const retryAfter = readRetryAfter(e.data)
@@ -68,4 +72,24 @@ export const classifyAdminLoginError = (error: unknown): AdminLoginRejection | n
     default:
       return null
   }
+}
+
+/**
+ * Verlangt die Cloud einen Login-Nachweis (428 `LoginProofRequired`, panary/panary-cloud#1299)?
+ * Liefert dann die frische Challenge aus `data.challenge`, sonst `null`. Lokale Fassung von
+ * `loginProofDemandOf` aus panary-cloud (`auth.logic.ts`), aus demselben Grund wie oben.
+ */
+export const loginProofChallengeOf = (error: unknown): LoginProofChallenge | null => {
+  const e = (error ?? {}) as { code?: unknown; className?: unknown; data?: unknown }
+  if (e.code !== 428 && e.className !== 'login-proof-required') return null
+  const challenge = (e.data as { challenge?: unknown } | null | undefined)?.challenge as LoginProofChallenge | undefined
+  if (
+    !challenge ||
+    typeof challenge !== 'object' ||
+    !challenge.parameters ||
+    typeof challenge.parameters !== 'object'
+  ) {
+    return null
+  }
+  return challenge
 }

@@ -1,17 +1,19 @@
 import { Injectable, signal, WritableSignal } from '@angular/core'
 import {
+  AdminLoginOptions,
   AdminLoginResult,
   DeviceConfig,
   DeviceRegistrationRequest,
   DeviceRegistrationResponse,
   DeviceType,
+  LoginProofPayload,
   SetupCredentials,
 } from '../models/device-config.model'
 import { feathers, Application } from '@feathersjs/feathers'
 import socketio from '@feathersjs/socketio-client'
 import authentication from '@feathersjs/authentication-client'
 import io, { Socket } from 'socket.io-client'
-import { classifyAccountLoginResponse, classifyAdminLoginError } from './admin-login.logic'
+import { classifyAccountLoginResponse, classifyAdminLoginError, loginProofChallengeOf } from './admin-login.logic'
 
 /** Result einer Unpair-Operation. */
 export interface UnpairResult {
@@ -38,7 +40,7 @@ export interface UnpairOptions {
 }
 
 export type RegistrationStatus =
-  'idle' | 'connecting' | 'authenticating' | 'loading-orgs' | 'registering' | 'success' | 'error'
+  'idle' | 'connecting' | 'authenticating' | 'solving' | 'loading-orgs' | 'registering' | 'success' | 'error'
 
 /**
  * Organization/Location für Setup-Auswahl
@@ -83,6 +85,12 @@ export class DeviceConfigService {
   // Feathers client for setup (temporary, JWT-based)
   #setupClient: SetupClient | null = null
   #setupSocket: Socket | null = null
+  /**
+   * Login-Nachweis des laufenden Admin-Logins (core#755). Die Cloud lässt ihn für drei Aufrufe
+   * gelten, der Auswahl-Folgeaufruf mit `membershipId` rechnet deshalb nicht neu. Gebunden an die
+   * E-Mail wie die Challenge im Server.
+   */
+  #loginProof: { email: string; payload: LoginProofPayload } | null = null
 
   //#region Config Management
   /**
@@ -244,8 +252,11 @@ export class DeviceConfigService {
    * Abweisungen der Anmeldung (falsches Passwort, Drosselung, Überlast, zweiter Faktor) und die
    * Mitgliedschaftsauswahl kommen als Ergebnis zurück und lassen den Status auf `idle` — das
    * Formular zeigt sie selbst. Nur alles andere setzt `error` und damit den Fehler-Schritt.
+   *
+   * Verlangt die Cloud einen Login-Nachweis (428), löst `options.solveLoginProof` ihn und der
+   * Aufruf wird genau einmal wiederholt (core#755).
    */
-  async adminLogin(credentials: SetupCredentials): Promise<AdminLoginResult> {
+  async adminLogin(credentials: SetupCredentials, options: AdminLoginOptions = {}): Promise<AdminLoginResult> {
     this.registrationStatus.set('connecting')
     this.registrationError.set(null)
 
@@ -261,19 +272,14 @@ export class DeviceConfigService {
 
       // 2. Anmelden
       if (credentials.target === 'cloud') {
-        const outcome = classifyAccountLoginResponse(
-          await client.service('account-login').create({
-            email: credentials.email,
-            password: credentials.password,
-            ...(credentials.membershipId ? { membershipId: credentials.membershipId } : {}),
-          }),
-        )
+        const outcome = classifyAccountLoginResponse(await this.#accountLogin(client, credentials, options))
         if (outcome.kind === 'selection') {
           this.#endLoginAttempt()
           return { kind: 'selection', memberships: outcome.memberships }
         }
         // Kein Passkey-Dialog im Tauri-Webview: WebAuthn verhält sich dort je Plattform
         // uneinheitlich. Solche Konten koppeln per Code.
+        this.#loginProof = null
         if (outcome.kind === 'mfa') {
           this.#endLoginAttempt()
           return { kind: 'rejected', rejection: { kind: 'mfa-required' } }
@@ -305,10 +311,48 @@ export class DeviceConfigService {
       }
       const message = error instanceof Error ? error.message : 'Admin-Login fehlgeschlagen'
       console.error('Admin login failed:', error)
+      this.#loginProof = null
       this.registrationError.set(message)
       this.registrationStatus.set('error')
       this.cleanupSetupClient()
       return { kind: 'failed' }
+    }
+  }
+
+  /**
+   * `account-login` mit Login-Nachweis, falls die Cloud einen verlangt. Höchstens ein Lösen und
+   * eine Wiederholung je Aufruf: Scheitert auch die, landet das 428 in `classifyAdminLoginError`.
+   */
+  async #accountLogin(
+    client: SetupClient,
+    credentials: SetupCredentials,
+    options: AdminLoginOptions,
+  ): Promise<unknown> {
+    const service = client.service('account-login')
+    const body = {
+      email: credentials.email,
+      password: credentials.password,
+      ...(credentials.membershipId ? { membershipId: credentials.membershipId } : {}),
+    }
+    const email = credentials.email.trim().toLowerCase()
+    const known = this.#loginProof?.email === email ? this.#loginProof.payload : undefined
+    try {
+      return await service.create(known ? { ...body, loginProof: known } : body)
+    } catch (error) {
+      const challenge = loginProofChallengeOf(error)
+      if (!challenge || !options.solveLoginProof) throw error
+      this.#loginProof = null
+      this.registrationStatus.set('solving')
+      let payload: LoginProofPayload
+      try {
+        payload = await options.solveLoginProof(challenge)
+      } catch (cause) {
+        // Als 428 weiter, damit es im Formular als `proof-failed` erscheint und nicht im Fehler-Schritt.
+        throw Object.assign(new Error('Login-Nachweis nicht gelöst', { cause }), { code: 428 })
+      }
+      this.registrationStatus.set('authenticating')
+      this.#loginProof = { email, payload }
+      return service.create({ ...body, loginProof: payload })
     }
   }
 

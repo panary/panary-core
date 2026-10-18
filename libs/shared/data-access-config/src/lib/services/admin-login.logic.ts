@@ -82,10 +82,13 @@ export const classifyAdminLoginError = (error: unknown): AdminLoginRejection | n
 export const loginProofChallengeOf = (error: unknown): LoginProofChallenge | null => {
   const e = (error ?? {}) as { code?: unknown; className?: unknown; data?: unknown }
   if (e.code !== 428 && e.className !== 'login-proof-required') return null
-  const challenge = (e.data as { challenge?: unknown } | null | undefined)?.challenge as
-    | LoginProofChallenge
-    | undefined
-  if (!challenge || typeof challenge !== 'object' || !challenge.parameters || typeof challenge.parameters !== 'object') {
+  const challenge = (e.data as { challenge?: unknown } | null | undefined)?.challenge as LoginProofChallenge | undefined
+  if (
+    !challenge ||
+    typeof challenge !== 'object' ||
+    !challenge.parameters ||
+    typeof challenge.parameters !== 'object'
+  ) {
     return null
   }
   return challenge

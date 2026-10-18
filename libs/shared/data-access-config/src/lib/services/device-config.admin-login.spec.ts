@@ -252,11 +252,17 @@ describe('DeviceConfigService.adminLogin — Cloud über account-login', () => {
 })
 
 describe('DeviceConfigService.adminLogin — Login-Nachweis (core#755)', () => {
-  const challenge = { parameters: { algorithm: 'PBKDF2/SHA-256', nonce: 'ab', salt: 'cd', keyPrefix: '00' }, signature: 's' }
+  const challenge = {
+    parameters: { algorithm: 'PBKDF2/SHA-256', nonce: 'ab', salt: 'cd', keyPrefix: '00' },
+    signature: 's',
+  }
   const proofRequired = (reason = 'required') =>
-    Object.assign(feathersError(428, 'Für diese Anmeldung ist ein Sicherheitsnachweis nötig.', { loginProof: reason, challenge }), {
-      className: 'login-proof-required',
-    })
+    Object.assign(
+      feathersError(428, 'Für diese Anmeldung ist ein Sicherheitsnachweis nötig.', { loginProof: reason, challenge }),
+      {
+        className: 'login-proof-required',
+      },
+    )
   const payload = { challenge, solution: { counter: 7, derivedKey: '00ff' } }
 
   it('löst den verlangten Nachweis und wiederholt den Aufruf mit ihm', async () => {
@@ -276,9 +282,7 @@ describe('DeviceConfigService.adminLogin — Login-Nachweis (core#755)', () => {
     expect(solveLoginProof).toHaveBeenCalledTimes(1)
     expect(statusWhileSolving).toEqual(['solving'])
     expect(create).toHaveBeenCalledTimes(2)
-    expect(create.mock.calls[1]).toEqual([
-      { email: 'owner@example.invalid', password: 'geheim', loginProof: payload },
-    ])
+    expect(create.mock.calls[1]).toEqual([{ email: 'owner@example.invalid', password: 'geheim', loginProof: payload }])
     expect(harness.authenticate).toHaveBeenCalledWith({ strategy: 'jwt', accessToken: 'konto-jwt' })
   })
 
@@ -367,8 +371,24 @@ describe('DeviceConfigService.adminLogin — Login-Nachweis (core#755)', () => {
     expect(create).toHaveBeenCalledTimes(4)
   })
 
-  it('verlangt am Hub keinen Nachweis', async () => {
+  it('gibt den Nachweis einer anderen E-Mail nicht mit', async () => {
     const { service, harness } = createHarness()
+    const create = harness.services['account-login'].create
+    const memberships = [
+      { membershipId: 'm1', tenantId: 't1', tenantName: 'Backstube', role: 'tenant:owner' },
+      { membershipId: 'm2', tenantId: 't2', tenantName: 'Café Hafen', role: 'tenant:manager' },
+    ]
+    create.mockRejectedValueOnce(proofRequired()).mockResolvedValueOnce({ requiresSelection: true, memberships })
+    const solveLoginProof = vi.fn(async () => payload)
+
+    await service.adminLogin(cloud(), { solveLoginProof })
+    await service.adminLogin(cloud({ email: 'technik@example.invalid' }), { solveLoginProof })
+
+    expect(create.mock.calls[2]).toEqual([{ email: 'technik@example.invalid', password: 'geheim' }])
+  })
+
+  it('verlangt am Hub keinen Nachweis', async () => {
+    const { service } = createHarness()
     const solveLoginProof = vi.fn(async () => payload)
 
     const result = await service.adminLogin(cloud({ serverUrl: 'http://192.168.1.5:3030', target: 'hub' }), {

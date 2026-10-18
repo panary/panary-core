@@ -40,14 +40,7 @@ export interface UnpairOptions {
 }
 
 export type RegistrationStatus =
-  | 'idle'
-  | 'connecting'
-  | 'authenticating'
-  | 'solving'
-  | 'loading-orgs'
-  | 'registering'
-  | 'success'
-  | 'error'
+  'idle' | 'connecting' | 'authenticating' | 'solving' | 'loading-orgs' | 'registering' | 'success' | 'error'
 
 /**
  * Organization/Location für Setup-Auswahl
@@ -330,7 +323,11 @@ export class DeviceConfigService {
    * `account-login` mit Login-Nachweis, falls die Cloud einen verlangt. Höchstens ein Lösen und
    * eine Wiederholung je Aufruf: Scheitert auch die, landet das 428 in `classifyAdminLoginError`.
    */
-  async #accountLogin(client: SetupClient, credentials: SetupCredentials, options: AdminLoginOptions): Promise<unknown> {
+  async #accountLogin(
+    client: SetupClient,
+    credentials: SetupCredentials,
+    options: AdminLoginOptions,
+  ): Promise<unknown> {
     const service = client.service('account-login')
     const body = {
       email: credentials.email,

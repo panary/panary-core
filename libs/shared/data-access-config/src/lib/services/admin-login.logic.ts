@@ -13,10 +13,17 @@ import type { AdminLoginMembership, AdminLoginRejection } from '../models/device
 export type AccountLoginOutcome =
   { kind: 'token'; accessToken: string } | { kind: 'selection'; memberships: AdminLoginMembership[] } | { kind: 'mfa' }
 
+const isMembership = (value: unknown): value is AdminLoginMembership =>
+  typeof (value as { membershipId?: unknown } | null)?.membershipId === 'string' &&
+  (value as { membershipId: string }).membershipId !== ''
+
 export const classifyAccountLoginResponse = (response: unknown): AccountLoginOutcome => {
   const r = (response ?? {}) as Record<string, unknown>
   if (r['requiresSelection'] === true) {
-    const memberships = Array.isArray(r['memberships']) ? (r['memberships'] as AdminLoginMembership[]) : []
+    // Eine leere oder unbrauchbare Auswahl ließe das Formular wortlos stehen: kein Betrieb zum
+    // Anklicken, keine Meldung. Sie ist deshalb ein Fehler wie eine Antwort ohne Token.
+    const memberships = Array.isArray(r['memberships']) ? (r['memberships'] as unknown[]).filter(isMembership) : []
+    if (memberships.length === 0) throw new Error('account-login: Auswahl ohne gültige Mitgliedschaft')
     return { kind: 'selection', memberships }
   }
   if (r['requiresMfa'] === true) return { kind: 'mfa' }

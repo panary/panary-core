@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, type Mock } from 'vitest'
 
 import type { SetupCredentials } from '../models/device-config.model'
 
@@ -7,17 +7,22 @@ import type { SetupCredentials } from '../models/device-config.model'
 // Der Hub (Edge) kennt kein `account-login` und bleibt bei `local`.
 //
 // Mock-Gerüst für den Feathers-Client: `vi.mock` ersetzt socket.io und die drei Feathers-Module.
-// Der Fake-Client je Test hängt an `harness` und wird in `createHarness()` frisch gebaut
-// (`.claude/rules/testing.md` §10/§10.1) — `vi.mock` ist modulweit, sein Zustand nicht.
+// Abweichung von `.claude/rules/testing.md` §10: Die Mock-Factories sind modulweit und lesen
+// deshalb die Modulbindung `harness`, die `createHarness()` je Test neu belegt. Ein Nachzügler
+// aus einem früheren Test schriebe in den Harness des nächsten. Ausgeschlossen ist das hier,
+// weil jeder Test `adminLogin()` vollständig awaitet und kein Timer läuft (`connect` kommt per
+// Microtask, der 10-s-Timeout wird gelöscht).
+type AsyncMock = Mock<(...args: unknown[]) => Promise<unknown>>
+
 interface FakeService {
-  find: ReturnType<typeof vi.fn>
-  create: ReturnType<typeof vi.fn>
+  find: AsyncMock
+  create: AsyncMock
 }
 
 interface Harness {
-  authenticate: ReturnType<typeof vi.fn>
-  logout: ReturnType<typeof vi.fn>
-  disconnect: ReturnType<typeof vi.fn>
+  authenticate: AsyncMock
+  logout: AsyncMock
+  disconnect: Mock<() => void>
   services: Record<string, FakeService>
 }
 
@@ -64,17 +69,20 @@ class MemoryStorage {
 const feathersError = (code: number, message: string, data?: unknown) =>
   Object.assign(new Error(message), { code, data })
 
+const asyncMock = (value: unknown): AsyncMock =>
+  vi.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue(value)
+
 const createHarness = () => {
   harness = {
-    authenticate: vi.fn().mockResolvedValue({ accessToken: 'jwt' }),
-    logout: vi.fn().mockResolvedValue(undefined),
-    disconnect: vi.fn(),
+    authenticate: asyncMock({ accessToken: 'jwt' }),
+    logout: asyncMock(undefined),
+    disconnect: vi.fn<() => void>(),
     services: {
-      'account-login': { find: vi.fn(), create: vi.fn().mockResolvedValue({ accessToken: 'konto-jwt', user: {} }) },
-      organizations: { find: vi.fn().mockResolvedValue({ data: [{ _id: 't1', name: 'Backstube' }] }), create: vi.fn() },
+      'account-login': { find: asyncMock(undefined), create: asyncMock({ accessToken: 'konto-jwt', user: {} }) },
+      organizations: { find: asyncMock({ data: [{ _id: 't1', name: 'Backstube' }] }), create: asyncMock(undefined) },
       locations: {
-        find: vi.fn().mockResolvedValue({ data: [{ _id: 'l1', name: 'Altstadt', tenantId: 't1' }] }),
-        create: vi.fn(),
+        find: asyncMock({ data: [{ _id: 'l1', name: 'Altstadt', tenantId: 't1' }] }),
+        create: asyncMock(undefined),
       },
     },
   }
@@ -204,6 +212,19 @@ describe('DeviceConfigService.adminLogin — Cloud über account-login', () => {
     expect(result).toEqual({ kind: 'failed' })
     expect(service.registrationStatus()).toBe('error')
     expect(service.registrationError()).toBe('Connection timeout')
+  })
+
+  it('wertet eine Auswahl ohne gültige Mitgliedschaften als Fehler statt als leere Liste', async () => {
+    const { service, harness } = createHarness()
+    harness.services['account-login'].create.mockResolvedValue({
+      requiresSelection: true,
+      memberships: [{ tenantName: 'ohne membershipId' }],
+    })
+
+    const result = await service.adminLogin(cloud())
+
+    expect(result).toEqual({ kind: 'failed' })
+    expect(harness.authenticate).not.toHaveBeenCalled()
   })
 
   it('liest eine Antwort ohne Token nie als Sitzung', async () => {

@@ -211,10 +211,16 @@ Code-Record** gestempelt (nie aus dem Request-Body — `multiTenancy` stempelt b
 - **`DeviceConfigService.redeemPairingCode(serverUrl, code, device)`**: ruft
   `POST /device-pairing/redeem`, speichert `DeviceConfig` (gleiche Shape wie `registerDevice`).
 - **`APP_CONFIG.cloudUrl`** (`https://api.panary.cloud`): Default-Ziel des Cloud-Pfads.
-- **`SetupComponent`**: verzweigter `SetupStep`-Flow, Signals (ohne `OnPush`: die
-  Formularfelder sind einfache Properties mit `ngModel`), i18n (de/en/tr),
+- **`SetupComponent`**: verzweigter `SetupStep`-Flow, Signals, i18n (de/en/tr),
   flache CSS-/SVG-Animationen. QR-Scan dependency-frei via `BarcodeDetector`
   (degradiert auf WebKitGTK → manuelle Eingabe).
+  ⚠️ **Bekannte Abweichung von `angular.md` §6:** Die Komponente hat kein `OnPush`. Die
+  Formularfelder (`serverUrl`, `email`, `password`, `selectedTenantId`, …) sind einfache
+  Properties mit `ngModel`. Daran hängt ein Altfehler: `filteredLocations` ist ein `computed`,
+  das `selectedTenantId` liest, ohne es zu tracken. Wird es zuerst bei leerer Auswahl ausgewertet,
+  hat es keine Abhängigkeit und bleibt `[]`. Das trifft nur Logins mit mehreren Organisationen;
+  ein mandantengebundenes Token liefert eine, die sofort gewählt wird. Der Umbau auf Signals plus
+  `OnPush` ist offen.
 
 ## Invariante: DeviceConfig-Wechsel erfordert einen App-Neustart
 

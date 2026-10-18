@@ -249,9 +249,6 @@ export class DeviceConfigService {
     this.registrationStatus.set('connecting')
     this.registrationError.set(null)
 
-    // Nur Fehler aus der Anmeldung selbst gehören ins Formular; ein 401 beim Laden der
-    // Organisationen ist kein falsches Passwort.
-    let loginPhase = false
     try {
       // 1. Test connection first
       const isConnected = await this.testConnection(credentials.serverUrl)
@@ -263,7 +260,6 @@ export class DeviceConfigService {
       const client = await this.#connectSetupClient(credentials.serverUrl)
 
       // 2. Anmelden
-      loginPhase = true
       if (credentials.target === 'cloud') {
         const outcome = classifyAccountLoginResponse(
           await client.service('account-login').create({
@@ -290,7 +286,6 @@ export class DeviceConfigService {
           password: credentials.password,
         })
       }
-      loginPhase = false
 
       // 3. Load organizations and locations
       this.registrationStatus.set('loading-orgs')
@@ -301,7 +296,9 @@ export class DeviceConfigService {
 
       return { kind: 'ok' }
     } catch (error: unknown) {
-      const rejection = loginPhase ? classifyAdminLoginError(error) : null
+      // Ein 401 beim Laden der Organisationen ist kein falsches Passwort: Der Ladeschritt
+      // verpackt seine Fehler ohne `code` neu, sie landen deshalb im Fehler-Schritt.
+      const rejection = classifyAdminLoginError(error)
       if (rejection) {
         this.#endLoginAttempt()
         return { kind: 'rejected', rejection }

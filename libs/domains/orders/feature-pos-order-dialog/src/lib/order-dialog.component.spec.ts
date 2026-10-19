@@ -2079,4 +2079,21 @@ describe('OrderDialog — Numpad-Artikelsuche (#709)', () => {
       'Artikelnummer 3 ist mehrfach vergeben (Artikel cola, Artikel fanta) — bitte im Raster wählen.',
     )
   })
+
+  it('bucht nach dem Doppel-Hinweis die Kachel einmal, nicht mit der Artikelnummer als Menge (#779)', () => {
+    const cola = withIndex('cola', 22)
+    const { component } = setup()
+    component['productService'].findProductsByIndex = (index: number) =>
+      [cola, withIndex('wasser', 22)].filter(p => p.ui?.index === index)
+    component.numpadAction(2)
+    component.numpadAction(2)
+
+    component.applyProductSearch()
+    component.increaseLineItem(cola)
+
+    expect(component.lineItems.map((l: { name: string; amount: number }) => [l.name, l.amount])).toEqual([
+      ['Artikel cola', 1],
+    ])
+    expect(component.numpadValue).toBe('')
+  })
 })

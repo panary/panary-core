@@ -3358,6 +3358,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         `Artikelnummer ${this._numpadNumber} ist mehrfach vergeben (${matches.map(p => p.name).join(', ')}) — bitte im Raster wählen.`,
         'red',
       )
+      // Die Ziffern standen zugleich im Multiplier; ohne Reset bucht die Kachel danach die Nummer als Menge.
+      this.numpadReset()
       return
     }
 

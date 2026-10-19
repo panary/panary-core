@@ -4,7 +4,7 @@ title: POS-Numpad-Artikelsuche — Artikelnummer eintippen und buchen
 description: 'Wie der Bestelldialog eine über das Numpad eingetippte Artikelnummer (ui.index) auflöst: dieselbe Sichtbarkeitsregel wie das Raster (kein hideOnMainScreen) und kein Buchen bei doppelt vergebener Nummer.'
 tags: [orders, pos, products]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-19T13:10:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-19T15:20:00Z }
 ---
 
 # POS-Numpad-Artikelsuche
@@ -22,7 +22,7 @@ Folgeansicht wie im Raster).
 | Kein Treffer | leer | tut nichts |
 | Treffer hat `ui.hideOnMainScreen` | leer | tut nichts — wie „kein Treffer" |
 | Versteckter Modifier **und** ein sichtbares Produkt mit derselben Nummer | Name des sichtbaren | bucht das sichtbare |
-| Zwei oder mehr sichtbare Produkte mit derselben Nummer | „Nummer mehrfach vergeben" | bucht **nichts**, die Infobox nennt alle Treffer (rot) |
+| Zwei oder mehr sichtbare Produkte mit derselben Nummer | „Nummer mehrfach vergeben" | bucht **nichts**, die Infobox nennt alle Treffer (rot), Numpad und Multiplier werden geleert (#779) |
 
 **Sichtbarkeit:** Das Numpad bucht nur, was auch im Raster bucht. Produkte mit
 `ui.hideOnMainScreen` sind Modifier, die nur in Menüs und Optionsgruppen existieren (#697); als
@@ -36,6 +36,11 @@ entschied still, welches Produkt auf dem Bon landete. Heute liefert
 `ProductService.findProductsByIndex` alle Treffer, und der Dialog bucht bei mehr als einem nichts.
 Die Kassenkraft wählt das Produkt dann im Raster; behoben wird die Doppelvergabe in den
 Katalog-Stammdaten.
+
+**Reset nach dem Hinweis (#779):** Jede Ziffer landet zugleich in der Suche und im Multiplier
+(`numpadAction`). Ohne Reset buchte die Kachel, die der Hinweis empfiehlt, die Artikelnummer als
+Menge (Nr. 22 → 22× Cola). Der Doppel-Zweig ruft deshalb `numpadReset()`; die Kachel bucht danach
+einmal.
 
 ## Code
 

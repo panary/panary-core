@@ -274,14 +274,13 @@ export class ProductService extends BaseService<ProductSchema> {
   }
 
   /**
-   * Retrieves an product by its index.
-   *
-   * @param {number} index - The index of the product to retrieve.
-   * @return {ProductSchema | undefined} The product associated with the given index, or undefined if no match is found or an error occurs.
+   * Alle Produkte mit der Artikelnummer `ui.index`. Liefert bewusst jeden Treffer statt des
+   * ersten: Die Nummer ist im Katalog nicht eindeutig erzwungen, und ein `.find` entschied bei
+   * Doppelvergabe still nach Cache-Reihenfolge (#709). Ob ein Treffer buchbar ist, entscheidet
+   * der Aufrufer.
    */
-  findProductByIndex(index: number): ProductSchema | undefined {
-    // TODO: Im neuen Schema ist 'index' unter product.ui.index verschoben
-    return this.#documents().find((record: ProductSchema): boolean => record.ui?.index === index)
+  findProductsByIndex(index: number): ProductSchema[] {
+    return this.#documents().filter((record: ProductSchema): boolean => record.ui?.index === index)
   }
 
   /**

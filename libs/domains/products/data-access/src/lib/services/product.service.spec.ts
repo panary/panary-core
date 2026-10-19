@@ -153,3 +153,29 @@ describe('ProductService.applyPrices — Falsy-Skip von newPrice', () => {
     expect(snackOpen).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('ProductService.findProductsByIndex (#709)', () => {
+  async function loaded(products: Array<{ _id: string; ui?: { index: number } }>) {
+    const { service } = setup()
+    vi.spyOn(service, 'count').mockResolvedValue(products.length)
+    vi.spyOn(service, 'find').mockResolvedValue(products as never)
+    await service.loadDocuments()
+    return service
+  }
+
+  it('liefert jeden Treffer einer doppelt vergebenen Artikelnummer, nicht nur den ersten', async () => {
+    const service = await loaded([
+      { _id: 'a', ui: { index: 7 } },
+      { _id: 'b', ui: { index: 8 } },
+      { _id: 'c', ui: { index: 7 } },
+    ])
+
+    expect(service.findProductsByIndex(7).map(p => p._id)).toEqual(['a', 'c'])
+  })
+
+  it('liefert eine leere Liste ohne Treffer und übergeht Produkte ohne ui', async () => {
+    const service = await loaded([{ _id: 'a' }, { _id: 'b', ui: { index: 8 } }])
+
+    expect(service.findProductsByIndex(7)).toEqual([])
+  })
+})

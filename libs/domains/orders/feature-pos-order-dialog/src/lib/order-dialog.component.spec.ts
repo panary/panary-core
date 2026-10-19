@@ -2029,3 +2029,55 @@ describe('OrderDialog — Raster ohne hideOnMainScreen (#697)', () => {
     expect(names(component)).toEqual(['Artikel burger', 'Artikel cola'])
   })
 })
+
+describe('OrderDialog — Numpad-Artikelsuche (#709)', () => {
+  const withIndex = (id: string, index: number, hideOnMainScreen = false, name = `Artikel ${id}`) =>
+    product(id, { name, ui: { index, showOptionsAuto: false, hideOnMainScreen } } as never)
+
+  function searchFor(catalog: ProductSchema[], digits: number[]) {
+    const { component } = setup()
+    component['productService'].findProductsByIndex = (index: number) =>
+      catalog.filter(p => p.ui?.index === index)
+    for (const digit of digits) component['concatProductSearch'](digit)
+    return component
+  }
+
+  it('bucht das Produkt mit der eingetippten Nummer', () => {
+    const component = searchFor([withIndex('burger', 12)], [1, 2])
+
+    expect(component.numpadValue).toBe('Artikel burger')
+    component.applyProductSearch()
+
+    expect(component.lineItems.map((l: { name: string }) => l.name)).toEqual(['Artikel burger'])
+  })
+
+  it('findet einen Menü-Modifier mit hideOnMainScreen nicht und bucht nichts', () => {
+    const component = searchFor([withIndex('sosse', 5, true, 'Extra Soße')], [5])
+
+    expect(component.numpadValue).toBe('')
+    component.applyProductSearch()
+
+    expect(component.lineItems).toEqual([])
+  })
+
+  it('bucht das sichtbare Produkt, wenn ein versteckter Modifier dieselbe Nummer trägt', () => {
+    const component = searchFor([withIndex('sosse', 5, true, 'Extra Soße'), withIndex('pommes', 5)], [5])
+
+    expect(component.numpadValue).toBe('Artikel pommes')
+    component.applyProductSearch()
+
+    expect(component.lineItems.map((l: { name: string }) => l.name)).toEqual(['Artikel pommes'])
+  })
+
+  it('bucht bei doppelt vergebener Nummer nichts und nennt beide Produkte in der Infobox', () => {
+    const component = searchFor([withIndex('cola', 3), withIndex('fanta', 3)], [3])
+
+    expect(component.numpadValue).toBe('Nummer mehrfach vergeben')
+    component.applyProductSearch()
+
+    expect(component.lineItems).toEqual([])
+    expect(component.infoBoxText).toBe(
+      'Artikelnummer 3 ist mehrfach vergeben (Artikel cola, Artikel fanta) — bitte im Raster wählen.',
+    )
+  })
+})

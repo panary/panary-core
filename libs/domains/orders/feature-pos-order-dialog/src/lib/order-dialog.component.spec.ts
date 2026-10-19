@@ -2036,8 +2036,7 @@ describe('OrderDialog — Numpad-Artikelsuche (#709)', () => {
 
   function searchFor(catalog: ProductSchema[], digits: number[]) {
     const { component } = setup()
-    component['productService'].findProductsByIndex = (index: number) =>
-      catalog.filter(p => p.ui?.index === index)
+    component['productService'].findProductsByIndex = (index: number) => catalog.filter(p => p.ui?.index === index)
     for (const digit of digits) component['concatProductSearch'](digit)
     return component
   }

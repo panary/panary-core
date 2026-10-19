@@ -13,7 +13,7 @@ generated: { by: claude-code/historic, at: 2026-07-03T00:00:00Z }
 
 `ProductService` (`@panary/products/data-access`) hält alle aktiven Produkte in einem
 app-weit geteilten Signal-Store. Die Finder (`findProductById`, `findProductByExternalId`,
-`findProductByIndex`, `getProductsByGroupId`, `extras()`) geben **Referenzen** auf diese
+`findProductsByIndex`, `getProductsByGroupId`, `extras()`) geben **Referenzen** auf diese
 Cache-Objekte zurück — keine Kopien.
 
 Der POS-Bestelldialog (`libs/domains/orders/feature-pos-order-dialog`) hängte UI-Zustand

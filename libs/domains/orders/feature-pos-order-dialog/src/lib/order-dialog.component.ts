@@ -595,9 +595,17 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   /** PRIVATE METHODS */
   private _searchForArticleName() {
     if (!this._numpadNumber) return
-    const article = this.productService.findProductByIndex(this._numpadNumber)
-    const name = article?.name
-    this._numpadValue = name || ''
+    const matches = this.#numpadProducts(this._numpadNumber)
+    this._numpadValue = matches.length > 1 ? 'Nummer mehrfach vergeben' : (matches[0]?.name ?? '')
+  }
+
+  /**
+   * Buchbare Treffer der Artikelnummer — dieselbe Sichtbarkeitsregel wie `#gridProducts`: Was mit
+   * `ui.hideOnMainScreen` im Raster fehlt, bucht auch das Numpad nicht als eigenen Artikel (#709).
+   * Mehr als ein Treffer heißt doppelt vergebene Nummer; der Aufrufer bucht dann nichts.
+   */
+  #numpadProducts(index: number): ProductSchema[] {
+    return this.productService.findProductsByIndex(index).filter(product => !product.ui?.hideOnMainScreen)
   }
 
   /** PUBLIC METHODS */
@@ -3342,7 +3350,18 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   applyProductSearch() {
     if (this._numpadNumber === undefined) return
 
-    const article: undefined | ProductSchema = this.productService.findProductByIndex(this._numpadNumber)
+    const matches = this.#numpadProducts(this._numpadNumber)
+
+    if (matches.length > 1) {
+      // Bei Doppelvergabe entschied früher die Cache-Reihenfolge still über das gebuchte Produkt.
+      this.setInfoBoxText(
+        `Artikelnummer ${this._numpadNumber} ist mehrfach vergeben (${matches.map(p => p.name).join(', ')}) — bitte im Raster wählen.`,
+        'red',
+      )
+      return
+    }
+
+    const article: undefined | ProductSchema = matches[0]
 
     if (!article) return
 

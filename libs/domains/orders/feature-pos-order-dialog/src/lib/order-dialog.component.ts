@@ -100,7 +100,7 @@ import {
   isModifierButton,
   toPosButton,
 } from './pos-button.model'
-import { BundleFlow } from './bundle-flow'
+import { BundleFlow, menuComponentSurcharge } from './bundle-flow'
 import {
   type CustomizeModel,
   REMOVED_INGREDIENT_PREFIX,
@@ -1741,6 +1741,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   modifierAmount(line: OrderLineItem, extra: OrderLineItem['modifiers'][number]): number {
     return calculateModifierPrice(line, extra)
+  }
+
+  /** Aufpreis-Ausweis einer Menü-Komponente — beim Festpreis-Menü 0 wie auf dem Bon (core#781). */
+  menuSurcharge(line: OrderLineItem, component: OrderLineItem['menuDrink'], generalPrice: number): number {
+    return menuComponentSurcharge(line, component, generalPrice)
   }
 
   setSauceSubButtons(ids: Array<string> | undefined = undefined, isInclusive = false, currentIndex = 0) {

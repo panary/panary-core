@@ -1,6 +1,6 @@
 import type { ProductSchema } from '@panary/products/domain'
 import type { OrderLineItem } from '@panary/orders/data-access'
-import { LineComponent, withFixedBundleMainComponent } from '@panary/orders/domain'
+import { fromCents, LineComponent, toCents, withFixedBundleMainComponent } from '@panary/orders/domain'
 
 /**
  * Katalog-Lookups des Bundle-Flows — als Funktionen injiziert, damit die Klasse
@@ -11,6 +11,22 @@ export interface BundleFlowCatalog {
   findProductByExternalId: (externalId: string) => ProductSchema | undefined
   /** Gruppenname der ersten Kategorie eines Produkts (Order-`topic`). */
   topicForProduct: (product: ProductSchema) => string
+}
+
+/**
+ * Aufpreis einer Menü-Komponente (Beilage/Getränk) im Warenkorb, je Stück. Beim Festpreis-Menü
+ * (`FIXED_PROPORTIONAL`) ist die Komponente im Festpreis enthalten — die Engine verteilt
+ * `line.price` über die Komponenten und schlägt nichts auf, der Bon weist deshalb ebenfalls keinen
+ * Aufpreis aus (`order-receipt.renderer.ts`, `appendMenuComponentLine`). Ein „+€…" stünde dort
+ * als Zuschlag, der nie berechnet wird (core#781).
+ */
+export function menuComponentSurcharge(
+  line: Pick<OrderLineItem, 'bundlePricingMode'>,
+  component: { price?: number | null } | null | undefined,
+  generalPrice: number,
+): number {
+  if (!component || line.bundlePricingMode === 'FIXED_PROPORTIONAL') return 0
+  return fromCents(Math.max(0, toCents(component.price ?? 0) - toCents(generalPrice)))
 }
 
 /**

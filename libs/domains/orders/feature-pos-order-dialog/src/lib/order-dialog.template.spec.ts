@@ -19,6 +19,20 @@ describe('OrderDialog-Template — Menue-Beilage und -Getraenk (#564)', () => {
   })
 })
 
+// core#781: Der Aufpreis einer Menue-Komponente kommt aus menuSurcharge (Festpreis-Menue → 0, wie der Bon),
+// in Einzel- UND Kombinationszeile. Die rohe Differenz price − generalPrice zeigte „+€6.50" unter dem
+// Getraenk eines Festpreis-Menues; beim ersten Fix blieb sie in der Kombinationszeile stehen.
+describe('OrderDialog-Template — Aufpreis der Menue-Komponenten (core#781)', () => {
+  it('rechnet den Aufpreis nie im Template aus', () => {
+    expect(template.match(/\.price\s*-\s*general(SideDish|Drink)Price/g)).toBeNull()
+  })
+
+  it('nutzt menuSurcharge in Einzel- und Kombinationszeile je fuer Beilage und Getraenk', () => {
+    expect(template.match(/menuSurcharge\(lineItem, lineItem\.menuSideDish, generalSideDishPrice\)/g)).toHaveLength(2)
+    expect(template.match(/menuSurcharge\(lineItem, lineItem\.menuDrink, generalDrinkPrice\)/g)).toHaveLength(2)
+  })
+})
+
 // Angular trennt den Namen einer [class.…]-Bindung am Punkt: [class.translate-y-[0.3125rem]]
 // band nur „translate-y-[0" — eine Klasse ohne CSS, die Menue-Striche wurden nie zum „X" (#573).
 type BindingNode = TmplAstNode & {

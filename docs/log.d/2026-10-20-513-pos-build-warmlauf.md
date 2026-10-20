@@ -1,0 +1,1 @@
+* **Update**: [POS-Build-Prüfung](../infrastructure/pos-build-pr-pruefung.md) — warme Linux-Laufzeit nachgetragen: `pos-build-check.yml` mit Cache-Treffer 1:31–1:38 min statt 4:00 min kalt (Läufe 39199459507, 39199664938; Sichttest panary/panary-core#513).

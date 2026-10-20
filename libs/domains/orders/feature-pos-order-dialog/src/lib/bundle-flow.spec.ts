@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ProductSchema } from '@panary/products/domain'
 import type { OrderLineItem } from '@panary/orders/data-access'
-import { BundleFlow, BundleFlowCatalog } from './bundle-flow'
+import { BundleFlow, BundleFlowCatalog, menuComponentSurcharge } from './bundle-flow'
 
 // Charakterisierungs-Specs: locken das aus order-dialog.component.ts extrahierte
 // Verhalten (God-Component-Logik-Extraktion, Review-Stufe 3). Testdaten als
@@ -238,5 +238,25 @@ describe('BundleFlow.finalizeFixedBundle', () => {
     expect(li.components?.[0]).toMatchObject({ role: 'main', price: 5 })
     flow.finalizeFixedBundle(li, bundle)
     expect(li.components?.filter(c => c.role === 'main')).toHaveLength(1)
+  })
+})
+
+describe('menuComponentSurcharge (core#781)', () => {
+  const drink = { price: 6.5 }
+
+  it('weist beim Festpreis-Menü keinen Aufpreis aus — die Komponente ist im Festpreis enthalten', () => {
+    expect(menuComponentSurcharge({ bundlePricingMode: 'FIXED_PROPORTIONAL' }, drink, 0)).toEqual(0)
+    expect(menuComponentSurcharge({ bundlePricingMode: 'FIXED_PROPORTIONAL' }, drink, 2)).toEqual(0)
+  })
+
+  it('zeigt ohne Festpreis den Aufpreis über dem allgemeinen Menüpreis, cent-genau', () => {
+    expect(menuComponentSurcharge({}, drink, 0)).toEqual(6.5)
+    expect(menuComponentSurcharge({}, { price: 4.2 }, 1.1)).toEqual(3.1)
+  })
+
+  it('wird nie negativ und verträgt fehlende Komponente oder Preis', () => {
+    expect(menuComponentSurcharge({}, { price: 1 }, 2)).toEqual(0)
+    expect(menuComponentSurcharge({}, undefined, 0)).toEqual(0)
+    expect(menuComponentSurcharge({}, { price: null }, 0)).toEqual(0)
   })
 })

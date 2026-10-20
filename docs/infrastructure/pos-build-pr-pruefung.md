@@ -101,12 +101,13 @@ gh pr list --repo panary/panary-core --state merged --limit 80 --json number,fil
 | `tauri build --debug --no-bundle` lokal, kalt | 31 s | gemessen 2026-10-03 |
 | `build-pos.yml` Windows: Angular / Tauri | 3,5–5 min / 1,5–4,5 min | letzte 3 Läufe |
 | `release-pos.yml` Windows: Tauri (Cache leer) | 6–7 min | letzte 3 Läufe |
-
 | `pos-build-check.yml` Linux, Cache leer (erster PR-Lauf) | 4:00 min: apt 34 s, `tauri build` 109 s, clippy 69 s | Lauf 37118601587, 2026-10-03 |
+| `pos-build-check.yml` Linux, warm (Cache-Treffer `v0-rust-build-linux-…`) | 1:31–1:38 min | Läufe 39199459507, 39199664938, 2026-10-19 |
 | `pos-build-check.yml` Windows (NSIS, ohne Angular) | 3:52 min, davon `tauri build` 101 s | Lauf 37118601587, 2026-10-03 |
 
-Ein warmer Linux-Lauf fehlt noch: Den Cache schreibt erst der erste `main`-Push nach dem
-Merge. Die Deckel (25 bzw. 40 min) liegen weit über den gemessenen Zeiten.
+Der warme Linux-Lauf braucht gut ein Drittel des kalten. Den Cache schreibt der erste `main`-Push
+nach dem Merge; ein PR ohne Treffer läuft weiter kalt. Die Deckel
+(25 bzw. 40 min) liegen weit über den gemessenen Zeiten.
 `panary-core` ist öffentlich, Standard-Runner kosten also auch für Windows kein Geld, sondern
 nur Wartezeit.
 

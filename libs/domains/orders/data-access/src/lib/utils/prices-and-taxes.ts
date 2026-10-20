@@ -23,8 +23,9 @@ import {
 //     nicht mehr über toFixed am Endbetrag.
 //   - General-Menü-Preise (generalSideDish-/generalDrinkPrice) werden NICHT mehr
 //     aufgeschlagen — die Engine kennt sie nicht, der fakturierte Betrag
-//     (taxSnapshot/payment) enthielt sie nie. Der Aufpreis-Ausweis im Template
-//     (menuSideDish.price − generalPrice) bleibt davon unberührt.
+//     (taxSnapshot/payment) enthielt sie nie. Der Aufpreis-Ausweis im Warenkorb
+//     (`menuComponentSurcharge`, feature-pos-order-dialog) zeigt price − generalPrice,
+//     beim Festpreis-Menü (FIXED_PROPORTIONAL) aber nichts — wie der Bon (core#781).
 
 /** Zeilenpreis OHNE Ad-hoc-Modifier (Menü-Bestandteile inklusive). */
 export function calculateArticlePriceWithoutExtras(articleItem: OrderLineItem): number {

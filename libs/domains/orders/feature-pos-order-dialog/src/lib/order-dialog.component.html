@@ -199,14 +199,16 @@
                             >{{ 'ORDER_DIALOG.SIDE_DISH' | translate }}:
                             {{ lineItem.menuSideDish?.name || 'ohne' }}</span
                           >
-                          @if (lineItem.menuSideDish && lineItem.menuSideDish.price > generalSideDishPrice) {
-                            <span>+ {{ lineItem.menuSideDish.price - generalSideDishPrice | currency: 'EUR' }}</span>
+                          @let sideSurcharge = menuSurcharge(lineItem, lineItem.menuSideDish, generalSideDishPrice);
+                          @if (sideSurcharge > 0) {
+                            <span>+ {{ sideSurcharge | currency: 'EUR' }}</span>
                           }
                         </div>
                         <div class="flex justify-between">
                           <span>{{ 'ORDER_DIALOG.DRINK' | translate }}: {{ lineItem.menuDrink?.name || 'ohne' }}</span>
-                          @if (lineItem.menuDrink && lineItem.menuDrink.price > generalDrinkPrice) {
-                            <span>+ {{ lineItem.menuDrink.price - generalDrinkPrice | currency: 'EUR' }}</span>
+                          @let drinkSurcharge = menuSurcharge(lineItem, lineItem.menuDrink, generalDrinkPrice);
+                          @if (drinkSurcharge > 0) {
+                            <span>+ {{ drinkSurcharge | currency: 'EUR' }}</span>
                           }
                         </div>
                       </div>

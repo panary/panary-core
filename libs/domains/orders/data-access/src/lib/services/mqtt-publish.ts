@@ -1,5 +1,3 @@
-import mqtt from 'mqtt'
-
 export interface MqttPrintPayload {
   orderId: string
   deviceName?: string
@@ -85,8 +83,15 @@ async function publishViaTauri(
   await invoke('mqtt_publish', { url, topic, payload, clientId, timeoutMs: PUBLISH_TIMEOUT_MS })
 }
 
-/** Rueckfall fuer Browser und `nx serve` — `mqtt.js` ueber WebSocket. */
-function publishViaWebSocket(url: string, topic: string, payload: string, clientId: string): Promise<void> {
+/**
+ * Rueckfall fuer Browser und `nx serve` — `mqtt.js` ueber WebSocket.
+ *
+ * `mqtt` wird erst hier dynamisch geladen: Der gepackte POS nimmt immer den
+ * Tauri-Weg, und statisch importiert lagen ~330 kB `mqtt.js` im Initial-Bundle
+ * (panary/panary-core#805). Der Lazy-Chunk liegt im lokalen Bundle, offline kein Unterschied.
+ */
+async function publishViaWebSocket(url: string, topic: string, payload: string, clientId: string): Promise<void> {
+  const { default: mqtt } = await import('mqtt')
   const client = mqtt.connect(url, {
     clean: true,
     connectTimeout: PUBLISH_TIMEOUT_MS,

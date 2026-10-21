@@ -96,7 +96,7 @@ const product = (id: string, over: Partial<ProductSchema> = {}): ProductSchema =
 function setup(options: SetupOptions = {}) {
   const createdOrders: Array<Record<string, unknown>> = []
   const redeemCalls: Array<Record<string, unknown>> = []
-  const openedDialogs: Array<{ data?: unknown }> = []
+  const openedDialogs: Array<{ data?: unknown; disableClose?: boolean }> = []
   const closeCalls: unknown[] = []
   /** Was ueber `MatSnackBar` gemeldet wurde — der einzige Meldeweg, der den Dialogschluss ueberlebt. */
   const snackBarCalls: Array<{ message: string; action?: string }> = []
@@ -180,13 +180,15 @@ function setup(options: SetupOptions = {}) {
           findProductById: (id: string) => (options.catalog ?? []).find(p => p._id === id),
           findProductByExternalId: (externalId: string) =>
             (options.catalog ?? []).find(p => p.externalId === externalId),
+          // Ziffernblock-Suche nach Artikelnummer — im Test ohne Treffer (#795: Multiplikator).
+          findProductsByIndex: () => [],
         },
       },
       {
         provide: MatDialog,
         useValue: {
-          open: (_component: unknown, config?: { data?: unknown }) => {
-            openedDialogs.push({ data: config?.data })
+          open: (_component: unknown, config?: { data?: unknown; disableClose?: boolean }) => {
+            openedDialogs.push({ data: config?.data, disableClose: config?.disableClose })
             return { afterClosed: () => of(dialogResult.value) }
           },
         },
@@ -215,7 +217,7 @@ function setup(options: SetupOptions = {}) {
           },
         },
       },
-      { provide: OrderInteractionService, useValue: {} },
+      { provide: OrderInteractionService, useValue: { create: () => Promise.resolve() } },
       { provide: PreOrderService, useValue: {} },
       { provide: DeviceConfigService, useValue: {} },
       { provide: ConnectionService, useValue: { systemMode: () => 'connected' } },
@@ -292,8 +294,9 @@ describe('OrderDialog — Reset-Pfade der Positionsrabatte', () => {
     expect(component.lineDiscounts()).toEqual({})
   })
 
-  it('der Funktionsknopf „Bestellung löschen?" setzt Rabatt, Code und Positionsrabatte zurueck (core#734)', () => {
-    const { component } = setup()
+  it('der Funktionsknopf „Bestellung leeren" setzt Rabatt, Code und Positionsrabatte zurueck (core#734)', () => {
+    const { component, dialogResult } = setup()
+    dialogResult.value = true // Rückfrage seit #795 bestätigt
     component.increaseLineItem(product('p-1'))
     component.selectedManualDiscount.set(managedDiscount())
     component.appliedCodeDiscount.set({ ok: true, code: 'SOMMER' })
@@ -556,7 +559,7 @@ describe('OrderDialog — Funktionsleiste: Menge und Loeschen auf die Markierung
     expect(component.combinations[0].map((l: { name: string }) => l.name)).toEqual(['Artikel p-1', 'Artikel p-2'])
   })
 
-  it('der Header-Tap markiert die ganze Kombination und hebt sie beim zweiten Tap auf', () => {
+  it('der Header-Tap markiert die ganze Kombination, auch von einer Position aus; der zweite hebt sie auf (#795)', () => {
     const { component } = setup()
     component.increaseLineItem(product('p-1'))
     component.increaseLineItem(product('p-2'))
@@ -565,14 +568,15 @@ describe('OrderDialog — Funktionsleiste: Menge und Loeschen auf die Markierung
 
     component.toggleCombinationSelection(0)
 
-    // War eine Position markiert, gilt der Tap als Abwaehlen — nicht als Umschalten
-    // auf die ganze Kombination.
-    expect(component.selectedCombinationIndex).toEqual([null, null])
+    // Bis #795 hob der Tap hier die Markierung auf — am Gerät sah das aus, als täte
+    // der Kopf nichts.
+    expect(component.selectedCombinationIndex).toEqual([0, null])
+    expect(component.canMutateSelection()).toBe(true)
 
     component.toggleCombinationSelection(0)
 
-    expect(component.selectedCombinationIndex).toEqual([0, null])
-    expect(component.canMutateSelection()).toBe(true)
+    expect(component.selectedCombinationIndex).toEqual([null, null])
+    expect(component.functionButtons).toEqual([])
   })
 
   it('decreaseLineItem() (ABBRUCH im Bundle-Flow) entfernt auch eine Position in der Kombination', () => {
@@ -1641,6 +1645,26 @@ describe('OrderDialog — Anpassen-Panel (#639)', () => {
     expect(component.customizeModel()?.name).toBe('Artikel burger')
   })
 
+  it('der Tipp auf eine Position IN einer Kombination öffnet das Panel, der zweite schließt es (#795)', () => {
+    const p = burger(false)
+    const cola = product('cola')
+    const { component } = setup({ catalog: [p, cola] })
+    component.increaseLineItem(p)
+    component.increaseLineItem(cola)
+    component.combineAllArticles()
+    component.unselectProduct()
+
+    component.selectCombinationByIndex(0, 0)
+
+    expect(component.selectedCombinationIndex).toEqual([0, 0])
+    expect(component.customizeModel()?.name).toBe('Artikel burger')
+
+    component.selectCombinationByIndex(0, 0)
+
+    expect(component.selectedCombinationIndex).toEqual([0, null])
+    expect(component.customizeModel()).toBeNull()
+  })
+
   it('Löschen der angepassten Zeile schließt das Panel', () => {
     const p = burger(true)
     const { component } = setup({ catalog: [p] })
@@ -2095,5 +2119,292 @@ describe('OrderDialog — Numpad-Artikelsuche (#709)', () => {
       ['Artikel cola', 1],
     ])
     expect(component.numpadValue).toBe('')
+  })
+})
+
+/**
+ * Das X schloss die Bestellung bis #795 ohne Rückfrage — ein Fehltipp verwarf, was schon
+ * eingegeben war. Ohne jede Eingabe schließt es weiter sofort.
+ */
+describe('OrderDialog — Schließen fragt nach, sobald etwas eingegeben wurde (#795)', () => {
+  it('ohne jede Eingabe schließt das X sofort und ohne Rückfrage', () => {
+    const { component, openedDialogs, closeCalls } = setup()
+
+    component.dialogClose()
+
+    expect(openedDialogs).toEqual([])
+    expect(closeCalls).toEqual([false])
+  })
+
+  it('mit Positionen fragt es nach — nicht wegklickbar — und bleibt bei „Weiter bearbeiten" offen', () => {
+    const { component, openedDialogs, closeCalls, dialogResult } = setup()
+    component.increaseLineItem(product('p-1'))
+    dialogResult.value = false
+
+    component.dialogClose()
+
+    expect(openedDialogs).toHaveLength(1)
+    expect(openedDialogs[0].disableClose).toBe(true)
+    expect(closeCalls).toEqual([])
+    expect(component.lineItems).toHaveLength(1)
+  })
+
+  it('auch wenn alles wieder gelöscht wurde, fragt es nach; „Verwerfen" schließt', () => {
+    const { component, openedDialogs, closeCalls, dialogResult } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.selectProduct(0)
+    component.deleteSelection()
+    expect(component.lineItems).toHaveLength(0)
+    dialogResult.value = true
+
+    component.dialogClose()
+
+    expect(openedDialogs).toHaveLength(1)
+    expect(closeCalls).toEqual([false])
+  })
+})
+
+/**
+ * „1x Ketchup +2,10 €" bei 3× Currywurst: der Betrag galt für drei Stück, die Menge nannte
+ * eins (#795). Angezeigt wird jetzt die abgerechnete Menge — gleiche Entscheidung wie der Bon.
+ */
+describe('OrderDialog — Modifier-Menge im Warenkorb (#795)', () => {
+  const extra = { amount: 1, price: 0.7, name: 'Ketchup' }
+
+  it('je Stück gebucht: die Menge zählt alle Stücke der Zeile', () => {
+    const { component } = setup()
+    expect(component.modifierDisplayAmount({ amount: 3, modifierScope: 'unit', modifiers: [extra] }, extra)).toBe(3)
+  })
+
+  it('je Zeile gebucht oder ein Stück: die Menge bleibt, wie sie gespeichert ist', () => {
+    const { component } = setup()
+    expect(component.modifierDisplayAmount({ amount: 3, modifierScope: 'line', modifiers: [extra] }, extra)).toBe(1)
+    expect(component.modifierDisplayAmount({ amount: 1, modifierScope: 'unit', modifiers: [extra] }, extra)).toBe(1)
+  })
+})
+
+describe('OrderDialog — „Bestellung leeren" fragt nach (#795)', () => {
+  it('„Abbrechen" in der Rückfrage lässt den Warenkorb stehen; die Rückfrage ist nicht wegklickbar', () => {
+    const { component, openedDialogs, dialogResult } = setup()
+    component.increaseLineItem(product('p-1'))
+    dialogResult.value = false
+
+    component.setDeleteSubbuttons()
+    component.functionButtons.find((b: { _id?: string }) => b._id === 'deleteOrder').callback()
+
+    expect(openedDialogs).toHaveLength(1)
+    expect(openedDialogs[0].disableClose).toBe(true)
+    expect(component.lineItems).toHaveLength(1)
+  })
+
+  it('das Menü bietet keinen zweiten Weg zum Löschen einer Kombination mehr', () => {
+    const { component } = setup()
+    component.increaseLineItem(product('p-1'))
+
+    component.setDeleteSubbuttons()
+
+    expect(component.functionButtons.map((b: { _id?: string }) => b._id)).toEqual(['deleteOrder'])
+  })
+})
+
+describe('OrderDialog — Funktionstasten der markierten Kombination (#795)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function combinedPair(component: any): void {
+    component.increaseLineItem(product('p-1'))
+    component.increaseLineItem(product('p-2'))
+    component.combineAllArticles()
+    component.unselectProduct()
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const press = (component: any, id: string) =>
+    component.functionButtons.find((b: { _id?: string }) => b._id === id).callback()
+
+  it('der Header-Tap bietet Auflösen und Löschen an', () => {
+    const { component } = setup()
+    combinedPair(component)
+
+    component.toggleCombinationSelection(0)
+
+    expect(component.functionButtons.map((b: { _id?: string }) => b._id)).toEqual([
+      'resolveCombination',
+      'deleteCombination',
+    ])
+  })
+
+  it('„Kombination auflösen" macht freie Zeilen daraus und räumt die Tasten ab', () => {
+    const { component } = setup()
+    combinedPair(component)
+    component.toggleCombinationSelection(0)
+
+    press(component, 'resolveCombination')
+
+    expect(component.combinations).toHaveLength(0)
+    expect(component.lineItems).toHaveLength(2)
+    expect(component.functionButtons).toEqual([])
+  })
+
+  it('„Kombination löschen" entfernt alle Positionen, mit Rückgängig', () => {
+    const { component, snackBarRefs } = setup()
+    combinedPair(component)
+    component.toggleCombinationSelection(0)
+
+    press(component, 'deleteCombination')
+
+    expect(component.lineItems).toHaveLength(0)
+    expect(component.functionButtons).toEqual([])
+    snackBarRefs[snackBarRefs.length - 1].triggerAction()
+    expect(component.combinations).toHaveLength(1)
+  })
+
+  it('der Mülleimer in Spalte 2 ist bei markierter Kombination aus, bei markierter Position an', () => {
+    const { component } = setup()
+    combinedPair(component)
+
+    component.toggleCombinationSelection(0)
+    expect(component.canDeleteSelection()).toBe(false)
+
+    component.selectCombinationByIndex(0, 1)
+    expect(component.canDeleteSelection()).toBe(true)
+  })
+
+  it('das Kombi-Menü bietet kein Auflösen mehr — das sitzt an der markierten Kombination', () => {
+    const { component } = setup()
+    combinedPair(component)
+
+    component.setCombiSubButtons()
+
+    expect(component.functionButtons.map((b: { _id?: string }) => b._id)).not.toContain('resolveCombination')
+  })
+})
+
+/**
+ * 3× Schnitzel + Rotwein: Bis #795 wanderten beim Kombinieren immer alle drei Schnitzel in die
+ * Kombination, und aus einer Kombination ließ sich kein einzelnes Stück wieder lösen. Eine
+ * Kombination ordnet Stücke einer Person zu — sie muss deshalb Stückzahlen kennen.
+ */
+describe('OrderDialog — Stückzahlen beim Kombinieren und Herauslösen (#795)', () => {
+  type Line = { name: string; amount: number; bundleNumber?: number | null }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const shape = (component: any) => ({
+    combinations: component.combinations.map((c: Line[]) => c.map(l => `${l.amount}×${l.name}`)),
+    free: component.lineItems
+      .filter((l: Line) => l.bundleNumber === null || l.bundleNumber === undefined)
+      .map((l: Line) => `${l.amount}×${l.name}`),
+  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function threeSchnitzelAndWine(component: any): void {
+    for (let i = 0; i < 3; i++) component.increaseLineItem(product('schnitzel'))
+    component.increaseLineItem(product('wein'))
+    component.unselectProduct()
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tile = (component: any, index: number) =>
+    component.productButtons.find((b: { _id?: string }) => b._id === `combiButton${index}`)
+
+  it('jeder Tipp auf die Kachel zählt ein Stück hoch, nach dem letzten ist sie aus', () => {
+    const { component } = setup()
+    threeSchnitzelAndWine(component)
+    component.setCombiSubButtons()
+
+    tile(component, 0).callback()
+    expect(tile(component, 0).pressed).toBe(true)
+    expect(tile(component, 0).countLabel).toBe('1/3')
+    tile(component, 0).callback()
+    expect(tile(component, 0).countLabel).toBe('2/3')
+    tile(component, 0).callback()
+    tile(component, 0).callback()
+
+    expect(tile(component, 0).pressed).toBe(false)
+    expect(tile(component, 0).countLabel).toBeUndefined()
+  })
+
+  it('KOMBINIEREN nimmt nur die gezählten Stück, der Rest bleibt frei', () => {
+    const { component } = setup()
+    threeSchnitzelAndWine(component)
+    component.setCombiSubButtons()
+
+    tile(component, 0).callback() // 1/3
+    tile(component, 1).callback() // Wein
+    component.increaseCombination()
+
+    expect(shape(component)).toEqual({
+      combinations: [['1×Artikel schnitzel', '1×Artikel wein']],
+      free: ['2×Artikel schnitzel'],
+    })
+  })
+
+  it('„Alle Artikel kombinieren" nimmt weiterhin ganze Zeilen', () => {
+    const { component } = setup()
+    threeSchnitzelAndWine(component)
+
+    component.combineAllArticles()
+
+    expect(shape(component)).toEqual({ combinations: [['3×Artikel schnitzel', '1×Artikel wein']], free: [] })
+  })
+
+  it('Herauslösen nimmt so viele Stück, wie der Multiplikator zeigt, und nennt die Zahl', () => {
+    const { component } = setup()
+    threeSchnitzelAndWine(component)
+    component.combineAllArticles()
+    component.selectCombinationByIndex(0, 0)
+    component.numpadAction(2)
+
+    expect(component.releaseLabel()).toBe('2 herauslösen')
+    component.releaseFromCombination()
+
+    expect(shape(component)).toEqual({
+      combinations: [['1×Artikel schnitzel', '1×Artikel wein']],
+      free: ['2×Artikel schnitzel'],
+    })
+    expect(component.multiplier).toBe(1)
+  })
+
+  it('ohne Multiplikator löst es ein Stück und führt es mit einer gleichen freien Zeile zusammen', () => {
+    const { component } = setup()
+    threeSchnitzelAndWine(component)
+    component.setCombiSubButtons()
+    tile(component, 0).callback()
+    tile(component, 0).callback() // 2/3
+    tile(component, 1).callback()
+    component.increaseCombination() // Kombination 2× Schnitzel + Wein, frei 1× Schnitzel
+    component.selectCombinationByIndex(0, 0)
+
+    expect(component.releaseLabel()).toBe('1 herauslösen')
+    component.releaseFromCombination()
+
+    expect(shape(component)).toEqual({
+      combinations: [['1×Artikel schnitzel', '1×Artikel wein']],
+      free: ['2×Artikel schnitzel'],
+    })
+  })
+
+  it('bleibt nur eine Position übrig, löst sich die Kombination auf', () => {
+    const { component } = setup()
+    component.increaseLineItem(product('schnitzel'))
+    component.increaseLineItem(product('wein'))
+    component.combineAllArticles()
+    component.selectCombinationByIndex(0, 1)
+
+    component.releaseFromCombination()
+
+    expect(shape(component)).toEqual({ combinations: [], free: ['1×Artikel schnitzel', '1×Artikel wein'] })
+  })
+
+  it('ein Multiplikator über der Stückzahl löst die ganze Position', () => {
+    const { component } = setup()
+    threeSchnitzelAndWine(component)
+    component.combineAllArticles()
+    component.selectCombinationByIndex(0, 0)
+    component.numpadAction(9)
+
+    expect(component.releaseLabel()).toBe('3 herauslösen')
+  })
+
+  it('an einer freien Zeile gibt es nichts herauszulösen', () => {
+    const { component } = setup()
+    threeSchnitzelAndWine(component)
+    component.selectProduct(0)
+
+    expect(component.releaseLabel()).toBeNull()
   })
 })

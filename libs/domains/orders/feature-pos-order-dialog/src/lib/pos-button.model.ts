@@ -26,6 +26,8 @@ export interface PosButtonUiState {
   table?: string
   productionTime?: number
   productGroupExternalId?: string
+  /** Abzeichen oben rechts, z. B. „1/3" — gewählte Stück beim Kombinieren (#795) */
+  countLabel?: string
 }
 
 /** Produkt-Taste: KOPIE der Produkt-Felder + UI-Zustand — nie die Store-Referenz selbst. */

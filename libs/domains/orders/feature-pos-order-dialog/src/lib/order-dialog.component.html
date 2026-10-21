@@ -38,16 +38,23 @@
       class="flex justify-start pt-3 pb-1.5 px-2 gap-2 shrink-0 overflow-hidden w-full relative"
     >
       <!-- Loop over VISIBLE menu groups -->
-      <!-- Added !w-[10rem] !min-w-[10rem] for fixed width as requested -->
+      <!-- Schmaler seit #795 (vorher 6.875/5.625/8.125rem): mehr Gruppen sichtbar; die Mindestbreite
+           steckt auch in calculateVisibleProductGroups() — beide zusammen ändern. -->
       @for (productGroup of visibleProductGroups; track productGroup._id; let i = $index) {
         <button
           type="button"
-          class="pnry-touch flex-shrink-0 flex justify-center items-center h-14 rounded-xl text-[0.625rem] font-semibold uppercase tracking-wide active:scale-95 transition-all shadow-sm border border-transparent hover:shadow-md px-1.5 bg-white dark:bg-gray-800 text-black dark:text-gray-200"
-          style="width: 6.875rem; min-width: 5.625rem; max-width: 8.125rem; flex: 1 1 6.875rem"
+          class="pnry-touch flex-shrink-0 flex justify-center items-start pt-2 h-14 rounded-xl text-xs font-semibold uppercase active:scale-95 transition-all shadow-sm border border-transparent hover:shadow-md px-1 bg-white dark:bg-gray-800 text-black dark:text-gray-200"
+          style="width: 6rem; min-width: 5.25rem; max-width: 7rem; flex: 1 1 6rem"
           [style.border-bottom]="'2px solid ' + productGroup.color"
           (click)="createProductButtons(productGroup)"
         >
-          <span class="text-center leading-tight line-clamp-2 break-words w-full">{{ productGroup.name }}</span>
+          <!-- Silbentrennung statt break-words: Das brach „HAUPTGERICHTE" hinter dem T um (#795) -->
+          <span
+            class="text-center leading-tight line-clamp-2 w-full"
+            style="hyphens: auto; -webkit-hyphens: auto"
+            lang="de"
+            >{{ productGroup.name }}</span
+          >
         </button>
       }
 
@@ -96,7 +103,7 @@
     <div class="flex flex-row w-full flex-1 overflow-hidden px-3 pt-3 pb-2 gap-3 min-h-0">
       <!-- SPALTE 1: Positionen -->
       <div
-        class="relative flex-none w-[35%] min-w-[18.75rem] flex flex-col h-full z-20 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden"
+        class="relative flex-none w-[35%] min-w-[18.75rem] max-w-[30rem] flex flex-col h-full z-20 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden"
       >
         <!-- Receipt Header -->
         <div
@@ -169,9 +176,12 @@
                       [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'"
                     >
                       <!-- Menge nur als Text — die Zeile ist ein einziges Klickziel (ADR 0034) -->
-                      <span class="font-bold text-gray-700 dark:text-gray-300 min-w-[2rem] text-right text-sm shrink-0"
-                        >{{ lineItem.amount }}×</span
-                      >
+                      <!-- Menge 1 bleibt leer, die Spalte reserviert — Mehrfach-Positionen fallen so sofort auf (#795) -->
+                      <span class="font-bold text-gray-700 dark:text-gray-300 min-w-[2rem] text-right text-sm shrink-0">
+                        @if (lineItem.amount > 1) {
+                          {{ lineItem.amount }}×
+                        }
+                      </span>
 
                       <span
                         class="text-[0.9375rem] font-medium text-gray-800 dark:text-gray-200 flex-1 truncate leading-tight"
@@ -226,7 +236,10 @@
                           </span>
                         } @else {
                           <span>
-                            {{ extra.amount | abs }}x
+                            @let comboExtraAmount = modifierDisplayAmount(lineItem, extra) | abs;
+                            @if (comboExtraAmount > 1) {
+                              {{ comboExtraAmount }}x
+                            }
                             @if (extra.amount < 0) {
                               <span class="italic text-gray-400">ohne</span>
                             }
@@ -262,10 +275,14 @@
                        aus, mehr nicht. Löschen, − und + sitzen als 56-px-Tasten in Spalte 2 und
                        wirken auf die Markierung — ein Fehlklick beim Auswählen kann die Menge
                        nicht mehr verändern (ADR 0034). -->
+                  <!-- Menge 1 bleibt leer, die Spalte reserviert — Mehrfach-Positionen fallen so sofort auf (#795) -->
                   <span
                     class="font-bold text-gray-700 dark:text-gray-300 min-w-[2rem] text-right text-[0.9375rem] shrink-0 leading-tight"
-                    >{{ lineItem.amount }}×</span
                   >
+                    @if (lineItem.amount > 1) {
+                      {{ lineItem.amount }}×
+                    }
+                  </span>
 
                   <!-- Item Details -->
                   <div class="flex-1 min-w-0">
@@ -349,8 +366,8 @@
                                   class="bg-gray-800 text-white text-[0.5625rem] font-bold px-1.5 py-0.5 rounded uppercase leading-none"
                                   >ohne</span
                                 >
-                              } @else {
-                                <span class="text-gray-400">{{ extra.amount }}x</span>
+                              } @else if (modifierDisplayAmount(lineItem, extra) > 1) {
+                                <span class="text-gray-400">{{ modifierDisplayAmount(lineItem, extra) }}x</span>
                               }
                               @if (!isRemovedIngredient(extra)) {
                                 <span
@@ -474,10 +491,11 @@
       <div class="flex flex-col gap-1.5 shrink-0 pt-0 min-h-0 overflow-y-auto overflow-x-hidden [scrollbar-width:none]">
         <button
           (click)="unselectProduct()"
-          class="pnry-touch shrink-0 h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          class="pnry-touch shrink-0 h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex flex-col items-center justify-center gap-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           aria-label="Auswahl aufheben"
         >
-          <span class="material-symbols-outlined text-[1.375rem]" style="font-size: inherit">remove_done</span>
+          <span class="material-symbols-outlined !text-[1.25rem]" aria-hidden="true">remove_done</span>
+          <span class="text-[0.5625rem] font-semibold leading-none">Abwählen</span>
         </button>
         <!-- Mengensteuerung + Löschen: wirken auf die Markierung im Warenkorb (Zeile,
              Position in einer Kombination oder ganze Kombination). Ohne Markierung
@@ -485,51 +503,67 @@
              Letzteres greift nur bei aktivem Fluid-Flag. -->
         <button
           type="button"
-          class="pnry-touch shrink-0 h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:active:scale-100 disabled:hover:bg-transparent"
+          class="pnry-touch shrink-0 h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex flex-col items-center justify-center gap-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:active:scale-100 disabled:hover:bg-transparent"
           [disabled]="!canMutateSelection()"
           (click)="increaseSelectedQuantity()"
           aria-label="Menge der Markierung erhöhen"
         >
-          <span class="material-symbols-outlined text-[1.375rem]" style="font-size: inherit">add</span>
+          <span class="material-symbols-outlined !text-[1.25rem]" aria-hidden="true">add</span>
+          <span class="text-[0.5625rem] font-semibold leading-none">Menge +</span>
         </button>
         <button
           type="button"
-          class="pnry-touch shrink-0 h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:active:scale-100 disabled:hover:bg-transparent"
+          class="pnry-touch shrink-0 h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex flex-col items-center justify-center gap-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:active:scale-100 disabled:hover:bg-transparent"
           [disabled]="!canDecreaseSelection()"
           (click)="decreaseSelectedQuantity()"
           aria-label="Menge der Markierung verringern"
         >
-          <span class="material-symbols-outlined text-[1.375rem]" style="font-size: inherit">remove</span>
+          <span class="material-symbols-outlined !text-[1.25rem]" aria-hidden="true">remove</span>
+          <span class="text-[0.5625rem] font-semibold leading-none">Menge −</span>
         </button>
         <button
           type="button"
-          class="pnry-touch shrink-0 h-14 w-14 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-900/50 text-red-500 dark:text-red-400 active:scale-95 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/50 disabled:opacity-40 disabled:active:scale-100 disabled:hover:bg-red-50 dark:disabled:hover:bg-red-900/30"
-          [disabled]="!canMutateSelection()"
+          class="pnry-touch shrink-0 h-14 w-14 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-900/50 text-red-500 dark:text-red-400 active:scale-95 flex flex-col items-center justify-center gap-0.5 hover:bg-red-100 dark:hover:bg-red-900/50 disabled:opacity-40 disabled:active:scale-100 disabled:hover:bg-red-50 dark:disabled:hover:bg-red-900/30"
+          [disabled]="!canDeleteSelection()"
           (click)="deleteSelection()"
           aria-label="Markierung löschen"
         >
-          <span class="material-symbols-outlined text-[1.375rem]" style="font-size: inherit">delete</span>
+          <span class="material-symbols-outlined !text-[1.25rem]" aria-hidden="true">delete</span>
+          <span class="text-[0.5625rem] font-semibold leading-none">Löschen</span>
         </button>
+        <!-- Eingeschaltet sichtbar hell hinterlegt (#795): vorher färbte sich nur das Icon, ob die
+             Preise an sind, war an der Taste kaum abzulesen. -->
         <button
           (click)="togglePriceVisibility()"
-          class="pnry-touch shrink-0 h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          [class.text-blue-500]="priceVisibility"
+          class="pnry-touch shrink-0 h-14 w-14 rounded-xl border active:scale-95 flex flex-col items-center justify-center gap-0.5 transition-colors"
+          [ngClass]="
+            priceVisibility
+              ? 'bg-white dark:bg-gray-700 border-blue-400 dark:border-blue-500 text-blue-600 dark:text-blue-300 shadow-md'
+              : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+          "
+          [attr.aria-pressed]="priceVisibility"
+          aria-label="Preise auf den Kacheln ein/aus"
         >
-          <span class="material-symbols-outlined text-[1.375rem]" style="font-size: inherit">euro_symbol</span>
+          <span class="material-symbols-outlined !text-[1.25rem]" aria-hidden="true">euro_symbol</span>
+          <span class="text-[0.5625rem] font-semibold leading-none">Preise</span>
         </button>
+        <!-- Bis #795 ein zweiter roter Mülleimer — jetzt neutral: Er öffnet nur ein Menü
+             (Bestellung leeren, Kunde entfernen), gelöscht wird dort erst nach Rückfrage. -->
         <button
-          class="pnry-touch shrink-0 h-14 w-14 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-900/50 text-red-500 dark:text-red-400 active:scale-95 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/50"
+          class="pnry-touch shrink-0 h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex flex-col items-center justify-center gap-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           (click)="setDeleteSubbuttons()"
-          aria-label="Löschen-Menü"
+          aria-label="Weitere Aktionen"
         >
-          <span class="material-symbols-outlined text-[1.375rem]" style="font-size: inherit">delete_forever</span>
+          <span class="material-symbols-outlined !text-[1.25rem]" aria-hidden="true">more_horiz</span>
+          <span class="text-[0.5625rem] font-semibold leading-none">Mehr</span>
         </button>
         <button
-          class="pnry-touch shrink-0 h-14 w-14 rounded-xl bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-900/50 text-purple-600 dark:text-purple-300 active:scale-95 flex items-center justify-center hover:bg-purple-100 dark:hover:bg-purple-900/50"
+          class="pnry-touch shrink-0 h-14 w-14 rounded-xl bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-900/50 text-purple-600 dark:text-purple-300 active:scale-95 flex flex-col items-center justify-center gap-0.5 hover:bg-purple-100 dark:hover:bg-purple-900/50"
           (click)="setCombiSubButtons()"
           aria-label="Kombination"
         >
-          <span class="material-symbols-outlined rotate-90 text-[1.375rem]" style="font-size: inherit">merge_type</span>
+          <span class="material-symbols-outlined rotate-90 !text-[1.25rem]" aria-hidden="true">merge_type</span>
+          <span class="text-[0.5625rem] font-semibold leading-none">Kombi</span>
         </button>
       </div>
 
@@ -549,6 +583,8 @@
             (finished)="onCustomizeFinished()"
             (cancelled)="onCustomizeCancelled()"
             (showAllModifiers)="onCustomizeShowAllModifiers()"
+            [releaseLabel]="releaseLabel()"
+            (released)="releaseFromCombination()"
           />
         } @else {
           <!-- Function Buttons: linksbündige Kacheln im Produktkachel-Maß, farbcodiert nach Wirkung (code-style.md §9) -->
@@ -557,7 +593,7 @@
               @for (functionButton of functionButtons; track functionButton._id; let i = $index) {
                 <button
                   type="button"
-                  class="pnry-touch w-[var(--pnry-tile-min,8.25rem)] h-[5.375rem] shrink-0 rounded-xl border-2 flex flex-col items-center justify-center gap-1 font-bold text-[0.625rem] tracking-wide uppercase px-2 transition-all active:scale-95"
+                  class="pnry-touch w-[var(--pnry-tile-min,8.25rem)] h-[5.375rem] shrink-0 rounded-xl border-2 flex flex-col items-center justify-center gap-1 font-bold text-xs tracking-wide uppercase px-2 transition-all active:scale-95"
                   [ngClass]="functionButtonClasses(functionButton)"
                   [attr.aria-pressed]="functionButton.pressed ?? null"
                   (click)="functionButton.callback == undefined ? pass() : functionButton.callback()"
@@ -588,13 +624,19 @@
               @for (productButton of productButtons; let i = $index; track i) {
                 <button
                   type="button"
-                  class="pnry-touch relative h-[5.375rem] bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-black dark:text-gray-200 font-semibold text-[0.625rem] uppercase px-2 py-2 flex items-center justify-center gap-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all"
+                  class="pnry-touch relative h-[5.375rem] bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-black dark:text-gray-200 font-semibold text-xs uppercase px-2 py-2 flex items-center justify-center gap-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all"
                   [style.background-color]="productButton.backgroundColor"
                   [style.color]="productButton.fontColor"
                   [class.ring-2]="productButton.pressed"
                   [class.ring-gray-400]="productButton.pressed"
                   (click)="!productButton.callback ? noActionDefined(productButton) : productButton.callback()"
                 >
+                  @if (productButton.countLabel) {
+                    <span
+                      class="absolute -top-2 -right-1.5 rounded-full bg-purple-600 px-2 py-0.5 text-[0.75rem] font-bold leading-none text-white tabular-nums shadow"
+                      >{{ productButton.countLabel }}</span
+                    >
+                  }
                   @if (!productButton.isFunctionButton && productButton.ui?.index != null) {
                     <span
                       class="absolute -top-1.5 -left-1 bg-gray-200 text-black text-[0.5rem] font-semibold min-w-[1rem] h-[0.875rem] px-2 rounded flex items-center justify-center tracking-widest"
@@ -608,14 +650,15 @@
                     }}</span>
                   }
                   <span class="flex flex-col items-center min-w-0">
+                    <!-- Drei Zeilen seit der größeren Schrift (#795) — die Kachelhöhe trägt sie -->
                     <span
-                      class="text-center leading-tight line-clamp-2 w-full px-0.5"
+                      class="text-center leading-tight line-clamp-3 w-full px-0.5"
                       style="hyphens: auto; -webkit-hyphens: auto"
                       lang="de"
                       >{{ productButton.name }}</span
                     >
                     @if (priceVisibility && !productButton.isFunctionButton) {
-                      <span class="text-[0.5625rem] text-gray-500 font-normal">{{
+                      <span class="text-[0.625rem] text-gray-500 font-normal">{{
                         productButton.price | currency: 'EUR'
                       }}</span>
                     }
@@ -723,7 +766,7 @@
         </span>
       </button>
       <button
-        class="pnry-touch-primary h-14 w-32 shrink-0 rounded-xl bg-yellow-400 text-gray-900 font-bold shadow-sm transition-transform text-xs group overflow-hidden active:scale-[0.92] flex items-center justify-center gap-1.5"
+        class="pnry-touch-primary h-14 w-32 shrink-0 rounded-xl bg-yellow-400 text-gray-900 font-bold shadow-sm transition-transform text-sm group overflow-hidden active:scale-[0.92] flex items-center justify-center gap-1.5"
         (click)="setTaxRateSubbuttons()"
       >
         <span>{{ 'ORDER_DIALOG.ORDER' | translate }}</span>
@@ -742,7 +785,7 @@
         class="h-14 w-40 shrink-0 rounded-xl bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer flex flex-col justify-center gap-0.5 px-3 overflow-hidden"
         (click)="applyProductSearch()"
       >
-        <span class="text-[0.5rem] text-gray-400 font-bold uppercase tracking-wider leading-none">Multiplier</span>
+        <span class="text-[0.625rem] text-gray-400 font-bold uppercase tracking-wider leading-none">Multiplier</span>
         <div class="flex items-center justify-start gap-1.5">
           <span class="font-bold text-lg text-gray-800 dark:text-white shrink-0 leading-tight">{{ multiplier }}</span>
           @if (numpadValue) {
@@ -754,14 +797,14 @@
       <div class="hidden lg:flex gap-1.5">
         @for (number of numbers; track number) {
           <button
-            class="pnry-touch h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-bold text-lg text-black dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
+            class="pnry-touch h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-bold text-xl text-black dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
             (click)="numpadAction(number)"
           >
             {{ number }}
           </button>
         }
         <button
-          class="pnry-touch h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-bold text-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-colors flex items-center justify-center"
+          class="pnry-touch h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-bold text-2xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-colors flex items-center justify-center"
           (click)="numpadReset()"
         >
           C
@@ -771,7 +814,7 @@
       <!-- Clear + Numpad: Kompakt (kleine Screens) -->
       <div class="lg:hidden flex gap-1.5">
         <button
-          class="pnry-touch h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-bold text-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-colors flex items-center justify-center"
+          class="pnry-touch h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-bold text-2xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-colors flex items-center justify-center"
           (click)="numpadReset()"
         >
           C

@@ -60,7 +60,10 @@ function setup(
   const injector = Injector.create({
     providers: [
       { provide: DeviceConfigService, useValue: configService },
-      { provide: HubDiscoveryService, useValue: { hubs: signal([]), scanning: signal(false), isTauri: false, isCapacitor: false } },
+      {
+        provide: HubDiscoveryService,
+        useValue: { hubs: signal([]), scanning: signal(false), isTauri: false, isCapacitor: false },
+      },
       { provide: ThemeServiceService, useValue: { theme: 'light', setTheme: () => undefined } },
       { provide: LanguageService, useValue: { currentLanguage: () => 'de', setLanguage: () => undefined } },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },

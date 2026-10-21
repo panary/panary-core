@@ -1,4 +1,8 @@
 @import 'tailwindcss';
+@import '../../../libs/shared/design-tokens/tokens.css';
+@import '../../../libs/shared/design-tokens/theme.css';
+@import '../../../libs/shared/design-tokens/legacy-palette.css';
+@import '../../../libs/shared/design-tokens/fonts.css';
 
 /* Explizite Quellpfade für Tailwind v4 JIT — nötig in Docker (kein .git-Verzeichnis) */
 @source "./app";
@@ -22,14 +26,6 @@
       @slot;
     }
   }
-}
-
-@font-face {
-  font-family: 'Switzer';
-  src: url('./assets/fonts/Switzer-Variable.woff2') format('woff2');
-  font-weight: 100 900;
-  font-display: swap;
-  font-style: normal;
 }
 
 /* Material Symbols Outlined — lokal ausgeliefert, kein Google-Fonts-Request */
@@ -56,38 +52,15 @@
   -webkit-font-smoothing: antialiased;
 }
 
-@theme {
-  --font-sans: 'Switzer', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-
-  --color-gray-850: oklch(23% 0.034 264.665);
-  --color-gray-950: oklch(13% 0.028 261);
-}
-
 html,
 body {
   height: 100%;
   margin: 0;
   overflow: hidden;
-  font-family: 'Switzer', sans-serif;
-  background-color: #f8fafc;
-  color: #0f172a;
+  font-family: var(--font-family-sans);
+  background-color: var(--surface-bg);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
-}
-
-/* Manuell auf Dunkel gesetzt */
-.dark body,
-body.dark {
-  background-color: #000;
-  color: #fff;
-}
-
-/* System-Modus: body-Hintergrund bei OS-Dark */
-@media (prefers-color-scheme: dark) {
-  html:not([data-theme]) body {
-    background-color: #000;
-    color: #fff;
-  }
 }
 
 /* ===== Save-Button Micro-Interaction ===== */
@@ -111,30 +84,30 @@ body.dark {
 }
 
 .save-btn--default {
-  background: #1e293b;
+  background: var(--brand-navy);
   color: #fff;
 }
 .save-btn--default:hover:not(:disabled) {
-  background: #334155;
+  background: var(--surface-rail);
 }
 
 .dark .save-btn--default {
-  background: #fff;
-  color: #000;
+  background: var(--text-primary);
+  color: var(--surface-bg);
 }
 .dark .save-btn--default:hover:not(:disabled) {
-  background: #e5e5e5;
+  background: var(--text-muted);
 }
 
 .save-btn--saving {
-  background: #1e293b;
+  background: var(--brand-navy);
   color: #fff;
   pointer-events: none;
 }
 
 .dark .save-btn--saving {
-  background: #fff;
-  color: #000;
+  background: var(--text-primary);
+  color: var(--surface-bg);
 }
 
 .save-btn--success {
@@ -178,7 +151,7 @@ body.dark {
 
 .dark .save-spinner {
   border: 2.5px solid rgba(0, 0, 0, 0.15);
-  border-top-color: #000;
+  border-top-color: var(--surface-bg);
 }
 
 @keyframes save-spin {
@@ -216,7 +189,7 @@ body.dark {
     color: #fff;
   }
   100% {
-    background: #1e293b;
+    background: var(--brand-navy);
     color: #fff;
   }
 }
@@ -231,21 +204,21 @@ body.dark {
     color: #fff;
   }
   100% {
-    background: #fff;
-    color: #000;
+    background: var(--text-primary);
+    color: var(--surface-bg);
   }
 }
 
 /* ===== Angular Material Dialog — Dark Mode ===== */
 .dark .mat-mdc-dialog-container .mdc-dialog__surface {
-  background-color: #030712; /* gray-950 */
-  color: #fff;
+  background-color: var(--surface-panel);
+  color: var(--text-primary);
 }
 
 @media (prefers-color-scheme: dark) {
   html:not([data-theme]) .mat-mdc-dialog-container .mdc-dialog__surface {
-    background-color: #030712;
-    color: #fff;
+    background-color: var(--surface-panel);
+    color: var(--text-primary);
   }
 }
 

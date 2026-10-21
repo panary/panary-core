@@ -55,7 +55,7 @@ import { MatDialogRef, MatDialogModule } from '@angular/material/dialog'
 
       <button
         (click)="confirm()"
-        class="h-14 rounded-xl bg-yellow-500 text-slate-800 font-bold text-lg hover:bg-yellow-400 active:scale-98 transition-all shadow-lg shadow-yellow-200 flex items-center justify-center gap-2"
+        class="h-14 rounded-xl bg-action text-on-action font-bold text-lg hover:brightness-95 active:scale-98 transition-all shadow-lg flex items-center justify-center gap-2"
       >
         <span class="material-symbols-outlined text-[20px]">check</span>
         Bestätigen

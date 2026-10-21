@@ -30,6 +30,10 @@ Nach `tailwindcss`, per relativem Pfad (Pfad ab `apps/<app>/src/`):
 @use '../../../libs/shared/design-tokens/theme.css';
 ```
 
+Dazu `fonts.css` (Inter, IBM Plex Mono, lokal) und befristet `legacy-palette.css` (siehe unten), beide ebenfalls
+nach `tailwindcss`. Die Dateien liegen im Paket (`fonts/`, ca. 240 kB, nur latin und latin-ext). Beträge und
+Zahlenspalten: Tailwind `tabular-nums` (Inter `tnum`) oder `font-mono`.
+
 Dunkel gilt bei `<html data-theme="dark">` oder bei System-Dunkel ohne `data-theme="light"`.
 
 ## Tokens
@@ -63,3 +67,21 @@ die Tailwind-Defaults mit Inter und IBM Plex Mono.
 
 `src/tokens.spec.ts` prüft je Theme u. a. Text auf Flächen (≥ 4,5:1), `--on-primary` auf `--primary` und die
 Status-Paare. Neue Text-/Flächenpaare gehören in die Liste `pairs` des Specs.
+
+## Schriften
+
+`fonts.css` bringt Inter (variabel, 400–700) und IBM Plex Mono (400/500/600) als woff2 mit, ohne Netzwerkzugriff
+(Tauri, Edge im LAN). Quelle und Lizenz (OFL 1.1, Text je Familie unter `fonts/`) siehe Kopf der Datei. Switzer ist
+in POS und Core-Admin entfernt; der Setup-Client behält sein eigenes Asset bis zu seiner eigenen Migration.
+
+## Legacy-Palette (Brücke)
+
+Die Apps nutzen rund 5 600-mal `gray-*`/`slate-*` (`bg-gray-100`, `dark:bg-gray-800`, …). `legacy-palette.css` legt
+beide Rampen auf warme Werte; die dunklen Stufen entsprechen den Flächen-Tokens (`gray-900` = `--surface-bg`
+dunkel). Damit ist das dunkle Theme ohne Einzelmigration nie reines Schwarz. Die Datei entfällt je Bereich, wenn
+die Klassen auf Token-Klassen umgestellt sind; neue Oberflächen nutzen sie nicht.
+
+## Angular Material (POS)
+
+`apps/pos-client/src/styles.scss` setzt die Material-Systemfarben (`--mat-sys-primary`, `-surface*`, `-outline*`,
+`-error`) auf die Tokens. Eine Zuordnung genügt für beide Themes, weil die Tokens selbst wechseln.

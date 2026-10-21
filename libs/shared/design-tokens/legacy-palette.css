@@ -12,6 +12,9 @@
  */
 
 @theme {
+  /* `dark:bg-black` ist im Bestand der haeufigste Seitenhintergrund der Dunkel-Ansicht (Login, Layouts). */
+  --color-black: #15130f;
+
   --color-gray-50: #faf9f6;
   --color-gray-100: #f4f3f0;
   --color-gray-200: #e6e3dd;

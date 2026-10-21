@@ -130,6 +130,7 @@ describe('design-tokens: Schriften und Palette', () => {
     expect([...lum].sort((a, b) => b - a)).toEqual(lum)
     // kein reines Schwarz/Weiss: dunkelste Stufe bleibt warm
     expect(gray[gray.length - 1][1]).not.toBe('#000000')
+    expect(legacy).toMatch(/--color-black: #(?!000000)[0-9a-f]{6};/)
   })
 
   it('legacy-palette: dunkle Stufen decken sich mit den dunklen Flaechen-Tokens', () => {

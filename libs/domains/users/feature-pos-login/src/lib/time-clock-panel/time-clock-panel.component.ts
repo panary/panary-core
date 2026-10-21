@@ -12,6 +12,7 @@ import {
 import { CommonModule } from '@angular/common'
 import { TranslateService } from '@ngx-translate/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { TenantSuspensionService } from '@panary/shared/data-access'
 import { User, UserService } from '@panary/users/data-access'
 
 export type TimeClockAction = 'clock-in' | 'clock-out' | 'break-start' | 'break-end'
@@ -33,6 +34,7 @@ export class TimeClockPanelComponent {
   //#region Injection
   readonly #userService = inject(UserService)
   readonly #translateService = inject(TranslateService)
+  readonly #tenantSuspension = inject(TenantSuspensionService)
   //#endregion
 
   //#region ViewChild
@@ -259,6 +261,13 @@ export class TimeClockPanelComponent {
       return
     }
 
+    // Wie im Dashboard: Bei gesperrtem Mandanten gar nicht erst senden (panary/panary-core#810).
+    if (this.#tenantSuspension.suspended()) {
+      this.pinError.set(true)
+      this.errorMessage.set(this.#translateService.instant('CLOUD_STATUS.TENANT_SUSPENDED'))
+      return
+    }
+
     this.isLoading.set(true)
     this.pinError.set(false)
     this.errorMessage.set(null)
@@ -374,6 +383,17 @@ export class TimeClockPanelComponent {
     // Check if result is actually an error object (FeathersError)
     if (result && (result.code >= 400 || result.type === 'FeathersError' || result.name === 'NotAuthenticated')) {
       throw result
+    }
+
+    // Der UserService faengt Serverfehler per handleError ab und loest dann mit undefined
+    // auf — das ist ein Fehlschlag, kein Erfolg (panary/panary-core#810). Hat derselbe
+    // Fehler die Mandantensperre gesetzt, den Sperr-Hinweis zeigen.
+    if (!result) {
+      throw new Error(
+        this.#translateService.instant(
+          this.#tenantSuspension.suspended() ? 'CLOUD_STATUS.TENANT_SUSPENDED' : 'TIME_CLOCK.ACTION_FAILED',
+        ),
+      )
     }
   }
 

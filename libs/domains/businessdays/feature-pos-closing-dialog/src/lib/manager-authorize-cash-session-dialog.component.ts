@@ -9,6 +9,7 @@ import { CashSessionService } from '@panary/businessdays/data-access'
 import { AppError } from '@panary/shared-common'
 import { ConnectionService } from '@panary/shared/data-access'
 import { CASH_SESSION_AUTHORIZING_ROLES, User, UserStatus } from '@panary/users/domain'
+import { IconComponent } from '@panary/shared/ui-common'
 
 export interface ManagerAuthorizeCashSessionDialogData {
   businessDayId: string
@@ -70,7 +71,7 @@ const AUTH_ERROR_KEYS: Record<string, string> = {
   selector: 'app-manager-authorize-cash-session-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslateModule],
+  imports: [IconComponent, TranslateModule],
   templateUrl: './manager-authorize-cash-session-dialog.component.html',
   styleUrl: './manager-authorize-cash-session-dialog.component.scss',
 })

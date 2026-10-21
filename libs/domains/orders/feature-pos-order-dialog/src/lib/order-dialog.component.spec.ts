@@ -830,9 +830,9 @@ describe('OrderDialog — Extras-Tap meldet statt still zurueckzukehren (#273)',
     ])
 
     component.setExtraSubButtons(undefined, undefined, false, true)
-    const tiles: Array<{ name: string; icon?: string }> = component.productButtons
-    expect(tiles.find(t => t.name === 'Mayo')?.icon).toBe('warning')
-    expect(tiles.find(t => t.name === 'Ketchup')?.icon).toBeUndefined()
+    const tiles: Array<{ name: string; iconName?: string }> = component.productButtons
+    expect(tiles.find(t => t.name === 'Mayo')?.iconName).toBe('warning')
+    expect(tiles.find(t => t.name === 'Ketchup')?.iconName).toBeUndefined()
   })
 })
 

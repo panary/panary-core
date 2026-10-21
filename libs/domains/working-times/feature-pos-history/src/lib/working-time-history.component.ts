@@ -6,6 +6,7 @@ import { WorkingTimeService } from '@panary/working-times/data-access'
 import { UserService } from '@panary/users/data-access'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { IconComponent } from '@panary/shared/ui-common'
 
 export interface DailySummary {
   date: Date
@@ -21,7 +22,7 @@ export interface DailySummary {
 @Component({
   selector: 'lib-working-time-history',
   standalone: true,
-  imports: [DatePipe, FormsModule, TranslateModule],
+  imports: [IconComponent, DatePipe, FormsModule, TranslateModule],
   templateUrl: './working-time-history.component.html',
   styleUrl: './working-time-history.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

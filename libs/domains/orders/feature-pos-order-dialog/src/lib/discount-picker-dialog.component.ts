@@ -4,6 +4,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { Discount } from '@panary/discounts/domain'
 import { DiscountService } from '@panary/discounts/data-access'
 import { TranslateModule } from '@ngx-translate/core'
+import { IconComponent } from '@panary/shared/ui-common'
 
 /** Beschriftungs-Variante: dieselbe Auswahl, anderes Ziel. */
 export interface DiscountPickerData {
@@ -28,7 +29,7 @@ export interface DiscountPickerData {
   selector: 'app-discount-picker-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslateModule],
+  imports: [IconComponent, TranslateModule],
   template: `
     <div
       role="dialog"
@@ -56,7 +57,7 @@ export interface DiscountPickerData {
           class="w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500
                  hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
         >
-          <span class="material-symbols-outlined text-[1.25rem]">close</span>
+          <lib-icon name="x" class="text-[1.25rem]" />
         </button>
       </div>
 
@@ -68,7 +69,7 @@ export interface DiscountPickerData {
           </div>
         } @else if (discounts().length === 0) {
           <div class="h-full flex flex-col items-center justify-center gap-2 text-center">
-            <span class="material-symbols-outlined text-[2.5rem] text-gray-300 dark:text-gray-600">sell</span>
+            <lib-icon name="tag" class="text-[2.5rem] text-gray-300 dark:text-gray-600" />
             <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Keine Rabatte verfügbar</span>
             <span class="text-xs text-gray-400 dark:text-gray-500 max-w-xs">
               Aktive manuelle Rabatte für den Kassen-Kanal werden in der Cloud verwaltet und synchronisiert.

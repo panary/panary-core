@@ -9,6 +9,7 @@ import { ScrollWheelComponent } from './scroll-wheel.component'
 import { TouchKeyboardComponent } from './touch-keyboard.component'
 import { PreOrderStepperComponent } from './pre-order-stepper.component'
 import { TranslateModule } from '@ngx-translate/core'
+import { IconComponent } from '@panary/shared/ui-common'
 
 /**
  * Vorbestelldialog mit 3-Schritt-Stepper (horizontal, fixed height).
@@ -24,6 +25,7 @@ import { TranslateModule } from '@ngx-translate/core'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    IconComponent,
     ReactiveFormsModule,
     TouchCalendarComponent,
     ScrollWheelComponent,
@@ -61,7 +63,7 @@ import { TranslateModule } from '@ngx-translate/core'
           class="w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500
                  hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
         >
-          <span class="material-symbols-outlined text-[1.25rem]">close</span>
+          <lib-icon name="x" class="text-[1.25rem]" />
         </button>
       </div>
 
@@ -129,9 +131,7 @@ import { TranslateModule } from '@ngx-translate/core'
                   <div
                     class="h-16 w-16 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0"
                   >
-                    <span class="material-symbols-outlined text-[1.75rem] text-gray-500 dark:text-gray-400"
-                      >restaurant</span
-                    >
+                    <lib-icon name="fork-knife" class="text-[1.75rem] text-gray-500 dark:text-gray-400" />
                   </div>
                   <div>
                     <span class="text-lg font-semibold text-gray-900 dark:text-white block">Im Haus</span>
@@ -151,9 +151,7 @@ import { TranslateModule } from '@ngx-translate/core'
                   <div
                     class="h-16 w-16 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0"
                   >
-                    <span class="material-symbols-outlined text-[1.75rem] text-gray-500 dark:text-gray-400"
-                      >local_mall</span
-                    >
+                    <lib-icon name="shopping-bag" class="text-[1.75rem] text-gray-500 dark:text-gray-400" />
                   </div>
                   <div>
                     <span class="text-lg font-semibold text-gray-900 dark:text-white block">Außer Haus</span>
@@ -187,7 +185,7 @@ import { TranslateModule } from '@ngx-translate/core'
                       [attr.aria-describedby]="'name-help'"
                       (click)="setActiveField('name')"
                     >
-                      <span class="material-symbols-outlined text-gray-400 mr-2 text-[1.125rem]">person</span>
+                      <lib-icon name="user" class="text-gray-400 mr-2 text-[1.125rem]" />
                       <span [class.text-gray-400]="!contactFormGroup.get('name')?.value">
                         {{ contactFormGroup.get('name')?.value || ('PRE_ORDER_DIALOG.ENTER_NAME' | translate) }}
                       </span>
@@ -219,7 +217,7 @@ import { TranslateModule } from '@ngx-translate/core'
                       [attr.aria-describedby]="'phone-help'"
                       (click)="setActiveField('phone')"
                     >
-                      <span class="material-symbols-outlined text-gray-400 mr-2 text-[1.125rem]">phone</span>
+                      <lib-icon name="phone" class="text-gray-400 mr-2 text-[1.125rem]" />
                       <span [class.text-gray-400]="!contactFormGroup.get('phone')?.value">
                         {{ contactFormGroup.get('phone')?.value || ('PRE_ORDER_DIALOG.ENTER_PHONE' | translate) }}
                       </span>

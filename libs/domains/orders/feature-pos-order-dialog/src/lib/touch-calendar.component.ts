@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, signal, input, output } from '@angular/core'
+import { IconComponent } from '@panary/shared/ui-common'
 
 @Component({
+  imports: [IconComponent],
   selector: 'app-touch-calendar',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -17,14 +19,14 @@ import { ChangeDetectionStrategy, Component, computed, signal, input, output } f
           (click)="prevMonth()"
           class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         >
-          <span class="material-symbols-outlined">chevron_left</span>
+          <lib-icon name="caret-left" />
         </button>
         <span class="text-lg font-bold text-gray-800 dark:text-white">{{ monthLabel() }}</span>
         <button
           (click)="nextMonth()"
           class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         >
-          <span class="material-symbols-outlined">chevron_right</span>
+          <lib-icon name="caret-right" />
         </button>
       </div>
 

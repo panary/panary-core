@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { TranslateModule } from '@ngx-translate/core'
 
 import type { CloudBanner, CloudBannerActionKind } from '@panary/shared/data-access'
+import { IconComponent } from '@panary/shared/ui-common'
 
 /**
  * Einziger, priorisierter Cloud-Status-Banner.
@@ -25,16 +26,14 @@ import type { CloudBanner, CloudBannerActionKind } from '@panary/shared/data-acc
 @Component({
   selector: 'lib-cloud-status-banner',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [IconComponent, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (banner(); as b) {
       <div class="fixed top-3 left-1/2 -translate-x-1/2 z-[1000] w-auto max-w-[min(92vw,40rem)]">
         <div [class]="cardClasses()" role="status" aria-live="polite">
           <div class="flex items-start gap-2.5">
-            <span class="material-symbols-outlined text-[18px] leading-none mt-0.5" aria-hidden="true">{{
-              b.icon
-            }}</span>
+            <lib-icon [name]="b.icon" class="text-[18px] leading-none mt-0.5" aria-hidden="true" />
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold leading-snug">{{ b.messageKey | translate: b.params ?? {} }}</p>
               @if (b.sublineKey) {

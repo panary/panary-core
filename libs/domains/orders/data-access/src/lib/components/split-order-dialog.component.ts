@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
-import { formatEur } from '@panary/shared/util-helpers'
+import { formatEur, iconPath } from '@panary/shared/util-helpers'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { NgClass } from '@angular/common'
 import { TranslateModule } from '@ngx-translate/core'
@@ -150,7 +150,13 @@ function errorKey(code: unknown): string {
                     (click)="setQuantity(unit, qty - 1)"
                     [attr.aria-label]="'SPLIT_ORDER.LESS' | translate"
                   >
-                    <span class="material-symbols-outlined text-[1.25rem]">remove</span>
+                    <svg
+                      viewBox="0 0 256 256"
+                      class="inline-block size-[1em] fill-current text-[1.25rem]"
+                      aria-hidden="true"
+                    >
+                      <path [attr.d]="icon('minus')" />
+                    </svg>
                   </button>
                   <span class="w-12 text-center text-sm font-bold tabular-nums text-gray-900 dark:text-white">
                     {{ qty }} / {{ unit.max }}
@@ -162,7 +168,13 @@ function errorKey(code: unknown): string {
                     (click)="setQuantity(unit, qty + 1)"
                     [attr.aria-label]="'SPLIT_ORDER.MORE' | translate"
                   >
-                    <span class="material-symbols-outlined text-[1.25rem]">add</span>
+                    <svg
+                      viewBox="0 0 256 256"
+                      class="inline-block size-[1em] fill-current text-[1.25rem]"
+                      aria-hidden="true"
+                    >
+                      <path [attr.d]="icon('plus')" />
+                    </svg>
                   </button>
                 </div>
               } @else {
@@ -179,7 +191,13 @@ function errorKey(code: unknown): string {
                   [attr.aria-pressed]="qty > 0"
                   [attr.aria-label]="'SPLIT_ORDER.TOGGLE' | translate"
                 >
-                  <span class="material-symbols-outlined text-[1.25rem]">{{ qty > 0 ? 'check' : 'add' }}</span>
+                  <svg
+                    viewBox="0 0 256 256"
+                    class="inline-block size-[1em] fill-current text-[1.25rem]"
+                    aria-hidden="true"
+                  >
+                    <path [attr.d]="icon(qty > 0 ? 'check' : 'plus')" />
+                  </svg>
                 </button>
               }
             </li>
@@ -242,6 +260,8 @@ function errorKey(code: unknown): string {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SplitOrderDialogComponent {
+  protected readonly icon = iconPath
+
   #data = inject<SplitOrderDialogData>(MAT_DIALOG_DATA)
   #dialogRef = inject(MatDialogRef<SplitOrderDialogComponent, SplitOrderDialogResult>)
   #orderService = inject(OrderService)

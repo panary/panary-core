@@ -10,6 +10,7 @@ import {
 } from '@panary/discounts/data-access'
 
 import { TouchKeyboardComponent } from './touch-keyboard.component'
+import { IconComponent } from '@panary/shared/ui-common'
 
 /**
  * Touch-Eingabe für Rabattcodes an der Kasse.
@@ -25,7 +26,7 @@ import { TouchKeyboardComponent } from './touch-keyboard.component'
   selector: 'app-promo-code-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TouchKeyboardComponent],
+  imports: [IconComponent, TouchKeyboardComponent],
   template: `
     <div
       role="dialog"
@@ -46,7 +47,7 @@ import { TouchKeyboardComponent } from './touch-keyboard.component'
           class="w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500
                  hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
         >
-          <span class="material-symbols-outlined text-[1.25rem]">close</span>
+          <lib-icon name="x" class="text-[1.25rem]" />
         </button>
       </div>
 
@@ -71,7 +72,7 @@ import { TouchKeyboardComponent } from './touch-keyboard.component'
             role="status"
             aria-live="polite"
           >
-            <span class="material-symbols-outlined text-[1.25rem] shrink-0">{{ feedbackIcon() }}</span>
+            <lib-icon [name]="feedbackIcon()" class="text-[1.25rem] shrink-0" />
             <div class="min-w-0">
               <p class="text-sm font-semibold">{{ feedbackTitle() }}</p>
               @if (r.ok && r.discount) {
@@ -156,10 +157,10 @@ export class PromoCodeDialogComponent {
   readonly feedbackIcon = computed(() => {
     const r = this.result()
     if (!r) return 'info'
-    if (r.ok) return 'check_circle'
+    if (r.ok) return 'check-circle'
     // „Nicht zugelassen" ist technisch, aber kein Verbindungsproblem — kein Wolken-Symbol (cloud#1429).
-    if (r.reason === CodeProxyReason.NOT_AUTHORIZED) return 'block'
-    return this.isTechnical() ? 'cloud_off' : 'cancel'
+    if (r.reason === CodeProxyReason.NOT_AUTHORIZED) return 'prohibit'
+    return this.isTechnical() ? 'cloud-slash' : 'x-circle'
   })
 
   // Technische Ablehnung sieht bewusst anders aus als fachliche: „Cloud weg" ist

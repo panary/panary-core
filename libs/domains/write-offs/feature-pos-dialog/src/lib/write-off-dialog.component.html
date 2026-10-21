@@ -14,7 +14,7 @@
       (click)="close()"
       class="flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors w-12 h-12 rounded-xl"
     >
-      <span class="material-symbols-outlined text-[1.25rem]">close</span>
+      <lib-icon name="x" class="text-[1.25rem]" />
     </button>
   </div>
 
@@ -44,7 +44,7 @@
                       : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   "
                 >
-                  <span class="material-symbols-outlined text-[1.25rem]">restaurant_menu</span>
+                  <lib-icon name="fork-knife" class="text-[1.25rem]" />
                   <span class="font-bold text-sm">{{ 'WRITE_OFF.PRODUCT' | translate }}</span>
                 </button>
                 <button
@@ -56,7 +56,7 @@
                       : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   "
                 >
-                  <span class="material-symbols-outlined text-[1.25rem]">egg</span>
+                  <lib-icon name="egg" class="text-[1.25rem]" />
                   <span class="font-bold text-sm">{{ 'WRITE_OFF.INGREDIENT' | translate }}</span>
                 </button>
                 <button
@@ -68,17 +68,17 @@
                       : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   "
                 >
-                  <span class="material-symbols-outlined text-[1.25rem]">receipt_long</span>
+                  <lib-icon name="receipt" class="text-[1.25rem]" />
                   <span class="font-bold text-sm">{{ 'WRITE_OFF.RECIPE' | translate }}</span>
                 </button>
               </div>
 
               <!-- Search Input -->
               <div class="relative">
-                <span
-                  class="material-symbols-outlined text-[1.25rem] absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                  >search</span
-                >
+                <lib-icon
+                  name="magnifying-glass"
+                  class="text-[1.25rem] absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                />
                 <input
                   type="text"
                   [formControl]="searchControl"
@@ -90,7 +90,7 @@
                     (click)="searchControl.setValue('')"
                     class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-600"
                   >
-                    <span class="material-symbols-outlined text-[1.25rem]">close</span>
+                    <lib-icon name="x" class="text-[1.25rem]" />
                   </button>
                 }
               </div>
@@ -106,7 +106,7 @@
               <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between">
                 <div class="flex items-center gap-4">
                   <div class="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
-                    <span class="material-symbols-outlined text-[1.25rem]">check</span>
+                    <lib-icon name="check" class="text-[1.25rem]" />
                   </div>
                   <div>
                     <span class="font-bold text-emerald-900 text-lg block leading-none">{{
@@ -142,7 +142,7 @@
                   class="flex items-center justify-center bg-gray-100 dark:bg-gray-800 w-12 h-12 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                   (click)="changeQuantity(-1)"
                 >
-                  <span class="material-symbols-outlined text-[1.25rem]">remove</span>
+                  <lib-icon name="minus" class="text-[1.25rem]" />
                 </button>
                 <div
                   class="flex-1 text-center relative flex justify-center items-center gap-2"
@@ -165,7 +165,7 @@
                   class="flex items-center justify-center bg-gray-100 dark:bg-gray-800 w-12 h-12 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                   (click)="changeQuantity(1)"
                 >
-                  <span class="material-symbols-outlined text-[1.25rem]">add</span>
+                  <lib-icon name="plus" class="text-[1.25rem]" />
                 </button>
               </div>
             </section>
@@ -185,7 +185,7 @@
                       : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400'
                   "
                 >
-                  <span class="material-symbols-outlined text-[1.25rem]">delete_outline</span>
+                  <lib-icon name="trash" class="text-[1.25rem]" />
                   <span class="text-[0.625rem] font-bold uppercase">{{ 'WRITE_OFF.SPOILED' | translate }}</span>
                 </button>
                 <button
@@ -197,7 +197,7 @@
                       : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400'
                   "
                 >
-                  <span class="material-symbols-outlined text-[1.25rem]">warning</span>
+                  <lib-icon name="warning" class="text-[1.25rem]" />
                   <span class="text-[0.625rem] font-bold uppercase">{{ 'WRITE_OFF.MISTAKE' | translate }}</span>
                 </button>
                 <button
@@ -209,7 +209,7 @@
                       : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400'
                   "
                 >
-                  <span class="material-symbols-outlined text-[1.25rem]">visibility_off</span>
+                  <lib-icon name="eye-slash" class="text-[1.25rem]" />
                   <span class="text-[0.625rem] font-bold uppercase">{{ 'WRITE_OFF.SHRINKAGE' | translate }}</span>
                 </button>
                 <button
@@ -221,7 +221,7 @@
                       : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400'
                   "
                 >
-                  <span class="material-symbols-outlined text-[1.25rem]">science</span>
+                  <lib-icon name="flask" class="text-[1.25rem]" />
                   <span class="text-[0.625rem] font-bold uppercase">{{ 'WRITE_OFF.SAMPLE' | translate }}</span>
                 </button>
               </div>
@@ -268,7 +268,7 @@
                     </div>
                     @if (selectedItem()?._id === item._id) {
                       <div class="text-emerald-600">
-                        <span class="material-symbols-outlined text-[1.25rem]">check_circle</span>
+                        <lib-icon name="check-circle" class="text-[1.25rem]" />
                       </div>
                     }
                   </div>
@@ -277,7 +277,7 @@
 
               @if (items.length === 0) {
                 <div class="py-12 flex flex-col items-center text-gray-400">
-                  <span class="material-symbols-outlined text-[2.5rem] opacity-30 mb-2">search_off</span>
+                  <lib-icon name="magnifying-glass" class="text-[2.5rem] opacity-30 mb-2" />
                   <p class="text-sm font-medium">{{ 'WRITE_OFF.NO_ITEMS_FOUND' | translate }}</p>
                 </div>
               }
@@ -295,7 +295,7 @@
       [disabled]="!selectedItem() || quantity() <= 0 || saving()"
       class="w-full h-14 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 relative overflow-hidden"
     >
-      <span class="material-symbols-outlined text-[1.25rem]">save</span>
+      <lib-icon name="floppy-disk" class="text-[1.25rem]" />
       Abschreibung speichern
       @if (selectedItem()) {
         <span class="ml-1 opacity-80 font-medium text-sm">({{ quantity() }}x {{ selectedItem()?.name }})</span>

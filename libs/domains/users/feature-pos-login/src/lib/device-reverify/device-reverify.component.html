@@ -14,9 +14,7 @@
         <div
           class="w-14 h-14 mx-auto mb-4 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center"
         >
-          <span class="material-symbols-outlined text-[1.75rem] text-amber-600 dark:text-amber-400">
-            shield_person
-          </span>
+          <lib-icon name="shield-check" class="text-[1.75rem] text-amber-600 dark:text-amber-400" />
         </div>
         <h1 class="text-2xl font-bold text-[#0F172A] dark:text-white mb-2">{{ 'LOGIN.REVERIFY_TITLE' | translate }}</h1>
         <p class="text-sm text-gray-500 dark:text-gray-400">
@@ -145,7 +143,7 @@
   @if (step() === 'error') {
     <div class="text-center animate-[fadeIn_0.3s_ease-out]">
       <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center">
-        <span class="material-symbols-outlined text-[1.75rem] text-red-600 dark:text-red-400">error</span>
+        <lib-icon name="warning-circle" class="text-[1.75rem] text-red-600 dark:text-red-400" />
       </div>
       <h2 class="text-xl font-bold text-[#0F172A] dark:text-white mb-2">{{ 'LOGIN.REVERIFY_TITLE' | translate }}</h2>
       <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">{{ errorMessage() }}</p>

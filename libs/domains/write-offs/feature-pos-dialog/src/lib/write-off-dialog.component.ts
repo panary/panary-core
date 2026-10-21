@@ -14,7 +14,7 @@ import { UserService } from '@panary/users/data-access'
 import { BusinessDayService } from '@panary/businessdays/data-access'
 import { DeviceConfigService } from '@panary/shared/data-access-config'
 import { LocationService } from '@panary/locations/data-access'
-import { NumpadDialogComponent } from '@panary/shared/ui-common'
+import { NumpadDialogComponent, IconComponent } from '@panary/shared/ui-common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { uuidv7 } from 'uuidv7'
 import { withTimeout, writeOffErrorMessage } from './write-off-error'
@@ -22,7 +22,15 @@ import { withTimeout, writeOffErrorMessage } from './write-off-error'
 @Component({
   selector: 'lib-write-off-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, MatAutocompleteModule, TranslateModule],
+  imports: [
+    IconComponent,
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    MatDialogModule,
+    MatAutocompleteModule,
+    TranslateModule,
+  ],
   templateUrl: './write-off-dialog.component.html',
   styleUrls: ['./write-off-dialog.component.scss'],
 })

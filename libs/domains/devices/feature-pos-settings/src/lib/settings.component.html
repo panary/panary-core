@@ -9,10 +9,10 @@
       (click)="goBack()"
       class="flex items-center justify-center w-10 h-10 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
     >
-      <span class="material-symbols-outlined text-[1.25rem]">arrow_back</span>
+      <lib-icon name="arrow-left" class="text-[1.25rem]" />
     </button>
     <h1 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-      <span class="material-symbols-outlined text-[1.25rem] text-gray-500 dark:text-gray-400">settings</span>
+      <lib-icon name="gear" class="text-[1.25rem] text-gray-500 dark:text-gray-400" />
       {{ 'SETTINGS.TITLE' | translate }}
     </h1>
 
@@ -22,7 +22,7 @@
         (click)="menuOpen.set(!menuOpen())"
         class="flex items-center justify-center w-10 h-10 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
       >
-        <span class="material-symbols-outlined text-[1.25rem]">menu</span>
+        <lib-icon name="list" class="text-[1.25rem]" />
       </button>
 
       @if (menuOpen()) {
@@ -43,14 +43,14 @@
             [class.dark:text-purple-300]="activeSection === 'general'"
             (click)="activeSection = 'general'; menuOpen.set(false)"
           >
-            <span
-              class="material-symbols-outlined text-[1.25rem]"
+            <lib-icon
+              name="sliders-horizontal"
+              class="text-[1.25rem]"
               [class.text-purple-600]="activeSection === 'general'"
               [class.dark:text-purple-400]="activeSection === 'general'"
               [class.text-gray-400]="activeSection !== 'general'"
               [class.dark:text-gray-500]="activeSection !== 'general'"
-              >tune</span
-            >
+            />
             {{ 'SETTINGS.GENERAL' | translate }}
           </button>
           <button
@@ -61,14 +61,14 @@
             [class.dark:text-purple-300]="activeSection === 'users'"
             (click)="activeSection = 'users'; menuOpen.set(false)"
           >
-            <span
-              class="material-symbols-outlined text-[1.25rem]"
+            <lib-icon
+              name="users"
+              class="text-[1.25rem]"
               [class.text-purple-600]="activeSection === 'users'"
               [class.dark:text-purple-400]="activeSection === 'users'"
               [class.text-gray-400]="activeSection !== 'users'"
               [class.dark:text-gray-500]="activeSection !== 'users'"
-              >people</span
-            >
+            />
             {{ 'SETTINGS.USERS' | translate }}
           </button>
           <button
@@ -79,14 +79,14 @@
             [class.dark:text-purple-300]="activeSection === 'printer'"
             (click)="activeSection = 'printer'; menuOpen.set(false)"
           >
-            <span
-              class="material-symbols-outlined text-[1.25rem]"
+            <lib-icon
+              name="printer"
+              class="text-[1.25rem]"
               [class.text-purple-600]="activeSection === 'printer'"
               [class.dark:text-purple-400]="activeSection === 'printer'"
               [class.text-gray-400]="activeSection !== 'printer'"
               [class.dark:text-gray-500]="activeSection !== 'printer'"
-              >print</span
-            >
+            />
             {{ 'SETTINGS.PRINTER' | translate }}
           </button>
           <button
@@ -97,14 +97,14 @@
             [class.dark:text-purple-300]="activeSection === 'design'"
             (click)="activeSection = 'design'; menuOpen.set(false)"
           >
-            <span
-              class="material-symbols-outlined text-[1.25rem]"
+            <lib-icon
+              name="palette"
+              class="text-[1.25rem]"
               [class.text-purple-600]="activeSection === 'design'"
               [class.dark:text-purple-400]="activeSection === 'design'"
               [class.text-gray-400]="activeSection !== 'design'"
               [class.dark:text-gray-500]="activeSection !== 'design'"
-              >palette</span
-            >
+            />
             {{ 'SETTINGS.DESIGN' | translate }}
           </button>
           <button
@@ -115,14 +115,14 @@
             [class.dark:text-purple-300]="activeSection === 'connection'"
             (click)="activeSection = 'connection'; menuOpen.set(false)"
           >
-            <span
-              class="material-symbols-outlined text-[1.25rem]"
+            <lib-icon
+              name="share-network"
+              class="text-[1.25rem]"
               [class.text-purple-600]="activeSection === 'connection'"
               [class.dark:text-purple-400]="activeSection === 'connection'"
               [class.text-gray-400]="activeSection !== 'connection'"
               [class.dark:text-gray-500]="activeSection !== 'connection'"
-              >device_hub</span
-            >
+            />
             {{ 'SETTINGS.CONNECTION' | translate }}
           </button>
           <div class="h-px bg-gray-100 dark:bg-gray-700 my-1"></div>
@@ -134,14 +134,14 @@
             [class.dark:text-purple-300]="activeSection === 'info'"
             (click)="activeSection = 'info'; menuOpen.set(false)"
           >
-            <span
-              class="material-symbols-outlined text-[1.25rem]"
+            <lib-icon
+              name="info"
+              class="text-[1.25rem]"
               [class.text-purple-600]="activeSection === 'info'"
               [class.dark:text-purple-400]="activeSection === 'info'"
               [class.text-gray-400]="activeSection !== 'info'"
               [class.dark:text-gray-500]="activeSection !== 'info'"
-              >info</span
-            >
+            />
             {{ 'SETTINGS.INFO' | translate }}
           </button>
         </div>
@@ -162,14 +162,14 @@
         [class.dark:text-purple-300]="activeSection === 'general'"
         (click)="activeSection = 'general'"
       >
-        <span
-          class="material-symbols-outlined text-[1.25rem] mr-3"
+        <lib-icon
+          name="sliders-horizontal"
+          class="text-[1.25rem] mr-3"
           [class.text-purple-600]="activeSection === 'general'"
           [class.dark:text-purple-400]="activeSection === 'general'"
           [class.text-gray-400]="activeSection !== 'general'"
           [class.dark:text-gray-500]="activeSection !== 'general'"
-          >tune</span
-        >
+        />
         {{ 'SETTINGS.GENERAL' | translate }}
       </button>
       <button
@@ -180,14 +180,14 @@
         [class.dark:text-purple-300]="activeSection === 'users'"
         (click)="activeSection = 'users'"
       >
-        <span
-          class="material-symbols-outlined text-[1.25rem] mr-3"
+        <lib-icon
+          name="users"
+          class="text-[1.25rem] mr-3"
           [class.text-purple-600]="activeSection === 'users'"
           [class.dark:text-purple-400]="activeSection === 'users'"
           [class.text-gray-400]="activeSection !== 'users'"
           [class.dark:text-gray-500]="activeSection !== 'users'"
-          >people</span
-        >
+        />
         {{ 'SETTINGS.USERS' | translate }}
       </button>
       <button
@@ -198,14 +198,14 @@
         [class.dark:text-purple-300]="activeSection === 'printer'"
         (click)="activeSection = 'printer'"
       >
-        <span
-          class="material-symbols-outlined text-[1.25rem] mr-3"
+        <lib-icon
+          name="printer"
+          class="text-[1.25rem] mr-3"
           [class.text-purple-600]="activeSection === 'printer'"
           [class.dark:text-purple-400]="activeSection === 'printer'"
           [class.text-gray-400]="activeSection !== 'printer'"
           [class.dark:text-gray-500]="activeSection !== 'printer'"
-          >print</span
-        >
+        />
         {{ 'SETTINGS.PRINTER' | translate }}
       </button>
       <button
@@ -216,14 +216,14 @@
         [class.dark:text-purple-300]="activeSection === 'design'"
         (click)="activeSection = 'design'"
       >
-        <span
-          class="material-symbols-outlined text-[1.25rem] mr-3"
+        <lib-icon
+          name="palette"
+          class="text-[1.25rem] mr-3"
           [class.text-purple-600]="activeSection === 'design'"
           [class.dark:text-purple-400]="activeSection === 'design'"
           [class.text-gray-400]="activeSection !== 'design'"
           [class.dark:text-gray-500]="activeSection !== 'design'"
-          >palette</span
-        >
+        />
         {{ 'SETTINGS.DESIGN' | translate }}
       </button>
       <button
@@ -234,14 +234,14 @@
         [class.dark:text-purple-300]="activeSection === 'connection'"
         (click)="activeSection = 'connection'"
       >
-        <span
-          class="material-symbols-outlined text-[1.25rem] mr-3"
+        <lib-icon
+          name="share-network"
+          class="text-[1.25rem] mr-3"
           [class.text-purple-600]="activeSection === 'connection'"
           [class.dark:text-purple-400]="activeSection === 'connection'"
           [class.text-gray-400]="activeSection !== 'connection'"
           [class.dark:text-gray-500]="activeSection !== 'connection'"
-          >device_hub</span
-        >
+        />
         {{ 'SETTINGS.CONNECTION' | translate }}
       </button>
       <div class="flex-1"></div>
@@ -253,14 +253,14 @@
         [class.dark:text-purple-300]="activeSection === 'info'"
         (click)="activeSection = 'info'"
       >
-        <span
-          class="material-symbols-outlined text-[1.25rem] mr-3"
+        <lib-icon
+          name="info"
+          class="text-[1.25rem] mr-3"
           [class.text-purple-600]="activeSection === 'info'"
           [class.dark:text-purple-400]="activeSection === 'info'"
           [class.text-gray-400]="activeSection !== 'info'"
           [class.dark:text-gray-500]="activeSection !== 'info'"
-          >info</span
-        >
+        />
         {{ 'SETTINGS.INFO' | translate }}
       </button>
     </nav>
@@ -272,7 +272,7 @@
       @if (activeSection === 'design') {
         <div class="max-w-2xl mx-auto flex flex-col gap-6">
           <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
-            <span class="material-symbols-outlined text-[1.25rem] text-purple-600">palette</span>
+            <lib-icon name="palette" class="text-[1.25rem] text-purple-600" />
             {{ 'SETTINGS.APPEARANCE' | translate }}
           </h2>
 
@@ -295,12 +295,12 @@
                       : 'flex-1 h-24 flex flex-col items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 border-r border-gray-200 dark:border-gray-700 last:border-r-0 transition'
                   "
                 >
-                  <span
-                    class="material-symbols-outlined text-[1.25rem] mb-1"
+                  <lib-icon
+                    [name]="opt.icon"
+                    class="text-[1.25rem] mb-1"
                     [class.text-purple-600]="themeService.theme === opt.value"
                     [class.dark:text-purple-400]="themeService.theme === opt.value"
-                    >{{ opt.icon }}</span
-                  >
+                  />
                   <span
                     class="font-bold text-sm"
                     [class.text-purple-700]="themeService.theme === opt.value"
@@ -357,12 +357,12 @@
                         : 'flex-1 h-24 flex flex-col items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 border-r border-gray-200 dark:border-gray-700 last:border-r-0 transition'
                     "
                   >
-                    <span
-                      class="material-symbols-outlined text-[1.25rem] mb-1"
+                    <lib-icon
+                      [name]="opt.icon"
+                      class="text-[1.25rem] mb-1"
                       [class.text-purple-600]="uiScaleService.density() === opt.value"
                       [class.dark:text-purple-400]="uiScaleService.density() === opt.value"
-                      >{{ opt.icon }}</span
-                    >
+                    />
                     <span
                       class="font-bold text-sm"
                       [class.text-purple-700]="uiScaleService.density() === opt.value"
@@ -377,7 +377,7 @@
             }
 
             <p class="text-xs text-gray-400 dark:text-gray-500 mt-4 flex items-center gap-1.5">
-              <span class="material-symbols-outlined text-[1rem]">info</span>
+              <lib-icon name="info" class="text-[1rem]" />
               {{ 'SETTINGS.UI_SCALE_PER_TERMINAL_HINT' | translate }}
             </p>
           </div>
@@ -402,12 +402,12 @@
                       : 'flex-1 h-16 flex items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 border-r border-gray-200 dark:border-gray-700 last:border-r-0 transition'
                   "
                 >
-                  <span
-                    class="material-symbols-outlined text-[1.125rem]"
+                  <lib-icon
+                    name="translate"
+                    class="text-[1.125rem]"
                     [class.text-purple-600]="languageService.currentLanguage() === lang.code"
                     [class.dark:text-purple-400]="languageService.currentLanguage() === lang.code"
-                    >translate</span
-                  >
+                  />
                   <span
                     class="font-bold text-sm"
                     [class.text-purple-700]="languageService.currentLanguage() === lang.code"
@@ -424,7 +424,7 @@
       } @else if (activeSection === 'general') {
         <div class="max-w-2xl mx-auto">
           <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
-            <span class="material-symbols-outlined text-[1.25rem] text-purple-600">tune</span>
+            <lib-icon name="sliders-horizontal" class="text-[1.25rem] text-purple-600" />
             {{ 'SETTINGS.GENERAL' | translate }}
           </h2>
 
@@ -432,7 +432,7 @@
             <!-- Location Query -->
             <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
               <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4 flex items-center gap-2">
-                <span class="material-symbols-outlined text-[1.25rem] text-gray-400 dark:text-gray-500">store</span>
+                <lib-icon name="storefront" class="text-[1.25rem] text-gray-400 dark:text-gray-500" />
                 {{ 'SETTINGS.LOCATION' | translate }}
               </h3>
               <div
@@ -449,7 +449,7 @@
                 <div
                   class="h-10 w-10 rounded-full bg-purple-50 dark:bg-purple-950 flex items-center justify-center text-purple-600 dark:text-purple-400"
                 >
-                  <span class="material-symbols-outlined text-[1.25rem]">place</span>
+                  <lib-icon name="map-pin" class="text-[1.25rem]" />
                 </div>
               </div>
             </div>
@@ -458,7 +458,7 @@
       } @else if (activeSection === 'printer') {
         <div class="max-w-2xl mx-auto flex flex-col gap-6">
           <h2 class="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-            <span class="material-symbols-outlined text-[1.25rem] text-purple-600">print</span>
+            <lib-icon name="printer" class="text-[1.25rem] text-purple-600" />
             {{ 'SETTINGS.PRINTER_DEVICES' | translate }}
           </h2>
 
@@ -469,7 +469,7 @@
                 Print Server
               </p>
               <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-[1.25rem] text-gray-400 dark:text-gray-500">dns</span>
+                <lib-icon name="hard-drives" class="text-[1.25rem] text-gray-400 dark:text-gray-500" />
                 <p
                   class="font-bold text-gray-800 dark:text-white text-sm truncate"
                   [matTooltip]="
@@ -491,7 +491,7 @@
                 MQTT Broker
               </p>
               <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-[1.25rem] text-gray-400 dark:text-gray-500">hub</span>
+                <lib-icon name="share-network" class="text-[1.25rem] text-gray-400 dark:text-gray-500" />
                 <p class="font-bold text-gray-800 dark:text-white text-sm truncate">
                   @if (locationService.activeLocation()?.settings?.printSettings; as ps) {
                     {{ ps.mqttServerProtocol }}://{{ ps.mqttServerUrl }}:{{ ps.mqttServerPort }}
@@ -516,14 +516,12 @@
                   <div
                     class="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300"
                   >
-                    <span class="material-symbols-outlined text-[1.25rem]">{{
-                      printer.type === 'mqtt' ? 'dns' : 'print'
-                    }}</span>
+                    <lib-icon [name]="printer.type === 'mqtt' ? 'hard-drives' : 'printer'" class="text-[1.25rem]" />
                   </div>
                   <div>
                     <h3 class="font-bold text-gray-800 dark:text-white text-sm leading-tight">{{ printer.name }}</h3>
                     <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">
-                      <span class="material-symbols-outlined text-[0.75rem]">lan</span>
+                      <lib-icon name="network" class="text-[0.75rem]" />
                       {{ printer.ip || ('SETTINGS.NO_IP' | translate) }}
                     </div>
                   </div>
@@ -550,7 +548,7 @@
               <div
                 class="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl"
               >
-                <span class="material-symbols-outlined text-[2.5rem] opacity-40 mb-2">print_disabled</span>
+                <lib-icon name="printer" class="text-[2.5rem] opacity-40 mb-2" />
                 <p class="text-sm">{{ 'SETTINGS.NO_PRINTERS' | translate }}</p>
               </div>
             }
@@ -559,7 +557,7 @@
       } @else if (activeSection === 'users') {
         <div class="max-w-2xl mx-auto">
           <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
-            <span class="material-symbols-outlined text-[1.25rem] text-purple-600 dark:text-purple-400">people</span>
+            <lib-icon name="users" class="text-[1.25rem] text-purple-600 dark:text-purple-400" />
             {{ 'SETTINGS.USER_PROFILE' | translate }}
           </h2>
 
@@ -606,7 +604,7 @@
                       {{ 'SETTINGS.SYSTEM_ROLE' | translate }}
                     </p>
                     <div class="flex items-center gap-2">
-                      <span class="material-symbols-outlined text-[1.25rem] text-purple-500">badge</span>
+                      <lib-icon name="identification-badge" class="text-[1.25rem] text-purple-500" />
                       <p class="font-bold text-gray-800 dark:text-white">
                         {{ user.staffRole || ('SETTINGS.USER' | translate) }}
                       </p>
@@ -618,7 +616,7 @@
               <!-- Change PIN Section -->
               <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
                 <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4 flex items-center gap-2">
-                  <span class="material-symbols-outlined text-[1.25rem] text-gray-400 dark:text-gray-500">lock</span>
+                  <lib-icon name="lock" class="text-[1.25rem] text-gray-400 dark:text-gray-500" />
                   {{ 'SETTINGS.POS_LOGIN' | translate }}
                 </h3>
 
@@ -679,7 +677,7 @@
                     <div
                       class="p-3 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 rounded-xl text-sm font-medium flex items-center gap-2 animate-pulse"
                     >
-                      <span class="material-symbols-outlined text-[1.25rem]">error</span>
+                      <lib-icon name="warning-circle" class="text-[1.25rem]" />
                       {{ pinError() }}
                     </div>
                   }
@@ -688,7 +686,7 @@
                     <div
                       class="p-3 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 rounded-xl text-sm font-medium flex items-center gap-2"
                     >
-                      <span class="material-symbols-outlined text-[1.25rem]">check_circle</span>
+                      <lib-icon name="check-circle" class="text-[1.25rem]" />
                       {{ saveMessage() }}
                     </div>
                   }
@@ -700,7 +698,7 @@
                   >
                     @if (isSaving()) {
                       <span class="flex items-center justify-center">
-                        <span class="material-symbols-outlined text-[1.25rem] animate-spin mr-2">sync</span>
+                        <lib-icon name="arrows-clockwise" class="text-[1.25rem] animate-spin mr-2" />
                         {{ 'COMMON.SAVING' | translate }}
                       </span>
                     } @else {
@@ -711,7 +709,7 @@
               </div>
             } @else {
               <div class="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-gray-500">
-                <span class="material-symbols-outlined text-[3rem] opacity-40 mb-4">no_accounts</span>
+                <lib-icon name="user-minus" class="text-[3rem] opacity-40 mb-4" />
                 <p>{{ 'SETTINGS.NO_USER_LOGGED_IN' | translate }}</p>
               </div>
             }
@@ -720,9 +718,7 @@
       } @else if (activeSection === 'connection') {
         <div class="max-w-2xl mx-auto">
           <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
-            <span class="material-symbols-outlined text-[1.25rem] text-purple-600 dark:text-purple-400"
-              >device_hub</span
-            >
+            <lib-icon name="share-network" class="text-[1.25rem] text-purple-600 dark:text-purple-400" />
             {{ 'SETTINGS.DEVICE_PAIRING' | translate }}
           </h2>
 
@@ -730,7 +726,7 @@
             <!-- Backend / Tier -->
             <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
               <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4 flex items-center gap-2">
-                <span class="material-symbols-outlined text-[1.25rem] text-gray-400 dark:text-gray-500">cloud</span>
+                <lib-icon name="cloud" class="text-[1.25rem] text-gray-400 dark:text-gray-500" />
                 {{ 'SETTINGS.CONNECTION' | translate }}
               </h3>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -808,7 +804,7 @@
               <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
                 <div class="flex items-center justify-between gap-2 mb-4">
                   <h3 class="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-[1.25rem] text-gray-400 dark:text-gray-500">sync</span>
+                    <lib-icon name="arrows-clockwise" class="text-[1.25rem] text-gray-400 dark:text-gray-500" />
                     {{ 'SETTINGS.OUTBOX_TITLE' | translate }}
                   </h3>
                   @if (outboxPending() > 0) {
@@ -818,7 +814,7 @@
                       [disabled]="isRetrying()"
                       class="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                      <span class="material-symbols-outlined text-[1rem]">sync</span>
+                      <lib-icon name="arrows-clockwise" class="text-[1rem]" />
                       {{ 'SETTINGS.OUTBOX_SYNC_NOW' | translate }}
                     </button>
                   }
@@ -859,7 +855,7 @@
                   >
                     <div class="flex items-center justify-between gap-2 mb-3">
                       <p class="text-sm font-semibold text-red-700 dark:text-red-300 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-[1.125rem]">error</span>
+                        <lib-icon name="warning-circle" class="text-[1.125rem]" />
                         {{ 'SETTINGS.OUTBOX_REJECTED_TITLE' | translate }}
                       </p>
                       <div class="shrink-0 flex items-center gap-2">
@@ -869,7 +865,7 @@
                           [disabled]="isRetrying()"
                           class="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                          <span class="material-symbols-outlined text-[1rem]">refresh</span>
+                          <lib-icon name="arrow-clockwise" class="text-[1rem]" />
                           {{ 'SETTINGS.OUTBOX_RETRY' | translate }}
                         </button>
                         <button
@@ -878,7 +874,7 @@
                           [disabled]="isRetrying()"
                           class="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-950/60 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                          <span class="material-symbols-outlined text-[1rem]">delete</span>
+                          <lib-icon name="trash" class="text-[1rem]" />
                           {{ 'SETTINGS.OUTBOX_DISCARD' | translate }}
                         </button>
                       </div>
@@ -910,9 +906,7 @@
             <!-- Device-Info -->
             <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
               <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4 flex items-center gap-2">
-                <span class="material-symbols-outlined text-[1.25rem] text-gray-400 dark:text-gray-500"
-                  >point_of_sale</span
-                >
+                <lib-icon name="cash-register" class="text-[1.25rem] text-gray-400 dark:text-gray-500" />
                 {{ 'SETTINGS.DEVICE' | translate }}
               </h3>
               @if (deviceConfig(); as cfg) {
@@ -1001,7 +995,7 @@
                  PIN bleibt in jedem Fall Pflicht-Fallback. -->
             <div class="bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
               <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
-                <span class="material-symbols-outlined text-[1.25rem]">security</span>
+                <lib-icon name="shield-check" class="text-[1.25rem]" />
                 {{ 'SETTINGS.SECURITY' | translate }}
               </h3>
               <p class="text-sm text-gray-500 dark:text-gray-400">{{ 'SETTINGS.SECURITY_PIN_ONLY' | translate }}</p>
@@ -1010,7 +1004,7 @@
             <!-- Danger Zone -->
             <div class="bg-red-50 dark:bg-red-950/40 rounded-2xl border border-red-200 dark:border-red-900 p-6">
               <h3 class="font-bold text-red-700 dark:text-red-300 mb-2 flex items-center gap-2">
-                <span class="material-symbols-outlined text-[1.25rem]">warning</span>
+                <lib-icon name="warning" class="text-[1.25rem]" />
                 {{ 'SETTINGS.DANGER_ZONE' | translate }}
               </h3>
               <p class="text-sm text-red-700/80 dark:text-red-300/80 mb-4">
@@ -1021,7 +1015,7 @@
                 (click)="showUnpairDialog.set(true)"
                 class="h-12 px-5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold flex items-center gap-2 transition-colors"
               >
-                <span class="material-symbols-outlined text-[1.25rem]">link_off</span>
+                <lib-icon name="link-break" class="text-[1.25rem]" />
                 {{ 'SETTINGS.UNPAIR_DEVICE' | translate }}
               </button>
             </div>
@@ -1031,7 +1025,7 @@
         <!-- Info-Seite: Systeminformationen -->
         <div class="max-w-2xl mx-auto">
           <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
-            <span class="material-symbols-outlined text-[1.25rem] text-purple-600 dark:text-purple-400">info</span>
+            <lib-icon name="info" class="text-[1.25rem] text-purple-600 dark:text-purple-400" />
             {{ 'SETTINGS.INFO' | translate }}
           </h2>
 
@@ -1041,7 +1035,7 @@
               <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
                 <div class="flex items-center justify-between mb-5">
                   <h3 class="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-[1.25rem] text-gray-400 dark:text-gray-500">dns</span>
+                    <lib-icon name="hard-drives" class="text-[1.25rem] text-gray-400 dark:text-gray-500" />
                     Edge Server
                   </h3>
                   <span
@@ -1141,7 +1135,7 @@
                 class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 flex items-center gap-4"
               >
                 <div class="p-3 rounded-xl bg-red-50 dark:bg-red-950">
-                  <span class="material-symbols-outlined text-[1.5rem] text-red-500">dns</span>
+                  <lib-icon name="hard-drives" class="text-[1.5rem] text-red-500" />
                 </div>
                 <div>
                   <h3 class="font-bold text-gray-700 dark:text-gray-200">Edge Server</h3>
@@ -1154,9 +1148,7 @@
             @if (isDesktop()) {
               <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
                 <h3 class="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-2">
-                  <span class="material-symbols-outlined text-[1.25rem] text-gray-400 dark:text-gray-500"
-                    >bug_report</span
-                  >
+                  <lib-icon name="bug" class="text-[1.25rem] text-gray-400 dark:text-gray-500" />
                   {{ 'SETTINGS.LOGS_TITLE' | translate }}
                 </h3>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ 'SETTINGS.LOGS_DESC' | translate }}</p>
@@ -1166,16 +1158,14 @@
                     (click)="toggleLogs()"
                     class="flex items-center gap-2 px-4 h-11 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   >
-                    <span class="material-symbols-outlined text-[1.25rem]">{{
-                      showLogs() ? 'visibility_off' : 'visibility'
-                    }}</span>
+                    <lib-icon [name]="showLogs() ? 'eye-slash' : 'eye'" class="text-[1.25rem]" />
                     {{ (showLogs() ? 'SETTINGS.LOGS_HIDE' : 'SETTINGS.LOGS_VIEW') | translate }}
                   </button>
                   <button
                     (click)="exportLogs()"
                     class="flex items-center gap-2 px-4 h-11 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   >
-                    <span class="material-symbols-outlined text-[1.25rem]">folder_open</span>
+                    <lib-icon name="folder-open" class="text-[1.25rem]" />
                     {{ 'SETTINGS.LOGS_EXPORT' | translate }}
                   </button>
                 </div>
@@ -1192,14 +1182,14 @@
                           [disabled]="logsLoading()"
                           class="flex items-center gap-1 px-3 h-9 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
                         >
-                          <span class="material-symbols-outlined text-[1.125rem]">refresh</span>
+                          <lib-icon name="arrow-clockwise" class="text-[1.125rem]" />
                           {{ 'SETTINGS.LOGS_REFRESH' | translate }}
                         </button>
                         <button
                           (click)="copyLogs()"
                           class="flex items-center gap-1 px-3 h-9 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         >
-                          <span class="material-symbols-outlined text-[1.125rem]">content_copy</span>
+                          <lib-icon name="copy" class="text-[1.125rem]" />
                           {{ 'SETTINGS.LOGS_COPY' | translate }}
                         </button>
                       </div>
@@ -1215,9 +1205,7 @@
             <!-- App-Informationen -->
             <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
               <h3 class="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
-                <span class="material-symbols-outlined text-[1.25rem] text-gray-400 dark:text-gray-500"
-                  >smartphone</span
-                >
+                <lib-icon name="device-mobile" class="text-[1.25rem] text-gray-400 dark:text-gray-500" />
                 {{ 'SETTINGS.INFO_APP' | translate }}
               </h3>
               <div class="space-y-3">

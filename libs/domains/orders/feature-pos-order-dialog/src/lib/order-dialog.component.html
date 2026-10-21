@@ -25,7 +25,7 @@
           : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
       "
     >
-      <span class="material-symbols-outlined" style="font-size: inherit">close</span>
+      <lib-icon name="x" style="font-size: inherit" />
     </button>
   </div>
 
@@ -309,7 +309,7 @@
                         <span
                           class="inline-flex items-center gap-1 text-[0.625rem] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300"
                         >
-                          <span class="material-symbols-outlined !text-[0.75rem]">percent</span>
+                          <lib-icon name="percent" class="!text-[0.75rem]" />
                           {{ lineDiscount.name }} · {{ lineDiscountLabel(lineItem) }}
                         </span>
                         <button
@@ -318,7 +318,7 @@
                           (click)="clearLineDiscount(lineItem._id, $event)"
                           aria-label="Positionsrabatt entfernen"
                         >
-                          <span class="material-symbols-outlined !text-[0.875rem]">close</span>
+                          <lib-icon name="x" class="!text-[0.875rem]" />
                         </button>
                       </div>
                     }
@@ -399,7 +399,7 @@
 
           @if (lineItems.length === 0 && combinations.length === 0) {
             <div class="h-full flex flex-col justify-center items-center text-gray-300">
-              <span class="material-symbols-outlined mb-4" style="font-size: 4rem; color: #cbd5e1">shopping_cart</span>
+              <lib-icon name="shopping-cart" class="mb-4" style="font-size: 4rem; color: #cbd5e1" />
               <h3 class="font-medium text-lg text-gray-400 dark:text-gray-500">
                 {{ 'ORDER_DIALOG.EMPTY_ORDER' | translate }}
               </h3>
@@ -413,7 +413,7 @@
           <div class="mx-4 border-b border-dashed border-gray-200 dark:border-gray-700"></div>
           @if (selectedManualDiscount(); as md) {
             <div class="flex items-center gap-2 px-4 pt-2">
-              <span class="material-symbols-outlined text-[1rem] text-amber-600 dark:text-amber-400">sell</span>
+              <lib-icon name="tag" class="text-[1rem] text-amber-600 dark:text-amber-400" />
               <span class="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate flex-1">
                 {{ md.name }}
                 <span class="text-gray-400 dark:text-gray-500"
@@ -425,15 +425,13 @@
                 (click)="clearManualDiscount()"
                 class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95"
               >
-                <span class="material-symbols-outlined text-[1rem]">close</span>
+                <lib-icon name="x" class="text-[1rem]" />
               </button>
             </div>
           }
           @if (appliedCodeDiscount(); as cd) {
             <div class="flex items-center gap-2 px-4 pt-2">
-              <span class="material-symbols-outlined text-[1rem] text-amber-600 dark:text-amber-400"
-                >confirmation_number</span
-              >
+              <lib-icon name="ticket" class="text-[1rem] text-amber-600 dark:text-amber-400" />
               <span class="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate flex-1">
                 {{ cd.code }}
                 @if (cd.discount; as d) {
@@ -453,7 +451,7 @@
                 aria-label="Rabattcode entfernen"
                 class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95"
               >
-                <span class="material-symbols-outlined text-[1rem]">close</span>
+                <lib-icon name="x" class="text-[1rem]" />
               </button>
             </div>
           }
@@ -485,7 +483,7 @@
           class="pnry-touch shrink-0 h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex flex-col items-center justify-center gap-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           aria-label="Auswahl aufheben"
         >
-          <span class="material-symbols-outlined !text-[1.25rem]" aria-hidden="true">remove_done</span>
+          <lib-icon name="list-dashes" class="!text-[1.25rem]" aria-hidden="true" />
           <span class="text-[0.5625rem] font-semibold leading-none">Abwählen</span>
         </button>
         <!-- Mengensteuerung + Löschen: wirken auf die Markierung im Warenkorb (Zeile,
@@ -499,7 +497,7 @@
           (click)="increaseSelectedQuantity()"
           aria-label="Menge der Markierung erhöhen"
         >
-          <span class="material-symbols-outlined !text-[1.25rem]" aria-hidden="true">add</span>
+          <lib-icon name="plus" class="!text-[1.25rem]" aria-hidden="true" />
           <span class="text-[0.5625rem] font-semibold leading-none">Menge +</span>
         </button>
         <button
@@ -509,7 +507,7 @@
           (click)="decreaseSelectedQuantity()"
           aria-label="Menge der Markierung verringern"
         >
-          <span class="material-symbols-outlined !text-[1.25rem]" aria-hidden="true">remove</span>
+          <lib-icon name="minus" class="!text-[1.25rem]" aria-hidden="true" />
           <span class="text-[0.5625rem] font-semibold leading-none">Menge −</span>
         </button>
         <button
@@ -519,7 +517,7 @@
           (click)="deleteSelection()"
           aria-label="Markierung löschen"
         >
-          <span class="material-symbols-outlined !text-[1.25rem]" aria-hidden="true">delete</span>
+          <lib-icon name="trash" class="!text-[1.25rem]" aria-hidden="true" />
           <span class="text-[0.5625rem] font-semibold leading-none">Löschen</span>
         </button>
         <!-- Eingeschaltet sichtbar hell hinterlegt (#795): vorher färbte sich nur das Icon, ob die
@@ -535,7 +533,7 @@
           [attr.aria-pressed]="priceVisibility"
           aria-label="Preise auf den Kacheln ein/aus"
         >
-          <span class="material-symbols-outlined !text-[1.25rem]" aria-hidden="true">euro_symbol</span>
+          <lib-icon name="currency-eur" class="!text-[1.25rem]" aria-hidden="true" />
           <span class="text-[0.5625rem] font-semibold leading-none">Preise</span>
         </button>
         <!-- Bis #795 ein zweiter roter Mülleimer — jetzt neutral: Er öffnet nur ein Menü
@@ -545,7 +543,7 @@
           (click)="setDeleteSubbuttons()"
           aria-label="Weitere Aktionen"
         >
-          <span class="material-symbols-outlined !text-[1.25rem]" aria-hidden="true">more_horiz</span>
+          <lib-icon name="dots-three" class="!text-[1.25rem]" aria-hidden="true" />
           <span class="text-[0.5625rem] font-semibold leading-none">Mehr</span>
         </button>
         <button
@@ -553,7 +551,7 @@
           (click)="setCombiSubButtons()"
           aria-label="Kombination"
         >
-          <span class="material-symbols-outlined rotate-90 !text-[1.25rem]" aria-hidden="true">merge_type</span>
+          <lib-icon name="arrows-merge" class="rotate-90 !text-[1.25rem]" aria-hidden="true" />
           <span class="text-[0.5625rem] font-semibold leading-none">Kombi</span>
         </button>
       </div>
@@ -589,8 +587,8 @@
                   [attr.aria-pressed]="functionButton.pressed ?? null"
                   (click)="functionButton.callback == undefined ? pass() : functionButton.callback()"
                 >
-                  @if (functionButton.icon) {
-                    <span class="material-symbols-outlined" style="font-size: 1.25rem">{{ functionButton.icon }}</span>
+                  @if (functionButton.iconName; as iconName) {
+                    <lib-icon [name]="iconName" style="font-size: 1.25rem" />
                   }
                   <span class="text-center leading-tight line-clamp-2">{{ functionButton.name }}</span>
                 </button>
@@ -635,10 +633,10 @@
                       {{ productButton.ui?.index }}
                     </span>
                   }
-                  @if (productButton.icon) {
-                    <span class="material-symbols-outlined shrink-0 text-[1rem] opacity-70">{{
-                      productButton.icon
-                    }}</span>
+                  @if (productButton.iconName; as iconName) {
+                    <lib-icon [name]="iconName" class="shrink-0 text-[1rem] opacity-70" />
+                  } @else if (productButton.icon) {
+                    <span class="shrink-0 text-[1rem] opacity-70" aria-hidden="true">{{ productButton.icon }}</span>
                   }
                   <span class="flex flex-col items-center min-w-0">
                     <!-- Drei Zeilen seit der größeren Schrift (#795) — die Kachelhöhe trägt sie -->
@@ -671,7 +669,7 @@
         (click)="setAsStaffMealOrder()"
         [disabled]="disableStaffMealButton"
       >
-        <span class="material-symbols-outlined !text-[1.375rem]">local_dining</span>
+        <lib-icon name="fork-knife" class="!text-[1.375rem]" />
       </button>
       <button
         class="pnry-touch h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 active:scale-95 flex items-center justify-center relative group transition-colors"
@@ -685,7 +683,7 @@
         (click)="isStandaloneMode() ? null : setCustomerSubButtons()"
         [disabled]="disableCustomerButton || isStandaloneMode()"
       >
-        <span class="material-symbols-outlined text-[1.375rem]" style="font-size: inherit">apartment</span>
+        <lib-icon name="buildings" class="text-[1.375rem]" style="font-size: inherit" />
         @if (isStandaloneMode()) {
           <div
             class="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[0.625rem] px-2.5 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity pointer-events-none shadow-lg z-50"
@@ -704,7 +702,7 @@
         (click)="openDiscountPicker()"
         aria-label="Rabatt wählen"
       >
-        <span class="material-symbols-outlined !text-[1.375rem]">sell</span>
+        <lib-icon name="tag" class="!text-[1.375rem]" />
       </button>
       <!-- Positionsrabatt: wirkt auf die im Warenkorb markierte Zeile. Bewusst ein
            eigener Knopf statt kontextabhängigem Verhalten des Rabatt-Pickers —
@@ -722,7 +720,7 @@
         (click)="openLineDiscountPicker()"
         aria-label="Rabatt auf markierte Position"
       >
-        <span class="material-symbols-outlined !text-[1.375rem]">percent</span>
+        <lib-icon name="percent" class="!text-[1.375rem]" />
       </button>
       <!-- Rabattcode: eigener Knopf neben dem Rabatt-Picker. Getönt, sobald ein
            geprüfter Code anliegt — eingelöst wird er erst beim Abschluss. -->
@@ -736,7 +734,7 @@
         (click)="openPromoCodeDialog()"
         aria-label="Rabattcode eingeben"
       >
-        <span class="material-symbols-outlined !text-[1.375rem]">confirmation_number</span>
+        <lib-icon name="ticket" class="!text-[1.375rem]" />
       </button>
       <!-- Vertriebskanal: getönt = Kasse, neutral = Telefon. Der Zustand muss
            ohne Antippen ablesbar sein — er landet unverändert im Z-Bon. -->
@@ -753,20 +751,17 @@
           orderChannel() === 'pos' ? 'Kanal: Kasse — zu Telefon wechseln' : 'Kanal: Telefon — zu Kasse wechseln'
         "
       >
-        <span class="material-symbols-outlined !text-[1.375rem]">
-          {{ orderChannel() === 'pos' ? 'point_of_sale' : 'call' }}
-        </span>
+        <lib-icon [name]="orderChannel() === 'pos' ? 'cash-register' : 'phone'" class="!text-[1.375rem]" />
       </button>
       <button
         class="pnry-touch-primary h-14 w-32 shrink-0 rounded-xl bg-action text-on-action font-bold shadow-sm transition-transform text-sm group overflow-hidden active:scale-[0.92] flex items-center justify-center gap-1.5"
         (click)="setTaxRateSubbuttons()"
       >
         <span>{{ 'ORDER_DIALOG.ORDER' | translate }}</span>
-        <span
-          class="material-symbols-outlined !text-[1.125rem] transition-transform duration-300 ease-out group-hover:translate-x-1 group-active:scale-125"
-        >
-          arrow_forward
-        </span>
+        <lib-icon
+          name="arrow-right"
+          class="!text-[1.125rem] transition-transform duration-300 ease-out group-hover:translate-x-1 group-active:scale-125"
+        />
       </button>
 
       <!-- ── Spacer ── -->
@@ -815,7 +810,7 @@
           class="h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-bold text-lg text-black dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
           (click)="showNumpadPopup = !showNumpadPopup"
         >
-          <span class="material-symbols-outlined !text-[1.375rem]">dialpad</span>
+          <lib-icon name="dots-nine" class="!text-[1.375rem]" />
         </button>
       </div>
     </div>
@@ -858,7 +853,7 @@
               class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
               (click)="showNumpadPopup = false"
             >
-              <span class="material-symbols-outlined !text-[1.25rem]">check</span>
+              <lib-icon name="check" class="!text-[1.25rem]" />
             </button>
           </div>
         </div>
@@ -925,10 +920,10 @@
           (click)="selectDineLocation('INSIDE')"
           class="flex flex-col items-center justify-center w-32 h-24 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-800 dark:hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-700 active:scale-95 transition-all group"
         >
-          <span
-            class="material-symbols-outlined mb-1.5 text-gray-400 group-hover:text-gray-900 transition-colors text-[2rem]"
-            >restaurant</span
-          >
+          <lib-icon
+            name="fork-knife"
+            class="mb-1.5 text-gray-400 group-hover:text-gray-900 transition-colors text-[2rem]"
+          />
           <span
             class="text-sm font-semibold text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white"
             >Im Haus</span
@@ -939,10 +934,10 @@
           (click)="selectDineLocation('OUTSIDE')"
           class="flex flex-col items-center justify-center w-32 h-24 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-800 dark:hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-700 active:scale-95 transition-all group"
         >
-          <span
-            class="material-symbols-outlined mb-1.5 text-gray-400 group-hover:text-gray-900 transition-colors text-[2rem]"
-            >local_mall</span
-          >
+          <lib-icon
+            name="shopping-bag"
+            class="mb-1.5 text-gray-400 group-hover:text-gray-900 transition-colors text-[2rem]"
+          />
           <span
             class="text-sm font-semibold text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white"
             >Außer Haus</span
@@ -953,10 +948,10 @@
           (click)="openPreOrderDialog()"
           class="flex flex-col items-center justify-center w-32 h-24 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-800 dark:hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-700 active:scale-95 transition-all group"
         >
-          <span
-            class="material-symbols-outlined mb-1.5 text-gray-400 group-hover:text-gray-900 transition-colors text-[2rem]"
-            >event</span
-          >
+          <lib-icon
+            name="calendar-dots"
+            class="mb-1.5 text-gray-400 group-hover:text-gray-900 transition-colors text-[2rem]"
+          />
           <span
             class="text-sm font-semibold text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white"
             >{{ 'PRE_ORDERS.TITLE' | translate }}</span
@@ -974,7 +969,7 @@
           class="bg-white dark:bg-gray-950 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-8 max-w-lg w-full text-center"
         >
           <div class="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span class="material-symbols-outlined text-gray-500" style="font-size: 2rem">block</span>
+            <lib-icon name="prohibit" class="text-gray-500" style="font-size: 2rem" />
           </div>
           <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-2">
             {{ 'ORDER_DIALOG.ORDER_NOT_POSSIBLE' | translate }}
@@ -998,7 +993,7 @@
       <div class="absolute inset-0 z-50 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center p-8">
         <div class="bg-white dark:bg-gray-950 rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center">
           <div class="h-20 w-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <span class="material-symbols-outlined text-red-500" style="font-size: 2.5rem">block</span>
+            <lib-icon name="prohibit" class="text-red-500" style="font-size: 2.5rem" />
           </div>
           <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">
             {{ 'ORDER_DIALOG.ORDER_NOT_POSSIBLE' | translate }}

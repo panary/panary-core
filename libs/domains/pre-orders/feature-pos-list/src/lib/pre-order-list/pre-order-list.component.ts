@@ -7,7 +7,7 @@ import { PreOrder, PreOrderService } from '@panary/pre-orders/data-access'
 import { MatDialog } from '@angular/material/dialog'
 import { ExtendedParams } from '@panary/shared-common'
 import { OrderDialogComponent } from '@panary/orders/feature-pos-order-dialog'
-import { ConfirmDialogComponent } from '../confirm-dialog.component'
+import { ConfirmDialogComponent } from '@panary/shared/ui-common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 @Component({

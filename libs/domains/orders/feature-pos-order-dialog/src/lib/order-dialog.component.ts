@@ -16,6 +16,7 @@ import {
   WritableSignal,
 } from '@angular/core'
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
+import { ConfirmDialogComponent, type ConfirmDialogData } from '@panary/shared/ui-common'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatSnackBar, MatSnackBarRef, TextOnlySnackBar } from '@angular/material/snack-bar'
 import { FormsModule } from '@angular/forms'
@@ -61,6 +62,7 @@ import {
   isSplittableLine,
   lineConfigKey,
   mergeIdenticalLines,
+  modifiersCountPerUnit,
   splitOffPieces,
 } from '@panary/orders/domain'
 import { Discount as ManagedDiscount } from '@panary/discounts/domain'
@@ -132,6 +134,9 @@ export class AbsPipe implements PipeTransform {
   }
 }
 
+/** Funktionstaste „Herauslösen" (#795) — die Beschriftung folgt dem Multiplikator. */
+const RELEASE_BUTTON_ID = 'releaseFromCombination'
+
 @Component({
   selector: 'app-order-dialog',
   standalone: true,
@@ -188,6 +193,12 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   #orderOpenedAt: Date = new Date()
   #orderInteractions: Array<OrderInteraction> = []
   /**
+   * Wurde in dieser Bestellung je ein Artikel gebucht? Bleibt stehen, auch wenn alles wieder
+   * gelöscht ist — das X fragt dann trotzdem nach (#795): Wer getippt hat, war mitten in einer
+   * Bestellung, und ein Fehltipp aufs X soll sie nicht still verwerfen.
+   */
+  #hadInput = false
+  /**
    * Laufende Nummer des zuletzt angebotenen „Rückgängig". Die Snackbar trägt die
    * Nummer, unter der sie geöffnet wurde; stimmt sie beim Klick nicht mehr mit
    * dieser überein, ist das Angebot verfallen (Bestellung abgeschickt, Warenkorb
@@ -196,7 +207,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   #undoSerial = 0
   /** Die Snackbar des letzten „Rückgängig"-Angebots — `#invalidateUndo` schließt nur sie. */
   #undoRef: MatSnackBarRef<TextOnlySnackBar> | null = null
-  private _articlesToCombine: Array<number> = []
+  /** Zeilenindex → Stückzahl, die in die neue Kombination geht (#795: Kachel zählt hoch). */
+  private _articlesToCombine = new Map<number, number>()
   private _isBlocked = false
   private _customer: CorporateCustomer | undefined = undefined
   private _currentUser: User | undefined = undefined
@@ -287,16 +299,14 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private _combineId = 'combineArticles'
   private _combineName = 'Kombinieren'
   private _combiTopic: UUID = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx02'
-  private _deleteCombinationId = 'deleteCombintation'
-  private _deleteCombinationName = 'Kombination löschen?'
   private _deleteCustomerId = 'deleteCustomer'
   private _deleteCustomerName = 'Kunde löschen?'
   private _deleteOrderId = 'deleteOrder'
-  private _deleteOrderName = 'Bestellung löschen?'
+  private _deleteOrderName = 'Bestellung leeren'
   private _extraTopic = 'Extras'
   private _productionTimeTopic: UUID = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx03'
   private _resolveCombinationId = 'resolveCombination'
-  private _resolveCombinationName = 'Kombination auflösen?'
+  private _resolveCombinationName = 'Kombination auflösen'
   private _skipExtraId = 'skipExtra'
   private _skipExtraName = 'ABBRUCH'
   private _skipSauceId = 'skipSauce'
@@ -572,7 +582,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // Tab-Breiten sind rem-basiert — im Fluid-Modus wachsen sie mit der Root-Fontsize.
     // Der Faktor rechnet die px-Rechenkonstanten auf die tatsächlich gerenderte Größe um (Flag off: 16px/16 = 1).
     const remFactor = (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) / 16
-    const buttonWidth = 95 * remFactor
+    // Mindestbreite der Taste (5.25rem = 84px) plus Luft — gehört zum style-Attribut im Template (#795)
+    const buttonWidth = 89 * remFactor
     const gap = 8 * remFactor
     const expandButtonWidth = 52 * remFactor
 
@@ -697,22 +708,69 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   selectCombinationByIndex(combinationIndex: number, articleIndex: number | null) {
     if (this._isBlocked) return
 
+    const panelWasOpen = this.#customizeLine !== null
     this.applyBoardSelection(toggleCombinationSelection(this.boardSelection(), combinationIndex, articleIndex))
+    // Eine Position in der Kombination öffnet das Panel wie eine freie Zeile (#795) — bis dahin
+    // markierte der Tipp nur, und das Panel zog nur mit, wenn es schon offen war.
+    if (!panelWasOpen && articleIndex !== null && this._selectedCombinationIndex[1] !== null) {
+      this.setExtraSubButtons()
+    }
   }
 
   /**
-   * Markiert die ganze Kombination (Header-Tap) oder hebt die Markierung auf, wenn
-   * sie — ganz oder eine ihrer Positionen — bereits markiert war. Bewusst nicht
-   * über `toggleCombinationSelection(…, null)`: das ließe beim Abwählen den
-   * Positionsindex stehen (`[null, j]`).
+   * Header-Tap: markiert die ganze Kombination und zeigt ihre Aktionen (Auflösen, Löschen). Ist
+   * sie schon ganz markiert, hebt der Tap die Markierung auf. Von einer markierten Position aus
+   * wechselt er auf die ganze Kombination — bis #795 hob er dort die Markierung auf, und am Gerät
+   * sah es aus, als täte der Kopf nichts.
    */
   toggleCombinationSelection(combinationIndex: number) {
     if (this._isBlocked) return
 
+    const wholeSelected =
+      this._selectedCombinationIndex[0] === combinationIndex && this._selectedCombinationIndex[1] === null
+    if (wholeSelected) {
+      this.unselectProduct()
+      return
+    }
     this._selectedProductIndex = null
-    this._selectedCombinationIndex =
-      this._selectedCombinationIndex[0] === combinationIndex ? [null, null] : [combinationIndex, null]
-    this.#followSelectionInPanel()
+    this._selectedCombinationIndex = [combinationIndex, null]
+    this.#setCombinationActionButtons(combinationIndex)
+  }
+
+  /** Aktionen der markierten Kombination in Spalte 3 — beide wirken direkt auf die Auswahl (#795). */
+  #setCombinationActionButtons(combinationIndex: number): void {
+    this.clearButtons()
+    this.setInfoBoxText(`Kombination ${combinationIndex + 1} ausgewählt`)
+    this._functionBlockLabel = 'Kombination'
+    const base = {
+      externalId: this.#functionButtonExternalId,
+      locationId: this.userService.currentUser()?.activeLocationId || '',
+      tenantId: this.authService.tenantId()?.toString() || '',
+      isFunctionButton: true,
+      variant: 'cancel' as const,
+    }
+    this._functionButtons.push({
+      ...base,
+      _id: this._resolveCombinationId,
+      index: 1,
+      name: this._resolveCombinationName,
+      icon: 'link_off',
+      callback: () => {
+        this.resolveCombination()
+        this.unselectProduct()
+      },
+    })
+    this._functionButtons.push({
+      ...base,
+      _id: 'deleteCombination',
+      index: 2,
+      name: 'Kombination löschen',
+      icon: 'delete',
+      callback: () => {
+        this.deleteSelection()
+        this.unselectProduct()
+      },
+    })
   }
 
   increaseSelectedIndex() {
@@ -1069,22 +1127,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this._isBlocked) return
 
     this.clearButtons()
-    this.setInfoBoxText('Was möchten Sie löschen?')
-    this._functionBlockLabel = 'Löschen'
-    this._functionButtons.push({
-      _id: this._deleteCombinationId,
-      externalId: this.#functionButtonExternalId,
-      locationId: this.userService.currentUser()?.activeLocationId || '',
-      tenantId: this.authService.tenantId()?.toString() || '',
-      index: 1,
-      name: this._deleteCombinationName,
-      isFunctionButton: true,
-      variant: 'cancel',
-      icon: 'link_off',
-      callback: () => {
-        this.decreaseCombination()
-      },
-    })
+    // Bis #795 ein zweiter roter Mülleimer neben „Markierung löschen" — niemand wusste, welcher
+    // was tut. „Kombination löschen" ist entfallen: Das erledigt der Mülleimer an der markierten
+    // Kombination, und zwar mit Rückgängig.
+    this.setInfoBoxText('Was möchten Sie tun?')
+    this._functionBlockLabel = 'Weitere Aktionen'
     this._functionButtons.push({
       _id: this._deleteOrderId,
       externalId: this.#functionButtonExternalId,
@@ -1094,12 +1141,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       name: this._deleteOrderName,
       isFunctionButton: true,
       variant: 'cancel',
-      icon: 'delete_forever',
-      callback: () => {
-        // Voller Reset wie beim X: Rabatte, Code, Positionsrabatte, Undo, Bestellbeginn (core#734)
-        this.deleteOrder()
-        return this.unselectProduct()
-      },
+      icon: 'delete_sweep',
+      callback: () => this.#confirmClearOrder(),
     })
     if (this._customer) {
       this._functionButtons.push({
@@ -1334,6 +1377,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         this.setProductButtonsByGroupId(groupId)
       },
     })
+    this.#pushReleaseButton()
     if (ids && ids.length > 0) {
       const extras: Array<PosProductButton> = []
 
@@ -1534,8 +1578,15 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    * je Zeile, und zweimal abgezogen wäre er falsch.
    */
   #splitOffOnePiece(line: OrderLineItem): OrderLineItem | null {
+    const piece = this.#splitOff(line, 1)
+    if (piece) this.#selectLine(piece)
+    return piece
+  }
+
+  /** Spaltet `count` Stück ab und fügt sie direkt hinter der Zeile ein; Rabattregel wie oben (D5). */
+  #splitOff(line: OrderLineItem, count: number): OrderLineItem | null {
     if (!isSplittableLine(line)) return null
-    const piece = splitOffPieces(line, 1, uuidv7())
+    const piece = splitOffPieces(line, count, uuidv7())
     if (!piece) return null
     // Ein offenes „Rückgängig" der Menge bezöge sich auf die Zeile vor dem Split (#699).
     this.#invalidateUndo()
@@ -1546,8 +1597,74 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     } else if (discount) {
       this.setInfoBoxText(`Positionsrabatt „${discount.name}" bleibt an der Restzeile`)
     }
-    this.#selectLine(piece)
     return piece
+  }
+
+  /** Die markierte Position einer Kombination — `null` bei freier Zeile, ganzer Kombination oder ohne Markierung. */
+  #selectedCombinationPosition(): OrderLineItem | null {
+    const [combination, article] = this._selectedCombinationIndex
+    if (combination === null || article === null) return null
+    return this.combinations[combination]?.[article] ?? null
+  }
+
+  /** Wie viele Stück „Herauslösen" nimmt: der Multiplikator, höchstens die Stückzahl der Position (#795). */
+  #releaseCount(line: OrderLineItem): number {
+    return Math.min(Math.max(this.multiplier, 1), line.amount)
+  }
+
+  /** „Herauslösen" als Funktionstaste — für Positionen in einer Kombination, die kein Anpassen-Panel haben. */
+  #pushReleaseButton(): void {
+    const label = this.releaseLabel()
+    if (!label) return
+    this._functionButtons.push({
+      _id: RELEASE_BUTTON_ID,
+      externalId: this.#functionButtonExternalId,
+      locationId: this.userService.currentUser()?.activeLocationId || '',
+      tenantId: this.authService.tenantId()?.toString() || '',
+      name: label,
+      index: -1,
+      isFunctionButton: true,
+      variant: 'skip',
+      icon: 'call_split',
+      callback: () => this.releaseFromCombination(),
+    })
+  }
+
+  /** Die Taste nennt die Zahl, die sie nimmt — sie zieht deshalb mit jedem Ziffernblock-Tipp mit. */
+  #refreshReleaseButton(): void {
+    const button = this._functionButtons.find(b => b._id === RELEASE_BUTTON_ID)
+    const label = this.releaseLabel()
+    if (button && label) button.name = label
+  }
+
+  /** Beschriftung der Taste „Herauslösen" mit der Zahl, die sie nimmt — `null`, wenn es nichts zu lösen gibt. */
+  releaseLabel(): string | null {
+    const line = this.#selectedCombinationPosition()
+    return line ? `${this.#releaseCount(line)} herauslösen` : null
+  }
+
+  /**
+   * Löst Stück der markierten Position aus ihrer Kombination (#795): so viele, wie der
+   * Multiplikator zeigt, sonst eins. Das gelöste Stück wird eine freie Zeile und geht in einer
+   * gleichen freien Zeile auf; bleibt nur eine Position übrig, löst sich die Kombination auf.
+   */
+  releaseFromCombination(): void {
+    if (this._isBlocked) return
+    const line = this.#selectedCombinationPosition()
+    if (!line) return
+    const count = this.#releaseCount(line)
+    const freed = count < line.amount ? this.#splitOff(line, count) : line
+    if (!freed) {
+      this.setInfoBoxText('Diese Position lässt sich nicht teilen — nur als Ganzes herauslösen.', 'red')
+      return
+    }
+    this.unselectProduct()
+    freed.bundleNumber = null
+    this.#invalidateUndo()
+    this.#resolveSingletonBundles()
+    this.#mergeLines()
+    this.numpadReset()
+    this.setInfoBoxText(`${count}× ${line.name} aus der Kombination gelöst`)
   }
 
   /**
@@ -1743,6 +1860,15 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     return calculateModifierPrice(line, extra)
   }
 
+  /**
+   * Menge eines Modifiers, wie sie abgerechnet wird. Je Stück gebucht („alle 3", #698) gilt er
+   * für jedes Stück der Zeile — „1x Ketchup +2,10 €" bei 3 Stück las sich wie ein Rechenfehler (#795).
+   * Dieselbe Entscheidung wie der Bon („je 1x"), damit Anzeige und Beleg nicht auseinanderlaufen.
+   */
+  modifierDisplayAmount(line: OrderLineItem, extra: OrderLineItem['modifiers'][number]): number {
+    return modifiersCountPerUnit(line) ? extra.amount * line.amount : extra.amount
+  }
+
   /** Aufpreis-Ausweis einer Menü-Komponente — beim Festpreis-Menü 0 wie auf dem Bon (core#781). */
   menuSurcharge(line: OrderLineItem, component: OrderLineItem['menuDrink'], generalPrice: number): number {
     return menuComponentSurcharge(line, component, generalPrice)
@@ -1857,7 +1983,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       icon: 'arrow_forward',
       callback: () => {
         if (this._isBlocked) return
-        this._articlesToCombine = []
+        this._articlesToCombine = new Map()
         this.setProductButtonsByGroupId((product as any)?.categoryIds?.[0])
       },
     })
@@ -1911,20 +2037,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         this.combineAllArticles()
       },
     })
-    this._functionButtons.push({
-      _id: this._resolveCombinationId,
-      externalId: this.#functionButtonExternalId,
-      locationId: this.userService.currentUser()?.activeLocationId || '',
-      tenantId: this.authService.tenantId()?.toString() || '',
-      index: -1,
-      name: this._resolveCombinationName,
-      isFunctionButton: true,
-      variant: 'cancel',
-      icon: 'link_off',
-      callback: () => {
-        this.resolveCombination()
-      },
-    })
+    // „Kombination auflösen" sitzt seit #795 an der markierten Kombination (Header-Tap), nicht mehr hier.
     this.#lineItems.forEach((article, index) => {
       if (this.isLineItemBundled(article)) return
       const subButton: PosButton = {
@@ -1937,17 +2050,20 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         productGroupExternalId: this._combiTopic,
         index: index + 1,
       }
+      // Jeder Tipp ein Stück mehr, nach dem letzten aus (#795) — sonst wanderten aus „3× Schnitzel"
+      // immer alle drei in die Kombination.
       subButton.callback = () => {
-        if (!subButton.pressed) {
-          subButton.pressed = true
-          this._articlesToCombine.push(index)
-        } else {
+        const next = (this._articlesToCombine.get(index) ?? 0) + 1
+        if (next > article.amount) {
+          this._articlesToCombine.delete(index)
           subButton.pressed = false
-          const idx = this._articlesToCombine.findIndex(articleIndex => articleIndex === index)
-          if (idx !== -1) {
-            this._articlesToCombine.splice(idx, 1)
-          }
+          subButton.countLabel = undefined
+          return
         }
+        this._articlesToCombine.set(index, next)
+        subButton.pressed = true
+        // Eigenes Abzeichen statt Namenszusatz — lange Namen füllen die Kachel schon, die Zahl fiele weg.
+        subButton.countLabel = article.amount > 1 ? `${next}/${article.amount}` : undefined
       }
       this._productButtons.push(subButton)
     })
@@ -2074,6 +2190,15 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Ist eine Markierung da, auf die Löschen und + wirken können? Steuert `[disabled]`. */
   canMutateSelection(): boolean {
     return !this._isBlocked && this.selectedTargets().length > 0
+  }
+
+  /**
+   * Mülleimer in Spalte 2: aus, solange die ganze Kombination markiert ist — dann sitzt „Kombination
+   * löschen" als Funktionstaste rechts, und zwei Löschknöpfe für dieselbe Sache verwirrten (#795).
+   */
+  canDeleteSelection(): boolean {
+    const wholeCombination = this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] === null
+    return this.canMutateSelection() && !wholeCombination
   }
 
   /**
@@ -2583,6 +2708,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       }
 
       this.#lineItems.push(orderLineItem)
+      this.#hadInput = true
       this.#freshLine = orderLineItem
       const index = this.combinations[selectedCombination].indexOf(orderLineItem)
 
@@ -2614,6 +2740,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       }
 
       const index = this.#lineItems.push(orderLineItem) - 1
+      this.#hadInput = true
       this.#freshLine = orderLineItem
 
       if (isBundle && product.optionGroups?.length) {
@@ -2679,12 +2806,12 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   combineAllArticles() {
-    this._articlesToCombine = this.lineItems.map((_, index) => index)
+    this._articlesToCombine = new Map(this.lineItems.map((line, index) => [index, line.amount]))
     this.increaseCombination()
   }
 
   increaseCombination() {
-    if (this._articlesToCombine.length <= 1) {
+    if (this._articlesToCombine.size <= 1) {
       this.setInfoBoxText('Bitte wählen Sie mindestens zwei Artikel aus.', 'red')
       return
     }
@@ -2694,13 +2821,17 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       .filter(n => n !== null && n !== undefined) as number[]
     const nextBundleId = existingBundles.length > 0 ? Math.max(...existingBundles) + 1 : 1
 
-    this._articlesToCombine.forEach(articleIndex => {
-      if (this.#lineItems[articleIndex]) {
-        this.#lineItems[articleIndex].bundleNumber = nextBundleId
-      }
-    })
+    // Erst die Zeilen auflösen, dann spalten — ein Split schiebt die Indizes der folgenden Zeilen.
+    const picks = [...this._articlesToCombine]
+      .map(([index, count]) => ({ line: this.#lineItems[index], count }))
+      .filter(pick => pick.line !== undefined)
+    for (const { line, count } of picks) {
+      // Nicht teilbare Zeilen (Modifier „je Zeile") gehen als Ganzes — wie vor #795.
+      const target = count < line.amount ? (this.#splitOff(line, count) ?? line) : line
+      target.bundleNumber = nextBundleId
+    }
 
-    this._articlesToCombine = []
+    this._articlesToCombine = new Map()
     this.productButtons.forEach(subButton => {
       if (subButton.productGroupExternalId === undefined) return
       subButton.pressed = false
@@ -3257,8 +3388,64 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   dialogClose() {
-    // TODO: ConfirmActionDialog nach Migration aktivieren
-    // Derzeit direkte Schließung ohne Bestätigung (Platzhalter bis ConfirmActionDialog migriert ist)
+    if (!this.#hadInput) {
+      this.#closeCancelled()
+      return
+    }
+    // Nur die zwei Tasten beenden die Rückfrage — ein Tipp daneben soll weder verwerfen
+    // noch versehentlich zurück in die Bestellung führen, ohne dass es jemand merkt.
+    this.matDialog
+      .open(ConfirmDialogComponent, {
+        width: '23.75rem',
+        maxWidth: '95vw',
+        panelClass: 'rounded-dialog',
+        disableClose: true,
+        data: {
+          title: 'Bestellung verwerfen?',
+          message: 'Die eingegebenen Positionen gehen verloren.',
+          confirmText: 'Bestellung verwerfen',
+          cancelText: 'Weiter bearbeiten',
+          confirmVariant: 'danger',
+          icon: 'delete_forever',
+        } satisfies ConfirmDialogData,
+      })
+      .afterClosed()
+      .subscribe(discard => {
+        if (discard === true) this.#closeCancelled()
+      })
+  }
+
+  /** Leert den Warenkorb, ohne den Dialog zu schließen — kein Rückgängig, deshalb wie beim X erst nachfragen (#795). */
+  #confirmClearOrder(): void {
+    if (this.#lineItems.length === 0) {
+      this.unselectProduct()
+      return
+    }
+    this.matDialog
+      .open(ConfirmDialogComponent, {
+        width: '23.75rem',
+        maxWidth: '95vw',
+        panelClass: 'rounded-dialog',
+        disableClose: true,
+        data: {
+          title: 'Bestellung leeren?',
+          message: 'Alle Positionen, Rabatte und Codes werden entfernt.',
+          confirmText: 'Bestellung leeren',
+          cancelText: 'Abbrechen',
+          confirmVariant: 'danger',
+          icon: 'delete_sweep',
+        } satisfies ConfirmDialogData,
+      })
+      .afterClosed()
+      .subscribe(confirmed => {
+        if (confirmed !== true) return
+        // Voller Reset wie beim X: Rabatte, Code, Positionsrabatte, Undo, Bestellbeginn (core#734)
+        this.deleteOrder()
+        this.unselectProduct()
+      })
+  }
+
+  #closeCancelled(): void {
     this.orderInteractionService
       .create({
         type: 'order-cancel',
@@ -3332,6 +3519,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   numpadAction(number: number): void {
     this.concatMultiplier(number)
     this.concatProductSearch(number)
+    this.#refreshReleaseButton()
   }
 
   private concatMultiplier(number: number) {
@@ -3388,6 +3576,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   numpadReset(): void {
     this.resetMultiplier()
     this.resetProductSearch()
+    this.#refreshReleaseButton()
   }
 
   private resetMultiplier() {

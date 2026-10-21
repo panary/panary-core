@@ -9,6 +9,7 @@ export interface ConfirmDialogData {
   confirmText: string
   confirmVariant: 'primary' | 'danger'
   icon: string
+  cancelText?: string
 }
 
 @Component({
@@ -47,7 +48,7 @@ export interface ConfirmDialogData {
           (click)="cancel()"
           class="h-12 w-full rounded-xl font-medium text-sm text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all active:scale-95"
         >
-          Abbrechen
+          {{ data.cancelText ?? 'Abbrechen' }}
         </button>
       </div>
     </div>

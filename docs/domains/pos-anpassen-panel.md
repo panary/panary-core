@@ -68,10 +68,10 @@ Modifier sortiert und je Id/Preis/`topic`/`pricingMode`/Abwahl summiert, dazu de
 
 | Bereich | Inhalt | Bedienung |
 | --- | --- | --- |
-| Kopf | Produktname, Umschalter „1 Stück \| alle n" bzw. „gilt für n×", Zusammenfassung („ohne Ketchup · 2× Käse") | Umschalter nur vor der ersten Änderung |
+| Kopf | Produktname, Umschalter „1 Stück \| alle n" (seit #795 neben dem Titel) bzw. „gilt für n×", Zusammenfassung einzeilig („ohne Ketchup · 2× Käse") | Umschalter nur vor der ersten Änderung |
 | Zutaten | jede `isRemovable`-Zutat als Chip, Name aus `displayName` vor `ingredientName` | Tipp schaltet „drin" ↔ „ohne" (rot, durchgestrichen, Preis-Effekt) |
-| Extras | je Optionsgruppe eine Liste mit Name, Aufpreis, `−` Menge `+` | Plus gesperrt bei `maxSelections`, Minus bei Menge 0 |
-| Fuß | Abbrechen · Alle Modifier · Fertig | Fertig gesperrt („Noch n wählen"), solange `minSelections` fehlt |
+| Extras | je Optionsgruppe Karten mit Name, Aufpreis, `−` Menge `+`, seit #795 spaltenweise (erst untereinander, dann rechts weiter) | Plus gesperrt bei `maxSelections`, Minus bei Menge 0 |
+| Fuß | Abbrechen · Alle Modifier · (an einer Kombinations-Position) n herauslösen · Fertig; unter 42rem Panelbreite kompakt | Fertig gesperrt („Noch n wählen"), solange `minSelections` fehlt |
 
 - **`maxSelections: 0`** gilt als unbegrenzt.
 - Eine Option, deren Produkt kein Modifier ist, steht mit Warnhinweis da und lässt sich nicht
@@ -117,6 +117,10 @@ unverändert, denn Bestandsbestellungen tragen den Marker weiter, und Edge, Clou
 Outbox-Replay müssen sie annehmen.
 
 ## Folgearbeiten
+
+- Bedienung rund ums Panel (Schließen, Kombinationen mit Stückzahl, Herauslösen, Layout auf breiten
+  und schmalen Kassen): [POS-Bestelldialog — Bedienung](pos-bestelldialog-bedienung.md), seit
+  [#795](https://github.com/panary/panary-core/issues/795).
 
 - Verbrauch: Seit [#640](https://github.com/panary/panary-core/issues/640) verbucht der
   Wareneinsatz eine abgewählte Zutat nicht mehr (Feld `removesIngredientExternalId`, siehe

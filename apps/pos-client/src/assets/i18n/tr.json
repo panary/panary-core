@@ -556,6 +556,7 @@
     "HUB_SCANNING": "Ağda hub'lar aranıyor…",
     "HUB_NONE_FOUND": "Hub bulunamadı.",
     "HUB_DISCOVERY_APP_ONLY": "Otomatik arama yalnızca terminal uygulamasında kullanılabilir. QR kodu veya elle girişi kullanın.",
+    "HUB_DISCOVERY_ANDROID_MANUAL": "Otomatik arama Android uygulamasında kullanılamaz. Elle girişi kullanın.",
     "HUB_RESCAN": "Tekrar ara",
     "HUB_QR_SCAN": "QR kodu tara",
     "HUB_READY": "Hazır",

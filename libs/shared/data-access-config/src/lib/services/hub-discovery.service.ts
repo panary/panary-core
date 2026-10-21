@@ -78,11 +78,19 @@ function formatHubUrl(address: string, port: number): string {
 @Injectable({ providedIn: 'root' })
 export class HubDiscoveryService {
   readonly isTauri = signal<boolean>(this.#detectTauri())
+  /** Capacitor-Android-Wrapper: kein mDNS im nativen Layer (panary/panary-core#818). */
+  readonly isCapacitor = signal<boolean>(this.#detectCapacitor())
   readonly scanning = signal<boolean>(false)
   readonly hubs = signal<DiscoveredHub[]>([])
 
   #detectTauri(): boolean {
     return typeof window !== 'undefined' && !!this.#getInvoke()
+  }
+
+  #detectCapacitor(): boolean {
+    if (typeof window === 'undefined') return false
+    const w = window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }
+    return !!w.Capacitor?.isNativePlatform?.()
   }
 
   #getInvoke(): TauriInvoke | null {

@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#798): Umschaltpunkt der unteren Leiste in [POS-Bestelldialog — Bedienung](../domains/pos-bestelldialog-bedienung.md#layout) auf den gemessenen Wert korrigiert: 1425 px statt der berechneten 1422 px. Der Dialog ist rund 3 px schmaler als in der Rechnung angenommen (Sichttest panary/panary-core#815).

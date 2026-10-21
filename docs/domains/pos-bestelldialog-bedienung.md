@@ -84,7 +84,7 @@ dem Icon. Nur „Löschen" ist rot. „Mehr" ist neutral und öffnet „Bestellu
 | Panel-Kopf | Umschalter „1 Stück · alle n" neben dem Titel, Zusammenfassung einzeilig |
 | Extras im Panel | Spalten wie die Listenansicht im Explorer (`columns-[16rem]`, `column-fill: auto`): erst untereinander, dann rechts weiter, waagrecht scrollbar |
 | Panel-Fuß | Container-Query: unter 42rem Panelbreite werden Abbrechen, Modifier und „n lösen" zu 64-px-Tasten, „Fertig" füllt den Rest |
-| Untere Leiste | Container-Query auf der Leiste selbst: Den Ziffernblock 0–9 und `C` zeigt sie erst ab 84,75rem Inhaltsbreite inline, darunter `C` und das Ziffern-Popup. Die Schwelle ist die Summe der festen Breiten (84,625rem) und wächst über rem mit dem Fluid-Scaling mit. Bei 16 px Root schaltet sie ab 1422 px Viewport um. Das `fixed` Popup steht außerhalb der Leiste ([#798](https://github.com/panary/panary-core/issues/798)) |
+| Untere Leiste | Container-Query auf der Leiste selbst: Den Ziffernblock 0–9 und `C` zeigt sie erst ab 84,75rem Inhaltsbreite inline, darunter `C` und das Ziffern-Popup. Die Schwelle ist die Summe der festen Breiten (84,625rem) und wächst über rem mit dem Fluid-Scaling mit. Bei 16 px Root schaltet sie am Dialog ab 1425 px Viewport um (gemessen in der Sandbox, Leiste dann 1380,5 px breit). Das `fixed` Popup steht außerhalb der Leiste ([#798](https://github.com/panary/panary-core/issues/798)) |
 
 ## Nicht abgedeckt
 

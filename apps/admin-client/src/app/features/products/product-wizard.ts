@@ -13,6 +13,8 @@ import { FormsModule } from '@angular/forms'
 import { AssistantShellComponent } from '../../core/assistant-shell'
 import { ApiService } from '../../core/api.service'
 import { formatApiError } from '../../core/error-helper'
+import { EurPipe } from '@panary/shared/ui-common'
+import { formatEur } from '@panary/shared/util-helpers'
 
 interface StepAnswer {
   value: unknown
@@ -34,7 +36,7 @@ interface ExistingProduct {
 @Component({
   selector: 'app-product-wizard',
   standalone: true,
-  imports: [FormsModule, AssistantShellComponent],
+  imports: [EurPipe, FormsModule, AssistantShellComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-assistant-shell title="Produkt" (closed)="cancelled.emit()">
@@ -249,9 +251,7 @@ interface ExistingProduct {
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
             <span class="text-sm text-slate-600 dark:text-gray-400">Preis:</span>
-            <span class="text-sm font-mono font-bold text-slate-900 dark:text-white"
-              >{{ form().price.toFixed(2) }} €</span
-            >
+            <span class="text-sm font-mono font-bold text-slate-900 dark:text-white">{{ form().price | eur }}</span>
             <svg
               class="w-3.5 h-3.5 text-slate-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition ml-auto"
               viewBox="0 0 24 24"
@@ -554,9 +554,7 @@ interface ExistingProduct {
               <div class="grid grid-cols-3 gap-2 text-xs text-slate-500 dark:text-gray-400 pt-1">
                 <span
                   >Preis:
-                  <strong class="text-slate-900 dark:text-white font-mono"
-                    >{{ form().price.toFixed(2) }} €</strong
-                  ></span
+                  <strong class="text-slate-900 dark:text-white font-mono">{{ form().price | eur }}</strong></span
                 >
                 <span
                   >Inhaus: <strong class="text-slate-900 dark:text-white">{{ form().taxInside }}%</strong></span
@@ -798,7 +796,7 @@ export class ProductWizardComponent implements OnInit {
   // --- Preis ---
   submitPrice() {
     this.form.update(f => ({ ...f, price: this.priceInput }))
-    this.answer('price', 3, this.priceInput, `${this.priceInput.toFixed(2)} €`)
+    this.answer('price', 3, this.priceInput, formatEur(this.priceInput))
   }
 
   // --- MwSt. ---

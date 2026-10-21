@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { formatEurCents } from '@panary/shared/util-helpers'
 import { FormsModule } from '@angular/forms'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { TranslateModule } from '@ngx-translate/core'
@@ -139,13 +140,7 @@ export class CashSessionDialogComponent {
   protected readonly counts = signal<DenominationCounts>({})
 
   protected readonly isCloseMode = computed(() => !!this.data.session)
-  protected readonly countedEuros = computed(() =>
-    (sumDenominationCounts(this.counts()) / 100).toLocaleString('de-DE', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 2,
-    }),
-  )
+  protected readonly countedEuros = computed(() => formatEurCents(sumDenominationCounts(this.counts())))
 
   protected readonly canSubmit = computed(() => {
     if (this.isCloseMode()) return true

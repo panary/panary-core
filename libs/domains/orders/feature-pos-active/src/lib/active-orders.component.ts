@@ -9,6 +9,7 @@ import {
   untracked,
   WritableSignal,
 } from '@angular/core'
+import { formatEur, formatEurCents } from '@panary/shared/util-helpers'
 import { CommonModule } from '@angular/common'
 import { Router } from '@angular/router'
 import { MatDialog } from '@angular/material/dialog'
@@ -59,9 +60,6 @@ type OverlayView = 'actions' | 'staff-meal' | 'discount' | 'corporate'
 // Gültigkeitsregel — und umgingen damit die Rabatt-Stammdaten komplett.
 // Rabatte kommen jetzt ausschließlich aus der gepflegten Liste (siehe
 // `selectableDiscounts`).
-
-// Ein Formatter für alle Preis-Ausgaben — `new Intl.NumberFormat` pro Aufruf ist teuer
-const EUR_FORMAT = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' })
 
 // Pro-Order-Viewmodel: memoisiert alle Ableitungen (Filter/Gruppierung/Preisformatierung),
 // die sonst pro CD-Zyklus im Template neu berechnet würden (zoneless + OnPush).
@@ -473,7 +471,7 @@ export class ActiveOrdersComponent {
     if (assigned.valueType === 'percent') {
       return `${assigned.valuePercent} % ${this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_LABEL')}`
     }
-    return `${(assigned.valueCents / 100).toFixed(2)} € ${this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_LABEL')}`
+    return `${formatEurCents(assigned.valueCents)} ${this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_LABEL')}`
   }
 
   /**
@@ -571,7 +569,7 @@ export class ActiveOrdersComponent {
 
   /** Anzeige-Wert eines Rabatts auf der Auswahl-Kachel („15 %" bzw. „2,50 €"). */
   protected formatDiscountValue(d: ManagedDiscount): string {
-    return d.valueType === 'percent' ? `${d.valuePercent} %` : `${(d.valueCents / 100).toFixed(2)} €`
+    return d.valueType === 'percent' ? `${d.valuePercent} %` : formatEurCents(d.valueCents)
   }
 
   /**
@@ -700,7 +698,7 @@ export class ActiveOrdersComponent {
     if (customer.discountDetails.discountType === 'percent') {
       return `${customer.discountDetails.discount} % ${this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_LABEL')}`
     }
-    return `${customer.discountDetails.discount.toFixed(2)} € ${this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_LABEL')}`
+    return `${formatEur(customer.discountDetails.discount)} ${this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_LABEL')}`
   }
 
   // --- Gemeinsame Hilfsmethoden ---
@@ -717,7 +715,7 @@ export class ActiveOrdersComponent {
   }
 
   formatPrice(price: number): string {
-    return EUR_FORMAT.format(price)
+    return formatEur(price)
   }
 
   // Kanonische Gesamtsumme: dieselbe Engine (`computeOrderTax` via

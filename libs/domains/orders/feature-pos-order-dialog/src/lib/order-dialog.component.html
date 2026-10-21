@@ -155,7 +155,7 @@
                 <span>{{ 'ACTIVE_ORDERS.COMBINATIONS' | translate }} {{ i + 1 }}</span>
                 <span class="flex-1"></span>
                 <span class="font-bold text-gray-700 dark:text-gray-200 text-base">{{
-                  calculateCombinationPrice(combination) | currency: 'EUR'
+                  calculateCombinationPrice(combination) | eur
                 }}</span>
               </div>
 
@@ -192,10 +192,10 @@
                       <span class="text-[0.9375rem] font-bold text-gray-900 dark:text-white shrink-0">
                         @if (calculateArticlePriceWithoutExtras(lineItem) !== calculateArticlePrice(lineItem)) {
                           <span class="text-xs text-gray-400 line-through mr-1">{{
-                            calculateArticlePriceWithoutExtras(lineItem) | currency: 'EUR'
+                            calculateArticlePriceWithoutExtras(lineItem) | eur
                           }}</span>
                         }
-                        {{ calculateArticlePrice(lineItem) | currency: 'EUR' }}
+                        {{ calculateArticlePrice(lineItem) | eur }}
                       </span>
                     </div>
 
@@ -211,14 +211,14 @@
                           >
                           @let sideSurcharge = menuSurcharge(lineItem, lineItem.menuSideDish, generalSideDishPrice);
                           @if (sideSurcharge > 0) {
-                            <span>+ {{ sideSurcharge | currency: 'EUR' }}</span>
+                            <span>+ {{ sideSurcharge | eur }}</span>
                           }
                         </div>
                         <div class="flex justify-between">
                           <span>{{ 'ORDER_DIALOG.DRINK' | translate }}: {{ lineItem.menuDrink?.name || 'ohne' }}</span>
                           @let drinkSurcharge = menuSurcharge(lineItem, lineItem.menuDrink, generalDrinkPrice);
                           @if (drinkSurcharge > 0) {
-                            <span>+ {{ drinkSurcharge | currency: 'EUR' }}</span>
+                            <span>+ {{ drinkSurcharge | eur }}</span>
                           }
                         </div>
                       </div>
@@ -247,9 +247,9 @@
                           </span>
                         }
                         @if (isRemovedIngredient(extra) && extra.price !== 0) {
-                          <span>{{ modifierAmount(lineItem, extra) | currency: 'EUR' }}</span>
+                          <span>{{ modifierAmount(lineItem, extra) | eur }}</span>
                         } @else if (extra.amount > 0 && extra.price > 0) {
-                          <span>+ {{ modifierAmount(lineItem, extra) | currency: 'EUR' }}</span>
+                          <span>+ {{ modifierAmount(lineItem, extra) | eur }}</span>
                         }
                       </div>
                     }
@@ -293,10 +293,10 @@
                       <div class="text-[0.9375rem] font-bold text-gray-900 dark:text-white whitespace-nowrap">
                         @if (calculateArticlePriceWithoutExtras(lineItem) !== calculateArticlePrice(lineItem)) {
                           <span class="text-xs text-gray-400 line-through mr-1">{{
-                            calculateArticlePriceWithoutExtras(lineItem) | currency: 'EUR'
+                            calculateArticlePriceWithoutExtras(lineItem) | eur
                           }}</span>
                         }
-                        {{ calculateArticlePrice(lineItem) | currency: 'EUR' }}
+                        {{ calculateArticlePrice(lineItem) | eur }}
                       </div>
                     </div>
 
@@ -335,14 +335,14 @@
                           >
                           @let sideSurcharge = menuSurcharge(lineItem, lineItem.menuSideDish, generalSideDishPrice);
                           @if (sideSurcharge > 0) {
-                            <span>+{{ sideSurcharge | currency: 'EUR' }}</span>
+                            <span>+{{ sideSurcharge | eur }}</span>
                           }
                         </div>
                         <div class="flex justify-between">
                           <span>{{ 'ORDER_DIALOG.DRINK' | translate }}: {{ lineItem.menuDrink?.name || 'ohne' }}</span>
                           @let drinkSurcharge = menuSurcharge(lineItem, lineItem.menuDrink, generalDrinkPrice);
                           @if (drinkSurcharge > 0) {
-                            <span>+{{ drinkSurcharge | currency: 'EUR' }}</span>
+                            <span>+{{ drinkSurcharge | eur }}</span>
                           }
                         </div>
                       </div>
@@ -381,12 +381,10 @@
                               }
                             </span>
                             @if (isRemovedIngredient(extra) && extra.price !== 0) {
-                              <span class="text-gray-500 font-medium">{{
-                                modifierAmount(lineItem, extra) | currency: 'EUR'
-                              }}</span>
+                              <span class="text-gray-500 font-medium">{{ modifierAmount(lineItem, extra) | eur }}</span>
                             } @else if (extra.amount > 0 && extra.price > 0) {
                               <span class="text-gray-500 font-medium"
-                                >+{{ modifierAmount(lineItem, extra) | currency: 'EUR' }}</span
+                                >+{{ modifierAmount(lineItem, extra) | eur }}</span
                               >
                             }
                           </div>
@@ -419,10 +417,7 @@
               <span class="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate flex-1">
                 {{ md.name }}
                 <span class="text-gray-400 dark:text-gray-500"
-                  >·
-                  {{
-                    md.valueType === 'percent' ? md.valuePercent + ' %' : (md.valueCents / 100).toFixed(2) + ' €'
-                  }}</span
+                  >· {{ md.valueType === 'percent' ? md.valuePercent + ' %' : (md.valueCents / 100 | eur) }}</span
                 >
               </span>
               <button
@@ -447,7 +442,7 @@
                     {{
                       d.valueType === 'percent' || d.valueType === 'PERCENT'
                         ? d.valuePercent + ' %'
-                        : (d.valueCents / 100).toFixed(2) + ' €'
+                        : (d.valueCents / 100 | eur)
                     }}</span
                   >
                 }
@@ -469,16 +464,12 @@
             @if (hasDiscountPreview()) {
               <span class="flex items-baseline gap-2">
                 <span class="text-xs font-medium text-gray-400 dark:text-gray-500 line-through">{{
-                  calculateSumPrice() | currency: 'EUR'
+                  calculateSumPrice() | eur
                 }}</span>
-                <span class="text-lg font-black text-gray-800 dark:text-white">{{
-                  discountedTotal() | currency: 'EUR'
-                }}</span>
+                <span class="text-lg font-black text-gray-800 dark:text-white">{{ discountedTotal() | eur }}</span>
               </span>
             } @else {
-              <span class="text-lg font-black text-gray-800 dark:text-white">{{
-                calculateSumPrice() | currency: 'EUR'
-              }}</span>
+              <span class="text-lg font-black text-gray-800 dark:text-white">{{ calculateSumPrice() | eur }}</span>
             }
           </div>
         </div>
@@ -658,9 +649,7 @@
                       >{{ productButton.name }}</span
                     >
                     @if (priceVisibility && !productButton.isFunctionButton) {
-                      <span class="text-[0.625rem] text-gray-500 font-normal">{{
-                        productButton.price | currency: 'EUR'
-                      }}</span>
+                      <span class="text-[0.625rem] text-gray-500 font-normal">{{ productButton.price | eur }}</span>
                     }
                   </span>
                 </button>

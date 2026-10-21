@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { formatEur } from '@panary/shared/util-helpers'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { NgClass } from '@angular/common'
 import { TranslateModule } from '@ngx-translate/core'
@@ -58,8 +59,7 @@ type SplitPreview =
   | { state: 'ok'; sourceFormatted: string; targetFormatted: string }
   | { state: 'error'; messageKey: string }
 
-const EUR_FORMAT = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' })
-const formatCents = (cents: number): string => EUR_FORMAT.format(fromCents(cents))
+const formatCents = (cents: number): string => formatEur(fromCents(cents))
 
 /** Fehlercode `order-split/amount-exceeds-remainder` → `SPLIT_ORDER.ERROR.AMOUNT_EXCEEDS_REMAINDER`. */
 function errorKey(code: unknown): string {
@@ -342,8 +342,8 @@ export class SplitOrderDialogComponent {
       })
       return {
         state: 'ok',
-        sourceFormatted: EUR_FORMAT.format(plan.sourceTaxSnapshot.brutto),
-        targetFormatted: EUR_FORMAT.format(plan.targetTaxSnapshot.brutto),
+        sourceFormatted: formatEur(plan.sourceTaxSnapshot.brutto),
+        targetFormatted: formatEur(plan.targetTaxSnapshot.brutto),
       }
     } catch (e) {
       return { state: 'error', messageKey: errorKey(e instanceof OrderSplitError ? e.code : undefined) }

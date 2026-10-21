@@ -174,7 +174,7 @@ describe('buildReceiptSnapshot — Nachlass (#228)', () => {
     const core = buildReceiptSnapshot(discountedInput())
     const html = buildReceiptHtml({ ...core, tse: null } as unknown as Parameters<typeof buildReceiptHtml>[0])
     expect(html).toContain('Nachlass: 20 % Rabatt')
-    expect(html).toContain('−2.38 EUR')
+    expect(html).toContain('−2,38\u00a0€')
   })
 })
 

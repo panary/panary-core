@@ -13,11 +13,12 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { ConfirmDialogComponent } from '../../core/confirm-dialog'
 import { formatApiError } from '../../core/error-helper'
+import { EurPipe } from '@panary/shared/ui-common'
 
 @Component({
   selector: 'app-order-detail',
   standalone: true,
-  imports: [TranslateModule, ConfirmDialogComponent],
+  imports: [TranslateModule, ConfirmDialogComponent, EurPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="h-full flex flex-col overflow-hidden">
@@ -58,7 +59,7 @@ import { formatApiError } from '../../core/error-helper'
                   'ORDERS.NET' | translate
                 }}</span>
                 <span class="text-sm font-medium text-slate-900 dark:text-white tabular-nums">{{
-                  formatCurrency(tax.netto)
+                  tax.netto | eur
                 }}</span>
               </div>
               @for (t of tax.taxes; track t.taxRate) {
@@ -66,18 +67,14 @@ import { formatApiError } from '../../core/error-helper'
                   <span class="text-xs text-slate-400 dark:text-gray-500 uppercase tracking-wider"
                     >{{ 'ORDERS.TAX' | translate }} {{ t.taxRate }}%</span
                   >
-                  <span class="text-sm font-medium text-slate-900 dark:text-white tabular-nums">{{
-                    formatCurrency(t.tax)
-                  }}</span>
+                  <span class="text-sm font-medium text-slate-900 dark:text-white tabular-nums">{{ t.tax | eur }}</span>
                 </div>
               }
               <div class="flex justify-between items-baseline font-bold">
                 <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{
                   'ORDERS.GROSS' | translate
                 }}</span>
-                <span class="text-sm text-slate-900 dark:text-white tabular-nums">{{
-                  formatCurrency(tax.brutto)
-                }}</span>
+                <span class="text-sm text-slate-900 dark:text-white tabular-nums">{{ tax.brutto | eur }}</span>
               </div>
             </div>
           }
@@ -283,10 +280,6 @@ export class OrderDetailComponent {
     } finally {
       this.saving.set(false)
     }
-  }
-
-  formatCurrency(value: number): string {
-    return value?.toFixed(2).replace('.', ',') + ' €'
   }
 
   private formatDate(iso: string): string {

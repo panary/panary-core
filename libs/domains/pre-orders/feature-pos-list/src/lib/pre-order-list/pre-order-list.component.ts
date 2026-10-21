@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal, WritableSignal } from '@angular/core'
+import { formatEur } from '@panary/shared/util-helpers'
 import { Router } from '@angular/router'
 import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
@@ -7,13 +8,13 @@ import { PreOrder, PreOrderService } from '@panary/pre-orders/data-access'
 import { MatDialog } from '@angular/material/dialog'
 import { ExtendedParams } from '@panary/shared-common'
 import { OrderDialogComponent } from '@panary/orders/feature-pos-order-dialog'
-import { ConfirmDialogComponent } from '@panary/shared/ui-common'
+import { ConfirmDialogComponent, EurPipe } from '@panary/shared/ui-common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 @Component({
   selector: 'lib-pre-order-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule],
+  imports: [CommonModule, EurPipe, FormsModule, TranslateModule],
   template: `
     <div
       class="h-full w-full bg-gray-50 dark:bg-black p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border"
@@ -116,9 +117,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                         {{ 'PRE_ORDERS.TIME_OCLOCK' | translate: { time: (order.scheduledFor | date: 'HH:mm') } }}
                       </span>
                     </div>
-                    <span class="font-bold text-gray-800 dark:text-white">{{
-                      calculateTotal(order) | currency: 'EUR'
-                    }}</span>
+                    <span class="font-bold text-gray-800 dark:text-white">{{ calculateTotal(order) | eur }}</span>
                   </div>
 
                   <div
@@ -230,7 +229,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                         <span class="font-bold">{{ item.amount }}x</span>
                         <span>{{ item.name }}</span>
                       </div>
-                      <span>{{ item.price * item.amount | currency: 'EUR' }}</span>
+                      <span>{{ item.price * item.amount | eur }}</span>
                     </div>
                   }
                 </div>
@@ -239,7 +238,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                   class="mt-6 pt-4 border-t-2 border-gray-800 dark:border-gray-200 flex justify-between items-center text-lg font-bold"
                 >
                   <span>{{ 'COMMON.TOTAL' | translate }}</span>
-                  <span>{{ calculateTotal(selectedOrder()!) | currency: 'EUR' }}</span>
+                  <span>{{ calculateTotal(selectedOrder()!) | eur }}</span>
                 </div>
               </div>
 
@@ -405,7 +404,7 @@ export class PreOrderListComponent implements OnInit {
 
   async convertToLiveOrder(order: PreOrder) {
     const total = this.calculateTotal(order)
-    const totalFormatted = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(total)
+    const totalFormatted = formatEur(total)
 
     const ref = this.#dialog.open(ConfirmDialogComponent, {
       width: '23.75rem',

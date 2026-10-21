@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } 
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { OrderDetailComponent } from './order-detail'
+import { formatEur } from '@panary/shared/util-helpers'
 
 type TimeRange = 'businessDay' | 'today' | 'yesterday' | 'week' | 'month'
 
@@ -451,7 +452,7 @@ export class OrderListComponent implements OnInit {
 
   formatAmount(order: any): string {
     const brutto = order.taxSnapshot?.brutto
-    return brutto != null ? brutto.toFixed(2).replace('.', ',') + ' €' : '–'
+    return formatEur(brutto) || '–'
   }
 
   formatTime(iso: string): string {

@@ -17,6 +17,7 @@ import { CloudManagedService } from '../../core/cloud-managed.service'
 import { ProductFormComponent } from './product-form'
 import { ConfirmDialogComponent } from '../../core/confirm-dialog'
 import { ProductWizardComponent } from './product-wizard'
+import { EurPipe } from '@panary/shared/ui-common'
 
 interface SearchFilter {
   key: string
@@ -41,6 +42,7 @@ interface SearchCommand {
     ProductWizardComponent,
     TranslateModule,
     CloudManagedBannerComponent,
+    EurPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -442,7 +444,7 @@ interface SearchCommand {
                       </td>
                       @if (!selectedId()) {
                         <td class="px-3 py-2.5 text-slate-500 dark:text-gray-400 font-mono text-xs">{{ p.acronym }}</td>
-                        <td class="px-3 py-2.5 font-mono text-xs">{{ (p.price || 0).toFixed(2) }} &euro;</td>
+                        <td class="px-3 py-2.5 font-mono text-xs">{{ p.price || 0 | eur }}</td>
                         <td class="px-3 py-2.5">
                           <span
                             class="text-xs px-2 py-0.5 rounded-full border border-slate-300 dark:border-gray-700

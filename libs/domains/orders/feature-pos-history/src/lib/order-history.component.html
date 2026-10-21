@@ -126,9 +126,7 @@
                     order.recordingDate | date: 'HH:mm'
                   }}</span>
                 </div>
-                <span class="font-bold text-gray-800 dark:text-white">{{
-                  calculateTotal(order) | currency: 'EUR'
-                }}</span>
+                <span class="font-bold text-gray-800 dark:text-white">{{ calculateTotal(order) | eur }}</span>
               </div>
 
               <div
@@ -213,12 +211,12 @@
                     <span class="font-bold">{{ item.amount }}x</span>
                     <span>{{ item.name }}</span>
                   </div>
-                  <span>{{ item.price * item.amount | currency: 'EUR' }}</span>
+                  <span>{{ item.price * item.amount | eur }}</span>
                 </div>
                 @for (extra of item.modifiers; track extra) {
                   <div class="flex justify-between items-start pl-6 text-gray-500 dark:text-gray-400 text-xs">
                     <span>{{ extra.amount }}x {{ extra.name }}</span>
-                    <span>{{ modifierPrice(item, extra) | currency: 'EUR' }}</span>
+                    <span>{{ modifierPrice(item, extra) | eur }}</span>
                   </div>
                 }
               }
@@ -234,7 +232,7 @@
                         <span class="font-bold">{{ item.amount }}x</span>
                         <span>{{ item.name }}</span>
                       </div>
-                      <span>{{ item.price * item.amount | currency: 'EUR' }}</span>
+                      <span>{{ item.price * item.amount | eur }}</span>
                     </div>
                   }
                 </div>
@@ -245,7 +243,7 @@
               class="mt-6 pt-4 border-t-2 border-gray-800 dark:border-gray-200 flex justify-between items-center text-lg font-bold"
             >
               <span>{{ 'COMMON.TOTAL' | translate }}</span>
-              <span>{{ calculateTotal(selectedOrder()!) | currency: 'EUR' }}</span>
+              <span>{{ calculateTotal(selectedOrder()!) | eur }}</span>
             </div>
           </div>
 

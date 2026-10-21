@@ -119,6 +119,7 @@ export class DiscountCodeService {
   }): Promise<CodeCheckResult> {
     // Bewusst nur die Vorprüfung, keine Zeitgrenze: Ein gepufferter Aufruf könnte nach Ablauf doch
     // noch ankommen und den Code verbrauchen, obwohl die Kasse die Bestellung schon verworfen hat.
+    // Restlücke: Reißt die Verbindung erst während des Aufrufs ab, bleibt er bis zum Reconnect offen.
     if (this.#isUnreachable()) return { ok: false, reason: CodeProxyReason.CLOUD_UNREACHABLE }
     try {
       return (await this.#service.create({

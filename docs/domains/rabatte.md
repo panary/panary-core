@@ -347,6 +347,9 @@ der Dialog stünde auf „Code wird geprüft…“. Prüfen gibt zusätzlich nac
 (`CODE_CHECK_TIMEOUT_MS`). Einlösen hat bewusst **keine** Zeitgrenze: Ein gepufferter Aufruf könnte
 nach Ablauf doch ankommen und den Code verbrauchen, während die Kasse die Bestellung schon
 verworfen hat.
+**Restlücke:** Reißt die Verbindung erst *während* des Einlösens ab, bleibt der Aufruf offen, bis der
+Socket wieder steht. Ein Abbruch dort müsste „Ergebnis unbekannt“ melden, nicht „nicht eingelöst“ —
+das ist nicht gebaut.
 
 **Tarif cloud-direct:** Ohne Edge bietet die Kasse die Code-Eingabe nicht an
 („Rabattcodes sind an dieser Kasse (Cloud direkt) noch nicht verfügbar"). Der Code-Dienst der

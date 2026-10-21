@@ -38,7 +38,7 @@ describe('evaluatePromoCodeGate', () => {
   })
 
   it('Personalessen gewinnt gegen den manuellen Rabatt (praezisere Meldung)', () => {
-    const gate = evaluatePromoCodeGate({ isStaffMealOrder: true, hasManualDiscount: true })
+    const gate = evaluatePromoCodeGate({ isCloudDirect: false, isStaffMealOrder: true, hasManualDiscount: true })
     expect(gate.message).toBe(PROMO_CODE_BLOCKED_STAFF_MEAL)
   })
 })

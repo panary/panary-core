@@ -334,8 +334,16 @@ Abbruch nach der Eingabe den Code — bei `usageLimit: 1` unwiederbringlich.
 
 - **fachlich** (rot) — `not_found`, `expired`, `limit_reached`, `wrong_customer`,
   `discount_inactive`. Kommt von der Cloud als `200` mit `ok: false`.
-- **technisch** (amber) — `not_paired`, `cloud_unreachable`. Entsteht am Edge; ein
-  `401`/`429`/`5xx` der Cloud zählt hier hinein und **nie** als „Code ungültig".
+- **technisch** (amber) — `not_paired`, `cloud_unreachable`, `not_authorized`. Die ersten
+  beiden entstehen am Edge; ein `401`/`429`/`5xx` der Cloud zählt hier hinein und **nie** als
+  „Code ungültig". `not_authorized` setzt die Kasse selbst, wenn **sie** ein `401`/`403` bekommt
+  (Symbol `block` statt `cloud_off`, Hinweis auf den Support), seit
+  [cloud#1429](https://github.com/panary/panary-cloud/issues/1429).
+
+**Tarif cloud-direct:** Ohne Edge bietet die Kasse die Code-Eingabe nicht an
+(„Rabattcodes sind an dieser Kasse (Cloud direkt) noch nicht verfügbar"). Der Code-Dienst der
+Cloud nimmt bisher nur Edge-Zugänge an; die Freigabe für Geräte-Token ist geplant
+([ADR 0032, Nachtrag](../adr/0032-promo-codes-am-pos-strikt-online.md)).
 
 Weitere Regeln:
 

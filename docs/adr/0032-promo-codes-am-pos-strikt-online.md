@@ -87,7 +87,7 @@ Alternative zur Offline-Frage, sondern eine Alternative zur Cloud-only-Entscheid
   aufgebrauchten Code den Rabatt ungezählt, und eine nachträgliche Korrektur träfe
   eine bereits TSE-signierte, ggf. gedruckte Bestellung.
 
-## Nachtrag 2026-10-21: Tarif cloud-direct (cloud#1429)
+## Nachtrag 2026-10-21: Tarif cloud-direct ([cloud#1429](https://github.com/panary/panary-cloud/issues/1429))
 
 Die Entscheidung oben setzt einen Edge voraus. Im Tarif `cloud-direct` spricht die Kasse ohne
 Edge direkt mit `api-cloud`, und `discount-code-redeem` nimmt dort nur Edge-Tokens an
@@ -96,7 +96,8 @@ Kasse zeigte das als „Cloud nicht erreichbar".
 
 Entscheidung (Michael, 2026-10-21): **Vorerst gesperrt, Freigabe geplant.** Die Kasse bietet die
 Code-Eingabe in `cloud-direct` nicht an und nennt den Grund
-(`PROMO_CODE_BLOCKED_CLOUD_DIRECT`). Unabhängig vom Tarif meldet sie 401/403 als „nicht
-zugelassen" (`CodeProxyReason.NOT_AUTHORIZED`) statt als Verbindungsproblem. Die Freigabe für
+(`PROMO_CODE_BLOCKED_CLOUD_DIRECT`). Bekommt die Kasse selbst ein 401/403, meldet sie es als „nicht
+zugelassen" (`CodeProxyReason.NOT_AUTHORIZED`) statt als Verbindungsproblem; der Edge meldet
+Cloud-Ablehnungen weiter als `cloud_unreachable`. Die Freigabe für
 Geräte-Token in der Cloud (Tenant und Filiale aus dem Token, Tenant-Sperre und Rate-Limit bleiben)
 ist ein eigenes Vorhaben in panary/panary-cloud#1429.

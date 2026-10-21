@@ -60,6 +60,8 @@ interface SetupOptions {
   redeemResult?: Record<string, unknown>
   /** Produkte, aus denen `findProductById`/`findProductByExternalId` aufloesen (#273). */
   catalog?: ProductSchema[]
+  /** `ConnectionService.tier()` — Standard: Kasse am Edge (cloud#1429). */
+  tier?: 'cloud-direct' | 'standalone' | 'edge-with-cloud' | 'unknown'
 }
 
 const CURRENT_USER_ID = '018f0000-0000-7000-8000-000000000001'
@@ -218,7 +220,10 @@ function setup(options: SetupOptions = {}) {
       { provide: OrderInteractionService, useValue: {} },
       { provide: PreOrderService, useValue: {} },
       { provide: DeviceConfigService, useValue: {} },
-      { provide: ConnectionService, useValue: { systemMode: () => 'connected' } },
+      {
+        provide: ConnectionService,
+        useValue: { systemMode: () => 'connected', tier: () => options.tier ?? 'edge-with-cloud' },
+      },
       { provide: TenantSuspensionService, useValue: { suspended } },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
       // Ausserhalb einer gerenderten Komponente gibt es keinen echten
@@ -991,6 +996,15 @@ describe('OrderDialog — Gate-Verdrahtung der Rabatt-Picker', () => {
 
     expect(openedDialogs).toHaveLength(0)
     expect(component.appliedCodeDiscount()).toBeNull()
+  })
+
+  it('openPromoCodeDialog() oeffnet im Tarif cloud-direct nicht und nennt den Grund (cloud#1429)', () => {
+    const { component, openedDialogs } = setup({ tier: 'cloud-direct' })
+
+    component.openPromoCodeDialog()
+
+    expect(openedDialogs).toHaveLength(0)
+    expect(component.infoBoxText).toBe('Rabattcodes sind an dieser Kasse (Cloud direkt) noch nicht verfügbar')
   })
 
   it('openPromoCodeDialog() oeffnet nicht, solange ein manueller Rabatt gewaehlt ist', () => {

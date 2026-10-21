@@ -130,8 +130,9 @@ describe('OrderDialog-Template — untere Leiste (#798)', () => {
   })
 
   it('schaltet den Inline-Ziffernblock erst ein, wenn alle Tasten nebeneinander passen', () => {
-    // Inline-Modus: Funktionstasten, Bestellen, Multiplier, Ziffern 0–9 und C. Zwischen je zwei
-    // Elementen (der Spacer zählt mit) liegt ein gap-1.5 = 0.375rem.
+    // Inline-Modus: Funktionstasten, Bestellen, Multiplier, Ziffern 0–9 und C — 19 Elemente mit
+    // fester Breite. Dazu kommt der Spacer ohne Breite, also 20 Elemente und 19 Lücken à gap-1.5
+    // = 0.375rem: so viele Lücken, wie es Breiten gibt.
     const ohneKompakt = leiste.slice(0, leiste.indexOf('<!-- Clear + Numpad: Kompakt'))
     const elemente = [...ohneKompakt.matchAll(/class="[^"]*\bw-(\d+)\b[^"]*"/g)].map(m => Number(m[1]) * 0.25)
     const ziffernTaste = inline.match(/<button[^>]*class="[^"]*\bw-(\d+)\b/)?.[1]

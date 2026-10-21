@@ -14,7 +14,6 @@ import { TranslateService } from '@ngx-translate/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { TenantSuspensionService } from '@panary/shared/data-access'
 import { User, UserService } from '@panary/users/data-access'
-import type { IconName } from '@panary/shared/ui-common'
 
 export type TimeClockAction = 'clock-in' | 'clock-out' | 'break-start' | 'break-end'
 export type TimeClockMode = 'embedded' | 'mobile'
@@ -90,18 +89,18 @@ export class TimeClockPanelComponent {
   //#endregion
 
   //#region Action Config
-  readonly actions: { action: TimeClockAction; label: string; icon: IconName; color: string; bgColor: string }[] = [
+  readonly actions: { action: TimeClockAction; label: string; icon: string; color: string; bgColor: string }[] = [
     {
       action: 'clock-in',
       label: 'TIME_CLOCK.CLOCK_IN',
-      icon: 'sign-in',
+      icon: 'login',
       color: 'text-emerald-600 dark:text-emerald-400',
       bgColor: 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/15 dark:hover:bg-emerald-500/25',
     },
     {
       action: 'clock-out',
       label: 'TIME_CLOCK.CLOCK_OUT',
-      icon: 'sign-out',
+      icon: 'logout',
       color: 'text-red-600 dark:text-red-400',
       bgColor: 'bg-red-50 hover:bg-red-100 dark:bg-red-500/15 dark:hover:bg-red-500/25',
     },
@@ -115,7 +114,7 @@ export class TimeClockPanelComponent {
     {
       action: 'break-end',
       label: 'TIME_CLOCK.BREAK_END',
-      icon: 'play',
+      icon: 'play_arrow',
       color: 'text-blue-600 dark:text-blue-400',
       bgColor: 'bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:hover:bg-blue-500/25',
     },

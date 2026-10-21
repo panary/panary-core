@@ -157,10 +157,10 @@ export class PromoCodeDialogComponent {
   readonly feedbackIcon = computed(() => {
     const r = this.result()
     if (!r) return 'info'
-    if (r.ok) return 'check_circle'
+    if (r.ok) return 'check-circle'
     // „Nicht zugelassen" ist technisch, aber kein Verbindungsproblem — kein Wolken-Symbol (cloud#1429).
-    if (r.reason === CodeProxyReason.NOT_AUTHORIZED) return 'block'
-    return this.isTechnical() ? 'cloud_off' : 'cancel'
+    if (r.reason === CodeProxyReason.NOT_AUTHORIZED) return 'prohibit'
+    return this.isTechnical() ? 'cloud-slash' : 'x-circle'
   })
 
   // Technische Ablehnung sieht bewusst anders aus als fachliche: „Cloud weg" ist

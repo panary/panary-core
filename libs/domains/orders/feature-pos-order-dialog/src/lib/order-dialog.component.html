@@ -633,7 +633,9 @@
                       {{ productButton.ui?.index }}
                     </span>
                   }
-                  @if (productButton.icon) {
+                  @if (productButton.iconName; as iconName) {
+                    <lib-icon [name]="iconName" class="shrink-0 text-[1rem] opacity-70" />
+                  } @else if (productButton.icon) {
                     <span class="shrink-0 text-[1rem] opacity-70" aria-hidden="true">{{ productButton.icon }}</span>
                   }
                   <span class="flex flex-col items-center min-w-0">

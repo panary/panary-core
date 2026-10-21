@@ -56,7 +56,8 @@ Dunkel gilt bei `<html data-theme="dark">` oder bei System-Dunkel ohne `data-the
 (Spacing-Namespace: `touch-min`, `touch`, `touch-primary`).
 
 Die Namen `--color-primary`, `--color-surface`, `--color-border`, `--radius-*` und `--text-*` besetzt das Paket
-bewusst nicht; cloud nutzt sie anders.
+bewusst nicht; cloud nutzt sie anders. Die Ausnahme sind `--font-sans` und `--font-mono`: Sie ersetzen
+die Tailwind-Defaults mit Inter und IBM Plex Mono.
 
 ## Kontrast
 

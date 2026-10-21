@@ -27,9 +27,9 @@ Mint/Navy als Aktionsfarbe), die in cloud nicht vorkommen.
   Storefront-Tokens (`--st-*`) gehören nicht dazu.
 - `theme.css` bildet die Tokens per `@theme inline` auf Tailwind-Namen ab. Es vermeidet Namen, die Tailwind-Standards
   oder cloud-Tokens überschreiben würden (`--color-primary`, `--color-surface`, `--radius-sm`, `--text-*`);
-  die Aktionsfarbe heißt `action`.
+  die Aktionsfarbe heißt `action`. Bewusste Ausnahme: `--font-sans`/`--font-mono` ersetzen die Tailwind-Defaults.
 - **Einbindung per relativem Pfad**, nicht per Paketname: `@import '../../../libs/shared/design-tokens/tokens.css'`
-  (admin-client, CSS) bzw. `@use` (pos-client, SCSS). Gemessen in [#820](https://github.com/panary/panary-core/issues/820):
+  (admin-client, CSS) bzw. `@use` (pos-client, SCSS). Gemessen in [#820](https://github.com/panary/panary-core/issues/820) (Ergebnis-Kommentar mit Build-Belegen für admin-client und pos-client):
   Der Paketname löst nur bei vorhandenem `node_modules/@panary/…`-Link auf; ohne Link bricht der Build ab. Der
   relative Pfad funktioniert im Worktree, im Workbench-Checkout, im Docker-Build und in der Tauri-Pipeline ohne
   Link und ohne Lockfile-Eintrag. Das Paket hat deshalb auch keinen Eintrag in `tsconfig.base.json`.

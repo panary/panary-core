@@ -7,7 +7,7 @@
  *
  * Bewusst KEINE Namen, die Tailwind-Standards oder cloud-Tokens ueberschreiben (`--color-primary`,
  * `--color-surface`, `--color-border`, `--radius-sm|md|lg`, `--text-*`): Die Aktionsfarbe heisst
- * `action`. Die Schriftgroessen bleiben bei den `--font-size-*`-Tokens; sie auf `--text-*` zu legen
+ * `action`. Ausnahme mit Absicht: `--font-sans`/`--font-mono` ersetzen die Tailwind-Defaults. Die Schriftgroessen bleiben bei den `--font-size-*`-Tokens; sie auf `--text-*` zu legen
  * ist Sache der App, die die px-Skala der Tailwind-Defaults ersetzt (cloud: panary/panary-cloud#1436).
  */
 

@@ -15,6 +15,7 @@ describe('POS-Icon-Registry', () => {
   })
 
   it('iconPath liefert den Pfad der Registry', () => {
-    expect(iconPath('x')).toBe(ICON_PATHS.x)
+    expect(iconPath('check')).toBe(ICON_PATHS.check)
+    expect(iconPath('check')).not.toBe(iconPath('x'))
   })
 })

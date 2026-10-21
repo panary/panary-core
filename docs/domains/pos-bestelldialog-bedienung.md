@@ -84,11 +84,12 @@ dem Icon. Nur „Löschen" ist rot. „Mehr" ist neutral und öffnet „Bestellu
 | Panel-Kopf | Umschalter „1 Stück · alle n" neben dem Titel, Zusammenfassung einzeilig |
 | Extras im Panel | Spalten wie die Listenansicht im Explorer (`columns-[16rem]`, `column-fill: auto`): erst untereinander, dann rechts weiter, waagrecht scrollbar |
 | Panel-Fuß | Container-Query: unter 42rem Panelbreite werden Abbrechen, Modifier und „n lösen" zu 64-px-Tasten, „Fertig" füllt den Rest |
+| Untere Leiste | Container-Query auf der Leiste selbst: Den Ziffernblock 0–9 und `C` zeigt sie erst ab 84,75rem Inhaltsbreite inline, darunter `C` und das Ziffern-Popup. Die Schwelle ist die Summe der festen Breiten (84,625rem) und wächst über rem mit dem Fluid-Scaling mit. Bei 16 px Root schaltet sie ab 1422 px Viewport um. Das `fixed` Popup steht außerhalb der Leiste ([#798](https://github.com/panary/panary-core/issues/798)) |
 
 ## Nicht abgedeckt
 
 Die Breiten sind im Browser in der Sandbox bei 1920 und 1280 px geprüft, nicht auf Kundenhardware
-und nicht im Tauri-WebView. Bei 1280 px läuft die untere Leiste schon vorher über
-([#798](https://github.com/panary/panary-core/issues/798)). „Alle Artikel kombinieren" nimmt auch
+und nicht im Tauri-WebView. Die untere Leiste lief bei 1280 px über, behoben mit
+[#798](https://github.com/panary/panary-core/issues/798). „Alle Artikel kombinieren" nimmt auch
 Zeilen mit, die schon in einer Kombination stehen. Das war vorher schon so und ist hier nicht
 geändert.

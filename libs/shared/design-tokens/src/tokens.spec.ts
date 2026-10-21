@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const read = (file: string) => readFileSync(join(__dirname, '..', file), 'utf8')
@@ -105,5 +105,38 @@ describe('design-tokens: Aufbau', () => {
       expect(defined.has(source), `${name} -> ${source} nicht in tokens.css`).toBe(true)
       expect(name).not.toBe(source)
     }
+  })
+})
+
+describe('design-tokens: Schriften und Palette', () => {
+  const fontsCss = read('fonts.css')
+
+  it('jede woff2-Datei aus fonts.css existiert im Paket', () => {
+    const urls = [...fontsCss.matchAll(/url\('\.\/([^']+)'\)/g)].map(m => m[1])
+    expect(urls.length).toBeGreaterThan(0)
+    expect(urls.filter(u => !existsSync(join(__dirname, '..', u)))).toEqual([])
+  })
+
+  it('legacy-palette: gray und slate sind gleich, warm und werden von hell nach dunkel dunkler', () => {
+    const legacy = read('legacy-palette.css')
+    const ramp = (name: string) =>
+      [...legacy.matchAll(new RegExp(`--color-${name}-(\\d+): (#[0-9a-f]{6});`, 'g'))]
+        .map(m => [Number(m[1]), m[2]] as const)
+        .sort((a, b) => a[0] - b[0])
+    const gray = ramp('gray')
+    expect(gray.length).toBe(12)
+    expect(ramp('slate')).toEqual(gray)
+    const lum = gray.map(([, hex]) => luminance(hex))
+    expect([...lum].sort((a, b) => b - a)).toEqual(lum)
+    // kein reines Schwarz/Weiss: dunkelste Stufe bleibt warm
+    expect(gray[gray.length - 1][1]).not.toBe('#000000')
+    expect(legacy).toMatch(/--color-black: #(?!000000)[0-9a-f]{6};/)
+  })
+
+  it('legacy-palette: dunkle Stufen decken sich mit den dunklen Flaechen-Tokens', () => {
+    const legacy = read('legacy-palette.css')
+    expect(legacy).toContain(`--color-gray-900: ${dark['--surface-bg']}`)
+    expect(legacy).toContain(`--color-gray-850: ${dark['--surface-panel']}`)
+    expect(legacy).toContain(`--color-gray-800: ${dark['--surface-panel-elevated']}`)
   })
 })

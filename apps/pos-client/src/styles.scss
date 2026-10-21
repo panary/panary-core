@@ -1,4 +1,8 @@
 @use 'tailwindcss';
+@use '../../../libs/shared/design-tokens/tokens.css';
+@use '../../../libs/shared/design-tokens/theme.css';
+@use '../../../libs/shared/design-tokens/legacy-palette.css';
+@use '../../../libs/shared/design-tokens/fonts.css';
 @use '@angular/material' as mat;
 
 /* Explizite Quellpfade für Tailwind v4 JIT — verhindert Scan-Fehler auf Windows CI und Docker.
@@ -16,14 +20,6 @@
 @source "../../../libs/shared/*/src";
 @source "../../../libs/apps/*/*/src";
 
-@font-face {
-  font-family: 'Switzer';
-  src: url('./assets/fonts/Switzer-Variable.woff2') format('woff2');
-  font-weight: 100 900;
-  font-display: swap;
-  font-style: normal;
-}
-
 /* Dark-Mode-Variante: Tailwind dark: Klassen über .dark-Klasse aktivieren */
 /* Hinweis: Block-Syntax (@slot) funktioniert nicht in SCSS — Einzeiler-Syntax verwenden */
 @custom-variant dark (&:where(.dark, .dark *));
@@ -32,12 +28,6 @@
    wenn die Klasse pnry-fluid-scale auf <html> gesetzt ist (UiScaleService hinter dem
    Feature-Flag pos-fluid-ui-scaling-v1). Einzeiler-Syntax wie bei dark. */
 @custom-variant fluid (&:where(html.pnry-fluid-scale, html.pnry-fluid-scale *));
-
-/* Farb-Overrides abgestimmt auf den Admin Client (identische OkLCH-Werte) */
-@theme {
-  --color-gray-850: oklch(23% 0.034 264.665);
-  --color-gray-950: oklch(13% 0.028 261);
-}
 
 /* ==========================================================================
    Fluide UI-Skalierung — PNRY-FEAT-POS-UI-SCALE-001
@@ -85,7 +75,7 @@ html {
         primary: mat.$azure-palette,
         tertiary: mat.$blue-palette,
       ),
-      typography: Switzer,
+      typography: Inter,
       density: 0,
     )
   );
@@ -100,7 +90,7 @@ html[data-theme='dark'] {
         primary: mat.$azure-palette,
         tertiary: mat.$blue-palette,
       ),
-      typography: Switzer,
+      typography: Inter,
       density: 0,
     )
   );
@@ -116,25 +106,52 @@ html[data-theme='dark'] {
           primary: mat.$azure-palette,
           tertiary: mat.$blue-palette,
         ),
-        typography: Switzer,
+        typography: Inter,
         density: 0,
       )
     );
   }
 }
 
-/* Material-Komponenten: Switzer als Schriftart global erzwingen */
+/* Material-Systemfarben auf die Design-Tokens: eine Zuordnung fuer beide Themes, weil die Tokens selbst
+   zwischen Warm hell und Warm dunkel wechseln. `html:root` hat dieselbe Spezifitaet wie die mat.theme-Bloecke
+   oben und steht danach, gewinnt also. */
+html:root {
+  --mat-sys-primary: var(--primary);
+  --mat-sys-on-primary: var(--on-primary);
+  --mat-sys-primary-container: var(--accent-soft);
+  --mat-sys-on-primary-container: var(--accent-ink);
+  --mat-sys-secondary-container: var(--accent-soft);
+  --mat-sys-on-secondary-container: var(--accent-ink);
+  --mat-sys-background: var(--surface-bg);
+  --mat-sys-on-background: var(--text-primary);
+  --mat-sys-surface: var(--surface-panel);
+  --mat-sys-on-surface: var(--text-primary);
+  --mat-sys-on-surface-variant: var(--text-muted);
+  --mat-sys-surface-variant: var(--surface-panel-elevated);
+  --mat-sys-surface-container-lowest: var(--surface-panel);
+  --mat-sys-surface-container-low: var(--surface-panel);
+  --mat-sys-surface-container: var(--surface-panel);
+  --mat-sys-surface-container-high: var(--surface-panel-elevated);
+  --mat-sys-surface-container-highest: var(--surface-panel-elevated);
+  --mat-sys-outline: var(--border-strong);
+  --mat-sys-outline-variant: var(--border-default);
+  --mat-sys-error: var(--danger-ink);
+  --mat-sys-scrim: var(--scrim);
+}
+
+/* Material-Komponenten: Inter als Schriftart global erzwingen */
 :root {
-  --mdc-typography-font-family: 'Switzer', sans-serif;
-  --mat-sys-body-medium-font: 'Switzer', sans-serif;
-  --mat-sys-body-large-font: 'Switzer', sans-serif;
-  --mat-sys-label-large-font: 'Switzer', sans-serif;
-  --mat-sys-title-medium-font: 'Switzer', sans-serif;
-  --mat-table-header-headline-font: 'Switzer', sans-serif;
-  --mat-table-row-item-label-text-font: 'Switzer', sans-serif;
-  --mat-select-trigger-text-font: 'Switzer', sans-serif;
-  --mat-option-label-text-font: 'Switzer', sans-serif;
-  --mat-menu-item-label-text-font: 'Switzer', sans-serif;
+  --mdc-typography-font-family: var(--font-family-sans);
+  --mat-sys-body-medium-font: var(--font-family-sans);
+  --mat-sys-body-large-font: var(--font-family-sans);
+  --mat-sys-label-large-font: var(--font-family-sans);
+  --mat-sys-title-medium-font: var(--font-family-sans);
+  --mat-table-header-headline-font: var(--font-family-sans);
+  --mat-table-row-item-label-text-font: var(--font-family-sans);
+  --mat-select-trigger-text-font: var(--font-family-sans);
+  --mat-option-label-text-font: var(--font-family-sans);
+  --mat-menu-item-label-text-font: var(--font-family-sans);
 }
 
 .mat-mdc-table,
@@ -149,22 +166,22 @@ html[data-theme='dark'] {
 .mat-mdc-tooltip,
 .mdc-data-table__cell,
 .mdc-data-table__header-cell {
-  font-family: 'Switzer', sans-serif !important;
+  font-family: var(--font-family-sans) !important;
 }
 
 /* SnackBar: Helles Card-Design passend zum Layout der POS-App */
 .mat-mdc-snack-bar-container {
   /* Korrekte Angular-Material-21-Token-Namen (mat-snack-bar-*, nicht mdc-snackbar-*) */
-  --mat-snack-bar-container-color: #f1f5f9;
-  --mat-snack-bar-supporting-text-color: #1e293b;
+  --mat-snack-bar-container-color: var(--surface-panel-elevated);
+  --mat-snack-bar-supporting-text-color: var(--text-primary);
   --mat-snack-bar-supporting-text-size: 0.875rem;
   --mat-snack-bar-supporting-text-weight: 500;
   --mat-snack-bar-container-shape: 1rem;
-  --mat-snack-bar-button-color: #2563eb;
+  --mat-snack-bar-button-color: var(--accent-ink);
 
   /* Border + Schatten direkt auf der MDC-Surface */
   .mdc-snackbar__surface {
-    border: 1px solid #e2e8f0 !important;
+    border: 1px solid var(--border-default) !important;
     box-shadow:
       0 10px 25px -5px rgb(0 0 0 / 0.08),
       0 4px 6px -2px rgb(0 0 0 / 0.04) !important;
@@ -173,9 +190,9 @@ html[data-theme='dark'] {
 
 /* MatSelect: Dropdown-Panel Styling */
 .mat-mdc-select-panel {
-  background: white !important;
+  background: var(--surface-panel) !important;
   border-radius: 0.75rem !important;
-  border: 1px solid #e2e8f0 !important;
+  border: 1px solid var(--border-default) !important;
   box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1) !important;
 }
 
@@ -183,46 +200,12 @@ html[data-theme='dark'] {
   font-size: 0.875rem !important;
 }
 
-/* Dark-Mode-Overrides für Material-Komponenten mit hartcodierten Farben */
-body.dark .mat-mdc-snack-bar-container {
-  --mat-snack-bar-container-color: #1e293b;
-  --mat-snack-bar-supporting-text-color: #f1f5f9;
-  --mat-snack-bar-button-color: #60a5fa;
-
-  .mdc-snackbar__surface {
-    border-color: #334155 !important;
-  }
-}
-
-body.dark .mat-mdc-select-panel {
-  background: #1e293b !important;
-  border-color: #334155 !important;
-}
-
-/* System-Modus: Material-Overrides bei OS-Dark */
-@media (prefers-color-scheme: dark) {
-  html:not([data-theme]) .mat-mdc-snack-bar-container {
-    --mat-snack-bar-container-color: #1e293b;
-    --mat-snack-bar-supporting-text-color: #f1f5f9;
-    --mat-snack-bar-button-color: #60a5fa;
-
-    .mdc-snackbar__surface {
-      border-color: #334155 !important;
-    }
-  }
-
-  html:not([data-theme]) .mat-mdc-select-panel {
-    background: #1e293b !important;
-    border-color: #334155 !important;
-  }
-}
-
 /* Vorbestell-Dialog-Backdrop: weichzeichnen + dezent abdunkeln, damit sich die
    neue Dialog-Ebene klar vom darunterliegenden Bestelldialog abhebt. Der dunkle
    Scrim funktioniert in Light UND Dark (Standard-Modal-Verhalten); die Panel-
    Kante übernimmt im Dark Mode die Border am Dialog-Root. */
 .pre-order-blur-backdrop {
-  background-color: rgba(2, 6, 23, 0.4); /* slate-950 @ 40% */
+  background-color: var(--scrim);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -234,22 +217,9 @@ html,
 body {
   height: 100dvh;
   margin: 0;
-  background-color: #f9fafb; /* gray-50 */
-}
-
-/* Manuell auf Dunkel gesetzt */
-.dark body,
-body.dark {
-  background-color: #000;
-  color: #fff;
-}
-
-/* System-Modus: body-Hintergrund bei OS-Dark */
-@media (prefers-color-scheme: dark) {
-  html:not([data-theme]) body {
-    background-color: #000;
-    color: #fff;
-  }
+  font-family: var(--font-family-sans);
+  background-color: var(--surface-bg);
+  color: var(--text-primary);
 }
 
 app-root {

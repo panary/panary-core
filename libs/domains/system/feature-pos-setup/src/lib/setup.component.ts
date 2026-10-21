@@ -144,6 +144,7 @@ export class SetupComponent {
   readonly hubs = this.hubDiscovery.hubs
   readonly scanning = this.hubDiscovery.scanning
   readonly isTauri = this.hubDiscovery.isTauri
+  readonly isCapacitor = this.hubDiscovery.isCapacitor
 
   // Registrierungs-State (aus dem Service)
   readonly registrationStatus = this.configService.registrationStatus

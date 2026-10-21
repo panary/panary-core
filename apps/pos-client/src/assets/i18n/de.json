@@ -556,6 +556,7 @@
     "HUB_SCANNING": "Suche nach Hubs im Netzwerk…",
     "HUB_NONE_FOUND": "Kein Hub gefunden.",
     "HUB_DISCOVERY_APP_ONLY": "Die automatische Suche ist nur in der Terminal-App verfügbar. Nutzen Sie den QR-Code oder die manuelle Eingabe.",
+    "HUB_DISCOVERY_ANDROID_MANUAL": "Die automatische Suche ist in der Android-App nicht verfügbar. Nutzen Sie die manuelle Eingabe.",
     "HUB_RESCAN": "Erneut suchen",
     "HUB_QR_SCAN": "QR-Code scannen",
     "HUB_READY": "Bereit",

@@ -3,6 +3,8 @@ import baseConfig from '../../eslint.config.mjs'
 
 export default [
   ...baseConfig,
+  // Capacitor-Android-Projekt samt Gradle-/WebView-Build-Artefakten (panary/panary-core#818)
+  { ignores: ['android/**'] },
   ...nx.configs['flat/angular'],
   ...nx.configs['flat/angular-template'],
   {

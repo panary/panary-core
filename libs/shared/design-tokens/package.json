@@ -1,0 +1,28 @@
+{
+  "name": "@panary/design-tokens",
+  "version": "26.10.24",
+  "license": "BSL-1.1",
+  "description": "Design-Tokens (Warm hell/dunkel, Touch-Skala) als CSS fuer POS, Core-Admin und Cloud-Admin",
+  "exports": {
+    "./tokens.css": "./tokens.css",
+    "./theme.css": "./theme.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "*.css",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/panary/panary-core.git",
+    "directory": "libs/shared/design-tokens"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  }
+}

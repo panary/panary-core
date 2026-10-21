@@ -1,0 +1,21 @@
+{
+  "name": "design-tokens",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/shared/design-tokens/src",
+  "projectType": "library",
+  "tags": ["type:design-tokens", "scope:shared", "publishable"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "inputs": ["{projectRoot}/*.css", "{projectRoot}/package.json"],
+      "options": {
+        "command": "echo 'design-tokens: reines CSS-Paket, kein Build-Schritt'"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "libs/shared/design-tokens"
+      }
+    }
+  }
+}

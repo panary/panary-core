@@ -1,11 +1,12 @@
 import { Injector, runInInjectionContext } from '@angular/core'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, onTestFinished, vi } from 'vitest'
 
 vi.mock('@panary/shared/data-access', () => ({ ConnectionService: class ConnectionService {} }))
 
 import { ConnectionService } from '@panary/shared/data-access'
 
 import {
+  CODE_CHECK_TIMEOUT_MS,
   CodeProxyReason,
   DiscountCodeService,
   codeResultMessage,
@@ -14,12 +15,20 @@ import {
 
 // cloud#1429: Der Service fing jede Exception als „Cloud nicht erreichbar" ab. Geprüft wird hier
 // die Verdrahtung in check()/redeem() — die Zuordnung selbst prüft code-proxy-reason.spec.ts.
-function serviceThatThrows(error: unknown): DiscountCodeService {
-  const failing = { find: vi.fn().mockRejectedValue(error), create: vi.fn().mockRejectedValue(error) }
+function serviceWith(redeemService: unknown, status = 'authenticated'): DiscountCodeService {
   const injector = Injector.create({
-    providers: [{ provide: ConnectionService, useValue: { discountCodeRedeemService: failing } }],
+    providers: [
+      {
+        provide: ConnectionService,
+        useValue: { discountCodeRedeemService: redeemService, connectionState: () => ({ status }) },
+      },
+    ],
   })
   return runInInjectionContext(injector, () => new DiscountCodeService())
+}
+
+function serviceThatThrows(error: unknown): DiscountCodeService {
+  return serviceWith({ find: vi.fn().mockRejectedValue(error), create: vi.fn().mockRejectedValue(error) })
 }
 
 describe('DiscountCodeService — Zugangs-Ablehnung (cloud#1429)', () => {
@@ -43,5 +52,36 @@ describe('DiscountCodeService — Zugangs-Ablehnung (cloud#1429)', () => {
     expect(codeResultMessage(CodeProxyReason.NOT_AUTHORIZED)).toEqual(
       'Kasse ist für Rabattcodes nicht zugelassen — bitte den Support kontaktieren',
     )
+  })
+})
+
+// core#808: Bei gestopptem Edge puffert der Socket-Client den Aufruf bis zum Reconnect — das Promise
+// blieb offen und der Dialog stand auf „Code wird geprüft…".
+describe('DiscountCodeService — getrennte Verbindung (core#808)', () => {
+  const pending = () => new Promise<never>(() => undefined)
+
+  it('check() meldet bei getrennter Verbindung sofort „nicht erreichbar", ohne zu senden', async () => {
+    const svc = { find: vi.fn(pending), create: vi.fn(pending) }
+    const result = await serviceWith(svc, 'disconnected').check('SOMMER')
+    expect(result).toEqual({ ok: false, reason: CodeProxyReason.CLOUD_UNREACHABLE })
+    expect(svc.find).not.toHaveBeenCalled()
+  })
+
+  it('redeem() sendet bei getrennter Verbindung gar nicht erst — der Code bleibt unverbraucht', async () => {
+    const svc = { find: vi.fn(pending), create: vi.fn(pending) }
+    const result = await serviceWith(svc, 'error').redeem({ code: 'SOMMER' })
+    expect(result).toEqual({ ok: false, reason: CodeProxyReason.CLOUD_UNREACHABLE })
+    expect(svc.create).not.toHaveBeenCalled()
+  })
+
+  it('check() gibt nach der Zeitgrenze auf, wenn die Antwort ausbleibt', async () => {
+    vi.useFakeTimers()
+    onTestFinished(() => {
+      vi.useRealTimers()
+    })
+    const svc = { find: vi.fn(pending), create: vi.fn(pending) }
+    const pendingResult = serviceWith(svc).check('SOMMER')
+    await vi.advanceTimersByTimeAsync(CODE_CHECK_TIMEOUT_MS)
+    await expect(pendingResult).resolves.toEqual({ ok: false, reason: CodeProxyReason.CLOUD_UNREACHABLE })
   })
 })

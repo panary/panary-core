@@ -340,6 +340,17 @@ Abbruch nach der Eingabe den Code — bei `usageLimit: 1` unwiederbringlich.
   (Symbol `block` statt `cloud_off`, Hinweis auf den Support), seit
   [cloud#1429](https://github.com/panary/panary-cloud/issues/1429).
 
+**Getrennte Kassenverbindung** ([core#808](https://github.com/panary/panary-core/issues/808)):
+Ist der Socket zum Kassenserver getrennt, senden Prüfen und Einlösen gar nicht erst, sondern melden
+sofort `cloud_unreachable`. Der Socket-Client würde den Aufruf sonst bis zum Reconnect puffern, und
+der Dialog stünde auf „Code wird geprüft…“. Prüfen gibt zusätzlich nach 10 s auf
+(`CODE_CHECK_TIMEOUT_MS`). Einlösen hat bewusst **keine** Zeitgrenze: Ein gepufferter Aufruf könnte
+nach Ablauf doch ankommen und den Code verbrauchen, während die Kasse die Bestellung schon
+verworfen hat.
+**Restlücke:** Reißt die Verbindung erst *während* des Einlösens ab, bleibt der Aufruf offen, bis der
+Socket wieder steht. Ein Abbruch dort müsste „Ergebnis unbekannt“ melden, nicht „nicht eingelöst“ —
+das ist nicht gebaut.
+
 **Tarif cloud-direct:** Ohne Edge bietet die Kasse die Code-Eingabe nicht an
 („Rabattcodes sind an dieser Kasse (Cloud direkt) noch nicht verfügbar"). Der Code-Dienst der
 Cloud nimmt bisher nur Edge-Zugänge an; die Freigabe für Geräte-Token ist geplant

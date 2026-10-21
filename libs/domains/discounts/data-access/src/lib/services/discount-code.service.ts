@@ -72,16 +72,32 @@ export const codeResultMessage = (reason: CodeResultReason): string => {
   }
 }
 
+/**
+ * Zeitgrenze für das Prüfen eines Codes. Der Socket-Client puffert Aufrufe bei getrennter Verbindung
+ * ohne eigenes Timeout; ohne Grenze stand der Dialog auf „Code wird geprüft…" (core#808, Muster
+ * `withTimeout` aus core#635).
+ */
+export const CODE_CHECK_TIMEOUT_MS = 10_000
+
+/** Verbindungszustände, in denen ein Aufruf nur gepuffert würde statt anzukommen. */
+const UNREACHABLE_STATES: ReadonlySet<string> = new Set(['disconnected', 'error'])
+
 @Injectable({ providedIn: 'root' })
 export class DiscountCodeService {
-  readonly #service = inject(ConnectionService).discountCodeRedeemService
+  readonly #connection = inject(ConnectionService)
+  readonly #service = this.#connection.discountCodeRedeemService
+
+  #isUnreachable(): boolean {
+    return UNREACHABLE_STATES.has(this.#connection.connectionState().status)
+  }
 
   /** Prüft einen Code, ohne ihn zu verbrauchen. Wirft nicht — Ablehnung ist ein Ergebnis. */
   async check(code: string, customerId?: string | null): Promise<CodeCheckResult> {
     const query: Record<string, string> = { code }
     if (customerId) query['customerId'] = customerId
+    if (this.#isUnreachable()) return { ok: false, reason: CodeProxyReason.CLOUD_UNREACHABLE }
     try {
-      return (await this.#service.find({ query })) as CodeCheckResult
+      return (await withTimeout(this.#service.find({ query }), CODE_CHECK_TIMEOUT_MS)) as CodeCheckResult
     } catch (error) {
       // Der Edge antwortet auf technische Fehler bereits mit ok:false. Kommt
       // trotzdem eine Exception (Socket weg, 500 am Edge selbst), ist das aus
@@ -101,6 +117,10 @@ export class DiscountCodeService {
     customerId?: string | null
     amountCents?: number | null
   }): Promise<CodeCheckResult> {
+    // Bewusst nur die Vorprüfung, keine Zeitgrenze: Ein gepufferter Aufruf könnte nach Ablauf doch
+    // noch ankommen und den Code verbrauchen, obwohl die Kasse die Bestellung schon verworfen hat.
+    // Restlücke: Reißt die Verbindung erst während des Aufrufs ab, bleibt er bis zum Reconnect offen.
+    if (this.#isUnreachable()) return { ok: false, reason: CodeProxyReason.CLOUD_UNREACHABLE }
     try {
       return (await this.#service.create({
         code: input.code,
@@ -113,3 +133,18 @@ export class DiscountCodeService {
     }
   }
 }
+
+const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject({ code: 408, message: 'timeout' }), ms)
+    promise.then(
+      value => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      error => {
+        clearTimeout(timer)
+        reject(error)
+      },
+    )
+  })

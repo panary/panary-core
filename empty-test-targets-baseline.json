@@ -13,7 +13,6 @@
     "feathers-service-generator",
     "ingredients-data-access",
     "order-interactions-data-access",
-    "orders-feature-pos-active",
     "orders-feature-pos-history",
     "pre-orders-data-access",
     "pre-orders-feature-pos-list",

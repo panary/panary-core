@@ -35,5 +35,5 @@ Modul-Ladung, nicht pro Aufruf.
   fehlt in manchen Codepages (CP437/CP850, Transliteration in `escpos-transliteration.ts`), und der
   Betrag steht in einer festen Spaltenbreite.
 - **`receipts/domain` (`buildReceiptHtml`)** hat einen eigenen, währungsgenerischen de-DE-Formatter, weil
-  das Paket dependency-frei bleiben muss.
+  das Paket dependency-frei bleiben muss; Fremdwährungen erscheinen dort ebenfalls de-DE (`16,50 $`).
 - **Kompakte Stückelungs-Labels** im Kassenladen-Dialog (`500 €`, `1 ct`) sind Beschriftungen, keine Beträge.

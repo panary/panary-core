@@ -11,7 +11,7 @@ stale_after: 2026-11-29
 > **Herkunft.** Entstanden am 2026-05-29 außerhalb der Repos und dort bewusst nicht
 > versioniert; am 2026-08-08 ins Wiki übernommen.
 >
-> **Stand geprüft:** Keine Umsetzungsspur am 2026-08-08 (`grep -li "tap.to.pay|stripeTerminal"`
+> **Stand geprüft:** Keine Umsetzungsspur am 2026-08-08 (überholt: Android-Wrapper seit 2026-10-21, siehe §12) (`grep -li "tap.to.pay|stripeTerminal"`
 > → 0 Treffer). Recherchestand Mai 2026 — Preise, SDK-Verfügbarkeit und Gerätelisten sind
 > zeitgebunden und vor einer Entscheidung nachzuprüfen.
 
@@ -295,7 +295,7 @@ Der erste Schritt ist gebaut: ein Capacitor-8-Wrapper um `apps/pos-client` (`app
 - **`server.androidScheme: 'http'`:** Die WebView-Origin ist `http://localhost`. Nur so ist ein Aufruf an einen
   HTTP-Edge im LAN (`http://<ip>:3030`) kein Mixed Content. Folge: kein Secure Context, also kein `crypto.subtle`,
   `getUserMedia`, `BarcodeDetector`. Gekoppelt wird deshalb nur per 6-stelligem Code; Admin-Login-Fallback (ALTCHA) und
-  QR-Scan entfallen. Die Alternative `https` bräuchte HTTPS am Edge.
+  QR-Scan entfallen. Die Alternative `https` bräuchte HTTPS am Edge. Begründung und Folgen: ADR 0057.
 - **`usesCleartextTraffic="true"` im Manifest:** Ab Android 9 sperrt das System Klartext-HTTP; der Edge im LAN spricht kein TLS.
 - **`plugins.CapacitorHttp.enabled`:** `fetch`/XHR laufen über den nativen HTTP-Layer, die CORS-Prüfung der Cloud entfällt.
   Die Origin `http://localhost` steht nicht in `CLOUD_ORIGINS` (`http://localhost:4200` ist eine andere Origin). Dauerhaft

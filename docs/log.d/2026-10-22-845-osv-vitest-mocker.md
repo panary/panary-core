@@ -1,0 +1,1 @@
+* **Fix** (panary/panary-core#845): Security Scan wieder grün: befristeter osv-Ignore (bis 2026-10-29) für GHSA-qxg6-89mg-rqv8 und GHSA-xp26-3454-mjgp zu `@vitest/mocker` 4.1.11. Fix 4.1.12 steht wegen der Supply-Chain-Karenz erst ab 2026-10-22 14:40 UTC zur Verfügung; Dev-only. Danach heben und Eintrag entfernen.

@@ -36,6 +36,16 @@ id = "GHSA-ch52-4w7c-c8xp"  # http-cache-semantics: max-stale gibt gecachte Antw
 ignoreUntil = 2026-11-03
 reason = "Kein Fix: betroffen ist <= 4.2.0, und 4.2.0 ist die neueste http-cache-semantics-Version. Nur Dev-Abhaengigkeit (make-fetch-happen unter pacote/@sigstore/sign/tuf-js, also Angular-CLI- und Sigstore-Paketabruf), nicht im Edge-Image (pnpm why http-cache-semantics --prod ist leer, scan-advisories im Dispatch 37107902781 gruen). make-fetch-happen cacht lokal fuer einen Nutzer; ein von mehreren Nutzern geteilter HTTP-Cache, den das Advisory voraussetzt, kommt nicht vor. Eingetragen 2026-10-03 (panary/panary-core#499, Pendant panary/panary-cloud#912); bei Fix-Version per Override heben und Eintrag entfernen."
 
+[[IgnoredVulns]]
+id = "GHSA-qxg6-89mg-rqv8"  # @vitest/mocker: Medium (CVSS 4.7)
+ignoreUntil = 2026-10-29
+reason = "Karenz, nicht fehlender Fix: Fix 4.1.12 ist seit 2026-10-15 14:40 UTC publiziert, die Supply-Chain-Karenz (minimumReleaseAge 10080) laesst sie erst ab 2026-10-22 14:40 UTC zu. Nur Dev-Abhaengigkeit (vitest), nicht im Edge-Image (pnpm why @vitest/mocker --prod ist leer). Eingetragen 2026-10-22 (panary/panary-core#845, Pendant panary/panary-cloud#1439); nach Ablauf der Karenz vitest/@vitest/mocker auf 4.1.12 heben und Eintrag entfernen."
+
+[[IgnoredVulns]]
+id = "GHSA-xp26-3454-mjgp"  # @vitest/mocker: Medium (CVSS 5.9)
+ignoreUntil = 2026-10-29
+reason = "Karenz, nicht fehlender Fix: siehe GHSA-qxg6-89mg-rqv8 (gleiche Version, gleicher Fix 4.1.12, ab 2026-10-22 14:40 UTC karenzfrei). Nur Dev-Abhaengigkeit, nicht im Edge-Image. Eingetragen 2026-10-22 (panary/panary-core#845); nach Ablauf der Karenz heben und Eintrag entfernen."
+
 # Zuletzt entfernt am 2026-09-26: GHSA-5p2g-fcmc-qvqq (JXL/HEIF) und
 # GHSA-w3rx-r6r6-pgpr (ICNS) zu image-size. Seit dem 2026-09-24 erfassen beide
 # image-size@0.5.5 nicht mehr (ICNS erst ab 0.6.3, JXL/HEIF ab 1.2.0, Fix

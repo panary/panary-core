@@ -1,0 +1,173 @@
+/*
+ * @panary/design-tokens — Werte (Warm hell / Warm dunkel)
+ *
+ * Quelle der Farbwerte: panary-cloud/apps/admin-dashboard/src/styles.css (App-Tokens,
+ * Dark-Block, Warm-Theme), ohne die `--st-*`-Storefront-Tokens. Ergaenzungen fuer die Kasse
+ * (--pos-key*, --accent-ink, --primary/--on-primary, Touch-Skala) stehen in docs/architecture/design-tokens.md.
+ *
+ * Aufbau: Dieses File setzt nur Custom Properties — kein Tailwind, keine Klassen. Das
+ * Tailwind-Mapping liegt in theme.css. Einbinden per relativem Pfad (ADR 0058, panary/panary-core#820).
+ *
+ * Dunkel gilt, wenn <html data-theme="dark"> gesetzt ist, oder wenn das System dunkel meldet und
+ * <html data-theme="light"> NICHT gesetzt ist. Beide Dunkel-Bloecke sind inhaltsgleich; der Spec
+ * (src/tokens.spec.ts) bricht bei Abweichung. Ein Block fuer beide Faelle ist in CSS nicht moeglich.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Flaechen */
+  --surface-bg: #f4f3f0;
+  --surface-panel: #ffffff;
+  --surface-panel-elevated: #fbfaf8;
+  --surface-sidebar: #ffffff;
+  --surface-input: #ffffff;
+  --surface-rail: #e9e6df;
+  --scrim: rgba(28, 26, 23, 0.42);
+
+  /* Linien */
+  --border-default: #e6e3dd;
+  --border-soft: #efede8;
+  --border-strong: #d8d4cb;
+
+  /* Text. --text-faint ist Hilfstext/Platzhalter (kein Fliesstext, siehe Spec). */
+  --text-primary: #1c1a17;
+  --text-muted: #6b665e;
+  --text-faint: #8f897f;
+
+  /* Marke: Mint als Aktionsfarbe, Navy als Schrift darauf (beide Themes gleich) */
+  --primary: #2dd4a4;
+  --on-primary: #15181c;
+  --brand-navy: #15181c;
+
+  /* Akzent (Gruen) fuer Text und Flaechen auf hellem Grund */
+  --accent: #0f9d6c;
+  --accent-dark: #157a4e;
+  --accent-ink: #157a4e;
+  --accent-soft: #e6f5ee;
+  --accent-border: #bfe3d2;
+
+  /* Status: Fuellung, Schrift auf Weiss/Soft, Soft-Flaeche, Linie */
+  --danger: #e0524a;
+  --danger-ink: #b42318;
+  --danger-soft: #fdecea;
+  --danger-line: #f3c1bb;
+  --warn-ink: #8a5a00;
+  --warn-soft: #fdf3d7;
+  --warn-line: #f0d58a;
+  --info-ink: #1d4f91;
+  --info-soft: #e8f0fb;
+
+  /* Kasse */
+  --pos-key: #ffffff;
+  --pos-key-line: #d9d4ca;
+
+  /* Schatten */
+  --elevation-card: 0 1px 2px rgba(28, 26, 23, 0.05), 0 1px 3px rgba(28, 26, 23, 0.07);
+
+  /* Schrift */
+  --font-family-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-family-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* Schriftgroessen in rem: skalieren mit der Wurzelschrift (Dichte der Kasse) */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.8125rem;
+  --font-size-base: 0.875rem;
+  --font-size-lg: 1rem;
+  --font-size-xl: 1.125rem;
+  --font-size-2xl: 1.375rem;
+
+  /* Radien */
+  --r-control: 0.5rem;
+  --r-card: 0.75rem;
+  --r-pill: 999px;
+
+  /* Touch-Skala: Mindestmass, Standardtaste, Primaertaste */
+  --touch-min: 3rem;
+  --touch: 3.5rem;
+  --touch-primary: 4rem;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --surface-bg: #1c1a17;
+  --surface-panel: #26231e;
+  --surface-panel-elevated: #2d2924;
+  --surface-sidebar: #211e1a;
+  --surface-input: #1c1a17;
+  --surface-rail: #15130f;
+  --scrim: rgba(0, 0, 0, 0.55);
+
+  --border-default: #3a342c;
+  --border-soft: #2f2a23;
+  --border-strong: #4a443b;
+
+  --text-primary: #ece8e0;
+  --text-muted: #a89e90;
+  --text-faint: #8a8174;
+
+  --accent: #2dd4a4;
+  --accent-dark: #0f9d76;
+  --accent-ink: #2dd4a4;
+  --accent-soft: #233a30;
+  --accent-border: #2f6b55;
+
+  --danger: #f87171;
+  --danger-ink: #f87171;
+  --danger-soft: #3a2220;
+  --danger-line: #6b2f2a;
+  --warn-ink: #f2c45a;
+  --warn-soft: #3a3020;
+  --warn-line: #6b5626;
+  --info-ink: #8db8f0;
+  --info-soft: #22293a;
+
+  --pos-key: #2d2924;
+  --pos-key-line: #433d35;
+
+  --elevation-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --surface-bg: #1c1a17;
+    --surface-panel: #26231e;
+    --surface-panel-elevated: #2d2924;
+    --surface-sidebar: #211e1a;
+    --surface-input: #1c1a17;
+    --surface-rail: #15130f;
+    --scrim: rgba(0, 0, 0, 0.55);
+
+    --border-default: #3a342c;
+    --border-soft: #2f2a23;
+    --border-strong: #4a443b;
+
+    --text-primary: #ece8e0;
+    --text-muted: #a89e90;
+    --text-faint: #8a8174;
+
+    --accent: #2dd4a4;
+    --accent-dark: #0f9d76;
+    --accent-ink: #2dd4a4;
+    --accent-soft: #233a30;
+    --accent-border: #2f6b55;
+
+    --danger: #f87171;
+    --danger-ink: #f87171;
+    --danger-soft: #3a2220;
+    --danger-line: #6b2f2a;
+    --warn-ink: #f2c45a;
+    --warn-soft: #3a3020;
+    --warn-line: #6b5626;
+    --info-ink: #8db8f0;
+    --info-soft: #22293a;
+
+    --pos-key: #2d2924;
+    --pos-key-line: #433d35;
+
+    --elevation-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.35);
+  }
+}

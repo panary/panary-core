@@ -18,6 +18,7 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { UnpairDeviceDialogComponent } from './unpair-device-dialog/unpair-device-dialog.component'
+import { IconComponent, type IconName } from '@panary/shared/ui-common'
 
 /**
  * Serverseitiger Ausschnitt des eingeloggten Mitarbeiters. Wird per
@@ -57,7 +58,7 @@ interface EdgeServerInfo {
 @Component({
   selector: 'lib-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatTooltipModule, TranslateModule, UnpairDeviceDialogComponent],
+  imports: [IconComponent, CommonModule, FormsModule, MatTooltipModule, TranslateModule, UnpairDeviceDialogComponent],
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.scss'],
 })
@@ -123,18 +124,18 @@ export class SettingsComponent implements OnInit {
   })
 
   // Theme options
-  themeOptions = [
-    { value: 'system', label: 'SETTINGS.THEME_SYSTEM', icon: 'brightness_auto' },
-    { value: 'light', label: 'SETTINGS.THEME_LIGHT', icon: 'light_mode' },
-    { value: 'dark', label: 'SETTINGS.THEME_DARK', icon: 'dark_mode' },
+  themeOptions: Array<{ value: string; label: string; icon: IconName }> = [
+    { value: 'system', label: 'SETTINGS.THEME_SYSTEM', icon: 'circle-half' },
+    { value: 'light', label: 'SETTINGS.THEME_LIGHT', icon: 'sun' },
+    { value: 'dark', label: 'SETTINGS.THEME_DARK', icon: 'moon' },
   ]
 
   // Fluide UI-Skalierung (PNRY-FEAT-POS-UI-SCALE-001) — analog themeOptions
-  densityOptions: Array<{ value: UiDensityLevel; label: string; icon: string }> = [
-    { value: UiDensity.COMPACT, label: 'SETTINGS.UI_SCALE_DENSITY_COMPACT', icon: 'density_small' },
-    { value: UiDensity.DEFAULT, label: 'SETTINGS.UI_SCALE_DENSITY_DEFAULT', icon: 'density_medium' },
-    { value: UiDensity.COMFORTABLE, label: 'SETTINGS.UI_SCALE_DENSITY_COMFORTABLE', icon: 'density_large' },
-    { value: UiDensity.LARGE, label: 'SETTINGS.UI_SCALE_DENSITY_LARGE', icon: 'zoom_in' },
+  densityOptions: Array<{ value: UiDensityLevel; label: string; icon: IconName }> = [
+    { value: UiDensity.COMPACT, label: 'SETTINGS.UI_SCALE_DENSITY_COMPACT', icon: 'list-dashes' },
+    { value: UiDensity.DEFAULT, label: 'SETTINGS.UI_SCALE_DENSITY_DEFAULT', icon: 'rows' },
+    { value: UiDensity.COMFORTABLE, label: 'SETTINGS.UI_SCALE_DENSITY_COMFORTABLE', icon: 'square-split-vertical' },
+    { value: UiDensity.LARGE, label: 'SETTINGS.UI_SCALE_DENSITY_LARGE', icon: 'magnifying-glass-plus' },
   ]
 
   // Offline-Outbox (Connect-Tier): Zähler reaktiv aus dem Store-Signal, Detailliste async.

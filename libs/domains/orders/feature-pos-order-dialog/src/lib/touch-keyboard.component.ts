@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
+import { IconComponent } from '@panary/shared/ui-common'
 
 export type TouchKeyboardLayout = 'qwertz' | 'alphanumeric' | 'numpad'
 
@@ -17,6 +18,7 @@ export const touchKeyboardRows = (layout: TouchKeyboardLayout): readonly (readon
   layout === 'alphanumeric' ? [['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'], ...QWERTZ_ROWS] : QWERTZ_ROWS
 
 @Component({
+  imports: [IconComponent],
   selector: 'app-touch-keyboard',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -60,7 +62,7 @@ export const touchKeyboardRows = (layout: TouchKeyboardLayout): readonly (readon
                    text-red-500 shadow-sm active:scale-95 active:bg-red-100 transition-all
                    flex items-center justify-center"
           >
-            <span class="material-symbols-outlined text-[1.125rem]">backspace</span>
+            <lib-icon name="backspace" class="text-[1.125rem]" />
           </button>
           <button
             type="button"
@@ -99,7 +101,7 @@ export const touchKeyboardRows = (layout: TouchKeyboardLayout): readonly (readon
                  text-red-500 shadow-sm active:scale-95 active:bg-red-100 transition-all
                  flex items-center justify-center"
         >
-          <span class="material-symbols-outlined text-[1.125rem]">backspace</span>
+          <lib-icon name="backspace" class="text-[1.125rem]" />
         </button>
         <button
           type="button"

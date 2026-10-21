@@ -38,10 +38,11 @@ import { PosWriteOffDialogComponent } from '@panary/write-offs/feature-pos-dialo
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { PreOrder, PreOrderService } from '@panary/pre-orders/data-access'
 import { timeTrackingBlockedHintKey } from './time-tracking-hint'
+import { IconComponent, type IconName } from '@panary/shared/ui-common'
 
 interface QuickAction {
   label: string
-  icon: string
+  icon: IconName
   action: () => void
   bgClass: string
   textClass: string
@@ -75,7 +76,7 @@ interface QuickAction {
 @Component({
   selector: 'lib-dashboard',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, NgxEchartsModule, TranslateModule],
+  imports: [IconComponent, CommonModule, MatDialogModule, NgxEchartsModule, TranslateModule],
   providers: [{ provide: NGX_ECHARTS_CONFIG, useValue: { echarts: () => import('echarts') } }],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
@@ -172,7 +173,7 @@ export class DashboardComponent implements OnInit {
     {
       label: 'DASHBOARD.NEW_ORDER',
       requiresBooking: true,
-      icon: 'add_shopping_cart',
+      icon: 'shopping-cart-simple',
       action: () => {
         this.#dialog.open(OrderDialogComponent, {
           width: '98vw',
@@ -195,7 +196,7 @@ export class DashboardComponent implements OnInit {
     },
     {
       label: 'DASHBOARD.PRE_ORDERS',
-      icon: 'event_note',
+      icon: 'calendar-dots',
       action: () => this.navigateTo('/pre-orders'),
       bgClass: 'bg-amber-100 dark:bg-amber-900/30',
       textClass: 'text-amber-700 dark:text-amber-400',
@@ -204,7 +205,7 @@ export class DashboardComponent implements OnInit {
     },
     {
       label: 'DASHBOARD.HISTORY',
-      icon: 'history',
+      icon: 'clock-counter-clockwise',
       action: () => this.navigateTo('/orders/history'),
       bgClass: 'bg-purple-100 dark:bg-purple-900/30',
       textClass: 'text-purple-700 dark:text-purple-400',
@@ -212,7 +213,7 @@ export class DashboardComponent implements OnInit {
     },
     {
       label: 'DASHBOARD.WORKING_TIMES',
-      icon: 'schedule',
+      icon: 'clock',
       action: () => this.navigateTo('/working-times'),
       bgClass: 'bg-orange-100 dark:bg-orange-900/30',
       textClass: 'text-orange-700 dark:text-orange-400',
@@ -220,7 +221,7 @@ export class DashboardComponent implements OnInit {
     },
     {
       label: 'DASHBOARD.WRITE_OFF',
-      icon: 'delete_outline',
+      icon: 'trash',
       action: () => {
         this.#dialog.open(PosWriteOffDialogComponent, {
           width: '98vw',
@@ -240,7 +241,7 @@ export class DashboardComponent implements OnInit {
     // BusinessDay-Lifecycle — Eroeffnung laeuft im Cloud-Admin-Dashboard.
     {
       label: 'DASHBOARD.OPEN_BUSINESS_DAY',
-      icon: 'play_circle',
+      icon: 'play-circle',
       action: () => this.startOpening(),
       bgClass: 'bg-teal-100 dark:bg-teal-900/30',
       textClass: 'text-teal-700 dark:text-teal-400',
@@ -254,7 +255,7 @@ export class DashboardComponent implements OnInit {
     // Hybrid-Modell den Closing-Workflow.
     {
       label: 'DASHBOARD.CLOSE_BUSINESS_DAY',
-      icon: 'verified',
+      icon: 'seal-check',
       action: () => this.startClosing(),
       bgClass: 'bg-indigo-100 dark:bg-indigo-900/30',
       textClass: 'text-indigo-700 dark:text-indigo-400',
@@ -268,7 +269,7 @@ export class DashboardComponent implements OnInit {
     // bei offenem Geschäftstag.
     {
       label: 'Kasse',
-      icon: 'point_of_sale',
+      icon: 'cash-register',
       action: () => this.manageCashSession(),
       bgClass: 'bg-amber-100 dark:bg-amber-900/30',
       textClass: 'text-amber-700 dark:text-amber-400',
@@ -277,7 +278,7 @@ export class DashboardComponent implements OnInit {
     },
     {
       label: 'DASHBOARD.SETTINGS',
-      icon: 'settings',
+      icon: 'gear',
       action: () => this.navigateTo('/settings'),
       bgClass: 'bg-gray-100 dark:bg-gray-800',
       textClass: 'text-gray-700 dark:text-gray-300',

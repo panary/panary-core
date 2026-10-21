@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core'
-import { EurPipe } from '@panary/shared/ui-common'
+import { EurPipe, IconComponent } from '@panary/shared/ui-common'
 
 import type { CustomizeGroup, CustomizeModel, CustomizeScope } from './product-customize'
 
@@ -19,7 +19,7 @@ export interface CustomizeOptionEvent {
   selector: 'lib-product-customize-panel',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [EurPipe],
+  imports: [IconComponent, EurPipe],
   template: `
     @let m = model();
     <section class="@container flex h-full min-h-0 flex-col" aria-label="Produkt anpassen">
@@ -116,9 +116,11 @@ export interface CustomizeOptionEvent {
                   [attr.aria-pressed]="!ingredient.removed"
                   (click)="ingredientToggled.emit(ingredient.externalId)"
                 >
-                  <span class="material-symbols-outlined shrink-0 !text-[1.125rem]" aria-hidden="true">{{
-                    ingredient.removed ? 'block' : 'check_circle'
-                  }}</span>
+                  <lib-icon
+                    [name]="ingredient.removed ? 'prohibit' : 'check-circle'"
+                    class="shrink-0 !text-[1.125rem]"
+                    aria-hidden="true"
+                  />
                   <span class="flex min-w-0 flex-col leading-tight">
                     <span [class.line-through]="ingredient.removed" class="truncate">{{ ingredient.name }}</span>
                     @if (ingredient.removed) {
@@ -180,7 +182,7 @@ export interface CustomizeOptionEvent {
                         >
                         @if (!option.isModifier) {
                           <span class="flex items-center gap-1 text-[0.6875rem] text-amber-700 dark:text-amber-400">
-                            <span class="material-symbols-outlined !text-[0.875rem]" aria-hidden="true">warning</span>
+                            <lib-icon name="warning" class="!text-[0.875rem]" aria-hidden="true" />
                             kein Extra — im Admin auf Modifier stellen
                           </span>
                         } @else if (option.price > 0) {
@@ -194,7 +196,7 @@ export interface CustomizeOptionEvent {
                         [attr.aria-label]="option.name + ' entfernen'"
                         (click)="optionDecreased.emit({ groupName: group.name, productId: option.productId })"
                       >
-                        <span class="material-symbols-outlined" aria-hidden="true">remove</span>
+                        <lib-icon name="minus" aria-hidden="true" />
                       </button>
                       <span
                         class="w-6 text-center text-base font-bold tabular-nums text-gray-900 dark:text-white"
@@ -208,7 +210,7 @@ export interface CustomizeOptionEvent {
                         [attr.aria-label]="option.name + ' hinzufügen'"
                         (click)="optionIncreased.emit({ groupName: group.name, productId: option.productId })"
                       >
-                        <span class="material-symbols-outlined" aria-hidden="true">add</span>
+                        <lib-icon name="plus" aria-hidden="true" />
                       </button>
                     </li>
                   }
@@ -230,7 +232,7 @@ export interface CustomizeOptionEvent {
           class="pnry-touch flex h-14 w-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-[0.5625rem] font-bold uppercase leading-tight active:scale-95 @2xl:w-auto @2xl:tracking-wide @2xl:flex-row @2xl:gap-2 @2xl:px-4 @2xl:text-xs border-2 border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
           (click)="cancelled.emit()"
         >
-          <span class="material-symbols-outlined !text-[1.25rem]" aria-hidden="true">close</span>
+          <lib-icon name="x" class="!text-[1.25rem]" aria-hidden="true" />
           Abbrechen
         </button>
         <button
@@ -238,7 +240,7 @@ export interface CustomizeOptionEvent {
           class="pnry-touch flex h-14 w-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-[0.5625rem] font-bold uppercase leading-tight active:scale-95 @2xl:w-auto @2xl:tracking-wide @2xl:flex-row @2xl:gap-2 @2xl:px-4 @2xl:text-xs border border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-300"
           (click)="showAllModifiers.emit()"
         >
-          <span class="material-symbols-outlined !text-[1.25rem]" aria-hidden="true">apps</span>
+          <lib-icon name="squares-four" class="!text-[1.25rem]" aria-hidden="true" />
           <span class="@2xl:hidden">Modifier</span>
           <span class="hidden @2xl:inline">Alle Modifier</span>
         </button>
@@ -251,7 +253,7 @@ export interface CustomizeOptionEvent {
             class="pnry-touch flex h-14 w-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-[0.5625rem] font-bold uppercase leading-tight active:scale-95 @2xl:w-auto @2xl:tracking-wide @2xl:flex-row @2xl:gap-2 @2xl:px-4 @2xl:text-xs border-2 border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
             (click)="released.emit()"
           >
-            <span class="material-symbols-outlined !text-[1.25rem]" aria-hidden="true">call_split</span>
+            <lib-icon name="arrows-split" class="!text-[1.25rem]" aria-hidden="true" />
             <!-- „1 herauslösen" passt nicht in 64 px — kompakt reicht „1 lösen" -->
             <span class="@2xl:hidden">{{ shortReleaseLabel(label) }}</span>
             <span class="hidden @2xl:inline">{{ label }}</span>
@@ -263,7 +265,7 @@ export interface CustomizeOptionEvent {
           [disabled]="!m.canFinish"
           (click)="finished.emit()"
         >
-          <span class="material-symbols-outlined !text-[1.25rem]" aria-hidden="true">check</span>
+          <lib-icon name="check" class="!text-[1.25rem]" aria-hidden="true" />
           {{ finishLabel(m) }}
         </button>
       </footer>

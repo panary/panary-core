@@ -5,6 +5,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { LocationService } from '@panary/locations/data-access'
 import { OrderPrintService } from '../services/order-print.service'
 import { Order } from '@panary/orders/domain'
+import { iconPath } from '@panary/shared/util-helpers'
 
 interface Printer {
   pid: string
@@ -22,7 +23,13 @@ interface Printer {
     <div class="p-6 min-w-[360px] max-w-[420px]">
       <div class="flex items-center gap-3 mb-5">
         <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center">
-          <span class="material-symbols-outlined text-[20px] text-blue-600 dark:text-blue-400">print</span>
+          <svg
+            viewBox="0 0 256 256"
+            class="inline-block size-[1em] fill-current text-[20px] text-blue-600 dark:text-blue-400"
+            aria-hidden="true"
+          >
+            <path [attr.d]="icon('printer')" />
+          </svg>
         </div>
         <div>
           <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ 'PRINT.TITLE' | translate }}</h2>
@@ -44,9 +51,13 @@ interface Printer {
           class="mb-5 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-3"
         >
           <div class="flex items-start gap-2.5">
-            <span class="material-symbols-outlined text-[20px] text-amber-600 dark:text-amber-400 mt-0.5"
-              >wifi_off</span
+            <svg
+              viewBox="0 0 256 256"
+              class="inline-block size-[1em] fill-current text-[20px] text-amber-600 dark:text-amber-400 mt-0.5"
+              aria-hidden="true"
             >
+              <path [attr.d]="icon('wifi-slash')" />
+            </svg>
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold text-amber-900 dark:text-amber-200">
                 {{ 'PRINT.OFFLINE_NOTICE_TITLE' | translate }}
@@ -68,7 +79,9 @@ interface Printer {
                hover:bg-blue-100 dark:hover:bg-blue-950/60
                active:scale-[0.98] transition-all"
       >
-        <span class="material-symbols-outlined text-[20px]">print</span>
+        <svg viewBox="0 0 256 256" class="inline-block size-[1em] fill-current text-[20px]" aria-hidden="true">
+          <path [attr.d]="icon('printer')" />
+        </svg>
         {{ 'PRINT.SEND_ALL' | translate }}
       </button>
 
@@ -96,9 +109,9 @@ interface Printer {
                     : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'
                 "
               >
-                <span class="material-symbols-outlined text-[18px]">
-                  {{ printer.type === 'ip' ? 'print' : 'hub' }}
-                </span>
+                <svg viewBox="0 0 256 256" class="inline-block size-[1em] fill-current text-[18px]" aria-hidden="true">
+                  <path [attr.d]="icon(printer.type === 'ip' ? 'printer' : 'share-network')" />
+                </svg>
               </div>
               <span>{{ printer.name }}</span>
             </button>
@@ -108,7 +121,13 @@ interface Printer {
 
       @if (printers.length === 0) {
         <div class="mt-4 flex flex-col items-center gap-2 py-6 text-gray-400 dark:text-gray-500">
-          <span class="material-symbols-outlined text-[32px] opacity-30">print_disabled</span>
+          <svg
+            viewBox="0 0 256 256"
+            class="inline-block size-[1em] fill-current text-[32px] opacity-30"
+            aria-hidden="true"
+          >
+            <path [attr.d]="icon('printer')" />
+          </svg>
           <span class="text-sm">{{ 'PRINT.NO_PRINTERS' | translate }}</span>
         </div>
       }
@@ -126,6 +145,8 @@ interface Printer {
   `,
 })
 export class PrintDialogComponent {
+  protected readonly icon = iconPath
+
   private dialogRef = inject(MatDialogRef<PrintDialogComponent>)
   private locationService = inject(LocationService)
   private orderPrintService = inject(OrderPrintService)

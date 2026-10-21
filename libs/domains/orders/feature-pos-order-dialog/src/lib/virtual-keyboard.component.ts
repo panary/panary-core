@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { IconComponent } from '@panary/shared/ui-common'
 
 @Component({
   selector: 'app-virtual-keyboard',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [IconComponent, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-gray-50 dark:bg-gray-950 p-2 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700">
@@ -22,7 +23,7 @@ import { TranslateModule } from '@ngx-translate/core'
             class="pnry-touch key w-20 h-16 flex items-center justify-center rounded-lg shadow-sm border-b-2 font-bold active:border-b-0 active:translate-y-[0.125rem] transition-all bg-red-50 text-red-500 border-red-100"
             (click)="backspace.emit()"
           >
-            <span class="material-symbols-outlined">backspace</span>
+            <lib-icon name="backspace" />
           </button>
           <button
             class="pnry-touch key w-20 h-16 text-2xl rounded-lg bg-white dark:bg-gray-800 shadow-sm border-b-2 border-gray-200 dark:border-gray-600 font-bold active:border-b-0 active:translate-y-[0.125rem] active:bg-gray-50 dark:active:bg-gray-700 dark:text-white transition-all"
@@ -62,7 +63,7 @@ import { TranslateModule } from '@ngx-translate/core'
               class="pnry-touch key w-20 h-12 flex items-center justify-center rounded-lg shadow-sm border-b-2 font-bold active:border-b-0 active:translate-y-[0.125rem] transition-all bg-red-50 text-red-500 border-red-100"
               (click)="backspace.emit()"
             >
-              <span class="material-symbols-outlined">backspace</span>
+              <lib-icon name="backspace" />
             </button>
             <button
               class="pnry-touch key w-24 h-12 text-lg rounded-lg shadow-sm border-b-2 font-bold active:border-b-0 active:translate-y-[0.125rem] transition-all bg-green-50 text-green-600 border-green-100"

@@ -1,4 +1,5 @@
 import { ItemType, type ProductSchema } from '@panary/products/domain'
+import type { IconName } from '@panary/shared/ui-common'
 
 /**
  * UI-Zustand und Legacy-Flags, die der Bestelldialog an POS-Tasten hängt.
@@ -28,6 +29,8 @@ export interface PosButtonUiState {
   productGroupExternalId?: string
   /** Abzeichen oben rechts, z. B. „1/3" — gewählte Stück beim Kombinieren (#795) */
   countLabel?: string
+  /** Phosphor-Icon synthetischer Funktionstasten (`icon` bleibt das Emoji des Produkts). */
+  iconName?: IconName
 }
 
 /** Produkt-Taste: KOPIE der Produkt-Felder + UI-Zustand — nie die Store-Referenz selbst. */

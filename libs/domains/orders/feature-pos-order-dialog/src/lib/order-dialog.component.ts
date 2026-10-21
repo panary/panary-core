@@ -17,7 +17,7 @@ import {
 } from '@angular/core'
 import { formatEurCents } from '@panary/shared/util-helpers'
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
-import { ConfirmDialogComponent, type ConfirmDialogData, EurPipe } from '@panary/shared/ui-common'
+import { ConfirmDialogComponent, type ConfirmDialogData, EurPipe, IconComponent } from '@panary/shared/ui-common'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatSnackBar, MatSnackBarRef, TextOnlySnackBar } from '@angular/material/snack-bar'
 import { FormsModule } from '@angular/forms'
@@ -144,6 +144,7 @@ const RELEASE_BUTTON_ID = 'releaseFromCombination'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    IconComponent,
     AbsPipe,
     CommonModule,
     EurPipe,
@@ -764,7 +765,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       _id: this._resolveCombinationId,
       index: 1,
       name: this._resolveCombinationName,
-      icon: 'link_off',
+      iconName: 'link-break',
       callback: () => {
         this.resolveCombination()
         this.unselectProduct()
@@ -775,7 +776,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       _id: 'deleteCombination',
       index: 2,
       name: 'Kombination löschen',
-      icon: 'delete',
+      iconName: 'trash',
       callback: () => {
         this.deleteSelection()
         this.unselectProduct()
@@ -913,7 +914,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       isFunctionButton: true,
       productionTime: 0,
       variant: 'confirm',
-      icon: 'bolt',
+      iconName: 'lightning',
       callback: () => {
         this._productionTime = 0
         void this.placeOrder()
@@ -1055,7 +1056,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       name: 'KEIN TISCH',
       isFunctionButton: true,
       variant: 'skip',
-      icon: 'arrow_forward',
+      iconName: 'arrow-right',
       callback: () => {
         this.setProductionTimeSubbuttons()
       },
@@ -1067,7 +1068,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         locationId: this.userService.currentUser()?.activeLocationId || '',
         tenantId: this.authService.tenantId()?.toString() || '',
         index: index,
-        icon: 'table_restaurant',
+        iconName: 'table',
         name: table,
         productGroupExternalId: this._tableTopic,
         table: table,
@@ -1103,7 +1104,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       name: 'KEIN PAGER',
       isFunctionButton: true,
       variant: 'skip',
-      icon: 'arrow_forward',
+      iconName: 'arrow-right',
       callback: () => {
         this.setProductionTimeSubbuttons()
       },
@@ -1116,7 +1117,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         locationId: this.userService.currentUser()?.activeLocationId || '',
         tenantId: this.authService.tenantId()?.toString() || '',
         index: index,
-        icon: 'smartphone',
+        iconName: 'device-mobile',
         name: pager.toString(),
         productGroupExternalId: this._tableTopic,
         table: pager.toString(),
@@ -1151,7 +1152,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       name: this._deleteOrderName,
       isFunctionButton: true,
       variant: 'cancel',
-      icon: 'delete_sweep',
+      iconName: 'broom',
       callback: () => this.#confirmClearOrder(),
     })
     if (this._customer) {
@@ -1164,7 +1165,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         name: this._deleteCustomerName,
         isFunctionButton: true,
         variant: 'cancel',
-        icon: 'person_remove',
+        iconName: 'user-minus',
         callback: () => {
           this._customer = undefined
           this.clearButtons()
@@ -1262,7 +1263,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
           isFunctionButton: true,
           isExtra: false,
           variant: 'cancel',
-          icon: 'close',
+          iconName: 'x',
           callback: () => {
             this._isBlocked = false
             this.setProductButtonsByGroupId((parentButton as any)?.categoryIds?.[0])
@@ -1278,7 +1279,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
           isFunctionButton: true,
           isExtra: false,
           variant: 'skip',
-          icon: 'arrow_forward',
+          iconName: 'arrow-right',
           callback: () => {
             if (
               parentButton &&
@@ -1376,7 +1377,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       isFunctionButton: true,
       isExtra: true,
       variant: 'cancel',
-      icon: 'close',
+      iconName: 'x',
       callback: () => {
         if (this._isBlocked) {
           if (parentButton && (parentButton as any).itemType === ItemType.mainDish && (parentButton as any).isMenu) {
@@ -1442,7 +1443,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
           // macht die Fehlkonfiguration sichtbar, BEVOR jemand tippt (#273). Kein
           // `variant` — das wirkt nur auf Funktionstasten, nicht auf Produktkacheln.
           const extra = toPosButton(product)
-          if (!isModifierButton(extra)) extra.icon = 'warning'
+          if (!isModifierButton(extra)) extra.iconName = 'warning'
           extra.callback = () => {
             if (this._isBlocked && !unblock) return
             this.#increaseExtraFromRaster(extra)
@@ -1464,7 +1465,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         isFunctionButton: true,
         isExtra: true,
         variant: 'confirm',
-        icon: 'check',
+        iconName: 'check',
         callback: () => {
           if (this._isBlocked && !unblock) return
           this.#fillAllModifierButtons(parentId, externalId, unblock)
@@ -1635,7 +1636,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       index: -1,
       isFunctionButton: true,
       variant: 'skip',
-      icon: 'call_split',
+      iconName: 'arrows-split',
       callback: () => this.releaseFromCombination(),
     })
   }
@@ -1909,7 +1910,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       isFunctionButton: true,
       isExtra: false,
       variant: 'cancel',
-      icon: 'close',
+      iconName: 'x',
       callback: () => {
         this._isBlocked = false
         this.setProductButtonsByGroupId((parentButton as any)?.categoryIds?.[0])
@@ -1925,7 +1926,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       isFunctionButton: true,
       isExtra: false,
       variant: 'skip',
-      icon: 'arrow_forward',
+      iconName: 'arrow-right',
       callback: () => {
         if (this._isBlocked) {
           if (
@@ -1990,7 +1991,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       index: 1,
       isFunctionButton: true,
       variant: 'skip',
-      icon: 'arrow_forward',
+      iconName: 'arrow-right',
       callback: () => {
         if (this._isBlocked) return
         this._articlesToCombine = new Map()
@@ -2028,7 +2029,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       index: -3,
       isFunctionButton: true,
       variant: 'confirm',
-      icon: 'merge_type',
+      iconName: 'arrows-merge',
       callback: () => {
         this.increaseCombination()
       },
@@ -2042,7 +2043,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       index: -2,
       isFunctionButton: true,
       variant: 'confirm',
-      icon: 'done_all',
+      iconName: 'checks',
       callback: () => {
         this.combineAllArticles()
       },
@@ -2500,7 +2501,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       index: -3,
       isFunctionButton: true,
       variant: 'cancel',
-      icon: 'close',
+      iconName: 'x',
       callback: () => {
         this.decreaseLineItem()
         this.#bundleFlow.reset()
@@ -2521,7 +2522,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         index: -2,
         isFunctionButton: true,
         variant: 'skip',
-        icon: 'arrow_forward',
+        iconName: 'arrow-right',
         callback: () => {
           this.#bundleFlow.markCompleted(group.id)
           const nextGroup = this.#bundleFlow.getNextMandatoryGroup(parentProduct)
@@ -3416,7 +3417,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
           confirmText: 'Bestellung verwerfen',
           cancelText: 'Weiter bearbeiten',
           confirmVariant: 'danger',
-          icon: 'delete_forever',
+          icon: 'trash',
         } satisfies ConfirmDialogData,
       })
       .afterClosed()
@@ -3443,7 +3444,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
           confirmText: 'Bestellung leeren',
           cancelText: 'Abbrechen',
           confirmVariant: 'danger',
-          icon: 'delete_sweep',
+          icon: 'broom',
         } satisfies ConfirmDialogData,
       })
       .afterClosed()

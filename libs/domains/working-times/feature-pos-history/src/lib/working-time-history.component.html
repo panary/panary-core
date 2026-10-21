@@ -9,10 +9,10 @@
           (click)="goBack()"
           class="flex items-center justify-center w-10 h-10 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
         >
-          <span class="material-symbols-outlined text-[1.25rem]">arrow_back</span>
+          <lib-icon name="arrow-left" class="text-[1.25rem]" />
         </button>
         <h1 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-          <span class="material-symbols-outlined text-[1.25rem] text-amber-600">schedule</span>
+          <lib-icon name="clock" class="text-[1.25rem] text-amber-600" />
           {{ 'WORKING_TIMES.TITLE' | translate }}
         </h1>
       </div>
@@ -25,7 +25,7 @@
             (click)="prevMonth()"
             class="flex items-center justify-center w-9 h-9 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all"
           >
-            <span class="material-symbols-outlined text-[1.125rem]">chevron_left</span>
+            <lib-icon name="caret-left" class="text-[1.125rem]" />
           </button>
           <span class="min-w-[5.625rem] text-center text-sm font-semibold text-gray-700 dark:text-gray-200 select-none">
             {{ currentMonthLabel() }}
@@ -34,7 +34,7 @@
             (click)="nextMonth()"
             class="flex items-center justify-center w-9 h-9 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all"
           >
-            <span class="material-symbols-outlined text-[1.125rem]">chevron_right</span>
+            <lib-icon name="caret-right" class="text-[1.125rem]" />
           </button>
         </div>
 
@@ -171,7 +171,7 @@
       <div class="max-w-5xl mx-auto flex flex-wrap gap-6 md:gap-12 items-center justify-end">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950 flex items-center justify-center">
-            <span class="material-symbols-outlined text-[1.25rem] text-amber-600">coffee</span>
+            <lib-icon name="coffee" class="text-[1.25rem] text-amber-600" />
           </div>
           <div>
             <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
@@ -182,7 +182,7 @@
         </div>
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center">
-            <span class="material-symbols-outlined text-[1.25rem] text-emerald-600">schedule</span>
+            <lib-icon name="clock" class="text-[1.25rem] text-emerald-600" />
           </div>
           <div>
             <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">

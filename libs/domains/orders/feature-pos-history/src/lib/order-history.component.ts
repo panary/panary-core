@@ -16,7 +16,7 @@ import {
   CancelOrderDialogComponent,
 } from '@panary/orders/data-access'
 import { ExtendedParams } from '@panary/shared-common'
-import { EurPipe } from '@panary/shared/ui-common'
+import { EurPipe, IconComponent } from '@panary/shared/ui-common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 type TimeRange = 'today' | 'yesterday' | 'week' | 'custom'
@@ -24,7 +24,7 @@ type TimeRange = 'today' | 'yesterday' | 'week' | 'custom'
 @Component({
   selector: 'lib-order-history',
   standalone: true,
-  imports: [CommonModule, EurPipe, FormsModule, TranslateModule],
+  imports: [IconComponent, CommonModule, EurPipe, FormsModule, TranslateModule],
   templateUrl: './order-history.component.html',
   styleUrls: ['./order-history.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -52,6 +52,7 @@ import { User } from '@panary/users/domain'
 import { CorporateCustomerService } from '@panary/corporate-customers/data-access'
 import { CorporateCustomer } from '@panary/corporate-customers/domain'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { IconComponent } from '@panary/shared/ui-common'
 
 type OverlayView = 'actions' | 'staff-meal' | 'discount' | 'corporate'
 
@@ -90,7 +91,7 @@ interface OrderCardVm {
 @Component({
   selector: 'lib-active-orders',
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [IconComponent, CommonModule, TranslateModule],
   templateUrl: './active-orders.component.html',
   styleUrl: './active-orders.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -8,13 +8,13 @@ import { PreOrder, PreOrderService } from '@panary/pre-orders/data-access'
 import { MatDialog } from '@angular/material/dialog'
 import { ExtendedParams } from '@panary/shared-common'
 import { OrderDialogComponent } from '@panary/orders/feature-pos-order-dialog'
-import { ConfirmDialogComponent, EurPipe } from '@panary/shared/ui-common'
+import { ConfirmDialogComponent, EurPipe, IconComponent } from '@panary/shared/ui-common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 @Component({
   selector: 'lib-pre-order-list',
   standalone: true,
-  imports: [CommonModule, EurPipe, FormsModule, TranslateModule],
+  imports: [IconComponent, CommonModule, EurPipe, FormsModule, TranslateModule],
   template: `
     <div
       class="h-full w-full bg-gray-50 dark:bg-black p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border"
@@ -29,10 +29,10 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
               (click)="goBack()"
               class="flex items-center justify-center w-10 h-10 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
-              <span class="material-symbols-outlined text-[1.25rem]">arrow_back</span>
+              <lib-icon name="arrow-left" class="text-[1.25rem]" />
             </button>
             <h1 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-              <span class="material-symbols-outlined text-[1.25rem] text-indigo-600">event_note</span>
+              <lib-icon name="calendar-dots" class="text-[1.25rem] text-indigo-600" />
               {{ 'PRE_ORDERS.TITLE' | translate }}
             </h1>
             <!-- Mobil: runder Icon-Button -->
@@ -40,14 +40,14 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
               (click)="openCreateDialog()"
               class="ml-4 md:hidden flex items-center justify-center w-10 h-10 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition-all"
             >
-              <span class="material-symbols-outlined text-[1.375rem]">add</span>
+              <lib-icon name="plus" class="text-[1.375rem]" />
             </button>
             <!-- Desktop: Button mit Text -->
             <button
               (click)="openCreateDialog()"
               class="ml-4 hidden md:flex items-center gap-2 h-10 px-4 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 active:scale-95 transition-all"
             >
-              <span class="material-symbols-outlined text-[1.25rem]">add_circle</span>
+              <lib-icon name="plus-circle" class="text-[1.25rem]" />
               {{ 'PRE_ORDERS.NEW_PRE_ORDER' | translate }}
             </button>
           </div>
@@ -57,9 +57,10 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
         </div>
 
         <div class="relative">
-          <span class="material-symbols-outlined text-[1.25rem] absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            >search</span
-          >
+          <lib-icon
+            name="magnifying-glass"
+            class="text-[1.25rem] absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+          />
           <input
             type="text"
             [(ngModel)]="searchQuery"
@@ -71,7 +72,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
             class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-600 text-white rounded-lg shadow-sm hover:bg-indigo-700 active:scale-95 transition-all"
             (click)="fetchOrders()"
           >
-            <span class="material-symbols-outlined text-[1.25rem]">arrow_forward</span>
+            <lib-icon name="arrow-right" class="text-[1.25rem]" />
           </button>
         </div>
       </header>
@@ -91,7 +92,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
             </div>
           } @else if (orders().length === 0) {
             <div class="flex-1 flex justify-center items-center flex-col gap-4 text-gray-300">
-              <span class="material-symbols-outlined text-[4rem]">event_busy</span>
+              <lib-icon name="calendar-x" class="text-[4rem]" />
               <span class="font-medium">{{ 'PRE_ORDERS.NONE_FOUND' | translate }}</span>
             </div>
           } @else {
@@ -126,7 +127,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                     {{ order.customerContact.name }}
                   </div>
                   <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-1">
-                    <span class="material-symbols-outlined text-[0.75rem]">phone</span>
+                    <lib-icon name="phone" class="text-[0.75rem]" />
                     {{ order.customerContact.phone }}
                   </div>
 
@@ -156,7 +157,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                       <span
                         class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1"
                       >
-                        <span class="material-symbols-outlined text-[0.75rem]">check</span>
+                        <lib-icon name="check" class="text-[0.75rem]" />
                         {{ 'COMMON.DONE' | translate }}
                       </span>
                     } @else if (order.status === 'cancelled') {
@@ -194,7 +195,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                 (click)="selectedOrder.set(null)"
                 class="lg:hidden flex items-center justify-center w-10 h-10 text-gray-500 dark:text-gray-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
-                <span class="material-symbols-outlined text-[1.25rem]">close</span>
+                <lib-icon name="x" class="text-[1.25rem]" />
               </button>
             </div>
 
@@ -208,7 +209,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                   {{ selectedOrder()?.customerContact?.name }}
                 </div>
                 <div class="text-indigo-700 dark:text-indigo-300 flex items-center gap-2 mt-1">
-                  <span class="material-symbols-outlined text-[1rem]">phone</span>
+                  <lib-icon name="phone" class="text-[1rem]" />
                   {{ selectedOrder()?.customerContact?.phone }}
                 </div>
                 @if (selectedOrder()?.note) {
@@ -249,7 +250,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                     class="col-span-2 h-12 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2"
                     (click)="convertToLiveOrder(selectedOrder()!)"
                   >
-                    <span class="material-symbols-outlined text-[1.25rem]">point_of_sale</span>
+                    <lib-icon name="cash-register" class="text-[1.25rem]" />
                     {{ 'PRE_ORDERS.CREATE_ORDER' | translate }}
                   </button>
 
@@ -257,7 +258,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                     class="col-span-2 h-12 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-red-600 font-medium hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-all flex items-center justify-center gap-2"
                     (click)="cancelOrder(selectedOrder()!)"
                   >
-                    <span class="material-symbols-outlined text-[1.25rem]">delete</span>
+                    <lib-icon name="trash" class="text-[1.25rem]" />
                     {{ 'PRE_ORDERS.CANCEL_ORDER' | translate }}
                   </button>
                 </div>
@@ -281,7 +282,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
           <div
             class="hidden lg:flex flex-1 max-w-[28.125rem] bg-gray-50/50 dark:bg-gray-950/50 border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl justify-center items-center text-gray-400 flex-col gap-2"
           >
-            <span class="material-symbols-outlined text-[3rem] opacity-20">event_note</span>
+            <lib-icon name="calendar-dots" class="text-[3rem] opacity-20" />
             <span class="text-sm font-medium opacity-50">{{ 'PRE_ORDERS.SELECT_PRE_ORDER' | translate }}</span>
           </div>
         }
@@ -416,7 +417,7 @@ export class PreOrderListComponent implements OnInit {
         detail: `${order.lineItems.length} ${this.#translate.instant('COMMON.ITEMS')} · ${totalFormatted}`,
         confirmText: this.#translate.instant('PRE_ORDERS.CONVERT_NOW'),
         confirmVariant: 'primary',
-        icon: 'point_of_sale',
+        icon: 'cash-register',
       },
     })
 
@@ -444,7 +445,7 @@ export class PreOrderListComponent implements OnInit {
         message: this.#translate.instant('PRE_ORDERS.CANCEL_MESSAGE'),
         confirmText: this.#translate.instant('PRE_ORDERS.CANCEL_CONFIRM'),
         confirmVariant: 'danger',
-        icon: 'delete_forever',
+        icon: 'trash',
       },
     })
 

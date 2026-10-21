@@ -1,12 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog'
+import { IconComponent } from '../icon/icon.component'
 
 @Component({
   selector: 'panary-numpad-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, MatDialogModule],
+  imports: [IconComponent, CommonModule, MatDialogModule],
   template: `
     <div class="p-6 bg-white rounded-2xl w-[320px] flex flex-col gap-4">
       <div class="flex justify-between items-center pb-2 border-b border-slate-100">
@@ -16,7 +17,7 @@ import { MatDialogRef, MatDialogModule } from '@angular/material/dialog'
           (click)="close()"
           class="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 hover:bg-slate-100 active:bg-slate-200 transition-all flex items-center justify-center"
         >
-          <span class="material-symbols-outlined text-[20px]">close</span>
+          <lib-icon name="x" class="text-[20px]" />
         </button>
       </div>
 
@@ -49,7 +50,7 @@ import { MatDialogRef, MatDialogModule } from '@angular/material/dialog'
           (click)="backspace()"
           class="h-14 rounded-xl bg-red-50 border border-red-100 text-red-500 hover:bg-red-100 active:bg-red-200 shadow-sm transition-all active:scale-95 flex items-center justify-center"
         >
-          <span class="material-symbols-outlined text-[20px]">backspace</span>
+          <lib-icon name="backspace" class="text-[20px]" />
         </button>
       </div>
 
@@ -57,7 +58,7 @@ import { MatDialogRef, MatDialogModule } from '@angular/material/dialog'
         (click)="confirm()"
         class="h-14 rounded-xl bg-action text-on-action font-bold text-lg hover:brightness-95 active:scale-98 transition-all shadow-lg flex items-center justify-center gap-2"
       >
-        <span class="material-symbols-outlined text-[20px]">check</span>
+        <lib-icon name="check" class="text-[20px]" />
         Bestätigen
       </button>
     </div>

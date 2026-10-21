@@ -50,7 +50,11 @@ title: POS-Icons — Mapping Material Symbols → Phosphor Bold
 description: Tabelle aller im POS ersetzten Material-Symbols-Namen mit dem gewählten Phosphor-Bold-Icon, den Entscheidungen für fehlende Entsprechungen und der Anleitung, ein Icon zu ergänzen.
 tags: [pos-client, icons, design-system]
 status: stable
-generated: { by: tools/phosphor/build-pos-icons.mjs, at: 2026-10-22T00:00:00.000Z }
+generated: { by: claude-code/sonnet-5.5, at: 2026-10-22T00:00:00.000Z }
+sources:
+  - id: generator
+    resource: ../../tools/phosphor/build-pos-icons.mjs
+    title: Generator dieser Tabelle
 ---
 
 # POS-Icons: Material Symbols → Phosphor Bold

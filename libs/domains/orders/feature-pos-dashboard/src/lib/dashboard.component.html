@@ -60,11 +60,11 @@
             }
           </span>
         </div>
-        <span
-          class="material-symbols-outlined text-[1.125rem] md:text-[1.25rem] text-gray-400 dark:text-gray-500 transition-transform duration-200"
+        <lib-icon
+          name="caret-down"
+          class="text-[1.125rem] md:text-[1.25rem] text-gray-400 dark:text-gray-500 transition-transform duration-200"
           [class.rotate-180]="statusMenuOpen"
-          >expand_more</span
-        >
+        />
       </button>
 
       <!-- Custom Dropdown Panel -->
@@ -90,7 +90,7 @@
                 <div
                   class="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-200 dark:group-hover:bg-emerald-900/50 transition-colors"
                 >
-                  <span class="material-symbols-outlined text-[1.25rem]">login</span>
+                  <lib-icon name="sign-in" class="text-[1.25rem]" />
                 </div>
                 <div class="flex flex-col">
                   <span class="font-semibold text-gray-700 dark:text-gray-200 text-sm">{{
@@ -112,7 +112,7 @@
                 <div
                   class="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 group-hover:bg-amber-200 dark:group-hover:bg-amber-900/50 transition-colors"
                 >
-                  <span class="material-symbols-outlined text-[1.25rem]">coffee</span>
+                  <lib-icon name="coffee" class="text-[1.25rem]" />
                 </div>
                 <div class="flex flex-col">
                   <span class="font-semibold text-gray-700 dark:text-gray-200 text-sm">{{
@@ -133,7 +133,7 @@
                 <div
                   class="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 group-hover:bg-red-200 dark:group-hover:bg-red-900/50 transition-colors"
                 >
-                  <span class="material-symbols-outlined text-[1.25rem]">logout</span>
+                  <lib-icon name="sign-out" class="text-[1.25rem]" />
                 </div>
                 <div class="flex flex-col">
                   <span class="font-semibold text-gray-700 dark:text-gray-200 text-sm">{{
@@ -155,7 +155,7 @@
                 <div
                   class="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-200 dark:group-hover:bg-emerald-900/50 transition-colors"
                 >
-                  <span class="material-symbols-outlined text-[1.25rem]">play_arrow</span>
+                  <lib-icon name="play" class="text-[1.25rem]" />
                 </div>
                 <div class="flex flex-col">
                   <span class="font-semibold text-gray-700 dark:text-gray-200 text-sm">{{
@@ -176,7 +176,7 @@
                 <div
                   class="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 group-hover:bg-red-200 dark:group-hover:bg-red-900/50 transition-colors"
                 >
-                  <span class="material-symbols-outlined text-[1.25rem]">logout</span>
+                  <lib-icon name="sign-out" class="text-[1.25rem]" />
                 </div>
                 <div class="flex flex-col">
                   <span class="font-semibold text-gray-700 dark:text-gray-200 text-sm">{{
@@ -199,7 +199,7 @@
       [title]="isOffline() ? ('DASHBOARD.LOGOUT_OFFLINE_BLOCKED' | translate) : ('DASHBOARD.LOGOUT' | translate)"
       class="flex items-center justify-center w-10 h-10 text-gray-400 dark:text-gray-500 rounded-xl hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:hover:text-gray-400 disabled:hover:bg-transparent disabled:cursor-not-allowed"
     >
-      <span class="material-symbols-outlined text-[1.25rem]">logout</span>
+      <lib-icon name="sign-out" class="text-[1.25rem]" />
     </button>
   </header>
 
@@ -218,7 +218,7 @@
           class="bg-white dark:bg-gray-950 rounded-2xl p-3 lg:p-5 border border-gray-200 dark:border-gray-800 flex flex-row items-center gap-3 lg:flex-col lg:items-start lg:justify-between hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
         >
           <div class="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shrink-0 lg:mb-2">
-            <span class="material-symbols-outlined text-[1.25rem]">shopping_cart</span>
+            <lib-icon name="shopping-cart" class="text-[1.25rem]" />
           </div>
           <div>
             <h3 class="text-xl lg:text-3xl font-bold text-gray-800 dark:text-white tracking-tight">
@@ -237,7 +237,7 @@
           <div
             class="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 shrink-0 lg:mb-2"
           >
-            <span class="material-symbols-outlined text-[1.25rem]">receipt_long</span>
+            <lib-icon name="receipt" class="text-[1.25rem]" />
           </div>
           <div>
             <h3 class="text-xl lg:text-3xl font-bold text-gray-800 dark:text-white tracking-tight">
@@ -256,7 +256,7 @@
           <div
             class="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 shrink-0 lg:mb-2"
           >
-            <span class="material-symbols-outlined text-[1.25rem]">flash_on</span>
+            <lib-icon name="lightning" class="text-[1.25rem]" />
           </div>
           <div>
             <h3 class="text-xl lg:text-3xl font-bold text-gray-800 dark:text-white tracking-tight">
@@ -273,7 +273,7 @@
           <div
             class="p-2 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 shrink-0 lg:mb-2"
           >
-            <span class="material-symbols-outlined text-[1.25rem]">timer</span>
+            <lib-icon name="timer" class="text-[1.25rem]" />
           </div>
           <div>
             <h3 class="text-xl lg:text-3xl font-bold text-gray-800 dark:text-white tracking-tight">
@@ -304,7 +304,7 @@
                 : 'bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500'
             "
           >
-            <span class="material-symbols-outlined text-[1.25rem]">event_upcoming</span>
+            <lib-icon name="calendar-star" class="text-[1.25rem]" />
           </div>
           <div>
             <h3
@@ -374,9 +374,7 @@
               class="p-2 md:p-3 rounded-lg transition-colors duration-200 group-hover:scale-110"
               [ngClass]="action.bgClass"
             >
-              <span class="material-symbols-outlined text-[1.25rem] md:text-[1.625rem]" [ngClass]="action.textClass">{{
-                action.icon
-              }}</span>
+              <lib-icon [name]="action.icon" class="text-[1.25rem] md:text-[1.625rem]" [ngClass]="action.textClass" />
             </div>
             <span
               class="hidden md:block font-semibold text-[0.625rem] text-gray-600 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-gray-200 text-center leading-tight"

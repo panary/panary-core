@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { TranslateModule } from '@ngx-translate/core'
+import { IconComponent } from '../icon/icon.component'
+import type { IconName } from '@panary/shared/util-helpers'
 
 export interface ConfirmDialogData {
   title: string
@@ -8,21 +10,21 @@ export interface ConfirmDialogData {
   detail?: string
   confirmText: string
   confirmVariant: 'primary' | 'danger'
-  icon: string
+  icon: IconName
   cancelText?: string
 }
 
 @Component({
   selector: 'lib-confirm-dialog',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [IconComponent, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col w-full">
       <!-- Icon Header -->
       <div class="flex flex-col items-center gap-3 px-6 pt-7 pb-4">
         <div class="flex items-center justify-center w-16 h-16 rounded-2xl" [class]="iconBg">
-          <span class="material-symbols-outlined text-[2rem]" [class]="iconColor">{{ data.icon }}</span>
+          <lib-icon [name]="data.icon" class="text-[2rem]" [class]="iconColor" />
         </div>
         <h2 class="text-xl font-bold text-gray-800 dark:text-white text-center">{{ data.title }}</h2>
       </div>

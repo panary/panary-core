@@ -9,10 +9,10 @@
           (click)="goBack()"
           class="flex items-center justify-center w-10 h-10 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
         >
-          <span class="material-symbols-outlined text-[1.25rem]">arrow_back</span>
+          <lib-icon name="arrow-left" class="text-[1.25rem]" />
         </button>
         <h1 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-          <span class="material-symbols-outlined text-[1.25rem] text-purple-600">history</span>
+          <lib-icon name="clock-counter-clockwise" class="text-[1.25rem] text-purple-600" />
           {{ 'HISTORY.TITLE' | translate }}
         </h1>
       </div>
@@ -65,9 +65,7 @@
     </div>
 
     <div class="relative">
-      <span class="material-symbols-outlined text-[1.25rem] absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-        >search</span
-      >
+      <lib-icon name="magnifying-glass" class="text-[1.25rem] absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
       <input
         type="text"
         [(ngModel)]="searchQuery"
@@ -79,7 +77,7 @@
         class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-purple-600 text-white rounded-lg shadow-sm hover:bg-purple-700 active:scale-95 transition-all"
         (click)="fetchOrders()"
       >
-        <span class="material-symbols-outlined text-[1.25rem]">arrow_forward</span>
+        <lib-icon name="arrow-right" class="text-[1.25rem]" />
       </button>
     </div>
   </header>
@@ -101,7 +99,7 @@
         </div>
       } @else if (orders().length === 0) {
         <div class="flex-1 flex justify-center items-center flex-col gap-4 text-gray-300">
-          <span class="material-symbols-outlined text-[4rem]">search_off</span>
+          <lib-icon name="magnifying-glass" class="text-[4rem]" />
           <span class="font-medium">{{ 'HISTORY.NONE_FOUND' | translate }}</span>
         </div>
       } @else {
@@ -146,14 +144,14 @@
                   <span
                     class="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-full flex items-center gap-1"
                   >
-                    <span class="material-symbols-outlined text-[0.75rem]">check</span>
+                    <lib-icon name="check" class="text-[0.75rem]" />
                     {{ 'ORDER_STATUS.completed' | translate }}
                   </span>
                 } @else if (order.status === OrderStatus.ABORTED) {
                   <span
                     class="text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 px-2 py-0.5 rounded-full flex items-center gap-1"
                   >
-                    <span class="material-symbols-outlined text-[0.75rem]">block</span>
+                    <lib-icon name="prohibit" class="text-[0.75rem]" />
                     {{ 'ORDER_STATUS.aborted' | translate }}
                   </span>
                 } @else {
@@ -189,7 +187,7 @@
             (click)="selectedOrder.set(null)"
             class="lg:hidden flex items-center justify-center w-10 h-10 text-gray-500 dark:text-gray-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
-            <span class="material-symbols-outlined text-[1.25rem]">close</span>
+            <lib-icon name="x" class="text-[1.25rem]" />
           </button>
         </div>
 
@@ -260,14 +258,14 @@
               (click)="printOrder()"
               class="h-10 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-95 transition-all flex items-center justify-center gap-1.5"
             >
-              <span class="material-symbols-outlined text-[1rem]">print</span>
+              <lib-icon name="printer" class="text-[1rem]" />
               {{ 'HISTORY.PRINT' | translate }}
             </button>
             @if (selectedOrder()?.status === OrderStatus.ABORTED) {
               <div
                 class="h-10 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium flex items-center justify-center gap-1.5"
               >
-                <span class="material-symbols-outlined text-[1rem]">block</span>
+                <lib-icon name="prohibit" class="text-[1rem]" />
                 {{ 'CANCEL_ORDER.ALREADY_CANCELED' | translate }}
               </div>
             } @else {
@@ -275,7 +273,7 @@
                 (click)="cancelOrder()"
                 class="h-10 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 font-medium hover:bg-red-100 dark:hover:bg-red-950/60 active:scale-95 transition-all flex items-center justify-center gap-1.5"
               >
-                <span class="material-symbols-outlined text-[1rem]">cancel</span>
+                <lib-icon name="x-circle" class="text-[1rem]" />
                 {{ 'HISTORY.CANCEL' | translate }}
               </button>
             }
@@ -289,7 +287,7 @@
       <div
         class="hidden lg:flex flex-1 max-w-[28.125rem] bg-gray-50/50 dark:bg-gray-950/50 border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl justify-center items-center text-gray-400 dark:text-gray-500 flex-col gap-2"
       >
-        <span class="material-symbols-outlined text-[3rem] opacity-20">receipt</span>
+        <lib-icon name="receipt" class="text-[3rem] opacity-20" />
         <span class="text-sm font-medium opacity-50">{{ 'HISTORY.SELECT_ORDER' | translate }}</span>
       </div>
     }

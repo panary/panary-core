@@ -13,7 +13,7 @@
         class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 font-semibold hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
         [title]="'LOGIN.CHANGE_LANGUAGE' | translate"
       >
-        <span class="material-symbols-outlined text-[0.875rem]">translate</span>
+        <lib-icon name="translate" class="text-[0.875rem]" />
         {{ languageService.currentLanguage().toUpperCase() }}
       </button>
     </div>
@@ -44,7 +44,7 @@
             role="status"
             data-testid="idle-logout-notice"
           >
-            <span class="material-symbols-outlined text-[1.25rem] text-amber-600 dark:text-amber-400">schedule</span>
+            <lib-icon name="clock" class="text-[1.25rem] text-amber-600 dark:text-amber-400" />
             <div class="text-sm">
               <p class="font-semibold text-amber-800 dark:text-amber-200">
                 {{ 'LOGIN.IDLE_LOGOUT_TITLE' | translate }}
@@ -501,7 +501,7 @@
         class="h-10 px-3 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center gap-1.5 transition-colors text-white text-xs font-semibold"
         [title]="'LOGIN.CHANGE_LANGUAGE' | translate"
       >
-        <span class="material-symbols-outlined text-[1rem]">translate</span>
+        <lib-icon name="translate" class="text-[1rem]" />
         {{ languageService.currentLanguage().toUpperCase() }}
       </button>
       <button

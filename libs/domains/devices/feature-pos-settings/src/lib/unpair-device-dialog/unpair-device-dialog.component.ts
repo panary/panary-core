@@ -13,6 +13,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ConnectionService, OFFLINE_OUTBOX } from '@panary/shared/data-access'
 import { DeviceConfigService } from '@panary/shared/data-access-config'
 import { UNPAIR_ALLOWED_ROLES } from '@panary/users/domain'
+import { IconComponent } from '@panary/shared/ui-common'
 
 // `UNPAIR_ALLOWED_ROLES` liegt zentral in `@panary/users/domain`: Eine
 // PIN-Verifikation muss auf einen User mit einer dieser Rollen treffen
@@ -35,7 +36,7 @@ type DialogStep = 'loading' | 'select-user' | 'enter-pin' | 'confirm' | 'confirm
 @Component({
   selector: 'lib-unpair-device-dialog',
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [IconComponent, CommonModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './unpair-device-dialog.component.html',
 })

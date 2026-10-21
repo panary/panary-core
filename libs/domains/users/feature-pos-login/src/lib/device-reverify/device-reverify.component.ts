@@ -14,6 +14,7 @@ import { ConnectionService } from '@panary/shared/data-access'
 import { DEVICE_REVERIFY_AUTHORIZING_ROLES } from '@panary/users/domain'
 
 import { PinPadComponent } from '../pin-pad/pin-pad.component'
+import { IconComponent } from '@panary/shared/ui-common'
 
 /**
  * Bestaetigungsbildschirm nach langer Offline-Phase (panary/panary-core#325).
@@ -42,7 +43,7 @@ type Step = 'loading' | 'select-user' | 'enter-pin' | 'error'
 @Component({
   selector: 'lib-device-reverify',
   standalone: true,
-  imports: [TranslateModule, PinPadComponent],
+  imports: [IconComponent, TranslateModule, PinPadComponent],
   templateUrl: './device-reverify.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

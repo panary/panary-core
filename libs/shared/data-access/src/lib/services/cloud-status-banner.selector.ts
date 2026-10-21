@@ -12,6 +12,9 @@
  * Prioritaetslogik ohne Angular-TestBed unit-testbar.
  */
 
+/** Phosphor-Bold-Icons des Banners — die Namen stehen in der Registry von `@panary/shared/ui-common`. */
+export type CloudBannerIcon = 'lock' | 'wifi-slash' | 'cloud-slash' | 'cloud-arrow-up' | 'key' | 'warning-octagon'
+
 export type CloudBannerLevel = 'crit' | 'warn' | 'info'
 export type CloudBannerActionKind = 'reload' | 'activate-offline-mode' | 'end-emergency-override'
 
@@ -25,8 +28,8 @@ export interface CloudBanner {
   /** Stabile ID des Banner-Zustands (fuer trackBy / Tests). */
   id: string
   level: CloudBannerLevel
-  /** material-symbols-Icon-Name. */
-  icon: string
+  /** Phosphor-Bold-Icon; Namen müssen in der Registry von `@panary/shared/ui-common` stehen (das Banner typprüft). */
+  icon: CloudBannerIcon
   /** i18n-Key der Hauptnachricht. */
   messageKey: string
   params?: Record<string, string | number>
@@ -108,7 +111,7 @@ export function selectActiveBanner(s: CloudStatusState): CloudBanner | null {
     return {
       id: 'connect-offline',
       level: 'warn',
-      icon: 'wifi_off',
+      icon: 'wifi-slash',
       messageKey: 'CLOUD_STATUS.CONNECT_OFFLINE',
       // Mit ausstehenden Bestellungen den Zähler zeigen; sonst der reine TSE-/Bargeld-Hinweis.
       sublineKey: pending > 0 ? 'CLOUD_STATUS.CONNECT_OFFLINE_SUBLINE_PENDING' : 'CLOUD_STATUS.CONNECT_OFFLINE_SUBLINE',
@@ -123,7 +126,7 @@ export function selectActiveBanner(s: CloudStatusState): CloudBanner | null {
     return {
       id: 'client-offline',
       level: 'crit',
-      icon: 'wifi_off',
+      icon: 'wifi-slash',
       messageKey: 'CLOUD_STATUS.CLIENT_OFFLINE',
       action: { kind: 'reload', labelKey: 'CLOUD_STATUS.RELOAD' },
     }
@@ -136,7 +139,7 @@ export function selectActiveBanner(s: CloudStatusState): CloudBanner | null {
       return {
         id: 're-pairing-required',
         level: 'crit',
-        icon: 'cloud_off',
+        icon: 'cloud-slash',
         messageKey: 'CLOUD_STATUS.REPAIRING_REQUIRED',
         ...(s.cloudTokenErrorReason
           ? { sublineKey: 'CLOUD_STATUS.REPAIRING_REASON', sublineParams: { reason: s.cloudTokenErrorReason } }
@@ -150,7 +153,7 @@ export function selectActiveBanner(s: CloudStatusState): CloudBanner | null {
       return {
         id: 'offline-mode-active',
         level: 'warn',
-        icon: 'cloud_off',
+        icon: 'cloud-slash',
         messageKey: 'CLOUD_STATUS.OFFLINE_MODE_ACTIVE',
         sublineKey: 'CLOUD_STATUS.OFFLINE_MODE_ACTIVE_SUBLINE',
         sublineParams: { minutes: s.offlineModeRemainingMin },
@@ -172,7 +175,7 @@ export function selectActiveBanner(s: CloudStatusState): CloudBanner | null {
       return {
         id: 'cloud-unreachable',
         level: 'crit',
-        icon: 'cloud_off',
+        icon: 'cloud-slash',
         messageKey: 'CLOUD_STATUS.CLOUD_UNREACHABLE',
         sublineKey: 'CLOUD_STATUS.ORDERS_BLOCKED',
         ...(s.lastCloudContactAgeMin !== null ? { sublineParams: { minutes: s.lastCloudContactAgeMin } } : {}),
@@ -209,7 +212,7 @@ export function selectActiveBanner(s: CloudStatusState): CloudBanner | null {
       return {
         id: 'emergency-override-active',
         level: 'warn',
-        icon: 'emergency_home',
+        icon: 'warning-octagon',
         messageKey: 'CLOUD_STATUS.EMERGENCY_OVERRIDE_ACTIVE',
         sublineKey: 'CLOUD_STATUS.EMERGENCY_OVERRIDE_SUBLINE',
         ...(s.emergencyOverrideSinceMin !== null ? { sublineParams: { minutes: s.emergencyOverrideSinceMin } } : {}),
@@ -236,7 +239,7 @@ export function selectActiveBanner(s: CloudStatusState): CloudBanner | null {
         return {
           id: 'sync-stale',
           level,
-          icon: 'cloud_sync',
+          icon: 'cloud-arrow-up',
           messageKey: 'CLOUD_STATUS.SYNC_NEVER',
           sublineKey: 'CLOUD_STATUS.SYNC_OVERDUE_SUBLINE',
         }
@@ -246,7 +249,7 @@ export function selectActiveBanner(s: CloudStatusState): CloudBanner | null {
       return {
         id: 'sync-stale',
         level,
-        icon: 'cloud_sync',
+        icon: 'cloud-arrow-up',
         messageKey: useHours ? 'CLOUD_STATUS.SYNC_AGE_HOUR' : 'CLOUD_STATUS.SYNC_AGE_MIN',
         params: useHours ? { hours: Math.floor(minutes / 60) } : { minutes },
         sublineKey: 'CLOUD_STATUS.SYNC_OVERDUE_SUBLINE',

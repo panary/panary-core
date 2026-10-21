@@ -2,6 +2,8 @@ import { Injectable, inject } from '@angular/core'
 import { ConnectionService } from '@panary/shared/data-access'
 import type { CodeRedeemReason } from '@panary/discounts/domain'
 
+import { CodeProxyReason, codeProxyReasonForError } from './code-proxy-reason'
+
 /**
  * POS-Data-Access für Rabattcodes.
  *
@@ -10,12 +12,8 @@ import type { CodeRedeemReason } from '@panary/discounts/domain'
  * Cloud durch (ADR 0032) — Prüfen ist ein `find`, Einlösen ein `create`.
  */
 
-/** Technische Gründe, die am Edge entstehen (die Cloud liefert `CodeRedeemReason`). */
-export const CodeProxyReason = {
-  NOT_PAIRED: 'not_paired',
-  CLOUD_UNREACHABLE: 'cloud_unreachable',
-} as const
-export type CodeProxyReason = (typeof CodeProxyReason)[keyof typeof CodeProxyReason]
+// Technische Gründe, die am Edge oder in der Kasse entstehen (die Cloud liefert `CodeRedeemReason`).
+export { CodeProxyReason, codeProxyReasonForError } from './code-proxy-reason'
 
 export type CodeResultReason = CodeRedeemReason | CodeProxyReason
 
@@ -41,6 +39,7 @@ export interface CodeCheckResult {
 const TECHNICAL_REASONS: ReadonlySet<string> = new Set<string>([
   CodeProxyReason.NOT_PAIRED,
   CodeProxyReason.CLOUD_UNREACHABLE,
+  CodeProxyReason.NOT_AUTHORIZED,
 ])
 
 export const isTechnicalCodeFailure = (reason: CodeResultReason): boolean => TECHNICAL_REASONS.has(reason)
@@ -66,6 +65,8 @@ export const codeResultMessage = (reason: CodeResultReason): string => {
       return 'Keine Cloud-Verbindung eingerichtet — Rabattcodes sind hier nicht verfügbar'
     case CodeProxyReason.CLOUD_UNREACHABLE:
       return 'Cloud nicht erreichbar — Code kann gerade nicht geprüft werden'
+    case CodeProxyReason.NOT_AUTHORIZED:
+      return 'Kasse ist für Rabattcodes nicht zugelassen — bitte den Support kontaktieren'
     default:
       return 'Code kann nicht eingelöst werden'
   }
@@ -81,11 +82,12 @@ export class DiscountCodeService {
     if (customerId) query['customerId'] = customerId
     try {
       return (await this.#service.find({ query })) as CodeCheckResult
-    } catch {
+    } catch (error) {
       // Der Edge antwortet auf technische Fehler bereits mit ok:false. Kommt
       // trotzdem eine Exception (Socket weg, 500 am Edge selbst), ist das aus
-      // Kassensicht dasselbe: nicht entschieden, nicht abgelehnt.
-      return { ok: false, reason: CodeProxyReason.CLOUD_UNREACHABLE }
+      // Kassensicht dasselbe: nicht entschieden, nicht abgelehnt. Nur eine
+      // Zugangs-Ablehnung (401/403) bekommt ihren eigenen Grund (cloud#1429).
+      return { ok: false, reason: codeProxyReasonForError(error) }
     }
   }
 
@@ -106,8 +108,8 @@ export class DiscountCodeService {
         customerId: input.customerId ?? null,
         amountCents: input.amountCents ?? null,
       })) as CodeCheckResult
-    } catch {
-      return { ok: false, reason: CodeProxyReason.CLOUD_UNREACHABLE }
+    } catch (error) {
+      return { ok: false, reason: codeProxyReasonForError(error) }
     }
   }
 }

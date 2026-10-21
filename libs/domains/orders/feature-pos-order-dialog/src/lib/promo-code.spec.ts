@@ -7,28 +7,38 @@ import {
   PROMO_CODE_BLOCKED_STAFF_MEAL,
   buildCodeAppliedDiscount,
   evaluatePromoCodeGate,
+  PROMO_CODE_BLOCKED_CLOUD_DIRECT,
   redeemCodeForOrder,
 } from './promo-code'
 
 describe('evaluatePromoCodeGate', () => {
   it('erlaubt die Eingabe bei einer gewoehnlichen Bestellung', () => {
-    expect(evaluatePromoCodeGate({ isStaffMealOrder: false, hasManualDiscount: false })).toEqual({ allowed: true })
+    expect(evaluatePromoCodeGate({ isCloudDirect: false, isStaffMealOrder: false, hasManualDiscount: false })).toEqual({
+      allowed: true,
+    })
   })
 
   it('sperrt bei Personalessen — sonst scheitert die Bestellung serverseitig mit 400', () => {
-    const gate = evaluatePromoCodeGate({ isStaffMealOrder: true, hasManualDiscount: false })
+    const gate = evaluatePromoCodeGate({ isCloudDirect: false, isStaffMealOrder: true, hasManualDiscount: false })
     expect(gate.allowed).toBe(false)
     expect(gate.message).toBe(PROMO_CODE_BLOCKED_STAFF_MEAL)
   })
 
+  // cloud#1429: Ohne Edge lehnt die Cloud das Geraete-Token am Code-Dienst ab — die Kasse meldete
+  // faelschlich „Cloud nicht erreichbar". Bis Codes dort freigegeben sind, gar nicht erst anbieten.
+  it('sperrt im Tarif cloud-direct mit eigenem Grund, vor allen anderen Sperren', () => {
+    const gate = evaluatePromoCodeGate({ isCloudDirect: true, isStaffMealOrder: true, hasManualDiscount: true })
+    expect(gate).toEqual({ allowed: false, message: PROMO_CODE_BLOCKED_CLOUD_DIRECT })
+  })
+
   it('sperrt, wenn bereits ein manueller Rabatt gewaehlt ist', () => {
-    const gate = evaluatePromoCodeGate({ isStaffMealOrder: false, hasManualDiscount: true })
+    const gate = evaluatePromoCodeGate({ isCloudDirect: false, isStaffMealOrder: false, hasManualDiscount: true })
     expect(gate.allowed).toBe(false)
     expect(gate.message).toBe(PROMO_CODE_BLOCKED_MANUAL)
   })
 
   it('Personalessen gewinnt gegen den manuellen Rabatt (praezisere Meldung)', () => {
-    const gate = evaluatePromoCodeGate({ isStaffMealOrder: true, hasManualDiscount: true })
+    const gate = evaluatePromoCodeGate({ isCloudDirect: false, isStaffMealOrder: true, hasManualDiscount: true })
     expect(gate.message).toBe(PROMO_CODE_BLOCKED_STAFF_MEAL)
   })
 })

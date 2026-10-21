@@ -3091,6 +3091,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   openPromoCodeDialog(): void {
     const gate = evaluatePromoCodeGate({
+      isCloudDirect: this.#connectionService.tier() === 'cloud-direct',
       isStaffMealOrder: this.isStaffMealOrder,
       hasManualDiscount: !!this.selectedManualDiscount(),
     })

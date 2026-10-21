@@ -37,6 +37,7 @@ import { BusinessDayOperationMode } from '@panary/businessdays/domain'
 import { PosWriteOffDialogComponent } from '@panary/write-offs/feature-pos-dialog'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { PreOrder, PreOrderService } from '@panary/pre-orders/data-access'
+import { timeTrackingBlockedHintKey } from './time-tracking-hint'
 
 interface QuickAction {
   label: string
@@ -108,6 +109,11 @@ export class DashboardComponent implements OnInit {
   readonly isOffline = this.#posSessionService.isOffline
   /** Mandant in der Cloud gesperrt: Bon und Stempeln sind deaktiviert, Tagesabschluss bleibt (SUSPENDED). */
   readonly bookingSuspended = this.#tenantSuspension.suspended
+
+  /** Tooltip-Schlüssel der Stempel-/Pausen-Einträge: nennt die Kontosperre vor „offline" (core#797). */
+  protected readonly timeTrackingBlockedKey = computed(
+    () => timeTrackingBlockedHintKey(this.bookingSuspended(), this.isOffline()) ?? '',
+  )
 
   // Vorbestellungen für heute
   todayPreOrders = signal<PreOrder[]>([])

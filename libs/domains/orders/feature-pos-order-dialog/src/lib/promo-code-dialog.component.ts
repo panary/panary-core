@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { MatDialogRef } from '@angular/material/dialog'
 import {
+  CodeProxyReason,
   DiscountCodeService,
   codeResultMessage,
   isTechnicalCodeFailure,
@@ -155,6 +156,8 @@ export class PromoCodeDialogComponent {
     const r = this.result()
     if (!r) return 'info'
     if (r.ok) return 'check_circle'
+    // „Nicht zugelassen" ist technisch, aber kein Verbindungsproblem — kein Wolken-Symbol (cloud#1429).
+    if (r.reason === CodeProxyReason.NOT_AUTHORIZED) return 'block'
     return this.isTechnical() ? 'cloud_off' : 'cancel'
   })
 

@@ -84,7 +84,7 @@
               <button
                 (click)="clockIn(); statusMenuOpen = false"
                 [disabled]="isOffline() || bookingSuspended()"
-                [title]="isOffline() ? ('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED' | translate) : ''"
+                [title]="timeTrackingBlockedKey() | translate"
                 class="pnry-touch flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <div
@@ -106,7 +106,7 @@
               <button
                 (click)="startBreak(); statusMenuOpen = false"
                 [disabled]="isOffline() || bookingSuspended()"
-                [title]="isOffline() ? ('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED' | translate) : ''"
+                [title]="timeTrackingBlockedKey() | translate"
                 class="pnry-touch flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <div
@@ -127,7 +127,7 @@
               <button
                 (click)="clockOut(); statusMenuOpen = false"
                 [disabled]="isOffline() || bookingSuspended()"
-                [title]="isOffline() ? ('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED' | translate) : ''"
+                [title]="timeTrackingBlockedKey() | translate"
                 class="pnry-touch flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <div
@@ -149,7 +149,7 @@
               <button
                 (click)="endBreak(); statusMenuOpen = false"
                 [disabled]="isOffline() || bookingSuspended()"
-                [title]="isOffline() ? ('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED' | translate) : ''"
+                [title]="timeTrackingBlockedKey() | translate"
                 class="pnry-touch flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <div
@@ -170,7 +170,7 @@
               <button
                 (click)="clockOut(); statusMenuOpen = false"
                 [disabled]="isOffline() || bookingSuspended()"
-                [title]="isOffline() ? ('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED' | translate) : ''"
+                [title]="timeTrackingBlockedKey() | translate"
                 class="pnry-touch flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <div

@@ -24,7 +24,8 @@ describe('checkUserSelfPatch', () => {
     expect(violation).toEqual({
       reason: 'FORBIDDEN_FIELD',
       field: 'role',
-      message: "Feld 'role' kann nicht im Self-Service geaendert werden. Erlaubt: posPin, password, email.",
+      message:
+        "Feld 'role' kann nicht im Self-Service geaendert werden. Erlaubt: posPin, password, email, posHandedness.",
     })
   })
 
@@ -38,6 +39,11 @@ describe('checkUserSelfPatch', () => {
     expect(checkUserSelfPatch(staff, 'user-1', { tenantId: 't-2' })?.field).toBe('tenantId')
     expect(checkUserSelfPatch(staff, 'user-1', { activeLocationId: 'loc-2' })?.field).toBe('activeLocationId')
     expect(checkUserSelfPatch(staff, 'user-1', { allowedLocationIds: ['loc-2'] })?.field).toBe('allowedLocationIds')
+  })
+
+  it('posHandedness am eigenen Record → erlaubt, am fremden → FOREIGN_RECORD', () => {
+    expect(checkUserSelfPatch(staff, 'user-1', { posHandedness: 'right' })).toBeNull()
+    expect(checkUserSelfPatch(staff, 'user-2', { posHandedness: 'right' })?.reason).toBe('FOREIGN_RECORD')
   })
 
   it('posPin/password/email am eigenen Record → erlaubt', () => {
@@ -77,7 +83,7 @@ describe('Invarianten (Regressionsanker)', () => {
     }
   })
 
-  it('Whitelist ist exakt posPin/password/email', () => {
-    expect([...SELF_PATCHABLE_FIELDS].sort()).toEqual(['email', 'password', 'posPin'])
+  it('Whitelist ist exakt posPin/password/email/posHandedness', () => {
+    expect([...SELF_PATCHABLE_FIELDS].sort()).toEqual(['email', 'password', 'posHandedness', 'posPin'])
   })
 })

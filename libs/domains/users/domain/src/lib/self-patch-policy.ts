@@ -22,7 +22,14 @@ import { PRIVILEGED_ROLES } from './user-access-policy'
 // Erlaubte Self-Patch-Felder fuer non-privilegierte Rollen. Strikt — niemals
 // `role`, `permissions`, `tenantId`, `*LocationId*` aufnehmen (Eskalations-
 // Vektor; Invarianten-Test in self-patch-policy.spec.ts lockt das).
-export const SELF_PATCHABLE_FIELDS: ReadonlySet<string> = new Set<string>(['posPin', 'password', 'email'])
+// Aufnahmekriterium: vom Nutzer selbst gesetzt und traegt keine Rechte —
+// `posHandedness` (Bedienhand an der Kasse) erfuellt das (panary/panary-core#827).
+export const SELF_PATCHABLE_FIELDS: ReadonlySet<string> = new Set<string>([
+  'posPin',
+  'password',
+  'email',
+  'posHandedness',
+])
 
 /** Minimal benoetigter Ausschnitt des authentifizierten Users (`context.params.user`). */
 export interface SelfPatchActor {

@@ -30,7 +30,7 @@ describe('restrictUserSelfPatch (Feathers-Adapter)', () => {
     })
     await expect(restrictUserSelfPatch(context)).rejects.toThrowError(Forbidden)
     await expect(restrictUserSelfPatch(context)).rejects.toThrowError(
-      "Feld 'permissions' kann nicht im Self-Service geaendert werden. Erlaubt: posPin, password, email.",
+      "Feld 'permissions' kann nicht im Self-Service geaendert werden. Erlaubt: posPin, password, email, posHandedness.",
     )
   })
 
@@ -42,5 +42,36 @@ describe('restrictUserSelfPatch (Feathers-Adapter)', () => {
       data: { posPin: '1234' },
     })
     await expect(restrictUserSelfPatch(context)).resolves.toBe(context)
+  })
+
+  // multiTenancy() stempelt `tenantId` vor diesem Hook in den Body (panary/panary-core#827).
+  it('externer Call: vom multiTenancy gestempelter eigener tenantId → kein Verstoss', async () => {
+    const context = makeContext({
+      provider: 'rest',
+      user: { _id: 'user-1', role: 'tenant:staff', tenantId: 't-1' },
+      id: 'user-1',
+      data: { posHandedness: 'right', tenantId: 't-1' },
+    })
+    await expect(restrictUserSelfPatch(context)).resolves.toBe(context)
+  })
+
+  it('externer Call: fremder tenantId im Body → Forbidden', async () => {
+    const context = makeContext({
+      provider: 'rest',
+      user: { _id: 'user-1', role: 'tenant:staff', tenantId: 't-1' },
+      id: 'user-1',
+      data: { posHandedness: 'right', tenantId: 't-2' },
+    })
+    await expect(restrictUserSelfPatch(context)).rejects.toThrowError("Feld 'tenantId'")
+  })
+
+  it('externer Call: Actor ohne tenantId → gestempeltes Feld bleibt und wird abgewiesen', async () => {
+    const context = makeContext({
+      provider: 'rest',
+      user: { _id: 'user-1', role: 'tenant:staff' },
+      id: 'user-1',
+      data: { tenantId: 't-1' },
+    })
+    await expect(restrictUserSelfPatch(context)).rejects.toThrowError(Forbidden)
   })
 })

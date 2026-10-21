@@ -46,6 +46,19 @@ export const ContractType = {
 export type ContractType = (typeof ContractType)[keyof typeof ContractType]
 
 /**
+ * Bedienhand eines Mitarbeiters an der Kasse — bestimmt, auf welcher Seite der
+ * Warenkorb sitzt (Linkshaender: Warenkorb links). String statt Boolean, weil
+ * SQLite Booleans als 0/1 liefert und jeder Leser sonst eine Coercion braucht.
+ * Fehlt der Wert, gilt [[DEFAULT_POS_HANDEDNESS]] (Aufloesung:
+ * `resolvePosHandedness` in pos-handedness-policy.ts).
+ */
+export const PosHandedness = {
+  LEFT: 'left',
+  RIGHT: 'right',
+} as const
+export type PosHandedness = (typeof PosHandedness)[keyof typeof PosHandedness]
+
+/**
  * Vertrags-Sub-Schema. Wird als optionales Feld `contract` in `userSchema`
  * eingebettet und unten als `UserContract`-Typ re-exportiert, damit Konsumenten
  * (Soll-/Ist-Berechnung in panary-cloud, Stundenkonto im POS-Edge) das Modell
@@ -227,6 +240,14 @@ export const userSchema = Type.Object(
     // (nach Proof-of-Possession) — bewusst NICHT self-patchbar, sonst koennte
     // sich jeder Mitarbeiter den Zwang selbst wegpatchen.
     mustChangePosPin: Type.Optional(Type.Boolean({ default: false })),
+    // Bedienhand an der Kasse (siehe `PosHandedness`). Bewusst OHNE `Null` in der
+    // Union und ohne Schema-Default: „nicht gewaehlt" heisst „Feld fehlt", nie
+    // `null`. Ein `null`-Clear wuerde die Cloud per `stripNulls` verwerfen und der
+    // naechste Pull den alten Wert zurueckholen (Null-Clear-Deadlock). Die leere
+    // SQLite-Spalte (`null`) faellt im Bootstrap-Push per `stripNonNullableNulls`
+    // und im Live-Push per Cloud-`stripNulls` weg. Self-patchbar
+    // (SELF_PATCHABLE_FIELDS): traegt keine Rechte.
+    posHandedness: Type.Optional(StringEnum(Object.values(PosHandedness))),
 
     startBreakAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
     permissions: Type.Array(Type.String({ maxLength: 80 }), { default: [], maxItems: 100 }),
@@ -281,6 +302,7 @@ export const userDataSchema = Type.Intersect(
         'mustChangePassword',
         'mustChangePosPin',
         'permissions',
+        'posHandedness',
         'role',
         'staffMealDiscountId',
         'staffRole',

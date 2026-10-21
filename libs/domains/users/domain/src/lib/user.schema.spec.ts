@@ -4,7 +4,7 @@ import { Ajv, addFormats } from '@feathersjs/schema'
 import type { FormatsPluginOptions } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 
-import { userDataSchema } from './user.schema'
+import { userDataSchema, userPatchSchema, userSchema } from './user.schema'
 
 // Bootstrap-Push Edge→Cloud (#183, Befund Testserver 2026-08-12). Der Edge liest
 // die User-Row roh aus SQLite (`collectAllRecords`) und reicht sie unveraendert
@@ -89,5 +89,35 @@ describe('userDataSchema (Bootstrap-Push mit leeren SQLite-Spalten)', () => {
 
   it('lehnt unbekannte Felder weiterhin ab (kein Wildcard-Passthrough)', async () => {
     await expect(validator({ ...initialEdgeAdmin, evilField: 'x' })).rejects.toThrow()
+  })
+})
+
+// Bedienhand an der Kasse (panary/panary-core#827). Create UND Patch muessen das
+// Feld kennen: Der Pull-Apply legt neue User per create an, bestehende per patch —
+// fehlt es in einem der beiden Schemas, lehnt `additionalProperties:false` den
+// ganzen User-Record ab, samt eines im selben Record steckenden PIN-Wechsels.
+describe('posHandedness', () => {
+  const patchValidator = getValidator(userPatchSchema, addFormats(new Ajv({}), formats))
+
+  it.each(['left', 'right'])('akzeptiert %s in Create und Patch', async value => {
+    await expect(validator({ ...initialEdgeAdmin, posHandedness: value })).resolves.toBeTruthy()
+    await expect(patchValidator({ posHandedness: value })).resolves.toBeTruthy()
+  })
+
+  it('ist optional — Bestands-User ohne Feld bleiben gueltig', async () => {
+    await expect(validator(initialEdgeAdmin)).resolves.toBeTruthy()
+    expect(userSchema.required).not.toContain('posHandedness')
+  })
+
+  it.each(['links', 'LEFT', '', 0])('lehnt unbekannten Wert %j ab', async value => {
+    await expect(validator({ ...initialEdgeAdmin, posHandedness: value })).rejects.toThrow()
+    await expect(patchValidator({ posHandedness: value })).rejects.toThrow()
+  })
+
+  // Kein `Null` in der Union: Ein null-Clear verwirft die Cloud per stripNulls,
+  // der naechste Pull holte den alten Wert zurueck (Null-Clear-Deadlock).
+  it('lehnt null ab', async () => {
+    await expect(validator({ ...initialEdgeAdmin, posHandedness: null })).rejects.toThrow()
+    await expect(patchValidator({ posHandedness: null })).rejects.toThrow()
   })
 })

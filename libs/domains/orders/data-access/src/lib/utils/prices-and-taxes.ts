@@ -9,6 +9,7 @@ import {
   OrderLineItem,
   sumCents,
   TaxInfo,
+  toCents,
 } from '@panary/orders/domain'
 
 // POS-Anzeige-Preise — delegieren vollständig an die kanonische Cents-Engine
@@ -24,7 +25,7 @@ import {
 //   - General-Menü-Preise (generalSideDish-/generalDrinkPrice) werden NICHT mehr
 //     aufgeschlagen — die Engine kennt sie nicht, der fakturierte Betrag
 //     (taxSnapshot/payment) enthielt sie nie. Der Aufpreis-Ausweis im Warenkorb
-//     (`menuComponentSurcharge`, feature-pos-order-dialog) zeigt price − generalPrice,
+//     (`menuComponentSurcharge`, unten) zeigt price − generalPrice,
 //     beim Festpreis-Menü (FIXED_PROPORTIONAL) aber nichts — wie der Bon (core#781).
 
 /** Zeilenpreis OHNE Ad-hoc-Modifier (Menü-Bestandteile inklusive). */
@@ -84,4 +85,21 @@ export function calculateCombinationPrice(combination: Array<OrderLineItem>): nu
 // cents-intern, fiskalisch korrekte MwSt-Extraktion, Single Source of Truth.
 export function calculateTaxSummary(order: Order): TaxInfo {
   return computeOrderTax(order)
+}
+
+/**
+ * Aufpreis einer Menü-Komponente (Beilage/Getränk) für die Anzeige an der Kasse, je Stück —
+ * Warenkorb und „Offene Bestellungen“ (core#807) rechnen damit dasselbe. Beim Festpreis-Menü
+ * (`FIXED_PROPORTIONAL`) ist die Komponente im Festpreis enthalten — die Engine verteilt
+ * `line.price` über die Komponenten und schlägt nichts auf, der Bon weist deshalb ebenfalls keinen
+ * Aufpreis aus (`order-receipt.renderer.ts`, `appendMenuComponentLine`). Ein „+€…" stünde dort
+ * als Zuschlag, der nie berechnet wird (core#781).
+ */
+export function menuComponentSurcharge(
+  line: Pick<OrderLineItem, 'bundlePricingMode'>,
+  component: { price?: number | null } | null | undefined,
+  generalPrice: number,
+): number {
+  if (!component || line.bundlePricingMode === 'FIXED_PROPORTIONAL') return 0
+  return fromCents(Math.max(0, toCents(component.price ?? 0) - toCents(generalPrice)))
 }

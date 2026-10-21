@@ -16,6 +16,7 @@ import {
   calculateSumPriceSeperated,
   calculateSumPriceWithDiscountDetails,
   calculateTaxSummary,
+  menuComponentSurcharge,
 } from './prices-and-taxes'
 
 // Die POS-Anzeige delegiert seit dem Stufe-2-Refactor vollständig an die
@@ -341,5 +342,25 @@ describe('calculateOrderTotal — Betrag einer gespeicherten Bestellung (#703)',
 
   it('gibt für eine Bestellung ohne Positionen 0 zurück', () => {
     expect(calculateOrderTotal({ lineItems: undefined } as unknown as Order)).toBe(0)
+  })
+})
+
+describe('menuComponentSurcharge (core#781)', () => {
+  const drink = { price: 6.5 }
+
+  it('weist beim Festpreis-Menü keinen Aufpreis aus — die Komponente ist im Festpreis enthalten', () => {
+    expect(menuComponentSurcharge({ bundlePricingMode: 'FIXED_PROPORTIONAL' }, drink, 0)).toEqual(0)
+    expect(menuComponentSurcharge({ bundlePricingMode: 'FIXED_PROPORTIONAL' }, drink, 2)).toEqual(0)
+  })
+
+  it('zeigt ohne Festpreis den Aufpreis über dem allgemeinen Menüpreis, cent-genau', () => {
+    expect(menuComponentSurcharge({}, drink, 0)).toEqual(6.5)
+    expect(menuComponentSurcharge({}, { price: 4.2 }, 1.1)).toEqual(3.1)
+  })
+
+  it('wird nie negativ und verträgt fehlende Komponente oder Preis', () => {
+    expect(menuComponentSurcharge({}, { price: 1 }, 2)).toEqual(0)
+    expect(menuComponentSurcharge({}, undefined, 0)).toEqual(0)
+    expect(menuComponentSurcharge({}, { price: null }, 0)).toEqual(0)
   })
 })

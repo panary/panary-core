@@ -54,6 +54,7 @@ import {
   OrderService,
   StaffPaymentInfo,
   calculateModifierPrice,
+  menuComponentSurcharge,
 } from '@panary/orders/data-access'
 import {
   AppliedDiscount,
@@ -102,7 +103,7 @@ import {
   isModifierButton,
   toPosButton,
 } from './pos-button.model'
-import { BundleFlow, menuComponentSurcharge } from './bundle-flow'
+import { BundleFlow } from './bundle-flow'
 import {
   type CustomizeModel,
   REMOVED_INGREDIENT_PREFIX,

@@ -541,34 +541,10 @@
                             }
 
                             <!-- Menu Items -->
-                            @if (item.isMenu) {
-                              @if (item.menuSideDish) {
-                                <div
-                                  class="text-xs text-gray-500 dark:text-gray-400 pl-2 flex items-center justify-between gap-2 mt-0.5"
-                                >
-                                  <div class="flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-[0.75rem] -ml-1">restaurant_menu</span>
-                                    <span>{{ item.menuSideDish.name }}</span>
-                                  </div>
-                                  @if (line.sideDishPriceFormatted) {
-                                    <span>{{ line.sideDishPriceFormatted }}</span>
-                                  }
-                                </div>
-                              }
-                              @if (item.menuDrink) {
-                                <div
-                                  class="text-xs text-gray-500 dark:text-gray-400 pl-2 flex items-center justify-between gap-2 mt-0.5"
-                                >
-                                  <div class="flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-[0.75rem] -ml-1">local_cafe</span>
-                                    <span>{{ item.menuDrink.name }}</span>
-                                  </div>
-                                  @if (line.drinkPriceFormatted) {
-                                    <span>{{ line.drinkPriceFormatted }}</span>
-                                  }
-                                </div>
-                              }
-                            }
+                            <ng-container
+                              [ngTemplateOutlet]="menuParts"
+                              [ngTemplateOutletContext]="{ $implicit: line }"
+                            />
                           </div>
                         </div>
                         <span class="font-semibold whitespace-nowrap">{{ line.lineTotalFormatted }}</span>
@@ -613,6 +589,11 @@
                                           </div>
                                         }
                                       }
+                                      <!-- Menü-Komponenten auch in Kombinationen (core#807) -->
+                                      <ng-container
+                                        [ngTemplateOutlet]="menuParts"
+                                        [ngTemplateOutletContext]="{ $implicit: line }"
+                                      />
                                     </div>
                                   </div>
                                   <span class="font-semibold text-sm">{{ line.lineTotalFormatted }}</span>
@@ -678,3 +659,31 @@
     }
   </main>
 </div>
+
+<!-- Beilage und Getränk eines Menüs — eine Vorlage für freie Positionen und Kombinationen (core#807) -->
+<ng-template #menuParts let-line>
+  @if (line.item.isMenu) {
+    @if (line.item.menuSideDish) {
+      <div class="text-xs text-gray-500 dark:text-gray-400 pl-2 flex items-center justify-between gap-2 mt-0.5">
+        <div class="flex items-center gap-1">
+          <span class="material-symbols-outlined text-[0.75rem] -ml-1">restaurant_menu</span>
+          <span>{{ line.item.menuSideDish.name }}</span>
+        </div>
+        @if (line.sideDishPriceFormatted) {
+          <span>{{ line.sideDishPriceFormatted }}</span>
+        }
+      </div>
+    }
+    @if (line.item.menuDrink) {
+      <div class="text-xs text-gray-500 dark:text-gray-400 pl-2 flex items-center justify-between gap-2 mt-0.5">
+        <div class="flex items-center gap-1">
+          <span class="material-symbols-outlined text-[0.75rem] -ml-1">local_cafe</span>
+          <span>{{ line.item.menuDrink.name }}</span>
+        </div>
+        @if (line.drinkPriceFormatted) {
+          <span>{{ line.drinkPriceFormatted }}</span>
+        }
+      </div>
+    }
+  }
+</ng-template>

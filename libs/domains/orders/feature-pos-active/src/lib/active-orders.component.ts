@@ -23,6 +23,7 @@ import type { CashSession } from '@panary/businessdays/domain'
 import { firstValueFrom } from 'rxjs'
 import {
   calculateModifierPrice,
+  menuComponentSurcharge,
   calculateTaxSummary,
   Order,
   OrderLineItem,
@@ -795,9 +796,27 @@ export class ActiveOrdersComponent {
         // Betrag wie Engine und Bon (#698): bei `modifierScope: 'unit'` für alle Stück.
         priceFormatted: extra.price > 0 ? this.formatPrice(calculateModifierPrice(item, extra)) : null,
       })),
-      sideDishPriceFormatted:
-        item.menuSideDish && item.menuSideDish.price > 0 ? this.formatPrice(item.menuSideDish.price) : null,
-      drinkPriceFormatted: item.menuDrink && item.menuDrink.price > 0 ? this.formatPrice(item.menuDrink.price) : null,
+      // Dieselbe Regel wie Warenkorb und Bon: nur der Aufpreis über dem allgemeinen Menüpreis, beim
+      // Festpreis-Menü nichts — vorher stand hier der volle Listenpreis der Komponente (core#807).
+      sideDishPriceFormatted: this.#menuSurchargeFormatted(
+        item,
+        item.menuSideDish,
+        this.#locationService.generalMenuSideDishPrice,
+      ),
+      drinkPriceFormatted: this.#menuSurchargeFormatted(
+        item,
+        item.menuDrink,
+        this.#locationService.generalMenuDrinkPrice,
+      ),
     }
+  }
+
+  #menuSurchargeFormatted(
+    item: OrderLineItem,
+    component: OrderLineItem['menuDrink'],
+    generalPrice: number,
+  ): string | null {
+    const surcharge = menuComponentSurcharge(item, component, generalPrice)
+    return surcharge > 0 ? `+${this.formatPrice(surcharge)}` : null
   }
 }

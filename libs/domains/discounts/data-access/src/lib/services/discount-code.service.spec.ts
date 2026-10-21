@@ -76,7 +76,9 @@ describe('DiscountCodeService — getrennte Verbindung (core#808)', () => {
 
   it('check() gibt nach der Zeitgrenze auf, wenn die Antwort ausbleibt', async () => {
     vi.useFakeTimers()
-    onTestFinished(() => vi.useRealTimers())
+    onTestFinished(() => {
+      vi.useRealTimers()
+    })
     const svc = { find: vi.fn(pending), create: vi.fn(pending) }
     const pendingResult = serviceWith(svc).check('SOMMER')
     await vi.advanceTimersByTimeAsync(CODE_CHECK_TIMEOUT_MS)

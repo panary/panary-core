@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { formatEurCents } from '@panary/shared/util-helpers'
 import { MatDialogRef } from '@angular/material/dialog'
 import {
   CodeProxyReason,
@@ -207,8 +208,6 @@ export class PromoCodeDialogComponent {
   }
 
   valueLabel(d: { valueType: string; valuePercent: number; valueCents: number }): string {
-    return d.valueType === 'percent' || d.valueType === 'PERCENT'
-      ? `${d.valuePercent} %`
-      : `${(d.valueCents / 100).toFixed(2).replace('.', ',')} €`
+    return d.valueType === 'percent' || d.valueType === 'PERCENT' ? `${d.valuePercent} %` : formatEurCents(d.valueCents)
   }
 }

@@ -308,7 +308,17 @@ export interface ReceiptBranding {
 const esc = (s: string): string =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-const money = (n: number, currency: string): string => `${n.toFixed(2)} ${currency}`
+// de-DE wie überall in der Oberfläche („16,50 €"). Bewusst eigener Formatter statt `formatEur` aus
+// `@panary/shared/util-helpers`: dieses Paket ist dependency-frei, und der Beleg kennt Fremdwährungen.
+const moneyFormats = new Map<string, Intl.NumberFormat>()
+const money = (n: number, currency: string): string => {
+  let fmt = moneyFormats.get(currency)
+  if (!fmt) {
+    fmt = new Intl.NumberFormat('de-DE', { style: 'currency', currency })
+    moneyFormats.set(currency, fmt)
+  }
+  return fmt.format(n)
+}
 
 // CSS-Injection-Schutz: ausschließlich #hex (3–8 Stellen).
 const safeColor = (c: string | undefined): string | undefined => (c && /^#[0-9a-fA-F]{3,8}$/.test(c) ? c : undefined)

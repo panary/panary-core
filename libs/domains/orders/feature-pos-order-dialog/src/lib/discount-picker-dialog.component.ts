@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject, signal } from '@angular/core'
+import { formatEurCents } from '@panary/shared/util-helpers'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { Discount } from '@panary/discounts/domain'
 import { DiscountService } from '@panary/discounts/data-access'
@@ -133,7 +134,7 @@ export class DiscountPickerDialogComponent implements OnInit {
   }
 
   protected valueLabel(d: Discount): string {
-    return d.valueType === 'percent' ? `${d.valuePercent} %` : `${(d.valueCents / 100).toFixed(2)} €`
+    return d.valueType === 'percent' ? `${d.valuePercent} %` : formatEurCents(d.valueCents)
   }
 
   protected select(d: Discount): void {

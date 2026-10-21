@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core'
+import { formatEurCents } from '@panary/shared/util-helpers'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -109,13 +110,7 @@ export class ManagerAuthorizeCashSessionDialogComponent {
 
   protected readonly openingFloatCents = computed(() => Math.round((this.openingFloatEuros() ?? 0) * 100))
 
-  protected readonly openingFloatLabel = computed(() =>
-    (this.openingFloatCents() / 100).toLocaleString('de-DE', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 2,
-    }),
-  )
+  protected readonly openingFloatLabel = computed(() => formatEurCents(this.openingFloatCents()))
 
   protected readonly cashierLabel = computed(
     () => this.data.cashierName?.trim() || this.#translate.instant('CASH_SESSION.AUTH_CASHIER_FALLBACK'),

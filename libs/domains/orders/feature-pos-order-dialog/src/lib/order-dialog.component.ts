@@ -15,8 +15,9 @@ import {
   ViewChild,
   WritableSignal,
 } from '@angular/core'
+import { formatEurCents } from '@panary/shared/util-helpers'
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
-import { ConfirmDialogComponent, type ConfirmDialogData } from '@panary/shared/ui-common'
+import { ConfirmDialogComponent, type ConfirmDialogData, EurPipe } from '@panary/shared/ui-common'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatSnackBar, MatSnackBarRef, TextOnlySnackBar } from '@angular/material/snack-bar'
 import { FormsModule } from '@angular/forms'
@@ -142,7 +143,15 @@ const RELEASE_BUTTON_ID = 'releaseFromCombination'
   selector: 'app-order-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AbsPipe, CommonModule, FormsModule, MatMenuModule, ProductCustomizePanelComponent, TranslateModule],
+  imports: [
+    AbsPipe,
+    CommonModule,
+    EurPipe,
+    FormsModule,
+    MatMenuModule,
+    ProductCustomizePanelComponent,
+    TranslateModule,
+  ],
   templateUrl: './order-dialog.component.html',
   styleUrls: ['./order-dialog.component.scss'],
   animations: [
@@ -3211,7 +3220,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   lineDiscountLabel(lineItem: OrderLineItem): string {
     const d = this.lineDiscountOf(lineItem)
     if (!d) return ''
-    return d.valueType === 'percent' ? `${d.valuePercent} %` : `${(d.valueCents / 100).toFixed(2)} €`
+    return d.valueType === 'percent' ? `${d.valuePercent} %` : formatEurCents(d.valueCents)
   }
 
   /**

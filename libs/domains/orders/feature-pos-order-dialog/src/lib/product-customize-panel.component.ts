@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core'
-import { CurrencyPipe } from '@angular/common'
+import { EurPipe } from '@panary/shared/ui-common'
 
 import type { CustomizeGroup, CustomizeModel, CustomizeScope } from './product-customize'
 
@@ -19,7 +19,7 @@ export interface CustomizeOptionEvent {
   selector: 'lib-product-customize-panel',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CurrencyPipe],
+  imports: [EurPipe],
   template: `
     @let m = model();
     <section class="@container flex h-full min-h-0 flex-col" aria-label="Produkt anpassen">
@@ -125,7 +125,7 @@ export interface CustomizeOptionEvent {
                       <span class="text-[0.6875rem] font-bold uppercase tracking-wide">
                         ohne
                         @if (ingredient.priceAdjustment !== 0) {
-                          · {{ ingredient.priceAdjustment | currency: 'EUR' }}
+                          · {{ ingredient.priceAdjustment | eur }}
                         }
                       </span>
                     }
@@ -184,7 +184,7 @@ export interface CustomizeOptionEvent {
                             kein Extra — im Admin auf Modifier stellen
                           </span>
                         } @else if (option.price > 0) {
-                          <span class="text-xs text-gray-500">+{{ option.price | currency: 'EUR' }}</span>
+                          <span class="text-xs text-gray-500">+{{ option.price | eur }}</span>
                         }
                       </span>
                       <button

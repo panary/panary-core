@@ -1,7 +1,7 @@
 /*
  * @panary/design-tokens — Schriften (lokal, offline-faehig: Tauri, Edge im LAN ohne Internet)
  *
- * Inter (variabel, 400-700) und IBM Plex Mono (400/500/600), jeweils nur die Teilmengen latin und
+ * Inter (variabel, 100-900) und IBM Plex Mono (400/500/600), jeweils nur die Teilmengen latin und
  * latin-ext (Deutsch und die uebrigen westeuropaeischen Sprachen). Herkunft: Dateien und unicode-range
  * aus panary-cloud/apps/admin-dashboard/src/styles/fonts (gleiche Quelle wie das Cloud-Admin).
  * Lizenz: SIL Open Font License 1.1, Text je Familie in fonts/<familie>/OFL.txt.
@@ -13,7 +13,7 @@
 @font-face {
   font-family: 'Inter';
   font-style: normal;
-  font-weight: 400 700;
+  font-weight: 100 900;
   font-display: swap;
   src: url('./fonts/inter/inter-latin-ext.woff2') format('woff2');
   unicode-range:
@@ -25,7 +25,7 @@
 @font-face {
   font-family: 'Inter';
   font-style: normal;
-  font-weight: 400 700;
+  font-weight: 100 900;
   font-display: swap;
   src: url('./fonts/inter/inter-latin.woff2') format('woff2');
   unicode-range:

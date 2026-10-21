@@ -70,7 +70,7 @@ Status-Paare. Neue Text-/Flächenpaare gehören in die Liste `pairs` des Specs.
 
 ## Schriften
 
-`fonts.css` bringt Inter (variabel, 400–700) und IBM Plex Mono (400/500/600) als woff2 mit, ohne Netzwerkzugriff
+`fonts.css` bringt Inter (variabel, 100–900) und IBM Plex Mono (400/500/600) als woff2 mit, ohne Netzwerkzugriff
 (Tauri, Edge im LAN). Quelle und Lizenz (OFL 1.1, Text je Familie unter `fonts/`) siehe Kopf der Datei. Switzer ist
 in POS und Core-Admin entfernt; der Setup-Client behält sein eigenes Asset bis zu seiner eigenen Migration.
 

@@ -88,7 +88,7 @@ body {
   color: #fff;
 }
 .save-btn--default:hover:not(:disabled) {
-  background: var(--surface-rail);
+  background: color-mix(in srgb, var(--brand-navy) 85%, #fff);
 }
 
 .dark .save-btn--default {

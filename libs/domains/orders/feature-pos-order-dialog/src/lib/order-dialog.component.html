@@ -672,7 +672,10 @@
     </div>
 
     <!-- ═══════════════ EINHEITLICHE UNTERE LEISTE ═══════════════ -->
-    <div class="flex flex-row gap-1.5 shrink-0 px-3 pb-3 pt-3 items-stretch">
+    <!-- Die Leiste ist ihr eigener Container: Ob der Inline-Ziffernblock passt, hängt an ihrer
+         Breite, nicht am Viewport. Die Schwelle ist die Summe der festen Breiten (84.625rem)
+         und wächst über rem mit dem Fluid-Scaling mit, ein Media-Breakpoint täte das nicht (#798). -->
+    <div class="@container flex flex-row gap-1.5 shrink-0 px-3 pb-3 pt-3 items-stretch">
       <!-- ── Links: Funktionstasten ── -->
       <button
         class="pnry-touch h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -794,7 +797,7 @@
         </div>
       </div>
       <!-- Numpad: Inline (große Screens) -->
-      <div class="hidden lg:flex gap-1.5">
+      <div class="hidden @min-[84.75rem]:flex gap-1.5">
         @for (number of numbers; track number) {
           <button
             class="pnry-touch h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-bold text-xl text-black dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
@@ -812,7 +815,7 @@
       </div>
 
       <!-- Clear + Numpad: Kompakt (kleine Screens) -->
-      <div class="lg:hidden flex gap-1.5">
+      <div class="@min-[84.75rem]:hidden flex gap-1.5">
         <button
           class="pnry-touch h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-bold text-2xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-colors flex items-center justify-center"
           (click)="numpadReset()"
@@ -826,49 +829,52 @@
           <span class="material-symbols-outlined !text-[1.375rem]">dialpad</span>
         </button>
       </div>
+    </div>
+    <!-- ═══ Ende untere Leiste ═══ -->
 
-      @if (showNumpadPopup) {
-        <!-- Backdrop -->
-        <div class="fixed inset-0 z-40" (click)="showNumpadPopup = false"></div>
-        <!-- Popup: mittig über dem Multiplier -->
-        <div class="fixed z-50 w-[12.25rem]" style="bottom: 7rem; right: 6.25rem">
-          <div class="bg-white dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-700 p-2.5 relative">
-            <!-- Pfeil nach unten -->
-            <div
-              class="absolute -bottom-[0.4375rem] left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white dark:bg-gray-950 border-r border-b border-gray-200 dark:border-gray-700 rotate-45"
-            ></div>
-            <div class="grid grid-cols-3 gap-1.5">
-              @for (number of [1, 2, 3, 4, 5, 6, 7, 8, 9]; track number) {
-                <button
-                  class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-lg text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
-                  (click)="numpadAction(number)"
-                >
-                  {{ number }}
-                </button>
-              }
+    <!-- Ziffern-Popup bewusst außerhalb der Leiste: `fixed` richtet sich am Viewport aus, und ein
+         Container mit Containment darf das nicht abfangen. -->
+    @if (showNumpadPopup) {
+      <!-- Backdrop -->
+      <div class="fixed inset-0 z-40" (click)="showNumpadPopup = false"></div>
+      <!-- Popup: mittig über dem Multiplier -->
+      <div class="fixed z-50 w-[12.25rem]" style="bottom: 7rem; right: 6.25rem">
+        <div class="bg-white dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-700 p-2.5 relative">
+          <!-- Pfeil nach unten -->
+          <div
+            class="absolute -bottom-[0.4375rem] left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white dark:bg-gray-950 border-r border-b border-gray-200 dark:border-gray-700 rotate-45"
+          ></div>
+          <div class="grid grid-cols-3 gap-1.5">
+            @for (number of [1, 2, 3, 4, 5, 6, 7, 8, 9]; track number) {
               <button
-                class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-colors flex items-center justify-center"
-                (click)="numpadReset()"
+                class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-lg text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
+                (click)="numpadAction(number)"
               >
-                C
+                {{ number }}
               </button>
-              <button
-                class="w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-lg text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
-                (click)="numpadAction(0)"
-              >
-                0
-              </button>
-              <button
-                class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
-                (click)="showNumpadPopup = false"
-              >
-                <span class="material-symbols-outlined !text-[1.25rem]">check</span>
-              </button>
-            </div>
+            }
+            <button
+              class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-colors flex items-center justify-center"
+              (click)="numpadReset()"
+            >
+              C
+            </button>
+            <button
+              class="w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-lg text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
+              (click)="numpadAction(0)"
+            >
+              0
+            </button>
+            <button
+              class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
+              (click)="showNumpadPopup = false"
+            >
+              <span class="material-symbols-outlined !text-[1.25rem]">check</span>
+            </button>
           </div>
         </div>
-      }
-    </div>
+      </div>
+    }
 
     <!-- Customer Filter / Selection -->
     @if (corporateCustomers.length > 0) {

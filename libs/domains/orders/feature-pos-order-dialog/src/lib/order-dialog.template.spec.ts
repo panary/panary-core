@@ -104,3 +104,48 @@ describe('OrderDialog-Template — Funktionstasten in Spalte 2 (#757)', () => {
     expect(container).toEqual(expect.arrayContaining(['shrink-0', 'min-h-0', 'overflow-y-auto']))
   })
 })
+
+// Die untere Leiste lief bei 1280 px über: Der Inline-Ziffernblock schaltete bei `lg` (1024 px)
+// ein, die Leiste braucht aber rund 1380 px (#798). Die Schwelle misst jetzt die Leiste selbst
+// (Container-Query) und muss die Summe der festen Breiten tragen — ohne Padding, denn eine
+// Container-Query vergleicht die Inhaltsbreite.
+describe('OrderDialog-Template — untere Leiste (#798)', () => {
+  const start = template.indexOf('<!-- ═══════════════ EINHEITLICHE UNTERE LEISTE ═══════════════ -->')
+  const leiste = template.slice(start, template.indexOf('<!-- Customer Filter / Selection -->'))
+  const leistenTag = leiste.match(/<div class="([^"]*)">/)?.[1].split(/\s+/) ?? []
+  const inline = leiste.slice(leiste.indexOf('<!-- Numpad: Inline'), leiste.indexOf('<!-- Clear + Numpad: Kompakt'))
+  const inlineKlassen = inline.match(/<div class="([^"]*)">/)?.[1].split(/\s+/) ?? []
+  const kompakt = leiste.slice(leiste.indexOf('<!-- Clear + Numpad: Kompakt'))
+  const kompaktKlassen = kompakt.match(/<div class="([^"]*)">/)?.[1].split(/\s+/) ?? []
+  const schwelle = (klassen: string[], wert: string) =>
+    klassen.map(k => k.match(new RegExp(`^@min-\\[([\\d.]+)rem\\]:${wert}$`))?.[1]).find(Boolean)
+
+  it('ist selbst der Container und schaltet beide Ziffernblöcke an derselben Schwelle', () => {
+    expect(start).toBeGreaterThan(-1)
+    expect(leistenTag).toContain('@container')
+    expect(inlineKlassen).toContain('hidden')
+    expect(schwelle(inlineKlassen, 'flex')).toBeDefined()
+    expect(schwelle(kompaktKlassen, 'hidden')).toEqual(schwelle(inlineKlassen, 'flex'))
+    expect([...inlineKlassen, ...kompaktKlassen].filter(k => /^(sm|md|lg|xl|2xl):/.test(k))).toEqual([])
+  })
+
+  it('schaltet den Inline-Ziffernblock erst ein, wenn alle Tasten nebeneinander passen', () => {
+    // Inline-Modus: Funktionstasten, Bestellen, Multiplier, Ziffern 0–9 und C — 19 Elemente mit
+    // fester Breite. Dazu kommt der Spacer ohne Breite, also 20 Elemente und 19 Lücken à gap-1.5
+    // = 0.375rem: so viele Lücken, wie es Breiten gibt.
+    const ohneKompakt = leiste.slice(0, leiste.indexOf('<!-- Clear + Numpad: Kompakt'))
+    const elemente = [...ohneKompakt.matchAll(/class="[^"]*\bw-(\d+)\b[^"]*"/g)].map(m => Number(m[1]) * 0.25)
+    const ziffernTaste = inline.match(/<button[^>]*class="[^"]*\bw-(\d+)\b/)?.[1]
+    // Die @for-Schleife steht einmal im Template, rendert aber zehn Ziffern.
+    const breiten = [...elemente, ...Array(9).fill(Number(ziffernTaste) * 0.25)]
+    const bedarf = breiten.reduce((a, b) => a + b, 0) + breiten.length * 0.375
+    expect(breiten).toHaveLength(19)
+    expect(Number(schwelle(inlineKlassen, 'flex'))).toBeGreaterThanOrEqual(bedarf)
+  })
+
+  it('hält das Ziffern-Popup außerhalb des Containers', () => {
+    const leistenEnde = leiste.indexOf('<!-- ═══ Ende untere Leiste ═══ -->')
+    expect(leistenEnde).toBeGreaterThan(-1)
+    expect(leiste.indexOf('@if (showNumpadPopup)')).toBeGreaterThan(leistenEnde)
+  })
+})

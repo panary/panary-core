@@ -9,8 +9,11 @@ import type { CodeCheckResult } from '@panary/discounts/data-access'
 
 export const PROMO_CODE_BLOCKED_STAFF_MEAL = 'Personalessen: kein zusätzlicher Rabatt möglich'
 export const PROMO_CODE_BLOCKED_MANUAL = 'Es ist bereits ein Rabatt gewählt — erst entfernen'
+export const PROMO_CODE_BLOCKED_CLOUD_DIRECT = 'Rabattcodes sind an dieser Kasse (Cloud direkt) noch nicht verfügbar'
 
 export interface PromoCodeGateInput {
+  /** Kasse spricht ohne Edge direkt mit der Cloud (Tarif `cloud-direct`). */
+  isCloudDirect: boolean
   isStaffMealOrder: boolean
   hasManualDiscount: boolean
 }
@@ -18,13 +21,18 @@ export interface PromoCodeGateInput {
 /**
  * Darf jetzt ein Code eingegeben werden?
  *
- * Zwei Sperren, beide mit einem Grund im Backend:
+ * Drei Sperren, alle mit einem Grund im Backend:
+ * - **Tarif cloud-direct**: Der Code-Dienst der Cloud nimmt nur Edge-Zugänge an
+ *   (cloud#1429, ADR 0032 Nachtrag); ohne Edge gibt es keinen Weg dorthin.
  * - **Personalessen** ist rabatt-exklusiv (`assertStaffMealDiscountExclusivity`);
  *   ein zweiter Rabatt ließe die Bestellung serverseitig mit 400 scheitern.
  * - **Manueller Rabatt** bereits gewählt: Zwei Order-Rabatte nebeneinander sind
  *   an der Kasse nie gemeint und wären für den Gast nicht nachvollziehbar.
  */
 export function evaluatePromoCodeGate(input: PromoCodeGateInput): { allowed: boolean; message?: string } {
+  // cloud#1429: Der Code-Dienst der Cloud nimmt bisher nur Edge-Zugänge an. Bis Geräte dort
+  // zugelassen sind (geplant), sperrt die Kasse ehrlich, statt „Cloud nicht erreichbar" zu melden.
+  if (input.isCloudDirect) return { allowed: false, message: PROMO_CODE_BLOCKED_CLOUD_DIRECT }
   if (input.isStaffMealOrder) return { allowed: false, message: PROMO_CODE_BLOCKED_STAFF_MEAL }
   if (input.hasManualDiscount) return { allowed: false, message: PROMO_CODE_BLOCKED_MANUAL }
   return { allowed: true }

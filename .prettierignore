@@ -26,3 +26,6 @@ pnpm-lock.yaml
 
 # Planungsnotizen: Prosa mit handgesetzten Tabellen, kein Code
 /_planning
+
+# Capacitor-Android-Projekt: Gradle-Gerüst und Build-Artefakte (panary/panary-core#818)
+/apps/pos-client/android

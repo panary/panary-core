@@ -9,14 +9,14 @@ describe('HubDiscoveryService Plattform-Erkennung', () => {
   })
 
   it('erkennt Capacitor nur auf der nativen Plattform', () => {
-    vi.stubGlobal('Capacitor', { isNativePlatform: () => true })
+    vi.stubGlobal('window', { Capacitor: { isNativePlatform: () => true } })
     const service = new HubDiscoveryService()
     expect(service.isCapacitor()).toBe(true)
     expect(service.isTauri()).toBe(false)
   })
 
   it('meldet im Browser weder Capacitor noch Tauri', () => {
-    vi.stubGlobal('Capacitor', { isNativePlatform: () => false })
+    vi.stubGlobal('window', { Capacitor: { isNativePlatform: () => false } })
     const service = new HubDiscoveryService()
     expect(service.isCapacitor()).toBe(false)
     expect(service.isTauri()).toBe(false)

@@ -643,6 +643,7 @@
     "PAYMENT_BACKSPACE": "Letzte Ziffer löschen",
     "PAYMENT_COLLECT": "Bar kassieren",
     "PAYMENT_KEEP_OPEN": "Offen lassen",
+    "PAYMENT_CASH_SESSION_DECLINED": "Kasse nicht freigegeben — die Bestellung bleibt offen",
     "STAFF_MEAL": "Personalessen",
     "CORPORATE_CUSTOMER": "Firmenkunde",
     "COMBINATION": "Kombination",

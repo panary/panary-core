@@ -643,6 +643,7 @@
     "PAYMENT_BACKSPACE": "Son rakamı sil",
     "PAYMENT_COLLECT": "Nakit tahsil et",
     "PAYMENT_KEEP_OPEN": "Açık bırak",
+    "PAYMENT_CASH_SESSION_DECLINED": "Kasa onaylanmadı — sipariş açık kalır",
     "STAFF_MEAL": "Personel yemeği",
     "CORPORATE_CUSTOMER": "Kurumsal müşteri",
     "COMBINATION": "Kombinasyon",

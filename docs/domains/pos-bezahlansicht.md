@@ -41,6 +41,15 @@ Sonst heißt die Taste „Bestellen" und alles läuft wie vorher.
 
 Karte und Gutschein sind sichtbar, aber nicht antippbar („bald").
 
+## Zweiter Einstieg: Abschließen in Offene Bestellungen
+
+Seit [core#834](https://github.com/panary/panary-core/issues/834). Im Kassenbetrieb
+(`operationMode !== 'orders-only'`) öffnet „Abschließen" an einer offenen Bestellung dieselbe Ansicht als Dialog
+(`CashPaymentDialogComponent`, Betrag = Summe der Bestellung) statt sofort fest Bar zu kassieren. „Bar kassieren"
+ruft `OrderCheckoutService.payCash` (inkl. Manager-PIN-Freigabe bei `BD_6004`), „Offen lassen" schließt den
+Dialog, die Bestellung bleibt offen. Der Bestellbetrieb schließt wie vorher ohne Zahlung ab. Es gibt bewusst
+keine Navigation: Der Warenkorb der Kasse bleibt unberührt.
+
 ## Fehlerfälle
 
 | Fall | Ergebnis |

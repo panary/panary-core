@@ -2986,3 +2986,64 @@ describe('OrderDialog — Standort kommt nach dem Aufbau (core#878)', () => {
     expect([component.generalSideDishPrice, component.generalDrinkPrice]).toEqual([0, 0])
   })
 })
+
+// core#837: Die erste Ziffer ersetzt die Startmenge 1. Als erste Ziffer 0 stand der Multiplikator auf 0, und die
+// nächste Kachel buchte eine Position mit Menge 0 (Summe 0 €, Zeile „0×").
+describe('OrderDialog — Multiplikator beginnt nie mit 0 (core#837)', () => {
+  const lineAmounts = (component: { lineItems: Array<{ amount: number }> }) => component.lineItems.map(l => l.amount)
+
+  it('bucht nach einer Null als erster Ziffer mit Menge 1, nicht mit Menge 0', () => {
+    const { component } = setup()
+
+    component.numpadAction(0)
+    component.increaseLineItem(product('p-1'))
+
+    expect(lineAmounts(component)).toEqual([1])
+  })
+
+  it('zeigt den Multiplikator nach der Null weiter als × 1', () => {
+    const { component } = setup()
+
+    component.numpadAction(0)
+
+    expect(component.multiplier).toBe(1)
+  })
+
+  it('lässt eine Null nach einer Ziffer gelten: 1, 0 → 10', () => {
+    const { component } = setup()
+
+    component.numpadAction(1)
+    component.numpadAction(0)
+
+    expect(component.multiplier).toBe(10)
+  })
+
+  it('nimmt nach der ignorierten Null die erste echte Ziffer als Menge: 0, 5 → 5', () => {
+    const { component } = setup()
+
+    component.numpadAction(0)
+    component.numpadAction(5)
+    component.increaseLineItem(product('p-1'))
+
+    expect(lineAmounts(component)).toEqual([5])
+  })
+
+  it('mehrere führende Nullen bleiben ohne Wirkung: 0, 0, 3 → 3', () => {
+    const { component } = setup()
+
+    component.numpadAction(0)
+    component.numpadAction(0)
+    component.numpadAction(3)
+
+    expect(component.multiplier).toBe(3)
+  })
+
+  it('setzt C wie bisher auf 1 zurück', () => {
+    const { component } = setup()
+    component.numpadAction(7)
+
+    component.numpadReset()
+
+    expect(component.multiplier).toBe(1)
+  })
+})

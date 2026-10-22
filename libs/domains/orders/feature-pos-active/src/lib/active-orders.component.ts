@@ -16,11 +16,9 @@ import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { uuidv7 } from 'uuidv7'
 import {
-  openManagerAuthorizeCashSessionDialog,
-  type ManagerAuthorizeCashSessionDialogData,
+  promptCashSessionAuthorization,
+  type CashSessionPromptLocation,
 } from '@panary/businessdays/feature-pos-closing-dialog'
-import type { CashSession } from '@panary/businessdays/domain'
-import { firstValueFrom } from 'rxjs'
 import {
   calculateModifierPrice,
   menuComponentSurcharge,
@@ -291,35 +289,14 @@ export class ActiveOrdersComponent {
       orderId: order._id,
       total: this.calculateTotal(order),
       cashierId: performedById,
-      requestCashSession: cashierId => this.#promptOpenCashSession(cashierId),
+      requestCashSession: cashierId =>
+        promptCashSessionAuthorization(
+          this.#matDialog,
+          this.#locationService.activeLocation() as CashSessionPromptLocation | undefined,
+          this.#userService.users(),
+          cashierId,
+        ),
     })
-  }
-
-  /**
-   * Öffnet den Manager-PIN-Dialog zur Kassen-Freigabe für den Kassierer.
-   * Liefert `true`, wenn eine Kasse eröffnet wurde (→ Bestellung erneut kassieren).
-   */
-  async #promptOpenCashSession(cashierId: string): Promise<boolean> {
-    const loc = this.#locationService.activeLocation() as
-      | {
-          currentBusinessDay?: { businessDayId?: string }
-          settings?: { cashSessionSettings?: { defaultOpeningFloatCents?: number } }
-        }
-      | undefined
-    const businessDayId = loc?.currentBusinessDay?.businessDayId
-    if (!businessDayId) return false
-
-    const cashier = this.#userService.users().find((u: User) => u._id === cashierId)
-    const cashierName = cashier ? `${cashier.firstName ?? ''} ${cashier.lastName ?? ''}`.trim() : undefined
-
-    const data: ManagerAuthorizeCashSessionDialogData = {
-      businessDayId,
-      cashierId,
-      cashierName: cashierName || undefined,
-      defaultOpeningFloatCents: loc?.settings?.cashSessionSettings?.defaultOpeningFloatCents,
-    }
-    const result = await firstValueFrom(openManagerAuthorizeCashSessionDialog(this.#matDialog, data).afterClosed())
-    return !!(result as CashSession | null)
   }
 
   /**

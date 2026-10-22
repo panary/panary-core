@@ -201,9 +201,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
             <!-- Detail Content -->
             <div class="flex-1 overflow-y-auto p-4">
               <!-- Customer Card -->
-              <div
-                class="mb-4 p-4 bg-accent-soft rounded-xl border border-accent-line"
-              >
+              <div class="mb-4 p-4 bg-accent-soft rounded-xl border border-accent-line">
                 <div class="font-bold text-ink text-lg">
                   {{ selectedOrder()?.customerContact?.name }}
                 </div>

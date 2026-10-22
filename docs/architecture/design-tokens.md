@@ -95,3 +95,11 @@ die Klassen auf Token-Klassen umgestellt sind; neue Oberflächen nutzen sie nich
 `min-h-touch` (56 px), `min-h-touch-primary` (64 px) und `min-h-touch-min` (48 px). Icons über `<lib-icon>`
 (Phosphor Bold). Alles liegt lokal im Bundle, der Assistent läuft ohne Netz. Der QR-Code bleibt auf weißem Grund,
 sonst scannen ihn Handys im Dunkelmodus nicht.
+
+## POS-Geräte-Setup
+
+`libs/domains/system/feature-pos-setup` (Route `setup`) nutzt ausschließlich Token-Klassen (`bg-surface-*`, `text-ink*`,
+`border-line*`, `bg-action text-on-action`, `danger|warn|accent`-Varianten). Die `dark:`-Paare entfallen, weil die
+Tokens selbst zwischen Warm hell und Warm dunkel wechseln; Hover der Primärtasten ist `hover:brightness-95`. Tasten
+tragen die Touch-Maße (`min-h-touch-primary` 64 px, `min-h-touch` 56 px, `min-h-touch-min` 48 px), Icons kommen über
+`<lib-icon>`. Nur der Kamera-Scan-Overlay bleibt bewusst schwarz mit weißen Rahmen (Kamerabild).

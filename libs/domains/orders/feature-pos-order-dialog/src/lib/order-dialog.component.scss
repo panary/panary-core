@@ -252,3 +252,62 @@
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
   }
 }
+
+/*
+ * Kassenbildschirm B1 (core#829, Konzept §2.1/§4/§5): benannte Zonen statt verschachtelter Flex-Spalten.
+ * Gespiegelt werden nur die Zonen — Warenkorb ↔ Raster und Primärtaste ↔ Ziffernleiste —, nie der Inhalt
+ * einer Zone (Ziffern 0–9, − vor +, Text bleiben). Keine `dir="rtl"`-Tricks. Ohne Wahl gilt links (wie bisher).
+ */
+.kasse {
+  /* Produktkachel und Funktionstaste teilen ein Maß (code-style.md §9.1); 12,5rem laut Konzept §4. */
+  --pnry-tile-min: 12.5rem;
+
+  display: grid;
+  grid-template-columns: 25rem minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'head head'
+    'groups groups'
+    'cart grid'
+    'primary keys';
+
+  &[data-hand='right'] {
+    grid-template-columns: minmax(0, 1fr) 25rem;
+    grid-template-areas:
+      'head head'
+      'groups groups'
+      'grid cart'
+      'keys primary';
+  }
+}
+
+.kasse__head {
+  grid-area: head;
+}
+
+.kasse__groups {
+  grid-area: groups;
+}
+
+.kasse__cart {
+  grid-area: cart;
+}
+
+.kasse__grid {
+  grid-area: grid;
+}
+
+.kasse__primary {
+  grid-area: primary;
+}
+
+.kasse__keys {
+  grid-area: keys;
+}
+
+/* Rechts liegt der Abstand zur Kante auf der anderen Seite: Raster und Ziffern rücken nach links. */
+.kasse[data-hand='right'] .kasse__grid,
+.kasse[data-hand='right'] .kasse__keys {
+  margin-right: 0;
+  margin-left: 0.75rem;
+}

@@ -87,6 +87,7 @@ import { LocationService } from '@panary/locations/data-access'
 import { defaultOrderChannel, toggledOrderChannel, type PosOrderChannel } from './order-channel'
 import { AuthService } from '@panary/auth/data-access'
 import { User, UserService } from '@panary/users/data-access'
+import { resolvePosHandedness } from '@panary/users/domain'
 import { ConnectionService, TenantSuspensionService } from '@panary/shared/data-access'
 import { DeviceConfigService } from '@panary/shared/data-access-config'
 import { CorporateCustomer } from '@panary/corporate-customers/domain'
@@ -113,6 +114,7 @@ import {
 } from './pos-button.model'
 import { BundleFlow } from './bundle-flow'
 import { KasseDraftRegistry } from './kasse-draft-registry'
+import { splitGroupBar } from './group-bar'
 import {
   type CustomizeModel,
   REMOVED_INGREDIENT_PREFIX,
@@ -229,7 +231,14 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private _articlesToCombine = new Map<number, number>()
   private _isBlocked = false
   private _customer: CorporateCustomer | undefined = undefined
-  private _currentUser: User | undefined = undefined
+  /** Signal statt Feld: Der Nutzer kommt verzögert (Refetch), und die Spiegelung muss ihm folgen. */
+  readonly #currentUser = signal<User | undefined>(undefined)
+  private get _currentUser(): User | undefined {
+    return this.#currentUser()
+  }
+  private set _currentUser(user: User | undefined) {
+    this.#currentUser.set(user)
+  }
   private _functionButtons: PosButton[] = []
   private _functionBlockLabel = ''
   private _infoBoxBackgroundColor = '#f1f5f9'
@@ -323,8 +332,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private _deleteOrderName = 'Bestellung leeren'
   private _extraTopic = 'Extras'
   private _productionTimeTopic: UUID = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx03'
-  private _resolveCombinationId = 'resolveCombination'
-  private _resolveCombinationName = 'Kombination auflösen'
   private _skipExtraId = 'skipExtra'
   private _skipExtraName = 'ABBRUCH'
   private _skipSauceId = 'skipSauce'
@@ -349,6 +356,15 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   visibleProductGroups: ProductGroup[] = []
   overflowProductGroups: ProductGroup[] = []
+
+  /**
+   * Seite des Warenkorbs: `posHandedness` des angemeldeten Mitarbeiters, ohne Wahl links wie bisher
+   * (core#829, Konzept §5 „Spiegelung"). Gespiegelt werden nur Zonen im Grid, nie Inhalte.
+   */
+  readonly handedness = computed(() => resolvePosHandedness(this.#currentUser()))
+
+  /** Übersicht aller Gruppen hinter „Weitere (n)" — ersetzt das frühere Überlauf-Menü (core#829). */
+  readonly allGroupsOpen = signal(false)
 
   get combinations(): OrderLineItem[][] {
     return getCombinations({ lineItems: this.#lineItems } as any)
@@ -609,29 +625,19 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       return
     }
 
-    const containerWidth = this.productGroupContainer.nativeElement.clientWidth
-    // Tab-Breiten sind rem-basiert — im Fluid-Modus wachsen sie mit der Root-Fontsize.
-    // Der Faktor rechnet die px-Rechenkonstanten auf die tatsächlich gerenderte Größe um (Flag off: 16px/16 = 1).
-    const remFactor = (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) / 16
-    // Mindestbreite der Taste (5.25rem = 84px) plus Luft — gehört zum style-Attribut im Template (#795)
-    const buttonWidth = 89 * remFactor
-    const gap = 8 * remFactor
-    const expandButtonWidth = 52 * remFactor
-
-    const maxItems = Math.floor((containerWidth + gap) / (buttonWidth + gap))
-
-    if (allGroups.length <= maxItems) {
-      this.visibleProductGroups = allGroups
-      this.overflowProductGroups = []
-    } else {
-      const availableWidthForButtons = containerWidth - expandButtonWidth - gap
-      const maxVisibleWithOverflow = Math.floor((availableWidthForButtons + gap) / (buttonWidth + gap))
-
-      this.visibleProductGroups = allGroups.slice(0, maxVisibleWithOverflow)
-      this.overflowProductGroups = allGroups.slice(maxVisibleWithOverflow)
-    }
+    // Felder und Abstände sind rem-basiert und wachsen mit der Dichte; die Breite misst der Container.
+    const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
+    const split = splitGroupBar(allGroups, this.productGroupContainer.nativeElement.clientWidth, remPx)
+    this.visibleProductGroups = split.visible
+    this.overflowProductGroups = split.overflow
 
     this.#cdr.detectChanges()
+  }
+
+  /** Gruppe aus der Übersicht aller Gruppen wählen — schließt die Übersicht. */
+  selectGroupFromAll(productGroup: ProductGroup): void {
+    this.allGroupsOpen.set(false)
+    this.createProductButtons(productGroup)
   }
 
   /** PRIVATE METHODS */
@@ -717,16 +723,23 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.setInfoBoxText('Bitte wählen Sie eine Produktkategorie')
   }
 
+  /**
+   * Tipp auf eine Warenkorbzeile: wählt sie aus, der zweite Tipp hebt die Auswahl auf (core#829).
+   * Darunter klappt die Steuerleiste auf; das Anpassen öffnet erst deren Taste. Bis dahin öffnete
+   * der Tipp das Panel sofort und nahm das Raster weg, auch wenn nur die Menge zu ändern war.
+   * Ist das Panel schon offen, zieht es mit der Auswahl mit (`#followSelectionInPanel`).
+   */
   toggleProductSelection(index: number) {
     if (this._isBlocked) return
 
-    if (this._selectedProductIndex === index) {
-      this.unselectProduct()
-    } else {
-      this.selectProduct(index)
-    }
+    this.#freshLine = null
+    this.applyBoardSelection({
+      productIndex: this._selectedProductIndex === index ? null : index,
+      combinationIndex: [null, null],
+    })
   }
 
+  /** Auswählen und sofort anpassen — dasselbe wie Tipp auf die Zeile plus „Anpassen" in der Steuerleiste. */
   selectProduct(index: number) {
     if (this._isBlocked) return
 
@@ -739,69 +752,53 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   selectCombinationByIndex(combinationIndex: number, articleIndex: number | null) {
     if (this._isBlocked) return
 
-    const panelWasOpen = this.#customizeLine !== null
+    // Wie eine freie Zeile: Der Tipp wählt nur aus, angepasst wird über die Steuerleiste (core#829).
     this.applyBoardSelection(toggleCombinationSelection(this.boardSelection(), combinationIndex, articleIndex))
-    // Eine Position in der Kombination öffnet das Panel wie eine freie Zeile (#795) — bis dahin
-    // markierte der Tipp nur, und das Panel zog nur mit, wenn es schon offen war.
-    if (!panelWasOpen && articleIndex !== null && this._selectedCombinationIndex[1] !== null) {
-      this.setExtraSubButtons()
-    }
   }
 
   /**
-   * Header-Tap: markiert die ganze Kombination und zeigt ihre Aktionen (Auflösen, Löschen). Ist
-   * sie schon ganz markiert, hebt der Tap die Markierung auf. Von einer markierten Position aus
-   * wechselt er auf die ganze Kombination — bis #795 hob er dort die Markierung auf, und am Gerät
-   * sah es aus, als täte der Kopf nichts.
+   * Header-Tap: markiert die ganze Kombination; ist sie schon ganz markiert, hebt der Tap die
+   * Markierung auf. Von einer markierten Position aus wechselt er auf die ganze Kombination (#795).
+   * Lösen und Löschen sitzen seit core#829 in der Steuerleiste unter der Kombination, nicht mehr als
+   * Funktionstasten über dem Raster — das Raster bleibt stehen, ein Kacheltap legt in die Kombination (#271).
    */
   toggleCombinationSelection(combinationIndex: number) {
     if (this._isBlocked) return
 
     const wholeSelected =
       this._selectedCombinationIndex[0] === combinationIndex && this._selectedCombinationIndex[1] === null
-    if (wholeSelected) {
-      this.unselectProduct()
-      return
-    }
-    this._selectedProductIndex = null
-    this._selectedCombinationIndex = [combinationIndex, null]
-    this.#setCombinationActionButtons(combinationIndex)
+    this.applyBoardSelection({
+      productIndex: null,
+      combinationIndex: wholeSelected ? [null, null] : [combinationIndex, null],
+    })
+    if (!wholeSelected) this.setInfoBoxText(`Kombination ${combinationIndex + 1} ausgewählt`)
   }
 
-  /** Aktionen der markierten Kombination in Spalte 3 — beide wirken direkt auf die Auswahl (#795). */
-  #setCombinationActionButtons(combinationIndex: number): void {
-    this.clearButtons()
-    this.setInfoBoxText(`Kombination ${combinationIndex + 1} ausgewählt`)
-    this._functionBlockLabel = 'Kombination'
-    const base = {
-      externalId: this.#functionButtonExternalId,
-      locationId: this.userService.currentUser()?.activeLocationId || '',
-      tenantId: this.authService.tenantId()?.toString() || '',
-      isFunctionButton: true,
-      variant: 'cancel' as const,
-    }
-    this._functionButtons.push({
-      ...base,
-      _id: this._resolveCombinationId,
-      index: 1,
-      name: this._resolveCombinationName,
-      iconName: 'link-break',
-      callback: () => {
-        this.resolveCombination()
-        this.unselectProduct()
-      },
-    })
-    this._functionButtons.push({
-      ...base,
-      _id: 'deleteCombination',
-      index: 2,
-      name: 'Kombination löschen',
-      iconName: 'trash',
-      callback: () => {
-        this.deleteSelection()
-        this.unselectProduct()
-      },
-    })
+  /** Stückzahl im Warenkorb für „Gesamt · n Artikel" — Zeilen samt Positionen in Kombinationen. */
+  articleCount(): number {
+    return this.#lineItems.reduce((sum, line) => sum + line.amount, 0)
+  }
+
+  /** Ist die ganze Kombination markiert (nicht nur eine Position)? Dann heißt „Anpassen" „Kombi lösen". */
+  isWholeCombinationSelected(): boolean {
+    return this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] === null
+  }
+
+  /** Menge der markierten Zeile oder Position für die Steuerleiste — `null` bei einer ganzen Kombination. */
+  selectionQuantity(): number | null {
+    return this.getCurrentSelectedLineItem()?.amount ?? null
+  }
+
+  /** „Anpassen" in der Steuerleiste: Panel bzw. Extras für die markierte Zeile oder Position. */
+  customizeSelection(): void {
+    this.setExtraSubButtons()
+  }
+
+  /** „Kombi lösen" in der Steuerleiste: die markierte Kombination wird zu freien Zeilen. */
+  resolveSelectedCombination(): void {
+    if (this._isBlocked || !this.isWholeCombinationSelected()) return
+    this.resolveCombination()
+    this.unselectProduct()
   }
 
   increaseSelectedIndex() {
@@ -2224,15 +2221,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
-   * Mülleimer in Spalte 2: aus, solange die ganze Kombination markiert ist — dann sitzt „Kombination
-   * löschen" als Funktionstaste rechts, und zwei Löschknöpfe für dieselbe Sache verwirrten (#795).
-   */
-  canDeleteSelection(): boolean {
-    const wholeCombination = this._selectedCombinationIndex[0] !== null && this._selectedCombinationIndex[1] === null
-    return this.canMutateSelection() && !wholeCombination
-  }
-
-  /**
    * Minus nur, wenn **jede** Zielzeile über 1 steht — sonst müsste es eine davon
    * löschen, und genau diese Doppelwirkung ist mit #269 abgeschafft. Bei einer
    * Kombination mit gemischten Mengen bleibt die Position einzeln markierbar.
@@ -3366,7 +3354,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
           ? 'bg-amber-200 border-amber-500 text-amber-800 shadow-inner dark:bg-amber-800/60 dark:border-amber-400 dark:text-amber-200'
           : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 active:bg-amber-200 dark:bg-amber-900/30 dark:border-amber-900/60 dark:text-amber-300 dark:active:bg-amber-800/60'
       case 'confirm':
-        return 'bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100 active:bg-teal-200 dark:bg-teal-900/30 dark:border-teal-900/60 dark:text-teal-300 dark:active:bg-teal-800/60'
+        return 'bg-accent-soft border-accent-line text-accent-ink hover:brightness-95 active:brightness-90'
       default:
         return 'bg-white border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700'
     }

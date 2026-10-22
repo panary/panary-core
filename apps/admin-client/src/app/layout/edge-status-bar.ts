@@ -56,11 +56,13 @@ const CLOUD_POLL_MS = 60_000
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ul class="flex items-center gap-5 text-[13px] text-shell-muted" [attr.aria-label]="'NAV.STATUS_BAR' | translate">
-      <li class="flex items-center gap-1.5">
-        <span class="size-[7px] rounded-full" [class]="dot(cloudTone())" aria-hidden="true"></span>
-        <span class="font-semibold text-shell-ink">{{ 'NAV.STATUS_CLOUD' | translate }}</span>
-        · {{ cloudLabel() | translate }}
-      </li>
+      @if (cloudStatus(); as status) {
+        <li class="flex items-center gap-1.5">
+          <span class="size-[7px] rounded-full" [class]="dot(cloudToneOf(status))" aria-hidden="true"></span>
+          <span class="font-semibold text-shell-ink">{{ 'NAV.STATUS_CLOUD' | translate }}</span>
+          · {{ cloudLabelOf(status) | translate }}
+        </li>
+      }
       <li class="flex items-center gap-1.5">
         <span class="size-[7px] rounded-full" [class]="dot(syncTone())" aria-hidden="true"></span>
         <span class="font-semibold text-shell-ink">{{ 'NAV.STATUS_SYNC' | translate }}</span>
@@ -91,11 +93,10 @@ export class EdgeStatusBarComponent {
   protected readonly syncProblems = inject(SyncProblemCountService)
   protected readonly deviceStatus = inject(DeviceStatusService)
 
-  private readonly cloudStatus = signal<CloudStatus>('standalone')
+  /** `null` = noch unbekannt (erster Abruf läuft, oder er scheiterte bisher immer): Eintrag ausgeblendet. */
+  protected readonly cloudStatus = signal<CloudStatus | null>(null)
   protected readonly version = signal<string | null>(null)
 
-  protected readonly cloudLabel = computed(() => CLOUD_LABEL[this.cloudStatus()])
-  protected readonly cloudTone = computed(() => cloudTone(this.cloudStatus()))
   protected readonly syncTone = computed(() => syncTone(this.syncProblems.count()))
   protected readonly deviceTone = computed(() =>
     deviceTone(this.deviceStatus.online() ?? 0, this.deviceStatus.total() ?? 0),
@@ -117,8 +118,21 @@ export class EdgeStatusBarComponent {
     this.version.set(health?.version ?? null)
   }
 
+  protected cloudLabelOf(status: CloudStatus): string {
+    return CLOUD_LABEL[status]
+  }
+
+  protected cloudToneOf(status: CloudStatus): StatusTone {
+    return cloudTone(status)
+  }
+
   private async refreshCloudStatus(): Promise<void> {
-    const res = await this.api.find<CloudConnection>('cloud-connection', { $limit: 1 }).catch(() => null)
-    this.cloudStatus.set(deriveCloudStatus(res?.data[0], Date.now()))
+    try {
+      const res = await this.api.find<CloudConnection>('cloud-connection', { $limit: 1 })
+      this.cloudStatus.set(deriveCloudStatus(res.data[0], Date.now()))
+    } catch {
+      // Netzfehler oder fehlendes Leserecht sagt nichts über die Kopplung: letzten Stand halten
+      // (wie DeviceStatusService), statt eine gekoppelte Edge als „nicht gekoppelt“ zu zeigen.
+    }
   }
 }

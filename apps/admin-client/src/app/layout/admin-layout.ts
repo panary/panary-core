@@ -103,7 +103,10 @@ interface NavItem {
           Panary
           <span class="text-xs font-medium text-shell-muted">{{ 'NAV.EDGE_ADMIN' | translate }}</span>
         </a>
-        <app-edge-status-bar class="hidden md:block" />
+        <!-- Unter md nicht gerendert statt versteckt: sonst pollt die Zeile weiter, ohne sichtbar zu sein. -->
+        @if (!isNarrow()) {
+          <app-edge-status-bar />
+        }
       </header>
 
       <div class="flex-1 min-h-0 flex">

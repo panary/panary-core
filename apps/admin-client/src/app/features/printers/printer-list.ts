@@ -51,7 +51,7 @@ import { PrinterService } from './printer.service'
             </thead>
             <tbody>
               @for (printer of printers(); track printer.pid) {
-                <tr class="border-slate-100 hover:bg-slate-50 dark:hover:bg-gray-900/50 transition">
+                <tr class="hover:bg-slate-50 dark:hover:bg-gray-900/50 transition">
                   <td class="text-sm text-slate-900 dark:text-white font-medium">{{ printer.name }}</td>
                   <td>
                     @if (printer.type === 'ip') {

@@ -121,7 +121,7 @@ function getTimeRangeFilter(range: Exclude<TimeRange, 'businessDay'>): Record<st
                   @for (order of orders(); track order._id) {
                     <tr
                       (click)="selectOrder(order._id)"
-                      class="border-slate-100 cursor-pointer transition"
+                      class="cursor-pointer transition"
                       [class]="
                         selectedId() === order._id
                           ? 'bg-slate-100 dark:bg-gray-800'

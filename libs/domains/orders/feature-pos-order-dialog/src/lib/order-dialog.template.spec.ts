@@ -152,7 +152,9 @@ describe('Kasse-Template — Ziffernleiste (#798, core#829)', () => {
 // core#829: Zonen-Grid mit Spiegelung je Mitarbeiter, Gruppenleiste ohne Wischen, Kacheln ohne Silbentrennung.
 describe('Kasse-Template — Layout B1 (core#829)', () => {
   const scss = readFileSync(fileURLToPath(new URL('./order-dialog.component.scss', import.meta.url)), 'utf8')
-  const areas = (block: string) => [...block.matchAll(/'([a-z ]+)'/g)].map(m => m[1].split(/\s+/))
+  // Nur die Zeilen hinter `grid-template-areas:` — der Selektor `[data-hand='right']` trägt selbst Anführungszeichen.
+  const areas = (block: string) =>
+    [...block.slice(block.indexOf('grid-template-areas:')).matchAll(/'([a-z ]+)'/g)].map(m => m[1].split(/\s+/))
 
   it('bindet die Seite des Warenkorbs an die Händigkeit des Mitarbeiters', () => {
     expect(template).toContain('[attr.data-hand]="handedness()"')

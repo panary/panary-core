@@ -597,10 +597,12 @@ describe('OrderDialog — Funktionsleiste: Menge und Loeschen auf die Markierung
     expect(component.selectedCombinationIndex).toEqual([0, null])
     expect(component.canMutateSelection()).toBe(true)
 
+    const vorher = component.functionButtons
     component.toggleCombinationSelection(0)
 
     expect(component.selectedCombinationIndex).toEqual([null, null])
-    expect(component.functionButtons).toEqual([])
+    // Seit core#829 räumt das Aufheben nichts ab: Raster und Funktionstasten bleiben stehen.
+    expect(component.functionButtons).toBe(vorher)
   })
 
   it('decreaseLineItem() (ABBRUCH im Bundle-Flow) entfernt auch eine Position in der Kombination', () => {

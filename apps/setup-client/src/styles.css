@@ -45,6 +45,11 @@ body {
 }
 
 /* Wiederkehrende Bausteine des Setup-Assistenten (Touch-Maße ≥ 48/56/64 px laut Konzept §4) */
+/* Gemeinsame Basis aller Tasten; als Utility, damit @apply sie in den Varianten aufnehmen kann */
+@utility setup-btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-control font-semibold transition select-none disabled:cursor-not-allowed disabled:opacity-50;
+}
+
 @layer components {
   .setup-field-label {
     @apply text-xs font-semibold tracking-wide text-ink-muted uppercase;
@@ -54,9 +59,6 @@ body {
   }
   .setup-input {
     @apply min-h-touch w-full rounded-control border border-line bg-surface-input px-4 text-base text-ink outline-none placeholder:text-ink-faint focus:border-accent-ink focus:ring-1 focus:ring-accent-ink;
-  }
-  .setup-btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-control font-semibold transition select-none disabled:cursor-not-allowed disabled:opacity-50;
   }
   .setup-btn-primary {
     @apply setup-btn min-h-touch-primary bg-action px-8 text-base text-on-action hover:brightness-95;

@@ -8,6 +8,7 @@ import { DashboardComponent } from '@panary/orders/feature-pos-dashboard'
 // import { PosShellComponent } from '@panary/shared/ui-layout' -> WE NEED TO MIGRATE SHELL COMPONENT TOO
 import { AppPosShellComponent } from './shell/shell'
 import { ActiveOrdersComponent } from '@panary/orders/feature-pos-active'
+import { kasseBookingGuard, kasseLeaveGuard, KassePageComponent } from '@panary/orders/feature-pos-order-dialog'
 
 export const appRoutes: Route[] = [
   {
@@ -35,6 +36,12 @@ export const appRoutes: Route[] = [
       {
         path: 'dashboard',
         component: DashboardComponent,
+      },
+      {
+        path: 'kasse',
+        component: KassePageComponent,
+        canActivate: [kasseBookingGuard],
+        canDeactivate: [kasseLeaveGuard],
       },
       {
         path: 'orders/active',

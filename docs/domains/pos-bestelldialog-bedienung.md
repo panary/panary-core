@@ -20,8 +20,9 @@ Kombination. Zwei rote Mülleimer ließen offen, welcher was löscht. Der Code l
 
 | Aktion | Verhalten |
 | --- | --- |
-| X, nichts gebucht | schließt sofort |
-| X, je ein Artikel gebucht (auch wenn alles wieder gelöscht ist) | Rückfrage „Bestellung verwerfen?" |
+| „Übersicht" (bis core#828 das X), nichts gebucht | zurück zum Dashboard |
+| „Übersicht", je ein Artikel gebucht (auch wenn alles wieder gelöscht ist) | Rückfrage „Bestellung verwerfen?" |
+| Browser-Zurück oder anderer Menüpunkt | wie „Übersicht" ([Kasse als Route](pos-kasse-route.md#verlassen-der-kasse)) |
 | Mehr → „Bestellung leeren" mit Positionen | Rückfrage „Bestellung leeren?" (kein Rückgängig) |
 
 Beide Rückfragen öffnen mit `disableClose: true`. Ein Tipp daneben oder ESC schließt sie nicht, nur

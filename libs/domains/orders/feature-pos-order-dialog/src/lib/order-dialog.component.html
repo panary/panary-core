@@ -17,15 +17,16 @@
       </div>
     </div>
     <button
-      (click)="dialogClose()"
-      class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/20 transition"
+      (click)="leave()"
+      class="h-10 px-3 flex items-center justify-center gap-1.5 rounded-xl hover:bg-white/20 transition"
       [ngClass]="
         infoBoxBackgroundColor !== '#f1f5f9'
           ? 'text-white/80 hover:text-white'
           : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
       "
     >
-      <lib-icon name="x" style="font-size: inherit" />
+      <lib-icon name="squares-four" style="font-size: inherit" />
+      <span class="text-sm font-semibold">{{ 'ORDER_DIALOG.OVERVIEW' | translate }}</span>
     </button>
   </div>
 
@@ -962,53 +963,25 @@
   }
 
   @if (blockingReason) {
-    <!-- Admin Mode Overlay -->
-    @if (data?.mode === 'admin') {
-      <div class="absolute inset-0 z-50 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center p-8">
-        <div
-          class="bg-white dark:bg-gray-950 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-8 max-w-lg w-full text-center"
+    <!-- Default POS Mode Overlay -->
+    <div class="absolute inset-0 z-50 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center p-8">
+      <div class="bg-white dark:bg-gray-950 rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center">
+        <div class="h-20 w-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <lib-icon name="prohibit" class="text-red-500" style="font-size: 2.5rem" />
+        </div>
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+          {{ 'ORDER_DIALOG.ORDER_NOT_POSSIBLE' | translate }}
+        </h2>
+        <p class="text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
+          {{ blockingReason }}
+        </p>
+        <button
+          class="h-12 rounded-xl text-lg px-8 bg-red-500 text-white font-bold hover:bg-red-600 transition"
+          (click)="leave()"
         >
-          <div class="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <lib-icon name="prohibit" class="text-gray-500" style="font-size: 2rem" />
-          </div>
-          <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-2">
-            {{ 'ORDER_DIALOG.ORDER_NOT_POSSIBLE' | translate }}
-          </h2>
-          <p class="text-gray-600 dark:text-gray-400 mb-8 leading-relaxed text-sm">
-            {{ blockingReason }}
-          </p>
-          <div class="flex justify-center">
-            <!-- TODO: appButton-Direktive nach Migration einbinden (@panary/shared/directives) -->
-            <button
-              class="h-12 px-8 rounded-xl bg-gray-800 text-white font-bold hover:bg-gray-700 active:scale-95 transition-all"
-              (click)="dialogClose()"
-            >
-              Schließen
-            </button>
-          </div>
-        </div>
+          {{ 'ORDER_DIALOG.OVERVIEW' | translate }}
+        </button>
       </div>
-    } @else {
-      <!-- Default POS Mode Overlay -->
-      <div class="absolute inset-0 z-50 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center p-8">
-        <div class="bg-white dark:bg-gray-950 rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center">
-          <div class="h-20 w-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <lib-icon name="prohibit" class="text-red-500" style="font-size: 2.5rem" />
-          </div>
-          <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">
-            {{ 'ORDER_DIALOG.ORDER_NOT_POSSIBLE' | translate }}
-          </h2>
-          <p class="text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
-            {{ blockingReason }}
-          </p>
-          <button
-            class="h-12 rounded-xl text-lg px-8 bg-red-500 text-white font-bold hover:bg-red-600 transition"
-            (click)="dialogClose()"
-          >
-            Schließen
-          </button>
-        </div>
-      </div>
-    }
+    </div>
   }
 </section>

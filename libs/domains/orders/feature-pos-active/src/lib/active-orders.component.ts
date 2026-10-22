@@ -15,7 +15,6 @@ import { Router } from '@angular/router'
 import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { uuidv7 } from 'uuidv7'
-import { OrderDialogComponent } from '@panary/orders/feature-pos-order-dialog'
 import {
   openManagerAuthorizeCashSessionDialog,
   type ManagerAuthorizeCashSessionDialogData,
@@ -237,16 +236,7 @@ export class ActiveOrdersComponent {
   }
 
   openQuickOrder() {
-    this.#matDialog.open(OrderDialogComponent, {
-      backdropClass: 'backdrop-blur',
-      panelClass: 'fullscreen-dialog',
-      width: '98vw',
-      height: '95vh',
-      maxWidth: '100vw',
-      maxHeight: '100vh',
-      restoreFocus: false,
-      disableClose: true,
-    })
+    this.#router.navigate(['/kasse'])
   }
 
   // Actions

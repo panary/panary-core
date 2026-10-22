@@ -600,6 +600,7 @@
     "CLOUD_URL_OVERRIDE_RESET": "Reset to Panary Cloud"
   },
   "ORDER_DIALOG": {
+    "OVERVIEW": "Overview",
     "EMPTY_ORDER": "Empty order",
     "ADD_ITEMS": "Add items",
     "ORDER": "ORDER",

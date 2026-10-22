@@ -58,11 +58,13 @@ vergessener Hold würde den Auto-Logoff dauerhaft und unsichtbar abschalten —
 bei einem sicherheitsnahen Feature ist ein selbstheilender Zustand einem
 manuell geführten überlegen.
 
-1. **Offene Bestellannahme.** Der Entwurf lebt komponenten-privat im
-   Bestelldialog (`#lineItems`, ein Plain-Array) und wäre nach einem Logout
-   verloren. Erkannt über `MatDialog.openDialogs` gefiltert auf
-   `OrderDialogComponent`; verschachtelte Dialoge (Numpad, Rabatt-Picker)
-   ändern nichts, weil der Bestelldialog so lange offen bleibt.
+1. **Angefangene Bestellung.** Der Entwurf lebt komponenten-privat in der
+   Kasse (`#lineItems`, ein Plain-Array) und wäre nach einem Logout
+   verloren. Erkannt über `KasseDraftRegistry.hasDraft()`, das je Takt den
+   Merker `#hadInput` der laufenden Kasse liest. Bis core#828 war die Kasse
+   ein Dialog, und „Dialog offen" (`MatDialog.openDialogs`) genügte. Die Route
+   `/kasse` bleibt nach dem Bestellen offen, deshalb zählt jetzt die Eingabe
+   ([Kasse als Route](pos-kasse-route.md#auto-logout)).
 2. **Offline.** Die Wiederanmeldung braucht die serverseitige PIN-Prüfung.
    Ein Logout ohne Verbindung sperrt das Terminal bis zum Reconnect aus.
 

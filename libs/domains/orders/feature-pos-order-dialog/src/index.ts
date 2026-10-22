@@ -1,2 +1,5 @@
 export * from './lib/order-dialog.component'
 export * from './lib/pos-button.model'
+export * from './lib/kasse-page.component'
+export * from './lib/kasse.guards'
+export * from './lib/kasse-draft-registry'

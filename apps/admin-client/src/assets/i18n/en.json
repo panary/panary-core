@@ -77,7 +77,15 @@
     "GROUP_LOCATION": "Location",
     "GROUP_HARDWARE": "Hardware",
     "GROUP_SYSTEM": "System",
-    "TABLES": "Tables"
+    "TABLES": "Tables",
+    "EDGE_ADMIN": "Edge admin",
+    "STATUS_BAR": "Edge status",
+    "STATUS_CLOUD": "Cloud",
+    "STATUS_SYNC": "Sync",
+    "STATUS_SYNC_OK": "all good",
+    "STATUS_SYNC_PROBLEMS": "{{count}} open",
+    "COLLAPSE": "Collapse navigation",
+    "EXPAND": "Expand navigation"
   },
   "LOGS": {
     "TITLE": "Support logs",

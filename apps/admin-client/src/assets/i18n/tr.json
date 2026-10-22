@@ -77,7 +77,15 @@
     "GROUP_LOCATION": "Konum",
     "GROUP_HARDWARE": "Donanım",
     "GROUP_SYSTEM": "Sistem",
-    "TABLES": "Masalar"
+    "TABLES": "Masalar",
+    "EDGE_ADMIN": "Edge yönetimi",
+    "STATUS_BAR": "Edge durumu",
+    "STATUS_CLOUD": "Bulut",
+    "STATUS_SYNC": "Senkronizasyon",
+    "STATUS_SYNC_OK": "sorun yok",
+    "STATUS_SYNC_PROBLEMS": "{{count}} açık",
+    "COLLAPSE": "Gezinmeyi daralt",
+    "EXPAND": "Gezinmeyi genişlet"
   },
   "LOGS": {
     "TITLE": "Destek günlükleri",

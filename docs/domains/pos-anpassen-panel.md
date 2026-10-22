@@ -19,7 +19,7 @@ hinzuzufügen. „Fertig" führt zurück ins Raster der Produktgruppe.
 | Auslöser | Bedingung |
 | --- | --- |
 | Antippen des Produkts (Kachel oder Numpad-Nummer) | `product.ui.showOptionsAuto === true` **und** anpassbarer Inhalt |
-| Antippen der Position im Warenkorb | anpassbarer Inhalt, unabhängig vom Flag |
+| „Anpassen" in der Steuerleiste der markierten Position (seit [core#829](https://github.com/panary/panary-core/issues/829); vorher öffnete schon der Tipp auf die Position) | anpassbarer Inhalt, unabhängig vom Flag |
 
 **Anpassbarer Inhalt** heißt: mindestens eine `ingredientReferences`-Zutat mit `isRemovable: true`
 oder eine `optionGroups`-Gruppe mit Optionen (`hasCustomizableContent` in
@@ -45,7 +45,7 @@ Modifier sortiert und je Id/Preis/`topic`/`pricingMode`/Abwahl summiert, dazu de
 | Panel aus dem Warenkorb an einer Zeile mit n > 1 | Kopf zeigt den Umschalter **„1 Stück \| alle n"**, Standard „1 Stück". Der erste Griff spaltet **ein** Stück ab (direkt hinter der Zeile, markiert); weitere Griffe ändern nur dieses. Nach dem ersten Griff ist der Umschalter fest. |
 | Panel im Hinzufügen-Ablauf (Multiplikator, Auto-Panel) | Standard „alle" — „3 ×" Burger ohne Ketchup bleibt eine Zeile mit 3 Stück. |
 | „Fertig", Wechsel zu einer anderen Zeile, Bestellen | Gleiche Konfigurationen werden **eine** Zeile. Die vordere bleibt und übernimmt die Menge; die Markierung folgt ihr. |
-| „Abbrechen" | Nimmt genau die Wirkung des Panels zurück: abgespaltene Stücke gehen an ihre Herkunft zurück (samt kopiertem Rabatt), Modifier der Zeilen vom Öffnen werden wiederhergestellt. Was währenddessen von außen geschah (Produkt per Numpad, Menge aus Spalte 2), bleibt. |
+| „Abbrechen" | Nimmt genau die Wirkung des Panels zurück: abgespaltene Stücke gehen an ihre Herkunft zurück (samt kopiertem Rabatt), Modifier der Zeilen vom Öffnen werden wiederhergestellt. Was währenddessen von außen geschah (Produkt per Numpad, Menge aus der Steuerleiste), bleibt. |
 | Extra über das Raster (ohne Panel) an einer Zeile mit n > 1 | Ein Stück wird abgespalten, das Extra gebucht, danach zusammengeführt. |
 | Produkt antippen | Landet nur auf einer Zeile **gleicher** Konfiguration, also ohne Anpassung. „1× Burger + Käse" bekommt keinen zweiten Burger, es entsteht „1× Burger". Der Multiplikator addiert die ganze Menge (bis #699 nur +1). |
 
@@ -83,7 +83,7 @@ Modifier sortiert und je Id/Preis/`topic`/`pricingMode`/Abwahl summiert, dazu de
 - **Wechselt die Auswahl** bei offenem Panel (Kombinations-Position, Pfeiltasten), zieht das Panel
   zur neuen Zeile mit. Ist die nicht anpassbar, schließt es, und die Auswahl bleibt stehen. Plus und
   Minus buchen ohnehin auf die Zeile des Panels, nie auf die gerade markierte.
-- **Änderungen von außen** kommen im Panel an: Menge per Spalte 2 oder Undo zieht „gilt für n×"
+- **Änderungen von außen** kommen im Panel an: Menge per Steuerleiste oder Undo zieht „gilt für n×"
   nach, und das Löschen der Zeile schließt das Panel.
 - **Alle Modifier** öffnet das Raster aller Katalog-Modifier für die Zeile, etwa für ein Extra, das
   in keiner Optionsgruppe des Produkts steht.

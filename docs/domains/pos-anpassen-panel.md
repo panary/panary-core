@@ -10,9 +10,28 @@ generated: { by: claude-code/opus-5.5, at: 2026-10-14T14:00:00Z }
 # POS-Anpassen-Panel
 
 Seit [#639](https://github.com/panary/panary-core/issues/639). Szenario: Ein Gast bestellt einen
-Burger ohne Ketchup und mit extra Käse. Die Bedienung tippt den Burger an, rechts erscheint statt
-des Produktrasters das Panel **„Anpassen"**. Dort ist Ketchup abzuwählen und Käse per Plus
+Burger ohne Ketchup und mit extra Käse. Die Bedienung tippt den Burger an, über der Rasterspalte
+gleitet das Sheet **„Anpassen"** von unten herein. Dort ist Ketchup abzuwählen und Käse per Plus
 hinzuzufügen. „Fertig" führt zurück ins Raster der Produktgruppe.
+
+## Sheet statt Ersatz (core#830)
+
+Bis core#830 ersetzte das Panel Funktionstasten und Raster. Jetzt liegt es als Sheet in der Rasterzone
+des Kassenbildschirms (`.kasse__sheet` über `.kasse__scrim`, `order-dialog.component.scss`):
+
+- **Sichtbar bleiben** Gruppenleiste und Warenkorb, beide ungedimmt. Die angepasste Zeile trägt im
+  Warenkorb den Hinweis „wird angepasst" und pulsiert zweimal je 600 ms.
+- **Gesperrt** sind, solange das Sheet offen ist: Primärtaste, Ziffernleiste samt Feld und Popup, die
+  Gruppenleiste inkl. „Weitere" und „Übersicht" (`sheetOpen()`). Der Warenkorb bleibt bedienbar — das Panel
+  folgt der Auswahl (`#followSelectionInPanel`).
+- **Schließen** nur über „Fertig" oder „Abbrechen". Ein Tipp auf den Scrim tut nichts, damit eine
+  Anpassung nicht versehentlich verworfen wird. Auch jeder Ansichtswechsel schließt das Sheet
+  (`clearButtons`).
+- **Bewegung:** Sheet 240 ms (`cubic-bezier(.2,.8,.2,1)`), Scrim 160 ms, über Angular `animate.enter` /
+  `animate.leave` als CSS. Bei `prefers-reduced-motion: reduce` nur Einblenden in 120 ms, ohne Gleiten
+  und ohne Impuls; die Zeile behält einen statischen Rahmen.
+- Das Raster darunter ist leer, solange das Sheet offen ist: Jede Anpassen-Sitzung beginnt mit
+  `clearButtons()`, das Raster baut erst „Fertig"/„Abbrechen" wieder auf.
 
 ## Wann es sich öffnet
 

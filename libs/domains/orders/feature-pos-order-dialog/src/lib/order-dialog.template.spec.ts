@@ -206,3 +206,53 @@ describe('Kasse-Template — Layout B1 (core#829)', () => {
     expect(template).not.toContain('Abwählen')
   })
 })
+
+// Anpassen als Sheet (core#830): Das Panel liegt über der Rasterzone, sperrt Primärtaste, Ziffern und Gruppenleiste
+// und schließt nur über Fertig/Abbrechen. Das Template wird hier nur gelesen — die Komponenten-Spec rendert es nicht.
+describe('Kasse-Template — Anpassen-Sheet (core#830)', () => {
+  const sheetStart = template.indexOf('class="kasse__scrim"')
+  const sheet = template.slice(sheetStart, template.indexOf('} @else {', sheetStart))
+  const gesperrt = (marker: string): string => {
+    const at = template.indexOf(marker)
+    return template.slice(at, template.indexOf('>', template.indexOf('[disabled]', at)) + 1)
+  }
+
+  it('legt Scrim und Sheet vor das Panel, mit Ein- und Ausblend-Klassen', () => {
+    expect(sheetStart).toBeGreaterThan(-1)
+    expect(sheet).toContain('animate.enter="kasse-scrim-enter"')
+    expect(sheet).toContain('animate.leave="kasse-scrim-leave"')
+    expect(sheet).toContain('animate.enter="kasse-sheet-enter"')
+    expect(sheet).toContain('animate.leave="kasse-sheet-leave"')
+    expect(sheet).toContain('<lib-product-customize-panel')
+  })
+
+  it('lässt den Scrim-Tipp ins Leere laufen, damit nichts versehentlich verworfen wird', () => {
+    const scrim = template.slice(sheetStart, template.indexOf('</div>', sheetStart))
+    expect(scrim).not.toContain('(click)')
+  })
+
+  it('sperrt Primärtaste, Ziffern, Feld, Gruppenleiste und Übersicht über sheetOpen()', () => {
+    for (const marker of [
+      '(click)="setTaxRateSubbuttons()"',
+      '(click)="applyProductSearch()"',
+      '(click)="numpadAction(number)"',
+      '(click)="numpadReset()"',
+      '(click)="showNumpadPopup = !showNumpadPopup"',
+      '(click)="createProductButtons(productGroup)"',
+      '(click)="allGroupsOpen.set(true)"',
+      '(click)="leave()"',
+    ]) {
+      expect(template).toContain(marker)
+      expect(
+        template.match(new RegExp(marker.replace(/[()[\]$.!]/g, '\\$&') + '[^>]*\\[disabled\\]="sheetOpen\\(\\)"')),
+      ).not.toBeNull()
+    }
+    // Der Warenkorb bleibt bedienbar: die Zeilenwahl hat keine Sperre.
+    expect(gesperrt('(click)="selectCombinationByIndex(i, j)"')).not.toContain('sheetOpen')
+  })
+
+  it('markiert die angepasste Zeile im Warenkorb', () => {
+    expect(template).toContain('[class.kasse-line-customizing]="isCustomizeLine(lineItem)"')
+    expect(template).toContain("'ORDER_DIALOG.LINE_CUSTOMIZING' | translate")
+  })
+})

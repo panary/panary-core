@@ -994,7 +994,7 @@
     </div>
   }
 
-  @if (blockingReason) {
+  @if (blockingReason(); as reason) {
     <!-- Default POS Mode Overlay -->
     <div class="absolute inset-0 z-50 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center p-8">
       <div class="bg-white dark:bg-gray-950 rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center">
@@ -1005,7 +1005,7 @@
           {{ 'ORDER_DIALOG.ORDER_NOT_POSSIBLE' | translate }}
         </h2>
         <p class="text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
-          {{ blockingReason }}
+          {{ reason }}
         </p>
         <button
           class="h-12 rounded-xl text-lg px-8 bg-red-500 text-white font-bold hover:bg-red-600 transition"

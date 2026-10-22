@@ -494,10 +494,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // Der Inaktivitäts-Logout fragt je Takt, ob hier etwas eingegeben ist (core#828).
     inject(DestroyRef).onDestroy(inject(KasseDraftRegistry).attach(() => this.#hadInput))
 
-    if (!this.locationService.currentBusinessDay) {
-      // Business day check is handled by checkBusinessDayValidity() in ngOnInit
-    }
-
     this._productionTimes = this.orderService.productionTimes
 
     const user: undefined | User = this.authService.user()
@@ -556,7 +552,18 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /** PUBLIC PROPERTIES */
-  blockingReason: string | null = null
+  /**
+   * Warum die Kasse gerade nicht bucht. Abgeleitet statt einmalig gesetzt: Seit die Kasse eine Route
+   * ist (core#828), lädt ein Neuladen auf `/kasse` die Komponente, bevor der Standort da ist. Ein in
+   * `ngOnInit` gesetzter Wert blieb dann für immer stehen (core#868).
+   *
+   * Im Standalone-Modus (Edge-Server) wird der Geschäftstag automatisch verwaltet; der Backend-Hook
+   * erstellt bei Bedarf transparent einen neuen. Blockiert wird deshalb nur, solange kein Standort
+   * geladen ist — ein fehlender Geschäftstag entsteht beim ersten Order.
+   */
+  readonly blockingReason = computed<string | null>(() =>
+    this.locationService.activeLocation() ? null : 'Standort konnte nicht geladen werden.',
+  )
 
   /**
    * Die Bestellung ist beendet — abgeschickt, als Vorbestellung angelegt oder verworfen.
@@ -578,8 +585,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this._timer = setInterval(() => {
       this.time.set(new Date())
     }, 1000)
-
-    this.checkBusinessDayValidity()
 
     if (!this.productGroupService.isLoaded()) {
       await this.productGroupService.loadDocuments()
@@ -603,27 +608,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this._timer) {
       clearInterval(this._timer)
     }
-  }
-
-  private checkBusinessDayValidity(): void {
-    const activeLocation = this.locationService.activeLocation()
-
-    // Im Standalone-Modus (Edge-Server) wird der Geschäftstag automatisch verwaltet.
-    // Der Backend-Hook erstellt bei Bedarf transparent einen neuen Geschäftstag.
-    // Daher blocken wir die UI nur wenn wirklich keine Location geladen ist.
-    if (!activeLocation) {
-      this.blockingReason = 'Standort konnte nicht geladen werden.'
-      return
-    }
-
-    // Kein Geschäftstag vorhanden — im Edge-Modus wird er beim ersten Order auto-erstellt
-    if (!activeLocation.currentBusinessDay) {
-      this.blockingReason = null
-      return
-    }
-
-    // Geschäftstag-Datum prüfen (nur Warnung, kein Block)
-    this.blockingReason = null
   }
 
   calculateVisibleProductGroups() {

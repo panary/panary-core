@@ -38,7 +38,7 @@ Seit core#823 ist die Touch-Skala **Standard**; das Flag `pos-fluid-ui-scaling-v
   Persistenz offline-first: localStorage ist Quelle der Wahrheit; der Device-Record wird
   best-effort gespiegelt (Boot-Reconcile: lokal gewinnt, ohne lokalen Wert wird der Server-Wert
   übernommen). Boot-Wiring: `provideEnvironmentInitializer` nur in `apps/pos-client`.
-* **Settings-UI:** POS-Einstellungen → Darstellung: Density-Auswahl (kein Fluid-Schalter mehr) (wirkt sofort, gilt pro Terminal).
+* **Settings-UI:** POS-Einstellungen → Darstellung: Density-Auswahl, kein Fluid-Schalter mehr (wirkt sofort, gilt pro Terminal).
 
 ## px-Audit (Akzeptanz-Gate)
 

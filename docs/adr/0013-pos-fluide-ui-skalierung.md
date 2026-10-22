@@ -1,7 +1,7 @@
 ---
 type: ADR
 title: Fluide POS-UI-Skalierung — Root-rem-Skalierung hinter Klassen-Gate statt komponentenlokaler Lösungen
-description: Die POS-UI skaliert über eine viewport-abhängige Root-Fontsize (clamp × Terminal-Density) hinter der Klasse pnry-fluid-scale; px→rem-Äquivalenz macht den Flag-off-Pfad pixelidentisch ohne doppelten Stylesheet-Pfad.
+description: (Stand core#823 — Klassen-Gate und Viewport-Anteil entfallen, siehe Nachtrag) Die POS-UI skaliert über eine viewport-abhängige Root-Fontsize (clamp × Terminal-Density) hinter der Klasse pnry-fluid-scale; px→rem-Äquivalenz macht den Flag-off-Pfad pixelidentisch ohne doppelten Stylesheet-Pfad.
 tags: [pos-client, devices, ui]
 status: stable
 decision: accepted

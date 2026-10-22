@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#895): POS-Geräte-Setup: „Verbinden“, manuelles Hub-Feld, alle Textlinks „Zurück“ und die Kopf-Tasten (Sprache, Theme) sowie „Abbrechen“ im QR-Scan haben jetzt mindestens 48 px (`pnry-touch` bzw. `min-h-touch-min`). Nur Template-Klassen, keine Logik.

@@ -8,7 +8,7 @@
     <div class="flex items-center gap-2">
       <button
         (click)="cycleLanguage()"
-        class="h-9 px-3 rounded-control bg-surface-input text-ink-muted flex items-center justify-center gap-1.5 transition-colors hover:bg-surface-elevated text-xs font-semibold"
+        class="min-h-touch-min px-3 rounded-control bg-surface-input text-ink-muted flex items-center justify-center gap-1.5 transition-colors hover:bg-surface-elevated text-xs font-semibold"
         [title]="'LOGIN.CHANGE_LANGUAGE' | translate"
       >
         <lib-icon name="translate" class="text-[1rem]" />
@@ -16,7 +16,7 @@
       </button>
       <button
         (click)="toggleTheme()"
-        class="w-9 h-9 rounded-control bg-surface-input text-ink-muted flex items-center justify-center transition-colors hover:bg-surface-elevated"
+        class="min-w-touch-min min-h-touch-min rounded-control bg-surface-input text-ink-muted flex items-center justify-center transition-colors hover:bg-surface-elevated"
         [title]="'LOGIN.CHANGE_THEME' | translate"
       >
         @if (themeService.theme === 'light') {
@@ -274,14 +274,14 @@
                 autocorrect="off"
                 spellcheck="false"
                 (keyup.enter)="submitManualHub()"
-                class="flex-1 min-w-0 bg-surface-input border border-line rounded-control px-3 py-2.5 text-sm text-ink focus:border-accent-ink outline-none placeholder-ink-faint"
+                class="flex-1 min-w-0 pnry-touch bg-surface-input border border-line rounded-control px-3 py-2.5 text-sm text-ink focus:border-accent-ink outline-none placeholder-ink-faint"
                 [placeholder]="'SETUP.HUB_MANUAL_PLACEHOLDER' | translate"
               />
               <button
                 type="button"
                 (click)="submitManualHub()"
                 [disabled]="!isManualHubValid() || probing()"
-                class="flex-none px-4 bg-action text-on-action font-semibold rounded-control hover:brightness-95 active:scale-[0.98] transition-all disabled:opacity-50 text-sm"
+                class="flex-none pnry-touch px-4 bg-action text-on-action font-semibold rounded-control hover:brightness-95 active:scale-[0.98] transition-all disabled:opacity-50 text-sm"
               >
                 @if (probing()) {
                   <span
@@ -299,7 +299,11 @@
             }
           </div>
 
-          <button type="button" (click)="goBack()" class="text-sm text-ink-muted hover:text-ink transition-colors">
+          <button
+            type="button"
+            (click)="goBack()"
+            class="pnry-touch inline-flex items-center px-4 text-sm text-ink-muted hover:text-ink transition-colors"
+          >
             {{ 'SETUP.BACK' | translate }}
           </button>
         </div>
@@ -440,7 +444,7 @@
           <button
             type="button"
             (click)="goToServerLogin()"
-            class="mt-6 text-sm text-ink-muted hover:text-ink transition-colors underline underline-offset-4"
+            class="mt-6 pnry-touch inline-flex items-center px-4 text-sm text-ink-muted hover:text-ink transition-colors underline underline-offset-4"
           >
             {{ 'SETUP.USE_ADMIN_LOGIN' | translate }}
           </button>
@@ -591,7 +595,7 @@
             <button
               type="button"
               (click)="switchServerLoginMode('admin')"
-              class="mt-6 text-sm text-ink-muted hover:text-ink transition-colors underline underline-offset-4"
+              class="mt-6 pnry-touch inline-flex items-center px-4 text-sm text-ink-muted hover:text-ink transition-colors underline underline-offset-4"
             >
               {{ 'SETUP.USE_ADMIN_LOGIN' | translate }}
             </button>
@@ -676,7 +680,7 @@
             <button
               type="button"
               (click)="switchServerLoginMode('code')"
-              class="mt-6 text-sm text-ink-muted hover:text-ink transition-colors underline underline-offset-4"
+              class="mt-6 pnry-touch inline-flex items-center px-4 text-sm text-ink-muted hover:text-ink transition-colors underline underline-offset-4"
             >
               {{ 'SETUP.USE_PAIRING_CODE' | translate }}
             </button>
@@ -941,7 +945,7 @@
       <button
         type="button"
         (click)="stopQrScan()"
-        class="mt-6 px-6 py-3 rounded-control bg-surface-panel text-ink font-bold hover:bg-surface-elevated active:scale-[0.98] transition-all"
+        class="mt-6 pnry-touch px-6 py-3 rounded-control bg-surface-panel text-ink font-bold hover:bg-surface-elevated active:scale-[0.98] transition-all"
       >
         {{ 'SETUP.QR_CANCEL' | translate }}
       </button>
@@ -999,7 +1003,7 @@
           <button
             type="button"
             (click)="resetCloudUrl()"
-            class="text-xs text-ink-faint hover:text-ink-muted underline underline-offset-2 transition self-center"
+            class="pnry-touch inline-flex items-center px-4 text-xs text-ink-faint hover:text-ink-muted underline underline-offset-2 transition self-center"
           >
             {{ 'SETUP.CLOUD_URL_OVERRIDE_RESET' | translate }}
           </button>

@@ -3,24 +3,13 @@ import { HttpClient } from '@angular/common/http'
 import { RouterLink } from '@angular/router'
 import { lastValueFrom } from 'rxjs'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ConnectionService } from '@panary/shared/data-access'
 import { ApiService, Paginated } from '../../core/api.service'
 import { SyncProblemCountService } from '../../core/sync-problem-count.service'
 import { DeviceStatusService } from '../../core/device-status.service'
 import { API_BASE_URL } from '../../core/api-base-url'
+import { type CloudConnection, type CloudStatus, deriveCloudStatus } from '../../core/cloud-status'
 import { AdminIconComponent } from '../../shared/icon/icon'
 import type { AdminIconName } from '../../shared/icon/icons.generated'
-
-type PairingStatus = 'connected' | 'disconnected' | 'pairing' | 'error'
-// 'stale' = gekoppelt (pairingStatus=connected), aber seit > CLOUD_CONTACT_STALE_SEC
-// kein Cloud-Kontakt → Cloud aktuell nicht erreichbar (gekoppelt, invalider Zustand).
-type CloudStatus = 'standalone' | 'stale' | PairingStatus
-
-interface CloudConnection {
-  _id: string
-  pairingStatus: PairingStatus
-  lastCloudContactAt?: string | null
-}
 
 interface KpiCard {
   label: string
@@ -82,34 +71,6 @@ const CLOUD_STATUS_CONFIG: Record<CloudStatus, { labelKey: string; icon: AdminIc
     pill: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-900',
     dot: 'bg-red-500',
   },
-}
-
-// Edge↔Cloud-Kontakt gilt als „frisch", solange er < 5 min her ist. Der
-// Realtime-Worker stempelt `lastCloudContactAt` bei aktiver Socket-Verbindung;
-// bleibt es länger aus, ist die Cloud trotz Pairing nicht erreichbar.
-// Zentrale Schwelle aus dem ConnectionService — identisch zu Cloud-Status-Banner
-// und Cloud-Kopplung-Live-Status (Konsistenz über alle drei Oberflächen).
-const CLOUD_CONTACT_STALE_SEC = ConnectionService.CLOUD_CONTACT_STALE_SEC
-
-// Leitet den ECHTEN Kopplungsstatus aus dem cloud-connection-Datensatz ab —
-// NICHT aus der statischen system.mode-Config (die /health als systemMode
-// liefert und unabhängig vom Pairing 'standalone' bleiben kann).
-function deriveCloudStatus(conn: CloudConnection | undefined, nowMs: number): CloudStatus {
-  if (!conn) return 'standalone'
-  switch (conn.pairingStatus) {
-    case 'pairing':
-      return 'pairing'
-    case 'error':
-      return 'error'
-    case 'connected': {
-      const last = conn.lastCloudContactAt ? new Date(conn.lastCloudContactAt).getTime() : null
-      if (last === null) return 'stale'
-      return (nowMs - last) / 1000 > CLOUD_CONTACT_STALE_SEC ? 'stale' : 'connected'
-    }
-    // 'disconnected' = entkoppelt / zurückgesetzt → kein Cloud-Modus.
-    default:
-      return 'standalone'
-  }
 }
 
 function formatUptime(seconds: number): string {

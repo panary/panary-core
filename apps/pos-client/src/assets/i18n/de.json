@@ -605,6 +605,12 @@
     "CLOUD_URL_OVERRIDE_RESET": "Auf Panary Cloud zurücksetzen"
   },
   "ORDER_DIALOG": {
+    "ARIA_CHANNEL": "Vertriebskanal",
+    "ARIA_SELECTION_TOOLBAR": "Markierung bearbeiten",
+    "ARIA_DECREASE": "Menge der Markierung verringern",
+    "ARIA_INCREASE": "Menge der Markierung erhöhen",
+    "ARIA_DELETE": "Markierung löschen",
+    "ARIA_KEYPAD": "Ziffernblock",
     "MORE_GROUPS": "Weitere ({{count}})",
     "ALL_GROUPS": "Alle Gruppen",
     "CART_TITLE": "Bestellung",

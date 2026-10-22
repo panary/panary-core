@@ -23,6 +23,7 @@ import { MatDialog } from '@angular/material/dialog'
 import { firstValueFrom } from 'rxjs'
 import { ConfirmDialogComponent, type ConfirmDialogData, EurPipe, IconComponent } from '@panary/shared/ui-common'
 import { MatMenuModule } from '@angular/material/menu'
+import { A11yModule } from '@angular/cdk/a11y'
 import { MatSnackBar, MatSnackBarRef, TextOnlySnackBar } from '@angular/material/snack-bar'
 import { FormsModule } from '@angular/forms'
 import { CommonModule } from '@angular/common'
@@ -155,6 +156,7 @@ const RELEASE_BUTTON_ID = 'releaseFromCombination'
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     IconComponent,
+    A11yModule,
     AbsPipe,
     CommonModule,
     EurPipe,
@@ -625,9 +627,14 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       return
     }
 
-    // Felder und Abstände sind rem-basiert und wachsen mit der Dichte; die Breite misst der Container.
+    // Felder und Abstände sind rem-basiert und wachsen mit der Dichte. `auto-fill` zählt die Spalten über
+    // die Innenbreite — `clientWidth` enthält das Padding und ergäbe an manchen Breiten eine Spalte zu viel.
+    const element: HTMLElement = this.productGroupContainer.nativeElement
+    const style = getComputedStyle(element)
+    const innerWidth =
+      element.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0)
     const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
-    const split = splitGroupBar(allGroups, this.productGroupContainer.nativeElement.clientWidth, remPx)
+    const split = splitGroupBar(allGroups, innerWidth, remPx)
     this.visibleProductGroups = split.visible
     this.overflowProductGroups = split.overflow
 

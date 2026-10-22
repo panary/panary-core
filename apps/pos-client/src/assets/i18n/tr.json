@@ -605,6 +605,12 @@
     "CLOUD_URL_OVERRIDE_RESET": "Panary Cloud'a sıfırla"
   },
   "ORDER_DIALOG": {
+    "ARIA_CHANNEL": "Satış kanalı",
+    "ARIA_SELECTION_TOOLBAR": "Seçimi düzenle",
+    "ARIA_DECREASE": "Seçili adedi azalt",
+    "ARIA_INCREASE": "Seçili adedi artır",
+    "ARIA_DELETE": "Seçimi sil",
+    "ARIA_KEYPAD": "Tuş takımı",
     "MORE_GROUPS": "Diğer ({{count}})",
     "ALL_GROUPS": "Tüm gruplar",
     "CART_TITLE": "Sipariş",

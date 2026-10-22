@@ -2,7 +2,7 @@ import { BindingType, parseTemplate, type TmplAstNode } from '@angular/compiler'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { GROUP_MIN_WIDTH_REM } from './group-bar'
+import { GROUP_GAP_REM, GROUP_MIN_WIDTH_REM } from './group-bar'
 
 // Die Komponenten-Spec instanziiert den Dialog direkt und rendert das Template nicht —
 // deshalb hier ein Blick auf die Quelle: Beilage und Getraenk eines Menues sind Objekte,
@@ -116,7 +116,9 @@ describe('Kasse-Template — Ziffernleiste (#798, core#829)', () => {
   const start = template.indexOf('<!-- ═══════════════ ZIFFERNLEISTE ═══════════════ -->')
   const ende = template.indexOf('<!-- ═══ Ende Ziffernleiste ═══ -->')
   const leiste = template.slice(start, ende)
-  const leistenTag = leiste.match(/<div class="([^"]*)">/)?.[1].split(/\s+/) ?? []
+  // Die Zone ist der Anker des Popups, der Container sitzt eine Ebene tiefer (Containment fängt `fixed` ab).
+  const zone = leiste.match(/<div class="(kasse__keys [^"]*)">/)?.[1].split(/\s+/) ?? []
+  const leistenTag = leiste.match(/<div class="(@container[^"]*)">/)?.[1].split(/\s+/) ?? []
   const inline = leiste.slice(leiste.indexOf('<!-- Ziffern inline'), leiste.indexOf('<!-- Kompakt'))
   const inlineKlassen = inline.match(/<div class="([^"]*)">/)?.[1].split(/\s+/) ?? []
   const kompakt = leiste.slice(leiste.indexOf('<!-- Kompakt'))
@@ -143,9 +145,14 @@ describe('Kasse-Template — Ziffernleiste (#798, core#829)', () => {
     expect(Number(schwelle(inlineKlassen, 'flex'))).toBeGreaterThanOrEqual(bedarf)
   })
 
-  it('hält das Ziffern-Popup außerhalb des Containers', () => {
+  it('hält das Ziffern-Popup außerhalb des Containers, aber in der Zone verankert', () => {
+    const zonenEnde = template.indexOf('<!-- Alle Gruppen')
+    const popup = template.indexOf('@if (showNumpadPopup)')
     expect(ende).toBeGreaterThan(start)
-    expect(template.indexOf('@if (showNumpadPopup)')).toBeGreaterThan(ende)
+    expect(popup).toBeGreaterThan(ende)
+    expect(popup).toBeLessThan(zonenEnde)
+    expect(zone).toContain('relative')
+    expect(zone).not.toContain('@container')
   })
 })
 
@@ -181,8 +188,12 @@ describe('Kasse-Template — Layout B1 (core#829)', () => {
     }
   })
 
-  it('baut die Gruppenleiste mit derselben Mindestbreite, mit der group-bar.ts rechnet', () => {
-    expect(template).toContain(`grid-cols-[repeat(auto-fill,minmax(${GROUP_MIN_WIDTH_REM}rem,1fr))]`)
+  it('baut die Gruppenleiste mit derselben Mindestbreite und demselben Abstand, mit denen group-bar.ts rechnet', () => {
+    const leiste = template.match(/class="kasse__groups ([^"]*)"/)?.[1].split(/\s+/) ?? []
+    expect(leiste).toContain(`grid-cols-[repeat(auto-fill,minmax(${GROUP_MIN_WIDTH_REM}rem,1fr))]`)
+    // gap-N ist N × 0,25rem — der Abstand steckt ebenfalls in der Rechnung.
+    const gap = leiste.map(k => k.match(/^gap-(\d+(?:\.\d+)?)$/)?.[1]).find(Boolean)
+    expect(Number(gap) * 0.25).toBe(GROUP_GAP_REM)
   })
 
   it('trennt Namen auf Kacheln und Gruppen nicht mitten im Wort (core#853)', () => {

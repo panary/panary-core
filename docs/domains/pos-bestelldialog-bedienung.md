@@ -1,10 +1,10 @@
 ---
 type: Domain Concept
-title: POS-Bestelldialog — Schließen, Kombinationen mit Stückzahl, Funktionsleiste
-description: 'Wie der Bestelldialog das Schließen absichert, Kombinationen stückweise bildet und auflöst, Modifier-Mengen anzeigt und seine Tasten auf breiten wie schmalen Kassen anordnet.'
+title: POS-Kasse — Schließen, Kombinationen mit Stückzahl, Steuerleiste
+description: 'Wie die Kasse das Schließen absichert, Kombinationen stückweise bildet und auflöst, Modifier-Mengen anzeigt, die markierte Zeile über die Steuerleiste bearbeitet und ihre Zonen auf breiten wie schmalen Kassen anordnet.'
 tags: [orders, pos, ui]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-21T11:10:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-22T14:00:00Z }
 ---
 
 # POS-Bestelldialog — Bedienung

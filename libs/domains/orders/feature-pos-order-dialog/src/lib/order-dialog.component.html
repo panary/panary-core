@@ -76,7 +76,7 @@
       <div
         class="flex rounded-control border border-line bg-surface-rail p-0.5 shrink-0"
         role="group"
-        aria-label="Vertriebskanal"
+        [attr.aria-label]="'ORDER_DIALOG.ARIA_CHANNEL' | translate"
       >
         <button
           type="button"
@@ -150,11 +150,11 @@
           <div class="flex flex-col pl-2 pr-1.5 py-2 gap-1">
             @for (lineItem of combination; track lineItem._id; let j = $index) {
               <div
-                class="flex flex-col px-2 py-1.5 cursor-pointer rounded-lg transition-all duration-200 hover:bg-white dark:hover:bg-gray-700"
+                class="flex flex-col px-2 py-1.5 cursor-pointer rounded-lg transition-colors duration-200"
                 [ngClass]="
                   selectedCombinationIndex[0] === i && selectedCombinationIndex[1] === j
-                    ? 'bg-white dark:bg-gray-700'
-                    : ''
+                    ? 'bg-accent-soft ring-1 ring-accent-line'
+                    : 'hover:bg-surface-rail'
                 "
                 (click)="selectCombinationByIndex(i, j)"
               >
@@ -252,8 +252,8 @@
       @for (lineItem of lineItems; track lineItem._id; let i = $index) {
         @if (!isLineItemBundled(lineItem)) {
           <div
-            class="group mx-1 mb-1 rounded-xl py-2 pl-4 pr-3 transition-all duration-200 hover:bg-white dark:hover:bg-gray-700"
-            [ngClass]="selectedProductIndex === i ? 'bg-white dark:bg-gray-700' : ''"
+            class="group mx-1 mb-1 rounded-xl py-2 pl-4 pr-3 transition-colors duration-200"
+            [ngClass]="selectedProductIndex === i ? 'bg-accent-soft ring-1 ring-accent-line' : 'hover:bg-surface-rail'"
             (click)="toggleProductSelection(i)"
           >
             <div class="flex items-start gap-3">
@@ -702,112 +702,114 @@
   <!-- Die Leiste ist ihr eigener Container: Ob die Ziffern inline passen, hängt an ihrer Breite, nicht am
        Viewport. Die Schwelle ist die Summe der festen Breiten (53.25rem) und wächst über rem mit der Dichte,
        ein Media-Breakpoint täte das nicht (#798). Multiplier-Logik unverändert (Konzept §5). -->
-  <div class="kasse__keys @container mr-3 py-3 min-w-0">
-    <div class="flex flex-row gap-1.5 items-stretch">
-      <!-- Tipp aufs Feld bucht den Artikel mit dieser Nummer 1× (applyProductSearch) -->
-      <button
-        type="button"
-        class="h-14 w-[10.5rem] shrink-0 rounded-control bg-surface-panel border border-line text-left flex flex-col justify-center gap-0.5 px-3 overflow-hidden active:scale-[0.97] transition-transform"
-        (click)="applyProductSearch()"
-      >
-        <span class="text-[0.625rem] text-ink-muted font-bold uppercase tracking-wider leading-none truncate">
-          @if (numpadNumber) {
-            {{ 'ORDER_DIALOG.TAP_BOOKS_NUMBER' | translate: { number: numpadNumber } }}
-          } @else {
-            {{ 'ORDER_DIALOG.MULTIPLIER_LABEL' | translate }}
-          }
-        </span>
-        <span class="flex items-baseline gap-1.5 min-w-0">
-          <span class="font-bold text-lg text-ink shrink-0 leading-tight tabular-nums">× {{ multiplier }}</span>
-          @if (numpadValue) {
-            <span class="text-[0.6875rem] text-ink-muted truncate leading-tight">{{ numpadValue }}</span>
-          }
-        </span>
-      </button>
-      <!-- Ziffern inline (breite Leiste): 0–9 von links nach rechts, auch gespiegelt -->
-      <div class="hidden @min-[53.25rem]:flex gap-1.5">
-        @for (number of numbers; track number) {
-          <button
-            type="button"
-            class="pnry-touch h-14 w-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line font-bold text-xl text-ink active:scale-[0.97] transition-transform flex items-center justify-center tabular-nums"
-            (click)="numpadAction(number)"
-          >
-            {{ number }}
-          </button>
-        }
+  <div class="kasse__keys relative mr-3 py-3 min-w-0">
+    <div class="@container">
+      <div class="flex flex-row gap-1.5 items-stretch">
+        <!-- Tipp aufs Feld bucht den Artikel mit dieser Nummer 1× (applyProductSearch) -->
         <button
           type="button"
-          class="pnry-touch h-14 w-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line font-bold text-xl text-danger-ink active:scale-[0.97] transition-transform flex items-center justify-center"
-          (click)="numpadReset()"
+          class="h-14 w-[10.5rem] shrink-0 rounded-control bg-surface-panel border border-line text-left flex flex-col justify-center gap-0.5 px-3 overflow-hidden active:scale-[0.97] transition-transform"
+          (click)="applyProductSearch()"
         >
-          C
+          <span class="text-[0.625rem] text-ink-muted font-bold uppercase tracking-wider leading-none truncate">
+            @if (numpadNumber) {
+              {{ 'ORDER_DIALOG.TAP_BOOKS_NUMBER' | translate: { number: numpadNumber } }}
+            } @else {
+              {{ 'ORDER_DIALOG.MULTIPLIER_LABEL' | translate }}
+            }
+          </span>
+          <span class="flex items-baseline gap-1.5 min-w-0">
+            <span class="font-bold text-lg text-ink shrink-0 leading-tight tabular-nums">× {{ multiplier }}</span>
+            @if (numpadValue) {
+              <span class="text-[0.6875rem] text-ink-muted truncate leading-tight">{{ numpadValue }}</span>
+            }
+          </span>
         </button>
-      </div>
-      <!-- Kompakt (schmale Leiste): C + Ziffern-Popup -->
-      <div class="@min-[53.25rem]:hidden flex gap-1.5">
-        <button
-          type="button"
-          class="pnry-touch h-14 w-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line font-bold text-xl text-danger-ink active:scale-[0.97] transition-transform flex items-center justify-center"
-          (click)="numpadReset()"
-        >
-          C
-        </button>
-        <button
-          type="button"
-          class="pnry-touch h-14 w-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line text-ink active:scale-[0.97] transition-transform flex items-center justify-center"
-          (click)="showNumpadPopup = !showNumpadPopup"
-          aria-label="Ziffernblock"
-        >
-          <lib-icon name="dots-nine" style="font-size: 1.375rem" />
-        </button>
-      </div>
-    </div>
-  </div>
-  <!-- ═══ Ende Ziffernleiste ═══ -->
-
-  <!-- Ziffern-Popup bewusst außerhalb der Leiste: `fixed` richtet sich am Viewport aus, und ein
-       Container mit Containment darf das nicht abfangen. -->
-  @if (showNumpadPopup) {
-    <!-- Backdrop -->
-    <div class="fixed inset-0 z-40" (click)="showNumpadPopup = false"></div>
-    <!-- Popup: mittig über dem Multiplier -->
-    <div class="fixed z-50 w-[12.25rem]" style="bottom: 6.5rem; left: 50%; transform: translateX(-50%)">
-      <div class="bg-white dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-700 p-2.5 relative">
-        <!-- Pfeil nach unten -->
-        <div
-          class="absolute -bottom-[0.4375rem] left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white dark:bg-gray-950 border-r border-b border-gray-200 dark:border-gray-700 rotate-45"
-        ></div>
-        <div class="grid grid-cols-3 gap-1.5">
-          @for (number of [1, 2, 3, 4, 5, 6, 7, 8, 9]; track number) {
+        <!-- Ziffern inline (breite Leiste): 0–9 von links nach rechts, auch gespiegelt -->
+        <div class="hidden @min-[53.25rem]:flex gap-1.5">
+          @for (number of numbers; track number) {
             <button
-              class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-lg text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
+              type="button"
+              class="pnry-touch h-14 w-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line font-bold text-xl text-ink active:scale-[0.97] transition-transform flex items-center justify-center tabular-nums"
               (click)="numpadAction(number)"
             >
               {{ number }}
             </button>
           }
           <button
-            class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-colors flex items-center justify-center"
+            type="button"
+            class="pnry-touch h-14 w-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line font-bold text-xl text-danger-ink active:scale-[0.97] transition-transform flex items-center justify-center"
+            (click)="numpadReset()"
+          >
+            C
+          </button>
+        </div>
+        <!-- Kompakt (schmale Leiste): C + Ziffern-Popup -->
+        <div class="@min-[53.25rem]:hidden flex gap-1.5">
+          <button
+            type="button"
+            class="pnry-touch h-14 w-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line font-bold text-xl text-danger-ink active:scale-[0.97] transition-transform flex items-center justify-center"
             (click)="numpadReset()"
           >
             C
           </button>
           <button
-            class="w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-lg text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
-            (click)="numpadAction(0)"
+            type="button"
+            class="pnry-touch h-14 w-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line text-ink active:scale-[0.97] transition-transform flex items-center justify-center"
+            (click)="showNumpadPopup = !showNumpadPopup"
+            [attr.aria-label]="'ORDER_DIALOG.ARIA_KEYPAD' | translate"
           >
-            0
-          </button>
-          <button
-            class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
-            (click)="showNumpadPopup = false"
-          >
-            <lib-icon name="check" class="!text-[1.25rem]" />
+            <lib-icon name="dots-nine" style="font-size: 1.375rem" />
           </button>
         </div>
       </div>
     </div>
-  }
+    <!-- ═══ Ende Ziffernleiste ═══ -->
+
+    <!-- Ziffern-Popup außerhalb des Containers (Containment fängt `fixed` ab, #798), aber in der Zone verankert:
+       Es steht über der Ziffern-Taste und wandert mit der Spiegelung mit. Links-Versatz = Feld 10,5rem + C +
+       zwei Lücken bis zur Mitte der Taste (16,5rem) minus halbe Popup-Breite (6,125rem). -->
+    @if (showNumpadPopup) {
+      <!-- Backdrop -->
+      <div class="fixed inset-0 z-40" (click)="showNumpadPopup = false"></div>
+      <div class="absolute z-50 w-[12.25rem] bottom-[calc(100%-0.25rem)] left-[10.375rem]">
+        <div class="bg-white dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-700 p-2.5 relative">
+          <!-- Pfeil nach unten -->
+          <div
+            class="absolute -bottom-[0.4375rem] left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white dark:bg-gray-950 border-r border-b border-gray-200 dark:border-gray-700 rotate-45"
+          ></div>
+          <div class="grid grid-cols-3 gap-1.5">
+            @for (number of [1, 2, 3, 4, 5, 6, 7, 8, 9]; track number) {
+              <button
+                class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-lg text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
+                (click)="numpadAction(number)"
+              >
+                {{ number }}
+              </button>
+            }
+            <button
+              class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-colors flex items-center justify-center"
+              (click)="numpadReset()"
+            >
+              C
+            </button>
+            <button
+              class="w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-lg text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
+              (click)="numpadAction(0)"
+            >
+              0
+            </button>
+            <button
+              class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
+              (click)="showNumpadPopup = false"
+            >
+              <lib-icon name="check" class="!text-[1.25rem]" />
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
 
   <!-- Alle Gruppen hinter „Weitere (n)" -->
   @if (allGroupsOpen()) {
@@ -818,8 +820,12 @@
       <div
         class="w-full max-w-5xl rounded-card bg-surface-panel border border-line shadow-card p-4"
         (click)="$event.stopPropagation()"
+        (keydown.escape)="allGroupsOpen.set(false)"
+        cdkTrapFocus
+        [cdkTrapFocusAutoCapture]="true"
         role="dialog"
-        aria-label="Alle Gruppen"
+        aria-modal="true"
+        [attr.aria-label]="'ORDER_DIALOG.ALL_GROUPS' | translate"
       >
         <div class="flex items-center justify-between mb-3">
           <span class="text-sm font-bold text-ink">{{ 'ORDER_DIALOG.ALL_GROUPS' | translate }}</span>
@@ -827,7 +833,7 @@
             type="button"
             class="h-12 w-12 rounded-control flex items-center justify-center text-ink-muted hover:bg-surface-rail"
             (click)="allGroupsOpen.set(false)"
-            aria-label="Schließen"
+            [attr.aria-label]="'COMMON.CLOSE' | translate"
           >
             <lib-icon name="x" style="font-size: 1.25rem" />
           </button>
@@ -854,14 +860,14 @@
     <div
       class="grid grid-cols-5 gap-1.5 mx-1 mt-1 mb-2 p-1.5 rounded-control bg-surface-rail"
       role="toolbar"
-      aria-label="Markierung bearbeiten"
+      [attr.aria-label]="'ORDER_DIALOG.ARIA_SELECTION_TOOLBAR' | translate"
     >
       <button
         type="button"
         class="pnry-touch h-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line text-ink flex items-center justify-center active:scale-[0.97] transition-transform disabled:opacity-40 disabled:active:scale-100"
         [disabled]="!canDecreaseSelection()"
         (click)="decreaseSelectedQuantity()"
-        aria-label="Menge der Markierung verringern"
+        [attr.aria-label]="'ORDER_DIALOG.ARIA_DECREASE' | translate"
       >
         <lib-icon name="minus" style="font-size: 1.25rem" />
       </button>
@@ -873,7 +879,7 @@
         class="pnry-touch h-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line text-ink flex items-center justify-center active:scale-[0.97] transition-transform disabled:opacity-40 disabled:active:scale-100"
         [disabled]="!canMutateSelection()"
         (click)="increaseSelectedQuantity()"
-        aria-label="Menge der Markierung erhöhen"
+        [attr.aria-label]="'ORDER_DIALOG.ARIA_INCREASE' | translate"
       >
         <lib-icon name="plus" style="font-size: 1.25rem" />
       </button>
@@ -901,7 +907,7 @@
         class="pnry-touch h-14 shrink-0 rounded-control bg-danger-soft border border-danger-line text-danger-ink flex items-center justify-center active:scale-[0.97] transition-transform disabled:opacity-40 disabled:active:scale-100"
         [disabled]="!canMutateSelection()"
         (click)="deleteSelection()"
-        aria-label="Markierung löschen"
+        [attr.aria-label]="'ORDER_DIALOG.ARIA_DELETE' | translate"
       >
         <lib-icon name="trash" style="font-size: 1.25rem" />
       </button>

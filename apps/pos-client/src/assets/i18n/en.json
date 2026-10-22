@@ -605,6 +605,12 @@
     "CLOUD_URL_OVERRIDE_RESET": "Reset to Panary Cloud"
   },
   "ORDER_DIALOG": {
+    "ARIA_CHANNEL": "Sales channel",
+    "ARIA_SELECTION_TOOLBAR": "Edit selection",
+    "ARIA_DECREASE": "Decrease selected quantity",
+    "ARIA_INCREASE": "Increase selected quantity",
+    "ARIA_DELETE": "Delete selection",
+    "ARIA_KEYPAD": "Keypad",
     "MORE_GROUPS": "More ({{count}})",
     "ALL_GROUPS": "All groups",
     "CART_TITLE": "Order",

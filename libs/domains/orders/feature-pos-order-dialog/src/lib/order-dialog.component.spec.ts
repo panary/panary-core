@@ -65,6 +65,8 @@ interface SetupOptions {
   tier?: 'cloud-direct' | 'standalone' | 'edge-with-cloud' | 'unknown'
   /** `posHandedness` des angemeldeten Mitarbeiters — fehlt es, gilt links (core#829). */
   posHandedness?: 'left' | 'right'
+  /** `locationService.activeLocation` — Standard: Filiale schon geladen. Ein Signal spielt das Nachladen nach (core#868). */
+  activeLocation?: () => unknown
 }
 
 const CURRENT_USER_ID = '018f0000-0000-7000-8000-000000000001'
@@ -166,9 +168,9 @@ function setup(options: SetupOptions = {}) {
       {
         provide: LocationService,
         useValue: {
-          // Ohne aktive Filiale blockiert `checkBusinessDayValidity()` den Dialog —
+          // Ohne aktive Filiale blockiert `blockingReason` die Kasse —
           // hier reicht die Minimalform, der Geschaeftstag spielt fuer Rabatte keine Rolle.
-          activeLocation: () => ({ _id: 'loc-1', settings: {}, operationMode: 'full' }),
+          activeLocation: options.activeLocation ?? (() => ({ _id: 'loc-1', settings: {}, operationMode: 'full' })),
           currentBusinessDay: { businessDayId: 'bd-1', date: '2026-08-14' },
         },
       },
@@ -2660,5 +2662,31 @@ describe('Kasse — Seite des Warenkorbs je Mitarbeiter (core#829)', () => {
     const { component } = setup({ posHandedness: 'right' })
 
     expect(component.handedness()).toBe('right')
+  })
+})
+
+describe('Kasse — Blocker folgt dem Standort (core#868)', () => {
+  it('verschwindet, sobald der Standort nach dem Neuladen auf /kasse eintrifft', async () => {
+    const activeLocation = signal<unknown>(undefined)
+    const { component } = setup({ activeLocation })
+    await component.ngOnInit()
+    component.ngOnDestroy()
+
+    expect(component.blockingReason()).toBe('Standort konnte nicht geladen werden.')
+
+    activeLocation.set({ _id: 'loc-1', settings: {}, operationMode: 'full' })
+
+    expect(component.blockingReason()).toBeNull()
+  })
+
+  it('blockiert wieder, wenn der Standort wegfällt', () => {
+    const activeLocation = signal<unknown>({ _id: 'loc-1', settings: {}, operationMode: 'full' })
+    const { component } = setup({ activeLocation })
+
+    expect(component.blockingReason()).toBeNull()
+
+    activeLocation.set(undefined)
+
+    expect(component.blockingReason()).toBe('Standort konnte nicht geladen werden.')
   })
 })

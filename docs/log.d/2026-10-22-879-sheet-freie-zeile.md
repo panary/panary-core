@@ -1,0 +1,2 @@
+* **Fix** (panary/panary-core#879): [Anpassen-Sheet](../domains/pos-anpassen-panel.md) — die einzelne (freie) Warenkorb-Zeile trägt jetzt „wird angepasst" und den Impuls; bisher stand beides nur in der Kombinationszeile. Die Template-Spec zählt beide Zeilenvorlagen.
+* **Update** (panary/panary-core#879): Mutationsprobe: Klasse an der freien Zeile entfernt → 1 rot, Klasse an der Kombinationszeile entfernt → 1 rot, Hinweis-Bedingung der freien Zeile auf `false` → zuerst 0 rot (die Spec zählte nur den Text), nach Ergänzung der Bedingungsprüfung 1 rot; Kontrolllauf 23/23 grün.

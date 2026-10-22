@@ -266,8 +266,12 @@ describe('Kasse-Template — Anpassen-Sheet (core#830)', () => {
     expect(zeilen.filter(tag => tag.includes('sheetOpen'))).toEqual([])
   })
 
-  it('markiert die angepasste Zeile im Warenkorb', () => {
-    expect(template).toContain('[class.kasse-line-customizing]="isCustomizeLine(lineItem)"')
-    expect(template).toContain("'ORDER_DIALOG.LINE_CUSTOMIZING' | translate")
+  it('markiert die angepasste Zeile im Warenkorb — freie Zeile UND Kombinationszeile (#879)', () => {
+    // Zwei Zeilenvorlagen: die freie Zeile (`lineItems`, Normalfall) und die Zeile in einer Kombination.
+    // Die erste Fassung trug die Markierung nur in der Kombination, die freie Zeile blieb stumm.
+    expect(template.match(/\[class\.kasse-line-customizing\]="isCustomizeLine\(lineItem\)"/g)).toHaveLength(2)
+    expect(template.match(/'ORDER_DIALOG\.LINE_CUSTOMIZING' \| translate/g)).toHaveLength(2)
+    // Der Hinweis hängt in beiden Vorlagen an `isCustomizeLine` — ohne diese Bedingung stünde er an jeder Zeile.
+    expect(template.match(/@if \(isCustomizeLine\(lineItem\)\) \{/g)).toHaveLength(2)
   })
 })

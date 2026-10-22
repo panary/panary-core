@@ -5,7 +5,7 @@ import {
   provideBrowserGlobalErrorListeners,
   provideEnvironmentInitializer,
 } from '@angular/core'
-import { provideRouter } from '@angular/router'
+import { provideRouter, withRouterConfig } from '@angular/router'
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async'
 import { provideHttpClient } from '@angular/common/http'
 import { TranslateModule } from '@ngx-translate/core'
@@ -22,7 +22,10 @@ import packageJson from '../../../../package.json'
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(appRoutes),
+    // Die Kasse hält Browser-/Android-Zurück per `canDeactivate` an (core#828). Mit dem Standard
+    // 'replace' überschriebe die abgebrochene Navigation den History-Eintrag davor; das nächste
+    // Zurück landete dann auf /login statt auf der Übersicht. 'computed' springt zurück an die Stelle.
+    provideRouter(appRoutes, withRouterConfig({ canceledNavigationResolution: 'computed' })),
     provideAnimationsAsync(),
     provideHttpClient(),
     importProvidersFrom(

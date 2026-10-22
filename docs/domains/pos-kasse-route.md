@@ -58,6 +58,12 @@ früher beim X eines frisch geöffneten Dialogs. Die nach dem Abschicken neu auf
 (`isFollowUp`) hat niemand geöffnet. Ihr Verlassen ohne Eingabe ist kein Abbruch und würde sonst jede
 Kassensitzung mit einem leeren Abbruch in den OrderInteractions abschließen.
 
+Der Router läuft dafür mit `canceledNavigationResolution: 'computed'` (`apps/pos-client/src/app/app.config.ts`).
+Mit dem Standard `'replace'` überschrieb ein abgebrochenes Zurück („Weiter bearbeiten") den
+History-Eintrag davor mit `/kasse`. Das nächste Zurück sprang dann zwei Seiten weit auf `/login`, in der
+Sandbox so gemessen. `'computed'` stellt die History-Position wieder her, und das zweite Zurück zielt
+wieder auf die Übersicht.
+
 Ausgenommen sind Ziele, die die Sitzung beenden (`/login`, `/setup`). Dort entscheidet nicht der
 Kassierer, und eine Rückfrage hielte den Logout auf. Verworfen wird dann wie früher: Auch der Dialog
 ging beim Routenwechsel ungefragt zu (`PosSessionService.endSession` → `closeAll()`).

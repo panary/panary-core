@@ -89,50 +89,30 @@ function getTimeRangeFilter(range: Exclude<TimeRange, 'businessDay'>): Record<st
               {{ 'ORDERS.NO_ORDERS' | translate }}
             </p>
           } @else {
-            <div
-              class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden"
-            >
-              <table class="w-full">
+            <div class="admin-table-wrap">
+              <table class="admin-table">
                 <thead>
-                  <tr class="border-b border-slate-200 dark:border-gray-800">
-                    <th
-                      class="text-left px-4 py-2.5 text-[11px] font-medium text-slate-400 dark:text-gray-500 uppercase tracking-wider"
-                    >
-                      #
-                    </th>
-                    <th
-                      class="text-left px-3 py-2.5 text-[11px] font-medium text-slate-400 dark:text-gray-500 uppercase tracking-wider"
-                    >
+                  <tr>
+                    <th>#</th>
+                    <th>
                       {{ 'ORDERS.STATUS' | translate }}
                     </th>
-                    <th
-                      class="text-left px-3 py-2.5 text-[11px] font-medium text-slate-400 dark:text-gray-500 uppercase tracking-wider"
-                    >
+                    <th>
                       {{ 'ORDERS.CHANNEL' | translate }}
                     </th>
-                    <th
-                      class="text-left px-3 py-2.5 text-[11px] font-medium text-slate-400 dark:text-gray-500 uppercase tracking-wider"
-                    >
+                    <th>
                       {{ 'ORDERS.DINE_LOCATION' | translate }}
                     </th>
-                    <th
-                      class="text-left px-3 py-2.5 text-[11px] font-medium text-slate-400 dark:text-gray-500 uppercase tracking-wider"
-                    >
+                    <th>
                       {{ 'ORDERS.PERSON' | translate }}
                     </th>
-                    <th
-                      class="text-left px-3 py-2.5 text-[11px] font-medium text-slate-400 dark:text-gray-500 uppercase tracking-wider"
-                    >
+                    <th>
                       {{ 'ORDERS.BUSINESS_DAY' | translate }}
                     </th>
-                    <th
-                      class="text-right px-3 py-2.5 text-[11px] font-medium text-slate-400 dark:text-gray-500 uppercase tracking-wider"
-                    >
+                    <th class="text-right">
                       {{ 'ORDERS.AMOUNT' | translate }}
                     </th>
-                    <th
-                      class="text-right px-4 py-2.5 text-[11px] font-medium text-slate-400 dark:text-gray-500 uppercase tracking-wider"
-                    >
+                    <th class="text-right">
                       {{ 'ORDERS.DATE' | translate }}
                     </th>
                   </tr>
@@ -141,17 +121,17 @@ function getTimeRangeFilter(range: Exclude<TimeRange, 'businessDay'>): Record<st
                   @for (order of orders(); track order._id) {
                     <tr
                       (click)="selectOrder(order._id)"
-                      class="border-b border-slate-100 dark:border-gray-800/50 cursor-pointer transition"
+                      class="border-slate-100 cursor-pointer transition"
                       [class]="
                         selectedId() === order._id
                           ? 'bg-slate-100 dark:bg-gray-800'
                           : 'hover:bg-slate-50 dark:hover:bg-gray-900/50'
                       "
                     >
-                      <td class="px-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white tabular-nums">
+                      <td class="text-sm font-bold text-slate-900 dark:text-white tabular-nums">
                         {{ order.dailySequenceNumber }}
                       </td>
-                      <td class="px-3 py-2.5">
+                      <td>
                         <span
                           class="inline-flex px-2.5 py-0.5 rounded-full border text-xs font-medium"
                           [class]="statusBadge(order.status)"
@@ -159,13 +139,13 @@ function getTimeRangeFilter(range: Exclude<TimeRange, 'businessDay'>): Record<st
                           {{ statusLabel(order.status) }}
                         </span>
                       </td>
-                      <td class="px-3 py-2.5 text-sm text-slate-600 dark:text-gray-400">
+                      <td class="text-sm text-slate-600 dark:text-gray-400">
                         {{ channelLabel(order.orderChannel) }}
                       </td>
-                      <td class="px-3 py-2.5 text-sm text-slate-600 dark:text-gray-400">
+                      <td class="text-sm text-slate-600 dark:text-gray-400">
                         {{ order.dineLocation === 'dine-in' ? 'Vor Ort' : 'Mitnehmen' }}
                       </td>
-                      <td class="px-3 py-2.5 text-sm text-slate-600 dark:text-gray-400">
+                      <td class="text-sm text-slate-600 dark:text-gray-400">
                         @if (order.staffPaymentInfo?.userName) {
                           <span class="inline-flex items-center gap-1">
                             <app-icon name="fork-knife" class="text-[14px] text-amber-500" />
@@ -179,15 +159,13 @@ function getTimeRangeFilter(range: Exclude<TimeRange, 'businessDay'>): Record<st
                           –
                         }
                       </td>
-                      <td class="px-3 py-2.5 text-sm text-slate-500 dark:text-gray-400 tabular-nums">
+                      <td class="text-sm text-slate-500 dark:text-gray-400 tabular-nums">
                         {{ businessDayLabel(order) }}
                       </td>
-                      <td
-                        class="px-3 py-2.5 text-sm text-slate-900 dark:text-white text-right tabular-nums font-medium"
-                      >
+                      <td class="text-sm text-slate-900 dark:text-white text-right tabular-nums font-medium">
                         {{ formatAmount(order) }}
                       </td>
-                      <td class="px-4 py-2.5 text-sm text-slate-500 dark:text-gray-400 text-right tabular-nums">
+                      <td class="text-sm text-slate-500 dark:text-gray-400 text-right tabular-nums">
                         {{ formatTime(order.createdAt) }}
                       </td>
                     </tr>

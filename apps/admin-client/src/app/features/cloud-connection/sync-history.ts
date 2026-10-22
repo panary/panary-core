@@ -153,38 +153,38 @@ const SERVICE_LABEL: Record<string, string> = {
         </div>
       } @else {
         <div class="overflow-auto" style="max-height: 480px">
-          <table class="w-full text-xs">
+          <table class="admin-table text-xs">
             <thead
               class="bg-slate-50 dark:bg-gray-900/40 text-slate-500 dark:text-gray-400 uppercase tracking-wider sticky top-0 z-10"
             >
               <tr>
-                <th class="text-left px-4 py-2 font-medium">Zeit</th>
-                <th class="text-left px-3 py-2 font-medium">Phase</th>
-                <th class="text-left px-3 py-2 font-medium">Service</th>
-                <th class="text-left px-3 py-2 font-medium">Ausgeloest von</th>
-                <th class="text-left px-3 py-2 font-medium">Richtung</th>
-                <th class="text-right px-3 py-2 font-medium">Records</th>
-                <th class="text-right px-3 py-2 font-medium">Dauer</th>
-                <th class="text-left px-4 py-2 font-medium">Status</th>
+                <th>Zeit</th>
+                <th>Phase</th>
+                <th>Service</th>
+                <th>Ausgeloest von</th>
+                <th>Richtung</th>
+                <th class="text-right">Records</th>
+                <th class="text-right">Dauer</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-gray-800">
               @for (row of pagedRows(); track row._id) {
                 <tr class="hover:bg-slate-50 dark:hover:bg-gray-800/40">
-                  <td class="px-4 py-2 text-slate-700 dark:text-gray-200 whitespace-nowrap">
+                  <td class="text-slate-700 dark:text-gray-200 whitespace-nowrap">
                     {{ formatDate(row.startedAt) }}
                   </td>
-                  <td class="px-3 py-2 text-slate-700 dark:text-gray-200">
+                  <td class="text-slate-700 dark:text-gray-200">
                     <span class="font-medium">{{ phaseLabel(row.phase) }}</span>
                   </td>
-                  <td class="px-3 py-2 text-slate-700 dark:text-gray-200">
+                  <td class="text-slate-700 dark:text-gray-200">
                     {{ serviceSummary(row) }}
                   </td>
-                  <td class="px-3 py-2 text-slate-500 dark:text-gray-400">{{ triggerLabel(row.triggeredBy) }}</td>
-                  <td class="px-3 py-2 font-mono text-slate-500 dark:text-gray-400">
+                  <td class="text-slate-500 dark:text-gray-400">{{ triggerLabel(row.triggeredBy) }}</td>
+                  <td class="font-mono text-slate-500 dark:text-gray-400">
                     {{ directionLabel(row.direction) }}
                   </td>
-                  <td class="px-3 py-2 text-right tabular-nums text-slate-700 dark:text-gray-200">
+                  <td class="text-right tabular-nums text-slate-700 dark:text-gray-200">
                     @if (hasDetails(row)) {
                       <button
                         type="button"
@@ -201,10 +201,8 @@ const SERVICE_LABEL: Record<string, string> = {
                       <span class="text-amber-600 dark:text-amber-400 ml-1">({{ row.rejected }} nicht übern.)</span>
                     }
                   </td>
-                  <td class="px-3 py-2 text-right tabular-nums text-slate-500 dark:text-gray-400">
-                    {{ row.durationMs }}ms
-                  </td>
-                  <td class="px-4 py-2">
+                  <td class="text-right tabular-nums text-slate-500 dark:text-gray-400">{{ row.durationMs }}ms</td>
+                  <td>
                     @switch (row.outcome) {
                       @case ('success') {
                         <span

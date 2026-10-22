@@ -77,32 +77,25 @@ interface Device {
           {{ 'DEVICES.NO_DEVICES' | translate }}
         </p>
       } @else {
-        <div
-          class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden"
-        >
-          <table class="w-full text-sm">
+        <div class="admin-table-wrap">
+          <table class="admin-table">
             <thead>
-              <tr
-                class="border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500
-                         text-xs uppercase tracking-wider"
-              >
-                <th class="px-3 py-2.5">{{ 'COMMON.NAME' | translate }}</th>
-                <th class="px-3 py-2.5">{{ 'DEVICES.TYPE' | translate }}</th>
-                <th class="px-3 py-2.5">{{ 'DEVICES.DEVICE_ID' | translate }}</th>
-                <th class="px-3 py-2.5">{{ 'DEVICES.LAST_SEEN' | translate }}</th>
-                <th class="px-3 py-2.5">{{ 'DEVICES.CONNECTION' | translate }}</th>
-                <th class="px-3 py-2.5">{{ 'DEVICES.ASSIGNMENT' | translate }}</th>
-                <th class="px-3 py-2.5">{{ 'COMMON.STATUS_ACTIVE' | translate }}</th>
-                <th class="px-3 py-2.5 text-right">{{ 'COMMON.ACTIONS' | translate }}</th>
+              <tr>
+                <th>{{ 'COMMON.NAME' | translate }}</th>
+                <th>{{ 'DEVICES.TYPE' | translate }}</th>
+                <th>{{ 'DEVICES.DEVICE_ID' | translate }}</th>
+                <th>{{ 'DEVICES.LAST_SEEN' | translate }}</th>
+                <th>{{ 'DEVICES.CONNECTION' | translate }}</th>
+                <th>{{ 'DEVICES.ASSIGNMENT' | translate }}</th>
+                <th>{{ 'COMMON.STATUS_ACTIVE' | translate }}</th>
+                <th class="text-right">{{ 'COMMON.ACTIONS' | translate }}</th>
               </tr>
             </thead>
             <tbody>
               @for (device of devices(); track device._id) {
-                <tr
-                  class="border-b border-slate-200/50 dark:border-gray-800/50 hover:bg-slate-50 dark:hover:bg-gray-800/30 transition"
-                >
-                  <td class="px-3 py-2.5 font-medium truncate max-w-48">{{ device.name }}</td>
-                  <td class="px-3 py-2.5">
+                <tr class="hover:bg-slate-50 dark:hover:bg-gray-800/30 transition">
+                  <td class="font-medium truncate max-w-48">{{ device.name }}</td>
+                  <td>
                     <span
                       class="text-xs px-2 py-0.5 rounded-full border border-slate-300 dark:border-gray-700
                                  text-slate-600 dark:text-gray-300"
@@ -110,13 +103,13 @@ interface Device {
                       {{ device.type }}
                     </span>
                   </td>
-                  <td class="px-3 py-2.5 text-slate-500 dark:text-gray-400 font-mono text-xs">
+                  <td class="text-slate-500 dark:text-gray-400 font-mono text-xs">
                     {{ device.deviceId.slice(0, 8) }}…
                   </td>
-                  <td class="px-3 py-2.5 text-slate-500 dark:text-gray-400 text-xs">
+                  <td class="text-slate-500 dark:text-gray-400 text-xs">
                     {{ device.lastSeen ? formatDate(device.lastSeen) : '—' }}
                   </td>
-                  <td class="px-3 py-2.5">
+                  <td>
                     @if (isConnected(device.deviceId)) {
                       <span
                         class="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full
@@ -137,7 +130,7 @@ interface Device {
                       </span>
                     }
                   </td>
-                  <td class="px-3 py-2.5">
+                  <td>
                     @if (isAssigned(device)) {
                       <span
                         class="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full
@@ -154,7 +147,7 @@ interface Device {
                       </span>
                     }
                   </td>
-                  <td class="px-3 py-2.5">
+                  <td>
                     @if (device.active) {
                       <span
                         class="inline-block w-2 h-2 rounded-full bg-green-400"
@@ -164,7 +157,7 @@ interface Device {
                       <span class="inline-block w-2 h-2 rounded-full bg-slate-300 dark:bg-gray-600"></span>
                     }
                   </td>
-                  <td class="px-3 py-2.5 text-right whitespace-nowrap">
+                  <td class="text-right whitespace-nowrap">
                     <button
                       type="button"
                       (click)="openAssignment(device)"

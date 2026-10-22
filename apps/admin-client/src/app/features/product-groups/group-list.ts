@@ -382,22 +382,17 @@ interface ProductGroup {
               {{ (groups().length === 0 ? 'PRODUCT_GROUPS.NO_GROUPS' : 'COMMON.NO_RESULTS') | translate }}
             </p>
           } @else {
-            <div
-              class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden"
-            >
-              <table class="w-full text-sm">
+            <div class="admin-table-wrap">
+              <table class="admin-table">
                 <thead>
-                  <tr
-                    class="border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500
-                             text-xs uppercase tracking-wider"
-                  >
-                    <th class="px-3 py-2.5 w-8"></th>
-                    <th class="px-3 py-2.5">{{ 'COMMON.NAME' | translate }}</th>
+                  <tr>
+                    <th class="w-8"></th>
+                    <th>{{ 'COMMON.NAME' | translate }}</th>
                     @if (!selectedId()) {
-                      <th class="px-3 py-2.5">{{ 'PRODUCTS.ACRONYM' | translate }}</th>
-                      <th class="px-3 py-2.5">{{ 'PRODUCT_GROUPS.VAT' | translate }}</th>
-                      <th class="px-3 py-2.5 text-center">{{ 'PRODUCT_GROUPS.VISIBLE' | translate }}</th>
-                      <th class="px-3 py-2.5">{{ 'COMMON.STATUS' | translate }}</th>
+                      <th>{{ 'PRODUCTS.ACRONYM' | translate }}</th>
+                      <th>{{ 'PRODUCT_GROUPS.VAT' | translate }}</th>
+                      <th class="text-center">{{ 'PRODUCT_GROUPS.VISIBLE' | translate }}</th>
+                      <th>{{ 'COMMON.STATUS' | translate }}</th>
                     }
                   </tr>
                 </thead>
@@ -410,20 +405,20 @@ interface ProductGroup {
                           ? 'bg-slate-100 dark:bg-white/5 border-l-2 border-l-slate-900 dark:border-l-white'
                           : 'hover:bg-slate-50 dark:hover:bg-gray-800/30 border-l-2 border-l-transparent'
                       "
-                      class="cursor-pointer border-b border-slate-200/50 dark:border-gray-800/50 transition"
+                      class="cursor-pointer transition"
                     >
-                      <td class="px-3 py-2.5">
+                      <td>
                         <span
                           class="inline-block w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-gray-700"
                           [style.background-color]="group.color"
                         ></span>
                       </td>
-                      <td class="px-3 py-2.5 font-medium truncate max-w-40">{{ group.name }}</td>
+                      <td class="font-medium truncate max-w-40">{{ group.name }}</td>
                       @if (!selectedId()) {
-                        <td class="px-3 py-2.5 text-slate-500 dark:text-gray-400 font-mono text-xs">
+                        <td class="text-slate-500 dark:text-gray-400 font-mono text-xs">
                           {{ group.acronym }}
                         </td>
-                        <td class="px-3 py-2.5 text-slate-500 dark:text-gray-400 text-xs">{{ group.taxInside }}%</td>
+                        <td class="text-slate-500 dark:text-gray-400 text-xs">{{ group.taxInside }}%</td>
                         <td class="text-center" (click)="$event.stopPropagation()">
                           <label
                             class="inline-flex items-center justify-center w-12 h-12 cursor-pointer
@@ -438,7 +433,7 @@ interface ProductGroup {
                             />
                           </label>
                         </td>
-                        <td class="px-3 py-2.5">
+                        <td>
                           <span [class]="statusBadge(group.status)">{{ statusLabel(group.status) }}</span>
                         </td>
                       }

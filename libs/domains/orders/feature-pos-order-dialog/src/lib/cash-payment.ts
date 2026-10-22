@@ -1,5 +1,3 @@
-import { toCents } from '@panary/orders/domain'
-
 /**
  * Reine Logik der Bezahlansicht „nur Bar" (core#831): Eingabe des gegebenen Betrags in Cent, Rückgeld und
  * Schnellbeträge. Alles in ganzen Cent — Euro-Beträge mit Nachkommastellen addieren sich nicht exakt.

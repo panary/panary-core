@@ -21,6 +21,7 @@ die Bezahlansicht, wenn **alle** gelten:
 - Der Kanal ist **Kasse** (Telefonbestellungen werden bei Abholung bezahlt).
 - Die Bestellung ist kein Personalessen und hat keinen Firmenkunden.
 - Ein Kassierer ist ermittelbar (angemeldeter Mitarbeiter, sonst Auth-User).
+- Kein Personalessen-Rabatt ist gewählt (auch der Rabatt „Personalessen" zählt als Personalessen).
 
 Sonst heißt die Taste „Bestellen" und alles läuft wie vorher.
 
@@ -48,6 +49,8 @@ Karte und Gutschein sind sichtbar, aber nicht antippbar („bald").
 | Kassieren scheitert (Server lehnt ab) | Ansicht bleibt, `handleError` hat gemeldet, neuer Versuch möglich |
 | Kassen-Freigabe verweigert | Snackbar „Kasse nicht freigegeben", Ansicht bleibt, Bestellung bleibt offen |
 | Abbruch nach dem Anlegen, vor dem Kassieren (Netz, Neustart) | offene Bestellung in „Offene Bestellungen" |
+| Zwei schnelle Tipps auf INNEN/Sofort | genau eine Bestellung (`placing` sperrt, bis das Anlegen fertig ist) |
+| Anlegen scheitert nach Code-Einlösung, zweiter Versuch | dieselbe Einlösung und ID, der Code wird nicht doppelt verbraucht |
 
 ## Code
 

@@ -61,6 +61,7 @@
       "TOKEN_EXPIRED": "Kurulum anahtarının süresi doldu. Kapsayıcıyı yeniden başlatın — açılışta yeni bir anahtar yazdırılır.",
       "TOKEN_USED": "Bu kurulum anahtarı zaten kullanıldı. Edge kuruluyor veya kurulmuş durumda.",
       "RATE_LIMITED": "Çok fazla başarısız deneme. Lütfen bir dakika bekleyip tekrar deneyin.",
+      "UNREACHABLE": "Edge sunucusuna ulaşılamıyor. Ağı ve kapsayıcıyı kontrol edin, ardından yeniden “Kurulumu Tamamla”ya dokunun.",
       "GENERIC": "Kurulum başarısız oldu. Ayrıntılar Edge kapsayıcı günlüğünde."
     }
   },

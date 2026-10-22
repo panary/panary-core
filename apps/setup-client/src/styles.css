@@ -1,4 +1,7 @@
 @import 'tailwindcss';
+@import '../../../libs/shared/design-tokens/tokens.css';
+@import '../../../libs/shared/design-tokens/theme.css';
+@import '../../../libs/shared/design-tokens/fonts.css';
 
 /* Explizite Quellpfade für Tailwind v4 JIT — nötig in Docker (kein .git-Verzeichnis) */
 @source "./app";
@@ -23,44 +26,45 @@
   }
 }
 
-@font-face {
-  font-family: 'Switzer';
-  src: url('./assets/fonts/Switzer-Variable.woff2') format('woff2');
-  font-weight: 100 900;
-  font-display: swap;
-  font-style: normal;
-}
-
-@theme {
-  --font-sans: 'Switzer', sans-serif;
-  --font-display: 'Switzer', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-}
-
+/* Die Flächen- und Textfarben kommen aus den Tokens; sie wechseln selbst zwischen Warm hell und Warm dunkel. */
 html,
 body {
   height: 100%;
   margin: 0;
   overflow-x: hidden;
-  font-family: 'Switzer', sans-serif;
+  font-family: var(--font-family-sans);
   -webkit-font-smoothing: antialiased;
-  /* Light-Mode-Default */
-  background-color: white;
-  color: #111827;
+  background-color: var(--surface-bg);
+  color: var(--text-primary);
 }
 
-/* Manuell Dark */
-html[data-theme='dark'],
-html[data-theme='dark'] body {
-  background-color: black;
-  color: white;
+/* Sichtbarer Fokus für Tastatur und Touch-Tastatur */
+:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
 }
 
-/* System-Dark (kein data-theme gesetzt → OS-Präferenz entscheidet) */
-@media (prefers-color-scheme: dark) {
-  html:not([data-theme]),
-  html:not([data-theme]) body {
-    background-color: black;
-    color: white;
+/* Wiederkehrende Bausteine des Setup-Assistenten (Touch-Maße ≥ 48/56/64 px laut Konzept §4) */
+@layer components {
+  .setup-field-label {
+    @apply text-xs font-semibold tracking-wide text-ink-muted uppercase;
+  }
+  .setup-field-hint {
+    @apply text-xs text-ink-faint;
+  }
+  .setup-input {
+    @apply min-h-touch w-full rounded-control border border-line bg-surface-input px-4 text-base text-ink outline-none placeholder:text-ink-faint focus:border-accent-ink focus:ring-1 focus:ring-accent-ink;
+  }
+  .setup-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-control font-semibold transition select-none disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .setup-btn-primary {
+    @apply setup-btn min-h-touch-primary bg-action px-8 text-base text-on-action hover:brightness-95;
+  }
+  .setup-btn-ghost {
+    @apply setup-btn min-h-touch-min px-4 text-ink-muted hover:bg-surface-elevated hover:text-ink;
+  }
+  .setup-icon-btn {
+    @apply inline-flex min-h-touch-min min-w-touch-min items-center justify-center rounded-control border border-line bg-surface-panel text-lg text-ink-muted transition select-none hover:bg-surface-elevated hover:text-ink;
   }
 }

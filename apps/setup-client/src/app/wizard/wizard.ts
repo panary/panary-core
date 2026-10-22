@@ -3,12 +3,14 @@ import { CommonModule } from '@angular/common'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { SetupService, SetupPayload } from '../setup.service'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { IconComponent } from '@panary/shared/ui-common'
+import type { IconName } from '@panary/shared/util-helpers'
 import { ThemeService } from '../theme.service'
 
 @Component({
   selector: 'app-wizard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TranslateModule],
+  imports: [CommonModule, ReactiveFormsModule, TranslateModule, IconComponent],
   templateUrl: './wizard.html',
   styleUrl: './wizard.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -52,6 +54,16 @@ export class Wizard {
     { value: 'BAR_NIGHTLIFE', labelKey: 'WIZARD.CONFIG.BUSINESS_TYPE_OPTIONS.BAR_NIGHTLIFE' },
     { value: 'FOODTRUCK_STREETFOOD', labelKey: 'WIZARD.CONFIG.BUSINESS_TYPE_OPTIONS.FOODTRUCK_STREETFOOD' },
     { value: 'FINE_DINING', labelKey: 'WIZARD.CONFIG.BUSINESS_TYPE_OPTIONS.FINE_DINING' },
+  ]
+
+  readonly modeOptions: { mode: 'standalone' | 'cloud'; icon: IconName; titleKey: string; descKey: string }[] = [
+    {
+      mode: 'standalone',
+      icon: 'hard-drives',
+      titleKey: 'WIZARD.MODE.STANDALONE',
+      descKey: 'WIZARD.MODE.STANDALONE_DESC',
+    },
+    { mode: 'cloud', icon: 'cloud', titleKey: 'WIZARD.MODE.CLOUD', descKey: 'WIZARD.MODE.CLOUD_DESC' },
   ]
 
   passwordMatchValidator(g: any) {
@@ -147,6 +159,8 @@ export function setupErrorKey(err: unknown): string {
   const status = (err as { status?: number })?.status
   const reason = (err as { error?: { error?: string } })?.error?.error
 
+  // Status 0: der HttpClient hat keine Antwort bekommen (Edge aus, Netz weg)
+  if (status === 0) return 'WIZARD.ERRORS.UNREACHABLE'
   if (status === 429 || reason === 'rate_limited') return 'WIZARD.ERRORS.RATE_LIMITED'
   if (reason === 'expired') return 'WIZARD.ERRORS.TOKEN_EXPIRED'
   if (reason === 'already_used') return 'WIZARD.ERRORS.TOKEN_USED'

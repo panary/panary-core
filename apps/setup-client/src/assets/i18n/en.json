@@ -61,6 +61,7 @@
       "TOKEN_EXPIRED": "The setup token has expired. Restart the container — a new token is printed on start.",
       "TOKEN_USED": "This setup token has already been used. The edge is being set up, or already is.",
       "RATE_LIMITED": "Too many failed attempts. Please wait a minute and try again.",
+      "UNREACHABLE": "The edge server cannot be reached. Check the network and the container, then tap “Finish Installation” again.",
       "GENERIC": "Setup failed. Details are in the edge container log."
     }
   },

@@ -25,6 +25,10 @@ describe('setupErrorKey', () => {
 
   // Ein aelterer Edge ohne die Grund-Angabe im Body: Der Status allein muss
   // noch zu einer brauchbaren Meldung fuehren.
+  it('meldet einen nicht erreichbaren Server (Status 0) als eigenen Satz', () => {
+    expect(setupErrorKey(httpError(0))).toBe('WIZARD.ERRORS.UNREACHABLE')
+  })
+
   it('faellt bei 401 ohne Grund auf die Token-Meldung zurueck', () => {
     expect(setupErrorKey(httpError(401))).toBe('WIZARD.ERRORS.TOKEN_INVALID')
   })

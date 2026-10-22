@@ -2927,3 +2927,62 @@ describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
     expect(component.payment()).not.toBeNull()
   })
 })
+
+// core#878: Seit die Kasse eine Route ist (core#828), erzeugt ein Neuladen auf `/kasse` die Komponente, bevor
+// `LocationService.activeLocation()` gesetzt ist. Kanal-Vorbelegung und Pauschalpreise wurden aber im Konstruktor
+// einmal gelesen und blieben auf Telefon bzw. 0.
+describe('OrderDialog — Standort kommt nach dem Aufbau (core#878)', () => {
+  const location = (over: Record<string, unknown> = {}) => ({
+    _id: 'loc-1',
+    operationMode: 'pos-cashier',
+    settings: { genericProductSettings: { generalSideDishPrice: 1.5, generalDrinkPrice: 2.5 } },
+    ...over,
+  })
+
+  it('belegt den Kanal mit Kasse vor, sobald die Filiale im Kassenbetrieb geladen ist', () => {
+    const activeLocation = signal<unknown>(undefined)
+    const { component } = setup({ activeLocation: () => activeLocation() })
+    expect(component.orderChannel()).toBe('telephone')
+
+    activeLocation.set(location())
+
+    expect(component.orderChannel()).toBe('pos')
+  })
+
+  it('belegt im Bestellbetrieb weiter Telefon vor', () => {
+    const activeLocation = signal<unknown>(undefined)
+    const { component } = setup({ activeLocation: () => activeLocation() })
+
+    activeLocation.set(location({ operationMode: 'orders-only' }))
+
+    expect(component.orderChannel()).toBe('telephone')
+  })
+
+  it('lässt die Wahl des Kassierers stehen, wenn der Standort neu geladen wird, ohne dass sich der Modus ändert', () => {
+    const activeLocation = signal<unknown>(location())
+    const { component } = setup({ activeLocation: () => activeLocation() })
+    component.toggleOrderChannel()
+    expect(component.orderChannel()).toBe('telephone')
+
+    // Ein Refresh liefert ein neues Objekt mit demselben Modus.
+    activeLocation.set(location({ _id: 'loc-1' }))
+
+    expect(component.orderChannel()).toBe('telephone')
+  })
+
+  it('übernimmt die Pauschalpreise für Beilage und Getränk, auch wenn der Standort später kommt', () => {
+    const activeLocation = signal<unknown>(undefined)
+    const { component } = setup({ activeLocation: () => activeLocation() })
+    expect([component.generalSideDishPrice, component.generalDrinkPrice]).toEqual([0, 0])
+
+    activeLocation.set(location())
+
+    expect([component.generalSideDishPrice, component.generalDrinkPrice]).toEqual([1.5, 2.5])
+  })
+
+  it('fällt ohne Einstellung auf 0 zurück', () => {
+    const { component } = setup({ activeLocation: () => location({ settings: {} }) })
+
+    expect([component.generalSideDishPrice, component.generalDrinkPrice]).toEqual([0, 0])
+  })
+})

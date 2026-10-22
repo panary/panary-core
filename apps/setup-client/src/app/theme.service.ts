@@ -1,4 +1,5 @@
 import { Injectable, computed, effect, signal } from '@angular/core'
+import type { IconName } from '@panary/shared/util-helpers'
 
 type ThemeMode = 'dark' | 'light' | 'system'
 
@@ -8,14 +9,14 @@ const THEME_STORAGE_KEY = 'panary-setup-theme'
 export class ThemeService {
   readonly theme = signal<ThemeMode>((localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode | null) ?? 'dark')
 
-  readonly themeIcon = computed<string>(() => {
+  readonly themeIcon = computed<IconName>(() => {
     switch (this.theme()) {
       case 'light':
-        return '☀'
+        return 'sun'
       case 'dark':
-        return '☽'
+        return 'moon'
       default:
-        return '◐'
+        return 'circle-half'
     }
   })
 

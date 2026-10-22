@@ -3,12 +3,13 @@ import { QRCodeComponent } from 'angularx-qrcode'
 import { RouterLink } from '@angular/router'
 import { TranslateService, TranslateModule } from '@ngx-translate/core'
 import { SetupService } from '../setup.service'
+import { IconComponent } from '@panary/shared/ui-common'
 import { ThemeService } from '../theme.service'
 
 @Component({
   selector: 'app-landing',
   standalone: true,
-  imports: [QRCodeComponent, RouterLink, TranslateModule],
+  imports: [QRCodeComponent, RouterLink, TranslateModule, IconComponent],
   templateUrl: './landing.html',
   styleUrl: './landing.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -17,6 +18,8 @@ export class Landing {
   private translate = inject(TranslateService)
   private setupService = inject(SetupService)
   readonly themeService = inject(ThemeService)
+
+  readonly languages = ['en', 'de', 'tr']
 
   public setupUrl = signal<string>(window.location.href)
   public ipAddress = signal<string>('')

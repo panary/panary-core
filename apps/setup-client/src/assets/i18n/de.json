@@ -61,6 +61,7 @@
       "TOKEN_EXPIRED": "Das Setup-Token ist abgelaufen. Starten Sie den Container neu — beim Start wird ein neues Token ausgegeben.",
       "TOKEN_USED": "Dieses Setup-Token wurde bereits verwendet. Der Edge wird gerade eingerichtet oder ist es schon.",
       "RATE_LIMITED": "Zu viele Fehlversuche. Bitte eine Minute warten und erneut versuchen.",
+      "UNREACHABLE": "Der Edge-Server ist nicht erreichbar. Bitte Netzwerk und Container prüfen und danach erneut auf „Installation abschließen“ tippen.",
       "GENERIC": "Die Einrichtung ist fehlgeschlagen. Details stehen im Container-Log des Edge."
     }
   },

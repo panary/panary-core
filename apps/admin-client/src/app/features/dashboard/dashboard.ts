@@ -8,6 +8,8 @@ import { ApiService, Paginated } from '../../core/api.service'
 import { SyncProblemCountService } from '../../core/sync-problem-count.service'
 import { DeviceStatusService } from '../../core/device-status.service'
 import { API_BASE_URL } from '../../core/api-base-url'
+import { AdminIconComponent } from '../../shared/icon/icon'
+import type { AdminIconName } from '../../shared/icon/icons.generated'
 
 type PairingStatus = 'connected' | 'disconnected' | 'pairing' | 'error'
 // 'stale' = gekoppelt (pairingStatus=connected), aber seit > CLOUD_CONTACT_STALE_SEC
@@ -23,7 +25,7 @@ interface CloudConnection {
 interface KpiCard {
   label: string
   value: string
-  icon: string
+  icon: AdminIconName
   iconColor: string
   iconBg: string
 }
@@ -43,40 +45,40 @@ interface EdgeServerInfo {
   database: { type: string }
 }
 
-const CLOUD_STATUS_CONFIG: Record<CloudStatus, { labelKey: string; icon: string; pill: string; dot: string }> = {
+const CLOUD_STATUS_CONFIG: Record<CloudStatus, { labelKey: string; icon: AdminIconName; pill: string; dot: string }> = {
   standalone: {
     labelKey: 'DASHBOARD.STATUS_STANDALONE',
-    icon: 'lan',
+    icon: 'network',
     pill: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
     dot: 'bg-slate-400',
   },
   connected: {
     labelKey: 'DASHBOARD.STATUS_CONNECTED',
-    icon: 'cloud_done',
+    icon: 'cloud-check',
     pill: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-900',
     dot: 'bg-emerald-500 animate-pulse',
   },
   pairing: {
     labelKey: 'DASHBOARD.STATUS_PAIRING',
-    icon: 'cloud_sync',
+    icon: 'cloud-arrow-up',
     pill: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-900',
     dot: 'bg-amber-500 animate-pulse',
   },
   disconnected: {
     labelKey: 'DASHBOARD.STATUS_DISCONNECTED',
-    icon: 'cloud_off',
+    icon: 'cloud-slash',
     pill: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700',
     dot: 'bg-slate-400',
   },
   stale: {
     labelKey: 'DASHBOARD.STATUS_STALE',
-    icon: 'cloud_off',
+    icon: 'cloud-slash',
     pill: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-900',
     dot: 'bg-amber-500 animate-pulse',
   },
   error: {
     labelKey: 'DASHBOARD.STATUS_ERROR',
-    icon: 'cloud_off',
+    icon: 'cloud-slash',
     pill: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-900',
     dot: 'bg-red-500',
   },
@@ -128,7 +130,7 @@ function formatBytes(bytes: number): string {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [TranslateModule, RouterLink],
+  imports: [TranslateModule, RouterLink, AdminIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6 space-y-4 h-full overflow-y-auto">
@@ -140,9 +142,7 @@ function formatBytes(bytes: number): string {
           [class]="statusConfig().pill"
         >
           <div class="w-2 h-2 rounded-full shrink-0" [class]="statusConfig().dot"></div>
-          <span class="material-symbols-outlined" style="font-size: 14px; line-height: 1">{{
-            statusConfig().icon
-          }}</span>
+          <app-icon [name]="statusConfig().icon" class="text-[14px]" />
           {{ statusConfig().labelKey | translate }}
         </div>
       </div>
@@ -164,12 +164,12 @@ function formatBytes(bytes: number): string {
             [class.bg-amber-50]="syncProblems.count() === 0"
             [class.dark:bg-amber-950]="syncProblems.count() === 0"
           >
-            <span
-              class="material-symbols-outlined text-[22px]"
+            <app-icon
+              name="cloud-warning"
+              class="text-[22px]"
               [class.text-red-500]="syncProblems.count() > 0"
               [class.text-amber-500]="syncProblems.count() === 0"
-              >sync_problem</span
-            >
+            />
           </div>
           <div class="flex-1 min-w-0">
             <p class="text-sm font-bold text-slate-900 dark:text-white">
@@ -223,7 +223,7 @@ function formatBytes(bytes: number): string {
               class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl p-5 flex items-center gap-4 hover:border-slate-300 dark:hover:border-gray-700 transition-colors"
             >
               <div class="p-3 rounded-xl shrink-0" [style.background-color]="kpi.iconBg">
-                <span class="material-symbols-outlined text-[22px]" [style.color]="kpi.iconColor">{{ kpi.icon }}</span>
+                <app-icon [name]="kpi.icon" class="text-[22px]" [style.color]="kpi.iconColor" />
               </div>
               <div>
                 <p class="text-xs font-semibold text-slate-400 dark:text-gray-500 uppercase tracking-widest">
@@ -265,7 +265,7 @@ function formatBytes(bytes: number): string {
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-3">
               <div class="p-2.5 rounded-xl bg-slate-900 dark:bg-white">
-                <span class="material-symbols-outlined text-[22px] text-white dark:text-slate-900">dns</span>
+                <app-icon name="hard-drives" class="text-[22px] text-white dark:text-slate-900" />
               </div>
               <div>
                 <p class="text-sm font-bold text-slate-900 dark:text-white">
@@ -299,7 +299,7 @@ function formatBytes(bytes: number): string {
         <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl p-5">
           <div class="flex items-center gap-3">
             <div class="p-2.5 rounded-xl bg-red-50 dark:bg-red-950">
-              <span class="material-symbols-outlined text-[22px] text-red-500">dns</span>
+              <app-icon name="hard-drives" class="text-[22px] text-red-500" />
             </div>
             <div>
               <p class="text-sm font-bold text-slate-900 dark:text-white">{{ 'DASHBOARD.EDGE_SERVER' | translate }}</p>
@@ -343,12 +343,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   })
 
   kpis = signal<KpiCard[]>([
-    { label: 'DASHBOARD.KPI_USERS', value: '–', icon: 'people', iconColor: '#2563eb', iconBg: '#eff6ff' },
-    { label: 'DASHBOARD.KPI_LOCATIONS', value: '–', icon: 'store', iconColor: '#7c3aed', iconBg: '#f5f3ff' },
-    { label: 'DASHBOARD.KPI_PRODUCTS', value: '–', icon: 'inventory_2', iconColor: '#059669', iconBg: '#ecfdf5' },
-    { label: 'DASHBOARD.KPI_PRODUCT_GROUPS', value: '–', icon: 'category', iconColor: '#d97706', iconBg: '#fffbeb' },
+    { label: 'DASHBOARD.KPI_USERS', value: '–', icon: 'users', iconColor: '#2563eb', iconBg: '#eff6ff' },
+    { label: 'DASHBOARD.KPI_LOCATIONS', value: '–', icon: 'storefront', iconColor: '#7c3aed', iconBg: '#f5f3ff' },
+    { label: 'DASHBOARD.KPI_PRODUCTS', value: '–', icon: 'package', iconColor: '#059669', iconBg: '#ecfdf5' },
+    { label: 'DASHBOARD.KPI_PRODUCT_GROUPS', value: '–', icon: 'stack', iconColor: '#d97706', iconBg: '#fffbeb' },
     { label: 'DASHBOARD.KPI_API_KEYS', value: '–', icon: 'key', iconColor: '#e11d48', iconBg: '#fff1f2' },
-    { label: 'DASHBOARD.KPI_ORDERS', value: '–', icon: 'receipt_long', iconColor: '#4f46e5', iconBg: '#eef2ff' },
+    { label: 'DASHBOARD.KPI_ORDERS', value: '–', icon: 'receipt', iconColor: '#4f46e5', iconBg: '#eef2ff' },
     // Geraete: X / Y verbunden (live aus device-connections). Wert + Farbe
     // werden separat ueber updateDeviceKpi() gesetzt (nicht aus der count-Map).
     { label: 'DASHBOARD.KPI_DEVICES', value: '–', icon: 'devices', iconColor: '#64748b', iconBg: '#f1f5f9' },

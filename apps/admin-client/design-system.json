@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "description": "Design-Token- und Komponentenspezifikation des Panary Admin Panels. Abgeleitet aus der produktiven Angular-21-Implementierung. Kann als Referenz für beliebige Frontend-Frameworks verwendet werden.",
     "cssFramework": "Tailwind CSS v4 (zero-config, kein tailwind.config.js)",
-    "iconLibrary": "Material Symbols Outlined via Google Fonts CDN",
+    "iconLibrary": "Phosphor Regular via <app-icon> (lokal, Inline-SVG)",
     "darkMode": "class-based via .dark",
     "fontPrimary": "Switzer Variable (self-hosted, woff2)",
     "fontMono": "JetBrains Mono"
@@ -282,47 +282,14 @@
   },
 
   "icons": {
-    "library": "Material Symbols Outlined",
-    "cdnUrl": "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200",
+    "library": "Phosphor Regular (lokal als Inline-SVG, kein Font, kein CDN)",
     "usage": {
-      "htmlTag": "span",
-      "cssClass": "material-symbols-outlined",
-      "sizeControl": "text-[16px] | text-[22px] | text-base | text-lg",
-      "colorControl": "via [style.color] binding (for dynamic colors) or Tailwind color class",
-      "example": "<span class=\"material-symbols-outlined text-[22px]\" style=\"color: #2563eb\">people</span>"
+      "component": "<app-icon> aus apps/admin-client/src/app/shared/icon/icon.ts",
+      "sizeControl": "font-size am Host, z. B. text-[16px] | text-[20px] | text-[22px]",
+      "colorControl": "currentColor — Tailwind-Farbklasse oder [style.color] am Host",
+      "example": "<app-icon name=\"users\" class=\"text-[22px]\" [style.color]=\"kpi.iconColor\" />"
     },
-    "navigationIcons": {
-      "comment": "Unicode-Sonderzeichen als Nav-Icons (kein Material Symbols für Nav)",
-      "dashboard": "◫",
-      "users": "◉",
-      "location": "⊡",
-      "productGroups": "▣",
-      "products": "▤",
-      "printers": "⎙",
-      "apiKeys": "⚿",
-      "cloud": "☁",
-      "themeLight": "☀",
-      "themeDark": "☽",
-      "themeSystem": "◐",
-      "prevArrow": "◀",
-      "nextArrow": "▶",
-      "close": "✕",
-      "check": "✓"
-    },
-    "materialIconsUsed": [
-      "people",
-      "store",
-      "inventory_2",
-      "category",
-      "key",
-      "receipt_long",
-      "lan",
-      "cloud_done",
-      "cloud_sync",
-      "cloud_off",
-      "settings",
-      "lock"
-    ]
+    "mapping": "docs/references/admin-icon-mapping.md (erzeugt von pnpm icons:build)"
   },
 
   "darkMode": {
@@ -532,7 +499,7 @@
       "description": "Größeres Status-Badge mit Farbpunkt und Icon, z.B. für Cloud-Verbindungsstatus",
       "base": "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold border transition-colors",
       "dot": "w-2 h-2 rounded-full",
-      "icon": "material-symbols-outlined text-[16px]",
+      "icon": "<app-icon> text-[14px]",
       "variants": {
         "connected": "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-900",
         "pairing": "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-900",
@@ -553,7 +520,7 @@
       "container": "bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl p-5 flex items-center gap-4 hover:border-slate-300 dark:hover:border-gray-700 transition-colors",
       "iconWrapper": "p-3 rounded-xl shrink-0",
       "iconComment": "Hinter- und Vordergrundfarbe via [style.background-color] und [style.color] – nicht via Tailwind-Klassen (wegen JIT-Sicherheit)",
-      "iconClass": "material-symbols-outlined text-[22px]",
+      "iconClass": "<app-icon> text-[22px]",
       "textWrapper": "",
       "label": "text-xs font-semibold text-slate-400 dark:text-gray-500 uppercase tracking-widest",
       "value": "text-3xl font-bold mt-0.5 text-slate-900 dark:text-white tabular-nums",

@@ -8,9 +8,10 @@ import { ConfirmDialogComponent } from './core/confirm-dialog'
 import { EmergencyOverrideService } from './core/emergency-override.service'
 import { formatApiError } from './core/error-helper'
 import { OfflineOverrideService } from './core/offline-override.service'
+import { AdminIconComponent } from './shared/icon/icon'
 
 @Component({
-  imports: [RouterOutlet, CloudStatusBannerComponent, ConfirmDialogComponent, TranslateModule],
+  imports: [RouterOutlet, CloudStatusBannerComponent, ConfirmDialogComponent, TranslateModule, AdminIconComponent],
   selector: 'app-root',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -40,11 +41,7 @@ import { OfflineOverrideService } from './core/offline-override.service'
                   flex items-start gap-2.5"
         role="alert"
       >
-        <span
-          class="material-symbols-outlined text-[18px] leading-none mt-0.5 text-red-700 dark:text-red-200"
-          aria-hidden="true"
-          >error</span
-        >
+        <app-icon name="warning-circle" class="text-[18px] mt-0.5 text-red-700 dark:text-red-200" />
         <p class="text-sm text-red-800 dark:text-red-200 flex-1">{{ err }}</p>
         <button
           type="button"

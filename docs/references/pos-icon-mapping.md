@@ -7,7 +7,7 @@ status: stable
 generated: { by: claude-code/sonnet-5.5, at: 2026-10-22T00:00:00.000Z }
 sources:
   - id: generator
-    resource: ../../tools/phosphor/build-pos-icons.mjs
+    resource: ../../tools/phosphor/build-icons.mjs
     title: Generator dieser Tabelle
 ---
 

@@ -20,6 +20,8 @@ import { SyncProblemCountService } from '../core/sync-problem-count.service'
 import { DeviceStatusService } from '../core/device-status.service'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { LocationStateService } from '../core/location-state.service'
+import { AdminIconComponent } from '../shared/icon/icon'
+import type { AdminIconName } from '../shared/icon/icons.generated'
 import { LanguagePickerComponent } from '../shared/language-picker'
 
 /**
@@ -40,7 +42,7 @@ interface NavGroup {
 interface NavItem {
   path: string
   label: string
-  icon: string
+  icon: AdminIconName
   /**
    * Service-Pfad fuer den neutralen grauen Count (z.B. Anzahl Produkte).
    * Wird via api.find(svc, { $limit: 0 }) geladen.
@@ -64,7 +66,7 @@ interface NavItem {
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslateModule, LanguagePickerComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslateModule, LanguagePickerComponent, AdminIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(document:keydown.escape)': 'closeMobileNav()' },
   template: `
@@ -123,9 +125,7 @@ interface NavItem {
                          text-slate-400 dark:text-gray-500
                          hover:text-slate-900 dark:hover:text-white transition"
           >
-            <span class="material-symbols-outlined" style="font-size: 14px; line-height: 1">
-              {{ sidebarOpen() ? 'chevron_left' : 'chevron_right' }}
-            </span>
+            <app-icon [name]="sidebarOpen() ? 'caret-left' : 'caret-right'" class="text-[14px]" />
           </button>
 
           <!--
@@ -204,9 +204,7 @@ interface NavItem {
                   [title]="expanded() ? '' : (item.label | translate)"
                 >
                   <span class="shrink-0 flex items-center justify-center w-10 relative">
-                    <span class="material-symbols-outlined" style="font-size: 20px; line-height: 1">{{
-                      item.icon
-                    }}</span>
+                    <app-icon [name]="item.icon" class="text-[20px]" />
                     <!-- Problem-Indikator im eingeklappten Sidebar-Modus: kleiner
                      roter Dot oben rechts am Icon. Im aufgeklappten Modus
                      wird stattdessen die Zahl-Badge rechts neben dem Label
@@ -325,7 +323,7 @@ interface NavItem {
                              text-slate-400 dark:text-gray-600
                              hover:text-slate-900 dark:hover:text-white transition"
               >
-                <span class="material-symbols-outlined" style="font-size: 20px; line-height: 1">logout</span>
+                <app-icon name="sign-out" class="text-[20px]" />
               </button>
             </div>
           }
@@ -350,7 +348,7 @@ interface NavItem {
               aria-controls="admin-sidebar"
               class="h-10 w-10 -ml-2 flex items-center justify-center rounded-lg text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-900"
             >
-              <span class="material-symbols-outlined" style="font-size: 24px; line-height: 1">menu</span>
+              <app-icon name="list" class="text-[24px]" />
             </button>
             <span class="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">Panary</span>
           </div>
@@ -393,43 +391,43 @@ export class AdminLayoutComponent {
     {
       label: 'NAV.GROUP_OPERATIONS',
       items: [
-        { path: '/dashboard', label: 'NAV.DASHBOARD', icon: 'dashboard' },
-        { path: '/orders', label: 'NAV.ORDERS', icon: 'receipt_long', countService: 'orders' },
-        { path: '/business-days', label: 'NAV.BUSINESS_DAYS', icon: 'event' },
+        { path: '/dashboard', label: 'NAV.DASHBOARD', icon: 'squares-four' },
+        { path: '/orders', label: 'NAV.ORDERS', icon: 'receipt', countService: 'orders' },
+        { path: '/business-days', label: 'NAV.BUSINESS_DAYS', icon: 'calendar-dots' },
       ],
     },
     {
       label: 'NAV.GROUP_CATALOG',
       items: [
-        { path: '/product-groups', label: 'NAV.PRODUCT_GROUPS', icon: 'category', countService: 'product-groups' },
-        { path: '/products', label: 'NAV.PRODUCTS', icon: 'inventory_2', countService: 'products' },
+        { path: '/product-groups', label: 'NAV.PRODUCT_GROUPS', icon: 'stack', countService: 'product-groups' },
+        { path: '/products', label: 'NAV.PRODUCTS', icon: 'package', countService: 'products' },
       ],
     },
     {
       label: 'NAV.GROUP_LOCATION',
       items: [
-        { path: '/location', label: 'NAV.LOCATION', icon: 'store' },
-        { path: '/opening-hours', label: 'NAV.OPENING_HOURS', icon: 'schedule' },
+        { path: '/location', label: 'NAV.LOCATION', icon: 'storefront' },
+        { path: '/opening-hours', label: 'NAV.OPENING_HOURS', icon: 'clock' },
         // Gleiches Icon wie die Tisch-Kacheln im POS-Bestelldialog.
-        { path: '/tables', label: 'NAV.TABLES', icon: 'table_restaurant' },
-        { path: '/pagers', label: 'NAV.PAGERS', icon: 'vibration' },
+        { path: '/tables', label: 'NAV.TABLES', icon: 'table' },
+        { path: '/pagers', label: 'NAV.PAGERS', icon: 'vibrate' },
       ],
     },
     {
       label: 'NAV.GROUP_HARDWARE',
       items: [
-        { path: '/printers', label: 'NAV.PRINTERS', icon: 'print' },
+        { path: '/printers', label: 'NAV.PRINTERS', icon: 'printer' },
         { path: '/devices', label: 'NAV.DEVICES', icon: 'devices', connectionBadge: true },
       ],
     },
     {
       label: 'NAV.GROUP_SYSTEM',
       items: [
-        { path: '/users', label: 'NAV.USERS', icon: 'people', countService: 'users' },
+        { path: '/users', label: 'NAV.USERS', icon: 'users', countService: 'users' },
         { path: '/apikeys', label: 'NAV.API_KEYS', icon: 'key' },
         { path: '/cloud', label: 'NAV.CLOUD_CONNECTION', icon: 'cloud', problemCountKey: 'sync' },
-        { path: '/sync-status', label: 'NAV.SYNC_STATUS', icon: 'sync_problem', problemCountKey: 'sync' },
-        { path: '/logs', label: 'NAV.LOGS', icon: 'description' },
+        { path: '/sync-status', label: 'NAV.SYNC_STATUS', icon: 'cloud-warning', problemCountKey: 'sync' },
+        { path: '/logs', label: 'NAV.LOGS', icon: 'file-text' },
       ],
     },
   ]

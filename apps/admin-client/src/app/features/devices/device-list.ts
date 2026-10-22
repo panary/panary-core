@@ -15,6 +15,7 @@ import { DeviceStatusService } from '../../core/device-status.service'
 import { formatApiError } from '../../core/error-helper'
 import { DeviceAssignmentPickerComponent, type PosUser } from './device-assignment-picker'
 import { API_BASE_URL } from '../../core/api-base-url'
+import { AdminIconComponent } from '../../shared/icon/icon'
 
 interface Device {
   _id: string
@@ -31,7 +32,13 @@ interface Device {
 @Component({
   selector: 'app-device-list',
   standalone: true,
-  imports: [TranslateModule, QRCodeComponent, ConfirmDialogComponent, DeviceAssignmentPickerComponent],
+  imports: [
+    TranslateModule,
+    QRCodeComponent,
+    ConfirmDialogComponent,
+    DeviceAssignmentPickerComponent,
+    AdminIconComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6 space-y-4 h-full overflow-y-auto">
@@ -138,13 +145,7 @@ interface Device {
                                    dark:bg-indigo-900/30 dark:text-indigo-300 dark:ring-indigo-500/30"
                         [title]="assignedNames(device)"
                       >
-                        <span
-                          class="material-symbols-outlined"
-                          style="font-size: 14px; line-height: 1"
-                          aria-hidden="true"
-                        >
-                          person
-                        </span>
+                        <app-icon name="user" class="text-[14px]" />
                         {{ assignedLabel(device) }}
                       </span>
                     } @else {
@@ -226,9 +227,7 @@ interface Device {
                   @if (codeCopied()) {
                     <span aria-hidden="true">&#10003;</span> {{ 'DEVICES.PAIRING_COPIED' | translate }}
                   } @else {
-                    <span class="material-symbols-outlined" style="font-size: 18px; line-height: 1" aria-hidden="true">
-                      content_copy
-                    </span>
+                    <app-icon name="copy" class="text-[18px]" />
                   }
                 </button>
               </div>

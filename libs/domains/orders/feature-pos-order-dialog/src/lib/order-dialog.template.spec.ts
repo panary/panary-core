@@ -210,7 +210,7 @@ describe('Kasse-Template — Layout B1 (core#829)', () => {
 // Anpassen als Sheet (core#830): Das Panel liegt über der Rasterzone, sperrt Primärtaste, Ziffern und Gruppenleiste
 // und schließt nur über Fertig/Abbrechen. Das Template wird hier nur gelesen — die Komponenten-Spec rendert es nicht.
 describe('Kasse-Template — Anpassen-Sheet (core#830)', () => {
-  const sheetStart = template.indexOf('class="kasse__scrim"')
+  const sheetStart = template.indexOf('kasse__scrim kasse-scrim-enter')
   const sheet = template.slice(sheetStart, template.indexOf('} @else {', sheetStart))
   const gesperrt = (marker: string): string => {
     const at = template.indexOf(marker)

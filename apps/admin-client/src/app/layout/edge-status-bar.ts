@@ -10,13 +10,14 @@ import { SyncProblemCountService } from '../core/sync-problem-count.service'
 
 export type StatusTone = 'ok' | 'warn' | 'error' | 'neutral'
 
+// Kurzformen: Die Zeile nennt „Cloud“ schon davor (Konzept 2.8: „Cloud · verbunden“).
 const CLOUD_LABEL: Record<CloudStatus, string> = {
-  standalone: 'DASHBOARD.STATUS_STANDALONE',
-  connected: 'DASHBOARD.STATUS_CONNECTED',
-  pairing: 'DASHBOARD.STATUS_PAIRING',
-  disconnected: 'DASHBOARD.STATUS_DISCONNECTED',
-  stale: 'DASHBOARD.STATUS_STALE',
-  error: 'DASHBOARD.STATUS_ERROR',
+  standalone: 'NAV.STATUS_CLOUD_STANDALONE',
+  connected: 'NAV.STATUS_CLOUD_CONNECTED',
+  pairing: 'NAV.STATUS_CLOUD_PAIRING',
+  disconnected: 'NAV.STATUS_CLOUD_DISCONNECTED',
+  stale: 'NAV.STATUS_CLOUD_STALE',
+  error: 'NAV.STATUS_CLOUD_ERROR',
 }
 
 const TONE_DOT: Record<StatusTone, string> = {

@@ -80,6 +80,13 @@ nicht geladen werden" wurde bis [core#868](https://github.com/panary/panary-core
 Standort geladen ist, und verschwindet, sobald er eintrifft. Fällt der Standort weg, kommt er wieder.
 Ein fehlender Geschäftstag blockiert weiterhin nicht, den legt der Edge beim ersten Order an.
 
+Zwei weitere Werte las der Konstruktor einmal und hielten deshalb den Stand „ohne Standort"
+([core#878](https://github.com/panary/panary-core/issues/878)): die Vorbelegung des Kanals (sonst Telefon statt
+Kasse im Kassenbetrieb) und die Pauschalpreise für Beilage und Getränk (sonst 0). `orderChannel` ist ein
+`linkedSignal` über den Betriebsmodus. Als Quelle dient ein `computed`, kein Funktionsliteral: Ein Refresh des
+Standorts mit gleichem Modus setzt die Wahl des Kassierers so nicht zurück. Die Preise sind Getter auf den
+Standort.
+
 ## Mandantensperre
 
 `kasseBookingGuard` leitet `/kasse` bei gesperrtem Mandanten (`TenantSuspensionService.suspended()`) auf

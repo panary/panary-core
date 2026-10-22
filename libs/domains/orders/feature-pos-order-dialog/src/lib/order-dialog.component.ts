@@ -11,6 +11,7 @@ import {
   OnDestroy,
   OnInit,
   input,
+  linkedSignal,
   output,
   Pipe,
   PipeTransform,
@@ -289,7 +290,14 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    * umgedreht. Vorbelegt wird trotzdem nach Betriebsmodus, damit der
    * Regelfall ohne zusätzlichen Griff stimmt.
    */
-  readonly orderChannel = signal<PosOrderChannel>(OrderChannel.TELEPHONE)
+  readonly orderChannel = linkedSignal<string | undefined, PosOrderChannel>({
+    // Quelle ist der Modus als `computed`-Wert, nicht der Standort: Ein Refresh des Standorts liefert ein neues
+    // Objekt mit demselben Modus. Das `computed` meldet dann nichts weiter und die Wahl des Kassierers bleibt
+    // stehen (ein `linkedSignal` mit der bloßen Funktion setzt bei jedem Lauf zurück). Kommt der Standort erst
+    // nach dem Aufbau (Neuladen auf `/kasse`, core#878), wechselt der Modus von „fehlt" auf „pos-cashier".
+    source: computed(() => this.locationService.activeLocation()?.operationMode),
+    computation: operationMode => defaultOrderChannel(operationMode),
+  })
   private _productButtons: PosButton[] = []
   private _table: string | undefined = undefined
   private _dineLocation: (typeof DineLocation)[keyof typeof DineLocation] | undefined = undefined
@@ -394,8 +402,16 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   characters: Array<string> = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))
   corporateCustomers: Array<CorporateCustomer> = []
   totalCorporateCustomers = 0
-  generalSideDishPrice = 0
-  generalDrinkPrice = 0
+  /**
+   * Pauschalpreise für Beilage und Getränk eines Menüs. Aus dem Standort abgeleitet statt im Konstruktor
+   * kopiert: Ein Neuladen auf `/kasse` baut die Komponente, bevor der Standort geladen ist (core#878).
+   */
+  get generalSideDishPrice(): number {
+    return this.locationService.activeLocation()?.settings?.genericProductSettings?.generalSideDishPrice || 0
+  }
+  get generalDrinkPrice(): number {
+    return this.locationService.activeLocation()?.settings?.genericProductSettings?.generalDrinkPrice || 0
+  }
   extras = this.productService.extras
 
   visibleProductGroups: ProductGroup[] = []
@@ -566,18 +582,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // Ohne Vorladen wäre es leer, solange der Kassierer den Rabatt-Picker nicht
     // geöffnet hat — das Personalessen liefe dann fälschlich ohne Nachlass durch.
     void this.discountService.loadActivePosDiscounts().catch(() => undefined)
-
-    if (this.locationService.activeLocation()) {
-      this.generalSideDishPrice =
-        this.locationService.activeLocation()?.settings?.genericProductSettings?.generalSideDishPrice || 0
-      this.generalDrinkPrice =
-        this.locationService.activeLocation()?.settings?.genericProductSettings?.generalDrinkPrice || 0
-    }
-
-    // Vorbelegung des Vertriebskanals nach Betriebsmodus. `orders-only` hat
-    // keinen Kassierpfad — dort bleibt es bei Telefon. Der Kassierer kann pro
-    // Bestellung abweichen.
-    this.orderChannel.set(defaultOrderChannel(this.locationService.activeLocation()?.operationMode))
 
     effect(() => {
       // Produktgruppen-Signal beobachten → Sichtbarkeit neu berechnen

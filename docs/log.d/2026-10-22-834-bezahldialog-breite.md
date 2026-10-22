@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#834): Der Bezahl-Dialog in Offene Bestellungen wurde rechts abgeschnitten (Material-Obergrenze 560 px, Inhalt 736 px: „Zu zahlen“, Gutschein und die rechte Ziffernspalte fehlten). Breite und Obergrenze kommen jetzt aus `CASH_PAYMENT_DIALOG_CONFIG`. Gefunden im Sandbox-Sichttest core#890. Mutationsprobe (`§10.3`): siehe PR-Body.

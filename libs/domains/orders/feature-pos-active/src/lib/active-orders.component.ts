@@ -286,11 +286,8 @@ export class ActiveOrdersComponent {
       cashierId: performedById,
     }
     this.#matDialog.open<CashPaymentDialogComponent, CashPaymentDialogData, boolean>(CashPaymentDialogComponent, {
+      ...CASH_PAYMENT_DIALOG_CONFIG,
       data,
-      panelClass: 'rounded-dialog',
-      autoFocus: false,
-      // Backdrop/ESC dürfen den Abschluss nicht abschneiden; „Offen lassen" ist der Ausweg.
-      disableClose: true,
     })
   }
 

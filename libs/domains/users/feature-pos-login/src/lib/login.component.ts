@@ -593,7 +593,8 @@ export class LoginComponent implements OnInit {
 
     this.#verifiedPin = null
     this.#pendingUser = null
-    this.router.navigate(['/dashboard'])
+    // Nach dem Login steht man in der Kasse (core#832); bei Mandantensperre leitet `kasseBookingGuard` zur Übersicht.
+    this.router.navigate(['/kasse'])
   }
 
   //#endregion

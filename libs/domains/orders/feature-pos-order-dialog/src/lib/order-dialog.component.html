@@ -7,20 +7,6 @@
     class="kasse__head flex items-center gap-3 mx-3 mt-2 px-1 h-12 rounded-card"
     [ngStyle]="{ 'background-color': infoBoxBackgroundColor === '#f1f5f9' ? null : infoBoxBackgroundColor }"
   >
-    <button
-      type="button"
-      (click)="leave()"
-      [disabled]="sheetOpen()"
-      class="h-12 px-3 flex items-center justify-center gap-1.5 rounded-control transition shrink-0 disabled:opacity-40"
-      [ngClass]="
-        infoBoxBackgroundColor !== '#f1f5f9'
-          ? 'text-white/90 hover:bg-white/20'
-          : 'text-ink-muted hover:bg-surface-rail hover:text-ink'
-      "
-    >
-      <lib-icon name="squares-four" style="font-size: 1.25rem" />
-      <span class="text-sm font-semibold">{{ 'ORDER_DIALOG.OVERVIEW' | translate }}</span>
-    </button>
     <div id="infoBox" class="info-box flex-1 min-w-0 transition-all duration-300" [@changeInfoBoxText]="infoBoxText">
       <div
         id="infoBoxText"

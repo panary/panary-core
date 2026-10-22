@@ -517,6 +517,14 @@ describe('LoginComponent — Bediener-Token', () => {
     expect(store.get('pos_current_user')).not.toContain('tok-anna')
   })
 
+  it('landet nach erfolgreicher PIN in der Kasse, nicht auf der Übersicht (core#832)', async () => {
+    const { component, navigate } = loginWith({ _id: 'u-anna', firstName: 'Anna', lastName: 'Alt' })
+
+    await component.verifyPin()
+
+    expect(navigate.mock.calls).toEqual([[['/kasse']]])
+  })
+
   it('merkt sich den Mitarbeiter gerätelokal — nur als ID, nur nach erfolgreicher PIN', async () => {
     const { component, store, connection } = loginWith({ _id: 'u-anna', firstName: 'Anna', lastName: 'Alt' })
 

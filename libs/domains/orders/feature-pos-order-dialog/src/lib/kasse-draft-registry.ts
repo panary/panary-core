@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core'
+import { computed, Injectable, signal, type Signal } from '@angular/core'
 
 /**
  * Meldet, ob in der Kasse gerade eine Bestellung angefangen ist.
@@ -12,6 +12,13 @@ import { Injectable } from '@angular/core'
 @Injectable({ providedIn: 'root' })
 export class KasseDraftRegistry {
   #probe: (() => boolean) | null = null
+  readonly #sheet = signal<Signal<boolean> | null>(null)
+
+  /**
+   * Liegt in der Kasse gerade ein Sheet (Extras, Bezahlen, Abschicken)? Dann sperrt die Rail
+   * (Konzept §5, core#832). Anders als der Entwurf ein Signal: Die Rail zeigt die Sperre an.
+   */
+  readonly sheetOpen = computed(() => this.#sheet()?.() ?? false)
 
   /** Hängt die laufende Kasse an. Die Rückgabe löst genau diese Anmeldung wieder. */
   attach(probe: () => boolean): () => void {
@@ -24,5 +31,13 @@ export class KasseDraftRegistry {
   /** Wurde in der laufenden Kasse schon etwas eingegeben? Ohne Kasse: nein. */
   hasDraft(): boolean {
     return this.#probe?.() ?? false
+  }
+
+  /** Hängt den Sheet-Zustand der laufenden Kasse an. Die Rückgabe löst genau diese Anmeldung wieder. */
+  attachSheet(sheet: Signal<boolean>): () => void {
+    this.#sheet.set(sheet)
+    return () => {
+      if (this.#sheet() === sheet) this.#sheet.set(null)
+    }
   }
 }

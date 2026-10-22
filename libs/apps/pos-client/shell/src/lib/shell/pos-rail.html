@@ -1,0 +1,144 @@
+<nav
+  class="flex h-full w-[4.75rem] flex-col items-center gap-1.5 overflow-y-auto border-r border-line bg-surface-rail py-3"
+  [attr.aria-label]="'POS_NAV.LABEL' | translate"
+>
+  <span
+    class="mb-2.5 grid h-[2.125rem] w-[2.125rem] shrink-0 place-items-center rounded-control bg-action text-lg font-extrabold text-on-action"
+    aria-hidden="true"
+    >p</span
+  >
+
+  @for (item of nav.rail(); track item.entry.id) {
+    <button
+      type="button"
+      class="rail-item"
+      [class.is-active]="nav.isActive(item)"
+      [class.is-blocked]="item.block"
+      [disabled]="nav.locked()"
+      [attr.aria-current]="nav.isActive(item) ? 'page' : null"
+      [attr.aria-disabled]="item.block ? true : null"
+      [title]="item.block ? (item.block | translate) : ''"
+      (click)="nav.open(item)"
+    >
+      <lib-icon [name]="item.entry.icon" class="text-[1.5rem]" />
+      <span>{{ item.entry.label | translate }}</span>
+      @if (item.entry.id === 'open-orders' && nav.openOrdersCount() > 0) {
+        <span
+          class="absolute right-1.5 top-1 grid h-[1.125rem] min-w-[1.125rem] place-items-center rounded-pill bg-danger-ink px-1 text-[0.6875rem] font-bold leading-none text-white tabular-nums"
+          [attr.aria-label]="'POS_NAV.OPEN_COUNT' | translate: { count: nav.openOrdersCount() }"
+          >{{ nav.openOrdersCount() }}</span
+        >
+      }
+    </button>
+  }
+
+  <button
+    type="button"
+    class="rail-item"
+    [class.is-active]="nav.moreActive()"
+    [disabled]="nav.locked()"
+    [cdkMenuTriggerFor]="moreMenu"
+    [cdkMenuPosition]="menuPositions"
+  >
+    <lib-icon name="dots-three" class="text-[1.5rem]" />
+    <span>{{ 'POS_NAV.MORE' | translate }}</span>
+  </button>
+
+  <span class="flex-1"></span>
+
+  <span
+    class="flex shrink-0 flex-col items-center gap-1 text-xs font-semibold"
+    [class.text-accent-ink]="!staff.isOffline()"
+    [class.text-danger-ink]="staff.isOffline()"
+    role="status"
+  >
+    <i
+      class="block h-2.5 w-2.5 rounded-full"
+      [class.bg-action]="!staff.isOffline()"
+      [class.bg-danger]="staff.isOffline()"
+      aria-hidden="true"
+    ></i>
+    {{ (staff.isOffline() ? 'POS_NAV.OFFLINE' : 'POS_NAV.ONLINE') | translate }}
+  </span>
+
+  <button
+    type="button"
+    class="relative mt-2 grid h-11 w-11 shrink-0 place-items-center rounded-full bg-ink text-[0.9375rem] font-bold text-surface-panel disabled:opacity-40"
+    [disabled]="nav.locked()"
+    [attr.aria-label]="'POS_NAV.ACCOUNT' | translate"
+    [cdkMenuTriggerFor]="accountMenu"
+    [cdkMenuPosition]="menuPositions"
+  >
+    {{ staff.initials() }}
+    @if (staff.isStampedIn()) {
+      <i
+        class="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-surface-rail"
+        [class.bg-action]="!staff.isOnBreak()"
+        [class.bg-warn-line]="staff.isOnBreak()"
+        aria-hidden="true"
+      ></i>
+    }
+  </button>
+</nav>
+
+<ng-template #moreMenu>
+  <div cdkMenu class="pos-menu w-[21.25rem]">
+    @for (group of nav.moreGroups(); track group.id) {
+      <div class="pos-menu__label">{{ group.label | translate }}</div>
+      @for (item of group.items; track item.entry.id) {
+        <button
+          cdkMenuItem
+          type="button"
+          class="pos-menu__item"
+          [class.is-active]="nav.isActive(item)"
+          [class.is-blocked]="item.block"
+          [attr.aria-disabled]="item.block ? true : null"
+          (cdkMenuItemTriggered)="nav.open(item)"
+        >
+          <lib-icon [name]="item.entry.icon" class="text-[1.375rem]" />
+          <span class="flex min-w-0 flex-col">
+            {{ item.entry.label | translate }}
+            @if (item.block) {
+              <em class="text-xs font-medium not-italic text-ink-muted">{{ item.block | translate }}</em>
+            }
+          </span>
+        </button>
+      }
+    }
+    <div class="pos-menu__label">{{ 'POS_NAV.GROUP_DEVICE' | translate }}</div>
+    <button
+      cdkMenuItem
+      type="button"
+      class="pos-menu__item"
+      [cdkMenuTriggerFor]="settingsMenu"
+      [cdkMenuPosition]="menuPositions"
+    >
+      <lib-icon name="gear" class="text-[1.375rem]" />
+      <span class="flex-1">{{ 'DASHBOARD.SETTINGS' | translate }}</span>
+      <lib-icon name="caret-right" class="text-[1.125rem] text-ink-muted" />
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #settingsMenu>
+  <div cdkMenu class="pos-menu w-[18.75rem]">
+    <div class="pos-menu__label">{{ 'DASHBOARD.SETTINGS' | translate }}</div>
+    @for (item of nav.settings(); track item.entry.id) {
+      <button
+        cdkMenuItem
+        type="button"
+        class="pos-menu__item"
+        [class.is-active]="nav.isActive(item)"
+        (cdkMenuItemTriggered)="nav.open(item)"
+      >
+        {{ item.entry.label | translate }}
+      </button>
+    }
+  </div>
+</ng-template>
+
+<ng-template #accountMenu>
+  <div cdkMenu class="pos-menu w-[23.75rem]">
+    <lib-pos-account-panel />
+  </div>
+</ng-template>

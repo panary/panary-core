@@ -12,7 +12,8 @@ import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-conf
 import { LogService } from '@panary/shared/data-access-updater'
 import { DeviceAssignmentService } from '@panary/devices/data-access'
 import { FormsModule } from '@angular/forms'
-import { Router } from '@angular/router'
+import { ActivatedRoute, Router } from '@angular/router'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -55,6 +56,14 @@ interface EdgeServerInfo {
   database: { type: string }
 }
 
+/** Gleiche Liste wie `SETTINGS_SECTIONS` der POS-Navigation (Shell), die per `?section=` hierher springt. */
+const SETTINGS_SECTIONS = ['general', 'users', 'design', 'printer', 'connection', 'info'] as const
+type SettingsSection = (typeof SETTINGS_SECTIONS)[number]
+
+function isSettingsSection(value: string | null): value is SettingsSection {
+  return (SETTINGS_SECTIONS as readonly (string | null)[]).includes(value)
+}
+
 @Component({
   selector: 'lib-settings',
   standalone: true,
@@ -85,8 +94,11 @@ export class SettingsComponent implements OnInit {
   #snackBar = inject(MatSnackBar)
   #logService = inject(LogService)
 
-  // For the sidebar selection
-  activeSection = 'general'
+  /**
+   * Gewählter Abschnitt. Das „Mehr"-Menü der Rail springt per `?section=` direkt hinein (core#832);
+   * die Seitenleiste hier wählt weiter lokal.
+   */
+  readonly activeSection = signal<SettingsSection>('general')
   menuOpen = signal(false)
 
   // Unpair-Dialog (Verbindungs-Sektion → Danger-Zone)
@@ -164,6 +176,13 @@ export class SettingsComponent implements OnInit {
   })
 
   constructor() {
+    inject(ActivatedRoute)
+      .queryParamMap.pipe(takeUntilDestroyed())
+      .subscribe(params => {
+        const section = params.get('section')
+        if (isSettingsSection(section)) this.activeSection.set(section)
+      })
+
     this.loadCurrentUser()
     // Detailliste der abgelehnten Einträge an den reaktiven Zähler koppeln (angular.md §2.1).
     effect(() => {

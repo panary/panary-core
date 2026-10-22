@@ -1,321 +1,52 @@
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  computed,
-  DestroyRef,
-  effect,
-  inject,
-  OnInit,
-  signal,
-  Signal,
-  untracked,
-} from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal, Signal } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { Router } from '@angular/router'
 import { NGX_ECHARTS_CONFIG, NgxEchartsModule } from 'ngx-echarts'
 import type { EChartsOption } from 'echarts'
-import { ConnectionService, TenantSuspensionService } from '@panary/shared/data-access'
 import { isOrderOpen, Order, OrderService } from '@panary/orders/data-access'
-import { UserService } from '@panary/users/data-access'
-import { UserSystemRole, type User } from '@panary/users/domain'
-import { AuthService, PosSessionService } from '@panary/auth/data-access'
-import { WorkingTime } from '@panary/working-times/domain'
-import { WorkingTimeService } from '@panary/working-times/data-access'
-import { LocationService } from '@panary/locations/data-access'
-import { BusinessDayService, CashSessionService } from '@panary/businessdays/data-access'
-import { MatDialog, MatDialogModule } from '@angular/material/dialog'
-import { MatSnackBar } from '@angular/material/snack-bar'
-import {
-  CashSessionDialogComponent,
-  ClosingDialogComponent,
-  OpeningDialogComponent,
-  openManagerAuthorizeCashSessionDialog,
-} from '@panary/businessdays/feature-pos-closing-dialog'
-import { BusinessDayOperationMode } from '@panary/businessdays/domain'
-import { PosWriteOffDialogComponent } from '@panary/write-offs/feature-pos-dialog'
-import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { PreOrder, PreOrderService } from '@panary/pre-orders/data-access'
-import { timeTrackingBlockedHintKey } from './time-tracking-hint'
-import { IconComponent, type IconName } from '@panary/shared/ui-common'
+import { IconComponent } from '@panary/shared/ui-common'
+import { averageWaitingMinutes, hourlyOrderCounts, ordersPerHour } from './dashboard-kpis'
 
-interface QuickAction {
-  label: string
-  icon: IconName
-  action: () => void
-  bgClass: string
-  textClass: string
-  allowedRoles?: UserSystemRole[]
-  hideInStandalone?: boolean
-  /**
-   * Versteckt den Button, sobald die Edge mit der Cloud gepairt ist
-   * (cloudPairingStatus === 'connected'). Wird fuer BusinessDay-Lifecycle-
-   * Buttons benoetigt: im Hybrid-Modell ist die Cloud Master, Eroeffnung +
-   * Tagesabschluss laufen im Cloud-Admin-Dashboard, NICHT am POS.
-   */
-  hideWhenCloudPaired?: boolean
-  /**
-   * Optionaler Sichtbarkeits-Filter, der zur Render-Zeit ausgewertet wird.
-   * Im Gegensatz zu `allowedRoles` (statisch beim Login) kann `condition`
-   * auf reaktive Signals zugreifen (z.B. ob ein Geschäftstag offen ist).
-   * Default: immer sichtbar.
-   */
-  condition?: () => boolean
-  /**
-   * Aktion braucht eine Server-Verbindung (z. B. Vorbestellungen, Historie,
-   * Arbeitszeiten, Tagesabschluss). Offline wird der Button deaktiviert (+ Hinweis),
-   * damit der Nutzer nicht ins Leere klickt. Default: offline nutzbar (z. B. Neue
-   * Bestellung, Offene Bestellungen, Einstellungen).
-   */
-  requiresOnline?: boolean
-  /** Aktion bucht in der Cloud; bei Mandantensperre (`TENANT_SUSPENDED`) deaktiviert (core#489). */
-  requiresBooking?: boolean
-}
-
+/**
+ * „Übersicht" der Rail: Kennzahlen, Stundenlast, Vorbestellungen heute.
+ *
+ * Bis core#832 war das die Startseite mit Begrüßung, Stempelmenü und Schnellzugriff-Kacheln. Die
+ * Kacheln ersetzt die Rail (`PosNavigationService`, Regeln unverändert), Stempeln und Abmelden
+ * sitzen im Avatar-Menü; nach dem Login landet man in der Kasse.
+ */
 @Component({
   selector: 'lib-dashboard',
   standalone: true,
-  imports: [IconComponent, CommonModule, MatDialogModule, NgxEchartsModule, TranslateModule],
+  imports: [IconComponent, CommonModule, NgxEchartsModule, TranslateModule],
   providers: [{ provide: NGX_ECHARTS_CONFIG, useValue: { echarts: () => import('echarts') } }],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardComponent implements OnInit {
-  // Services
   #router = inject(Router)
   #orderService = inject(OrderService)
-  #userService = inject(UserService)
-  #authService = inject(AuthService)
-  #posSessionService = inject(PosSessionService)
-  #workingTimeService = inject(WorkingTimeService)
-  #locationService = inject(LocationService)
-  #connectionService = inject(ConnectionService)
-  #tenantSuspension = inject(TenantSuspensionService)
-  #businessDayService = inject(BusinessDayService)
-  #cashSessionService = inject(CashSessionService)
-  #cdr = inject(ChangeDetectorRef)
-  #dialog = inject(MatDialog)
-  #translate = inject(TranslateService)
   #preOrderService = inject(PreOrderService)
-  #snackBar = inject(MatSnackBar)
   #destroyRef = inject(DestroyRef)
 
-  /**
-   * Offline darf sich der Staff nicht abmelden — Begründung und Prüfung liegen
-   * in `PosSessionService`, damit Button-Logout und Inaktivitäts-Logout
-   * dieselbe Sperre teilen.
-   */
-  readonly isOffline = this.#posSessionService.isOffline
-  /** Mandant in der Cloud gesperrt: Bon und Stempeln sind deaktiviert, Tagesabschluss bleibt (SUSPENDED). */
-  readonly bookingSuspended = this.#tenantSuspension.suspended
-
-  /** Tooltip-Schlüssel der Stempel-/Pausen-Einträge: nennt die Kontosperre vor „offline" (core#797). */
-  protected readonly timeTrackingBlockedKey = computed(
-    () => timeTrackingBlockedHintKey(this.bookingSuspended(), this.isOffline()) ?? '',
-  )
-
-  // Vorbestellungen für heute
   todayPreOrders = signal<PreOrder[]>([])
-
-  isStandaloneMode = computed(() => this.#connectionService.systemMode() === 'standalone')
-  /**
-   * True wenn die Edge aktiv mit der Cloud gepairt ist. Verwendet von
-   * `visibleQuickActions`, um BusinessDay-Lifecycle-Buttons im Hybrid-Modell
-   * auszublenden — der Lifecycle wird ausschliesslich im Cloud-Admin geregelt.
-   */
-  isCloudPaired = computed(() => this.#connectionService.cloudPairingStatus() === 'connected')
-
-  /**
-   * Indikator, ob die aktive Location einen offenen Geschaeftstag hat.
-   * Quelle: `location.currentBusinessDay.businessDayId` — wird beim
-   * Edge-Sync mit der Cloud konsistent gehalten. Kein zusaetzlicher
-   * Service-Call noetig.
-   */
-  hasOpenBusinessDay = computed(() => {
-    const loc = this.#locationService.activeLocation() as
-      { currentBusinessDay?: { businessDayId?: string } } | undefined
-    return !!loc?.currentBusinessDay?.businessDayId
-  })
-
-  // Signals
-  currentUser = computed(() => {
-    const authUser = this.#userService.currentUser()
-    if (authUser) return authUser
-
-    const storedUser = localStorage.getItem('pos_current_user')
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser)
-        return this.#userService.users().find(u => u._id === parsed._id)
-      } catch {
-        return undefined
-      }
-    }
-    return undefined
-  })
   orders: Signal<Order[]> = this.#orderService.orders
 
-  // State
-  chartOptions: EChartsOption = {}
-  currentWorkingTime: WorkingTime | undefined
-  formattedWorkingTime = '-'
-  statusMenuOpen = false
+  /** Minutentakt der Wartezeit — sie wächst auch ohne neue Bestellung. */
+  readonly #now = signal(new Date())
 
-  // KPIs
-  productivity = '0' // Orders/Hour
+  readonly chartOptions = computed(() => this.#buildOccupancyChart())
+  readonly activeOrdersCount = computed(() => this.orders().filter(o => isOrderOpen(o.status)).length)
+  readonly todayOrdersCount = computed(() => this.orders().length)
+  readonly productivity = computed(() => ordersPerHour(this.todayOrdersCount(), this.#now()))
   // Nur die Zahl: Die Einheit steht im Label, "119 min" brach ab lg in der schmalen Kachel um (core#577)
-  avgWaitingMinutes = 0
-
-  // Configuration
-  quickActions: QuickAction[] = [
-    {
-      label: 'DASHBOARD.NEW_ORDER',
-      requiresBooking: true,
-      icon: 'shopping-cart-simple',
-      // Die Kasse ist eine Route, kein Dialog mehr (core#828); `kasseBookingGuard` sperrt sie beim gesperrten Mandanten.
-      action: () => this.navigateTo('/kasse'),
-      bgClass: 'bg-emerald-100 dark:bg-emerald-900/30',
-      textClass: 'text-emerald-700 dark:text-emerald-400',
-    },
-    {
-      label: 'DASHBOARD.OPEN_ORDERS',
-      icon: 'receipt',
-      action: () => this.navigateTo('/orders/active'),
-      bgClass: 'bg-blue-100 dark:bg-blue-900/30',
-      textClass: 'text-blue-700 dark:text-blue-400',
-    },
-    {
-      label: 'DASHBOARD.PRE_ORDERS',
-      icon: 'calendar-dots',
-      action: () => this.navigateTo('/pre-orders'),
-      bgClass: 'bg-amber-100 dark:bg-amber-900/30',
-      textClass: 'text-amber-700 dark:text-amber-400',
-      // Offline nutzbar: Liste aus dem Cache + Anlegen via Outbox. Nur `convert` braucht
-      // online (wird im PreOrderService offline blockiert).
-    },
-    {
-      label: 'DASHBOARD.HISTORY',
-      icon: 'clock-counter-clockwise',
-      action: () => this.navigateTo('/orders/history'),
-      bgClass: 'bg-purple-100 dark:bg-purple-900/30',
-      textClass: 'text-purple-700 dark:text-purple-400',
-      requiresOnline: true,
-    },
-    {
-      label: 'DASHBOARD.WORKING_TIMES',
-      icon: 'clock',
-      action: () => this.navigateTo('/working-times'),
-      bgClass: 'bg-orange-100 dark:bg-orange-900/30',
-      textClass: 'text-orange-700 dark:text-orange-400',
-      requiresOnline: true,
-    },
-    {
-      label: 'DASHBOARD.WRITE_OFF',
-      icon: 'trash',
-      action: () => {
-        this.#dialog.open(PosWriteOffDialogComponent, {
-          width: '98vw',
-          maxWidth: '98vw',
-          height: '95vh',
-          maxHeight: '95vh',
-          panelClass: 'fullscreen-dialog',
-        })
-      },
-      bgClass: 'bg-red-50 dark:bg-red-900/30',
-      textClass: 'text-red-500 dark:text-red-400',
-      hideInStandalone: true,
-      requiresOnline: true,
-    },
-    // Tageseroeffnung — nur sichtbar wenn kein Geschaeftstag offen ist.
-    // `hideWhenCloudPaired`: im Hybrid-Modell ist die Cloud Master fuer
-    // BusinessDay-Lifecycle — Eroeffnung laeuft im Cloud-Admin-Dashboard.
-    {
-      label: 'DASHBOARD.OPEN_BUSINESS_DAY',
-      icon: 'play-circle',
-      action: () => this.startOpening(),
-      bgClass: 'bg-teal-100 dark:bg-teal-900/30',
-      textClass: 'text-teal-700 dark:text-teal-400',
-      condition: () => !this.hasOpenBusinessDay(),
-      hideInStandalone: true,
-      hideWhenCloudPaired: true,
-      requiresOnline: true,
-    },
-    // Tagesabschluss — nur sichtbar wenn Geschaeftstag offen ist.
-    // `hideWhenCloudPaired`: gleich wie Open — Cloud-Admin uebernimmt im
-    // Hybrid-Modell den Closing-Workflow.
-    {
-      label: 'DASHBOARD.CLOSE_BUSINESS_DAY',
-      icon: 'seal-check',
-      action: () => this.startClosing(),
-      bgClass: 'bg-indigo-100 dark:bg-indigo-900/30',
-      textClass: 'text-indigo-700 dark:text-indigo-400',
-      condition: () => this.hasOpenBusinessDay(),
-      hideInStandalone: true,
-      hideWhenCloudPaired: true,
-      requiresOnline: true,
-    },
-    // Kasse — eigene Lade eröffnen/schließen. Nur im Cloud-Modus (Kassen sind
-    // ein Cloud-Feature; Standalone hat keinen Multi-Kassen-Tagesabschluss) und
-    // bei offenem Geschäftstag.
-    {
-      label: 'Kasse',
-      icon: 'cash-register',
-      action: () => this.manageCashSession(),
-      bgClass: 'bg-amber-100 dark:bg-amber-900/30',
-      textClass: 'text-amber-700 dark:text-amber-400',
-      condition: () => this.hasOpenBusinessDay() && this.isCloudPaired(),
-      requiresOnline: true,
-    },
-    {
-      label: 'DASHBOARD.SETTINGS',
-      icon: 'gear',
-      action: () => this.navigateTo('/settings'),
-      bgClass: 'bg-gray-100 dark:bg-gray-800',
-      textClass: 'text-gray-700 dark:text-gray-300',
-    },
-  ]
-
-  visibleQuickActions = computed(() => {
-    const user = this.currentUser()
-    const userRole = user?.role || UserSystemRole.TENANT_STAFF
-
-    return this.quickActions.filter(action => {
-      if (action.hideInStandalone && this.isStandaloneMode()) return false
-      if (action.hideWhenCloudPaired && this.isCloudPaired()) return false
-      if (action.condition && !action.condition()) return false
-      if (!action.allowedRoles) return true
-      return action.allowedRoles.includes(userRole)
-    })
-  })
-
-  constructor() {
-    // React to Order Changes — buildOccupancyChartData()/updateKPIs() lesen
-    // this.orders(), daher re-läuft der Effect bei jeder Order-Änderung.
-    // Beide schreiben aber nur Plain-Properties (chartOptions, productivity,
-    // avgWaitingMinutes); ohne markForCheck rendert die View die neuen Daten nicht
-    // (zoneless) — das Diagramm bliebe bis zum Full-Reload eingefroren.
-    effect(() => {
-      this.buildOccupancyChartData()
-      this.updateKPIs()
-      this.#cdr.markForCheck()
-    })
-
-    // React to User Changes — currentUser() bewusst getrackt (stampingId-Wechsel
-    // bei Check-in/-out triggert den Reload); der GET-Body läuft in untracked(),
-    // damit Service-Signal-Reads nicht in den Tracking-Scope geraten (angular.md §2.1).
-    effect(() => {
-      const user = this.currentUser()
-      untracked(() => this.handleUserWorkingTime(user))
-    })
-  }
+  readonly avgWaitingMinutes = computed(() => averageWaitingMinutes(this.orders(), this.#now()))
 
   ngOnInit(): void {
-    // Update working time display every minute
-    const durationInterval = setInterval(() => {
-      this.calculateDuration()
-    }, 60000)
-    this.#destroyRef.onDestroy(() => clearInterval(durationInterval))
+    const tick = setInterval(() => this.#now.set(new Date()), 60_000)
+    this.#destroyRef.onDestroy(() => clearInterval(tick))
 
     this.fetchTodayPreOrders()
     this.#listenPreOrderEvents()
@@ -362,330 +93,12 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  // --- Abgeleitete Werte (computed statt Getter: memoisiert, kein
-  // localStorage/JSON.parse pro Change-Detection-Durchlauf) ---
-
-  readonly userName = computed(() => {
-    const authName = this.#authService.fullName()
-    if (authName && authName !== 'Unknown User') {
-      return authName
-    }
-
-    // Fallback for POS: Check localStorage
-    const storedUser = localStorage.getItem('pos_current_user')
-    if (storedUser) {
-      try {
-        const user = JSON.parse(storedUser)
-        return `${user.firstName} ${user.lastName}`
-      } catch {
-        return this.#translate.instant('DASHBOARD.EMPLOYEE')
-      }
-    }
-
-    return this.#translate.instant('DASHBOARD.EMPLOYEE')
-  })
-
-  readonly isStampedIn = computed(() => !!this.currentUser()?.stampingId)
-
-  readonly activeOrdersCount = computed(() => {
-    return this.orders().filter(o => isOrderOpen(o.status)).length
-  })
-
-  readonly todayOrdersCount = computed(() => this.orders().length)
-
-  // --- Actions ---
-
   navigateTo(path: string) {
     this.#router.navigate([path])
   }
 
-  logout() {
-    if (this.isOffline()) {
-      this.#snackBar.open(this.#translate.instant('DASHBOARD.LOGOUT_OFFLINE_BLOCKED'), undefined, { duration: 4000 })
-      return
-    }
-    void this.#posSessionService.endSession('button')
-  }
-
-  // --- Time Tracking Actions ---
-
-  readonly isOnBreak = computed(() => !!this.currentUser()?.startBreakAt)
-
-  /**
-   * Stempel-/Pausen-Aktionen (checkin/checkout/start-/endBreak) sind serverseitige
-   * Custom-Methods; working-times werden NICHT in der Offline-Outbox nachgereicht.
-   * Offline würde der Call still hängen → sperren (analog Logout-Sperre).
-   */
-  #timeTrackingBlockedOffline(): boolean {
-    if (this.bookingSuspended()) {
-      this.#snackBar.open(this.#translate.instant('CLOUD_STATUS.TENANT_SUSPENDED'), undefined, { duration: 4000 })
-      return true
-    }
-    if (!this.isOffline()) return false
-    this.#snackBar.open(this.#translate.instant('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED'), undefined, {
-      duration: 4000,
-    })
-    return true
-  }
-
-  async clockIn() {
-    if (this.#timeTrackingBlockedOffline()) return
-    const user = this.currentUser()
-    if (!user) return
-
-    try {
-      await this.#userService.checkin(user._id)
-      // Reload is likely handled by signal update or we might need to manually refresh if not optimistic
-      // But userService handles the call. We might need to refresh the local user state?
-      // The currentUser is computed from userService.users().
-      // If userService.checkin updates the user in the store, it's fine.
-      // Assuming userService updates the BehaviorSubject/Signal internally.
-    } catch (error) {
-      console.error('Clock in failed:', error)
-    }
-  }
-
-  async clockOut() {
-    if (this.#timeTrackingBlockedOffline()) return
-    const user = this.currentUser()
-    if (!user?.stampingId) return
-
-    try {
-      await this.#userService.checkout(user._id)
-      this.logout()
-    } catch (error) {
-      console.error('Clock out failed:', error)
-    }
-  }
-
-  async startBreak() {
-    if (this.#timeTrackingBlockedOffline()) return
-    const user = this.currentUser()
-    if (!user?.stampingId) return
-
-    try {
-      await this.#userService.startBreak(user._id)
-      // No logout to allow easy resume
-    } catch (error) {
-      console.error('Start break failed:', error)
-    }
-  }
-
-  async endBreak() {
-    if (this.#timeTrackingBlockedOffline()) return
-    const user = this.currentUser()
-    if (!user?.stampingId) return
-
-    try {
-      await this.#userService.endBreak(user._id)
-      // Reload working time handled by effect ideally, or we force refresh if needed
-      this.handleUserWorkingTime()
-    } catch (error) {
-      console.error('End break failed:', error)
-    }
-  }
-
-  /**
-   * Tageseroeffnung — oeffnet den OpeningDialog. Mode aus
-   * `Location.operationMode` (Default: pos-cashier). Nach Erfolg
-   * aktualisiert sich `hasOpenBusinessDay()` reaktiv, weil der Edge-Service
-   * `Location.currentBusinessDay` patcht.
-   */
-  startOpening() {
-    const activeLocation = this.#locationService.activeLocation() as
-      { _id?: string; operationMode?: string } | undefined
-    const locationId = activeLocation?._id ?? null
-    const operationMode =
-      activeLocation?.operationMode === 'orders-only'
-        ? BusinessDayOperationMode.ORDERS_ONLY
-        : BusinessDayOperationMode.POS_CASHIER
-
-    this.#dialog.open(OpeningDialogComponent, {
-      width: '30rem',
-      maxWidth: '92vw',
-      maxHeight: '90vh',
-      disableClose: false,
-      data: { locationId, operationMode },
-    })
-  }
-
-  /**
-   * Tagesabschluss — oeffnet den ClosingDialog. Erwartet einen offenen
-   * BusinessDay (Wahrscheinlichkeit ueber `hasOpenBusinessDay()`-Condition
-   * im Quick-Action-Filter). Der Dialog ruft seinerseits closeDay() auf,
-   * was Sync-Outbox-Vorabpruefung + Cloud-Trigger erledigt.
-   */
-  startClosing() {
-    const activeLocation = this.#locationService.activeLocation() as
-      { _id?: string; currentBusinessDay?: { businessDayId?: string } } | undefined
-    const businessDayId = activeLocation?.currentBusinessDay?.businessDayId
-    if (!businessDayId) {
-      console.warn('startClosing: kein offener Geschäftstag — Aktion ignoriert')
-      return
-    }
-
-    // Volle BusinessDay-Daten aus dem Service holen (operationMode etc.)
-    void (async () => {
-      try {
-        const businessDay = await this.#businessDayService.get(businessDayId)
-        this.#dialog.open(ClosingDialogComponent, {
-          width: '31.25rem',
-          maxWidth: '90vw',
-          height: 'auto',
-          maxHeight: '90vh',
-          disableClose: true,
-          panelClass: 'closing-dialog-panel',
-          data: { businessDay },
-        })
-      } catch (err) {
-        console.error('startClosing: BusinessDay konnte nicht geladen werden', err)
-      }
-    })()
-  }
-
-  /**
-   * Kasse verwalten. Hat der aktuelle Kassierer bereits eine offene Lade →
-   * Zähl-/Schließen-Dialog (CashSessionDialog). Sonst → Manager-PIN-Freigabe-
-   * Dialog (Eröffnung muss von einem berechtigten Mitarbeiter autorisiert
-   * werden — Direkt-Eröffnung durch STAFF ist backend-seitig gesperrt). Nur im
-   * Cloud-Modus relevant.
-   */
-  manageCashSession() {
-    const loc = this.#locationService.activeLocation() as
-      | {
-          currentBusinessDay?: { businessDayId?: string }
-          settings?: { cashSessionSettings?: { defaultOpeningFloatCents?: number } }
-        }
-      | undefined
-    const businessDayId = loc?.currentBusinessDay?.businessDayId
-    if (!businessDayId) {
-      console.warn('manageCashSession: kein offener Geschäftstag — Aktion ignoriert')
-      return
-    }
-    // currentUser() statt authService.user(): auf einem POS-Gerät ist der
-    // Auth-User der Geräte-User (API-Key), nicht der per PIN angemeldete
-    // Kassierer. Die Kasse muss aber auf den Kassierer laufen, sonst greift der
-    // cash-session-Guard beim Kassieren weiterhin.
-    const user = this.currentUser()
-    const userId = user?._id
-    if (!userId) {
-      console.warn('manageCashSession: kein angemeldeter Benutzer — Aktion ignoriert')
-      return
-    }
-
-    void (async () => {
-      let session = null
-      try {
-        session = await this.#cashSessionService.findOpenForUser(businessDayId, userId)
-      } catch (err) {
-        console.error('manageCashSession: offene Kasse konnte nicht geladen werden', err)
-      }
-
-      if (session) {
-        // Bestehende Kasse → zählen/schließen (Kassierer darf seine eigene Lade).
-        this.#dialog.open(CashSessionDialogComponent, {
-          width: '32.5rem',
-          maxWidth: '92vw',
-          maxHeight: '90vh',
-          disableClose: false,
-          data: { businessDayId, session },
-        })
-        return
-      }
-
-      // Keine Kasse → manager-autorisierte Eröffnung. Das Ergebnis bleibt hier
-      // ungenutzt: der Dialog quittiert den Erfolg selbst und am Dashboard hängt
-      // kein Zustand an der Kasse (anders als beim Kassieren in active-orders).
-      const cashierName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || undefined
-      openManagerAuthorizeCashSessionDialog(this.#dialog, {
-        businessDayId,
-        cashierId: String(userId),
-        cashierName,
-        defaultOpeningFloatCents: loc?.settings?.cashSessionSettings?.defaultOpeningFloatCents,
-      })
-    })()
-  }
-
-  // --- Logic ---
-
-  private updateKPIs() {
-    const orders = this.orders()
-    if (!orders.length) {
-      this.productivity = '0'
-      this.avgWaitingMinutes = 0
-      return
-    }
-
-    // Productivity: Orders per hour (simple approximation based on span of first to last order, or just current opening hours)
-    // Let's use orders / (current hour - opening hour + 1) or similar.
-    // For now, simpler: Counts / business day hours elapsed.
-    // Let's just do a simple average active orders count or similar if productivity definition is vague.
-    // The prompt asked for "Produktivität". Let's assume Orders/Hour.
-    const now = new Date()
-    const startOfDay = new Date(now.setHours(8, 0, 0, 0)) // Assume 8 AM start if no config
-    const hoursOpen = Math.max(1, (new Date().getTime() - startOfDay.getTime()) / (1000 * 60 * 60))
-    this.productivity = (this.todayOrdersCount() / hoursOpen).toFixed(1)
-
-    // Avg Waiting Time (for Active Orders)
-    // Nicht abgeholte (`unclaimed`) warten nicht mehr — sie trieben den Schnitt sonst endlos hoch (#589).
-    const activeOrders = orders.filter(o => isOrderOpen(o.status))
-    if (activeOrders.length === 0) {
-      this.avgWaitingMinutes = 0
-    } else {
-      let totalWait = 0
-      activeOrders.forEach(o => {
-        const created = new Date(o.recordingDate ?? o.createdAt ?? (o as any).created_at).getTime()
-        totalWait += new Date().getTime() - created
-      })
-      const avgMs = totalWait / activeOrders.length
-      this.avgWaitingMinutes = Math.round(avgMs / 60000)
-    }
-  }
-
-  private handleUserWorkingTime(user: User | undefined = this.currentUser()) {
-    if (user?.stampingId) {
-      this.#workingTimeService.get(user.stampingId).then(wt => {
-        this.currentWorkingTime = wt
-        this.calculateDuration()
-      })
-    } else {
-      this.currentWorkingTime = undefined
-      this.formattedWorkingTime = '-'
-      // Plain-Property-Write: ohne markForCheck rendert OnPush/zoneless nicht
-      this.#cdr.markForCheck()
-    }
-  }
-
-  private calculateDuration() {
-    if (!this.currentWorkingTime) {
-      this.formattedWorkingTime = '-'
-      return
-    }
-    // Simple duration from checkin
-    const start = new Date(this.currentWorkingTime.checkinDate)
-    const now = new Date()
-    const diff = now.getTime() - start.getTime()
-
-    // Subtract breaks if needed, but for now simple diff
-    const hours = Math.floor(diff / (1000 * 60 * 60))
-    const minutes = Math.floor((diff / (1000 * 60)) % 60)
-    this.formattedWorkingTime = `${hours}h ${minutes}min`
-    this.#cdr.markForCheck()
-  }
-
-  private buildOccupancyChartData(): void {
-    // 1) Group orders by hour
-    const hourlyCounts: number[] = new Array(24).fill(0)
-
-    this.orders().forEach((order: Order): void => {
-      const ts: Date | string | number | undefined =
-        order.recordingDate ?? order.createdAt ?? (order as any).created_at ?? order.updatedAt
-
-      if (!ts) return
-
-      const hour = new Date(ts).getHours()
-      hourlyCounts[hour]++
-    })
+  #buildOccupancyChart(): EChartsOption {
+    const hourlyCounts = hourlyOrderCounts(this.orders())
 
     // const openingHour = 8  // TODO: use for chart range filtering
     // const closingHour = 22
@@ -693,7 +106,7 @@ export class DashboardComponent implements OnInit {
     const xAxisData = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0') + ':00')
 
     // Styling for Fintech look (smooth, gradient, clean)
-    this.chartOptions = {
+    return {
       grid: { top: 20, right: 20, bottom: 20, left: 20, containLabel: true },
       tooltip: {
         trigger: 'axis',

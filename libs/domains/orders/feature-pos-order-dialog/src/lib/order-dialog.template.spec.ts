@@ -239,7 +239,8 @@ describe('Kasse-Template — Anpassen-Sheet (core#830)', () => {
     expect(scrim).not.toContain('(click)')
   })
 
-  it('sperrt Primärtaste, Ziffern, Feld, Gruppenleiste und Übersicht über sheetOpen()', () => {
+  // „Übersicht" im Kopf ist mit der Rail entfallen (core#832); die Rail sperrt über `KasseDraftRegistry.sheetOpen`.
+  it('sperrt Primärtaste, Ziffern, Feld und Gruppenleiste über sheetOpen()', () => {
     for (const marker of [
       '(click)="setTaxRateSubbuttons()"',
       '(click)="applyProductSearch()"',
@@ -249,10 +250,8 @@ describe('Kasse-Template — Anpassen-Sheet (core#830)', () => {
       '(click)="showNumpadPopup = !showNumpadPopup"',
       '(click)="createProductButtons(productGroup)"',
       '(click)="allGroupsOpen.set(true)"',
-      '(click)="leave()"',
     ]) {
-      // `leave()` steht zweimal: im Kopf (gesperrt) und auf dem Abschlussbild, das nie mit offenem Sheet erscheint.
-      const tags = marker === '(click)="leave()"' ? startTags(marker).slice(0, 1) : startTags(marker)
+      const tags = startTags(marker)
       expect(tags.length, marker).toBeGreaterThan(0)
       // Jedes Vorkommen, nicht nur eines: `numpadReset()` steht in der breiten und der schmalen Leiste.
       expect(

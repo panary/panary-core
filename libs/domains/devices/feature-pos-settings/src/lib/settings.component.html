@@ -37,110 +37,110 @@
         >
           <button
             class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            [class.bg-purple-50]="activeSection === 'general'"
-            [class.dark:bg-purple-950]="activeSection === 'general'"
-            [class.text-purple-700]="activeSection === 'general'"
-            [class.dark:text-purple-300]="activeSection === 'general'"
-            (click)="activeSection = 'general'; menuOpen.set(false)"
+            [class.bg-purple-50]="activeSection() === 'general'"
+            [class.dark:bg-purple-950]="activeSection() === 'general'"
+            [class.text-purple-700]="activeSection() === 'general'"
+            [class.dark:text-purple-300]="activeSection() === 'general'"
+            (click)="activeSection.set('general'); menuOpen.set(false)"
           >
             <lib-icon
               name="sliders-horizontal"
               class="text-[1.25rem]"
-              [class.text-purple-600]="activeSection === 'general'"
-              [class.dark:text-purple-400]="activeSection === 'general'"
-              [class.text-gray-400]="activeSection !== 'general'"
-              [class.dark:text-gray-500]="activeSection !== 'general'"
+              [class.text-purple-600]="activeSection() === 'general'"
+              [class.dark:text-purple-400]="activeSection() === 'general'"
+              [class.text-gray-400]="activeSection() !== 'general'"
+              [class.dark:text-gray-500]="activeSection() !== 'general'"
             />
             {{ 'SETTINGS.GENERAL' | translate }}
           </button>
           <button
             class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            [class.bg-purple-50]="activeSection === 'users'"
-            [class.dark:bg-purple-950]="activeSection === 'users'"
-            [class.text-purple-700]="activeSection === 'users'"
-            [class.dark:text-purple-300]="activeSection === 'users'"
-            (click)="activeSection = 'users'; menuOpen.set(false)"
+            [class.bg-purple-50]="activeSection() === 'users'"
+            [class.dark:bg-purple-950]="activeSection() === 'users'"
+            [class.text-purple-700]="activeSection() === 'users'"
+            [class.dark:text-purple-300]="activeSection() === 'users'"
+            (click)="activeSection.set('users'); menuOpen.set(false)"
           >
             <lib-icon
               name="users"
               class="text-[1.25rem]"
-              [class.text-purple-600]="activeSection === 'users'"
-              [class.dark:text-purple-400]="activeSection === 'users'"
-              [class.text-gray-400]="activeSection !== 'users'"
-              [class.dark:text-gray-500]="activeSection !== 'users'"
+              [class.text-purple-600]="activeSection() === 'users'"
+              [class.dark:text-purple-400]="activeSection() === 'users'"
+              [class.text-gray-400]="activeSection() !== 'users'"
+              [class.dark:text-gray-500]="activeSection() !== 'users'"
             />
             {{ 'SETTINGS.USERS' | translate }}
           </button>
           <button
             class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            [class.bg-purple-50]="activeSection === 'printer'"
-            [class.dark:bg-purple-950]="activeSection === 'printer'"
-            [class.text-purple-700]="activeSection === 'printer'"
-            [class.dark:text-purple-300]="activeSection === 'printer'"
-            (click)="activeSection = 'printer'; menuOpen.set(false)"
+            [class.bg-purple-50]="activeSection() === 'printer'"
+            [class.dark:bg-purple-950]="activeSection() === 'printer'"
+            [class.text-purple-700]="activeSection() === 'printer'"
+            [class.dark:text-purple-300]="activeSection() === 'printer'"
+            (click)="activeSection.set('printer'); menuOpen.set(false)"
           >
             <lib-icon
               name="printer"
               class="text-[1.25rem]"
-              [class.text-purple-600]="activeSection === 'printer'"
-              [class.dark:text-purple-400]="activeSection === 'printer'"
-              [class.text-gray-400]="activeSection !== 'printer'"
-              [class.dark:text-gray-500]="activeSection !== 'printer'"
+              [class.text-purple-600]="activeSection() === 'printer'"
+              [class.dark:text-purple-400]="activeSection() === 'printer'"
+              [class.text-gray-400]="activeSection() !== 'printer'"
+              [class.dark:text-gray-500]="activeSection() !== 'printer'"
             />
             {{ 'SETTINGS.PRINTER' | translate }}
           </button>
           <button
             class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            [class.bg-purple-50]="activeSection === 'design'"
-            [class.dark:bg-purple-950]="activeSection === 'design'"
-            [class.text-purple-700]="activeSection === 'design'"
-            [class.dark:text-purple-300]="activeSection === 'design'"
-            (click)="activeSection = 'design'; menuOpen.set(false)"
+            [class.bg-purple-50]="activeSection() === 'design'"
+            [class.dark:bg-purple-950]="activeSection() === 'design'"
+            [class.text-purple-700]="activeSection() === 'design'"
+            [class.dark:text-purple-300]="activeSection() === 'design'"
+            (click)="activeSection.set('design'); menuOpen.set(false)"
           >
             <lib-icon
               name="palette"
               class="text-[1.25rem]"
-              [class.text-purple-600]="activeSection === 'design'"
-              [class.dark:text-purple-400]="activeSection === 'design'"
-              [class.text-gray-400]="activeSection !== 'design'"
-              [class.dark:text-gray-500]="activeSection !== 'design'"
+              [class.text-purple-600]="activeSection() === 'design'"
+              [class.dark:text-purple-400]="activeSection() === 'design'"
+              [class.text-gray-400]="activeSection() !== 'design'"
+              [class.dark:text-gray-500]="activeSection() !== 'design'"
             />
             {{ 'SETTINGS.DESIGN' | translate }}
           </button>
           <button
             class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            [class.bg-purple-50]="activeSection === 'connection'"
-            [class.dark:bg-purple-950]="activeSection === 'connection'"
-            [class.text-purple-700]="activeSection === 'connection'"
-            [class.dark:text-purple-300]="activeSection === 'connection'"
-            (click)="activeSection = 'connection'; menuOpen.set(false)"
+            [class.bg-purple-50]="activeSection() === 'connection'"
+            [class.dark:bg-purple-950]="activeSection() === 'connection'"
+            [class.text-purple-700]="activeSection() === 'connection'"
+            [class.dark:text-purple-300]="activeSection() === 'connection'"
+            (click)="activeSection.set('connection'); menuOpen.set(false)"
           >
             <lib-icon
               name="share-network"
               class="text-[1.25rem]"
-              [class.text-purple-600]="activeSection === 'connection'"
-              [class.dark:text-purple-400]="activeSection === 'connection'"
-              [class.text-gray-400]="activeSection !== 'connection'"
-              [class.dark:text-gray-500]="activeSection !== 'connection'"
+              [class.text-purple-600]="activeSection() === 'connection'"
+              [class.dark:text-purple-400]="activeSection() === 'connection'"
+              [class.text-gray-400]="activeSection() !== 'connection'"
+              [class.dark:text-gray-500]="activeSection() !== 'connection'"
             />
             {{ 'SETTINGS.CONNECTION' | translate }}
           </button>
           <div class="h-px bg-gray-100 dark:bg-gray-700 my-1"></div>
           <button
             class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            [class.bg-purple-50]="activeSection === 'info'"
-            [class.dark:bg-purple-950]="activeSection === 'info'"
-            [class.text-purple-700]="activeSection === 'info'"
-            [class.dark:text-purple-300]="activeSection === 'info'"
-            (click)="activeSection = 'info'; menuOpen.set(false)"
+            [class.bg-purple-50]="activeSection() === 'info'"
+            [class.dark:bg-purple-950]="activeSection() === 'info'"
+            [class.text-purple-700]="activeSection() === 'info'"
+            [class.dark:text-purple-300]="activeSection() === 'info'"
+            (click)="activeSection.set('info'); menuOpen.set(false)"
           >
             <lib-icon
               name="info"
               class="text-[1.25rem]"
-              [class.text-purple-600]="activeSection === 'info'"
-              [class.dark:text-purple-400]="activeSection === 'info'"
-              [class.text-gray-400]="activeSection !== 'info'"
-              [class.dark:text-gray-500]="activeSection !== 'info'"
+              [class.text-purple-600]="activeSection() === 'info'"
+              [class.dark:text-purple-400]="activeSection() === 'info'"
+              [class.text-gray-400]="activeSection() !== 'info'"
+              [class.dark:text-gray-500]="activeSection() !== 'info'"
             />
             {{ 'SETTINGS.INFO' | translate }}
           </button>
@@ -156,110 +156,110 @@
     >
       <button
         class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        [class.bg-purple-50]="activeSection === 'general'"
-        [class.dark:bg-purple-950]="activeSection === 'general'"
-        [class.text-purple-700]="activeSection === 'general'"
-        [class.dark:text-purple-300]="activeSection === 'general'"
-        (click)="activeSection = 'general'"
+        [class.bg-purple-50]="activeSection() === 'general'"
+        [class.dark:bg-purple-950]="activeSection() === 'general'"
+        [class.text-purple-700]="activeSection() === 'general'"
+        [class.dark:text-purple-300]="activeSection() === 'general'"
+        (click)="activeSection.set('general')"
       >
         <lib-icon
           name="sliders-horizontal"
           class="text-[1.25rem] mr-3"
-          [class.text-purple-600]="activeSection === 'general'"
-          [class.dark:text-purple-400]="activeSection === 'general'"
-          [class.text-gray-400]="activeSection !== 'general'"
-          [class.dark:text-gray-500]="activeSection !== 'general'"
+          [class.text-purple-600]="activeSection() === 'general'"
+          [class.dark:text-purple-400]="activeSection() === 'general'"
+          [class.text-gray-400]="activeSection() !== 'general'"
+          [class.dark:text-gray-500]="activeSection() !== 'general'"
         />
         {{ 'SETTINGS.GENERAL' | translate }}
       </button>
       <button
         class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        [class.bg-purple-50]="activeSection === 'users'"
-        [class.dark:bg-purple-950]="activeSection === 'users'"
-        [class.text-purple-700]="activeSection === 'users'"
-        [class.dark:text-purple-300]="activeSection === 'users'"
-        (click)="activeSection = 'users'"
+        [class.bg-purple-50]="activeSection() === 'users'"
+        [class.dark:bg-purple-950]="activeSection() === 'users'"
+        [class.text-purple-700]="activeSection() === 'users'"
+        [class.dark:text-purple-300]="activeSection() === 'users'"
+        (click)="activeSection.set('users')"
       >
         <lib-icon
           name="users"
           class="text-[1.25rem] mr-3"
-          [class.text-purple-600]="activeSection === 'users'"
-          [class.dark:text-purple-400]="activeSection === 'users'"
-          [class.text-gray-400]="activeSection !== 'users'"
-          [class.dark:text-gray-500]="activeSection !== 'users'"
+          [class.text-purple-600]="activeSection() === 'users'"
+          [class.dark:text-purple-400]="activeSection() === 'users'"
+          [class.text-gray-400]="activeSection() !== 'users'"
+          [class.dark:text-gray-500]="activeSection() !== 'users'"
         />
         {{ 'SETTINGS.USERS' | translate }}
       </button>
       <button
         class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        [class.bg-purple-50]="activeSection === 'printer'"
-        [class.dark:bg-purple-950]="activeSection === 'printer'"
-        [class.text-purple-700]="activeSection === 'printer'"
-        [class.dark:text-purple-300]="activeSection === 'printer'"
-        (click)="activeSection = 'printer'"
+        [class.bg-purple-50]="activeSection() === 'printer'"
+        [class.dark:bg-purple-950]="activeSection() === 'printer'"
+        [class.text-purple-700]="activeSection() === 'printer'"
+        [class.dark:text-purple-300]="activeSection() === 'printer'"
+        (click)="activeSection.set('printer')"
       >
         <lib-icon
           name="printer"
           class="text-[1.25rem] mr-3"
-          [class.text-purple-600]="activeSection === 'printer'"
-          [class.dark:text-purple-400]="activeSection === 'printer'"
-          [class.text-gray-400]="activeSection !== 'printer'"
-          [class.dark:text-gray-500]="activeSection !== 'printer'"
+          [class.text-purple-600]="activeSection() === 'printer'"
+          [class.dark:text-purple-400]="activeSection() === 'printer'"
+          [class.text-gray-400]="activeSection() !== 'printer'"
+          [class.dark:text-gray-500]="activeSection() !== 'printer'"
         />
         {{ 'SETTINGS.PRINTER' | translate }}
       </button>
       <button
         class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        [class.bg-purple-50]="activeSection === 'design'"
-        [class.dark:bg-purple-950]="activeSection === 'design'"
-        [class.text-purple-700]="activeSection === 'design'"
-        [class.dark:text-purple-300]="activeSection === 'design'"
-        (click)="activeSection = 'design'"
+        [class.bg-purple-50]="activeSection() === 'design'"
+        [class.dark:bg-purple-950]="activeSection() === 'design'"
+        [class.text-purple-700]="activeSection() === 'design'"
+        [class.dark:text-purple-300]="activeSection() === 'design'"
+        (click)="activeSection.set('design')"
       >
         <lib-icon
           name="palette"
           class="text-[1.25rem] mr-3"
-          [class.text-purple-600]="activeSection === 'design'"
-          [class.dark:text-purple-400]="activeSection === 'design'"
-          [class.text-gray-400]="activeSection !== 'design'"
-          [class.dark:text-gray-500]="activeSection !== 'design'"
+          [class.text-purple-600]="activeSection() === 'design'"
+          [class.dark:text-purple-400]="activeSection() === 'design'"
+          [class.text-gray-400]="activeSection() !== 'design'"
+          [class.dark:text-gray-500]="activeSection() !== 'design'"
         />
         {{ 'SETTINGS.DESIGN' | translate }}
       </button>
       <button
         class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        [class.bg-purple-50]="activeSection === 'connection'"
-        [class.dark:bg-purple-950]="activeSection === 'connection'"
-        [class.text-purple-700]="activeSection === 'connection'"
-        [class.dark:text-purple-300]="activeSection === 'connection'"
-        (click)="activeSection = 'connection'"
+        [class.bg-purple-50]="activeSection() === 'connection'"
+        [class.dark:bg-purple-950]="activeSection() === 'connection'"
+        [class.text-purple-700]="activeSection() === 'connection'"
+        [class.dark:text-purple-300]="activeSection() === 'connection'"
+        (click)="activeSection.set('connection')"
       >
         <lib-icon
           name="share-network"
           class="text-[1.25rem] mr-3"
-          [class.text-purple-600]="activeSection === 'connection'"
-          [class.dark:text-purple-400]="activeSection === 'connection'"
-          [class.text-gray-400]="activeSection !== 'connection'"
-          [class.dark:text-gray-500]="activeSection !== 'connection'"
+          [class.text-purple-600]="activeSection() === 'connection'"
+          [class.dark:text-purple-400]="activeSection() === 'connection'"
+          [class.text-gray-400]="activeSection() !== 'connection'"
+          [class.dark:text-gray-500]="activeSection() !== 'connection'"
         />
         {{ 'SETTINGS.CONNECTION' | translate }}
       </button>
       <div class="flex-1"></div>
       <button
         class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        [class.bg-purple-50]="activeSection === 'info'"
-        [class.dark:bg-purple-950]="activeSection === 'info'"
-        [class.text-purple-700]="activeSection === 'info'"
-        [class.dark:text-purple-300]="activeSection === 'info'"
-        (click)="activeSection = 'info'"
+        [class.bg-purple-50]="activeSection() === 'info'"
+        [class.dark:bg-purple-950]="activeSection() === 'info'"
+        [class.text-purple-700]="activeSection() === 'info'"
+        [class.dark:text-purple-300]="activeSection() === 'info'"
+        (click)="activeSection.set('info')"
       >
         <lib-icon
           name="info"
           class="text-[1.25rem] mr-3"
-          [class.text-purple-600]="activeSection === 'info'"
-          [class.dark:text-purple-400]="activeSection === 'info'"
-          [class.text-gray-400]="activeSection !== 'info'"
-          [class.dark:text-gray-500]="activeSection !== 'info'"
+          [class.text-purple-600]="activeSection() === 'info'"
+          [class.dark:text-purple-400]="activeSection() === 'info'"
+          [class.text-gray-400]="activeSection() !== 'info'"
+          [class.dark:text-gray-500]="activeSection() !== 'info'"
         />
         {{ 'SETTINGS.INFO' | translate }}
       </button>
@@ -269,7 +269,7 @@
     <div
       class="flex-1 bg-white dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 md:p-8 overflow-y-auto"
     >
-      @if (activeSection === 'design') {
+      @if (activeSection() === 'design') {
         <div class="max-w-2xl mx-auto flex flex-col gap-6">
           <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
             <lib-icon name="palette" class="text-[1.25rem] text-purple-600" />
@@ -400,7 +400,7 @@
             </div>
           </div>
         </div>
-      } @else if (activeSection === 'general') {
+      } @else if (activeSection() === 'general') {
         <div class="max-w-2xl mx-auto">
           <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
             <lib-icon name="sliders-horizontal" class="text-[1.25rem] text-purple-600" />
@@ -434,7 +434,7 @@
             </div>
           </div>
         </div>
-      } @else if (activeSection === 'printer') {
+      } @else if (activeSection() === 'printer') {
         <div class="max-w-2xl mx-auto flex flex-col gap-6">
           <h2 class="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
             <lib-icon name="printer" class="text-[1.25rem] text-purple-600" />
@@ -533,7 +533,7 @@
             }
           </div>
         </div>
-      } @else if (activeSection === 'users') {
+      } @else if (activeSection() === 'users') {
         <div class="max-w-2xl mx-auto">
           <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
             <lib-icon name="users" class="text-[1.25rem] text-purple-600 dark:text-purple-400" />
@@ -694,7 +694,7 @@
             }
           </div>
         </div>
-      } @else if (activeSection === 'connection') {
+      } @else if (activeSection() === 'connection') {
         <div class="max-w-2xl mx-auto">
           <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
             <lib-icon name="share-network" class="text-[1.25rem] text-purple-600 dark:text-purple-400" />
@@ -1000,7 +1000,7 @@
             </div>
           </div>
         </div>
-      } @else if (activeSection === 'info') {
+      } @else if (activeSection() === 'info') {
         <!-- Info-Seite: Systeminformationen -->
         <div class="max-w-2xl mx-auto">
           <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">

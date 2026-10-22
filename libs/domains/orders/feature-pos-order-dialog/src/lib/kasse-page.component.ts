@@ -20,14 +20,14 @@ export const KASSE_EXIT_URL = '/dashboard'
   imports: [OrderDialogComponent],
   host: { class: 'block h-full w-full p-2' },
   template: `
-    @for (run of [run()]; track run) {
-      <app-order-dialog class="block h-full" (closed)="onClosed($event)" />
+    @for (n of [run()]; track n) {
+      <app-order-dialog class="block h-full" [isFollowUp]="n > 0" (closed)="onClosed($event)" />
     }
   `,
 })
 export class KassePageComponent {
   readonly #router = inject(Router)
-  readonly #order = viewChild(OrderDialogComponent)
+  private readonly order = viewChild(OrderDialogComponent)
 
   /** Laufende Nummer der Bestellung — jeder Wechsel baut die Kasse frisch auf. */
   protected readonly run = signal(0)
@@ -35,10 +35,16 @@ export class KassePageComponent {
   /** Das Verlassen ist schon bestätigt (X/„Übersicht"); der Guard fragt dann nicht erneut. */
   #leaveConfirmed = false
 
+  /** Läuft schon eine Rückfrage (zweimal Zurück)? Dann teilt sich der Guard deren Antwort. */
+  #pendingLeave: Promise<boolean> | null = null
+
   protected onClosed(reason: KasseCloseReason): void {
     if (reason === 'cancelled') {
       this.#leaveConfirmed = true
-      void this.#router.navigateByUrl(KASSE_EXIT_URL)
+      // Scheitert die Navigation, bleibt die Kasse offen — und der Guard muss wieder fragen.
+      void this.#router.navigateByUrl(KASSE_EXIT_URL).then(navigated => {
+        if (!navigated) this.#leaveConfirmed = false
+      })
       return
     }
     this.run.update(n => n + 1)
@@ -47,6 +53,9 @@ export class KassePageComponent {
   /** Für `kasseLeaveGuard`: Rückfrage, sofern die Bestellung nicht schon verworfen ist. */
   canLeave(): Promise<boolean> | boolean {
     if (this.#leaveConfirmed) return true
-    return this.#order()?.confirmLeave() ?? true
+    const order = this.order()
+    if (!order) return true
+    this.#pendingLeave ??= order.confirmLeave().finally(() => (this.#pendingLeave = null))
+    return this.#pendingLeave
   }
 }

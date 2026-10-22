@@ -49,7 +49,14 @@ Entschieden im Issue (Abschnitt „Nicht abgedeckt"): **Ein Routenwechsel mit an
 fragt nach, statt still zu verwerfen.** Das gilt auch mitten im Bundle-Flow. `confirmLeave()` ist die
 Rückfrage des früheren X (`#hadInput`, „Bestellung verwerfen?", `disableClose`). „Weiter bearbeiten"
 hält die Navigation auf, „Verwerfen" gibt sie frei und protokolliert `order-cancel` wie bisher das X.
-„Übersicht" fragt einmal und navigiert dann. Der Guard fragt danach nicht erneut.
+„Übersicht" fragt einmal und navigiert dann. Der Guard fragt danach nicht erneut. Scheitert diese Navigation,
+fragt er beim nächsten Verlassen wieder. Zweimal Zurück während einer offenen Rückfrage teilt sich
+deren Antwort, statt eine zweite zu öffnen.
+
+Ein `order-cancel` ohne Positionen entsteht nur in der ersten Bestellung eines Kassenbesuchs, wie
+früher beim X eines frisch geöffneten Dialogs. Die nach dem Abschicken neu aufgebaute Folge-Bestellung
+(`isFollowUp`) hat niemand geöffnet. Ihr Verlassen ohne Eingabe ist kein Abbruch und würde sonst jede
+Kassensitzung mit einem leeren Abbruch in den OrderInteractions abschließen.
 
 Ausgenommen sind Ziele, die die Sitzung beenden (`/login`, `/setup`). Dort entscheidet nicht der
 Kassierer, und eine Rückfrage hielte den Logout auf. Verworfen wird dann wie früher: Auch der Dialog

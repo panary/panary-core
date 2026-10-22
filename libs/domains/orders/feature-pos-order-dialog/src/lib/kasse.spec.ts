@@ -8,13 +8,13 @@ import { TenantSuspensionService } from '@panary/shared/data-access'
 import { KASSE_EXIT_URL, KassePageComponent } from './kasse-page.component'
 import { kasseBookingGuard, kasseLeaveGuard } from './kasse.guards'
 
-function setup() {
+function setup(navigationSucceeds = true) {
   const navigations: string[] = []
   const suspended = signal(false)
   const router = {
     navigateByUrl: (url: string) => {
       navigations.push(url)
-      return Promise.resolve(true)
+      return Promise.resolve(navigationSucceeds)
     },
     parseUrl: (url: string) => Object.assign(new UrlTree(), { probe: url }),
   }
@@ -53,6 +53,44 @@ describe('KassePageComponent (core#828)', () => {
     expect(navigations).toEqual([KASSE_EXIT_URL])
     expect(page.run()).toBe(0)
     expect(await page.canLeave()).toBe(true)
+  })
+})
+
+describe('KassePageComponent — Rückfrage beim Verlassen (core#828)', () => {
+  const pageWithOrder = (navigationSucceeds: boolean, answer: boolean) => {
+    const { injector } = setup(navigationSucceeds)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const page = runInInjectionContext(injector, () => new KassePageComponent()) as any
+    const asked = { count: 0 }
+    page.order = () => ({
+      confirmLeave: () => {
+        asked.count++
+        return Promise.resolve(answer)
+      },
+    })
+    return { page, asked }
+  }
+
+  it('scheitert die Navigation zur Übersicht, fragt der Guard beim nächsten Verlassen wieder', async () => {
+    const { page, asked } = pageWithOrder(false, false)
+
+    page.onClosed('cancelled')
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(await page.canLeave()).toBe(false)
+    expect(asked.count).toBe(1)
+  })
+
+  it('zweimal Zurück während der Rückfrage öffnet keine zweite', async () => {
+    const { page, asked } = pageWithOrder(true, true)
+
+    const first = page.canLeave()
+    const second = page.canLeave()
+
+    expect(second).toBe(first)
+    expect(await first).toBe(true)
+    expect(asked.count).toBe(1)
   })
 })
 

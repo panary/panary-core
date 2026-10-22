@@ -10,6 +10,7 @@ import {
   inject,
   OnDestroy,
   OnInit,
+  input,
   output,
   Pipe,
   PipeTransform,
@@ -536,6 +537,13 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    * Was danach kommt (frische Kasse, zurück zur Übersicht), entscheidet die Route (core#828).
    */
   readonly closed = output<KasseCloseReason>()
+
+  /**
+   * Folgt diese Bestellung in derselben Kasse auf eine abgeschickte? Dann hat sie niemand
+   * geöffnet, und ein Verlassen ohne Eingabe ist kein Abbruch — sonst stünde nach jeder Kassensitzung
+   * ein leerer `order-cancel` in den OrderInteractions (core#828).
+   */
+  readonly isFollowUp = input(false)
 
   /** DINE LOCATION OVERLAY */
   showDineLocationSelection = false
@@ -3422,7 +3430,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   async confirmLeave(): Promise<boolean> {
     if (!this.#hadInput) {
-      this.#logCancelled()
+      if (!this.isFollowUp()) this.#logCancelled()
       return true
     }
     // Nur die zwei Tasten beenden die Rückfrage — ein Tipp daneben soll weder verwerfen

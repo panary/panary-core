@@ -2211,6 +2211,15 @@ describe('Kasse — Verlassen per Navigation (core#828)', () => {
     expect(closeCalls).toEqual([])
   })
 
+  it('eine Folge-Bestellung ohne Eingabe ist kein Abbruch — sie hat niemand geöffnet', async () => {
+    const { component, interactions } = setup()
+    component.isFollowUp = () => true
+
+    expect(await component.confirmLeave()).toBe(true)
+
+    expect(interactions).toEqual([])
+  })
+
   it('mit Eingabe fragt sie nach; „Weiter bearbeiten" hält die Navigation auf und lässt den Warenkorb stehen', async () => {
     const { component, openedDialogs, dialogResult, interactions } = setup()
     component.increaseLineItem(product('p-1'))

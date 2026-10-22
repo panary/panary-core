@@ -37,7 +37,7 @@
 }
 
 html {
-  font-size: calc(16px * var(--pnry-density));
+  font-size: calc(16px * var(--pnry-density)); /* px-ok: Root-Basis der Touch-Skala */
 }
 
 /* Touch-Mindesthöhen: rem-basiert (56/64px bei Dichte 1), mit hartem 48px-Floor via max()

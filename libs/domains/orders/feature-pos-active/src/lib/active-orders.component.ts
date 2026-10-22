@@ -15,7 +15,11 @@ import { Router } from '@angular/router'
 import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { uuidv7 } from 'uuidv7'
-import { CashPaymentDialogComponent, type CashPaymentDialogData } from '@panary/orders/feature-pos-order-dialog'
+import {
+  CASH_PAYMENT_DIALOG_CONFIG,
+  CashPaymentDialogComponent,
+  type CashPaymentDialogData,
+} from '@panary/orders/feature-pos-order-dialog'
 import {
   calculateModifierPrice,
   menuComponentSurcharge,

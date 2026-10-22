@@ -2722,6 +2722,25 @@ describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
     expect(setup({ operationMode: 'orders-only' }).component.paysAtCounter()).toBe(false)
   })
 
+  it('bezahlt im Bestellbetrieb nie, auch wenn der Kanal auf Kasse umgeschaltet wird', () => {
+    // Im Bestellbetrieb steht der Kanal vorbelegt auf Telefon; das Umschalten auf Kasse darf daran nichts ändern.
+    const { component } = setup({ operationMode: 'orders-only' })
+    component.toggleOrderChannel()
+
+    expect(component.orderChannel()).toBe('pos')
+    expect(component.paysAtCounter()).toBe(false)
+  })
+
+  it('kassiert die Summe nach Rabatt, wie sie die Primärtaste zeigt', async () => {
+    const { component } = setup(cashier)
+    component.increaseLineItem(product('p-1'))
+    component.selectedManualDiscount.set(managedDiscount())
+
+    await component.placeOrder()
+
+    expect(component.payment()?.total).toBe(8)
+  })
+
   it('bezahlt nur Barverkäufe an der Kasse: Telefon, Personalessen und Firmenkunde gehen den alten Weg', () => {
     const phone = setup(cashier)
     phone.component.toggleOrderChannel()

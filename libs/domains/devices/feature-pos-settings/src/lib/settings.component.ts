@@ -367,13 +367,8 @@ export class SettingsComponent implements OnInit {
     }
   }
 
-  toggleUiScale() {
-    this.uiScaleService.setEnabled(!this.uiScaleService.enabled())
-  }
-
   setUiDensity(level: UiDensityLevel) {
-    // Wirkt sofort (Live-Vorschau) — der Service aendert nur <html>-Klasse
-    // und --pnry-density, kein Reload noetig.
+    // Wirkt sofort (Live-Vorschau) — der Service aendert nur --pnry-density, kein Reload noetig.
     this.uiScaleService.setDensity(level)
   }
 

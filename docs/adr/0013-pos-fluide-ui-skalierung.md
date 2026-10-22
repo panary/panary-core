@@ -1,7 +1,7 @@
 ---
 type: ADR
 title: Fluide POS-UI-Skalierung — Root-rem-Skalierung hinter Klassen-Gate statt komponentenlokaler Lösungen
-description: Die POS-UI skaliert über eine viewport-abhängige Root-Fontsize (clamp × Terminal-Density) hinter der Klasse pnry-fluid-scale; px→rem-Äquivalenz macht den Flag-off-Pfad pixelidentisch ohne doppelten Stylesheet-Pfad.
+description: (Stand core#823 — Klassen-Gate und Viewport-Anteil entfallen, siehe Nachtrag) Die POS-UI skaliert über eine viewport-abhängige Root-Fontsize (clamp × Terminal-Density) hinter der Klasse pnry-fluid-scale; px→rem-Äquivalenz macht den Flag-off-Pfad pixelidentisch ohne doppelten Stylesheet-Pfad.
 tags: [pos-client, devices, ui]
 status: stable
 decision: accepted
@@ -62,3 +62,10 @@ bleiben (Rollout zunächst nur auf Test-Terminals).
 
 Details zur Mechanik: [Architektur — Fluide POS-UI-Skalierung](../architecture/pos-fluid-ui-scaling.md).
 DPI-Analyse (Tauri/Windows): `_planning/pnry-feat-pos-ui-scale-001-dpi-findings.md`.
+
+## Nachtrag 2026-10-22 (core#823)
+
+Das Klassen-Gate und das Flag `pos-fluid-ui-scaling-v1` sind entfallen: Die Touch-Skala gilt immer.
+Die Root-Schrift ist jetzt `16px × Dichte` **ohne** viewport-abhängigen `clamp()`-Anteil — größere
+Bildschirme bekommen mehr Kachelspalten statt größerer Elemente. Die Dichte (0,9–1,3) bleibt
+Geräteeinstellung. Aktueller Stand: [Mechanik-Referenz](../architecture/pos-fluid-ui-scaling.md).

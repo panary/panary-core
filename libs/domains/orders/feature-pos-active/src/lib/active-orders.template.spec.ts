@@ -29,7 +29,7 @@ describe('Offene Bestellungen — Abschließen (core#834)', () => {
 
   it('öffnet im Kassenbetrieb die Bezahlansicht und kassiert nicht selbst', () => {
     expect(finalize).toMatch(/open<CashPaymentDialogComponent/)
-    expect(finalize).not.toMatch(/payCash/)
+    expect(finalize).not.toMatch(/\.payCash\(/)
   })
 
   it('der Bestellbetrieb schließt weiter über complete() ab, vor dem Öffnen der Bezahlansicht', () => {

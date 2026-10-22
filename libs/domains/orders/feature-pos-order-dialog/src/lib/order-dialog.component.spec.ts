@@ -16,7 +16,7 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'
 import { Subject, of } from 'rxjs'
 
-import { OrderInteractionService, OrderService } from '@panary/orders/data-access'
+import { OrderCheckoutService, OrderInteractionService, OrderService } from '@panary/orders/data-access'
 import type { AppliedDiscount } from '@panary/orders/domain'
 import { ProductGroupService } from '@panary/product-groups/data-access'
 import { ProductService } from '@panary/products/data-access'
@@ -67,6 +67,15 @@ interface SetupOptions {
   posHandedness?: 'left' | 'right'
   /** `locationService.activeLocation` — Standard: Filiale schon geladen. Ein Signal spielt das Nachladen nach (core#868). */
   activeLocation?: () => unknown
+  /**
+   * `operationMode` der Filiale. Standard `orders-only`: Die bestehenden placeOrder-Specs prüfen den Weg ohne
+   * Bezahlansicht; der Kassenbetrieb (`pos-cashier`) schaltet sie ein (core#831).
+   */
+  operationMode?: string
+  /** Antwort von `OrderCheckoutService.payCash` — Standard: bezahlt. */
+  payCashResult?: 'paid' | 'cash-session-declined' | 'failed'
+  /** Was `OrderService.createOrder` liefert — `null` spielt ein gescheitertes Anlegen nach. */
+  createOrderResult?: number | null
 }
 
 const CURRENT_USER_ID = '018f0000-0000-7000-8000-000000000001'
@@ -102,6 +111,8 @@ const product = (id: string, over: Partial<ProductSchema> = {}): ProductSchema =
 
 function setup(options: SetupOptions = {}) {
   const createdOrders: Array<Record<string, unknown>> = []
+  /** Aufrufe von `OrderCheckoutService.payCash` — die Bezahlansicht kassiert nur darüber (core#831). */
+  const payCashCalls: Array<Record<string, unknown>> = []
   const redeemCalls: Array<Record<string, unknown>> = []
   const openedDialogs: Array<{ data?: unknown; disableClose?: boolean }> = []
   /** Was der `closed`-Output gemeldet hat — die Route entscheidet daraus, wie es weitergeht (core#828). */
@@ -137,7 +148,16 @@ function setup(options: SetupOptions = {}) {
           productionTimes: [0, 5, 10],
           createOrder: (payload: Record<string, unknown>) => {
             createdOrders.push(payload)
-            return 0
+            return Promise.resolve(options.createOrderResult === undefined ? 0 : options.createOrderResult)
+          },
+        },
+      },
+      {
+        provide: OrderCheckoutService,
+        useValue: {
+          payCash: (input: Record<string, unknown>) => {
+            payCashCalls.push(input)
+            return Promise.resolve(options.payCashResult ?? 'paid')
           },
         },
       },
@@ -170,7 +190,9 @@ function setup(options: SetupOptions = {}) {
         useValue: {
           // Ohne aktive Filiale blockiert `blockingReason` die Kasse —
           // hier reicht die Minimalform, der Geschaeftstag spielt fuer Rabatte keine Rolle.
-          activeLocation: options.activeLocation ?? (() => ({ _id: 'loc-1', settings: {}, operationMode: 'full' })),
+          activeLocation:
+            options.activeLocation ??
+            (() => ({ _id: 'loc-1', settings: {}, operationMode: options.operationMode ?? 'orders-only' })),
           currentBusinessDay: { businessDayId: 'bd-1', date: '2026-08-14' },
         },
       },
@@ -272,6 +294,7 @@ function setup(options: SetupOptions = {}) {
   return {
     component,
     createdOrders,
+    payCashCalls,
     redeemCalls,
     openedDialogs,
     closeCalls,
@@ -2688,5 +2711,127 @@ describe('Kasse — Blocker folgt dem Standort (core#868)', () => {
     activeLocation.set(undefined)
 
     expect(component.blockingReason()).toBe('Standort konnte nicht geladen werden.')
+  })
+})
+
+describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
+  const cashier = { operationMode: 'pos-cashier' }
+
+  it('heißt im Kassenbetrieb „Bezahlen", im Bestellbetrieb bleibt es beim Bestellen', () => {
+    expect(setup(cashier).component.paysAtCounter()).toBe(true)
+    expect(setup({ operationMode: 'orders-only' }).component.paysAtCounter()).toBe(false)
+  })
+
+  it('bezahlt nur Barverkäufe an der Kasse: Telefon, Personalessen und Firmenkunde gehen den alten Weg', () => {
+    const phone = setup(cashier)
+    phone.component.toggleOrderChannel()
+    expect(phone.component.paysAtCounter()).toBe(false)
+
+    const customer = setup(cashier)
+    customer.component._customer = { _id: 'c-1', name1: 'Firma' }
+    expect(customer.component.paysAtCounter()).toBe(false)
+  })
+
+  it('legt die Bestellung mit vorab vergebener ID an, öffnet die Bezahlansicht und bleibt in der Kasse', async () => {
+    const { component, createdOrders, closeCalls } = setup(cashier)
+    component.increaseLineItem(product('p-1'))
+
+    await component.placeOrder()
+
+    expect(createdOrders).toHaveLength(1)
+    const orderId = createdOrders[0]['_id'] as string
+    expect(orderId).toMatch(/^[0-9a-f-]{36}$/)
+    expect(component.payment()).toEqual({ orderId, total: 10 })
+    expect(component.sheetOpen()).toBe(true)
+    // Geschlossen wird erst nach Kassieren oder „Offen lassen" — vorher darf die Route nicht neu aufbauen.
+    expect(closeCalls).toEqual([])
+    // Der Warenkorb ist leer: Die Bestellung steht schon auf dem Server.
+    expect(component.lineItems).toEqual([])
+  })
+
+  it('ohne Kassenbetrieb legt placeOrder wie bisher an und schließt sofort', async () => {
+    const { component, createdOrders, closeCalls } = setup({ operationMode: 'orders-only' })
+    component.increaseLineItem(product('p-1'))
+
+    await component.placeOrder()
+
+    expect(createdOrders[0]['_id']).toBeUndefined()
+    expect(component.payment()).toBeNull()
+    expect(closeCalls).toEqual(['order-placed'])
+  })
+
+  it('behält die Positionen, wenn das Anlegen scheitert, und öffnet keine Bezahlansicht', async () => {
+    const { component, closeCalls } = setup({ ...cashier, createOrderResult: null })
+    component.increaseLineItem(product('p-1'))
+
+    await component.placeOrder()
+
+    expect(component.payment()).toBeNull()
+    expect(closeCalls).toEqual([])
+    expect(component.lineItems).toHaveLength(1)
+  })
+
+  it('kassiert über OrderCheckoutService.payCash mit der Summe der Primärtaste und schließt danach', async () => {
+    const { component, createdOrders, payCashCalls, closeCalls } = setup(cashier)
+    component.increaseLineItem(product('p-1'))
+    await component.placeOrder()
+
+    await component.onCollect()
+
+    expect(payCashCalls).toHaveLength(1)
+    expect(payCashCalls[0]).toMatchObject({ orderId: createdOrders[0]['_id'], total: 10, cashierId: CURRENT_USER_ID })
+    expect(component.payment()).toBeNull()
+    expect(closeCalls).toEqual(['order-placed'])
+  })
+
+  it('bleibt in der Bezahlansicht, wenn das Kassieren scheitert, und kassiert nicht doppelt', async () => {
+    const { component, payCashCalls, closeCalls } = setup({ ...cashier, payCashResult: 'failed' })
+    component.increaseLineItem(product('p-1'))
+    await component.placeOrder()
+
+    await component.onCollect()
+
+    expect(component.payment()).not.toBeNull()
+    expect(closeCalls).toEqual([])
+    expect(component.paying()).toBe(false)
+    await component.onCollect()
+    expect(payCashCalls).toHaveLength(2)
+  })
+
+  it('meldet eine verweigerte Kassen-Freigabe und lässt die Bestellung offen stehen', async () => {
+    const { component, snackBarCalls, closeCalls } = setup({ ...cashier, payCashResult: 'cash-session-declined' })
+    component.increaseLineItem(product('p-1'))
+    await component.placeOrder()
+
+    await component.onCollect()
+
+    expect(snackBarCalls.map(c => c.message)).toEqual(['Kasse nicht freigegeben — die Bestellung bleibt offen'])
+    expect(component.payment()).not.toBeNull()
+    expect(closeCalls).toEqual([])
+  })
+
+  it('„Offen lassen" kassiert nichts und schließt wie heute', async () => {
+    const { component, payCashCalls, closeCalls } = setup(cashier)
+    component.increaseLineItem(product('p-1'))
+    await component.placeOrder()
+
+    component.onKeepOpen()
+
+    expect(payCashCalls).toEqual([])
+    expect(component.payment()).toBeNull()
+    expect(closeCalls).toEqual(['order-placed'])
+  })
+
+  it('sperrt Kassieren, solange ein Abschluss läuft', async () => {
+    const { component, payCashCalls } = setup(cashier)
+    component.increaseLineItem(product('p-1'))
+    await component.placeOrder()
+    component.paying.set(true)
+
+    await component.onCollect()
+    component.onKeepOpen()
+
+    expect(payCashCalls).toEqual([])
+    expect(component.payment()).not.toBeNull()
   })
 })

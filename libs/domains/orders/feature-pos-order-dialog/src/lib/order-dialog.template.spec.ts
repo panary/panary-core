@@ -275,3 +275,46 @@ describe('Kasse-Template — Anpassen-Sheet (core#830)', () => {
     expect(template.match(/@if \(isCustomizeLine\(lineItem\)\) \{/g)).toHaveLength(2)
   })
 })
+
+// Bezahlansicht „nur Bar" (core#831): Das Template verdrahtet die Primärtaste und die Ansicht; die Logik prüft
+// order-dialog.component.spec.ts. Hier nur, dass die Bindungen stehen.
+describe('Kasse-Template — Bezahlansicht (core#831)', () => {
+  const start = template.indexOf('@if (payment(); as pending)')
+  const ansicht = template.slice(start, template.indexOf('<!-- Anpassen-Sheet', start))
+
+  it('beschriftet die Primärtaste im Kassenbetrieb mit „Bezahlen"', () => {
+    expect(template).toContain("(paysAtCounter() ? 'ORDER_DIALOG.PAY' : 'ORDER_DIALOG.ORDER') | translate")
+  })
+
+  it('zeigt die Ansicht als Sheet und reicht Summe, Sperre und beide Ausgänge durch', () => {
+    expect(start).toBeGreaterThan(-1)
+    expect(ansicht).toContain('kasse__sheet')
+    expect(ansicht).toContain('[total]="pending.total"')
+    expect(ansicht).toContain('[busy]="paying()"')
+    expect(ansicht).toContain('(collect)="onCollect()"')
+    expect(ansicht).toContain('(keepOpen)="onKeepOpen()"')
+  })
+
+  it('hat keinen Weg am Sheet vorbei: der Scrim reagiert nicht auf Tipps', () => {
+    const scrim = ansicht.slice(0, ansicht.indexOf('</div>'))
+    expect(scrim).not.toContain('(click)')
+  })
+})
+
+describe('Bezahlansicht-Template — Karte und Gutschein (core#831)', () => {
+  const view = readFileSync(fileURLToPath(new URL('./cash-payment.component.html', import.meta.url)), 'utf8')
+
+  it('zeigt Karte und Gutschein, aber nicht antippbar und mit „bald"', () => {
+    const block = view.slice(
+      view.indexOf("@for (method of ['PAYMENT_CARD'"),
+      view.indexOf('</button>', view.indexOf('PAYMENT_SOON')),
+    )
+    expect(block).toContain('disabled')
+    expect(block).toContain("'ORDER_DIALOG.PAYMENT_SOON' | translate")
+    expect(block).not.toContain('(click)')
+  })
+
+  it('sperrt „Bar kassieren", bis der Betrag gedeckt ist, und während des Abschlusses', () => {
+    expect(view).toContain('[disabled]="busy() || !canCollect()"')
+  })
+})

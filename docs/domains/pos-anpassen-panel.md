@@ -27,8 +27,9 @@ des Kassenbildschirms (`.kasse__sheet` über `.kasse__scrim`, `order-dialog.comp
 - **Schließen** nur über „Fertig" oder „Abbrechen". Ein Tipp auf den Scrim tut nichts, damit eine
   Anpassung nicht versehentlich verworfen wird. Auch jeder Ansichtswechsel schließt das Sheet
   (`clearButtons`).
-- **Bewegung:** Sheet 240 ms (`cubic-bezier(.2,.8,.2,1)`), Scrim 160 ms, über Angular `animate.enter` /
-  `animate.leave` als CSS. Bei `prefers-reduced-motion: reduce` nur Einblenden in 120 ms, ohne Gleiten
+- **Bewegung:** Sheet 240 ms (`cubic-bezier(.2,.8,.2,1)`), Scrim 160 ms, als CSS-Animation beim Einfügen
+  des Elements. Ein Ausblenden gibt es nicht (das Sheet verschwindet sofort): `animate.leave` ginge nicht,
+  weil die Komponente noch `@Component.animations` für die Infobox führt (NG2027). Bei `prefers-reduced-motion: reduce` nur Einblenden in 120 ms, ohne Gleiten
   und ohne Impuls; die Zeile behält einen statischen Rahmen.
 - Das Raster darunter ist leer, solange das Sheet offen ist: Jede Anpassen-Sitzung beginnt mit
   `clearButtons()`, das Raster baut erst „Fertig"/„Abbrechen" wieder auf.

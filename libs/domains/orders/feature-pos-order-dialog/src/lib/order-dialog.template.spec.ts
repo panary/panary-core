@@ -217,12 +217,12 @@ describe('Kasse-Template — Anpassen-Sheet (core#830)', () => {
     return template.slice(at, template.indexOf('>', template.indexOf('[disabled]', at)) + 1)
   }
 
-  it('legt Scrim und Sheet vor das Panel, mit Ein- und Ausblend-Klassen', () => {
+  it('legt Scrim und Sheet vor das Panel, mit Einblend-Klassen', () => {
     expect(sheetStart).toBeGreaterThan(-1)
-    expect(sheet).toContain('animate.enter="kasse-scrim-enter"')
-    expect(sheet).toContain('animate.leave="kasse-scrim-leave"')
-    expect(sheet).toContain('animate.enter="kasse-sheet-enter"')
-    expect(sheet).toContain('animate.leave="kasse-sheet-leave"')
+    expect(sheet).toContain('kasse__scrim kasse-scrim-enter')
+    expect(sheet).toContain('kasse__sheet kasse-sheet-enter')
+    // `animate.enter` und `@Component.animations` schließen sich aus (NG2027) — die Komponente führt noch `animations`.
+    expect(template).not.toContain('animate.enter')
     expect(sheet).toContain('<lib-product-customize-panel')
   })
 

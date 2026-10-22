@@ -549,21 +549,13 @@
 
   <!-- ═══════════════ RASTER ═══════════════ -->
   <div class="kasse__grid flex flex-col min-h-0 mr-3 relative">
-    <!-- Anpassen-Sheet (#639, core#830): liegt über der Rasterspalte und gleitet von unten herein. Gruppenleiste
+    <!-- Anpassen-Sheet (#639, core#830): liegt über der Rasterspalte und gleitet von unten herein (CSS-Animation beim
+         Einfügen; `animate.enter` ginge nicht — die Komponente führt noch `animations` für die Infobox, NG2027). Gruppenleiste
          und Warenkorb bleiben sichtbar und ungedimmt; der Scrim tut bewusst nichts, damit ein Tipp daneben
          die Anpassung nicht verwirft. Schließen nur über Übernehmen/Abbrechen im Panel. -->
     @if (customizeModel(); as model) {
-      <div
-        class="kasse__scrim"
-        animate.enter="kasse-scrim-enter"
-        animate.leave="kasse-scrim-leave"
-        aria-hidden="true"
-      ></div>
-      <div
-        class="kasse__sheet bg-surface-panel border border-line shadow-card"
-        animate.enter="kasse-sheet-enter"
-        animate.leave="kasse-sheet-leave"
-      >
+      <div class="kasse__scrim kasse-scrim-enter" aria-hidden="true"></div>
+      <div class="kasse__sheet kasse-sheet-enter bg-surface-panel border border-line shadow-card">
         <lib-product-customize-panel
           class="flex min-h-0 flex-1 flex-col pb-2"
           [model]="model"

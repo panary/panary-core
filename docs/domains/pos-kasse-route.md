@@ -25,8 +25,8 @@ Code: `libs/domains/orders/feature-pos-order-dialog/src/lib/` (`kasse-page.compo
 | --- | --- | --- |
 | Bestellen | `order-placed` | bleibt in der Kasse, Kasse startet leer |
 | Vorbestellung angelegt | `preorder-created` | bleibt in der Kasse, Kasse startet leer |
-| „Übersicht" / „Zur Übersicht", nach Rückfrage | `cancelled` | `/dashboard` |
-| Browser-Zurück, anderer Menüpunkt | — | `kasseLeaveGuard` fragt wie „Übersicht" |
+| „Zur Übersicht" (Bestellung nicht möglich), nach Rückfrage | `cancelled` | `/dashboard` |
+| Browser-Zurück, anderer Eintrag der [Rail](pos-navigation.md) | — | `kasseLeaveGuard` fragt nach |
 | Logout, Inaktivität, Neueinrichtung (`/login`, `/setup`) | — | ohne Rückfrage, Entwurf verworfen |
 
 Die Komponente kennt keinen Dialog mehr: Ihr Ende meldet sie über `closed`. Was dann geschieht,
@@ -90,7 +90,7 @@ Standort.
 ## Mandantensperre
 
 `kasseBookingGuard` leitet `/kasse` bei gesperrtem Mandanten (`TenantSuspensionService.suspended()`) auf
-die Übersicht um. Die Kachel ist dann ohnehin gesperrt (`requiresBooking`). Der Abbruch in
+die Übersicht um. Der Rail-Eintrag „Kasse" ist dann ohnehin gesperrt (`requiresBooking`). Der Abbruch in
 `placeOrder` bleibt bestehen, für eine Sperre, die erst bei offener Kasse eintrifft. Der Warenkorb
 bleibt dabei stehen.
 
@@ -105,7 +105,7 @@ nach `#hadInput`. Eine leere Kasse meldet ab wie jede andere Seite.
 
 - Die Specs instanziieren Komponente, Seite und Guards direkt. Das echte Routing (Browser-Zurück mit
   `canDeactivate`, Neuaufbau durch `@for`) prüft erst der Sichttest in der Sandbox.
-- Nach einer Vorbestellung aus der Vorbestellungsliste bleibt man in der Kasse. „Übersicht" führt zum
-  Dashboard, nicht zurück zur Liste.
+- Nach einer Vorbestellung aus der Vorbestellungsliste bleibt man in der Kasse. Zurück zur Liste geht es
+  über die Rail („Vorbest.").
 - `apps/pos-client/src/styles.scss` trägt noch die Panel-Klasse `.order-dialog-panel`, die jetzt niemand
   mehr setzt. Sie bleibt bis zum Umbau der Styles ([core#823](https://github.com/panary/panary-core/issues/823)) stehen.

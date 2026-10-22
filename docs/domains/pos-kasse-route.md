@@ -1,10 +1,10 @@
 ---
 type: Domain Concept
 title: POS-Kasse als Route /kasse
-description: 'Warum die Kasse seit core#828 eine Route statt eines MatDialogs ist, wie sie nach jeder Bestellung frisch startet, wer beim Verlassen nachfragt und warum der Auto-Logout jetzt an der Eingabe hängt.'
+description: 'Warum die Kasse seit core#828 eine Route statt eines MatDialogs ist, wie sie nach jeder Bestellung frisch startet, wer beim Verlassen nachfragt, warum der Auto-Logout jetzt an der Eingabe hängt und wie sie ein Neuladen auf /kasse übersteht.'
 tags: [orders, pos, ui, routing]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-22T07:42:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-22T14:40:00Z }
 ---
 
 # POS-Kasse als Route `/kasse`
@@ -67,6 +67,18 @@ wieder auf die Übersicht.
 Ausgenommen sind Ziele, die die Sitzung beenden (`/login`, `/setup`). Dort entscheidet nicht der
 Kassierer, und eine Rückfrage hielte den Logout auf. Verworfen wird dann wie früher: Auch der Dialog
 ging beim Routenwechsel ungefragt zu (`PosSessionService.endSession` → `closeAll()`).
+
+## Neuladen direkt auf `/kasse`
+
+Als Dialog öffnete die Kasse nur vom Dashboard aus, der Standort war dann schon geladen. Die Route ist
+direkt ladbar (F5, WebView-Reload, Deep-Link), und dann entsteht die Komponente, bevor
+`LocationService.activeLocation()` gesetzt ist. Der Blocker „Bestellung nicht möglich — Standort konnte
+nicht geladen werden" wurde bis [core#868](https://github.com/panary/panary-core/issues/868) einmalig in
+`ngOnInit` gesetzt und blieb dann stehen, obwohl der Standort Sekunden später da war.
+
+`blockingReason` ist deshalb ein `computed()` aus `activeLocation()`: Der Blocker steht, solange kein
+Standort geladen ist, und verschwindet, sobald er eintrifft. Fällt der Standort weg, kommt er wieder.
+Ein fehlender Geschäftstag blockiert weiterhin nicht, den legt der Edge beim ersten Order an.
 
 ## Mandantensperre
 

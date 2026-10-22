@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#842): Das POS-Geräte-Setup (`@panary/system/feature-pos-setup`) nutzt Design-Tokens statt roher Tailwind-Farben, Phosphor-Icons statt Inline-SVGs, Rundungen `rounded-control|card` und die Touch-Maße (64/56/48 px). Ablauf und Logik unverändert; nur Template-Klassen geändert. Kamera-Scan-Overlay bleibt bewusst schwarz.

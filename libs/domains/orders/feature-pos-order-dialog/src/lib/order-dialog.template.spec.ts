@@ -244,6 +244,7 @@ describe('Kasse-Template — Anpassen-Sheet (core#830)', () => {
       '(click)="setTaxRateSubbuttons()"',
       '(click)="applyProductSearch()"',
       '(click)="numpadAction(number)"',
+      '(click)="numpadAction(0)"',
       '(click)="numpadReset()"',
       '(click)="showNumpadPopup = !showNumpadPopup"',
       '(click)="createProductButtons(productGroup)"',

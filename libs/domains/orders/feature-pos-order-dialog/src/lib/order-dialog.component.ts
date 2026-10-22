@@ -298,7 +298,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Das Sheet ist offen: Primärtaste, Ziffern, Gruppenleiste und „Übersicht" sind gesperrt (core#830). */
   readonly sheetOpen = computed(() => this.customizeModel() !== null)
 
-  /** Ist das die Zeile, die das Sheet gerade anpasst — der Warenkorb markiert sie und pulsiert einmal kurz. */
+  /** Ist das die Zeile, die das Sheet gerade anpasst — der Warenkorb markiert sie und pulsiert zweimal kurz. */
   isCustomizeLine(line: OrderLineItem): boolean {
     return this.#customizeLine !== null && line === this.#customizeLine
   }
@@ -1579,6 +1579,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     const wasFresh = line === this.#freshLine
     const target = (this.#customizeLine && this.#customizeLine !== line ? this.#mergeLines(line) : line) ?? line
     this.clearButtons()
+    // Das Ziffern-Popup bliebe sonst unter dem Sheet stehen und käme nach dem Schließen unerwartet wieder.
+    this.showNumpadPopup = false
     this.#customizeLine = target
     this.#customizeCartSnapshot = this.#snapshotCart()
     this.#customizeSplits = []

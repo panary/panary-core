@@ -805,6 +805,7 @@
               <button
                 class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-lg text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
                 (click)="numpadAction(number)"
+                [disabled]="sheetOpen()"
               >
                 {{ number }}
               </button>
@@ -812,12 +813,14 @@
             <button
               class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-colors flex items-center justify-center"
               (click)="numpadReset()"
+              [disabled]="sheetOpen()"
             >
               C
             </button>
             <button
               class="w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-lg text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
               (click)="numpadAction(0)"
+              [disabled]="sheetOpen()"
             >
               0
             </button>

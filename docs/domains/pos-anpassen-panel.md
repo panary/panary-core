@@ -1,7 +1,7 @@
 ---
 type: Domain Concept
 title: POS-Anpassen-Panel — Zutaten abwählen, Extras hinzufügen
-description: 'Beim Antippen eines Produkts mit ui.showOptionsAuto (oder einer Warenkorb-Position) zeigt der Bestelldialog rechts ein Panel mit abwählbaren Zutaten und Extras je Optionsgruppe; die OHNE-Funktionstaste ist entfallen.'
+description: 'Beim Antippen eines Produkts mit ui.showOptionsAuto (oder einer Warenkorb-Position) zeigt der Bestelldialog ein Sheet über der Rasterspalte mit abwählbaren Zutaten und Extras je Optionsgruppe; die OHNE-Funktionstaste ist entfallen.'
 tags: [orders, pos, products]
 status: stable
 generated: { by: claude-code/opus-5.5, at: 2026-10-14T14:00:00Z }

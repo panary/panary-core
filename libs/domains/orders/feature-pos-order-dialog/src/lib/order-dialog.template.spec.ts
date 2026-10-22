@@ -212,9 +212,17 @@ describe('Kasse-Template — Layout B1 (core#829)', () => {
 describe('Kasse-Template — Anpassen-Sheet (core#830)', () => {
   const sheetStart = template.indexOf('kasse__scrim kasse-scrim-enter')
   const sheet = template.slice(sheetStart, template.indexOf('} @else {', sheetStart))
-  const gesperrt = (marker: string): string => {
-    const at = template.indexOf(marker)
-    return template.slice(at, template.indexOf('>', template.indexOf('[disabled]', at)) + 1)
+  /** Alle Start-Tags `<button …>`, in denen der Marker steht — ein Marker kann mehrfach vorkommen (breite/schmale Leiste). */
+  const startTags = (marker: string): string[] => {
+    const tags: string[] = []
+    for (let at = template.indexOf(marker); at !== -1; at = template.indexOf(marker, at + 1)) {
+      const from = template.lastIndexOf('<button', at)
+      let to = template.indexOf('>', at)
+      // Ein `>` innerhalb eines Attributwerts (ungerade Zahl `"` davor) beendet das Tag nicht.
+      while ((template.slice(from, to).match(/"/g) ?? []).length % 2 === 1) to = template.indexOf('>', to + 1)
+      tags.push(template.slice(from, to + 1))
+    }
+    return tags
   }
 
   it('legt Scrim und Sheet vor das Panel, mit Einblend-Klassen', () => {
@@ -242,13 +250,19 @@ describe('Kasse-Template — Anpassen-Sheet (core#830)', () => {
       '(click)="allGroupsOpen.set(true)"',
       '(click)="leave()"',
     ]) {
-      expect(template).toContain(marker)
+      // `leave()` steht zweimal: im Kopf (gesperrt) und auf dem Abschlussbild, das nie mit offenem Sheet erscheint.
+      const tags = marker === '(click)="leave()"' ? startTags(marker).slice(0, 1) : startTags(marker)
+      expect(tags.length, marker).toBeGreaterThan(0)
+      // Jedes Vorkommen, nicht nur eines: `numpadReset()` steht in der breiten und der schmalen Leiste.
       expect(
-        template.match(new RegExp(marker.replace(/[()[\]$.!]/g, '\\$&') + '[^>]*\\[disabled\\]="sheetOpen\\(\\)"')),
-      ).not.toBeNull()
+        tags.filter(tag => !tag.includes('[disabled]="sheetOpen()"')),
+        marker,
+      ).toEqual([])
     }
-    // Der Warenkorb bleibt bedienbar: die Zeilenwahl hat keine Sperre.
-    expect(gesperrt('(click)="selectCombinationByIndex(i, j)"')).not.toContain('sheetOpen')
+    // Der Warenkorb bleibt bedienbar: die Zeilenwahl hat keine Sperre, egal an welcher Stelle im Tag.
+    const zeilen = startTags('(click)="selectCombinationByIndex(i, j)"')
+    expect(zeilen.length).toBeGreaterThan(0)
+    expect(zeilen.filter(tag => tag.includes('sheetOpen'))).toEqual([])
   })
 
   it('markiert die angepasste Zeile im Warenkorb', () => {

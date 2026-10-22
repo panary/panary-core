@@ -9,7 +9,7 @@ import { ConnectionService, OFFLINE_OUTBOX, storePosOperatorToken } from '@panar
 import { POS_PIN_LENGTH, requiresPosPinChange } from '@panary/users/domain'
 import { TimeClockEvent, TimeClockPanelComponent } from './time-clock-panel/time-clock-panel.component'
 import { PinPadComponent } from './pin-pad/pin-pad.component'
-import { StaffPickerComponent } from './staff-picker/staff-picker.component'
+import { StaffPickerComponent, type StaffPickerPerson } from './staff-picker/staff-picker.component'
 import { pushRecentStaffId, readRecentStaffIds } from './staff-picker/staff-picker.logic'
 import { DeviceReverifyComponent } from './device-reverify/device-reverify.component'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
@@ -474,6 +474,12 @@ export class LoginComponent implements OnInit {
     this.pinInput.set('')
     this.pinError.set(false)
     this.currentStep.set('enter-pin')
+  }
+
+  /** Die Wahl kommt als schmale Picker-Person zurück; der Login arbeitet mit dem vollen `PosUser`. */
+  protected onStaffPicked(person: StaffPickerPerson): void {
+    const user = this.posUsers().find(candidate => candidate._id === person._id)
+    if (user) this.selectUser(user)
   }
 
   backToUsers(): void {

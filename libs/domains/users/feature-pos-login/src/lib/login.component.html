@@ -91,7 +91,7 @@
               </div>
             } @else {
               <!-- Geteiltes Geraet: Suche, Buchstabengruppen und „Zuletzt hier" fuer 30+ Mitarbeiter (#835) -->
-              <lib-staff-picker [users]="posUsers()" [recentIds]="recentStaffIds()" (picked)="selectUser($event)" />
+              <lib-staff-picker [users]="posUsers()" [recentIds]="recentStaffIds()" (picked)="onStaffPicked($event)" />
             }
           </div>
         }

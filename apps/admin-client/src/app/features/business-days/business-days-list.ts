@@ -6,6 +6,7 @@ import { CloudManagedBannerComponent } from '../../core/cloud-managed-banner'
 import { CloudManagedService } from '../../core/cloud-managed.service'
 import { ConfirmDialogComponent } from '../../core/confirm-dialog'
 import { formatApiError } from '../../core/error-helper'
+import { AdminIconComponent } from '../../shared/icon/icon'
 import { findStaleOpenDayIds } from './stale-open-days'
 
 // Lokales Interface (Konvention im admin-client, vgl. user-list/order-list) —
@@ -30,7 +31,7 @@ interface LocationPointer {
 @Component({
   selector: 'app-business-days-list',
   standalone: true,
-  imports: [TranslateModule, DatePipe, CloudManagedBannerComponent, ConfirmDialogComponent],
+  imports: [TranslateModule, DatePipe, CloudManagedBannerComponent, ConfirmDialogComponent, AdminIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col h-full overflow-hidden">
@@ -58,12 +59,7 @@ interface LocationPointer {
               class="flex gap-3 items-start border border-amber-200 dark:border-amber-800/60
                         bg-amber-50 dark:bg-amber-950/30 rounded-xl p-4"
             >
-              <span
-                class="material-symbols-outlined text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"
-                style="font-size: 20px; line-height: 1"
-                aria-hidden="true"
-                >warning</span
-              >
+              <app-icon name="warning" class="text-[20px] text-amber-600 dark:text-amber-400 mt-0.5" />
               <div class="text-sm min-w-0 flex-1">
                 <p class="font-medium text-amber-900 dark:text-amber-100">
                   {{ 'BUSINESS_DAYS.STALE_BANNER_TITLE' | translate: { count: staleOpenIds().size } }}

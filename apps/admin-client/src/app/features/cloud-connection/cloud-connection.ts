@@ -17,6 +17,7 @@ import { ApiService } from '../../core/api.service'
 import { formatApiError } from '../../core/error-helper'
 import { ConfirmDialogComponent } from '../../core/confirm-dialog'
 import { SyncHistoryComponent } from './sync-history'
+import { AdminIconComponent } from '../../shared/icon/icon'
 import { BootstrapReportsComponent } from './bootstrap-reports'
 
 type PairingStatus = 'disconnected' | 'pairing' | 'connected' | 'error'
@@ -165,6 +166,7 @@ const directionLabel = (dir: InitialDirection): string => {
     TranslateModule,
     SyncHistoryComponent,
     BootstrapReportsComponent,
+    AdminIconComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // Escape schliesst das ⋯-Menue der Sync-Aktionen unabhaengig davon, wo der Fokus liegt
@@ -945,9 +947,7 @@ const directionLabel = (dir: InitialDirection): string => {
                         title="Weitere Sync-Aktionen"
                         class="h-9 w-9 shrink-0 flex items-center justify-center rounded-lg border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 disabled:opacity-50"
                       >
-                        <span class="material-symbols-outlined" style="font-size: 20px; line-height: 1"
-                          >more_horiz</span
-                        >
+                        <app-icon name="dots-three" class="text-[20px]" />
                       </button>
 
                       @if (syncMenuOpen()) {

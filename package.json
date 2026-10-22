@@ -18,7 +18,7 @@
     "dev": "pnpm nx run-many --target=build --projects=tag:type:domain && pnpm nx run-many --target=serve --projects=pos-client,api-edge --parallel",
     "start": "nx serve pos-client",
     "db:migrate": "TS_NODE_PROJECT=apps/api-edge/tsconfig.migrations.json knex --knexfile apps/api-edge/knexfile.ts migrate:latest",
-    "icons:build": "node tools/phosphor/build-pos-icons.mjs",
+    "icons:build": "node tools/phosphor/build-icons.mjs",
     "db:create": "TS_NODE_PROJECT=apps/api-edge/tsconfig.migrations.json knex --knexfile apps/api-edge/knexfile.ts migrate:make",
     "tauri:dev": "cd apps/pos-client && tauri dev",
     "tauri:build": "cd apps/pos-client && tauri build",

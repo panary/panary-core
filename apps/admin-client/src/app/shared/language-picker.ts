@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { LanguageService } from '@panary/shared/data-access'
+import { AdminIconComponent } from './icon/icon'
 
 /**
  * Sprachauswahl als Popup statt Toggle-Reihe.
@@ -26,7 +27,7 @@ import { LanguageService } from '@panary/shared/data-access'
 @Component({
   selector: 'app-language-picker',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslateModule, AdminIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(document:keydown.escape)': 'close()' },
   template: `
@@ -43,7 +44,7 @@ import { LanguageService } from '@panary/shared/data-access'
                  hover:text-slate-900 dark:hover:text-white transition"
         >
           <span class="truncate">{{ current().label }}</span>
-          <span class="material-symbols-outlined shrink-0" style="font-size: 16px; line-height: 1">unfold_more</span>
+          <app-icon name="caret-up-down" class="text-[16px]" />
         </button>
       } @else {
         <button
@@ -93,11 +94,7 @@ import { LanguageService } from '@panary/shared/data-access'
               <span class="flex-1 truncate">{{ l.label }}</span>
               <span class="text-[10px] uppercase tracking-wider text-slate-400 dark:text-gray-500">{{ l.code }}</span>
               @if (l.code === lang.currentLanguage()) {
-                <span
-                  class="material-symbols-outlined text-slate-900 dark:text-white"
-                  style="font-size: 16px; line-height: 1"
-                  >check</span
-                >
+                <app-icon name="check" class="text-[16px] text-slate-900 dark:text-white" />
               }
             </button>
           }

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } 
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { OrderDetailComponent } from './order-detail'
+import { AdminIconComponent } from '../../shared/icon/icon'
 import { formatEur } from '@panary/shared/util-helpers'
 
 type TimeRange = 'businessDay' | 'today' | 'yesterday' | 'week' | 'month'
@@ -46,7 +47,7 @@ function getTimeRangeFilter(range: Exclude<TimeRange, 'businessDay'>): Record<st
 @Component({
   selector: 'app-order-list',
   standalone: true,
-  imports: [TranslateModule, OrderDetailComponent],
+  imports: [TranslateModule, OrderDetailComponent, AdminIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex h-full overflow-hidden">
@@ -167,7 +168,7 @@ function getTimeRangeFilter(range: Exclude<TimeRange, 'businessDay'>): Record<st
                       <td class="px-3 py-2.5 text-sm text-slate-600 dark:text-gray-400">
                         @if (order.staffPaymentInfo?.userName) {
                           <span class="inline-flex items-center gap-1">
-                            <span class="material-symbols-outlined text-[14px] text-amber-500">restaurant</span>
+                            <app-icon name="fork-knife" class="text-[14px] text-amber-500" />
                             {{ order.staffPaymentInfo.userName }}
                           </span>
                         } @else if (order.customerPaymentInfo?.customerName) {
@@ -203,7 +204,7 @@ function getTimeRangeFilter(range: Exclude<TimeRange, 'businessDay'>): Record<st
                   [disabled]="currentPage() === 0"
                   class="text-slate-400 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 transition"
                 >
-                  <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                  <app-icon name="caret-left" class="text-[18px]" />
                 </button>
                 <span class="text-xs text-slate-400 dark:text-gray-500 tabular-nums">
                   {{ currentPage() + 1 }} / {{ totalPages() }}
@@ -213,7 +214,7 @@ function getTimeRangeFilter(range: Exclude<TimeRange, 'businessDay'>): Record<st
                   [disabled]="currentPage() >= totalPages() - 1"
                   class="text-slate-400 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 transition"
                 >
-                  <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                  <app-icon name="caret-right" class="text-[18px]" />
                 </button>
               </div>
             }

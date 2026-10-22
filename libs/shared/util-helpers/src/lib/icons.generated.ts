@@ -1,4 +1,4 @@
-// Generiert von tools/phosphor/build-pos-icons.mjs — nicht von Hand ändern (`pnpm icons:build`).
+// Generiert von tools/phosphor/build-icons.mjs — nicht von Hand ändern (`pnpm icons:build`).
 // Phosphor Bold (MIT, https://phosphoricons.com), viewBox 0 0 256 256, nur die im POS benutzten Icons.
 // Liegt in util-helpers, weil gebaute Libs (orders-data-access) die Registry brauchen, ui-common aber nicht erreichen.
 export const ICON_PATHS = {

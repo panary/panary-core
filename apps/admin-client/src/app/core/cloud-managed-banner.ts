@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core'
 import { RouterLink } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
+import { AdminIconComponent } from '../shared/icon/icon'
 
 /**
  * Hinweisbanner fuer cloud-verwaltete Seiten.
@@ -10,15 +11,13 @@ import { TranslateModule } from '@ngx-translate/core'
  * - `printer-emergency`: Notfall-Modus laeuft — Drucker sind lokal editierbar
  *   und werden bei Cloud-Rueckkehr abgeglichen (ADR 0001).
  *
- * Ersetzt das frueher in `opening-hours.ts` eingebettete Markup. Dort stand ein
- * Phosphor-Icon (`ph ph-cloud-arrow-down`), obwohl der Admin-Client Phosphor nie
- * laedt — das Icon rendert seit jeher als leere Box. Hier bewusst
- * `material-symbols-outlined`, wie ueberall sonst im Admin-Client.
+ * Ersetzt das frueher in `opening-hours.ts` eingebettete Markup. Icons kommen
+ * ueber `<app-icon>` (Phosphor Regular aus der App-Registry, core#825).
  */
 @Component({
   selector: 'app-cloud-managed-banner',
   standalone: true,
-  imports: [TranslateModule, RouterLink],
+  imports: [TranslateModule, RouterLink, AdminIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (variant() === 'printer-emergency') {
@@ -26,12 +25,7 @@ import { TranslateModule } from '@ngx-translate/core'
         class="flex gap-3 items-start border border-orange-300 dark:border-orange-800/60
                bg-orange-50 dark:bg-orange-950/30 rounded-xl p-4"
       >
-        <span
-          class="material-symbols-outlined text-orange-600 dark:text-orange-400 shrink-0 mt-0.5"
-          style="font-size: 20px; line-height: 1"
-          aria-hidden="true"
-          >emergency_home</span
-        >
+        <app-icon name="warning-octagon" class="text-[20px] text-orange-600 dark:text-orange-400 mt-0.5" />
         <div class="text-sm min-w-0 flex-1">
           <p class="font-medium text-orange-900 dark:text-orange-100">
             {{ 'CLOUD_MANAGED.EMERGENCY_TITLE' | translate }}
@@ -62,12 +56,7 @@ import { TranslateModule } from '@ngx-translate/core'
         class="flex gap-3 items-start border border-amber-200 dark:border-amber-800/60
                bg-amber-50 dark:bg-amber-950/30 rounded-xl p-4"
       >
-        <span
-          class="material-symbols-outlined text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"
-          style="font-size: 20px; line-height: 1"
-          aria-hidden="true"
-          >cloud_download</span
-        >
+        <app-icon name="cloud-arrow-down" class="text-[20px] text-amber-600 dark:text-amber-400 mt-0.5" />
         <div class="text-sm min-w-0 flex-1">
           <p class="font-medium text-amber-900 dark:text-amber-100">
             {{ 'CLOUD_MANAGED.TITLE' | translate }}

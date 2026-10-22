@@ -11,6 +11,20 @@ import {
 } from '@panary/businessdays/feature-pos-closing-dialog'
 import { CashPaymentComponent } from './cash-payment.component'
 
+/**
+ * Material begrenzt Dialoge auf `max-width: 560px`; die Bezahlansicht (Zahlarten, Ziffernblock, Schnellbeträge)
+ * braucht mehr, sonst wird sie rechts abgeschnitten (core#834, Sichttest). Breite und Obergrenze setzt der
+ * Aufrufer deshalb über diese Konfiguration, nicht der Inhalt.
+ */
+export const CASH_PAYMENT_DIALOG_CONFIG = {
+  width: 'min(46rem, 94vw)',
+  maxWidth: '94vw',
+  panelClass: 'rounded-dialog',
+  autoFocus: false,
+  // Backdrop/ESC dürfen den Abschluss nicht abschneiden; „Offen lassen“ ist der Ausweg.
+  disableClose: true,
+} as const
+
 export interface CashPaymentDialogData {
   orderId: string
   /** Summe in Euro. */
@@ -27,8 +41,9 @@ export interface CashPaymentDialogData {
   selector: 'lib-cash-payment-dialog',
   standalone: true,
   imports: [CashPaymentComponent],
+  host: { class: 'block' },
   template: `
-    <div class="h-[min(36rem,88dvh)] w-[min(46rem,94vw)] pt-4">
+    <div class="h-[min(36rem,88dvh)] w-full pt-4">
       <lib-cash-payment [total]="data.total" [busy]="paying()" (collect)="onCollect()" (keepOpen)="onKeepOpen()" />
     </div>
   `,

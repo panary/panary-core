@@ -31,7 +31,7 @@ describe('Offene Bestellungen — Abschließen (core#834)', () => {
     expect(finalize).toMatch(/open<CashPaymentDialogComponent/)
     expect(finalize).not.toMatch(/\.payCash\(/)
     expect(finalize).toMatch(/cashierId: performedById/)
-    expect(finalize).toMatch(/disableClose: true/)
+    expect(finalize).toMatch(/\.\.\.CASH_PAYMENT_DIALOG_CONFIG/)
   })
 
   it('der Bestellbetrieb schließt weiter über complete() ab, vor dem Öffnen der Bezahlansicht', () => {

@@ -8,7 +8,11 @@ import { TranslateService } from '@ngx-translate/core'
 import { OrderCheckoutService, type PayCashInput, type PayCashResult } from '@panary/orders/data-access'
 import { LocationService } from '@panary/locations/data-access'
 import { UserService } from '@panary/users/data-access'
-import { CashPaymentDialogComponent, type CashPaymentDialogData } from './cash-payment-dialog.component'
+import {
+  CASH_PAYMENT_DIALOG_CONFIG,
+  CashPaymentDialogComponent,
+  type CashPaymentDialogData,
+} from './cash-payment-dialog.component'
 
 // core#834: „Abschließen" in Offene Bestellungen öffnet diesen Dialog. Er darf nichts selbst kassieren,
 // sondern geht über `OrderCheckoutService.payCash` — dieselbe Logik wie die Bezahlansicht der Kasse.
@@ -79,5 +83,12 @@ describe('CashPaymentDialogComponent (core#834)', () => {
     dialog.onKeepOpen()
     expect(close).toHaveBeenCalledWith(false)
     expect(payCashMock).not.toHaveBeenCalled()
+  })
+
+  // Sichttest core#890: Materials Vorgabe max-width 560px schnitt die Ansicht rechts ab (Betrag, Gutschein, Ziffern).
+  it('hebt die Material-Obergrenze von 560px auf und lässt Backdrop/ESC nicht schließen', () => {
+    expect(CASH_PAYMENT_DIALOG_CONFIG.maxWidth).toBe('94vw')
+    expect(CASH_PAYMENT_DIALOG_CONFIG.width).toBe('min(46rem, 94vw)')
+    expect(CASH_PAYMENT_DIALOG_CONFIG.disableClose).toBe(true)
   })
 })

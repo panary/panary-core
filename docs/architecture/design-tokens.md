@@ -72,7 +72,7 @@ Status-Paare. Neue Text-/Flächenpaare gehören in die Liste `pairs` des Specs.
 
 `fonts.css` bringt Inter (variabel, 100–900) und IBM Plex Mono (400/500/600) als woff2 mit, ohne Netzwerkzugriff
 (Tauri, Edge im LAN). Quelle und Lizenz (OFL 1.1, Text je Familie unter `fonts/`) siehe Kopf der Datei. Switzer ist
-in POS und Core-Admin entfernt; der Setup-Client behält sein eigenes Asset bis zu seiner eigenen Migration.
+in POS, Core-Admin und Setup-Client entfernt.
 
 ## Legacy-Palette (Brücke)
 
@@ -85,3 +85,13 @@ die Klassen auf Token-Klassen umgestellt sind; neue Oberflächen nutzen sie nich
 
 `apps/pos-client/src/styles.scss` setzt die Material-Systemfarben (`--mat-sys-primary`, `-surface*`, `-outline*`,
 `-error`) auf die Tokens. Eine Zuordnung genügt für beide Themes, weil die Tokens selbst wechseln.
+
+## Setup-Client (Edge-Setup-Assistent)
+
+`apps/setup-client/src/styles.css` bindet `tokens.css`, `theme.css` und `fonts.css` ein, bewusst **ohne**
+`legacy-palette.css`: Der Assistent nutzt nur Token-Klassen (`bg-surface-*`, `text-ink*`, `border-line`,
+`bg-action`, `danger-*`, `warn-*`). Wiederkehrende Bausteine liegen als `@layer components` ebendort
+(`setup-input`, `setup-btn-primary`, `setup-btn-ghost`, `setup-icon-btn`, `setup-field-label`) mit den Touch-Maßen
+`min-h-touch` (56 px), `min-h-touch-primary` (64 px) und `min-h-touch-min` (48 px). Icons über `<lib-icon>`
+(Phosphor Bold). Alles liegt lokal im Bundle, der Assistent läuft ohne Netz. Der QR-Code bleibt auf weißem Grund,
+sonst scannen ihn Handys im Dunkelmodus nicht.

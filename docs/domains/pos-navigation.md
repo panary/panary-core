@@ -29,7 +29,7 @@ Login und Einrichtung liegen außerhalb der Shell (`AppPosShellComponent`) und h
 **Badge „Offen"** zählt `OrderService.ordersActive()`, dieselbe Menge, die „Offene Bestellungen" listet.
 
 **Einstellungen-Untermenü** springt per `/settings?section=<abschnitt>` direkt in den Abschnitt;
-`SettingsComponent` liest den Query-Parameter. Die Liste der Abschnitte steht in beiden Dateien
+`SettingsComponent` leitet den Abschnitt allein daraus ab, auch ihre eigene Seitenleiste schreibt ihn in die URL. Die Liste der Abschnitte steht in beiden Dateien
 (`SETTINGS_SECTIONS`).
 
 Die Warenkorb-Seite (Bedienhand) kommt mit [core#833](https://github.com/panary/panary-core/issues/833)

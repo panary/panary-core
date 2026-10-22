@@ -9,6 +9,8 @@ import { ConnectionService, OFFLINE_OUTBOX, storePosOperatorToken } from '@panar
 import { POS_PIN_LENGTH, requiresPosPinChange } from '@panary/users/domain'
 import { TimeClockEvent, TimeClockPanelComponent } from './time-clock-panel/time-clock-panel.component'
 import { PinPadComponent } from './pin-pad/pin-pad.component'
+import { StaffPickerComponent, type StaffPickerPerson } from './staff-picker/staff-picker.component'
+import { pushRecentStaffId, readRecentStaffIds } from './staff-picker/staff-picker.logic'
 import { DeviceReverifyComponent } from './device-reverify/device-reverify.component'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { UpdateService } from '@panary/shared/data-access-updater'
@@ -62,6 +64,7 @@ type ChangePinPhase = 'new' | 'confirm'
     TimeClockPanelComponent,
     TranslateModule,
     PinPadComponent,
+    StaffPickerComponent,
     DeviceReverifyComponent,
   ],
   templateUrl: './login.component.html',
@@ -87,6 +90,9 @@ export class LoginComponent implements OnInit {
   readonly currentStep: WritableSignal<LoginStep> = signal('loading')
   readonly posUsers: WritableSignal<PosUser[]> = signal([])
   readonly selectedUser: WritableSignal<PosUser | null> = signal(null)
+
+  /** „Zuletzt hier": nur Mitarbeiter-IDs, gerätelokal (#835). Wird beim erfolgreichen Login nachgezogen. */
+  readonly recentStaffIds: WritableSignal<string[]> = signal(readRecentStaffIds())
   readonly pinInput: WritableSignal<string> = signal('')
   readonly pinError: WritableSignal<boolean> = signal(false)
   readonly isLoading: WritableSignal<boolean> = signal(false)
@@ -470,6 +476,12 @@ export class LoginComponent implements OnInit {
     this.currentStep.set('enter-pin')
   }
 
+  /** Die Wahl kommt als schmale Picker-Person zurück; der Login arbeitet mit dem vollen `PosUser`. */
+  protected onStaffPicked(person: StaffPickerPerson): void {
+    const user = this.posUsers().find(candidate => candidate._id === person._id)
+    if (user) this.selectUser(user)
+  }
+
   backToUsers(): void {
     this.selectedUser.set(null)
     this.pinInput.set('')
@@ -575,6 +587,9 @@ export class LoginComponent implements OnInit {
     // Bediener-Token aus `verifyPin` (#619, ADR 0053) — auch nach dem
     // erzwungenen PIN-Wechsel, denn `#pendingUser` traegt es aus demselben Aufruf.
     storePosOperatorToken(user)
+
+    // Erst nach erfolgreicher Verifikation — eine falsche PIN soll die Liste nicht umsortieren.
+    this.recentStaffIds.set(pushRecentStaffId(user['_id']))
 
     this.#verifiedPin = null
     this.#pendingUser = null

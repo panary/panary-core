@@ -93,6 +93,11 @@
   "LOGIN": {
     "WELCOME": "Welcome",
     "SELECT_ACCOUNT": "Select your account",
+    "RECENT_HERE": "Recently here",
+    "SEARCH_PLACEHOLDER": "Search name",
+    "LETTER_GROUPS": "By initial letter",
+    "NO_SEARCH_RESULTS": "No one found",
+    "OTHER_PERSON": "Someone else",
     "ENTER_PIN": "Enter PIN",
     "WRONG_PIN": "Wrong PIN. Please try again.",
     "IDLE_LOGOUT_TITLE": "Signed out due to inactivity",

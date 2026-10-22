@@ -93,6 +93,11 @@
   "LOGIN": {
     "WELCOME": "Hoş geldiniz",
     "SELECT_ACCOUNT": "Hesabınızı seçin",
+    "RECENT_HERE": "Son giriş yapanlar",
+    "SEARCH_PLACEHOLDER": "İsim ara",
+    "LETTER_GROUPS": "Baş harfe göre",
+    "NO_SEARCH_RESULTS": "Kimse bulunamadı",
+    "OTHER_PERSON": "Başka kişi",
     "ENTER_PIN": "PIN girin",
     "WRONG_PIN": "Yanlış PIN. Lütfen tekrar deneyin.",
     "IDLE_LOGOUT_TITLE": "Hareketsizlik nedeniyle oturum kapatıldı",

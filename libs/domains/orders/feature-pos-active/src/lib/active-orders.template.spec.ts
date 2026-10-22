@@ -25,7 +25,7 @@ describe('Offene Bestellungen — Menü-Komponenten (core#807)', () => {
 // der Bestellbetrieb (orders-only) schließt weiter ohne Zahlung ab.
 describe('Offene Bestellungen — Abschließen (core#834)', () => {
   const component = read('./active-orders.component.ts')
-  const finalize = component.slice(component.indexOf('async finalizeOrder'), component.indexOf('#resolveCashierId()'))
+  const finalize = component.slice(component.indexOf('async finalizeOrder'), component.indexOf('  #resolveCashierId()'))
 
   it('öffnet im Kassenbetrieb die Bezahlansicht und kassiert nicht selbst', () => {
     expect(finalize).toMatch(/open<CashPaymentDialogComponent/)

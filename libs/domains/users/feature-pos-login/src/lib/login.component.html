@@ -90,49 +90,8 @@
                 }
               </div>
             } @else {
-              <!-- User Grid -->
-              <div class="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                @for (user of posUsers(); track user._id; let i = $index) {
-                  <button
-                    class="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 transition-all group"
-                    (click)="selectUser(user)"
-                    [style.animation-delay]="i * 0.03 + 's'"
-                    style="animation: fadeIn 0.3s ease-out backwards"
-                  >
-                    <!-- Avatar -->
-                    <div
-                      class="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md group-hover:scale-105 transition-transform"
-                      [style.background-color]="user.color"
-                    >
-                      {{ user.initials }}
-                    </div>
-                    <!-- Name -->
-                    <span class="text-xs font-medium text-gray-700 dark:text-gray-200 text-center truncate w-full">
-                      {{ user.firstName }}
-                    </span>
-                  </button>
-                }
-              </div>
-
-              @if (posUsers().length === 0) {
-                <div class="text-center py-12">
-                  <svg
-                    class="w-16 h-16 mx-auto text-gray-300 mb-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="1.5"
-                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                    ></path>
-                  </svg>
-                  <p class="text-gray-500 dark:text-gray-400 text-sm">{{ 'LOGIN.NO_POS_USERS' | translate }}</p>
-                  <p class="text-gray-400 text-xs mt-1">{{ 'LOGIN.CREATE_POS_USERS' | translate }}</p>
-                </div>
-              }
+              <!-- Geteiltes Geraet: Suche, Buchstabengruppen und „Zuletzt hier" fuer 30+ Mitarbeiter (#835) -->
+              <lib-staff-picker [users]="posUsers()" [recentIds]="recentStaffIds()" (picked)="selectUser($event)" />
             }
           </div>
         }
@@ -169,12 +128,22 @@
               </div>
 
               <div>
-                <h2 class="text-lg font-semibold text-[#0F172A] dark:text-white">
+                <h2 class="text-2xl font-bold text-[#0F172A] dark:text-white">
                   {{ selectedUser()!.firstName }} {{ selectedUser()!.lastName }}
                 </h2>
                 <p class="text-xs text-gray-500">{{ 'LOGIN.ENTER_PIN' | translate }}</p>
               </div>
             </div>
+
+            @if (!isSingleUserDevice()) {
+              <button
+                type="button"
+                class="pnry-touch mx-auto mb-4 flex items-center rounded-xl px-5 text-sm font-semibold text-[#00B8D4] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                (click)="backToUsers()"
+              >
+                {{ 'LOGIN.OTHER_PERSON' | translate }}
+              </button>
+            }
 
             @if (pinError()) {
               <p class="text-center text-red-500 text-sm mb-4 animate-[shake_0.3s_ease-out]">

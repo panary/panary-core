@@ -23,6 +23,7 @@ import { LocationStateService } from '../core/location-state.service'
 import { AdminIconComponent } from '../shared/icon/icon'
 import type { AdminIconName } from '../shared/icon/icons.generated'
 import { LanguagePickerComponent } from '../shared/language-picker'
+import { EdgeStatusBarComponent } from './edge-status-bar'
 
 /**
  * Logische Gruppe in der Sidebar. Die Ueberschrift ist ein i18n-Key
@@ -66,298 +67,241 @@ interface NavItem {
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslateModule, LanguagePickerComponent, AdminIconComponent],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    TranslateModule,
+    LanguagePickerComponent,
+    AdminIconComponent,
+    EdgeStatusBarComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(document:keydown.escape)': 'closeMobileNav()' },
   template: `
-    <div class="h-screen bg-slate-50 dark:bg-black flex">
-      <!--
-        Unterhalb von md (768 px) ist die Seitenleiste ein Drawer ueber dem Inhalt (#684):
-        Vorher blieb sie bei 375 px voll ausgeklappt und liess dem Inhalt rund 110 px.
-        Ab md bleibt alles wie zuvor, inklusive Einklappen auf die Icon-Spalte.
-      -->
-      @if (isNarrow() && mobileNavOpen()) {
-        <button
-          type="button"
-          tabindex="-1"
-          (click)="closeMobileNav()"
-          [attr.aria-label]="'COMMON.CLOSE' | translate"
-          class="fixed inset-0 z-40 bg-black/40 cursor-default"
-        ></button>
-      }
+    <!--
+      L-Shell (core#836, Konzept 2.8): dunkle Kopfzeile mit Edge-Status über die ganze Breite,
+      darunter die dunkle Navigation links und der helle Inhalt mit runder Ecke oben links.
+    -->
+    <div class="h-screen flex flex-col bg-shell text-ink">
+      <header class="h-11 shrink-0 flex items-center gap-4 px-4 text-shell-ink">
+        @if (isNarrow()) {
+          <button
+            #menuButton
+            type="button"
+            (click)="openMobileNav()"
+            [attr.aria-label]="'NAV.OPEN_MENU' | translate"
+            [attr.aria-expanded]="mobileNavOpen()"
+            aria-controls="admin-sidebar"
+            class="h-9 w-9 -ml-2 flex items-center justify-center rounded-control hover:bg-shell-hover"
+          >
+            <app-icon name="list" class="text-[22px]" />
+          </button>
+        }
+        <a routerLink="/dashboard" class="flex items-center gap-2 mr-auto font-bold text-[15px]">
+          <span class="size-3.5 rounded-[3px] bg-action" aria-hidden="true"></span>
+          Panary
+          <span class="text-xs font-medium text-shell-muted">{{ 'NAV.EDGE_ADMIN' | translate }}</span>
+        </a>
+        <!-- Unter md nicht gerendert statt versteckt: sonst pollt die Zeile weiter, ohne sichtbar zu sein. -->
+        @if (!isNarrow()) {
+          <app-edge-status-bar />
+        }
+      </header>
 
-      <!-- Sidebar -->
-      <aside
-        #sidebar
-        id="admin-sidebar"
-        [attr.role]="isNarrow() && mobileNavOpen() ? 'dialog' : null"
-        [attr.aria-modal]="isNarrow() && mobileNavOpen() ? 'true' : null"
-        [attr.aria-label]="isNarrow() && mobileNavOpen() ? ('NAV.ADMIN_PANEL' | translate) : null"
-        class="flex flex-col shrink-0 bg-white dark:bg-gray-950
-                    border-r border-slate-200 dark:border-gray-800 transition-[width,translate] duration-200"
-        [class.w-56]="!isNarrow() && sidebarOpen()"
-        [class.w-16]="!isNarrow() && !sidebarOpen()"
-        [class.fixed]="isNarrow()"
-        [class.inset-y-0]="isNarrow()"
-        [class.left-0]="isNarrow()"
-        [class.z-50]="isNarrow()"
-        [class.w-64]="isNarrow()"
-        [class.shadow-2xl]="isNarrow()"
-        [class.-translate-x-full]="isNarrow() && !mobileNavOpen()"
-        [attr.aria-hidden]="isNarrow() && !mobileNavOpen() ? 'true' : null"
-        [attr.inert]="isNarrow() && !mobileNavOpen() ? '' : null"
-      >
+      <div class="flex-1 min-h-0 flex">
         <!--
-          Logo-Kopfzeile — feste Höhe.
-          px-4 und gap-3 nur im ausgeklappten Zustand: so bleibt das Icon beim Zuklappen
-          exakt zentriert (justify-center auf einen einzigen Flex-Item ohne Margin/Gap).
+          Unterhalb von md (768 px) ist die Seitenleiste ein Drawer ueber dem Inhalt (#684).
+          Ab md bleibt sie stehen und laesst sich auf die Icon-Spalte einklappen.
         -->
-        <div class="relative h-[68px] shrink-0 border-b border-slate-200 dark:border-gray-800 flex items-center px-3">
-          <!-- Toggle-Pill — dockt an der rechten Kante der Sidebar an. Im Drawer gibt es sie nicht. -->
+        @if (isNarrow() && mobileNavOpen()) {
+          <button
+            type="button"
+            tabindex="-1"
+            (click)="closeMobileNav()"
+            [attr.aria-label]="'COMMON.CLOSE' | translate"
+            class="fixed inset-0 z-40 bg-[var(--scrim)] cursor-default"
+          ></button>
+        }
+
+        <aside
+          #sidebar
+          id="admin-sidebar"
+          [attr.role]="isNarrow() && mobileNavOpen() ? 'dialog' : null"
+          [attr.aria-modal]="isNarrow() && mobileNavOpen() ? 'true' : null"
+          [attr.aria-label]="isNarrow() && mobileNavOpen() ? ('NAV.ADMIN_PANEL' | translate) : null"
+          class="relative flex flex-col shrink-0 bg-shell-nav text-shell-ink transition-[width,translate] duration-200"
+          [class.w-60]="!isNarrow() && sidebarOpen()"
+          [class.w-16]="!isNarrow() && !sidebarOpen()"
+          [class.fixed]="isNarrow()"
+          [class.inset-y-0]="isNarrow()"
+          [class.left-0]="isNarrow()"
+          [class.z-50]="isNarrow()"
+          [class.w-64]="isNarrow()"
+          [class.shadow-2xl]="isNarrow()"
+          [class.-translate-x-full]="isNarrow() && !mobileNavOpen()"
+          [attr.aria-hidden]="isNarrow() && !mobileNavOpen() ? 'true' : null"
+          [attr.inert]="isNarrow() && !mobileNavOpen() ? '' : null"
+        >
+          <!-- Einklapp-Schalter an der Kante zum Inhalt. Im Drawer gibt es ihn nicht. -->
           <button
             [class.hidden]="isNarrow()"
             (click)="sidebarOpen.set(!sidebarOpen())"
-            class="absolute left-full top-1/2 -translate-y-1/2 z-20
-                         h-10 w-4 rounded-r-lg
-                         bg-white dark:bg-gray-950
-                         border-r border-t border-b border-slate-200 dark:border-gray-800
-                         flex items-center justify-center
-                         text-slate-400 dark:text-gray-500
-                         hover:text-slate-900 dark:hover:text-white transition"
+            [attr.aria-label]="(sidebarOpen() ? 'NAV.COLLAPSE' : 'NAV.EXPAND') | translate"
+            class="absolute -right-3 top-3 z-20 h-6 w-6 rounded-full bg-shell-nav ring-1 ring-shell-hover
+                   flex items-center justify-center text-shell-muted hover:text-shell-ink transition"
           >
-            <app-icon [name]="sidebarOpen() ? 'caret-left' : 'caret-right'" class="text-[14px]" />
+            <app-icon [name]="sidebarOpen() ? 'caret-left' : 'caret-right'" class="text-[12px]" />
           </button>
 
-          <!--
-            Icon in festem w-10 Rahmen — identisch zum Nav-Icon-Muster.
-            Position ändert sich NICHT zwischen auf- und zugeklappt.
-          -->
-          <span class="shrink-0 flex items-center justify-center w-10">
-            <svg viewBox="0 0 34 44" class="h-7 w-auto fill-slate-900 dark:fill-white">
-              <rect x="0" y="0" width="12" height="44" rx="2" />
-              <rect x="16" y="0" width="18" height="24" rx="2" />
-            </svg>
-          </span>
-
-          <!--
-            Text bleibt immer im DOM — kein @if, kein DOM-Rebuild.
-            max-w + opacity-Übergang verhindert Font-Rendering-Flash.
-          -->
-          <div
-            class="min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-150"
-            [class.max-w-0]="!expanded()"
-            [class.max-w-xs]="expanded()"
-            [class.opacity-0]="!expanded()"
-          >
-            <p class="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-none">Panary</p>
-            <p class="text-[10px] text-slate-400 dark:text-gray-600 mt-1 uppercase tracking-widest">
-              {{ 'NAV.ADMIN_PANEL' | translate }}
-            </p>
-          </div>
-        </div>
-
-        <!-- Navigation -->
-        <nav class="flex-1 p-3 overflow-y-auto">
-          @for (group of navGroups; track group.label; let firstGroup = $first) {
-            <!--
-            Gruppen-Kopf. Ausgeklappt: Caps-Micro-Label. Eingeklappt (w-16)
-            wuerde Text umbrechen oder abgeschnitten werden — stattdessen eine
-            1px-Trennlinie, das minimalste eindeutige Signal fuer eine
-            Gruppengrenze (reiner Abstand waere bei fuenf Gruppen mehrdeutig).
-            Der Container hat in BEIDEN Zustaenden eine feste Hoehe, damit die
-            Icon-Spalte beim Ein-/Ausklappen nicht vertikal springt. Die erste
-            Gruppe bekommt keine Linie — darueber sitzt schon die Logo-Border.
-          -->
-            <div
-              class="flex items-end overflow-hidden"
-              [class.h-7]="expanded()"
-              [class.h-0]="!expanded() && firstGroup"
-              [class.h-4]="!expanded() && !firstGroup"
-            >
-              @if (expanded()) {
-                <span
-                  class="px-3 pb-1 text-[10px] font-medium uppercase tracking-widest
-                           text-slate-400 dark:text-gray-600 whitespace-nowrap"
-                >
-                  {{ group.label | translate }}
-                </span>
-              } @else if (!firstGroup) {
-                <div class="mx-2 mb-1.5 h-px w-full bg-slate-200 dark:bg-gray-800"></div>
-              }
-            </div>
-
-            <div class="space-y-0.5">
-              @for (item of group.items; track item.path) {
-                <!--
-              Icon in festem w-10 Rahmen (= nav-content-Breite bei w-16 Sidebar mit p-3).
-              Die Icon-Position ändert sich NICHT zwischen auf- und zugeklappt — kein Sprung.
-              Collapsed: w-10 füllt den gesamten 40px-Content-Bereich → Icon zentriert.
-              Expanded: w-10 am linken Rand → Label schließt rechtsbündig an.
-            -->
-                <a
-                  [routerLink]="item.path"
-                  (click)="closeMobileNav()"
-                  routerLinkActive="bg-slate-100 dark:bg-gray-800 text-slate-900 dark:text-white"
-                  class="flex items-center py-2 rounded-lg text-slate-500 dark:text-gray-400
-                      hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-gray-900
-                      transition-colors overflow-hidden"
-                  [title]="expanded() ? '' : (item.label | translate)"
-                >
-                  <span class="shrink-0 flex items-center justify-center w-10 relative">
-                    <app-icon [name]="item.icon" class="text-[20px]" />
-                    <!-- Problem-Indikator im eingeklappten Sidebar-Modus: kleiner
-                     roter Dot oben rechts am Icon. Im aufgeklappten Modus
-                     wird stattdessen die Zahl-Badge rechts neben dem Label
-                     gezeigt (siehe unten). -->
-                    @if (item.problemCountKey && problemCounts()[item.problemCountKey] > 0 && !expanded()) {
-                      <span
-                        class="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500"
-                        [title]="problemCounts()[item.problemCountKey] + ' offene Probleme'"
-                      ></span>
-                    }
-                  </span>
+          <nav class="flex-1 px-2.5 pb-3 overflow-y-auto">
+            @for (group of navGroups; track group.label; let firstGroup = $first) {
+              <!--
+                Gruppen-Kopf: ausgeklappt Caps-Label, eingeklappt eine Trennlinie. Feste Hoehe in
+                beiden Zustaenden, damit die Icon-Spalte beim Umschalten nicht springt.
+              -->
+              <div
+                class="flex items-end overflow-hidden"
+                [class.h-9]="expanded()"
+                [class.h-3]="!expanded() && firstGroup"
+                [class.h-5]="!expanded() && !firstGroup"
+              >
+                @if (expanded()) {
                   <span
-                    class="overflow-hidden whitespace-nowrap text-sm pr-3 flex items-center
-                           transition-[max-width,opacity,flex] duration-200"
-                    [class.max-w-0]="!expanded()"
-                    [class.flex-0]="!expanded()"
-                    [class.flex-1]="expanded()"
-                    [class.opacity-0]="!expanded()"
+                    class="px-2.5 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-shell-muted whitespace-nowrap"
                   >
-                    <span>{{ item.label | translate }}</span>
-                    @if (item.problemCountKey && problemCounts()[item.problemCountKey] > 0) {
-                      <span class="flex-1"></span>
-                      <span
-                        class="text-[11px] leading-none tabular-nums font-medium
-                               bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300
-                               ring-1 ring-inset ring-red-600/20 dark:ring-red-500/30
-                               px-1.5 py-0.5 rounded-full"
-                      >
-                        {{ problemCounts()[item.problemCountKey] }}
-                      </span>
-                    } @else if (item.connectionBadge && deviceStatus.online() !== null) {
-                      <span class="flex-1"></span>
-                      <span class="text-[11px] leading-none tabular-nums text-slate-400 dark:text-gray-500">
-                        {{
-                          'NAV.DEVICE_BADGE'
-                            | translate: { online: deviceStatus.online() ?? 0, total: deviceStatus.total() ?? 0 }
-                        }}
-                      </span>
-                    } @else if (item.countService && counts()[item.countService] !== undefined) {
-                      <span class="flex-1"></span>
-                      <span class="text-[11px] leading-none tabular-nums text-slate-400 dark:text-gray-500">
-                        {{ counts()[item.countService] }}
-                      </span>
-                    }
+                    {{ group.label | translate }}
                   </span>
-                </a>
-              }
-            </div>
-          }
-        </nav>
+                } @else if (!firstGroup) {
+                  <div class="mx-2 mb-2 h-px w-full bg-shell-hover"></div>
+                }
+              </div>
 
-        <!-- Footer: Theme-Toggle + User -->
-        <div
-          class="shrink-0 border-t border-slate-200 dark:border-gray-800"
-          [class.p-4]="expanded()"
-          [class.p-3]="!expanded()"
-        >
-          @if (expanded()) {
-            <!-- Ausgeklappt: 3-Schaltflächen-Reihe + Benutzername + Abmelden-Link -->
-            <div class="flex items-center gap-1 mb-3 bg-slate-100 dark:bg-gray-900 rounded-lg p-1">
-              <button
-                (click)="setTheme('light')"
-                [class]="
-                  themeService.theme === 'light'
-                    ? 'flex-1 text-xs py-1.5 rounded-md bg-white dark:bg-gray-800 text-slate-900 dark:text-white shadow-sm font-medium transition'
-                    : 'flex-1 text-xs py-1.5 rounded-md text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-300 transition'
-                "
-              >
-                ☀
-              </button>
-              <button
-                (click)="setTheme('dark')"
-                [class]="
-                  themeService.theme === 'dark'
-                    ? 'flex-1 text-xs py-1.5 rounded-md bg-white dark:bg-gray-800 text-slate-900 dark:text-white shadow-sm font-medium transition'
-                    : 'flex-1 text-xs py-1.5 rounded-md text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-300 transition'
-                "
-              >
-                ☽
-              </button>
-              <button
-                (click)="setTheme('system')"
-                [class]="
-                  themeService.theme === 'system'
-                    ? 'flex-1 text-xs py-1.5 rounded-md bg-white dark:bg-gray-800 text-slate-900 dark:text-white shadow-sm font-medium transition'
-                    : 'flex-1 text-xs py-1.5 rounded-md text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-300 transition'
-                "
-              >
-                ◐
-              </button>
-            </div>
-            <app-language-picker class="block mb-3" [expanded]="true" />
-            <div class="text-xs text-slate-500 dark:text-gray-500 truncate">{{ userName() }}</div>
-            <button
-              (click)="auth.logout()"
-              class="text-xs text-slate-400 dark:text-gray-600 hover:text-slate-900 dark:hover:text-white mt-1 transition"
-            >
-              {{ 'COMMON.LOGOUT' | translate }}
-            </button>
-          } @else {
-            <!-- Eingeklappt: Theme-Cycle-Icon + Logout-Icon, zentriert -->
-            <div class="flex flex-col items-center gap-3">
-              <button
-                (click)="cycleTheme()"
-                [title]="'Theme: ' + themeService.theme"
-                class="text-base leading-none text-slate-500 dark:text-gray-400
-                             hover:text-slate-900 dark:hover:text-white transition"
-              >
-                {{ themeService.theme === 'light' ? '☀' : themeService.theme === 'dark' ? '☽' : '◐' }}
-              </button>
-              <app-language-picker [expanded]="false" />
-              <button
-                (click)="auth.logout()"
-                [title]="'COMMON.LOGOUT' | translate"
-                class="flex items-center justify-center
-                             text-slate-400 dark:text-gray-600
-                             hover:text-slate-900 dark:hover:text-white transition"
-              >
-                <app-icon name="sign-out" class="text-[20px]" />
-              </button>
-            </div>
-          }
-        </div>
-      </aside>
+              <div class="space-y-0.5">
+                @for (item of group.items; track item.path) {
+                  <!-- Icon in festem w-10 Rahmen: Position bleibt beim Ein-/Ausklappen gleich. -->
+                  <a
+                    [routerLink]="item.path"
+                    (click)="closeMobileNav()"
+                    routerLinkActive="bg-shell-active [&_app-icon]:text-action"
+                    class="group flex items-center py-1.5 rounded-control text-shell-ink hover:bg-shell-hover
+                           transition-colors overflow-hidden"
+                    [title]="expanded() ? '' : (item.label | translate)"
+                  >
+                    <span class="shrink-0 flex items-center justify-center w-10 relative text-shell-muted">
+                      <app-icon [name]="item.icon" class="text-[18px]" />
+                      <!-- Eingeklappt: roter Punkt statt Zahl fuer offene Probleme. -->
+                      @if (item.problemCountKey && problemCounts()[item.problemCountKey] > 0 && !expanded()) {
+                        <span
+                          class="absolute top-0 right-1.5 w-2 h-2 rounded-full bg-danger"
+                          [title]="problemCounts()[item.problemCountKey] + ' offene Probleme'"
+                        ></span>
+                      }
+                    </span>
+                    <span
+                      class="overflow-hidden whitespace-nowrap text-sm pr-2.5 flex items-center
+                             transition-[max-width,opacity,flex] duration-200"
+                      [class.max-w-0]="!expanded()"
+                      [class.flex-0]="!expanded()"
+                      [class.flex-1]="expanded()"
+                      [class.opacity-0]="!expanded()"
+                    >
+                      <span>{{ item.label | translate }}</span>
+                      @if (item.problemCountKey && problemCounts()[item.problemCountKey] > 0) {
+                        <span class="flex-1"></span>
+                        <span
+                          class="text-[11px] leading-none tabular-nums font-semibold bg-danger text-white px-1.5 py-0.5 rounded-pill"
+                        >
+                          {{ problemCounts()[item.problemCountKey] }}
+                        </span>
+                      } @else if (item.connectionBadge && deviceStatus.online() !== null) {
+                        <span class="flex-1"></span>
+                        <span class="text-xs leading-none tabular-nums text-shell-muted">
+                          {{
+                            'NAV.DEVICE_BADGE'
+                              | translate: { online: deviceStatus.online() ?? 0, total: deviceStatus.total() ?? 0 }
+                          }}
+                        </span>
+                      } @else if (item.countService && counts()[item.countService] !== undefined) {
+                        <span class="flex-1"></span>
+                        <span class="text-xs leading-none tabular-nums text-shell-muted">
+                          {{ counts()[item.countService] }}
+                        </span>
+                      }
+                    </span>
+                  </a>
+                }
+              </div>
+            }
+          </nav>
 
-      <!-- Main Content -->
-      <main
-        class="flex-1 min-w-0 overflow-hidden flex flex-col"
-        [attr.inert]="isNarrow() && mobileNavOpen() ? '' : null"
-      >
-        @if (isNarrow()) {
-          <div
-            class="h-14 shrink-0 flex items-center gap-3 px-4 bg-white dark:bg-gray-950 border-b border-slate-200 dark:border-gray-800"
-          >
-            <button
-              #menuButton
-              type="button"
-              (click)="openMobileNav()"
-              [attr.aria-label]="'NAV.OPEN_MENU' | translate"
-              [attr.aria-expanded]="mobileNavOpen()"
-              aria-controls="admin-sidebar"
-              class="h-10 w-10 -ml-2 flex items-center justify-center rounded-lg text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-900"
-            >
-              <app-icon name="list" class="text-[24px]" />
-            </button>
-            <span class="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">Panary</span>
+          <!-- Fuss: Theme, Sprache, Benutzer, Abmelden -->
+          <div class="shrink-0 border-t border-shell-hover p-3">
+            @if (expanded()) {
+              <div class="flex items-center gap-1 mb-3 bg-shell-hover rounded-control p-1">
+                @for (option of themeOptions; track option.value) {
+                  <button
+                    type="button"
+                    (click)="setTheme(option.value)"
+                    [attr.aria-pressed]="themeService.theme === option.value"
+                    [class]="
+                      themeService.theme === option.value
+                        ? 'flex-1 text-xs py-1.5 rounded-md bg-shell-active text-shell-ink font-medium transition'
+                        : 'flex-1 text-xs py-1.5 rounded-md text-shell-muted hover:text-shell-ink transition'
+                    "
+                  >
+                    {{ option.glyph }}
+                  </button>
+                }
+              </div>
+              <app-language-picker class="block mb-3" [expanded]="true" />
+              <div class="flex items-center gap-2">
+                <span class="flex-1 text-xs text-shell-muted truncate">{{ userName() }}</span>
+                <button
+                  type="button"
+                  (click)="auth.logout()"
+                  [title]="'COMMON.LOGOUT' | translate"
+                  class="flex items-center gap-1 text-xs text-shell-muted hover:text-shell-ink transition"
+                >
+                  <app-icon name="sign-out" class="text-[16px]" />
+                  {{ 'COMMON.LOGOUT' | translate }}
+                </button>
+              </div>
+            } @else {
+              <div class="flex flex-col items-center gap-3">
+                <button
+                  type="button"
+                  (click)="cycleTheme()"
+                  [title]="'Theme: ' + themeService.theme"
+                  class="text-base leading-none text-shell-muted hover:text-shell-ink transition"
+                >
+                  {{ themeGlyph() }}
+                </button>
+                <app-language-picker [expanded]="false" />
+                <button
+                  type="button"
+                  (click)="auth.logout()"
+                  [title]="'COMMON.LOGOUT' | translate"
+                  [attr.aria-label]="'COMMON.LOGOUT' | translate"
+                  class="flex items-center justify-center text-shell-muted hover:text-shell-ink transition"
+                >
+                  <app-icon name="sign-out" class="text-[18px]" />
+                </button>
+              </div>
+            }
           </div>
-        }
-        <!-- Cloud-Status-Banner liegt global in app.ts (priorisiert, ein Banner). -->
-        <div class="flex-1 overflow-hidden">
-          <router-outlet />
-        </div>
-      </main>
+        </aside>
+
+        <main
+          class="flex-1 min-w-0 overflow-hidden flex flex-col bg-surface-bg md:rounded-tl-card"
+          [attr.inert]="isNarrow() && mobileNavOpen() ? '' : null"
+        >
+          <!-- Cloud-Status-Banner liegt global in app.ts (priorisiert, ein Banner). -->
+          <div class="flex-1 overflow-hidden">
+            <router-outlet />
+          </div>
+        </main>
+      </div>
     </div>
   `,
 })
@@ -531,6 +475,16 @@ export class AdminLayoutComponent {
     if (!this.mobileNavOpen()) return
     this.mobileNavOpen.set(false)
     afterNextRender(() => this.menuButton()?.nativeElement.focus(), { injector: this.injector })
+  }
+
+  readonly themeOptions = [
+    { value: 'light', glyph: '☀' },
+    { value: 'dark', glyph: '☽' },
+    { value: 'system', glyph: '◐' },
+  ] as const
+
+  protected themeGlyph(): string {
+    return this.themeOptions.find(o => o.value === this.themeService.theme)?.glyph ?? '◐'
   }
 
   setTheme(theme: string) {

@@ -379,42 +379,37 @@ interface SearchCommand {
               {{ (products().length === 0 ? 'PRODUCTS.NO_PRODUCTS' : 'COMMON.NO_RESULTS') | translate }}
             </p>
           } @else {
-            <div
-              class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden"
-            >
-              <table class="w-full text-sm">
+            <div class="admin-table-wrap">
+              <table class="admin-table">
                 <thead>
-                  <tr
-                    class="border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500
-                             text-xs uppercase tracking-wider select-none"
-                  >
+                  <tr>
                     <th
-                      class="px-3 py-2.5 cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                      class="cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
                       (click)="toggleSort('name')"
                     >
                       {{ 'COMMON.NAME' | translate }}{{ sortIcon('name') }}
                     </th>
                     @if (!selectedId()) {
                       <th
-                        class="px-3 py-2.5 cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                        class="cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
                         (click)="toggleSort('acronym')"
                       >
                         {{ 'PRODUCTS.ACRONYM' | translate }}{{ sortIcon('acronym') }}
                       </th>
                       <th
-                        class="px-3 py-2.5 cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                        class="cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
                         (click)="toggleSort('price')"
                       >
                         {{ 'PRODUCTS.PRICE' | translate }}{{ sortIcon('price') }}
                       </th>
                       <th
-                        class="px-3 py-2.5 cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                        class="cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
                         (click)="toggleSort('productType')"
                       >
                         {{ 'PRODUCTS.TYPE' | translate }}{{ sortIcon('productType') }}
                       </th>
                       <th
-                        class="px-3 py-2.5 cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                        class="cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
                         (click)="toggleSort('status')"
                       >
                         {{ 'COMMON.STATUS' | translate }}{{ sortIcon('status') }}
@@ -431,9 +426,9 @@ interface SearchCommand {
                           ? 'bg-slate-100 dark:bg-white/5 border-l-2 border-l-slate-900 dark:border-l-white'
                           : 'hover:bg-slate-50 dark:hover:bg-gray-800/30 border-l-2 border-l-transparent'
                       "
-                      class="cursor-pointer border-b border-slate-200/50 dark:border-gray-800/50 transition"
+                      class="cursor-pointer transition"
                     >
-                      <td class="px-3 py-2.5 font-medium truncate max-w-48">
+                      <td class="font-medium truncate max-w-48">
                         <span class="inline-flex items-center gap-1.5">
                           <img [src]="productTypeIcon(p.productType)" alt="" class="w-4 h-4 shrink-0" />
                           {{ p.name }}
@@ -443,17 +438,17 @@ interface SearchCommand {
                         </span>
                       </td>
                       @if (!selectedId()) {
-                        <td class="px-3 py-2.5 text-slate-500 dark:text-gray-400 font-mono text-xs">{{ p.acronym }}</td>
-                        <td class="px-3 py-2.5 font-mono text-xs">{{ p.price || 0 | eur }}</td>
-                        <td class="px-3 py-2.5">
+                        <td class="text-slate-500 dark:text-gray-400 font-mono text-xs">{{ p.acronym }}</td>
+                        <td class="font-mono text-xs">{{ p.price || 0 | eur }}</td>
+                        <td>
                           <span
                             class="text-xs px-2 py-0.5 rounded-full border border-slate-300 dark:border-gray-700
                                        text-slate-600 dark:text-gray-300"
                           >
-                            {{ p.productType || 'PRODUCT' }}
+                            {{ productTypeLabel(p.productType) | translate }}
                           </span>
                         </td>
-                        <td class="px-3 py-2.5">
+                        <td>
                           <span [class]="statusBadge(p.status)">{{ statusLabel(p.status) }}</span>
                         </td>
                       }
@@ -809,6 +804,18 @@ export class ProductListComponent implements OnInit {
   }
 
   // --- Status-Badges ---
+
+  /** i18n-Key der deutschen Typ-Bezeichnung statt des Enum-Werts (core#836). */
+  productTypeLabel(type: string | undefined): string {
+    switch (type) {
+      case 'MODIFIER':
+        return 'PRODUCTS.TYPE_MODIFIER'
+      case 'BUNDLE':
+        return 'PRODUCTS.TYPE_BUNDLE'
+      default:
+        return 'PRODUCTS.TYPE_PRODUCT'
+    }
+  }
 
   productTypeIcon(type: string): string {
     switch (type) {

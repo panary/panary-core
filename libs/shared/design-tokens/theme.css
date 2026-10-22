@@ -50,6 +50,13 @@
   --color-pos-key: var(--pos-key);
   --color-pos-key-line: var(--pos-key-line);
 
+  --color-shell: var(--shell-bg);
+  --color-shell-nav: var(--shell-nav);
+  --color-shell-ink: var(--shell-ink);
+  --color-shell-muted: var(--shell-muted);
+  --color-shell-hover: var(--shell-hover);
+  --color-shell-active: var(--shell-active);
+
   --font-sans: var(--font-family-sans);
   --font-mono: var(--font-family-mono);
 

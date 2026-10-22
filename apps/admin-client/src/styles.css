@@ -28,6 +28,51 @@
   }
 }
 
+/*
+ * Gemeinsamer Tabellenstil der Listen (core#836, Konzept 2.8). Liegt in `components`, damit jede
+ * Utility-Klasse an einer Zelle (Ausrichtung, Mono, Breite) ihn überstimmt — Kopf und Abstände
+ * kommen von hier, nicht aus Klassen je Spalte.
+ */
+@layer components {
+  .admin-table-wrap {
+    overflow: hidden;
+    background-color: var(--surface-panel);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-card);
+  }
+
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-base);
+  }
+
+  .admin-table thead th {
+    padding: 0.5625rem 0.875rem;
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background-color: var(--surface-panel-elevated);
+    border-bottom: 1px solid var(--border-default);
+  }
+
+  .admin-table tbody td {
+    padding: 0.75rem 0.875rem;
+    vertical-align: middle;
+  }
+
+  .admin-table tbody tr {
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  .admin-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+}
+
 html,
 body {
   height: 100%;

@@ -37,53 +37,23 @@ import { PrinterService } from './printer.service'
         </div>
       } @else {
         <div class="overflow-x-auto">
-          <table class="w-full">
+          <table class="admin-table">
             <thead>
-              <tr class="border-b border-slate-200 dark:border-gray-800">
-                <th
-                  class="text-left p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Name
-                </th>
-                <th
-                  class="text-left p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Typ
-                </th>
-                <th
-                  class="text-left p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Adresse
-                </th>
-                <th
-                  class="text-left p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Papier
-                </th>
-                <th
-                  class="text-left p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Rolle
-                </th>
-                <th
-                  class="text-center p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Aktiv
-                </th>
-                <th
-                  class="text-right p-4 text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Aktionen
-                </th>
+              <tr>
+                <th>Name</th>
+                <th>Typ</th>
+                <th>Adresse</th>
+                <th>Papier</th>
+                <th>Rolle</th>
+                <th class="text-center">Aktiv</th>
+                <th class="text-right">Aktionen</th>
               </tr>
             </thead>
             <tbody>
               @for (printer of printers(); track printer.pid) {
-                <tr
-                  class="border-b border-slate-100 dark:border-gray-800/50 hover:bg-slate-50 dark:hover:bg-gray-900/50 transition"
-                >
-                  <td class="p-4 text-sm text-slate-900 dark:text-white font-medium">{{ printer.name }}</td>
-                  <td class="p-4">
+                <tr class="hover:bg-slate-50 dark:hover:bg-gray-900/50 transition">
+                  <td class="text-sm text-slate-900 dark:text-white font-medium">{{ printer.name }}</td>
+                  <td>
                     @if (printer.type === 'ip') {
                       <span
                         class="inline-flex px-2 py-0.5 rounded text-xs font-medium
@@ -100,15 +70,15 @@ import { PrinterService } from './printer.service'
                       </span>
                     }
                   </td>
-                  <td class="p-4 text-sm text-slate-600 dark:text-gray-400">
+                  <td class="text-sm text-slate-600 dark:text-gray-400">
                     @if (printer.type === 'ip') {
                       {{ printer.ip }}:{{ printer.port ?? 9100 }}
                     } @else {
                       {{ printer.mqttTopic }}
                     }
                   </td>
-                  <td class="p-4 text-sm text-slate-600 dark:text-gray-400">{{ printer.paperWidth ?? '80mm' }}</td>
-                  <td class="p-4">
+                  <td class="text-sm text-slate-600 dark:text-gray-400">{{ printer.paperWidth ?? '80mm' }}</td>
+                  <td>
                     <!--
                       Ein Bestandsdrucker traegt kein Rollenfeld und druckt den
                       Vollbon (#347) — die Spalte zeigt deshalb "Kueche &amp;
@@ -142,14 +112,14 @@ import { PrinterService } from './printer.service'
                       }
                     }
                   </td>
-                  <td class="p-4 text-center">
+                  <td class="text-center">
                     @if (printer.active) {
                       <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
                     } @else {
                       <span class="w-2 h-2 rounded-full bg-slate-300 dark:bg-gray-600 inline-block"></span>
                     }
                   </td>
-                  <td class="p-4 text-right">
+                  <td class="text-right">
                     <div class="flex items-center justify-end gap-1">
                       @if (printer.type === 'ip') {
                         <button

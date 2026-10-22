@@ -84,33 +84,27 @@ interface LocationPointer {
               {{ 'BUSINESS_DAYS.NONE' | translate }}
             </p>
           } @else {
-            <div
-              class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden"
-            >
-              <table class="w-full text-sm">
+            <div class="admin-table-wrap">
+              <table class="admin-table">
                 <thead>
-                  <tr
-                    class="border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500
-                             text-xs uppercase tracking-wider"
-                  >
-                    <th class="px-3 py-2.5">{{ 'BUSINESS_DAYS.DATE' | translate }}</th>
-                    <th class="px-3 py-2.5">{{ 'COMMON.STATUS' | translate }}</th>
-                    <th class="px-3 py-2.5">{{ 'BUSINESS_DAYS.MODE' | translate }}</th>
-                    <th class="px-3 py-2.5">{{ 'BUSINESS_DAYS.OPENED' | translate }}</th>
-                    <th class="px-3 py-2.5">{{ 'BUSINESS_DAYS.CLOSED' | translate }}</th>
-                    <th class="px-3 py-2.5">{{ 'BUSINESS_DAYS.REPORT' | translate }}</th>
-                    <th class="px-3 py-2.5 text-right">{{ 'COMMON.ACTIONS' | translate }}</th>
+                  <tr>
+                    <th>{{ 'BUSINESS_DAYS.DATE' | translate }}</th>
+                    <th>{{ 'COMMON.STATUS' | translate }}</th>
+                    <th>{{ 'BUSINESS_DAYS.MODE' | translate }}</th>
+                    <th>{{ 'BUSINESS_DAYS.OPENED' | translate }}</th>
+                    <th>{{ 'BUSINESS_DAYS.CLOSED' | translate }}</th>
+                    <th>{{ 'BUSINESS_DAYS.REPORT' | translate }}</th>
+                    <th class="text-right">{{ 'COMMON.ACTIONS' | translate }}</th>
                   </tr>
                 </thead>
                 <tbody>
                   @for (bd of businessDays(); track bd._id) {
                     <tr
-                      class="border-b border-slate-200/50 dark:border-gray-800/50"
                       [class.bg-amber-50/60]="staleOpenIds().has(bd._id)"
                       [class.dark:bg-amber-950/10]="staleOpenIds().has(bd._id)"
                     >
-                      <td class="px-3 py-2.5 font-medium tabular-nums">{{ bd.date }}</td>
-                      <td class="px-3 py-2.5">
+                      <td class="font-medium tabular-nums">{{ bd.date }}</td>
+                      <td>
                         <span
                           class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full ring-1 ring-inset"
                           [class]="statusBadgeClass(bd.status)"
@@ -128,16 +122,16 @@ interface LocationPointer {
                           </span>
                         }
                       </td>
-                      <td class="px-3 py-2.5 text-slate-500 dark:text-gray-400 text-xs">
+                      <td class="text-slate-500 dark:text-gray-400 text-xs">
                         {{ modeLabelKey(bd.operationMode) | translate }}
                       </td>
-                      <td class="px-3 py-2.5 text-slate-500 dark:text-gray-400 text-xs tabular-nums">
+                      <td class="text-slate-500 dark:text-gray-400 text-xs tabular-nums">
                         {{ bd.openedAt ? (bd.openedAt | date: 'dd.MM.yyyy HH:mm') : '—' }}
                       </td>
-                      <td class="px-3 py-2.5 text-slate-500 dark:text-gray-400 text-xs tabular-nums">
+                      <td class="text-slate-500 dark:text-gray-400 text-xs tabular-nums">
                         {{ bd.closedAt ? (bd.closedAt | date: 'dd.MM.yyyy HH:mm') : '—' }}
                       </td>
-                      <td class="px-3 py-2.5 text-xs max-w-60">
+                      <td class="text-xs max-w-60">
                         @if (bd.reportErrorMessage) {
                           <span
                             class="text-red-500 truncate inline-block max-w-full align-bottom"
@@ -148,7 +142,7 @@ interface LocationPointer {
                           <span class="text-slate-400 dark:text-gray-600">—</span>
                         }
                       </td>
-                      <td class="px-3 py-2.5 text-right whitespace-nowrap">
+                      <td class="text-right whitespace-nowrap">
                         <!-- Nur wo das Verwerfen auch durchgeht: der Backend-Guard
                              ist die Wahrheit, aber ein Knopf, der garantiert in eine
                              Fehlermeldung laeuft, ist schlimmer als kein Knopf. -->

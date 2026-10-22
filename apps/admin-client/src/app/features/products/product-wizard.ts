@@ -664,7 +664,7 @@ export class ProductWizardComponent implements OnInit {
 
   readonly productTypes = [
     { value: 'PRODUCT' as const, label: 'Produkt', icon: 'assets/icons/icon-product.svg' },
-    { value: 'MODIFIER' as const, label: 'Modifier', icon: 'assets/icons/icon-modifier.svg' },
+    { value: 'MODIFIER' as const, label: 'Extra', icon: 'assets/icons/icon-modifier.svg' },
     { value: 'BUNDLE' as const, label: 'Menü', icon: 'assets/icons/icon-bundle.svg' },
   ]
 

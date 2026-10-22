@@ -77,7 +77,21 @@
     "GROUP_LOCATION": "Location",
     "GROUP_HARDWARE": "Hardware",
     "GROUP_SYSTEM": "System",
-    "TABLES": "Tables"
+    "TABLES": "Tables",
+    "EDGE_ADMIN": "Edge admin",
+    "STATUS_BAR": "Edge status",
+    "STATUS_CLOUD": "Cloud",
+    "STATUS_CLOUD_STANDALONE": "not paired",
+    "STATUS_CLOUD_CONNECTED": "connected",
+    "STATUS_CLOUD_PAIRING": "pairing",
+    "STATUS_CLOUD_DISCONNECTED": "disconnected",
+    "STATUS_CLOUD_STALE": "unreachable",
+    "STATUS_CLOUD_ERROR": "error",
+    "STATUS_SYNC": "Sync",
+    "STATUS_SYNC_OK": "all good",
+    "STATUS_SYNC_PROBLEMS": "{{count}} open",
+    "COLLAPSE": "Collapse navigation",
+    "EXPAND": "Expand navigation"
   },
   "LOGS": {
     "TITLE": "Support logs",
@@ -331,7 +345,7 @@
     "OPTIONS": "Options",
     "NO_OPTIONS": "No options — click “+ Option”",
     "TYPE_PRODUCT": "Product",
-    "TYPE_MODIFIER": "Modifier",
+    "TYPE_MODIFIER": "Extra",
     "TYPE_BUNDLE": "Menu",
     "NO_OPTION_GROUPS": "No option groups"
   },

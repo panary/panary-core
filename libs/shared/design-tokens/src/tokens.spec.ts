@@ -58,6 +58,10 @@ const pairs: [string, string, number][] = [
   ['--info-ink', '--surface-panel', 4.5],
   ['--info-ink', '--info-soft', 4.5],
   ['--pos-key-line', '--surface-bg', 1.2],
+  ['--shell-ink', '--shell-bg', 4.5],
+  ['--shell-ink', '--shell-nav', 4.5],
+  ['--shell-muted', '--shell-bg', 4.5],
+  ['--shell-muted', '--shell-nav', 4.5],
 ]
 
 describe('design-tokens: Kontrast', () => {

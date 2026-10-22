@@ -38,10 +38,8 @@ import { AdminIconComponent } from './icon/icon'
           (click)="toggle()"
           [attr.aria-haspopup]="'listbox'"
           [attr.aria-expanded]="open()"
-          class="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg
-                 bg-slate-100 dark:bg-gray-900 text-xs font-medium
-                 text-slate-700 dark:text-gray-300
-                 hover:text-slate-900 dark:hover:text-white transition"
+          class="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-control
+                 bg-shell-hover text-xs font-medium text-shell-ink hover:bg-shell-active transition"
         >
           <span class="truncate">{{ current().label }}</span>
           <app-icon name="caret-up-down" class="text-[16px]" />
@@ -53,8 +51,7 @@ import { AdminIconComponent } from './icon/icon'
           [title]="('COMMON.LANGUAGE' | translate) + ': ' + current().label"
           [attr.aria-haspopup]="'listbox'"
           [attr.aria-expanded]="open()"
-          class="text-xs font-medium leading-none text-slate-500 dark:text-gray-400
-                 hover:text-slate-900 dark:hover:text-white transition"
+          class="text-xs font-medium leading-none text-shell-muted hover:text-shell-ink transition"
         >
           {{ current().code.toUpperCase() }}
         </button>

@@ -46,21 +46,16 @@ interface User {
               {{ 'USERS.NO_USERS' | translate }}
             </p>
           } @else {
-            <div
-              class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden"
-            >
-              <table class="w-full text-sm">
+            <div class="admin-table-wrap">
+              <table class="admin-table">
                 <thead>
-                  <tr
-                    class="border-b border-slate-200 dark:border-gray-800 text-left text-slate-400 dark:text-gray-500
-                             text-xs uppercase tracking-wider"
-                  >
-                    <th class="px-3 py-2.5">{{ 'COMMON.NAME' | translate }}</th>
+                  <tr>
+                    <th>{{ 'COMMON.NAME' | translate }}</th>
                     @if (!selectedId()) {
-                      <th class="px-3 py-2.5">{{ 'USERS.LOGIN' | translate }}</th>
-                      <th class="px-3 py-2.5">{{ 'USERS.ROLE' | translate }}</th>
-                      <th class="px-3 py-2.5">{{ 'USERS.POS' | translate }}</th>
-                      <th class="px-3 py-2.5">{{ 'COMMON.STATUS' | translate }}</th>
+                      <th>{{ 'USERS.LOGIN' | translate }}</th>
+                      <th>{{ 'USERS.ROLE' | translate }}</th>
+                      <th>{{ 'USERS.POS' | translate }}</th>
+                      <th>{{ 'COMMON.STATUS' | translate }}</th>
                     }
                   </tr>
                 </thead>
@@ -73,14 +68,12 @@ interface User {
                           ? 'bg-slate-100 dark:bg-white/5 border-l-2 border-l-slate-900 dark:border-l-white'
                           : 'hover:bg-slate-50 dark:hover:bg-gray-800/30 border-l-2 border-l-transparent'
                       "
-                      class="cursor-pointer border-b border-slate-200/50 dark:border-gray-800/50 transition"
+                      class="cursor-pointer transition"
                     >
-                      <td class="px-3 py-2.5 font-medium truncate max-w-40">
-                        {{ user.firstName }} {{ user.lastName }}
-                      </td>
+                      <td class="font-medium truncate max-w-40">{{ user.firstName }} {{ user.lastName }}</td>
                       @if (!selectedId()) {
-                        <td class="px-3 py-2.5 text-slate-500 dark:text-gray-400 text-xs">{{ user.loginname }}</td>
-                        <td class="px-3 py-2.5">
+                        <td class="text-slate-500 dark:text-gray-400 text-xs">{{ user.loginname }}</td>
+                        <td>
                           <span
                             class="text-xs px-2 py-0.5 rounded-full border border-slate-300 dark:border-gray-700
                                        text-slate-600 dark:text-gray-300"
@@ -88,14 +81,14 @@ interface User {
                             {{ formatRole(user.role) }}
                           </span>
                         </td>
-                        <td class="px-3 py-2.5">
+                        <td>
                           @if (user.isPosUser) {
                             <span class="text-green-400 text-xs">{{ 'COMMON.YES' | translate }}</span>
                           } @else {
                             <span class="text-slate-400 dark:text-gray-600 text-xs">—</span>
                           }
                         </td>
-                        <td class="px-3 py-2.5">
+                        <td>
                           <span
                             [class]="
                               user.status === 'ACTIVE'

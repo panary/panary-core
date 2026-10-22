@@ -77,7 +77,21 @@
     "GROUP_LOCATION": "Konum",
     "GROUP_HARDWARE": "Donanım",
     "GROUP_SYSTEM": "Sistem",
-    "TABLES": "Masalar"
+    "TABLES": "Masalar",
+    "EDGE_ADMIN": "Edge yönetimi",
+    "STATUS_BAR": "Edge durumu",
+    "STATUS_CLOUD": "Bulut",
+    "STATUS_CLOUD_STANDALONE": "eşlenmemiş",
+    "STATUS_CLOUD_CONNECTED": "bağlı",
+    "STATUS_CLOUD_PAIRING": "eşleniyor",
+    "STATUS_CLOUD_DISCONNECTED": "bağlantı kesildi",
+    "STATUS_CLOUD_STALE": "ulaşılamıyor",
+    "STATUS_CLOUD_ERROR": "hata",
+    "STATUS_SYNC": "Senkronizasyon",
+    "STATUS_SYNC_OK": "sorun yok",
+    "STATUS_SYNC_PROBLEMS": "{{count}} açık",
+    "COLLAPSE": "Gezinmeyi daralt",
+    "EXPAND": "Gezinmeyi genişlet"
   },
   "LOGS": {
     "TITLE": "Destek günlükleri",

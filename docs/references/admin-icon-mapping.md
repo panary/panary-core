@@ -19,7 +19,7 @@ sources:
 Der Core-Admin (`apps/admin-client`) zeigt Icons über `<app-icon name="…">`
 (`apps/admin-client/src/app/shared/icon/icon.ts`). Die Komponente zeichnet ein Inline-SVG aus der
 App-eigenen Registry `icons.generated.ts` daneben, die nur die benutzten Phosphor-Regular-Pfade enthält
-(35 Icons, kein Font, kein CDN). Größe folgt `font-size` (`1em`), Farbe folgt `currentColor`.
+(34 Icons, kein Font, kein CDN). Größe folgt `font-size` (`1em`), Farbe folgt `currentColor`.
 Die Material-Symbols-Schrift ist aus dem Admin entfernt.
 
 ## Warum eine eigene Registry statt `<lib-icon>`
@@ -51,7 +51,6 @@ Geteilte Komponenten aus Libs, die `<lib-icon>` nutzen (Cloud-Status-Banner aus
 | `chevron_right` | `caret-right` |  |
 | `cloud` | `cloud` |  |
 | `cloud_done` | `cloud-check` |  |
-| `cloud_download` | `cloud-arrow-down` | Hinweis „Daten aus der Cloud" |
 | `cloud_off` | `cloud-slash` |  |
 | `cloud_sync` | `cloud-arrow-up` |  |
 | `content_copy` | `copy` |  |

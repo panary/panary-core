@@ -102,4 +102,4 @@ sonst scannen ihn Handys im Dunkelmodus nicht.
 `border-line*`, `bg-action text-on-action`, `danger|warn|accent`-Varianten). Die `dark:`-Paare entfallen, weil die
 Tokens selbst zwischen Warm hell und Warm dunkel wechseln; Hover der Primärtasten ist `hover:brightness-95`. Tasten
 tragen die Touch-Maße (`min-h-touch-primary` 64 px, `min-h-touch` 56 px, `min-h-touch-min` 48 px), Icons kommen über
-`<lib-icon>`. Nur der Kamera-Scan-Overlay bleibt bewusst schwarz mit weißen Rahmen (Kamerabild).
+`<lib-icon>`. Der Logo-Wechsel bleibt über `dark:`; das Kamera-Scan-Overlay bleibt bewusst schwarz mit weißen Rahmen (Kamerabild).

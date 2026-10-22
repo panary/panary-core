@@ -46,7 +46,7 @@
             <button
               type="button"
               (click)="chooseCloud()"
-              class="group w-full text-left rounded-card border-2 border-accent-ink bg-action text-on-action p-5 flex items-center gap-4 hover:opacity-90 active:scale-[0.99] transition-all shadow-card"
+              class="group w-full text-left rounded-card border-2 border-accent-ink bg-action text-on-action p-5 flex items-center gap-4 hover:brightness-95 active:scale-[0.99] transition-all shadow-card"
             >
               <div class="flex-none w-12 h-12 rounded-control bg-on-action/15 flex items-center justify-center">
                 <lib-icon name="cloud" class="text-[1.625rem]" />
@@ -281,7 +281,7 @@
                 type="button"
                 (click)="submitManualHub()"
                 [disabled]="!isManualHubValid() || probing()"
-                class="flex-none px-4 bg-action text-on-action font-semibold rounded-control hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 text-sm"
+                class="flex-none px-4 bg-action text-on-action font-semibold rounded-control hover:brightness-95 active:scale-[0.98] transition-all disabled:opacity-50 text-sm"
               >
                 @if (probing()) {
                   <span

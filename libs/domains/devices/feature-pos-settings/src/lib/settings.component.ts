@@ -69,7 +69,6 @@ function isSettingsSection(value: string | null): value is SettingsSection {
   standalone: true,
   imports: [IconComponent, CommonModule, FormsModule, MatTooltipModule, TranslateModule, UnpairDeviceDialogComponent],
   templateUrl: './settings.component.html',
-  styleUrls: ['./settings.component.scss'],
 })
 export class SettingsComponent implements OnInit {
   themeService = inject(ThemeServiceService)

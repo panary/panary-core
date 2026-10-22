@@ -62,3 +62,10 @@ bleiben (Rollout zunächst nur auf Test-Terminals).
 
 Details zur Mechanik: [Architektur — Fluide POS-UI-Skalierung](../architecture/pos-fluid-ui-scaling.md).
 DPI-Analyse (Tauri/Windows): `_planning/pnry-feat-pos-ui-scale-001-dpi-findings.md`.
+
+## Nachtrag 2026-10-22 (core#823)
+
+Das Klassen-Gate und das Flag `pos-fluid-ui-scaling-v1` sind entfallen: Die Touch-Skala gilt immer.
+Die Root-Schrift ist jetzt `16px × Dichte` **ohne** viewport-abhängigen `clamp()`-Anteil — größere
+Bildschirme bekommen mehr Kachelspalten statt größerer Elemente. Die Dichte (0,9–1,3) bleibt
+Geräteeinstellung. Aktueller Stand: [Mechanik-Referenz](../architecture/pos-fluid-ui-scaling.md).

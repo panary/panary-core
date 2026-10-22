@@ -314,67 +314,46 @@
             </div>
           </div>
 
-          <!-- Fluide UI-Skalierung (Beta) — PNRY-FEAT-POS-UI-SCALE-001 -->
+          <!-- Darstellungsgröße (Dichte) — PNRY-FEAT-POS-UI-SCALE-001 -->
           <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
-            <div class="flex items-center justify-between gap-4 mb-4">
-              <h3 class="font-bold text-gray-700 dark:text-gray-200">{{ 'SETTINGS.UI_SCALE_TITLE' | translate }}</h3>
-              <button
-                type="button"
-                role="switch"
-                [attr.aria-checked]="uiScaleService.enabled()"
-                (click)="toggleUiScale()"
-                class="relative inline-flex h-8 w-14 shrink-0 items-center rounded-full border transition-colors"
-                [ngClass]="
-                  uiScaleService.enabled()
-                    ? 'bg-purple-600 border-purple-600'
-                    : 'bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600'
-                "
-              >
-                <span
-                  class="inline-block h-6 w-6 rounded-full bg-white shadow transform transition-transform"
-                  [ngClass]="uiScaleService.enabled() ? 'translate-x-7' : 'translate-x-1'"
-                ></span>
-              </button>
-            </div>
+            <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4">{{ 'SETTINGS.UI_SCALE_TITLE' | translate }}</h3>
             <p class="text-gray-500 dark:text-gray-400 mb-6 text-sm">
               {{ 'SETTINGS.UI_SCALE_DESC' | translate }}
             </p>
 
-            @if (uiScaleService.enabled()) {
-              <h4 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 text-sm">
-                {{ 'SETTINGS.UI_SCALE_DENSITY_TITLE' | translate }}
-              </h4>
-              <div
-                class="w-full flex rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 overflow-hidden"
-              >
-                @for (opt of densityOptions; track opt.value) {
-                  <button
-                    type="button"
-                    (click)="setUiDensity(opt.value)"
-                    [class]="
-                      uiScaleService.density() === opt.value
-                        ? 'flex-1 h-24 flex flex-col items-center justify-center gap-2 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 last:border-r-0 transition'
-                        : 'flex-1 h-24 flex flex-col items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 border-r border-gray-200 dark:border-gray-700 last:border-r-0 transition'
-                    "
+            <h4 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 text-sm">
+              {{ 'SETTINGS.UI_SCALE_DENSITY_TITLE' | translate }}
+            </h4>
+            <div
+              class="w-full flex rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 overflow-hidden"
+            >
+              @for (opt of densityOptions; track opt.value) {
+                <button
+                  type="button"
+                  (click)="setUiDensity(opt.value)"
+                  [class]="
+                    uiScaleService.density() === opt.value
+                      ? 'flex-1 h-24 flex flex-col items-center justify-center gap-2 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 last:border-r-0 transition'
+                      : 'flex-1 h-24 flex flex-col items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 border-r border-gray-200 dark:border-gray-700 last:border-r-0 transition'
+                  "
+                >
+                  <lib-icon
+                    [name]="opt.icon"
+                    class="text-[1.25rem] mb-1"
+                    [class.text-purple-600]="uiScaleService.density() === opt.value"
+                    [class.dark:text-purple-400]="uiScaleService.density() === opt.value"
+                  />
+                  <span
+                    class="font-bold text-sm"
+                    [class.text-purple-700]="uiScaleService.density() === opt.value"
+                    [class.dark:text-purple-300]="uiScaleService.density() === opt.value"
+                    [class.text-gray-500]="uiScaleService.density() !== opt.value"
+                    [class.dark:text-gray-400]="uiScaleService.density() !== opt.value"
+                    >{{ opt.label | translate }}</span
                   >
-                    <lib-icon
-                      [name]="opt.icon"
-                      class="text-[1.25rem] mb-1"
-                      [class.text-purple-600]="uiScaleService.density() === opt.value"
-                      [class.dark:text-purple-400]="uiScaleService.density() === opt.value"
-                    />
-                    <span
-                      class="font-bold text-sm"
-                      [class.text-purple-700]="uiScaleService.density() === opt.value"
-                      [class.dark:text-purple-300]="uiScaleService.density() === opt.value"
-                      [class.text-gray-500]="uiScaleService.density() !== opt.value"
-                      [class.dark:text-gray-400]="uiScaleService.density() !== opt.value"
-                      >{{ opt.label | translate }}</span
-                    >
-                  </button>
-                }
-              </div>
-            }
+                </button>
+              }
+            </div>
 
             <p class="text-xs text-gray-400 dark:text-gray-500 mt-4 flex items-center gap-1.5">
               <lib-icon name="info" class="text-[1rem]" />

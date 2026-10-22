@@ -7,7 +7,8 @@ import { AdminIconComponent } from '../shared/icon/icon'
  * Hinweisbanner fuer cloud-verwaltete Seiten.
  *
  * - `read-only`: Standort-Stammdaten werden in der Cloud gepflegt, der Edge
- *   liest nur (Oeffnungszeiten, Pager, Tische, Standort).
+ *   liest nur (Oeffnungszeiten, Pager, Tische, Standort). Info-Blau statt
+ *   Warn-Gelb: Es ist der Normalzustand einer gekoppelten Edge, kein Problem (core#836).
  * - `printer-emergency`: Notfall-Modus laeuft — Drucker sind lokal editierbar
  *   und werden bei Cloud-Rueckkehr abgeglichen (ADR 0001).
  *
@@ -52,16 +53,13 @@ import { AdminIconComponent } from '../shared/icon/icon'
         </div>
       </div>
     } @else {
-      <div
-        class="flex gap-3 items-start border border-amber-200 dark:border-amber-800/60
-               bg-amber-50 dark:bg-amber-950/30 rounded-xl p-4"
-      >
-        <app-icon name="cloud-arrow-down" class="text-[20px] text-amber-600 dark:text-amber-400 mt-0.5" />
+      <div class="flex gap-3 items-start bg-info-soft text-info-ink rounded-card px-4 py-3">
+        <app-icon name="cloud" class="text-[20px] mt-0.5" />
         <div class="text-sm min-w-0 flex-1">
-          <p class="font-medium text-amber-900 dark:text-amber-100">
+          <p class="font-semibold">
             {{ 'CLOUD_MANAGED.TITLE' | translate }}
           </p>
-          <p class="text-amber-800 dark:text-amber-200 mt-1">
+          <p class="mt-1">
             @if (sublineKey()) {
               {{ sublineKey()! | translate }}
             }

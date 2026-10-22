@@ -35,7 +35,6 @@ const FROM_POS = [
 const ADMIN_ONLY = {
   category: ['stack', 'Warengruppen'],
   cloud_done: ['cloud-check', ''],
-  cloud_download: ['cloud-arrow-down', 'Hinweis „Daten aus der Cloud"'],
   dashboard: ['squares-four', ''],
   description: ['file-text', 'Protokolle'],
   devices: ['devices', ''],

@@ -445,7 +445,7 @@ interface SearchCommand {
                             class="text-xs px-2 py-0.5 rounded-full border border-slate-300 dark:border-gray-700
                                        text-slate-600 dark:text-gray-300"
                           >
-                            {{ p.productType || 'PRODUCT' }}
+                            {{ productTypeLabel(p.productType) | translate }}
                           </span>
                         </td>
                         <td>
@@ -804,6 +804,18 @@ export class ProductListComponent implements OnInit {
   }
 
   // --- Status-Badges ---
+
+  /** i18n-Key der deutschen Typ-Bezeichnung statt des Enum-Werts (core#836). */
+  productTypeLabel(type: string | undefined): string {
+    switch (type) {
+      case 'MODIFIER':
+        return 'PRODUCTS.TYPE_MODIFIER'
+      case 'BUNDLE':
+        return 'PRODUCTS.TYPE_BUNDLE'
+      default:
+        return 'PRODUCTS.TYPE_PRODUCT'
+    }
+  }
 
   productTypeIcon(type: string): string {
     switch (type) {

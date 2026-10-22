@@ -7,6 +7,7 @@ import { TenantSuspensionService } from '@panary/shared/data-access'
 
 import { KASSE_EXIT_URL, KassePageComponent } from './kasse-page.component'
 import { kasseBookingGuard, kasseLeaveGuard } from './kasse.guards'
+import { KasseDraftRegistry } from './kasse-draft-registry'
 
 function setup(navigationSucceeds = true) {
   const navigations: string[] = []
@@ -142,5 +143,29 @@ describe('kasseBookingGuard (core#828)', () => {
 
     expect(result).toBeInstanceOf(UrlTree)
     expect(result).toMatchObject({ probe: KASSE_EXIT_URL })
+  })
+})
+
+describe('KasseDraftRegistry.sheetOpen (core#832)', () => {
+  it('folgt dem Sheet der angehängten Kasse und fällt nach dem Lösen auf false', () => {
+    const registry = new KasseDraftRegistry()
+    const sheet = signal(false)
+    const detach = registry.attachSheet(sheet)
+
+    expect(registry.sheetOpen()).toBe(false)
+    sheet.set(true)
+    expect(registry.sheetOpen()).toBe(true)
+
+    detach()
+    expect(registry.sheetOpen()).toBe(false)
+  })
+
+  it('das Lösen einer abgelösten Kasse lässt die neue stehen (Neuaufbau je Bestellung)', () => {
+    const registry = new KasseDraftRegistry()
+    const alt = registry.attachSheet(signal(false))
+    registry.attachSheet(signal(true))
+
+    alt()
+    expect(registry.sheetOpen()).toBe(true)
   })
 })

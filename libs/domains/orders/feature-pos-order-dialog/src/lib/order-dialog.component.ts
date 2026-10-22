@@ -542,7 +542,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   /** CONSTRUCTOR */
   constructor() {
     // Der Inaktivitäts-Logout fragt je Takt, ob hier etwas eingegeben ist (core#828).
-    inject(DestroyRef).onDestroy(inject(KasseDraftRegistry).attach(() => this.#hadInput))
+    const kasse = inject(KasseDraftRegistry)
+    inject(DestroyRef).onDestroy(kasse.attach(() => this.#hadInput))
+    inject(DestroyRef).onDestroy(kasse.attachSheet(this.sheetOpen))
 
     this._productionTimes = this.orderService.productionTimes
 

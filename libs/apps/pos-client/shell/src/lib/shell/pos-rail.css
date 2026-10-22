@@ -1,0 +1,48 @@
+/* Maße aus Konzept §4: Rail 4,75rem, Einträge 62 × 62 px bei Dichte 1. */
+.rail-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  width: 3.875rem;
+  height: 3.875rem;
+  flex-shrink: 0;
+  border-radius: 0.875rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--text-muted);
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.rail-item lib-icon {
+  color: var(--text-primary);
+}
+
+.rail-item:active {
+  background: var(--surface-panel);
+}
+
+.rail-item.is-active {
+  background: var(--text-primary);
+  color: var(--surface-panel);
+}
+
+.rail-item.is-active lib-icon {
+  color: var(--surface-panel);
+}
+
+.rail-item[aria-expanded='true'] {
+  background: var(--surface-panel);
+  box-shadow: inset 0 0 0 2px var(--text-primary);
+}
+
+/* Gesperrt mit Hinweis: bleibt antippbar, damit der Hinweis auch am Touchgerät erscheint. */
+.rail-item.is-blocked,
+.rail-item:disabled {
+  opacity: 0.42;
+}

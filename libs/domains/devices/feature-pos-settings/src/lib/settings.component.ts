@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, OnInit, signal, untracked } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { HttpClient } from '@angular/common/http'
-import { lastValueFrom } from 'rxjs'
+import { lastValueFrom, map } from 'rxjs'
 import { ThemeServiceService, UiScaleService } from '@panary/shared/data-access-theme'
 import { UiDensity, type UiDensityLevel } from '@panary/devices/domain'
 import { POS_PIN_LENGTH } from '@panary/users/domain'
@@ -12,7 +12,8 @@ import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-conf
 import { LogService } from '@panary/shared/data-access-updater'
 import { DeviceAssignmentService } from '@panary/devices/data-access'
 import { FormsModule } from '@angular/forms'
-import { Router } from '@angular/router'
+import { ActivatedRoute, Router } from '@angular/router'
+import { toSignal } from '@angular/core/rxjs-interop'
 
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -55,6 +56,14 @@ interface EdgeServerInfo {
   database: { type: string }
 }
 
+/** Gleiche Liste wie `SETTINGS_SECTIONS` der POS-Navigation (Shell), die per `?section=` hierher springt. */
+const SETTINGS_SECTIONS = ['general', 'users', 'design', 'printer', 'connection', 'info'] as const
+type SettingsSection = (typeof SETTINGS_SECTIONS)[number]
+
+function isSettingsSection(value: string | null): value is SettingsSection {
+  return (SETTINGS_SECTIONS as readonly (string | null)[]).includes(value)
+}
+
 @Component({
   selector: 'lib-settings',
   standalone: true,
@@ -85,8 +94,26 @@ export class SettingsComponent implements OnInit {
   #snackBar = inject(MatSnackBar)
   #logService = inject(LogService)
 
-  // For the sidebar selection
-  activeSection = 'general'
+  readonly #route = inject(ActivatedRoute)
+
+  /**
+   * Gewählter Abschnitt — einzige Quelle ist `?section=` (core#832). Das „Mehr"-Menü der Rail springt
+   * so hinein, und die Seitenleiste schreibt dorthin: Ein lokaler Zustand daneben liefe auseinander,
+   * und ein erneuter Sprung auf dieselbe URL bliebe ohne Wirkung.
+   */
+  readonly activeSection = toSignal(
+    this.#route.queryParamMap.pipe(
+      map(params => {
+        const section = params.get('section')
+        return isSettingsSection(section) ? section : 'general'
+      }),
+    ),
+    { initialValue: 'general' as SettingsSection },
+  )
+
+  selectSection(section: SettingsSection): void {
+    void this.router.navigate([], { relativeTo: this.#route, queryParams: { section }, replaceUrl: true })
+  }
   menuOpen = signal(false)
 
   // Unpair-Dialog (Verbindungs-Sektion → Danger-Zone)

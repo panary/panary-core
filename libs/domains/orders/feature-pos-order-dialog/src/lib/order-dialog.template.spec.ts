@@ -206,3 +206,68 @@ describe('Kasse-Template — Layout B1 (core#829)', () => {
     expect(template).not.toContain('Abwählen')
   })
 })
+
+// Anpassen als Sheet (core#830): Das Panel liegt über der Rasterzone, sperrt Primärtaste, Ziffern und Gruppenleiste
+// und schließt nur über Fertig/Abbrechen. Das Template wird hier nur gelesen — die Komponenten-Spec rendert es nicht.
+describe('Kasse-Template — Anpassen-Sheet (core#830)', () => {
+  const sheetStart = template.indexOf('kasse__scrim kasse-scrim-enter')
+  const sheet = template.slice(sheetStart, template.indexOf('} @else {', sheetStart))
+  /** Alle Start-Tags `<button …>`, in denen der Marker steht — ein Marker kann mehrfach vorkommen (breite/schmale Leiste). */
+  const startTags = (marker: string): string[] => {
+    const tags: string[] = []
+    for (let at = template.indexOf(marker); at !== -1; at = template.indexOf(marker, at + 1)) {
+      const from = template.lastIndexOf('<button', at)
+      let to = template.indexOf('>', at)
+      // Ein `>` innerhalb eines Attributwerts (ungerade Zahl `"` davor) beendet das Tag nicht.
+      while ((template.slice(from, to).match(/"/g) ?? []).length % 2 === 1) to = template.indexOf('>', to + 1)
+      tags.push(template.slice(from, to + 1))
+    }
+    return tags
+  }
+
+  it('legt Scrim und Sheet vor das Panel, mit Einblend-Klassen', () => {
+    expect(sheetStart).toBeGreaterThan(-1)
+    expect(sheet).toContain('kasse__scrim kasse-scrim-enter')
+    expect(sheet).toContain('kasse__sheet kasse-sheet-enter')
+    // `animate.enter` und `@Component.animations` schließen sich aus (NG2027) — die Komponente führt noch `animations`.
+    expect(template).not.toMatch(/animate\.(enter|leave)\s*=/)
+    expect(sheet).toContain('<lib-product-customize-panel')
+  })
+
+  it('lässt den Scrim-Tipp ins Leere laufen, damit nichts versehentlich verworfen wird', () => {
+    const scrim = template.slice(sheetStart, template.indexOf('</div>', sheetStart))
+    expect(scrim).not.toContain('(click)')
+  })
+
+  it('sperrt Primärtaste, Ziffern, Feld, Gruppenleiste und Übersicht über sheetOpen()', () => {
+    for (const marker of [
+      '(click)="setTaxRateSubbuttons()"',
+      '(click)="applyProductSearch()"',
+      '(click)="numpadAction(number)"',
+      '(click)="numpadAction(0)"',
+      '(click)="numpadReset()"',
+      '(click)="showNumpadPopup = !showNumpadPopup"',
+      '(click)="createProductButtons(productGroup)"',
+      '(click)="allGroupsOpen.set(true)"',
+      '(click)="leave()"',
+    ]) {
+      // `leave()` steht zweimal: im Kopf (gesperrt) und auf dem Abschlussbild, das nie mit offenem Sheet erscheint.
+      const tags = marker === '(click)="leave()"' ? startTags(marker).slice(0, 1) : startTags(marker)
+      expect(tags.length, marker).toBeGreaterThan(0)
+      // Jedes Vorkommen, nicht nur eines: `numpadReset()` steht in der breiten und der schmalen Leiste.
+      expect(
+        tags.filter(tag => !tag.includes('[disabled]="sheetOpen()"')),
+        marker,
+      ).toEqual([])
+    }
+    // Der Warenkorb bleibt bedienbar: die Zeilenwahl hat keine Sperre, egal an welcher Stelle im Tag.
+    const zeilen = startTags('(click)="selectCombinationByIndex(i, j)"')
+    expect(zeilen.length).toBeGreaterThan(0)
+    expect(zeilen.filter(tag => tag.includes('sheetOpen'))).toEqual([])
+  })
+
+  it('markiert die angepasste Zeile im Warenkorb', () => {
+    expect(template).toContain('[class.kasse-line-customizing]="isCustomizeLine(lineItem)"')
+    expect(template).toContain("'ORDER_DIALOG.LINE_CUSTOMIZING' | translate")
+  })
+})

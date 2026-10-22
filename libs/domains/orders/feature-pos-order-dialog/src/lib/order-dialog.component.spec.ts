@@ -63,6 +63,8 @@ interface SetupOptions {
   catalog?: ProductSchema[]
   /** `ConnectionService.tier()` — Standard: Kasse am Edge (cloud#1429). */
   tier?: 'cloud-direct' | 'standalone' | 'edge-with-cloud' | 'unknown'
+  /** `posHandedness` des angemeldeten Mitarbeiters — fehlt es, gilt links (core#829). */
+  posHandedness?: 'left' | 'right'
 }
 
 const CURRENT_USER_ID = '018f0000-0000-7000-8000-000000000001'
@@ -122,6 +124,7 @@ function setup(options: SetupOptions = {}) {
     firstName: 'Anna',
     lastName: 'Alt',
     staffMealDiscountId: options.staffMealDiscountId,
+    posHandedness: options.posHandedness,
   }
 
   const injector = Injector.create({
@@ -594,10 +597,12 @@ describe('OrderDialog — Funktionsleiste: Menge und Loeschen auf die Markierung
     expect(component.selectedCombinationIndex).toEqual([0, null])
     expect(component.canMutateSelection()).toBe(true)
 
+    const vorher = component.functionButtons
     component.toggleCombinationSelection(0)
 
     expect(component.selectedCombinationIndex).toEqual([null, null])
-    expect(component.functionButtons).toEqual([])
+    // Seit core#829 räumt das Aufheben nichts ab: Raster und Funktionstasten bleiben stehen.
+    expect(component.functionButtons).toBe(vorher)
   })
 
   it('decreaseLineItem() (ABBRUCH im Bundle-Flow) entfernt auch eine Position in der Kombination', () => {
@@ -1677,7 +1682,7 @@ describe('OrderDialog — Anpassen-Panel (#639)', () => {
     expect(component.customizeModel()?.name).toBe('Artikel burger')
   })
 
-  it('der Tipp auf eine Position IN einer Kombination öffnet das Panel, der zweite schließt es (#795)', () => {
+  it('der Tipp auf eine Position IN einer Kombination markiert sie, „Anpassen" öffnet das Panel, der zweite Tipp schließt es (core#829)', () => {
     const p = burger(false)
     const cola = product('cola')
     const { component } = setup({ catalog: [p, cola] })
@@ -1689,6 +1694,10 @@ describe('OrderDialog — Anpassen-Panel (#639)', () => {
     component.selectCombinationByIndex(0, 0)
 
     expect(component.selectedCombinationIndex).toEqual([0, 0])
+    expect(component.customizeModel()).toBeNull()
+
+    component.customizeSelection()
+
     expect(component.customizeModel()?.name).toBe('Artikel burger')
 
     component.selectCombinationByIndex(0, 0)
@@ -2336,7 +2345,12 @@ describe('OrderDialog — „Bestellung leeren" fragt nach (#795)', () => {
   })
 })
 
-describe('OrderDialog — Funktionstasten der markierten Kombination (#795)', () => {
+/**
+ * Lösen und Löschen einer markierten Kombination sitzen seit core#829 in der Steuerleiste unter der
+ * Kombination (Konzept §5). Bis dahin waren es Funktionstasten über dem Raster (#795), die das Raster
+ * verdrängten — ein Kacheltap in die markierte Kombination (#271) war dann gar nicht möglich.
+ */
+describe('OrderDialog — markierte Kombination in der Steuerleiste (core#829)', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function combinedPair(component: any): void {
     component.increaseLineItem(product('p-1'))
@@ -2344,56 +2358,51 @@ describe('OrderDialog — Funktionstasten der markierten Kombination (#795)', ()
     component.combineAllArticles()
     component.unselectProduct()
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const press = (component: any, id: string) =>
-    component.functionButtons.find((b: { _id?: string }) => b._id === id).callback()
 
-  it('der Header-Tap bietet Auflösen und Löschen an', () => {
+  it('der Header-Tap markiert nur — keine Funktionstasten über dem Raster', () => {
     const { component } = setup()
     combinedPair(component)
 
     component.toggleCombinationSelection(0)
 
-    expect(component.functionButtons.map((b: { _id?: string }) => b._id)).toEqual([
-      'resolveCombination',
-      'deleteCombination',
-    ])
+    expect(component.isWholeCombinationSelected()).toBe(true)
+    expect(component.functionButtons).toEqual([])
+    expect(component.selectionQuantity()).toBeNull()
   })
 
-  it('„Kombination auflösen" macht freie Zeilen daraus und räumt die Tasten ab', () => {
+  it('„Kombi lösen" macht freie Zeilen daraus und hebt die Markierung auf', () => {
     const { component } = setup()
     combinedPair(component)
     component.toggleCombinationSelection(0)
 
-    press(component, 'resolveCombination')
+    component.resolveSelectedCombination()
 
     expect(component.combinations).toHaveLength(0)
     expect(component.lineItems).toHaveLength(2)
-    expect(component.functionButtons).toEqual([])
+    expect(component.selectedCombinationIndex).toEqual([null, null])
   })
 
-  it('„Kombination löschen" entfernt alle Positionen, mit Rückgängig', () => {
-    const { component, snackBarRefs } = setup()
+  it('„Kombi lösen" tut nichts, solange nur eine Position markiert ist', () => {
+    const { component } = setup()
     combinedPair(component)
-    component.toggleCombinationSelection(0)
+    component.selectCombinationByIndex(0, 1)
 
-    press(component, 'deleteCombination')
+    component.resolveSelectedCombination()
 
-    expect(component.lineItems).toHaveLength(0)
-    expect(component.functionButtons).toEqual([])
-    snackBarRefs[snackBarRefs.length - 1].triggerAction()
     expect(component.combinations).toHaveLength(1)
   })
 
-  it('der Mülleimer in Spalte 2 ist bei markierter Kombination aus, bei markierter Position an', () => {
-    const { component } = setup()
+  it('Löschen entfernt die ganze Kombination, mit Rückgängig', () => {
+    const { component, snackBarRefs } = setup()
     combinedPair(component)
-
     component.toggleCombinationSelection(0)
-    expect(component.canDeleteSelection()).toBe(false)
+    expect(component.canMutateSelection()).toBe(true)
 
-    component.selectCombinationByIndex(0, 1)
-    expect(component.canDeleteSelection()).toBe(true)
+    component.deleteSelection()
+
+    expect(component.lineItems).toHaveLength(0)
+    snackBarRefs[snackBarRefs.length - 1].triggerAction()
+    expect(component.combinations).toHaveLength(1)
   })
 
   it('das Kombi-Menü bietet kein Auflösen mehr — das sitzt an der markierten Kombination', () => {
@@ -2535,5 +2544,121 @@ describe('OrderDialog — Stückzahlen beim Kombinieren und Herauslösen (#795)'
     component.selectProduct(0)
 
     expect(component.releaseLabel()).toBeNull()
+  })
+})
+
+/**
+ * Kassenbildschirm B1 (core#829): Der Tipp auf eine Zeile wählt nur aus, die Steuerleiste darunter
+ * trägt −, +, Anpassen und Löschen (Konzept §5 „Zeilenauswahl"). Bis dahin öffnete der Tipp sofort
+ * das Panel und nahm das Raster weg, auch wenn nur die Menge zu ändern war.
+ */
+describe('Kasse — Zeilenauswahl und Steuerleiste (core#829)', () => {
+  const ui = { index: 1, showOptionsAuto: false, hideOnMainScreen: false }
+  const ketchup = {
+    externalId: '018f0000-0000-7000-8000-00000000a001',
+    version: 1,
+    ingredientName: 'Ketchup',
+    initialQuantity: 1,
+    quantity: 1,
+    onlyOutsideConsumption: false,
+    isRemovable: true,
+    priceAdjustment: 0,
+  }
+  // Anpassbar ist, was Zutaten trägt — beide Artikel öffnen damit das Panel.
+  const customizable = (id: string) => product(id, { ui, ingredientReferences: [ketchup] } as never)
+  const burger = () => customizable('burger')
+
+  it('der Tipp wählt die Zeile aus, ohne das Panel zu öffnen; der zweite hebt die Auswahl auf', () => {
+    const p = burger()
+    const { component } = setup({ catalog: [p] })
+    component.increaseLineItem(p)
+    component.unselectProduct()
+
+    component.toggleProductSelection(0)
+
+    expect(component.selectedProductIndex).toBe(0)
+    expect(component.customizeModel()).toBeNull()
+
+    component.toggleProductSelection(0)
+
+    expect(component.selectedProductIndex).toBeNull()
+  })
+
+  it('„Anpassen" öffnet das Panel für die markierte Zeile', () => {
+    const p = burger()
+    const { component } = setup({ catalog: [p] })
+    component.increaseLineItem(p)
+    component.unselectProduct()
+    component.toggleProductSelection(0)
+
+    component.customizeSelection()
+
+    expect(component.customizeModel()?.name).toBe('Artikel burger')
+  })
+
+  it('ist das Panel offen, zieht es mit dem Tipp auf eine andere anpassbare Zeile mit', () => {
+    const p = burger()
+    const fries = customizable('fries')
+    const { component } = setup({ catalog: [p, fries] })
+    component.increaseLineItem(p)
+    component.increaseLineItem(fries)
+    component.unselectProduct()
+    component.toggleProductSelection(0)
+    component.customizeSelection()
+
+    component.toggleProductSelection(1)
+
+    expect(component.customizeModel()?.name).toBe('Artikel fries')
+  })
+
+  it('der Tipp auf die offene Zeile schließt das Panel', () => {
+    const p = burger()
+    const { component } = setup({ catalog: [p] })
+    component.increaseLineItem(p)
+    component.unselectProduct()
+    component.toggleProductSelection(0)
+    component.customizeSelection()
+
+    component.toggleProductSelection(0)
+
+    expect(component.customizeModel()).toBeNull()
+  })
+
+  it('die Steuerleiste zeigt die Menge der markierten Zeile; Minus ist bei 1 aus', () => {
+    const { component } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.unselectProduct()
+    component.toggleProductSelection(0)
+
+    expect(component.selectionQuantity()).toBe(1)
+    expect(component.canDecreaseSelection()).toBe(false)
+
+    component.increaseSelectedQuantity()
+
+    expect(component.selectionQuantity()).toBe(2)
+    expect(component.canDecreaseSelection()).toBe(true)
+  })
+
+  it('zählt für „Gesamt · n Artikel" Stücke, nicht Zeilen', () => {
+    const { component } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.increaseLineItem(product('p-1'))
+    component.increaseLineItem(product('p-2'))
+
+    expect(component.articleCount()).toBe(3)
+  })
+})
+
+describe('Kasse — Seite des Warenkorbs je Mitarbeiter (core#829)', () => {
+  it('ohne Wahl links, wie bisher', () => {
+    const { component } = setup()
+
+    expect(component.handedness()).toBe('left')
+  })
+
+  it('folgt posHandedness des angemeldeten Mitarbeiters', () => {
+    const { component } = setup({ posHandedness: 'right' })
+
+    expect(component.handedness()).toBe('right')
   })
 })

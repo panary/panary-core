@@ -1,10 +1,10 @@
 ---
 type: Domain Concept
-title: POS-Bestelldialog — Schließen, Kombinationen mit Stückzahl, Funktionsleiste
-description: 'Wie der Bestelldialog das Schließen absichert, Kombinationen stückweise bildet und auflöst, Modifier-Mengen anzeigt und seine Tasten auf breiten wie schmalen Kassen anordnet.'
+title: POS-Kasse — Schließen, Kombinationen mit Stückzahl, Steuerleiste
+description: 'Wie die Kasse das Schließen absichert, Kombinationen stückweise bildet und auflöst, Modifier-Mengen anzeigt, die markierte Zeile über die Steuerleiste bearbeitet und ihre Zonen auf breiten wie schmalen Kassen anordnet.'
 tags: [orders, pos, ui]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-21T11:10:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-22T14:00:00Z }
 ---
 
 # POS-Bestelldialog — Bedienung
@@ -34,11 +34,12 @@ wer getippt hat, war mitten in einer Bestellung. Der Dialog selbst ist `ConfirmD
 
 | Tipp auf | Wirkung |
 | --- | --- |
-| Kopf der Kombination | markiert die ganze Kombination (auch von einer markierten Position aus), rechts „Kombination auflösen" und „Kombination löschen" (mit Rückgängig). Der Mülleimer in Spalte 2 ist dann aus, damit es nur einen Löschweg gibt. Zweiter Tipp hebt die Markierung auf. |
-| Position in der Kombination | markiert sie und öffnet das Anpassen-Panel wie eine freie Zeile; der Mülleimer löscht nur sie |
+| Kopf der Kombination | markiert die ganze Kombination (auch von einer markierten Position aus). Darunter die Steuerleiste mit −, +, „Kombi lösen" und Löschen (mit Rückgängig). Zweiter Tipp hebt die Markierung auf. |
+| Position in der Kombination | markiert sie wie eine freie Zeile; „Anpassen" in der Steuerleiste öffnet das Panel, Löschen trifft nur sie |
 
-„Kombination auflösen" sitzt nur noch an der markierten Kombination, nicht mehr im Kombi-Menü. Der
-frühere Eintrag „Kombination löschen" im Löschen-Menü ist entfallen.
+Seit [core#829](https://github.com/panary/panary-core/issues/829) sitzen Lösen und Löschen in der
+Steuerleiste unter der Kombination. Die Funktionstasten über dem Raster sind entfallen, das Raster bleibt
+stehen, und ein Kacheltap legt in die markierte Kombination ([#271](https://github.com/panary/panary-core/issues/271)).
 
 ### Stückzahl beim Kombinieren
 
@@ -69,23 +70,31 @@ Kombination auf.
   Entscheidung kommt aus `modifiersCountPerUnit` (`compute-order-tax.ts`), derselben Quelle wie das
   „je 1x" auf dem Bon. Die Summe rechnet weiter allein `compute-order-tax`.
 
-## Funktionsleiste (Spalte 2)
+## Steuerleiste und Optionen (seit core#829)
 
-Abwählen · Menge + · Menge − · Löschen · Preise · Mehr · Kombi. Jede Taste trägt ein Label unter
-dem Icon. Nur „Löschen" ist rot. „Mehr" ist neutral und öffnet „Bestellung leeren" und
-„Kunde entfernen". „Preise" ist eingeschaltet weiß hinterlegt mit blauem Rahmen (`aria-pressed`).
+Spalte 2 ist entfallen ([ADR 0059](../adr/0059-pos-layout-b-zonen-steuerleiste-spiegelung.md)).
+
+| Was | Wo |
+| --- | --- |
+| Auswählen, Abwählen | Tipp auf die Zeile, zweiter Tipp hebt auf |
+| −, Menge, +, Anpassen bzw. Kombi lösen, Löschen | Steuerleiste direkt unter der markierten Zeile, Position oder Kombination, je 3,5rem; − bei Menge 1 aus, Menge und Löschen mit Rückgängig |
+| Rabatt, Pos.-Rab., Code | Tasten unter der Summe; Pos.-Rab. nur mit Auswahl |
+| Personalessen, Firmenkunde, Kombination, Preise ein/aus, Weitere Aktionen | „Optionen" unter der Summe; „Weitere Aktionen" öffnet „Bestellung leeren" und „Kunde entfernen" |
+| Kanal Kasse/Telefon | Schalter im Warenkorbkopf, Zustand ohne Antippen ablesbar |
 
 ## Layout
 
 | Bereich | Regel |
 | --- | --- |
-| Warenkorb (Spalte 1) | 35 %, mindestens 18,75rem, **höchstens 30rem** |
-| Gruppen-Tasten | 6rem (5,25–7rem), Text oben, `text-xs`, Silbentrennung (`lang="de"`) statt `break-words`. Die Mindestbreite steht auch in `calculateVisibleProductGroups()` (89 px je Taste), beide zusammen ändern |
-| Produkt-/Funktionskacheln | `text-xs`, Namen bis drei Zeilen |
+| Zonen | Grid aus Kopf, Gruppenleiste, Warenkorb, Raster, Primärtaste, Ziffernleiste; `data-hand` aus `posHandedness` spiegelt Warenkorb ↔ Raster und Primärtaste ↔ Ziffernleiste, ohne Wahl links ([ADR 0059](../adr/0059-pos-layout-b-zonen-steuerleiste-spiegelung.md)) |
+| Warenkorb | fest 25rem |
+| Gruppenleiste | volle Breite, `minmax(9rem, 1fr)`, höchstens zwei Zeilen, danach „Weitere (n)" mit allen Gruppen. Die Aufteilung rechnet `group-bar.ts` mit derselben Mindestbreite, beide zusammen ändern. Umbruch nur an Wortgrenzen, keine Silbentrennung ([core#853](https://github.com/panary/panary-core/issues/853)) |
+| Produkt-/Funktionskacheln | Mindestbreite 12,5rem (`--pnry-tile-min` an `.kasse`), 6,5rem hoch, Namen bis drei Zeilen, ohne Silbentrennung; der Treffer der Ziffernleiste trägt ein Mint-Abzeichen |
 | Panel-Kopf | Umschalter „1 Stück · alle n" neben dem Titel, Zusammenfassung einzeilig |
 | Extras im Panel | Spalten wie die Listenansicht im Explorer (`columns-[16rem]`, `column-fill: auto`): erst untereinander, dann rechts weiter, waagrecht scrollbar |
 | Panel-Fuß | Container-Query: unter 42rem Panelbreite werden Abbrechen, Modifier und „n lösen" zu 64-px-Tasten, „Fertig" füllt den Rest |
-| Untere Leiste | Container-Query auf der Leiste selbst: Den Ziffernblock 0–9 und `C` zeigt sie erst ab 84,75rem Inhaltsbreite inline, darunter `C` und das Ziffern-Popup. Die Schwelle ist die Summe der festen Breiten (84,625rem) und wächst über rem mit dem Fluid-Scaling mit. Bei 16 px Root schaltet sie am Dialog ab 1425 px Viewport um (gemessen in der Sandbox, Leiste dann 1380,5 px breit). Das `fixed` Popup steht außerhalb der Leiste ([#798](https://github.com/panary/panary-core/issues/798)) |
+| Ziffernleiste | unter dem Raster; Container-Query auf der Leiste selbst: Multiplier-Feld, 0–9 und `C` inline ab 53,25rem Inhaltsbreite (Summe der festen Breiten 53,125rem), darunter `C` und das Ziffern-Popup. Die Schwelle wächst über rem mit der Dichte. Das `fixed` Popup steht außerhalb der Leiste ([#798](https://github.com/panary/panary-core/issues/798)) |
+| Primärtaste | unter dem Warenkorb, 4rem hoch, Mint mit Navy-Schrift, mit Gesamtbetrag; „Bestellen" in beiden Betriebsarten bis [core#830](https://github.com/panary/panary-core/issues/830) |
 
 ## Nicht abgedeckt
 

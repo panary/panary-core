@@ -1,13 +1,29 @@
-<section
-  [ngStyle]="{ 'background-color': infoBoxBackgroundColor === '#f1f5f9' ? null : infoBoxBackgroundColor }"
-  class="h-full flex flex-col rounded-3xl overflow-hidden bg-gray-50 dark:bg-gray-950 relative"
->
-  <!-- Info Header -->
-  <div class="flex flex-row px-4 pr-3 items-center justify-between shrink-0 h-10">
-    <div id="infoBox" class="info-box flex-1 transition-all duration-300" [@changeInfoBoxText]="infoBoxText">
+<!-- Kassenbildschirm B1 (core#829, Konzept §2.1/§4). Ein Grid mit benannten Zonen: Kopf, Gruppenleiste,
+     Warenkorb, Raster, Primärtaste, Ziffernleiste. `data-hand` spiegelt nur die Zonen — Warenkorb ↔ Raster,
+     Primärtaste ↔ Ziffern — nie den Inhalt einer Zone (order-dialog.component.scss). -->
+<section class="kasse relative h-full min-h-0 overflow-hidden bg-surface-bg text-ink" [attr.data-hand]="handedness()">
+  <!-- Kopf: „Übersicht" sitzt an der späteren Rail-Position (core#832), daneben die Infobox -->
+  <div
+    class="kasse__head flex items-center gap-3 mx-3 mt-2 px-1 h-12 rounded-card"
+    [ngStyle]="{ 'background-color': infoBoxBackgroundColor === '#f1f5f9' ? null : infoBoxBackgroundColor }"
+  >
+    <button
+      type="button"
+      (click)="leave()"
+      class="h-12 px-3 flex items-center justify-center gap-1.5 rounded-control transition shrink-0"
+      [ngClass]="
+        infoBoxBackgroundColor !== '#f1f5f9'
+          ? 'text-white/90 hover:bg-white/20'
+          : 'text-ink-muted hover:bg-surface-rail hover:text-ink'
+      "
+    >
+      <lib-icon name="squares-four" style="font-size: 1.25rem" />
+      <span class="text-sm font-semibold">{{ 'ORDER_DIALOG.OVERVIEW' | translate }}</span>
+    </button>
+    <div id="infoBox" class="info-box flex-1 min-w-0 transition-all duration-300" [@changeInfoBoxText]="infoBoxText">
       <div
         id="infoBoxText"
-        class="info-box-text text-xs font-semibold text-center text-gray-700 dark:text-gray-200"
+        class="info-box-text text-sm font-semibold text-center truncate text-ink-muted"
         [ngStyle]="{
           color:
             infoBoxBackgroundColor !== '#f1f5f9' ? (infoBoxTextColor === 'black' ? 'white' : infoBoxTextColor) : null,
@@ -16,814 +32,747 @@
         {{ infoBoxText }}
       </div>
     </div>
-    <button
-      (click)="leave()"
-      class="h-10 px-3 flex items-center justify-center gap-1.5 rounded-xl hover:bg-white/20 transition"
-      [ngClass]="
-        infoBoxBackgroundColor !== '#f1f5f9'
-          ? 'text-white/80 hover:text-white'
-          : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-      "
-    >
-      <lib-icon name="squares-four" style="font-size: inherit" />
-      <span class="text-sm font-semibold">{{ 'ORDER_DIALOG.OVERVIEW' | translate }}</span>
-    </button>
   </div>
 
-  <!-- Main Content -->
-  <div class="bg-gray-100 dark:bg-gray-950 mx-2 mb-2 flex-1 rounded-2xl overflow-hidden flex flex-col">
-    <!-- Menu group container (Top Tabs) ------------------------------------------------------- -->
-    <!-- Added #productGroupContainer reference for ResizeObserver -->
-    <div
-      #productGroupContainer
-      class="flex justify-start pt-3 pb-1.5 px-2 gap-2 shrink-0 overflow-hidden w-full relative"
-    >
-      <!-- Loop over VISIBLE menu groups -->
-      <!-- Schmaler seit #795 (vorher 6.875/5.625/8.125rem): mehr Gruppen sichtbar; die Mindestbreite
-           steckt auch in calculateVisibleProductGroups() — beide zusammen ändern. -->
-      @for (productGroup of visibleProductGroups; track productGroup._id; let i = $index) {
+  <!-- Gruppenleiste: volle Breite, umbrechend, höchstens zwei Zeilen; danach „Weitere (n)" statt Wischen.
+       Mindestbreite und Abstand stecken auch in group-bar.ts — beide zusammen ändern. -->
+  <div
+    #productGroupContainer
+    class="kasse__groups grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2 px-3 pt-2 pb-2"
+  >
+    @for (productGroup of visibleProductGroups; track productGroup._id) {
+      <button
+        type="button"
+        class="pnry-touch h-14 min-w-0 rounded-control px-2 bg-surface-panel border border-line text-ink text-xs font-semibold uppercase leading-tight shadow-card active:scale-[0.97] transition-transform"
+        [style.border-bottom]="'3px solid ' + productGroup.color"
+        (click)="createProductButtons(productGroup)"
+      >
+        <!-- Umbruch nur an Wortgrenzen, keine Silbentrennung (core#853) -->
+        <span class="line-clamp-2 [overflow-wrap:break-word] text-balance">{{ productGroup.name }}</span>
+      </button>
+    }
+    @if (overflowProductGroups.length > 0) {
+      <button
+        type="button"
+        class="pnry-touch h-14 min-w-0 rounded-control px-2 bg-surface-rail border border-line text-ink-muted text-xs font-semibold uppercase active:scale-[0.97] transition-transform flex items-center justify-center gap-1.5"
+        (click)="allGroupsOpen.set(true)"
+      >
+        <lib-icon name="dots-three" style="font-size: 1.125rem" />
+        <span>{{ 'ORDER_DIALOG.MORE_GROUPS' | translate: { count: overflowProductGroups.length } }}</span>
+      </button>
+    }
+  </div>
+
+  <!-- ═══════════════ WARENKORB ═══════════════ -->
+  <div
+    class="kasse__cart flex flex-col min-h-0 mx-3 rounded-card bg-surface-panel border border-line shadow-card overflow-hidden"
+  >
+    <!-- Kopf: Kanal Kasse/Telefon als Schalter, der Zustand ist ohne Antippen ablesbar (er landet im Z-Bon) -->
+    <div class="flex items-center gap-2 px-3 h-16 shrink-0 border-b border-line-soft">
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-bold text-ink">{{ 'ORDER_DIALOG.CART_TITLE' | translate }}</div>
+        <div class="text-xs font-mono text-ink-faint">{{ time() | date: 'HH:mm:ss' }}</div>
+      </div>
+      <div
+        class="flex rounded-control border border-line bg-surface-rail p-0.5 shrink-0"
+        role="group"
+        [attr.aria-label]="'ORDER_DIALOG.ARIA_CHANNEL' | translate"
+      >
         <button
           type="button"
-          class="pnry-touch flex-shrink-0 flex justify-center items-start pt-2 h-14 rounded-xl text-xs font-semibold uppercase active:scale-95 transition-all shadow-sm border border-transparent hover:shadow-md px-1 bg-white dark:bg-gray-800 text-black dark:text-gray-200"
-          style="width: 6rem; min-width: 5.25rem; max-width: 7rem; flex: 1 1 6rem"
-          [style.border-bottom]="'2px solid ' + productGroup.color"
-          (click)="createProductButtons(productGroup)"
+          class="h-12 px-3 rounded-control text-xs font-semibold flex items-center gap-1.5 transition-colors"
+          [ngClass]="orderChannel() === 'pos' ? 'bg-surface-panel text-ink shadow-card' : 'text-ink-muted'"
+          [attr.aria-pressed]="orderChannel() === 'pos'"
+          (click)="orderChannel() === 'pos' ? null : toggleOrderChannel()"
         >
-          <!-- Silbentrennung statt break-words: Das brach „HAUPTGERICHTE" hinter dem T um (#795) -->
-          <span
-            class="text-center leading-tight line-clamp-2 w-full"
-            style="hyphens: auto; -webkit-hyphens: auto"
-            lang="de"
-            >{{ productGroup.name }}</span
-          >
+          <lib-icon name="cash-register" style="font-size: 1rem" />
+          {{ 'ORDER_DIALOG.CHANNEL_POS' | translate }}
         </button>
-      }
-
-      <!-- Overflow Button (only visible if we have hidden items) -->
-      @if (overflowProductGroups.length > 0) {
         <button
-          mat-button
-          [matMenuTriggerFor]="menu"
-          #menuTrigger="matMenuTrigger"
-          class="!flex !justify-center !items-center !h-14 !rounded-xl !bg-white dark:!bg-gray-800 !text-gray-600 dark:!text-gray-200 !shadow-sm !border !border-gray-200 dark:!border-gray-700 !min-w-[3.125rem] hover:!bg-gray-50 dark:hover:!bg-gray-700 group overflow-hidden"
+          type="button"
+          class="h-12 px-3 rounded-control text-xs font-semibold flex items-center gap-1.5 transition-colors"
+          [ngClass]="orderChannel() !== 'pos' ? 'bg-surface-panel text-ink shadow-card' : 'text-ink-muted'"
+          [attr.aria-pressed]="orderChannel() !== 'pos'"
+          (click)="orderChannel() !== 'pos' ? null : toggleOrderChannel()"
         >
-          <!-- Striche per [class]-Ausdruck: [class.translate-y-[0.3125rem]] bindet nur „translate-y-[0"
-               (Angular trennt am Punkt, core#573). -->
-          <div
-            class="flex flex-col gap-[0.1875rem] transition-all duration-300"
-            [class.rotate-90]="menuTrigger.menuOpen"
-            [class.scale-90]="menuTrigger.menuOpen"
-          >
-            <span
-              class="w-[1.125rem] h-[0.125rem] bg-gray-500 rounded-full transition-all duration-300"
-              [class]="menuTrigger.menuOpen ? 'translate-y-[0.3125rem] rotate-45' : ''"
-            ></span>
-            <span
-              class="w-[1.125rem] h-[0.125rem] bg-gray-500 rounded-full transition-all duration-300"
-              [class.opacity-0]="menuTrigger.menuOpen"
-            ></span>
-            <span
-              class="w-[1.125rem] h-[0.125rem] bg-gray-500 rounded-full transition-all duration-300"
-              [class]="menuTrigger.menuOpen ? '-translate-y-[0.3125rem] -rotate-45' : ''"
-            ></span>
-          </div>
+          <lib-icon name="phone" style="font-size: 1rem" />
+          {{ 'ORDER_DIALOG.CHANNEL_PHONE' | translate }}
         </button>
-
-        <mat-menu #menu="matMenu" class="custom-menu" yPosition="below" [overlapTrigger]="false">
-          @for (productGroup of overflowProductGroups; track productGroup._id) {
-            <button mat-menu-item (click)="createProductButtons(productGroup)">
-              <span [style.color]="productGroup.color" class="font-bold mr-2">●</span>
-              <span class="uppercase text-xs font-bold text-black dark:text-gray-200">{{ productGroup.name }}</span>
-            </button>
-          }
-        </mat-menu>
-      }
+      </div>
     </div>
 
-    <!-- 3-Spalten Hauptbereich -->
-    <div class="flex flex-row w-full flex-1 overflow-hidden px-3 pt-3 pb-2 gap-3 min-h-0">
-      <!-- SPALTE 1: Positionen -->
-      <div
-        class="relative flex-none w-[35%] min-w-[18.75rem] max-w-[30rem] flex flex-col h-full z-20 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden"
-      >
-        <!-- Receipt Header -->
-        <div
-          class="bg-transparent flex items-center justify-center pt-3 pb-1 text-[0.625rem] text-gray-400 dark:text-gray-500 font-mono rounded-t-xl relative z-10 shrink-0"
-        >
-          {{ time() | date: 'dd.MM.yyyy HH:mm:ss' }}
+    <!-- Positionen (scrollen allein) -->
+    <div class="flex-1 overflow-x-hidden overflow-y-auto p-2 min-h-0">
+      @if (customer) {
+        <div class="text-sm my-2 p-3 bg-info-soft text-info-ink rounded-control mx-1">
+          <p class="highlight">
+            Firmenkundenbestellung von <span class="font-bold">{{ customer.name1 }}</span
+            >.
+          </p>
         </div>
+      }
 
-        <!-- Scrollable Order Items -->
-        <div class="bg-transparent flex-1 overflow-x-hidden overflow-y-auto p-3 min-h-0 relative z-10">
-          @if (customer) {
-            <div
-              class="text-sm my-2 p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg mx-2 border border-blue-100 dark:border-blue-900/50"
-            >
-              <p class="highlight">
-                Firmenkundenbestellung von <span class="font-bold">{{ customer.name1 }}</span
-                >.
-              </p>
-            </div>
+      @if (currentUser && isStaffMealOrder) {
+        <div class="text-sm my-2 p-3 bg-warn-soft text-warn-ink rounded-control mx-1">
+          <p class="highlight">
+            Personalessen von
+            <span class="font-bold">{{ currentUser.firstName }} {{ currentUser.lastName }} </span>.
+          </p>
+        </div>
+      }
+
+      @for (combination of combinations; track combination[0].bundleNumber; let i = $index) {
+        <div
+          class="rounded-xl mt-2 border border-gray-200 dark:border-gray-700 mx-1 overflow-hidden transition-colors duration-200"
+        >
+          <!-- Kombinations-Header: reines Klickziel für die ganze Kombination (ADR 0034 P1). Menge,
+                   Lösen und Löschen sitzen in der Steuerleiste darunter (core#829). -->
+          <div
+            class="text-[0.625rem] font-bold uppercase tracking-wider px-3 py-1.5 flex items-center gap-1.5 cursor-pointer transition-colors duration-200"
+            [ngClass]="
+              selectedCombinationIndex[0] === i && selectedCombinationIndex[1] === null
+                ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-200'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+            "
+            (click)="toggleCombinationSelection(i)"
+          >
+            <span>{{ 'ACTIVE_ORDERS.COMBINATIONS' | translate }} {{ i + 1 }}</span>
+            <span class="flex-1"></span>
+            <span class="font-bold text-gray-700 dark:text-gray-200 text-base">{{
+              calculateCombinationPrice(combination) | eur
+            }}</span>
+          </div>
+          @if (selectedCombinationIndex[0] === i && selectedCombinationIndex[1] === null) {
+            <ng-container [ngTemplateOutlet]="steuerleiste" />
           }
 
-          @if (currentUser && isStaffMealOrder) {
-            <div
-              class="text-sm my-2 p-3 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-lg mx-2 border border-amber-100 dark:border-amber-900/50"
-            >
-              <p class="highlight">
-                Personalessen von
-                <span class="font-bold">{{ currentUser.firstName }} {{ currentUser.lastName }} </span>.
-              </p>
-            </div>
-          }
-
-          @for (combination of combinations; track combination[0].bundleNumber; let i = $index) {
-            <div
-              class="rounded-xl mt-2 border border-gray-200 dark:border-gray-700 mx-1 overflow-hidden transition-colors duration-200"
-            >
-              <!-- Kombinations-Header: reines Klickziel für die ganze Kombination. Die
-                   früheren 24-px-Tasten für +/− sind in Spalte 2 umgezogen (ADR 0034) und
-                   wirken dort auf die markierte Kombination. -->
+          <!-- Einzelne Positionen -->
+          <div class="flex flex-col pl-2 pr-1.5 py-2 gap-1">
+            @for (lineItem of combination; track lineItem._id; let j = $index) {
               <div
-                class="text-[0.625rem] font-bold uppercase tracking-wider px-3 py-1.5 flex items-center gap-1.5 cursor-pointer transition-colors duration-200"
+                class="flex flex-col px-2 py-1.5 cursor-pointer rounded-lg transition-colors duration-200"
                 [ngClass]="
-                  selectedCombinationIndex[0] === i && selectedCombinationIndex[1] === null
-                    ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-200'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  selectedCombinationIndex[0] === i && selectedCombinationIndex[1] === j
+                    ? 'bg-accent-soft ring-1 ring-accent-line'
+                    : 'hover:bg-surface-rail'
                 "
-                (click)="toggleCombinationSelection(i)"
+                (click)="selectCombinationByIndex(i, j)"
               >
-                <span>{{ 'ACTIVE_ORDERS.COMBINATIONS' | translate }} {{ i + 1 }}</span>
-                <span class="flex-1"></span>
-                <span class="font-bold text-gray-700 dark:text-gray-200 text-base">{{
-                  calculateCombinationPrice(combination) | eur
-                }}</span>
-              </div>
-
-              <!-- Einzelne Positionen -->
-              <div class="flex flex-col pl-2 pr-1.5 py-2 gap-1">
-                @for (lineItem of combination; track lineItem._id; let j = $index) {
-                  <div
-                    class="flex flex-col px-2 py-1.5 cursor-pointer rounded-lg transition-all duration-200 hover:bg-white dark:hover:bg-gray-700"
-                    [ngClass]="
-                      selectedCombinationIndex[0] === i && selectedCombinationIndex[1] === j
-                        ? 'bg-white dark:bg-gray-700'
-                        : ''
-                    "
-                    (click)="selectCombinationByIndex(i, j)"
-                  >
-                    <div
-                      class="flex items-center gap-2 w-full"
-                      [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'"
-                    >
-                      <!-- Menge nur als Text — die Zeile ist ein einziges Klickziel (ADR 0034) -->
-                      <!-- Menge 1 bleibt leer, die Spalte reserviert — Mehrfach-Positionen fallen so sofort auf (#795) -->
-                      <span class="font-bold text-gray-700 dark:text-gray-300 min-w-[2rem] text-right text-sm shrink-0">
-                        @if (lineItem.amount > 1) {
-                          {{ lineItem.amount }}×
-                        }
-                      </span>
-
-                      <span
-                        class="text-[0.9375rem] font-medium text-gray-800 dark:text-gray-200 flex-1 truncate leading-tight"
-                      >
-                        {{ lineItem.name }}
-                      </span>
-
-                      <span class="text-[0.9375rem] font-bold text-gray-900 dark:text-white shrink-0">
-                        @if (calculateArticlePriceWithoutExtras(lineItem) !== calculateArticlePrice(lineItem)) {
-                          <span class="text-xs text-gray-400 line-through mr-1">{{
-                            calculateArticlePriceWithoutExtras(lineItem) | eur
-                          }}</span>
-                        }
-                        {{ calculateArticlePrice(lineItem) | eur }}
-                      </span>
-                    </div>
-
-                    @if (lineItem.isMenu) {
-                      <div
-                        class="flex flex-col gap-0.5 text-xs text-gray-500 ml-[2.5rem] mt-0.5"
-                        [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'"
-                      >
-                        <div class="flex justify-between">
-                          <span
-                            >{{ 'ORDER_DIALOG.SIDE_DISH' | translate }}:
-                            {{ lineItem.menuSideDish?.name || 'ohne' }}</span
-                          >
-                          @let sideSurcharge = menuSurcharge(lineItem, lineItem.menuSideDish, generalSideDishPrice);
-                          @if (sideSurcharge > 0) {
-                            <span>+ {{ sideSurcharge | eur }}</span>
-                          }
-                        </div>
-                        <div class="flex justify-between">
-                          <span>{{ 'ORDER_DIALOG.DRINK' | translate }}: {{ lineItem.menuDrink?.name || 'ohne' }}</span>
-                          @let drinkSurcharge = menuSurcharge(lineItem, lineItem.menuDrink, generalDrinkPrice);
-                          @if (drinkSurcharge > 0) {
-                            <span>+ {{ drinkSurcharge | eur }}</span>
-                          }
-                        </div>
-                      </div>
-                    }
-
-                    @for (extra of lineItem.modifiers; track extra._id) {
-                      <div
-                        class="flex justify-between text-xs text-gray-500 ml-[2.5rem]"
-                        [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'"
-                      >
-                        @if (isRemovedIngredient(extra)) {
-                          <span>
-                            <span class="italic font-semibold text-red-600 dark:text-red-400">ohne</span>
-                            <span class="line-through">{{ removedIngredientName(extra) }}</span>
-                          </span>
-                        } @else {
-                          <span>
-                            @let comboExtraAmount = modifierDisplayAmount(lineItem, extra) | abs;
-                            @if (comboExtraAmount > 1) {
-                              {{ comboExtraAmount }}x
-                            }
-                            @if (extra.amount < 0) {
-                              <span class="italic text-gray-400">ohne</span>
-                            }
-                            {{ extra.name }}
-                          </span>
-                        }
-                        @if (isRemovedIngredient(extra) && extra.price !== 0) {
-                          <span>{{ modifierAmount(lineItem, extra) | eur }}</span>
-                        } @else if (extra.amount > 0 && extra.price > 0) {
-                          <span>+ {{ modifierAmount(lineItem, extra) | eur }}</span>
-                        }
-                      </div>
-                    }
-                  </div>
-                }
-              </div>
-            </div>
-          }
-
-          @if (combinations.length > 0) {
-            <hr class="border-t border-dashed border-gray-300/50 my-4" />
-          }
-
-          @for (lineItem of lineItems; track lineItem._id; let i = $index) {
-            @if (!isLineItemBundled(lineItem)) {
-              <div
-                class="group mx-1 mb-1 rounded-xl py-2 pl-4 pr-3 transition-all duration-200 hover:bg-white dark:hover:bg-gray-700"
-                [ngClass]="selectedProductIndex === i ? 'bg-white dark:bg-gray-700' : ''"
-                (click)="toggleProductSelection(i)"
-              >
-                <div class="flex items-start gap-3">
-                  <!-- Menge nur als Text. Die Zeile ist ein einziges Klickziel: Antippen wählt
-                       aus, mehr nicht. Löschen, − und + sitzen als 56-px-Tasten in Spalte 2 und
-                       wirken auf die Markierung — ein Fehlklick beim Auswählen kann die Menge
-                       nicht mehr verändern (ADR 0034). -->
+                <div class="flex items-center gap-2 w-full" [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'">
+                  <!-- Menge nur als Text — die Zeile ist ein einziges Klickziel (ADR 0034) -->
                   <!-- Menge 1 bleibt leer, die Spalte reserviert — Mehrfach-Positionen fallen so sofort auf (#795) -->
-                  <span
-                    class="font-bold text-gray-700 dark:text-gray-300 min-w-[2rem] text-right text-[0.9375rem] shrink-0 leading-tight"
-                  >
+                  <span class="font-bold text-gray-700 dark:text-gray-300 min-w-[2rem] text-right text-sm shrink-0">
                     @if (lineItem.amount > 1) {
                       {{ lineItem.amount }}×
                     }
                   </span>
 
-                  <!-- Item Details -->
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-baseline justify-between gap-2">
-                      <div class="font-medium text-gray-800 dark:text-gray-200 text-[0.9375rem] leading-tight">
-                        {{ lineItem.name }}
-                      </div>
-                      <div class="text-[0.9375rem] font-bold text-gray-900 dark:text-white whitespace-nowrap">
-                        @if (calculateArticlePriceWithoutExtras(lineItem) !== calculateArticlePrice(lineItem)) {
-                          <span class="text-xs text-gray-400 line-through mr-1">{{
-                            calculateArticlePriceWithoutExtras(lineItem) | eur
-                          }}</span>
-                        }
-                        {{ calculateArticlePrice(lineItem) | eur }}
-                      </div>
-                    </div>
+                  <span
+                    class="text-[0.9375rem] font-medium text-gray-800 dark:text-gray-200 flex-1 truncate leading-tight"
+                  >
+                    {{ lineItem.name }}
+                  </span>
 
-                    <!-- Positionsrabatt: Der Betrag steht bewusst NICHT hier, sondern nur
+                  <span class="text-[0.9375rem] font-bold text-gray-900 dark:text-white shrink-0">
+                    @if (calculateArticlePriceWithoutExtras(lineItem) !== calculateArticlePrice(lineItem)) {
+                      <span class="text-xs text-gray-400 line-through mr-1">{{
+                        calculateArticlePriceWithoutExtras(lineItem) | eur
+                      }}</span>
+                    }
+                    {{ calculateArticlePrice(lineItem) | eur }}
+                  </span>
+                </div>
+
+                @if (lineItem.isMenu) {
+                  <div
+                    class="flex flex-col gap-0.5 text-xs text-gray-500 ml-[2.5rem] mt-0.5"
+                    [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'"
+                  >
+                    <div class="flex justify-between">
+                      <span
+                        >{{ 'ORDER_DIALOG.SIDE_DISH' | translate }}: {{ lineItem.menuSideDish?.name || 'ohne' }}</span
+                      >
+                      @let sideSurcharge = menuSurcharge(lineItem, lineItem.menuSideDish, generalSideDishPrice);
+                      @if (sideSurcharge > 0) {
+                        <span>+ {{ sideSurcharge | eur }}</span>
+                      }
+                    </div>
+                    <div class="flex justify-between">
+                      <span>{{ 'ORDER_DIALOG.DRINK' | translate }}: {{ lineItem.menuDrink?.name || 'ohne' }}</span>
+                      @let drinkSurcharge = menuSurcharge(lineItem, lineItem.menuDrink, generalDrinkPrice);
+                      @if (drinkSurcharge > 0) {
+                        <span>+ {{ drinkSurcharge | eur }}</span>
+                      }
+                    </div>
+                  </div>
+                }
+
+                @for (extra of lineItem.modifiers; track extra._id) {
+                  <div
+                    class="flex justify-between text-xs text-gray-500 ml-[2.5rem]"
+                    [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'"
+                  >
+                    @if (isRemovedIngredient(extra)) {
+                      <span>
+                        <span class="italic font-semibold text-red-600 dark:text-red-400">ohne</span>
+                        <span class="line-through">{{ removedIngredientName(extra) }}</span>
+                      </span>
+                    } @else {
+                      <span>
+                        @let comboExtraAmount = modifierDisplayAmount(lineItem, extra) | abs;
+                        @if (comboExtraAmount > 1) {
+                          {{ comboExtraAmount }}x
+                        }
+                        @if (extra.amount < 0) {
+                          <span class="italic text-gray-400">ohne</span>
+                        }
+                        {{ extra.name }}
+                      </span>
+                    }
+                    @if (isRemovedIngredient(extra) && extra.price !== 0) {
+                      <span>{{ modifierAmount(lineItem, extra) | eur }}</span>
+                    } @else if (extra.amount > 0 && extra.price > 0) {
+                      <span>+ {{ modifierAmount(lineItem, extra) | eur }}</span>
+                    }
+                  </div>
+                }
+              </div>
+              @if (selectedCombinationIndex[0] === i && selectedCombinationIndex[1] === j) {
+                <ng-container [ngTemplateOutlet]="steuerleiste" />
+              }
+            }
+          </div>
+        </div>
+      }
+
+      @if (combinations.length > 0) {
+        <hr class="border-t border-dashed border-line my-3" />
+      }
+
+      @for (lineItem of lineItems; track lineItem._id; let i = $index) {
+        @if (!isLineItemBundled(lineItem)) {
+          <div
+            class="group mx-1 mb-1 rounded-xl py-2 pl-4 pr-3 transition-colors duration-200"
+            [ngClass]="selectedProductIndex === i ? 'bg-accent-soft ring-1 ring-accent-line' : 'hover:bg-surface-rail'"
+            (click)="toggleProductSelection(i)"
+          >
+            <div class="flex items-start gap-3">
+              <!-- Menge nur als Text. Die Zeile ist ein einziges Klickziel: Antippen wählt
+                       aus, mehr nicht. −, +, Anpassen und Löschen sitzen als eigene Fläche in der
+                       Steuerleiste darunter — ein Fehlklick beim Auswählen kann die Menge nicht
+                       verändern (ADR 0034 P1, core#829). -->
+              <!-- Menge 1 bleibt leer, die Spalte reserviert — Mehrfach-Positionen fallen so sofort auf (#795) -->
+              <span
+                class="font-bold text-gray-700 dark:text-gray-300 min-w-[2rem] text-right text-[0.9375rem] shrink-0 leading-tight"
+              >
+                @if (lineItem.amount > 1) {
+                  {{ lineItem.amount }}×
+                }
+              </span>
+
+              <!-- Item Details -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-baseline justify-between gap-2">
+                  <div class="font-medium text-gray-800 dark:text-gray-200 text-[0.9375rem] leading-tight">
+                    {{ lineItem.name }}
+                  </div>
+                  <div class="text-[0.9375rem] font-bold text-gray-900 dark:text-white whitespace-nowrap">
+                    @if (calculateArticlePriceWithoutExtras(lineItem) !== calculateArticlePrice(lineItem)) {
+                      <span class="text-xs text-gray-400 line-through mr-1">{{
+                        calculateArticlePriceWithoutExtras(lineItem) | eur
+                      }}</span>
+                    }
+                    {{ calculateArticlePrice(lineItem) | eur }}
+                  </div>
+                </div>
+
+                <!-- Positionsrabatt: Der Betrag steht bewusst NICHT hier, sondern nur
                          im Gesamtbetrag unten — den rechnet computeOrderTax. Eine eigene
                          Prozentrechnung an der Zeile wäre eine zweite Wahrheit neben der
                          Engine (ADR 0004). -->
-                    @if (lineDiscountOf(lineItem); as lineDiscount) {
-                      <div class="mt-1 flex items-center gap-1.5">
-                        <span
-                          class="inline-flex items-center gap-1 text-[0.625rem] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300"
-                        >
-                          <lib-icon name="percent" class="!text-[0.75rem]" />
-                          {{ lineDiscount.name }} · {{ lineDiscountLabel(lineItem) }}
+                @if (lineDiscountOf(lineItem); as lineDiscount) {
+                  <div class="mt-1 flex items-center gap-1.5">
+                    <span
+                      class="inline-flex items-center gap-1 text-[0.625rem] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300"
+                    >
+                      <lib-icon name="percent" class="!text-[0.75rem]" />
+                      {{ lineDiscount.name }} · {{ lineDiscountLabel(lineItem) }}
+                    </span>
+                    <button
+                      type="button"
+                      class="w-5 h-5 rounded flex items-center justify-center text-amber-600 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 active:scale-90 transition-all"
+                      (click)="clearLineDiscount(lineItem._id, $event)"
+                      aria-label="Positionsrabatt entfernen"
+                    >
+                      <lib-icon name="x" class="!text-[0.875rem]" />
+                    </button>
+                  </div>
+                }
+
+                @if (lineItem.isMenu) {
+                  <div
+                    class="mt-1 flex flex-col gap-0.5 text-xs text-gray-500"
+                    [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'"
+                  >
+                    <div class="flex justify-between">
+                      <span
+                        >{{ 'ORDER_DIALOG.SIDE_DISH' | translate }}: {{ lineItem.menuSideDish?.name || 'ohne' }}</span
+                      >
+                      @let sideSurcharge = menuSurcharge(lineItem, lineItem.menuSideDish, generalSideDishPrice);
+                      @if (sideSurcharge > 0) {
+                        <span>+{{ sideSurcharge | eur }}</span>
+                      }
+                    </div>
+                    <div class="flex justify-between">
+                      <span>{{ 'ORDER_DIALOG.DRINK' | translate }}: {{ lineItem.menuDrink?.name || 'ohne' }}</span>
+                      @let drinkSurcharge = menuSurcharge(lineItem, lineItem.menuDrink, generalDrinkPrice);
+                      @if (drinkSurcharge > 0) {
+                        <span>+{{ drinkSurcharge | eur }}</span>
+                      }
+                    </div>
+                  </div>
+                }
+
+                @if (lineItem.modifiers.length > 0) {
+                  <div
+                    class="mt-1.5 pt-1.5 border-t border-dashed border-gray-200 dark:border-gray-700 flex flex-col gap-0.5"
+                  >
+                    @for (extra of lineItem.modifiers; track extra._id) {
+                      <div class="flex justify-between items-center text-xs text-gray-500">
+                        <span class="flex items-center gap-1">
+                          @if (isRemovedIngredient(extra)) {
+                            <span
+                              class="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-[0.5625rem] font-bold px-1.5 py-0.5 rounded uppercase leading-none"
+                              >ohne</span
+                            >
+                            <span class="line-through text-gray-400">{{ removedIngredientName(extra) }}</span>
+                          } @else if (extra.amount < 0) {
+                            <span
+                              class="bg-gray-800 text-white text-[0.5625rem] font-bold px-1.5 py-0.5 rounded uppercase leading-none"
+                              >ohne</span
+                            >
+                          } @else if (modifierDisplayAmount(lineItem, extra) > 1) {
+                            <span class="text-gray-400">{{ modifierDisplayAmount(lineItem, extra) }}x</span>
+                          }
+                          @if (!isRemovedIngredient(extra)) {
+                            <span [class.line-through]="extra.amount < 0" [class.text-gray-400]="extra.amount < 0">{{
+                              extra.name
+                            }}</span>
+                          }
+                          @if (extra.icon) {
+                            <span>{{ extra.icon }}</span>
+                          }
                         </span>
-                        <button
-                          type="button"
-                          class="w-5 h-5 rounded flex items-center justify-center text-amber-600 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 active:scale-90 transition-all"
-                          (click)="clearLineDiscount(lineItem._id, $event)"
-                          aria-label="Positionsrabatt entfernen"
-                        >
-                          <lib-icon name="x" class="!text-[0.875rem]" />
-                        </button>
-                      </div>
-                    }
-
-                    @if (lineItem.isMenu) {
-                      <div
-                        class="mt-1 flex flex-col gap-0.5 text-xs text-gray-500"
-                        [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'"
-                      >
-                        <div class="flex justify-between">
-                          <span
-                            >{{ 'ORDER_DIALOG.SIDE_DISH' | translate }}:
-                            {{ lineItem.menuSideDish?.name || 'ohne' }}</span
-                          >
-                          @let sideSurcharge = menuSurcharge(lineItem, lineItem.menuSideDish, generalSideDishPrice);
-                          @if (sideSurcharge > 0) {
-                            <span>+{{ sideSurcharge | eur }}</span>
-                          }
-                        </div>
-                        <div class="flex justify-between">
-                          <span>{{ 'ORDER_DIALOG.DRINK' | translate }}: {{ lineItem.menuDrink?.name || 'ohne' }}</span>
-                          @let drinkSurcharge = menuSurcharge(lineItem, lineItem.menuDrink, generalDrinkPrice);
-                          @if (drinkSurcharge > 0) {
-                            <span>+{{ drinkSurcharge | eur }}</span>
-                          }
-                        </div>
-                      </div>
-                    }
-
-                    @if (lineItem.modifiers.length > 0) {
-                      <div
-                        class="mt-1.5 pt-1.5 border-t border-dashed border-gray-200 dark:border-gray-700 flex flex-col gap-0.5"
-                      >
-                        @for (extra of lineItem.modifiers; track extra._id) {
-                          <div class="flex justify-between items-center text-xs text-gray-500">
-                            <span class="flex items-center gap-1">
-                              @if (isRemovedIngredient(extra)) {
-                                <span
-                                  class="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-[0.5625rem] font-bold px-1.5 py-0.5 rounded uppercase leading-none"
-                                  >ohne</span
-                                >
-                                <span class="line-through text-gray-400">{{ removedIngredientName(extra) }}</span>
-                              } @else if (extra.amount < 0) {
-                                <span
-                                  class="bg-gray-800 text-white text-[0.5625rem] font-bold px-1.5 py-0.5 rounded uppercase leading-none"
-                                  >ohne</span
-                                >
-                              } @else if (modifierDisplayAmount(lineItem, extra) > 1) {
-                                <span class="text-gray-400">{{ modifierDisplayAmount(lineItem, extra) }}x</span>
-                              }
-                              @if (!isRemovedIngredient(extra)) {
-                                <span
-                                  [class.line-through]="extra.amount < 0"
-                                  [class.text-gray-400]="extra.amount < 0"
-                                  >{{ extra.name }}</span
-                                >
-                              }
-                              @if (extra.icon) {
-                                <span>{{ extra.icon }}</span>
-                              }
-                            </span>
-                            @if (isRemovedIngredient(extra) && extra.price !== 0) {
-                              <span class="text-gray-500 font-medium">{{ modifierAmount(lineItem, extra) | eur }}</span>
-                            } @else if (extra.amount > 0 && extra.price > 0) {
-                              <span class="text-gray-500 font-medium"
-                                >+{{ modifierAmount(lineItem, extra) | eur }}</span
-                              >
-                            }
-                          </div>
+                        @if (isRemovedIngredient(extra) && extra.price !== 0) {
+                          <span class="text-gray-500 font-medium">{{ modifierAmount(lineItem, extra) | eur }}</span>
+                        } @else if (extra.amount > 0 && extra.price > 0) {
+                          <span class="text-gray-500 font-medium">+{{ modifierAmount(lineItem, extra) | eur }}</span>
                         }
                       </div>
                     }
                   </div>
-                </div>
-              </div>
-            }
-          }
-
-          @if (lineItems.length === 0 && combinations.length === 0) {
-            <div class="h-full flex flex-col justify-center items-center text-gray-300">
-              <lib-icon name="shopping-cart" class="mb-4" style="font-size: 4rem; color: #cbd5e1" />
-              <h3 class="font-medium text-lg text-gray-400 dark:text-gray-500">
-                {{ 'ORDER_DIALOG.EMPTY_ORDER' | translate }}
-              </h3>
-              <p class="text-sm text-gray-400 dark:text-gray-500">{{ 'ORDER_DIALOG.ADD_ITEMS' | translate }}</p>
-            </div>
-          }
-        </div>
-
-        <!-- Gesamtbetrag -->
-        <div class="bg-transparent shrink-0 rounded-b-xl relative z-10">
-          <div class="mx-4 border-b border-dashed border-gray-200 dark:border-gray-700"></div>
-          @if (selectedManualDiscount(); as md) {
-            <div class="flex items-center gap-2 px-4 pt-2">
-              <lib-icon name="tag" class="text-[1rem] text-amber-600 dark:text-amber-400" />
-              <span class="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate flex-1">
-                {{ md.name }}
-                <span class="text-gray-400 dark:text-gray-500"
-                  >· {{ md.valueType === 'percent' ? md.valuePercent + ' %' : (md.valueCents / 100 | eur) }}</span
-                >
-              </span>
-              <button
-                type="button"
-                (click)="clearManualDiscount()"
-                class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95"
-              >
-                <lib-icon name="x" class="text-[1rem]" />
-              </button>
-            </div>
-          }
-          @if (appliedCodeDiscount(); as cd) {
-            <div class="flex items-center gap-2 px-4 pt-2">
-              <lib-icon name="ticket" class="text-[1rem] text-amber-600 dark:text-amber-400" />
-              <span class="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate flex-1">
-                {{ cd.code }}
-                @if (cd.discount; as d) {
-                  <span class="text-gray-400 dark:text-gray-500"
-                    >· {{ d.name }} ·
-                    {{
-                      d.valueType === 'percent' || d.valueType === 'PERCENT'
-                        ? d.valuePercent + ' %'
-                        : (d.valueCents / 100 | eur)
-                    }}</span
-                  >
                 }
-              </span>
-              <button
-                type="button"
-                (click)="clearCodeDiscount()"
-                aria-label="Rabattcode entfernen"
-                class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95"
-              >
-                <lib-icon name="x" class="text-[1rem]" />
-              </button>
+              </div>
             </div>
-          }
-          <div class="flex justify-between items-center px-4 py-2.5">
-            <span class="text-[0.625rem] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{
-              'COMMON.TOTAL' | translate
-            }}</span>
-            @if (hasDiscountPreview()) {
-              <span class="flex items-baseline gap-2">
-                <span class="text-xs font-medium text-gray-400 dark:text-gray-500 line-through">{{
-                  calculateSumPrice() | eur
-                }}</span>
-                <span class="text-lg font-black text-gray-800 dark:text-white">{{ discountedTotal() | eur }}</span>
-              </span>
-            } @else {
-              <span class="text-lg font-black text-gray-800 dark:text-white">{{ calculateSumPrice() | eur }}</span>
-            }
           </div>
+          @if (selectedProductIndex === i) {
+            <ng-container [ngTemplateOutlet]="steuerleiste" />
+          }
+        }
+      }
+
+      @if (lineItems.length === 0 && combinations.length === 0) {
+        <div class="h-full flex flex-col justify-center items-center text-gray-300">
+          <lib-icon name="shopping-cart" class="mb-4" style="font-size: 4rem; color: #cbd5e1" />
+          <h3 class="font-medium text-lg text-gray-400 dark:text-gray-500">
+            {{ 'ORDER_DIALOG.EMPTY_ORDER' | translate }}
+          </h3>
+          <p class="text-sm text-gray-400 dark:text-gray-500">{{ 'ORDER_DIALOG.ADD_ITEMS' | translate }}</p>
         </div>
-      </div>
+      }
+    </div>
 
-      <!-- SPALTE 2: Funktionstasten -->
-      <!-- Die Tasten schrumpfen nie (`shrink-0`): ADR 0034 haelt das 56-px-Mass, code-style §9
-           die 48 px. Reicht die Hoehe nicht fuer alle sieben, scrollt die Spalte, statt dass
-           die Zeile (`overflow-hidden`) die unteren abschneidet (core#757). -->
-      <div class="flex flex-col gap-1.5 shrink-0 pt-0 min-h-0 overflow-y-auto overflow-x-hidden [scrollbar-width:none]">
-        <button
-          (click)="unselectProduct()"
-          class="pnry-touch shrink-0 h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex flex-col items-center justify-center gap-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          aria-label="Auswahl aufheben"
-        >
-          <lib-icon name="list-dashes" class="!text-[1.25rem]" aria-hidden="true" />
-          <span class="text-[0.5625rem] font-semibold leading-none">Abwählen</span>
-        </button>
-        <!-- Mengensteuerung + Löschen: wirken auf die Markierung im Warenkorb (Zeile,
-             Position in einer Kombination oder ganze Kombination). Ohne Markierung
-             deaktiviert, kein stiller No-Op. Immer `h-14 w-14` UND `pnry-touch`:
-             Letzteres greift nur bei aktivem Fluid-Flag. -->
-        <button
-          type="button"
-          class="pnry-touch shrink-0 h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex flex-col items-center justify-center gap-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:active:scale-100 disabled:hover:bg-transparent"
-          [disabled]="!canMutateSelection()"
-          (click)="increaseSelectedQuantity()"
-          aria-label="Menge der Markierung erhöhen"
-        >
-          <lib-icon name="plus" class="!text-[1.25rem]" aria-hidden="true" />
-          <span class="text-[0.5625rem] font-semibold leading-none">Menge +</span>
-        </button>
-        <button
-          type="button"
-          class="pnry-touch shrink-0 h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex flex-col items-center justify-center gap-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:active:scale-100 disabled:hover:bg-transparent"
-          [disabled]="!canDecreaseSelection()"
-          (click)="decreaseSelectedQuantity()"
-          aria-label="Menge der Markierung verringern"
-        >
-          <lib-icon name="minus" class="!text-[1.25rem]" aria-hidden="true" />
-          <span class="text-[0.5625rem] font-semibold leading-none">Menge −</span>
-        </button>
-        <button
-          type="button"
-          class="pnry-touch shrink-0 h-14 w-14 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-900/50 text-red-500 dark:text-red-400 active:scale-95 flex flex-col items-center justify-center gap-0.5 hover:bg-red-100 dark:hover:bg-red-900/50 disabled:opacity-40 disabled:active:scale-100 disabled:hover:bg-red-50 dark:disabled:hover:bg-red-900/30"
-          [disabled]="!canDeleteSelection()"
-          (click)="deleteSelection()"
-          aria-label="Markierung löschen"
-        >
-          <lib-icon name="trash" class="!text-[1.25rem]" aria-hidden="true" />
-          <span class="text-[0.5625rem] font-semibold leading-none">Löschen</span>
-        </button>
-        <!-- Eingeschaltet sichtbar hell hinterlegt (#795): vorher färbte sich nur das Icon, ob die
-             Preise an sind, war an der Taste kaum abzulesen. -->
-        <button
-          (click)="togglePriceVisibility()"
-          class="pnry-touch shrink-0 h-14 w-14 rounded-xl border active:scale-95 flex flex-col items-center justify-center gap-0.5 transition-colors"
-          [ngClass]="
-            priceVisibility
-              ? 'bg-white dark:bg-gray-700 border-blue-400 dark:border-blue-500 text-blue-600 dark:text-blue-300 shadow-md'
-              : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-          "
-          [attr.aria-pressed]="priceVisibility"
-          aria-label="Preise auf den Kacheln ein/aus"
-        >
-          <lib-icon name="currency-eur" class="!text-[1.25rem]" aria-hidden="true" />
-          <span class="text-[0.5625rem] font-semibold leading-none">Preise</span>
-        </button>
-        <!-- Bis #795 ein zweiter roter Mülleimer — jetzt neutral: Er öffnet nur ein Menü
-             (Bestellung leeren, Kunde entfernen), gelöscht wird dort erst nach Rückfrage. -->
-        <button
-          class="pnry-touch shrink-0 h-14 w-14 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex flex-col items-center justify-center gap-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          (click)="setDeleteSubbuttons()"
-          aria-label="Weitere Aktionen"
-        >
-          <lib-icon name="dots-three" class="!text-[1.25rem]" aria-hidden="true" />
-          <span class="text-[0.5625rem] font-semibold leading-none">Mehr</span>
-        </button>
-        <button
-          class="pnry-touch shrink-0 h-14 w-14 rounded-xl bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-900/50 text-purple-600 dark:text-purple-300 active:scale-95 flex flex-col items-center justify-center gap-0.5 hover:bg-purple-100 dark:hover:bg-purple-900/50"
-          (click)="setCombiSubButtons()"
-          aria-label="Kombination"
-        >
-          <lib-icon name="arrows-merge" class="rotate-90 !text-[1.25rem]" aria-hidden="true" />
-          <span class="text-[0.5625rem] font-semibold leading-none">Kombi</span>
-        </button>
-      </div>
-
-      <!-- SPALTE 3: Produkte -->
-      <div class="flex-1 flex flex-col bg-transparent relative overflow-hidden min-h-0">
-        <!-- Anpassen-Panel (#639): ersetzt Funktionstasten und Raster, solange eine Zeile angepasst wird -->
-        @if (customizeModel(); as model) {
-          <lib-product-customize-panel
-            class="flex min-h-0 flex-1 flex-col pb-2"
-            [model]="model"
-            [scope]="customizeScope()"
-            [scopeLocked]="customizeScopeLocked()"
-            (scopeChanged)="onCustomizeScopeChanged($event)"
-            (ingredientToggled)="onCustomizeIngredientToggled($event)"
-            (optionIncreased)="onCustomizeOptionIncreased($event)"
-            (optionDecreased)="onCustomizeOptionDecreased($event)"
-            (finished)="onCustomizeFinished()"
-            (cancelled)="onCustomizeCancelled()"
-            (showAllModifiers)="onCustomizeShowAllModifiers()"
-            [releaseLabel]="releaseLabel()"
-            (released)="releaseFromCombination()"
-          />
-        } @else {
-          <!-- Function Buttons: linksbündige Kacheln im Produktkachel-Maß, farbcodiert nach Wirkung (code-style.md §9) -->
-          @if (functionButtons.length > 0) {
-            <div class="flex flex-wrap items-stretch gap-2 shrink-0 px-3 pt-0 pb-3">
-              @for (functionButton of functionButtons; track functionButton._id; let i = $index) {
-                <button
-                  type="button"
-                  class="pnry-touch w-[var(--pnry-tile-min,8.25rem)] h-[5.375rem] shrink-0 rounded-xl border-2 flex flex-col items-center justify-center gap-1 font-bold text-xs tracking-wide uppercase px-2 transition-all active:scale-95"
-                  [ngClass]="functionButtonClasses(functionButton)"
-                  [attr.aria-pressed]="functionButton.pressed ?? null"
-                  (click)="functionButton.callback == undefined ? pass() : functionButton.callback()"
-                >
-                  @if (functionButton.iconName; as iconName) {
-                    <lib-icon [name]="iconName" style="font-size: 1.25rem" />
-                  }
-                  <span class="text-center leading-tight line-clamp-2">{{ functionButton.name }}</span>
-                </button>
-              }
-              @if (functionBlockLabel) {
-                <div class="w-px self-stretch bg-gray-200 dark:bg-gray-700 mx-1"></div>
-                <span
-                  class="self-center text-[0.625rem] tracking-widest uppercase font-semibold text-gray-400 dark:text-gray-500"
-                  >{{ functionBlockLabel }}</span
-                >
-              }
-            </div>
-            <div class="h-px bg-gray-200 dark:bg-gray-700 mx-3 shrink-0"></div>
-          }
-
-          <!-- Product Buttons (scrollbar) -->
-          <div class="flex-1 overflow-y-auto px-3 pt-3 pb-2 min-h-0">
-            <!-- Artikel-Raster: --pnry-tile-min löst flag-off zu 8.25rem (=132px) auf und wächst im Fluid-Modus mit -->
-            <div
-              class="grid grid-cols-[repeat(auto-fill,minmax(var(--pnry-tile-min,8.25rem),1fr))] gap-2 content-start pb-4"
+    <!-- Summe -->
+    <div class="shrink-0 border-t border-line-soft">
+      @if (selectedManualDiscount(); as md) {
+        <div class="flex items-center gap-2 px-4 pt-2">
+          <lib-icon name="tag" class="text-[1rem] text-amber-600 dark:text-amber-400" />
+          <span class="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate flex-1">
+            {{ md.name }}
+            <span class="text-gray-400 dark:text-gray-500"
+              >· {{ md.valueType === 'percent' ? md.valuePercent + ' %' : (md.valueCents / 100 | eur) }}</span
             >
-              @for (productButton of productButtons; let i = $index; track i) {
-                <button
-                  type="button"
-                  class="pnry-touch relative h-[5.375rem] bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-black dark:text-gray-200 font-semibold text-xs uppercase px-2 py-2 flex items-center justify-center gap-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all"
-                  [style.background-color]="productButton.backgroundColor"
-                  [style.color]="productButton.fontColor"
-                  [class.ring-2]="productButton.pressed"
-                  [class.ring-gray-400]="productButton.pressed"
-                  (click)="!productButton.callback ? noActionDefined(productButton) : productButton.callback()"
-                >
-                  @if (productButton.countLabel) {
-                    <span
-                      class="absolute -top-2 -right-1.5 rounded-full bg-purple-600 px-2 py-0.5 text-[0.75rem] font-bold leading-none text-white tabular-nums shadow"
-                      >{{ productButton.countLabel }}</span
-                    >
-                  }
-                  @if (!productButton.isFunctionButton && productButton.ui?.index != null) {
-                    <span
-                      class="absolute -top-1.5 -left-1 bg-gray-200 text-black text-[0.5rem] font-semibold min-w-[1rem] h-[0.875rem] px-2 rounded flex items-center justify-center tracking-widest"
-                    >
-                      {{ productButton.ui?.index }}
-                    </span>
-                  }
-                  @if (productButton.iconName; as iconName) {
-                    <lib-icon [name]="iconName" class="shrink-0 text-[1rem] opacity-70" />
-                  } @else if (productButton.icon) {
-                    <span class="shrink-0 text-[1rem] opacity-70" aria-hidden="true">{{ productButton.icon }}</span>
-                  }
-                  <span class="flex flex-col items-center min-w-0">
-                    <!-- Drei Zeilen seit der größeren Schrift (#795) — die Kachelhöhe trägt sie -->
-                    <span
-                      class="text-center leading-tight line-clamp-3 w-full px-0.5"
-                      style="hyphens: auto; -webkit-hyphens: auto"
-                      lang="de"
-                      >{{ productButton.name }}</span
-                    >
-                    @if (priceVisibility && !productButton.isFunctionButton) {
-                      <span class="text-[0.625rem] text-gray-500 font-normal">{{ productButton.price | eur }}</span>
-                    }
-                  </span>
-                </button>
-              }
-            </div>
-          </div>
+          </span>
+          <button
+            type="button"
+            (click)="clearManualDiscount()"
+            class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95"
+          >
+            <lib-icon name="x" class="text-[1rem]" />
+          </button>
+        </div>
+      }
+      @if (appliedCodeDiscount(); as cd) {
+        <div class="flex items-center gap-2 px-4 pt-2">
+          <lib-icon name="ticket" class="text-[1rem] text-amber-600 dark:text-amber-400" />
+          <span class="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate flex-1">
+            {{ cd.code }}
+            @if (cd.discount; as d) {
+              <span class="text-gray-400 dark:text-gray-500"
+                >· {{ d.name }} ·
+                {{
+                  d.valueType === 'percent' || d.valueType === 'PERCENT'
+                    ? d.valuePercent + ' %'
+                    : (d.valueCents / 100 | eur)
+                }}</span
+              >
+            }
+          </span>
+          <button
+            type="button"
+            (click)="clearCodeDiscount()"
+            aria-label="Rabattcode entfernen"
+            class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95"
+          >
+            <lib-icon name="x" class="text-[1rem]" />
+          </button>
+        </div>
+      }
+      <div class="flex justify-between items-baseline px-4 py-3">
+        <span class="text-xs font-bold text-ink-muted uppercase tracking-wider"
+          >{{ 'COMMON.TOTAL' | translate }} · {{ articleCount() }} {{ 'COMMON.ITEMS' | translate }}</span
+        >
+        @if (hasDiscountPreview()) {
+          <span class="flex items-baseline gap-2">
+            <span class="text-xs font-medium text-ink-faint line-through">{{ calculateSumPrice() | eur }}</span>
+            <span class="text-xl font-black text-ink tabular-nums">{{ discountedTotal() | eur }}</span>
+          </span>
+        } @else {
+          <span class="text-xl font-black text-ink tabular-nums">{{ calculateSumPrice() | eur }}</span>
         }
       </div>
     </div>
 
-    <!-- ═══════════════ EINHEITLICHE UNTERE LEISTE ═══════════════ -->
-    <!-- Die Leiste ist ihr eigener Container: Ob der Inline-Ziffernblock passt, hängt an ihrer
-         Breite, nicht am Viewport. Die Schwelle ist die Summe der festen Breiten (84.625rem)
-         und wächst über rem mit dem Fluid-Scaling mit, ein Media-Breakpoint täte das nicht (#798). -->
-    <div class="@container flex flex-row gap-1.5 shrink-0 px-3 pb-3 pt-3 items-stretch">
-      <!-- ── Links: Funktionstasten ── -->
+    <!-- Warenkorb-Aktionen unter der Summe: Rabatt, Positionsrabatt (nur mit Auswahl), Code, Optionen -->
+    <div class="grid grid-cols-4 gap-1.5 px-3 pb-3 shrink-0">
       <button
-        class="pnry-touch h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-95 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-        (click)="setAsStaffMealOrder()"
-        [disabled]="disableStaffMealButton"
-      >
-        <lib-icon name="fork-knife" class="!text-[1.375rem]" />
-      </button>
-      <button
-        class="pnry-touch h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 active:scale-95 flex items-center justify-center relative group transition-colors"
-        [class.text-gray-500]="!isStandaloneMode()"
-        [class.dark:text-gray-400]="!isStandaloneMode()"
-        [class.text-gray-300]="isStandaloneMode()"
-        [class.dark:text-gray-500]="isStandaloneMode()"
-        [class.cursor-not-allowed]="isStandaloneMode()"
-        [class.hover:bg-gray-100]="!isStandaloneMode()"
-        [class.dark:hover:bg-gray-700]="!isStandaloneMode()"
-        (click)="isStandaloneMode() ? null : setCustomerSubButtons()"
-        [disabled]="disableCustomerButton || isStandaloneMode()"
-      >
-        <lib-icon name="buildings" class="text-[1.375rem]" style="font-size: inherit" />
-        @if (isStandaloneMode()) {
-          <div
-            class="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[0.625rem] px-2.5 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity pointer-events-none shadow-lg z-50"
-          >
-            {{ 'ORDER_DIALOG.ENTERPRISE_ONLY' | translate }}
-          </div>
-        }
-      </button>
-      <button
-        class="pnry-touch h-14 w-14 shrink-0 rounded-xl border active:scale-95 flex items-center justify-center transition-colors"
+        type="button"
+        class="pnry-touch h-14 rounded-control border flex flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-semibold active:scale-[0.97] transition-transform"
         [ngClass]="
           selectedManualDiscount()
-            ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-300'
-            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+            ? 'bg-warn-soft border-warn-line text-warn-ink'
+            : 'bg-pos-key border-pos-key-line text-ink'
         "
         (click)="openDiscountPicker()"
         aria-label="Rabatt wählen"
       >
-        <lib-icon name="tag" class="!text-[1.375rem]" />
+        <lib-icon name="tag" style="font-size: 1.25rem" />
+        {{ 'ORDER_DIALOG.DISCOUNT' | translate }}
       </button>
-      <!-- Positionsrabatt: wirkt auf die im Warenkorb markierte Zeile. Bewusst ein
-           eigener Knopf statt kontextabhängigem Verhalten des Rabatt-Pickers —
-           die Zeilenauswahl dient auch dem Hinzufügen von Extras, ein dort noch
-           markierter Artikel dürfte den Rabatt nicht still auf die Position lenken.
-           Ohne Auswahl deaktiviert. -->
+      <!-- Positionsrabatt wirkt auf die markierte Zeile; ohne Auswahl aus (kein stilles Umlenken). -->
       <button
-        class="pnry-touch h-14 w-14 shrink-0 rounded-xl border active:scale-95 flex items-center justify-center transition-colors disabled:opacity-40 disabled:active:scale-100"
-        [disabled]="!canApplyLineDiscount()"
+        type="button"
+        class="pnry-touch h-14 rounded-control border flex flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-semibold active:scale-[0.97] transition-transform disabled:opacity-40 disabled:active:scale-100"
         [ngClass]="
-          hasLineDiscounts()
-            ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-300'
-            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+          hasLineDiscounts() ? 'bg-warn-soft border-warn-line text-warn-ink' : 'bg-pos-key border-pos-key-line text-ink'
         "
+        [disabled]="!canApplyLineDiscount()"
         (click)="openLineDiscountPicker()"
         aria-label="Rabatt auf markierte Position"
       >
-        <lib-icon name="percent" class="!text-[1.375rem]" />
+        <lib-icon name="percent" style="font-size: 1.25rem" />
+        {{ 'ORDER_DIALOG.LINE_DISCOUNT' | translate }}
       </button>
-      <!-- Rabattcode: eigener Knopf neben dem Rabatt-Picker. Getönt, sobald ein
-           geprüfter Code anliegt — eingelöst wird er erst beim Abschluss. -->
+      <!-- Getönt, sobald ein geprüfter Code anliegt — eingelöst wird er erst beim Abschluss. -->
       <button
-        class="pnry-touch h-14 w-14 shrink-0 rounded-xl border active:scale-95 flex items-center justify-center transition-colors"
+        type="button"
+        class="pnry-touch h-14 rounded-control border flex flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-semibold active:scale-[0.97] transition-transform"
         [ngClass]="
           appliedCodeDiscount()
-            ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-300'
-            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+            ? 'bg-warn-soft border-warn-line text-warn-ink'
+            : 'bg-pos-key border-pos-key-line text-ink'
         "
         (click)="openPromoCodeDialog()"
         aria-label="Rabattcode eingeben"
       >
-        <lib-icon name="ticket" class="!text-[1.375rem]" />
+        <lib-icon name="ticket" style="font-size: 1.25rem" />
+        {{ 'ORDER_DIALOG.PROMO_CODE' | translate }}
       </button>
-      <!-- Vertriebskanal: getönt = Kasse, neutral = Telefon. Der Zustand muss
-           ohne Antippen ablesbar sein — er landet unverändert im Z-Bon. -->
+      <!-- „Optionen" sammelt die frühere Spalte 2 und die Personalessen-/Firmenkunden-Tasten (core#829). -->
       <button
-        class="pnry-touch h-14 w-14 shrink-0 rounded-xl border active:scale-95 flex items-center justify-center transition-colors"
-        [ngClass]="
-          orderChannel() === 'pos'
-            ? 'bg-teal-50 dark:bg-teal-900/30 border-teal-200 dark:border-teal-900/50 text-teal-600 dark:text-teal-300'
-            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-        "
-        (click)="toggleOrderChannel()"
-        [attr.aria-pressed]="orderChannel() === 'pos'"
-        [attr.aria-label]="
-          orderChannel() === 'pos' ? 'Kanal: Kasse — zu Telefon wechseln' : 'Kanal: Telefon — zu Kasse wechseln'
-        "
+        type="button"
+        class="pnry-touch h-14 rounded-control border bg-pos-key border-pos-key-line text-ink flex flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-semibold active:scale-[0.97] transition-transform"
+        [matMenuTriggerFor]="optionen"
+        aria-label="Optionen"
       >
-        <lib-icon [name]="orderChannel() === 'pos' ? 'cash-register' : 'phone'" class="!text-[1.375rem]" />
+        <lib-icon name="dots-three" style="font-size: 1.25rem" />
+        {{ 'ORDER_DIALOG.OPTIONS' | translate }}
       </button>
-      <button
-        class="pnry-touch-primary h-14 w-32 shrink-0 rounded-xl bg-action text-on-action font-bold shadow-sm transition-transform text-sm group overflow-hidden active:scale-[0.92] flex items-center justify-center gap-1.5"
-        (click)="setTaxRateSubbuttons()"
-      >
-        <span>{{ 'ORDER_DIALOG.ORDER' | translate }}</span>
-        <lib-icon
-          name="arrow-right"
-          class="!text-[1.125rem] transition-transform duration-300 ease-out group-hover:translate-x-1 group-active:scale-125"
-        />
-      </button>
+      <mat-menu #optionen="matMenu" yPosition="above">
+        <button mat-menu-item (click)="setAsStaffMealOrder()" [disabled]="disableStaffMealButton">
+          <lib-icon name="fork-knife" class="mr-3" style="font-size: 1.25rem" />
+          {{ 'ORDER_DIALOG.STAFF_MEAL' | translate }}
+        </button>
+        <button
+          mat-menu-item
+          (click)="setCustomerSubButtons()"
+          [disabled]="disableCustomerButton || isStandaloneMode()"
+        >
+          <lib-icon name="buildings" class="mr-3" style="font-size: 1.25rem" />
+          {{ (isStandaloneMode() ? 'ORDER_DIALOG.ENTERPRISE_ONLY' : 'ORDER_DIALOG.CORPORATE_CUSTOMER') | translate }}
+        </button>
+        <button mat-menu-item (click)="setCombiSubButtons()">
+          <lib-icon name="arrows-merge" class="mr-3 rotate-90" style="font-size: 1.25rem" />
+          {{ 'ORDER_DIALOG.COMBINATION' | translate }}
+        </button>
+        <button mat-menu-item (click)="togglePriceVisibility()" [attr.aria-pressed]="priceVisibility">
+          <lib-icon name="currency-eur" class="mr-3" style="font-size: 1.25rem" />
+          {{ (priceVisibility ? 'ORDER_DIALOG.HIDE_PRICES' : 'ORDER_DIALOG.SHOW_PRICES') | translate }}
+        </button>
+        <button mat-menu-item (click)="setDeleteSubbuttons()">
+          <lib-icon name="broom" class="mr-3" style="font-size: 1.25rem" />
+          {{ 'ORDER_DIALOG.MORE_ACTIONS' | translate }}
+        </button>
+      </mat-menu>
+    </div>
+  </div>
 
-      <!-- ── Spacer ── -->
-      <div class="flex-1"></div>
+  <!-- ═══════════════ RASTER ═══════════════ -->
+  <div class="kasse__grid flex flex-col min-h-0 mr-3 relative">
+    <!-- Anpassen-Panel (#639): ersetzt Funktionstasten und Raster, solange eine Zeile angepasst wird -->
+    @if (customizeModel(); as model) {
+      <lib-product-customize-panel
+        class="flex min-h-0 flex-1 flex-col pb-2"
+        [model]="model"
+        [scope]="customizeScope()"
+        [scopeLocked]="customizeScopeLocked()"
+        (scopeChanged)="onCustomizeScopeChanged($event)"
+        (ingredientToggled)="onCustomizeIngredientToggled($event)"
+        (optionIncreased)="onCustomizeOptionIncreased($event)"
+        (optionDecreased)="onCustomizeOptionDecreased($event)"
+        (finished)="onCustomizeFinished()"
+        (cancelled)="onCustomizeCancelled()"
+        (showAllModifiers)="onCustomizeShowAllModifiers()"
+        [releaseLabel]="releaseLabel()"
+        (released)="releaseFromCombination()"
+      />
+    } @else {
+      <!-- Function Buttons: linksbündige Kacheln im Produktkachel-Maß, farbcodiert nach Wirkung (code-style.md §9.1) -->
+      @if (functionButtons.length > 0) {
+        <div class="flex flex-wrap items-stretch gap-2 shrink-0 px-3 pt-0 pb-3">
+          @for (functionButton of functionButtons; track functionButton._id; let i = $index) {
+            <button
+              type="button"
+              class="pnry-touch w-[var(--pnry-tile-min)] h-[6.5rem] shrink-0 rounded-xl border-2 flex flex-col items-center justify-center gap-1 font-bold text-xs tracking-wide uppercase px-2 transition-all active:scale-95"
+              [ngClass]="functionButtonClasses(functionButton)"
+              [attr.aria-pressed]="functionButton.pressed ?? null"
+              (click)="functionButton.callback == undefined ? pass() : functionButton.callback()"
+            >
+              @if (functionButton.iconName; as iconName) {
+                <lib-icon [name]="iconName" style="font-size: 1.25rem" />
+              }
+              <span class="text-center leading-tight line-clamp-2">{{ functionButton.name }}</span>
+            </button>
+          }
+          @if (functionBlockLabel) {
+            <div class="w-px self-stretch bg-gray-200 dark:bg-gray-700 mx-1"></div>
+            <span
+              class="self-center text-[0.625rem] tracking-widest uppercase font-semibold text-gray-400 dark:text-gray-500"
+              >{{ functionBlockLabel }}</span
+            >
+          }
+        </div>
+        <div class="h-px bg-gray-200 dark:bg-gray-700 mx-3 shrink-0"></div>
+      }
 
-      <!-- ── Rechts: Multiplier + Numpad ── -->
-      <div
-        class="h-14 w-40 shrink-0 rounded-xl bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer flex flex-col justify-center gap-0.5 px-3 overflow-hidden"
-        (click)="applyProductSearch()"
-      >
-        <span class="text-[0.625rem] text-gray-400 font-bold uppercase tracking-wider leading-none">Multiplier</span>
-        <div class="flex items-center justify-start gap-1.5">
-          <span class="font-bold text-lg text-gray-800 dark:text-white shrink-0 leading-tight">{{ multiplier }}</span>
-          @if (numpadValue) {
-            <span class="text-[0.6875rem] text-gray-500 italic truncate leading-tight">{{ numpadValue }}</span>
+      <!-- Firmenkunden-Auswahl -->
+      @if (corporateCustomers.length > 0) {
+        <div
+          class="pt-2 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 rounded-t-2xl p-4 shadow-lg mx-2"
+        >
+          <div class="flex gap-2 overflow-x-auto pb-2 noscroll">
+            @for (character of characters; track character) {
+              <button
+                class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold shrink-0"
+                (click)="applyCharacterFilter(character)"
+              >
+                {{ character }}
+              </button>
+            }
+            <button
+              class="px-3 h-8 rounded-full bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 text-xs font-bold shrink-0 hover:bg-red-100 dark:hover:bg-red-900/50"
+            >
+              Reset
+            </button>
+          </div>
+          <div class="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2 mt-2 max-h-48 overflow-y-auto">
+            @for (customer of corporateCustomers; track customer) {
+              <button
+                class="h-12 px-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium text-left truncate hover:bg-white dark:hover:bg-gray-700 hover:shadow-sm"
+                (click)="setCustomer(customer)"
+              >
+                {{ customer.name1 }}
+              </button>
+            }
+          </div>
+          <div class="flex items-center justify-center gap-2 mt-2">
+            <button
+              class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center text-sm font-bold transition-colors"
+            >
+              ←
+            </button>
+            <span class="text-xs text-gray-500">Seite 1 / 1</span>
+            <button
+              class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center text-sm font-bold transition-colors"
+            >
+              →
+            </button>
+          </div>
+        </div>
+      }
+      <!-- Artikel-Raster: 12,5rem Mindestbreite, 6,5rem hoch (Konzept §4); scrollt allein -->
+      <div class="flex-1 overflow-y-auto pt-1 pb-2 min-h-0">
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(var(--pnry-tile-min),1fr))] gap-3 content-start pb-4">
+          @for (productButton of productButtons; let i = $index; track i) {
+            <button
+              type="button"
+              class="pnry-touch relative h-[6.5rem] bg-pos-key rounded-card border border-pos-key-line text-ink font-semibold text-sm px-3 py-2 flex items-center justify-center gap-1.5 shadow-card active:scale-[0.97] transition-transform"
+              [style.background-color]="productButton.backgroundColor"
+              [style.color]="productButton.fontColor"
+              [class.ring-2]="productButton.pressed"
+              [class.ring-ink-muted]="productButton.pressed"
+              (click)="!productButton.callback ? noActionDefined(productButton) : productButton.callback()"
+            >
+              @if (productButton.countLabel) {
+                <span
+                  class="absolute -top-2 -right-1.5 rounded-full bg-brand-navy px-2 py-0.5 text-[0.75rem] font-bold leading-none text-white tabular-nums shadow"
+                  >{{ productButton.countLabel }}</span
+                >
+              }
+              @if (!productButton.isFunctionButton && productButton.ui?.index != null) {
+                <!-- Nummer der Schnellauswahl; der Treffer der Ziffernleiste trägt Mint (Konzept §5) -->
+                <span
+                  class="absolute top-1.5 left-1.5 text-[0.6875rem] font-bold min-w-[1.5rem] h-5 px-1.5 rounded-pill flex items-center justify-center tabular-nums"
+                  [ngClass]="
+                    productButton.ui?.index === numpadNumber
+                      ? 'bg-action text-on-action'
+                      : 'bg-surface-rail text-ink-muted'
+                  "
+                >
+                  {{ productButton.ui?.index }}
+                </span>
+              }
+              @if (productButton.iconName; as iconName) {
+                <lib-icon [name]="iconName" class="shrink-0 text-[1rem] opacity-70" />
+              } @else if (productButton.icon) {
+                <span class="shrink-0 text-[1rem] opacity-70" aria-hidden="true">{{ productButton.icon }}</span>
+              }
+              <span class="flex flex-col items-center min-w-0">
+                <!-- Umbruch nur an Wortgrenzen, keine Silbentrennung (core#853) -->
+                <span class="text-center leading-tight line-clamp-3 w-full [overflow-wrap:break-word] text-balance">{{
+                  productButton.name
+                }}</span>
+                @if (priceVisibility && !productButton.isFunctionButton) {
+                  <span class="text-xs text-ink-muted font-normal tabular-nums">{{ productButton.price | eur }}</span>
+                }
+              </span>
+            </button>
           }
         </div>
       </div>
-      <!-- Numpad: Inline (große Screens) -->
-      <div class="hidden @min-[84.75rem]:flex gap-1.5">
-        @for (number of numbers; track number) {
-          <button
-            class="pnry-touch h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-bold text-xl text-black dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
-            (click)="numpadAction(number)"
-          >
-            {{ number }}
-          </button>
-        }
-        <button
-          class="pnry-touch h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-bold text-2xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-colors flex items-center justify-center"
-          (click)="numpadReset()"
-        >
-          C
-        </button>
-      </div>
+    }
+  </div>
 
-      <!-- Clear + Numpad: Kompakt (kleine Screens) -->
-      <div class="@min-[84.75rem]:hidden flex gap-1.5">
+  <!-- ═══════════════ PRIMÄRTASTE ═══════════════ -->
+  <div class="kasse__primary px-3 py-3">
+    <button
+      type="button"
+      class="pnry-touch-primary h-16 w-full rounded-card bg-action text-on-action font-bold text-lg shadow-card active:scale-[0.97] transition-transform flex items-center justify-between px-5 gap-3"
+      (click)="setTaxRateSubbuttons()"
+    >
+      <span class="flex items-center gap-2">
+        {{ 'ORDER_DIALOG.ORDER' | translate }}
+        <lib-icon name="arrow-right" style="font-size: 1.25rem" />
+      </span>
+      <span class="tabular-nums">{{ (hasDiscountPreview() ? discountedTotal() : calculateSumPrice()) | eur }}</span>
+    </button>
+  </div>
+
+  <!-- ═══════════════ ZIFFERNLEISTE ═══════════════ -->
+  <!-- Die Leiste ist ihr eigener Container: Ob die Ziffern inline passen, hängt an ihrer Breite, nicht am
+       Viewport. Die Schwelle ist die Summe der festen Breiten (53.25rem) und wächst über rem mit der Dichte,
+       ein Media-Breakpoint täte das nicht (#798). Multiplier-Logik unverändert (Konzept §5). -->
+  <div class="kasse__keys relative mr-3 py-3 min-w-0">
+    <div class="@container">
+      <div class="flex flex-row gap-1.5 items-stretch">
+        <!-- Tipp aufs Feld bucht den Artikel mit dieser Nummer 1× (applyProductSearch) -->
         <button
-          class="pnry-touch h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-bold text-2xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-colors flex items-center justify-center"
-          (click)="numpadReset()"
+          type="button"
+          class="h-14 w-[10.5rem] shrink-0 rounded-control bg-surface-panel border border-line text-left flex flex-col justify-center gap-0.5 px-3 overflow-hidden active:scale-[0.97] transition-transform"
+          (click)="applyProductSearch()"
         >
-          C
+          <span class="text-[0.625rem] text-ink-muted font-bold uppercase tracking-wider leading-none truncate">
+            @if (numpadNumber) {
+              {{ 'ORDER_DIALOG.TAP_BOOKS_NUMBER' | translate: { number: numpadNumber } }}
+            } @else {
+              {{ 'ORDER_DIALOG.MULTIPLIER_LABEL' | translate }}
+            }
+          </span>
+          <span class="flex items-baseline gap-1.5 min-w-0">
+            <span class="font-bold text-lg text-ink shrink-0 leading-tight tabular-nums">× {{ multiplier }}</span>
+            @if (numpadValue) {
+              <span class="text-[0.6875rem] text-ink-muted truncate leading-tight">{{ numpadValue }}</span>
+            }
+          </span>
         </button>
-        <button
-          class="h-14 w-14 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-bold text-lg text-black dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
-          (click)="showNumpadPopup = !showNumpadPopup"
-        >
-          <lib-icon name="dots-nine" class="!text-[1.375rem]" />
-        </button>
+        <!-- Ziffern inline (breite Leiste): 0–9 von links nach rechts, auch gespiegelt -->
+        <div class="hidden @min-[53.25rem]:flex gap-1.5">
+          @for (number of numbers; track number) {
+            <button
+              type="button"
+              class="pnry-touch h-14 w-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line font-bold text-xl text-ink active:scale-[0.97] transition-transform flex items-center justify-center tabular-nums"
+              (click)="numpadAction(number)"
+            >
+              {{ number }}
+            </button>
+          }
+          <button
+            type="button"
+            class="pnry-touch h-14 w-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line font-bold text-xl text-danger-ink active:scale-[0.97] transition-transform flex items-center justify-center"
+            (click)="numpadReset()"
+          >
+            C
+          </button>
+        </div>
+        <!-- Kompakt (schmale Leiste): C + Ziffern-Popup -->
+        <div class="@min-[53.25rem]:hidden flex gap-1.5">
+          <button
+            type="button"
+            class="pnry-touch h-14 w-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line font-bold text-xl text-danger-ink active:scale-[0.97] transition-transform flex items-center justify-center"
+            (click)="numpadReset()"
+          >
+            C
+          </button>
+          <button
+            type="button"
+            class="pnry-touch h-14 w-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line text-ink active:scale-[0.97] transition-transform flex items-center justify-center"
+            (click)="showNumpadPopup = !showNumpadPopup"
+            [attr.aria-label]="'ORDER_DIALOG.ARIA_KEYPAD' | translate"
+          >
+            <lib-icon name="dots-nine" style="font-size: 1.375rem" />
+          </button>
+        </div>
       </div>
     </div>
-    <!-- ═══ Ende untere Leiste ═══ -->
+    <!-- ═══ Ende Ziffernleiste ═══ -->
 
-    <!-- Ziffern-Popup bewusst außerhalb der Leiste: `fixed` richtet sich am Viewport aus, und ein
-         Container mit Containment darf das nicht abfangen. -->
+    <!-- Ziffern-Popup außerhalb des Containers (Containment fängt `fixed` ab, #798), aber in der Zone verankert:
+       Es steht über der Ziffern-Taste und wandert mit der Spiegelung mit. Links-Versatz = Feld 10,5rem + C +
+       zwei Lücken bis zur Mitte der Taste (16,5rem) minus halbe Popup-Breite (6,125rem). -->
     @if (showNumpadPopup) {
       <!-- Backdrop -->
       <div class="fixed inset-0 z-40" (click)="showNumpadPopup = false"></div>
-      <!-- Popup: mittig über dem Multiplier -->
-      <div class="fixed z-50 w-[12.25rem]" style="bottom: 7rem; right: 6.25rem">
+      <div class="absolute z-50 w-[12.25rem] bottom-[calc(100%-0.25rem)] left-[10.375rem]">
         <div class="bg-white dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-700 p-2.5 relative">
           <!-- Pfeil nach unten -->
           <div
@@ -860,53 +809,111 @@
         </div>
       </div>
     }
+  </div>
 
-    <!-- Customer Filter / Selection -->
-    @if (corporateCustomers.length > 0) {
+  <!-- Alle Gruppen hinter „Weitere (n)" -->
+  @if (allGroupsOpen()) {
+    <div
+      class="absolute inset-0 z-[55] bg-[var(--scrim)] flex items-start justify-center p-6"
+      (click)="allGroupsOpen.set(false)"
+    >
       <div
-        class="pt-2 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 rounded-t-2xl p-4 shadow-lg mx-2"
+        class="w-full max-w-5xl rounded-card bg-surface-panel border border-line shadow-card p-4"
+        (click)="$event.stopPropagation()"
+        (keydown.escape)="allGroupsOpen.set(false)"
+        cdkTrapFocus
+        [cdkTrapFocusAutoCapture]="true"
+        role="dialog"
+        aria-modal="true"
+        [attr.aria-label]="'ORDER_DIALOG.ALL_GROUPS' | translate"
       >
-        <div class="flex gap-2 overflow-x-auto pb-2 noscroll">
-          @for (character of characters; track character) {
-            <button
-              class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold shrink-0"
-              (click)="applyCharacterFilter(character)"
-            >
-              {{ character }}
-            </button>
-          }
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-sm font-bold text-ink">{{ 'ORDER_DIALOG.ALL_GROUPS' | translate }}</span>
           <button
-            class="px-3 h-8 rounded-full bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 text-xs font-bold shrink-0 hover:bg-red-100 dark:hover:bg-red-900/50"
+            type="button"
+            class="h-12 w-12 rounded-control flex items-center justify-center text-ink-muted hover:bg-surface-rail"
+            (click)="allGroupsOpen.set(false)"
+            [attr.aria-label]="'COMMON.CLOSE' | translate"
           >
-            Reset
+            <lib-icon name="x" style="font-size: 1.25rem" />
           </button>
         </div>
-        <div class="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2 mt-2 max-h-48 overflow-y-auto">
-          @for (customer of corporateCustomers; track customer) {
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2 max-h-[70vh] overflow-y-auto">
+          @for (productGroup of productGroups; track productGroup._id) {
             <button
-              class="h-12 px-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium text-left truncate hover:bg-white dark:hover:bg-gray-700 hover:shadow-sm"
-              (click)="setCustomer(customer)"
+              type="button"
+              class="pnry-touch h-14 min-w-0 rounded-control px-2 bg-surface-panel border border-line text-ink text-xs font-semibold uppercase leading-tight active:scale-[0.97] transition-transform"
+              [style.border-bottom]="'3px solid ' + productGroup.color"
+              (click)="selectGroupFromAll(productGroup)"
             >
-              {{ customer.name1 }}
+              <span class="line-clamp-2 [overflow-wrap:break-word] text-balance">{{ productGroup.name }}</span>
             </button>
           }
-        </div>
-        <div class="flex items-center justify-center gap-2 mt-2">
-          <button
-            class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center text-sm font-bold transition-colors"
-          >
-            ←
-          </button>
-          <span class="text-xs text-gray-500">Seite 1 / 1</span>
-          <button
-            class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center text-sm font-bold transition-colors"
-          >
-            →
-          </button>
         </div>
       </div>
-    }
-  </div>
+    </div>
+  }
+
+  <!-- Steuerleiste der markierten Zeile, Position oder Kombination (core#829, ADR 0034 P1–P4): eine eigene
+       Fläche unter der Zeile, je Taste 3,5rem. Minus bei Menge 1 aus (P3), Menge und Löschen mit Rückgängig (P4). -->
+  <ng-template #steuerleiste>
+    <div
+      class="grid grid-cols-5 gap-1.5 mx-1 mt-1 mb-2 p-1.5 rounded-control bg-surface-rail"
+      role="toolbar"
+      [attr.aria-label]="'ORDER_DIALOG.ARIA_SELECTION_TOOLBAR' | translate"
+    >
+      <button
+        type="button"
+        class="pnry-touch h-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line text-ink flex items-center justify-center active:scale-[0.97] transition-transform disabled:opacity-40 disabled:active:scale-100"
+        [disabled]="!canDecreaseSelection()"
+        (click)="decreaseSelectedQuantity()"
+        [attr.aria-label]="'ORDER_DIALOG.ARIA_DECREASE' | translate"
+      >
+        <lib-icon name="minus" style="font-size: 1.25rem" />
+      </button>
+      <div class="h-14 shrink-0 flex items-center justify-center font-bold text-lg text-ink tabular-nums">
+        {{ selectionQuantity() ?? '' }}
+      </div>
+      <button
+        type="button"
+        class="pnry-touch h-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line text-ink flex items-center justify-center active:scale-[0.97] transition-transform disabled:opacity-40 disabled:active:scale-100"
+        [disabled]="!canMutateSelection()"
+        (click)="increaseSelectedQuantity()"
+        [attr.aria-label]="'ORDER_DIALOG.ARIA_INCREASE' | translate"
+      >
+        <lib-icon name="plus" style="font-size: 1.25rem" />
+      </button>
+      @if (isWholeCombinationSelected()) {
+        <button
+          type="button"
+          class="pnry-touch h-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line text-ink flex flex-col items-center justify-center gap-0.5 text-[0.625rem] font-semibold active:scale-[0.97] transition-transform"
+          (click)="resolveSelectedCombination()"
+        >
+          <lib-icon name="link-break" style="font-size: 1.125rem" />
+          {{ 'ORDER_DIALOG.RESOLVE_COMBINATION' | translate }}
+        </button>
+      } @else {
+        <button
+          type="button"
+          class="pnry-touch h-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line text-ink flex flex-col items-center justify-center gap-0.5 text-[0.625rem] font-semibold active:scale-[0.97] transition-transform"
+          (click)="customizeSelection()"
+        >
+          <lib-icon name="sliders-horizontal" style="font-size: 1.125rem" />
+          {{ 'ORDER_DIALOG.CUSTOMIZE' | translate }}
+        </button>
+      }
+      <button
+        type="button"
+        class="pnry-touch h-14 shrink-0 rounded-control bg-danger-soft border border-danger-line text-danger-ink flex items-center justify-center active:scale-[0.97] transition-transform disabled:opacity-40 disabled:active:scale-100"
+        [disabled]="!canMutateSelection()"
+        (click)="deleteSelection()"
+        [attr.aria-label]="'ORDER_DIALOG.ARIA_DELETE' | translate"
+      >
+        <lib-icon name="trash" style="font-size: 1.25rem" />
+      </button>
+    </div>
+  </ng-template>
+
   <!-- Blocking Overlay -->
   @if (showDineLocationSelection) {
     <div

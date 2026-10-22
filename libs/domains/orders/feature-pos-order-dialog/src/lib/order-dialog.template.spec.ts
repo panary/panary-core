@@ -2,6 +2,7 @@ import { BindingType, parseTemplate, type TmplAstNode } from '@angular/compiler'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { GROUP_GAP_REM, GROUP_MIN_WIDTH_REM } from './group-bar'
 
 // Die Komponenten-Spec instanziiert den Dialog direkt und rendert das Template nicht —
 // deshalb hier ein Blick auf die Quelle: Beilage und Getraenk eines Menues sind Objekte,
@@ -35,6 +36,7 @@ describe('OrderDialog-Template — Aufpreis der Menue-Komponenten (core#781)', (
 
 // Angular trennt den Namen einer [class.…]-Bindung am Punkt: [class.translate-y-[0.3125rem]]
 // band nur „translate-y-[0" — eine Klasse ohne CSS, die Menue-Striche wurden nie zum „X" (#573).
+// Das Überlauf-Menü mit den Strichen ist mit core#829 entfallen; die Regel gilt für jede Bindung.
 type BindingNode = TmplAstNode & {
   inputs?: { name: string; type: BindingType; value: { source?: string | null } }[]
   children?: BindingNode[]
@@ -65,16 +67,6 @@ describe('OrderDialog-Template — Klassenbindungen (#573)', () => {
       .filter(name => (name.match(/\[/g) ?? []).length !== (name.match(/\]/g) ?? []).length)
     expect(truncated).toEqual([])
   })
-
-  it('verschiebt die aeusseren Menue-Striche um den vollen Wert', () => {
-    const sources = inputs.filter(i => i.type === BindingType.Property && i.name === 'class').map(i => i.value.source)
-    expect(sources).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining("'translate-y-[0.3125rem] rotate-45'"),
-        expect.stringContaining("'-translate-y-[0.3125rem] -rotate-45'"),
-      ]),
-    )
-  })
 })
 
 // Der Umschalter „1 Stück | alle n" (#699) lebt im Panel; ohne die Bindung bliebe er stumm auf „alle".
@@ -86,36 +78,50 @@ describe('OrderDialog-Template — Umschalter im Anpassen-Panel (#699)', () => {
   })
 })
 
-// Spalte 2 wurde bei niedriger Fensterhoehe gestaucht: Die Tasten hatten `flex-shrink: 1`,
-// bei 1024×600 ohne Fluid-Flag noch 45 px, bei 800×600 36 px (#757).
-describe('OrderDialog-Template — Funktionstasten in Spalte 2 (#757)', () => {
-  const start = template.indexOf('<!-- SPALTE 2: Funktionstasten -->')
-  const spalte = template.slice(start, template.indexOf('<!-- SPALTE 3: Produkte -->'))
-  const container = spalte.match(/<div class="([^"]*)">/)?.[1].split(/\s+/) ?? []
-  const tasten = [...spalte.matchAll(/<button[^>]*class="([^"]*)"/g)].map(m => m[1].split(/\s+/))
+// Spalte 2 ist mit core#829 entfallen. Ihre Mengen- und Löschtasten sitzen in der Steuerleiste unter der
+// markierten Zeile — im Bestandsmaß, nie geschrumpft (ADR 0034, #757: gestauchte Tasten bei 800×600).
+describe('Kasse-Template — Steuerleiste der Markierung (core#829)', () => {
+  const start = template.indexOf('<ng-template #steuerleiste>')
+  const leiste = template.slice(start, template.indexOf('</ng-template>', start))
+  const tasten = [...leiste.matchAll(/<button[^>]*class="([^"]*)"/g)].map(m => m[1].split(/\s+/))
 
-  it('hat sieben Tasten, keine davon schrumpft', () => {
+  it('hat −, +, Anpassen bzw. Kombi lösen und Löschen, alle im 3,5rem-Maß und nie geschrumpft', () => {
     expect(start).toBeGreaterThan(-1)
-    expect(tasten).toHaveLength(7)
-    expect(tasten.filter(klassen => !klassen.includes('shrink-0') || !klassen.includes('h-14'))).toEqual([])
+    // Anpassen und Kombi lösen stehen in @if/@else — gerendert wird je eine, im Template stehen beide.
+    expect(tasten).toHaveLength(5)
+    expect(tasten.filter(klassen => !klassen.includes('h-14') || !klassen.includes('shrink-0'))).toEqual([])
   })
 
-  it('scrollt bei zu wenig Hoehe, statt abzuschneiden', () => {
-    expect(container).toEqual(expect.arrayContaining(['shrink-0', 'min-h-0', 'overflow-y-auto']))
+  it('wirkt über die bestehenden Auswahl-Methoden, nicht über eigene Logik', () => {
+    for (const aufruf of [
+      'decreaseSelectedQuantity()',
+      'increaseSelectedQuantity()',
+      'customizeSelection()',
+      'resolveSelectedCombination()',
+      'deleteSelection()',
+    ]) {
+      expect(leiste).toContain(`(click)="${aufruf}"`)
+    }
+    expect(leiste).toContain('[disabled]="!canDecreaseSelection()"')
+  })
+
+  it('erscheint unter freier Zeile, Kombinationskopf und Position — als eigene Fläche außerhalb des Klickziels', () => {
+    expect(template.match(/<ng-container \[ngTemplateOutlet\]="steuerleiste" \/>/g)).toHaveLength(3)
   })
 })
 
-// Die untere Leiste lief bei 1280 px über: Der Inline-Ziffernblock schaltete bei `lg` (1024 px)
-// ein, die Leiste braucht aber rund 1380 px (#798). Die Schwelle misst jetzt die Leiste selbst
-// (Container-Query) und muss die Summe der festen Breiten tragen — ohne Padding, denn eine
-// Container-Query vergleicht die Inhaltsbreite.
-describe('OrderDialog-Template — untere Leiste (#798)', () => {
-  const start = template.indexOf('<!-- ═══════════════ EINHEITLICHE UNTERE LEISTE ═══════════════ -->')
-  const leiste = template.slice(start, template.indexOf('<!-- Customer Filter / Selection -->'))
-  const leistenTag = leiste.match(/<div class="([^"]*)">/)?.[1].split(/\s+/) ?? []
-  const inline = leiste.slice(leiste.indexOf('<!-- Numpad: Inline'), leiste.indexOf('<!-- Clear + Numpad: Kompakt'))
+// Die Ziffernleiste lief bei 1280 px über (#798): Die Schwelle misst die Leiste selbst (Container-Query) und
+// muss die Summe der festen Breiten tragen — ohne Padding, denn eine Container-Query vergleicht die Inhaltsbreite.
+describe('Kasse-Template — Ziffernleiste (#798, core#829)', () => {
+  const start = template.indexOf('<!-- ═══════════════ ZIFFERNLEISTE ═══════════════ -->')
+  const ende = template.indexOf('<!-- ═══ Ende Ziffernleiste ═══ -->')
+  const leiste = template.slice(start, ende)
+  // Die Zone ist der Anker des Popups, der Container sitzt eine Ebene tiefer (Containment fängt `fixed` ab).
+  const zone = leiste.match(/<div class="(kasse__keys [^"]*)">/)?.[1].split(/\s+/) ?? []
+  const leistenTag = leiste.match(/<div class="(@container[^"]*)">/)?.[1].split(/\s+/) ?? []
+  const inline = leiste.slice(leiste.indexOf('<!-- Ziffern inline'), leiste.indexOf('<!-- Kompakt'))
   const inlineKlassen = inline.match(/<div class="([^"]*)">/)?.[1].split(/\s+/) ?? []
-  const kompakt = leiste.slice(leiste.indexOf('<!-- Clear + Numpad: Kompakt'))
+  const kompakt = leiste.slice(leiste.indexOf('<!-- Kompakt'))
   const kompaktKlassen = kompakt.match(/<div class="([^"]*)">/)?.[1].split(/\s+/) ?? []
   const schwelle = (klassen: string[], wert: string) =>
     klassen.map(k => k.match(new RegExp(`^@min-\\[([\\d.]+)rem\\]:${wert}$`))?.[1]).find(Boolean)
@@ -129,23 +135,74 @@ describe('OrderDialog-Template — untere Leiste (#798)', () => {
     expect([...inlineKlassen, ...kompaktKlassen].filter(k => /^(sm|md|lg|xl|2xl):/.test(k))).toEqual([])
   })
 
-  it('schaltet den Inline-Ziffernblock erst ein, wenn alle Tasten nebeneinander passen', () => {
-    // Inline-Modus: Funktionstasten, Bestellen, Multiplier, Ziffern 0–9 und C — 19 Elemente mit
-    // fester Breite. Dazu kommt der Spacer ohne Breite, also 20 Elemente und 19 Lücken à gap-1.5
-    // = 0.375rem: so viele Lücken, wie es Breiten gibt.
-    const ohneKompakt = leiste.slice(0, leiste.indexOf('<!-- Clear + Numpad: Kompakt'))
-    const elemente = [...ohneKompakt.matchAll(/class="[^"]*\bw-(\d+)\b[^"]*"/g)].map(m => Number(m[1]) * 0.25)
-    const ziffernTaste = inline.match(/<button[^>]*class="[^"]*\bw-(\d+)\b/)?.[1]
-    // Die @for-Schleife steht einmal im Template, rendert aber zehn Ziffern.
-    const breiten = [...elemente, ...Array(9).fill(Number(ziffernTaste) * 0.25)]
-    const bedarf = breiten.reduce((a, b) => a + b, 0) + breiten.length * 0.375
-    expect(breiten).toHaveLength(19)
+  it('schaltet die Ziffern erst inline, wenn Multiplier, 0–9 und C nebeneinander passen', () => {
+    const feld = Number(leiste.match(/<button[^>]*class="[^"]*\bw-\[([\d.]+)rem\]/)?.[1])
+    const taste = Number(inline.match(/<button[^>]*class="[^"]*\bw-(\d+)\b/)?.[1]) * 0.25
+    // Feld + zehn Ziffern + C, dazwischen elf Lücken à gap-1.5 = 0.375rem.
+    const bedarf = feld + 11 * taste + 11 * 0.375
+    expect(feld).toBeGreaterThan(0)
+    expect(taste).toBe(3.5)
     expect(Number(schwelle(inlineKlassen, 'flex'))).toBeGreaterThanOrEqual(bedarf)
   })
 
-  it('hält das Ziffern-Popup außerhalb des Containers', () => {
-    const leistenEnde = leiste.indexOf('<!-- ═══ Ende untere Leiste ═══ -->')
-    expect(leistenEnde).toBeGreaterThan(-1)
-    expect(leiste.indexOf('@if (showNumpadPopup)')).toBeGreaterThan(leistenEnde)
+  it('hält das Ziffern-Popup außerhalb des Containers, aber in der Zone verankert', () => {
+    const zonenEnde = template.indexOf('<!-- Alle Gruppen')
+    const popup = template.indexOf('@if (showNumpadPopup)')
+    expect(ende).toBeGreaterThan(start)
+    expect(popup).toBeGreaterThan(ende)
+    expect(popup).toBeLessThan(zonenEnde)
+    expect(zone).toContain('relative')
+    expect(zone).not.toContain('@container')
+  })
+})
+
+// core#829: Zonen-Grid mit Spiegelung je Mitarbeiter, Gruppenleiste ohne Wischen, Kacheln ohne Silbentrennung.
+describe('Kasse-Template — Layout B1 (core#829)', () => {
+  const scss = readFileSync(fileURLToPath(new URL('./order-dialog.component.scss', import.meta.url)), 'utf8')
+  // Nur die Zeilen hinter `grid-template-areas:` — der Selektor `[data-hand='right']` trägt selbst Anführungszeichen.
+  const areas = (block: string) =>
+    [...block.slice(block.indexOf('grid-template-areas:')).matchAll(/'([a-z ]+)'/g)].map(m => m[1].split(/\s+/))
+
+  it('bindet die Seite des Warenkorbs an die Händigkeit des Mitarbeiters', () => {
+    expect(template).toContain('[attr.data-hand]="handedness()"')
+  })
+
+  it('spiegelt nur Zonen: Warenkorb ↔ Raster und Primärtaste ↔ Ziffernleiste, Kopf und Gruppen bleiben', () => {
+    const links = scss.slice(scss.indexOf('.kasse {'), scss.indexOf("&[data-hand='right']"))
+    const rechts = scss.slice(scss.indexOf("&[data-hand='right']"), scss.indexOf('.kasse__head'))
+    const gespiegelt = areas(links).map(zeile => [...zeile].reverse())
+
+    expect(areas(links)).toEqual([
+      ['head', 'head'],
+      ['groups', 'groups'],
+      ['cart', 'grid'],
+      ['primary', 'keys'],
+    ])
+    expect(areas(rechts)).toEqual(gespiegelt)
+  })
+
+  it('legt jede Zone auf ihre grid-area', () => {
+    for (const zone of ['head', 'groups', 'cart', 'grid', 'primary', 'keys']) {
+      expect(template).toContain(`kasse__${zone}`)
+      expect(scss).toMatch(new RegExp(`\\.kasse__${zone} \\{\\s*grid-area: ${zone};`))
+    }
+  })
+
+  it('baut die Gruppenleiste mit derselben Mindestbreite und demselben Abstand, mit denen group-bar.ts rechnet', () => {
+    const leiste = template.match(/class="kasse__groups ([^"]*)"/)?.[1].split(/\s+/) ?? []
+    expect(leiste).toContain(`grid-cols-[repeat(auto-fill,minmax(${GROUP_MIN_WIDTH_REM}rem,1fr))]`)
+    // gap-N ist N × 0,25rem — der Abstand steckt ebenfalls in der Rechnung.
+    const gap = leiste.map(k => k.match(/^gap-(\d+(?:\.\d+)?)$/)?.[1]).find(Boolean)
+    expect(Number(gap) * 0.25).toBe(GROUP_GAP_REM)
+  })
+
+  it('trennt Namen auf Kacheln und Gruppen nicht mitten im Wort (core#853)', () => {
+    expect(template).not.toMatch(/hyphens/)
+    expect(template).not.toMatch(/lang="de"/)
+  })
+
+  it('hat keine Spalte 2 mehr', () => {
+    expect(template).not.toContain('SPALTE 2')
+    expect(template).not.toContain('Abwählen')
   })
 })

@@ -85,5 +85,9 @@ danach nirgends — ein Kacheltap bei markierter Kombination war ein stiller No-
 Kombination. Die Regel lautet damit für beide Richtungen: **`this.combinations[…]` wird nie
 als Array mutiert** — Elemente ja, das Array nie.
 
+**Nachtrag (core#829):** Punkt 2 ist ersetzt durch [ADR 0059](0059-pos-layout-b-zonen-steuerleiste-spiegelung.md).
+Die Tasten sitzen nicht mehr in Spalte 2, sondern in einer Steuerleiste direkt unter der markierten
+Zeile. Punkte 1, 3 und 4 gelten unverändert.
+
 Umsetzung: [#269](https://github.com/panary/panary-core/issues/269) —
 `libs/domains/orders/feature-pos-order-dialog/src/lib/order-dialog.component.{html,ts,spec.ts}`.

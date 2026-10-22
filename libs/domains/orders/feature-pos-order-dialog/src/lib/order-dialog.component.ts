@@ -60,6 +60,7 @@ import {
   OrderInteraction,
   OrderInteractionService,
   OrderLineItem,
+  OrderCheckoutService,
   OrderService,
   StaffPaymentInfo,
   calculateModifierPrice,
@@ -126,6 +127,11 @@ import {
   type CustomizeScope,
 } from './product-customize'
 import { type CustomizeOptionEvent, ProductCustomizePanelComponent } from './product-customize-panel.component'
+import { CashPaymentComponent } from './cash-payment.component'
+import {
+  promptCashSessionAuthorization,
+  type CashSessionPromptLocation,
+} from '@panary/businessdays/feature-pos-closing-dialog'
 import {
   BoardSelection,
   nextBoardSelection,
@@ -162,6 +168,7 @@ const RELEASE_BUTTON_ID = 'releaseFromCombination'
     EurPipe,
     FormsModule,
     MatMenuModule,
+    CashPaymentComponent,
     ProductCustomizePanelComponent,
     TranslateModule,
   ],
@@ -185,6 +192,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly productGroupService: ProductGroupService = inject(ProductGroupService)
   protected readonly productService: ProductService = inject(ProductService)
   protected readonly orderService: OrderService = inject(OrderService)
+  readonly #checkout = inject(OrderCheckoutService)
   // TODO: CorporateCustomerService nach Migration aktivieren
   // protected readonly corporateCustomerService: CorporateCustomerService = inject(CorporateCustomerService)
   protected readonly locationService: LocationService = inject(LocationService)
@@ -295,8 +303,34 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly customizeModel = signal<CustomizeModel | null>(null)
   #customizeLine: OrderLineItem | null = null
 
-  /** Das Sheet ist offen: Primärtaste, Ziffern, Gruppenleiste und „Übersicht" sind gesperrt (core#830). */
-  readonly sheetOpen = computed(() => this.customizeModel() !== null)
+  /**
+   * Bezahlansicht (core#831): die Bestellung ist angelegt und wartet auf Bar-Kassieren.
+   * `total` ist die Summe in Euro, wie sie die Primärtaste zeigte; `orderId` die vorab vergebene ID.
+   */
+  readonly payment = signal<{ orderId: string; total: number } | null>(null)
+  /** Der Abschluss läuft gerade (Server-Aufruf, ggf. Kassen-Freigabe). */
+  readonly paying = signal(false)
+
+  /**
+   * Eine Bestellung wird gerade angelegt. Im Bezahl-Fall bleibt der Warenkorb über den Server-Roundtrip stehen
+   * (die Bezahlansicht braucht die ID der angelegten Bestellung): Ein zweiter Tipp auf INNEN/Sofort läse dieselben
+   * Positionen und legte eine zweite Bestellung an. Vorher leerte `deleteOrder()` den Warenkorb synchron.
+   */
+  readonly placing = signal(false)
+
+  /**
+   * Ein Sheet ist offen oder eine Bestellung wird angelegt — Anpassen, Bezahlen, Anlegen: Primärtaste, Ziffern,
+   * Gruppenleiste und „Übersicht" sind gesperrt.
+   */
+  readonly sheetOpen = computed(() => this.customizeModel() !== null || this.payment() !== null || this.placing())
+
+  /**
+   * Einlösung eines Rabattcodes, deren Bestellung noch nicht angelegt ist. Scheitert das Anlegen, bleibt der
+   * Warenkorb stehen und der nächste Versuch nutzt dieselbe Einlösung und dieselbe ID — sonst würde der Code
+   * ein zweites Mal verbraucht (ein Einmalcode wäre weg, die erste Einlösung zeigte auf eine Bestellung, die es
+   * nie gab).
+   */
+  #redeemedForRetry: { orderId: string; applied: AppliedDiscount } | null = null
 
   /** Ist das die Zeile, die das Sheet gerade anpasst — der Warenkorb markiert sie und pulsiert zweimal kurz. */
   isCustomizeLine(line: OrderLineItem): boolean {
@@ -711,6 +745,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.#orderInteractions = []
     this.selectedManualDiscount.set(null)
     this.appliedCodeDiscount.set(null)
+    this.#redeemedForRetry = null
     this.lineDiscounts.set({})
   }
 
@@ -2903,7 +2938,18 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this._selectedCombinationIndex = [null, null]
   }
 
-  async placeOrder() {
+  async placeOrder(): Promise<void> {
+    if (this.placing()) return
+    this.placing.set(true)
+    try {
+      await this.#placeOrder()
+    } finally {
+      this.placing.set(false)
+      this.#cdr.markForCheck()
+    }
+  }
+
+  async #placeOrder(): Promise<void> {
     // Gleiche Konfigurationen als eine Zeile auf den Bon (#699) — falls das Panel über einen
     // Ansichtswechsel statt über „Fertig" verlassen wurde.
     this.#freshLine = null
@@ -2988,22 +3034,31 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       // prüft dabei erneut gegen den autoritativen Log: Zwischen Eingabe und
       // Abschluss kann eine andere Kasse dasselbe Limit aufgebraucht haben.
       const checked = this.appliedCodeDiscount()
-      const outcome = await redeemCodeForOrder(checked, {
-        redeem: ({ code, orderId }) =>
-          this.discountCodeService.redeem({
-            code,
-            orderId,
-            customerId: this._customer?._id ?? null,
-            amountCents: Math.round(this.calculateSumPrice() * 100),
-          }),
-        newOrderId: () => uuidv7(),
-      })
+      const retained = this.#redeemedForRetry
+      const outcome = retained
+        ? ({ status: 'retained' } as const)
+        : await redeemCodeForOrder(checked, {
+            redeem: ({ code, orderId }) =>
+              this.discountCodeService.redeem({
+                code,
+                orderId,
+                customerId: this._customer?._id ?? null,
+                amountCents: Math.round(this.calculateSumPrice() * 100),
+              }),
+            newOrderId: () => uuidv7(),
+          })
 
-      if (outcome.status === 'redeemed' && checked) {
+      if (outcome.status === 'retained' && retained) {
+        // Wiederholung nach gescheitertem Anlegen: dieselbe Einlösung, dieselbe ID.
+        preAssignedOrderId = retained.orderId
+        appliedDiscounts.push(retained.applied)
+      } else if (outcome.status === 'redeemed' && checked) {
         // Dieselbe ID geht gleich an createOrder — Einlösung und Bestellung
         // tragen damit denselben Bezug (siehe redeemCodeForOrder).
         preAssignedOrderId = outcome.orderId
-        appliedDiscounts.push(this.#codeToApplied({ ...checked, ...outcome.redeemed }))
+        const applied = this.#codeToApplied({ ...checked, ...outcome.redeemed })
+        appliedDiscounts.push(applied)
+        this.#redeemedForRetry = { orderId: outcome.orderId, applied }
       } else if (outcome.status === 'failed') {
         // Die Bestellung darf daran nicht scheitern: Der Gast steht an der
         // Kasse, die Ware ist erfasst. Sie läuft ohne Code weiter — der Grund
@@ -3021,9 +3076,15 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     }
 
-    this.orderService.createOrder({
-      // Nur im Rabattcode-Fall gesetzt — sonst vergibt der Server (Regelfall).
-      _id: preAssignedOrderId,
+    // Bezahlansicht (core#831): Die Bestellung braucht eine ID, auf die das Kassieren danach zeigt. Der
+    // Rabattcode-Pfad hat sie schon; sonst wird sie hier vorab vergeben (derselbe Weg wie beim Rabattcode).
+    const payNow = this.paysAtCounter()
+    const paymentTotal = this.hasDiscountPreview() ? this.discountedTotal() : this.calculateSumPrice()
+    const orderId = payNow ? (preAssignedOrderId ?? uuidv7()) : preAssignedOrderId
+
+    const created = this.orderService.createOrder({
+      // Nur im Rabattcode- und Bezahl-Fall gesetzt — sonst vergibt der Server (Regelfall).
+      _id: orderId,
       lineItems: this.#lineItems,
       orderChannel: this.orderChannel(),
       customerDetails,
@@ -3041,9 +3102,89 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       appliedDiscounts: appliedDiscounts.length > 0 ? appliedDiscounts : undefined,
     })
 
+    if (payNow && orderId) {
+      // Erst wenn die Bestellung steht: Der Druckdialog öffnet im Service direkt nach dem Anlegen (F1), also vor
+      // der Bezahlansicht. Scheitert das Anlegen, bleibt der Warenkorb stehen — `handleError` hat gemeldet,
+      // und der Kassierer kann es erneut versuchen, ohne die Positionen neu zu tippen.
+      try {
+        const sequence = await created
+        if (sequence === null || sequence === undefined) return
+      } catch {
+        return
+      }
+      this.deleteOrder()
+      this.unselectProduct()
+      this.payment.set({ orderId, total: paymentTotal })
+      this.#cdr.markForCheck()
+      return
+    }
+
     this.deleteOrder()
     this.unselectProduct()
 
+    this.closed.emit('order-placed')
+  }
+
+  /**
+   * Läuft an der Kasse ein Barverkauf? Dann heißt die Primärtaste „Bezahlen" und führt in die Bezahlansicht.
+   * Nur im Kassenbetrieb (`operationMode !== 'orders-only'`, dieselbe Quelle wie „Offene Bestellungen") und nur
+   * für den Kanal Kasse: Telefonbestellungen werden bei Abholung bezahlt, Personalessen und Firmenkunden
+   * laufen über eigene Wege (Abrechnung), nicht über die Theke. Ein Personalessen zählt auch, wenn nur der
+   * Rabatt „Personalessen" gewählt ist: `placeOrder` speichert dann nur diesen Rabatt und verwirft Zeilenrabatte
+   * und Code — die Summe der Vorschau stimmte nicht mit der Bestellung überein.
+   */
+  paysAtCounter(): boolean {
+    return (
+      this.locationService.activeLocation()?.operationMode !== 'orders-only' &&
+      this.orderChannel() === OrderChannel.POS &&
+      !this.isStaffMealOrder &&
+      !this.selectedManualDiscount()?.isStaffMeal &&
+      !this._customer &&
+      this.#cashierId() !== null
+    )
+  }
+
+  /** Kassierer wie in „Offene Bestellungen": der angemeldete Mitarbeiter, sonst der Auth-User. */
+  #cashierId(): string | null {
+    return this._currentUser?._id?.toString() ?? this.authService.user()?._id?.toString() ?? null
+  }
+
+  /** „Bar kassieren": bucht Bar über die ganze Summe und schließt die Bestellung ab. */
+  async onCollect(): Promise<void> {
+    const pending = this.payment()
+    const cashierId = this.#cashierId()
+    if (!pending || !cashierId || this.paying()) return
+    this.paying.set(true)
+    try {
+      const result = await this.#checkout.payCash({
+        orderId: pending.orderId,
+        total: pending.total,
+        cashierId,
+        requestCashSession: id =>
+          promptCashSessionAuthorization(
+            this.matDialog,
+            this.locationService.activeLocation() as CashSessionPromptLocation | undefined,
+            this.userService.users(),
+            id,
+          ),
+      })
+      if (result === 'paid') {
+        this.payment.set(null)
+        this.closed.emit('order-placed')
+      } else if (result === 'cash-session-declined') {
+        this.matSnackBar.open('Kasse nicht freigegeben — die Bestellung bleibt offen', 'OK', { duration: 5000 })
+      }
+      // `failed`: `handleError` hat schon gemeldet, die Ansicht bleibt für einen neuen Versuch stehen.
+    } finally {
+      this.paying.set(false)
+      this.#cdr.markForCheck()
+    }
+  }
+
+  /** „Offen lassen": die Bestellung ist angelegt, bezahlt wird später in „Offene Bestellungen" (heutiger Weg). */
+  onKeepOpen(): void {
+    if (this.paying()) return
+    this.payment.set(null)
     this.closed.emit('order-placed')
   }
 

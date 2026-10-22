@@ -1,0 +1,138 @@
+<section
+  class="flex h-full min-h-0 flex-col gap-3 px-4 pb-4"
+  [attr.aria-label]="'ORDER_DIALOG.PAYMENT_TITLE' | translate"
+>
+  <header class="flex items-baseline justify-between gap-4">
+    <h2 class="text-lg font-bold text-ink">{{ 'ORDER_DIALOG.PAYMENT_TITLE' | translate }}</h2>
+    <div class="text-right">
+      <div class="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+        {{ 'ORDER_DIALOG.PAYMENT_AMOUNT' | translate }}
+      </div>
+      <div class="text-3xl font-black tabular-nums text-ink" data-testid="payment-total">{{ total() | eur }}</div>
+    </div>
+  </header>
+
+  <!-- Karte und Gutschein sind sichtbar, aber nicht antippbar: Der Betrieb sieht, was kommt (Entscheidung 5). -->
+  <div class="grid grid-cols-3 gap-2" role="group" [attr.aria-label]="'ORDER_DIALOG.PAYMENT_METHODS' | translate">
+    <button
+      type="button"
+      class="pnry-touch-primary h-16 rounded-control border-2 border-accent-line bg-accent-soft text-accent-ink font-bold"
+      aria-pressed="true"
+    >
+      {{ 'ORDER_DIALOG.PAYMENT_CASH' | translate }}
+    </button>
+    @for (method of ['PAYMENT_CARD', 'PAYMENT_VOUCHER']; track method) {
+      <button
+        type="button"
+        class="pnry-touch-primary h-16 rounded-control border border-line bg-surface-rail text-ink-muted font-semibold opacity-60"
+        disabled
+        [attr.data-testid]="'payment-' + method"
+      >
+        <span class="block">{{ 'ORDER_DIALOG.' + method | translate }}</span>
+        <span class="block text-[0.6875rem] font-medium">{{ 'ORDER_DIALOG.PAYMENT_SOON' | translate }}</span>
+      </button>
+    }
+  </div>
+
+  <div class="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-4">
+    <div class="flex flex-col gap-3">
+      <div class="rounded-control border border-line bg-surface-panel px-4 py-3">
+        <div class="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+          {{ 'ORDER_DIALOG.PAYMENT_GIVEN' | translate }}
+        </div>
+        <div class="text-3xl font-black tabular-nums text-ink" data-testid="payment-given">
+          {{ euro(given()) | eur }}
+        </div>
+      </div>
+      <!-- Rückgeld nur zur Anzeige (F2): kein Feld, das gebucht würde. -->
+      <div class="rounded-control border border-line bg-surface-rail px-4 py-3" aria-live="polite">
+        <div class="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+          {{ 'ORDER_DIALOG.PAYMENT_CHANGE' | translate }}
+        </div>
+        <div class="text-3xl font-black tabular-nums text-ink" data-testid="payment-change">
+          {{ euro(change()) | eur }}
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          class="pnry-touch h-14 rounded-control border border-pos-key-line bg-pos-key font-bold text-ink disabled:opacity-40"
+          [disabled]="busy()"
+          (click)="setGiven(totalCents())"
+          data-testid="payment-exact"
+        >
+          {{ 'ORDER_DIALOG.PAYMENT_EXACT' | translate }}
+        </button>
+        @for (amount of quick(); track amount) {
+          <button
+            type="button"
+            class="pnry-touch h-14 rounded-control border border-pos-key-line bg-pos-key font-bold tabular-nums text-ink disabled:opacity-40"
+            [disabled]="busy()"
+            (click)="setGiven(amount)"
+          >
+            {{ euro(amount) | eur }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-2 content-start">
+      @for (digit of digits; track digit) {
+        <button
+          type="button"
+          class="pnry-touch h-14 rounded-control border border-pos-key-line bg-pos-key text-xl font-bold tabular-nums text-ink disabled:opacity-40"
+          [disabled]="busy()"
+          (click)="press(digit)"
+        >
+          {{ digit }}
+        </button>
+      }
+      <button
+        type="button"
+        class="pnry-touch h-14 rounded-control border border-pos-key-line bg-pos-key text-xl font-bold text-danger-ink disabled:opacity-40"
+        [disabled]="busy()"
+        (click)="clear()"
+      >
+        C
+      </button>
+      <button
+        type="button"
+        class="pnry-touch h-14 rounded-control border border-pos-key-line bg-pos-key text-xl font-bold tabular-nums text-ink disabled:opacity-40"
+        [disabled]="busy()"
+        (click)="press(0)"
+      >
+        0
+      </button>
+      <button
+        type="button"
+        class="pnry-touch h-14 rounded-control border border-pos-key-line bg-pos-key text-ink flex items-center justify-center disabled:opacity-40"
+        [disabled]="busy()"
+        [attr.aria-label]="'ORDER_DIALOG.PAYMENT_BACKSPACE' | translate"
+        (click)="backspace()"
+      >
+        <lib-icon name="backspace" style="font-size: 1.375rem" />
+      </button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-3">
+    <button
+      type="button"
+      class="pnry-touch-primary h-16 rounded-card border border-line bg-surface-panel font-semibold text-ink disabled:opacity-40"
+      [disabled]="busy()"
+      (click)="keepOpen.emit()"
+      data-testid="payment-keep-open"
+    >
+      {{ 'ORDER_DIALOG.PAYMENT_KEEP_OPEN' | translate }}
+    </button>
+    <button
+      type="button"
+      class="pnry-touch-primary h-16 rounded-card bg-action text-on-action text-lg font-bold shadow-card disabled:opacity-40"
+      [disabled]="busy() || !canCollect()"
+      (click)="submit()"
+      data-testid="payment-collect"
+    >
+      {{ 'ORDER_DIALOG.PAYMENT_COLLECT' | translate }}
+    </button>
+  </div>
+</section>

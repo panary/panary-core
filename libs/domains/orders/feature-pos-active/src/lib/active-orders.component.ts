@@ -16,23 +16,18 @@ import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { uuidv7 } from 'uuidv7'
 import {
-  openManagerAuthorizeCashSessionDialog,
-  type ManagerAuthorizeCashSessionDialogData,
+  promptCashSessionAuthorization,
+  type CashSessionPromptLocation,
 } from '@panary/businessdays/feature-pos-closing-dialog'
-import type { CashSession } from '@panary/businessdays/domain'
-import { firstValueFrom } from 'rxjs'
 import {
   calculateModifierPrice,
   menuComponentSurcharge,
   calculateTaxSummary,
   Order,
   OrderLineItem,
+  OrderCheckoutService,
   OrderService,
   OrderStatus,
-  PaymentState,
-  Payment,
-  Transaction,
-  TransactionMethod,
 } from '@panary/orders/data-access'
 import {
   PrintDialogComponent,
@@ -97,6 +92,7 @@ interface OrderCardVm {
 })
 export class ActiveOrdersComponent {
   #orderService = inject(OrderService)
+  #checkout = inject(OrderCheckoutService)
   #router = inject(Router)
   #authService = inject(AuthService)
   #locationService = inject(LocationService)
@@ -287,81 +283,20 @@ export class ActiveOrdersComponent {
       return
     }
 
-    const total = this.calculateTotal(order)
-
-    const transaction: Transaction = {
-      _id: uuidv7(),
-      method: TransactionMethod.CASH,
-      amount: total,
-      currency: 'EUR',
-      timestamp: new Date().toISOString(),
-      performedBy: performedById,
-    }
-
-    const paymentInfo: Payment = {
-      state: PaymentState.PAID,
-      totalAmount: total,
-      tipAmount: 0,
-      transactions: [transaction],
-    }
-
-    try {
-      // Status wird im selben Patch gesetzt — kein zusaetzlicher complete()-Call.
-      await this.#orderService.patch(order._id, {
-        payment: paymentInfo,
-        status: OrderStatus.COMPLETED,
-      })
-    } catch (err) {
-      // Keine offene Kasse für den Kassierer → Inline-CTA: berechtigter
-      // Mitarbeiter gibt die Kasse per PIN frei, danach wird erneut kassiert.
-      if (this.#isCashSessionRequired(err)) {
-        const opened = await this.#promptOpenCashSession(performedById)
-        if (opened) {
-          try {
-            await this.#orderService.patch(order._id, {
-              payment: paymentInfo,
-              status: OrderStatus.COMPLETED,
-            })
-          } catch {
-            /* handleError hat bereits eine Fehler-Notification angezeigt */
-          }
-        }
-      }
-      /* sonst: handleError hat bereits eine Fehler-Notification angezeigt */
-    }
-  }
-
-  /** Erkennt den CASH_SESSION_REQUIRED-Fehler (AppError BD_6004) aus dem Guard. */
-  #isCashSessionRequired(err: unknown): boolean {
-    const e = err as { code?: unknown; data?: { code?: unknown } } | undefined
-    return e?.data?.code === 'BD_6004' || e?.code === 'BD_6004'
-  }
-
-  /**
-   * Öffnet den Manager-PIN-Dialog zur Kassen-Freigabe für den Kassierer.
-   * Liefert `true`, wenn eine Kasse eröffnet wurde (→ Bestellung erneut kassieren).
-   */
-  async #promptOpenCashSession(cashierId: string): Promise<boolean> {
-    const loc = this.#locationService.activeLocation() as
-      | {
-          currentBusinessDay?: { businessDayId?: string }
-          settings?: { cashSessionSettings?: { defaultOpeningFloatCents?: number } }
-        }
-      | undefined
-    const businessDayId = loc?.currentBusinessDay?.businessDayId
-    if (!businessDayId) return false
-
-    const cashier = this.#userService.users().find((u: User) => u._id === cashierId)
-    const cashierName = cashier ? `${cashier.firstName ?? ''} ${cashier.lastName ?? ''}`.trim() : undefined
-
-    const data: ManagerAuthorizeCashSessionDialogData = {
-      businessDayId,
-      cashierId,
-      cashierName: cashierName || undefined,
-      defaultOpeningFloatCents: loc?.settings?.cashSessionSettings?.defaultOpeningFloatCents,
-    }
-    const result = await firstValueFrom(openManagerAuthorizeCashSessionDialog(this.#matDialog, data).afterClosed())
-    return !!(result as CashSession | null)
+    // Status und Payment gehen im Service in einem Patch; BD_6004 (keine offene Kasse) führt dort in die
+    // Manager-PIN-Freigabe und genau einen Wiederholungsversuch. Fehler zeigt schon `handleError`.
+    await this.#checkout.payCash({
+      orderId: order._id,
+      total: this.calculateTotal(order),
+      cashierId: performedById,
+      requestCashSession: cashierId =>
+        promptCashSessionAuthorization(
+          this.#matDialog,
+          this.#locationService.activeLocation() as CashSessionPromptLocation | undefined,
+          this.#userService.users(),
+          cashierId,
+        ),
+    })
   }
 
   /**

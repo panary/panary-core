@@ -555,6 +555,15 @@
 
   <!-- ═══════════════ RASTER ═══════════════ -->
   <div class="kasse__grid flex flex-col min-h-0 mr-3 relative">
+    <!-- Bezahlansicht (core#831): dasselbe Sheet-Muster wie Anpassen, aber ohne Weg daneben — die Bestellung ist
+         schon angelegt, geschlossen wird nur über „Bar kassieren" oder „Offen lassen". -->
+    @if (payment(); as pending) {
+      <div class="kasse__scrim kasse-scrim-enter" aria-hidden="true"></div>
+      <div class="kasse__sheet kasse-sheet-enter bg-surface-panel border border-line shadow-card" role="dialog">
+        <lib-cash-payment [total]="pending.total" [busy]="paying()" (collect)="onCollect()" (keepOpen)="onKeepOpen()" />
+      </div>
+    }
+
     <!-- Anpassen-Sheet (#639, core#830): liegt über der Rasterspalte und gleitet von unten herein (CSS-Animation beim
          Einfügen; `animate.enter` ginge nicht — die Komponente führt noch `animations` für die Infobox, NG2027). Gruppenleiste
          und Warenkorb bleiben sichtbar und ungedimmt; der Scrim tut bewusst nichts, damit ein Tipp daneben
@@ -714,7 +723,7 @@
       [disabled]="sheetOpen()"
     >
       <span class="flex items-center gap-2">
-        {{ 'ORDER_DIALOG.ORDER' | translate }}
+        {{ (paysAtCounter() ? 'ORDER_DIALOG.PAY' : 'ORDER_DIALOG.ORDER') | translate }}
         <lib-icon name="arrow-right" style="font-size: 1.25rem" />
       </span>
       <span class="tabular-nums">{{ (hasDiscountPreview() ? discountedTotal() : calculateSumPrice()) | eur }}</span>

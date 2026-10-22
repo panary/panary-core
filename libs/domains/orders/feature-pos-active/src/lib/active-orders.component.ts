@@ -16,16 +16,15 @@ import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { uuidv7 } from 'uuidv7'
 import {
-  promptCashSessionAuthorization,
-  type CashSessionPromptLocation,
-} from '@panary/businessdays/feature-pos-closing-dialog'
+  CashPaymentDialogComponent,
+  type CashPaymentDialogData,
+} from '@panary/orders/feature-pos-order-dialog'
 import {
   calculateModifierPrice,
   menuComponentSurcharge,
   calculateTaxSummary,
   Order,
   OrderLineItem,
-  OrderCheckoutService,
   OrderService,
   OrderStatus,
 } from '@panary/orders/data-access'
@@ -92,7 +91,6 @@ interface OrderCardVm {
 })
 export class ActiveOrdersComponent {
   #orderService = inject(OrderService)
-  #checkout = inject(OrderCheckoutService)
   #router = inject(Router)
   #authService = inject(AuthService)
   #locationService = inject(LocationService)
@@ -245,9 +243,9 @@ export class ActiveOrdersComponent {
    * Eine generische Abschluss-Aktion (ersetzt die getrennten „Fertig"- und
    * „Kassieren"-Buttons). Verhalten haengt vom `Location.operationMode` ab:
    *
-   *   - `pos-cashier` (Default): Bestellung kassieren — Bar-Transaktion mit
-   *     `performedBy = aktueller User` anlegen (Basis fuer die Pro-Kassierer-
-   *     Kassenabstimmung) und Status auf COMPLETED setzen.
+   *   - `pos-cashier` (Default): oeffnet die Bezahlansicht (core#834); sie kassiert ueber
+   *     `OrderCheckoutService.payCash` — Bar-Transaktion mit `performedBy = aktueller User`
+   *     (Basis fuer die Pro-Kassierer-Kassenabstimmung) und Status COMPLETED.
    *   - `orders-only`: reines Bestellsystem ohne Kassier-Funktion — nur Status
    *     auf COMPLETED setzen, KEIN Payment.
    */
@@ -283,19 +281,17 @@ export class ActiveOrdersComponent {
       return
     }
 
-    // Status und Payment gehen im Service in einem Patch; BD_6004 (keine offene Kasse) führt dort in die
-    // Manager-PIN-Freigabe und genau einen Wiederholungsversuch. Fehler zeigt schon `handleError`.
-    await this.#checkout.payCash({
+    // Gleiche Bezahlansicht wie in der Kasse (core#834): Betrag, Gegeben, Rückgeld. Kassiert wird dort über
+    // `OrderCheckoutService.payCash` (inkl. Manager-PIN-Freigabe bei BD_6004) — hier keine zweite Kassierlogik.
+    const data: CashPaymentDialogData = {
       orderId: order._id,
       total: this.calculateTotal(order),
       cashierId: performedById,
-      requestCashSession: cashierId =>
-        promptCashSessionAuthorization(
-          this.#matDialog,
-          this.#locationService.activeLocation() as CashSessionPromptLocation | undefined,
-          this.#userService.users(),
-          cashierId,
-        ),
+    }
+    this.#matDialog.open<CashPaymentDialogComponent, CashPaymentDialogData, boolean>(CashPaymentDialogComponent, {
+      data,
+      panelClass: 'rounded-dialog',
+      autoFocus: false,
     })
   }
 

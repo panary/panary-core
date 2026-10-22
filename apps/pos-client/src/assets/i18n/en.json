@@ -635,6 +635,7 @@
     "PAYMENT_BACKSPACE": "Delete last digit",
     "PAYMENT_COLLECT": "Collect cash",
     "PAYMENT_KEEP_OPEN": "Keep open",
+    "PAYMENT_CASH_SESSION_DECLINED": "Cash drawer not authorised — the order stays open",
     "STAFF_MEAL": "Staff meal",
     "CORPORATE_CUSTOMER": "Corporate customer",
     "COMBINATION": "Combination",

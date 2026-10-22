@@ -20,3 +20,21 @@ describe('Offene Bestellungen — Menü-Komponenten (core#807)', () => {
     expect(component).toMatch(/menuComponentSurcharge\(item, component, generalPrice\)/)
   })
 })
+
+// core#834: „Abschließen" kassiert im Kassenbetrieb nicht mehr selbst fest Bar, sondern öffnet die Bezahlansicht;
+// der Bestellbetrieb (orders-only) schließt weiter ohne Zahlung ab.
+describe('Offene Bestellungen — Abschließen (core#834)', () => {
+  const component = read('./active-orders.component.ts')
+  const finalize = component.slice(component.indexOf('async finalizeOrder'), component.indexOf('#resolveCashierId()'))
+
+  it('öffnet im Kassenbetrieb die Bezahlansicht und kassiert nicht selbst', () => {
+    expect(finalize).toMatch(/open<CashPaymentDialogComponent/)
+    expect(finalize).not.toMatch(/payCash/)
+  })
+
+  it('der Bestellbetrieb schließt weiter über complete() ab, vor dem Öffnen der Bezahlansicht', () => {
+    expect(finalize.indexOf('#orderService.complete')).toBeGreaterThan(-1)
+    expect(finalize.indexOf('#orderService.complete')).toBeLessThan(finalize.indexOf('open<CashPaymentDialogComponent'))
+    expect(finalize.indexOf('!this.#isCashierMode()')).toBeLessThan(finalize.indexOf('#orderService.complete'))
+  })
+})

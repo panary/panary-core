@@ -15,4 +15,13 @@ describe('Einstellungen nutzen die App-Tokens (core#894)', () => {
       expect(read(file).match(ALTE_PALETTE) ?? []).toEqual([])
     },
   )
+
+  // Statisches `dark:text-gray-400` schlug gebundenes `text-accent-ink`: Der aktive Abschnitt blieb im
+  // dunklen Theme grau (Sandbox, core#894). Die Grundfarbe muss deshalb mit an die Bedingung.
+  it('kein Element mit gebundenem text-accent-ink trägt statisch eine andere Textfarbe', () => {
+    const tags = read('./settings.component.html').match(/<[a-z-]+\b[^>]*\[class\.text-accent-ink\][^>]*>/g) ?? []
+    expect(tags.length).toBeGreaterThan(0)
+    const konflikte = tags.filter(tag => /\sclass="[^"]*\b(?:dark:)?text-(?:gray|slate|white)-?\d*\b/.test(tag))
+    expect(konflikte).toEqual([])
+  })
 })

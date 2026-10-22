@@ -36,9 +36,10 @@
           class="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl z-50 overflow-hidden p-2 flex flex-col gap-1"
         >
           <button
-            class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            class="flex items-center gap-3 h-12 px-4 text-base font-medium rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             [class.bg-accent-soft]="activeSection() === 'general'"
             [class.text-accent-ink]="activeSection() === 'general'"
+            [class.text-ink-muted]="activeSection() !== 'general'"
             (click)="selectSection('general'); menuOpen.set(false)"
           >
             <lib-icon
@@ -51,9 +52,10 @@
             {{ 'SETTINGS.GENERAL' | translate }}
           </button>
           <button
-            class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            class="flex items-center gap-3 h-12 px-4 text-base font-medium rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             [class.bg-accent-soft]="activeSection() === 'users'"
             [class.text-accent-ink]="activeSection() === 'users'"
+            [class.text-ink-muted]="activeSection() !== 'users'"
             (click)="selectSection('users'); menuOpen.set(false)"
           >
             <lib-icon
@@ -66,9 +68,10 @@
             {{ 'SETTINGS.USERS' | translate }}
           </button>
           <button
-            class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            class="flex items-center gap-3 h-12 px-4 text-base font-medium rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             [class.bg-accent-soft]="activeSection() === 'printer'"
             [class.text-accent-ink]="activeSection() === 'printer'"
+            [class.text-ink-muted]="activeSection() !== 'printer'"
             (click)="selectSection('printer'); menuOpen.set(false)"
           >
             <lib-icon
@@ -81,9 +84,10 @@
             {{ 'SETTINGS.PRINTER' | translate }}
           </button>
           <button
-            class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            class="flex items-center gap-3 h-12 px-4 text-base font-medium rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             [class.bg-accent-soft]="activeSection() === 'design'"
             [class.text-accent-ink]="activeSection() === 'design'"
+            [class.text-ink-muted]="activeSection() !== 'design'"
             (click)="selectSection('design'); menuOpen.set(false)"
           >
             <lib-icon
@@ -96,9 +100,10 @@
             {{ 'SETTINGS.DESIGN' | translate }}
           </button>
           <button
-            class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            class="flex items-center gap-3 h-12 px-4 text-base font-medium rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             [class.bg-accent-soft]="activeSection() === 'connection'"
             [class.text-accent-ink]="activeSection() === 'connection'"
+            [class.text-ink-muted]="activeSection() !== 'connection'"
             (click)="selectSection('connection'); menuOpen.set(false)"
           >
             <lib-icon
@@ -112,9 +117,10 @@
           </button>
           <div class="h-px bg-gray-100 dark:bg-gray-700 my-1"></div>
           <button
-            class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            class="flex items-center gap-3 h-12 px-4 text-base font-medium rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             [class.bg-accent-soft]="activeSection() === 'info'"
             [class.text-accent-ink]="activeSection() === 'info'"
+            [class.text-ink-muted]="activeSection() !== 'info'"
             (click)="selectSection('info'); menuOpen.set(false)"
           >
             <lib-icon
@@ -137,9 +143,10 @@
       class="hidden md:flex w-64 flex-none bg-white dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 flex-col gap-2 overflow-y-auto"
     >
       <button
-        class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        class="flex items-center gap-3 h-12 px-4 text-base font-medium rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         [class.bg-accent-soft]="activeSection() === 'general'"
         [class.text-accent-ink]="activeSection() === 'general'"
+        [class.text-ink-muted]="activeSection() !== 'general'"
         (click)="selectSection('general')"
       >
         <lib-icon
@@ -152,9 +159,10 @@
         {{ 'SETTINGS.GENERAL' | translate }}
       </button>
       <button
-        class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        class="flex items-center gap-3 h-12 px-4 text-base font-medium rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         [class.bg-accent-soft]="activeSection() === 'users'"
         [class.text-accent-ink]="activeSection() === 'users'"
+        [class.text-ink-muted]="activeSection() !== 'users'"
         (click)="selectSection('users')"
       >
         <lib-icon
@@ -167,9 +175,10 @@
         {{ 'SETTINGS.USERS' | translate }}
       </button>
       <button
-        class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        class="flex items-center gap-3 h-12 px-4 text-base font-medium rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         [class.bg-accent-soft]="activeSection() === 'printer'"
         [class.text-accent-ink]="activeSection() === 'printer'"
+        [class.text-ink-muted]="activeSection() !== 'printer'"
         (click)="selectSection('printer')"
       >
         <lib-icon
@@ -182,9 +191,10 @@
         {{ 'SETTINGS.PRINTER' | translate }}
       </button>
       <button
-        class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        class="flex items-center gap-3 h-12 px-4 text-base font-medium rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         [class.bg-accent-soft]="activeSection() === 'design'"
         [class.text-accent-ink]="activeSection() === 'design'"
+        [class.text-ink-muted]="activeSection() !== 'design'"
         (click)="selectSection('design')"
       >
         <lib-icon
@@ -197,9 +207,10 @@
         {{ 'SETTINGS.DESIGN' | translate }}
       </button>
       <button
-        class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        class="flex items-center gap-3 h-12 px-4 text-base font-medium rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         [class.bg-accent-soft]="activeSection() === 'connection'"
         [class.text-accent-ink]="activeSection() === 'connection'"
+        [class.text-ink-muted]="activeSection() !== 'connection'"
         (click)="selectSection('connection')"
       >
         <lib-icon
@@ -213,9 +224,10 @@
       </button>
       <div class="flex-1"></div>
       <button
-        class="flex items-center gap-3 h-12 px-4 text-base font-medium text-gray-500 dark:text-gray-400 rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        class="flex items-center gap-3 h-12 px-4 text-base font-medium rounded-xl w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         [class.bg-accent-soft]="activeSection() === 'info'"
         [class.text-accent-ink]="activeSection() === 'info'"
+        [class.text-ink-muted]="activeSection() !== 'info'"
         (click)="selectSection('info')"
       >
         <lib-icon

@@ -27,12 +27,9 @@ import {
   calculateTaxSummary,
   Order,
   OrderLineItem,
+  OrderCheckoutService,
   OrderService,
   OrderStatus,
-  PaymentState,
-  Payment,
-  Transaction,
-  TransactionMethod,
 } from '@panary/orders/data-access'
 import {
   PrintDialogComponent,
@@ -97,6 +94,7 @@ interface OrderCardVm {
 })
 export class ActiveOrdersComponent {
   #orderService = inject(OrderService)
+  #checkout = inject(OrderCheckoutService)
   #router = inject(Router)
   #authService = inject(AuthService)
   #locationService = inject(LocationService)
@@ -287,54 +285,14 @@ export class ActiveOrdersComponent {
       return
     }
 
-    const total = this.calculateTotal(order)
-
-    const transaction: Transaction = {
-      _id: uuidv7(),
-      method: TransactionMethod.CASH,
-      amount: total,
-      currency: 'EUR',
-      timestamp: new Date().toISOString(),
-      performedBy: performedById,
-    }
-
-    const paymentInfo: Payment = {
-      state: PaymentState.PAID,
-      totalAmount: total,
-      tipAmount: 0,
-      transactions: [transaction],
-    }
-
-    try {
-      // Status wird im selben Patch gesetzt — kein zusaetzlicher complete()-Call.
-      await this.#orderService.patch(order._id, {
-        payment: paymentInfo,
-        status: OrderStatus.COMPLETED,
-      })
-    } catch (err) {
-      // Keine offene Kasse für den Kassierer → Inline-CTA: berechtigter
-      // Mitarbeiter gibt die Kasse per PIN frei, danach wird erneut kassiert.
-      if (this.#isCashSessionRequired(err)) {
-        const opened = await this.#promptOpenCashSession(performedById)
-        if (opened) {
-          try {
-            await this.#orderService.patch(order._id, {
-              payment: paymentInfo,
-              status: OrderStatus.COMPLETED,
-            })
-          } catch {
-            /* handleError hat bereits eine Fehler-Notification angezeigt */
-          }
-        }
-      }
-      /* sonst: handleError hat bereits eine Fehler-Notification angezeigt */
-    }
-  }
-
-  /** Erkennt den CASH_SESSION_REQUIRED-Fehler (AppError BD_6004) aus dem Guard. */
-  #isCashSessionRequired(err: unknown): boolean {
-    const e = err as { code?: unknown; data?: { code?: unknown } } | undefined
-    return e?.data?.code === 'BD_6004' || e?.code === 'BD_6004'
+    // Status und Payment gehen im Service in einem Patch; BD_6004 (keine offene Kasse) führt dort in die
+    // Manager-PIN-Freigabe und genau einen Wiederholungsversuch. Fehler zeigt schon `handleError`.
+    await this.#checkout.payCash({
+      orderId: order._id,
+      total: this.calculateTotal(order),
+      cashierId: performedById,
+      requestCashSession: cashierId => this.#promptOpenCashSession(cashierId),
+    })
   }
 
   /**

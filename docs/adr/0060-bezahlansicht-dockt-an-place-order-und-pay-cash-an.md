@@ -59,3 +59,6 @@ Bestellbetrieb nicht ändern, und Zahlungslogik darf nicht an zwei Stellen unter
   antippbar, bis sie ein eigenes Issue bekommen.
 - Betriebsart-Wechsel mitten am Tag: Die Kasse zeigt sofort „Bezahlen", der Edge-Guard verlangt die offene Kasse
   erst ab dem Tages-Snapshot des nächsten Tages (siehe Issue-Risiko, panary/panary-core#831).
+- **Zweiter Einstieg (panary/panary-core#834).** „Abschließen“ in Offene Bestellungen öffnet im Kassenbetrieb dieselbe
+  Ansicht als Dialog (`CashPaymentDialogComponent`) und kassiert ebenfalls über `payCash` — keine zweite Kassierlogik,
+  keine Navigation (der Warenkorb der Kasse bleibt unberührt). Der Bestellbetrieb schließt weiter ohne Zahlung ab.

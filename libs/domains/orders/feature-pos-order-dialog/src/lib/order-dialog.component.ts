@@ -3701,6 +3701,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private concatMultiplier(number: number) {
     if (this.multiplierFirstStep) {
+      // Die erste Ziffer ersetzt die Startmenge 1. Eine 0 ergäbe Menge 0: die nächste Kachel buchte eine Zeile
+      // „0×" für 0 €. Als erste Ziffer bleibt sie ohne Wirkung (core#837); 10, 20 … bleiben möglich.
+      if (number === 0) return
       this.multiplier = number
       this.multiplierFirstStep = false
       return

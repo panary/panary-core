@@ -271,5 +271,7 @@ describe('Kasse-Template — Anpassen-Sheet (core#830)', () => {
     // Die erste Fassung trug die Markierung nur in der Kombination, die freie Zeile blieb stumm.
     expect(template.match(/\[class\.kasse-line-customizing\]="isCustomizeLine\(lineItem\)"/g)).toHaveLength(2)
     expect(template.match(/'ORDER_DIALOG\.LINE_CUSTOMIZING' \| translate/g)).toHaveLength(2)
+    // Der Hinweis hängt in beiden Vorlagen an `isCustomizeLine` — ohne diese Bedingung stünde er an jeder Zeile.
+    expect(template.match(/@if \(isCustomizeLine\(lineItem\)\) \{/g)).toHaveLength(2)
   })
 })

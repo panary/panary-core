@@ -31,20 +31,20 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
               <lib-icon name="arrow-left" class="text-[1.25rem]" />
             </button>
             <h1 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-              <lib-icon name="calendar-dots" class="text-[1.25rem] text-indigo-600" />
+              <lib-icon name="calendar-dots" class="text-[1.25rem] text-accent-ink" />
               {{ 'PRE_ORDERS.TITLE' | translate }}
             </h1>
             <!-- Mobil: runder Icon-Button -->
             <button
               (click)="openKasse()"
-              class="ml-4 md:hidden flex items-center justify-center w-10 h-10 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition-all"
+              class="ml-4 md:hidden flex items-center justify-center w-10 h-10 rounded-full bg-action text-on-action hover:brightness-95 active:scale-95 transition-all"
             >
               <lib-icon name="plus" class="text-[1.375rem]" />
             </button>
             <!-- Desktop: Button mit Text -->
             <button
               (click)="openKasse()"
-              class="ml-4 hidden md:flex items-center gap-2 h-10 px-4 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 active:scale-95 transition-all"
+              class="ml-4 hidden md:flex items-center gap-2 h-10 px-4 bg-action text-on-action rounded-xl font-medium hover:brightness-95 active:scale-95 transition-all"
             >
               <lib-icon name="plus-circle" class="text-[1.25rem]" />
               {{ 'PRE_ORDERS.NEW_PRE_ORDER' | translate }}
@@ -65,10 +65,10 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
             [(ngModel)]="searchQuery"
             (keyup.enter)="fetchOrders()"
             [placeholder]="'PRE_ORDERS.SEARCH_PLACEHOLDER' | translate"
-            class="w-full h-12 pl-10 pr-4 rounded-xl bg-gray-50 dark:bg-gray-800 border-none outline-none focus:ring-2 focus:ring-indigo-200 transition-all text-gray-700 dark:text-gray-200 placeholder:text-[0.6875rem] placeholder:md:text-sm placeholder:text-gray-400"
+            class="w-full h-12 pl-10 pr-4 rounded-xl bg-gray-50 dark:bg-gray-800 border-none outline-none focus:ring-2 focus:ring-accent-line transition-all text-gray-700 dark:text-gray-200 placeholder:text-[0.6875rem] placeholder:md:text-sm placeholder:text-gray-400"
           />
           <button
-            class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-600 text-white rounded-lg shadow-sm hover:bg-indigo-700 active:scale-95 transition-all"
+            class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-action text-on-action rounded-lg shadow-sm hover:brightness-95 active:scale-95 transition-all"
             (click)="fetchOrders()"
           >
             <lib-icon name="arrow-right" class="text-[1.25rem]" />
@@ -86,7 +86,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
         >
           @if (loading()) {
             <div class="flex-1 flex justify-center items-center flex-col gap-4">
-              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-ink"></div>
               <span class="text-gray-400 text-sm">{{ 'PRE_ORDERS.LOADING' | translate }}</span>
             </div>
           } @else if (orders().length === 0) {
@@ -100,7 +100,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                 <div
                   class="p-4 rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-950 hover:bg-gray-50 dark:hover:bg-gray-800 hover:shadow-md cursor-pointer transition-all group"
                   [class.ring-2]="selectedOrder()?._id === order._id"
-                  [class.ring-indigo-200]="selectedOrder()?._id === order._id"
+                  [class.ring-accent-line]="selectedOrder()?._id === order._id"
                   (click)="toggleOrderSelection(order)"
                   (keydown.enter)="toggleOrderSelection(order)"
                   tabindex="0"
@@ -113,7 +113,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                       >
                         {{ order.scheduledFor | date: 'dd.MM' }}
                       </span>
-                      <span class="text-xs font-bold text-indigo-600">
+                      <span class="text-xs font-bold text-accent-ink">
                         {{ 'PRE_ORDERS.TIME_OCLOCK' | translate: { time: (order.scheduledFor | date: 'HH:mm') } }}
                       </span>
                     </div>
@@ -121,7 +121,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                   </div>
 
                   <div
-                    class="font-medium text-gray-700 dark:text-gray-200 truncate group-hover:text-indigo-700 transition-colors"
+                    class="font-medium text-gray-700 dark:text-gray-200 truncate group-hover:text-accent-ink transition-colors"
                   >
                     {{ order.customerContact.name }}
                   </div>
@@ -202,17 +202,17 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
             <div class="flex-1 overflow-y-auto p-4">
               <!-- Customer Card -->
               <div
-                class="mb-4 p-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl border border-indigo-100 dark:border-indigo-800"
+                class="mb-4 p-4 bg-accent-soft rounded-xl border border-accent-line"
               >
-                <div class="font-bold text-indigo-900 dark:text-indigo-200 text-lg">
+                <div class="font-bold text-ink text-lg">
                   {{ selectedOrder()?.customerContact?.name }}
                 </div>
-                <div class="text-indigo-700 dark:text-indigo-300 flex items-center gap-2 mt-1">
+                <div class="text-accent-ink flex items-center gap-2 mt-1">
                   <lib-icon name="phone" class="text-[1rem]" />
                   {{ selectedOrder()?.customerContact?.phone }}
                 </div>
                 @if (selectedOrder()?.note) {
-                  <div class="mt-2 text-sm text-indigo-800 italic border-t border-indigo-200 pt-2">
+                  <div class="mt-2 text-sm text-ink-muted italic border-t border-accent-line pt-2">
                     "{{ selectedOrder()?.note }}"
                   </div>
                 }
@@ -246,7 +246,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
               @if (selectedOrder()?.status === 'pending') {
                 <div class="mt-6 grid grid-cols-2 gap-3">
                   <button
-                    class="col-span-2 h-12 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    class="col-span-2 h-12 rounded-lg bg-action text-on-action font-bold hover:brightness-95 active:scale-95 transition-all flex items-center justify-center gap-2"
                     (click)="convertToLiveOrder(selectedOrder()!)"
                   >
                     <lib-icon name="cash-register" class="text-[1.25rem]" />

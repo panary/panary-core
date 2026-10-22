@@ -3078,10 +3078,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Bezahlansicht (core#831): Die Bestellung braucht eine ID, auf die das Kassieren danach zeigt. Der
     // Rabattcode-Pfad hat sie schon; sonst wird sie hier vorab vergeben (derselbe Weg wie beim Rabattcode).
-    // Ein Personalessen (auch über einen manuell gewählten Personalessen-Rabatt) wird nicht an der Theke bar
-    // bezahlt, und die Summe der Vorschau trüge die verworfenen Zeilenrabatte mit — die Bestellung speichert dann
-    // nur den Personalessen-Rabatt.
-    const payNow = this.paysAtCounter() && !staffMealDetails
+    const payNow = this.paysAtCounter()
     const paymentTotal = this.hasDiscountPreview() ? this.discountedTotal() : this.calculateSumPrice()
     const orderId = payNow ? (preAssignedOrderId ?? uuidv7()) : preAssignedOrderId
 
@@ -3132,7 +3129,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    * Läuft an der Kasse ein Barverkauf? Dann heißt die Primärtaste „Bezahlen" und führt in die Bezahlansicht.
    * Nur im Kassenbetrieb (`operationMode !== 'orders-only'`, dieselbe Quelle wie „Offene Bestellungen") und nur
    * für den Kanal Kasse: Telefonbestellungen werden bei Abholung bezahlt, Personalessen und Firmenkunden
-   * laufen über eigene Wege (Abrechnung), nicht über die Theke.
+   * laufen über eigene Wege (Abrechnung), nicht über die Theke. Ein Personalessen zählt auch, wenn nur der
+   * Rabatt „Personalessen" gewählt ist: `placeOrder` speichert dann nur diesen Rabatt und verwirft Zeilenrabatte
+   * und Code — die Summe der Vorschau stimmte nicht mit der Bestellung überein.
    */
   paysAtCounter(): boolean {
     return (

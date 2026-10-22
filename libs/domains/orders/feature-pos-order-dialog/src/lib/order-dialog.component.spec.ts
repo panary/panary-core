@@ -2875,6 +2875,21 @@ describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
     expect(component.payment()?.orderId).toBe(createdOrders[0]['_id'])
   })
 
+  it('nimmt die Einlösung eines Codes nach geglücktem Anlegen nicht in die nächste Bestellung mit', async () => {
+    const { component, createdOrders, redeemCalls } = setup(cashier)
+    component.increaseLineItem(product('p-1'))
+    component.appliedCodeDiscount.set({ ok: true, code: 'SOMMER' })
+    await component.placeOrder()
+    component.onKeepOpen()
+
+    component.increaseLineItem(product('p-2'))
+    component.appliedCodeDiscount.set({ ok: true, code: 'WINTER' })
+    await component.placeOrder()
+
+    expect(redeemCalls.map(call => call['code'])).toEqual(['SOMMER', 'WINTER'])
+    expect(createdOrders[1]['_id']).not.toBe(createdOrders[0]['_id'])
+  })
+
   it('öffnet bei einem Personalessen-Rabatt keine Bezahlansicht', async () => {
     const { component, closeCalls } = setup(cashier)
     component.increaseLineItem(product('p-1'))

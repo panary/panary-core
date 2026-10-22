@@ -46,7 +46,8 @@
   color: var(--accent-ink);
 }
 
+/* `cdkMenuItemDisabled` setzt nur `aria-disabled`, kein `disabled`. */
 .pos-menu__item.is-blocked,
-.pos-menu__item:disabled {
+.pos-menu__item[aria-disabled='true'] {
   opacity: 0.5;
 }

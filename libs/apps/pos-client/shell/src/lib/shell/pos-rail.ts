@@ -24,9 +24,24 @@ export class PosRail {
   protected readonly nav = inject(PosNavigationService)
   protected readonly staff = inject(PosStaffService)
 
-  /** Menüs öffnen rechts neben der Rail, oben bündig; reicht der Platz nicht, unten bündig. */
-  protected readonly menuPositions: ConnectedPosition[] = [
-    { originX: 'end', originY: 'top', overlayX: 'start', overlayY: 'top', offsetX: 8 },
-    { originX: 'end', originY: 'bottom', overlayX: 'start', overlayY: 'bottom', offsetX: 8 },
+  /** Menüs öffnen rechts neben dem Eintrag, oben bündig; reicht der Platz nicht, unten bündig. */
+  protected readonly menuPositions = besides(8)
+  /** Der Avatar ist schmaler als ein Eintrag; sein Menü beginnt trotzdem erst hinter der Rail. */
+  protected readonly accountMenuPositions = besides(24)
+
+  /**
+   * Mit der Maus öffnet das Überfahren das Untermenü schon, und der Klick danach schaltete es
+   * wieder zu (CDK `toggle()`). Ein Klick soll immer öffnen; nach dem Umschalten der CDK wird
+   * deshalb nachgezogen — am Touchgerät öffnet der Klick selbst, das Nachziehen ist dann leer.
+   */
+  protected keepOpen(trigger: CdkMenuTrigger): void {
+    queueMicrotask(() => trigger.open())
+  }
+}
+
+function besides(offsetX: number): ConnectedPosition[] {
+  return [
+    { originX: 'end', originY: 'top', overlayX: 'start', overlayY: 'top', offsetX },
+    { originX: 'end', originY: 'bottom', overlayX: 'start', overlayY: 'bottom', offsetX },
   ]
 }

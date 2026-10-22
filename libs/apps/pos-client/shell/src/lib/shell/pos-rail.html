@@ -67,7 +67,7 @@
     [disabled]="nav.locked()"
     [attr.aria-label]="'POS_NAV.ACCOUNT' | translate"
     [cdkMenuTriggerFor]="accountMenu"
-    [cdkMenuPosition]="menuPositions"
+    [cdkMenuPosition]="accountMenuPositions"
   >
     {{ staff.initials() }}
     @if (staff.isStampedIn()) {
@@ -110,8 +110,10 @@
       cdkMenuItem
       type="button"
       class="pos-menu__item"
+      #settingsTrigger="cdkMenuTriggerFor"
       [cdkMenuTriggerFor]="settingsMenu"
       [cdkMenuPosition]="menuPositions"
+      (click)="keepOpen(settingsTrigger)"
     >
       <lib-icon name="gear" class="text-[1.375rem]" />
       <span class="flex-1">{{ 'DASHBOARD.SETTINGS' | translate }}</span>

@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, OnInit, signal, untracked } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { HttpClient } from '@angular/common/http'
-import { lastValueFrom } from 'rxjs'
+import { lastValueFrom, map } from 'rxjs'
 import { ThemeServiceService, UiScaleService } from '@panary/shared/data-access-theme'
 import { UiDensity, type UiDensityLevel } from '@panary/devices/domain'
 import { POS_PIN_LENGTH } from '@panary/users/domain'
@@ -13,7 +13,7 @@ import { LogService } from '@panary/shared/data-access-updater'
 import { DeviceAssignmentService } from '@panary/devices/data-access'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import { toSignal } from '@angular/core/rxjs-interop'
 
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -94,11 +94,26 @@ export class SettingsComponent implements OnInit {
   #snackBar = inject(MatSnackBar)
   #logService = inject(LogService)
 
+  readonly #route = inject(ActivatedRoute)
+
   /**
-   * Gewählter Abschnitt. Das „Mehr"-Menü der Rail springt per `?section=` direkt hinein (core#832);
-   * die Seitenleiste hier wählt weiter lokal.
+   * Gewählter Abschnitt — einzige Quelle ist `?section=` (core#832). Das „Mehr"-Menü der Rail springt
+   * so hinein, und die Seitenleiste schreibt dorthin: Ein lokaler Zustand daneben liefe auseinander,
+   * und ein erneuter Sprung auf dieselbe URL bliebe ohne Wirkung.
    */
-  readonly activeSection = signal<SettingsSection>('general')
+  readonly activeSection = toSignal(
+    this.#route.queryParamMap.pipe(
+      map(params => {
+        const section = params.get('section')
+        return isSettingsSection(section) ? section : 'general'
+      }),
+    ),
+    { initialValue: 'general' as SettingsSection },
+  )
+
+  selectSection(section: SettingsSection): void {
+    void this.router.navigate([], { relativeTo: this.#route, queryParams: { section }, replaceUrl: true })
+  }
   menuOpen = signal(false)
 
   // Unpair-Dialog (Verbindungs-Sektion → Danger-Zone)
@@ -176,13 +191,6 @@ export class SettingsComponent implements OnInit {
   })
 
   constructor() {
-    inject(ActivatedRoute)
-      .queryParamMap.pipe(takeUntilDestroyed())
-      .subscribe(params => {
-        const section = params.get('section')
-        if (isSettingsSection(section)) this.activeSection.set(section)
-      })
-
     this.loadCurrentUser()
     // Detailliste der abgelehnten Einträge an den reaktiven Zähler koppeln (angular.md §2.1).
     effect(() => {

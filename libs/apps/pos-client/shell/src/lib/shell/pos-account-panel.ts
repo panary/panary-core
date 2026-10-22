@@ -155,11 +155,13 @@ export class PosAccountPanel {
       this.#workingTime.set(undefined)
       return
     }
+    let workingTime: WorkingTime | undefined
     try {
-      this.#workingTime.set(await this.#workingTimes.get(stampingId))
+      workingTime = await this.#workingTimes.get(stampingId)
     } catch {
       // Offline: Status ohne Uhrzeit.
-      this.#workingTime.set(undefined)
     }
+    // Gehen und gleich wieder Kommen: Die späte Antwort der alten Stempelung überschreibt die neue nicht.
+    if (this.staff.currentUser()?.stampingId === stampingId) this.#workingTime.set(workingTime)
   }
 }

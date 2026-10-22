@@ -75,9 +75,14 @@ export class PosNavigationService {
     return Object.entries(target.queryParams ?? {}).every(([key, value]) => current[key] === value)
   }
 
-  /** „Mehr" leuchtet, solange eine seiner Routen offen ist (Arbeitszeiten, Einstellungen). */
+  /**
+   * „Mehr" leuchtet, solange eine seiner Routen offen ist (Arbeitszeiten, Einstellungen) — nach dem Pfad
+   * allein: `/settings` ohne `?section=` zeigt „Allgemein" und gehört genauso dazu.
+   */
   readonly moreActive = computed(() =>
-    [...this.moreGroups().flatMap(group => group.items), ...this.settings()].some(item => this.isActive(item)),
+    [...this.moreGroups().flatMap(group => group.items), ...this.settings()].some(
+      ({ entry: { target } }) => target.kind === 'route' && isNavPathActive(target.path, this.url()),
+    ),
   )
 
   open(item: PosNavItem): void {

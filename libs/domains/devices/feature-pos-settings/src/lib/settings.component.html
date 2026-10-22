@@ -41,7 +41,7 @@
             [class.dark:bg-purple-950]="activeSection() === 'general'"
             [class.text-purple-700]="activeSection() === 'general'"
             [class.dark:text-purple-300]="activeSection() === 'general'"
-            (click)="activeSection.set('general'); menuOpen.set(false)"
+            (click)="selectSection('general'); menuOpen.set(false)"
           >
             <lib-icon
               name="sliders-horizontal"
@@ -59,7 +59,7 @@
             [class.dark:bg-purple-950]="activeSection() === 'users'"
             [class.text-purple-700]="activeSection() === 'users'"
             [class.dark:text-purple-300]="activeSection() === 'users'"
-            (click)="activeSection.set('users'); menuOpen.set(false)"
+            (click)="selectSection('users'); menuOpen.set(false)"
           >
             <lib-icon
               name="users"
@@ -77,7 +77,7 @@
             [class.dark:bg-purple-950]="activeSection() === 'printer'"
             [class.text-purple-700]="activeSection() === 'printer'"
             [class.dark:text-purple-300]="activeSection() === 'printer'"
-            (click)="activeSection.set('printer'); menuOpen.set(false)"
+            (click)="selectSection('printer'); menuOpen.set(false)"
           >
             <lib-icon
               name="printer"
@@ -95,7 +95,7 @@
             [class.dark:bg-purple-950]="activeSection() === 'design'"
             [class.text-purple-700]="activeSection() === 'design'"
             [class.dark:text-purple-300]="activeSection() === 'design'"
-            (click)="activeSection.set('design'); menuOpen.set(false)"
+            (click)="selectSection('design'); menuOpen.set(false)"
           >
             <lib-icon
               name="palette"
@@ -113,7 +113,7 @@
             [class.dark:bg-purple-950]="activeSection() === 'connection'"
             [class.text-purple-700]="activeSection() === 'connection'"
             [class.dark:text-purple-300]="activeSection() === 'connection'"
-            (click)="activeSection.set('connection'); menuOpen.set(false)"
+            (click)="selectSection('connection'); menuOpen.set(false)"
           >
             <lib-icon
               name="share-network"
@@ -132,7 +132,7 @@
             [class.dark:bg-purple-950]="activeSection() === 'info'"
             [class.text-purple-700]="activeSection() === 'info'"
             [class.dark:text-purple-300]="activeSection() === 'info'"
-            (click)="activeSection.set('info'); menuOpen.set(false)"
+            (click)="selectSection('info'); menuOpen.set(false)"
           >
             <lib-icon
               name="info"
@@ -160,7 +160,7 @@
         [class.dark:bg-purple-950]="activeSection() === 'general'"
         [class.text-purple-700]="activeSection() === 'general'"
         [class.dark:text-purple-300]="activeSection() === 'general'"
-        (click)="activeSection.set('general')"
+        (click)="selectSection('general')"
       >
         <lib-icon
           name="sliders-horizontal"
@@ -178,7 +178,7 @@
         [class.dark:bg-purple-950]="activeSection() === 'users'"
         [class.text-purple-700]="activeSection() === 'users'"
         [class.dark:text-purple-300]="activeSection() === 'users'"
-        (click)="activeSection.set('users')"
+        (click)="selectSection('users')"
       >
         <lib-icon
           name="users"
@@ -196,7 +196,7 @@
         [class.dark:bg-purple-950]="activeSection() === 'printer'"
         [class.text-purple-700]="activeSection() === 'printer'"
         [class.dark:text-purple-300]="activeSection() === 'printer'"
-        (click)="activeSection.set('printer')"
+        (click)="selectSection('printer')"
       >
         <lib-icon
           name="printer"
@@ -214,7 +214,7 @@
         [class.dark:bg-purple-950]="activeSection() === 'design'"
         [class.text-purple-700]="activeSection() === 'design'"
         [class.dark:text-purple-300]="activeSection() === 'design'"
-        (click)="activeSection.set('design')"
+        (click)="selectSection('design')"
       >
         <lib-icon
           name="palette"
@@ -232,7 +232,7 @@
         [class.dark:bg-purple-950]="activeSection() === 'connection'"
         [class.text-purple-700]="activeSection() === 'connection'"
         [class.dark:text-purple-300]="activeSection() === 'connection'"
-        (click)="activeSection.set('connection')"
+        (click)="selectSection('connection')"
       >
         <lib-icon
           name="share-network"
@@ -251,7 +251,7 @@
         [class.dark:bg-purple-950]="activeSection() === 'info'"
         [class.text-purple-700]="activeSection() === 'info'"
         [class.dark:text-purple-300]="activeSection() === 'info'"
-        (click)="activeSection.set('info')"
+        (click)="selectSection('info')"
       >
         <lib-icon
           name="info"

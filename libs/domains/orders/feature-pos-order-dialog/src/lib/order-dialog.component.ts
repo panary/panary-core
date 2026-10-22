@@ -311,8 +311,26 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Der Abschluss läuft gerade (Server-Aufruf, ggf. Kassen-Freigabe). */
   readonly paying = signal(false)
 
-  /** Ein Sheet ist offen — Anpassen oder Bezahlen: Primärtaste, Ziffern, Gruppenleiste und „Übersicht" sind gesperrt. */
-  readonly sheetOpen = computed(() => this.customizeModel() !== null || this.payment() !== null)
+  /**
+   * Eine Bestellung wird gerade angelegt. Im Bezahl-Fall bleibt der Warenkorb über den Server-Roundtrip stehen
+   * (die Bezahlansicht braucht die ID der angelegten Bestellung): Ein zweiter Tipp auf INNEN/Sofort läse dieselben
+   * Positionen und legte eine zweite Bestellung an. Vorher leerte `deleteOrder()` den Warenkorb synchron.
+   */
+  readonly placing = signal(false)
+
+  /**
+   * Ein Sheet ist offen oder eine Bestellung wird angelegt — Anpassen, Bezahlen, Anlegen: Primärtaste, Ziffern,
+   * Gruppenleiste und „Übersicht" sind gesperrt.
+   */
+  readonly sheetOpen = computed(() => this.customizeModel() !== null || this.payment() !== null || this.placing())
+
+  /**
+   * Einlösung eines Rabattcodes, deren Bestellung noch nicht angelegt ist. Scheitert das Anlegen, bleibt der
+   * Warenkorb stehen und der nächste Versuch nutzt dieselbe Einlösung und dieselbe ID — sonst würde der Code
+   * ein zweites Mal verbraucht (ein Einmalcode wäre weg, die erste Einlösung zeigte auf eine Bestellung, die es
+   * nie gab).
+   */
+  #redeemedForRetry: { orderId: string; applied: AppliedDiscount } | null = null
 
   /** Ist das die Zeile, die das Sheet gerade anpasst — der Warenkorb markiert sie und pulsiert zweimal kurz. */
   isCustomizeLine(line: OrderLineItem): boolean {
@@ -727,6 +745,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.#orderInteractions = []
     this.selectedManualDiscount.set(null)
     this.appliedCodeDiscount.set(null)
+    this.#redeemedForRetry = null
     this.lineDiscounts.set({})
   }
 
@@ -2919,7 +2938,18 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this._selectedCombinationIndex = [null, null]
   }
 
-  async placeOrder() {
+  async placeOrder(): Promise<void> {
+    if (this.placing()) return
+    this.placing.set(true)
+    try {
+      await this.#placeOrder()
+    } finally {
+      this.placing.set(false)
+      this.#cdr.markForCheck()
+    }
+  }
+
+  async #placeOrder(): Promise<void> {
     // Gleiche Konfigurationen als eine Zeile auf den Bon (#699) — falls das Panel über einen
     // Ansichtswechsel statt über „Fertig" verlassen wurde.
     this.#freshLine = null
@@ -3004,22 +3034,31 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       // prüft dabei erneut gegen den autoritativen Log: Zwischen Eingabe und
       // Abschluss kann eine andere Kasse dasselbe Limit aufgebraucht haben.
       const checked = this.appliedCodeDiscount()
-      const outcome = await redeemCodeForOrder(checked, {
-        redeem: ({ code, orderId }) =>
-          this.discountCodeService.redeem({
-            code,
-            orderId,
-            customerId: this._customer?._id ?? null,
-            amountCents: Math.round(this.calculateSumPrice() * 100),
-          }),
-        newOrderId: () => uuidv7(),
-      })
+      const retained = this.#redeemedForRetry
+      const outcome = retained
+        ? ({ status: 'retained' } as const)
+        : await redeemCodeForOrder(checked, {
+            redeem: ({ code, orderId }) =>
+              this.discountCodeService.redeem({
+                code,
+                orderId,
+                customerId: this._customer?._id ?? null,
+                amountCents: Math.round(this.calculateSumPrice() * 100),
+              }),
+            newOrderId: () => uuidv7(),
+          })
 
-      if (outcome.status === 'redeemed' && checked) {
+      if (outcome.status === 'retained' && retained) {
+        // Wiederholung nach gescheitertem Anlegen: dieselbe Einlösung, dieselbe ID.
+        preAssignedOrderId = retained.orderId
+        appliedDiscounts.push(retained.applied)
+      } else if (outcome.status === 'redeemed' && checked) {
         // Dieselbe ID geht gleich an createOrder — Einlösung und Bestellung
         // tragen damit denselben Bezug (siehe redeemCodeForOrder).
         preAssignedOrderId = outcome.orderId
-        appliedDiscounts.push(this.#codeToApplied({ ...checked, ...outcome.redeemed }))
+        const applied = this.#codeToApplied({ ...checked, ...outcome.redeemed })
+        appliedDiscounts.push(applied)
+        this.#redeemedForRetry = { orderId: outcome.orderId, applied }
       } else if (outcome.status === 'failed') {
         // Die Bestellung darf daran nicht scheitern: Der Gast steht an der
         // Kasse, die Ware ist erfasst. Sie läuft ohne Code weiter — der Grund
@@ -3039,7 +3078,10 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Bezahlansicht (core#831): Die Bestellung braucht eine ID, auf die das Kassieren danach zeigt. Der
     // Rabattcode-Pfad hat sie schon; sonst wird sie hier vorab vergeben (derselbe Weg wie beim Rabattcode).
-    const payNow = this.paysAtCounter()
+    // Ein Personalessen (auch über einen manuell gewählten Personalessen-Rabatt) wird nicht an der Theke bar
+    // bezahlt, und die Summe der Vorschau trüge die verworfenen Zeilenrabatte mit — die Bestellung speichert dann
+    // nur den Personalessen-Rabatt.
+    const payNow = this.paysAtCounter() && !staffMealDetails
     const paymentTotal = this.hasDiscountPreview() ? this.discountedTotal() : this.calculateSumPrice()
     const orderId = payNow ? (preAssignedOrderId ?? uuidv7()) : preAssignedOrderId
 
@@ -3097,6 +3139,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       this.locationService.activeLocation()?.operationMode !== 'orders-only' &&
       this.orderChannel() === OrderChannel.POS &&
       !this.isStaffMealOrder &&
+      !this.selectedManualDiscount()?.isStaffMeal &&
       !this._customer &&
       this.#cashierId() !== null
     )

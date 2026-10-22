@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { EurPipe, IconComponent } from '@panary/shared/ui-common'
-import { appendCashDigit, canCollect, changeCents, quickAmounts, removeCashDigit, toCents } from './cash-payment'
+import { fromCents, toCents } from '@panary/orders/domain'
+import { appendCashDigit, canCollect, changeCents, quickAmounts, removeCashDigit } from './cash-payment'
 
 /**
  * Bezahlansicht „nur Bar" der Kasse (core#831, Konzept §2.4). Reine Anzeige und Eingabe: Die Bestellung ist
@@ -57,6 +58,6 @@ export class CashPaymentComponent {
 
   /** Cent als Euro für die `eur`-Pipe. */
   protected euro(cents: number): number {
-    return cents / 100
+    return fromCents(cents)
   }
 }

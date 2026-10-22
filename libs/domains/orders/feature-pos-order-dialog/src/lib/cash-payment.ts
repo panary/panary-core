@@ -1,3 +1,5 @@
+import { toCents } from '@panary/orders/domain'
+
 /**
  * Reine Logik der Bezahlansicht „nur Bar" (core#831): Eingabe des gegebenen Betrags in Cent, Rückgeld und
  * Schnellbeträge. Alles in ganzen Cent — Euro-Beträge mit Nachkommastellen addieren sich nicht exakt.
@@ -11,8 +13,6 @@ const QUICK_NOTES_CENTS = [500, 1000, 2000, 5000, 10000, 20000] as const
 
 /** Höchstens so viele Schnellbeträge neben „Passend". */
 const MAX_QUICK_AMOUNTS = 3
-
-export const toCents = (euro: number): number => Math.round(euro * 100)
 
 /** Ziffer von rechts eingeben, wie an einer Registrierkasse: 5, 0, 0 → 5,00 €. */
 export const appendCashDigit = (cents: number, digit: number): number => {

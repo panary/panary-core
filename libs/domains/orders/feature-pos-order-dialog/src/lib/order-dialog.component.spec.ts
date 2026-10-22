@@ -76,6 +76,10 @@ interface SetupOptions {
   payCashResult?: 'paid' | 'cash-session-declined' | 'failed'
   /** Was `OrderService.createOrder` liefert — `null` spielt ein gescheitertes Anlegen nach. */
   createOrderResult?: number | null
+  /** Die ersten n Aufrufe von `createOrder` scheitern (Netzfehler) — danach gilt `createOrderResult`. */
+  createOrderFailures?: number
+  /** `createOrder` bleibt offen, bis der Test `releaseCreate()` ruft — spielt den Server-Roundtrip nach. */
+  holdCreate?: boolean
 }
 
 const CURRENT_USER_ID = '018f0000-0000-7000-8000-000000000001'
@@ -113,6 +117,8 @@ function setup(options: SetupOptions = {}) {
   const createdOrders: Array<Record<string, unknown>> = []
   /** Aufrufe von `OrderCheckoutService.payCash` — die Bezahlansicht kassiert nur darüber (core#831). */
   const payCashCalls: Array<Record<string, unknown>> = []
+  /** Offene `createOrder`-Aufrufe (`holdCreate`) — je Test eigene Liste (testing.md §10). */
+  const heldCreates: Array<() => void> = []
   const redeemCalls: Array<Record<string, unknown>> = []
   const openedDialogs: Array<{ data?: unknown; disableClose?: boolean }> = []
   /** Was der `closed`-Output gemeldet hat — die Route entscheidet daraus, wie es weitergeht (core#828). */
@@ -148,7 +154,12 @@ function setup(options: SetupOptions = {}) {
           productionTimes: [0, 5, 10],
           createOrder: (payload: Record<string, unknown>) => {
             createdOrders.push(payload)
-            return Promise.resolve(options.createOrderResult === undefined ? 0 : options.createOrderResult)
+            if (createdOrders.length <= (options.createOrderFailures ?? 0)) {
+              return Promise.reject(new Error('Netz'))
+            }
+            const result = options.createOrderResult === undefined ? 0 : options.createOrderResult
+            if (!options.holdCreate) return Promise.resolve(result)
+            return new Promise(resolve => heldCreates.push(() => resolve(result)))
           },
         },
       },
@@ -295,6 +306,7 @@ function setup(options: SetupOptions = {}) {
     component,
     createdOrders,
     payCashCalls,
+    releaseCreate: () => heldCreates.splice(0).forEach(release => release()),
     redeemCalls,
     openedDialogs,
     closeCalls,
@@ -2827,6 +2839,52 @@ describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
     expect(snackBarCalls.map(c => c.message)).toEqual(['Kasse nicht freigegeben — die Bestellung bleibt offen'])
     expect(component.payment()).not.toBeNull()
     expect(closeCalls).toEqual([])
+  })
+
+  it('legt bei zwei schnellen Tipps nur eine Bestellung an, solange das Anlegen läuft', async () => {
+    const { component, createdOrders, releaseCreate } = setup({ ...cashier, holdCreate: true })
+    component.increaseLineItem(product('p-1'))
+
+    const first = component.placeOrder()
+    const second = component.placeOrder()
+    expect(component.placing()).toBe(true)
+    expect(component.sheetOpen()).toBe(true)
+    // Erst wenn `createOrder` aufgerufen und offen ist, kann der „Server" antworten.
+    await new Promise(resolve => setTimeout(resolve, 0))
+    releaseCreate()
+    await Promise.all([first, second])
+
+    expect(createdOrders).toHaveLength(1)
+    expect(component.placing()).toBe(false)
+  })
+
+  it('löst einen Rabattcode nach gescheitertem Anlegen nicht ein zweites Mal ein', async () => {
+    const { component, createdOrders, redeemCalls } = setup({ ...cashier, createOrderFailures: 1 })
+    component.increaseLineItem(product('p-1'))
+    component.appliedCodeDiscount.set({ ok: true, code: 'SOMMER' })
+
+    await component.placeOrder()
+    expect(component.payment()).toBeNull()
+    await component.placeOrder()
+
+    expect(redeemCalls).toHaveLength(1)
+    expect(createdOrders).toHaveLength(2)
+    // Dieselbe ID und derselbe Rabatt-Snapshot beim zweiten Versuch.
+    expect(createdOrders[1]['_id']).toBe(createdOrders[0]['_id'])
+    expect(createdOrders[1]['appliedDiscounts']).toEqual(createdOrders[0]['appliedDiscounts'])
+    expect(component.payment()?.orderId).toBe(createdOrders[0]['_id'])
+  })
+
+  it('öffnet bei einem Personalessen-Rabatt keine Bezahlansicht', async () => {
+    const { component, closeCalls } = setup(cashier)
+    component.increaseLineItem(product('p-1'))
+    component.selectedManualDiscount.set(managedDiscount({ isStaffMeal: true }))
+
+    expect(component.paysAtCounter()).toBe(false)
+    await component.placeOrder()
+
+    expect(component.payment()).toBeNull()
+    expect(closeCalls).toEqual(['order-placed'])
   })
 
   it('„Offen lassen" kassiert nichts und schließt wie heute', async () => {

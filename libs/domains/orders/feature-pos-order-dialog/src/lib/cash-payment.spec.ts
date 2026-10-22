@@ -1,3 +1,4 @@
+import { toCents } from '@panary/orders/domain'
 import { describe, expect, it } from 'vitest'
 import {
   appendCashDigit,
@@ -6,7 +7,6 @@ import {
   MAX_GIVEN_CENTS,
   quickAmounts,
   removeCashDigit,
-  toCents,
 } from './cash-payment'
 
 describe('Bezahlansicht — Eingabe in Cent', () => {

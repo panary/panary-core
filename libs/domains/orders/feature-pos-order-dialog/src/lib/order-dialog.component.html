@@ -17,15 +17,16 @@
       </div>
     </div>
     <button
-      (click)="dialogClose()"
-      class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/20 transition"
+      (click)="leave()"
+      class="h-10 px-3 flex items-center justify-center gap-1.5 rounded-xl hover:bg-white/20 transition"
       [ngClass]="
         infoBoxBackgroundColor !== '#f1f5f9'
           ? 'text-white/80 hover:text-white'
           : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
       "
     >
-      <lib-icon name="x" style="font-size: inherit" />
+      <lib-icon name="squares-four" style="font-size: inherit" />
+      <span class="text-sm font-semibold">{{ 'ORDER_DIALOG.OVERVIEW' | translate }}</span>
     </button>
   </div>
 
@@ -981,9 +982,9 @@
             <!-- TODO: appButton-Direktive nach Migration einbinden (@panary/shared/directives) -->
             <button
               class="h-12 px-8 rounded-xl bg-gray-800 text-white font-bold hover:bg-gray-700 active:scale-95 transition-all"
-              (click)="dialogClose()"
+              (click)="leave()"
             >
-              Schließen
+              {{ 'ORDER_DIALOG.OVERVIEW' | translate }}
             </button>
           </div>
         </div>
@@ -1003,9 +1004,9 @@
           </p>
           <button
             class="h-12 rounded-xl text-lg px-8 bg-red-500 text-white font-bold hover:bg-red-600 transition"
-            (click)="dialogClose()"
+            (click)="leave()"
           >
-            Schließen
+            {{ 'ORDER_DIALOG.OVERVIEW' | translate }}
           </button>
         </div>
       </div>

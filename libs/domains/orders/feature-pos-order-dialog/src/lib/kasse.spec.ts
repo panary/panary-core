@@ -1,0 +1,108 @@
+// JIT-Compiler zuerst laden: @angular/material ist partial-compiled (siehe order-dialog.component.spec).
+import '@angular/compiler'
+import { describe, expect, it } from 'vitest'
+import { Injector, runInInjectionContext, signal } from '@angular/core'
+import { ActivatedRouteSnapshot, Router, RouterStateSnapshot, UrlTree } from '@angular/router'
+import { TenantSuspensionService } from '@panary/shared/data-access'
+
+import { KASSE_EXIT_URL, KassePageComponent } from './kasse-page.component'
+import { kasseBookingGuard, kasseLeaveGuard } from './kasse.guards'
+
+function setup() {
+  const navigations: string[] = []
+  const suspended = signal(false)
+  const router = {
+    navigateByUrl: (url: string) => {
+      navigations.push(url)
+      return Promise.resolve(true)
+    },
+    parseUrl: (url: string) => Object.assign(new UrlTree(), { probe: url }),
+  }
+  const injector = Injector.create({
+    providers: [
+      { provide: Router, useValue: router },
+      { provide: TenantSuspensionService, useValue: { suspended } },
+    ],
+  })
+  return { injector, navigations, suspended }
+}
+
+const state = (url: string) => ({ url }) as RouterStateSnapshot
+const route = {} as ActivatedRouteSnapshot
+
+describe('KassePageComponent (core#828)', () => {
+  it('nach dem Bestellen bleibt man in der Kasse — sie wird frisch aufgebaut, keine Navigation', () => {
+    const { injector, navigations } = setup()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const page = runInInjectionContext(injector, () => new KassePageComponent()) as any
+
+    page.onClosed('order-placed')
+    page.onClosed('preorder-created')
+
+    expect(page.run()).toBe(2)
+    expect(navigations).toEqual([])
+  })
+
+  it('Verwerfen führt zur Übersicht, und der Guard fragt danach nicht ein zweites Mal', async () => {
+    const { injector, navigations } = setup()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const page = runInInjectionContext(injector, () => new KassePageComponent()) as any
+
+    page.onClosed('cancelled')
+
+    expect(navigations).toEqual([KASSE_EXIT_URL])
+    expect(page.run()).toBe(0)
+    expect(await page.canLeave()).toBe(true)
+  })
+})
+
+describe('kasseLeaveGuard (core#828)', () => {
+  const page = (answer: boolean) => ({ canLeave: () => Promise.resolve(answer) }) as unknown as KassePageComponent
+
+  it('übernimmt beim normalen Routenwechsel die Antwort der Kasse', async () => {
+    const { injector } = setup()
+    const run = (answer: boolean) =>
+      runInInjectionContext(injector, () => kasseLeaveGuard(page(answer), route, state('/kasse'), state('/dashboard')))
+
+    expect(await run(false)).toBe(false)
+    expect(await run(true)).toBe(true)
+  })
+
+  it.each(['/login', '/login?reason=idle', '/setup'])('fragt bei Sitzungsende (%s) nicht nach', target => {
+    const { injector } = setup()
+
+    const result = runInInjectionContext(injector, () =>
+      kasseLeaveGuard(page(false), route, state('/kasse'), state(target)),
+    )
+
+    expect(result).toBe(true)
+  })
+
+  it('ein Pfad, der nur mit „login" beginnt, ist kein Sitzungsende', async () => {
+    const { injector } = setup()
+
+    const result = runInInjectionContext(injector, () =>
+      kasseLeaveGuard(page(false), route, state('/kasse'), state('/login-hilfe')),
+    )
+
+    expect(await result).toBe(false)
+  })
+})
+
+describe('kasseBookingGuard (core#828)', () => {
+  it('lässt ohne Mandantensperre in die Kasse', () => {
+    const { injector } = setup()
+
+    expect(runInInjectionContext(injector, () => kasseBookingGuard(route, state('/kasse')))).toBe(true)
+  })
+
+  it('leitet beim gesperrten Mandanten auf die Übersicht um', () => {
+    const { injector, suspended } = setup()
+    suspended.set(true)
+
+    const result = runInInjectionContext(injector, () => kasseBookingGuard(route, state('/kasse')))
+
+    expect(result).toBeInstanceOf(UrlTree)
+    expect(result).toMatchObject({ probe: KASSE_EXIT_URL })
+  })
+})

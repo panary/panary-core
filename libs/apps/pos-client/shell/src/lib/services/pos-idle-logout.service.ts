@@ -1,10 +1,9 @@
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core'
-import { MatDialog } from '@angular/material/dialog'
 import { PosSessionService } from '@panary/auth/data-access'
 import { LocationService } from '@panary/locations/data-access'
 import { resolveAutoLogOffTimeoutMs } from '@panary/locations/domain'
 import { isAutoLogOffEnabled } from '@panary/users/domain'
-import { OrderDialogComponent } from '@panary/orders/feature-pos-order-dialog'
+import { KasseDraftRegistry } from '@panary/orders/feature-pos-order-dialog'
 import { evaluateIdle, POS_IDLE_TICK_MS, resolveWarningMs, type PosIdlePhase } from './idle-evaluator'
 
 /**
@@ -34,7 +33,7 @@ const LISTENER_OPTIONS = { passive: true, capture: true } as const
  * Lebt in der Shell-Lib, weil `AppPosShellComponent` genau die
  * authentifizierten Routen umschliesst (`/setup` und `/login` liegen
  * ausserhalb) und die Shell im POS-Abhaengigkeitsgraph oben steht — sie darf
- * `LocationService`, `MatDialog` und den Bestelldialog gleichzeitig kennen.
+ * `LocationService` und die Kasse gleichzeitig kennen.
  *
  * `providedIn: 'root'`, damit der Zustand einen Routenwechsel innerhalb der
  * Shell ueberlebt; die Bindung an die authentifizierten Routen leistet der
@@ -44,7 +43,7 @@ const LISTENER_OPTIONS = { passive: true, capture: true } as const
 export class PosIdleLogoutService {
   #session = inject(PosSessionService)
   #locationService = inject(LocationService)
-  #dialog = inject(MatDialog)
+  #kasseDraft = inject(KasseDraftRegistry)
 
   /**
    * Zeitstempel der letzten Interaktion — bewusst ein Plain-Feld und kein
@@ -86,16 +85,16 @@ export class PosIdleLogoutService {
    * vergessener Hold wuerde den Auto-Logoff dauerhaft und unsichtbar
    * abschalten:
    *
-   * 1. **Offene Bestellannahme.** Der Entwurf lebt komponenten-privat im
-   *    Bestelldialog und waere nach einem Logout verloren. Verschachtelte
-   *    Dialoge (Numpad, Rabatt-Picker) aendern nichts — der Bestelldialog
-   *    bleibt so lange in `openDialogs`.
+   * 1. **Angefangene Bestellung.** Der Entwurf lebt komponenten-privat in der
+   *    Kasse und waere nach einem Logout verloren. Seit die Kasse eine Route ist
+   *    (core#828), zaehlt die Eingabe, nicht das Offensein: Die Kasse bleibt nach
+   *    dem Bestellen offen, der Logout kaeme sonst nie.
    * 2. **Offline.** Die Wiederanmeldung braucht die serverseitige
    *    PIN-Pruefung; ein Logout ohne Verbindung sperrt das Terminal aus.
    */
   #isFrozen(): boolean {
     if (this.#session.isOffline()) return true
-    return this.#dialog.openDialogs.some(ref => ref.componentInstance instanceof OrderDialogComponent)
+    return this.#kasseDraft.hasDraft()
   }
 
   /** Startet die Ueberwachung. Idempotent — ein zweiter Mount legt keinen zweiten Timer an. */

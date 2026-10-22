@@ -7,7 +7,6 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { PreOrder, PreOrderService } from '@panary/pre-orders/data-access'
 import { MatDialog } from '@angular/material/dialog'
 import { ExtendedParams } from '@panary/shared-common'
-import { OrderDialogComponent } from '@panary/orders/feature-pos-order-dialog'
 import { ConfirmDialogComponent, EurPipe, IconComponent } from '@panary/shared/ui-common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
@@ -37,14 +36,14 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
             </h1>
             <!-- Mobil: runder Icon-Button -->
             <button
-              (click)="openCreateDialog()"
+              (click)="openKasse()"
               class="ml-4 md:hidden flex items-center justify-center w-10 h-10 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition-all"
             >
               <lib-icon name="plus" class="text-[1.375rem]" />
             </button>
             <!-- Desktop: Button mit Text -->
             <button
-              (click)="openCreateDialog()"
+              (click)="openKasse()"
               class="ml-4 hidden md:flex items-center gap-2 h-10 px-4 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 active:scale-95 transition-all"
             >
               <lib-icon name="plus-circle" class="text-[1.25rem]" />
@@ -385,22 +384,9 @@ export class PreOrderListComponent implements OnInit {
     }
   }
 
-  openCreateDialog() {
-    const ref = this.#dialog.open(OrderDialogComponent, {
-      backdropClass: 'backdrop-blur',
-      panelClass: 'fullscreen-dialog',
-      width: '98vw',
-      height: '95vh',
-      maxWidth: '100vw',
-      maxHeight: '100vh',
-      restoreFocus: false,
-      disableClose: true,
-    })
-
-    ref.afterClosed().subscribe(res => {
-      // Refresh in any case, maybe a new one was added
-      this.fetchOrders()
-    })
+  // Vorbestellungen entstehen in der Kasse (core#828); die Liste lädt beim Zurückkehren neu.
+  openKasse() {
+    this.#router.navigate(['/kasse'])
   }
 
   async convertToLiveOrder(order: PreOrder) {

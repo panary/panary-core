@@ -4,11 +4,13 @@ import {
   ChangeDetectorRef,
   Component,
   computed,
+  DestroyRef,
   effect,
   ElementRef,
   inject,
   OnDestroy,
   OnInit,
+  output,
   Pipe,
   PipeTransform,
   signal,
@@ -16,7 +18,8 @@ import {
   WritableSignal,
 } from '@angular/core'
 import { formatEurCents } from '@panary/shared/util-helpers'
-import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
+import { MatDialog } from '@angular/material/dialog'
+import { firstValueFrom } from 'rxjs'
 import { ConfirmDialogComponent, type ConfirmDialogData, EurPipe, IconComponent } from '@panary/shared/ui-common'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatSnackBar, MatSnackBarRef, TextOnlySnackBar } from '@angular/material/snack-bar'
@@ -25,6 +28,9 @@ import { CommonModule } from '@angular/common'
 import { animate, style, transition, trigger } from '@angular/animations'
 // UUID als String-Alias (node:crypto UUID ist ein branded type – für Migration vereinfacht)
 type UUID = string
+
+/** Wie eine Bestellung in der Kasse endete — `closed`-Output, ausgewertet von der Route (core#828). */
+export type KasseCloseReason = 'order-placed' | 'preorder-created' | 'cancelled'
 
 /** Warenkorb beim Öffnen des Anpassen-Panels — „Abbrechen" stellt ihn wieder her (#699). */
 interface CartSnapshot {
@@ -105,6 +111,7 @@ import {
   toPosButton,
 } from './pos-button.model'
 import { BundleFlow } from './bundle-flow'
+import { KasseDraftRegistry } from './kasse-draft-registry'
 import {
   type CustomizeModel,
   REMOVED_INGREDIENT_PREFIX,
@@ -179,10 +186,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly authService: AuthService = inject(AuthService)
   protected readonly translateService: TranslateService = inject(TranslateService)
   protected readonly userService: UserService = inject(UserService)
-  protected readonly matDialogRef: MatDialogRef<OrderDialogComponent> = inject(MatDialogRef<OrderDialogComponent>)
   protected readonly matDialog: MatDialog = inject(MatDialog)
-  // Meldeweg für alles, was den Dialogschluss überleben muss — die Infobox lebt im
-  // Dialog und ist mit ihm weg (siehe #placeOrder, Rabattcode-Fehlschlag).
+  // Meldeweg für alles, was das Abschließen der Bestellung überleben muss — die Infobox
+  // gehört zur Bestellung und ist mit ihr weg (siehe #placeOrder, Rabattcode-Fehlschlag).
   protected readonly matSnackBar: MatSnackBar = inject(MatSnackBar)
   protected readonly orderInteractionService: OrderInteractionService = inject(OrderInteractionService)
   protected readonly deviceConfigService: DeviceConfigService = inject(DeviceConfigService)
@@ -458,6 +464,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** CONSTRUCTOR */
   constructor() {
+    // Der Inaktivitäts-Logout fragt je Takt, ob hier etwas eingegeben ist (core#828).
+    inject(DestroyRef).onDestroy(inject(KasseDraftRegistry).attach(() => this.#hadInput))
+
     if (!this.locationService.currentBusinessDay) {
       // Business day check is handled by checkBusinessDayValidity() in ngOnInit
     }
@@ -522,8 +531,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   /** PUBLIC PROPERTIES */
   blockingReason: string | null = null
 
-  /** DIALOG DATA */
-  readonly data = inject<{ mode?: 'default' | 'admin' }>(MAT_DIALOG_DATA, { optional: true })
+  /**
+   * Die Bestellung ist beendet — abgeschickt, als Vorbestellung angelegt oder verworfen.
+   * Was danach kommt (frische Kasse, zurück zur Übersicht), entscheidet die Route (core#828).
+   */
+  readonly closed = output<KasseCloseReason>()
 
   /** DINE LOCATION OVERLAY */
   showDineLocationSelection = false
@@ -1017,8 +1029,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
         try {
           await this.preOrderService.create(payload)
-          // Erfolg: den GESAMTEN Bestelldialog schließen (nicht nur den Vorbestell-Dialog).
-          this.matDialogRef.close('preorder-created')
+          // Erfolg: die GESAMTE Bestellung beenden (nicht nur den Vorbestell-Dialog).
+          this.closed.emit('preorder-created')
         } catch (e) {
           // Fehler (z. B. außerhalb der Öffnungszeiten) INLINE im Bestelldialog
           // anzeigen — der BaseService-Toast oben rechts wird beim Fokus auf den
@@ -3002,7 +3014,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         // zugesagt, den die Bestellung nicht trägt.
         //
         // Bewusst KEINE Infobox: die überschreibt `unselectProduct()` rund 25
-        // Zeilen weiter unten, und `matDialogRef.close()` nimmt sie ohnehin mit
+        // Zeilen weiter unten, und das Ende der Bestellung nimmt sie ohnehin mit
         // (#234, belegt in der Spec). Die Snackbar ist ein globales Overlay und
         // überlebt beides. Ohne `duration` bleibt sie bis zur Quittierung stehen
         // — eine Meldung, die von selbst verschwindet, ist im Kassenbetrieb
@@ -3012,7 +3024,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     }
 
-    const orderIndex = this.orderService.createOrder({
+    this.orderService.createOrder({
       // Nur im Rabattcode-Fall gesetzt — sonst vergibt der Server (Regelfall).
       _id: preAssignedOrderId,
       lineItems: this.#lineItems,
@@ -3035,7 +3047,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.deleteOrder()
     this.unselectProduct()
 
-    this.matDialogRef.close(orderIndex)
+    this.closed.emit('order-placed')
   }
 
   /**
@@ -3398,32 +3410,45 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     return
   }
 
-  dialogClose() {
+  /** „Übersicht" und „Schließen": Bestellung nach Rückfrage verwerfen und die Kasse verlassen. */
+  async leave(): Promise<void> {
+    if (await this.confirmLeave()) this.closed.emit('cancelled')
+  }
+
+  /**
+   * Darf die Kasse verlassen werden? Ohne jede Eingabe sofort, sonst erst nach Rückfrage —
+   * gilt fürs X wie für Browser-Zurück und jeden anderen Routenwechsel (core#828). Bei Ja ist
+   * die Bestellung als abgebrochen protokolliert.
+   */
+  async confirmLeave(): Promise<boolean> {
     if (!this.#hadInput) {
-      this.#closeCancelled()
-      return
+      this.#logCancelled()
+      return true
     }
     // Nur die zwei Tasten beenden die Rückfrage — ein Tipp daneben soll weder verwerfen
     // noch versehentlich zurück in die Bestellung führen, ohne dass es jemand merkt.
-    this.matDialog
-      .open(ConfirmDialogComponent, {
-        width: '23.75rem',
-        maxWidth: '95vw',
-        panelClass: 'rounded-dialog',
-        disableClose: true,
-        data: {
-          title: 'Bestellung verwerfen?',
-          message: 'Die eingegebenen Positionen gehen verloren.',
-          confirmText: 'Bestellung verwerfen',
-          cancelText: 'Weiter bearbeiten',
-          confirmVariant: 'danger',
-          icon: 'trash',
-        } satisfies ConfirmDialogData,
-      })
-      .afterClosed()
-      .subscribe(discard => {
-        if (discard === true) this.#closeCancelled()
-      })
+    const discard = await firstValueFrom(
+      this.matDialog
+        .open(ConfirmDialogComponent, {
+          width: '23.75rem',
+          maxWidth: '95vw',
+          panelClass: 'rounded-dialog',
+          disableClose: true,
+          data: {
+            title: 'Bestellung verwerfen?',
+            message: 'Die eingegebenen Positionen gehen verloren.',
+            confirmText: 'Bestellung verwerfen',
+            cancelText: 'Weiter bearbeiten',
+            confirmVariant: 'danger',
+            icon: 'trash',
+          } satisfies ConfirmDialogData,
+        })
+        .afterClosed(),
+      { defaultValue: undefined },
+    )
+    if (discard !== true) return false
+    this.#logCancelled()
+    return true
   }
 
   /** Leert den Warenkorb, ohne den Dialog zu schließen — kein Rückgängig, deshalb wie beim X erst nachfragen (#795). */
@@ -3456,7 +3481,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       })
   }
 
-  #closeCancelled(): void {
+  #logCancelled(): void {
     this.orderInteractionService
       .create({
         type: 'order-cancel',
@@ -3473,7 +3498,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       .then()
 
     this.#invalidateUndo()
-    this.matDialogRef.close(false)
   }
 
   resetCharacterFilter() {

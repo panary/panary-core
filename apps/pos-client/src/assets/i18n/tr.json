@@ -600,6 +600,7 @@
     "CLOUD_URL_OVERRIDE_RESET": "Panary Cloud'a sıfırla"
   },
   "ORDER_DIALOG": {
+    "OVERVIEW": "Genel bakış",
     "EMPTY_ORDER": "Boş sipariş",
     "ADD_ITEMS": "Ürün ekleyin",
     "ORDER": "SİPARİŞ VER",

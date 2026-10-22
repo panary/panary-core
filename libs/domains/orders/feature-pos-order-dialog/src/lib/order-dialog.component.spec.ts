@@ -11,7 +11,7 @@ import {
   ɵChangeDetectionScheduler,
   ɵEffectScheduler,
 } from '@angular/core'
-import { MatDialog, MatDialogRef } from '@angular/material/dialog'
+import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'
 import { Subject, of } from 'rxjs'
@@ -30,6 +30,7 @@ import { PreOrderService } from '@panary/pre-orders/data-access'
 import { ConnectionService, TenantSuspensionService } from '@panary/shared/data-access'
 import { DeviceConfigService } from '@panary/shared/data-access-config'
 
+import { KasseDraftRegistry } from './kasse-draft-registry'
 import { OrderDialogComponent } from './order-dialog.component'
 
 /**
@@ -99,7 +100,11 @@ function setup(options: SetupOptions = {}) {
   const createdOrders: Array<Record<string, unknown>> = []
   const redeemCalls: Array<Record<string, unknown>> = []
   const openedDialogs: Array<{ data?: unknown; disableClose?: boolean }> = []
+  /** Was der `closed`-Output gemeldet hat — die Route entscheidet daraus, wie es weitergeht (core#828). */
   const closeCalls: unknown[] = []
+  const kasseDraft = new KasseDraftRegistry()
+  /** Protokollierte Interaktionen (Abbruch u. a.) — `orderInteractionService.create`. */
+  const interactions: Array<Record<string, unknown>> = []
   /** Was ueber `MatSnackBar` gemeldet wurde — der einzige Meldeweg, der den Dialogschluss ueberlebt. */
   const snackBarCalls: Array<{ message: string; action?: string }> = []
   /** Die geoeffneten Snackbars — `triggerAction()` spielt den Klick auf „Rueckgaengig" nach. */
@@ -195,7 +200,7 @@ function setup(options: SetupOptions = {}) {
           },
         },
       },
-      { provide: MatDialogRef, useValue: { close: (result?: unknown) => closeCalls.push(result) } },
+      { provide: KasseDraftRegistry, useValue: kasseDraft },
       {
         provide: MatSnackBar,
         useValue: {
@@ -219,7 +224,15 @@ function setup(options: SetupOptions = {}) {
           },
         },
       },
-      { provide: OrderInteractionService, useValue: { create: () => Promise.resolve() } },
+      {
+        provide: OrderInteractionService,
+        useValue: {
+          create: (payload: Record<string, unknown>) => {
+            interactions.push(payload)
+            return Promise.resolve()
+          },
+        },
+      },
       { provide: PreOrderService, useValue: {} },
       { provide: DeviceConfigService, useValue: {} },
       {
@@ -249,6 +262,7 @@ function setup(options: SetupOptions = {}) {
   // nur TS-Sichtbarkeiten; zur Laufzeit sind die Member da.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const component = runInInjectionContext(injector, () => new OrderDialogComponent()) as any
+  component.closed.subscribe((reason: unknown) => closeCalls.push(reason))
 
   return {
     component,
@@ -256,6 +270,8 @@ function setup(options: SetupOptions = {}) {
     redeemCalls,
     openedDialogs,
     closeCalls,
+    kasseDraft,
+    interactions,
     snackBarCalls,
     snackBarRefs,
     snackBarDismissAll,
@@ -1462,7 +1478,7 @@ describe('OrderDialog — Fertigungszeit „Sofort" (#343)', () => {
 
 describe('OrderDialog — Mandantensperre (#489)', () => {
   it('placeOrder bucht bei gesperrtem Mandanten nichts und meldet es', async () => {
-    const { component, createdOrders, snackBarCalls, suspended } = setup()
+    const { component, createdOrders, snackBarCalls, suspended, closeCalls } = setup()
     component.increaseLineItem(product('p-1'))
     suspended.set(true)
 
@@ -1472,6 +1488,8 @@ describe('OrderDialog — Mandantensperre (#489)', () => {
     expect(snackBarCalls.map(c => c.message)).toEqual(['Konto gesperrt — bitte den Inhaber kontaktieren'])
     // Der Warenkorb bleibt stehen: Nach dem Ende der Sperre geht derselbe Bon durch.
     expect(component.lineItems).toHaveLength(1)
+    // Die Kasse bleibt mit dem Warenkorb offen (core#828).
+    expect(closeCalls).toEqual([])
   })
 
   it('ohne Sperre bucht placeOrder wie bisher', async () => {
@@ -2141,21 +2159,21 @@ describe('OrderDialog — Numpad-Artikelsuche (#709)', () => {
  * eingegeben war. Ohne jede Eingabe schließt es weiter sofort.
  */
 describe('OrderDialog — Schließen fragt nach, sobald etwas eingegeben wurde (#795)', () => {
-  it('ohne jede Eingabe schließt das X sofort und ohne Rückfrage', () => {
+  it('ohne jede Eingabe schließt das X sofort und ohne Rückfrage', async () => {
     const { component, openedDialogs, closeCalls } = setup()
 
-    component.dialogClose()
+    await component.leave()
 
     expect(openedDialogs).toEqual([])
-    expect(closeCalls).toEqual([false])
+    expect(closeCalls).toEqual(['cancelled'])
   })
 
-  it('mit Positionen fragt es nach — nicht wegklickbar — und bleibt bei „Weiter bearbeiten" offen', () => {
+  it('mit Positionen fragt es nach — nicht wegklickbar — und bleibt bei „Weiter bearbeiten" offen', async () => {
     const { component, openedDialogs, closeCalls, dialogResult } = setup()
     component.increaseLineItem(product('p-1'))
     dialogResult.value = false
 
-    component.dialogClose()
+    await component.leave()
 
     expect(openedDialogs).toHaveLength(1)
     expect(openedDialogs[0].disableClose).toBe(true)
@@ -2163,7 +2181,7 @@ describe('OrderDialog — Schließen fragt nach, sobald etwas eingegeben wurde (
     expect(component.lineItems).toHaveLength(1)
   })
 
-  it('auch wenn alles wieder gelöscht wurde, fragt es nach; „Verwerfen" schließt', () => {
+  it('auch wenn alles wieder gelöscht wurde, fragt es nach; „Verwerfen" schließt', async () => {
     const { component, openedDialogs, closeCalls, dialogResult } = setup()
     component.increaseLineItem(product('p-1'))
     component.selectProduct(0)
@@ -2171,10 +2189,98 @@ describe('OrderDialog — Schließen fragt nach, sobald etwas eingegeben wurde (
     expect(component.lineItems).toHaveLength(0)
     dialogResult.value = true
 
-    component.dialogClose()
+    await component.leave()
 
     expect(openedDialogs).toHaveLength(1)
-    expect(closeCalls).toEqual([false])
+    expect(closeCalls).toEqual(['cancelled'])
+  })
+})
+
+/**
+ * Seit core#828 ist die Kasse eine Route: Browser-Zurück und jeder Routenwechsel fragen über
+ * `confirmLeave()` nach wie das X — ohne selbst zu melden, denn die Navigation läuft schon.
+ */
+describe('Kasse — Verlassen per Navigation (core#828)', () => {
+  it('ohne Eingabe darf sie ohne Rückfrage verlassen werden und protokolliert den Abbruch', async () => {
+    const { component, openedDialogs, closeCalls, interactions } = setup()
+
+    expect(await component.confirmLeave()).toBe(true)
+
+    expect(openedDialogs).toEqual([])
+    expect(interactions.map(i => i['type'])).toEqual(['order-cancel'])
+    expect(closeCalls).toEqual([])
+  })
+
+  it('mit Eingabe fragt sie nach; „Weiter bearbeiten" hält die Navigation auf und lässt den Warenkorb stehen', async () => {
+    const { component, openedDialogs, dialogResult, interactions } = setup()
+    component.increaseLineItem(product('p-1'))
+    dialogResult.value = false
+
+    expect(await component.confirmLeave()).toBe(false)
+
+    expect(openedDialogs).toHaveLength(1)
+    expect(interactions).toEqual([])
+    expect(component.lineItems).toHaveLength(1)
+  })
+
+  it('„Verwerfen" gibt die Navigation frei und protokolliert den Abbruch mit Positionen', async () => {
+    const { component, dialogResult, interactions } = setup()
+    component.increaseLineItem(product('p-1'))
+    dialogResult.value = true
+
+    expect(await component.confirmLeave()).toBe(true)
+
+    expect(interactions).toHaveLength(1)
+    expect(interactions[0]).toMatchObject({ type: 'order-cancel', hadLineItems: true })
+  })
+
+  it('ein weggeklickter Rückfrage-Dialog (kein Ergebnis) zählt als „Weiter bearbeiten"', async () => {
+    const { component, dialogResult } = setup()
+    component.increaseLineItem(product('p-1'))
+    dialogResult.value = undefined
+
+    expect(await component.confirmLeave()).toBe(false)
+  })
+})
+
+describe('Kasse — Ende einer Bestellung (core#828)', () => {
+  it('Bestellen meldet „order-placed" — die Kasse bleibt offen, die Route baut sie frisch auf', async () => {
+    const { component, closeCalls, createdOrders } = setup()
+    component.increaseLineItem(product('p-1'))
+
+    await component.placeOrder()
+
+    expect(createdOrders).toHaveLength(1)
+    expect(closeCalls).toEqual(['order-placed'])
+  })
+})
+
+/**
+ * Der Inaktivitäts-Logout setzt aus, solange in der Kasse etwas eingegeben ist. Als Dialog hieß
+ * das „Dialog offen"; die Route ist dauernd offen, also zählt die Eingabe (core#828).
+ */
+describe('Kasse — Entwurf für den Inaktivitäts-Logout (core#828)', () => {
+  it('eine leere Kasse hält den Logout nicht auf, eine Eingabe schon', () => {
+    const { component, kasseDraft } = setup()
+    expect(kasseDraft.hasDraft()).toBe(false)
+
+    component.increaseLineItem(product('p-1'))
+
+    expect(kasseDraft.hasDraft()).toBe(true)
+  })
+
+  it('ohne angehängte Kasse gibt es keinen Entwurf', () => {
+    expect(new KasseDraftRegistry().hasDraft()).toBe(false)
+  })
+
+  it('das Lösen einer alten Kasse hängt eine neuere nicht ab', () => {
+    const registry = new KasseDraftRegistry()
+    const detachOld = registry.attach(() => false)
+    registry.attach(() => true)
+
+    detachOld()
+
+    expect(registry.hasDraft()).toBe(true)
   })
 })
 

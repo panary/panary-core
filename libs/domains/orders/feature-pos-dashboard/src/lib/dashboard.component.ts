@@ -26,7 +26,6 @@ import { LocationService } from '@panary/locations/data-access'
 import { BusinessDayService, CashSessionService } from '@panary/businessdays/data-access'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
-import { OrderDialogComponent } from '@panary/orders/feature-pos-order-dialog'
 import {
   CashSessionDialogComponent,
   ClosingDialogComponent,
@@ -174,16 +173,8 @@ export class DashboardComponent implements OnInit {
       label: 'DASHBOARD.NEW_ORDER',
       requiresBooking: true,
       icon: 'shopping-cart-simple',
-      action: () => {
-        this.#dialog.open(OrderDialogComponent, {
-          width: '98vw',
-          height: '95vh',
-          maxWidth: '100vw',
-          maxHeight: '100vh',
-          panelClass: 'order-dialog-panel',
-          disableClose: true,
-        })
-      },
+      // Die Kasse ist eine Route, kein Dialog mehr (core#828); `kasseBookingGuard` sperrt sie beim gesperrten Mandanten.
+      action: () => this.navigateTo('/kasse'),
       bgClass: 'bg-emerald-100 dark:bg-emerald-900/30',
       textClass: 'text-emerald-700 dark:text-emerald-400',
     },

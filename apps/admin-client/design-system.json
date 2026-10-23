@@ -90,7 +90,7 @@
       "interactive": {
         "primaryButton": {
           "bg": { "light": "bg-ink", "dark": "" },
-          "text": { "light": "text-white", "dark": "dark:text-black" },
+          "text": { "light": "text-surface-panel", "dark": "" },
           "hover": { "light": "hover:bg-ink/90", "dark": "" }
         },
         "secondaryButton": {

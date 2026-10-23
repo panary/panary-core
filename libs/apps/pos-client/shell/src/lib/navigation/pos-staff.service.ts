@@ -1,17 +1,17 @@
-import { computed, inject, Injectable } from '@angular/core'
+import { computed, inject, Injectable, signal } from '@angular/core'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'
 import { AuthService, PosSessionService } from '@panary/auth/data-access'
-import { posOperatorSession, TenantSuspensionService } from '@panary/shared/data-access'
+import { posOperatorSession, TenantSuspensionService, withPosOperatorToken } from '@panary/shared/data-access'
 import { PosHandednessService, UserService } from '@panary/users/data-access'
 import { PosHandedness } from '@panary/users/domain'
-import { timeTrackingBlockedHintKey } from './pos-navigation'
+import { type TimeClockAction, timeTrackingBlockedHintKey } from './pos-navigation'
 
 /**
  * Der per PIN angemeldete Mitarbeiter: Name, Stempelstatus, Stempeln und Abmelden.
  *
- * Bis core#832 lag das im Kopf des Dashboards; mit der Rail sitzt es im Avatar-Menü und muss von
- * jeder Seite aus erreichbar sein. Die Sperren (offline, Mandantensperre) sind Bedienhilfe — die
+ * Bis core#832 lag das im Kopf des Dashboards, bis core#907 im Avatar-Menü; seitdem sitzt es direkt in
+ * der Rail und muss von jeder Seite aus erreichbar sein. Die Sperren (offline, Mandantensperre) sind Bedienhilfe — die
  * Custom-Methods `checkin`/`checkout`/`startBreak`/`endBreak` prüft der Server selbst.
  */
 @Injectable({ providedIn: 'root' })
@@ -65,29 +65,46 @@ export class PosStaffService {
     timeTrackingBlockedHintKey(this.bookingSuspended(), this.isOffline()),
   )
 
+  /** Läuft gerade ein Stempel-Aufruf aus der Rail? */
+  readonly timeClockBusy = signal(false)
+
+  /**
+   * Stempel-Taste der Rail (core#907). Ein Tipp, ein Aufruf: Ein Doppeltipp während der Antwort
+   * stempelt nicht zweimal — Kommen liefe sonst gegen eine schon offene Stempelung.
+   */
+  async timeClock(action: TimeClockAction): Promise<void> {
+    if (this.timeClockBusy()) return
+    this.timeClockBusy.set(true)
+    try {
+      await TIME_CLOCK_CALLS[action](this)
+    } finally {
+      this.timeClockBusy.set(false)
+    }
+  }
+
   async clockIn(): Promise<void> {
     const user = this.#timeTrackingUser()
     if (!user) return
-    await this.#run('Clock in', () => this.#users.checkin(user._id))
+    await this.#run('Clock in', () => this.#users.checkin(user._id, withPosOperatorToken()))
   }
 
   /** Ausstempeln meldet ab — wie bisher am Dashboard. */
   async clockOut(): Promise<void> {
     const user = this.#timeTrackingUser()
     if (!user?.stampingId) return
-    if (await this.#run('Clock out', () => this.#users.checkout(user._id))) this.logout()
+    if (await this.#run('Clock out', () => this.#users.checkout(user._id, withPosOperatorToken()))) this.logout()
   }
 
   async startBreak(): Promise<void> {
     const user = this.#timeTrackingUser()
     if (!user?.stampingId) return
-    await this.#run('Start break', () => this.#users.startBreak(user._id))
+    await this.#run('Start break', () => this.#users.startBreak(user._id, withPosOperatorToken()))
   }
 
   async endBreak(): Promise<void> {
     const user = this.#timeTrackingUser()
     if (!user?.stampingId) return
-    await this.#run('End break', () => this.#users.endBreak(user._id))
+    await this.#run('End break', () => this.#users.endBreak(user._id, withPosOperatorToken()))
   }
 
   /** Seite des Warenkorbs an der Kasse — eigene Wahl dieser Sitzung, sonst Datensatz, sonst links. */
@@ -118,7 +135,11 @@ export class PosStaffService {
     void this.#session.endSession('button')
   }
 
-  /** Stempeln läuft ohne Outbox: offline oder gesperrt hinge der Aufruf still. */
+  /**
+   * Stempeln läuft ohne Outbox: offline oder gesperrt hinge der Aufruf still. Die Aufrufe tragen das
+   * Bediener-Token, damit der Edge die Stempelung an den angemeldeten Menschen binden kann (core#903).
+   * Ein Edge vor #903 entfernt den Schlüssel in `resolvePosOperator`, ohne ihn auszuwerten.
+   */
   #timeTrackingUser() {
     const blocked = this.timeTrackingBlockedKey()
     if (blocked) {
@@ -141,6 +162,13 @@ export class PosStaffService {
   #notify(key: string): void {
     this.#snackBar.open(this.#translate.instant(key), undefined, { duration: 4000 })
   }
+}
+
+const TIME_CLOCK_CALLS: Record<TimeClockAction, (staff: PosStaffService) => Promise<void>> = {
+  'clock-in': staff => staff.clockIn(),
+  'start-break': staff => staff.startBreak(),
+  'end-break': staff => staff.endBreak(),
+  'clock-out': staff => staff.clockOut(),
 }
 
 interface StoredPosUser {

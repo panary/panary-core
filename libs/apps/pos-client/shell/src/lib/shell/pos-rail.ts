@@ -6,15 +6,17 @@ import { IconComponent } from '@panary/shared/ui-common'
 import { PosNavigationService } from '../navigation/pos-navigation.service'
 import { PosStaffService } from '../navigation/pos-staff.service'
 import { PosAccountPanel } from './pos-account-panel'
+import { PosTimeClock } from './pos-time-clock'
 
 /**
  * Linke Navigationsleiste des POS (core#832, Konzept §3 und Mockup 2.7): fünf direkte Einträge,
- * „Mehr" mit Gruppen und Einstellungen-Untermenü, Verbindungsanzeige und Avatar-Menü.
+ * „Mehr" mit Gruppen und Einstellungen-Untermenü, Verbindungsanzeige, Stempeln, Avatar-Menü und
+ * Abmelden. Stempeln und Abmelden liegen seit core#907 direkt in der Rail statt im Avatar-Menü.
  * Was sichtbar und was gesperrt ist, entscheidet `PosNavigationService`.
  */
 @Component({
   selector: 'lib-pos-rail',
-  imports: [CdkMenu, CdkMenuItem, CdkMenuTrigger, IconComponent, PosAccountPanel, TranslateModule],
+  imports: [CdkMenu, CdkMenuItem, CdkMenuTrigger, IconComponent, PosAccountPanel, PosTimeClock, TranslateModule],
   templateUrl: './pos-rail.html',
   styleUrls: ['./pos-rail.css', './pos-menu.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

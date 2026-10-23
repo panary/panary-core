@@ -53,7 +53,7 @@ describe('PosStaffService (core#832)', () => {
   it('stempelt online ein', async () => {
     const { service, users, snackBar } = setup()
     await service.clockIn()
-    expect(users.checkin.mock.calls).toEqual([['u-olga']])
+    expect(users.checkin.mock.calls).toEqual([['u-olga', {}]])
     expect(snackBar.open).not.toHaveBeenCalled()
   })
 
@@ -82,7 +82,7 @@ describe('PosStaffService (core#832)', () => {
   it('Gehen meldet nach Erfolg ab, nach Fehlschlag nicht', async () => {
     const ok = setup({ stampingId: 'wt-1' })
     await ok.service.clockOut()
-    expect(ok.users.checkout.mock.calls).toEqual([['u-olga']])
+    expect(ok.users.checkout.mock.calls).toEqual([['u-olga', {}]])
     expect(ok.session.endSession.mock.calls).toEqual([['button']])
 
     const failed = setup({ stampingId: 'wt-1' })
@@ -90,6 +90,31 @@ describe('PosStaffService (core#832)', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     await failed.service.clockOut()
     expect(failed.session.endSession).not.toHaveBeenCalled()
+  })
+
+  it('Rail-Taste ruft je Aktion den passenden Server-Aufruf (core#907)', async () => {
+    const { service, users } = setup({ stampingId: 'wt-1' })
+    await service.timeClock('start-break')
+    await service.timeClock('end-break')
+    expect(users.startBreak.mock.calls).toEqual([['u-olga', {}]])
+    expect(users.endBreak.mock.calls).toEqual([['u-olga', {}]])
+
+    const out = setup()
+    await out.service.timeClock('clock-in')
+    expect(out.users.checkin.mock.calls).toEqual([['u-olga', {}]])
+  })
+
+  it('Doppeltipp auf eine Rail-Taste stempelt nur einmal (core#907)', async () => {
+    const { service, users } = setup()
+    let answer: (value: unknown) => void = () => undefined
+    users.checkin.mockReturnValue(new Promise(resolve => (answer = resolve)))
+    const first = service.timeClock('clock-in')
+    const second = service.timeClock('clock-in')
+    expect(service.timeClockBusy()).toBe(true)
+    answer({})
+    await Promise.all([first, second])
+    expect(users.checkin.mock.calls).toEqual([['u-olga', {}]])
+    expect(service.timeClockBusy()).toBe(false)
   })
 
   it('sperrt Abmelden offline mit Hinweis', () => {
@@ -171,7 +196,8 @@ describe('PosStaffService (core#832)', () => {
     expect(service.currentUser()?._id).toBe('u-max')
     expect(service.displayName()).toBe('Max Manager')
     await service.clockIn()
-    expect(users.checkin.mock.calls).toEqual([['u-max']])
+    // Das Token des neuen Bedieners geht mit, damit der Edge die Stempelung an ihn bindet (core#903, #907).
+    expect(users.checkin.mock.calls).toEqual([['u-max', { query: { operatorToken: 't-u-max' } }]])
 
     storage.delete('pos_current_user')
     clearPosOperatorToken()

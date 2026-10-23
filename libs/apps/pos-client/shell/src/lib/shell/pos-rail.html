@@ -61,6 +61,8 @@
     {{ (staff.isOffline() ? 'POS_NAV.OFFLINE' : 'POS_NAV.ONLINE') | translate }}
   </span>
 
+  <lib-pos-time-clock class="mt-1" [locked]="nav.locked()" />
+
   <button
     type="button"
     class="relative mt-2 grid h-11 w-11 shrink-0 place-items-center rounded-full bg-ink text-[0.9375rem] font-bold text-surface-panel disabled:opacity-40"
@@ -78,6 +80,21 @@
         aria-hidden="true"
       ></i>
     }
+  </button>
+
+  <!-- Offline gesperrt mit Hinweis: bleibt antippbar, PosStaffService.logout() meldet den Grund. -->
+  <button
+    type="button"
+    class="rail-item rail-item--compact mt-1"
+    data-tone="danger"
+    [class.is-blocked]="staff.isOffline()"
+    [disabled]="nav.locked()"
+    [attr.aria-disabled]="staff.isOffline() ? true : null"
+    [title]="(staff.isOffline() ? 'DASHBOARD.LOGOUT_OFFLINE_BLOCKED' : 'DASHBOARD.LOGOUT') | translate"
+    (click)="staff.logout()"
+  >
+    <lib-icon name="lock" class="text-[1.375rem]" />
+    <span>{{ 'DASHBOARD.LOGOUT' | translate }}</span>
   </button>
 </nav>
 

@@ -601,6 +601,8 @@ export class ConnectionService {
         'endBreak',
         'verifyPin',
         'changePin',
+        // Bedienhand am Terminal (#833) — ohne Registrierung ist die Custom-Method clientseitig unsichtbar.
+        'setPosHandedness',
       ],
     })
     this.#app.use('locations', socketClient.service('locations'), {

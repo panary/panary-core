@@ -89,8 +89,7 @@ import { PreOrderService } from '@panary/pre-orders/data-access'
 import { LocationService } from '@panary/locations/data-access'
 import { defaultOrderChannel, toggledOrderChannel, type PosOrderChannel } from './order-channel'
 import { AuthService } from '@panary/auth/data-access'
-import { User, UserService } from '@panary/users/data-access'
-import { resolvePosHandedness } from '@panary/users/domain'
+import { PosHandednessService, User, UserService } from '@panary/users/data-access'
 import { ConnectionService, TenantSuspensionService } from '@panary/shared/data-access'
 import { DeviceConfigService } from '@panary/shared/data-access-config'
 import { CorporateCustomer } from '@panary/corporate-customers/domain'
@@ -200,6 +199,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly authService: AuthService = inject(AuthService)
   protected readonly translateService: TranslateService = inject(TranslateService)
   protected readonly userService: UserService = inject(UserService)
+  readonly #posHandedness = inject(PosHandednessService)
   protected readonly matDialog: MatDialog = inject(MatDialog)
   // Meldeweg für alles, was das Abschließen der Bestellung überleben muss — die Infobox
   // gehört zur Bestellung und ist mit ihr weg (siehe #placeOrder, Rabattcode-Fehlschlag).
@@ -420,8 +420,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   /**
    * Seite des Warenkorbs: `posHandedness` des angemeldeten Mitarbeiters, ohne Wahl links wie bisher
    * (core#829, Konzept §5 „Spiegelung"). Gespiegelt werden nur Zonen im Grid, nie Inhalte.
+   * Eine Wahl im Avatar-Menü wirkt sofort, auch offline (`PosHandednessService`, core#833).
    */
-  readonly handedness = computed(() => resolvePosHandedness(this.#currentUser()))
+  readonly handedness = computed(() => this.#posHandedness.effective(this.#currentUser()))
 
   /** Übersicht aller Gruppen hinter „Weitere (n)" — ersetzt das frühere Überlauf-Menü (core#829). */
   readonly allGroupsOpen = signal(false)

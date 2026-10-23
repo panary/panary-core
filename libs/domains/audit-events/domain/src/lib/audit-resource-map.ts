@@ -30,6 +30,7 @@ export type AuditResourceMethod =
   | 'startBreak'
   | 'endBreak'
   | 'changePin'
+  | 'setPosHandedness'
   | 'reloadUsers'
 
 const r = (
@@ -70,6 +71,9 @@ export const AUDIT_RESOURCE_MAP: Readonly<Record<string, Partial<Record<AuditRes
       // (`device:<deviceId>`, siehe allowApiKey-Hook), der betroffene Mitarbeiter
       // steht in `target.entityId`.
       changePin: r(AuditAction.PIN_CHANGE, AuditCategory.ACCESS, AuditSeverity.NOTICE),
+      // Bedienhand am Terminal (#833). Actor ist das Geraet, der Mitarbeiter kommt aus dem
+      // Bediener-Token und steht in `target.entityId`.
+      setPosHandedness: r(AuditAction.UPDATE, AuditCategory.CONFIGURATION, AuditSeverity.INFO),
     },
     apikeys: {
       create: r(AuditAction.API_KEY_CREATE, AuditCategory.ACCESS, AuditSeverity.WARNING),

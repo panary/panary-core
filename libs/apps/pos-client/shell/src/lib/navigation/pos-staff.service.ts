@@ -3,7 +3,8 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'
 import { AuthService, PosSessionService } from '@panary/auth/data-access'
 import { TenantSuspensionService } from '@panary/shared/data-access'
-import { UserService } from '@panary/users/data-access'
+import { PosHandednessService, UserService } from '@panary/users/data-access'
+import { PosHandedness } from '@panary/users/domain'
 import { timeTrackingBlockedHintKey } from './pos-navigation'
 
 /**
@@ -19,6 +20,7 @@ export class PosStaffService {
   readonly #auth = inject(AuthService)
   readonly #session = inject(PosSessionService)
   readonly #suspension = inject(TenantSuspensionService)
+  readonly #handedness = inject(PosHandednessService)
   readonly #snackBar = inject(MatSnackBar)
   readonly #translate = inject(TranslateService)
 
@@ -84,6 +86,25 @@ export class PosStaffService {
     const user = this.#timeTrackingUser()
     if (!user?.stampingId) return
     await this.#run('End break', () => this.#users.endBreak(user._id))
+  }
+
+  /** Seite des Warenkorbs an der Kasse — eigene Wahl dieser Sitzung, sonst Datensatz, sonst links. */
+  readonly cartSide = computed(() => this.#handedness.effective(this.currentUser()))
+
+  /**
+   * Warenkorb auf die andere Seite (core#833). Wirkt sofort; der Edge speichert über das
+   * Bediener-Token, offline merkt der POS die Wahl und sendet sie nach.
+   */
+  async toggleCartSide(): Promise<void> {
+    const user = this.currentUser()
+    if (!user) return
+    const next = this.cartSide() === PosHandedness.LEFT ? PosHandedness.RIGHT : PosHandedness.LEFT
+    try {
+      if ((await this.#handedness.choose(user._id, next)) === 'pending') this.#notify('POS_NAV.CART_SIDE_PENDING')
+    } catch (error) {
+      console.error('Set cart side failed:', error)
+      this.#notify('POS_NAV.CART_SIDE_FAILED')
+    }
   }
 
   /** Offline gesperrt: Die Wiederanmeldung braucht den Server (Begründung in `PosSessionService`). */

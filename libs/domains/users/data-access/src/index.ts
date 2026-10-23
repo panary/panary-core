@@ -8,3 +8,4 @@ export type { UserPreference, UserPreferenceData, UserPreferencePatch } from '@p
 // Services
 export * from './lib/services/user.service'
 export * from './lib/services/user-preferences.service'
+export * from './lib/services/pos-handedness.service'

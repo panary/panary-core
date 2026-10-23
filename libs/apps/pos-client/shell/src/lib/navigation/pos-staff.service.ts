@@ -163,8 +163,10 @@ export class PosStaffService {
       // Bediener-Token abgelehnt (abgelaufen, fremdes Gerät): Das Gerät bleibt angemeldet, nur der
       // Bediener muss neu per PIN. Danach ist die Stempelung wiederholbar (panary/panary-core#923).
       if (isPosOperatorRejection(error)) {
+        // Erst abmelden, dann der Hinweis: `AuthService.logout()` öffnet eine eigene Snackbar
+        // („Benutzer erfolgreich abgemeldet“), die ihn sonst sofort ersetzt (panary/panary-core#937).
+        await this.#session.endSession('button')
         this.#notify('POS_NAV.OPERATOR_PIN_REQUIRED', 8000)
-        void this.#session.endSession('button')
       }
       return false
     }

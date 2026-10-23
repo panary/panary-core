@@ -128,6 +128,31 @@ describe('PosStaffService (core#832)', () => {
     expect(session.endSession.mock.calls).toEqual([['button']])
   })
 
+  it('Hinweis erst nach dem Abmelden — die Abmelde-Snackbar überschreibt ihn sonst (core#937)', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const rejection = Object.assign(new Error('abgelehnt'), { code: 401, data: { reason: 'POS_OPERATOR_REQUIRED' } })
+    const { service, users, session, snackBar } = setup()
+    const order: string[] = []
+    let finishLogout: (value: boolean) => void = () => undefined
+    session.endSession.mockImplementation(
+      () =>
+        new Promise<boolean>(resolve => {
+          order.push('endSession')
+          finishLogout = value => {
+            order.push('logout-done')
+            resolve(value)
+          }
+        }),
+    )
+    snackBar.open.mockImplementation(() => void order.push('hint'))
+    users.checkin.mockRejectedValue(rejection)
+    const done = service.clockIn()
+    await vi.waitFor(() => expect(order).toEqual(['endSession']))
+    finishLogout(true)
+    await done
+    expect(order).toEqual(['endSession', 'logout-done', 'hint'])
+  })
+
   it('anderer Fehler beim Stempeln: keine PIN-Abfrage, kein Hinweis (core#923)', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const { service, users, session, snackBar } = setup()

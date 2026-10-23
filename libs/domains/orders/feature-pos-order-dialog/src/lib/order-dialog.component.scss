@@ -345,10 +345,24 @@
 }
 
 /*
- * Anpassen-Sheet (core#830, Konzept §2.3): liegt in der Rasterzone über Raster und Funktionstasten. Die
- * Gruppenleiste darüber und der Warenkorb daneben gehören nicht zur Zone und bleiben unberührt.
+ * Sheets (core#830, Konzept §2.3): Der Host spannt Raster- und Ziffernzone derselben Spalte (die impliziten
+ * Linien der benannten Areas), spiegelt also mit `data-hand`. Gruppenleiste und Warenkorb bleiben unberührt.
+ * Das Sheet füllt den Host bis an den unteren Rand, nur oben gerundet (core#909). Vorher endete es über der
+ * Ziffernleiste mit eckiger Unterkante, und 0,75rem Scrim standen als grauer Streifen darüber.
  * Der Scrim fängt Tipps ab und tut nichts — ein Tipp daneben soll die Anpassung nicht verwerfen.
  */
+.kasse__sheet-host {
+  grid-area: grid-start / grid-start / keys-end / grid-end;
+  position: relative;
+  min-height: 0;
+  margin-right: 0.75rem;
+}
+
+.kasse[data-hand='right'] .kasse__sheet-host {
+  margin-right: 0;
+  margin-left: 0.75rem;
+}
+
 .kasse__scrim {
   position: absolute;
   inset: 0;
@@ -358,13 +372,15 @@
 
 .kasse__sheet {
   position: absolute;
-  inset: 0.75rem 0 0 0;
+  inset: 0;
   z-index: 20;
   display: flex;
   flex-direction: column;
   min-height: 0;
   padding: 0.75rem 0 0;
   border-radius: 1rem 1rem 0 0;
+  /* Steht auf dem unteren Bildschirmrand — dort keine Kante. */
+  border-bottom-width: 0;
 }
 
 .kasse-sheet-enter {

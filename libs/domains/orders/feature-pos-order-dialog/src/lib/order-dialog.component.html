@@ -554,39 +554,8 @@
 
   <!-- ═══════════════ RASTER ═══════════════ -->
   <div class="kasse__grid flex flex-col min-h-0 mr-3 relative">
-    <!-- Bezahlansicht (core#831): dasselbe Sheet-Muster wie Anpassen, aber ohne Weg daneben — die Bestellung ist
-         schon angelegt, geschlossen wird nur über „Bar kassieren" oder „Offen lassen". -->
-    @if (payment(); as pending) {
-      <div class="kasse__scrim kasse-scrim-enter" aria-hidden="true"></div>
-      <div class="kasse__sheet kasse-sheet-enter bg-surface-panel border border-line shadow-card" role="dialog">
-        <lib-cash-payment [total]="pending.total" [busy]="paying()" (collect)="onCollect()" (keepOpen)="onKeepOpen()" />
-      </div>
-    }
-
-    <!-- Anpassen-Sheet (#639, core#830): liegt über der Rasterspalte und gleitet von unten herein (CSS-Animation beim
-         Einfügen; bis core#908 schloss der Infobox-Trigger in `animations` `animate.enter` aus, NG2027). Gruppenleiste
-         und Warenkorb bleiben sichtbar und ungedimmt; der Scrim tut bewusst nichts, damit ein Tipp daneben
-         die Anpassung nicht verwirft. Schließen nur über Übernehmen/Abbrechen im Panel. -->
-    @if (customizeModel(); as model) {
-      <div class="kasse__scrim kasse-scrim-enter" aria-hidden="true"></div>
-      <div class="kasse__sheet kasse-sheet-enter bg-surface-panel border border-line shadow-card">
-        <lib-product-customize-panel
-          class="flex min-h-0 flex-1 flex-col pb-2"
-          [model]="model"
-          [scope]="customizeScope()"
-          [scopeLocked]="customizeScopeLocked()"
-          (scopeChanged)="onCustomizeScopeChanged($event)"
-          (ingredientToggled)="onCustomizeIngredientToggled($event)"
-          (optionIncreased)="onCustomizeOptionIncreased($event)"
-          (optionDecreased)="onCustomizeOptionDecreased($event)"
-          (finished)="onCustomizeFinished()"
-          (cancelled)="onCustomizeCancelled()"
-          (showAllModifiers)="onCustomizeShowAllModifiers()"
-          [releaseLabel]="releaseLabel()"
-          (released)="releaseFromCombination()"
-        />
-      </div>
-    } @else {
+    <!-- Solange das Anpassen-Sheet offen ist, entfällt das Raster darunter (bis core#909 stand es im @else des Sheets). -->
+    @if (!customizeModel()) {
       <!-- Function Buttons: linksbündige Kacheln im Produktkachel-Maß, farbcodiert nach Wirkung (code-style.md §9.1).
            Ohne eigene Tasten der Ansicht stehen die des Hauptbildschirms da (Kombination, core#908). -->
       @if (boardFunctionButtons.length > 0) {
@@ -730,6 +699,51 @@
       }
     </div>
   </div>
+
+  <!-- ═══════════════ SHEETS ═══════════════ -->
+  <!-- Bezahlansicht und Anpassen liegen über Raster UND Ziffernleiste, am unteren Rand verankert (Konzept 2.3,
+       core#909). Der Host spannt die Grid-Linien grid-start … keys-end und spiegelt so mit der Händigkeit. -->
+  @if (payment() || customizeModel()) {
+    <div class="kasse__sheet-host">
+      <!-- Bezahlansicht (core#831): dasselbe Sheet-Muster wie Anpassen, aber ohne Weg daneben — die Bestellung ist
+           schon angelegt, geschlossen wird nur über „Bar kassieren" oder „Offen lassen". -->
+      @if (payment(); as pending) {
+        <div class="kasse__scrim kasse-scrim-enter" aria-hidden="true"></div>
+        <div class="kasse__sheet kasse-sheet-enter bg-surface-panel border border-line shadow-card" role="dialog">
+          <lib-cash-payment
+            [total]="pending.total"
+            [busy]="paying()"
+            (collect)="onCollect()"
+            (keepOpen)="onKeepOpen()"
+          />
+        </div>
+      }
+
+      <!-- Anpassen-Sheet (#639, core#830): gleitet von unten herein (CSS-Animation beim Einfügen). Gruppenleiste
+           und Warenkorb bleiben sichtbar und ungedimmt; der Scrim tut bewusst nichts, damit ein Tipp daneben
+           die Anpassung nicht verwirft. Schließen nur über Übernehmen/Abbrechen im Panel. -->
+      @if (customizeModel(); as model) {
+        <div class="kasse__scrim kasse-scrim-enter" aria-hidden="true"></div>
+        <div class="kasse__sheet kasse-sheet-enter bg-surface-panel border border-line shadow-card">
+          <lib-product-customize-panel
+            class="flex min-h-0 flex-1 flex-col pb-3"
+            [model]="model"
+            [scope]="customizeScope()"
+            [scopeLocked]="customizeScopeLocked()"
+            (scopeChanged)="onCustomizeScopeChanged($event)"
+            (ingredientToggled)="onCustomizeIngredientToggled($event)"
+            (optionIncreased)="onCustomizeOptionIncreased($event)"
+            (optionDecreased)="onCustomizeOptionDecreased($event)"
+            (finished)="onCustomizeFinished()"
+            (cancelled)="onCustomizeCancelled()"
+            (showAllModifiers)="onCustomizeShowAllModifiers()"
+            [releaseLabel]="releaseLabel()"
+            (released)="releaseFromCombination()"
+          />
+        </div>
+      }
+    </div>
+  }
 
   <!-- ═══════════════ PRIMÄRTASTE ═══════════════ -->
   <div class="kasse__primary px-3 py-3">

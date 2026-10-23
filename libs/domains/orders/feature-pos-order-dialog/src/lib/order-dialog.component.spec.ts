@@ -1597,6 +1597,17 @@ describe('OrderDialog — Anpassen-Panel (#639)', () => {
     expect(component.selectedProductIndex).toBe(0)
   })
 
+  it('legt beim Öffnen keinen Hinweis über das Sheet — der Kopf nennt das Produkt schon (core#909)', () => {
+    const p = burger(false)
+    const { component } = setup({ catalog: [p] })
+    component.increaseLineItem(p)
+
+    component.selectProduct(0)
+
+    expect(component.customizeModel()?.name).toBe('Artikel burger')
+    expect(component.notice()).toBeNull()
+  })
+
   it('ohne das Flag wird nur gebucht — das Panel öffnet erst der Tipp auf die Position', () => {
     const p = burger(false)
     const { component } = setup({ catalog: [p] })

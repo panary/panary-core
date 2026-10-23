@@ -138,14 +138,15 @@ export interface CustomizeOptionEvent {
           </section>
         }
 
-        <!-- Extras wie die Listenansicht im Explorer (#795): erst untereinander, ist die Spalte voll,
-             geht es rechts daneben weiter. column-fill:auto füllt jede Spalte bis zur Höhe statt zu
-             balancieren; reicht die Breite nicht, scrollt der Bereich waagrecht. -->
-        <div class="min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
-          <div class="h-full columns-[16rem] gap-4 [column-fill:auto]">
+        <!-- Extras als gleichmäßiges Raster (core#909): je Gruppe eine Überschrift über die volle Breite, darunter
+             Karten in gleich breiten Spalten. Alle Gruppen teilen dieselbe Spaltenbreite, also dieselbe Spaltenzahl;
+             gescrollt wird senkrecht. Die Spalten-Liste aus #795 füllte die erste Spalte bis unten und setzte den
+             Rest rechts daneben — das las sich als Liste neben einem Raster (MacBook-Test von pos-v26.10.25). -->
+        <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain" data-testid="customize-extras">
+          <div class="flex flex-col gap-5">
             @for (group of m.groups; track group.id) {
-              <section class="mb-5" [attr.aria-labelledby]="'customize-group-' + group.id">
-                <div class="mb-2 flex items-baseline justify-between gap-2 break-after-avoid">
+              <section [attr.aria-labelledby]="'customize-group-' + group.id">
+                <div class="mb-2 flex items-baseline justify-between gap-2">
                   <h3
                     [id]="'customize-group-' + group.id"
                     class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200"
@@ -164,10 +165,10 @@ export interface CustomizeOptionEvent {
                 </div>
                 <!-- Karten statt einer Zeile über die ganze Spaltenbreite (#795): Auf breiten Kassen stand
                  −/+ sonst eine Handbreit vom Namen entfernt. -->
-                <ul>
+                <ul class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-2">
                   @for (option of group.options; track option.productId) {
                     <li
-                      class="mb-2 flex min-h-14 break-inside-avoid items-center gap-2 rounded-xl border bg-white py-1 pl-3 pr-1 dark:bg-gray-800"
+                      class="flex min-h-14 items-center gap-2 rounded-xl border bg-white py-1 pl-3 pr-1 dark:bg-gray-800"
                       [class]="
                         option.amount > 0
                           ? 'border-teal-300 dark:border-teal-700'

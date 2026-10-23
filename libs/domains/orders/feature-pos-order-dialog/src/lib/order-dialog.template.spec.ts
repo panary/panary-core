@@ -342,6 +342,40 @@ describe('Kasse-Template — Anpassen-Sheet (core#830)', () => {
   })
 })
 
+// core#909: Das Sheet liegt über Raster UND Ziffernleiste (Konzept 2.3), ohne Scrim-Streifen darüber und ohne
+// eckige Unterkante mitten im Bildschirm. Die Extras stehen in einem gleichmäßigen Raster statt in Spalten.
+describe('Kasse-Template — Sheet über Raster und Ziffernleiste (core#909)', () => {
+  const scss = readFileSync(fileURLToPath(new URL('./order-dialog.component.scss', import.meta.url)), 'utf8')
+  const panel = readFileSync(fileURLToPath(new URL('./product-customize-panel.component.ts', import.meta.url)), 'utf8')
+  const block = (selektor: string) => {
+    const ab = scss.slice(scss.indexOf(selektor))
+    return ab.slice(0, ab.indexOf('}'))
+  }
+
+  it('hängt beide Sheets in einen eigenen Host außerhalb der Rasterzone', () => {
+    const raster = template.indexOf('<div class="kasse__grid ')
+    const host = template.indexOf('<div class="kasse__sheet-host">')
+    expect(host).toBeGreaterThan(raster)
+    const hostBlock = template.slice(host, template.indexOf('PRIMÄRTASTE', host))
+    expect(hostBlock).toContain('@if (payment(); as pending)')
+    expect(hostBlock).toContain('@if (customizeModel(); as model)')
+    expect(template.slice(raster, host)).not.toContain('kasse__sheet')
+    expect(template.slice(raster, host)).toContain('@if (!customizeModel())')
+  })
+
+  it('spannt den Host über Raster- und Ziffernzone derselben Spalte und füllt ihn bis unten', () => {
+    expect(block('.kasse__sheet-host {')).toContain('grid-area: grid-start / grid-start / keys-end / grid-end')
+    expect(block('.kasse__sheet {')).toMatch(/inset: 0;/)
+    expect(block('.kasse__sheet {')).toContain('border-radius: 1rem 1rem 0 0')
+    expect(block('.kasse__sheet {')).toContain('border-bottom-width: 0')
+  })
+
+  it('ordnet die Extras als Raster gleich breiter Spalten, nicht als Spalten-Liste', () => {
+    expect(panel).toContain('grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))]')
+    expect(panel).not.toMatch(/columns-\[|column-fill/)
+  })
+})
+
 // Bezahlansicht „nur Bar" (core#831): Das Template verdrahtet die Primärtaste und die Ansicht; die Logik prüft
 // order-dialog.component.spec.ts. Hier nur, dass die Bindungen stehen.
 describe('Kasse-Template — Bezahlansicht (core#831)', () => {

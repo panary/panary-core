@@ -105,6 +105,9 @@ export class LoginComponent implements OnInit {
    */
   readonly idleLogoutNotice: WritableSignal<boolean> = signal(false)
 
+  /** Der Logout hat dabei einen offenen Dialog geschlossen (panary/panary-core#941) — nur dann der Satz zum Abbruch. */
+  readonly idleLogoutInterrupted: WritableSignal<boolean> = signal(false)
+
   /** Nur dort, wo der Login mit dem Freigabe-Schritt verwechselt werden kann. */
   readonly showIdleLogoutNotice = computed(() => {
     const step = this.currentStep()
@@ -201,6 +204,7 @@ export class LoginComponent implements OnInit {
   //#region Lifecycle
   ngOnInit(): void {
     this.idleLogoutNotice.set(this.#posSession.consumeEndReason() === 'idle')
+    this.idleLogoutInterrupted.set(this.#posSession.consumeEndInterrupted())
     this.loadDeviceInfo()
     this.connectAndLoadUsers().then(r => {
       /* empty */

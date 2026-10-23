@@ -13,13 +13,13 @@ import { PosSessionService } from './pos-session.service'
 // (panary/panary-core#604). Er muss VOR der Navigation stehen und darf genau
 // einmal abgeholt werden.
 
-function setup(status = 'authenticated') {
+function setup(status = 'authenticated', openDialogs: unknown[] = []) {
   const auth = { logout: vi.fn().mockResolvedValue(true) }
   const injector = Injector.create({
     providers: [
       { provide: AuthService, useValue: auth },
       { provide: ConnectionService, useValue: { connectionState: signal({ status }) } },
-      { provide: MatDialog, useValue: { closeAll: vi.fn() } },
+      { provide: MatDialog, useValue: { closeAll: vi.fn(), openDialogs } },
     ],
   })
   const service = runInInjectionContext(injector, () => new PosSessionService())
@@ -72,5 +72,23 @@ describe('PosSessionService — Grund des Sitzungsendes (#604)', () => {
     const { service } = setup()
 
     expect(service.consumeEndReason()).toBeNull()
+  })
+
+  // #941: Der Hinweis „eine offene Aktion wurde abgebrochen“ darf nur erscheinen, wenn es sie gab.
+  it('meldet einen geschlossenen Dialog genau einmal', async () => {
+    const { service } = setup('authenticated', [{}])
+
+    await service.endSession('idle')
+
+    expect(service.consumeEndInterrupted()).toBe(true)
+    expect(service.consumeEndInterrupted()).toBe(false)
+  })
+
+  it('meldet keinen Abbruch, wenn kein Dialog offen war', async () => {
+    const { service } = setup()
+
+    await service.endSession('idle')
+
+    expect(service.consumeEndInterrupted()).toBe(false)
   })
 })

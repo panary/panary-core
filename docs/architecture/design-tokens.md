@@ -125,5 +125,5 @@ Ein Logo für alle Oberflächen: `<lib-panary-logo [size]="2" [wordmark]="true" 
 (core#910). Es zeichnet dasselbe Zeichen wie der Auth-Shell der Cloud — dunkles Quadrat (`--brand-navy`) mit zwei
 Mint-Stäben (`--primary`), beide Themes gleich — als Inline-SVG, dazu die Wortmarke in `currentColor`. Dadurch ist es auf
 hellem und dunklem Grund lesbar, ohne `dark:`-Varianten oder zwei Bilddateien. Eingesetzt in Core-Admin (Login,
-Kopfzeile), Edge-Setup (Landing, Wizard), POS-Geräte-Setup und POS-Login. Die Rail des POS folgt mit core#907. Die
+Kopfzeile), Edge-Setup (Landing, Wizard), POS-Geräte-Setup, POS-Login und POS-Rail (dort ohne Wortmarke). Die
 früheren SVG-Dateien (`panary_logo_*.svg`) in `admin-client` und `pos-client` sind entfallen.

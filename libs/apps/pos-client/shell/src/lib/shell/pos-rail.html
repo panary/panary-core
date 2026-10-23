@@ -2,11 +2,7 @@
   class="flex h-full w-[4.75rem] flex-col items-center gap-1.5 overflow-y-auto border-r border-line bg-surface-rail py-3"
   [attr.aria-label]="'POS_NAV.LABEL' | translate"
 >
-  <span
-    class="mb-2.5 grid h-[2.125rem] w-[2.125rem] shrink-0 place-items-center rounded-control bg-action text-lg font-extrabold text-on-action"
-    aria-hidden="true"
-    >p</span
-  >
+  <lib-panary-logo class="mb-2.5" [size]="2.125" [wordmark]="false" />
 
   @for (item of nav.rail(); track item.entry.id) {
     <button

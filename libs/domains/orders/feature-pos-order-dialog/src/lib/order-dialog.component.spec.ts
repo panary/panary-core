@@ -1,7 +1,7 @@
 // JIT-Compiler zuerst laden: @angular/material ist partial-compiled; ohne Linker
 // (kein analogjs-Plugin in dieser node-Vitest-Config) faellt Angular auf JIT zurueck.
 import '@angular/compiler'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import {
   ChangeDetectorRef,
   DestroyRef,
@@ -33,6 +33,7 @@ import { DeviceConfigService } from '@panary/shared/data-access-config'
 
 import { KasseDraftRegistry } from './kasse-draft-registry'
 import { OrderDialogComponent } from './order-dialog.component'
+import type { PosButton } from './pos-button.model'
 
 /**
  * Charakterisierungs-Specs der Rabatt- und Checkout-Verdrahtung (#231).
@@ -799,7 +800,7 @@ describe('OrderDialog — Extras-Tap meldet statt still zurueckzukehren (#273)',
 
     expect(component.lineItems[0].modifiers).toEqual([])
     expect(component.infoBoxText).toBe('„Mayo" ist kein Extra (Produkttyp: PRODUCT) — im Admin auf Modifier stellen')
-    expect(component.infoBoxBackgroundColor).toBe('red')
+    expect(component.notice()?.tone).toBe('danger')
   })
 
   it('ein fehlendes `productType` steht als „fehlt" in der Meldung', () => {
@@ -823,7 +824,7 @@ describe('OrderDialog — Extras-Tap meldet statt still zurueckzukehren (#273)',
 
     expect(component.lineItems[0].modifiers).toEqual([])
     expect(component.infoBoxText).toBe('Erst eine Position im Warenkorb antippen')
-    expect(component.infoBoxBackgroundColor).toBe('red')
+    expect(component.notice()?.tone).toBe('danger')
   })
 
   it('der Gutfall bucht unveraendert unter die markierte Zeile', () => {
@@ -3062,5 +3063,106 @@ describe('OrderDialog — Multiplikator beginnt nie mit 0 (core#837)', () => {
     component.numpadReset()
 
     expect(component.multiplier).toBe(1)
+  })
+})
+
+// core#908: Die Infozeile über der Gruppenleiste ist weg; Meldungen erscheinen als Hinweis über dem Raster und
+// blenden sich aus. Stumm bleiben Leerlauf-Text und das Echo dessen, was Leiste und Funktionsblock schon zeigen.
+describe('Kasse — Hinweis statt Infozeile (core#908)', () => {
+  function withFakeTimers() {
+    vi.useFakeTimers()
+    onTestFinished(() => {
+      vi.useRealTimers()
+    })
+  }
+
+  it('zeigt einen Fehler rot und blendet ihn nach sechs Sekunden aus, nicht schon nach vier', () => {
+    withFakeTimers()
+    const { component } = setup()
+
+    component.setInfoBoxText('Erst eine Position im Warenkorb antippen', 'red')
+
+    expect(component.notice()).toEqual({ text: 'Erst eine Position im Warenkorb antippen', tone: 'danger' })
+    vi.advanceTimersByTime(4000)
+    expect(component.notice()).not.toBeNull()
+    vi.advanceTimersByTime(2000)
+    expect(component.notice()).toBeNull()
+  })
+
+  it('zeigt eine Meldung ohne Farbe neutral und blendet sie nach vier Sekunden aus', () => {
+    withFakeTimers()
+    const { component } = setup()
+
+    component.setInfoBoxText('Rabattcode SOMMER übernommen')
+
+    expect(component.notice()).toEqual({ text: 'Rabattcode SOMMER übernommen', tone: 'neutral' })
+    vi.advanceTimersByTime(4000)
+    expect(component.notice()).toBeNull()
+  })
+
+  it('lässt eine neue Meldung ihre volle Zeit stehen, auch wenn die alte gerade ablief', () => {
+    withFakeTimers()
+    const { component } = setup()
+
+    component.setInfoBoxText('erste')
+    vi.advanceTimersByTime(3000)
+    component.setInfoBoxText('zweite')
+    vi.advanceTimersByTime(3000)
+
+    expect(component.notice()?.text).toBe('zweite')
+  })
+
+  it('bleibt beim Leerlauf-Text und bei der Wahl einer Gruppe stumm und räumt einen offenen Hinweis ab', () => {
+    const { component } = setup()
+
+    component.setInfoBoxText('Für die Kombination werden min. 2 Artikel benötigt.', 'red')
+    component.unselectProduct()
+    expect(component.notice()).toBeNull()
+
+    component.setInfoBoxText('Für die Kombination werden min. 2 Artikel benötigt.', 'red')
+    component.createProductButtons({ _id: 'g-1', name: 'Getränke', color: '#0ea5e9' } as never)
+    expect(component.notice()).toBeNull()
+  })
+
+  it('wiederholt nicht, was der Funktionsblock schon als Überschrift trägt', () => {
+    const { component } = setup()
+    ;(component as unknown as { _functionBlockLabel: string })._functionBlockLabel = 'Beilage'
+
+    component.setInfoBoxText('Beilage')
+
+    expect(component.notice()).toBeNull()
+    expect(component.infoBoxText).toBe('Beilage')
+  })
+})
+
+// core#908: „Kombination" steht wieder als Funktionstaste auf dem Hauptbildschirm statt unter „Optionen".
+describe('Kasse — Kombination als Funktionstaste (core#908)', () => {
+  it('zeigt ohne eigene Tasten der Ansicht die Kombination in Mint', () => {
+    const { component } = setup()
+
+    expect(component.functionButtons).toEqual([])
+    expect(component.boardFunctionButtons.map((b: PosButton) => [b.name, b.variant])).toEqual([
+      ['Kombination', 'confirm'],
+    ])
+  })
+
+  it('öffnet über die Taste die Kombinationsansicht, deren Tasten dann allein stehen', () => {
+    const { component } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.increaseLineItem(product('p-2'))
+
+    component.boardFunctionButtons[0].callback?.()
+
+    expect(component.functionBlockLabel).toBe('Kombination')
+    expect(component.boardFunctionButtons).toBe(component.functionButtons)
+    expect(component.boardFunctionButtons.map((b: PosButton) => b._id)).not.toContain('main-combination')
+  })
+
+  it('meldet über die Taste, wenn für eine Kombination Artikel fehlen', () => {
+    const { component } = setup()
+
+    component.boardFunctionButtons[0].callback?.()
+
+    expect(component.notice()).toEqual({ text: 'Für die Kombination werden min. 2 Artikel benötigt.', tone: 'danger' })
   })
 })

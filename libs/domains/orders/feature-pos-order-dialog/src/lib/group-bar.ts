@@ -1,42 +1,50 @@
 /**
- * Aufteilung der Produktgruppen auf die Gruppenleiste der Kasse (core#829, Konzept §4).
+ * Aufteilung der Produktgruppen auf die Gruppenleiste der Kasse (core#908, ersetzt die Zwei-Zeilen-Leiste aus core#829).
  *
- * Die Leiste ist ein Raster `repeat(auto-fill, minmax(9rem, 1fr))` über die volle Breite und
- * zeigt höchstens zwei Zeilen. Passen nicht alle Gruppen hinein, wird das letzte Feld zu
- * „Weitere (n)" und öffnet alle Gruppen — gewischt wird nie. Wie viele Felder je Zeile passen,
- * rechnet hier dieselbe Formel wie `auto-fill`, damit Raster und Aufteilung nie auseinanderlaufen.
+ * Die Leiste ist **eine** Zeile. Jede Gruppe ist so breit wie ihr Name (mit Farbpunkt), passen nicht alle hinein,
+ * steht am Ende der Burger-Button mit dem Rest — wie vor core#829, nur mit gemessenen statt geschätzten Breiten.
+ * Zwei Zeilen kosteten auf 1366×768 eine Rasterzeile, und die breiten Felder brachen lange Namen um (MacBook-Test
+ * von pos-v26.10.25). Gewischt wird nie.
  */
 
-/** Mindestbreite eines Gruppenfelds in rem — muss zu `minmax(9rem, 1fr)` im Template passen. */
-export const GROUP_MIN_WIDTH_REM = 9
 /** Abstand zwischen den Feldern in rem — `gap-2` im Template. */
 export const GROUP_GAP_REM = 0.5
-/** Mehr Zeilen nimmt die Leiste nicht ein, sonst schrumpft das Raster darunter (Konzept §4). */
-export const GROUP_MAX_ROWS = 2
+/** Breite des Burger-Buttons in rem — `w-12` im Template. */
+export const GROUP_BURGER_WIDTH_REM = 3
 
 export interface GroupBarSplit<TGroup> {
   visible: TGroup[]
   overflow: TGroup[]
 }
 
-/** Felder je Zeile bei `auto-fill`: so viele Mindestbreiten samt Abstand, wie hineinpassen, mindestens eins. */
-export function groupColumns(containerWidthPx: number, remPx: number): number {
-  const min = GROUP_MIN_WIDTH_REM * remPx
+/**
+ * Wie viele Gruppen der Reihe nach in die Zeile passen. Passen alle, braucht es keinen Burger; sonst wird sein Platz
+ * samt Abstand freigehalten. Die Reihenfolge bleibt: Eine schmale Gruppe weiter hinten rückt nicht in eine Lücke vor,
+ * sonst stünde die Leiste je nach Fensterbreite anders sortiert.
+ */
+export function fittingGroupCount(chipWidthsPx: readonly number[], containerWidthPx: number, remPx: number): number {
   const gap = GROUP_GAP_REM * remPx
-  return Math.max(1, Math.floor((containerWidthPx + gap) / (min + gap)))
+  const total = chipWidthsPx.reduce((sum, width) => sum + width, 0) + Math.max(0, chipWidthsPx.length - 1) * gap
+  if (total <= containerWidthPx) return chipWidthsPx.length
+
+  const available = containerWidthPx - GROUP_BURGER_WIDTH_REM * remPx - gap
+  let used = 0
+  let count = 0
+  for (const width of chipWidthsPx) {
+    used += (count > 0 ? gap : 0) + width
+    if (used > available) break
+    count++
+  }
+  return count
 }
 
-/**
- * Teilt die Gruppen auf: Passen alle in zwei Zeilen, sind alle sichtbar. Sonst bleibt das letzte
- * Feld für „Weitere" frei, und der Rest wandert in die Übersicht aller Gruppen.
- */
+/** Teilt die Gruppen nach `fittingGroupCount` auf; keine geht verloren, keine doppelt. */
 export function splitGroupBar<TGroup>(
   groups: readonly TGroup[],
+  chipWidthsPx: readonly number[],
   containerWidthPx: number,
   remPx: number,
 ): GroupBarSplit<TGroup> {
-  const capacity = groupColumns(containerWidthPx, remPx) * GROUP_MAX_ROWS
-  if (groups.length <= capacity) return { visible: [...groups], overflow: [] }
-  const shown = Math.max(0, capacity - 1)
+  const shown = fittingGroupCount(chipWidthsPx, containerWidthPx, remPx)
   return { visible: groups.slice(0, shown), overflow: groups.slice(shown) }
 }

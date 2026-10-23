@@ -1,56 +1,79 @@
-<!-- Kassenbildschirm B1 (core#829, Konzept §2.1/§4). Ein Grid mit benannten Zonen: Kopf, Gruppenleiste,
-     Warenkorb, Raster, Primärtaste, Ziffernleiste. `data-hand` spiegelt nur die Zonen — Warenkorb ↔ Raster,
-     Primärtaste ↔ Ziffern — nie den Inhalt einer Zone (order-dialog.component.scss). -->
+<!-- Kassenbildschirm B1 (core#829, Konzept §2.1/§4). Ein Grid mit benannten Zonen: Gruppenleiste, Warenkorb,
+     Raster, Primärtaste, Ziffernleiste. `data-hand` spiegelt nur die Zonen — Warenkorb ↔ Raster, Primärtaste ↔
+     Ziffern — nie den Inhalt einer Zone (order-dialog.component.scss). Die Infozeile darüber ist mit core#908
+     entfallen; Meldungen erscheinen als Hinweis über dem Raster. -->
 <section class="kasse relative h-full min-h-0 overflow-hidden bg-surface-bg text-ink" [attr.data-hand]="handedness()">
-  <!-- Kopf: „Übersicht" sitzt an der späteren Rail-Position (core#832), daneben die Infobox -->
-  <div
-    class="kasse__head flex items-center gap-3 mx-3 mt-2 px-1 h-12 rounded-card"
-    [ngStyle]="{ 'background-color': infoBoxBackgroundColor === '#f1f5f9' ? null : infoBoxBackgroundColor }"
-  >
-    <div id="infoBox" class="info-box flex-1 min-w-0 transition-all duration-300" [@changeInfoBoxText]="infoBoxText">
-      <div
-        id="infoBoxText"
-        class="info-box-text text-sm font-semibold text-center truncate text-ink-muted"
-        [ngStyle]="{
-          color:
-            infoBoxBackgroundColor !== '#f1f5f9' ? (infoBoxTextColor === 'black' ? 'white' : infoBoxTextColor) : null,
-        }"
+  <!-- Gruppenleiste (core#908): eine Zeile, jede Gruppe so breit wie ihr Name, Farbe als Punkt. Was nicht passt,
+       liegt hinter dem Burger. Abstand und Burger-Breite stecken auch in group-bar.ts — beide zusammen ändern. -->
+  <div #productGroupContainer class="kasse__groups relative flex items-center gap-2 px-3 pt-2 pb-2 overflow-hidden">
+    @for (productGroup of visibleProductGroups; track productGroup._id) {
+      <ng-container [ngTemplateOutlet]="groupChip" [ngTemplateOutletContext]="{ $implicit: productGroup }" />
+    }
+    @if (overflowProductGroups.length > 0) {
+      <!-- Striche per [class]-Ausdruck: [class.translate-y-[0.3125rem]] bindet nur „translate-y-[0" (core#573) -->
+      <button
+        type="button"
+        class="pnry-touch h-12 w-12 shrink-0 rounded-control bg-surface-panel border border-line text-ink-muted flex items-center justify-center active:scale-[0.97] transition-transform disabled:opacity-40"
+        [matMenuTriggerFor]="moreGroups"
+        #moreGroupsTrigger="matMenuTrigger"
+        [disabled]="sheetOpen()"
+        [attr.aria-label]="'ORDER_DIALOG.MORE_GROUPS' | translate: { count: overflowProductGroups.length }"
       >
-        {{ infoBoxText }}
-      </div>
+        <span class="flex flex-col gap-[0.1875rem] transition-transform duration-300" aria-hidden="true">
+          <span
+            class="w-[1.125rem] h-[0.125rem] bg-current rounded-full transition-transform duration-300"
+            [class]="moreGroupsTrigger.menuOpen ? 'translate-y-[0.3125rem] rotate-45' : ''"
+          ></span>
+          <span
+            class="w-[1.125rem] h-[0.125rem] bg-current rounded-full transition-opacity duration-300"
+            [class.opacity-0]="moreGroupsTrigger.menuOpen"
+          ></span>
+          <span
+            class="w-[1.125rem] h-[0.125rem] bg-current rounded-full transition-transform duration-300"
+            [class]="moreGroupsTrigger.menuOpen ? '-translate-y-[0.3125rem] -rotate-45' : ''"
+          ></span>
+        </span>
+      </button>
+      <mat-menu #moreGroups="matMenu" xPosition="before" yPosition="below" [overlapTrigger]="false">
+        @for (productGroup of overflowProductGroups; track productGroup._id) {
+          <button mat-menu-item (click)="createProductButtons(productGroup)" [disabled]="sheetOpen()">
+            <span class="inline-flex items-center gap-2.5">
+              <span
+                class="h-2.5 w-2.5 shrink-0 rounded-full"
+                [style.background-color]="productGroup.color"
+                aria-hidden="true"
+              ></span>
+              <span class="text-xs font-semibold uppercase">{{ productGroup.name }}</span>
+            </span>
+          </button>
+        }
+      </mat-menu>
+    }
+
+    <!-- Messzeile: alle Gruppen in Inhaltsbreite, unsichtbar und ohne Platzbedarf. Sie liefert die Breiten, nach
+         denen calculateVisibleProductGroups() aufteilt; unsichtbare Tasten sind weder antipp- noch fokussierbar. -->
+    <div #productGroupMeasure class="invisible absolute left-0 top-0 flex gap-2 pointer-events-none" aria-hidden="true">
+      @for (productGroup of productGroups; track productGroup._id) {
+        <ng-container [ngTemplateOutlet]="groupChip" [ngTemplateOutletContext]="{ $implicit: productGroup }" />
+      }
     </div>
   </div>
 
-  <!-- Gruppenleiste: volle Breite, umbrechend, höchstens zwei Zeilen; danach „Weitere (n)" statt Wischen.
-       Mindestbreite und Abstand stecken auch in group-bar.ts — beide zusammen ändern. -->
-  <div
-    #productGroupContainer
-    class="kasse__groups grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2 px-3 pt-2 pb-2"
-  >
-    @for (productGroup of visibleProductGroups; track productGroup._id) {
-      <button
-        type="button"
-        class="pnry-touch h-14 min-w-0 rounded-control px-2 bg-surface-panel border border-line text-ink text-xs font-semibold uppercase leading-tight shadow-card active:scale-[0.97] transition-transform"
-        [style.border-bottom]="'3px solid ' + productGroup.color"
-        (click)="createProductButtons(productGroup)"
-        [disabled]="sheetOpen()"
-      >
-        <!-- Umbruch nur an Wortgrenzen, keine Silbentrennung (core#853) -->
-        <span class="line-clamp-2 [overflow-wrap:break-word] text-balance">{{ productGroup.name }}</span>
-      </button>
-    }
-    @if (overflowProductGroups.length > 0) {
-      <button
-        type="button"
-        class="pnry-touch h-14 min-w-0 rounded-control px-2 bg-surface-rail border border-line text-ink-muted text-xs font-semibold uppercase active:scale-[0.97] transition-transform flex items-center justify-center gap-1.5"
-        (click)="allGroupsOpen.set(true)"
-        [disabled]="sheetOpen()"
-      >
-        <lib-icon name="dots-three" style="font-size: 1.125rem" />
-        <span>{{ 'ORDER_DIALOG.MORE_GROUPS' | translate: { count: overflowProductGroups.length } }}</span>
-      </button>
-    }
-  </div>
+  <ng-template #groupChip let-productGroup>
+    <button
+      type="button"
+      class="pnry-touch h-12 min-w-[4.5rem] max-w-[13rem] shrink-0 rounded-control px-3 bg-surface-panel border border-line text-ink text-xs font-semibold uppercase whitespace-nowrap shadow-card flex items-center gap-2 active:scale-[0.97] transition-transform disabled:opacity-40"
+      (click)="createProductButtons(productGroup)"
+      [disabled]="sheetOpen()"
+    >
+      <span
+        class="h-2.5 w-2.5 shrink-0 rounded-full"
+        [style.background-color]="productGroup.color"
+        aria-hidden="true"
+      ></span>
+      <span class="truncate">{{ productGroup.name }}</span>
+    </button>
+  </ng-template>
 
   <!-- ═══════════════ WARENKORB ═══════════════ -->
   <div
@@ -455,8 +478,9 @@
       </div>
     </div>
 
-    <!-- Warenkorb-Aktionen unter der Summe: Rabatt, Positionsrabatt (nur mit Auswahl), Code, Optionen -->
-    <div class="grid grid-cols-4 gap-1.5 px-3 pb-3 shrink-0">
+    <!-- Warenkorb-Aktionen unter der Summe: Rabatt, Positionsrabatt (nur mit Auswahl), Optionen. Code steht seit
+         core#908 unter „Optionen" — er wird selten getippt, und die Kombination brauchte den Platz als Funktionstaste. -->
+    <div class="grid grid-cols-3 gap-1.5 px-3 pb-3 shrink-0">
       <button
         type="button"
         class="pnry-touch h-14 rounded-control border flex flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-semibold active:scale-[0.97] transition-transform"
@@ -485,22 +509,7 @@
         <lib-icon name="percent" style="font-size: 1.25rem" />
         {{ 'ORDER_DIALOG.LINE_DISCOUNT' | translate }}
       </button>
-      <!-- Getönt, sobald ein geprüfter Code anliegt — eingelöst wird er erst beim Abschluss. -->
-      <button
-        type="button"
-        class="pnry-touch h-14 rounded-control border flex flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-semibold active:scale-[0.97] transition-transform"
-        [ngClass]="
-          appliedCodeDiscount()
-            ? 'bg-warn-soft border-warn-line text-warn-ink'
-            : 'bg-pos-key border-pos-key-line text-ink'
-        "
-        (click)="openPromoCodeDialog()"
-        aria-label="Rabattcode eingeben"
-      >
-        <lib-icon name="ticket" style="font-size: 1.25rem" />
-        {{ 'ORDER_DIALOG.PROMO_CODE' | translate }}
-      </button>
-      <!-- „Optionen" sammelt die frühere Spalte 2 und die Personalessen-/Firmenkunden-Tasten (core#829). -->
+      <!-- „Optionen" sammelt die frühere Spalte 2, Personalessen, Firmenkunde und den Rabattcode (core#829, core#908). -->
       <button
         type="button"
         class="pnry-touch h-14 rounded-control border bg-pos-key border-pos-key-line text-ink flex flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-semibold active:scale-[0.97] transition-transform"
@@ -523,9 +532,13 @@
           <lib-icon name="buildings" class="mr-3" style="font-size: 1.25rem" />
           {{ (isStandaloneMode() ? 'ORDER_DIALOG.ENTERPRISE_ONLY' : 'ORDER_DIALOG.CORPORATE_CUSTOMER') | translate }}
         </button>
-        <button mat-menu-item (click)="setCombiSubButtons()">
-          <lib-icon name="arrows-merge" class="mr-3 rotate-90" style="font-size: 1.25rem" />
-          {{ 'ORDER_DIALOG.COMBINATION' | translate }}
+        <!-- Ein geprüfter Code steht unter der Summe und hier am Eintrag — eingelöst wird er erst beim Abschluss. -->
+        <button mat-menu-item (click)="openPromoCodeDialog()" aria-label="Rabattcode eingeben">
+          <lib-icon name="ticket" class="mr-3" style="font-size: 1.25rem" />
+          {{ 'ORDER_DIALOG.PROMO_CODE' | translate }}
+          @if (appliedCodeDiscount(); as cd) {
+            <span class="ml-1 text-warn-ink">· {{ cd.code }}</span>
+          }
         </button>
         <button mat-menu-item (click)="togglePriceVisibility()" [attr.aria-pressed]="priceVisibility">
           <lib-icon name="currency-eur" class="mr-3" style="font-size: 1.25rem" />
@@ -551,7 +564,7 @@
     }
 
     <!-- Anpassen-Sheet (#639, core#830): liegt über der Rasterspalte und gleitet von unten herein (CSS-Animation beim
-         Einfügen; `animate.enter` ginge nicht — die Komponente führt noch `animations` für die Infobox, NG2027). Gruppenleiste
+         Einfügen; bis core#908 schloss der Infobox-Trigger in `animations` `animate.enter` aus, NG2027). Gruppenleiste
          und Warenkorb bleiben sichtbar und ungedimmt; der Scrim tut bewusst nichts, damit ein Tipp daneben
          die Anpassung nicht verwirft. Schließen nur über Übernehmen/Abbrechen im Panel. -->
     @if (customizeModel(); as model) {
@@ -574,10 +587,11 @@
         />
       </div>
     } @else {
-      <!-- Function Buttons: linksbündige Kacheln im Produktkachel-Maß, farbcodiert nach Wirkung (code-style.md §9.1) -->
-      @if (functionButtons.length > 0) {
+      <!-- Function Buttons: linksbündige Kacheln im Produktkachel-Maß, farbcodiert nach Wirkung (code-style.md §9.1).
+           Ohne eigene Tasten der Ansicht stehen die des Hauptbildschirms da (Kombination, core#908). -->
+      @if (boardFunctionButtons.length > 0) {
         <div class="flex flex-wrap items-stretch gap-2 shrink-0 px-3 pt-0 pb-3">
-          @for (functionButton of functionButtons; track functionButton._id; let i = $index) {
+          @for (functionButton of boardFunctionButtons; track functionButton._id) {
             <button
               type="button"
               class="pnry-touch w-[var(--pnry-tile-min)] h-[6.5rem] shrink-0 rounded-xl border-2 flex flex-col items-center justify-center gap-1 font-bold text-xs tracking-wide uppercase px-2 transition-all active:scale-95"
@@ -698,13 +712,30 @@
         </div>
       </div>
     }
+
+    <!-- Hinweis statt Infozeile (core#908): liegt über dem unteren Rasterrand, nimmt keine Tipps an und
+         verschiebt nichts. Die Live-Region steht immer, damit ein Screenreader auch den ersten Hinweis liest. -->
+    <div class="kasse__notice pointer-events-none" role="status" aria-live="polite">
+      @if (notice(); as hint) {
+        <div
+          class="kasse-notice-enter max-w-full rounded-pill border px-4 py-2 text-sm font-semibold shadow-card"
+          [ngClass]="
+            hint.tone === 'danger'
+              ? 'bg-danger-soft border-danger-line text-danger-ink'
+              : 'bg-surface-panel border-line text-ink'
+          "
+        >
+          {{ hint.text }}
+        </div>
+      }
+    </div>
   </div>
 
   <!-- ═══════════════ PRIMÄRTASTE ═══════════════ -->
   <div class="kasse__primary px-3 py-3">
     <button
       type="button"
-      class="pnry-touch-primary disabled:opacity-40 h-16 w-full rounded-card bg-action text-on-action font-bold text-lg shadow-card active:scale-[0.97] transition-transform flex items-center justify-between px-5 gap-3"
+      class="pnry-touch-primary disabled:opacity-40 h-14 w-full rounded-card bg-action text-on-action font-bold text-lg shadow-card active:scale-[0.97] transition-transform flex items-center justify-between px-5 gap-3"
       (click)="setTaxRateSubbuttons()"
       [disabled]="sheetOpen()"
     >
@@ -719,10 +750,11 @@
   <!-- ═══════════════ ZIFFERNLEISTE ═══════════════ -->
   <!-- Die Leiste ist ihr eigener Container: Ob die Ziffern inline passen, hängt an ihrer Breite, nicht am
        Viewport. Die Schwelle ist die Summe der festen Breiten (53.25rem) und wächst über rem mit der Dichte,
-       ein Media-Breakpoint täte das nicht (#798). Multiplier-Logik unverändert (Konzept §5). -->
+       ein Media-Breakpoint täte das nicht (#798). Multiplier-Logik unverändert (Konzept §5). Die Zeile liegt am
+       Rand gegenüber dem Warenkorb (core#908, `.kasse__keys-row`); ihre Reihenfolge spiegelt nie. -->
   <div class="kasse__keys relative mr-3 py-3 min-w-0">
     <div class="@container">
-      <div class="flex flex-row gap-1.5 items-stretch">
+      <div class="kasse__keys-row flex flex-row gap-1.5 items-stretch">
         <!-- Tipp aufs Feld bucht den Artikel mit dieser Nummer 1× (applyProductSearch) -->
         <button
           type="button"
@@ -790,16 +822,16 @@
     <!-- ═══ Ende Ziffernleiste ═══ -->
 
     <!-- Ziffern-Popup außerhalb des Containers (Containment fängt `fixed` ab, #798), aber in der Zone verankert:
-       Es steht über der Ziffern-Taste und wandert mit der Spiegelung mit. Links-Versatz = Feld 10,5rem + C +
-       zwei Lücken bis zur Mitte der Taste (16,5rem) minus halbe Popup-Breite (6,125rem). -->
+       Es steht über der Ziffern-Taste und wandert mit der Spiegelung mit. Die Seite setzt `.kasse__numpad-popup`
+       je Händigkeit (order-dialog.component.scss). -->
     @if (showNumpadPopup) {
       <!-- Backdrop -->
       <div class="fixed inset-0 z-40" (click)="showNumpadPopup = false"></div>
-      <div class="absolute z-50 w-[12.25rem] bottom-[calc(100%-0.25rem)] left-[10.375rem]">
+      <div class="kasse__numpad-popup absolute z-50 w-[12.25rem] bottom-[calc(100%-0.25rem)]">
         <div class="bg-white dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-700 p-2.5 relative">
           <!-- Pfeil nach unten -->
           <div
-            class="absolute -bottom-[0.4375rem] left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white dark:bg-gray-950 border-r border-b border-gray-200 dark:border-gray-700 rotate-45"
+            class="kasse__numpad-arrow absolute -bottom-[0.4375rem] w-3.5 h-3.5 bg-white dark:bg-gray-950 border-r border-b border-gray-200 dark:border-gray-700 rotate-45"
           ></div>
           <div class="grid grid-cols-3 gap-1.5">
             @for (number of [1, 2, 3, 4, 5, 6, 7, 8, 9]; track number) {
@@ -836,49 +868,6 @@
       </div>
     }
   </div>
-
-  <!-- Alle Gruppen hinter „Weitere (n)" -->
-  @if (allGroupsOpen()) {
-    <div
-      class="absolute inset-0 z-[55] bg-[var(--scrim)] flex items-start justify-center p-6"
-      (click)="allGroupsOpen.set(false)"
-    >
-      <div
-        class="w-full max-w-5xl rounded-card bg-surface-panel border border-line shadow-card p-4"
-        (click)="$event.stopPropagation()"
-        (keydown.escape)="allGroupsOpen.set(false)"
-        cdkTrapFocus
-        [cdkTrapFocusAutoCapture]="true"
-        role="dialog"
-        aria-modal="true"
-        [attr.aria-label]="'ORDER_DIALOG.ALL_GROUPS' | translate"
-      >
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-sm font-bold text-ink">{{ 'ORDER_DIALOG.ALL_GROUPS' | translate }}</span>
-          <button
-            type="button"
-            class="h-12 w-12 rounded-control flex items-center justify-center text-ink-muted hover:bg-surface-rail"
-            (click)="allGroupsOpen.set(false)"
-            [attr.aria-label]="'COMMON.CLOSE' | translate"
-          >
-            <lib-icon name="x" style="font-size: 1.25rem" />
-          </button>
-        </div>
-        <div class="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2 max-h-[70vh] overflow-y-auto">
-          @for (productGroup of productGroups; track productGroup._id) {
-            <button
-              type="button"
-              class="pnry-touch h-14 min-w-0 rounded-control px-2 bg-surface-panel border border-line text-ink text-xs font-semibold uppercase leading-tight active:scale-[0.97] transition-transform"
-              [style.border-bottom]="'3px solid ' + productGroup.color"
-              (click)="selectGroupFromAll(productGroup)"
-            >
-              <span class="line-clamp-2 [overflow-wrap:break-word] text-balance">{{ productGroup.name }}</span>
-            </button>
-          }
-        </div>
-      </div>
-    </div>
-  }
 
   <!-- Steuerleiste der markierten Zeile, Position oder Kombination (core#829, ADR 0034 P1–P4): eine eigene
        Fläche unter der Zeile, je Taste 3,5rem. Minus bei Menge 1 aus (P3), Menge und Löschen mit Rückgängig (P4). -->

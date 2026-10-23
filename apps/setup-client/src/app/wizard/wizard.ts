@@ -3,14 +3,14 @@ import { CommonModule } from '@angular/common'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { SetupService, SetupPayload } from '../setup.service'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { IconComponent } from '@panary/shared/ui-common'
+import { IconComponent, PanaryLogoComponent } from '@panary/shared/ui-common'
 import type { IconName } from '@panary/shared/util-helpers'
 import { ThemeService } from '../theme.service'
 
 @Component({
   selector: 'app-wizard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TranslateModule, IconComponent],
+  imports: [CommonModule, ReactiveFormsModule, TranslateModule, IconComponent, PanaryLogoComponent],
   templateUrl: './wizard.html',
   styleUrl: './wizard.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

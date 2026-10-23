@@ -3,13 +3,13 @@ import { QRCodeComponent } from 'angularx-qrcode'
 import { RouterLink } from '@angular/router'
 import { TranslateService, TranslateModule } from '@ngx-translate/core'
 import { SetupService } from '../setup.service'
-import { IconComponent } from '@panary/shared/ui-common'
+import { IconComponent, PanaryLogoComponent } from '@panary/shared/ui-common'
 import { ThemeService } from '../theme.service'
 
 @Component({
   selector: 'app-landing',
   standalone: true,
-  imports: [QRCodeComponent, RouterLink, TranslateModule, IconComponent],
+  imports: [QRCodeComponent, RouterLink, TranslateModule, IconComponent, PanaryLogoComponent],
   templateUrl: './landing.html',
   styleUrl: './landing.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

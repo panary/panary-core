@@ -3,7 +3,10 @@
   <header
     class="sticky top-0 z-10 mb-8 flex items-center justify-between border-b border-line bg-surface-bg/90 py-4 backdrop-blur"
   >
-    <h1 class="text-2xl font-bold tracking-tight">{{ 'WIZARD.HEADER' | translate }}</h1>
+    <div class="flex items-center gap-4">
+      <lib-panary-logo [size]="2" />
+      <h1 class="text-2xl font-bold tracking-tight">{{ 'WIZARD.HEADER' | translate }}</h1>
+    </div>
     <div class="flex items-center gap-3">
       <select
         #langSelect

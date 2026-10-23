@@ -1,10 +1,7 @@
 <div class="w-full min-h-screen bg-surface-bg text-ink flex flex-col">
   <!-- Header: Logo links, Controls rechts -->
   <header class="flex-none flex items-center justify-between p-6 md:p-8 border-b border-line">
-    <div>
-      <img src="/assets/logos/panary_logo_color.svg" alt="Panary Logo" class="h-8 w-auto block dark:hidden" />
-      <img src="/assets/logos/panary_logo_mono.svg" alt="Panary Logo" class="h-8 w-auto hidden dark:block invert" />
-    </div>
+    <lib-panary-logo [size]="2.25" />
     <div class="flex items-center gap-2">
       <button
         (click)="cycleLanguage()"

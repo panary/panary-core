@@ -151,3 +151,37 @@ Annahme „das war überall Nachlässigkeit" damit ebenfalls. Der Helfer ist des
 fail-closed mit einer **benannten** Ausnahme (`allowMissingTenantContext`), die
 diese Stelle setzt — und sonst keine im Edge außer `verifyPin`/`changePin`, wo
 sie das Verhalten unverändert lässt.
+
+---
+
+## Nachtrag 2026-10-23 — gebunden an das Bediener-Token (#903)
+
+Seit [#903](https://github.com/panary/panary-core/issues/903) wertet die Prüfung bei einer
+**Geräte-Sitzung** das Bediener-Token aus `verifyPin` aus
+([ADR 0053](../adr/0053-bediener-token-am-pos.md), `params.posOperator`):
+
+| Aufruf vom Gerät | Ergebnis |
+| --- | --- |
+| gültiges Token, Ziel = Token-Mensch | erlaubt (weitere Prüfungen wie bisher) |
+| gültiges Token, Ziel ≠ Token-Mensch | `403` (`NOT_OPERATOR`), es wird nichts geschrieben |
+| Token mitgeschickt, aber abgelehnt (abgelaufen, fremdes Gerät, manipuliert) | `401` mit `data.reason: POS_OPERATOR_REQUIRED` (`OPERATOR_REJECTED`) |
+| kein Token | unverändert: Geräte-Scope, Zuweisung, Kontostatus |
+
+Anlass war [#902](https://github.com/panary/panary-core/issues/902). Nach einem Bedienerwechsel
+hielt der POS den vorigen Mitarbeiter fest und schickte dessen ID. Der Edge stempelte ihn, weil
+er nur prüfte, ob das Gerät stempeln darf, nicht wer an der Kasse steht.
+
+- **Berechtigung, nicht Zurechnung** (ADR 0053, Nachtrag 2026-10-05): Stempeln läuft ohne
+  Outbox und nur online. Eine Ablehnung verliert nichts, deshalb wird abgelehnt statt nur
+  gekennzeichnet.
+- **Abgelehntes Token bricht ab**, statt auf den Weg ohne Token zurückzufallen. Sonst hätte ein
+  kaputtes Token mehr Rechte als ein gültiges.
+- **Reihenfolge:** nach der Mandantengrenze, vor der Zustandsprüfung. Die Antwort verrät nichts
+  über den Stempelstand eines Kollegen.
+- **Ohne Token** bleibt es beim Stand von #189. Darüber läuft das Personalnummer-Panel am
+  Login-Bildschirm, das ohne PIN stempelt. Wirksam wird die Bindung erst, wenn der Client das
+  Token mitschickt (Rail-Zeiterfassung, [#907](https://github.com/panary/panary-core/issues/907)).
+
+Getestet in `time-clock-scope.spec.ts` (Entscheidung), `time-clock-wiring.spec.ts` (alle vier
+Methoden, kein Schreiben bei Ablehnung) und `test/services/users/time-clock-operator.test.ts`
+(echte Hook-Kette mit echtem Token: fremde ID, manipuliertes Token, Token eines anderen Geräts).

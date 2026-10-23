@@ -124,6 +124,7 @@
   },
   "LOGIN": {
     "WELCOME": "Hoş geldiniz",
+    "WHO_PAYS": "Kim kasada?",
     "SELECT_ACCOUNT": "Hesabınızı seçin",
     "OTHER_PERSON": "Başka kişi",
     "ENTER_PIN": "PIN girin",
@@ -180,6 +181,8 @@
   },
   "TIME_CLOCK": {
     "TITLE": "Çalışma saati kaydı",
+    "STAMP_ONLY": "Yalnızca çalışma süresini damgala",
+    "STAMP_HINT": "Personel numarasını girin, sonra tuşa basın",
     "SUBTITLE": "Hızlıca giriş veya çıkış yapın",
     "CLOCK_IN": "Giriş",
     "CLOCK_OUT": "Çıkış",

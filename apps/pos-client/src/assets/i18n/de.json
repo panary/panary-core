@@ -124,6 +124,7 @@
   },
   "LOGIN": {
     "WELCOME": "Willkommen",
+    "WHO_PAYS": "Wer kassiert?",
     "SELECT_ACCOUNT": "Wählen Sie Ihren Account",
     "OTHER_PERSON": "Andere Person",
     "ENTER_PIN": "PIN eingeben",
@@ -180,6 +181,8 @@
   },
   "TIME_CLOCK": {
     "TITLE": "Arbeitszeiterfassung",
+    "STAMP_ONLY": "Nur Arbeitszeit stempeln",
+    "STAMP_HINT": "Personalnummer eingeben, dann Taste",
     "SUBTITLE": "Schnell ein- oder ausstempeln",
     "CLOCK_IN": "Kommen",
     "CLOCK_OUT": "Gehen",

@@ -13,6 +13,7 @@ import { CommonModule } from '@angular/common'
 import { TranslateService } from '@ngx-translate/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { TenantSuspensionService } from '@panary/shared/data-access'
+import { IconComponent } from '@panary/shared/ui-common'
 import { User, UserService } from '@panary/users/data-access'
 
 export type TimeClockAction = 'clock-in' | 'clock-out' | 'break-start' | 'break-end'
@@ -26,7 +27,7 @@ export interface TimeClockEvent {
 
 @Component({
   selector: 'lib-time-clock-panel',
-  imports: [CommonModule, TranslateModule],
+  imports: [CommonModule, TranslateModule, IconComponent],
   templateUrl: './time-clock-panel.component.html',
   styleUrl: './time-clock-panel.component.scss',
 })

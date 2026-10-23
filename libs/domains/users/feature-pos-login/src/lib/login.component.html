@@ -49,7 +49,7 @@
 <div class="w-full h-dvh flex overflow-hidden bg-surface-bg">
   <!-- Seitenpanel (Konzept 2.5): Logo, Gerät, Verbindung, Zeiterfassung nur auf geteilten Geräten -->
   <aside
-    class="hidden lg:flex lg:w-[30.25rem] lg:flex-none flex-col gap-4 overflow-y-auto border-r border-line bg-surface-panel p-6"
+    class="hidden lg:flex lg:w-[21.25rem] lg:flex-none flex-col gap-3 overflow-y-auto border-r border-line bg-surface-rail p-6"
     data-testid="login-side"
   >
     <lib-panary-logo class="text-ink" [size]="2.25" />
@@ -76,27 +76,30 @@
       <button
         type="button"
         (click)="toggleTheme()"
-        class="pnry-touch flex flex-1 items-center justify-center gap-2 rounded-control border border-line bg-surface-elevated text-sm font-semibold text-ink hover:bg-surface-input"
+        class="h-12 flex flex-1 items-center justify-center gap-2 rounded-card border border-line bg-surface-elevated text-sm font-semibold text-ink hover:bg-surface-panel"
         [title]="'LOGIN.CHANGE_THEME' | translate"
         [attr.aria-label]="'LOGIN.CHANGE_THEME' | translate"
       >
         @if (themeService.theme === 'light') {
           <lib-icon name="sun" class="text-[1.25rem]" />
+          {{ 'SETTINGS.THEME_LIGHT' | translate }}
         } @else if (themeService.theme === 'dark') {
           <lib-icon name="moon" class="text-[1.25rem]" />
+          {{ 'SETTINGS.THEME_DARK' | translate }}
         } @else {
           <lib-icon name="circle-half" class="text-[1.25rem]" />
+          {{ 'SETTINGS.THEME_SYSTEM' | translate }}
         }
       </button>
       <button
         type="button"
         (click)="cycleLanguage()"
-        class="pnry-touch flex flex-1 items-center justify-center gap-2 rounded-control border border-line bg-surface-elevated text-sm font-semibold text-ink hover:bg-surface-input"
+        class="h-12 flex flex-1 items-center justify-center gap-2 rounded-card border border-line bg-surface-elevated text-sm font-semibold text-ink hover:bg-surface-panel"
         [title]="'LOGIN.CHANGE_LANGUAGE' | translate"
         [attr.aria-label]="'LOGIN.CHANGE_LANGUAGE' | translate"
       >
         <lib-icon name="translate" class="text-[1.25rem]" />
-        {{ languageService.currentLanguage().toUpperCase() }}
+        {{ languageLabel() }}
       </button>
     </div>
   </aside>
@@ -120,8 +123,13 @@
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1 flex items-center justify-center p-6 pt-20 pb-32 lg:pb-16">
-      <div class="w-full max-w-md">
+    <div
+      class="flex-1 flex justify-center p-6 pt-20 pb-32 lg:pb-16"
+      [class.items-center]="!wideSelection()"
+      [class.items-start]="wideSelection()"
+      [class.lg:p-8]="wideSelection()"
+    >
+      <div class="w-full" [class.max-w-md]="!wideSelection()">
         <!-- ==================== LOADING ==================== -->
         @if (currentStep() === 'loading') {
           <div class="flex flex-col items-center justify-center animate-pulse">
@@ -158,10 +166,14 @@
         <!-- ==================== USER SELECTION ==================== -->
         @if (currentStep() === 'select-user') {
           <div class="animate-[fadeIn_0.3s_ease-out]">
-            <div class="text-center mb-8">
-              <h1 class="text-3xl font-bold text-ink mb-1">{{ 'LOGIN.WELCOME' | translate }}</h1>
-              <p class="text-sm text-ink-muted">{{ 'LOGIN.SELECT_ACCOUNT' | translate }}</p>
-            </div>
+            @if (isShared()) {
+              <h1 class="text-3xl font-bold text-ink mb-4">{{ 'LOGIN.WHO_PAYS' | translate }}</h1>
+            } @else {
+              <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-ink mb-1">{{ 'LOGIN.WELCOME' | translate }}</h1>
+                <p class="text-sm text-ink-muted">{{ 'LOGIN.SELECT_ACCOUNT' | translate }}</p>
+              </div>
+            }
 
             @if (!isShared()) {
               <!-- Zugewiesenes Geraet: kompakte Zeilenliste statt Kachelraster.

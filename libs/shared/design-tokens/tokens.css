@@ -64,7 +64,8 @@
 
   /* Admin-Shell: dunkle Kopfzeile und Navigation in beiden Themes (cloud: --surface-topbar) */
   --shell-bg: #1a1a1a;
-  --shell-nav: #1a1a1a; /* gleich --shell-bg: die Navigation liegt im Rahmen (cloud: .l-shell-nav) */
+  /* Navigation liegt im Rahmen, daher gleiche Farbe wie die Kopfzeile (cloud, Klasse l-shell-nav) */
+  --shell-nav: #1a1a1a;
   --shell-ink: #d6d3ce;
   --shell-muted: #a8a29a;
   --shell-hover: rgba(255, 255, 255, 0.06);

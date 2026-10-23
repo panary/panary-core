@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu'
 import type { ConnectedPosition } from '@angular/cdk/overlay'
 import { TranslateModule } from '@ngx-translate/core'
-import { IconComponent } from '@panary/shared/ui-common'
+import { IconComponent, PanaryLogoComponent } from '@panary/shared/ui-common'
 import { PosNavigationService } from '../navigation/pos-navigation.service'
 import { PosStaffService } from '../navigation/pos-staff.service'
 import { PosAccountPanel } from './pos-account-panel'
@@ -16,7 +16,16 @@ import { PosTimeClock } from './pos-time-clock'
  */
 @Component({
   selector: 'lib-pos-rail',
-  imports: [CdkMenu, CdkMenuItem, CdkMenuTrigger, IconComponent, PosAccountPanel, PosTimeClock, TranslateModule],
+  imports: [
+    CdkMenu,
+    CdkMenuItem,
+    CdkMenuTrigger,
+    IconComponent,
+    PanaryLogoComponent,
+    PosAccountPanel,
+    PosTimeClock,
+    TranslateModule,
+  ],
   templateUrl: './pos-rail.html',
   styleUrls: ['./pos-rail.css', './pos-menu.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

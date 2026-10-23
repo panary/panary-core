@@ -2,7 +2,7 @@ import { computed, inject, Injectable } from '@angular/core'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'
 import { AuthService, PosSessionService } from '@panary/auth/data-access'
-import { TenantSuspensionService } from '@panary/shared/data-access'
+import { posOperatorSession, TenantSuspensionService } from '@panary/shared/data-access'
 import { PosHandednessService, UserService } from '@panary/users/data-access'
 import { PosHandedness } from '@panary/users/domain'
 import { timeTrackingBlockedHintKey } from './pos-navigation'
@@ -32,6 +32,7 @@ export class PosStaffService {
    * Ohne geladenen Auth-User hilft der beim Login abgelegte Eintrag.
    */
   readonly currentUser = computed(() => {
+    posOperatorSession()
     const authUser = this.#users.currentUser()
     if (authUser) return authUser
     const id = storedPosUser()?._id
@@ -39,6 +40,7 @@ export class PosStaffService {
   })
 
   readonly displayName = computed<string>(() => {
+    posOperatorSession()
     const authName = this.#auth.fullName()
     if (authName && authName !== 'Unknown User') return authName
     const stored = storedPosUser()

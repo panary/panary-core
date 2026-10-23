@@ -1,28 +1,33 @@
 ---
 type: Domain Concept
 title: POS-Anpassen-Panel — Zutaten abwählen, Extras hinzufügen
-description: 'Beim Antippen eines Produkts mit ui.showOptionsAuto (oder einer Warenkorb-Position) zeigt der Bestelldialog ein Sheet über der Rasterspalte mit abwählbaren Zutaten und Extras je Optionsgruppe; die OHNE-Funktionstaste ist entfallen.'
+description: 'Beim Antippen eines Produkts mit ui.showOptionsAuto (oder einer Warenkorb-Position) zeigt der Bestelldialog ein Sheet über Raster und Ziffernleiste mit abwählbaren Zutaten und Extras je Optionsgruppe; die OHNE-Funktionstaste ist entfallen.'
 tags: [orders, pos, products]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-14T14:00:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-23T05:00:00Z }
 ---
 
 # POS-Anpassen-Panel
 
 Seit [#639](https://github.com/panary/panary-core/issues/639). Szenario: Ein Gast bestellt einen
-Burger ohne Ketchup und mit extra Käse. Die Bedienung tippt den Burger an, über der Rasterspalte
+Burger ohne Ketchup und mit extra Käse. Die Bedienung tippt den Burger an, über Raster und Ziffernleiste
 gleitet das Sheet **„Anpassen"** von unten herein. Dort ist Ketchup abzuwählen und Käse per Plus
 hinzuzufügen. „Fertig" führt zurück ins Raster der Produktgruppe.
 
 ## Sheet statt Ersatz (core#830)
 
-Bis core#830 ersetzte das Panel Funktionstasten und Raster. Jetzt liegt es als Sheet in der Rasterzone
-des Kassenbildschirms (`.kasse__sheet` über `.kasse__scrim`, `order-dialog.component.scss`):
+Bis core#830 ersetzte das Panel Funktionstasten und Raster. Jetzt liegt es als Sheet über Raster- und
+Ziffernzone des Kassenbildschirms (`.kasse__sheet` über `.kasse__scrim` im `.kasse__sheet-host`,
+`order-dialog.component.scss`). Der Host spannt die Grid-Linien `grid-start` … `keys-end` und spiegelt deshalb
+mit der Händigkeit; das Sheet füllt ihn bis an den unteren Rand und ist nur oben gerundet
+([core#909](https://github.com/panary/panary-core/issues/909) — vorher endete es über der Ziffernleiste mit eckiger
+Unterkante, darüber stand ein 0,75rem-Streifen Scrim). Die Extras stehen je Gruppe in einem Raster gleich breiter
+Spalten (`auto-fill`, 16rem), die Überschrift über die volle Breite; gescrollt wird senkrecht:
 
 - **Sichtbar bleiben** Gruppenleiste und Warenkorb, beide ungedimmt. Die angepasste Zeile trägt im
   Warenkorb den Hinweis „wird angepasst" und pulsiert zweimal je 600 ms.
 - **Gesperrt** sind, solange das Sheet offen ist: Primärtaste, Ziffernleiste samt Feld und Popup, die
-  Gruppenleiste inkl. „Weitere" und „Übersicht" (`sheetOpen()`). Der Warenkorb bleibt bedienbar — das Panel
+  Gruppenleiste samt Burger-Menü (`sheetOpen()`). Der Warenkorb bleibt bedienbar — das Panel
   folgt der Auswahl (`#followSelectionInPanel`).
 - **Schließen** nur über „Fertig" oder „Abbrechen". Ein Tipp auf den Scrim tut nichts, damit eine
   Anpassung nicht versehentlich verworfen wird. Auch jeder Ansichtswechsel schließt das Sheet

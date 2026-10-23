@@ -29,7 +29,7 @@ Sonst heißt die Taste „Bestellen" und alles läuft wie vorher.
 
 1. `placeOrder` legt die Bestellung mit **vorab vergebener ID** an. Der Druckdialog öffnet wie bisher direkt nach
    dem Anlegen, also vor der Bezahlansicht (F1). Scheitert das Anlegen, bleiben die Positionen stehen.
-2. Die Bezahlansicht ist ein Sheet über der Rasterzone (wie [Anpassen](pos-anpassen-panel.md)). Primärtaste,
+2. Die Bezahlansicht ist ein Sheet über Raster und Ziffernleiste (wie [Anpassen](pos-anpassen-panel.md), seit core#909). Primärtaste,
    Ziffernleiste, Gruppenleiste und „Übersicht" sind gesperrt, ein Tipp auf den Scrim tut nichts.
 3. **Gegeben** wird von rechts eingegeben (5, 0, 0 → 5,00 €), dazu „Passend" und die nächsten runden Scheine.
    **Rückgeld** ist reine Anzeige (F2) und wird nicht gebucht.

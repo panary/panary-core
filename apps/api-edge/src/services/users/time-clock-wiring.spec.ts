@@ -129,6 +129,37 @@ describe('Verdrahtung: jede Stempel-Methode prueft den Aufrufer-Scope', () => {
     await expect(call(service, method, { userId: 'u-victim' }, { user: attacker })).rejects.toMatchObject({ code: 403 })
   })
 
+  it.each(TIME_CLOCK_METHODS)(
+    '%s: mit Bediener-Token nur der Token-Mensch, Abweichung → 403 ohne Schreiben (#903)',
+    async method => {
+      const { service, patch, create } = setup(foreignTarget)
+
+      await expect(
+        call(service, method, { userId: 'u-victim' }, { user: deviceActor, posOperator: { userId: 'u-kassierer' } }),
+      ).rejects.toMatchObject({ code: 403 })
+      expect(patch).not.toHaveBeenCalled()
+      expect(create).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each(TIME_CLOCK_METHODS)('%s: abgelehntes Bediener-Token → 401 ohne Schreiben (#903)', async method => {
+    const { service, patch, create } = setup(foreignTarget)
+
+    await expect(
+      call(service, method, { userId: 'u-victim' }, { user: deviceActor, posOperatorRejected: true }),
+    ).rejects.toMatchObject({ code: 401, data: { reason: 'POS_OPERATOR_REQUIRED' } })
+    expect(patch).not.toHaveBeenCalled()
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('mit passendem Bediener-Token stempelt das Geraet den Token-Menschen (#903)', async () => {
+    const { service, patch } = setup({ ...foreignTarget, stampingId: null, startBreakAt: null })
+
+    await call(service, 'checkin', { userId: 'u-victim' }, { user: deviceActor, posOperator: { userId: 'u-victim' } })
+
+    expect(patch.mock.calls[0]?.[1]).toMatchObject({ stampingId: 'wt-1' })
+  })
+
   it('der legitime Terminal-Pfad bleibt offen (Geraet stempelt einen Mitarbeiter ein)', async () => {
     // Gegenprobe: Der Scope-Check darf den Pfad nicht mitnehmen, ueber den die
     // Zeiterfassung tatsaechlich laeuft — POS-Login-Screen und POS-Dashboard

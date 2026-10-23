@@ -85,6 +85,11 @@ verloren. Ein verlorener Bon wiegt schwerer als ein nicht belegter Bediener.
   am Edge, Sync in der Cloud) kommt erst, wenn jemand die Auswertung braucht.
 - Deshalb lehnt `resolvePosOperator` seit Schritt 2 nicht mehr ab, sondern kennzeichnet.
 
+**Zeiterfassung (seit [#903](https://github.com/panary/panary-core/issues/903))** ist
+Berechtigung: Sie läuft ohne Outbox und nur online. Mit gültigem Token stempelt das Gerät nur
+den Token-Menschen, ein abgelehntes Token → `401`. Ohne Token bleibt der Geräte-Scope
+([Zeiterfassung](../security/zeiterfassung-aufrufer-scope.md)).
+
 ### Schnitt
 
 | Schritt | Inhalt |

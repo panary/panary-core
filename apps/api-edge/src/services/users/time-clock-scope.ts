@@ -28,7 +28,7 @@
 // (Domain-Aenderung → Core-Release → Cloud-Pin-Bump → Cloud-Umbau) und gehoert
 // nicht in einen Sicherheitsfix. Die Rollen-Wahrheit (`PRIVILEGED_ROLES`) kommt
 // ohnehin aus der Domain, geteilt ist damit das, was sich aendern koennte.
-import { Forbidden } from '@feathersjs/errors'
+import { Forbidden, NotAuthenticated } from '@feathersjs/errors'
 
 import { checkCallerOwnsRecord } from '@panary/shared-backend'
 import { PRIVILEGED_ROLES } from '@panary/users/domain'
@@ -53,8 +53,9 @@ export interface TimeClockTarget {
 }
 
 export interface TimeClockViolation {
-  reason: 'FOREIGN_TENANT' | 'FOREIGN_RECORD' | 'NOT_ASSIGNED' | 'INACTIVE_ACCOUNT'
-  /** Client-stabile Meldung — der Adapter wirft sie unveraendert als Forbidden. */
+  reason:
+    'FOREIGN_TENANT' | 'OPERATOR_REJECTED' | 'NOT_OPERATOR' | 'FOREIGN_RECORD' | 'NOT_ASSIGNED' | 'INACTIVE_ACCOUNT'
+  /** Client-stabile Meldung — der Adapter wirft sie unveraendert (Forbidden, bei `OPERATOR_REJECTED` NotAuthenticated). */
   message: string
 }
 
@@ -66,7 +67,18 @@ export interface TimeClockScopeOptions {
    * Einschraenkung.
    */
   deviceAccessScope?: string[] | null
+  /**
+   * Per Bediener-Token belegter Mensch (`params.posOperator`, ADR 0053). Kam
+   * ein gueltiges Token mit, darf eine Geraete-Sitzung nur ihn stempeln
+   * (panary/panary-core#903).
+   */
+  posOperator?: { userId: string } | null
+  /** Ein Token kam mit, wurde aber abgelehnt (`params.posOperatorRejected`). */
+  posOperatorRejected?: boolean
 }
+
+/** Kennung der Token-Ablehnung — dieselbe wie bei `users.setPosHandedness` (#833). */
+export const POS_OPERATOR_REQUIRED = 'POS_OPERATOR_REQUIRED'
 
 const isDeviceRole = (role: string | undefined): boolean => Boolean(role?.startsWith(DEVICE_ROLE_PREFIX))
 
@@ -115,6 +127,26 @@ export const checkTimeClockRequest = (
     return { reason: 'FOREIGN_TENANT', message: 'Benutzer gehoert nicht zum eigenen Mandanten' }
   }
 
+  // 1b. Bediener-Token (#903). Am Geraet belegt das Token aus `verifyPin`, wer
+  // gerade an der Kasse steht. Eine ID im Body, die davon abweicht, ist ein
+  // veralteter oder manipulierter Client — vor #902 hielt der POS nach einem
+  // Bedienerwechsel den vorigen Mitarbeiter fest und stempelte ihn. Ein
+  // abgelehntes Token (abgelaufen, fremdes Geraet, gefaelscht) bricht ab, statt
+  // still auf den Weg ohne Token zurueckzufallen: Sonst haette ein kaputtes
+  // Token mehr Rechte als ein gueltiges. Vor der Zustandspruefung, damit die
+  // Antwort nichts ueber den Stempelstand eines Kollegen verraet.
+  if (isDeviceRole(actor.role)) {
+    if (options.posOperatorRejected) {
+      return { reason: 'OPERATOR_REJECTED', message: 'Bediener-Token ist ungueltig — bitte neu anmelden.' }
+    }
+    if (options.posOperator && options.posOperator.userId !== target._id) {
+      return {
+        reason: 'NOT_OPERATOR',
+        message: 'Zeiterfassung ist nur fuer den angemeldeten Bediener moeglich.',
+      }
+    }
+  }
+
   // 2. Fremder Datensatz. Geraete-Rollen duerfen fuer jeden Mitarbeiter
   // stempeln — ein Terminal bedient die ganze Schicht, und genau dafuer gibt es
   // am Edge den CAN_CLOCK_IN-Fallback in authorize.hook.ts. Privilegierte
@@ -161,7 +193,7 @@ export const checkTimeClockRequest = (
 }
 
 /**
- * Feathers-Adapter um [[checkTimeClockRequest]]: wirft `Forbidden`, sonst nichts.
+ * Feathers-Adapter um [[checkTimeClockRequest]]: wirft `Forbidden` (abgelehntes Bediener-Token: `NotAuthenticated`), sonst nichts.
  * Wird in jeder der vier Stempel-Methoden unmittelbar nach dem `get` aufgerufen —
  * also **vor** jedem Schreibvorgang und vor jeder Zustands-Meldung.
  */
@@ -171,5 +203,9 @@ export const assertTimeClockAccess = (
   options: TimeClockScopeOptions = {},
 ): void => {
   const violation = checkTimeClockRequest(actor, target, options)
-  if (violation) throw new Forbidden(violation.message)
+  if (!violation) return
+  if (violation.reason === 'OPERATOR_REJECTED') {
+    throw new NotAuthenticated(violation.message, { reason: POS_OPERATOR_REQUIRED })
+  }
+  throw new Forbidden(violation.message)
 }

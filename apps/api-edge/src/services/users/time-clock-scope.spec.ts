@@ -128,3 +128,46 @@ describe('assertTimeClockAccess', () => {
     expect(() => assertTimeClockAccess(staff, target({ _id: staff._id }))).not.toThrow()
   })
 })
+
+describe('Bediener-Token am Geraet (panary/panary-core#903)', () => {
+  const victim = target()
+
+  it('gueltiges Token: Geraet stempelt nur den Token-Menschen', () => {
+    expect(checkTimeClockRequest(device, victim, { posOperator: { userId: victim._id } })).toBeNull()
+    expect(checkTimeClockRequest(device, victim, { posOperator: { userId: 'u-anderer' } })).toMatchObject({
+      reason: 'NOT_OPERATOR',
+    })
+  })
+
+  it('abgelehntes Token: Abbruch statt Rueckfall auf den Weg ohne Token', () => {
+    expect(checkTimeClockRequest(device, victim, { posOperatorRejected: true })).toMatchObject({
+      reason: 'OPERATOR_REJECTED',
+    })
+  })
+
+  it('fremder Mandant bleibt die erste Ablehnung, auch mit passendem Token', () => {
+    expect(
+      checkTimeClockRequest(device, target({ tenantId: 't-2' }), { posOperator: { userId: victim._id } }),
+    ).toMatchObject({ reason: 'FOREIGN_TENANT' })
+  })
+
+  it('wirkt nur fuer Geraete-Sitzungen — ein Inhaber am Admin traegt kein Bediener-Token', () => {
+    expect(checkTimeClockRequest(owner, victim, { posOperator: { userId: 'u-anderer' } })).toBeNull()
+    expect(checkTimeClockRequest(owner, victim, { posOperatorRejected: true })).toBeNull()
+  })
+
+  it('assertTimeClockAccess: abgelehntes Token → 401 mit Kennung, fremder Bediener → 403', () => {
+    try {
+      assertTimeClockAccess(device, victim, { posOperatorRejected: true })
+      expect.unreachable()
+    } catch (error) {
+      expect(error).toMatchObject({ code: 401, data: { reason: 'POS_OPERATOR_REQUIRED' } })
+    }
+    try {
+      assertTimeClockAccess(device, victim, { posOperator: { userId: 'u-anderer' } })
+      expect.unreachable()
+    } catch (error) {
+      expect(error).toMatchObject({ code: 403 })
+    }
+  })
+})

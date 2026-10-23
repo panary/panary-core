@@ -117,7 +117,11 @@ export const users = (app: Application) => {
   // Luecke, die changePin unten mit einem eigenen Inline-Typ ausgleicht) noch
   // den vom before.all-Hook abgelegten `deviceAccessScope`.
   const assertTimeClockScope = (user: User, params?: TimeClockParams) =>
-    assertTimeClockAccess(params?.user, user, { deviceAccessScope: readDeviceAccessScope(params) })
+    assertTimeClockAccess(params?.user, user, {
+      deviceAccessScope: readDeviceAccessScope(params),
+      posOperator: params?.posOperator,
+      posOperatorRejected: params?.posOperatorRejected,
+    })
 
   // Custom method: checkin — creates a working-time entry and stamps the user
   service.checkin = async (data: string | { userId: string }, params?: TimeClockParams) => {

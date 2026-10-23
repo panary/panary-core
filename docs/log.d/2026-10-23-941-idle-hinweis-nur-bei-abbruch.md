@@ -1,0 +1,1 @@
+* **Fix** (panary/panary-core#941): Der Hinweis am POS-Login nach einem Inaktivitäts-Logout nennt den Satz „Eine offene Aktion … wurde abgebrochen“ nur noch, wenn der Logout tatsächlich einen offenen Dialog geschlossen hat (`PosSessionService.consumeEndInterrupted`); sonst bleibt die Titelzeile „Wegen Inaktivität abgemeldet“.

@@ -54,6 +54,13 @@ export class PosSessionService {
   readonly #lastEndReason = signal<PosLogoutReason | null>(null)
 
   /**
+   * Hat das Sitzungsende einen offenen Dialog geschlossen? Nur dann stimmt der Satz „eine offene
+   * Aktion wurde abgebrochen“ am Login (panary/panary-core#941) — sonst zeigte jeder Inaktivitäts-Logout
+   * einen Abbruch an, den es nicht gab.
+   */
+  readonly #lastEndInterrupted = signal(false)
+
+  /**
    * Beendet die Sitzung. Liefert `false`, wenn nichts passiert ist (offline
    * oder bereits laufender Logout) — der Aufrufer entscheidet, ob er das dem
    * Nutzer meldet.
@@ -72,10 +79,12 @@ export class PosSessionService {
       // ueber dem Login-Screen stehen bleiben — eine Navigation schliesst
       // CDK-Overlays nicht. `closeAll()` umgeht `disableClose`, das nur fuer
       // Backdrop und ESC gilt; genau das ist hier erwuenscht.
+      const interrupted = this.#dialog.openDialogs.length > 0
       this.#dialog.closeAll()
       console.info('[PosSessionService] Mitarbeiter-Sitzung beendet. Grund:', reason)
       // Vor `logout()`: Das navigiert auf /login, und der Login liest den Grund in `ngOnInit`.
       this.#lastEndReason.set(reason)
+      this.#lastEndInterrupted.set(interrupted)
       return await this.#auth.logout()
     } finally {
       this.#inFlight = false
@@ -91,5 +100,12 @@ export class PosSessionService {
     const reason = this.#lastEndReason()
     this.#lastEndReason.set(null)
     return reason
+  }
+
+  /** Liefert genau einmal, ob das letzte Sitzungsende offene Dialoge geschlossen hat. */
+  consumeEndInterrupted(): boolean {
+    const interrupted = this.#lastEndInterrupted()
+    this.#lastEndInterrupted.set(false)
+    return interrupted
   }
 }

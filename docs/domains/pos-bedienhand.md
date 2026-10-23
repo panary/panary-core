@@ -89,8 +89,14 @@ Die Offline-Outbox der Bestellungen trägt `users` nicht (`pos-outbox-replay.ser
 - Die Shell sendet gemerkte Wahlen nach, sobald der Edge wieder erreichbar ist — jede mit ihrem
   eigenen Token, nicht mit dem des gerade Angemeldeten. Hat inzwischen jemand anderes übernommen,
   bleibt die Zuordnung richtig.
-- Lehnt der Edge ab (`4xx`, etwa Token nach 12 h abgelaufen), verfällt die Wahl samt ihrer
-  lokalen Wirkung; der Mitarbeiter wählt beim nächsten Mal neu.
+- Endgültig verloren ist eine Wahl nur, wenn der Edge sie selbst verwirft: `400` oder die
+  gekennzeichnete Token-Ablehnung der Methode (`NotAuthenticated` mit `data.reason:
+  POS_OPERATOR_REQUIRED`, etwa Token nach 12 h abgelaufen). Ein `401` der abgelaufenen
+  Geräte-Sitzung zählt nicht dazu — die Wahl bleibt gemerkt.
+- Eine neue Wahl wartet auf ein laufendes Nachsenden; sonst käme der ältere Wert zuletzt an.
+- Bis zum Neuladen gewinnt die Wahl dieser Sitzung über den geladenen Datensatz: Die Kasse hält
+  den Mitarbeiter als Momentaufnahme. Ändert ein Admin den Wert in der Cloud, sieht der POS ihn
+  nach dem nächsten Login.
 
 ## Sync
 

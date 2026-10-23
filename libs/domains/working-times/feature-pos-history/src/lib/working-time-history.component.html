@@ -1,17 +1,15 @@
-<div class="h-full w-full bg-gray-50 dark:bg-black p-4 md:p-6 flex flex-col gap-4 overflow-auto box-border">
+<div class="h-full w-full bg-surface-bg p-4 md:p-6 flex flex-col gap-4 overflow-auto box-border">
   <!-- Header & Filters -->
-  <header
-    class="flex-none flex flex-col gap-4 bg-white dark:bg-gray-950 rounded-2xl p-4 border border-gray-200 dark:border-gray-800"
-  >
+  <header class="flex-none flex flex-col gap-4 bg-surface-input rounded-2xl p-4 border border-line-soft">
     <div class="flex flex-row items-center justify-between">
       <div class="flex items-center gap-4">
         <button
           (click)="goBack()"
-          class="flex items-center justify-center w-10 h-10 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          class="flex items-center justify-center w-10 h-10 bg-surface-elevated text-ink-muted dark:text-ink rounded-xl hover:bg-line transition-colors"
         >
           <lib-icon name="arrow-left" class="text-[1.25rem]" />
         </button>
-        <h1 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+        <h1 class="text-xl font-bold text-ink flex items-center gap-2">
           <lib-icon name="clock" class="text-[1.25rem] text-amber-600" />
           {{ 'WORKING_TIMES.TITLE' | translate }}
         </h1>
@@ -23,16 +21,16 @@
         <div class="flex items-center gap-1">
           <button
             (click)="prevMonth()"
-            class="flex items-center justify-center w-9 h-9 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all"
+            class="flex items-center justify-center w-9 h-9 rounded-lg bg-surface-elevated text-ink-muted dark:text-ink hover:bg-line active:scale-95 transition-all"
           >
             <lib-icon name="caret-left" class="text-[1.125rem]" />
           </button>
-          <span class="min-w-[5.625rem] text-center text-sm font-semibold text-gray-700 dark:text-gray-200 select-none">
+          <span class="min-w-[5.625rem] text-center text-sm font-semibold text-ink select-none">
             {{ currentMonthLabel() }}
           </span>
           <button
             (click)="nextMonth()"
-            class="flex items-center justify-center w-9 h-9 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all"
+            class="flex items-center justify-center w-9 h-9 rounded-lg bg-surface-elevated text-ink-muted dark:text-ink hover:bg-line active:scale-95 transition-all"
           >
             <lib-icon name="caret-right" class="text-[1.125rem]" />
           </button>
@@ -40,7 +38,7 @@
 
         <!-- Jahr: Dropdown -->
         <select
-          class="h-9 px-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 font-medium focus:outline-none focus:ring-2 focus:ring-amber-200 dark:focus:ring-amber-800 cursor-pointer"
+          class="h-9 px-3 rounded-xl border border-line bg-surface-elevated text-sm text-ink font-medium focus:outline-none focus:ring-2 focus:ring-amber-200 dark:focus:ring-amber-800 cursor-pointer"
           (change)="selectedYear.set(+$any($event.target).value); onFilterChange()"
         >
           @for (y of years; track y) {
@@ -58,57 +56,53 @@
         type="checkbox"
         [checked]="hideOffDays()"
         (change)="hideOffDays.set(!hideOffDays())"
-        class="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-amber-600 focus:ring-amber-500 dark:bg-gray-800 cursor-pointer"
+        class="w-4 h-4 rounded border-line-strong text-amber-600 focus:ring-amber-500 dark:bg-surface-elevated cursor-pointer"
       />
-      <span
-        class="text-xs text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors"
-      >
+      <span class="text-xs text-ink-muted group-hover:text-ink transition-colors">
         {{ 'WORKING_TIMES.HIDE_OFF_DAYS' | translate }}
       </span>
     </label>
   </div>
 
   <!-- Content -->
-  <div
-    class="flex-1 min-h-0 bg-white dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col"
-  >
+  <div class="flex-1 min-h-0 bg-surface-input rounded-2xl border border-line-soft overflow-hidden flex flex-col">
     <div class="flex-1 overflow-auto">
       <div class="max-w-5xl mx-auto p-4 md:p-8">
         <table class="w-full min-w-max text-sm">
           <thead>
-            <tr class="text-left text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-              <th class="py-3 px-3 sticky top-0 bg-white dark:bg-gray-950 z-10">
+            <tr class="text-left text-xs font-bold text-ink-faint uppercase tracking-wider">
+              <th class="py-3 px-3 sticky top-0 bg-surface-input z-10">
                 {{ 'WORKING_TIMES.DATE' | translate }}
               </th>
-              <th class="py-3 px-3 sticky top-0 bg-white dark:bg-gray-950 z-10 w-16">
+              <th class="py-3 px-3 sticky top-0 bg-surface-input z-10 w-16">
                 {{ 'WORKING_TIMES.DAY' | translate }}
               </th>
-              <th class="py-3 px-3 sticky top-0 bg-white dark:bg-gray-950 z-10">
+              <th class="py-3 px-3 sticky top-0 bg-surface-input z-10">
                 {{ 'TIME_CLOCK.CLOCK_IN' | translate }}
               </th>
-              <th class="py-3 px-3 sticky top-0 bg-white dark:bg-gray-950 z-10">
+              <th class="py-3 px-3 sticky top-0 bg-surface-input z-10">
                 {{ 'TIME_CLOCK.CLOCK_OUT' | translate }}
               </th>
-              <th class="py-3 px-3 sticky top-0 bg-white dark:bg-gray-950 z-10">
+              <th class="py-3 px-3 sticky top-0 bg-surface-input z-10">
                 {{ 'WORKING_TIMES.BREAK' | translate }}
               </th>
-              <th class="py-3 px-3 sticky top-0 bg-white dark:bg-gray-950 z-10">
+              <th class="py-3 px-3 sticky top-0 bg-surface-input z-10">
                 {{ 'WORKING_TIMES.WORK_TIME' | translate }}
               </th>
-              <th class="py-3 px-3 sticky top-0 bg-white dark:bg-gray-950 z-10">{{ 'SETTINGS.STATUS' | translate }}</th>
+              <th class="py-3 px-3 sticky top-0 bg-surface-input z-10">{{ 'SETTINGS.STATUS' | translate }}</th>
             </tr>
           </thead>
           <tbody>
             @for (row of filteredData(); track row.date.getTime()) {
               <tr
-                class="border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                [class.bg-gray-50]="row.status === 'off'"
-                [class.dark:bg-gray-950]="row.status === 'off'"
+                class="border-b border-line-soft last:border-0 hover:bg-surface-elevated transition-colors"
+                [class.bg-surface-elevated]="row.status === 'off'"
+                [class.dark:bg-surface-rail]="row.status === 'off'"
               >
-                <td class="py-3 px-3 text-gray-700 dark:text-gray-200">{{ row.date | date: 'dd.MM.yyyy' }}</td>
-                <td class="py-3 px-3 font-medium text-gray-500 dark:text-gray-400">{{ row.dayName }}</td>
-                <td class="py-3 px-3 text-gray-700 dark:text-gray-200">{{ row.checkIn }}</td>
-                <td class="py-3 px-3 text-gray-700 dark:text-gray-200">{{ row.checkOut }}</td>
+                <td class="py-3 px-3 text-ink">{{ row.date | date: 'dd.MM.yyyy' }}</td>
+                <td class="py-3 px-3 font-medium text-ink-muted">{{ row.dayName }}</td>
+                <td class="py-3 px-3 text-ink">{{ row.checkIn }}</td>
+                <td class="py-3 px-3 text-ink">{{ row.checkOut }}</td>
                 <td class="py-3 px-3 relative">
                   @if (row.breakDuration > 0) {
                     <button
@@ -119,19 +113,19 @@
                     </button>
                     @if (expandedBreakRow() === row) {
                       <div
-                        class="absolute left-0 top-full mt-1 z-20 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-3 min-w-[11.25rem] text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line leading-relaxed animate-[fadeIn_0.15s_ease-out]"
+                        class="absolute left-0 top-full mt-1 z-20 bg-surface-elevated border border-line rounded-xl shadow-xl p-3 min-w-[11.25rem] text-sm text-ink-muted dark:text-ink whitespace-pre-line leading-relaxed animate-[fadeIn_0.15s_ease-out]"
                       >
-                        <div class="font-semibold mb-1 text-gray-800 dark:text-white text-xs">
+                        <div class="font-semibold mb-1 text-ink text-xs">
                           {{ 'WORKING_TIMES.BREAK_TIMES' | translate }}:
                         </div>
                         {{ getBreakDetails(row.workingTime) }}
                       </div>
                     }
                   } @else {
-                    <span class="text-gray-400 dark:text-gray-500">-</span>
+                    <span class="text-ink-faint">-</span>
                   }
                 </td>
-                <td class="py-3 px-3 font-bold text-gray-700 dark:text-gray-200">
+                <td class="py-3 px-3 font-bold text-ink">
                   {{ formatDuration(row.netDuration) }}
                 </td>
                 <td class="py-3 px-3">
@@ -144,7 +138,7 @@
                   }
                   @if (row.status === 'off') {
                     <span
-                      class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                      class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-line-soft text-ink-muted"
                     >
                       {{ 'WORKING_TIMES.STATUS_OFF' | translate }}
                     </span>
@@ -166,7 +160,7 @@
 
     <!-- Monthly Summary -->
     <div
-      class="flex-none border-t border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 dark:from-gray-800 to-white dark:to-gray-950 p-4 md:p-6"
+      class="flex-none border-t border-line bg-gradient-to-r from-surface-elevated to-surface-panel dark:to-surface-rail p-4 md:p-6"
     >
       <div class="max-w-5xl mx-auto flex flex-wrap gap-6 md:gap-12 items-center justify-end">
         <div class="flex items-center gap-3">
@@ -174,10 +168,10 @@
             <lib-icon name="coffee" class="text-[1.25rem] text-amber-600" />
           </div>
           <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            <p class="text-xs text-ink-muted uppercase tracking-wide">
               {{ 'WORKING_TIMES.TOTAL_BREAKS' | translate }}
             </p>
-            <p class="text-lg font-bold text-gray-700 dark:text-gray-200">{{ formatDuration(totalBreakDuration()) }}</p>
+            <p class="text-lg font-bold text-ink">{{ formatDuration(totalBreakDuration()) }}</p>
           </div>
         </div>
         <div class="flex items-center gap-3">
@@ -185,7 +179,7 @@
             <lib-icon name="clock" class="text-[1.25rem] text-emerald-600" />
           </div>
           <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            <p class="text-xs text-ink-muted uppercase tracking-wide">
               {{ 'WORKING_TIMES.TOTAL_WORK' | translate }}
             </p>
             <p class="text-xl font-bold text-emerald-700 dark:text-emerald-400">

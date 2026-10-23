@@ -6,7 +6,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-shell/40 dark:bg-shell/60 backdrop-blur-sm"
       tabindex="0"
       role="button"
       (click)="onCancel()"

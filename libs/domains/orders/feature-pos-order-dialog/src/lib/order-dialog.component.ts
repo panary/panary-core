@@ -3519,7 +3519,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       case 'confirm':
         return 'bg-accent-soft border-accent-line text-accent-ink hover:brightness-95 active:brightness-90'
       default:
-        return 'bg-surface-elevated border-line text-ink hover:bg-line-soft'
+        return 'bg-surface-elevated border-line text-ink hover:bg-line'
     }
   }
 

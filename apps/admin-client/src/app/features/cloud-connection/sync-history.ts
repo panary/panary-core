@@ -317,7 +317,7 @@ const SERVICE_LABEL: Record<string, string> = {
 
     @if (detailRow(); as dr) {
       <div
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-shell/40 dark:bg-shell/60 backdrop-blur-sm"
         tabindex="0"
         role="button"
         (click)="closeDetails()"

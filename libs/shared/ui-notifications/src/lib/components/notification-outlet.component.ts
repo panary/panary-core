@@ -23,17 +23,17 @@ import type { NotificationType } from '../models/notification.types'
     <div class="fixed top-4 right-4 z-[2000] flex flex-col gap-2 max-w-[92vw] w-[380px] pointer-events-none">
       @for (n of notifications(); track n.id) {
         <div
-          class="pointer-events-auto flex items-start gap-3 rounded-xl border-l-4 bg-white dark:bg-gray-900 shadow-lg px-4 py-3"
+          class="pointer-events-auto flex items-start gap-3 rounded-xl border-l-4 bg-surface-input shadow-lg px-4 py-3"
           [class]="borderClass(n.type)"
           role="alert"
         >
           <div class="flex-1 min-w-0">
             <p class="text-sm font-semibold" [class]="titleClass(n.type)">{{ n.title }}</p>
-            <p class="text-sm text-gray-700 dark:text-gray-200 break-words">{{ n.message }}</p>
+            <p class="text-sm text-ink break-words">{{ n.message }}</p>
           </div>
           <button
             type="button"
-            class="shrink-0 w-12 h-12 -mr-2 -mt-1 flex items-center justify-center text-2xl leading-none text-gray-400 hover:text-gray-700 dark:hover:text-gray-100"
+            class="shrink-0 w-12 h-12 -mr-2 -mt-1 flex items-center justify-center text-2xl leading-none text-ink-faint hover:text-ink"
             [attr.aria-label]="'Schließen'"
             (click)="dismiss(n.id)"
           >

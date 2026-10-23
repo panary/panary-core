@@ -30,8 +30,7 @@ Nach `tailwindcss`, per relativem Pfad (Pfad ab `apps/<app>/src/`):
 @use '../../../libs/shared/design-tokens/theme.css';
 ```
 
-Dazu `fonts.css` (Inter, IBM Plex Mono, lokal) und befristet `legacy-palette.css` (siehe unten), beide ebenfalls
-nach `tailwindcss`. Die Dateien liegen im Paket (`fonts/`, ca. 240 kB, nur latin und latin-ext). Beträge und
+Dazu `fonts.css` (Inter, IBM Plex Mono, lokal), ebenfalls nach `tailwindcss`. Die Dateien liegen im Paket (`fonts/`, ca. 240 kB, nur latin und latin-ext). Beträge und
 Zahlenspalten: Tailwind `tabular-nums` (Inter `tnum`) oder `font-mono`.
 
 Dunkel gilt bei `<html data-theme="dark">` oder bei System-Dunkel ohne `data-theme="light"`.
@@ -75,17 +74,25 @@ Status-Paare. Neue Text-/Flächenpaare gehören in die Liste `pairs` des Specs.
 (Tauri, Edge im LAN). Quelle und Lizenz (OFL 1.1, Text je Familie unter `fonts/`) siehe Kopf der Datei. Switzer ist
 in POS, Core-Admin und Setup-Client entfernt.
 
-## Legacy-Palette (Brücke)
+## Legacy-Palette (entfernt)
 
-Die Apps nutzen rund 5 600-mal `gray-*`/`slate-*` (`bg-gray-100`, `dark:bg-gray-800`, …). `legacy-palette.css` legt
-beide Rampen auf warme Werte; die dunklen Stufen entsprechen den Flächen-Tokens (`gray-900` = `--surface-bg`
-dunkel). Damit ist das dunkle Theme ohne Einzelmigration nie reines Schwarz. Die Datei entfällt je Bereich, wenn
-die Klassen auf Token-Klassen umgestellt sind; neue Oberflächen nutzen sie nicht.
+Bis core#849 legte `legacy-palette.css` die `gray-*`/`slate-*`-Rampen und `black` auf warme Werte, damit rund 5 600
+Bestandsklassen ohne Einzelmigration warm aussahen. Seit core#849 nutzen POS, Core-Admin und alle Domain-Libs
+ausschließlich Token-Klassen; die Datei, ihre Einbindung und der Export `./legacy-palette.css` sind entfernt.
+`gray-*`/`slate-*` fallen damit auf die Tailwind-Standardfarben zurück — wer sie neu einsetzt, bricht das Warm-Theme.
 
-Umstellung (panary/panary-core#849, je Bereich ein PR): Hell/Dunkel-Paare wie `border-gray-200 dark:border-gray-700`
-werden zu **einer** Token-Klasse (`border-line`), wenn deren Werte in beiden Themes höchstens 30 RGB-Einheiten
-abweichen, sonst bleiben zwei Token-Klassen. Reihenfolge: orders, users, businessdays, admin-client, Rest, zuletzt
-die Datei selbst. Umgestellt: `libs/domains/orders`, `users`, `businessdays`, `apps/admin-client` (samt `design-system.json`).
+Umstellungsregeln (für spätere Nachzügler):
+
+- Hell/Dunkel-Paare wie `border-gray-200 dark:border-gray-700` werden zu **einer** Token-Klasse (`border-line`), wenn
+  deren Werte in beiden Themes höchstens 30 RGB-Einheiten abweichen, sonst bleiben zwei Token-Klassen.
+- Gleichfarbige Basis- und `hover:`-Klasse nehmen dem Element die Hover-Rückmeldung; der Hover wird dann ein eigenes Token.
+- Einzelklassen ohne `dark:`-Partner (`text-gray-500`) wechseln mit dem Token das Theme und sind im Dunkeln heller.
+- Konstant dunkle Flächen (`bg-gray-800 text-white`) und Scrims (`bg-black/40`) sind `bg-shell` bzw. `bg-shell/40`.
+- Hervorgehobene Auswahl (`bg-gray-900 dark:bg-white`) ist `bg-ink text-surface-panel`.
+- Admin-Client: Die `dark`-Variante hängt an `:root:not([data-theme])`-Selektoren höherer Spezifität; ein `hover:` ohne
+  `dark:hover:` verliert dort im System-Dunkel.
+- Offen bleiben `purple-*`, `indigo-*`, `blue-*` (rund 370 Verwendungen) und `font-black`/`font-extrabold`
+  (Inter-Gewichte); beides sind Gestaltungsentscheidungen und keine Brückenreste.
 
 ## Angular Material (POS)
 
@@ -95,7 +102,7 @@ die Datei selbst. Umgestellt: `libs/domains/orders`, `users`, `businessdays`, `a
 ## Setup-Client (Edge-Setup-Assistent)
 
 `apps/setup-client/src/styles.css` bindet `tokens.css`, `theme.css` und `fonts.css` ein, bewusst **ohne**
-`legacy-palette.css`: Der Assistent nutzt nur Token-Klassen (`bg-surface-*`, `text-ink*`, `border-line`,
+`legacy-palette.css` (entfernt, siehe oben): Der Assistent nutzt nur Token-Klassen (`bg-surface-*`, `text-ink*`, `border-line`,
 `bg-action`, `danger-*`, `warn-*`). Wiederkehrende Bausteine liegen als `@layer components` ebendort
 (`setup-input`, `setup-btn-primary`, `setup-btn-ghost`, `setup-icon-btn`, `setup-field-label`) mit den Touch-Maßen
 `min-h-touch` (56 px), `min-h-touch-primary` (64 px) und `min-h-touch-min` (48 px). Icons über `<lib-icon>`

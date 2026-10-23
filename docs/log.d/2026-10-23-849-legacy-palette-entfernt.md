@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#849): [Design-Tokens](../architecture/design-tokens.md) — `legacy-palette.css` ist entfernt; POS, Core-Admin, devices, pre-orders, working-times, write-offs und die shared-Libs nutzen Token-Klassen, Scrims `bg-black/*` sind `bg-shell/*`.

@@ -6,7 +6,7 @@ import { ChangeDetectionStrategy, Component, inject, input, output, signal } fro
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-shell/40 dark:bg-shell/60 backdrop-blur-sm">
       <div
         class="bg-surface-input border border-line rounded-2xl p-6
                   max-w-md w-full mx-4 shadow-2xl animate-[scale-in_0.15s_ease-out]"

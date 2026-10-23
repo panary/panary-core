@@ -1,7 +1,6 @@
 @import 'tailwindcss';
 @import '../../../libs/shared/design-tokens/tokens.css';
 @import '../../../libs/shared/design-tokens/theme.css';
-@import '../../../libs/shared/design-tokens/legacy-palette.css';
 @import '../../../libs/shared/design-tokens/fonts.css';
 
 /* Explizite Quellpfade für Tailwind v4 JIT — nötig in Docker (kein .git-Verzeichnis) */

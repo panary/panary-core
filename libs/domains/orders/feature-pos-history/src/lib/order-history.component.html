@@ -5,7 +5,7 @@
       <div class="flex items-center gap-4">
         <button
           (click)="goBack()"
-          class="flex items-center justify-center w-10 h-10 bg-surface-elevated text-ink-muted dark:text-ink rounded-xl hover:bg-line-soft transition-colors"
+          class="flex items-center justify-center w-10 h-10 bg-surface-elevated text-ink-muted dark:text-ink rounded-xl hover:bg-line transition-colors"
         >
           <lib-icon name="arrow-left" class="text-[1.25rem]" />
         </button>
@@ -30,7 +30,7 @@
       <!-- Desktop: Buttons -->
       <div class="hidden md:flex gap-2">
         <button
-          class="px-4 h-9 rounded-xl text-ink border border-line bg-surface-elevated hover:bg-line-soft transition-colors"
+          class="px-4 h-9 rounded-xl text-ink border border-line bg-surface-elevated hover:bg-line transition-colors"
           [class.bg-purple-50]="selectedTimeRange() === 'today'"
           [class.dark:bg-purple-950]="selectedTimeRange() === 'today'"
           [class.text-purple-700]="selectedTimeRange() === 'today'"
@@ -40,7 +40,7 @@
           {{ 'HISTORY.TODAY' | translate }}
         </button>
         <button
-          class="px-4 h-9 rounded-xl text-ink border border-line bg-surface-elevated hover:bg-line-soft transition-colors"
+          class="px-4 h-9 rounded-xl text-ink border border-line bg-surface-elevated hover:bg-line transition-colors"
           [class.bg-purple-50]="selectedTimeRange() === 'yesterday'"
           [class.dark:bg-purple-950]="selectedTimeRange() === 'yesterday'"
           [class.text-purple-700]="selectedTimeRange() === 'yesterday'"
@@ -50,7 +50,7 @@
           {{ 'HISTORY.YESTERDAY' | translate }}
         </button>
         <button
-          class="px-4 h-9 rounded-xl text-ink border border-line bg-surface-elevated hover:bg-line-soft transition-colors"
+          class="px-4 h-9 rounded-xl text-ink border border-line bg-surface-elevated hover:bg-line transition-colors"
           [class.bg-purple-50]="selectedTimeRange() === 'week'"
           [class.dark:bg-purple-950]="selectedTimeRange() === 'week'"
           [class.text-purple-700]="selectedTimeRange() === 'week'"

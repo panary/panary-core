@@ -9,46 +9,46 @@ import { IconComponent } from '../icon/icon.component'
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [IconComponent, CommonModule, MatDialogModule],
   template: `
-    <div class="p-6 bg-white rounded-2xl w-[320px] flex flex-col gap-4">
-      <div class="flex justify-between items-center pb-2 border-b border-slate-100">
-        <h2 class="text-xl font-bold text-slate-800 m-0">Menge eingeben</h2>
+    <div class="p-6 bg-surface-panel rounded-2xl w-[320px] flex flex-col gap-4">
+      <div class="flex justify-between items-center pb-2 border-b border-line-soft">
+        <h2 class="text-xl font-bold text-ink m-0">Menge eingeben</h2>
         <button
           type="button"
           (click)="close()"
-          class="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 hover:bg-slate-100 active:bg-slate-200 transition-all flex items-center justify-center"
+          class="w-10 h-10 rounded-xl bg-surface-elevated border border-line text-ink-faint hover:bg-surface-bg active:bg-line transition-all flex items-center justify-center"
         >
           <lib-icon name="x" class="text-[20px]" />
         </button>
       </div>
 
-      <div class="h-16 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-center p-4">
-        <span class="text-3xl font-bold text-slate-800">{{ displayValue }}</span>
+      <div class="h-16 bg-surface-elevated rounded-xl border border-line flex items-center justify-center p-4">
+        <span class="text-3xl font-bold text-ink">{{ displayValue }}</span>
       </div>
 
       <div class="grid grid-cols-3 gap-3">
         @for (num of [1, 2, 3, 4, 5, 6, 7, 8, 9]; track num) {
           <button
             (click)="append(num)"
-            class="h-14 rounded-xl bg-white border border-slate-200 text-xl font-bold text-slate-700 hover:bg-slate-50 active:bg-slate-100 shadow-sm transition-all active:scale-95"
+            class="h-14 rounded-xl bg-surface-panel border border-line text-xl font-bold text-ink hover:bg-surface-elevated active:bg-surface-bg shadow-sm transition-all active:scale-95"
           >
             {{ num }}
           </button>
         }
         <button
           (click)="append('.')"
-          class="h-14 rounded-xl bg-white border border-slate-200 text-xl font-bold text-slate-700 hover:bg-slate-50 active:bg-slate-100 shadow-sm transition-all active:scale-95"
+          class="h-14 rounded-xl bg-surface-panel border border-line text-xl font-bold text-ink hover:bg-surface-elevated active:bg-surface-bg shadow-sm transition-all active:scale-95"
         >
           ,
         </button>
         <button
           (click)="append(0)"
-          class="h-14 rounded-xl bg-white border border-slate-200 text-xl font-bold text-slate-700 hover:bg-slate-50 active:bg-slate-100 shadow-sm transition-all active:scale-95"
+          class="h-14 rounded-xl bg-surface-panel border border-line text-xl font-bold text-ink hover:bg-surface-elevated active:bg-surface-bg shadow-sm transition-all active:scale-95"
         >
           0
         </button>
         <button
           (click)="backspace()"
-          class="h-14 rounded-xl bg-red-50 border border-red-100 text-red-500 hover:bg-red-100 active:bg-red-200 shadow-sm transition-all active:scale-95 flex items-center justify-center"
+          class="h-14 rounded-xl bg-danger-soft border border-danger-line text-danger-ink hover:bg-danger-line active:bg-danger-line shadow-sm transition-all active:scale-95 flex items-center justify-center"
         >
           <lib-icon name="backspace" class="text-[20px]" />
         </button>

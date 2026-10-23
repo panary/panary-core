@@ -1,7 +1,7 @@
 <!-- Overlay-Modal — passt zum POS-Touch-First-UI (siehe Login-Pattern).
      Schließt bei Klick außerhalb des Dialogs nur bei sicheren Schritten. -->
 <div
-  class="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+  class="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-shell/60 backdrop-blur-sm"
   role="dialog"
   aria-modal="true"
   (click)="cancel()"
@@ -9,13 +9,13 @@
   tabindex="-1"
 >
   <div
-    class="w-full max-w-md bg-white dark:bg-gray-950 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col max-h-[90vh]"
+    class="w-full max-w-md bg-surface-input rounded-3xl shadow-2xl border border-line-soft overflow-hidden flex flex-col max-h-[90vh]"
     (click)="$event.stopPropagation()"
     (keydown)="$event.stopPropagation()"
     tabindex="-1"
   >
     <!-- Header -->
-    <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
+    <div class="flex items-center justify-between p-5 border-b border-line-soft">
       <div class="flex items-center gap-3">
         <div
           class="h-10 w-10 rounded-full bg-red-50 dark:bg-red-950 flex items-center justify-center text-red-600 dark:text-red-400"
@@ -23,17 +23,17 @@
           <lib-icon name="link-break" class="text-[1.25rem]" />
         </div>
         <div>
-          <h2 class="text-base font-bold text-gray-800 dark:text-white">
+          <h2 class="text-base font-bold text-ink">
             {{ 'SETTINGS.UNPAIR_TITLE' | translate }}
           </h2>
-          <p class="text-xs text-gray-500 dark:text-gray-400">{{ deviceName() }}</p>
+          <p class="text-xs text-ink-muted">{{ deviceName() }}</p>
         </div>
       </div>
       <button
         type="button"
         (click)="cancel()"
         [disabled]="step() === 'unpairing'"
-        class="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        class="flex items-center justify-center w-9 h-9 rounded-lg text-ink-faint hover:bg-line-soft disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         [attr.aria-label]="'COMMON.CLOSE' | translate"
       >
         <lib-icon name="x" class="text-[1.25rem]" />
@@ -45,14 +45,14 @@
       @switch (step()) {
         @case ('loading') {
           <div class="flex flex-col items-center justify-center py-12 gap-3">
-            <lib-icon name="arrows-clockwise" class="text-[2.5rem] text-gray-400 dark:text-gray-500 animate-spin" />
-            <p class="text-sm text-gray-500 dark:text-gray-400">{{ 'SETTINGS.UNPAIR_LOADING_USERS' | translate }}</p>
+            <lib-icon name="arrows-clockwise" class="text-[2.5rem] text-ink-faint animate-spin" />
+            <p class="text-sm text-ink-muted">{{ 'SETTINGS.UNPAIR_LOADING_USERS' | translate }}</p>
           </div>
         }
 
         @case ('select-user') {
           <div class="flex flex-col gap-3">
-            <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">
+            <p class="text-sm text-ink-muted dark:text-ink mb-2">
               {{ 'SETTINGS.UNPAIR_SELECT_USER_DESC' | translate }}
             </p>
 
@@ -61,7 +61,7 @@
                 <button
                   type="button"
                   (click)="selectUser(user)"
-                  class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 transition-colors text-left"
+                  class="flex items-center gap-3 p-3 bg-surface-elevated hover:bg-line rounded-xl border border-line-soft transition-colors text-left"
                 >
                   <div
                     class="h-10 w-10 rounded-full bg-accent-soft text-accent-ink font-bold flex items-center justify-center"
@@ -69,20 +69,18 @@
                     {{ user.initials || '??' }}
                   </div>
                   <div class="flex-1 min-w-0">
-                    <p class="font-semibold text-gray-800 dark:text-white truncate">
-                      {{ user.firstName }} {{ user.lastName }}
-                    </p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    <p class="font-semibold text-ink truncate">{{ user.firstName }} {{ user.lastName }}</p>
+                    <p class="text-xs text-ink-muted truncate">
                       {{ user.staffRole || user.role }}
                     </p>
                   </div>
-                  <lib-icon name="caret-right" class="text-gray-300 dark:text-gray-600 text-[1.25rem]" />
+                  <lib-icon name="caret-right" class="text-line-strong text-[1.25rem]" />
                 </button>
               }
             } @else {
               <div class="flex flex-col items-center text-center gap-3 py-8">
-                <lib-icon name="user-minus" class="text-[2.5rem] text-gray-300 dark:text-gray-600" />
-                <p class="text-sm text-gray-500 dark:text-gray-400">
+                <lib-icon name="user-minus" class="text-[2.5rem] text-line-strong" />
+                <p class="text-sm text-ink-muted">
                   {{ 'SETTINGS.UNPAIR_NO_ELIGIBLE_USERS' | translate }}
                 </p>
               </div>
@@ -99,11 +97,11 @@
                 >
                   {{ user.initials || '??' }}
                 </div>
-                <p class="font-semibold text-gray-800 dark:text-white">{{ user.firstName }} {{ user.lastName }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">{{ user.staffRole || user.role }}</p>
+                <p class="font-semibold text-ink">{{ user.firstName }} {{ user.lastName }}</p>
+                <p class="text-xs text-ink-muted">{{ user.staffRole || user.role }}</p>
               </div>
 
-              <p class="text-sm text-gray-600 dark:text-gray-300 text-center">
+              <p class="text-sm text-ink-muted dark:text-ink text-center">
                 {{ 'SETTINGS.UNPAIR_ENTER_PIN' | translate }}
               </p>
 
@@ -114,8 +112,7 @@
                     class="w-3.5 h-3.5 rounded-full transition-colors"
                     [class.bg-action]="pinInput().length > i && !pinError()"
                     [class.bg-red-500]="pinError()"
-                    [class.bg-gray-200]="pinInput().length <= i && !pinError()"
-                    [class.dark:bg-gray-700]="pinInput().length <= i && !pinError()"
+                    [class.bg-line]="pinInput().length <= i && !pinError()"
                   ></div>
                 }
               </div>
@@ -131,7 +128,7 @@
                     type="button"
                     (click)="addDigit(digit)"
                     [disabled]="isVerifying()"
-                    class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 text-xl font-semibold text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 disabled:opacity-40 transition-all"
+                    class="h-14 rounded-xl bg-line-soft text-xl font-semibold text-ink hover:bg-line active:scale-95 disabled:opacity-40 transition-all"
                   >
                     {{ digit }}
                   </button>
@@ -140,7 +137,7 @@
                   type="button"
                   (click)="backToUserList()"
                   [disabled]="isVerifying()"
-                  class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 disabled:opacity-40 transition-all flex items-center justify-center"
+                  class="h-14 rounded-xl bg-line-soft text-ink-muted hover:bg-line active:scale-95 disabled:opacity-40 transition-all flex items-center justify-center"
                   [attr.aria-label]="'COMMON.BACK' | translate"
                 >
                   <lib-icon name="user" class="text-[1.25rem]" />
@@ -149,7 +146,7 @@
                   type="button"
                   (click)="addDigit('0')"
                   [disabled]="isVerifying()"
-                  class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 text-xl font-semibold text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 disabled:opacity-40 transition-all"
+                  class="h-14 rounded-xl bg-line-soft text-xl font-semibold text-ink hover:bg-line active:scale-95 disabled:opacity-40 transition-all"
                 >
                   0
                 </button>
@@ -157,7 +154,7 @@
                   type="button"
                   (click)="deleteDigit()"
                   [disabled]="isVerifying()"
-                  class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 disabled:opacity-40 transition-all flex items-center justify-center"
+                  class="h-14 rounded-xl bg-line-soft text-ink-muted hover:bg-line active:scale-95 disabled:opacity-40 transition-all flex items-center justify-center"
                   [attr.aria-label]="'COMMON.DELETE' | translate"
                 >
                   <lib-icon name="backspace" class="text-[1.25rem]" />
@@ -165,7 +162,7 @@
               </div>
 
               @if (isVerifying()) {
-                <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                <p class="text-xs text-ink-muted flex items-center gap-2">
                   <lib-icon name="arrows-clockwise" class="text-[0.875rem] animate-spin" />
                   {{ 'COMMON.VERIFYING' | translate }}
                 </p>
@@ -192,11 +189,9 @@
             </div>
 
             @if (verifiedUser(); as user) {
-              <div class="text-xs text-gray-500 dark:text-gray-400 text-center">
+              <div class="text-xs text-ink-muted text-center">
                 {{ 'SETTINGS.UNPAIR_AUTHORIZED_BY' | translate }}
-                <span class="font-semibold text-gray-700 dark:text-gray-300">
-                  {{ user.firstName }} {{ user.lastName }}
-                </span>
+                <span class="font-semibold text-ink"> {{ user.firstName }} {{ user.lastName }} </span>
               </div>
             }
           </div>
@@ -230,18 +225,18 @@
         @case ('unpairing') {
           <div class="flex flex-col items-center justify-center py-12 gap-3">
             <lib-icon name="arrows-clockwise" class="text-[2.5rem] text-red-500 animate-spin" />
-            <p class="text-sm text-gray-500 dark:text-gray-400">{{ 'SETTINGS.UNPAIR_IN_PROGRESS' | translate }}</p>
+            <p class="text-sm text-ink-muted">{{ 'SETTINGS.UNPAIR_IN_PROGRESS' | translate }}</p>
           </div>
         }
 
         @case ('error') {
           <div class="flex flex-col items-center text-center gap-3 py-6">
             <lib-icon name="warning-circle" class="text-[2.5rem] text-red-500" />
-            <p class="text-sm font-semibold text-gray-800 dark:text-white">
+            <p class="text-sm font-semibold text-ink">
               {{ 'SETTINGS.UNPAIR_ERROR' | translate }}
             </p>
             @if (errorMessage()) {
-              <p class="text-xs text-gray-500 dark:text-gray-400 break-words max-w-full">{{ errorMessage() }}</p>
+              <p class="text-xs text-ink-muted break-words max-w-full">{{ errorMessage() }}</p>
             }
           </div>
         }
@@ -250,11 +245,11 @@
 
     <!-- Footer / Actions -->
     @if (step() === 'confirm') {
-      <div class="flex gap-2 p-4 border-t border-gray-100 dark:border-gray-800">
+      <div class="flex gap-2 p-4 border-t border-line-soft">
         <button
           type="button"
           (click)="cancel()"
-          class="flex-1 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          class="flex-1 h-12 rounded-xl bg-line-soft text-ink font-semibold hover:bg-line transition-colors"
         >
           {{ 'COMMON.CANCEL' | translate }}
         </button>
@@ -267,11 +262,11 @@
         </button>
       </div>
     } @else if (step() === 'confirm-pending') {
-      <div class="flex gap-2 p-4 border-t border-gray-100 dark:border-gray-800">
+      <div class="flex gap-2 p-4 border-t border-line-soft">
         <button
           type="button"
           (click)="backToConfirm()"
-          class="flex-1 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          class="flex-1 h-12 rounded-xl bg-line-soft text-ink font-semibold hover:bg-line transition-colors"
         >
           {{ 'COMMON.BACK' | translate }}
         </button>
@@ -284,11 +279,11 @@
         </button>
       </div>
     } @else if (step() === 'error') {
-      <div class="flex gap-2 p-4 border-t border-gray-100 dark:border-gray-800">
+      <div class="flex gap-2 p-4 border-t border-line-soft">
         <button
           type="button"
           (click)="cancel()"
-          class="flex-1 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          class="flex-1 h-12 rounded-xl bg-line-soft text-ink font-semibold hover:bg-line transition-colors"
         >
           {{ 'COMMON.CLOSE' | translate }}
         </button>

@@ -30,7 +30,7 @@ interface StepAnswer {
         @if (answers().has('greeting')) {
           <div
             class="answered-step group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
-                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
+                      hover:bg-line dark:hover:bg-line transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(0)"
@@ -84,7 +84,7 @@ interface StepAnswer {
         @if (answers().has('name')) {
           <div
             class="answered-step group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
-                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
+                      hover:bg-line dark:hover:bg-line transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(1)"
@@ -157,7 +157,7 @@ interface StepAnswer {
         @if (answers().has('color')) {
           <div
             class="answered-step group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
-                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
+                      hover:bg-line dark:hover:bg-line transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(2)"
@@ -250,7 +250,7 @@ interface StepAnswer {
         @if (answers().has('tax')) {
           <div
             class="answered-step group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
-                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
+                      hover:bg-line dark:hover:bg-line transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(3)"
@@ -401,7 +401,7 @@ interface StepAnswer {
               @if (saving()) {
                 <span
                   class="w-4 h-4 border-2 border-line-soft/30
-                             border-t-white dark:border-t-black rounded-full animate-spin"
+                             border-t-white dark:border-t-shell rounded-full animate-spin"
                 ></span>
                 Erstelle...
               } @else {

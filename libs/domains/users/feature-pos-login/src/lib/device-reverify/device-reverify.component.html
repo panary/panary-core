@@ -33,7 +33,7 @@
         <div class="flex flex-col gap-2">
           @for (user of authorizingUsers(); track user._id) {
             <button
-              class="pnry-touch flex items-center gap-3 p-3 rounded-xl bg-surface-elevated dark:bg-surface-elevated/60 hover:bg-line-soft active:scale-[0.99] transition-all text-left"
+              class="pnry-touch flex items-center gap-3 p-3 rounded-xl bg-surface-elevated dark:bg-surface-elevated/60 hover:bg-line active:scale-[0.99] transition-all text-left"
               (click)="selectUser(user)"
             >
               <div

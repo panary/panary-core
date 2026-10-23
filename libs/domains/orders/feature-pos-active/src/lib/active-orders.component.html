@@ -6,7 +6,7 @@
   >
     <button
       (click)="goBack()"
-      class="flex items-center justify-center w-10 h-10 bg-surface-elevated border border-line text-ink-muted dark:text-ink rounded-xl hover:bg-line-soft transition-colors"
+      class="flex items-center justify-center w-10 h-10 bg-surface-elevated border border-line text-ink-muted dark:text-ink rounded-xl hover:bg-line transition-colors"
     >
       <lib-icon name="arrow-left" class="text-[1.25rem]" />
     </button>
@@ -57,7 +57,7 @@
     <div class="hidden md:flex items-center gap-1.5">
       <button
         (click)="decreaseZoom()"
-        class="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-elevated border border-line text-ink-muted dark:text-ink hover:bg-line-soft active:scale-95 transition-all"
+        class="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-elevated border border-line text-ink-muted dark:text-ink hover:bg-line active:scale-95 transition-all"
       >
         <lib-icon name="minus" class="text-[1.125rem]" />
       </button>
@@ -66,7 +66,7 @@
       >
       <button
         (click)="increaseZoom()"
-        class="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-elevated border border-line text-ink-muted dark:text-ink hover:bg-line-soft active:scale-95 transition-all"
+        class="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-elevated border border-line text-ink-muted dark:text-ink hover:bg-line active:scale-95 transition-all"
       >
         <lib-icon name="plus" class="text-[1.125rem]" />
       </button>
@@ -111,7 +111,7 @@
             <!-- ── Aktions-Schaltflächen (über der Karte, schwebend) ── -->
             <div class="flex-none flex items-center gap-2 px-4">
               <button
-                class="pnry-touch hover-morph-btn flex items-center justify-center bg-surface-elevated text-ink-muted dark:text-ink w-12 h-12 rounded-xl border border-line hover:bg-line-soft transition-colors shadow-sm"
+                class="pnry-touch hover-morph-btn flex items-center justify-center bg-surface-elevated text-ink-muted dark:text-ink w-12 h-12 rounded-xl border border-line hover:bg-line transition-colors shadow-sm"
                 (click)="printOrder($event, order)"
               >
                 <lib-icon name="printer" class="text-[1.25rem]" />
@@ -291,7 +291,7 @@
                     >
                       @for (discount of selectableDiscounts(); track discount._id) {
                         <button
-                          class="min-h-14 rounded-xl bg-surface-elevated text-ink flex flex-col items-center justify-center border border-line hover:bg-line-soft hover:border-line-strong transition-colors"
+                          class="min-h-14 rounded-xl bg-surface-elevated text-ink flex flex-col items-center justify-center border border-line hover:bg-line hover:border-line-strong transition-colors"
                           (click)="applyDiscount(order, discount)"
                         >
                           <span class="text-sm font-bold truncate max-w-full px-2">{{ discount.name }}</span>

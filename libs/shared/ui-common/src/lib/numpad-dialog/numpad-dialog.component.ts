@@ -48,7 +48,7 @@ import { IconComponent } from '../icon/icon.component'
         </button>
         <button
           (click)="backspace()"
-          class="h-14 rounded-xl bg-red-50 border border-red-100 text-red-500 hover:bg-red-100 active:bg-red-200 shadow-sm transition-all active:scale-95 flex items-center justify-center"
+          class="h-14 rounded-xl bg-danger-soft border border-danger-line text-danger-ink hover:bg-danger-line active:bg-danger-line shadow-sm transition-all active:scale-95 flex items-center justify-center"
         >
           <lib-icon name="backspace" class="text-[20px]" />
         </button>

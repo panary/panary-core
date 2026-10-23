@@ -22,7 +22,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
           <div class="flex items-center gap-4">
             <button
               (click)="goBack()"
-              class="flex items-center justify-center w-10 h-10 bg-surface-elevated text-ink-muted dark:text-ink rounded-xl hover:bg-line-soft transition-colors"
+              class="flex items-center justify-center w-10 h-10 bg-surface-elevated text-ink-muted dark:text-ink rounded-xl hover:bg-line transition-colors"
             >
               <lib-icon name="arrow-left" class="text-[1.25rem]" />
             </button>

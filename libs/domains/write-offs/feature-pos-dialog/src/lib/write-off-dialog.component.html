@@ -37,7 +37,7 @@
                   [ngClass]="
                     selectedType() === WriteOffItemType.PRODUCT
                       ? 'bg-indigo-50 border-indigo-500 text-indigo-700'
-                      : 'bg-surface-elevated border-line text-ink-muted dark:text-ink hover:bg-line-soft'
+                      : 'bg-surface-elevated border-line text-ink-muted dark:text-ink hover:bg-line'
                   "
                 >
                   <lib-icon name="fork-knife" class="text-[1.25rem]" />
@@ -49,7 +49,7 @@
                   [ngClass]="
                     selectedType() === WriteOffItemType.INGREDIENT
                       ? 'bg-indigo-50 border-indigo-500 text-indigo-700'
-                      : 'bg-surface-elevated border-line text-ink-muted dark:text-ink hover:bg-line-soft'
+                      : 'bg-surface-elevated border-line text-ink-muted dark:text-ink hover:bg-line'
                   "
                 >
                   <lib-icon name="egg" class="text-[1.25rem]" />
@@ -61,7 +61,7 @@
                   [ngClass]="
                     selectedType() === WriteOffItemType.RECIPE
                       ? 'bg-indigo-50 border-indigo-500 text-indigo-700'
-                      : 'bg-surface-elevated border-line text-ink-muted dark:text-ink hover:bg-line-soft'
+                      : 'bg-surface-elevated border-line text-ink-muted dark:text-ink hover:bg-line'
                   "
                 >
                   <lib-icon name="receipt" class="text-[1.25rem]" />
@@ -79,7 +79,7 @@
                   type="text"
                   [formControl]="searchControl"
                   [placeholder]="'WRITE_OFF.ENTER_NAME' | translate"
-                  class="w-full h-14 pl-12 pr-12 bg-surface-elevated border border-line rounded-xl text-lg font-medium focus:outline-none focus:border-indigo-500 focus:bg-surface-elevated dark:text-white transition-all"
+                  class="w-full h-14 pl-12 pr-12 bg-surface-elevated border border-line rounded-xl text-lg font-medium focus:outline-none focus:border-indigo-500 dark:text-white transition-all"
                 />
                 @if (searchControl.value) {
                   <button
@@ -233,7 +233,7 @@
             >
               <span>{{ 'WRITE_OFF.RESULTS' | translate }} ({{ items.length }})</span>
               @if (selectedType() === WriteOffItemType.PRODUCT) {
-                <span class="text-[0.625rem] bg-surface-bg px-2 py-0.5 rounded text-ink-muted">Menüs ausgeblendet</span>
+                <span class="text-[0.625rem] bg-line-soft px-2 py-0.5 rounded text-ink-muted">Menüs ausgeblendet</span>
               }
             </div>
 

@@ -45,7 +45,7 @@ interface ExistingProduct {
         @if (isAnswered('greeting')) {
           <div
             class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
-                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
+                      hover:bg-line dark:hover:bg-line transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(0)"
@@ -87,7 +87,7 @@ interface ExistingProduct {
         @if (isAnswered('type')) {
           <div
             class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
-                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
+                      hover:bg-line dark:hover:bg-line transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(1)"
@@ -173,7 +173,7 @@ interface ExistingProduct {
         @if (isAnswered('name')) {
           <div
             class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
-                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
+                      hover:bg-line dark:hover:bg-line transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(2)"
@@ -232,7 +232,7 @@ interface ExistingProduct {
         @if (isAnswered('price')) {
           <div
             class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
-                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
+                      hover:bg-line dark:hover:bg-line transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(3)"
@@ -294,7 +294,7 @@ interface ExistingProduct {
         @if (isAnswered('tax')) {
           <div
             class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
-                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
+                      hover:bg-line dark:hover:bg-line transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(4)"
@@ -378,7 +378,7 @@ interface ExistingProduct {
         @if (isAnswered('category')) {
           <div
             class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
-                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
+                      hover:bg-line dark:hover:bg-line transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(5)"
@@ -450,7 +450,7 @@ interface ExistingProduct {
         @if (isAnswered('acronym')) {
           <div
             class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
-                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
+                      hover:bg-line dark:hover:bg-line transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(6)"

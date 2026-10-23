@@ -19,7 +19,7 @@
       "globalImport": "@use 'tailwindcss';",
       "darkModeVariant": "@custom-variant dark (&:where(.dark, .dark *));",
       "fontFace": {
-        "comment": "Schriften und Farben kommen aus libs/shared/design-tokens (tokens.css, theme.css, fonts.css); die Brücke legacy-palette.css entfällt mit dem letzten Teil von core#849"
+        "comment": "Schriften und Farben kommen aus libs/shared/design-tokens (tokens.css, theme.css, fonts.css); die Brücke legacy-palette.css ist seit core#849 entfernt"
       },
       "themeBlock": {
         "comment": "Im @theme-Block definieren – kein tailwind.config.js",

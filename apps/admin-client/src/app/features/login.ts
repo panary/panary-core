@@ -10,8 +10,9 @@ import { AuthService } from '../core/auth.service'
   imports: [FormsModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-slate-50 dark:bg-black flex items-center justify-center p-6">
-      <div class="w-full max-w-sm space-y-8">
+    <div class="relative min-h-screen overflow-hidden bg-surface-bg text-ink flex items-center justify-center p-6">
+      <div class="auth-dots absolute inset-0" aria-hidden="true"></div>
+      <div class="relative w-full max-w-sm space-y-8">
         <div class="text-center">
           <img src="assets/panary_logo_mono.svg" alt="Panary" class="h-8 mx-auto mb-6 opacity-60" />
           <h1 class="text-2xl font-bold tracking-tight">{{ 'NAV.ADMIN_PANEL' | translate }}</h1>

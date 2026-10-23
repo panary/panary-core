@@ -124,10 +124,6 @@
   "LOGIN": {
     "WELCOME": "Willkommen",
     "SELECT_ACCOUNT": "Wählen Sie Ihren Account",
-    "RECENT_HERE": "Zuletzt hier",
-    "SEARCH_PLACEHOLDER": "Name suchen",
-    "LETTER_GROUPS": "Nach Anfangsbuchstaben",
-    "NO_SEARCH_RESULTS": "Niemand gefunden",
     "OTHER_PERSON": "Andere Person",
     "ENTER_PIN": "PIN eingeben",
     "WRONG_PIN": "Falsche PIN. Bitte erneut versuchen.",

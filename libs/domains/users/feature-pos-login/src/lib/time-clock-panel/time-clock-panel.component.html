@@ -1,10 +1,10 @@
-<!-- Embedded Mode: Used inside the dark panel on desktop -->
+<!-- Embedded Mode: Karte im hellen Login-Seitenpanel (Konzept 2.5) -->
 @if (mode() === 'embedded') {
-  <div class="flex flex-col h-full">
+  <div class="flex flex-col rounded-card border border-line bg-surface-elevated">
     <!-- Header - centered -->
     <div class="p-4 text-center">
-      <h3 class="text-base font-semibold text-white flex items-center justify-center gap-2">
-        <svg class="w-4 h-4 text-[#00B8D4]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <h3 class="text-base font-semibold text-ink flex items-center justify-center gap-2">
+        <svg class="w-4 h-4 text-accent-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -14,7 +14,7 @@
         </svg>
         {{ 'TIME_CLOCK.TITLE' | translate }}
       </h3>
-      <p class="text-xs text-white/60 mt-0.5">{{ 'TIME_CLOCK.SUBTITLE' | translate }}</p>
+      <p class="text-xs text-ink-muted mt-0.5">{{ 'TIME_CLOCK.SUBTITLE' | translate }}</p>
     </div>
 
     <!-- Content -->
@@ -30,7 +30,7 @@
               (click)="selectAction(action.action)"
             >
               <div
-                class="w-10 h-10 rounded-full bg-white/80 dark:bg-white/10 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm"
+                class="w-10 h-10 rounded-full bg-surface-panel flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm"
               >
                 @switch (action.icon) {
                   @case ('login') {
@@ -93,29 +93,33 @@
           <!-- Action Header -->
           <div class="flex items-center gap-3 mb-4">
             <button
-              class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+              class="w-8 h-8 rounded-full bg-surface-input border border-line hover:bg-surface-panel flex items-center justify-center transition-colors"
               (click)="cancelAction()"
               [attr.aria-label]="'COMMON.BACK' | translate"
             >
-              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 text-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
               </svg>
             </button>
             <div>
-              <h4 class="text-white font-medium text-sm">
+              <h4 class="text-ink font-medium text-sm">
                 {{ getActionConfig(selectedAction()!)?.label! | translate }}
               </h4>
-              <p class="text-xs text-white/60">{{ 'TIME_CLOCK.ENTER_EMPLOYEE_NUMBER' | translate }}</p>
+              <p class="text-xs text-ink-muted">{{ 'TIME_CLOCK.ENTER_EMPLOYEE_NUMBER' | translate }}</p>
             </div>
           </div>
 
           <!-- PIN Display -->
-          <div class="bg-white/10 rounded-xl p-3 mb-3">
+          <div class="bg-surface-input border border-line rounded-xl p-3 mb-3">
             <div class="flex justify-center gap-2">
               @for (i of [0, 1, 2, 3, 4, 5]; track i) {
                 <div
                   class="w-7 h-7 rounded-lg flex items-center justify-center text-base font-mono transition-all"
-                  [ngClass]="pinInput().length > i ? 'bg-[#00B8D4] text-white' : 'bg-white/20 text-transparent'"
+                  [ngClass]="
+                    pinInput().length > i
+                      ? 'bg-action text-on-action'
+                      : 'bg-surface-input border border-line text-transparent'
+                  "
                 >
                   {{ pinInput()[i] || '•' }}
                 </div>
@@ -124,7 +128,7 @@
           </div>
 
           @if (pinError()) {
-            <p class="text-red-400 text-xs text-center mb-3">
+            <p class="text-danger-ink text-xs text-center mb-3">
               {{ errorMessage() || ('TIME_CLOCK.INVALID_EMPLOYEE_NUMBER' | translate) }}
             </p>
           }
@@ -133,7 +137,7 @@
           <div class="grid grid-cols-3 gap-1.5">
             @for (digit of ['1', '2', '3', '4', '5', '6', '7', '8', '9']; track digit) {
               <button
-                class="h-10 rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-lg font-medium transition-all"
+                class="h-10 rounded-lg bg-surface-input border border-line hover:bg-surface-panel active:bg-surface-bg text-ink text-lg font-medium transition-all"
                 (click)="addDigit(digit)"
                 [disabled]="isLoading()"
               >
@@ -141,27 +145,27 @@
               </button>
             }
             <button
-              class="h-10 rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 text-white/60 text-xs transition-all"
+              class="h-10 rounded-lg bg-surface-input border border-line hover:bg-surface-panel active:bg-surface-bg text-ink-muted text-xs transition-all"
               (click)="clearPin()"
               [disabled]="isLoading()"
             >
               Löschen
             </button>
             <button
-              class="h-10 rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-lg font-medium transition-all"
+              class="h-10 rounded-lg bg-surface-input border border-line hover:bg-surface-panel active:bg-surface-bg text-ink text-lg font-medium transition-all"
               (click)="addDigit('0')"
               [disabled]="isLoading()"
             >
               0
             </button>
             <button
-              class="h-10 rounded-lg bg-[#00B8D4] hover:bg-[#00a0bb] active:bg-[#0090a8] text-white font-medium transition-all flex items-center justify-center disabled:opacity-50"
+              class="h-10 rounded-lg bg-action text-on-action hover:brightness-95 font-medium transition-all flex items-center justify-center disabled:opacity-50"
               (click)="confirmAction()"
               [disabled]="isLoading() || pinInput().length < 4"
               [attr.aria-label]="'COMMON.CONFIRM' | translate"
             >
               @if (isLoading()) {
-                <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <div class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
               } @else {
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -175,12 +179,12 @@
       <!-- Success Message -->
       @if (successMessage()) {
         <div class="flex flex-col items-center justify-center py-8 animate-[scaleIn_0.3s_ease-out]">
-          <div class="w-14 h-14 rounded-full bg-emerald-500/20 flex items-center justify-center mb-3">
-            <svg class="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="w-14 h-14 rounded-full bg-accent-soft flex items-center justify-center mb-3">
+            <svg class="w-7 h-7 text-accent-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
             </svg>
           </div>
-          <p class="text-white font-medium text-sm text-center">{{ successMessage() }}</p>
+          <p class="text-ink font-medium text-sm text-center">{{ successMessage() }}</p>
         </div>
       }
     </div>

@@ -525,23 +525,6 @@ describe('LoginComponent — Bediener-Token', () => {
     expect(navigate.mock.calls).toEqual([[['/dashboard']]])
   })
 
-  it('merkt sich den Mitarbeiter gerätelokal — nur als ID, nur nach erfolgreicher PIN', async () => {
-    const { component, store, connection } = loginWith({ _id: 'u-anna', firstName: 'Anna', lastName: 'Alt' })
-
-    await component.verifyPin()
-
-    expect(JSON.parse(store.get('pnry_login_recent_staff') as string)).toEqual(['u-anna'])
-    expect(component.recentStaffIds()).toEqual(['u-anna'])
-
-    // Falsche PIN: Liste bleibt, wie sie ist.
-    ;(connection.usersService as Record<string, unknown>)['verifyPin'] = vi.fn().mockRejectedValue(new Error('PIN'))
-    component.selectedUser.set({ _id: 'u-bruno', firstName: 'Bruno', lastName: 'Berg', initials: 'BB' } as never)
-    component.pinInput.set('0000')
-    await component.verifyPin()
-
-    expect(JSON.parse(store.get('pnry_login_recent_staff') as string)).toEqual(['u-anna'])
-  })
-
   it('behaelt das Token aus verifyPin ueber den erzwungenen PIN-Wechsel', async () => {
     // `changePin` liefert kein Token — es stammt aus dem verifyPin davor.
     const { component, connection, store } = loginWith({

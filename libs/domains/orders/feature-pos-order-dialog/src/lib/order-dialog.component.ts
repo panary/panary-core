@@ -17,6 +17,7 @@ import {
   PipeTransform,
   signal,
   ViewChild,
+  viewChild,
   WritableSignal,
 } from '@angular/core'
 import { formatEurCents } from '@panary/shared/util-helpers'
@@ -28,7 +29,6 @@ import { A11yModule } from '@angular/cdk/a11y'
 import { MatSnackBar, MatSnackBarRef, TextOnlySnackBar } from '@angular/material/snack-bar'
 import { FormsModule } from '@angular/forms'
 import { CommonModule } from '@angular/common'
-import { animate, style, transition, trigger } from '@angular/animations'
 // UUID als String-Alias (node:crypto UUID ist ein branded type – für Migration vereinfacht)
 type UUID = string
 
@@ -156,6 +156,13 @@ export class AbsPipe implements PipeTransform {
 /** Funktionstaste „Herauslösen" (#795) — die Beschriftung folgt dem Multiplikator. */
 const RELEASE_BUTTON_ID = 'releaseFromCombination'
 
+/** Leerlauf-Text der früheren Infozeile — als Hinweis wäre er nur Rauschen (core#908). */
+const IDLE_INFO_TEXT = 'Bitte wählen Sie eine Produktkategorie'
+const IDLE_INFO_TEXTS: ReadonlySet<string> = new Set([IDLE_INFO_TEXT, `${IDLE_INFO_TEXT}!`])
+/** Standzeit des Hinweises; ein Fehler bleibt länger, weil er meist erklärt, warum ein Tipp nichts tat. */
+const NOTICE_MS = 4000
+const NOTICE_DANGER_MS = 6000
+
 @Component({
   selector: 'app-order-dialog',
   standalone: true,
@@ -174,18 +181,6 @@ const RELEASE_BUTTON_ID = 'releaseFromCombination'
   ],
   templateUrl: './order-dialog.component.html',
   styleUrls: ['./order-dialog.component.scss'],
-  animations: [
-    trigger('changeInfoBoxText', [
-      transition('* => *', [
-        style({ transform: 'translateX(0)' }),
-        animate(75, style({ transform: 'translateX(0)' })),
-        animate(150, style({ transform: 'translateX(5px)' })),
-        animate(75, style({ transform: 'translateX(-3px)' })),
-        animate(75, style({ transform: 'translateX(5px)' })),
-        animate(150, style({ transform: 'translateX(0)' })),
-      ]),
-    ]),
-  ],
 })
 export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   /** INJECTIONS */
@@ -212,6 +207,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   /** VIEW CHILDREN */
   // TODO: @ViewChild durch viewChild()-Signal ersetzen, sobald AfterViewInit-Logik migriert ist
   @ViewChild('productGroupContainer') productGroupContainer!: ElementRef
+  /** Unsichtbare Messzeile mit allen Gruppen — liefert die Breiten, nach denen die Leiste aufteilt (core#908). */
+  readonly #productGroupMeasure = viewChild<ElementRef<HTMLElement>>('productGroupMeasure')
   #cdr = inject(ChangeDetectorRef)
   readonly discountCodeService = inject(DiscountCodeService)
 
@@ -253,7 +250,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private _functionButtons: PosButton[] = []
   private _functionBlockLabel = ''
   private _infoBoxBackgroundColor = '#f1f5f9'
-  private _infoBoxText = 'Bitte wählen Sie eine Produktkategorie!'
+  private _infoBoxText = `${IDLE_INFO_TEXT}!`
   private _infoBoxTextColor = 'black'
   private _lastParentId: string | null | undefined = undefined
   private _pager: number | undefined = undefined
@@ -424,8 +421,29 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   readonly handedness = computed(() => this.#posHandedness.effective(this.#currentUser()))
 
-  /** Übersicht aller Gruppen hinter „Weitere (n)" — ersetzt das frühere Überlauf-Menü (core#829). */
-  readonly allGroupsOpen = signal(false)
+  /**
+   * Kurzer Hinweis über dem Raster — ersetzt die Infozeile, die eine eigene Zeile über der Gruppenleiste belegte
+   * (core#908). Er liegt über dem Raster, verschiebt also keine Kachel unter dem Finger, und blendet sich aus.
+   * Leerlauf-Text und das Echo einer gewählten Gruppe bleiben stumm: Das zeigen Leiste und Funktionsblock selbst.
+   */
+  readonly notice = signal<{ text: string; tone: 'danger' | 'neutral' } | null>(null)
+  #noticeTimer: ReturnType<typeof setTimeout> | undefined
+
+  /**
+   * Funktionstasten des Hauptbildschirms (core#908): Stehen, solange keine Ansicht eigene setzt. „Kombination"
+   * war bis core#829 eine eigene Taste und ist dann unter „Optionen" verschwunden — zwei Tipps für eine häufige
+   * Aktion. Mint nach code-style.md §9.1 („Kombinieren").
+   */
+  readonly #mainFunctionButtons: readonly PosButton[] = [
+    {
+      _id: 'main-combination',
+      name: 'Kombination',
+      isFunctionButton: true,
+      variant: 'confirm',
+      iconName: 'arrows-merge',
+      callback: () => this.setCombiSubButtons(),
+    },
+  ]
 
   get combinations(): OrderLineItem[][] {
     return getCombinations({ lineItems: this.#lineItems } as any)
@@ -446,6 +464,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   get functionButtons() {
     return this._functionButtons
+  }
+
+  /** Was über dem Raster steht: die Tasten der aktuellen Ansicht, sonst die des Hauptbildschirms. */
+  get boardFunctionButtons(): readonly PosButton[] {
+    return this._functionButtons.length > 0 ? this._functionButtons : this.#mainFunctionButtons
   }
 
   get infoBoxText() {
@@ -639,6 +662,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         this.calculateVisibleProductGroups()
       })
       this._resizeObserver.observe(this.productGroupContainer.nativeElement)
+      // Die Messzeile ändert ihre Breite, wenn Gruppen dazukommen oder die Schrift nachlädt — beides ohne Resize.
+      const measure = this.#productGroupMeasure()?.nativeElement
+      if (measure) this._resizeObserver.observe(measure)
     }
   }
 
@@ -646,6 +672,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this._resizeObserver) {
       this._resizeObserver.disconnect()
     }
+    clearTimeout(this.#noticeTimer)
     if (this._timer) {
       clearInterval(this._timer)
     }
@@ -654,30 +681,28 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   calculateVisibleProductGroups() {
     const allGroups = this.productGroups
 
-    if (!this.productGroupContainer || !this.productGroupContainer.nativeElement) {
+    const measure = this.#productGroupMeasure()?.nativeElement
+    // Die Messzeile spiegelt `productGroups` erst nach dem nächsten Rendern; bis dahin gilt die alte Aufteilung
+    // nicht als Messung. Ihr ResizeObserver rechnet nach, sobald sie steht.
+    if (!this.productGroupContainer?.nativeElement || !measure || measure.children.length !== allGroups.length) {
       this.visibleProductGroups = allGroups
       this.overflowProductGroups = []
       return
     }
 
-    // Felder und Abstände sind rem-basiert und wachsen mit der Dichte. `auto-fill` zählt die Spalten über
-    // die Innenbreite — `clientWidth` enthält das Padding und ergäbe an manchen Breiten eine Spalte zu viel.
+    // Breiten und Abstände sind rem-basiert und wachsen mit der Dichte. Gerechnet wird mit der Innenbreite —
+    // `clientWidth` enthält das Padding und ließe eine Gruppe zu viel in die Zeile.
     const element: HTMLElement = this.productGroupContainer.nativeElement
     const style = getComputedStyle(element)
     const innerWidth =
       element.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0)
     const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
-    const split = splitGroupBar(allGroups, innerWidth, remPx)
+    const chipWidths = Array.from(measure.children, chip => chip.getBoundingClientRect().width)
+    const split = splitGroupBar(allGroups, chipWidths, innerWidth, remPx)
     this.visibleProductGroups = split.visible
     this.overflowProductGroups = split.overflow
 
     this.#cdr.detectChanges()
-  }
-
-  /** Gruppe aus der Übersicht aller Gruppen wählen — schließt die Übersicht. */
-  selectGroupFromAll(productGroup: ProductGroup): void {
-    this.allGroupsOpen.set(false)
-    this.createProductButtons(productGroup)
   }
 
   /** PRIVATE METHODS */
@@ -721,6 +746,27 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       this._infoBoxBackgroundColor = '#f1f5f9'
     }
     this._infoBoxText = value
+    this.#showNotice(value, backgroundColor)
+  }
+
+  #showNotice(text: string, backgroundColor: string | undefined): void {
+    clearTimeout(this.#noticeTimer)
+    // Gruppenfarben kommen als Hex; benannte Farben stehen für Meldungen, Rot für Fehler.
+    const echoesContext =
+      !text || IDLE_INFO_TEXTS.has(text) || backgroundColor?.startsWith('#') || text === this._functionBlockLabel
+    if (echoesContext) {
+      this.notice.set(null)
+      return
+    }
+    const tone = backgroundColor === 'red' ? 'danger' : 'neutral'
+    this.notice.set({ text, tone })
+    this.#noticeTimer = setTimeout(
+      () => {
+        this.notice.set(null)
+        this.#cdr.markForCheck()
+      },
+      tone === 'danger' ? NOTICE_DANGER_MS : NOTICE_MS,
+    )
   }
 
   noActionDefined(subButton: PosButton): void {
@@ -761,7 +807,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.clearButtons()
     this._selectedProductIndex = null
     this._selectedCombinationIndex = [null, null]
-    this.setInfoBoxText('Bitte wählen Sie eine Produktkategorie')
+    this.setInfoBoxText(IDLE_INFO_TEXT)
   }
 
   /**
@@ -1592,7 +1638,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       this.openCustomizePanel(line)
     } else {
       this.clearButtons()
-      this.setInfoBoxText('Bitte wählen Sie eine Produktkategorie')
+      this.setInfoBoxText(IDLE_INFO_TEXT)
     }
   }
 
@@ -2058,8 +2104,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         this.setProductButtonsByGroupId((product as any)?.categoryIds?.[0])
       },
     })
-    this.setInfoBoxText(byExternId.name)
     this._functionBlockLabel = byExternId.name
+    this.setInfoBoxText(byExternId.name)
     // VM-Kopien statt Store-Referenzen — der Dialog darf Cache-Objekte nicht mutieren
     this._productButtons = this.#gridProducts(byExternId._id, byExternId.externalId).map(successor => {
       const button = toPosButton(successor)
@@ -2532,8 +2578,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Zeigt die Auswahl-Buttons für eine OptionGroup an */
   private showOptionGroupButtons(group: any, parentProduct: ProductSchema): void {
     this.clearButtons()
-    this.setInfoBoxText(group.name)
     this._functionBlockLabel = group.name
+    this.setInfoBoxText(group.name)
     this._isBlocked = true
 
     // Produkte für die Optionen laden

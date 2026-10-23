@@ -2,7 +2,7 @@ import { BindingType, parseTemplate, type TmplAstNode } from '@angular/compiler'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { GROUP_GAP_REM, GROUP_MIN_WIDTH_REM } from './group-bar'
+import { GROUP_BURGER_WIDTH_REM, GROUP_GAP_REM } from './group-bar'
 
 // Die Komponenten-Spec instanziiert den Dialog direkt und rendert das Template nicht —
 // deshalb hier ein Blick auf die Quelle: Beilage und Getraenk eines Menues sind Objekte,
@@ -36,7 +36,7 @@ describe('OrderDialog-Template — Aufpreis der Menue-Komponenten (core#781)', (
 
 // Angular trennt den Namen einer [class.…]-Bindung am Punkt: [class.translate-y-[0.3125rem]]
 // band nur „translate-y-[0" — eine Klasse ohne CSS, die Menue-Striche wurden nie zum „X" (#573).
-// Das Überlauf-Menü mit den Strichen ist mit core#829 entfallen; die Regel gilt für jede Bindung.
+// Das Überlauf-Menü mit den Strichen ist mit core#908 zurück; die Regel gilt für jede Bindung.
 type BindingNode = TmplAstNode & {
   inputs?: { name: string; type: BindingType; value: { source?: string | null } }[]
   children?: BindingNode[]
@@ -146,7 +146,7 @@ describe('Kasse-Template — Ziffernleiste (#798, core#829)', () => {
   })
 
   it('hält das Ziffern-Popup außerhalb des Containers, aber in der Zone verankert', () => {
-    const zonenEnde = template.indexOf('<!-- Alle Gruppen')
+    const zonenEnde = template.indexOf('<!-- Steuerleiste der markierten')
     const popup = template.indexOf('@if (showNumpadPopup)')
     expect(ende).toBeGreaterThan(start)
     expect(popup).toBeGreaterThan(ende)
@@ -157,6 +157,7 @@ describe('Kasse-Template — Ziffernleiste (#798, core#829)', () => {
 })
 
 // core#829: Zonen-Grid mit Spiegelung je Mitarbeiter, Gruppenleiste ohne Wischen, Kacheln ohne Silbentrennung.
+// core#908: ohne Kopfzeile, Gruppenleiste einzeilig mit Burger.
 describe('Kasse-Template — Layout B1 (core#829)', () => {
   const scss = readFileSync(fileURLToPath(new URL('./order-dialog.component.scss', import.meta.url)), 'utf8')
   // Nur die Zeilen hinter `grid-template-areas:` — der Selektor `[data-hand='right']` trägt selbst Anführungszeichen.
@@ -167,13 +168,12 @@ describe('Kasse-Template — Layout B1 (core#829)', () => {
     expect(template).toContain('[attr.data-hand]="handedness()"')
   })
 
-  it('spiegelt nur Zonen: Warenkorb ↔ Raster und Primärtaste ↔ Ziffernleiste, Kopf und Gruppen bleiben', () => {
+  it('spiegelt nur Zonen: Warenkorb ↔ Raster und Primärtaste ↔ Ziffernleiste, die Gruppen bleiben', () => {
     const links = scss.slice(scss.indexOf('.kasse {'), scss.indexOf("&[data-hand='right']"))
-    const rechts = scss.slice(scss.indexOf("&[data-hand='right']"), scss.indexOf('.kasse__head'))
+    const rechts = scss.slice(scss.indexOf("&[data-hand='right']"), scss.indexOf('.kasse__groups {'))
     const gespiegelt = areas(links).map(zeile => [...zeile].reverse())
 
     expect(areas(links)).toEqual([
-      ['head', 'head'],
       ['groups', 'groups'],
       ['cart', 'grid'],
       ['primary', 'keys'],
@@ -182,18 +182,17 @@ describe('Kasse-Template — Layout B1 (core#829)', () => {
   })
 
   it('legt jede Zone auf ihre grid-area', () => {
-    for (const zone of ['head', 'groups', 'cart', 'grid', 'primary', 'keys']) {
+    for (const zone of ['groups', 'cart', 'grid', 'primary', 'keys']) {
       expect(template).toContain(`kasse__${zone}`)
       expect(scss).toMatch(new RegExp(`\\.kasse__${zone} \\{\\s*grid-area: ${zone};`))
     }
   })
 
-  it('baut die Gruppenleiste mit derselben Mindestbreite und demselben Abstand, mit denen group-bar.ts rechnet', () => {
-    const leiste = template.match(/class="kasse__groups ([^"]*)"/)?.[1].split(/\s+/) ?? []
-    expect(leiste).toContain(`grid-cols-[repeat(auto-fill,minmax(${GROUP_MIN_WIDTH_REM}rem,1fr))]`)
-    // gap-N ist N × 0,25rem — der Abstand steckt ebenfalls in der Rechnung.
-    const gap = leiste.map(k => k.match(/^gap-(\d+(?:\.\d+)?)$/)?.[1]).find(Boolean)
-    expect(Number(gap) * 0.25).toBe(GROUP_GAP_REM)
+  it('hat keine Kopfzeile mehr — Meldungen laufen über den Hinweis (core#908)', () => {
+    expect(template).not.toContain('kasse__head')
+    expect(template).not.toContain('infoBox')
+    expect(scss).not.toContain("'head")
+    expect(template).toContain('@if (notice(); as hint)')
   })
 
   it('trennt Namen auf Kacheln und Gruppen nicht mitten im Wort (core#853)', () => {
@@ -204,6 +203,62 @@ describe('Kasse-Template — Layout B1 (core#829)', () => {
   it('hat keine Spalte 2 mehr', () => {
     expect(template).not.toContain('SPALTE 2')
     expect(template).not.toContain('Abwählen')
+  })
+})
+
+// core#908: Befunde aus dem MacBook-Test von pos-v26.10.25.
+describe('Kasse-Template — Feinschliff (core#908)', () => {
+  const scss = readFileSync(fileURLToPath(new URL('./order-dialog.component.scss', import.meta.url)), 'utf8')
+  const klassen = (marker: string) =>
+    template
+      .slice(template.lastIndexOf('<', template.indexOf(marker)), template.indexOf('>', template.indexOf(marker)))
+      .match(/class="([^"]*)"/)?.[1]
+      .split(/\s+/) ?? []
+
+  it('baut die Gruppenleiste einzeilig, mit demselben Abstand und derselben Burger-Breite wie group-bar.ts', () => {
+    const leiste = template.match(/class="kasse__groups ([^"]*)"/)?.[1].split(/\s+/) ?? []
+    expect(leiste).toContain('flex')
+    expect(leiste).not.toContain('flex-wrap')
+    expect(leiste.filter(k => k.startsWith('grid'))).toEqual([])
+    // gap-N ist N × 0,25rem, w-N ebenso — beide stecken in der Rechnung.
+    const gap = leiste.map(k => k.match(/^gap-(\d+(?:\.\d+)?)$/)?.[1]).find(Boolean)
+    expect(Number(gap) * 0.25).toBe(GROUP_GAP_REM)
+    const burger = klassen('[matMenuTriggerFor]="moreGroups"')
+      .map(k => k.match(/^w-(\d+)$/)?.[1])
+      .find(Boolean)
+    expect(Number(burger) * 0.25).toBe(GROUP_BURGER_WIDTH_REM)
+  })
+
+  it('misst Leiste und Messzeile mit derselben Gruppen-Vorlage, Farbe als Punkt statt Unterkante', () => {
+    expect(template.match(/\[ngTemplateOutlet\]="groupChip"/g)).toHaveLength(2)
+    expect(template).toContain('#productGroupMeasure')
+    expect(template).not.toContain("'3px solid ' + productGroup.color")
+    expect(template.match(/\[style\.background-color\]="productGroup\.color"/g)).toHaveLength(2)
+  })
+
+  it('führt Kombination als Funktionstaste und Code unter „Optionen"', () => {
+    expect(template).toContain('@for (functionButton of boardFunctionButtons; track functionButton._id)')
+    const optionen = template.slice(
+      template.indexOf('<mat-menu #optionen'),
+      template.indexOf('</mat-menu>', template.indexOf('<mat-menu #optionen')),
+    )
+    expect(optionen).toContain('(click)="openPromoCodeDialog()"')
+    expect(optionen).not.toContain('setCombiSubButtons()')
+    expect(template.match(/\(click\)="openPromoCodeDialog\(\)"/g)).toHaveLength(1)
+  })
+
+  it('macht Primärtaste und Ziffern gleich hoch', () => {
+    expect(klassen('(click)="setTaxRateSubbuttons()"')).toContain('h-14')
+    expect(klassen('(click)="applyProductSearch()"')).toContain('h-14')
+  })
+
+  it('legt die Ziffern an den Rand gegenüber dem Warenkorb und spiegelt das mit der Händigkeit', () => {
+    expect(template).toContain('class="kasse__keys-row ')
+    const links = scss.slice(scss.indexOf('.kasse__keys-row {'))
+    expect(links.slice(0, links.indexOf('}'))).toContain('justify-content: flex-end')
+    const rechts = scss.slice(scss.indexOf(".kasse[data-hand='right'] {"))
+    const rechtsZeile = rechts.slice(rechts.indexOf('.kasse__keys-row {'))
+    expect(rechtsZeile.slice(0, rechtsZeile.indexOf('}'))).toContain('justify-content: flex-start')
   })
 })
 
@@ -249,7 +304,7 @@ describe('Kasse-Template — Anpassen-Sheet (core#830)', () => {
       '(click)="numpadReset()"',
       '(click)="showNumpadPopup = !showNumpadPopup"',
       '(click)="createProductButtons(productGroup)"',
-      '(click)="allGroupsOpen.set(true)"',
+      '[matMenuTriggerFor]="moreGroups"',
     ]) {
       const tags = startTags(marker)
       expect(tags.length, marker).toBeGreaterThan(0)

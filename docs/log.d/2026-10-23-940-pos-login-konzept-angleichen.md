@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#940): [Zweistufiger POS-Login](../domains/pos-login-mitarbeiterwahl.md) — Kartenraster „Wer kassiert?“ mit Kurznamen, Stempel-Panel (Kommen breit, Pause/Gehen, Pause Ende schmal) und Fußtasten mit Klartext nach Konzept 2.5; Gerätename stammt aus der Kopplung. Logik unverändert.

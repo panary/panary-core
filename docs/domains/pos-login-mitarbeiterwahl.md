@@ -12,7 +12,7 @@ Code: `libs/domains/users/feature-pos-login`.
 
 ## Seitenpanel (ab lg links)
 
-Helles Panel auf App-Tokens (`bg-surface-panel`, `border-line`, `text-ink`), Konzept (Workbench-Repo, `sandbox/design-studie/konzept.html`),
+Panel auf App-Tokens (`bg-surface-rail`, `border-line`, `text-ink`), Konzept (Workbench-Repo, `sandbox/design-studie/konzept.html`),
 Mockup 2.5/2.6: Logo, Gerätename mit Version, Verbindungsanzeige, darunter nur auf **geteilten** Geräten die
 Zeiterfassung (`lib-time-clock-panel`, Logik unverändert), auf zugewiesenen Geräten die Namen der Zugewiesenen.
 Ganz unten stehen Theme- und Sprachtaste. Auf schmalen Bildschirmen entfällt das Panel; Logo, Sprache,
@@ -20,13 +20,25 @@ Verbindung und das Slide-in der Zeiterfassung bleiben wie bisher.
 
 ## Schritt 1 — Mitarbeiterwahl (geteilte Geräte)
 
-`lib-staff-picker` zeigt alle Personen als alphabetisches Kachelraster (Nachname, dann Vorname). Es gibt
-bewusst **keine Suche, keine Buchstabengruppen und kein „Zuletzt hier"** — sie wurden mit panary/panary-core#835
-eingeführt und nach dem Test auf dem MacBook (panary/panary-core#906) wieder entfernt. Der Login legt seither
-keine Personenangaben mehr im `localStorage` ab; ein Altwert unter `pnry_login_recent_staff` wird nicht mehr gelesen.
+Überschrift „Wer kassiert?", darunter alle Personen als alphabetisches Kartenraster (Nachname, dann Vorname):
+Karten mit Kontur (`pos-key`), Initialen-Kreis und Kurzname (`Anna A.`), Spalten nach Breite
+(`auto-fill`, mindestens 9,5 rem), Höhe 5,25 rem. Es gibt bewusst **keine Suche, keine Buchstabengruppen und
+kein „Zuletzt hier"** — sie wurden mit panary/panary-core#835 eingeführt und nach dem Test auf dem MacBook
+(panary/panary-core#906) wieder entfernt. Der Login legt seither keine Personenangaben mehr im `localStorage` ab;
+ein Altwert unter `pnry_login_recent_staff` wird nicht mehr gelesen.
 
-Zugewiesene Geräte behalten die kompakte Zeilenliste (zwei bis fünf Einträge), ein Gerät mit genau einer
-Person überspringt Schritt 1.
+Zugewiesene Geräte behalten die kompakte Zeilenliste (zwei bis fünf Einträge) mit „Willkommen", ein Gerät mit
+genau einer Person überspringt Schritt 1.
+
+## Stempel-Panel
+
+Karte „Nur Arbeitszeit stempeln": „Kommen" breit (Akzent), darunter „Pause" und „Gehen" (Gefahr). „Pause Ende"
+steht als schmale vierte Taste darunter: Das Mockup kennt sie nicht, weil der Zustand der Person vor der Eingabe
+der Personalnummer unbekannt ist — eine zustandsabhängige Taste bräuchte erst die Nummer. Fußtasten: Theme
+(„Hell/Dunkel/System") und Sprache (Klartext, z. B. „Deutsch").
+
+Der Gerätename in der Panelzeile ist der Name aus der Kopplung (`panary_device_config.deviceName`, Rückfall
+„POS Terminal"); der Code belegt keinen Testnamen vor.
 
 ## Schritt 2 — PIN
 
